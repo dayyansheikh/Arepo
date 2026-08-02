@@ -7,8 +7,9 @@ probability, order-book microstructure and movement anomalies from public Polyma
 ![Astrolabe market detail](docs/screenshots/market-detail.png)
 ![Astrolabe signal lab](docs/screenshots/signal-lab.png)
 
-> Screenshots above are placeholders (`docs/screenshots/*.png` not yet captured) — see
-> [Preview](#preview) for a text description of each surface.
+> Screenshots above were captured from the running application (replay mode). Additional
+> captures — `replay-backtest.png`, `methodology.png`, and `live-overview.png` (live Polymarket
+> data) — are in [`docs/screenshots/`](docs/screenshots).
 
 **Live demo:** Not yet deployed — see [`docs/deployment.md`](docs/deployment.md).
 **Repository:** `<repository-url-placeholder>`

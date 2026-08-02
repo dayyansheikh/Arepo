@@ -29,10 +29,9 @@ frontend/.env.local
 .idea/
 .vscode/
 
-# --- Build / packaging artefacts ---
+# --- Build / packaging artefacts (regenerable; not tracked) ---
 /staging/
 *.zip
-!Dayyan-Sheikh-Prediction-Market-Project.zip  # the final artefact is produced by script, not tracked
 
 # --- Data dumps / caches (never commit large API dumps) ---
 /backend/astrolabe.db

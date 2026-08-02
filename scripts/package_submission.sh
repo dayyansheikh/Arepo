@@ -40,7 +40,9 @@ if [ -n "$VIOLATIONS" ]; then
 fi
 
 echo "==> Scanning for obvious secrets"
-if grep -rIl -e 'BEGIN .*PRIVATE KEY' -e 'AWS_SECRET_ACCESS_KEY' -e 'aws_secret_access_key' \
+# (exclude this script itself, whose grep pattern literals would self-match)
+if grep -rIl --exclude='package_submission.sh' \
+     -e 'BEGIN .*PRIVATE KEY' -e 'AWS_SECRET_ACCESS_KEY' -e 'aws_secret_access_key' \
      "$STAGING/$NAME" >/dev/null 2>&1; then
   echo "!! Possible secret material found in staging — aborting."
   exit 1

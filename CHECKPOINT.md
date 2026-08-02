@@ -3,7 +3,18 @@
 _Single source of truth for "where are we, exactly." Updated after each wave._
 
 ## Current phase
-**Phases 3–5 in progress** — ingestion, replay/analytics landed; storage + WS in flight.
+**COMPLETE** (all phases). See `FINAL_STATUS.md` for the authoritative final state.
+
+Delivered + verified: backend (128 tests pass, ruff clean) with live/cached/replay modes all
+exercised against real Polymarket; Next.js frontend (lint+typecheck+build clean, 6 surfaces)
+verified in-browser against the live backend (3 frontend integration bugs found + fixed via the
+browser smoke test); independent adversarial review completed and its 4 real findings fixed +
+regression-tested; Docker/compose + deploy configs authored; full docs set + Mermaid + PDF
+report; packaging script → 0.75 MB ZIP (<20 MB, exclusions + secret scan verified). Remaining
+external-only blockers: Docker exec (no daemon) and public deploy (needs user hosting auth).
+
+---
+## (historical) Phase 3–5 progress
 
 ### Verified milestones (Opus-run, not agent claims)
 - Spine boots; `/health` OK. 2 spine tests.
