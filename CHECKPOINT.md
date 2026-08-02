@@ -3,7 +3,27 @@
 _Single source of truth for "where are we, exactly." Updated after each wave._
 
 ## Current phase
-**COMPLETE** (all phases). See `FINAL_STATUS.md` for the authoritative final state.
+**Arepo redesign — Phase 2 (design system & shell) in progress.** Branch
+`arepo-redesign` off tag `astrolabe-baseline`.
+
+### Baseline recorded (redesign start, 2026-08-03)
+- Frontend: `tsc --noEmit` clean, `next lint` clean, `next build` clean (8/8 pages).
+- Backend: **128 tests pass**, `ruff check` clean.
+- Working tree clean at start; tag `astrolabe-baseline` present.
+
+### Phase 1 complete (Opus-run)
+- All `design-references/` inspected. `docs/design-reference-audit.md` and
+  `docs/brand-system.md` written; decisions R1–R7 in `DECISIONS.md`.
+- Key decisions: rename to **Arepo** (user-facing only), accent red `#E50C0E` used
+  sparingly, **light-only** identity, Geist Sans, KaTeX maths, modernist DS as the
+  softened primary influence, richer Markets filters client-side (no backend change).
+
+### Data flow to preserve (do not touch)
+`lib/{api,types,format,use-async,use-status,mode-context}.ts(x)` — the backend
+contract and mode plumbing. Redesign is presentational + new education pages only.
+
+---
+## (historical) Original Astrolabe build — COMPLETE
 
 Delivered + verified: backend (128 tests pass, ruff clean) with live/cached/replay modes all
 exercised against real Polymarket; Next.js frontend (lint+typecheck+build clean, 6 surfaces)

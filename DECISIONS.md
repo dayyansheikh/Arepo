@@ -1,7 +1,56 @@
-# DECISIONS.md — Astrolabe
+# DECISIONS.md — Astrolabe / Arepo
 
 An append-only log of significant engineering and product decisions, with reasoning.
 Newest entries at the top of each section.
+
+---
+
+## Arepo redesign (branch `arepo-redesign`, from tag `astrolabe-baseline`)
+
+### R7. Light-only identity; inherited auto dark-mode dropped
+Every design reference and the brand brief are light-first (red on a warm-white
+ground). To keep the identity calm, consistent and credible, Arepo commits to a
+single light theme and removes the baseline's `prefers-color-scheme: dark`
+overrides. Dark mode was a cosmetic feature, not core functionality or a data
+mode, so this preserves the "all functionality and data modes" requirement while
+matching every reference exactly.
+
+### R6. Richer Markets filters are client-side over existing fields
+The backend `/api/markets` supports `search`, `category`, `status`, `sort` only.
+The brief's additional guided filters (signal-strength range, probability range,
+time-to-close, sport/competition where present) are implemented **client-side**
+over fields already on `MarketCard`, with honest empty states — no backend change,
+per "do not alter backend behaviour". Sport/competition are shown only when the
+data carries them; the UI never implies all markets have sports metadata.
+
+### R5. Maths via KaTeX
+Equations render with KaTeX (added as a frontend dep), not hand-rolled fraction
+markup. Guarantees correct fractions, superscripts/subscripts, Greek and aligned
+equations, per the brief's "never display equations as programming text".
+
+### R4. Typography — Geist Sans via next/font, Inter fallback
+Per brief preference order. Geist Mono for raw identifiers only. Tabular numerals
+on all data.
+
+### R3. Brand direction — modernist restraint, softened
+Of the three `_ds` bundles, **modernist** (red-on-white, flat, disciplined) is the
+closest to the brief and the primary influence; **industry** and **broadsheet**
+are rejected. Modernist's zero-radius / heavy-2px-rule aesthetic is softened to the
+brief's restrained radius, subtler borders and calmer spacing. See
+`docs/design-reference-audit.md`.
+
+### R2. Accent red `#E50C0E`, used sparingly
+Single accent for active nav, primary actions, selected controls and key signals
+only. Never carries meaning alone (up/down/good/bad always pair colour with a
+sign, arrow or word). Chart primary series = Arepo red; comparison series = neutral
+slate. See `docs/brand-system.md`.
+
+### R1. Product rename Astrolabe → Arepo (user-facing only)
+User-facing surfaces (nav, titles, metadata, README, report, logo, favicon,
+copy) become **Arepo**. Internal Python packages, DB identifiers and API paths keep
+`astrolabe` — renaming coupled internals is cosmetic risk with no user benefit, per
+the brief. Brand meaning is the Sator-Square connective word; full paragraph in
+`docs/brand-system.md`.
 
 ---
 

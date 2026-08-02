@@ -1,8 +1,39 @@
-# TASKS.md — Astrolabe
+# TASKS.md — Astrolabe / Arepo
 
-Legend: `[x]` done · `[!]` blocked (external). See `FINAL_STATUS.md` for the authoritative state.
+Legend: `[x]` done · `[ ]` todo · `[~]` in progress · `[!]` blocked (external).
+See `FINAL_STATUS.md` for the authoritative state.
 
-## Completed
+## Arepo redesign (branch `arepo-redesign`)
+
+### Phase 1 — foundation & audit
+- [x] Confirm clean tree; branch `arepo-redesign`; tag `astrolabe-baseline` (pre-existing)
+- [x] Record baseline: frontend tsc/lint/build clean; backend 128 tests pass, ruff clean
+- [x] Inspect every `design-references/` file (7 HTML + 3 `_ds` bundles + 4 PNGs)
+- [x] `docs/design-reference-audit.md` (adopt / adapt / reject)
+- [x] `docs/brand-system.md` (name, logo decision, type, palette, tokens, a11y)
+- [x] Redesign decisions logged in `DECISIONS.md` (R1–R7)
+
+### Phase 2 — design system & shell
+- [~] Design tokens (globals.css vars + tailwind), Geist font, metadata rename
+- [ ] Arepo logo + favicon; TopBar/nav; ModeSelector; Footer; DisclaimerBanner
+- [ ] Shared primitives: Card, Button, Badge, MetricHelp, StatTile, StrengthMeter,
+      Select, Slider, Disclose, Equation (KaTeX)
+
+### Phase 3 — education & maths
+- [ ] `How Arepo Works` page; rebuild `Methodology` with KaTeX + full anchors
+- [ ] Wire MetricHelp across all metrics to Methodology anchors
+
+### Phase 4 — Overview & Markets redesign
+### Phase 5 — Market detail & Signal Lab redesign
+### Phase 6 — Replay & data-mode controls
+### Phase 7 — QA gauntlet
+- [ ] Responsive + a11y review; visual review vs references; cross-browser smoke
+- [ ] lint / typecheck / build / backend tests; independent review; repairs
+- [ ] Deliverables: screenshots, README, portfolio report, ZIP, FINAL_STATUS, changelog
+
+---
+
+## Baseline (original Astrolabe build) — Completed
 - [x] Research (Gamma/CLOB/WS confirmed from primary sources) + naming (Astrolabe) + tracking docs
 - [x] Repo scaffold, typed domain contract, config, structured logging, FastAPI spine + /health
 - [x] Gamma + CLOB REST clients + anti-corruption normalization (verified on live data)
