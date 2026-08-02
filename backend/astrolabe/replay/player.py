@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
 
@@ -26,7 +26,7 @@ DEFAULT_DATASET = Path(__file__).resolve().parent / "dataset" / "scenario.json"
 
 
 def _utc(ts: int) -> datetime:
-    return datetime.fromtimestamp(int(ts), tz=timezone.utc)
+    return datetime.fromtimestamp(int(ts), tz=UTC)
 
 
 @dataclass(frozen=True)
@@ -57,17 +57,32 @@ class ReplayPlayer:
 
     def market(self, market_id: str) -> Market:
         m = self._by_market[market_id]
+        frames = m["frames"]
+        first_token = m["outcomes"][0]["token_id"]
+        # Derive display volume metadata from the recorded frames (final cumulative volume;
+        # 24h proxy = final minus the volume ~24 frames earlier, matching the demo cadence).
+        last_vol = float(frames[-1]["tokens"][first_token].get("volume") or 0.0)
+        prior_idx = max(0, len(frames) - 24)
+        prior_vol = float(frames[prior_idx]["tokens"][first_token].get("volume") or 0.0)
+        outcomes = [Outcome(name=o["name"], token_id=o["token_id"]) for o in m["outcomes"]]
+        # Attach the current implied price (last frame's last-trade) to each outcome.
+        for o in outcomes:
+            ltp = frames[-1]["tokens"][o.token_id].get("last_trade_price")
+            o.price = ltp
         return Market(
             id=m["id"],
             question=m["question"],
             slug=m["slug"],
             condition_id=m["condition_id"],
-            outcomes=[Outcome(name=o["name"], token_id=o["token_id"]) for o in m["outcomes"]],
+            outcomes=outcomes,
             status=MarketStatus.ACTIVE,
             enable_order_book=True,
             category=m.get("category"),
             tags=list(m.get("tags", [])),
             tick_size=m.get("tick_size"),
+            volume=last_vol,
+            volume_24hr=max(0.0, last_vol - prior_vol),
+            liquidity=last_vol * 0.05,
         )
 
     def markets(self) -> list[Market]:

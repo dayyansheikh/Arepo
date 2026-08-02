@@ -166,11 +166,11 @@ def run_backtest(
     evaluated = len(scored)
     hits = sum(1 for e in scored if e.followed_through)
     hit_rate = (hits / evaluated) if evaluated else None
-    fp_rate = (
-        sum(1 for e in scored if e.forward_move is not None and abs(e.forward_move) < move_threshold)
-        / evaluated
-        if evaluated else None
+    no_follow = sum(
+        1 for e in scored
+        if e.forward_move is not None and abs(e.forward_move) < move_threshold
     )
+    fp_rate = (no_follow / evaluated) if evaluated else None
     dir_moves = [
         (1.0 if e.direction == "up" else -1.0) * e.forward_move
         for e in scored if e.forward_move is not None and e.direction
@@ -201,6 +201,6 @@ def run_backtest(
         limitations=[
             "Deterministic synthetic demo dataset — results do not generalise to live markets.",
             "Small sample; no survivorship correction (markets that closed are not repopulated).",
-            "Directional 'hit rate' measures follow-through, NOT profitability or predictive alpha.",
+            "Directional 'hit rate' measures follow-through only, NOT profitability or alpha.",
         ],
     )

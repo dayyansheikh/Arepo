@@ -3,7 +3,21 @@
 _Single source of truth for "where are we, exactly." Updated after each wave._
 
 ## Current phase
-**Phase 2 — Repository scaffolding + typed domain contract** (Phase 1 research/naming done).
+**Phases 3–5 in progress** — ingestion, replay/analytics landed; storage + WS in flight.
+
+### Verified milestones (Opus-run, not agent claims)
+- Spine boots; `/health` OK. 2 spine tests.
+- Analytics core: 11 tests w/ hand-derived values (z=1.5, vol=0.01, imbalance=30/270). ruff clean.
+- Ingestion (Gamma+CLOB REST + normalize): 53 tests; **also smoke-verified on a real live
+  Gamma market** (JSON-string parsing, Yes/No pairing, ACTIVE status). `/markets/{id}`=200 live.
+- Replay + backtest: deterministic dataset (3 mkts/144 frames), look-ahead-safe backtest
+  (sample 16, hit-rate 0.625, fp-rate 0.125); 6 tests incl. prefix look-ahead property.
+- **72 tests pass in my own run** (excluding the in-flight WS test); ruff clean repo-wide.
+- Commits: scaffold → analytics → ingestion+replay+backtest.
+
+### Known note
+- Full `pytest` discovery hangs *only while the WS agent is mid-writing* its test file; run
+  targeted files until S3 lands, then run the full suite.
 
 ## Completed work (verified)
 - Read `CLAUDE.md` + `PROJECT_SPEC.md` in full.
