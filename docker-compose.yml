@@ -1,0 +1,40 @@
+# Astrolabe — one-command local stack: `docker compose up --build`
+# Backend (FastAPI) on :8000, frontend (Next.js) on :3000.
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: production
+      LOG_JSON: "true"
+      # Local dev uses SQLite on a named volume. For Postgres, set e.g.:
+      # DATABASE_URL: postgresql+asyncpg://astro:astro@db:5432/astrolabe
+      DATABASE_URL: sqlite+aiosqlite:////data/astrolabe.db
+      CORS_ORIGINS: http://localhost:3000
+      DEFAULT_MODE: live
+    volumes:
+      - astrolabe_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Client bundles call the backend directly from the browser at this base URL.
+        NEXT_PUBLIC_API_BASE: http://localhost:8000
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  astrolabe_data:

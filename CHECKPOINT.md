@@ -15,9 +15,26 @@ _Single source of truth for "where are we, exactly." Updated after each wave._
 - **72 tests pass in my own run** (excluding the in-flight WS test); ruff clean repo-wide.
 - Commits: scaffold → analytics → ingestion+replay+backtest.
 
-### Known note
-- Full `pytest` discovery hangs *only while the WS agent is mid-writing* its test file; run
-  targeted files until S3 lands, then run the full suite.
+### Backend complete + verified (Opus-run)
+- WebSocket client (resilient, deduped) — read + 11 tests pass.
+- Storage (SQLAlchemy async, SQLite/Postgres) — 13 tests; greenlet added to deps.
+- Service brain (live/cached/replay + fallback) — 8 tests; DataStatus never mislabels mode.
+- FastAPI routes (overview/markets/detail/signals/status/meta/replay) — 10 tests; booted a
+  real uvicorn server, all endpoints 200, /docs serves, X-Response-Time header present.
+- Ingestion pipeline — 2 tests + **real live ingest** (7 markets, 14 book snapshots) then
+  CACHED read verified. Robustness fix: 404/4xx mapped to typed errors (no httpx leak).
+- **All three modes verified against real Polymarket**: LIVE (16 real markets, real books,
+  imbalance ±0.962, z over 145 pts), CACHED (real ingest round-trip), REPLAY (deterministic).
+- **121 tests pass; ruff clean repo-wide.** 6 commits.
+
+### In flight (background agents)
+- Frontend build (Next.js/TS/Tailwind) against the API contract.
+- Independent adversarial backend review (findings to triage).
+
+### Remaining
+- Fold review findings; Docker/compose + deploy configs; docs set + Mermaid; PDF report;
+  packaging script + ZIP; FINAL_STATUS + demo script. Docker exec + public deploy remain
+  blocked (no daemon / no host auth).
 
 ## Completed work (verified)
 - Read `CLAUDE.md` + `PROJECT_SPEC.md` in full.
