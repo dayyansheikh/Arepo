@@ -15,7 +15,9 @@ from fastapi.responses import JSONResponse
 
 from ..config import get_settings
 from ..observability.logging import configure_logging, get_logger
+from .deps import get_service, init_storage
 from .routes import health as health_routes
+from .routes import markets, meta, overview, replay, signals
 
 logger = get_logger("astrolabe.api")
 
@@ -25,7 +27,9 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_json)
     logger.info("Astrolabe API starting", extra={"ctx_env": settings.environment})
+    await init_storage()
     yield
+    await get_service().aclose()
     logger.info("Astrolabe API shutting down")
 
 
@@ -75,6 +79,11 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(health_routes.router)
+    app.include_router(meta.router)
+    app.include_router(overview.router)
+    app.include_router(markets.router)
+    app.include_router(signals.router)
+    app.include_router(replay.router)
 
     return app
 
