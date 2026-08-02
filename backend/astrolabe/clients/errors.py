@@ -32,3 +32,11 @@ class RateLimited(AstrolabeClientError):
 
 class UpstreamSchemaError(AstrolabeClientError):
     """The upstream responded successfully but the payload shape was not what we expected."""
+
+
+class NotFound(AstrolabeClientError):
+    """The upstream returned 404 — e.g. a resolved market whose order book no longer exists.
+
+    This is an *expected*, non-exceptional condition for read-only discovery over a live venue,
+    so callers typically treat it as "no data for this token" rather than a hard failure.
+    """

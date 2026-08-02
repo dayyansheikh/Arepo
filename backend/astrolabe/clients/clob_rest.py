@@ -17,7 +17,7 @@ import httpx
 
 from ..config import Settings, get_settings
 from ..observability.logging import get_logger
-from .errors import RateLimited, UpstreamSchemaError, UpstreamUnavailable
+from .errors import NotFound, RateLimited, UpstreamSchemaError, UpstreamUnavailable
 
 logger = get_logger(__name__)
 
@@ -89,9 +89,10 @@ class ClobRestClient:
         """Issue one request with bounded retry on transient failures.
 
         Retries timeouts/network errors and 5xx up to ``http_max_retries`` times with
-        exponential backoff; retries 429 honoring ``Retry-After`` when present. Raises
-        ``RateLimited`` / ``UpstreamUnavailable`` once retries are exhausted. Any other
-        response (including non-retryable 4xx) is returned as-is for the caller to inspect.
+        exponential backoff; retries 429 honoring ``Retry-After`` when present. Non-retryable
+        client errors are mapped to the typed hierarchy (``NotFound`` for 404, else
+        ``UpstreamUnavailable``) so a raw ``httpx`` error never escapes this client. Only a 2xx
+        response is returned.
         """
         max_retries = self._settings.http_max_retries
         last_exc: Exception | None = None
@@ -141,6 +142,15 @@ class ClobRestClient:
                 await asyncio.sleep(_backoff_delay(attempt))
                 continue
 
+            # Non-retryable client errors: never leak a raw httpx error to callers — map to
+            # the typed hierarchy so upstream code can catch AstrolabeClientError uniformly.
+            if resp.status_code == 404:
+                raise NotFound(f"CLOB {path} not found", status_code=404)
+            if resp.status_code >= 400:
+                raise UpstreamUnavailable(
+                    f"CLOB {path} returned {resp.status_code}", status_code=resp.status_code
+                )
+
             return resp
 
         # Defensive: loop always returns or raises above.
@@ -148,7 +158,6 @@ class ClobRestClient:
 
     async def get_book(self, token_id: str) -> dict:
         resp = await self._request("GET", "/book", params={"token_id": token_id})
-        resp.raise_for_status()
         data = resp.json()
         if not isinstance(data, dict):
             raise UpstreamSchemaError(
@@ -158,7 +167,6 @@ class ClobRestClient:
 
     async def get_midpoint(self, token_id: str) -> float | None:
         resp = await self._request("GET", "/midpoint", params={"token_id": token_id})
-        resp.raise_for_status()
         data = resp.json()
         if not isinstance(data, dict):
             return None
@@ -174,7 +182,6 @@ class ClobRestClient:
         resp = await self._request(
             "GET", "/price", params={"token_id": token_id, "side": side}
         )
-        resp.raise_for_status()
         data = resp.json()
         if not isinstance(data, dict):
             return None
@@ -182,7 +189,6 @@ class ClobRestClient:
 
     async def get_spread(self, token_id: str) -> float | None:
         resp = await self._request("GET", "/spread", params={"token_id": token_id})
-        resp.raise_for_status()
         data = resp.json()
         if not isinstance(data, dict):
             return None
@@ -196,7 +202,6 @@ class ClobRestClient:
             "/prices-history",
             params={"market": token_id, "interval": interval, "fidelity": fidelity},
         )
-        resp.raise_for_status()
         data = resp.json()
         if not isinstance(data, dict):
             raise UpstreamSchemaError(

@@ -15,7 +15,7 @@ import httpx
 
 from ..config import Settings, get_settings
 from ..observability.logging import get_logger
-from .errors import RateLimited, UpstreamSchemaError, UpstreamUnavailable
+from .errors import NotFound, RateLimited, UpstreamSchemaError, UpstreamUnavailable
 
 logger = get_logger(__name__)
 
@@ -129,6 +129,14 @@ class GammaClient:
                 await asyncio.sleep(_backoff_delay(attempt))
                 continue
 
+            # Non-retryable client errors: map to the typed hierarchy — never leak httpx.
+            if resp.status_code == 404:
+                raise NotFound(f"Gamma {path} not found", status_code=404)
+            if resp.status_code >= 400:
+                raise UpstreamUnavailable(
+                    f"Gamma {path} returned {resp.status_code}", status_code=resp.status_code
+                )
+
             return resp
 
         # Defensive: loop always returns or raises above.
@@ -152,7 +160,6 @@ class GammaClient:
             params["ascending"] = str(ascending).lower()
 
         resp = await self._request("GET", "/markets", params=params)
-        resp.raise_for_status()
         data = resp.json()
         if not isinstance(data, list):
             raise UpstreamSchemaError(
@@ -169,7 +176,6 @@ class GammaClient:
             "closed": str(closed).lower(),
         }
         resp = await self._request("GET", "/events", params=params)
-        resp.raise_for_status()
         data = resp.json()
         if not isinstance(data, list):
             raise UpstreamSchemaError(
@@ -178,10 +184,10 @@ class GammaClient:
         return data
 
     async def get_market(self, market_id: str) -> dict | None:
-        resp = await self._request("GET", f"/markets/{market_id}")
-        if resp.status_code == 404:
+        try:
+            resp = await self._request("GET", f"/markets/{market_id}")
+        except NotFound:
             return None
-        resp.raise_for_status()
         data = resp.json()
         if not isinstance(data, dict):
             raise UpstreamSchemaError(

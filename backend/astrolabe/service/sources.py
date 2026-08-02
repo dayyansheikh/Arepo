@@ -17,7 +17,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 
 from ..clients.clob_rest import ClobRestClient
-from ..clients.errors import AstrolabeClientError
+from ..clients.errors import AstrolabeClientError, NotFound
 from ..clients.gamma import GammaClient
 from ..config import Settings, get_settings
 from ..domain.enums import ConnState, DataMode
@@ -95,8 +95,7 @@ class LiveSource:
                 limit=self._settings.discovery_limit, active=True, closed=False
             )
             markets = normalize_events_to_markets(raw_events)
-            # Keep only markets that have a live CLOB order book and >= 2 outcomes.
-            markets = [m for m in markets if m.enable_order_book and len(m.outcomes) >= 2]
+            markets = [m for m in markets if _is_tradeable(m)]
             self._gamma_health = SourceHealth(
                 name="gamma", state=ConnState.CONNECTED, last_success=_now()
             )
@@ -119,10 +118,15 @@ class LiveSource:
                 name="clob_rest", state=ConnState.CONNECTED, last_success=_now()
             )
         except AstrolabeClientError as exc:
-            self._rest_health = SourceHealth(
-                name="clob_rest", state=ConnState.DEGRADED, last_error=str(exc)
-            )
-            logger.warning("live token data failed", extra={"ctx_token": token_id[:8]})
+            # NotFound (resolved market, no book) is expected and benign; other client errors
+            # mark REST degraded. Either way one token never crashes the request.
+            if not isinstance(exc, NotFound):
+                self._rest_health = SourceHealth(
+                    name="clob_rest", state=ConnState.DEGRADED, last_error=str(exc)
+                )
+            logger.warning("live token data unavailable", extra={"ctx_token": token_id[:8]})
+        except Exception as exc:  # noqa: BLE001 - belt-and-suspenders: never crash enrichment
+            logger.warning("live token data error", extra={"ctx_error": str(exc)})
         captured = book.timestamp if book else None
         return TokenData(prices=prices, book=book, volumes=[], captured_at=captured)
 
@@ -183,6 +187,20 @@ class CachedSource:
     @staticmethod
     def _limit() -> int:
         return get_settings().discovery_limit
+
+
+def _is_tradeable(market: Market) -> bool:
+    """Keep only markets likely to have a live, two-sided CLOB book worth analysing.
+
+    Excludes markets without an order book, with fewer than two outcomes, or that are
+    effectively resolved (an outcome priced ~0 or ~1 has no live book — fetching it 404s).
+    """
+    if not market.enable_order_book or len(market.outcomes) < 2:
+        return False
+    prices = [o.price for o in market.outcomes if o.price is not None]
+    if prices and (max(prices) >= 0.999 or max(prices) <= 0.001):
+        return False
+    return True
 
 
 def _now() -> datetime:
