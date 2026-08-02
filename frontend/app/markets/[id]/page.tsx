@@ -104,7 +104,12 @@ export default function MarketDetailPage() {
           </div>
         </div>
         <div className="panel p-4">
-          <PriceHistoryChart priceHistory={market.price_history} visibleOutcomes={visibleOutcomes} />
+          <PriceHistoryChart
+            priceHistory={market.price_history}
+            series={market.outcomes
+              .filter((o) => visibleOutcomes.includes(o.name))
+              .map((o) => ({ key: o.token_id, label: o.name }))}
+          />
         </div>
       </section>
 

@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useAsync } from "@/lib/use-async";
 import { getBacktest } from "@/lib/api";
-import { formatPercent, formatSignedPercent, formatZScore, formatPrice, titleCase } from "@/lib/format";
+import { formatPercent, formatSignedPercent, formatZScore, formatPrice } from "@/lib/format";
 import { ErrorState } from "@/components/ErrorState";
 import { ListSkeleton } from "@/components/Skeletons";
 
-const HORIZON_OPTIONS = ["15m", "1h", "4h", "24h"];
+// Horizon is measured in dataset frames (each frame is one step of the deterministic
+// replay). The backtest API expects an integer frame count (1..40).
+const HORIZON_OPTIONS = [3, 5, 10, 20];
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
@@ -21,7 +23,7 @@ function StatTile({ label, value }: { label: string; value: string }) {
 export default function ReplayPage() {
   const [strengthThreshold, setStrengthThreshold] = useState(0.6);
   const [moveThreshold, setMoveThreshold] = useState(0.03);
-  const [horizon, setHorizon] = useState("1h");
+  const [horizon, setHorizon] = useState(5);
 
   const { data, loading, error } = useAsync(
     () =>
@@ -86,12 +88,12 @@ export default function ReplayPage() {
           <select
             id="horizon"
             value={horizon}
-            onChange={(e) => setHorizon(e.target.value)}
+            onChange={(e) => setHorizon(Number(e.target.value))}
             className="focus-ring rounded-instrument border border-astro-light-border dark:border-astro-border bg-transparent px-3 py-1.5 text-sm"
           >
             {HORIZON_OPTIONS.map((h) => (
               <option key={h} value={h}>
-                {h}
+                {h} frames
               </option>
             ))}
           </select>
@@ -187,7 +189,7 @@ export default function ReplayPage() {
           </div>
 
           <p className="text-xs text-muted-fg">
-            Horizon {titleCase(data.horizon)} · z-score window {data.zscore_window} · minimum
+            Horizon {data.horizon} frames · z-score window {data.zscore_window} · minimum
             history {data.min_history}
           </p>
         </>

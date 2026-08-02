@@ -15,21 +15,28 @@ import { formatPercent } from "@/lib/format";
 
 const SERIES_COLORS = ["#E7B24C", "#46C7A8", "#F27289", "#7AA2F7", "#B48EAD", "#9ECE6A"];
 
+export interface ChartSeries {
+  /** Key into `priceHistory` — the outcome's token_id. */
+  key: string;
+  /** Human label shown in the legend (the outcome name). */
+  label: string;
+}
+
 interface Props {
+  /** Price history keyed by token_id (as returned by the API). */
   priceHistory: Record<string, PricePoint[]>;
-  visibleOutcomes: string[];
+  series: ChartSeries[];
 }
 
 interface ChartRow {
-  t: string;
   ts: number;
-  [outcome: string]: number | string;
+  [seriesKey: string]: number;
 }
 
-export function PriceHistoryChart({ priceHistory, visibleOutcomes }: Props) {
+export function PriceHistoryChart({ priceHistory, series }: Props) {
   const timestamps = new Set<string>();
-  for (const name of visibleOutcomes) {
-    for (const point of priceHistory[name] ?? []) {
+  for (const s of series) {
+    for (const point of priceHistory[s.key] ?? []) {
       timestamps.add(point.t);
     }
   }
@@ -39,11 +46,10 @@ export function PriceHistoryChart({ priceHistory, visibleOutcomes }: Props) {
   );
 
   const rows: ChartRow[] = sortedTimestamps.map((t) => {
-    const row: ChartRow = { t, ts: new Date(t).getTime() };
-    for (const name of visibleOutcomes) {
-      const points = priceHistory[name] ?? [];
-      const match = points.find((p) => p.t === t);
-      if (match) row[name] = match.p;
+    const row: ChartRow = { ts: new Date(t).getTime() };
+    for (const s of series) {
+      const match = (priceHistory[s.key] ?? []).find((p) => p.t === t);
+      if (match) row[s.key] = match.p;
     }
     return row;
   });
@@ -65,7 +71,9 @@ export function PriceHistoryChart({ priceHistory, visibleOutcomes }: Props) {
             dataKey="ts"
             type="number"
             domain={["dataMin", "dataMax"]}
-            tickFormatter={(v: number) => new Date(v).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            tickFormatter={(v: number) =>
+              new Date(v).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+            }
             stroke="currentColor"
             opacity={0.6}
             fontSize={11}
@@ -90,11 +98,12 @@ export function PriceHistoryChart({ priceHistory, visibleOutcomes }: Props) {
             }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          {visibleOutcomes.map((name, i) => (
+          {series.map((s, i) => (
             <Line
-              key={name}
+              key={s.key}
               type="monotone"
-              dataKey={name}
+              dataKey={s.key}
+              name={s.label}
               stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
               strokeWidth={1.75}
               dot={false}

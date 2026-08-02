@@ -50,8 +50,8 @@ async function apiFetch<T>(path: string, params: Record<string, string | number 
   if (!res.ok) {
     let detail = res.statusText;
     try {
-      const body = (await res.json()) as { detail?: string };
-      if (body?.detail) detail = body.detail;
+      const body = (await res.json()) as { detail?: unknown };
+      if (body?.detail) detail = normalizeDetail(body.detail);
     } catch {
       // response body wasn't JSON; fall back to statusText
     }
@@ -59,6 +59,21 @@ async function apiFetch<T>(path: string, params: Record<string, string | number 
   }
 
   return (await res.json()) as T;
+}
+
+/** FastAPI `detail` may be a string or an array of validation objects — render it readably. */
+function normalizeDetail(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((d) =>
+        d && typeof d === "object" && "msg" in d
+          ? String((d as { msg: unknown }).msg)
+          : String(d)
+      )
+      .join("; ");
+  }
+  return "Request failed";
 }
 
 export function getMeta(): Promise<MetaResponse> {
@@ -98,7 +113,7 @@ export function getSignals(mode: DataMode, limit?: number): Promise<SignalsRespo
 export interface GetBacktestParams {
   strength_threshold?: number;
   move_threshold?: number;
-  horizon?: string;
+  horizon?: number;
 }
 
 export function getBacktest(params: GetBacktestParams): Promise<BacktestResponse> {
