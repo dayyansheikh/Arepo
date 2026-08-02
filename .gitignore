@@ -1,0 +1,39 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.db
+*.sqlite
+*.sqlite3
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+.vercel/
+npm-debug.log*
+frontend/.env.local
+
+# --- OS / editor ---
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# --- Build / packaging artefacts ---
+/staging/
+*.zip
+!Dayyan-Sheikh-Prediction-Market-Project.zip  # the final artefact is produced by script, not tracked
+
+# --- Data dumps / caches (never commit large API dumps) ---
+/backend/astrolabe.db
+/data-dumps/
