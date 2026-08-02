@@ -1,0 +1,43 @@
+[
+  {
+    "id": "559651",
+    "question": "Will the Fed cut rates in September?",
+    "conditionId": "0xabc123",
+    "slug": "fed-cut-rates-september",
+    "outcomes": "[\"Yes\", \"No\"]",
+    "outcomePrices": "[\"0.62\", \"0.38\"]",
+    "clobTokenIds": "[\"1001\", \"1002\"]",
+    "volume": "125000.50",
+    "volume24hr": 4300.25,
+    "liquidity": "50210.10",
+    "liquidityNum": 50210.10,
+    "active": true,
+    "closed": false,
+    "archived": false,
+    "restricted": true,
+    "enableOrderBook": true,
+    "orderPriceMinTickSize": 0.001,
+    "orderMinSize": 5,
+    "startDate": "2026-06-01T00:00:00Z",
+    "endDate": "2026-09-17T00:00:00Z",
+    "description": "Resolves YES if the FOMC cuts the federal funds rate at its September meeting.",
+    "image": "https://example.com/fed.png"
+  },
+  {
+    "id": "559999",
+    "question": "Who wins the primary?",
+    "conditionId": "0xdef456",
+    "slug": "who-wins-primary",
+    "outcomes": "[\"Alice\", \"Bob\", \"Carol\"]",
+    "outcomePrices": "[\"0.5\", \"0.3\", \"0.2\"]",
+    "clobTokenIds": "[\"2001\", \"2002\", \"2003\"]",
+    "volumeNum": 98765.4,
+    "liquidity": "1200.00",
+    "active": false,
+    "closed": true,
+    "archived": false,
+    "enableOrderBook": false,
+    "startDate": "2026-01-01T00:00:00Z",
+    "endDate": "2026-05-01T00:00:00Z"
+  }
+]

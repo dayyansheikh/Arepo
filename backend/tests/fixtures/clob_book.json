@@ -1,0 +1,20 @@
+{
+  "market": "0xdef456",
+  "asset_id": "1001",
+  "timestamp": "1785600000000",
+  "hash": "abc123hash",
+  "bids": [
+    {"price": "0.01", "size": "2275481.12"},
+    {"price": "0.45", "size": "500.5"},
+    {"price": "0.02", "size": "160059.17"}
+  ],
+  "asks": [
+    {"price": "0.99", "size": "66760.15"},
+    {"price": "0.52", "size": "300.0"},
+    {"price": "0.98", "size": "8084.08"}
+  ],
+  "min_order_size": "5",
+  "tick_size": "0.001",
+  "neg_risk": false,
+  "last_trade_price": "0.46"
+}

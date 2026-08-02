@@ -1,0 +1,54 @@
+[
+  {
+    "id": "9001",
+    "ticker": "us-politics",
+    "slug": "us-politics-2026",
+    "title": "US Politics 2026",
+    "description": "US politics markets for 2026.",
+    "startDate": "2026-01-01T00:00:00Z",
+    "endDate": "2026-12-31T00:00:00Z",
+    "active": true,
+    "closed": false,
+    "archived": false,
+    "liquidity": "500000",
+    "volume": "2000000",
+    "volume24hr": 15000,
+    "openInterest": 100000,
+    "enableOrderBook": true,
+    "negRisk": false,
+    "tags": [{"label": "Politics"}, {"label": "US"}],
+    "markets": [
+      {
+        "id": "700001",
+        "question": "Will the incumbent be re-elected?",
+        "conditionId": "0x111aaa",
+        "slug": "incumbent-re-elected",
+        "outcomes": "[\"Yes\", \"No\"]",
+        "outcomePrices": "[\"0.71\", \"0.29\"]",
+        "clobTokenIds": "[\"3001\", \"3002\"]",
+        "volume": "300000",
+        "liquidity": "20000",
+        "active": true,
+        "closed": false,
+        "archived": false,
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.01,
+        "orderMinSize": 5,
+        "startDate": "2026-01-01T00:00:00Z",
+        "endDate": "2026-11-03T00:00:00Z"
+      },
+      {
+        "id": "700002",
+        "question": "Malformed market missing token ids",
+        "conditionId": "0x222bbb",
+        "slug": "malformed-market",
+        "outcomes": "[\"Yes\", \"No\"]",
+        "outcomePrices": "[\"0.5\", \"0.5\"]",
+        "clobTokenIds": "",
+        "active": true,
+        "closed": false,
+        "archived": false
+      }
+    ]
+  }
+]
