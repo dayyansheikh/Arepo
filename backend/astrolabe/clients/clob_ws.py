@@ -465,8 +465,6 @@ class ClobWebSocketClient:
                         conn = None
                     else:
                         self.state = ConnState.CONNECTED
-                        self._consecutive_failures = 0
-                        self._degraded_notified = False
                         self._last_success = utcnow()
                         logger.info(
                             "clob_ws.connected", extra={"ctx_token_count": len(self.token_ids)}
@@ -475,7 +473,12 @@ class ClobWebSocketClient:
                             await self._session(conn)
                             cycle_ok = True  # loop exited cleanly (stop() was called)
                         except _StaleConnection:
+                            # A session that went stale WITHOUT ever receiving a message is a
+                            # failed cycle (connect+subscribe OK but no data) — count it so a
+                            # persistent "silent server" eventually trips DEGRADED.
                             cycle_ok = self._session_received_message
+                            if not self._session_received_message:
+                                self._on_failure("stale before first message")
                             logger.warning(
                                 "clob_ws.stale",
                                 extra={"ctx_last_message_at": str(self.last_message_at)},
@@ -485,6 +488,13 @@ class ClobWebSocketClient:
                         finally:
                             await self._safe_close(conn)
                             conn = None
+                        # Only a genuinely healthy cycle (received a message, or stopped
+                        # cleanly) clears the failure streak. Resetting on mere subscribe
+                        # success would let a "connect+subscribe OK, session dies before any
+                        # message" loop reconnect forever without ever signalling DEGRADED.
+                        if cycle_ok:
+                            self._consecutive_failures = 0
+                            self._degraded_notified = False
 
                 if self._stop_event.is_set():
                     break

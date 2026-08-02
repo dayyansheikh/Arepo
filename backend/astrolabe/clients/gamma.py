@@ -7,6 +7,7 @@ models happens separately in ``astrolabe.ingest.normalize`` — this module know
 from __future__ import annotations
 
 import asyncio
+import json
 import random
 from types import TracebackType
 from typing import Any, Self
@@ -37,6 +38,17 @@ def _parse_retry_after(value: str | None) -> float | None:
         return max(0.0, float(value))
     except ValueError:
         return None
+
+
+
+def _safe_json(resp: httpx.Response):
+    """Parse a response body as JSON, raising a typed error (never a raw json/httpx error)."""
+    try:
+        return resp.json()
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise UpstreamSchemaError(
+            "Gamma returned a non-JSON body", status_code=resp.status_code
+        ) from exc
 
 
 class GammaClient:
@@ -77,9 +89,10 @@ class GammaClient:
         """Issue one request with bounded retry on transient failures.
 
         Retries timeouts/network errors and 5xx up to ``http_max_retries`` times with
-        exponential backoff; retries 429 honoring ``Retry-After`` when present. Raises
-        ``RateLimited`` / ``UpstreamUnavailable`` once retries are exhausted. Any other
-        response (including non-retryable 4xx) is returned as-is for the caller to inspect.
+        exponential backoff; retries 429 honoring ``Retry-After`` when present. Non-retryable
+        client errors are mapped to the typed hierarchy (``NotFound`` for 404, else
+        ``UpstreamUnavailable``) so a raw ``httpx`` error never escapes this client. Only a 2xx
+        response is returned.
         """
         max_retries = self._settings.http_max_retries
         last_exc: Exception | None = None
@@ -160,7 +173,7 @@ class GammaClient:
             params["ascending"] = str(ascending).lower()
 
         resp = await self._request("GET", "/markets", params=params)
-        data = resp.json()
+        data = _safe_json(resp)
         if not isinstance(data, list):
             raise UpstreamSchemaError(
                 "Gamma /markets did not return a JSON array", status_code=resp.status_code
@@ -176,7 +189,7 @@ class GammaClient:
             "closed": str(closed).lower(),
         }
         resp = await self._request("GET", "/events", params=params)
-        data = resp.json()
+        data = _safe_json(resp)
         if not isinstance(data, list):
             raise UpstreamSchemaError(
                 "Gamma /events did not return a JSON array", status_code=resp.status_code
@@ -188,7 +201,7 @@ class GammaClient:
             resp = await self._request("GET", f"/markets/{market_id}")
         except NotFound:
             return None
-        data = resp.json()
+        data = _safe_json(resp)
         if not isinstance(data, dict):
             raise UpstreamSchemaError(
                 f"Gamma /markets/{market_id} did not return an object",

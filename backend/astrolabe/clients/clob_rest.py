@@ -9,6 +9,7 @@ in ``astrolabe.ingest.normalize``.
 from __future__ import annotations
 
 import asyncio
+import json
 import random
 from types import TracebackType
 from typing import Any, Self
@@ -49,6 +50,16 @@ def _to_float(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _safe_json(resp: httpx.Response):
+    """Parse a response body as JSON, raising a typed error (never a raw json/httpx error)."""
+    try:
+        return resp.json()
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise UpstreamSchemaError(
+            "CLOB returned a non-JSON body", status_code=resp.status_code
+        ) from exc
 
 
 class ClobRestClient:
@@ -158,7 +169,7 @@ class ClobRestClient:
 
     async def get_book(self, token_id: str) -> dict:
         resp = await self._request("GET", "/book", params={"token_id": token_id})
-        data = resp.json()
+        data = _safe_json(resp)
         if not isinstance(data, dict):
             raise UpstreamSchemaError(
                 "CLOB /book did not return an object", status_code=resp.status_code
@@ -167,7 +178,7 @@ class ClobRestClient:
 
     async def get_midpoint(self, token_id: str) -> float | None:
         resp = await self._request("GET", "/midpoint", params={"token_id": token_id})
-        data = resp.json()
+        data = _safe_json(resp)
         if not isinstance(data, dict):
             return None
         # Docs say "mid_price"; the live endpoint has been observed to return "mid" — accept
@@ -182,14 +193,14 @@ class ClobRestClient:
         resp = await self._request(
             "GET", "/price", params={"token_id": token_id, "side": side}
         )
-        data = resp.json()
+        data = _safe_json(resp)
         if not isinstance(data, dict):
             return None
         return _to_float(data.get("price"))
 
     async def get_spread(self, token_id: str) -> float | None:
         resp = await self._request("GET", "/spread", params={"token_id": token_id})
-        data = resp.json()
+        data = _safe_json(resp)
         if not isinstance(data, dict):
             return None
         return _to_float(data.get("spread"))
@@ -202,7 +213,7 @@ class ClobRestClient:
             "/prices-history",
             params={"market": token_id, "interval": interval, "fidelity": fidelity},
         )
-        data = resp.json()
+        data = _safe_json(resp)
         if not isinstance(data, dict):
             raise UpstreamSchemaError(
                 "CLOB /prices-history did not return an object", status_code=resp.status_code

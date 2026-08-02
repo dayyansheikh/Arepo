@@ -55,6 +55,18 @@ class BacktestResult:
     limitations: list[str] = field(default_factory=list)
 
 
+def _frame_price(player: ReplayPlayer, market_id: str, token_id: str, index: int) -> float | None:
+    """Price at a specific frame (last trade, else book midpoint), frame-index aligned.
+
+    Returns None when the frame has no derivable price, so callers can align entry/forward
+    prices to raw frame indices without the misalignment that a filtered price array causes.
+    """
+    snap = player.snapshot_at(market_id, token_id, index)
+    if snap.last_trade_price is not None:
+        return snap.last_trade_price
+    return snap.book.midpoint if snap.book else None
+
+
 def _volume_deltas(volumes: list[float]) -> list[float]:
     """Per-frame incremental volume from a (roughly cumulative) volume series."""
     out = [0.0]
@@ -123,6 +135,8 @@ def run_backtest(
     min_history: int = 8,
 ) -> BacktestResult:
     """Run the anomaly-signal backtest across all markets/tokens in the dataset."""
+    if horizon < 1:
+        raise ValueError("horizon must be >= 1")  # real guard (assert is stripped under -O)
     player = player or default_player()
     events: list[SignalEvent] = []
     missing = 0
@@ -130,8 +144,15 @@ def run_backtest(
     for market_id in player.market_ids():
         n = player.n_frames(market_id)
         for token_id in player.token_ids(market_id):
-            full_prices = player.prices(market_id, token_id)  # for forward evaluation only
+            # FRAME-ALIGNED price array (one entry per frame, None if no price that frame).
+            # ``player.prices`` is a *filtered* dense array and MUST NOT be indexed by frame
+            # number — doing so misaligns entry/forward and can leak a later frame's price
+            # into "entry" when an earlier frame has no price.
+            frame_prices = [_frame_price(player, market_id, token_id, k) for k in range(n)]
             for i in range(n):
+                entry_price = frame_prices[i]
+                if entry_price is None:
+                    continue  # cannot anchor a signal on a frame with no price
                 raw, z = _components_at(
                     player, market_id, token_id, i, zscore_window, min_history
                 )
@@ -141,19 +162,18 @@ def run_backtest(
                 if strength < strength_threshold:
                     continue
                 direction = "up" if (z or 0) > 0 else "down" if (z or 0) < 0 else None
-                entry_price = full_prices[i]
 
                 # --- evaluation window is STRICTLY after the signal frame ---
                 fwd_idx = i + horizon
-                if fwd_idx >= len(full_prices):
+                forward_price = frame_prices[fwd_idx] if fwd_idx < n else None
+                if forward_price is None:
                     missing += 1
                     events.append(SignalEvent(
                         market_id, token_id, i, strength, z, direction,
                         entry_price, None, None, None,
                     ))
                     continue
-                assert fwd_idx > i  # look-ahead guard
-                forward_price = full_prices[fwd_idx]
+                assert fwd_idx > i  # defensive; real guard is the horizon>=1 check above
                 forward_move = forward_price - entry_price
                 dir_sign = 1.0 if direction == "up" else -1.0 if direction == "down" else 0.0
                 followed = bool(dir_sign * forward_move >= move_threshold)
