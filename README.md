@@ -225,3 +225,23 @@ observed output).
 - [`docs/deployment.md`](docs/deployment.md): environment variables, Docker, hosting notes, scheduler setup
 - [`docs/limitations.md`](docs/limitations.md): honest limitations and known caveats
 - [`docs/portfolio-report.md`](docs/portfolio-report.md): the full engineering portfolio report
+
+## Signal & Historical Refinement (latest pass)
+
+- **Signal engine rebalanced.** The composite anomaly score is now led by price-behaviour
+  features (return z-score, sustained-move burst, volatility regime; 0.60 of the weight), with
+  order-book imbalance only 0.12, and a safeguard that caps any reading without material price
+  movement at 0.5, so imbalance can never drive a top score alone. See `docs/methodology.md` §9.
+- **Signal Lab** is renamed "Composite anomaly", explains what it is and does, links each
+  signal to its actual market, and adds a research-framed "How this may be used" section.
+- **Chart timeline ranges** (1H / 6H / 24H / 7D / All) on the market-detail chart.
+- **Replay historical analysis.** A separate "Historical analysis" mode reconstructs the top
+  signals over a past cut-off using only real price history up to that point (no look-ahead),
+  and scores them against the real later history. Provenance `reconstructed`, kept apart from
+  the prospective weekly cohorts. See `docs/methodology.md` §9a.
+- **Interface.** Non-scrolling navigation, a larger logo, a truthful status chip (API state
+  plus freshness when known, no confusing "Unknown"), a repaired order-book explainer, the
+  wordmark "A" favicon, and a designer credit in the footer.
+
+Run the historical screen from the API: `GET /api/historical/screen?days=7` (uses live data,
+can take a moment). See `docs/API.md`.

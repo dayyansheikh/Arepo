@@ -209,3 +209,18 @@ keyboard focus and touch; a 2px red `:focus-visible` ring (never the browser
 default) on every interactive element; contrast targets met (body ≥ 4.5:1, chrome
 ≥ 3:1); charts carry text/table alternatives; targets ≥ 24px; reduced-motion
 honoured.
+
+---
+
+## Signal & Historical Refinement: brand updates
+
+- **Favicon / browser-tab icon.** The tab icon is now the wordmark's stylised "A": a white
+  chevron/peak with a small red triangle nested at its base, on the ink tile, matching the
+  supplied word logo (`design-assets/brand/AREPO Typeface (word).png`). Implemented in
+  `frontend/app/icon.svg` and `frontend/app/apple-icon.svg`. The 5x5 grid symbol remains the
+  navigation and footer mark.
+- **Navigation.** The header no longer scrolls horizontally: on desktop the links spread across
+  the available width in one stable row; on mobile they wrap onto their own row. The grid logo
+  and the AREPO wordmark are slightly larger (nav mark 34px, wordmark 21px display face).
+- **Footer.** Carries a subtle designer credit, bottom right: "Designed and created by Dayyan
+  Sheikh / dayyansheikh.work@gmail.com".

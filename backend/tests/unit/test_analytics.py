@@ -190,6 +190,29 @@ def test_imbalance_alone_cannot_drive_a_top_score():
     assert score2 <= 0.5 + 1e-9
 
 
+def test_present_but_zero_price_feature_does_not_bypass_the_cap():
+    # A calm market produces a present-but-zero volatility regime on every tick. That must NOT
+    # count as price context, so order-book/flow features alone still cannot exceed the ceiling.
+    score, _ = composite_anomaly_score(
+        RawComponents(volatility_regime=0.0, imbalance=1.0, spread_change=1.0, depth_change=1.0)
+    )
+    assert score <= 0.5 + 1e-9
+    # Likewise a negligible (below-floor) price feature.
+    z_floor = 0.05 * 4.0  # cap for unusual_return is 4.0, so this normalises to exactly 0.05
+    tiny, _ = composite_anomaly_score(
+        RawComponents(zscore=z_floor * 0.5, imbalance=1.0, spread_change=1.0, depth_change=1.0)
+    )
+    assert tiny <= 0.5 + 1e-9
+
+
+def test_material_price_feature_lifts_the_cap():
+    # A price feature clearly above the floor is genuine context and lifts the ceiling.
+    score, _ = composite_anomaly_score(
+        RawComponents(movement_abnormality=1.2, imbalance=1.0, spread_change=1.0, depth_change=1.0)
+    )
+    assert score > 0.5
+
+
 def test_price_features_contribute_and_lift_above_the_book_only_cap():
     # A strong abnormal move alone (a price feature) can exceed the book-only ceiling.
     score, comps = composite_anomaly_score(RawComponents(movement_abnormality=4.0))

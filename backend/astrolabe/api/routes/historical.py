@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/historical", tags=["historical"])
 @router.get("/screen", response_model=HistoricalScreen)
 async def screen(
     days: int = Query(7, ge=1, le=30, description="how many days before now the cut-off sits"),
-    limit: int = Query(24, ge=1, le=40, description="how many near-mid markets to consider"),
+    limit: int = Query(40, ge=1, le=60, description="how many active markets to scan"),
     top_n: int = Query(15, ge=1, le=25),
     service: MarketService = Depends(get_service),
 ) -> HistoricalScreen:

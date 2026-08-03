@@ -30,6 +30,10 @@ DEFAULT_HORIZONS: list[tuple[str, int]] = [("1h", 3600), ("24h", 86_400), ("7d",
 MIN_HISTORY = 30
 DEFAULT_MIN_STRENGTH = 0.12
 DEFAULT_TOP_N = 15
+# A candidate's price at the cut-off must sit in this band to be screened: a market pinned
+# near 0 or 1 at the cut-off cannot move and has no signal to reconstruct. Judged at the
+# cut-off, never on today's price, so selection stays causal.
+NEAR_MID = (0.1, 0.9)
 
 
 @dataclass
@@ -103,6 +107,7 @@ async def run_historical_screen(
     min_strength: float = DEFAULT_MIN_STRENGTH,
     top_n: int = DEFAULT_TOP_N,
     min_history: int = MIN_HISTORY,
+    near_mid: tuple[float, float] = NEAR_MID,
     horizons: list[tuple[str, int]] | None = None,
 ) -> HistoricalScreen:
     horizons = horizons or DEFAULT_HORIZONS
@@ -123,6 +128,12 @@ async def run_historical_screen(
         prices = [p.p for p in prefix]
         entry = prices[-1]
         if entry is None:
+            continue
+        # Near-mid gate on the price AT the cut-off (entry), NOT today's price: this keeps
+        # candidate selection causal. A market pinned near 0 or 1 at the cut-off has no room to
+        # move and no signal to reconstruct; whether it later drifted to an extreme (or is
+        # near-mid now) must not affect whether it was a candidate.
+        if not (near_mid[0] <= entry <= near_mid[1]):
             continue
         # Signal reconstructed from ONLY the pre-cutoff history (no look-ahead). No book, so
         # this is a price-behaviour composite by construction.
@@ -225,6 +236,9 @@ async def run_historical_screen(
         assumptions=[
             "The signal at the cut-off is reconstructed from only the real price history up to "
             "that moment, so there is no look-ahead.",
+            "Candidates are chosen by recent trading activity, not by price, and a market is "
+            "screened only if its price at the cut-off was away from the extremes (roughly 0.1 "
+            "to 0.9). Selection therefore never uses today's price or what happened later.",
             "Entry is the real price at the cut-off; forward prices are the real later history.",
             "Historical order books are not available, so the reconstructed signal uses "
             "price-behaviour features only (no order-book imbalance, spread or depth).",
@@ -243,24 +257,27 @@ async def run_live_historical(
     market_service,
     *,
     as_of: datetime,
-    universe_limit: int = 12,
+    universe_limit: int = 40,
     min_strength: float = DEFAULT_MIN_STRENGTH,
     top_n: int = DEFAULT_TOP_N,
 ) -> HistoricalScreen:
-    """Wire the reconstruction to a live MarketService: pick the most active markets, fetch
-    their full real history concurrently, then run the (no-look-ahead) screen."""
-    # Universe: liquid markets whose price sits away from the extremes (a leading probability
-    # roughly 0.1 to 0.9). Longshots pinned near 0 or 1 (which dominate total volume) never
-    # move, so they carry no reconstructable signal; near-mid markets are the ones with
-    # genuine uncertainty and real price movement to screen. Sorted by total volume so they
-    # also have history reaching back before the cut-off.
-    all_markets = await market_service.active_markets(requested_mode="live", by="volume")
+    """Wire the reconstruction to a live MarketService: pick a scan universe by recent trading
+    activity, fetch each market's full real history concurrently, then run the
+    (no-look-ahead) screen.
 
-    def _near_mid(m) -> bool:
-        prices = [o.price for o in m.outcomes if o.price is not None]
-        return bool(prices) and 0.1 <= max(prices) <= 0.9
-
-    markets = [m for m in all_markets if _near_mid(m)][:universe_limit]
+    IMPORTANT: the scan universe is chosen by 24h trading VOLUME (how much a market has traded
+    recently, a market-activity property), never by current price, and the near-mid filter is
+    applied inside run_historical_screen using the price AT the cut-off. So no post-cut-off
+    information about the *outcome* (today's price, later drift to an extreme) can change which
+    markets are ranked. Recent-activity ordering is used because the longshots that top total
+    volume and liquidity are pinned near 0/1 with no history to reconstruct, whereas actively
+    traded markets include the genuinely uncertain ones. Its one caveat, disclosed in the
+    limitations, is a mild survivorship effect: a market that has since resolved trades less
+    now, so it is less likely to be scanned.
+    """
+    markets = await market_service.active_markets(
+        requested_mode="live", limit=universe_limit, by="volume_24hr"
+    )
     candidates: list[Candidate] = []
     tok_market: dict[str, str] = {}
     for m in markets:

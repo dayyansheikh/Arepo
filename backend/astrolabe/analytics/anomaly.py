@@ -48,6 +48,9 @@ DEFAULT_CAPS: dict[str, float] = {
 # BOOK_ONLY_CEILING safeguard) so imbalance can never drive a top signal by itself.
 PRICE_FEATURES = frozenset({"unusual_return", "movement_abnormality", "volatility_regime"})
 BOOK_ONLY_CEILING = 0.5
+# A price feature must clear this normalised magnitude to count as genuine price context; a
+# present-but-near-zero feature (a calm market) does not lift the book-only ceiling.
+PRICE_CONTEXT_FLOOR = 0.05
 
 # User-facing names for each raw component identifier. The raw identifiers above are internal
 # and documented in docs/methodology.md; readers should never see them by default (see spec
@@ -120,7 +123,7 @@ def composite_anomaly_score(
 
     num = 0.0
     wsum = 0.0
-    has_price_context = False
+    max_price_feature = 0.0
     for c in components:
         if c.normalized_value is None:
             continue
@@ -128,13 +131,15 @@ def composite_anomaly_score(
         num += w * c.normalized_value
         wsum += w
         if c.name in PRICE_FEATURES:
-            has_price_context = True
+            max_price_feature = max(max_price_feature, c.normalized_value)
     score = (num / wsum) if wsum > 0 else 0.0
 
-    # Safeguard: a reading with no price-behaviour context (e.g. only order-book imbalance)
-    # cannot earn a top score. This stops imbalance alone from driving a strong signal and
-    # keeps the composite honest when price history is thin.
-    if not has_price_context and score > BOOK_ONLY_CEILING:
+    # Safeguard: a reading with no *material* price-behaviour context cannot earn a top score.
+    # We require a price feature whose normalised value clears a small floor, not merely one
+    # that is present-but-zero (a calm market produces a present-but-zero volatility regime on
+    # every tick). This stops order-book/flow features alone (imbalance, spread, depth) from
+    # driving a strong signal, and keeps the composite honest when the price is not moving.
+    if max_price_feature <= PRICE_CONTEXT_FLOOR and score > BOOK_ONLY_CEILING:
         score = BOOK_ONLY_CEILING
     return float(max(0.0, min(1.0, score))), components
 

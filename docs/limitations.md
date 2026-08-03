@@ -172,3 +172,43 @@ reader should not mistake their presence in the week picker for real recorded pe
 174 backend tests pass and the backend is ruff-clean, and 8 frontend vitest tests pass, all
 verified in this environment while writing this documentation (see `FINAL_STATUS.md` for exact
 commands and output). No test-coverage percentage is claimed (none was measured).
+
+---
+
+## Signal & Historical Refinement: honest data-availability notes
+
+### The live signal is often a capped book-only reading
+Most prediction markets sit still for most of their life. When a market has not genuinely
+moved recently, its three price-behaviour features are absent or near-zero, so the composite
+anomaly score falls back to whatever order-book features are available and is capped at 0.5 by
+the book-only ceiling (see `docs/methodology.md` §9). A strong score, by construction, requires
+real recent price movement. This means the live Signal Lab frequently shows moderate,
+book-only readings rather than strong anomalies, which is truthful: strong anomalies are
+genuinely rare at any given moment.
+
+### The discoverable universe is dominated by pinned long-shots
+The markets discoverable through the public Gamma endpoint are, at the time of writing,
+overwhelmingly long-shot 2028-election outcomes pinned near 0 (for example "Will [famous name]
+win the 2028 nomination?"). These do not move, so they carry no price-behaviour signal. Genuine
+near-mid, moving markets exist but are a minority and are not the highest-volume names. The
+product deliberately prefers near-mid markets for enrichment, but strong live signals remain
+rare simply because few markets are anomalous right now.
+
+### Historical retrospective: real data, but a biased sample
+Historical price history is dense and real (verified: most liquid markets return hundreds to
+thousands of timestamped points spanning weeks). The reconstruction itself has no look-ahead:
+the signal uses only pre-cutoff history and selection never uses today's price (see
+`docs/methodology.md` §9a). Its limitations are, honestly:
+- **Survivorship bias.** The universe is markets still discoverable now with enough history;
+  markets that have since closed or were removed are structurally excluded.
+- **Price-only reconstruction.** Historical order books are not available, so the reconstructed
+  signal uses price-behaviour features only.
+- **Small qualifying sets.** Because few markets are anomalous at any past cut-off, a run often
+  reconstructs only a handful of signals rather than a full fifteen, and reports the actual
+  number. The forward outcomes are honestly mixed (the signal is a screening heuristic, not a
+  predictor) and are never a claim of profitability.
+
+### Chart timeline ranges
+`1h`/`6h`/`24h` fetch fine 1-minute resolution; `7d` uses a start/end window; `all` uses the
+full history at 30-minute resolution. Ranges longer than a market's age are hidden. A very
+quiet market can still show a near-flat line over any range, which is the real data.

@@ -7,6 +7,26 @@ Newest entries at the top of each section.
 
 ## Signal & Historical Refinement (branch `arepo-signal-refinement`)
 
+### S7. Independent-review fixes: causal historical selection + material price-context floor
+An independent Sonnet review found two real defects; both fixed and regression-tested.
+- **Historical candidate selection was not causal.** The near-mid filter used each market's
+  *current* Gamma price, which excludes markets that have since drifted to an extreme (exactly
+  the movers a signal should catch) and biases the reported stats. Fix: the scan universe is
+  chosen by recent 24h trading volume (a market-activity property, not the outcome), and the
+  near-mid gate is judged on the price **at the cut-off** (`entry`, the last pre-cutoff point),
+  with `NEAR_MID=(0.1,0.9)` in `evaluation/historical.py`. Missing pre-cutoff history makes a
+  candidate ineligible. Proven by `test_current_price_does_not_change_historical_selection`
+  and `test_pinned_at_cutoff_excluded_even_if_near_mid_or_moving_later`.
+- **Book-only ceiling gated on presence, not magnitude.** A present-but-zero price feature (a
+  calm market produces a zero volatility regime every tick) set `has_price_context=True` and
+  bypassed the 0.5 cap. Fix: require a price feature whose normalised value exceeds
+  `PRICE_CONTEXT_FLOOR=0.05` to lift the ceiling. Proven by
+  `test_present_but_zero_price_feature_does_not_bypass_the_cap` and
+  `test_material_price_feature_lifts_the_cap`.
+Note: a *fresh* independent-subagent review requested in the resume prompt could not be run
+because the account hit its monthly spend limit (an external blocker); the earlier independent
+review of this same pass did run and its findings are the two fixes above.
+
 ### S1. Historical price data IS available and dense (verified by probe)
 CLOB `/prices-history` returns real, timestamped history: `interval` in {1h, 6h, 1d,
 max} with `fidelity` (minutes/point) controlling resolution. Verified: 1h→60 pts

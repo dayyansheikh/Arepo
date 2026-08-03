@@ -248,3 +248,45 @@ docker compose up --build
 `README.md`, `docs/architecture.md`, `docs/methodology.md`, `docs/API.md`,
 `docs/deployment.md`, `docs/limitations.md`, `docs/brand-system.md`,
 `docs/portfolio-report.md`, this file.
+
+---
+
+## Signal & Historical Refinement (branch `arepo-signal-refinement`)
+
+Changelog, grouped:
+
+- **Navigation:** removed horizontal scrolling; desktop links spread across the width in one
+  stable row, mobile links wrap; no overflow strip.
+- **Brand / favicon:** browser-tab icon is now the wordmark's stylised "A" (white chevron +
+  red triangle) on the ink tile; grid symbol enlarged in nav and footer.
+- **Status chip:** shows only truthful states, API Connected/Delayed/Offline (green only when
+  genuinely connected) plus "Updated Xs ago" when known; removed the always-Unknown live feed
+  and the "n/a" age.
+- **Signal Lab:** surface label renamed "Composite anomaly"; plain-English purpose; each signal
+  links to its market (market_question/outcome_name now on the signal); "How this may be used"
+  research section; clearer information architecture.
+- **Signal engine:** rebalanced composite across standardized price-behaviour features
+  (movement burst, volatility regime added) so it is no longer imbalance-dominated; book-only
+  ceiling requires material price context (PRICE_CONTEXT_FLOOR); live history fetch widened to
+  the full series at 30-minute resolution so price features have data; enrichment prefers
+  near-mid markets. Fixed, documented weights (no overfitting).
+- **Chart ranges:** 1H/6H/24H/7D/All on the market-detail chart, only the sensible ones shown.
+- **Order-book explainer:** repaired diagram (strong colours, correct labels, a legend for
+  bids/asks/midpoint/spread/imbalance, light interactivity).
+- **Historical retrospective:** new `/api/historical/screen` and Replay "Historical analysis"
+  tab; causal reconstruction (no look-ahead; selection never uses today's price), provenance
+  `reconstructed`, survivorship disclosed.
+- **Footer:** designer credit (Dayyan Sheikh / dayyansheikh.work@gmail.com).
+
+Independent Sonnet review run over the pass; it confirmed the truthfulness properties
+(no look-ahead, provenance separation, imbalance no longer dominating, honest degradation) and
+found two real defects, both fixed and regression-tested: (1) the historical near-mid filter
+used today's price instead of the price at the cut-off; (2) the book-only ceiling gated on
+presence rather than magnitude of a price feature.
+
+Verified test results: backend **193 passed** (ruff clean); frontend tsc/lint/build clean (10/10
+routes), 8 vitest. All seven surfaces browser-verified against a live backend.
+
+Data-availability honesty: historical price data is dense and real; strong LIVE signals are
+rare because most markets are calm and the discoverable universe is mostly pinned long-shots.
+No public deployment or paid scheduler activated (needs the user's account authorisation).

@@ -235,18 +235,35 @@ sense; it is only ever presented as "near-mid depth within ±X points."
 
 ## 9. Composite anomaly score
 
-**File:** `analytics/anomaly.py`
+**File:** `analytics/anomaly.py`, `analytics/abnormality.py`
 
-**Definition:** a `[0, 1]` screening score blending up to five normalized, individually
-visible components:
+**Definition:** a `[0, 1]` screening score blending up to seven normalized, individually
+visible components. As of the Signal & Historical Refinement pass the composite is
+rebalanced so it is **led by price behaviour**, not by the order book:
 
 | Component | Raw input | Saturation cap | Default weight |
 |---|---|---|---|
-| `unusual_return` | \|rolling z-score of additive returns\| | 4.0 (\|z\|=4 → fully saturated) | 0.35 |
-| `volume_acceleration` | (recent incremental volume − baseline) / baseline | 3.0 (300% acceleration → saturated) | 0.20 |
-| `book_imbalance` | signed order-book imbalance, first 5 levels | 1.0 (already in [-1,1]) | 0.15 |
-| `spread_change` | relative spread change vs. a trailing baseline | 1.0 | 0.15 |
-| `depth_change` | relative near-mid depth change vs. a trailing baseline | 1.0 | 0.15 |
+| `unusual_return` | \|rolling z-score of the latest additive return\| | 4.0 (\|z\|=4 → fully saturated) | 0.24 |
+| `movement_abnormality` | standardised magnitude of the recent multi-step move (`return_burst_score`) | 4.0 (a 4-sigma cumulative move → saturated) | 0.20 |
+| `volatility_regime` | short-window return volatility vs. a longer baseline, elevated side only | 2.0 (recent volatility 3x baseline → saturated) | 0.16 |
+| `volume_acceleration` | (recent incremental volume − baseline) / baseline | 3.0 (300% acceleration → saturated) | 0.12 |
+| `book_imbalance` | signed order-book imbalance, first 5 levels | 1.0 (already in [-1,1]) | 0.12 |
+| `spread_change` | relative spread change vs. a trailing baseline | 1.0 | 0.08 |
+| `depth_change` | relative near-mid depth change vs. a trailing baseline | 1.0 | 0.08 |
+
+The first three rows (`unusual_return`, `movement_abnormality`, `volatility_regime`) are the
+**price-behaviour features** (`PRICE_FEATURES` in `analytics/anomaly.py`) and together carry
+0.60 of the weight, more than double order-book imbalance's 0.12. `movement_abnormality` and
+`volatility_regime` are computed in `analytics/abnormality.py`:
+
+- `return_burst_score` (movement_abnormality) is a sustained-move detector: it takes the net
+  move over the most recent `k` returns and divides by `sigma * sqrt(k)`, where `sigma` is the
+  per-step return standard deviation over a trailing baseline window. This fires on a run of
+  moves in one direction, not just a single jump, complementing the single-step z-score.
+- `volatility_regime` is `short_vol / long_vol - 1`: recent short-window return volatility
+  relative to a longer baseline. Only the elevated side counts (a calmer-than-usual market is
+  clamped to 0 before weighting), since a volatility drop is not itself anomalous in the same
+  sense.
 
 Each raw value is mapped to a `[0, 1]` magnitude via `squash(x, cap) = min(1, |x| / cap)` – a
 simple linear map that saturates at the documented cap, keeping outliers from dominating
@@ -256,14 +273,53 @@ the score without an unbounded input ever producing an unbounded contribution.
 score = Σ (weight_i × normalized_i) / Σ weight_i     over components that are available
 ```
 
-**Weight renormalization:** if a component is unavailable (e.g. no volume history in live
-mode), it is simply excluded from both the numerator and the weight sum – a missing input
-neither inflates nor deflates the score, it is absent from the average.
+**Why led by price behaviour:** order-book imbalance and spread/depth change are snapshot or
+short-baseline measures that can look large on very little genuine information, and on the
+read-only live path spread/depth change usually have no historical series to compare against
+(see below). Weighting the composite towards return-based features keeps a strong score tied
+to something that actually happened to the price, not to a transient quirk of the book.
 
-**These weights and caps are assumptions, not empirically fit values.** They are documented
-here exactly as coded in `DEFAULT_WEIGHTS` / `DEFAULT_CAPS` in `analytics/anomaly.py`, and a
-production deployment intending to act on this score would need to re-derive them from
-labelled outcome data. Astrolabe does not claim they are optimal.
+**Safeguards against the composite being dominated by the order book:**
+
+1. **Book-only ceiling.** If no price-behaviour feature is *materially* present for a reading,
+   the score is capped at `BOOK_ONLY_CEILING = 0.5`, regardless of how large `book_imbalance`
+   (or spread/depth change) is. "Materially present" means a price feature whose normalized
+   value clears a small floor (`PRICE_CONTEXT_FLOOR = 0.05`); a present-but-near-zero feature
+   (which a calm market produces on every tick, e.g. a zero volatility regime) does not count,
+   so it cannot be used to lift the ceiling. A reading built on order-book features alone, or
+   on price features that are all essentially zero, can therefore never reach a "strong" score
+   by itself; a genuinely strong composite requires real, measured price movement.
+2. **Weight renormalization.** If a component is unavailable (e.g. no volume history, or no
+   order-book time series to compute spread/depth change against), it is excluded from both
+   the numerator and the weight sum – a missing input neither inflates nor deflates the score,
+   it is simply absent from the average.
+3. **Graceful degradation, never fabrication.** Every feature function (`return_burst_score`,
+   `volatility_regime`, the z-score, imbalance, etc.) returns `None` on insufficient or
+   degenerate data (too little history, a flat baseline, an empty book) rather than inventing
+   a value. A component that is absent is absent; it is never estimated or defaulted to zero.
+4. **Fixed, documented weights, not fitted to outcomes.** The weights and caps above are
+   assumptions, coded exactly as `DEFAULT_WEIGHTS` / `DEFAULT_CAPS` in `analytics/anomaly.py`,
+   chosen and documented up front rather than fit or tuned against which markets later moved.
+   This avoids overfitting the composite to a small, retrospectively-known sample. A production
+   deployment intending to act on this score would still need to validate them against labelled
+   outcome data. Astrolabe does not claim they are optimal.
+
+**Honest limitation: calm markets get a capped, book-only reading.** Most prediction markets
+sit still for most of their life. When a market's price has not genuinely moved recently, all
+three price-behaviour features are absent (there is nothing unusual to standardise), so the
+composite falls back to whatever order-book features are available and is capped at 0.5 by the
+book-only ceiling above. A **strong** composite score, by construction, requires genuine recent
+price movement: a real return z-score, a real sustained move, or a real volatility spike. This
+is intentional, not a bug: it is what stops a lopsided-but-quiet book from ever reading as a
+top anomaly.
+
+**Why spread/depth change are usually absent on the live path:** `spread_change` and
+`depth_change` need a *time series* of order-book snapshots to compare "now" against a
+baseline. The read-only live data path (`service/sources.py`) fetches the current book once per
+request; it does not maintain a rolling order-book history, so these two components are
+typically `None` in live mode and drop out of the weighted mean via renormalization. They are
+retained in the model (and populated where a caller does supply a book time series) because
+they are a real informative feature, not because they are expected to fire in this deployment.
 
 **Confidence:** the `Signal.confidence` attached to a composite-anomaly signal is
 `strength × quality.confidence` (§10) – i.e. a strong-looking reading with poor data quality
@@ -271,8 +327,81 @@ ranks below a strong-and-trustworthy one. `Signal.direction` is derived from the
 z-score component when available (`"up"` / `"down"` / `None`).
 
 **Limitations (stated verbatim in the product):** "Screening heuristic only. Not evidence of
-insider activity; not a profit signal. Sensitive to the chosen weights, caps and windows,
-which are assumptions."
+insider activity; not a profit signal. Sensitive to the chosen weights, caps and windows, which
+are assumptions. Spread and depth change need an order-book time series that the read-only
+live path does not capture, so they are usually absent and the score leans on price and
+imbalance."
+
+---
+
+## 9a. Historical reconstructed retrospective
+
+**Files:** `evaluation/historical.py`, `api/routes/historical.py`
+(`GET /api/historical/screen`, see `docs/API.md`).
+
+**Purpose:** a research screen that asks "if Arepo's composite anomaly signal had been
+computed at a past moment, using only what was knowable then, which markets would it have
+flagged, and what actually happened to their prices afterwards?" It exists alongside, and is
+kept strictly separate from, the prospective weekly cohort system in §12.
+
+**No look-ahead:** for a chosen cut-off `as_of`, each candidate market's signal is reconstructed
+using **only** the real price history up to and including that cut-off (`prefix` in
+`run_historical_screen`); the later history (`suffix`) is used exclusively to measure what
+happened afterwards, never to compute the signal itself. Both the pre-cutoff and post-cutoff
+history are genuine recorded CLOB price history, not synthetic or invented data.
+
+**Universe (causal selection):** the scan set is chosen by recent trading activity (24-hour
+volume), a market-activity property, **never by price**. A candidate is then screened only if
+its price **at the cut-off** (the last pre-cutoff point, `entry`) sat away from the extremes,
+roughly between 0.1 and 0.9 (`NEAR_MID` in `historical.py`). This is deliberately judged at the
+cut-off, not on today's price: a market pinned near 0 or 1 at the cut-off has no room to move
+and no price-behaviour signal to reconstruct, whereas whether it later drifted to an extreme
+(or is near-mid now) must not affect whether it was ever a candidate. Selection therefore uses
+no post-cut-off information about the outcome, which is proven by regression tests
+(`test_current_price_does_not_change_historical_selection`,
+`test_pinned_at_cutoff_excluded_even_if_near_mid_or_moving_later`). Activity ordering is used
+because the long-shots that top total volume and liquidity are pinned near 0/1 with no history
+to reconstruct, whereas actively traded markets include the genuinely uncertain ones; its one
+caveat is the mild survivorship effect noted below.
+
+**Ranking:** signals are reconstructed for every candidate token, filtered to those meeting a
+minimum strength and minimum lookback length, then ranked by strength. The result keeps the
+**top 15 distinct markets** (one entry per market, its strongest outcome), not 15 outcome rows
+that could double up on the same Yes/No pair.
+
+**Scoring against real later history:** each selected entry is scored at three forward
+horizons, **1 hour, 24 hours and 7 days**, using the real price at or after that point in the
+recorded history (falling back to the last known price if the series ends first, never an
+invented value). Direction correctness is judged at the 24-hour horizon: a signal's direction
+(`"up"`/`"down"`) is compared against the real 24-hour movement.
+
+**Provenance:** every result carries `provenance_class = "reconstructed"`
+(`PROVENANCE_RECONSTRUCTED`). It is never mixed with `prospective` cohorts (§12) or the
+`synthetic` demonstration; the API response and UI surface the provenance explicitly.
+
+**Stated assumptions** (from `HistoricalScreen.assumptions`):
+- The signal at the cut-off is reconstructed from only the real price history up to that
+  moment, so there is no look-ahead.
+- Candidates are chosen by recent trading activity, not by price, and a market is screened only
+  if its price at the cut-off was away from the extremes. Selection never uses today's price or
+  what happened later.
+- Entry is the real price at the cut-off; forward prices are the real later history.
+- Historical order books are not available, so the reconstructed signal uses price-behaviour
+  features only (no order-book imbalance, spread or depth).
+
+**Stated limitations** (from `HistoricalScreen.limitations`, and worth restating honestly
+here):
+- **Survivorship bias.** The universe is markets that are *still discoverable now* and that
+  happen to have enough real history reaching back before the chosen cut-off. Markets that
+  closed, were removed, or never accumulated that much history are structurally excluded. This
+  makes the screen an illustrative research tool, not a representative sample of "every market
+  that existed" at the cut-off, and not a tradable track record.
+- **Price-only reconstruction.** Because historical order-book snapshots are not available,
+  every reconstructed signal is necessarily a price-behaviour-only composite (no imbalance,
+  spread or depth component can be computed for the past), unlike a live composite which may
+  also see order-book features.
+- A move in the signalled direction is not a claim of profitability; no costs, fees or slippage
+  are modelled.
 
 ---
 

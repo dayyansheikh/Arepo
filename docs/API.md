@@ -550,3 +550,77 @@ Metadata and a market list for the committed replay dataset. No query parameters
   midpoint, missing book side, etc.) – this is deliberate, not a bug; see
   `docs/methodology.md` for exactly when each value is `null`.
 - `data_quality` is one of `good` \| `limited` \| `poor` \| `unavailable`.
+
+---
+
+## Signal & Historical Refinement additions
+
+### `GET /api/markets/{id}` chart timeline range
+
+The market-detail endpoint now accepts an optional `range` query parameter:
+
+`GET /api/markets/{id}?mode=<mode>&range=<1h|6h|24h|7d|all>` (default `all`).
+
+The returned `price_history` is the series for that range, fetched at a resolution suited to
+it (fine 1-minute points for short ranges; a start/end window for `7d`; the full history at
+30-minute resolution for `all`). Two fields were added to the market object:
+
+- `chart_range`: the active range.
+- `available_ranges`: the subset of `["1h","6h","24h","7d","all"]` that makes sense for this
+  market. Ranges longer than the market's age are omitted; `all` is always present.
+
+Signals now also carry `market_question` and `outcome_name`, so a signal can name and link to
+the market it refers to.
+
+### `GET /api/historical/screen`
+
+The historical reconstructed retrospective (a separate analysis mode, provenance
+`reconstructed`; see `docs/methodology.md` §9a). Reconstructs the composite anomaly signal at a
+past cut-off using only real price history up to that moment (no look-ahead), ranks the top-N
+distinct markets, and scores them against the real later history. Uses live data; can be slow
+(fetches full history per candidate market).
+
+Query parameters:
+
+- `days` (1..30, default 7): how many days before now the cut-off sits.
+- `limit` (1..60, default 40): how many active markets to scan (chosen by recent 24h trading
+  volume, never by price).
+- `top_n` (1..25, default 15).
+
+Response (`HistoricalScreen`):
+
+```json
+{
+  "provenance_class": "reconstructed",
+  "as_of": "2026-07-27T12:00:00+00:00",
+  "top_n": 15,
+  "universe_considered": 80,
+  "eligible": 3,
+  "selected": 3,
+  "moved_expected_24h": 1,
+  "moved_against_24h": 2,
+  "pending_24h": 0,
+  "entries": [
+    {
+      "rank": 1,
+      "market_id": "…", "token_id": "…",
+      "market_question": "…", "outcome_name": "Yes",
+      "direction": "up",
+      "strength": 0.37, "confidence": 0.30, "data_quality": "good",
+      "entry_price": 0.157,            /* the real price AT the cut-off */
+      "lookback_points": 1149,
+      "components": [ { "name": "movement_abnormality", "normalized_value": 0.42, "weight": 0.20 } ],
+      "forward": [ { "horizon": "24h", "price": 0.182, "movement": 0.025 } ],
+      "final_price": 0.19, "final_movement": 0.033,
+      "direction_correct_24h": true
+    }
+  ],
+  "plain_summary": "Reconstructed the top 3 composite-anomaly signals …",
+  "assumptions": [ "…", "…" ],
+  "limitations": [ "…survivorship bias…", "…price-only reconstruction…" ]
+}
+```
+
+Selection is causal: the scan set is chosen by trading activity (not price), and the near-mid
+filter is judged on the price at the cut-off, so today's price and later movement cannot change
+which markets are considered.

@@ -38,13 +38,24 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
-**Signal & Historical Refinement pass IN PROGRESS** (branch `arepo-signal-refinement`,
-from the completed Master Final Refinement). Data investigation done (see DECISIONS S1:
-historical price data is dense and real). Workstreams: nav/logo/favicon/footer, status
-chip, Signal Lab rename+purpose+linking+actionability, signal-engine rebalance, chart
-timeline ranges, order-book explainer repair, historical reconstructed retrospective
-(top-15). Recovery tag before this pass: `arepo-ui-v1` still valid; also this pass starts
-from a clean tree at commit 76f0db2. Resume from **Exact next action** at the bottom.
+**Signal & Historical Refinement pass COMPLETE** (branch `arepo-signal-refinement`, from
+the completed Master Final Refinement at 76f0db2; recovery tag `arepo-ui-v1` still valid).
+All ten workstreams delivered, browser-verified, and committed: nav (non-scrolling),
+wordmark "A" favicon, larger logo, footer credit, truthful status chip, Signal Lab
+("Composite anomaly" + purpose + market linking + "How this may be used"), signal-engine
+rebalance (price features 0.60 vs imbalance 0.12 + book-only ceiling with material floor),
+chart timeline ranges (1H/6H/24H/7D/All), order-book explainer repair, and the historical
+reconstructed retrospective (`/api/historical/screen` + Replay tab, causal no-look-ahead).
+
+Independent Sonnet review run over the pass; two defects found and FIXED + regression-tested
+(see DECISIONS S7): causal historical selection (price at cut-off, not today) and the
+book-only ceiling requiring material price context. A fresh independent-subagent review was
+blocked by the account monthly spend limit.
+
+Final verified state: backend **193 tests pass**, ruff clean, migration bootstrap idempotent;
+frontend `tsc`/`lint`/`build` clean (10/10 routes), **8 vitest**. All seven surfaces
+browser-verified against a live backend. Docs updated (methodology §9/§9a, API, limitations,
+brand-system, README, FINAL_STATUS). Next action: commit + push to origin.
 
 ---
 

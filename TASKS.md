@@ -4,21 +4,21 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocke
 
 ## Signal & Historical Refinement pass (branch `arepo-signal-refinement`)
 - [x] Investigate historical data availability (dense/real; see DECISIONS S1)
-- [ ] Navigation: remove horizontal scroll, spread items, stable full-width desktop
-- [ ] Logo slightly larger everywhere; wordmark + grid symbol integration
-- [ ] Favicon = stylised "A" from wordmark, wired correctly
-- [ ] Status chip: keep truthful states only (API + Updated-when-known), no Unknown
-- [ ] Signal Lab: rename to "Composite anomaly"; purpose header; link to markets;
+- [x] Navigation: remove horizontal scroll, spread items, stable full-width desktop
+- [x] Logo slightly larger everywhere; wordmark + grid symbol integration
+- [x] Favicon = stylised "A" from wordmark, wired correctly
+- [x] Status chip: keep truthful states only (API + Updated-when-known), no Unknown
+- [x] Signal Lab: rename to "Composite anomaly"; purpose header; link to markets;
       "How this may be used" section; clearer IA
-- [ ] Signal engine: rebalance composite across standardized features (no imbalance
+- [x] Signal engine: rebalance composite across standardized features (no imbalance
       dominance, no overfitting); document components/weights/evidence/safeguards; tests
-- [ ] Market detail: chart timeline ranges (1H/6H/24H/7D/All, only sensible ones);
+- [x] Market detail: chart timeline ranges (1H/6H/24H/7D/All, only sensible ones);
       reuse advanced-data style for other technical sections
-- [ ] Order-book explainer panel: repair diagram, labels, colours, interactivity
-- [ ] Historical reconstructed retrospective (top-15), separated provenance; tests
-- [ ] Footer credit: Designed and created by Dayyan Sheikh / dayyansheikh.work@gmail.com
-- [ ] QA: backend tests, frontend tsc/lint/build/vitest, browser checks, screenshots
-- [ ] Independent review + fixes; docs update; report
+- [x] Order-book explainer panel: repair diagram, labels, colours, interactivity
+- [x] Historical reconstructed retrospective (top-15), separated provenance; tests
+- [x] Footer credit: Designed and created by Dayyan Sheikh / dayyansheikh.work@gmail.com
+- [x] QA: backend tests, frontend tsc/lint/build/vitest, browser checks, screenshots
+- [x] Independent review + fixes (causal selection, material floor); docs update; report
 
 ---
 

@@ -105,6 +105,46 @@ async def test_flat_market_below_threshold_excluded():
     assert screen.universe_considered == 1  # it was looked at, just not eligible
 
 
+def _low_mover():
+    # Same relative burst as the near-mid mover, but pinned near 0.02 at the cut-off so its
+    # cut-off price is below the near-mid band, even though it drifts up afterwards.
+    base = [0.0005 if i % 2 == 0 else -0.0005 for i in range(33)]
+    burst = [0.004] * 6
+    t0 = AS_OF - timedelta(minutes=39 * 30)
+    prefix = _series(base + burst, 0.02, t0, 30)
+    suffix = _series([0.01] * 100, prefix[-1].p, AS_OF + timedelta(hours=1), 60)
+    return prefix + suffix
+
+
+async def test_current_price_does_not_change_historical_selection():
+    # The same near-mid-at-cut-off history, but pretend today's price is pinned at 0.001.
+    # Selection must be unchanged: the near-mid gate reads the price at the cut-off, not now.
+    cand = Candidate("mUp", "mUp-y", "Will the mover rise?", "Yes", gamma_price=0.001)
+
+    async def hof(tok):
+        return _mover_up() if tok == "mUp-y" else []
+
+    screen = await run_historical_screen(
+        candidates=[cand], history_of=hof, as_of=AS_OF, min_strength=0.1
+    )
+    assert [e.market_id for e in screen.entries] == ["mUp"]
+
+
+async def test_pinned_at_cutoff_excluded_even_if_near_mid_or_moving_later():
+    # Pinned near 0 at the cut-off (below the near-mid band) but with a real signal and a later
+    # up-drift, and a current price of 0.5. It must be EXCLUDED: neither today's price nor the
+    # later move can make a market that was pinned at the cut-off a candidate.
+    cand = Candidate("mPin", "mPin-y", "Pinned at the cut-off?", "Yes", gamma_price=0.5)
+
+    async def hof(tok):
+        return _low_mover() if tok == "mPin-y" else []
+
+    screen = await run_historical_screen(
+        candidates=[cand], history_of=hof, as_of=AS_OF, min_strength=0.05
+    )
+    assert screen.selected == 0
+
+
 async def test_top_n_caps_selection():
     # Five movers, top_n=3 keeps only the three strongest.
     cands = [Candidate(f"m{i}", f"m{i}-y", f"q{i}", "Yes", 0.4) for i in range(5)]
