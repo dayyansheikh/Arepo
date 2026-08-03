@@ -26,6 +26,7 @@ from .schemas import (
     MarketDetailResponse,
     MarketFacetsResponse,
     MarketListResponse,
+    MarketSearchResponse,
     OverviewResponse,
     SignalsResponse,
 )
@@ -178,6 +179,44 @@ class MarketService:
         statuses = sorted({m.status.value for m in markets if m.status is not None})
         return MarketFacetsResponse(
             categories=categories, sports=sports, competitions=competitions, statuses=statuses,
+        )
+
+    async def search_markets(
+        self, query: str, *, active_only: bool = True, limit: int = 20, offset: int = 0
+    ) -> MarketSearchResponse:
+        """Search the full market universe by keyword via Gamma public-search, expanding the
+        query to known company/ticker aliases (e.g. Microsoft <-> MSFT). Always searches live
+        discovery regardless of the current data mode, so it is not limited to loaded markets.
+        Returns paginated normalized cards with provenance; an empty result is honest, never a
+        fabricated market or a stock quote."""
+        from ..ingest.aliases import expand_query
+
+        terms = expand_query(query)
+        by_id: dict[str, Market] = {}
+        if terms:
+            for term in terms:
+                try:
+                    found = await self._live.search(term, active_only=active_only)
+                except Exception:  # noqa: BLE001 - one failed term never fails the whole search
+                    continue
+                for m in found:
+                    by_id.setdefault(m.id, m)
+        markets = _sort_markets(list(by_id.values()), "volume")
+        total = len(markets)
+        page = markets[offset: offset + limit]
+        cards = [self._card_from_metadata(m) for m in page]
+        note = (
+            f"Found {total} matching market(s) across the full Polymarket universe."
+            if total
+            else (
+                "No prediction market matched this search. Arepo does not create a market or "
+                "show a stock quote when none exists."
+            )
+        )
+        return MarketSearchResponse(
+            query=query, expanded_terms=terms, markets=cards, total=total,
+            limit=limit, offset=offset,
+            provenance="Polymarket public search (Gamma), live discovery.", note=note,
         )
 
     async def enrich_markets(self, *, requested_mode=None, limit=None):

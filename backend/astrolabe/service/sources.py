@@ -132,6 +132,17 @@ class LiveSource:
             )
             raise
 
+    async def search(
+        self, query: str, *, active_only: bool = True, limit_per_type: int = 20
+    ) -> list[Market]:
+        """Full-universe market search via Gamma public-search (questions, descriptions,
+        event titles, tags, slugs). Returns normalized tradeable markets."""
+        events = await self._gamma.search(query, limit_per_type=limit_per_type)
+        if active_only:
+            events = [e for e in events if not e.get("closed", False)]
+        markets = normalize_events_to_markets(events)
+        return [m for m in markets if _is_tradeable(m)]
+
     async def get_token_data(self, market_id: str, token_id: str) -> TokenData:
         book: OrderBook | None = None
         prices: list[float] = []

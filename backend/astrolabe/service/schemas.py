@@ -119,6 +119,24 @@ class MarketFacetsResponse(ApiModel):
     statuses: list[str]
 
 
+class MarketSearchResponse(ApiModel):
+    """Full-universe keyword search results (Gamma public-search), with provenance.
+
+    ``expanded_terms`` shows the query plus any company/ticker aliases that were also searched.
+    An empty ``markets`` list with a clear ``note`` means no prediction market matched; Arepo
+    never fabricates a market or shows a stock quote in its place.
+    """
+
+    query: str
+    expanded_terms: list[str]
+    markets: list[MarketCard]
+    total: int
+    limit: int
+    offset: int
+    provenance: str
+    note: str
+
+
 class SignalsResponse(ApiModel):
     signals: list[Signal]
     status: DataStatus

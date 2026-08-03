@@ -196,6 +196,19 @@ class GammaClient:
             )
         return data
 
+    async def search(self, query: str, limit_per_type: int = 20) -> list[dict]:
+        """Full-universe search via Gamma ``/public-search``. Returns matching events (each
+        carrying its markets). Searches questions, descriptions, event titles, tags and slugs
+        across the whole market universe, not just a pre-loaded page."""
+        resp = await self._request(
+            "GET", "/public-search", params={"q": query, "limit_per_type": limit_per_type}
+        )
+        data = _safe_json(resp)
+        if isinstance(data, dict):
+            events = data.get("events", [])
+            return events if isinstance(events, list) else []
+        return []
+
     async def get_market(self, market_id: str) -> dict | None:
         try:
             resp = await self._request("GET", f"/markets/{market_id}")
