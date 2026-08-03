@@ -223,6 +223,31 @@ async def test_forward_observations_not_duplicated(session):
     assert obs[0].price == 0.6  # first write wins; not overwritten
 
 
+# 9b. a failed forward lookup does not permanently lose the horizon ----------------------
+async def test_forward_retries_after_failed_lookup(session):
+    cohort = await engine.update_rankings(session, snapshots=[snap("m0", 0.8)], at=MONDAY)
+    await engine.freeze_week(session, at=MONDAY)
+    repo = EvaluationRepository(session)
+    entry = (await repo.get_entries(cohort.id))[0]
+    frozen = await repo.get_cohort_by_id(cohort.id)
+    later = frozen.frozen_at + timedelta(days=8)  # all timed horizons due
+
+    async def failing(_market_id, _token_id):
+        return None, None
+
+    added = await tracking.collect_forward_prices(session, now=later, price_of=failing)
+    assert added == 0
+    assert await repo.get_forward(entry.id) == []  # nothing written on failure
+
+    async def working(_market_id, _token_id):
+        return 0.62, later
+
+    added2 = await tracking.collect_forward_prices(session, now=later, price_of=working)
+    assert added2 == 3  # 1h/24h/7d captured on recovery
+    obs = {o.horizon: o.price for o in await repo.get_forward(entry.id)}
+    assert obs == {"1h": 0.62, "24h": 0.62, "7d": 0.62}
+
+
 # 10. resolution updates do not overwrite entry data -------------------------------------
 async def test_resolution_does_not_overwrite_entry(session):
     cohort = await engine.update_rankings(

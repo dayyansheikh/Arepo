@@ -68,6 +68,10 @@ async def collect_forward_prices(
                 if horizon in have:
                     continue
                 price, src_ts = await price_of(entry.market_id, entry.token_id)
+                if price is None:
+                    # A transient lookup failure must not permanently lose the horizon:
+                    # leave it unrecorded so the next scheduled run can capture the price.
+                    continue
                 _, created = await repo.add_forward(
                     entry.id, horizon, observed_at=now, price=price, source_timestamp=src_ts
                 )
@@ -141,11 +145,13 @@ async def evaluate_all(
             continue
         for entry in await repo.get_entries(cohort.id):
             forward = {o.horizon: o.price for o in await repo.get_forward(entry.id)}
-            mark_h, mark_price = _mark_price(forward)
+            _, mark_price = _mark_price(forward)
 
-            # Price-movement view (prefer 24h; fall back to whatever marks the position).
-            move_h = HORIZON_24H if forward.get(HORIZON_24H) is not None else mark_h
-            move_price = forward.get(move_h) if move_h else None
+            # Price-movement view is fixed to the 24h horizon so it matches the horizon
+            # the summary states; before a 24h price exists the entry is movement-pending.
+            # (Portfolio marking below still uses the best available price via mark_price.)
+            move_price = forward.get(HORIZON_24H)
+            move_h = HORIZON_24H if move_price is not None else None
             raw_movement = (
                 None
                 if move_price is None or entry.entry_price is None
