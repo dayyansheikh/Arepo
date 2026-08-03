@@ -2,9 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 import { Logo } from "./Logo";
 import { ModeSwitcher } from "./ModeSwitcher";
 import { StatusChip } from "./StatusChip";
+
+/** Right-hand auth affordance: Account when signed in, Sign in otherwise. */
+function AuthLink({ pathname }: { pathname: string }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  const href = user ? "/account" : "/signin";
+  const label = user ? "Account" : "Sign in";
+  const active = pathname.startsWith(href);
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`focus-ring whitespace-nowrap rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+        active
+          ? "border-arepo-accent text-arepo-accentActive"
+          : "border-arepo-border text-arepo-ink hover:bg-arepo-surface2"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
 
 const NAV_LINKS = [
   { href: "/", label: "Opportunities" },
@@ -65,6 +88,7 @@ export function TopBar() {
           <div className="flex shrink-0 items-center gap-3">
             <StatusChip />
             <ModeSwitcher />
+            <AuthLink pathname={pathname} />
           </div>
         </div>
         {/* Mobile: links wrap onto their own row rather than scrolling. */}

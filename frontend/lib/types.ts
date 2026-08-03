@@ -432,3 +432,47 @@ export interface MarketSearchResponse {
   provenance: string;
   note: string;
 }
+
+// -- Accounts ---------------------------------------------------------------------------
+
+export interface AccountUser {
+  id: string;
+  email: string;
+  is_active: boolean;
+  is_verified: boolean;
+  is_superuser: boolean;
+  auth_provider: string;
+  consent_at: string | null;
+}
+
+export interface AlertPreferences {
+  email_enabled: boolean;
+  immediate_exceptional: boolean;
+  daily_digest: boolean;
+  weekly_summary: boolean;
+  min_research_priority: number;
+  min_confidence: number;
+  categories: string[];
+  short_term_only: boolean;
+  max_hours_to_close: number | null;
+  paused: boolean;
+  unsubscribed: boolean;
+  updated_at: string | null;
+}
+
+export type AlertPreferencesUpdate = Partial<Omit<AlertPreferences, "updated_at">>;
+
+export interface SavedMarket {
+  market_id: string;
+  question: string;
+  created_at: string;
+}
+
+export interface AlertDelivery {
+  market_id: string;
+  token_id: string;
+  subject: string;
+  status: string;
+  detail: string;
+  at: string;
+}

@@ -1,4 +1,8 @@
 import type {
+  AccountUser,
+  AlertDelivery,
+  AlertPreferences,
+  AlertPreferencesUpdate,
   BacktestResponse,
   CohortDetail,
   CohortWeek,
@@ -10,6 +14,7 @@ import type {
   MarketsResponse,
   MetaResponse,
   MarketSearchResponse,
+  SavedMarket,
   OpportunityBoard,
   OverviewResponse,
   ProvenanceInfo,
@@ -184,4 +189,128 @@ export function getHistoricalScreen(
     limit,
     top_n: topN,
   });
+}
+
+// -- Accounts ---------------------------------------------------------------------------
+// These endpoints use the auth cookie, so every request must send credentials. fastapi-users
+// login expects form-encoded data; everything else is JSON.
+
+async function accountFetch<T>(
+  path: string,
+  init: RequestInit & { json?: unknown; form?: Record<string, string> } = {},
+): Promise<T> {
+  const { json, form, headers, ...rest } = init;
+  const opts: RequestInit = {
+    ...rest,
+    credentials: "include",
+    cache: "no-store",
+    headers: { ...(headers ?? {}) },
+  };
+  if (json !== undefined) {
+    opts.headers = { ...opts.headers, "Content-Type": "application/json" };
+    opts.body = JSON.stringify(json);
+  } else if (form !== undefined) {
+    opts.headers = { ...opts.headers, "Content-Type": "application/x-www-form-urlencoded" };
+    opts.body = new URLSearchParams(form).toString();
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, opts);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Network request failed";
+    throw new ApiError(`Unable to reach the Arepo API: ${message}`, 0);
+  }
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = (await res.json()) as { detail?: unknown };
+      if (body?.detail) detail = normalizeDetail(body.detail);
+    } catch {
+      // not JSON
+    }
+    throw new ApiError(detail || `Request failed with status ${res.status}`, res.status);
+  }
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
+export function registerAccount(email: string, password: string): Promise<AccountUser> {
+  return accountFetch<AccountUser>("/api/auth/register", {
+    method: "POST",
+    json: { email, password },
+  });
+}
+
+export function loginAccount(email: string, password: string): Promise<void> {
+  return accountFetch<void>("/api/auth/login", {
+    method: "POST",
+    form: { username: email, password },
+  });
+}
+
+export function logoutAccount(): Promise<void> {
+  return accountFetch<void>("/api/auth/logout", { method: "POST" });
+}
+
+export function verifyEmail(token: string): Promise<AccountUser> {
+  return accountFetch<AccountUser>("/api/auth/verify", { method: "POST", json: { token } });
+}
+
+export function requestVerifyToken(email: string): Promise<void> {
+  return accountFetch<void>("/api/auth/request-verify-token", {
+    method: "POST",
+    json: { email },
+  });
+}
+
+export function forgotPassword(email: string): Promise<void> {
+  return accountFetch<void>("/api/auth/forgot-password", { method: "POST", json: { email } });
+}
+
+export function resetPassword(token: string, password: string): Promise<void> {
+  return accountFetch<void>("/api/auth/reset-password", {
+    method: "POST",
+    json: { token, password },
+  });
+}
+
+export function getMe(): Promise<AccountUser> {
+  return accountFetch<AccountUser>("/api/users/me");
+}
+
+export function getPreferences(): Promise<AlertPreferences> {
+  return accountFetch<AlertPreferences>("/api/account/preferences");
+}
+
+export function updatePreferences(changes: AlertPreferencesUpdate): Promise<AlertPreferences> {
+  return accountFetch<AlertPreferences>("/api/account/preferences", {
+    method: "PATCH",
+    json: changes,
+  });
+}
+
+export function getSavedMarkets(): Promise<SavedMarket[]> {
+  return accountFetch<SavedMarket[]>("/api/account/saved");
+}
+
+export function saveMarket(market_id: string, question: string): Promise<SavedMarket> {
+  return accountFetch<SavedMarket>("/api/account/saved", {
+    method: "POST",
+    json: { market_id, question },
+  });
+}
+
+export function unsaveMarket(market_id: string): Promise<void> {
+  return accountFetch<void>(`/api/account/saved/${encodeURIComponent(market_id)}`, {
+    method: "DELETE",
+  });
+}
+
+export function getAlertHistory(): Promise<AlertDelivery[]> {
+  return accountFetch<AlertDelivery[]>("/api/account/alerts");
+}
+
+export function deleteAccount(): Promise<void> {
+  return accountFetch<void>("/api/account", { method: "DELETE" });
 }

@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono";
 import { displayFont } from "./fonts";
 import "./globals.css";
 import { ModeProvider } from "@/lib/mode-context";
+import { AuthProvider } from "@/lib/auth-context";
 import { TopBar } from "@/components/TopBar";
 import { DegradationBanner } from "@/components/DegradationBanner";
 import { Footer } from "@/components/Footer";
@@ -28,12 +29,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans min-h-screen flex flex-col">
         <Suspense fallback={null}>
           <ModeProvider>
-            <DegradationBanner />
-            <TopBar />
-            <main className="flex-1 mx-auto w-full max-w-shell px-5 py-8 sm:px-8 lg:px-12">
-              {children}
-            </main>
-            <Footer />
+            <AuthProvider>
+              <DegradationBanner />
+              <TopBar />
+              <main className="flex-1 mx-auto w-full max-w-shell px-5 py-8 sm:px-8 lg:px-12">
+                {children}
+              </main>
+              <Footer />
+            </AuthProvider>
           </ModeProvider>
         </Suspense>
       </body>

@@ -9,6 +9,9 @@ from __future__ import annotations
 from ..alerts.config import AlertConfig
 from ..alerts.provider import EmailMessage, EmailProvider, SendResult, provider_for
 from ..config import get_settings
+from ..observability.logging import get_logger
+
+logger = get_logger("astrolabe.accounts.email")
 
 # Test seam: set to an OutboxProvider in tests to capture links without sending.
 _provider_override: EmailProvider | None = None
@@ -27,10 +30,22 @@ def _sender() -> str:
     return AlertConfig.from_env().sender or "no-reply@arepo.local"
 
 
-async def _send(to: str, subject: str, text: str) -> SendResult:
-    return await _provider().send(
+async def _send(to: str, subject: str, text: str, *, link: str) -> SendResult:
+    provider = _provider()
+    result = await provider.send(
         EmailMessage(to=to, sender=_sender(), subject=subject, text=text)
     )
+    # When nothing is actually emailed (the default console sink in local development), print the
+    # action link so the sign-up / reset flow can be completed without a configured mail server.
+    if getattr(provider, "name", "") == "console":
+        # Put the link in the message text itself so it is visible under the plain-text log
+        # formatter used in local development (the JSON formatter renders ctx_ extras; the text
+        # one does not). This is the seam that lets sign-up work with no mail server.
+        logger.info(
+            f"account email (console sink, not sent externally) to={to or '<unset>'} "
+            f"subject={subject!r} link={link}"
+        )
+    return result
 
 
 async def send_verification_email(email: str, token: str) -> SendResult:
@@ -44,7 +59,7 @@ async def send_verification_email(email: str, token: str) -> SendResult:
         "If you did not create an Arepo account you can ignore this email.\n\n"
         "Arepo sends statistical research signals, not financial advice."
     )
-    return await _send(email, "Confirm your Arepo email", text)
+    return await _send(email, "Confirm your Arepo email", text, link=link)
 
 
 async def send_reset_email(email: str, token: str) -> SendResult:
@@ -56,4 +71,4 @@ async def send_reset_email(email: str, token: str) -> SendResult:
         "If you did not request this, you can ignore this email and your password will not "
         "change."
     )
-    return await _send(email, "Reset your Arepo password", text)
+    return await _send(email, "Reset your Arepo password", text, link=link)
