@@ -18,6 +18,8 @@ export const theme = {
   accentBorder: "#F5C9C9",
   pos: "#1C7C54",
   neg: "#C0392B",
+  warn: "#B8791F",
+  warnText: "#8A5A12",
   series1: "#E50C0E",
   series2: "#546A7B",
   grid: "rgba(16,16,16,0.06)",

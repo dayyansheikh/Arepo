@@ -164,18 +164,17 @@ export default function MethodologyPage() {
       </nav>
 
       <div className="flex min-w-0 flex-1 flex-col gap-14">
-        <Section
-          id="overview"
-          title="Methodology"
-          lead={
-            <>
-              Arepo is a read-only research instrument over public market data. Every reading is a
-              descriptive statistic or a screening heuristic, not a prediction, a trading signal, or
-              evidence of insider activity. This page states, in plain terms first and precisely
-              underneath, exactly what each number means, how it is computed, and where it stops.
-            </>
-          }
-        />
+        <section id="overview" className="scroll-mt-24">
+          <h1 className="text-[30px] font-semibold tracking-[-0.01em] text-arepo-ink">
+            Methodology
+          </h1>
+          <p className="mt-2 max-w-reading leading-relaxed text-arepo-ink2">
+            Arepo is a read-only research instrument over public market data. Every reading is a
+            descriptive statistic or a screening heuristic, not a prediction, a trading signal, or
+            evidence of insider activity. This page states, in plain terms first and precisely
+            underneath, exactly what each number means, how it is computed, and where it stops.
+          </p>
+        </section>
 
         <Section
           id="data-sources"

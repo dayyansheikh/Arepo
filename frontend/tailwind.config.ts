@@ -22,6 +22,8 @@ const arepo = {
   accentBorder: "#F5C9C9",
   pos: "#1C7C54", // up / positive (always paired with a sign/arrow)
   neg: "#C0392B", // down / negative
+  warn: "#B8791F", // degraded / limited (amber; paired with a word)
+  warnText: "#8A5A12", // amber text on a light tint
   series2: "#546A7B", // neutral comparison chart series
 };
 

@@ -6,7 +6,7 @@ _surface is built from. Phase 1 deliverable; implemented in Phase 2._
 ## The name
 
 **Arepo** is the connective word of the Sator Square (SATOR AREPO TENET OPERA
-ROTAS) — the one term believed to have been coined to make the square resolve in
+ROTAS), the one term believed to have been coined to make the square resolve in
 every direction. That is the brand's whole idea.
 
 > Just as Arepo is believed to have been created to unite the Sator Square, we
@@ -16,11 +16,11 @@ every direction. That is the brand's whole idea.
 
 Use the full paragraph only where there is room to earn it (About, How Arepo
 Works). Elsewhere use a short form, e.g. *"Arepo reads the hidden signal between
-the lines — where information, conviction, action and markets meet."* or simply
+the lines, where information, conviction, action and markets meet."* or simply
 *"the hidden signal, read from public markets."*
 
 The engine keeps the internal package name `astrolabe` (Python modules, DB
-identifiers, API paths) — renaming coupled internals is cosmetic risk with no
+identifiers, API paths), renaming coupled internals is cosmetic risk with no
 user benefit, per the brief. Only user-facing surfaces say Arepo.
 
 ## Logo
@@ -36,14 +36,14 @@ Not a literal Sator Square; nothing mystical or ornamental.
 Three were drawn and compared at 16px (favicon), 28px (nav) and large (report
 cover):
 
-1. **Crosshair node** — four orthogonal ink ticks around a central red dot.
+1. **Crosshair node**, four orthogonal ink ticks around a central red dot.
    Clean, but reads as a generic map/target marker at 16px and says little about
    "uniting four parts".
-2. **Quadrant aperture** — a rounded square split into four quadrants by a cross
+2. **Quadrant aperture**, a rounded square split into four quadrants by a cross
    of negative space, red dot at the meeting point. Strong idea (the hidden
    signal is literally *between the lines*), but the thin negative-space cross
    closes up and muddies below ~20px.
-3. **Convergence mark (chosen)** — four short, bold chevrons at N/E/S/W pointing
+3. **Convergence mark (chosen)**, four short, bold chevrons at N/E/S/W pointing
    inward toward a central red node, each stopping just short of it. The four
    marks are the four things Arepo unites; the gap between them and the node is
    "between the lines"; the red node is the hidden signal they reveal.
@@ -99,7 +99,7 @@ sparingly.
 | `--text` | `#101010` | primary ink |
 | `--text-secondary` | `#3A3A38` | secondary copy |
 | `--text-muted` | `#6B6862` | labels, captions, muted copy |
-| `--accent` | `#E50C0E` | **Arepo red** — active nav, primary action, selected control, key signal |
+| `--accent` | `#E50C0E` | **Arepo red**, active nav, primary action, selected control, key signal |
 | `--accent-hover` | `#C40B0C` | hover |
 | `--accent-active` | `#A50A0B` | pressed; also red text on light (≥ body contrast) |
 | `--accent-fg` | `#FFFFFF` | text/icon on a red fill |
@@ -111,14 +111,14 @@ sparingly.
 
 | Token | Value | Use |
 |---|---|---|
-| `--pos` | `#1C7C54` | up / positive — always paired with a ▲ or `+` sign |
-| `--neg` | `#C0392B` | down / negative — always paired with a ▼ or `−` sign |
+| `--pos` | `#1C7C54` | up / positive, always paired with a ▲ or `+` sign |
+| `--neg` | `#C0392B` | down / negative, always paired with a ▼ or `−` sign |
 | `--series-1` | `#E50C0E` | primary chart series (Arepo red) |
 | `--series-2` | `#546A7B` | comparison chart series (neutral slate) |
 | `--grid` | `rgba(16,16,16,0.06)` | chart gridlines, kept faint |
 
 **Rules (from the brief and the modernist DS readme):** red is for active nav,
-primary actions, selected controls and important signals only — never a flood.
+primary actions, selected controls and important signals only, never a flood.
 The red-on-white pair clears ≥3:1 (fine for chrome and large text); for
 red *body-size* text use `--accent-active`. Up/down and good/bad always pair the
 colour with a sign, arrow or word so colour is never the only cue.
@@ -127,7 +127,7 @@ colour with a sign, arrow or word so colour is never the only cue.
 
 The 0–100 strength meter fills with `--accent` (the signal colour). STRONG /
 MODERATE / WEAK badges are tonal, not three different hues: STRONG uses the red
-tint, MODERATE a neutral `--surface-2`, WEAK a fainter neutral — distinguished by
+tint, MODERATE a neutral `--surface-2`, WEAK a fainter neutral, distinguished by
 the word, not colour alone.
 
 ## Shape, elevation, motion

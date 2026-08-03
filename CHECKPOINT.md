@@ -3,8 +3,17 @@
 _Single source of truth for "where are we, exactly." Updated after each wave._
 
 ## Current phase
-**Arepo redesign — Phase 2 (design system & shell) in progress.** Branch
-`arepo-redesign` off tag `astrolabe-baseline`.
+**Arepo redesign COMPLETE (Phases 1 to 7).** Branch `arepo-redesign` off tag
+`astrolabe-baseline`. All seven surfaces redesigned and verified in-browser; new
+How Arepo Works + KaTeX Methodology; brand, logo, favicon, tokens shipped; backend
+user-facing strings rebranded (internals unchanged); independent Sonnet review run
+and its findings fixed (api.ts error string, Methodology h1, StatusChip a11y, amber
+token, How-It-Works grammar, doc accuracy). Frontend tsc/lint/build clean; backend
+128 tests pass, ruff clean. Deliverables updated: README, portfolio report,
+FINAL_STATUS, brand-system + design-reference-audit docs, fresh screenshots,
+redesign changelog. Baseline tag + history preserved.
+
+### (historical, redesign start) Phase 2 note
 
 ### Baseline recorded (redesign start, 2026-08-03)
 - Frontend: `tsc --noEmit` clean, `next lint` clean, `next build` clean (8/8 pages).

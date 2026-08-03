@@ -1,5 +1,5 @@
 export function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-instrument bg-astro-light-border/60 dark:bg-astro-border/60 ${className}`} />;
+  return <div className={`animate-pulse rounded-control bg-arepo-border/70 ${className}`} />;
 }
 
 export function CardGridSkeleton({ count = 4 }: { count?: number }) {

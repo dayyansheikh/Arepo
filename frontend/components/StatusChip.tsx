@@ -7,7 +7,7 @@ import { formatDurationSeconds } from "@/lib/format";
 const STATE_COLOR: Record<string, string> = {
   ok: "bg-arepo-pos",
   healthy: "bg-arepo-pos",
-  degraded: "bg-[#B8791F]",
+  degraded: "bg-arepo-warn",
   down: "bg-arepo-neg",
   error: "bg-arepo-neg",
 };
@@ -32,19 +32,22 @@ export function StatusChip() {
     >
       {status ? (
         <>
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1" aria-label={`REST source: ${status.rest.state}`}>
             <span
               className={`h-1.5 w-1.5 rounded-full ${dotColor(status.rest.state)}`}
               aria-hidden="true"
             />
-            REST
+            <span aria-hidden="true">REST</span>
           </span>
-          <span className="flex items-center gap-1">
+          <span
+            className="flex items-center gap-1"
+            aria-label={`WebSocket source: ${status.websocket.state}`}
+          >
             <span
               className={`h-1.5 w-1.5 rounded-full ${dotColor(status.websocket.state)}`}
               aria-hidden="true"
             />
-            WS
+            <span aria-hidden="true">WS</span>
           </span>
           <span>age {formatDurationSeconds(status.data_age_seconds)}</span>
         </>

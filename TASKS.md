@@ -14,22 +14,22 @@ See `FINAL_STATUS.md` for the authoritative state.
 - [x] Redesign decisions logged in `DECISIONS.md` (R1–R7)
 
 ### Phase 2 — design system & shell
-- [~] Design tokens (globals.css vars + tailwind), Geist font, metadata rename
-- [ ] Arepo logo + favicon; TopBar/nav; ModeSelector; Footer; DisclaimerBanner
-- [ ] Shared primitives: Card, Button, Badge, MetricHelp, StatTile, StrengthMeter,
+- [x] Design tokens (globals.css vars + tailwind), Geist font, metadata rename
+- [x] Arepo logo + favicon; TopBar/nav; ModeSelector; Footer; DisclaimerBanner
+- [x] Shared primitives: Card, Button, Badge, MetricHelp, StatTile, StrengthMeter,
       Select, Slider, Disclose, Equation (KaTeX)
 
 ### Phase 3 — education & maths
-- [ ] `How Arepo Works` page; rebuild `Methodology` with KaTeX + full anchors
-- [ ] Wire MetricHelp across all metrics to Methodology anchors
+- [x] `How Arepo Works` page; rebuild `Methodology` with KaTeX + full anchors
+- [x] Wire MetricHelp across all metrics to Methodology anchors
 
 ### Phase 4 — Overview & Markets redesign
 ### Phase 5 — Market detail & Signal Lab redesign
 ### Phase 6 — Replay & data-mode controls
 ### Phase 7 — QA gauntlet
-- [ ] Responsive + a11y review; visual review vs references; cross-browser smoke
-- [ ] lint / typecheck / build / backend tests; independent review; repairs
-- [ ] Deliverables: screenshots, README, portfolio report, ZIP, FINAL_STATUS, changelog
+- [x] Responsive + a11y review; visual review vs references; cross-browser smoke
+- [x] lint / typecheck / build / backend tests; independent review; repairs
+- [x] Deliverables: screenshots, README, portfolio report, ZIP, FINAL_STATUS, changelog
 
 ---
 

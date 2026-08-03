@@ -44,7 +44,7 @@ async function apiFetch<T>(path: string, params: Record<string, string | number 
     res = await fetch(url, { cache: "no-store" });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Network request failed";
-    throw new ApiError(`Unable to reach Astrolabe API: ${message}`, 0);
+    throw new ApiError(`Unable to reach the Arepo API: ${message}`, 0);
   }
 
   if (!res.ok) {

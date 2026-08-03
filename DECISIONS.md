@@ -18,10 +18,15 @@ matching every reference exactly.
 ### R6. Richer Markets filters are client-side over existing fields
 The backend `/api/markets` supports `search`, `category`, `status`, `sort` only.
 The brief's additional guided filters (signal-strength range, probability range,
-time-to-close, sport/competition where present) are implemented **client-side**
-over fields already on `MarketCard`, with honest empty states — no backend change,
-per "do not alter backend behaviour". Sport/competition are shown only when the
-data carries them; the UI never implies all markets have sports metadata.
+time-to-close) are implemented **client-side** over fields already on `MarketCard`,
+with honest empty states, and no backend change, per "do not alter backend
+behaviour". Category and status go to the API; signal-strength, probability and
+time-to-close are filtered client-side; the "signal strength" and "newest" sorts
+are also client-side (the API sorts only by volume/liquidity/end_date). Sport and
+competition/event-group filters are deliberately **not** surfaced: `MarketCard`
+carries no reliable sport or competition field, and the brief is explicit that the
+UI must not imply all markets have sports metadata. Free-text search is retained as
+a secondary "advanced" control.
 
 ### R5. Maths via KaTeX
 Equations render with KaTeX (added as a frontend dep), not hand-rolled fraction

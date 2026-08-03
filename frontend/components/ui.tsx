@@ -83,7 +83,7 @@ type BadgeTone =
 const TONE_CLASS: Record<BadgeTone, string> = {
   // Data-quality: green/amber/neutral, but each carries its own word too.
   good: "bg-arepo-pos/12 text-arepo-pos",
-  limited: "bg-[#B8791F]/12 text-[#8A5A12]",
+  limited: "bg-arepo-warn/12 text-arepo-warnText",
   poor: "bg-arepo-neg/12 text-arepo-neg",
   // Strength tiers: distinguished by the word; accent only for STRONG.
   strong: "bg-arepo-accentTint text-arepo-accentActive",

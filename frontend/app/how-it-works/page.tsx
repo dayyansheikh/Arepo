@@ -193,7 +193,7 @@ export default function HowItWorksPage() {
       <Section id="confidence" eyebrow="Signals" title="What confidence means">
         <p>
           Confidence is different from strength. Strength measures how unusual the behaviour
-          looks; confidence measures how much to trust that reading, based on data quality, a
+          looks; confidence measures how much to trust that reading, based on data quality. A
           short price history, a wide spread, thin depth, stale data or a one-sided book all
           pull confidence down.
         </p>

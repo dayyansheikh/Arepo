@@ -8,15 +8,15 @@ _`design-references/` contributes, and what is adopted, adapted or rejected._
 All files in `design-references/` were opened and read in full, and the four
 `uploads/` screenshots were rendered:
 
-- **Seven page mockups** (`*.dc.html`) — Overview, Markets, MarketDetail,
+- **Seven page mockups** (`*.dc.html`), Overview, Markets, MarketDetail,
   SignalLab, Replay, Methodology, plus `Overview-print.html`. These are static
   exports from Claude Design using an `x-dc` / `sc-for` templating runtime
   (`support.js`, `doc-page.js`). They are visual references, not production code.
-- **Three design-system bundles** (`_ds/`) — `modernist` (red-on-white, Archivo,
+- **Three design-system bundles** (`_ds/`), `modernist` (red-on-white, Archivo,
   flat 2px rules, zero radius), `industry` (steel-blue blueprint wireframe,
   Barlow Condensed), `broadsheet` (newsprint serif, CMYK spot colour). Each ships
   a token sheet (`styles.css`), a `readme.md` and a `theme.json`.
-- **Four `uploads/` PNGs** — screenshots of the *current* (baseline) Astrolabe app
+- **Four `uploads/` PNGs**, screenshots of the *current* (baseline) Astrolabe app
   at `localhost:3000` (Overview, Markets, Replay, Market detail). These are the
   "before" state, useful only for before/after comparison.
 
@@ -47,7 +47,7 @@ structure and translate the colour/type through the Arepo tokens.
 
 ## Per-reference verdicts
 
-### Overview (`Overview.dc.html`) — ADOPT (structure)
+### Overview (`Overview.dc.html`), ADOPT (structure)
 
 - **Adopt:** 76px header with logo + wordmark + primary nav + a right-aligned
   status pill; page title + one-line orientation sentence; a dismissable research
@@ -55,15 +55,15 @@ structure and translate the colour/type through the Arepo tokens.
   grid (`minmax(300px, 1fr)`); "Most active" as a compact list inside one rounded
   container; uppercase 13px section labels with a right-aligned secondary note.
 - **Adapt:** the card only shows question, category, status, top outcome, volume,
-  spread, movement, and a signal-strength meter — this matches the brief's
+  spread, movement, and a signal-strength meter, this matches the brief's
   "reduce density" list closely, but the brief drops volume/spread from the card
   and keeps movement, signal strength, confidence and status. Trim the card to the
   brief's field list and push spread to the detail page.
 - **Reject:** the gold gradient logo tile; the warm-cream palette; Barlow.
 
-### Markets (`Markets.dc.html`) — ADOPT (structure)
+### Markets (`Markets.dc.html`), ADOPT (structure)
 
-- **Adopt:** guided filter bar as the primary discovery method — Category,
+- **Adopt:** guided filter bar as the primary discovery method, Category,
   Status, Signal strength, Sort by as styled native `<select>`s in one rounded
   panel; identical card grid to Overview; whole card is a link.
 - **Adapt:** the brief asks for more guided dropdowns (sport, competition/event
@@ -72,7 +72,7 @@ structure and translate the colour/type through the Arepo tokens.
   that does not imply every market has sports metadata.
 - **Reject:** gold focus ring on selects (use the red accent ring).
 
-### Market detail (`MarketDetail.dc.html`) — ADOPT (structure)
+### Market detail (`MarketDetail.dc.html`), ADOPT (structure)
 
 - **Adopt:** breadcrumb (Markets / category); large question title; a horizontal
   stat strip (volume, 24h, liquidity, ends, source) under a hairline; **price
@@ -90,7 +90,7 @@ structure and translate the colour/type through the Arepo tokens.
   to every specialist metric rather than a bare `title` attribute.
 - **Reject:** `title`-only tooltips (not keyboard accessible); gold chart fills.
 
-### Signal Lab (`SignalLab.dc.html`) — ADOPT (structure)
+### Signal Lab (`SignalLab.dc.html`), ADOPT (structure)
 
 - **Adopt:** a "What is the composite anomaly signal?" explainer card with a
   "Show the maths" `<details>`; a "Currently firing" list with STRONG / MODERATE /
@@ -102,7 +102,7 @@ structure and translate the colour/type through the Arepo tokens.
   narrative rather than a bare title + meter.
 - **Reject:** the WEAK badge's warm-green palette (retune to neutral tokens).
 
-### Replay (`Replay.dc.html`) — ADOPT (structure)
+### Replay (`Replay.dc.html`), ADOPT (structure)
 
 - **Adopt:** intro sentence; three plain-language controls (strength, move,
   horizon); a grid of stat tiles with the hit-rate tile emphasised; a "Signal
@@ -117,22 +117,22 @@ structure and translate the colour/type through the Arepo tokens.
 - **Reject:** emphasising hit rate in accent without a caveat that a hit is not a
   profitable trade (make that explicit in the summary).
 
-### Methodology (`Methodology.dc.html`) — ADOPT (structure)
+### Methodology (`Methodology.dc.html`), ADOPT (structure)
 
 - **Adopt:** two-column layout with a **sticky anchor sidebar**; each concept as
   an `id`-anchored `<section>` with plain-English first, then a "Show the maths"
   `<details>` containing a boxed equation and a variable legend; `scroll-margin-top`
   on sections so anchor jumps clear the sticky header.
 - **Adapt:** the mockup hand-rolls fractions with a `.frac` class and STIX Two
-  Text. The brief mandates **KaTeX or an equivalent** — replace hand-rolled
+  Text. The brief mandates **KaTeX or an equivalent**, replace hand-rolled
   fractions with real KaTeX so superscripts, subscripts, Greek letters and aligned
   equations render correctly. Every technical term used elsewhere must have a
-  matching anchor here (the mockup only covers a subset — expand to the full metric
+  matching anchor here (the mockup only covers a subset, expand to the full metric
   list in the brief). Each equation gets: equation, plain-English explanation,
   variable legend, worked example where helpful, interpretation, limitations.
 - **Reject:** the `.frac` / STIX approach; `title`-only tooltips.
 
-### `Overview-print.html` — ADAPT (report only)
+### `Overview-print.html`, ADAPT (report only)
 
 - A print/report-oriented variant of Overview. **Adapt** its ideas only for the
   portfolio report / report-cover work in Phase 7 (not a live app surface).
@@ -143,7 +143,7 @@ structure and translate the colour/type through the Arepo tokens.
 
 | System | Verdict | Why |
 |---|---|---|
-| **modernist** (red on white, Archivo, flat) | **ADAPT — primary influence** | Closest to the brief: a single red accent on a light ground, disciplined flush-left type, tabular data, restraint. Adopt its *philosophy* (red used sparingly, ink-on-ground, themed focus rings, accent tonal ramp) but **soften** its zero radius and heavy 2px rules into the brief's restrained radius, fewer/subtler borders and calmer spacing. Its accent `#ec3013` is replaced by the brief's `#E50C0E`. |
+| **modernist** (red on white, Archivo, flat) | **ADAPT, primary influence** | Closest to the brief: a single red accent on a light ground, disciplined flush-left type, tabular data, restraint. Adopt its *philosophy* (red used sparingly, ink-on-ground, themed focus rings, accent tonal ramp) but **soften** its zero radius and heavy 2px rules into the brief's restrained radius, fewer/subtler borders and calmer spacing. Its accent `#ec3013` is replaced by the brief's `#E50C0E`. |
 | **industry** (steel-blue blueprint) | **REJECT** | Wireframe crosshairs, condensed type and a blue accent conflict with the calm, red-accented brief. |
 | **broadsheet** (newsprint serif, CMYK) | **REJECT** | Serif body and CMYK spot colour contradict the modernist sans-serif and single-red direction. |
 
@@ -154,7 +154,7 @@ step from the accent ramp), a `:focus-visible { outline: 2px solid accent; offse
 disabled at reduced opacity, and a 100–900 perceptual tonal ramp per role so tints
 and pressed states are consistent. The brief's own rule that red never carries
 meaning alone, and that accent-on-ground is only ≥3:1 (fine for chrome/large text,
-not body copy — use a deep red step for red body text) is taken directly from the
+not body copy, use a deep red step for red body text) is taken directly from the
 modernist/industry readmes.
 
 ---
@@ -170,7 +170,7 @@ modernist/industry readmes.
    a sign or arrow, never colour alone.
 3. **Type:** Geist Sans (Inter fallback) via `next/font`; tabular numerals for all
    data; monospace only for raw identifiers.
-4. **Radius:** restrained — cards ~12–14px, inputs ~10px, pills 999px for
+4. **Radius:** restrained, cards ~12–14px, inputs ~10px, pills 999px for
    tags/badges only.
 5. **Cards:** white, one hairline border (subtler than the mockup's), `shadow-sm`,
    a gentle hover lift; no gradients, glow or glass.
