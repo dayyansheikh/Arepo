@@ -1,26 +1,26 @@
 ---
-title: "Astrolabe — Prediction-Market Intelligence Platform"
+title: "Arepo: Prediction-Market Intelligence Platform"
 subtitle: "A read-only research and engineering portfolio project over public Polymarket data"
 author: "Dayyan Sheikh"
 date: "August 2026"
 ---
 
-# Astrolabe — Prediction-Market Intelligence Platform
+# Arepo: Prediction-Market Intelligence Platform
 
 *An independently developed, read-only prediction-market intelligence platform using live
 Polymarket public data, event-driven ingestion, order-book microstructure analysis,
 transparent anomaly detection, and deterministic historical replay.*
 
-> **Disclaimer.** Astrolabe is a research and engineering tool. It is not a betting product and
+> **Disclaimer.** Arepo is a research and engineering tool. It is not a betting product and
 > never places trades. It flags statistically unusual market behaviour for further
-> investigation — this is not evidence of insider activity, and the platform makes no claim of
+> investigation: this is not evidence of insider activity, and the platform makes no claim of
 > profitability or validated predictive alpha.
 
 ---
 
 ## 1. Executive summary
 
-Astrolabe turns the raw, public data of a prediction-market venue into an explainable,
+Arepo turns the raw, public data of a prediction-market venue into an explainable,
 quantitative view of how each market is behaving *right now* and how unusual that behaviour is
 relative to the market's own recent history. It ingests market discovery metadata and
 order-book data from Polymarket's public Gamma and CLOB interfaces, normalises it through a
@@ -34,12 +34,13 @@ interface can never silently present stale or synthetic data as live. A determin
 version-controlled replay dataset drives a look-ahead-safe backtest, making the anomaly signal
 reproducible and inspectable.
 
-**Status at the time of writing:** the backend is complete and verified — 121 automated tests
-pass and static analysis is clean. Live discovery and order-book analysis have been exercised
-against the real Polymarket APIs; the cached path has been verified with a real ingestion
-round-trip; and the deterministic replay/backtest produces stable, non-trivial results. Docker
-and public-deployment configurations are provided and validated by inspection but were not
-executed in the build environment (see §8).
+**Status at the time of writing:** the backend is complete and verified: 174 automated tests
+pass and static analysis is clean (this figure includes the market-data engine and the
+prospective cohort evaluation engine added in the Master Final Refinement, §7a). Live discovery
+and order-book analysis have been exercised against the real Polymarket APIs; the cached path
+has been verified with a real ingestion round-trip; and the deterministic replay/backtest
+produces stable, non-trivial results. Docker and public-deployment configurations are provided
+and validated by inspection but were not executed in the build environment (see §8).
 
 ---
 
@@ -48,15 +49,15 @@ executed in the build environment (see §8).
 A price on a binary prediction-market contract is often read directly as "the probability of
 the event." That reading is convenient but incomplete: the price is a risk-neutral,
 spread-and-fee-contaminated estimate, and a single number hides everything about *how* the
-market arrived there — how deep the book is, how wide the spread is, whether buying pressure is
+market arrived there: how deep the book is, how wide the spread is, whether buying pressure is
 lopsided, and whether the recent move is ordinary or extreme for that market.
 
-Astrolabe's motivation is to make that microstructure legible. Rather than predicting outcomes,
+Arepo's motivation is to make that microstructure legible. Rather than predicting outcomes,
 it answers a narrower and more defensible question: **given a market's own recent history, how
 unusual is its current behaviour, and how much should we trust that reading?** This is the kind
 of screening tool a small quantitative desk builds internally to decide *where to look*, not
-*what to bet*. Framing the problem as explainable anomaly screening — with explicit
-data-quality and confidence — keeps the project honest and technically substantial without
+*what to bet*. Framing the problem as explainable anomaly screening: with explicit
+data-quality and confidence: keeps the project honest and technically substantial without
 overclaiming.
 
 ---
@@ -75,7 +76,7 @@ by direct requests during development (see `docs/research-notes.md`).
 
 Two properties of the upstream data shaped the design. First, structured fields arrive as
 **JSON-encoded strings** (e.g. `outcomes`, `outcomePrices`, `clobTokenIds`) and numbers arrive
-inconsistently as strings and/or `…Num` variants — so a defensive normalisation layer is
+inconsistently as strings and/or `…Num` variants: so a defensive normalisation layer is
 essential. Second, documentation and live behaviour can diverge (the `/midpoint` endpoint is
 documented to return `mid_price` but was observed returning `mid`); the client accepts both,
 and direct probes are treated as ground truth where they disagree with docs.
@@ -84,33 +85,33 @@ and direct probes are treated as ground truth where they disagree with docs.
 
 ## 4. Architecture
 
-Astrolabe is a monorepo with a Python backend and a TypeScript frontend, organised by clear
+Arepo is a monorepo with a Python backend and a TypeScript frontend, organised by clear
 module boundaries:
 
-- **domain** — typed Pydantic models that form the internal contract (Market, OrderBook,
+- **domain**: typed Pydantic models that form the internal contract (Market, OrderBook,
   Signal, DataStatus, …). All timestamps are timezone-aware UTC.
-- **clients** — async httpx clients for Gamma and CLOB REST, and a resilient `websockets`
+- **clients**: async httpx clients for Gamma and CLOB REST, and a resilient `websockets`
   client for the CLOB market channel (bounded exponential reconnect, resubscribe, LRU
   de-duplication by message hash, PING/PONG heartbeat, stale detection, and graceful signalling
   to fall back to REST polling).
-- **ingest** — an anti-corruption layer that normalises raw upstream JSON into domain models,
+- **ingest**: an anti-corruption layer that normalises raw upstream JSON into domain models,
   plus a pipeline that discovers markets and snapshots order books into storage.
-- **storage** — async SQLAlchemy (SQLite locally, Postgres-compatible) for a market cache,
+- **storage**: async SQLAlchemy (SQLite locally, Postgres-compatible) for a market cache,
   a snapshot time-series, and per-source health.
-- **analytics** — the quantitative core (§5): pure, NumPy-based functions on plain numeric
+- **analytics**: the quantitative core (§5): pure, NumPy-based functions on plain numeric
   series, so they are trivially testable and identical across data modes.
-- **replay** — a deterministic, version-controlled dataset and a player that serves it through
+- **replay**: a deterministic, version-controlled dataset and a player that serves it through
   the same domain models, plus a look-ahead-safe backtest.
-- **service** — the application "brain": it selects a data source (live/cached/replay) with
+- **service**: the application "brain": it selects a data source (live/cached/replay) with
   graceful fallback, enriches markets with the shared analytics, and assembles API responses.
-- **api** — a FastAPI layer with structured logging, request timing, a safe error handler that
+- **api**: a FastAPI layer with structured logging, request timing, a safe error handler that
   never leaks stack traces, and an interactive OpenAPI page.
-- **frontend** — a Next.js/TypeScript/Tailwind interface with an always-visible data-mode and
+- **frontend**: a Next.js/TypeScript/Tailwind interface with an always-visible data-mode and
   health indicator.
 
 A central design rule is that **raw third-party JSON never reaches the frontend**: it is
 validated and normalised once, at the ingestion boundary, and only typed internal models are
-serialised outward. A second rule is that **the data mode travels with the data** — every
+serialised outward. A second rule is that **the data mode travels with the data**: every
 response carries a `DataStatus` envelope (mode, REST/WebSocket health, last update, data age,
 degradation reason), so cached or replay data can never be mistaken for live. Architecture,
 sequence, and fallback diagrams are in `docs/architecture.md`.
@@ -145,14 +146,14 @@ handling are in `docs/methodology.md`; the essentials:
   available, so a missing input neither inflates nor deflates the score. The default weights are
   exposed as *assumptions*, not claimed to be empirically optimal.
 - **Confidence and data quality.** A multiplicative penalty model reduces confidence for short
-  history, wide spread, thin book, stale data, one-sided books, and partial API coverage — and
+  history, wide spread, thin book, stale data, one-sided books, and partial API coverage: and
   records a human-readable reason for every penalty, so a low score is always explainable. A
   signal's reported confidence is its strength multiplied by this data-quality factor.
 - **Look-ahead-safe backtest.** Over the deterministic replay dataset, a signal at frame *i* is
   computed using only frames 0…*i*; its outcome is evaluated using only frames *i*+1…*i*+H.
   Signal-generation and evaluation data never overlap (this is asserted in the loop). The
   backtest reports thresholds, horizon, sample size, missing observations, a directional
-  follow-through "hit rate," a false-positive rate, and average forward movement — with explicit
+  follow-through "hit rate," a false-positive rate, and average forward movement: with explicit
   assumptions (no transaction costs modelled) and limitations (synthetic data, small sample, no
   survivorship correction). It measures follow-through, **not** profitability.
 
@@ -160,14 +161,19 @@ handling are in `docs/methodology.md`; the essentials:
 
 ## 6. Testing and validation
 
-Correctness is enforced by an automated suite (**121 tests, all passing; linting clean**) that
-covers, among other cases: implied probability and normalisation; movement, rolling volatility,
-and z-score (including zero-variance and insufficient-history edge cases, with several
-**hand-derived** expected values); midpoint/spread/imbalance including zero-denominator and
-empty/one-sided books; normalisation of malformed and missing upstream fields; order-book
-best-first sorting; duplicate-event handling and reconnection logic in the WebSocket client;
-the live→cached→replay fallback; storage round-trips; the ingestion pipeline; the API surface;
-and the backtest's determinism and look-ahead-safety (the "prefix" property is tested directly).
+Correctness is enforced by an automated suite (**174 backend tests, all passing; linting
+clean**; plus 8 frontend `vitest` unit tests) that covers, among other cases: implied
+probability and normalisation; movement, rolling volatility, and z-score (including
+zero-variance and insufficient-history edge cases, with several **hand-derived** expected
+values); midpoint/spread/imbalance including zero-denominator and empty/one-sided books;
+normalisation of malformed and missing upstream fields; order-book best-first sorting;
+duplicate-event handling and reconnection logic in the WebSocket client; the
+live→cached→replay fallback; storage round-trips; the ingestion pipeline; the API surface; the
+backtest's determinism and look-ahead-safety (the "prefix" property is tested directly);
+category/sport/competition facet extraction; chart timestamp/row-building; and the 13 required
+guarantees of the prospective cohort engine (eligibility, deterministic tie-breaking, freeze
+immutability, idempotent scheduler commands, correct denominators, and provenance separation;
+see §7a and `docs/methodology.md` §12).
 
 Beyond unit tests, each backend subsystem was implemented independently and then reviewed by a
 separate agent and personally verified by running the tests and inspecting the code and its
@@ -184,7 +190,7 @@ hierarchy and adding regression tests.
 active markets across categories (e.g. Politics, Crypto, Sports). For a representative market,
 the platform pulled a real two-sided order book, computed an implied probability from the
 midpoint, a spread of ~0.02, a strongly one-sided order-book imbalance, and a z-score computed
-over ~145 real price-history points — surfacing a high composite-anomaly reading driven by the
+over ~145 real price-history points: surfacing a high composite-anomaly reading driven by the
 extreme imbalance and recent move. These are illustrative single-market observations, not a
 statistical claim about the venue.
 
@@ -196,6 +202,39 @@ momentum episodes follow through (hits) and the spike-and-revert episodes do not
 demonstrates the end-to-end signal→evaluation machinery and its look-ahead safety; because the
 dataset is synthetic and small, the numbers are illustrative and **do not generalise to live
 markets or imply profitability.**
+
+---
+
+## 7a. Prospective evaluation: an honest position
+
+Beyond the synthetic backtest in §7, the Master Final Refinement added a second, separate
+evaluation system: a **prospective weekly cohort engine** (`backend/astrolabe/evaluation/`,
+documented in full in `docs/methodology.md` §12). Each calendar week it records the signals
+Arepo genuinely selects at the time, freezes that selection at a fixed Sunday 23:59:59 UTC
+cut-off, and tracks the frozen entries forward: prices at 1 hour, 24 hours and 7 days, final
+resolution where available, and a hypothetical fixed-stake portfolio. Frozen entries are
+immutable; losing and unresolved entries stay visible rather than being quietly dropped.
+
+**No real performance numbers are reported here, and none are fabricated.** There is no
+reconstructed historical snapshot store on the machine this was built on, so real prospective
+cohorts begin only at the first genuine `python -m astrolabe.evaluation.cli rank --mode live`
+run, and no cohort existed before that first run. This report does not claim a hit rate, a
+return, or any other outcome for real prospective signals, because none has yet been produced
+and evaluated on this deployment. The Replay page (`/replay`) is built to display real cohorts
+once they exist, distinguishing three provenance classes at all times: **prospective** (real,
+frozen weekly selections), **reconstructed** (historically rebuilt from timestamped public
+records, none currently populated), and **synthetic** (a clearly labelled demonstration). A
+synthetic demonstration cohort can be seeded (`... cli seed-synthetic`) purely to prove the
+machinery works end to end (selection, freeze, forward tracking, resolution, portfolio
+valuation), and it is visibly badged as synthetic wherever it appears; it is never included in
+any statistic presented as real performance.
+
+This is a deliberate trade-off. The alternative, presenting a short or backfilled track
+record, would either understate the honest starting point of real prospective tracking or
+risk the exact hindsight bias the system is designed to prevent. The engine, the freeze
+discipline, and the two evaluation views (price movement and final resolution) are the
+deliverable at this stage; a genuine performance record is a function of time elapsed running
+it, which has not yet passed.
 
 ---
 

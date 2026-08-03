@@ -2,48 +2,265 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Arepo design tokens. Canonical values live in tailwind.config.ts and
+ * docs/brand-system.md; these CSS variables mirror them for raw CSS, SVG and
+ * chart code. Light-only identity (see DECISIONS R7).
+ */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+
+  --bg: #f7f6f4;
+  --surface: #ffffff;
+  --surface-2: #f4f2ef;
+  --border: #e7e4df;
+  --border-strong: #d6d2cb;
+
+  --text: #101010;
+  --text-secondary: #3a3a38;
+  --text-muted: #6b6862;
+
+  --accent: #e50c0e;
+  --accent-hover: #c40b0c;
+  --accent-active: #a50a0b;
+  --accent-fg: #ffffff;
+  --accent-tint: #fdecec;
+  --accent-border: #f5c9c9;
+  --focus: #e50c0e;
+
+  --pos: #1c7c54;
+  --neg: #c0392b;
+  --series-1: #e50c0e;
+  --series-2: #546a7b;
+  --grid: rgba(16, 16, 16, 0.06);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(16, 16, 16, 0.04);
+  --shadow-hover: 0 6px 20px rgba(16, 16, 16, 0.07);
+}
+
+/* Body text sits slightly larger than the browser default so explanatory copy
+   reads comfortably. rem-based Tailwind sizes (text-sm, text-base, ...) scale
+   with this; the interface stays proportional. */
+html {
+  font-size: 17px;
 }
 
 body {
-  @apply bg-astro-light-bg text-astro-light-text antialiased;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    @apply bg-astro-bg text-astro-text;
-  }
+/* Display heading tokens -----------------------------------------------------
+   Geometric display face (Jost) for major titles, hero and section intros only.
+   Interface and data stay on the neo-grotesque (Geist). See docs/brand-system.md. */
+.font-display {
+  font-family: var(--font-display), Futura, "Century Gothic", system-ui, sans-serif;
+}
+.display-title {
+  font-family: var(--font-display), Futura, "Century Gothic", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text);
+}
+.display-hero {
+  font-family: var(--font-display), Futura, "Century Gothic", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.08;
+  color: var(--text);
 }
 
-.font-tabular {
+/* Tabular numerals everywhere by default so data columns and meters align. */
+.font-tabular,
+[data-tabular] {
   font-variant-numeric: tabular-nums;
 }
 
 ::selection {
-  background-color: rgba(231, 178, 76, 0.3);
+  background-color: var(--accent-tint);
+  color: var(--accent-active);
 }
 
+/* A single themed keyboard focus ring — never the browser default. */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+/* Global fallback so any interactive element gets the ring even if it forgot
+   the utility class. */
+a:focus-visible,
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Surface primitives -------------------------------------------------------- */
 .panel {
-  @apply bg-astro-light-panel border border-astro-light-border rounded-instrument;
-}
-
-@media (prefers-color-scheme: dark) {
-  .panel {
-    @apply bg-astro-panel border-astro-border;
-  }
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 
 .text-muted-fg {
-  @apply text-astro-light-muted;
+  color: var(--text-muted);
 }
 
-@media (prefers-color-scheme: dark) {
-  .text-muted-fg {
-    @apply text-astro-muted;
+/* The eyebrow label above card grids and tables. */
+.section-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Buttons ------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 550;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+.btn-primary:active {
+  background: var(--accent-active);
+}
+.btn-secondary {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.btn-secondary:hover {
+  background: var(--surface-2);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.btn-ghost:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Guided select ------------------------------------------------------------- */
+.select-arepo {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.55rem 2rem 0.55rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background-color: var(--surface);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0L5 6L10 0Z" fill="%236b6862"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  color: var(--text);
+  cursor: pointer;
+}
+.select-arepo:hover {
+  border-color: var(--text-muted);
+}
+
+/* Range slider -------------------------------------------------------------- */
+input[type="range"].slider-arepo {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--accent-tint);
+  outline: none;
+}
+input[type="range"].slider-arepo::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+input[type="range"].slider-arepo::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface);
+  cursor: pointer;
+}
+
+/* Expander (details/summary "Show the maths" / advanced) -------------------- */
+.disclose > summary {
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent-active);
+  padding: 0.35rem 0;
+  list-style: revert;
+}
+.disclose > summary:hover {
+  color: var(--accent-hover);
+}
+
+/* KaTeX: keep equations from overflowing narrow columns. */
+.katex-block {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+/* Anchored methodology sections clear the sticky header on jump. */
+section[id] {
+  scroll-margin-top: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
-}
-
-.focus-ring {
-  @apply outline-none focus-visible:ring-2 focus-visible:ring-astro-brass focus-visible:ring-offset-2 focus-visible:ring-offset-astro-bg;
 }

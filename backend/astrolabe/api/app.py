@@ -16,7 +16,9 @@ from fastapi.responses import JSONResponse
 from ..config import get_settings
 from ..observability.logging import configure_logging, get_logger
 from .deps import get_service, init_storage
+from .routes import cohorts as cohort_routes
 from .routes import health as health_routes
+from .routes import historical as historical_routes
 from .routes import markets, meta, overview, replay, signals
 
 logger = get_logger("astrolabe.api")
@@ -38,7 +40,7 @@ def create_app() -> FastAPI:
     configure_logging(settings.log_level, settings.log_json)
 
     app = FastAPI(
-        title="Astrolabe API",
+        title="Arepo API",
         version="0.1.0",
         summary="Read-only prediction-market intelligence over public Polymarket data.",
         lifespan=lifespan,
@@ -84,6 +86,8 @@ def create_app() -> FastAPI:
     app.include_router(markets.router)
     app.include_router(signals.router)
     app.include_router(replay.router)
+    app.include_router(cohort_routes.router)
+    app.include_router(historical_routes.router)
 
     return app
 

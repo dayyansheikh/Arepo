@@ -1,7 +1,34 @@
 import type { Config } from "tailwindcss";
 
+// Arepo design tokens. The canonical palette is `arepo.*`; the `astro.*` /
+// `astro-light.*` keys are thin aliases kept only so components still compiling
+// against the old names inherit the new palette during migration. See
+// docs/brand-system.md for the authoritative token table, and lib/theme.ts for
+// the same values exposed to chart (Recharts/SVG) code.
+const arepo = {
+  bg: "#F7F6F4", // warm-grey page ground
+  surface: "#FFFFFF", // cards, panels, header
+  surface2: "#F4F2EF", // table headers, subtle fills, hover
+  border: "#E7E4DF", // hairline borders (default, subtle)
+  borderStrong: "#D6D2CB", // dividers that need to read
+  ink: "#101010", // primary text
+  ink2: "#3A3A38", // secondary copy
+  muted: "#6B6862", // labels, captions, muted copy
+  accent: "#E50C0E", // Arepo red
+  accentHover: "#C40B0C",
+  accentActive: "#A50A0B", // pressed; red text on light
+  accentFg: "#FFFFFF",
+  accentTint: "#FDECEC",
+  accentBorder: "#F5C9C9",
+  pos: "#1C7C54", // up / positive (always paired with a sign/arrow)
+  neg: "#C0392B", // down / negative
+  warn: "#B8791F", // degraded / limited (amber; paired with a word)
+  warnText: "#8A5A12", // amber text on a light tint
+  series2: "#546A7B", // neutral comparison chart series
+};
+
 const config: Config = {
-  darkMode: "media",
+  // Light-only identity (see DECISIONS R7); no dark variant.
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -10,34 +37,46 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        arepo,
+        // Legacy aliases → Arepo values (migration scaffolding).
         astro: {
-          bg: "#0C0F16",
-          panel: "#151A24",
-          border: "#232C3B",
-          text: "#E7ECF5",
-          muted: "#93A0B4",
-          brass: "#E7B24C",
-          positive: "#46C7A8",
-          negative: "#F27289",
+          bg: arepo.bg,
+          panel: arepo.surface,
+          border: arepo.border,
+          text: arepo.ink,
+          muted: arepo.muted,
+          brass: arepo.accent,
+          positive: arepo.pos,
+          negative: arepo.neg,
         },
         "astro-light": {
-          bg: "#F7F9FC",
-          panel: "#FFFFFF",
-          border: "#DDE3ED",
-          text: "#141A24",
-          muted: "#5B6779",
+          bg: arepo.bg,
+          panel: arepo.surface,
+          border: arepo.border,
+          text: arepo.ink,
+          muted: arepo.muted,
         },
       },
       fontFamily: {
+        // Interface + data: modernist neo-grotesque (Geist), Inter fallback.
         sans: [
-          "var(--font-sans)",
+          "var(--font-geist-sans)",
+          "Inter",
           "system-ui",
           "-apple-system",
           "Segoe UI",
           "sans-serif",
         ],
+        // Display: geometric sans (Jost) for major titles and hero headings only.
+        display: [
+          "var(--font-display)",
+          "Futura",
+          "Century Gothic",
+          "system-ui",
+          "sans-serif",
+        ],
         mono: [
-          "var(--font-mono)",
+          "var(--font-geist-mono)",
           "ui-monospace",
           "SFMono-Regular",
           "Menlo",
@@ -45,7 +84,18 @@ const config: Config = {
         ],
       },
       borderRadius: {
-        instrument: "6px",
+        instrument: "10px", // legacy alias, retuned to the new md radius
+        card: "14px",
+        control: "10px",
+      },
+      boxShadow: {
+        "arepo-sm": "0 1px 2px rgba(16,16,16,0.04)",
+        "arepo-card": "0 1px 2px rgba(16,16,16,0.04)",
+        "arepo-hover": "0 6px 20px rgba(16,16,16,0.07)",
+      },
+      maxWidth: {
+        shell: "1440px",
+        reading: "760px",
       },
     },
   },

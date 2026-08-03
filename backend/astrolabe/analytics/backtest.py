@@ -219,7 +219,7 @@ def run_backtest(
             "No transaction costs, slippage or fees are modelled; this is not a P&L simulation.",
         ],
         limitations=[
-            "Deterministic synthetic demo dataset — results do not generalise to live markets.",
+            "Deterministic synthetic demo dataset. Results do not generalise to live markets.",
             "Small sample; no survivorship correction (markets that closed are not repopulated).",
             "Directional 'hit rate' measures follow-through only, NOT profitability or alpha.",
         ],

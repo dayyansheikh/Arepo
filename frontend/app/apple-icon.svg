@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#101010"/>
+  <!-- Arepo "A": white chevron peak with the red triangle nested at its base. -->
+  <path d="M6 25.5 L16 6 L26 25.5" fill="none" stroke="#FFFFFF" stroke-width="4.3"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M16 17.2 L11 25.5 L21 25.5 Z" fill="#E50C0E"/>
+</svg>

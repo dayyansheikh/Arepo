@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#f6f4ef;color:#1c1b19;font-family:'Barlow',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:#a8681f;text-decoration:none}
+  a:hover{color:#7d5014}
+  *{box-sizing:border-box}
+  select.filt{appearance:none;-webkit-appearance:none;width:100%;font:inherit;font-size:14px;padding:9px 34px 9px 12px;border-radius:10px;border:1px solid rgba(28,27,24,0.14);background:#fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0L5 6L10 0Z" fill="%23726b5e"/></svg>') no-repeat right 12px center;color:#1c1b19}
+  select.filt:hover{border-color:rgba(28,27,24,0.28)}
+  select.filt:focus{outline:none;border-color:#b8791f}
+</style>
+</helmet>
+
+<div style="max-width:1440px;margin:0 auto">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:76px;border-bottom:1px solid rgba(28,27,24,0.08);background:#fff">
+    <div style="display:flex;align-items:center;gap:48px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#d3a04f,#8f5f18);display:flex;align-items:center;justify-content:center;flex:none">
+          <div style="width:12px;height:12px;border-radius:50%;border:2px solid #fff"></div>
+        </div>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;letter-spacing:-0.01em">Astrolabe</span>
+      </div>
+      <nav style="display:flex;gap:32px">
+        <a href="Overview.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Overview</a>
+        <a href="Markets.dc.html" style="font-size:14px;font-weight:600;color:#b8791f">Markets</a>
+        <a href="SignalLab.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Signal Lab</a>
+        <a href="Replay.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Replay</a>
+        <a href="Methodology.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Methodology</a>
+      </nav>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:999px;background:#f6f4ef;border:1px solid rgba(28,27,24,0.08)">
+      <span style="width:6px;height:6px;border-radius:50%;background:#4c7a5e"></span>
+      <span style="font-size:12px;color:rgba(28,27,24,0.6);font-weight:500">Live data</span>
+    </div>
+  </div>
+
+  <div style="padding:56px 48px 0">
+    <h1 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:36px;margin:0 0 10px;letter-spacing:-0.01em">Markets</h1>
+    <p style="font-size:15px;color:rgba(28,27,24,0.58);max-width:640px;margin:0 0 28px;line-height:1.5">Filter by category, status and sort order to find the markets you care about.</p>
+
+    <div style="display:flex;gap:20px;padding:20px 24px;background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px">
+      <div style="flex:1;max-width:220px">
+        <label style="display:block;font-size:12px;color:rgba(28,27,24,0.5);margin-bottom:6px">Category</label>
+        <select class="filt"><option>Any</option><option>President</option><option>Politics</option><option>United States</option></select>
+      </div>
+      <div style="flex:1;max-width:220px">
+        <label style="display:block;font-size:12px;color:rgba(28,27,24,0.5);margin-bottom:6px">Status</label>
+        <select class="filt"><option>Any</option><option>Active</option><option>Closed</option><option>Resolved</option></select>
+      </div>
+      <div style="flex:1;max-width:220px">
+        <label style="display:block;font-size:12px;color:rgba(28,27,24,0.5);margin-bottom:6px">Signal strength</label>
+        <select class="filt"><option>Any</option><option>High (70+)</option><option>Medium (40–69)</option><option>Low (&lt;40)</option></select>
+      </div>
+      <div style="flex:1;max-width:220px">
+        <label style="display:block;font-size:12px;color:rgba(28,27,24,0.5);margin-bottom:6px">Sort by</label>
+        <select class="filt"><option>Volume</option><option>Signal strength</option><option>Newest</option><option>Ending soonest</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:32px 48px 80px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px">
+      <sc-for list="{{ markets }}" as="m" hint-placeholder-count="9">
+        <a href="MarketDetail.dc.html" style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 1px 2px rgba(20,18,14,0.04);color:#1c1b19" style-hover="box-shadow:0 8px 24px rgba(20,18,14,0.08);border-color:rgba(184,121,31,0.35)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;padding:4px 10px;border-radius:999px;background:#f2f0ea;color:rgba(28,27,24,0.6);font-weight:500">{{ m.category }}</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#4c7a5e;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:#4c7a5e"></span>Active</span>
+          </div>
+          <h3 style="font-size:16px;font-weight:600;line-height:1.35;margin:0;min-height:44px">{{ m.title }}</h3>
+          <div style="display:flex;gap:24px">
+            <div><div style="font-size:11px;color:rgba(28,27,24,0.5);margin-bottom:3px">Top outcome</div><div style="font-size:15px;font-weight:600">{{ m.topOutcome }}</div></div>
+            <div><div style="font-size:11px;color:rgba(28,27,24,0.5);margin-bottom:3px">Volume</div><div style="font-size:15px;font-weight:600">{{ m.volume }}</div></div>
+          </div>
+          <div style="height:1px;background:rgba(28,27,24,0.07)"></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:11px;color:rgba(28,27,24,0.5)">Signal</span>
+            <div style="flex:1;height:6px;border-radius:999px;background:#f2f0ea;overflow:hidden">
+              <div style="height:100%;border-radius:999px;background:linear-gradient(90deg,#d3a04f,#b8791f);width:{{ m.strength }}%"></div>
+            </div>
+            <span style="font-size:13px;font-weight:600;color:#7d5014;min-width:22px;text-align:right">{{ m.strength }}</span>
+          </div>
+        </a>
+      </sc-for>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const markets = [
+      { title: "Will LeBron James win the 2028 US Presidential Election?", category: "President", topOutcome: "No · 99.9%", volume: "$54.46M", strength: 65 },
+      { title: "Will Oprah Winfrey win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.6%", volume: "$54.18M", strength: 47 },
+      { title: "Will Bernie Sanders win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.4%", volume: "$52.58M", strength: 93 },
+      { title: "Will Chelsea Clinton win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.2%", volume: "$50.13M", strength: 45 },
+      { title: "Will Andrew Yang win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.8%", volume: "$48.40M", strength: 13 },
+      { title: "Will Byron Donalds win the 2028 Republican presidential nomination?", category: "United States", topOutcome: "No · 99.4%", volume: "$44.37M", strength: 10 },
+      { title: "Will Tim Walz win the 2028 US Presidential Election?", category: "President", topOutcome: "No · 99.8%", volume: "$44.35M", strength: 54 },
+      { title: "Will Hunter Biden win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.4%", volume: "$43.98M", strength: 78 },
+      { title: "Will LeBron James win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.5%", volume: "$41.20M", strength: 60 },
+    ];
+    return { markets };
+  }
+}
+
+</script>
+</body>
+</html>

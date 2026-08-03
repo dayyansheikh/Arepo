@@ -44,6 +44,8 @@ class MarketCard(ApiModel):
     question: str
     slug: str
     category: str | None
+    sport: str | None = None             # e.g. "NFL"/"NBA"/"Soccer"; only when reliably known
+    competition: str | None = None       # e.g. "Premier League"; only when reliably known
     status: str
     tags: list[str]
     volume: float | None
@@ -63,6 +65,8 @@ class MarketDetail(ApiModel):
     slug: str
     description: str | None
     category: str | None
+    sport: str | None = None             # e.g. "NFL"/"NBA"/"Soccer"; only when reliably known
+    competition: str | None = None       # e.g. "Premier League"; only when reliably known
     status: str
     tags: list[str]
     volume: float | None
@@ -72,6 +76,8 @@ class MarketDetail(ApiModel):
     end_date: str | None
     outcomes: list[OutcomeView]
     price_history: dict[str, list[PricePoint]]   # token_id -> points
+    chart_range: str = "all"                      # active timeline range
+    available_ranges: list[str] = ["all"]         # ranges that make sense for this market
     signals: list[Signal]
     limitations: str
     data_source: str                              # "live" | "cached" | "replay"
@@ -97,6 +103,20 @@ class MarketListResponse(ApiModel):
 class MarketDetailResponse(ApiModel):
     market: MarketDetail
     status: DataStatus
+
+
+class MarketFacetsResponse(ApiModel):
+    """Distinct real filter values derived from the currently normalized market set.
+
+    Every list contains only values actually present in the data; nothing here is invented,
+    and there is no placeholder such as "Unknown" — genuinely absent groupings simply do not
+    appear (or the whole list is empty).
+    """
+
+    categories: list[str]
+    sports: list[str]
+    competitions: list[str]
+    statuses: list[str]
 
 
 class SignalsResponse(ApiModel):

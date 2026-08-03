@@ -4,61 +4,91 @@ import { useMode } from "@/lib/mode-context";
 import { useStatus } from "@/lib/use-status";
 import { formatDurationSeconds } from "@/lib/format";
 
-const STATE_COLOR: Record<string, string> = {
-  ok: "bg-astro-positive",
-  healthy: "bg-astro-positive",
-  degraded: "bg-astro-brass",
-  down: "bg-astro-negative",
-  error: "bg-astro-negative",
+type Tone = "good" | "warn" | "bad";
+
+const TONE_DOT: Record<Tone, string> = {
+  good: "bg-arepo-pos",
+  warn: "bg-arepo-warn",
+  bad: "bg-arepo-neg",
 };
 
-function dotColor(state: string | undefined): string {
-  if (!state) return "bg-astro-muted";
-  return STATE_COLOR[state.toLowerCase()] ?? "bg-astro-muted";
+/**
+ * Map the data-source (CLOB REST / cache / replay) state to a truthful API label.
+ * Returns null when the state is not yet known, so the chip shows a neutral
+ * "Checking" placeholder rather than a bare "Unknown".
+ */
+function apiState(state: string | undefined): { label: string; tone: Tone } | null {
+  switch ((state ?? "").toLowerCase()) {
+    case "ok":
+    case "healthy":
+    case "connected":
+      return { label: "Connected", tone: "good" };
+    case "connecting":
+    case "updating":
+    case "degraded":
+    case "delayed":
+      return { label: "Delayed", tone: "warn" };
+    case "down":
+    case "error":
+    case "disconnected":
+      return { label: "Offline", tone: "bad" };
+    default:
+      return null; // unknown -> do not surface a confusing "Unknown"
+  }
 }
 
-const MODE_LABEL: Record<string, string> = {
-  live: "LIVE",
-  cached: "CACHED",
-  replay: "REPLAY",
-};
-
+/**
+ * Compact, truthful data-connectivity readout for the active mode: whether Arepo can
+ * retrieve current market data (API), and how long ago it last refreshed (only when
+ * that age is actually known). The real-time WebSocket feed is not part of this
+ * read-only deployment, so it is deliberately not shown rather than reported as
+ * "Unknown". Green is used only when the API is genuinely connected.
+ */
 export function StatusChip() {
   const { mode } = useMode();
   const { status, error } = useStatus(mode);
 
+  const api = apiState(status?.rest.state);
+  const age = status?.data_age_seconds ?? null;
+
+  if (!status || !api) {
+    return (
+      <div className="hidden items-center rounded-control border border-arepo-border bg-arepo-surface px-3 py-1.5 text-[12px] text-arepo-muted md:flex">
+        {error ? "Status unavailable" : "Checking…"}
+      </div>
+    );
+  }
+
   return (
     <div
-      className="flex items-center gap-3 rounded-instrument border border-astro-light-border dark:border-astro-border px-3 py-1.5 text-xs font-mono font-tabular"
-      title="Data source status"
+      className="hidden items-center gap-2 rounded-control border border-arepo-border bg-arepo-surface px-3 py-1.5 text-[12px] font-tabular md:flex"
+      role="group"
+      aria-label="Data connectivity"
+      title={
+        age != null
+          ? `API ${api.label}; market data last refreshed ${formatDurationSeconds(age)} ago.`
+          : `API ${api.label}: whether Arepo can retrieve current market data.`
+      }
     >
-      <span
-        className={`inline-flex items-center rounded px-1.5 py-0.5 font-semibold tracking-wide ${
-          mode === "live"
-            ? "bg-astro-positive/15 text-astro-positive"
-            : "bg-astro-brass/15 text-astro-brass"
-        }`}
-      >
-        {MODE_LABEL[mode] ?? mode.toUpperCase()}
+      <span className="flex items-center gap-1.5" aria-label={`API ${api.label}`}>
+        <span
+          className={`h-1.5 w-1.5 flex-none rounded-full ${TONE_DOT[api.tone]}`}
+          aria-hidden="true"
+        />
+        <span className="text-arepo-muted" aria-hidden="true">
+          API
+        </span>
+        <span className="font-medium text-arepo-ink2" aria-hidden="true">
+          {api.label}
+        </span>
       </span>
-      {status ? (
-        <>
-          <span className="flex items-center gap-1 text-muted-fg">
-            <span className={`h-1.5 w-1.5 rounded-full ${dotColor(status.rest.state)}`} aria-hidden="true" />
-            REST
-          </span>
-          <span className="flex items-center gap-1 text-muted-fg">
-            <span className={`h-1.5 w-1.5 rounded-full ${dotColor(status.websocket.state)}`} aria-hidden="true" />
-            WS
-          </span>
-          <span className="text-muted-fg">
-            age {formatDurationSeconds(status.data_age_seconds)}
-          </span>
-        </>
-      ) : error ? (
-        <span className="text-astro-negative">status unavailable</span>
-      ) : (
-        <span className="text-muted-fg">checking…</span>
+      {age != null && (
+        <span
+          className="flex items-center gap-1.5 border-l border-arepo-border pl-2 text-arepo-muted"
+          aria-label={`Updated ${formatDurationSeconds(age)} ago`}
+        >
+          <span aria-hidden="true">Updated {formatDurationSeconds(age)} ago</span>
+        </span>
       )}
     </div>
   );

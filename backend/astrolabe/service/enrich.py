@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 
 import numpy as np
 
+from ..analytics.abnormality import return_burst_score, volatility_regime
 from ..analytics.anomaly import RawComponents, build_anomaly_signal, composite_anomaly_score
 from ..analytics.implied import implied_probability, normalized_outcome_probabilities
 from ..analytics.microstructure import near_mid_depth, order_book_imbalance, spread_info
@@ -88,7 +89,19 @@ def compute_token_analytics(
     mv = window_movement(prices, window=MOVEMENT_WINDOW).absolute if len(prices) >= 2 else None
     vol_accel = _volume_acceleration(volumes)
 
-    raw = RawComponents(zscore=z, volume_acceleration=vol_accel, imbalance=imb)
+    # Price-behaviour abnormality features, computed from the market's own history so the
+    # composite is led by real price movement rather than order-book imbalance alone.
+    burst = return_burst_score(prices) if prices else None
+    vr = volatility_regime(prices) if prices else None
+    vr_elevated = max(0.0, vr) if vr is not None else None  # only a volatility spike counts
+
+    raw = RawComponents(
+        zscore=z,
+        movement_abnormality=burst,
+        volatility_regime=vr_elevated,
+        volume_acceleration=vol_accel,
+        imbalance=imb,
+    )
     quality = assess_quality(
         n_history=len(prices),
         relative_spread=si.relative_spread if si else None,

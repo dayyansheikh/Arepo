@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#f6f4ef;color:#1c1b19;font-family:'Barlow',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:#a8681f;text-decoration:none}
+  a:hover{color:#7d5014}
+  *{box-sizing:border-box}
+</style>
+</helmet>
+
+<div style="max-width:1440px;margin:0 auto">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:76px;border-bottom:1px solid rgba(28,27,24,0.08);background:#fff">
+    <div style="display:flex;align-items:center;gap:48px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#d3a04f,#8f5f18);display:flex;align-items:center;justify-content:center;flex:none">
+          <div style="width:12px;height:12px;border-radius:50%;border:2px solid #fff"></div>
+        </div>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;letter-spacing:-0.01em">Astrolabe</span>
+      </div>
+      <nav style="display:flex;gap:32px">
+        <a href="Overview.dc.html" style="font-size:14px;font-weight:600;color:#b8791f">Overview</a>
+        <a href="Markets.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Markets</a>
+        <a href="SignalLab.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Signal Lab</a>
+        <a href="Replay.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Replay</a>
+        <a href="Methodology.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Methodology</a>
+      </nav>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:999px;background:#f6f4ef;border:1px solid rgba(28,27,24,0.08)">
+      <span style="width:6px;height:6px;border-radius:50%;background:#4c7a5e"></span>
+      <span style="font-size:12px;color:rgba(28,27,24,0.6);font-weight:500">Live data</span>
+    </div>
+  </div>
+
+  <div style="padding:56px 48px 0">
+    <h1 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:36px;margin:0 0 10px;letter-spacing:-0.01em">Overview</h1>
+    <p style="font-size:15px;color:rgba(28,27,24,0.58);max-width:640px;margin:0;line-height:1.5">A live snapshot of market activity and signal strength across all tracked markets.</p>
+
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;background:#fdf8ee;border:1px solid #f0d9a8;border-radius:12px;margin-top:24px">
+      <span style="font-size:13px;color:#7d5014;line-height:1.5">Astrolabe surfaces statistical patterns for research only. It is not trading advice and does not predict outcomes. <a href="Methodology.dc.html" style="color:#7d5014;text-decoration:underline">Read the methodology</a>.</span>
+    </div>
+  </div>
+
+  <div style="padding:44px 48px 0">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px">
+      <h2 style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600;margin:0">Top movers</h2>
+      <span style="font-size:12px;color:rgba(28,27,24,0.4)">Ranked by signal strength</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">
+      <sc-for list="{{ topMovers }}" as="m" hint-placeholder-count="8">
+        <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 1px 2px rgba(20,18,14,0.04)" style-hover="box-shadow:0 8px 24px rgba(20,18,14,0.08);border-color:rgba(184,121,31,0.35)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;padding:4px 10px;border-radius:999px;background:#f2f0ea;color:rgba(28,27,24,0.6);font-weight:500">{{ m.category }}</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#4c7a5e;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:#4c7a5e"></span>Active</span>
+          </div>
+          <h3 style="font-size:16px;font-weight:600;line-height:1.35;margin:0;color:#1c1b19;min-height:44px">{{ m.title }}</h3>
+          <div style="display:flex;gap:24px">
+            <div><div style="font-size:11px;color:rgba(28,27,24,0.5);margin-bottom:3px">Top outcome</div><div style="font-size:15px;font-weight:600">{{ m.topOutcome }}</div></div>
+            <div><div style="font-size:11px;color:rgba(28,27,24,0.5);margin-bottom:3px">Volume</div><div style="font-size:15px;font-weight:600">{{ m.volume }}</div></div>
+          </div>
+          <div style="height:1px;background:rgba(28,27,24,0.07)"></div>
+          <div style="display:flex;gap:24px">
+            <div><div style="font-size:11px;color:rgba(28,27,24,0.5);margin-bottom:3px">Spread</div><div style="font-size:13px;color:rgba(28,27,24,0.75)">{{ m.spread }}</div></div>
+            <div><div style="font-size:11px;color:rgba(28,27,24,0.5);margin-bottom:3px">Movement (1h)</div><div style="font-size:13px;color:rgba(28,27,24,0.75)">{{ m.movement }}</div></div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(28,27,24,0.5);margin-bottom:6px">
+              <span title="How strongly current market behaviour deviates from its recent normal pattern, on a scale of 0 to 100." style="border-bottom:1px dotted rgba(28,27,24,0.35);cursor:help">Signal strength</span>
+              <a href="Methodology.dc.html#signal-strength" title="Learn more in Methodology" style="color:#b8791f;font-size:10px">ⓘ</a>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:1;height:6px;border-radius:999px;background:#f2f0ea;overflow:hidden">
+                <div style="height:100%;border-radius:999px;background:linear-gradient(90deg,#d3a04f,#b8791f);width:{{ m.strength }}%"></div>
+              </div>
+              <span style="font-size:13px;font-weight:600;color:#7d5014;min-width:24px;text-align:right">{{ m.strength }}</span>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="padding:48px 48px 80px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px">
+      <h2 style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600;margin:0">Most active</h2>
+      <a href="Markets.dc.html" style="font-size:12px;font-weight:500">See all markets →</a>
+    </div>
+    <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;overflow:hidden">
+      <sc-for list="{{ mostActive }}" as="m" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;gap:20px;padding:16px 20px;border-bottom:1px solid rgba(28,27,24,0.06)">
+          <span style="font-size:11px;padding:4px 10px;border-radius:999px;background:#f2f0ea;color:rgba(28,27,24,0.6);font-weight:500;flex:none">{{ m.category }}</span>
+          <span style="font-size:14px;font-weight:500;flex:1">{{ m.title }}</span>
+          <span style="font-size:13px;color:rgba(28,27,24,0.55);width:90px">{{ m.volume }}</span>
+          <span style="font-size:13px;font-weight:600;color:#7d5014;width:40px;text-align:right">{{ m.strength }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const topMovers = [
+      { title: "Will LeBron James win the 2028 US Presidential Election?", category: "President", topOutcome: "No · 99.8%", volume: "$54.46M", spread: "0.10%", movement: "0.0%", strength: 65 },
+      { title: "Will Oprah Winfrey win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.6%", volume: "$54.18M", spread: "0.10%", movement: "0.0%", strength: 47 },
+      { title: "Will Bernie Sanders win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.4%", volume: "$52.58M", spread: "0.10%", movement: "0.0%", strength: 93 },
+      { title: "Will Chelsea Clinton win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.2%", volume: "$50.13M", spread: "0.10%", movement: "0.0%", strength: 45 },
+      { title: "Will Andrew Yang win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.8%", volume: "$48.40M", spread: "0.10%", movement: "0.0%", strength: 13 },
+      { title: "Will Byron Donalds win the 2028 Republican presidential nomination?", category: "United States", topOutcome: "No · 99.4%", volume: "$44.37M", spread: "0.10%", movement: "0.0%", strength: 10 },
+      { title: "Will Tim Walz win the 2028 US Presidential Election?", category: "President", topOutcome: "No · 99.8%", volume: "$44.35M", spread: "0.10%", movement: "0.0%", strength: 54 },
+      { title: "Will Hunter Biden win the 2028 Democratic presidential nomination?", category: "United States", topOutcome: "No · 99.4%", volume: "$43.98M", spread: "0.20%", movement: "0.0%", strength: 78 },
+    ];
+    const mostActive = [
+      { title: "Will Bernie Sanders win the 2028 Democratic presidential nomination?", category: "United States", volume: "$52.58M", strength: 93 },
+      { title: "Will Hunter Biden win the 2028 Democratic presidential nomination?", category: "United States", volume: "$43.98M", strength: 78 },
+      { title: "Will Tim Walz win the 2028 US Presidential Election?", category: "President", volume: "$44.35M", strength: 54 },
+      { title: "Will LeBron James win the 2028 US Presidential Election?", category: "President", volume: "$54.46M", strength: 65 },
+      { title: "Will Oprah Winfrey win the 2028 Democratic presidential nomination?", category: "United States", volume: "$54.18M", strength: 47 },
+    ];
+    return { topMovers, mostActive };
+  }
+}
+
+</script>
+</body>
+</html>

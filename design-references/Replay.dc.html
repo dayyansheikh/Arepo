@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#f6f4ef;color:#1c1b19;font-family:'Barlow',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:#a8681f;text-decoration:none}
+  a:hover{color:#7d5014}
+  *{box-sizing:border-box}
+  summary{cursor:pointer;font-size:13px;font-weight:600;color:#7d5014;padding:6px 0;list-style:revert}
+  summary:hover{color:#5c3b10}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:999px;background:#f0d9a8;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#b8791f;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);cursor:pointer}
+  select.filt{appearance:none;-webkit-appearance:none;width:100%;font:inherit;font-size:14px;padding:9px 34px 9px 12px;border-radius:10px;border:1px solid rgba(28,27,24,0.14);background:#fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0L5 6L10 0Z" fill="%23726b5e"/></svg>') no-repeat right 12px center;color:#1c1b19}
+</style>
+</helmet>
+
+<div style="max-width:1440px;margin:0 auto">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:76px;border-bottom:1px solid rgba(28,27,24,0.08);background:#fff">
+    <div style="display:flex;align-items:center;gap:48px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#d3a04f,#8f5f18);display:flex;align-items:center;justify-content:center;flex:none">
+          <div style="width:12px;height:12px;border-radius:50%;border:2px solid #fff"></div>
+        </div>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;letter-spacing:-0.01em">Astrolabe</span>
+      </div>
+      <nav style="display:flex;gap:32px">
+        <a href="Overview.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Overview</a>
+        <a href="Markets.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Markets</a>
+        <a href="SignalLab.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Signal Lab</a>
+        <a href="Replay.dc.html" style="font-size:14px;font-weight:600;color:#b8791f">Replay</a>
+        <a href="Methodology.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Methodology</a>
+      </nav>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:999px;background:#f6f4ef;border:1px solid rgba(28,27,24,0.08)">
+      <span style="width:6px;height:6px;border-radius:50%;background:#c98a2e"></span>
+      <span style="font-size:12px;color:rgba(28,27,24,0.6);font-weight:500">Replay mode</span>
+    </div>
+  </div>
+
+  <div style="padding:56px 48px 0">
+    <h1 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:36px;margin:0 0 10px;letter-spacing:-0.01em">Replay &amp; backtest</h1>
+    <p style="font-size:15px;color:rgba(28,27,24,0.58);max-width:760px;margin:0 0 32px;line-height:1.6">See how often a signal was followed by a price move of a given size, on a deterministic replay dataset with a look-ahead-safe evaluation window.</p>
+
+    <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;padding:24px;display:grid;grid-template-columns:1fr 1fr 200px;gap:36px;align-items:end">
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:14px">Strength threshold <span style="color:#7d5014;font-weight:600">0.60</span></div>
+        <input type="range" min="0" max="1" step="0.01" value="0.6">
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:14px">Move threshold <span style="color:#7d5014;font-weight:600">3.0%</span></div>
+        <input type="range" min="0" max="10" step="0.1" value="3">
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;color:rgba(28,27,24,0.5);margin-bottom:6px">Horizon</label>
+        <select class="filt"><option>5 frames</option><option>10 frames</option><option>20 frames</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:28px 48px 0">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+      <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;padding:20px">
+        <div style="font-size:12px;color:rgba(28,27,24,0.5);margin-bottom:8px">Sample size</div>
+        <div style="font-size:26px;font-weight:700;font-family:'Barlow Condensed',sans-serif">4</div>
+      </div>
+      <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;padding:20px">
+        <div style="font-size:12px;color:rgba(28,27,24,0.5);margin-bottom:8px">Evaluated</div>
+        <div style="font-size:26px;font-weight:700;font-family:'Barlow Condensed',sans-serif">4</div>
+      </div>
+      <div style="background:#fdf8ee;border:1px solid #f0d9a8;border-radius:16px;padding:20px">
+        <div style="font-size:12px;color:#7d5014;margin-bottom:8px;display:flex;align-items:center;gap:4px"><span title="Share of signalled moves that were followed by a real price move of the chosen size, within the chosen horizon." style="border-bottom:1px dotted rgba(125,80,20,0.4);cursor:help">Hit rate</span><a href="Methodology.dc.html#hit-rate" style="color:#7d5014">ⓘ</a></div>
+        <div style="font-size:26px;font-weight:700;font-family:'Barlow Condensed',sans-serif;color:#7d5014">50.0%</div>
+      </div>
+      <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;padding:20px">
+        <div style="font-size:12px;color:rgba(28,27,24,0.5);margin-bottom:8px">Missing observations</div>
+        <div style="font-size:26px;font-weight:700;font-family:'Barlow Condensed',sans-serif">0</div>
+      </div>
+      <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;padding:20px">
+        <div style="font-size:12px;color:rgba(28,27,24,0.5);margin-bottom:8px">False positive rate</div>
+        <div style="font-size:26px;font-weight:700;font-family:'Barlow Condensed',sans-serif">0.0%</div>
+      </div>
+      <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;padding:20px">
+        <div style="font-size:12px;color:rgba(28,27,24,0.5);margin-bottom:8px">Average forward move</div>
+        <div style="font-size:26px;font-weight:700;font-family:'Barlow Condensed',sans-serif">−0.3%</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:28px 48px 0">
+    <h2 style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600;margin:0 0 16px">Signal outcomes</h2>
+    <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead>
+          <tr style="background:#f9f7f2">
+            <th style="text-align:left;padding:12px 20px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600">Market</th>
+            <th style="text-align:left;padding:12px 20px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600">Frame</th>
+            <th style="text-align:left;padding:12px 20px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600">Strength</th>
+            <th style="text-align:left;padding:12px 20px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600">Z-score</th>
+            <th style="text-align:left;padding:12px 20px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600">Direction</th>
+            <th style="text-align:left;padding:12px 20px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600">Entry</th>
+            <th style="text-align:left;padding:12px 20px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600">Forward</th>
+            <th style="text-align:left;padding:12px 20px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600">Followed through</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-top:1px solid rgba(28,27,24,0.06)">
+            <td style="padding:12px 20px">90001</td><td style="padding:12px 20px">18</td><td style="padding:12px 20px">62%</td><td style="padding:12px 20px">+3.83σ</td>
+            <td style="padding:12px 20px;color:#4c7a5e;font-weight:600">Up</td><td style="padding:12px 20px">0.488</td><td style="padding:12px 20px">0.570</td>
+            <td style="padding:12px 20px"><span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:#eef4f0;color:#3d5f4a">Yes</span></td>
+          </tr>
+          <tr style="border-top:1px solid rgba(28,27,24,0.06)">
+            <td style="padding:12px 20px">90001</td><td style="padding:12px 20px">18</td><td style="padding:12px 20px">63%</td><td style="padding:12px 20px">−3.83σ</td>
+            <td style="padding:12px 20px;color:#b1544a;font-weight:600">Down</td><td style="padding:12px 20px">0.512</td><td style="padding:12px 20px">0.430</td>
+            <td style="padding:12px 20px"><span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:#eef4f0;color:#3d5f4a">Yes</span></td>
+          </tr>
+          <tr style="border-top:1px solid rgba(28,27,24,0.06)">
+            <td style="padding:12px 20px">90002</td><td style="padding:12px 20px">25</td><td style="padding:12px 20px">65%</td><td style="padding:12px 20px">+4.08σ</td>
+            <td style="padding:12px 20px;color:#4c7a5e;font-weight:600">Up</td><td style="padding:12px 20px">0.647</td><td style="padding:12px 20px">0.560</td>
+            <td style="padding:12px 20px"><span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f4ece6;color:#8a5a48">No</span></td>
+          </tr>
+          <tr style="border-top:1px solid rgba(28,27,24,0.06)">
+            <td style="padding:12px 20px">90002</td><td style="padding:12px 20px">25</td><td style="padding:12px 20px">64%</td><td style="padding:12px 20px">−4.08σ</td>
+            <td style="padding:12px 20px;color:#b1544a;font-weight:600">Down</td><td style="padding:12px 20px">0.353</td><td style="padding:12px 20px">0.440</td>
+            <td style="padding:12px 20px"><span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f4ece6;color:#8a5a48">No</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="padding:28px 48px 0">
+    <details>
+      <summary style="font-size:14px">Assumptions and limitations</summary>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;padding-top:16px">
+        <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;padding:22px">
+          <div style="font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600;margin-bottom:12px">Assumptions</div>
+          <ul style="margin:0;padding-left:18px;font-size:13px;color:rgba(28,27,24,0.7);line-height:1.9">
+            <li>A signal fires when composite anomaly strength is 0.6 or higher.</li>
+            <li>A "hit" means price moved 0.03 probability points or more in the signalled direction within 5 frames.</li>
+            <li>Signal generation uses frames 0 through i; evaluation uses frames i+1 through i+H only.</li>
+            <li>No transaction costs, slippage or fees are modelled.</li>
+          </ul>
+        </div>
+        <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:16px;padding:22px">
+          <div style="font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(28,27,24,0.5);font-weight:600;margin-bottom:12px">Limitations</div>
+          <ul style="margin:0;padding-left:18px;font-size:13px;color:rgba(28,27,24,0.7);line-height:1.9">
+            <li>Deterministic synthetic replay dataset — results do not generalise to live markets.</li>
+            <li>Small sample; no survivorship correction for markets that have closed.</li>
+            <li>Hit rate measures follow-through only, not profitability or alpha.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div style="padding:32px 48px 80px">
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:16px 20px;background:#fdf8ee;border:1px solid #f0d9a8;border-radius:12px">
+      <span style="font-size:13px;color:#7d5014;line-height:1.6">Astrolabe is a read-only research tool over public market data. It does not place trades, offer financial advice or prove insider activity. Signals flag statistically unusual behaviour for further reading, not evidence of wrongdoing or a claim of profitability.</span>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+</body>
+</html>

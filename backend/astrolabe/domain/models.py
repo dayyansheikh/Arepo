@@ -72,6 +72,8 @@ class Market(DomainModel):
 
     category: str | None = None          # derived from event tags where available
     tags: list[str] = Field(default_factory=list)
+    sport: str | None = None             # e.g. "NFL"/"NBA"/"Soccer"; only when tags reliably say so
+    competition: str | None = None       # e.g. "Premier League"; only when tags reliably say so
 
     volume: float | None = None
     volume_24hr: float | None = None
@@ -202,6 +204,8 @@ class Signal(DomainModel):
     kind: SignalKind
     token_id: str
     market_id: str
+    market_question: str | None = None        # the market this signal refers to (for linking)
+    outcome_name: str | None = None           # the selected outcome's name
 
     value: float | None = None               # headline magnitude (e.g. z-score)
     strength: float = 0.0                        # normalized [0,1] strength for ranking

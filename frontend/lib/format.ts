@@ -2,12 +2,12 @@
 // UI is consistent (monospace figures, sensible fallbacks for missing data).
 
 export function formatPercent(value: number | null | undefined, digits = 1): string {
-  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (value === null || value === undefined || Number.isNaN(value)) return "–";
   return `${(value * 100).toFixed(digits)}%`;
 }
 
 export function formatNumber(value: number | null | undefined, digits = 2): string {
-  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (value === null || value === undefined || Number.isNaN(value)) return "–";
   return value.toLocaleString(undefined, {
     minimumFractionDigits: 0,
     maximumFractionDigits: digits,
@@ -15,12 +15,12 @@ export function formatNumber(value: number | null | undefined, digits = 2): stri
 }
 
 export function formatPrice(value: number | null | undefined, digits = 3): string {
-  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (value === null || value === undefined || Number.isNaN(value)) return "–";
   return value.toFixed(digits);
 }
 
 export function formatCurrencyCompact(value: number | null | undefined): string {
-  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (value === null || value === undefined || Number.isNaN(value)) return "–";
   const abs = Math.abs(value);
   const sign = value < 0 ? "-" : "";
   if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(2)}B`;
@@ -30,13 +30,13 @@ export function formatCurrencyCompact(value: number | null | undefined): string 
 }
 
 export function formatZScore(value: number | null | undefined): string {
-  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (value === null || value === undefined || Number.isNaN(value)) return "–";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}σ`;
 }
 
 export function formatSignedPercent(value: number | null | undefined, digits = 1): string {
-  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (value === null || value === undefined || Number.isNaN(value)) return "–";
   const sign = value > 0 ? "+" : "";
   return `${sign}${(value * 100).toFixed(digits)}%`;
 }
@@ -52,7 +52,7 @@ export function formatRelativeTime(iso: string | null | undefined): string {
 
 export function formatDurationSeconds(totalSeconds: number | null | undefined): string {
   if (totalSeconds === null || totalSeconds === undefined || Number.isNaN(totalSeconds)) {
-    return "—";
+    return "–";
   }
   const seconds = Math.max(0, Math.round(totalSeconds));
   if (seconds < 60) return `${seconds}s`;
@@ -65,16 +65,16 @@ export function formatDurationSeconds(totalSeconds: number | null | undefined): 
 }
 
 export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "–";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "–";
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
 export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "–";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "–";
   return d.toLocaleString(undefined, {
     year: "numeric",
     month: "short",
@@ -85,7 +85,7 @@ export function formatDateTime(iso: string | null | undefined): string {
 }
 
 export function titleCase(input: string | null | undefined): string {
-  if (!input) return "—";
+  if (!input) return "–";
   return input
     .split(/[_\s]+/)
     .filter(Boolean)

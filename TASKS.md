@@ -1,28 +1,78 @@
-# TASKS.md — Astrolabe
+# TASKS.md — Arepo
 
-Legend: `[x]` done · `[!]` blocked (external). See `FINAL_STATUS.md` for the authoritative state.
+Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
-## Completed
-- [x] Research (Gamma/CLOB/WS confirmed from primary sources) + naming (Astrolabe) + tracking docs
-- [x] Repo scaffold, typed domain contract, config, structured logging, FastAPI spine + /health
-- [x] Gamma + CLOB REST clients + anti-corruption normalization (verified on live data)
-- [x] CLOB WebSocket client (reconnect/dedup/heartbeat/DEGRADED) + tests
-- [x] Storage (async SQLAlchemy, SQLite/Postgres) + repository + cache + tests
-- [x] Analytics core (implied, movement, volatility, z-score, microstructure, quality, anomaly)
-      — Opus-owned, hand-derived test values
-- [x] Deterministic replay dataset + player + look-ahead-safe backtest
-- [x] Service brain (live/cached/replay + fallback, DataStatus never mislabels mode)
-- [x] Ingestion pipeline (Gamma→CLOB→storage) — real ingest verified
-- [x] FastAPI routes (overview/markets/detail/signals/status/meta/replay) + real uvicorn boot
-- [x] Next.js/TS/Tailwind frontend (6 surfaces, mode chip, charts) — built + browser-verified
-- [x] Independent adversarial review → 4 real defects fixed + regression-tested
-- [x] 3 frontend integration bugs found via browser smoke test + fixed
-- [x] Docker + compose + deployment configs (authored; compose YAML validated)
-- [x] Docs set (README, architecture, methodology, API, deployment, limitations) + Mermaid
-- [x] Portfolio report (md) + PDF (5 pages) + build_report_pdf.py
-- [x] Packaging script → clean 0.75 MB ZIP (<20 MB; exclusions + secret scan enforced)
-- [x] FINAL_STATUS.md + 3-minute demo script + screenshots
+## Signal & Historical Refinement pass (branch `arepo-signal-refinement`)
+- [x] Investigate historical data availability (dense/real; see DECISIONS S1)
+- [x] Navigation: remove horizontal scroll, spread items, stable full-width desktop
+- [x] Logo slightly larger everywhere; wordmark + grid symbol integration
+- [x] Favicon = stylised "A" from wordmark, wired correctly
+- [x] Status chip: keep truthful states only (API + Updated-when-known), no Unknown
+- [x] Signal Lab: rename to "Composite anomaly"; purpose header; link to markets;
+      "How this may be used" section; clearer IA
+- [x] Signal engine: rebalance composite across standardized features (no imbalance
+      dominance, no overfitting); document components/weights/evidence/safeguards; tests
+- [x] Market detail: chart timeline ranges (1H/6H/24H/7D/All, only sensible ones);
+      reuse advanced-data style for other technical sections
+- [x] Order-book explainer panel: repair diagram, labels, colours, interactivity
+- [x] Historical reconstructed retrospective (top-15), separated provenance; tests
+- [x] Footer credit: Designed and created by Dayyan Sheikh / dayyansheikh.work@gmail.com
+- [x] QA: backend tests, frontend tsc/lint/build/vitest, browser checks, screenshots
+- [x] Independent review + fixes (causal selection, material floor); docs update; report
 
-## Blocked (external authorization only — per stop-boundary)
-- [!] `docker compose up` — no Docker daemon in build environment
-- [!] Public deployment + production smoke test — requires the user's hosting account auth
+---
+
+## (previous) Master Final Refinement
+Prior redesign + original build tasks are complete; history is in git.
+
+## Phase 0 — Safety
+- [x] Confirm branch `arepo-master-final` + clean tree
+- [x] Record baseline: backend 128 pass/ruff clean; FE tsc/lint/build clean (10/10)
+- [x] Confirm safety tag `arepo-ui-v1` exists
+- [x] Inspect brand assets; choose display font (Jost, approximation)
+- [x] Write recovery scaffolding (CHECKPOINT/TASKS/DECISIONS)
+
+## Phase 1 — Foundation & UI polish
+- [x] Display heading font (Jost) tokens; interface = Geist
+- [x] Body text size bump; heading weight/contrast; bold section titles
+- [x] Navigation presence, logo/wordmark readability, active/hover/mobile
+- [x] Neutral information panel (replace pale-red DisclaimerBanner)
+- [x] Status labels REST/WS/age → API / Live feed / Updated (+ tooltips, states)
+- [x] Chart repair: visible strokes/points for sparse data + limited-history note
+- [x] Unknown / "Parent for derivative" metadata fallbacks
+- [x] Markets filters: real categories, Sports grouping, competitions, empty states
+- [x] Signal Lab terminology (Unusual market activity, Data coverage, Lookback, components)
+- [x] Methodology readability
+- [x] Market detail readability + progressive disclosure
+- [x] Tests: category/sports extraction, chart row-building, normalize fallbacks
+
+## Phase 2 — Prospective evaluation engine (backend)
+- [x] Schema + migrations: signal_snapshots, weekly_cohorts, cohort_entries,
+      ranking_audit, forward_price_observations, market_resolutions,
+      evaluation_results, calculation_versions
+- [x] Provisional weekly top-ten ranking (in-week replacement of lowest)
+- [x] Weekly freeze (immutability) + tie-breaking + audit trail
+- [x] Forward price collection (1h/24h/7d/close)
+- [x] Resolution tracking
+- [x] Portfolio simulation (fixed stake, fees, spread)
+- [x] Idempotent CLI commands (rank/freeze/forward/resolve)
+- [x] Typed API endpoints (weeks/summary/entries/forward/resolutions/portfolio/provenance)
+- [x] 13 required evaluation tests
+
+## Phase 3 — Replay redesign (frontend)
+- [x] Replay page consumes cohort API; week picker; provisional vs frozen
+- [x] Price-movement vs final-resolution views; pending/correct/incorrect
+- [x] Portfolio assumptions; plain summary with denominator + pending + horizon
+- [x] Provenance / synthetic-vs-real separation
+
+## Phase 4 — QA, a11y, docs, packaging
+- [x] Accessibility pass (contrast, focus, keyboard, non-colour cues, reduced motion)
+- [x] Independent Sonnet reviews per phase + fixes
+- [x] Browser visual checks + screenshots
+- [x] Docs: README, architecture, methodology, API, deployment, limitations,
+      brand-system, portfolio-report, FINAL_STATUS
+- [x] Submission ZIP
+
+## Blocked (external authorization only)
+- [!] `docker compose up` — no Docker daemon in environment
+- [!] Public deployment / paid scheduler activation — requires user's account auth

@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ...service import MarketService
-from ...service.schemas import MarketDetailResponse, MarketListResponse
+from ...service.schemas import MarketDetailResponse, MarketFacetsResponse, MarketListResponse
 from ..deps import get_service
 
 router = APIRouter(prefix="/api", tags=["markets"])
@@ -27,13 +27,25 @@ async def list_markets(
     )
 
 
+@router.get("/markets/facets", response_model=MarketFacetsResponse)
+async def market_facets(
+    mode: str | None = Query(None, description="live | cached | replay (default from settings)"),
+    service: MarketService = Depends(get_service),
+) -> MarketFacetsResponse:
+    """Distinct real filter values (categories/sports/competitions/statuses) for the Markets
+    page filter controls. Built dynamically from the current normalized market set; never
+    fabricated, and empty lists are returned where data is absent."""
+    return await service.facets(requested_mode=mode)
+
+
 @router.get("/markets/{market_id}", response_model=MarketDetailResponse)
 async def market_detail(
     market_id: str,
     mode: str | None = None,
+    range: str = Query("all", pattern="^(1h|6h|24h|7d|all)$", description="chart timeline range"),
     service: MarketService = Depends(get_service),
 ) -> MarketDetailResponse:
-    detail = await service.market_detail(market_id, requested_mode=mode)
+    detail = await service.market_detail(market_id, requested_mode=mode, chart_range=range)
     if detail is None:
         raise HTTPException(status_code=404, detail="market not found")
     return detail

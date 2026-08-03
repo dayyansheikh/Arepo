@@ -1,39 +1,187 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useMode } from "@/lib/mode-context";
 import { useAsync } from "@/lib/use-async";
-import { getMarkets } from "@/lib/api";
+import { getFacets, getMarkets } from "@/lib/api";
+import type { MarketCard } from "@/lib/types";
+import { formatDurationSeconds, titleCase } from "@/lib/format";
 import { MarketCardView } from "@/components/MarketCardView";
 import { CardGridSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
+import { DisclaimerBanner } from "@/components/DisclaimerBanner";
+import { Disclose, SectionLabel } from "@/components/ui";
 
-const PAGE_SIZE = 20;
+const MODE_LABEL: Record<string, string> = {
+  live: "Live",
+  cached: "Cached",
+  replay: "Replay",
+};
 
-const SORT_OPTIONS: { value: "volume" | "volume_24hr" | "liquidity" | "end_date"; label: string }[] = [
+// How many markets to pull from the API per request, and the step by which
+// "Load more" grows that window. Deliberately larger than a typical page size
+// because the signal-strength, probability and time-to-close filters below
+// run client-side over whatever this window returns.
+const FETCH_SIZE = 48;
+const FETCH_STEP = 48;
+
+type ApiSort = "volume" | "volume_24hr" | "liquidity" | "end_date";
+type UiSort = "signal" | "volume" | "ending" | "newest";
+
+const SORT_OPTIONS: { value: UiSort; label: string }[] = [
+  { value: "signal", label: "Signal strength" },
   { value: "volume", label: "Volume" },
-  { value: "volume_24hr", label: "24h volume" },
-  { value: "liquidity", label: "Liquidity" },
-  { value: "end_date", label: "End date" },
+  { value: "ending", label: "Ending soonest" },
+  { value: "newest", label: "Newest" },
 ];
+
+// The backend only sorts by volume, volume_24hr, liquidity or end_date; there
+// is no server-side "by signal strength" or "by creation date" ordering. For
+// "Signal strength" and "Newest" we fetch in a sane default order and then
+// resort client-side (see compareSignalDesc / compareEndDateDesc below).
+const API_SORT_FOR_UI: Record<UiSort, ApiSort> = {
+  signal: "volume",
+  volume: "volume",
+  ending: "end_date",
+  newest: "volume",
+};
+
+type SignalRange = "any" | "high" | "medium" | "low";
+const SIGNAL_OPTIONS: { value: SignalRange; label: string }[] = [
+  { value: "any", label: "Any" },
+  { value: "high", label: "High (70+)" },
+  { value: "medium", label: "Medium (40–69)" },
+  { value: "low", label: "Low (<40)" },
+];
+
+type ProbRange = "any" | "under25" | "mid" | "over75";
+const PROB_OPTIONS: { value: ProbRange; label: string }[] = [
+  { value: "any", label: "Any" },
+  { value: "under25", label: "Under 25%" },
+  { value: "mid", label: "25% to 75%" },
+  { value: "over75", label: "Over 75%" },
+];
+
+type TimeRange = "any" | "week" | "month" | "later";
+const TIME_OPTIONS: { value: TimeRange; label: string }[] = [
+  { value: "any", label: "Any" },
+  { value: "week", label: "Closing this week" },
+  { value: "month", label: "Closing this month" },
+  { value: "later", label: "Later" },
+];
+
+/** Signal strength is stored 0..1 (StrengthMeter/MarketCardView read it that
+ * way directly); the 70 / 40 breakpoints from the brief are on the 0-100
+ * display scale, so compare against 0.70 / 0.40 here. */
+function matchesSignalRange(market: MarketCard, range: SignalRange): boolean {
+  if (range === "any") return true;
+  if (market.signal_strength === null) return false;
+  if (range === "high") return market.signal_strength >= 0.7;
+  if (range === "medium") return market.signal_strength >= 0.4 && market.signal_strength < 0.7;
+  return market.signal_strength < 0.4;
+}
+
+function matchesProbRange(market: MarketCard, range: ProbRange): boolean {
+  if (range === "any") return true;
+  if (market.top_probability === null) return false;
+  if (range === "under25") return market.top_probability < 0.25;
+  if (range === "mid") return market.top_probability >= 0.25 && market.top_probability <= 0.75;
+  return market.top_probability > 0.75;
+}
+
+/** Buckets are relative to now and mutually exclusive. A market whose close
+ * date has already passed, or which has no end date at all, matches "Any"
+ * only: we don't guess at a close date the data doesn't give us. */
+function matchesTimeRange(market: MarketCard, range: TimeRange, nowMs: number): boolean {
+  if (range === "any") return true;
+  if (!market.end_date) return false;
+  const end = new Date(market.end_date).getTime();
+  if (Number.isNaN(end)) return false;
+  const diffDays = (end - nowMs) / 86_400_000;
+  if (diffDays < 0) return false;
+  if (range === "week") return diffDays <= 7;
+  if (range === "month") return diffDays > 7 && diffDays <= 30;
+  return diffDays > 30;
+}
+
+/** Sport and competition aren't query parameters on the markets list endpoint,
+ * so both filter client-side over whatever the current fetch window returned,
+ * the same way signal strength, probability and time to close already do. */
+function matchesSport(market: MarketCard, sport: string): boolean {
+  if (!sport) return true;
+  return market.sport === sport;
+}
+
+function matchesCompetition(market: MarketCard, competition: string): boolean {
+  if (!competition) return true;
+  return market.competition === competition;
+}
+
+function compareSignalDesc(a: MarketCard, b: MarketCard): number {
+  if (a.signal_strength === null && b.signal_strength === null) return 0;
+  if (a.signal_strength === null) return 1;
+  if (b.signal_strength === null) return -1;
+  return b.signal_strength - a.signal_strength;
+}
+
+/** Approximates "Newest" by furthest-out close date, since MarketCard carries
+ * no creation timestamp to sort by. Markets with no end date sort last. */
+function compareEndDateDesc(a: MarketCard, b: MarketCard): number {
+  const at = a.end_date ? new Date(a.end_date).getTime() : null;
+  const bt = b.end_date ? new Date(b.end_date).getTime() : null;
+  if (at === null && bt === null) return 0;
+  if (at === null) return 1;
+  if (bt === null) return -1;
+  return bt - at;
+}
+
+function FilterField({ id, label, children }: { id: string; label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-[12px] font-medium text-arepo-muted">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 export default function MarketsPage() {
   const { mode } = useMode();
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+
+  // Guided filters resolved by the API.
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
-  const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]["value"]>("volume");
-  const [offset, setOffset] = useState(0);
+  const [uiSort, setUiSort] = useState<UiSort>("volume");
 
-  // Debounce the free-text search so we don't refetch on every keystroke.
+  // Guided filters resolved client-side over the fetched window.
+  const [signalRange, setSignalRange] = useState<SignalRange>("any");
+  const [probRange, setProbRange] = useState<ProbRange>("any");
+  const [timeRange, setTimeRange] = useState<TimeRange>("any");
+  const [sport, setSport] = useState("");
+  const [competition, setCompetition] = useState("");
+
+  // Advanced, demoted: free-text search, debounced as before.
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+
+  const [limit, setLimit] = useState(FETCH_SIZE);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchInput);
-      setOffset(0);
+      setLimit(FETCH_SIZE);
     }, 350);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  // Any server-side filter change starts the fetch window over.
+  useEffect(() => {
+    setLimit(FETCH_SIZE);
+  }, [category, status, uiSort]);
+
+  const apiSort = API_SORT_FOR_UI[uiSort];
 
   const { data, loading, error } = useAsync(
     () =>
@@ -42,140 +190,326 @@ export default function MarketsPage() {
         search: search || undefined,
         category: category || undefined,
         status: status || undefined,
-        sort,
-        limit: PAGE_SIZE,
-        offset,
+        sort: apiSort,
+        limit,
+        offset: 0,
       }),
-    [mode, search, category, status, sort, offset]
+    [mode, search, category, status, apiSort, limit]
   );
 
-  const total = data?.total ?? 0;
-  const page = Math.floor(offset / PAGE_SIZE) + 1;
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // Fetched once per mode, independent of the active filters. Built dynamically
+  // from real normalised market data so the dropdowns never invent options the
+  // data doesn't have.
+  const { data: facets } = useAsync(() => getFacets(mode), [mode]);
+
+  const categories = useMemo(() => facets?.categories ?? [], [facets]);
+  const sports = useMemo(() => facets?.sports ?? [], [facets]);
+  const competitions = useMemo(() => facets?.competitions ?? [], [facets]);
+  // "unknown" is a genuine backend enum value for markets with no resolved
+  // status, but it isn't a status a person picks from a dropdown.
+  const statuses = useMemo(
+    () => (facets?.statuses ?? []).filter((s) => s.toLowerCase() !== "unknown"),
+    [facets]
+  );
+
+  // A filter dropdown a person can no longer act on (its value disappeared
+  // from this mode's facets, e.g. after switching data mode) resets itself
+  // rather than silently filtering out every market.
+  useEffect(() => {
+    if (category && !categories.includes(category)) setCategory("");
+  }, [category, categories]);
+  useEffect(() => {
+    if (status && !statuses.includes(status)) setStatus("");
+  }, [status, statuses]);
+  useEffect(() => {
+    if (sport && !sports.includes(sport)) setSport("");
+  }, [sport, sports]);
+  useEffect(() => {
+    if (competition && !competitions.includes(competition)) setCompetition("");
+  }, [competition, competitions]);
+
+  const markets = useMemo(() => {
+    if (!data) return [];
+    const now = Date.now();
+    let list = data.markets.filter(
+      (m) =>
+        matchesSignalRange(m, signalRange) &&
+        matchesProbRange(m, probRange) &&
+        matchesTimeRange(m, timeRange, now) &&
+        matchesSport(m, sport) &&
+        matchesCompetition(m, competition)
+    );
+    if (uiSort === "signal") {
+      list = [...list].sort(compareSignalDesc);
+    } else if (uiSort === "newest") {
+      list = [...list].sort(compareEndDateDesc);
+    }
+    return list;
+  }, [data, signalRange, probRange, timeRange, sport, competition, uiSort]);
+
+  const fetchedCount = data?.markets.length ?? 0;
+  const totalMatches = data?.total ?? 0;
+  const hasMore = fetchedCount < totalMatches;
+  const narrowedByClientFilters = fetchedCount > 0 && markets.length < fetchedCount;
+
+  const hasActiveFilters =
+    category !== "" ||
+    status !== "" ||
+    signalRange !== "any" ||
+    probRange !== "any" ||
+    timeRange !== "any" ||
+    sport !== "" ||
+    competition !== "" ||
+    searchInput !== "";
+
+  function clearFilters() {
+    setCategory("");
+    setStatus("");
+    setSignalRange("any");
+    setProbRange("any");
+    setTimeRange("any");
+    setSport("");
+    setCompetition("");
+    setSearchInput("");
+    setSearch("");
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Markets</h1>
-        <p className="mt-1 text-sm text-muted-fg">
-          Browse and filter markets by category, status, and sort order.
-        </p>
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-[30px] font-semibold tracking-[-0.01em] text-arepo-ink">Markets</h1>
+          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-muted">
+            Use the dropdowns to find markets by category, status, signal strength, leading
+            probability or time to close.
+          </p>
+        </div>
+        {data?.status && (
+          <p className="text-[13px] text-arepo-muted">
+            Showing{" "}
+            <span className="font-medium text-arepo-ink">
+              {MODE_LABEL[data.status.mode] ?? data.status.mode}
+            </span>{" "}
+            data, updated {formatDurationSeconds(data.status.data_age_seconds)} ago.
+          </p>
+        )}
+        <DisclaimerBanner />
       </div>
 
-      <form
-        className="panel flex flex-wrap items-end gap-4 p-4"
-        onSubmit={(e) => e.preventDefault()}
-        role="search"
-      >
-        <div className="flex flex-col gap-1">
-          <label htmlFor="search" className="text-xs font-medium text-muted-fg">
-            Search
-          </label>
-          <input
-            id="search"
-            type="search"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search markets…"
-            className="focus-ring rounded-instrument border border-astro-light-border dark:border-astro-border bg-transparent px-3 py-1.5 text-sm min-w-[200px]"
-          />
+      <div className="panel space-y-4 p-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {categories.length > 0 && (
+            <FilterField id="filter-category" label="Category">
+              <select
+                id="filter-category"
+                className="select-arepo"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <option value="">All categories</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+          )}
+
+          {sports.length > 0 && (
+            <FilterField id="filter-sport" label="Sport">
+              <select
+                id="filter-sport"
+                className="select-arepo"
+                value={sport}
+                onChange={(e) => setSport(e.target.value)}
+              >
+                <option value="">All sports</option>
+                {sports.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+          )}
+
+          {competitions.length > 0 && (
+            <FilterField id="filter-competition" label="Competition">
+              <select
+                id="filter-competition"
+                className="select-arepo"
+                value={competition}
+                onChange={(e) => setCompetition(e.target.value)}
+              >
+                <option value="">All competitions</option>
+                {competitions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+          )}
+
+          <FilterField id="filter-status" label="Status">
+            <select
+              id="filter-status"
+              className="select-arepo"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="">Any</option>
+              {statuses.map((s) => (
+                <option key={s} value={s}>
+                  {titleCase(s)}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+
+          <FilterField id="filter-signal" label="Signal strength">
+            <select
+              id="filter-signal"
+              className="select-arepo"
+              value={signalRange}
+              onChange={(e) => setSignalRange(e.target.value as SignalRange)}
+            >
+              {SIGNAL_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+
+          <FilterField id="filter-probability" label="Probability">
+            <select
+              id="filter-probability"
+              className="select-arepo"
+              value={probRange}
+              onChange={(e) => setProbRange(e.target.value as ProbRange)}
+            >
+              {PROB_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+
+          <FilterField id="filter-time" label="Time to close">
+            <select
+              id="filter-time"
+              className="select-arepo"
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value as TimeRange)}
+            >
+              {TIME_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+
+          <FilterField id="filter-sort" label="Sort by">
+            <select
+              id="filter-sort"
+              className="select-arepo"
+              value={uiSort}
+              onChange={(e) => setUiSort(e.target.value as UiSort)}
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </FilterField>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="category" className="text-xs font-medium text-muted-fg">
-            Category
-          </label>
-          <input
-            id="category"
-            type="text"
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setOffset(0);
-            }}
-            placeholder="Any"
-            className="focus-ring rounded-instrument border border-astro-light-border dark:border-astro-border bg-transparent px-3 py-1.5 text-sm w-32"
-          />
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <Disclose summary="Advanced: search by keyword">
+            <div className="flex max-w-xs flex-col gap-1.5">
+              <label htmlFor="market-search" className="text-[12px] font-medium text-arepo-muted">
+                Search
+              </label>
+              <input
+                id="market-search"
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search by question or keyword…"
+                className="focus-ring rounded-control border border-arepo-borderStrong bg-arepo-surface px-3 py-2 text-sm text-arepo-ink placeholder:text-arepo-muted"
+              />
+            </div>
+          </Disclose>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="btn btn-ghost -mb-0.5"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <SectionLabel>Results</SectionLabel>
+          {!loading && !error && (
+            <span className="font-tabular text-[13px] text-arepo-muted">
+              {markets.length.toLocaleString()} market{markets.length === 1 ? "" : "s"}
+              {narrowedByClientFilters && ` of ${fetchedCount.toLocaleString()} loaded`}
+            </span>
+          )}
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="status" className="text-xs font-medium text-muted-fg">
-            Status
-          </label>
-          <input
-            id="status"
-            type="text"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setOffset(0);
-            }}
-            placeholder="Any"
-            className="focus-ring rounded-instrument border border-astro-light-border dark:border-astro-border bg-transparent px-3 py-1.5 text-sm w-32"
-          />
-        </div>
+        {loading && <CardGridSkeleton count={8} />}
+        {!loading && error && <ErrorState message={error} />}
+        {!loading && !error && data && markets.length === 0 && (
+          <div className="space-y-3">
+            <EmptyState
+              message={
+                hasActiveFilters
+                  ? "No markets match the current filters. Try widening the signal strength, probability or time-to-close range, or clearing the other filters."
+                  : "No markets are available right now."
+              }
+            />
+            {hasActiveFilters && (
+              <div className="flex justify-center">
+                <button type="button" onClick={clearFilters} className="btn btn-secondary">
+                  Clear filters
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="sort" className="text-xs font-medium text-muted-fg">
-            Sort by
-          </label>
-          <select
-            id="sort"
-            value={sort}
-            onChange={(e) => {
-              setSort(e.target.value as typeof sort);
-              setOffset(0);
-            }}
-            className="focus-ring rounded-instrument border border-astro-light-border dark:border-astro-border bg-transparent px-3 py-1.5 text-sm"
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </form>
-
-      {loading && <CardGridSkeleton count={8} />}
-      {!loading && error && <ErrorState message={error} />}
-      {!loading && data && data.markets.length === 0 && (
-        <EmptyState message="No markets match these filters." />
-      )}
-
-      {!loading && data && data.markets.length > 0 && (
-        <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {data.markets.map((m) => (
+        {!loading && !error && markets.length > 0 && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {markets.map((m) => (
               <MarketCardView key={m.id} market={m} />
             ))}
           </div>
+        )}
 
-          <nav className="flex items-center justify-between text-sm" aria-label="Pagination">
-            <span className="text-muted-fg font-mono font-tabular">
-              {total.toLocaleString()} markets — page {page} of {pageCount}
-            </span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-                disabled={offset === 0}
-                className="focus-ring rounded-instrument border border-astro-light-border dark:border-astro-border px-3 py-1.5 disabled:opacity-40"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={() => setOffset(offset + PAGE_SIZE)}
-                disabled={offset + PAGE_SIZE >= total}
-                className="focus-ring rounded-instrument border border-astro-light-border dark:border-astro-border px-3 py-1.5 disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
-          </nav>
-        </>
-      )}
+        {!loading && !error && hasMore && (
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={() => setLimit((l) => l + FETCH_STEP)}
+              className="btn btn-secondary"
+            >
+              Load more markets
+            </button>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

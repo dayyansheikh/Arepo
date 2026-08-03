@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=STIX+Two+Text:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#f6f4ef;color:#1c1b19;font-family:'Barlow',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:#a8681f;text-decoration:none}
+  a:hover{color:#7d5014}
+  *{box-sizing:border-box}
+  .math{font-family:'STIX Two Text',Georgia,serif;font-style:italic}
+  .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 6px;line-height:1.15}
+  .frac span{padding:0 4px}
+  .frac .num{border-bottom:1.5px solid currentColor}
+  section{scroll-margin-top:24px}
+  summary{cursor:pointer;font-size:13px;font-weight:600;color:#7d5014;padding:6px 0;list-style:revert}
+  summary:hover{color:#5c3b10}
+</style>
+</helmet>
+
+<div style="max-width:1440px;margin:0 auto">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:76px;border-bottom:1px solid rgba(28,27,24,0.08);background:#fff">
+    <div style="display:flex;align-items:center;gap:48px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#d3a04f,#8f5f18);display:flex;align-items:center;justify-content:center;flex:none">
+          <div style="width:12px;height:12px;border-radius:50%;border:2px solid #fff"></div>
+        </div>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;letter-spacing:-0.01em">Astrolabe</span>
+      </div>
+      <nav style="display:flex;gap:32px">
+        <a href="Overview.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Overview</a>
+        <a href="Markets.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Markets</a>
+        <a href="SignalLab.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Signal Lab</a>
+        <a href="Replay.dc.html" style="font-size:14px;font-weight:500;color:#1c1b19">Replay</a>
+        <a href="Methodology.dc.html" style="font-size:14px;font-weight:600;color:#b8791f">Methodology</a>
+      </nav>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:999px;background:#f6f4ef;border:1px solid rgba(28,27,24,0.08)">
+      <span style="width:6px;height:6px;border-radius:50%;background:#4c7a5e"></span>
+      <span style="font-size:12px;color:rgba(28,27,24,0.6);font-weight:500">Live data</span>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:56px;padding:56px 48px 100px">
+
+    <nav style="width:200px;flex:none;position:sticky;top:100px;align-self:flex-start;display:flex;flex-direction:column;gap:2px">
+      <a href="#overview" style="font-size:13px;color:rgba(28,27,24,0.6);padding:6px 0">Overview</a>
+      <a href="#signal-strength" style="font-size:13px;color:rgba(28,27,24,0.6);padding:6px 0">Signal strength</a>
+      <a href="#z-score" style="font-size:13px;color:rgba(28,27,24,0.6);padding:6px 0">Z-score</a>
+      <a href="#confidence" style="font-size:13px;color:rgba(28,27,24,0.6);padding:6px 0">Confidence</a>
+      <a href="#spread" style="font-size:13px;color:rgba(28,27,24,0.6);padding:6px 0">Spread</a>
+      <a href="#liquidity" style="font-size:13px;color:rgba(28,27,24,0.6);padding:6px 0">Liquidity</a>
+      <a href="#hit-rate" style="font-size:13px;color:rgba(28,27,24,0.6);padding:6px 0">Hit rate</a>
+      <a href="#disclaimer" style="font-size:13px;color:rgba(28,27,24,0.6);padding:6px 0">Disclaimer</a>
+    </nav>
+
+    <div style="flex:1;max-width:760px;display:flex;flex-direction:column;gap:56px">
+
+      <section id="overview">
+        <h1 style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:36px;margin:0 0 14px;letter-spacing:-0.01em">Methodology</h1>
+        <p style="font-size:15px;color:rgba(28,27,24,0.65);line-height:1.7;margin:0">Astrolabe is a read-only research instrument over public market data. Every reading on the platform is a statistical screening heuristic, not a prediction, a trading signal, or evidence of insider activity. This page sets out, in plain terms first and precisely underneath, exactly what each number means.</p>
+      </section>
+
+      <section id="signal-strength">
+        <h2 style="font-size:22px;font-weight:600;margin:0 0 12px">Signal strength</h2>
+        <p style="font-size:14px;color:rgba(28,27,24,0.7);line-height:1.7;margin:0 0 14px">A single 0–100 reading of how unusual a market's recent behaviour looks, blending three ordinary things worth watching: price movement, spread and order-book imbalance. A higher number means more of these are lining up at once, not that a move is more likely in either direction.</p>
+        <details>
+          <summary>Show the maths</summary>
+          <div style="padding-top:16px;display:flex;flex-direction:column;gap:14px">
+            <p style="font-size:14px;color:rgba(28,27,24,0.7);line-height:1.7;margin:0">The composite score is a confidence-weighted combination of three component z-scores:</p>
+            <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:12px;padding:20px 24px;font-size:18px">
+              <span class="math">S</span> = 100 · Φ<span class="frac"><span class="num">w<sub>p</sub>z<sub>p</sub> + w<sub>s</sub>z<sub>s</sub> + w<sub>i</sub>z<sub>i</sub></span><span>w<sub>p</sub> + w<sub>s</sub> + w<sub>i</sub></span></span>
+            </div>
+            <p style="font-size:13px;color:rgba(28,27,24,0.6);line-height:1.7;margin:0">where <span class="math">z<sub>p</sub></span>, <span class="math">z<sub>s</sub></span> and <span class="math">z<sub>i</sub></span> are the z-scores of price movement, spread and order-book imbalance, <span class="math">w</span> terms are confidence weights derived from sample size, and Φ is the standard normal cumulative distribution function, which maps the blended z-score onto a smooth 0–1 scale before it is expressed as a percentage.</p>
+          </div>
+        </details>
+      </section>
+
+      <section id="z-score">
+        <h2 style="font-size:22px;font-weight:600;margin:0 0 12px">Z-score</h2>
+        <p style="font-size:14px;color:rgba(28,27,24,0.7);line-height:1.7;margin:0 0 14px">How many standard deviations the current value sits from its own recent rolling average. A z-score near zero is unremarkable; one beyond about ±2 is worth a second look.</p>
+        <details>
+          <summary>Show the maths</summary>
+          <div style="padding-top:16px;display:flex;flex-direction:column;gap:14px">
+            <div style="background:#fff;border:1px solid rgba(28,27,24,0.08);border-radius:12px;padding:20px 24px;font-size:18px">
+              <span class="math">z</span> = <span class="frac"><span class="num math">x − μ</span><span class="math">σ</span></span>
+            </div>
+            <p style="font-size:13px;color:rgba(28,27,24,0.6);line-height:1.7;margin:0"><span class="math">x</span> is the current observation, <span class="math">μ</span> is the rolling mean and <span class="math">σ</span> the rolling standard deviation, both computed over the configured window (20 frames by default, see <a href="SignalLab.dc.html">Signal Lab</a>).</p>
+          </div>
+        </details>
+      </section>
+
+      <section id="confidence">
+        <h2 style="font-size:22px;font-weight:600;margin:0 0 12px">Confidence</h2>
+        <p style="font-size:14px;color:rgba(28,27,24,0.7);line-height:1.7;margin:0 0 14px">How much to trust a reading, based on how many clean observations went into it. A low-confidence "GOOD" badge on a thin market means the underlying numbers are more likely to be noisy, not that the market itself is untrustworthy.</p>
+        <details>
+          <summary>Show the maths</summary>
+          <p style="font-size:13px;color:rgba(28,27,24,0.6);line-height:1.7;padding-top:14px;margin:0">Confidence is computed as <span class="math">c</span> = min(1, <span class="frac"><span class="num math">n</span><span class="math">n<sub>min</sub></span></span>) where <span class="math">n</span> is the number of qualifying observations in the current window and <span class="math">n<sub>min</sub></span> is the minimum history required (8 observations by default).</p>
+        </details>
+      </section>
+
+      <section id="spread">
+        <h2 style="font-size:22px;font-weight:600;margin:0 0 12px">Spread</h2>
+        <p style="font-size:14px;color:rgba(28,27,24,0.7);line-height:1.7;margin:0 0 14px">The gap between the best bid and the best ask. A narrow spread usually means a market is easy to trade in and out of; a wide one means the opposite.</p>
+        <details>
+          <summary>Show the maths</summary>
+          <p style="font-size:13px;color:rgba(28,27,24,0.6);line-height:1.7;padding-top:14px;margin:0">Relative spread = <span class="frac"><span class="num math">ask − bid</span><span class="math">(ask + bid) / 2</span></span>, expressed as a percentage of the midpoint.</p>
+        </details>
+      </section>
+
+      <section id="liquidity">
+        <h2 style="font-size:22px;font-weight:600;margin:0 0 12px">Liquidity</h2>
+        <p style="font-size:14px;color:rgba(28,27,24,0.7);line-height:1.7;margin:0">An estimate of how much can be traded near the current price without moving it significantly, drawn from order-book depth close to the midpoint. Higher liquidity means a market can absorb larger orders with less price impact.</p>
+      </section>
+
+      <section id="hit-rate">
+        <h2 style="font-size:22px;font-weight:600;margin:0 0 12px">Hit rate</h2>
+        <p style="font-size:14px;color:rgba(28,27,24,0.7);line-height:1.7;margin:0 0 14px">In <a href="Replay.dc.html">Replay</a>, the share of fired signals that were followed by a real price move of the chosen size, within the chosen horizon. It measures directional follow-through only.</p>
+        <details>
+          <summary>Show the maths</summary>
+          <p style="font-size:13px;color:rgba(28,27,24,0.6);line-height:1.7;padding-top:14px;margin:0">Hit rate = <span class="frac"><span class="num math">hits</span><span class="math">signals evaluated</span></span>. It is not a profitability measure: it does not account for transaction costs, slippage, or the size of the move beyond the threshold.</p>
+        </details>
+      </section>
+
+      <section id="disclaimer">
+        <h2 style="font-size:22px;font-weight:600;margin:0 0 12px">Disclaimer</h2>
+        <div style="background:#fdf8ee;border:1px solid #f0d9a8;border-radius:12px;padding:20px 24px">
+          <p style="font-size:13px;color:#7d5014;line-height:1.7;margin:0">Astrolabe does not place trades, offer financial advice, or prove insider activity. It surfaces statistical anomalies in public market data for further reading. Nothing on this platform should be treated as investment advice or as evidence of wrongdoing.</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

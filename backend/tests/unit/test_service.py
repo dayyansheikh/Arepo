@@ -1,13 +1,56 @@
 """Service-layer integration tests (replay mode — deterministic, no network)."""
+from datetime import UTC, datetime
+
 import pytest
 
 from astrolabe.domain.enums import DataMode
+from astrolabe.domain.models import PricePoint
 from astrolabe.service import MarketService
+from astrolabe.service.market_service import _history_points
+from astrolabe.service.sources import TokenData
 
 
 @pytest.fixture
 def svc():
     return MarketService()
+
+
+class _NotReplay:
+    """A stand-in non-replay source for _history_points (only its type matters)."""
+
+
+def test_history_points_preserve_real_timestamps():
+    """Regression: live/cached history must keep its real per-point times, not
+    collapse every point onto a single 'now' (which rendered as a blank chart)."""
+    t0 = datetime(2026, 8, 1, 9, 0, tzinfo=UTC)
+    t1 = datetime(2026, 8, 1, 10, 0, tzinfo=UTC)
+    t2 = datetime(2026, 8, 1, 11, 0, tzinfo=UTC)
+    td = TokenData(
+        prices=[0.4, 0.5, 0.6],
+        book=None,
+        volumes=[],
+        captured_at=t2,
+        price_points=[PricePoint(t=t0, p=0.4), PricePoint(t=t1, p=0.5), PricePoint(t=t2, p=0.6)],
+    )
+    out = _history_points(_NotReplay(), "m", "tok", td)
+    assert [p.t for p in out] == [t0, t1, t2]
+    assert len({p.t for p in out}) == 3  # distinct timestamps, no collapse
+
+
+def test_history_points_synthesise_distinct_axis_when_timestamps_absent():
+    """If a source yields values without timestamps, points still get a distinct,
+    strictly-increasing time axis rather than all sharing one instant."""
+    td = TokenData(prices=[0.4, 0.5, 0.6, 0.55], book=None, volumes=[], captured_at=None)
+    out = _history_points(_NotReplay(), "m", "tok", td)
+    times = [p.t for p in out]
+    assert len(times) == 4
+    assert len(set(times)) == 4
+    assert times == sorted(times)
+
+
+def test_history_points_empty_when_no_data():
+    td = TokenData(prices=[], book=None, volumes=[], captured_at=None)
+    assert _history_points(_NotReplay(), "m", "tok", td) == []
 
 
 async def test_overview_replay_mode_labeled_and_populated(svc):

@@ -8,7 +8,7 @@ the degradation reason.
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from ..analytics.backtest import run_backtest
 from ..config import Settings, get_settings
@@ -24,11 +24,19 @@ from .schemas import (
     MarketCard,
     MarketDetail,
     MarketDetailResponse,
+    MarketFacetsResponse,
     MarketListResponse,
     OverviewResponse,
     SignalsResponse,
 )
-from .sources import CachedSource, DataSource, LiveSource, ReplaySource, TokenData
+from .sources import (
+    RANGE_WINDOW_SECONDS,
+    CachedSource,
+    DataSource,
+    LiveSource,
+    ReplaySource,
+    TokenData,
+)
 
 logger = get_logger("astrolabe.service")
 
@@ -105,17 +113,19 @@ class MarketService:
         analytics: list[TokenAnalytics] = []
         for o in market.outcomes:
             td = token_data[o.token_id]
-            analytics.append(
-                enrich.compute_token_analytics(
-                    token_id=o.token_id,
-                    market_id=market.id,
-                    prices=td.prices,
-                    book=td.book,
-                    volumes=td.volumes,
-                    gamma_price=o.price,
-                    data_age_seconds=enrich.data_age(td.captured_at),
-                )
+            ta = enrich.compute_token_analytics(
+                token_id=o.token_id,
+                market_id=market.id,
+                prices=td.prices,
+                book=td.book,
+                volumes=td.volumes,
+                gamma_price=o.price,
+                data_age_seconds=enrich.data_age(td.captured_at),
             )
+            # Attach the market context so signals can name and link to their market.
+            ta.signal.market_question = market.question
+            ta.signal.outcome_name = o.name
+            analytics.append(ta)
         return analytics, enrich.market_card(market, analytics)
 
     def _card_from_metadata(self, market: Market) -> MarketCard:
@@ -127,7 +137,8 @@ class MarketService:
         )
         return MarketCard(
             id=market.id, question=market.question, slug=market.slug,
-            category=market.category, status=market.status.value, tags=market.tags,
+            category=market.category, sport=market.sport, competition=market.competition,
+            status=market.status.value, tags=market.tags,
             volume=market.volume, volume_24hr=market.volume_24hr, liquidity=market.liquidity,
             end_date=market.end_date.isoformat() if market.end_date else None,
             top_probability=lead.price if lead else None,
@@ -153,12 +164,111 @@ class MarketService:
             markets=cards, total=total, limit=limit, offset=offset, status=status_env
         )
 
+    async def facets(self, *, requested_mode=None) -> MarketFacetsResponse:
+        """Distinct real filter values (category/sport/competition/status) currently present.
+
+        Reuses the same source path as :meth:`list_markets` (no filtering/paging applied)
+        so the facets always describe what a user could actually filter down to.
+        """
+        source, _ = await self._select_source(requested_mode)
+        markets = await source.markets()
+        categories = sorted({m.category for m in markets if m.category})
+        sports = sorted({m.sport for m in markets if m.sport})
+        competitions = sorted({m.competition for m in markets if m.competition})
+        statuses = sorted({m.status.value for m in markets if m.status is not None})
+        return MarketFacetsResponse(
+            categories=categories, sports=sports, competitions=competitions, statuses=statuses,
+        )
+
+    async def enrich_markets(self, *, requested_mode=None, limit=None):
+        """(Market, [TokenAnalytics]) pairs for the current markets, plus the source mode.
+
+        Used by the cohort engine to snapshot the signals Arepo would select right now.
+        Sees only information available at this instant (no look-ahead)."""
+        source, _ = await self._select_source(requested_mode)
+        markets = await source.markets()
+        # Near-mid markets first: they actually move, so the composite is led by price
+        # behaviour rather than order-book imbalance on pinned longshots.
+        subset = _prefer_near_mid(_sort_markets(markets, "volume_24hr"))
+        if limit is not None:
+            subset = subset[:limit]
+        results = await asyncio.gather(
+            *(self._enrich_market(source, m) for m in subset), return_exceptions=True
+        )
+        out: list[tuple[Market, list[TokenAnalytics]]] = []
+        for m, item in zip(subset, results, strict=False):
+            if isinstance(item, BaseException):
+                continue
+            analytics, _ = item
+            out.append((m, analytics))
+        return out, source.mode
+
+    async def active_markets(
+        self, *, requested_mode=None, limit=None, by="volume_24hr"
+    ) -> list[Market]:
+        """Domain Market objects sorted by ``by`` (e.g. "volume_24hr" or "volume").
+
+        The historical retrospective sorts by total "volume" to pick long-lived, liquid
+        markets that actually have history stretching back before the cut-off; short-lived
+        sports markets that top the 24h list have no week-old history to reconstruct from."""
+        source, _ = await self._select_source(requested_mode)
+        markets = _sort_markets(await source.markets(), by)
+        return markets[:limit] if limit is not None else markets
+
+    async def token_history(self, market_id: str, token_id: str, *, requested_mode=None):
+        """The full real, timestamped price history for one outcome token.
+
+        Live fetches the market's whole history at 30-minute resolution; replay/cached use
+        their stored timestamped series. Returns [] on error."""
+        source, _ = await self._select_source(requested_mode)
+        if isinstance(source, LiveSource):
+            return await source.get_range_history(token_id, "all")
+        td = await source.get_token_data(market_id, token_id)
+        return _history_points(source, market_id, token_id, td)
+
+    async def token_price(self, market_id: str, token_id: str, *, requested_mode=None):
+        """Current (price, source_timestamp) for one outcome token, or (None, None).
+
+        Price is the two-sided-book midpoint where available, else the latest observed
+        price. Used to collect forward prices after a cohort freezes."""
+        source, _ = await self._select_source(requested_mode)
+        td = await source.get_token_data(market_id, token_id)
+        price = None
+        if td.book is not None and td.book.midpoint is not None:
+            price = td.book.midpoint
+        elif td.prices:
+            price = td.prices[-1]
+        return price, td.captured_at
+
+    async def market_resolution(self, market_id: str, *, requested_mode=None):
+        """Best-effort real resolution from market metadata: (resolved, winning_token_id,
+        winning_outcome_name) or None when still unknown. A market counts as resolved only
+        when it is closed and exactly one outcome sits at an extreme price (>= 0.99)."""
+        source, _ = await self._select_source(requested_mode)
+        markets = await source.markets()
+        market = next((m for m in markets if m.id == market_id), None)
+        if market is None:
+            return None
+        if market.status.value not in {"closed", "resolved"}:
+            return None
+        winners = [o for o in market.outcomes if o.price is not None and o.price >= 0.99]
+        if len(winners) == 1:
+            return True, winners[0].token_id, winners[0].name
+        return None
+
     async def overview(self, *, requested_mode=None) -> OverviewResponse:
         source, reason = await self._select_source(requested_mode)
         markets = await source.markets()
-        # Deep-enrich a bounded set (top by volume). Replay has few markets => enrich all.
+        # Deep-enrich the most actively-trading markets (24h volume): these have recent CLOB
+        # history, so the composite's price-behaviour features have real data instead of the
+        # score falling back to order-book imbalance on quiet mega-markets. Replay: enrich all.
         by_volume = _sort_markets(markets, "volume")
-        enrich_set = by_volume if source.mode == DataMode.REPLAY else by_volume[:OVERVIEW_ENRICH]
+        active = _sort_markets(markets, "volume_24hr")
+        enrich_set = (
+            active
+            if source.mode == DataMode.REPLAY
+            else _prefer_near_mid(active)[:OVERVIEW_ENRICH]
+        )
 
         enriched = await asyncio.gather(
             *(self._enrich_market(source, m) for m in enrich_set), return_exceptions=True
@@ -194,33 +304,41 @@ class MarketService:
             widest_spreads=widest, recent_signals=recent_signals, status=status_env,
         )
 
-    async def market_detail(self, market_id: str, *, requested_mode=None):
+    async def market_detail(self, market_id: str, *, requested_mode=None, chart_range="all"):
         source, reason = await self._select_source(requested_mode)
         markets = await source.markets()
         market = next((m for m in markets if m.id == market_id), None)
         if market is None:
             return None
 
+        chart_range = chart_range if chart_range in _CHART_RANGES else "all"
         analytics, _ = await self._enrich_market(source, market)
         outcomes_view = []
         norm = enrich.normalized_probs_for(analytics)
         history: dict[str, list[PricePoint]] = {}
         for ta, o, np_ in zip(analytics, market.outcomes, norm, strict=False):
             outcomes_view.append(enrich.outcome_view(ta, o.name, np_))
-            td = await source.get_token_data(market.id, o.token_id)
-            # Reconstruct price points with timestamps where available (replay), else index.
-            history[o.token_id] = _history_points(source, market.id, o.token_id, td.prices)
+            if isinstance(source, LiveSource):
+                # Fetch the chosen range at a resolution suited to it (fine for short ranges).
+                history[o.token_id] = await source.get_range_history(o.token_id, chart_range)
+            else:
+                td = await source.get_token_data(market.id, o.token_id)
+                # Replay/cached carry real per-point timestamps; filter them to the range span.
+                points = _history_points(source, market.id, o.token_id, td)
+                history[o.token_id] = _filter_range(points, chart_range)
 
         signals = [ta.signal for ta in analytics]
         last_update = _latest_update([market])
         detail = MarketDetail(
             id=market.id, question=market.question, slug=market.slug,
             description=market.description, category=market.category,
+            sport=market.sport, competition=market.competition,
             status=market.status.value, tags=market.tags, volume=market.volume,
             volume_24hr=market.volume_24hr, liquidity=market.liquidity,
             tick_size=market.tick_size,
             end_date=market.end_date.isoformat() if market.end_date else None,
             outcomes=outcomes_view, price_history=history, signals=signals,
+            chart_range=chart_range, available_ranges=_available_ranges(market),
             limitations=(
                 "Implied probabilities are spread/fee-contaminated risk-neutral estimates. "
                 "Signals are screening heuristics, not evidence of insider activity or profit."
@@ -233,8 +351,12 @@ class MarketService:
     async def signals(self, *, requested_mode=None, limit=25) -> SignalsResponse:
         source, reason = await self._select_source(requested_mode)
         markets = await source.markets()
-        by_volume = _sort_markets(markets, "volume")
-        enrich_set = by_volume if source.mode == DataMode.REPLAY else by_volume[:OVERVIEW_ENRICH]
+        active = _sort_markets(markets, "volume_24hr")
+        enrich_set = (
+            active
+            if source.mode == DataMode.REPLAY
+            else _prefer_near_mid(active)[:OVERVIEW_ENRICH]
+        )
         enriched = await asyncio.gather(
             *(self._enrich_market(source, m) for m in enrich_set), return_exceptions=True
         )
@@ -310,14 +432,71 @@ def _sort_markets(markets, sort):
     return sorted(markets, key=key, reverse=reverse)
 
 
+def _prefer_near_mid(markets: list[Market]) -> list[Market]:
+    """Put markets with a genuinely uncertain price (leading probability roughly 0.1 to 0.9)
+    first, keeping the rest as fill. Longshots pinned near 0 or 1 do not move, so their signal
+    can only ever be order-book imbalance; near-mid markets are where the composite's
+    price-behaviour features actually have something to detect."""
+    near: list[Market] = []
+    rest: list[Market] = []
+    for m in markets:
+        prices = [o.price for o in m.outcomes if o.price is not None]
+        (near if prices and 0.1 <= max(prices) <= 0.9 else rest).append(m)
+    return near + rest
+
+
 def _latest_update(markets) -> datetime | None:
     dts = [m.updated_at for m in markets if getattr(m, "updated_at", None)]
     return max(dts) if dts else datetime.now(UTC)
 
 
-def _history_points(source, market_id, token_id, prices) -> list[PricePoint]:
-    """Best-effort price-history points. Replay has real timestamps; live uses prices as-is."""
+_CHART_RANGES = ("1h", "6h", "24h", "7d", "all")
+
+
+def _filter_range(points: list[PricePoint], rng: str) -> list[PricePoint]:
+    """Keep only the points within ``rng`` of the series' own most recent timestamp.
+
+    Used for replay/cached (which carry a full timestamped series); "all" keeps everything.
+    """
+    if rng == "all" or not points:
+        return points
+    window = RANGE_WINDOW_SECONDS.get(rng)
+    if window is None:
+        return points
+    cutoff = points[-1].t - timedelta(seconds=window)
+    return [p for p in points if p.t >= cutoff]
+
+
+def _available_ranges(market: Market) -> list[str]:
+    """Which timeline ranges make sense given how long the market has existed.
+
+    Ranges longer than the market's age are hidden; "all" is always offered. When the
+    start date is unknown, all ranges are offered and sparse ones simply show the
+    limited-history note on the chart.
+    """
+    if market.start_date is None:
+        return list(_CHART_RANGES)
+    age = (enrich.now_utc() - market.start_date).total_seconds()
+    out = [r for r in ("1h", "6h", "24h", "7d") if RANGE_WINDOW_SECONDS[r] <= age]
+    out.append("all")
+    return out or ["all"]
+
+
+def _history_points(source, market_id, token_id, td) -> list[PricePoint]:
+    """Price-history points with real timestamps wherever the source has them.
+
+    Replay reads timestamps from the deterministic player. Live and cached carry
+    ``td.price_points`` (real per-observation times). Only as a last resort, when a
+    source gives values without any timestamps, do we synthesise an evenly-spaced
+    minute axis so the series still has distinct times and does not collapse onto a
+    single point (which rendered as an apparently blank chart).
+    """
     if isinstance(source, ReplaySource):
         return source._player.price_history(market_id, token_id)
-    now = datetime.now(UTC)
-    return [PricePoint(t=now, p=p) for p in prices[-DETAIL_HISTORY_MAX:]]
+    if td.price_points:
+        return td.price_points[-DETAIL_HISTORY_MAX:]
+    prices = td.prices[-DETAIL_HISTORY_MAX:]
+    if not prices:
+        return []
+    base = datetime.now(UTC) - timedelta(minutes=len(prices) - 1)
+    return [PricePoint(t=base + timedelta(minutes=i), p=p) for i, p in enumerate(prices)]

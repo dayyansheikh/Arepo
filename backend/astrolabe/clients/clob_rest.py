@@ -206,13 +206,22 @@ class ClobRestClient:
         return _to_float(data.get("spread"))
 
     async def get_prices_history(
-        self, token_id: str, interval: str = "1d", fidelity: int = 10
+        self,
+        token_id: str,
+        interval: str = "1d",
+        fidelity: int = 10,
+        start_ts: int | None = None,
+        end_ts: int | None = None,
     ) -> list[dict]:
-        resp = await self._request(
-            "GET",
-            "/prices-history",
-            params={"market": token_id, "interval": interval, "fidelity": fidelity},
-        )
+        # A start/end window (Unix seconds) takes precedence over ``interval`` when given,
+        # which the CLOB API requires for ranges it has no named interval for (e.g. 7 days).
+        params: dict = {"market": token_id, "fidelity": fidelity}
+        if start_ts is not None and end_ts is not None:
+            params["startTs"] = start_ts
+            params["endTs"] = end_ts
+        else:
+            params["interval"] = interval
+        resp = await self._request("GET", "/prices-history", params=params)
         data = _safe_json(resp)
         if not isinstance(data, dict):
             raise UpstreamSchemaError(

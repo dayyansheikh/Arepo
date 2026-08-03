@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
 
     # --- App ---
-    app_name: str = "Astrolabe"
+    app_name: str = "Arepo"
     environment: str = "development"      # development | production
     log_level: str = "INFO"
     log_json: bool = False                 # structured JSON logs when True (prod)

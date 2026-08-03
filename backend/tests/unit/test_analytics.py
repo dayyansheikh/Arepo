@@ -179,6 +179,70 @@ def test_composite_renormalises_over_available_components():
     assert score2 == pytest.approx(1.0)
 
 
+def test_imbalance_alone_cannot_drive_a_top_score():
+    # Order-book imbalance with no price context is capped, so it can never be a top signal.
+    score, _ = composite_anomaly_score(RawComponents(imbalance=1.0))
+    assert score <= 0.5 + 1e-9
+    # Even imbalance + volume (both non-price) stay capped.
+    score2, _ = composite_anomaly_score(
+        RawComponents(imbalance=1.0, volume_acceleration=3.0)
+    )
+    assert score2 <= 0.5 + 1e-9
+
+
+def test_present_but_zero_price_feature_does_not_bypass_the_cap():
+    # A calm market produces a present-but-zero volatility regime on every tick. That must NOT
+    # count as price context, so order-book/flow features alone still cannot exceed the ceiling.
+    score, _ = composite_anomaly_score(
+        RawComponents(volatility_regime=0.0, imbalance=1.0, spread_change=1.0, depth_change=1.0)
+    )
+    assert score <= 0.5 + 1e-9
+    # Likewise a negligible (below-floor) price feature.
+    z_floor = 0.05 * 4.0  # cap for unusual_return is 4.0, so this normalises to exactly 0.05
+    tiny, _ = composite_anomaly_score(
+        RawComponents(zscore=z_floor * 0.5, imbalance=1.0, spread_change=1.0, depth_change=1.0)
+    )
+    assert tiny <= 0.5 + 1e-9
+
+
+def test_material_price_feature_lifts_the_cap():
+    # A price feature clearly above the floor is genuine context and lifts the ceiling.
+    score, _ = composite_anomaly_score(
+        RawComponents(movement_abnormality=1.2, imbalance=1.0, spread_change=1.0, depth_change=1.0)
+    )
+    assert score > 0.5
+
+
+def test_price_features_contribute_and_lift_above_the_book_only_cap():
+    # A strong abnormal move alone (a price feature) can exceed the book-only ceiling.
+    score, comps = composite_anomaly_score(RawComponents(movement_abnormality=4.0))
+    present = [c.name for c in comps if c.normalized_value is not None]
+    assert present == ["movement_abnormality"]
+    assert score == pytest.approx(1.0)  # normalised to 1, price context present => uncapped
+
+    # Volatility-regime is a distinct price feature that also contributes.
+    score2, _ = composite_anomaly_score(RawComponents(volatility_regime=2.0))
+    assert score2 == pytest.approx(1.0)
+
+
+def test_composite_not_dominated_by_imbalance_when_price_present():
+    # With a full-strength price feature and full-strength imbalance, imbalance is a minority.
+    score, _ = composite_anomaly_score(
+        RawComponents(movement_abnormality=4.0, imbalance=1.0)
+    )
+    # Both normalise to 1, so the score is 1.0 regardless; the point is the WEIGHT split.
+    from astrolabe.analytics.anomaly import DEFAULT_WEIGHTS
+
+    assert DEFAULT_WEIGHTS["book_imbalance"] < DEFAULT_WEIGHTS["movement_abnormality"]
+    # The three price features together outweigh every book/flow feature combined.
+    price_w = sum(
+        DEFAULT_WEIGHTS[k]
+        for k in ("unusual_return", "movement_abnormality", "volatility_regime")
+    )
+    assert price_w >= 0.55
+    assert score == pytest.approx(1.0)
+
+
 def test_build_anomaly_signal_folds_confidence():
     q = assess_quality(
         n_history=5, ideal_history=20, relative_spread=0.2, near_mid_depth=50,

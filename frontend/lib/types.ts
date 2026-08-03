@@ -33,6 +33,8 @@ export interface MarketCard {
   question: string;
   slug: string;
   category: string | null;
+  sport: string | null;
+  competition: string | null;
   status: string;
   tags: string[];
   volume: number | null;
@@ -84,6 +86,8 @@ export interface Signal {
   kind: string;
   token_id: string;
   market_id: string;
+  market_question?: string | null;
+  outcome_name?: string | null;
   value: number | null;
   strength: number;
   direction: "up" | "down" | null;
@@ -116,6 +120,8 @@ export interface MarketDetail {
   signals: Signal[];
   limitations: string;
   data_source: string;
+  chart_range: string;
+  available_ranges: string[];
 }
 
 export interface OverviewResponse {
@@ -133,6 +139,17 @@ export interface MarketsResponse {
   limit: number;
   offset: number;
   status: DataStatus;
+}
+
+/** Distinct, sorted filter values built dynamically from real normalised
+ * market data. Arrays are empty when that dimension isn't present in the
+ * current mode's data; `statuses` may include a lowercase "unknown" entry
+ * that callers should omit from user-facing Status controls. */
+export interface MarketFacets {
+  categories: string[];
+  sports: string[];
+  competitions: string[];
+  statuses: string[];
 }
 
 export interface MarketDetailResponse {
@@ -182,4 +199,176 @@ export interface BacktestResponse {
 export interface ReplayScenarioResponse {
   meta: unknown;
   markets: MarketCard[];
+}
+
+// -- Prospective cohort evaluation ------------------------------------------------------
+
+export interface CohortWeek {
+  iso_year: number;
+  iso_week: number;
+  label: string;
+  week_start: string;
+  cutoff_at: string;
+  frozen: boolean;
+  frozen_at: string | null;
+  provenance_class: "prospective" | "reconstructed" | "synthetic";
+  actual_size: number;
+  target_size: number;
+}
+
+export interface ForwardObservation {
+  horizon: string;
+  observed_at: string;
+  price: number | null;
+}
+
+export interface ResolutionOut {
+  resolved: boolean;
+  resolved_outcome: string | null;
+  resolved_token_id: string | null;
+  resolved_at: string | null;
+  source: string | null;
+}
+
+export interface EntryEvaluation {
+  movement_horizon: string | null;
+  raw_prob_movement: number | null;
+  movement_correct: boolean | null;
+  resolved: boolean;
+  resolution_correct: boolean | null;
+  pending: boolean;
+  hypothetical_value: number | null;
+}
+
+export interface CohortEntry {
+  rank: number;
+  market_id: string;
+  token_id: string;
+  condition_id: string | null;
+  event_id: string | null;
+  market_question: string;
+  outcome_name: string;
+  direction: "up" | "down" | null;
+  signal_timestamp: string;
+  expected_close: string | null;
+  strength: number;
+  confidence: number;
+  data_quality: string;
+  value: number | null;
+  entry_price: number | null;
+  best_bid: number | null;
+  best_ask: number | null;
+  midpoint: number | null;
+  spread: number | null;
+  volume: number | null;
+  near_mid_depth: number | null;
+  lookback_size: number | null;
+  component_scores: Array<{
+    name: string;
+    raw_value: number | null;
+    normalized_value: number | null;
+    weight: number | null;
+  }>;
+  forward: ForwardObservation[];
+  resolution: ResolutionOut | null;
+  evaluation: EntryEvaluation | null;
+}
+
+export interface CohortSummary {
+  week: CohortWeek;
+  calculation_version: string;
+  note: string | null;
+  selected: number;
+  moved_expected: number;
+  moved_against: number;
+  movement_pending: number;
+  movement_horizon: string;
+  resolved_correct: number;
+  resolved_incorrect: number;
+  unresolved: number;
+  plain_summary: string;
+}
+
+export interface PortfolioPosition {
+  rank: number;
+  market_question: string;
+  outcome_name: string;
+  status: "completed" | "open" | "pending";
+  entry_price: number | null;
+  fill: number | null;
+  exit_price: number | null;
+  value: number;
+  pnl: number;
+}
+
+export interface PortfolioSummary {
+  stake_per_signal: number;
+  fee_rate: number;
+  spread_assumption: string;
+  total_allocated: number;
+  realised_value: number;
+  unrealised_value: number;
+  pending_value: number;
+  completed_return: number;
+  completed_positions: number;
+  pending_positions: number;
+  positions: PortfolioPosition[];
+}
+
+export interface CohortDetail {
+  summary: CohortSummary;
+  entries: CohortEntry[];
+  portfolio: PortfolioSummary;
+}
+
+export interface ProvenanceInfo {
+  calculation_version: string;
+  first_prospective_week: string | null;
+  prospective_weeks: number;
+  reconstructed_weeks: number;
+  synthetic_weeks: number;
+  note: string;
+}
+
+// -- Historical reconstructed retrospective ---------------------------------------------
+
+export interface HistoricalForward {
+  horizon: string;
+  price: number | null;
+  movement: number | null;
+}
+
+export interface HistoricalEntry {
+  rank: number;
+  market_id: string;
+  token_id: string;
+  market_question: string;
+  outcome_name: string;
+  direction: "up" | "down" | null;
+  strength: number;
+  confidence: number;
+  data_quality: string;
+  entry_price: number;
+  lookback_points: number;
+  components: Array<{ name: string; normalized_value: number | null; weight: number | null }>;
+  forward: HistoricalForward[];
+  final_price: number | null;
+  final_movement: number | null;
+  direction_correct_24h: boolean | null;
+}
+
+export interface HistoricalScreen {
+  provenance_class: string;
+  as_of: string;
+  top_n: number;
+  universe_considered: number;
+  eligible: number;
+  selected: number;
+  moved_expected_24h: number;
+  moved_against_24h: number;
+  pending_24h: number;
+  entries: HistoricalEntry[];
+  plain_summary: string;
+  assumptions: string[];
+  limitations: string[];
 }

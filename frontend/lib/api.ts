@@ -1,11 +1,16 @@
 import type {
   BacktestResponse,
+  CohortDetail,
+  CohortWeek,
   DataMode,
   DataStatus,
+  HistoricalScreen,
   MarketDetailResponse,
+  MarketFacets,
   MarketsResponse,
   MetaResponse,
   OverviewResponse,
+  ProvenanceInfo,
   ReplayScenarioResponse,
   SignalsResponse,
 } from "./types";
@@ -44,7 +49,7 @@ async function apiFetch<T>(path: string, params: Record<string, string | number 
     res = await fetch(url, { cache: "no-store" });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Network request failed";
-    throw new ApiError(`Unable to reach Astrolabe API: ${message}`, 0);
+    throw new ApiError(`Unable to reach the Arepo API: ${message}`, 0);
   }
 
   if (!res.ok) {
@@ -102,8 +107,15 @@ export function getMarkets(params: GetMarketsParams): Promise<MarketsResponse> {
   return apiFetch<MarketsResponse>("/api/markets", { ...params });
 }
 
-export function getMarket(id: string, mode: DataMode): Promise<MarketDetailResponse> {
-  return apiFetch<MarketDetailResponse>(`/api/markets/${encodeURIComponent(id)}`, { mode });
+export function getMarket(id: string, mode: DataMode, range?: string): Promise<MarketDetailResponse> {
+  return apiFetch<MarketDetailResponse>(`/api/markets/${encodeURIComponent(id)}`, { mode, range });
+}
+
+/** Distinct category, sport, competition and status values that actually
+ * occur in the current mode's data, for building filter dropdowns without
+ * inventing options the data doesn't have. */
+export function getFacets(mode: DataMode): Promise<MarketFacets> {
+  return apiFetch<MarketFacets>("/api/markets/facets", { mode });
 }
 
 export function getSignals(mode: DataMode, limit?: number): Promise<SignalsResponse> {
@@ -122,4 +134,32 @@ export function getBacktest(params: GetBacktestParams): Promise<BacktestResponse
 
 export function getReplayScenario(): Promise<ReplayScenarioResponse> {
   return apiFetch<ReplayScenarioResponse>("/api/replay/scenario");
+}
+
+// -- Prospective cohort evaluation ------------------------------------------------------
+
+export function getCohortWeeks(): Promise<CohortWeek[]> {
+  return apiFetch<CohortWeek[]>("/api/cohorts/weeks");
+}
+
+export function getCohortProvenance(): Promise<ProvenanceInfo> {
+  return apiFetch<ProvenanceInfo>("/api/cohorts/provenance");
+}
+
+export function getCohort(isoYear: number, isoWeek: number): Promise<CohortDetail> {
+  return apiFetch<CohortDetail>(`/api/cohorts/${isoYear}/${isoWeek}`);
+}
+
+// -- Historical reconstructed retrospective ---------------------------------------------
+
+export function getHistoricalScreen(
+  days = 7,
+  limit = 24,
+  topN = 15
+): Promise<HistoricalScreen> {
+  return apiFetch<HistoricalScreen>("/api/historical/screen", {
+    days,
+    limit,
+    top_n: topN,
+  });
 }

@@ -21,7 +21,7 @@ from ..clients.errors import AstrolabeClientError, NotFound
 from ..clients.gamma import GammaClient
 from ..config import Settings, get_settings
 from ..domain.enums import ConnState, DataMode
-from ..domain.models import Market, OrderBook, SourceHealth
+from ..domain.models import Market, OrderBook, PricePoint, SourceHealth
 from ..ingest.normalize import (
     normalize_book,
     normalize_events_to_markets,
@@ -32,6 +32,28 @@ from ..replay.player import ReplayPlayer, default_player
 
 logger = get_logger("astrolabe.service.sources")
 
+# Cap on live price-history points kept per token (most recent first). At 30-minute
+# resolution this is roughly the last month, enough for the analytics windows without
+# shipping thousands of points per token.
+LIVE_HISTORY_MAX = 1500
+
+# Chart timeline ranges. Short ranges use a fine resolution; longer ones a coarser one.
+# "7d" has no named CLOB interval so it uses a start/end window. Seconds are the window
+# length, used to filter replay/cached series to the same span.
+RANGE_WINDOW_SECONDS: dict[str, int] = {
+    "1h": 3600,
+    "6h": 21_600,
+    "24h": 86_400,
+    "7d": 604_800,
+}
+_RANGE_FETCH: dict[str, dict] = {
+    "1h": {"interval": "1h", "fidelity": 1},
+    "6h": {"interval": "6h", "fidelity": 1},
+    "24h": {"interval": "1d", "fidelity": 1},
+    "7d": {"window_seconds": 604_800, "fidelity": 30},
+    "all": {"interval": "max", "fidelity": 30},
+}
+
 
 @dataclass
 class TokenData:
@@ -39,6 +61,10 @@ class TokenData:
     book: OrderBook | None
     volumes: list[float]
     captured_at: datetime | None
+    # Timestamped history where the source has real per-point times (live/cached).
+    # Kept alongside ``prices`` (values only) so analytics stay unchanged while the
+    # chart can plot against a genuine time axis instead of collapsing to one point.
+    price_points: list[PricePoint] | None = None
 
 
 class DataSource(Protocol):
@@ -109,11 +135,18 @@ class LiveSource:
     async def get_token_data(self, market_id: str, token_id: str) -> TokenData:
         book: OrderBook | None = None
         prices: list[float] = []
+        points: list[PricePoint] = []
         try:
             raw_book = await self._clob.get_book(token_id)
             book = normalize_book(token_id, raw_book)
-            raw_hist = await self._clob.get_prices_history(token_id, interval="1d", fidelity=10)
-            prices = [pp.p for pp in normalize_price_history(raw_hist)]
+            # Fetch the market's full history at 30-minute resolution, not just the last day:
+            # many liquid markets are quiet intraday, so a 1-day window returned nothing and the
+            # composite fell back to order-book imbalance alone. The full history gives the
+            # price-behaviour features (return z-score, movement burst, volatility regime) real
+            # data. Bounded to the most recent points to keep payloads sane.
+            raw_hist = await self._clob.get_prices_history(token_id, interval="max", fidelity=30)
+            points = normalize_price_history(raw_hist)[-LIVE_HISTORY_MAX:]
+            prices = [pp.p for pp in points]
             self._rest_health = SourceHealth(
                 name="clob_rest", state=ConnState.CONNECTED, last_success=_now()
             )
@@ -128,7 +161,33 @@ class LiveSource:
         except Exception as exc:  # noqa: BLE001 - belt-and-suspenders: never crash enrichment
             logger.warning("live token data error", extra={"ctx_error": str(exc)})
         captured = book.timestamp if book else None
-        return TokenData(prices=prices, book=book, volumes=[], captured_at=captured)
+        return TokenData(
+            prices=prices, book=book, volumes=[], captured_at=captured, price_points=points
+        )
+
+    async def get_range_history(self, token_id: str, rng: str) -> list[PricePoint]:
+        """Real price history for one token at a resolution suited to the chart range.
+
+        Short ranges fetch fine (1-minute) points; longer ranges coarser ones; "7d" uses a
+        start/end window. Returns [] on any error so the chart degrades to an empty state."""
+        spec = _RANGE_FETCH.get(rng, _RANGE_FETCH["all"])
+        try:
+            if "window_seconds" in spec:
+                now = int(datetime.now(UTC).timestamp())
+                raw = await self._clob.get_prices_history(
+                    token_id,
+                    fidelity=spec["fidelity"],
+                    start_ts=now - spec["window_seconds"],
+                    end_ts=now,
+                )
+            else:
+                raw = await self._clob.get_prices_history(
+                    token_id, interval=spec["interval"], fidelity=spec["fidelity"]
+                )
+            return normalize_price_history(raw)[-LIVE_HISTORY_MAX:]
+        except Exception as exc:  # noqa: BLE001 - never crash the detail request
+            logger.warning("range history error", extra={"ctx_error": str(exc)})
+            return []
 
     async def health(self) -> tuple[SourceHealth, SourceHealth]:
         # REST health tracked; the live WS runs in the ingestion pipeline (reported separately).
@@ -171,10 +230,12 @@ class CachedSource:
             snap = await repo.latest_snapshot(token_id)
             series = await repo.price_series(token_id)
             prices = [p for _, p in series]
+            points = [PricePoint(t=ts, p=p) for ts, p in series]
             book = snap.book if snap else None
             return TokenData(
                 prices=prices, book=book, volumes=[],
                 captured_at=snap.captured_at if snap else None,
+                price_points=points,
             )
 
     async def health(self) -> tuple[SourceHealth, SourceHealth]:
