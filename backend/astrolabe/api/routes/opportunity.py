@@ -7,9 +7,10 @@ from __future__ import annotations
 
 from datetime import date as date_type
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...opportunity.cache import SwrCache
 from ...opportunity.schemas import OpportunityBoard, SnapshotDetail, SnapshotEntry
 from ...opportunity.service import build_opportunity_board
 from ...opportunity.snapshot import get_snapshot, list_snapshot_dates
@@ -18,6 +19,12 @@ from ...storage.db import get_session
 from ..deps import get_data_api, get_service
 
 router = APIRouter(prefix="/api/opportunity", tags=["opportunity"])
+
+# Process-wide board cache (stale-while-revalidate). The board changes slowly, so serving a
+# recent copy and refreshing in the background keeps the default page fast without showing
+# fabricated data (a stale board is real, just a couple of minutes old, and is labelled by the
+# X-Board-Cache header and its own generated_at timestamp).
+_board_cache: SwrCache[OpportunityBoard] = SwrCache(fresh_ttl=90.0, hard_ttl=900.0)
 
 
 def _snapshot_detail(row, entries) -> SnapshotDetail:
@@ -44,15 +51,25 @@ def _snapshot_detail(row, entries) -> SnapshotDetail:
 
 @router.get("/board", response_model=OpportunityBoard)
 async def board(
+    response: Response,
     mode: str | None = Query(None, description="live | cached | replay"),
     top: int = Query(30, ge=1, le=50),
     universe: int = Query(40, ge=1, le=60, description="candidate markets to consider"),
     service: MarketService = Depends(get_service),
     data_api=Depends(get_data_api),
 ) -> OpportunityBoard:
-    return await build_opportunity_board(
-        service, data_api, requested_mode=mode, top=top, universe_limit=universe
-    )
+    key = f"{mode or 'default'}:{top}:{universe}"
+
+    async def _build() -> OpportunityBoard:
+        return await build_opportunity_board(
+            service, data_api, requested_mode=mode, top=top, universe_limit=universe
+        )
+
+    board = await _board_cache.get(key, _build)
+    # Let clients cache briefly too, and revalidate in the background (mirrors the server SWR).
+    response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+    response.headers["X-Board-Cache"] = _board_cache.last_status or "miss"
+    return board
 
 
 @router.get("/snapshots", response_model=list[str])
