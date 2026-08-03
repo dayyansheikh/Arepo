@@ -10,6 +10,7 @@ import { formatCurrencyCompact, formatDate } from "@/lib/format";
 import { OutcomePanel } from "@/components/OutcomePanel";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { SignalItem } from "@/components/SignalItem";
+import { ModelView } from "@/components/ModelView";
 import { MetricHelp } from "@/components/MetricHelp";
 import { SectionTitle, Disclose } from "@/components/ui";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
@@ -156,6 +157,11 @@ export default function MarketDetailPage() {
       </div>
 
       <section className="space-y-3">
+        <SectionTitle>Current model view</SectionTitle>
+        <ModelView signals={market.signals} />
+      </section>
+
+      <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SectionTitle>Price history</SectionTitle>
           {rangeOptions.length > 0 && (
@@ -206,15 +212,17 @@ export default function MarketDetailPage() {
       </section>
 
       <section className="space-y-3">
-        <SectionTitle>Signals</SectionTitle>
+        <SectionTitle>Signal detail</SectionTitle>
         {market.signals.length === 0 ? (
           <EmptyState message="No signals detected for this market." />
         ) : (
-          <div className="space-y-3">
-            {market.signals.map((s, i) => (
-              <SignalItem key={`${s.kind}-${s.token_id}-${i}`} signal={s} />
-            ))}
-          </div>
+          <Disclose summary={`Show the full per-signal breakdown (${market.signals.length})`}>
+            <div className="space-y-3">
+              {market.signals.map((s, i) => (
+                <SignalItem key={`${s.kind}-${s.token_id}-${i}`} signal={s} />
+              ))}
+            </div>
+          </Disclose>
         )}
       </section>
 
