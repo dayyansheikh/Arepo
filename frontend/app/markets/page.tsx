@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMode } from "@/lib/mode-context";
 import { useAsync } from "@/lib/use-async";
-import { getFacets, getMarkets } from "@/lib/api";
+import { getFacets, getMarkets, searchMarkets } from "@/lib/api";
+import type { MarketSearchResponse } from "@/lib/types";
 import type { MarketCard } from "@/lib/types";
 import { formatDurationSeconds, titleCase } from "@/lib/format";
 import { MarketCardView } from "@/components/MarketCardView";
@@ -162,7 +163,20 @@ export default function MarketsPage() {
   const [sport, setSport] = useState("");
   const [competition, setCompetition] = useState("");
 
-  // Advanced, demoted: free-text search, debounced as before.
+  // Full-universe keyword search (calls the backend public-search, not just loaded markets).
+  const [universeInput, setUniverseInput] = useState("");
+  const [universeQuery, setUniverseQuery] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setUniverseQuery(universeInput.trim()), 350);
+    return () => clearTimeout(t);
+  }, [universeInput]);
+  const universe = useAsync<MarketSearchResponse | null>(
+    () => (universeQuery ? searchMarkets(universeQuery) : Promise.resolve(null)),
+    [universeQuery]
+  );
+  const searching = universeQuery.length > 0;
+
+  // Advanced, demoted: free-text search over the loaded browse set, debounced as before.
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
@@ -278,13 +292,25 @@ export default function MarketsPage() {
     <div className="space-y-8">
       <div className="space-y-4">
         <div>
-          <h1 className="text-[30px] font-semibold tracking-[-0.01em] text-arepo-ink">Markets</h1>
-          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-muted">
-            Use the dropdowns to find markets by category, status, signal strength, leading
-            probability or time to close.
+          <h1 className="display-title text-[30px] sm:text-[34px]">Explore Markets</h1>
+          <p className="mt-2 max-w-reading text-[15px] leading-relaxed text-arepo-ink2">
+            Search the whole Polymarket universe by keyword, company or ticker, or browse with
+            the filters below.
           </p>
         </div>
-        {data?.status && (
+
+        <div className="relative max-w-xl">
+          <input
+            type="search"
+            value={universeInput}
+            onChange={(e) => setUniverseInput(e.target.value)}
+            placeholder="Search all markets (e.g. Microsoft, MSFT, election)"
+            aria-label="Search all markets"
+            className="focus-ring w-full rounded-control border border-arepo-borderStrong bg-arepo-surface px-4 py-2.5 text-[15px] text-arepo-ink placeholder:text-arepo-muted"
+          />
+        </div>
+
+        {!searching && data?.status && (
           <p className="text-[13px] text-arepo-muted">
             Showing{" "}
             <span className="font-medium text-arepo-ink">
@@ -296,6 +322,34 @@ export default function MarketsPage() {
         <DisclaimerBanner />
       </div>
 
+      {searching && (
+        <section className="space-y-3">
+          <SectionLabel>Search results</SectionLabel>
+          {universe.loading && <CardGridSkeleton count={4} />}
+          {!universe.loading && universe.error && <ErrorState message={universe.error} />}
+          {!universe.loading && universe.data && (
+            <>
+              <p className="text-[13px] text-arepo-muted">
+                {universe.data.note}
+                {universe.data.expanded_terms.length > 1 && (
+                  <> Also searched: {universe.data.expanded_terms.slice(1).join(", ")}.</>
+                )}{" "}
+                <span className="text-arepo-muted">Source: {universe.data.provenance}</span>
+              </p>
+              {universe.data.markets.length > 0 && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {universe.data.markets.map((m) => (
+                    <MarketCardView key={m.id} market={m} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      )}
+
+      {!searching && (
+        <>
       <div className="panel space-y-4 p-5">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {categories.length > 0 && (
@@ -510,6 +564,8 @@ export default function MarketsPage() {
           </div>
         )}
       </section>
+        </>
+      )}
     </div>
   );
 }

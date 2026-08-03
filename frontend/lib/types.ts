@@ -372,3 +372,61 @@ export interface HistoricalScreen {
   assumptions: string[];
   limitations: string[];
 }
+
+// -- Opportunity Board ------------------------------------------------------------------
+
+export interface OpportunityTag {
+  label: string;
+  family: string;
+  explanation: string;
+  methodology_anchor: string;
+  data_quality: string;
+  timestamp: string;
+}
+
+export interface OpportunityCard {
+  market_id: string;
+  token_id: string;
+  question: string;
+  outcome: string | null;
+  direction: "up" | "down" | null;
+  probability: number | null;
+  research_priority: number;
+  signal_strength: number;
+  confidence: number;
+  families: string[];
+  n_families: number;
+  high_priority: boolean;
+  tags: OpportunityTag[];
+  explanation: string;
+  liquidity: number | null;
+  liquidity_quality: string;
+  relative_spread: number | null;
+  time_remaining_hours: number | null;
+  end_date: string | null;
+  data_quality: string;
+  data_mode: string;
+}
+
+export interface OpportunityBoard {
+  generated_at: string;
+  data_mode: string;
+  calculation_version: string;
+  count: number;
+  universe_considered: number;
+  cards: OpportunityCard[];
+  note: string;
+}
+
+// -- Full-universe market search --------------------------------------------------------
+
+export interface MarketSearchResponse {
+  query: string;
+  expanded_terms: string[];
+  markets: MarketCard[];
+  total: number;
+  limit: number;
+  offset: number;
+  provenance: string;
+  note: string;
+}

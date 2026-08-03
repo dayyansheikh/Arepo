@@ -9,6 +9,8 @@ import type {
   MarketFacets,
   MarketsResponse,
   MetaResponse,
+  MarketSearchResponse,
+  OpportunityBoard,
   OverviewResponse,
   ProvenanceInfo,
   ReplayScenarioResponse,
@@ -148,6 +150,26 @@ export function getCohortProvenance(): Promise<ProvenanceInfo> {
 
 export function getCohort(isoYear: number, isoWeek: number): Promise<CohortDetail> {
   return apiFetch<CohortDetail>(`/api/cohorts/${isoYear}/${isoWeek}`);
+}
+
+// -- Opportunity Board + search ---------------------------------------------------------
+
+export function getOpportunityBoard(mode: DataMode, top = 30): Promise<OpportunityBoard> {
+  return apiFetch<OpportunityBoard>("/api/opportunity/board", { mode, top });
+}
+
+export function searchMarkets(
+  q: string,
+  activeOnly = true,
+  limit = 20,
+  offset = 0
+): Promise<MarketSearchResponse> {
+  return apiFetch<MarketSearchResponse>("/api/markets/search", {
+    q,
+    active_only: activeOnly ? "true" : "false",
+    limit,
+    offset,
+  });
 }
 
 // -- Historical reconstructed retrospective ---------------------------------------------
