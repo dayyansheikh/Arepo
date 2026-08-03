@@ -22,6 +22,7 @@ class OpportunityCard(BaseModel):
     token_id: str
     question: str
     outcome: str | None
+    direction: str | None = None           # "up" | "down" | None (signalled direction)
     probability: float | None
     research_priority: int                 # 0-100 (not expected profit)
     signal_strength: float                 # [0, 1]

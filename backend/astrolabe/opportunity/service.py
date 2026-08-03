@@ -50,6 +50,7 @@ def _card(market, ta, scored: ScoredOpportunity, mode: str, now: datetime) -> Op
         token_id=ta.token_id,
         question=market.question,
         outcome=ta.signal.outcome_name,
+        direction=ta.signal.direction,
         probability=ta.implied,
         research_priority=int(round(scored.research_priority * 100)),
         signal_strength=scored.signal_strength,

@@ -36,6 +36,7 @@ def _session_factory():
 async def init_storage() -> None:
     """Create tables on the shared engine (called once at startup; best-effort)."""
     try:
+        from ..alerts import models as _alert_models  # noqa: F401  (register alert tables)
         from ..evaluation import models as _eval_models  # noqa: F401  (register eval tables)
         from ..opportunity import snapshot_models as _snap_models  # noqa: F401  (register tables)
         from ..storage.db import init_db
