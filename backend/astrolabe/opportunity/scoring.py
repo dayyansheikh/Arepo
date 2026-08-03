@@ -1,0 +1,260 @@
+"""Research Priority score, evidence families and tags (pure, testable, no network).
+
+The score combines independent evidence families with fixed, documented weights and a bonus
+for the *number* of independent families that fired, then scales the result down for poor data
+quality, thin liquidity, wide spreads and stale data (spec section 5). It is deliberately not
+called expected profit; it ranks how much a market deserves a closer look.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime
+
+from ..analytics.anomaly import PRICE_CONTEXT_FLOOR, PRICE_FEATURES
+from ..analytics.flow import (
+    FAMILY_BOOK,
+    FAMILY_FLOW,
+    FAMILY_PRICE,
+    FAMILY_TIMING,
+    FAMILY_WALLET,
+    FlowIndicator,
+)
+from ..domain.models import Signal
+
+# Relative importance of each evidence family in the combined evidence score. Fixed and
+# documented, not fitted to outcomes.
+FAMILY_WEIGHTS: dict[str, float] = {
+    FAMILY_PRICE: 0.24,
+    FAMILY_FLOW: 0.26,
+    FAMILY_WALLET: 0.20,
+    FAMILY_TIMING: 0.15,
+    FAMILY_BOOK: 0.15,
+}
+# More independent families firing is stronger evidence; this many saturates the bonus.
+TARGET_FAMILIES = 3
+# A high-priority opportunity normally needs at least this many independent families (spec 5.5).
+MIN_FAMILIES_HIGH_PRIORITY = 2
+
+# Liquidity / spread shaping (market-relative gates on the final score, never hard filters).
+LIQUIDITY_FULL = 50_000.0     # >= this much liquidity => no liquidity penalty
+LIQUIDITY_THIN = 2_000.0      # <= this is a thin market
+SPREAD_WIDE = 0.08            # relative spread at/above which the score is fully penalised
+STALE_SECONDS = 3600.0        # data older than this starts to reduce the score
+
+# Methodology anchors for tags (page: docs/methodology.md sections rendered on /methodology).
+TAG_METHODOLOGY: dict[str, str] = {
+    "Rapid repricing": "signal-strength",
+    "One-sided book": "order-book-imbalance",
+    "Large relative trade": "trade-flow",
+    "Contrarian flow": "trade-flow",
+    "Concentrated flow": "wallet-concentration",
+    "Clustered trades": "trade-flow",
+    "Late large trade": "trade-timing",
+    "Limited activity history": "wallet-concentration",
+    "Thin market": "liquidity",
+    "Liquidity weakening": "liquidity",
+    "Limited data": "confidence",
+}
+
+
+@dataclass
+class Tag:
+    label: str
+    family: str
+    explanation: str
+    methodology_anchor: str
+    data_quality: str
+    timestamp: datetime
+
+
+@dataclass
+class ScoredOpportunity:
+    research_priority: float                 # [0, 1]; display as x100
+    signal_strength: float
+    confidence: float
+    data_quality: str
+    families: list[str]                      # distinct families that fired
+    n_families: int
+    tags: list[Tag]
+    explanation: str
+    liquidity_quality: str                   # good | moderate | thin
+    breakdown: dict = field(default_factory=dict)
+
+    @property
+    def high_priority(self) -> bool:
+        return self.n_families >= MIN_FAMILIES_HIGH_PRIORITY and self.research_priority >= 0.5
+
+
+def _price_family(signal: Signal) -> tuple[bool, float]:
+    """Price family fires when a price-behaviour feature is materially present (rapid repricing)."""
+    best = 0.0
+    for c in signal.components:
+        if c.name in PRICE_FEATURES and c.normalized_value is not None:
+            best = max(best, c.normalized_value)
+    return best > PRICE_CONTEXT_FLOOR, best
+
+
+def _book_family(signal: Signal) -> tuple[bool, float]:
+    """Order-book family from the imbalance component (never a strong signal on its own)."""
+    for c in signal.components:
+        if c.name == "book_imbalance" and c.normalized_value is not None:
+            return c.normalized_value >= 0.5, c.normalized_value
+    return False, 0.0
+
+
+def _liquidity_factor(liquidity: float | None) -> tuple[float, str]:
+    if liquidity is None:
+        return 0.7, "moderate"
+    if liquidity >= LIQUIDITY_FULL:
+        return 1.0, "good"
+    if liquidity <= LIQUIDITY_THIN:
+        return 0.4, "thin"
+    # linear between thin and full
+    frac = (liquidity - LIQUIDITY_THIN) / (LIQUIDITY_FULL - LIQUIDITY_THIN)
+    return 0.4 + 0.6 * frac, "moderate"
+
+
+def _spread_factor(rel_spread: float | None) -> float:
+    if rel_spread is None:
+        return 0.85
+    if rel_spread <= 0.0:
+        return 1.0
+    return max(0.3, 1.0 - min(1.0, rel_spread / SPREAD_WIDE))
+
+
+def _freshness_factor(data_age_seconds: float | None) -> float:
+    if data_age_seconds is None:
+        return 1.0
+    if data_age_seconds <= STALE_SECONDS:
+        return 1.0
+    # decay to 0.5 over a day past the stale threshold
+    over = (data_age_seconds - STALE_SECONDS) / 86_400.0
+    return max(0.5, 1.0 - 0.5 * min(1.0, over))
+
+
+def score_opportunity(
+    signal: Signal,
+    flow_indicators: list[FlowIndicator],
+    *,
+    liquidity: float | None,
+    relative_spread: float | None,
+    data_age_seconds: float | None,
+    now: datetime,
+) -> ScoredOpportunity:
+    """Combine the composite signal and trade-flow indicators into a Research Priority score."""
+    # Family magnitudes: max over the indicators/components in each family that fired.
+    family_mag: dict[str, float] = {}
+    tags: list[Tag] = []
+
+    price_fired, price_mag = _price_family(signal)
+    if price_fired:
+        family_mag[FAMILY_PRICE] = price_mag
+        tags.append(
+            Tag("Rapid repricing", FAMILY_PRICE,
+                "The price has moved unusually relative to this market's own recent behaviour.",
+                TAG_METHODOLOGY["Rapid repricing"], signal.data_quality.value, now)
+        )
+    book_fired, book_mag = _book_family(signal)
+    if book_fired:
+        family_mag[FAMILY_BOOK] = book_mag
+        tags.append(
+            Tag("One-sided book", FAMILY_BOOK,
+                "Resting size is lopsided between the bid and ask sides of the order book.",
+                TAG_METHODOLOGY["One-sided book"], signal.data_quality.value, now)
+        )
+
+    for ind in flow_indicators:
+        if not ind.fired:
+            continue
+        family_mag[ind.family] = max(family_mag.get(ind.family, 0.0), ind.magnitude)
+        if ind.tag:
+            tags.append(
+                Tag(ind.tag, ind.family, ind.explanation,
+                    TAG_METHODOLOGY.get(ind.tag, "signal-strength"),
+                    signal.data_quality.value, now)
+            )
+
+    families = sorted(family_mag)
+    n_families = len(families)
+
+    # Weighted evidence score over families that fired (renormalised); fall back to the base
+    # composite strength when nothing extra fired.
+    if family_mag:
+        wsum = sum(FAMILY_WEIGHTS.get(f, 0.1) for f in family_mag)
+        evidence = sum(FAMILY_WEIGHTS.get(f, 0.1) * m for f, m in family_mag.items()) / wsum
+    else:
+        evidence = signal.strength
+
+    family_bonus = min(1.0, n_families / TARGET_FAMILIES)
+
+    # Shaping factors (spec 5.6: reduce for poor data quality, wide spread, poor liquidity, stale).
+    liq_factor, liq_quality = _liquidity_factor(liquidity)
+    spread_f = _spread_factor(relative_spread)
+    fresh_f = _freshness_factor(data_age_seconds)
+    quality_factor = max(0.0, min(1.0, signal.confidence)) if signal.confidence > 0 else 0.5
+
+    raw = 0.55 * evidence + 0.45 * family_bonus
+    priority = raw * quality_factor * liq_factor * spread_f * fresh_f
+    priority = float(max(0.0, min(1.0, priority)))
+
+    # Data-quality tags.
+    if signal.data_quality.value == "poor":
+        tags.append(
+            Tag("Limited data", "price",
+                "Data coverage for this reading is limited, so treat it cautiously.",
+                TAG_METHODOLOGY["Limited data"], signal.data_quality.value, now)
+        )
+    if liq_quality == "thin":
+        tags.append(
+            Tag("Thin market", FAMILY_BOOK,
+                "Liquidity is thin, so prices and signals here are easier to move and noisier.",
+                TAG_METHODOLOGY["Thin market"], signal.data_quality.value, now)
+        )
+
+    explanation = _explain(families, tags, evidence)
+    return ScoredOpportunity(
+        research_priority=priority,
+        signal_strength=signal.strength,
+        confidence=signal.confidence,
+        data_quality=signal.data_quality.value,
+        families=families,
+        n_families=n_families,
+        tags=tags,
+        explanation=explanation,
+        liquidity_quality=liq_quality,
+        breakdown={
+            "evidence": round(evidence, 3),
+            "family_bonus": round(family_bonus, 3),
+            "quality_factor": round(quality_factor, 3),
+            "liquidity_factor": round(liq_factor, 3),
+            "spread_factor": round(spread_f, 3),
+            "freshness_factor": round(fresh_f, 3),
+            "family_magnitudes": {k: round(v, 3) for k, v in family_mag.items()},
+        },
+    )
+
+
+_FAMILY_WORDS = {
+    FAMILY_PRICE: "price behaviour",
+    FAMILY_FLOW: "trade flow",
+    FAMILY_BOOK: "order book",
+    FAMILY_WALLET: "wallet concentration",
+    FAMILY_TIMING: "trade timing",
+}
+
+
+def _explain(families: list[str], tags: list[Tag], evidence: float) -> str:
+    if not families:
+        return (
+            "Flagged mainly on its composite anomaly score; no additional independent evidence "
+            "fired, so treat it as a lead to read, not a strong signal."
+        )
+    words = [_FAMILY_WORDS.get(f, f) for f in families]
+    joined = words[0] if len(words) == 1 else ", ".join(words[:-1]) + " and " + words[-1]
+    n = len(families)
+    lead = (
+        f"{n} independent lines of evidence agree here ({joined})."
+        if n >= 2
+        else f"One line of evidence stands out here ({joined})."
+    )
+    return lead + " Open the analysis to see each one and check the market before acting."

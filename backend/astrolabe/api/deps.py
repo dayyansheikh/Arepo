@@ -49,3 +49,11 @@ async def init_storage() -> None:
 def get_service() -> MarketService:
     """Process-wide singleton MarketService (FastAPI dependency)."""
     return MarketService(cached_session_factory=_session_factory())
+
+
+@lru_cache(maxsize=1)
+def get_data_api():
+    """Process-wide singleton Data API client (public read-only trade activity)."""
+    from ..clients.data_api import DataApiClient
+
+    return DataApiClient()
