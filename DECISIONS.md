@@ -5,6 +5,52 @@ Newest entries at the top of each section.
 
 ---
 
+## Signal & Historical Refinement (branch `arepo-signal-refinement`)
+
+### S1. Historical price data IS available and dense (verified by probe)
+CLOB `/prices-history` returns real, timestamped history: `interval` in {1h, 6h, 1d,
+max} with `fidelity` (minutes/point) controlling resolution. Verified: 1h→60 pts
+(1-min), 1d→1441 pts (1-min), max→4446 pts (~10-min over 31 days). **25/25 sampled
+liquid markets have >=20 real points**, most hundreds-to-thousands spanning days/weeks.
+Therefore both (a) chart timeline ranges and (b) a truthful historical top-15
+retrospective are supportable and will be built. `interval=1w` returns 400 (unsupported)
+so 7D uses `startTs`/`endTs`. Note: `ClobRestClient.get_prices_history` returns the
+`history` list directly (not the wrapping dict).
+
+### S2. Signal Lab surface label -> "Composite anomaly"
+Per new brief, "Unusual market activity" weakened the idea. Rename the surface label to
+**"Composite anomaly"** (professional, precise); the number stays "Composite anomaly
+score" in detail/methodology. Signal Lab gets a plain-English purpose header, links each
+signal to its market, and a research-framed "How this may be used" section.
+
+### S3. Status chip simplified to truthful states only
+Drop "Live feed" (the CLOB WebSocket is not wired into this read-only deployment, so it
+was never truthfully "connected" and always read "Unknown") and drop "Updated n/a".
+Keep **API** (Connected/Offline; green only when genuinely connected) and show **Updated
+Xs ago** only when the data age is actually known. No visible "Unknown".
+
+### S4. Favicon = the stylised "A" from the wordmark
+The browser-tab icon becomes the wordmark's "A": a white chevron/peak with the small red
+triangle nested at its base, on the ink tile. The 5x5 grid symbol remains the nav/section
+mark (used slightly larger, per brief).
+
+### S5. Composite signal rebalanced across standardized features (no overfitting)
+The composite must not be dominated by order-book imbalance. Rebalance to combine
+standardized, capped features: return z-score, short-horizon movement abnormality,
+rolling-volatility context, spread behaviour, near-mid depth/liquidity change, volume
+acceleration, and imbalance, with **fixed, documented weights** (not fitted to outcomes),
+robust clipping to bound any single feature's influence, persistence/repeat-firing
+awareness, and data-quality gating. Weights and safeguards are documented; features with
+insufficient data degrade confidence rather than being faked.
+
+### S6. Historical retrospective is a separate "reconstructed" provenance mode
+A historical top-15 screen reconstructs each eligible market's signal at a past timestamp
+using only history up to that point (no look-ahead), ranks the top 15, and measures real
+forward movement from the actual later history. It is provenance `reconstructed`, shown in
+a clearly separated Replay tab, never mixed with prospective or synthetic cohorts.
+
+---
+
 ## Master Final Refinement (branch `arepo-master-final`, from tag `arepo-ui-v1`)
 
 ### F1. Display heading font = Jost (documented approximation)

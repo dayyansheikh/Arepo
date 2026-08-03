@@ -38,6 +38,18 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
+**Signal & Historical Refinement pass IN PROGRESS** (branch `arepo-signal-refinement`,
+from the completed Master Final Refinement). Data investigation done (see DECISIONS S1:
+historical price data is dense and real). Workstreams: nav/logo/favicon/footer, status
+chip, Signal Lab rename+purpose+linking+actionability, signal-engine rebalance, chart
+timeline ranges, order-book explainer repair, historical reconstructed retrospective
+(top-15). Recovery tag before this pass: `arepo-ui-v1` still valid; also this pass starts
+from a clean tree at commit 76f0db2. Resume from **Exact next action** at the bottom.
+
+---
+
+## (previous) Master Final Refinement
+
 **All phases complete (1 to 4), verified and committed.** Independent Sonnet review
 run over the full branch: it confirmed every truthfulness guarantee is genuinely
 enforced (no hindsight, frozen immutability, idempotency, provenance separation, all
