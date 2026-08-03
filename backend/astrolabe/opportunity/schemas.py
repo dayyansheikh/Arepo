@@ -21,6 +21,7 @@ class OpportunityCard(BaseModel):
     market_id: str
     token_id: str
     question: str
+    category: str | None = None            # market category (for per-user alert filtering)
     outcome: str | None
     direction: str | None = None           # "up" | "down" | None (only when directional)
     directional: bool = False              # True when evidence warrants a directional view

@@ -2,8 +2,9 @@
 
 Run with ``python -m astrolabe.alerts.cli <command>``:
 
-    dry-run    build today's board and evaluate alerts in TEST MODE (records, never sends)
-    history    print recent alert-history rows
+    dry-run       build today's board and evaluate global alerts in TEST MODE (never sends)
+    user-dry-run  evaluate today's board against every verified, opted-in user in TEST MODE
+    history       print recent alert-history rows
 
 External sending is never triggered by these commands; it only happens when ALERT_EMAIL_ENABLED
 is true and a provider is configured, from the scheduler. See docs/alert-configuration.md.
@@ -23,6 +24,7 @@ from ..storage.db import make_engine, make_sessionmaker
 from .config import AlertConfig
 from .models import AlertHistoryRow  # noqa: F401 - register table
 from .service import AlertService
+from .user_alerts import UserAlertService
 
 
 async def _run(args: argparse.Namespace) -> int:
@@ -48,6 +50,23 @@ async def _run(args: argparse.Namespace) -> int:
                 for o in outcomes:
                     if o.action in ("test", "sent"):
                         print(f"  [{o.action}] {o.subject}")
+            elif args.command == "user-dry-run":
+                from ..accounts import models as _acct  # noqa: F401 - register user tables
+                await bootstrap(engine)  # ensure account tables exist
+                board = await build_opportunity_board(
+                    service, data_api, requested_mode=args.mode, top=args.top
+                )
+                cfg = AlertConfig.from_env()
+                cfg.test_mode = True  # force test mode: never sends externally
+                alerts = UserAlertService(session, config=cfg)
+                outcomes = await alerts.process_board(board, only_high_priority=True)
+                counts = {}
+                for o in outcomes:
+                    counts[o.action] = counts.get(o.action, 0) + 1
+                print(
+                    f"Board of {board.count} markets evaluated against opted-in users; "
+                    f"per-user outcomes: {counts or 'no eligible users'}"
+                )
             elif args.command == "history":
                 res = await session.execute(
                     select(AlertHistoryRow).order_by(AlertHistoryRow.at.desc()).limit(args.limit)
@@ -69,6 +88,9 @@ def build_parser() -> argparse.ArgumentParser:
     dr = sub.add_parser("dry-run")
     dr.add_argument("--mode", default="live", choices=["live", "cached", "replay"])
     dr.add_argument("--top", type=int, default=30)
+    udr = sub.add_parser("user-dry-run")
+    udr.add_argument("--mode", default="live", choices=["live", "cached", "replay"])
+    udr.add_argument("--top", type=int, default=30)
     h = sub.add_parser("history")
     h.add_argument("--limit", type=int, default=20)
     return p

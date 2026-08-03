@@ -46,6 +46,25 @@ class AlertService:
         self.provider = provider or provider_for(self.config)
 
     # -- eligibility --------------------------------------------------------------------
+    def base_quality_ok(self, card: OpportunityCard) -> tuple[bool, str]:
+        """User-independent quality gate (spec §5 safeguards).
+
+        Checks the product-quality floor that must hold before *any* user is alerted: enough
+        independent evidence families, adequate signal strength, acceptable data quality and
+        liquidity. Per-user thresholds (Research Priority, confidence, category, horizon) are
+        applied separately in the per-user path so a user can never lower the safety floor.
+        """
+        c = self.config
+        if card.signal_strength < c.min_strength:
+            return False, "signal strength below threshold"
+        if card.n_families < c.min_families:
+            return False, f"only {card.n_families} evidence family; needs {c.min_families}"
+        if card.data_quality == "poor":
+            return False, "data quality is poor"
+        if card.liquidity_quality == "thin":
+            return False, "liquidity is thin"
+        return True, "quality ok"
+
     def eligibility(self, card: OpportunityCard) -> tuple[bool, str]:
         c = self.config
         if card.research_priority < c.min_priority:

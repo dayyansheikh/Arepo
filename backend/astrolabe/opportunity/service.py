@@ -61,6 +61,7 @@ def _card(market, ta, scored: ScoredOpportunity, mode: str, now: datetime) -> Op
         market_id=market.id,
         token_id=ta.token_id,
         question=market.question,
+        category=getattr(market, "category", None),
         outcome=ta.signal.outcome_name,
         direction=ta.signal.direction if directional else None,
         directional=directional,
