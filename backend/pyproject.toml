@@ -15,6 +15,11 @@ dependencies = [
     "sqlalchemy>=2.0",
     "greenlet>=3.0",
     "aiosqlite>=0.20",
+    # Accounts / authentication (native, not from scratch): fastapi-users handles registration,
+    # email verification, password reset and secure sessions; argon2 hashing via pwdlib.
+    "fastapi-users[sqlalchemy]>=15.0",
+    "pwdlib[argon2]>=0.2",
+    "pyjwt>=2.8",
 ]
 
 [project.optional-dependencies]

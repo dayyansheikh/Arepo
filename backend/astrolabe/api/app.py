@@ -46,13 +46,20 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Credentials (auth cookie) are allowed, so origins must be an explicit allow-list, never
+    # "*". Account endpoints need POST / PATCH / DELETE in addition to the read-only GETs.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
-        allow_credentials=False,
-        allow_methods=["GET", "OPTIONS"],
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
+
+    if settings.auth_is_production_insecure:
+        logger.warning(
+            "AUTH_SECRET is the built-in default in production; set a strong AUTH_SECRET."
+        )
 
     @app.middleware("http")
     async def timing_middleware(request: Request, call_next):
@@ -89,6 +96,12 @@ def create_app() -> FastAPI:
     app.include_router(cohort_routes.router)
     app.include_router(historical_routes.router)
     app.include_router(opportunity.router)
+
+    # Account system (native fastapi-users auth + preferences/saved/history). See DECISIONS P3.
+    from ..accounts.router import account_router, auth_router
+
+    app.include_router(auth_router)
+    app.include_router(account_router)
 
     return app
 
