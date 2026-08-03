@@ -5,6 +5,44 @@ Newest entries at the top of each section.
 
 ---
 
+## Master Final Refinement (branch `arepo-master-final`, from tag `arepo-ui-v1`)
+
+### F1. Display heading font = Jost (documented approximation)
+The supplied wordmark (`design-assets/brand/AREPO Typeface (word).png`) is a
+wide-tracked, all-caps, geometric **monoline** sans: perfect-circle `O`, sharp
+triangular `A` apex, uniform stroke weight, generous tracking — unmistakably in the
+Futura / geometric-grotesque lineage. No licensed font file ships in the assets, so
+an exact match is not claimed. **Jost** (SIL OFL, a Futura revival, loadable via
+`next/font/google`) is the closest freely-licensable match; used only for major page
+titles, hero and section-intro headings, in uppercase with wide tracking. Interface
+text stays **Geist Sans**; data stays tabular Geist. Documented as an approximation
+in `docs/brand-system.md` per the brief.
+
+### F2. Prospective evaluation must never fabricate history
+Section 14 forbids hindsight selection and invented cohorts. Decision: build the
+cohort engine to record only what Arepo genuinely selects at each calculation
+timestamp, freeze weekly, and track forward. On this machine there is **no verified
+historical snapshot store**, so real prospective cohorts begin at the first genuine
+run; any illustrative data is labelled synthetic and is stored in a separate
+provenance class that can never be mixed into real statistics. The existing
+deterministic backtest (current Replay) is retained as a clearly-labelled
+demonstration, not presented as real performance.
+
+### F3. Cohort persistence via SQLAlchemy models + a lightweight migration runner
+The project uses `create_all`, not Alembic. Rather than introduce Alembic mid-stream,
+add the new cohort tables to the ORM metadata and provide an idempotent, versioned
+migration/bootstrap command (`scripts` + a `migrations` module) that creates tables
+and records `calculation_versions`. Immutability of frozen entries is enforced in the
+repository layer (guard on `frozen_at`) and proven by tests, since SQLite lacks
+easy row-level triggers portably.
+
+### F4. Info panel is neutral by default; red reserved for signal/emphasis
+The pale-red `DisclaimerBanner` reads as an error. Replaced with a neutral grey
+information panel; Arepo red is reserved for selected controls, active nav, and true
+signal emphasis, per Sections 6 and 19.
+
+---
+
 ## Arepo redesign (branch `arepo-redesign`, from tag `astrolabe-baseline`)
 
 ### R7. Light-only identity; inherited auto dark-mode dropped

@@ -1,113 +1,59 @@
-# CHECKPOINT.md — Astrolabe
+# CHECKPOINT.md — Arepo
 
-_Single source of truth for "where are we, exactly." Updated after each wave._
+_Single source of truth for "where are we, exactly." Updated at the end of every phase.
+Older history is preserved in git; this file tracks the **Master Final Refinement**._
+
+## Recovery / resume
+
+Branch: `arepo-master-final`. Safety tag before this effort: **`arepo-ui-v1`**
+(also `astrolabe-baseline`). To resume, send `carry on`: read
+`AREPO_MASTER_FINAL_PROMPT.md`, this file, `TASKS.md`, `DECISIONS.md`, then continue
+from **Exact next action** below.
+
+### Rollback
+`git reset --hard arepo-ui-v1` restores the pre-refinement stable build. Never
+delete that tag. Never rewrite history.
+
+---
+
+## Baseline (recorded 2026-08-03, start of Master Final Refinement)
+
+- Backend: **128 tests pass**, `ruff check` clean.
+- Frontend: `tsc --noEmit` clean, `next lint` clean, `next build` clean (10/10 routes).
+- Working tree clean at start.
+- Brand assets inspected: wordmark is a wide-tracked, all-caps, geometric monoline
+  sans (perfect-circle O, triangular A apex, Futura-like). Display-font decision:
+  **Jost** (OFL, Futura revival) via `next/font/google`, uppercase + wide tracking,
+  documented as an approximation. Logo is a 5×5 grid "A" chevron, red-on-black.
+
+## Stack facts
+
+- Backend: FastAPI + SQLAlchemy 2.0 async (SQLite default, Postgres-compatible),
+  pytest. No Alembic yet (uses `create_all`); migrations to be added for the cohort
+  system. venv at `backend/.venv`; run tests with
+  `cd backend && source .venv/bin/activate && python -m pytest -q`.
+- Frontend: Next.js 14 app router, Tailwind, Geist Sans/Mono via `geist`, Recharts,
+  KaTeX. **No frontend test runner** (tsc + lint + build are the gates). Light-only
+  identity. Tokens in `tailwind.config.ts` + `globals.css` + `lib/theme.ts`.
 
 ## Current phase
-**Arepo redesign COMPLETE (Phases 1 to 7).** Branch `arepo-redesign` off tag
-`astrolabe-baseline`. All seven surfaces redesigned and verified in-browser; new
-How Arepo Works + KaTeX Methodology; brand, logo, favicon, tokens shipped; backend
-user-facing strings rebranded (internals unchanged); independent Sonnet review run
-and its findings fixed (api.ts error string, Methodology h1, StatusChip a11y, amber
-token, How-It-Works grammar, doc accuracy). Frontend tsc/lint/build clean; backend
-128 tests pass, ruff clean. Deliverables updated: README, portfolio report,
-FINAL_STATUS, brand-system + design-reference-audit docs, fresh screenshots,
-redesign changelog. Baseline tag + history preserved.
 
-### (historical, redesign start) Phase 2 note
-
-### Baseline recorded (redesign start, 2026-08-03)
-- Frontend: `tsc --noEmit` clean, `next lint` clean, `next build` clean (8/8 pages).
-- Backend: **128 tests pass**, `ruff check` clean.
-- Working tree clean at start; tag `astrolabe-baseline` present.
-
-### Phase 1 complete (Opus-run)
-- All `design-references/` inspected. `docs/design-reference-audit.md` and
-  `docs/brand-system.md` written; decisions R1–R7 in `DECISIONS.md`.
-- Key decisions: rename to **Arepo** (user-facing only), accent red `#E50C0E` used
-  sparingly, **light-only** identity, Geist Sans, KaTeX maths, modernist DS as the
-  softened primary influence, richer Markets filters client-side (no backend change).
-
-### Data flow to preserve (do not touch)
-`lib/{api,types,format,use-async,use-status,mode-context}.ts(x)` — the backend
-contract and mode plumbing. Redesign is presentational + new education pages only.
-
----
-## (historical) Original Astrolabe build — COMPLETE
-
-Delivered + verified: backend (128 tests pass, ruff clean) with live/cached/replay modes all
-exercised against real Polymarket; Next.js frontend (lint+typecheck+build clean, 6 surfaces)
-verified in-browser against the live backend (3 frontend integration bugs found + fixed via the
-browser smoke test); independent adversarial review completed and its 4 real findings fixed +
-regression-tested; Docker/compose + deploy configs authored; full docs set + Mermaid + PDF
-report; packaging script → 0.75 MB ZIP (<20 MB, exclusions + secret scan verified). Remaining
-external-only blockers: Docker exec (no daemon) and public deploy (needs user hosting auth).
-
----
-## (historical) Phase 3–5 progress
-
-### Verified milestones (Opus-run, not agent claims)
-- Spine boots; `/health` OK. 2 spine tests.
-- Analytics core: 11 tests w/ hand-derived values (z=1.5, vol=0.01, imbalance=30/270). ruff clean.
-- Ingestion (Gamma+CLOB REST + normalize): 53 tests; **also smoke-verified on a real live
-  Gamma market** (JSON-string parsing, Yes/No pairing, ACTIVE status). `/markets/{id}`=200 live.
-- Replay + backtest: deterministic dataset (3 mkts/144 frames), look-ahead-safe backtest
-  (sample 16, hit-rate 0.625, fp-rate 0.125); 6 tests incl. prefix look-ahead property.
-- **72 tests pass in my own run** (excluding the in-flight WS test); ruff clean repo-wide.
-- Commits: scaffold → analytics → ingestion+replay+backtest.
-
-### Backend complete + verified (Opus-run)
-- WebSocket client (resilient, deduped) — read + 11 tests pass.
-- Storage (SQLAlchemy async, SQLite/Postgres) — 13 tests; greenlet added to deps.
-- Service brain (live/cached/replay + fallback) — 8 tests; DataStatus never mislabels mode.
-- FastAPI routes (overview/markets/detail/signals/status/meta/replay) — 10 tests; booted a
-  real uvicorn server, all endpoints 200, /docs serves, X-Response-Time header present.
-- Ingestion pipeline — 2 tests + **real live ingest** (7 markets, 14 book snapshots) then
-  CACHED read verified. Robustness fix: 404/4xx mapped to typed errors (no httpx leak).
-- **All three modes verified against real Polymarket**: LIVE (16 real markets, real books,
-  imbalance ±0.962, z over 145 pts), CACHED (real ingest round-trip), REPLAY (deterministic).
-- **121 tests pass; ruff clean repo-wide.** 6 commits.
-
-### In flight (background agents)
-- Frontend build (Next.js/TS/Tailwind) against the API contract.
-- Independent adversarial backend review (findings to triage).
-
-### Remaining
-- Fold review findings; Docker/compose + deploy configs; docs set + Mermaid; PDF report;
-  packaging script + ZIP; FINAL_STATUS + demo script. Docker exec + public deploy remain
-  blocked (no daemon / no host auth).
+**Phase 0 complete** (baseline verified, recovery scaffolding, stable checkpoint).
+Starting **Phase 1 — Foundation & UI polish**.
 
 ## Completed work (verified)
-- Read `CLAUDE.md` + `PROJECT_SPEC.md` in full.
-- Environment audited: Python **3.11.2**, Node **v20.20.0**, npm 10.8.2, git 2.39.
-  **No Docker daemon**, **no `gh`/`vercel` CLI** on this machine (recorded as constraints).
-- Verified live API schemas by direct HTTP requests (Gamma `/markets`,`/events`; CLOB
-  `/book`,`/midpoint`,`/price`,`/spread`,`/prices-history`) — all HTTP 200. See
-  `docs/research-notes.md`.
-- Product named **Astrolabe** with due-diligence recorded in `DECISIONS.md`.
-- Fresh git repo `Projects/astrolabe` initialised; directory tree created.
-- Tracking files created: `TASKS.md`, `CHECKPOINT.md`, `DECISIONS.md`, `docs/research-notes.md`.
-
-## Exact commands run so far
-- `curl` probes against gamma-api / clob.polymarket.com (schema verification).
-- `git init` in `Projects/astrolabe`.
-- Directory skeleton via `mkdir -p`.
-
-## Verified test results
-- None yet (no code under test yet).
-
-## Unresolved defects
-- None yet.
+- Phase 0: baseline tests/build recorded; recovery files written.
 
 ## In-flight
-- Background Sonnet research agent confirming the CLOB **WebSocket** protocol from primary docs.
-
-## Deployment status
-- Not started. Docker exec + public deploy are **blocked** on missing tooling / user auth
-  (see `DECISIONS.md` A5). Configs will be authored and inspection-validated.
+- (none)
 
 ## Exact next action
-1. Write typed domain models (`backend/astrolabe/domain/{models,enums}.py`) — the shared
-   contract for all subagents.
-2. Write config + structured logging + FastAPI app skeleton + `/health`.
-3. Set up Python venv, install backend deps, get an empty app to boot + a first passing test.
-4. Fold in the WS research report; then fan out Sonnet agents for clients/analytics/frontend.
+1. Phase 1 foundation (Opus-owned shared files): display font (Jost) tokens, body
+   text size bump, heading hierarchy, neutral information panel, nav presence,
+   status labels (API / Live feed / Updated), logo readability.
+2. Fan out non-overlapping Sonnet subagents: chart repair, Markets categories/sports,
+   Signal Lab terminology, Methodology readability, metadata fallbacks.
+3. Run tsc + lint + build; commit Phase 1; update this file, TASKS.md, DECISIONS.md.
+
+## Known failures / unresolved
+- (none)

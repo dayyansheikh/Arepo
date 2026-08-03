@@ -1,59 +1,57 @@
-# TASKS.md — Astrolabe / Arepo
+# TASKS.md — Arepo Master Final Refinement
 
-Legend: `[x]` done · `[ ]` todo · `[~]` in progress · `[!]` blocked (external).
-See `FINAL_STATUS.md` for the authoritative state.
+Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
+Prior redesign + original build tasks are complete; history is in git and older
+`TASKS.md` revisions. This file now tracks the **Master Final Refinement**.
 
-## Arepo redesign (branch `arepo-redesign`)
+## Phase 0 — Safety
+- [x] Confirm branch `arepo-master-final` + clean tree
+- [x] Record baseline: backend 128 pass/ruff clean; FE tsc/lint/build clean (10/10)
+- [x] Confirm safety tag `arepo-ui-v1` exists
+- [x] Inspect brand assets; choose display font (Jost, approximation)
+- [x] Write recovery scaffolding (CHECKPOINT/TASKS/DECISIONS)
 
-### Phase 1 — foundation & audit
-- [x] Confirm clean tree; branch `arepo-redesign`; tag `astrolabe-baseline` (pre-existing)
-- [x] Record baseline: frontend tsc/lint/build clean; backend 128 tests pass, ruff clean
-- [x] Inspect every `design-references/` file (7 HTML + 3 `_ds` bundles + 4 PNGs)
-- [x] `docs/design-reference-audit.md` (adopt / adapt / reject)
-- [x] `docs/brand-system.md` (name, logo decision, type, palette, tokens, a11y)
-- [x] Redesign decisions logged in `DECISIONS.md` (R1–R7)
+## Phase 1 — Foundation & UI polish
+- [ ] Display heading font (Jost) tokens; interface = Geist
+- [ ] Body text size bump; heading weight/contrast; bold section titles
+- [ ] Navigation presence, logo/wordmark readability, active/hover/mobile
+- [ ] Neutral information panel (replace pale-red DisclaimerBanner)
+- [ ] Status labels REST/WS/age → API / Live feed / Updated (+ tooltips, states)
+- [ ] Chart repair: visible strokes/points for sparse data + limited-history note
+- [ ] Unknown / "Parent for derivative" metadata fallbacks
+- [ ] Markets filters: real categories, Sports grouping, competitions, empty states
+- [ ] Signal Lab terminology (Unusual market activity, Data coverage, Lookback, components)
+- [ ] Methodology readability
+- [ ] Market detail readability + progressive disclosure
+- [ ] Tests: category/sports extraction, chart row-building, normalize fallbacks
 
-### Phase 2 — design system & shell
-- [x] Design tokens (globals.css vars + tailwind), Geist font, metadata rename
-- [x] Arepo logo + favicon; TopBar/nav; ModeSelector; Footer; DisclaimerBanner
-- [x] Shared primitives: Card, Button, Badge, MetricHelp, StatTile, StrengthMeter,
-      Select, Slider, Disclose, Equation (KaTeX)
+## Phase 2 — Prospective evaluation engine (backend)
+- [ ] Schema + migrations: signal_snapshots, weekly_cohorts, cohort_entries,
+      ranking_audit, forward_price_observations, market_resolutions,
+      evaluation_results, calculation_versions
+- [ ] Provisional weekly top-ten ranking (in-week replacement of lowest)
+- [ ] Weekly freeze (immutability) + tie-breaking + audit trail
+- [ ] Forward price collection (1h/24h/7d/close)
+- [ ] Resolution tracking
+- [ ] Portfolio simulation (fixed stake, fees, spread)
+- [ ] Idempotent CLI commands (rank/freeze/forward/resolve)
+- [ ] Typed API endpoints (weeks/summary/entries/forward/resolutions/portfolio/provenance)
+- [ ] 13 required evaluation tests
 
-### Phase 3 — education & maths
-- [x] `How Arepo Works` page; rebuild `Methodology` with KaTeX + full anchors
-- [x] Wire MetricHelp across all metrics to Methodology anchors
+## Phase 3 — Replay redesign (frontend)
+- [ ] Replay page consumes cohort API; week picker; provisional vs frozen
+- [ ] Price-movement vs final-resolution views; pending/correct/incorrect
+- [ ] Portfolio assumptions; plain summary with denominator + pending + horizon
+- [ ] Provenance / synthetic-vs-real separation
 
-### Phase 4 — Overview & Markets redesign
-### Phase 5 — Market detail & Signal Lab redesign
-### Phase 6 — Replay & data-mode controls
-### Phase 7 — QA gauntlet
-- [x] Responsive + a11y review; visual review vs references; cross-browser smoke
-- [x] lint / typecheck / build / backend tests; independent review; repairs
-- [x] Deliverables: screenshots, README, portfolio report, ZIP, FINAL_STATUS, changelog
+## Phase 4 — QA, a11y, docs, packaging
+- [ ] Accessibility pass (contrast, focus, keyboard, non-colour cues, reduced motion)
+- [ ] Independent Sonnet reviews per phase + fixes
+- [ ] Browser visual checks + screenshots
+- [ ] Docs: README, architecture, methodology, API, deployment, limitations,
+      brand-system, portfolio-report, FINAL_STATUS
+- [ ] Submission ZIP
 
----
-
-## Baseline (original Astrolabe build) — Completed
-- [x] Research (Gamma/CLOB/WS confirmed from primary sources) + naming (Astrolabe) + tracking docs
-- [x] Repo scaffold, typed domain contract, config, structured logging, FastAPI spine + /health
-- [x] Gamma + CLOB REST clients + anti-corruption normalization (verified on live data)
-- [x] CLOB WebSocket client (reconnect/dedup/heartbeat/DEGRADED) + tests
-- [x] Storage (async SQLAlchemy, SQLite/Postgres) + repository + cache + tests
-- [x] Analytics core (implied, movement, volatility, z-score, microstructure, quality, anomaly)
-      — Opus-owned, hand-derived test values
-- [x] Deterministic replay dataset + player + look-ahead-safe backtest
-- [x] Service brain (live/cached/replay + fallback, DataStatus never mislabels mode)
-- [x] Ingestion pipeline (Gamma→CLOB→storage) — real ingest verified
-- [x] FastAPI routes (overview/markets/detail/signals/status/meta/replay) + real uvicorn boot
-- [x] Next.js/TS/Tailwind frontend (6 surfaces, mode chip, charts) — built + browser-verified
-- [x] Independent adversarial review → 4 real defects fixed + regression-tested
-- [x] 3 frontend integration bugs found via browser smoke test + fixed
-- [x] Docker + compose + deployment configs (authored; compose YAML validated)
-- [x] Docs set (README, architecture, methodology, API, deployment, limitations) + Mermaid
-- [x] Portfolio report (md) + PDF (5 pages) + build_report_pdf.py
-- [x] Packaging script → clean 0.75 MB ZIP (<20 MB; exclusions + secret scan enforced)
-- [x] FINAL_STATUS.md + 3-minute demo script + screenshots
-
-## Blocked (external authorization only — per stop-boundary)
-- [!] `docker compose up` — no Docker daemon in build environment
-- [!] Public deployment + production smoke test — requires the user's hosting account auth
+## Blocked (external authorization only)
+- [!] `docker compose up` — no Docker daemon in environment
+- [!] Public deployment / paid scheduler activation — requires user's account auth
