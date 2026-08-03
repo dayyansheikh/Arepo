@@ -187,7 +187,9 @@ class MarketService:
         Sees only information available at this instant (no look-ahead)."""
         source, _ = await self._select_source(requested_mode)
         markets = await source.markets()
-        subset = _sort_markets(markets, "volume_24hr")
+        # Near-mid markets first: they actually move, so the composite is led by price
+        # behaviour rather than order-book imbalance on pinned longshots.
+        subset = _prefer_near_mid(_sort_markets(markets, "volume_24hr"))
         if limit is not None:
             subset = subset[:limit]
         results = await asyncio.gather(
@@ -262,7 +264,11 @@ class MarketService:
         # score falling back to order-book imbalance on quiet mega-markets. Replay: enrich all.
         by_volume = _sort_markets(markets, "volume")
         active = _sort_markets(markets, "volume_24hr")
-        enrich_set = active if source.mode == DataMode.REPLAY else active[:OVERVIEW_ENRICH]
+        enrich_set = (
+            active
+            if source.mode == DataMode.REPLAY
+            else _prefer_near_mid(active)[:OVERVIEW_ENRICH]
+        )
 
         enriched = await asyncio.gather(
             *(self._enrich_market(source, m) for m in enrich_set), return_exceptions=True
@@ -346,7 +352,11 @@ class MarketService:
         source, reason = await self._select_source(requested_mode)
         markets = await source.markets()
         active = _sort_markets(markets, "volume_24hr")
-        enrich_set = active if source.mode == DataMode.REPLAY else active[:OVERVIEW_ENRICH]
+        enrich_set = (
+            active
+            if source.mode == DataMode.REPLAY
+            else _prefer_near_mid(active)[:OVERVIEW_ENRICH]
+        )
         enriched = await asyncio.gather(
             *(self._enrich_market(source, m) for m in enrich_set), return_exceptions=True
         )
@@ -420,6 +430,19 @@ def _sort_markets(markets, sort):
     }.get(sort, lambda m: m.volume or 0.0)
     reverse = sort != "end_date"
     return sorted(markets, key=key, reverse=reverse)
+
+
+def _prefer_near_mid(markets: list[Market]) -> list[Market]:
+    """Put markets with a genuinely uncertain price (leading probability roughly 0.1 to 0.9)
+    first, keeping the rest as fill. Longshots pinned near 0 or 1 do not move, so their signal
+    can only ever be order-book imbalance; near-mid markets are where the composite's
+    price-behaviour features actually have something to detect."""
+    near: list[Market] = []
+    rest: list[Market] = []
+    for m in markets:
+        prices = [o.price for o in m.outcomes if o.price is not None]
+        (near if prices and 0.1 <= max(prices) <= 0.9 else rest).append(m)
+    return near + rest
 
 
 def _latest_update(markets) -> datetime | None:
