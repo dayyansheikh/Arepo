@@ -39,7 +39,17 @@ delete that tag. Never rewrite history.
 ## Current phase
 
 **Product Simplification, Accounts & Decision-Support (branch `arepo-product-simplification`,
-from pushed `arepo-opportunity-alerts`). Phases 1-4 of 7 COMPLETE and committed.**
+from pushed `arepo-opportunity-alerts`). ALL 7 PHASES COMPLETE and committed.**
+
+Phases 5-7 added since the notes below: Phase 5 (32f0cd3) per-user verified/opted-in alerts on
+top of a quality floor + user-dry-run CLI + 10 tests; Phase 6 (c731fa3) board
+stale-while-revalidate cache (warm hit ~2ms vs ~6.1s cold build) + 4 tests + docs/performance.md;
+Phase 7 (523285e) docs (authentication, accounts-privacy, methodology §9c/§9d, API, README,
+FINAL_STATUS, limitations) and live-verified price-only historical reconstruction. Final state:
+backend 268 tests pass, ruff clean, idempotent bootstrap; frontend tsc/lint/build clean (16
+routes). Post-implementation review + final push pending at time of writing this line.
+
+Original phases 1-4 notes:
 
 Done and verified:
 - Phase 1 (commit f587fb0): two Sonnet reviews (beginner + quant) synthesised in DECISIONS
