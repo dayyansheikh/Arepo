@@ -120,6 +120,8 @@ export interface MarketDetail {
   signals: Signal[];
   limitations: string;
   data_source: string;
+  chart_range: string;
+  available_ranges: string[];
 }
 
 export interface OverviewResponse {

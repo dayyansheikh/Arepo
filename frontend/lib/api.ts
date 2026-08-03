@@ -106,8 +106,8 @@ export function getMarkets(params: GetMarketsParams): Promise<MarketsResponse> {
   return apiFetch<MarketsResponse>("/api/markets", { ...params });
 }
 
-export function getMarket(id: string, mode: DataMode): Promise<MarketDetailResponse> {
-  return apiFetch<MarketDetailResponse>(`/api/markets/${encodeURIComponent(id)}`, { mode });
+export function getMarket(id: string, mode: DataMode, range?: string): Promise<MarketDetailResponse> {
+  return apiFetch<MarketDetailResponse>(`/api/markets/${encodeURIComponent(id)}`, { mode, range });
 }
 
 /** Distinct category, sport, competition and status values that actually
