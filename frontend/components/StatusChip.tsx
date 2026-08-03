@@ -19,14 +19,17 @@ function connectivity(state: string | undefined): { label: string; tone: Tone } 
   switch ((state ?? "").toLowerCase()) {
     case "ok":
     case "healthy":
+    case "connected":
       return { label: "Connected", tone: "good" };
-    case "degraded":
+    case "connecting":
     case "updating":
       return { label: "Updating", tone: "warn" };
+    case "degraded":
     case "delayed":
       return { label: "Delayed", tone: "warn" };
     case "down":
     case "error":
+    case "disconnected":
       return { label: "Offline", tone: "bad" };
     default:
       return { label: "Unknown", tone: "neutral" };
@@ -103,13 +106,19 @@ export function StatusChip() {
           <span
             className="flex items-center gap-1.5"
             title="Updated: how long ago market data last refreshed."
-            aria-label={`Updated ${formatDurationSeconds(status.data_age_seconds)} ago`}
+            aria-label={
+              status.data_age_seconds != null
+                ? `Updated ${formatDurationSeconds(status.data_age_seconds)} ago`
+                : "Update time not available"
+            }
           >
             <span className="text-arepo-muted" aria-hidden="true">
               Updated
             </span>
             <span className="font-medium text-arepo-ink2" aria-hidden="true">
-              {formatDurationSeconds(status.data_age_seconds)} ago
+              {status.data_age_seconds != null
+                ? `${formatDurationSeconds(status.data_age_seconds)} ago`
+                : "n/a"}
             </span>
           </span>
         </>

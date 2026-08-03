@@ -10,7 +10,6 @@ import {
   YAxis,
 } from "recharts";
 import { useId } from "react";
-import { Dot } from "recharts";
 import type { PricePoint } from "@/lib/types";
 import { formatPercent } from "@/lib/format";
 import { seriesColors, theme } from "@/lib/theme";
@@ -172,7 +171,7 @@ export function PriceHistoryChart({ priceHistory, series }: Props) {
             <tr key={r.ts}>
               <td>{new Date(r.ts).toLocaleString("en-GB")}</td>
               {series.map((s) => (
-                <td key={s.key}>{r[s.key] !== undefined ? formatPercent(r[s.key], 1) : "—"}</td>
+                <td key={s.key}>{r[s.key] !== undefined ? formatPercent(r[s.key], 1) : "–"}</td>
               ))}
             </tr>
           ))}

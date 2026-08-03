@@ -35,7 +35,7 @@ export function OrderBookViz({
         />
       </div>
       <div className="flex items-center justify-between text-[11px] font-tabular text-arepo-muted">
-        <span>imbalance {imbalance === null ? "—" : formatNumber(imbalance, 2)}</span>
+        <span>imbalance {imbalance === null ? "–" : formatNumber(imbalance, 2)}</span>
         <span>near-mid depth {formatCurrencyCompact(depth)}</span>
       </div>
     </div>

@@ -41,7 +41,7 @@ export function MarketCardView({ market }: { market: MarketCard }) {
         <div>
           <div className="mb-0.5 text-[11px] text-arepo-muted">Leading outcome</div>
           <div className="font-tabular text-sm font-semibold text-arepo-ink">
-            {market.top_outcome ?? "—"}
+            {market.top_outcome ?? "–"}
             {market.top_probability !== null && (
               <span className="text-arepo-muted">
                 {" · "}

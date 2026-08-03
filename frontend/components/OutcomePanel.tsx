@@ -65,7 +65,7 @@ export function OutcomePanel({ outcome }: { outcome: OutcomeView }) {
           />
           <Stat
             label={<MetricHelp metric="order-book-imbalance" />}
-            value={outcome.book_imbalance === null ? "—" : formatNumber(outcome.book_imbalance, 2)}
+            value={outcome.book_imbalance === null ? "–" : formatNumber(outcome.book_imbalance, 2)}
           />
           <Stat
             label={<MetricHelp metric="near-mid-depth" />}
