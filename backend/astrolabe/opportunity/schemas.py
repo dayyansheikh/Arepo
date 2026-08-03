@@ -48,3 +48,32 @@ class OpportunityBoard(BaseModel):
     universe_considered: int
     cards: list[OpportunityCard]
     note: str
+
+
+class SnapshotEntry(BaseModel):
+    rank: int
+    market_id: str
+    token_id: str
+    question: str
+    outcome: str | None
+    research_priority: int
+    signal_strength: float
+    confidence: float
+    n_families: int
+    high_priority: bool
+    families: list[str]
+    tags: list[str]
+    probability: float | None
+    relative_spread: float | None
+    liquidity: float | None
+    data_quality: str
+
+
+class SnapshotDetail(BaseModel):
+    snapshot_date: str
+    generated_at: datetime
+    data_mode: str
+    calculation_version: str
+    count: int
+    note: str
+    entries: list[SnapshotEntry]

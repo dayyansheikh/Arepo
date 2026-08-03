@@ -37,6 +37,7 @@ async def init_storage() -> None:
     """Create tables on the shared engine (called once at startup; best-effort)."""
     try:
         from ..evaluation import models as _eval_models  # noqa: F401  (register eval tables)
+        from ..opportunity import snapshot_models as _snap_models  # noqa: F401  (register tables)
         from ..storage.db import init_db
 
         await init_db(_engine())
