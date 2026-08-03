@@ -45,12 +45,12 @@ Prior redesign + original build tasks are complete; history is in git and older
 - [x] Provenance / synthetic-vs-real separation
 
 ## Phase 4 — QA, a11y, docs, packaging
-- [ ] Accessibility pass (contrast, focus, keyboard, non-colour cues, reduced motion)
-- [ ] Independent Sonnet reviews per phase + fixes
-- [ ] Browser visual checks + screenshots
-- [ ] Docs: README, architecture, methodology, API, deployment, limitations,
+- [x] Accessibility pass (contrast, focus, keyboard, non-colour cues, reduced motion)
+- [x] Independent Sonnet reviews per phase + fixes
+- [x] Browser visual checks + screenshots
+- [x] Docs: README, architecture, methodology, API, deployment, limitations,
       brand-system, portfolio-report, FINAL_STATUS
-- [ ] Submission ZIP
+- [x] Submission ZIP
 
 ## Blocked (external authorization only)
 - [!] `docker compose up` — no Docker daemon in environment

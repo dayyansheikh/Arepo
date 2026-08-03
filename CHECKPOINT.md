@@ -38,9 +38,33 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
-**Phase 1 complete** (UI polish). **Phase 2 complete** (prospective evaluation
-engine, backend, verified + committed). **Next: Phase 3** — Replay page redesign
-(frontend) to consume the cohort API.
+**All phases complete (1 to 4), verified and committed.** Independent Sonnet review
+run over the full branch: it confirmed every truthfulness guarantee is genuinely
+enforced (no hindsight, frozen immutability, idempotency, provenance separation, all
+13 required tests non-vacuous, genuine chart root-cause fix, no em dashes in product
+text) and found one MAJOR defect (forward-price collection lost a horizon on a
+transient failure), which was fixed and regression-tested (backend now 175 pass).
+
+Final verified state: backend **175 tests pass**, ruff clean; frontend `tsc`/`lint`/
+`build` clean (10/10 routes), **8 vitest** pass. Browser-verified all seven surfaces
+against a live backend + seeded synthetic cohort: display font, grid logo, neutral
+panels, API/Live feed/Updated labels, the chart fix (visible lines + real time axis),
+Markets facets, Signal Lab terminology, and the Replay cohort UI (week picker, two
+views, portfolio, provenance). Fresh screenshots in `docs/screenshots/arepo-*.jpg`.
+
+### Phase 3 delivered
+Replay page rebuilt around the cohort API (week picker, price-movement vs final-
+resolution views, per-signal verdicts, hypothetical portfolio, provenance notice;
+the deterministic backtest preserved as a labelled demonstration).
+
+### Phase 4 delivered
+QA + em-dash removal + status-state fix; accessibility (non-colour cues, focus ring,
+reduced motion, chart alt-table); independent review + fix; full docs refresh
+(README, architecture, methodology, API, deployment, limitations, brand-system,
+portfolio-report, FINAL_STATUS); grid-mark favicon; submission packaging.
+
+Real prospective cohorts begin at the first `python -m astrolabe.evaluation.cli rank
+--mode live` run (none yet; the visible cohort is the labelled synthetic demo).
 
 ### Phase 2 delivered (backend, 174 tests pass / ruff clean)
 - `backend/astrolabe/evaluation/`: constants, errors, ORM models (8 entities),
