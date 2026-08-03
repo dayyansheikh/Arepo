@@ -8,7 +8,7 @@ the degradation reason.
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from ..analytics.backtest import run_backtest
 from ..config import Settings, get_settings
@@ -24,6 +24,7 @@ from .schemas import (
     MarketCard,
     MarketDetail,
     MarketDetailResponse,
+    MarketFacetsResponse,
     MarketListResponse,
     OverviewResponse,
     SignalsResponse,
@@ -127,7 +128,8 @@ class MarketService:
         )
         return MarketCard(
             id=market.id, question=market.question, slug=market.slug,
-            category=market.category, status=market.status.value, tags=market.tags,
+            category=market.category, sport=market.sport, competition=market.competition,
+            status=market.status.value, tags=market.tags,
             volume=market.volume, volume_24hr=market.volume_24hr, liquidity=market.liquidity,
             end_date=market.end_date.isoformat() if market.end_date else None,
             top_probability=lead.price if lead else None,
@@ -151,6 +153,22 @@ class MarketService:
         status_env = await self._status(source, reason, last_update)
         return MarketListResponse(
             markets=cards, total=total, limit=limit, offset=offset, status=status_env
+        )
+
+    async def facets(self, *, requested_mode=None) -> MarketFacetsResponse:
+        """Distinct real filter values (category/sport/competition/status) currently present.
+
+        Reuses the same source path as :meth:`list_markets` (no filtering/paging applied)
+        so the facets always describe what a user could actually filter down to.
+        """
+        source, _ = await self._select_source(requested_mode)
+        markets = await source.markets()
+        categories = sorted({m.category for m in markets if m.category})
+        sports = sorted({m.sport for m in markets if m.sport})
+        competitions = sorted({m.competition for m in markets if m.competition})
+        statuses = sorted({m.status.value for m in markets if m.status is not None})
+        return MarketFacetsResponse(
+            categories=categories, sports=sports, competitions=competitions, statuses=statuses,
         )
 
     async def overview(self, *, requested_mode=None) -> OverviewResponse:
@@ -208,14 +226,17 @@ class MarketService:
         for ta, o, np_ in zip(analytics, market.outcomes, norm, strict=False):
             outcomes_view.append(enrich.outcome_view(ta, o.name, np_))
             td = await source.get_token_data(market.id, o.token_id)
-            # Reconstruct price points with timestamps where available (replay), else index.
-            history[o.token_id] = _history_points(source, market.id, o.token_id, td.prices)
+            # Use real per-point timestamps where the source has them (replay via the
+            # player; live/cached via td.price_points), so the chart plots a genuine
+            # time axis instead of collapsing every point onto "now".
+            history[o.token_id] = _history_points(source, market.id, o.token_id, td)
 
         signals = [ta.signal for ta in analytics]
         last_update = _latest_update([market])
         detail = MarketDetail(
             id=market.id, question=market.question, slug=market.slug,
             description=market.description, category=market.category,
+            sport=market.sport, competition=market.competition,
             status=market.status.value, tags=market.tags, volume=market.volume,
             volume_24hr=market.volume_24hr, liquidity=market.liquidity,
             tick_size=market.tick_size,
@@ -315,9 +336,21 @@ def _latest_update(markets) -> datetime | None:
     return max(dts) if dts else datetime.now(UTC)
 
 
-def _history_points(source, market_id, token_id, prices) -> list[PricePoint]:
-    """Best-effort price-history points. Replay has real timestamps; live uses prices as-is."""
+def _history_points(source, market_id, token_id, td) -> list[PricePoint]:
+    """Price-history points with real timestamps wherever the source has them.
+
+    Replay reads timestamps from the deterministic player. Live and cached carry
+    ``td.price_points`` (real per-observation times). Only as a last resort, when a
+    source gives values without any timestamps, do we synthesise an evenly-spaced
+    minute axis so the series still has distinct times and does not collapse onto a
+    single point (which rendered as an apparently blank chart).
+    """
     if isinstance(source, ReplaySource):
         return source._player.price_history(market_id, token_id)
-    now = datetime.now(UTC)
-    return [PricePoint(t=now, p=p) for p in prices[-DETAIL_HISTORY_MAX:]]
+    if td.price_points:
+        return td.price_points[-DETAIL_HISTORY_MAX:]
+    prices = td.prices[-DETAIL_HISTORY_MAX:]
+    if not prices:
+        return []
+    base = datetime.now(UTC) - timedelta(minutes=len(prices) - 1)
+    return [PricePoint(t=base + timedelta(minutes=i), p=p) for i, p in enumerate(prices)]

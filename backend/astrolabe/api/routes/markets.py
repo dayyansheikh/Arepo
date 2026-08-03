@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ...service import MarketService
-from ...service.schemas import MarketDetailResponse, MarketListResponse
+from ...service.schemas import MarketDetailResponse, MarketFacetsResponse, MarketListResponse
 from ..deps import get_service
 
 router = APIRouter(prefix="/api", tags=["markets"])
@@ -25,6 +25,17 @@ async def list_markets(
         requested_mode=mode, search=search, category=category, status=status,
         sort=sort, limit=limit, offset=offset,
     )
+
+
+@router.get("/markets/facets", response_model=MarketFacetsResponse)
+async def market_facets(
+    mode: str | None = Query(None, description="live | cached | replay (default from settings)"),
+    service: MarketService = Depends(get_service),
+) -> MarketFacetsResponse:
+    """Distinct real filter values (categories/sports/competitions/statuses) for the Markets
+    page filter controls. Built dynamically from the current normalized market set; never
+    fabricated, and empty lists are returned where data is absent."""
+    return await service.facets(requested_mode=mode)
 
 
 @router.get("/markets/{market_id}", response_model=MarketDetailResponse)

@@ -19,14 +19,14 @@ export function TopBar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-arepo-border bg-arepo-surface/90 backdrop-blur">
-      <div className="mx-auto flex max-w-shell flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3 sm:px-8 lg:px-12">
+    <header className="sticky top-0 z-40 border-b border-arepo-border bg-arepo-surface/95 backdrop-blur">
+      <div className="mx-auto flex max-w-shell flex-wrap items-center gap-x-7 gap-y-3 px-5 py-4 sm:px-8 lg:px-12">
         <Link href="/" className="focus-ring rounded-md" aria-label="Arepo home">
-          <Logo />
+          <Logo size={30} />
         </Link>
         <nav
           aria-label="Primary"
-          className="-mx-1 flex flex-1 items-center gap-0.5 overflow-x-auto px-1"
+          className="-mx-1 flex flex-1 items-center gap-1 overflow-x-auto px-1"
         >
           {NAV_LINKS.map((link) => {
             const active =
@@ -38,10 +38,10 @@ export function TopBar() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? "page" : undefined}
-                className={`focus-ring whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`focus-ring relative whitespace-nowrap rounded-md px-3 py-2 text-[15px] font-medium transition-colors ${
                   active
-                    ? "text-arepo-accent"
-                    : "text-arepo-muted hover:text-arepo-ink"
+                    ? "text-arepo-ink after:absolute after:inset-x-3 after:-bottom-[13px] after:h-0.5 after:rounded-full after:bg-arepo-accent"
+                    : "text-arepo-muted hover:bg-arepo-surface2 hover:text-arepo-ink"
                 }`}
               >
                 {link.label}

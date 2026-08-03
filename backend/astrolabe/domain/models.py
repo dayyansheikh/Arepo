@@ -72,6 +72,8 @@ class Market(DomainModel):
 
     category: str | None = None          # derived from event tags where available
     tags: list[str] = Field(default_factory=list)
+    sport: str | None = None             # e.g. "NFL"/"NBA"/"Soccer"; only when tags reliably say so
+    competition: str | None = None       # e.g. "Premier League"; only when tags reliably say so
 
     volume: float | None = None
     volume_24hr: float | None = None

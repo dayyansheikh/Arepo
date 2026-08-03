@@ -1,5 +1,57 @@
 import type { ReactNode } from "react";
 
+/**
+ * Major page title in the geometric display face, with an optional lead
+ * paragraph. Used for the primary heading of each page (spec: display font for
+ * major page titles and hero headings only).
+ */
+export function PageHeader({
+  title,
+  lead,
+  hero = false,
+  children,
+}: {
+  title: ReactNode;
+  lead?: ReactNode;
+  hero?: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <div>
+      <h1
+        className={
+          hero
+            ? "display-hero text-[34px] sm:text-[44px]"
+            : "display-title text-[30px] sm:text-[34px]"
+        }
+      >
+        {title}
+      </h1>
+      {lead ? (
+        <p className="mt-2 max-w-reading text-[15px] leading-relaxed text-arepo-ink2">
+          {lead}
+        </p>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
+/** Bold section heading (interface face) for sub-sections within a page. */
+export function SectionTitle({
+  children,
+  className = "",
+  as: Tag = "h2",
+}: {
+  children: ReactNode;
+  className?: string;
+  as?: "h2" | "h3";
+}) {
+  return (
+    <Tag className={`text-lg font-bold text-arepo-ink ${className}`}>{children}</Tag>
+  );
+}
+
 /** Uppercase eyebrow label used above card grids, tables and sections. */
 export function SectionLabel({
   children,

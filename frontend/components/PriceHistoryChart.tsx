@@ -10,26 +10,18 @@ import {
   YAxis,
 } from "recharts";
 import { useId } from "react";
+import { Dot } from "recharts";
 import type { PricePoint } from "@/lib/types";
 import { formatPercent } from "@/lib/format";
 import { seriesColors, theme } from "@/lib/theme";
+import { buildChart, type ChartSeriesKey } from "@/lib/chart-data";
 
-export interface ChartSeries {
-  /** Key into `priceHistory` — the outcome's token_id. */
-  key: string;
-  /** Human label shown in the legend (the outcome name). */
-  label: string;
-}
+export type ChartSeries = ChartSeriesKey;
 
 interface Props {
   /** Price history keyed by token_id (as returned by the API). */
   priceHistory: Record<string, PricePoint[]>;
   series: ChartSeries[];
-}
-
-interface ChartRow {
-  ts: number;
-  [seriesKey: string]: number;
 }
 
 function formatDay(v: number): string {
@@ -44,32 +36,28 @@ function formatDay(v: number): string {
 export function PriceHistoryChart({ priceHistory, series }: Props) {
   const gradientBase = useId().replace(/[:]/g, "");
 
-  const timestamps = new Set<string>();
-  for (const s of series) {
-    for (const point of priceHistory[s.key] ?? []) timestamps.add(point.t);
-  }
-  const sortedTimestamps = Array.from(timestamps).sort(
-    (a, b) => new Date(a).getTime() - new Date(b).getTime()
-  );
-
-  const rows: ChartRow[] = sortedTimestamps.map((t) => {
-    const row: ChartRow = { ts: new Date(t).getTime() };
-    for (const s of series) {
-      const match = (priceHistory[s.key] ?? []).find((p) => p.t === t);
-      if (match) row[s.key] = match.p;
-    }
-    return row;
-  });
+  const { rows, isLimited, maxSeriesLength } = buildChart(priceHistory, series);
 
   if (rows.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-arepo-muted">
-        No price history available for the selected outcome(s).
+      <div className="flex h-64 items-center justify-center rounded-card border border-dashed border-arepo-border text-[14px] text-arepo-muted">
+        No price history is available for the selected outcome(s).
       </div>
     );
   }
 
   const colorFor = (i: number) => seriesColors[i % seriesColors.length];
+  // With few observations a plain stroke can look blank, so show the points.
+  const showDots = maxSeriesLength <= 8;
+
+  // If the whole series spans under two days, label the axis by time of day so
+  // intraday points don't all read as the same date.
+  const spanMs = rows.length > 1 ? rows[rows.length - 1].ts - rows[0].ts : 0;
+  const intraday = spanMs > 0 && spanMs < 2 * 24 * 60 * 60 * 1000;
+  const formatTick = (v: number): string =>
+    intraday
+      ? new Date(v).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+      : formatDay(v);
 
   return (
     <figure className="m-0">
@@ -103,7 +91,7 @@ export function PriceHistoryChart({ priceHistory, series }: Props) {
               dataKey="ts"
               type="number"
               domain={["dataMin", "dataMax"]}
-              tickFormatter={formatDay}
+              tickFormatter={formatTick}
               stroke={theme.muted}
               tick={{ fontSize: 11, fill: theme.muted }}
               tickLine={false}
@@ -146,9 +134,14 @@ export function PriceHistoryChart({ priceHistory, series }: Props) {
                 dataKey={s.key}
                 name={s.label}
                 stroke={colorFor(i)}
-                strokeWidth={2.25}
+                strokeWidth={2.5}
                 fill={`url(#${gradientBase}-${i})`}
-                dot={false}
+                dot={
+                  showDots
+                    ? { r: 3, fill: colorFor(i), stroke: theme.surface, strokeWidth: 1.5 }
+                    : false
+                }
+                activeDot={{ r: 4.5, fill: colorFor(i), stroke: theme.surface, strokeWidth: 2 }}
                 connectNulls
                 isAnimationActive={false}
               />
@@ -156,6 +149,12 @@ export function PriceHistoryChart({ priceHistory, series }: Props) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
+      {isLimited ? (
+        <p className="mt-2 text-[13px] leading-relaxed text-arepo-muted">
+          Only limited history is available for this market in the selected view.
+        </p>
+      ) : null}
 
       {/* Non-visual alternative. */}
       <table className="sr-only">

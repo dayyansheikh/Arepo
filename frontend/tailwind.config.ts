@@ -58,12 +58,21 @@ const config: Config = {
         },
       },
       fontFamily: {
+        // Interface + data: modernist neo-grotesque (Geist), Inter fallback.
         sans: [
           "var(--font-geist-sans)",
           "Inter",
           "system-ui",
           "-apple-system",
           "Segoe UI",
+          "sans-serif",
+        ],
+        // Display: geometric sans (Jost) for major titles and hero headings only.
+        display: [
+          "var(--font-display)",
+          "Futura",
+          "Century Gothic",
+          "system-ui",
           "sans-serif",
         ],
         mono: [

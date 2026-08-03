@@ -21,7 +21,7 @@ from ..clients.errors import AstrolabeClientError, NotFound
 from ..clients.gamma import GammaClient
 from ..config import Settings, get_settings
 from ..domain.enums import ConnState, DataMode
-from ..domain.models import Market, OrderBook, SourceHealth
+from ..domain.models import Market, OrderBook, PricePoint, SourceHealth
 from ..ingest.normalize import (
     normalize_book,
     normalize_events_to_markets,
@@ -39,6 +39,10 @@ class TokenData:
     book: OrderBook | None
     volumes: list[float]
     captured_at: datetime | None
+    # Timestamped history where the source has real per-point times (live/cached).
+    # Kept alongside ``prices`` (values only) so analytics stay unchanged while the
+    # chart can plot against a genuine time axis instead of collapsing to one point.
+    price_points: list[PricePoint] | None = None
 
 
 class DataSource(Protocol):
@@ -109,11 +113,13 @@ class LiveSource:
     async def get_token_data(self, market_id: str, token_id: str) -> TokenData:
         book: OrderBook | None = None
         prices: list[float] = []
+        points: list[PricePoint] = []
         try:
             raw_book = await self._clob.get_book(token_id)
             book = normalize_book(token_id, raw_book)
             raw_hist = await self._clob.get_prices_history(token_id, interval="1d", fidelity=10)
-            prices = [pp.p for pp in normalize_price_history(raw_hist)]
+            points = normalize_price_history(raw_hist)
+            prices = [pp.p for pp in points]
             self._rest_health = SourceHealth(
                 name="clob_rest", state=ConnState.CONNECTED, last_success=_now()
             )
@@ -128,7 +134,9 @@ class LiveSource:
         except Exception as exc:  # noqa: BLE001 - belt-and-suspenders: never crash enrichment
             logger.warning("live token data error", extra={"ctx_error": str(exc)})
         captured = book.timestamp if book else None
-        return TokenData(prices=prices, book=book, volumes=[], captured_at=captured)
+        return TokenData(
+            prices=prices, book=book, volumes=[], captured_at=captured, price_points=points
+        )
 
     async def health(self) -> tuple[SourceHealth, SourceHealth]:
         # REST health tracked; the live WS runs in the ingestion pipeline (reported separately).
@@ -171,10 +179,12 @@ class CachedSource:
             snap = await repo.latest_snapshot(token_id)
             series = await repo.price_series(token_id)
             prices = [p for _, p in series]
+            points = [PricePoint(t=ts, p=p) for ts, p in series]
             book = snap.book if snap else None
             return TokenData(
                 prices=prices, book=book, volumes=[],
                 captured_at=snap.captured_at if snap else None,
+                price_points=points,
             )
 
     async def health(self) -> tuple[SourceHealth, SourceHealth]:

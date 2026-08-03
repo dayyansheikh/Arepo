@@ -89,6 +89,155 @@ def _parse_datetime(value: Any) -> datetime | None:
     return None
 
 
+def _padded_tag(tag: str) -> str:
+    """Lower-case a tag and pad it with spaces so short keywords can match as whole words
+    (e.g. keyword " ai " matches tag "AI" but not "Fairtrade")."""
+    return f" {tag.lower().strip()} "
+
+
+def _keyword_in_tag(tag: str, keywords: tuple[str, ...]) -> bool:
+    padded = _padded_tag(tag)
+    return any(kw in padded for kw in keywords)
+
+
+# Ordered broad categories: each tag is tested against these, in order, and the first
+# category whose keyword set matches wins. Deliberately conservative — real Polymarket/Gamma
+# tag labels (e.g. "NFL", "Politics", "Bitcoin") are expected to match directly; anything
+# that matches nothing here falls back to the market's own first tag label, never a
+# fabricated placeholder such as "Unknown".
+_CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "Sports": (
+        "sports", "nfl", "nba", "mlb", "nhl", "ncaa", "soccer", "football",
+        "basketball", "baseball", "hockey", "tennis", "golf", "mma", "ufc",
+        "boxing", "cricket", "rugby", "esports", "olympics", "nascar",
+        "formula 1", "formula1", " f1", "premier league", "champions league",
+    ),
+    "Politics": (
+        "politics", "election", "senate", "congress", "president", "geopolitics",
+        "government", "policy",
+    ),
+    "Crypto": (
+        "crypto", "bitcoin", "ethereum", "solana", "defi", " btc", " eth",
+    ),
+    "Economy": (
+        "economy", "economics", "fed", "federal reserve", "inflation",
+        "interest rate", "business", "finance",
+    ),
+    "Entertainment": (
+        "entertainment", "movies", "film", "television", " tv ", "music",
+        "awards", "oscars", "pop culture", "celebrity",
+    ),
+    "Science & Technology": (
+        "science", "technology", " tech", "artificial intelligence", " ai ", "space",
+    ),
+    "Weather": (
+        "weather", "climate", "hurricane",
+    ),
+}
+
+# Reliable single-tag -> canonical sport labels. Only unambiguous league/sport names are
+# mapped; ambiguous tags (e.g. plain "Football", which could mean NFL or association
+# football depending on region) are deliberately excluded so we never guess.
+_SPORT_TAG_KEYWORDS: dict[str, str] = {
+    "nfl": "NFL",
+    "nba": "NBA",
+    "mlb": "MLB",
+    "nhl": "NHL",
+    "mls": "Soccer",
+    "soccer": "Soccer",
+    "tennis": "Tennis",
+    "atp": "Tennis",
+    "wta": "Tennis",
+    "golf": "Golf",
+    "pga": "Golf",
+    "mma": "MMA",
+    "ufc": "MMA",
+    "boxing": "Boxing",
+    "cricket": "Cricket",
+    "rugby": "Rugby",
+    "basketball": "Basketball",
+    "baseball": "Baseball",
+    "hockey": "Hockey",
+    "nascar": "NASCAR",
+    "formula 1": "Formula 1",
+    "formula1": "Formula 1",
+    "esports": "Esports",
+}
+
+# Reliable competition/league-grouping tags. Only exact, well-known competition names are
+# mapped; anything not covered here is left unset rather than guessed.
+_COMPETITION_TAG_KEYWORDS: dict[str, str] = {
+    "premier league": "Premier League",
+    "champions league": "UEFA Champions League",
+    "la liga": "La Liga",
+    "serie a": "Serie A",
+    "bundesliga": "Bundesliga",
+    "ligue 1": "Ligue 1",
+    "world cup": "World Cup",
+    "super bowl": "Super Bowl",
+    "march madness": "March Madness",
+    "the masters": "The Masters",
+    "wimbledon": "Wimbledon",
+    "us open": "US Open",
+    "ryder cup": "Ryder Cup",
+    "stanley cup": "Stanley Cup",
+    "world series": "World Series",
+}
+
+
+def derive_category(tag_labels: list[str] | None) -> str | None:
+    """Map event tag labels to a clean, broad category.
+
+    Conservative by design: a tag is matched against a small set of known keyword groups
+    (see ``_CATEGORY_KEYWORDS``). If none match, the market's own first tag label is kept
+    as-is (it is real data, just not bucketed). If there are no tags at all, ``None`` is
+    returned. This function never invents or returns a placeholder such as "Unknown".
+    """
+    if not tag_labels:
+        return None
+    for tag in tag_labels:
+        if not tag:
+            continue
+        for category, keywords in _CATEGORY_KEYWORDS.items():
+            if _keyword_in_tag(tag, keywords):
+                return category
+    return tag_labels[0]
+
+
+def derive_sport(tag_labels: list[str] | None) -> str | None:
+    """Derive a specific sport/league label (e.g. "NFL") only where tags reliably say so.
+
+    Returns ``None`` (never a guess) when no tag maps to a known, unambiguous sport.
+    """
+    if not tag_labels:
+        return None
+    for tag in tag_labels:
+        if not tag:
+            continue
+        padded = _padded_tag(tag)
+        for keyword, sport in _SPORT_TAG_KEYWORDS.items():
+            if keyword in padded:
+                return sport
+    return None
+
+
+def derive_competition(tag_labels: list[str] | None) -> str | None:
+    """Derive a specific competition/league grouping only where tags reliably say so.
+
+    Returns ``None`` (never a guess) when no tag maps to a known competition.
+    """
+    if not tag_labels:
+        return None
+    for tag in tag_labels:
+        if not tag:
+            continue
+        padded = _padded_tag(tag)
+        for keyword, competition in _COMPETITION_TAG_KEYWORDS.items():
+            if keyword in padded:
+                return competition
+    return None
+
+
 def _derive_status(raw: dict) -> MarketStatus:
     """Derive lifecycle status from Gamma's active/closed/archived boolean flags.
 
@@ -156,6 +305,8 @@ def normalize_market(
             enable_order_book=bool(raw.get("enableOrderBook", False)),
             category=category,
             tags=list(tags) if tags else [],
+            sport=derive_sport(tags),
+            competition=derive_competition(tags),
             volume=_first_float(raw, "volumeNum", "volume"),
             volume_24hr=_first_float(raw, "volume24hrNum", "volume24hr"),
             liquidity=_first_float(raw, "liquidityNum", "liquidity"),
@@ -192,7 +343,7 @@ def normalize_events_to_markets(raw_events: list[dict]) -> list[Market]:
         if not isinstance(event, dict):
             continue
         tag_labels = _extract_tag_labels(event.get("tags"))
-        category = tag_labels[0] if tag_labels else None
+        category = derive_category(tag_labels)
         for raw_market in event.get("markets") or []:
             market = normalize_market(raw_market, category=category, tags=tag_labels)
             if market is not None:

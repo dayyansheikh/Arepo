@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { displayFont } from "./fonts";
 import "./globals.css";
 import { ModeProvider } from "@/lib/mode-context";
 import { TopBar } from "@/components/TopBar";
@@ -20,7 +21,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html
+      lang="en-GB"
+      className={`${GeistSans.variable} ${GeistMono.variable} ${displayFont.variable}`}
+    >
       <body className="font-sans min-h-screen flex flex-col">
         <Suspense fallback={null}>
           <ModeProvider>
