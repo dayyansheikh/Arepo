@@ -38,6 +38,18 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
+**Opportunity Intelligence & Alerting pass STARTING** (branch `arepo-opportunity-alerts`,
+from the pushed `arepo-signal-refinement` at 77ec2b3). Data verified: trade-level + wallet
+data available read-only via `data-api.polymarket.com/trades` (see DECISIONS O2).
+Architecture chosen (DECISIONS O1): Opportunity Board as home, Explore Markets retained,
+Signal Lab as deep analysis. Building: trade-flow/wallet/timing indicators + evidence
+families, Research Priority score, Opportunity Board (backend+frontend), full-universe
+search repair + company/ticker aliases, daily immutable snapshot, provider-neutral email
+alerts (console sink default, external disabled). Recovery: previous branch pushed; roll
+back within this branch with git; `arepo-ui-v1` tag still the deep safety point.
+
+## (previous) Current phase
+
 **Signal & Historical Refinement pass COMPLETE** (branch `arepo-signal-refinement`, from
 the completed Master Final Refinement at 76f0db2; recovery tag `arepo-ui-v1` still valid).
 All ten workstreams delivered, browser-verified, and committed: nav (non-scrolling),

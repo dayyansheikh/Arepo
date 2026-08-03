@@ -2,6 +2,24 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Opportunity Intelligence & Alerting pass (branch `arepo-opportunity-alerts`)
+- [x] Confirm branch + prior branch pushed; investigate trade/wallet data (DECISIONS O2)
+- [x] Choose information architecture (DECISIONS O1)
+- [ ] Data API client (trades, wallet history) + robustness
+- [ ] Flow/wallet/timing indicators: large relative trade, consensus-opposing flow,
+      late large trade, concentrated flow, clustered trades, limited activity history
+- [ ] Evidence-family model + Research Priority score (fixed weights, >=2 family rule)
+- [ ] Tags with tooltip/explanation/methodology link/timestamp/data-quality
+- [ ] Opportunity Board backend (top-30) + frontend (new home) + nav restructure
+- [ ] Explore Markets (rename) retained
+- [ ] Search repair: full-universe discovery + company/ticker alias layer (Microsoft/MSFT)
+- [ ] Daily immutable snapshot (top-30) + idempotency
+- [ ] Email alerts: provider-neutral, console sink, disabled external, dedup/cooldown/
+      history/retry/failure-log/disable/test-mode; eligibility + wording
+- [ ] Tests (indicators, evidence families, search, snapshot immutability, alert
+      eligibility/wording/dedup/cooldown/provider-failure/no-secrets/no-look-ahead)
+- [ ] Full QA, independent review + fixes, docs, push
+
 ## Signal & Historical Refinement pass (branch `arepo-signal-refinement`)
 - [x] Investigate historical data availability (dense/real; see DECISIONS S1)
 - [x] Navigation: remove horizontal scroll, spread items, stable full-width desktop

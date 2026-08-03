@@ -5,6 +5,46 @@ Newest entries at the top of each section.
 
 ---
 
+## Opportunity Intelligence & Alerting (branch `arepo-opportunity-alerts`)
+
+### O1. Information architecture: Opportunity Board as home, Explore Markets retained
+Chosen structure (spec §3, close to Option A). The home page (`/`) becomes the
+**Opportunity Board**: a focused, selective default answering "which markets deserve
+attention today", showing up to the top 30 by a transparent **Research Priority** score,
+each card explaining why it appears and linking to the market analysis page. The old
+Overview is replaced by the Board (its top-movers/most-active content is superseded and
+would duplicate the Board). **Explore Markets** (`/markets`, relabelled) is retained for
+broad browsing and the repaired full-universe search. **Signal Lab** stays as the deeper,
+market-linked per-signal analysis. No information is duplicated across pages; every signal
+links to a real market; every board card explains its appearance. Nav order: Board,
+Explore Markets, Signal Lab, Replay, How It Works, Methodology.
+
+### O2. Trade-level and wallet data are available read-only (verified)
+`data-api.polymarket.com/trades?market=<conditionId>` returns real trades (proxyWallet,
+side, size, price, timestamp, outcome), up to 1000 per call; `/trades?user=<wallet>`
+returns a wallet's cross-market history. This genuinely supports the flow, wallet-
+concentration, and timing indicators (large relative trade, consensus-opposing flow, late
+large trade, concentrated flow, clustered trades, limited public activity history). Where
+an indicator's data is thin or absent, it degrades confidence and is labelled, never
+fabricated (spec §5). Wallet labels stay neutral ("Limited public activity history"),
+never "insider/suspicious/manipulated" (spec §6).
+
+### O3. Evidence families and the high-priority two-family rule
+Independent evidence families: price, trade-flow, order-book/liquidity, wallet
+concentration, timing, cross-market. The Research Priority score combines standardised,
+capped indicators with fixed documented weights (no fitting to outcomes); a high-priority
+alert normally requires >= 2 independent families firing (spec §5.5), preserving the prior
+causal-selection and book-only safeguards.
+
+### O4. Email is provider-neutral and disabled by default
+A provider interface with a console/outbox sink as default; external sending stays disabled
+until `ALERT_EMAIL_ENABLED` + provider credentials are configured via env vars (never
+hardcoded). Recipient env var prepared for dayyansheikh.work@gmail.com. Dedup, per-market
+cooldown, alert history, retry, failure logging, disable control and test mode included.
+Alerts are honest, non-personalised research signals, never "buy/sell/stake" (spec §10).
+
+---
+
 ## Signal & Historical Refinement (branch `arepo-signal-refinement`)
 
 ### S7. Independent-review fixes: causal historical selection + material price-context floor
