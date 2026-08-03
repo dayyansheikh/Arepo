@@ -1,31 +1,462 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useAsync } from "@/lib/use-async";
-import { getBacktest } from "@/lib/api";
-import type { BacktestEvent } from "@/lib/types";
-import { formatPercent, formatSignedPercent, formatZScore, formatPrice } from "@/lib/format";
-import { ErrorState } from "@/components/ErrorState";
+import {
+  getBacktest,
+  getCohort,
+  getCohortProvenance,
+  getCohortWeeks,
+} from "@/lib/api";
+import type {
+  BacktestEvent,
+  CohortDetail,
+  CohortEntry,
+  CohortWeek,
+  ProvenanceInfo,
+} from "@/lib/types";
+import {
+  formatPercent,
+  formatPrice,
+  formatSignedPercent,
+  formatZScore,
+  formatDate,
+} from "@/lib/format";
+import { friendlyComponentName } from "@/lib/signal-labels";
+import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { ListSkeleton } from "@/components/Skeletons";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
-import { SectionLabel, Disclose, StatTile, Badge } from "@/components/ui";
+import { PageHeader, SectionTitle, Disclose, StatTile, Badge } from "@/components/ui";
 import { MetricHelp } from "@/components/MetricHelp";
 
-// Horizon is measured in dataset frames (each frame is one step of the deterministic
-// replay dataset).
-const HORIZON_OPTIONS = [5, 10, 20];
+type View = "movement" | "resolution";
 
-// How long to wait after the user stops dragging a slider before refetching.
-const DEBOUNCE_MS = 300;
+function money(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "n/a";
+  const sign = v < 0 ? "-" : "";
+  return `${sign}$${Math.abs(v).toFixed(2)}`;
+}
 
 export default function ReplayPage() {
-  // Immediate slider values, so the on-screen readout tracks the thumb exactly.
+  const weeksState = useAsync(() => getCohortWeeks(), []);
+  const provenanceState = useAsync<ProvenanceInfo>(() => getCohortProvenance(), []);
+  const weeks = weeksState.data;
+
+  const [selected, setSelected] = useState<string | null>(null);
+  useEffect(() => {
+    if (weeks && weeks.length > 0 && selected === null) {
+      setSelected(`${weeks[0].iso_year}-${weeks[0].iso_week}`);
+    }
+  }, [weeks, selected]);
+
+  const activeWeek: CohortWeek | undefined = useMemo(() => {
+    if (!weeks || selected === null) return undefined;
+    return weeks.find((w) => `${w.iso_year}-${w.iso_week}` === selected);
+  }, [weeks, selected]);
+
+  const cohortState = useAsync<CohortDetail | null>(
+    () =>
+      activeWeek
+        ? getCohort(activeWeek.iso_year, activeWeek.iso_week)
+        : Promise.resolve(null),
+    [activeWeek?.iso_year, activeWeek?.iso_week]
+  );
+
+  const [view, setView] = useState<View>("movement");
+
+  return (
+    <div className="space-y-8">
+      <PageHeader
+        title="Replay"
+        lead="If Arepo had selected these signals at the time, what happened afterwards? Each week Arepo freezes the signals it genuinely would have picked, then tracks them forward. Nothing here is chosen with hindsight."
+      />
+
+      <DisclaimerBanner>
+        Replay evaluates signals Arepo froze prospectively. It is a research record, not
+        trading advice, and past behaviour does not predict future results.
+      </DisclaimerBanner>
+
+      {weeksState.loading && <ListSkeleton rows={5} />}
+      {!weeksState.loading && weeksState.error && <ErrorState message={weeksState.error} />}
+
+      {!weeksState.loading && weeks && weeks.length === 0 && (
+        <EmptyState
+          message={
+            "No cohorts have been recorded yet. Prospective tracking begins at the first " +
+            "run of the weekly evaluation, then a frozen cohort appears here each week."
+          }
+        />
+      )}
+
+      {weeks && weeks.length > 0 && (
+        <>
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-medium text-arepo-ink2">Week</span>
+              <select
+                className="select-arepo w-56"
+                value={selected ?? ""}
+                onChange={(e) => setSelected(e.target.value)}
+              >
+                {weeks.map((w) => (
+                  <option key={w.label} value={`${w.iso_year}-${w.iso_week}`}>
+                    {w.label}
+                    {w.provenance_class !== "prospective"
+                      ? ` (${w.provenance_class})`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {activeWeek && (
+              <p className="text-[13px] text-arepo-muted">
+                Cut-off {formatDate(activeWeek.cutoff_at)} ·{" "}
+                {activeWeek.frozen ? "frozen" : "provisional"} ·{" "}
+                {activeWeek.actual_size} of {activeWeek.target_size} slots
+              </p>
+            )}
+          </div>
+
+          {activeWeek && activeWeek.provenance_class !== "prospective" && (
+            <ProvenanceNotice week={activeWeek} note={cohortState.data?.summary.note} />
+          )}
+
+          {cohortState.loading && <ListSkeleton rows={5} />}
+          {!cohortState.loading && cohortState.error && (
+            <ErrorState message={cohortState.error} />
+          )}
+
+          {!cohortState.loading && cohortState.data && (
+            <CohortView detail={cohortState.data} view={view} setView={setView} />
+          )}
+        </>
+      )}
+
+      <Disclose summary="Show the signal backtest (demonstration dataset)">
+        <BacktestDemo />
+      </Disclose>
+
+      {provenanceState.data && <ProvenanceFootnote info={provenanceState.data} />}
+    </div>
+  );
+}
+
+function ProvenanceNotice({ week, note }: { week: CohortWeek; note?: string | null }) {
+  const label =
+    week.provenance_class === "synthetic" ? "Synthetic demonstration" : "Reconstructed";
+  return (
+    <div className="flex items-start gap-2.5 rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[14px] leading-relaxed text-arepo-ink2">
+      <span className="mt-0.5 inline-flex flex-none items-center rounded-full bg-arepo-ink/8 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-arepo-ink2">
+        {label}
+      </span>
+      <span>
+        {note ??
+          "This cohort is a demonstration, not real prospective performance, and is never mixed into real statistics."}
+      </span>
+    </div>
+  );
+}
+
+function CohortView({
+  detail,
+  view,
+  setView,
+}: {
+  detail: CohortDetail;
+  view: View;
+  setView: (v: View) => void;
+}) {
+  const s = detail.summary;
+  return (
+    <div className="space-y-8">
+      <p className="max-w-reading text-[16px] leading-relaxed text-arepo-ink">
+        {s.plain_summary}
+      </p>
+
+      {/* View switch */}
+      <div
+        className="inline-flex rounded-control border border-arepo-border bg-arepo-surface p-0.5"
+        role="tablist"
+        aria-label="Evaluation view"
+      >
+        {(
+          [
+            ["movement", "Price movement"],
+            ["resolution", "Final resolution"],
+          ] as [View, string][]
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={view === key}
+            onClick={() => setView(key)}
+            className={`focus-ring rounded-[8px] px-3.5 py-1.5 text-[14px] font-medium transition-colors ${
+              view === key
+                ? "bg-arepo-accentTint text-arepo-accentActive"
+                : "text-arepo-muted hover:text-arepo-ink"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === "movement" ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatTile label="Signals selected" value={String(s.selected)} />
+          <StatTile label="Moved as expected" value={String(s.moved_expected)} />
+          <StatTile label="Moved against" value={String(s.moved_against)} />
+          <StatTile label="Pending" value={String(s.movement_pending)} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatTile label="Signals selected" value={String(s.selected)} />
+          <StatTile label="Resolved correct" value={String(s.resolved_correct)} />
+          <StatTile label="Resolved incorrect" value={String(s.resolved_incorrect)} />
+          <StatTile label="Unresolved" value={String(s.unresolved)} />
+        </div>
+      )}
+      <p className="-mt-4 text-[13px] text-arepo-muted">
+        {view === "movement"
+          ? `Price movement is measured at the ${s.movement_horizon} horizon after the freeze. A move in the signalled direction counts as expected; it is not a claim of profitability.`
+          : "Final resolution counts a signal as correct only when the selected outcome ultimately resolved true. Unresolved markets stay pending."}
+      </p>
+
+      <section className="space-y-3">
+        <SectionTitle>Selected signals</SectionTitle>
+        <div className="space-y-3">
+          {detail.entries.map((e) => (
+            <EntryRow key={`${e.market_id}-${e.token_id}`} entry={e} view={view} />
+          ))}
+          {detail.entries.length === 0 && (
+            <EmptyState message="No signals qualified for this week." />
+          )}
+        </div>
+      </section>
+
+      <Portfolio detail={detail} />
+    </div>
+  );
+}
+
+function Verdict({ tone, label }: { tone: "good" | "bad" | "pending"; label: string }) {
+  const icon =
+    tone === "good" ? "✓" : tone === "bad" ? "✗" : "•";
+  const cls =
+    tone === "good"
+      ? "text-arepo-pos"
+      : tone === "bad"
+        ? "text-arepo-neg"
+        : "text-arepo-muted";
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${cls}`}>
+      <span aria-hidden="true">{icon}</span>
+      {label}
+    </span>
+  );
+}
+
+function movementVerdict(e: CohortEntry): { tone: "good" | "bad" | "pending"; label: string } {
+  const mc = e.evaluation?.movement_correct;
+  if (mc === true) return { tone: "good", label: "Moved as expected" };
+  if (mc === false) return { tone: "bad", label: "Moved against" };
+  return { tone: "pending", label: "Pending" };
+}
+
+function resolutionVerdict(e: CohortEntry): { tone: "good" | "bad" | "pending"; label: string } {
+  if (!e.evaluation?.resolved) return { tone: "pending", label: "Pending resolution" };
+  return e.evaluation.resolution_correct
+    ? { tone: "good", label: "Resolved correct" }
+    : { tone: "bad", label: "Resolved incorrect" };
+}
+
+function EntryRow({ entry, view }: { entry: CohortEntry; view: View }) {
+  const v = view === "movement" ? movementVerdict(entry) : resolutionVerdict(entry);
+  const laterPrice =
+    entry.forward.find((f) => f.horizon === "24h")?.price ??
+    entry.forward.find((f) => f.horizon === "7d")?.price ??
+    entry.forward.find((f) => f.horizon === "1h")?.price ??
+    null;
+
+  return (
+    <div className="rounded-card border border-arepo-border bg-arepo-surface p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-tabular text-[13px] text-arepo-muted">#{entry.rank}</span>
+            <span className="font-medium text-arepo-ink">{entry.market_question}</span>
+          </div>
+          <p className="mt-0.5 text-[13px] text-arepo-muted">
+            Selected outcome: {entry.outcome_name}
+            {entry.direction ? ` · expected to move ${entry.direction}` : ""}
+          </p>
+        </div>
+        <Verdict tone={v.tone} label={v.label} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-[13px] sm:grid-cols-4">
+        <Field label="Entry price" value={formatPrice(entry.entry_price)} />
+        <Field
+          label={view === "movement" ? "Later price" : "Latest price"}
+          value={formatPrice(laterPrice)}
+        />
+        <Field
+          label="Signal strength"
+          value={formatPercent(entry.strength, 0)}
+        />
+        <Field label="Data coverage" value={capitalise(entry.data_quality)} />
+      </div>
+
+      <Disclose summary="Why this qualified" className="mt-3">
+        <div className="space-y-3 pt-1 text-[14px] leading-relaxed text-arepo-ink2">
+          <p>
+            This signal cleared the weekly thresholds: valid market status, at least
+            limited data coverage, a usable entry price, and a signal strength of{" "}
+            {formatPercent(entry.strength, 0)} (confidence {formatPercent(entry.confidence, 0)}).
+            {entry.lookback_size
+              ? ` It was measured over a lookback of ${entry.lookback_size} observations.`
+              : ""}
+          </p>
+          {entry.component_scores.length > 0 && (
+            <div>
+              <p className="font-semibold text-arepo-ink">What contributed</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                {entry.component_scores.map((c) => (
+                  <li key={c.name}>
+                    {friendlyComponentName(c.name)}
+                    {c.normalized_value !== null
+                      ? `: ${formatSignedPercent(c.normalized_value, 0)}`
+                      : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {entry.resolution?.resolved && (
+            <p>
+              Final resolution: {entry.resolution.resolved_outcome ?? "resolved"} (
+              {view === "resolution" && entry.evaluation
+                ? entry.evaluation.resolution_correct
+                  ? "the selected outcome won"
+                  : "the selected outcome did not win"
+                : "recorded"}
+              ).
+            </p>
+          )}
+        </div>
+      </Disclose>
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-arepo-muted">{label}</div>
+      <div className="font-tabular font-medium text-arepo-ink">{value}</div>
+    </div>
+  );
+}
+
+function Portfolio({ detail }: { detail: CohortDetail }) {
+  const p = detail.portfolio;
+  return (
+    <section className="space-y-3">
+      <SectionTitle>Hypothetical portfolio</SectionTitle>
+      <p className="max-w-reading text-[14px] leading-relaxed text-arepo-muted">
+        A simulation only, using a fixed stake per signal. It is not real trading and not
+        evidence of future profitability. {p.spread_assumption}
+      </p>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <StatTile label="Stake per signal" value={money(p.stake_per_signal)} />
+        <StatTile label="Total allocated" value={money(p.total_allocated)} />
+        <StatTile label="Realised value" value={money(p.realised_value)} />
+        <StatTile label="Unrealised value" value={money(p.unrealised_value)} />
+        <StatTile label="Pending value" value={money(p.pending_value)} />
+        <StatTile
+          label="Completed return"
+          value={money(p.completed_return)}
+          emphasis
+        />
+      </div>
+      <p className="text-[13px] text-arepo-muted">
+        {p.completed_positions} completed position(s), {p.pending_positions} still open or
+        pending.
+      </p>
+
+      <Disclose summary="Show the positions">
+        <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-[13px]">
+              <thead>
+                <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
+                  <th className="px-4 py-3 font-semibold">Market</th>
+                  <th className="px-4 py-3 font-semibold">Outcome</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Entry</th>
+                  <th className="px-4 py-3 font-semibold">Exit</th>
+                  <th className="px-4 py-3 font-semibold">Value</th>
+                  <th className="px-4 py-3 font-semibold">Return</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-arepo-border font-tabular">
+                {p.positions.map((pos) => (
+                  <tr key={pos.rank}>
+                    <td className="px-4 py-2.5 font-sans text-arepo-ink">
+                      {pos.market_question}
+                    </td>
+                    <td className="px-4 py-2.5 font-sans">{pos.outcome_name}</td>
+                    <td className="px-4 py-2.5 font-sans">
+                      <Badge tone={pos.status === "completed" ? "good" : "neutral"}>
+                        {pos.status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5">{formatPrice(pos.entry_price)}</td>
+                    <td className="px-4 py-2.5">{formatPrice(pos.exit_price)}</td>
+                    <td className="px-4 py-2.5">{money(pos.value)}</td>
+                    <td className="px-4 py-2.5">{money(pos.pnl)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Disclose>
+    </section>
+  );
+}
+
+function ProvenanceFootnote({ info }: { info: ProvenanceInfo }) {
+  return (
+    <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
+      {info.note}{" "}
+      {info.first_prospective_week
+        ? `Prospective tracking began in ${info.first_prospective_week}.`
+        : "Prospective tracking has not started yet."}{" "}
+      Calculation version {info.calculation_version}. See the{" "}
+      <Link href="/methodology" className="underline hover:text-arepo-ink">
+        methodology
+      </Link>{" "}
+      for the full evaluation rules.
+    </p>
+  );
+}
+
+function capitalise(s: string): string {
+  return s ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+// ---------------------------------------------------------------------------------------
+// Preserved deterministic signal backtest (a demonstration dataset, not live markets).
+// ---------------------------------------------------------------------------------------
+const HORIZON_OPTIONS = [5, 10, 20];
+const DEBOUNCE_MS = 300;
+
+function BacktestDemo() {
   const [strengthInput, setStrengthInput] = useState(0.6);
   const [moveInput, setMoveInput] = useState(0.03);
   const [horizon, setHorizon] = useState(5);
-
-  // Debounced copies: these are what actually drive the refetch, so dragging a
-  // slider doesn't fire a request on every pixel of movement.
   const [strengthThreshold, setStrengthThreshold] = useState(strengthInput);
   const [moveThreshold, setMoveThreshold] = useState(moveInput);
 
@@ -33,209 +464,92 @@ export default function ReplayPage() {
     const t = setTimeout(() => setStrengthThreshold(strengthInput), DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [strengthInput]);
-
   useEffect(() => {
     const t = setTimeout(() => setMoveThreshold(moveInput), DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [moveInput]);
 
   const { data, loading, error } = useAsync(
-    () =>
-      getBacktest({
-        strength_threshold: strengthThreshold,
-        move_threshold: moveThreshold,
-        horizon,
-      }),
+    () => getBacktest({ strength_threshold: strengthThreshold, move_threshold: moveThreshold, horizon }),
     [strengthThreshold, moveThreshold, horizon]
   );
 
-  const hits = data
-    ? data.hit_rate !== null
-      ? Math.round(data.hit_rate * data.evaluated)
-      : data.events.filter((e) => e.followed_through === true).length
-    : 0;
-
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-[30px] font-semibold tracking-[-0.01em] text-arepo-ink">
-          Replay &amp; backtest
-        </h1>
-        <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-muted">
-          See how often a signal was followed by a real price move, on a fixed demonstration
-          dataset with a look-ahead-safe evaluation window.
-        </p>
-      </div>
-
-      <div className="panel space-y-2 p-6">
-        <h2 className="text-base font-semibold text-arepo-ink">What this page shows</h2>
-        <ul className="max-w-reading list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-arepo-ink2">
-          <li>Replay runs against a fixed sample dataset, not live markets.</li>
-          <li>A signal is generated at one point in time, using only data available up to that moment.</li>
-          <li>The system then checks what happened afterwards, over a set number of frames.</li>
-          <li>The controls below change how selective the signal is: stricter settings mean fewer signals.</li>
-          <li>A hit means the price moved as expected afterwards. It does not mean a trade based on it would have been profitable.</li>
-          <li>This page demonstrates how to evaluate a signal. It is not evidence of predictive advantage.</li>
-        </ul>
-      </div>
-
-      <form
-        className="panel grid grid-cols-1 gap-6 p-6 sm:grid-cols-3 sm:items-start"
-        onSubmit={(e) => e.preventDefault()}
-      >
-        <div className="space-y-3">
-          <label htmlFor="strength" className="flex items-center justify-between gap-2 text-[13px] font-medium text-arepo-ink">
+    <div className="space-y-5 pt-2">
+      <p className="max-w-reading text-[14px] leading-relaxed text-arepo-muted">
+        This runs against a fixed sample dataset, not live markets, with a look-ahead-safe
+        window. It demonstrates how to evaluate a signal. It is not evidence of predictive
+        advantage and is separate from the prospective cohorts above.
+      </p>
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+        <div className="space-y-2">
+          <label htmlFor="bt-strength" className="flex items-center justify-between text-[13px] font-medium text-arepo-ink">
             <span className="flex items-center gap-1">
               Minimum signal strength
               <MetricHelp metric="threshold" showTerm={false} />
             </span>
-            <span className="font-tabular text-arepo-accentActive">
-              {formatPercent(strengthInput, 0)}
-            </span>
+            <span className="font-tabular text-arepo-accentActive">{formatPercent(strengthInput, 0)}</span>
           </label>
-          <input
-            id="strength"
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={strengthInput}
-            onChange={(e) => setStrengthInput(Number(e.target.value))}
-            className="slider-arepo"
-          />
+          <input id="bt-strength" type="range" min={0} max={1} step={0.01} value={strengthInput}
+            onChange={(e) => setStrengthInput(Number(e.target.value))} className="slider-arepo" />
         </div>
-
-        <div className="space-y-3">
-          <label htmlFor="move" className="flex items-center justify-between gap-2 text-[13px] font-medium text-arepo-ink">
+        <div className="space-y-2">
+          <label htmlFor="bt-move" className="flex items-center justify-between text-[13px] font-medium text-arepo-ink">
             <span className="flex items-center gap-1">
               Required later movement
               <MetricHelp metric="movement" showTerm={false} />
             </span>
-            <span className="font-tabular text-arepo-accentActive">
-              {formatPercent(moveInput, 1)}
-            </span>
+            <span className="font-tabular text-arepo-accentActive">{formatPercent(moveInput, 1)}</span>
           </label>
-          <input
-            id="move"
-            type="range"
-            min={0}
-            max={0.1}
-            step={0.005}
-            value={moveInput}
-            onChange={(e) => setMoveInput(Number(e.target.value))}
-            className="slider-arepo"
-          />
+          <input id="bt-move" type="range" min={0} max={0.1} step={0.005} value={moveInput}
+            onChange={(e) => setMoveInput(Number(e.target.value))} className="slider-arepo" />
         </div>
-
-        <div className="space-y-3">
-          <label htmlFor="horizon" className="flex items-center gap-1 text-[13px] font-medium text-arepo-ink">
+        <div className="space-y-2">
+          <label htmlFor="bt-horizon" className="flex items-center gap-1 text-[13px] font-medium text-arepo-ink">
             How far ahead to check
             <MetricHelp metric="evaluation-horizon" showTerm={false} />
           </label>
-          <select
-            id="horizon"
-            className="select-arepo"
-            value={horizon}
-            onChange={(e) => setHorizon(Number(e.target.value))}
-          >
+          <select id="bt-horizon" className="select-arepo" value={horizon}
+            onChange={(e) => setHorizon(Number(e.target.value))}>
             {HORIZON_OPTIONS.map((h) => (
-              <option key={h} value={h}>
-                {h} frames
-              </option>
+              <option key={h} value={h}>{h} frames</option>
             ))}
           </select>
         </div>
-      </form>
+      </div>
 
-      {loading && <ListSkeleton rows={6} />}
+      {loading && <ListSkeleton rows={4} />}
       {!loading && error && <ErrorState message={error} />}
-
       {!loading && data && (
         <>
-          <div className="space-y-1">
-            <p className="max-w-reading text-sm leading-relaxed text-arepo-ink">
-              With these settings, <span className="font-semibold">{data.sample_size}</span>{" "}
-              signals were tested. <span className="font-semibold">{hits}</span> were followed
-              by a move in the expected direction.
-            </p>
-            <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
-              A hit means the price followed through in the signalled direction within the
-              horizon. It is not a claim that a trade based on it would have been profitable.
-            </p>
-          </div>
-
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <StatTile
-              label="Sample size"
-              help={<MetricHelp metric="sample-size" showTerm={false} />}
-              value={String(data.sample_size)}
-            />
+            <StatTile label="Sample size" value={String(data.sample_size)} />
             <StatTile label="Evaluated" value={String(data.evaluated)} />
-            <StatTile
-              label="Hit rate"
-              help={<MetricHelp metric="hit-rate" showTerm={false} />}
-              value={formatPercent(data.hit_rate)}
-              emphasis
-            />
-            <StatTile
-              label="False positive rate"
-              help={<MetricHelp metric="false-positive-rate" showTerm={false} />}
-              value={formatPercent(data.false_positive_rate)}
-            />
-            <StatTile
-              label="Average forward move"
-              help={<MetricHelp metric="average-forward-move" showTerm={false} />}
-              value={formatSignedPercent(data.avg_forward_move_directional)}
-            />
+            <StatTile label="Hit rate" value={formatPercent(data.hit_rate)}
+              help={<MetricHelp metric="hit-rate" showTerm={false} />} />
+            <StatTile label="False positive rate" value={formatPercent(data.false_positive_rate)}
+              help={<MetricHelp metric="false-positive-rate" showTerm={false} />} />
+            <StatTile label="Average forward move" value={formatSignedPercent(data.avg_forward_move_directional)}
+              help={<MetricHelp metric="average-forward-move" showTerm={false} />} />
             <StatTile label="Missing observations" value={String(data.missing_observations)} />
           </div>
-
           <Disclose summary="Show the tested signals">
-            <EventsTable events={data.events} />
-            <p className="mt-3 text-[13px] text-arepo-muted">
-              Horizon {data.horizon} frames &middot; z-score window {data.zscore_window} frames
-              &middot; minimum history {data.min_history} frames.
-            </p>
-          </Disclose>
-
-          <Disclose summary="Assumptions and limitations">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <SectionLabel>Assumptions</SectionLabel>
-                <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-arepo-muted">
-                  {data.assumptions.map((a, i) => (
-                    <li key={i}>{a}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <SectionLabel>Limitations</SectionLabel>
-                <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-arepo-muted">
-                  {data.limitations.map((l, i) => (
-                    <li key={i}>{l}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+            <BacktestTable events={data.events} />
           </Disclose>
         </>
       )}
-
-      <DisclaimerBanner />
     </div>
   );
 }
 
-/** The full per-signal outcome table behind "Show the tested signals". */
-function EventsTable({ events }: { events: BacktestEvent[] }) {
+function BacktestTable({ events }: { events: BacktestEvent[] }) {
   return (
     <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[640px] text-[13px]">
           <thead>
             <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
               <th className="px-4 py-3 font-semibold">Market</th>
-              <th className="px-4 py-3 font-semibold">Frame</th>
               <th className="px-4 py-3 font-semibold">Strength</th>
               <th className="px-4 py-3 font-semibold">Z-score</th>
               <th className="px-4 py-3 font-semibold">Direction</th>
@@ -248,19 +562,18 @@ function EventsTable({ events }: { events: BacktestEvent[] }) {
             {events.map((ev, i) => (
               <tr key={`${ev.market_id}-${ev.token_id}-${i}`}>
                 <td className="px-4 py-2.5 font-sans text-arepo-ink">{ev.market_id}</td>
-                <td className="px-4 py-2.5">{ev.frame}</td>
                 <td className="px-4 py-2.5">{formatPercent(ev.strength, 0)}</td>
                 <td className="px-4 py-2.5">{formatZScore(ev.zscore)}</td>
-                <td className="px-4 py-2.5">
-                  {ev.direction === "up" && <span className="font-medium text-arepo-pos">Up</span>}
-                  {ev.direction === "down" && <span className="font-medium text-arepo-neg">Down</span>}
-                  {!ev.direction && <span className="text-arepo-muted">&mdash;</span>}
+                <td className="px-4 py-2.5 font-sans">
+                  {ev.direction === "up" && <span className="text-arepo-pos">Up</span>}
+                  {ev.direction === "down" && <span className="text-arepo-neg">Down</span>}
+                  {!ev.direction && <span className="text-arepo-muted">n/a</span>}
                 </td>
                 <td className="px-4 py-2.5">{formatPrice(ev.entry_price)}</td>
                 <td className="px-4 py-2.5">{formatPrice(ev.forward_price)}</td>
                 <td className="px-4 py-2.5 font-sans">
                   {ev.followed_through === null ? (
-                    <span className="text-arepo-muted">&mdash;</span>
+                    <span className="text-arepo-muted">n/a</span>
                   ) : (
                     <Badge tone={ev.followed_through ? "good" : "neutral"}>
                       {ev.followed_through ? "Yes" : "No"}
@@ -271,7 +584,7 @@ function EventsTable({ events }: { events: BacktestEvent[] }) {
             ))}
             {events.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center font-sans text-arepo-muted">
+                <td colSpan={7} className="px-4 py-8 text-center font-sans text-arepo-muted">
                   No events matched these thresholds.
                 </td>
               </tr>

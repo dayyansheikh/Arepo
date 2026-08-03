@@ -39,10 +39,10 @@ Prior redesign + original build tasks are complete; history is in git and older
 - [x] 13 required evaluation tests
 
 ## Phase 3 — Replay redesign (frontend)
-- [ ] Replay page consumes cohort API; week picker; provisional vs frozen
-- [ ] Price-movement vs final-resolution views; pending/correct/incorrect
-- [ ] Portfolio assumptions; plain summary with denominator + pending + horizon
-- [ ] Provenance / synthetic-vs-real separation
+- [x] Replay page consumes cohort API; week picker; provisional vs frozen
+- [x] Price-movement vs final-resolution views; pending/correct/incorrect
+- [x] Portfolio assumptions; plain summary with denominator + pending + horizon
+- [x] Provenance / synthetic-vs-real separation
 
 ## Phase 4 — QA, a11y, docs, packaging
 - [ ] Accessibility pass (contrast, focus, keyboard, non-colour cues, reduced motion)

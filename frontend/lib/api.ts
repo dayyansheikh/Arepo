@@ -1,5 +1,7 @@
 import type {
   BacktestResponse,
+  CohortDetail,
+  CohortWeek,
   DataMode,
   DataStatus,
   MarketDetailResponse,
@@ -7,6 +9,7 @@ import type {
   MarketsResponse,
   MetaResponse,
   OverviewResponse,
+  ProvenanceInfo,
   ReplayScenarioResponse,
   SignalsResponse,
 } from "./types";
@@ -130,4 +133,18 @@ export function getBacktest(params: GetBacktestParams): Promise<BacktestResponse
 
 export function getReplayScenario(): Promise<ReplayScenarioResponse> {
   return apiFetch<ReplayScenarioResponse>("/api/replay/scenario");
+}
+
+// -- Prospective cohort evaluation ------------------------------------------------------
+
+export function getCohortWeeks(): Promise<CohortWeek[]> {
+  return apiFetch<CohortWeek[]>("/api/cohorts/weeks");
+}
+
+export function getCohortProvenance(): Promise<ProvenanceInfo> {
+  return apiFetch<ProvenanceInfo>("/api/cohorts/provenance");
+}
+
+export function getCohort(isoYear: number, isoWeek: number): Promise<CohortDetail> {
+  return apiFetch<CohortDetail>(`/api/cohorts/${isoYear}/${isoWeek}`);
 }
