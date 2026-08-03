@@ -169,6 +169,40 @@ class PricePoint(DomainModel):
         return max(0.0, min(1.0, float(v)))
 
 
+class Trade(DomainModel):
+    """One public trade from the Polymarket Data API (read-only).
+
+    ``wallet`` is the public proxy-wallet address as returned by the API; Arepo only ever uses
+    it for neutral aggregate measures (concentration, activity breadth) and never labels a
+    wallet as insider/suspicious/manipulated.
+    """
+
+    wallet: str
+    side: str                                 # "BUY" | "SELL"
+    token_id: str                             # asset id (one outcome token)
+    size: float                               # contracts (>= 0)
+    price: float                              # in [0, 1]
+    timestamp: datetime
+    outcome_index: int | None = None
+    outcome: str | None = None
+    tx_hash: str | None = None
+
+    @field_validator("size")
+    @classmethod
+    def _size_nonneg(cls, v: float) -> float:
+        return max(0.0, float(v))
+
+    @field_validator("price")
+    @classmethod
+    def _price_range(cls, v: float) -> float:
+        return max(0.0, min(1.0, float(v)))
+
+    @property
+    def notional(self) -> float:
+        """Approximate cash value of the trade (size x price), in the quote unit."""
+        return self.size * self.price
+
+
 class MarketSnapshot(DomainModel):
     """Everything analytics needs about one token at one instant."""
 

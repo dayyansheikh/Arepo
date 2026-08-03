@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from ..domain.enums import MarketStatus
-from ..domain.models import BookLevel, Market, OrderBook, Outcome, PricePoint, utcnow
+from ..domain.models import BookLevel, Market, OrderBook, Outcome, PricePoint, Trade, utcnow
 
 # --------------------------------------------------------------------------------------
 # Small coercion helpers
@@ -436,3 +436,44 @@ def normalize_price_history(raw_history: list[dict]) -> list[PricePoint]:
         except Exception:  # noqa: BLE001
             continue
     return points
+
+
+def normalize_trades(raw: Any) -> list[Trade]:
+    """Normalize raw Data API ``/trades`` items into typed :class:`Trade` models.
+
+    Skips malformed rows rather than raising, so one bad item never loses a whole page.
+    Timestamps are Unix seconds. Returns trades in the order given (the API returns them
+    newest-first).
+    """
+    if not isinstance(raw, list):
+        return []
+    out: list[Trade] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        wallet = item.get("proxyWallet")
+        asset = item.get("asset")
+        ts = item.get("timestamp")
+        if not wallet or not asset or ts is None:
+            continue
+        try:
+            t = datetime.fromtimestamp(int(ts), tz=UTC)
+        except (TypeError, ValueError, OSError):
+            continue
+        try:
+            out.append(
+                Trade(
+                    wallet=str(wallet),
+                    side=str(item.get("side", "")).upper(),
+                    token_id=str(asset),
+                    size=float(item.get("size") or 0.0),
+                    price=float(item.get("price") or 0.0),
+                    timestamp=t,
+                    outcome_index=item.get("outcomeIndex"),
+                    outcome=item.get("outcome"),
+                    tx_hash=item.get("transactionHash"),
+                )
+            )
+        except Exception:  # noqa: BLE001 - one malformed trade never breaks the page
+            continue
+    return out
