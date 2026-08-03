@@ -212,3 +212,24 @@ the signal uses only pre-cutoff history and selection never uses today's price (
 `1h`/`6h`/`24h` fetch fine 1-minute resolution; `7d` uses a start/end window; `all` uses the
 full history at 30-minute resolution. Ranges longer than a market's age are hidden. A very
 quiet market can still show a near-flat line over any range, which is the real data.
+
+---
+
+## Opportunity intelligence: data provenance, privacy and interpretation limits
+
+**Data provenance.** Indicators are computed from public, read-only Polymarket data only: Gamma
+market metadata and public search, the CLOB order book and price history, and the public Data
+API trade feed (`/trades`). Nothing private or non-public is used, and no order is ever placed.
+
+**Wallet privacy and neutrality.** Trade data includes public proxy-wallet addresses. Arepo
+uses them only for neutral aggregate measures (concentration shares, distinct-wallet counts,
+activity breadth). It never labels a wallet insider, suspicious, fake or manipulated, never
+profiles an individual, and never asserts intent. "Limited activity history" means only that a
+wallet is active in few other markets, as an aggregate share of flow.
+
+**Interpretation limits.** The Research Priority score ranks how much a market deserves a look;
+it is not expected profit, not a probability of a move, and not advice. Alerts give a research
+interpretation, never buy/sell/stake instructions or a profit promise. Trade-flow indicators
+need Live mode and enough recent trades; below the minimum sample they do not fire. Historical
+order books are not retained, so spread/depth-change components are usually absent. Most markets
+are calm most of the time, so strong multi-family opportunities are rare, which is truthful.

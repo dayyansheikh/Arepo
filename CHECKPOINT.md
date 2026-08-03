@@ -38,15 +38,23 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
-**Opportunity Intelligence & Alerting pass STARTING** (branch `arepo-opportunity-alerts`,
-from the pushed `arepo-signal-refinement` at 77ec2b3). Data verified: trade-level + wallet
-data available read-only via `data-api.polymarket.com/trades` (see DECISIONS O2).
-Architecture chosen (DECISIONS O1): Opportunity Board as home, Explore Markets retained,
-Signal Lab as deep analysis. Building: trade-flow/wallet/timing indicators + evidence
-families, Research Priority score, Opportunity Board (backend+frontend), full-universe
-search repair + company/ticker aliases, daily immutable snapshot, provider-neutral email
-alerts (console sink default, external disabled). Recovery: previous branch pushed; roll
-back within this branch with git; `arepo-ui-v1` tag still the deep safety point.
+**Opportunity Intelligence & Alerting pass COMPLETE** (branch `arepo-opportunity-alerts`,
+from the pushed `arepo-signal-refinement` at 77ec2b3). Delivered and verified: trade-flow/
+wallet/timing indicators (analytics/flow.py) over the public Data API `/trades`; Research
+Priority score + evidence families + tags (opportunity/scoring.py); Opportunity Board
+(/api/opportunity/board + home page) with Explore Markets retained + Signal Lab deep
+analysis (DECISIONS O1); full-universe search + company/ticker aliases (Microsoft/MSFT);
+daily immutable snapshot (idempotent CLI + routes); provider-neutral research email alerts
+(console sink default, external disabled, dedup/cooldown/history/retry/test-mode).
+
+Verified: backend **236 tests pass**, ruff clean, migrations/bootstrap idempotent; frontend
+tsc/lint/build clean (10/10). Browser-verified the Board home, restructured nav, and the
+MSFT full-universe search (returns the 36 real Microsoft markets with alias expansion).
+Screenshots in docs/screenshots/arepo-opportunity-board.jpg. Docs updated (methodology §9b,
+API, limitations + data provenance/privacy, alert-configuration, README, FINAL_STATUS,
+architecture). External email sending stays disabled pending the user's provider credentials.
+
+## (previous) Current phase
 
 ## (previous) Current phase
 

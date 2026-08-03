@@ -641,3 +641,47 @@ real prospective statistics. The committed synthetic demonstration cohort descri
 `docs/portfolio-report.md` and shown in Replay exists purely to demonstrate that the machinery
 works end-to-end (selection, freeze, forward tracking, resolution, portfolio valuation) before
 any real cohort has had time to accumulate a week of history.
+
+---
+
+## 9b. Market-surveillance indicators and the Research Priority score
+
+**Files:** `analytics/flow.py`, `opportunity/scoring.py`, `opportunity/service.py`.
+
+Beyond the composite anomaly score (price and order book), Arepo computes trade-flow, wallet
+and timing indicators from public read-only trades (`data-api.polymarket.com/trades`). Every
+indicator is **market-relative** (judged against the market's own recent trade history),
+**robust** (median / MAD / percentile, so one outlier does not define its own baseline) and
+**sample-gated** (below a minimum number of trades it does not fire and its family is marked
+low quality). Wallet measures are neutral aggregates only; a wallet is never labelled insider,
+suspicious or manipulated.
+
+Indicators and their evidence family:
+
+| Indicator | Family | What it measures |
+|---|---|---|
+| Large relative trade | trade flow | Largest recent trade vs the market's own size distribution (robust z / percentile). |
+| Contrarian (consensus-opposing) flow | trade flow | Share of aggressive notional buying a low-probability outcome or pushing against the recent move. |
+| Clustered trades | trade flow | Several large same-direction trades within a short window. |
+| Concentrated flow | wallet concentration | Top-1 / top-5 wallet share and HHI of recent notional. |
+| Limited activity history | wallet concentration | Share of large flow from wallets active in few other markets (neutral label). |
+| Late large trade | timing | A materially large trade close to the market's close. |
+| Rapid repricing | price | A materially present price-behaviour feature (from the composite). |
+| One-sided book | order book | Lopsided bid/ask depth (never a strong signal on its own; the book-only ceiling still applies). |
+
+**Independent evidence families** are: price, trade flow, order book, wallet concentration,
+timing and cross-market. The score and alert eligibility count *distinct families*, so several
+correlated trade-flow indicators cannot masquerade as independent confirmation.
+
+**Research Priority score** (0-100, deliberately not called expected profit): a weighted
+combination of the families that fired (fixed, documented weights, never fitted to outcomes)
+plus a bonus for the *number* of independent families, then shaped down for poor data quality,
+thin liquidity, wide spread and stale data. A high-priority market normally requires at least
+two independent families. This preserves the prior causal-selection and book-only safeguards.
+No look-ahead: all indicators use only information available at the calculation time.
+
+**Data limits (stated honestly):** most prediction markets are calm most of the time, so on a
+typical day most cards score modestly and are driven by the order book and a few flow signals;
+strong multi-family opportunities are genuinely rare. Historical order-book snapshots are not
+retained, so spread/depth-change components are usually absent. Wallet-history coverage is
+partial. See `docs/limitations.md`.

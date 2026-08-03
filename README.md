@@ -245,3 +245,22 @@ observed output).
 
 Run the historical screen from the API: `GET /api/historical/screen?days=7` (uses live data,
 can take a moment). See `docs/API.md`.
+
+## Opportunity intelligence and alerts (latest pass)
+
+- **Opportunity Board (home):** the default page ranks up to 30 markets by a transparent
+  Research Priority score (not expected profit). Each card explains why it appears, shows the
+  tags that fired, and links to the market analysis. A separate **Explore Markets** view keeps
+  broad browsing and full-universe search.
+- **Market-surveillance indicators** from public read-only trades: large relative trade,
+  consensus-opposing (contrarian) flow, clustered trades, concentrated flow, limited activity
+  history, late large trade, plus rapid repricing and one-sided book. Independent evidence
+  families; wallet measures are neutral aggregates only. See `docs/methodology.md`.
+- **Full-universe search:** `GET /api/markets/search` searches the whole Polymarket universe
+  (questions, descriptions, events, tags, slugs) with company/ticker aliases (Microsoft <->
+  MSFT); honest empty results, never a fabricated market.
+- **Daily immutable snapshot** of the top-30 (`python -m astrolabe.opportunity.cli snapshot`,
+  idempotent).
+- **Research email alerts:** opt-in, provider-neutral, disabled by default (console sink);
+  eligibility, honest non-advisory wording, dedup/cooldown, history, retry, test mode. See
+  `docs/alert-configuration.md`. Recipient env var prepared for dayyansheikh.work@gmail.com.

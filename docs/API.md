@@ -624,3 +624,28 @@ Response (`HistoricalScreen`):
 Selection is causal: the scan set is chosen by trading activity (not price), and the near-mid
 filter is judged on the price at the cut-off, so today's price and later movement cannot change
 which markets are considered.
+
+---
+
+## Opportunity intelligence + search additions
+
+### `GET /api/opportunity/board`
+The Opportunity Board: markets ranked by a transparent Research Priority score (not expected
+profit). Query: `mode`, `top` (default 30), `universe` (candidate markets, default 40).
+Response is an `OpportunityBoard` with `cards[]`; each card carries market, outcome, direction,
+probability, `research_priority` (0-100), signal strength, confidence, `families[]`,
+`n_families`, `high_priority`, `tags[]` (label, family, explanation, methodology_anchor,
+data_quality, timestamp), a short explanation, liquidity + `liquidity_quality`, relative spread,
+`time_remaining_hours`, data quality and data mode. Trade-flow tags need Live mode.
+
+### `GET /api/opportunity/snapshots` and `GET /api/opportunity/snapshot/{date}`
+List the dates for which an immutable daily snapshot exists (newest first), and read one day's
+frozen top-N board (spec section 9). A date is written once and never rewritten. Generate with
+`python -m astrolabe.opportunity.cli snapshot` (idempotent).
+
+### `GET /api/markets/search`
+Full-universe keyword search via Gamma public-search (questions, descriptions, events, tags,
+slugs), expanding common company/ticker aliases (e.g. Microsoft <-> MSFT). Query: `q`,
+`active_only` (default true), `limit`, `offset`. Response `MarketSearchResponse` includes
+`markets[]`, `total`, `expanded_terms[]`, `provenance` and a `note`. An empty result is honest;
+Arepo never fabricates a market or shows a stock quote.

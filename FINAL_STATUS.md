@@ -290,3 +290,31 @@ routes), 8 vitest. All seven surfaces browser-verified against a live backend.
 Data-availability honesty: historical price data is dense and real; strong LIVE signals are
 rare because most markets are calm and the discoverable universe is mostly pinned long-shots.
 No public deployment or paid scheduler activated (needs the user's account authorisation).
+
+---
+
+## Opportunity Intelligence & Alerting (branch `arepo-opportunity-alerts`)
+
+Chosen information architecture: **Opportunity Board as home** (top-30 by a transparent
+Research Priority score), **Explore Markets** retained for broad browsing + full-universe
+search, **Signal Lab** as deeper market-linked analysis (DECISIONS O1). No page duplicates
+another; every card explains why it appears and links to the market.
+
+Delivered:
+- **Indicators (analytics/flow.py):** large relative trade, consensus-opposing flow, clustered
+  trades, concentrated flow, limited activity history, late large trade, over real public
+  trades (data-api.polymarket.com/trades); market-relative, robust (median/MAD/percentile),
+  sample-gated, neutral wallet language.
+- **Research Priority + evidence families + tags (opportunity/scoring.py):** fixed documented
+  weights, >=2 independent families for high priority, shaped for data quality/liquidity/
+  spread/freshness; not called expected profit; prior safeguards preserved.
+- **Opportunity Board** (/api/opportunity/board + home page) and **daily immutable snapshot**
+  (idempotent CLI + read routes).
+- **Search repair** (/api/markets/search) full-universe + company/ticker aliases; Microsoft and
+  MSFT both return the 36 real Microsoft markets; honest no-result.
+- **Research email alerts** provider-neutral, disabled by default (console sink), eligibility +
+  honest wording + dedup/cooldown/history/retry/test-mode; SMTP disabled unless configured.
+
+Verified: backend **236 tests pass**, ruff clean, migrations/bootstrap idempotent; frontend
+tsc/lint/build clean (10/10). Browser-verified the Board, nav, and MSFT search. External email
+sending remains disabled and requires the user's own provider credentials to enable.

@@ -264,3 +264,16 @@ flowchart TD
 All three diagrams above are valid Mermaid (`graph TD`, `sequenceDiagram`, `flowchart TD`)
 and were checked for syntactic correctness (balanced brackets, valid arrow syntax, no
 unescaped special characters inside node labels).
+
+---
+
+## Opportunity intelligence and alerting
+
+New packages: `analytics/flow.py` (trade-flow/wallet/timing indicators over the public Data API
+`/trades`), `opportunity/` (Research Priority scoring, evidence families, tags, board service,
+immutable daily snapshot storage + CLI), `alerts/` (provider-neutral email with a console sink,
+eligibility, honest wording, dedup/cooldown, history, disabled by default). Search adds
+`GammaClient.search` (public-search) and `ingest/aliases.py`. Data flow: enrich (price+book
+signal) + Data API trades -> flow indicators -> evidence families -> Research Priority ->
+Opportunity Board -> daily snapshot / alerts. Home page consumes the board; Explore Markets adds
+full-universe search.
