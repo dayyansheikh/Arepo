@@ -34,12 +34,13 @@ interface can never silently present stale or synthetic data as live. A determin
 version-controlled replay dataset drives a look-ahead-safe backtest, making the anomaly signal
 reproducible and inspectable.
 
-**Status at the time of writing:** the backend is complete and verified: 121 automated tests
-pass and static analysis is clean. Live discovery and order-book analysis have been exercised
-against the real Polymarket APIs; the cached path has been verified with a real ingestion
-round-trip; and the deterministic replay/backtest produces stable, non-trivial results. Docker
-and public-deployment configurations are provided and validated by inspection but were not
-executed in the build environment (see §8).
+**Status at the time of writing:** the backend is complete and verified: 174 automated tests
+pass and static analysis is clean (this figure includes the market-data engine and the
+prospective cohort evaluation engine added in the Master Final Refinement, §7a). Live discovery
+and order-book analysis have been exercised against the real Polymarket APIs; the cached path
+has been verified with a real ingestion round-trip; and the deterministic replay/backtest
+produces stable, non-trivial results. Docker and public-deployment configurations are provided
+and validated by inspection but were not executed in the build environment (see §8).
 
 ---
 
@@ -160,14 +161,19 @@ handling are in `docs/methodology.md`; the essentials:
 
 ## 6. Testing and validation
 
-Correctness is enforced by an automated suite (**121 tests, all passing; linting clean**) that
-covers, among other cases: implied probability and normalisation; movement, rolling volatility,
-and z-score (including zero-variance and insufficient-history edge cases, with several
-**hand-derived** expected values); midpoint/spread/imbalance including zero-denominator and
-empty/one-sided books; normalisation of malformed and missing upstream fields; order-book
-best-first sorting; duplicate-event handling and reconnection logic in the WebSocket client;
-the live→cached→replay fallback; storage round-trips; the ingestion pipeline; the API surface;
-and the backtest's determinism and look-ahead-safety (the "prefix" property is tested directly).
+Correctness is enforced by an automated suite (**174 backend tests, all passing; linting
+clean**; plus 8 frontend `vitest` unit tests) that covers, among other cases: implied
+probability and normalisation; movement, rolling volatility, and z-score (including
+zero-variance and insufficient-history edge cases, with several **hand-derived** expected
+values); midpoint/spread/imbalance including zero-denominator and empty/one-sided books;
+normalisation of malformed and missing upstream fields; order-book best-first sorting;
+duplicate-event handling and reconnection logic in the WebSocket client; the
+live→cached→replay fallback; storage round-trips; the ingestion pipeline; the API surface; the
+backtest's determinism and look-ahead-safety (the "prefix" property is tested directly);
+category/sport/competition facet extraction; chart timestamp/row-building; and the 13 required
+guarantees of the prospective cohort engine (eligibility, deterministic tie-breaking, freeze
+immutability, idempotent scheduler commands, correct denominators, and provenance separation;
+see §7a and `docs/methodology.md` §12).
 
 Beyond unit tests, each backend subsystem was implemented independently and then reviewed by a
 separate agent and personally verified by running the tests and inspecting the code and its
@@ -196,6 +202,39 @@ momentum episodes follow through (hits) and the spike-and-revert episodes do not
 demonstrates the end-to-end signal→evaluation machinery and its look-ahead safety; because the
 dataset is synthetic and small, the numbers are illustrative and **do not generalise to live
 markets or imply profitability.**
+
+---
+
+## 7a. Prospective evaluation: an honest position
+
+Beyond the synthetic backtest in §7, the Master Final Refinement added a second, separate
+evaluation system: a **prospective weekly cohort engine** (`backend/astrolabe/evaluation/`,
+documented in full in `docs/methodology.md` §12). Each calendar week it records the signals
+Arepo genuinely selects at the time, freezes that selection at a fixed Sunday 23:59:59 UTC
+cut-off, and tracks the frozen entries forward: prices at 1 hour, 24 hours and 7 days, final
+resolution where available, and a hypothetical fixed-stake portfolio. Frozen entries are
+immutable; losing and unresolved entries stay visible rather than being quietly dropped.
+
+**No real performance numbers are reported here, and none are fabricated.** There is no
+reconstructed historical snapshot store on the machine this was built on, so real prospective
+cohorts begin only at the first genuine `python -m astrolabe.evaluation.cli rank --mode live`
+run, and no cohort existed before that first run. This report does not claim a hit rate, a
+return, or any other outcome for real prospective signals, because none has yet been produced
+and evaluated on this deployment. The Replay page (`/replay`) is built to display real cohorts
+once they exist, distinguishing three provenance classes at all times: **prospective** (real,
+frozen weekly selections), **reconstructed** (historically rebuilt from timestamped public
+records, none currently populated), and **synthetic** (a clearly labelled demonstration). A
+synthetic demonstration cohort can be seeded (`... cli seed-synthetic`) purely to prove the
+machinery works end to end (selection, freeze, forward tracking, resolution, portfolio
+valuation), and it is visibly badged as synthetic wherever it appears; it is never included in
+any statistic presented as real performance.
+
+This is a deliberate trade-off. The alternative, presenting a short or backfilled track
+record, would either understate the honest starting point of real prospective tracking or
+risk the exact hindsight bias the system is designed to prevent. The engine, the freeze
+discipline, and the two evaluation views (price movement and final resolution) are the
+deliverable at this stage; a genuine performance record is a function of time elapsed running
+it, which has not yet passed.
 
 ---
 

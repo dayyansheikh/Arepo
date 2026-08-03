@@ -33,7 +33,7 @@ sensible default, none are required).
 | `WS_STALE_SECONDS` | `30` | No message for this long ⇒ treat the WS session as stale and reconnect |
 | `WS_PING_INTERVAL_SECONDS` | `10` | Client sends the plain-text frame `PING` on this interval |
 | `STALE_AFTER_SECONDS` | `60` | Data older than this is flagged stale in the quality model |
-| `DEFAULT_MODE` | `live` | `live` \| `cached` \| `replay` — used when a request omits `?mode=` |
+| `DEFAULT_MODE` | `live` | `live` \| `cached` \| `replay` – used when a request omits `?mode=` |
 | `DATABASE_URL` | `sqlite+aiosqlite:///./astrolabe.db` | See "Database configuration" below |
 | `API_HOST` | `0.0.0.0` | Bind address for uvicorn |
 | `API_PORT` | `8000` | Bind port for uvicorn |
@@ -42,10 +42,10 @@ sensible default, none are required).
 | `POLL_INTERVAL_SECONDS` | `15` | Interval for the standalone ingestion pipeline's poll loop |
 
 Not shown but present in `Settings`: `app_name`, `http_max_retries`, `http_user_agent`,
-`ws_reconnect_base_seconds`, `ws_reconnect_max_seconds` — all have working defaults and rarely
+`ws_reconnect_base_seconds`, `ws_reconnect_max_seconds` – all have working defaults and rarely
 need overriding.
 
-No API key, wallet, or private key is ever required — Astrolabe only calls Polymarket's
+No API key, wallet, or private key is ever required – Astrolabe only calls Polymarket's
 public, unauthenticated read endpoints.
 
 ## Environment variables (frontend)
@@ -75,12 +75,12 @@ development.
 
 ## Health checks
 
-- **Backend liveness:** `GET /health` — returns `{"status": "ok", "app", "environment",
+- **Backend liveness:** `GET /health` – returns `{"status": "ok", "app", "environment",
   "time"}`. Both `backend/Dockerfile` (`HEALTHCHECK`) and `docker-compose.yml`
   (`healthcheck:`) poll this endpoint every 30s with a 5s timeout and 3 retries; the frontend
   service in compose has `depends_on: backend: condition: service_healthy`, so it won't start
   until the backend reports healthy.
-- **Data-mode health:** `GET /api/status` — reports the currently resolved mode plus REST and
+- **Data-mode health:** `GET /api/status` – reports the currently resolved mode plus REST and
   WebSocket `SourceHealth` (state, last success, last error). Useful as an operational signal
   distinct from process liveness.
 
@@ -88,7 +88,7 @@ development.
 
 Default: **SQLite** via `aiosqlite`, `DATABASE_URL=sqlite+aiosqlite:///./astrolabe.db`
 (a file-based DB local to the backend process; the Docker Compose file mounts this on a named
-volume, `astrolabe_data`, at `/data`). No setup is required — `storage/db.py` creates all
+volume, `astrolabe_data`, at `/data`). No setup is required – `storage/db.py` creates all
 tables idempotently on startup (`init_db`, called from the FastAPI `lifespan` hook).
 
 **Postgres** (for a real deployment): set
@@ -105,17 +105,17 @@ pip install asyncpg
 ```
 
 `storage/models.py` uses only portable SQLAlchemy column types (`JSON`, `DateTime(timezone=
-True)`, `Float`, `String`, `Boolean` — no SQLite-only types), so the same schema works
+True)`, `Float`, `String`, `Boolean` – no SQLite-only types), so the same schema works
 against Postgres without modification once the driver is installed and the URL is set.
 
 If storage/cache initialization fails for any reason (bad URL, unreachable DB, missing
-driver), the backend does **not** crash — `api/deps.py` catches the exception, logs a
+driver), the backend does **not** crash – `api/deps.py` catches the exception, logs a
 warning, and the service simply serves `live`/`replay` with `cached` mode reported as
 unavailable (`CachedSource.available() == False`).
 
 ## Build / start commands
 
-### Backend (Python host — e.g. Render, Railway, Fly.io, a VM)
+### Backend (Python host – e.g. Render, Railway, Fly.io, a VM)
 
 ```bash
 cd backend
@@ -151,7 +151,7 @@ docker compose up --build
 
 Backend on `:8000`, frontend on `:3000`, `NEXT_PUBLIC_API_BASE` wired to
 `http://localhost:8000` for both the frontend build and its runtime environment. As stated
-above, this command has not been executed in the build environment — it is provided
+above, this command has not been executed in the build environment – it is provided
 ready-to-run for the operator.
 
 ## WebSocket constraints
@@ -168,7 +168,7 @@ protocol from `docs/research-notes.md`:
   (`ws_reconnect_base_seconds` → `ws_reconnect_max_seconds`, default 1s → 30s).
 - After `degraded_after_failures` (default 5) consecutive connect/session failures, the
   client's state becomes `DEGRADED` and an `on_degraded` callback fires once, so a caller can
-  fall back to REST polling — **the WS client itself never calls REST**; it only reports its
+  fall back to REST polling – **the WS client itself never calls REST**; it only reports its
   own connection state.
 - Duplicate `book`/`price_change`/`last_trade_price` events are deduped via a bounded LRU set
   keyed on event type + asset id + hash + timestamp.
@@ -178,6 +178,90 @@ In the current API surface, live-mode order books are read via **CLOB REST**
 is unit-tested, and is intended for a longer-running ingestion/streaming process (see
 `ingest/pipeline.py` and the `run_forever` polling loop) rather than being wired directly into
 the request path of every `/api/*` call in this build.
+
+## Scheduler (weekly cohort evaluation)
+
+The prospective cohort evaluation system (`docs/methodology.md` §12) is driven entirely by
+idempotent CLI commands, not by any request made through a browser:
+
+```bash
+cd backend && source .venv/bin/activate
+python -m astrolabe.evaluation.cli bootstrap        # create/verify the evaluation tables
+python -m astrolabe.evaluation.cli rank              # update this week's provisional top ten
+python -m astrolabe.evaluation.cli freeze            # freeze the current week's cohort at cut-off
+python -m astrolabe.evaluation.cli forward            # collect any due forward prices
+python -m astrolabe.evaluation.cli resolve            # record newly-available resolutions
+python -m astrolabe.evaluation.cli evaluate           # recompute the two evaluation views + portfolio
+python -m astrolabe.evaluation.cli seed-synthetic     # build the labelled synthetic demo cohort
+python -m astrolabe.evaluation.cli status              # print recorded cohort weeks
+```
+
+Every command is safe to run repeatedly: `rank` converges to the same selection given the same
+inputs, `freeze` is a no-op once a cohort is already frozen, `forward` observations are unique
+per `(entry, horizon)`, and `resolve`/`evaluate` upsert rather than duplicate. This is what
+makes the workflow scheduler-friendly: none of it needs the browser to stay open, and any of
+the standard options works:
+
+- a hosting provider's own scheduled-job feature (e.g. Render Cron Jobs, Railway Cron),
+- **GitHub Actions**, using a scheduled workflow that checks out the repository and runs the
+  CLI against the deployed `DATABASE_URL`, or
+- a plain **cron** entry on a VM that already runs the backend.
+
+An example GitHub Actions workflow (`.github/workflows/cohort-schedule.yml`), ranking hourly,
+freezing at the Sunday UTC cut-off, and running forward/resolve/evaluate daily:
+
+```yaml
+name: cohort-schedule
+on:
+  schedule:
+    - cron: "0 * * * *"        # rank: hourly
+    - cron: "59 23 * * 0"      # freeze: Sunday 23:59 UTC
+    - cron: "30 0 * * *"       # forward + resolve + evaluate: daily
+  workflow_dispatch: {}
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r backend/requirements.txt
+      - name: rank
+        working-directory: backend
+        run: python -m astrolabe.evaluation.cli rank
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: freeze
+        working-directory: backend
+        run: python -m astrolabe.evaluation.cli freeze
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: forward-resolve-evaluate
+        working-directory: backend
+        run: |
+          python -m astrolabe.evaluation.cli forward
+          python -m astrolabe.evaluation.cli resolve
+          python -m astrolabe.evaluation.cli evaluate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+```
+
+A single workflow file with three cron triggers cannot itself select which job body runs for
+which trigger, so a real deployment should either split this into three workflow files (one
+per cadence) or gate each step on `github.event.schedule`. The snippet above is illustrative
+of the commands and cadence, not a drop-in file: an operator wiring this up should adapt it to
+their actual hosting/database setup.
+
+**No paid or public external scheduler has been activated for this project.** GitHub Actions,
+a hosting-provider scheduler, or cron are all viable and the commands above work with any of
+them, but activating one requires the user's own repository/hosting account and explicit
+approval; nothing here has been switched on.
+
+The database is selected by the standard `DATABASE_URL` environment variable (see
+"Environment variables (backend)" above), defaulting to local SQLite
+(`sqlite+aiosqlite:///./astrolabe.db`). The scheduler and the API server must point at the
+same database for the Replay page to see what the scheduler produced.
 
 ## Fallback behaviour in production
 

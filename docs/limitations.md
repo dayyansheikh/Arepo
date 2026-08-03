@@ -15,13 +15,13 @@ remove these deeper biases. See `docs/methodology.md` §1.
 
 ## Signals are screening heuristics, not proof of anything
 
-Every signal Astrolabe computes — movement z-score, volatility spike, book imbalance, spread
-widening, depth shift, and the composite anomaly score — flags behaviour that is
+Every signal Astrolabe computes – movement z-score, volatility spike, book imbalance, spread
+widening, depth shift, and the composite anomaly score – flags behaviour that is
 **statistically unusual relative to a market's own recent history**. That is all it claims:
 
 - It is **not evidence of insider trading** or any other misconduct.
 - It is **not a profitability claim** or a trading recommendation.
-- It is **not validated predictive alpha** — no live, out-of-sample performance evaluation
+- It is **not validated predictive alpha** – no live, out-of-sample performance evaluation
   has been run against real trading outcomes.
 
 A high anomaly score means "worth investigating further," never "acted upon."
@@ -30,23 +30,23 @@ A high anomaly score means "worth investigating further," never "acted upon."
 
 The only backtest Astrolabe runs (`GET /api/replay/backtest`) is against the **committed,
 deterministic, synthetic replay dataset** (`backend/astrolabe/replay/dataset/scenario.json`)
-— three fictional markets with hand-planted momentum-continuation and spike-and-revert
+– three fictional markets with hand-planted momentum-continuation and spike-and-revert
 episodes, generated with a fixed seed. It is explicitly labelled as synthetic in the dataset's
 own metadata (`"disclaimer": "Synthetic data. Not real Polymarket data. For demonstration
 only."`). The observed `hit_rate=0.625`, `false_positive_rate=0.125` on a `sample_size=16`
 describe how the signal behaves on **this specific constructed scenario**, illustrating that
-the backtest machinery is look-ahead-safe and functioning — they say **nothing about how the
+the backtest machinery is look-ahead-safe and functioning – they say **nothing about how the
 signal would perform on real, live Polymarket markets**, and must not be read as a
 performance or profitability claim.
 
 Further caveats on the backtest itself:
 
-- **Small sample.** 16 total signal events, 14 evaluable — far too few to draw a statistically
+- **Small sample.** 16 total signal events, 14 evaluable – far too few to draw a statistically
   reliable conclusion even about the synthetic dataset's own dynamics.
 - **No survivorship correction.** Markets that "close" within the dataset are not
   repopulated; a real live universe has continuous market entry/exit that this does not model.
 - **No transaction costs.** No fees, slippage, or spread-crossing cost is modelled anywhere in
-  the backtest — it measures directional follow-through only, not net-of-cost P&L.
+  the backtest – it measures directional follow-through only, not net-of-cost P&L.
 - **Directional hit-rate ≠ alpha.** "Followed through" means the price moved past a threshold
   in the signalled direction within the horizon; it does not account for entry/exit
   feasibility, position sizing, or risk.
@@ -58,7 +58,7 @@ The composite anomaly score's component weights (`unusual_return: 0.35`,
 `depth_change: 0.15`), saturation caps (e.g. `|z|=4` fully saturates the return component),
 and the rolling windows used throughout (20-observation volatility/z-score window, 4
 -observation movement window, 5-frame backtest horizon, etc.) are **documented assumptions**,
-set by inspection during development — not values fit to labelled outcome data. A production
+set by inspection during development – not values fit to labelled outcome data. A production
 deployment intending to act on these scores would need to re-derive them empirically. See
 `docs/methodology.md` §9–10 for the full parameter tables.
 
@@ -97,7 +97,7 @@ The composite anomaly score's `volume_acceleration` component compares recent in
 volume against an earlier baseline, computed from a per-token volume history
 (`_volume_deltas` in `analytics/backtest.py`; `_volume_acceleration` in `service/enrich.py`).
 Polymarket's CLOB REST surface does not expose a **per-token time series of volume** the way
-it exposes price history — `LiveSource.get_token_data` in `service/sources.py` therefore
+it exposes price history – `LiveSource.get_token_data` in `service/sources.py` therefore
 returns an empty `volumes` list in live mode, so `volume_acceleration` is `None` and that
 component is simply excluded from the composite score's weighted average (renormalized over
 the remaining components) for any live-mode signal. Volume acceleration is fully available in
@@ -114,8 +114,61 @@ actually constitutes unreliable liquidity or a stale reading on Polymarket speci
 different market's typical profile (e.g. a very large, very liquid market vs. a niche,
 thinly-traded one) may warrant different floors than the single global set used here.
 
+## Prospective evaluation: no real historical cohorts exist yet
+
+The weekly cohort evaluation system (`docs/methodology.md` §12) tracks signals prospectively:
+it records what Arepo would genuinely have selected at the time, freezes the selection weekly,
+and evaluates it forward. There is no reconstructed historical snapshot store on this machine,
+so **prospective tracking begins at the first genuine `rank --mode live` run** on a given
+deployment, not before. No earlier cohort is invented or backfilled. Until that first run (and
+until a week has actually elapsed since freezing), `GET /api/cohorts/weeks` and
+`GET /api/cohorts/provenance` correctly report an empty or near-empty history. The only cohort
+that exists on this machine at the time of writing is the labelled synthetic demonstration
+cohort (see below); it is not a claim of real performance.
+
+## The market resolution check is best-effort, not a settlement feed
+
+`MarketService.market_resolution` infers a market's outcome from its own discovery metadata: a
+market counts as resolved only once it is closed (or resolved) *and* exactly one outcome sits
+at an extreme price (≥ 0.99). This is a heuristic over the same public metadata used elsewhere
+in the product, not a connection to a canonical settlement or oracle feed. It can under-report
+(a genuinely resolved market that has not settled to an extreme price in the observed metadata
+stays "unresolved") and, in principle, could misread an unusual pricing pattern as a
+resolution. Resolutions recorded this way are never overwritten once marked resolved, so a
+wrong early read would persist; no such case has been observed, but none has been ruled out
+either.
+
+## Sport and competition metadata do not survive the cached-mode round-trip
+
+The Markets page's sport and competition facets (`GET /api/markets/facets`) are derived
+correctly in live and replay mode. In cached mode, the storage round-trip does not currently
+persist the sport/competition fields the way it persists category: a known, accepted gap
+noted during the categories work in `CHECKPOINT.md`. A market cached and later served from
+`cached` mode may therefore show its category correctly while its sport/competition grouping
+is unavailable, even though the same market shows both correctly under `live`.
+
+## The hypothetical portfolio is a simulation, not advice
+
+The Replay page's portfolio figures (stake, allocated total, realised/unrealised/pending
+value, completed return) are a simulation over recorded entry prices, quoted spreads and later
+observed prices. They assume a fixed stake, a fill that crosses half the quoted spread, and a
+configurable fee (default zero): see `docs/methodology.md` §12. This is not real trading,
+not a record of executed orders, and not evidence of future profitability. It is not
+investment advice.
+
+## Synthetic demonstration data is kept out of real statistics, but is present
+
+To demonstrate that the cohort machinery (selection, freeze, forward tracking, resolution,
+portfolio valuation) functions end-to-end before any real prospective cohort has accumulated a
+tracked week, this deployment can be seeded with a clearly labelled synthetic cohort
+(`python -m astrolabe.evaluation.cli seed-synthetic`, `provenance_class = "synthetic"`). The
+Replay page marks any non-prospective cohort with a visible "Synthetic demonstration" badge
+and the `GET /api/cohorts/provenance` endpoint reports synthetic weeks as a distinct count.
+Synthetic cohorts are never included when aggregating real prospective statistics, but a
+reader should not mistake their presence in the week picker for real recorded performance.
+
 ## No test-count or coverage claims beyond what was verified
 
-121 backend tests pass and the backend is ruff-clean, as verified in the build environment.
-No test-coverage percentage is claimed (none was measured), and frontend build/lint were not
-independently re-verified as part of writing this documentation.
+174 backend tests pass and the backend is ruff-clean, and 8 frontend vitest tests pass, all
+verified in this environment while writing this documentation (see `FINAL_STATUS.md` for exact
+commands and output). No test-coverage percentage is claimed (none was measured).

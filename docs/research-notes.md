@@ -1,4 +1,4 @@
-# Research Notes — Polymarket public data & prediction-market conventions
+# Research Notes – Polymarket public data & prediction-market conventions
 
 > Primary source of truth: official Polymarket documentation (`https://docs.polymarket.com`)
 > and direct probing of the public endpoints. All endpoint shapes below were **verified by
@@ -16,7 +16,7 @@
 Public data requires **no** credentials, wallet or private key. This project uses only
 read-only public endpoints and never authenticates, never trades, never submits orders.
 
-## 2. Gamma API — discovery & metadata (verified shapes)
+## 2. Gamma API – discovery & metadata (verified shapes)
 
 ### `GET /markets` → **JSON array** of market objects
 Useful query params observed: `limit`, `active=true`, `closed=false`, `order=<field>`,
@@ -43,15 +43,15 @@ endDate / startDate: ISO-8601 UTC strings
 ```
 **Key gotcha:** `outcomes`, `outcomePrices`, `clobTokenIds` are **strings containing JSON
 arrays** and must be `json.loads`-parsed during normalization. Number-ish fields arrive as
-strings *and* as `...Num` numbers inconsistently — normalization must coerce defensively.
+strings *and* as `...Num` numbers inconsistently – normalization must coerce defensively.
 
 ### `GET /events` → JSON array of event objects
 Event object keys (verified): `id, ticker, slug, title, description, startDate, endDate,
 active, closed, archived, liquidity, volume, volume24hr, openInterest, enableOrderBook,
 negRisk, markets[], tags[]`. Each event nests a `markets` array (verified: 4 markets on the
-sampled event) and a `tags` array — this is the route to **sport/category** filtering.
+sampled event) and a `tags` array – this is the route to **sport/category** filtering.
 
-## 3. CLOB REST — market data (verified shapes)
+## 3. CLOB REST – market data (verified shapes)
 
 All keyed by `token_id` (a CLOB asset id = one outcome token; from Gamma `clobTokenIds`).
 
@@ -63,7 +63,7 @@ All keyed by `token_id` (a CLOB asset id = one outcome token; from Gamma `clobTo
   "min_order_size": "...", "tick_size": "0.001", "neg_risk": false,
   "last_trade_price": "..." }
 ```
-⚠ `price`/`size` are **strings**. ⚠ Ordering is NOT guaranteed to be best-first — observed
+⚠ `price`/`size` are **strings**. ⚠ Ordering is NOT guaranteed to be best-first – observed
 `bids` ascending by price (0.01, 0.02, …). Normalization must sort: **best bid = max price,
 best ask = min price**. Handle empty `bids`/`asks`.
 
@@ -77,10 +77,10 @@ best ask = min price**. Handle empty `bids`/`asks`.
 ⚠ Note the param is named `market` but takes a **token_id**. `t` = unix seconds (UTC),
 `p` = price (number). Sampled 145 points for `interval=1d, fidelity=10`.
 
-Batch endpoints (`/books`, `/prices`, `/midpoints` via POST) — *(to be confirmed by research
+Batch endpoints (`/books`, `/prices`, `/midpoints` via POST) – *(to be confirmed by research
 agent; single-token endpoints are sufficient for the core slice.)*
 
-## 4. CLOB market WebSocket — **confirmed against official AsyncAPI + docs**
+## 4. CLOB market WebSocket – **confirmed against official AsyncAPI + docs**
 Sources: `docs.polymarket.com/asyncapi.json`, `/api-reference/wss/market.md`,
 `/market-data/realtime-data.md` (fetched 2026-08-02, verbatim).
 
@@ -89,20 +89,20 @@ Sources: `docs.polymarket.com/asyncapi.json`, `/api-reference/wss/market.md`,
   ```json
   {"assets_ids": ["<token_id>", "<token_id>"], "type": "market"}
   ```
-  Field is `assets_ids` (**plural, with `s`** — not `asset_ids`). Optional: `initial_dump`
+  Field is `assets_ids` (**plural, with `s`** – not `asset_ids`). Optional: `initial_dump`
   (bool, default `true` → server sends a `book` snapshot on subscribe), `level` (1/2/3,
   default 2). Dynamic (un)subscribe without reconnect: `{"operation":"subscribe"|"unsubscribe",
   "assets_ids":[...]}`.
 - **Event discriminator:** `event_type` (string). Core market-channel events:
-  - `book` — full snapshot: `{event_type, asset_id, market, bids[], asks[], timestamp, hash}`;
+  - `book` – full snapshot: `{event_type, asset_id, market, bids[], asks[], timestamp, hash}`;
     `bids`/`asks` are `{price:str, size:str}`. (`timestamp` is a **string of unix ms**.)
-  - `price_change` — delta: `{event_type, market, price_changes[], timestamp}` where each
+  - `price_change` – delta: `{event_type, market, price_changes[], timestamp}` where each
     change is `{asset_id, price, size, side("BUY"/"SELL"), hash, best_bid?, best_ask?}`.
     **`size == "0"` means that price level was removed.**
-  - `last_trade_price` — `{event_type, asset_id, market, price, size, side, timestamp, ...}`.
-  - `tick_size_change` — `{event_type, asset_id, market, old_tick_size, new_tick_size, timestamp}`.
+  - `last_trade_price` – `{event_type, asset_id, market, price, size, side, timestamp, ...}`.
+  - `tick_size_change` – `{event_type, asset_id, market, old_tick_size, new_tick_size, timestamp}`.
   - (`best_bid_ask`, `new_market`, `market_resolved` exist only when `custom_feature_enabled:true`
-    — **not used** by Astrolabe; we keep the default minimal subscription.)
+    – **not used** by Astrolabe; we keep the default minimal subscription.)
 - **Heartbeat:** client sends the **plain-text frame `"PING"` every 10s**; server replies
   `"PONG"`. Not JSON. Missing PONGs / no messages for `ws_stale_seconds` ⇒ treat as stale.
 - **Dedup:** each `book`/`price_change` carries a `hash`; combined with `event_type`+`timestamp`
@@ -134,7 +134,7 @@ General conventions common across public prediction-market and financial-analyti
   and confidence, plus deterministic replay so every signal can be re-examined.
 
 ## 6. Ethical / correctness boundaries (enforced in product wording)
-- Never describe an anomaly as proof of insider trading — only "statistically unusual behaviour
+- Never describe an anomaly as proof of insider trading – only "statistically unusual behaviour
   worth investigating."
 - Never claim profitability, predictive alpha, or validated accuracy.
 - Never present cached/replay data as live.

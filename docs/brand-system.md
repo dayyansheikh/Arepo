@@ -63,6 +63,22 @@ node is the only red in the mark, which models the rule "red marks the signal".
 The mark is implemented in `frontend/components/Logo.tsx`
 (`LogoMark` + `Logo`) and `frontend/app/icon.svg` / `apple-icon.svg`.
 
+### Grid mark reconstruction (Master Final Refinement)
+
+The supplied logo file (`design-assets/brand/AREPO logo (no word).png`) is a
+5x5 grid of cells on black, with the second column and the second row filled
+in Arepo red, forming an offset cross, and the remaining cells outlined in
+white. `frontend/components/Logo.tsx` (`LogoMark`) is a faithful SVG
+reconstruction of that exact grid: same 5x5 layout, same red cells (second
+column, second row), same arrangement. Because Arepo's product identity is
+light-only (see decision R7 in `DECISIONS.md`), the reconstruction is adapted
+for a white ground: the black tile is dropped, the white cell outlines become
+a fine ink hairline on a transparent background, and the red cells are
+preserved unchanged. This supersedes the earlier "convergence mark" concept
+described above, which was the Phase 1 design exploration before the supplied
+grid logo asset was integrated directly; the convergence-mark rationale is
+kept here as a record of that exploration, but the grid mark is what ships.
+
 ## Typography
 
 - **Geist Sans** via `next/font` (`geist/font/sans`), with **Inter** as the
@@ -70,6 +86,40 @@ The mark is implemented in `frontend/components/Logo.tsx`
 - **Geist Mono** only for raw identifiers (token IDs, market IDs) and code.
 - **Tabular numerals** (`font-variant-numeric: tabular-nums`) on every figure so
   columns and meters align and don't jitter as values change.
+
+### Display heading font (Master Final Refinement)
+
+The written wordmark in `design-assets/brand/AREPO Typeface (word).png` is a
+wide-tracked, all-caps, geometric **monoline** sans: a perfect-circle `O`, a
+sharp triangular `A` apex, uniform stroke weight throughout, and generous
+letter-spacing. This is unmistakably in the Futura / geometric-grotesque
+lineage. No licensed font file matching it ships with the supplied assets, so
+**no exact match is claimed**.
+
+The closest freely-licensable match is **Jost** (SIL Open Font License), a
+direct Futura revival with the same perfect circles and triangular apexes.
+Jost is vendored locally (not loaded from Google Fonts at request time) as
+static `.woff2` files in `frontend/app/fonts/` and wired up via
+`next/font/local` in `frontend/app/fonts.ts` (`displayFont`), so the build
+needs no network access and the font is self-hosted. It is set in **uppercase
+with wide tracking** (`tracking-[0.22em]` on the wordmark, similarly wide on
+page titles) to echo the supplied artwork's spacing.
+
+Scope of use is deliberately narrow, per the brief: the display font appears
+only on major page titles, hero headings, major section introductions and
+report-cover headings (`PageHeader`, `SectionTitle`, the `Logo` wordmark).
+Interface text, navigation labels, cards, forms, tooltips, tables and all data
+values stay in Geist Sans; nothing in the ordinary product surface is set in
+the display face by default.
+
+**This is stated plainly as an approximation, not an exact match.** Jost
+shares the wordmark's genre and proportions closely enough to carry the
+brand's geometric, wide-tracked character, but it is a different typeface cut
+by a different designer, not a reproduction of the exact glyphs in the
+supplied PNG. If an exact licensed match for the wordmark becomes available,
+it should replace Jost in `frontend/app/fonts.ts` without changing the token
+names (`displayFont`, `--font-display`) that the rest of the interface
+depends on.
 
 Type scale (implemented as utilities / component styles):
 

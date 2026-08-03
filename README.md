@@ -49,8 +49,11 @@ readout in the header on every page:
 - **Signal Lab** (`/signals`): the composite-anomaly signals currently firing,
   each explained like a short analyst note ("Why this fired"), with a strength
   filter.
-- **Replay** (`/replay`): a look-ahead-safe backtest over a fixed demonstration
-  dataset, with plain-language controls and a conclusion stated before the data.
+- **Replay** (`/replay`): answers "if Arepo had selected these signals at the
+  time, what happened afterwards?" using the prospective weekly cohort engine
+  (real frozen selections, tracked forward), plus the preserved look-ahead-safe
+  backtest over a fixed demonstration dataset as a separate, clearly labelled
+  disclosure.
 - **How Arepo Works** (`/how-it-works`) and **Methodology** (`/methodology`): two
   explanation layers: a plain-English guide, and a technical reference with
   KaTeX-rendered equations, worked examples and an anchor for every metric.
@@ -102,6 +105,35 @@ serves `http://localhost:3000` and expects `NEXT_PUBLIC_API_BASE` (see
 > deeply-coupled internals carries risk with no user benefit, so the rebrand is
 > applied to user-facing surfaces only.
 
+### Weekly cohort workflow (prospective evaluation)
+
+The Replay page reads a separate, prospective evaluation engine that records the
+signals Arepo genuinely selects each week, freezes them at a fixed cut-off, and
+tracks them forward. It is driven entirely by CLI commands, not the browser:
+
+```bash
+cd backend && source .venv/bin/activate
+
+# See the demo without waiting a week: builds the evaluation tables and a
+# clearly labelled synthetic cohort so Replay has something to show.
+python -m astrolabe.evaluation.cli bootstrap
+python -m astrolabe.evaluation.cli seed-synthetic
+
+# Real prospective tracking (run on a schedule; every command is idempotent):
+python -m astrolabe.evaluation.cli rank      # update this week's provisional top ten
+python -m astrolabe.evaluation.cli freeze    # freeze the cohort at the Sunday 23:59 UTC cut-off
+python -m astrolabe.evaluation.cli forward   # collect due forward prices (1h / 24h / 7d)
+python -m astrolabe.evaluation.cli resolve   # record newly-available resolutions
+python -m astrolabe.evaluation.cli evaluate  # recompute the two evaluation views + portfolio
+```
+
+There is no reconstructed historical snapshot store on this project, so real
+prospective cohorts begin only at the first genuine `rank --mode live` run; no
+earlier cohort is invented. See `docs/methodology.md` §12 for the full selection,
+freeze, tie-breaking and portfolio rules, and `docs/deployment.md` for scheduler
+setup (GitHub Actions, a hosting-provider scheduler, or cron; none is activated
+by default).
+
 ## Core features
 
 - **Three explicit data modes**: LIVE (real Polymarket Gamma + CLOB public REST),
@@ -119,6 +151,11 @@ serves `http://localhost:3000` and expects `NEXT_PUBLIC_API_BASE` (see
 - **Deterministic replay & backtest**: a committed synthetic dataset drives the
   exact same analytics code as live mode, enabling a reproducible, look-ahead-safe
   backtest.
+- **Prospective weekly cohort evaluation**: a separate engine records the
+  signals Arepo genuinely selects each week, freezes them at a fixed Sunday
+  23:59 UTC cut-off so nothing is chosen with hindsight, and tracks them
+  forward (price movement and final resolution, plus a labelled hypothetical
+  portfolio simulation). See `docs/methodology.md` §12.
 - **Accessible by design**: keyboard-operable metric tooltips, a single themed
   focus ring, chart data alternatives, semantic headings, and reduced-motion
   support.
@@ -127,10 +164,15 @@ serves `http://localhost:3000` and expects `NEXT_PUBLIC_API_BASE` (see
 
 Arepo uses a restrained, modern quantitative-research identity: a warm-neutral
 ground, white surfaces, and a single red accent (`#E50C0E`) used sparingly for
-active navigation, primary actions, selected controls and key signals. Type is
-Geist Sans with tabular numerals for data. See
-[`docs/brand-system.md`](docs/brand-system.md) for the tokens and logo rationale,
-and [`docs/design-reference-audit.md`](docs/design-reference-audit.md) for how the
+active navigation, primary actions, selected controls and key signals. Interface
+text and data stay Geist Sans with tabular numerals. Major page titles, hero and
+section-intro headings use **Jost**, a Futura-lineage geometric sans vendored
+locally via `next/font/local`, set uppercase with wide tracking to echo the
+supplied wordmark; this is documented as an approximation of the wordmark's
+exact typeface, not a claimed exact match. See
+[`docs/brand-system.md`](docs/brand-system.md) for the full tokens, the display
+font decision and the logo rationale, and
+[`docs/design-reference-audit.md`](docs/design-reference-audit.md) for how the
 design references were adopted, adapted or rejected.
 
 ## Stack
@@ -155,7 +197,7 @@ design references were adopted, adapted or rejected.
 
 ```bash
 cd backend
-pytest        # 128 tests
+pytest        # 174 tests
 ruff check .
 ```
 
@@ -163,12 +205,15 @@ ruff check .
 
 ```bash
 cd frontend
+npx vitest run   # 8 tests (chart-data)
 npm run build
 npm run lint
 ```
 
-128 backend tests pass and the repository is ruff-clean; the frontend type-checks,
-lints and builds cleanly, verified by the build lead in this environment.
+174 backend tests pass and the repository is ruff-clean; 8 frontend `vitest`
+unit tests pass; the frontend type-checks, lints and builds cleanly. All
+verified in this environment (see `FINAL_STATUS.md` for the exact commands and
+observed output).
 
 ## Documentation
 
@@ -177,5 +222,6 @@ lints and builds cleanly, verified by the build lead in this environment.
 - [`docs/architecture.md`](docs/architecture.md): system design, module boundaries
 - [`docs/methodology.md`](docs/methodology.md): the analytics: formulas, rationale, edge cases
 - [`docs/API.md`](docs/API.md): full endpoint reference
-- [`docs/deployment.md`](docs/deployment.md): environment variables, Docker, hosting notes
+- [`docs/deployment.md`](docs/deployment.md): environment variables, Docker, hosting notes, scheduler setup
 - [`docs/limitations.md`](docs/limitations.md): honest limitations and known caveats
+- [`docs/portfolio-report.md`](docs/portfolio-report.md): the full engineering portfolio report

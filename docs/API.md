@@ -20,7 +20,7 @@ Every data-bearing endpoint accepts an optional `mode` query parameter:
 If omitted, the server's configured default is used (`DEFAULT_MODE`, `live` by default), with
 automatic fallback live → cached → replay on failure (see `docs/architecture.md`,
 "Fallback behaviour"). The mode actually served is always reported in the response's
-`status` field (or as the top-level body for `/api/status`) — never assumed from the request.
+`status` field (or as the top-level body for `/api/status`) – never assumed from the request.
 
 ## The `DataStatus` envelope
 
@@ -143,15 +143,15 @@ The dashboard: top movers, most active, highest volume, widest spreads, and rece
 ## `GET /api/markets`
 
 Search / filter / sort / paginate the market list (compact cards, no per-token network fetch
-for `live` mode — fast discovery-metadata only).
+for `live` mode – fast discovery-metadata only).
 
 **Query parameters:**
 
 | Name | Type | Default | Notes |
 |---|---|---|---|
-| `search` | string | — | Case-insensitive substring match against the question |
-| `category` | string | — | Exact match (case-insensitive) |
-| `status` | string | — | Exact match, e.g. `active` \| `closed` \| `archived` \| `resolved` \| `unknown` |
+| `search` | string | – | Case-insensitive substring match against the question |
+| `category` | string | – | Exact match (case-insensitive) |
+| `status` | string | – | Exact match, e.g. `active` \| `closed` \| `archived` \| `resolved` \| `unknown` |
 | `sort` | string | `volume` | One of `volume` \| `volume_24hr` \| `liquidity` \| `end_date` |
 | `limit` | integer | `50` | `1`–`200` |
 | `offset` | integer | `0` | ≥ `0` |
@@ -267,7 +267,7 @@ The ranked list of current composite-anomaly signals across the enriched market 
   "direction": "up",
   "detected": "Recent behaviour is statistically unusual versus this market's own history (components: unusual_return, book_imbalance).",
   "method": "Weighted mean of normalised components (|return z-score|, volume acceleration, book imbalance, spread change, depth change), each saturating at a documented cap; weights renormalised over available components. See docs/methodology.md.",
-  "why_it_matters": "Clusters of unusual return, volume, imbalance and liquidity shifts can precede or accompany genuine repricing — worth investigating, not proof of anything.",
+  "why_it_matters": "Clusters of unusual return, volume, imbalance and liquidity shifts can precede or accompany genuine repricing – worth investigating, not proof of anything.",
   "limitations": "Screening heuristic only. Not evidence of insider activity; not a profit signal. Sensitive to the chosen weights, caps and windows, which are assumptions.",
   "components": [
     {
@@ -335,7 +335,7 @@ runs against the replay dataset (not subject to `mode`).
     "No transaction costs, slippage or fees are modelled; this is not a P&L simulation."
   ],
   "limitations": [
-    "Deterministic synthetic demo dataset — results do not generalise to live markets.",
+    "Deterministic synthetic demo dataset – results do not generalise to live markets.",
     "Small sample; no survivorship correction (markets that closed are not repopulated).",
     "Directional 'hit rate' measures follow-through only, NOT profitability or alpha."
   ],
@@ -349,6 +349,185 @@ runs against the replay dataset (not subject to `mode`).
   }
 }
 ```
+
+## `GET /api/markets/facets`
+
+Distinct real filter values (categories, sports, competitions, statuses) for the Markets page
+filter controls, built dynamically from the currently normalised market set. Every list
+contains only values genuinely present in the data; nothing is invented, and there is no
+placeholder such as `Unknown`: a grouping that is genuinely absent simply does not appear (or
+the whole list is empty).
+
+**Query parameters:**
+
+| Name | Type | Default | Notes |
+|---|---|---|---|
+| `mode` | string | server default | `live` \| `cached` \| `replay` |
+
+**Response shape** (`MarketFacetsResponse`):
+
+```json
+{
+  "categories": ["Politics", "Crypto", "Sports"],
+  "sports": ["Basketball", "Football"],
+  "competitions": ["NBA", "Premier League"],
+  "statuses": ["active", "closed"]
+}
+```
+
+---
+
+## Prospective cohort evaluation (`/api/cohorts/*`)
+
+The weekly cohort evaluation system (see `docs/methodology.md` §12) exposes typed,
+backend-computed responses so the frontend never derives evaluation truth (rankings,
+correctness, portfolio values) from loose client state. **These endpoints are read-only.**
+Ranking, freezing, forward-price collection, resolution checking and evaluation all run via
+the scheduler CLI (`python -m astrolabe.evaluation.cli ...`, see `docs/deployment.md`), never
+through the API. Response shapes are the Pydantic models in
+`backend/astrolabe/evaluation/schemas.py`.
+
+### `GET /api/cohorts/weeks`
+
+Every recorded cohort week, newest first. Empty before the first `rank`/`freeze` run.
+
+**Response shape** (`list[CohortWeek]`):
+
+```json
+[
+  {
+    "iso_year": 2026,
+    "iso_week": 31,
+    "label": "2026-W31",
+    "week_start": "2026-07-27T00:00:00+00:00",
+    "cutoff_at": "2026-08-02T23:59:59+00:00",
+    "frozen": true,
+    "frozen_at": "2026-08-02T23:59:59+00:00",
+    "provenance_class": "prospective",
+    "actual_size": 7,
+    "target_size": 10
+  }
+]
+```
+
+### `GET /api/cohorts/provenance`
+
+Data provenance: when real prospective tracking began, and how many weeks exist in each
+provenance class. Always returns `200`, even with zero cohorts recorded.
+
+**Response shape** (`ProvenanceOut`):
+
+```json
+{
+  "calculation_version": "arepo-eval-1",
+  "first_prospective_week": null,
+  "prospective_weeks": 0,
+  "reconstructed_weeks": 0,
+  "synthetic_weeks": 1,
+  "note": "Prospective cohorts are real signals frozen at the weekly cut-off and tracked forward. Synthetic cohorts are clearly-labelled demonstrations and are never mixed into prospective statistics."
+}
+```
+
+`first_prospective_week` is `null` until the first genuinely prospective cohort has been
+recorded; it is never backfilled or estimated.
+
+### `GET /api/cohorts/latest`
+
+The most recently recorded cohort's full detail (summary, entries, portfolio): a convenience
+wrapper around the endpoint below using the newest entry from `/api/cohorts/weeks`.
+
+**Errors:** `404` with `{"detail": "No cohorts recorded yet."}` if no cohort has been recorded.
+
+**Response shape:** identical to `GET /api/cohorts/{iso_year}/{iso_week}` below.
+
+### `GET /api/cohorts/{iso_year}/{iso_week}`
+
+One ISO week's full cohort detail: the frozen (or provisional) selection, forward-tracking
+observations, both evaluation views, and the hypothetical portfolio.
+
+**Path parameters:** `iso_year` (int), `iso_week` (int).
+
+**Errors:** `404` with `{"detail": "Cohort not found."}` if that week has no cohort.
+
+**Response shape** (`CohortDetail`):
+
+```json
+{
+  "summary": {
+    "week": { "iso_year": 2026, "iso_week": 31, "label": "2026-W31", "frozen": true, "...": "..." },
+    "calculation_version": "arepo-eval-1",
+    "note": null,
+    "selected": 7,
+    "moved_expected": 4,
+    "moved_against": 2,
+    "movement_pending": 1,
+    "movement_horizon": "24h",
+    "resolved_correct": 0,
+    "resolved_incorrect": 0,
+    "unresolved": 7,
+    "plain_summary": "Arepo selected 7 qualifying signals this week. Of those, 4 later moved in the expected direction, 2 moved against it and 1 remain pending, measured at the 24 hour horizon."
+  },
+  "entries": [
+    {
+      "rank": 1,
+      "market_id": "559651",
+      "token_id": "55115...",
+      "condition_id": "0xabc...",
+      "event_id": "12345",
+      "market_question": "Xi Jinping out before 2027?",
+      "outcome_name": "Yes",
+      "direction": "up",
+      "signal_timestamp": "2026-07-28T09:12:00+00:00",
+      "expected_close": "2026-12-31T00:00:00+00:00",
+      "strength": 0.42,
+      "confidence": 0.39,
+      "data_quality": "good",
+      "value": 1.42,
+      "entry_price": 0.045,
+      "best_bid": 0.04,
+      "best_ask": 0.05,
+      "midpoint": 0.045,
+      "spread": 0.01,
+      "volume": 11651725.98,
+      "near_mid_depth": 4820.5,
+      "lookback_size": 145,
+      "component_scores": [ /* SignalComponent[] */ ],
+      "forward": [
+        { "horizon": "1h", "observed_at": "2026-08-02T23:59:59+00:00", "price": 0.048 }
+      ],
+      "resolution": null,
+      "evaluation": {
+        "movement_horizon": "24h",
+        "raw_prob_movement": 0.006,
+        "movement_correct": true,
+        "resolved": false,
+        "resolution_correct": null,
+        "pending": true,
+        "hypothetical_value": 102.4
+      }
+    }
+  ],
+  "portfolio": {
+    "stake_per_signal": 100.0,
+    "fee_rate": 0.0,
+    "spread_assumption": "Entry crosses 50% of the quoted spread; fees 0.0% of stake per position.",
+    "total_allocated": 700.0,
+    "realised_value": 0.0,
+    "unrealised_value": 410.6,
+    "pending_value": 300.0,
+    "completed_return": 0.0,
+    "completed_positions": 0,
+    "pending_positions": 7,
+    "positions": [ /* PositionOut[] */ ]
+  }
+}
+```
+
+The example figures above illustrate the shape only; see `docs/methodology.md` §12 for exactly
+how each value is computed, and `docs/portfolio-report.md` for the honest position on real
+results (no real cohort has completed a tracked week on this deployment yet).
+
+---
 
 ## `GET /api/replay/scenario`
 
@@ -368,6 +547,6 @@ Metadata and a market list for the committed replay dataset. No query parameters
 - All timestamps are ISO-8601 with UTC offset (`+00:00` or `Z`).
 - All probabilities/prices are floats in `[0, 1]`.
 - Any numeric field may be `null` when not computable (insufficient history, undefined
-  midpoint, missing book side, etc.) — this is deliberate, not a bug; see
+  midpoint, missing book side, etc.) – this is deliberate, not a bug; see
   `docs/methodology.md` for exactly when each value is `null`.
 - `data_quality` is one of `good` \| `limited` \| `poor` \| `unavailable`.
