@@ -46,6 +46,7 @@ class TokenAnalytics:
     signal: Signal
     confidence: float
     data_quality: str
+    data_age_seconds: float | None = None
 
 
 def _volume_acceleration(volumes: list[float] | None) -> float | None:
@@ -130,6 +131,7 @@ def compute_token_analytics(
         signal=signal,
         confidence=signal.confidence,
         data_quality=quality.band.value,
+        data_age_seconds=data_age_seconds,
     )
 
 

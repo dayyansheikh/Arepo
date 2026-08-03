@@ -243,19 +243,29 @@ def test_composite_not_dominated_by_imbalance_when_price_present():
     assert score == pytest.approx(1.0)
 
 
-def test_build_anomaly_signal_folds_confidence():
+def test_confidence_is_data_quality_not_strength():
+    # Confidence must be a pure data-quality measure, INDEPENDENT of strength: it equals the
+    # quality assessment's confidence and does not scale with the size of the anomaly. This is
+    # what the product's own copy claims ("strength and confidence sit side by side, never
+    # blended") and prevents Research Priority from becoming quadratic in strength.
     q = assess_quality(
         n_history=5, ideal_history=20, relative_spread=0.2, near_mid_depth=50,
         data_age_seconds=10, two_sided_book=True,
     )
-    sig = build_anomaly_signal(
+    weak = build_anomaly_signal(
+        token_id="tok", market_id="mkt",
+        raw=RawComponents(zscore=-1.2, imbalance=-0.1), quality=q, window_desc="20 obs",
+    )
+    strong = build_anomaly_signal(
         token_id="tok", market_id="mkt",
         raw=RawComponents(zscore=-3.0, imbalance=-0.4), quality=q, window_desc="20 obs",
     )
-    assert sig.kind == SignalKind.COMPOSITE_ANOMALY
-    assert sig.direction == "down"                      # negative z
-    assert 0.0 <= sig.strength <= 1.0
-    # confidence = strength * quality.confidence <= strength
-    assert sig.confidence <= sig.strength + 1e-9
-    assert "insider" in sig.limitations.lower()          # ethical caveat present
-    assert not math.isnan(sig.strength)
+    assert strong.kind == SignalKind.COMPOSITE_ANOMALY
+    assert strong.direction == "down"                        # negative z
+    assert 0.0 <= strong.strength <= 1.0
+    assert strong.strength > weak.strength                    # bigger anomaly is stronger
+    # ...but both share the SAME confidence, because the data quality is identical.
+    assert weak.confidence == pytest.approx(strong.confidence)
+    assert strong.confidence == pytest.approx(q.confidence)
+    assert "insider" in strong.limitations.lower()           # ethical caveat present
+    assert not math.isnan(strong.strength)

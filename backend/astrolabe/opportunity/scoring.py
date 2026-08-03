@@ -191,7 +191,9 @@ def score_opportunity(
     liq_factor, liq_quality = _liquidity_factor(liquidity)
     spread_f = _spread_factor(relative_spread)
     fresh_f = _freshness_factor(data_age_seconds)
-    quality_factor = max(0.0, min(1.0, signal.confidence)) if signal.confidence > 0 else 0.5
+    # signal.confidence is now a pure data-quality term in [0, 1] (independent of strength),
+    # so it is a genuine quality gate here rather than a hidden second strength multiplier.
+    quality_factor = max(0.05, min(1.0, signal.confidence))
 
     raw = 0.55 * evidence + 0.45 * family_bonus
     priority = raw * quality_factor * liq_factor * spread_f * fresh_f

@@ -203,6 +203,11 @@ def build_anomaly_signal(
         ),
         components=components,
         data_quality=quality.band if isinstance(quality.band, DataQuality) else DataQuality.GOOD,
-        confidence=score * quality.confidence,
+        # Confidence measures how much clean evidence went into the reading (history length,
+        # spread, depth) and is deliberately INDEPENDENT of strength: a large anomaly on thin
+        # data is strong-but-low-confidence, a small one on rich data is weak-but-high-confidence.
+        # It must not be multiplied by the strength score, or the two collapse into one number
+        # (which also made Research Priority quadratic in strength). See docs/methodology.md.
+        confidence=quality.confidence,
         window=window_desc,
     )

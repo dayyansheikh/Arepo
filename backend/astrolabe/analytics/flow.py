@@ -12,9 +12,13 @@ All indicators are:
   labelled insider / suspicious / manipulated (spec section 6).
 
 Each indicator belongs to one independent evidence family (price, trade_flow, order_book,
-wallet_concentration, timing, cross_market). The Research Priority score and alert eligibility
-count *distinct families*, so several correlated trade-flow indicators cannot masquerade as
+wallet_concentration, timing). The Research Priority score and alert eligibility count
+*distinct families*, so several correlated trade-flow indicators cannot masquerade as
 independent confirmation.
+
+Note: only the five families listed above are actually produced. A cross-market family was
+considered but is not wired up, so it is deliberately not declared here (declaring an unused
+family would overstate how many independent lines of evidence exist).
 """
 from __future__ import annotations
 
@@ -31,7 +35,6 @@ FAMILY_FLOW = "trade_flow"
 FAMILY_BOOK = "order_book"
 FAMILY_WALLET = "wallet_concentration"
 FAMILY_TIMING = "timing"
-FAMILY_CROSS = "cross_market"
 
 # Minimum recent trades before a flow/size baseline is trustworthy.
 MIN_TRADES_FOR_BASELINE = 20

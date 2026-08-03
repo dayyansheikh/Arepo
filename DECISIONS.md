@@ -5,6 +5,82 @@ Newest entries at the top of each section.
 
 ---
 
+## Product Simplification, Accounts & Decision-Support (branch `arepo-product-simplification`)
+
+### P0. Two independent product reviews (spec §2) — findings that shaped the redesign
+Before choosing the redesign, two Sonnet reviewers inspected the live product.
+
+**Reviewer A (capable beginner):** every card leads with a bare number (`73 / prio`,
+"Composite anomaly", "signal strength") and defers the explanation to a hover tooltip or a
+separate page; tags are unexplained pills (tooltip-only, invisible on touch); `n_families
+evidence` renders as "2 evidence"; Signal Lab and market-detail show **both Yes and No as
+separate anomalies** for the same price move; Research Priority vs signal strength vs
+confidence are three similar-looking scores that are easy to conflate. Biggest advice:
+**lead every card with the plain-English "so what" sentence the backend already generates
+(`_explain()`), demote the number to a labelled secondary chip.**
+
+**Reviewer B (prediction-market quant):** the blocking defect is `confidence = strength ×
+quality.confidence` (`anomaly.py`), which (a) contradicts the product's own copy that
+"strength and confidence sit side by side, never blended", and (b) makes Research Priority
+**quadratic in strength** in the modal single-family case. Also: a `cross_market` evidence
+family was declared but never implemented (overstating breadth to 6 when only 5 exist); the
+freshness penalty was dead on the board (`data_age_seconds=None` hardcoded); `card.direction`
+is computed but never rendered on the board; the historical-reconstruction path is otherwise
+rigorous (no look-ahead in signal construction, causal entry-price selection, clean
+provenance separation). Top fix: **decouple confidence from strength.**
+
+### P1. Chosen information architecture (spec §3, §4)
+The two reviews converge on one root cause: the product computes good decision-support
+explanations but buries them under bare scores. The redesign therefore keeps a lean surface
+set and re-sequences each surface to lead with the conclusion:
+
+- **Opportunities** (`/`) — the Board, redesigned so each card leads with a one-sentence
+  hypothesis + direction; Research Priority becomes a labelled chip with a low/medium/high
+  interpretation; a time-to-close filter (24h / 3 days / 7 days / all) is added.
+- **Explore** (`/markets`) — the full searchable universe (retained).
+- **Signal Lab** (`/signals`) — consolidated so complementary Yes/No are shown as one price
+  event, not two independent opportunities; each signal states direction, horizon, and
+  whether it is actionable / observational / inconclusive.
+- **Replay** (`/replay`) — prospective + reconstructed (price-only) + synthetic kept strictly
+  separate; defaults to the simplest view.
+- **Learn** (`/how-it-works`, `/methodology`) — plain then technical; the Arepo brand/origin
+  story moves here, out of technical result pages.
+- **Account** (`/account`) — sign in/up, alert preferences, saved markets, alert history.
+
+Rejected: a single merged "everything" page (re-creates the wall-of-metrics problem both
+reviewers flagged); removing Signal Lab or Replay (spec requires retaining them, and the
+quant review found Replay's causal design is the product's strongest asset).
+
+### P2. Statistical-integrity fixes applied first (from Reviewer B), before any UI work
+- **Confidence decoupled from strength**: `Signal.confidence` is now `quality.confidence`
+  (pure data-quality, independent of anomaly size). This removes the hidden strength² term
+  in Research Priority and makes the "strength ≠ confidence" copy actually true.
+- **Freshness penalty wired through**: `TokenAnalytics` now carries `data_age_seconds` and
+  the Opportunity Board passes it into `score_opportunity`, so stale readings (cached/replay
+  modes) are correctly shaped down instead of getting full freshness credit.
+- **`cross_market` family removed**: it was declared but never produced. Only the five real
+  families (price, trade_flow, order_book, wallet_concentration, timing) are now declared, so
+  the "independent evidence families" count matches what the code can actually compute.
+
+### P3. Authentication architecture: native FastAPI (fastapi-users), NOT Supabase (spec §9)
+Assessed the existing Next.js + FastAPI + SQLAlchemy-async architecture. Chose
+**`fastapi-users` (SQLAlchemy adapter, argon2 hashing, JWT + secure cookie sessions, email
+verification + password reset)** integrated into the existing FastAPI backend and database.
+
+Supabase (the spec's strong default) was **rejected** because in this architecture it would:
+(1) introduce a **second datastore** alongside the FastAPI-owned SQLAlchemy DB, splitting
+user/preferences/alert-history data from the market and alert engine that must foreign-key to
+it; (2) **not run offline** — the spec requires the project to remain runnable before external
+credentials are configured, but Supabase needs either a cloud project or local Docker
+(unavailable in this environment) before anything works; (3) split auth (Supabase) from the
+API (FastAPI) across two backends. `fastapi-users` keeps one datastore, one backend, one
+session model, runs fully offline with the existing **provider-neutral email engine** sending
+verification/reset mail to the console sink, and still delegates **all** password hashing and
+token crypto to vetted libraries (argon2-cffi / PyJWT) — satisfying "do not build password
+security from scratch". Documented here per spec §9.
+
+---
+
 ## Opportunity Intelligence & Alerting (branch `arepo-opportunity-alerts`)
 
 ### O1. Information architecture: Opportunity Board as home, Explore Markets retained

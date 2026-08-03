@@ -115,7 +115,7 @@ async def build_opportunity_board(
         scored = score_opportunity(
             ta.signal, indicators,
             liquidity=market.liquidity, relative_spread=ta.relative_spread,
-            data_age_seconds=None, now=now,
+            data_age_seconds=ta.data_age_seconds, now=now,
         )
         return _card(market, ta, scored, mode.value, now)
 
