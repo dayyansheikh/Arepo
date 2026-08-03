@@ -329,3 +329,46 @@ export interface ProvenanceInfo {
   synthetic_weeks: number;
   note: string;
 }
+
+// -- Historical reconstructed retrospective ---------------------------------------------
+
+export interface HistoricalForward {
+  horizon: string;
+  price: number | null;
+  movement: number | null;
+}
+
+export interface HistoricalEntry {
+  rank: number;
+  market_id: string;
+  token_id: string;
+  market_question: string;
+  outcome_name: string;
+  direction: "up" | "down" | null;
+  strength: number;
+  confidence: number;
+  data_quality: string;
+  entry_price: number;
+  lookback_points: number;
+  components: Array<{ name: string; normalized_value: number | null; weight: number | null }>;
+  forward: HistoricalForward[];
+  final_price: number | null;
+  final_movement: number | null;
+  direction_correct_24h: boolean | null;
+}
+
+export interface HistoricalScreen {
+  provenance_class: string;
+  as_of: string;
+  top_n: number;
+  universe_considered: number;
+  eligible: number;
+  selected: number;
+  moved_expected_24h: number;
+  moved_against_24h: number;
+  pending_24h: number;
+  entries: HistoricalEntry[];
+  plain_summary: string;
+  assumptions: string[];
+  limitations: string[];
+}

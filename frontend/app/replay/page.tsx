@@ -8,12 +8,15 @@ import {
   getCohort,
   getCohortProvenance,
   getCohortWeeks,
+  getHistoricalScreen,
 } from "@/lib/api";
 import type {
   BacktestEvent,
   CohortDetail,
   CohortEntry,
   CohortWeek,
+  HistoricalEntry,
+  HistoricalScreen,
   ProvenanceInfo,
 } from "@/lib/types";
 import {
@@ -64,19 +67,52 @@ export default function ReplayPage() {
   );
 
   const [view, setView] = useState<View>("movement");
+  const [mode, setMode] = useState<"prospective" | "historical">("prospective");
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Replay"
-        lead="If Arepo had selected these signals at the time, what happened afterwards? Each week Arepo freezes the signals it genuinely would have picked, then tracks them forward. Nothing here is chosen with hindsight."
+        lead="If Arepo had selected these signals at the time, what happened afterwards? The prospective track record freezes each week's signals and tracks them forward with no hindsight. A separate historical analysis reconstructs signals over past price data."
       />
 
       <DisclaimerBanner>
-        Replay evaluates signals Arepo froze prospectively. It is a research record, not
-        trading advice, and past behaviour does not predict future results.
+        Replay is a research record, not trading advice, and past behaviour does not predict
+        future results.
       </DisclaimerBanner>
 
+      {/* Prospective (real, frozen weekly) vs Historical (reconstructed) analysis. */}
+      <div
+        className="inline-flex rounded-control border border-arepo-border bg-arepo-surface p-0.5"
+        role="tablist"
+        aria-label="Replay mode"
+      >
+        {(
+          [
+            ["prospective", "Prospective cohorts"],
+            ["historical", "Historical analysis"],
+          ] as ["prospective" | "historical", string][]
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={mode === key}
+            onClick={() => setMode(key)}
+            className={`focus-ring rounded-[8px] px-3.5 py-1.5 text-[14px] font-medium transition-colors ${
+              mode === key
+                ? "bg-arepo-accentTint text-arepo-accentActive"
+                : "text-arepo-muted hover:text-arepo-ink"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === "historical" && <HistoricalView />}
+
+      {mode === "prospective" && (
+        <>
       {weeksState.loading && <ListSkeleton rows={5} />}
       {!weeksState.loading && weeksState.error && <ErrorState message={weeksState.error} />}
 
@@ -136,6 +172,8 @@ export default function ReplayPage() {
       <Disclose summary="Show the signal backtest (demonstration dataset)">
         <BacktestDemo />
       </Disclose>
+        </>
+      )}
 
       {provenanceState.data && <ProvenanceFootnote info={provenanceState.data} />}
     </div>
@@ -445,6 +483,183 @@ function ProvenanceFootnote({ info }: { info: ProvenanceInfo }) {
 
 function capitalise(s: string): string {
   return s ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+// ---------------------------------------------------------------------------------------
+// Historical reconstructed retrospective (a separate, clearly-labelled analysis mode).
+// ---------------------------------------------------------------------------------------
+const HISTORICAL_PERIODS = [
+  { days: 7, label: "7 days ago" },
+  { days: 14, label: "14 days ago" },
+  { days: 30, label: "30 days ago" },
+];
+
+function HistoricalView() {
+  const [days, setDays] = useState(7);
+  const { data, loading, error } = useAsync<HistoricalScreen>(
+    () => getHistoricalScreen(days),
+    [days]
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start gap-2.5 rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[14px] leading-relaxed text-arepo-ink2">
+        <span className="mt-0.5 inline-flex flex-none items-center rounded-full bg-arepo-ink/8 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-arepo-ink2">
+          Reconstructed analysis
+        </span>
+        <span>
+          This reconstructs the composite anomaly signal at a past cut-off using only the real
+          price history up to that moment, then measures what actually happened afterwards. It is
+          a research screen, separate from the prospective frozen-weekly track record, and is
+          never mixed into it.
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-4">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-arepo-ink2">Cut-off</span>
+          <select
+            className="select-arepo w-44"
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+          >
+            {HISTORICAL_PERIODS.map((p) => (
+              <option key={p.days} value={p.days}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {loading && (
+          <p className="text-[13px] text-arepo-muted">
+            Reconstructing from real price history. This can take a moment.
+          </p>
+        )}
+      </div>
+
+      {loading && <ListSkeleton rows={6} />}
+      {!loading && error && <ErrorState message={error} />}
+      {!loading && data && <HistoricalResult screen={data} />}
+    </div>
+  );
+}
+
+function HistoricalResult({ screen }: { screen: HistoricalScreen }) {
+  if (screen.selected === 0) {
+    return (
+      <EmptyState
+        message={
+          "No markets had enough real, moving price history to reconstruct a signal for this " +
+          "cut-off. See the limitations below."
+        }
+      />
+    );
+  }
+  return (
+    <div className="space-y-6">
+      <p className="max-w-reading text-[16px] leading-relaxed text-arepo-ink">
+        {screen.plain_summary}
+      </p>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatTile label="Signals reconstructed" value={String(screen.selected)} />
+        <StatTile label="Moved as expected (24h)" value={String(screen.moved_expected_24h)} />
+        <StatTile label="Moved against (24h)" value={String(screen.moved_against_24h)} />
+        <StatTile label="Not evaluable (24h)" value={String(screen.pending_24h)} />
+      </div>
+      <p className="-mt-4 text-[13px] text-arepo-muted">
+        Considered {screen.universe_considered} outcomes; {screen.eligible} had enough history
+        and a strong enough signal to rank. A move in the signalled direction is not a claim of
+        profitability.
+      </p>
+
+      <section className="space-y-3">
+        <SectionTitle>Reconstructed signals</SectionTitle>
+        <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-[13px]">
+              <thead>
+                <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
+                  <th className="px-4 py-3 font-semibold">Market</th>
+                  <th className="px-4 py-3 font-semibold">Signal</th>
+                  <th className="px-4 py-3 font-semibold">Strength</th>
+                  <th className="px-4 py-3 font-semibold">Entry</th>
+                  <th className="px-4 py-3 font-semibold">24h move</th>
+                  <th className="px-4 py-3 font-semibold">Outcome (24h)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-arepo-border">
+                {screen.entries.map((e) => (
+                  <HistoricalRow key={`${e.market_id}-${e.token_id}`} entry={e} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <Disclose summary="Assumptions and limitations">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <p className="text-[13px] font-bold uppercase tracking-wide text-arepo-ink">
+              Assumptions
+            </p>
+            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-arepo-muted">
+              {screen.assumptions.map((a, i) => (
+                <li key={i}>{a}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-[13px] font-bold uppercase tracking-wide text-arepo-ink">
+              Limitations
+            </p>
+            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-arepo-muted">
+              {screen.limitations.map((l, i) => (
+                <li key={i}>{l}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </Disclose>
+    </div>
+  );
+}
+
+function HistoricalRow({ entry }: { entry: HistoricalEntry }) {
+  const move24 = entry.forward.find((f) => f.horizon === "24h")?.movement ?? null;
+  const verdict =
+    entry.direction_correct_24h === true
+      ? { tone: "good" as const, label: "As expected" }
+      : entry.direction_correct_24h === false
+        ? { tone: "bad" as const, label: "Against" }
+        : { tone: "pending" as const, label: "Not evaluable" };
+  return (
+    <tr>
+      <td className="px-4 py-2.5">
+        <Link
+          href={`/markets/${encodeURIComponent(entry.market_id)}`}
+          className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
+        >
+          {entry.market_question}
+        </Link>
+        <div className="text-[12px] text-arepo-muted">{entry.outcome_name}</div>
+      </td>
+      <td className="px-4 py-2.5 font-tabular">
+        {entry.direction === "up" && <span className="text-arepo-pos">Up</span>}
+        {entry.direction === "down" && <span className="text-arepo-neg">Down</span>}
+        {!entry.direction && <span className="text-arepo-muted">n/a</span>}
+      </td>
+      <td className="px-4 py-2.5 font-tabular">{formatPercent(entry.strength, 0)}</td>
+      <td className="px-4 py-2.5 font-tabular">{formatPrice(entry.entry_price)}</td>
+      <td className="px-4 py-2.5 font-tabular">
+        {move24 === null ? "n/a" : formatSignedPercent(move24, 1)}
+      </td>
+      <td className="px-4 py-2.5">
+        <Verdict tone={verdict.tone} label={verdict.label} />
+      </td>
+    </tr>
+  );
 }
 
 // ---------------------------------------------------------------------------------------

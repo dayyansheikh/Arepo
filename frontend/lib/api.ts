@@ -4,6 +4,7 @@ import type {
   CohortWeek,
   DataMode,
   DataStatus,
+  HistoricalScreen,
   MarketDetailResponse,
   MarketFacets,
   MarketsResponse,
@@ -147,4 +148,18 @@ export function getCohortProvenance(): Promise<ProvenanceInfo> {
 
 export function getCohort(isoYear: number, isoWeek: number): Promise<CohortDetail> {
   return apiFetch<CohortDetail>(`/api/cohorts/${isoYear}/${isoWeek}`);
+}
+
+// -- Historical reconstructed retrospective ---------------------------------------------
+
+export function getHistoricalScreen(
+  days = 7,
+  limit = 24,
+  topN = 15
+): Promise<HistoricalScreen> {
+  return apiFetch<HistoricalScreen>("/api/historical/screen", {
+    days,
+    limit,
+    top_n: topN,
+  });
 }
