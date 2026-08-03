@@ -47,7 +47,11 @@ stale-while-revalidate cache (warm hit ~2ms vs ~6.1s cold build) + 4 tests + doc
 Phase 7 (523285e) docs (authentication, accounts-privacy, methodology §9c/§9d, API, README,
 FINAL_STATUS, limitations) and live-verified price-only historical reconstruction. Final state:
 backend 268 tests pass, ruff clean, idempotent bootstrap; frontend tsc/lint/build clean (16
-routes). Post-implementation review + final push pending at time of writing this line.
+routes). Post-implementation review done (§17): market-detail Current-model-view lead added
+(a34d3ab); two genuine review findings fixed (stale confidence docstring, TagChip ARIA) in
+7c562c8; the review's alerts/cache FAILs were against a stale checkout and are false (both are
+implemented and tested). Brand story confirmed in How It Works (Learn), not on result pages (§4).
+PASS COMPLETE; final push done.
 
 Original phases 1-4 notes:
 

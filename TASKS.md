@@ -17,11 +17,13 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocke
       account_deletions); per-user isolation; rate limiting; .env.example; 10 tests
 - [x] Phase 4: accounts frontend (signup/signin/forgot/reset/verify/account + alert settings);
       auth context; verification link visible via console sink; live lifecycle smoke passed
-- [ ] Phase 5: connect alert engine to per-user verified/opted-in preferences (+ tests)
-- [ ] Phase 6: performance profiling + improvements (board caching/dedup; before/after)
-- [ ] Phase 7: Replay historical price-only reconstruction; docs; repeat reviews; push
-- [ ] Market detail: lead with "Current model view" hypothesis + progressive disclosure (§6)
-- [ ] Move Arepo brand/origin story into Learn/About (§4)
+- [x] Phase 5: connect alert engine to per-user verified/opted-in preferences (+ 10 tests)
+- [x] Phase 6: performance profiling + board stale-while-revalidate cache (6.1s->~2ms; 4 tests)
+- [x] Phase 7: Replay historical price-only reconstruction verified live; docs; review; push
+- [x] Market detail: leads with "Current model view" hypothesis + progressive disclosure (§6)
+- [x] Brand/origin story confirmed in How It Works (Learn), not on technical result pages (§4)
+- [x] Post-implementation review (§17): 2 genuine findings fixed (stale docstring, TagChip ARIA);
+      stale-checkout FAILs on alerts/cache were false (both exist and are tested)
 
 ## Opportunity Intelligence & Alerting pass (branch `arepo-opportunity-alerts`)
 - [x] Confirm branch + prior branch pushed; investigate trade/wallet data (DECISIONS O2)
