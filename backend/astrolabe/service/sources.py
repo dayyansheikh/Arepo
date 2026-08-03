@@ -32,6 +32,11 @@ from ..replay.player import ReplayPlayer, default_player
 
 logger = get_logger("astrolabe.service.sources")
 
+# Cap on live price-history points kept per token (most recent first). At 30-minute
+# resolution this is roughly the last month, enough for the analytics windows without
+# shipping thousands of points per token.
+LIVE_HISTORY_MAX = 1500
+
 
 @dataclass
 class TokenData:
@@ -117,8 +122,13 @@ class LiveSource:
         try:
             raw_book = await self._clob.get_book(token_id)
             book = normalize_book(token_id, raw_book)
-            raw_hist = await self._clob.get_prices_history(token_id, interval="1d", fidelity=10)
-            points = normalize_price_history(raw_hist)
+            # Fetch the market's full history at 30-minute resolution, not just the last day:
+            # many liquid markets are quiet intraday, so a 1-day window returned nothing and the
+            # composite fell back to order-book imbalance alone. The full history gives the
+            # price-behaviour features (return z-score, movement burst, volatility regime) real
+            # data. Bounded to the most recent points to keep payloads sane.
+            raw_hist = await self._clob.get_prices_history(token_id, interval="max", fidelity=30)
+            points = normalize_price_history(raw_hist)[-LIVE_HISTORY_MAX:]
             prices = [pp.p for pp in points]
             self._rest_health = SourceHealth(
                 name="clob_rest", state=ConnState.CONNECTED, last_success=_now()

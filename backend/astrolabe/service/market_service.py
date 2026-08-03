@@ -178,7 +178,7 @@ class MarketService:
         Sees only information available at this instant (no look-ahead)."""
         source, _ = await self._select_source(requested_mode)
         markets = await source.markets()
-        subset = _sort_markets(markets, "volume")
+        subset = _sort_markets(markets, "volume_24hr")
         if limit is not None:
             subset = subset[:limit]
         results = await asyncio.gather(
@@ -225,9 +225,12 @@ class MarketService:
     async def overview(self, *, requested_mode=None) -> OverviewResponse:
         source, reason = await self._select_source(requested_mode)
         markets = await source.markets()
-        # Deep-enrich a bounded set (top by volume). Replay has few markets => enrich all.
+        # Deep-enrich the most actively-trading markets (24h volume): these have recent CLOB
+        # history, so the composite's price-behaviour features have real data instead of the
+        # score falling back to order-book imbalance on quiet mega-markets. Replay: enrich all.
         by_volume = _sort_markets(markets, "volume")
-        enrich_set = by_volume if source.mode == DataMode.REPLAY else by_volume[:OVERVIEW_ENRICH]
+        active = _sort_markets(markets, "volume_24hr")
+        enrich_set = active if source.mode == DataMode.REPLAY else active[:OVERVIEW_ENRICH]
 
         enriched = await asyncio.gather(
             *(self._enrich_market(source, m) for m in enrich_set), return_exceptions=True
@@ -305,8 +308,8 @@ class MarketService:
     async def signals(self, *, requested_mode=None, limit=25) -> SignalsResponse:
         source, reason = await self._select_source(requested_mode)
         markets = await source.markets()
-        by_volume = _sort_markets(markets, "volume")
-        enrich_set = by_volume if source.mode == DataMode.REPLAY else by_volume[:OVERVIEW_ENRICH]
+        active = _sort_markets(markets, "volume_24hr")
+        enrich_set = active if source.mode == DataMode.REPLAY else active[:OVERVIEW_ENRICH]
         enriched = await asyncio.gather(
             *(self._enrich_market(source, m) for m in enrich_set), return_exceptions=True
         )

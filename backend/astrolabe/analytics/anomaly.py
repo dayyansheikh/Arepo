@@ -19,29 +19,43 @@ from ..domain.models import Signal, SignalComponent
 from .quality import QualityAssessment, squash
 
 # Default component weights (sum to 1.0). Exposed and documented as assumptions, not claimed
-# to be empirically optimal — a firm would re-derive these from labelled data.
+# to be empirically optimal — a firm would re-derive these from labelled data. Rebalanced so
+# the score is led by price-behaviour features and no single book feature can dominate: the
+# three price features carry 0.60, order-book imbalance only 0.12. See docs/methodology.md.
 DEFAULT_WEIGHTS: dict[str, float] = {
-    "unusual_return": 0.35,     # |rolling z-score of returns|
-    "volume_acceleration": 0.20,
-    "book_imbalance": 0.15,
-    "spread_change": 0.15,
-    "depth_change": 0.15,
+    "unusual_return": 0.24,        # |rolling z-score of the latest return|
+    "movement_abnormality": 0.20,  # standardised magnitude of the recent multi-step move
+    "volatility_regime": 0.16,     # short vs long return-volatility (spike)
+    "volume_acceleration": 0.12,   # relative rise in recent volume (when available)
+    "book_imbalance": 0.12,        # |near-touch bid/ask depth imbalance|
+    "spread_change": 0.08,         # relative change in spread vs baseline (when available)
+    "depth_change": 0.08,          # relative change in near-mid depth vs baseline (when available)
 }
 
 # Saturation caps for each raw component (the value at which the normalised magnitude hits 1.0).
 DEFAULT_CAPS: dict[str, float] = {
-    "unusual_return": 4.0,       # |z| of 4 => fully saturated
-    "volume_acceleration": 3.0,  # 300% acceleration => saturated
-    "book_imbalance": 1.0,       # already in [-1, 1]
-    "spread_change": 1.0,        # relative spread change
-    "depth_change": 1.0,         # relative depth change
+    "unusual_return": 4.0,         # |z| of 4 => fully saturated
+    "movement_abnormality": 4.0,   # a 4-sigma cumulative move => saturated
+    "volatility_regime": 2.0,      # recent vol 3x the baseline => saturated
+    "volume_acceleration": 3.0,    # 300% acceleration => saturated
+    "book_imbalance": 1.0,         # already in [-1, 1]
+    "spread_change": 1.0,          # relative spread change
+    "depth_change": 1.0,           # relative depth change
 }
+
+# The price-behaviour features. The composite requires at least one of these to be present to
+# award a full score; a reading built on order-book features alone is capped (see the
+# BOOK_ONLY_CEILING safeguard) so imbalance can never drive a top signal by itself.
+PRICE_FEATURES = frozenset({"unusual_return", "movement_abnormality", "volatility_regime"})
+BOOK_ONLY_CEILING = 0.5
 
 # User-facing names for each raw component identifier. The raw identifiers above are internal
 # and documented in docs/methodology.md; readers should never see them by default (see spec
 # section 12, "Surface terminology").
 COMPONENT_LABELS: dict[str, str] = {
     "unusual_return": "unusual price move",
+    "movement_abnormality": "abnormal recent move",
+    "volatility_regime": "volatility spike",
     "volume_acceleration": "faster trading activity",
     "book_imbalance": "order-book imbalance",
     "spread_change": "spread change",
@@ -54,7 +68,9 @@ class RawComponents:
     """Raw (pre-normalisation) component inputs. Any may be None if unavailable."""
 
     zscore: float | None = None
-    volume_acceleration: float | None = None    # (recent - baseline)/baseline
+    movement_abnormality: float | None = None    # standardised recent multi-step move magnitude
+    volatility_regime: float | None = None       # short/long return-vol - 1 (elevated side only)
+    volume_acceleration: float | None = None     # (recent - baseline)/baseline
     imbalance: float | None = None               # signed, [-1, 1]
     spread_change: float | None = None           # relative change vs baseline
     depth_change: float | None = None            # relative change vs baseline (drop => notable)
@@ -63,7 +79,11 @@ class RawComponents:
 def _normalise(raw: RawComponents, caps: dict[str, float]) -> list[SignalComponent]:
     """Turn raw inputs into visible, normalised [0,1]-magnitude components."""
     specs = [
-        ("unusual_return", raw.zscore, "|rolling z-score of additive returns|"),
+        ("unusual_return", raw.zscore, "|rolling z-score of the latest additive return|"),
+        ("movement_abnormality", raw.movement_abnormality,
+         "recent multi-step move standardised by its own return scale"),
+        ("volatility_regime", raw.volatility_regime,
+         "recent return-volatility relative to a longer baseline (spike)"),
         ("volume_acceleration", raw.volume_acceleration, "relative rise in recent volume"),
         ("book_imbalance", raw.imbalance, "|bid/ask depth imbalance| over first N levels"),
         ("spread_change", raw.spread_change, "relative change in spread vs baseline"),
@@ -100,13 +120,22 @@ def composite_anomaly_score(
 
     num = 0.0
     wsum = 0.0
+    has_price_context = False
     for c in components:
         if c.normalized_value is None:
             continue
         w = weights.get(c.name, 0.0)
         num += w * c.normalized_value
         wsum += w
+        if c.name in PRICE_FEATURES:
+            has_price_context = True
     score = (num / wsum) if wsum > 0 else 0.0
+
+    # Safeguard: a reading with no price-behaviour context (e.g. only order-book imbalance)
+    # cannot earn a top score. This stops imbalance alone from driving a strong signal and
+    # keeps the composite honest when price history is thin.
+    if not has_price_context and score > BOOK_ONLY_CEILING:
+        score = BOOK_ONLY_CEILING
     return float(max(0.0, min(1.0, score))), components
 
 
@@ -149,18 +178,23 @@ def build_anomaly_signal(
         direction=direction,
         detected=detected,
         method=(
-            "Weighted mean of normalised components "
-            "(|return z-score|, volume acceleration, book imbalance, spread change, depth "
-            "change), each saturating at a documented cap; weights renormalised over available "
-            "components. See docs/methodology.md."
+            "Weighted mean of normalised components, led by price behaviour: the latest-return "
+            "z-score, the standardised size of the recent multi-step move, and a volatility-regime "
+            "shift, alongside volume acceleration, order-book imbalance, and spread and depth "
+            "change when available. Each saturates at a documented cap; weights renormalise over "
+            "the components actually present, and a reading with no price context is capped so "
+            "order-book imbalance cannot drive a top score on its own. See docs/methodology.md."
         ),
         why_it_matters=(
-            "Clusters of unusual return, volume, imbalance and liquidity shifts can precede or "
-            "accompany genuine repricing. It is worth investigating, not proof of anything."
+            "When several independent measures move at once, an unusually large or sustained price "
+            "move, a jump in volatility, heavier trading and a lopsided book, the market may be "
+            "repricing. It is worth investigating, not proof of anything."
         ),
         limitations=(
             "Screening heuristic only. Not evidence of insider activity; not a profit signal. "
-            "Sensitive to the chosen weights, caps and windows, which are assumptions."
+            "Sensitive to the chosen weights, caps and windows, which are assumptions. Spread and "
+            "depth change need an order-book time series that the read-only live path does not "
+            "capture, so they are usually absent and the score leans on price and imbalance."
         ),
         components=components,
         data_quality=quality.band if isinstance(quality.band, DataQuality) else DataQuality.GOOD,
