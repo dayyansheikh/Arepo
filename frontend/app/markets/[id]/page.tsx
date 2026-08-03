@@ -10,9 +10,21 @@ import { OutcomePanel } from "@/components/OutcomePanel";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { SignalItem } from "@/components/SignalItem";
 import { MetricHelp } from "@/components/MetricHelp";
-import { SectionLabel } from "@/components/ui";
+import { SectionTitle } from "@/components/ui";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { SkeletonBlock } from "@/components/Skeletons";
+
+// Plain-English label for where this market's data came from.
+const SOURCE_LABEL: Record<string, string> = {
+  live: "Live",
+  cached: "Cached",
+  replay: "Replay",
+};
+const SOURCE_HELP: Record<string, string> = {
+  live: "Fetched just now from the public Polymarket API.",
+  cached: "Most recent stored copy, served without a live call.",
+  replay: "A fixed demonstration dataset, not live markets.",
+};
 
 export default function MarketDetailPage() {
   const params = useParams<{ id: string }>();
@@ -64,46 +76,51 @@ export default function MarketDetailPage() {
           )}
         </nav>
 
-        <h1 className="max-w-reading text-[30px] font-semibold leading-tight tracking-[-0.01em] text-arepo-ink">
+        <h1 className="display-title max-w-reading text-[28px] leading-tight sm:text-[32px]">
           {market.question}
         </h1>
 
         <div className="flex flex-wrap gap-x-10 gap-y-3 border-b border-arepo-border pb-6">
           <div>
-            <div className="text-xs text-arepo-muted">Volume</div>
-            <div className="font-tabular text-sm font-semibold text-arepo-ink">
+            <div className="text-[13px] text-arepo-muted">Volume</div>
+            <div className="font-tabular text-[15px] font-semibold text-arepo-ink">
               {formatCurrencyCompact(market.volume)}
             </div>
           </div>
           <div>
-            <div className="text-xs text-arepo-muted">24h volume</div>
-            <div className="font-tabular text-sm font-semibold text-arepo-ink">
+            <div className="text-[13px] text-arepo-muted">24h volume</div>
+            <div className="font-tabular text-[15px] font-semibold text-arepo-ink">
               {formatCurrencyCompact(market.volume_24hr)}
             </div>
           </div>
           <div>
-            <div className="flex items-center gap-1 text-xs text-arepo-muted">
+            <div className="flex items-center gap-1 text-[13px] text-arepo-muted">
               <MetricHelp metric="liquidity" />
             </div>
-            <div className="font-tabular text-sm font-semibold text-arepo-ink">
+            <div className="font-tabular text-[15px] font-semibold text-arepo-ink">
               {formatCurrencyCompact(market.liquidity)}
             </div>
           </div>
           <div>
-            <div className="text-xs text-arepo-muted">Ends</div>
-            <div className="font-tabular text-sm font-semibold text-arepo-ink">
+            <div className="text-[13px] text-arepo-muted">Ends</div>
+            <div className="font-tabular text-[15px] font-semibold text-arepo-ink">
               {formatDate(market.end_date)}
             </div>
           </div>
           <div>
-            <div className="text-xs text-arepo-muted">Source</div>
-            <div className="font-tabular text-sm font-semibold text-arepo-ink">{market.data_source}</div>
+            <div className="text-[13px] text-arepo-muted">Source</div>
+            <div
+              className="text-[15px] font-semibold text-arepo-ink"
+              title={SOURCE_HELP[market.data_source] ?? undefined}
+            >
+              {SOURCE_LABEL[market.data_source] ?? market.data_source}
+            </div>
           </div>
         </div>
       </div>
 
       <section className="space-y-3">
-        <SectionLabel>Price history</SectionLabel>
+        <SectionTitle>Price history</SectionTitle>
         <div className="panel p-5">
           <PriceHistoryChart
             priceHistory={market.price_history}
@@ -113,7 +130,7 @@ export default function MarketDetailPage() {
       </section>
 
       <section className="space-y-3">
-        <SectionLabel>Outcomes</SectionLabel>
+        <SectionTitle>Outcomes</SectionTitle>
         {market.outcomes.length === 0 ? (
           <EmptyState message="No outcome data available." />
         ) : (
@@ -126,7 +143,7 @@ export default function MarketDetailPage() {
       </section>
 
       <section className="space-y-3">
-        <SectionLabel>Signals</SectionLabel>
+        <SectionTitle>Signals</SectionTitle>
         {market.signals.length === 0 ? (
           <EmptyState message="No signals detected for this market." />
         ) : (
@@ -138,10 +155,10 @@ export default function MarketDetailPage() {
         )}
       </section>
 
-      <section className="panel space-y-1 p-5">
-        <SectionLabel>Limitations</SectionLabel>
-        <p className="text-sm leading-relaxed text-arepo-ink2">{market.limitations}</p>
-        <p className="text-xs text-arepo-muted">
+      <section className="panel space-y-2 p-5">
+        <SectionTitle>Limitations</SectionTitle>
+        <p className="text-[15px] leading-relaxed text-arepo-ink2">{market.limitations}</p>
+        <p className="text-[13px] text-arepo-muted">
           Probabilities shown are implied by market prices, not verified truths. See{" "}
           <Link href="/methodology" className="text-arepo-accentActive hover:text-arepo-accentHover">
             Methodology

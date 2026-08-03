@@ -84,15 +84,15 @@ export function MetricHelp({
           <span className="block text-sm font-semibold text-arepo-ink">
             {def.term}
           </span>
-          <span className="mt-1 block text-[13px] leading-relaxed text-arepo-ink2">
+          <span className="mt-1 block text-sm leading-relaxed text-arepo-ink2">
             {def.definition}
           </span>
-          <span className="mt-1.5 block text-[13px] leading-relaxed text-arepo-muted">
+          <span className="mt-1.5 block text-sm leading-relaxed text-arepo-muted">
             {def.interpretation}
           </span>
           <Link
             href={`/methodology#${def.id}`}
-            className="focus-ring mt-2 inline-block text-[13px] font-medium text-arepo-accentActive hover:text-arepo-accentHover"
+            className="focus-ring mt-2 inline-block text-sm font-medium text-arepo-accentActive hover:text-arepo-accentHover"
           >
             Learn more &rarr;
           </Link>

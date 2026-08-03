@@ -11,7 +11,7 @@ import { SignalItem } from "@/components/SignalItem";
 import { CardGridSkeleton, ListSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
-import { SectionLabel } from "@/components/ui";
+import { SectionTitle } from "@/components/ui";
 import { StrengthMeter } from "@/components/StrengthMeter";
 
 const MODE_LABEL: Record<string, string> = {
@@ -68,7 +68,7 @@ function RankedList({
   return (
     <section className="space-y-3">
       <div className="flex items-baseline justify-between">
-        <SectionLabel>{title}</SectionLabel>
+        <SectionTitle>{title}</SectionTitle>
         {seeAll && (
           <Link href="/markets" className="text-[13px] font-medium text-arepo-accentActive hover:text-arepo-accentHover">
             See all markets &rarr;
@@ -96,8 +96,8 @@ export default function OverviewPage() {
     <div className="space-y-10">
       <div className="space-y-4">
         <div>
-          <h1 className="text-[30px] font-semibold tracking-[-0.01em] text-arepo-ink">Overview</h1>
-          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-muted">
+          <h1 className="display-title text-[30px] sm:text-[34px]">Overview</h1>
+          <p className="mt-2 max-w-reading text-[15px] leading-relaxed text-arepo-ink2">
             A calm reading of the markets Arepo is watching right now: which are moving, which
             are busiest, and where its screening signals are firing.
           </p>
@@ -125,7 +125,7 @@ export default function OverviewPage() {
         <>
           <section className="space-y-3">
             <div className="flex items-baseline justify-between">
-              <SectionLabel>Top movers</SectionLabel>
+              <SectionTitle>Top movers</SectionTitle>
               <span className="text-[13px] text-arepo-muted">Ranked by signal strength</span>
             </div>
             {data.top_movers.length === 0 ? (
@@ -145,7 +145,7 @@ export default function OverviewPage() {
           )}
 
           <section className="space-y-3">
-            <SectionLabel>Recent signals</SectionLabel>
+            <SectionTitle>Recent signals</SectionTitle>
             {data.recent_signals.length === 0 ? (
               <EmptyState message="No signals have fired recently." />
             ) : (

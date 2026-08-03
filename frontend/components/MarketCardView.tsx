@@ -27,6 +27,12 @@ export function MarketCardView({ market }: { market: MarketCard }) {
         />
       </div>
 
+      {(market.sport || market.competition) && (
+        <div className="-mt-2 text-[11px] text-arepo-muted">
+          {[market.sport, market.competition].filter(Boolean).join(" · ")}
+        </div>
+      )}
+
       <h3 className="min-h-[2.75rem] text-[15px] font-semibold leading-snug text-arepo-ink line-clamp-2">
         {market.question}
       </h3>

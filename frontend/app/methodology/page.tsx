@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Katex } from "@/components/Katex";
-import { Disclose } from "@/components/ui";
+import { Disclose, PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Methodology",
@@ -72,15 +72,15 @@ function Section({
 }) {
   return (
     <section id={id} className="scroll-mt-24">
-      <h2 className="text-[22px] font-semibold text-arepo-ink">{title}</h2>
-      <p className="mt-2 max-w-reading leading-relaxed text-arepo-ink2">{lead}</p>
+      <h2 className="text-[23px] font-bold text-arepo-ink">{title}</h2>
+      <p className="mt-2.5 max-w-reading text-[15px] leading-relaxed text-arepo-ink2">{lead}</p>
       {children}
     </section>
   );
 }
 
 /** A boxed equation with a plain-English gloss, variable legend, optional worked
- * example, interpretation and limitations — the structure the brief requires. */
+ * example, interpretation and limitations: the structure the brief requires. */
 function Maths({
   tex,
   gloss,
@@ -97,14 +97,14 @@ function Maths({
   limitations?: ReactNode;
 }) {
   return (
-    <Disclose summary="Show the maths" className="mt-3">
-      <div className="space-y-3 text-[13px] leading-relaxed text-arepo-ink2">
+    <Disclose summary="Show the maths" className="mt-5">
+      <div className="space-y-4 text-[15px] leading-relaxed text-arepo-ink2">
         {gloss && <p className="max-w-reading">{gloss}</p>}
-        <div className="rounded-card border border-arepo-border bg-arepo-surface px-5 py-4 text-[17px]">
+        <div className="rounded-card border border-arepo-border bg-arepo-surface px-5 py-5 text-[18px]">
           <Katex tex={tex} display />
         </div>
         {legend && (
-          <dl className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 max-w-reading">
+          <dl className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1.5 max-w-reading">
             {legend.map(([sym, meaning], i) => (
               <div key={i} className="contents">
                 <dt className="text-arepo-ink">
@@ -163,17 +163,20 @@ export default function MethodologyPage() {
         ))}
       </nav>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-14">
+      <div className="flex min-w-0 flex-1 flex-col gap-16">
         <section id="overview" className="scroll-mt-24">
-          <h1 className="text-[30px] font-semibold tracking-[-0.01em] text-arepo-ink">
-            Methodology
-          </h1>
-          <p className="mt-2 max-w-reading leading-relaxed text-arepo-ink2">
-            Arepo is a read-only research instrument over public market data. Every reading is a
-            descriptive statistic or a screening heuristic, not a prediction, a trading signal, or
-            evidence of insider activity. This page states, in plain terms first and precisely
-            underneath, exactly what each number means, how it is computed, and where it stops.
-          </p>
+          <PageHeader
+            title="Methodology"
+            lead={
+              <>
+                Arepo is a read-only research instrument over public market data. Every reading
+                is a descriptive statistic or a screening heuristic, not a prediction, a trading
+                signal, or evidence of insider activity. This page states, in plain terms first
+                and precisely underneath, exactly what each number means, how it is computed, and
+                where it stops.
+              </>
+            }
+          />
         </section>
 
         <Section
@@ -391,6 +394,7 @@ export default function MethodologyPage() {
               ["\\bar r", "the mean return over the window"],
               ["n", "number of returns in the window"],
             ]}
+            example="Four recent returns of +0.01, −0.01, +0.02 and −0.02 average to 0. Summing the squared deviations gives 0.0010, dividing by n − 1 = 3 gives 0.00033, and the square root is about 0.018: the rolling volatility."
             interpretation="It sets the scale against which the z-score judges the latest move."
             limitations="A sample standard deviation over a short window is itself noisy."
           />
@@ -522,6 +526,7 @@ export default function MethodologyPage() {
               ["p_{t+H} - p_t", "the forward move over the horizon"],
               ["\\theta", "the required later movement"],
             ]}
+            example="Continuing the hit-rate example: of the 4 signals evaluated, 2 reached the required move θ (the hits) and 2 did not, so the false-positive rate is also 50%."
             interpretation="Read it against the hit rate and the sample size together, not on its own."
             limitations="On a small sample this rate is noisy; treat it as rough."
           />
@@ -544,6 +549,7 @@ export default function MethodologyPage() {
               ["N", "number of evaluated signals"],
               ["d_k", "the k-th signal's direction"],
             ]}
+            example="Continuing the hit-rate example with 4 signals: the two hits moved +0.03 and +0.02 in the signalled direction, and the two misses moved +0.01 and −0.01. The average forward move is (0.03 + 0.02 + 0.01 − 0.01) / 4 = +0.0125, about 1.25 probability points."
             interpretation="A positive average means moves tended to go the signalled way; near zero or negative means they did not."
             limitations="An average hides the spread of outcomes; a few large moves can dominate a small sample."
           />
@@ -573,9 +579,12 @@ export default function MethodologyPage() {
             </>
           }
         >
-          <div className="mt-3 rounded-card border border-arepo-accentBorder bg-arepo-accentTint px-5 py-4 text-[13px] leading-relaxed text-arepo-accentActive">
+          <div className="mt-4 rounded-card border border-arepo-border bg-arepo-surface2 px-5 py-4 text-[15px] leading-relaxed text-arepo-ink2">
             New to prediction markets? Start with{" "}
-            <Link href="/how-it-works" className="underline">
+            <Link
+              href="/how-it-works"
+              className="font-medium text-arepo-ink underline decoration-arepo-borderStrong underline-offset-2 hover:decoration-arepo-ink"
+            >
               How Arepo Works
             </Link>{" "}
             for the plain-English version, then return here for the detail.

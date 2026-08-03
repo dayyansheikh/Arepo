@@ -3,10 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Signal } from "@/lib/types";
-import { formatDateTime, formatNumber, formatPercent, titleCase } from "@/lib/format";
+import { formatDateTime, formatNumber, formatPercent } from "@/lib/format";
+import {
+  formatLookback,
+  friendlyComponentName,
+  friendlySignalTitle,
+  replaceComponentNames,
+  technicalSignalTerm,
+} from "@/lib/signal-labels";
 import { StrengthMeter } from "./StrengthMeter";
 import { DataQualityBadge } from "./DataQualityBadge";
 import { MetricHelp } from "./MetricHelp";
+import { Disclose } from "./ui";
 
 /**
  * A single explainable signal. Plain-English meaning first (what fired), then a
@@ -26,14 +34,22 @@ export function SignalItem({ signal }: { signal: Signal }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-arepo-ink">{titleCase(signal.kind)}</span>
+            <span className="flex items-center gap-1 text-sm font-semibold text-arepo-ink">
+              {friendlySignalTitle(signal.kind)}
+              {signal.kind === "composite_anomaly" && (
+                <MetricHelp metric="unusual-market-activity" showTerm={false} />
+              )}
+            </span>
             <DataQualityBadge quality={signal.data_quality} />
             {signal.window && (
-              <span className="text-xs text-arepo-muted">window {signal.window}</span>
+              <span className="flex items-center gap-1 text-xs text-arepo-muted">
+                {formatLookback(signal.window)}
+                <MetricHelp metric="lookback" showTerm={false} />
+              </span>
             )}
           </div>
           <p className="mt-1.5 max-w-reading text-sm leading-relaxed text-arepo-ink2">
-            {signal.detected}
+            {replaceComponentNames(signal.detected)}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -62,11 +78,17 @@ export function SignalItem({ signal }: { signal: Signal }) {
         >
           <Field label="How it is measured">{signal.method}</Field>
           <Field label="Why it may matter">{signal.why_it_matters}</Field>
+          <Field label="Data quality">
+            Data coverage for this reading is {(DATA_QUALITY_WORDS[signal.data_quality] ?? signal.data_quality)}.
+            Confidence ({formatPercent(signal.confidence, 0)}) reflects how much clean history, spread and
+            order-book depth went into it. Lower confidence on thin data means the numbers are more
+            likely to be noisy, not that the market itself is untrustworthy.
+          </Field>
           <Field label="Limitations">{signal.limitations}</Field>
 
           {signal.components.length > 0 && (
             <div>
-              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-arepo-muted">
+              <div className="mb-1 text-xs font-bold uppercase tracking-wide text-arepo-ink">
                 Components
               </div>
               <div className="overflow-x-auto">
@@ -83,7 +105,9 @@ export function SignalItem({ signal }: { signal: Signal }) {
                   <tbody>
                     {signal.components.map((c, i) => (
                       <tr key={`${c.name}-${i}`} className="border-t border-arepo-border">
-                        <td className="whitespace-nowrap py-1.5 pr-3 text-arepo-ink">{c.name}</td>
+                        <td className="whitespace-nowrap py-1.5 pr-3 text-arepo-ink">
+                          {friendlyComponentName(c.name)}
+                        </td>
                         <td className="py-1.5 pr-3">{formatNumber(c.raw_value, 3)}</td>
                         <td className="py-1.5 pr-3">{formatNumber(c.normalized_value, 3)}</td>
                         <td className="py-1.5 pr-3">{formatNumber(c.weight, 2)}</td>
@@ -93,6 +117,30 @@ export function SignalItem({ signal }: { signal: Signal }) {
                   </tbody>
                 </table>
               </div>
+
+              <Disclose summary="Show technical detail" className="mt-2">
+                <div className="space-y-1.5 text-xs text-arepo-muted">
+                  {technicalSignalTerm(signal.kind) && (
+                    <p className="flex flex-wrap items-center gap-1">
+                      Technical term:{" "}
+                      <span className="font-semibold text-arepo-ink2">
+                        {technicalSignalTerm(signal.kind)}
+                      </span>
+                      {signal.kind === "composite_anomaly" && (
+                        <MetricHelp metric="composite-anomaly" showTerm={false} />
+                      )}
+                    </p>
+                  )}
+                  <p>Raw component identifiers, as used internally and in the Methodology formulas:</p>
+                  <ul className="space-y-0.5 font-mono">
+                    {signal.components.map((c, i) => (
+                      <li key={`${c.name}-raw-${i}`}>
+                        {friendlyComponentName(c.name)} = <code>{c.name}</code>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Disclose>
             </div>
           )}
 
@@ -111,10 +159,16 @@ export function SignalItem({ signal }: { signal: Signal }) {
   );
 }
 
+const DATA_QUALITY_WORDS: Record<string, string> = {
+  good: "good",
+  limited: "limited",
+  poor: "poor",
+};
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-xs font-semibold uppercase tracking-wide text-arepo-muted">{label}</div>
+      <div className="text-xs font-bold uppercase tracking-wide text-arepo-ink">{label}</div>
       <p className="mt-0.5 max-w-reading leading-relaxed text-arepo-ink2">{children}</p>
     </div>
   );

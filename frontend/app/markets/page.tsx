@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMode } from "@/lib/mode-context";
 import { useAsync } from "@/lib/use-async";
-import { getMarkets } from "@/lib/api";
+import { getFacets, getMarkets } from "@/lib/api";
 import type { MarketCard } from "@/lib/types";
-import { formatDurationSeconds } from "@/lib/format";
+import { formatDurationSeconds, titleCase } from "@/lib/format";
 import { MarketCardView } from "@/components/MarketCardView";
 import { CardGridSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
@@ -25,10 +25,6 @@ const MODE_LABEL: Record<string, string> = {
 // run client-side over whatever this window returns.
 const FETCH_SIZE = 48;
 const FETCH_STEP = 48;
-
-// A broad, unfiltered sample used only to discover which categories exist so
-// the Category dropdown never invents options the data doesn't have.
-const CATEGORY_SAMPLE_SIZE = 300;
 
 type ApiSort = "volume" | "volume_24hr" | "liquidity" | "end_date";
 type UiSort = "signal" | "volume" | "ending" | "newest";
@@ -75,14 +71,6 @@ const TIME_OPTIONS: { value: TimeRange; label: string }[] = [
   { value: "later", label: "Later" },
 ];
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: "", label: "Any" },
-  { value: "active", label: "Active" },
-  { value: "closed", label: "Closed" },
-  { value: "resolved", label: "Resolved" },
-  { value: "archived", label: "Archived" },
-];
-
 /** Signal strength is stored 0..1 (StrengthMeter/MarketCardView read it that
  * way directly); the 70 / 40 breakpoints from the brief are on the 0-100
  * display scale, so compare against 0.70 / 0.40 here. */
@@ -115,6 +103,19 @@ function matchesTimeRange(market: MarketCard, range: TimeRange, nowMs: number): 
   if (range === "week") return diffDays <= 7;
   if (range === "month") return diffDays > 7 && diffDays <= 30;
   return diffDays > 30;
+}
+
+/** Sport and competition aren't query parameters on the markets list endpoint,
+ * so both filter client-side over whatever the current fetch window returned,
+ * the same way signal strength, probability and time to close already do. */
+function matchesSport(market: MarketCard, sport: string): boolean {
+  if (!sport) return true;
+  return market.sport === sport;
+}
+
+function matchesCompetition(market: MarketCard, competition: string): boolean {
+  if (!competition) return true;
+  return market.competition === competition;
 }
 
 function compareSignalDesc(a: MarketCard, b: MarketCard): number {
@@ -158,6 +159,8 @@ export default function MarketsPage() {
   const [signalRange, setSignalRange] = useState<SignalRange>("any");
   const [probRange, setProbRange] = useState<ProbRange>("any");
   const [timeRange, setTimeRange] = useState<TimeRange>("any");
+  const [sport, setSport] = useState("");
+  const [competition, setCompetition] = useState("");
 
   // Advanced, demoted: free-text search, debounced as before.
   const [searchInput, setSearchInput] = useState("");
@@ -194,21 +197,36 @@ export default function MarketsPage() {
     [mode, search, category, status, apiSort, limit]
   );
 
-  // Fetched once per mode, independent of the active filters, purely to build
-  // the Category dropdown from categories that actually occur in the data.
-  const { data: categorySample } = useAsync(
-    () => getMarkets({ mode, sort: "volume", limit: CATEGORY_SAMPLE_SIZE, offset: 0 }),
-    [mode]
+  // Fetched once per mode, independent of the active filters. Built dynamically
+  // from real normalised market data so the dropdowns never invent options the
+  // data doesn't have.
+  const { data: facets } = useAsync(() => getFacets(mode), [mode]);
+
+  const categories = useMemo(() => facets?.categories ?? [], [facets]);
+  const sports = useMemo(() => facets?.sports ?? [], [facets]);
+  const competitions = useMemo(() => facets?.competitions ?? [], [facets]);
+  // "unknown" is a genuine backend enum value for markets with no resolved
+  // status, but it isn't a status a person picks from a dropdown.
+  const statuses = useMemo(
+    () => (facets?.statuses ?? []).filter((s) => s.toLowerCase() !== "unknown"),
+    [facets]
   );
 
-  const categories = useMemo(() => {
-    if (!categorySample) return [];
-    const set = new Set<string>();
-    for (const m of categorySample.markets) {
-      if (m.category) set.add(m.category);
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [categorySample]);
+  // A filter dropdown a person can no longer act on (its value disappeared
+  // from this mode's facets, e.g. after switching data mode) resets itself
+  // rather than silently filtering out every market.
+  useEffect(() => {
+    if (category && !categories.includes(category)) setCategory("");
+  }, [category, categories]);
+  useEffect(() => {
+    if (status && !statuses.includes(status)) setStatus("");
+  }, [status, statuses]);
+  useEffect(() => {
+    if (sport && !sports.includes(sport)) setSport("");
+  }, [sport, sports]);
+  useEffect(() => {
+    if (competition && !competitions.includes(competition)) setCompetition("");
+  }, [competition, competitions]);
 
   const markets = useMemo(() => {
     if (!data) return [];
@@ -217,7 +235,9 @@ export default function MarketsPage() {
       (m) =>
         matchesSignalRange(m, signalRange) &&
         matchesProbRange(m, probRange) &&
-        matchesTimeRange(m, timeRange, now)
+        matchesTimeRange(m, timeRange, now) &&
+        matchesSport(m, sport) &&
+        matchesCompetition(m, competition)
     );
     if (uiSort === "signal") {
       list = [...list].sort(compareSignalDesc);
@@ -225,12 +245,34 @@ export default function MarketsPage() {
       list = [...list].sort(compareEndDateDesc);
     }
     return list;
-  }, [data, signalRange, probRange, timeRange, uiSort]);
+  }, [data, signalRange, probRange, timeRange, sport, competition, uiSort]);
 
   const fetchedCount = data?.markets.length ?? 0;
   const totalMatches = data?.total ?? 0;
   const hasMore = fetchedCount < totalMatches;
   const narrowedByClientFilters = fetchedCount > 0 && markets.length < fetchedCount;
+
+  const hasActiveFilters =
+    category !== "" ||
+    status !== "" ||
+    signalRange !== "any" ||
+    probRange !== "any" ||
+    timeRange !== "any" ||
+    sport !== "" ||
+    competition !== "" ||
+    searchInput !== "";
+
+  function clearFilters() {
+    setCategory("");
+    setStatus("");
+    setSignalRange("any");
+    setProbRange("any");
+    setTimeRange("any");
+    setSport("");
+    setCompetition("");
+    setSearchInput("");
+    setSearch("");
+  }
 
   return (
     <div className="space-y-8">
@@ -255,22 +297,60 @@ export default function MarketsPage() {
       </div>
 
       <div className="panel space-y-4 p-5">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          <FilterField id="filter-category" label="Category">
-            <select
-              id="filter-category"
-              className="select-arepo"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="">Any</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </FilterField>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {categories.length > 0 && (
+            <FilterField id="filter-category" label="Category">
+              <select
+                id="filter-category"
+                className="select-arepo"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <option value="">All categories</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+          )}
+
+          {sports.length > 0 && (
+            <FilterField id="filter-sport" label="Sport">
+              <select
+                id="filter-sport"
+                className="select-arepo"
+                value={sport}
+                onChange={(e) => setSport(e.target.value)}
+              >
+                <option value="">All sports</option>
+                {sports.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+          )}
+
+          {competitions.length > 0 && (
+            <FilterField id="filter-competition" label="Competition">
+              <select
+                id="filter-competition"
+                className="select-arepo"
+                value={competition}
+                onChange={(e) => setCompetition(e.target.value)}
+              >
+                <option value="">All competitions</option>
+                {competitions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+          )}
 
           <FilterField id="filter-status" label="Status">
             <select
@@ -279,9 +359,10 @@ export default function MarketsPage() {
               value={status}
               onChange={(e) => setStatus(e.target.value)}
             >
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
+              <option value="">Any</option>
+              {statuses.map((s) => (
+                <option key={s} value={s}>
+                  {titleCase(s)}
                 </option>
               ))}
             </select>
@@ -348,21 +429,33 @@ export default function MarketsPage() {
           </FilterField>
         </div>
 
-        <Disclose summary="Advanced: search by keyword">
-          <div className="flex max-w-xs flex-col gap-1.5">
-            <label htmlFor="market-search" className="text-[12px] font-medium text-arepo-muted">
-              Search
-            </label>
-            <input
-              id="market-search"
-              type="search"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by question or keyword…"
-              className="focus-ring rounded-control border border-arepo-borderStrong bg-arepo-surface px-3 py-2 text-sm text-arepo-ink placeholder:text-arepo-muted"
-            />
-          </div>
-        </Disclose>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <Disclose summary="Advanced: search by keyword">
+            <div className="flex max-w-xs flex-col gap-1.5">
+              <label htmlFor="market-search" className="text-[12px] font-medium text-arepo-muted">
+                Search
+              </label>
+              <input
+                id="market-search"
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search by question or keyword…"
+                className="focus-ring rounded-control border border-arepo-borderStrong bg-arepo-surface px-3 py-2 text-sm text-arepo-ink placeholder:text-arepo-muted"
+              />
+            </div>
+          </Disclose>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="btn btn-ghost -mb-0.5"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
       </div>
 
       <section className="space-y-3">
@@ -379,7 +472,22 @@ export default function MarketsPage() {
         {loading && <CardGridSkeleton count={8} />}
         {!loading && error && <ErrorState message={error} />}
         {!loading && !error && data && markets.length === 0 && (
-          <EmptyState message="No markets match these filters. Try widening the signal strength, probability or time-to-close range, or clearing the category and status filters." />
+          <div className="space-y-3">
+            <EmptyState
+              message={
+                hasActiveFilters
+                  ? "No markets match the current filters. Try widening the signal strength, probability or time-to-close range, or clearing the other filters."
+                  : "No markets are available right now."
+              }
+            />
+            {hasActiveFilters && (
+              <div className="flex justify-center">
+                <button type="button" onClick={clearFilters} className="btn btn-secondary">
+                  Clear filters
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         {!loading && !error && markets.length > 0 && (

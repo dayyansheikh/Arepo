@@ -37,6 +37,17 @@ DEFAULT_CAPS: dict[str, float] = {
     "depth_change": 1.0,         # relative depth change
 }
 
+# User-facing names for each raw component identifier. The raw identifiers above are internal
+# and documented in docs/methodology.md; readers should never see them by default (see spec
+# section 12, "Surface terminology").
+COMPONENT_LABELS: dict[str, str] = {
+    "unusual_return": "unusual price move",
+    "volume_acceleration": "faster trading activity",
+    "book_imbalance": "order-book imbalance",
+    "spread_change": "spread change",
+    "depth_change": "available depth change",
+}
+
 
 @dataclass(frozen=True)
 class RawComponents:
@@ -121,10 +132,14 @@ def build_anomaly_signal(
         direction = "up" if raw.zscore > 0 else "down" if raw.zscore < 0 else None
 
     present = [c.name for c in components if c.normalized_value is not None]
-    detected = (
-        "Recent behaviour is statistically unusual versus this market's own history "
-        f"(components: {', '.join(present) or 'none available'})."
-    )
+    friendly_present = [COMPONENT_LABELS.get(name, name) for name in present]
+    if friendly_present:
+        detected = (
+            "Recent behaviour is statistically unusual versus this market's own history, "
+            f"driven mainly by: {', '.join(friendly_present)}."
+        )
+    else:
+        detected = "Recent behaviour is statistically unusual versus this market's own history."
     return Signal(
         kind=SignalKind.COMPOSITE_ANOMALY,
         token_id=token_id,
@@ -141,7 +156,7 @@ def build_anomaly_signal(
         ),
         why_it_matters=(
             "Clusters of unusual return, volume, imbalance and liquidity shifts can precede or "
-            "accompany genuine repricing — worth investigating, not proof of anything."
+            "accompany genuine repricing. It is worth investigating, not proof of anything."
         ),
         limitations=(
             "Screening heuristic only. Not evidence of insider activity; not a profit signal. "

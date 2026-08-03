@@ -166,6 +166,30 @@ export const METRICS = {
     interpretation:
       "Small samples make hit and false-positive rates noisy; read them as rough, not precise.",
   },
+  "unusual-market-activity": {
+    id: "signal-strength",
+    term: "Unusual market activity",
+    definition:
+      "A screening signal that fires when a market's recent price, spread, volume and order-book behaviour look statistically unusual compared with its own history.",
+    interpretation:
+      "A higher score means more of these are lining up at once. It is a prompt to look closer, not proof of insider activity.",
+  },
+  "data-coverage": {
+    id: "confidence",
+    term: "Data coverage",
+    definition:
+      "How much clean history, spread and order-book depth a reading is based on.",
+    interpretation:
+      "Good means a solid base of observations. Limited or poor means less history or a thinner book, so read the numbers as more approximate.",
+  },
+  lookback: {
+    id: "signal-strength",
+    term: "Lookback",
+    definition:
+      "The recent window of observations, or span of time, that a reading is calculated over.",
+    interpretation:
+      "A longer lookback smooths out short-lived blips; a shorter one reacts faster but is noisier.",
+  },
 } as const satisfies Record<string, MetricDef>;
 
 export type MetricId = keyof typeof METRICS;

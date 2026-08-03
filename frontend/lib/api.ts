@@ -3,6 +3,7 @@ import type {
   DataMode,
   DataStatus,
   MarketDetailResponse,
+  MarketFacets,
   MarketsResponse,
   MetaResponse,
   OverviewResponse,
@@ -104,6 +105,13 @@ export function getMarkets(params: GetMarketsParams): Promise<MarketsResponse> {
 
 export function getMarket(id: string, mode: DataMode): Promise<MarketDetailResponse> {
   return apiFetch<MarketDetailResponse>(`/api/markets/${encodeURIComponent(id)}`, { mode });
+}
+
+/** Distinct category, sport, competition and status values that actually
+ * occur in the current mode's data, for building filter dropdowns without
+ * inventing options the data doesn't have. */
+export function getFacets(mode: DataMode): Promise<MarketFacets> {
+  return apiFetch<MarketFacets>("/api/markets/facets", { mode });
 }
 
 export function getSignals(mode: DataMode, limit?: number): Promise<SignalsResponse> {

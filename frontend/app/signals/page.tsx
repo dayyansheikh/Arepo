@@ -10,7 +10,8 @@ import { SignalItem } from "@/components/SignalItem";
 import { ListSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
-import { SectionLabel, Disclose, Badge } from "@/components/ui";
+import { MetricHelp } from "@/components/MetricHelp";
+import { SectionLabel, Disclose, Badge, PageHeader } from "@/components/ui";
 
 type MinStrength = "any" | "0.7" | "0.4";
 
@@ -46,29 +47,87 @@ export default function SignalLabPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-4">
-        <div>
-          <h1 className="text-[30px] font-semibold tracking-[-0.01em] text-arepo-ink">Signal Lab</h1>
-          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-muted">
-            Every market currently showing a composite anomaly signal, ranked by strength, with the
-            reasoning behind each one.
-          </p>
-        </div>
+        <PageHeader
+          title="Signal Lab"
+          lead={
+            <>
+              Every market currently showing unusual activity, ranked by strength, with the
+              reasoning behind each one.
+            </>
+          }
+        />
         <DisclaimerBanner />
       </div>
 
-      <div className="panel space-y-2 p-6">
-        <h2 className="text-base font-semibold text-arepo-ink">What is the composite anomaly signal?</h2>
-        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-ink2">
-          It blends three things that are each ordinary to watch in any market: how far the price has
-          moved from its recent average, how wide the bid-ask spread has become, and how imbalanced the
-          order book looks. When several of these line up at once, the composite score rises and a
-          signal fires. A high score is not proof of informed or insider activity, it is a screening
-          heuristic that flags where to look more closely.
-        </p>
-        <Disclose summary="Show the maths">
-          <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
-            The score is a weighted mean of normalised components, each capped before weighting. The
-            full derivation, including weights and caps, lives on the{" "}
+      <div className="panel space-y-5 p-6">
+        <div>
+          <h2 className="text-base font-bold text-arepo-ink">What does &ldquo;Unusual market activity&rdquo; mean?</h2>
+          <p className="mt-1.5 max-w-reading text-sm leading-relaxed text-arepo-ink2">
+            A signal fires when a market&apos;s recent price, spread, volume and order-book
+            behaviour look statistically unusual compared with its own history, not compared with
+            any other market. That can mean an unusual price move, a sudden pickup in trading
+            activity, a lopsided order book, a widening spread, or a shift in the depth available
+            near the price, alone or in combination.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-arepo-ink">Which factors contributed, and why the score rises</h3>
+          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
+            Each card lists the factors behind it in plain English, for example &ldquo;unusual price
+            move&rdquo; or &ldquo;order-book imbalance&rdquo;. The more of these that line up at
+            once, the higher the score: a market with an unusual price move, a widening spread and
+            a lopsided order book together will score higher than one showing just an unusual
+            price move on its own.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-arepo-ink">What a score such as 93 means</h3>
+          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
+            Strength runs from 0 to 100. A score of 93 means this market&apos;s recent behaviour
+            is close to the most unusual the method can register, not that something specific is
+            about to happen and not a probability of anything. Treat a high score as a strong
+            prompt to read the detail, not as a verdict.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-arepo-ink">Strength is not confidence</h3>
+          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
+            <MetricHelp metric="signal-strength" /> measures how unusual the behaviour looks.{" "}
+            <MetricHelp metric="confidence" /> measures how much to trust that reading, based on
+            how much clean history, spread and depth went into it. A high-strength signal built on
+            thin data can carry low confidence, which is why the two sit side by side on every
+            card rather than being blended into one number.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-arepo-ink">Not proof of insider information</h3>
+          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
+            A high score is a screening heuristic: a prompt to look more closely, not evidence that
+            anyone traded on non-public information. Ordinary news, thin liquidity or a single
+            large but perfectly legitimate order can all produce the same reading.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-arepo-ink">Data coverage and lookback</h3>
+          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
+            <MetricHelp metric="data-coverage" /> describes how much clean history and order-book
+            depth a reading is based on. Limited or poor coverage means the numbers should be read
+            as more approximate. <MetricHelp metric="lookback" /> is the recent window of
+            observations, or span of time, the calculation looks back over: a longer lookback
+            smooths out short-lived blips, while a shorter one reacts faster but is noisier.
+          </p>
+        </div>
+
+        <Disclose summary="Show technical detail">
+          <p className="max-w-reading text-sm leading-relaxed text-arepo-muted">
+            The technical name for this reading is <strong>Composite anomaly score</strong>. It is
+            a weighted mean of normalised components, each capped before weighting. The full
+            derivation, including weights and caps, lives on the{" "}
             <Link
               href="/methodology#signal-strength"
               className="focus-ring font-medium text-arepo-accentActive hover:text-arepo-accentHover"

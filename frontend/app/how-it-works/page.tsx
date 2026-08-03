@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SectionLabel, Disclose } from "@/components/ui";
+import { SectionLabel, Disclose, PageHeader } from "@/components/ui";
 import { methodologyAnchor } from "@/lib/metrics";
 
 export const metadata: Metadata = {
@@ -20,10 +20,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="panel scroll-mt-24 space-y-3 p-6">
+    <section id={id} className="panel scroll-mt-24 space-y-3.5 p-6 sm:p-7">
       <SectionLabel>{eyebrow}</SectionLabel>
-      <h2 className="text-lg font-semibold tracking-[-0.01em] text-arepo-ink">{title}</h2>
-      <div className="max-w-reading space-y-3 text-sm leading-relaxed text-arepo-ink2">
+      <h2 className="text-xl font-bold tracking-[-0.01em] text-arepo-ink">{title}</h2>
+      <div className="max-w-reading space-y-3 text-[15px] leading-relaxed text-arepo-ink2">
         {children}
       </div>
     </section>
@@ -32,7 +32,7 @@ function Section({
 
 function LearnMore({ href }: { href: string }) {
   return (
-    <p className="text-sm">
+    <p className="text-[15px]">
       <Link
         href={href}
         className="font-medium text-arepo-accentActive hover:text-arepo-accentHover"
@@ -94,22 +94,23 @@ function OrderBookDiagram() {
 
 export default function HowItWorksPage() {
   return (
-    <div className="space-y-10">
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-[30px] font-semibold tracking-[-0.01em] text-arepo-ink">
-            How Arepo works
-          </h1>
-          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-muted">
-            A plain-English guide to what Arepo watches, what its numbers mean, and what they
-            do not tell you. For the exact formulas, see the{" "}
-            <Link href="/methodology" className="text-arepo-accentActive hover:text-arepo-accentHover">
+    <div className="space-y-12">
+      <PageHeader
+        title="How Arepo works"
+        lead={
+          <>
+            A plain-English guide to what Arepo watches, what its numbers mean, and what they do
+            not tell you. For the exact formulas, see the{" "}
+            <Link
+              href="/methodology"
+              className="text-arepo-accentActive hover:text-arepo-accentHover"
+            >
               Methodology
             </Link>{" "}
             page.
-          </p>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <Section id="prediction-markets" eyebrow="The basics" title="What a prediction market is">
         <p>
@@ -262,7 +263,7 @@ export default function HowItWorksPage() {
           hit rate describes this dataset, not a live trading strategy.
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-1">
-          <p className="text-sm">
+          <p className="text-[15px]">
             <Link href="/replay" className="font-medium text-arepo-accentActive hover:text-arepo-accentHover">
               Try Replay &rarr;
             </Link>
@@ -287,7 +288,7 @@ export default function HowItWorksPage() {
 
       <section className="panel space-y-3 border-arepo-borderStrong bg-arepo-surface2 p-6">
         <SectionLabel>Why Arepo</SectionLabel>
-        <p className="max-w-reading text-sm leading-relaxed text-arepo-ink2">
+        <p className="max-w-reading text-[15px] leading-relaxed text-arepo-ink2">
           Just as Arepo is believed to have been created to unite the Sator Square, we unite
           information as it is created, conviction as it is expressed, action as it is taken, and
           markets as they move. Arepo represents the hidden signal found between the lines.

@@ -38,22 +38,40 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
-**Phase 0 complete** (baseline verified, recovery scaffolding, stable checkpoint).
-Starting **Phase 1 — Foundation & UI polish**.
+**Phase 1 complete** (Foundation & UI polish, verified + committed). **Phase 2 in
+progress** — prospective evaluation engine (backend). New isolated package
+`backend/astrolabe/evaluation/` is being built (NOT yet imported anywhere, so it does
+not affect the app or tests until wired). Uncommitted WIP at time of writing:
+`evaluation/{__init__,constants,errors,models,ranking,repository,snapshots}.py`.
 
 ## Completed work (verified)
-- Phase 0: baseline tests/build recorded; recovery files written.
+- Phase 0: baseline recorded; recovery files written.
+- Phase 1 (committed 85886e7 + follow-up): display font Jost vendored via
+  next/font/local; body-size bump (root 17px); PageHeader/SectionTitle; nav presence
+  + active underline; faithful grid-logo SVG + AREPO wordmark; neutral info panel;
+  amber DegradationBanner; API/Live feed/Updated status labels; chart repair
+  (frontend buildChart + backend timestamp fix, 8 vitest + 3 pytest regression);
+  category/sport/competition facets (`/api/markets/facets`, 24 tests) wired into
+  Markets page (Sport/Competition filters, empty states); Signal Lab terminology
+  (Unusual market activity, Data coverage, Lookback, friendly component names,
+  technical detail disclosures); Methodology/How-It-Works readability + neutral
+  callouts; market-detail + overview bold section titles.
+- Verified integrated: backend 155 pass/ruff clean; frontend tsc/lint/build 10/10 +
+  8 vitest.
 
 ## In-flight
-- (none)
+- Phase 2 evaluation engine: models/repository/ranking/snapshots written; still to do:
+  engine.py (rank+freeze orchestration), forward.py (forward prices/resolution/
+  portfolio), schemas.py, service.py, API routes, migration + CLI scripts, tests.
 
 ## Exact next action
-1. Phase 1 foundation (Opus-owned shared files): display font (Jost) tokens, body
-   text size bump, heading hierarchy, neutral information panel, nav presence,
-   status labels (API / Live feed / Updated), logo readability.
-2. Fan out non-overlapping Sonnet subagents: chart repair, Markets categories/sports,
-   Signal Lab terminology, Methodology readability, metadata fallbacks.
-3. Run tsc + lint + build; commit Phase 1; update this file, TASKS.md, DECISIONS.md.
+1. Finish `evaluation/engine.py` (provisional ranking + freeze orchestration).
+2. forward-price/resolution/portfolio, typed schemas, service, API routes.
+3. Migration bootstrap + idempotent CLI scripts (rank/freeze/forward/resolve).
+4. Write the 13 required evaluation tests; run backend suite; commit Phase 2.
 
 ## Known failures / unresolved
-- (none)
+- Storage round-trip for sport/competition not persisted in cached mode (category is);
+  acceptable, noted by categories subagent.
+- signal-labels metrics.ts "Learn more" links point to nearest existing methodology
+  anchors (signal-strength/confidence), not bespoke anchors.

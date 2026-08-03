@@ -28,6 +28,37 @@ provenance class that can never be mixed into real statistics. The existing
 deterministic backtest (current Replay) is retained as a clearly-labelled
 demonstration, not presented as real performance.
 
+### F5. Cohort engine design (entities, entry price, immutability, provenance)
+Concrete design for §14/§16/§17, implemented in a new isolated `astrolabe.evaluation`
+package (new files, no edits to existing storage/analytics):
+- Tables (SQLAlchemy, same `Base.metadata`, Postgres/SQLite-portable): `calculation_versions`,
+  `signal_snapshots` (immutable provenance of a signal as computed, with a unique
+  `snapshot_ref` hash of identity+timestamp+version), `weekly_cohorts`
+  (iso_year/iso_week unique, `cutoff_at` = Sunday 23:59:59 UTC, `frozen`/`frozen_at`,
+  `provenance_class` in {prospective, reconstructed, synthetic}), `cohort_entries`
+  (denormalised frozen copy of the selected snapshot: rank, entry_price, scores, prices,
+  unique (cohort_id, market_id, token_id) to bar duplicate slots), `ranking_audit`
+  (append-only add/replace log), `forward_price_observations` (unique (entry_id, horizon)
+  to bar duplicates), `market_resolutions` (unique market_id), `evaluation_results`.
+- Entry price = midpoint at the signal timestamp when a two-sided book exists, else the
+  last traded/implied price; never a later price. Best bid/ask/spread also frozen.
+  Portfolio fill assumption: enter by crossing half the spread (buy at midpoint + spread/2),
+  fees configurable (default 0), documented as a simulation.
+- Provisional ranking: within the live (unfrozen) week keep the top ten by strength; a
+  stronger *qualifying* signal replaces only the current lowest; ties broken
+  deterministically by (strength desc, confidence desc, data-quality rank desc,
+  entry captured_at asc, snapshot_ref asc). Eligibility: valid market status, data
+  quality >= limited, valid entry price, strength >= documented threshold.
+- Freeze sets `frozen`/`frozen_at`; thereafter entries are never replaced/removed/rescored
+  (repository raises on any mutation of a frozen cohort's entries). Fewer than ten
+  qualifiers freezes the actual number with a recorded reason.
+- Provenance: statistics aggregate `prospective` (and, if explicitly requested,
+  `reconstructed`) cohorts only; `synthetic` is never mixed into real performance.
+  On this machine there is no historical snapshot store, so prospective tracking begins
+  at the first genuine run; the existing deterministic backtest stays a labelled demo.
+- Idempotency: rank/freeze/forward/resolve commands are safe to re-run (uniqueness +
+  guards), proven by the §17 tests.
+
 ### F3. Cohort persistence via SQLAlchemy models + a lightweight migration runner
 The project uses `create_all`, not Alembic. Rather than introduce Alembic mid-stream,
 add the new cohort tables to the ORM metadata and provide an idempotent, versioned

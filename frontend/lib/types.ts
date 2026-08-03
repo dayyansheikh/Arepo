@@ -33,6 +33,8 @@ export interface MarketCard {
   question: string;
   slug: string;
   category: string | null;
+  sport: string | null;
+  competition: string | null;
   status: string;
   tags: string[];
   volume: number | null;
@@ -133,6 +135,17 @@ export interface MarketsResponse {
   limit: number;
   offset: number;
   status: DataStatus;
+}
+
+/** Distinct, sorted filter values built dynamically from real normalised
+ * market data. Arrays are empty when that dimension isn't present in the
+ * current mode's data; `statuses` may include a lowercase "unknown" entry
+ * that callers should omit from user-facing Status controls. */
+export interface MarketFacets {
+  categories: string[];
+  sports: string[];
+  competitions: string[];
+  statuses: string[];
 }
 
 export interface MarketDetailResponse {
