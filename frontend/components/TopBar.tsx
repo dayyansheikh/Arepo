@@ -7,8 +7,8 @@ import { ModeSwitcher } from "./ModeSwitcher";
 import { StatusChip } from "./StatusChip";
 
 const NAV_LINKS = [
-  { href: "/", label: "Board" },
-  { href: "/markets", label: "Explore Markets" },
+  { href: "/", label: "Opportunities" },
+  { href: "/markets", label: "Explore" },
   { href: "/signals", label: "Signal Lab" },
   { href: "/replay", label: "Replay" },
   { href: "/how-it-works", label: "How It Works" },

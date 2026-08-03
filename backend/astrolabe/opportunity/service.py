@@ -15,6 +15,7 @@ from ..analytics import flow
 from ..domain.enums import DataMode
 from ..domain.models import Trade, utcnow
 from ..ingest.normalize import normalize_trades
+from .hypothesis import build_hypothesis, has_directional_view
 from .schemas import CALCULATION_VERSION, OpportunityBoard, OpportunityCard, TagOut
 from .scoring import ScoredOpportunity, score_opportunity
 
@@ -45,12 +46,25 @@ def market_flow_indicators(
 def _card(market, ta, scored: ScoredOpportunity, mode: str, now: datetime) -> OpportunityCard:
     end = market.end_date
     hours = (end - now).total_seconds() / 3600.0 if end else None
+    hours_r = round(hours, 1) if hours is not None else None
+    directional = has_directional_view(
+        ta.signal.direction, scored.n_families, scored.signal_strength
+    )
+    hypothesis = build_hypothesis(
+        direction=ta.signal.direction,
+        outcome=ta.signal.outcome_name,
+        n_families=scored.n_families,
+        signal_strength=scored.signal_strength,
+        time_remaining_hours=hours_r,
+    )
     return OpportunityCard(
         market_id=market.id,
         token_id=ta.token_id,
         question=market.question,
         outcome=ta.signal.outcome_name,
-        direction=ta.signal.direction,
+        direction=ta.signal.direction if directional else None,
+        directional=directional,
+        hypothesis=hypothesis,
         probability=ta.implied,
         research_priority=int(round(scored.research_priority * 100)),
         signal_strength=scored.signal_strength,
@@ -70,7 +84,7 @@ def _card(market, ta, scored: ScoredOpportunity, mode: str, now: datetime) -> Op
         liquidity=market.liquidity,
         liquidity_quality=scored.liquidity_quality,
         relative_spread=ta.relative_spread,
-        time_remaining_hours=round(hours, 1) if hours is not None else None,
+        time_remaining_hours=hours_r,
         end_date=end.isoformat() if end else None,
         data_quality=scored.data_quality,
         data_mode=mode,

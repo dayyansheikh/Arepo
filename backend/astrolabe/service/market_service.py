@@ -399,13 +399,21 @@ class MarketService:
         enriched = await asyncio.gather(
             *(self._enrich_market(source, m) for m in enrich_set), return_exceptions=True
         )
-        signals: list[Signal] = []
+        # One signal per market. Yes/No outcomes of a binary market are near-complementary, so a
+        # move in one is mechanically a move in the other; listing both would double-count the
+        # same price event as two independent anomalies (spec §7). We keep the strongest outcome
+        # per market as the representative signal.
+        best_by_market: dict[str, Signal] = {}
         for item in enriched:
             if isinstance(item, BaseException):
                 continue
             analytics, _ = item
-            signals.extend(a.signal for a in analytics)
-        signals = sorted(signals, key=lambda s: s.strength, reverse=True)[:limit]
+            for a in analytics:
+                sig = a.signal
+                current = best_by_market.get(sig.market_id)
+                if current is None or sig.strength > current.strength:
+                    best_by_market[sig.market_id] = sig
+        signals = sorted(best_by_market.values(), key=lambda s: s.strength, reverse=True)[:limit]
         status_env = await self._status(source, reason, _latest_update(enrich_set))
         return SignalsResponse(signals=signals, status=status_env)
 

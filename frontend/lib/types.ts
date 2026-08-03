@@ -390,6 +390,8 @@ export interface OpportunityCard {
   question: string;
   outcome: string | null;
   direction: "up" | "down" | null;
+  directional: boolean;
+  hypothesis: string;
   probability: number | null;
   research_priority: number;
   signal_strength: number;

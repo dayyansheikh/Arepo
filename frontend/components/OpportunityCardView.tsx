@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import type { OpportunityCard } from "@/lib/types";
 import { formatPercent } from "@/lib/format";
+import { directionText, priorityBand } from "@/lib/opportunity";
+import { TagChip } from "./TagChip";
 import { Badge } from "./ui";
 
 const LIQ_TONE: Record<string, string> = {
@@ -17,33 +21,28 @@ function timeLeft(hours: number | null): string {
 }
 
 /**
- * One Opportunity Board card. Leads with the Research Priority score (a research ranking, not
- * expected profit), states the market and outcome, shows the tags that fired (each links to
- * its methodology and explains itself on hover), and links to the full market analysis.
+ * One Opportunity Board card. It LEADS with the plain-English hypothesis (what the evidence
+ * currently favours, or an explicit "not enough evidence" statement) and the market question,
+ * so a reader learns the conclusion before any number. Research Priority is demoted to a small
+ * labelled chip with a High/Medium/Low interpretation; evidence tags each explain themselves in
+ * an accessible popover. This is the "lead with the conclusion, demote the score" redesign.
  */
 export function OpportunityCardView({ card }: { card: OpportunityCard }) {
   const href = `/markets/${encodeURIComponent(card.market_id)}`;
+  const band = priorityBand(card.research_priority);
+  const dir = directionText(card.direction, card.outcome);
+
   return (
     <div className="flex flex-col rounded-card border border-arepo-border bg-arepo-surface p-5 shadow-arepo-sm">
+      {/* Top line: the market question leads; probability sits to the side as context. */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div
-            className="flex h-11 w-11 flex-none flex-col items-center justify-center rounded-lg bg-arepo-surface2"
-            title="Research Priority: a transparent ranking of how much this market deserves a look, not expected profit."
-          >
-            <span className="font-tabular text-[17px] font-bold leading-none text-arepo-ink">
-              {card.research_priority}
-            </span>
-            <span className="text-[9px] uppercase tracking-wide text-arepo-muted">prio</span>
-          </div>
-          <div className="text-[13px] text-arepo-muted">
-            <div>Research Priority</div>
-            {card.high_priority && (
-              <Badge tone="accent">High priority</Badge>
-            )}
-          </div>
-        </div>
-        <div className="text-right text-[13px] text-arepo-muted">
+        <Link
+          href={href}
+          className="focus-ring rounded-md font-medium leading-snug text-arepo-ink hover:text-arepo-accentActive"
+        >
+          {card.question}
+        </Link>
+        <div className="flex-none text-right text-[13px] text-arepo-muted">
           <div className="font-tabular text-[15px] font-semibold text-arepo-ink">
             {formatPercent(card.probability, 0)}
           </div>
@@ -51,37 +50,62 @@ export function OpportunityCardView({ card }: { card: OpportunityCard }) {
         </div>
       </div>
 
-      <Link
-        href={href}
-        className="focus-ring mt-3 rounded-md font-medium leading-snug text-arepo-ink hover:text-arepo-accentActive"
-      >
-        {card.question}
-      </Link>
+      {/* The hypothesis: the conclusion, first. */}
+      <p className="mt-3 text-[13.5px] font-medium leading-relaxed text-arepo-ink2">
+        {card.hypothesis}
+      </p>
+
+      {/* Direction cue, only when the evidence warrants a directional view. */}
+      {card.directional && dir && (
+        <div className="mt-2">
+          <span
+            className={`inline-flex items-center gap-1 text-[12px] font-medium ${
+              card.direction === "up" ? "text-arepo-pos" : "text-arepo-warnText"
+            }`}
+          >
+            <span aria-hidden="true">{card.direction === "up" ? "↑" : "↓"}</span>
+            {dir}
+          </span>
+        </div>
+      )}
 
       {card.tags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {card.tags.map((t) => (
-            <Link
-              key={t.label}
-              href={`/methodology#${t.methodology_anchor}`}
-              title={t.explanation}
-              className="focus-ring inline-flex items-center rounded-full bg-arepo-surface2 px-2.5 py-0.5 text-[11px] font-medium text-arepo-ink2 hover:bg-arepo-accentTint hover:text-arepo-accentActive"
-            >
-              {t.label}
-            </Link>
+            <TagChip key={t.label} tag={t} />
           ))}
         </div>
       )}
 
       <p className="mt-3 flex-1 text-[13px] leading-relaxed text-arepo-muted">{card.explanation}</p>
 
-      <div className="mt-4 flex items-center justify-between border-t border-arepo-border pt-3 text-[12px] text-arepo-muted">
+      {/* Research Priority, demoted: a labelled chip with a plain interpretation, not a headline. */}
+      <div className="mt-4 flex items-center gap-2 border-t border-arepo-border pt-3">
+        <span
+          className="inline-flex items-center gap-1.5 rounded-md bg-arepo-surface2 px-2 py-1"
+          title="Research Priority: how urgently this market is worth investigating relative to others right now. Not expected profit."
+        >
+          <span className="text-[11px] uppercase tracking-wide text-arepo-muted">Priority</span>
+          <span className="font-tabular text-[13px] font-semibold text-arepo-ink">
+            {card.research_priority}
+          </span>
+          <span className={`text-[12px] font-medium ${band.tone}`}>{band.label}</span>
+        </span>
+        {card.high_priority && <Badge tone="accent">High priority</Badge>}
+        <span className="ml-auto text-[12px] text-arepo-muted">{band.meaning}</span>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between text-[12px] text-arepo-muted">
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className={LIQ_TONE[card.liquidity_quality] ?? "text-arepo-muted"}>
             {card.liquidity_quality} liquidity
           </span>
           <span>{timeLeft(card.time_remaining_hours)}</span>
-          <span>{card.n_families} evidence</span>
+          <span>
+            {card.n_families === 1
+              ? "1 independent line of evidence"
+              : `${card.n_families} independent lines of evidence`}
+          </span>
         </span>
         <Link
           href={href}

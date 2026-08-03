@@ -108,6 +108,14 @@ async def test_signals_endpoint(svc):
     assert strengths == sorted(strengths, reverse=True)
 
 
+async def test_signals_are_one_per_market(svc):
+    # Signal Lab must not list both Yes and No of the same market as independent anomalies
+    # (spec §7): complementary outcomes are one price event, so we keep one signal per market.
+    resp = await svc.signals(requested_mode="replay", limit=50)
+    market_ids = [s.market_id for s in resp.signals]
+    assert len(market_ids) == len(set(market_ids)), "duplicate market in Signal Lab feed"
+
+
 async def test_backtest_via_service(svc):
     bt = svc.backtest()
     assert bt.sample_size >= 4

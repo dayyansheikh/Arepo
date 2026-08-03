@@ -22,7 +22,9 @@ class OpportunityCard(BaseModel):
     token_id: str
     question: str
     outcome: str | None
-    direction: str | None = None           # "up" | "down" | None (signalled direction)
+    direction: str | None = None           # "up" | "down" | None (only when directional)
+    directional: bool = False              # True when evidence warrants a directional view
+    hypothesis: str = ""                   # one cautious sentence, computed-evidence only
     probability: float | None
     research_priority: int                 # 0-100 (not expected profit)
     signal_strength: float                 # [0, 1]
