@@ -38,7 +38,7 @@ def create_app() -> FastAPI:
     configure_logging(settings.log_level, settings.log_json)
 
     app = FastAPI(
-        title="Astrolabe API",
+        title="Arepo API",
         version="0.1.0",
         summary="Read-only prediction-market intelligence over public Polymarket data.",
         lifespan=lifespan,

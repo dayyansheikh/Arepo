@@ -30,7 +30,7 @@ async def meta() -> dict:
         "default_mode": s.default_mode,
         "modes": ["live", "cached", "replay"],
         "disclaimer": (
-            "Astrolabe is a read-only research tool over public Polymarket data. It does not "
+            "Arepo is a read-only research tool over public Polymarket data. It does not "
             "place trades. Signals flag statistically unusual behaviour for investigation and "
             "are not evidence of insider activity, nor a claim of profitability."
         ),

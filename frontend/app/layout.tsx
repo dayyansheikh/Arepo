@@ -10,7 +10,7 @@ import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: {
-    default: "Arepo — the hidden signal between the lines",
+    default: "Arepo: the hidden signal between the lines",
     template: "%s · Arepo",
   },
   description:

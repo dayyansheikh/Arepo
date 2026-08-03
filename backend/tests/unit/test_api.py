@@ -17,7 +17,7 @@ def test_health(client):
 
 def test_meta(client):
     body = client.get("/api/meta").json()
-    assert body["app"] == "Astrolabe"
+    assert body["app"] == "Arepo"
     assert "replay" in body["modes"]
     assert "insider" in body["disclaimer"].lower()
 
