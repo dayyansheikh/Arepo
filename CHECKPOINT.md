@@ -38,11 +38,27 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
-**Phase 1 complete** (Foundation & UI polish, verified + committed). **Phase 2 in
-progress** — prospective evaluation engine (backend). New isolated package
-`backend/astrolabe/evaluation/` is being built (NOT yet imported anywhere, so it does
-not affect the app or tests until wired). Uncommitted WIP at time of writing:
-`evaluation/{__init__,constants,errors,models,ranking,repository,snapshots}.py`.
+**Phase 1 complete** (UI polish). **Phase 2 complete** (prospective evaluation
+engine, backend, verified + committed). **Next: Phase 3** — Replay page redesign
+(frontend) to consume the cohort API.
+
+### Phase 2 delivered (backend, 174 tests pass / ruff clean)
+- `backend/astrolabe/evaluation/`: constants, errors, ORM models (8 entities),
+  ranking (eligibility/tie-break/week-bounds), snapshots (immutable, entry price =
+  signal-time midpoint), repository (frozen-immutability guards + idempotent upserts),
+  engine (provisional top-10 + replace-lowest + anti-concentration + freeze),
+  tracking (forward prices/resolutions/evaluation), portfolio (pure simulation),
+  service (read + runner), schemas (typed API), migrations (idempotent bootstrap),
+  cli (`python -m astrolabe.evaluation.cli` rank/freeze/forward/resolve/evaluate/
+  seed-synthetic/status), seed (labelled synthetic demo).
+- API: `/api/cohorts/weeks|provenance|latest|{year}/{week}` (router in app.py;
+  eval tables registered at startup via deps.init_storage).
+- 19 evaluation tests in `tests/unit/test_evaluation.py` cover all 13 required
+  guarantees. Verified end-to-end: seeded synthetic cohort (2026-W28, 3 entries),
+  all 4 endpoints 200, portfolio computed.
+- DB: default `backend/astrolabe.db` (gitignored). Seed with
+  `python -m astrolabe.evaluation.cli seed-synthetic`. Env var is `DATABASE_URL`.
+  Real prospective cohorts begin at first `... cli rank --mode live` run.
 
 ## Completed work (verified)
 - Phase 0: baseline recorded; recovery files written.

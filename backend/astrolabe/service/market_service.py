@@ -171,6 +171,57 @@ class MarketService:
             categories=categories, sports=sports, competitions=competitions, statuses=statuses,
         )
 
+    async def enrich_markets(self, *, requested_mode=None, limit=None):
+        """(Market, [TokenAnalytics]) pairs for the current markets, plus the source mode.
+
+        Used by the cohort engine to snapshot the signals Arepo would select right now.
+        Sees only information available at this instant (no look-ahead)."""
+        source, _ = await self._select_source(requested_mode)
+        markets = await source.markets()
+        subset = _sort_markets(markets, "volume")
+        if limit is not None:
+            subset = subset[:limit]
+        results = await asyncio.gather(
+            *(self._enrich_market(source, m) for m in subset), return_exceptions=True
+        )
+        out: list[tuple[Market, list[TokenAnalytics]]] = []
+        for m, item in zip(subset, results, strict=False):
+            if isinstance(item, BaseException):
+                continue
+            analytics, _ = item
+            out.append((m, analytics))
+        return out, source.mode
+
+    async def token_price(self, market_id: str, token_id: str, *, requested_mode=None):
+        """Current (price, source_timestamp) for one outcome token, or (None, None).
+
+        Price is the two-sided-book midpoint where available, else the latest observed
+        price. Used to collect forward prices after a cohort freezes."""
+        source, _ = await self._select_source(requested_mode)
+        td = await source.get_token_data(market_id, token_id)
+        price = None
+        if td.book is not None and td.book.midpoint is not None:
+            price = td.book.midpoint
+        elif td.prices:
+            price = td.prices[-1]
+        return price, td.captured_at
+
+    async def market_resolution(self, market_id: str, *, requested_mode=None):
+        """Best-effort real resolution from market metadata: (resolved, winning_token_id,
+        winning_outcome_name) or None when still unknown. A market counts as resolved only
+        when it is closed and exactly one outcome sits at an extreme price (>= 0.99)."""
+        source, _ = await self._select_source(requested_mode)
+        markets = await source.markets()
+        market = next((m for m in markets if m.id == market_id), None)
+        if market is None:
+            return None
+        if market.status.value not in {"closed", "resolved"}:
+            return None
+        winners = [o for o in market.outcomes if o.price is not None and o.price >= 0.99]
+        if len(winners) == 1:
+            return True, winners[0].token_id, winners[0].name
+        return None
+
     async def overview(self, *, requested_mode=None) -> OverviewResponse:
         source, reason = await self._select_source(requested_mode)
         markets = await source.markets()

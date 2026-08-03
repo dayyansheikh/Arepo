@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from ..config import get_settings
 from ..observability.logging import configure_logging, get_logger
 from .deps import get_service, init_storage
+from .routes import cohorts as cohort_routes
 from .routes import health as health_routes
 from .routes import markets, meta, overview, replay, signals
 
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
     app.include_router(markets.router)
     app.include_router(signals.router)
     app.include_router(replay.router)
+    app.include_router(cohort_routes.router)
 
     return app
 

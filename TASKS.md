@@ -26,17 +26,17 @@ Prior redesign + original build tasks are complete; history is in git and older
 - [x] Tests: category/sports extraction, chart row-building, normalize fallbacks
 
 ## Phase 2 — Prospective evaluation engine (backend)
-- [ ] Schema + migrations: signal_snapshots, weekly_cohorts, cohort_entries,
+- [x] Schema + migrations: signal_snapshots, weekly_cohorts, cohort_entries,
       ranking_audit, forward_price_observations, market_resolutions,
       evaluation_results, calculation_versions
-- [ ] Provisional weekly top-ten ranking (in-week replacement of lowest)
-- [ ] Weekly freeze (immutability) + tie-breaking + audit trail
-- [ ] Forward price collection (1h/24h/7d/close)
-- [ ] Resolution tracking
-- [ ] Portfolio simulation (fixed stake, fees, spread)
-- [ ] Idempotent CLI commands (rank/freeze/forward/resolve)
-- [ ] Typed API endpoints (weeks/summary/entries/forward/resolutions/portfolio/provenance)
-- [ ] 13 required evaluation tests
+- [x] Provisional weekly top-ten ranking (in-week replacement of lowest)
+- [x] Weekly freeze (immutability) + tie-breaking + audit trail
+- [x] Forward price collection (1h/24h/7d/close)
+- [x] Resolution tracking
+- [x] Portfolio simulation (fixed stake, fees, spread)
+- [x] Idempotent CLI commands (rank/freeze/forward/resolve)
+- [x] Typed API endpoints (weeks/summary/entries/forward/resolutions/portfolio/provenance)
+- [x] 13 required evaluation tests
 
 ## Phase 3 — Replay redesign (frontend)
 - [ ] Replay page consumes cohort API; week picker; provisional vs frozen
