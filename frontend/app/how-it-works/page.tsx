@@ -30,65 +30,194 @@ function Section({
   );
 }
 
-function LearnMore({ href }: { href: string }) {
+function LearnMore({ href, children }: { href: string; children?: React.ReactNode }) {
   return (
     <p className="text-[15px]">
       <Link
         href={href}
         className="font-medium text-arepo-accentActive hover:text-arepo-accentHover"
       >
-        Learn more &rarr;
+        {children ?? "Learn more"} &rarr;
       </Link>
     </p>
   );
 }
 
-/** Tiny inline order-book diagram: bids left, asks right, spread in the gap. */
+/**
+ * Order-book diagram: bid levels build up on the left, ask levels build up
+ * on the right, the dashed line marks the midpoint, the bracket at the top
+ * marks the spread, and the best (nearest-to-spread) level on each side is
+ * outlined and joined to its label by a leader line. Each bar also carries a
+ * native tooltip and brightens slightly on hover, so a reader can pick out
+ * an individual level without needing a script to drive it.
+ */
 function OrderBookDiagram() {
+  const bidHeights = [22, 38, 54, 70];
+  const askHeights = [18, 31, 44, 57];
+  const pitch = 26;
+  const barWidth = 24;
+  const centerX = 180;
+  const spreadHalf = 10;
+  const baseline = 116;
+  const bidX = (i: number) => centerX - spreadHalf - (i + 1) * pitch;
+  const askX = (i: number) => centerX + spreadHalf + i * pitch;
+
   return (
     <svg
-      viewBox="0 0 320 90"
+      viewBox="0 0 360 154"
       role="img"
-      aria-label="Diagram of an order book: bid prices building up on the left, ask prices building up on the right, with the spread as the gap between the best bid and best ask, and the midpoint marked between them."
-      className="h-auto w-full max-w-sm"
+      aria-label="Diagram of an order book. Bid levels build up on the left in green and ask levels build up on the right in red. The best bid and best ask, the two levels closest to the middle, are outlined. The gap between them is the spread, marked by a bracket at the top. The dashed vertical line marks the midpoint, exactly halfway between the best bid and best ask."
+      className="h-auto w-full max-w-md"
     >
-      <text x="4" y="14" className="fill-arepo-muted text-[9px]">
+      {/* Spread bracket */}
+      <line x1="156" y1="18" x2="156" y2="28" className="stroke-arepo-ink" strokeWidth="1.25" />
+      <line x1="202" y1="18" x2="202" y2="28" className="stroke-arepo-ink" strokeWidth="1.25" />
+      <line x1="156" y1="23" x2="202" y2="23" className="stroke-arepo-ink" strokeWidth="1.25" />
+      <text x="179" y="12" textAnchor="middle" className="fill-arepo-ink text-[10px] font-semibold">
+        Spread
+      </text>
+
+      {/* Side labels */}
+      <text
+        x={(bidX(3) + bidX(0) + barWidth) / 2}
+        y="40"
+        textAnchor="middle"
+        className="fill-arepo-pos text-[11px] font-semibold"
+      >
         Bids
       </text>
-      <text x="316" y="14" textAnchor="end" className="fill-arepo-muted text-[9px]">
+      <text
+        x={(askX(0) + askX(3) + barWidth) / 2}
+        y="40"
+        textAnchor="middle"
+        className="fill-arepo-neg text-[11px] font-semibold"
+      >
         Asks
       </text>
-      {[0, 1, 2, 3].map((i) => (
+
+      {/* Baseline */}
+      <line
+        x1={bidX(3)}
+        y1={baseline}
+        x2={askX(3) + barWidth}
+        y2={baseline}
+        className="stroke-arepo-border"
+        strokeWidth="1"
+      />
+
+      {/* Bid levels: level 0 (the best bid) sits closest to the spread and is outlined */}
+      {bidHeights.map((h, i) => (
         <rect
           key={`bid-${i}`}
-          x={150 - (i + 1) * 24}
-          y={70 - i * 10}
-          width={22}
-          height={i * 10 + 12}
-          className="fill-arepo-pos/25"
-        />
+          x={bidX(i)}
+          y={baseline - h}
+          width={barWidth}
+          height={h}
+          className={
+            i === 0
+              ? "fill-arepo-pos stroke-arepo-ink transition-opacity hover:opacity-90"
+              : "fill-arepo-pos stroke-transparent transition-opacity hover:opacity-90"
+          }
+          strokeWidth={i === 0 ? 1.25 : 0}
+        >
+          <title>{i === 0 ? "Best bid: the highest price a buyer is currently offering" : `Bid level ${i + 1}`}</title>
+        </rect>
       ))}
-      {[0, 1, 2, 3].map((i) => (
+
+      {/* Ask levels: level 0 (the best ask) sits closest to the spread and is outlined */}
+      {askHeights.map((h, i) => (
         <rect
           key={`ask-${i}`}
-          x={170 + i * 24}
-          y={70 - i * 10}
-          width={22}
-          height={i * 10 + 12}
-          className="fill-arepo-neg/25"
-        />
+          x={askX(i)}
+          y={baseline - h}
+          width={barWidth}
+          height={h}
+          className={
+            i === 0
+              ? "fill-arepo-neg stroke-arepo-ink transition-opacity hover:opacity-90"
+              : "fill-arepo-neg stroke-transparent transition-opacity hover:opacity-90"
+          }
+          strokeWidth={i === 0 ? 1.25 : 0}
+        >
+          <title>{i === 0 ? "Best ask: the lowest price a seller will currently accept" : `Ask level ${i + 1}`}</title>
+        </rect>
       ))}
-      <line x1="160" y1="20" x2="160" y2="82" className="stroke-arepo-border" strokeWidth="1" />
-      <text x="160" y="88" textAnchor="middle" className="fill-arepo-muted text-[8px]">
-        midpoint
+
+      {/* Midpoint */}
+      <line
+        x1={centerX}
+        y1="32"
+        x2={centerX}
+        y2="128"
+        strokeDasharray="3 3"
+        className="stroke-arepo-ink"
+        strokeWidth="1.25"
+      >
+        <title>Midpoint: exactly halfway between the best bid and best ask</title>
+      </line>
+      <text x={centerX} y="140" textAnchor="middle" className="fill-arepo-ink text-[10px] font-semibold">
+        Midpoint
       </text>
-      <text x="130" y="88" textAnchor="middle" className="fill-arepo-muted text-[8px]">
-        best bid
+
+      {/* Best bid / best ask labels, each joined to its level by a leader line */}
+      <line
+        x1="100"
+        y1="132"
+        x2={bidX(0) + barWidth / 2}
+        y2={baseline - bidHeights[0]}
+        className="stroke-arepo-muted"
+        strokeWidth="1"
+      />
+      <text x="100" y="140" textAnchor="middle" className="fill-arepo-muted text-[9px] font-medium">
+        Best bid
       </text>
-      <text x="190" y="88" textAnchor="middle" className="fill-arepo-muted text-[8px]">
-        best ask
+      <line
+        x1="260"
+        y1="132"
+        x2={askX(0) + barWidth / 2}
+        y2={baseline - askHeights[0]}
+        className="stroke-arepo-muted"
+        strokeWidth="1"
+      />
+      <text x="260" y="140" textAnchor="middle" className="fill-arepo-muted text-[9px] font-medium">
+        Best ask
       </text>
     </svg>
+  );
+}
+
+/** Legend tying each order-book term to the diagram element that shows it. */
+function OrderBookLegend() {
+  return (
+    <dl className="flex flex-wrap gap-x-5 gap-y-2 text-[12.5px] text-arepo-ink2">
+      <div className="inline-flex items-center gap-1.5">
+        <span className="inline-block h-2.5 w-2.5 rounded-sm bg-arepo-pos" aria-hidden="true" />
+        <dt className="font-semibold text-arepo-ink">Bids</dt>
+        <dd>buyers waiting to purchase</dd>
+      </div>
+      <div className="inline-flex items-center gap-1.5">
+        <span className="inline-block h-2.5 w-2.5 rounded-sm bg-arepo-neg" aria-hidden="true" />
+        <dt className="font-semibold text-arepo-ink">Asks</dt>
+        <dd>sellers waiting to sell</dd>
+      </div>
+      <div className="inline-flex items-center gap-1.5">
+        <span className="inline-block h-2.5 w-2.5 border border-arepo-ink" aria-hidden="true" />
+        <dt className="font-semibold text-arepo-ink">Spread</dt>
+        <dd>the gap between best bid and best ask</dd>
+      </div>
+      <div className="inline-flex items-center gap-1.5">
+        <span className="inline-block h-2.5 w-px bg-arepo-ink" aria-hidden="true" />
+        <dt className="font-semibold text-arepo-ink">Midpoint</dt>
+        <dd>exactly halfway between the two</dd>
+      </div>
+      <div className="inline-flex items-center gap-1.5">
+        <span aria-hidden="true" className="text-arepo-ink">
+          &#8646;
+        </span>
+        <dt className="font-semibold text-arepo-ink">Imbalance</dt>
+        <dd>how bid size compares with ask size</dd>
+      </div>
+    </dl>
   );
 }
 
@@ -211,7 +340,9 @@ export default function HowItWorksPage() {
           Every price sits between a <strong>best bid</strong> (the highest price a buyer is
           currently offering) and a <strong>best ask</strong> (the lowest a seller will accept).
           The gap between them is the <strong>spread</strong>: narrow usually means the market is
-          easy to trade in and out of, wide usually means the opposite.
+          easy to trade in and out of, wide usually means the opposite. Exactly halfway between
+          the two sits the <strong>midpoint</strong>, often used as the market&apos;s single best
+          estimate of the price.
         </p>
         <p>
           <strong>Order-book imbalance</strong> compares how much size is resting on the bid side
@@ -219,10 +350,15 @@ export default function HowItWorksPage() {
           though, like every reading here, it describes the visible book at a moment in time and
           says nothing about hidden orders or intent.
         </p>
-        <OrderBookDiagram />
+        <div className="space-y-3 pt-1">
+          <OrderBookDiagram />
+          <OrderBookLegend />
+        </div>
         <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1">
-          <LearnMore href={methodologyAnchor("spread")} />
-          <LearnMore href={methodologyAnchor("order-book-imbalance")} />
+          <LearnMore href={methodologyAnchor("spread")}>Learn more about spread</LearnMore>
+          <LearnMore href={methodologyAnchor("order-book-imbalance")}>
+            Learn more about imbalance
+          </LearnMore>
         </div>
       </Section>
 

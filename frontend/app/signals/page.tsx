@@ -51,8 +51,10 @@ export default function SignalLabPage() {
           title="Signal Lab"
           lead={
             <>
-              Every market currently showing unusual activity, ranked by strength, with the
-              reasoning behind each one.
+              Signal Lab continuously scans the tracked markets for statistically unusual
+              patterns worth a closer look, ranks them by a single composite anomaly score,
+              and links each one straight back to the actual market and the reasoning behind
+              it, so nothing here is abstract or disconnected from a real, inspectable market.
             </>
           }
         />
@@ -61,13 +63,27 @@ export default function SignalLabPage() {
 
       <div className="panel space-y-5 p-6">
         <div>
-          <h2 className="text-base font-bold text-arepo-ink">What does &ldquo;Unusual market activity&rdquo; mean?</h2>
+          <h2 className="text-base font-bold text-arepo-ink">What is a &ldquo;Composite anomaly&rdquo;?</h2>
           <p className="mt-1.5 max-w-reading text-sm leading-relaxed text-arepo-ink2">
             A signal fires when a market&apos;s recent price, spread, volume and order-book
             behaviour look statistically unusual compared with its own history, not compared with
             any other market. That can mean an unusual price move, a sudden pickup in trading
             activity, a lopsided order book, a widening spread, or a shift in the depth available
-            near the price, alone or in combination.
+            near the price, alone or in combination. The composite anomaly score is what you get
+            when several of these market-behaviour features are combined into one 0 to 100
+            reading.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-bold text-arepo-ink">What to do with a signal</h3>
+          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
+            Each card below names the market it refers to and links straight through to it.
+            From there the usual next steps are: open &ldquo;Why this fired&rdquo; to read the
+            reasoning, inspect the market itself for context, and watch for confirmation, such
+            as the price continuing to move or the order-book imbalance persisting, before
+            drawing any conclusion. Signal Lab is a research tool for narrowing down what to
+            look at next, not a source of trading instructions.
           </p>
         </div>
 

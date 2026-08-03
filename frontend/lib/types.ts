@@ -86,6 +86,8 @@ export interface Signal {
   kind: string;
   token_id: string;
   market_id: string;
+  market_question?: string | null;
+  outcome_name?: string | null;
   value: number | null;
   strength: number;
   direction: "up" | "down" | null;

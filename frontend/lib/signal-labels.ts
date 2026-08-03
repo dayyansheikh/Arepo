@@ -8,7 +8,7 @@ import { titleCase } from "./format";
 
 /** Friendly surface title for each SignalKind value (e.g. "composite_anomaly"). */
 export const SIGNAL_KIND_LABELS: Record<string, string> = {
-  composite_anomaly: "Unusual market activity",
+  composite_anomaly: "Composite anomaly",
   movement_zscore: "Unusual price move",
   volatility_spike: "Volatility spike",
   book_imbalance: "Order-book imbalance",
@@ -39,7 +39,7 @@ const COMPONENT_NAME_PATTERN = new RegExp(
   "g"
 );
 
-/** The surface (always-visible) title for a signal, e.g. "Unusual market activity". */
+/** The surface (always-visible) title for a signal, e.g. "Composite anomaly". */
 export function friendlySignalTitle(kind: string): string {
   return SIGNAL_KIND_LABELS[kind] ?? titleCase(kind);
 }

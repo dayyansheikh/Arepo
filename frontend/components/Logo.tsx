@@ -64,7 +64,7 @@ export function Logo({ size = 26 }: { size?: number }) {
   return (
     <span className="inline-flex items-center gap-2.5 select-none text-arepo-ink">
       <LogoMark size={size} title="Arepo" />
-      <span className="font-display text-[19px] font-semibold uppercase tracking-[0.22em] text-arepo-ink">
+      <span className="font-display text-[21px] font-semibold uppercase tracking-[0.2em] text-arepo-ink">
         Arepo
       </span>
     </span>

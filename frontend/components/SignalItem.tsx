@@ -37,7 +37,7 @@ export function SignalItem({ signal }: { signal: Signal }) {
             <span className="flex items-center gap-1 text-sm font-semibold text-arepo-ink">
               {friendlySignalTitle(signal.kind)}
               {signal.kind === "composite_anomaly" && (
-                <MetricHelp metric="unusual-market-activity" showTerm={false} />
+                <MetricHelp metric="composite-anomaly" showTerm={false} />
               )}
             </span>
             <DataQualityBadge quality={signal.data_quality} />
@@ -51,6 +51,19 @@ export function SignalItem({ signal }: { signal: Signal }) {
           <p className="mt-1.5 max-w-reading text-sm leading-relaxed text-arepo-ink2">
             {replaceComponentNames(signal.detected)}
           </p>
+          <Link
+            href={`/markets/${encodeURIComponent(signal.market_id)}`}
+            className="focus-ring mt-2 inline-flex max-w-reading items-center gap-1 text-[13px] font-medium text-arepo-accentActive hover:text-arepo-accentHover"
+          >
+            <span className="truncate">
+              {signal.market_question
+                ? `Market: ${signal.market_question}${
+                    signal.outcome_name ? ` (${signal.outcome_name})` : ""
+                  }`
+                : "Inspect this market"}
+            </span>
+            <span aria-hidden="true">&rarr;</span>
+          </Link>
         </div>
         <div className="flex flex-col items-end gap-1">
           <StrengthMeter strength={signal.strength} direction={signal.direction} className="min-w-36" />
@@ -85,6 +98,15 @@ export function SignalItem({ signal }: { signal: Signal }) {
             likely to be noisy, not that the market itself is untrustworthy.
           </Field>
           <Field label="Limitations">{signal.limitations}</Field>
+          <Field label="How this may be used">
+            This is a prompt for research, not trading advice, and never a guarantee of
+            profit. A researcher might use it to monitor the market for repricing, compare
+            it with related or similar markets, watch whether the order-book imbalance
+            persists rather than fading, look for confirmation from price movement or
+            liquidity changes, and consider whether the market may simply be slow to
+            reflect new information. Treat it as a starting point for further reading,
+            not an instruction to trade.
+          </Field>
 
           {signal.components.length > 0 && (
             <div>
