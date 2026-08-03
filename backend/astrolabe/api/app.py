@@ -18,6 +18,7 @@ from ..observability.logging import configure_logging, get_logger
 from .deps import get_service, init_storage
 from .routes import cohorts as cohort_routes
 from .routes import health as health_routes
+from .routes import historical as historical_routes
 from .routes import markets, meta, overview, replay, signals
 
 logger = get_logger("astrolabe.api")
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     app.include_router(signals.router)
     app.include_router(replay.router)
     app.include_router(cohort_routes.router)
+    app.include_router(historical_routes.router)
 
     return app
 

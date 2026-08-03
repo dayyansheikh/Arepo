@@ -37,6 +37,23 @@ logger = get_logger("astrolabe.service.sources")
 # shipping thousands of points per token.
 LIVE_HISTORY_MAX = 1500
 
+# Chart timeline ranges. Short ranges use a fine resolution; longer ones a coarser one.
+# "7d" has no named CLOB interval so it uses a start/end window. Seconds are the window
+# length, used to filter replay/cached series to the same span.
+RANGE_WINDOW_SECONDS: dict[str, int] = {
+    "1h": 3600,
+    "6h": 21_600,
+    "24h": 86_400,
+    "7d": 604_800,
+}
+_RANGE_FETCH: dict[str, dict] = {
+    "1h": {"interval": "1h", "fidelity": 1},
+    "6h": {"interval": "6h", "fidelity": 1},
+    "24h": {"interval": "1d", "fidelity": 1},
+    "7d": {"window_seconds": 604_800, "fidelity": 30},
+    "all": {"interval": "max", "fidelity": 30},
+}
+
 
 @dataclass
 class TokenData:
@@ -147,6 +164,30 @@ class LiveSource:
         return TokenData(
             prices=prices, book=book, volumes=[], captured_at=captured, price_points=points
         )
+
+    async def get_range_history(self, token_id: str, rng: str) -> list[PricePoint]:
+        """Real price history for one token at a resolution suited to the chart range.
+
+        Short ranges fetch fine (1-minute) points; longer ranges coarser ones; "7d" uses a
+        start/end window. Returns [] on any error so the chart degrades to an empty state."""
+        spec = _RANGE_FETCH.get(rng, _RANGE_FETCH["all"])
+        try:
+            if "window_seconds" in spec:
+                now = int(datetime.now(UTC).timestamp())
+                raw = await self._clob.get_prices_history(
+                    token_id,
+                    fidelity=spec["fidelity"],
+                    start_ts=now - spec["window_seconds"],
+                    end_ts=now,
+                )
+            else:
+                raw = await self._clob.get_prices_history(
+                    token_id, interval=spec["interval"], fidelity=spec["fidelity"]
+                )
+            return normalize_price_history(raw)[-LIVE_HISTORY_MAX:]
+        except Exception as exc:  # noqa: BLE001 - never crash the detail request
+            logger.warning("range history error", extra={"ctx_error": str(exc)})
+            return []
 
     async def health(self) -> tuple[SourceHealth, SourceHealth]:
         # REST health tracked; the live WS runs in the ingestion pipeline (reported separately).

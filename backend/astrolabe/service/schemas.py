@@ -76,6 +76,8 @@ class MarketDetail(ApiModel):
     end_date: str | None
     outcomes: list[OutcomeView]
     price_history: dict[str, list[PricePoint]]   # token_id -> points
+    chart_range: str = "all"                      # active timeline range
+    available_ranges: list[str] = ["all"]         # ranges that make sense for this market
     signals: list[Signal]
     limitations: str
     data_source: str                              # "live" | "cached" | "replay"

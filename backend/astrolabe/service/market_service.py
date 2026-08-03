@@ -29,7 +29,14 @@ from .schemas import (
     OverviewResponse,
     SignalsResponse,
 )
-from .sources import CachedSource, DataSource, LiveSource, ReplaySource, TokenData
+from .sources import (
+    RANGE_WINDOW_SECONDS,
+    CachedSource,
+    DataSource,
+    LiveSource,
+    ReplaySource,
+    TokenData,
+)
 
 logger = get_logger("astrolabe.service")
 
@@ -106,17 +113,19 @@ class MarketService:
         analytics: list[TokenAnalytics] = []
         for o in market.outcomes:
             td = token_data[o.token_id]
-            analytics.append(
-                enrich.compute_token_analytics(
-                    token_id=o.token_id,
-                    market_id=market.id,
-                    prices=td.prices,
-                    book=td.book,
-                    volumes=td.volumes,
-                    gamma_price=o.price,
-                    data_age_seconds=enrich.data_age(td.captured_at),
-                )
+            ta = enrich.compute_token_analytics(
+                token_id=o.token_id,
+                market_id=market.id,
+                prices=td.prices,
+                book=td.book,
+                volumes=td.volumes,
+                gamma_price=o.price,
+                data_age_seconds=enrich.data_age(td.captured_at),
             )
+            # Attach the market context so signals can name and link to their market.
+            ta.signal.market_question = market.question
+            ta.signal.outcome_name = o.name
+            analytics.append(ta)
         return analytics, enrich.market_card(market, analytics)
 
     def _card_from_metadata(self, market: Market) -> MarketCard:
@@ -192,6 +201,29 @@ class MarketService:
             out.append((m, analytics))
         return out, source.mode
 
+    async def active_markets(
+        self, *, requested_mode=None, limit=None, by="volume_24hr"
+    ) -> list[Market]:
+        """Domain Market objects sorted by ``by`` (e.g. "volume_24hr" or "volume").
+
+        The historical retrospective sorts by total "volume" to pick long-lived, liquid
+        markets that actually have history stretching back before the cut-off; short-lived
+        sports markets that top the 24h list have no week-old history to reconstruct from."""
+        source, _ = await self._select_source(requested_mode)
+        markets = _sort_markets(await source.markets(), by)
+        return markets[:limit] if limit is not None else markets
+
+    async def token_history(self, market_id: str, token_id: str, *, requested_mode=None):
+        """The full real, timestamped price history for one outcome token.
+
+        Live fetches the market's whole history at 30-minute resolution; replay/cached use
+        their stored timestamped series. Returns [] on error."""
+        source, _ = await self._select_source(requested_mode)
+        if isinstance(source, LiveSource):
+            return await source.get_range_history(token_id, "all")
+        td = await source.get_token_data(market_id, token_id)
+        return _history_points(source, market_id, token_id, td)
+
     async def token_price(self, market_id: str, token_id: str, *, requested_mode=None):
         """Current (price, source_timestamp) for one outcome token, or (None, None).
 
@@ -266,24 +298,28 @@ class MarketService:
             widest_spreads=widest, recent_signals=recent_signals, status=status_env,
         )
 
-    async def market_detail(self, market_id: str, *, requested_mode=None):
+    async def market_detail(self, market_id: str, *, requested_mode=None, chart_range="all"):
         source, reason = await self._select_source(requested_mode)
         markets = await source.markets()
         market = next((m for m in markets if m.id == market_id), None)
         if market is None:
             return None
 
+        chart_range = chart_range if chart_range in _CHART_RANGES else "all"
         analytics, _ = await self._enrich_market(source, market)
         outcomes_view = []
         norm = enrich.normalized_probs_for(analytics)
         history: dict[str, list[PricePoint]] = {}
         for ta, o, np_ in zip(analytics, market.outcomes, norm, strict=False):
             outcomes_view.append(enrich.outcome_view(ta, o.name, np_))
-            td = await source.get_token_data(market.id, o.token_id)
-            # Use real per-point timestamps where the source has them (replay via the
-            # player; live/cached via td.price_points), so the chart plots a genuine
-            # time axis instead of collapsing every point onto "now".
-            history[o.token_id] = _history_points(source, market.id, o.token_id, td)
+            if isinstance(source, LiveSource):
+                # Fetch the chosen range at a resolution suited to it (fine for short ranges).
+                history[o.token_id] = await source.get_range_history(o.token_id, chart_range)
+            else:
+                td = await source.get_token_data(market.id, o.token_id)
+                # Replay/cached carry real per-point timestamps; filter them to the range span.
+                points = _history_points(source, market.id, o.token_id, td)
+                history[o.token_id] = _filter_range(points, chart_range)
 
         signals = [ta.signal for ta in analytics]
         last_update = _latest_update([market])
@@ -296,6 +332,7 @@ class MarketService:
             tick_size=market.tick_size,
             end_date=market.end_date.isoformat() if market.end_date else None,
             outcomes=outcomes_view, price_history=history, signals=signals,
+            chart_range=chart_range, available_ranges=_available_ranges(market),
             limitations=(
                 "Implied probabilities are spread/fee-contaminated risk-neutral estimates. "
                 "Signals are screening heuristics, not evidence of insider activity or profit."
@@ -388,6 +425,38 @@ def _sort_markets(markets, sort):
 def _latest_update(markets) -> datetime | None:
     dts = [m.updated_at for m in markets if getattr(m, "updated_at", None)]
     return max(dts) if dts else datetime.now(UTC)
+
+
+_CHART_RANGES = ("1h", "6h", "24h", "7d", "all")
+
+
+def _filter_range(points: list[PricePoint], rng: str) -> list[PricePoint]:
+    """Keep only the points within ``rng`` of the series' own most recent timestamp.
+
+    Used for replay/cached (which carry a full timestamped series); "all" keeps everything.
+    """
+    if rng == "all" or not points:
+        return points
+    window = RANGE_WINDOW_SECONDS.get(rng)
+    if window is None:
+        return points
+    cutoff = points[-1].t - timedelta(seconds=window)
+    return [p for p in points if p.t >= cutoff]
+
+
+def _available_ranges(market: Market) -> list[str]:
+    """Which timeline ranges make sense given how long the market has existed.
+
+    Ranges longer than the market's age are hidden; "all" is always offered. When the
+    start date is unknown, all ranges are offered and sparse ones simply show the
+    limited-history note on the chart.
+    """
+    if market.start_date is None:
+        return list(_CHART_RANGES)
+    age = (enrich.now_utc() - market.start_date).total_seconds()
+    out = [r for r in ("1h", "6h", "24h", "7d") if RANGE_WINDOW_SECONDS[r] <= age]
+    out.append("all")
+    return out or ["all"]
 
 
 def _history_points(source, market_id, token_id, td) -> list[PricePoint]:

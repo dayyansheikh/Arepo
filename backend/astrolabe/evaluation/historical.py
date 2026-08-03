@@ -1,0 +1,312 @@
+"""Historical reconstructed retrospective (a separate, clearly-labelled analysis mode).
+
+For a past cut-off ``as_of`` this reconstructs each candidate market's composite anomaly
+signal using ONLY the real price history up to that moment (no look-ahead), ranks the top
+signals, and measures what actually happened afterwards from the real later history. It is
+provenance ``reconstructed`` and is never mixed with the prospective frozen-weekly cohorts
+or the synthetic demonstration.
+
+Honesty notes (surfaced as assumptions/limitations):
+- The universe is markets still discoverable now that have enough real history, so it is
+  subject to survivorship bias; it is an illustrative screen, not a tradable track record.
+- Historical order books are not available, so the reconstructed signal uses price-behaviour
+  features only (no imbalance/spread/depth), unlike the live composite.
+- Entry is taken at the real price at ``as_of``; forward prices are the real later history.
+"""
+from __future__ import annotations
+
+import asyncio
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+
+from pydantic import BaseModel
+
+from ..domain.models import PricePoint
+from ..service import enrich
+from .constants import PROVENANCE_RECONSTRUCTED
+
+DEFAULT_HORIZONS: list[tuple[str, int]] = [("1h", 3600), ("24h", 86_400), ("7d", 604_800)]
+MIN_HISTORY = 30
+DEFAULT_MIN_STRENGTH = 0.12
+DEFAULT_TOP_N = 15
+
+
+@dataclass
+class Candidate:
+    market_id: str
+    token_id: str
+    market_question: str
+    outcome_name: str
+    gamma_price: float | None = None
+
+
+# history_of(token_id) -> full real, timestamped price history (any order).
+HistoryProvider = Callable[[str], Awaitable[list[PricePoint]]]
+
+
+class HForward(BaseModel):
+    horizon: str
+    price: float | None
+    movement: float | None
+
+
+class HistoricalEntry(BaseModel):
+    rank: int
+    market_id: str
+    token_id: str
+    market_question: str
+    outcome_name: str
+    direction: str | None
+    strength: float
+    confidence: float
+    data_quality: str
+    entry_price: float
+    lookback_points: int
+    components: list[dict]
+    forward: list[HForward]
+    final_price: float | None
+    final_movement: float | None
+    direction_correct_24h: bool | None
+
+
+class HistoricalScreen(BaseModel):
+    provenance_class: str = PROVENANCE_RECONSTRUCTED
+    as_of: datetime
+    top_n: int
+    universe_considered: int
+    eligible: int
+    selected: int
+    moved_expected_24h: int
+    moved_against_24h: int
+    pending_24h: int
+    entries: list[HistoricalEntry]
+    plain_summary: str
+    assumptions: list[str]
+    limitations: list[str]
+
+
+def _price_at_or_after(points: list[PricePoint], t: datetime) -> float | None:
+    """First price at or after ``t``. If the series ends before ``t`` (the market stopped
+    trading), fall back to the last known price rather than inventing one."""
+    for p in points:
+        if p.t >= t:
+            return p.p
+    return points[-1].p if points else None
+
+
+async def run_historical_screen(
+    *,
+    candidates: list[Candidate],
+    history_of: HistoryProvider,
+    as_of: datetime,
+    min_strength: float = DEFAULT_MIN_STRENGTH,
+    top_n: int = DEFAULT_TOP_N,
+    min_history: int = MIN_HISTORY,
+    horizons: list[tuple[str, int]] | None = None,
+) -> HistoricalScreen:
+    horizons = horizons or DEFAULT_HORIZONS
+    considered = 0
+    eligible: list[dict] = []
+
+    for cand in candidates:
+        hist = await history_of(cand.token_id)
+        if not hist:
+            continue
+        hist = sorted(hist, key=lambda p: p.t)
+        prefix = [p for p in hist if p.t <= as_of]
+        suffix = [p for p in hist if p.t > as_of]
+        considered += 1
+        if len(prefix) < min_history or not suffix:
+            continue
+
+        prices = [p.p for p in prefix]
+        entry = prices[-1]
+        if entry is None:
+            continue
+        # Signal reconstructed from ONLY the pre-cutoff history (no look-ahead). No book, so
+        # this is a price-behaviour composite by construction.
+        ta = enrich.compute_token_analytics(
+            token_id=cand.token_id,
+            market_id=cand.market_id,
+            prices=prices,
+            book=None,
+            volumes=[],
+            gamma_price=cand.gamma_price,
+        )
+        sig = ta.signal
+        if sig.strength < min_strength:
+            continue
+
+        forwards = [
+            HForward(
+                horizon=label,
+                price=(fp := _price_at_or_after(suffix, as_of + timedelta(seconds=secs))),
+                movement=(fp - entry) if fp is not None else None,
+            )
+            for label, secs in horizons
+        ]
+        final_price = suffix[-1].p
+        move24 = next((f.movement for f in forwards if f.horizon == "24h"), None)
+        dir_correct: bool | None = None
+        if sig.direction and move24 is not None:
+            dir_correct = (move24 > 0) if sig.direction == "up" else (move24 < 0)
+
+        eligible.append(
+            {
+                "cand": cand,
+                "sig": sig,
+                "entry": entry,
+                "lookback": len(prefix),
+                "forwards": forwards,
+                "final_price": final_price,
+                "final_movement": final_price - entry if final_price is not None else None,
+                "dir_correct": dir_correct,
+                "components": [
+                    {"name": c.name, "normalized_value": c.normalized_value, "weight": c.weight}
+                    for c in sig.components
+                    if c.normalized_value is not None
+                ],
+            }
+        )
+
+    eligible.sort(key=lambda r: r["sig"].strength, reverse=True)
+    # One entry per market (keep its strongest outcome), so the top N is N distinct markets
+    # rather than redundant Yes/No pairs of the same market.
+    seen: set[str] = set()
+    deduped: list[dict] = []
+    for r in eligible:
+        mid = r["cand"].market_id
+        if mid in seen:
+            continue
+        seen.add(mid)
+        deduped.append(r)
+    top = deduped[:top_n]
+
+    entries = [
+        HistoricalEntry(
+            rank=i + 1,
+            market_id=r["cand"].market_id,
+            token_id=r["cand"].token_id,
+            market_question=r["cand"].market_question,
+            outcome_name=r["cand"].outcome_name,
+            direction=r["sig"].direction,
+            strength=r["sig"].strength,
+            confidence=r["sig"].confidence,
+            data_quality=r["sig"].data_quality.value
+            if hasattr(r["sig"].data_quality, "value")
+            else str(r["sig"].data_quality),
+            entry_price=r["entry"],
+            lookback_points=r["lookback"],
+            components=r["components"],
+            forward=r["forwards"],
+            final_price=r["final_price"],
+            final_movement=r["final_movement"],
+            direction_correct_24h=r["dir_correct"],
+        )
+        for i, r in enumerate(top)
+    ]
+
+    moved_expected = sum(1 for r in top if r["dir_correct"] is True)
+    moved_against = sum(1 for r in top if r["dir_correct"] is False)
+    pending = sum(1 for r in top if r["dir_correct"] is None)
+
+    return HistoricalScreen(
+        as_of=as_of,
+        top_n=top_n,
+        universe_considered=considered,
+        eligible=len(deduped),
+        selected=len(entries),
+        moved_expected_24h=moved_expected,
+        moved_against_24h=moved_against,
+        pending_24h=pending,
+        entries=entries,
+        plain_summary=_plain_summary(len(entries), moved_expected, moved_against, pending),
+        assumptions=[
+            "The signal at the cut-off is reconstructed from only the real price history up to "
+            "that moment, so there is no look-ahead.",
+            "Entry is the real price at the cut-off; forward prices are the real later history.",
+            "Historical order books are not available, so the reconstructed signal uses "
+            "price-behaviour features only (no order-book imbalance, spread or depth).",
+        ],
+        limitations=[
+            "The universe is markets still discoverable now with enough history, so it is "
+            "subject to survivorship bias.",
+            "This is an illustrative research screen, not a tradable track record, and not the "
+            "prospective frozen-weekly cohort.",
+            "A move in the signalled direction is not a claim of profitability.",
+        ],
+    )
+
+
+async def run_live_historical(
+    market_service,
+    *,
+    as_of: datetime,
+    universe_limit: int = 12,
+    min_strength: float = DEFAULT_MIN_STRENGTH,
+    top_n: int = DEFAULT_TOP_N,
+) -> HistoricalScreen:
+    """Wire the reconstruction to a live MarketService: pick the most active markets, fetch
+    their full real history concurrently, then run the (no-look-ahead) screen."""
+    # Universe: liquid markets whose price sits away from the extremes (a leading probability
+    # roughly 0.1 to 0.9). Longshots pinned near 0 or 1 (which dominate total volume) never
+    # move, so they carry no reconstructable signal; near-mid markets are the ones with
+    # genuine uncertainty and real price movement to screen. Sorted by total volume so they
+    # also have history reaching back before the cut-off.
+    all_markets = await market_service.active_markets(requested_mode="live", by="volume")
+
+    def _near_mid(m) -> bool:
+        prices = [o.price for o in m.outcomes if o.price is not None]
+        return bool(prices) and 0.1 <= max(prices) <= 0.9
+
+    markets = [m for m in all_markets if _near_mid(m)][:universe_limit]
+    candidates: list[Candidate] = []
+    tok_market: dict[str, str] = {}
+    for m in markets:
+        for o in m.outcomes:
+            candidates.append(
+                Candidate(
+                    market_id=m.id,
+                    token_id=o.token_id,
+                    market_question=m.question,
+                    outcome_name=o.name,
+                    gamma_price=o.price,
+                )
+            )
+            tok_market[o.token_id] = m.id
+
+    tokens = list(tok_market)
+    fetched = await asyncio.gather(
+        *(
+            market_service.token_history(tok_market[t], t, requested_mode="live")
+            for t in tokens
+        ),
+        return_exceptions=True,
+    )
+    cache = {
+        t: (h if not isinstance(h, BaseException) else [])
+        for t, h in zip(tokens, fetched, strict=False)
+    }
+
+    async def history_of(token_id: str) -> list[PricePoint]:
+        return cache.get(token_id, [])
+
+    return await run_historical_screen(
+        candidates=candidates,
+        history_of=history_of,
+        as_of=as_of,
+        min_strength=min_strength,
+        top_n=top_n,
+    )
+
+
+def _plain_summary(selected: int, expected: int, against: int, pending: int) -> str:
+    if selected == 0:
+        return "No markets had enough real history to reconstruct a signal for this cut-off."
+    return (
+        f"Reconstructed the top {selected} composite-anomaly "
+        f"{'signal' if selected == 1 else 'signals'} as of the cut-off. "
+        f"Of those, {expected} moved in the signalled direction over the next 24 hours, "
+        f"{against} moved against it and {pending} could not be evaluated at that horizon."
+    )

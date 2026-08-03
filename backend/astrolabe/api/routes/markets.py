@@ -42,9 +42,10 @@ async def market_facets(
 async def market_detail(
     market_id: str,
     mode: str | None = None,
+    range: str = Query("all", pattern="^(1h|6h|24h|7d|all)$", description="chart timeline range"),
     service: MarketService = Depends(get_service),
 ) -> MarketDetailResponse:
-    detail = await service.market_detail(market_id, requested_mode=mode)
+    detail = await service.market_detail(market_id, requested_mode=mode, chart_range=range)
     if detail is None:
         raise HTTPException(status_code=404, detail="market not found")
     return detail
