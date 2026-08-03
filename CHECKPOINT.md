@@ -38,6 +38,39 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
+**Product Simplification, Accounts & Decision-Support (branch `arepo-product-simplification`,
+from pushed `arepo-opportunity-alerts`). Phases 1-4 of 7 COMPLETE and committed.**
+
+Done and verified:
+- Phase 1 (commit f587fb0): two Sonnet reviews (beginner + quant) synthesised in DECISIONS
+  P0-P3; statistical-integrity fixes (confidence decoupled from strength; freshness penalty
+  wired through; unimplemented cross_market family removed).
+- Phase 2 (82435fb): computed statistical hypothesis with honest insufficient-evidence state;
+  Opportunity cards lead with the hypothesis + direction and demote Research Priority to a
+  labelled chip; accessible TagChip popovers; time-to-close filter; Signal Lab consolidated to
+  one signal per market (no duplicate Yes/No); nav renamed.
+- Phase 3 (8c72096): accounts backend, native fastapi-users (DECISIONS P3, NOT Supabase).
+  Register/verify/login(verified-only)/logout/reset; argon2 + JWT httpOnly cookie; schema
+  users/alert_preferences/saved_markets/alert_deliveries/account_deletions; per-user isolation;
+  per-IP rate limiter; .env.example; 10 tests. Runs fully offline (console email sink).
+- Phase 4 (e6f8c64): accounts frontend (signup/signin/forgot/reset/verify/account with alert
+  settings), auth context, verification link visible via console sink. Live lifecycle smoke
+  passed: register -> verify -> login -> me -> prefs -> save -> delete -> 401.
+
+State: backend **254 tests pass**, ruff clean; frontend tsc/lint/build clean (15/15 routes).
+New backend deps: fastapi-users[sqlalchemy], pwdlib[argon2], pyjwt (pinned in pyproject +
+requirements). AUTH_SECRET has a dev default and MUST be set in production; external email stays
+disabled (console sink) until provider creds are configured.
+
+**Exact next action (Phase 5):** connect the existing alert engine (`astrolabe/alerts/service.py`)
+to per-user preferences: only verified + opted-in users, honouring min Research Priority, min
+confidence, categories, short-term/max-hours, pause, unsubscribe, global disable; write per-user
+`alert_deliveries`; dedup + cooldown + retry; correct disclaimer, no personalised advice. Add
+tests (§16 Alerts). Then Phase 6 (performance: cache the 6.13s/202-request board build) and
+Phase 7 (Replay price-only reconstruction via CLOB /prices-history + docs + push).
+
+## (superseded) Current phase
+
 **Opportunity Intelligence & Alerting pass COMPLETE** (branch `arepo-opportunity-alerts`,
 from the pushed `arepo-signal-refinement` at 77ec2b3). Delivered and verified: trade-flow/
 wallet/timing indicators (analytics/flow.py) over the public Data API `/trades`; Research

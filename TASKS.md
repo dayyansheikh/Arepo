@@ -2,6 +2,27 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Product Simplification, Accounts & Decision-Support (branch `arepo-product-simplification`)
+- [x] Phase 1: two Sonnet product reviews (beginner + quant) + synthesis (DECISIONS P0-P3)
+- [x] Phase 1: statistical-integrity fixes (decouple confidence/strength; wire freshness;
+      drop unimplemented cross_market family)
+- [x] Phase 2: computed statistical hypothesis (backend, insufficient-evidence state) on cards
+- [x] Phase 2: Opportunity card redesign (lead with hypothesis + direction; demote score to
+      labelled chip; N independent lines of evidence)
+- [x] Phase 2: accessible TagChip popover (plain definition, why it matters, family, method link)
+- [x] Phase 2: time-to-close filter (24h/3d/7d/all); nav renamed (Opportunities, Explore)
+- [x] Phase 2: Signal Lab consolidated to one signal per market (no duplicate Yes/No)
+- [x] Phase 3: accounts backend (fastapi-users: register/verify/login/logout/reset; argon2;
+      JWT cookie); schema (users, alert_preferences, saved_markets, alert_deliveries,
+      account_deletions); per-user isolation; rate limiting; .env.example; 10 tests
+- [x] Phase 4: accounts frontend (signup/signin/forgot/reset/verify/account + alert settings);
+      auth context; verification link visible via console sink; live lifecycle smoke passed
+- [ ] Phase 5: connect alert engine to per-user verified/opted-in preferences (+ tests)
+- [ ] Phase 6: performance profiling + improvements (board caching/dedup; before/after)
+- [ ] Phase 7: Replay historical price-only reconstruction; docs; repeat reviews; push
+- [ ] Market detail: lead with "Current model view" hypothesis + progressive disclosure (§6)
+- [ ] Move Arepo brand/origin story into Learn/About (§4)
+
 ## Opportunity Intelligence & Alerting pass (branch `arepo-opportunity-alerts`)
 - [x] Confirm branch + prior branch pushed; investigate trade/wallet data (DECISIONS O2)
 - [x] Choose information architecture (DECISIONS O1)
