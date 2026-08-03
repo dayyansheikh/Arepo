@@ -159,4 +159,3 @@ keyboard focus and touch; a 2px red `:focus-visible` ring (never the browser
 default) on every interactive element; contrast targets met (body ≥ 4.5:1, chrome
 ≥ 3:1); charts carry text/table alternatives; targets ≥ 24px; reduced-motion
 honoured.
-</content>

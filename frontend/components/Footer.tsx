@@ -1,24 +1,37 @@
 "use client";
 
+import Link from "next/link";
 import { useAsync } from "@/lib/use-async";
 import { getMeta } from "@/lib/api";
+import { LogoMark } from "./Logo";
 
 export function Footer() {
   const { data, error } = useAsync(() => getMeta(), []);
 
   return (
-    <footer className="border-t border-astro-light-border dark:border-astro-border mt-16">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 text-xs text-muted-fg space-y-2">
-        <p>
-          Astrolabe is a read-only research instrument over public Polymarket
-          data. It does not place trades, offer financial advice, or prove
-          insider activity — it surfaces statistical anomalies for further
-          reading.
+    <footer className="mt-16 border-t border-arepo-border">
+      <div className="mx-auto max-w-shell space-y-3 px-5 py-8 text-xs text-arepo-muted sm:px-8 lg:px-12">
+        <div className="flex items-center gap-2 text-arepo-ink">
+          <LogoMark size={18} />
+          <span className="text-sm font-semibold tracking-[-0.01em]">Arepo</span>
+        </div>
+        <p className="max-w-reading leading-relaxed">
+          Arepo reads the hidden signal between the lines: a read-only research
+          instrument over public Polymarket data. It does not place trades, offer
+          financial advice, or prove insider activity. It surfaces statistically
+          unusual behaviour for further reading.{" "}
+          <Link href="/how-it-works" className="underline hover:text-arepo-ink">
+            How Arepo works
+          </Link>{" "}
+          ·{" "}
+          <Link href="/methodology" className="underline hover:text-arepo-ink">
+            Methodology
+          </Link>
         </p>
-        <p>
+        <p className="max-w-reading leading-relaxed">
           {data?.disclaimer ??
             (error
-              ? "Disclaimer unavailable — could not reach the Astrolabe API."
+              ? "Disclaimer unavailable — could not reach the Arepo API."
               : "Loading disclaimer…")}
         </p>
       </div>

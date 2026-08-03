@@ -12,7 +12,7 @@ export function DegradationBanner() {
   return (
     <div
       role="status"
-      className="border-b border-astro-brass/30 bg-astro-brass/10 px-4 py-2 text-center text-sm text-astro-brass"
+      className="border-b border-arepo-accentBorder bg-arepo-accentTint px-4 py-2 text-center text-sm text-arepo-accentActive"
     >
       {status.degradation_reason}
     </div>

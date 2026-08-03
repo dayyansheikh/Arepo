@@ -5,60 +5,53 @@ import { useStatus } from "@/lib/use-status";
 import { formatDurationSeconds } from "@/lib/format";
 
 const STATE_COLOR: Record<string, string> = {
-  ok: "bg-astro-positive",
-  healthy: "bg-astro-positive",
-  degraded: "bg-astro-brass",
-  down: "bg-astro-negative",
-  error: "bg-astro-negative",
+  ok: "bg-arepo-pos",
+  healthy: "bg-arepo-pos",
+  degraded: "bg-[#B8791F]",
+  down: "bg-arepo-neg",
+  error: "bg-arepo-neg",
 };
 
 function dotColor(state: string | undefined): string {
-  if (!state) return "bg-astro-muted";
-  return STATE_COLOR[state.toLowerCase()] ?? "bg-astro-muted";
+  if (!state) return "bg-arepo-muted";
+  return STATE_COLOR[state.toLowerCase()] ?? "bg-arepo-muted";
 }
 
-const MODE_LABEL: Record<string, string> = {
-  live: "LIVE",
-  cached: "CACHED",
-  replay: "REPLAY",
-};
-
+/**
+ * Compact REST / WebSocket / data-age readout. The data mode itself lives in the
+ * ModeSelector; this reports source health for the active mode.
+ */
 export function StatusChip() {
   const { mode } = useMode();
   const { status, error } = useStatus(mode);
 
   return (
     <div
-      className="flex items-center gap-3 rounded-instrument border border-astro-light-border dark:border-astro-border px-3 py-1.5 text-xs font-mono font-tabular"
-      title="Data source status"
+      className="hidden items-center gap-3 rounded-control border border-arepo-border px-3 py-1.5 text-xs text-arepo-muted font-tabular sm:flex"
+      title="Data source health for the current mode"
     >
-      <span
-        className={`inline-flex items-center rounded px-1.5 py-0.5 font-semibold tracking-wide ${
-          mode === "live"
-            ? "bg-astro-positive/15 text-astro-positive"
-            : "bg-astro-brass/15 text-astro-brass"
-        }`}
-      >
-        {MODE_LABEL[mode] ?? mode.toUpperCase()}
-      </span>
       {status ? (
         <>
-          <span className="flex items-center gap-1 text-muted-fg">
-            <span className={`h-1.5 w-1.5 rounded-full ${dotColor(status.rest.state)}`} aria-hidden="true" />
+          <span className="flex items-center gap-1">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${dotColor(status.rest.state)}`}
+              aria-hidden="true"
+            />
             REST
           </span>
-          <span className="flex items-center gap-1 text-muted-fg">
-            <span className={`h-1.5 w-1.5 rounded-full ${dotColor(status.websocket.state)}`} aria-hidden="true" />
+          <span className="flex items-center gap-1">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${dotColor(status.websocket.state)}`}
+              aria-hidden="true"
+            />
             WS
           </span>
-          <span className="text-muted-fg">
-            age {formatDurationSeconds(status.data_age_seconds)}
-          </span>
+          <span>age {formatDurationSeconds(status.data_age_seconds)}</span>
         </>
       ) : error ? (
-        <span className="text-astro-negative">status unavailable</span>
+        <span className="text-arepo-neg">status unavailable</span>
       ) : (
-        <span className="text-muted-fg">checking…</span>
+        <span>checking…</span>
       )}
     </div>
   );

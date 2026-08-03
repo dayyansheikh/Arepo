@@ -1,54 +1,70 @@
 import Link from "next/link";
 import type { MarketCard } from "@/lib/types";
-import { formatCurrencyCompact, formatPercent, formatSignedPercent } from "@/lib/format";
+import { formatPercent, formatSignedPercent, titleCase } from "@/lib/format";
 import { StrengthMeter } from "./StrengthMeter";
+import { Badge, StatusDot } from "./ui";
 
+/**
+ * Reduced-density market card. Per the brief it shows only question, category
+ * and status, the leading outcome and probability, recent movement, and signal
+ * strength. Secondary statistics (volume, spread, order-book detail) live on the
+ * market detail page.
+ */
 export function MarketCardView({ market }: { market: MarketCard }) {
+  const active = market.status?.toLowerCase() === "active";
   return (
     <Link
       href={`/markets/${encodeURIComponent(market.id)}`}
-      className="focus-ring panel flex flex-col gap-3 p-4 transition-colors hover:border-astro-brass/50"
+      className="focus-ring group flex flex-col gap-3.5 rounded-card border border-arepo-border bg-arepo-surface p-5 shadow-arepo-sm transition-all hover:border-arepo-accentBorder hover:shadow-arepo-hover"
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium leading-snug line-clamp-2">{market.question}</p>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-fg">
+      <div className="flex flex-wrap items-center gap-2">
         {market.category && (
-          <span className="rounded-full border border-astro-light-border dark:border-astro-border px-2 py-0.5">
-            {market.category}
-          </span>
+          <Badge tone="neutral">{market.category}</Badge>
         )}
-        <span className="uppercase tracking-wide">{market.status}</span>
+        <StatusDot
+          label={titleCase(market.status)}
+          tone={active ? "active" : "neutral"}
+        />
       </div>
 
-      <div className="mt-auto grid grid-cols-2 gap-x-3 gap-y-2 font-mono text-xs font-tabular">
+      <h3 className="min-h-[2.75rem] text-[15px] font-semibold leading-snug text-arepo-ink line-clamp-2">
+        {market.question}
+      </h3>
+
+      <div className="flex gap-6">
         <div>
-          <div className="text-muted-fg">Top outcome</div>
-          <div className="text-sm">
-            {market.top_outcome ?? "—"} {formatPercent(market.top_probability)}
+          <div className="mb-0.5 text-[11px] text-arepo-muted">Leading outcome</div>
+          <div className="font-tabular text-sm font-semibold text-arepo-ink">
+            {market.top_outcome ?? "—"}
+            {market.top_probability !== null && (
+              <span className="text-arepo-muted">
+                {" · "}
+                {formatPercent(market.top_probability)}
+              </span>
+            )}
           </div>
         </div>
         <div>
-          <div className="text-muted-fg">Volume</div>
-          <div className="text-sm">{formatCurrencyCompact(market.volume)}</div>
-        </div>
-        <div>
-          <div className="text-muted-fg">Spread</div>
-          <div className="text-sm">{formatPercent(market.spread, 2)}</div>
-        </div>
-        <div>
-          <div className="text-muted-fg">Movement</div>
-          <div className="text-sm">{formatSignedPercent(market.abs_movement, 1)}</div>
+          <div className="mb-0.5 text-[11px] text-arepo-muted">Movement</div>
+          <div className="font-tabular text-sm font-semibold text-arepo-ink">
+            {formatSignedPercent(market.abs_movement, 1)}
+          </div>
         </div>
       </div>
 
       {market.signal_strength !== null && (
-        <div className="border-t border-astro-light-border dark:border-astro-border pt-2">
-          <div className="text-xs text-muted-fg mb-1">Signal strength</div>
+        <div className="border-t border-arepo-border pt-3">
+          <div className="mb-1.5 text-[11px] text-arepo-muted">Signal strength</div>
           <StrengthMeter strength={market.signal_strength} />
         </div>
       )}
+
+      <span
+        aria-hidden="true"
+        className="text-[13px] font-medium text-arepo-muted transition-colors group-hover:text-arepo-accent"
+      >
+        View details &rarr;
+      </span>
     </Link>
   );
 }

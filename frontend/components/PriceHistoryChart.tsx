@@ -1,19 +1,18 @@
 "use client";
 
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { useId } from "react";
 import type { PricePoint } from "@/lib/types";
 import { formatPercent } from "@/lib/format";
-
-const SERIES_COLORS = ["#E7B24C", "#46C7A8", "#F27289", "#7AA2F7", "#B48EAD", "#9ECE6A"];
+import { seriesColors, theme } from "@/lib/theme";
 
 export interface ChartSeries {
   /** Key into `priceHistory` — the outcome's token_id. */
@@ -33,14 +32,22 @@ interface ChartRow {
   [seriesKey: string]: number;
 }
 
+function formatDay(v: number): string {
+  return new Date(v).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+/**
+ * Price-history area chart. Primary outcome renders in Arepo red, comparison
+ * outcomes in neutral slate then muted supporting hues; gridlines are faint and
+ * axes readable. A visually-hidden table gives a non-visual alternative.
+ */
 export function PriceHistoryChart({ priceHistory, series }: Props) {
+  const gradientBase = useId().replace(/[:]/g, "");
+
   const timestamps = new Set<string>();
   for (const s of series) {
-    for (const point of priceHistory[s.key] ?? []) {
-      timestamps.add(point.t);
-    }
+    for (const point of priceHistory[s.key] ?? []) timestamps.add(point.t);
   }
-
   const sortedTimestamps = Array.from(timestamps).sort(
     (a, b) => new Date(a).getTime() - new Date(b).getTime()
   );
@@ -56,63 +63,122 @@ export function PriceHistoryChart({ priceHistory, series }: Props) {
 
   if (rows.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-muted-fg">
+      <div className="flex h-64 items-center justify-center text-sm text-arepo-muted">
         No price history available for the selected outcome(s).
       </div>
     );
   }
 
+  const colorFor = (i: number) => seriesColors[i % seriesColors.length];
+
   return (
-    <div className="h-72 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
-          <XAxis
-            dataKey="ts"
-            type="number"
-            domain={["dataMin", "dataMax"]}
-            tickFormatter={(v: number) =>
-              new Date(v).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-            }
-            stroke="currentColor"
-            opacity={0.6}
-            fontSize={11}
-          />
-          <YAxis
-            domain={[0, 1]}
-            tickFormatter={(v: number) => formatPercent(v, 0)}
-            stroke="currentColor"
-            opacity={0.6}
-            fontSize={11}
-            width={44}
-          />
-          <Tooltip
-            formatter={(value: number) => formatPercent(value, 1)}
-            labelFormatter={(v: number) => new Date(v).toLocaleString()}
-            contentStyle={{
-              background: "#151A24",
-              border: "1px solid #232C3B",
-              borderRadius: 6,
-              fontSize: 12,
-              fontFamily: "var(--font-mono)",
-            }}
-          />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-          {series.map((s, i) => (
-            <Line
-              key={s.key}
-              type="monotone"
-              dataKey={s.key}
-              name={s.label}
-              stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
-              strokeWidth={1.75}
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
+    <figure className="m-0">
+      {/* Accessible legend, also the visual legend. */}
+      <figcaption className="mb-3 flex flex-wrap items-center gap-4">
+        {series.map((s, i) => (
+          <span key={s.key} className="inline-flex items-center gap-1.5 text-[13px] text-arepo-ink2">
+            <span
+              aria-hidden="true"
+              className="inline-block h-2.5 w-2.5 rounded-full"
+              style={{ background: colorFor(i) }}
             />
+            {s.label}
+          </span>
+        ))}
+      </figcaption>
+
+      <div className="h-72 w-full" role="img" aria-label={`Price history over time for ${series.map((s) => s.label).join(", ")}`}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={rows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <defs>
+              {series.map((s, i) => (
+                <linearGradient key={s.key} id={`${gradientBase}-${i}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={colorFor(i)} stopOpacity={0.16} />
+                  <stop offset="100%" stopColor={colorFor(i)} stopOpacity={0} />
+                </linearGradient>
+              ))}
+            </defs>
+            <CartesianGrid stroke={theme.grid} vertical={false} />
+            <XAxis
+              dataKey="ts"
+              type="number"
+              domain={["dataMin", "dataMax"]}
+              tickFormatter={formatDay}
+              stroke={theme.muted}
+              tick={{ fontSize: 11, fill: theme.muted }}
+              tickLine={false}
+              axisLine={{ stroke: theme.border }}
+              minTickGap={40}
+            />
+            <YAxis
+              domain={[0, 1]}
+              tickFormatter={(v: number) => formatPercent(v, 0)}
+              stroke={theme.muted}
+              tick={{ fontSize: 11, fill: theme.muted }}
+              tickLine={false}
+              axisLine={false}
+              width={44}
+            />
+            <Tooltip
+              formatter={(value: number, name: string) => [formatPercent(value, 1), name]}
+              labelFormatter={(v: number) =>
+                new Date(v).toLocaleString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              }
+              contentStyle={{
+                background: theme.surface,
+                border: `1px solid ${theme.border}`,
+                borderRadius: 10,
+                fontSize: 12,
+                boxShadow: "0 6px 20px rgba(16,16,16,0.10)",
+                color: theme.ink,
+              }}
+              itemStyle={{ fontVariantNumeric: "tabular-nums" }}
+            />
+            {series.map((s, i) => (
+              <Area
+                key={s.key}
+                type="monotone"
+                dataKey={s.key}
+                name={s.label}
+                stroke={colorFor(i)}
+                strokeWidth={2.25}
+                fill={`url(#${gradientBase}-${i})`}
+                dot={false}
+                connectNulls
+                isAnimationActive={false}
+              />
+            ))}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Non-visual alternative. */}
+      <table className="sr-only">
+        <caption>Price history as data</caption>
+        <thead>
+          <tr>
+            <th>Time</th>
+            {series.map((s) => (
+              <th key={s.key}>{s.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.ts}>
+              <td>{new Date(r.ts).toLocaleString("en-GB")}</td>
+              {series.map((s) => (
+                <td key={s.key}>{r[s.key] !== undefined ? formatPercent(r[s.key], 1) : "—"}</td>
+              ))}
+            </tr>
           ))}
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+        </tbody>
+      </table>
+    </figure>
   );
 }

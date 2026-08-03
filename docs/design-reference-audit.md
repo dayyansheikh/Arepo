@@ -183,5 +183,4 @@ modernist/industry readmes.
    reduced-motion support.
 8. **Maths:** KaTeX rendering; plain-English first, equations behind "Show the
    maths" or in Methodology; every cross-referenced term anchored in Methodology.
-</content>
 </invoke>

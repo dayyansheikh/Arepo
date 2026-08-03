@@ -1,9 +1,10 @@
 import { formatCurrencyCompact, formatNumber } from "@/lib/format";
 
 /**
- * Small depth/imbalance visualization: a horizontal bar split at center,
- * with the bid side (positive imbalance) filled teal and the ask side
- * (negative imbalance) filled coral. book_imbalance is expected in [-1, 1].
+ * Small depth/imbalance visualization: a horizontal bar split at the midpoint.
+ * A positive imbalance fills the bid side, a negative one the ask side. The two
+ * sides use distinct neutral hues and are always labelled, so colour is never
+ * the only cue. `imbalance` is expected in [-1, 1].
  */
 export function OrderBookViz({
   imbalance,
@@ -18,22 +19,22 @@ export function OrderBookViz({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs text-muted-fg font-mono font-tabular">
+      <div className="flex items-center justify-between text-[11px] text-arepo-muted">
         <span>Ask side</span>
         <span>Bid side</span>
       </div>
-      <div className="relative h-3 w-full overflow-hidden rounded-full bg-astro-light-border/60 dark:bg-astro-border/60">
-        <div className="absolute left-1/2 top-0 h-full w-px bg-astro-light-border dark:bg-astro-border" />
+      <div className="relative h-3 w-full overflow-hidden rounded-full bg-arepo-surface2">
+        <div className="absolute left-1/2 top-0 h-full w-px bg-arepo-borderStrong" />
         <div
-          className="absolute top-0 h-full bg-astro-negative"
+          className="absolute top-0 h-full bg-arepo-series2"
           style={{ right: "50%", width: `${askWidth}%` }}
         />
         <div
-          className="absolute top-0 h-full bg-astro-positive"
+          className="absolute top-0 h-full bg-arepo-pos"
           style={{ left: "50%", width: `${bidWidth}%` }}
         />
       </div>
-      <div className="flex items-center justify-between text-xs font-mono font-tabular text-muted-fg">
+      <div className="flex items-center justify-between text-[11px] font-tabular text-arepo-muted">
         <span>imbalance {imbalance === null ? "—" : formatNumber(imbalance, 2)}</span>
         <span>near-mid depth {formatCurrencyCompact(depth)}</span>
       </div>
