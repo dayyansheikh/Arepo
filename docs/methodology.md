@@ -685,3 +685,38 @@ typical day most cards score modestly and are driven by the order book and a few
 strong multi-family opportunities are genuinely rare. Historical order-book snapshots are not
 retained, so spread/depth-change components are usually absent. Wallet-history coverage is
 partial. See `docs/limitations.md`.
+
+## 9c. Directional hypothesis and the strength / confidence distinction
+
+**Confidence is a pure data-quality measure, independent of strength.** Signal *strength* is how
+large and multi-faceted the anomaly is; *confidence* is how much clean evidence went into the
+reading (history length, spread, order-book depth). These are deliberately separate numbers:
+`confidence = quality.confidence`, and it is **not** multiplied by strength. A large anomaly on
+thin data is strong-but-low-confidence; a small one on rich data is weak-but-high-confidence.
+(An earlier version folded strength into confidence, which both contradicted this description and
+made Research Priority quadratic in strength for single-family cards. That coupling has been
+removed; `test_confidence_is_data_quality_not_strength` guards it.)
+
+**Directional hypothesis (`opportunity/hypothesis.py`).** Each surface leads with one cautious
+sentence generated only from computed evidence. A directional view is asserted only when a
+direction is resolved AND either at least one independent evidence family fired or the signal is
+at least moderately strong (>= 0.40). Otherwise Arepo states plainly that there is not enough
+independent evidence to favour a direction. The sentence is phrased in terms of upward or
+downward *repricing pressure* on the named outcome; it never claims a probability of profit or
+certainty. `test_hypothesis.py` covers the sufficient/insufficient cases and the no-profit copy.
+
+**Evidence families.** Five independent families are produced: price, trade flow, order book,
+wallet concentration and trade timing. A previously declared sixth "cross-market" family was
+never implemented and has been removed so the family count matches what the code computes. High
+priority requires at least two distinct families, so correlated indicators within one family
+cannot masquerade as independent confirmation.
+
+## 9d. Alert eligibility (per user)
+
+An alert is only ever sent when a user-independent quality floor holds (enough families,
+adequate strength, acceptable data quality and liquidity) AND the individual user's opted-in
+preferences match (minimum Research Priority, minimum confidence, preferred categories, and any
+short-term-only / maximum-time-to-close preference), the user's email is verified, and alerts
+are neither paused nor unsubscribed. A user's preferences can tighten but never lower the quality
+floor. Per-user, per-market deduplication and a cooldown prevent repeat alerts. See
+`docs/alert-configuration.md` and `test_user_alerts.py`.

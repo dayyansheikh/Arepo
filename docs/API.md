@@ -649,3 +649,15 @@ slugs), expanding common company/ticker aliases (e.g. Microsoft <-> MSFT). Query
 `active_only` (default true), `limit`, `offset`. Response `MarketSearchResponse` includes
 `markets[]`, `total`, `expanded_terms[]`, `provenance` and a `note`. An empty result is honest;
 Arepo never fabricates a market or shows a stock quote.
+
+### Accounts and alerts
+See `docs/authentication.md` for the full account/auth endpoint table (`/api/auth/*`,
+`/api/users/me`, `/api/account/preferences|saved|alerts`, `DELETE /api/account`). Auth uses a
+secure httpOnly cookie; personalised endpoints require an authenticated, verified user and are
+scoped to that user only. The public read-only endpoints above need no account.
+
+### Board caching
+`GET /api/opportunity/board` is served through a stale-while-revalidate cache: it returns
+`Cache-Control: public, max-age=60, stale-while-revalidate=300` and an `X-Board-Cache`
+(`hit` | `stale` | `miss`) header. A stale board is real data a couple of minutes old, labelled
+by its own `generated_at`, never fabricated. See `docs/performance.md`.

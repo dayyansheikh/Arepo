@@ -34,15 +34,21 @@ profitability or validated predictive alpha**. See
 
 ## Surfaces
 
-Arepo's frontend (Next.js) has six surfaces, all driven by the same FastAPI
+Arepo's frontend (Next.js) has these surfaces, all driven by the same FastAPI
 backend, with a data-mode control (live / cached / replay) and source-health
 readout in the header on every page:
 
-- **Overview** (`/`): a calm orientation, with top movers, most active and highest
-  volume markets, widest spreads, and the strongest recent signals.
-- **Markets** (`/markets`): guided dropdown discovery (category, status, signal
-  strength, probability, time to close, sort) with free-text search as a secondary
-  option.
+- **Opportunities** (`/`): the default. A selective board of markets that deserve a
+  closer look, each card leading with a plain-English hypothesis (what the evidence
+  favours, or an honest "not enough evidence"), a direction cue, and a Research
+  Priority chip with a High/Medium/Low interpretation; evidence tags explain
+  themselves in an accessible popover. A time-to-close filter (24h / 3d / 7d / all)
+  focuses on short-term opportunities.
+- **Explore** (`/markets`): the complete searchable market universe, with guided
+  dropdown discovery and full-universe keyword search.
+- **Account** (`/account`, plus `/signin` and `/signup`): a free account unlocks
+  email alerts, saved markets, preferences and alert history. The rest of Arepo works
+  without an account. See `docs/authentication.md`.
 - **Market detail** (`/markets/[id]`): question, price-history chart, and per
   outcome probabilities with a default view and a "Show advanced market data"
   panel for the specialist metrics.
@@ -264,3 +270,28 @@ can take a moment). See `docs/API.md`.
 - **Research email alerts:** opt-in, provider-neutral, disabled by default (console sink);
   eligibility, honest non-advisory wording, dedup/cooldown, history, retry, test mode. See
   `docs/alert-configuration.md`. Recipient env var prepared for dayyansheikh.work@gmail.com.
+
+## Product simplification, accounts & decision-support (latest pass)
+
+Branch `arepo-product-simplification`. Guided by two independent reviews (a capable
+beginner and a prediction-market quant; see `DECISIONS.md` P0-P3):
+
+- **Lead with the conclusion.** Every Opportunity card and the market page lead with a
+  computed, cautious statistical hypothesis and an honest insufficient-evidence state,
+  with scores demoted to labelled, interpreted chips. Evidence tags explain themselves
+  in place (definition, why it matters, family, methodology link).
+- **Statistical integrity.** Confidence is now a pure data-quality measure, decoupled
+  from strength (removing a hidden strength-squared term in Research Priority); the
+  freshness penalty is wired through; the unimplemented "cross-market" evidence family
+  was removed. Signal Lab shows one signal per market (no duplicate Yes/No).
+- **Free accounts** (native `fastapi-users`, not Supabase; see `docs/authentication.md`):
+  register, verified-email login, logout, password reset, preferences, saved markets,
+  alert history and account deletion. Runs fully offline (console email sink prints the
+  verification link). Per-user, opted-in, verified-only alerts.
+- **Performance.** The Opportunity Board is served through a stale-while-revalidate cache
+  (warm hit ~2 ms vs a ~6 s cold build); see `docs/performance.md`.
+- **Replay** keeps prospective, reconstructed (price-only, from official CLOB
+  price-history) and synthetic results strictly separate, with no look-ahead.
+
+Docs: `docs/authentication.md`, `docs/accounts-privacy.md`, `docs/performance.md`, and
+updated `docs/methodology.md` / `docs/API.md` / `docs/limitations.md`.

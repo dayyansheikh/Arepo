@@ -1,3 +1,44 @@
+# FINAL_STATUS
+
+## Product Simplification, Accounts & Decision-Support pass (branch `arepo-product-simplification`)
+
+_Latest pass. Verified in this environment; backend 268 tests pass and ruff clean; frontend
+tsc/lint/build clean (15/15 routes)._
+
+Guided by two independent Sonnet reviews (a capable beginner and a prediction-market quant),
+synthesised in `DECISIONS.md` P0-P3. What changed:
+
+- **Decision-support redesign.** Every Opportunity card and the board lead with a computed,
+  cautious statistical hypothesis (`opportunity/hypothesis.py`) with an honest
+  insufficient-evidence state; Research Priority is demoted to a labelled High/Medium/Low chip;
+  evidence tags explain themselves in an accessible popover (definition, why it matters, family,
+  methodology link). A time-to-close filter (24h/3d/7d/all) focuses on short-term opportunities.
+  Signal Lab now shows one signal per market (no duplicate Yes/No).
+- **Statistical integrity (from the quant review).** Confidence is decoupled from strength
+  (pure data-quality), removing a hidden strength-squared term in Research Priority; the
+  freshness penalty is wired through; the declared-but-unimplemented cross-market evidence
+  family was removed.
+- **Free accounts** (native `fastapi-users`, not Supabase; `DECISIONS.md` P3 and
+  `docs/authentication.md`): register, verified-email login, logout, password reset,
+  preferences, saved markets, alert history, account deletion. argon2 hashing, JWT httpOnly
+  cookie, per-IP rate limiting, per-user data isolation. Runs fully offline (console email sink
+  prints the verification link). Verified end-to-end by a live lifecycle smoke test.
+- **Per-user alerts.** The alert engine now targets verified, opted-in users, honouring each
+  user's thresholds, categories, short-term preference, pause and unsubscribe, on top of a
+  user-independent quality floor. Same honest, non-personalised copy with the research
+  disclaimer for everyone.
+- **Performance.** The Opportunity Board is served through a stale-while-revalidate cache
+  (warm hit ~2 ms vs a ~6.1 s / 202-request cold build); `docs/performance.md`.
+- **Replay** keeps prospective, reconstructed (price-only, from the official CLOB
+  price-history) and synthetic results strictly separate, with no look-ahead (confirmed by the
+  quant review and 22 passing historical/provenance tests).
+
+**External setup still required:** a strong `AUTH_SECRET` and (for real email delivery) the
+user's own SMTP/provider credentials; nothing is committed. Everything runs and is testable
+locally without them.
+
+---
+
 # FINAL_STATUS: Arepo Master Final Refinement
 
 _Truthful final status of the Master Final Refinement (branch `arepo-master-final`, from

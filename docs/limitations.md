@@ -233,3 +233,20 @@ interpretation, never buy/sell/stake instructions or a profit promise. Trade-flo
 need Live mode and enough recent trades; below the minimum sample they do not fire. Historical
 order books are not retained, so spread/depth-change components are usually absent. Most markets
 are calm most of the time, so strong multi-family opportunities are rare, which is truthful.
+
+**Accounts and alerts.** Accounts are free and optional; the public site works without one.
+Email verification and alerts require an external email provider to actually reach an inbox;
+until one is configured Arepo uses a console sink that logs the link/message but sends nothing.
+The built-in auth rate limiter is process-local; a multi-instance deployment needs a shared
+limiter. Alert copy is identical for every recipient and is never personalised financial advice.
+
+**Board freshness.** The Opportunity Board is served from a stale-while-revalidate cache, so a
+viewer may see a board up to a few minutes old. This is real data, labelled by its `generated_at`
+and the `X-Board-Cache` header; it is never fabricated or forward-looking.
+
+**Historical reconstruction.** Reconstructed Replay weeks are PRICE-ONLY: historical order books,
+wallet states and trade-flow are not retained, so those evidence families cannot be reconstructed
+and confidence is lowered accordingly. Reconstructed results are labelled and never mixed with
+prospective or synthetic results. The scan universe is chosen by recent trading activity, which
+carries a mild, disclosed survivorship effect (it does not affect entry-price selection, which
+uses the price at the historical cut-off).
