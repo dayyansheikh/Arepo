@@ -58,9 +58,12 @@ export function TagChip({ tag }: { tag: OpportunityTag }) {
       </button>
 
       {visible && (
+        // Not role="tooltip": the panel contains a focusable link, and ARIA tooltips must be
+        // non-interactive. It is an expandable region described by the button's aria-controls.
         <span
           id={panelId}
-          role="tooltip"
+          role="group"
+          aria-label={`About the ${tag.label} tag`}
           className="absolute left-0 top-full z-50 mt-2 block w-72 rounded-[10px] border border-arepo-border bg-arepo-surface p-3 text-left shadow-[0_6px_20px_rgba(16,16,16,0.10)]"
         >
           <span className="block text-sm font-semibold text-arepo-ink">{tag.label}</span>

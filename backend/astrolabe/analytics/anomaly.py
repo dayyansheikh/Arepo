@@ -156,9 +156,11 @@ def build_anomaly_signal(
 ) -> Signal:
     """Assemble a fully-explained composite-anomaly ``Signal`` from raw inputs + quality.
 
-    ``strength`` is the raw composite score; ``confidence`` folds in the data-quality penalty
-    (strength * quality.confidence), so a strong-but-untrustworthy reading ranks below a
-    strong-and-trustworthy one.
+    ``strength`` is the raw composite score (how large/multi-faceted the anomaly is).
+    ``confidence`` is a SEPARATE, pure data-quality measure (``quality.confidence``) and is
+    deliberately NOT multiplied by strength: the two sit side by side so a strong reading on thin
+    data is strong-but-low-confidence, and a weak reading on rich data is weak-but-high-confidence.
+    See ``docs/methodology.md`` §9c and ``test_confidence_is_data_quality_not_strength``.
     """
     score, components = composite_anomaly_score(raw, weights=weights, caps=caps)
     direction = None
