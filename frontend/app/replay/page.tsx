@@ -505,13 +505,22 @@ const HISTORICAL_PERIODS = [
   { days: 30, label: "30 days ago" },
 ];
 
+const CLOSING_LENSES = [
+  { id: "all", label: "All horizons", hours: Infinity },
+  { id: "7d", label: "Closed within 7 days", hours: 24 * 7 },
+  { id: "3d", label: "Closed within 3 days", hours: 24 * 3 },
+  { id: "24h", label: "Closed within 24 hours", hours: 24 },
+] as const;
+
 function HistoricalView() {
   const [cutoffStr, setCutoff] = useUrlState("cutoff", "7");
+  const [lens, setLens] = useUrlState("closing", "all");
   const days = Number(cutoffStr) || 7;
   const { data, loading, error } = useAsync<HistoricalScreen>(
     () => getHistoricalScreen(days),
     [days]
   );
+  const maxHours = CLOSING_LENSES.find((l) => l.id === lens)?.hours ?? Infinity;
 
   return (
     <div className="space-y-6">
@@ -542,6 +551,22 @@ function HistoricalView() {
             ))}
           </select>
         </label>
+        {/* Closing-soon lens (spec §16): filter the reconstructed rows by how soon they closed
+            after the cut-off. Near-close markets are not implied to be better. */}
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-arepo-ink2">Closing lens</span>
+          <select
+            className="select-arepo w-56"
+            value={lens}
+            onChange={(e) => setLens(e.target.value)}
+          >
+            {CLOSING_LENSES.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </label>
         {loading && (
           <p className="text-[13px] text-arepo-muted">
             Reconstructing from real price history. This can take a moment.
@@ -551,7 +576,7 @@ function HistoricalView() {
 
       {loading && <ListSkeleton rows={6} />}
       {!loading && error && <ErrorState message={error} />}
-      {!loading && data && <HistoricalResult screen={data} />}
+      {!loading && data && <HistoricalResult screen={data} maxHours={maxHours} />}
 
       <ReplayDataStatusSection />
     </div>
@@ -653,7 +678,21 @@ function BaselineTable({ comparison }: { comparison: BaselineComparison }) {
   );
 }
 
-function HistoricalResult({ screen }: { screen: HistoricalScreen }) {
+function HistoricalResult({
+  screen,
+  maxHours = Infinity,
+}: {
+  screen: HistoricalScreen;
+  maxHours?: number;
+}) {
+  // The closing lens filters which reconstructed rows are shown by their time-to-close at the
+  // cut-off; the funnel counts above still describe the full reconstruction (spec §16, §17).
+  const shownEntries =
+    maxHours === Infinity
+      ? screen.entries
+      : screen.entries.filter(
+          (e) => e.time_remaining_hours != null && e.time_remaining_hours <= maxHours
+        );
   if (screen.selected === 0) {
     return (
       <EmptyState
@@ -718,12 +757,18 @@ function HistoricalResult({ screen }: { screen: HistoricalScreen }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-arepo-border">
-                {screen.entries.map((e) => (
+                {shownEntries.map((e) => (
                   <HistoricalRow key={`${e.market_id}-${e.token_id}`} entry={e} />
                 ))}
               </tbody>
             </table>
           </div>
+          {shownEntries.length === 0 && (
+            <p className="px-4 py-3 text-[13px] text-arepo-muted">
+              None of the {screen.selected} reconstructed opportunities closed within this window.
+              Try a longer closing lens.
+            </p>
+          )}
         </div>
       </section>
 
@@ -767,12 +812,36 @@ function HistoricalRow({ entry }: { entry: HistoricalEntry }) {
     <tr>
       <td className="px-4 py-2.5">
         <Link
-          href={`/markets/${encodeURIComponent(entry.market_id)}`}
+          href={`/markets/${encodeURIComponent(entry.market_id)}?mode=live`}
           className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
         >
           {entry.market_question}
         </Link>
         <div className="text-[12px] text-arepo-muted">{entry.outcome_name}</div>
+        {/* Everything below is AS IT WAS at the cut-off (spec §14): Research Priority and
+            confidence at the time, and the scheduled close known then. */}
+        <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-arepo-muted">
+          <span>RP {entry.research_priority} at cut-off</span>
+          <span>·</span>
+          <span>confidence {formatPercent(entry.confidence, 0)}</span>
+          {entry.close_at && (
+            <>
+              <span>·</span>
+              <span>closes {new Date(entry.close_at).toLocaleDateString("en-GB")}</span>
+            </>
+          )}
+          {entry.time_remaining_hours != null && (
+            <>
+              <span>·</span>
+              <span>
+                {entry.time_remaining_hours < 48
+                  ? `${Math.round(entry.time_remaining_hours)}h`
+                  : `${Math.round(entry.time_remaining_hours / 24)}d`}{" "}
+                left at cut-off
+              </span>
+            </>
+          )}
+        </div>
       </td>
       <td className="px-4 py-2.5 font-tabular">
         {entry.direction === "up" && <span className="text-arepo-pos">Up</span>}

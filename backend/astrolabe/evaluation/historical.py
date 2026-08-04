@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 
 from ..domain.models import PricePoint
+from ..opportunity.scoring import score_opportunity
 from ..service import enrich
 from .constants import PROVENANCE_RECONSTRUCTED
 from .replay_stats import DirectionalResult, compare_baselines, sample_verdict
@@ -44,6 +45,7 @@ class Candidate:
     market_question: str
     outcome_name: str
     gamma_price: float | None = None
+    end_date: datetime | None = None   # the market's scheduled close (set at creation; causal)
 
 
 # history_of(token_id) -> full real, timestamped price history (any order).
@@ -66,8 +68,11 @@ class HistoricalEntry(BaseModel):
     momentum_direction: str | None = None   # sign of the pre-cut-off trailing move (baseline)
     strength: float
     confidence: float
+    research_priority: int = 0               # Research Priority AT the cut-off (price-only) 0-100
     data_quality: str
     entry_price: float
+    close_at: str | None = None             # scheduled close date known at the cut-off
+    time_remaining_hours: float | None = None  # hours from the cut-off to the scheduled close
     lookback_points: int
     components: list[dict]
     forward: list[HForward]
@@ -159,6 +164,23 @@ async def run_historical_screen(
         if sig.strength < min_strength:
             continue
 
+        # Research Priority AT the cut-off, from the reconstructed (price-only) signal: no trades or
+        # order book existed historically, so there are no flow indicators, no liquidity and no
+        # spread - the score is honestly price-only, exactly as it would have been at the time.
+        scored = score_opportunity(
+            sig, [], liquidity=None, relative_spread=None, data_age_seconds=None, now=as_of
+        )
+        rp_at_cutoff = int(round(scored.research_priority * 100))
+
+        # Close date and time-to-close known AT the cut-off (the scheduled close is set at market
+        # creation, so it was known then; time remaining is measured from the cut-off, not now).
+        close_at = cand.end_date
+        time_remaining_h = (
+            (close_at - as_of).total_seconds() / 3600.0
+            if close_at is not None and close_at > as_of
+            else None
+        )
+
         # Momentum baseline direction: sign of the SHORT trailing move (last few obs). Price-only
         # baseline: sign of the LONGER lookback trend (entry vs the start of the lookback). Both use
         # only prices at or before the cut-off (causal).
@@ -187,6 +209,9 @@ async def run_historical_screen(
                 "cand": cand,
                 "sig": sig,
                 "entry": entry,
+                "rp_at_cutoff": rp_at_cutoff,
+                "close_at": close_at,
+                "time_remaining_h": time_remaining_h,
                 "momentum_dir": momentum_dir,
                 "price_only_dir": price_only_dir,
                 "move24": move24,
@@ -227,10 +252,15 @@ async def run_historical_screen(
             momentum_direction=r["momentum_dir"],
             strength=r["sig"].strength,
             confidence=r["sig"].confidence,
+            research_priority=r["rp_at_cutoff"],
             data_quality=r["sig"].data_quality.value
             if hasattr(r["sig"].data_quality, "value")
             else str(r["sig"].data_quality),
             entry_price=r["entry"],
+            close_at=r["close_at"].isoformat() if r["close_at"] is not None else None,
+            time_remaining_hours=(
+                round(r["time_remaining_h"], 1) if r["time_remaining_h"] is not None else None
+            ),
             lookback_points=r["lookback"],
             components=r["components"],
             forward=r["forwards"],
@@ -339,6 +369,7 @@ async def run_live_historical(
                     market_question=m.question,
                     outcome_name=o.name,
                     gamma_price=o.price,
+                    end_date=m.end_date,
                 )
             )
             tok_market[o.token_id] = m.id

@@ -348,8 +348,11 @@ export interface HistoricalEntry {
   momentum_direction: "up" | "down" | null;
   strength: number;
   confidence: number;
+  research_priority: number;
   data_quality: string;
   entry_price: number;
+  close_at: string | null;
+  time_remaining_hours: number | null;
   lookback_points: number;
   components: Array<{ name: string; normalized_value: number | null; weight: number | null }>;
   forward: HistoricalForward[];
