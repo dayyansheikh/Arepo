@@ -252,7 +252,13 @@ class Signal(DomainModel):
 
     components: list[SignalComponent] = Field(default_factory=list)
     data_quality: DataQuality = DataQuality.GOOD
-    confidence: float = 0.0                       # [0,1], reduced by data-quality penalties
+    confidence: float = 0.0                       # [0,1] DATA-QUALITY term only (freshness/coverage)
+    # Estimated reliability shown to users (spec §6, §17): data quality x evidence corroboration x
+    # component completeness. This is what every user-facing surface displays as "Confidence"; the
+    # bare `confidence` above is only the data-quality input to it. Kept consistent across Signal
+    # Lab, Market Detail and the Opportunity Board so the same signal never shows two confidences.
+    reliability_confidence: float | None = None   # [0,1] displayed confidence; None until computed
+    n_families: int | None = None                 # independent evidence families behind reliability
 
     window: str | None = None                  # e.g. "20 obs" / "1h"
     computed_at: datetime = Field(default_factory=utcnow)

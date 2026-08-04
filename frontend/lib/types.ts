@@ -97,7 +97,12 @@ export interface Signal {
   limitations: string;
   components: SignalComponent[];
   data_quality: "good" | "limited" | "poor";
-  confidence: number;
+  confidence: number; // raw DATA-QUALITY term; do not display as "Confidence" (spec §6)
+  // Displayed reliability confidence (data quality x corroboration x completeness) and the number
+  // of independent evidence families behind it. Computed server-side so Signal Lab, Market Detail
+  // and the Opportunity Board show the SAME confidence and the SAME directional gate (spec §6, §17).
+  reliability_confidence?: number | null;
+  n_families?: number | null;
   window: string | null;
   computed_at: string;
 }

@@ -118,7 +118,10 @@ export function SignalItem({ signal }: { signal: Signal }) {
             <MetricHelp metric="signal-strength" showTerm={false} />
           </span>
           <span className="flex items-center gap-1 text-xs text-arepo-muted">
-            Confidence {formatPercent(signal.confidence, 0)}
+            {/* Reliability confidence (data quality x corroboration x completeness), the SAME number
+                the Opportunity Board and Market Detail show for this signal, never the raw 100%
+                data-quality term (spec §6, §17). */}
+            Confidence {formatPercent(signal.reliability_confidence ?? signal.confidence, 0)}
             <MetricHelp metric="confidence" showTerm={false} />
           </span>
         </div>

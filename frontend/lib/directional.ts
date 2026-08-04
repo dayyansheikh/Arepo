@@ -30,7 +30,13 @@ export interface DirectionalVerdict {
   reason: string;
 }
 
-/** Does this signal qualify for a directional model view, and why / why not? */
+/** Does this signal qualify for a directional model view, and why / why not?
+ *
+ * This mirrors the backend `has_directional_view` (opportunity/hypothesis.py) EXACTLY: a resolved
+ * direction AND either at least one independent evidence family firing OR at least moderate
+ * composite strength. It uses the server-computed `n_families` so Signal Lab, Market Detail and
+ * the Opportunity Board apply one identical gate (spec §4, §13, §17). When `n_families` is absent
+ * (older payloads) it falls back to detecting the price family locally so nothing regresses. */
 export function directionalVerdict(sig: Signal): DirectionalVerdict {
   const hasDirection = sig.direction === "up" || sig.direction === "down";
   if (!hasDirection) {
@@ -39,8 +45,15 @@ export function directionalVerdict(sig: Signal): DirectionalVerdict {
   if (sig.strength >= STRENGTH_MODERATE) {
     return { qualifies: true, reason: `${strengthWord(sig.strength)} composite strength` };
   }
-  if (priceFamilyFires(sig)) {
-    return { qualifies: true, reason: "a price-behaviour feature is materially present" };
+  const families = sig.n_families ?? (priceFamilyFires(sig) ? 1 : 0);
+  if (families >= 1) {
+    return {
+      qualifies: true,
+      reason:
+        families === 1
+          ? "one independent evidence family is present"
+          : `${families} independent evidence families agree`,
+    };
   }
   return {
     qualifies: false,

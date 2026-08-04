@@ -129,6 +129,14 @@ def compute_token_analytics(
         token_id=token_id, market_id=market_id, raw=raw, quality=quality,
         window_desc=f"{len(prices)} obs",
     )
+    # Attach the displayed reliability confidence + evidence-family count from the signal alone
+    # (price + order-book families), so Signal Lab and Market Detail show the SAME confidence and
+    # never the raw 100% data-quality term (spec §6, §17). The Opportunity Board recomputes with
+    # live trade-flow families on top, which is the one documented reason it can read higher.
+    from ..opportunity.scoring import signal_reliability
+
+    rel, n_fam = signal_reliability(signal)
+    signal = signal.model_copy(update={"reliability_confidence": rel, "n_families": n_fam})
     return TokenAnalytics(
         token_id=token_id,
         implied=implied,

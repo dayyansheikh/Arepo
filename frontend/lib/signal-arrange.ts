@@ -29,10 +29,16 @@ export function arrangeSignals(
       out.sort((a, b) => a.strength - b.strength);
       break;
     case "confidence-desc":
-      out.sort((a, b) => b.confidence - a.confidence);
+      out.sort(
+        (a, b) =>
+          (b.reliability_confidence ?? b.confidence) - (a.reliability_confidence ?? a.confidence),
+      );
       break;
     case "confidence-asc":
-      out.sort((a, b) => a.confidence - b.confidence);
+      out.sort(
+        (a, b) =>
+          (a.reliability_confidence ?? a.confidence) - (b.reliability_confidence ?? b.confidence),
+      );
       break;
     case "recent":
       out.sort((a, b) => signalTime(b) - signalTime(a));

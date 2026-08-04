@@ -139,6 +139,42 @@ def reliability_confidence(
     return float(max(0.0, min(1.0, dq * reliability_factor * completeness_factor)))
 
 
+# Microstructure change components used to judge how *complete* a reading is. Only components that
+# the read-only live path can actually obtain count here: spread and depth change come from the
+# persisted order-book snapshot series (present ~60-67% of the time). `volume_acceleration` is
+# deliberately excluded: the live path never stores a volume series, so it is present 0% of the
+# time and including it would permanently drag every live confidence down for a reason unrelated to
+# data quality (spec §4, §6). It remains defined for the replay/backtest paths that do have volumes.
+COMPLETENESS_COMPONENTS = ("spread_change", "depth_change")
+
+
+def _component_completeness(signal: Signal) -> float:
+    present = sum(
+        1 for c in signal.components
+        if c.name in COMPLETENESS_COMPONENTS and c.raw_value is not None
+    )
+    return present / len(COMPLETENESS_COMPONENTS)
+
+
+def signal_reliability(signal: Signal) -> tuple[float, int]:
+    """Displayed reliability confidence + evidence-family count from the signal ALONE.
+
+    This is the number every surface that shows a signal without live trade flow (Signal Lab,
+    Market Detail) must display, so the same signal never shows two different confidences (spec
+    §6, §17). It counts only the families the signal itself carries (price behaviour and order
+    book); the Opportunity Board may add trade-flow / wallet / timing families when live trades
+    are available, which is the one documented, legitimate reason its confidence can be higher.
+    """
+    families: list[str] = []
+    if _price_family(signal)[0]:
+        families.append(FAMILY_PRICE)
+    if _book_family(signal)[0]:
+        families.append(FAMILY_BOOK)
+    n = len(families)
+    conf = reliability_confidence(signal.confidence, n, _component_completeness(signal))
+    return conf, n
+
+
 def _liquidity_factor(liquidity: float | None) -> tuple[float, str]:
     if liquidity is None:
         return 0.7, "moderate"
@@ -252,13 +288,11 @@ def score_opportunity(
 
     # Confidence displayed to the user is the estimated reliability, not the raw data-quality
     # term (which is kept as `data_quality` band). signal.confidence is the data-quality input.
-    # Component completeness = fraction of the microstructure change components actually present;
-    # a reading with missing spread/depth/volume-change history is less reliable (spec §8.5).
-    micro = ("spread_change", "depth_change", "volume_acceleration")
-    present = sum(
-        1 for c in signal.components if c.name in micro and c.raw_value is not None
-    )
-    component_completeness = present / len(micro)
+    # Component completeness = fraction of the obtainable microstructure change components present
+    # (spread/depth change from the snapshot series); see COMPLETENESS_COMPONENTS for why volume
+    # acceleration is excluded. Here n_families includes the live trade-flow families too, so a
+    # board card can show higher confidence than Signal Lab for the same market (spec §17).
+    component_completeness = _component_completeness(signal)
     confidence = reliability_confidence(signal.confidence, n_families, component_completeness)
 
     explanation = _explain(families, tags, evidence)
