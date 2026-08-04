@@ -264,3 +264,13 @@ section[id] {
     scroll-behavior: auto !important;
   }
 }
+
+/* Hidden-scrollbar utility for the shared Learn side-menus (spec §10): the menu still scrolls
+   independently with wheel/trackpad and keyboard, but shows no visible scrollbar track or thumb. */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and old Edge */
+  scrollbar-width: none;    /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;            /* Chrome, Safari, WebKit */
+}

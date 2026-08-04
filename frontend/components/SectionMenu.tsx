@@ -68,7 +68,7 @@ export function SectionMenu({ label, groups }: { label: string; groups: MenuGrou
       {/* Desktop: sticky, independently scrollable. */}
       <nav
         aria-label={label}
-        className="sticky top-24 hidden h-fit max-h-[calc(100vh-7rem)] w-52 shrink-0 flex-col gap-4 self-start overflow-y-auto overscroll-contain pr-1 lg:flex"
+        className="no-scrollbar sticky top-24 hidden h-fit max-h-[calc(100vh-7rem)] w-52 shrink-0 flex-col gap-4 self-start overflow-y-auto overscroll-contain pr-1 lg:flex"
       >
         {list}
       </nav>
