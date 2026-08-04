@@ -62,7 +62,7 @@ export interface OutcomeView {
   near_mid_depth: number | null;
   volume: number | null;
   rolling_volatility: number | null;
-  movement_1h: number | null;
+  recent_movement: number | null;
   zscore: number | null;
   signal_strength: number | null;
   data_quality: "good" | "limited" | "poor";

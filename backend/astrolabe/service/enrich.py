@@ -150,7 +150,7 @@ def outcome_view(ta: TokenAnalytics, name: str, normalized_prob: float | None) -
         near_mid_depth=ta.near_mid_depth,
         volume=ta.volume,
         rolling_volatility=ta.volatility,
-        movement_1h=ta.movement,
+        recent_movement=ta.movement,
         zscore=ta.zscore,
         signal_strength=ta.signal.strength,
         data_quality=ta.data_quality,

@@ -30,7 +30,7 @@ class OutcomeView(ApiModel):
     near_mid_depth: float | None
     volume: float | None
     rolling_volatility: float | None
-    movement_1h: float | None            # additive move over recent window
+    recent_movement: float | None        # additive move over the last few observations, NOT 1h
     zscore: float | None
     signal_strength: float | None        # composite anomaly strength for this token
     data_quality: str

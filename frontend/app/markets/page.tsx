@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMode } from "@/lib/mode-context";
 import { useAsync } from "@/lib/use-async";
+import { useUrlState } from "@/lib/use-url-state";
 import { getFacets, getMarkets, searchMarkets } from "@/lib/api";
 import type { MarketSearchResponse } from "@/lib/types";
 import type { MarketCard } from "@/lib/types";
@@ -151,17 +152,22 @@ function FilterField({ id, label, children }: { id: string; label: string; child
 export default function MarketsPage() {
   const { mode } = useMode();
 
-  // Guided filters resolved by the API.
-  const [category, setCategory] = useState("");
-  const [status, setStatus] = useState("");
-  const [uiSort, setUiSort] = useState<UiSort>("volume");
+  // Guided filters live in the URL so Back/Forward/refresh/shared links restore them (spec §9).
+  const [category, setCategory] = useUrlState("category");
+  const [status, setStatus] = useUrlState("status");
+  const [uiSort, setUiSort] = useUrlState("sort", "volume") as [UiSort, (v: UiSort) => void];
 
-  // Guided filters resolved client-side over the fetched window.
-  const [signalRange, setSignalRange] = useState<SignalRange>("any");
-  const [probRange, setProbRange] = useState<ProbRange>("any");
-  const [timeRange, setTimeRange] = useState<TimeRange>("any");
-  const [sport, setSport] = useState("");
-  const [competition, setCompetition] = useState("");
+  const [signalRange, setSignalRange] = useUrlState("strength", "any") as [
+    SignalRange, (v: SignalRange) => void,
+  ];
+  const [probRange, setProbRange] = useUrlState("prob", "any") as [
+    ProbRange, (v: ProbRange) => void,
+  ];
+  const [timeRange, setTimeRange] = useUrlState("close", "any") as [
+    TimeRange, (v: TimeRange) => void,
+  ];
+  const [sport, setSport] = useUrlState("sport");
+  const [competition, setCompetition] = useUrlState("competition");
 
   // Full-universe keyword search (calls the backend public-search, not just loaded markets).
   const [universeInput, setUniverseInput] = useState("");
@@ -176,9 +182,10 @@ export default function MarketsPage() {
   );
   const searching = universeQuery.length > 0;
 
-  // Advanced, demoted: free-text search over the loaded browse set, debounced as before.
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  // Advanced, demoted: free-text search over the loaded browse set. The committed query lives in
+  // the URL (?q=) so it is restored on Back/refresh/shared links; the input box mirrors it.
+  const [search, setSearch] = useUrlState("q");
+  const [searchInput, setSearchInput] = useState(search);
 
   const [limit, setLimit] = useState(FETCH_SIZE);
 
@@ -188,6 +195,8 @@ export default function MarketsPage() {
       setLimit(FETCH_SIZE);
     }, 350);
     return () => clearTimeout(timer);
+    // setSearch identity changes with the URL each keystroke commit; depend only on the input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
   // Any server-side filter change starts the fetch window over.
@@ -229,6 +238,8 @@ export default function MarketsPage() {
   // A filter dropdown a person can no longer act on (its value disappeared
   // from this mode's facets, e.g. after switching data mode) resets itself
   // rather than silently filtering out every market.
+  /* eslint-disable react-hooks/exhaustive-deps -- URL setters change identity each render; the
+     value/facet deps are the real triggers and adding the setters would loop. */
   useEffect(() => {
     if (category && !categories.includes(category)) setCategory("");
   }, [category, categories]);
@@ -241,6 +252,7 @@ export default function MarketsPage() {
   useEffect(() => {
     if (competition && !competitions.includes(competition)) setCompetition("");
   }, [competition, competitions]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   const markets = useMemo(() => {
     if (!data) return [];

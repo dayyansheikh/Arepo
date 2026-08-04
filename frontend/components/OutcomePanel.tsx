@@ -53,7 +53,7 @@ export function OutcomePanel({ outcome }: { outcome: OutcomeView }) {
         <Stat label="Best ask" value={formatPrice(outcome.best_ask)} />
         <Stat label={<MetricHelp metric="spread" />} value={formatPercent(outcome.spread, 2)} />
         <Stat label={<MetricHelp metric="midpoint" />} value={formatPrice(outcome.midpoint)} />
-        <Stat label="1h movement" value={formatSignedPercent(outcome.movement_1h)} />
+        <Stat label="Recent movement" value={formatSignedPercent(outcome.recent_movement)} />
       </div>
 
       <Disclose summary="Show advanced market data">
