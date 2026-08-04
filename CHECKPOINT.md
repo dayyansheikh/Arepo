@@ -39,6 +39,38 @@ delete that tag. Never rewrite history.
 ## Current phase
 
 **Final gap-closure (branch `arepo-final-gap-closure`, from tag `arepo-before-final-gap-closure`
+@ 3de24b3). COMPLETE for all locally-achievable work; deployment Blocked on external accounts.**
+
+Gates: backend **303 pass**, ruff clean, idempotent bootstrap; frontend tsc + lint clean, **14
+vitest**, production build compiled. Baseline in `docs/final-gap-baseline.md`; Dayyan acceptance in
+`docs/DAYYAN_ACCEPTANCE.md` (no Fail; deployment items Blocked with exact steps).
+
+Done + committed + pushed:
+- §3 broken "Full definition" link removed (105f5d7).
+- §8 confidence penalised for missing components; live max 1.00→0.80, %100 10%→0% (d16bd43).
+- §9 microstructure series wired into the LIVE path (was 0/40); honest reasons; `/diagnostics`;
+  audit doc (3ade25f, f2897a7).
+- §5 replay regression investigated (inconclusive both ways); `replay_stats` + tests (c4ef4ae).
+- §6/§7 Replay funnel + baselines + top-5 + 5 cut-offs + inconclusive banner (78dce65, e48f4eb).
+- §11 How It Works left-nav (shared SectionMenu) + smaller cards; Methodology too (468f7ed).
+- §12 sign-in/up/reset brand showcase with the supplied wordmark (3469584).
+- §14 data-consistency checks + invariant guard (b17518b).
+- §10 URL-state helpers extracted + 6 vitest (1cb8a43).
+- §13/§4 shared directional gate; Signal Lab qualify/why (7b6ea73).
+- §2/§15/§18 review docs, final architecture, Dayyan acceptance (b32a9e8).
+
+Blocked (external accounts only, exact steps in docs/deployment.md + final report): §16 live
+Vercel + Render deployment, production login/email/schedules, live URLs. All deployment CODE and
+config (render.yaml, vercel.json, Resend provider, crons) is done.
+
+**Exact next action if resumed:** nothing local remains; on the user creating Supabase/Render/
+Vercel/Resend accounts, follow docs/deployment.md to deploy and run the §16 end-to-end production
+test. Optional future research (not blockers): outcome-based confidence calibration curve,
+immutable historical universe, resolution-target baselines (see docs/quant-final-review.md).
+
+## (superseded) Current phase
+
+**Final gap-closure (branch `arepo-final-gap-closure`, from tag `arepo-before-final-gap-closure`
 @ 3de24b3).** Baseline in `docs/final-gap-baseline.md`.
 
 DONE + committed + pushed (backend 296 pass, ruff clean; frontend tsc/lint/build clean, vitest 8):

@@ -2,6 +2,26 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Final gap-closure (branch `arepo-final-gap-closure`)
+- [x] §1 baseline (docs/final-gap-baseline.md); §2 reviews (quant/beginner/Dayyan acceptance)
+- [x] §3 remove broken Full definition; verify all help links resolve
+- [x] §4 directional coverage disclosed; shared gate across surfaces
+- [x] §5 replay regression investigation + regression/stats tests
+- [x] §6 Replay top-5, funnel, baselines, more cut-offs, inconclusive labels
+- [x] §7 Replay modes (prospective/reconstructed/synthetic) badged, never mixed
+- [x] §8 confidence distribution + missing-component penalty + tests (no 100% spike)
+- [x] §9 wire microstructure components live; honest reasons; diagnostics; audit doc
+- [x] §10 URL filter-state helpers + vitest
+- [x] §11 How It Works left-nav (shared SectionMenu) + smaller cards; Methodology too
+- [x] §12 Why Arepo -> sign-in/up/reset brand showcase with supplied wordmark
+- [x] §13 Signal Lab qualify/why (shared gate); Yes/No consolidated
+- [x] §14 data-consistency checks + invariant guard
+- [x] §15 docs/final-production-architecture.md (single coherent architecture)
+- [x] §19 full gate run (backend 303, frontend tsc/lint/14 vitest, build)
+- [!] §16/§17 live deployment (Vercel/Render/Supabase/Resend) - Blocked on external accounts
+- [!] §16 production login/email/schedules + live URLs - Blocked on external accounts
+- [ ] §20 final report (delivered in chat)
+
 ## Directional Evidence, Replay & Deployment (branch `arepo-directional-evidence-deployment`)
 - [x] §2 read research report in full; docs/research-paper-evidence-audit.md (adopted vs deferred)
 - [x] §3 directional-rarity diagnosis (docs/directional-diagnosis.md); root cause = data, not thresholds
