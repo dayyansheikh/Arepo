@@ -384,6 +384,8 @@ export interface BaselineComparison {
   verdict: string;
   arepo: BaselineScore;
   baselines: Record<string, BaselineScore>;
+  arepo_momentum_agreement?: number | null;
+  probabilistic_metrics_note?: string;
 }
 
 export interface HistoricalScreen {

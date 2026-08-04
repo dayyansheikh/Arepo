@@ -93,6 +93,19 @@ class BaselineComparison:
     verdict: str
     arepo: dict
     baselines: dict
+    # Fraction of scored markets where Arepo's directional call equals the momentum baseline's.
+    # Arepo's direction is the sign of the latest-return z-score, so it is close to momentum by
+    # construction; a high agreement means "Arepo vs momentum" is near-self-referential and must
+    # not be read as an independent win (quant review B#3). None when nothing was scored.
+    arepo_momentum_agreement: float | None = None
+    # Brier score / log loss are deliberately NOT reported for the reconstructed directional screen:
+    # Arepo emits a directional call, not a calibrated probability, and reconstructed markets rarely
+    # resolve within the window, so any Brier/log-loss here would be fabricated. They are reserved
+    # for the prospective cohort's resolution view once enough markets resolve (spec §12, §13).
+    probabilistic_metrics_note: str = (
+        "Brier score and log loss are not applicable to a directional (non-probabilistic) call and "
+        "are reserved for the prospective resolution view; they are not computed on this screen."
+    )
 
 
 def _score(name: str, directions: list[str | None], moves: list[float | None]) -> dict:
@@ -165,9 +178,18 @@ def compare_baselines(results: list[DirectionalResult]) -> BaselineComparison:
         "always_up": _score("Always up", ["up"] * len(moves), moves),
         "always_down": _score("Always down", ["down"] * len(moves), moves),
     }
+    # How often Arepo's call matches momentum, over markets where both made a call (diagnostic for
+    # the near-self-referential "Arepo vs momentum" comparison, B#3).
+    both = [
+        (a, m)
+        for a, m in zip(arepo_dirs, momentum_dirs, strict=False)
+        if a in ("up", "down") and m in ("up", "down")
+    ]
+    agreement = (sum(1 for a, m in both if a == m) / len(both)) if both else None
     return BaselineComparison(
         sample_size=arepo["evaluated"],
         verdict=sample_verdict(arepo["evaluated"]),
         arepo=arepo,
         baselines=baselines,
+        arepo_momentum_agreement=round(agreement, 3) if agreement is not None else None,
     )

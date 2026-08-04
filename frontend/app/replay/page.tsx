@@ -671,6 +671,14 @@ function BaselineTable({ comparison }: { comparison: BaselineComparison }) {
         that did not move is never booked as a directional miss. Any edge must beat these baselines;
         on this sample the differences are not statistically meaningful.
       </p>
+      {comparison.arepo_momentum_agreement != null && (
+        <p className="text-[12px] leading-relaxed text-arepo-muted">
+          Arepo&apos;s directional call is the sign of the latest-return z-score, so it agrees with
+          the momentum baseline on {Math.round(comparison.arepo_momentum_agreement * 100)}% of these
+          markets. Treat &ldquo;Arepo vs momentum&rdquo; as near-self-referential, not an
+          independent win. {comparison.probabilistic_metrics_note}
+        </p>
+      )}
       <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[600px] text-[13px]">

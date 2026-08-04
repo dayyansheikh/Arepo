@@ -60,18 +60,25 @@ async def test_genuinely_missing_market_is_404_not_silent():
         await svc.aclose()
 
 
+def _market_json(market_id: str) -> dict:
+    return {**_MARKET_JSON, "id": market_id}
+
+
+# Both spec-named previously-failing IDs must resolve in every mode (spec §18; impl review D#6:
+# 2822017 was only manually verified before). Parametrised over id x mode.
+@pytest.mark.parametrize("market_id", ["2694364", "2822017"])
 @pytest.mark.parametrize("mode", ["live", "cached", "replay"])
 @respx.mock
-async def test_canonical_id_resolves_in_all_modes(mode):
-    respx.get("https://gamma-api.polymarket.com/markets/2694364").mock(
-        return_value=httpx.Response(200, json=_MARKET_JSON)
+async def test_canonical_id_resolves_in_all_modes(market_id, mode):
+    respx.get(f"https://gamma-api.polymarket.com/markets/{market_id}").mock(
+        return_value=httpx.Response(200, json=_market_json(market_id))
     )
     respx.get(url__regex=r"https://clob\.polymarket\.com/.*").mock(
         return_value=httpx.Response(200, json={"bids": [], "asks": [], "history": []})
     )
     svc = MarketService()
     try:
-        detail = await svc.market_detail("2694364", requested_mode=mode)
-        assert detail is not None and detail.market.id == "2694364"
+        detail = await svc.market_detail(market_id, requested_mode=mode)
+        assert detail is not None and detail.market.id == market_id
     finally:
         await svc.aclose()

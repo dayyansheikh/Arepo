@@ -315,6 +315,8 @@ async def run_historical_screen(
         "verdict": cmp.verdict,
         "arepo": cmp.arepo,
         "baselines": cmp.baselines,
+        "arepo_momentum_agreement": cmp.arepo_momentum_agreement,
+        "probabilistic_metrics_note": cmp.probabilistic_metrics_note,
     }
 
     return HistoricalScreen(

@@ -189,7 +189,7 @@ function PreferencesSection() {
         />
         <Slider
           label="Minimum confidence"
-          hint="Only alert me when the data quality is at least this good."
+          hint="Only alert me when the reliability confidence (data quality x evidence corroboration) is at least this high."
           min={0}
           max={100}
           step={5}
