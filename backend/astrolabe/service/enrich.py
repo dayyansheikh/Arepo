@@ -14,6 +14,7 @@ from ..analytics.abnormality import return_burst_score, volatility_regime
 from ..analytics.anomaly import RawComponents, build_anomaly_signal, composite_anomaly_score
 from ..analytics.implied import implied_probability, normalized_outcome_probabilities
 from ..analytics.microstructure import near_mid_depth, order_book_imbalance, spread_info
+from ..analytics.microstructure_changes import MicrostructureChanges
 from ..analytics.movement import window_movement
 from ..analytics.quality import assess_quality
 from ..analytics.volatility import rolling_volatility
@@ -70,8 +71,14 @@ def compute_token_analytics(
     volumes: list[float] | None = None,
     gamma_price: float | None = None,
     data_age_seconds: float | None = None,
+    changes: MicrostructureChanges | None = None,
 ) -> TokenAnalytics:
-    """Compute the full analytics bundle for one outcome token."""
+    """Compute the full analytics bundle for one outcome token.
+
+    ``changes`` carries spread-change / depth-change / volume-acceleration computed from a
+    persisted snapshot SERIES (spec §7). When absent, those components stay ``None`` (missing,
+    never zero); they are never reconstructed from a single current snapshot.
+    """
     si = spread_info(book) if book else None
     mid = si.midpoint if si else None
     implied = implied_probability(
@@ -88,7 +95,13 @@ def compute_token_analytics(
         if prices else None
     )
     mv = window_movement(prices, window=MOVEMENT_WINDOW).absolute if len(prices) >= 2 else None
-    vol_accel = _volume_acceleration(volumes)
+    # Volume acceleration: prefer the series-based value from persisted snapshots (spec §7); fall
+    # back to the in-frame ``volumes`` list (populated only in replay mode).
+    vol_accel = (changes.volume_acceleration if changes else None)
+    if vol_accel is None:
+        vol_accel = _volume_acceleration(volumes)
+    spread_change = changes.spread_change if changes else None
+    depth_change = changes.depth_change if changes else None
 
     # Price-behaviour abnormality features, computed from the market's own history so the
     # composite is led by real price movement rather than order-book imbalance alone.
@@ -102,6 +115,8 @@ def compute_token_analytics(
         volatility_regime=vr_elevated,
         volume_acceleration=vol_accel,
         imbalance=imb,
+        spread_change=spread_change,
+        depth_change=depth_change,
     )
     quality = assess_quality(
         n_history=len(prices),

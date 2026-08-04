@@ -39,6 +39,7 @@ async def init_storage() -> None:
         from ..accounts import models as _account_models  # noqa: F401  (register user tables)
         from ..alerts import models as _alert_models  # noqa: F401  (register alert tables)
         from ..evaluation import models as _eval_models  # noqa: F401  (register eval tables)
+        from ..ingest import microstructure_store as _micro  # noqa: F401  (register snapshots)
         from ..opportunity import snapshot_models as _snap_models  # noqa: F401  (register tables)
         from ..storage.db import init_db
 
