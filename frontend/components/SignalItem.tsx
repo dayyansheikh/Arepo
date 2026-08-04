@@ -89,11 +89,37 @@ export function SignalItem({ signal }: { signal: Signal }) {
             <span aria-hidden="true">&rarr;</span>
           </Link>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <StrengthMeter strength={signal.strength} direction={signal.direction} className="min-w-36" />
+        <div className="flex flex-col items-end gap-1.5">
+          {/* Direction in WORDS first (spec §7): never a bare "28 Up" that reads like a
+              probability; up/down is not framed as good/bad. Colour + glyph are secondary cues. */}
+          <span
+            className="flex items-center gap-1 text-[13px] font-medium"
+            title="The direction the outcome has been repricing. Not a probability and not good or bad."
+          >
+            {signal.direction === "up" && (
+              <span className="text-arepo-pos">
+                <span aria-hidden="true">&#9650;</span> Upward
+              </span>
+            )}
+            {signal.direction === "down" && (
+              <span className="text-arepo-warnText">
+                <span aria-hidden="true">&#9660;</span> Downward
+              </span>
+            )}
+            {signal.direction !== "up" && signal.direction !== "down" && (
+              <span className="text-arepo-muted">No clear direction</span>
+            )}
+          </span>
+          {/* Strength, labelled and out of 100 so it cannot be read as a probability. */}
+          <span className="flex items-center gap-1.5 text-xs text-arepo-muted">
+            <span>Strength</span>
+            <StrengthMeter strength={signal.strength} className="min-w-24" />
+            <span>/100</span>
+            <MetricHelp metric="signal-strength" showTerm={false} />
+          </span>
           <span className="flex items-center gap-1 text-xs text-arepo-muted">
+            Confidence {formatPercent(signal.confidence, 0)}
             <MetricHelp metric="confidence" showTerm={false} />
-            confidence {formatPercent(signal.confidence, 0)}
           </span>
         </div>
       </div>

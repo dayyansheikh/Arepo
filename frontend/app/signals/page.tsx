@@ -1,48 +1,50 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { useMode } from "@/lib/mode-context";
 import { useAsync } from "@/lib/use-async";
+import { useUrlState } from "@/lib/use-url-state";
 import { getSignals } from "@/lib/api";
-import type { Signal } from "@/lib/types";
+import {
+  arrangeSignals,
+  type SignalSort,
+  type SignalStatus,
+} from "@/lib/signal-arrange";
 import { SignalItem } from "@/components/SignalItem";
 import { ListSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
 import { MetricHelp } from "@/components/MetricHelp";
-import { SectionLabel, Disclose, Badge, PageHeader } from "@/components/ui";
+import { SectionLabel, Disclose, PageHeader } from "@/components/ui";
 
-type MinStrength = "any" | "0.7" | "0.4";
+// Directional status is the primary organisation (spec §6), not fixed 40+/70+ strength thresholds.
+const STATUS_OPTIONS = [
+  { value: "all", label: "All signals" },
+  { value: "directional", label: "Directional views only" },
+  { value: "observational", label: "Observational or inconclusive" },
+] as const;
 
-const MIN_STRENGTH_OPTIONS: { value: MinStrength; label: string }[] = [
-  { value: "any", label: "Any strength" },
-  { value: "0.7", label: "70+ (strong)" },
-  { value: "0.4", label: "40+ (moderate or above)" },
-];
-
-function strengthTier(strength: number): { label: string; tone: "strong" | "moderate" | "weak" } {
-  if (strength >= 0.7) return { label: "Strong", tone: "strong" };
-  if (strength >= 0.4) return { label: "Moderate", tone: "moderate" };
-  return { label: "Weak", tone: "weak" };
-}
+const SORT_OPTIONS = [
+  { value: "strength-desc", label: "Signal strength, high to low" },
+  { value: "strength-asc", label: "Signal strength, low to high" },
+  { value: "confidence-desc", label: "Confidence, high to low" },
+  { value: "confidence-asc", label: "Confidence, low to high" },
+  { value: "recent", label: "Most recent" },
+] as const;
 
 export default function SignalLabPage() {
   const { mode } = useMode();
   const { data, loading, error } = useAsync(() => getSignals(mode, 50), [mode]);
-  const [minStrength, setMinStrength] = useState<MinStrength>("any");
+  // Controls persist in the URL so Back/refresh/shared links restore them (spec §6).
+  const [status, setStatus] = useUrlState("status", "all");
+  const [sort, setSort] = useUrlState("sort", "strength-desc");
 
-  const sorted = useMemo(() => {
-    const signals = data ? [...data.signals] : [];
-    signals.sort((a, b) => b.strength - a.strength);
-    return signals;
-  }, [data]);
-
-  const filtered = useMemo(() => {
-    if (minStrength === "any") return sorted;
-    const threshold = Number(minStrength);
-    return sorted.filter((s) => s.strength >= threshold);
-  }, [sorted, minStrength]);
+  const all = useMemo(() => (data ? data.signals : []), [data]);
+  const filtered = useMemo(
+    () => arrangeSignals(all, status as SignalStatus, sort as SignalSort),
+    [all, status, sort]
+  );
 
   return (
     <div className="space-y-8">
@@ -158,68 +160,56 @@ export default function SignalLabPage() {
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SectionLabel>Currently firing</SectionLabel>
-          <label className="flex items-center gap-2 text-[13px] text-arepo-muted">
-            <span className="sr-only">Filter by minimum strength</span>
-            <select
-              className="select-arepo w-48"
-              value={minStrength}
-              onChange={(e) => setMinStrength(e.target.value as MinStrength)}
-              aria-label="Minimum signal strength"
-            >
-              {MIN_STRENGTH_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1.5 text-[13px] text-arepo-muted">
+              <span className="sr-only">Filter by directional status</span>
+              <select
+                className="select-arepo w-52"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                aria-label="Filter by directional status"
+              >
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-[13px] text-arepo-muted">
+              <span className="sr-only">Sort signals</span>
+              <select
+                className="select-arepo w-56"
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                aria-label="Sort signals"
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         {loading && <ListSkeleton rows={8} />}
         {!loading && error && <ErrorState message={error} />}
-        {!loading && !error && sorted.length === 0 && (
+        {!loading && !error && all.length === 0 && (
           <EmptyState message="No signals available in this mode right now." />
         )}
-        {!loading && !error && sorted.length > 0 && filtered.length === 0 && (
-          <EmptyState message="No signals meet this strength filter. Try lowering it." />
+        {!loading && !error && all.length > 0 && filtered.length === 0 && (
+          <EmptyState message="No signals match this filter. Try 'All signals'." />
         )}
         {!loading && !error && filtered.length > 0 && (
           <div className="space-y-3">
             {filtered.map((s, i) => (
-              <SignalRow key={`${s.kind}-${s.token_id}-${i}`} signal={s} />
+              <SignalItem key={`${s.kind}-${s.token_id}-${i}`} signal={s} />
             ))}
           </div>
         )}
       </section>
-
-      <Disclose summary="How thresholds affect selectivity">
-        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
-          Raising the minimum strength gives fewer, higher-confidence signals. Lowering it surfaces
-          more candidates with more false positives. Confidence and strength are not the same thing:
-          confidence reflects the quality of the underlying data (history length, spread, depth), not
-          how big the anomaly is. Test the effect of any threshold combination in{" "}
-          <Link
-            href="/replay"
-            className="focus-ring font-medium text-arepo-accentActive hover:text-arepo-accentHover"
-          >
-            Replay
-          </Link>
-          .
-        </p>
-      </Disclose>
-    </div>
-  );
-}
-
-/** Wraps SignalItem with a subtle strength-tier badge above the card. */
-function SignalRow({ signal }: { signal: Signal }) {
-  const tier = strengthTier(signal.strength);
-  return (
-    <div className="space-y-1.5">
-      <div className="flex justify-end">
-        <Badge tone={tier.tone}>{tier.label}</Badge>
-      </div>
-      <SignalItem signal={signal} />
     </div>
   );
 }
