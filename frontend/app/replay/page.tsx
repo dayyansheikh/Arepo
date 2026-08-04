@@ -118,6 +118,29 @@ export default function ReplayPage() {
         ))}
       </div>
 
+      {/* The three Replay data provenances (spec §20). They are never combined into one headline
+          performance number. */}
+      <Disclose summary="What Prospective, Reconstructed and Synthetic mean">
+        <dl className="max-w-reading space-y-2 text-[13px] leading-relaxed text-arepo-muted">
+          <div>
+            <dt className="font-semibold text-arepo-ink2">Prospective</dt>
+            <dd>Signals genuinely recorded and frozen at the time, then tracked forward. The only
+              real long-term performance record.</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-arepo-ink2">Reconstructed</dt>
+            <dd>Signals rebuilt later using only information that existed at the historical cut-off
+              (price-only, since historical order books were never stored). Illustrative, not a
+              track record.</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-arepo-ink2">Synthetic</dt>
+            <dd>Demonstration data only, for testing and teaching. Never mixed into any real
+              performance figure.</dd>
+          </div>
+        </dl>
+      </Disclose>
+
       {mode === "historical" && <HistoricalView />}
 
       {mode === "prospective" && (
