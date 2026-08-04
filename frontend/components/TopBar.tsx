@@ -73,7 +73,11 @@ export function TopBar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-arepo-border bg-arepo-surface/95 backdrop-blur">
-      <div className="mx-auto max-w-shell px-5 sm:px-8 lg:px-12">
+      {/* The header spans a wide fluid width (not the narrower page shell) so the logo anchors the
+          left edge, the account/mode controls the right edge, and the nav uses the centre space,
+          instead of the whole bar bunching in the middle with empty sides when the viewport is
+          wide or zoomed out (spec §8). Sensible gutters via the horizontal padding. */}
+      <div className="mx-auto w-full max-w-[1920px] px-5 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between gap-4 py-3.5">
           <Link href="/" className="focus-ring shrink-0 rounded-md" aria-label="Arepo home">
             <Logo size={34} />

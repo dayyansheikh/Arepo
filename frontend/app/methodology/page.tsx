@@ -6,7 +6,7 @@ import { SectionMenu } from "@/components/SectionMenu";
 import { Disclose, PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = {
-  title: "Methodology",
+  title: { absolute: "Arepo" },  // tab title stays exactly "Arepo" on every route (spec §9)
   description:
     "The technical reference for every reading Arepo computes: definitions, formulas, worked examples, interpretation and limitations.",
 };

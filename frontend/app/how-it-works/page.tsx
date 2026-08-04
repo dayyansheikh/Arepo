@@ -5,7 +5,8 @@ import { SectionMenu } from "@/components/SectionMenu";
 import { methodologyAnchor } from "@/lib/metrics";
 
 export const metadata: Metadata = {
-  title: "How Arepo Works",
+  // Tab title stays exactly "Arepo" on every route (spec §9); no per-route title.
+  title: { absolute: "Arepo" },
 };
 
 /** A calm, bordered block for one numbered explanation section. */
