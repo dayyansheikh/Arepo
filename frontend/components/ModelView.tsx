@@ -2,32 +2,10 @@
 
 import type { Signal } from "@/lib/types";
 import { formatPercent } from "@/lib/format";
+import { directionalVerdict, strengthWord } from "@/lib/directional";
 
-// Unified with the backend directional rule (opportunity/hypothesis.py + scoring._price_family):
-// a directional view is stated when a direction is resolved AND there is genuine evidence, which
-// is EITHER at least moderate composite strength OR a materially present price-behaviour feature
-// (the price evidence family). The detail Signal carries its component breakdown, so we mirror the
-// backend price-family threshold rather than gating on composite strength alone (which was too
-// strict and made the market page almost always abstain).
-const STRENGTH_MODERATE = 0.4;
-const STRENGTH_STRONG = 0.7;
-const PRICE_FEATURES = new Set(["unusual_return", "movement_abnormality", "volatility_regime"]);
-const PRICE_CONTEXT_FLOOR = 0.05;
-
-function priceFamilyFires(sig: Signal): boolean {
-  return sig.components.some(
-    (c) =>
-      PRICE_FEATURES.has(c.name) &&
-      c.normalized_value !== null &&
-      c.normalized_value > PRICE_CONTEXT_FLOOR
-  );
-}
-
-function strengthWord(s: number): string {
-  if (s >= STRENGTH_STRONG) return "strong";
-  if (s >= STRENGTH_MODERATE) return "moderate";
-  return "early";
-}
+// The directional gate lives in lib/directional.ts so Market Detail (here) and Signal Lab use the
+// exact same rule (spec §4, §13), mirroring the backend hypothesis + price-family logic.
 
 function strongest(signals: Signal[]): Signal | null {
   if (signals.length === 0) return null;
@@ -35,8 +13,7 @@ function strongest(signals: Signal[]): Signal | null {
 }
 
 function hypothesis(sig: Signal): { directional: boolean; text: string } {
-  const hasDirection = sig.direction === "up" || sig.direction === "down";
-  const directional = hasDirection && (sig.strength >= STRENGTH_MODERATE || priceFamilyFires(sig));
+  const directional = directionalVerdict(sig).qualifies;
   if (!directional) {
     return {
       directional: false,

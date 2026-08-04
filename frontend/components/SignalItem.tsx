@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Signal } from "@/lib/types";
+import { directionalVerdict } from "@/lib/directional";
 import { formatDateTime, formatNumber, formatPercent } from "@/lib/format";
 import {
   formatLookback,
@@ -16,6 +17,28 @@ import { StrengthMeter } from "./StrengthMeter";
 import { DataQualityBadge } from "./DataQualityBadge";
 import { MetricHelp } from "./MetricHelp";
 import { Disclose } from "./ui";
+
+/** Whether a signal qualifies for a directional model view (spec §13), with the reason. */
+function DirectionalBadge({ signal }: { signal: Signal }) {
+  const v = directionalVerdict(signal);
+  return (
+    <p
+      className={`mt-2 inline-flex flex-wrap items-center gap-1.5 rounded-md px-2 py-1 text-[12px] ${
+        v.qualifies
+          ? "bg-arepo-accentTint text-arepo-accentActive"
+          : "bg-arepo-surface2 text-arepo-muted"
+      }`}
+    >
+      <span aria-hidden="true">{v.qualifies ? "✓" : "○"}</span>
+      <span className="font-medium">
+        {v.qualifies
+          ? "Qualifies for a directional model view"
+          : "Observational only, not a directional view"}
+      </span>
+      <span>({v.reason})</span>
+    </p>
+  );
+}
 
 /**
  * A single explainable signal. Plain-English meaning first (what fired), then a
@@ -74,6 +97,11 @@ export function SignalItem({ signal }: { signal: Signal }) {
           </span>
         </div>
       </div>
+
+      {/* Whether this signal qualifies for a directional model view, using the SAME gate as
+          Market Detail (spec §4, §13), so Signal Lab never implies every anomaly is a
+          directional opportunity. */}
+      <DirectionalBadge signal={signal} />
 
       <button
         type="button"
