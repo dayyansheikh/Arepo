@@ -50,6 +50,9 @@ class OpportunityBoard(BaseModel):
     calculation_version: str = CALCULATION_VERSION
     count: int
     universe_considered: int
+    screened_count: int = 0             # markets actually screened this build
+    directional_count: int = 0          # screened markets with a usable directional view
+    view: str = "directional"           # directional | strongest | inconclusive | all
     cards: list[OpportunityCard]
     note: str
 

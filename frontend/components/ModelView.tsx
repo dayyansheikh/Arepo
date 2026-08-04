@@ -3,12 +3,25 @@
 import type { Signal } from "@/lib/types";
 import { formatPercent } from "@/lib/format";
 
-// Mirrors the backend rule (opportunity/hypothesis.py) as closely as the market-detail Signal
-// allows: a directional view is stated only when a direction is resolved and the signal is at
-// least moderately strong. The detail Signal does not carry evidence-family counts, so strength
-// is the gate here; below it, we say plainly that there is not enough evidence.
+// Unified with the backend directional rule (opportunity/hypothesis.py + scoring._price_family):
+// a directional view is stated when a direction is resolved AND there is genuine evidence, which
+// is EITHER at least moderate composite strength OR a materially present price-behaviour feature
+// (the price evidence family). The detail Signal carries its component breakdown, so we mirror the
+// backend price-family threshold rather than gating on composite strength alone (which was too
+// strict and made the market page almost always abstain).
 const STRENGTH_MODERATE = 0.4;
 const STRENGTH_STRONG = 0.7;
+const PRICE_FEATURES = new Set(["unusual_return", "movement_abnormality", "volatility_regime"]);
+const PRICE_CONTEXT_FLOOR = 0.05;
+
+function priceFamilyFires(sig: Signal): boolean {
+  return sig.components.some(
+    (c) =>
+      PRICE_FEATURES.has(c.name) &&
+      c.normalized_value !== null &&
+      c.normalized_value > PRICE_CONTEXT_FLOOR
+  );
+}
 
 function strengthWord(s: number): string {
   if (s >= STRENGTH_STRONG) return "strong";
@@ -22,7 +35,8 @@ function strongest(signals: Signal[]): Signal | null {
 }
 
 function hypothesis(sig: Signal): { directional: boolean; text: string } {
-  const directional = (sig.direction === "up" || sig.direction === "down") && sig.strength >= STRENGTH_MODERATE;
+  const hasDirection = sig.direction === "up" || sig.direction === "down";
+  const directional = hasDirection && (sig.strength >= STRENGTH_MODERATE || priceFamilyFires(sig));
   if (!directional) {
     return {
       directional: false,

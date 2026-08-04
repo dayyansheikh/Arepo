@@ -102,7 +102,9 @@ async def run_daily_snapshot(
     top: int = 30,
 ) -> OpportunitySnapshotRow:
     """Build today's Opportunity Board and freeze it as the daily snapshot (idempotent)."""
+    # The daily snapshot is a complete immutable record of the ranked top-N, so it uses the "all"
+    # view (not the directional-only default) to preserve its historical meaning.
     board = await build_opportunity_board(
-        market_service, data_api, requested_mode=requested_mode, top=top
+        market_service, data_api, requested_mode=requested_mode, top=top, view="all"
     )
     return await generate_snapshot(session, board, snapshot_date=snapshot_date, top=top)

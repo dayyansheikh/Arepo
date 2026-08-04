@@ -410,12 +410,17 @@ export interface OpportunityCard {
   data_mode: string;
 }
 
+export type BoardView = "directional" | "strongest" | "inconclusive" | "all";
+
 export interface OpportunityBoard {
   generated_at: string;
   data_mode: string;
   calculation_version: string;
   count: number;
   universe_considered: number;
+  screened_count: number;
+  directional_count: number;
+  view: BoardView;
   cards: OpportunityCard[];
   note: string;
 }

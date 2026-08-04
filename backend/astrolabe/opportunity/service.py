@@ -99,9 +99,16 @@ async def build_opportunity_board(
     requested_mode: str | None = None,
     top: int = 30,
     universe_limit: int = 40,
+    view: str = "directional",
     now: datetime | None = None,
 ) -> OpportunityBoard:
-    """Build the ranked Opportunity Board (top ``top`` markets by Research Priority)."""
+    """Build the ranked Opportunity Board.
+
+    ``view`` controls selectivity (spec §4): ``directional`` (default) shows only markets with a
+    usable directional view; ``strongest`` the highest-priority directional views; ``inconclusive``
+    the screened markets without a directional view; ``all`` every screened market. Abstention is
+    preserved: neutral markets never dominate the default board.
+    """
     now = now or utcnow()
     pairs, mode = await market_service.enrich_markets(
         requested_mode=requested_mode, limit=universe_limit
@@ -139,16 +146,34 @@ async def build_opportunity_board(
     )
     cards = [c for c in results if isinstance(c, OpportunityCard)]
     cards.sort(key=lambda c: c.research_priority, reverse=True)
-    top_cards = cards[:top]
 
+    screened_count = len(pairs)
+    directional = [c for c in cards if c.directional]
+    directional_count = len(directional)
+
+    # Selectivity (spec §4): the default board is directional-only, so neutral markets do not
+    # dominate. Other views are available for exploration; Explore holds the full neutral universe.
+    if view == "strongest":
+        selected = sorted(directional, key=lambda c: c.signal_strength, reverse=True)
+    elif view == "inconclusive":
+        selected = [c for c in cards if not c.directional]
+    elif view == "all":
+        selected = cards
+    else:  # "directional" (default)
+        view = "directional"
+        selected = directional
+    top_cards = selected[:top]
+
+    flow_note = (
+        "Trade-flow indicators use live public trades."
+        if live
+        else "Trade-flow indicators need Live mode; this board uses the price and order-book "
+        "signal only."
+    )
     note = (
-        "Ranked by a transparent Research Priority score (not expected profit). "
-        + (
-            "Trade-flow indicators use live public trades."
-            if live
-            else "Trade-flow indicators need Live mode; this board uses the price and order-book "
-            "signal only."
-        )
+        f"Arepo screened {screened_count} markets; {directional_count} currently meet the "
+        f"evidence and quality requirements for a directional view. Ranked by a transparent "
+        f"Research Priority score (not expected profit). " + flow_note
     )
     return OpportunityBoard(
         generated_at=now,
@@ -156,6 +181,9 @@ async def build_opportunity_board(
         calculation_version=CALCULATION_VERSION,
         count=len(top_cards),
         universe_considered=len(pairs),
+        screened_count=screened_count,
+        directional_count=directional_count,
+        view=view,
         cards=top_cards,
         note=note,
     )

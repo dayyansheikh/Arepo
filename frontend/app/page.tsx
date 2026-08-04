@@ -1,40 +1,70 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMode } from "@/lib/mode-context";
 import { useAsync } from "@/lib/use-async";
 import { getOpportunityBoard } from "@/lib/api";
-import type { OpportunityBoard } from "@/lib/types";
+import type { BoardView, OpportunityBoard } from "@/lib/types";
 import { OpportunityCardView } from "@/components/OpportunityCardView";
 import { CardGridSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
 import { PageHeader } from "@/components/ui";
 
-// Time-to-close horizons (spec §5): let a user focus on short-term opportunities closing within
-// a week without hiding the full board.
+// Selectivity (spec §4): the default board shows only markets with a usable directional view, so
+// neutral markets never dominate. Other views are available; Explore holds the full neutral set.
+const VIEWS: { id: BoardView; label: string }[] = [
+  { id: "directional", label: "Directional only" },
+  { id: "strongest", label: "Strongest views" },
+  { id: "inconclusive", label: "Inconclusive" },
+  { id: "all", label: "All screened" },
+];
+
+// Time-to-close horizons (spec §5): focus on short-term opportunities without hiding the board.
 const HORIZONS = [
   { id: "all", label: "All", hours: Infinity },
-  { id: "7d", label: "Closing ≤ 7 days", hours: 24 * 7 },
-  { id: "3d", label: "Closing ≤ 3 days", hours: 24 * 3 },
-  { id: "24h", label: "Closing ≤ 24 hours", hours: 24 },
+  { id: "7d", label: "≤ 7 days", hours: 24 * 7 },
+  { id: "3d", label: "≤ 3 days", hours: 24 * 3 },
+  { id: "24h", label: "≤ 24 hours", hours: 24 },
 ] as const;
 
 type HorizonId = (typeof HORIZONS)[number]["id"];
 
+function isView(v: string | null): v is BoardView {
+  return v === "directional" || v === "strongest" || v === "inconclusive" || v === "all";
+}
+
 export default function OpportunityBoardPage() {
   const { mode } = useMode();
-  const [horizon, setHorizon] = useState<HorizonId>("all");
+  const router = useRouter();
+  const params = useSearchParams();
+
+  // View and horizon are read from the URL so Back/Forward/refresh/shared links restore them.
+  const view: BoardView = isView(params.get("view")) ? (params.get("view") as BoardView) : "directional";
+  const horizon: HorizonId =
+    (HORIZONS.find((h) => h.id === params.get("horizon"))?.id as HorizonId) ?? "all";
+
+  const setParam = useCallback(
+    (key: string, value: string, dflt: string) => {
+      const next = new URLSearchParams(params.toString());
+      if (value === dflt) next.delete(key);
+      else next.set(key, value);
+      const qs = next.toString();
+      router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+    },
+    [params, router]
+  );
+
   const { data, loading, error } = useAsync<OpportunityBoard>(
-    () => getOpportunityBoard(mode),
-    [mode]
+    () => getOpportunityBoard(mode, view),
+    [mode, view]
   );
 
   const maxHours = HORIZONS.find((h) => h.id === horizon)?.hours ?? Infinity;
   const cards = (data?.cards ?? []).filter((c) => {
     if (maxHours === Infinity) return true;
-    // Keep only markets with a known close time within the window (short-term focus).
     return c.time_remaining_hours !== null && c.time_remaining_hours <= maxHours;
   });
 
@@ -42,7 +72,7 @@ export default function OpportunityBoardPage() {
     <div className="space-y-8">
       <PageHeader
         title="Opportunities"
-        lead="The markets that deserve a closer look today. Each card leads with what the evidence currently favours, why, and how reliable that view is, then links to the full analysis. This is a research ranking, not expected profit."
+        lead="The markets where Arepo currently has a usable directional hypothesis. Each card leads with what the evidence favours, why, and how reliable that view is. Neutral markets are kept in Explore, not forced onto this board. This is a research ranking, not expected profit."
       />
 
       <DisclaimerBanner>
@@ -50,25 +80,30 @@ export default function OpportunityBoardPage() {
         predict outcomes.
       </DisclaimerBanner>
 
+      {/* How selective Arepo is right now (spec §4). */}
+      {data && (
+        <p className="text-[13.5px] text-arepo-ink2">
+          Arepo screened <strong>{data.screened_count}</strong> markets;{" "}
+          <strong>{data.directional_count}</strong> currently meet the evidence and quality
+          requirements for a directional view.
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div
-          className="flex flex-wrap items-center gap-1.5"
-          role="group"
-          aria-label="Filter by time to close"
-        >
-          {HORIZONS.map((h) => (
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Board view">
+          {VIEWS.map((v) => (
             <button
-              key={h.id}
+              key={v.id}
               type="button"
-              aria-pressed={horizon === h.id}
-              onClick={() => setHorizon(h.id)}
+              aria-pressed={view === v.id}
+              onClick={() => setParam("view", v.id, "directional")}
               className={`focus-ring rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
-                horizon === h.id
+                view === v.id
                   ? "border-arepo-accent bg-arepo-accentTint text-arepo-accentActive"
                   : "border-arepo-border bg-arepo-surface text-arepo-muted hover:text-arepo-ink"
               }`}
             >
-              {h.label}
+              {v.label}
             </button>
           ))}
         </div>
@@ -80,22 +115,37 @@ export default function OpportunityBoardPage() {
         </Link>
       </div>
 
-      {data && (
-        <p className="text-[13px] text-arepo-muted">
-          {data.note} Considered {data.universe_considered} markets.
-          {horizon !== "all" &&
-            ` Showing ${cards.length} of ${data.cards.length} that close within this window.`}
-        </p>
-      )}
+      <div
+        className="flex flex-wrap items-center gap-1.5"
+        role="group"
+        aria-label="Filter by time to close"
+      >
+        <span className="mr-1 text-[12px] text-arepo-muted">Closing:</span>
+        {HORIZONS.map((h) => (
+          <button
+            key={h.id}
+            type="button"
+            aria-pressed={horizon === h.id}
+            onClick={() => setParam("horizon", h.id, "all")}
+            className={`focus-ring rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
+              horizon === h.id
+                ? "border-arepo-accent bg-arepo-accentTint text-arepo-accentActive"
+                : "border-arepo-border bg-arepo-surface text-arepo-muted hover:text-arepo-ink"
+            }`}
+          >
+            {h.label}
+          </button>
+        ))}
+      </div>
 
       {loading && <CardGridSkeleton count={9} />}
       {!loading && error && <ErrorState message={error} />}
       {!loading && data && cards.length === 0 && (
         <EmptyState
           message={
-            horizon === "all"
-              ? "No markets are standing out right now. Check back later or explore all markets."
-              : "No standout markets close within this window. Try a longer horizon."
+            view === "directional"
+              ? "Arepo has no usable directional view right now. Try 'All screened', widen the horizon, or explore all markets."
+              : "No markets match this view and horizon. Try a different view."
           }
         />
       )}

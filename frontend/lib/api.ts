@@ -15,6 +15,7 @@ import type {
   MetaResponse,
   MarketSearchResponse,
   SavedMarket,
+  BoardView,
   OpportunityBoard,
   OverviewResponse,
   ProvenanceInfo,
@@ -159,8 +160,12 @@ export function getCohort(isoYear: number, isoWeek: number): Promise<CohortDetai
 
 // -- Opportunity Board + search ---------------------------------------------------------
 
-export function getOpportunityBoard(mode: DataMode, top = 30): Promise<OpportunityBoard> {
-  return apiFetch<OpportunityBoard>("/api/opportunity/board", { mode, top });
+export function getOpportunityBoard(
+  mode: DataMode,
+  view: BoardView = "directional",
+  top = 30,
+): Promise<OpportunityBoard> {
+  return apiFetch<OpportunityBoard>("/api/opportunity/board", { mode, top, view });
 }
 
 export function searchMarkets(

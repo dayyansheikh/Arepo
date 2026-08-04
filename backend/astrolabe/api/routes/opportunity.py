@@ -55,14 +55,19 @@ async def board(
     mode: str | None = Query(None, description="live | cached | replay"),
     top: int = Query(30, ge=1, le=50),
     universe: int = Query(40, ge=1, le=60, description="candidate markets to consider"),
+    view: str = Query(
+        "directional",
+        pattern="^(directional|strongest|inconclusive|all)$",
+        description="selectivity: directional (default) | strongest | inconclusive | all",
+    ),
     service: MarketService = Depends(get_service),
     data_api=Depends(get_data_api),
 ) -> OpportunityBoard:
-    key = f"{mode or 'default'}:{top}:{universe}"
+    key = f"{mode or 'default'}:{top}:{universe}:{view}"
 
     async def _build() -> OpportunityBoard:
         return await build_opportunity_board(
-            service, data_api, requested_mode=mode, top=top, universe_limit=universe
+            service, data_api, requested_mode=mode, top=top, universe_limit=universe, view=view
         )
 
     board = await _board_cache.get(key, _build)
