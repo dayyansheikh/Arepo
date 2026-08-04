@@ -351,7 +351,8 @@ export default function MarketsPage() {
               {universe.data.markets.length > 0 && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {universe.data.markets.map((m) => (
-                    <MarketCardView key={m.id} market={m} />
+                    // Full-universe search hits the live Gamma universe, so open results in Live.
+                    <MarketCardView key={m.id} market={m} sourceMode="live" />
                   ))}
                 </div>
               )}

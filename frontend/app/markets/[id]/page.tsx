@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useMode } from "@/lib/mode-context";
+import type { DataMode } from "@/lib/types";
 import { useAsync } from "@/lib/use-async";
 import { getMarket } from "@/lib/api";
 import { formatCurrencyCompact, formatDate } from "@/lib/format";
@@ -13,7 +14,7 @@ import { SignalItem } from "@/components/SignalItem";
 import { ModelView } from "@/components/ModelView";
 import { MetricHelp } from "@/components/MetricHelp";
 import { SectionTitle, Disclose } from "@/components/ui";
-import { ErrorState, EmptyState } from "@/components/ErrorState";
+import { EmptyState } from "@/components/ErrorState";
 import { SkeletonBlock } from "@/components/Skeletons";
 
 // Plain-English label for where this market's data came from.
@@ -38,17 +39,95 @@ const RANGE_LABEL: Record<string, string> = {
   all: "All",
 };
 
+const VALID_MODES: DataMode[] = ["live", "cached", "replay"];
+
+/**
+ * Compact market-route error (spec §3.13, §4). Never a large blank page: a bordered card that
+ * states the searched market and requested mode and offers a way forward (open in Live, retry,
+ * back to Explore). The footer follows it naturally because the card is short and the shell no
+ * longer forces a tall min-height.
+ */
+function MarketRouteError({
+  id,
+  mode,
+  kind,
+  message,
+  onRetry,
+}: {
+  id: string;
+  mode: DataMode;
+  kind: "not-found" | "error";
+  message?: string;
+  onRetry: () => void;
+}) {
+  const router = useRouter();
+  return (
+    <div className="mx-auto max-w-lg rounded-card border border-arepo-border bg-arepo-surface p-6 text-center shadow-arepo-sm">
+      <p className="font-display text-lg font-semibold text-arepo-ink">
+        {kind === "not-found" ? "We could not open this market" : "This market failed to load"}
+      </p>
+      <p className="mt-2 text-[14px] leading-relaxed text-arepo-muted">
+        {kind === "not-found" ? (
+          <>
+            Arepo could not resolve market <span className="font-tabular">{id}</span> in the{" "}
+            {SOURCE_LABEL[mode] ?? mode} view. It may not exist, or it may live in another data
+            source.
+          </>
+        ) : (
+          (message ?? "The request failed.")
+        )}
+      </p>
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+        {mode !== "live" && (
+          <button
+            type="button"
+            onClick={() => router.replace(`/markets/${encodeURIComponent(id)}?mode=live`)}
+            className="focus-ring rounded-md bg-arepo-accent px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-arepo-accentHover"
+          >
+            Open in Live
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onRetry}
+          className="focus-ring rounded-md border border-arepo-border px-3 py-1.5 text-[13px] font-medium text-arepo-ink hover:bg-arepo-surface2"
+        >
+          Retry
+        </button>
+        <Link
+          href="/markets"
+          className="focus-ring rounded-md border border-arepo-border px-3 py-1.5 text-[13px] font-medium text-arepo-ink hover:bg-arepo-surface2"
+        >
+          Return to search
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function MarketDetailPage() {
   const params = useParams<{ id: string }>();
   const id = decodeURIComponent(params.id);
-  const { mode } = useMode();
+  const { mode: globalMode } = useMode();
+  const searchParams = useSearchParams();
+
+  // An explicit ?mode= in the URL (set by search results, saved markets and alerts) is the
+  // market's own source context and wins over the globally-selected interface mode (spec §3), so
+  // a live search result opens the live market even while Replay is selected. The backend also
+  // resolves canonically, so opening still works if no mode is given.
+  const urlMode = searchParams.get("mode");
+  const mode: DataMode = VALID_MODES.includes(urlMode as DataMode)
+    ? (urlMode as DataMode)
+    : globalMode;
 
   // undefined = let the server pick its default ("all"); once the reader picks
   // a range explicitly we keep requesting that one until it stops applying.
   const [range, setRange] = useState<string | undefined>(undefined);
+  const [reloadKey, setReloadKey] = useState(0);
+  const retry = () => setReloadKey((k) => k + 1);
   const { data, loading, error, notFound } = useAsync(
     () => getMarket(id, mode, range),
-    [id, mode, range]
+    [id, mode, range, reloadKey]
   );
 
   // A range chosen for one market may not apply to another (e.g. a market
@@ -75,11 +154,11 @@ export default function MarketDetailPage() {
   }
 
   if (notFound) {
-    return <ErrorState title="Market not found" message="This market does not exist in the current mode." />;
+    return <MarketRouteError id={id} mode={mode} kind="not-found" onRetry={retry} />;
   }
 
   if (error) {
-    return <ErrorState message={error} />;
+    return <MarketRouteError id={id} mode={mode} kind="error" message={error} onRetry={retry} />;
   }
 
   if (!data) return null;

@@ -10,11 +10,23 @@ import { Badge, StatusDot } from "./ui";
  * strength. Secondary statistics (volume, spread, order-book detail) live on the
  * market detail page.
  */
-export function MarketCardView({ market }: { market: MarketCard }) {
+export function MarketCardView({
+  market,
+  sourceMode,
+}: {
+  market: MarketCard;
+  // The data source this market came from (e.g. "live" for full-universe search results). When
+  // set, the link carries it as ?mode= so the detail page opens with the correct source context
+  // regardless of the globally-selected interface mode (spec §3).
+  sourceMode?: string;
+}) {
   const active = market.status?.toLowerCase() === "active";
+  const href = sourceMode
+    ? `/markets/${encodeURIComponent(market.id)}?mode=${sourceMode}`
+    : `/markets/${encodeURIComponent(market.id)}`;
   return (
     <Link
-      href={`/markets/${encodeURIComponent(market.id)}`}
+      href={href}
       className="focus-ring group flex flex-col gap-3.5 rounded-card border border-arepo-border bg-arepo-surface p-5 shadow-arepo-sm transition-all hover:border-arepo-accentBorder hover:shadow-arepo-hover"
     >
       <div className="flex flex-wrap items-center gap-2">
