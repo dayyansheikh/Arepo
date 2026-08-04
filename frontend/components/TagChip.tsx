@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useId, useRef, useState } from "react";
 import type { OpportunityTag } from "@/lib/types";
 import { FAMILY_LABEL, FAMILY_WHY } from "@/lib/opportunity";
@@ -58,12 +57,13 @@ export function TagChip({ tag }: { tag: OpportunityTag }) {
       </button>
 
       {visible && (
-        // Not role="tooltip": the panel contains a focusable link, and ARIA tooltips must be
-        // non-interactive. It is an expandable region described by the button's aria-controls.
+        // A self-contained, non-interactive explanation (role="tooltip"). The old "Full
+        // definition" link was removed (spec §3): several tag anchors (trade-flow,
+        // wallet-concentration, trade-timing) had no matching Methodology section, so the link
+        // landed on an irrelevant place. The popover explains the tag in full without navigation.
         <span
           id={panelId}
-          role="group"
-          aria-label={`About the ${tag.label} tag`}
+          role="tooltip"
           className="absolute left-0 top-full z-50 mt-2 block w-72 rounded-[10px] border border-arepo-border bg-arepo-surface p-3 text-left shadow-[0_6px_20px_rgba(16,16,16,0.10)]"
         >
           <span className="block text-sm font-semibold text-arepo-ink">{tag.label}</span>
@@ -76,12 +76,6 @@ export function TagChip({ tag }: { tag: OpportunityTag }) {
           <span className="mt-1.5 block text-[12px] uppercase tracking-wide text-arepo-muted">
             Evidence family: {familyLabel}
           </span>
-          <Link
-            href={`/methodology#${tag.methodology_anchor}`}
-            className="focus-ring mt-2 inline-block text-sm font-medium text-arepo-accentActive hover:text-arepo-accentHover"
-          >
-            Full definition &rarr;
-          </Link>
         </span>
       )}
     </span>
