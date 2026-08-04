@@ -196,6 +196,23 @@ export function getHistoricalScreen(
   });
 }
 
+export interface ReplayDataStatus {
+  microstructure_snapshots_stored: number;
+  last_collection_at: string | null;
+  collector_recent: boolean;
+  seconds_since_last_collection: number | null;
+  snapshot_interval_seconds: number;
+  weekly_cohorts_total: number;
+  prospective_cohorts: number;
+  oldest_cutoff: string | null;
+  newest_cutoff: string | null;
+  note: string;
+}
+
+export function getReplayDataStatus(): Promise<ReplayDataStatus> {
+  return apiFetch<ReplayDataStatus>("/api/replay/data-status");
+}
+
 // -- Accounts ---------------------------------------------------------------------------
 // These endpoints use the auth cookie, so every request must send credentials. fastapi-users
 // login expects form-encoded data; everything else is JSON.

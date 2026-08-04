@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAsync } from "@/lib/use-async";
+import { useUrlState } from "@/lib/use-url-state";
 import {
   getBacktest,
   getCohort,
   getCohortProvenance,
   getCohortWeeks,
   getHistoricalScreen,
+  getReplayDataStatus,
 } from "@/lib/api";
 import type {
   BaselineComparison,
@@ -68,13 +70,19 @@ export default function ReplayPage() {
   );
 
   const [view, setView] = useState<View>("movement");
-  const [mode, setMode] = useState<"prospective" | "historical">("prospective");
+  // Default to the reconstructed "last week's opportunities" (real, honest) rather than the
+  // prospective cohort list, which currently holds only labelled synthetic demo data and showed a
+  // stale cohort as if it were current (spec §14, §19). The mode persists in the URL.
+  const [mode, setMode] = useUrlState("replay", "historical") as [
+    "historical" | "prospective",
+    (v: string) => void,
+  ];
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Replay"
-        lead="If Arepo had selected these signals at the time, what happened afterwards? The prospective track record freezes each week's signals and tracks them forward with no hindsight. A separate historical analysis reconstructs signals over past price data."
+        lead="If you had opened Arepo at a past cut-off and followed its top directional opportunities, what happened next? The default reconstructs those opportunities from only the data available at the time. A separate prospective record freezes each week's real selections and tracks them forward."
       />
 
       <DisclaimerBanner>
@@ -82,7 +90,7 @@ export default function ReplayPage() {
         future results.
       </DisclaimerBanner>
 
-      {/* Prospective (real, frozen weekly) vs Historical (reconstructed) analysis. */}
+      {/* Reconstructed "last week's opportunities" (default) vs the prospective frozen record. */}
       <div
         className="inline-flex rounded-control border border-arepo-border bg-arepo-surface p-0.5"
         role="tablist"
@@ -90,9 +98,9 @@ export default function ReplayPage() {
       >
         {(
           [
-            ["prospective", "Prospective cohorts"],
-            ["historical", "Historical analysis"],
-          ] as ["prospective" | "historical", string][]
+            ["historical", "Last week's opportunities"],
+            ["prospective", "Prospective record"],
+          ] as ["historical" | "prospective", string][]
         ).map(([key, label]) => (
           <button
             key={key}
@@ -498,7 +506,8 @@ const HISTORICAL_PERIODS = [
 ];
 
 function HistoricalView() {
-  const [days, setDays] = useState(7);
+  const [cutoffStr, setCutoff] = useUrlState("cutoff", "7");
+  const days = Number(cutoffStr) || 7;
   const { data, loading, error } = useAsync<HistoricalScreen>(
     () => getHistoricalScreen(days),
     [days]
@@ -523,8 +532,8 @@ function HistoricalView() {
           <span className="text-[13px] font-medium text-arepo-ink2">Cut-off</span>
           <select
             className="select-arepo w-44"
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
+            value={String(days)}
+            onChange={(e) => setCutoff(e.target.value)}
           >
             {HISTORICAL_PERIODS.map((p) => (
               <option key={p.days} value={p.days}>
@@ -543,7 +552,50 @@ function HistoricalView() {
       {loading && <ListSkeleton rows={6} />}
       {!loading && error && <ErrorState message={error} />}
       {!loading && data && <HistoricalResult screen={data} />}
+
+      <ReplayDataStatusSection />
     </div>
+  );
+}
+
+/** Replay data status (spec §18): what has actually been recorded, and the honest answer to
+ * "does leaving the website open increase the sample?" (no - the backend collectors must run). */
+function ReplayDataStatusSection() {
+  const { data } = useAsync(() => getReplayDataStatus(), []);
+  if (!data) return null;
+  const rows: [string, string][] = [
+    ["Collectors", data.collector_recent ? "Recently active" : "No recent collection"],
+    [
+      "Last collection",
+      data.last_collection_at ? new Date(data.last_collection_at).toLocaleString("en-GB") : "none",
+    ],
+    ["Snapshot interval", `${Math.round(data.snapshot_interval_seconds / 60)} min (scheduled)`],
+    ["Stored snapshots", String(data.microstructure_snapshots_stored)],
+    ["Prospective cohorts", String(data.prospective_cohorts)],
+    ["Weekly cohorts (all)", String(data.weekly_cohorts_total)],
+    [
+      "Recorded cut-offs",
+      data.oldest_cutoff
+        ? `${new Date(data.oldest_cutoff).toLocaleDateString("en-GB")} to ${
+            data.newest_cutoff ? new Date(data.newest_cutoff).toLocaleDateString("en-GB") : "?"
+          }`
+        : "none yet",
+    ],
+  ];
+  return (
+    <Disclose summary="Replay data status: does leaving the site open increase the sample?">
+      <div className="space-y-3">
+        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">{data.note}</p>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
+          {rows.map(([k, v]) => (
+            <div key={k} className="flex justify-between gap-3 border-b border-arepo-border py-1">
+              <dt className="text-[13px] text-arepo-muted">{k}</dt>
+              <dd className="text-[13px] font-medium text-arepo-ink2">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </Disclose>
   );
 }
 
