@@ -6,6 +6,7 @@ import type { Signal } from "@/lib/types";
 import { formatDateTime, formatNumber, formatPercent } from "@/lib/format";
 import {
   formatLookback,
+  componentUnavailableReason,
   friendlyComponentName,
   friendlySignalTitle,
   replaceComponentNames,
@@ -125,17 +126,30 @@ export function SignalItem({ signal }: { signal: Signal }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {signal.components.map((c, i) => (
-                      <tr key={`${c.name}-${i}`} className="border-t border-arepo-border">
-                        <td className="whitespace-nowrap py-1.5 pr-3 text-arepo-ink">
-                          {friendlyComponentName(c.name)}
-                        </td>
-                        <td className="py-1.5 pr-3">{formatNumber(c.raw_value, 3)}</td>
-                        <td className="py-1.5 pr-3">{formatNumber(c.normalized_value, 3)}</td>
-                        <td className="py-1.5 pr-3">{formatNumber(c.weight, 2)}</td>
-                        <td className="py-1.5 text-arepo-muted">{c.explanation}</td>
-                      </tr>
-                    ))}
+                    {signal.components.map((c, i) => {
+                      const missing = c.raw_value === null;
+                      return (
+                        <tr key={`${c.name}-${i}`} className="border-t border-arepo-border">
+                          <td className="whitespace-nowrap py-1.5 pr-3 text-arepo-ink">
+                            {friendlyComponentName(c.name)}
+                          </td>
+                          {missing ? (
+                            <td colSpan={3} className="py-1.5 pr-3 italic text-arepo-muted">
+                              {componentUnavailableReason(c.name)}
+                            </td>
+                          ) : (
+                            <>
+                              <td className="py-1.5 pr-3">{formatNumber(c.raw_value, 3)}</td>
+                              <td className="py-1.5 pr-3">
+                                {formatNumber(c.normalized_value, 3)}
+                              </td>
+                              <td className="py-1.5 pr-3">{formatNumber(c.weight, 2)}</td>
+                            </>
+                          )}
+                          <td className="py-1.5 text-arepo-muted">{c.explanation}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

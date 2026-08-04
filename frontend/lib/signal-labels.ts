@@ -55,6 +55,22 @@ export function friendlyComponentName(name: string): string {
 }
 
 /**
+ * An honest reason a component has no value yet, shown in place of a bare dash (spec §9.8/§9.9).
+ * The microstructure change features need a persisted snapshot series; until enough snapshots
+ * have been collected (or for a historical cut-off with no order-book history) they are missing,
+ * never zero.
+ */
+export const COMPONENT_UNAVAILABLE_REASON: Record<string, string> = {
+  volume_acceleration: "Not enough volume history yet",
+  spread_change: "Needs at least two order-book snapshots",
+  depth_change: "Needs at least two order-book snapshots",
+};
+
+export function componentUnavailableReason(name: string): string {
+  return COMPONENT_UNAVAILABLE_REASON[name] ?? "Not available for this reading";
+}
+
+/**
  * Replaces any raw component identifiers embedded in free text (e.g. a
  * "components: unusual_return, book_imbalance" fragment) with their friendly
  * names, so raw identifiers never leak into surface copy by accident.

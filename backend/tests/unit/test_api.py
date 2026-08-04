@@ -73,3 +73,17 @@ def test_invalid_sort_rejected(client):
 def test_response_time_header_present(client):
     resp = client.get("/health")
     assert "X-Response-Time-ms" in resp.headers
+
+
+def test_opportunity_diagnostics_replay(client):
+    resp = client.get("/api/opportunity/diagnostics", params={"mode": "replay", "universe": 10})
+    body = resp.json()
+    assert "component_availability" in body and "confidence_distribution" in body
+    assert set(body["component_availability"]) == {
+        "spread_change", "depth_change", "volume_acceleration",
+    }
+    # coverage + confidence fields are present and sane
+    assert 0 <= body["directional_coverage_pct"] <= 100
+    for comp in body["component_availability"].values():
+        assert comp["present"] + comp["missing"] == body["tokens_analysed"]
+        assert comp["reason_when_missing"]  # honest reason, never a bare dash

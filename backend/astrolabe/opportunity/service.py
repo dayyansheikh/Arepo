@@ -187,3 +187,89 @@ async def build_opportunity_board(
         cards=top_cards,
         note=note,
     )
+
+
+async def board_diagnostics(
+    market_service,
+    *,
+    requested_mode: str | None = None,
+    universe_limit: int = 60,
+    now: datetime | None = None,
+) -> dict:
+    """Internal diagnostic (spec §4, §8, §9): directional coverage, confidence distribution and
+    component availability over the current screened universe. Read-only; no side effects beyond
+    the normal best-effort snapshot recording in the enrich path."""
+    import statistics as _stats
+
+    now = now or utcnow()
+    pairs, mode = await market_service.enrich_markets(
+        requested_mode=requested_mode, limit=universe_limit
+    )
+    micro = ("spread_change", "depth_change", "volume_acceleration")
+    tokens = 0
+    present = {name: 0 for name in micro}
+    directional = 0
+    markets = 0
+    confidences: list[float] = []
+    fam_counts: dict[int, int] = {}
+    for _market, analytics in pairs:
+        if not analytics:
+            continue
+        markets += 1
+        lead = max(analytics, key=lambda a: a.signal.strength)
+        # Directional coverage uses the same rule as the board / market detail.
+        indicators = market_flow_indicators(
+            [], market_price=lead.implied, price_change=lead.movement,
+            end_date=None, start_date=None, now=now,
+        )
+        scored = score_opportunity(
+            lead.signal, indicators, liquidity=None, relative_spread=lead.relative_spread,
+            data_age_seconds=lead.data_age_seconds, now=now,
+        )
+        confidences.append(scored.confidence)
+        fam_counts[scored.n_families] = fam_counts.get(scored.n_families, 0) + 1
+        if has_directional_view(lead.signal.direction, scored.n_families, scored.signal_strength):
+            directional += 1
+        for ta in analytics:
+            tokens += 1
+            names = {c.name for c in ta.signal.components if c.raw_value is not None}
+            for name in micro:
+                if name in names:
+                    present[name] += 1
+
+    def _dist(xs: list[float]) -> dict:
+        if not xs:
+            return {}
+        s = sorted(xs)
+        return {
+            "min": round(min(xs), 3), "median": round(_stats.median(xs), 3),
+            "mean": round(_stats.mean(xs), 3), "p90": round(s[int(0.9 * (len(s) - 1))], 3),
+            "max": round(max(xs), 3),
+            "pct_eq_100": round(100 * sum(1 for x in xs if x >= 0.999) / len(xs), 1),
+            "pct_gt_90": round(100 * sum(1 for x in xs if x > 0.9) / len(xs), 1),
+        }
+
+    return {
+        "generated_at": now.isoformat(),
+        "data_mode": mode.value,
+        "markets_screened": markets,
+        "directional_views": directional,
+        "abstentions": markets - directional,
+        "directional_coverage_pct": round(100 * directional / markets, 1) if markets else 0.0,
+        "confidence_distribution": _dist(confidences),
+        "family_count_distribution": dict(sorted(fam_counts.items())),
+        "tokens_analysed": tokens,
+        "component_availability": {
+            name: {
+                "present": present[name],
+                "missing": tokens - present[name],
+                "present_pct": round(100 * present[name] / tokens, 1) if tokens else 0.0,
+                "reason_when_missing": (
+                    "Not enough volume history yet"
+                    if name == "volume_acceleration"
+                    else "Needs at least two order-book snapshots"
+                ),
+            }
+            for name in micro
+        },
+    }

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...opportunity.cache import SwrCache
 from ...opportunity.schemas import OpportunityBoard, SnapshotDetail, SnapshotEntry
-from ...opportunity.service import build_opportunity_board
+from ...opportunity.service import board_diagnostics, build_opportunity_board
 from ...opportunity.snapshot import get_snapshot, list_snapshot_dates
 from ...service import MarketService
 from ...storage.db import get_session
@@ -75,6 +75,18 @@ async def board(
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
     response.headers["X-Board-Cache"] = _board_cache.last_status or "miss"
     return board
+
+
+@router.get("/diagnostics")
+async def diagnostics(
+    mode: str | None = Query(None, description="live | cached | replay"),
+    universe: int = Query(60, ge=1, le=120),
+    service: MarketService = Depends(get_service),
+) -> dict:
+    """Component-availability + directional-coverage + confidence-distribution diagnostic (spec
+    §4/§8/§9). Read-only; useful for verifying that components are wired and confidence is not
+    saturated."""
+    return await board_diagnostics(service, requested_mode=mode, universe_limit=universe)
 
 
 @router.get("/snapshots", response_model=list[str])
