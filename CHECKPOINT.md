@@ -38,6 +38,34 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
+**Final gap-closure (branch `arepo-final-gap-closure`, from tag `arepo-before-final-gap-closure`
+@ 3de24b3).** Baseline in `docs/final-gap-baseline.md`.
+
+DONE + committed + pushed (backend 296 pass, ruff clean; frontend tsc/lint/build clean, vitest 8):
+- §1 baseline recorded.
+- §9 (commits 3ade25f, f2897a7): wired the microstructure snapshot series into the LIVE enrich
+  path (was 0/40 present; now ~12/16 once a series accumulates); honest missing-component reasons
+  in Signal Lab (no bare dashes); `GET /api/opportunity/diagnostics`; `docs/component-availability-audit.md`.
+- §8 (d16bd43): confidence now falls when microstructure components are missing (component
+  completeness factor). Live before/after: max 1.00→0.80, %==100% 10%→0%, median 0.76→0.52. Tests.
+- §3 (105f5d7): removed the broken "Full definition" tag link (anchors trade-flow/wallet-
+  concentration/trade-timing don't exist); verified all 18 MetricHelp links resolve.
+- §5 (c4ef4ae): `docs/replay-regression-investigation.md` (both samples are inconclusive noise,
+  keep causal behaviour); `evaluation/replay_stats.py` (sample_verdict, Wilson CI, causal
+  baselines) + 6 tests.
+
+IN PROGRESS / NEXT (no external account needed): §6 Replay top-5 + funnel + baselines wired into
+the screen response and the Replay page; §4/§13 unified gates + Signal Lab qualify/why fields;
+§14 data-consistency checks; §10 filter browser tests; §11 How It Works left-nav; §12 sign-in
+brand showcase (design-assets/brand/AREPO Typeface (word).png); §15 final-production-architecture
+doc; §16-17 deployment; §2 quant+beginner review docs; §18 Dayyan acceptance retest; §20 report.
+
+**Exact next action:** wire momentum_direction + reconstruction funnel + baseline comparison
+(replay_stats) into `evaluation/historical.py` HistoricalScreen and the `/api/historical/screen`
+response, then rebuild the Replay page (top-5, funnel, modes, inconclusive labels).
+
+## (superseded) Current phase
+
 **Directional Evidence, Replay & Deployment (branch `arepo-directional-evidence-deployment`,
 from the completed `arepo-product-simplification`; safety tag `arepo-pre-directional-evidence`).**
 

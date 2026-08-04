@@ -20,8 +20,8 @@ router = APIRouter(prefix="/api/historical", tags=["historical"])
 @router.get("/screen", response_model=HistoricalScreen)
 async def screen(
     days: int = Query(7, ge=1, le=30, description="how many days before now the cut-off sits"),
-    limit: int = Query(40, ge=1, le=60, description="how many active markets to scan"),
-    top_n: int = Query(15, ge=1, le=25),
+    limit: int = Query(80, ge=1, le=150, description="how many active markets to scan"),
+    top_n: int = Query(5, ge=1, le=25, description="top qualifying opportunities (default 5)"),
     service: MarketService = Depends(get_service),
 ) -> HistoricalScreen:
     """Reconstruct the top-N composite anomaly signals as of ``days`` ago and score them

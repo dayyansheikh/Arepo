@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from ..domain.models import PricePoint
 from ..service import enrich
 from .constants import PROVENANCE_RECONSTRUCTED
+from .replay_stats import DirectionalResult, compare_baselines, sample_verdict
 
 DEFAULT_HORIZONS: list[tuple[str, int]] = [("1h", 3600), ("24h", 86_400), ("7d", 604_800)]
 MIN_HISTORY = 30
@@ -62,6 +63,7 @@ class HistoricalEntry(BaseModel):
     market_question: str
     outcome_name: str
     direction: str | None
+    momentum_direction: str | None = None   # sign of the pre-cut-off trailing move (baseline)
     strength: float
     confidence: float
     data_quality: str
@@ -84,6 +86,12 @@ class HistoricalScreen(BaseModel):
     moved_expected_24h: int
     moved_against_24h: int
     pending_24h: int
+    # Reconstruction funnel (spec §6.7): existed -> price data -> eligible -> directional -> top.
+    candidates_total: int = 0
+    had_price_data: int = 0
+    directional: int = 0
+    sample_verdict: str = "inconclusive"      # a tiny sample is never presented as proof
+    baseline_comparison: dict | None = None   # Arepo vs no-change / momentum / naive baselines
     entries: list[HistoricalEntry]
     plain_summary: str
     assumptions: list[str]
@@ -111,13 +119,15 @@ async def run_historical_screen(
     horizons: list[tuple[str, int]] | None = None,
 ) -> HistoricalScreen:
     horizons = horizons or DEFAULT_HORIZONS
-    considered = 0
+    considered = 0          # had usable price data around the cut-off
+    had_price_data = 0      # had ANY history returned
     eligible: list[dict] = []
 
     for cand in candidates:
         hist = await history_of(cand.token_id)
         if not hist:
             continue
+        had_price_data += 1
         hist = sorted(hist, key=lambda p: p.t)
         prefix = [p for p in hist if p.t <= as_of]
         suffix = [p for p in hist if p.t > as_of]
@@ -149,6 +159,12 @@ async def run_historical_screen(
         if sig.strength < min_strength:
             continue
 
+        # Momentum baseline direction: sign of the trailing pre-cut-off move (causal, uses only
+        # prices at or before the cut-off). None when there is no discernible trailing move.
+        trail_from = prices[-min(4, len(prices))]
+        trail = entry - trail_from
+        momentum_dir = "up" if trail > 0 else "down" if trail < 0 else None
+
         forwards = [
             HForward(
                 horizon=label,
@@ -168,6 +184,8 @@ async def run_historical_screen(
                 "cand": cand,
                 "sig": sig,
                 "entry": entry,
+                "momentum_dir": momentum_dir,
+                "move24": move24,
                 "lookback": len(prefix),
                 "forwards": forwards,
                 "final_price": final_price,
@@ -202,6 +220,7 @@ async def run_historical_screen(
             market_question=r["cand"].market_question,
             outcome_name=r["cand"].outcome_name,
             direction=r["sig"].direction,
+            momentum_direction=r["momentum_dir"],
             strength=r["sig"].strength,
             confidence=r["sig"].confidence,
             data_quality=r["sig"].data_quality.value
@@ -222,6 +241,26 @@ async def run_historical_screen(
     moved_against = sum(1 for r in top if r["dir_correct"] is False)
     pending = sum(1 for r in top if r["dir_correct"] is None)
 
+    # Directional count across the eligible set (those with a resolved direction).
+    directional = sum(1 for r in deduped if r["sig"].direction in ("up", "down"))
+
+    # Baseline comparison over the selected top-N (the markets a user would have "followed").
+    results = [
+        DirectionalResult(
+            arepo_direction=r["sig"].direction,
+            momentum_direction=r["momentum_dir"],
+            move_24h=r["move24"],
+        )
+        for r in top
+    ]
+    cmp = compare_baselines(results)
+    baseline_comparison = {
+        "sample_size": cmp.sample_size,
+        "verdict": cmp.verdict,
+        "arepo": cmp.arepo,
+        "baselines": cmp.baselines,
+    }
+
     return HistoricalScreen(
         as_of=as_of,
         top_n=top_n,
@@ -231,6 +270,11 @@ async def run_historical_screen(
         moved_expected_24h=moved_expected,
         moved_against_24h=moved_against,
         pending_24h=pending,
+        candidates_total=len(candidates),
+        had_price_data=had_price_data,
+        directional=directional,
+        sample_verdict=sample_verdict(len(entries)),
+        baseline_comparison=baseline_comparison,
         entries=entries,
         plain_summary=_plain_summary(len(entries), moved_expected, moved_against, pending),
         assumptions=[
