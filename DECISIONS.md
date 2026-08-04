@@ -5,6 +5,67 @@ Newest entries at the top of each section.
 
 ---
 
+## Signal Intelligence & Replay functional validation (branch `arepo-signal-replay-functional-validation`)
+
+Independent reviewers (quant, provenance, implementation, adversarial) audited the running system;
+Opus synthesised. Conflict priority per spec §2: causal validity > statistical honesty > functional
+usefulness > consistency > reliability > simplicity > performance > aesthetics. **No threshold,
+sample, cut-off or eligibility rule was changed to improve a reported result.** Every change below
+was decided on principle before, or independently of, its effect on any metric.
+
+### D-SR5. Momentum-agreement + Brier honesty (spec §12, §13; quant B#2/B#3)
+Arepo's direction is `sign(latest-return z-score)`, close to momentum by construction, so "Arepo vs
+momentum" is near-self-referential. Rather than change the signal (which would risk gaming), the
+Replay baseline comparison now reports `arepo_momentum_agreement` so the reader sees this directly.
+Brier/log loss are **not** computed on the reconstructed directional screen: Arepo emits a
+direction, not a calibrated probability, and reconstructed markets rarely resolve; a fabricated
+Brier would violate §13. An explicit `probabilistic_metrics_note` says so, and the stale
+"Brier framework exists" claim in `docs/quant-final-review.md` was corrected. Brier/log loss are
+reserved for the prospective resolution view once a real resolved sample exists.
+
+### D-SR4. Reconstructed Replay reproducibility + survivorship honesty (spec §9, §16; C#1/C#2/F#4/F#5)
+The reconstructed cut-off is snapped to the start of the target UTC day, so same-day requests are
+reproducible; it remains a live screen (the prospective cohort is the immutable record, stated in
+the limitations). The universe is today's still-open markets ranked by today's volume, which HARD-
+excludes anything closed/resolved since the cut-off — corrected from the old "mild survivorship"
+wording in both the docstring and the user-facing limitations, and named as the main reason the
+funnel is so thin. `/api/cohorts/latest` now excludes synthetic cohorts so demo data can never be
+served as the current prospective record (F#6).
+
+### D-SR3. z-score materiality floor (spec §4; quant B#9)
+Off a perfectly flat baseline the z-score is 0/0; previously any move > 1e-12 emitted the maximal
+clipped z (±10), so a 0.1-point blip saturated the strongest composite component. Now a move must be
+economically material (≥ `FLAT_BASELINE_MIN_MOVE` = 0.005 probability points) to be called maximally
+unusual; below that it abstains. Chosen on the principle that a sub-half-point move is negligible on
+a 0–1 scale, not tuned to any outcome.
+
+### D-SR2. Flat forward moves are not directional misses (spec §10, §11; quant B#1, adversarial F#1)
+A single shared `classify_directional` (tolerance `FLAT_EPS` = 0.01, the value the no-change baseline
+already used) classifies a forward move as correct / incorrect / **flat** / pending, applied
+symmetrically to EVERY directional predictor (Arepo, momentum, price-only, current-implied,
+always-up/down) AND to the real prospective cohort pipeline (`tracking._movement_correct`,
+`CohortSummary.moved_flat`). Flats are excluded from every hit-rate denominator and reported in their
+own column, so a market that did not move can never be booked as a miss. This is a predeclared
+honesty rule fixed on principle: it moves flats out of BOTH numerator and denominator symmetrically
+and does not favour Arepo. Live effect at the 7-day cut-off: the misleading "4 moved against
+(Arepo 0/4)" became "2 moved against, 2 flat (Arepo 0/2)"; the apparent no-change advantage was
+largely a flat-handling artefact. The adversarial reviewer found the same bug in the real cohort
+pipeline; it is fixed and tested there too.
+
+### D-SR1. One confidence definition on every surface (spec §6, §17; quant B#4, impl D#2)
+Signal Lab and Market Detail previously displayed the raw data-quality term (`signal.confidence`),
+which is 1.00 for every good-data signal, while the Opportunity Board displayed the reliability
+confidence for the same signal. Reliability confidence (data quality × evidence corroboration ×
+component completeness) is the defensible number, so it is now computed once in the enrich path
+(`signal.reliability_confidence` + `signal.n_families`) and displayed on every surface; no surface
+shows 100%. `volume_acceleration`, which is present 0% of the time live, was removed from the
+completeness set so a permanently-absent component no longer caps confidence for a non-data reason.
+The frontend directional gate now consumes `signal.n_families` so Signal Lab, Market Detail and the
+Board apply one identical `has_directional_view` rule. The Board may still read higher when live
+trades add a family — the single documented, legitimate exception.
+
+---
+
 ## Directional Evidence, Replay & Deployment (branch `arepo-directional-evidence-deployment`)
 
 ### D0. Research paper adopted vs deferred (spec §2)

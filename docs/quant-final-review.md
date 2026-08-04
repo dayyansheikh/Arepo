@@ -47,8 +47,14 @@ reports availability.
 Replay compares Arepo against no-change, momentum, always-up, always-down over the same sample with
 hit rate and Wilson 95% intervals. On the current tiny sample Arepo (3/5) equals momentum and
 always-down; the UI labels this **inconclusive** and claims no edge. This is the correct posture: a
-3-5 market hit rate is not evidence. Brier/log-loss framework exists in `replay_stats`; extend to
-the resolution target as the prospective sample grows.
+3-5 market hit rate is not evidence. Correction (2026-08-04, functional validation pass): an
+earlier revision of this note claimed a "Brier/log-loss framework exists in `replay_stats`". It did
+not, and does not: Arepo emits a directional call, not a calibrated probability, so Brier and log
+loss are not applicable to the reconstructed directional screen and are NOT computed there (a
+fabricated number would be worse than none). `replay_stats` reports a directional hit rate with
+Wilson intervals plus flat-aware, symmetric baselines. Brier/log loss are reserved for the
+prospective cohort's resolution view once enough markets resolve (see
+`docs/signal-replay-quant-review.md` and `probabilistic_metrics_note` in the API).
 
 ## 8. Misleading metrics — RESOLVED
 The main risks (100% confidence with missing components; a tiny-sample hit rate shown as a result;
