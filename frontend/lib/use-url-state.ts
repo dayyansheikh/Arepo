@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { nextSearch, readParam } from "./url-state";
 
 /**
  * Two-way bind a single string value to a URL query parameter, so that browser Back/Forward,
@@ -20,14 +21,11 @@ export function useUrlState(
   const router = useRouter();
   const pathname = usePathname();
 
-  const value = params.get(key) ?? defaultValue;
+  const value = readParam(params.toString(), key, defaultValue);
 
   const set = useCallback(
     (next: string) => {
-      const sp = new URLSearchParams(params.toString());
-      if (next === defaultValue || next === "") sp.delete(key);
-      else sp.set(key, next);
-      const qs = sp.toString();
+      const qs = nextSearch(params.toString(), key, next, defaultValue);
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
     [params, router, pathname, key, defaultValue],
