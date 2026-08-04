@@ -26,7 +26,12 @@ from ..domain.models import PricePoint
 from ..opportunity.scoring import score_opportunity
 from ..service import enrich
 from .constants import PROVENANCE_RECONSTRUCTED
-from .replay_stats import DirectionalResult, compare_baselines, sample_verdict
+from .replay_stats import (
+    DirectionalResult,
+    classify_directional,
+    compare_baselines,
+    sample_verdict,
+)
 
 DEFAULT_HORIZONS: list[tuple[str, int]] = [("1h", 3600), ("24h", 86_400), ("7d", 604_800)]
 MIN_HISTORY = 30
@@ -78,7 +83,8 @@ class HistoricalEntry(BaseModel):
     forward: list[HForward]
     final_price: float | None
     final_movement: float | None
-    direction_correct_24h: bool | None
+    direction_correct_24h: bool | None      # True/False only when it moved; None if flat/pending
+    outcome_24h: str = "pending"            # correct | incorrect | flat | pending (spec §10/§11)
 
 
 class HistoricalScreen(BaseModel):
@@ -90,6 +96,7 @@ class HistoricalScreen(BaseModel):
     selected: int
     moved_expected_24h: int
     moved_against_24h: int
+    moved_flat_24h: int = 0                    # market did not move beyond FLAT_EPS (spec §10/§11)
     pending_24h: int
     # Reconstruction funnel (spec §6.7): existed -> price data -> eligible -> directional -> top.
     candidates_total: int = 0
@@ -200,9 +207,12 @@ async def run_historical_screen(
         ]
         final_price = suffix[-1].p
         move24 = next((f.movement for f in forwards if f.horizon == "24h"), None)
-        dir_correct: bool | None = None
-        if sig.direction and move24 is not None:
-            dir_correct = (move24 > 0) if sig.direction == "up" else (move24 < 0)
+        # Flat-aware outcome (spec §10/§11): a market that did not move beyond FLAT_EPS is 'flat',
+        # never a directional miss. dir_correct stays bool only when it genuinely moved.
+        outcome24 = classify_directional(sig.direction, move24) or "pending"
+        dir_correct: bool | None = (
+            True if outcome24 == "correct" else False if outcome24 == "incorrect" else None
+        )
 
         eligible.append(
             {
@@ -220,6 +230,7 @@ async def run_historical_screen(
                 "final_price": final_price,
                 "final_movement": final_price - entry if final_price is not None else None,
                 "dir_correct": dir_correct,
+                "outcome24": outcome24,
                 "components": [
                     {"name": c.name, "normalized_value": c.normalized_value, "weight": c.weight}
                     for c in sig.components
@@ -251,7 +262,14 @@ async def run_historical_screen(
             direction=r["sig"].direction,
             momentum_direction=r["momentum_dir"],
             strength=r["sig"].strength,
-            confidence=r["sig"].confidence,
+            # Reliability confidence AT the cut-off (spec §6, §17): the same definition every live
+            # surface shows, computed price-only here (no historical book), so it is honest about
+            # the thin reconstructed evidence rather than the raw data-quality term.
+            confidence=(
+                r["sig"].reliability_confidence
+                if r["sig"].reliability_confidence is not None
+                else r["sig"].confidence
+            ),
             research_priority=r["rp_at_cutoff"],
             data_quality=r["sig"].data_quality.value
             if hasattr(r["sig"].data_quality, "value")
@@ -267,13 +285,15 @@ async def run_historical_screen(
             final_price=r["final_price"],
             final_movement=r["final_movement"],
             direction_correct_24h=r["dir_correct"],
+            outcome_24h=r["outcome24"],
         )
         for i, r in enumerate(top)
     ]
 
-    moved_expected = sum(1 for r in top if r["dir_correct"] is True)
-    moved_against = sum(1 for r in top if r["dir_correct"] is False)
-    pending = sum(1 for r in top if r["dir_correct"] is None)
+    moved_expected = sum(1 for r in top if r["outcome24"] == "correct")
+    moved_against = sum(1 for r in top if r["outcome24"] == "incorrect")
+    moved_flat = sum(1 for r in top if r["outcome24"] == "flat")
+    pending = sum(1 for r in top if r["outcome24"] == "pending")
 
     # Directional count across the eligible set (those with a resolved direction).
     directional = sum(1 for r in deduped if r["sig"].direction in ("up", "down"))
@@ -305,6 +325,7 @@ async def run_historical_screen(
         selected=len(entries),
         moved_expected_24h=moved_expected,
         moved_against_24h=moved_against,
+        moved_flat_24h=moved_flat,
         pending_24h=pending,
         candidates_total=len(candidates),
         had_price_data=had_price_data,
@@ -312,7 +333,9 @@ async def run_historical_screen(
         sample_verdict=sample_verdict(len(entries)),
         baseline_comparison=baseline_comparison,
         entries=entries,
-        plain_summary=_plain_summary(len(entries), moved_expected, moved_against, pending),
+        plain_summary=_plain_summary(
+            len(entries), moved_expected, moved_against, moved_flat, pending
+        ),
         assumptions=[
             "The signal at the cut-off is reconstructed from only the real price history up to "
             "that moment, so there is no look-ahead.",
@@ -399,12 +422,20 @@ async def run_live_historical(
     )
 
 
-def _plain_summary(selected: int, expected: int, against: int, pending: int) -> str:
+def _plain_summary(
+    selected: int, expected: int, against: int, flat: int, pending: int
+) -> str:
     if selected == 0:
         return "No markets had enough real history to reconstruct a signal for this cut-off."
+    flat_clause = (
+        f", {flat} did not move over that window (flat, so neither right nor wrong)"
+        if flat
+        else ""
+    )
     return (
         f"Reconstructed the top {selected} composite-anomaly "
         f"{'signal' if selected == 1 else 'signals'} as of the cut-off. "
         f"Of those, {expected} moved in the signalled direction over the next 24 hours, "
-        f"{against} moved against it and {pending} could not be evaluated at that horizon."
+        f"{against} moved against it{flat_clause} and {pending} could not be evaluated at that "
+        "horizon. Flat markets are excluded from the hit rate."
     )

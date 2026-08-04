@@ -252,7 +252,7 @@ class Signal(DomainModel):
 
     components: list[SignalComponent] = Field(default_factory=list)
     data_quality: DataQuality = DataQuality.GOOD
-    confidence: float = 0.0                       # [0,1] DATA-QUALITY term only (freshness/coverage)
+    confidence: float = 0.0                       # [0,1] DATA-QUALITY term only (freshness/cover)
     # Estimated reliability shown to users (spec §6, §17): data quality x evidence corroboration x
     # component completeness. This is what every user-facing surface displays as "Confidence"; the
     # bare `confidence` above is only the data-quality input to it. Kept consistent across Signal

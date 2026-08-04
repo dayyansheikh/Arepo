@@ -286,6 +286,7 @@ export interface CohortSummary {
   selected: number;
   moved_expected: number;
   moved_against: number;
+  moved_flat: number;
   movement_pending: number;
   movement_horizon: string;
   resolved_correct: number;
@@ -364,6 +365,7 @@ export interface HistoricalEntry {
   final_price: number | null;
   final_movement: number | null;
   direction_correct_24h: boolean | null;
+  outcome_24h: "correct" | "incorrect" | "flat" | "pending";
 }
 
 export interface BaselineScore {
@@ -371,6 +373,7 @@ export interface BaselineScore {
   evaluated: number;
   correct: number;
   incorrect: number;
+  flat: number;
   hit_rate: number | null;
   ci95: [number, number];
   verdict: string;
@@ -392,6 +395,7 @@ export interface HistoricalScreen {
   selected: number;
   moved_expected_24h: number;
   moved_against_24h: number;
+  moved_flat_24h: number;
   pending_24h: number;
   candidates_total: number;
   had_price_data: number;

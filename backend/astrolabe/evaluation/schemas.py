@@ -87,6 +87,7 @@ class CohortSummary(BaseModel):
     selected: int
     moved_expected: int
     moved_against: int
+    moved_flat: int = 0             # market did not move beyond FLAT_EPS; excluded from hit rate
     movement_pending: int
     movement_horizon: str
     # Final-resolution view.

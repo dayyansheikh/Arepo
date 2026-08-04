@@ -273,10 +273,11 @@ function CohortView({
       </div>
 
       {view === "movement" ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <StatTile label="Signals selected" value={String(s.selected)} />
           <StatTile label="Moved as expected" value={String(s.moved_expected)} />
           <StatTile label="Moved against" value={String(s.moved_against)} />
+          <StatTile label="Flat" value={String(s.moved_flat ?? 0)} />
           <StatTile label="Pending" value={String(s.movement_pending)} />
         </div>
       ) : (
@@ -665,17 +666,19 @@ function BaselineTable({ comparison }: { comparison: BaselineComparison }) {
     <section className="space-y-2">
       <SectionTitle>Arepo vs simple baselines</SectionTitle>
       <p className="text-[13px] text-arepo-muted">
-        Directional correctness over the same {comparison.sample_size} reconstructed markets. Any
-        edge must beat these baselines; on this sample the differences are not statistically
-        meaningful.
+        Directional correctness over the same reconstructed markets. Markets that stayed flat over
+        24 hours are shown separately and excluded from every predictor&apos;s hit rate, so a market
+        that did not move is never booked as a directional miss. Any edge must beat these baselines;
+        on this sample the differences are not statistically meaningful.
       </p>
       <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] text-[13px]">
+          <table className="w-full min-w-[600px] text-[13px]">
             <thead>
               <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
                 <th className="px-4 py-2.5 font-semibold">Method</th>
                 <th className="px-4 py-2.5 font-semibold">Correct</th>
+                <th className="px-4 py-2.5 font-semibold">Flat</th>
                 <th className="px-4 py-2.5 font-semibold">Hit rate</th>
                 <th className="px-4 py-2.5 font-semibold">95% interval</th>
               </tr>
@@ -687,6 +690,7 @@ function BaselineTable({ comparison }: { comparison: BaselineComparison }) {
                   <td className="px-4 py-2 text-arepo-ink2">
                     {score.correct}/{score.evaluated}
                   </td>
+                  <td className="px-4 py-2 font-tabular text-arepo-muted">{score.flat ?? 0}</td>
                   <td className="px-4 py-2 font-tabular text-arepo-ink2">{pct(score.hit_rate)}</td>
                   <td className="px-4 py-2 font-tabular text-arepo-muted">
                     {pct(score.ci95[0])} to {pct(score.ci95[1])}
@@ -732,10 +736,11 @@ function HistoricalResult({
         {screen.plain_summary}
       </p>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <StatTile label="Signals reconstructed" value={String(screen.selected)} />
         <StatTile label="Moved as expected (24h)" value={String(screen.moved_expected_24h)} />
         <StatTile label="Moved against (24h)" value={String(screen.moved_against_24h)} />
+        <StatTile label="Flat (24h)" value={String(screen.moved_flat_24h)} />
         <StatTile label="Not evaluable (24h)" value={String(screen.pending_24h)} />
       </div>
       {/* Reconstruction funnel (spec §6.7): make the small sample transparent, not hidden. */}
@@ -825,12 +830,23 @@ function HistoricalResult({
 
 function HistoricalRow({ entry }: { entry: HistoricalEntry }) {
   const move24 = entry.forward.find((f) => f.horizon === "24h")?.movement ?? null;
-  const verdict =
-    entry.direction_correct_24h === true
-      ? { tone: "good" as const, label: "As expected" }
+  // Flat-aware verdict (spec §10/§11): a market that did not move is shown as "Flat", never as a
+  // red directional miss. Falls back to the boolean for older payloads without outcome_24h.
+  const outcome =
+    entry.outcome_24h ??
+    (entry.direction_correct_24h === true
+      ? "correct"
       : entry.direction_correct_24h === false
+        ? "incorrect"
+        : "pending");
+  const verdict =
+    outcome === "correct"
+      ? { tone: "good" as const, label: "As expected" }
+      : outcome === "incorrect"
         ? { tone: "bad" as const, label: "Against" }
-        : { tone: "pending" as const, label: "Not evaluable" };
+        : outcome === "flat"
+          ? { tone: "pending" as const, label: "Flat (no move)" }
+          : { tone: "pending" as const, label: "Not evaluable" };
   return (
     <tr>
       <td className="px-4 py-2.5">

@@ -15,8 +15,34 @@ from dataclasses import dataclass
 # interval on a handful of Bernoulli trials spans almost all of [0, 1].
 MIN_MEANINGFUL_SAMPLE = 20
 
-# A 24h move smaller than this (probability points) is treated as flat for the no-change baseline.
+# A forward move at or below this magnitude (probability points) is treated as FLAT: the market did
+# not meaningfully move, so a directional call is neither right nor wrong. This single tolerance is
+# applied symmetrically to EVERY directional predictor (Arepo, momentum, price-only,
+# current-implied, always-up/down) and to the prospective cohort pipeline, and it is the same
+# threshold the no-change baseline uses. It is a predeclared rule (spec §10/§11, DECISIONS D-SR1),
+# fixed on principle, not tuned to outcomes: flats are excluded from every directional hit-rate
+# denominator and reported in their own column so a flat market is never booked as a miss.
 FLAT_EPS = 0.01
+
+
+def classify_directional(
+    direction: str | None, move: float | None, flat_eps: float = FLAT_EPS
+) -> str | None:
+    """Ternary (plus abstain) outcome of a directional call against a realised forward move.
+
+    Returns ``"flat"`` when ``|move| <= flat_eps`` (the market did not move, so the call is neither
+    right nor wrong), ``"correct"`` / ``"incorrect"`` when it did move, or ``None`` when there is no
+    forward move to evaluate (pending) or the predictor made no directional call (abstained). Flats
+    are deliberately NOT ``correct`` and NOT ``incorrect`` so they are excluded from the hit-rate
+    denominator for every directional predictor identically.
+    """
+    if move is None:
+        return None
+    if abs(move) <= flat_eps:
+        return "flat"
+    if direction not in ("up", "down"):
+        return None
+    return "correct" if ((move > 0) == (direction == "up")) else "incorrect"
 
 
 def sample_verdict(n: int) -> str:
@@ -48,9 +74,17 @@ class DirectionalResult:
 
 
 def _correct(direction: str | None, move: float | None) -> bool | None:
-    if direction not in ("up", "down") or move is None:
-        return None
-    return (move > 0) if direction == "up" else (move < 0)
+    """True/False only when the market moved beyond FLAT_EPS; None when flat, pending or abstained.
+
+    Flats return None (not False) so a directional call on a market that did not move is never
+    scored as a miss. Callers count flats separately via ``classify_directional``.
+    """
+    outcome = classify_directional(direction, move)
+    if outcome == "correct":
+        return True
+    if outcome == "incorrect":
+        return False
+    return None
 
 
 @dataclass(frozen=True)
@@ -62,19 +96,20 @@ class BaselineComparison:
 
 
 def _score(name: str, directions: list[str | None], moves: list[float | None]) -> dict:
-    evaluated = [
-        (_correct(d, m))
-        for d, m in zip(directions, moves, strict=False)
-        if _correct(d, m) is not None
+    outcomes = [
+        classify_directional(d, m) for d, m in zip(directions, moves, strict=False)
     ]
-    n = len(evaluated)
-    k = sum(1 for c in evaluated if c)
+    k = sum(1 for o in outcomes if o == "correct")
+    incorrect = sum(1 for o in outcomes if o == "incorrect")
+    flat = sum(1 for o in outcomes if o == "flat")
+    n = k + incorrect            # flats and abstentions are excluded from the hit-rate denominator
     lo, hi = wilson_interval(k, n)
     return {
         "name": name,
         "evaluated": n,
         "correct": k,
-        "incorrect": n - k,
+        "incorrect": incorrect,
+        "flat": flat,
         "hit_rate": (k / n) if n else None,
         "ci95": [round(lo, 3), round(hi, 3)],
         "verdict": sample_verdict(n),
@@ -117,6 +152,9 @@ def compare_baselines(results: list[DirectionalResult]) -> BaselineComparison:
             "evaluated": len(nc_eval),
             "correct": nc_correct,
             "incorrect": len(nc_eval) - nc_correct,
+            # No change predicts flat, so a flat market is its win, not an excluded outcome; it has
+            # no separate flat bucket. Shown for column parity with the directional predictors.
+            "flat": 0,
             "hit_rate": (nc_correct / len(nc_eval)) if nc_eval else None,
             "ci95": [round(nc_lo, 3), round(nc_hi, 3)],
             "verdict": sample_verdict(len(nc_eval)),

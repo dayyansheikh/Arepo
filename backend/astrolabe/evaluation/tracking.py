@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .constants import DEFAULT_FEE_RATE, DEFAULT_STAKE, FORWARD_HORIZONS, HORIZON_24H
 from .portfolio import value_position
+from .replay_stats import classify_directional
 from .repository import EvaluationRepository, _utc
 
 # price_of(market_id, token_id) -> (price_in_[0,1] | None, source_timestamp | None)
@@ -122,12 +123,15 @@ def _mark_price(forward_by_horizon: dict[str, float | None]) -> tuple[str | None
 
 
 def _movement_correct(direction: str | None, movement: float | None) -> bool | None:
-    if direction is None or movement is None:
-        return None
-    if direction == "up":
-        return movement > 0
-    if direction == "down":
-        return movement < 0
+    """True/False only when the market moved beyond FLAT_EPS; None when flat, pending or no
+    direction. A flat 24h move (|movement| <= FLAT_EPS) is NOT a directional miss (spec §10/§11,
+    DECISIONS D-SR1); it is distinguished from pending in the summary via the stored raw movement.
+    """
+    outcome = classify_directional(direction, movement)
+    if outcome == "correct":
+        return True
+    if outcome == "incorrect":
+        return False
     return None
 
 

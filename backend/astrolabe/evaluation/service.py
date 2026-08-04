@@ -25,6 +25,7 @@ from .constants import (
 )
 from .models import WeeklyCohortRow
 from .portfolio import PositionResult, simulate_portfolio, value_position
+from .replay_stats import FLAT_EPS
 from .repository import EvaluationRepository
 from .schemas import (
     CohortDetail,
@@ -183,19 +184,27 @@ class CohortReadService:
         entries = await self.repo.get_entries(cohort.id)
         entry_outs: list[CohortEntryOut] = []
         positions: list[PositionResult] = []
-        moved_expected = moved_against = movement_pending = 0
+        moved_expected = moved_against = moved_flat = movement_pending = 0
         resolved_correct = resolved_incorrect = unresolved = 0
         for e in entries:
             out, pos = await self._entry_out(e)
             entry_outs.append(out)
             positions.append(pos)
             ev = out.evaluation
-            if ev is None or ev.movement_correct is None:
-                movement_pending += 1
-            elif ev.movement_correct:
+            if ev is not None and ev.movement_correct:
                 moved_expected += 1
-            else:
+            elif ev is not None and ev.movement_correct is False:
                 moved_against += 1
+            elif (
+                ev is not None
+                and ev.raw_prob_movement is not None
+                and abs(ev.raw_prob_movement) <= FLAT_EPS
+            ):
+                # Forward price exists and the market was flat: neither right nor wrong (spec
+                # §10/§11). Distinguished from pending, which has no forward price yet.
+                moved_flat += 1
+            else:
+                movement_pending += 1
             if ev is not None and ev.resolved:
                 if ev.resolution_correct:
                     resolved_correct += 1
@@ -242,26 +251,34 @@ class CohortReadService:
             selected=len(entries),
             moved_expected=moved_expected,
             moved_against=moved_against,
+            moved_flat=moved_flat,
             movement_pending=movement_pending,
             movement_horizon=HORIZON_24H,
             resolved_correct=resolved_correct,
             resolved_incorrect=resolved_incorrect,
             unresolved=unresolved,
             plain_summary=_plain_summary(
-                len(entries), moved_expected, moved_against, movement_pending
+                len(entries), moved_expected, moved_against, moved_flat, movement_pending
             ),
         )
         return CohortDetail(summary=summary, entries=entry_outs, portfolio=portfolio)
 
 
-def _plain_summary(selected: int, expected: int, against: int, pending: int) -> str:
+def _plain_summary(
+    selected: int, expected: int, against: int, flat: int, pending: int
+) -> str:
     if selected == 0:
         return "No signals qualified for this week."
+    flat_clause = (
+        f", {flat} stayed flat (neither right nor wrong, excluded from the hit rate)"
+        if flat
+        else ""
+    )
     return (
         f"Arepo selected {selected} qualifying "
         f"{'signal' if selected == 1 else 'signals'} this week. "
         f"Of those, {expected} later moved in the expected direction, "
-        f"{against} moved against it and {pending} remain pending, "
+        f"{against} moved against it{flat_clause} and {pending} remain pending, "
         f"measured at the 24 hour horizon."
     )
 
