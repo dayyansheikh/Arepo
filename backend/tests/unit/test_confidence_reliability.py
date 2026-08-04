@@ -54,3 +54,29 @@ def test_meaningful_variation_across_realistic_inputs():
 def test_bounds_and_clamping():
     assert reliability_confidence(2.0, 1) <= 1.0     # dq clamped
     assert reliability_confidence(-1.0, 3) >= 0.0    # dq clamped
+
+
+# -- §8 gap-closure: missing components must reduce confidence -----------------------------
+def test_missing_components_reduce_confidence():
+    # Same data quality + families, but missing microstructure components -> lower confidence.
+    full = reliability_confidence(1.0, TARGET_FAMILIES, component_completeness=1.0)
+    none = reliability_confidence(1.0, TARGET_FAMILIES, component_completeness=0.0)
+    assert none < full
+    # ...and it is monotonic in completeness.
+    seq = [reliability_confidence(1.0, 2, component_completeness=x) for x in (0.0, 0.33, 0.66, 1.0)]
+    assert seq == sorted(seq)
+
+
+def test_full_100_requires_data_families_and_components():
+    # 100% now needs perfect data quality AND full family corroboration AND all components present.
+    assert reliability_confidence(1.0, TARGET_FAMILIES, 1.0) == pytest.approx(1.0)
+    assert reliability_confidence(1.0, TARGET_FAMILIES, 0.0) < 1.0     # missing components
+    assert reliability_confidence(1.0, 1, 1.0) < 1.0                   # single family
+    assert reliability_confidence(0.6, TARGET_FAMILIES, 1.0) < 1.0     # imperfect data
+
+
+def test_completeness_penalty_is_bounded():
+    # Missing components lower confidence but never annihilate it (floor at 80% of the value).
+    with_all = reliability_confidence(1.0, 2, 1.0)
+    with_none = reliability_confidence(1.0, 2, 0.0)
+    assert with_none >= 0.8 * with_all - 1e-9

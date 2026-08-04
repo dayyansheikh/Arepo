@@ -109,21 +109,34 @@ def _book_family(signal: Signal) -> tuple[bool, float]:
 # meaningful variation and removes the old spike at 100%.
 RELIABILITY_BASE = 0.45          # reliability of a single-family reading before data quality
 RELIABILITY_SPAN = 0.55          # extra reliability earned by full family corroboration
+# Microstructure components that must be present for the reading to be considered complete. When
+# they are missing (no snapshot series yet, or none available historically) confidence is reduced
+# rather than pretending the reading is fully informed (spec §8.5, §9).
+COMPLETENESS_FLOOR = 0.80        # confidence multiplier when ALL microstructure components missing
 
 
-def reliability_confidence(data_quality_confidence: float, n_families: int) -> float:
-    """Estimated reliability in [0, 1] = data quality x evidence corroboration.
+def reliability_confidence(
+    data_quality_confidence: float,
+    n_families: int,
+    component_completeness: float = 1.0,
+) -> float:
+    """Estimated reliability in [0, 1] = data quality x corroboration x component completeness.
 
     ``data_quality_confidence`` is the freshness/coverage term from ``assess_quality``.
     Corroboration rises with the number of *distinct* evidence families that fired (saturating at
     ``TARGET_FAMILIES``). With one family the reliability factor is ``RELIABILITY_BASE`` (so even
     perfect data quality yields well under 100%); with ``TARGET_FAMILIES`` agreeing families it
-    reaches 1.0. Zero families (a bare composite lead) is treated as a single weak family.
+    reaches 1.0. ``component_completeness`` in [0, 1] is the fraction of the microstructure change
+    components actually present; when they are missing, confidence is scaled down (never below
+    ``COMPLETENESS_FLOOR`` of its otherwise-value) so a reading built on incomplete microstructure
+    history cannot display full confidence.
     """
     dq = max(0.0, min(1.0, data_quality_confidence))
     corroboration = min(1.0, max(0, n_families) / TARGET_FAMILIES)
     reliability_factor = RELIABILITY_BASE + RELIABILITY_SPAN * corroboration
-    return float(max(0.0, min(1.0, dq * reliability_factor)))
+    completeness = max(0.0, min(1.0, component_completeness))
+    completeness_factor = COMPLETENESS_FLOOR + (1.0 - COMPLETENESS_FLOOR) * completeness
+    return float(max(0.0, min(1.0, dq * reliability_factor * completeness_factor)))
 
 
 def _liquidity_factor(liquidity: float | None) -> tuple[float, str]:
@@ -239,7 +252,14 @@ def score_opportunity(
 
     # Confidence displayed to the user is the estimated reliability, not the raw data-quality
     # term (which is kept as `data_quality` band). signal.confidence is the data-quality input.
-    confidence = reliability_confidence(signal.confidence, n_families)
+    # Component completeness = fraction of the microstructure change components actually present;
+    # a reading with missing spread/depth/volume-change history is less reliable (spec §8.5).
+    micro = ("spread_change", "depth_change", "volume_acceleration")
+    present = sum(
+        1 for c in signal.components if c.name in micro and c.raw_value is not None
+    )
+    component_completeness = present / len(micro)
+    confidence = reliability_confidence(signal.confidence, n_families, component_completeness)
 
     explanation = _explain(families, tags, evidence)
     return ScoredOpportunity(
