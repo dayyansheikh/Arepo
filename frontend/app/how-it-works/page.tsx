@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SectionLabel, Disclose, PageHeader } from "@/components/ui";
+import { SectionMenu } from "@/components/SectionMenu";
 import { methodologyAnchor } from "@/lib/metrics";
 
 export const metadata: Metadata = {
@@ -20,10 +21,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="panel scroll-mt-24 space-y-3.5 p-6 sm:p-7">
+    <section id={id} className="panel scroll-mt-24 space-y-2.5 p-5">
       <SectionLabel>{eyebrow}</SectionLabel>
-      <h2 className="text-xl font-bold tracking-[-0.01em] text-arepo-ink">{title}</h2>
-      <div className="max-w-reading space-y-3 text-[15px] leading-relaxed text-arepo-ink2">
+      <h2 className="text-lg font-bold tracking-[-0.01em] text-arepo-ink">{title}</h2>
+      <div className="max-w-reading space-y-2.5 text-[14.5px] leading-relaxed text-arepo-ink2">
         {children}
       </div>
     </section>
@@ -221,9 +222,27 @@ function OrderBookLegend() {
   );
 }
 
+const HIW_NAV = [
+  {
+    items: [
+      { id: "prediction-markets", label: "Prediction markets" },
+      { id: "prices-as-probability", label: "Prices as probability" },
+      { id: "data-sources", label: "Data sources" },
+      { id: "what-arepo-watches", label: "What Arepo watches" },
+      { id: "what-a-signal-means", label: "What a signal means" },
+      { id: "signal-strength", label: "Signal strength" },
+      { id: "confidence", label: "Confidence" },
+      { id: "order-books", label: "Order books" },
+      { id: "data-modes", label: "Data modes" },
+      { id: "backtesting", label: "Replay & backtesting" },
+      { id: "limits", label: "What it can't conclude" },
+    ],
+  },
+];
+
 export default function HowItWorksPage() {
   return (
-    <div className="space-y-12">
+    <div className="space-y-8">
       <PageHeader
         title="How Arepo works"
         lead={
@@ -241,6 +260,9 @@ export default function HowItWorksPage() {
         }
       />
 
+      <div className="flex gap-12">
+        <SectionMenu label="How Arepo works sections" groups={HIW_NAV} />
+        <div className="flex min-w-0 flex-1 flex-col gap-5">
       <Section id="prediction-markets" eyebrow="The basics" title="What a prediction market is">
         <p>
           A prediction market lets people trade on the outcome of a future event, such as
@@ -421,15 +443,8 @@ export default function HowItWorksPage() {
           data.
         </p>
       </Section>
-
-      <section className="panel space-y-3 border-arepo-borderStrong bg-arepo-surface2 p-6">
-        <SectionLabel>Why Arepo</SectionLabel>
-        <p className="max-w-reading text-[15px] leading-relaxed text-arepo-ink2">
-          Just as Arepo is believed to have been created to unite the Sator Square, we unite
-          information as it is created, conviction as it is expressed, action as it is taken, and
-          markets as they move. Arepo represents the hidden signal found between the lines.
-        </p>
-      </section>
+        </div>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Katex } from "@/components/Katex";
+import { SectionMenu } from "@/components/SectionMenu";
 import { Disclose, PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = {
@@ -141,27 +142,7 @@ function Maths({
 export default function MethodologyPage() {
   return (
     <div className="flex gap-12">
-      <nav
-        aria-label="Methodology sections"
-        className="sticky top-24 hidden h-fit w-52 shrink-0 flex-col gap-4 self-start lg:flex"
-      >
-        {NAV.map((g) => (
-          <div key={g.group || "misc"} className="flex flex-col gap-1">
-            {g.group && (
-              <span className="section-label mb-1 text-[11px]">{g.group}</span>
-            )}
-            {g.items.map((it) => (
-              <a
-                key={it.id}
-                href={`#${it.id}`}
-                className="focus-ring rounded text-[13px] text-arepo-muted hover:text-arepo-ink"
-              >
-                {it.label}
-              </a>
-            ))}
-          </div>
-        ))}
-      </nav>
+      <SectionMenu label="Methodology sections" groups={NAV} />
 
       <div className="flex min-w-0 flex-1 flex-col gap-16">
         <section id="overview" className="scroll-mt-24">
