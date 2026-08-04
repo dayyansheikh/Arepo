@@ -57,3 +57,22 @@ def test_no_change_baseline_counts_flat_markets(move, flat):
     r = [DirectionalResult(arepo_direction="up", momentum_direction="up", move_24h=move)]
     cmp = compare_baselines(r)
     assert (cmp.baselines["no_change"]["correct"] == 1) == flat
+
+
+def test_requested_baselines_present():
+    # §2.1: current-implied and price-only must be included alongside the existing baselines.
+    results = [
+        DirectionalResult(arepo_direction="up", momentum_direction="up", move_24h=0.03,
+                          entry_price=0.7, price_only_direction="up"),
+        DirectionalResult(arepo_direction="down", momentum_direction="down", move_24h=-0.02,
+                          entry_price=0.3, price_only_direction="down"),
+    ]
+    cmp = compare_baselines(results)
+    expected = ("no_change", "current_implied", "price_only", "momentum",
+                "always_up", "always_down")
+    for key in expected:
+        assert key in cmp.baselines, f"missing baseline {key}"
+    # current-implied predicts up for entry>0.5 (+0.03, correct) and down for entry<0.5 (-0.02, ok)
+    assert cmp.baselines["current_implied"]["correct"] == 2
+    # price-only follows the trend sign here (both correct)
+    assert cmp.baselines["price_only"]["evaluated"] == 2

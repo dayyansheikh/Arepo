@@ -38,6 +38,36 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
+**Final local implementation (branch `arepo-final-local-implementation`, tag
+`arepo-before-final-local-implementation`).** Browser-verified against a running backend+frontend.
+
+DONE + committed + pushed:
+- §3 CRITICAL routing bug fixed: `LiveSource.get_market(id)` + canonical fallback in
+  `market_detail` so any valid market opens regardless of mode; IDs 2694364/2822017 verified;
+  frontend ?mode= context + rich MarketRouteError card; docs/market-routing-investigation.md;
+  5 hermetic tests (8f7b31f, 935ceee).
+- §4/§5/§8/§9: footer follows content (removed main flex-1), full-width nav, tab title exactly
+  "Arepo"; browser-verified gap-below-footer=0 (33ba7df).
+- §6/§7: Signal Lab directional-status filter + sort (URL-persisted, no 40+/70+); direction in
+  words; arrangeSignals + 7 vitest (5ce2e26).
+
+State: backend 308 pass, ruff clean; frontend tsc/lint/build clean, 21 vitest. Servers running
+on :8012 (backend, DEFAULT_MODE=replay, CORS 3012) and :3012 (frontend).
+
+TODO (no external accounts needed): §2 report reconciliation (baselines: add current-implied +
+price-only; canonical replay table; component-availability report; edge-wording audit); §10-11
+Learn menus hidden-scrollbar + auth one-viewport (§11 says use nav-style wordmark, NOT the
+black-bg PNG); §12-20 Replay (default "last week's opportunities" with point-in-time fields;
+requested baselines; closing-soon lens URL; Replay data-status section; fix stale synthetic
+cohort date -> Demo; mode definitions); §21 docs/DAYYAN_FINAL_LOCAL_ACCEPTANCE.md; §22 tests;
+§23 final report.
+
+**Exact next action:** §2.1 add current-implied + price-only baselines to evaluation/replay_stats.py
+(order-book-only cannot be reconstructed historically - document why), then §19 synthetic-date fix
+and §18 Replay data-status.
+
+## (superseded) Current phase
+
 **Final gap-closure (branch `arepo-final-gap-closure`, from tag `arepo-before-final-gap-closure`
 @ 3de24b3). COMPLETE for all locally-achievable work; deployment Blocked on external accounts.**
 

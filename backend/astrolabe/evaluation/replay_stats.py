@@ -43,6 +43,8 @@ class DirectionalResult:
     arepo_direction: str | None       # up | down | None
     momentum_direction: str | None    # sign of the pre-cut-off move (up | down | None)
     move_24h: float | None            # real 24h forward move (probability points)
+    entry_price: float | None = None  # implied probability at the cut-off (for current-implied)
+    price_only_direction: str | None = None  # sign of the trailing lookback trend (price-only)
 
 
 def _correct(direction: str | None, move: float | None) -> bool | None:
@@ -82,13 +84,26 @@ def _score(name: str, directions: list[str | None], moves: list[float | None]) -
 def compare_baselines(results: list[DirectionalResult]) -> BaselineComparison:
     """Score Arepo and each causal baseline over the same reconstructed sample.
 
-    Baselines (all causally valid at the cut-off): no-change predicts flat (correct when the actual
-    24h move is within FLAT_EPS); momentum predicts the sign of the trailing pre-cut-off move;
-    always-up / always-down are naive references.
+    Baselines (all causally valid at the cut-off, using only cut-off information):
+    - no-change: predicts flat (correct when the actual 24h move is within FLAT_EPS);
+    - current-implied: predicts the outcome drifts toward its more-likely state (up if the entry
+      implied probability > 0.5, else down) - the favourite-drift baseline;
+    - price-only: the sign of the trailing lookback price trend (a pure price/trend predictor);
+    - momentum: the sign of the short trailing pre-cut-off move;
+    - always-up / always-down: naive references.
+
+    Order-book-only is NOT included: Polymarket historical order books were never stored, so it
+    cannot be reconstructed for a past cut-off (documented in docs/replay-report-reconciliation.md).
     """
     moves = [r.move_24h for r in results]
     arepo_dirs = [r.arepo_direction for r in results]
     momentum_dirs = [r.momentum_direction for r in results]
+    price_only_dirs = [r.price_only_direction for r in results]
+    implied_dirs = [
+        ("up" if (r.entry_price is not None and r.entry_price > 0.5) else "down")
+        if r.entry_price is not None else None
+        for r in results
+    ]
 
     # no-change: "correct" when the market was effectively flat over 24h.
     nc_eval = [m for m in moves if m is not None]
@@ -106,6 +121,8 @@ def compare_baselines(results: list[DirectionalResult]) -> BaselineComparison:
             "ci95": [round(nc_lo, 3), round(nc_hi, 3)],
             "verdict": sample_verdict(len(nc_eval)),
         },
+        "current_implied": _score("Current implied", implied_dirs, moves),
+        "price_only": _score("Price only", price_only_dirs, moves),
         "momentum": _score("Momentum", momentum_dirs, moves),
         "always_up": _score("Always up", ["up"] * len(moves), moves),
         "always_down": _score("Always down", ["down"] * len(moves), moves),

@@ -159,11 +159,14 @@ async def run_historical_screen(
         if sig.strength < min_strength:
             continue
 
-        # Momentum baseline direction: sign of the trailing pre-cut-off move (causal, uses only
-        # prices at or before the cut-off). None when there is no discernible trailing move.
+        # Momentum baseline direction: sign of the SHORT trailing move (last few obs). Price-only
+        # baseline: sign of the LONGER lookback trend (entry vs the start of the lookback). Both use
+        # only prices at or before the cut-off (causal).
         trail_from = prices[-min(4, len(prices))]
         trail = entry - trail_from
         momentum_dir = "up" if trail > 0 else "down" if trail < 0 else None
+        trend = entry - prices[0]
+        price_only_dir = "up" if trend > 0 else "down" if trend < 0 else None
 
         forwards = [
             HForward(
@@ -185,6 +188,7 @@ async def run_historical_screen(
                 "sig": sig,
                 "entry": entry,
                 "momentum_dir": momentum_dir,
+                "price_only_dir": price_only_dir,
                 "move24": move24,
                 "lookback": len(prefix),
                 "forwards": forwards,
@@ -250,6 +254,8 @@ async def run_historical_screen(
             arepo_direction=r["sig"].direction,
             momentum_direction=r["momentum_dir"],
             move_24h=r["move24"],
+            entry_price=r["entry"],
+            price_only_direction=r["price_only_dir"],
         )
         for r in top
     ]
