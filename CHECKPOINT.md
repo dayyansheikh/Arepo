@@ -38,6 +38,37 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
+**Final local implementation (branch `arepo-final-local-implementation`).** Gates: backend 309
+pass, ruff clean; frontend tsc/lint clean, 21 vitest, build compiled. Browser-verified against a
+running backend(:8012)+frontend(:3012). Acceptance in `docs/DAYYAN_FINAL_LOCAL_ACCEPTANCE.md`.
+
+PASS (committed + pushed): §3 critical routing (IDs 2694364/2822017 open in any mode; canonical
+`LiveSource.get_market` + `market_detail` fallback; ?mode= context; rich MarketRouteError; doc +
+5 tests); §4/§5 footer-follows-content + compact error card; §8 full-width nav; §9 title exactly
+"Arepo"; §6/§7 Signal Lab directional filter+sort (URL) + direction-in-words (arrangeSignals +7
+vitest); §10 hidden-scrollbar Learn menu; §11 auth one-viewport + nav-style wordmark (PNG removed);
+§2 baselines (added current-implied + price-only) + reconciliation doc; §18 Replay data-status
+endpoint+section; §19 Replay default = reconstructed "last week's opportunities" (no stale
+synthetic); §16 cut-off persists in URL.
+
+PARTIAL (exact next tasks - complete before declaring done / before deployment §23):
+1. §14 Replay point-in-time fields: show Research Priority AT the cut-off and close-date +
+   time-remaining AT the cut-off in each reconstructed row (historical.py HistoricalEntry needs an
+   RP-at-cutoff + end_date; frontend HistoricalRow renders them).
+2. §16 reconstruction closing-soon lens (24h/3d/7d/all) filtering historical rows by time-to-close
+   at the cut-off, URL-persisted (needs end_date on the candidate/entry).
+3. §13 create docs/replay-product-review.md (three-role review loop).
+4. §21 zoom 80-150% checks (tooling can't change page zoom; verify manually).
+
+BLOCKED: §23 deployment (Vercel/Render/Supabase/Resend) - not started by design until local
+acceptance fully passes; external accounts required.
+
+**Exact next action:** add `research_priority` (at cut-off) and `end_date`/`time_remaining_hours`
+(at cut-off) to `evaluation/historical.py` HistoricalEntry + `run_historical_screen`, render them
+in the Replay HistoricalRow, then add the closing-soon lens. Servers may be running on :8012/:3012.
+
+## (superseded) Current phase
+
 **Final local implementation (branch `arepo-final-local-implementation`, tag
 `arepo-before-final-local-implementation`).** Browser-verified against a running backend+frontend.
 
