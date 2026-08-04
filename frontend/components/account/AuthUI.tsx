@@ -4,10 +4,12 @@ import Link from "next/link";
 import { LogoMark } from "@/components/Logo";
 
 /**
- * The Arepo brand showcase used by every account page (sign-in, sign-up, reset, forgot, verify) -
- * spec §12. The brand is the visual focus: a large grid symbol, the supplied wordmark asset (with
- * the red mark under the A) and the Arepo meaning. The form sits beside it, clearly secondary.
- * Two columns on desktop; stacks on mobile with the brand first.
+ * The Arepo brand showcase used by every account page (sign-in, sign-up, reset, forgot, verify).
+ * The brand is the visual focus: a very large grid symbol and the clean navigation-style AREPO
+ * wordmark (Jost, uppercase, wide tracking) - NOT the uploaded PNG, which rendered with an unwanted
+ * black background (spec §11). The form sits beside it, clearly secondary. Two columns on desktop
+ * (brand left, form right), stacking brand-first on mobile. Tight spacing so it fits within one
+ * normal desktop viewport without scrolling; the shell's footer follows content naturally.
  */
 export function AuthShell({
   title,
@@ -21,23 +23,19 @@ export function AuthShell({
   footer?: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto grid w-full max-w-4xl grid-cols-1 items-start gap-10 py-4 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:py-10">
-      {/* Brand panel: the primary focus. */}
+    <div className="mx-auto grid w-full max-w-4xl grid-cols-1 items-center gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
+      {/* Brand panel: the primary focus. Large symbol + clean navigation-style wordmark. */}
       <div className="flex flex-col items-start">
-        <LogoMark size={72} title="Arepo" />
-        {/* The supplied wordmark (red mark beneath the A); not recreated with a substitute font. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/brand/arepo-wordmark.png"
-          alt="AREPO"
-          className="mt-5 h-auto w-56 max-w-full select-none"
-        />
-        <p className="mt-6 max-w-reading text-[15px] leading-relaxed text-arepo-ink2">
+        <LogoMark size={104} title="Arepo" />
+        <span className="mt-4 font-display text-4xl font-semibold uppercase tracking-[0.2em] text-arepo-ink">
+          Arepo
+        </span>
+        <p className="mt-5 max-w-reading text-[15px] leading-relaxed text-arepo-ink2">
           Just as Arepo is believed to have been created to unite the Sator Square, we unite
           information as it is created, conviction as it is expressed, action as it is taken, and
           markets as they move. Arepo reads the hidden signal found between the lines.
         </p>
-        <p className="mt-4 max-w-reading text-[14px] leading-relaxed text-arepo-muted">
+        <p className="mt-3 max-w-reading text-[14px] leading-relaxed text-arepo-muted">
           A free account unlocks high-priority research alerts, saved markets and your own
           preferences. The rest of Arepo stays open without one.
         </p>
@@ -48,11 +46,11 @@ export function AuthShell({
         <h1 className="font-display text-xl font-semibold tracking-tight text-arepo-ink">
           {title}
         </h1>
-        {lead && <p className="mt-2 text-[14px] leading-relaxed text-arepo-muted">{lead}</p>}
-        <div className="mt-5 rounded-card border border-arepo-border bg-arepo-surface p-6 shadow-arepo-sm">
+        {lead && <p className="mt-1.5 text-[14px] leading-relaxed text-arepo-muted">{lead}</p>}
+        <div className="mt-4 rounded-card border border-arepo-border bg-arepo-surface p-6 shadow-arepo-sm">
           {children}
         </div>
-        {footer && <div className="mt-4 text-[13px] text-arepo-muted">{footer}</div>}
+        {footer && <div className="mt-3 text-[13px] text-arepo-muted">{footer}</div>}
       </div>
     </div>
   );
