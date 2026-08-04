@@ -345,6 +345,7 @@ export interface HistoricalEntry {
   market_question: string;
   outcome_name: string;
   direction: "up" | "down" | null;
+  momentum_direction: "up" | "down" | null;
   strength: number;
   confidence: number;
   data_quality: string;
@@ -357,6 +358,23 @@ export interface HistoricalEntry {
   direction_correct_24h: boolean | null;
 }
 
+export interface BaselineScore {
+  name: string;
+  evaluated: number;
+  correct: number;
+  incorrect: number;
+  hit_rate: number | null;
+  ci95: [number, number];
+  verdict: string;
+}
+
+export interface BaselineComparison {
+  sample_size: number;
+  verdict: string;
+  arepo: BaselineScore;
+  baselines: Record<string, BaselineScore>;
+}
+
 export interface HistoricalScreen {
   provenance_class: string;
   as_of: string;
@@ -367,6 +385,11 @@ export interface HistoricalScreen {
   moved_expected_24h: number;
   moved_against_24h: number;
   pending_24h: number;
+  candidates_total: number;
+  had_price_data: number;
+  directional: number;
+  sample_verdict: string;
+  baseline_comparison: BaselineComparison | null;
   entries: HistoricalEntry[];
   plain_summary: string;
   assumptions: string[];

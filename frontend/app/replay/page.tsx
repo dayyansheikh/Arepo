@@ -11,6 +11,7 @@ import {
   getHistoricalScreen,
 } from "@/lib/api";
 import type {
+  BaselineComparison,
   BacktestEvent,
   CohortDetail,
   CohortEntry,
@@ -489,6 +490,8 @@ function capitalise(s: string): string {
 // Historical reconstructed retrospective (a separate, clearly-labelled analysis mode).
 // ---------------------------------------------------------------------------------------
 const HISTORICAL_PERIODS = [
+  { days: 1, label: "24 hours ago" },
+  { days: 3, label: "3 days ago" },
   { days: 7, label: "7 days ago" },
   { days: 14, label: "14 days ago" },
   { days: 30, label: "30 days ago" },
@@ -544,6 +547,60 @@ function HistoricalView() {
   );
 }
 
+function pct(hit: number | null): string {
+  return hit === null ? "n/a" : `${Math.round(hit * 100)}%`;
+}
+
+/** Arepo vs simple causal baselines over the same reconstructed sample (spec §6). */
+function BaselineTable({ comparison }: { comparison: BaselineComparison }) {
+  const rows = [
+    { key: "arepo", score: comparison.arepo, highlight: true },
+    ...Object.entries(comparison.baselines).map(([key, score]) => ({
+      key,
+      score,
+      highlight: false,
+    })),
+  ];
+  return (
+    <section className="space-y-2">
+      <SectionTitle>Arepo vs simple baselines</SectionTitle>
+      <p className="text-[13px] text-arepo-muted">
+        Directional correctness over the same {comparison.sample_size} reconstructed markets. Any
+        edge must beat these baselines; on this sample the differences are not statistically
+        meaningful.
+      </p>
+      <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px] text-[13px]">
+            <thead>
+              <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
+                <th className="px-4 py-2.5 font-semibold">Method</th>
+                <th className="px-4 py-2.5 font-semibold">Correct</th>
+                <th className="px-4 py-2.5 font-semibold">Hit rate</th>
+                <th className="px-4 py-2.5 font-semibold">95% interval</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-arepo-border">
+              {rows.map(({ key, score, highlight }) => (
+                <tr key={key} className={highlight ? "bg-arepo-accentTint/40" : ""}>
+                  <td className="px-4 py-2 font-medium text-arepo-ink">{score.name}</td>
+                  <td className="px-4 py-2 text-arepo-ink2">
+                    {score.correct}/{score.evaluated}
+                  </td>
+                  <td className="px-4 py-2 font-tabular text-arepo-ink2">{pct(score.hit_rate)}</td>
+                  <td className="px-4 py-2 font-tabular text-arepo-muted">
+                    {pct(score.ci95[0])} to {pct(score.ci95[1])}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HistoricalResult({ screen }: { screen: HistoricalScreen }) {
   if (screen.selected === 0) {
     return (
@@ -567,11 +624,31 @@ function HistoricalResult({ screen }: { screen: HistoricalScreen }) {
         <StatTile label="Moved against (24h)" value={String(screen.moved_against_24h)} />
         <StatTile label="Not evaluable (24h)" value={String(screen.pending_24h)} />
       </div>
-      <p className="-mt-4 text-[13px] text-arepo-muted">
-        Considered {screen.universe_considered} outcomes; {screen.eligible} had enough history
-        and a strong enough signal to rank. A move in the signalled direction is not a claim of
-        profitability.
-      </p>
+      {/* Reconstruction funnel (spec §6.7): make the small sample transparent, not hidden. */}
+      <div className="-mt-2 rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[13px] text-arepo-ink2">
+        <span className="font-medium text-arepo-ink">How the top five were reconstructed: </span>
+        {screen.candidates_total} outcomes existed at the cut-off; {screen.had_price_data} had
+        historical price data; {screen.eligible} passed eligibility (enough history, near-mid entry,
+        strong enough signal); {screen.directional} received a directional view; top{" "}
+        {screen.selected} shown. Signal Lab can show more signals now than Replay reconstructs
+        because historical order books, wallet and trade-flow history do not exist for a past
+        cut-off, some markets did not exist then, and current metadata cannot be used
+        retrospectively.
+      </div>
+
+      {/* Inconclusive banner: a tiny sample is never presented as proof (spec §6). */}
+      {screen.sample_verdict === "inconclusive" && (
+        <div className="flex items-start gap-2 rounded-card border border-arepo-warn/30 bg-arepo-warn/10 px-4 py-3 text-[13px] leading-relaxed text-arepo-warnText">
+          <span aria-hidden="true">⚠</span>
+          <span>
+            This sample is too small to be evidence of skill. A hit rate on a handful of markets is
+            statistically inconclusive (its 95% interval spans most of 0 to 100%). Treat it as an
+            illustration of the method, not proof that Arepo has an edge.
+          </span>
+        </div>
+      )}
+
+      {screen.baseline_comparison && <BaselineTable comparison={screen.baseline_comparison} />}
 
       <section className="space-y-3">
         <SectionTitle>Reconstructed signals</SectionTitle>
