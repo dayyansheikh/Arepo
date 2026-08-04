@@ -2,6 +2,24 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Directional Evidence, Replay & Deployment (branch `arepo-directional-evidence-deployment`)
+- [x] §2 read research report in full; docs/research-paper-evidence-audit.md (adopted vs deferred)
+- [x] §3 directional-rarity diagnosis (docs/directional-diagnosis.md); root cause = data, not thresholds
+- [x] §3/§6 z-score baseline exclusion + flat_baseline_move; confidence = reliability (no 100% spike)
+- [x] §6 rename movement_1h -> recent_movement
+- [x] §4 selective board (directional/strongest/inconclusive/all) + screened/qualify counts
+- [x] §7 microstructure snapshot store + change features + idempotent collect + composite-contribution test
+- [x] §9 URL filter persistence (board + markets) via useUrlState
+- [x] §10 unify market model-view directional gate with backend rule
+- [x] §16-20 deployment prep: Resend provider, render.yaml (+7 UTC crons), vercel.json, asyncpg, docs
+- [ ] §12-13 Replay Top-5 default + baseline comparisons (no-change/price-only/momentum/book/implied) + Brier/log loss
+- [ ] §5 baseline metrics table + operating-point doc (depends on §13 harness)
+- [ ] §8 data-consistency warnings (end_date / close / resolution contradictions)
+- [ ] §14 How It Works left-nav redesign
+- [ ] §15 sign-in / brand page (wordmark, red mark under A); remove Why Arepo from result pages
+- [ ] §9/§21 browser tests for filter restoration (no harness yet)
+- [ ] §7 follow-up: thread snapshot changes into the live board-build enrich path
+
 ## Product Simplification, Accounts & Decision-Support (branch `arepo-product-simplification`)
 - [x] Phase 1: two Sonnet product reviews (beginner + quant) + synthesis (DECISIONS P0-P3)
 - [x] Phase 1: statistical-integrity fixes (decouple confidence/strength; wire freshness;

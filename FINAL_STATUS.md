@@ -1,5 +1,31 @@
 # FINAL_STATUS
 
+## Directional Evidence, Replay & Deployment pass (branch `arepo-directional-evidence-deployment`)
+
+_Verified in this environment: backend **286 tests pass**, ruff clean, idempotent bootstrap;
+frontend tsc/lint/build clean (16 routes). The full research report was read before any model
+change (Opus + independent Sonnet reviewer)._
+
+Delivered (spec sections): **§2** research audit doc; **§3/§6** the z-score baseline-exclusion fix
+(with a signed `flat_baseline_move` so flat-then-jump yields a directional reading) and confidence
+redesigned as an estimated-reliability score that no longer saturates at 100%; **§4** a selective
+Opportunity Board (directional-only default + strongest/inconclusive/all views + an honest
+"screened N; M directional" line); **§7** a persisted microstructure snapshot store that makes the
+three previously-empty change features computable (with a test proving each can contribute) plus a
+UTC collection cron; **§9** URL-persisted filters (board + markets) restored on Back/Forward/
+refresh/shared links; **§10** a market model-view gate unified with the backend evidence rule;
+**§16-20** full Vercel + Render + Supabase + Resend deployment preparation (Resend email provider,
+`render.yaml` with seven idempotent UTC crons, `vercel.json`, asyncpg, `docs/deployment.md`),
+stopping at external-account creation with no secrets committed.
+
+No component claims alpha; Research Priority remains a labelled heuristic (report §"Strict research
+constraint"). Deferred to "carry on" (none require an external account): **§12-13** Replay Top-5
+redesign + baseline comparisons and the **§5** operating-point metrics that depend on it; **§8**
+data-consistency warnings; **§14** How It Works left-nav; **§15** sign-in/brand page; browser tests
+for filter restoration. See `CHECKPOINT.md` for the exact next action.
+
+---
+
 ## Product Simplification, Accounts & Decision-Support pass (branch `arepo-product-simplification`)
 
 _Latest pass. Verified in this environment; backend 268 tests pass and ruff clean; frontend

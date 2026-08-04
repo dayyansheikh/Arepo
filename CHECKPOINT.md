@@ -38,6 +38,54 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
+**Directional Evidence, Replay & Deployment (branch `arepo-directional-evidence-deployment`,
+from the completed `arepo-product-simplification`; safety tag `arepo-pre-directional-evidence`).**
+
+Read `research-references/deep-research-report.md` in full (Opus + independent Sonnet reviewer)
+before any model change. Progress by spec section:
+
+DONE and committed/pushed (backend 286 tests pass, ruff clean; frontend tsc/lint/build clean):
+- §2 research paper audit -> `docs/research-paper-evidence-audit.md` (adopted vs deferred).
+- §3 directional-rarity diagnosis -> `docs/directional-diagnosis.md`; root cause is data
+  availability (flat 30-min windows -> zero-variance z-score), not thresholds.
+- §3/§6 model fixes: z-score scored against a baseline EXCLUDING the current obs (with a signed
+  `flat_baseline_move` so flat-then-jump yields a directional reading); confidence redesigned as
+  estimated reliability = data_quality x evidence corroboration (no more 100% spike). (DECISIONS
+  D2-D4.) `movement_1h` renamed `recent_movement` (report: mislabelled).
+- §4 selective Opportunity Board: `view` = directional (default) | strongest | inconclusive | all;
+  honest "screened N; M directional" counts + note; Explore keeps the neutral universe.
+- §7 missing components: microstructure snapshot store + pure change functions + idempotent
+  collection + enrich wiring + a test proving each component can move the composite; a UTC cron
+  collects the series. Historical stays price-only.
+- §9 filter persistence: `useUrlState`; board (view/horizon) and all markets filters + search live
+  in the URL, restored on Back/Forward/refresh/shared links.
+- §10 market model view gate unified with the backend evidence rule.
+- §16-20 deployment prepared: Resend provider (§18), `render.yaml` (web + 7 UTC crons, §19),
+  `vercel.json`, asyncpg, `docs/deployment.md` (Supabase pooler, cross-site cookies, Resend limits,
+  deployed e2e checklist). Stops at external-account creation; no secrets committed.
+
+DEFERRED (not started; no external account needed — resume here on "carry on", in priority order):
+1. §12-13 Replay redesign: default "had I followed Arepo's top five qualifying views at the time"
+   with time-of-signal evidence; Top 10/15 for research; baseline comparisons (no-change, price-
+   only, momentum, order-book-only, implied) with Brier/log loss; honest no-edge reporting. (Note:
+   provenance separation §11 and no-look-ahead already hold from prior work; this is the UX + the
+   baseline-evaluation harness for §5.)
+2. §8 data-consistency warnings (contradictory end_date / close state / resolution).
+3. §14 How It Works left-nav redesign (like Methodology).
+4. §15 sign-in / brand page using design-assets/brand/AREPO Typeface (word).png (preserve the red
+   mark under the A); remove "Why Arepo" from result pages.
+5. §5 full baseline metrics table + operating-point doc (coverage, precision by band, FPR, Brier);
+   depends on the §13 harness.
+6. Browser tests for filter restoration (§9/§21) - no browser-test harness in repo yet.
+7. §7 follow-up: thread the snapshot-derived `changes` into the live board-build enrich path (the
+   infra + cron are done; board build does not yet read the series per token).
+
+**Exact next action:** implement §12-13 Replay Top-5 + baseline-comparison harness (backend
+evaluation baselines + frontend Replay default), which also yields the §5 metrics. Then §8, §14,
+§15. Commit each; push; then update FINAL_STATUS and the final report.
+
+## (superseded) Current phase
+
 **Product Simplification, Accounts & Decision-Support (branch `arepo-product-simplification`,
 from pushed `arepo-opportunity-alerts`). ALL 7 PHASES COMPLETE and committed.**
 
