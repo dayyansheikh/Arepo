@@ -25,6 +25,7 @@ from ..domain.models import Market, OrderBook, PricePoint, SourceHealth
 from ..ingest.normalize import (
     normalize_book,
     normalize_events_to_markets,
+    normalize_market,
     normalize_price_history,
 )
 from ..observability.logging import get_logger
@@ -131,6 +132,23 @@ class LiveSource:
                 name="gamma", state=ConnState.DISCONNECTED, last_error=str(exc)
             )
             raise
+
+    async def get_market(self, market_id: str) -> Market | None:
+        """Resolve a SINGLE canonical market by its Gamma id, independent of the discovery list.
+
+        This is what makes a search result (or a saved/alert link) open regardless of the selected
+        interface mode: the live universe is the canonical source, so any valid Gamma market id can
+        be fetched directly rather than only found within the current mode's dataset (spec §3)."""
+        try:
+            raw = await self._gamma.get_market(market_id)
+        except Exception:  # noqa: BLE001 - any failure means "not resolvable here"; fall through
+            return None
+        if not raw:
+            return None
+        market = normalize_market(raw)
+        if market is None or not _is_tradeable(market):
+            return None
+        return market
 
     async def search(
         self, query: str, *, active_only: bool = True, limit_per_type: int = 20

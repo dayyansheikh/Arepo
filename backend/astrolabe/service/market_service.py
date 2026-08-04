@@ -392,7 +392,18 @@ class MarketService:
         markets = await source.markets()
         market = next((m for m in markets if m.id == market_id), None)
         if market is None:
-            return None
+            # Canonical resolution (spec §3): the market is not in the selected mode's dataset, so
+            # resolve it directly from the live universe by its Gamma id and load it against the
+            # live source. This makes any valid market open regardless of the selected interface
+            # mode; we only return None (404) when it exists in no supported source.
+            market = await self._live.get_market(market_id)
+            if market is None:
+                return None
+            source = self._live
+            reason = (
+                "Resolved from the live universe: this market is not part of the "
+                f"selected {(requested_mode or self._default_mode().value)} dataset."
+            )
 
         chart_range = chart_range if chart_range in _CHART_RANGES else "all"
         analytics, _ = await self._enrich_market(source, market)
