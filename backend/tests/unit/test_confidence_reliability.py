@@ -2,6 +2,7 @@
 import pytest
 
 from astrolabe.opportunity.scoring import (
+    CONFIDENCE_DISPLAY_CEILING,
     RELIABILITY_BASE,
     TARGET_FAMILIES,
     reliability_confidence,
@@ -20,10 +21,15 @@ def test_zero_families_is_lowest():
     assert reliability_confidence(1.0, 0) == pytest.approx(RELIABILITY_BASE)
 
 
-def test_full_corroboration_reaches_full_confidence_only_with_perfect_data():
-    assert reliability_confidence(1.0, TARGET_FAMILIES) == pytest.approx(1.0)
-    assert reliability_confidence(1.0, TARGET_FAMILIES + 5) == pytest.approx(1.0)  # saturates
-    # but poor data quality still caps it well below 1.0 even when fully corroborated
+def test_full_corroboration_reaches_the_display_ceiling_not_100pct():
+    # A displayed reliability is an estimate, never a certain probability, so even a perfect,
+    # fully-corroborated reading tops out at the ceiling below 100% (spec §6).
+    assert reliability_confidence(1.0, TARGET_FAMILIES) == pytest.approx(CONFIDENCE_DISPLAY_CEILING)
+    assert reliability_confidence(1.0, TARGET_FAMILIES + 5) == pytest.approx(
+        CONFIDENCE_DISPLAY_CEILING
+    )
+    assert CONFIDENCE_DISPLAY_CEILING < 1.0
+    # poor data quality still caps it well below the ceiling even when fully corroborated
     assert reliability_confidence(0.5, TARGET_FAMILIES) == pytest.approx(0.5)
 
 
@@ -46,9 +52,9 @@ def test_meaningful_variation_across_realistic_inputs():
         for n in (0, 1, 2, 3)
     }
     assert len(values) >= 6            # genuine variation, not a spike
-    assert max(values) <= 1.0 and min(values) >= 0.0
+    assert max(values) <= CONFIDENCE_DISPLAY_CEILING and min(values) >= 0.0
     at_100 = [v for v in values if v >= 0.999]
-    assert len(at_100) <= 1            # only the perfect-data, fully-corroborated corner
+    assert len(at_100) == 0            # 100% is never displayed (spec §6 ceiling)
 
 
 def test_bounds_and_clamping():
@@ -67,12 +73,15 @@ def test_missing_components_reduce_confidence():
     assert seq == sorted(seq)
 
 
-def test_full_100_requires_data_families_and_components():
-    # 100% now needs perfect data quality AND full family corroboration AND all components present.
-    assert reliability_confidence(1.0, TARGET_FAMILIES, 1.0) == pytest.approx(1.0)
-    assert reliability_confidence(1.0, TARGET_FAMILIES, 0.0) < 1.0     # missing components
-    assert reliability_confidence(1.0, 1, 1.0) < 1.0                   # single family
-    assert reliability_confidence(0.6, TARGET_FAMILIES, 1.0) < 1.0     # imperfect data
+def test_ceiling_requires_data_families_and_components():
+    # The ceiling (not 100%) needs perfect data quality AND full family corroboration AND all
+    # components present; anything short of that reads below the ceiling.
+    assert reliability_confidence(1.0, TARGET_FAMILIES, 1.0) == pytest.approx(
+        CONFIDENCE_DISPLAY_CEILING
+    )
+    assert reliability_confidence(1.0, TARGET_FAMILIES, 0.0) < CONFIDENCE_DISPLAY_CEILING
+    assert reliability_confidence(1.0, 1, 1.0) < CONFIDENCE_DISPLAY_CEILING
+    assert reliability_confidence(0.6, TARGET_FAMILIES, 1.0) < CONFIDENCE_DISPLAY_CEILING
 
 
 def test_completeness_penalty_is_bounded():

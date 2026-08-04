@@ -36,9 +36,9 @@ export const METRICS = {
     id: "confidence",
     term: "Confidence",
     definition:
-      "How much to trust a reading, based on how many clean observations went into it.",
+      "How much to trust a reading: its data quality combined with how many independent lines of evidence agree. Shown as an estimate, capped below 100%.",
     interpretation:
-      "Low confidence on a thin market means the numbers are more likely to be noisy, not that the market itself is untrustworthy.",
+      "Low confidence on a thin market means the numbers are more likely to be noisy, not that the market itself is untrustworthy. The Opportunity Board can read a little higher than Signal Lab for the same market because it also sees live trade flow, which adds an evidence family.",
   },
   "z-score": {
     id: "z-score",

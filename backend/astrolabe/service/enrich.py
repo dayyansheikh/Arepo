@@ -178,6 +178,14 @@ def outcome_view(ta: TokenAnalytics, name: str, normalized_prob: float | None) -
         signal_strength=ta.signal.strength,
         data_quality=ta.data_quality,
         confidence=ta.confidence,
+        # Displayed confidence uses the one reliability definition, never the raw 1.00 data-quality
+        # term (spec §6, §17; adversarial re-review F'#1: Market Detail outcome cards were still
+        # showing 100%). Falls back to the data-quality term only if reliability was not computed.
+        reliability_confidence=(
+            ta.signal.reliability_confidence
+            if ta.signal.reliability_confidence is not None
+            else ta.confidence
+        ),
     )
 
 

@@ -109,6 +109,11 @@ def _book_family(signal: Signal) -> tuple[bool, float]:
 # meaningful variation and removes the old spike at 100%.
 RELIABILITY_BASE = 0.45          # reliability of a single-family reading before data quality
 RELIABILITY_SPAN = 0.55          # extra reliability earned by full family corroboration
+# Displayed reliability is an ESTIMATE of how much to trust the reading, not a mathematically
+# certain probability, so it is capped strictly below 100% on every surface (spec §6: "do not
+# display 100% unless the implementation can defend what 100% means"). Even a full-corroboration,
+# full-quality, full-completeness reading tops out here, never at 1.00.
+CONFIDENCE_DISPLAY_CEILING = 0.95
 # Microstructure components that must be present for the reading to be considered complete. When
 # they are missing (no snapshot series yet, or none available historically) confidence is reduced
 # rather than pretending the reading is fully informed (spec §8.5, §9).
@@ -136,7 +141,9 @@ def reliability_confidence(
     reliability_factor = RELIABILITY_BASE + RELIABILITY_SPAN * corroboration
     completeness = max(0.0, min(1.0, component_completeness))
     completeness_factor = COMPLETENESS_FLOOR + (1.0 - COMPLETENESS_FLOOR) * completeness
-    return float(max(0.0, min(1.0, dq * reliability_factor * completeness_factor)))
+    raw = dq * reliability_factor * completeness_factor
+    # Cap strictly below 100%: this is an estimated reliability, not a certain probability (§6).
+    return float(max(0.0, min(CONFIDENCE_DISPLAY_CEILING, raw)))
 
 
 # Microstructure change components used to judge how *complete* a reading is. Only components that

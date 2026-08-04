@@ -143,9 +143,11 @@ def large_relative_trade(trades: list[Trade]) -> FlowIndicator:
         "large_relative_trade", FAMILY_FLOW, fired, squash(rz, CAP_ROBUST_Z),
         "Large relative trade" if fired else None,
         (
-            f"The largest recent trade ({top:,.0f} contracts) is about {rz:.1f} robust standard "
-            f"deviations above this market's median trade size, larger than "
-            f"{pct * 100:.0f}% of recent trades."
+            # Plain English, no unexplained jargon (spec §3): lead with the intuitive percentile
+            # rather than a robust-sigma figure, which can balloon to absurd values when recent
+            # trade sizes are near-identical. The robust_z stays in the data dict for internal use.
+            f"The largest recent trade ({top:,.0f} contracts) is much larger than this market's "
+            f"usual trade size, bigger than {pct * 100:.0f}% of recent trades."
         ),
         {"top_size": top, "robust_z": rz, "percentile": pct, "n_trades": len(sizes)},
     )

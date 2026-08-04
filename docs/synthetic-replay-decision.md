@@ -35,6 +35,17 @@ that is explicit that it "is not evidence of predictive skill".
 - The deterministic backtest is behind a disclosure, labelled a demonstration dataset, and its
   copy states it is not evidence of an edge.
 
+## Note on the demonstration backtest's "false-positive rate" (adversarial F'#2)
+
+The deterministic backtest (`analytics/backtest.py`, shown only behind the "Show the signal
+backtest (demonstration dataset)" disclosure) defines follow-through against a `move_threshold`
+(0.02): a forward move below the threshold counts as "no follow-through" rather than as a flat
+bucket. This is a threshold-based demonstration metric, not the flat-aware directional evaluation
+used for the real Replay and prospective paths, and it is deliberately not changed here: it runs
+only on the labelled synthetic demonstration dataset, is excluded from every real performance and
+edge figure, and its own copy states it "is not evidence of predictive skill". It is retained as-is
+as a teaching illustration of thresholded follow-through, not as a directional hit rate.
+
 ## If it ever stops being useful
 
 If the deterministic backtest and its tests are removed, the synthetic cohort and seed should be

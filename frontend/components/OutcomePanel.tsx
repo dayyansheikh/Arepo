@@ -39,7 +39,8 @@ export function OutcomePanel({ outcome }: { outcome: OutcomeView }) {
           <DataQualityBadge quality={outcome.data_quality} />
           <span className="flex items-center gap-1 text-xs text-arepo-muted">
             <MetricHelp metric="confidence" showTerm={false} />
-            confidence {formatPercent(outcome.confidence, 0)}
+            confidence{" "}
+            {formatPercent(outcome.reliability_confidence ?? outcome.confidence, 0)}
           </span>
         </div>
       </div>

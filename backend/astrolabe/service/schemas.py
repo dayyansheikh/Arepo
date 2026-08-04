@@ -34,7 +34,8 @@ class OutcomeView(ApiModel):
     zscore: float | None
     signal_strength: float | None        # composite anomaly strength for this token
     data_quality: str
-    confidence: float
+    confidence: float                    # raw DATA-QUALITY term; do not display as "Confidence"
+    reliability_confidence: float | None = None  # displayed confidence, same definition everywhere
 
 
 class MarketCard(ApiModel):

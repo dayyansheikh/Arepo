@@ -66,7 +66,8 @@ export interface OutcomeView {
   zscore: number | null;
   signal_strength: number | null;
   data_quality: "good" | "limited" | "poor";
-  confidence: number;
+  confidence: number; // raw DATA-QUALITY term; do not display as "Confidence" (spec §6)
+  reliability_confidence?: number | null; // displayed confidence, same definition on every surface
 }
 
 export interface PricePoint {

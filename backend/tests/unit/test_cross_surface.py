@@ -8,16 +8,47 @@ re-splits confidence or the gate across surfaces is a test failure, not a silent
 from datetime import UTC, datetime
 
 from astrolabe.opportunity.hypothesis import has_directional_view
-from astrolabe.opportunity.scoring import score_opportunity, signal_reliability
-from astrolabe.service.enrich import compute_token_analytics
+from astrolabe.opportunity.scoring import (
+    CONFIDENCE_DISPLAY_CEILING,
+    score_opportunity,
+    signal_reliability,
+)
+from astrolabe.service.enrich import compute_token_analytics, outcome_view
 
 NOW = datetime(2026, 8, 4, tzinfo=UTC)
+_PRICES = [0.5, 0.55, 0.45, 0.6, 0.4, 0.58, 0.42, 0.61, 0.39, 0.5, 0.66, 0.34]
+
+
+def _ta(prices):
+    return compute_token_analytics(
+        token_id="t1", market_id="m1", prices=prices, book=None, volumes=[]
+    )
 
 
 def _signal(prices):
-    return compute_token_analytics(
-        token_id="t1", market_id="m1", prices=prices, book=None, volumes=[]
-    ).signal
+    return _ta(prices).signal
+
+
+def test_market_detail_outcome_card_shows_reliability_not_raw_100pct():
+    # F'#1: the Market Detail per-outcome card must carry reliability_confidence, never only the raw
+    # data-quality term. It must equal the signal's reliability and be capped below 100%.
+    ta = _ta(_PRICES)
+    ov = outcome_view(ta, name="Yes", normalized_prob=0.5)
+    assert ov.reliability_confidence is not None
+    assert ov.reliability_confidence == ta.signal.reliability_confidence
+    assert ov.reliability_confidence <= CONFIDENCE_DISPLAY_CEILING
+    assert ov.reliability_confidence < 1.0
+
+
+def test_reliability_ignores_absent_volume_acceleration():
+    # F'#10: volume_acceleration is never present live and is NOT in the completeness set, so its
+    # absence must not change the reliability of an otherwise-identical live-shaped signal.
+    sig = _signal(_PRICES)
+    assert not any(
+        c.name == "volume_acceleration" and c.raw_value is not None for c in sig.components
+    )
+    rel, _ = signal_reliability(sig)
+    assert 0.0 < rel <= CONFIDENCE_DISPLAY_CEILING
 
 
 def test_signal_lab_confidence_is_never_the_raw_100pct_data_quality_term():
