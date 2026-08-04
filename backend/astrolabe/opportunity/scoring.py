@@ -146,13 +146,15 @@ def reliability_confidence(
     return float(max(0.0, min(CONFIDENCE_DISPLAY_CEILING, raw)))
 
 
-# Microstructure change components used to judge how *complete* a reading is. Only components that
-# the read-only live path can actually obtain count here: spread and depth change come from the
-# persisted order-book snapshot series (present ~60-67% of the time). `volume_acceleration` is
-# deliberately excluded: the live path never stores a volume series, so it is present 0% of the
-# time and including it would permanently drag every live confidence down for a reason unrelated to
-# data quality (spec §4, §6). It remains defined for the replay/backtest paths that do have volumes.
-COMPLETENESS_COMPONENTS = ("spread_change", "depth_change")
+# Microstructure change components used to judge how *complete* a reading is. All three come from
+# the persisted microstructure snapshot series and warm up together as the collector runs: they
+# read ~0% at a cold start and rise (spread/depth ~60-70%, volume acceleration to a similar level)
+# once enough snapshots accumulate. They are ALL counted, so a reading built before the series has
+# warmed is honestly less complete and therefore lower confidence, exactly the intended behaviour
+# (spec §6, §8.5, §14: component availability grows over time). An earlier revision wrongly excluded
+# volume_acceleration after seeing it at 0% on a cold start; the running product shows it present in
+# every signal once warm, so it belongs here (DECISIONS D-SR1, corrected).
+COMPLETENESS_COMPONENTS = ("spread_change", "depth_change", "volume_acceleration")
 
 
 def _component_completeness(signal: Signal) -> float:

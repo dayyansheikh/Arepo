@@ -13,6 +13,14 @@ usefulness > consistency > reliability > simplicity > performance > aesthetics. 
 sample, cut-off or eligibility rule was changed to improve a reported result.** Every change below
 was decided on principle before, or independently of, its effect on any metric.
 
+### D-SR6. Displayed confidence capped below 100% (spec §6; QA + Opus cross-surface check)
+Reliability confidence could still reach exactly 1.00 on the Opportunity Board (three families +
+full completeness + perfect data quality). §6 says do not display 100% for an estimate, so displayed
+reliability is capped at `CONFIDENCE_DISPLAY_CEILING` = 0.95 on every surface. It is an estimate of
+how much to trust a reading, not a certain probability. Also completed the confidence unification the
+first pass missed: Market Detail's per-outcome cards (`OutcomeView`) were still showing the raw 1.00
+data-quality term (adversarial re-review F'#1); they now carry and display `reliability_confidence`.
+
 ### D-SR5. Momentum-agreement + Brier honesty (spec §12, §13; quant B#2/B#3)
 Arepo's direction is `sign(latest-return z-score)`, close to momentum by construction, so "Arepo vs
 momentum" is near-self-referential. Rather than change the signal (which would risk gaming), the
@@ -58,8 +66,11 @@ which is 1.00 for every good-data signal, while the Opportunity Board displayed 
 confidence for the same signal. Reliability confidence (data quality × evidence corroboration ×
 component completeness) is the defensible number, so it is now computed once in the enrich path
 (`signal.reliability_confidence` + `signal.n_families`) and displayed on every surface; no surface
-shows 100%. `volume_acceleration`, which is present 0% of the time live, was removed from the
-completeness set so a permanently-absent component no longer caps confidence for a non-data reason.
+shows 100% (capped at `CONFIDENCE_DISPLAY_CEILING` = 0.95, D-SR6). Correction: an earlier revision
+of this pass excluded `volume_acceleration` from the completeness set after seeing it at 0% on a
+cold start; the running product showed it warming up with the snapshot series and present in every
+signal once warm, so it was **restored** to the completeness set — it is a genuine live component,
+not dead (see `docs/signal-component-register.md`).
 The frontend directional gate now consumes `signal.n_families` so Signal Lab, Market Detail and the
 Board apply one identical `has_directional_view` rule. The Board may still read higher when live
 trades add a family — the single documented, legitimate exception.

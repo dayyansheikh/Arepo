@@ -61,10 +61,9 @@ export function friendlyComponentName(name: string): string {
  * never zero.
  */
 export const COMPONENT_UNAVAILABLE_REASON: Record<string, string> = {
-  // Honest, mode-accurate: the read-only live path does not build a per-interval volume series, so
-  // this feature is only computed in Replay/backtest (which carry in-frame volumes). It does not
-  // contribute to live signals and is excluded from live confidence (see docs/signal-component-register.md).
-  volume_acceleration: "Only computed in Replay mode; the live path builds no volume series",
+  // Warms up with the microstructure snapshot series (like spread/depth change): absent at a cold
+  // start, present once enough snapshots have accumulated. See docs/signal-component-register.md.
+  volume_acceleration: "Needs a warmed volume series from recent snapshots",
   spread_change: "Needs at least two order-book snapshots",
   depth_change: "Needs at least two order-book snapshots",
 };

@@ -18,31 +18,27 @@ cannot drive a top score alone.
 | `movement_abnormality` (return-burst score) | price | price history | 0.20 | ~100% | Yes | Yes | Yes |
 | `volatility_regime` (short vs long return vol) | price | price history | 0.16 | ~100% | Yes | Yes | Yes |
 | `book_imbalance` (near-touch bid/ask imbalance) | order book | current order book | 0.12 | live only | **No** (no historical books) | Yes | Yes (capped alone) |
-| `spread_change` (relative spread vs baseline) | order book | persisted snapshot series | 0.08 | 66.7% | No | Yes | Yes when present |
-| `depth_change` (near-mid depth vs baseline) | order book | persisted snapshot series | 0.08 | 60.0% | No | Yes | Yes when present |
-| `volume_acceleration` (relative rise in volume) | (price/flow) | in-frame volumes | 0.12 (nominal) | **0.0%** | No | **Replay/backtest only** | No effect live |
+| `spread_change` (relative spread vs baseline) | order book | persisted snapshot series | 0.08 | ~60-72% (warm) | No | Yes | Yes when present |
+| `depth_change` (near-mid depth vs baseline) | order book | persisted snapshot series | 0.08 | ~60-67% (warm) | No | Yes | Yes when present |
+| `volume_acceleration` (relative rise in volume) | flow | persisted snapshot series (or in-frame volumes in Replay) | 0.12 | 0% cold → present in every signal once warm | No | Yes | Yes when present |
 
-### `volume_acceleration` — deliberate decision (spec §4)
+### `volume_acceleration` — corrected finding (spec §4, §14)
 
-It is present **0/120** on the live path and cannot become available there: the read-only live path
-never builds a per-interval volume series (the underlying `market.volume` is cumulative lifetime
-volume, so 5-minute differences are ~0 and yield `None`; impl review D#4). It therefore contributes
-nothing to any live signal.
+An earlier revision of this pass recorded volume_acceleration as "present 0/120, Replay-only" after
+capturing it at a **cold start**, and excluded it from the confidence completeness set. The running
+product then showed it warming up with the microstructure snapshot series exactly like spread and
+depth change: **0% at a cold start, present in 15/15 signals** once ~950 snapshots had accumulated.
+So it is a **genuine, live-wired component**, not dead and not Replay-only.
 
-Decision: **keep the component defined** (it is genuinely computed in Replay/backtest, which carry
-in-frame volumes, and in the deterministic demonstration dataset), but:
+Corrected decision: it is **counted in the confidence completeness set** alongside spread and depth
+change (`scoring.COMPLETENESS_COMPONENTS`). A reading taken before the series has warmed is honestly
+less complete and therefore lower confidence — the intended behaviour, and a concrete example of
+"one day may improve component availability" (spec §14). The UI reason when it is briefly absent is
+"Needs a warmed volume series from recent snapshots", not a claim that it never appears.
 
-- exclude it from the confidence **completeness** set, so a permanently-absent component no longer
-  drags every live confidence down for a non-data reason (`scoring.COMPLETENESS_COMPONENTS`);
-- because the composite renormalises over present components, its nominal 0.12 weight is simply
-  redistributed live — the live model is effectively a six-component model, which this register now
-  states plainly rather than implying a seven-component model that never runs;
-- surface an honest, mode-accurate reason in the UI ("Only computed in Replay mode; the live path
-  builds no volume series") instead of "Not enough volume history yet", which wrongly implied it
-  would appear over time.
-
-It is **not** removed outright because it has a valid source and effect in Replay/backtest; removing
-it would break those paths for no honesty gain, since it is already inert and clearly labelled live.
+This correction is recorded because following the running data over a prior hypothesis is the point
+of the pass: the honest state is that the live composite is a genuine seven-component model whose
+microstructure components warm up over time.
 
 ## Trade-flow / wallet / timing indicators (`analytics/flow.py`, Opportunity Board only)
 
