@@ -26,6 +26,15 @@ async def screen(
 ) -> HistoricalScreen:
     """Reconstruct the top-N composite anomaly signals as of ``days`` ago and score them
     against the real later price history. Uses live data; can be slow (fetches full history
-    for each candidate market)."""
-    as_of = datetime.now(UTC) - timedelta(days=days)
+    for each candidate market).
+
+    The cut-off is snapped to the START of the target UTC day (midnight) rather than "now minus
+    days", so repeated same-day requests with the same ``days`` resolve to the SAME cut-off and are
+    reproducible within the day (spec §16; reproducibility findings C#1/F#4). It is still a live
+    reconstruction, not a frozen record: the reproducible, immutable evidence is the prospective
+    cohort. The universe and later prices are refetched live, so a result may still shift as
+    upstream history is revised; the prospective path is the one that never rewrites the past.
+    """
+    target_day = (datetime.now(UTC) - timedelta(days=days)).date()
+    as_of = datetime(target_day.year, target_day.month, target_day.day, tzinfo=UTC)
     return await run_live_historical(service, as_of=as_of, universe_limit=limit, top_n=top_n)

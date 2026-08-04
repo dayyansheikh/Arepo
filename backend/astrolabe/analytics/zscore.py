@@ -20,6 +20,14 @@ import numpy as np
 
 from .series import Number, returns, winsorize
 
+# Off a perfectly flat baseline a z-score is undefined in magnitude (0/0). We only call such a move
+# "maximally unusual" if it is at least economically material: a return of at least this many
+# probability points. Below it the move is treated as no meaningful standardised move (abstain),
+# so an economically trivial 0.1-point blip after a flat stretch can no longer saturate the
+# strongest composite component (spec §4 false-positive control; quant review B#9). Chosen on
+# principle (a sub-half-point move is negligible on a 0-1 probability scale), not tuned to outcomes.
+FLAT_BASELINE_MIN_MOVE = 0.005
+
 
 @dataclass(frozen=True)
 class ZScore:
@@ -74,7 +82,9 @@ def rolling_zscore(
         # flat-then-jump (the case we most want to detect) yields a directional reading rather
         # than None. This is what makes the baseline-exclusion fix improve, not harm, coverage.
         move = last - mean
-        if abs(move) <= 1e-12:
+        if abs(move) < FLAT_BASELINE_MIN_MOVE:
+            # Genuinely unchanged, or an economically negligible blip: no meaningful standardised
+            # move (do not saturate the composite on a sub-materiality tick off a flat baseline).
             return ZScore(None, last, mean, std, int(baseline.size), "zero_variance")
         extreme = float(clip) if clip is not None else 10.0
         z = extreme if move > 0 else -extreme

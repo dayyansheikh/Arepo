@@ -347,11 +347,16 @@ async def run_historical_screen(
             "price-behaviour features only (no order-book imbalance, spread or depth).",
         ],
         limitations=[
-            "The universe is markets still discoverable now with enough history, so it is "
-            "subject to survivorship bias.",
-            "This is an illustrative research screen, not a tradable track record, and not the "
-            "prospective frozen-weekly cohort.",
-            "A move in the signalled direction is not a claim of profitability.",
+            "Survivorship: the universe is today's still-open markets ranked by today's activity, "
+            "because a point-in-time market list for a past cut-off was never stored. Any market "
+            "that has closed or resolved since the cut-off is excluded entirely. This is a hard "
+            "exclusion, not a mild effect, and it is the main reason so few candidates qualify.",
+            "The scheduled close date shown is today's value; if a market's close date was changed "
+            "after the cut-off, the time-remaining figure may not match what was known then.",
+            "The screen is recomputed live and can shift as upstream history is revised; the "
+            "prospective frozen-weekly cohort is the reproducible, immutable record.",
+            "This is an illustrative research screen, not a tradable track record, and a move in "
+            "the signalled direction is not a claim of profitability.",
         ],
     )
 
@@ -374,9 +379,16 @@ async def run_live_historical(
     information about the *outcome* (today's price, later drift to an extreme) can change which
     markets are ranked. Recent-activity ordering is used because the longshots that top total
     volume and liquidity are pinned near 0/1 with no history to reconstruct, whereas actively
-    traded markets include the genuinely uncertain ones. Its one caveat, disclosed in the
-    limitations, is a mild survivorship effect: a market that has since resolved trades less
-    now, so it is less likely to be scanned.
+    traded markets include the genuinely uncertain ones.
+
+    SURVIVORSHIP (material, not mild): the universe is TODAY's still-open market list ranked by
+    TODAY's 24h volume, because a point-in-time market-discovery snapshot for a past cut-off was
+    never stored. Any market that has CLOSED or RESOLVED since the cut-off is therefore excluded
+    entirely, and today's activity ranking is itself post-cut-off information about which markets
+    survived. This is a hard exclusion, not a mild effect, and it is the main reason so few
+    candidates qualify. It is disclosed in the limitations, and it is why the reconstruction is an
+    illustrative screen only; the prospective frozen cohort, which records the real universe at the
+    time, is the sound long-term evidence path.
     """
     markets = await market_service.active_markets(
         requested_mode="live", limit=universe_limit, by="volume_24hr"

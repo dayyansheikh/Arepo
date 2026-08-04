@@ -89,6 +89,10 @@ def test_rolling_zscore_excludes_current_from_baseline():
     assert z.mean == pytest.approx(0.0) and z.std == pytest.approx(0.0)
     zdown = rolling_zscore([0.5, 0.5, 0.5, 0.5, 0.5, 0.1], window=10, min_periods=4, clip=5.0)
     assert zdown.value == pytest.approx(-5.0)
+    # But an economically negligible blip off a flat baseline must NOT saturate the component:
+    # a 0.001-point move is treated as no meaningful standardised move (quant review B#9).
+    tiny = rolling_zscore([0.5, 0.5, 0.5, 0.5, 0.5, 0.501], window=10, min_periods=4, clip=5.0)
+    assert tiny.value is None and tiny.reason == "zero_variance"
 
 
 def test_rolling_zscore_edge_cases():

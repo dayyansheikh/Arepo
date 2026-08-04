@@ -30,12 +30,22 @@ async def provenance(session: AsyncSession = Depends(get_session)) -> Provenance
 
 @router.get("/latest", response_model=CohortDetail)
 async def latest(session: AsyncSession = Depends(get_session)) -> CohortDetail:
-    """The most recent cohort's summary, entries and portfolio simulation."""
+    """The most recent REAL cohort's summary, entries and portfolio simulation.
+
+    Synthetic demonstration cohorts are never served here: "latest" must never surface demo data
+    as if it were the current prospective record (spec §8, adversarial review F#6). Only prospective
+    (and, if ever stored, reconstructed) cohorts qualify; when none exist yet this 404s honestly.
+    """
     svc = CohortReadService(session)
     weeks_list = await svc.available_weeks()
-    if not weeks_list:
-        raise HTTPException(status_code=404, detail="No cohorts recorded yet.")
-    w = weeks_list[0]
+    real = [w for w in weeks_list if w.provenance_class != "synthetic"]
+    if not real:
+        raise HTTPException(
+            status_code=404,
+            detail="No real cohorts recorded yet. Prospective tracking begins at the first "
+            "weekly freeze; only a synthetic demonstration cohort exists so far.",
+        )
+    w = real[0]
     detail = await svc.cohort_detail(w.iso_year, w.iso_week)
     if detail is None:
         raise HTTPException(status_code=404, detail="Cohort not found.")
