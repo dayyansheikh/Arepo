@@ -15,6 +15,7 @@ dependencies = [
     "sqlalchemy>=2.0",
     "greenlet>=3.0",
     "aiosqlite>=0.20",
+    "asyncpg>=0.29",  # production Postgres (Supabase); SQLite remains the dev default
     # Accounts / authentication (native, not from scratch): fastapi-users handles registration,
     # email verification, password reset and secure sessions; argon2 hashing via pwdlib.
     "fastapi-users[sqlalchemy]>=15.0",

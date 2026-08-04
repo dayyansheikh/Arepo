@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": ".next",
+  "git": { "deploymentEnabled": { "main": true } },
+  "comment": "Frontend deploys from the monorepo. Set the Vercel project Root Directory to 'frontend' in the dashboard (Vercel does not read rootDirectory from this file). NEXT_PUBLIC_API_BASE must be set per environment: Production -> the Render backend URL (https://arepo-api.onrender.com), Preview -> the same or a staging backend. No localhost references ship to production. Creating the Vercel project and setting env vars requires the user."
+}

@@ -1,0 +1,91 @@
+# Render blueprint for the Arepo FastAPI backend + scheduled jobs (spec §16, §19, §20).
+#
+# This provisions the backend web service and the UTC cron jobs. It does NOT contain any secrets:
+# AUTH_SECRET, DATABASE_URL and RESEND_API_KEY are marked sync:false and must be set by the user
+# in the Render dashboard (or linked from a Supabase/Resend integration). Deploying this file
+# still requires the user to create the Render account and connect the repository.
+#
+# Frontend is deployed separately on Vercel (see vercel.json).
+
+services:
+  - type: web
+    name: arepo-api
+    runtime: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    startCommand: uvicorn astrolabe.api.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_JSON
+        value: "true"
+      - key: DEFAULT_MODE
+        value: live
+      # Secrets and per-environment values: set in the Render dashboard, never committed.
+      - key: AUTH_SECRET
+        sync: false
+      - key: DATABASE_URL          # Supabase Postgres: use the transaction pooler URL (see docs)
+        sync: false
+      - key: APP_BASE_URL          # e.g. https://arepo.vercel.app
+        sync: false
+      - key: CORS_ORIGINS          # e.g. https://arepo.vercel.app,https://arepo-*.vercel.app
+        sync: false
+      - key: AUTH_COOKIE_SECURE
+        value: "true"
+      - key: ALERT_EMAIL_ENABLED
+        sync: false
+      - key: ALERT_PROVIDER
+        value: resend
+      - key: ALERT_SENDER          # a verified Resend sender, e.g. alerts@yourdomain
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+
+# Scheduled jobs (all idempotent, all UTC). Each runs the existing CLI entry points. They share
+# the same DATABASE_URL and secrets as the web service via an env group in the dashboard.
+crons:
+  - name: arepo-microstructure
+    runtime: python
+    rootDir: backend
+    schedule: "*/5 * * * *"       # every 5 minutes: spread/depth/volume snapshots (spec §7, §19)
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.ingest.microstructure_cli collect --mode live
+  - name: arepo-opportunity-snapshot
+    runtime: python
+    rootDir: backend
+    schedule: "10 0 * * *"        # daily 00:10 UTC: freeze the immutable Opportunity snapshot
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.opportunity.cli snapshot --mode live
+  - name: arepo-cohort-rank
+    runtime: python
+    rootDir: backend
+    schedule: "0 * * * *"         # hourly: update this week's provisional cohort ranking
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.evaluation.cli rank --mode live
+  - name: arepo-cohort-freeze
+    runtime: python
+    rootDir: backend
+    schedule: "59 23 * * 0"       # Sunday 23:59 UTC: freeze the weekly cohort
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.evaluation.cli freeze
+  - name: arepo-forward-prices
+    runtime: python
+    rootDir: backend
+    schedule: "30 * * * *"        # hourly: collect due forward prices (1h/24h/7d)
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.evaluation.cli forward
+  - name: arepo-resolve
+    runtime: python
+    rootDir: backend
+    schedule: "15 */6 * * *"      # every 6h: record newly-available resolutions
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.evaluation.cli resolve
+  - name: arepo-alerts
+    runtime: python
+    rootDir: backend
+    schedule: "20 * * * *"        # hourly: evaluate per-user alerts (no-op unless enabled)
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.alerts.cli user-dry-run --mode live

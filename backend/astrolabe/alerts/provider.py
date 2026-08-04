@@ -105,8 +105,55 @@ class SmtpProvider:
             return SendResult(False, f"SMTP send failed: {exc}")
 
 
+class ResendProvider:
+    """Real sender via the Resend HTTPS API (spec §18). Key + verified sender from env only.
+
+    Sends a plain-text email (with a minimal HTML fallback) through ``api.resend.com/emails``.
+    Never raises: a failure returns an unsuccessful ``SendResult`` so the retry/failure-log path in
+    the alert service handles it. A verified custom domain is required to send to arbitrary
+    recipients; the test sender is limited by Resend to the account owner's address.
+    """
+
+    name = "resend"
+
+    def __init__(self, config: AlertConfig):
+        self._config = config
+
+    async def send(self, message: EmailMessage) -> SendResult:
+        cfg = self._config
+        if not (cfg.resend_api_key and message.to and message.sender):
+            return SendResult(False, "Resend not configured (api key / sender / recipient missing)")
+        try:
+            import httpx
+
+            payload = {
+                "from": message.sender,
+                "to": [message.to],
+                "subject": message.subject,
+                "text": message.text,
+                "html": "<pre style=\"font:14px/1.5 system-ui\">"
+                + message.text.replace("&", "&amp;").replace("<", "&lt;")
+                + "</pre>",
+            }
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {cfg.resend_api_key}"},
+                    json=payload,
+                )
+            if resp.status_code // 100 == 2:
+                return SendResult(True, "sent via Resend")
+            return SendResult(False, f"Resend HTTP {resp.status_code}: {resp.text[:200]}")
+        except Exception as exc:  # noqa: BLE001 - never crash the caller on a send failure
+            logger.warning("Resend send failed", extra={"ctx_error": str(exc)})
+            return SendResult(False, f"Resend send failed: {exc}")
+
+
 def provider_for(config: AlertConfig) -> EmailProvider:
-    """Choose a provider from config. Defaults to the console sink; SMTP only when enabled."""
-    if config.provider == "smtp" and config.enabled and not config.test_mode:
-        return SmtpProvider(config)
+    """Choose a provider from config. Console sink by default; real senders only when enabled."""
+    if config.enabled and not config.test_mode:
+        if config.provider == "resend":
+            return ResendProvider(config)
+        if config.provider == "smtp":
+            return SmtpProvider(config)
     return ConsoleProvider()

@@ -10,6 +10,7 @@ pandas>=2.2,<3.0
 sqlalchemy>=2.0,<3.0
 greenlet>=3.0,<4.0
 aiosqlite>=0.20,<1.0
+asyncpg>=0.29,<1.0  # production Postgres (Supabase) driver
 fastapi-users[sqlalchemy]>=15.0,<16.0
 pwdlib[argon2]>=0.2,<1.0
 pyjwt>=2.8,<3.0

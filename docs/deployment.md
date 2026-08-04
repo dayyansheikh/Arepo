@@ -272,3 +272,114 @@ script (`python backend/scripts/ingest.py` for one cycle, or `python backend/scr
 ingest.py --loop` to poll continuously on `POLL_INTERVAL_SECONDS`) on a schedule if they want
 a meaningful `cached` fallback tier in production; without it, `cached` mode will report
 `available() == False` and any fallback skips straight to `replay`.
+
+---
+
+# Production deployment: Vercel + Render + Supabase + Resend (spec §16-20)
+
+This is the production architecture selected in the spec. All application code and configuration
+is in the repo; the steps that require **creating an external account or setting a secret** are
+called out and must be done by the user. No secret is committed.
+
+## Architecture
+
+| Concern | Service | Why |
+|---|---|---|
+| Next.js frontend | **Vercel** | First-class Next.js hosting, Preview + Production envs |
+| FastAPI backend + cron | **Render** | Long-running ASGI service and native scheduled jobs (`render.yaml`) |
+| Postgres | **Supabase** | Managed Postgres; the schema is already Postgres-compatible |
+| Email | **Resend** | Verification, reset and alert email via the provider-neutral engine |
+
+Native authentication (`fastapi-users`) is kept (spec §16): there is no reason to replace it, and
+it runs identically on Postgres.
+
+## 1. Database: Supabase Postgres (§17)
+
+- Create a Supabase project (**user action**). Copy the connection string.
+- Use the **transaction pooler** connection URL for the backend web runtime (port 6543,
+  `?pgbouncer=true`). Rationale: Render web dynos open many short-lived connections, and Supabase's
+  transaction pooler is designed for exactly that, avoiding exhausting the direct-connection limit.
+  Use the **direct** connection (port 5432) only for one-off migration/DDL runs. Set it as
+  `DATABASE_URL` on Render (format `postgresql+asyncpg://...`). SQLAlchemy async + asyncpg is used.
+- Migrations: table creation is idempotent (`init_db` / `create_all`, run at startup and by each
+  cron's `bootstrap`). Indexes are declared on the hot columns (user id, market id, timestamps,
+  `minute_bucket`). For a managed migration step, run
+  `python -c "import asyncio; from astrolabe.storage.db import make_engine, init_db; from astrolabe.api import deps; asyncio.run(init_db(make_engine()))"`
+  against the direct URL before first boot.
+
+## 2. Backend: Render (§20)
+
+`render.yaml` (repo root) provisions the `arepo-api` web service and the UTC cron jobs. Key
+settings: `rootDir: backend`, build `pip install -r requirements.txt && pip install -e .`, start
+`uvicorn astrolabe.api.app:app --host 0.0.0.0 --port $PORT`, health check `/health`.
+
+Set these in the Render dashboard (marked `sync:false`, **user action**): `AUTH_SECRET` (strong,
+`python -c "import secrets; print(secrets.token_urlsafe(48))"`), `DATABASE_URL` (Supabase pooler),
+`APP_BASE_URL` (the Vercel URL), `CORS_ORIGINS` (the Vercel origins), `ALERT_EMAIL_ENABLED`,
+`ALERT_SENDER`, `RESEND_API_KEY`. `ENVIRONMENT=production` and `AUTH_COOKIE_SECURE=true` are set
+in the blueprint. The app logs a warning if `AUTH_SECRET` is left at its dev default in production.
+
+## 3. Frontend: Vercel (§20)
+
+- Import the repo in Vercel (**user action**) and set the project **Root Directory to `frontend`**
+  (Vercel reads this from the dashboard, not `vercel.json`). `vercel.json` pins the Next.js
+  framework and build.
+- Env vars: `NEXT_PUBLIC_API_BASE` = the Render backend URL (e.g. `https://arepo-api.onrender.com`)
+  for **both** Preview and Production. There are no `localhost` references in shipped code (the API
+  base falls back to localhost only when the variable is unset, for local dev).
+
+## 4. Cross-origin cookies (§17)
+
+Frontend (`*.vercel.app`) and backend (`*.onrender.com`) are different sites, so the auth cookie
+must be `SameSite=None; Secure` in production for the browser to send it cross-site. Set
+`AUTH_COOKIE_SECURE=true` (done in `render.yaml`); if you keep the two on different registrable
+domains, also set the cookie `SameSite=none` (the code uses `lax` by default, which works when the
+frontend proxies the API under the same site). The simplest robust setup is to serve the API under
+the same apex domain (e.g. `api.arepo.app` + `arepo.app`) so `SameSite=lax` suffices. CORS is an
+explicit allow-list (`CORS_ORIGINS`); credentials are enabled, so `*` is never used.
+
+## 5. Email: Resend (§18)
+
+`ALERT_PROVIDER=resend` selects `ResendProvider` (HTTPS `api.resend.com/emails`, plain-text with an
+HTML fallback, retries + failure logging via the alert service). Set `RESEND_API_KEY` and a
+verified `ALERT_SENDER`. **Sending to arbitrary registered users requires a verified custom
+domain** in Resend; the test sender is limited to the account owner's own address. Verification and
+password-reset email flow through the same engine, so once Resend is configured the whole account
+lifecycle sends real mail; until then the console sink logs the links (local dev).
+
+## 6. Scheduled jobs (§19)
+
+All defined in `render.yaml` as UTC crons, all idempotent, none dependent on any browser or a
+developer's laptop:
+
+| Job | Schedule (UTC) | Command |
+|---|---|---|
+| Microstructure snapshots (§7) | every 5 min | `python -m astrolabe.ingest.microstructure_cli collect --mode live` |
+| Opportunity snapshot | 00:10 daily | `python -m astrolabe.opportunity.cli snapshot --mode live` |
+| Cohort ranking | hourly | `python -m astrolabe.evaluation.cli rank --mode live` |
+| Weekly cohort freeze | Sun 23:59 | `python -m astrolabe.evaluation.cli freeze` |
+| Forward prices | hourly | `python -m astrolabe.evaluation.cli forward` |
+| Resolutions | every 6h | `python -m astrolabe.evaluation.cli resolve` |
+| Alert evaluation | hourly | `python -m astrolabe.alerts.cli user-dry-run --mode live` |
+
+The alert job is a no-op until `ALERT_EMAIL_ENABLED=true`; switch it from `user-dry-run` to a real
+send command once Resend and a verified domain are in place.
+
+## 7. Deployed end-to-end tests (§20)
+
+After the user completes the account steps, verify **outside localhost**: public pages load;
+sign-up sends a verification email (Resend); verify link works; sign-in; password reset; account
+preferences persist; saved markets; the directional Opportunity Board renders with the
+screened/qualify line; a market model view; filter state survives Back/refresh/shared links;
+Signal Lab; Replay; an alert email (test sender); mobile layout; logout; account deletion.
+Deployment is not complete until these pass.
+
+## External setup still required (the stopping point)
+
+1. Create the **Supabase** project and copy the pooler `DATABASE_URL`.
+2. Create the **Render** account, connect the repo (`render.yaml` auto-detected), set the
+   `sync:false` secrets.
+3. Create the **Vercel** project, set Root Directory `frontend` and `NEXT_PUBLIC_API_BASE`.
+4. Create the **Resend** account, verify a sender/domain, set `RESEND_API_KEY`.
+
+All of these require the user's own credentials and are the point at which autonomous work stops.

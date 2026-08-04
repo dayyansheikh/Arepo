@@ -34,10 +34,13 @@ def _envint(name: str, default: int) -> int:
 @dataclass
 class AlertConfig:
     enabled: bool = False               # ALERT_EMAIL_ENABLED (external sending)
-    provider: str = "console"           # ALERT_PROVIDER: console | smtp
+    provider: str = "console"           # ALERT_PROVIDER: console | smtp | resend
     recipient: str = ""                 # ALERT_RECIPIENT (e.g. dayyansheikh.work@gmail.com)
-    sender: str = "arepo-alerts@localhost"   # ALERT_SENDER
+    sender: str = "arepo-alerts@localhost"   # ALERT_SENDER (must be a verified Resend sender)
     test_mode: bool = False             # ALERT_TEST_MODE: build+record but do not send externally
+
+    # Resend provider (spec §18): HTTPS API, key from env only.
+    resend_api_key: str = ""            # RESEND_API_KEY (never hardcode; from env only)
 
     # Eligibility thresholds (spec section 11), all configurable.
     min_strength: float = 0.40          # ALERT_MIN_STRENGTH
@@ -71,6 +74,7 @@ class AlertConfig:
             smtp_port=_envint("ALERT_SMTP_PORT", 587),
             smtp_user=os.environ.get("ALERT_SMTP_USER", ""),
             smtp_password=os.environ.get("ALERT_SMTP_PASSWORD", ""),
+            resend_api_key=os.environ.get("RESEND_API_KEY", ""),
         )
 
     @property
@@ -80,4 +84,6 @@ class AlertConfig:
             return False
         if self.provider == "smtp":
             return bool(self.smtp_host and self.recipient)
+        if self.provider == "resend":
+            return bool(self.resend_api_key and self.sender)
         return False  # the console provider never sends externally
