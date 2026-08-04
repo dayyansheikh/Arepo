@@ -58,6 +58,10 @@ class MarketService:
         self._replay = ReplaySource(self._player)
         self._live = LiveSource(self._settings)
         self._cached = CachedSource(cached_session_factory)
+        # Session factory for the microstructure snapshot store (spec §9). When present, the live/
+        # cached enrich path records a snapshot per token and reads the persisted series to compute
+        # spread-change / depth-change / volume-acceleration. None (e.g. in unit tests) disables it.
+        self._session_factory = cached_session_factory
 
     # -- mode resolution -------------------------------------------------------------
     def _default_mode(self) -> DataMode:
@@ -111,6 +115,11 @@ class MarketService:
 
         results = await asyncio.gather(*(one(o.token_id) for o in market.outcomes))
         token_data = dict(results)
+        # Microstructure change features from the persisted snapshot series (spec §9). One session
+        # per market (concurrency-safe across markets); records the current snapshot then reads the
+        # prior series, so the current reading is excluded from its own baseline. Best-effort: a
+        # storage hiccup never breaks enrichment (the components simply stay missing that round).
+        changes_by_token = await self._microstructure_changes(source, market, token_data)
         analytics: list[TokenAnalytics] = []
         for o in market.outcomes:
             td = token_data[o.token_id]
@@ -122,12 +131,47 @@ class MarketService:
                 volumes=td.volumes,
                 gamma_price=o.price,
                 data_age_seconds=enrich.data_age(td.captured_at),
+                changes=changes_by_token.get(o.token_id),
             )
             # Attach the market context so signals can name and link to their market.
             ta.signal.market_question = market.question
             ta.signal.outcome_name = o.name
             analytics.append(ta)
         return analytics, enrich.market_card(market, analytics)
+
+    async def _microstructure_changes(self, source, market, token_data):
+        """Read persisted microstructure changes per token, recording the current snapshot first.
+
+        Returns a dict token_id -> MicrostructureChanges (empty when no store / not live-cached).
+        Never raises: any storage error yields no changes for this market this round.
+        """
+        if self._session_factory is None or source.mode not in (DataMode.LIVE, DataMode.CACHED):
+            return {}
+        from ..analytics.microstructure import near_mid_depth, spread_info
+        from ..ingest.microstructure_store import changes_for_token, record_snapshot
+
+        out: dict = {}
+        try:
+            async with self._session_factory() as session:
+                for o in market.outcomes:
+                    td = token_data.get(o.token_id)
+                    book = td.book if td else None
+                    si = spread_info(book) if book else None
+                    cur_spread = si.spread if si else None
+                    cur_depth = near_mid_depth(book).total_depth if book else None
+                    # Record first (idempotent per minute) so the current reading is the last
+                    # snapshot and is excluded from its own change baseline.
+                    await record_snapshot(
+                        session, token_id=o.token_id, spread=cur_spread,
+                        near_mid_depth=cur_depth, cumulative_volume=market.volume,
+                    )
+                    out[o.token_id] = await changes_for_token(
+                        session, o.token_id, current_spread=cur_spread, current_depth=cur_depth,
+                    )
+        except Exception as exc:  # noqa: BLE001 - store is best-effort; never break enrichment
+            logger.debug("microstructure store unavailable", extra={"ctx_err": str(exc)})
+            return {}
+        return out
 
     def _card_from_metadata(self, market: Market) -> MarketCard:
         """Cheap card from discovery metadata only (no per-token network fetch)."""
