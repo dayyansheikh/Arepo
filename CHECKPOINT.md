@@ -51,21 +51,19 @@ vitest); §10 hidden-scrollbar Learn menu; §11 auth one-viewport + nav-style wo
 endpoint+section; §19 Replay default = reconstructed "last week's opportunities" (no stale
 synthetic); §16 cut-off persists in URL.
 
-PARTIAL (exact next tasks - complete before declaring done / before deployment §23):
-1. §14 Replay point-in-time fields: show Research Priority AT the cut-off and close-date +
-   time-remaining AT the cut-off in each reconstructed row (historical.py HistoricalEntry needs an
-   RP-at-cutoff + end_date; frontend HistoricalRow renders them).
-2. §16 reconstruction closing-soon lens (24h/3d/7d/all) filtering historical rows by time-to-close
-   at the cut-off, URL-persisted (needs end_date on the candidate/entry).
-3. §13 create docs/replay-product-review.md (three-role review loop).
-4. §21 zoom 80-150% checks (tooling can't change page zoom; verify manually).
+NOW ALSO PASS (committed + pushed since): §14 Replay point-in-time RP-at-cut-off + close-date +
+time-remaining per row; §16 closing-soon lens (URL ?closing=); §13 docs/replay-product-review.md;
+§20 prospective/reconstructed/synthetic definitions block. All Replay items §12-20 complete.
+
+ONE PARTIAL remaining: §21 zoom checks at 80/90/110/125/150% - the browser tooling cannot change
+page zoom, so this needs a manual pass (100% verified; shell uses vh/flex + fluid width that scale
+with zoom).
 
 BLOCKED: §23 deployment (Vercel/Render/Supabase/Resend) - not started by design until local
-acceptance fully passes; external accounts required.
+acceptance fully passes; external accounts required. This is the next phase.
 
-**Exact next action:** add `research_priority` (at cut-off) and `end_date`/`time_remaining_hours`
-(at cut-off) to `evaluation/historical.py` HistoricalEntry + `run_historical_screen`, render them
-in the Replay HistoricalRow, then add the closing-soon lens. Servers may be running on :8012/:3012.
+**Exact next action:** a human manual zoom check at 80-150% (§21), then begin deployment (§23)
+following docs/deployment.md when the external accounts are created.
 
 ## (superseded) Current phase
 

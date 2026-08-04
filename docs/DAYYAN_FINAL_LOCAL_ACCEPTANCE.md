@@ -50,9 +50,10 @@ Legend: **Pass** (verified) · **Partial** (works, specific gap noted) · **Bloc
 | Replay data status (§18) | `/api/replay/data-status` + a Disclose section; honest "leaving the site open does not grow the sample" | **Pass** |
 | Cut-off persists in URL (§16) | `?cutoff=` via useUrlState | **Pass** |
 | Prospective / reconstructed / synthetic separated, never mixed (§7, §20) | reconstructed default badged; provenance labels retained | **Pass** |
-| Point-in-time fields: Research Priority at cut-off, close date + time-remaining at cut-off (§14) | reconstruction shows rank, direction, strength, confidence-at-time, entry, 1h/24h/7d moves, resolution; it does NOT yet show Research-Priority-at-cut-off or close-date/time-remaining-at-cut-off | **Partial** |
-| Closing-soon lens (24h/3d/7d/all) on reconstruction (§16) | the live board has this filter; the historical reconstruction does not filter by time-to-close yet | **Partial** |
-| `docs/replay-product-review.md` three-role loop (§13) | not created this pass | **Partial** |
+| Point-in-time fields: Research Priority at cut-off, close date + time-remaining at cut-off (§14) | each row now shows RP-at-cut-off (price-only via score_opportunity, now=as_of), scheduled close, and time-remaining measured from the cut-off, plus confidence-at-time; verified via backend tests + `HistoricalEntry` schema | **Pass** |
+| Closing-soon lens (24h/3d/7d/all) on reconstruction (§16) | lens filters rows by time-to-close at the cut-off, URL-persisted (?closing=), honest empty-state | **Pass** |
+| `docs/replay-product-review.md` three-role loop (§13) | written; reassurance + quant roles accept; disclosure that one Opus agent played the roles | **Pass** |
+| Prospective/reconstructed/synthetic definitions on the page (§20) | a definitions block; never combined into one headline number | **Pass** |
 
 ## Completion gate (§23) - deployment
 Not started, by design: §23 requires all local acceptance to pass before any Vercel/Render/Supabase/
@@ -60,9 +61,11 @@ Resend work. Deployment is **Blocked** on external accounts and is out of scope 
 items above are closed.
 
 ## Honest summary
-No item that was implemented is **Fail**. The critical routing bug (§3) and the layout/title/nav/
-auth/Signal-Lab/Replay-default items are **Pass** with running-product evidence. The remaining
-**Partial** items are specific and enumerated: Replay point-in-time Research-Priority/close-date
-fields (§14), the reconstruction closing-soon lens (§16), the replay-product-review doc (§13), and
-zoom-level checks at 80-150% (tooling could not change page zoom). These are the exact next tasks;
-completion is **not** declared while they stand, and deployment has correctly not begun.
+No item that was implemented is **Fail**. The critical routing bug (§3) and every local
+acceptance area (layout, title, nav, auth, Signal Lab, and the full Replay set: default, funnel,
+baselines, point-in-time fields, closing-soon lens, data-status, definitions, review doc) are
+**Pass** with running-product and/or test evidence. The one remaining **Partial** is the
+zoom-level check at 80/90/110/125/150% (§21): the browser tooling cannot change page zoom, so this
+needs a manual pass; the shell uses vh/flex + fluid width designed to scale with zoom, and 100% is
+verified. Deployment (§23) has correctly **not** begun; it is Blocked on external accounts
+(Vercel/Render/Supabase/Resend) and is the next phase once you complete the manual zoom check.

@@ -2,6 +2,21 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Final local implementation (branch `arepo-final-local-implementation`)
+- [x] §1 baseline; §2 report reconciliation (added current-implied + price-only baselines)
+- [x] §3 CRITICAL routing bug (canonical resolution; IDs 2694364/2822017 open in any mode); doc + 5 tests
+- [x] §4/§5 blank routes / footer-follows-content / compact error card
+- [x] §6/§7 Signal Lab directional filter + sort (URL); direction in words
+- [x] §8 full-width nav; §9 tab title exactly "Arepo"
+- [x] §10 hidden-scrollbar shared Learn menu
+- [x] §11 auth one-viewport + nav-style wordmark (PNG removed)
+- [x] §12-20 Replay: default "last week's opportunities"; funnel; six baselines; point-in-time RP +
+      close-date + time-remaining; closing-soon lens (URL); data-status; synthetic-date fix;
+      definitions; docs/replay-product-review.md
+- [x] §21 acceptance doc (docs/DAYYAN_FINAL_LOCAL_ACCEPTANCE.md); §22 gates (backend 309, frontend 21 vitest)
+- [ ] §21 manual zoom check 80-150% (tooling can't change page zoom)
+- [!] §23 deployment (Vercel/Render/Supabase/Resend) - Blocked on external accounts, by design
+
 ## Final gap-closure (branch `arepo-final-gap-closure`)
 - [x] §1 baseline (docs/final-gap-baseline.md); §2 reviews (quant/beginner/Dayyan acceptance)
 - [x] §3 remove broken Full definition; verify all help links resolve
