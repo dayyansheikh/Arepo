@@ -201,11 +201,14 @@ async def board_diagnostics(
     the normal best-effort snapshot recording in the enrich path."""
     import statistics as _stats
 
+    from ..analytics.consistency import collect_card_warnings
+
     now = now or utcnow()
     pairs, mode = await market_service.enrich_markets(
         requested_mode=requested_mode, limit=universe_limit
     )
     micro = ("spread_change", "depth_change", "volume_acceleration")
+    consistency_warnings: list[str] = []
     tokens = 0
     present = {name: 0 for name in micro}
     directional = 0
@@ -228,8 +231,22 @@ async def board_diagnostics(
         )
         confidences.append(scored.confidence)
         fam_counts[scored.n_families] = fam_counts.get(scored.n_families, 0) + 1
-        if has_directional_view(lead.signal.direction, scored.n_families, scored.signal_strength):
+        is_dir = has_directional_view(
+            lead.signal.direction, scored.n_families, scored.signal_strength
+        )
+        if is_dir:
             directional += 1
+        consistency_warnings.extend(
+            f"{_market.id}: {w}"
+            for w in collect_card_warnings(
+                confidence=scored.confidence, n_families=scored.n_families,
+                directional=is_dir, direction=lead.signal.direction if is_dir else None,
+                status=getattr(_market, "status", None)
+                and getattr(_market.status, "value", str(_market.status)),
+                end_date=getattr(_market, "end_date", None),
+                question=getattr(_market, "question", None), now=now,
+            )
+        )
         for ta in analytics:
             tokens += 1
             names = {c.name for c in ta.signal.components if c.raw_value is not None}
@@ -258,6 +275,8 @@ async def board_diagnostics(
         "directional_coverage_pct": round(100 * directional / markets, 1) if markets else 0.0,
         "confidence_distribution": _dist(confidences),
         "family_count_distribution": dict(sorted(fam_counts.items())),
+        "consistency_warnings": consistency_warnings,
+        "consistency_warning_count": len(consistency_warnings),
         "tokens_analysed": tokens,
         "component_availability": {
             name: {
