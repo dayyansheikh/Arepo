@@ -2,6 +2,23 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Signal Intelligence & Replay functional validation (branch `arepo-signal-replay-functional-validation`)
+- [x] §1 safety tag + branch + baseline (docs/signal-replay-functional-baseline.md)
+- [x] §2 independent reviewers A–G run; docs produced; Opus synthesis in DECISIONS D-SR1..D-SR6
+- [x] §6/§17 one reliability confidence on every surface incl. Market Detail outcome cards; cap 0.95, no 100%
+- [x] §10/§11 flat-aware evaluation (flat ≠ miss) in reconstructed Replay AND prospective cohort pipeline
+- [x] §4 z-score materiality floor; volume_acceleration corrected (live-available, in completeness)
+- [x] §9/§16 reconstructed reproducibility (UTC-day snap) + hard-survivorship honesty
+- [x] §8 synthetic decision doc; /cohorts/latest excludes synthetic (verified 404)
+- [x] §12/§13 momentum-agreement diagnostic; Brier/log-loss honestly N/A (not fabricated)
+- [x] §4/§8/§17 component register, synthetic decision, cross-surface contract (+ test_cross_surface.py)
+- [x] §17/§18 identifier routing test parametrised over 2694364 AND 2822017
+- [x] §21 tests: flat, confidence ceiling, cross-surface, materiality floor (backend 320 pass)
+- [x] §22 acceptance (docs/DAYYAN_SIGNAL_REPLAY_ACCEPTANCE.md); §23 reviewers re-run (F′, G accept)
+- [ ] manual zoom check 80-150% (tooling can't change page zoom)
+- [ ] accumulate prospective cohorts via the backend weekly freeze (needs cron over weeks)
+- [!] deployment - Blocked on external accounts, by design (not requested this session)
+
 ## Final local implementation (branch `arepo-final-local-implementation`)
 - [x] §1 baseline; §2 report reconciliation (added current-implied + price-only baselines)
 - [x] §3 CRITICAL routing bug (canonical resolution; IDs 2694364/2822017 open in any mode); doc + 5 tests

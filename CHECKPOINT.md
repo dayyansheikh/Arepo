@@ -38,6 +38,31 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
+**Signal Intelligence & Replay functional validation (branch
+`arepo-signal-replay-functional-validation`, safety tag
+`arepo-before-signal-replay-functional-validation`).** Independent reviewers A–G run; Opus
+synthesised; confirmed fixes implemented, re-reviewed and accepted. Gates: **backend 320 pass, ruff
+clean; frontend tsc/lint clean, 21 vitest, `next build` 16/16**. Baseline in
+`docs/signal-replay-functional-baseline.md`; acceptance in `docs/DAYYAN_SIGNAL_REPLAY_ACCEPTANCE.md`.
+
+Confirmed + fixed (committed + pushed): D-SR1 one reliability confidence on every surface (Signal
+Lab, Market Detail incl. per-outcome cards, Board), no 100% (D-SR6 cap 0.95); D-SR2 flat-aware
+evaluation across reconstructed Replay AND the prospective cohort pipeline (flat ≠ miss); D-SR3
+z-score materiality floor; D-SR4 reconstructed reproducibility (UTC-day snap) + hard-survivorship
+honesty + `/cohorts/latest` excludes synthetic; D-SR5 momentum-agreement diagnostic + honest
+Brier/log-loss N/A. Corrected volume_acceleration (live-available, warms up; restored to
+completeness). Reviewer docs: signal-replay-quant-review, replay-point-in-time-data-matrix,
+signal-system-implementation-review, signal-replay-adversarial-review (+ re-review),
+signal-replay-final-qa (accept-with-minor, minors fixed), dayyan-signal-replay-review,
+replay-trust-review; plus signal-component-register, synthetic-replay-decision,
+signal-replay-cross-surface-contract (+ test_cross_surface.py). DECISIONS D-SR1..D-SR6.
+
+**Exact next action:** none required for the pass. Optional future work: accumulate prospective
+cohorts via the weekly freeze (needs the backend cron over weeks); manual zoom checks; deployment
+when accounts exist. If resumed, read this file + AREPO_SIGNAL_REPLAY_FUNCTIONAL_VALIDATION_PROMPT.md.
+
+## (superseded) Current phase
+
 **Final local implementation (branch `arepo-final-local-implementation`).** Gates: backend 309
 pass, ruff clean; frontend tsc/lint clean, 21 vitest, build compiled. Browser-verified against a
 running backend(:8012)+frontend(:3012). Acceptance in `docs/DAYYAN_FINAL_LOCAL_ACCEPTANCE.md`.
