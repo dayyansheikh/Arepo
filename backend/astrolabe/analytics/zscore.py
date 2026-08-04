@@ -39,12 +39,15 @@ def rolling_zscore(
     winsor_limit: float = 0.0,
     clip: float | None = 10.0,
 ) -> ZScore:
-    """Rolling z-score of the most recent return.
+    """Rolling z-score of the most recent return, scored against a baseline that EXCLUDES it.
 
-    The reference distribution is the returns over the trailing ``window`` (excluding the very
-    last return is *not* required; we include it in mean/std which is the standard rolling
-    definition). ``clip`` bounds the reported z to +/- ``clip`` to avoid absurd magnitudes from
-    a near-zero std; set ``clip=None`` to disable.
+    The return being measured (the last return) must not appear in its own reference mean/std:
+    including it pulls the baseline towards the very event we are trying to detect and shrinks
+    large moves (deep-research-report.md, Arepo audit, "The current observation appears in its own
+    z-score reference window"). So the baseline is the trailing returns over ``t-L`` through
+    ``t^-`` and the score is ``(r_last - mean_baseline) / std_baseline``. ``clip`` bounds the
+    reported z to +/- ``clip`` to avoid absurd magnitudes from a near-zero std; ``clip=None``
+    disables it.
     """
     if window < 3:
         raise ValueError("window must be >= 3")
@@ -52,19 +55,32 @@ def rolling_zscore(
         raise ValueError("min_periods must be >= 3")
 
     r = returns(prices, method=method)
-    if r.size < min_periods:
+    # We need the last return PLUS at least ``min_periods`` prior returns for the baseline.
+    if r.size < min_periods + 1:
         return ZScore(None, None, None, None, int(r.size), "insufficient_history")
 
-    ref = r[-window:] if r.size > window else r
-    last = float(ref[-1])
-    ref_w = winsorize(ref, winsor_limit)
+    last = float(r[-1])
+    # Baseline: the trailing ``window`` returns strictly BEFORE the last one (t-L .. t^-).
+    baseline = r[-(window + 1):-1] if r.size > window else r[:-1]
+    baseline_w = winsorize(baseline, winsor_limit)
 
-    mean = float(np.mean(ref_w))
-    std = float(np.std(ref_w, ddof=1))
+    mean = float(np.mean(baseline_w))
+    std = float(np.std(baseline_w, ddof=1))
+
     if std == 0.0 or not np.isfinite(std):
-        return ZScore(None, last, mean, std, int(ref.size), "zero_variance")
+        # A flat baseline. If the last return is also ~0 the market is genuinely unchanged and
+        # has no standardised move (correct abstention). But a real move off a perfectly flat
+        # baseline is *maximally* unusual, not undefined: report a clipped, signed extreme so a
+        # flat-then-jump (the case we most want to detect) yields a directional reading rather
+        # than None. This is what makes the baseline-exclusion fix improve, not harm, coverage.
+        move = last - mean
+        if abs(move) <= 1e-12:
+            return ZScore(None, last, mean, std, int(baseline.size), "zero_variance")
+        extreme = float(clip) if clip is not None else 10.0
+        z = extreme if move > 0 else -extreme
+        return ZScore(z, last, mean, std, int(baseline.size), "flat_baseline_move")
 
     z = (last - mean) / std
     if clip is not None:
         z = float(np.clip(z, -clip, clip))
-    return ZScore(float(z), last, mean, std, int(ref.size), None)
+    return ZScore(float(z), last, mean, std, int(baseline.size), None)

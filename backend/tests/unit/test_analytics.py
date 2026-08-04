@@ -66,23 +66,40 @@ def test_rolling_volatility_hand_value():
 
 # --------------------------------------------------------------------------- z-score
 def test_rolling_zscore_hand_value():
-    # returns = [0,0,0,0.02]; mean=0.005, std=0.01 => z=(0.02-0.005)/0.01 = 1.5
-    z = rolling_zscore([0.3, 0.3, 0.3, 0.3, 0.32], window=10, min_periods=4)
-    assert z.value == pytest.approx(1.5, abs=1e-9)
-    assert z.last_return == pytest.approx(0.02)
-    assert z.mean == pytest.approx(0.005)
-    assert z.std == pytest.approx(0.01)
+    # The last return is scored against a baseline that EXCLUDES it (report Arepo audit).
+    # returns = [0.01, -0.01, 0.01, 0.03]; baseline (exclude last) = [0.01, -0.01, 0.01]
+    # mean = 1/300, std(ddof=1) of [0.01,-0.01,0.01] ~= 0.011547; z = (0.03 - mean)/std
+    prices = [0.30, 0.31, 0.30, 0.31, 0.34]
+    z = rolling_zscore(prices, window=10, min_periods=3)
+    import numpy as np
+    baseline = np.array([0.01, -0.01, 0.01])
+    expected = (0.03 - baseline.mean()) / baseline.std(ddof=1)
+    assert z.value == pytest.approx(expected, abs=1e-6)
+    assert z.last_return == pytest.approx(0.03)
+    assert z.mean == pytest.approx(float(baseline.mean()))
+
+
+def test_rolling_zscore_excludes_current_from_baseline():
+    # A move off a PERFECTLY FLAT baseline is maximally unusual, not undefined: it must yield a
+    # signed extreme (so flat-then-jump produces a directional reading), and the baseline stats
+    # must not be pulled by the move being measured.
+    z = rolling_zscore([0.5, 0.5, 0.5, 0.5, 0.5, 0.9], window=10, min_periods=4, clip=5.0)
+    assert z.value == pytest.approx(5.0)          # signed extreme, positive move
+    assert z.reason == "flat_baseline_move"
+    assert z.mean == pytest.approx(0.0) and z.std == pytest.approx(0.0)
+    zdown = rolling_zscore([0.5, 0.5, 0.5, 0.5, 0.5, 0.1], window=10, min_periods=4, clip=5.0)
+    assert zdown.value == pytest.approx(-5.0)
 
 
 def test_rolling_zscore_edge_cases():
-    # zero variance: flat series -> no meaningful standardised move
+    # Truly flat (including the last return): no meaningful standardised move.
     z = rolling_zscore([0.5] * 12, window=10, min_periods=4)
     assert z.value is None and z.reason == "zero_variance"
-    # insufficient history
+    # insufficient history (need min_periods baseline returns PLUS the one being scored)
     z2 = rolling_zscore([0.5, 0.51, 0.52], window=10, min_periods=8)
     assert z2.value is None and z2.reason == "insufficient_history"
     # clip bounds extreme z
-    prices = [0.5] * 20 + [0.9]           # one big jump after a flat run
+    prices = [0.5, 0.52, 0.49, 0.51, 0.50, 0.48, 0.52, 0.50, 0.51, 0.49, 0.9]
     z3 = rolling_zscore(prices, window=25, min_periods=8, clip=5.0)
     assert z3.value is not None and abs(z3.value) <= 5.0
 

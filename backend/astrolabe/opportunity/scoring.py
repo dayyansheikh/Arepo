@@ -102,6 +102,30 @@ def _book_family(signal: Signal) -> tuple[bool, float]:
     return False, 0.0
 
 
+# Confidence as an estimated-reliability score (spec §6; research report lines 774, 1087-1089).
+# It is NOT signal size and NOT mere data completeness. It combines the data-quality term with a
+# corroboration term: a single, uncorroborated evidence family is capped well below 1.0, and only
+# genuinely multi-family, high-data-quality readings approach full confidence. This gives
+# meaningful variation and removes the old spike at 100%.
+RELIABILITY_BASE = 0.45          # reliability of a single-family reading before data quality
+RELIABILITY_SPAN = 0.55          # extra reliability earned by full family corroboration
+
+
+def reliability_confidence(data_quality_confidence: float, n_families: int) -> float:
+    """Estimated reliability in [0, 1] = data quality x evidence corroboration.
+
+    ``data_quality_confidence`` is the freshness/coverage term from ``assess_quality``.
+    Corroboration rises with the number of *distinct* evidence families that fired (saturating at
+    ``TARGET_FAMILIES``). With one family the reliability factor is ``RELIABILITY_BASE`` (so even
+    perfect data quality yields well under 100%); with ``TARGET_FAMILIES`` agreeing families it
+    reaches 1.0. Zero families (a bare composite lead) is treated as a single weak family.
+    """
+    dq = max(0.0, min(1.0, data_quality_confidence))
+    corroboration = min(1.0, max(0, n_families) / TARGET_FAMILIES)
+    reliability_factor = RELIABILITY_BASE + RELIABILITY_SPAN * corroboration
+    return float(max(0.0, min(1.0, dq * reliability_factor)))
+
+
 def _liquidity_factor(liquidity: float | None) -> tuple[float, str]:
     if liquidity is None:
         return 0.7, "moderate"
@@ -213,11 +237,15 @@ def score_opportunity(
                 TAG_METHODOLOGY["Thin market"], signal.data_quality.value, now)
         )
 
+    # Confidence displayed to the user is the estimated reliability, not the raw data-quality
+    # term (which is kept as `data_quality` band). signal.confidence is the data-quality input.
+    confidence = reliability_confidence(signal.confidence, n_families)
+
     explanation = _explain(families, tags, evidence)
     return ScoredOpportunity(
         research_priority=priority,
         signal_strength=signal.strength,
-        confidence=signal.confidence,
+        confidence=confidence,
         data_quality=signal.data_quality.value,
         families=families,
         n_families=n_families,

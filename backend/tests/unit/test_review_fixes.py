@@ -156,10 +156,13 @@ async def test_gamma_non_json_body_raises_typed_error():
     await client.aclose()
 
 
-# ---------------------------------------------------------------- sanity: default dataset still ok
-def test_default_backtest_unchanged_after_fix():
+# ---------------------------------------------------------------- sanity: default dataset runs
+def test_default_backtest_deterministic():
+    # Values shifted when the z-score baseline was fixed to exclude the observation being scored
+    # (a flat-then-move now yields a signed reading, so more synthetic signals qualify). This is
+    # a deterministic sanity check on the labelled synthetic demo, not a performance claim.
     r = run_backtest()
-    assert r.sample_size == 16 and r.hit_rate == pytest.approx(0.625)
+    assert r.sample_size == 19 and r.hit_rate == pytest.approx(0.5263157894736842)
 
 
 def test_ws_import_conn_state():

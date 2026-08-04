@@ -5,6 +5,51 @@ Newest entries at the top of each section.
 
 ---
 
+## Directional Evidence, Replay & Deployment (branch `arepo-directional-evidence-deployment`)
+
+### D0. Research paper adopted vs deferred (spec §2)
+Read `research-references/deep-research-report.md` in full (Opus + independent Sonnet reviewer).
+Full audit in `docs/research-paper-evidence-audit.md`. Adopted now (data available, causal,
+interpretable, testable): z-score baseline exclusion; confidence as estimated reliability;
+logit movement alongside probability-point; abstention + selective directional board; missing-
+feature indicators (never missing->zero); Replay baseline comparisons with proper scoring;
+Research Priority kept as a labelled heuristic. Deferred as research (needs a point-in-time store
+and walk-forward validation not buildable in-session): calibrated hierarchical logistic/beta
+calibration, repricing-distribution, liquidity/cost/capacity, and logical-consistency models,
+and OFI from a reconstructed live book. No component claims alpha (report line 1123-1125).
+
+### D1. Why directional views are rare (diagnosis, spec §3) — NOT a threshold problem
+Full diagnosis in `docs/directional-diagnosis.md`. Root cause is data availability: at 30-min
+price fidelity, prediction-market outcomes are frequently flat, so `rolling_zscore` returned
+`None` (zero variance), which simultaneously nulled `direction`, starved the price family, and
+capped composite strength below the 0.40 floor; the other families need >=15-20 live trades.
+The market-detail ModelView was also stricter than the board (strength>=0.40, no family credit).
+Fixes are report-consistent, not threshold-lowering (see D2-D4).
+
+### D2. Z-score scored against a baseline that excludes the current observation (report line 736)
+`rolling_zscore` now scores the last return against the trailing returns t-L..t^- (excluding the
+return being measured), so the baseline is not pulled toward the event. Crucially, a real move
+off a *perfectly flat* baseline is reported as a signed clipped extreme (`flat_baseline_move`)
+rather than `None`, so a flat-then-jump — the case we most want to detect — now yields a
+directional reading. Only a truly unchanged market (flat baseline AND zero last move) abstains.
+This improves directional coverage without lowering any threshold. Tests updated; the labelled
+synthetic backtest shifted (16->19 samples, hit-rate 0.625->0.526), which is expected and is not
+a performance claim.
+
+### D3. Confidence redesigned as an estimated-reliability score (spec §6, report lines 774, 1087-1089)
+The old confidence started at 1.0 and only penalised down on data completeness, so any liquid,
+fresh, two-sided market displayed exactly 100%. Confidence is now `data_quality x corroboration`:
+a single, uncorroborated evidence family is capped near 0.63 even with perfect data; full
+reliability requires multiple distinct families AND high data quality. This removes the 100%
+spike, produces meaningful variation, is computed only from signal-time evidence (no future
+outcomes), and keeps the data-quality band displayed separately. `reliability_confidence` with
+saturation/variation/monotonicity tests.
+
+### D4. Direction preserved as genuine, with abstention (spec §3, report line 741)
+Direction still comes from computed evidence and can legitimately be `None`; the board stays
+selective by directional view (D-C, Phase C) rather than forcing a view. The ModelView gate is
+unified with the backend evidence rule (Phase E).
+
 ## Product Simplification, Accounts & Decision-Support (branch `arepo-product-simplification`)
 
 ### P0. Two independent product reviews (spec §2) — findings that shaped the redesign
