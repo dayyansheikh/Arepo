@@ -11,6 +11,7 @@ import {
   getCohortWeeks,
   getHistoricalScreen,
   getReplayDataStatus,
+  getResearchStatus,
 } from "@/lib/api";
 import type {
   BaselineComparison,
@@ -602,8 +603,55 @@ function HistoricalView() {
       {!loading && error && <ErrorState message={error} />}
       {!loading && data && <HistoricalResult screen={data} maxHours={maxHours} />}
 
+      <ResearchStatusSection />
       <ReplayDataStatusSection />
     </div>
+  );
+}
+
+/** Edge-research status (edge-research prompt §13): real stored prospective evidence and whether the
+ * edge criteria are met. Shows the honest empty state rather than hiding it behind synthetic or
+ * reconstructed numbers. */
+function ResearchStatusSection() {
+  const { data } = useAsync(() => getResearchStatus(), []);
+  if (!data) return null;
+  const cad = data.cohort_counts_by_cadence || {};
+  const rows: [string, string][] = [
+    ["Model version", data.model_version],
+    ["Frozen cohorts (6h / daily / weekly)", `${cad["6h"] ?? 0} / ${cad["daily"] ?? 0} / ${cad["weekly"] ?? 0}`],
+    ["Frozen markets (full universe)", String(data.total_frozen_markets)],
+    ["Directional signals (public + shadow)", `${data.directional_signals} (${data.public_selections} + ${data.shadow_signals})`],
+    ["Abstention controls", String(data.abstentions)],
+    ["24h outcomes evaluable", String(data.horizon_coverage?.["24h"]?.evaluable ?? 0)],
+    ["Resolved markets", String(data.resolved_markets)],
+    ["Last successful freeze", data.last_successful_freeze ? new Date(data.last_successful_freeze).toLocaleString("en-GB") : "none yet"],
+  ];
+  return (
+    <section className="space-y-3">
+      <SectionTitle>Edge-research status</SectionTitle>
+      {/* Edge verdict banner: the honest, unmissable current state. */}
+      <div
+        className={`rounded-card border px-4 py-3 text-[13px] leading-relaxed ${
+          data.edge.edge_supported
+            ? "border-arepo-pos/30 bg-arepo-pos/10 text-arepo-ink"
+            : "border-arepo-warn/30 bg-arepo-warn/10 text-arepo-warnText"
+        }`}
+      >
+        <span aria-hidden="true">{data.edge.edge_supported ? "✓ " : "⚠ "}</span>
+        {data.edge.message}
+      </div>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-3 border-b border-arepo-border py-1">
+            <dt className="text-[13px] text-arepo-muted">{k}</dt>
+            <dd className="text-[13px] font-medium text-arepo-ink2">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">
+        Calibration: {data.calibration.message} {data.note}
+      </p>
+    </section>
   );
 }
 

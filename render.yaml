@@ -89,3 +89,35 @@ crons:
     schedule: "20 * * * *"        # hourly: evaluate per-user alerts (no-op unless enabled)
     buildCommand: pip install -r requirements.txt && pip install -e .
     command: python -m astrolabe.alerts.cli user-dry-run --mode live
+
+  # --- Edge-research infrastructure jobs (edge-research prompt §3, §5, §17C) ------------------
+  # The freeze jobs fire a few minutes AFTER each cadence boundary, so the cohort's cut-off (snapped
+  # to the boundary) is ~equal to when the prices were captured, and every 1h/6h/24h/7d horizon is
+  # genuinely in the future (the collector rejects any horizon that predates the freeze). Each
+  # freeze is idempotent on (cadence, cut-off): a re-run in the same period is a no-op.
+  - name: arepo-research-freeze-6h
+    runtime: python
+    rootDir: backend
+    schedule: "5 0,6,12,18 * * *"  # 00:05/06:05/12:05/18:05 UTC: freeze the 6-hour research cohort
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.evaluation.research_cli research-freeze --cadence 6h
+  - name: arepo-research-freeze-daily
+    runtime: python
+    rootDir: backend
+    schedule: "10 0 * * *"         # daily 00:10 UTC: freeze the daily research cohort
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.evaluation.research_cli research-freeze --cadence daily
+  - name: arepo-research-freeze-weekly
+    runtime: python
+    rootDir: backend
+    schedule: "15 0 * * 1"         # Monday 00:15 UTC: freeze the weekly research cohort
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.evaluation.research_cli research-freeze --cadence weekly
+  - name: arepo-research-forward
+    runtime: python
+    rootDir: backend
+    schedule: "*/20 * * * *"       # every 20 min: record any due 1h/6h/24h/7d forward observation
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.evaluation.research_cli research-forward
+  # Final resolutions are shared: the existing arepo-resolve cron populates market_resolutions,
+  # which the research layer reads for its resolution view (no separate research-resolve cron).

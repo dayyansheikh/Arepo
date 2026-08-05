@@ -213,6 +213,36 @@ export function getReplayDataStatus(): Promise<ReplayDataStatus> {
   return apiFetch<ReplayDataStatus>("/api/replay/data-status");
 }
 
+export interface ResearchStatus {
+  model_version: string;
+  cohort_counts_by_cadence: Record<string, number>;
+  total_frozen_markets: number;
+  directional_signals: number;
+  public_selections: number;
+  shadow_signals: number;
+  observations: number;
+  abstentions: number;
+  horizon_coverage: Record<string, { evaluable: number; pending: number }>;
+  resolved_markets: number;
+  oldest_cohort: string | null;
+  newest_cohort: string | null;
+  last_successful_freeze: string | null;
+  microstructure_snapshots: number;
+  collector_recent: boolean;
+  calibration: { available: boolean; resolved_sample: number; minimum_required: number; message: string };
+  edge: {
+    edge_supported: boolean;
+    message: string;
+    criteria: Record<string, boolean>;
+    evaluable_sample_24h: number;
+  };
+  note: string;
+}
+
+export function getResearchStatus(): Promise<ResearchStatus> {
+  return apiFetch<ResearchStatus>("/api/research/status");
+}
+
 // -- Accounts ---------------------------------------------------------------------------
 // These endpoints use the auth cookie, so every request must send credentials. fastapi-users
 // login expects form-encoded data; everything else is JSON.
