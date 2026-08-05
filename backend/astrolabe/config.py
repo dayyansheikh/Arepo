@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # --- Freshness / modes ---
     stale_after_seconds: float = 60.0      # data older than this is flagged stale
     default_mode: str = "live"             # live | cached | replay
+    # When True (default), CLIs and startup apply the additive schema migration automatically. Set
+    # AUTO_MIGRATE=false in production to require an explicit migrate step and have jobs fail-fast
+    # with an actionable message instead of altering the schema implicitly.
+    auto_migrate: bool = True
 
     # --- Storage ---
     database_url: str = "sqlite+aiosqlite:///./astrolabe.db"

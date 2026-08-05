@@ -9,7 +9,9 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from ..storage.db import Base, make_engine, make_sessionmaker
+from ..config import get_settings
+from ..storage.db import make_engine, make_sessionmaker
+from ..storage.migrate import preflight, upgrade
 from . import models as _models  # noqa: F401  (registers tables on Base.metadata)
 from . import research_models as _research_models  # noqa: F401  (registers research tables)
 from .constants import CALCULATION_VERSION
@@ -17,10 +19,20 @@ from .repository import EvaluationRepository
 
 
 async def bootstrap(engine: AsyncEngine | None = None) -> None:
-    """Create evaluation tables (idempotent) and ensure the calculation-version row."""
+    """Bring the schema fully up to date (create tables AND add any missing columns) and ensure the
+    calculation-version row. Idempotent.
+
+    This replaces the old bare ``create_all`` so an existing table that gained columns in code (the
+    ``research_entries.momentum_direction`` failure) is actually ALTERed. With
+    ``AUTO_MIGRATE=false``
+    it instead runs the preflight, which fails fast with an actionable message rather than letting a
+    missing-column error surface halfway through a cohort freeze.
+    """
     eng = engine or make_engine()
-    async with eng.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    if get_settings().auto_migrate:
+        await upgrade(eng)
+    else:
+        await preflight(eng, auto_migrate=False)
     sessionmaker = make_sessionmaker(eng)
     async with sessionmaker() as session:
         await EvaluationRepository(session).ensure_calculation_version(
