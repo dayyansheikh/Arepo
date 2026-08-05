@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from .execution import evaluate_execution
 from .replay_stats import classify_directional, sample_verdict, wilson_interval
-from .research_constants import MIN_PROSPECTIVE_SAMPLE
+from .research_constants import FLAT_EPS, MIN_PROSPECTIVE_SAMPLE
 from .research_predictors import ABLATIONS, BASELINES, EntryView, agreement_rate
 
 
@@ -82,12 +82,28 @@ def score_predictor(direction_of, obs: list[HorizonObs]) -> dict:
     }
 
 
+def _score_no_change(obs: list[HorizonObs]) -> dict:
+    """The no-change baseline PREDICTS FLAT: correct when the market barely moved (|move| <=
+    FLAT_EPS). It is not a directional call, so it is scored specially (quant review finding 2)."""
+    moves = [o.raw_move for o in obs if o.raw_move is not None]
+    n = len(moves)
+    correct = sum(1 for m in moves if abs(m) <= FLAT_EPS)
+    lo, hi = wilson_interval(correct, n)
+    return {
+        "evaluated": n, "correct": correct, "incorrect": n - correct, "flat": 0,
+        "hit_rate": (correct / n) if n else None, "ci95": [round(lo, 3), round(hi, 3)],
+        "mean_midpoint_move": None, "median_midpoint_move": None,
+        "mean_executable_move": None, "median_executable_move": None,
+        "executable_evaluated": 0, "verdict": sample_verdict(n),
+    }
+
+
 def baseline_table(obs: list[HorizonObs]) -> dict:
     """Score every baseline (prompt section 8) on the same observations, plus the Arepo/momentum
     agreement rate (the near-self-reference diagnostic)."""
     out: dict = {}
     for key, spec in BASELINES.items():
-        s = score_predictor(spec.fn, obs)
+        s = _score_no_change(obs) if key == "no_change" else score_predictor(spec.fn, obs)
         s["name"] = spec.name
         s["inputs"] = spec.inputs
         s["note"] = spec.note
@@ -148,28 +164,38 @@ def edge_verdict(
     all_prospective: bool,
     walk_forward_stable: bool | None,
     ablation_beats_momentum: bool | None,
-    thresholds_unchanged: bool = True,
+    not_dominated_by_category: bool | None = None,
+    thresholds_unchanged: bool | None = None,
     adversarial_passed: bool | None = None,
 ) -> EdgeVerdict:
-    """Apply the ten edge-acceptance criteria (prompt section 14). Conservative: any unmet or
-    unknown criterion yields 'not supported' with the honest inconclusive message."""
+    """Apply the edge-acceptance criteria (prompt section 14). Conservative: any unmet OR unknown
+    criterion yields 'not supported'. All process/attestation criteria fail-safe to False until a
+    human or an adversarial pass explicitly confirms them (quant review finding 3)."""
     def _beats(a, b):
         return (
             a.get("hit_rate") is not None and b.get("hit_rate") is not None
             and a["hit_rate"] > b["hit_rate"]
         )
     exe = arepo.get("mean_executable_move")
+    exe_n = arepo.get("executable_evaluated", 0)
     criteria = {
         "frozen_before_outcome": all_prospective,
         "meets_minimum_sample": evaluable_sample >= MIN_PROSPECTIVE_SAMPLE,
-        "positive_after_costs": exe is not None and exe > 0,
+        # Positive after costs AND on a large enough executable (depth-carrying) sample, so a couple
+        # of depth-bearing rows cannot satisfy it (adversarial review finding 5).
+        "positive_after_costs": exe is not None and exe > 0 and exe_n >= MIN_PROSPECTIVE_SAMPLE,
         "interval_supports_positive": arepo.get("ci95", [0, 1])[0] > 0.5,
+        # spec §14 item 5: beat momentum, price-only AND current-implied on the same observations.
         "beats_momentum": _beats(arepo, momentum),
         "beats_price_only": _beats(arepo, price_only),
         "beats_current_implied": _beats(arepo, implied),
         "walk_forward_stable": bool(walk_forward_stable),
+        # spec §14 item 7: not dominated by one category or a few extreme markets.
+        "not_dominated_by_category": bool(not_dominated_by_category),
         "ablation_adds_value": bool(ablation_beats_momentum),
-        "thresholds_unchanged": thresholds_unchanged,
+        # spec §14 item 9: a manual attestation, fail-safe False until explicitly confirmed.
+        "thresholds_unchanged": bool(thresholds_unchanged),
+        # spec §14 item 10: independent adversarial review.
         "adversarial_passed": bool(adversarial_passed),
     }
     supported = all(criteria.values())

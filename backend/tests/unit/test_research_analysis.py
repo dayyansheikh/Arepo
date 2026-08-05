@@ -54,6 +54,15 @@ def test_score_predictor_flat_and_executable():
     assert s["executable_evaluated"] == 3
 
 
+def test_no_change_baseline_scores_flat_markets_correct():
+    # no_change predicts flat: correct only when the market barely moved (quant review finding 2).
+    obs = [_obs("up", "up", "up", 0.0), _obs("up", "up", "up", 0.05), _obs("up", "up", "up", -0.06)]
+    t = baseline_table(obs)
+    nc = t["baselines"]["no_change"]
+    assert nc["hit_rate"] is not None                 # was always None before the fix
+    assert nc["correct"] == 1 and nc["evaluated"] == 3  # only the flat market is correct
+
+
 def test_baselines_score_and_agreement():
     # Arepo direction == momentum by construction here => agreement 1.0
     obs = [_obs("up", "up", "down", 0.05), _obs("down", "down", "up", -0.05)]

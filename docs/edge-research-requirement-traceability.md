@@ -28,7 +28,7 @@ rests on this matrix, not on documentation or placeholders.
 | 12 | Synthetic excluded from all real performance/edge | Verified | status reads `provenance='prospective'`; `/cohorts/latest` excludes synthetic | `provenance_class` | — | — | `test_provenance_not_mixed`, empty-DB status | — |
 | 13 | Research-status API with real stored values | Verified | `research_service.status` | reads all research tables | `/api/research/status`, `/horizon`, `/edge` | web service | dry run + empty-DB status | executable-perf columns surfaced via /horizon |
 | 13 | Product surface makes state obvious | Verified | `ResearchStatusSection` | via API | Replay page | web | `next build`; live API | — |
-| 14 | Edge acceptance criteria (10) + conservative verdict | Verified | `research_analysis.edge_verdict` | — | status `edge` | — | `test_edge_verdict_not_supported_on_empty_sample`, dry run | Awaiting data to ever flip to supported |
+| 14 | Edge acceptance criteria (spec §14; 12 encoded keys incl split beats-momentum/price/implied + not-dominated) + conservative verdict | Verified | `research_analysis.edge_verdict` | — | status `edge` | — | `test_edge_verdict_not_supported_on_empty_sample`, dry run | Awaiting data to ever flip to supported |
 | 15 | Tests for all of the above | Verified | `tests/unit/test_research_*` | — | — | — | 27 research tests (338 total) | — |
 | 16 | Independent reviewers, fix critical/major | Verified | `docs/edge-research-*-review.md` | — | — | — | see reviewer docs | — |
 | 17 | Deployment handoff | Verified (local) / Blocked (external) | `render.yaml`, handoff in final report | — | crons | — | dry run headless | needs Render/Supabase accounts |

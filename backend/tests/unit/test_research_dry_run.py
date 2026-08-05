@@ -109,10 +109,12 @@ async def test_end_to_end_dry_run(session):
     # 17-22. Midpoint + executable results, baselines, ablation, status.
     svc = ResearchReadService(session)
     h24 = await svc.horizon_analysis("24h")
-    assert h24["evaluable"] == 9                  # 3 directional x 3 cadences
+    # 3 directional markets appear in all 3 cadences but are DEDUPED by market for the analysis, so
+    # correlated repeats never inflate the sample (adversarial finding 3).
+    assert h24["evaluable"] == 3
     bl = h24["baselines"]
     # Fixture was constructed so Arepo's direction matched the move on every directional entry.
-    assert bl["full_arepo"]["correct"] == 9 and bl["full_arepo"]["incorrect"] == 0
+    assert bl["full_arepo"]["correct"] == 3 and bl["full_arepo"]["incorrect"] == 0
     assert bl["full_arepo"]["mean_executable_move"] is not None   # depth present -> executable
     assert h24["arepo_momentum_agreement"] == 1.0                 # Arepo == momentum here
     assert "without_momentum" in h24["ablation"]

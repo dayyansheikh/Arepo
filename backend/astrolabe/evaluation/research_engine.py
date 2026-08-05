@@ -21,6 +21,7 @@ from ..ingest.normalize import normalize_trades
 from ..opportunity.hypothesis import STRENGTH_MODERATE, has_directional_view
 from ..opportunity.scoring import score_opportunity
 from ..opportunity.service import market_flow_indicators
+from .errors import CohortFrozenError
 from .research_constants import (
     CADENCE_6H,
     CADENCE_DAILY,
@@ -227,7 +228,16 @@ async def freeze_from_inputs(
         model_version=model_version,
         calculation_version=calculation_version,
     )
-    if cohort.provenance_class != provenance_class:
+    # Provenance is part of the immutable identity: set it only on creation, and never mutate it on
+    # a frozen cohort (adversarial review finding 4 - closes an immutability hole).
+    if created:
+        cohort.provenance_class = provenance_class
+    elif cohort.provenance_class != provenance_class:
+        if cohort.frozen:
+            raise CohortFrozenError(
+                f"research cohort {cadence}@{cutoff_at} is frozen with provenance "
+                f"{cohort.provenance_class!r}; cannot change it to {provenance_class!r}"
+            )
         cohort.provenance_class = provenance_class
     if cohort.frozen:
         return {

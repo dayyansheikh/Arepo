@@ -26,6 +26,7 @@ from .research_constants import (
 from .research_models import ResearchCohortRow, ResearchEntryRow, ResearchForwardRow
 from .research_predictors import EntryView
 from .research_repository import ResearchRepository
+from .research_walk_forward import is_reportable
 
 
 def _utc(dt: datetime | None) -> datetime | None:
@@ -58,23 +59,36 @@ class ResearchReadService:
         self.repo = ResearchRepository(session)
 
     async def _frozen_entries(self) -> list[tuple[ResearchCohortRow, ResearchEntryRow]]:
+        # Only reportable partitions (live + held-out) enter any performance number; development and
+        # threshold-selection observations are excluded so a threshold can never be judged on the
+        # same data it was chosen on (quant review finding 1; prompt section 10).
         out = []
         for cohort in await self.repo.list_cohorts(provenance="prospective", frozen=True):
             for e in await self.repo.get_entries(cohort.id):
-                out.append((cohort, e))
+                if is_reportable(e.walk_forward_partition):
+                    out.append((cohort, e))
         return out
 
     async def horizon_analysis(self, horizon: str) -> dict:
-        """Baseline + ablation tables for one horizon over ALL frozen prospective entries that have
-        a forward observation there. Directional entries only (role public/shadow)."""
-        obs: list[HorizonObs] = []
-        for _cohort, e in await self._frozen_entries():
+        """Baseline + ablation tables for one horizon over frozen prospective directional entries
+        that have a forward observation there.
+
+        Deduplicated to ONE observation per market (the most recent cohort's), so a persistent
+        market appearing in the 6h, daily and weekly cohorts cannot contribute several correlated
+        observations toward the sample size or the Wilson interval (adversarial review finding 3).
+        """
+        best: dict[str, tuple[datetime, HorizonObs]] = {}
+        for cohort, e in await self._frozen_entries():
             if e.direction not in ("up", "down"):
                 continue
             fwd = (await self.repo.get_forward(e.id)).get(horizon)
             if fwd is None or fwd.midpoint is None:
                 continue
-            obs.append(_obs_for_horizon(e, fwd))
+            cut = _utc(cohort.cutoff_at) or datetime.min.replace(tzinfo=UTC)
+            prev = best.get(e.market_id)
+            if prev is None or cut > prev[0]:
+                best[e.market_id] = (cut, _obs_for_horizon(e, fwd))
+        obs: list[HorizonObs] = [o for _cut, o in best.values()]
         bt = baseline_table(obs)
         return {
             "horizon": horizon,
@@ -128,13 +142,27 @@ class ResearchReadService:
         # Edge verdict on the 24h horizon (the primary repricing horizon).
         h24 = await self.horizon_analysis("24h")
         bl = h24["baselines"]
+        ab = h24["ablation"]
         empty = {"hit_rate": None, "ci95": [0.0, 1.0], "mean_executable_move": None}
+        # Ablation-adds-value is COMPUTED, not hardcoded (adversarial finding 2): does the full
+        # beat momentum-only on executable move? Because Arepo's direction IS the z-score sign, the
+        # full model and momentum share a direction, so with the current model this is ~always a tie
+        # (honestly False), which is the point the ablation exists to surface.
+        full_exe = ab.get("full_model", {}).get("mean_executable_move")
+        mom_exe = ab.get("momentum_only", {}).get("mean_executable_move")
+        ablation_beats = (
+            full_exe is not None and mom_exe is not None and full_exe > mom_exe
+        )
         verdict = edge_verdict(
             evaluable_sample=h24["evaluable"],
             arepo=bl.get("full_arepo", empty), momentum=bl.get("momentum", empty),
             price_only=bl.get("price_z_only", empty), implied=bl.get("current_implied", empty),
-            all_prospective=True, walk_forward_stable=None, ablation_beats_momentum=None,
-            adversarial_passed=None,
+            all_prospective=True,
+            walk_forward_stable=None,           # needs multiple windows of real data
+            ablation_beats_momentum=ablation_beats,
+            not_dominated_by_category=None,     # needs a real multi-category sample
+            thresholds_unchanged=None,          # manual attestation, fail-safe False
+            adversarial_passed=None,            # independent review attestation, fail-safe False
         )
         cal = calibration_status(int(resolved))
 
@@ -170,6 +198,15 @@ class ResearchReadService:
                 "message": verdict.message,
                 "criteria": verdict.criteria,
                 "evaluable_sample_24h": verdict.evaluable_sample,
+                "arepo_momentum_agreement_24h": h24["arepo_momentum_agreement"],
+                "model_limitation_note": (
+                    "Arepo's directional call is the sign of the latest-return z-score, so it "
+                    "equals the momentum baseline by construction. A directional edge OVER "
+                    "momentum is therefore not achievable with the current model: the "
+                    "beats-momentum criterion cannot pass until a future model derives direction "
+                    "from more than momentum. Added value, if any, can only come from selection or "
+                    "the microstructure families (ablation); the edge verdict stays not-supported."
+                ),
             },
             "note": (
                 "All numbers are from real stored prospective rows. Synthetic and reconstructed "
