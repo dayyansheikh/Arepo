@@ -5,6 +5,48 @@ Newest entries at the top of each section.
 
 ---
 
+## Edge-research infrastructure (branch `arepo-edge-research-infrastructure`)
+
+### D-ER5. Executable cost model is a declared assumption, not a fitted value (prompt §6)
+Depth-aware slippage = `SLIPPAGE_COEFF(0.5) * stake/near_mid_depth`, capped at `SLIPPAGE_CAP(0.10)`,
+charged on entry AND exit, plus half-spread crossing each side and `FEE_RATE(0)`. These are declared
+up front, not tuned to outcomes. Missing depth stays missing (executable performance unavailable, no
+infinite-liquidity assumption). A favourable midpoint move smaller than costs is never counted as
+practical edge.
+
+### D-ER4. Forward observations never backfill a horizon that predates the freeze (causal, prompt §5)
+The entry prices are captured at `frozen_at`. A horizon whose target time is before `frozen_at`
+cannot be a genuine forward measurement, so `collect_due_forward` records it terminal-invalid
+(`midpoint=None` + reason) rather than filling it with a current price. In production the freeze
+crons fire at each cadence boundary, so `frozen_at ≈ cut-off` and every horizon is in the future.
+This was found by actually running the live path (not trusting the report); it prevents a subtle
+look-ahead artefact when a freeze runs mid-period.
+
+### D-ER3. Additive research schema, not a rewrite of the weekly cohort tables (prompt §3)
+New `research_cohorts`/`research_entries`/`research_forward_observations`/`research_revisions` tables
+sit alongside the existing weekly-cohort tables, so no prior data or test is disturbed and the
+migration is a pure `create_all` add. `(cadence, cutoff_at)` is the unique cohort key; entries are
+unique per `(cohort, market, token)`; forward per `(entry, horizon)`. Only Postgres-portable column
+types are used. Immutability is enforced in the repository; corrections go to `research_revisions`.
+
+### D-ER2. Freeze the FULL universe with explicit roles, not the public top-10 (prompt §2)
+The public product still shows the top selections, but research freezes every screened market with a
+role (`public_selection` / `shadow_directional` / `observation` / `abstention_control`). This lets
+the research test whether ranking, confidence, Research Priority, stricter selection and abstention
+add value, none of which is possible if the sample is truncated to the visible ten. Live dry run:
+60-market universe frozen, ~10 public + ~2-3 shadow + ~10 observation + ~37 abstention per cadence.
+
+### D-ER1. Per-family directions frozen at the cut-off so baselines/ablation are truly prospective (§8/§9)
+`momentum_direction` (z-score sign), `orderbook_direction` (imbalance sign) and `tradeflow_direction`
+(net flow sign) are computed and frozen on every entry. This is what makes order-book-only,
+trade-flow-only and full-without-momentum genuine PROSPECTIVE baselines (the reconstructed screen
+could not have them). It also makes the central finding mechanical and honest: because Arepo's
+direction IS the z-score sign, momentum, price-only and Arepo share a direction by construction, and
+the ablation is built to expose that rather than assert Arepo adds value. Conclusions stay
+inconclusive until a real prospective sample exists; no threshold was changed to flatter results.
+
+---
+
 ## Signal Intelligence & Replay functional validation (branch `arepo-signal-replay-functional-validation`)
 
 Independent reviewers (quant, provenance, implementation, adversarial) audited the running system;

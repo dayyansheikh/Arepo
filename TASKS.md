@@ -2,6 +2,28 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Edge-research infrastructure (branch `arepo-edge-research-infrastructure`)
+- [x] §1 safe start: baseline, goal, tag, branch
+- [x] §2 freeze every directional signal + roles (full universe); §4 complete cut-off snapshot incl RP
+- [x] §3 6h/daily/weekly immutable cohorts, idempotent, unique key + model/calc version
+- [x] §5 outcomes 1h/6h/24h/7d + resolution; rich forward fields; causal predates-freeze guard
+- [x] §6 depth-aware executable cost model (spread/slippage/fees); midpoint vs executable
+- [x] §7 repricing vs resolution separated; no directional-as-probability
+- [x] §8 baselines incl order-book-only/trade-flow-only/full-without-momentum (per-family dirs frozen)
+- [x] §9 deterministic feature-ablation framework (9 variants)
+- [x] §10 walk-forward partitions + no-leakage guardrail + windows
+- [x] §11 calibration guard (Brier/log-loss only with a probability + min sample)
+- [x] §12 synthetic isolated from all real performance
+- [x] §13 research-status API + Replay surface (real stored numbers, honest empty state)
+- [x] §14 edge acceptance criteria (10) + conservative verdict
+- [x] §15 tests (27 research tests; 338 total); §17B end-to-end dry run (deterministic + live)
+- [x] §17A architecture review + requirement traceability
+- [x] §3/§17C render.yaml research crons (freeze 6h/daily/weekly + forward)
+- [~] §16 reviewers (provenance/execution done: clean + 2 LOW; quant + adversarial running)
+- [ ] fix confirmed critical/major reviewer findings; push branch
+- [ ] §17E deployment handoff + §20 final report
+- [!] deployment (Render/Supabase) - Blocked on external accounts; mechanism verified headless
+
 ## Signal Intelligence & Replay functional validation (branch `arepo-signal-replay-functional-validation`)
 - [x] §1 safety tag + branch + baseline (docs/signal-replay-functional-baseline.md)
 - [x] §2 independent reviewers A–G run; docs produced; Opus synthesis in DECISIONS D-SR1..D-SR6

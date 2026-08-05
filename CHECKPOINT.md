@@ -38,6 +38,40 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
+**Edge-research infrastructure (branch `arepo-edge-research-infrastructure`, safety tag
+`arepo-before-edge-research-infrastructure`).** Building the measurement engine that freezes real
+prospective predictions before outcomes and measures them after execution costs. Preserves all
+fixes from 14729d7. Gates: **backend 338 pass, ruff clean; frontend tsc/lint clean, 21 vitest,
+build 16/16.** Baseline `docs/edge-research-infrastructure-baseline.md`; goal
+`docs/EDGE_RESEARCH_GOAL.md`.
+
+DONE + committed (not yet pushed at this checkpoint — push next):
+- Research schema (`research_models.py`): `research_cohorts` (unique cadence,cutoff),
+  `research_entries` (FULL universe, roles, all cut-off fields incl RP + per-family directions +
+  walk-forward partition), `research_forward_observations` (rich, causal), `research_revisions`.
+- Engine (`research_engine.py`): cadence snap, 5-class classification, full-universe role
+  assignment, idempotent freeze; `screen_universe` live. Outcomes (`research_tracking.py`):
+  causal 1h/6h/24h/7d collection with the predates-freeze guard; resolution upsert; backlog.
+- Execution (`execution.py`): depth-aware slippage + spread + fees; midpoint vs executable.
+- Analysis (`research_analysis.py`, `research_predictors.py`): 10 baselines incl OB-only/flow-only/
+  no-momentum, 9 ablation variants, edge_verdict (10 criteria, conservative). Walk-forward
+  (`research_walk_forward.py`) + calibration guard (`research_calibration.py`).
+- Service + CLI + API (`research_service.py`, `research_cli.py`, `api/routes/research.py`):
+  `/api/research/status|horizon/{h}|edge`; CLI `research-freeze --cadence`, `research-forward`,
+  `research-resolve`, `research-status`. Frontend Replay "Edge-research status" section.
+- `render.yaml`: 4 research crons (freeze 6h/daily/weekly at boundaries + forward every 20 min).
+- Tests: 27 research tests incl end-to-end dry run + causal guard. Docs: baseline, goal,
+  architecture-review, requirement-traceability, end-to-end-dry-run, dayyan-review.
+- Live dry run (throwaway DB): froze 3 cadences from the real 60-market universe; API serves real
+  status; edge = NOT supported (minimum sample not met). Reviewers (quant/ablation/walk-forward,
+  provenance/execution, adversarial) running.
+
+**Exact next action:** collect the 3 reviewer reports; fix confirmed critical/major; push branch;
+write the deployment handoff (§17E) + final report (§20). Then the user enables the crons to begin
+real prospective collection (nothing local remains for the mechanism).
+
+## (superseded) Current phase
+
 **Signal Intelligence & Replay functional validation (branch
 `arepo-signal-replay-functional-validation`, safety tag
 `arepo-before-signal-replay-functional-validation`).** Independent reviewers A–G run; Opus
