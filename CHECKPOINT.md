@@ -66,9 +66,19 @@ DONE + committed (not yet pushed at this checkpoint — push next):
   status; edge = NOT supported (minimum sample not met). Reviewers (quant/ablation/walk-forward,
   provenance/execution, adversarial) running.
 
-**Exact next action:** collect the 3 reviewer reports; fix confirmed critical/major; push branch;
-write the deployment handoff (§17E) + final report (§20). Then the user enables the crons to begin
-real prospective collection (nothing local remains for the mechanism).
+Reviewers complete (3 subagents: quant/ablation/walk-forward, provenance/execution, adversarial) +
+provenance/execution + Dayyan functional. All confirmed critical/major findings FIXED (execution
+zero-depth, no_change baseline, walk-forward read-path enforcement, thresholds fail-safe, cross-
+cadence dedup, provenance immutability, executable-sample gate, and the honest beats-momentum-by-
+construction note). Branch PUSHED (HEAD f775d67). Deployment handoff in
+`docs/edge-research-deployment-handoff.md`. Final gates: backend 339 pass, ruff clean; frontend
+tsc/lint clean, 21 vitest, build 16/16.
+
+**Exact next action:** none local. The user follows `docs/edge-research-deployment-handoff.md` to
+create Supabase Postgres + Render, set env vars, enable the 4 research crons, and run the first
+freeze at a 6h boundary; then real prospective evidence accumulates automatically. Edge stays
+not-supported until the predeclared minimum sample exists (and, given direction==momentum, a
+directional edge over momentum needs a future model change, documented honestly).
 
 ## (superseded) Current phase
 
