@@ -60,6 +60,15 @@ RESULT_INVALID = "invalid"
 # so every predictor treats flats identically). Predeclared, not tuned.
 FLAT_EPS = 0.01
 
+# --- Universe degradation (prompt section 5) --------------------------------------------------
+# A freeze with too few usable markets, or too many excluded ones, must not silently produce a
+# misleading cohort. Below the minimum usable count OR above the maximum exclusion rate the freeze
+# is REJECTED (no cohort created). A non-rejecting freeze that still excluded a notable share is
+# recorded as DEGRADED so the research status can surface it honestly.
+MIN_USABLE_UNIVERSE = 5          # fewer usable markets than this => reject the freeze
+MAX_EXCLUSION_RATE = 0.6         # more than 60% of discovered markets excluded => reject
+DEGRADED_EXCLUSION_RATE = 0.2    # more than 20% excluded (but not rejected) => mark degraded
+
 # --- Execution model (prompt section 6) -------------------------------------------------------
 STANDARD_STAKE = 100.0            # standard evaluation stake, in quote units
 FEE_RATE = 0.0                    # Polymarket charges no protocol fee today; kept explicit

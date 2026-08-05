@@ -61,6 +61,12 @@ class ResearchCohortRow(Base):
     observation_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     abstention_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
+    # Universe degradation (prompt section 5): how many discovered markets were excluded for lack of
+    # usable point-in-time data, and whether the run was degraded (a high but sub-reject exclusion
+    # rate). A rejected run creates NO cohort, so these describe only cohorts that did freeze.
+    excluded_markets: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    degraded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     note: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

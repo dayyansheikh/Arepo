@@ -12,7 +12,7 @@ The public product still shows only the top selections; research freezes them al
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 from ..domain.enums import DataMode
@@ -26,6 +26,9 @@ from .research_constants import (
     CADENCE_6H,
     CADENCE_DAILY,
     CADENCE_WEEKLY,
+    DEGRADED_EXCLUSION_RATE,
+    MAX_EXCLUSION_RATE,
+    MIN_USABLE_UNIVERSE,
     MODEL_VERSION,
     PARTITION_LIVE,
     PUBLIC_SELECTION_SIZE,
@@ -105,6 +108,55 @@ class ScoredScreen:
 def _component_availability(component_scores: list) -> dict:
     present = {c["name"] for c in component_scores if c.get("raw_value") is not None}
     return {name: (name in present) for name in MICRO_COMPONENTS}
+
+
+@dataclass
+class UniverseFunnel:
+    """The market-discovery funnel for one freeze (prompt section 5): how many markets were
+    discovered, how many yielded usable point-in-time data, and which were excluded and why."""
+
+    discovered: int = 0
+    usable: int = 0
+    exclusions: list = field(default_factory=list)  # [{"market_id", "reason"}]
+
+    @property
+    def excluded(self) -> int:
+        return len(self.exclusions)
+
+    @property
+    def exclusion_rate(self) -> float:
+        return (self.excluded / self.discovered) if self.discovered else 0.0
+
+
+@dataclass
+class UniverseDecision:
+    freeze: bool
+    degraded: bool
+    reason: str
+
+
+def assess_universe(funnel: UniverseFunnel) -> UniverseDecision:
+    """Decide whether a freeze may proceed given the funnel (prompt section 5). Reject (no cohort)
+    on complete/near-complete upstream failure; otherwise allow, flagging a degraded run when a
+    notable share was excluded. Pure and testable."""
+    if funnel.usable < MIN_USABLE_UNIVERSE:
+        return UniverseDecision(
+            False, True,
+            f"rejected: only {funnel.usable} usable markets (< {MIN_USABLE_UNIVERSE}); "
+            "no cohort created to avoid a misleading record",
+        )
+    if funnel.exclusion_rate > MAX_EXCLUSION_RATE:
+        return UniverseDecision(
+            False, True,
+            f"rejected: {funnel.excluded}/{funnel.discovered} markets excluded "
+            f"({funnel.exclusion_rate:.0%} > {MAX_EXCLUSION_RATE:.0%}); no cohort created",
+        )
+    degraded = funnel.exclusion_rate > DEGRADED_EXCLUSION_RATE
+    return UniverseDecision(
+        True, degraded,
+        (f"degraded: {funnel.excluded}/{funnel.discovered} markets excluded"
+         if degraded else "ok"),
+    )
 
 
 def _sign(x: float | None) -> str | None:
@@ -215,12 +267,26 @@ async def freeze_from_inputs(
     calculation_version: str,
     provenance_class: str = "prospective",
     frozen_at: datetime | None = None,
+    funnel: UniverseFunnel | None = None,
 ) -> dict:
     """Idempotently create the (cadence, cutoff) cohort, add all entries, and freeze it.
 
     Idempotent: a second call for the same (cadence, cutoff) finds the frozen cohort and adds
-    nothing. Returns a summary dict for logging/status.
+    nothing. If ``funnel`` shows the universe failed the degradation guard (too few usable markets
+    or too many exclusions) the freeze is REJECTED and no cohort is created (prompt section 5).
+    Returns a summary dict for logging/status.
     """
+    decision = (
+        assess_universe(funnel) if funnel is not None else UniverseDecision(True, False, "ok")
+    )
+    if not decision.freeze:
+        return {
+            "cadence": cadence, "cutoff_at": cutoff_at.isoformat(), "created": False,
+            "frozen": False, "rejected": True, "reason": decision.reason,
+            "discovered": funnel.discovered if funnel else 0,
+            "usable": funnel.usable if funnel else 0,
+            "excluded": funnel.excluded if funnel else 0,
+        }
     repo = ResearchRepository(session)
     cohort, created = await repo.get_or_create_cohort(
         cadence=cadence,
@@ -251,7 +317,11 @@ async def freeze_from_inputs(
     try:
         for e in inputs:
             await repo.add_entry(cohort, e)
-        await repo.freeze_cohort(cohort, frozen_at=frozen_at)
+        await repo.freeze_cohort(
+            cohort, frozen_at=frozen_at,
+            excluded_markets=(funnel.excluded if funnel else 0),
+            degraded=decision.degraded,
+        )
         await session.commit()
     except Exception:
         await session.rollback()
@@ -265,13 +335,21 @@ async def freeze_from_inputs(
         "shadow": cohort.shadow_count,
         "observation": cohort.observation_count,
         "abstention": cohort.abstention_count,
+        "excluded": cohort.excluded_markets,
+        "degraded": cohort.degraded,
     }
 
 
 async def screen_universe(
     market_service, data_api, *, now: datetime | None = None, universe_limit: int = 60
-) -> tuple[list[ScoredScreen], str]:
-    """Enrich + score the live active universe (one strongest outcome per market)."""
+) -> tuple[list[ScoredScreen], str, UniverseFunnel]:
+    """Enrich + score the live active universe (one strongest outcome per market).
+
+    Returns the usable screens, the data mode, and a :class:`UniverseFunnel` recording every market
+    that was discovered but EXCLUDED for lack of usable point-in-time data, with a reason (prompt
+    section 5). A market with no usable token analytics (its upstream book/history was unavailable,
+    already retried at the HTTP layer) is excluded honestly rather than frozen with empty values.
+    """
     now = now or utcnow()
     pairs, mode = await market_service.enrich_markets(requested_mode="live", limit=universe_limit)
     live = mode == DataMode.LIVE
@@ -333,5 +411,16 @@ async def screen_universe(
         )
 
     results = await asyncio.gather(*(one(m, a) for m, a in pairs), return_exceptions=True)
-    screens = [r for r in results if isinstance(r, ScoredScreen)]
-    return screens, mode.value
+    funnel = UniverseFunnel(discovered=len(pairs))
+    screens: list[ScoredScreen] = []
+    for (market, _analytics), r in zip(pairs, results, strict=False):
+        if isinstance(r, ScoredScreen):
+            screens.append(r)
+        elif isinstance(r, BaseException):
+            funnel.exclusions.append({"market_id": market.id, "reason": f"error: {r}"})
+        else:  # None: no usable token data
+            funnel.exclusions.append(
+                {"market_id": market.id, "reason": "no usable point-in-time token data"}
+            )
+    funnel.usable = len(screens)
+    return screens, mode.value, funnel

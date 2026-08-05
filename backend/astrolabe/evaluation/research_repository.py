@@ -163,7 +163,8 @@ class ResearchRepository:
         return row
 
     async def freeze_cohort(
-        self, cohort: ResearchCohortRow, *, frozen_at: datetime | None = None
+        self, cohort: ResearchCohortRow, *, frozen_at: datetime | None = None,
+        excluded_markets: int = 0, degraded: bool = False,
     ) -> bool:
         """Freeze a cohort and record its counts. Idempotent: returns False if already frozen.
 
@@ -180,6 +181,8 @@ class ResearchRepository:
         cohort.shadow_count = sum(1 for e in entries if e.role == "shadow_directional")
         cohort.observation_count = sum(1 for e in entries if e.role == "observation")
         cohort.abstention_count = sum(1 for e in entries if e.role == "abstention_control")
+        cohort.excluded_markets = excluded_markets
+        cohort.degraded = degraded
         cohort.frozen = True
         cohort.frozen_at = frozen_at or _now()
         await self.session.flush()

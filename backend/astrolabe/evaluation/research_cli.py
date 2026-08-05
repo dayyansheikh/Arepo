@@ -52,12 +52,13 @@ async def live_price_provider(service: MarketService):
 
 async def _freeze(session, service, data_api, *, cadence: str) -> dict:
     now = utcnow()
-    screens, mode = await screen_universe(service, data_api, now=now)
+    screens, mode, funnel = await screen_universe(service, data_api, now=now)
     inputs = build_entry_inputs(screens, now=now)
     cutoff = cadence_cutoff(cadence, now)
     return await freeze_from_inputs(
         session, cadence=cadence, cutoff_at=cutoff, inputs=inputs,
         model_version=MODEL_VERSION, calculation_version=CALCULATION_VERSION, frozen_at=now,
+        funnel=funnel,
     )
 
 

@@ -125,6 +125,20 @@ class ResearchReadService:
         oldest = min((_utc(c.cutoff_at) for c in cohorts), default=None)
         newest = max((_utc(c.cutoff_at) for c in cohorts), default=None)
         last_freeze = max((_utc(c.frozen_at) for c in cohorts if c.frozen_at), default=None)
+        # Universe-degradation transparency (prompt section 5): how many freezes were degraded and
+        # the most recent run's exclusion count, so a run that dropped many markets is not hidden.
+        degraded_cohorts = sum(1 for c in cohorts if c.degraded)
+        newest_cohort = (
+            max(cohorts, key=lambda c: _utc(c.cutoff_at), default=None) if cohorts else None
+        )
+        latest_run = (
+            {"excluded_markets": newest_cohort.excluded_markets,
+             "degraded": newest_cohort.degraded,
+             "universe_size": newest_cohort.universe_size}
+            if newest_cohort is not None else None
+        )
+        # Any incomplete/partial cohort visible (should always be empty; surfaced for monitoring).
+        incomplete = await self.repo.incomplete_cohorts()
 
         # Collector health from the microstructure snapshot store.
         snap_count = await self.session.scalar(
@@ -184,6 +198,9 @@ class ResearchReadService:
             "oldest_cohort": oldest.isoformat() if oldest else None,
             "newest_cohort": newest.isoformat() if newest else None,
             "last_successful_freeze": last_freeze.isoformat() if last_freeze else None,
+            "degraded_cohorts": degraded_cohorts,
+            "latest_run": latest_run,
+            "incomplete_cohorts": len(incomplete),
             "microstructure_snapshots": int(snap_count),
             "last_microstructure_collection": last_snap.isoformat() if last_snap else None,
             "collector_recent": bool(
