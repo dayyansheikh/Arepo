@@ -95,6 +95,13 @@ class ResearchEntryRow(Base):
 
     # Model view at the cut-off.
     direction: Mapped[str | None] = mapped_column(String)
+    # Per-family directional calls FROZEN at the cut-off so the baselines and feature ablation are
+    # genuinely computable on prospective cohorts (prompt sections 8, 9): momentum = sign of the
+    # latest-return z-score (Arepo's price signal), order book = sign of near-touch imbalance, trade
+    # flow = sign of net aggressive flow. Each is up | down | None.
+    momentum_direction: Mapped[str | None] = mapped_column(String)
+    orderbook_direction: Mapped[str | None] = mapped_column(String)
+    tradeflow_direction: Mapped[str | None] = mapped_column(String)
     signal_classification: Mapped[str] = mapped_column(String, nullable=False, default="")
     strength: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)  # reliability

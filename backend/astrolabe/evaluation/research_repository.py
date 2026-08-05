@@ -44,6 +44,9 @@ class EntryInput:
     market_question: str
     outcome_name: str
     direction: str | None
+    momentum_direction: str | None
+    orderbook_direction: str | None
+    tradeflow_direction: str | None
     signal_classification: str
     strength: float
     confidence: float
@@ -129,6 +132,9 @@ class ResearchRepository:
             market_question=e.market_question,
             outcome_name=e.outcome_name,
             direction=e.direction,
+            momentum_direction=e.momentum_direction,
+            orderbook_direction=e.orderbook_direction,
+            tradeflow_direction=e.tradeflow_direction,
             signal_classification=e.signal_classification,
             strength=e.strength,
             confidence=e.confidence,

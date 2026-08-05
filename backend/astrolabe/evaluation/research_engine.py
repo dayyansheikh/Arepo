@@ -79,6 +79,9 @@ class ScoredScreen:
     market_question: str
     outcome_name: str
     direction: str | None
+    momentum_direction: str | None  # sign of the z-score (Arepo's price signal)
+    orderbook_direction: str | None  # sign of near-touch book imbalance
+    tradeflow_direction: str | None  # sign of net aggressive flow
     strength: float
     confidence: float               # reliability confidence
     research_priority: int          # 0-100
@@ -101,6 +104,27 @@ class ScoredScreen:
 def _component_availability(component_scores: list) -> dict:
     present = {c["name"] for c in component_scores if c.get("raw_value") is not None}
     return {name: (name in present) for name in MICRO_COMPONENTS}
+
+
+def _sign(x: float | None) -> str | None:
+    if x is None or x == 0:
+        return None
+    return "up" if x > 0 else "down"
+
+
+def _flow_direction(indicators) -> str | None:
+    """Net aggressive trade-flow direction from the fired flow indicators (up | down | None).
+
+    Uses ``consensus_opposing_flow``'s signed direction when present (it knows which outcome the
+    aggressive money favoured); otherwise abstains. Frozen at the cut-off so trade-flow-only is a
+    genuine prospective baseline.
+    """
+    for ind in indicators:
+        meta = getattr(ind, "meta", None) or {}
+        d = meta.get("flow_direction") or meta.get("direction")
+        if d in ("up", "down"):
+            return d
+    return None
 
 
 def build_entry_inputs(screens: list[ScoredScreen], *, now: datetime) -> list[EntryInput]:
@@ -151,6 +175,9 @@ def build_entry_inputs(screens: list[ScoredScreen], *, now: datetime) -> list[En
                 market_question=s.market_question,
                 outcome_name=s.outcome_name,
                 direction=s.direction if is_dir else None,
+                momentum_direction=s.momentum_direction,
+                orderbook_direction=s.orderbook_direction,
+                tradeflow_direction=s.tradeflow_direction,
                 signal_classification=classification,
                 strength=s.strength,
                 confidence=s.confidence,
@@ -249,6 +276,9 @@ async def screen_universe(
             ta.signal, indicators, liquidity=market.liquidity,
             relative_spread=ta.relative_spread, data_age_seconds=ta.data_age_seconds, now=now,
         )
+        momentum_dir = _sign(ta.zscore)               # Arepo's price signal = z-score sign
+        orderbook_dir = _sign(ta.imbalance)           # bid-heavy (>0) => upward pressure
+        tradeflow_dir = _flow_direction(indicators)   # net aggressive flow sign
         return ScoredScreen(
             market_id=market.id,
             condition_id=market.condition_id or None,
@@ -257,6 +287,9 @@ async def screen_universe(
             market_question=market.question,
             outcome_name=ta.signal.outcome_name or ta.token_id,
             direction=ta.signal.direction,
+            momentum_direction=momentum_dir,
+            orderbook_direction=orderbook_dir,
+            tradeflow_direction=tradeflow_dir,
             strength=scored.signal_strength,
             confidence=scored.confidence,
             research_priority=int(round(scored.research_priority * 100)),

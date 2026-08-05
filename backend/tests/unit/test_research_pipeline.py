@@ -50,6 +50,7 @@ def _screen(market, strength, direction, n_families, rp, *, dq="good", depth=100
     return ScoredScreen(
         market_id=market, condition_id=f"c{market}", event_id=None, token_id=f"{market}-yes",
         market_question=f"Q {market}", outcome_name="Yes", direction=direction,
+        momentum_direction=direction, orderbook_direction=direction, tradeflow_direction=None,
         strength=strength, confidence=0.6, research_priority=rp, n_families=n_families,
         evidence_families=["price behaviour"] * min(n_families, 1),
         component_scores=[{"name": "unusual_return", "raw_value": 1.0,
