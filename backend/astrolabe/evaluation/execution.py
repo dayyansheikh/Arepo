@@ -32,12 +32,12 @@ def _spread_cross(spread: float | None) -> float:
 def slippage_points(near_mid_depth: float | None, stake: float) -> float | None:
     """Price impact in probability points from consuming ``stake`` against ``near_mid_depth``.
 
-    None when depth is unknown (executable performance is then unavailable, not free).
+    None when depth is unknown OR non-positive: a book with no measurable near-mid depth cannot be
+    costed, so executable performance is unavailable, never free and never a bounded guess
+    (provenance/execution review, finding 1).
     """
-    if near_mid_depth is None:
+    if near_mid_depth is None or near_mid_depth <= 0:
         return None
-    if near_mid_depth <= 0:
-        return SLIPPAGE_CAP
     return min(SLIPPAGE_CAP, SLIPPAGE_COEFF * (stake / near_mid_depth))
 
 
@@ -49,6 +49,7 @@ class ExecutionResult:
     exit_cost: float | None           # spread cross + slippage at exit (points)
     fee: float                        # quote-unit fee for the round trip
     round_trip_cost: float | None     # total cost in points (entry_cost + exit_cost)
+    exit_is_proxied: bool             # True if exit spread/depth fell back to entry-time values
     unavailable_reason: str | None
 
 
@@ -65,20 +66,23 @@ def evaluate_execution(
     fee_rate: float = FEE_RATE,
 ) -> ExecutionResult:
     """Midpoint and executable signed move for a directional call over one horizon."""
+    exit_is_proxied = forward_depth is None or forward_spread is None
     if direction not in ("up", "down") or entry_midpoint is None or forward_midpoint is None:
-        return ExecutionResult(None, None, None, None, 0.0, None, "no directional midpoint pair")
+        return ExecutionResult(
+            None, None, None, None, 0.0, None, False, "no directional midpoint pair"
+        )
 
     sign = 1.0 if direction == "up" else -1.0
     midpoint_move = sign * (forward_midpoint - entry_midpoint)
 
     entry_slip = slippage_points(entry_depth, stake)
-    # Exit depth defaults to entry depth when the forward depth was not captured, but if BOTH are
-    # missing the executable result is unavailable.
+    # Exit depth defaults to entry depth when the forward depth was not captured (flagged via
+    # exit_is_proxied), but if BOTH are missing the executable result is unavailable.
     exit_depth = forward_depth if forward_depth is not None else entry_depth
     exit_slip = slippage_points(exit_depth, stake)
     if entry_slip is None or exit_slip is None:
         return ExecutionResult(
-            midpoint_move, None, None, None, 0.0, None,
+            midpoint_move, None, None, None, 0.0, None, exit_is_proxied,
             "near-mid depth unavailable, so executable cost cannot be estimated",
         )
 
@@ -97,5 +101,6 @@ def evaluate_execution(
         exit_cost=exit_cost,
         fee=fee,
         round_trip_cost=round_trip,
+        exit_is_proxied=exit_is_proxied,
         unavailable_reason=None,
     )
