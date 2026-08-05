@@ -99,11 +99,11 @@ async def test_freeze_is_idempotent_and_immutable(session):
     screens = [_screen(f"d{i}", 0.5, "up", 2, rp=90 - i) for i in range(3)]
     inputs = build_entry_inputs(screens, now=CUTOFF)
     s1 = await freeze_from_inputs(session, cadence=CADENCE_6H, cutoff_at=CUTOFF,
-                                  inputs=inputs, calculation_version="test-1")
+                                  inputs=inputs, calculation_version="test-1", frozen_at=CUTOFF)
     assert s1["frozen"] and s1["universe_size"] == 3 and not s1["already_frozen"]
     # Second freeze of the same (cadence, cutoff) does nothing new.
     s2 = await freeze_from_inputs(session, cadence=CADENCE_6H, cutoff_at=CUTOFF,
-                                  inputs=inputs, calculation_version="test-1")
+                                  inputs=inputs, calculation_version="test-1", frozen_at=CUTOFF)
     assert s2["already_frozen"] is True
     repo = ResearchRepository(session)
     cohorts = await repo.list_cohorts(cadence=CADENCE_6H)
@@ -118,7 +118,7 @@ async def test_distinct_cadences_are_independent(session):
     inputs = build_entry_inputs(screens, now=CUTOFF)
     for cadence in (CADENCE_6H, CADENCE_DAILY, CADENCE_WEEKLY):
         await freeze_from_inputs(session, cadence=cadence, cutoff_at=CUTOFF,
-                                 inputs=inputs, calculation_version="test-1")
+                                 inputs=inputs, calculation_version="test-1", frozen_at=CUTOFF)
     repo = ResearchRepository(session)
     counts = await repo.count_cohorts_by_cadence()
     assert counts == {CADENCE_6H: 1, CADENCE_DAILY: 1, CADENCE_WEEKLY: 1}
@@ -128,7 +128,7 @@ async def test_forward_collection_is_causal_and_idempotent(session):
     screens = [_screen("d0", 0.5, "up", 2, rp=90)]
     inputs = build_entry_inputs(screens, now=CUTOFF)
     await freeze_from_inputs(session, cadence=CADENCE_6H, cutoff_at=CUTOFF,
-                             inputs=inputs, calculation_version="test-1")
+                             inputs=inputs, calculation_version="test-1", frozen_at=CUTOFF)
 
     async def price_of(mid, tok):
         return Quote(
@@ -154,11 +154,33 @@ async def test_forward_collection_is_causal_and_idempotent(session):
     assert backlog["backlog"] == 0  # 7d not due yet, so not counted as backlog
 
 
+async def test_horizon_predating_freeze_is_invalid_not_backfilled(session):
+    # A cohort frozen LATER than a horizon's target (e.g. a weekly freeze run mid-week) must never
+    # backfill that horizon with a current price: it is recorded terminal-invalid (causal guard).
+    screens = [_screen("d0", 0.5, "up", 2, rp=90)]
+    inputs = build_entry_inputs(screens, now=CUTOFF)
+    # Freeze 2 days AFTER the cut-off, so 1h/6h/24h all predate the freeze.
+    late = CUTOFF + timedelta(days=2)
+    await freeze_from_inputs(session, cadence=CADENCE_WEEKLY, cutoff_at=CUTOFF,
+                             inputs=inputs, calculation_version="test-1", frozen_at=late)
+
+    async def price_of(mid, tok):
+        return Quote(midpoint=0.9, best_bid=0.89, best_ask=0.91, spread=0.02, near_mid_depth=1000.0)
+
+    r = await collect_due_forward(session, now=late + timedelta(minutes=5), price_of=price_of)
+    assert r["invalid_predates_freeze"] == 3 and r["written"] == 0  # 1h/6h/24h all invalid
+    repo = ResearchRepository(session)
+    cohort = (await repo.list_cohorts(cadence=CADENCE_WEEKLY))[0]
+    entry = (await repo.get_entries(cohort.id))[0]
+    fwd = await repo.get_forward(entry.id)
+    assert fwd["24h"].midpoint is None and "predates the freeze" in fwd["24h"].unavailable_reason
+
+
 async def test_forward_unavailable_reason_when_no_quote(session):
     screens = [_screen("d0", 0.5, "up", 2, rp=90)]
     inputs = build_entry_inputs(screens, now=CUTOFF)
     await freeze_from_inputs(session, cadence=CADENCE_6H, cutoff_at=CUTOFF,
-                             inputs=inputs, calculation_version="test-1")
+                             inputs=inputs, calculation_version="test-1", frozen_at=CUTOFF)
 
     async def no_price(mid, tok):
         return None

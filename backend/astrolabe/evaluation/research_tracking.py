@@ -56,20 +56,38 @@ async def collect_due_forward(
     repo = ResearchRepository(session)
     written = unavailable = already = 0
 
+    invalid = 0
     cohorts = await repo.list_cohorts(provenance="prospective", frozen=True)
     for cohort in cohorts:
         cutoff = _utc(cohort.cutoff_at)
+        frozen_at = _utc(cohort.frozen_at) or cutoff
         entries = await repo.get_entries(cohort.id)
         existing_by_entry = {e.id: await repo.get_forward(e.id) for e in entries}
         for entry in entries:
             have = existing_by_entry[entry.id]
             for horizon, secs in RESEARCH_HORIZONS.items():
                 target = cutoff + _timedelta(secs)
-                if now < target:
-                    continue  # horizon not yet elapsed (causal: never observe early)
                 if horizon in have:
                     already += 1
                     continue
+                # Causal guard: the entry prices were captured at ``frozen_at``. If a horizon's
+                # target time is BEFORE the freeze, it can never be a genuine forward measurement
+                # (it predates the entry), so it is recorded as terminal-invalid, never backfilled
+                # with a later price. In production the freeze cron fires at the cut-off boundary,
+                # so every horizon is naturally after the freeze and this never triggers.
+                if target < frozen_at:
+                    await repo.upsert_forward(
+                        entry_id=entry.id, horizon=horizon, observed_at=now,
+                        midpoint=None, best_bid=None, best_ask=None, spread=None,
+                        near_mid_depth=None, source_timestamp=None, exact=False,
+                        observation_delay_seconds=(now - target).total_seconds(),
+                        unavailable_reason="horizon predates the freeze time; not a valid forward "
+                        "measurement (cohort frozen after this horizon had already elapsed)",
+                    )
+                    invalid += 1
+                    continue
+                if now < target:
+                    continue  # horizon not yet elapsed (causal: never observe early)
                 quote = await _safe_quote(price_of, entry.market_id, entry.token_id)
                 delay = (now - target).total_seconds()
                 exact = abs(delay) <= NEAREST_TOLERANCE_SECONDS
@@ -92,7 +110,10 @@ async def collect_due_forward(
                 )
                 written += 1
     await session.commit()
-    return {"written": written, "unavailable": unavailable, "already_present": already}
+    return {
+        "written": written, "unavailable": unavailable,
+        "invalid_predates_freeze": invalid, "already_present": already,
+    }
 
 
 @dataclass(frozen=True)

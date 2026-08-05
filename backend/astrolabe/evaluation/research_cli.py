@@ -57,7 +57,7 @@ async def _freeze(session, service, data_api, *, cadence: str) -> dict:
     cutoff = cadence_cutoff(cadence, now)
     return await freeze_from_inputs(
         session, cadence=cadence, cutoff_at=cutoff, inputs=inputs,
-        model_version=MODEL_VERSION, calculation_version=CALCULATION_VERSION,
+        model_version=MODEL_VERSION, calculation_version=CALCULATION_VERSION, frozen_at=now,
     )
 
 

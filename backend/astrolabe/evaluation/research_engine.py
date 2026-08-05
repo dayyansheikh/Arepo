@@ -213,6 +213,7 @@ async def freeze_from_inputs(
     model_version: str = MODEL_VERSION,
     calculation_version: str,
     provenance_class: str = "prospective",
+    frozen_at: datetime | None = None,
 ) -> dict:
     """Idempotently create the (cadence, cutoff) cohort, add all entries, and freeze it.
 
@@ -235,7 +236,7 @@ async def freeze_from_inputs(
         }
     for e in inputs:
         await repo.add_entry(cohort, e)
-    await repo.freeze_cohort(cohort)
+    await repo.freeze_cohort(cohort, frozen_at=frozen_at)
     await session.commit()
     return {
         "cadence": cadence, "cutoff_at": cutoff_at.isoformat(), "created": created,

@@ -162,8 +162,15 @@ class ResearchRepository:
         await self.session.flush()
         return row
 
-    async def freeze_cohort(self, cohort: ResearchCohortRow) -> bool:
-        """Freeze a cohort and record its counts. Idempotent: returns False if already frozen."""
+    async def freeze_cohort(
+        self, cohort: ResearchCohortRow, *, frozen_at: datetime | None = None
+    ) -> bool:
+        """Freeze a cohort and record its counts. Idempotent: returns False if already frozen.
+
+        ``frozen_at`` records WHEN the entry prices were captured (defaults to now); the forward
+        collector uses it as the causal reference so a horizon that predates the freeze is never
+        backfilled. Tests pass it explicitly to keep the controlled clock deterministic.
+        """
         if cohort.frozen:
             return False
         entries = await self.get_entries(cohort.id)
@@ -174,7 +181,7 @@ class ResearchRepository:
         cohort.observation_count = sum(1 for e in entries if e.role == "observation")
         cohort.abstention_count = sum(1 for e in entries if e.role == "abstention_control")
         cohort.frozen = True
-        cohort.frozen_at = _now()
+        cohort.frozen_at = frozen_at or _now()
         await self.session.flush()
         return True
 
