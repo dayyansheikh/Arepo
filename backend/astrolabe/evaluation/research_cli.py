@@ -82,6 +82,10 @@ async def _run(args: argparse.Namespace) -> int:
                 from .service import CohortRunner  # reuse the resolution source
                 updated = await CohortRunner(service, mode="live").check_resolutions(session)
                 print(json.dumps({"resolutions_recorded": updated}))
+            elif args.command == "research-repair":
+                from .research_repository import ResearchRepository
+                summary = await ResearchRepository(session).repair_incomplete()
+                print(json.dumps(summary))
             elif args.command == "research-status":
                 svc = ResearchReadService(session)
                 if getattr(args, "horizon", None):
@@ -105,6 +109,7 @@ def build_parser() -> argparse.ArgumentParser:
     fr.add_argument("--cadence", required=True, choices=list(CADENCES))
     sub.add_parser("research-forward")
     sub.add_parser("research-resolve")
+    sub.add_parser("research-repair")
     st = sub.add_parser("research-status")
     st.add_argument("--horizon", default=None, choices=["1h", "6h", "24h", "7d"])
     return p

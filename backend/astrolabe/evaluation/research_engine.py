@@ -244,10 +244,18 @@ async def freeze_from_inputs(
             "cadence": cadence, "cutoff_at": cutoff_at.isoformat(), "created": False,
             "frozen": True, "already_frozen": True, "universe_size": cohort.universe_size,
         }
-    for e in inputs:
-        await repo.add_entry(cohort, e)
-    await repo.freeze_cohort(cohort, frozen_at=frozen_at)
-    await session.commit()
+    # Atomic freeze (prompt section 4): ONE transaction boundary. The cohort row and every universe
+    # entry are only made durable by the single commit AFTER freeze_cohort. Any failure before that
+    # rolls the whole unit back, so a partial or non-frozen cohort is never visible. On error we
+    # roll back explicitly (belt-and-suspenders) and re-raise so the caller sees the real cause.
+    try:
+        for e in inputs:
+            await repo.add_entry(cohort, e)
+        await repo.freeze_cohort(cohort, frozen_at=frozen_at)
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
     return {
         "cadence": cadence, "cutoff_at": cutoff_at.isoformat(), "created": created,
         "frozen": True, "already_frozen": False,

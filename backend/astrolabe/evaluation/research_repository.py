@@ -215,6 +215,45 @@ class ResearchRepository:
         res = await self.session.execute(q)
         return list(res.scalars().all())
 
+    async def entry_count(self, cohort_id: int) -> int:
+        return await self.session.scalar(
+            select(func.count(ResearchEntryRow.id)).where(
+                ResearchEntryRow.cohort_id == cohort_id
+            )
+        ) or 0
+
+    async def incomplete_cohorts(self) -> list[dict]:
+        """Cohorts that are provably incomplete (prompt section 4): never frozen, or frozen with an
+        entry count that disagrees with the recorded universe size. Valid frozen cohorts are never
+        included, so a repair can act only on genuinely broken rows."""
+        out: list[dict] = []
+        for c in await self.list_cohorts():
+            n = await self.entry_count(c.id)
+            reason = None
+            if not c.frozen:
+                reason = "not frozen (freeze never completed)"
+            elif n != c.universe_size:
+                reason = f"frozen but entry count {n} != universe_size {c.universe_size}"
+            if reason:
+                out.append({
+                    "id": c.id, "cadence": c.cadence, "cutoff_at": c.cutoff_at.isoformat(),
+                    "frozen": c.frozen, "universe_size": c.universe_size, "entries": n,
+                    "reason": reason,
+                })
+        return out
+
+    async def delete_cohort(self, cohort_id: int) -> None:
+        """Delete a cohort + its entries and forward rows. Only for proven-incomplete cohorts."""
+        entries = await self.get_entries(cohort_id)
+        for e in entries:
+            for fwd in (await self.get_forward(e.id)).values():
+                await self.session.delete(fwd)
+            await self.session.delete(e)
+        cohort = await self.session.get(ResearchCohortRow, cohort_id)
+        if cohort is not None:
+            await self.session.delete(cohort)
+        await self.session.flush()
+
     # -- forward observations --------------------------------------------------
     async def get_forward(self, entry_id: int) -> dict[str, ResearchForwardRow]:
         res = await self.session.execute(
@@ -262,6 +301,21 @@ class ResearchRepository:
         )
         await self.session.flush()
         return True
+
+    async def repair_incomplete(self) -> dict:
+        """Remove NEVER-FROZEN incomplete cohorts (proven not completed) and REPORT frozen-but-
+        mismatched cohorts without deleting them (frozen evidence is immutable; a human inspects).
+        Returns a summary. Idempotent: a clean database returns empty lists."""
+        incomplete = await self.incomplete_cohorts()
+        removed, anomalies = [], []
+        for row in incomplete:
+            if not row["frozen"]:
+                await self.delete_cohort(row["id"])
+                removed.append(row)
+            else:
+                anomalies.append(row)  # frozen mismatch: report, never auto-delete
+        await self.session.commit()
+        return {"removed_incomplete": removed, "frozen_anomalies": anomalies}
 
     # -- counts (for research status, O(1)-ish) --------------------------------
     async def count_cohorts_by_cadence(self, provenance: str = "prospective") -> dict[str, int]:
