@@ -56,6 +56,17 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Final pre-deployment §7: the page must never scroll horizontally at any width or zoom. Popovers
+     are portaled + viewport-clamped so they cannot expand the document; this `clip` is a
+     belt-and-suspenders guard that removes any residual horizontal overflow WITHOUT creating a
+     scroll container (so position:sticky and vertical scrolling are unaffected). */
+  overflow-x: clip;
+}
+
+/* Long, unbroken market titles / token ids must wrap instead of pushing the layout wider. Gentle
+   (only breaks a word when it would otherwise overflow), leaving normal text unaffected. */
+h1, h2, h3, h4, p, a, td, th, li, dd, dt {
+  overflow-wrap: break-word;
 }
 
 /* Display heading tokens -----------------------------------------------------

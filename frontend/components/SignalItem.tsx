@@ -23,7 +23,7 @@ function DirectionalBadge({ signal }: { signal: Signal }) {
   const v = directionalVerdict(signal);
   return (
     <p
-      className={`mt-2 inline-flex flex-wrap items-center gap-1.5 rounded-md px-2 py-1 text-[12px] ${
+      className={`inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-md px-2 py-1 text-[12px] ${
         v.qualifies
           ? "bg-arepo-accentTint text-arepo-accentActive"
           : "bg-arepo-surface2 text-arepo-muted"
@@ -127,20 +127,23 @@ export function SignalItem({ signal }: { signal: Signal }) {
         </div>
       </div>
 
-      {/* Whether this signal qualifies for a directional model view, using the SAME gate as
-          Market Detail (spec §4, §13), so Signal Lab never implies every anomaly is a
-          directional opportunity. */}
-      <DirectionalBadge signal={signal} />
-
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-controls={panelId}
-        className="focus-ring mt-3 rounded-md text-[13px] font-semibold text-arepo-accentActive hover:text-arepo-accentHover"
-      >
-        {open ? "Hide detail" : "Why this fired"}
-      </button>
+      {/* Deliberate action row (final pre-deployment §8): the directional-qualification badge and
+          the detail toggle are visually separated by a divider and a clear gap, wrap cleanly on
+          narrow widths, and never press against each other or the message. The toggle keeps an
+          accessible target size. Same directional gate as Market Detail (§4, §13). */}
+      <div className="mt-3 flex flex-col gap-x-4 gap-y-2 border-t border-arepo-border pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <DirectionalBadge signal={signal} />
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls={panelId}
+          className="focus-ring inline-flex shrink-0 items-center gap-1 self-start rounded-md px-2 py-1 text-[13px] font-semibold text-arepo-accentActive hover:text-arepo-accentHover sm:self-auto"
+        >
+          {open ? "Hide detail" : "Why this fired"}
+          <span aria-hidden="true" className="text-[11px]">{open ? "▲" : "▼"}</span>
+        </button>
+      </div>
 
       {open && (
         <div
