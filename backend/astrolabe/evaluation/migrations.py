@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from ..storage.db import Base, make_engine, make_sessionmaker
 from . import models as _models  # noqa: F401  (registers tables on Base.metadata)
+from . import research_models as _research_models  # noqa: F401  (registers research tables)
 from .constants import CALCULATION_VERSION
 from .repository import EvaluationRepository
 
