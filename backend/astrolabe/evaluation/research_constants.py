@@ -60,6 +60,14 @@ RESULT_INVALID = "invalid"
 # so every predictor treats flats identically). Predeclared, not tuned.
 FLAT_EPS = 0.01
 
+# Prospective-Replay PRODUCT "no price change" threshold (refinement prompt sections 3, 6, 7). This
+# answers a different, plainer question than the edge hit-rate: "did the stored midpoint move at all
+# in Arepo's direction between the freeze and the horizon?" A market is "No price change" only when
+# the midpoint did not move (a tiny float-comparison guard, NOT the 0.01 materiality floor). This is
+# a display classification for the Replay table and the "did the market move as expected?" summary;
+# it is never used for any edge verdict, calibration or baseline hit rate.
+REPLAY_MOVE_EPS = 1e-6
+
 # --- Universe degradation (prompt section 5) --------------------------------------------------
 # A freeze with too few usable markets, or too many excluded ones, must not silently produce a
 # misleading cohort. Below the minimum usable count OR above the maximum exclusion rate the freeze

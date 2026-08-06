@@ -270,6 +270,144 @@ export function getResearchStatus(): Promise<ResearchStatus> {
   return apiFetch<ResearchStatus>("/api/research/status");
 }
 
+// -- Prospective Replay product ---------------------------------------------------------
+// The public Replay surface is prospective-only: real cohorts genuinely frozen before later
+// prices were known. These endpoints serve the cohort selectors and the per-cohort result set.
+
+export interface ReplayCohort {
+  id: number;
+  cadence: string;
+  cadence_label: string;
+  cadence_description: string;
+  scheduled_for: string | null;
+  frozen_at: string | null;
+  evaluation_origin_at: string | null;
+  lateness_seconds: number;
+  lateness_minutes: number;
+  late: boolean;
+  excessively_late: boolean;
+  degraded: boolean;
+  universe_size: number;
+  directional_count: number;
+  public_selection_count: number;
+  shadow_count: number;
+  observation_count: number;
+  abstention_count: number;
+  excluded_markets: number;
+  available_horizons: Record<string, boolean>;
+  resolution_available: boolean;
+  model_version: string;
+}
+
+export interface ReplayCadence {
+  cadence: string;
+  label: string;
+  description: string;
+  count: number;
+  newest_cohort_id: number;
+}
+
+export interface ReplayCohortList {
+  generated_at: string;
+  model_version: string;
+  cohorts: ReplayCohort[];
+  cadences: ReplayCadence[];
+  default_cohort_id: number | null;
+  has_prospective: boolean;
+  first_freeze: string | null;
+  latest_freeze: string | null;
+  note: string;
+}
+
+export interface ReplayCounts {
+  total: number;
+  moved_expected: number;
+  moved_against: number;
+  no_change: number;
+  pending: number;
+  unavailable: number;
+  invalid: number;
+  moved: number;
+  evaluated: number;
+  movement_coverage: number | null;
+  hit_rate_among_moved: number | null;
+}
+
+export interface ReplayExecutable {
+  available: boolean;
+  move: number | null;
+  round_trip_cost: number | null;
+  unavailable_reason: string | null;
+}
+
+export interface ReplayRow {
+  rank: number | null;
+  market_id: string;
+  condition_id: string | null;
+  token_id: string;
+  market_question: string;
+  outcome_name: string;
+  role: string;
+  direction: string | null;
+  frozen_midpoint: number | null;
+  horizon_midpoint: number | null;
+  movement_pp: number | null;
+  midpoint_move: number | null;
+  executable: ReplayExecutable;
+  time_remaining_hours: number | null;
+  result_state: string;
+  resolution: { resolved: boolean; resolved_outcome: string | null; correct: boolean | null };
+  strength: number;
+  confidence: number;
+  research_priority: number;
+}
+
+export interface ReplayResolution {
+  resolved_correct: number;
+  resolved_incorrect: number;
+  unresolved: number;
+  total: number;
+}
+
+export interface ReplayResult {
+  found: boolean;
+  cohort: ReplayCohort;
+  horizon: string;
+  horizon_evaluable: boolean;
+  available_horizons: Record<string, boolean>;
+  resolution_available: boolean;
+  scope: string;
+  closing: string;
+  closing_max_hours: number | null;
+  qualifying: number;
+  shown: number;
+  rows: ReplayRow[];
+  headline: ReplayCounts;
+  public: ReplayCounts;
+  shadow: ReplayCounts;
+  combined: ReplayCounts;
+  role_counts: Record<string, number>;
+  resolution: ReplayResolution;
+  note: string;
+}
+
+export function getReplayCohorts(): Promise<ReplayCohortList> {
+  return apiFetch<ReplayCohortList>("/api/research/replay/cohorts");
+}
+
+export function getReplayCohortResults(
+  cohortId: number,
+  horizon: string,
+  scope: string,
+  closing: string,
+): Promise<ReplayResult> {
+  return apiFetch<ReplayResult>(`/api/research/replay/cohort/${cohortId}`, {
+    horizon,
+    scope,
+    closing,
+  });
+}
+
 // -- Accounts ---------------------------------------------------------------------------
 // These endpoints use the auth cookie, so every request must send credentials. fastapi-users
 // login expects form-encoded data; everything else is JSON.

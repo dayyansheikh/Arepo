@@ -87,3 +87,36 @@ def test_opportunity_diagnostics_replay(client):
     for comp in body["component_availability"].values():
         assert comp["present"] + comp["missing"] == body["tokens_analysed"]
         assert comp["reason_when_missing"]  # honest reason, never a bare dash
+
+
+def test_replay_cohorts_endpoint_idempotent(client):
+    """The prospective-Replay cohort list serves 200 and is an idempotent read (prompt §11, §15)."""
+    a = client.get("/api/research/replay/cohorts")
+    b = client.get("/api/research/replay/cohorts")
+    assert a.status_code == 200 and b.status_code == 200
+    ja, jb = a.json(), b.json()
+    assert "prospective" in ja["note"].lower()
+    for k in ("cohorts", "cadences", "has_prospective", "default_cohort_id"):
+        assert k in ja
+    # Idempotent apart from the generated_at stamp.
+    ja.pop("generated_at", None)
+    jb.pop("generated_at", None)
+    assert ja == jb
+
+
+def test_replay_cohort_results_endpoint(client):
+    """Result reads are 200, idempotent, and never mix non-directional rows into the table."""
+    listing = client.get("/api/research/replay/cohorts").json()
+    cid = listing["default_cohort_id"]
+    if cid is None:
+        # No frozen research cohort in this database; an unknown-cohort read is a clean not-found.
+        assert client.get("/api/research/replay/cohort/1").json()["found"] is False
+        return
+    params = {"horizon": "6h", "scope": "directional", "closing": "all"}
+    r1 = client.get(f"/api/research/replay/cohort/{cid}", params=params).json()
+    r2 = client.get(f"/api/research/replay/cohort/{cid}", params=params).json()
+    assert r1["found"] is True and r1 == r2
+    assert all(row["role"] in ("public_selection", "shadow_directional") for row in r1["rows"])
+    assert r1["shown"] <= 10
+    # Unknown cohort is a clean not-found, not a 500.
+    assert client.get("/api/research/replay/cohort/999999", params=params).json()["found"] is False

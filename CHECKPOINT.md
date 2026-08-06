@@ -3,7 +3,37 @@
 _Single source of truth for "where are we, exactly." Updated at the end of every phase.
 Older history is preserved in git; this file tracks the **Master Final Refinement**._
 
-## Latest: Final runtime acceptance fix — COMPLETE (branch `arepo-final-runtime-acceptance-fix`)
+## Latest: Prospective Replay refinement — COMPLETE (branch `arepo-prospective-replay-refinement`)
+
+Safety tag before this pass: **`arepo-before-prospective-replay-refinement`**. DB backed up
+(`backend/astrolabe.db.backup-before-prospective-replay-refinement-*`) and fully preserved: 1 real 6h
+cohort, 60 entries, 120 forward obs intact (universe 60 / directional 19 / public 10 / shadow 9).
+Product, evaluation-display and Replay refinement only; no model/threshold/confidence/RP/eligibility/
+baseline/ablation/walk-forward/edge/frozen-value change. See `docs/prospective-replay-refinement.md`.
+
+- Replay is now **prospective-only**: reconstructed + synthetic tabs removed from the public page
+  (infra kept internally for tests); legacy `?replay=` values normalise to the prospective page and
+  the stale param is stripped.
+- Rebuilt around: cohort cadence + freeze selectors (only cadences with real cohorts; six-hour
+  cohort described as six-hourly, never weekly), evaluation horizon (1h/6h/24h/7d/final; pending when
+  no stored observation), frozen time-to-close filter (6h/24h/7d/30d/all, using frozen
+  `time_remaining_hours`), and a scope control (public vs all-directional incl shadow).
+- "Did the market move as expected?" section: headline "Of 19 directional calls, 4 moved as
+  expected, 4 moved against the call and 11 did not change"; movement coverage; labelled
+  hit-rate-among-moved "50% (4 of 8)"; public 2/2/6, shadow 2/2/5, combined 4/4/11 splits.
+- Market-by-market table with frozen rank, midpoint movement, executable (after costs) shown
+  separately, frozen time-to-close, colour-independent result labels + tooltip. Final resolution kept
+  separate (pending for this unresolved cohort).
+- New typed server-side endpoints: `GET /api/research/replay/cohorts` +
+  `/api/research/replay/cohort/{id}` (deterministic, idempotent; excessively-late cohorts excluded).
+- Scheduler (`render.yaml`) already had correct 6h/daily/weekly research freeze crons + 20-min
+  forward collector; recorded, left unchanged. Not deployed.
+- Gates: backend **376 pass** + ruff clean; frontend tsc/lint clean, **58 vitest**, build 15 routes,
+  **Playwright 85 passed** (real Chromium + real backend + preserved DB). Acceptance numbers verified
+  in the real browser. Localhost: stopped the two stale dev PIDs from the previous run (backend
+  93205, frontend 99230/99231), started clean backend:8000 + frontend:3000. NOT deployed, NOT merged.
+
+## (superseded) Final runtime acceptance fix — COMPLETE (branch `arepo-final-runtime-acceptance-fix`)
 
 Safety tag before this pass: **`arepo-before-final-runtime-acceptance-fix`**. All 8 acceptance items
 Pass (see `docs/FINAL_RUNTIME_ACCEPTANCE.md`). Real-browser verified, not just unit tests.

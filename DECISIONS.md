@@ -5,6 +5,40 @@ Newest entries at the top of each section.
 
 ---
 
+## Prospective Replay refinement (branch `arepo-prospective-replay-refinement`)
+
+### D-PR4. Replay product "no price change" is a distinct threshold from the edge materiality floor
+The Replay movement classification answers a plainer question than the edge hit-rate: "did the stored
+midpoint move at all in Arepo's direction?" so it uses `REPLAY_MOVE_EPS = 1e-6` (a float-comparison
+guard), NOT the `FLAT_EPS = 0.01` materiality floor. With the 0.01 floor the real public set reads
+0/0/10; with the product threshold it reads the authoritative 2/2/6 (smallest real move 0.004). The
+0.01 floor is left untouched for every edge/baseline/calibration number; the two are deliberately
+separate questions, documented in `research_replay.py` and the methodology.
+
+### D-PR3. Server owns the evaluation truth; the Replay frontend only renders it (prompt §11)
+`research_replay.py` computes every result state, aggregate count, movement coverage and executable
+result. The React page derives nothing important from client assumptions; `lib/replay.ts` only
+formats and selects (labels, copy, default cohort), unit-tested in isolation. This keeps the
+displayed truth deterministic and testable and prevents a loose client rule from disagreeing with the
+backend.
+
+### D-PR2. Public Replay is prospective-only; reconstructed/synthetic stay internal (prompt §1)
+The reconstructed screen, synthetic seed and deterministic backtest are removed from the public
+Replay page but kept in the codebase for internal use and automated tests (not deleted). Legacy
+`?replay=` values normalise to the single prospective page and the stale param is stripped, so no
+removed mode can ever be displayed. Replay now means exactly: real predictions genuinely frozen
+before later prices became known.
+
+### D-PR1. Cadence, horizon and closing window are three independent axes (prompt §2-4)
+Cohort cadence (six-hourly/daily/weekly, read from the stored `cadence` string so a manual six-hour
+cohort is never called weekly), evaluation horizon (1h/6h/24h/7d/final, marked pending unless a
+stored observation exists) and the frozen time-to-close filter (using `time_remaining_hours` at
+freeze, never the current TTC) are separate selectors. Excessively-late cohorts are excluded from the
+selectable list, matching the existing excessive-lateness rule (unchanged). One cohort never
+demonstrates edge; the product answers only the descriptive movement question.
+
+---
+
 ## Edge-research infrastructure (branch `arepo-edge-research-infrastructure`)
 
 ### D-ER5. Executable cost model is a declared assumption, not a fitted value (prompt §6)

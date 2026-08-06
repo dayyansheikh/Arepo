@@ -2,6 +2,25 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Prospective Replay refinement (branch `arepo-prospective-replay-refinement`)
+- [x] safe start: DB backup + safety tag `arepo-before-prospective-replay-refinement` + branch; DB preserved
+- [x] §1 Replay prospective-only: removed reconstructed + synthetic public tabs; legacy `?replay=` normalised
+- [x] §2/§3 cohort cadence + freeze selectors (real cadences only) + horizon (1h/6h/24h/7d/final, pending honest)
+- [x] §4 frozen time-to-close filter (6h/24h/7d/30d/all) from `time_remaining_hours`; never current TTC
+- [x] §5 top-ten by frozen rank within filtered subset; never padded; public vs all-directional scope
+- [x] §6 "Did the market move as expected?" headline + coverage + labelled hit-rate-among-moved + public/shadow split
+- [x] §7 market-by-market table with intuitive labels + tooltip; links to market detail; mobile-readable
+- [x] §8 midpoint movement shown separately from executable (after costs); honest unavailable
+- [x] §9 corrected stale copy (dynamic cadence wording; removed "tracking has not started"; browser-does-not-collect)
+- [x] §10 timing banner: scheduled cut-off / actually frozen / lateness / evaluation origin
+- [x] §11 typed server-side endpoints `/api/research/replay/cohorts` + `/cohort/{id}`; deterministic + tested
+- [x] §12 scheduler: 6h/daily/weekly research freeze crons + forward collector already correct; recorded, unchanged
+- [x] §13 localhost: stopped exact stale dev PIDs; clean backend:8000 + frontend:3000; documented
+- [x] §15 tests: 17 backend (15 replay + 2 route), 18 frontend vitest, 12 Playwright specs
+- [x] §16 gate: backend 376 + ruff; frontend tsc/lint/58 vitest/build 15; Playwright 85; real 6h cohort verified
+- [x] §17 docs (this file + CHECKPOINT/DECISIONS/FINAL_STATUS + docs/prospective-replay-refinement.md)
+- [x] §18 commit + push branch (no merge to main, no deploy)
+
 ## Final pre-deployment repair & launch readiness (branch `arepo-final-predeployment-launch-readiness`)
 - [x] §1 baseline (docs/final-predeployment-baseline.md)
 - [x] §2/§3 schema failure fixed: additive SQLite+Postgres migrator + preflight + tests + docs

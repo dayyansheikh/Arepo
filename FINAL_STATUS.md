@@ -1,5 +1,32 @@
 # FINAL_STATUS
 
+## Prospective Replay refinement (branch `arepo-prospective-replay-refinement`)
+
+_Verified in this environment: backend **376 tests pass**, ruff clean; frontend tsc/lint clean, **58
+vitest**, production build 15 routes; **Playwright 85 passed** against the real backend (:8000) and
+the preserved local database (:3000). The real six-hour cohort's stored results were confirmed in the
+real browser: public 2 expected / 2 against / 6 flat; shadow 2 / 2 / 5; combined 4 / 4 / 11._
+
+The public Replay product is now prospective-only: real predictions genuinely frozen before later
+prices became known. The reconstructed-analysis and synthetic-demonstration tabs were removed from
+the public page (the underlying infrastructure is kept for internal use and tests); legacy `?replay=`
+values normalise to the prospective page. The page was rebuilt around choosing a real frozen cohort
+(cadence + freeze), an evaluation horizon (1h/6h/24h/7d/final, honestly pending when uncollected) and
+a frozen time-to-close window (6h/24h/7d/30d/all), with a public-vs-all-directional scope control. A
+prominent "Did the market move as expected?" section leads with the full count and never a
+flat-excluding hit rate; where a hit rate is shown it is labelled "among markets that moved: 50% (4
+of 8)". The market-by-market table shows frozen rank, midpoint movement, executable result (after
+costs) separately, frozen time-to-close and colour-independent result labels; final resolution is
+kept separate. Two typed, deterministic, server-side endpoints back it
+(`/api/research/replay/cohorts` and `/cohort/{id}`). No directional logic, threshold, confidence,
+Research Priority, eligibility, baseline, ablation, walk-forward, edge criterion or frozen value was
+changed, and the database (1 real 6h cohort, 60 entries, 120 forward observations) is fully
+preserved. The `render.yaml` research freeze/forward crons for all three cadences were already
+correct and left unchanged. Not deployed; not merged to `main`. Details in
+`docs/prospective-replay-refinement.md`.
+
+---
+
 ## Directional Evidence, Replay & Deployment pass (branch `arepo-directional-evidence-deployment`)
 
 _Verified in this environment: backend **286 tests pass**, ruff clean, idempotent bootstrap;

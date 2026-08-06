@@ -1,1273 +1,695 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useAsync } from "@/lib/use-async";
 import { useUrlState } from "@/lib/use-url-state";
 import {
-  getBacktest,
-  getCohort,
-  getCohortProvenance,
-  getCohortWeeks,
-  getHistoricalScreen,
-  getReplayDataStatus,
-  getResearchStatus,
+  getReplayCohorts,
+  getReplayCohortResults,
+  type ReplayCohort,
+  type ReplayCohortList,
+  type ReplayCounts,
+  type ReplayResult,
+  type ReplayRow,
 } from "@/lib/api";
-import type {
-  BaselineComparison,
-  BacktestEvent,
-  CohortDetail,
-  CohortEntry,
-  CohortWeek,
-  HistoricalEntry,
-  HistoricalScreen,
-  ProvenanceInfo,
-} from "@/lib/types";
 import {
-  formatPercent,
-  formatPrice,
-  formatSignedPercent,
-  formatZScore,
-  formatDate,
-} from "@/lib/format";
-import { friendlyComponentName } from "@/lib/signal-labels";
+  CLOSING_OPTIONS,
+  HORIZON_OPTIONS,
+  SCOPE_OPTIONS,
+  cadenceCopy,
+  cohortById,
+  headlineSentence,
+  hitRateAmongMovedText,
+  movementCoverageText,
+  newestCohortForCadence,
+  qualifyingCaption,
+  resultLabel,
+  type Horizon,
+  type Scope,
+} from "@/lib/replay";
+import { formatPrice } from "@/lib/format";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { ListSkeleton } from "@/components/Skeletons";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
 import { PageHeader, SectionTitle, Disclose, StatTile, Badge } from "@/components/ui";
-import { MetricHelp } from "@/components/MetricHelp";
 
-type View = "movement" | "resolution";
+const MOVED_TOOLTIP =
+  "Moved as expected means the selected outcome's midpoint moved in Arepo's stored direction over " +
+  "the selected horizon. It does not mean the market finally resolved correctly or that a trade " +
+  "would have been profitable.";
 
-type ReplayMode = "research" | "reconstructed" | "demo";
-
-/** Normalise the URL `replay` value to the current three modes, mapping legacy values so old links
- * keep working: `prospective` (which used to show synthetic demo data) now lands on the REAL
- * research view, and `historical` lands on the reconstructed analysis (final runtime acceptance §5). */
-function normaliseReplayMode(raw: string): ReplayMode {
-  switch (raw) {
-    case "research":
-    case "prospective":
-      return "research";
-    case "reconstructed":
-    case "historical":
-      return "reconstructed";
-    case "demo":
-    case "synthetic":
-      return "demo";
-    default:
-      return "research";
-  }
+function dt(iso: string | null | undefined): string {
+  if (!iso) return "unknown";
+  return new Date(iso).toLocaleString("en-GB");
 }
 
-function money(v: number | null | undefined): string {
-  if (v === null || v === undefined) return "n/a";
-  const sign = v < 0 ? "-" : "";
-  return `${sign}$${Math.abs(v).toFixed(2)}`;
+function timeToClose(hours: number | null): string {
+  if (hours == null) return "unknown";
+  if (hours < 48) return `${Math.round(hours)}h`;
+  return `${Math.round(hours / 24)}d`;
 }
 
 export default function ReplayPage() {
-  const weeksState = useAsync(() => getCohortWeeks(), []);
-  const provenanceState = useAsync<ProvenanceInfo>(() => getCohortProvenance(), []);
-  const weeks = weeksState.data;
-
-  const [selected, setSelected] = useState<string | null>(null);
+  // Prospective-only: real predictions genuinely frozen before later prices became known. Any
+  // legacy `?replay=` mode (reconstructed / synthetic / demo) is ignored and stripped so a removed
+  // mode is never displayed (refinement prompt section 1).
+  const [legacyMode, setLegacyMode] = useUrlState("replay", "");
   useEffect(() => {
-    if (weeks && weeks.length > 0 && selected === null) {
-      setSelected(`${weeks[0].iso_year}-${weeks[0].iso_week}`);
-    }
-  }, [weeks, selected]);
+    if (legacyMode) setLegacyMode("");
+  }, [legacyMode, setLegacyMode]);
 
-  const activeWeek: CohortWeek | undefined = useMemo(() => {
-    if (!weeks || selected === null) return undefined;
-    return weeks.find((w) => `${w.iso_year}-${w.iso_week}` === selected);
-  }, [weeks, selected]);
+  const cohortsState = useAsync<ReplayCohortList>(() => getReplayCohorts(), []);
+  const list = cohortsState.data;
 
-  const cohortState = useAsync<CohortDetail | null>(
-    () =>
-      activeWeek
-        ? getCohort(activeWeek.iso_year, activeWeek.iso_week)
-        : Promise.resolve(null),
-    [activeWeek?.iso_year, activeWeek?.iso_week]
-  );
-
-  const [view, setView] = useState<View>("movement");
-  // Real prospective research is PRIMARY (final runtime acceptance §5): the default view shows the
-  // real frozen cohorts recorded and tracked forward, with the actual freeze time and lateness. The
-  // reconstructed price-only analysis is a clearly-secondary research mode, and the synthetic weekly
-  // demonstration is moved out to its own "Demo" control so it can never occupy the prospective view
-  // or be read as a real track record. The mode persists in the URL; legacy links are normalised so
-  // ?replay=prospective now lands on the REAL research (previously it showed synthetic demo data).
-  const [rawMode, setMode] = useUrlState("replay", "research");
-  const mode: ReplayMode = normaliseReplayMode(rawMode);
-
-  return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Replay"
-        lead="Arepo freezes each real research cohort at the moment it is recorded, then measures what happens next from that actual freeze time. That real prospective record is shown first. A separate reconstructed analysis rebuilds past opportunities from price history alone, and a synthetic demonstration is kept apart for teaching."
-      />
-
-      <DisclaimerBanner>
-        Replay is a research record, not trading advice, and past behaviour does not predict
-        future results.
-      </DisclaimerBanner>
-
-      {/* Real prospective (primary) · Reconstructed analysis (secondary) · Synthetic demo (separate). */}
-      <div
-        className="inline-flex flex-wrap rounded-control border border-arepo-border bg-arepo-surface p-0.5"
-        role="tablist"
-        aria-label="Replay mode"
-      >
-        {(
-          [
-            ["research", "Real prospective research"],
-            ["reconstructed", "Reconstructed analysis"],
-            ["demo", "Synthetic demonstration"],
-          ] as [ReplayMode, string][]
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            role="tab"
-            aria-selected={mode === key}
-            data-testid={`replay-tab-${key}`}
-            onClick={() => setMode(key)}
-            className={`focus-ring rounded-[8px] px-3.5 py-1.5 text-[14px] font-medium transition-colors ${
-              mode === key
-                ? "bg-arepo-accentTint text-arepo-accentActive"
-                : "text-arepo-muted hover:text-arepo-ink"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+  if (cohortsState.loading) {
+    return (
+      <div className="space-y-8" data-testid="replay-page">
+        <ReplayIntro />
+        <ListSkeleton rows={6} />
       </div>
-
-      {/* The three Replay data provenances (spec §20). They are never combined into one headline
-          performance number. */}
-      <Disclose summary="What Prospective, Reconstructed and Synthetic mean">
-        <dl className="max-w-reading space-y-2 text-[13px] leading-relaxed text-arepo-muted">
-          <div>
-            <dt className="font-semibold text-arepo-ink2">Prospective</dt>
-            <dd>Signals genuinely recorded and frozen at the time, then tracked forward. The only
-              real long-term performance record.</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-arepo-ink2">Reconstructed</dt>
-            <dd>Signals rebuilt later using only information that existed at the historical cut-off
-              (price-only, since historical order books were never stored). Illustrative, not a
-              track record.</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-arepo-ink2">Synthetic</dt>
-            <dd>Demonstration data only, for testing and teaching. Never mixed into any real
-              performance figure.</dd>
-          </div>
-        </dl>
-      </Disclose>
-
-      {mode === "research" && <RealProspectiveResearch />}
-
-      {mode === "reconstructed" && <HistoricalView />}
-
-      {mode === "demo" && (
-        /* Scoped (not global) overflow-x guard: the synthetic demo shows wide fixed-min-width tables
-           inside their own horizontal scrollers, whose sub-pixel rounding could add a 1–2px window
-           scroll at 320px. Clipping only this synthetic-demo subtree removes that without affecting
-           the real experience or masking a genuine element-level overflow elsewhere (§3). */
-        <div className="space-y-8 overflow-x-clip">
-      <div className="flex items-start gap-2.5 rounded-card border border-arepo-warn/30 bg-arepo-warn/10 px-4 py-3 text-[14px] leading-relaxed text-arepo-warnText">
-        <span className="mt-0.5 inline-flex flex-none items-center rounded-full bg-arepo-warn/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
-          Synthetic demonstration
-        </span>
-        <span className="min-w-0">
-          Everything below is synthetic demonstration data for testing and teaching only. It is not a
-          real track record, is never labelled simply &ldquo;prospective&rdquo;, and is never mixed
-          into the real research statistics shown under &ldquo;Real prospective research&rdquo;.
-        </span>
+    );
+  }
+  if (cohortsState.error) {
+    return (
+      <div className="space-y-8" data-testid="replay-page">
+        <ReplayIntro />
+        <ErrorState message={cohortsState.error} />
+        <p className="text-[13px] text-arepo-muted">
+          The Replay data could not be loaded. It will recover automatically when the API
+          reconnects.
+        </p>
       </div>
-      {weeksState.loading && <ListSkeleton rows={5} />}
-      {!weeksState.loading && weeksState.error && <ErrorState message={weeksState.error} />}
-
-      {!weeksState.loading && weeks && weeks.length === 0 && (
+    );
+  }
+  if (!list || !list.has_prospective) {
+    return (
+      <div className="space-y-8" data-testid="replay-page">
+        <ReplayIntro />
         <EmptyState
           message={
-            "No cohorts have been recorded yet. Prospective tracking begins at the first " +
-            "run of the weekly evaluation, then a frozen cohort appears here each week."
+            "No prospective cohort has been frozen yet. Replay grows when scheduled backend jobs " +
+            "freeze cohorts and collect later prices; once the first freeze runs, the real frozen " +
+            "cohort, its timing and its results appear here. Leaving this page open does not " +
+            "collect additional evidence."
           }
         />
-      )}
+      </div>
+    );
+  }
 
-      {weeks && weeks.length > 0 && (
-        <>
-          <div className="flex flex-wrap items-end gap-4">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium text-arepo-ink2">Week</span>
-              <select
-                className="select-arepo w-56"
-                value={selected ?? ""}
-                onChange={(e) => setSelected(e.target.value)}
-              >
-                {weeks.map((w) => (
-                  <option key={w.label} value={`${w.iso_year}-${w.iso_week}`}>
-                    {w.label}
-                    {w.provenance_class !== "prospective"
-                      ? ` (${w.provenance_class})`
-                      : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {activeWeek && (
-              <p className="text-[13px] text-arepo-muted">
-                Cut-off {formatDate(activeWeek.cutoff_at)} ·{" "}
-                {activeWeek.frozen ? "frozen" : "provisional"} ·{" "}
-                {activeWeek.actual_size} of {activeWeek.target_size} slots
-              </p>
-            )}
-          </div>
-
-          {activeWeek && activeWeek.provenance_class !== "prospective" && (
-            <ProvenanceNotice week={activeWeek} note={cohortState.data?.summary.note} />
-          )}
-
-          {cohortState.loading && <ListSkeleton rows={5} />}
-          {!cohortState.loading && cohortState.error && (
-            <ErrorState message={cohortState.error} />
-          )}
-
-          {!cohortState.loading && cohortState.data && (
-            <CohortView detail={cohortState.data} view={view} setView={setView} />
-          )}
-        </>
-      )}
-
-      <Disclose summary="Show the signal backtest (demonstration dataset)">
-        <BacktestDemo />
-      </Disclose>
-        </div>
-      )}
-
-      {provenanceState.data && <ProvenanceFootnote info={provenanceState.data} />}
-    </div>
-  );
-}
-
-function ProvenanceNotice({ week, note }: { week: CohortWeek; note?: string | null }) {
-  const label =
-    week.provenance_class === "synthetic" ? "Synthetic demonstration" : "Reconstructed";
   return (
-    <div className="flex items-start gap-2.5 rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[14px] leading-relaxed text-arepo-ink2">
-      <span className="mt-0.5 inline-flex flex-none items-center rounded-full bg-arepo-ink/8 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-arepo-ink2">
-        {label}
-      </span>
-      <span className="min-w-0">
-        {note ??
-          "This cohort is a demonstration, not real prospective performance, and is never mixed into real statistics."}
-      </span>
+    <div className="space-y-8" data-testid="replay-page">
+      <ReplayIntro />
+      <ReplayBody list={list} />
     </div>
   );
 }
 
-function CohortView({
-  detail,
-  view,
-  setView,
-}: {
-  detail: CohortDetail;
-  view: View;
-  setView: (v: View) => void;
-}) {
-  const s = detail.summary;
+function ReplayIntro() {
+  return (
+    <>
+      <PageHeader
+        title="Replay"
+        lead="Real predictions genuinely frozen before later prices became known. Arepo records each research cohort at the moment it is frozen, then measures what happens next from that actual freeze time."
+      />
+      <DisclaimerBanner>
+        Replay is a research record, not trading advice, and past behaviour does not predict future
+        results.
+      </DisclaimerBanner>
+    </>
+  );
+}
+
+function ReplayBody({ list }: { list: ReplayCohortList }) {
+  const cadences = list.cadences;
+  const [cadence, setCadence] = useUrlState("cadence", cadences[0]?.cadence ?? "6h");
+  // The selected cohort id lives in the URL so direct navigation and refresh restore the exact
+  // view. It defaults to the newest cohort of the selected cadence.
+  const [cohortRaw, setCohort] = useUrlState("cohort", "");
+  const [horizon, setHorizon] = useUrlState("h", "6h");
+  const [closing, setClosing] = useUrlState("closing", "all");
+  const [scope, setScope] = useUrlState("scope", "directional");
+
+  // Resolve the effective cadence (must be one that really exists).
+  const effectiveCadence =
+    cadences.find((c) => c.cadence === cadence)?.cadence ?? cadences[0]?.cadence ?? "6h";
+  const cohortsForCadence = list.cohorts.filter((c) => c.cadence === effectiveCadence);
+
+  // Resolve the effective cohort: the URL value if it belongs to the cadence, else the newest.
+  const urlCohortId = cohortRaw ? Number(cohortRaw) : null;
+  const urlCohortValid = cohortsForCadence.some((c) => c.id === urlCohortId);
+  const effectiveCohortId =
+    (urlCohortValid ? urlCohortId : null) ??
+    newestCohortForCadence(list, effectiveCadence)?.id ??
+    list.default_cohort_id ??
+    null;
+
+  const cohort = cohortById(list, effectiveCohortId);
+
+  const resultsState = useAsync<ReplayResult | null>(
+    () =>
+      effectiveCohortId != null
+        ? getReplayCohortResults(
+            effectiveCohortId,
+            horizon === "final" ? "6h" : horizon,
+            scope,
+            closing,
+          )
+        : Promise.resolve(null),
+    [effectiveCohortId, horizon, closing, scope],
+  );
+
+  const isFinal = horizon === "final";
+
   return (
     <div className="space-y-8">
-      <p className="max-w-reading text-[16px] leading-relaxed text-arepo-ink">
-        {s.plain_summary}
-      </p>
+      {/* 1 · Choose cohort cadence and freeze. */}
+      <section className="space-y-4">
+        <SectionTitle>Choose a frozen cohort</SectionTitle>
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-arepo-ink2">Cohort cadence</span>
+            <select
+              data-testid="cohort-cadence"
+              className="select-arepo w-48"
+              value={effectiveCadence}
+              onChange={(e) => {
+                setCadence(e.target.value);
+                setCohort(""); // reset to the newest cohort of the new cadence
+              }}
+            >
+              {cadences.map((c) => (
+                <option key={c.cadence} value={c.cadence}>
+                  {c.label} ({c.count})
+                </option>
+              ))}
+            </select>
+          </label>
 
-      {/* View switch */}
-      <div
-        className="inline-flex rounded-control border border-arepo-border bg-arepo-surface p-0.5"
-        role="tablist"
-        aria-label="Evaluation view"
-      >
-        {(
-          [
-            ["movement", "Price movement"],
-            ["resolution", "Final resolution"],
-          ] as [View, string][]
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            role="tab"
-            aria-selected={view === key}
-            onClick={() => setView(key)}
-            className={`focus-ring rounded-[8px] px-3.5 py-1.5 text-[14px] font-medium transition-colors ${
-              view === key
-                ? "bg-arepo-accentTint text-arepo-accentActive"
-                : "text-arepo-muted hover:text-arepo-ink"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-arepo-ink2">Freeze</span>
+            <select
+              data-testid="cohort-freeze"
+              className="select-arepo w-80 max-w-full"
+              value={effectiveCohortId != null ? String(effectiveCohortId) : ""}
+              onChange={(e) => setCohort(e.target.value)}
+            >
+              {cohortsForCadence.map((c) => (
+                <option key={c.id} value={String(c.id)}>
+                  {freezeOptionLabel(c)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
-      {view === "movement" ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-          <StatTile label="Signals selected" value={String(s.selected)} />
-          <StatTile label="Moved as expected" value={String(s.moved_expected)} />
-          <StatTile label="Moved against" value={String(s.moved_against)} />
-          <StatTile label="Flat" value={String(s.moved_flat ?? 0)} />
-          <StatTile label="Pending" value={String(s.movement_pending)} />
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatTile label="Signals selected" value={String(s.selected)} />
-          <StatTile label="Resolved correct" value={String(s.resolved_correct)} />
-          <StatTile label="Resolved incorrect" value={String(s.resolved_incorrect)} />
-          <StatTile label="Unresolved" value={String(s.unresolved)} />
-        </div>
-      )}
-      <p className="-mt-4 text-[13px] text-arepo-muted">
-        {view === "movement"
-          ? `Price movement is measured at the ${s.movement_horizon} horizon after the freeze. A move in the signalled direction counts as expected; it is not a claim of profitability.`
-          : "Final resolution counts a signal as correct only when the selected outcome ultimately resolved true. Unresolved markets stay pending."}
-      </p>
-
-      <section className="space-y-3">
-        <SectionTitle>Selected signals</SectionTitle>
-        <div className="space-y-3">
-          {detail.entries.map((e) => (
-            <EntryRow key={`${e.market_id}-${e.token_id}`} entry={e} view={view} />
-          ))}
-          {detail.entries.length === 0 && (
-            <EmptyState message="No signals qualified for this week." />
-          )}
-        </div>
+        {cohort && <FreezeTimingBanner cohort={cohort} />}
+        {cohort && (
+          <p className="max-w-reading text-[14px] leading-relaxed text-arepo-ink2">
+            {cadenceCopy(cohort.cadence)}
+          </p>
+        )}
       </section>
 
-      <Portfolio detail={detail} />
+      {/* 2 + 3 · Choose market closing window and evaluation horizon. */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-arepo-ink2">Evaluation horizon</span>
+            <select
+              data-testid="horizon-select"
+              className="select-arepo w-56"
+              value={horizon}
+              onChange={(e) => setHorizon(e.target.value)}
+            >
+              {HORIZON_OPTIONS.map((h) => {
+                const evaluable = cohort?.available_horizons?.[h.id] ?? false;
+                return (
+                  <option key={h.id} value={h.id}>
+                    {h.label}
+                    {evaluable ? "" : " (pending)"}
+                  </option>
+                );
+              })}
+              <option value="final">
+                Final resolution
+                {cohort?.resolution_available ? "" : " (pending)"}
+              </option>
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-arepo-ink2">Market closing window</span>
+            <select
+              data-testid="closing-filter"
+              className="select-arepo w-96 max-w-full"
+              value={closing}
+              onChange={(e) => setClosing(e.target.value)}
+            >
+              {CLOSING_OPTIONS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-arepo-ink2">Signals shown</span>
+            <select
+              data-testid="scope-select"
+              className="select-arepo w-96 max-w-full"
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
+            >
+              {SCOPE_OPTIONS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">
+          The closing window filters by how much time each market had left at the moment the cohort
+          was frozen. Closing sooner does not mean the signal is stronger.
+        </p>
+      </section>
+
+      {resultsState.loading && <ListSkeleton rows={6} />}
+      {!resultsState.loading && resultsState.error && (
+        <ErrorState message={resultsState.error} />
+      )}
+      {!resultsState.loading && resultsState.data && resultsState.data.found && (
+        <ResultsView
+          result={resultsState.data}
+          horizon={horizon as Horizon | "final"}
+          scope={scope as Scope}
+          isFinal={isFinal}
+        />
+      )}
+      {!resultsState.loading && resultsState.data && !resultsState.data.found && (
+        <EmptyState message="This cohort is not available for Replay." />
+      )}
+
+      <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">{list.note}</p>
     </div>
   );
 }
 
-function Verdict({ tone, label }: { tone: "good" | "bad" | "pending"; label: string }) {
-  const icon =
-    tone === "good" ? "✓" : tone === "bad" ? "✗" : "•";
+function freezeOptionLabel(c: ReplayCohort): string {
+  const sched = c.scheduled_for ? new Date(c.scheduled_for).toLocaleString("en-GB") : "unscheduled";
+  const frozen = c.frozen_at ? new Date(c.frozen_at).toLocaleString("en-GB") : "not frozen";
+  const late = c.late ? ` · ${Math.round(c.lateness_minutes)} min late` : "";
+  return `Scheduled ${sched} · frozen ${frozen}${late}`;
+}
+
+/** Scheduled vs actual freeze, lateness, and evaluation origin in plain language (prompt §10). */
+function FreezeTimingBanner({ cohort }: { cohort: ReplayCohort }) {
+  const late = cohort.late && cohort.lateness_minutes > 0;
+  const tone = late
+    ? "border-arepo-warn/40 bg-arepo-warn/10 text-arepo-warnText"
+    : "border-arepo-pos/30 bg-arepo-pos/10 text-arepo-ink";
+  return (
+    <div
+      data-testid="freeze-timing-banner"
+      className={`rounded-card border px-4 py-3 text-[14px] leading-relaxed ${tone}`}
+    >
+      <div className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+        <TimingLine k="Scheduled cut-off" v={dt(cohort.scheduled_for)} />
+        <TimingLine k="Actually frozen" v={dt(cohort.frozen_at)} />
+        <TimingLine
+          k="Lateness"
+          v={late ? `${Math.round(cohort.lateness_minutes)} minutes late` : "on time"}
+        />
+        <TimingLine k="Evaluation starts from" v={dt(cohort.evaluation_origin_at)} />
+      </div>
+      <p className="mt-2 text-[13px]">
+        All later price measurements start from the actual freeze time, never the scheduled boundary.
+      </p>
+    </div>
+  );
+}
+
+function TimingLine({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex justify-between gap-3 border-b border-arepo-border/40 py-0.5">
+      <span className="text-[13px] font-medium">{k}</span>
+      <span className="font-tabular text-[13px]">{v}</span>
+    </div>
+  );
+}
+
+function ResultsView({
+  result,
+  horizon,
+  scope,
+  isFinal,
+}: {
+  result: ReplayResult;
+  horizon: Horizon | "final";
+  scope: Scope;
+  isFinal: boolean;
+}) {
+  if (isFinal) {
+    return <FinalResolutionView result={result} scope={scope} />;
+  }
+
+  const c = result.headline;
+  const horizonLabel = HORIZON_OPTIONS.find((h) => h.id === horizon)?.label ?? horizon;
+  const hitRate = hitRateAmongMovedText(c);
+
+  return (
+    <div className="space-y-8">
+      {/* 4 · The concise result. */}
+      <section className="space-y-4" data-testid="did-move-section">
+        <SectionTitle>Did the market move as expected?</SectionTitle>
+        <p
+          data-testid="headline-sentence"
+          className="max-w-reading text-[16px] leading-relaxed text-arepo-ink"
+        >
+          {headlineSentence(c)}
+        </p>
+        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
+          Measured over the {horizonLabel} horizon from the actual freeze time. A move in the stored
+          direction counts as expected; a market that did not move is not scored as a miss and stays
+          in the denominator.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <StatTile label="Directional calls" value={String(c.total)} />
+          <StatTile label="Moved as expected" value={String(c.moved_expected)} />
+          <StatTile label="Moved against" value={String(c.moved_against)} />
+          <StatTile label="No change" value={String(c.no_change)} />
+          <StatTile label="Pending" value={String(c.pending)} />
+          <StatTile label="Unavailable" value={String(c.unavailable)} />
+        </div>
+
+        <div className="flex flex-col gap-1.5 text-[13px] text-arepo-ink2">
+          <p>{movementCoverageText(c)}</p>
+          {hitRate ? (
+            <p data-testid="hit-rate-among-moved" className="font-medium">
+              {hitRate}
+            </p>
+          ) : (
+            <p className="text-arepo-muted">
+              No market in this set moved at this horizon, so no hit rate among moving markets is
+              shown.
+            </p>
+          )}
+        </div>
+
+        {/* Public vs shadow split (prompt §6), always shown so neither is implied to outperform. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <SplitCard title="Public selections" c={result.public} />
+          <SplitCard title="Shadow directional" c={result.shadow} />
+          <SplitCard title="Combined directional" c={result.combined} emphasis />
+        </div>
+        <p className="text-[12px] leading-relaxed text-arepo-muted">
+          Public and shadow are shown side by side; on a single cohort neither is claimed to
+          outperform the other.
+        </p>
+      </section>
+
+      {/* 5 · Inspect the top signals. */}
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <SectionTitle>Market by market</SectionTitle>
+          <span className="text-[13px] text-arepo-muted" data-testid="qualifying-caption">
+            {qualifyingCaption(result.shown, result.qualifying, scope)}
+          </span>
+        </div>
+        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">{MOVED_TOOLTIP}</p>
+        {result.rows.length === 0 ? (
+          <EmptyState
+            message={
+              "No qualifying directional signals in this set. Try a wider closing window or a " +
+              "different horizon."
+            }
+          />
+        ) : (
+          <MarketTable rows={result.rows} />
+        )}
+      </section>
+
+      <MethodologySummary result={result} />
+    </div>
+  );
+}
+
+function SplitCard({
+  title,
+  c,
+  emphasis = false,
+}: {
+  title: string;
+  c: ReplayCounts;
+  emphasis?: boolean;
+}) {
+  const hit = hitRateAmongMovedText(c);
+  return (
+    <div
+      className={`rounded-card border p-4 ${
+        emphasis
+          ? "border-arepo-accentBorder bg-arepo-accentTint"
+          : "border-arepo-border bg-arepo-surface"
+      }`}
+    >
+      <div className="text-[13px] font-semibold text-arepo-ink">{title}</div>
+      <div className="mt-1 font-tabular text-[14px] text-arepo-ink2">
+        {c.moved_expected} expected · {c.moved_against} against · {c.no_change} no change
+      </div>
+      <div className="mt-1 text-[12px] text-arepo-muted">
+        {c.total} directional
+        {c.pending > 0 ? ` · ${c.pending} pending` : ""}
+        {c.unavailable > 0 ? ` · ${c.unavailable} unavailable` : ""}
+      </div>
+      {hit && <div className="mt-1 text-[12px] text-arepo-muted">{hit}</div>}
+    </div>
+  );
+}
+
+function ResultBadge({ state }: { state: string }) {
+  const { label, tone, glyph } = resultLabel(state);
   const cls =
     tone === "good"
       ? "text-arepo-pos"
       : tone === "bad"
         ? "text-arepo-neg"
-        : "text-arepo-muted";
+        : tone === "flat"
+          ? "text-arepo-ink2"
+          : "text-arepo-muted";
   return (
     <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${cls}`}>
-      <span aria-hidden="true">{icon}</span>
+      <span aria-hidden="true">{glyph}</span>
       {label}
     </span>
   );
 }
 
-function movementVerdict(e: CohortEntry): { tone: "good" | "bad" | "pending"; label: string } {
-  const mc = e.evaluation?.movement_correct;
-  if (mc === true) return { tone: "good", label: "Moved as expected" };
-  if (mc === false) return { tone: "bad", label: "Moved against" };
-  return { tone: "pending", label: "Pending" };
-}
-
-function resolutionVerdict(e: CohortEntry): { tone: "good" | "bad" | "pending"; label: string } {
-  if (!e.evaluation?.resolved) return { tone: "pending", label: "Pending resolution" };
-  return e.evaluation.resolution_correct
-    ? { tone: "good", label: "Resolved correct" }
-    : { tone: "bad", label: "Resolved incorrect" };
-}
-
-function EntryRow({ entry, view }: { entry: CohortEntry; view: View }) {
-  const v = view === "movement" ? movementVerdict(entry) : resolutionVerdict(entry);
-  const laterPrice =
-    entry.forward.find((f) => f.horizon === "24h")?.price ??
-    entry.forward.find((f) => f.horizon === "7d")?.price ??
-    entry.forward.find((f) => f.horizon === "1h")?.price ??
-    null;
-
+function MarketTable({ rows }: { rows: ReplayRow[] }) {
   return (
-    <div className="rounded-card border border-arepo-border bg-arepo-surface p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-tabular text-[13px] text-arepo-muted">#{entry.rank}</span>
-            <span className="font-medium text-arepo-ink">{entry.market_question}</span>
-          </div>
-          <p className="mt-0.5 text-[13px] text-arepo-muted">
-            Selected outcome: {entry.outcome_name}
-            {entry.direction ? ` · expected to move ${entry.direction}` : ""}
-          </p>
-        </div>
-        <Verdict tone={v.tone} label={v.label} />
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-[13px] sm:grid-cols-4">
-        <Field label="Entry price" value={formatPrice(entry.entry_price)} />
-        <Field
-          label={view === "movement" ? "Later price" : "Latest price"}
-          value={formatPrice(laterPrice)}
-        />
-        <Field
-          label="Signal strength"
-          value={formatPercent(entry.strength, 0)}
-        />
-        <Field label="Data coverage" value={capitalise(entry.data_quality)} />
-      </div>
-
-      <Disclose summary="Why this qualified" className="mt-3">
-        <div className="space-y-3 pt-1 text-[14px] leading-relaxed text-arepo-ink2">
-          <p>
-            This signal cleared the weekly thresholds: valid market status, at least
-            limited data coverage, a usable entry price, and a signal strength of{" "}
-            {formatPercent(entry.strength, 0)} (confidence {formatPercent(entry.confidence, 0)}).
-            {entry.lookback_size
-              ? ` It was measured over a lookback of ${entry.lookback_size} observations.`
-              : ""}
-          </p>
-          {entry.component_scores.length > 0 && (
-            <div>
-              <p className="font-semibold text-arepo-ink">What contributed</p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5">
-                {entry.component_scores.map((c) => (
-                  <li key={c.name}>
-                    {friendlyComponentName(c.name)}
-                    {c.normalized_value !== null
-                      ? `: ${formatSignedPercent(c.normalized_value, 0)}`
-                      : ""}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {entry.resolution?.resolved && (
-            <p>
-              Final resolution: {entry.resolution.resolved_outcome ?? "resolved"} (
-              {view === "resolution" && entry.evaluation
-                ? entry.evaluation.resolution_correct
-                  ? "the selected outcome won"
-                  : "the selected outcome did not win"
-                : "recorded"}
-              ).
-            </p>
-          )}
-        </div>
-      </Disclose>
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-arepo-muted">{label}</div>
-      <div className="font-tabular font-medium text-arepo-ink">{value}</div>
-    </div>
-  );
-}
-
-function Portfolio({ detail }: { detail: CohortDetail }) {
-  const p = detail.portfolio;
-  return (
-    <section className="space-y-3">
-      <SectionTitle>Hypothetical portfolio</SectionTitle>
-      <p className="max-w-reading text-[14px] leading-relaxed text-arepo-muted">
-        A simulation only, using a fixed stake per signal. It is not real trading and not
-        evidence of future profitability. {p.spread_assumption}
-      </p>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <StatTile label="Stake per signal" value={money(p.stake_per_signal)} />
-        <StatTile label="Total allocated" value={money(p.total_allocated)} />
-        <StatTile label="Realised value" value={money(p.realised_value)} />
-        <StatTile label="Unrealised value" value={money(p.unrealised_value)} />
-        <StatTile label="Pending value" value={money(p.pending_value)} />
-        <StatTile
-          label="Completed return"
-          value={money(p.completed_return)}
-          emphasis
-        />
-      </div>
-      <p className="text-[13px] text-arepo-muted">
-        {p.completed_positions} completed position(s), {p.pending_positions} still open or
-        pending.
-      </p>
-
-      <Disclose summary="Show the positions">
-        <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-[13px]">
-              <thead>
-                <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
-                  <th className="px-4 py-3 font-semibold">Market</th>
-                  <th className="px-4 py-3 font-semibold">Outcome</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Entry</th>
-                  <th className="px-4 py-3 font-semibold">Exit</th>
-                  <th className="px-4 py-3 font-semibold">Value</th>
-                  <th className="px-4 py-3 font-semibold">Return</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-arepo-border font-tabular">
-                {p.positions.map((pos) => (
-                  <tr key={pos.rank}>
-                    <td className="px-4 py-2.5 font-sans text-arepo-ink">
-                      {pos.market_question}
-                    </td>
-                    <td className="px-4 py-2.5 font-sans">{pos.outcome_name}</td>
-                    <td className="px-4 py-2.5 font-sans">
-                      <Badge tone={pos.status === "completed" ? "good" : "neutral"}>
-                        {pos.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-2.5">{formatPrice(pos.entry_price)}</td>
-                    <td className="px-4 py-2.5">{formatPrice(pos.exit_price)}</td>
-                    <td className="px-4 py-2.5">{money(pos.value)}</td>
-                    <td className="px-4 py-2.5">{money(pos.pnl)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Disclose>
-    </section>
-  );
-}
-
-function ProvenanceFootnote({ info }: { info: ProvenanceInfo }) {
-  return (
-    <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
-      {info.note}{" "}
-      {info.first_prospective_week
-        ? `Prospective tracking began in ${info.first_prospective_week}.`
-        : "Prospective tracking has not started yet."}{" "}
-      Calculation version {info.calculation_version}. See the{" "}
-      <Link href="/methodology" className="underline hover:text-arepo-ink">
-        methodology
-      </Link>{" "}
-      for the full evaluation rules.
-    </p>
-  );
-}
-
-function capitalise(s: string): string {
-  return s ? s[0].toUpperCase() + s.slice(1) : s;
-}
-
-// ---------------------------------------------------------------------------------------
-// Historical reconstructed retrospective (a separate, clearly-labelled analysis mode).
-// ---------------------------------------------------------------------------------------
-const HISTORICAL_PERIODS = [
-  { days: 1, label: "24 hours ago" },
-  { days: 3, label: "3 days ago" },
-  { days: 7, label: "7 days ago" },
-  { days: 14, label: "14 days ago" },
-  { days: 30, label: "30 days ago" },
-];
-
-const CLOSING_LENSES = [
-  { id: "all", label: "All horizons", hours: Infinity },
-  { id: "7d", label: "Closed within 7 days", hours: 24 * 7 },
-  { id: "3d", label: "Closed within 3 days", hours: 24 * 3 },
-  { id: "24h", label: "Closed within 24 hours", hours: 24 },
-] as const;
-
-function HistoricalView() {
-  const [cutoffStr, setCutoff] = useUrlState("cutoff", "7");
-  const [lens, setLens] = useUrlState("closing", "all");
-  const days = Number(cutoffStr) || 7;
-  const { data, loading, error } = useAsync<HistoricalScreen>(
-    () => getHistoricalScreen(days),
-    [days]
-  );
-  const maxHours = CLOSING_LENSES.find((l) => l.id === lens)?.hours ?? Infinity;
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-start gap-2.5 rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[14px] leading-relaxed text-arepo-ink2">
-        <span className="mt-0.5 inline-flex flex-none items-center rounded-full bg-arepo-ink/8 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-arepo-ink2">
-          Reconstructed analysis
-        </span>
-        <span className="min-w-0">
-          This reconstructs the composite anomaly signal at a past cut-off using only the real
-          price history up to that moment, then measures what actually happened afterwards. It is
-          a research screen, separate from the prospective frozen-weekly track record, and is
-          never mixed into it.
-        </span>
-      </div>
-
-      <div className="flex flex-wrap items-end gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium text-arepo-ink2">Cut-off</span>
-          <select
-            className="select-arepo w-44"
-            value={String(days)}
-            onChange={(e) => setCutoff(e.target.value)}
-          >
-            {HISTORICAL_PERIODS.map((p) => (
-              <option key={p.days} value={p.days}>
-                {p.label}
-              </option>
+    <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[860px] text-[13px]" data-testid="market-table">
+          <caption className="sr-only">
+            Market-by-market Replay results: frozen rank, market, selected outcome, role, Arepo
+            direction, frozen midpoint, horizon midpoint, midpoint movement, executable result,
+            time remaining at freeze, and result label.
+          </caption>
+          <thead>
+            <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
+              <th scope="col" className="px-3 py-3 font-semibold">#</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Market / outcome</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Role</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Direction</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Frozen mid</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Horizon mid</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Midpoint move</th>
+              <th scope="col" className="px-3 py-3 font-semibold" title="Estimated result after spread and costs">
+                After costs
+              </th>
+              <th scope="col" className="px-3 py-3 font-semibold">Left at freeze</th>
+              <th scope="col" className="px-3 py-3 font-semibold">Result</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-arepo-border">
+            {rows.map((r) => (
+              <MarketRow key={`${r.market_id}-${r.token_id}`} r={r} />
             ))}
-          </select>
-        </label>
-        {/* Closing-soon lens (spec §16): filter the reconstructed rows by how soon they closed
-            after the cut-off. Near-close markets are not implied to be better. */}
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium text-arepo-ink2">Closing lens</span>
-          <select
-            className="select-arepo w-56"
-            value={lens}
-            onChange={(e) => setLens(e.target.value)}
-          >
-            {CLOSING_LENSES.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        {loading && (
-          <p className="text-[13px] text-arepo-muted">
-            Reconstructing from real price history. This can take a moment.
-          </p>
-        )}
+          </tbody>
+        </table>
       </div>
-
-      {loading && <ListSkeleton rows={6} />}
-      {!loading && error && <ErrorState message={error} />}
-      {!loading && data && <HistoricalResult screen={data} maxHours={maxHours} />}
-
-      <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
-        Looking for the real frozen cohorts and the edge verdict? See{" "}
-        <span className="font-medium text-arepo-ink2">Real prospective research</span> above — this
-        reconstructed analysis is a separate, illustrative research screen and is never mixed into it.
-      </p>
-      <ReplayDataStatusSection />
     </div>
   );
 }
 
-/**
- * Real prospective research (final runtime acceptance §5) — the PRIMARY Replay view. It renders only
- * the real stored prospective rows from /api/research/status: the actual six-hour cohort, its role
- * breakdown, horizon coverage, the real freeze timing (scheduled vs actually-frozen vs evaluation
- * origin, and lateness), collector freshness, the edge verdict, calibration status and the model
- * limitation note. No synthetic or reconstructed numbers enter here. If no real cohort exists yet it
- * shows the honest empty state rather than hiding behind demo data.
- */
-function RealProspectiveResearch() {
-  const { data, loading, error } = useAsync(() => getResearchStatus(), []);
-  if (loading) return <ListSkeleton rows={6} />;
-  if (error) return <ErrorState message={error} />;
-  if (!data) return null;
-
-  const cad = data.cohort_counts_by_cadence || {};
-  const roles = data.roles || {};
-  const run = data.latest_run;
-  const hasReal = data.total_frozen_markets > 0 || (cad["6h"] ?? 0) + (cad["daily"] ?? 0) + (cad["weekly"] ?? 0) > 0;
-
-  if (!hasReal) {
-    return (
-      <EmptyState
-        message={
-          "No real prospective cohort has been frozen yet. The backend freeze job records one " +
-          "automatically; once it runs, the real frozen universe, timing and edge verdict appear here."
-        }
-      />
-    );
-  }
-
-  const lateMin = run ? Math.round(run.lateness_seconds / 60) : 0;
-  const rows: [string, string][] = [
-    ["Model version", data.model_version],
-    [
-      "Frozen cohorts (6h / daily / weekly)",
-      `${cad["6h"] ?? 0} / ${cad["daily"] ?? 0} / ${cad["weekly"] ?? 0}`,
-    ],
-    ["Total frozen markets (full universe)", String(data.total_frozen_markets)],
-    ["Public selections", String(roles.public_selection ?? data.public_selections)],
-    ["Shadow directional", String(roles.shadow_directional ?? data.shadow_signals)],
-    ["Observation", String(roles.observation ?? data.observations)],
-    ["Abstention controls", String(roles.abstention_control ?? data.abstentions)],
-    ["Directional signals (public + shadow)", `${data.directional_signals} (${data.public_selections} + ${data.shadow_signals})`],
-    ["Resolved markets", String(data.resolved_markets)],
-    ["Late cohorts (frozen after their boundary)", String(data.late_cohorts ?? 0)],
-    ["Excessively late (excluded from performance)", String(data.excessively_late_cohorts_excluded ?? 0)],
-    ["Degraded cohorts", String(data.degraded_cohorts ?? 0)],
-    [
-      "Collectors",
-      data.collector_recent ? "Recently active" : "No recent collection (degraded freshness)",
-    ],
-    [
-      "Last successful freeze",
-      data.last_successful_freeze ? new Date(data.last_successful_freeze).toLocaleString("en-GB") : "none yet",
-    ],
-  ];
-
+function MarketRow({ r }: { r: ReplayRow }) {
+  const roleLabel = r.role === "public_selection" ? "Public" : "Shadow";
   return (
-    <section className="space-y-4" data-testid="real-prospective-research">
-      <SectionTitle>Real prospective research</SectionTitle>
-      <p className="max-w-reading text-[14px] leading-relaxed text-arepo-ink2">
-        The real research cohorts Arepo has actually frozen and is tracking forward. Every number
-        below comes from stored prospective rows; nothing here is reconstructed or synthetic.
-      </p>
-
-      {/* Prominent real-timing banner (final runtime acceptance §5): the ACTUAL freeze time, the
-          scheduled boundary, the lateness, and that outcomes are measured from the real freeze. */}
-      {run && run.frozen_at && (
-        <div
-          data-testid="freeze-timing-banner"
-          className={`rounded-card border px-4 py-3 text-[14px] leading-relaxed ${
-            run.excessively_late
-              ? "border-arepo-neg/40 bg-arepo-neg/10 text-arepo-ink"
-              : run.late
-                ? "border-arepo-warn/40 bg-arepo-warn/10 text-arepo-warnText"
-                : "border-arepo-pos/30 bg-arepo-pos/10 text-arepo-ink"
-          }`}
-        >
-          <span className="font-semibold text-arepo-ink">
-            Actually frozen at {new Date(run.frozen_at).toLocaleString("en-GB")}
-          </span>
-          {run.scheduled_for && (
-            <> · scheduled for {new Date(run.scheduled_for).toLocaleString("en-GB")}</>
-          )}
-          {run.scheduled_for && run.lateness_seconds > 0 && (
-            <> · {lateMin} minutes late</>
-          )}
-          {" · outcomes measured from the actual freeze time"}
-          {run.excessively_late && (
-            <> — this cohort is excluded from performance (frozen too long after its boundary).</>
-          )}
-          {run.late && !run.excessively_late && (
-            <>. Late but not excessively late, so it is kept and evaluated from its real freeze time.</>
-          )}
-        </div>
-      )}
-
-      {/* Evaluation-origin proof: evaluation origin equals the actual freeze, never the schedule. */}
-      {run && run.evaluation_origin_at && (
-        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
-          Evaluation origin is {new Date(run.evaluation_origin_at).toLocaleString("en-GB")} — the same
-          instant as the actual freeze, so forward horizons run from when the prediction was really
-          made, never from the scheduled boundary. Universe size {run.universe_size}
-          {run.excluded_markets != null ? `, ${run.excluded_markets} excluded` : ""}.
-        </p>
-      )}
-
-      {/* Edge verdict: the honest, unmissable current state. */}
-      <div
-        data-testid="edge-verdict"
-        className={`rounded-card border px-4 py-3 text-[13px] leading-relaxed ${
-          data.edge.edge_supported
-            ? "border-arepo-pos/30 bg-arepo-pos/10 text-arepo-ink"
-            : "border-arepo-warn/30 bg-arepo-warn/10 text-arepo-warnText"
-        }`}
-      >
-        <span aria-hidden="true">{data.edge.edge_supported ? "✓ " : "⚠ "}</span>
-        {data.edge.message}
-      </div>
-
-      {/* Horizon coverage: how many outcomes are evaluable vs still pending at each horizon. */}
-      <div>
-        <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-arepo-ink">
-          Horizon coverage
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {["1h", "6h", "24h", "7d"].map((h) => {
-            const c = data.horizon_coverage?.[h] ?? { evaluable: 0, pending: 0 };
-            return (
-              <StatTile
-                key={h}
-                label={`${h} evaluable / pending`}
-                value={`${c.evaluable} / ${c.pending}`}
-              />
-            );
-          })}
-        </div>
-      </div>
-
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex justify-between gap-3 border-b border-arepo-border py-1">
-            <dt className="text-[13px] text-arepo-muted">{k}</dt>
-            <dd className="text-[13px] font-medium text-arepo-ink2">{v}</dd>
-          </div>
-        ))}
-      </dl>
-
-      {/* Calibration status. */}
-      <div className="rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[13px] leading-relaxed text-arepo-ink2">
-        <span className="font-semibold text-arepo-ink">
-          Calibration {data.calibration.available ? "available" : "unavailable"}:
-        </span>{" "}
-        {data.calibration.message}
-      </div>
-
-      {/* Model limitation note: why a directional edge over momentum is not achievable with the
-          current model — shown so the edge verdict is never misread as a bug. */}
-      {data.edge.model_limitation_note && (
-        <div className="rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[13px] leading-relaxed text-arepo-muted">
-          <span className="font-semibold text-arepo-ink2">Model limitation: </span>
-          {data.edge.model_limitation_note}
-        </div>
-      )}
-
-      <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">{data.note}</p>
-    </section>
-  );
-}
-
-/** Replay data status (spec §18): what has actually been recorded, and the honest answer to
- * "does leaving the website open increase the sample?" (no - the backend collectors must run). */
-function ReplayDataStatusSection() {
-  const { data } = useAsync(() => getReplayDataStatus(), []);
-  if (!data) return null;
-  const rows: [string, string][] = [
-    ["Collectors", data.collector_recent ? "Recently active" : "No recent collection"],
-    [
-      "Last collection",
-      data.last_collection_at ? new Date(data.last_collection_at).toLocaleString("en-GB") : "none",
-    ],
-    ["Snapshot interval", `${Math.round(data.snapshot_interval_seconds / 60)} min (scheduled)`],
-    ["Stored snapshots", String(data.microstructure_snapshots_stored)],
-    ["Prospective cohorts", String(data.prospective_cohorts)],
-    ["Weekly cohorts (all)", String(data.weekly_cohorts_total)],
-    [
-      "Recorded cut-offs",
-      data.oldest_cutoff
-        ? `${new Date(data.oldest_cutoff).toLocaleDateString("en-GB")} to ${
-            data.newest_cutoff ? new Date(data.newest_cutoff).toLocaleDateString("en-GB") : "?"
-          }`
-        : "none yet",
-    ],
-  ];
-  return (
-    <Disclose summary="Replay data status: does leaving the site open increase the sample?">
-      <div className="space-y-3">
-        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">{data.note}</p>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
-          {rows.map(([k, v]) => (
-            <div key={k} className="flex justify-between gap-3 border-b border-arepo-border py-1">
-              <dt className="text-[13px] text-arepo-muted">{k}</dt>
-              <dd className="text-[13px] font-medium text-arepo-ink2">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </Disclose>
-  );
-}
-
-function pct(hit: number | null): string {
-  return hit === null ? "n/a" : `${Math.round(hit * 100)}%`;
-}
-
-/** Arepo vs simple causal baselines over the same reconstructed sample (spec §6). */
-function BaselineTable({ comparison }: { comparison: BaselineComparison }) {
-  const rows = [
-    { key: "arepo", score: comparison.arepo, highlight: true },
-    ...Object.entries(comparison.baselines).map(([key, score]) => ({
-      key,
-      score,
-      highlight: false,
-    })),
-  ];
-  return (
-    <section className="space-y-2">
-      <SectionTitle>Arepo vs simple baselines</SectionTitle>
-      <p className="text-[13px] text-arepo-muted">
-        Directional correctness over the same reconstructed markets. Markets that stayed flat over
-        24 hours are shown separately and excluded from every predictor&apos;s hit rate, so a market
-        that did not move is never booked as a directional miss. Any edge must beat these baselines;
-        on this sample the differences are not statistically meaningful.
-      </p>
-      {comparison.arepo_momentum_agreement != null && (
-        <p className="text-[12px] leading-relaxed text-arepo-muted">
-          Arepo&apos;s directional call is the sign of the latest-return z-score, so it agrees with
-          the momentum baseline on {Math.round(comparison.arepo_momentum_agreement * 100)}% of these
-          markets. Treat &ldquo;Arepo vs momentum&rdquo; as near-self-referential, not an
-          independent win. {comparison.probabilistic_metrics_note}
-        </p>
-      )}
-      <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px] text-[13px]">
-            <thead>
-              <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
-                <th className="px-4 py-2.5 font-semibold">Method</th>
-                <th className="px-4 py-2.5 font-semibold">Correct</th>
-                <th className="px-4 py-2.5 font-semibold">Flat</th>
-                <th className="px-4 py-2.5 font-semibold">Hit rate</th>
-                <th className="px-4 py-2.5 font-semibold">95% interval</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-arepo-border">
-              {rows.map(({ key, score, highlight }) => (
-                <tr key={key} className={highlight ? "bg-arepo-accentTint/40" : ""}>
-                  <td className="px-4 py-2 font-medium text-arepo-ink">{score.name}</td>
-                  <td className="px-4 py-2 text-arepo-ink2">
-                    {score.correct}/{score.evaluated}
-                  </td>
-                  <td className="px-4 py-2 font-tabular text-arepo-muted">{score.flat ?? 0}</td>
-                  <td className="px-4 py-2 font-tabular text-arepo-ink2">{pct(score.hit_rate)}</td>
-                  <td className="px-4 py-2 font-tabular text-arepo-muted">
-                    {pct(score.ci95[0])} to {pct(score.ci95[1])}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function HistoricalResult({
-  screen,
-  maxHours = Infinity,
-}: {
-  screen: HistoricalScreen;
-  maxHours?: number;
-}) {
-  // The closing lens filters which reconstructed rows are shown by their time-to-close at the
-  // cut-off; the funnel counts above still describe the full reconstruction (spec §16, §17).
-  const shownEntries =
-    maxHours === Infinity
-      ? screen.entries
-      : screen.entries.filter(
-          (e) => e.time_remaining_hours != null && e.time_remaining_hours <= maxHours
-        );
-  if (screen.selected === 0) {
-    return (
-      <EmptyState
-        message={
-          "No markets had enough real, moving price history to reconstruct a signal for this " +
-          "cut-off. See the limitations below."
-        }
-      />
-    );
-  }
-  return (
-    <div className="space-y-6">
-      <p className="max-w-reading text-[16px] leading-relaxed text-arepo-ink">
-        {screen.plain_summary}
-      </p>
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-        <StatTile label="Signals reconstructed" value={String(screen.selected)} />
-        <StatTile label="Moved as expected (24h)" value={String(screen.moved_expected_24h)} />
-        <StatTile label="Moved against (24h)" value={String(screen.moved_against_24h)} />
-        <StatTile label="Flat (24h)" value={String(screen.moved_flat_24h)} />
-        <StatTile label="Not evaluable (24h)" value={String(screen.pending_24h)} />
-      </div>
-      {/* Reconstruction funnel (spec §6.7): make the small sample transparent, not hidden. */}
-      <div className="-mt-2 rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[13px] text-arepo-ink2">
-        <span className="font-medium text-arepo-ink">How the top five were reconstructed: </span>
-        {screen.candidates_total} outcomes existed at the cut-off; {screen.had_price_data} had
-        historical price data; {screen.eligible} passed eligibility (enough history, near-mid entry,
-        strong enough signal); {screen.directional} received a directional view; top{" "}
-        {screen.selected} shown. Signal Lab can show more signals now than Replay reconstructs
-        because historical order books, wallet and trade-flow history do not exist for a past
-        cut-off, some markets did not exist then, and current metadata cannot be used
-        retrospectively.
-      </div>
-
-      {/* Inconclusive banner: a tiny sample is never presented as proof (spec §6). */}
-      {screen.sample_verdict === "inconclusive" && (
-        <div className="flex items-start gap-2 rounded-card border border-arepo-warn/30 bg-arepo-warn/10 px-4 py-3 text-[13px] leading-relaxed text-arepo-warnText">
-          <span aria-hidden="true">⚠</span>
-          <span>
-            This sample is too small to be evidence of skill. A hit rate on a handful of markets is
-            statistically inconclusive (its 95% interval spans most of 0 to 100%). Treat it as an
-            illustration of the method, not proof that Arepo has an edge.
-          </span>
-        </div>
-      )}
-
-      {screen.baseline_comparison && <BaselineTable comparison={screen.baseline_comparison} />}
-
-      <section className="space-y-3">
-        <SectionTitle>Reconstructed signals</SectionTitle>
-        <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-[13px]">
-              <thead>
-                <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
-                  <th className="px-4 py-3 font-semibold">Market</th>
-                  <th className="px-4 py-3 font-semibold">Signal</th>
-                  <th className="px-4 py-3 font-semibold">Strength</th>
-                  <th className="px-4 py-3 font-semibold">Entry</th>
-                  <th className="px-4 py-3 font-semibold">24h move</th>
-                  <th className="px-4 py-3 font-semibold">Outcome (24h)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-arepo-border">
-                {shownEntries.map((e) => (
-                  <HistoricalRow key={`${e.market_id}-${e.token_id}`} entry={e} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {shownEntries.length === 0 && (
-            <p className="px-4 py-3 text-[13px] text-arepo-muted">
-              None of the {screen.selected} reconstructed opportunities closed within this window.
-              Try a longer closing lens.
-            </p>
-          )}
-        </div>
-      </section>
-
-      <Disclose summary="Assumptions and limitations">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <p className="text-[13px] font-bold uppercase tracking-wide text-arepo-ink">
-              Assumptions
-            </p>
-            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-arepo-muted">
-              {screen.assumptions.map((a, i) => (
-                <li key={i}>{a}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className="text-[13px] font-bold uppercase tracking-wide text-arepo-ink">
-              Limitations
-            </p>
-            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-arepo-muted">
-              {screen.limitations.map((l, i) => (
-                <li key={i}>{l}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </Disclose>
-    </div>
-  );
-}
-
-function HistoricalRow({ entry }: { entry: HistoricalEntry }) {
-  const move24 = entry.forward.find((f) => f.horizon === "24h")?.movement ?? null;
-  // Flat-aware verdict (spec §10/§11): a market that did not move is shown as "Flat", never as a
-  // red directional miss. Falls back to the boolean for older payloads without outcome_24h.
-  const outcome =
-    entry.outcome_24h ??
-    (entry.direction_correct_24h === true
-      ? "correct"
-      : entry.direction_correct_24h === false
-        ? "incorrect"
-        : "pending");
-  const verdict =
-    outcome === "correct"
-      ? { tone: "good" as const, label: "As expected" }
-      : outcome === "incorrect"
-        ? { tone: "bad" as const, label: "Against" }
-        : outcome === "flat"
-          ? { tone: "pending" as const, label: "Flat (no move)" }
-          : { tone: "pending" as const, label: "Not evaluable" };
-  return (
-    <tr>
-      <td className="px-4 py-2.5">
+    <tr data-testid="market-row">
+      <td className="px-3 py-2.5 font-tabular text-arepo-muted">{r.rank ?? "–"}</td>
+      <td className="px-3 py-2.5">
         <Link
-          href={`/markets/${encodeURIComponent(entry.market_id)}?mode=live`}
+          href={`/markets/${encodeURIComponent(r.market_id)}?mode=live`}
           className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
         >
-          {entry.market_question}
+          {r.market_question}
         </Link>
-        <div className="text-[12px] text-arepo-muted">{entry.outcome_name}</div>
-        {/* Everything below is AS IT WAS at the cut-off (spec §14): Research Priority and
-            confidence at the time, and the scheduled close known then. */}
-        <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-arepo-muted">
-          <span>RP {entry.research_priority} at cut-off</span>
-          <span>·</span>
-          <span>confidence {formatPercent(entry.confidence, 0)}</span>
-          {entry.close_at && (
-            <>
-              <span>·</span>
-              <span>closes {new Date(entry.close_at).toLocaleDateString("en-GB")}</span>
-            </>
-          )}
-          {entry.time_remaining_hours != null && (
-            <>
-              <span>·</span>
-              <span>
-                {entry.time_remaining_hours < 48
-                  ? `${Math.round(entry.time_remaining_hours)}h`
-                  : `${Math.round(entry.time_remaining_hours / 24)}d`}{" "}
-                left at cut-off
-              </span>
-            </>
-          )}
-        </div>
+        <div className="text-[12px] text-arepo-muted">{r.outcome_name}</div>
       </td>
-      <td className="px-4 py-2.5 font-tabular">
-        {entry.direction === "up" && <span className="text-arepo-pos">Up</span>}
-        {entry.direction === "down" && <span className="text-arepo-neg">Down</span>}
-        {!entry.direction && <span className="text-arepo-muted">n/a</span>}
+      <td className="px-3 py-2.5">
+        <Badge tone="neutral">{roleLabel}</Badge>
       </td>
-      <td className="px-4 py-2.5 font-tabular">{formatPercent(entry.strength, 0)}</td>
-      <td className="px-4 py-2.5 font-tabular">{formatPrice(entry.entry_price)}</td>
-      <td className="px-4 py-2.5 font-tabular">
-        {move24 === null ? "n/a" : formatSignedPercent(move24, 1)}
+      <td className="px-3 py-2.5 font-tabular">
+        {r.direction === "up" && <span className="text-arepo-pos">Up</span>}
+        {r.direction === "down" && <span className="text-arepo-neg">Down</span>}
+        {!r.direction && <span className="text-arepo-muted">n/a</span>}
       </td>
-      <td className="px-4 py-2.5">
-        <Verdict tone={verdict.tone} label={verdict.label} />
+      <td className="px-3 py-2.5 font-tabular">{formatPrice(r.frozen_midpoint)}</td>
+      <td className="px-3 py-2.5 font-tabular">{formatPrice(r.horizon_midpoint)}</td>
+      <td className="px-3 py-2.5 font-tabular" title="Midpoint movement (percentage points)">
+        {r.movement_pp == null ? "n/a" : `${r.movement_pp > 0 ? "+" : ""}${r.movement_pp} pp`}
+      </td>
+      <td className="px-3 py-2.5 font-tabular">
+        {r.executable.available && r.executable.move != null ? (
+          <span title="Estimated result after spread and costs">
+            {`${r.executable.move > 0 ? "+" : ""}${(r.executable.move * 100).toFixed(1)} pp`}
+          </span>
+        ) : (
+          <span
+            className="text-arepo-muted"
+            title="Executable result unavailable for this observation."
+          >
+            unavailable
+          </span>
+        )}
+      </td>
+      <td className="px-3 py-2.5 font-tabular">{timeToClose(r.time_remaining_hours)}</td>
+      <td className="px-3 py-2.5">
+        <ResultBadge state={r.result_state} />
       </td>
     </tr>
   );
 }
 
-// ---------------------------------------------------------------------------------------
-// Preserved deterministic signal backtest (a demonstration dataset, not live markets).
-// ---------------------------------------------------------------------------------------
-const HORIZON_OPTIONS = [5, 10, 20];
-const DEBOUNCE_MS = 300;
-
-function BacktestDemo() {
-  const [strengthInput, setStrengthInput] = useState(0.6);
-  const [moveInput, setMoveInput] = useState(0.03);
-  const [horizon, setHorizon] = useState(5);
-  const [strengthThreshold, setStrengthThreshold] = useState(strengthInput);
-  const [moveThreshold, setMoveThreshold] = useState(moveInput);
-
-  useEffect(() => {
-    const t = setTimeout(() => setStrengthThreshold(strengthInput), DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [strengthInput]);
-  useEffect(() => {
-    const t = setTimeout(() => setMoveThreshold(moveInput), DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [moveInput]);
-
-  const { data, loading, error } = useAsync(
-    () => getBacktest({ strength_threshold: strengthThreshold, move_threshold: moveThreshold, horizon }),
-    [strengthThreshold, moveThreshold, horizon]
-  );
-
+function FinalResolutionView({ result, scope }: { result: ReplayResult; scope: Scope }) {
+  const res = result.resolution;
   return (
-    <div className="space-y-5 pt-2">
-      <p className="max-w-reading text-[14px] leading-relaxed text-arepo-muted">
-        This runs against a fixed sample dataset, not live markets, with a look-ahead-safe
-        window. It demonstrates how to evaluate a signal. It is not evidence of predictive
-        advantage and is separate from the prospective cohorts above.
-      </p>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-        <div className="space-y-2">
-          <label htmlFor="bt-strength" className="flex items-center justify-between text-[13px] font-medium text-arepo-ink">
-            <span className="flex items-center gap-1">
-              Minimum signal strength
-              <MetricHelp metric="threshold" showTerm={false} />
-            </span>
-            <span className="font-tabular text-arepo-accentActive">{formatPercent(strengthInput, 0)}</span>
-          </label>
-          <input id="bt-strength" type="range" min={0} max={1} step={0.01} value={strengthInput}
-            onChange={(e) => setStrengthInput(Number(e.target.value))} className="slider-arepo" />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="bt-move" className="flex items-center justify-between text-[13px] font-medium text-arepo-ink">
-            <span className="flex items-center gap-1">
-              Required later movement
-              <MetricHelp metric="movement" showTerm={false} />
-            </span>
-            <span className="font-tabular text-arepo-accentActive">{formatPercent(moveInput, 1)}</span>
-          </label>
-          <input id="bt-move" type="range" min={0} max={0.1} step={0.005} value={moveInput}
-            onChange={(e) => setMoveInput(Number(e.target.value))} className="slider-arepo" />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="bt-horizon" className="flex items-center gap-1 text-[13px] font-medium text-arepo-ink">
-            How far ahead to check
-            <MetricHelp metric="evaluation-horizon" showTerm={false} />
-          </label>
-          <select id="bt-horizon" className="select-arepo" value={horizon}
-            onChange={(e) => setHorizon(Number(e.target.value))}>
-            {HORIZON_OPTIONS.map((h) => (
-              <option key={h} value={h}>{h} frames</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {loading && <ListSkeleton rows={4} />}
-      {!loading && error && <ErrorState message={error} />}
-      {!loading && data && (
-        <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <StatTile label="Sample size" value={String(data.sample_size)} />
-            <StatTile label="Evaluated" value={String(data.evaluated)} />
-            <StatTile label="Hit rate" value={formatPercent(data.hit_rate)}
-              help={<MetricHelp metric="hit-rate" showTerm={false} />} />
-            <StatTile label="False positive rate" value={formatPercent(data.false_positive_rate)}
-              help={<MetricHelp metric="false-positive-rate" showTerm={false} />} />
-            <StatTile label="Average forward move" value={formatSignedPercent(data.avg_forward_move_directional)}
-              help={<MetricHelp metric="average-forward-move" showTerm={false} />} />
-            <StatTile label="Missing observations" value={String(data.missing_observations)} />
+    <div className="space-y-8">
+      <section className="space-y-4" data-testid="did-move-section">
+        <SectionTitle>What did the market finally resolve to?</SectionTitle>
+        <p className="max-w-reading text-[14px] leading-relaxed text-arepo-ink2">
+          Final resolution is kept separate from short-term repricing: a favourable short-term move
+          is not a correct final-outcome forecast. A signal counts as correct here only when the
+          market finally resolved to the selected outcome.
+        </p>
+        {!result.resolution_available && (
+          <div className="rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[13px] leading-relaxed text-arepo-muted">
+            None of these markets has resolved yet, so final resolution is pending for the whole
+            cohort.
           </div>
-          <Disclose summary="Show the tested signals">
-            <BacktestTable events={data.events} />
-          </Disclose>
-        </>
-      )}
+        )}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatTile label="Directional calls" value={String(res.total)} />
+          <StatTile label="Resolved correct" value={String(res.resolved_correct)} />
+          <StatTile label="Resolved incorrect" value={String(res.resolved_incorrect)} />
+          <StatTile label="Unresolved" value={String(res.unresolved)} />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <SectionTitle>Market by market</SectionTitle>
+          <span className="text-[13px] text-arepo-muted" data-testid="qualifying-caption">
+            {qualifyingCaption(result.shown, result.qualifying, scope)}
+          </span>
+        </div>
+        {result.rows.length === 0 ? (
+          <EmptyState message="No qualifying directional signals in this set." />
+        ) : (
+          <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-[13px]" data-testid="market-table">
+                <thead>
+                  <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
+                    <th scope="col" className="px-3 py-3 font-semibold">#</th>
+                    <th scope="col" className="px-3 py-3 font-semibold">Market / outcome</th>
+                    <th scope="col" className="px-3 py-3 font-semibold">Selected outcome</th>
+                    <th scope="col" className="px-3 py-3 font-semibold">Final resolution</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-arepo-border">
+                  {result.rows.map((r) => (
+                    <tr key={`${r.market_id}-${r.token_id}`} data-testid="market-row">
+                      <td className="px-3 py-2.5 font-tabular text-arepo-muted">{r.rank ?? "–"}</td>
+                      <td className="px-3 py-2.5">
+                        <Link
+                          href={`/markets/${encodeURIComponent(r.market_id)}?mode=live`}
+                          className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
+                        >
+                          {r.market_question}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2.5">{r.outcome_name}</td>
+                      <td className="px-3 py-2.5">
+                        {r.resolution.resolved ? (
+                          <span className="font-medium">
+                            {r.resolution.correct === true
+                              ? "Resolved to selected outcome"
+                              : r.resolution.correct === false
+                                ? "Resolved to a different outcome"
+                                : `Resolved: ${r.resolution.resolved_outcome ?? "recorded"}`}
+                          </span>
+                        ) : (
+                          <span className="text-arepo-muted">Pending resolution</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <MethodologySummary result={result} />
     </div>
   );
 }
 
-function BacktestTable({ events }: { events: BacktestEvent[] }) {
+/** Cohort methodology summary (prompt §5): the observation and abstention-control counts live here,
+ * never mixed into the directional result table. */
+function MethodologySummary({ result }: { result: ReplayResult }) {
+  const rc = result.role_counts;
+  const rows: [string, string][] = [
+    ["Full frozen universe", String(result.cohort.universe_size)],
+    ["Public selections", String(rc.public_selection ?? 0)],
+    ["Shadow directional", String(rc.shadow_directional ?? 0)],
+    ["Observations (non-directional)", String(rc.observation ?? 0)],
+    ["Abstention controls", String(rc.abstention_control ?? 0)],
+    ["Model version", result.cohort.model_version],
+  ];
   return (
-    <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-[13px]">
-          <thead>
-            <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
-              <th className="px-4 py-3 font-semibold">Market</th>
-              <th className="px-4 py-3 font-semibold">Strength</th>
-              <th className="px-4 py-3 font-semibold">Z-score</th>
-              <th className="px-4 py-3 font-semibold">Direction</th>
-              <th className="px-4 py-3 font-semibold">Entry</th>
-              <th className="px-4 py-3 font-semibold">Forward</th>
-              <th className="px-4 py-3 font-semibold">Followed through</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-arepo-border font-tabular">
-            {events.map((ev, i) => (
-              <tr key={`${ev.market_id}-${ev.token_id}-${i}`}>
-                <td className="px-4 py-2.5 font-sans text-arepo-ink">{ev.market_id}</td>
-                <td className="px-4 py-2.5">{formatPercent(ev.strength, 0)}</td>
-                <td className="px-4 py-2.5">{formatZScore(ev.zscore)}</td>
-                <td className="px-4 py-2.5 font-sans">
-                  {ev.direction === "up" && <span className="text-arepo-pos">Up</span>}
-                  {ev.direction === "down" && <span className="text-arepo-neg">Down</span>}
-                  {!ev.direction && <span className="text-arepo-muted">n/a</span>}
-                </td>
-                <td className="px-4 py-2.5">{formatPrice(ev.entry_price)}</td>
-                <td className="px-4 py-2.5">{formatPrice(ev.forward_price)}</td>
-                <td className="px-4 py-2.5 font-sans">
-                  {ev.followed_through === null ? (
-                    <span className="text-arepo-muted">n/a</span>
-                  ) : (
-                    <Badge tone={ev.followed_through ? "good" : "neutral"}>
-                      {ev.followed_through ? "Yes" : "No"}
-                    </Badge>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {events.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center font-sans text-arepo-muted">
-                  No events matched these thresholds.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+    <Disclose summary="Cohort methodology and full role counts">
+      <div className="space-y-3">
+        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
+          The directional result above covers public and shadow directional signals only.
+          Observation and abstention-control rows are part of the frozen universe for research but
+          are never mixed into the directional result table.
+        </p>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
+          {rows.map(([k, v]) => (
+            <div key={k} className="flex justify-between gap-3 border-b border-arepo-border py-1">
+              <dt className="text-[13px] text-arepo-muted">{k}</dt>
+              <dd className="font-tabular text-[13px] font-medium text-arepo-ink2">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">{result.note}</p>
       </div>
-    </div>
+    </Disclose>
   );
 }

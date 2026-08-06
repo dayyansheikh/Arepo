@@ -9,6 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...evaluation.research_replay import ResearchReplayService
 from ...evaluation.research_service import ResearchReadService
 from ...storage.db import get_session
 
@@ -37,3 +38,30 @@ async def edge(
     """Just the edge verdict block (a compact endpoint for the status banner)."""
     full = await ResearchReadService(session).status()
     return full["edge"]
+
+
+# --- Prospective-Replay product (refinement prompt sections 1-11) -----------------------------
+
+
+@router.get("/replay/cohorts")
+async def replay_cohorts(session: AsyncSession = Depends(get_session)) -> dict:
+    """Available real prospective cohorts + per-cadence summary for the Replay selectors."""
+    return await ResearchReplayService(session).list_cohorts()
+
+
+@router.get("/replay/cohort/{cohort_id}")
+async def replay_cohort_results(
+    cohort_id: int,
+    session: AsyncSession = Depends(get_session),
+    horizon: str = Query("6h"),
+    scope: str = Query("directional"),
+    closing: str = Query("all"),
+) -> dict:
+    """Market-by-market result table + aggregate movement answer for one frozen cohort.
+
+    ``horizon`` in 1h|6h|24h|7d; ``scope`` in public|directional; ``closing`` in
+    6h|24h|7d|30d|all (frozen time-to-close). Deterministic and read-only.
+    """
+    return await ResearchReplayService(session).cohort_results(
+        cohort_id, horizon=horizon, scope=scope, closing=closing
+    )
