@@ -14,6 +14,10 @@ services:
     rootDir: backend
     plan: starter
     buildCommand: pip install -r requirements.txt && pip install -e .
+    # Release phase: apply the additive schema migration BEFORE the new version serves traffic and
+    # before any collector job runs. Idempotent; halts the deploy on failure (final pre-deployment
+    # §3). Does not depend on the web server being awake.
+    preDeployCommand: python -m astrolabe.storage.migrate_cli upgrade
     startCommand: uvicorn astrolabe.api.app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
@@ -24,6 +28,10 @@ services:
         value: "true"
       - key: DEFAULT_MODE
         value: live
+      # Belt-and-suspenders: collector jobs also self-migrate on start. Set to "false" to rely only
+      # on the release command (jobs then fail-fast with an actionable message if the schema is old).
+      - key: AUTO_MIGRATE
+        value: "true"
       # Secrets and per-environment values: set in the Render dashboard, never committed.
       - key: AUTH_SECRET
         sync: false
