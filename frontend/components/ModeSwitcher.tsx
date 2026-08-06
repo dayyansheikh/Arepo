@@ -86,7 +86,7 @@ export function ModeSwitcher() {
         <div
           role="dialog"
           aria-label="Data modes explained"
-          className="absolute right-0 top-full z-50 mt-2 w-80 rounded-card border border-arepo-border bg-arepo-surface p-4 shadow-[0_6px_20px_rgba(16,16,16,0.10)]"
+          className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-1.5rem)] rounded-card border border-arepo-border bg-arepo-surface p-4 shadow-[0_6px_20px_rgba(16,16,16,0.10)]"
         >
           <p className="text-sm font-semibold text-arepo-ink">Data modes</p>
           <ul className="mt-2 space-y-2">
