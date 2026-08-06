@@ -68,6 +68,11 @@ class EntryInput:
     expected_close: datetime | None
     time_remaining_hours: float | None
     intended_horizons: list
+    # Short-horizon universe membership (final-completion prompt C1). Optional so existing callers
+    # (the legacy freeze) need not set them.
+    bucket: str | None = None
+    overall_rank_30d: int | None = None
+    public_selected: bool | None = None
 
 
 class ResearchRepository:
@@ -156,6 +161,9 @@ class ResearchRepository:
             expected_close=e.expected_close,
             time_remaining_hours=e.time_remaining_hours,
             intended_horizons=e.intended_horizons,
+            bucket=e.bucket,
+            overall_rank_30d=e.overall_rank_30d,
+            public_selected=e.public_selected,
             created_at=_now(),
         )
         self.session.add(row)

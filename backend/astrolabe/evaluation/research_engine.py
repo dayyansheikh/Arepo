@@ -270,6 +270,10 @@ async def freeze_from_inputs(
     provenance_class: str = "prospective",
     frozen_at: datetime | None = None,
     funnel: UniverseFunnel | None = None,
+    scan_id: str | None = None,
+    scan_complete: bool | None = None,
+    selection_policy: str | None = None,
+    public_selection_limit: int | None = None,
 ) -> dict:
     """Idempotently create the (cadence, cutoff) cohort, add all entries, and freeze it.
 
@@ -326,6 +330,13 @@ async def freeze_from_inputs(
     # entry are only made durable by the single commit AFTER freeze_cohort. Any failure before that
     # rolls the whole unit back, so a partial or non-frozen cohort is never visible. On error we
     # roll back explicitly (belt-and-suspenders) and re-raise so the caller sees the real cause.
+    # Source complete-scan provenance + public selection policy (final-completion prompt C1/B2),
+    # set only on creation so a frozen cohort's provenance is never mutated.
+    if created:
+        cohort.scan_id = scan_id
+        cohort.scan_complete = scan_complete
+        cohort.selection_policy = selection_policy
+        cohort.public_selection_limit = public_selection_limit
     try:
         for e in inputs:
             await repo.add_entry(cohort, e)

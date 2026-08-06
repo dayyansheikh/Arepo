@@ -32,6 +32,17 @@ async def signals(
     return await SignalReadService(session).signals(bucket=bucket, scope=scope, limit=limit)
 
 
+@router.get("/opportunities")
+async def opportunities(
+    session: AsyncSession = Depends(get_session),
+    window: str = Query("all"),
+    limit: int = Query(20, ge=1, le=50),
+) -> dict:
+    """Public Opportunities shortlist: strongest ``limit`` (20) directional signals in the selected
+    closing window from the complete eligible set, with an honest denominator + freshness."""
+    return await SignalReadService(session).opportunities(window=window, limit=limit)
+
+
 @router.get("/market/{market_id}/history")
 async def market_history(
     market_id: str, session: AsyncSession = Depends(get_session)

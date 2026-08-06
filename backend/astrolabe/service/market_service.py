@@ -287,17 +287,18 @@ class MarketService:
         return out, source.mode
 
     async def enrich_market_list(
-        self, markets: list[Market], *, requested_mode=None
+        self, markets: list[Market], *, requested_mode=None, concurrency: int = 6
     ) -> tuple[list[tuple[Market, list[TokenAnalytics]]], DataMode]:
         """Enrich a caller-provided list of markets (no limit, no re-sort).
 
         Used by the complete-universe scan (prompt section 5): the caller has already discovered and
         eligibility-filtered the full 30-day universe, so every eligible market must be enriched and
-        scored, not a volume-sorted top-N. Concurrency is bounded so a large eligible set does not
-        open hundreds of simultaneous upstream connections.
+        scored, not a volume-sorted top-N. Concurrency is bounded (default 6) so a large set
+        stays inside the CLOB venue's real rate limits; a market whose book cannot be fetched is
+        still scored with the data available (never dropped for a rate-limit blip).
         """
         source, _ = await self._select_source(requested_mode)
-        sem = asyncio.Semaphore(16)
+        sem = asyncio.Semaphore(max(1, concurrency))
 
         async def _one(m: Market):
             async with sem:

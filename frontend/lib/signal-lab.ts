@@ -17,8 +17,8 @@ export const BUCKET_OPTIONS: { id: Bucket; label: string }[] = [
 ];
 
 export const SCOPE_OPTIONS: { id: Scope; label: string }[] = [
-  { id: "public", label: "Public top ten" },
   { id: "directional", label: "All directional signals" },
+  { id: "public", label: "Public shortlist (Opportunities)" },
 ];
 
 /** Trajectory label -> tone + glyph (colour is never the only cue, prompt section 11). */

@@ -75,6 +75,12 @@ async def _run(args: argparse.Namespace) -> int:
             elif args.command == "research-freeze":
                 summary = await _freeze(session, service, data_api, cadence=args.cadence)
                 print(json.dumps(summary))
+            elif args.command == "research-freeze-from-scan":
+                from ..discovery.cohort_from_scan import freeze_cohort_from_scan
+                summary = await freeze_cohort_from_scan(
+                    session, cadence=args.cadence, scan_id=getattr(args, "scan_id", None)
+                )
+                print(json.dumps(summary, default=str))
             elif args.command == "research-forward":
                 provider = await live_price_provider(service)
                 summary = await collect_due_forward(session, price_of=provider)
@@ -108,6 +114,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("research-bootstrap")
     fr = sub.add_parser("research-freeze")
     fr.add_argument("--cadence", required=True, choices=list(CADENCES))
+    fs = sub.add_parser("research-freeze-from-scan")
+    fs.add_argument("--cadence", required=True, choices=list(CADENCES))
+    fs.add_argument("--scan-id", dest="scan_id", default=None)
     sub.add_parser("research-forward")
     sub.add_parser("research-resolve")
     sub.add_parser("research-repair")

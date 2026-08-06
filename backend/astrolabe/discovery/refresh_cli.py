@@ -24,12 +24,12 @@ from .scan_service import CompleteScanService
 
 
 async def run_refresh(
-    session, market_service, data_api, *, holder: str, max_pages: int = 1000
+    session, market_service, data_api, *, holder: str
 ) -> dict:
     """Acquire the lease, run one complete scan, append it, release the lease. Returns a summary.
 
     Refuses to run if another live scan holds the lease (overlap prevention). The scan still records
-    even when pagination is incomplete, but its ``status`` and ``pagination_complete`` flag say so,
+    even when discovery is incomplete, but its ``status`` and ``pagination_complete`` flag say so,
     so a downstream cohort freeze can refuse or degrade.
     """
     got = await scan_store.acquire_lock(session, holder=holder)
@@ -37,7 +37,7 @@ async def run_refresh(
         return {"ran": False, "reason": "another complete scan is already running (lease held)"}
     try:
         scanner = CompleteScanService(market_service, data_api)
-        result = await scanner.run_scan(max_pages=max_pages)
+        result = await scanner.run_scan()
         rec = await scan_store.record_scan(session, result)
         summary = scanner.result_summary(result)
         summary["record"] = rec
@@ -61,9 +61,10 @@ async def _refresh(args) -> None:
                                     "directional", "duration_seconds", "record")
         }, indent=2, default=str))
         if out.get("ran"):
-            p = out["pagination"]
-            print(f"pagination complete={p['complete']} pages={p['pages']} "
-                  f"raw={p['raw_items']} unique={p['unique_markets']}")
+            d = out["discovery"]
+            print(f"discovery complete={d['complete']} primary_unique={d['primary_unique']} "
+                  f"verification_unique={d['verification_unique']} union={d['union_unique']} "
+                  f"overlap={d['overlap']} conflicts={d['identity_conflicts']}")
             print("funnel:", json.dumps(out["funnel"], default=str))
             print("bucket_counts:", json.dumps(out["bucket_counts"], default=str))
     finally:

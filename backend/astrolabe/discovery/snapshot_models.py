@@ -58,6 +58,11 @@ class ScanRunRow(Base):
     # ok | partial | incomplete | failed
     status: Mapped[str] = mapped_column(String, nullable=False, default="ok")
     failure_reason: Mapped[str | None] = mapped_column(String)
+    # Bounded-discovery completeness proof + reconciliation (prompt A5) and the public selection
+    # policy in force for this scan (prompt B2).
+    discovery: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    selection_policy: Mapped[str] = mapped_column(String, nullable=False, default="")
+    public_selection_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
     model_version: Mapped[str] = mapped_column(String, nullable=False, default="")
     calculation_version: Mapped[str] = mapped_column(String, nullable=False, default="")
     provenance: Mapped[str] = mapped_column(String, nullable=False, default="live_scan")
@@ -98,14 +103,23 @@ class SignalSnapshotRow(Base):
 
     # Signal (the existing model, unchanged; this is a history layer).
     direction: Mapped[str | None] = mapped_column(String)
+    # Per-family frozen directions, so a cohort frozen FROM this scan can run the existing baselines
+    # and ablations without re-deriving them (prompt C1 "frozen signal fields").
+    momentum_direction: Mapped[str | None] = mapped_column(String)
+    orderbook_direction: Mapped[str | None] = mapped_column(String)
+    tradeflow_direction: Mapped[str | None] = mapped_column(String)
     signal_classification: Mapped[str] = mapped_column(String, nullable=False, default="")
     strength: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     research_priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     rank_in_bucket: Mapped[int | None] = mapped_column(Integer)
     overall_rank_30d: Mapped[int | None] = mapped_column(Integer)
+    # ``public_top_ten`` is the public-shortlist membership flag. Under selection policy
+    # short-horizon-public-20-v1 the shortlist is the top 20; the column name is retained for
+    # backward compatibility with earlier rows (prompt B2, no old-cohort rewrite).
     public_top_ten: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     shadow_directional: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    selection_policy: Mapped[str] = mapped_column(String, nullable=False, default="")
     n_families: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     evidence_families: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     component_scores: Mapped[list] = mapped_column(JSON, nullable=False, default=list)

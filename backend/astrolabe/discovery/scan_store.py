@@ -73,16 +73,18 @@ async def record_scan(session: AsyncSession, result: ScanResult) -> dict:
 
     bucket_counts = result.bucket_counts()
     top_ten = {b: bucket_counts[b]["public_top_ten"] for b in bucket_counts}
+    disc = result.discovery
+    pages = disc.primary_pages + disc.verification_pages
     session.add(ScanRunRow(
         scan_id=result.scan_id,
         started_at=result.started_at,
         finished_at=result.finished_at,
         duration_seconds=result.duration_seconds,
-        pagination_complete=result.pagination.complete,
-        pagination_reason=result.pagination.incomplete_reason,
-        pages_fetched=result.pagination.pages,
-        raw_discovered=result.pagination.raw_items,
-        unique_markets=result.pagination.unique_markets,
+        pagination_complete=disc.complete,
+        pagination_reason=disc.incomplete_reason,
+        pages_fetched=pages,
+        raw_discovered=disc.union_unique,
+        unique_markets=disc.union_unique,
         funnel=result.funnel.as_dict(),
         eligible_30d=result.funnel.eligible_30d,
         analysed=len(result.analysed),
@@ -90,7 +92,10 @@ async def record_scan(session: AsyncSession, result: ScanResult) -> dict:
         bucket_counts=bucket_counts,
         top_ten_counts=top_ten,
         status=result.status,
-        failure_reason=result.funnel.pagination_reason if not result.pagination.complete else None,
+        failure_reason=disc.incomplete_reason if not disc.complete else None,
+        discovery=disc.as_dict(),
+        selection_policy=result.selection_policy,
+        public_selection_limit=result.public_selection_limit,
         model_version=MODEL_VERSION,
         calculation_version=CALCULATION_VERSION,
         provenance="live_scan",
@@ -116,6 +121,9 @@ async def record_scan(session: AsyncSession, result: ScanResult) -> dict:
             eligible=True,
             exclusion_reason=None,
             direction=s.direction,
+            momentum_direction=s.momentum_direction,
+            orderbook_direction=s.orderbook_direction,
+            tradeflow_direction=s.tradeflow_direction,
             signal_classification=classify_signal(
                 direction=s.direction, n_families=s.n_families,
                 strength=s.strength, data_quality=s.data_quality,
@@ -127,6 +135,7 @@ async def record_scan(session: AsyncSession, result: ScanResult) -> dict:
             overall_rank_30d=a.overall_rank_30d,
             public_top_ten=a.public_top_ten,
             shadow_directional=a.shadow_directional,
+            selection_policy=result.selection_policy,
             n_families=s.n_families,
             evidence_families=list(s.evidence_families or []),
             component_scores=list(s.component_scores or []),

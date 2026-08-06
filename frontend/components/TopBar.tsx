@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Logo } from "./Logo";
-import { ModeSwitcher } from "./ModeSwitcher";
 import { StatusChip } from "./StatusChip";
 
 /** Right-hand auth affordance: Account when signed in, Sign in otherwise. */
@@ -95,7 +94,6 @@ export function TopBar() {
           </nav>
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-2">
             <StatusChip />
-            <ModeSwitcher />
             <AuthLink pathname={pathname} />
           </div>
         </div>

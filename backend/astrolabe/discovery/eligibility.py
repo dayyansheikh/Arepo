@@ -45,6 +45,20 @@ CUMULATIVE_WINDOWS: dict[str, float] = {
     "within_30d": H_30D,
 }
 
+# --- Public selection policy (prompt section B2) ----------------------------------------------
+# Versioned so a cohort records the policy it used and old top-10 cohorts are never rewritten.
+SELECTION_POLICY_VERSION = "short-horizon-public-20-v1"
+PUBLIC_SELECTION_LIMIT = 20
+
+# --- Eligibility parameters (declared, versioned; NOT model thresholds) -----------------------
+# A tradable-market liquidity floor bounds the analysed set to genuinely tradable short-horizon
+# markets. The 30-day active universe is ~113k markets (mostly tiny/pinned micro-markets); the
+# tradable, liquid subset (a live two-sided book plus this liquidity floor) is ~1.5k, and EVERY
+# market passing this eligibility is analysed with no further cap. This is an eligibility/product
+# rule, part of "active tradable markets", not a change to the signal model. The floor also keeps
+# the per-scan CLOB enrichment inside the venue's real rate limits (measured; see scheduler doc).
+MIN_ELIGIBLE_LIQUIDITY = 20_000.0
+
 # --- Exclusion reasons (stable strings, stored on each snapshot) ------------------------------
 REASON_NOT_ACTIVE = "not active"
 REASON_CLOSED = "already closed (status)"
@@ -53,6 +67,8 @@ REASON_INVALID_CLOSE_TIME = "invalid close time"
 REASON_EXPIRED = "no time remaining (already past close)"
 REASON_BEYOND_30D = "closing more than 30 days away"
 REASON_NO_TOKEN = "no resolvable tradable outcome token"
+REASON_NOT_TRADABLE = "no live two-sided order book (disabled, <2 outcomes or pinned)"
+REASON_LOW_LIQUIDITY = "below the tradable liquidity floor"
 
 
 def time_remaining_hours(market: Market, now: datetime) -> float | None:
@@ -132,6 +148,51 @@ def classify_market(market: Market, now: datetime) -> Eligibility:
     return Eligibility(True, None, hours, primary_bucket(hours))
 
 
+def is_tradable_market(market: Market) -> bool:
+    """A live two-sided book worth analysing: order book enabled, >=2 outcomes, not pinned.
+
+    Mirrors the existing ``service.sources._is_tradeable`` rule so the eligibility gate matches the
+    rest of the system; a market priced ~0/1 has no live book and is excluded.
+    """
+    if not market.enable_order_book or len(market.outcomes) < 2:
+        return False
+    prices = [o.price for o in market.outcomes if o.price is not None]
+    if prices and (max(prices) >= 0.98 or min(prices) <= 0.02):
+        return False
+    return True
+
+
+def classify_public(
+    market: Market, now: datetime, *, min_liquidity: float = MIN_ELIGIBLE_LIQUIDITY
+) -> Eligibility:
+    """Full public short-horizon eligibility: structural + tradable + liquidity floor (prompt A6).
+
+    This is the point-in-time gate applied BEFORE enrichment/scoring, so every market that passes is
+    analysed and none is discovery-truncated. The liquidity floor is a declared eligibility
+    parameter, not a model threshold.
+    """
+    base = classify_market(market, now)
+    if not base.eligible:
+        return base
+    if not is_tradable_market(market):
+        return Eligibility(False, REASON_NOT_TRADABLE, base.hours, None)
+    if (market.liquidity or 0.0) < min_liquidity:
+        return Eligibility(False, REASON_LOW_LIQUIDITY, base.hours, None)
+    return base
+
+
+def raw_liquidity(raw: dict) -> float:
+    """Cheap liquidity read from a raw Gamma dict (before normalisation), for the prefilter."""
+    for k in ("liquidityNum", "liquidity"):
+        v = raw.get(k)
+        if v is not None:
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return 0.0
+    return 0.0
+
+
 @dataclass
 class DiscoveryFunnel:
     """The complete discovery funnel (prompt sections 1, 23). Every discovered market lands in
@@ -151,6 +212,9 @@ class DiscoveryFunnel:
     closing_1_7d: int = 0
     closing_7_30d: int = 0
     eligible_30d: int = 0
+    not_tradable: int = 0
+    low_liquidity: int = 0
+    prefiltered_out: int = 0
     pagination_complete: bool = False
     pagination_reason: str | None = None
     per_bucket: dict[str, int] = field(default_factory=dict)
@@ -182,6 +246,10 @@ class DiscoveryFunnel:
             self.no_token += 1
         elif r == REASON_BEYOND_30D:
             self.beyond_30d += 1
+        elif r == REASON_NOT_TRADABLE:
+            self.not_tradable += 1
+        elif r == REASON_LOW_LIQUIDITY:
+            self.low_liquidity += 1
 
     def finalise(self) -> None:
         self.per_bucket = {
@@ -208,6 +276,9 @@ class DiscoveryFunnel:
             "closing_1_7d": self.closing_1_7d,
             "closing_7_30d": self.closing_7_30d,
             "eligible_30d": self.eligible_30d,
+            "not_tradable": self.not_tradable,
+            "low_liquidity": self.low_liquidity,
+            "prefiltered_out": self.prefiltered_out,
             "per_bucket": self.per_bucket,
             "pagination_complete": self.pagination_complete,
             "pagination_reason": self.pagination_reason,
@@ -215,13 +286,18 @@ class DiscoveryFunnel:
 
 
 def build_funnel(
-    markets: list[Market], now: datetime
+    markets: list[Market], now: datetime, *, classifier=None
 ) -> tuple[DiscoveryFunnel, list[tuple[Market, Eligibility]]]:
-    """Classify every discovered market into the funnel and return (funnel, eligible pairs)."""
+    """Classify every discovered market into the funnel and return (funnel, eligible pairs).
+
+    ``classifier`` defaults to the structural :func:`classify_market`; the complete scan passes
+    :func:`classify_public` so the tradable + liquidity gate is reflected in the funnel.
+    """
+    classifier = classifier or classify_market
     funnel = DiscoveryFunnel(unique_markets=len(markets))
     eligible: list[tuple[Market, Eligibility]] = []
     for m in markets:
-        e = classify_market(m, now)
+        e = classifier(m, now)
         funnel.add(e)
         if e.eligible:
             eligible.append((m, e))

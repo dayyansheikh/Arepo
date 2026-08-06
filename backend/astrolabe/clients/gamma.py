@@ -324,6 +324,112 @@ class GammaClient:
         )
         return out, report
 
+    async def keyset_page(
+        self,
+        endpoint: str,
+        *,
+        after_cursor: str | None = None,
+        active: bool = True,
+        closed: bool = False,
+        end_date_min: str | None = None,
+        end_date_max: str | None = None,
+        limit: int = 100,
+    ) -> dict:
+        """One page of a Gamma keyset endpoint (``/markets/keyset`` or ``/events/keyset``).
+
+        Uses the official cursor contract: the FIRST request omits ``after_cursor``; subsequent
+        requests pass the previous response's ``next_cursor`` as ``after_cursor`` (never ``offset``,
+        never a guessed name). Returns the raw dict (top-level keys include the item list and
+        ``next_cursor``). Bounded date filters keep the returned universe inside the target window.
+        """
+        params: dict[str, Any] = {
+            "limit": limit,
+            "active": str(active).lower(),
+            "closed": str(closed).lower(),
+        }
+        if end_date_min is not None:
+            params["end_date_min"] = end_date_min
+        if end_date_max is not None:
+            params["end_date_max"] = end_date_max
+        if after_cursor is not None:
+            params["after_cursor"] = after_cursor
+        resp = await self._request("GET", endpoint, params=params)
+        data = _safe_json(resp)
+        if not isinstance(data, dict):
+            raise UpstreamSchemaError(
+                f"Gamma {endpoint} did not return an object", status_code=resp.status_code
+            )
+        return data
+
+    async def paginate_keyset(
+        self,
+        endpoint: str,
+        item_key: str,
+        *,
+        active: bool = True,
+        closed: bool = False,
+        end_date_min: str | None = None,
+        end_date_max: str | None = None,
+        page_size: int = 100,
+        max_pages: int = 5000,
+    ) -> tuple[list[dict], dict]:
+        """Follow the official keyset cursor to exhaustion, returning (items, report).
+
+        Terminates cleanly when ``next_cursor`` is absent or an item page is empty; flags an
+        incomplete scan (report ``complete=False`` + reason) on a repeated cursor, a page fetch
+        failure after retries, or the emergency ``max_pages`` guard. ``item_key`` is ``markets`` for
+        ``/markets/keyset`` or ``events`` for ``/events/keyset``. Raw items are returned verbatim
+        (events still carry their nested markets); deduplication happens in the discovery layer.
+        """
+        items: list[dict] = []
+        cursor: str | None = None
+        seen_cursors: set[str] = set()
+        pages = 0
+        complete = False
+        reason: str | None = None
+        while True:
+            if pages >= max_pages:
+                reason = (
+                    f"emergency guard: {max_pages} keyset pages fetched on {endpoint} before "
+                    "the cursor terminated; scan marked incomplete rather than partial"
+                )
+                break
+            try:
+                data = await self.keyset_page(
+                    endpoint, after_cursor=cursor, active=active, closed=closed,
+                    end_date_min=end_date_min, end_date_max=end_date_max, limit=page_size,
+                )
+            except (UpstreamUnavailable, RateLimited) as exc:
+                reason = (
+                    f"keyset page fetch on {endpoint} failed after retries at page {pages}: {exc}"
+                )
+                break
+            page = data.get(item_key) or []
+            pages += 1
+            if page:
+                items.extend(page)
+            next_cursor = data.get("next_cursor")
+            if not page or not next_cursor:
+                complete = True  # genuine termination: empty page or no further cursor
+                break
+            if next_cursor in seen_cursors or next_cursor == cursor:
+                reason = (
+                    f"non-progressing keyset cursor on {endpoint} at page {pages} "
+                    "(cursor repeated); scan marked incomplete"
+                )
+                break
+            seen_cursors.add(next_cursor)
+            cursor = next_cursor
+        report = {
+            "endpoint": endpoint,
+            "pages": pages,
+            "raw_items": len(items),
+            "cursors": len(seen_cursors),
+            "complete": complete,
+            "incomplete_reason": reason,
+        }
+        return items, report
+
     async def list_events(
         self, limit: int, active: bool = True, closed: bool = False
     ) -> list[dict]:

@@ -1,162 +1,179 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useMode } from "@/lib/mode-context";
 import { useAsync } from "@/lib/use-async";
-import { getOpportunityBoard } from "@/lib/api";
-import type { BoardView, OpportunityBoard } from "@/lib/types";
-import { OpportunityCardView } from "@/components/OpportunityCardView";
-import { CardGridSkeleton } from "@/components/Skeletons";
+import { useUrlState } from "@/lib/use-url-state";
+import { getOpportunities, type ScanSignalRow } from "@/lib/api";
+import {
+  consecutivePhrase,
+  strengthPhrase,
+  timeToCloseLabel,
+  trajectoryTone,
+} from "@/lib/signal-lab";
+import { ListSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
-import { PageHeader } from "@/components/ui";
+import { FreshnessBadge } from "@/components/FreshnessBadge";
+import { StrengthBar } from "@/components/StrengthBar";
+import { PageHeader, SectionTitle, Badge } from "@/components/ui";
 
-// Selectivity (spec §4): the default board shows only markets with a usable directional view, so
-// neutral markets never dominate. Other views are available; Explore holds the full neutral set.
-const VIEWS: { id: BoardView; label: string }[] = [
-  { id: "directional", label: "Directional only" },
-  { id: "strongest", label: "Strongest views" },
-  { id: "inconclusive", label: "Inconclusive" },
-  { id: "all", label: "All screened" },
-];
-
-// Time-to-close horizons (spec §5): focus on short-term opportunities without hiding the board.
-const HORIZONS = [
-  { id: "all", label: "All", hours: Infinity },
-  { id: "7d", label: "≤ 7 days", hours: 24 * 7 },
-  { id: "3d", label: "≤ 3 days", hours: 24 * 3 },
-  { id: "24h", label: "≤ 24 hours", hours: 24 },
+// Public closing-window filters (prompt B1). Values map to the API's cumulative windows.
+const WINDOWS = [
+  { id: "all", label: "All within 30 days" },
+  { id: "within_6h", label: "Next 6 hours" },
+  { id: "within_24h", label: "Later today" },
+  { id: "within_7d", label: "This week" },
+  { id: "within_30d", label: "This month" },
 ] as const;
 
-type HorizonId = (typeof HORIZONS)[number]["id"];
-
-function isView(v: string | null): v is BoardView {
-  return v === "directional" || v === "strongest" || v === "inconclusive" || v === "all";
-}
-
-export default function OpportunityBoardPage() {
-  const { mode } = useMode();
-  const router = useRouter();
-  const params = useSearchParams();
-
-  // View and horizon are read from the URL so Back/Forward/refresh/shared links restore them.
-  const view: BoardView = isView(params.get("view")) ? (params.get("view") as BoardView) : "directional";
-  const horizon: HorizonId =
-    (HORIZONS.find((h) => h.id === params.get("horizon"))?.id as HorizonId) ?? "all";
-
-  const setParam = useCallback(
-    (key: string, value: string, dflt: string) => {
-      const next = new URLSearchParams(params.toString());
-      if (value === dflt) next.delete(key);
-      else next.set(key, value);
-      const qs = next.toString();
-      router.replace(qs ? `/?${qs}` : "/", { scroll: false });
-    },
-    [params, router]
-  );
-
-  const { data, loading, error } = useAsync<OpportunityBoard>(
-    () => getOpportunityBoard(mode, view),
-    [mode, view]
-  );
-
-  const maxHours = HORIZONS.find((h) => h.id === horizon)?.hours ?? Infinity;
-  const cards = (data?.cards ?? []).filter((c) => {
-    if (maxHours === Infinity) return true;
-    return c.time_remaining_hours !== null && c.time_remaining_hours <= maxHours;
-  });
+export default function OpportunitiesPage() {
+  const [window, setWindow] = useUrlState("window", "all");
+  const { data, loading, error } = useAsync(() => getOpportunities(window, 20), [window]);
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Opportunities"
-        lead="The markets where Arepo currently has a usable directional hypothesis. Each card leads with what the evidence favours, why, and how reliable that view is. Neutral markets are kept in Explore, not forced onto this board. This is a research ranking, not expected profit."
-      />
+    <div className="space-y-8" data-testid="opportunities-page">
+      <div className="space-y-3">
+        <PageHeader
+          title="Opportunities"
+          lead="Arepo's public shortlist: the strongest directional signals across active markets closing within 30 days. The full universe is analysed; this shows the top 20."
+        />
+        <DisclaimerBanner />
+      </div>
 
-      <DisclaimerBanner>
-        Arepo ranks market situations worth investigating. It is not trading advice and does not
-        predict outcomes.
-      </DisclaimerBanner>
+      <section className="flex flex-wrap items-end justify-between gap-4">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-arepo-ink2">Closing window</span>
+          <select
+            data-testid="window-select"
+            className="select-arepo w-64"
+            value={window}
+            onChange={(e) => setWindow(e.target.value)}
+            aria-label="Closing window"
+          >
+            {WINDOWS.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {data?.freshness && <FreshnessBadge freshness={data.freshness} />}
+      </section>
 
-      {/* How selective Arepo is right now (spec §4). */}
-      {data && (
-        <p className="text-[13.5px] text-arepo-ink2">
-          Arepo screened <strong>{data.screened_count}</strong> markets;{" "}
-          <strong>{data.directional_count}</strong> currently meet the evidence and quality
-          requirements for a directional view.
-        </p>
+      {loading && <ListSkeleton rows={6} />}
+      {!loading && error && <ErrorState message={error} />}
+      {!loading && data && !data.has_scan && (
+        <EmptyState message="No complete market scan has been recorded yet. The scheduled backend refresh performs the scan; the browser only reads stored results." />
       )}
+      {!loading && data && data.has_scan && (
+        <>
+          {/* Delayed-refresh fallback copy (prompt B1): the latest complete scan is always used. */}
+          {data.freshness && data.freshness.state !== "fresh" && (
+            <p className="text-[13px] text-arepo-warnText" data-testid="delayed-notice">
+              Live refresh is delayed. Showing the most recent complete update ({data.freshness.updated_phrase.toLowerCase()}).
+            </p>
+          )}
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <SectionTitle>{data.window_label}</SectionTitle>
+              <span className="text-[13px] text-arepo-muted" data-testid="denominator">
+                {data.denominator}
+              </span>
+            </div>
+            {data.rows.length === 0 ? (
+              <EmptyState message="No directional signals in this closing window right now. Try a wider window." />
+            ) : (
+              <div className="space-y-3" data-testid="opportunity-list">
+                {data.rows.map((r, i) => (
+                  <OpportunityCard key={`${r.market_id}-${r.token_id}`} row={r} rank={i + 1} />
+                ))}
+              </div>
+            )}
+          </section>
+          <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">
+            Opportunities is the public shortlist. Signal Lab shows every directional signal in the
+            complete eligible universe. Strength measures how unusual the market behaviour is; it is
+            not a probability, and a stronger signal does not mean the outcome is more likely.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Board view">
-          {VIEWS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              aria-pressed={view === v.id}
-              onClick={() => setParam("view", v.id, "directional")}
-              className={`focus-ring rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
-                view === v.id
-                  ? "border-arepo-accent bg-arepo-accentTint text-arepo-accentActive"
-                  : "border-arepo-border bg-arepo-surface text-arepo-muted hover:text-arepo-ink"
-              }`}
+function OpportunityCard({ row, rank }: { row: ScanSignalRow; rank: number }) {
+  const t = row.trajectory;
+  const tone = trajectoryTone(t.label);
+  const toneClass =
+    tone.tone === "up"
+      ? "text-arepo-pos"
+      : tone.tone === "down"
+        ? "text-arepo-neg"
+        : tone.tone === "flat"
+          ? "text-arepo-ink2"
+          : "text-arepo-muted";
+  const consec = consecutivePhrase(t);
+  return (
+    <div className="rounded-card border border-arepo-border bg-arepo-surface p-5" data-testid="opportunity-card">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-tabular text-[13px] text-arepo-muted">#{rank}</span>
+            <Link
+              href={`/markets/${encodeURIComponent(row.market_id)}`}
+              className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
             >
-              {v.label}
-            </button>
-          ))}
+              {row.market_question}
+            </Link>
+          </div>
+          <p className="mt-0.5 text-[13px] text-arepo-muted">
+            {row.outcome_name} · Closes {timeToCloseLabel(row.time_remaining_hours)}
+          </p>
         </div>
+        <div className="text-right">
+          <div className="font-tabular text-[13px] text-arepo-ink2">
+            Direction:{" "}
+            <span
+              className={
+                row.direction === "up"
+                  ? "text-arepo-pos"
+                  : row.direction === "down"
+                    ? "text-arepo-neg"
+                    : "text-arepo-muted"
+              }
+            >
+              {row.direction === "up" ? "Up" : row.direction === "down" ? "Down" : "n/a"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <StrengthBar value={row.strength} />
+      </div>
+
+      <p className="mt-2 text-[14px] text-arepo-ink2" data-testid="strength-phrase">
+        {strengthPhrase(row.strength, t)}.{" "}
+        <span className={`font-medium ${toneClass}`}>
+          <span aria-hidden="true">{tone.glyph} </span>
+          {t.label}
+        </span>
+        {consec ? `. ${consec}.` : "."}
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-arepo-muted">
+        <Badge tone="accent">In Opportunities</Badge>
+        <span>Research Priority {row.research_priority}</span>
+        {row.evidence_families.length > 0 && (
+          <span>Evidence: {row.evidence_families.join(", ")}</span>
+        )}
         <Link
-          href="/markets"
-          className="focus-ring text-[13px] font-medium text-arepo-accentActive hover:text-arepo-accentHover"
+          href={`/markets/${encodeURIComponent(row.market_id)}`}
+          className="focus-ring underline hover:text-arepo-ink"
         >
-          Explore all markets &rarr;
+          Market detail
         </Link>
       </div>
-
-      <div
-        className="flex flex-wrap items-center gap-1.5"
-        role="group"
-        aria-label="Filter by time to close"
-      >
-        <span className="mr-1 text-[12px] text-arepo-muted">Closing:</span>
-        {HORIZONS.map((h) => (
-          <button
-            key={h.id}
-            type="button"
-            aria-pressed={horizon === h.id}
-            onClick={() => setParam("horizon", h.id, "all")}
-            className={`focus-ring rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
-              horizon === h.id
-                ? "border-arepo-accent bg-arepo-accentTint text-arepo-accentActive"
-                : "border-arepo-border bg-arepo-surface text-arepo-muted hover:text-arepo-ink"
-            }`}
-          >
-            {h.label}
-          </button>
-        ))}
-      </div>
-
-      {loading && <CardGridSkeleton count={9} />}
-      {!loading && error && <ErrorState message={error} />}
-      {!loading && data && cards.length === 0 && (
-        <EmptyState
-          message={
-            view === "directional"
-              ? "Arepo has no usable directional view right now. Try 'All screened', widen the horizon, or explore all markets."
-              : "No markets match this view and horizon. Try a different view."
-          }
-        />
-      )}
-
-      {!loading && data && cards.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map((card) => (
-            <OpportunityCardView key={`${card.market_id}-${card.token_id}`} card={card} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

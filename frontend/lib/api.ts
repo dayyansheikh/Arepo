@@ -405,11 +405,20 @@ export interface ScanBucketCount {
   shadow_directional?: number;
 }
 
+export interface Freshness {
+  state: "fresh" | "refresh_delayed" | "out_of_date";
+  age_seconds: number;
+  updated_phrase: string;
+  warn: boolean;
+  tooltip: string;
+}
+
 export interface ScanStatus {
   has_scan: boolean;
   note?: string;
   generated_at?: string;
   seconds_since_scan?: number;
+  freshness?: Freshness;
   scan_id?: string;
   started_at?: string;
   status?: string;
@@ -423,7 +432,24 @@ export interface ScanStatus {
   directional?: number;
   funnel?: Record<string, unknown>;
   buckets?: ScanBucketCount[];
+  selection_policy?: string;
+  public_selection_limit?: number;
   model_version?: string;
+}
+
+export interface Opportunities {
+  has_scan: boolean;
+  scan_id?: string;
+  window?: string;
+  window_label?: string;
+  selection_policy?: string;
+  public_selection_limit?: number;
+  freshness?: Freshness;
+  shown?: number;
+  total_directional?: number;
+  eligible_markets?: number;
+  rows: ScanSignalRow[];
+  denominator?: string | null;
 }
 
 export interface ScanTrajectory {
@@ -485,6 +511,10 @@ export function getScanSignals(
   limit = 10,
 ): Promise<ScanSignals> {
   return apiFetch<ScanSignals>("/api/scan/signals", { bucket, scope, limit });
+}
+
+export function getOpportunities(window = "all", limit = 20): Promise<Opportunities> {
+  return apiFetch<Opportunities>("/api/scan/opportunities", { window, limit });
 }
 
 export function getReplayCohorts(): Promise<ReplayCohortList> {

@@ -29,17 +29,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en-GB"
       className={`${GeistSans.variable} ${GeistMono.variable} ${displayFont.variable}`}
     >
-      {/* The shell fills the viewport background (min-h-screen) but does NOT stretch the main
-          region: the footer follows the content directly, so a short page (e.g. a not-found card)
-          ends cleanly with the footer just below it rather than a large blank gap, while a long
-          page scrolls normally (spec §4.6, §5). */}
-      <body className="font-sans min-h-screen flex flex-col">
+      {/* Sticky-footer shell (final-completion prompt D2): the body is a full-viewport flex column
+          (100dvh), the main region is flex-1, and the footer follows main. On a short page (sign in,
+          sign up, reset, not-found) main grows to fill and the footer sits at the very bottom; on a
+          long page main grows with the content and the footer follows it. Verified on sign-in,
+          sign-up and reset at desktop, mobile and zoom. */}
+      <body className="font-sans min-h-[100dvh] flex flex-col">
         <Suspense fallback={null}>
           <ModeProvider>
             <AuthProvider>
               <DegradationBanner />
               <TopBar />
-              <main className="mx-auto w-full max-w-shell px-5 py-8 sm:px-8 lg:px-12">
+              <main className="mx-auto w-full max-w-shell flex-1 px-5 py-8 sm:px-8 lg:px-12">
                 {children}
               </main>
               <Footer />

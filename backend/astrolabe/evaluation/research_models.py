@@ -79,6 +79,13 @@ class ResearchCohortRow(Base):
     excluded_markets: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     degraded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    # Source complete-scan provenance + public selection policy (final-completion prompt C1/B2).
+    # NULL on the pre-existing historical cohort (it predates complete scans); never rewritten.
+    scan_id: Mapped[str | None] = mapped_column(String)
+    scan_complete: Mapped[bool | None] = mapped_column(Boolean)
+    selection_policy: Mapped[str | None] = mapped_column(String)
+    public_selection_limit: Mapped[int | None] = mapped_column(Integer)
+
     note: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
@@ -145,6 +152,12 @@ class ResearchEntryRow(Base):
     expected_close: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     time_remaining_hours: Mapped[float | None] = mapped_column(Float)
     intended_horizons: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+
+    # Short-horizon universe membership frozen at the cut-off (final-completion prompt C1).
+    # NULL on the pre-existing historical cohort; never rewritten.
+    bucket: Mapped[str | None] = mapped_column(String, index=True)
+    overall_rank_30d: Mapped[int | None] = mapped_column(Integer)
+    public_selected: Mapped[bool | None] = mapped_column(Boolean)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

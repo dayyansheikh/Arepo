@@ -18,16 +18,19 @@ import {
 import { ListSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
-import { PageHeader, SectionTitle, Disclose, Badge } from "@/components/ui";
+import { FreshnessBadge } from "@/components/FreshnessBadge";
+import { StrengthBar } from "@/components/StrengthBar";
+import { PageHeader, SectionTitle, Disclose } from "@/components/ui";
 
 export default function SignalLabPage() {
   // Signals come FIRST (prompt section 10): the explanation is a collapsed disclosure below.
+  // Default scope is ALL directional signals, not the public shortlist (prompt B3).
   const [bucket, setBucket] = useUrlState("bucket", "closing_1_7d");
-  const [scope, setScope] = useUrlState("scope", "public");
+  const [scope, setScope] = useUrlState("scope", "directional");
 
   const statusState = useAsync(() => getScanStatus(), []);
   const signalsState = useAsync(
-    () => getScanSignals(bucket, scope, scope === "public" ? 10 : 500),
+    () => getScanSignals(bucket, scope, scope === "public" ? 20 : 500),
     [bucket, scope],
   );
   const status = statusState.data;
@@ -57,9 +60,12 @@ export default function SignalLabPage() {
         )}
         {!statusState.loading && status && status.has_scan && (
           <div className="space-y-2">
-            <p className="text-[15px] font-medium text-arepo-ink" data-testid="eligible-headline">
-              {eligibleHeadline(status)}
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[15px] font-medium text-arepo-ink" data-testid="eligible-headline">
+                {eligibleHeadline(status)}
+              </p>
+              {status.freshness && <FreshnessBadge freshness={status.freshness} />}
+            </div>
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-arepo-muted">
               <span>
                 Last complete scan{" "}
@@ -229,16 +235,19 @@ function SignalCard({ row }: { row: ScanSignalRow }) {
         </div>
       </div>
 
-      <p className="mt-3 text-[14px] text-arepo-ink2" data-testid="strength-phrase">
+      <div className="mt-3">
+        <StrengthBar value={row.strength} />
+      </div>
+
+      <p className="mt-2 text-[14px] text-arepo-ink2" data-testid="strength-phrase">
         {strengthPhrase(row.strength, t)}.
         {consec ? ` ${consec}.` : ""}
       </p>
 
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-arepo-muted">
-        {row.public_top_ten ? (
-          <Badge tone="accent">Public top ten</Badge>
-        ) : (
-          <Badge tone="neutral">Shadow directional</Badge>
+        {/* Small secondary marker only (prompt B3): no dominant public-top-ten badge. */}
+        {row.public_top_ten && (
+          <span className="text-arepo-muted">Also shown in Opportunities</span>
         )}
         <span>Research Priority {row.research_priority}</span>
         <span>Confidence {Math.round(row.confidence * 100)}%</span>

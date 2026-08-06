@@ -10,8 +10,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from astrolabe.clients.gamma import PaginationReport
 from astrolabe.discovery import scan_store
+from astrolabe.discovery.bounded_discovery import DiscoveryReport
 from astrolabe.discovery.eligibility import (
     BUCKET_0_6H,
     BUCKET_1_7D,
@@ -143,11 +143,12 @@ def test_top_ten_is_display_only_over_full_directional_set():
     assert len(directional) == 25                          # nothing dropped
     top = [m for m in directional if m.public_top_ten]
     shadow = [m for m in directional if m.shadow_directional]
-    assert len(top) == 10 and len(shadow) == 15            # 10 public, 15 shadow preserved
+    # Selection policy short-horizon-public-20-v1: public shortlist is the top 20, rest are shadow.
+    assert len(top) == 20 and len(shadow) == 5             # 20 public, 5 shadow preserved
     ranks = sorted(m.rank_in_bucket for m in directional)
     assert ranks == list(range(1, 26))                     # dense 1..25 over the FULL set
-    # top ten are the highest Research Priority.
-    assert {m.rank_in_bucket for m in top} == set(range(1, 11))
+    # the public 20 are the highest Research Priority.
+    assert {m.rank_in_bucket for m in top} == set(range(1, 21))
 
 
 def test_fewer_than_ten_directional_not_padded():
@@ -181,31 +182,34 @@ def _result(scan_id: str, screens_by_bucket: dict) -> ScanResult:
             analysed.append(AnalysedMarket(screen=ss, hours=3.0, bucket=bucket))
     for b in {a.bucket for a in analysed}:
         _rank([a for a in analysed if a.bucket == b])
-    rep = PaginationReport(pages=5, raw_items=500, unique_markets=500, complete=True)
+    rep = DiscoveryReport(
+        scan_origin_at="2026-08-06T12:00:00Z", end_date_min="2026-08-06T12:00:00Z",
+        end_date_max="2026-09-05T12:00:00Z", primary_unique=500, union_unique=500, complete=True,
+    )
     from astrolabe.discovery.eligibility import DiscoveryFunnel
     f = DiscoveryFunnel(unique_markets=500, eligible_30d=len(analysed))
     f.finalise()
     return ScanResult(
         scan_id=scan_id, started_at=NOW, finished_at=NOW + timedelta(seconds=20),
-        duration_seconds=20.0, pagination=rep, funnel=f, analysed=analysed, status="ok",
+        duration_seconds=20.0, discovery=rep, funnel=f, analysed=analysed, status="ok",
     )
 
 
 async def test_snapshots_are_append_only_and_idempotent(session):
-    r1 = _result("scan-1", {BUCKET_0_6H: [_screen(f"m{i}", rp=90 - i) for i in range(12)]})
+    r1 = _result("scan-1", {BUCKET_0_6H: [_screen(f"m{i}", rp=90 - i) for i in range(25)]})
     rec = await scan_store.record_scan(session, r1)
-    assert rec["inserted_snapshots"] == 12 and not rec["already_recorded"]
+    assert rec["inserted_snapshots"] == 25 and not rec["already_recorded"]
     # Re-recording the same scan is a no-op (idempotent), never a duplicate.
     rec2 = await scan_store.record_scan(session, r1)
     assert rec2["inserted_snapshots"] == 0 and rec2["already_recorded"]
     rows = await scan_store.snapshots_for_scan(session, "scan-1")
-    assert len(rows) == 12
+    assert len(rows) == 25
     top = [r for r in rows if r.public_top_ten]
-    assert len(top) == 10  # display-only subset flag stored, full set preserved
+    assert len(top) == 20  # display-only subset flag stored (top 20), full set preserved
     # A LATER scan appends new rows and never overwrites the earlier ones.
     r2 = _result("scan-2", {BUCKET_0_6H: [_screen(f"m{i}", rp=80 - i) for i in range(12)]})
     await scan_store.record_scan(session, r2)
-    assert len(await scan_store.snapshots_for_scan(session, "scan-1")) == 12  # unchanged
+    assert len(await scan_store.snapshots_for_scan(session, "scan-1")) == 25  # unchanged
     assert len(await scan_store.snapshots_for_scan(session, "scan-2")) == 12
     hist = await scan_store.snapshots_for_market(session, "m0")
     assert len(hist) == 2  # one row per scan for the same market

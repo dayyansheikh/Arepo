@@ -15,19 +15,26 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from ..clients.gamma import GammaClient, PaginationReport
+from ..clients.gamma import GammaClient
 from ..domain.models import Market, utcnow
 from ..evaluation.constants import CALCULATION_VERSION
-from ..evaluation.research_constants import MODEL_VERSION, PUBLIC_SELECTION_SIZE
+from ..evaluation.research_constants import MODEL_VERSION
 from ..evaluation.research_engine import ScoredScreen, score_screen
 from ..ingest.normalize import normalize_market
+from .bounded_discovery import BoundedDiscovery, DiscoveryReport
 from .eligibility import (
+    MIN_ELIGIBLE_LIQUIDITY,
     PRIMARY_BUCKETS,
+    PUBLIC_SELECTION_LIMIT,
+    SELECTION_POLICY_VERSION,
     DiscoveryFunnel,
     build_funnel,
+    classify_public,
+    raw_liquidity,
 )
 
-PUBLIC_TOP_N = PUBLIC_SELECTION_SIZE  # 10 - a DISPLAY limit only
+# The public selection/display limit (prompt B1/B2). NEVER a discovery/analysis cap.
+PUBLIC_TOP_N = PUBLIC_SELECTION_LIMIT  # 20
 
 
 @dataclass
@@ -49,11 +56,13 @@ class ScanResult:
     started_at: datetime
     finished_at: datetime
     duration_seconds: float
-    pagination: PaginationReport
+    discovery: DiscoveryReport
     funnel: DiscoveryFunnel
     analysed: list[AnalysedMarket] = field(default_factory=list)
     scoring_excluded: list[dict] = field(default_factory=list)
     status: str = "ok"
+    selection_policy: str = SELECTION_POLICY_VERSION
+    public_selection_limit: int = PUBLIC_SELECTION_LIMIT
 
     @property
     def directional(self) -> list[AnalysedMarket]:
@@ -93,33 +102,50 @@ class CompleteScanService:
         self._data_api = data_api
         self._gamma = gamma
 
-    async def discover(self, *, max_pages: int = 1000) -> tuple[list[Market], PaginationReport]:
-        """Complete paginated discovery of the active-open universe, normalised to Markets."""
+    async def discover(
+        self, *, scan_origin: datetime, min_liquidity: float = MIN_ELIGIBLE_LIQUIDITY
+    ) -> tuple[list[Market], DiscoveryReport, int]:
+        """Bounded 30-day discovery, then a cheap liquidity prefilter, then normalise survivors.
+
+        The 30-day active universe is ~110k markets; a raw liquidity prefilter cuts it to the
+        tradable/liquid candidates BEFORE the (relatively expensive) normalisation, so no market is
+        discovery-truncated but the analysed set is bounded by eligibility, not by an arbitrary cap.
+        Returns (normalised candidate markets, discovery report, count prefiltered out).
+        """
         gamma = self._gamma or GammaClient()
         owns = self._gamma is None
         try:
-            raw, report = await gamma.paginate_markets(
-                active=True, closed=False, page_size=100, max_pages=max_pages
-            )
+            raw_union, report = await BoundedDiscovery(gamma).discover(scan_origin=scan_origin)
         finally:
             if owns:
                 await gamma.aclose()
+        prefiltered = 0
         markets: list[Market] = []
-        for r in raw:
+        for r in raw_union:
+            if raw_liquidity(r) < min_liquidity:
+                prefiltered += 1
+                continue
             m = normalize_market(r)
             if m is not None:
                 markets.append(m)
-        return markets, report
+        return markets, report, prefiltered
 
     async def run_scan(
-        self, *, now: datetime | None = None, max_pages: int = 1000
+        self, *, now: datetime | None = None, min_liquidity: float = MIN_ELIGIBLE_LIQUIDITY
     ) -> ScanResult:
         started = now or utcnow()
-        markets, report = await self.discover(max_pages=max_pages)
+        markets, report, prefiltered = await self.discover(
+            scan_origin=started, min_liquidity=min_liquidity
+        )
 
-        funnel, eligible = build_funnel(markets, started)
-        funnel.raw_records = report.raw_items
-        funnel.duplicates_removed = report.duplicates_removed
+        # Full public eligibility (structural + tradable + liquidity floor) reflected in the funnel.
+        funnel, eligible = build_funnel(
+            markets, started,
+            classifier=lambda m, n: classify_public(m, n, min_liquidity=min_liquidity),
+        )
+        funnel.raw_records = report.union_unique
+        funnel.unique_markets = report.union_unique
+        funnel.prefiltered_out = prefiltered
         funnel.pagination_complete = report.complete
         funnel.pagination_reason = report.incomplete_reason
 
@@ -161,13 +187,12 @@ class CompleteScanService:
             a.overall_rank_30d = i + 1
 
         finished = utcnow()
-        status = "ok" if report.complete else ("incomplete" if report.offset_cap_reached
-                                               or report.repeated_page_detected else "partial")
+        status = "ok" if report.complete else "incomplete"
         scan_id = f"scan-{started.strftime('%Y%m%dT%H%M%S')}-{int(started.timestamp()) % 100000}"
         return ScanResult(
             scan_id=scan_id, started_at=started, finished_at=finished,
             duration_seconds=(finished - started).total_seconds(),
-            pagination=report, funnel=funnel, analysed=analysed,
+            discovery=report, funnel=funnel, analysed=analysed,
             scoring_excluded=scoring_excluded, status=status,
         )
 
@@ -179,12 +204,14 @@ class CompleteScanService:
             "started_at": result.started_at.isoformat(),
             "finished_at": result.finished_at.isoformat(),
             "duration_seconds": round(result.duration_seconds, 2),
-            "pagination": result.pagination.as_dict(),
+            "discovery": result.discovery.as_dict(),
             "funnel": f,
             "analysed": len(result.analysed),
             "directional": len(result.directional),
             "bucket_counts": result.bucket_counts(),
             "status": result.status,
+            "selection_policy": result.selection_policy,
+            "public_selection_limit": result.public_selection_limit,
             "model_version": MODEL_VERSION,
             "calculation_version": CALCULATION_VERSION,
         }

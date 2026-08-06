@@ -31,8 +31,8 @@ describe("bucket + scope options", () => {
       "closing_7_30d",
     ]);
   });
-  it("offers public and all-directional scopes", () => {
-    expect(SCOPE_OPTIONS.map((s) => s.id)).toEqual(["public", "directional"]);
+  it("defaults to all directional signals, with the public shortlist as the secondary option", () => {
+    expect(SCOPE_OPTIONS.map((s) => s.id)).toEqual(["directional", "public"]);
   });
 });
 
