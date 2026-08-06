@@ -38,6 +38,35 @@ delete that tag. Never rewrite history.
 
 ## Current phase
 
+**Final pre-deployment repair & launch readiness (branch
+`arepo-final-predeployment-launch-readiness`, safety tag
+`arepo-before-final-predeployment-launch-readiness`).** Preserves all edge-research work from 5e2ce9f.
+Gates: **backend 351 pass, ruff clean; frontend tsc/lint clean, 37 vitest, build 16/16.** DB at
+schema v3.
+
+DONE + committed:
+- §2/§3 BLOCKING schema failure fixed: additive metadata-diff migrator (`storage/migrate.py` +
+  `migrate_cli.py`), SQLite+Postgres, idempotent, schema_migrations version, preflight, bootstrap
+  auto-migrates. Real DB migrated 0→3; the blocked 6h freeze now works. 5 migration tests.
+- §4 atomic freeze (explicit rollback) + incomplete-cohort detect/repair + `research-repair`. Tests.
+- §5 honest universe degradation: exclusion funnel + assess_universe guard (reject/degrade) +
+  cohort excluded_markets/degraded columns + status exposure. Tests.
+- §6/§7/§8 frontend: viewport-aware portal Popover primitive (MetricHelp+TagChip) + overflow-x:clip
+  + action-row spacing. 16 pure positioning tests; live-verified (portal/fixed/inside-viewport/no
+  overflow) + screenshot.
+- §11 hosting decision (Render+Supabase+Vercel primary); §12 keep separate crons (orchestrator
+  fallback only); §13 render.yaml preDeployCommand migrate + scripts (preflight/verify/health) +
+  deployment docs; §15 production-equivalent dry run PASSES headless.
+- §9 local acceptance doc; §16 exact 39-step USER_DEPLOYMENT_CHECKLIST; §17 goal refined.
+- §18 reviewers: production-architecture+provenance = CLEAN (1 LOW doc fix applied). DB/adversary
+  reviewer running.
+
+**Exact next action:** collect the DB/migration+adversary reviewer report; fix any confirmed
+critical/major; push branch; write the final report (§20). Then the user follows
+docs/USER_DEPLOYMENT_CHECKLIST.md to deploy.
+
+## (superseded) Current phase
+
 **Edge-research infrastructure (branch `arepo-edge-research-infrastructure`, safety tag
 `arepo-before-edge-research-infrastructure`).** Building the measurement engine that freezes real
 prospective predictions before outcomes and measures them after execution costs. Preserves all

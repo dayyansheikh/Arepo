@@ -2,6 +2,21 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Final pre-deployment repair & launch readiness (branch `arepo-final-predeployment-launch-readiness`)
+- [x] §1 baseline (docs/final-predeployment-baseline.md)
+- [x] §2/§3 schema failure fixed: additive SQLite+Postgres migrator + preflight + tests + docs
+- [x] §4 atomic freeze + partial-cohort detect/repair + tests
+- [x] §5 unavailable-token exclusion funnel + degradation guard + status + tests
+- [x] §6/§7/§8 popover primitive + overflow removal + action-row spacing + tests (live-verified)
+- [x] §9 local acceptance (docs/FINAL_PREDEPLOYMENT_LOCAL_ACCEPTANCE.md); §10 full test gate green
+- [x] §11 hosting decision; §12 orchestrator assessment (keep separate crons)
+- [x] §13 render.yaml release migrate + scripts + deployment docs
+- [x] §14/§15 Postgres-portable schema + production-equivalent dry run (passes headless)
+- [x] §16 USER_DEPLOYMENT_CHECKLIST (39 steps); §17 goal refined
+- [~] §18 reviewers (architecture+provenance CLEAN; DB/adversary running); fix confirmed findings
+- [ ] push branch; §20 final report
+- [!] external deployment (Supabase/Render/Vercel accounts) - user performs via the checklist
+
 ## Edge-research infrastructure (branch `arepo-edge-research-infrastructure`)
 - [x] §1 safe start: baseline, goal, tag, branch
 - [x] §2 freeze every directional signal + roles (full universe); §4 complete cut-off snapshot incl RP

@@ -11,7 +11,7 @@ web service's environment group. Defined in `render.yaml`. Set a 10-minute timeo
 | Research freeze 6h | `python -m astrolabe.evaluation.research_cli research-freeze --cadence 6h` | `5 0,6,12,18 * * *` | 1–3 min | (6h, cutoff) | JSON `frozen:true` | `rejected:true` or no run in 7h |
 | Research freeze daily | `... research-freeze --cadence daily` | `10 0 * * *` | 1–3 min | (daily, cutoff) | `frozen:true` | rejected / missed |
 | Research freeze weekly | `... research-freeze --cadence weekly` | `15 0 * * 1` | 1–3 min | (weekly, cutoff) | `frozen:true` | rejected / missed |
-| Research forward observations | `... research-freeze` → `... research-forward` | `*/20 * * * *` | secs–min | (entry, horizon) | JSON `written>=0` | growing backlog |
+| Research forward observations | `python -m astrolabe.evaluation.research_cli research-forward` | `*/20 * * * *` | secs–min | (entry, horizon) | JSON `written>=0` | growing backlog |
 | Resolutions | `python -m astrolabe.evaluation.cli resolve --mode live` | `15 */6 * * *` | seconds | one row / market | recorded | repeated errors |
 
 The forward collector is due-driven: it records any horizon that has elapsed since the freeze and

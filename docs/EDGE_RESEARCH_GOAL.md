@@ -1,13 +1,24 @@
 # Edge research goal
 
-> The goal is to determine whether Arepo produces a genuine predictive advantage beyond simple
-> momentum and price-only baselines using prospective, immutable, point-in-time evidence evaluated
-> after realistic execution costs.
+> Determine whether Arepo's **selection and microstructure evidence improves outcomes beyond simple
+> momentum** using prospective, immutable, point-in-time evidence after realistic execution costs.
 
-This pass builds the measurement engine. It does **not** try to make the result positive. A truthful
-negative or inconclusive result is more valuable than a misleading positive one. Infrastructure
-completion means Arepo is *capable of collecting the evidence* to decide the question, not that an
-edge exists.
+Refined (pre-deployment pass): because Arepo's directional call IS the sign of the latest-return
+z-score, it equals momentum by construction, so a *directional* edge over momentum is impossible with
+the current model. The live question is therefore whether Arepo's **selection/ranking** (which
+markets it surfaces) or its **microstructure families** (order book, trade flow) add value beyond
+momentum — exactly what the ablation and the public-vs-shadow-vs-abstention roles are built to test.
+
+This programme builds and now operationalises the measurement engine. It does **not** try to make
+the result positive. A truthful negative or inconclusive result is more valuable than a misleading
+positive one. Infrastructure completion means Arepo is *capable of collecting the evidence* to decide
+the question, not that an edge exists.
+
+**Pre-deployment milestone (2026-08-06):** the blocking schema failure is fixed with an additive
+SQLite+Postgres migration; freezes are atomic; unavailable-token degradation is honest; the UI
+overflow/popover/spacing defects are fixed; the production architecture is decided (Render + Supabase
++ Vercel) with a passing production-equivalent dry run and an exact user checklist. The system is
+ready for the user to deploy and begin real prospective collection.
 
 ## Live goal table
 
