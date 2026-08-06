@@ -3,6 +3,22 @@
 _Single source of truth for "where are we, exactly." Updated at the end of every phase.
 Older history is preserved in git; this file tracks the **Master Final Refinement**._
 
+## Latest: Final runtime acceptance fix — COMPLETE (branch `arepo-final-runtime-acceptance-fix`)
+
+Safety tag before this pass: **`arepo-before-final-runtime-acceptance-fix`**. All 8 acceptance items
+Pass (see `docs/FINAL_RUNTIME_ACCEPTANCE.md`). Real-browser verified, not just unit tests.
+- Popover: capped max-width applied BEFORE getBoundingClientRect measure → reveal width == measured
+  width; visualViewport-aware; clamped ≥12px; right edge at 574px = 562 (= 574−12).
+- Overflow 632→574 at 574px: TopBar wrap, SignalItem link truncate, sr-only table→div; scoped clip on
+  synthetic-demo subtree only (not a global mask).
+- Action row: badge own item, 12.8px gap, 32px padded toggle, 8px wrap.
+- Replay: real 6h cohort primary + banner (frozen 01:24:13Z / scheduled 00:00Z / 84min late);
+  synthetic moved to its own tab; `?replay=prospective` → real research.
+- Market routes: geist error was stale `.next`; clean build+dev proven; `dev:clean` added.
+- API polling: single shared backoff poller; no console flood; auto-recovers.
+- Tests: backend pytest 359 + ruff clean; frontend tsc/lint clean, vitest 40, build clean; Playwright
+  **79 passed**. DB preserved (60-market 6h cohort intact). Deployment NOT triggered.
+
 ## Recovery / resume
 
 Branch: `arepo-master-final`. Safety tag before this effort: **`arepo-ui-v1`**

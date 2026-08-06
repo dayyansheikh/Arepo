@@ -5,9 +5,10 @@ import {
   computePopoverPosition,
 } from "./popover-position";
 
-// The six supported widths from the prompt. Height fixed; zoom is represented by the fact that the
-// maths is in CSS pixels (a zoomed viewport reports a smaller CSS width, already covered by 320).
-const WIDTHS = [320, 375, 768, 1024, 1280, 1440];
+// The supported widths from the prompt, plus 574 — the width at which manual testing reproduced the
+// real off-screen overflow. Height fixed; zoom is represented by the fact that the maths is in CSS
+// pixels (a zoomed viewport reports a smaller CSS width, already covered by 320).
+const WIDTHS = [320, 375, 574, 768, 1024, 1280, 1440];
 
 function rect(left: number, top: number, w = 20, h = 16): Rect {
   return { left, top, right: left + w, bottom: top + h, width: w, height: h };
@@ -61,6 +62,18 @@ describe("computePopoverPosition", () => {
       height: 800,
     });
     expect(p.left).toBe(200);
+  });
+
+  it("clamps within a visual viewport that is inset (pinch-zoom / mobile keyboard)", () => {
+    // visualViewport is 400 wide, inset 100px from the layout-viewport left, 50px from the top.
+    const viewport = { width: 400, height: 500, offsetLeft: 100, offsetTop: 50 };
+    const trigger = rect(480, 60); // near the visual viewport's right edge
+    const panel = { width: 352, height: 140 };
+    const p = computePopoverPosition(trigger, panel, viewport);
+    expect(p.left).toBeGreaterThanOrEqual(100 + POPOVER_MARGIN);
+    const actualWidth = Math.min(panel.width, p.maxWidth);
+    expect(p.left + actualWidth).toBeLessThanOrEqual(100 + 400 - POPOVER_MARGIN);
+    expect(p.top).toBeGreaterThanOrEqual(50 + POPOVER_MARGIN);
   });
 
   it("never produces a negative or off-screen coordinate for a tiny viewport", () => {

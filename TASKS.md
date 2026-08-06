@@ -224,3 +224,16 @@ Prior redesign + original build tasks are complete; history is in git.
 ## Blocked (external authorization only)
 - [!] `docker compose up` — no Docker daemon in environment
 - [!] Public deployment / paid scheduler activation — requires user's account auth
+
+## Final runtime acceptance fix (branch `arepo-final-runtime-acceptance-fix`)
+Safety tag `arepo-before-final-runtime-acceptance-fix`. Real-browser fixes for failures that passed unit tests.
+- [x] §1 Popover: cap max-width BEFORE getBoundingClientRect measurement (measure==reveal width), visualViewport-aware, ≥12px clamp, two-pass, max-width min(22rem,100dvw−24px)
+- [x] §2 Real browser tests: Playwright, 7 viewports incl. 574×900 repro; assert from bounding rects; screenshots on failure — 79 passed
+- [x] §3 Overflow root causes fixed (TopBar wrap, sr-only table→div wrapper, SignalItem link truncate); scoped clip only on synthetic demo subtree; 632→574 at 574px
+- [x] §4 Deliberate action row: badge own item, fixed 12px+ gap (12.8 measured), padded 32px toggle, wraps at 8px
+- [x] §5 Replay real 6h cohort primary; banner (actual freeze/scheduled/84min late); counts/roles/horizons/edge/calibration/model-limitation; legacy ?replay=prospective→real
+- [x] §6 vendor-chunks/geist.js = stale .next; clean build+dev proven; `clean`/`dev:clean`/`build:clean` scripts; route smoke tests
+- [x] §7 Shared backoff status poller (dedup, abort-on-unmount, visibility-pause, auto-recover); one disconnected chip; no flood; no unhandled rejections
+- [x] §8 docs/FINAL_RUNTIME_ACCEPTANCE.md + screenshots + before/after rects; no item Fail
+- [x] §9 Gate: backend pytest 359 / ruff clean; frontend tsc / lint / vitest 40 / build clean; browser 79
+- [x] §10 Docs updated; DB preserved; committed + pushed (deployment NOT triggered)

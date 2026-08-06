@@ -1,0 +1,27 @@
+{
+  "signals_574": {
+    "scrollWidth": 574,
+    "clientWidth": 574
+  },
+  "popover_574": {
+    "left": 210,
+    "right": 562,
+    "width": 352,
+    "viewport": 574,
+    "marginLeft": 210,
+    "marginRight": 12
+  },
+  "action_574": {
+    "sameRow": true,
+    "horizGap": 12.8,
+    "vertGap": null,
+    "toggleHeight": 32.3
+  },
+  "action_375": {
+    "sameRow": true,
+    "horizGap": 12.8,
+    "vertGap": null,
+    "toggleHeight": 32.3
+  },
+  "replay_banner": "Actually frozen at 06/08/2026, 02:24:13 · scheduled for 06/08/2026, 01:00:00 · 84 minutes late · outcomes measured from the actual freeze time. Late but not excessively late, so it is kept and evaluated from its real freeze time."
+}

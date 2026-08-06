@@ -39,6 +39,27 @@ import { MetricHelp } from "@/components/MetricHelp";
 
 type View = "movement" | "resolution";
 
+type ReplayMode = "research" | "reconstructed" | "demo";
+
+/** Normalise the URL `replay` value to the current three modes, mapping legacy values so old links
+ * keep working: `prospective` (which used to show synthetic demo data) now lands on the REAL
+ * research view, and `historical` lands on the reconstructed analysis (final runtime acceptance §5). */
+function normaliseReplayMode(raw: string): ReplayMode {
+  switch (raw) {
+    case "research":
+    case "prospective":
+      return "research";
+    case "reconstructed":
+    case "historical":
+      return "reconstructed";
+    case "demo":
+    case "synthetic":
+      return "demo";
+    default:
+      return "research";
+  }
+}
+
 function money(v: number | null | undefined): string {
   if (v === null || v === undefined) return "n/a";
   const sign = v < 0 ? "-" : "";
@@ -71,19 +92,20 @@ export default function ReplayPage() {
   );
 
   const [view, setView] = useState<View>("movement");
-  // Default to the reconstructed "last week's opportunities" (real, honest) rather than the
-  // prospective cohort list, which currently holds only labelled synthetic demo data and showed a
-  // stale cohort as if it were current (spec §14, §19). The mode persists in the URL.
-  const [mode, setMode] = useUrlState("replay", "historical") as [
-    "historical" | "prospective",
-    (v: string) => void,
-  ];
+  // Real prospective research is PRIMARY (final runtime acceptance §5): the default view shows the
+  // real frozen cohorts recorded and tracked forward, with the actual freeze time and lateness. The
+  // reconstructed price-only analysis is a clearly-secondary research mode, and the synthetic weekly
+  // demonstration is moved out to its own "Demo" control so it can never occupy the prospective view
+  // or be read as a real track record. The mode persists in the URL; legacy links are normalised so
+  // ?replay=prospective now lands on the REAL research (previously it showed synthetic demo data).
+  const [rawMode, setMode] = useUrlState("replay", "research");
+  const mode: ReplayMode = normaliseReplayMode(rawMode);
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Replay"
-        lead="If you had opened Arepo at a past cut-off and followed its top directional opportunities, what happened next? The default reconstructs those opportunities from only the data available at the time. A separate prospective record freezes each week's real selections and tracks them forward."
+        lead="Arepo freezes each real research cohort at the moment it is recorded, then measures what happens next from that actual freeze time. That real prospective record is shown first. A separate reconstructed analysis rebuilds past opportunities from price history alone, and a synthetic demonstration is kept apart for teaching."
       />
 
       <DisclaimerBanner>
@@ -91,22 +113,24 @@ export default function ReplayPage() {
         future results.
       </DisclaimerBanner>
 
-      {/* Reconstructed "last week's opportunities" (default) vs the prospective frozen record. */}
+      {/* Real prospective (primary) · Reconstructed analysis (secondary) · Synthetic demo (separate). */}
       <div
-        className="inline-flex rounded-control border border-arepo-border bg-arepo-surface p-0.5"
+        className="inline-flex flex-wrap rounded-control border border-arepo-border bg-arepo-surface p-0.5"
         role="tablist"
         aria-label="Replay mode"
       >
         {(
           [
-            ["historical", "Last week's opportunities"],
-            ["prospective", "Prospective record"],
-          ] as ["historical" | "prospective", string][]
+            ["research", "Real prospective research"],
+            ["reconstructed", "Reconstructed analysis"],
+            ["demo", "Synthetic demonstration"],
+          ] as [ReplayMode, string][]
         ).map(([key, label]) => (
           <button
             key={key}
             role="tab"
             aria-selected={mode === key}
+            data-testid={`replay-tab-${key}`}
             onClick={() => setMode(key)}
             className={`focus-ring rounded-[8px] px-3.5 py-1.5 text-[14px] font-medium transition-colors ${
               mode === key
@@ -142,10 +166,26 @@ export default function ReplayPage() {
         </dl>
       </Disclose>
 
-      {mode === "historical" && <HistoricalView />}
+      {mode === "research" && <RealProspectiveResearch />}
 
-      {mode === "prospective" && (
-        <>
+      {mode === "reconstructed" && <HistoricalView />}
+
+      {mode === "demo" && (
+        /* Scoped (not global) overflow-x guard: the synthetic demo shows wide fixed-min-width tables
+           inside their own horizontal scrollers, whose sub-pixel rounding could add a 1–2px window
+           scroll at 320px. Clipping only this synthetic-demo subtree removes that without affecting
+           the real experience or masking a genuine element-level overflow elsewhere (§3). */
+        <div className="space-y-8 overflow-x-clip">
+      <div className="flex items-start gap-2.5 rounded-card border border-arepo-warn/30 bg-arepo-warn/10 px-4 py-3 text-[14px] leading-relaxed text-arepo-warnText">
+        <span className="mt-0.5 inline-flex flex-none items-center rounded-full bg-arepo-warn/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
+          Synthetic demonstration
+        </span>
+        <span className="min-w-0">
+          Everything below is synthetic demonstration data for testing and teaching only. It is not a
+          real track record, is never labelled simply &ldquo;prospective&rdquo;, and is never mixed
+          into the real research statistics shown under &ldquo;Real prospective research&rdquo;.
+        </span>
+      </div>
       {weeksState.loading && <ListSkeleton rows={5} />}
       {!weeksState.loading && weeksState.error && <ErrorState message={weeksState.error} />}
 
@@ -205,7 +245,7 @@ export default function ReplayPage() {
       <Disclose summary="Show the signal backtest (demonstration dataset)">
         <BacktestDemo />
       </Disclose>
-        </>
+        </div>
       )}
 
       {provenanceState.data && <ProvenanceFootnote info={provenanceState.data} />}
@@ -221,7 +261,7 @@ function ProvenanceNotice({ week, note }: { week: CohortWeek; note?: string | nu
       <span className="mt-0.5 inline-flex flex-none items-center rounded-full bg-arepo-ink/8 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-arepo-ink2">
         {label}
       </span>
-      <span>
+      <span className="min-w-0">
         {note ??
           "This cohort is a demonstration, not real prospective performance, and is never mixed into real statistics."}
       </span>
@@ -553,7 +593,7 @@ function HistoricalView() {
         <span className="mt-0.5 inline-flex flex-none items-center rounded-full bg-arepo-ink/8 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-arepo-ink2">
           Reconstructed analysis
         </span>
-        <span>
+        <span className="min-w-0">
           This reconstructs the composite anomaly signal at a past cut-off using only the real
           price history up to that moment, then measures what actually happened afterwards. It is
           a research screen, separate from the prospective frozen-weekly track record, and is
@@ -603,37 +643,126 @@ function HistoricalView() {
       {!loading && error && <ErrorState message={error} />}
       {!loading && data && <HistoricalResult screen={data} maxHours={maxHours} />}
 
-      <ResearchStatusSection />
+      <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
+        Looking for the real frozen cohorts and the edge verdict? See{" "}
+        <span className="font-medium text-arepo-ink2">Real prospective research</span> above — this
+        reconstructed analysis is a separate, illustrative research screen and is never mixed into it.
+      </p>
       <ReplayDataStatusSection />
     </div>
   );
 }
 
-/** Edge-research status (edge-research prompt §13): real stored prospective evidence and whether the
- * edge criteria are met. Shows the honest empty state rather than hiding it behind synthetic or
- * reconstructed numbers. */
-function ResearchStatusSection() {
-  const { data } = useAsync(() => getResearchStatus(), []);
+/**
+ * Real prospective research (final runtime acceptance §5) — the PRIMARY Replay view. It renders only
+ * the real stored prospective rows from /api/research/status: the actual six-hour cohort, its role
+ * breakdown, horizon coverage, the real freeze timing (scheduled vs actually-frozen vs evaluation
+ * origin, and lateness), collector freshness, the edge verdict, calibration status and the model
+ * limitation note. No synthetic or reconstructed numbers enter here. If no real cohort exists yet it
+ * shows the honest empty state rather than hiding behind demo data.
+ */
+function RealProspectiveResearch() {
+  const { data, loading, error } = useAsync(() => getResearchStatus(), []);
+  if (loading) return <ListSkeleton rows={6} />;
+  if (error) return <ErrorState message={error} />;
   if (!data) return null;
+
   const cad = data.cohort_counts_by_cadence || {};
+  const roles = data.roles || {};
+  const run = data.latest_run;
+  const hasReal = data.total_frozen_markets > 0 || (cad["6h"] ?? 0) + (cad["daily"] ?? 0) + (cad["weekly"] ?? 0) > 0;
+
+  if (!hasReal) {
+    return (
+      <EmptyState
+        message={
+          "No real prospective cohort has been frozen yet. The backend freeze job records one " +
+          "automatically; once it runs, the real frozen universe, timing and edge verdict appear here."
+        }
+      />
+    );
+  }
+
+  const lateMin = run ? Math.round(run.lateness_seconds / 60) : 0;
   const rows: [string, string][] = [
     ["Model version", data.model_version],
-    ["Frozen cohorts (6h / daily / weekly)", `${cad["6h"] ?? 0} / ${cad["daily"] ?? 0} / ${cad["weekly"] ?? 0}`],
-    ["Frozen markets (full universe)", String(data.total_frozen_markets)],
+    [
+      "Frozen cohorts (6h / daily / weekly)",
+      `${cad["6h"] ?? 0} / ${cad["daily"] ?? 0} / ${cad["weekly"] ?? 0}`,
+    ],
+    ["Total frozen markets (full universe)", String(data.total_frozen_markets)],
+    ["Public selections", String(roles.public_selection ?? data.public_selections)],
+    ["Shadow directional", String(roles.shadow_directional ?? data.shadow_signals)],
+    ["Observation", String(roles.observation ?? data.observations)],
+    ["Abstention controls", String(roles.abstention_control ?? data.abstentions)],
     ["Directional signals (public + shadow)", `${data.directional_signals} (${data.public_selections} + ${data.shadow_signals})`],
-    ["Abstention controls", String(data.abstentions)],
-    ["24h outcomes evaluable", String(data.horizon_coverage?.["24h"]?.evaluable ?? 0)],
     ["Resolved markets", String(data.resolved_markets)],
     ["Late cohorts (frozen after their boundary)", String(data.late_cohorts ?? 0)],
     ["Excessively late (excluded from performance)", String(data.excessively_late_cohorts_excluded ?? 0)],
-    ["Last successful freeze", data.last_successful_freeze ? new Date(data.last_successful_freeze).toLocaleString("en-GB") : "none yet"],
+    ["Degraded cohorts", String(data.degraded_cohorts ?? 0)],
+    [
+      "Collectors",
+      data.collector_recent ? "Recently active" : "No recent collection (degraded freshness)",
+    ],
+    [
+      "Last successful freeze",
+      data.last_successful_freeze ? new Date(data.last_successful_freeze).toLocaleString("en-GB") : "none yet",
+    ],
   ];
-  const run = data.latest_run;
+
   return (
-    <section className="space-y-3">
-      <SectionTitle>Edge-research status</SectionTitle>
-      {/* Edge verdict banner: the honest, unmissable current state. */}
+    <section className="space-y-4" data-testid="real-prospective-research">
+      <SectionTitle>Real prospective research</SectionTitle>
+      <p className="max-w-reading text-[14px] leading-relaxed text-arepo-ink2">
+        The real research cohorts Arepo has actually frozen and is tracking forward. Every number
+        below comes from stored prospective rows; nothing here is reconstructed or synthetic.
+      </p>
+
+      {/* Prominent real-timing banner (final runtime acceptance §5): the ACTUAL freeze time, the
+          scheduled boundary, the lateness, and that outcomes are measured from the real freeze. */}
+      {run && run.frozen_at && (
+        <div
+          data-testid="freeze-timing-banner"
+          className={`rounded-card border px-4 py-3 text-[14px] leading-relaxed ${
+            run.excessively_late
+              ? "border-arepo-neg/40 bg-arepo-neg/10 text-arepo-ink"
+              : run.late
+                ? "border-arepo-warn/40 bg-arepo-warn/10 text-arepo-warnText"
+                : "border-arepo-pos/30 bg-arepo-pos/10 text-arepo-ink"
+          }`}
+        >
+          <span className="font-semibold text-arepo-ink">
+            Actually frozen at {new Date(run.frozen_at).toLocaleString("en-GB")}
+          </span>
+          {run.scheduled_for && (
+            <> · scheduled for {new Date(run.scheduled_for).toLocaleString("en-GB")}</>
+          )}
+          {run.scheduled_for && run.lateness_seconds > 0 && (
+            <> · {lateMin} minutes late</>
+          )}
+          {" · outcomes measured from the actual freeze time"}
+          {run.excessively_late && (
+            <> — this cohort is excluded from performance (frozen too long after its boundary).</>
+          )}
+          {run.late && !run.excessively_late && (
+            <>. Late but not excessively late, so it is kept and evaluated from its real freeze time.</>
+          )}
+        </div>
+      )}
+
+      {/* Evaluation-origin proof: evaluation origin equals the actual freeze, never the schedule. */}
+      {run && run.evaluation_origin_at && (
+        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
+          Evaluation origin is {new Date(run.evaluation_origin_at).toLocaleString("en-GB")} — the same
+          instant as the actual freeze, so forward horizons run from when the prediction was really
+          made, never from the scheduled boundary. Universe size {run.universe_size}
+          {run.excluded_markets != null ? `, ${run.excluded_markets} excluded` : ""}.
+        </p>
+      )}
+
+      {/* Edge verdict: the honest, unmissable current state. */}
       <div
+        data-testid="edge-verdict"
         className={`rounded-card border px-4 py-3 text-[13px] leading-relaxed ${
           data.edge.edge_supported
             ? "border-arepo-pos/30 bg-arepo-pos/10 text-arepo-ink"
@@ -643,33 +772,26 @@ function ResearchStatusSection() {
         <span aria-hidden="true">{data.edge.edge_supported ? "✓ " : "⚠ "}</span>
         {data.edge.message}
       </div>
-      {/* Latest freeze timing: the ACTUAL prediction time (frozen_at) is shown prominently, with the
-          scheduled boundary and lateness, so a late run is never read as a boundary prediction. */}
-      {run && run.frozen_at && (
-        <div
-          className={`rounded-card border px-4 py-3 text-[13px] leading-relaxed ${
-            run.excessively_late
-              ? "border-arepo-neg/30 bg-arepo-neg/10 text-arepo-ink"
-              : run.late
-                ? "border-arepo-warn/30 bg-arepo-warn/10 text-arepo-warnText"
-                : "border-arepo-border bg-arepo-surface2 text-arepo-ink2"
-          }`}
-        >
-          <span className="font-medium text-arepo-ink">Latest run: </span>
-          Actually frozen at {new Date(run.frozen_at).toLocaleString("en-GB")}
-          {run.scheduled_for && (
-            <> (scheduled for {new Date(run.scheduled_for).toLocaleString("en-GB")}</>
-          )}
-          {run.scheduled_for && run.lateness_seconds > 0 && (
-            <>, {Math.round(run.lateness_seconds / 60)} min late</>
-          )}
-          {run.scheduled_for && ")"}
-          {run.excessively_late && (
-            <> — excluded from performance (frozen too long after its scheduled boundary).</>
-          )}
-          . Forward outcomes are measured from the actual freeze time, never the scheduled boundary.
+
+      {/* Horizon coverage: how many outcomes are evaluable vs still pending at each horizon. */}
+      <div>
+        <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-arepo-ink">
+          Horizon coverage
         </div>
-      )}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {["1h", "6h", "24h", "7d"].map((h) => {
+            const c = data.horizon_coverage?.[h] ?? { evaluable: 0, pending: 0 };
+            return (
+              <StatTile
+                key={h}
+                label={`${h} evaluable / pending`}
+                value={`${c.evaluable} / ${c.pending}`}
+              />
+            );
+          })}
+        </div>
+      </div>
+
       <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
         {rows.map(([k, v]) => (
           <div key={k} className="flex justify-between gap-3 border-b border-arepo-border py-1">
@@ -678,9 +800,25 @@ function ResearchStatusSection() {
           </div>
         ))}
       </dl>
-      <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">
-        Calibration: {data.calibration.message} {data.note}
-      </p>
+
+      {/* Calibration status. */}
+      <div className="rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[13px] leading-relaxed text-arepo-ink2">
+        <span className="font-semibold text-arepo-ink">
+          Calibration {data.calibration.available ? "available" : "unavailable"}:
+        </span>{" "}
+        {data.calibration.message}
+      </div>
+
+      {/* Model limitation note: why a directional edge over momentum is not achievable with the
+          current model — shown so the edge verdict is never misread as a bug. */}
+      {data.edge.model_limitation_note && (
+        <div className="rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[13px] leading-relaxed text-arepo-muted">
+          <span className="font-semibold text-arepo-ink2">Model limitation: </span>
+          {data.edge.model_limitation_note}
+        </div>
+      )}
+
+      <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">{data.note}</p>
     </section>
   );
 }

@@ -77,16 +77,18 @@ export function SignalItem({ signal }: { signal: Signal }) {
           </p>
           <Link
             href={`/markets/${encodeURIComponent(signal.market_id)}`}
-            className="focus-ring mt-2 inline-flex max-w-reading items-center gap-1 text-[13px] font-medium text-arepo-accentActive hover:text-arepo-accentHover"
+            className="focus-ring mt-2 flex min-w-0 max-w-reading items-center gap-1 text-[13px] font-medium text-arepo-accentActive hover:text-arepo-accentHover"
           >
-            <span className="truncate">
+            {/* min-w-0 + truncate so a long market question ellipsises within the card instead of a
+                nowrap link sizing to its full text and overflowing the viewport (final runtime §3). */}
+            <span className="min-w-0 truncate">
               {signal.market_question
                 ? `Market: ${signal.market_question}${
                     signal.outcome_name ? ` (${signal.outcome_name})` : ""
                   }`
                 : "Inspect this market"}
             </span>
-            <span aria-hidden="true">&rarr;</span>
+            <span aria-hidden="true" className="shrink-0">&rarr;</span>
           </Link>
         </div>
         <div className="flex flex-col items-end gap-1.5">
@@ -127,18 +129,23 @@ export function SignalItem({ signal }: { signal: Signal }) {
         </div>
       </div>
 
-      {/* Deliberate action row (final pre-deployment §8): the directional-qualification badge and
-          the detail toggle are visually separated by a divider and a clear gap, wrap cleanly on
-          narrow widths, and never press against each other or the message. The toggle keeps an
-          accessible target size. Same directional gate as Market Detail (§4, §13). */}
-      <div className="mt-3 flex flex-col gap-x-4 gap-y-2 border-t border-arepo-border pt-3 sm:flex-row sm:items-center sm:justify-between">
-        <DirectionalBadge signal={signal} />
+      {/* Deliberate action row (final runtime acceptance §4): the directional-qualification badge sits
+          in its own flex item and the detail toggle in another, separated by a fixed flex gap so the
+          gap NEVER collapses with wide badge text (the previous justify-between layout let a long
+          badge press the toggle to within a few px). Horizontal gap is gap-x-3 = 12px minimum;
+          vertical gap when the toggle wraps to a second row is gap-y-2 = 8px. The toggle keeps a
+          padded, accessible target. Same directional gate as Market Detail (§4, §13). */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-arepo-border pt-3">
+        <div className="min-w-0 flex-1" data-testid="signal-qualification">
+          <DirectionalBadge signal={signal} />
+        </div>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-controls={panelId}
-          className="focus-ring inline-flex shrink-0 items-center gap-1 self-start rounded-md px-2 py-1 text-[13px] font-semibold text-arepo-accentActive hover:text-arepo-accentHover sm:self-auto"
+          data-testid="signal-detail-toggle"
+          className="focus-ring inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1.5 text-[13px] font-semibold text-arepo-accentActive hover:bg-arepo-accentTint/60 hover:text-arepo-accentHover"
         >
           {open ? "Hide detail" : "Why this fired"}
           <span aria-hidden="true" className="text-[11px]">{open ? "▲" : "▼"}</span>

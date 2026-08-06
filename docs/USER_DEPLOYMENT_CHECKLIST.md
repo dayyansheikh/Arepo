@@ -7,6 +7,13 @@ enter them only in the provider dashboards. Primary architecture: Render (API + 
 
 Legend: 🔒 = secret value.
 
+> **Build from a clean environment (final runtime acceptance §6).** The `Cannot find module
+> './vendor-chunks/geist.js'` error seen in local dev was stale/corrupt `.next` output, not a code
+> fault. Vercel/Render already build fresh, so this cannot occur in deployment. Locally, if a market
+> route ever throws a missing-vendor-chunk error, run `npm run dev:clean` (or `rm -rf .next && npm ci
+> && npm run build`) — never ship a pre-existing `.next`. `.next/` is gitignored, so it is never
+> committed.
+
 ## A. Repository
 
 1. **Confirm branch + commit.** Local terminal: `git -C /path/to/astrolabe log -1 --oneline` and

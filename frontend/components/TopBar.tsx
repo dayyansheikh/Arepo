@@ -78,7 +78,11 @@ export function TopBar() {
           instead of the whole bar bunching in the middle with empty sides when the viewport is
           wide or zoomed out (spec §8). Sensible gutters via the horizontal padding. */}
       <div className="mx-auto w-full max-w-[1920px] px-5 sm:px-8 lg:px-12">
-        <div className="flex items-center justify-between gap-4 py-3.5">
+        {/* flex-wrap so that on a very narrow viewport (e.g. 320px) the right-hand controls drop to
+            their own line and then wrap internally, instead of the fixed-width mode switcher + auth
+            link forcing the header — and therefore the whole document — wider than the viewport
+            (final runtime acceptance §3). The controls no longer carry shrink-0 for the same reason. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3.5">
           <Link href="/" className="focus-ring shrink-0 rounded-md" aria-label="Arepo home">
             <Logo size={34} />
           </Link>
@@ -89,7 +93,7 @@ export function TopBar() {
           >
             <NavLinks pathname={pathname} />
           </nav>
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-2">
             <StatusChip />
             <ModeSwitcher />
             <AuthLink pathname={pathname} />

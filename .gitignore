@@ -36,3 +36,8 @@ frontend/.env.local
 # --- Data dumps / caches (never commit large API dumps) ---
 /backend/astrolabe.db
 /data-dumps/
+
+# --- Playwright (regenerable test artefacts) ---
+frontend/test-results/
+frontend/playwright-report/
+frontend/.playwright/

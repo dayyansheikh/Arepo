@@ -50,12 +50,19 @@ function buildQuery(params: Record<string, string | number | undefined>): string
   return qs ? `?${qs}` : "";
 }
 
-async function apiFetch<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T> {
+async function apiFetch<T>(
+  path: string,
+  params: Record<string, string | number | undefined> = {},
+  opts: { signal?: AbortSignal } = {},
+): Promise<T> {
   const url = `${API_BASE}${path}${buildQuery(params)}`;
   let res: Response;
   try {
-    res = await fetch(url, { cache: "no-store" });
+    res = await fetch(url, { cache: "no-store", signal: opts.signal });
   } catch (err) {
+    // A caller-initiated abort (unmount/navigation) is not a connection error — re-throw it so the
+    // poller can ignore it silently rather than surfacing a spurious "disconnected" state.
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
     const message = err instanceof Error ? err.message : "Network request failed";
     throw new ApiError(`Unable to reach the Arepo API: ${message}`, 0);
   }
@@ -93,8 +100,8 @@ export function getMeta(): Promise<MetaResponse> {
   return apiFetch<MetaResponse>("/api/meta");
 }
 
-export function getStatus(mode: DataMode): Promise<DataStatus> {
-  return apiFetch<DataStatus>("/api/status", { mode });
+export function getStatus(mode: DataMode, signal?: AbortSignal): Promise<DataStatus> {
+  return apiFetch<DataStatus>("/api/status", { mode }, { signal });
 }
 
 export function getOverview(mode: DataMode): Promise<OverviewResponse> {
@@ -214,9 +221,11 @@ export function getReplayDataStatus(): Promise<ReplayDataStatus> {
 }
 
 export interface ResearchStatus {
+  generated_at?: string;
   model_version: string;
   cohort_counts_by_cadence: Record<string, number>;
   total_frozen_markets: number;
+  roles?: Record<string, number>;
   directional_signals: number;
   public_selections: number;
   shadow_signals: number;
@@ -227,6 +236,7 @@ export interface ResearchStatus {
   oldest_cohort: string | null;
   newest_cohort: string | null;
   last_successful_freeze: string | null;
+  degraded_cohorts?: number;
   late_cohorts: number;
   excessively_late_cohorts_excluded: number;
   latest_run: {
@@ -236,10 +246,13 @@ export interface ResearchStatus {
     lateness_seconds: number;
     late: boolean;
     excessively_late: boolean;
+    excluded_markets?: number;
     universe_size: number;
     degraded: boolean;
   } | null;
+  incomplete_cohorts?: number;
   microstructure_snapshots: number;
+  last_microstructure_collection?: string | null;
   collector_recent: boolean;
   calibration: { available: boolean; resolved_sample: number; minimum_required: number; message: string };
   edge: {
@@ -247,6 +260,8 @@ export interface ResearchStatus {
     message: string;
     criteria: Record<string, boolean>;
     evaluable_sample_24h: number;
+    arepo_momentum_agreement_24h?: number | null;
+    model_limitation_note?: string;
   };
   note: string;
 }

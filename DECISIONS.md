@@ -535,3 +535,43 @@ Analytics use NumPy/pandas; SciPy only where a specific function justifies it.
 
 _Environment note:_ Python 3.11.2 is used (spec allows "3.12 or another currently supported
 version"; 3.11 is current and supported). Node 20 LTS for the frontend.
+
+## Final runtime acceptance fix (branch `arepo-final-runtime-acceptance-fix`)
+
+### R1. Popover: cap width before measuring, not after
+The panel was measured (`offsetWidth`) while `max-width` was the default 320px, then revealed with a
+larger viewport-capped `max-width`; the wider revealed panel overflowed the right edge because the
+clamp had reserved space for only 320px. Decision: compute `popoverMaxWidth(viewport)` =
+`min(22rem, viewport−24px)`, apply it to the panel BEFORE the `getBoundingClientRect()` pass, so the
+measured width equals the revealed width. Clamp ≥12px inside a `window.visualViewport`-aware viewport
+(falling back to document client box), in a second layout-effect pass, hidden until placed. Pure
+geometry stays in `lib/popover-position.ts` (unit-tested incl. 574px + visualViewport offset); the
+React layer owns measurement/reposition (open/scroll/resize/visualViewport). No fixed offsets.
+
+### R2. Fix overflow at its element sources, not with a global mask
+Reproduced with real-browser instrumentation (`e2e/instrument.mjs`, logs selector/classes/width/
+transform/min-width/white-space). Three genuine sources fixed at the root: TopBar right cluster made
+wrappable (was `shrink-0` ≈306px > 320px viewport); SignalItem market link changed from `inline-flex`
+(sized to nowrap text) to width-constrained `flex min-w-0 truncate`; the chart's `.sr-only`
+accessible **table** moved into an `.sr-only` **div** (a `<table>` cannot shrink below min-content, so
+`width:1px` was ignored and the hidden table widened the document). The one residual was a sub-pixel
+1–2px window scroll on the synthetic-**demo** view's wide fixed-min-width tables with NO element-level
+offender; contained with a **scoped** `overflow-x-clip` on that synthetic subtree only. The root
+`<html>`/`<body>` clip is NOT used as the primary fix (it would make the `scrollWidth<=clientWidth`
+test vacuous — the pre-existing `body` clip remains a documented belt-and-suspenders, and the
+`overflow.spec.ts` audit self-check proves the assertion can still fail).
+
+### R3. vendor-chunks/geist.js was stale dev output, not a code fault
+Confirmed the overnight finding: a clean `rm -rf .next && npm ci && npm run build` succeeds (16 routes
+incl. `/markets/[id]`), and a fresh `npm run dev` regenerates `.next/server/vendor-chunks/geist.js`;
+both supplied IDs return 200 on direct nav, refresh and Back/Forward. Added `clean`/`dev:clean`/
+`build:clean` scripts and route smoke tests; did not redesign the working routes. `geist/font` is
+inlined by `next/font` in production, so there is no production vendor chunk to miss.
+
+### R4. One shared, backoff-bounded status poller
+`useStatus` previously started one fixed-30s poller per consumer (×2 consumers ×2 StrictMode). Decision:
+a single module-level poll loop per data-mode, shared by all subscribers, with exponential backoff
+(30s→cap 5min, reset on success), `AbortController` cancellation on the last unsubscribe (no dangling
+requests/rejections on navigation), polling paused while the tab is hidden and resumed immediately on
+return, and one shared `{status,error}` snapshot so there is exactly one "API disconnected" state.
+`getStatus` now accepts an `AbortSignal`; caller-initiated aborts are distinguished from real errors.

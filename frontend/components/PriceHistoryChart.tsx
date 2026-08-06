@@ -155,28 +155,33 @@ export function PriceHistoryChart({ priceHistory, series }: Props) {
         </p>
       ) : null}
 
-      {/* Non-visual alternative. */}
-      <table className="sr-only">
-        <caption>Price history as data</caption>
-        <thead>
-          <tr>
-            <th>Time</th>
-            {series.map((s) => (
-              <th key={s.key}>{s.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.ts}>
-              <td>{new Date(r.ts).toLocaleString("en-GB")}</td>
+      {/* Non-visual alternative. The sr-only utility is applied to a wrapping div, not the table:
+          a <table> cannot shrink below its min-content width (nowrap cells), so sr-only's width:1px
+          is ignored on a table and the hidden table would still extend the document width at narrow
+          viewports (final runtime acceptance §3). A div honours width:1px + overflow:hidden. */}
+      <div className="sr-only">
+        <table>
+          <caption>Price history as data</caption>
+          <thead>
+            <tr>
+              <th>Time</th>
               {series.map((s) => (
-                <td key={s.key}>{r[s.key] !== undefined ? formatPercent(r[s.key], 1) : "–"}</td>
+                <th key={s.key}>{s.label}</th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.ts}>
+                <td>{new Date(r.ts).toLocaleString("en-GB")}</td>
+                {series.map((s) => (
+                  <td key={s.key}>{r[s.key] !== undefined ? formatPercent(r[s.key], 1) : "–"}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }

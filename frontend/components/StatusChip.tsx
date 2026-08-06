@@ -51,10 +51,27 @@ export function StatusChip() {
   const api = apiState(status?.rest.state);
   const age = status?.data_age_seconds ?? null;
 
+  // A live connection error takes precedence over any last-known status: show ONE clear, unmissable
+  // "API disconnected" state rather than a stale green chip (final runtime acceptance §7).
+  if (error) {
+    return (
+      <div
+        className="hidden items-center gap-1.5 rounded-control border border-arepo-neg/40 bg-arepo-neg/10 px-3 py-1.5 text-[12px] font-medium text-arepo-neg md:flex"
+        role="status"
+        data-testid="api-disconnected"
+        aria-label="API disconnected"
+        title="Arepo cannot reach its API right now. It keeps retrying with backoff and reconnects automatically."
+      >
+        <span className={`h-1.5 w-1.5 flex-none rounded-full ${TONE_DOT.bad}`} aria-hidden="true" />
+        API disconnected
+      </div>
+    );
+  }
+
   if (!status || !api) {
     return (
       <div className="hidden items-center rounded-control border border-arepo-border bg-arepo-surface px-3 py-1.5 text-[12px] text-arepo-muted md:flex">
-        {error ? "Status unavailable" : "Checking…"}
+        Checking…
       </div>
     );
   }
@@ -63,6 +80,7 @@ export function StatusChip() {
     <div
       className="hidden items-center gap-2 rounded-control border border-arepo-border bg-arepo-surface px-3 py-1.5 text-[12px] font-tabular md:flex"
       role="group"
+      data-testid="api-connected"
       aria-label="Data connectivity"
       title={
         age != null
