@@ -26,6 +26,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..discovery.snapshot_models import SignalSnapshotRow
 from .execution import evaluate_execution
 from .models import MarketResolutionRow
 from .research_constants import (
@@ -35,6 +36,7 @@ from .research_constants import (
     ROLE_SHADOW,
 )
 from .research_models import ResearchCohortRow, ResearchEntryRow, ResearchForwardRow
+from .research_preclose import freeze_to_close_result, preclose_for_cohort
 from .research_repository import ResearchRepository
 
 # --- Product-facing labels -----------------------------------------------------------------------
@@ -316,9 +318,50 @@ class ResearchReplayService:
             "correct": correct,
         }
 
+    async def _evolution_for(self, e: ResearchEntryRow) -> dict:
+        """Later signal evolution (prompt C8): the market's CURRENT stored signal vs its frozen
+        signal, from the latest complete-scan snapshot. Diagnostic only; never rewrites frozen
+        fields."""
+        res = await self.session.execute(
+            select(SignalSnapshotRow)
+            .where(SignalSnapshotRow.market_id == e.market_id)
+            .order_by(SignalSnapshotRow.captured_at.desc())
+            .limit(1)
+        )
+        snap = res.scalar_one_or_none()
+        if snap is None:
+            return {"available": False, "state": "no later scan"}
+        strength_change = round((snap.strength or 0.0) - (e.strength or 0.0), 4)
+        reversed_dir = bool(
+            e.direction in ("up", "down") and snap.direction in ("up", "down")
+            and e.direction != snap.direction
+        )
+        if reversed_dir:
+            label = "Direction reversed"
+        elif strength_change > 0.02:
+            label = "Strengthening"
+        elif strength_change < -0.02:
+            label = "Weakening"
+        else:
+            label = "Stable"
+        return {
+            "available": True,
+            "label": label,
+            "frozen_strength": e.strength,
+            "later_strength": snap.strength,
+            "strength_change": strength_change,
+            "frozen_direction": e.direction,
+            "later_direction": snap.direction,
+            "direction_reversed": reversed_dir,
+            "research_priority_change": (snap.research_priority or 0) - (e.research_priority or 0),
+            "later_rank_in_bucket": snap.rank_in_bucket,
+            "captured_at": snap.captured_at.isoformat() if snap.captured_at else None,
+        }
+
     async def _entry_row(
         self, e: ResearchEntryRow, horizon: str,
         resolutions: dict[str, MarketResolutionRow] | None = None,
+        preclose_map: dict | None = None,
     ) -> dict:
         fwd = (await self.repo.get_forward(e.id)).get(horizon)
         state = replay_result_state(e.direction, e.midpoint, fwd)
@@ -369,6 +412,10 @@ class ResearchReplayService:
             "time_remaining_hours": e.time_remaining_hours,
             "result_state": state,
             "resolution": self._row_resolution(e, resolutions or {}),
+            # Separate panels (prompt C7): freeze-to-close and later signal evolution never mix into
+            # the short-term movement result.
+            "freeze_to_close": freeze_to_close_result(e, (preclose_map or {}).get(e.id)),
+            "evolution": await self._evolution_for(e),
             "strength": e.strength,
             "confidence": e.confidence,
             "research_priority": e.research_priority,
@@ -444,10 +491,35 @@ class ResearchReplayService:
         shadow_entries = [e for e in all_directional if e.role == ROLE_SHADOW]
         scoped = public_entries if scope == SCOPE_PUBLIC else all_directional
 
-        # Top ten by frozen rank within the scoped + filtered subset. Never padded to ten.
-        shown = scoped[:10]
+        # Top twenty by frozen rank within the scoped + filtered subset. Never padded.
+        shown = scoped[:20]
         resolutions = await self._resolution_map(shown)
-        rows = [await self._entry_row(e, horizon, resolutions) for e in shown]
+        preclose_map = await preclose_for_cohort(self.session, cohort.id)
+        rows = [
+            await self._entry_row(e, horizon, resolutions, preclose_map) for e in shown
+        ]
+
+        # Freeze-to-close aggregate (prompt C4/C7), over the scoped directional set.
+        f2c = {"moved_expected": 0, "moved_against": 0, "no_change": 0,
+               "closed_final": 0, "pending": 0}
+        for e in scoped:
+            r = freeze_to_close_result(e, preclose_map.get(e.id))
+            if r["result"] == "moved_expected":
+                f2c["moved_expected"] += 1
+            elif r["result"] == "moved_against":
+                f2c["moved_against"] += 1
+            elif r["result"] == "no_change":
+                f2c["no_change"] += 1
+            if r.get("closed"):
+                f2c["closed_final"] += 1
+            if r["state"] == "pending":
+                f2c["pending"] += 1
+
+        # Honest denominators (prompt C6): repeated 5-minute snapshots are not predictions; a market
+        # can appear in several cohorts, so expose unique-market and unique-event counts.
+        unique_markets = len({e.market_id for e in scoped})
+        unique_events = len({e.event_id for e in scoped if e.event_id})
+        repeated_markets = len(scoped) - unique_markets
 
         headline = (await self._breakdown(scoped, horizon)).to_dict()
         public = (await self._breakdown(public_entries, horizon)).to_dict()
@@ -481,6 +553,15 @@ class ResearchReplayService:
             "combined": combined,
             "role_counts": role_counts,
             "resolution": resolution,
+            "freeze_to_close": f2c,
+            "denominators": {
+                "observations": len(scoped),
+                "unique_markets": unique_markets,
+                "unique_events": unique_events,
+                "repeated_markets": repeated_markets,
+            },
+            "selection_policy": cohort.selection_policy,
+            "public_selection_limit": cohort.public_selection_limit,
             "note": (
                 "Movement asks whether the selected outcome's midpoint moved in Arepo's stored "
                 "direction over the horizon, measured from the actual freeze time. It is not a "

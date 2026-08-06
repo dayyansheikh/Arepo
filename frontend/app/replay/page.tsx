@@ -412,6 +412,10 @@ function ResultsView({
         </p>
       </section>
 
+      {/* Separate panels (prompt C7): freeze-to-close, final resolution and later signal evolution
+          are never folded into the short-term movement result above. */}
+      <SeparatePanels result={result} />
+
       {/* 5 · Inspect the top signals. */}
       <section className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -662,6 +666,81 @@ function FinalResolutionView({ result, scope }: { result: ReplayResult; scope: S
 
 /** Cohort methodology summary (prompt §5): the observation and abstention-control counts live here,
  * never mixed into the directional result table. */
+/** Freeze-to-close, denominators and later-signal-evolution panels, kept strictly separate from the
+ * short-term movement result (prompt C6/C7/C8). */
+function SeparatePanels({ result }: { result: ReplayResult }) {
+  const f2c = result.freeze_to_close;
+  const den = result.denominators;
+  const evolvingRows = result.rows.filter((r) => r.evolution?.available);
+  return (
+    <div className="space-y-6" data-testid="separate-panels">
+      {f2c && (
+        <section className="space-y-2">
+          <SectionTitle>Freeze to close</SectionTitle>
+          <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
+            Price movement from the freeze to the final valid observation at or before each market
+            closes. Separate from short-term repricing and from the final resolution. A closed market
+            may still be awaiting resolution.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <StatTile label="Moved as expected" value={String(f2c.moved_expected)} />
+            <StatTile label="Moved against" value={String(f2c.moved_against)} />
+            <StatTile label="No change" value={String(f2c.no_change)} />
+            <StatTile label="Closed, final" value={String(f2c.closed_final)} />
+            <StatTile label="Pending" value={String(f2c.pending)} />
+          </div>
+        </section>
+      )}
+
+      {den && (
+        <section className="space-y-2">
+          <SectionTitle>Honest denominators</SectionTitle>
+          <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
+            Repeated five-minute snapshots are history, not separate predictions. A market can appear
+            in several cohorts, so the unique-market and unique-event counts are shown alongside the
+            observation count.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatTile label="Observations" value={String(den.observations)} />
+            <StatTile label="Unique markets" value={String(den.unique_markets)} />
+            <StatTile label="Unique events" value={String(den.unique_events)} />
+            <StatTile label="Repeated markets" value={String(den.repeated_markets)} />
+          </div>
+        </section>
+      )}
+
+      {evolvingRows.length > 0 && (
+        <Disclose summary="Later signal evolution (diagnostic; never rewrites the frozen prediction)">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-[13px]">
+              <thead>
+                <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
+                  <th scope="col" className="px-3 py-2.5 font-semibold">Market</th>
+                  <th scope="col" className="px-3 py-2.5 font-semibold">Frozen strength</th>
+                  <th scope="col" className="px-3 py-2.5 font-semibold">Later strength</th>
+                  <th scope="col" className="px-3 py-2.5 font-semibold">Evolution</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-arepo-border font-tabular">
+                {evolvingRows.map((r) => (
+                  <tr key={`${r.market_id}-evo`}>
+                    <td className="px-3 py-2 font-sans">{r.market_question}</td>
+                    <td className="px-3 py-2">{Math.round((r.strength ?? 0) * 100)}</td>
+                    <td className="px-3 py-2">
+                      {Math.round((r.evolution!.later_strength ?? 0) * 100)}
+                    </td>
+                    <td className="px-3 py-2 font-sans">{r.evolution!.label}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Disclose>
+      )}
+    </div>
+  );
+}
+
 function MethodologySummary({ result }: { result: ReplayResult }) {
   const rc = result.role_counts;
   const rows: [string, string][] = [

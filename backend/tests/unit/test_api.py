@@ -117,7 +117,7 @@ def test_replay_cohort_results_endpoint(client):
     r2 = client.get(f"/api/research/replay/cohort/{cid}", params=params).json()
     assert r1["found"] is True and r1 == r2
     assert all(row["role"] in ("public_selection", "shadow_directional") for row in r1["rows"])
-    assert r1["shown"] <= 10
+    assert r1["shown"] <= 20
     # Unknown cohort is a clean not-found, not a 500.
     assert client.get("/api/research/replay/cohort/999999", params=params).json()["found"] is False
 
@@ -140,6 +140,6 @@ def test_scan_status_and_signals_endpoints(client):
         return
     pub = client.get("/api/scan/signals", params={"bucket": bucket, "scope": "public"}).json()
     alld = client.get("/api/scan/signals", params={"bucket": bucket, "scope": "directional"}).json()
-    assert pub["shown"] <= 10
+    assert pub["shown"] <= 20
     assert alld["total_matching"] >= pub["total_matching"]  # ten never reduces the universe
     assert "eligible markets" in pub["coverage_caption"]

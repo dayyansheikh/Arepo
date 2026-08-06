@@ -266,16 +266,16 @@ async def test_pending_when_horizon_not_collected(session):
 async def test_top_ten_by_frozen_rank_and_not_padded(session):
     entries = [
         _entry(role=ROLE_PUBLIC, rank=i, market=f"m{i}", direction="up", midpoint=0.5, ttc=100)
-        for i in range(1, 15)
+        for i in range(1, 26)
     ]
     cohort = await _make_cohort(session, entries)
     r = await ResearchReplayService(session).cohort_results(
         cohort.id, horizon="6h", scope="directional", closing="all"
     )
-    assert r["qualifying"] == 14
-    assert r["shown"] == 10  # capped at ten
+    assert r["qualifying"] == 25
+    assert r["shown"] == 20  # display capped at twenty (top-20 policy), never padded
     ranks = [row["rank"] for row in r["rows"]]
-    assert ranks == list(range(1, 11))  # top ten by FROZEN rank
+    assert ranks == list(range(1, 21))  # top twenty by FROZEN rank
 
 
 async def test_fewer_than_ten_shows_all(session):

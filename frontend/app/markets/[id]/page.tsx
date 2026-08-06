@@ -12,6 +12,7 @@ import { OutcomePanel } from "@/components/OutcomePanel";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { SignalItem } from "@/components/SignalItem";
 import { ModelView } from "@/components/ModelView";
+import { MarketSignalHistory } from "@/components/MarketSignalHistory";
 import { MetricHelp } from "@/components/MetricHelp";
 import { SectionTitle, Disclose } from "@/components/ui";
 import { EmptyState } from "@/components/ErrorState";
@@ -239,6 +240,8 @@ export default function MarketDetailPage() {
         <SectionTitle>Current model view</SectionTitle>
         <ModelView signals={market.signals} />
       </section>
+
+      <MarketSignalHistory marketId={market.id} />
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">

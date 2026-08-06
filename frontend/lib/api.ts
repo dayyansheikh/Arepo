@@ -357,6 +357,22 @@ export interface ReplayRow {
   time_remaining_hours: number | null;
   result_state: string;
   resolution: { resolved: boolean; resolved_outcome: string | null; correct: boolean | null };
+  freeze_to_close?: {
+    state: string;
+    freeze_midpoint: number | null;
+    preclose_midpoint: number | null;
+    movement: number | null;
+    result: string | null;
+    closed?: boolean;
+  };
+  evolution?: {
+    available: boolean;
+    label?: string;
+    later_strength?: number | null;
+    strength_change?: number | null;
+    later_direction?: string | null;
+    direction_reversed?: boolean;
+  };
   strength: number;
   confidence: number;
   research_priority: number;
@@ -388,6 +404,21 @@ export interface ReplayResult {
   combined: ReplayCounts;
   role_counts: Record<string, number>;
   resolution: ReplayResolution;
+  freeze_to_close?: {
+    moved_expected: number;
+    moved_against: number;
+    no_change: number;
+    closed_final: number;
+    pending: number;
+  };
+  denominators?: {
+    observations: number;
+    unique_markets: number;
+    unique_events: number;
+    repeated_markets: number;
+  };
+  selection_policy?: string | null;
+  public_selection_limit?: number | null;
   note: string;
 }
 
@@ -515,6 +546,38 @@ export function getScanSignals(
 
 export function getOpportunities(window = "all", limit = 20): Promise<Opportunities> {
   return apiFetch<Opportunities>("/api/scan/opportunities", { window, limit });
+}
+
+export interface MarketHistorySnapshot {
+  captured_at: string;
+  scan_id: string;
+  strength: number;
+  direction: string | null;
+  research_priority: number;
+  rank_in_bucket: number | null;
+  bucket: string | null;
+  midpoint: number | null;
+  time_remaining_hours: number | null;
+}
+
+export interface MarketHistory {
+  market_id: string;
+  has_history: boolean;
+  market_question?: string;
+  outcome_name?: string;
+  snapshots: MarketHistorySnapshot[];
+  trajectory: (ScanTrajectory & {
+    change_15m?: number | null;
+    change_6h?: number | null;
+    last_updated?: string | null;
+    rank_change?: number | null;
+    research_priority_change?: number | null;
+    direction_reversed?: boolean;
+  }) | null;
+}
+
+export function getMarketSignalHistory(marketId: string): Promise<MarketHistory> {
+  return apiFetch<MarketHistory>(`/api/scan/market/${encodeURIComponent(marketId)}/history`);
 }
 
 export function getReplayCohorts(): Promise<ReplayCohortList> {
