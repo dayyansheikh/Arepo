@@ -5,6 +5,36 @@ Newest entries at the top of each section.
 
 ---
 
+## Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
+
+### D-CU4. An incomplete scan fails loudly and never becomes a valid-looking cohort (prompt §2, §20)
+`paginate_markets` sets `complete=False` with a reason on any offset cap, non-progression, retry
+exhaustion or emergency-guard trip; the scan still records what it reached but its `status` and
+`pagination_complete` say so. On this live Gamma deployment the offset path caps at 2100 and keyset
+does not advance, so a real scan honestly reports incomplete rather than pretending 2100 is the whole
+universe. A future cohort freeze must refuse or degrade on an incomplete scan.
+
+### D-CU3. Top ten is a display flag, never a slice before analysis (prompt §5, §6)
+The scan scores every eligible market, ranks each bucket over ALL its directional markets plus an
+overall 30-day rank, and stores `public_top_ten`/`shadow_directional` flags. The public UI shows ten
+per bucket with "Top 10 shown from N eligible markets"; the full universe is analysed, ranked and
+preserved. A real scan analysed 181 eligible / 83 directional versus the old 60/19.
+
+### D-CU2. Append-only snapshots in new tables; the model is unchanged (prompt §7, §8)
+New `discovery_scan_runs`/`discovery_signal_snapshots`/`discovery_scan_locks` tables are additive; a
+refresh only INSERTS (unique per scan+market+token) and never overwrites. This is a history +
+interpretation layer over the EXISTING signal model (no formula/threshold/confidence/RP change). The
+signal-strength trajectory reports only a score change, never a probability, accuracy or profit claim;
+its 0.02 stability threshold is predeclared from score precision, not tuned to outcomes.
+
+### D-CU1. The 60-market cohort was a triple hard cap with zero pagination (prompt §1)
+Proved: `discovery_limit=60` (one `/events` page) + `screen_universe(universe_limit=60)` +
+`enrich_markets` `subset[:60]`. Discovery never paginated. The fix adds real offset pagination, a
+backend 30-day eligibility gate before scoring, and complete analysis of the eligible universe, so
+ten is only ever a display limit. The existing historical 60-market cohort is left untouched.
+
+---
+
 ## Prospective Replay refinement (branch `arepo-prospective-replay-refinement`)
 
 ### D-PR4. Replay product "no price change" is a distinct threshold from the edge materiality floor

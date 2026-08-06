@@ -363,6 +363,67 @@ async def freeze_from_inputs(
     }
 
 
+async def score_screen(
+    market, analytics, data_api, *, live: bool, now: datetime
+) -> ScoredScreen | None:
+    """Score one enriched market into a :class:`ScoredScreen` using the EXISTING model (unchanged).
+
+    Extracted so both the legacy ``screen_universe`` and the complete-universe scan reuse identical
+    scoring. Returns None when the market has no usable token analytics.
+    """
+    if not analytics:
+        return None
+    ta = max(analytics, key=lambda a: a.signal.strength)
+    trades: list[Trade] = []
+    if live and market.condition_id:
+        try:
+            raw = await data_api.get_market_trades(market.condition_id, limit=1000)
+            trades = normalize_trades(raw)
+        except Exception:  # noqa: BLE001 - trades are best-effort
+            trades = []
+    indicators = market_flow_indicators(
+        trades, market_price=ta.implied, price_change=ta.movement,
+        end_date=market.end_date, start_date=market.start_date, now=now,
+    )
+    scored = score_opportunity(
+        ta.signal, indicators, liquidity=market.liquidity,
+        relative_spread=ta.relative_spread, data_age_seconds=ta.data_age_seconds, now=now,
+    )
+    return ScoredScreen(
+        market_id=market.id,
+        condition_id=market.condition_id or None,
+        event_id=getattr(market, "event_id", None),
+        token_id=ta.token_id,
+        market_question=market.question,
+        outcome_name=ta.signal.outcome_name or ta.token_id,
+        direction=ta.signal.direction,
+        momentum_direction=_sign(ta.zscore),          # Arepo's price signal = z-score sign
+        orderbook_direction=_sign(ta.imbalance),      # bid-heavy (>0) => upward pressure
+        tradeflow_direction=_flow_direction(indicators),
+        strength=scored.signal_strength,
+        confidence=scored.confidence,
+        research_priority=int(round(scored.research_priority * 100)),
+        n_families=scored.n_families,
+        evidence_families=list(scored.families),
+        component_scores=[
+            {"name": c.name, "raw_value": c.raw_value,
+             "normalized_value": c.normalized_value, "weight": c.weight}
+            for c in ta.signal.components
+        ],
+        data_quality=scored.data_quality,
+        entry_price=ta.midpoint if ta.midpoint is not None else ta.implied,
+        best_bid=ta.best_bid,
+        best_ask=ta.best_ask,
+        midpoint=ta.midpoint,
+        spread=ta.spread,
+        near_mid_depth=ta.near_mid_depth,
+        liquidity=market.liquidity,
+        volume=ta.volume,
+        data_age_seconds=ta.data_age_seconds,
+        expected_close=market.end_date,
+    )
+
+
 async def screen_universe(
     market_service, data_api, *, now: datetime | None = None, universe_limit: int = 60
 ) -> tuple[list[ScoredScreen], str, UniverseFunnel]:
@@ -378,60 +439,7 @@ async def screen_universe(
     live = mode == DataMode.LIVE
 
     async def one(market, analytics) -> ScoredScreen | None:
-        if not analytics:
-            return None
-        ta = max(analytics, key=lambda a: a.signal.strength)
-        trades: list[Trade] = []
-        if live and market.condition_id:
-            try:
-                raw = await data_api.get_market_trades(market.condition_id, limit=1000)
-                trades = normalize_trades(raw)
-            except Exception:  # noqa: BLE001 - trades are best-effort
-                trades = []
-        indicators = market_flow_indicators(
-            trades, market_price=ta.implied, price_change=ta.movement,
-            end_date=market.end_date, start_date=market.start_date, now=now,
-        )
-        scored = score_opportunity(
-            ta.signal, indicators, liquidity=market.liquidity,
-            relative_spread=ta.relative_spread, data_age_seconds=ta.data_age_seconds, now=now,
-        )
-        momentum_dir = _sign(ta.zscore)               # Arepo's price signal = z-score sign
-        orderbook_dir = _sign(ta.imbalance)           # bid-heavy (>0) => upward pressure
-        tradeflow_dir = _flow_direction(indicators)   # net aggressive flow sign
-        return ScoredScreen(
-            market_id=market.id,
-            condition_id=market.condition_id or None,
-            event_id=getattr(market, "event_id", None),
-            token_id=ta.token_id,
-            market_question=market.question,
-            outcome_name=ta.signal.outcome_name or ta.token_id,
-            direction=ta.signal.direction,
-            momentum_direction=momentum_dir,
-            orderbook_direction=orderbook_dir,
-            tradeflow_direction=tradeflow_dir,
-            strength=scored.signal_strength,
-            confidence=scored.confidence,
-            research_priority=int(round(scored.research_priority * 100)),
-            n_families=scored.n_families,
-            evidence_families=list(scored.families),
-            component_scores=[
-                {"name": c.name, "raw_value": c.raw_value,
-                 "normalized_value": c.normalized_value, "weight": c.weight}
-                for c in ta.signal.components
-            ],
-            data_quality=scored.data_quality,
-            entry_price=ta.midpoint if ta.midpoint is not None else ta.implied,
-            best_bid=ta.best_bid,
-            best_ask=ta.best_ask,
-            midpoint=ta.midpoint,
-            spread=ta.spread,
-            near_mid_depth=ta.near_mid_depth,
-            liquidity=market.liquidity,
-            volume=ta.volume,
-            data_age_seconds=ta.data_age_seconds,
-            expected_close=market.end_date,
-        )
+        return await score_screen(market, analytics, data_api, live=live, now=now)
 
     results = await asyncio.gather(*(one(m, a) for m, a in pairs), return_exceptions=True)
     funnel = UniverseFunnel(discovered=len(pairs))

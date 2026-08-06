@@ -2,6 +2,27 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
+- [x] safe start: DB backup + tag `arepo-before-complete-short-horizon-universe` + branch; DB preserved
+- [x] §1 audit: proved 60 = discovery_limit=60 + screen_universe(60) + [:60], zero pagination (docs)
+- [x] §2 complete offset pagination + fail-loud incompleteness + 11 mock tests (no stop at full page 1)
+- [x] §3 backend 30-day eligibility gate before scoring; §4 non-overlapping buckets + cumulative windows
+- [x] §5 complete-scan service: analyse EVERY eligible market; per-bucket + overall 30d ranking
+- [x] §6 scopes: full eligible / all directional / public top ten / shadow (top ten display-only)
+- [x] §7 refresh CLI: idempotent, advisory lease, stale recovery, funnel status; 5-min cadence measured
+- [x] §8 append-only discovery_scan_runs/signal_snapshots/scan_locks (never overwrite; additive migration)
+- [x] §9 trajectory + predeclared 0.02 stability threshold; New/Strengthening/Weakening/Stable/Reversed/Stale
+- [x] §10-11 Signal Lab signals-first + scan status + "Top 10 shown from N" + bucket/scope + trajectory
+- [x] §19 API /api/scan/status|signals|market/{id}/history (server-side truth, idempotent)
+- [x] §20 scheduler: arepo-signal-refresh cron every 5 min in render.yaml (measured duration)
+- [x] §21 backend tests (pagination 11 + discovery 11 + scan routes 2)
+- [x] §22 frontend/browser: 10 vitest + 8 Playwright (signals-first, top-10-from-N, scope, trajectory, overflow)
+- [x] §23 real acceptance: 21 pages/2100 raw/181 eligible/83 directional; TWO real refreshes append-only
+- [x] §25 gate: backend 399 + ruff; frontend tsc/lint/68 vitest/build 15; Playwright 77; cohort unchanged
+- [x] §26 docs (audit + methodology + CHECKPOINT/TASKS/DECISIONS/FINAL_STATUS); §27 commit + push
+- [~] §13-18 future cohort freeze from complete scan + freeze-to-close + 4-question Replay matrix
+      (forward-looking; complete-scan foundation built; kept separate so historical cohort unchanged)
+
 ## Prospective Replay refinement (branch `arepo-prospective-replay-refinement`)
 - [x] safe start: DB backup + safety tag `arepo-before-prospective-replay-refinement` + branch; DB preserved
 - [x] §1 Replay prospective-only: removed reconstructed + synthetic public tabs; legacy `?replay=` normalised

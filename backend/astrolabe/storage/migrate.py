@@ -36,6 +36,9 @@ def _load_all_models() -> None:
     """
     from ..accounts import models as _accounts  # noqa: F401
     from ..alerts import models as _alerts  # noqa: F401  (alert_history etc.)
+    from ..discovery import (
+        snapshot_models as _discovery,  # noqa: F401  (scan_runs/signal_snapshots)
+    )
     from ..evaluation import models as _eval  # noqa: F401
     from ..evaluation import research_models as _research  # noqa: F401
     from ..ingest import microstructure_store as _micro  # noqa: F401
@@ -48,13 +51,15 @@ _load_all_models()
 # Bump whenever the ORM gains tables/columns. This is a monotonic marker recorded in
 # ``schema_migrations``; the actual work is metadata-driven so the number is documentation, not a
 # script selector.
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 SCHEMA_VERSION_NOTES = {
     1: "initial create_all schema",
     2: "research per-family directions (momentum/orderbook/tradeflow) + edge-research tables",
     3: "research_cohorts.excluded_markets + degraded (universe degradation)",
     4: "research_cohorts.evaluation_origin_at + lateness_seconds + late + excessively_late "
        "(prospective-timestamp causal-origin audit)",
+    5: "discovery_scan_runs + discovery_signal_snapshots + discovery_scan_locks "
+       "(complete-universe scan: append-only snapshots, pagination proof, overlap lease)",
 }
 
 _VERSION_TABLE = "schema_migrations"

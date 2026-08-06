@@ -391,6 +391,102 @@ export interface ReplayResult {
   note: string;
 }
 
+// -- Complete-scan Signal Lab ------------------------------------------------------------
+// The complete short-horizon universe: full pagination discovers every active market, the 30-day
+// eligibility gate + buckets run server-side, every eligible market is analysed and ranked, and the
+// public top ten is only a display subset over the preserved full universe.
+
+export interface ScanBucketCount {
+  bucket: string;
+  label: string;
+  eligible?: number;
+  directional?: number;
+  public_top_ten?: number;
+  shadow_directional?: number;
+}
+
+export interface ScanStatus {
+  has_scan: boolean;
+  note?: string;
+  generated_at?: string;
+  seconds_since_scan?: number;
+  scan_id?: string;
+  started_at?: string;
+  status?: string;
+  pagination_complete?: boolean;
+  pagination_reason?: string | null;
+  pages_fetched?: number;
+  raw_discovered?: number;
+  unique_markets?: number;
+  eligible_30d?: number;
+  analysed?: number;
+  directional?: number;
+  funnel?: Record<string, unknown>;
+  buckets?: ScanBucketCount[];
+  model_version?: string;
+}
+
+export interface ScanTrajectory {
+  label: string;
+  strength_change_prev: number | null;
+  change_1h: number | null;
+  consecutive_same_direction: number;
+  first_detected: string | null;
+  scans: number;
+}
+
+export interface ScanSignalRow {
+  market_id: string;
+  condition_id: string | null;
+  event_id: string | null;
+  token_id: string;
+  market_question: string;
+  outcome_name: string;
+  bucket: string | null;
+  bucket_label: string | null;
+  close_time: string | null;
+  time_remaining_hours: number | null;
+  direction: string | null;
+  signal_classification: string;
+  strength: number;
+  confidence: number;
+  research_priority: number;
+  rank_in_bucket: number | null;
+  overall_rank_30d: number | null;
+  public_top_ten: boolean;
+  shadow_directional: boolean;
+  n_families: number;
+  evidence_families: string[];
+  data_quality: string;
+  trajectory: ScanTrajectory;
+}
+
+export interface ScanSignals {
+  has_scan: boolean;
+  scan_id?: string;
+  bucket?: string | null;
+  bucket_label?: string | null;
+  scope?: string;
+  eligible_in_bucket?: number;
+  directional_in_bucket?: number;
+  total_matching: number;
+  shown?: number;
+  rows: ScanSignalRow[];
+  coverage_caption?: string;
+}
+
+export function getScanStatus(): Promise<ScanStatus> {
+  return apiFetch<ScanStatus>("/api/scan/status");
+}
+
+export function getScanSignals(
+  bucket: string,
+  scope: string,
+  limit = 10,
+): Promise<ScanSignals> {
+  return apiFetch<ScanSignals>("/api/scan/signals", { bucket, scope, limit });
+}
+
 export function getReplayCohorts(): Promise<ReplayCohortList> {
   return apiFetch<ReplayCohortList>("/api/research/replay/cohorts");
 }

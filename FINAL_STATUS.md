@@ -1,5 +1,36 @@
 # FINAL_STATUS
 
+## Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
+
+_Verified in this environment: backend **399 tests pass**, ruff clean; frontend tsc/lint clean, **68
+vitest**, production build 15 routes; **Playwright 77 passed** against the real backend (:8000) and
+the preserved local database (:3000)._
+
+The core correction: Arepo no longer scans only the first 60 markets. **Proved** the old cohort's 60
+came from three compounding hard caps (`discovery_limit=60` on a single unpaginated `/events` page,
+`screen_universe(universe_limit=60)`, and an `enrich_markets` `[:60]` slice) with no pagination at
+all, so previous discovery was truncated (`docs/complete-universe-discovery-audit.md`). This pass adds
+real, verifiable offset pagination that follows every page until the upstream signals completion and
+**fails loudly** when it cannot (the live Gamma offset path caps at 2100 and keyset is non-functional,
+so a real scan honestly reports incomplete rather than pretending). A backend 30-day eligibility gate
+runs before scoring, every eligible market is assigned to a non-overlapping closing-time bucket, and
+the complete eligible universe is analysed and ranked per bucket and overall; the public top ten is a
+display flag over the preserved full universe. Immutable append-only snapshots
+(`discovery_scan_runs`/`discovery_signal_snapshots`/`discovery_scan_locks`), an idempotent 5-minute
+refresh command with an advisory lease, and a signal-strength trajectory (predeclared 0.02 stability
+threshold; never probability language) complete the pipeline. Signal Lab was rebuilt signals-first
+with the scan status, "Top 10 shown from N eligible markets", closing-universe and scope controls and
+server-computed trajectory. A real live scan discovered 21 pages / 2100 raw / 181 eligible within 30
+days / 83 directional in ~15-32s, and TWO real refreshes recorded into the preserved database (362
+append-only snapshots) prove earlier snapshots are never overwritten. No signal formula, threshold,
+confidence, Research Priority, evidence-family, baseline, ablation, walk-forward, edge criterion or
+frozen value changed, and the historical 60-market cohort (60/19/10/9 + 120 forwards) is untouched.
+Forward-looking and documented (not fully wired): future cohort freeze from the complete scan,
+freeze-to-close collection, and the four-question Replay matrix over bucket cohorts. Not deployed; not
+merged to `main`. Details in `docs/complete-universe-and-signal-lab.md`.
+
+---
+
 ## Prospective Replay refinement (branch `arepo-prospective-replay-refinement`)
 
 _Verified in this environment: backend **376 tests pass**, ruff clean; frontend tsc/lint clean, **58

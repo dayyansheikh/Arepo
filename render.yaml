@@ -98,6 +98,21 @@ crons:
     buildCommand: pip install -r requirements.txt && pip install -e .
     command: python -m astrolabe.alerts.cli user-dry-run --mode live
 
+  # --- Complete short-horizon signal refresh (complete-universe prompt §7, §20) --------------
+  # One idempotent COMPLETE scan: full pagination discovers the whole active universe, the 30-day
+  # eligibility gate + closing-time buckets run server-side, every eligible market is analysed and
+  # ranked, and immutable snapshots are appended (never overwritten). An advisory lease in
+  # discovery_scan_locks prevents overlapping scans; a crashed scan's stale lease is reclaimed
+  # automatically. A measured complete scan took ~15-32s for 181 eligible markets, comfortably
+  # inside 5 minutes, so the cadence is 5 minutes (complete-universe-discovery-audit.md records the
+  # measurement). The browser never scans; it only reads stored results.
+  - name: arepo-signal-refresh
+    runtime: python
+    rootDir: backend
+    schedule: "*/5 * * * *"        # every 5 minutes: complete discover + analyse + append snapshots
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.discovery.refresh_cli refresh
+
   # --- Edge-research infrastructure jobs (edge-research prompt §3, §5, §17C) ------------------
   # The freeze jobs fire a few minutes AFTER each cadence boundary, so the cohort's cut-off (snapped
   # to the boundary) is ~equal to when the prices were captured, and every 1h/6h/24h/7d horizon is

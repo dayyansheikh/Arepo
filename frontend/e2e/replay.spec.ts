@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { VIEWPORTS } from "./helpers";
 import { expectNoHorizontalOverflow } from "./helpers";
 
@@ -10,7 +10,7 @@ import { expectNoHorizontalOverflow } from "./helpers";
  * flat; public 2/2/6; shadow 2/2/5).
  */
 
-async function loadReplay(page, query = "") {
+async function loadReplay(page: Page, query = "") {
   await page.goto(`/replay${query}`, { waitUntil: "networkidle" });
   await expect(page.getByTestId("replay-page")).toBeVisible();
   // Wait for the cohort selectors (the list resolved) and the results to render.

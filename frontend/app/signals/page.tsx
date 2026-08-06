@@ -1,215 +1,255 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
-import { useMode } from "@/lib/mode-context";
 import { useAsync } from "@/lib/use-async";
 import { useUrlState } from "@/lib/use-url-state";
-import { getSignals } from "@/lib/api";
+import { getScanStatus, getScanSignals, type ScanSignalRow } from "@/lib/api";
 import {
-  arrangeSignals,
-  type SignalSort,
-  type SignalStatus,
-} from "@/lib/signal-arrange";
-import { SignalItem } from "@/components/SignalItem";
+  BUCKET_OPTIONS,
+  SCOPE_OPTIONS,
+  consecutivePhrase,
+  eligibleHeadline,
+  strengthPhrase,
+  timeToCloseLabel,
+  trajectoryTone,
+  type Bucket,
+  type Scope,
+} from "@/lib/signal-lab";
 import { ListSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
-import { MetricHelp } from "@/components/MetricHelp";
-import { SectionLabel, Disclose, PageHeader } from "@/components/ui";
-
-// Directional status is the primary organisation (spec §6), not fixed 40+/70+ strength thresholds.
-const STATUS_OPTIONS = [
-  { value: "all", label: "All signals" },
-  { value: "directional", label: "Directional views only" },
-  { value: "observational", label: "Observational or inconclusive" },
-] as const;
-
-const SORT_OPTIONS = [
-  { value: "strength-desc", label: "Signal strength, high to low" },
-  { value: "strength-asc", label: "Signal strength, low to high" },
-  { value: "confidence-desc", label: "Confidence, high to low" },
-  { value: "confidence-asc", label: "Confidence, low to high" },
-  { value: "recent", label: "Most recent" },
-] as const;
+import { PageHeader, SectionTitle, Disclose, Badge } from "@/components/ui";
 
 export default function SignalLabPage() {
-  const { mode } = useMode();
-  const { data, loading, error } = useAsync(() => getSignals(mode, 50), [mode]);
-  // Controls persist in the URL so Back/refresh/shared links restore them (spec §6).
-  const [status, setStatus] = useUrlState("status", "all");
-  const [sort, setSort] = useUrlState("sort", "strength-desc");
+  // Signals come FIRST (prompt section 10): the explanation is a collapsed disclosure below.
+  const [bucket, setBucket] = useUrlState("bucket", "closing_1_7d");
+  const [scope, setScope] = useUrlState("scope", "public");
 
-  const all = useMemo(() => (data ? data.signals : []), [data]);
-  const filtered = useMemo(
-    () => arrangeSignals(all, status as SignalStatus, sort as SignalSort),
-    [all, status, sort]
+  const statusState = useAsync(() => getScanStatus(), []);
+  const signalsState = useAsync(
+    () => getScanSignals(bucket, scope, scope === "public" ? 10 : 500),
+    [bucket, scope],
   );
+  const status = statusState.data;
+  const signals = signalsState.data;
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-4">
+    <div className="space-y-8" data-testid="signal-lab">
+      <div className="space-y-3">
         <PageHeader
           title="Signal Lab"
-          lead={
-            <>
-              Signal Lab continuously scans the tracked markets for statistically unusual
-              patterns worth a closer look, ranks them by a single composite anomaly score,
-              and links each one straight back to the actual market and the reasoning behind
-              it, so nothing here is abstract or disconnected from a real, inspectable market.
-            </>
-          }
+          lead="Arepo discovers every active market, analyses all those closing within 30 days, and ranks them. The public list shows the top ten; the full universe is analysed and preserved."
         />
         <DisclaimerBanner />
       </div>
 
-      <div className="panel space-y-5 p-6">
-        <div>
-          <h2 className="text-base font-bold text-arepo-ink">What is a &ldquo;Composite anomaly&rdquo;?</h2>
-          <p className="mt-1.5 max-w-reading text-sm leading-relaxed text-arepo-ink2">
-            A signal fires when a market&apos;s recent price, spread, volume and order-book
-            behaviour look statistically unusual compared with its own history, not compared with
-            any other market. That can mean an unusual price move, a sudden pickup in trading
-            activity, a lopsided order book, a widening spread, or a shift in the depth available
-            near the price, alone or in combination. The composite anomaly score is what you get
-            when several of these market-behaviour features are combined into one 0 to 100
-            reading.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-bold text-arepo-ink">What to do with a signal</h3>
-          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
-            Each card below names the market it refers to and links straight through to it.
-            From there the usual next steps are: open &ldquo;Why this fired&rdquo; to read the
-            reasoning, inspect the market itself for context, and watch for confirmation, such
-            as the price continuing to move or the order-book imbalance persisting, before
-            drawing any conclusion. Signal Lab is a research tool for narrowing down what to
-            look at next, not a source of trading instructions.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-bold text-arepo-ink">Which factors contributed, and why the score rises</h3>
-          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
-            Each card lists the factors behind it in plain English, for example &ldquo;unusual price
-            move&rdquo; or &ldquo;order-book imbalance&rdquo;. The more of these that line up at
-            once, the higher the score: a market with an unusual price move, a widening spread and
-            a lopsided order book together will score higher than one showing just an unusual
-            price move on its own.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-bold text-arepo-ink">What a score such as 93 means</h3>
-          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
-            Strength runs from 0 to 100. A score of 93 means this market&apos;s recent behaviour
-            is close to the most unusual the method can register, not that something specific is
-            about to happen and not a probability of anything. Treat a high score as a strong
-            prompt to read the detail, not as a verdict.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-bold text-arepo-ink">Strength is not confidence</h3>
-          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
-            <MetricHelp metric="signal-strength" /> measures how unusual the behaviour looks.{" "}
-            <MetricHelp metric="confidence" /> measures how much to trust that reading, based on
-            how much clean history, spread and depth went into it. A high-strength signal built on
-            thin data can carry low confidence, which is why the two sit side by side on every
-            card rather than being blended into one number.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-bold text-arepo-ink">Not proof of insider information</h3>
-          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
-            A high score is a screening heuristic: a prompt to look more closely, not evidence that
-            anyone traded on non-public information. Ordinary news, thin liquidity or a single
-            large but perfectly legitimate order can all produce the same reading.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-bold text-arepo-ink">Data coverage and lookback</h3>
-          <p className="mt-1 max-w-reading text-sm leading-relaxed text-arepo-ink2">
-            <MetricHelp metric="data-coverage" /> describes how much clean history and order-book
-            depth a reading is based on. Limited or poor coverage means the numbers should be read
-            as more approximate. <MetricHelp metric="lookback" /> is the recent window of
-            observations, or span of time, the calculation looks back over: a longer lookback
-            smooths out short-lived blips, while a shorter one reacts faster but is noisier.
-          </p>
-        </div>
-
-        <Disclose summary="Show technical detail">
-          <p className="max-w-reading text-sm leading-relaxed text-arepo-muted">
-            The technical name for this reading is <strong>Composite anomaly score</strong>. It is
-            a weighted mean of normalised components, each capped before weighting. The full
-            derivation, including weights and caps, lives on the{" "}
-            <Link
-              href="/methodology#signal-strength"
-              className="focus-ring font-medium text-arepo-accentActive hover:text-arepo-accentHover"
-            >
-              Methodology
-            </Link>{" "}
-            page.
-          </p>
-        </Disclose>
-      </div>
-
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <SectionLabel>Currently firing</SectionLabel>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-1.5 text-[13px] text-arepo-muted">
-              <span className="sr-only">Filter by directional status</span>
-              <select
-                className="select-arepo w-52"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                aria-label="Filter by directional status"
-              >
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex items-center gap-1.5 text-[13px] text-arepo-muted">
-              <span className="sr-only">Sort signals</span>
-              <select
-                className="select-arepo w-56"
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                aria-label="Sort signals"
-              >
-                {SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+      {/* Scan status strip: raw discovered, eligible analysed, directional found, last scan. */}
+      <section
+        className="rounded-card border border-arepo-border bg-arepo-surface2 p-4"
+        data-testid="scan-status"
+      >
+        {statusState.loading && <ListSkeleton rows={2} />}
+        {!statusState.loading && statusState.error && (
+          <ErrorState message={statusState.error} />
+        )}
+        {!statusState.loading && status && !status.has_scan && (
+          <p className="text-[14px] text-arepo-muted">{status.note}</p>
+        )}
+        {!statusState.loading && status && status.has_scan && (
+          <div className="space-y-2">
+            <p className="text-[15px] font-medium text-arepo-ink" data-testid="eligible-headline">
+              {eligibleHeadline(status)}
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-arepo-muted">
+              <span>
+                Last complete scan{" "}
+                {status.started_at
+                  ? new Date(status.started_at).toLocaleString("en-GB")
+                  : "unknown"}
+              </span>
+              <span>Pages fetched {status.pages_fetched}</span>
+              <span>
+                Pagination{" "}
+                {status.pagination_complete ? "complete" : "incomplete (see note)"}
+              </span>
+            </div>
+            {!status.pagination_complete && status.pagination_reason && (
+              <p className="text-[12px] leading-relaxed text-arepo-warnText">
+                {status.pagination_reason}
+              </p>
+            )}
+            <p className="text-[12px] leading-relaxed text-arepo-muted">
+              Leaving this page open does not scan. The scheduled backend refresh discovers and
+              analyses the universe; the browser only reads stored results.
+            </p>
           </div>
+        )}
+      </section>
+
+      {/* Controls: closing universe + scope. */}
+      <section className="flex flex-wrap items-end gap-4">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-arepo-ink2">Closing universe</span>
+          <select
+            data-testid="bucket-select"
+            className="select-arepo w-64"
+            value={bucket}
+            onChange={(e) => setBucket(e.target.value)}
+            aria-label="Closing-time universe"
+          >
+            {BUCKET_OPTIONS.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-arepo-ink2">Signals shown</span>
+          <select
+            data-testid="scope-select"
+            className="select-arepo w-56"
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            aria-label="Signal scope"
+          >
+            {SCOPE_OPTIONS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
+
+      {/* The actual signals, first useful viewport. */}
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <SectionTitle>Signals</SectionTitle>
+          {signals && signals.has_scan && (
+            <span className="text-[13px] text-arepo-muted" data-testid="coverage-caption">
+              {signals.coverage_caption}
+            </span>
+          )}
         </div>
 
-        {loading && <ListSkeleton rows={8} />}
-        {!loading && error && <ErrorState message={error} />}
-        {!loading && !error && all.length === 0 && (
-          <EmptyState message="No signals available in this mode right now." />
+        {signalsState.loading && <ListSkeleton rows={6} />}
+        {!signalsState.loading && signalsState.error && (
+          <ErrorState message={signalsState.error} />
         )}
-        {!loading && !error && all.length > 0 && filtered.length === 0 && (
-          <EmptyState message="No signals match this filter. Try 'All signals'." />
+        {!signalsState.loading && signals && (!signals.has_scan || signals.rows.length === 0) && (
+          <EmptyState
+            message={
+              !signals.has_scan
+                ? "No complete scan has been recorded yet."
+                : "No qualifying signals in this closing window. Try another window or scope."
+            }
+          />
         )}
-        {!loading && !error && filtered.length > 0 && (
+        {!signalsState.loading && signals && signals.rows.length > 0 && (
           <div className="space-y-3">
-            {filtered.map((s, i) => (
-              <SignalItem key={`${s.kind}-${s.token_id}-${i}`} signal={s} />
+            {signals.rows.map((r) => (
+              <SignalCard key={`${r.market_id}-${r.token_id}`} row={r} />
             ))}
           </div>
         )}
       </section>
+
+      {/* Explanation moved into a collapsed disclosure (prompt section 10). */}
+      <Disclose summary="How Signal Lab works">
+        <div className="max-w-reading space-y-4 pt-1 text-[14px] leading-relaxed text-arepo-ink2">
+          <p>
+            A signal fires when a market&apos;s recent price, spread, volume and order-book behaviour
+            look statistically unusual compared with its own history. The composite anomaly score
+            combines several of these into one 0 to 100 reading. Strength measures how unusual the
+            behaviour is; it is not a probability, not accuracy and not a forecast of the outcome.
+          </p>
+          <p>
+            Arepo discovers the complete active market universe through full pagination, keeps every
+            market closing within 30 days, analyses all of them, and ranks each closing-time window.
+            The public list shows only the top ten, but the full universe is analysed and preserved
+            for research, so ten is a display limit and never the number of markets scanned.
+          </p>
+          <p>
+            A strengthening signal means only that the stored strength score increased over the
+            comparison period. It does not mean the outcome became more likely or that a trade would
+            be profitable. See the{" "}
+            <Link
+              href="/methodology#signal-strength"
+              className="focus-ring font-medium text-arepo-accentActive hover:text-arepo-accentHover"
+            >
+              methodology
+            </Link>{" "}
+            for the full derivation.
+          </p>
+        </div>
+      </Disclose>
+    </div>
+  );
+}
+
+function SignalCard({ row }: { row: ScanSignalRow }) {
+  const t = row.trajectory;
+  const tone = trajectoryTone(t.label);
+  const toneClass =
+    tone.tone === "up"
+      ? "text-arepo-pos"
+      : tone.tone === "down"
+        ? "text-arepo-neg"
+        : tone.tone === "flat"
+          ? "text-arepo-ink2"
+          : "text-arepo-muted";
+  const consec = consecutivePhrase(t);
+  return (
+    <div className="rounded-card border border-arepo-border bg-arepo-surface p-5" data-testid="signal-card">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-tabular text-[13px] text-arepo-muted">
+              #{row.rank_in_bucket ?? "-"}
+            </span>
+            <Link
+              href={`/markets/${encodeURIComponent(row.market_id)}?mode=live`}
+              className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
+            >
+              {row.market_question}
+            </Link>
+          </div>
+          <p className="mt-0.5 text-[13px] text-arepo-muted">
+            {row.outcome_name}
+            {row.direction ? ` · direction ${row.direction}` : ""} ·{" "}
+            {timeToCloseLabel(row.time_remaining_hours)}
+          </p>
+        </div>
+        <div className="text-right">
+          <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${toneClass}`}>
+            <span aria-hidden="true">{tone.glyph}</span>
+            {t.label}
+          </span>
+        </div>
+      </div>
+
+      <p className="mt-3 text-[14px] text-arepo-ink2" data-testid="strength-phrase">
+        {strengthPhrase(row.strength, t)}.
+        {consec ? ` ${consec}.` : ""}
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-arepo-muted">
+        {row.public_top_ten ? (
+          <Badge tone="accent">Public top ten</Badge>
+        ) : (
+          <Badge tone="neutral">Shadow directional</Badge>
+        )}
+        <span>Research Priority {row.research_priority}</span>
+        <span>Confidence {Math.round(row.confidence * 100)}%</span>
+        {row.overall_rank_30d != null && <span>Overall 30d rank #{row.overall_rank_30d}</span>}
+        {t.first_detected && (
+          <span>First detected {new Date(t.first_detected).toLocaleString("en-GB")}</span>
+        )}
+        {row.evidence_families.length > 0 && (
+          <span>Evidence: {row.evidence_families.join(", ")}</span>
+        )}
+      </div>
     </div>
   );
 }

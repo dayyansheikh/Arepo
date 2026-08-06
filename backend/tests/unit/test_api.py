@@ -120,3 +120,26 @@ def test_replay_cohort_results_endpoint(client):
     assert r1["shown"] <= 10
     # Unknown cohort is a clean not-found, not a 500.
     assert client.get("/api/research/replay/cohort/999999", params=params).json()["found"] is False
+
+
+def test_scan_status_and_signals_endpoints(client):
+    """Complete-scan status + signals reads: 200, idempotent, top-ten is display-only."""
+    st = client.get("/api/scan/status").json()
+    a = client.get("/api/scan/status").json()
+    # Idempotent apart from the generated_at/seconds stamps.
+    for k in ("generated_at", "seconds_since_scan"):
+        st.pop(k, None)
+        a.pop(k, None)
+    assert st == a
+    if not st.get("has_scan"):
+        return  # no scan recorded in this database; endpoint still valid
+    assert st["eligible_30d"] >= st["directional"]
+    # Public scope is capped at ten; directional exposes the full set for the same bucket.
+    bucket = next((b["bucket"] for b in st["buckets"] if b.get("directional", 0) > 0), None)
+    if bucket is None:
+        return
+    pub = client.get("/api/scan/signals", params={"bucket": bucket, "scope": "public"}).json()
+    alld = client.get("/api/scan/signals", params={"bucket": bucket, "scope": "directional"}).json()
+    assert pub["shown"] <= 10
+    assert alld["total_matching"] >= pub["total_matching"]  # ten never reduces the universe
+    assert "eligible markets" in pub["coverage_caption"]

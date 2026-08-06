@@ -3,7 +3,45 @@
 _Single source of truth for "where are we, exactly." Updated at the end of every phase.
 Older history is preserved in git; this file tracks the **Master Final Refinement**._
 
-## Latest: Prospective Replay refinement — COMPLETE (branch `arepo-prospective-replay-refinement`)
+## Latest: Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
+
+Safety tag before this pass: **`arepo-before-complete-short-horizon-universe`**. DB backed up +
+fully preserved (historical cohort intact: 60 entries / 19 directional / 10 public / 9 shadow / 120
+forwards). Docs: `docs/complete-universe-discovery-audit.md`, `docs/complete-universe-and-signal-lab.md`.
+
+**Why the old cohort was 60 (proved):** `config.discovery_limit=60` (single unpaginated `/events`
+page) + `screen_universe(universe_limit=60)` + `enrich_markets` `subset[:60]`. Three 60-caps, zero
+pagination. Previous discovery was TRUNCATED, not complete. Real universe is >4000 active markets.
+
+DONE + tested:
+- **§2 complete pagination**: `GammaClient.paginate_markets` follows every offset page to genuine
+  exhaustion; records pages/raw/unique/offset-progression; detects non-progression + the upstream
+  422 offset cap (Gamma caps offset at 2100, keyset non-functional) + emergency guard; `complete`
+  flag is loud (never silently complete). 11 mock-transport tests.
+- **§3-5 eligibility + buckets + scan**: backend 30-day gate before scoring; non-overlapping buckets
+  (0-6h/6-24h/1-7d/7-30d + all_0_30d) with frozen `time_remaining_hours`; complete-scan service scores
+  EVERY eligible market, ranks per bucket + overall 30d; top ten is a display flag over the full set.
+- **§7-9 append-only + refresh + trajectory**: additive `discovery_scan_runs`/`discovery_signal_
+  snapshots`/`discovery_scan_locks` (never overwrite; unique scan+market+token); refresh CLI with
+  advisory lease + stale recovery; trajectory (New/Strengthening/Weakening/Stable/Reversed/Stale)
+  with predeclared 0.02 stability threshold. 11 discovery tests.
+- **§10-11,22 Signal Lab**: rebuilt signals-first (explanation collapsed), scan-status strip, "Top 10
+  shown from N eligible markets", bucket + scope controls, server-computed trajectory on cards. 10
+  vitest + 8 Playwright.
+- **§19 API**: `/api/scan/status|signals|market/{id}/history` (server-side truth, idempotent).
+- **§20 scheduler**: `arepo-signal-refresh` cron every 5 min (measured ~15-32s/scan) in render.yaml.
+- **§23 real acceptance**: real live scan = 21 pages / 2100 raw / 181 eligible-30d / 83 directional /
+  ~15-32s / pagination incomplete (offset cap, honest). TWO real refreshes recorded into the real DB
+  (362 snapshots) proving append-only; 181 markets in both scans feed trajectory.
+- Gates: backend **399 pass** + ruff clean; frontend tsc/lint clean, **68 vitest**, build 15 routes,
+  **Playwright 77 passed**. Historical cohort unchanged. NOT deployed, NOT merged.
+
+Forward-looking (documented, not fully wired): §13-18 future cohort freeze from the complete scan +
+freeze-to-close collection + the four-question Replay matrix over bucket cohorts (kept separate so the
+historical cohort is never modified; the existing prospective Replay already separates short-term
+movement from final resolution and supports closing-window selection).
+
+## (superseded) Prospective Replay refinement (branch `arepo-prospective-replay-refinement`)
 
 Safety tag before this pass: **`arepo-before-prospective-replay-refinement`**. DB backed up
 (`backend/astrolabe.db.backup-before-prospective-replay-refinement-*`) and fully preserved: 1 real 6h

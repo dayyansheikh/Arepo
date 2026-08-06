@@ -286,6 +286,30 @@ class MarketService:
             out.append((m, analytics))
         return out, source.mode
 
+    async def enrich_market_list(
+        self, markets: list[Market], *, requested_mode=None
+    ) -> tuple[list[tuple[Market, list[TokenAnalytics]]], DataMode]:
+        """Enrich a caller-provided list of markets (no limit, no re-sort).
+
+        Used by the complete-universe scan (prompt section 5): the caller has already discovered and
+        eligibility-filtered the full 30-day universe, so every eligible market must be enriched and
+        scored, not a volume-sorted top-N. Concurrency is bounded so a large eligible set does not
+        open hundreds of simultaneous upstream connections.
+        """
+        source, _ = await self._select_source(requested_mode)
+        sem = asyncio.Semaphore(16)
+
+        async def _one(m: Market):
+            async with sem:
+                try:
+                    analytics, _card = await self._enrich_market(source, m)
+                    return m, analytics
+                except BaseException:  # noqa: BLE001 - a single bad market never fails the scan
+                    return None
+
+        results = await asyncio.gather(*(_one(m) for m in markets))
+        return [r for r in results if r is not None], source.mode
+
     async def active_markets(
         self, *, requested_mode=None, limit=None, by="volume_24hr"
     ) -> list[Market]:
