@@ -93,6 +93,28 @@ async def test_retry_after_failure_succeeds_cleanly(session, monkeypatch):
     assert await repo.incomplete_cohorts() == []
 
 
+async def test_repair_skips_a_cohort_that_became_frozen_after_the_snapshot(session, monkeypatch):
+    # DB review CRITICAL-2: if a freeze completes between repair's snapshot and the delete, repair
+    # must re-check and SKIP the now-frozen cohort rather than destroy real evidence.
+    good = build_entry_inputs([_screen("a")], now=CUTOFF)
+    await freeze_from_inputs(session, cadence=CADENCE_6H, cutoff_at=CUTOFF,
+                             inputs=good, calculation_version="t", frozen_at=CUTOFF)
+    repo = ResearchRepository(session)
+    cohort = (await repo.list_cohorts(cadence=CADENCE_6H))[0]
+    assert cohort.frozen is True
+
+    # Simulate a STALE snapshot that still reports the (now frozen) cohort as not frozen.
+    async def stale_snapshot():
+        return [{"id": cohort.id, "cadence": CADENCE_6H, "cutoff_at": cohort.cutoff_at.isoformat(),
+                 "frozen": False, "universe_size": 0, "entries": 0, "reason": "stale"}]
+
+    monkeypatch.setattr(repo, "incomplete_cohorts", stale_snapshot)
+    result = await repo.repair_incomplete()
+    assert result["removed_incomplete"] == []            # nothing destroyed
+    assert len(result["skipped_now_frozen"]) == 1        # re-check caught the race
+    assert len(await repo.list_cohorts()) == 1           # the valid frozen cohort survives
+
+
 async def test_repair_removes_never_frozen_but_keeps_valid_frozen(session):
     repo = ResearchRepository(session)
     # A valid, frozen, complete cohort.

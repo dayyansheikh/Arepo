@@ -310,15 +310,28 @@ class ResearchRepository:
         mismatched cohorts without deleting them (frozen evidence is immutable; a human inspects).
         Returns a summary. Idempotent: a clean database returns empty lists."""
         incomplete = await self.incomplete_cohorts()
-        removed, anomalies = [], []
+        removed, anomalies, skipped = [], [], []
         for row in incomplete:
             if not row["frozen"]:
+                # Re-fetch and re-check frozen IMMEDIATELY before deleting: a legitimate freeze
+                # retry may have frozen this same cohort between the snapshot and now. Deleting on
+                # the stale snapshot would destroy real frozen evidence (DB review CRITICAL-2), so
+                # any cohort that is now frozen is skipped.
+                fresh = await self.session.get(ResearchCohortRow, row["id"])
+                if fresh is None:
+                    continue
+                if fresh.frozen:
+                    skipped.append(row)  # became valid between snapshot+delete; keep it
+                    continue
                 await self.delete_cohort(row["id"])
                 removed.append(row)
             else:
                 anomalies.append(row)  # frozen mismatch: report, never auto-delete
         await self.session.commit()
-        return {"removed_incomplete": removed, "frozen_anomalies": anomalies}
+        return {
+            "removed_incomplete": removed, "frozen_anomalies": anomalies,
+            "skipped_now_frozen": skipped,
+        }
 
     # -- counts (for research status, O(1)-ish) --------------------------------
     async def count_cohorts_by_cadence(self, provenance: str = "prospective") -> dict[str, int]:

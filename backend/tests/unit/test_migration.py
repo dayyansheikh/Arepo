@@ -181,6 +181,53 @@ async def test_fresh_database_is_current_after_upgrade(prior_db):
     await eng.dispose()
 
 
+async def test_web_tier_bootstrap_migrates_existing_schema(prior_db):
+    # The web app startup path now goes through the migrator (DB review CRITICAL-1): bootstrap must
+    # bring an existing behind-schema database current, not just create_all.
+    await _build_prior(prior_db)
+    from astrolabe.evaluation.migrations import bootstrap
+
+    eng = make_engine(prior_db)
+    await bootstrap(eng)
+    status = await check(eng)
+    assert status["current"] is True and status["missing_columns"] == []
+    await eng.dispose()
+
+
+async def test_concurrent_upgrade_does_not_crash(prior_db):
+    # Two migrators racing an actual version bump must both succeed (one does the DDL, the other
+    # tolerates the duplicate) rather than crashing (DB review CRITICAL-3).
+    import asyncio
+
+    await _build_prior(prior_db)
+    eng_a = make_engine(prior_db)
+    eng_b = make_engine(prior_db)
+    results = await asyncio.gather(upgrade(eng_a), upgrade(eng_b), return_exceptions=True)
+    assert all(not isinstance(r, BaseException) for r in results), results
+    assert (await check(eng_a))["current"] is True
+    await eng_a.dispose()
+    await eng_b.dispose()
+
+
+def test_callable_list_and_dict_defaults_are_rendered():
+    # A callable list/dict default must render a constant DEFAULT so legacy rows read [] / {}, not
+    # NULL under a NOT NULL column (DB review MAJOR-5). Time/uuid callables stay nullable.
+    from sqlalchemy import create_engine
+
+    from astrolabe.storage.migrate import _add_column_sql
+
+    eng = create_engine("sqlite://")
+    with eng.connect() as conn:
+        # research_entries.evidence_families has default=list; component_availability default=dict.
+        list_sql = _add_column_sql(conn, "research_entries", "evidence_families")
+        dict_sql = _add_column_sql(conn, "research_entries", "component_availability")
+        # created_at uses a callable time default -> must NOT be frozen into one literal.
+        ts_sql = _add_column_sql(conn, "research_entries", "created_at")
+    assert "DEFAULT '[]'" in list_sql
+    assert "DEFAULT '{}'" in dict_sql
+    assert "DEFAULT" not in ts_sql
+
+
 def test_postgresql_ddl_compiles_for_research_tables():
     # Portability: the ORM must emit valid PostgreSQL DDL for the research tables (no SQLite-only
     # constructs). We compile rather than execute (no live Postgres in CI).

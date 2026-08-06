@@ -15,6 +15,8 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy.exc import IntegrityError
+
 from ..domain.enums import DataMode
 from ..domain.models import Trade, utcnow
 from ..ingest.normalize import normalize_trades
@@ -288,12 +290,22 @@ async def freeze_from_inputs(
             "excluded": funnel.excluded if funnel else 0,
         }
     repo = ResearchRepository(session)
-    cohort, created = await repo.get_or_create_cohort(
-        cadence=cadence,
-        cutoff_at=cutoff_at,
-        model_version=model_version,
-        calculation_version=calculation_version,
-    )
+    try:
+        cohort, created = await repo.get_or_create_cohort(
+            cadence=cadence,
+            cutoff_at=cutoff_at,
+            model_version=model_version,
+            calculation_version=calculation_version,
+        )
+    except IntegrityError:
+        # A concurrent freeze for the same (cadence, cutoff) won the unique-constraint race. Degrade
+        # to the normal already-frozen no-op instead of crashing the loser (DB review MODERATE-6):
+        # roll back our failed insert and read the winner's now-committed row.
+        await session.rollback()
+        existing = await repo.get_cohort(cadence, cutoff_at)
+        if existing is None:  # extremely unlikely; surface honestly rather than loop
+            raise
+        cohort, created = existing, False
     # Provenance is part of the immutable identity: set it only on creation, and never mutate it on
     # a frozen cohort (adversarial review finding 4 - closes an immutability hole).
     if created:

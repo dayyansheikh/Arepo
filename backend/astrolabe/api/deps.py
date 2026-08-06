@@ -34,18 +34,20 @@ def _session_factory():
 
 
 async def init_storage() -> None:
-    """Create tables on the shared engine (called once at startup; best-effort)."""
-    try:
-        from ..accounts import models as _account_models  # noqa: F401  (register user tables)
-        from ..alerts import models as _alert_models  # noqa: F401  (register alert tables)
-        from ..evaluation import models as _eval_models  # noqa: F401  (register eval tables)
-        from ..ingest import microstructure_store as _micro  # noqa: F401  (register snapshots)
-        from ..opportunity import snapshot_models as _snap_models  # noqa: F401  (register tables)
-        from ..storage.db import init_db
+    """Bring the schema fully up to date on the shared engine at startup (best-effort).
 
-        await init_db(_engine())
-        logger.info("storage initialised")
-    except Exception as exc:  # noqa: BLE001
+    Uses the SAME migrator as every CLI (``migrations.bootstrap`` -> ``storage.migrate``), so
+    the web tier ALTERs existing tables for new columns instead of the old bare ``create_all``
+    that only created new tables (DB review CRITICAL-1). The migrator loads the single
+    authoritative model list, so the web tier and the CLIs cannot diverge on which tables exist
+    (MAJOR-4). With ``AUTO_MIGRATE=false`` it runs the fail-fast preflight instead of migrating.
+    """
+    try:
+        from ..evaluation.migrations import bootstrap
+
+        await bootstrap(_engine())
+        logger.info("storage initialised (schema current)")
+    except Exception as exc:  # noqa: BLE001 - storage optional; degrade gracefully
         logger.warning("storage init failed; cached mode disabled", extra={"ctx_err": str(exc)})
 
 

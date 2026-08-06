@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Connection
+from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.schema import CreateTable
 
@@ -34,6 +35,7 @@ def _load_all_models() -> None:
     importing them all here makes the diff exhaustive regardless of call site.
     """
     from ..accounts import models as _accounts  # noqa: F401
+    from ..alerts import models as _alerts  # noqa: F401  (alert_history etc.)
     from ..evaluation import models as _eval  # noqa: F401
     from ..evaluation import research_models as _research  # noqa: F401
     from ..ingest import microstructure_store as _micro  # noqa: F401
@@ -118,20 +120,60 @@ def _add_column_sql(conn: Connection, table_name: str, column_name: str) -> str:
         val = col.default.arg
         literal = f"'{val}'" if isinstance(val, str) else str(val)
         default_clause = f" DEFAULT {literal}"
+    elif col.default is not None and getattr(col.default, "is_callable", False):
+        # Callable defaults (default=list / dict / utcnow / uuid4). SQLAlchemy WRAPS the callable,
+        # we detect the constant container factories by INVOKING it: an empty list/dict yields a
+        # portable static DEFAULT ('[]' / '{}'). Time/uuid callables produce a different value per
+        # row and must NOT be frozen into one literal, so those columns are added nullable and old
+        # rows read NULL (documented in docs/database-migration-guide.md). Closes the JSON/list
+        # landmine (DB review MAJOR-5) without inventing a fake per-row value.
+        try:
+            produced = col.default.arg(None)  # wrapped callable accepts a context arg
+        except Exception:  # noqa: BLE001 - a context-dependent default cannot be evaluated here
+            produced = object()
+        if isinstance(produced, list) and not produced:
+            default_clause = " DEFAULT '[]'"
+        elif isinstance(produced, dict) and not produced:
+            default_clause = " DEFAULT '{}'"
     parts[0] += default_clause
     # Never add a hard NOT NULL to a table with existing rows and no default: keep it nullable so
     # the migration is safe and honest (no fabricated values).
     return f"ALTER TABLE {table_name} {parts[0]}"
 
 
+# A fixed key for the Postgres advisory lock that serialises concurrent migrators.
+_MIGRATION_LOCK_KEY = 917238
+
+
+def _is_already_exists(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return "already exists" in msg or "duplicate column" in msg or "duplicate_column" in msg
+
+
 def _upgrade_sync(conn: Connection) -> dict:
-    # 1. Create any brand-new tables (create_all skips existing ones).
-    Base.metadata.create_all(conn)
-    # 2. Add any columns the ORM has but the existing tables lack.
+    # Serialise concurrent migrators (multiple web replicas or overlapping cron jobs booting against
+    # a behind schema at once) so only ONE performs the actual DDL. On Postgres a transaction-scoped
+    # advisory lock does this cleanly; the loser waits, then finds nothing missing (a no-op). On
+    # SQLite the write transaction already serialises; the duplicate-error tolerance below is the
+    # belt-and-suspenders for both dialects (DB review CRITICAL-3).
+    if conn.dialect.name == "postgresql":
+        conn.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": _MIGRATION_LOCK_KEY})
+
+    # 1. Create any brand-new tables (create_all skips existing; tolerate a concurrent creator).
+    try:
+        Base.metadata.create_all(conn)
+    except (OperationalError, IntegrityError, ProgrammingError) as exc:
+        if not _is_already_exists(exc):
+            raise
+    # 2. Add any columns the ORM has but the existing tables lack (tolerate a concurrent adder).
     added: list[str] = []
     for table_name, column_name in _missing_columns(conn):
-        conn.execute(text(_add_column_sql(conn, table_name, column_name)))
-        added.append(f"{table_name}.{column_name}")
+        try:
+            conn.execute(text(_add_column_sql(conn, table_name, column_name)))
+            added.append(f"{table_name}.{column_name}")
+        except (OperationalError, ProgrammingError) as exc:
+            if not _is_already_exists(exc):
+                raise
     # 3. Record the schema version if we advanced it.
     before = _read_version(conn)
     if before < SCHEMA_VERSION:

@@ -11,9 +11,13 @@ and:
    with the column's own type compiled for the active dialect (SQLite or PostgreSQL);
 3. records the schema version in a `schema_migrations` table.
 
-Old rows receive `NULL` (nullable columns) or the column's declared default. A `NOT NULL` column
-with no default is added nullable so the migration cannot fail on existing rows and **no historical
-value is fabricated**.
+Old rows receive `NULL` (nullable columns) or the column's declared default, with one honest
+exception: a **callable** default is only rendered for the container factories `list`/`dict` (as
+`'[]'` / `'{}'`, which are constant and portable). A time/uuid callable default (e.g. `utcnow`,
+`uuid4`) produces a different value per row, so it is NOT frozen into one literal — such a column is
+added nullable and legacy rows read `NULL` for it. This never fabricates a historical value. A
+`NOT NULL` column with no default is likewise added nullable so the migration cannot fail on
+existing rows. (New rows always get the ORM default; only pre-existing rows are affected.)
 
 ## Commands
 
