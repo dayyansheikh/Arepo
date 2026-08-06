@@ -1,11 +1,13 @@
 """Forward-observation and resolution collection for research cohorts (prompt section 5).
 
-Causal by construction: a horizon observation is only recorded once that horizon has actually
-elapsed (``now >= cutoff + horizon``), using the price available AT that later moment. In
-production a cron runs this every ~30 minutes and fills any due observation with the then-current
-quote; nothing here reaches back in time. For tests and the production-equivalent dry run a
-controlled ``now`` and a fixture ``price_of`` provider stand in for the wall clock and the live
-feed, which is the only sanctioned use of a test clock (prompt section 17B).
+Causal by construction: a horizon observation is only recorded once that horizon has elapsed
+measured from the cohort's ACTUAL prediction time (``now >= evaluation_origin_at + horizon``, where
+evaluation_origin_at == frozen_at), NEVER from the ``cutoff_at`` cadence LABEL. So a cohort frozen
+late gets 1h/6h/24h/7d outcomes from when it was really made, and is never presented as a prediction
+made at its scheduled boundary. In production a cron runs this every ~20 minutes and fills any due
+observation with the then-current quote; nothing reaches back in time. For tests and the
+production-equivalent dry run a controlled ``now`` and a fixture ``price_of`` provider stand in for
+the wall clock and the live feed, the only sanctioned use of a test clock (prompt section 17B).
 
 Idempotent: an observation is written once per (entry, horizon) and never overwritten, so re-runs
 and retries are safe.
@@ -59,32 +61,20 @@ async def collect_due_forward(
     invalid = 0
     cohorts = await repo.list_cohorts(provenance="prospective", frozen=True)
     for cohort in cohorts:
-        cutoff = _utc(cohort.cutoff_at)
-        frozen_at = _utc(cohort.frozen_at) or cutoff
+        # CAUSAL ORIGIN = when the prediction was actually made (evaluation_origin_at == frozen_at),
+        # NEVER the cutoff_at cadence LABEL. Every horizon runs from here, so a cohort frozen late
+        # (e.g. a missed weekly run frozen on Thursday) gets 1h/6h/24h/7d outcomes measured from
+        # Thursday - it is never presented as if the prediction were made on the scheduled Monday.
+        origin = (_utc(cohort.evaluation_origin_at) or _utc(cohort.frozen_at)
+                  or _utc(cohort.cutoff_at))
         entries = await repo.get_entries(cohort.id)
         existing_by_entry = {e.id: await repo.get_forward(e.id) for e in entries}
         for entry in entries:
             have = existing_by_entry[entry.id]
             for horizon, secs in RESEARCH_HORIZONS.items():
-                target = cutoff + _timedelta(secs)
+                target = origin + _timedelta(secs)   # horizon from the actual prediction time
                 if horizon in have:
                     already += 1
-                    continue
-                # Causal guard: the entry prices were captured at ``frozen_at``. If a horizon's
-                # target time is BEFORE the freeze, it can never be a genuine forward measurement
-                # (it predates the entry), so it is recorded as terminal-invalid, never backfilled
-                # with a later price. In production the freeze cron fires at the cut-off boundary,
-                # so every horizon is naturally after the freeze and this never triggers.
-                if target < frozen_at:
-                    await repo.upsert_forward(
-                        entry_id=entry.id, horizon=horizon, observed_at=now,
-                        midpoint=None, best_bid=None, best_ask=None, spread=None,
-                        near_mid_depth=None, source_timestamp=None, exact=False,
-                        observation_delay_seconds=(now - target).total_seconds(),
-                        unavailable_reason="horizon predates the freeze time; not a valid forward "
-                        "measurement (cohort frozen after this horizon had already elapsed)",
-                    )
-                    invalid += 1
                     continue
                 if now < target:
                     continue  # horizon not yet elapsed (causal: never observe early)
@@ -174,11 +164,12 @@ async def pending_forward_backlog(session) -> dict:
     repo = ResearchRepository(session)
     due = recorded = 0
     for cohort in await repo.list_cohorts(provenance="prospective", frozen=True):
-        cutoff = _utc(cohort.cutoff_at)
+        origin = (_utc(cohort.evaluation_origin_at) or _utc(cohort.frozen_at)
+                  or _utc(cohort.cutoff_at))
         for entry in await repo.get_entries(cohort.id):
             have = await repo.get_forward(entry.id)
             for horizon, secs in RESEARCH_HORIZONS.items():
-                if now >= cutoff + _timedelta(secs):
+                if now >= origin + _timedelta(secs):  # due from the causal origin, not the label
                     due += 1
                     if horizon in have:
                         recorded += 1

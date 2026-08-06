@@ -227,6 +227,18 @@ export interface ResearchStatus {
   oldest_cohort: string | null;
   newest_cohort: string | null;
   last_successful_freeze: string | null;
+  late_cohorts: number;
+  excessively_late_cohorts_excluded: number;
+  latest_run: {
+    scheduled_for: string | null;
+    frozen_at: string | null;
+    evaluation_origin_at: string | null;
+    lateness_seconds: number;
+    late: boolean;
+    excessively_late: boolean;
+    universe_size: number;
+    degraded: boolean;
+  } | null;
   microstructure_snapshots: number;
   collector_recent: boolean;
   calibration: { available: boolean; resolved_sample: number; minimum_required: number; message: string };

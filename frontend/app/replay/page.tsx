@@ -624,8 +624,11 @@ function ResearchStatusSection() {
     ["Abstention controls", String(data.abstentions)],
     ["24h outcomes evaluable", String(data.horizon_coverage?.["24h"]?.evaluable ?? 0)],
     ["Resolved markets", String(data.resolved_markets)],
+    ["Late cohorts (frozen after their boundary)", String(data.late_cohorts ?? 0)],
+    ["Excessively late (excluded from performance)", String(data.excessively_late_cohorts_excluded ?? 0)],
     ["Last successful freeze", data.last_successful_freeze ? new Date(data.last_successful_freeze).toLocaleString("en-GB") : "none yet"],
   ];
+  const run = data.latest_run;
   return (
     <section className="space-y-3">
       <SectionTitle>Edge-research status</SectionTitle>
@@ -640,6 +643,33 @@ function ResearchStatusSection() {
         <span aria-hidden="true">{data.edge.edge_supported ? "✓ " : "⚠ "}</span>
         {data.edge.message}
       </div>
+      {/* Latest freeze timing: the ACTUAL prediction time (frozen_at) is shown prominently, with the
+          scheduled boundary and lateness, so a late run is never read as a boundary prediction. */}
+      {run && run.frozen_at && (
+        <div
+          className={`rounded-card border px-4 py-3 text-[13px] leading-relaxed ${
+            run.excessively_late
+              ? "border-arepo-neg/30 bg-arepo-neg/10 text-arepo-ink"
+              : run.late
+                ? "border-arepo-warn/30 bg-arepo-warn/10 text-arepo-warnText"
+                : "border-arepo-border bg-arepo-surface2 text-arepo-ink2"
+          }`}
+        >
+          <span className="font-medium text-arepo-ink">Latest run: </span>
+          Actually frozen at {new Date(run.frozen_at).toLocaleString("en-GB")}
+          {run.scheduled_for && (
+            <> (scheduled for {new Date(run.scheduled_for).toLocaleString("en-GB")}</>
+          )}
+          {run.scheduled_for && run.lateness_seconds > 0 && (
+            <>, {Math.round(run.lateness_seconds / 60)} min late</>
+          )}
+          {run.scheduled_for && ")"}
+          {run.excessively_late && (
+            <> — excluded from performance (frozen too long after its scheduled boundary).</>
+          )}
+          . Forward outcomes are measured from the actual freeze time, never the scheduled boundary.
+        </div>
+      )}
       <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
         {rows.map(([k, v]) => (
           <div key={k} className="flex justify-between gap-3 border-b border-arepo-border py-1">

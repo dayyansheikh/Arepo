@@ -166,14 +166,20 @@ class ResearchRepository:
         self, cohort: ResearchCohortRow, *, frozen_at: datetime | None = None,
         excluded_markets: int = 0, degraded: bool = False,
     ) -> bool:
-        """Freeze a cohort and record its counts. Idempotent: returns False if already frozen.
+        """Freeze a cohort + record counts and causal timing. Idempotent: False if already frozen.
 
-        ``frozen_at`` records WHEN the entry prices were captured (defaults to now); the forward
-        collector uses it as the causal reference so a horizon that predates the freeze is never
-        backfilled. Tests pass it explicitly to keep the controlled clock deterministic.
+        ``frozen_at`` records WHEN the prediction was actually made (defaults to now). It becomes
+        cohort's ``evaluation_origin_at`` - the single causal origin every forward horizon, entry
+        timestamp and time-to-close is measured from. Lateness (frozen_at - cutoff_at, the scheduled
+        boundary) is recorded and the late / excessively-late flags set from it.
         """
+        from .research_constants import LATENESS_MAX_SECONDS, LATENESS_WARN_SECONDS
+
         if cohort.frozen:
             return False
+        origin = frozen_at or _now()
+        scheduled = _utc(cohort.cutoff_at)
+        lateness = max(0.0, (origin - scheduled).total_seconds()) if scheduled else 0.0
         entries = await self.get_entries(cohort.id)
         cohort.universe_size = len(entries)
         cohort.directional_count = sum(1 for e in entries if e.direction in ("up", "down"))
@@ -184,7 +190,11 @@ class ResearchRepository:
         cohort.excluded_markets = excluded_markets
         cohort.degraded = degraded
         cohort.frozen = True
-        cohort.frozen_at = frozen_at or _now()
+        cohort.frozen_at = origin
+        cohort.evaluation_origin_at = origin  # causal origin == actual prediction time
+        cohort.lateness_seconds = lateness
+        cohort.late = lateness > LATENESS_WARN_SECONDS
+        cohort.excessively_late = lateness > LATENESS_MAX_SECONDS
         await self.session.flush()
         return True
 

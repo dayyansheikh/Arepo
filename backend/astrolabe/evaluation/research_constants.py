@@ -69,6 +69,17 @@ MIN_USABLE_UNIVERSE = 5          # fewer usable markets than this => reject the 
 MAX_EXCLUSION_RATE = 0.6         # more than 60% of discovered markets excluded => reject
 DEGRADED_EXCLUSION_RATE = 0.2    # more than 20% excluded (but not rejected) => mark degraded
 
+# --- Prospective-timestamp lateness policy (causal-timing audit) ------------------------------
+# A cohort's causal origin is ``frozen_at`` (WHEN the prediction was actually made), never its
+# ``cutoff_at`` cadence-boundary LABEL. Lateness = frozen_at - cutoff_at. In production the freeze
+# crons fire a few minutes after each boundary, so lateness is tiny; a large lateness means the run
+# was missed/manual and its boundary label would be misleading.
+LATENESS_WARN_SECONDS = 900       # frozen more than 15 min after the boundary => flag "late"
+# Frozen this long after the boundary => "excessively late": still CAUSALLY VALID (horizons run from
+# frozen_at), but excluded from comparable performance so a stale/backfilled run can't be presented
+# as a genuine scheduled prediction.
+LATENESS_MAX_SECONDS = 21_600     # 6 hours
+
 # --- Execution model (prompt section 6) -------------------------------------------------------
 STANDARD_STAKE = 100.0            # standard evaluation stake, in quote units
 FEE_RATE = 0.0                    # Polymarket charges no protocol fee today; kept explicit

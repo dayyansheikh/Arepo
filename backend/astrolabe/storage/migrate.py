@@ -48,11 +48,13 @@ _load_all_models()
 # Bump whenever the ORM gains tables/columns. This is a monotonic marker recorded in
 # ``schema_migrations``; the actual work is metadata-driven so the number is documentation, not a
 # script selector.
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 SCHEMA_VERSION_NOTES = {
     1: "initial create_all schema",
     2: "research per-family directions (momentum/orderbook/tradeflow) + edge-research tables",
     3: "research_cohorts.excluded_markets + degraded (universe degradation)",
+    4: "research_cohorts.evaluation_origin_at + lateness_seconds + late + excessively_late "
+       "(prospective-timestamp causal-origin audit)",
 }
 
 _VERSION_TABLE = "schema_migrations"

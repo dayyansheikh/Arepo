@@ -339,7 +339,18 @@ async def freeze_from_inputs(
         await session.rollback()
         raise
     return {
-        "cadence": cadence, "cutoff_at": cutoff_at.isoformat(), "created": created,
+        "cadence": cadence,
+        # cutoff_at is the SCHEDULED cadence boundary (a label); the causal origin is frozen_at.
+        "scheduled_for": cutoff_at.isoformat(),
+        "cutoff_at": cutoff_at.isoformat(),
+        "frozen_at": cohort.frozen_at.isoformat() if cohort.frozen_at else None,
+        "evaluation_origin_at": (
+            cohort.evaluation_origin_at.isoformat() if cohort.evaluation_origin_at else None
+        ),
+        "lateness_seconds": round(cohort.lateness_seconds, 1),
+        "late": cohort.late,
+        "excessively_late": cohort.excessively_late,
+        "created": created,
         "frozen": True, "already_frozen": False,
         "universe_size": cohort.universe_size,
         "directional": cohort.directional_count,

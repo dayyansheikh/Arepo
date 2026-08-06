@@ -181,14 +181,38 @@ class LiveSource:
             )
         except AstrolabeClientError as exc:
             # NotFound (resolved market, no book) is expected and benign; other client errors
-            # mark REST degraded. Either way one token never crashes the request.
-            if not isinstance(exc, NotFound):
+            # mark REST degraded. Either way one token never crashes the request. The HTTP client
+            # already retried transient errors with backoff; this is the terminal outcome.
+            benign = isinstance(exc, NotFound)
+            if not benign:
                 self._rest_health = SourceHealth(
                     name="clob_rest", state=ConnState.DEGRADED, last_error=str(exc)
                 )
-            logger.warning("live token data unavailable", extra={"ctx_token": token_id[:8]})
+            # Structured, actionable log identifying the affected market/token, which components are
+            # unavailable and the retry outcome, without exposing any secret (ids are public;
+            # token_id is truncated). Missing values stay missing (empty book/prices), never zeroed.
+            logger.warning(
+                "live token data unavailable",
+                extra={
+                    "ctx_market": market_id,
+                    "ctx_token": token_id[:12],
+                    "ctx_reason": "not_found" if benign else type(exc).__name__,
+                    "ctx_retried": True,  # httpx client exhausted its bounded retries + backoff
+                    "ctx_book_unavailable": book is None,
+                    "ctx_prices_unavailable": not prices,
+                },
+            )
         except Exception as exc:  # noqa: BLE001 - belt-and-suspenders: never crash enrichment
-            logger.warning("live token data error", extra={"ctx_error": str(exc)})
+            logger.warning(
+                "live token data error",
+                extra={
+                    "ctx_market": market_id,
+                    "ctx_token": token_id[:12],
+                    "ctx_error": type(exc).__name__,
+                    "ctx_book_unavailable": book is None,
+                    "ctx_prices_unavailable": not prices,
+                },
+            )
         captured = book.timestamp if book else None
         return TokenData(
             prices=prices, book=book, volumes=[], captured_at=captured, price_points=points

@@ -154,26 +154,42 @@ async def test_forward_collection_is_causal_and_idempotent(session):
     assert backlog["backlog"] == 0  # 7d not due yet, so not counted as backlog
 
 
-async def test_horizon_predating_freeze_is_invalid_not_backfilled(session):
-    # A cohort frozen LATER than a horizon's target (e.g. a weekly freeze run mid-week) must never
-    # backfill that horizon with a current price: it is recorded terminal-invalid (causal guard).
+async def test_horizons_run_from_frozen_at_not_cutoff(session):
+    # Causal-timing audit: a cohort frozen LATE (weekly cut-off Monday, actually frozen Thursday)
+    # measures its 1h/6h/24h/7d horizons from frozen_at (Thursday), NEVER from cutoff_at. So a
+    # Thursday freeze can only ever create Thursday+ forward outcomes, and never a Tuesday/Wednesday
+    # (post-cutoff, pre-freeze) one. Late cohorts remain causally valid.
     screens = [_screen("d0", 0.5, "up", 2, rp=90)]
     inputs = build_entry_inputs(screens, now=CUTOFF)
-    # Freeze 2 days AFTER the cut-off, so 1h/6h/24h all predate the freeze.
-    late = CUTOFF + timedelta(days=2)
+    late = CUTOFF + timedelta(days=3)   # frozen 3 days after the scheduled Monday boundary
     await freeze_from_inputs(session, cadence=CADENCE_WEEKLY, cutoff_at=CUTOFF,
                              inputs=inputs, calculation_version="test-1", frozen_at=late)
 
     async def price_of(mid, tok):
         return Quote(midpoint=0.9, best_bid=0.89, best_ask=0.91, spread=0.02, near_mid_depth=1000.0)
 
-    r = await collect_due_forward(session, now=late + timedelta(minutes=5), price_of=price_of)
-    assert r["invalid_predates_freeze"] == 3 and r["written"] == 0  # 1h/6h/24h all invalid
+    # 5 min after the (late) freeze: no horizon has elapsed FROM frozen_at, so nothing is recorded.
+    r0 = await collect_due_forward(session, now=late + timedelta(minutes=5), price_of=price_of)
+    assert r0["written"] == 0 and r0["invalid_predates_freeze"] == 0
+
+    # 1h5m after the freeze: the 1h horizon is due FROM frozen_at, and it is a valid outcome.
+    r1 = await collect_due_forward(
+        session, now=late + timedelta(hours=1, minutes=5), price_of=price_of
+    )
+    assert r1["written"] == 1 and r1["invalid_predates_freeze"] == 0
     repo = ResearchRepository(session)
     cohort = (await repo.list_cohorts(cadence=CADENCE_WEEKLY))[0]
+    assert cohort.excessively_late is True                     # 3 days late => excluded from perf
+    origin = cohort.evaluation_origin_at
+    origin = origin if origin.tzinfo else origin.replace(tzinfo=UTC)
+    assert origin == late                                      # causal origin == frozen_at
     entry = (await repo.get_entries(cohort.id))[0]
     fwd = await repo.get_forward(entry.id)
-    assert fwd["24h"].midpoint is None and "predates the freeze" in fwd["24h"].unavailable_reason
+    assert fwd["1h"].midpoint == 0.9                           # a genuine forward, not invalid
+    # The 1h observation time is 1h after the FREEZE, never dated near the Monday cut-off.
+    obs = fwd["1h"].observed_at
+    obs = obs if obs.tzinfo else obs.replace(tzinfo=UTC)
+    assert obs >= late
 
 
 async def test_forward_unavailable_reason_when_no_quote(session):

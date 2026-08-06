@@ -44,6 +44,8 @@ class ResearchCohortRow(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     cadence: Mapped[str] = mapped_column(String, nullable=False, index=True)  # 6h | daily | weekly
+    # ``cutoff_at`` is the SCHEDULED cadence-boundary LABEL (the bucket key), NOT the causal origin.
+    # Exposed to callers as ``scheduled_for``. The causal origin is ``evaluation_origin_at`` below.
     cutoff_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
 
     model_version: Mapped[str] = mapped_column(String, nullable=False, default="")
@@ -52,6 +54,16 @@ class ResearchCohortRow(Base):
 
     frozen: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     frozen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The CAUSAL ORIGIN of the prediction: equals frozen_at. Every forward horizon (1h/6h/24h/7d),
+    # entry timestamp and time-to-close is measured from THIS, never from cutoff_at. Stored
+    # explicitly so the meaning is unambiguous and a query cannot accidentally use the label.
+    evaluation_origin_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Lateness = frozen_at - cutoff_at (seconds). ``late`` flags a delay past the warn threshold;
+    # ``excessively_late`` marks a run so far past its boundary that it is excluded from comparable
+    # performance (still causally valid, just not a genuine scheduled prediction).
+    lateness_seconds: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    late: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    excessively_late: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # Counts recorded at freeze so status queries are O(1) and match the stored entries.
     universe_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

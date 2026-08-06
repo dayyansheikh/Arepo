@@ -35,6 +35,10 @@ def _utc(dt: datetime | None) -> datetime | None:
     return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
 
 
+def _iso(dt: datetime | None) -> str | None:
+    return dt.isoformat() if dt is not None else None
+
+
 def _entry_view(e: ResearchEntryRow) -> EntryView:
     return EntryView(
         direction=e.direction, momentum_direction=e.momentum_direction,
@@ -60,10 +64,14 @@ class ResearchReadService:
 
     async def _frozen_entries(self) -> list[tuple[ResearchCohortRow, ResearchEntryRow]]:
         # Only reportable partitions (live + held-out) enter any performance number; development and
-        # threshold-selection observations are excluded so a threshold can never be judged on the
-        # same data it was chosen on (quant review finding 1; prompt section 10).
+        # threshold-selection observations are excluded (quant review finding 1; prompt section 10).
+        # EXCESSIVELY-LATE cohorts are also excluded from comparable performance (causal-timing
+        # audit): they remain causally valid (horizons from frozen_at) but a run frozen far past its
+        # scheduled boundary is not a genuine scheduled prediction and must not flatter the sample.
         out = []
         for cohort in await self.repo.list_cohorts(provenance="prospective", frozen=True):
+            if cohort.excessively_late:
+                continue
             for e in await self.repo.get_entries(cohort.id):
                 if is_reportable(e.walk_forward_partition):
                     out.append((cohort, e))
@@ -84,10 +92,14 @@ class ResearchReadService:
             fwd = (await self.repo.get_forward(e.id)).get(horizon)
             if fwd is None or fwd.midpoint is None:
                 continue
-            cut = _utc(cohort.cutoff_at) or datetime.min.replace(tzinfo=UTC)
+            # Dedup by the causal origin (actual prediction time), not the scheduled label.
+            origin = (
+                _utc(cohort.evaluation_origin_at) or _utc(cohort.frozen_at)
+                or _utc(cohort.cutoff_at) or datetime.min.replace(tzinfo=UTC)
+            )
             prev = best.get(e.market_id)
-            if prev is None or cut > prev[0]:
-                best[e.market_id] = (cut, _obs_for_horizon(e, fwd))
+            if prev is None or origin > prev[0]:
+                best[e.market_id] = (origin, _obs_for_horizon(e, fwd))
         obs: list[HorizonObs] = [o for _cut, o in best.values()]
         bt = baseline_table(obs)
         return {
@@ -122,17 +134,32 @@ class ResearchReadService:
             horizon_cov[horizon] = {"evaluable": evaluable, "pending": pending}
 
         cohorts = await self.repo.list_cohorts(provenance="prospective", frozen=True)
-        oldest = min((_utc(c.cutoff_at) for c in cohorts), default=None)
-        newest = max((_utc(c.cutoff_at) for c in cohorts), default=None)
+        # Sample range is described by the CAUSAL ORIGIN (actual prediction time), not the label.
+        origins = [_utc(c.evaluation_origin_at) or _utc(c.frozen_at) for c in cohorts]
+        origins = [o for o in origins if o is not None]
+        oldest = min(origins, default=None)
+        newest = max(origins, default=None)
         last_freeze = max((_utc(c.frozen_at) for c in cohorts if c.frozen_at), default=None)
-        # Universe-degradation transparency (prompt section 5): how many freezes were degraded and
-        # the most recent run's exclusion count, so a run that dropped many markets is not hidden.
+        # Universe-degradation transparency (prompt section 5).
         degraded_cohorts = sum(1 for c in cohorts if c.degraded)
+        # Prospective-timestamp lateness transparency (causal-timing audit): how many cohorts were
+        # late / excessively late (the latter excluded from performance), so a stale/backfilled run
+        # is never silently treated as a genuine scheduled prediction.
+        late_cohorts = sum(1 for c in cohorts if c.late)
+        excessively_late_cohorts = sum(1 for c in cohorts if c.excessively_late)
         newest_cohort = (
-            max(cohorts, key=lambda c: _utc(c.cutoff_at), default=None) if cohorts else None
+            max(cohorts, key=lambda c: _utc(c.frozen_at) or datetime.min.replace(tzinfo=UTC),
+                default=None)
+            if cohorts else None
         )
         latest_run = (
-            {"excluded_markets": newest_cohort.excluded_markets,
+            {"scheduled_for": _iso(_utc(newest_cohort.cutoff_at)),
+             "frozen_at": _iso(_utc(newest_cohort.frozen_at)),
+             "evaluation_origin_at": _iso(_utc(newest_cohort.evaluation_origin_at)),
+             "lateness_seconds": round(newest_cohort.lateness_seconds, 1),
+             "late": newest_cohort.late,
+             "excessively_late": newest_cohort.excessively_late,
+             "excluded_markets": newest_cohort.excluded_markets,
              "degraded": newest_cohort.degraded,
              "universe_size": newest_cohort.universe_size}
             if newest_cohort is not None else None
@@ -199,6 +226,8 @@ class ResearchReadService:
             "newest_cohort": newest.isoformat() if newest else None,
             "last_successful_freeze": last_freeze.isoformat() if last_freeze else None,
             "degraded_cohorts": degraded_cohorts,
+            "late_cohorts": late_cohorts,
+            "excessively_late_cohorts_excluded": excessively_late_cohorts,
             "latest_run": latest_run,
             "incomplete_cohorts": len(incomplete),
             "microstructure_snapshots": int(snap_count),
