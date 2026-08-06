@@ -58,12 +58,19 @@ DONE + committed:
   fallback only); §13 render.yaml preDeployCommand migrate + scripts (preflight/verify/health) +
   deployment docs; §15 production-equivalent dry run PASSES headless.
 - §9 local acceptance doc; §16 exact 39-step USER_DEPLOYMENT_CHECKLIST; §17 goal refined.
-- §18 reviewers: production-architecture+provenance = CLEAN (1 LOW doc fix applied). DB/adversary
-  reviewer running.
+- §18 reviewers COMPLETE (2 independent subagents): production-architecture+provenance = CLEAN
+  (1 LOW doc fix); DB/migration+operational-adversary = 6 findings (3 CRITICAL, 2 MAJOR, 1 MODERATE)
+  ALL FIXED + tested (web-tier now migrates via init_storage; repair TOCTOU guarded; concurrent
+  upgrade advisory-locked + duplicate-tolerant; single model list; callable JSON defaults rendered;
+  concurrent-freeze graceful). CRITICAL-1 verified live (API logs "storage initialised (schema
+  current)"). Reviews: docs/predeploy-architecture-review.md, docs/predeploy-db-adversary-review.md.
 
-**Exact next action:** collect the DB/migration+adversary reviewer report; fix any confirmed
-critical/major; push branch; write the final report (§20). Then the user follows
-docs/USER_DEPLOYMENT_CHECKLIST.md to deploy.
+Final gates: **backend 355 pass, ruff clean; frontend tsc/lint clean, 37 vitest, build 16/16.**
+Branch pushed (HEAD 5d355c2). All completion-gate items met.
+
+**Exact next action:** NONE local. The user follows docs/USER_DEPLOYMENT_CHECKLIST.md (Supabase +
+Render blueprint + env group + Vercel) to deploy; the release command migrates and the crons then
+collect real prospective evidence automatically with no browser.
 
 ## (superseded) Current phase
 
