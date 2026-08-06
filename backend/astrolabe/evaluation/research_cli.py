@@ -85,6 +85,15 @@ async def _run(args: argparse.Namespace) -> int:
                 provider = await live_price_provider(service)
                 summary = await collect_due_forward(session, price_of=provider)
                 print(json.dumps(summary))
+            elif args.command == "research-preclose":
+                from .research_preclose import collect_preclose
+                provider = await live_price_provider(service)
+                # Public selections closing within 7 days: the markets whose freeze-to-close is
+                # approaching, bounded so the collector stays inside the CLOB rate limit.
+                summary = await collect_preclose(
+                    session, price_of=provider, public_only=True, within_hours=168.0
+                )
+                print(json.dumps(summary))
             elif args.command == "research-resolve":
                 from .service import CohortRunner  # reuse the resolution source
                 updated = await CohortRunner(service, mode="live").check_resolutions(session)
@@ -118,6 +127,7 @@ def build_parser() -> argparse.ArgumentParser:
     fs.add_argument("--cadence", required=True, choices=list(CADENCES))
     fs.add_argument("--scan-id", dest="scan_id", default=None)
     sub.add_parser("research-forward")
+    sub.add_parser("research-preclose")
     sub.add_parser("research-resolve")
     sub.add_parser("research-repair")
     st = sub.add_parser("research-status")

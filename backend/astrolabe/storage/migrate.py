@@ -51,7 +51,7 @@ _load_all_models()
 # Bump whenever the ORM gains tables/columns. This is a monotonic marker recorded in
 # ``schema_migrations``; the actual work is metadata-driven so the number is documentation, not a
 # script selector.
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 SCHEMA_VERSION_NOTES = {
     1: "initial create_all schema",
     2: "research per-family directions (momentum/orderbook/tradeflow) + edge-research tables",
@@ -66,6 +66,7 @@ SCHEMA_VERSION_NOTES = {
        "(per-family frozen directions so a cohort can be frozen from a complete scan)",
     8: "research_cohorts/entries scan_id + scan_complete + selection_policy + bucket + "
        "overall_rank_30d + public_selected (cohort frozen from a complete short-horizon scan)",
+    9: "research_preclose_observations (freeze-to-close quote collection)",
 }
 
 _VERSION_TABLE = "schema_migrations"

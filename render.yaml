@@ -103,44 +103,54 @@ crons:
   # eligibility gate + closing-time buckets run server-side, every eligible market is analysed and
   # ranked, and immutable snapshots are appended (never overwritten). An advisory lease in
   # discovery_scan_locks prevents overlapping scans; a crashed scan's stale lease is reclaimed
-  # automatically. A measured complete scan took ~15-32s for 181 eligible markets, comfortably
-  # inside 5 minutes, so the cadence is 5 minutes (complete-universe-discovery-audit.md records the
-  # measurement). The browser never scans; it only reads stored results.
+  # automatically. The bounded keyset discovery is the COMPLETE 30-day universe (~113k markets),
+  # and every eligible tradable market (~1.5k) is enriched and scored. A measured complete bounded
+  # scan took ~4.5 minutes (268s) for 1456 eligible markets against the live CLOB rate limit
+  # (docs/complete-universe-and-signal-lab.md records the measurement), so the cadence is 10 minutes
+  # with an overlap lease, not 5: a 4.5-minute scan does not reliably fit inside 5 minutes. The
+  # browser never scans; it only reads stored results.
   - name: arepo-signal-refresh
     runtime: python
     rootDir: backend
-    schedule: "*/5 * * * *"        # every 5 minutes: complete discover + analyse + append snapshots
+    schedule: "*/10 * * * *"       # every 10 minutes: complete discover + analyse + append snapshots
     buildCommand: pip install -r requirements.txt && pip install -e .
     command: python -m astrolabe.discovery.refresh_cli refresh
 
   # --- Edge-research infrastructure jobs (edge-research prompt §3, §5, §17C) ------------------
-  # The freeze jobs fire a few minutes AFTER each cadence boundary, so the cohort's cut-off (snapped
-  # to the boundary) is ~equal to when the prices were captured, and every 1h/6h/24h/7d horizon is
-  # genuinely in the future (the collector rejects any horizon that predates the freeze). Each
-  # freeze is idempotent on (cadence, cut-off): a re-run in the same period is a no-op.
+  # The freeze jobs fire a few minutes AFTER each cadence boundary and freeze FROM THE LATEST
+  # COMPLETE SCAN (research-freeze-from-scan): the cohort references that scan, preserves the full
+  # eligible 30-day universe (public top-20 + shadow + observation + abstention) with bucket
+  # membership and the selection policy, and REFUSES to build a normal cohort from an incomplete
+  # scan (final-completion prompt C1). Each freeze is idempotent on (cadence, cut-off).
   - name: arepo-research-freeze-6h
     runtime: python
     rootDir: backend
-    schedule: "5 0,6,12,18 * * *"  # 00:05/06:05/12:05/18:05 UTC: freeze the 6-hour research cohort
+    schedule: "8 0,6,12,18 * * *"  # 00:08/06:08/12:08/18:08 UTC: after a fresh 10-min complete scan
     buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.research_cli research-freeze --cadence 6h
+    command: python -m astrolabe.evaluation.research_cli research-freeze-from-scan --cadence 6h
   - name: arepo-research-freeze-daily
     runtime: python
     rootDir: backend
-    schedule: "10 0 * * *"         # daily 00:10 UTC: freeze the daily research cohort
+    schedule: "12 0 * * *"         # daily 00:12 UTC: freeze the daily research cohort from a scan
     buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.research_cli research-freeze --cadence daily
+    command: python -m astrolabe.evaluation.research_cli research-freeze-from-scan --cadence daily
   - name: arepo-research-freeze-weekly
     runtime: python
     rootDir: backend
-    schedule: "15 0 * * 1"         # Monday 00:15 UTC: freeze the weekly research cohort
+    schedule: "16 0 * * 1"         # Monday 00:16 UTC: freeze the weekly research cohort from a scan
     buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.research_cli research-freeze --cadence weekly
+    command: python -m astrolabe.evaluation.research_cli research-freeze-from-scan --cadence weekly
   - name: arepo-research-forward
     runtime: python
     rootDir: backend
     schedule: "*/20 * * * *"       # every 20 min: record any due 1h/6h/24h/7d forward observation
     buildCommand: pip install -r requirements.txt && pip install -e .
     command: python -m astrolabe.evaluation.research_cli research-forward
+  - name: arepo-research-preclose
+    runtime: python
+    rootDir: backend
+    schedule: "*/15 * * * *"       # every 15 min: collect freeze-to-close quotes before each close
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    command: python -m astrolabe.evaluation.research_cli research-preclose
   # Final resolutions are shared: the existing arepo-resolve cron populates market_resolutions,
   # which the research layer reads for its resolution view (no separate research-resolve cron).

@@ -190,6 +190,43 @@ class ResearchForwardRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class ResearchPreCloseRow(Base):
+    """Freeze-to-close tracking for one entry (final-completion prompt C4).
+
+    One mutable row per entry that accumulates valid quotes over the market's REMAINING lifetime:
+    the first valid post-freeze observation and the latest valid quote at or before close. Once the
+    close time passes the row is marked ``closed`` and the last valid quote becomes the final
+    pre-close price; quotes observed at or after close are rejected and never overwrite it. Final
+    resolution is never inferred from price here.
+    """
+
+    __tablename__ = "research_preclose_observations"
+    __table_args__ = (UniqueConstraint("entry_id", name="uq_research_preclose"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entry_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("research_entries.id"), index=True, nullable=False
+    )
+    close_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    first_observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    first_midpoint: Mapped[float | None] = mapped_column(Float)
+
+    last_valid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_midpoint: Mapped[float | None] = mapped_column(Float)
+    last_best_bid: Mapped[float | None] = mapped_column(Float)
+    last_best_ask: Mapped[float | None] = mapped_column(Float)
+    last_spread: Mapped[float | None] = mapped_column(Float)
+    last_near_mid_depth: Mapped[float | None] = mapped_column(Float)
+    last_source_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    observations: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    closed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    closed_detected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    unavailable_reason: Mapped[str | None] = mapped_column(String)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class ResearchRevisionRow(Base):
     """Append-only correction log: a frozen cohort is never silently mutated (prompt section 4)."""
 
