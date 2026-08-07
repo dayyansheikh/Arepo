@@ -4,7 +4,7 @@ import { VIEWPORTS, expectNoHorizontalOverflow } from "./helpers";
 /**
  * Complete-scan Signal Lab acceptance (prompt sections 10, 11, 22). Runs the real Next app (:3000)
  * against the real backend (:8000) and the preserved local database, which holds two recorded
- * complete scans (2100 discovered, 181 eligible within 30 days, ~83 directional). Proves signals
+ * complete scans (113k discovered, ~1.4k eligible within 30 days, ~1k directional). Proves signals
  * come first, the explanation is collapsed, top ten is shown as a display subset of the full
  * eligible universe, controls work, and trajectory + numeric strength changes render.
  */
@@ -44,11 +44,11 @@ test("top ten is shown as a subset of the full eligible universe", async ({ page
   await loadSignals(page, "?bucket=closing_1_7d&scope=public");
   const caption = page.getByTestId("coverage-caption");
   await expect(caption).toBeVisible();
-  // "Top 10 shown from N eligible markets" - N must be more than 10 for this bucket.
+  // "Top 20 shown from N eligible markets" - N is the full eligible set for this bucket.
   const text = await caption.innerText();
   expect(text).toMatch(/Top \d+ shown from \d+ eligible markets/);
   const shownCards = await page.getByTestId("signal-card").count();
-  expect(shownCards).toBeLessThanOrEqual(10);
+  expect(shownCards).toBeLessThanOrEqual(20);
   expect(shownCards).toBeGreaterThan(0);
 });
 
@@ -80,9 +80,11 @@ test("trajectory labels and numeric strength changes render, no probability lang
   await expect(page.getByTestId("signal-card").first()).toBeVisible();
   const phrase = await page.getByTestId("strength-phrase").first().innerText();
   expect(phrase).toMatch(/Strength \d+/);
-  const body = await page.locator("body").innerText();
-  // Signal strength is never described as probability / likelihood / profit.
-  expect(body).not.toMatch(/more likely|probability of|expected profit/i);
+  // Arepo's own strength phrases never frame strength as probability (external market questions
+  // may legitimately mention probability, so we check the strength phrases only).
+  for (const p of await page.getByTestId("strength-phrase").allInnerTexts()) {
+    expect(p).not.toMatch(/more likely|probability|expected profit/i);
+  }
 });
 
 test("no horizontal overflow across viewports", async ({ page }) => {

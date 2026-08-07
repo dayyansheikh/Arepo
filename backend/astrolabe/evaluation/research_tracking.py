@@ -57,6 +57,7 @@ async def collect_due_forward(
     now = (now or utcnow()).astimezone(UTC)
     repo = ResearchRepository(session)
     written = unavailable = already = 0
+    closed_before = 0
 
     invalid = 0
     cohorts = await repo.list_cohorts(provenance="prospective", frozen=True)
@@ -78,6 +79,29 @@ async def collect_due_forward(
                     continue
                 if now < target:
                     continue  # horizon not yet elapsed (causal: never observe early)
+                # Closed-market handling (final-completion prompt C5/§11): if the market has already
+                # closed, a live quote now is post-close and useless, and no stored price at the
+                # target exists, so record a terminal state (evaluate via freeze-to-close) rather
+                # than a wasteful fetch that would only 404. This also bounds a late one-shot local
+                # collection to the markets that are genuinely still open.
+                close = _utc(entry.expected_close)
+                if close is not None and close <= now:
+                    reason = (
+                        f"market closed before the {horizon} horizon; see freeze-to-close"
+                        if close <= target
+                        else f"market closed after the {horizon} horizon before it could be "
+                             "collected; see freeze-to-close"
+                    )
+                    await repo.upsert_forward(
+                        entry_id=entry.id, horizon=horizon, observed_at=now,
+                        midpoint=None, best_bid=None, best_ask=None, spread=None,
+                        near_mid_depth=None, source_timestamp=None,
+                        exact=abs((now - target).total_seconds()) <= NEAREST_TOLERANCE_SECONDS,
+                        observation_delay_seconds=(now - target).total_seconds(),
+                        unavailable_reason=reason,
+                    )
+                    closed_before += 1
+                    continue
                 quote = await _safe_quote(price_of, entry.market_id, entry.token_id)
                 delay = (now - target).total_seconds()
                 exact = abs(delay) <= NEAREST_TOLERANCE_SECONDS
@@ -101,7 +125,7 @@ async def collect_due_forward(
                 written += 1
     await session.commit()
     return {
-        "written": written, "unavailable": unavailable,
+        "written": written, "unavailable": unavailable, "closed_before_horizon": closed_before,
         "invalid_predates_freeze": invalid, "already_present": already,
     }
 

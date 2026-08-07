@@ -91,6 +91,37 @@ async def test_excessively_late_cohort_is_excluded_from_performance(session):
     assert status["excessively_late_cohorts_excluded"] == 1
 
 
+async def test_horizon_due_after_market_close_is_terminal_not_pending(session):
+    """A market that CLOSED before its horizon became due must not stay 'pending' forever
+    (final-completion prompt §11): the collector records a terminal closed-before-horizon
+    observation (no live post-close fetch), so freeze-to-close is the correct evaluation."""
+    sc = _screen("m")
+    sc = ScoredScreen(**{**sc.__dict__, "expected_close": CUTOFF + timedelta(hours=2)})
+    inputs = build_entry_inputs([sc], now=CUTOFF)
+    s = await freeze_from_inputs(session, cadence=CADENCE_6H, cutoff_at=CUTOFF,
+                                 inputs=inputs, calculation_version="t", frozen_at=CUTOFF)
+    assert s["frozen"]
+    # Collect at +7h: the 1h and 6h horizons are due, but the market closed at +2h. The 6h horizon
+    # target (+6h) is after close, and the market is closed now, so it is recorded terminally.
+    fired = False
+
+    async def _no_price(mid, tok):
+        nonlocal fired
+        fired = True   # a live fetch must NOT happen for a closed market
+        return _price(mid, tok)
+
+    r = await collect_due_forward(session, now=CUTOFF + timedelta(hours=7), price_of=_no_price)
+    assert r["closed_before_horizon"] >= 1
+    assert fired is False                              # no live post-close fetch
+    # The identity holds: every due horizon has a terminal state, nothing left silently pending.
+    from sqlalchemy import select
+
+    from astrolabe.evaluation.research_models import ResearchForwardRow
+    rows = (await session.execute(select(ResearchForwardRow))).scalars().all()
+    closed = [x for x in rows if x.unavailable_reason and "closed before" in x.unavailable_reason]
+    assert len(closed) >= 1 and all(x.midpoint is None for x in closed)
+
+
 async def test_status_reports_scheduled_actual_and_lateness(session):
     inputs = build_entry_inputs([_screen("m")], now=CUTOFF)
     frozen = CUTOFF + timedelta(minutes=30)

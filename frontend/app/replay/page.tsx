@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { useAsync } from "@/lib/use-async";
 import { useUrlState } from "@/lib/use-url-state";
@@ -14,430 +14,464 @@ import {
   type ReplayRow,
 } from "@/lib/api";
 import {
-  CLOSING_OPTIONS,
-  HORIZON_OPTIONS,
-  SCOPE_OPTIONS,
-  cadenceCopy,
-  cohortById,
-  headlineSentence,
-  hitRateAmongMovedText,
-  movementCoverageText,
-  newestCohortForCadence,
-  qualifyingCaption,
-  resultLabel,
-  type Horizon,
-  type Scope,
-} from "@/lib/replay";
+  CLOSING_PILLS,
+  HORIZON_TABS,
+  SCOPE_HELP,
+  SCOPE_TABS,
+  apiHorizon,
+  apiScope,
+  cohortSummaryLine,
+  hitRateSentence,
+  horizonAvailability,
+  horizonTooltip,
+  pendingMessage,
+  pickCohortForHorizon,
+  resultTitle,
+  type ClosingPill,
+  type HorizonTab,
+  type ScopeTab,
+} from "@/lib/replay-ux";
+import { resultLabel } from "@/lib/replay";
 import { formatPrice } from "@/lib/format";
+import { StrengthBar } from "@/components/StrengthBar";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { ListSkeleton } from "@/components/Skeletons";
-import { DisclaimerBanner } from "@/components/DisclaimerBanner";
-import { PageHeader, SectionTitle, Disclose, StatTile, Badge } from "@/components/ui";
-
-const MOVED_TOOLTIP =
-  "Moved as expected means the selected outcome's midpoint moved in Arepo's stored direction over " +
-  "the selected horizon. It does not mean the market finally resolved correctly or that a trade " +
-  "would have been profitable.";
+import { PageHeader, SectionTitle, Disclose, Badge } from "@/components/ui";
 
 function dt(iso: string | null | undefined): string {
-  if (!iso) return "unknown";
-  return new Date(iso).toLocaleString("en-GB");
-}
-
-function timeToClose(hours: number | null): string {
-  if (hours == null) return "unknown";
-  if (hours < 48) return `${Math.round(hours)}h`;
-  return `${Math.round(hours / 24)}d`;
+  return iso ? new Date(iso).toLocaleString("en-GB") : "unknown";
 }
 
 export default function ReplayPage() {
-  // Prospective-only: real predictions genuinely frozen before later prices became known. Any
-  // legacy `?replay=` mode (reconstructed / synthetic / demo) is ignored and stripped so a removed
-  // mode is never displayed (refinement prompt section 1).
-  const [legacyMode, setLegacyMode] = useUrlState("replay", "");
-  useEffect(() => {
-    if (legacyMode) setLegacyMode("");
-  }, [legacyMode, setLegacyMode]);
-
   const cohortsState = useAsync<ReplayCohortList>(() => getReplayCohorts(), []);
   const list = cohortsState.data;
 
-  if (cohortsState.loading) {
-    return (
-      <div className="space-y-8" data-testid="replay-page">
-        <ReplayIntro />
-        <ListSkeleton rows={6} />
-      </div>
-    );
-  }
-  if (cohortsState.error) {
-    return (
-      <div className="space-y-8" data-testid="replay-page">
-        <ReplayIntro />
-        <ErrorState message={cohortsState.error} />
-        <p className="text-[13px] text-arepo-muted">
-          The Replay data could not be loaded. It will recover automatically when the API
-          reconnects.
-        </p>
-      </div>
-    );
-  }
-  if (!list || !list.has_prospective) {
-    return (
-      <div className="space-y-8" data-testid="replay-page">
-        <ReplayIntro />
-        <EmptyState
-          message={
-            "No prospective cohort has been frozen yet. Replay grows when scheduled backend jobs " +
-            "freeze cohorts and collect later prices; once the first freeze runs, the real frozen " +
-            "cohort, its timing and its results appear here. Leaving this page open does not " +
-            "collect additional evidence."
-          }
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-8" data-testid="replay-page">
-      <ReplayIntro />
-      <ReplayBody list={list} />
-    </div>
-  );
-}
-
-function ReplayIntro() {
-  return (
-    <>
-      <PageHeader
-        title="Replay"
-        lead="Real predictions genuinely frozen before later prices became known. Arepo records each research cohort at the moment it is frozen, then measures what happens next from that actual freeze time."
-      />
-      <DisclaimerBanner>
-        Replay is a research record, not trading advice, and past behaviour does not predict future
-        results.
-      </DisclaimerBanner>
-    </>
-  );
-}
-
-function ReplayBody({ list }: { list: ReplayCohortList }) {
-  const cadences = list.cadences;
-  const [cadence, setCadence] = useUrlState("cadence", cadences[0]?.cadence ?? "6h");
-  // The selected cohort id lives in the URL so direct navigation and refresh restore the exact
-  // view. It defaults to the newest cohort of the selected cadence.
-  const [cohortRaw, setCohort] = useUrlState("cohort", "");
-  const [horizon, setHorizon] = useUrlState("h", "6h");
+  const [horizonRaw, setHorizon] = useUrlState("h", "6h");
   const [closing, setClosing] = useUrlState("closing", "all");
-  const [scope, setScope] = useUrlState("scope", "directional");
+  const [scopeRaw, setScope] = useUrlState("scope", "public");
+  const [manualCohort, setManualCohort] = useUrlState("cohort", "");
+  const horizon = horizonRaw as HorizonTab;
+  const scope = scopeRaw as ScopeTab;
 
-  // Resolve the effective cadence (must be one that really exists).
-  const effectiveCadence =
-    cadences.find((c) => c.cadence === cadence)?.cadence ?? cadences[0]?.cadence ?? "6h";
-  const cohortsForCadence = list.cohorts.filter((c) => c.cadence === effectiveCadence);
+  const now = useMemo(() => new Date(), []);
+  const picked = useMemo(() => pickCohortForHorizon(list, horizon, now), [list, horizon, now]);
+  const newest = list?.cohorts?.[0];
 
-  // Resolve the effective cohort: the URL value if it belongs to the cadence, else the newest.
-  const urlCohortId = cohortRaw ? Number(cohortRaw) : null;
-  const urlCohortValid = cohortsForCadence.some((c) => c.id === urlCohortId);
-  const effectiveCohortId =
-    (urlCohortValid ? urlCohortId : null) ??
-    newestCohortForCadence(list, effectiveCadence)?.id ??
-    list.default_cohort_id ??
-    null;
-
-  const cohort = cohortById(list, effectiveCohortId);
+  const manualId = manualCohort ? Number(manualCohort) : null;
+  const cohort: ReplayCohort | undefined =
+    (manualId != null ? list?.cohorts.find((c) => c.id === manualId) : undefined) ?? picked.cohort;
+  const cohortId = cohort?.id ?? null;
+  // The newest cohort is still collecting for this horizon while we show an older evaluated one.
+  const newestIsCollecting =
+    !!newest && !!cohort && newest.id !== cohort.id && manualId == null;
 
   const resultsState = useAsync<ReplayResult | null>(
     () =>
-      effectiveCohortId != null
-        ? getReplayCohortResults(
-            effectiveCohortId,
-            horizon === "final" ? "6h" : horizon,
-            scope,
-            closing,
-          )
+      cohortId != null
+        ? getReplayCohortResults(cohortId, apiHorizon(horizon), apiScope(scope), closing)
         : Promise.resolve(null),
-    [effectiveCohortId, horizon, closing, scope],
+    [cohortId, horizon, closing, scope],
   );
-
-  const isFinal = horizon === "final";
+  const result = resultsState.data;
 
   return (
-    <div className="space-y-8">
-      {/* 1 · Choose cohort cadence and freeze. */}
-      <section className="space-y-4">
-        <SectionTitle>Choose a frozen cohort</SectionTitle>
-        <div className="flex flex-wrap items-end gap-4">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-arepo-ink2">Cohort cadence</span>
-            <select
-              data-testid="cohort-cadence"
-              className="select-arepo w-48"
-              value={effectiveCadence}
-              onChange={(e) => {
-                setCadence(e.target.value);
-                setCohort(""); // reset to the newest cohort of the new cadence
-              }}
-            >
-              {cadences.map((c) => (
-                <option key={c.cadence} value={c.cadence}>
-                  {c.label} ({c.count})
-                </option>
-              ))}
-            </select>
-          </label>
+    <div className="space-y-6" data-testid="replay-page">
+      <PageHeader title="Replay" lead="How Arepo's past signals performed." />
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-arepo-ink2">Freeze</span>
-            <select
-              data-testid="cohort-freeze"
-              className="select-arepo w-80 max-w-full"
-              value={effectiveCohortId != null ? String(effectiveCohortId) : ""}
-              onChange={(e) => setCohort(e.target.value)}
-            >
-              {cohortsForCadence.map((c) => (
-                <option key={c.id} value={String(c.id)}>
-                  {freezeOptionLabel(c)}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+      {cohortsState.loading && <ListSkeleton rows={5} />}
+      {!cohortsState.loading && cohortsState.error && <ErrorState message={cohortsState.error} />}
+      {!cohortsState.loading && list && !list.has_prospective && (
+        <EmptyState message="No cohort has been frozen yet. Replay fills in once the scheduled backend jobs freeze a cohort and collect later prices." />
+      )}
 
-        {cohort && <FreezeTimingBanner cohort={cohort} />}
-        {cohort && (
-          <p className="max-w-reading text-[14px] leading-relaxed text-arepo-ink2">
-            {cadenceCopy(cohort.cadence)}
-          </p>
-        )}
-      </section>
+      {cohort && (
+        <>
+          {/* One subtle cohort line + collapsed mechanics. */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-arepo-muted">
+            <span data-testid="cohort-line">{cohortSummaryLine(cohort)}</span>
+            {newestIsCollecting && (
+              <button
+                type="button"
+                className="focus-ring rounded text-arepo-accentActive hover:underline"
+                onClick={() => newest && setManualCohort(String(newest.id))}
+                data-testid="latest-cohort-link"
+              >
+                Latest cohort still collecting → view it
+              </button>
+            )}
+            {manualId != null && (
+              <button
+                type="button"
+                className="focus-ring rounded text-arepo-accentActive hover:underline"
+                onClick={() => setManualCohort("")}
+              >
+                Back to latest evaluated
+              </button>
+            )}
+          </div>
 
-      {/* 2 + 3 · Choose market closing window and evaluation horizon. */}
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-end gap-4">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-arepo-ink2">Evaluation horizon</span>
-            <select
-              data-testid="horizon-select"
-              className="select-arepo w-56"
-              value={horizon}
-              onChange={(e) => setHorizon(e.target.value)}
-            >
-              {HORIZON_OPTIONS.map((h) => {
-                const evaluable = cohort?.available_horizons?.[h.id] ?? false;
-                return (
-                  <option key={h.id} value={h.id}>
-                    {h.label}
-                    {evaluable ? "" : " (pending)"}
-                  </option>
-                );
-              })}
-              <option value="final">
-                Final resolution
-                {cohort?.resolution_available ? "" : " (pending)"}
-              </option>
-            </select>
-          </label>
+          <CohortControls list={list!} cohort={cohort} manualId={manualId} setManual={setManualCohort} />
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-arepo-ink2">Market closing window</span>
-            <select
-              data-testid="closing-filter"
-              className="select-arepo w-96 max-w-full"
+          {/* Horizon tabs (one click). */}
+          <HorizonTabs cohort={cohort} horizon={horizon} setHorizon={setHorizon} now={now} />
+
+          {/* Closing + scope controls. */}
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+            <PillRow
+              label="Closing"
+              options={CLOSING_PILLS}
               value={closing}
-              onChange={(e) => setClosing(e.target.value)}
-            >
-              {CLOSING_OPTIONS.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-arepo-ink2">Signals shown</span>
-            <select
-              data-testid="scope-select"
-              className="select-arepo w-96 max-w-full"
+              onChange={setClosing}
+              testid="closing-pills"
+              help="Based on how long the market had left when Arepo recorded the signal."
+            />
+            <PillRow
+              label="Signals"
+              options={SCOPE_TABS}
               value={scope}
-              onChange={(e) => setScope(e.target.value)}
-            >
-              {SCOPE_OPTIONS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">
-          The closing window filters by how much time each market had left at the moment the cohort
-          was frozen. Closing sooner does not mean the signal is stronger.
-        </p>
-      </section>
+              onChange={setScope}
+              testid="scope-pills"
+              help={SCOPE_HELP[scope]}
+            />
+          </div>
 
-      {resultsState.loading && <ListSkeleton rows={6} />}
-      {!resultsState.loading && resultsState.error && (
-        <ErrorState message={resultsState.error} />
-      )}
-      {!resultsState.loading && resultsState.data && resultsState.data.found && (
-        <ResultsView
-          result={resultsState.data}
-          horizon={horizon as Horizon | "final"}
-          scope={scope as Scope}
-          isFinal={isFinal}
-        />
-      )}
-      {!resultsState.loading && resultsState.data && !resultsState.data.found && (
-        <EmptyState message="This cohort is not available for Replay." />
-      )}
+          {resultsState.loading && <ListSkeleton rows={5} />}
+          {!resultsState.loading && resultsState.error && (
+            <ErrorState message={resultsState.error} />
+          )}
+          {!resultsState.loading && result && result.found && (
+            <ResultsArea
+              result={result}
+              cohort={cohort}
+              horizon={horizon}
+              scope={scope}
+              now={now}
+            />
+          )}
 
-      <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">{list.note}</p>
+          <CohortDetails cohort={cohort} result={result} />
+        </>
+      )}
     </div>
   );
 }
 
-function freezeOptionLabel(c: ReplayCohort): string {
-  const sched = c.scheduled_for ? new Date(c.scheduled_for).toLocaleString("en-GB") : "unscheduled";
-  const frozen = c.frozen_at ? new Date(c.frozen_at).toLocaleString("en-GB") : "not frozen";
-  const late = c.late ? ` · ${Math.round(c.lateness_minutes)} min late` : "";
-  return `Scheduled ${sched} · frozen ${frozen}${late}`;
+// ---------------------------------------------------------------------------------------
+// Controls
+// ---------------------------------------------------------------------------------------
+
+function CohortControls({
+  list,
+  cohort,
+  manualId,
+  setManual,
+}: {
+  list: ReplayCohortList;
+  cohort: ReplayCohort;
+  manualId: number | null;
+  setManual: (v: string) => void;
+}) {
+  if (list.cohorts.length <= 1) return null;
+  return (
+    <Disclose summary="Previous cohorts">
+      <label className="flex flex-col gap-1.5">
+        <span className="sr-only">Viewing cohort</span>
+        <select
+          data-testid="cohort-select"
+          className="select-arepo w-96 max-w-full"
+          value={manualId != null ? String(manualId) : String(cohort.id)}
+          onChange={(e) => setManual(e.target.value)}
+          aria-label="Viewing cohort"
+        >
+          {list.cohorts.map((c) => (
+            <option key={c.id} value={String(c.id)}>
+              {c.cadence_label} · frozen {dt(c.frozen_at)} · {c.universe_size} markets
+            </option>
+          ))}
+        </select>
+      </label>
+    </Disclose>
+  );
 }
 
-/** Scheduled vs actual freeze, lateness, and evaluation origin in plain language (prompt §10). */
-function FreezeTimingBanner({ cohort }: { cohort: ReplayCohort }) {
-  const late = cohort.late && cohort.lateness_minutes > 0;
-  const tone = late
-    ? "border-arepo-warn/40 bg-arepo-warn/10 text-arepo-warnText"
-    : "border-arepo-pos/30 bg-arepo-pos/10 text-arepo-ink";
+function HorizonTabs({
+  cohort,
+  horizon,
+  setHorizon,
+  now,
+}: {
+  cohort: ReplayCohort;
+  horizon: HorizonTab;
+  setHorizon: (v: string) => void;
+  now: Date;
+}) {
   return (
     <div
-      data-testid="freeze-timing-banner"
-      className={`rounded-card border px-4 py-3 text-[14px] leading-relaxed ${tone}`}
+      className="inline-flex flex-wrap gap-1 rounded-control border border-arepo-border bg-arepo-surface p-0.5"
+      role="tablist"
+      aria-label="Evaluation horizon"
+      data-testid="horizon-tabs"
     >
-      <div className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-        <TimingLine k="Scheduled cut-off" v={dt(cohort.scheduled_for)} />
-        <TimingLine k="Actually frozen" v={dt(cohort.frozen_at)} />
-        <TimingLine
-          k="Lateness"
-          v={late ? `${Math.round(cohort.lateness_minutes)} minutes late` : "on time"}
-        />
-        <TimingLine k="Evaluation starts from" v={dt(cohort.evaluation_origin_at)} />
-      </div>
-      <p className="mt-2 text-[13px]">
-        All later price measurements start from the actual freeze time, never the scheduled boundary.
-      </p>
+      {HORIZON_TABS.map((tab) => {
+        const avail = horizonAvailability(cohort, tab.id, now);
+        const pending = avail !== "evaluable";
+        const active = horizon === tab.id;
+        return (
+          <button
+            key={tab.id}
+            role="tab"
+            aria-selected={active}
+            data-testid={`horizon-${tab.id}`}
+            title={pending ? horizonTooltip(cohort, tab.id) : undefined}
+            onClick={() => setHorizon(tab.id)}
+            className={`focus-ring rounded-[8px] px-3 py-1.5 text-[14px] font-medium transition-colors ${
+              active
+                ? "bg-arepo-accentTint text-arepo-accentActive"
+                : "text-arepo-muted hover:text-arepo-ink"
+            }`}
+          >
+            {tab.label}
+            {pending && <span className="ml-1 text-[11px] text-arepo-muted">· pending</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function TimingLine({ k, v }: { k: string; v: string }) {
+function PillRow({
+  label,
+  options,
+  value,
+  onChange,
+  testid,
+  help,
+}: {
+  label: string;
+  options: { id: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  testid: string;
+  help?: string;
+}) {
   return (
-    <div className="flex justify-between gap-3 border-b border-arepo-border/40 py-0.5">
-      <span className="text-[13px] font-medium">{k}</span>
-      <span className="font-tabular text-[13px]">{v}</span>
+    <div className="flex flex-col gap-1">
+      <span className="text-[12px] font-medium text-arepo-muted">{label}</span>
+      <div
+        className="inline-flex flex-wrap gap-1 rounded-control border border-arepo-border bg-arepo-surface p-0.5"
+        role="group"
+        aria-label={label}
+        data-testid={testid}
+        title={help}
+      >
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            aria-pressed={value === o.id}
+            data-testid={`${testid}-${o.id}`}
+            onClick={() => onChange(o.id)}
+            className={`focus-ring rounded-[8px] px-3 py-1.5 text-[13px] font-medium transition-colors ${
+              value === o.id
+                ? "bg-arepo-accentTint text-arepo-accentActive"
+                : "text-arepo-muted hover:text-arepo-ink"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
-function ResultsView({
+// ---------------------------------------------------------------------------------------
+// Result area
+// ---------------------------------------------------------------------------------------
+
+function ResultsArea({
   result,
+  cohort,
   horizon,
   scope,
-  isFinal,
+  now,
 }: {
   result: ReplayResult;
-  horizon: Horizon | "final";
-  scope: Scope;
-  isFinal: boolean;
+  cohort: ReplayCohort;
+  horizon: HorizonTab;
+  scope: ScopeTab;
+  now: Date;
 }) {
-  if (isFinal) {
-    return <FinalResolutionView result={result} scope={scope} />;
-  }
-
-  const c = result.headline;
-  const horizonLabel = HORIZON_OPTIONS.find((h) => h.id === horizon)?.label ?? horizon;
-  const hitRate = hitRateAmongMovedText(c);
-
   return (
-    <div className="space-y-8">
-      {/* 4 · The concise result. */}
-      <section className="space-y-4" data-testid="did-move-section">
-        <SectionTitle>Did the market move as expected?</SectionTitle>
-        <p
-          data-testid="headline-sentence"
-          className="max-w-reading text-[16px] leading-relaxed text-arepo-ink"
-        >
-          {headlineSentence(c)}
-        </p>
-        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
-          Measured over the {horizonLabel} horizon from the actual freeze time. A move in the stored
-          direction counts as expected; a market that did not move is not scored as a miss and stays
-          in the denominator.
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <StatTile label="Directional calls" value={String(c.total)} />
-          <StatTile label="Moved as expected" value={String(c.moved_expected)} />
-          <StatTile label="Moved against" value={String(c.moved_against)} />
-          <StatTile label="No change" value={String(c.no_change)} />
-          <StatTile label="Pending" value={String(c.pending)} />
-          <StatTile label="Unavailable" value={String(c.unavailable)} />
-        </div>
-
-        <div className="flex flex-col gap-1.5 text-[13px] text-arepo-ink2">
-          <p>{movementCoverageText(c)}</p>
-          {hitRate ? (
-            <p data-testid="hit-rate-among-moved" className="font-medium">
-              {hitRate}
-            </p>
-          ) : (
-            <p className="text-arepo-muted">
-              No market in this set moved at this horizon, so no hit rate among moving markets is
-              shown.
-            </p>
-          )}
-        </div>
-
-        {/* Public vs shadow split (prompt §6), always shown so neither is implied to outperform. */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <SplitCard title="Public selections" c={result.public} />
-          <SplitCard title="Shadow directional" c={result.shadow} />
-          <SplitCard title="Combined directional" c={result.combined} emphasis />
-        </div>
-        <p className="text-[12px] leading-relaxed text-arepo-muted">
-          Public and shadow are shown side by side; on a single cohort neither is claimed to
-          outperform the other.
-        </p>
-      </section>
-
-      {/* Separate panels (prompt C7): freeze-to-close, final resolution and later signal evolution
-          are never folded into the short-term movement result above. */}
-      <SeparatePanels result={result} />
-
-      {/* 5 · Inspect the top signals. */}
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <SectionTitle>Market by market</SectionTitle>
-          <span className="text-[13px] text-arepo-muted" data-testid="qualifying-caption">
-            {qualifyingCaption(result.shown, result.qualifying, scope)}
-          </span>
-        </div>
-        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">{MOVED_TOOLTIP}</p>
-        {result.rows.length === 0 ? (
-          <EmptyState
-            message={
-              "No qualifying directional signals in this set. Try a wider closing window or a " +
-              "different horizon."
-            }
-          />
+    <div className="space-y-6">
+      <section className="space-y-3" data-testid="result-block">
+        <SectionTitle>{resultTitle(horizon)}</SectionTitle>
+        {horizon === "close" ? (
+          <FreezeToCloseResult result={result} />
+        ) : horizon === "resolved" ? (
+          <ResolutionResult result={result} />
         ) : (
-          <MarketTable rows={result.rows} />
+          <RepricingResult result={result} cohort={cohort} horizon={horizon} now={now} />
         )}
       </section>
 
-      <MethodologySummary result={result} />
+      {scope === "research" && <ResearchComparison result={result} />}
+
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <SectionTitle>Individual markets</SectionTitle>
+          <span className="text-[13px] text-arepo-muted" data-testid="row-caption">
+            {result.shown} of {result.qualifying} shown
+          </span>
+        </div>
+        {result.rows.length === 0 ? (
+          <EmptyState message="No signals in this set. Try a wider closing window or a different horizon." />
+        ) : (
+          <div className="space-y-2">
+            {result.rows.map((r) => (
+              <MarketRow key={`${r.market_id}-${r.token_id}`} r={r} horizon={horizon} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/** The main visual focus: a big four-number result + a plain hit-rate sentence, OR a single clean
+ * pending state (never six zero cards). */
+function RepricingResult({
+  result,
+  cohort,
+  horizon,
+  now,
+}: {
+  result: ReplayResult;
+  cohort: ReplayCohort;
+  horizon: HorizonTab;
+  now: Date;
+}) {
+  const c = result.headline;
+  const avail = horizonAvailability(cohort, horizon, now);
+  if (c.evaluated === 0 && c.total > 0 && avail !== "evaluable") {
+    const msg = pendingMessage(cohort, horizon, c.total);
+    return (
+      <div
+        className="rounded-card border border-arepo-border bg-arepo-surface2 px-5 py-6"
+        data-testid="pending-state"
+      >
+        <p className="text-[16px] font-semibold text-arepo-ink">{msg.title}</p>
+        <p className="mt-1 text-[14px] text-arepo-muted">{msg.detail}</p>
+      </div>
+    );
+  }
+  const hit = hitRateSentence(c);
+  return (
+    <div data-testid="repricing-result">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <BigStat label="Moved as expected" value={c.moved_expected} tone="good" />
+        <BigStat label="Moved against" value={c.moved_against} tone="bad" />
+        <BigStat label="No change" value={c.no_change} tone="flat" />
+        <BigStat
+          label={c.pending + c.unavailable > 0 ? "Pending / unavailable" : "Pending"}
+          value={c.pending + c.unavailable}
+          tone="muted"
+        />
+      </div>
+      {hit ? (
+        <p className="mt-3 text-[15px] font-medium text-arepo-ink2" data-testid="hit-sentence">
+          {hit}
+        </p>
+      ) : (
+        <p className="mt-3 text-[14px] text-arepo-muted">
+          No market in this set moved at this horizon, so no hit rate is shown.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function FreezeToCloseResult({ result }: { result: ReplayResult }) {
+  const f = result.freeze_to_close;
+  if (!f) return <p className="text-[14px] text-arepo-muted">Freeze-to-close data unavailable.</p>;
+  return (
+    <div data-testid="freeze-to-close-result">
+      <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
+        Price movement from the freeze to the final valid observation before each market closes. A
+        closed market may still be awaiting resolution.
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <BigStat label="Moved as expected" value={f.moved_expected} tone="good" />
+        <BigStat label="Moved against" value={f.moved_against} tone="bad" />
+        <BigStat label="No change" value={f.no_change} tone="flat" />
+        <BigStat label="Closed, final" value={f.closed_final} tone="muted" />
+        <BigStat label="Pending" value={f.pending} tone="muted" />
+      </div>
+    </div>
+  );
+}
+
+function ResolutionResult({ result }: { result: ReplayResult }) {
+  const r = result.resolution;
+  return (
+    <div data-testid="resolution-result">
+      <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
+        Whether the selected outcome finally resolved. Kept separate from price movement: a market can
+        move as expected yet resolve the other way. Unresolved markets stay pending.
+      </p>
+      {!result.resolution_available && (
+        <p className="mt-2 text-[13px] text-arepo-muted" data-testid="resolution-pending">
+          None of these markets has resolved yet. Closed markets await resolution.
+        </p>
+      )}
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <BigStat label="Resolved correct" value={r.resolved_correct} tone="good" />
+        <BigStat label="Resolved incorrect" value={r.resolved_incorrect} tone="bad" />
+        <BigStat label="Unresolved" value={r.unresolved} tone="muted" />
+        <BigStat label="Total" value={r.total} tone="flat" />
+      </div>
+    </div>
+  );
+}
+
+function ResearchComparison({ result }: { result: ReplayResult }) {
+  return (
+    <section className="space-y-3" data-testid="research-comparison">
+      <SectionTitle>Research comparison</SectionTitle>
+      <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
+        Public Opportunities versus the directional signals that were not selected (shadow). On a
+        single cohort neither is claimed to outperform the other.
+      </p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <SplitCard title="Opportunities (public)" c={result.public} />
+        <SplitCard title="Shadow directional" c={result.shadow} />
+        <SplitCard title="Combined" c={result.combined} emphasis />
+      </div>
+    </section>
+  );
+}
+
+function BigStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "good" | "bad" | "flat" | "muted";
+}) {
+  const cls =
+    tone === "good"
+      ? "text-arepo-pos"
+      : tone === "bad"
+        ? "text-arepo-neg"
+        : tone === "flat"
+          ? "text-arepo-ink"
+          : "text-arepo-muted";
+  return (
+    <div className="rounded-card border border-arepo-border bg-arepo-surface p-4">
+      <div className="mb-1 text-[12px] text-arepo-muted">{label}</div>
+      <div className={`font-tabular text-3xl font-bold ${cls}`}>{value}</div>
     </div>
   );
 }
@@ -451,7 +485,6 @@ function SplitCard({
   c: ReplayCounts;
   emphasis?: boolean;
 }) {
-  const hit = hitRateAmongMovedText(c);
   return (
     <div
       className={`rounded-card border p-4 ${
@@ -465,300 +498,158 @@ function SplitCard({
         {c.moved_expected} expected · {c.moved_against} against · {c.no_change} no change
       </div>
       <div className="mt-1 text-[12px] text-arepo-muted">
-        {c.total} directional
-        {c.pending > 0 ? ` · ${c.pending} pending` : ""}
-        {c.unavailable > 0 ? ` · ${c.unavailable} unavailable` : ""}
+        {c.total} directional{c.pending > 0 ? ` · ${c.pending} pending` : ""}
       </div>
-      {hit && <div className="mt-1 text-[12px] text-arepo-muted">{hit}</div>}
     </div>
   );
 }
 
-function ResultBadge({ state }: { state: string }) {
-  const { label, tone, glyph } = resultLabel(state);
+// ---------------------------------------------------------------------------------------
+// Concise market row with progressive disclosure
+// ---------------------------------------------------------------------------------------
+
+function MarketRow({ r, horizon }: { r: ReplayRow; horizon: HorizonTab }) {
+  const label = resultLabel(
+    horizon === "close"
+      ? precloseState(r)
+      : horizon === "resolved"
+        ? resolutionState(r)
+        : r.result_state,
+  );
   const cls =
-    tone === "good"
+    label.tone === "good"
       ? "text-arepo-pos"
-      : tone === "bad"
+      : label.tone === "bad"
         ? "text-arepo-neg"
-        : tone === "flat"
+        : label.tone === "flat"
           ? "text-arepo-ink2"
           : "text-arepo-muted";
+  const dir = r.direction === "up" ? "YES ↑" : r.direction === "down" ? "NO ↓" : "n/a";
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${cls}`}>
-      <span aria-hidden="true">{glyph}</span>
-      {label}
-    </span>
-  );
-}
-
-function MarketTable({ rows }: { rows: ReplayRow[] }) {
-  return (
-    <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[860px] text-[13px]" data-testid="market-table">
-          <caption className="sr-only">
-            Market-by-market Replay results: frozen rank, market, selected outcome, role, Arepo
-            direction, frozen midpoint, horizon midpoint, midpoint movement, executable result,
-            time remaining at freeze, and result label.
-          </caption>
-          <thead>
-            <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
-              <th scope="col" className="px-3 py-3 font-semibold">#</th>
-              <th scope="col" className="px-3 py-3 font-semibold">Market / outcome</th>
-              <th scope="col" className="px-3 py-3 font-semibold">Role</th>
-              <th scope="col" className="px-3 py-3 font-semibold">Direction</th>
-              <th scope="col" className="px-3 py-3 font-semibold">Frozen mid</th>
-              <th scope="col" className="px-3 py-3 font-semibold">Horizon mid</th>
-              <th scope="col" className="px-3 py-3 font-semibold">Midpoint move</th>
-              <th scope="col" className="px-3 py-3 font-semibold" title="Estimated result after spread and costs">
-                After costs
-              </th>
-              <th scope="col" className="px-3 py-3 font-semibold">Left at freeze</th>
-              <th scope="col" className="px-3 py-3 font-semibold">Result</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-arepo-border">
-            {rows.map((r) => (
-              <MarketRow key={`${r.market_id}-${r.token_id}`} r={r} />
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function MarketRow({ r }: { r: ReplayRow }) {
-  const roleLabel = r.role === "public_selection" ? "Public" : "Shadow";
-  return (
-    <tr data-testid="market-row">
-      <td className="px-3 py-2.5 font-tabular text-arepo-muted">{r.rank ?? "–"}</td>
-      <td className="px-3 py-2.5">
-        <Link
-          href={`/markets/${encodeURIComponent(r.market_id)}?mode=live`}
-          className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
-        >
-          {r.market_question}
-        </Link>
-        <div className="text-[12px] text-arepo-muted">{r.outcome_name}</div>
-      </td>
-      <td className="px-3 py-2.5">
-        <Badge tone="neutral">{roleLabel}</Badge>
-      </td>
-      <td className="px-3 py-2.5 font-tabular">
-        {r.direction === "up" && <span className="text-arepo-pos">Up</span>}
-        {r.direction === "down" && <span className="text-arepo-neg">Down</span>}
-        {!r.direction && <span className="text-arepo-muted">n/a</span>}
-      </td>
-      <td className="px-3 py-2.5 font-tabular">{formatPrice(r.frozen_midpoint)}</td>
-      <td className="px-3 py-2.5 font-tabular">{formatPrice(r.horizon_midpoint)}</td>
-      <td className="px-3 py-2.5 font-tabular" title="Midpoint movement (percentage points)">
-        {r.movement_pp == null ? "n/a" : `${r.movement_pp > 0 ? "+" : ""}${r.movement_pp} pp`}
-      </td>
-      <td className="px-3 py-2.5 font-tabular">
-        {r.executable.available && r.executable.move != null ? (
-          <span title="Estimated result after spread and costs">
-            {`${r.executable.move > 0 ? "+" : ""}${(r.executable.move * 100).toFixed(1)} pp`}
-          </span>
-        ) : (
-          <span
-            className="text-arepo-muted"
-            title="Executable result unavailable for this observation."
+    <div className="rounded-card border border-arepo-border bg-arepo-surface p-4" data-testid="market-row">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <Link
+            href={`/markets/${encodeURIComponent(r.market_id)}`}
+            className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
           >
-            unavailable
-          </span>
-        )}
-      </td>
-      <td className="px-3 py-2.5 font-tabular">{timeToClose(r.time_remaining_hours)}</td>
-      <td className="px-3 py-2.5">
-        <ResultBadge state={r.result_state} />
-      </td>
-    </tr>
-  );
-}
-
-function FinalResolutionView({ result, scope }: { result: ReplayResult; scope: Scope }) {
-  const res = result.resolution;
-  return (
-    <div className="space-y-8">
-      <section className="space-y-4" data-testid="did-move-section">
-        <SectionTitle>What did the market finally resolve to?</SectionTitle>
-        <p className="max-w-reading text-[14px] leading-relaxed text-arepo-ink2">
-          Final resolution is kept separate from short-term repricing: a favourable short-term move
-          is not a correct final-outcome forecast. A signal counts as correct here only when the
-          market finally resolved to the selected outcome.
-        </p>
-        {!result.resolution_available && (
-          <div className="rounded-card border border-arepo-border bg-arepo-surface2 px-4 py-3 text-[13px] leading-relaxed text-arepo-muted">
-            None of these markets has resolved yet, so final resolution is pending for the whole
-            cohort.
+            {r.market_question}
+          </Link>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px] text-arepo-muted">
+            <span className="font-tabular">{dir}</span>
+            <span className="font-tabular">Strength {Math.round((r.strength ?? 0) * 100)}</span>
+            <span className="font-tabular">
+              {formatPrice(r.frozen_midpoint)}
+              {" → "}
+              {formatPrice(r.horizon_midpoint)}
+            </span>
+            {r.movement_pp != null && (
+              <span className="font-tabular">
+                {r.movement_pp > 0 ? "+" : ""}
+                {r.movement_pp} pts
+              </span>
+            )}
           </div>
-        )}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatTile label="Directional calls" value={String(res.total)} />
-          <StatTile label="Resolved correct" value={String(res.resolved_correct)} />
-          <StatTile label="Resolved incorrect" value={String(res.resolved_incorrect)} />
-          <StatTile label="Unresolved" value={String(res.unresolved)} />
         </div>
-      </section>
+        <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${cls}`}>
+          <span aria-hidden="true">{label.glyph}</span>
+          {label.label}
+        </span>
+      </div>
 
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <SectionTitle>Market by market</SectionTitle>
-          <span className="text-[13px] text-arepo-muted" data-testid="qualifying-caption">
-            {qualifyingCaption(result.shown, result.qualifying, scope)}
-          </span>
+      <Disclose summary="View details" className="mt-2">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 pt-1 text-[13px] sm:grid-cols-3">
+          <Detail label="Research Priority" value={String(r.research_priority)} />
+          <Detail label="Confidence" value={`${Math.round((r.confidence ?? 0) * 100)}%`} />
+          <Detail label="Role" value={r.role === "public_selection" ? "Opportunity" : "Shadow"} />
+          <Detail label="Frozen bid / ask" value={`${formatPrice(r.frozen_midpoint)}`} />
+          <Detail
+            label="After costs (executable)"
+            value={
+              r.executable.available && r.executable.move != null
+                ? `${r.executable.move > 0 ? "+" : ""}${(r.executable.move * 100).toFixed(1)} pp`
+                : "unavailable"
+            }
+          />
+          {r.freeze_to_close && (
+            <Detail
+              label="Freeze to close"
+              value={
+                r.freeze_to_close.movement != null
+                  ? `${(r.freeze_to_close.movement * 100).toFixed(1)} pp (${r.freeze_to_close.state})`
+                  : "pending"
+              }
+            />
+          )}
+          {r.evolution?.available && (
+            <Detail
+              label="Signal evolution"
+              value={`${r.evolution.label} (${Math.round((r.evolution.later_strength ?? 0) * 100)})`}
+            />
+          )}
+          <Detail
+            label="Final resolution"
+            value={
+              r.resolution.resolved
+                ? r.resolution.correct
+                  ? "resolved to selected outcome"
+                  : "resolved to a different outcome"
+                : "closed, awaiting resolution"
+            }
+          />
         </div>
-        {result.rows.length === 0 ? (
-          <EmptyState message="No qualifying directional signals in this set." />
-        ) : (
-          <div className="overflow-hidden rounded-card border border-arepo-border bg-arepo-surface">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] text-[13px]" data-testid="market-table">
-                <thead>
-                  <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
-                    <th scope="col" className="px-3 py-3 font-semibold">#</th>
-                    <th scope="col" className="px-3 py-3 font-semibold">Market / outcome</th>
-                    <th scope="col" className="px-3 py-3 font-semibold">Selected outcome</th>
-                    <th scope="col" className="px-3 py-3 font-semibold">Final resolution</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-arepo-border">
-                  {result.rows.map((r) => (
-                    <tr key={`${r.market_id}-${r.token_id}`} data-testid="market-row">
-                      <td className="px-3 py-2.5 font-tabular text-arepo-muted">{r.rank ?? "–"}</td>
-                      <td className="px-3 py-2.5">
-                        <Link
-                          href={`/markets/${encodeURIComponent(r.market_id)}?mode=live`}
-                          className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
-                        >
-                          {r.market_question}
-                        </Link>
-                      </td>
-                      <td className="px-3 py-2.5">{r.outcome_name}</td>
-                      <td className="px-3 py-2.5">
-                        {r.resolution.resolved ? (
-                          <span className="font-medium">
-                            {r.resolution.correct === true
-                              ? "Resolved to selected outcome"
-                              : r.resolution.correct === false
-                                ? "Resolved to a different outcome"
-                                : `Resolved: ${r.resolution.resolved_outcome ?? "recorded"}`}
-                          </span>
-                        ) : (
-                          <span className="text-arepo-muted">Pending resolution</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </section>
-
-      <MethodologySummary result={result} />
+        <div className="mt-2">
+          <StrengthBar value={r.strength ?? 0} />
+        </div>
+      </Disclose>
     </div>
   );
 }
 
-/** Cohort methodology summary (prompt §5): the observation and abstention-control counts live here,
- * never mixed into the directional result table. */
-/** Freeze-to-close, denominators and later-signal-evolution panels, kept strictly separate from the
- * short-term movement result (prompt C6/C7/C8). */
-function SeparatePanels({ result }: { result: ReplayResult }) {
-  const f2c = result.freeze_to_close;
-  const den = result.denominators;
-  const evolvingRows = result.rows.filter((r) => r.evolution?.available);
+function precloseState(r: ReplayRow): string {
+  const f = r.freeze_to_close;
+  if (!f || f.result == null) return "pending";
+  return f.result;
+}
+
+function resolutionState(r: ReplayRow): string {
+  if (!r.resolution.resolved) return "pending";
+  return r.resolution.correct ? "moved_expected" : "moved_against";
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="space-y-6" data-testid="separate-panels">
-      {f2c && (
-        <section className="space-y-2">
-          <SectionTitle>Freeze to close</SectionTitle>
-          <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
-            Price movement from the freeze to the final valid observation at or before each market
-            closes. Separate from short-term repricing and from the final resolution. A closed market
-            may still be awaiting resolution.
-          </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            <StatTile label="Moved as expected" value={String(f2c.moved_expected)} />
-            <StatTile label="Moved against" value={String(f2c.moved_against)} />
-            <StatTile label="No change" value={String(f2c.no_change)} />
-            <StatTile label="Closed, final" value={String(f2c.closed_final)} />
-            <StatTile label="Pending" value={String(f2c.pending)} />
-          </div>
-        </section>
-      )}
-
-      {den && (
-        <section className="space-y-2">
-          <SectionTitle>Honest denominators</SectionTitle>
-          <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
-            Repeated five-minute snapshots are history, not separate predictions. A market can appear
-            in several cohorts, so the unique-market and unique-event counts are shown alongside the
-            observation count.
-          </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatTile label="Observations" value={String(den.observations)} />
-            <StatTile label="Unique markets" value={String(den.unique_markets)} />
-            <StatTile label="Unique events" value={String(den.unique_events)} />
-            <StatTile label="Repeated markets" value={String(den.repeated_markets)} />
-          </div>
-        </section>
-      )}
-
-      {evolvingRows.length > 0 && (
-        <Disclose summary="Later signal evolution (diagnostic; never rewrites the frozen prediction)">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-[13px]">
-              <thead>
-                <tr className="bg-arepo-surface2 text-left text-[11px] uppercase tracking-wide text-arepo-muted">
-                  <th scope="col" className="px-3 py-2.5 font-semibold">Market</th>
-                  <th scope="col" className="px-3 py-2.5 font-semibold">Frozen strength</th>
-                  <th scope="col" className="px-3 py-2.5 font-semibold">Later strength</th>
-                  <th scope="col" className="px-3 py-2.5 font-semibold">Evolution</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-arepo-border font-tabular">
-                {evolvingRows.map((r) => (
-                  <tr key={`${r.market_id}-evo`}>
-                    <td className="px-3 py-2 font-sans">{r.market_question}</td>
-                    <td className="px-3 py-2">{Math.round((r.strength ?? 0) * 100)}</td>
-                    <td className="px-3 py-2">
-                      {Math.round((r.evolution!.later_strength ?? 0) * 100)}
-                    </td>
-                    <td className="px-3 py-2 font-sans">{r.evolution!.label}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Disclose>
-      )}
+    <div>
+      <div className="text-arepo-muted">{label}</div>
+      <div className="font-tabular font-medium text-arepo-ink">{value}</div>
     </div>
   );
 }
 
-function MethodologySummary({ result }: { result: ReplayResult }) {
-  const rc = result.role_counts;
+// ---------------------------------------------------------------------------------------
+// Cohort mechanics (collapsed by default)
+// ---------------------------------------------------------------------------------------
+
+function CohortDetails({
+  cohort,
+  result,
+}: {
+  cohort: ReplayCohort;
+  result: ReplayResult | null;
+}) {
+  const den = result?.denominators;
   const rows: [string, string][] = [
-    ["Full frozen universe", String(result.cohort.universe_size)],
-    ["Public selections", String(rc.public_selection ?? 0)],
-    ["Shadow directional", String(rc.shadow_directional ?? 0)],
-    ["Observations (non-directional)", String(rc.observation ?? 0)],
-    ["Abstention controls", String(rc.abstention_control ?? 0)],
-    ["Model version", result.cohort.model_version],
+    ["Cadence", cohort.cadence_label],
+    ["Scheduled cut-off", dt(cohort.scheduled_for)],
+    ["Actually frozen", dt(cohort.frozen_at)],
+    ["Lateness", cohort.late ? `${Math.round(cohort.lateness_minutes)} minutes` : "on time"],
+    ["Evaluation starts from", dt(cohort.evaluation_origin_at)],
+    ["Selection policy", result?.selection_policy ?? "-"],
+    ["Full frozen universe", String(cohort.universe_size)],
   ];
   return (
-    <Disclose summary="Cohort methodology and full role counts">
+    <Disclose summary="Cohort details" data-testid="cohort-details">
       <div className="space-y-3">
-        <p className="max-w-reading text-[13px] leading-relaxed text-arepo-muted">
-          The directional result above covers public and shadow directional signals only.
-          Observation and abstention-control rows are part of the frozen universe for research but
-          are never mixed into the directional result table.
-        </p>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
           {rows.map(([k, v]) => (
             <div key={k} className="flex justify-between gap-3 border-b border-arepo-border py-1">
@@ -767,7 +658,21 @@ function MethodologySummary({ result }: { result: ReplayResult }) {
             </div>
           ))}
         </dl>
-        <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">{result.note}</p>
+        {den && (
+          <div className="text-[12px] text-arepo-muted">
+            Denominators: {den.observations} observations · {den.unique_markets} unique markets ·{" "}
+            {den.unique_events} unique events · {den.repeated_markets} repeated. Five-minute snapshots
+            are history, not separate predictions.
+          </div>
+        )}
+        <p className="max-w-reading text-[12px] leading-relaxed text-arepo-muted">
+          Outcomes are measured from the actual freeze time, never the scheduled boundary. See the{" "}
+          <Link href="/methodology" className="underline hover:text-arepo-ink">
+            methodology
+          </Link>{" "}
+          for the full evaluation rules. Later signal changes never rewrite a frozen prediction.
+        </p>
+        <Badge tone="neutral">Research record, not trading advice</Badge>
       </div>
     </Disclose>
   );
