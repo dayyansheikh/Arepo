@@ -5,7 +5,10 @@ import { useAsync } from "@/lib/use-async";
 import { useUrlState } from "@/lib/use-url-state";
 import { getOpportunities, type ScanSignalRow } from "@/lib/api";
 import {
+  cardTrajectoryLabel,
   consecutivePhrase,
+  friendlyEvidence,
+  priorityBand,
   strengthPhrase,
   timeToCloseLabel,
   trajectoryTone,
@@ -15,7 +18,8 @@ import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { StrengthBar } from "@/components/StrengthBar";
-import { PageHeader, SectionTitle, Badge } from "@/components/ui";
+import { InfoChip } from "@/components/InfoChip";
+import { PageHeader, SectionTitle } from "@/components/ui";
 
 // Public closing-window filters (prompt B1). Values map to the API's cumulative windows.
 const WINDOWS = [
@@ -104,6 +108,7 @@ export default function OpportunitiesPage() {
 function OpportunityCard({ row, rank }: { row: ScanSignalRow; rank: number }) {
   const t = row.trajectory;
   const tone = trajectoryTone(t.label);
+  const trajLabel = cardTrajectoryLabel(t.label);
   const toneClass =
     tone.tone === "up"
       ? "text-arepo-pos"
@@ -154,22 +159,31 @@ function OpportunityCard({ row, rank }: { row: ScanSignalRow; rank: number }) {
 
       <p className="mt-2 text-[14px] text-arepo-ink2" data-testid="strength-phrase">
         {strengthPhrase(row.strength, t)}.{" "}
-        <span className={`font-medium ${toneClass}`}>
-          <span aria-hidden="true">{tone.glyph} </span>
-          {t.label}
-        </span>
-        {consec ? `. ${consec}.` : "."}
+        {trajLabel && (
+          <>
+            <span className={`font-medium ${toneClass}`}>
+              <span aria-hidden="true">{tone.glyph} </span>
+              {trajLabel}
+            </span>
+            .{" "}
+          </>
+        )}
+        {consec ? `${consec}.` : ""}
       </p>
 
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-arepo-muted">
-        <Badge tone="accent">In Opportunities</Badge>
-        <span>Research Priority {row.research_priority}</span>
-        {row.evidence_families.length > 0 && (
-          <span>Evidence: {row.evidence_families.join(", ")}</span>
-        )}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <InfoChip
+          label={`Priority: ${priorityBand(row.research_priority).label}`}
+          desc={priorityBand(row.research_priority).desc}
+          tone={priorityBand(row.research_priority).tone}
+        />
+        {row.evidence_families.map((key) => {
+          const e = friendlyEvidence(key);
+          return <InfoChip key={key} label={e.label} desc={e.desc} />;
+        })}
         <Link
           href={`/markets/${encodeURIComponent(row.market_id)}`}
-          className="focus-ring underline hover:text-arepo-ink"
+          className="focus-ring text-[12px] underline hover:text-arepo-ink"
         >
           Market detail
         </Link>

@@ -1,9 +1,24 @@
 import { test, expect, type Page } from "@playwright/test";
-import { VIEWPORTS } from "./helpers";
+import { VIEWPORTS, liveSignalMarketId } from "./helpers";
+
+/** Navigate to a live market-detail page and reveal the per-signal breakdown so the SignalItem
+ * MetricHelp popovers (inside a collapsed disclosure) are in the DOM. */
+async function gotoMarketDetail(page: Page) {
+  const id = await liveSignalMarketId(page.request);
+  await page.goto(`/markets/${encodeURIComponent(id)}`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(300);
+  // Expand "Show the full per-signal breakdown" if present so every MetricHelp trigger renders.
+  const breakdown = page.getByRole("button", { name: /per-signal breakdown/i });
+  if ((await breakdown.count()) > 0) {
+    await breakdown.first().click();
+    await page.waitForTimeout(150);
+  }
+  return id;
+}
 
 /**
  * Popover geometry acceptance (final runtime acceptance §1, §2). Opens the real information popovers
- * on Signal Lab at every required viewport and asserts, from the REAL rendered bounding rectangle,
+ * on market detail at every required viewport and asserts, from the REAL rendered bounding rectangle,
  * that the panel stays ≥12px inside every viewport edge and never expands the document. This is the
  * check the pure positioning unit tests could not make: it exercises the two-pass measure/clamp on a
  * genuinely-rendered panel, including the previously-broken case where the panel was measured at one
@@ -11,19 +26,24 @@ import { VIEWPORTS } from "./helpers";
  */
 const MARGIN = 12;
 
+// Info-popover triggers are buttons with aria-controls. The same attribute is also on the per-signal
+// "signal-detail-toggle" (which opens a detail region, NOT a role=tooltip) and some of those live
+// inside collapsed detail and are never visible — clicking one hangs the test. Exclude it and only
+// ever click VISIBLE triggers.
+const TRIGGER_SELECTOR = 'button[aria-controls]:not([data-testid="signal-detail-toggle"])';
+
 async function openTriggers(page: Page): Promise<number> {
-  // The info popovers are buttons with aria-controls (MetricHelp / Popover triggers).
-  return page.locator("button[aria-controls]").count();
+  return page.locator(TRIGGER_SELECTOR).count();
 }
 
 /** Click candidate triggers until one actually opens a [role=tooltip] popover; leaves it open and
- * returns its locator, or null if none opened. The aria-controls selector also matches the detail
- * toggle (not a tooltip), so we must probe rather than assume. */
+ * returns its locator, or null if none opened. Only visible triggers are clicked. */
 async function openFirstTooltipTrigger(page: Page) {
-  const triggers = page.locator("button[aria-controls]");
+  const triggers = page.locator(TRIGGER_SELECTOR);
   const count = await triggers.count();
   for (let i = count - 1; i >= 0; i--) {
     const t = triggers.nth(i);
+    if (!(await t.isVisible())) continue;
     await t.scrollIntoViewIfNeeded();
     await t.click();
     await page.waitForTimeout(80);
@@ -67,17 +87,16 @@ async function assertPanelInside(page: Page, vp: { width: number; height: number
 for (const vp of VIEWPORTS) {
   test(`popover stays inside the viewport @ ${vp.name}`, async ({ page }) => {
     await page.setViewportSize({ width: vp.width, height: vp.height });
-    await page.goto("/signals", { waitUntil: "networkidle" });
-    await page.waitForTimeout(300);
+    await gotoMarketDetail(page);
 
     const count = await openTriggers(page);
-    expect(count, "expected info popover triggers on Signal Lab").toBeGreaterThan(0);
+    expect(count, "expected info popover triggers on market detail").toBeGreaterThan(0);
 
     // Only a sample is needed and iterating all 20+ triggers per viewport is too slow. Prioritise the
     // rightmost triggers (nearest the right edge — the original off-screen repro case), plus a couple
-    // near the start. Only assert geometry for candidates that actually open a tooltip popover (the
-    // aria-controls selector also matches the non-tooltip detail toggle). Stop after 3 assertions.
-    const triggers = page.locator("button[aria-controls]");
+    // near the start. Only assert geometry for candidates that actually open a tooltip popover. Stop
+    // after 3 assertions. Skip any trigger that is not visible (never click a hidden element).
+    const triggers = page.locator(TRIGGER_SELECTOR);
     const order = [
       count - 1,
       count - 2,
@@ -91,6 +110,7 @@ for (const vp of VIEWPORTS) {
     for (const i of order) {
       if (asserted >= 3) break;
       const trigger = triggers.nth(i);
+      if (!(await trigger.isVisible())) continue;
       await trigger.scrollIntoViewIfNeeded();
       await trigger.click();
       await page.waitForTimeout(90);
@@ -108,11 +128,10 @@ for (const vp of VIEWPORTS) {
 
 test("popover stays inside after scroll and after resize @ 574x900", async ({ page }) => {
   await page.setViewportSize({ width: 574, height: 900 });
-  await page.goto("/signals", { waitUntil: "networkidle" });
-  await page.waitForTimeout(300);
+  await gotoMarketDetail(page);
 
   const trigger = await openFirstTooltipTrigger(page);
-  expect(trigger, "a tooltip popover trigger on Signal Lab").not.toBeNull();
+  expect(trigger, "a tooltip popover trigger on market detail").not.toBeNull();
 
   // Open, then scroll the page — the popover must reposition and stay inside.
   await assertPanelInside(page, { width: 574, height: 900 }, "before-scroll");
@@ -128,8 +147,7 @@ test("popover stays inside after scroll and after resize @ 574x900", async ({ pa
 
 test("popover supports keyboard + ARIA and closes on Escape", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
-  await page.goto("/signals", { waitUntil: "networkidle" });
-  await page.waitForTimeout(300);
+  await gotoMarketDetail(page);
 
   // Find the first trigger that actually opens a tooltip popover.
   const trigger = await openFirstTooltipTrigger(page);

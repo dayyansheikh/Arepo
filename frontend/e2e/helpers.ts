@@ -1,4 +1,37 @@
-import { type Page, expect } from "@playwright/test";
+import { type APIRequestContext, type Page, expect } from "@playwright/test";
+
+/** Backend base URL the dev frontend proxies to (same default as playwright.config webServer). */
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+
+/**
+ * Resolve a market id that currently has at least one signal, so market-detail acceptance tests
+ * (popover geometry, action-row spacing) target a page that actually renders SignalItem rows and
+ * MetricHelp popovers. Hardcoding a single market id is fragile: markets close and drop out of the
+ * scan. This reads the live complete-scan signals and returns the first market with signals whose
+ * detail endpoint confirms a non-empty `signals` array. Skips the test if none is available.
+ */
+export async function liveSignalMarketId(request: APIRequestContext): Promise<string> {
+  const buckets = ["closing_1_7d", "closing_7_30d", "closing_6_24h", "closing_0_6h"];
+  const tried: string[] = [];
+  for (const bucket of buckets) {
+    const res = await request.get(
+      `${API_BASE}/api/scan/signals?bucket=${bucket}&scope=directional&limit=40`,
+    );
+    if (!res.ok()) continue;
+    const body = await res.json();
+    for (const row of body.rows ?? []) {
+      const id = String(row.market_id);
+      if (tried.includes(id)) continue;
+      tried.push(id);
+      const detail = await request.get(`${API_BASE}/api/markets/${encodeURIComponent(id)}`);
+      if (!detail.ok()) continue;
+      const dj = await detail.json();
+      const signals = dj?.market?.signals;
+      if (Array.isArray(signals) && signals.length > 0) return id;
+    }
+  }
+  throw new Error("no live market with signals found for market-detail acceptance");
+}
 
 /** The viewports the runtime-acceptance suite must pass at (final runtime acceptance §2). 574×900 is
  * the width at which manual testing reproduced the real horizontal overflow. */

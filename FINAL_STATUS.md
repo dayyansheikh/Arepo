@@ -1,5 +1,58 @@
 # FINAL_STATUS
 
+## Final short-horizon completion (branch `arepo-final-short-horizon-completion`)
+
+_Verified in this environment: backend **415 tests pass**, ruff clean; frontend tsc/lint clean, **86
+vitest**, production build **16 routes**; **Playwright 104 passed** against the real backend (:8000)
+and the preserved local database (:3000). Manually verified in Chromium (Opportunities, Signal Lab,
+Replay, market detail, sign-in). Historical cohort preserved exactly: 60 entries / 19 directional (10
+public + 9 shadow) / 120 forward observations._
+
+This pass finishes the product around the complete short-horizon universe without changing any signal
+formula, threshold, confidence, Research Priority, evidence family, eligibility rule or frozen value,
+and without touching the historical cohort.
+
+**Honest short-horizon lifecycle (§10-11).** The forward collector no longer leaves a market that
+closed before its horizon came due ambiguously "pending". When the market's close precedes both the
+horizon target and the collection time, `collect_due_forward` records a *terminal* closed-before-horizon
+observation with **no live post-close fetch** (freeze-to-close is then the correct evaluation), and
+reports it via a new `closed_before_horizon` count. Closed-awaiting-resolution, Resolved, Invalid and
+Cancelled stay distinct from pending. A new timing test proves no live fetch fires for a closed market
+and that terminal closed observations carry no midpoint. The genuine collector was run so the 6h
+horizon reconciles exactly (denominator identity: expected + against + no-change + pending/unavailable
+= total; real 6h Opportunities-scope cohort = 16 + 13 + 1 + 50 = 80).
+
+**Replay, results-first.** Replay answers one question — "How did Arepo's past signals perform?" —
+within seconds: the big Moved-as-expected / Moved-against / No-change / Pending-unavailable counts and
+a plain "X% of markets that moved went in Arepo's recorded direction" sentence come first; controls
+come second. Horizon is a single click on segmented tabs `[1h][6h][24h][7d][To close][Resolved]`, with
+due-but-uncollected horizons labelled "· pending" and the newest cohort that has evaluable results
+auto-selected. A closing-window pill row and an `[Opportunities][All signals][Research comparison]`
+scope control replace the old dropdowns; the public/shadow research panels appear only under Research
+comparison. Cohort mechanics are collapsed behind "Previous cohorts", each market is a concise row with
+a "View details" disclosure, and the six-zero-cards pending state is gone. Freeze-to-close, final
+resolution, executable performance and signal evolution remain separate. Two typed deterministic
+server endpoints back it; all replay logic is unit-tested (`lib/replay-ux.ts`).
+
+**Cards a new user can read.** Opportunities and Signal Lab cards now carry human-readable Priority
+(High/Medium/Low), Confidence and Evidence chips through a shared accessible `InfoChip` that opens a
+plain-English tooltip on hover, focus or tap. Evidence families are shown as friendly labels (Price
+behaviour, Order-book pressure, Trade activity, Concentrated trading, Trade timing) — never the raw
+`order_book` / `trade_flow` keys — and only evidence the backend genuinely computes is exposed. The
+trade-concentration family is described neutrally with no wallet-identity or fresh-wallet claim. Only
+genuine movement trajectory labels appear on cards; per-card Stale/Fresh clutter and the "Also shown
+in Opportunities" badge are removed, while full staleness detail is preserved on the market-detail
+history where it is genuinely informative (progressive disclosure, no functionality removed).
+
+**Real Playwright fixes.** The `action-spacing` and `popover` acceptance specs were failing because
+they navigated to a hardcoded market that had since closed and stopped rendering the components. They
+now resolve a live market with signals at runtime, expand the collapsed per-signal breakdown, exclude
+the non-tooltip detail toggle from the popover-trigger selector, and only click visible triggers —
+fixing the real product/target problem, not relaxing the assertions. Not deployed; not merged to
+`main`. Details in `CHECKPOINT.md`, `DECISIONS.md`, `TASKS.md`.
+
+---
+
 ## Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
 
 _Verified in this environment: backend **399 tests pass**, ruff clean; frontend tsc/lint clean, **68

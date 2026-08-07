@@ -81,3 +81,55 @@ export function byRank(rows: ScanSignalRow[]): ScanSignalRow[] {
     (a, b) => (a.rank_in_bucket ?? 1e9) - (b.rank_in_bucket ?? 1e9),
   );
 }
+
+// --- Human-readable evidence, priority band and card trajectory (final UI requirements) ---------
+// Public labels for the evidence families the backend genuinely computes. Raw keys such as
+// `order_book` / `trade_flow` are never shown publicly, and the trade-concentration family is
+// described neutrally (no wallet-identity or "fresh wallet" claim).
+export const EVIDENCE_LABELS: Record<string, { label: string; desc: string }> = {
+  price: {
+    label: "Price behaviour",
+    desc: "The recent price moved unusually compared with this market's own history.",
+  },
+  order_book: {
+    label: "Order-book pressure",
+    desc: "The resting buy and sell orders near the price are lopsided toward one side.",
+  },
+  trade_flow: {
+    label: "Trade activity",
+    desc: "Recent executed trades leaned toward one side of the market.",
+  },
+  wallet_concentration: {
+    label: "Concentrated trading",
+    desc: "Recent trade volume was concentrated rather than broad. This is not a claim about who traded.",
+  },
+  timing: {
+    label: "Trade timing",
+    desc: "Recent trades clustered in time rather than arriving steadily.",
+  },
+};
+
+export function friendlyEvidence(key: string): { label: string; desc: string } {
+  return EVIDENCE_LABELS[key] ?? { label: key.replace(/_/g, " "), desc: "" };
+}
+
+/** Research Priority (0-100) as a human band with an explanatory tooltip. */
+export function priorityBand(rp: number): { label: string; tone: "high" | "med" | "low"; desc: string } {
+  const desc =
+    "Research Priority is Arepo's own 0-100 ranking of how much a signal is worth a closer look. " +
+    "It is not a probability or a profit estimate.";
+  if (rp >= 66) return { label: "High", tone: "high", desc };
+  if (rp >= 33) return { label: "Medium", tone: "med", desc };
+  return { label: "Low", tone: "low", desc };
+}
+
+export const CONFIDENCE_DESC =
+  "Confidence is how much clean data the reading is based on (history, spread, depth). " +
+  "It is separate from strength and is never a probability.";
+
+/** Only genuine signal-MOVEMENT trajectory labels belong on a card; data-freshness labels
+ * (Stale / Refresh delayed / Out of date) are page-level, not per-card clutter. */
+export function cardTrajectoryLabel(label: string): string | null {
+  const movement = ["New signal", "Strengthening", "Weakening", "Stable", "Direction reversed"];
+  return movement.includes(label) ? label : null;
+}

@@ -2,7 +2,28 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
-## Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
+## Final short-horizon completion (branch `arepo-final-short-horizon-completion`)
+- [x] §10-11 due-horizon collection: terminal closed-before-horizon observation (no live post-close
+      fetch); `closed_before_horizon` count; closed/awaiting/resolved/invalid kept distinct; +1 timing test
+- [x] genuine forward collector run so the 6h horizon reconciles (denominator identity holds: 16+13+1+50=80)
+- [x] Replay results-first: `lib/replay-ux.ts` + rewritten `app/replay/page.tsx`; horizon tabs
+      [1h][6h][24h][7d][To close][Resolved]; auto newest-evaluable cohort; pending labelled; closing
+      pills + scope [Opportunities][All signals][Research comparison]; research panels only under
+      Research comparison; cohort mechanics collapsed; concise rows + View details; no six-zero cards
+- [x] Replay tests: 15 vitest (replay-ux) + 10 Playwright (results-first, pending, scope, To-close/Resolved)
+- [x] cards: human-readable Priority/Confidence/Evidence via accessible `InfoChip` (hover/focus/tap tooltip)
+- [x] evidence friendly labels (price/order_book/trade_flow/wallet_concentration/timing); no raw keys shown
+- [x] concentration family described neutrally — no wallet-identity / fresh-wallet claim
+- [x] suppress per-card Stale/Fresh clutter (`cardTrajectoryLabel`); keep full staleness on market detail
+- [x] remove "Also shown in Opportunities" badge; fix double-period in Opportunity strength sentence
+- [x] fix real Playwright failures: `liveSignalMarketId` helper targets a live signal market; expand the
+      per-signal breakdown; exclude `signal-detail-toggle` from popover triggers; click only visible ones
+- [x] gate: backend 415 pytest + ruff; frontend tsc/lint + 86 vitest + build 16 routes; Playwright 104
+- [x] real Chromium sweep: Opportunities / Signal Lab / Replay / market detail / sign-in (footer correct)
+- [x] verify historical cohort preserved (60/19/10/9/120) + DB intact (cohort 1 untouched; cohort 2 = scan)
+- [ ] commit + push to `arepo-final-short-horizon-completion` (no merge to main, no deploy)
+
+## (superseded) Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
 - [x] safe start: DB backup + tag `arepo-before-complete-short-horizon-universe` + branch; DB preserved
 - [x] §1 audit: proved 60 = discovery_limit=60 + screen_universe(60) + [:60], zero pagination (docs)
 - [x] §2 complete offset pagination + fail-loud incompleteness + 11 mock tests (no stop at full page 1)

@@ -6,9 +6,13 @@ import { useUrlState } from "@/lib/use-url-state";
 import { getScanStatus, getScanSignals, type ScanSignalRow } from "@/lib/api";
 import {
   BUCKET_OPTIONS,
+  CONFIDENCE_DESC,
   SCOPE_OPTIONS,
+  cardTrajectoryLabel,
   consecutivePhrase,
   eligibleHeadline,
+  friendlyEvidence,
+  priorityBand,
   strengthPhrase,
   timeToCloseLabel,
   trajectoryTone,
@@ -20,6 +24,7 @@ import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { StrengthBar } from "@/components/StrengthBar";
+import { InfoChip } from "@/components/InfoChip";
 import { PageHeader, SectionTitle, Disclose } from "@/components/ui";
 
 export default function SignalLabPage() {
@@ -197,68 +202,81 @@ export default function SignalLabPage() {
 function SignalCard({ row }: { row: ScanSignalRow }) {
   const t = row.trajectory;
   const tone = trajectoryTone(t.label);
+  const trajLabel = cardTrajectoryLabel(t.label); // only genuine movement labels on the card
   const toneClass =
     tone.tone === "up"
       ? "text-arepo-pos"
       : tone.tone === "down"
         ? "text-arepo-neg"
-        : tone.tone === "flat"
-          ? "text-arepo-ink2"
-          : "text-arepo-muted";
+        : "text-arepo-ink2";
   const consec = consecutivePhrase(t);
+  const band = priorityBand(row.research_priority);
+  const dir = row.direction === "up" ? "YES ↑" : row.direction === "down" ? "NO ↓" : null;
   return (
     <div className="rounded-card border border-arepo-border bg-arepo-surface p-5" data-testid="signal-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-tabular text-[13px] text-arepo-muted">
-              #{row.rank_in_bucket ?? "-"}
-            </span>
-            <Link
-              href={`/markets/${encodeURIComponent(row.market_id)}?mode=live`}
-              className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
-            >
-              {row.market_question}
-            </Link>
-          </div>
-          <p className="mt-0.5 text-[13px] text-arepo-muted">
-            {row.outcome_name}
-            {row.direction ? ` · direction ${row.direction}` : ""} ·{" "}
-            {timeToCloseLabel(row.time_remaining_hours)}
+          <Link
+            href={`/markets/${encodeURIComponent(row.market_id)}`}
+            className="focus-ring font-medium text-arepo-ink hover:text-arepo-accentActive"
+          >
+            {row.market_question}
+          </Link>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[13px] text-arepo-muted">
+            {dir && <span className="font-tabular text-arepo-ink2">{dir}</span>}
+            <span>{row.outcome_name}</span>
+            <span>Closes {timeToCloseLabel(row.time_remaining_hours)}</span>
           </p>
         </div>
-        <div className="text-right">
+        {trajLabel && (
           <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${toneClass}`}>
             <span aria-hidden="true">{tone.glyph}</span>
-            {t.label}
+            {trajLabel}
           </span>
-        </div>
+        )}
       </div>
 
       <div className="mt-3">
         <StrengthBar value={row.strength} />
       </div>
 
-      <p className="mt-2 text-[14px] text-arepo-ink2" data-testid="strength-phrase">
-        {strengthPhrase(row.strength, t)}.
-        {consec ? ` ${consec}.` : ""}
+      <p className="mt-2 text-[13px] text-arepo-ink2" data-testid="strength-phrase">
+        {strengthPhrase(row.strength, t)}.{consec ? ` ${consec}.` : ""}
       </p>
 
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-arepo-muted">
-        {/* Small secondary marker only (prompt B3): no dominant public-top-ten badge. */}
-        {row.public_top_ten && (
-          <span className="text-arepo-muted">Also shown in Opportunities</span>
-        )}
-        <span>Research Priority {row.research_priority}</span>
-        <span>Confidence {Math.round(row.confidence * 100)}%</span>
-        {row.overall_rank_30d != null && <span>Overall 30d rank #{row.overall_rank_30d}</span>}
-        {t.first_detected && (
-          <span>First detected {new Date(t.first_detected).toLocaleString("en-GB")}</span>
-        )}
-        {row.evidence_families.length > 0 && (
-          <span>Evidence: {row.evidence_families.join(", ")}</span>
-        )}
+      {/* Human-readable chips with hover/focus tooltips. Only evidence the backend genuinely
+          computed is shown, with plain labels (never raw order_book / trade_flow keys). */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <InfoChip label={`Priority: ${band.label}`} desc={band.desc} tone={band.tone} />
+        <InfoChip label={`Confidence ${Math.round(row.confidence * 100)}%`} desc={CONFIDENCE_DESC} />
+        {row.evidence_families.map((key) => {
+          const e = friendlyEvidence(key);
+          return <InfoChip key={key} label={e.label} desc={e.desc} />;
+        })}
       </div>
+
+      <Disclose summary="Details" className="mt-2">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-1 pt-1 text-[12px] sm:grid-cols-3">
+          <Field k="Research Priority" v={`${row.research_priority} / 100`} />
+          <Field k="Bucket rank" v={String(row.rank_in_bucket ?? "-")} />
+          {row.overall_rank_30d != null && (
+            <Field k="Overall 30-day rank" v={`#${row.overall_rank_30d}`} />
+          )}
+          {t.first_detected && (
+            <Field k="First detected" v={new Date(t.first_detected).toLocaleString("en-GB")} />
+          )}
+          <Field k="Recorded scans" v={String(t.scans)} />
+        </dl>
+      </Disclose>
+    </div>
+  );
+}
+
+function Field({ k, v }: { k: string; v: string }) {
+  return (
+    <div>
+      <div className="text-arepo-muted">{k}</div>
+      <div className="font-tabular font-medium text-arepo-ink">{v}</div>
     </div>
   );
 }

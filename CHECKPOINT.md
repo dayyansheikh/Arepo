@@ -3,7 +3,50 @@
 _Single source of truth for "where are we, exactly." Updated at the end of every phase.
 Older history is preserved in git; this file tracks the **Master Final Refinement**._
 
-## Latest: Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
+## Latest: Final short-horizon completion (branch `arepo-final-short-horizon-completion`)
+
+Continues on the same preserved DB. Historical cohort **still intact** (cohort 1: 60 entries / 19
+directional = 10 public_selection + 9 shadow_directional / 120 forward observations). A second cohort
+(id 2, 6h, frozen 2026-08-06 16:02, 1382 entries) is the real complete-scan freeze that Replay now
+reports on. No frozen value in cohort 1 was touched.
+
+DONE + verified this pass:
+- **§10-11 due-horizon collection + closed-market lifecycle**: `collect_due_forward` now records a
+  *terminal* closed-before-horizon observation (no live post-close fetch) when a market closed before
+  its horizon came due, so a closed market is never left ambiguously "pending" forever; freeze-to-close
+  becomes the correct evaluation. Return dict exposes `closed_before_horizon`. New test
+  `test_horizon_due_after_market_close_is_terminal_not_pending` proves no live fetch fires and closed
+  observations carry `midpoint is None`. The genuine collector was run so the 6h horizon reconciles.
+- **Replay results-first redesign** (`lib/replay-ux.ts` + `app/replay/page.tsx`): one question — "How
+  did Arepo's past signals performed." Results FIRST (big Moved-as-expected / Moved-against / No-change
+  / Pending-unavailable stats + a plain "X% of markets that moved went in Arepo's recorded direction"
+  sentence), controls second. Horizon segmented tabs `[1h][6h][24h][7d][To close][Resolved]` with
+  due-but-uncollected horizons labelled "· pending"; newest cohort with evaluable results auto-selected.
+  Closing pills `[All][≤6h][Today][This week][This month]`; scope `[Opportunities][All signals][Research
+  comparison]` (public/shadow panels only under Research comparison). Cohort mechanics collapsed under
+  "Previous cohorts"; concise market rows with "View details". No six-zero-cards pending state. To
+  close / Resolved get their own separate panels. Denominator identity holds (e.g. real 6h Opportunities
+  scope: 16 + 13 + 1 + 50 = 80). 15 vitest + 10 Playwright.
+- **Card redesign (Opportunities + Signal Lab)**: human-readable Priority band (High/Medium/Low),
+  Confidence and Evidence chips via a shared accessible `InfoChip` (hover/focus/tap tooltip over the
+  viewport-aware Popover). Evidence families mapped to plain labels (`friendlyEvidence`/`EVIDENCE_LABELS`
+  covering price/order_book/trade_flow/wallet_concentration/timing) — **never** raw `order_book` /
+  `trade_flow` keys, and the concentration family is described neutrally ("This is not a claim about who
+  traded" — no wallet-identity / fresh-wallet claim). Only movement trajectory labels appear on cards
+  (`cardTrajectoryLabel`), suppressing per-card Stale/Fresh clutter (full staleness stays on the market
+  detail history where it is genuine information). Removed the "Also shown in Opportunities" badge.
+  Fixed a double-period in the Opportunity strength sentence.
+- **Playwright real-failure fixes** (not assertion-relaxing): `action-spacing.spec.ts` and
+  `popover.spec.ts` now resolve a *live* market with signals via a new `liveSignalMarketId` helper
+  (instead of a hardcoded now-closed market), expand the collapsed per-signal breakdown to render the
+  rows, exclude the non-tooltip `signal-detail-toggle` from the popover-trigger selector, and only
+  click visible triggers. All 16 (9 popover + 7 action-spacing) pass.
+- Gates (this environment): backend **415 pytest pass** + ruff clean; frontend tsc/lint clean,
+  **86 vitest**, production build **16 routes**, **Playwright 104 pass** against the real backend
+  (:8000) + preserved DB (:3000). Manually verified in Chromium: Opportunities, Signal Lab, Replay,
+  market detail, sign-in (footer correct). NOT deployed, NOT merged to `main`.
+
+## (superseded) Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
 
 Safety tag before this pass: **`arepo-before-complete-short-horizon-universe`**. DB backed up +
 fully preserved (historical cohort intact: 60 entries / 19 directional / 10 public / 9 shadow / 120

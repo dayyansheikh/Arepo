@@ -3,8 +3,11 @@ import type { ScanStatus, ScanTrajectory } from "@/lib/api";
 import {
   BUCKET_OPTIONS,
   SCOPE_OPTIONS,
+  cardTrajectoryLabel,
   consecutivePhrase,
   eligibleHeadline,
+  friendlyEvidence,
+  priorityBand,
   strengthPhrase,
   timeToCloseLabel,
   trajectoryTone,
@@ -94,5 +97,31 @@ describe("timeToCloseLabel", () => {
     expect(timeToCloseLabel(5)).toBe("5h left");
     expect(timeToCloseLabel(72)).toBe("3d left");
     expect(timeToCloseLabel(null)).toBe("unknown");
+  });
+});
+
+describe("friendly evidence + priority band (final UI requirements)", () => {
+  it("maps raw evidence keys to human labels, never showing raw keys", () => {
+    expect(friendlyEvidence("order_book").label).toBe("Order-book pressure");
+    expect(friendlyEvidence("trade_flow").label).toBe("Trade activity");
+    expect(friendlyEvidence("wallet_concentration").label).toBe("Concentrated trading");
+    // No wallet-identity / fresh-wallet claim.
+    expect(friendlyEvidence("wallet_concentration").desc).not.toMatch(/wallet|fresh/i);
+    for (const k of ["price", "order_book", "trade_flow", "wallet_concentration", "timing"]) {
+      expect(friendlyEvidence(k).label).not.toBe(k);
+    }
+  });
+  it("bands Research Priority into High/Medium/Low with a non-probability tooltip", () => {
+    expect(priorityBand(80).label).toBe("High");
+    expect(priorityBand(50).label).toBe("Medium");
+    expect(priorityBand(10).label).toBe("Low");
+    expect(priorityBand(80).desc).toMatch(/not a probability/i);
+  });
+  it("keeps only movement trajectory labels on cards, hiding freshness clutter", () => {
+    expect(cardTrajectoryLabel("Strengthening")).toBe("Strengthening");
+    expect(cardTrajectoryLabel("Stable")).toBe("Stable");
+    expect(cardTrajectoryLabel("Stale")).toBeNull();
+    expect(cardTrajectoryLabel("Refresh delayed")).toBeNull();
+    expect(cardTrajectoryLabel("Out of date")).toBeNull();
   });
 });

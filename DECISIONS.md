@@ -5,7 +5,57 @@ Newest entries at the top of each section.
 
 ---
 
-## Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
+## Final short-horizon completion (branch `arepo-final-short-horizon-completion`)
+
+### D-FC6. A market that closed before its horizon is terminal, never perpetually pending (§11)
+When `collect_due_forward` reaches a due horizon whose market has already closed, it records a terminal
+closed-before-horizon observation (`midpoint=None`, an explanatory `unavailable_reason`) and does **not**
+issue a live quote fetch — a post-close price is not a genuine forward, and freeze-to-close is the
+correct evaluation for those markets. This removes the "pending forever" state that made the 6h horizon
+look stuck. The collector returns `closed_before_horizon` so the funnel is auditable, and closed /
+awaiting-resolution / resolved / invalid stay distinct states rather than collapsing into "pending".
+
+### D-FC5. Replay leads with results; every control is one click and progressively disclosed (final UX)
+The public Replay page is built around one question ("How did Arepo's past signals perform?"). The
+count-first performance block and a plain movers sentence render before any control, the newest cohort
+with evaluable results is auto-selected so the page never opens on six zero cards, and horizon/closing/
+scope are segmented tabs + pills instead of dropdowns. Cohort mechanics collapse behind "Previous
+cohorts" and the public-vs-shadow research panels live only under a "Research comparison" scope, so a
+new user sees performance immediately while every prior capability stays reachable. Pure decision logic
+lives in `lib/replay-ux.ts` and is unit-tested; the page only renders what it returns.
+
+### D-FC4. Evidence is shown in plain language, and the concentration family makes no identity claim
+Public cards map raw evidence-family keys to human labels (`friendlyEvidence` / `EVIDENCE_LABELS`):
+price→"Price behaviour", order_book→"Order-book pressure", trade_flow→"Trade activity", timing→"Trade
+timing", wallet_concentration→"Concentrated trading". The raw keys never appear publicly, and the
+concentration label is described as volume being concentrated rather than broad, explicitly "not a claim
+about who traded" — Arepo computes concentration from public trades and makes no wallet-identity or
+fresh-wallet claim, so the copy must not imply one. Only families the backend actually computed are shown.
+
+### D-FC3. Freshness is page-level; movement is per-card (no Stale/Fresh clutter on cards)
+Signal cards show only genuine movement trajectory labels (`cardTrajectoryLabel` returns a label solely
+for New/Strengthening/Weakening/Stable/Direction-reversed). Data-freshness states (Stale / Refresh
+delayed) are suppressed on cards because they are a property of the whole scan, not of one signal, and
+belong to the page-level freshness badge. The full staleness detail is kept on the market-detail signal
+history, where a signal that has not refreshed is genuinely informative — hidden progressively, not
+removed.
+
+### D-FC2. Priority/Confidence/Evidence chips are accessible and self-explaining
+Each chip is a shared `InfoChip` over the viewport-aware Popover primitive: it opens a plain-English
+tooltip on hover, focus and tap, closes on Escape/blur, and is a real button with aria-expanded /
+aria-controls. Research Priority is banded to High/Medium/Low with a tooltip stating it is "not a
+probability or a profit estimate"; Confidence is described as data quality, "never a probability". This
+lets a first-time user understand each term in place without leaving the page.
+
+### D-FC1. Market-detail acceptance targets a live signal market, not a hardcoded id
+`action-spacing` and `popover` specs previously navigated to a hardcoded market that had since closed,
+so the SignalItem rows and MetricHelp popovers no longer rendered and the specs timed out. They now
+resolve a live market with signals at runtime (`liveSignalMarketId`), expand the collapsed per-signal
+breakdown so the rows exist, exclude the non-tooltip `signal-detail-toggle` from the popover-trigger
+selector, and click only visible triggers. This fixes the real target/product problem rather than
+weakening the geometry and spacing assertions, which are unchanged.
+
+## (superseded) Complete short-horizon universe (branch `arepo-complete-short-horizon-universe`)
 
 ### D-CU4. An incomplete scan fails loudly and never becomes a valid-looking cohort (prompt §2, §20)
 `paginate_markets` sets `complete=False` with a reason on any offset cap, non-progression, retry
