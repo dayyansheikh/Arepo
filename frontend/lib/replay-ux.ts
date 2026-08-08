@@ -125,6 +125,33 @@ export function cohortSummaryLine(cohort: ReplayCohort | undefined): string {
   return `Frozen ${when} · ${cohort.universe_size.toLocaleString("en-GB")} markets`;
 }
 
+// Prospective cohorts freeze on fixed 6-hourly UTC boundaries (00/06/12/18). The next boundary after
+// `now` is fully deterministic, so we can show when the next research cohort is due without a fetch.
+// (Kept in sync with backend research_freeze_cadences="6h".)
+export const FREEZE_CADENCE_HOURS = 6;
+
+/** The next 6-hourly UTC freeze boundary strictly after `now`. */
+export function nextFreezeAt(now: Date, cadenceHours: number = FREEZE_CADENCE_HOURS): Date {
+  const next = new Date(now.getTime());
+  next.setUTCMinutes(0, 0, 0);
+  const nextHour = (Math.floor(now.getUTCHours() / cadenceHours) + 1) * cadenceHours;
+  next.setUTCHours(nextHour); // nextHour === 24 rolls cleanly to 00:00 the following day
+  return next;
+}
+
+/** "Next freeze ~18:00 UTC" (adds "tomorrow" when it crosses a day boundary). The freeze rides on the
+ * next scan, so it lands a few minutes after the boundary — hence the ~. */
+export function nextFreezeLine(now: Date, cadenceHours: number = FREEZE_CADENCE_HOURS): string {
+  const next = nextFreezeAt(now, cadenceHours);
+  const hh = String(next.getUTCHours()).padStart(2, "0");
+  const mm = String(next.getUTCMinutes()).padStart(2, "0");
+  const sameDay =
+    next.getUTCFullYear() === now.getUTCFullYear() &&
+    next.getUTCMonth() === now.getUTCMonth() &&
+    next.getUTCDate() === now.getUTCDate();
+  return `Next freeze ~${hh}:${mm} UTC${sameDay ? "" : " tomorrow"}`;
+}
+
 export function resultTitle(tab: HorizonTab): string {
   switch (tab) {
     case "1h":

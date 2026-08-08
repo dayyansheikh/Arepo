@@ -11,6 +11,8 @@ import {
   hitRateSentence,
   horizonAvailability,
   horizonTooltip,
+  nextFreezeAt,
+  nextFreezeLine,
   pendingMessage,
   pickCohortForHorizon,
   resultTitle,
@@ -129,6 +131,26 @@ describe("copy", () => {
     const m = pendingMessage(c, "6h", 974);
     // 6h due at 2026-08-07 05:30, after NOW-real? uses real now; assert shape.
     expect(m.detail).toContain("974 signals pending");
+  });
+  it("next freeze lands on the next 6h UTC boundary", () => {
+    // Within a period -> next boundary same day.
+    expect(nextFreezeAt(new Date("2026-08-06T05:30:00Z")).toISOString()).toBe(
+      "2026-08-06T06:00:00.000Z",
+    );
+    expect(nextFreezeAt(new Date("2026-08-06T12:00:00Z")).toISOString()).toBe(
+      "2026-08-06T18:00:00.000Z",
+    );
+    // Last period of the day rolls cleanly to 00:00 the next day.
+    expect(nextFreezeAt(new Date("2026-08-06T18:45:00Z")).toISOString()).toBe(
+      "2026-08-07T00:00:00.000Z",
+    );
+    expect(nextFreezeAt(new Date("2026-08-06T23:59:00Z")).toISOString()).toBe(
+      "2026-08-07T00:00:00.000Z",
+    );
+  });
+  it("next freeze line is UTC-labelled and marks day rollover", () => {
+    expect(nextFreezeLine(new Date("2026-08-06T05:30:00Z"))).toBe("Next freeze ~06:00 UTC");
+    expect(nextFreezeLine(new Date("2026-08-06T18:45:00Z"))).toBe("Next freeze ~00:00 UTC tomorrow");
   });
   it("hit-rate sentence in plain English", () => {
     const counts = {

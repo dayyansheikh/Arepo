@@ -24,6 +24,7 @@ import {
   hitRateSentence,
   horizonAvailability,
   horizonTooltip,
+  nextFreezeLine,
   pendingMessage,
   pickCohortForHorizon,
   resultTitle,
@@ -89,6 +90,10 @@ export default function ReplayPage() {
           {/* One subtle cohort line + collapsed mechanics. */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-arepo-muted">
             <span data-testid="cohort-line">{cohortSummaryLine(cohort)}</span>
+            <span aria-hidden="true">·</span>
+            <span data-testid="next-freeze" title="Cohorts freeze every 6h at 00/06/12/18 UTC.">
+              {nextFreezeLine(now)}
+            </span>
             {newestIsCollecting && (
               <button
                 type="button"
@@ -149,7 +154,7 @@ export default function ReplayPage() {
             />
           )}
 
-          <CohortDetails cohort={cohort} result={result} />
+          <CohortDetails cohort={cohort} result={result} now={now} />
         </>
       )}
     </div>
@@ -633,9 +638,11 @@ function Detail({ label, value }: { label: string; value: string }) {
 function CohortDetails({
   cohort,
   result,
+  now,
 }: {
   cohort: ReplayCohort;
   result: ReplayResult | null;
+  now: Date;
 }) {
   const den = result?.denominators;
   const rows: [string, string][] = [
@@ -643,6 +650,7 @@ function CohortDetails({
     ["Scheduled cut-off", dt(cohort.scheduled_for)],
     ["Actually frozen", dt(cohort.frozen_at)],
     ["Lateness", cohort.late ? `${Math.round(cohort.lateness_minutes)} minutes` : "on time"],
+    ["Next freeze scheduled", nextFreezeLine(now).replace(/^Next freeze ~/, "~")],
     ["Evaluation starts from", dt(cohort.evaluation_origin_at)],
     ["Selection policy", result?.selection_policy ?? "-"],
     ["Full frozen universe", String(cohort.universe_size)],
