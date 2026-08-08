@@ -80,11 +80,18 @@ class Settings(BaseSettings):
     # A hosted runner (GitHub Actions) wakes ~every 5 min and the app decides what is DUE. All of
     # these are cadence intents, not exact-second guarantees: the tick is delay-tolerant and every
     # unit of work is idempotent, so a late/duplicate/missed wake never fabricates or double-writes.
-    scan_refresh_interval_minutes: int = 15   # min age of the latest COMPLETE scan before a refresh
+    scan_refresh_interval_minutes: int = 10   # min age of the latest COMPLETE scan before a refresh
     resolve_interval_minutes: int = 60        # how often to check for newly-available resolutions
     preclose_interval_minutes: int = 15       # how often to collect freeze-to-close quotes
     forward_interval_minutes: int = 15        # how often to collect due 1h/6h/24h/7d observations
-    research_freeze_cadences: str = "6h,daily,weekly"  # cadences the tick freezes when causally due
+    # Prospective cohort cadence (final-review §9, D-DEP7): DAILY primary + WEEKLY. Daily gives one
+    # near-independent full-universe snapshot per period instead of the old 6-hourly cadence, which
+    # re-froze the SAME ~1,400 markets 4×/day and produced heavily dependent, pseudo-replicated
+    # samples. This is a statistical improvement (cleaner selection-vs-wider comparison); the ~3–4×
+    # storage reduction is a byproduct. Applies PROSPECTIVELY only — existing 6h cohorts are never
+    # changed. Override with RESEARCH_FREEZE_CADENCES to reintroduce 6h/12h if intraday freeze-time
+    # diversity is later shown to be worth the added dependence.
+    research_freeze_cadences: str = "daily,weekly"  # cadences the tick freezes when causally due
     tick_lease_seconds: int = 600             # scheduler-lease TTL: one heavy tick at a time
 
     # --- Storage retention + health (see docs/PRODUCTION_CAPACITY_AUDIT.md §3) ---

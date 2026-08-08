@@ -5,6 +5,43 @@ Newest entries at the top of each section.
 
 ---
 
+## Final deployment review (branch `arepo-free-production-v1`, multi-agent scrutiny)
+
+### D-DEP7. Prospective cohort cadence: DAILY + WEEKLY (drop 6-hourly) — a statistical decision
+The final-review quant + data-integrity analysis (docs/final-review/01, 07) found the 6-hourly cadence
+re-froze the SAME ~1,400-market universe 4×/day, producing heavily **dependent, pseudo-replicated**
+samples (a 4-day market appears in ~16 consecutive cohorts). Pooling those as independent would overstate
+evidence ~10–16×. Decision: freeze **DAILY** (one near-independent full-universe snapshot per period) +
+**WEEKLY** for a longer horizon; drop 6h. This is a research-quality improvement (cleaner
+selected-vs-wider comparison, honest sample independence), and the ~3–4× reduction in permanent growth
+(~12 → ~3–4 MB/day; free-Postgres hot lifetime ~3–5 weeks → ~4 months) is a *byproduct*, not the reason
+(spec §9 forbids cutting cadence merely to fit storage, and forbids redundant cohorts to inflate counts).
+Applies **prospectively only**; the two existing frozen 6h cohorts are never altered. `config.py`
+`research_freeze_cadences="daily,weekly"`, `scan_refresh_interval_minutes=10` (spec §8 endorses ~10-min
+complete refresh; scan measures 269–302 s so 10 min avoids overlap under GitHub cron jitter).
+
+### D-DEP8. Migration reconciliation verifies per-record immutable VALUES, not just counts (spec §10)
+Count/`dest>=source` checks cannot catch a same-PK destination row with corrupted content (`ON CONFLICT
+DO NOTHING` keeps the pre-existing row), and legitimate later production rows make `dest>source` — so
+counts can hide corruption. Added `import_sqlite._verify_values`: for every source PK, the destination
+row must exist and be byte-equal on the source's columns (datetimes normalised to UTC, JSON canonicalised),
+failing reconciliation closed on any missing/mismatched row. Verified: a clean import checks all 10,412
+rows (0 mismatch); corrupting one frozen `strength` is caught with a precise example. This is the
+acceptance test for the one irreversible deployment step (the genuine Postgres import). Never modifies the
+read-only source.
+
+### D-DEP9. Long-term Replay aggregate summary — specified, deferred (no evidence is lost meanwhile)
+Spec §7 wants a compact long-term "selected vs wider" summary retained when old detailed cohorts leave hot
+storage. Retention **only** prunes category-C scan history and **never** deletes any cohort/entry/
+observation, so at daily cadence all research detail stays hot and queryable for ~4 months with **zero**
+loss — the summary is not needed for launch. It is specified for when cohorts approach archive age: a hot
+table keyed by (period, scope, horizon) storing distinct-markets, total-evaluated, expected/against/
+no_change/pending/unavailable and hit-rate-among-moved, counting **each market once per period** (never
+once per market×cohort). Consciously deferred (spec §25 permits documented deferral); the market-dedup
+rule is the invariant to test before it ships. See docs/final-review/FINAL_REVIEW_SYNTHESIS.md.
+
+---
+
 ## Free-production deployment (branch `arepo-free-production-v1`)
 
 ### D-DEP1. GitHub Actions runs the scheduled compute, not Render cron (deviation from the starting hypothesis)

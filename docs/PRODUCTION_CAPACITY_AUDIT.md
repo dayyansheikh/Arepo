@@ -130,9 +130,15 @@ cohorts/day**. Measured/estimated permanent growth:
 | 6 months | ~2.2 GB | ~2.5 GB |
 | 1 year | ~4.3 GB | ~4.7 GB |
 
-**Binding conclusion:** on a single 500 MB free Postgres, with the current ~5 full-universe
-cohorts/day, the **safe lossless lifetime is ≈ 3–5 weeks** before the permanent research data alone
-approaches the cap. The dominant driver is **full-universe cohort freezes**, not the scan history.
+**Binding conclusion:** on a single 500 MB free Postgres, at the *old* 6h cadence (~5 full-universe
+cohorts/day, ~12 MB/day) the safe lossless lifetime was ≈ 3–5 weeks. The dominant driver is
+**full-universe cohort freezes**, not the scan history.
+
+> **UPDATE (final-review, D-DEP7):** the prospective cadence is now **DAILY + WEEKLY** (~1.1 cohorts/day,
+> permanent ≈ 3–4 MB/day) — chosen primarily for **sample independence**, with the storage benefit as a
+> byproduct. **Revised safe lossless lifetime ≈ 4 months** hot on free Postgres, extended to effectively
+> indefinite by the documented cold-archive path. Retention never deletes any cohort/observation, so no
+> research evidence is lost within that window regardless.
 
 ### Levers to extend the free lifetime (see Phase 2 decision)
 1. **Reduce cohort-freeze cadence** to daily + weekly (~2/day) → permanent ~5 MB/day → **~3 months**.

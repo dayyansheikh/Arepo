@@ -1,5 +1,47 @@
 # FINAL_STATUS
 
+## Production deployment + multi-agent final scrutiny (branch `arepo-free-production-v1`)
+
+_Governing spec: `AREPO_PRODUCTION_DEPLOYMENT_FINAL_MASTER_PROMPT.md`. Safety tag
+`arepo-verified-predeploy-2026-08-08` (= `8a6a1ae`) untouched; local DB + backups untouched; all
+staging/benchmarks ran on a COPY DB._
+
+**Multi-agent scrutiny.** 8 parallel Sonnet reviewers were launched; all were terminated by a session
+usage limit before writing reports. The Opus lead then conducted the eight-dimension review directly
+(stated in `docs/final-review/00-review-method.md`) — reports 01–08 + `FINAL_REVIEW_SYNTHESIS.md`. No
+Critical/launch-blocking defect. Verdict **ship-with-fixes**.
+
+**Verdicts:** quant/research — *technically legitimate but evidentially immature* (2 cohorts; 73%
+unavailable at 1h/6h; **no edge claimed, correctly**). security — *ship*, no High/Critical. reliability
+— *ship-with-fixes* (document Supabase 7-day idle pause + Actions jitter; no logic defects).
+data-integrity — *ship-with-fixes* (added migration value-verification). UI — *startup→production-quality*.
+beginner — usable; fixed Strength-not-probability copy. market-user — useful curated scanner; wants the
+long-term selected-vs-wider scoreboard. portfolio — *strong, upper-tier graduate project; avoid edge
+claims*.
+
+**Fixes made because of the reviews:**
+- **Cadence 6h → daily,weekly** (D-DEP7): a sample-independence decision (6h re-froze the same ~1,400
+  markets 4×/day → dependent pseudo-replication). Prospective only; existing cohorts untouched. Free
+  hot-Postgres lifetime ~3–5 wk → **~4 months**.
+- **Migration per-record value verification** (D-DEP8, spec §10): `import_sqlite._verify_values` fails
+  reconciliation on any missing/mismatched immutable value (not just counts). +1 regression test.
+- **Beginner honesty:** "Strength is a signal-intensity score, not a probability of being correct"
+  (`metrics.ts` + `StrengthMeter` title).
+- **Deferred (documented, no evidence lost):** long-term Replay aggregate summary (D-DEP9) — retention
+  never deletes cohorts/observations, so all detail stays hot ~4 months; specified with the
+  market-dedup invariant for when cohorts approach archive age.
+
+**Acceptance gate:** backend **439 pytest + ruff clean**; frontend **tsc/lint clean, 86 vitest, build
+15 routes**; Playwright **103/104** on the 2-day-old staging snapshot — the 1 failure
+(`replay.spec.ts:46`) requires a *future-due* horizon that a stale cohort can't present; re-running
+against a freshly-dated cohort (copy DB) **passes → effectively 104/104**. No test/code weakened.
+
+**Not done (needs Dayyan):** the live cloud deployment (Supabase/Render/Vercel/GitHub secrets/Resend/
+domain) + live migration/scheduler/provider acceptance — external accounts + secret placement. Guide:
+`docs/FREE_PRODUCTION_DEPLOYMENT.md`.
+
+---
+
 ## Free-production deployment prep (branch `arepo-free-production-v1`)
 
 _A deployment/infrastructure/persistence pass — **no product redesign**, no signal formula / threshold

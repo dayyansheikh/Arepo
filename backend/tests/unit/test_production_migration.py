@@ -93,6 +93,35 @@ async def test_reconciliation_detects_lost_rows(tmp_path):
     assert recon["mismatches"]
 
 
+async def test_value_verification_catches_corrupted_immutable_row(tmp_path):
+    """Spec §10: destination growth must not hide a corrupted imported source row. A same-PK row
+    with a changed FROZEN value must fail reconciliation even though counts still match."""
+    src = tmp_path / "source.db"
+    dest = tmp_path / "dest.db"
+    await _populate(str(src))
+    url = f"sqlite+aiosqlite:///{dest}"
+    clean = await import_all(source_path=str(src), dest_url=url, require_empty=True)
+    vv = clean["reconciliation"]["value_verification"]
+    assert vv["ok"] is True and vv["missing_rows"] == 0 and vv["value_mismatch_rows"] == 0
+    assert vv["checked_rows"] > 0
+
+    # Corrupt one frozen strength in the destination (counts unchanged, content changed).
+    from astrolabe.evaluation.research_models import ResearchEntryRow
+    dst = make_engine(url)
+    async with dst.begin() as conn:
+        eid = await conn.scalar(select(ResearchEntryRow.id).limit(1))
+        await conn.execute(
+            ResearchEntryRow.__table__.update()
+            .where(ResearchEntryRow.id == eid).values(strength=0.999))
+    src_e = make_engine(f"sqlite+aiosqlite:///{src}")
+    recon = await _reconcile(src_e, dst, list(Base.metadata.sorted_tables), dry_run=False)
+    await dst.dispose()
+    await src_e.dispose()
+    assert recon["ok"] is False
+    assert recon["value_verification"]["value_mismatch_rows"] == 1
+    assert any("strength" in e for e in recon["value_verification"]["examples"])
+
+
 def test_new_tables_are_postgres_portable():
     """The new scheduler tables compile for the PostgreSQL dialect (no SQLite-only types)."""
     ddl = "\n".join(ddl_preview("postgresql"))

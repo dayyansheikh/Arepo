@@ -30,7 +30,7 @@ export const METRICS = {
     definition:
       "A single 0 to 100 reading of how unusual a market's recent behaviour looks, blending price movement, spread and order-book imbalance.",
     interpretation:
-      "Higher means more of these are lining up at once. It does not say which way the price will move, or that anything is wrong.",
+      "Higher means more of these are lining up at once. It is a signal-intensity score, not a probability of being correct: a strength of 17/100 does not mean a 17% chance the call is right. It does not say which way the price will move, or that anything is wrong.",
   },
   confidence: {
     id: "confidence",

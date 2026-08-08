@@ -157,8 +157,87 @@ async def _reset_sequences(engine, tables) -> list[str]:
     return reset
 
 
+def _norm_value(col, value):
+    """Canonicalise one column value for cross-database equality (see _verify_values)."""
+    if value is None:
+        return None
+    if isinstance(col.type, DateTime) and isinstance(value, datetime):
+        v = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+        return v.astimezone(UTC).isoformat()
+    if isinstance(value, (dict, list)):
+        import json
+        return json.dumps(value, sort_keys=True, default=str)
+    if isinstance(value, datetime):  # a datetime in a non-DateTime column (defensive)
+        v = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+        return v.astimezone(UTC).isoformat()
+    return value
+
+
+def _pk_key(table, row: dict):
+    return tuple(row[c.name] for c in table.primary_key.columns)
+
+
+async def _verify_values(src, dst, tables) -> dict:
+    """Verify that EVERY source record exists in the destination with identical immutable values.
+
+    Spec §10: destination growth (later production rows) must not hide a corrupted imported source
+    row. Counts alone can't catch a same-PK-different-content row (ON CONFLICT DO NOTHING would keep
+    the pre-existing dest row). This copies verbatim, so every source row must have a byte-equal
+    destination row (datetimes normalised to UTC, JSON canonicalised) on the source's columns.
+    Returns per-table checked/missing/value_mismatch counts + capped examples; ``ok`` is overall.
+    """
+    per_table: dict[str, dict] = {}
+    examples: list[str] = []
+    total_checked = total_missing = total_diff = 0
+    for table in tables:
+        cols = list(table.columns)
+        if not list(table.primary_key.columns):
+            continue
+        async with src.connect() as sconn:
+            src_rows = [dict(m) for m in (await sconn.execute(select(table))).mappings().all()]
+        if not src_rows:
+            continue
+        async with dst.connect() as dconn:
+            dst_index = {
+                _pk_key(table, dict(m)): dict(m)
+                for m in (await dconn.execute(select(table))).mappings().all()
+            }
+        checked = missing = diff = 0
+        for s in src_rows:
+            checked += 1
+            d = dst_index.get(_pk_key(table, s))
+            if d is None:
+                missing += 1
+                if len(examples) < 20:
+                    examples.append(f"{table.name} pk={_pk_key(table, s)}: MISSING in dest")
+                continue
+            for c in cols:
+                if _norm_value(c, s.get(c.name)) != _norm_value(c, d.get(c.name)):
+                    diff += 1
+                    if len(examples) < 20:
+                        examples.append(
+                            f"{table.name} pk={_pk_key(table, s)} col={c.name}: "
+                            f"source={s.get(c.name)!r} != dest={d.get(c.name)!r}")
+                    break
+        per_table[table.name] = {"checked": checked, "missing": missing, "value_mismatch": diff}
+        total_checked += checked
+        total_missing += missing
+        total_diff += diff
+    return {
+        "ok": total_missing == 0 and total_diff == 0,
+        "checked_rows": total_checked,
+        "missing_rows": total_missing,
+        "value_mismatch_rows": total_diff,
+        "per_table": per_table,
+        "examples": examples,
+    }
+
+
 async def _reconcile(src, dst, tables, *, dry_run: bool) -> dict:
-    """Per-table count reconciliation + known cohort invariants. ``ok`` False means DO NOT trust."""
+    """Per-table count reconciliation + cohort invariants + per-record value verification.
+
+    ``ok`` False means DO NOT trust the destination.
+    """
     mismatches: list[str] = []
     counts: dict[str, dict] = {}
     for table in tables:
@@ -193,8 +272,17 @@ async def _reconcile(src, dst, tables, *, dry_run: bool) -> dict:
                     mismatches.append(
                         f"cohort {cid}: entries {n} != universe_size {universe_size}")
 
+    # Per-record immutable-value verification (spec §10): every source row must exist in the
+    # destination with identical values. This is what makes destination growth safe — extra
+    # production rows can never hide a corrupted imported source row.
+    values = {"ok": True, "checked_rows": 0} if dry_run else await _verify_values(src, dst, tables)
+    if not values["ok"]:
+        mismatches.append(
+            f"value verification failed: {values['missing_rows']} missing + "
+            f"{values['value_mismatch_rows']} value-mismatch rows (see examples)")
+
     return {"ok": not mismatches, "counts": counts, "cohort_invariants": invariants,
-            "mismatches": mismatches}
+            "value_verification": values, "mismatches": mismatches}
 
 
 async def _run(args: argparse.Namespace) -> int:

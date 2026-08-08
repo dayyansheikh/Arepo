@@ -24,6 +24,7 @@ export function StrengthMeter({
       aria-valuemin={0}
       aria-valuemax={100}
       aria-label="Signal strength"
+      title="Signal-intensity score (0–100), not a probability of being correct."
     >
       <div className="h-1.5 flex-1 min-w-16 overflow-hidden rounded-full bg-arepo-surface2">
         <div

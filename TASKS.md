@@ -2,6 +2,19 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Production deployment + final multi-agent scrutiny (branch `arepo-free-production-v1`)
+- [x] Verify branch/HEAD 69425f1 + safety tag 8a6a1ae untouched; stand up staging (copy DB) + shots
+- [x] 8-agent scrutiny (agents died on usage limit → lead conducted directly); reports + synthesis in
+      `docs/final-review/` (01–08 + FINAL_REVIEW_SYNTHESIS + 00-method). No Critical/launch-blocker.
+- [x] D-DEP7 cadence 6h→daily,weekly (prospective; independence) + refresh 10min
+- [x] D-DEP8 migration per-record value verification (`_verify_values`) + regression test (§10)
+- [x] S2 beginner Strength-not-probability copy + StrengthMeter title
+- [x] D-DEP9 long-term Replay aggregate summary — specified + consciously deferred (no evidence lost)
+- [x] Acceptance gate: backend 439 + ruff; frontend tsc/lint/86 vitest/build; Playwright 104/104
+      (1 stale-data failure proven data-dependent, passes vs fresh cohort). Docs updated. Committed.
+- [ ] LIVE cloud deployment (needs Dayyan): Supabase→Render→migration(value-verify)→scheduler→Vercel→
+      Resend→domain, then live migration/scheduler/provider acceptance — see FREE_PRODUCTION_DEPLOYMENT.md
+
 ## Free-production deployment prep (branch `arepo-free-production-v1`)
 - [x] Phase 1 capacity audit → `docs/PRODUCTION_CAPACITY_AUDIT.md` (measured scan 269–302 s / 1.81 MB;
       permanent ~12 MB/day; safe free-Postgres lifetime ≈ 3–5 weeks; runtime/memory; free-tier limits)

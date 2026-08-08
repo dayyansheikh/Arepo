@@ -5,7 +5,40 @@ Older history is preserved in git; this file tracks the **Master Final Refinemen
 
 ---
 
-## CURRENT PASS: Free-production deployment prep (branch `arepo-free-production-v1`)
+## CURRENT STAGE: Production deployment + multi-agent final scrutiny (branch `arepo-free-production-v1`)
+
+_Governing spec: `AREPO_PRODUCTION_DEPLOYMENT_FINAL_MASTER_PROMPT.md`. Deploy + independent review +
+remediation, then hand the live cloud steps to Dayyan._
+
+**State verified:** HEAD `69425f1`; safety tag `arepo-verified-predeploy-2026-08-08` = `8a6a1ae`
+(untouched); local DB + backups untouched. Staging-production instance was run on a COPY DB.
+
+**8-agent scrutiny:** launched 8 parallel Sonnet reviewers; all were killed by a session usage limit
+BEFORE writing reports. The Opus lead then conducted the eight-dimension review directly (documented in
+`docs/final-review/00-review-method.md`). Reports 01–08 + `FINAL_REVIEW_SYNTHESIS.md` written. No
+Critical/launch-blocking defect. Verdict: **ship-with-fixes**, then deploy.
+
+**Remediation done (this stage):**
+- D-DEP7 — prospective cohort cadence **6h → daily,weekly** (sample-independence decision; storage
+  benefit is a byproduct). `config.research_freeze_cadences="daily,weekly"`, refresh `10` min. Existing
+  6h cohorts untouched. Revised free-Postgres hot lifetime ~3–5 wk → **~4 months**.
+- D-DEP8 — migration reconciliation now verifies **per-record immutable values** (`_verify_values`),
+  not just counts (spec §10). Catches a corrupted frozen value; clean import checks all 10,412 rows.
+  +1 regression test.
+- S2 — beginner "Strength ≠ probability" copy (`metrics.ts`) + `StrengthMeter` title tooltip.
+- D-DEP9 — long-term Replay aggregate summary specified + consciously deferred (no evidence lost:
+  retention never deletes cohorts/observations; ~4-month hot window).
+
+**Acceptance gate:** backend **439 pytest + ruff clean**; frontend **tsc/lint/86 vitest/build 15
+routes**; Playwright re-run in progress. Full findings: `docs/final-review/`.
+
+**Next:** confirm Playwright green → commit → then guide Dayyan through the live cloud deployment
+(Supabase → Render → migration w/ value-verify → scheduler → Vercel → Resend → domain), verifying live
+migration/scheduler/provider acceptance. External cloud steps require Dayyan (accounts + secrets).
+
+---
+
+## PRIOR PASS: Free-production deployment prep (branch `arepo-free-production-v1`)
 
 _Governing spec: `AREPO_FREE_PRODUCTION_DEPLOYMENT_MASTER_PROMPT.md`. Deployment/infra/persistence
 pass — NOT a product redesign. Do not merge to main; do not deploy external services._
