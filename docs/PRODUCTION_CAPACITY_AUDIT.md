@@ -134,11 +134,17 @@ cohorts/day**. Measured/estimated permanent growth:
 cohorts/day, ~12 MB/day) the safe lossless lifetime was ≈ 3–5 weeks. The dominant driver is
 **full-universe cohort freezes**, not the scan history.
 
-> **UPDATE (final-review, D-DEP7):** the prospective cadence is now **DAILY + WEEKLY** (~1.1 cohorts/day,
-> permanent ≈ 3–4 MB/day) — chosen primarily for **sample independence**, with the storage benefit as a
-> byproduct. **Revised safe lossless lifetime ≈ 4 months** hot on free Postgres, extended to effectively
-> indefinite by the documented cold-archive path. Retention never deletes any cohort/observation, so no
-> research evidence is lost within that window regardless.
+> **UPDATE (final production cadence):** the prospective cadence is **6-HOURLY** (00/06/12/18 UTC,
+> ~4 cohorts/day); daily/weekly are DERIVED summaries, not separate frozen cohorts. Dependence of
+> repeated 6h snapshots is handled by a **market-deduplicated headline** (`/api/research/replay/headline`),
+> not by dropping data. **Measured cost:** ~3.4 MB per 6h full cohort in Postgres (1,382 entries +
+> forward + preclose, ×1.7 overhead) → **~14–16 MB/day** permanent (rises slightly as 24h/7d horizons
+> fill). **Runway from the current ~40 MB:** ~**3–4 weeks to the 80% (400 MB) storage warning**, ~4–5
+> weeks to the 500 MB cap. `/admin/health` `storage.level` warns at 80%/92% well before the cap.
+> Retention prunes ONLY category-C scan/microstructure history — **never a cohort, entry, or
+> observation** — so permanent prospective evidence is never lost. Before the warning, enable the
+> lossless cold archive (R2, archive-before-delete + checksums, keeps Replay/evidence recoverable) or
+> upgrade Supabase Pro (8 GB). Daily pg_dump backup is verified in the backup workflow.
 
 ### Levers to extend the free lifetime (see Phase 2 decision)
 1. **Reduce cohort-freeze cadence** to daily + weekly (~2/day) → permanent ~5 MB/day → **~3 months**.

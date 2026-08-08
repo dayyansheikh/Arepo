@@ -6,10 +6,10 @@
 name: arepo-collect
 
 on:
-  # Recurring schedule is intentionally OFF until final cadence acceptance (re-enabled in the
-  # deployment's "enable recurring schedules" step). Measured runtime: ~1-2 min (batched quotes).
-  # schedule:
-  #   - cron: "*/15 * * * *"   # every 15 min: keep forward/preclose observations near their horizon
+  schedule:
+    - cron: "10,25,40,55 * * * *"   # every 15 min, staggered off the scan starts (:05/:35). Keeps
+                                    # 1h/6h/24h/7d + pre-close observations near their horizon.
+                                    # Measured ~1-2 min (batched quotes).
   workflow_dispatch:
     inputs:
       force:

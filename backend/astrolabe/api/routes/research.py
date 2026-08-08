@@ -49,6 +49,12 @@ async def replay_cohorts(session: AsyncSession = Depends(get_session)) -> dict:
     return await ResearchReplayService(session).list_cohorts()
 
 
+@router.get("/replay/headline")
+async def replay_headline(session: AsyncSession = Depends(get_session)) -> dict:
+    """Market-deduplicated, dependence-aware cross-cohort research headline (selected vs wider)."""
+    return await ResearchReplayService(session).dependence_aware_headline()
+
+
 @router.get("/replay/cohort/{cohort_id}")
 async def replay_cohort_results(
     cohort_id: int,

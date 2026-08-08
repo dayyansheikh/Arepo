@@ -84,14 +84,12 @@ class Settings(BaseSettings):
     resolve_interval_minutes: int = 60        # how often to check for newly-available resolutions
     preclose_interval_minutes: int = 15       # how often to collect freeze-to-close quotes
     forward_interval_minutes: int = 15        # how often to collect due 1h/6h/24h/7d observations
-    # Prospective cohort cadence (final-review §9, D-DEP7): DAILY primary + WEEKLY. Daily gives one
-    # near-independent full-universe snapshot per period instead of the old 6-hourly cadence, which
-    # re-froze the SAME ~1,400 markets 4×/day and produced heavily dependent, pseudo-replicated
-    # samples. This is a statistical improvement (cleaner selection-vs-wider comparison); the ~3–4×
-    # storage reduction is a byproduct. Applies PROSPECTIVELY only — existing 6h cohorts are never
-    # changed. Override with RESEARCH_FREEZE_CADENCES to reintroduce 6h/12h if intraday freeze-time
-    # diversity is later shown to be worth the added dependence.
-    research_freeze_cadences: str = "daily,weekly"  # cadences the tick freezes when causally due
+    # Prospective cohort cadence (final production decision): freeze one immutable cohort every 6h
+    # at stable UTC boundaries (00/06/12/18) from the latest valid COMPLETE scan at that boundary.
+    # Daily/weekly research summaries are DERIVED from the 6h cohorts (see research headline), so no
+    # redundant separate daily/weekly cohorts are frozen. The dependence of repeated 6h snapshots of
+    # the same market is handled in analysis by a MARKET-DEDUPLICATED headline, not by dropping it.
+    research_freeze_cadences: str = "6h"  # cadences the tick freezes when causally due
 
     # --- Complete-scan runtime protection (hosted runners are slower than the local benchmark) ---
     # The complete scan measured ~269–302 s locally (home IP), but a GitHub Actions runner is much

@@ -8,10 +8,10 @@
 name: arepo-scan
 
 on:
-  # Recurring schedule is intentionally OFF until final cadence acceptance (re-enabled in the
-  # deployment's "enable recurring schedules" step). Measured runtime: ~9-10 min per full scan.
-  # schedule:
-  #   - cron: "5,35 * * * *"   # ~every 30 min, offset off the top of the hour (GitHub congestion)
+  schedule:
+    - cron: "5,35 * * * *"   # every 30 min at :05/:35 UTC (offset off the top of the hour). The
+                             # 6-hour cohort freeze rides on this: the first scan after each 00/06/
+                             # 12/18 boundary freezes that boundary's cohort. Measured ~9-10 min.
   workflow_dispatch:
     inputs:
       force:

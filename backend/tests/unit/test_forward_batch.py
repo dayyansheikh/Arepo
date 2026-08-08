@@ -147,3 +147,27 @@ async def test_clob_batch_quotes_provider_maps_all_tokens():
     out = await quotes_of(["a", "b"])
     await clob.aclose()
     assert out["a"] is not None and out["b"] is None
+
+
+async def test_dependence_aware_headline_dedups_markets_across_cohorts():
+    """A market frozen in several 6h cohorts is counted ONCE in the headline (dependence-aware)."""
+    from datetime import timedelta
+
+    from astrolabe.evaluation.research_constants import CADENCE_6H
+    from astrolabe.evaluation.research_replay import ResearchReplayService
+    engine = make_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    sm = make_sessionmaker(engine)
+    async with sm() as s:
+        # Same market m1 frozen in two 6h cohorts (two boundaries).
+        for k in range(2):
+            cutoff = CUTOFF + timedelta(hours=6 * k)
+            inputs = build_entry_inputs([_screen("m1", 0.6, "up", 2, rp=90)], now=cutoff)
+            await freeze_from_inputs(s, cadence=CADENCE_6H, cutoff_at=cutoff, inputs=inputs,
+                                     model_version="m", calculation_version="c", frozen_at=cutoff)
+        head = await ResearchReplayService(s).dependence_aware_headline()
+    await engine.dispose()
+    assert head["cohorts_pooled"] == 2
+    assert head["unique_markets"] == 1        # m1 counted once, not twice
+    assert head["wider_unique"] == 1

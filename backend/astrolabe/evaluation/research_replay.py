@@ -228,6 +228,57 @@ class ResearchReplayService:
             "model_version": c.model_version or MODEL_VERSION,
         }
 
+    async def dependence_aware_headline(self) -> dict:
+        """Market-DEDUPLICATED cross-cohort research headline (dependence-aware).
+
+        Repeated 6-hour cohorts observe the SAME markets, so pooling every (market x cohort) row
+        would treat dependent re-observations as independent evidence and inflate confidence. This
+        counts each market ONCE — its EARLIEST frozen directional call across all 6h cohorts — and
+        reports, per horizon, whether the selected Opportunities vs the wider directional universe
+        moved as expected. Uses only stored frozen values + stored forward observations (no live
+        signal, nothing reconstructed).
+        """
+        cohorts = await self._selectable_cohorts()
+        # Earliest-first so the first frozen call for each market wins the dedup.
+        cohorts_oldest = sorted(
+            cohorts, key=lambda c: _utc(c.evaluation_origin_at) or _utc(c.frozen_at))
+        seen: set[str] = set()
+        picks: list[tuple] = []   # unique market -> (entry, is_public)
+        for c in cohorts_oldest:
+            entries = await self.repo.get_entries(c.id)
+            for e in entries:
+                if e.direction not in ("up", "down") or e.market_id in seen:
+                    continue
+                seen.add(e.market_id)
+                picks.append((e, e.role == ROLE_PUBLIC))
+        forward_map = await self.repo.forwards_for_entries([e.id for e, _ in picks])
+
+        def _counts(subset):
+            per = {h: _Counts() for h in REPLAY_HORIZONS}
+            for e, _pub in subset:
+                for h in REPLAY_HORIZONS:
+                    fwd = forward_map.get(e.id, {}).get(h)
+                    per[h].add(replay_result_state(e.direction, e.midpoint, fwd))
+            return {h: per[h].to_dict() for h in REPLAY_HORIZONS}
+
+        selected = [p for p in picks if p[1]]
+        wider = picks  # all directional (selected + shadow)
+        return {
+            "dependence_aware": True,
+            "dedup_rule": "each market counted once, using its earliest frozen 6h directional call",
+            "cohorts_pooled": len(cohorts),
+            "unique_markets": len(seen),
+            "selected_unique": len(selected),
+            "wider_unique": len(wider),
+            "selected": _counts(selected),   # Opportunities (public)
+            "wider": _counts(wider),         # full directional universe
+            "note": (
+                "Each market appears once regardless of how many 6-hour cohorts re-observed it, so "
+                "repeated cohorts cannot inflate the sample. Per-cohort Replay still shows every "
+                "6-hour observation."
+            ),
+        }
+
     async def list_cohorts(self) -> dict:
         """Available real prospective cohorts + a per-cadence summary (prompt sections 2, 11)."""
         cohorts = await self._selectable_cohorts()
