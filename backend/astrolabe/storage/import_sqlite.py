@@ -64,9 +64,39 @@ async def _count(engine, table) -> int:
         return 0
 
 
+# Tables our own schema-creation / app-startup seeds with a baseline row (not real research data),
+# so a freshly-migrated destination is not literally empty. ``--clean`` may wipe these before
+# importing an exact copy of the source; data in ANY OTHER table is treated as real and refused.
+_BASELINE_SEED_TABLES = {"calculation_versions"}
+
+
+async def _clean_destination(dst, tables) -> dict:
+    """Empty the destination ORM tables so the import is a byte-exact copy of the source.
+
+    SAFETY: refuses if any non-baseline table already holds data, so this can NEVER wipe a populated
+    production database — only a fresh, migration-seeded one (the initial-import case).
+    """
+    real_nonempty = []
+    for t in tables:
+        if t.name in _BASELINE_SEED_TABLES:
+            continue
+        if await _count(dst, t) > 0:
+            real_nonempty.append(t.name)
+    if real_nonempty:
+        raise RuntimeError(
+            f"--clean refused: destination already contains data in {real_nonempty}; it is not a "
+            "fresh/baseline-only database, so refusing to wipe it. Use a fresh database for the "
+            "initial import."
+        )
+    async with dst.begin() as conn:
+        for t in reversed(tables):  # children before parents (reverse FK-dependency order)
+            await conn.execute(t.delete().execution_options(synchronize_session=False))
+    return {"cleaned_tables": len(tables)}
+
+
 async def import_all(
     *, source_path: str, dest_url: str, dry_run: bool = False, require_empty: bool = False,
-    batch_size: int = 500,
+    clean: bool = False, batch_size: int = 500,
 ) -> dict:
     """Import every table from the SQLite file into the destination DB. Returns a report dict."""
     src = create_async_engine(_sqlite_ro_url(source_path), future=True)
@@ -78,6 +108,12 @@ async def import_all(
             await upgrade(dst)  # ensure the destination schema exists and is current
 
         tables = list(Base.metadata.sorted_tables)  # FK-dependency order for inserts
+
+        if clean and not dry_run:
+            # Wipe migration-seeded baseline rows so the destination matches the source exactly and
+            # value-verification passes on a database our own migration pre-seeded (e.g.
+            # calculation_versions), while refusing to touch a destination that holds real data.
+            report["clean"] = await _clean_destination(dst, tables)
         for table in tables:
             src_rows = await _count(src, table)
             # Query real destination counts even in dry-run so an operator sees whether the real run
@@ -298,7 +334,7 @@ async def _run(args: argparse.Namespace) -> int:
     try:
         report = await import_all(
             source_path=args.source, dest_url=dest, dry_run=args.dry_run,
-            require_empty=args.require_empty,
+            require_empty=args.require_empty, clean=args.clean,
         )
     except RuntimeError as exc:
         print(f"IMPORT REFUSED: {exc}")
@@ -318,6 +354,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dry-run", action="store_true", help="report the plan; write nothing")
     p.add_argument("--require-empty", action="store_true",
                    help="refuse if any destination table already has rows (vs idempotent upsert)")
+    p.add_argument("--clean", action="store_true",
+                   help="empty the destination's migration-seeded baseline rows first so the "
+                        "import exactly copies the source; refuses if a real-data table is "
+                        "non-empty (safe for the initial import into a fresh database)")
     p.add_argument("--allow-sqlite-dest", action="store_true",
                    help="permit a SQLite destination (tests only)")
     return p

@@ -126,14 +126,18 @@ from your Mac (it reads your local `backend/astrolabe.db` read-only).
    Read the printed table plan: it lists how many rows each table would import.
 2. **Review reconciliation expectations.** You should see your real cohorts and their entry counts
    (e.g. the historical 60-entry cohort and the 1382-entry complete-scan cohort).
-3. Run the **real import** (idempotent; safe to re-run). Use `--require-empty` the first time so it
-   refuses if the destination unexpectedly already has data:
+3. Run the **real import** with `--clean`. The deploy already created the schema and the app seeded a
+   baseline `calculation_versions` row, so the destination is not literally empty; `--clean` first
+   removes those migration-seeded baseline rows so the import is a byte-exact copy of your source. It
+   **refuses** if any real-data table is non-empty, so it can never overwrite a populated database:
    ```
    python -m astrolabe.storage.import_sqlite \
      --source ./astrolabe.db \
      --dest "postgresql+asyncpg://USER:PASSWORD@HOST:5432/postgres" \
-     --require-empty
+     --clean
    ```
+   (If you ever import into a truly empty database instead, `--require-empty` is the stricter
+   alternative; for this Render+Supabase flow, use `--clean`.)
 4. **Check the reconciliation report** printed at the end. All of these must hold, or the tool exits
    non-zero and you must **stop** (the destination is not trustworthy):
    - `"reconciliation": { "ok": true, … }`

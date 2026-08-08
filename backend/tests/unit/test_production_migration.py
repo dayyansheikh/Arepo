@@ -122,6 +122,43 @@ async def test_value_verification_catches_corrupted_immutable_row(tmp_path):
     assert any("strength" in e for e in recon["value_verification"]["examples"])
 
 
+async def test_clean_import_matches_source_over_migration_seed(tmp_path):
+    """--clean wipes a migration-seeded baseline row (e.g. calculation_versions with a different
+    created_at) so the import is a byte-exact copy of the source and value-verification passes —
+    the real initial-import case (Render build seeds the schema + a calc-version row)."""
+    from astrolabe.evaluation.models import CalculationVersionRow
+    from astrolabe.storage.migrate import upgrade
+    src = tmp_path / "source.db"
+    dest = tmp_path / "dest.db"
+    await _populate(str(src))
+    url = f"sqlite+aiosqlite:///{dest}"
+    dst = make_engine(url)
+    await upgrade(dst)  # create schema (like the Render build migration)
+    # Seed a calc-version row with a DIFFERENT created_at than the source (like app startup).
+    async with dst.begin() as conn:
+        await conn.execute(CalculationVersionRow.__table__.insert().values(
+            version="arepo-eval-1", description="Arepo composite anomaly v1",
+            created_at=datetime(2026, 8, 8, 9, 20, tzinfo=UTC)))
+    await dst.dispose()
+    # Without --clean this fails value-verification (seeded created_at != source); with --clean:
+    rep = await import_all(source_path=str(src), dest_url=url, clean=True)
+    r = rep["reconciliation"]
+    assert r["ok"] is True
+    assert r["value_verification"]["ok"] is True
+    assert r["value_verification"]["value_mismatch_rows"] == 0
+
+
+async def test_clean_refuses_destination_with_real_data(tmp_path):
+    """--clean must NEVER wipe a database that holds real research data (not just seed rows)."""
+    src = tmp_path / "source.db"
+    dest = tmp_path / "dest.db"
+    await _populate(str(src))
+    url = f"sqlite+aiosqlite:///{dest}"
+    await import_all(source_path=str(src), dest_url=url)  # dest now has real data
+    with pytest.raises(RuntimeError, match="clean refused"):
+        await import_all(source_path=str(src), dest_url=url, clean=True)
+
+
 def test_new_tables_are_postgres_portable():
     """The new scheduler tables compile for the PostgreSQL dialect (no SQLite-only types)."""
     ddl = "\n".join(ddl_preview("postgresql"))
