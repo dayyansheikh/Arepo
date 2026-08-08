@@ -76,9 +76,69 @@ class Settings(BaseSettings):
     discovery_limit: int = 60
     poll_interval_seconds: float = 15.0
 
+    # --- Production scheduler (single idempotent tick; see astrolabe/scheduler) ---
+    # A hosted runner (GitHub Actions) wakes ~every 5 min and the app decides what is DUE. All of
+    # these are cadence intents, not exact-second guarantees: the tick is delay-tolerant and every
+    # unit of work is idempotent, so a late/duplicate/missed wake never fabricates or double-writes.
+    scan_refresh_interval_minutes: int = 15   # min age of the latest COMPLETE scan before a refresh
+    resolve_interval_minutes: int = 60        # how often to check for newly-available resolutions
+    preclose_interval_minutes: int = 15       # how often to collect freeze-to-close quotes
+    forward_interval_minutes: int = 15        # how often to collect due 1h/6h/24h/7d observations
+    research_freeze_cadences: str = "6h,daily,weekly"  # cadences the tick freezes when causally due
+    tick_lease_seconds: int = 600             # scheduler-lease TTL: one heavy tick at a time
+
+    # --- Storage retention + health (see docs/PRODUCTION_CAPACITY_AUDIT.md §3) ---
+    # Category-C high-frequency scan/signal history is a ROLLING hot window: rows older than the
+    # window are pruned, EXCEPT any scan referenced by a frozen cohort (permanent provenance).
+    # 2 days fully preserves every live surface (trajectory <=6h; market-detail <=200 rows/market).
+    signal_history_retention_days: int = 2
+    microstructure_retention_days: int = 2
+    retention_interval_hours: int = 20        # run retention/maintenance roughly once a day
+    retention_enabled: bool = True
+    # Storage-health: warn well BEFORE the free-tier hard cap so the DB never silently fills.
+    storage_soft_limit_mb: int = 500          # Supabase Free database cap
+    storage_warn_ratio: float = 0.8           # WARN at 80%, CRITICAL at storage_crit_ratio
+    storage_crit_ratio: float = 0.92
+    # Optional pluggable cold archive (default OFF). When enabled, category-C rows are archived
+    # (compressed + checksummed) BEFORE deletion; an archive failure RETAINS the source (never
+    # deletes). Backends: "" (none / prune-only), "local" (compressed files), "r2" (Cloudflare R2).
+    archive_backend: str = ""
+    archive_dir: str = "./archive"            # for archive_backend=local
+    # R2/S3 credentials are read from the environment by the archive backend, never hard-coded.
+
+    # --- Admin / observability ---
+    # A shared secret guarding the detailed /admin/health diagnostics. Empty => admin route disabled
+    # (only the public liveness /health is served). Set ADMIN_TOKEN in production to enable it.
+    admin_token: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    def production_issues(self) -> list[str]:
+        """Config problems that make a PRODUCTION deployment unsafe (master prompt §9, §15).
+
+        Empty in development. Used by startup logging and a focused test so a misconfigured
+        production process is loud about it rather than silently insecure.
+        """
+        if self.environment != "production":
+            return []
+        issues: list[str] = []
+        if self.auth_is_production_insecure or len(self.auth_secret) < 32:
+            issues.append("AUTH_SECRET is weak/default; set a >=32-byte random value.")
+        origins = self.cors_origin_list
+        if "*" in origins or any(o == "*" for o in origins):
+            issues.append("CORS_ORIGINS contains '*'; production must list explicit origins.")
+        if any(o.startswith("http://") and "localhost" not in o and "127.0.0.1" not in o
+               for o in origins):
+            issues.append("CORS_ORIGINS contains a non-local http:// origin; use https:// in prod.")
+        if not origins:
+            issues.append("CORS_ORIGINS is empty; set the production frontend origin.")
+        if self.database_url.startswith("sqlite"):
+            issues.append("DATABASE_URL is SQLite in production; use the durable Postgres URL.")
+        if not self.auth_cookie_secure:
+            issues.append("AUTH_COOKIE_SECURE is false in production; set it true behind HTTPS.")
+        return issues
 
 
 @lru_cache

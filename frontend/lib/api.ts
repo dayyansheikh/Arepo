@@ -30,14 +30,23 @@ const API_BASE =
 export class ApiError extends Error {
   status: number;
   notFound: boolean;
+  /**
+   * True for the failure classes that indicate the API is momentarily unavailable rather than
+   * genuinely broken: a network-level failure (status 0) or a gateway status (502/503/504). On a
+   * free host (Render Free) the first request after idle can hit this while the service cold-starts;
+   * the UI treats it as a restrained "Connecting to Arepo data…" state, not an error (spec §13).
+   */
+  coldStart: boolean;
 
   constructor(message: string, status: number) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.notFound = status === 404;
+    this.coldStart = status === 0 || status === 502 || status === 503 || status === 504;
   }
 }
+
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
@@ -64,6 +73,9 @@ async function apiFetch<T>(
     // poller can ignore it silently rather than surfacing a spurious "disconnected" state.
     if (err instanceof DOMException && err.name === "AbortError") throw err;
     const message = err instanceof Error ? err.message : "Network request failed";
+    // status 0 marks this as a cold-start-class failure (ApiError.coldStart); the useAsync layer
+    // decides how to present/retry it (spec §13). The shared status poller has its own backoff and
+    // is intentionally NOT retried here, so its request accounting is unchanged.
     throw new ApiError(`Unable to reach the Arepo API: ${message}`, 0);
   }
 

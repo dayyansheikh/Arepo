@@ -2,6 +2,33 @@
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done & verified · `[!]` blocked
 
+## Free-production deployment prep (branch `arepo-free-production-v1`)
+- [x] Phase 1 capacity audit → `docs/PRODUCTION_CAPACITY_AUDIT.md` (measured scan 269–302 s / 1.81 MB;
+      permanent ~12 MB/day; safe free-Postgres lifetime ≈ 3–5 weeks; runtime/memory; free-tier limits)
+- [x] Phase 2 storage model: bounded category-C retention + storage-health + pluggable cold archive
+      (default off, archive-before-delete) → `astrolabe/scheduler/retention.py`, `archive.py`
+- [x] Phase 3 Postgres support verified (asyncpg present; portable ORM; new tables PG-portable via
+      `ddl_preview`); schema v10 adds `scheduler_state` + `scheduler_leases`
+- [x] Phase 4 SQLite→Postgres importer `astrolabe/storage/import_sqlite.py` (read-only source, dry-run,
+      idempotent, `--require-empty`, per-table + cohort-invariant reconciliation, fails non-zero)
+- [x] Phase 5 idempotent scheduler tick `astrolabe/scheduler/tick.py` (due-work; DB lease; causal
+      freeze gate; delayed/duplicate/missed-tick safe; non-zero exit on failure)
+- [x] Phase 5b GitHub Actions `.github/workflows/scheduler.yml` (tick, delay-tolerant) + `backup.yml`
+      (daily pg_dump artifact); dropped PAID Render crons from `render.yaml` (plan: free)
+- [x] Phase 9 production config validation `Settings.production_issues()` (weak secret / wildcard CORS /
+      SQLite / insecure cookie) surfaced at startup
+- [x] Phase 10 observability: `/admin/health` (token-guarded) + `tick status`; bare public `/health`
+- [x] Phase 13 frontend cold-start: restrained "Connecting to Arepo data…" (`useAsync` retry +
+      `ErrorState`); status-poller path unchanged
+- [x] Phase 12 tests: `test_production_scheduler.py`, `test_production_migration.py`, admin-health in
+      `test_health.py` (retention protects permanent data, archive-before-delete, storage warn,
+      lease/duplicate tick, causal freeze, incomplete-scan-cannot-freeze, reconciliation, PG portability)
+- [x] Phase 14 docs: `FREE_PRODUCTION_DEPLOYMENT.md`, `PRODUCTION_ROLLBACK.md`; DECISIONS D-DEP1..6
+- [x] Verification gate: backend 436 pass + ruff clean; frontend tsc/lint/vitest(86)/build; Playwright
+- [ ] External deploy steps (user-performed): create Supabase/Render/Vercel/Resend, set secrets, import,
+      first tick, enable schedule — per `docs/FREE_PRODUCTION_DEPLOYMENT.md`
+
+
 ## Final short-horizon completion (branch `arepo-final-short-horizon-completion`)
 - [x] §10-11 due-horizon collection: terminal closed-before-horizon observation (no live post-close
       fetch); `closed_before_horizon` count; closed/awaiting/resolved/invalid kept distinct; +1 timing test

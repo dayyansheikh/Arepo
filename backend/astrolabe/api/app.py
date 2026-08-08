@@ -58,10 +58,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    if settings.auth_is_production_insecure:
-        logger.warning(
-            "AUTH_SECRET is the built-in default in production; set a strong AUTH_SECRET."
-        )
+    for issue in settings.production_issues():
+        logger.warning("production config issue", extra={"ctx_issue": issue})
 
     @app.middleware("http")
     async def timing_middleware(request: Request, call_next):

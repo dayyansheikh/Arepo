@@ -1,5 +1,49 @@
 # FINAL_STATUS
 
+## Free-production deployment prep (branch `arepo-free-production-v1`)
+
+_A deployment/infrastructure/persistence pass — **no product redesign**, no signal formula / threshold
+/ confidence / Research Priority / eligibility / frozen value changed. The verified baseline tag
+`arepo-verified-predeploy-2026-08-08` is untouched (= HEAD before this pass). No merge to main, no
+external infrastructure deployed, local `backend/astrolabe.db` and backups untouched._
+
+**Architecture chosen** (deviating from the starting hypothesis where measured evidence supported it):
+Vercel (frontend) → Render Free (API, serves persisted results only) → Supabase Postgres; and
+**GitHub Actions** running one idempotent tick for all scheduled compute + a daily pg_dump backup —
+replacing Render's **paid** cron jobs to keep the system £0. Evidence: a complete scan measures
+269–302 s / ~250–400 MB peak, which does not fit comfortably in Render Free (512 MB), so heavy work
+belongs on Actions runners; the API never rebuilds the universe in a request.
+
+**What shipped this pass:**
+- `astrolabe/scheduler/` — idempotent due-work tick (`tick.py`), DB lease + state (`state.py`,
+  `models.py`), category-C retention + storage-health (`retention.py`), pluggable archive (`archive.py`).
+- `astrolabe/storage/import_sqlite.py` — read-only, dry-run, idempotent, self-reconciling SQLite→Postgres
+  importer (fails non-zero unless per-table counts + every frozen cohort's `entries==universe_size` match).
+- `.github/workflows/scheduler.yml` + `backup.yml`; `render.yaml` now free API-only (no paid crons).
+- `/admin/health` (token-guarded observability); `Settings.production_issues()` startup validation.
+- Frontend restrained cold-start "Connecting to Arepo data…" (`useAsync` + `ErrorState`); status poller
+  path unchanged.
+- Docs: `PRODUCTION_CAPACITY_AUDIT.md`, `FREE_PRODUCTION_DEPLOYMENT.md`, `PRODUCTION_ROLLBACK.md`;
+  `DECISIONS.md` D-DEP1..6.
+
+**Storage reality (measured, honest):** category-C scan history is a bounded rolling window (2 days
+fully preserves trajectory ≤6h + market-detail ≤200 rows/market). The real long-term driver is
+permanent research (~12 MB/day). **Free 500 MB Postgres safe lifetime ≈ 3–5 weeks** as-is; extend via
+lower cohort cadence (~3 months), compressed R2 cold archive (indefinite, lossless), or Supabase Pro.
+Storage health warns at 80%/92% so the DB never silently fills.
+
+**Verification (this environment):** backend **436 pytest pass + ruff clean** (1 pre-existing flaky
+timing assertion in `test_api.py` passes on re-run, unrelated to this pass); frontend **tsc + lint
+clean, 86 vitest, production build 15 routes**; **Playwright 53 passed / 0 failed** against the real
+backend (copy DB) incl. both disconnected-API recovery specs. SQLite→Postgres importer validated
+SQLite→SQLite end-to-end (a live
+Postgres is unavailable in this environment; the PG paths are covered by DDL-portability + dry-run/
+reconcile in the deploy guide — a known limitation).
+
+**Next external step (user):** follow `docs/FREE_PRODUCTION_DEPLOYMENT.md` from Step 1 (create Supabase).
+
+---
+
 ## Final short-horizon completion (branch `arepo-final-short-horizon-completion`)
 
 _Verified in this environment: backend **415 tests pass**, ruff clean; frontend tsc/lint clean, **86

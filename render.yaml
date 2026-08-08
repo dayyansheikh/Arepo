@@ -1,18 +1,25 @@
-# Render blueprint for the Arepo FastAPI backend + scheduled jobs (spec §16, §19, §20).
+# Render blueprint for the Arepo FastAPI backend (free-production deployment pass).
 #
-# This provisions the backend web service and the UTC cron jobs. It does NOT contain any secrets:
-# AUTH_SECRET, DATABASE_URL and RESEND_API_KEY are marked sync:false and must be set by the user
-# in the Render dashboard (or linked from a Supabase/Resend integration). Deploying this file
-# still requires the user to create the Render account and connect the repository.
+# SCHEDULING NOTE (master prompt §21): Render cron jobs are a PAID feature and are intentionally NOT
+# used in the £0 path. All scheduled computation (complete scans, cohort freezes, forward/preclose/
+# resolve collection, retention, backups) runs on GitHub Actions via a single idempotent tick — see
+# .github/workflows/scheduler.yml and .github/workflows/backup.yml. Render hosts ONLY the API web
+# service, which serves persisted complete results and user requests; a normal request never triggers
+# a universe rebuild (docs/PRODUCTION_CAPACITY_AUDIT.md §4 shows a complete scan's peak memory/runtime
+# does not fit comfortably inside Render Free, which is the evidence for this split).
 #
-# Frontend is deployed separately on Vercel (see vercel.json).
+# This file contains NO secrets: AUTH_SECRET, DATABASE_URL, ADMIN_TOKEN and RESEND_API_KEY are marked
+# sync:false and are set in the Render dashboard. Frontend is deployed separately on Vercel.
+#
+# ``plan: free`` keeps the API on the genuinely-free tier. Render Free web services cold-start after
+# idle; the frontend shows a restrained "Connecting to Arepo data…" state (master prompt §13).
 
 services:
   - type: web
     name: arepo-api
     runtime: python
     rootDir: backend
-    plan: starter
+    plan: free
     buildCommand: pip install -r requirements.txt && pip install -e .
     # Release phase: apply the additive schema migration BEFORE the new version serves traffic and
     # before any collector job runs. Idempotent; halts the deploy on failure (final pre-deployment
@@ -35,6 +42,8 @@ services:
       # Secrets and per-environment values: set in the Render dashboard, never committed.
       - key: AUTH_SECRET
         sync: false
+      - key: ADMIN_TOKEN           # guards /admin/health; unset => admin route disabled (404)
+        sync: false
       - key: DATABASE_URL          # Supabase Postgres: use the transaction pooler URL (see docs)
         sync: false
       - key: APP_BASE_URL          # e.g. https://arepo.vercel.app
@@ -52,105 +61,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
 
-# Scheduled jobs (all idempotent, all UTC). Each runs the existing CLI entry points. They share
-# the same DATABASE_URL and secrets as the web service via an env group in the dashboard.
-crons:
-  - name: arepo-microstructure
-    runtime: python
-    rootDir: backend
-    schedule: "*/5 * * * *"       # every 5 minutes: spread/depth/volume snapshots (spec §7, §19)
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.ingest.microstructure_cli collect --mode live
-  - name: arepo-opportunity-snapshot
-    runtime: python
-    rootDir: backend
-    schedule: "10 0 * * *"        # daily 00:10 UTC: freeze the immutable Opportunity snapshot
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.opportunity.cli snapshot --mode live
-  - name: arepo-cohort-rank
-    runtime: python
-    rootDir: backend
-    schedule: "0 * * * *"         # hourly: update this week's provisional cohort ranking
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.cli rank --mode live
-  - name: arepo-cohort-freeze
-    runtime: python
-    rootDir: backend
-    schedule: "59 23 * * 0"       # Sunday 23:59 UTC: freeze the weekly cohort
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.cli freeze
-  - name: arepo-forward-prices
-    runtime: python
-    rootDir: backend
-    schedule: "30 * * * *"        # hourly: collect due forward prices (1h/24h/7d)
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.cli forward
-  - name: arepo-resolve
-    runtime: python
-    rootDir: backend
-    schedule: "15 */6 * * *"      # every 6h: record newly-available resolutions
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.cli resolve
-  - name: arepo-alerts
-    runtime: python
-    rootDir: backend
-    schedule: "20 * * * *"        # hourly: evaluate per-user alerts (no-op unless enabled)
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.alerts.cli user-dry-run --mode live
-
-  # --- Complete short-horizon signal refresh (complete-universe prompt §7, §20) --------------
-  # One idempotent COMPLETE scan: full pagination discovers the whole active universe, the 30-day
-  # eligibility gate + closing-time buckets run server-side, every eligible market is analysed and
-  # ranked, and immutable snapshots are appended (never overwritten). An advisory lease in
-  # discovery_scan_locks prevents overlapping scans; a crashed scan's stale lease is reclaimed
-  # automatically. The bounded keyset discovery is the COMPLETE 30-day universe (~113k markets),
-  # and every eligible tradable market (~1.5k) is enriched and scored. A measured complete bounded
-  # scan took ~4.5 minutes (268s) for 1456 eligible markets against the live CLOB rate limit
-  # (docs/complete-universe-and-signal-lab.md records the measurement), so the cadence is 10 minutes
-  # with an overlap lease, not 5: a 4.5-minute scan does not reliably fit inside 5 minutes. The
-  # browser never scans; it only reads stored results.
-  - name: arepo-signal-refresh
-    runtime: python
-    rootDir: backend
-    schedule: "*/10 * * * *"       # every 10 minutes: complete discover + analyse + append snapshots
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.discovery.refresh_cli refresh
-
-  # --- Edge-research infrastructure jobs (edge-research prompt §3, §5, §17C) ------------------
-  # The freeze jobs fire a few minutes AFTER each cadence boundary and freeze FROM THE LATEST
-  # COMPLETE SCAN (research-freeze-from-scan): the cohort references that scan, preserves the full
-  # eligible 30-day universe (public top-20 + shadow + observation + abstention) with bucket
-  # membership and the selection policy, and REFUSES to build a normal cohort from an incomplete
-  # scan (final-completion prompt C1). Each freeze is idempotent on (cadence, cut-off).
-  - name: arepo-research-freeze-6h
-    runtime: python
-    rootDir: backend
-    schedule: "8 0,6,12,18 * * *"  # 00:08/06:08/12:08/18:08 UTC: after a fresh 10-min complete scan
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.research_cli research-freeze-from-scan --cadence 6h
-  - name: arepo-research-freeze-daily
-    runtime: python
-    rootDir: backend
-    schedule: "12 0 * * *"         # daily 00:12 UTC: freeze the daily research cohort from a scan
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.research_cli research-freeze-from-scan --cadence daily
-  - name: arepo-research-freeze-weekly
-    runtime: python
-    rootDir: backend
-    schedule: "16 0 * * 1"         # Monday 00:16 UTC: freeze the weekly research cohort from a scan
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.research_cli research-freeze-from-scan --cadence weekly
-  - name: arepo-research-forward
-    runtime: python
-    rootDir: backend
-    schedule: "*/20 * * * *"       # every 20 min: record any due 1h/6h/24h/7d forward observation
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.research_cli research-forward
-  - name: arepo-research-preclose
-    runtime: python
-    rootDir: backend
-    schedule: "*/15 * * * *"       # every 15 min: collect freeze-to-close quotes before each close
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    command: python -m astrolabe.evaluation.research_cli research-preclose
-  # Final resolutions are shared: the existing arepo-resolve cron populates market_resolutions,
-  # which the research layer reads for its resolution view (no separate research-resolve cron).
+# NOTE: There is intentionally NO `crons:` section. Render cron jobs are PAID; the genuinely-free
+# scheduled-compute path is GitHub Actions (.github/workflows/scheduler.yml), where a single
+# idempotent tick decides what work is due. The previous per-job Render cron schedule is preserved
+# for reference in docs/FREE_PRODUCTION_DEPLOYMENT.md and mapped onto the tick's due-logic there.

@@ -1,0 +1,50 @@
+# Daily Postgres backup (AREPO_FREE_PRODUCTION_DEPLOYMENT_MASTER_PROMPT §14).
+#
+# Runs pg_dump against the production database and uploads a compressed, timestamped artifact.
+# GitHub artifacts are free (retention configurable, default 90 days here). This is a genuinely-free
+# backup path independent of the application: a code rollback never touches it, and it is the source
+# for a data restore (see docs/PRODUCTION_ROLLBACK.md). Optionally also pushed to an object store
+# (Cloudflare R2) when those secrets are configured — otherwise the artifact alone is the backup.
+
+name: arepo-db-backup
+
+on:
+  schedule:
+    - cron: "40 3 * * *"   # 03:40 UTC daily, away from congested top-of-hour boundaries
+  workflow_dispatch: {}
+
+concurrency:
+  group: arepo-db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Install postgresql-client
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client
+      - name: Dump and compress
+        env:
+          # Use the DIRECT (session) connection string for pg_dump, not the transaction pooler.
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          test -n "$BACKUP_DATABASE_URL" || { echo "BACKUP_DATABASE_URL secret is not set"; exit 1; }
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          OUT="arepo-backup-${STAMP}.sql.gz"
+          pg_dump --no-owner --no-privileges "$BACKUP_DATABASE_URL" | gzip -9 > "$OUT"
+          ls -lh "$OUT"
+          # Integrity check: the gzip must decompress and be non-trivial.
+          gzip -t "$OUT"
+          SIZE=$(stat -c%s "$OUT")
+          test "$SIZE" -gt 1000 || { echo "backup suspiciously small ($SIZE bytes)"; exit 1; }
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arepo-db-backup
+          path: ${{ env.OUT }}
+          retention-days: 90
+          if-no-files-found: error

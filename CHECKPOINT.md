@@ -3,6 +3,59 @@
 _Single source of truth for "where are we, exactly." Updated at the end of every phase.
 Older history is preserved in git; this file tracks the **Master Final Refinement**._
 
+---
+
+## CURRENT PASS: Free-production deployment prep (branch `arepo-free-production-v1`)
+
+_Governing spec: `AREPO_FREE_PRODUCTION_DEPLOYMENT_MASTER_PROMPT.md`. Deployment/infra/persistence
+pass — NOT a product redesign. Do not merge to main; do not deploy external services._
+
+**Safety verified (2026-08-08):** tag `arepo-verified-predeploy-2026-08-08` = HEAD `8a6a1ae`
+(0 commits ahead). Local DB `backend/astrolabe.db` (9.77 MB) untouched; not git-tracked. Safety tag
+must not be moved/overwritten.
+
+**Phase 1 audit — DONE** → `docs/PRODUCTION_CAPACITY_AUDIT.md`. Key measured facts:
+- Complete scan = 1,456 eligible / ~113k discovered, **269–302 s**, ~1.81 MB category-C payload.
+- Category-C (`discovery_signal_snapshots`, 1,243 B/row) is bounded by retention; live functionality
+  needs only a ≤2-day hot window (trajectory ≤6 h, market-detail ≤200 rows/market).
+- Category-A permanent research grows **~12 MB/day** (~5 full-universe cohort freezes/day) — the real
+  long-term driver. 500 MB free Postgres safe lifetime ≈ **3–5 weeks** as-is; ~3 mo at 2 cohorts/day;
+  indefinite with compressed R2 cold archive.
+- Idle API 87–122 MB (fits Render 512 MB); complete scan peak ~250–400 MB → run heavy scans on
+  GitHub Actions (public repo → free unlimited minutes), not inside Render.
+
+**Architecture decision (deviates from starting hypothesis where evidence supports):**
+- Frontend Vercel Hobby · API Render Free (serves persisted results only) · Supabase Postgres ·
+  **GitHub Actions replaces PAID Render crons** for all scheduled compute (§21 of the spec: don't keep
+  paid Render crons in the £0 path).
+- Single **idempotent scheduler tick** (`python -m astrolabe.scheduler.tick`) run by Actions every
+  ~5 min; the app decides what is due (delay-tolerant, not exact-second).
+- Storage: Postgres hot window + **bounded retention** of category-C (never deletes cohort-referenced
+  scans); permanent research never pruned; optional pluggable cold archive (default OFF) with
+  archive-before-delete. R2 justified only by measured growth.
+
+**IMPLEMENTED + VERIFIED this pass:** scheduler tick (`astrolabe/scheduler/{tick,state,models,
+retention,archive}.py`) + SQLite→PG importer (`storage/import_sqlite.py`) + GitHub Actions
+(`.github/workflows/{scheduler,backup}.yml`) + `/admin/health` + `production_issues()` startup
+validation + render.yaml free API-only (paid crons dropped) + frontend cold-start "Connecting…"
+(useAsync/ErrorState) + docs (CAPACITY_AUDIT, FREE_PRODUCTION_DEPLOYMENT, PRODUCTION_ROLLBACK) +
+DECISIONS D-DEP1..6.
+
+**Final verification gate (this environment):**
+- Backend: **436 pytest pass + ruff clean** (schema v10). 1 pre-existing flaky timing assertion in
+  test_api.py passes on re-run (unrelated; freshness.age_seconds 0.1s jitter).
+- Frontend: **tsc clean, lint clean, 86 vitest pass, production build 15 routes**.
+- Playwright (real backend on copy DB): **53 passed / 0 failed** — incl. both disconnected-API specs
+  (cold-start change preserves the recover-from-disconnect UX).
+- Migration importer validated SQLite→SQLite end-to-end (recon ok, cohort invariants ok, idempotent,
+  require-empty refuses). LIVE Postgres unavailable here → PG paths covered by DDL-portability test +
+  deploy-guide dry-run/reconcile (documented limitation).
+
+**Not done (correctly out of scope):** no merge to main, no external infra deployed, safety tag
+untouched, local DB + backups untouched. Next external step = follow docs/FREE_PRODUCTION_DEPLOYMENT.md.
+
+---
+
 ## Latest: Final short-horizon completion (branch `arepo-final-short-horizon-completion`)
 
 Continues on the same preserved DB. Historical cohort **still intact** (cohort 1: 60 entries / 19

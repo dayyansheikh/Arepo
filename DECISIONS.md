@@ -5,6 +5,64 @@ Newest entries at the top of each section.
 
 ---
 
+## Free-production deployment (branch `arepo-free-production-v1`)
+
+### D-DEP1. GitHub Actions runs the scheduled compute, not Render cron (deviation from the starting hypothesis)
+The starting architecture suggested Render for the API and implied Render cron for scheduling. Render
+cron jobs are a **paid** feature, so keeping them breaks the £0 requirement. Decision: a single
+idempotent **tick** (`python -m astrolabe.scheduler.tick`) runs on **GitHub Actions** (free & unlimited
+for public repos), and Render hosts only the free API web service that serves persisted results.
+Evidence: the capacity audit measured a complete scan at 269–302 s with ~250–400 MB peak RSS, which
+does not fit comfortably inside Render Free's 512 MB / request budget — so heavy work belongs on
+Actions runners (7 GB, no request timeout) regardless of cost. The API never rebuilds the universe in a
+user request. **Cost impact:** £0 (vs paid Render crons). **Reliability impact:** Actions cron drifts
+5–30 min, so the tick is delay-tolerant and decides due work itself; a DB lease + idempotent jobs make
+late/duplicate/missed ticks safe. **Limitation:** free unlimited Actions requires a **public** repo.
+
+### D-DEP2. One due-work tick, not many fixed-schedule jobs
+Instead of ~13 fixed cron entries, the application decides what is due each wake: refresh (if the
+latest complete scan is stale), causally-due cohort freezes, forward/preclose/resolve collection, and
+daily retention/backup. Freezes are gated causally — a cadence period is frozen only once a complete
+scan exists **at/after** its boundary, and never fabricated with look-ahead; if a whole period elapses
+with no in-window complete scan it is honestly left unfrozen. All underlying collectors already existed
+and are reused verbatim (no research logic duplicated in YAML). Bookkeeping lives in a bounded
+`scheduler_state` table (one row/job) that also powers `/admin/health`.
+
+### D-DEP3. Storage: Postgres hot window + bounded category-C retention; permanent research never pruned
+Measured growth (audit §3): category-C high-frequency scan history is the visible bulk but is a
+**rolling window** — every live surface needs ≤ 6 h (trajectory) / ≤ 200 rows-per-market
+(market-detail), so a 2-day hot window fully preserves functionality. Retention prunes category-C rows
+older than the window and **never** prunes a scan referenced by a frozen cohort, the latest complete
+scan, or any permanent (A) / account (D) data. The real long-term driver is **permanent research**
+(~12 MB/day from ~5 full-universe cohort freezes), giving a 500 MB free-Postgres safe lifetime of
+**≈ 3–5 weeks** as-is. This is stated honestly rather than hand-waved: extend via lower cohort cadence
+(~3 months), a compressed cold archive, or a paid Postgres tier.
+
+### D-DEP4. Cold archive is pluggable and default-OFF, with an archive-before-delete invariant
+R2/object storage is **not** added by default (the audit shows Postgres-only works for the measured
+lifetime, and it needs external credentials). Instead a pluggable archive interface exists
+(`""`=prune-only, `local`=compressed JSONL, `r2`=S3-compatible), default off. When enabled, each pruned
+scan is archived + checksum-verified **before** its rows are deleted; an archive failure **retains** the
+source (never delete-before-archive). This keeps the simplest safe design now and a lossless-indefinite
+path later, both £0. **Rollback impact:** archived data is recoverable via manifest + checksum.
+
+### D-DEP5. Data migration copies verbatim and self-reconciles; no recompute
+The SQLite→Postgres importer opens the source **read-only**, copies every value unchanged (only naive
+datetimes are coerced to UTC-aware for `timestamptz`), preserves PKs/FKs/nulls/frozen values, is
+idempotent (`ON CONFLICT DO NOTHING` / `INSERT OR IGNORE`), and **fails non-zero** if reconciliation
+(per-table counts + every frozen cohort's `entries == universe_size`) doesn't match. It never
+recomputes or "fixes" historical observations. `--require-empty` refuses a non-empty destination for a
+first import.
+
+### D-DEP6. Detailed diagnostics behind a token; user pages stay clean
+`/health` stays a bare liveness probe; the rich production/research snapshot (latest scan + age,
+scheduler job state, latest cohort + scheduled-vs-actual freeze timing, storage growth + quota level)
+is served from `/admin/health` guarded by `ADMIN_TOKEN` (404 when unset). The frontend keeps its
+existing freshness/“delayed refresh” messaging and adds a restrained **“Connecting to Arepo data…”**
+cold-start state (no per-card stale/fresh clutter) so a free-host wake-up reads as calm, not broken.
+
+---
+
 ## Final short-horizon completion (branch `arepo-final-short-horizon-completion`)
 
 ### D-FC6. A market that closed before its horizon is terminal, never perpetually pending (§11)

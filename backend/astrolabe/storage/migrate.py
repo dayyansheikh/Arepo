@@ -43,6 +43,7 @@ def _load_all_models() -> None:
     from ..evaluation import research_models as _research  # noqa: F401
     from ..ingest import microstructure_store as _micro  # noqa: F401
     from ..opportunity import snapshot_models as _snap  # noqa: F401
+    from ..scheduler import models as _scheduler  # noqa: F401  (scheduler_state/leases)
     from . import models as _cache  # noqa: F401
 
 
@@ -51,7 +52,7 @@ _load_all_models()
 # Bump whenever the ORM gains tables/columns. This is a monotonic marker recorded in
 # ``schema_migrations``; the actual work is metadata-driven so the number is documentation, not a
 # script selector.
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 SCHEMA_VERSION_NOTES = {
     1: "initial create_all schema",
     2: "research per-family directions (momentum/orderbook/tradeflow) + edge-research tables",
@@ -67,6 +68,7 @@ SCHEMA_VERSION_NOTES = {
     8: "research_cohorts/entries scan_id + scan_complete + selection_policy + bucket + "
        "overall_rank_30d + public_selected (cohort frozen from a complete short-horizon scan)",
     9: "research_preclose_observations (freeze-to-close quote collection)",
+    10: "scheduler_state + scheduler_leases (robust idempotent production scheduler tick)",
 }
 
 _VERSION_TABLE = "schema_migrations"
