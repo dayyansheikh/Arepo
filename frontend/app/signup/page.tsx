@@ -53,8 +53,7 @@ export default function SignUpPage() {
       >
         <FormMessage tone="ok">
           We have sent a verification link to <strong>{email}</strong>. Click it to activate your
-          account, then sign in. In local development the link is printed to the backend server
-          log instead of being emailed.
+          account, then sign in.
         </FormMessage>
       </AuthShell>
     );

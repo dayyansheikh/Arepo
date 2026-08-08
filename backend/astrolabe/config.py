@@ -63,7 +63,9 @@ class Settings(BaseSettings):
     auth_token_lifetime_seconds: int = 60 * 60 * 24 * 7  # 7 days
     require_email_verification: bool = True              # verified email required before login
     account_rate_limit_per_minute: int = 10             # per-IP limit on auth endpoints
-    app_base_url: str = "http://localhost:3000"          # used to build verification/reset links
+    # General frontend origin retained for non-email integrations. Transactional auth email links
+    # deliberately use the canonical https://www.arepolabs.com origin in accounts/email.py.
+    app_base_url: str = "http://localhost:3000"
 
     @property
     def auth_is_production_insecure(self) -> bool:

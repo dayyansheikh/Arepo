@@ -45,12 +45,25 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     async def on_after_request_verify(
         self, user: User, token: str, request: Request | None = None
     ) -> None:
-        await account_email.send_verification_email(user.email, token)
+        await account_email.send_verification_email(
+            user.email, token, user_name=_supported_user_name(user)
+        )
 
     async def on_after_forgot_password(
         self, user: User, token: str, request: Request | None = None
     ) -> None:
-        await account_email.send_reset_email(user.email, token)
+        await account_email.send_reset_email(
+            user.email, token, user_name=_supported_user_name(user)
+        )
+
+
+def _supported_user_name(user: User) -> str | None:
+    """Use a real model-backed name when available; the current User has no name column."""
+    for field in ("display_name", "name", "first_name"):
+        value = getattr(user, field, None)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
 
 
 async def get_user_manager(user_db=Depends(get_user_db)):

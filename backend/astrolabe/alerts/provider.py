@@ -3,7 +3,9 @@
 The default is a console sink that never sends anything externally. An in-memory outbox is
 used by tests. The SMTP provider is a real sender that stays disabled until host and
 credentials are supplied via environment variables. All providers share one async ``send``
-interface so the alert service is provider-agnostic.
+interface so the alert service is provider-agnostic. Messages may carry a Resend template alias
+and variables alongside their plain-text/HTML fallbacks; only ``ResendProvider`` interprets that
+metadata, while SMTP and local test providers continue to use the rendered fallbacks.
 """
 from __future__ import annotations
 
@@ -22,6 +24,9 @@ class EmailMessage:
     sender: str
     subject: str
     text: str
+    html: str | None = None
+    template_id: str | None = None
+    template_variables: dict[str, str | int] = field(default_factory=dict)
 
 
 @dataclass
@@ -94,6 +99,8 @@ class SmtpProvider:
             mime["To"] = message.to
             mime["Subject"] = message.subject
             mime.set_content(message.text)
+            if message.html:
+                mime.add_alternative(message.html, subtype="html")
             with smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=10) as smtp:
                 smtp.starttls()
                 if cfg.smtp_user:
@@ -108,7 +115,9 @@ class SmtpProvider:
 class ResendProvider:
     """Real sender via the Resend HTTPS API (spec §18). Key + verified sender from env only.
 
-    Sends a plain-text email (with a minimal HTML fallback) through ``api.resend.com/emails``.
+    Sends either a published Resend template by stable alias/ID or a rendered text/HTML message
+    through ``api.resend.com/emails``. Resend forbids mixing ``template`` with ``html``/``text``,
+    so payload construction deliberately chooses exactly one representation.
     Never raises: a failure returns an unsuccessful ``SendResult`` so the retry/failure-log path in
     the alert service handles it. A verified custom domain is required to send to arbitrary
     recipients; the test sender is limited by Resend to the account owner's address.
@@ -126,15 +135,23 @@ class ResendProvider:
         try:
             import httpx
 
-            payload = {
+            payload: dict = {
                 "from": message.sender,
                 "to": [message.to],
                 "subject": message.subject,
-                "text": message.text,
-                "html": "<pre style=\"font:14px/1.5 system-ui\">"
-                + message.text.replace("&", "&amp;").replace("<", "&lt;")
-                + "</pre>",
             }
+            if message.template_id:
+                payload["template"] = {
+                    "id": message.template_id,
+                    "variables": message.template_variables,
+                }
+            else:
+                payload["text"] = message.text
+                payload["html"] = message.html or (
+                    "<pre style=\"font:14px/1.5 system-ui\">"
+                    + message.text.replace("&", "&amp;").replace("<", "&lt;")
+                    + "</pre>"
+                )
             async with httpx.AsyncClient(timeout=15) as client:
                 resp = await client.post(
                     "https://api.resend.com/emails",

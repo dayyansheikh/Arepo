@@ -4,7 +4,7 @@ Runs against the real FastAPI app with the account session bound to an isolated 
 database and the email provider swapped for an in-memory outbox (so verification tokens can be
 read without sending anything). No network.
 """
-import re
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -46,10 +46,12 @@ async def client(outbox):
 
 
 def _token_from_outbox(outbox, kind: str) -> str:
-    text = outbox.sent[-1].text
-    m = re.search(rf"/{kind}\?token=([^\s]+)", text)
-    assert m, f"no {kind} token in outbox: {text!r}"
-    return m.group(1)
+    variable = "VERIFY_URL" if kind == "verify" else "RESET_URL"
+    url = outbox.sent[-1].template_variables[variable]
+    assert isinstance(url, str) and url.startswith(f"https://www.arepolabs.com/{kind}?")
+    token = parse_qs(urlparse(url).query).get("token", [])
+    assert token, f"no {kind} token in outbox template variables"
+    return token[0]
 
 
 def _register(client, email="a@example.com", password="Sufficiently-Long-1"):
@@ -83,6 +85,29 @@ async def test_verify_then_login_succeeds(client, outbox):
     assert me.status_code == 200
     assert me.json()["email"] == "a@example.com"
     assert me.json()["is_verified"] is True
+
+
+async def test_forgot_password_sends_reset_template_and_new_password_works(client, outbox):
+    _verify_and_login(client, outbox)
+    client.post("/api/auth/logout")
+    client.cookies.clear()
+
+    response = client.post("/api/auth/forgot-password", json={"email": "a@example.com"})
+    assert response.status_code == 202
+    reset_message = outbox.sent[-1]
+    assert reset_message.template_id == "arepo-reset-password"
+    token = _token_from_outbox(outbox, "reset")
+
+    response = client.post(
+        "/api/auth/reset-password",
+        json={"token": token, "password": "New-Sufficiently-Long-2"},
+    )
+    assert response.status_code == 200
+    response = client.post(
+        "/api/auth/login",
+        data={"username": "a@example.com", "password": "New-Sufficiently-Long-2"},
+    )
+    assert response.status_code in (200, 204)
 
 
 async def test_logout_clears_session(client, outbox):

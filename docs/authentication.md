@@ -16,8 +16,9 @@ and could not run before an external project or local Docker was provisioned.
 
 - **Passwords**: hashed with argon2. Plaintext is never stored.
 - **Sessions**: a JWT carried in a secure, httpOnly, SameSite=lax cookie.
-- **Email verification**: required before login. Verification and password-reset links are sent
-  through the same provider-neutral engine as alerts.
+- **Email verification**: required before login. Verification and password-reset tokens remain
+  generated and validated by `fastapi-users`; branded messages are sent through the same
+  provider-neutral transport as alerts using stable Resend template aliases.
 - **Rate limiting**: a per-IP sliding-window limiter guards the auth endpoints.
 
 ## Endpoints
@@ -45,7 +46,7 @@ Everything runs offline. With the default console email sink, the verification a
 mail server. Look for a line like:
 
 ```
-account email (console sink, not sent externally) to=you@example.com subject='Confirm your Arepo email' link=http://localhost:3000/verify?token=...
+account email (local console sink, not sent externally) to=you@example.com subject='Confirm your Arepo email' link=https://www.arepolabs.com/verify?token=...
 ```
 
 Open that link (or call `POST /api/auth/verify` with the token) to verify, then sign in.
@@ -62,7 +63,10 @@ Copy `backend/.env.example` to `backend/.env`. Relevant variables:
 | `AUTH_TOKEN_LIFETIME_SECONDS` | `604800` | 7 days |
 | `REQUIRE_EMAIL_VERIFICATION` | `true` | Block login until verified |
 | `ACCOUNT_RATE_LIMIT_PER_MINUTE` | `10` | Per-IP limit on auth endpoints |
-| `APP_BASE_URL` | `http://localhost:3000` | Used to build verification/reset links |
+| `AUTH_EMAIL_SENDER` | `Arepo <no-reply@arepolabs.com>` | Verified transactional sender; server-side only |
+| `RESEND_TEMPLATE_VERIFY` | `arepo-verify-email` | Published Resend alias or opaque ID; server-side only |
+| `RESEND_TEMPLATE_RESET` | `arepo-reset-password` | Published Resend alias or opaque ID; server-side only |
+| `RESEND_TEMPLATE_SIGNALS` | `arepo-signals-digest` | Reserved integration point for the future digest |
 | `CORS_ORIGINS` | `http://localhost:3000` | Must be an explicit allow-list (credentials are enabled) |
 
 The frontend calls the API with `credentials: "include"`; `CORS_ORIGINS` must therefore list the
@@ -74,8 +78,9 @@ exact frontend origin (never `*`).
    production.
 2. Set `AUTH_COOKIE_SECURE=true` and serve over HTTPS.
 3. Point `DATABASE_URL` at Postgres (the schema is Postgres-compatible).
-4. Configure a real email provider for verification/reset and alerts (see
-   `docs/alert-configuration.md`). Until then the console sink logs links but sends nothing.
+4. Configure Resend and publish the verify/reset templates under the expected aliases (see
+   `docs/alert-configuration.md`). Until then the console sink logs local-development links but
+   sends nothing. Production never logs verification or reset tokens on console fallback.
 5. If running multiple processes/instances, front the per-IP rate limiter with a shared limiter
    (Redis or the reverse proxy); the built-in limiter is process-local.
 
