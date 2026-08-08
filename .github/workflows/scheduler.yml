@@ -37,7 +37,10 @@ concurrency:
 jobs:
   tick:
     runs-on: ubuntu-latest
-    timeout-minutes: 20   # a complete scan is ~5 min; this bounds a hung upstream call
+    # Must exceed the app-level SCAN_TIMEOUT_SECONDS (default 1800s/30min) + build time, so the app
+    # aborts a slow scan CLEANLY (releasing its lease) before the runner SIGKILLs the job. A hosted
+    # runner is much slower than the ~5-min local benchmark (latency + shared-IP rate limiting).
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: backend
@@ -46,6 +49,7 @@ jobs:
       LOG_JSON: "true"
       DEFAULT_MODE: live
       AUTO_MIGRATE: "true"
+      PYTHONUNBUFFERED: "1"   # stream progress logs live instead of buffering until exit
       # Secrets configured in the repository's Settings → Secrets and variables → Actions.
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}

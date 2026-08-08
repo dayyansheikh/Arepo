@@ -12,15 +12,18 @@ degrade rather than treat a partial universe as complete (prompt sections 2, 20)
 """
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 
 from ..clients.gamma import GammaClient
+from ..config import get_settings
 from ..domain.models import Market, utcnow
 from ..evaluation.constants import CALCULATION_VERSION
 from ..evaluation.research_constants import MODEL_VERSION
 from ..evaluation.research_engine import ScoredScreen, score_screen
 from ..ingest.normalize import normalize_market
+from ..observability.logging import get_logger
 from .bounded_discovery import BoundedDiscovery, DiscoveryReport
 from .eligibility import (
     MIN_ELIGIBLE_LIQUIDITY,
@@ -32,6 +35,8 @@ from .eligibility import (
     classify_public,
     raw_liquidity,
 )
+
+logger = get_logger("astrolabe.discovery.scan")
 
 # The public selection/display limit (prompt B1/B2). NEVER a discovery/analysis cap.
 PUBLIC_TOP_N = PUBLIC_SELECTION_LIMIT  # 20
@@ -133,9 +138,20 @@ class CompleteScanService:
     async def run_scan(
         self, *, now: datetime | None = None, min_liquidity: float = MIN_ELIGIBLE_LIQUIDITY
     ) -> ScanResult:
+        settings = get_settings()
+        t0 = time.monotonic()
         started = now or utcnow()
+        logger.info("scan starting", extra={"ctx_min_liquidity": min_liquidity})
         markets, report, prefiltered = await self.discover(
             scan_origin=started, min_liquidity=min_liquidity
+        )
+        logger.info(
+            "discovery complete",
+            extra={
+                "ctx_pages": report.primary_pages, "ctx_union_unique": report.union_unique,
+                "ctx_candidates": len(markets), "ctx_pagination_complete": report.complete,
+                "ctx_elapsed_s": round(time.monotonic() - t0, 1),
+            },
         )
 
         # Full public eligibility (structural + tradable + liquidity floor) reflected in the funnel.
@@ -149,12 +165,24 @@ class CompleteScanService:
         funnel.pagination_complete = report.complete
         funnel.pagination_reason = report.incomplete_reason
 
-        # Score EVERY eligible market (not a top-N). Enrichment is bounded-concurrency inside the
-        # market service.
+        # Score EVERY eligible market (not a top-N). Enrichment concurrency is env-tunable.
         eligible_markets = [m for m, _e in eligible]
         elig_by_id = {m.id: e for m, e in eligible}
+        t_enrich = time.monotonic()
+        logger.info(
+            "enrichment starting",
+            extra={"ctx_eligible": len(eligible_markets),
+                   "ctx_concurrency": settings.scan_enrich_concurrency},
+        )
         pairs, _mode = await self._market_service.enrich_market_list(
-            eligible_markets, requested_mode="live"
+            eligible_markets, requested_mode="live",
+            concurrency=settings.scan_enrich_concurrency,
+        )
+        logger.info(
+            "enrichment complete",
+            extra={"ctx_enriched": len(pairs), "ctx_eligible": len(eligible_markets),
+                   "ctx_elapsed_s": round(time.monotonic() - t_enrich, 1),
+                   "ctx_total_elapsed_s": round(time.monotonic() - t0, 1)},
         )
         analysed: list[AnalysedMarket] = []
         scoring_excluded: list[dict] = []

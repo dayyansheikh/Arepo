@@ -299,14 +299,25 @@ class MarketService:
         """
         source, _ = await self._select_source(requested_mode)
         sem = asyncio.Semaphore(max(1, concurrency))
+        total = len(markets)
+        done = 0
+        # Progress heartbeat so a long enrichment on a slow runner shows liveness (not a hang) and
+        # we can measure real throughput. Logs at ~10% steps (min every 200 markets).
+        step = max(200, total // 10) if total else 1
 
         async def _one(m: Market):
+            nonlocal done
             async with sem:
                 try:
                     analytics, _card = await self._enrich_market(source, m)
-                    return m, analytics
+                    result = (m, analytics)
                 except BaseException:  # noqa: BLE001 - a single bad market never fails the scan
-                    return None
+                    result = None
+            done += 1
+            if total and (done % step == 0 or done == total):
+                logger.info("enrichment progress",
+                            extra={"ctx_done": done, "ctx_total": total})
+            return result
 
         results = await asyncio.gather(*(_one(m) for m in markets))
         return [r for r in results if r is not None], source.mode

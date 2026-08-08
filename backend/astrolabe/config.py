@@ -92,7 +92,19 @@ class Settings(BaseSettings):
     # changed. Override with RESEARCH_FREEZE_CADENCES to reintroduce 6h/12h if intraday freeze-time
     # diversity is later shown to be worth the added dependence.
     research_freeze_cadences: str = "daily,weekly"  # cadences the tick freezes when causally due
-    tick_lease_seconds: int = 600             # scheduler-lease TTL: one heavy tick at a time
+
+    # --- Complete-scan runtime protection (hosted runners are slower than the local benchmark) ---
+    # The complete scan measured ~269–302 s locally (home IP), but a GitHub Actions runner is much
+    # slower (higher per-request latency + stricter shared-IP rate limiting on Polymarket). A hard
+    # app-level timeout aborts a slow scan CLEANLY (releasing the lease, recording nothing) rather
+    # than letting the runner SIGKILL it and leave a dangling lease. Ordering invariant that holds:
+    #   scan_timeout_seconds  <  scan/tick lease TTLs  <  the workflow's timeout-minutes
+    # so (a) leases never expire mid-scan → no overlapping scan, and (b) the app times out before
+    # the runner kills it. Concurrency is env-tunable for measurement without a code change.
+    scan_timeout_seconds: int = 1800          # hard cap on one complete scan (30 min); abort clean
+    scan_enrich_concurrency: int = 6          # markets enriched in parallel (raise only if not 429-bound)  # noqa: E501
+    scan_lease_seconds: int = 2400            # discovery scan lease TTL (40 min > scan_timeout)
+    tick_lease_seconds: int = 2400            # scheduler-lease TTL (40 min > scan_timeout)
 
     # --- Storage retention + health (see docs/PRODUCTION_CAPACITY_AUDIT.md §3) ---
     # Category-C high-frequency scan/signal history is a ROLLING hot window: rows older than the

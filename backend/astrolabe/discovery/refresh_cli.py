@@ -16,6 +16,8 @@ import json
 import os
 
 from ..clients.data_api import DataApiClient
+from ..clients.errors import UpstreamUnavailable
+from ..config import get_settings
 from ..domain.models import utcnow
 from ..service import MarketService
 from ..storage.db import make_engine, make_sessionmaker
@@ -32,12 +34,24 @@ async def run_refresh(
     even when discovery is incomplete, but its ``status`` and ``pagination_complete`` flag say so,
     so a downstream cohort freeze can refuse or degrade.
     """
-    got = await scan_store.acquire_lock(session, holder=holder)
+    settings = get_settings()
+    got = await scan_store.acquire_lock(
+        session, holder=holder, lease_seconds=settings.scan_lease_seconds)
     if not got:
         return {"ran": False, "reason": "another complete scan is already running (lease held)"}
     try:
         scanner = CompleteScanService(market_service, data_api)
-        result = await scanner.run_scan()
+        # Hard timeout: abort a scan that runs far past the expected runtime CLEANLY (the finally
+        # releases the lease and NOTHING is recorded — a partial scan never becomes product state),
+        # instead of letting the runner SIGKILL the process and leave a dangling lease.
+        try:
+            result = await asyncio.wait_for(
+                scanner.run_scan(), timeout=settings.scan_timeout_seconds)
+        except TimeoutError as exc:
+            raise UpstreamUnavailable(
+                f"complete scan exceeded {settings.scan_timeout_seconds}s and was aborted "
+                "incomplete; nothing recorded"
+            ) from exc
         rec = await scan_store.record_scan(session, result)
         summary = scanner.result_summary(result)
         summary["record"] = rec
