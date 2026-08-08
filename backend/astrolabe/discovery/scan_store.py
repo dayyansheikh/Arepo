@@ -199,6 +199,29 @@ async def snapshots_for_market(
     return list(res.scalars().all())
 
 
+async def snapshots_for_markets(
+    session: AsyncSession, market_ids: list[str], *, limit_per_market: int = 200
+) -> dict[str, list[SignalSnapshotRow]]:
+    """Stored snapshots for MANY markets in ONE query, {market_id: [oldest..newest]}.
+
+    Replaces a per-row ``snapshots_for_market`` N+1 in the trajectory attach path (which timed
+    out for Signal Lab's full directional scope over the pooler). Same rows, one round-trip.
+    """
+    out: dict[str, list[SignalSnapshotRow]] = {m: [] for m in market_ids}
+    if not market_ids:
+        return out
+    res = await session.execute(
+        select(SignalSnapshotRow)
+        .where(SignalSnapshotRow.market_id.in_(market_ids))
+        .order_by(SignalSnapshotRow.market_id, SignalSnapshotRow.captured_at.asc())
+    )
+    for row in res.scalars().all():
+        lst = out.setdefault(row.market_id, [])
+        if len(lst) < limit_per_market:
+            lst.append(row)
+    return out
+
+
 async def purge_scan(session: AsyncSession, scan_id: str) -> None:
     """Remove a scan and its snapshots. Only for test cleanup of THROWAWAY scans, never used on
     real prospective research rows."""

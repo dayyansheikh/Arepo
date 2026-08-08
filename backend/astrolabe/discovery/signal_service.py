@@ -232,10 +232,14 @@ class SignalReadService:
         }
 
     async def _attach_trajectory(self, rows: list[SignalSnapshotRow], now: datetime) -> list[dict]:
+        # Batch-load every shown market's snapshot history in ONE query (was a per-row N+1 that
+        # timed out for the full directional scope over the pooler). Identical trajectories.
+        hist_by_market = await scan_store.snapshots_for_markets(
+            self.session, [r.market_id for r in rows])
         out = []
         for r in rows:
             d = _row_public(r)
-            hist = await scan_store.snapshots_for_market(self.session, r.market_id)
+            hist = hist_by_market.get(r.market_id, [])
             snaps = [
                 Snap(captured_at=h.captured_at, strength=h.strength, direction=h.direction,
                      rank_in_bucket=h.rank_in_bucket, research_priority=h.research_priority,
