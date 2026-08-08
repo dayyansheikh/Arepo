@@ -301,6 +301,40 @@ class ResearchRepository:
             out.setdefault(eid, set()).add(horizon)
         return out
 
+    async def available_forward_horizons(self, entry_ids: list[int]) -> set[str]:
+        """Horizons that have at least one stored observation WITH a usable midpoint, in ONE query.
+
+        Replaces a per-entry ``get_forward`` scan (thousands of round-trips over the pooler) used to
+        decide which Replay horizon tabs are populated for a cohort.
+        """
+        if not entry_ids:
+            return set()
+        res = await self.session.execute(
+            select(ResearchForwardRow.horizon)
+            .where(ResearchForwardRow.entry_id.in_(entry_ids),
+                   ResearchForwardRow.midpoint.is_not(None))
+            .distinct()
+        )
+        return {r[0] for r in res.all()}
+
+    async def forwards_for_entries(
+        self, entry_ids: list[int]
+    ) -> dict[int, dict[str, ResearchForwardRow]]:
+        """All forward observations for many entries in ONE query, as {entry_id: {horizon: row}}.
+
+        Replaces the per-entry ``get_forward`` N+1 in the Replay result/breakdown path — the same
+        stored rows, just fetched in a single round-trip instead of thousands.
+        """
+        out: dict[int, dict[str, ResearchForwardRow]] = {eid: {} for eid in entry_ids}
+        if not entry_ids:
+            return out
+        res = await self.session.execute(
+            select(ResearchForwardRow).where(ResearchForwardRow.entry_id.in_(entry_ids))
+        )
+        for row in res.scalars().all():
+            out.setdefault(row.entry_id, {})[row.horizon] = row
+        return out
+
     async def upsert_forward(
         self,
         *,

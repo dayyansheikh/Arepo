@@ -177,15 +177,13 @@ class ResearchReplayService:
         return [c for c in cohorts if not c.excessively_late]
 
     async def _available_horizons(self, entries: list[ResearchEntryRow]) -> dict[str, bool]:
-        """Which horizons have at least one stored forward observation with a usable midpoint."""
-        available = {h: False for h in REPLAY_HORIZONS}
-        for e in entries:
-            fwd = await self.repo.get_forward(e.id)
-            for h in REPLAY_HORIZONS:
-                row = fwd.get(h)
-                if row is not None and row.midpoint is not None:
-                    available[h] = True
-        return available
+        """Which horizons have at least one stored forward observation with a usable midpoint.
+
+        One batched query (``available_forward_horizons``) instead of a per-entry scan — identical
+        result, but does not do thousands of round-trips over the production pooler.
+        """
+        avail = await self.repo.available_forward_horizons([e.id for e in entries])
+        return {h: (h in avail) for h in REPLAY_HORIZONS}
 
     async def _resolution_available(self, entries: list[ResearchEntryRow]) -> bool:
         ids = {e.market_id for e in entries}
@@ -362,8 +360,10 @@ class ResearchReplayService:
         self, e: ResearchEntryRow, horizon: str,
         resolutions: dict[str, MarketResolutionRow] | None = None,
         preclose_map: dict | None = None,
+        forward_map: dict[int, dict[str, ResearchForwardRow]] | None = None,
     ) -> dict:
-        fwd = (await self.repo.get_forward(e.id)).get(horizon)
+        fwd = (forward_map.get(e.id, {}) if forward_map is not None
+               else await self.repo.get_forward(e.id)).get(horizon)
         state = replay_result_state(e.direction, e.midpoint, fwd)
         forward_mid = fwd.midpoint if fwd is not None else None
         # Raw signed midpoint movement in percentage points (display in the market's own terms).
@@ -422,11 +422,14 @@ class ResearchReplayService:
         }
 
     async def _breakdown(
-        self, entries: list[ResearchEntryRow], horizon: str
+        self, entries: list[ResearchEntryRow], horizon: str,
+        forward_map: dict[int, dict[str, ResearchForwardRow]] | None = None,
     ) -> _Counts:
         counts = _Counts()
+        if forward_map is None:
+            forward_map = await self.repo.forwards_for_entries([e.id for e in entries])
         for e in entries:
-            fwd = (await self.repo.get_forward(e.id)).get(horizon)
+            fwd = forward_map.get(e.id, {}).get(horizon)
             counts.add(replay_result_state(e.direction, e.midpoint, fwd))
         return counts
 
@@ -491,12 +494,17 @@ class ResearchReplayService:
         shadow_entries = [e for e in all_directional if e.role == ROLE_SHADOW]
         scoped = public_entries if scope == SCOPE_PUBLIC else all_directional
 
+        # ONE batched load of every forward observation the breakdowns + result rows need, replacing
+        # a per-entry N+1 that timed out over the production pooler (identical stored data).
+        forward_map = await self.repo.forwards_for_entries([e.id for e in all_directional])
+
         # Top twenty by frozen rank within the scoped + filtered subset. Never padded.
         shown = scoped[:20]
         resolutions = await self._resolution_map(shown)
         preclose_map = await preclose_for_cohort(self.session, cohort.id)
         rows = [
-            await self._entry_row(e, horizon, resolutions, preclose_map) for e in shown
+            await self._entry_row(e, horizon, resolutions, preclose_map, forward_map)
+            for e in shown
         ]
 
         # Freeze-to-close aggregate (prompt C4/C7), over the scoped directional set.
@@ -521,10 +529,10 @@ class ResearchReplayService:
         unique_events = len({e.event_id for e in scoped if e.event_id})
         repeated_markets = len(scoped) - unique_markets
 
-        headline = (await self._breakdown(scoped, horizon)).to_dict()
-        public = (await self._breakdown(public_entries, horizon)).to_dict()
-        shadow = (await self._breakdown(shadow_entries, horizon)).to_dict()
-        combined = (await self._breakdown(all_directional, horizon)).to_dict()
+        headline = (await self._breakdown(scoped, horizon, forward_map)).to_dict()
+        public = (await self._breakdown(public_entries, horizon, forward_map)).to_dict()
+        shadow = (await self._breakdown(shadow_entries, horizon, forward_map)).to_dict()
+        combined = (await self._breakdown(all_directional, horizon, forward_map)).to_dict()
 
         # Non-directional role counts stay in the methodology summary, never in the result table.
         role_counts: dict[str, int] = {}
