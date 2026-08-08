@@ -95,7 +95,8 @@ class ClobRestClient:
         await self.aclose()
 
     async def _request(
-        self, method: str, path: str, params: dict[str, Any] | None = None
+        self, method: str, path: str, params: dict[str, Any] | None = None,
+        json: Any | None = None,
     ) -> httpx.Response:
         """Issue one request with bounded retry on transient failures.
 
@@ -110,7 +111,7 @@ class ClobRestClient:
 
         for attempt in range(max_retries + 1):
             try:
-                resp = await self._client.request(method, path, params=params)
+                resp = await self._client.request(method, path, params=params, json=json)
             except (httpx.TimeoutException, httpx.NetworkError) as exc:
                 last_exc = exc
                 if attempt >= max_retries:
@@ -175,6 +176,34 @@ class ClobRestClient:
                 "CLOB /book did not return an object", status_code=resp.status_code
             )
         return data
+
+    async def get_books(
+        self, token_ids: list[str], *, batch_size: int = 100
+    ) -> dict[str, dict]:
+        """Batch order-book fetch (``POST /books``): one request returns many books.
+
+        This is the key scaling primitive for observation collection — thousands of per-token GETs
+        collapse into a handful of batched POSTs. Returns ``{token_id: raw_book}`` for every token
+        the venue returned a book for; a token absent from the response simply has no entry (the
+        caller records it as unavailable). Deduplicates the input and preserves the single-token
+        book shape, so downstream normalisation is identical to ``get_book``.
+        """
+        unique = list(dict.fromkeys(t for t in token_ids if t))
+        out: dict[str, dict] = {}
+        for i in range(0, len(unique), max(1, batch_size)):
+            chunk = unique[i:i + batch_size]
+            resp = await self._request(
+                "POST", "/books", json=[{"token_id": t} for t in chunk])
+            data = _safe_json(resp)
+            if not isinstance(data, list):
+                raise UpstreamSchemaError(
+                    "CLOB /books did not return an array", status_code=resp.status_code)
+            for book in data:
+                if isinstance(book, dict):
+                    tid = book.get("asset_id") or book.get("token_id")
+                    if tid:
+                        out[str(tid)] = book
+        return out
 
     async def get_midpoint(self, token_id: str) -> float | None:
         resp = await self._request("GET", "/midpoint", params={"token_id": token_id})

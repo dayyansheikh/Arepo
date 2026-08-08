@@ -47,19 +47,55 @@ class Quote:
 
 # price_of(market_id, token_id) -> Quote | None (None when unavailable at this moment).
 PriceProvider = Callable[[str, str], Awaitable[Quote | None]]
+# quotes_of(token_ids) -> {token_id: Quote|None}: the BATCH provider (one POST /books per ~100
+# tokens), the scaling primitive that replaces thousands of per-entry fetches.
+BatchQuoteProvider = Callable[[list[str]], Awaitable[dict[str, "Quote | None"]]]
+
+
+def quote_from_book(token_id: str, raw_book: dict | None) -> Quote | None:
+    """Build a Quote from a raw CLOB book using the SAME normalisation as the scan enrichment
+    (``normalize_book`` + ``near_mid_depth``), so a batched quote is identical to a per-token one.
+    Returns None when the venue has no book for the token (recorded as unavailable)."""
+    if not raw_book:
+        return None
+    from ..analytics.microstructure import near_mid_depth
+    from ..ingest.normalize import normalize_book
+    book = normalize_book(token_id, raw_book)
+    if not book.bids and not book.asks:
+        return None
+    nmd = near_mid_depth(book).total_depth if (book.bids and book.asks) else None
+    return Quote(
+        midpoint=book.midpoint, best_bid=book.best_bid, best_ask=book.best_ask,
+        spread=book.spread, near_mid_depth=nmd, source_timestamp=utcnow(),
+    )
+
+
+def clob_batch_quotes(clob) -> BatchQuoteProvider:
+    """A batch quote provider backed by ``ClobRestClient.get_books`` (POST /books)."""
+    async def quotes_of(token_ids: list[str]) -> dict[str, Quote | None]:
+        if not token_ids:
+            return {}
+        try:
+            books = await clob.get_books(token_ids)
+        except Exception:  # noqa: BLE001 - a batch failure records the tokens as unavailable
+            books = {}
+        return {tid: quote_from_book(tid, books.get(tid)) for tid in token_ids}
+    return quotes_of
 
 
 async def collect_due_forward(
-    session, *, now: datetime | None = None, price_of: PriceProvider,
-    concurrency: int | None = None,
+    session, *, now: datetime | None = None, price_of: PriceProvider | None = None,
+    quotes_of: BatchQuoteProvider | None = None, concurrency: int | None = None,
 ) -> dict:
     """Record any forward observation whose horizon has elapsed for frozen prospective cohorts.
 
     Same causal + idempotency semantics as before (a horizon is only observed once elapsed from the
-    cohort's actual prediction time, written once per (entry, horizon)), but the slow live-quote
-    fetches run CONCURRENTLY (bounded) and the existing-observation check is a single batched query
-    per cohort — so a full-universe cohort's horizon spike is collected in minutes, not sequentially
-    over tens of minutes. Returns a summary of written / unavailable / already-present observations.
+    cohort's actual prediction time, written once per (entry, horizon)), but the quote fetches are
+    now BATCHED + DEDUPLICATED: the collector gathers every UNIQUE token that needs a quote across
+    all cohorts/horizons and fetches them via ``quotes_of`` (one POST /books per ~100 tokens) — so a
+    full-universe cohort's horizon spike is collected in seconds, not tens of minutes. ``price_of``
+    (per-token) is still accepted as a fallback for tests. Existing-observation checks are one
+    batched query per cohort. Returns a summary of written / unavailable / already-present.
     """
     now = (now or utcnow()).astimezone(UTC)
     conc = concurrency if concurrency is not None else get_settings().collect_concurrency
@@ -111,18 +147,29 @@ async def collect_due_forward(
                     continue
                 to_fetch.append((entry, horizon, target, delay, exact))
 
-    # Phase 2 (network): fetch the due quotes CONCURRENTLY (bounded), all at the single ``now``.
-    sem = asyncio.Semaphore(max(1, conc))
+    # Phase 2 (network): fetch quotes for the UNIQUE due tokens ONCE, then reuse across every
+    # (entry, horizon) that shares a token. Batched via ``quotes_of`` (POST /books) in production;
+    # ``price_of`` per-token (deduped, bounded-concurrent) is the test fallback.
+    unique_tokens: dict[str, str] = {}   # token_id -> a representative market_id
+    for entry, _h, _t, _d, _e in to_fetch:
+        unique_tokens.setdefault(entry.token_id, entry.market_id)
+    if quotes_of is not None:
+        quote_by_token = await quotes_of(list(unique_tokens))
+    elif price_of is not None:
+        sem = asyncio.Semaphore(max(1, conc))
 
-    async def _fetch(task):
-        entry, horizon, _target, _delay, _exact = task
-        async with sem:
-            return task, await _safe_quote(price_of, entry.market_id, entry.token_id)
+        async def _fetch(tid: str, mid: str):
+            async with sem:
+                return tid, await _safe_quote(price_of, mid, tid)
 
-    fetched = await asyncio.gather(*(_fetch(t) for t in to_fetch))
+        quote_by_token = dict(await asyncio.gather(
+            *(_fetch(tid, mid) for tid, mid in unique_tokens.items())))
+    else:
+        raise ValueError("collect_due_forward requires quotes_of or price_of")
 
     # Phase 3 (no network): persist. Session writes are batched into one commit.
-    for (entry, horizon, _target, delay, exact), quote in fetched:
+    for entry, horizon, _target, delay, exact in to_fetch:
+        quote = quote_by_token.get(entry.token_id)
         if quote is None:
             await repo.upsert_forward(
                 entry_id=entry.id, horizon=horizon, observed_at=now,

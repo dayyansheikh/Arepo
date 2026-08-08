@@ -199,14 +199,20 @@ async def run_tick(*, group: str = "all", only: str | None = None, force: bool =
             return {"cadences": results} if results else {"skipped": "no cadence due"}
         await _job("freeze", _do_freeze)
 
-        # 3. Forward observations (collect only due; idempotent).
+        # 3. Forward observations (collect only due; idempotent). Quotes are fetched in BATCHES
+        #    (POST /books, deduped by token) via a dedicated CLOB client — the scaling fix.
         async def _do_forward(s):
             st = await sched_state.get_state(s, "forward")
             if not force and not _due_by_interval(
                 st.last_success_at if st else None, settings.forward_interval_minutes, now):
                 return {"skipped": "not due"}
-            provider = await _price_provider(service)
-            return await collect_due_forward(s, price_of=provider)
+            from ..clients.clob_rest import ClobRestClient
+            from ..evaluation.research_tracking import clob_batch_quotes
+            clob = ClobRestClient()
+            try:
+                return await collect_due_forward(s, quotes_of=clob_batch_quotes(clob))
+            finally:
+                await clob.aclose()
         await _job("forward", _do_forward)
 
         # 4. Freeze-to-close (preclose) quotes.
