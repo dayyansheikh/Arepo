@@ -19,6 +19,7 @@ import {
   type Bucket,
   type Scope,
 } from "@/lib/signal-lab";
+import { directionLabel, DIRECTION_TONE_CLASS } from "@/lib/directional";
 import { ListSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
@@ -211,7 +212,10 @@ function SignalCard({ row }: { row: ScanSignalRow }) {
         : "text-arepo-ink2";
   const consec = consecutivePhrase(t);
   const band = priorityBand(row.research_priority);
-  const dir = row.direction === "up" ? "YES ↑" : row.direction === "down" ? "NO ↓" : null;
+  // Arepo's directional call, worded identically to every other surface: "<arrow> Upward/Downward
+  // on <outcome>". This REPLACES the old bare "NO ↓" glued next to a second raw outcome word, which
+  // read as a confusing duplicate and wrongly equated direction with YES/NO.
+  const dir = directionLabel(row.direction, row.outcome_name);
   return (
     <div className="rounded-card border border-arepo-border bg-arepo-surface p-5" data-testid="signal-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -223,8 +227,12 @@ function SignalCard({ row }: { row: ScanSignalRow }) {
             {row.market_question}
           </Link>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[13px] text-arepo-muted">
-            {dir && <span className="font-tabular text-arepo-ink2">{dir}</span>}
-            <span>{row.outcome_name}</span>
+            <span
+              className={`font-medium ${DIRECTION_TONE_CLASS[dir.tone]}`}
+              title="Arepo's directional call: which way this outcome has been repricing. Not a probability, not good or bad."
+            >
+              <span aria-hidden="true">{dir.glyph}</span> {dir.text}
+            </span>
             <span>Closes {timeToCloseLabel(row.time_remaining_hours)}</span>
           </p>
         </div>

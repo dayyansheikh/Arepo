@@ -25,6 +25,39 @@ export function strengthWord(s: number): "early" | "moderate" | "strong" {
   return "early";
 }
 
+// ---------------------------------------------------------------------------------------
+// One canonical way to describe Arepo's directional call, used identically by every surface
+// (Signal Lab, Opportunities, Market Detail, Replay) so the same signal is never worded two ways.
+// The call is ALWAYS "<arrow> <Upward|Downward> on <outcome>" — never a bare "YES ↑"/"NO ↓", which
+// wrongly conflated the repricing direction with the outcome name. `outcome` is the real selected
+// outcome (e.g. "Yes", "No", a team); direction is which way that outcome has been repricing.
+export type DirectionTone = "up" | "down" | "none";
+
+export interface DirectionLabel {
+  text: string;
+  glyph: string;
+  tone: DirectionTone;
+}
+
+// Tone -> colour class, one map used by every surface: upward green, downward red, flat/none grey.
+// Apply to the direction label only, never the whole card. (The label always carries the outcome
+// and a tooltip stating up/down is not "good/bad", so the colour is a directional cue, not a verdict.)
+export const DIRECTION_TONE_CLASS: Record<DirectionTone, string> = {
+  up: "text-arepo-pos",
+  down: "text-arepo-neg",
+  none: "text-arepo-muted",
+};
+
+export function directionLabel(
+  direction: string | null | undefined,
+  outcome?: string | null,
+): DirectionLabel {
+  const name = outcome && outcome.trim() ? outcome : "this outcome";
+  if (direction === "up") return { text: `Upward on ${name}`, glyph: "↑", tone: "up" };
+  if (direction === "down") return { text: `Downward on ${name}`, glyph: "↓", tone: "down" };
+  return { text: "No clear direction", glyph: "→", tone: "none" };
+}
+
 export interface DirectionalVerdict {
   qualifies: boolean;
   reason: string;

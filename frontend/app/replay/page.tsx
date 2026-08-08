@@ -34,6 +34,7 @@ import {
   type ScopeTab,
 } from "@/lib/replay-ux";
 import { resultLabel } from "@/lib/replay";
+import { directionLabel, DIRECTION_TONE_CLASS } from "@/lib/directional";
 import { formatPrice } from "@/lib/format";
 import { StrengthBar } from "@/components/StrengthBar";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
@@ -536,7 +537,7 @@ function MarketRow({ r, horizon }: { r: ReplayRow; horizon: HorizonTab }) {
         : label.tone === "flat"
           ? "text-arepo-ink2"
           : "text-arepo-muted";
-  const dir = r.direction === "up" ? "YES ↑" : r.direction === "down" ? "NO ↓" : "n/a";
+  const dir = directionLabel(r.direction, r.outcome_name);
   return (
     <div className="rounded-card border border-arepo-border bg-arepo-surface p-4" data-testid="market-row">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -548,7 +549,12 @@ function MarketRow({ r, horizon }: { r: ReplayRow; horizon: HorizonTab }) {
             {r.market_question}
           </Link>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px] text-arepo-muted">
-            <span className="font-tabular">{dir}</span>
+            <span
+              className={`font-medium ${DIRECTION_TONE_CLASS[dir.tone]}`}
+              title="Arepo's directional call: which way this outcome had been repricing when the signal was frozen. Not a probability, not good or bad."
+            >
+              <span aria-hidden="true">{dir.glyph}</span> {dir.text}
+            </span>
             <span className="font-tabular">Strength {Math.round((r.strength ?? 0) * 100)}</span>
             <span className="font-tabular">
               {formatPrice(r.frozen_midpoint)}

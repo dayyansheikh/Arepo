@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Signal } from "@/lib/types";
-import { directionalVerdict } from "@/lib/directional";
+import { directionalVerdict, directionLabel, DIRECTION_TONE_CLASS } from "@/lib/directional";
 import { formatDateTime, formatNumber, formatPercent } from "@/lib/format";
 import {
   formatLookback,
@@ -93,25 +93,19 @@ export function SignalItem({ signal }: { signal: Signal }) {
         </div>
         <div className="flex flex-col items-end gap-1.5">
           {/* Direction in WORDS first (spec §7): never a bare "28 Up" that reads like a
-              probability; up/down is not framed as good/bad. Colour + glyph are secondary cues. */}
-          <span
-            className="flex items-center gap-1 text-[13px] font-medium"
-            title="The direction the outcome has been repricing. Not a probability and not good or bad."
-          >
-            {signal.direction === "up" && (
-              <span className="text-arepo-pos">
-                <span aria-hidden="true">&#9650;</span> Upward
+              probability; up/down is not framed as good/bad. One shared vocabulary across every
+              surface (directionLabel): "<arrow> Upward/Downward on <outcome>". */}
+          {(() => {
+            const d = directionLabel(signal.direction, signal.outcome_name);
+            return (
+              <span
+                className={`flex items-center gap-1 text-[13px] font-medium ${DIRECTION_TONE_CLASS[d.tone]}`}
+                title="Arepo's directional call: which way this outcome has been repricing. Not a probability and not good or bad."
+              >
+                <span aria-hidden="true">{d.glyph}</span> {d.text}
               </span>
-            )}
-            {signal.direction === "down" && (
-              <span className="text-arepo-warnText">
-                <span aria-hidden="true">&#9660;</span> Downward
-              </span>
-            )}
-            {signal.direction !== "up" && signal.direction !== "down" && (
-              <span className="text-arepo-muted">No clear direction</span>
-            )}
-          </span>
+            );
+          })()}
           {/* Strength, labelled and out of 100 so it cannot be read as a probability. */}
           <span className="flex items-center gap-1.5 text-xs text-arepo-muted">
             <span>Strength</span>

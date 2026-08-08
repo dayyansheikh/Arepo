@@ -2,7 +2,7 @@
 
 import type { Signal } from "@/lib/types";
 import { formatPercent } from "@/lib/format";
-import { directionalVerdict, strengthWord } from "@/lib/directional";
+import { directionalVerdict, directionLabel, DIRECTION_TONE_CLASS, strengthWord } from "@/lib/directional";
 
 // The directional gate lives in lib/directional.ts so Market Detail (here) and Signal Lab use the
 // exact same rule (spec §4, §13), mirroring the backend hypothesis + price-family logic.
@@ -57,9 +57,14 @@ export function ModelView({ signals }: { signals: Signal[] }) {
       {h.directional && (
         <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
           <Stat label="Direction">
-            <span className={lead.direction === "up" ? "text-arepo-pos" : "text-arepo-warnText"}>
-              {lead.direction === "up" ? "↑ upward" : "↓ downward"} on {lead.outcome_name ?? "outcome"}
-            </span>
+            {(() => {
+              const d = directionLabel(lead.direction, lead.outcome_name);
+              return (
+                <span className={DIRECTION_TONE_CLASS[d.tone]}>
+                  {d.glyph} {d.text}
+                </span>
+              );
+            })()}
           </Stat>
           <Stat label="Signal strength">{formatPercent(lead.strength, 0)}</Stat>
           <Stat label="Confidence (data quality)">{formatPercent(lead.confidence, 0)}</Stat>

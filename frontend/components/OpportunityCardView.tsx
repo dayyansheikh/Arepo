@@ -3,7 +3,8 @@
 import Link from "next/link";
 import type { OpportunityCard } from "@/lib/types";
 import { formatPercent } from "@/lib/format";
-import { directionText, priorityBand } from "@/lib/opportunity";
+import { priorityBand } from "@/lib/opportunity";
+import { directionLabel, DIRECTION_TONE_CLASS } from "@/lib/directional";
 import { TagChip } from "./TagChip";
 import { Badge } from "./ui";
 
@@ -30,7 +31,7 @@ function timeLeft(hours: number | null): string {
 export function OpportunityCardView({ card }: { card: OpportunityCard }) {
   const href = `/markets/${encodeURIComponent(card.market_id)}`;
   const band = priorityBand(card.research_priority);
-  const dir = directionText(card.direction, card.outcome);
+  const dir = directionLabel(card.direction, card.outcome);
 
   return (
     <div className="flex flex-col rounded-card border border-arepo-border bg-arepo-surface p-5 shadow-arepo-sm">
@@ -56,15 +57,13 @@ export function OpportunityCardView({ card }: { card: OpportunityCard }) {
       </p>
 
       {/* Direction cue, only when the evidence warrants a directional view. */}
-      {card.directional && dir && (
+      {card.directional && card.direction && (
         <div className="mt-2">
           <span
-            className={`inline-flex items-center gap-1 text-[12px] font-medium ${
-              card.direction === "up" ? "text-arepo-pos" : "text-arepo-warnText"
-            }`}
+            className={`inline-flex items-center gap-1 text-[12px] font-medium ${DIRECTION_TONE_CLASS[dir.tone]}`}
           >
-            <span aria-hidden="true">{card.direction === "up" ? "↑" : "↓"}</span>
-            {dir}
+            <span aria-hidden="true">{dir.glyph}</span>
+            {dir.text}
           </span>
         </div>
       )}

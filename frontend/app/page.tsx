@@ -13,6 +13,7 @@ import {
   timeToCloseLabel,
   trajectoryTone,
 } from "@/lib/signal-lab";
+import { directionLabel, DIRECTION_TONE_CLASS } from "@/lib/directional";
 import { ListSkeleton } from "@/components/Skeletons";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
@@ -132,24 +133,22 @@ function OpportunityCard({ row, rank }: { row: ScanSignalRow; rank: number }) {
             </Link>
           </div>
           <p className="mt-0.5 text-[13px] text-arepo-muted">
-            {row.outcome_name} · Closes {timeToCloseLabel(row.time_remaining_hours)}
+            Closes {timeToCloseLabel(row.time_remaining_hours)}
           </p>
         </div>
-        <div className="text-right">
-          <div className="font-tabular text-[13px] text-arepo-ink2">
-            Direction:{" "}
-            <span
-              className={
-                row.direction === "up"
-                  ? "text-arepo-pos"
-                  : row.direction === "down"
-                    ? "text-arepo-neg"
-                    : "text-arepo-muted"
-              }
-            >
-              {row.direction === "up" ? "Up" : row.direction === "down" ? "Down" : "n/a"}
-            </span>
-          </div>
+        <div className="text-right text-[13px] text-arepo-ink2">
+          {/* Same directional-call vocabulary as every other surface. */}
+          {(() => {
+            const d = directionLabel(row.direction, row.outcome_name);
+            return (
+              <span
+                className={`font-medium ${DIRECTION_TONE_CLASS[d.tone]}`}
+                title="Arepo's directional call: which way this outcome has been repricing. Not a probability, not good or bad."
+              >
+                <span aria-hidden="true">{d.glyph}</span> {d.text}
+              </span>
+            );
+          })()}
         </div>
       </div>
 

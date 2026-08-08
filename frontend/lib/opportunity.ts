@@ -59,13 +59,5 @@ export const FAMILY_LABEL: Record<string, string> = {
   timing: "trade timing",
 };
 
-export function directionText(
-  direction: "up" | "down" | null,
-  outcome: string | null,
-): string | null {
-  if (!direction) return null;
-  const name = outcome ?? "this outcome";
-  return direction === "up"
-    ? `Upward pressure on ${name}`
-    : `Downward pressure on ${name}`;
-}
+// The directional call wording now lives in lib/directional.ts (directionLabel) so every surface —
+// Signal Lab, Opportunities, Market Detail and Replay — describes the same signal identically.
