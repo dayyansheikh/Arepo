@@ -25,6 +25,8 @@ import asyncio
 import json
 import os
 import socket
+import sys
+import threading
 import time
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -36,6 +38,7 @@ from ..discovery.refresh_cli import run_refresh
 from ..evaluation.research_engine import cadence_cutoff
 from ..evaluation.research_repository import ResearchRepository
 from ..evaluation.research_tracking import collect_due_forward
+from ..observability.logging import get_logger
 from ..service import MarketService
 from ..storage.db import make_engine, make_sessionmaker
 from ..storage.migrate import preflight
@@ -43,6 +46,7 @@ from . import state as sched_state
 from .retention import run_retention, storage_health
 
 _LEASE_NAME = "scheduler-tick"
+logger = get_logger("astrolabe.scheduler.tick")
 
 
 def _utc(dt: datetime | None) -> datetime | None:
@@ -140,15 +144,21 @@ async def run_tick(*, only: str | None = None, force: bool = False) -> dict:
         if only is not None and only != name:
             return
         t0 = time.time()
+        logger.info("phase start", extra={"ctx_phase": name})
         try:
             async with sm() as s:
                 detail = await coro_factory(s)
             await _record(name, True, time.time() - t0, detail)
             jobs[name] = {"ok": True, "detail": detail}
+            logger.info("phase done", extra={"ctx_phase": name, "ctx_ok": True,
+                                             "ctx_elapsed_s": round(time.time() - t0, 1)})
         except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the others
             ok = False
             await _record(name, False, time.time() - t0, {"error": str(exc)})
             jobs[name] = {"ok": False, "error": str(exc)}
+            logger.info("phase failed", extra={"ctx_phase": name, "ctx_ok": False,
+                                               "ctx_elapsed_s": round(time.time() - t0, 1),
+                                               "ctx_error": str(exc)[:200]})
 
     async def _record(name, success, dur, detail):
         async with sm() as s:
@@ -215,14 +225,26 @@ async def run_tick(*, only: str | None = None, force: bool = False) -> dict:
             return await run_retention(s, now=now)
         await _job("retention", _do_retention)
     finally:
-        await service.aclose()
+        t_cleanup = time.time()
+        logger.info("phase start", extra={"ctx_phase": "cleanup"})
+        # Bound cleanup too: a lingering httpx/asyncpg resource must not hang shutdown. Each close
+        # is best-effort with its own short timeout so run_tick always returns promptly.
+        for closer in (service.aclose, data_api.aclose):
+            try:
+                await asyncio.wait_for(closer(), timeout=30)
+            except Exception:  # noqa: BLE001 - cleanup must never block termination
+                pass
         try:
-            await data_api.aclose()
+            async with sm() as s:
+                await sched_state.release_lease(s, name=_LEASE_NAME, holder=holder)
         except Exception:  # noqa: BLE001
             pass
-        async with sm() as s:
-            await sched_state.release_lease(s, name=_LEASE_NAME, holder=holder)
-        await engine.dispose()
+        try:
+            await asyncio.wait_for(engine.dispose(), timeout=30)
+        except Exception:  # noqa: BLE001
+            pass
+        logger.info("phase done", extra={"ctx_phase": "cleanup",
+                                         "ctx_elapsed_s": round(time.time() - t_cleanup, 1)})
 
     return {"ran": True, "ok": ok, "at": now.isoformat(), "jobs": jobs}
 
@@ -292,9 +314,31 @@ async def _run(args: argparse.Namespace) -> int:
     if args.command == "status":
         print(json.dumps(await health_snapshot(), indent=2, default=str))
         return 0
-    summary = await run_tick(only=getattr(args, "only", None), force=getattr(args, "force", False))
+    deadline = get_settings().tick_hard_deadline_seconds
+    try:
+        summary = await asyncio.wait_for(
+            run_tick(only=getattr(args, "only", None), force=getattr(args, "force", False)),
+            timeout=deadline,
+        )
+    except TimeoutError:
+        # Graceful in-loop abort at the hard deadline. run_tick's finally already released the lease
+        # during cancellation; report and exit non-zero.
+        logger.error("tick exceeded hard deadline; aborted", extra={"ctx_deadline_s": deadline})
+        summary = {"ran": True, "ok": False, "reason": f"tick exceeded {deadline}s hard deadline"}
     print(json.dumps(summary, default=str))
     return 0 if summary.get("ok", False) else 1
+
+
+def _install_watchdog(deadline_seconds: int) -> None:
+    """Daemon wall-clock backstop: force-exit even if the event loop / a pool refuses to close, so
+    the runner is never the component that kills a normal tick. Fires slightly AFTER the graceful
+    in-loop deadline, giving the clean path first chance."""
+    def _kill() -> None:
+        time.sleep(deadline_seconds)
+        print(f"[tick] hard wall-clock deadline {deadline_seconds}s reached; forcing exit",
+              flush=True)
+        os._exit(2)
+    threading.Thread(target=_kill, name="tick-watchdog", daemon=True).start()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -309,8 +353,18 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    return asyncio.run(_run(build_parser().parse_args(argv)))
+    args = build_parser().parse_args(argv)
+    if getattr(args, "command", None) == "run":
+        # Watchdog fires just after the graceful in-loop deadline (enforced by _run via wait_for),
+        # and comfortably before the workflow's timeout-minutes.
+        _install_watchdog(get_settings().tick_hard_deadline_seconds + 60)
+    return asyncio.run(_run(args))
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    _code = main()
+    # Deterministic, immediate termination: os._exit bypasses any lingering non-daemon thread,
+    # undisposed connection pool or atexit hook that could otherwise keep the process alive.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(_code if isinstance(_code, int) else 0)

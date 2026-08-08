@@ -52,3 +52,29 @@ def test_lease_ttls_exceed_scan_timeout_invariant():
     s = Settings()
     assert s.scan_timeout_seconds < s.scan_lease_seconds
     assert s.scan_timeout_seconds < s.tick_lease_seconds
+
+
+def test_tick_deadline_ordering_invariant():
+    """Outer tick deadline must sit above the scan timeout and below the workflow timeout so the app
+    always self-terminates before the runner kills it."""
+    s = Settings()
+    assert s.scan_timeout_seconds <= s.tick_hard_deadline_seconds
+    assert s.tick_hard_deadline_seconds < 2400  # < the workflow timeout-minutes (40 min)
+
+
+async def test_run_aborts_the_whole_tick_at_hard_deadline(monkeypatch):
+    """A tick that never returns (e.g. post-scan work or cleanup hangs) is aborted in-loop at the
+    hard deadline and reported non-zero — GitHub is never the component that kills it."""
+    from types import SimpleNamespace
+
+    from astrolabe.scheduler import tick as tick_mod
+
+    monkeypatch.setattr(tick_mod, "get_settings",
+                        lambda: Settings(tick_hard_deadline_seconds=1))
+
+    async def _hang(**_kw):
+        await asyncio.sleep(30)
+
+    monkeypatch.setattr(tick_mod, "run_tick", _hang)
+    code = await tick_mod._run(SimpleNamespace(command="run", only=None, force=False))
+    assert code == 1  # non-zero: the deadline abort is surfaced as a failure

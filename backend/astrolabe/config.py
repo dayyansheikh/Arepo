@@ -105,6 +105,10 @@ class Settings(BaseSettings):
     scan_enrich_concurrency: int = 6          # markets enriched in parallel (raise only if not 429-bound)  # noqa: E501
     scan_lease_seconds: int = 2400            # discovery scan lease TTL (40 min > scan_timeout)
     tick_lease_seconds: int = 2400            # scheduler-lease TTL (40 min > scan_timeout)
+    # True OUTER wall-clock deadline for the ENTIRE tick (all jobs + cleanup + exit). Must be < the
+    # workflow's timeout-minutes so the app always terminates itself first; a daemon watchdog force-
+    # exits at this deadline even if the event loop / a connection pool refuses to close.
+    tick_hard_deadline_seconds: int = 2100    # 35 min (< workflow 40 min)
 
     # --- Storage retention + health (see docs/PRODUCTION_CAPACITY_AUDIT.md §3) ---
     # Category-C high-frequency scan/signal history is a ROLLING hot window: rows older than the
