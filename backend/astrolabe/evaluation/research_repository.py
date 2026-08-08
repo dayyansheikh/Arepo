@@ -282,6 +282,25 @@ class ResearchRepository:
         )
         return {r.horizon: r for r in res.scalars().all()}
 
+    async def forward_horizons_for_entries(
+        self, entry_ids: list[int]
+    ) -> dict[int, set[str]]:
+        """Batch-load which (entry, horizon) forward observations already exist, in ONE query.
+
+        Replaces a per-entry ``get_forward`` loop (thousands of sequential round-trips for a
+        full-universe cohort) so the collector can decide what is due without hammering the DB.
+        """
+        out: dict[int, set[str]] = {eid: set() for eid in entry_ids}
+        if not entry_ids:
+            return out
+        res = await self.session.execute(
+            select(ResearchForwardRow.entry_id, ResearchForwardRow.horizon)
+            .where(ResearchForwardRow.entry_id.in_(entry_ids))
+        )
+        for eid, horizon in res.all():
+            out.setdefault(eid, set()).add(horizon)
+        return out
+
     async def upsert_forward(
         self,
         *,
@@ -297,12 +316,19 @@ class ResearchRepository:
         exact: bool,
         observation_delay_seconds: float | None,
         unavailable_reason: str | None,
+        known_absent: bool = False,
     ) -> bool:
         """Insert one forward observation if absent. Idempotent on (entry, horizon): a real
-        observation is never overwritten once recorded (returns False)."""
-        existing = (await self.get_forward(entry_id)).get(horizon)
-        if existing is not None:
-            return False
+        observation is never overwritten once recorded (returns False).
+
+        ``known_absent`` skips the existence SELECT when the caller has already confirmed the row is
+        absent via a batched load (e.g. ``forward_horizons_for_entries``), avoiding a per-row
+        round-trip. The DB unique constraint on (entry, horizon) is the ultimate idempotency guard.
+        """
+        if not known_absent:
+            existing = (await self.get_forward(entry_id)).get(horizon)
+            if existing is not None:
+                return False
         self.session.add(
             ResearchForwardRow(
                 entry_id=entry_id,

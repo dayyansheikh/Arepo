@@ -137,8 +137,9 @@ async def test_opportunities_top20_denominator_and_freshness(session):
 
 
 def test_freshness_thresholds():
-    assert freshness(60)["state"] == "fresh"              # 1 min
-    assert freshness(15 * 60)["state"] == "fresh"         # within 2 intervals
-    assert freshness(40 * 60)["state"] == "refresh_delayed"   # 2-6 intervals
-    assert freshness(90 * 60)["state"] == "out_of_date"      # > 6 intervals
+    # 30-min complete-scan cadence: fresh <= 60 min, refresh_delayed 60-180 min, out_of_date > 180.
+    assert freshness(60)["state"] == "fresh"               # 1 min
+    assert freshness(45 * 60)["state"] == "fresh"          # 45 min, within 2 intervals
+    assert freshness(90 * 60)["state"] == "refresh_delayed"    # 90 min, 2-6 intervals
+    assert freshness(200 * 60)["state"] == "out_of_date"      # 200 min, > 6 intervals
     assert "does not describe signal quality" in freshness(60)["tooltip"]

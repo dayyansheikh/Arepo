@@ -14,12 +14,14 @@ and retries are safe.
 """
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import select
 
+from ..config import get_settings
 from ..domain.models import utcnow
 from .models import MarketResolutionRow
 from .research_constants import NEAREST_TOLERANCE_SECONDS, RESEARCH_HORIZONS
@@ -48,18 +50,24 @@ PriceProvider = Callable[[str, str], Awaitable[Quote | None]]
 
 
 async def collect_due_forward(
-    session, *, now: datetime | None = None, price_of: PriceProvider
+    session, *, now: datetime | None = None, price_of: PriceProvider,
+    concurrency: int | None = None,
 ) -> dict:
     """Record any forward observation whose horizon has elapsed for frozen prospective cohorts.
 
-    Returns a summary of how many observations were written, unavailable or already present.
+    Same causal + idempotency semantics as before (a horizon is only observed once elapsed from the
+    cohort's actual prediction time, written once per (entry, horizon)), but the slow live-quote
+    fetches run CONCURRENTLY (bounded) and the existing-observation check is a single batched query
+    per cohort — so a full-universe cohort's horizon spike is collected in minutes, not sequentially
+    over tens of minutes. Returns a summary of written / unavailable / already-present observations.
     """
     now = (now or utcnow()).astimezone(UTC)
+    conc = concurrency if concurrency is not None else get_settings().collect_concurrency
     repo = ResearchRepository(session)
-    written = unavailable = already = 0
-    closed_before = 0
+    written = unavailable = already = closed_before = invalid = 0
 
-    invalid = 0
+    # Phase 1 (no network): decide what is due. Batched existing-load; closed-before written inline.
+    to_fetch: list[tuple] = []  # (entry, horizon, target, delay, exact)
     cohorts = await repo.list_cohorts(provenance="prospective", frozen=True)
     for cohort in cohorts:
         # CAUSAL ORIGIN = when the prediction was actually made (evaluation_origin_at == frozen_at),
@@ -69,9 +77,9 @@ async def collect_due_forward(
         origin = (_utc(cohort.evaluation_origin_at) or _utc(cohort.frozen_at)
                   or _utc(cohort.cutoff_at))
         entries = await repo.get_entries(cohort.id)
-        existing_by_entry = {e.id: await repo.get_forward(e.id) for e in entries}
+        existing = await repo.forward_horizons_for_entries([e.id for e in entries])
         for entry in entries:
-            have = existing_by_entry[entry.id]
+            have = existing.get(entry.id, set())
             for horizon, secs in RESEARCH_HORIZONS.items():
                 target = origin + _timedelta(secs)   # horizon from the actual prediction time
                 if horizon in have:
@@ -79,11 +87,11 @@ async def collect_due_forward(
                     continue
                 if now < target:
                     continue  # horizon not yet elapsed (causal: never observe early)
-                # Closed-market handling (final-completion prompt C5/§11): if the market has already
-                # closed, a live quote now is post-close and useless, and no stored price at the
-                # target exists, so record a terminal state (evaluate via freeze-to-close) rather
-                # than a wasteful fetch that would only 404. This also bounds a late one-shot local
-                # collection to the markets that are genuinely still open.
+                delay = (now - target).total_seconds()
+                exact = abs(delay) <= NEAREST_TOLERANCE_SECONDS
+                # Closed-market handling (final-completion prompt C5/§11): a live quote now is
+                # post-close and useless, so record a terminal state (evaluate via freeze-to-close)
+                # rather than a wasteful fetch that would only 404 — no network needed.
                 close = _utc(entry.expected_close)
                 if close is not None and close <= now:
                     reason = (
@@ -95,34 +103,44 @@ async def collect_due_forward(
                     await repo.upsert_forward(
                         entry_id=entry.id, horizon=horizon, observed_at=now,
                         midpoint=None, best_bid=None, best_ask=None, spread=None,
-                        near_mid_depth=None, source_timestamp=None,
-                        exact=abs((now - target).total_seconds()) <= NEAREST_TOLERANCE_SECONDS,
-                        observation_delay_seconds=(now - target).total_seconds(),
-                        unavailable_reason=reason,
+                        near_mid_depth=None, source_timestamp=None, exact=exact,
+                        observation_delay_seconds=delay, unavailable_reason=reason,
+                        known_absent=True,
                     )
                     closed_before += 1
                     continue
-                quote = await _safe_quote(price_of, entry.market_id, entry.token_id)
-                delay = (now - target).total_seconds()
-                exact = abs(delay) <= NEAREST_TOLERANCE_SECONDS
-                if quote is None:
-                    await repo.upsert_forward(
-                        entry_id=entry.id, horizon=horizon, observed_at=now,
-                        midpoint=None, best_bid=None, best_ask=None, spread=None,
-                        near_mid_depth=None, source_timestamp=None, exact=exact,
-                        observation_delay_seconds=delay,
-                        unavailable_reason="no quote available at observation time",
-                    )
-                    unavailable += 1
-                    continue
-                await repo.upsert_forward(
-                    entry_id=entry.id, horizon=horizon, observed_at=now,
-                    midpoint=quote.midpoint, best_bid=quote.best_bid, best_ask=quote.best_ask,
-                    spread=quote.spread, near_mid_depth=quote.near_mid_depth,
-                    source_timestamp=quote.source_timestamp, exact=exact,
-                    observation_delay_seconds=delay, unavailable_reason=None,
-                )
-                written += 1
+                to_fetch.append((entry, horizon, target, delay, exact))
+
+    # Phase 2 (network): fetch the due quotes CONCURRENTLY (bounded), all at the single ``now``.
+    sem = asyncio.Semaphore(max(1, conc))
+
+    async def _fetch(task):
+        entry, horizon, _target, _delay, _exact = task
+        async with sem:
+            return task, await _safe_quote(price_of, entry.market_id, entry.token_id)
+
+    fetched = await asyncio.gather(*(_fetch(t) for t in to_fetch))
+
+    # Phase 3 (no network): persist. Session writes are batched into one commit.
+    for (entry, horizon, _target, delay, exact), quote in fetched:
+        if quote is None:
+            await repo.upsert_forward(
+                entry_id=entry.id, horizon=horizon, observed_at=now,
+                midpoint=None, best_bid=None, best_ask=None, spread=None,
+                near_mid_depth=None, source_timestamp=None, exact=exact,
+                observation_delay_seconds=delay,
+                unavailable_reason="no quote available at observation time", known_absent=True,
+            )
+            unavailable += 1
+        else:
+            await repo.upsert_forward(
+                entry_id=entry.id, horizon=horizon, observed_at=now,
+                midpoint=quote.midpoint, best_bid=quote.best_bid, best_ask=quote.best_ask,
+                spread=quote.spread, near_mid_depth=quote.near_mid_depth,
+                source_timestamp=quote.source_timestamp, exact=exact,
+                observation_delay_seconds=delay, unavailable_reason=None, known_absent=True,
+            )
+            written += 1
     await session.commit()
     return {
         "written": written, "unavailable": unavailable, "closed_before_horizon": closed_before,

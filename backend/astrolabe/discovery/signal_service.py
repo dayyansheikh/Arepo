@@ -29,7 +29,7 @@ SCOPE_PUBLIC = "public"          # up to ten highest-ranked directional (display
 SCOPE_SHADOW = "shadow"          # directional not in the public ten
 
 # --- Freshness (prompt B6): describes how recently a COMPLETE update arrived, not signal quality --
-REFRESH_INTERVAL_SECONDS = 600  # the scheduled complete-scan cadence (10 min, measured)
+REFRESH_INTERVAL_SECONDS = 1800  # scheduled complete-scan cadence (30 min; scan ~20-30 min)
 FRESH_MAX_INTERVALS = 2         # within 2 intervals -> Fresh
 DELAYED_MAX_INTERVALS = 6       # 2-6 intervals -> Refresh delayed; beyond -> Out of date
 

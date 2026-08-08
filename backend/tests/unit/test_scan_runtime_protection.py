@@ -62,6 +62,35 @@ def test_tick_deadline_ordering_invariant():
     assert s.tick_hard_deadline_seconds < 2400  # < the workflow timeout-minutes (40 min)
 
 
+def test_job_groups_partition_scan_and_collect():
+    """scan and collect are disjoint and together cover every job — no job is dropped or duplicated
+    when the monolithic tick is split into two scheduled workflows."""
+    from astrolabe.scheduler.tick import JOB_GROUPS
+    scan, collect, all_ = (set(JOB_GROUPS["scan"]), set(JOB_GROUPS["collect"]),
+                           set(JOB_GROUPS["all"]))
+    assert scan & collect == set()
+    assert scan | collect == all_
+    assert scan == {"refresh", "freeze"}
+    assert collect == {"forward", "preclose", "resolve", "retention"}
+
+
+async def test_group_gating_runs_only_that_groups_jobs(tmp_path, monkeypatch):
+    """--group scan must NOT run a collect job (and vice-versa), each under its own lease."""
+    from astrolabe.config import get_settings
+    from astrolabe.scheduler import tick as tick_mod
+
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+aiosqlite:///{tmp_path / 'g.db'}")
+    get_settings.cache_clear()
+    try:
+        scan = await tick_mod.run_tick(group="scan", only="retention", force=True)
+        assert scan["group"] == "scan"
+        assert "retention" not in scan["jobs"]      # retention is a collect job, not scan
+        collect = await tick_mod.run_tick(group="collect", only="retention", force=True)
+        assert collect["jobs"].get("retention", {}).get("ok") is True
+    finally:
+        get_settings.cache_clear()
+
+
 async def test_run_aborts_the_whole_tick_at_hard_deadline(monkeypatch):
     """A tick that never returns (e.g. post-scan work or cleanup hangs) is aborted in-loop at the
     hard deadline and reported non-zero — GitHub is never the component that kills it."""

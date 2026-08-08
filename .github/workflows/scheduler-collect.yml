@@ -1,0 +1,62 @@
+# Arepo COLLECT job — the light half of the split scheduler: due forward observations (concurrent),
+# freeze-to-close quotes, resolutions, and storage retention. Runs on its OWN lease so it proceeds
+# independently of the heavy scan job. No research logic lives in YAML; it only invokes the tick CLI
+# (--group collect). Every job is idempotent, bounded and self-terminating.
+
+name: arepo-collect
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # every 15 min: keep forward/preclose observations close to their horizon
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Ignore due-gates (true/false)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: arepo-collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    # Collect is fast (concurrent quote fetches); the app deadline (900s/15min) aborts before this.
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      ENVIRONMENT: production
+      LOG_JSON: "true"
+      DEFAULT_MODE: live
+      AUTO_MIGRATE: "true"
+      PYTHONUNBUFFERED: "1"
+      TICK_HARD_DEADLINE_SECONDS: "900"     # 15-min outer deadline (< 20-min workflow timeout)
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+      ALERT_EMAIL_ENABLED: ${{ secrets.ALERT_EMAIL_ENABLED }}
+      ALERT_PROVIDER: resend
+      ALERT_SENDER: ${{ secrets.ALERT_SENDER }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+      - name: Run collect tick (forward + preclose + resolve + retention)
+        run: |
+          EXTRA=""
+          [ "${{ github.event.inputs.force }}" = "true" ] && EXTRA="--force"
+          python -m astrolabe.scheduler.tick run --group collect $EXTRA
+      - name: Health snapshot (always)
+        if: always()
+        run: python -m astrolabe.scheduler.tick status || true

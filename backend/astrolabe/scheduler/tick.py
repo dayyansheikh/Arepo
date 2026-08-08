@@ -45,8 +45,17 @@ from ..storage.migrate import preflight
 from . import state as sched_state
 from .retention import run_retention, storage_health
 
-_LEASE_NAME = "scheduler-tick"
 logger = get_logger("astrolabe.scheduler.tick")
+
+# Job groups run as SEPARATE scheduled workflows so the heavy complete scan never starves the light
+# evaluation/collection work (the monolithic-tick failure mode). Each group takes its OWN lease so a
+# 20–30 min scan and a frequent collect run can proceed independently without blocking each other.
+JOB_GROUPS = {
+    "scan": ["refresh", "freeze"],                       # heavy: universe scan + cohort freeze
+    "collect": ["forward", "preclose", "resolve", "retention"],  # light: observations + maintenance
+    "all": ["refresh", "freeze", "forward", "preclose", "resolve", "retention"],  # manual full tick
+}
+_ALL_JOBS = JOB_GROUPS["all"]
 
 
 def _utc(dt: datetime | None) -> datetime | None:
@@ -115,9 +124,15 @@ async def _freeze_due_cadences(session, now: datetime) -> list[str]:
     return due
 
 
-async def run_tick(*, only: str | None = None, force: bool = False) -> dict:
-    """Run one tick. Returns a JSON-able summary; ``ok`` is False if any due job failed."""
+async def run_tick(*, group: str = "all", only: str | None = None, force: bool = False) -> dict:
+    """Run one tick for a job GROUP. Returns a JSON-able summary; ``ok`` False if a due job failed.
+
+    ``group`` selects which jobs run (scan | collect | all) and which lease is taken, so the heavy
+    scan group and the light collect group never block each other.
+    """
     settings = get_settings()
+    active = set(JOB_GROUPS.get(group, _ALL_JOBS))
+    lease_name = f"scheduler-{group}"
     engine = make_engine()
     # Schema must be current before any cohort work (fail-fast unless AUTO_MIGRATE).
     await preflight(engine, auto_migrate=settings.auto_migrate)
@@ -129,19 +144,20 @@ async def run_tick(*, only: str | None = None, force: bool = False) -> dict:
 
     async with sm() as lease_session:
         got = await sched_state.acquire_lease(
-            lease_session, name=_LEASE_NAME, holder=holder,
+            lease_session, name=lease_name, holder=holder,
             ttl_seconds=settings.tick_lease_seconds, now=now,
         )
     if not got:
         await engine.dispose()  # release the pool on the early-exit path (duplicate-tick backoff)
-        return {"ran": False, "reason": "another tick holds the lease", "ok": True, "jobs": {}}
+        return {"ran": False, "reason": f"another {group} tick holds the lease",
+                "ok": True, "group": group, "jobs": {}}
 
     service = MarketService()
     data_api = DataApiClient()
 
     async def _job(name: str, coro_factory):
         nonlocal ok
-        if only is not None and only != name:
+        if name not in active or (only is not None and only != name):
             return
         t0 = time.time()
         logger.info("phase start", extra={"ctx_phase": name})
@@ -236,7 +252,7 @@ async def run_tick(*, only: str | None = None, force: bool = False) -> dict:
                 pass
         try:
             async with sm() as s:
-                await sched_state.release_lease(s, name=_LEASE_NAME, holder=holder)
+                await sched_state.release_lease(s, name=lease_name, holder=holder)
         except Exception:  # noqa: BLE001
             pass
         try:
@@ -246,7 +262,7 @@ async def run_tick(*, only: str | None = None, force: bool = False) -> dict:
         logger.info("phase done", extra={"ctx_phase": "cleanup",
                                          "ctx_elapsed_s": round(time.time() - t_cleanup, 1)})
 
-    return {"ran": True, "ok": ok, "at": now.isoformat(), "jobs": jobs}
+    return {"ran": True, "ok": ok, "group": group, "at": now.isoformat(), "jobs": jobs}
 
 
 async def health_from_session(session) -> dict:
@@ -317,7 +333,8 @@ async def _run(args: argparse.Namespace) -> int:
     deadline = get_settings().tick_hard_deadline_seconds
     try:
         summary = await asyncio.wait_for(
-            run_tick(only=getattr(args, "only", None), force=getattr(args, "force", False)),
+            run_tick(group=getattr(args, "group", "all"), only=getattr(args, "only", None),
+                     force=getattr(args, "force", False)),
             timeout=deadline,
         )
     except TimeoutError:
@@ -345,6 +362,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="astrolabe.scheduler.tick", description=__doc__)
     sub = p.add_subparsers(dest="command", required=True)
     r = sub.add_parser("run", help="run one tick: do only what is due")
+    r.add_argument("--group", default="all", choices=["scan", "collect", "all"],
+                   help="scan=refresh+freeze (heavy); collect=forward+preclose+resolve+retention")
     r.add_argument("--only", default=None,
                    choices=["refresh", "freeze", "forward", "preclose", "resolve", "retention"])
     r.add_argument("--force", action="store_true", help="ignore due-gates for the selected job(s)")

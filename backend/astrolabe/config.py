@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     # A hosted runner (GitHub Actions) wakes ~every 5 min and the app decides what is DUE. All of
     # these are cadence intents, not exact-second guarantees: the tick is delay-tolerant and every
     # unit of work is idempotent, so a late/duplicate/missed wake never fabricates or double-writes.
-    scan_refresh_interval_minutes: int = 10   # min age of the latest COMPLETE scan before a refresh
+    scan_refresh_interval_minutes: int = 25   # min age of latest COMPLETE scan before a refresh (30-min cadence)  # noqa: E501
     resolve_interval_minutes: int = 60        # how often to check for newly-available resolutions
     preclose_interval_minutes: int = 15       # how often to collect freeze-to-close quotes
     forward_interval_minutes: int = 15        # how often to collect due 1h/6h/24h/7d observations
@@ -103,6 +103,7 @@ class Settings(BaseSettings):
     # the runner kills it. Concurrency is env-tunable for measurement without a code change.
     scan_timeout_seconds: int = 1800          # hard cap on one complete scan (30 min); abort clean
     scan_enrich_concurrency: int = 6          # markets enriched in parallel (raise only if not 429-bound)  # noqa: E501
+    collect_concurrency: int = 8              # due forward-observation quotes fetched in parallel
     scan_lease_seconds: int = 2400            # discovery scan lease TTL (40 min > scan_timeout)
     tick_lease_seconds: int = 2400            # scheduler-lease TTL (40 min > scan_timeout)
     # True OUTER wall-clock deadline for the ENTIRE tick (all jobs + cleanup + exit). Must be < the
