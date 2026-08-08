@@ -188,30 +188,10 @@ class SignalReadService:
         eligible_in_bucket = len(rows)
         directional_in_bucket = sum(1 for r in rows if r.direction in ("up", "down"))
         # Server-side trajectory per shown market (prompt section 19: the frontend never infers
-        # trajectory state). Computed from that market's full stored snapshot history.
+        # trajectory state). Uses the shared BATCHED attach (one snapshot query, not a per-row N+1
+        # that timed out for the full directional scope over the production pooler).
         now = utcnow()
-        out_rows = []
-        for r in shown:
-            d = _row_public(r)
-            hist = await scan_store.snapshots_for_market(self.session, r.market_id)
-            snaps = [
-                Snap(
-                    captured_at=h.captured_at, strength=h.strength, direction=h.direction,
-                    rank_in_bucket=h.rank_in_bucket, research_priority=h.research_priority,
-                    evidence_families=tuple(h.evidence_families or ()),
-                )
-                for h in hist
-            ]
-            t = compute_trajectory(snaps, now=now)
-            d["trajectory"] = {
-                "label": t.label,
-                "strength_change_prev": t.strength_change_prev,
-                "change_1h": t.change_1h,
-                "consecutive_same_direction": t.consecutive_same_direction,
-                "first_detected": t.first_detected.isoformat() if t.first_detected else None,
-                "scans": t.scans,
-            }
-            out_rows.append(d)
+        out_rows = await self._attach_trajectory(shown, now)
         return {
             "has_scan": True,
             "scan_id": latest.scan_id,
