@@ -159,6 +159,21 @@ async def test_clean_refuses_destination_with_real_data(tmp_path):
         await import_all(source_path=str(src), dest_url=url, clean=True)
 
 
+def test_sequence_reset_only_targets_integer_pks():
+    """Regression: _reset_sequences must skip text/composite PKs (e.g. calculation_versions.version,
+    scheduler_leases.name) — resetting a sequence for a text PK made Postgres raise
+    'COALESCE types text and integer cannot be matched'. Only integer-PK tables get reset."""
+    from astrolabe.storage.db import Base
+    from astrolabe.storage.import_sqlite import _integer_pk_column
+    by_name = {t.name: t for t in Base.metadata.sorted_tables}
+    # Text PK -> excluded
+    assert _integer_pk_column(by_name["calculation_versions"]) is None  # PK 'version' is a String
+    assert _integer_pk_column(by_name["scheduler_leases"]) is None      # PK 'name' is a String
+    # Integer autoincrement PK -> included
+    assert _integer_pk_column(by_name["research_entries"]) == "id"
+    assert _integer_pk_column(by_name["discovery_signal_snapshots"]) == "id"
+
+
 def test_new_tables_are_postgres_portable():
     """The new scheduler tables compile for the PostgreSQL dialect (no SQLite-only types)."""
     ddl = "\n".join(ddl_preview("postgresql"))

@@ -176,19 +176,39 @@ async def import_all(
     return report
 
 
+def _integer_pk_column(table) -> str | None:
+    """Name of the table's single INTEGER primary-key column, else None.
+
+    Only integer PKs are backed by a sequence in Postgres. ``Column.autoincrement`` defaults to the
+    truthy string ``"auto"`` even for a text PK (e.g. ``calculation_versions.version``), so it must
+    NOT be used to decide this — checking the column TYPE is the correct test. BigInteger subclasses
+    Integer, so it is covered.
+    """
+    from sqlalchemy import Integer
+    pk = list(table.primary_key.columns)
+    if len(pk) == 1 and isinstance(pk[0].type, Integer):
+        return pk[0].name
+    return None
+
+
 async def _reset_sequences(engine, tables) -> list[str]:
+    """Advance each imported integer-PK sequence past the imported max, so later app inserts don't
+    collide with imported primary keys. Skips text/composite PKs and any column with no backing
+    sequence."""
     from sqlalchemy import text
     reset: list[str] = []
     async with engine.begin() as conn:
         for table in tables:
-            pk = list(table.primary_key.columns)
-            if len(pk) != 1 or not pk[0].autoincrement:
+            col = _integer_pk_column(table)
+            if col is None:
                 continue
-            col = pk[0].name
+            seq = await conn.scalar(
+                text("SELECT pg_get_serial_sequence(:t, :c)"), {"t": table.name, "c": col})
+            if not seq:  # integer PK with no serial/identity sequence (nothing to reset)
+                continue
             await conn.execute(text(
-                f"SELECT setval(pg_get_serial_sequence('{table.name}', '{col}'), "
-                f"COALESCE((SELECT MAX({col}) FROM {table.name}), 1), true)"
-            ))
+                f"SELECT setval('{seq}', "
+                f"COALESCE((SELECT MAX({col}) FROM {table.name}), 1), true)"))
             reset.append(table.name)
     return reset
 
