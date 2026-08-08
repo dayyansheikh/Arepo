@@ -82,8 +82,23 @@ free plan.
      (public). **Never** `*`.
    - `ALERT_EMAIL_ENABLED` = `false` for now (you enable email in Step 9).
    - `ALERT_SENDER`, `RESEND_API_KEY` = leave blank for now.
-3. Deploy. The `preDeployCommand` runs the schema migration automatically before the app serves.
+3. Deploy. The **build command** ends with `migrate_cli upgrade`, which **creates the schema in your
+   empty Supabase database before the app serves** (and halts the deploy if the DB is unreachable — an
+   intentional fail-fast). The app also self-migrates on startup as a backup.
+   - **Fallback (only if the build fails at the migrate step** — e.g. Render's build network can't reach
+     Supabase): edit `render.yaml` to drop the trailing `&& python -m astrolabe.storage.migrate_cli
+     upgrade` from `buildCommand`, commit/push, and run the migration once **from your Mac** instead:
+     ```
+     cd backend
+     DATABASE_URL="postgresql+asyncpg://…pooler.supabase.com:5432/postgres" \
+       python -m astrolabe.storage.migrate_cli upgrade
+     ```
+     (Startup auto-migrate would also create it on first boot, but running it yourself is the certain path.)
 4. When it's live, note the API URL Render gives you, e.g. `https://arepo-api.onrender.com`.
+
+> Why not `preDeployCommand`? Render **Free** web services do not support it (it's a paid release
+> phase). The build-step migration is the correct £0 equivalent: it runs before traffic and fails the
+> deploy loudly on error.
 
 ## Step 3 — Verify the API + database
 

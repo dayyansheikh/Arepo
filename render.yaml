@@ -20,11 +20,14 @@ services:
     runtime: python
     rootDir: backend
     plan: free
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    # Release phase: apply the additive schema migration BEFORE the new version serves traffic and
-    # before any collector job runs. Idempotent; halts the deploy on failure (final pre-deployment
-    # §3). Does not depend on the web server being awake.
-    preDeployCommand: python -m astrolabe.storage.migrate_cli upgrade
+    # Apply the additive schema migration as the LAST build step, so it runs BEFORE the new version
+    # serves traffic and HALTS THE DEPLOY on failure (fail-fast, idempotent). Render Free does NOT
+    # support `preDeployCommand` (that is a paid release phase), so the migration lives in the build
+    # instead — the build container has the service env vars (incl. DATABASE_URL) and outbound network
+    # to Postgres. The app ALSO self-migrates on startup (AUTO_MIGRATE below) as belt-and-suspenders.
+    # If a build ever cannot reach the DB, remove the `&& migrate_cli upgrade` and run it once from
+    # your Mac instead (see docs/FREE_PRODUCTION_DEPLOYMENT.md Step 2 fallback) — startup still migrates.
+    buildCommand: pip install -r requirements.txt && pip install -e . && python -m astrolabe.storage.migrate_cli upgrade
     startCommand: uvicorn astrolabe.api.app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
@@ -35,8 +38,9 @@ services:
         value: "true"
       - key: DEFAULT_MODE
         value: live
-      # Belt-and-suspenders: collector jobs also self-migrate on start. Set to "false" to rely only
-      # on the release command (jobs then fail-fast with an actionable message if the schema is old).
+      # Belt-and-suspenders: the API and every collector self-migrate on start. With the build-step
+      # migration above this is redundant on a healthy deploy, but it guarantees additive column adds
+      # are applied even if a future deploy skips the build migration.
       - key: AUTO_MIGRATE
         value: "true"
       # Secrets and per-environment values: set in the Render dashboard, never committed.
