@@ -28,7 +28,9 @@ jobs:
           sudo apt-get install -y postgresql-client
       - name: Dump and compress
         env:
-          # Use the DIRECT (session) connection string for pg_dump, not the transaction pooler.
+          # Supabase SESSION pooler URL (…pooler.supabase.com:5432), plain postgresql:// (no +asyncpg).
+          # The direct connection is IPv6-only on the free plan and unreachable from IPv4 Actions runners;
+          # the transaction pooler (6543) is not suitable for pg_dump. Session pooler works for both.
           BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
         run: |
           test -n "$BACKUP_DATABASE_URL" || { echo "BACKUP_DATABASE_URL secret is not set"; exit 1; }

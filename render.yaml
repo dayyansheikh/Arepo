@@ -44,7 +44,7 @@ services:
         sync: false
       - key: ADMIN_TOKEN           # guards /admin/health; unset => admin route disabled (404)
         sync: false
-      - key: DATABASE_URL          # Supabase Postgres: use the transaction pooler URL (see docs)
+      - key: DATABASE_URL          # Supabase: SESSION pooler URL (…pooler.supabase.com:5432), postgresql+asyncpg (see docs)
         sync: false
       - key: APP_BASE_URL          # e.g. https://arepo.vercel.app
         sync: false

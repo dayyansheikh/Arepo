@@ -49,15 +49,22 @@ free plan.
 1. Supabase → **New project**. Name it `arepo`. Choose a region near your users. Set a strong database
    password and **save it** (you will paste it into Render and GitHub, never into code).
 2. Wait for the project to finish provisioning.
-3. Open **Project Settings → Database → Connection string**. You need two forms:
-   - **Transaction pooler** URL (host contains `pooler`, port `6543`) — for the API and the tick.
-   - **Direct connection** URL (port `5432`) — for backups (pg_dump).
-4. Convert each to the async driver Arepo uses by changing the scheme to `postgresql+asyncpg://`:
-   - `postgresql://USER:PASSWORD@HOST:6543/postgres` → `postgresql+asyncpg://USER:PASSWORD@HOST:6543/postgres`
-   - Keep the direct (`:5432`) one as plain `postgresql://…` for pg_dump (backup).
-5. Keep both strings handy for the next steps. **These are secrets.**
+3. Open **Project Settings → Database → Connection string** and copy the **Session pooler** URL — the
+   one whose host contains `pooler.supabase.com`, **port `5432`**, user `postgres.<project-ref>`. Use the
+   Session pooler (not Direct, not Transaction) for **everything**:
+   - **Direct connection** is IPv6-only on the free plan; Render + GitHub Actions are IPv4, so it won't
+     connect (IPv4 is a paid add-on). ✗
+   - **Transaction pooler (`6543`)** handles Arepo's `asyncpg` prepared statements unreliably. ✗
+   - **Session pooler (`5432` on the pooler host)** is IPv4-compatible and session-mode, so `asyncpg`
+     works with no special config. ✓
+4. You'll create two secrets from this one URL:
+   - `DATABASE_URL` (API + scheduler) — change the scheme to the async driver:
+     `postgresql://…pooler.supabase.com:5432/postgres` → `postgresql+asyncpg://…pooler.supabase.com:5432/postgres`
+   - `BACKUP_DATABASE_URL` (backup job) — keep the **same** Session pooler URL as plain `postgresql://…`
+     (pg_dump does not understand `+asyncpg`).
+5. Keep the string handy for the next steps. **This is a secret** (never paste it into chat).
 
-> Supabase free projects **pause after 7 days with no requests**. Arepo's API and the every-5-minute
+> Supabase free projects **pause after 7 days with no requests**. Arepo's API and the ~10-minute
 > tick both touch the database, so in normal operation it will not pause. If you ever pause the tick
 > for over a week, resume the project from the Supabase dashboard.
 
@@ -67,7 +74,7 @@ free plan.
    from. Render reads `render.yaml` and proposes the `arepo-api` web service. (There are **no** cron
    services — that is intentional; scheduling is on GitHub Actions.)
 2. When prompted for the environment variables marked "sync:false", set:
-   - `DATABASE_URL` = the **transaction pooler** async URL from Step 1.4 (secret).
+   - `DATABASE_URL` = the **Session pooler** async URL from Step 1.4 (secret).
    - `AUTH_SECRET` = a strong random string ≥ 32 characters (generate one; secret).
    - `ADMIN_TOKEN` = a strong random string (secret; guards `/admin/health`).
    - `APP_BASE_URL` = your future frontend URL, e.g. `https://arepo.dsheikh.cc` (public).
@@ -98,7 +105,7 @@ from your Mac (it reads your local `backend/astrolabe.db` read-only).
    ```
    python -m astrolabe.storage.import_sqlite \
      --source ./astrolabe.db \
-     --dest "postgresql+asyncpg://USER:PASSWORD@HOST:6543/postgres" \
+     --dest "postgresql+asyncpg://USER:PASSWORD@HOST:5432/postgres" \
      --dry-run
    ```
    Read the printed table plan: it lists how many rows each table would import.
@@ -109,23 +116,28 @@ from your Mac (it reads your local `backend/astrolabe.db` read-only).
    ```
    python -m astrolabe.storage.import_sqlite \
      --source ./astrolabe.db \
-     --dest "postgresql+asyncpg://USER:PASSWORD@HOST:6543/postgres" \
+     --dest "postgresql+asyncpg://USER:PASSWORD@HOST:5432/postgres" \
      --require-empty
    ```
-4. **Check the reconciliation report** printed at the end: `"reconciliation": { "ok": true, … }` and
-   every `cohort_invariants` entry `"ok": true` (each frozen cohort's `entries == universe_size`). If
-   `ok` is false, **stop** — the tool exits non-zero and the destination is not trustworthy; do not
-   proceed. Re-run after fixing the connection, or ask for help.
+4. **Check the reconciliation report** printed at the end. All of these must hold, or the tool exits
+   non-zero and you must **stop** (the destination is not trustworthy):
+   - `"reconciliation": { "ok": true, … }`
+   - `"value_verification": { "ok": true, "missing_rows": 0, "value_mismatch_rows": 0, … }` — every
+     source row is present in Postgres with byte-identical immutable values (this is the real integrity
+     check; counts alone can't catch a corrupted row).
+   - every `cohort_invariants` entry `"ok": true` (each frozen cohort's `entries == universe_size`).
+   If anything is false, re-run after fixing the connection, or ask for help.
 
 ## Step 5 — Configure the GitHub Actions scheduler
 
 1. In GitHub → the repo → **Settings → Secrets and variables → Actions → New repository secret**, add:
-   - `DATABASE_URL` = the **transaction pooler** async URL (secret).
+   - `DATABASE_URL` = the **Session pooler** async URL (secret).
    - `AUTH_SECRET` = the same value as Render (secret).
    - `APP_BASE_URL` = your frontend URL (public-ish; still store as secret).
    - `ALERT_EMAIL_ENABLED` = `false` for now.
    - `ALERT_SENDER`, `RESEND_API_KEY` = blank for now (set in Step 9).
-   - `BACKUP_DATABASE_URL` = the **direct** (`:5432`, plain `postgresql://`) URL for pg_dump (secret).
+   - `BACKUP_DATABASE_URL` = the **same Session pooler** URL, plain `postgresql://…:5432/postgres` (no
+     `+asyncpg`), for pg_dump (secret).
 2. Make sure the repository is **public** (Settings → General → Change visibility) if you want free
    unlimited Actions minutes. If you keep it private, lower the scan frequency later.
 
@@ -211,8 +223,8 @@ Only now, after Steps 6 and 8 verified a real tick and the site:
 | Variable | Frontend (Vercel) | API (Render) | Scheduler (GH Actions) | Secret? | Where it comes from |
 |---|:--:|:--:|:--:|:--:|---|
 | `NEXT_PUBLIC_API_BASE` | ✅ | — | — | public | Render API URL (Step 2.4) |
-| `DATABASE_URL` | — | ✅ | ✅ | **secret** | Supabase pooler URL (Step 1.4) |
-| `BACKUP_DATABASE_URL` | — | — | ✅ | **secret** | Supabase **direct** URL (Step 1.4) |
+| `DATABASE_URL` | — | ✅ | ✅ | **secret** | Supabase **Session pooler** URL, `postgresql+asyncpg://…:5432` (Step 1) |
+| `BACKUP_DATABASE_URL` | — | — | ✅ | **secret** | Same **Session pooler** URL, plain `postgresql://…:5432` (Step 1) |
 | `AUTH_SECRET` | — | ✅ | ✅ | **secret** | you generate (≥32 chars) |
 | `ADMIN_TOKEN` | — | ✅ | — | **secret** | you generate |
 | `APP_BASE_URL` | — | ✅ | ✅ | public | your frontend URL |
