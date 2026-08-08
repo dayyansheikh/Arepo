@@ -148,9 +148,16 @@ describe("copy", () => {
       "2026-08-07T00:00:00.000Z",
     );
   });
-  it("next freeze line is UTC-labelled and marks day rollover", () => {
-    expect(nextFreezeLine(new Date("2026-08-06T05:30:00Z"))).toBe("Next freeze ~06:00 UTC");
-    expect(nextFreezeLine(new Date("2026-08-06T18:45:00Z"))).toBe("Next freeze ~00:00 UTC tomorrow");
+  it("next freeze line labels the local-time boundary (TZ-independent shape)", () => {
+    // The exact clock text depends on the runner's timezone, so assert the label + that it renders
+    // the same instant the boundary math produces, rather than a hard-coded local string.
+    const now = new Date("2026-08-06T05:30:00Z");
+    const boundary = nextFreezeAt(now); // 06:00Z
+    const expectedLocal = boundary.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    expect(nextFreezeLine(now)).toBe(`Next research freeze: ${expectedLocal}`);
   });
   it("hit-rate sentence in plain English", () => {
     const counts = {

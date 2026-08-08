@@ -68,6 +68,9 @@ class ScanResult:
     status: str = "ok"
     selection_policy: str = SELECTION_POLICY_VERSION
     public_selection_limit: int = PUBLIC_SELECTION_LIMIT
+    # The full eligible-market universe (metadata) of this scan, retained so the scan job can
+    # persist it as the genuine offline Explore fallback (MarketRow) — never a demo fixture.
+    eligible_markets: list[Market] = field(default_factory=list)
 
     @property
     def directional(self) -> list[AnalysedMarket]:
@@ -222,6 +225,7 @@ class CompleteScanService:
             duration_seconds=(finished - started).total_seconds(),
             discovery=report, funnel=funnel, analysed=analysed,
             scoring_excluded=scoring_excluded, status=status,
+            eligible_markets=eligible_markets,
         )
 
     def result_summary(self, result: ScanResult) -> dict:

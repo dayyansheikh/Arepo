@@ -11,6 +11,7 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 
 from ..analytics.backtest import run_backtest
+from ..clients.errors import UpstreamUnavailable
 from ..config import Settings, get_settings
 from ..domain.enums import DataMode
 from ..domain.models import DataStatus, Market, PricePoint, Signal
@@ -70,16 +71,46 @@ class MarketService:
         except ValueError:
             return DataMode.LIVE
 
+    def _replay_allowed(self) -> bool:
+        """The replay dataset is demo/fixture data. It is NEVER an implicit production fallback:
+        in production the demo scenario must never be silently presented as real markets (it caused
+        Explore to show fabricated 'Team Aurora'/'Candidate X' rows when live was momentarily down).
+        Allowed only outside production, so tests/dev keep working with no upstream."""
+        return self._settings.environment != "production"
+
+    async def _cached_markets_if_any(self) -> list[Market] | None:
+        """The latest COMPLETE production scan persisted in Supabase, or None when empty/absent.
+        This is the genuine offline fallback the scan job keeps fresh (see refresh_cli)."""
+        if not self._cached.available():
+            return None
+        try:
+            markets = await self._cached.markets()
+        except Exception as exc:  # noqa: BLE001 - a cache read error is not fatal; treat as empty
+            logger.warning("cached read failed", extra={"ctx_err": str(exc)})
+            return None
+        return markets or None
+
     async def _select_source(self, requested: str | None) -> tuple[DataSource, str | None]:
-        """Return (source, degradation_reason). Falls back live -> cached -> replay."""
+        """Return (source, degradation_reason). Live -> cached (latest complete scan) -> honest
+        error. The replay demo dataset is only used outside production (see _replay_allowed)."""
         mode = self._default_mode() if not requested else _coerce_mode(requested)
 
         if mode == DataMode.REPLAY:
-            return self._replay, None
+            if self._replay_allowed():
+                return self._replay, None
+            # Replay explicitly requested in production is refused (demo data): serve live instead.
+            mode = DataMode.LIVE
         if mode == DataMode.CACHED:
+            # Explicit cached request: honour it whenever storage is wired (an empty cached response
+            # is honest — mode=cached, zero markets). Only when storage itself is unavailable do we
+            # consider a fallback, and never to demo data in production.
             if self._cached.available():
                 return self._cached, None
-            return self._replay, "cache unavailable; using replay"
+            if self._replay_allowed():
+                return self._replay, "cache unavailable; using replay"
+            raise UpstreamUnavailable(
+                "Market data is temporarily unavailable. Please retry shortly."
+            )
 
         # LIVE requested: probe by attempting a discovery; fall back on failure.
         try:
@@ -87,11 +118,15 @@ class MarketService:
             return self._live, None
         except Exception as exc:  # noqa: BLE001 - fall back rather than fail the request
             logger.warning("live discovery failed; falling back", extra={"ctx_err": str(exc)})
-            if self._cached.available():
-                cached_markets = await self._cached.markets()
-                if cached_markets:
-                    return self._cached, f"live unavailable ({type(exc).__name__}); using cache"
-            return self._replay, f"live unavailable ({type(exc).__name__}); using replay"
+            if await self._cached_markets_if_any() is not None:
+                return self._cached, f"live unavailable ({type(exc).__name__}); using latest scan"
+            if self._replay_allowed():
+                return self._replay, f"live unavailable ({type(exc).__name__}); using replay"
+            # Production with no live and no cached scan yet: fail honestly, never show demo data.
+            raise UpstreamUnavailable(
+                "Live market data is temporarily unavailable and no recent scan is cached yet. "
+                "Please retry shortly."
+            ) from exc
 
     async def _status(self, source: DataSource, reason: str | None,
                      last_update: datetime | None) -> DataStatus:

@@ -139,17 +139,23 @@ export function nextFreezeAt(now: Date, cadenceHours: number = FREEZE_CADENCE_HO
   return next;
 }
 
-/** "Next freeze ~18:00 UTC" (adds "tomorrow" when it crosses a day boundary). The freeze rides on the
- * next scan, so it lands a few minutes after the boundary — hence the ~. */
-export function nextFreezeLine(now: Date, cadenceHours: number = FREEZE_CADENCE_HOURS): string {
+/** The next freeze boundary formatted in the VIEWER'S OWN LOCAL TIME (the boundary is a fixed UTC
+ * instant; we render it wherever the user is). Appends the short weekday when it lands on a different
+ * local calendar day, so "9:00 pm" is never ambiguous. Time only, no "~": the boundary itself is
+ * exact; the scan that performs the freeze simply runs within a few minutes of it. */
+export function nextFreezeLocal(now: Date, cadenceHours: number = FREEZE_CADENCE_HOURS): string {
   const next = nextFreezeAt(now, cadenceHours);
-  const hh = String(next.getUTCHours()).padStart(2, "0");
-  const mm = String(next.getUTCMinutes()).padStart(2, "0");
-  const sameDay =
-    next.getUTCFullYear() === now.getUTCFullYear() &&
-    next.getUTCMonth() === now.getUTCMonth() &&
-    next.getUTCDate() === now.getUTCDate();
-  return `Next freeze ~${hh}:${mm} UTC${sameDay ? "" : " tomorrow"}`;
+  const time = next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const sameLocalDay = next.toDateString() === now.toDateString();
+  const day = sameLocalDay
+    ? ""
+    : ` ${next.toLocaleDateString(undefined, { weekday: "short" })}`;
+  return `${time}${day}`;
+}
+
+/** The full "Next research freeze: <local time>" label shown beside the cohort info. */
+export function nextFreezeLine(now: Date, cadenceHours: number = FREEZE_CADENCE_HOURS): string {
+  return `Next research freeze: ${nextFreezeLocal(now, cadenceHours)}`;
 }
 
 export function resultTitle(tab: HorizonTab): string {

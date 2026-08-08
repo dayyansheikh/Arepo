@@ -25,6 +25,7 @@ import {
   horizonAvailability,
   horizonTooltip,
   nextFreezeLine,
+  nextFreezeLocal,
   pendingMessage,
   pickCohortForHorizon,
   resultTitle,
@@ -91,7 +92,10 @@ export default function ReplayPage() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-arepo-muted">
             <span data-testid="cohort-line">{cohortSummaryLine(cohort)}</span>
             <span aria-hidden="true">·</span>
-            <span data-testid="next-freeze" title="Cohorts freeze every 6h at 00/06/12/18 UTC.">
+            <span
+              data-testid="next-freeze"
+              title="Cohorts freeze every 6 hours at 00:00 / 06:00 / 12:00 / 18:00 UTC. Live signals continue updating between freezes."
+            >
               {nextFreezeLine(now)}
             </span>
             {newestIsCollecting && (
@@ -114,6 +118,9 @@ export default function ReplayPage() {
               </button>
             )}
           </div>
+          <p className="text-[12px] text-arepo-muted">
+            Live signals continue updating between freezes.
+          </p>
 
           <CohortControls list={list!} cohort={cohort} manualId={manualId} setManual={setManualCohort} />
 
@@ -650,7 +657,7 @@ function CohortDetails({
     ["Scheduled cut-off", dt(cohort.scheduled_for)],
     ["Actually frozen", dt(cohort.frozen_at)],
     ["Lateness", cohort.late ? `${Math.round(cohort.lateness_minutes)} minutes` : "on time"],
-    ["Next freeze scheduled", nextFreezeLine(now).replace(/^Next freeze ~/, "~")],
+    ["Next research freeze (your time)", nextFreezeLocal(now)],
     ["Evaluation starts from", dt(cohort.evaluation_origin_at)],
     ["Selection policy", result?.selection_policy ?? "-"],
     ["Full frozen universe", String(cohort.universe_size)],

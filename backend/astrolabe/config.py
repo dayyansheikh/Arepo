@@ -75,6 +75,10 @@ class Settings(BaseSettings):
     # --- Discovery limits (be polite to public APIs) ---
     discovery_limit: int = 60
     poll_interval_seconds: float = 15.0
+    # Max markets the cached (storage-backed) source returns for the Explore list/facets when it is
+    # serving the latest COMPLETE scan as the offline fallback. Larger than discovery_limit so the
+    # fallback shows a genuine slice of the universe, not a sliver. Bounded to keep it a fast query.
+    cached_market_limit: int = 500
 
     # --- Production scheduler (single idempotent tick; see astrolabe/scheduler) ---
     # A hosted runner (GitHub Actions) wakes ~every 5 min and the app decides what is DUE. All of

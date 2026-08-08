@@ -17,7 +17,7 @@ import { Disclose, SectionLabel } from "@/components/ui";
 
 const MODE_LABEL: Record<string, string> = {
   live: "Live",
-  cached: "Cached",
+  cached: "Latest scan",
   replay: "Replay",
 };
 
@@ -329,6 +329,11 @@ export default function MarketsPage() {
               {MODE_LABEL[data.status.mode] ?? data.status.mode}
             </span>{" "}
             data, updated {formatDurationSeconds(data.status.data_age_seconds)} ago.
+            {data.status.degradation_reason && (
+              <span className="ml-1 text-arepo-warnText">
+                Live data is temporarily unavailable; showing the latest complete scan.
+              </span>
+            )}
           </p>
         )}
         <DisclaimerBanner />

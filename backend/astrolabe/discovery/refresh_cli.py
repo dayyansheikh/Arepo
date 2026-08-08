@@ -53,8 +53,26 @@ async def run_refresh(
                 "incomplete; nothing recorded"
             ) from exc
         rec = await scan_store.record_scan(session, result)
+        # Persist the discovered universe (metadata only) as the genuine offline Explore fallback:
+        # MarketService reads MarketRow as its cached source, so this keeps Explore on real markets
+        # from the latest COMPLETE scan when live discovery is momentarily down — instead of ever
+        # showing the demo replay dataset. Best-effort and idempotent (upsert); a partial/incomplete
+        # scan is skipped so a truncated universe never overwrites a good one.
+        persisted = 0
+        if result.status == "ok" and result.eligible_markets:
+            try:
+                from ..storage.repository import Repository
+
+                persisted = await Repository(session).upsert_markets(result.eligible_markets)
+            except Exception as exc:  # noqa: BLE001 - the scan itself must not fail on a cache write
+                from ..observability.logging import get_logger
+
+                get_logger("astrolabe.discovery.refresh").warning(
+                    "market cache upsert failed", extra={"ctx_err": str(exc)}
+                )
         summary = scanner.result_summary(result)
         summary["record"] = rec
+        summary["markets_cached"] = persisted
         summary["ran"] = True
         return summary
     finally:

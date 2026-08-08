@@ -300,7 +300,10 @@ class CachedSource:
 
     @staticmethod
     def _limit() -> int:
-        return get_settings().discovery_limit
+        # The cached source is the OFFLINE fallback that serves the latest COMPLETE scan universe
+        # (persisted to MarketRow by the scan job). It must not be clipped to the small live-
+        # discovery politeness limit, or Explore would show only a sliver when live is down.
+        return max(get_settings().discovery_limit, get_settings().cached_market_limit)
 
 
 def _is_tradeable(market: Market) -> bool:

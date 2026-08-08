@@ -78,6 +78,18 @@ def create_app() -> FastAPI:
         )
         return response
 
+    from ..clients.errors import UpstreamUnavailable
+
+    @app.exception_handler(UpstreamUnavailable)
+    async def upstream_unavailable_handler(request: Request, exc: UpstreamUnavailable):
+        # Honest 503 when live data is down and no genuine cached scan is available. NEVER a demo
+        # fixture: production surfaces a real "temporarily unavailable" state instead (Explore fix).
+        return JSONResponse(
+            status_code=503,
+            content={"error": "upstream_unavailable", "detail": str(exc)
+                     or "Market data is temporarily unavailable."},
+        )
+
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
         # Never expose stack traces or internals to clients.
