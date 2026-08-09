@@ -25,11 +25,29 @@ async def signals(
     session: AsyncSession = Depends(get_session),
     bucket: str | None = Query(None),
     scope: str = Query("directional"),
-    limit: int = Query(10, ge=1, le=500),
+    category: str = Query("All"),
+    search: str | None = Query(None, max_length=200),
+    sort: str = Query(
+        "priority_desc",
+        pattern="^(priority_desc|priority_asc|strength_desc|strength_asc)$",
+    ),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
 ) -> dict:
     """Current signals for the latest scan by closing-time bucket + scope (public|directional|
     shadow|full). Public is a display subset; the others expose the full underlying universe."""
-    return await SignalReadService(session).signals(bucket=bucket, scope=scope, limit=limit)
+    try:
+        return await SignalReadService(session).signals(
+            bucket=bucket,
+            scope=scope,
+            category=category,
+            search=search,
+            sort=sort,
+            limit=limit,
+            offset=offset,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/opportunities")

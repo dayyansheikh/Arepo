@@ -27,7 +27,7 @@ import {
   nextFreezeLine,
   nextFreezeLocal,
   pendingMessage,
-  pickCohortForHorizon,
+  pickCohortForCategory,
   resultTitle,
   type ClosingPill,
   type HorizonTab,
@@ -60,7 +60,10 @@ export default function ReplayPage() {
   const scope = scopeRaw as ScopeTab;
 
   const now = useMemo(() => new Date(), []);
-  const picked = useMemo(() => pickCohortForHorizon(list, horizon, now), [list, horizon, now]);
+  const picked = useMemo(
+    () => pickCohortForCategory(list, horizon, category, now),
+    [list, horizon, category, now],
+  );
   const newest = list?.cohorts?.[0];
 
   const manualId = manualCohort ? Number(manualCohort) : null;
@@ -69,7 +72,7 @@ export default function ReplayPage() {
   const cohortId = cohort?.id ?? null;
   // The newest cohort is still collecting for this horizon while we show an older evaluated one.
   const newestIsCollecting =
-    !!newest && !!cohort && newest.id !== cohort.id && manualId == null;
+    category === ALL_CATEGORY && !!newest && !!cohort && newest.id !== cohort.id && manualId == null;
 
   const resultsState = useAsync<ReplayResult | null>(
     () =>
@@ -182,6 +185,7 @@ export default function ReplayPage() {
               horizon={horizon}
               scope={scope}
               now={now}
+              categoryCapableExists={picked.categoryCapable}
             />
           )}
 
@@ -331,12 +335,14 @@ function ResultsArea({
   horizon,
   scope,
   now,
+  categoryCapableExists,
 }: {
   result: ReplayResult;
   cohort: ReplayCohort;
   horizon: HorizonTab;
   scope: ScopeTab;
   now: Date;
+  categoryCapableExists: boolean;
 }) {
   return (
     <div className="space-y-6">
@@ -364,7 +370,9 @@ function ResultsArea({
           <EmptyState
             message={
               result.category !== ALL_CATEGORY && result.category_metadata_available === 0
-                ? "Category metadata was not frozen for this older cohort, so Arepo will not invent a historical category. Try All or a newer cohort."
+                ? categoryCapableExists
+                  ? "Category metadata was not frozen for this legacy cohort, so Arepo will not invent a historical category. Try All or return to the automatic cohort."
+                  : "No category-capable prospective cohort has been frozen yet. Arepo will not infer historical categories from current data; try All while the first prospective category cohort is collected."
                 : "No signals in this set. Try another category, a wider closing window or a different horizon."
             }
           />

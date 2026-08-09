@@ -18,7 +18,7 @@ async function json(route: Route, status: number, body: unknown) {
 
 test("signup sends first and last name and uses production verification wording", async ({ page }) => {
   let registration: Record<string, unknown> | null = null;
-  await page.route("http://localhost:8000/api/**", async (route) => {
+  await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === "/api/users/me") return json(route, 401, { detail: "Unauthorized" });
     if (url.pathname === "/api/auth/register") {
@@ -48,7 +48,7 @@ test("signup sends first and last name and uses production verification wording"
 
 test("authenticated session survives refresh, shows initials and signs out", async ({ page }) => {
   let signedIn = true;
-  await page.route("http://localhost:8000/api/**", async (route) => {
+  await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === "/api/users/me") {
       return signedIn ? json(route, 200, USER) : json(route, 401, { detail: "Unauthorized" });
@@ -75,7 +75,7 @@ test("authenticated session survives refresh, shows initials and signs out", asy
 });
 
 test("account page does not expose personalised content when signed out", async ({ page }) => {
-  await page.route("http://localhost:8000/api/**", async (route) => {
+  await page.route("**/api/**", async (route) => {
     await json(route, 401, { detail: "Unauthorized" });
   });
   await page.goto("/account");
@@ -104,7 +104,7 @@ test("category preferences use explicit All semantics and never expose Other", a
     updated_at: null,
   });
 
-  await page.route("http://localhost:8000/api/**", async (route) => {
+  await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === "/api/users/me") return json(route, 200, USER);
     if (url.pathname === "/api/account/digests") {
@@ -145,7 +145,7 @@ test("category preferences use explicit All semantics and never expose Other", a
 });
 
 test("published digest CTA route resolves to the current Opportunities page", async ({ page }) => {
-  await page.route("http://localhost:8000/api/**", async (route) => {
+  await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === "/api/users/me") return json(route, 401, { detail: "Unauthorized" });
     if (url.pathname === "/api/scan/opportunities") {

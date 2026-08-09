@@ -25,9 +25,13 @@ import type {
   SignalsResponse,
 } from "./types";
 
+// Production traffic stays first-party: Next proxies /api/* to the Render service, so the
+// secure HttpOnly auth cookie belongs to www.arepolabs.com and is sent on refresh/navigation.
+// Local development still talks directly to the explicitly configured local backend.
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ??
-  "http://localhost:8000";
+  process.env.NODE_ENV === "production"
+    ? ""
+    : process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "http://localhost:8000";
 
 export class ApiError extends Error {
   status: number;
@@ -125,8 +129,8 @@ export function getOverview(mode: DataMode): Promise<OverviewResponse> {
 export interface GetMarketsParams {
   search?: string;
   category?: string;
-  status?: string;
-  sort?: "volume" | "volume_24hr" | "liquidity" | "end_date";
+  closing?: "any" | "week" | "month" | "later";
+  sort?: "signal_desc" | "signal_asc";
   limit?: number;
   offset?: number;
   mode: DataMode;
@@ -310,6 +314,9 @@ export interface ReplayCohort {
   excluded_markets: number;
   available_horizons: Record<string, boolean>;
   resolution_available: boolean;
+  category_metadata_available: number;
+  category_metadata_unavailable: number;
+  public_category_counts: Record<string, number>;
   model_version: string;
 }
 
@@ -565,9 +572,20 @@ export function getScanStatus(): Promise<ScanStatus> {
 export function getScanSignals(
   bucket: string,
   scope: string,
-  limit = 10,
+  limit = 50,
+  options: {
+    category?: string;
+    search?: string;
+    sort?: "priority_desc" | "priority_asc" | "strength_desc" | "strength_asc";
+    offset?: number;
+  } = {},
 ): Promise<ScanSignals> {
-  return apiFetch<ScanSignals>("/api/scan/signals", { bucket, scope, limit });
+  return apiFetch<ScanSignals>("/api/scan/signals", {
+    bucket,
+    scope,
+    limit,
+    ...options,
+  });
 }
 
 export function getOpportunities(

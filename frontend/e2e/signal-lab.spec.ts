@@ -55,6 +55,7 @@ test("top ten is shown as a subset of the full eligible universe", async ({ page
 test("switching scope from public to all directional expands the set", async ({ page }) => {
   await loadSignals(page, "?bucket=closing_1_7d&scope=public");
   const publicCount = await page.getByTestId("signal-card").count();
+  await page.getByTestId("signal-more-filters").getByText("More filters").click();
   await page.getByTestId("scope-select").selectOption("directional");
   await expect(page.getByTestId("coverage-caption")).toContainText("eligible markets", {
     timeout: 15000,
@@ -66,11 +67,42 @@ test("switching scope from public to all directional expands the set", async ({ 
 test("changing the closing universe changes the signals", async ({ page }) => {
   await loadSignals(page, "?bucket=closing_1_7d&scope=public");
   await expect(page.getByTestId("coverage-caption")).toBeVisible();
+  await page.getByTestId("signal-more-filters").getByText("More filters").click();
   await page.getByTestId("bucket-select").selectOption("closing_7_30d");
   // The caption re-renders for the new bucket.
   await expect(page.getByTestId("coverage-caption")).toContainText("eligible markets", {
     timeout: 15000,
   });
+});
+
+test("search, shared category and compact sorting are primary URL-backed controls", async ({
+  page,
+}) => {
+  await loadSignals(page, "?bucket=closing_1_7d&scope=directional");
+  await expect(page.getByLabel("Search Signal Lab markets")).toBeVisible();
+  await expect(page.getByTestId("category-filter")).toBeVisible();
+  await expect(page.getByTestId("category-other")).toHaveCount(0);
+  await expect(page.getByTestId("signal-sort-select")).toHaveValue("priority_desc");
+
+  await page.getByTestId("signal-sort-select").selectOption("strength_asc");
+  await expect(page).toHaveURL(/sort=strength_asc/);
+  await page.getByTestId("category-crypto").click();
+  await expect(page).toHaveURL(/category=Crypto/);
+  await page.getByLabel("Search Signal Lab markets").fill("election");
+  await expect(page).toHaveURL(/q=election/, { timeout: 5000 });
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByTestId("signal-sort-select")).toHaveValue("strength_asc");
+  await expect(page.getByTestId("category-crypto")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Search Signal Lab markets")).toHaveValue("election");
+});
+
+test("specialist closing and scope controls remain under More filters", async ({ page }) => {
+  await loadSignals(page);
+  const disclosure = page.getByTestId("signal-more-filters").locator("details");
+  await expect(disclosure).not.toHaveJSProperty("open", true);
+  await page.getByTestId("signal-more-filters").getByText("More filters").click();
+  await expect(page.getByTestId("bucket-select")).toBeVisible();
+  await expect(page.getByTestId("scope-select")).toBeVisible();
 });
 
 test("trajectory labels and numeric strength changes render, no probability language", async ({

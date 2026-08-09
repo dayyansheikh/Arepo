@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from ..analytics.backtest import run_backtest
+from ..categories import category_matches, normalize_category_filter, primary_category
 from ..clients.errors import UpstreamUnavailable
 from ..config import Settings, get_settings
 from ..domain.enums import DataMode
@@ -208,7 +210,13 @@ class MarketService:
             return {}
         return out
 
-    def _card_from_metadata(self, market: Market) -> MarketCard:
+    def _card_from_metadata(
+        self,
+        market: Market,
+        *,
+        signal_strength: float | None = None,
+        display_category: str | None = None,
+    ) -> MarketCard:
         """Cheap card from discovery metadata only (no per-token network fetch)."""
         lead = max(
             market.outcomes,
@@ -217,28 +225,103 @@ class MarketService:
         )
         return MarketCard(
             id=market.id, question=market.question, slug=market.slug,
-            category=market.category, sport=market.sport, competition=market.competition,
+            category=display_category if display_category is not None else market.category,
+            sport=market.sport, competition=market.competition,
             status=market.status.value, tags=market.tags,
             volume=market.volume, volume_24hr=market.volume_24hr, liquidity=market.liquidity,
             end_date=market.end_date.isoformat() if market.end_date else None,
             top_probability=lead.price if lead else None,
             top_outcome=lead.name if lead else None,
-            spread=None, abs_movement=None, signal_strength=None,
+            spread=None, abs_movement=None, signal_strength=signal_strength,
         )
+
+    async def _latest_signal_by_market(self) -> dict[str, Any]:
+        """Latest complete-scan signal per market in two bounded queries, never an N+1."""
+        if self._session_factory is None:
+            return {}
+        from ..discovery import scan_store
+
+        async with self._session_factory() as session:
+            latest = await scan_store.latest_scan(session)
+            if latest is None:
+                return {}
+            rows = await scan_store.snapshots_for_scan(session, latest.scan_id)
+        out: dict[str, Any] = {}
+        for row in rows:
+            previous = out.get(row.market_id)
+            if previous is None or row.strength > previous.strength:
+                out[row.market_id] = row
+        return out
 
     # -- public API ------------------------------------------------------------------
     async def list_markets(
         self, *, requested_mode=None, search=None, category=None, status=None,
-        sort="volume", limit=50, offset=0,
+        closing="any", sort="volume", limit=50, offset=0,
     ) -> MarketListResponse:
-        source, reason = await self._select_source(requested_mode)
-        markets = await source.markets()
-        markets = _filter_markets(markets, search=search, category=category, status=status)
-        markets = _sort_markets(markets, sort)
-        total = len(markets)
-        page = markets[offset: offset + limit]
-        cards = [self._card_from_metadata(m) for m in page]
-        last_update = _latest_update(page)
+        # Explore needs the complete universe produced by the scheduled scan. A normal browser
+        # request must never run full Gamma pagination, so prefer the genuine MarketRow cache for
+        # live/cached browsing. Explicit replay remains available outside production for tests/dev.
+        source = reason = None
+        if requested_mode != "replay" and self._cached.available():
+            cached = await self._cached.markets()
+            if cached:
+                source, markets = self._cached, cached
+                reason = "using latest complete scan"
+        if source is None:
+            source, reason = await self._select_source(requested_mode)
+            markets = await source.markets()
+
+        signal_by_market = await self._latest_signal_by_market()
+        selected_category = normalize_category_filter(category)
+
+        from ..ingest.aliases import expand_query
+
+        terms = [term.lower() for term in expand_query(search or "")]
+        now = datetime.now(UTC)
+        enriched: list[tuple[Market, float | None, str]] = []
+        for market in markets:
+            snap = signal_by_market.get(market.id)
+            strength = snap.strength if snap is not None else None
+            classified = (
+                snap.primary_category
+                if snap is not None and snap.primary_category is not None
+                else primary_category(market.category, list(market.tags or []))
+            )
+            if terms and not _market_search_matches(market, terms):
+                continue
+            if not category_matches(selected_category, classified):
+                continue
+            if status and market.status.value != status.lower():
+                continue
+            if not _matches_closing(market, closing, now):
+                continue
+            enriched.append((market, strength, classified))
+
+        if sort in ("signal_desc", "signal_asc"):
+            reverse_signal = sort == "signal_desc"
+            enriched.sort(
+                key=lambda item: (
+                    item[1] is None,
+                    -(item[1] or 0.0) if reverse_signal else (item[1] or 0.0),
+                    item[0].question.lower(),
+                    item[0].id,
+                )
+            )
+        else:
+            ordered = _sort_markets([item[0] for item in enriched], sort)
+            by_id = {item[0].id: item for item in enriched}
+            enriched = [by_id[market.id] for market in ordered]
+
+        total = len(enriched)
+        page = enriched[offset: offset + limit]
+        cards = [
+            self._card_from_metadata(
+                market, signal_strength=strength,
+                display_category=classified,
+            )
+            for market, strength, classified in page
+        ]
+        last_update = _latest_update(markets)
         status_env = await self._status(source, reason, last_update)
         return MarketListResponse(
             markets=cards, total=total, limit=limit, offset=offset, status=status_env
@@ -592,6 +675,41 @@ def _filter_markets(markets, *, search, category, status):
     if status:
         out = [m for m in out if m.status.value == status.lower()]
     return out
+
+
+def _market_search_matches(market: Market, terms: list[str]) -> bool:
+    if not terms:
+        return True
+    haystack = " ".join(
+        [
+            market.question,
+            market.slug,
+            market.description or "",
+            market.category or "",
+            *list(market.tags or []),
+        ]
+    ).lower()
+    return any(term in haystack for term in terms)
+
+
+def _matches_closing(market: Market, closing: str, now: datetime) -> bool:
+    if closing == "any":
+        return True
+    end = market.end_date
+    if end is None:
+        return False
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=UTC)
+    days = (end - now).total_seconds() / 86_400
+    if days < 0:
+        return False
+    if closing == "week":
+        return days <= 7
+    if closing == "month":
+        return 7 < days <= 30
+    if closing == "later":
+        return days > 30
+    return True
 
 
 def _sort_markets(markets, sort):

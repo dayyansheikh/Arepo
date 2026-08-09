@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useAsync } from "@/lib/use-async";
 import { useUrlState } from "@/lib/use-url-state";
 import { getScanStatus, getScanSignals, type ScanSignalRow } from "@/lib/api";
@@ -25,19 +26,49 @@ import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { DisclaimerBanner } from "@/components/DisclaimerBanner";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { StrengthBar } from "@/components/StrengthBar";
+import { CategoryFilterRow } from "@/components/CategoryFilterRow";
 import { InfoChip } from "@/components/InfoChip";
 import { PageHeader, SectionTitle, Disclose } from "@/components/ui";
+import { ALL_CATEGORY, type CategoryFilter } from "@/lib/categories";
+
+const PAGE_SIZE = 50;
+type SignalSort = "priority_desc" | "priority_asc" | "strength_desc" | "strength_asc";
+
+const SORT_OPTIONS: { value: SignalSort; label: string }[] = [
+  { value: "priority_desc", label: "Research Priority: high to low" },
+  { value: "priority_asc", label: "Research Priority: low to high" },
+  { value: "strength_desc", label: "Signal Strength: high to low" },
+  { value: "strength_asc", label: "Signal Strength: low to high" },
+];
 
 export default function SignalLabPage() {
   // Signals come FIRST (prompt section 10): the explanation is a collapsed disclosure below.
   // Default scope is ALL directional signals, not the public shortlist (prompt B3).
   const [bucket, setBucket] = useUrlState("bucket", "closing_1_7d");
   const [scope, setScope] = useUrlState("scope", "directional");
+  const [category, setCategory] = useUrlState("category", ALL_CATEGORY);
+  const [search, setSearch] = useUrlState("q");
+  const [sort, setSort] = useUrlState("sort", "priority_desc");
+  const [searchInput, setSearchInput] = useState(search);
+  const [limit, setLimit] = useState(PAGE_SIZE);
+
+  useEffect(() => setSearchInput(search), [search]);
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+  useEffect(() => setLimit(PAGE_SIZE), [bucket, scope, category, search, sort]);
 
   const statusState = useAsync(() => getScanStatus(), []);
   const signalsState = useAsync(
-    () => getScanSignals(bucket, scope, scope === "public" ? 20 : 500),
-    [bucket, scope],
+    () => getScanSignals(bucket, scope, limit, {
+      category,
+      search: search || undefined,
+      sort: sort as SignalSort,
+      offset: 0,
+    }),
+    [bucket, scope, category, search, sort, limit],
   );
   const status = statusState.data;
   const signals = signalsState.data;
@@ -98,40 +129,70 @@ export default function SignalLabPage() {
         )}
       </section>
 
-      {/* Controls: closing universe + scope. */}
-      <section className="flex flex-wrap items-end gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium text-arepo-ink2">Closing universe</span>
+      <section className="space-y-4" data-testid="signal-controls">
+        <div className="max-w-xl">
+          <label htmlFor="signal-search" className="sr-only">Search Signal Lab</label>
+          <input
+            id="signal-search"
+            type="search"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search Signal Lab markets"
+            aria-label="Search Signal Lab markets"
+            className="focus-ring w-full rounded-control border border-arepo-borderStrong bg-arepo-surface px-4 py-2.5 text-[15px] text-arepo-ink placeholder:text-arepo-muted"
+          />
+        </div>
+        <CategoryFilterRow
+          value={category}
+          onChange={(next: CategoryFilter) => setCategory(next)}
+        />
+        <label className="flex max-w-xs flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-arepo-ink2">Sort by</span>
           <select
-            data-testid="bucket-select"
-            className="select-arepo w-64"
-            value={bucket}
-            onChange={(e) => setBucket(e.target.value)}
-            aria-label="Closing-time universe"
+            data-testid="signal-sort-select"
+            className="select-arepo"
+            value={sort}
+            onChange={(event) => setSort(event.target.value)}
           >
-            {BUCKET_OPTIONS.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.label}
-              </option>
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium text-arepo-ink2">Signals shown</span>
-          <select
-            data-testid="scope-select"
-            className="select-arepo w-56"
-            value={scope}
-            onChange={(e) => setScope(e.target.value)}
-            aria-label="Signal scope"
-          >
-            {SCOPE_OPTIONS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div data-testid="signal-more-filters">
+          <Disclose summary="More filters">
+            <div className="flex flex-wrap items-end gap-4 pt-1">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[13px] font-medium text-arepo-ink2">Closing universe</span>
+                <select
+                  data-testid="bucket-select"
+                  className="select-arepo w-64"
+                  value={bucket}
+                  onChange={(e) => setBucket(e.target.value)}
+                  aria-label="Closing-time universe"
+                >
+                  {BUCKET_OPTIONS.map((b) => (
+                    <option key={b.id} value={b.id}>{b.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[13px] font-medium text-arepo-ink2">Signals shown</span>
+                <select
+                  data-testid="scope-select"
+                  className="select-arepo w-56"
+                  value={scope}
+                  onChange={(e) => setScope(e.target.value)}
+                  aria-label="Signal scope"
+                >
+                  {SCOPE_OPTIONS.map((s) => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </Disclose>
+        </div>
       </section>
 
       {/* The actual signals, first useful viewport. */}
@@ -163,6 +224,17 @@ export default function SignalLabPage() {
             {signals.rows.map((r) => (
               <SignalCard key={`${r.market_id}-${r.token_id}`} row={r} />
             ))}
+          </div>
+        )}
+        {!signalsState.loading && signals && signals.rows.length < signals.total_matching && (
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setLimit((current) => current + PAGE_SIZE)}
+            >
+              Load more signals
+            </button>
           </div>
         )}
       </section>
