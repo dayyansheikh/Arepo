@@ -52,7 +52,7 @@ jobs:
       - name: Send due digests
         run: |
           if [ -n "$DIGEST_TEST_EMAIL" ]; then
-            python -m astrolabe.digest.cli run --email "$DIGEST_TEST_EMAIL"
+            python -m astrolabe.digest.cli run --email "$DIGEST_TEST_EMAIL" --single-account-send
           else
             python -m astrolabe.digest.cli run
           fi

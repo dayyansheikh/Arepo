@@ -20,11 +20,15 @@ string template variable to 2,000 characters, the provider fetches the published
 the trusted repeated-card markup server-side. Market text is escaped before insertion. All other
 variables are escaped by the provider.
 
-External delivery requires both `DIGEST_EMAIL_ENABLED=true` and a configured Resend provider/key.
-The GitHub Actions workflow is separate from scan and collection work. The digest renderer must
+Scheduled external delivery requires both `DIGEST_EMAIL_ENABLED=true` and a configured Resend
+provider/key. The GitHub Actions workflow is separate from scan and collection work. The digest renderer must
 read the published shell: use a separate full-access `RESEND_TEMPLATE_API_KEY` where possible, while
 keeping `RESEND_API_KEY` sending-only. If the send key already has full access, it remains the
 fallback; both credentials stay server-side.
+
+For acceptance, a manual workflow dispatch with the optional email input invokes the explicit
+single-account mode. It still requires that exact account to be verified and opted in, but it does
+not require enabling the scheduled bulk switch and cannot select any other user.
 
 ## History and evaluation
 
