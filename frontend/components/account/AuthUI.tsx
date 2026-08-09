@@ -36,8 +36,8 @@ export function AuthShell({
           markets as they move. Arepo reads the hidden signal found between the lines.
         </p>
         <p className="mt-3 max-w-reading text-[14px] leading-relaxed text-arepo-muted">
-          A free account unlocks high-priority research alerts, saved markets and your own
-          preferences. The rest of Arepo stays open without one.
+          A free account lets you choose personalised signal digests and revisit exactly what Arepo
+          sent. The rest of Arepo stays open without one.
         </p>
       </div>
 

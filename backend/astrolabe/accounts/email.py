@@ -4,9 +4,8 @@
 This module owns only server-side email concerns: canonical links, sender identity, stable Resend
 template aliases, template variables and delivery through the existing provider abstraction.
 
-The future signals digest is deliberately represented only by template metadata and a canonical
-market deep-link helper. Digest scheduling, preference logic and repeated-card rendering are out of
-scope until their account architecture is designed.
+Digest selection/history live in ``astrolabe.digest``; this module owns the published-template
+contract and provider handoff only.
 """
 from __future__ import annotations
 
@@ -23,6 +22,7 @@ logger = get_logger("astrolabe.accounts.email")
 
 CANONICAL_AREPO_BASE_URL = "https://www.arepolabs.com"
 DEFAULT_TRANSACTIONAL_SENDER = "Arepo <no-reply@arepolabs.com>"
+DEFAULT_DIGEST_SENDER = "Arepo Alerts <alerts@arepolabs.com>"
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,7 @@ class EmailTemplateIds:
 
 @dataclass(frozen=True)
 class SignalDigestPreparation:
-    """Future digest contract only; no preference, rendering or scheduling behaviour."""
+    """Published digest template contract and canonical market URL helper."""
 
     template_id: str
     required_variables: tuple[str, ...] = (
@@ -65,7 +65,7 @@ class SignalDigestPreparation:
 
 
 class AccountEmailService:
-    """Small service for auth emails plus the future digest integration point."""
+    """Small service for auth and personalised digest email delivery."""
 
     def __init__(
         self,
@@ -85,8 +85,7 @@ class AccountEmailService:
 
     @staticmethod
     def _user_name(user_name: str | None) -> str:
-        # The current User model has no name field. Keep the greeting natural without deriving a
-        # potentially incorrect name from an email address; a future model can pass a real name.
+        # Keep legacy nameless accounts natural without deriving a name from an email address.
         return (user_name or "").strip() or "there"
 
     async def _send(self, message: EmailMessage, *, action_url: str) -> SendResult:
@@ -143,8 +142,49 @@ class AccountEmailService:
         return await self._send(message, action_url=reset_url)
 
     def prepare_signal_digest(self) -> SignalDigestPreparation:
-        """Return the future template contract without sending or inventing digest behaviour."""
+        """Return the stable published-template contract."""
         return SignalDigestPreparation(template_id=self.templates.signals_digest)
+
+    async def send_signal_digest(
+        self,
+        email: str,
+        *,
+        user_name: str | None,
+        summary: str,
+        signals_html: str,
+        signals_text: str,
+        preferences_url: str,
+        unsubscribe_url: str,
+        idempotency_key: str,
+    ) -> SendResult:
+        """Send one digest using the published shell and trusted server-built repeated cards.
+
+        Resend template string variables are capped at 2,000 characters, so the provider fetches
+        the published shell and expands it server-side. ``SIGNALS_CONTENT`` is the only trusted HTML
+        variable; its builder escapes every market/upstream value before this method is called.
+        """
+        sender = os.environ.get("DIGEST_EMAIL_SENDER", "").strip() or DEFAULT_DIGEST_SENDER
+        message = EmailMessage(
+            to=email,
+            sender=sender,
+            subject="Your Arepo signals",
+            text=(
+                f"Hi {self._user_name(user_name)},\n\n{summary}\n\n{signals_text}\n\n"
+                f"Manage preferences: {preferences_url}\nUnsubscribe: {unsubscribe_url}"
+            ),
+            template_id=self.templates.signals_digest,
+            template_variables={
+                "USER_NAME": self._user_name(user_name),
+                "DIGEST_SUMMARY": summary,
+                "SIGNALS_CONTENT": signals_html,
+                "PREFERENCES_URL": preferences_url,
+                "AREPO_UNSUBSCRIBE_LINK": unsubscribe_url,
+            },
+            server_render_template=True,
+            trusted_html_variables={"SIGNALS_CONTENT"},
+            idempotency_key=idempotency_key,
+        )
+        return await self._provider.send(message)
 
 
 # Test seam and compatibility wrappers used by the existing fastapi-users callbacks.

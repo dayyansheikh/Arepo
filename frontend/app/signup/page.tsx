@@ -11,6 +11,8 @@ import {
 } from "@/components/account/AuthUI";
 
 export default function SignUpPage() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [consent, setConsent] = useState(false);
@@ -27,7 +29,7 @@ export default function SignUpPage() {
     }
     setPending(true);
     try {
-      await registerAccount(email, password);
+      await registerAccount(firstName, lastName, email, password);
       setDone(true);
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
@@ -52,8 +54,7 @@ export default function SignUpPage() {
         }
       >
         <FormMessage tone="ok">
-          We have sent a verification link to <strong>{email}</strong>. Click it to activate your
-          account, then sign in.
+          Check your email to verify your Arepo account. We sent the link to <strong>{email}</strong>.
         </FormMessage>
       </AuthShell>
     );
@@ -62,7 +63,7 @@ export default function SignUpPage() {
   return (
     <AuthShell
       title="Create a free account"
-      lead="Create a free account to receive high-priority Arepo research alerts and manage the markets you follow."
+      lead="Create a free account to choose personalised signal digests and keep their history."
       footer={
         <>
           Already have an account? <TextLink href="/signin">Sign in</TextLink>.
@@ -71,6 +72,22 @@ export default function SignUpPage() {
     >
       <form onSubmit={onSubmit}>
         <FormMessage tone="error">{error}</FormMessage>
+        <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
+          <Field
+            label="First name"
+            value={firstName}
+            onChange={setFirstName}
+            required
+            autoComplete="given-name"
+          />
+          <Field
+            label="Last name"
+            value={lastName}
+            onChange={setLastName}
+            required
+            autoComplete="family-name"
+          />
+        </div>
         <Field
           label="Email"
           type="email"

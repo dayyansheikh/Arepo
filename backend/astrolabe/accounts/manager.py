@@ -58,12 +58,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
 
 def _supported_user_name(user: User) -> str | None:
-    """Use a real model-backed name when available; the current User has no name column."""
-    for field in ("display_name", "name", "first_name"):
-        value = getattr(user, field, None)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    return None
+    """Use only the private first-name field; legacy nameless users get the email fallback."""
+    value = getattr(user, "first_name", None)
+    return value.strip() if isinstance(value, str) and value.strip() else None
 
 
 async def get_user_manager(user_db=Depends(get_user_db)):

@@ -52,7 +52,7 @@ _load_all_models()
 # Bump whenever the ORM gains tables/columns. This is a monotonic marker recorded in
 # ``schema_migrations``; the actual work is metadata-driven so the number is documentation, not a
 # script selector.
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 SCHEMA_VERSION_NOTES = {
     1: "initial create_all schema",
     2: "research per-family directions (momentum/orderbook/tradeflow) + edge-research tables",
@@ -69,6 +69,8 @@ SCHEMA_VERSION_NOTES = {
        "overall_rank_30d + public_selected (cohort frozen from a complete short-horizon scan)",
     9: "research_preclose_observations (freeze-to-close quote collection)",
     10: "scheduler_state + scheduler_leases (robust idempotent production scheduler tick)",
+    11: "users first_name/last_name + isolated digest preferences + immutable user-scoped "
+        "digest_deliveries/digest_entries + Postgres RLS on private account tables",
 }
 
 _VERSION_TABLE = "schema_migrations"
@@ -160,6 +162,19 @@ def _add_column_sql(conn: Connection, table_name: str, column_name: str) -> str:
 # A fixed key for the Postgres advisory lock that serialises concurrent migrators.
 _MIGRATION_LOCK_KEY = 917238
 
+# The browser never accesses these tables through Supabase's Data API. Enabling RLS with no public
+# policies is defense in depth if the public schema is exposed; the database owner used by the
+# server-side SQLAlchemy connection continues to work normally (table owners bypass non-FORCED RLS).
+_PRIVATE_ACCOUNT_TABLES = (
+    "users",
+    "alert_preferences",
+    "saved_markets",
+    "alert_deliveries",
+    "account_deletions",
+    "digest_deliveries",
+    "digest_entries",
+)
+
 
 def _is_already_exists(exc: Exception) -> bool:
     msg = str(exc).lower()
@@ -190,7 +205,12 @@ def _upgrade_sync(conn: Connection) -> dict:
         except (OperationalError, ProgrammingError) as exc:
             if not _is_already_exists(exc):
                 raise
-    # 3. Record the schema version if we advanced it.
+    # 3. Keep private account data closed to any Supabase Data API roles. This is idempotent and
+    # does not create broad policies; all user access continues through authenticated API routes.
+    if conn.dialect.name == "postgresql":
+        for table_name in _PRIVATE_ACCOUNT_TABLES:
+            conn.execute(text(f"ALTER TABLE {table_name} ENABLE ROW LEVEL SECURITY"))
+    # 4. Record the schema version if we advanced it.
     before = _read_version(conn)
     if before < SCHEMA_VERSION:
         _set_version(conn, SCHEMA_VERSION)

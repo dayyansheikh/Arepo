@@ -41,6 +41,9 @@ class AlertConfig:
 
     # Resend provider (spec §18): HTTPS API, key from env only.
     resend_api_key: str = ""            # RESEND_API_KEY (never hardcode; from env only)
+    # Optional separate full-access key used only to read the published digest shell. Keeping it
+    # separate lets ordinary sends continue to use a least-privilege sending-only key.
+    resend_template_api_key: str = ""   # RESEND_TEMPLATE_API_KEY (server-side only)
 
     # Eligibility thresholds (spec section 11), all configurable.
     min_strength: float = 0.40          # ALERT_MIN_STRENGTH
@@ -75,6 +78,7 @@ class AlertConfig:
             smtp_user=os.environ.get("ALERT_SMTP_USER", ""),
             smtp_password=os.environ.get("ALERT_SMTP_PASSWORD", ""),
             resend_api_key=os.environ.get("RESEND_API_KEY", ""),
+            resend_template_api_key=os.environ.get("RESEND_TEMPLATE_API_KEY", ""),
         )
 
     @property

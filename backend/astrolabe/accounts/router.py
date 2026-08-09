@@ -5,16 +5,22 @@ authenticated active user and are strictly scoped to that user's id (spec §10 i
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
+from ..digest.service import digest_detail, list_digest_history, unsubscribe_digest
 from .auth import auth_backend, current_active_user, fastapi_users
 from .db import get_async_session
 from .models import User
 from .ratelimit import rate_limit
 from .schemas import (
     AlertDeliveryRead,
+    DigestDetailRead,
+    DigestListRead,
+    DigestSummaryRead,
+    DigestUnsubscribeRead,
+    DigestUnsubscribeRequest,
     PreferenceRead,
     PreferenceUpdate,
     SavedMarketCreate,
@@ -82,6 +88,9 @@ def _pref_read(pref) -> PreferenceRead:
         max_hours_to_close=pref.max_hours_to_close,
         paused=pref.paused,
         unsubscribed=pref.unsubscribed,
+        digest_frequency=pref.digest_frequency,
+        digest_top_n=pref.digest_top_n,
+        digest_unsubscribed=pref.digest_unsubscribed,
         updated_at=pref.updated_at,
     )
 
@@ -157,6 +166,48 @@ async def get_alert_history(
         )
         for r in rows
     ]
+
+
+@account_router.get("/digests", response_model=DigestListRead)
+async def get_digest_history(
+    limit: int = Query(20, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    items, has_more = await list_digest_history(
+        session, str(user.id), limit=limit, offset=offset
+    )
+    return DigestListRead(
+        items=[DigestSummaryRead(**item) for item in items], has_more=has_more
+    )
+
+
+@account_router.get("/digests/{digest_id}", response_model=DigestDetailRead)
+async def get_digest_detail(
+    digest_id: int,
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    detail = await digest_detail(session, str(user.id), digest_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Digest not found")
+    return DigestDetailRead(**detail)
+
+
+@account_router.post(
+    "/digest/unsubscribe",
+    response_model=DigestUnsubscribeRead,
+    dependencies=[Depends(rate_limit)],
+)
+async def post_digest_unsubscribe(
+    body: DigestUnsubscribeRequest,
+    session: AsyncSession = Depends(get_async_session),
+):
+    # The response is intentionally identical for valid, invalid and already-used tokens so this
+    # public endpoint cannot be used to enumerate users or delivery history.
+    await unsubscribe_digest(session, body.token)
+    return DigestUnsubscribeRead()
 
 
 @account_router.delete("", status_code=status.HTTP_204_NO_CONTENT)

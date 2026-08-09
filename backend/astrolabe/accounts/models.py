@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..domain.models import utcnow
@@ -31,6 +31,11 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
 
     __tablename__ = "users"
 
+    # Nullable for safe additive migration of existing accounts. New registrations require both
+    # fields at the API boundary; legacy users continue to authenticate and receive neutral email /
+    # initials fallbacks until a name is supplied.
+    first_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String, nullable=True)
     consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     auth_provider: Mapped[str] = mapped_column(String, nullable=False, default="local")
     created_at: Mapped[datetime] = mapped_column(
@@ -57,8 +62,83 @@ class AlertPreference(Base):
     max_hours_to_close: Mapped[int | None] = mapped_column(Integer, nullable=True)
     paused: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     unsubscribed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Digest-specific settings. These are deliberately separate from legacy immediate-alert flags:
+    # an unsubscribe link must stop only personalised digests, never account/security email.
+    digest_frequency: Mapped[str] = mapped_column(String, nullable=False, default="off")
+    digest_top_n: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    digest_unsubscribed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    digest_categories: Mapped[str] = mapped_column(String, nullable=False, default="")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+
+class DigestDelivery(Base):
+    """One immutable-content personalised digest attempt for one user and due window.
+
+    Delivery bookkeeping may advance from created/failed to sending/sent, but the preference and
+    signal snapshots are never rewritten. The unique due-window key prevents duplicate history and
+    the provider idempotency key prevents a successful external send being repeated on retry.
+    """
+
+    __tablename__ = "digest_deliveries"
+    __table_args__ = (
+        UniqueConstraint("user_id", "due_window_key", name="uq_digest_user_window"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    due_window_key: Mapped[str] = mapped_column(String, nullable=False)
+    frequency: Mapped[str] = mapped_column(String, nullable=False)
+    top_n: Mapped[int] = mapped_column(Integer, nullable=False)
+    categories: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    scan_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    evaluation_horizon: Mapped[str] = mapped_column(String, nullable=False, default="24h")
+    status: Mapped[str] = mapped_column(String, nullable=False, default="created", index=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    provider_detail: Mapped[str] = mapped_column(String, nullable=False, default="")
+    unsubscribe_selector: Mapped[str | None] = mapped_column(
+        String, nullable=True, unique=True, index=True
+    )
+    unsubscribe_secret_hash: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class DigestEntry(Base):
+    """Minimal point-in-time signal snapshot included in a specific user's digest."""
+
+    __tablename__ = "digest_entries"
+    __table_args__ = (
+        UniqueConstraint("digest_id", "market_id", "token_id", name="uq_digest_entry"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    digest_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("digest_deliveries.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    market_id: Mapped[str] = mapped_column(String, nullable=False)
+    token_id: Mapped[str] = mapped_column(String, nullable=False)
+    market_question: Mapped[str] = mapped_column(String, nullable=False)
+    outcome_name: Mapped[str] = mapped_column(String, nullable=False, default="")
+    category: Mapped[str] = mapped_column(String, nullable=False, default="Other")
+    direction: Mapped[str] = mapped_column(String, nullable=False)
+    strength: Mapped[float] = mapped_column(Float, nullable=False)
+    research_priority: Mapped[int] = mapped_column(Integer, nullable=False)
+    entry_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    signal_captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # Optional exact prospective-row join. NULL is honest when the source scan was not frozen into a
+    # cohort; read paths may discover a later-created exact scan join without mutating this
+    # snapshot.
+    research_entry_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("research_entries.id"), nullable=True, index=True
     )
 
 

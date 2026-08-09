@@ -8,6 +8,8 @@ import type {
   CohortWeek,
   DataMode,
   DataStatus,
+  DigestDetail,
+  DigestList,
   HistoricalScreen,
   MarketDetailResponse,
   MarketFacets,
@@ -653,10 +655,15 @@ async function accountFetch<T>(
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
-export function registerAccount(email: string, password: string): Promise<AccountUser> {
+export function registerAccount(
+  firstName: string,
+  lastName: string,
+  email: string,
+  password: string,
+): Promise<AccountUser> {
   return accountFetch<AccountUser>("/api/auth/register", {
     method: "POST",
-    json: { email, password },
+    json: { first_name: firstName, last_name: lastName, email, password },
   });
 }
 
@@ -727,6 +734,21 @@ export function unsaveMarket(market_id: string): Promise<void> {
 
 export function getAlertHistory(): Promise<AlertDelivery[]> {
   return accountFetch<AlertDelivery[]>("/api/account/alerts");
+}
+
+export function getDigestHistory(limit = 20, offset = 0): Promise<DigestList> {
+  return accountFetch<DigestList>(`/api/account/digests?limit=${limit}&offset=${offset}`);
+}
+
+export function getDigestDetail(id: number): Promise<DigestDetail> {
+  return accountFetch<DigestDetail>(`/api/account/digests/${id}`);
+}
+
+export function unsubscribeDigest(token: string): Promise<{ ok: boolean }> {
+  return accountFetch<{ ok: boolean }>("/api/account/digest/unsubscribe", {
+    method: "POST",
+    json: { token },
+  });
 }
 
 export function deleteAccount(): Promise<void> {

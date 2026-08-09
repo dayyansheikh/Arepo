@@ -144,3 +144,79 @@ async def test_resend_template_payload_excludes_rendered_content_and_secret(resp
     assert route.calls[0].request.headers["Authorization"] == (
         "Bearer test-only-secret-key"
     )
+
+
+@pytest.mark.asyncio
+async def test_digest_safely_renders_published_shell_server_side_without_variable_limit(respx_mock):
+    template = respx_mock.get(
+        "https://api.resend.com/templates/arepo-signals-digest"
+    ).mock(return_value=httpx.Response(200, json={
+        "status": "published",
+        "html": (
+            "<p>Hi {{{USER_NAME}}}</p><div>{{{SIGNALS_CONTENT}}}</div>"
+            "<a href=\"{{{PREFERENCES_URL}}}\">Preferences</a>"
+            "<a href=\"{{{AREPO_UNSUBSCRIBE_LINK}}}\">Unsubscribe</a>"
+            "<p>{{{DIGEST_SUMMARY}}}</p>"
+        ),
+        "text": (
+            "Hi {{{USER_NAME}}}\n{{{SIGNALS_CONTENT}}}\n{{{PREFERENCES_URL}}}\n"
+            "{{{AREPO_UNSUBSCRIBE_LINK}}}\n{{{DIGEST_SUMMARY}}}"
+        ),
+    }))
+    send = respx_mock.post("https://api.resend.com/emails").mock(
+        return_value=httpx.Response(200, json={"id": "digest-email-id"})
+    )
+    provider = ResendProvider(AlertConfig(
+        enabled=True,
+        provider="resend",
+        sender="Arepo Alerts <alerts@arepolabs.com>",
+        resend_api_key="test-only-secret-key",
+        resend_template_api_key="test-only-template-read-key",
+    ))
+    cards = "<span>" + ("safe card " * 400) + "</span>"  # deliberately over 2,000 chars
+    message = EmailMessage(
+        to="person@example.com",
+        sender="Arepo Alerts <alerts@arepolabs.com>",
+        subject="Your Arepo signals",
+        text="fallback",
+        template_id="arepo-signals-digest",
+        template_variables={
+            "USER_NAME": "Ada & Grace",
+            "DIGEST_SUMMARY": "Two < current",
+            "SIGNALS_CONTENT": cards,
+            "PREFERENCES_URL": "https://www.arepolabs.com/account?tab=preferences&x=1",
+            "AREPO_UNSUBSCRIBE_LINK": "https://www.arepolabs.com/unsubscribe?token=opaque&x=1",
+        },
+        server_render_template=True,
+        trusted_html_variables={"SIGNALS_CONTENT"},
+        idempotency_key="arepo-digest-42-window",
+    )
+
+    result = await provider.send(message)
+    assert result.ok is True and template.called
+    payload = json.loads(send.calls[0].request.content)
+    assert "template" not in payload
+    assert cards in payload["html"]
+    assert "Ada &amp; Grace" in payload["html"]
+    assert "Two &lt; current" in payload["html"]
+    assert "token=opaque&amp;x=1" in payload["html"]
+    assert send.calls[0].request.headers["Idempotency-Key"] == "arepo-digest-42-window"
+    assert template.calls[0].request.headers["Authorization"] == (
+        "Bearer test-only-template-read-key"
+    )
+    assert send.calls[0].request.headers["Authorization"] == "Bearer test-only-secret-key"
+
+
+def test_server_render_does_not_recursively_expand_placeholders_from_values():
+    rendered = ResendProvider._render_template(
+        "<p>{{{USER_NAME}}}</p><div>{{{SIGNALS_CONTENT}}}</div>",
+        {
+            "USER_NAME": "{{SIGNALS_CONTENT}}",
+            "SIGNALS_CONTENT": "<strong>trusted card</strong>",
+        },
+        trusted_html={"SIGNALS_CONTENT"},
+    )
+
+    assert rendered == (
+        "<p>{{SIGNALS_CONTENT}}</p><div><strong>trusted card</strong></div>"
+    )

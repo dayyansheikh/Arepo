@@ -484,6 +484,8 @@ export interface AccountUser {
   is_active: boolean;
   is_verified: boolean;
   is_superuser: boolean;
+  first_name: string | null;
+  last_name: string | null;
   auth_provider: string;
   consent_at: string | null;
 }
@@ -500,6 +502,9 @@ export interface AlertPreferences {
   max_hours_to_close: number | null;
   paused: boolean;
   unsubscribed: boolean;
+  digest_frequency: "off" | "every_6h" | "daily" | "twice_daily" | "weekly";
+  digest_top_n: 5 | 10 | 20;
+  digest_unsubscribed: boolean;
   updated_at: string | null;
 }
 
@@ -518,4 +523,50 @@ export interface AlertDelivery {
   status: string;
   detail: string;
   at: string;
+}
+
+export interface DigestSummary {
+  id: number;
+  sent_at: string;
+  frequency: AlertPreferences["digest_frequency"];
+  signal_count: number;
+  categories: string[];
+}
+
+export interface DigestList {
+  items: DigestSummary[];
+  has_more: boolean;
+}
+
+export interface DigestEvaluation {
+  horizon: string;
+  state: string;
+  unavailable_reason: string | null;
+  resolved: boolean;
+  resolved_outcome: string | null;
+  resolution_correct: boolean | null;
+}
+
+export interface DigestEntry {
+  rank: number;
+  market_id: string;
+  token_id: string;
+  market_question: string;
+  outcome_name: string;
+  canonical_url: string;
+  category: string;
+  direction: "up" | "down";
+  strength: number;
+  research_priority: number;
+  signal_captured_at: string;
+  evaluation: DigestEvaluation;
+}
+
+export interface DigestDetail {
+  id: number;
+  sent_at: string;
+  frequency: AlertPreferences["digest_frequency"];
+  categories: string[];
+  evaluation_horizon: string;
+  entries: DigestEntry[];
 }

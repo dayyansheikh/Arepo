@@ -181,6 +181,61 @@ async def test_fresh_database_is_current_after_upgrade(prior_db):
     await eng.dispose()
 
 
+async def test_existing_account_survives_additive_name_and_digest_upgrade(tmp_path):
+    url = f"sqlite+aiosqlite:///{tmp_path/'legacy-account.db'}"
+    eng = make_engine(url)
+    async with eng.begin() as conn:
+        await conn.execute(text("""
+            CREATE TABLE users (
+                id VARCHAR PRIMARY KEY, email VARCHAR NOT NULL UNIQUE,
+                hashed_password VARCHAR NOT NULL, is_active BOOLEAN NOT NULL,
+                is_superuser BOOLEAN NOT NULL, is_verified BOOLEAN NOT NULL,
+                consent_at DATETIME, auth_provider VARCHAR NOT NULL, created_at DATETIME NOT NULL
+            )
+        """))
+        await conn.execute(text("""
+            CREATE TABLE alert_preferences (
+                user_id VARCHAR PRIMARY KEY, email_enabled BOOLEAN NOT NULL,
+                immediate_exceptional BOOLEAN NOT NULL, daily_digest BOOLEAN NOT NULL,
+                weekly_summary BOOLEAN NOT NULL, min_research_priority INTEGER NOT NULL,
+                min_confidence FLOAT NOT NULL, categories VARCHAR NOT NULL,
+                short_term_only BOOLEAN NOT NULL, max_hours_to_close INTEGER,
+                paused BOOLEAN NOT NULL, unsubscribed BOOLEAN NOT NULL, updated_at DATETIME NOT NULL
+            )
+        """))
+        await conn.execute(text(
+            "INSERT INTO users VALUES "
+            "('legacy','legacy@example.com','hash',1,0,1,NULL,'local',:now)"
+        ), {"now": datetime.now(UTC).isoformat()})
+        await conn.execute(text(
+            "INSERT INTO alert_preferences VALUES "
+            "('legacy',1,1,0,0,60,0.45,'Crypto',0,NULL,0,0,:now)"
+        ), {"now": datetime.now(UTC).isoformat()})
+
+    result = await upgrade(eng)
+    assert {
+        "users.first_name", "users.last_name", "alert_preferences.digest_frequency",
+        "alert_preferences.digest_top_n", "alert_preferences.digest_unsubscribed",
+        "alert_preferences.digest_categories",
+    }.issubset(set(result["columns_added"]))
+    async with eng.connect() as conn:
+        user = (await conn.execute(text(
+            "SELECT email, first_name, last_name FROM users WHERE id='legacy'"
+        ))).one()
+        pref = (await conn.execute(text(
+            "SELECT categories, digest_categories, digest_frequency, digest_top_n, "
+            "digest_unsubscribed "
+            "FROM alert_preferences WHERE user_id='legacy'"
+        ))).one()
+    assert user.email == "legacy@example.com"
+    assert user.first_name is None and user.last_name is None
+    assert pref.categories == "Crypto"
+    assert pref.digest_categories == ""
+    assert pref.digest_frequency == "off" and pref.digest_top_n == 10
+    assert pref.digest_unsubscribed in (False, 0)
+    await eng.dispose()
+
+
 async def test_web_tier_bootstrap_migrates_existing_schema(prior_db):
     # The web app startup path now goes through the migrator (DB review CRITICAL-1): bootstrap must
     # bring an existing behind-schema database current, not just create_all.
@@ -228,11 +283,21 @@ def test_callable_list_and_dict_defaults_are_rendered():
     assert "DEFAULT" not in ts_sql
 
 
-def test_postgresql_ddl_compiles_for_research_tables():
-    # Portability: the ORM must emit valid PostgreSQL DDL for the research tables (no SQLite-only
-    # constructs). We compile rather than execute (no live Postgres in CI).
+def test_postgresql_ddl_compiles_for_research_and_digest_tables():
+    # Portability: the ORM must emit valid PostgreSQL DDL for the research and digest tables (no
+    # SQLite-only constructs). We compile rather than execute (no live Postgres in CI).
     ddl = "\n".join(ddl_preview("postgresql"))
     assert "CREATE TABLE research_entries" in ddl
+    assert "CREATE TABLE digest_deliveries" in ddl
+    assert "CREATE TABLE digest_entries" in ddl
     assert "momentum_direction" in ddl and "orderbook_direction" in ddl
     # A few Postgres-portable expectations and no SQLite-only AUTOINCREMENT keyword.
     assert "AUTOINCREMENT" not in ddl
+
+
+def test_private_account_tables_are_marked_for_postgres_rls():
+    from astrolabe.storage.migrate import _PRIVATE_ACCOUNT_TABLES
+
+    assert {"users", "alert_preferences", "digest_deliveries", "digest_entries"}.issubset(
+        set(_PRIVATE_ACCOUNT_TABLES)
+    )
