@@ -7,7 +7,12 @@ name: arepo-digest
 on:
   schedule:
     - cron: "20,50 * * * *"   # after the :05/:35 scan starts; due-window logic lives in Python
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Optional: send only to this existing opted-in test account"
+        required: false
+        type: string
 
 concurrency:
   group: arepo-digest
@@ -32,6 +37,7 @@ jobs:
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       RESEND_TEMPLATE_API_KEY: ${{ secrets.RESEND_TEMPLATE_API_KEY }}
       DIGEST_EMAIL_SENDER: Arepo Alerts <alerts@arepolabs.com>
+      DIGEST_TEST_EMAIL: ${{ github.event.inputs.email }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -44,4 +50,9 @@ jobs:
           pip install -r requirements.txt
           pip install -e .
       - name: Send due digests
-        run: python -m astrolabe.digest.cli run
+        run: |
+          if [ -n "$DIGEST_TEST_EMAIL" ]; then
+            python -m astrolabe.digest.cli run --email "$DIGEST_TEST_EMAIL"
+          else
+            python -m astrolabe.digest.cli run
+          fi
