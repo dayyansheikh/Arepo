@@ -355,13 +355,16 @@ class ResearchRepository:
         observation_delay_seconds: float | None,
         unavailable_reason: str | None,
         known_absent: bool = False,
+        defer_flush: bool = False,
     ) -> bool:
         """Insert one forward observation if absent. Idempotent on (entry, horizon): a real
         observation is never overwritten once recorded (returns False).
 
         ``known_absent`` skips the existence SELECT when the caller has already confirmed the row is
         absent via a batched load (e.g. ``forward_horizons_for_entries``), avoiding a per-row
-        round-trip. The DB unique constraint on (entry, horizon) is the ultimate idempotency guard.
+        SELECT. ``defer_flush`` lets a batch caller leave all pending inserts for the transaction's
+        final commit instead of adding one database round-trip per row. The DB unique constraint on
+        (entry, horizon) is the ultimate idempotency guard.
         """
         if not known_absent:
             existing = (await self.get_forward(entry_id)).get(horizon)
@@ -384,7 +387,8 @@ class ResearchRepository:
                 created_at=_now(),
             )
         )
-        await self.session.flush()
+        if not defer_flush:
+            await self.session.flush()
         return True
 
     async def repair_incomplete(self) -> dict:

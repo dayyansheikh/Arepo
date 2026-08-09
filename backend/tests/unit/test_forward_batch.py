@@ -5,6 +5,7 @@ import json
 from datetime import UTC, datetime, timedelta
 
 import httpx
+from sqlalchemy import event
 
 from astrolabe.clients.clob_rest import ClobRestClient
 from astrolabe.config import Settings
@@ -95,6 +96,30 @@ async def test_dedup_one_fetch_per_token_across_horizons():
     assert r["written"] == 6
     assert sorted(asked[0]) == ["m1-yes", "m2-yes"]  # deduped to 2 unique tokens, one batch call
     assert len(asked) == 1
+
+
+async def test_forward_batch_flushes_once_at_commit():
+    """A horizon spike is persisted in one flush, not one remote round-trip per row."""
+    now = CUTOFF + timedelta(hours=25)  # 2 entries x 3 elapsed horizons = 6 inserts
+
+    async def quotes_of(tokens):
+        return {t: Quote(0.5, 0.49, 0.51, 0.02, 100.0) for t in tokens}
+
+    eng, s = await _fresh_frozen_db()
+    flushes = 0
+
+    @event.listens_for(s.sync_session, "before_flush")
+    def _count_flushes(*_args):
+        nonlocal flushes
+        flushes += 1
+
+    result = await collect_due_forward(s, now=now, quotes_of=quotes_of)
+    rows = await _forward_rows(s)
+    await eng.dispose()
+
+    assert result["written"] == 6
+    assert len(rows) == 6
+    assert flushes == 1
 
 
 def _clob_with_mock(handler):
