@@ -24,6 +24,7 @@ function counts(p: Partial<ReplayCounts>): ReplayCounts {
     no_change: 0,
     pending: 0,
     unavailable: 0,
+    closed_before_horizon: 0,
     invalid: 0,
     moved: 0,
     evaluated: 0,
@@ -92,6 +93,9 @@ describe("resultLabel", () => {
     expect(resultLabel("no_change")).toMatchObject({ label: "No price change", tone: "flat" });
     expect(resultLabel("pending")).toMatchObject({ label: "Pending", tone: "pending" });
     expect(resultLabel("unavailable")).toMatchObject({ label: "Unavailable" });
+    expect(resultLabel("closed_before_horizon")).toMatchObject({
+      label: "Closed before horizon",
+    });
     expect(resultLabel("invalid")).toMatchObject({ label: "Invalid" });
     // Every label carries a non-colour glyph.
     for (const s of ["moved_expected", "moved_against", "no_change", "pending"]) {

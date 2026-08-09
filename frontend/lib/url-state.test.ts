@@ -7,6 +7,12 @@ describe("URL filter state (spec §10)", () => {
     expect(readParam(s, "category")).toBe("Politics");
   });
 
+  it("round-trips the full category label used by Opportunities and Replay", () => {
+    const s = nextSearch("", "category", "Geopolitics / War", "All");
+    expect(readParam(s, "category", "All")).toBe("Geopolitics / War");
+    expect(s).toContain("Geopolitics+%2F+War");
+  });
+
   it("setting the default (or empty) removes the key, keeping URLs clean", () => {
     let s = nextSearch("", "view", "strongest", "directional");
     expect(readParam(s, "view", "directional")).toBe("strongest");

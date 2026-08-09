@@ -55,6 +55,8 @@ export function resultLabel(state: string): ResultLabel {
       return { label: "No price change", tone: "flat", glyph: "→" };
     case "unavailable":
       return { label: "Unavailable", tone: "pending", glyph: "–" };
+    case "closed_before_horizon":
+      return { label: "Closed before horizon", tone: "pending", glyph: "×" };
     case "invalid":
       return { label: "Invalid", tone: "pending", glyph: "–" };
     case "pending":
@@ -97,6 +99,9 @@ export function headlineSentence(c: ReplayCounts): string {
   const tail: string[] = [];
   if (c.pending > 0) tail.push(`${c.pending} pending`);
   if (c.unavailable > 0) tail.push(`${c.unavailable} unavailable`);
+  if (c.closed_before_horizon > 0) {
+    tail.push(`${c.closed_before_horizon} closed before the horizon`);
+  }
   if (tail.length) sentence += ` ${tail.join(" and ")} at this horizon.`;
   return sentence;
 }

@@ -340,6 +340,7 @@ export interface ReplayCounts {
   no_change: number;
   pending: number;
   unavailable: number;
+  closed_before_horizon: number;
   invalid: number;
   moved: number;
   evaluated: number;
@@ -361,6 +362,8 @@ export interface ReplayRow {
   token_id: string;
   market_question: string;
   outcome_name: string;
+  primary_category: string | null;
+  category_available: boolean;
   role: string;
   direction: string | null;
   frozen_midpoint: number | null;
@@ -370,6 +373,7 @@ export interface ReplayRow {
   executable: ReplayExecutable;
   time_remaining_hours: number | null;
   result_state: string;
+  unavailable_reason: string | null;
   resolution: { resolved: boolean; resolved_outcome: string | null; correct: boolean | null };
   freeze_to_close?: {
     state: string;
@@ -407,6 +411,9 @@ export interface ReplayResult {
   available_horizons: Record<string, boolean>;
   resolution_available: boolean;
   scope: string;
+  category: string;
+  category_metadata_available: number;
+  category_metadata_unavailable: number;
   closing: string;
   closing_max_hours: number | null;
   qualifying: number;
@@ -487,11 +494,15 @@ export interface Opportunities {
   scan_id?: string;
   window?: string;
   window_label?: string;
+  category?: string;
   selection_policy?: string;
   public_selection_limit?: number;
+  category_display_limit?: number;
   freshness?: Freshness;
   shown?: number;
   total_directional?: number;
+  category_directional?: number;
+  category_unavailable?: number;
   eligible_markets?: number;
   rows: ScanSignalRow[];
   denominator?: string | null;
@@ -513,6 +524,7 @@ export interface ScanSignalRow {
   token_id: string;
   market_question: string;
   outcome_name: string;
+  primary_category: string | null;
   bucket: string | null;
   bucket_label: string | null;
   close_time: string | null;
@@ -558,8 +570,12 @@ export function getScanSignals(
   return apiFetch<ScanSignals>("/api/scan/signals", { bucket, scope, limit });
 }
 
-export function getOpportunities(window = "all", limit = 20): Promise<Opportunities> {
-  return apiFetch<Opportunities>("/api/scan/opportunities", { window, limit });
+export function getOpportunities(
+  window = "all",
+  category = "All",
+  limit?: number,
+): Promise<Opportunities> {
+  return apiFetch<Opportunities>("/api/scan/opportunities", { window, category, limit });
 }
 
 export interface MarketHistorySnapshot {
@@ -603,11 +619,13 @@ export function getReplayCohortResults(
   horizon: string,
   scope: string,
   closing: string,
+  category = "All",
 ): Promise<ReplayResult> {
   return apiFetch<ReplayResult>(`/api/research/replay/cohort/${cohortId}`, {
     horizon,
     scope,
     closing,
+    category,
   });
 }
 

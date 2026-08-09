@@ -29,6 +29,18 @@ test("results come first: 6h performance and a plain hit sentence are the main f
   );
 });
 
+test("category and horizon are primary; category defaults to All and persists", async ({ page }) => {
+  await loadReplay(page, "?h=6h");
+  const primary = page.getByTestId("primary-replay-controls");
+  await expect(primary.getByTestId("horizon-tabs")).toBeVisible();
+  await expect(primary.getByTestId("category-filter")).toBeVisible();
+  await expect(page.getByTestId("category-all")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("category-crypto").click();
+  await expect(page).toHaveURL(/category=Crypto/);
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByTestId("category-crypto")).toHaveAttribute("aria-pressed", "true");
+});
+
 test("cohort mechanics are collapsed, not dominating the page", async ({ page }) => {
   await loadReplay(page);
   // One subtle cohort line, not a big coloured timing box.
@@ -48,8 +60,8 @@ test("horizon is one click and a due-but-uncollected horizon shows a clean pendi
 }) => {
   await loadReplay(page, "?h=6h");
   await expect(page.getByTestId("repricing-result")).toBeVisible({ timeout: 15000 });
-  // 24h is not yet due for this cohort -> a single clear pending state, never six zero cards.
-  await page.getByTestId("horizon-24h").click();
+  // 7d is not yet due for this cohort -> a single clear pending state, never six zero cards.
+  await page.getByTestId("horizon-7d").click();
   const pending = page.getByTestId("pending-state");
   await expect(pending).toBeVisible({ timeout: 15000 });
   await expect(pending).toContainText("still being collected");
@@ -71,6 +83,7 @@ test("scope is Opportunities by default; Research comparison reveals the public/
   await expect(page.getByTestId("repricing-result")).toBeVisible({ timeout: 15000 });
   // The public/shadow/combined comparison is NOT shown on the normal view.
   await expect(page.getByTestId("research-comparison")).toHaveCount(0);
+  await page.getByTestId("more-filters").getByText("More filters").click();
   await page.getByTestId("scope-pills-research").click();
   await expect(page.getByTestId("research-comparison")).toBeVisible({ timeout: 15000 });
   await expect(page.getByTestId("research-comparison")).toContainText("Opportunities (public)");
@@ -80,9 +93,26 @@ test("scope is Opportunities by default; Research comparison reveals the public/
 test("closing window is one click", async ({ page }) => {
   await loadReplay(page, "?h=6h");
   await expect(page.getByTestId("result-block")).toBeVisible({ timeout: 15000 });
+  await page.getByTestId("more-filters").getByText("More filters").click();
   await page.getByTestId("closing-pills-6h").click();
   // The result re-renders for the new window (still the 6-hour performance heading).
   await expect(page.getByTestId("result-block")).toContainText("6-hour performance");
+});
+
+test("advanced controls and previous cohorts remain secondary and usable", async ({ page }) => {
+  await loadReplay(page, "?h=6h");
+  const more = page.getByTestId("more-filters").locator("details");
+  await expect(more).not.toHaveJSProperty("open", true);
+  await page.getByTestId("more-filters").getByText("More filters").click();
+  await expect(page.getByTestId("scope-pills")).toBeVisible();
+  await expect(page.getByTestId("closing-pills")).toBeVisible();
+
+  const previous = page.locator("details", { hasText: "Previous cohorts" });
+  if ((await previous.count()) > 0) {
+    await expect(previous).not.toHaveJSProperty("open", true);
+    await previous.getByText("Previous cohorts").click();
+    await expect(page.getByTestId("cohort-select")).toBeVisible();
+  }
 });
 
 test("To close and Resolved tabs show their own separate panels", async ({ page }) => {

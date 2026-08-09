@@ -6,7 +6,7 @@ verdict. No synthetic or reconstructed numbers enter here.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...evaluation.research_replay import ResearchReplayService
@@ -60,14 +60,18 @@ async def replay_cohort_results(
     cohort_id: int,
     session: AsyncSession = Depends(get_session),
     horizon: str = Query("6h"),
-    scope: str = Query("directional"),
+    scope: str = Query("public"),
     closing: str = Query("all"),
+    category: str = Query("All"),
 ) -> dict:
     """Market-by-market result table + aggregate movement answer for one frozen cohort.
 
     ``horizon`` in 1h|6h|24h|7d; ``scope`` in public|directional; ``closing`` in
     6h|24h|7d|30d|all (frozen time-to-close). Deterministic and read-only.
     """
-    return await ResearchReplayService(session).cohort_results(
-        cohort_id, horizon=horizon, scope=scope, closing=closing
-    )
+    try:
+        return await ResearchReplayService(session).cohort_results(
+            cohort_id, horizon=horizon, scope=scope, closing=closing, category=category
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

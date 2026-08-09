@@ -117,6 +117,9 @@ class ResearchEntryRow(Base):
     token_id: Mapped[str] = mapped_column(String, nullable=False)
     market_question: Mapped[str] = mapped_column(String, nullable=False, default="")
     outcome_name: Mapped[str] = mapped_column(String, nullable=False, default="")
+    # Causally copied from the source complete scan. NULL is retained for historical cohorts that
+    # predate category preservation rather than reconstructing a category with future metadata.
+    primary_category: Mapped[str | None] = mapped_column(String)
 
     # Model view at the cut-off.
     direction: Mapped[str | None] = mapped_column(String)

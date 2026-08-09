@@ -19,20 +19,9 @@ import type {
 } from "@/lib/types";
 import { PageHeader } from "@/components/ui";
 import { FormMessage, TextLink } from "@/components/account/AuthUI";
+import { CATEGORY_FILTERS } from "@/lib/categories";
 
 type AccountTab = "digests" | "preferences";
-
-const CATEGORY_OPTIONS = [
-  "All",
-  "Geopolitics / War",
-  "Economics / Macro",
-  "Commodities",
-  "Politics / Elections",
-  "Crypto",
-  "Technology / Business",
-  "Sports",
-  "Entertainment / Culture",
-] as const;
 
 const FREQUENCIES: Array<{
   value: AlertPreferences["digest_frequency"];
@@ -319,7 +308,7 @@ function PreferencesTab({ onDeleted }: { onDeleted: () => void }) {
 
         <PreferenceGroup title="Categories" hint="All includes every market category.">
           <div className="flex flex-wrap gap-2">
-            {CATEGORY_OPTIONS.map((category) => {
+            {CATEGORY_FILTERS.map((category) => {
               const selected = category === "All"
                 ? prefs.categories.length === 0
                 : prefs.categories.includes(category);

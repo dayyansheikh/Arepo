@@ -52,7 +52,7 @@ _load_all_models()
 # Bump whenever the ORM gains tables/columns. This is a monotonic marker recorded in
 # ``schema_migrations``; the actual work is metadata-driven so the number is documentation, not a
 # script selector.
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 SCHEMA_VERSION_NOTES = {
     1: "initial create_all schema",
     2: "research per-family directions (momentum/orderbook/tradeflow) + edge-research tables",
@@ -71,6 +71,8 @@ SCHEMA_VERSION_NOTES = {
     10: "scheduler_state + scheduler_leases (robust idempotent production scheduler tick)",
     11: "users first_name/last_name + isolated digest preferences + immutable user-scoped "
         "digest_deliveries/digest_entries + Postgres RLS on private account tables",
+    12: "discovery_signal_snapshots/research_entries primary_category (causal category reuse for "
+        "Opportunities, digests and prospective Replay; old rows remain NULL)",
 }
 
 _VERSION_TABLE = "schema_migrations"

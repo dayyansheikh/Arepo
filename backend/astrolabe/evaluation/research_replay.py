@@ -26,6 +26,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..categories import ALL_CATEGORY, category_matches, normalize_category_filter
 from ..discovery.snapshot_models import SignalSnapshotRow
 from .execution import evaluate_execution
 from .models import MarketResolutionRow
@@ -66,7 +67,7 @@ CLOSING_FILTERS: dict[str, float | None] = {
 
 # Scope of the directional table (prompt section 5).
 SCOPE_PUBLIC = "public"          # top public selections only
-SCOPE_DIRECTIONAL = "directional"  # all directional signals, including shadow (the default)
+SCOPE_DIRECTIONAL = "directional"  # advanced view: all directional signals, including shadow
 
 # Result states for one directional call at one horizon (product display; prompt sections 5, 7).
 RESULT_EXPECTED = "moved_expected"
@@ -74,6 +75,7 @@ RESULT_AGAINST = "moved_against"
 RESULT_NO_CHANGE = "no_change"
 RESULT_PENDING = "pending"
 RESULT_UNAVAILABLE = "unavailable"
+RESULT_CLOSED_BEFORE_HORIZON = "closed_before_horizon"
 RESULT_INVALID = "invalid"
 
 
@@ -98,8 +100,10 @@ def replay_result_state(
     - ``invalid``: the entry carries no directional call (should not appear in the directional
       table, guarded for completeness).
     - ``pending``: no forward observation stored yet (horizon not due, or not yet collected).
-    - ``unavailable``: an observation exists but has no usable midpoint (a stored unavailable row),
-      or the frozen entry midpoint is missing.
+    - ``closed_before_horizon``: the stored collector observation explicitly records that the
+      market closed before this horizon.
+    - ``unavailable``: another observation exists but has no usable midpoint, or the frozen entry
+      midpoint is missing.
     - ``moved_expected`` / ``moved_against`` / ``no_change``: the midpoint moved in / against the
       stored direction, or did not move at all (``|move| <= REPLAY_MOVE_EPS``).
     """
@@ -107,6 +111,10 @@ def replay_result_state(
         return RESULT_INVALID
     if fwd is None:
         return RESULT_PENDING
+    if fwd.midpoint is None and "closed before" in (
+        getattr(fwd, "unavailable_reason", None) or ""
+    ).lower():
+        return RESULT_CLOSED_BEFORE_HORIZON
     if fwd.midpoint is None or entry_midpoint is None:
         return RESULT_UNAVAILABLE
     move = fwd.midpoint - entry_midpoint
@@ -123,6 +131,7 @@ class _Counts:
     no_change: int = 0
     pending: int = 0
     unavailable: int = 0
+    closed_before_horizon: int = 0
     invalid: int = 0
 
     def add(self, state: str) -> None:
@@ -147,6 +156,7 @@ class _Counts:
             "no_change": self.no_change,
             "pending": self.pending,
             "unavailable": self.unavailable,
+            "closed_before_horizon": self.closed_before_horizon,
             "invalid": self.invalid,
             "moved": moved,
             "evaluated": self.evaluated,
@@ -320,7 +330,11 @@ class ResearchReplayService:
         }
 
     def _directional_entries(
-        self, entries: list[ResearchEntryRow], scope: str, max_hours: float | None
+        self,
+        entries: list[ResearchEntryRow],
+        scope: str,
+        max_hours: float | None,
+        category: str = ALL_CATEGORY,
     ) -> list[ResearchEntryRow]:
         """Directional entries for the scope + closing window, ordered by FROZEN rank.
 
@@ -330,7 +344,11 @@ class ResearchReplayService:
         roles = (ROLE_PUBLIC,) if scope == SCOPE_PUBLIC else (ROLE_PUBLIC, ROLE_SHADOW)
         out = [
             e for e in entries
-            if e.role in roles and e.direction in ("up", "down")
+            if (
+                e.role in roles
+                and e.direction in ("up", "down")
+                and category_matches(category, e.primary_category)
+            )
         ]
         if max_hours is not None:
             out = [
@@ -367,17 +385,9 @@ class ResearchReplayService:
             "correct": correct,
         }
 
-    async def _evolution_for(self, e: ResearchEntryRow) -> dict:
-        """Later signal evolution (prompt C8): the market's CURRENT stored signal vs its frozen
-        signal, from the latest complete-scan snapshot. Diagnostic only; never rewrites frozen
-        fields."""
-        res = await self.session.execute(
-            select(SignalSnapshotRow)
-            .where(SignalSnapshotRow.market_id == e.market_id)
-            .order_by(SignalSnapshotRow.captured_at.desc())
-            .limit(1)
-        )
-        snap = res.scalar_one_or_none()
+    @staticmethod
+    def _evolution(e: ResearchEntryRow, snap: SignalSnapshotRow | None) -> dict:
+        """Diagnostic later evolution; never participates in selection or category filtering."""
         if snap is None:
             return {"available": False, "state": "no later scan"}
         strength_change = round((snap.strength or 0.0) - (e.strength or 0.0), 4)
@@ -407,11 +417,29 @@ class ResearchReplayService:
             "captured_at": snap.captured_at.isoformat() if snap.captured_at else None,
         }
 
+    async def _evolution_map(
+        self, entries: list[ResearchEntryRow]
+    ) -> dict[str, SignalSnapshotRow]:
+        """Latest stored signal for every shown market in one query (no per-row N+1)."""
+        market_ids = {entry.market_id for entry in entries}
+        if not market_ids:
+            return {}
+        result = await self.session.execute(
+            select(SignalSnapshotRow)
+            .where(SignalSnapshotRow.market_id.in_(market_ids))
+            .order_by(SignalSnapshotRow.market_id, SignalSnapshotRow.captured_at.desc())
+        )
+        latest: dict[str, SignalSnapshotRow] = {}
+        for snap in result.scalars().all():
+            latest.setdefault(snap.market_id, snap)
+        return latest
+
     async def _entry_row(
         self, e: ResearchEntryRow, horizon: str,
         resolutions: dict[str, MarketResolutionRow] | None = None,
         preclose_map: dict | None = None,
         forward_map: dict[int, dict[str, ResearchForwardRow]] | None = None,
+        evolution_map: dict[str, SignalSnapshotRow] | None = None,
     ) -> dict:
         fwd = (forward_map.get(e.id, {}) if forward_map is not None
                else await self.repo.get_forward(e.id)).get(horizon)
@@ -453,6 +481,8 @@ class ResearchReplayService:
             "token_id": e.token_id,
             "market_question": e.market_question,
             "outcome_name": e.outcome_name,
+            "primary_category": e.primary_category,
+            "category_available": e.primary_category is not None,
             "role": e.role,
             "direction": e.direction,
             "frozen_midpoint": e.midpoint,
@@ -462,11 +492,12 @@ class ResearchReplayService:
             "executable": executable,
             "time_remaining_hours": e.time_remaining_hours,
             "result_state": state,
+            "unavailable_reason": fwd.unavailable_reason if fwd is not None else None,
             "resolution": self._row_resolution(e, resolutions or {}),
             # Separate panels (prompt C7): freeze-to-close and later signal evolution never mix into
             # the short-term movement result.
             "freeze_to_close": freeze_to_close_result(e, (preclose_map or {}).get(e.id)),
-            "evolution": await self._evolution_for(e),
+            "evolution": self._evolution(e, (evolution_map or {}).get(e.market_id)),
             "strength": e.strength,
             "confidence": e.confidence,
             "research_priority": e.research_priority,
@@ -513,7 +544,7 @@ class ResearchReplayService:
 
     async def cohort_results(
         self, cohort_id: int, *, horizon: str = "6h",
-        scope: str = SCOPE_DIRECTIONAL, closing: str = "all",
+        scope: str = SCOPE_PUBLIC, closing: str = "all", category: str = ALL_CATEGORY,
     ) -> dict:
         """Full Replay result set for one cohort + horizon + closing window + scope.
 
@@ -525,6 +556,7 @@ class ResearchReplayService:
             scope = SCOPE_DIRECTIONAL
         if closing not in CLOSING_FILTERS:
             closing = "all"
+        selected_category = normalize_category_filter(category)
         max_hours = CLOSING_FILTERS[closing]
 
         cohort = await self.session.get(ResearchCohortRow, cohort_id)
@@ -540,7 +572,9 @@ class ResearchReplayService:
         # (scope-independent) so the "did the market move as expected?" section always shows the
         # public, shadow and combined split (prompt section 6). The table and the headline follow
         # the selected scope (prompt section 5).
-        all_directional = self._directional_entries(all_entries, SCOPE_DIRECTIONAL, max_hours)
+        all_directional = self._directional_entries(
+            all_entries, SCOPE_DIRECTIONAL, max_hours, selected_category
+        )
         public_entries = [e for e in all_directional if e.role == ROLE_PUBLIC]
         shadow_entries = [e for e in all_directional if e.role == ROLE_SHADOW]
         scoped = public_entries if scope == SCOPE_PUBLIC else all_directional
@@ -553,8 +587,11 @@ class ResearchReplayService:
         shown = scoped[:20]
         resolutions = await self._resolution_map(shown)
         preclose_map = await preclose_for_cohort(self.session, cohort.id)
+        evolution_map = await self._evolution_map(shown)
         rows = [
-            await self._entry_row(e, horizon, resolutions, preclose_map, forward_map)
+            await self._entry_row(
+                e, horizon, resolutions, preclose_map, forward_map, evolution_map
+            )
             for e in shown
         ]
 
@@ -588,10 +625,12 @@ class ResearchReplayService:
         # Non-directional role counts stay in the methodology summary, never in the result table.
         role_counts: dict[str, int] = {}
         for e in all_entries:
+            if not category_matches(selected_category, e.primary_category):
+                continue
             role_counts[e.role] = role_counts.get(e.role, 0) + 1
 
         resolution = await self._resolution_summary(scoped)
-        available_horizons = await self._available_horizons(all_entries)
+        available_horizons = await self._available_horizons(scoped)
 
         return {
             "found": True,
@@ -599,8 +638,15 @@ class ResearchReplayService:
             "horizon": horizon,
             "horizon_evaluable": available_horizons.get(horizon, False),
             "available_horizons": available_horizons,
-            "resolution_available": await self._resolution_available(all_entries),
+            "resolution_available": await self._resolution_available(scoped),
             "scope": scope,
+            "category": selected_category,
+            "category_metadata_available": sum(
+                1 for entry in all_entries if entry.primary_category is not None
+            ),
+            "category_metadata_unavailable": sum(
+                1 for entry in all_entries if entry.primary_category is None
+            ),
             "closing": closing,
             "closing_max_hours": max_hours,
             "qualifying": len(scoped),

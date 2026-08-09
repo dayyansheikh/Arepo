@@ -138,12 +138,13 @@ async def test_upgrade_adds_missing_columns_and_preserves_rows(prior_db):
     async with sm() as s:
         row = (await s.execute(text(
             "SELECT market_id, direction, momentum_direction, orderbook_direction, "
-            "tradeflow_direction FROM research_entries"
+            "tradeflow_direction, primary_category FROM research_entries"
         ))).one()
         assert row.market_id == "MKT" and row.direction == "up"
         assert row.momentum_direction is None
         assert row.orderbook_direction is None
         assert row.tradeflow_direction is None
+        assert row.primary_category is None
         # The old cohort survived intact.
         n = (await s.execute(text("SELECT COUNT(*) FROM research_cohorts"))).scalar()
         assert n == 1

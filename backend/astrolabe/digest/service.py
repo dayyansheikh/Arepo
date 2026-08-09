@@ -16,6 +16,7 @@ from ..accounts.email import CANONICAL_AREPO_BASE_URL, AccountEmailService, Sign
 from ..accounts.models import AlertPreference, DigestDelivery, DigestEntry, User
 from ..alerts.config import AlertConfig
 from ..alerts.provider import EmailProvider, provider_for
+from ..categories import USER_SELECTABLE_CATEGORIES, primary_category
 from ..config import get_settings
 from ..discovery.signal_service import FRESH_MAX_INTERVALS, REFRESH_INTERVAL_SECONDS
 from ..discovery.snapshot_models import ScanRunRow, SignalSnapshotRow
@@ -25,7 +26,6 @@ from ..evaluation.research_models import ResearchCohortRow, ResearchEntryRow, Re
 from ..evaluation.research_replay import replay_result_state
 from ..scheduler import state as scheduler_state
 from ..storage.models import MarketRow
-from .categories import DIGEST_PREFERENCE_CATEGORIES, digest_category
 from .email import render_signal_cards
 from .scheduling import due_window_key, evaluation_horizon, horizon_due_at
 
@@ -55,7 +55,7 @@ def _config() -> AlertConfig:
 
 def _clean_categories(values: list[str] | None) -> list[str]:
     wanted = set(values or [])
-    return [category for category in DIGEST_PREFERENCE_CATEGORIES if category in wanted]
+    return [category for category in USER_SELECTABLE_CATEGORIES if category in wanted]
 
 
 def _categories(pref: AlertPreference) -> list[str]:
@@ -245,7 +245,7 @@ class DigestService:
             ranked = await self._opportunity_rows(scan)
             selected: list[tuple[SignalSnapshotRow, MarketRow | None, str]] = []
             for snap, market in ranked:
-                label = digest_category(
+                label = snap.primary_category or primary_category(
                     market.category if market else None,
                     list(market.tags or []) if market else [],
                 )

@@ -37,9 +37,11 @@ import { resultLabel } from "@/lib/replay";
 import { directionLabel, DIRECTION_TONE_CLASS } from "@/lib/directional";
 import { formatPrice } from "@/lib/format";
 import { StrengthBar } from "@/components/StrengthBar";
+import { CategoryFilterRow } from "@/components/CategoryFilterRow";
 import { ErrorState, EmptyState } from "@/components/ErrorState";
 import { ListSkeleton } from "@/components/Skeletons";
 import { PageHeader, SectionTitle, Disclose, Badge } from "@/components/ui";
+import { ALL_CATEGORY, type CategoryFilter } from "@/lib/categories";
 
 function dt(iso: string | null | undefined): string {
   return iso ? new Date(iso).toLocaleString("en-GB") : "unknown";
@@ -52,6 +54,7 @@ export default function ReplayPage() {
   const [horizonRaw, setHorizon] = useUrlState("h", "6h");
   const [closing, setClosing] = useUrlState("closing", "all");
   const [scopeRaw, setScope] = useUrlState("scope", "public");
+  const [category, setCategory] = useUrlState("category", ALL_CATEGORY);
   const [manualCohort, setManualCohort] = useUrlState("cohort", "");
   const horizon = horizonRaw as HorizonTab;
   const scope = scopeRaw as ScopeTab;
@@ -71,15 +74,24 @@ export default function ReplayPage() {
   const resultsState = useAsync<ReplayResult | null>(
     () =>
       cohortId != null
-        ? getReplayCohortResults(cohortId, apiHorizon(horizon), apiScope(scope), closing)
+        ? getReplayCohortResults(
+            cohortId,
+            apiHorizon(horizon),
+            apiScope(scope),
+            closing,
+            category,
+          )
         : Promise.resolve(null),
-    [cohortId, horizon, closing, scope],
+    [cohortId, horizon, closing, scope, category],
   );
   const result = resultsState.data;
 
   return (
     <div className="space-y-6" data-testid="replay-page">
-      <PageHeader title="Replay" lead="How Arepo's past signals performed." />
+      <PageHeader
+        title="Replay"
+        lead="How did Arepo Opportunities in this category perform?"
+      />
 
       {cohortsState.loading && <ListSkeleton rows={5} />}
       {!cohortsState.loading && cohortsState.error && <ErrorState message={cohortsState.error} />}
@@ -123,30 +135,41 @@ export default function ReplayPage() {
             Live signals continue updating between freezes.
           </p>
 
-          <CohortControls list={list!} cohort={cohort} manualId={manualId} setManual={setManualCohort} />
-
-          {/* Horizon tabs (one click). */}
-          <HorizonTabs cohort={cohort} horizon={horizon} setHorizon={setHorizon} now={now} />
-
-          {/* Closing + scope controls. */}
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-            <PillRow
-              label="Closing"
-              options={CLOSING_PILLS}
-              value={closing}
-              onChange={setClosing}
-              testid="closing-pills"
-              help="Based on how long the market had left when Arepo recorded the signal."
-            />
-            <PillRow
-              label="Signals"
-              options={SCOPE_TABS}
-              value={scope}
-              onChange={setScope}
-              testid="scope-pills"
-              help={SCOPE_HELP[scope]}
+          <div className="space-y-4" data-testid="primary-replay-controls">
+            <div className="space-y-1.5">
+              <div className="text-[12px] font-medium text-arepo-muted">Horizon</div>
+              <HorizonTabs cohort={cohort} horizon={horizon} setHorizon={setHorizon} now={now} />
+            </div>
+            <CategoryFilterRow
+              value={category}
+              onChange={(next: CategoryFilter) => setCategory(next)}
             />
           </div>
+
+          <div data-testid="more-filters">
+            <Disclose summary="More filters">
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+                <PillRow
+                  label="Closing"
+                  options={CLOSING_PILLS}
+                  value={closing}
+                  onChange={setClosing}
+                  testid="closing-pills"
+                  help="Based on how long the market had left when Arepo recorded the signal."
+                />
+                <PillRow
+                  label="Signals"
+                  options={SCOPE_TABS}
+                  value={scope}
+                  onChange={setScope}
+                  testid="scope-pills"
+                  help={SCOPE_HELP[scope]}
+                />
+              </div>
+            </Disclose>
+          </div>
+
+          <CohortControls list={list!} cohort={cohort} manualId={manualId} setManual={setManualCohort} />
 
           {resultsState.loading && <ListSkeleton rows={5} />}
           {!resultsState.loading && resultsState.error && (
@@ -338,7 +361,13 @@ function ResultsArea({
           </span>
         </div>
         {result.rows.length === 0 ? (
-          <EmptyState message="No signals in this set. Try a wider closing window or a different horizon." />
+          <EmptyState
+            message={
+              result.category !== ALL_CATEGORY && result.category_metadata_available === 0
+                ? "Category metadata was not frozen for this older cohort, so Arepo will not invent a historical category. Try All or a newer cohort."
+                : "No signals in this set. Try another category, a wider closing window or a different horizon."
+            }
+          />
         ) : (
           <div className="space-y-2">
             {result.rows.map((r) => (
@@ -366,7 +395,7 @@ function RepricingResult({
 }) {
   const c = result.headline;
   const avail = horizonAvailability(cohort, horizon, now);
-  if (c.evaluated === 0 && c.total > 0 && avail !== "evaluable") {
+  if (c.total > 0 && c.pending === c.total && avail !== "evaluable") {
     const msg = pendingMessage(cohort, horizon, c.total);
     return (
       <div
@@ -386,11 +415,20 @@ function RepricingResult({
         <BigStat label="Moved against" value={c.moved_against} tone="bad" />
         <BigStat label="No change" value={c.no_change} tone="flat" />
         <BigStat
-          label={c.pending + c.unavailable > 0 ? "Pending / unavailable" : "Pending"}
-          value={c.pending + c.unavailable}
+          label={
+            c.pending + c.unavailable + c.closed_before_horizon > 0
+              ? "Pending / unavailable"
+              : "Pending"
+          }
+          value={c.pending + c.unavailable + c.closed_before_horizon}
           tone="muted"
         />
       </div>
+      {c.closed_before_horizon > 0 && (
+        <p className="mt-2 text-[13px] text-arepo-muted">
+          {c.closed_before_horizon} closed before this evaluation horizon.
+        </p>
+      )}
       {hit ? (
         <p className="mt-3 text-[15px] font-medium text-arepo-ink2" data-testid="hit-sentence">
           {hit}
@@ -512,6 +550,10 @@ function SplitCard({
       </div>
       <div className="mt-1 text-[12px] text-arepo-muted">
         {c.total} directional{c.pending > 0 ? ` · ${c.pending} pending` : ""}
+        {c.unavailable > 0 ? ` · ${c.unavailable} unavailable` : ""}
+        {c.closed_before_horizon > 0
+          ? ` · ${c.closed_before_horizon} closed before horizon`
+          : ""}
       </div>
     </div>
   );

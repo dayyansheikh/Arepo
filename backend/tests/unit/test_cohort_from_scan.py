@@ -19,6 +19,7 @@ from astrolabe.discovery.eligibility import (
 )
 from astrolabe.discovery.scan_service import AnalysedMarket, ScanResult, _rank
 from astrolabe.discovery.signal_service import SignalReadService, freshness
+from astrolabe.domain.models import Market, Outcome
 from astrolabe.evaluation.research_engine import ScoredScreen
 from astrolabe.evaluation.research_models import ResearchCohortRow
 from astrolabe.evaluation.research_repository import ResearchRepository
@@ -51,7 +52,13 @@ def _screen(mid, rp, direction="up", strength=0.6):
     )
 
 
-def _result(scan_id: str, *, complete: bool, n_public_bucket: int = 25) -> ScanResult:
+def _result(
+    scan_id: str,
+    *,
+    complete: bool,
+    n_public_bucket: int = 25,
+    categories: dict[str, str] | None = None,
+) -> ScanResult:
     # A bucket with 25 directional (-> 20 public + 5 shadow) plus a few non-directional markets.
     analysed = [
         AnalysedMarket(screen=_screen(f"d{i}", rp=90 - i), hours=3.0, bucket=BUCKET_0_6H)
@@ -73,10 +80,24 @@ def _result(scan_id: str, *, complete: bool, n_public_bucket: int = 25) -> ScanR
     )
     f = DiscoveryFunnel(unique_markets=500, eligible_30d=len(analysed))
     f.finalise()
+    category_by_id = categories or {}
+    eligible_markets = [
+        Market(
+            id=a.screen.market_id,
+            question=a.screen.market_question,
+            slug=a.screen.market_id,
+            condition_id=a.screen.condition_id or "",
+            outcomes=[Outcome(name="Yes", token_id=a.screen.token_id)],
+            category=category_by_id.get(a.screen.market_id, "Unclassified"),
+            tags=[category_by_id.get(a.screen.market_id, "Unclassified")],
+        )
+        for a in analysed
+    ]
     return ScanResult(
         scan_id=scan_id, started_at=NOW, finished_at=NOW + timedelta(seconds=30),
         duration_seconds=30.0, discovery=rep, funnel=f, analysed=analysed,
         status="ok" if complete else "incomplete",
+        eligible_markets=eligible_markets,
     )
 
 
@@ -103,6 +124,27 @@ async def test_cohort_freezes_full_universe_from_complete_scan(session):
     cohort = await session.get(ResearchCohortRow, res_cohort_id(res))
     assert cohort is not None and cohort.selection_policy == "short-horizon-public-20-v1"
     assert cohort.scan_id == "scan-ok" and cohort.scan_complete is True
+
+
+async def test_scan_category_is_classified_once_and_copied_to_frozen_entry(session):
+    await scan_store.record_scan(
+        session,
+        _result(
+            "scan-category-freeze",
+            complete=True,
+            categories={"d0": "Crypto", "d1": "Sports"},
+        ),
+    )
+    snapshots = await scan_store.snapshots_for_scan(session, "scan-category-freeze")
+    assert next(row for row in snapshots if row.market_id == "d0").primary_category == "Crypto"
+    assert next(row for row in snapshots if row.market_id == "d1").primary_category == "Sports"
+
+    await freeze_cohort_from_scan(
+        session, cadence="6h", scan_id="scan-category-freeze", frozen_at=NOW
+    )
+    entries = await ResearchRepository(session).get_entries(1)
+    assert next(row for row in entries if row.market_id == "d0").primary_category == "Crypto"
+    assert next(row for row in entries if row.market_id == "d1").primary_category == "Sports"
 
 
 def res_cohort_id(_res) -> int:
@@ -134,6 +176,64 @@ async def test_opportunities_top20_denominator_and_freshness(session):
     assert "opportunities shown from 30 directional signals" in out["denominator"]
     assert out["selection_policy"] == "short-horizon-public-20-v1"
     assert out["freshness"]["state"] in ("fresh", "refresh_delayed", "out_of_date")
+
+
+async def test_category_filter_precedes_truncation_and_keeps_existing_ranking(session):
+    categories = {f"d{i}": "Crypto" for i in range(20, 25)}
+    await scan_store.record_scan(
+        session,
+        _result(
+            "scan-category",
+            complete=True,
+            n_public_bucket=30,
+            categories=categories,
+        ),
+    )
+
+    all_rows = await SignalReadService(session).opportunities(window="all", category="All")
+    crypto = await SignalReadService(session).opportunities(window="all", category="Crypto")
+
+    assert all_rows["shown"] == 20
+    assert all(row["market_id"] not in categories for row in all_rows["rows"])
+    # These genuine eligible signals sit outside the global display Top 20, but category filtering
+    # happens over the full ranked universe so all five surface in their original order.
+    assert [row["market_id"] for row in crypto["rows"]] == [f"d{i}" for i in range(20, 25)]
+    assert crypto["category_directional"] == 5
+    assert crypto["category_display_limit"] == 24
+
+
+async def test_category_limits_and_thresholds_are_never_relaxed(session):
+    categories = {f"d{i}": "Crypto" for i in range(30)}
+    await scan_store.record_scan(
+        session,
+        _result("scan-limits", complete=True, n_public_bucket=30, categories=categories),
+    )
+    snapshots = await scan_store.snapshots_for_scan(session, "scan-limits")
+    snapshots[0].eligible = False
+    snapshots[1].direction = None
+    await session.commit()
+
+    crypto = await SignalReadService(session).opportunities(window="all", category="Crypto")
+    assert crypto["shown"] == 24
+    ids = {row["market_id"] for row in crypto["rows"]}
+    assert snapshots[0].market_id not in ids
+    assert snapshots[1].market_id not in ids
+
+    # Sports keeps the public 20 cap; a sparse category is returned as-is and never padded.
+    for snap in snapshots:
+        snap.primary_category = "Sports"
+        snap.eligible = True
+        if snap.market_id.startswith("d"):
+            snap.direction = "up"
+    await session.commit()
+    sports = await SignalReadService(session).opportunities(window="all", category="Sports")
+    assert sports["shown"] == 20
+
+
+async def test_no_scan_returns_empty_instead_of_demo_opportunities(session):
+    out = await SignalReadService(session).opportunities(category="All")
+    assert out["has_scan"] is False
+    assert out["rows"] == []
 
 
 def test_freshness_thresholds():

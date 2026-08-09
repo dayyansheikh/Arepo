@@ -5,7 +5,7 @@ membership, ranks, trajectory, completeness, top-ten subset) is computed server-
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...discovery.signal_service import SignalReadService
@@ -36,11 +36,16 @@ async def signals(
 async def opportunities(
     session: AsyncSession = Depends(get_session),
     window: str = Query("all"),
-    limit: int = Query(20, ge=1, le=50),
+    category: str = Query("All"),
+    limit: int | None = Query(None, ge=1, le=50),
 ) -> dict:
-    """Public Opportunities shortlist: strongest ``limit`` (20) directional signals in the selected
-    closing window from the complete eligible set, with an honest denominator + freshness."""
-    return await SignalReadService(session).opportunities(window=window, limit=limit)
+    """Public Opportunities ranked from the complete eligible set after category filtering."""
+    try:
+        return await SignalReadService(session).opportunities(
+            window=window, category=category, limit=limit
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/market/{market_id}/history")

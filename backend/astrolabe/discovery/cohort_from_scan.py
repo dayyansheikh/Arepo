@@ -49,6 +49,7 @@ def _entry_input(snap: SignalSnapshotRow) -> EntryInput:
         token_id=snap.token_id,
         market_question=snap.market_question,
         outcome_name=snap.outcome_name,
+        primary_category=snap.primary_category,
         direction=snap.direction,
         momentum_direction=snap.momentum_direction,
         orderbook_direction=snap.orderbook_direction,
