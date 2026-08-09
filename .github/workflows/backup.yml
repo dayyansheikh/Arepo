@@ -25,6 +25,21 @@ jobs:
       - name: Install PostgreSQL 17 client
         run: |
           sudo apt-get update -y
+          sudo apt-get install -y curl ca-certificates
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          source /etc/os-release
+          printf '%s\n' \
+            'Types: deb' \
+            'URIs: https://apt.postgresql.org/pub/repos/apt' \
+            "Suites: ${VERSION_CODENAME}-pgdg" \
+            "Architectures: $(dpkg --print-architecture)" \
+            'Components: main' \
+            'Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc' \
+            | sudo tee /etc/apt/sources.list.d/pgdg.sources > /dev/null
+          sudo apt-get update -y
           sudo apt-get install -y postgresql-client-17
           /usr/lib/postgresql/17/bin/pg_dump --version
       - name: Dump and compress
