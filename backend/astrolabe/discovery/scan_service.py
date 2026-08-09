@@ -22,7 +22,7 @@ from ..domain.models import Market, utcnow
 from ..evaluation.constants import CALCULATION_VERSION
 from ..evaluation.research_constants import MODEL_VERSION
 from ..evaluation.research_engine import ScoredScreen, score_screen
-from ..ingest.normalize import normalize_market
+from ..ingest.normalize import normalize_discovered_market
 from ..observability.logging import get_logger
 from .bounded_discovery import BoundedDiscovery, DiscoveryReport
 from .eligibility import (
@@ -133,7 +133,7 @@ class CompleteScanService:
             if raw_liquidity(r) < min_liquidity:
                 prefiltered += 1
                 continue
-            m = normalize_market(r)
+            m = normalize_discovered_market(r)
             if m is not None:
                 markets.append(m)
         return markets, report, prefiltered

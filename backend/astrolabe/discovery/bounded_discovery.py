@@ -40,9 +40,13 @@ def _markets_from_events(events: list[dict]) -> list[dict]:
     for ev in events:
         for m in ev.get("markets") or []:
             if isinstance(m, dict):
-                # Carry the event id down so reconciliation can compare event identity.
-                m.setdefault("eventId", ev.get("id"))
-                out.append(m)
+                # Carry point-in-time event metadata down without mutating the upstream payload.
+                # Gamma's market keyset embeds the event but omits its tags; the event keyset is
+                # therefore the causal source of category metadata for complete scans.
+                market = dict(m)
+                market.setdefault("eventId", ev.get("id"))
+                market["_arepo_event_tags"] = list(ev.get("tags") or [])
+                out.append(market)
     return out
 
 
@@ -193,6 +197,15 @@ class BoundedDiscovery:
                 a, b = union[k], m
                 if (a.get("id") and b.get("id") and str(a["id"]) != str(b["id"])):
                     conflicts += 1
+                # The primary market path wins for market fields, but it does not include event
+                # tags. Preserve the contemporaneous verification metadata so normalization can
+                # classify future scan rows without guessing or reconstructing history.
+                merged = dict(a)
+                if b.get("eventId") is not None:
+                    merged["eventId"] = b["eventId"]
+                if b.get("_arepo_event_tags"):
+                    merged["_arepo_event_tags"] = list(b["_arepo_event_tags"])
+                union[k] = merged
             else:
                 union[k] = m
         report.identity_conflicts = conflicts

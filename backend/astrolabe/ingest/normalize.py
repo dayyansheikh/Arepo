@@ -336,6 +336,18 @@ def _extract_tag_labels(raw_tags: Any) -> list[str]:
     return labels
 
 
+def normalize_discovered_market(raw: dict) -> Market | None:
+    """Normalize one market reconciled by complete bounded discovery.
+
+    Gamma's market keyset supplies the canonical market fields while its event keyset supplies the
+    event tags. ``BoundedDiscovery`` carries those point-in-time tags under an internal key when it
+    reconciles the two paths; this is the only category source used here. Missing metadata remains
+    missing and deterministically becomes the internal ``Other`` category downstream.
+    """
+    tag_labels = _extract_tag_labels(raw.get("_arepo_event_tags"))
+    return normalize_market(raw, category=derive_category(tag_labels), tags=tag_labels)
+
+
 def normalize_events_to_markets(raw_events: list[dict]) -> list[Market]:
     """Flatten nested `markets[]` out of each Gamma event, attaching tags/category."""
     markets: list[Market] = []

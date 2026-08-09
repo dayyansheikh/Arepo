@@ -8,6 +8,7 @@ from pathlib import Path
 from astrolabe.domain.enums import MarketStatus
 from astrolabe.ingest.normalize import (
     normalize_book,
+    normalize_discovered_market,
     normalize_events_to_markets,
     normalize_market,
     normalize_price_history,
@@ -132,6 +133,15 @@ def test_normalize_market_applies_category_and_tags():
     assert market is not None
     assert market.category == "Politics"
     assert market.tags == ["Politics", "US"]
+
+
+def test_normalize_discovered_market_uses_only_carried_event_tags():
+    raw = dict(_load("gamma_markets.json")[0])
+    raw["_arepo_event_tags"] = [{"label": "Gold"}, {"label": "Commodities"}]
+    market = normalize_discovered_market(raw)
+    assert market is not None
+    assert market.category == "Gold"
+    assert market.tags == ["Gold", "Commodities"]
 
 
 def test_normalize_market_returns_none_when_missing_id():
