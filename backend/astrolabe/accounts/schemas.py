@@ -8,7 +8,7 @@ from typing import Literal
 from fastapi_users import schemas
 from pydantic import BaseModel, Field, field_validator
 
-from ..digest.categories import DIGEST_CATEGORIES
+from ..digest.categories import DIGEST_PREFERENCE_CATEGORIES
 
 DigestFrequency = Literal["off", "every_6h", "daily", "twice_daily", "weekly"]
 DigestTopN = Literal[5, 10, 20]
@@ -89,7 +89,7 @@ class PreferenceUpdate(BaseModel):
     def supported_categories(cls, value: list[str] | None) -> list[str] | None:
         if value is None:
             return None
-        unsupported = sorted(set(value) - set(DIGEST_CATEGORIES))
+        unsupported = sorted(set(value) - set(DIGEST_PREFERENCE_CATEGORIES))
         if unsupported:
             raise ValueError(f"Unsupported digest categories: {', '.join(unsupported)}")
         return list(dict.fromkeys(value))

@@ -152,6 +152,7 @@ async def test_preferences_defaults_and_update(client, outbox):
     assert pref["min_research_priority"] == 60
     assert pref["digest_frequency"] == "off"
     assert pref["digest_top_n"] == 10
+    assert pref["categories"] == []  # empty storage/API semantics are the UI's explicit All
     r = client.patch(
         "/api/account/preferences",
         json={"email_enabled": True, "min_research_priority": 75, "short_term_only": True,
@@ -201,6 +202,9 @@ async def test_preferences_reject_out_of_range(client, outbox):
     ).status_code == 422
     assert client.patch(
         "/api/account/preferences", json={"categories": ["Invented category"]}
+    ).status_code == 422
+    assert client.patch(
+        "/api/account/preferences", json={"categories": ["Other"]}
     ).status_code == 422
 
 

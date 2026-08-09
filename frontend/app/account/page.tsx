@@ -23,6 +23,7 @@ import { FormMessage, TextLink } from "@/components/account/AuthUI";
 type AccountTab = "digests" | "preferences";
 
 const CATEGORY_OPTIONS = [
+  "All",
   "Geopolitics / War",
   "Economics / Macro",
   "Commodities",
@@ -31,7 +32,6 @@ const CATEGORY_OPTIONS = [
   "Technology / Business",
   "Sports",
   "Entertainment / Culture",
-  "Other",
 ] as const;
 
 const FREQUENCIES: Array<{
@@ -317,10 +317,12 @@ function PreferencesTab({ onDeleted }: { onDeleted: () => void }) {
         {error && <FormMessage tone="error">{error}</FormMessage>}
         {saved && <FormMessage tone="ok">Preferences saved.</FormMessage>}
 
-        <PreferenceGroup title="Categories" hint="Leave all unselected to include every category.">
+        <PreferenceGroup title="Categories" hint="All includes every market category.">
           <div className="flex flex-wrap gap-2">
             {CATEGORY_OPTIONS.map((category) => {
-              const selected = prefs.categories.includes(category);
+              const selected = category === "All"
+                ? prefs.categories.length === 0
+                : prefs.categories.includes(category);
               return (
                 <button
                   key={category}
@@ -328,9 +330,11 @@ function PreferencesTab({ onDeleted }: { onDeleted: () => void }) {
                   aria-pressed={selected}
                   onClick={() =>
                     patch({
-                      categories: selected
-                        ? prefs.categories.filter((item) => item !== category)
-                        : [...prefs.categories, category],
+                      categories: category === "All"
+                        ? []
+                        : selected
+                          ? prefs.categories.filter((item) => item !== category)
+                          : [...prefs.categories, category],
                     })
                   }
                   className={`focus-ring rounded-full border px-3 py-1.5 text-[12.5px] font-medium ${

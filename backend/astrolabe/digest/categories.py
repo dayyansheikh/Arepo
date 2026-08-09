@@ -18,6 +18,10 @@ DIGEST_CATEGORIES: tuple[str, ...] = (
     "Other",
 )
 
+# User-selectable filters intentionally exclude the deterministic ``Other`` fallback. An empty
+# preference means All, which still includes markets classified internally as Other.
+DIGEST_PREFERENCE_CATEGORIES: tuple[str, ...] = DIGEST_CATEGORIES[:-1]
+
 _GEOPOLITICS_TAGS = (
     "geopolit", "war", "military", "conflict", "ukraine", "russia", "israel", "gaza",
     "iran", "nato", "ceasefire",

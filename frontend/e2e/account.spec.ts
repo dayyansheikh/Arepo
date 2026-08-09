@@ -83,6 +83,67 @@ test("account page does not expose personalised content when signed out", async 
   await expect(page.getByRole("tab")).toHaveCount(0);
 });
 
+test("category preferences use explicit All semantics and never expose Other", async ({ page }) => {
+  let categories: string[] = [];
+  let savedCategories: string[] | null = null;
+  const preferences = () => ({
+    email_enabled: false,
+    immediate_exceptional: true,
+    daily_digest: false,
+    weekly_summary: false,
+    min_research_priority: 60,
+    min_confidence: 0.45,
+    categories,
+    short_term_only: false,
+    max_hours_to_close: null,
+    paused: false,
+    unsubscribed: false,
+    digest_frequency: "off",
+    digest_top_n: 10,
+    digest_unsubscribed: false,
+    updated_at: null,
+  });
+
+  await page.route("http://localhost:8000/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/users/me") return json(route, 200, USER);
+    if (url.pathname === "/api/account/digests") {
+      return json(route, 200, { items: [], has_more: false });
+    }
+    if (url.pathname === "/api/account/preferences") {
+      if (route.request().method() === "PATCH") {
+        const body = route.request().postDataJSON() as { categories: string[] };
+        categories = body.categories;
+        savedCategories = body.categories;
+      }
+      return json(route, 200, preferences());
+    }
+    return json(route, 404, { detail: "Not found" });
+  });
+
+  await page.goto("/account?tab=preferences");
+  const all = page.getByRole("button", { name: "All", exact: true });
+  const crypto = page.getByRole("button", { name: "Crypto", exact: true });
+  const sports = page.getByRole("button", { name: "Sports", exact: true });
+  await expect(all).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Other", exact: true })).toHaveCount(0);
+
+  await crypto.click();
+  await expect(all).toHaveAttribute("aria-pressed", "false");
+  await expect(crypto).toHaveAttribute("aria-pressed", "true");
+
+  await all.click();
+  await expect(all).toHaveAttribute("aria-pressed", "true");
+  await expect(crypto).toHaveAttribute("aria-pressed", "false");
+
+  await sports.click();
+  await page.getByRole("button", { name: "Save preferences" }).click();
+  expect(savedCategories).toEqual(["Sports"]);
+  await page.reload();
+  await expect(all).toHaveAttribute("aria-pressed", "false");
+  await expect(sports).toHaveAttribute("aria-pressed", "true");
+});
+
 test("published digest CTA route resolves to the current Opportunities page", async ({ page }) => {
   await page.route("http://localhost:8000/api/**", async (route) => {
     const url = new URL(route.request().url());

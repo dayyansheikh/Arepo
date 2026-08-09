@@ -25,7 +25,7 @@ from ..evaluation.research_models import ResearchCohortRow, ResearchEntryRow, Re
 from ..evaluation.research_replay import replay_result_state
 from ..scheduler import state as scheduler_state
 from ..storage.models import MarketRow
-from .categories import DIGEST_CATEGORIES, digest_category
+from .categories import DIGEST_PREFERENCE_CATEGORIES, digest_category
 from .email import render_signal_cards
 from .scheduling import due_window_key, evaluation_horizon, horizon_due_at
 
@@ -55,7 +55,7 @@ def _config() -> AlertConfig:
 
 def _clean_categories(values: list[str] | None) -> list[str]:
     wanted = set(values or [])
-    return [category for category in DIGEST_CATEGORIES if category in wanted]
+    return [category for category in DIGEST_PREFERENCE_CATEGORIES if category in wanted]
 
 
 def _categories(pref: AlertPreference) -> list[str]:
@@ -143,7 +143,7 @@ class DigestService:
     async def _opportunity_rows(
         self, scan: ScanRunRow
     ) -> list[tuple[SignalSnapshotRow, MarketRow | None]]:
-        """Exactly the same strongest-directional shortlist as public Opportunities, max 20."""
+        """Full eligible directional universe in the public Opportunities ranking order."""
         result = await self.session.execute(
             select(SignalSnapshotRow, MarketRow)
             .outerjoin(MarketRow, MarketRow.id == SignalSnapshotRow.market_id)
@@ -157,7 +157,6 @@ class DigestService:
                 SignalSnapshotRow.strength.desc(),
                 SignalSnapshotRow.market_id,
             )
-            .limit(min(20, scan.public_selection_limit or 20))
         )
         return list(result.all())
 
@@ -243,10 +242,9 @@ class DigestService:
         self.session.add(delivery)
         try:
             await self.session.flush()
-            shortlist = await self._opportunity_rows(scan)
-            research = await self._research_entries(scan.scan_id, shortlist)
+            ranked = await self._opportunity_rows(scan)
             selected: list[tuple[SignalSnapshotRow, MarketRow | None, str]] = []
-            for snap, market in shortlist:
+            for snap, market in ranked:
                 label = digest_category(
                     market.category if market else None,
                     list(market.tags or []) if market else [],
@@ -256,6 +254,9 @@ class DigestService:
                 selected.append((snap, market, label))
                 if len(selected) >= pref.digest_top_n:
                     break
+            research = await self._research_entries(
+                scan.scan_id, [(snap, market) for snap, market, _label in selected]
+            )
             if not selected:
                 delivery.status = "skipped_empty"
             for rank, (snap, _market, label) in enumerate(selected, start=1):

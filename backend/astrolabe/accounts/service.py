@@ -10,6 +10,7 @@ import hashlib
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..digest.categories import DIGEST_PREFERENCE_CATEGORIES
 from ..domain.models import utcnow
 from .models import (
     AccountDeletionAudit,
@@ -58,7 +59,8 @@ async def update_preferences(
 
 def categories_list(pref: AlertPreference) -> list[str]:
     raw = pref.digest_categories or ""
-    return [c for c in raw.split(",") if c]
+    selectable = set(DIGEST_PREFERENCE_CATEGORIES)
+    return [category for category in raw.split(",") if category in selectable]
 
 
 async def list_saved(session: AsyncSession, user_id: str) -> list[SavedMarket]:

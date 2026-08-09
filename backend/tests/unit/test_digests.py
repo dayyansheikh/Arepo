@@ -11,6 +11,11 @@ from sqlalchemy import func, select
 
 from astrolabe.accounts.models import AlertPreference, DigestDelivery, DigestEntry, User
 from astrolabe.alerts.provider import EmailMessage, FailingProvider, OutboxProvider, SendResult
+from astrolabe.digest.categories import (
+    DIGEST_CATEGORIES,
+    DIGEST_PREFERENCE_CATEGORIES,
+    digest_category,
+)
 from astrolabe.digest.scheduling import due_window_key, evaluation_horizon, window_start
 from astrolabe.digest.service import (
     DigestService,
@@ -134,7 +139,37 @@ def test_due_windows_are_fixed_utc_boundaries():
     assert evaluation_horizon("weekly") == "7d"
 
 
-async def test_digest_uses_only_matching_rows_inside_current_public_top_twenty(session):
+def test_other_is_internal_but_not_a_selectable_preference():
+    assert digest_category("unclassified", []) == "Other"
+    assert "Other" in DIGEST_CATEGORIES
+    assert "Other" not in DIGEST_PREFERENCE_CATEGORIES
+
+
+async def test_all_categories_includes_internal_other_markets(session):
+    user, pref = await _user(session)
+    pref.digest_categories = ""
+    pref.digest_top_n = 20
+    await _scan(session, count=4)
+    unclassified = await session.get(MarketRow, "market-02")
+    assert unclassified is not None
+    unclassified.category = "Unclassified"
+    unclassified.tags = []
+    await session.commit()
+
+    assert await DigestService(
+        session, provider=OutboxProvider(), enabled=True, max_retries=0
+    ).process_user(user, pref, now=NOW) == "sent"
+    delivery = await session.scalar(select(DigestDelivery))
+    entries = list(await session.scalars(select(DigestEntry).order_by(DigestEntry.rank)))
+
+    assert delivery is not None and delivery.categories == []
+    assert [entry.market_id for entry in entries] == [
+        "market-00", "market-01", "market-02", "market-03"
+    ]
+    assert [entry.category for entry in entries] == ["Crypto", "Crypto", "Other", "Sports"]
+
+
+async def test_category_filtering_precedes_top_n_and_history_matches_sent_snapshot(session):
     user, pref = await _user(session)
     await _scan(session)
     outbox = OutboxProvider()
@@ -145,9 +180,9 @@ async def test_digest_uses_only_matching_rows_inside_current_public_top_twenty(s
     entries = list(await session.scalars(select(DigestEntry).order_by(DigestEntry.rank)))
 
     assert delivery is not None and delivery.top_n == 10
-    # Only two Crypto signals are in the genuine public top 20. Crypto rows ranked 21/22 are not
-    # pulled in merely to fill Top 10.
-    assert [entry.market_id for entry in entries] == ["market-00", "market-01"]
+    # Category matching uses the full eligible ranked universe, not the public Top-20 display cap.
+    expected_ids = ["market-00", "market-01", "market-20", "market-21"]
+    assert [entry.market_id for entry in entries] == expected_ids
     assert len(outbox.sent) == 1
     message = outbox.sent[0]
     assert message.template_id == "arepo-signals-digest"
@@ -157,6 +192,55 @@ async def test_digest_uses_only_matching_rows_inside_current_public_top_twenty(s
     assert "https://www.arepolabs.com/markets/market-00" in content
     assert message.server_render_template is True
     assert message.trusted_html_variables == {"SIGNALS_CONTENT"}
+    history, has_more = await list_digest_history(session, str(user.id))
+    assert has_more is False
+    assert len(history) == 1 and history[0]["signal_count"] == len(expected_ids)
+    detail = await digest_detail(session, str(user.id), delivery.id)
+    assert detail is not None
+    assert [entry["market_id"] for entry in detail["entries"]] == expected_ids
+
+
+async def test_digest_never_relaxes_eligibility_or_direction_thresholds(session):
+    user, pref = await _user(session)
+    await _scan(session)
+    ineligible = await session.scalar(
+        select(SignalSnapshotRow).where(SignalSnapshotRow.market_id == "market-00")
+    )
+    abstention = await session.scalar(
+        select(SignalSnapshotRow).where(SignalSnapshotRow.market_id == "market-01")
+    )
+    assert ineligible is not None and abstention is not None
+    ineligible.eligible = False
+    abstention.direction = None
+    await session.commit()
+
+    await DigestService(
+        session, provider=OutboxProvider(), enabled=True, max_retries=0
+    ).process_user(user, pref, now=NOW)
+    entries = list(await session.scalars(select(DigestEntry).order_by(DigestEntry.rank)))
+
+    assert [entry.market_id for entry in entries] == ["market-20", "market-21"]
+
+
+async def test_digest_respects_top_n_after_category_filtering(session):
+    user, pref = await _user(session)
+    pref.digest_top_n = 5
+    await _scan(session, count=12)
+    for index in range(12):
+        market = await session.get(MarketRow, f"market-{index:02d}")
+        assert market is not None
+        market.category = "Crypto"
+        market.tags = ["Crypto"]
+    await session.commit()
+
+    await DigestService(
+        session, provider=OutboxProvider(), enabled=True, max_retries=0
+    ).process_user(user, pref, now=NOW)
+    entries = list(await session.scalars(select(DigestEntry).order_by(DigestEntry.rank)))
+
+    assert [entry.market_id for entry in entries] == [
+        "market-00", "market-01", "market-02", "market-03", "market-04"
+    ]
 
 
 async def test_same_due_window_is_idempotent_and_history_is_immutable(session):
