@@ -22,10 +22,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Install postgresql-client
+      - name: Install PostgreSQL 17 client
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y curl ca-certificates
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          source /etc/os-release
+          printf '%s\n' \
+            'Types: deb' \
+            'URIs: https://apt.postgresql.org/pub/repos/apt' \
+            "Suites: ${VERSION_CODENAME}-pgdg" \
+            "Architectures: $(dpkg --print-architecture)" \
+            'Components: main' \
+            'Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc' \
+            | sudo tee /etc/apt/sources.list.d/pgdg.sources > /dev/null
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
       - name: Dump and compress
         env:
           # Supabase SESSION pooler URL (…pooler.supabase.com:5432), plain postgresql:// (no +asyncpg).
@@ -33,10 +49,12 @@ jobs:
           # the transaction pooler (6543) is not suitable for pg_dump. Session pooler works for both.
           BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
         run: |
+          set -o pipefail
           test -n "$BACKUP_DATABASE_URL" || { echo "BACKUP_DATABASE_URL secret is not set"; exit 1; }
           STAMP=$(date -u +%Y%m%dT%H%M%SZ)
           OUT="arepo-backup-${STAMP}.sql.gz"
-          pg_dump --no-owner --no-privileges "$BACKUP_DATABASE_URL" | gzip -9 > "$OUT"
+          /usr/lib/postgresql/17/bin/pg_dump --no-owner --no-privileges \
+            "$BACKUP_DATABASE_URL" | gzip -9 > "$OUT"
           ls -lh "$OUT"
           # Integrity check: the gzip must decompress and be non-trivial.
           gzip -t "$OUT"
