@@ -49,7 +49,7 @@ async def explore_service(monkeypatch):
         await Repository(session).upsert_markets(markets)
 
     service = MarketService(
-        Settings(default_mode="cached"),
+        Settings(environment="production", default_mode="cached"),
         cached_session_factory=sessions,
     )
 
@@ -89,3 +89,14 @@ async def test_combined_search_category_and_time_use_complete_cached_universe(ex
     assert result.total == 1
     assert result.markets[0].id == "high"
     assert result.markets[0].category == "Crypto"
+
+
+async def test_production_replay_mode_state_cannot_bypass_complete_cached_universe(
+    explore_service,
+):
+    result = await explore_service.list_markets(
+        requested_mode="replay", sort="signal_desc", limit=4,
+    )
+    assert result.total == 4
+    assert [market.id for market in result.markets] == ["high", "middle", "low", "none"]
+    assert result.status.mode.value == "cached"
