@@ -262,7 +262,12 @@ class MarketService:
         # request must never run full Gamma pagination, so prefer the genuine MarketRow cache for
         # live/cached browsing. Explicit replay remains available outside production for tests/dev.
         source = reason = None
-        if requested_mode != "replay" and self._cached.available():
+        # Production never serves the replay fixture. Treat a stale browser ``mode=replay`` value
+        # exactly like normal Explore traffic there, so it cannot bypass the complete persisted
+        # universe and fall back to the live politeness window. Development/test keeps an explicit
+        # replay request for deterministic fixtures.
+        use_complete_cache = requested_mode != "replay" or not self._replay_allowed()
+        if use_complete_cache and self._cached.available():
             cached = await self._cached.markets()
             if cached:
                 source, markets = self._cached, cached
