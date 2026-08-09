@@ -10,10 +10,12 @@ import httpx
 
 from astrolabe.clients.gamma import GammaClient
 from astrolabe.discovery.bounded_discovery import BoundedDiscovery
+from astrolabe.ingest.normalize import normalize_discovered_market
 
 
 def _mk(i: int) -> dict:
     return {"id": str(i), "conditionId": f"c{i}", "question": f"Q{i}",
+            "clobTokenIds": f'["t{i}"]', "outcomes": '["Yes"]',
             "endDate": "2026-08-10T00:00:00Z"}
 
 
@@ -71,7 +73,11 @@ class Dataset:
             for j in range(0, len(page_ids), 2):
                 ms = [_mk(k) if k < self.n else {**_mk(10_000 + k), "conditionId": f"vc{k}"}
                       for k in page_ids[j:j + 2]]
-                events.append({"id": f"e{page_ids[j]}", "markets": ms})
+                events.append({
+                    "id": f"e{page_ids[j]}",
+                    "tags": [{"label": "Crypto"}],
+                    "markets": ms,
+                })
             nxt = offset + self.page
             body = {"events": events}
             if nxt < total and page_ids:
@@ -127,6 +133,22 @@ async def test_reconciliation_union_keeps_only_verification_markets():
     assert report.union_unique == 220
     assert report.identity_conflicts == 0
     assert len(markets) == 220
+
+
+async def test_reconciliation_preserves_event_tags_for_scan_normalization():
+    """Real Gamma shape: market-keyset rows have no tags; event-keyset wrappers do."""
+    ds = Dataset(2, events_extra=1)
+    async with _client(ds) as g:
+        raw_markets, report = await BoundedDiscovery(g).discover()
+
+    assert report.complete is True
+    # Both an overlapping primary market and an event-only market retain the causal tag metadata.
+    for market_id in ("0", "10002"):
+        raw = next(row for row in raw_markets if row["id"] == market_id)
+        market = normalize_discovered_market(raw)
+        assert market is not None
+        assert market.category == "Crypto"
+        assert market.tags == ["Crypto"]
 
 
 async def test_more_than_2100_records_via_keyset():

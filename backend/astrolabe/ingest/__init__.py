@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from .normalize import (
     normalize_book,
+    normalize_discovered_market,
     normalize_events_to_markets,
     normalize_market,
     normalize_price_history,
@@ -13,6 +14,7 @@ from .normalize import (
 __all__ = [
     "normalize_book",
     "normalize_events_to_markets",
+    "normalize_discovered_market",
     "normalize_market",
     "normalize_price_history",
     "parse_json_array_string",
