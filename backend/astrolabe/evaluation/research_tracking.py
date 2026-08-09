@@ -142,6 +142,7 @@ async def collect_due_forward(
                         near_mid_depth=None, source_timestamp=None, exact=exact,
                         observation_delay_seconds=delay, unavailable_reason=reason,
                         known_absent=True,
+                        defer_flush=True,
                     )
                     closed_before += 1
                     continue
@@ -177,6 +178,7 @@ async def collect_due_forward(
                 near_mid_depth=None, source_timestamp=None, exact=exact,
                 observation_delay_seconds=delay,
                 unavailable_reason="no quote available at observation time", known_absent=True,
+                defer_flush=True,
             )
             unavailable += 1
         else:
@@ -186,6 +188,7 @@ async def collect_due_forward(
                 spread=quote.spread, near_mid_depth=quote.near_mid_depth,
                 source_timestamp=quote.source_timestamp, exact=exact,
                 observation_delay_seconds=delay, unavailable_reason=None, known_absent=True,
+                defer_flush=True,
             )
             written += 1
     await session.commit()
