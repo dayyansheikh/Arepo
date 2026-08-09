@@ -11,6 +11,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..categories import primary_category
 from ..evaluation.constants import CALCULATION_VERSION
 from ..evaluation.research_constants import MODEL_VERSION
 from ..evaluation.research_engine import classify_signal
@@ -103,8 +104,10 @@ async def record_scan(session: AsyncSession, result: ScanResult) -> dict:
     ))
 
     inserted = 0
+    metadata_by_market = {market.id: market for market in result.eligible_markets}
     for a in result.analysed:
         s = a.screen
+        metadata = metadata_by_market.get(s.market_id)
         session.add(SignalSnapshotRow(
             scan_id=result.scan_id,
             captured_at=result.started_at,
@@ -114,6 +117,10 @@ async def record_scan(session: AsyncSession, result: ScanResult) -> dict:
             token_id=s.token_id,
             market_question=s.market_question,
             outcome_name=s.outcome_name,
+            primary_category=primary_category(
+                metadata.category if metadata else None,
+                list(metadata.tags or []) if metadata else [],
+            ),
             close_time=s.expected_close,
             time_remaining_hours=a.hours,
             bucket=a.bucket,

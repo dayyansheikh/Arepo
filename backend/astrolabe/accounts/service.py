@@ -10,11 +10,14 @@ import hashlib
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..categories import USER_SELECTABLE_CATEGORIES
 from ..domain.models import utcnow
 from .models import (
     AccountDeletionAudit,
     AlertDelivery,
     AlertPreference,
+    DigestDelivery,
+    DigestEntry,
     SavedMarket,
     User,
 )
@@ -39,9 +42,15 @@ async def update_preferences(
     for key, value in changes.items():
         if value is None:
             continue
+        target_key = key
         if key == "categories" and isinstance(value, list):
             value = ",".join(sorted({c.strip() for c in value if c.strip()}))
-        setattr(pref, key, value)
+            target_key = "digest_categories"
+        setattr(pref, target_key, value)
+    if changes.get("digest_frequency") not in (None, "off"):
+        # A deliberate save from the authenticated Preferences page re-subscribes the digest. This
+        # does not affect verification, reset, or legacy immediate-alert preferences.
+        pref.digest_unsubscribed = False
     pref.updated_at = utcnow()
     await session.commit()
     await session.refresh(pref)
@@ -49,7 +58,9 @@ async def update_preferences(
 
 
 def categories_list(pref: AlertPreference) -> list[str]:
-    return [c for c in pref.categories.split(",") if c] if pref.categories else []
+    raw = pref.digest_categories or ""
+    selectable = set(USER_SELECTABLE_CATEGORIES)
+    return [category for category in raw.split(",") if category in selectable]
 
 
 async def list_saved(session: AsyncSession, user_id: str) -> list[SavedMarket]:
@@ -105,7 +116,9 @@ async def delete_account(session: AsyncSession, user: User, reason: str = "user_
     email_hash = hashlib.sha256((user.email or "").encode("utf-8")).hexdigest()
     session.add(AccountDeletionAudit(email_hash=email_hash, reason=reason))
     # Explicitly clear owned rows (works even if the DB does not enforce ON DELETE CASCADE).
-    for model in (AlertPreference, SavedMarket, AlertDelivery):
+    digest_ids = select(DigestDelivery.id).where(DigestDelivery.user_id == user.id)
+    await session.execute(delete(DigestEntry).where(DigestEntry.digest_id.in_(digest_ids)))
+    for model in (DigestDelivery, AlertPreference, SavedMarket, AlertDelivery):
         await session.execute(delete(model).where(model.user_id == user.id))
     await session.execute(delete(User).where(User.id == user.id))
     await session.commit()

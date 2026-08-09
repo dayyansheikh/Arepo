@@ -4,7 +4,7 @@ Runs against the real FastAPI app with the account session bound to an isolated 
 database and the email provider swapped for an in-memory outbox (so verification tokens can be
 read without sending anything). No network.
 """
-import re
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -46,14 +46,30 @@ async def client(outbox):
 
 
 def _token_from_outbox(outbox, kind: str) -> str:
-    text = outbox.sent[-1].text
-    m = re.search(rf"/{kind}\?token=([^\s]+)", text)
-    assert m, f"no {kind} token in outbox: {text!r}"
-    return m.group(1)
+    variable = "VERIFY_URL" if kind == "verify" else "RESET_URL"
+    url = outbox.sent[-1].template_variables[variable]
+    assert isinstance(url, str) and url.startswith(f"https://www.arepolabs.com/{kind}?")
+    token = parse_qs(urlparse(url).query).get("token", [])
+    assert token, f"no {kind} token in outbox template variables"
+    return token[0]
 
 
-def _register(client, email="a@example.com", password="Sufficiently-Long-1"):
-    return client.post("/api/auth/register", json={"email": email, "password": password})
+def _register(
+    client,
+    email="a@example.com",
+    password="Sufficiently-Long-1",
+    first_name="Ada",
+    last_name="Lovelace",
+):
+    return client.post(
+        "/api/auth/register",
+        json={
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "password": password,
+        },
+    )
 
 
 def _verify_and_login(client, outbox, email="a@example.com", password="Sufficiently-Long-1"):
@@ -69,6 +85,7 @@ async def test_register_sends_verification_and_blocks_login_until_verified(clien
     r = _register(client)
     assert r.status_code == 201
     assert len(outbox.sent) == 1  # verification email queued
+    assert outbox.sent[0].template_variables["USER_NAME"] == "Ada"
     # Login is refused before verification.
     r = client.post(
         "/api/auth/login",
@@ -82,7 +99,33 @@ async def test_verify_then_login_succeeds(client, outbox):
     me = client.get("/api/users/me")
     assert me.status_code == 200
     assert me.json()["email"] == "a@example.com"
+    assert me.json()["first_name"] == "Ada"
+    assert me.json()["last_name"] == "Lovelace"
     assert me.json()["is_verified"] is True
+
+
+async def test_forgot_password_sends_reset_template_and_new_password_works(client, outbox):
+    _verify_and_login(client, outbox)
+    client.post("/api/auth/logout")
+    client.cookies.clear()
+
+    response = client.post("/api/auth/forgot-password", json={"email": "a@example.com"})
+    assert response.status_code == 202
+    reset_message = outbox.sent[-1]
+    assert reset_message.template_id == "arepo-reset-password"
+    assert reset_message.template_variables["USER_NAME"] == "Ada"
+    token = _token_from_outbox(outbox, "reset")
+
+    response = client.post(
+        "/api/auth/reset-password",
+        json={"token": token, "password": "New-Sufficiently-Long-2"},
+    )
+    assert response.status_code == 200
+    response = client.post(
+        "/api/auth/login",
+        data={"username": "a@example.com", "password": "New-Sufficiently-Long-2"},
+    )
+    assert response.status_code in (200, 204)
 
 
 async def test_logout_clears_session(client, outbox):
@@ -98,6 +141,7 @@ async def test_protected_routes_require_auth(client):
     assert client.get("/api/account/preferences").status_code == 401
     assert client.get("/api/account/saved").status_code == 401
     assert client.get("/api/account/alerts").status_code == 401
+    assert client.get("/api/account/digests").status_code == 401
     assert client.get("/api/overview", params={"mode": "replay"}).status_code == 200
 
 
@@ -106,17 +150,46 @@ async def test_preferences_defaults_and_update(client, outbox):
     pref = client.get("/api/account/preferences").json()
     assert pref["email_enabled"] is False       # quiet default
     assert pref["min_research_priority"] == 60
+    assert pref["digest_frequency"] == "off"
+    assert pref["digest_top_n"] == 10
+    assert pref["categories"] == []  # empty storage/API semantics are the UI's explicit All
     r = client.patch(
         "/api/account/preferences",
         json={"email_enabled": True, "min_research_priority": 75, "short_term_only": True,
-              "categories": ["Politics", "Sports"]},
+              "categories": ["Politics / Elections", "Sports"]},
     )
     assert r.status_code == 200
     got = r.json()
     assert got["email_enabled"] is True
     assert got["min_research_priority"] == 75
     assert got["short_term_only"] is True
-    assert sorted(got["categories"]) == ["Politics", "Sports"]
+    assert sorted(got["categories"]) == ["Politics / Elections", "Sports"]
+
+
+async def test_digest_preferences_persist_and_resubscribe(client, outbox):
+    _verify_and_login(client, outbox)
+    updated = client.patch(
+        "/api/account/preferences",
+        json={
+            "categories": ["Crypto", "Geopolitics / War"],
+            "digest_top_n": 20,
+            "digest_frequency": "twice_daily",
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["digest_frequency"] == "twice_daily"
+    assert updated.json()["digest_top_n"] == 20
+    assert updated.json()["digest_unsubscribed"] is False
+    reloaded = client.get("/api/account/preferences").json()
+    assert reloaded["categories"] == ["Crypto", "Geopolitics / War"]
+
+
+async def test_registration_requires_real_first_and_last_name(client):
+    response = client.post(
+        "/api/auth/register",
+        json={"email": "nameless@example.com", "password": "Sufficiently-Long-1"},
+    )
+    assert response.status_code == 422
 
 
 async def test_preferences_reject_out_of_range(client, outbox):
@@ -126,6 +199,12 @@ async def test_preferences_reject_out_of_range(client, outbox):
     ).status_code == 422
     assert client.patch(
         "/api/account/preferences", json={"min_confidence": 2.0}
+    ).status_code == 422
+    assert client.patch(
+        "/api/account/preferences", json={"categories": ["Invented category"]}
+    ).status_code == 422
+    assert client.patch(
+        "/api/account/preferences", json={"categories": ["Other"]}
     ).status_code == 422
 
 

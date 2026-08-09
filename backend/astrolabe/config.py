@@ -63,7 +63,15 @@ class Settings(BaseSettings):
     auth_token_lifetime_seconds: int = 60 * 60 * 24 * 7  # 7 days
     require_email_verification: bool = True              # verified email required before login
     account_rate_limit_per_minute: int = 10             # per-IP limit on auth endpoints
-    app_base_url: str = "http://localhost:3000"          # used to build verification/reset links
+    # General frontend origin retained for non-email integrations. Transactional auth email links
+    # deliberately use the canonical https://www.arepolabs.com origin in accounts/email.py.
+    app_base_url: str = "http://localhost:3000"
+    # Personalised digest sending has its own kill switch so enabling account/security email never
+    # silently enables bulk digest delivery. One bounded runner processes at most this many users.
+    digest_email_enabled: bool = False
+    digest_max_users_per_run: int = 100
+    digest_max_retries: int = 2
+    digest_lease_seconds: int = 900
 
     @property
     def auth_is_production_insecure(self) -> bool:

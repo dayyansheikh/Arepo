@@ -92,6 +92,9 @@ class SignalSnapshotRow(Base):
     token_id: Mapped[str] = mapped_column(String, nullable=False)
     market_question: Mapped[str] = mapped_column(String, nullable=False, default="")
     outcome_name: Mapped[str] = mapped_column(String, nullable=False, default="")
+    # Primary category classified once from point-in-time scan metadata. NULL means an older row
+    # predating category preservation; it must never be backfilled from later live state.
+    primary_category: Mapped[str | None] = mapped_column(String)
 
     # Timing + eligibility (point-in-time).
     close_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

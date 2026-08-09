@@ -44,7 +44,7 @@ export default function SignInPage() {
   return (
     <AuthShell
       title="Sign in"
-      lead="Sign in to manage your research alerts, preferences and saved markets. The rest of Arepo works without an account."
+      lead="Sign in to review your digests and choose what Arepo sends. The rest of Arepo works without an account."
       footer={
         <>
           New here? <TextLink href="/signup">Create a free account</TextLink>. Forgot your

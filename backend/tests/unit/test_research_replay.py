@@ -26,6 +26,7 @@ from astrolabe.evaluation.research_replay import (
 )
 from astrolabe.evaluation.research_repository import EntryInput, ResearchRepository
 from astrolabe.storage.db import Base, make_engine, make_sessionmaker
+from astrolabe.storage.models import MarketRow
 
 CUTOFF = datetime(2026, 8, 6, 0, 0, 0, tzinfo=UTC)
 FROZEN = datetime(2026, 8, 6, 1, 24, 13, tzinfo=UTC)  # 84 min late, like the real cohort
@@ -43,7 +44,8 @@ async def session():
 
 
 def _entry(
-    *, role, rank, market, direction, midpoint, ttc, token=None, question=None
+    *, role, rank, market, direction, midpoint, ttc, token=None, question=None,
+    primary_category=None,
 ) -> EntryInput:
     return EntryInput(
         role=role, rank=rank, walk_forward_partition="live",
@@ -61,6 +63,7 @@ def _entry(
         volume=5000.0, data_age_seconds=10.0,
         expected_close=(FROZEN + timedelta(hours=ttc)) if ttc is not None else None,
         time_remaining_hours=ttc, intended_horizons=["1h", "6h", "24h", "7d"],
+        primary_category=primary_category,
     )
 
 
@@ -109,8 +112,9 @@ async def _make_cohort(
 
 
 class _Fwd:
-    def __init__(self, midpoint):
+    def __init__(self, midpoint, unavailable_reason=None):
         self.midpoint = midpoint
+        self.unavailable_reason = unavailable_reason
 
 
 def test_result_state_covers_every_case():
@@ -123,6 +127,9 @@ def test_result_state_covers_every_case():
     assert replay_result_state("up", 0.5, _Fwd(0.505)) == "moved_expected"
     assert replay_result_state("up", 0.5, None) == "pending"
     assert replay_result_state("up", 0.5, _Fwd(None)) == "unavailable"
+    assert replay_result_state(
+        "up", 0.5, _Fwd(None, "market closed before the 6h horizon")
+    ) == "closed_before_horizon"
     assert replay_result_state("up", None, _Fwd(0.5)) == "unavailable"
     assert replay_result_state(None, 0.5, _Fwd(0.5)) == "invalid"
 
@@ -249,6 +256,112 @@ async def test_public_scope_restricts_the_table_only(session):
     assert all(row["role"] == ROLE_PUBLIC for row in r["rows"])
     assert r["shadow"]["total"] == 3  # still computed
     assert r["combined"]["total"] == 6
+
+
+async def test_replay_category_filters_frozen_opportunities_and_advanced_directional_set(session):
+    entries = [
+        _entry(
+            role=ROLE_PUBLIC, rank=1, market="crypto-public", direction="up", midpoint=0.5,
+            ttc=100, primary_category="Crypto",
+        ),
+        _entry(
+            role=ROLE_PUBLIC, rank=2, market="sports-public", direction="up", midpoint=0.5,
+            ttc=100, primary_category="Sports",
+        ),
+        _entry(
+            role=ROLE_SHADOW, rank=3, market="crypto-shadow", direction="down", midpoint=0.5,
+            ttc=100, primary_category="Crypto",
+        ),
+        _entry(
+            role=ROLE_PUBLIC, rank=4, market="legacy-public", direction="up", midpoint=0.5,
+            ttc=100, primary_category=None,
+        ),
+    ]
+    forwards = {
+        "crypto-public": {"6h": 0.55},
+        "sports-public": {"6h": 0.45},
+        "crypto-shadow": {"6h": 0.45},
+        "legacy-public": {"6h": 0.5},
+    }
+    cohort = await _make_cohort(session, entries, forwards=forwards)
+    svc = ResearchReplayService(session)
+
+    default_all = await svc.cohort_results(cohort.id, horizon="6h", scope="public")
+    explicit_all = await svc.cohort_results(
+        cohort.id, horizon="6h", scope="public", category="All"
+    )
+    assert explicit_all["qualifying"] == default_all["qualifying"] == 3
+    assert explicit_all["headline"] == default_all["headline"]
+    assert explicit_all["denominators"] == default_all["denominators"]
+
+    public_crypto = await svc.cohort_results(
+        cohort.id, horizon="6h", scope="public", category="Crypto"
+    )
+    assert public_crypto["qualifying"] == 1
+    assert [row["market_id"] for row in public_crypto["rows"]] == ["crypto-public"]
+    assert public_crypto["headline"]["moved_expected"] == 1
+
+    all_crypto = await svc.cohort_results(
+        cohort.id, horizon="6h", scope="directional", category="Crypto"
+    )
+    assert all_crypto["qualifying"] == 2
+    assert all_crypto["public"]["total"] == 1
+    assert all_crypto["shadow"]["total"] == 1
+    assert all_crypto["combined"]["total"] == 2
+    assert all_crypto["denominators"]["observations"] == 2
+
+
+async def test_replay_uses_frozen_category_not_current_market_metadata(session):
+    cohort = await _make_cohort(session, [
+        _entry(
+            role=ROLE_PUBLIC, rank=1, market="causal", direction="up", midpoint=0.5, ttc=100,
+            primary_category="Crypto",
+        )
+    ])
+    # A later mutable cache category differs. Replay must never consult it for historical selection.
+    session.add(MarketRow(
+        id="causal", question="Q causal", slug="causal", condition_id="c-causal",
+        status="active", enable_order_book=True, category="Sports", tags=["Sports"],
+        outcomes=[], updated_at=FROZEN + timedelta(days=1),
+    ))
+    await session.commit()
+
+    result = await ResearchReplayService(session).cohort_results(
+        cohort.id, scope="public", category="Crypto"
+    )
+    assert result["qualifying"] == 1
+    assert result["rows"][0]["primary_category"] == "Crypto"
+
+
+async def test_legacy_category_unavailable_is_not_reconstructed_or_rewritten(session):
+    cohort = await _make_cohort(session, [
+        _entry(
+            role=ROLE_PUBLIC, rank=1, market="legacy", direction="up", midpoint=0.5, ttc=100,
+            primary_category=None,
+        )
+    ])
+    svc = ResearchReplayService(session)
+    all_result = await svc.cohort_results(cohort.id, scope="public", category="All")
+    named_result = await svc.cohort_results(cohort.id, scope="public", category="Crypto")
+    assert all_result["qualifying"] == 1
+    assert all_result["rows"][0]["category_available"] is False
+    assert named_result["qualifying"] == 0
+    entries = await ResearchRepository(session).get_entries(cohort.id)
+    assert entries[0].primary_category is None
+
+
+async def test_category_queries_do_not_change_dependence_aware_headline(session):
+    cohort = await _make_cohort(session, [
+        _entry(
+            role=ROLE_PUBLIC, rank=1, market="headline", direction="up", midpoint=0.5, ttc=100,
+            primary_category="Crypto",
+        )
+    ], forwards={"headline": {"6h": 0.55}})
+    svc = ResearchReplayService(session)
+    before = await svc.dependence_aware_headline()
+    await svc.cohort_results(cohort.id, horizon="6h", scope="public", category="Crypto")
+    after = await svc.dependence_aware_headline()
+    assert before == after
 
 
 async def test_pending_when_horizon_not_collected(session):

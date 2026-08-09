@@ -20,7 +20,9 @@ import { DisclaimerBanner } from "@/components/DisclaimerBanner";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { StrengthBar } from "@/components/StrengthBar";
 import { InfoChip } from "@/components/InfoChip";
+import { CategoryFilterRow } from "@/components/CategoryFilterRow";
 import { PageHeader, SectionTitle } from "@/components/ui";
+import { ALL_CATEGORY, type CategoryFilter } from "@/lib/categories";
 
 // Public closing-window filters (prompt B1). Values map to the API's cumulative windows.
 const WINDOWS = [
@@ -33,14 +35,18 @@ const WINDOWS = [
 
 export default function OpportunitiesPage() {
   const [window, setWindow] = useUrlState("window", "all");
-  const { data, loading, error } = useAsync(() => getOpportunities(window, 20), [window]);
+  const [category, setCategory] = useUrlState("category", ALL_CATEGORY);
+  const { data, loading, error } = useAsync(
+    () => getOpportunities(window, category),
+    [window, category],
+  );
 
   return (
     <div className="space-y-8" data-testid="opportunities-page">
       <div className="space-y-3">
         <PageHeader
           title="Opportunities"
-          lead="Arepo's public shortlist: the strongest directional signals across active markets closing within 30 days. The full universe is analysed; this shows the top 20."
+          lead="Arepo's public shortlist: the strongest directional signals across active markets closing within 30 days. The full eligible universe is analysed before this view is filtered."
         />
         <DisclaimerBanner />
       </div>
@@ -65,6 +71,11 @@ export default function OpportunitiesPage() {
         {data?.freshness && <FreshnessBadge freshness={data.freshness} />}
       </section>
 
+      <CategoryFilterRow
+        value={category}
+        onChange={(next: CategoryFilter) => setCategory(next)}
+      />
+
       {loading && <ListSkeleton rows={6} />}
       {!loading && error && <ErrorState message={error} />}
       {!loading && data && !data.has_scan && (
@@ -79,6 +90,14 @@ export default function OpportunitiesPage() {
             </p>
           )}
           <section className="space-y-3">
+            {category !== ALL_CATEGORY && (
+              <div data-testid="category-context">
+                <h2 className="text-[15px] font-semibold text-arepo-ink">{category}</h2>
+                <p className="text-[13px] text-arepo-muted">
+                  Strongest current Arepo opportunities in this category
+                </p>
+              </div>
+            )}
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <SectionTitle>{data.window_label}</SectionTitle>
               <span className="text-[13px] text-arepo-muted" data-testid="denominator">
@@ -86,7 +105,13 @@ export default function OpportunitiesPage() {
               </span>
             </div>
             {data.rows.length === 0 ? (
-              <EmptyState message="No directional signals in this closing window right now. Try a wider window." />
+              <EmptyState
+                message={
+                  category === ALL_CATEGORY
+                    ? "No directional signals in this closing window right now. Try a wider window."
+                    : `No qualifying ${category} opportunities in this closing window right now. Thresholds are not relaxed to fill a category.`
+                }
+              />
             ) : (
               <div className="space-y-3" data-testid="opportunity-list">
                 {data.rows.map((r, i) => (

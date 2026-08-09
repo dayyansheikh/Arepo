@@ -70,6 +70,9 @@ class EntryInput:
     intended_horizons: list
     # Short-horizon universe membership (final-completion prompt C1). Optional so existing callers
     # (the legacy freeze) need not set them.
+    # Category is likewise optional for legacy/manual freezes; complete-scan freezes always supply
+    # the value classified from point-in-time metadata.
+    primary_category: str | None = None
     bucket: str | None = None
     overall_rank_30d: int | None = None
     public_selected: bool | None = None
@@ -136,6 +139,7 @@ class ResearchRepository:
             token_id=e.token_id,
             market_question=e.market_question,
             outcome_name=e.outcome_name,
+            primary_category=e.primary_category,
             direction=e.direction,
             momentum_direction=e.momentum_direction,
             orderbook_direction=e.orderbook_direction,

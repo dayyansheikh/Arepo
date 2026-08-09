@@ -37,8 +37,7 @@ export default function ForgotPasswordPage() {
     >
       {done ? (
         <FormMessage tone="ok">
-          If an account exists for <strong>{email}</strong>, a reset link has been sent. In local
-          development the link is printed to the backend server log.
+          If an account exists for <strong>{email}</strong>, a reset link has been sent.
         </FormMessage>
       ) : (
         <form onSubmit={onSubmit}>

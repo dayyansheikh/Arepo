@@ -12,13 +12,18 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..categories import (
+    ALL_CATEGORY,
+    category_matches,
+    normalize_category_filter,
+    opportunity_display_limit,
+)
 from ..domain.models import utcnow
 from . import scan_store
 from .eligibility import (
     BUCKET_LABELS,
     CUMULATIVE_WINDOWS,
     PRIMARY_BUCKETS,
-    PUBLIC_SELECTION_LIMIT,
 )
 from .snapshot_models import ScanRunRow, SignalSnapshotRow
 from .trajectory import Snap, compute_trajectory
@@ -81,6 +86,7 @@ def _row_public(r: SignalSnapshotRow) -> dict:
         "token_id": r.token_id,
         "market_question": r.market_question,
         "outcome_name": r.outcome_name,
+        "primary_category": r.primary_category,
         "bucket": r.bucket,
         "bucket_label": BUCKET_LABELS.get(r.bucket or "", r.bucket),
         "close_time": r.close_time.isoformat() if r.close_time else None,
@@ -238,14 +244,23 @@ class SignalReadService:
         return out
 
     async def opportunities(
-        self, *, window: str = "all", limit: int = PUBLIC_SELECTION_LIMIT
+        self, *, window: str = "all", category: str = ALL_CATEGORY, limit: int | None = None
     ) -> dict:
-        """Public Opportunities shortlist (prompt B1): the strongest ``limit`` (20) directional
-        signals in the selected closing window, drawn from the COMPLETE eligible set, with an honest
-        denominator. Never padded with observations or abstentions."""
+        """Rank the complete eligible directional set, then category-filter, then truncate.
+
+        This order is intentional: named categories can surface qualifying signals outside the
+        global Top 20. Eligibility and ranking inputs are unchanged and a sparse category is never
+        padded with weaker/non-directional rows.
+        """
+        selected_category = normalize_category_filter(category)
+        configured_limit = opportunity_display_limit(selected_category)
+        display_limit = min(limit, configured_limit) if limit is not None else configured_limit
         latest = await scan_store.latest_scan(self.session)
         if latest is None:
-            return {"has_scan": False, "rows": [], "denominator": None}
+            return {
+                "has_scan": False, "rows": [], "denominator": None,
+                "category": selected_category,
+            }
         now = utcnow()
         started = latest.started_at
         if started.tzinfo is None:
@@ -261,28 +276,44 @@ class SignalReadService:
             h = r.time_remaining_hours
             return h is not None and 0 < h <= (cap or 1e9)
 
-        in_win = [r for r in rows if in_window(r)]
+        in_win = [r for r in rows if r.eligible and in_window(r)]
         directional = [r for r in in_win if r.direction in ("up", "down")]
         directional.sort(
             key=lambda r: (-(r.research_priority or 0), -(r.strength or 0), r.market_id))
-        shown = directional[:limit]
+        category_directional = [
+            row for row in directional
+            if category_matches(selected_category, row.primary_category)
+        ]
+        shown = category_directional[:display_limit]
+        if selected_category == ALL_CATEGORY:
+            denominator = (
+                f"{len(shown)} opportunities shown from {len(directional)} directional signals "
+                f"across {len(in_win)} eligible markets."
+            )
+        else:
+            denominator = (
+                f"{len(shown)} opportunities shown from {len(category_directional)} qualifying "
+                f"{selected_category} directional signals across {len(in_win)} eligible markets."
+            )
         return {
             "has_scan": True,
             "scan_id": latest.scan_id,
             "window": window,
             "window_label": CUMULATIVE_LABELS.get(window, window),
+            "category": selected_category,
             "selection_policy": latest.selection_policy,
             "public_selection_limit": latest.public_selection_limit,
+            "category_display_limit": display_limit,
             "freshness": freshness((now - started).total_seconds()),
             "shown": len(shown),
             "total_directional": len(directional),
+            "category_directional": len(category_directional),
+            "category_unavailable": sum(
+                1 for row in directional if row.primary_category is None
+            ),
             "eligible_markets": len(in_win),
             "rows": await self._attach_trajectory(shown, now),
-            # The exact denominator line the public view shows (prompt B1).
-            "denominator": (
-                f"{len(shown)} opportunities shown from {len(directional)} directional signals "
-                f"across {len(in_win)} eligible markets."
-            ),
+            "denominator": denominator,
         }
 
     async def market_history(self, market_id: str, *, now: datetime | None = None) -> dict:

@@ -24,6 +24,19 @@ test("shows the public top 20 with an honest denominator", async ({ page }) => {
   expect(cards).toBeLessThanOrEqual(20);
 });
 
+test("category row defaults to All and persists a named category in the URL", async ({ page }) => {
+  await load(page);
+  await expect(page.getByTestId("category-all")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("category-crypto").click();
+  await expect(page).toHaveURL(/category=Crypto/);
+  await expect(page.getByTestId("category-context")).toContainText("Crypto");
+  await expect(page.getByTestId("category-context")).toContainText(
+    "Strongest current Arepo opportunities in this category",
+  );
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByTestId("category-crypto")).toHaveAttribute("aria-pressed", "true");
+});
+
 test("no backend jargon in the primary public view", async ({ page }) => {
   await load(page);
   const body = await page.locator("body").innerText();

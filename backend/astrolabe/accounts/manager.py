@@ -45,12 +45,22 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     async def on_after_request_verify(
         self, user: User, token: str, request: Request | None = None
     ) -> None:
-        await account_email.send_verification_email(user.email, token)
+        await account_email.send_verification_email(
+            user.email, token, user_name=_supported_user_name(user)
+        )
 
     async def on_after_forgot_password(
         self, user: User, token: str, request: Request | None = None
     ) -> None:
-        await account_email.send_reset_email(user.email, token)
+        await account_email.send_reset_email(
+            user.email, token, user_name=_supported_user_name(user)
+        )
+
+
+def _supported_user_name(user: User) -> str | None:
+    """Use only the private first-name field; legacy nameless users get the email fallback."""
+    value = getattr(user, "first_name", None)
+    return value.strip() if isinstance(value, str) and value.strip() else None
 
 
 async def get_user_manager(user_db=Depends(get_user_db)):

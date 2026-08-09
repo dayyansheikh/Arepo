@@ -1,0 +1,58 @@
+# Personalised digest delivery only. This bounded job reads the latest persisted complete scan;
+# it never performs discovery, freezes a cohort, or collects observations. Sending remains off
+# unless the production DIGEST_EMAIL_ENABLED secret is explicitly true and each user opted in.
+
+name: arepo-digest
+
+on:
+  schedule:
+    - cron: "20,50 * * * *"   # after the :05/:35 scan starts; due-window logic lives in Python
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Optional: send only to this existing opted-in test account"
+        required: false
+        type: string
+
+concurrency:
+  group: arepo-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      ENVIRONMENT: production
+      LOG_JSON: "true"
+      AUTO_MIGRATE: "true"
+      PYTHONUNBUFFERED: "1"
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      DIGEST_EMAIL_ENABLED: ${{ secrets.DIGEST_EMAIL_ENABLED }}
+      ALERT_PROVIDER: resend
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_TEMPLATE_API_KEY: ${{ secrets.RESEND_TEMPLATE_API_KEY }}
+      DIGEST_EMAIL_SENDER: Arepo Alerts <alerts@arepolabs.com>
+      DIGEST_TEST_EMAIL: ${{ github.event.inputs.email }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+      - name: Send due digests
+        run: |
+          if [ -n "$DIGEST_TEST_EMAIL" ]; then
+            python -m astrolabe.digest.cli run --email "$DIGEST_TEST_EMAIL" --single-account-send
+          else
+            python -m astrolabe.digest.cli run
+          fi
