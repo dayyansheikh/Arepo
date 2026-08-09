@@ -83,9 +83,9 @@ class Settings(BaseSettings):
     # --- Discovery limits (be polite to public APIs) ---
     discovery_limit: int = 60
     poll_interval_seconds: float = 15.0
-    # Max markets the cached (storage-backed) source returns for the Explore list/facets when it is
-    # serving the latest COMPLETE scan as the offline fallback. Larger than discovery_limit so the
-    # fallback shows a genuine slice of the universe, not a sliver. Bounded to keep it a fast query.
+    # Retained for compatibility with older deployments. Explore now loads the complete persisted
+    # scan universe and applies filters/sorting before response pagination; this value must never
+    # reduce research or market-universe completeness.
     cached_market_limit: int = 500
 
     # --- Production scheduler (single idempotent tick; see astrolabe/scheduler) ---

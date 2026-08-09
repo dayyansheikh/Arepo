@@ -38,8 +38,13 @@ def test_overview_replay(client):
 def test_markets_list_and_filters(client):
     body = client.get("/api/markets", params={"mode": "replay", "limit": 2}).json()
     assert body["total"] == 3 and len(body["markets"]) == 2
-    econ = client.get("/api/markets", params={"mode": "replay", "category": "Economics"}).json()
+    econ = client.get(
+        "/api/markets", params={"mode": "replay", "category": "Economics / Macro"}
+    ).json()
     assert econ["total"] == 1
+    assert client.get(
+        "/api/markets", params={"mode": "replay", "category": "Other"}
+    ).status_code == 422
 
 
 def test_market_detail_and_404(client):

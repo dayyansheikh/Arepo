@@ -26,7 +26,12 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..categories import ALL_CATEGORY, category_matches, normalize_category_filter
+from ..categories import (
+    ALL_CATEGORY,
+    PRIMARY_CATEGORIES,
+    category_matches,
+    normalize_category_filter,
+)
 from ..discovery.snapshot_models import SignalSnapshotRow
 from .execution import evaluate_execution
 from .models import MarketResolutionRow
@@ -207,10 +212,31 @@ class ResearchReplayService:
         )
         return res.first() is not None
 
-    async def _cohort_summary(self, c: ResearchCohortRow, *, with_horizons: bool) -> dict:
-        entries = await self.repo.get_entries(c.id) if with_horizons else []
+    async def _cohort_summary(
+        self,
+        c: ResearchCohortRow,
+        *,
+        with_horizons: bool,
+        entries: list[ResearchEntryRow] | None = None,
+    ) -> dict:
+        entries = (
+            entries
+            if entries is not None
+            else await self.repo.get_entries(c.id) if with_horizons else []
+        )
         horizons = await self._available_horizons(entries) if with_horizons else {}
         resolution = await self._resolution_available(entries) if with_horizons else False
+        category_counts = dict.fromkeys(PRIMARY_CATEGORIES, 0)
+        category_available = 0
+        for entry in entries:
+            if entry.primary_category is not None:
+                category_available += 1
+            if (
+                entry.role == ROLE_PUBLIC
+                and entry.direction in ("up", "down")
+                and entry.primary_category in category_counts
+            ):
+                category_counts[entry.primary_category] += 1
         return {
             "id": c.id,
             "cadence": c.cadence,
@@ -235,6 +261,9 @@ class ResearchReplayService:
             "excluded_markets": c.excluded_markets,
             "available_horizons": horizons,
             "resolution_available": resolution,
+            "category_metadata_available": category_available,
+            "category_metadata_unavailable": len(entries) - category_available,
+            "public_category_counts": category_counts,
             "model_version": c.model_version or MODEL_VERSION,
         }
 
@@ -634,7 +663,9 @@ class ResearchReplayService:
 
         return {
             "found": True,
-            "cohort": await self._cohort_summary(cohort, with_horizons=False),
+            "cohort": await self._cohort_summary(
+                cohort, with_horizons=False, entries=all_entries
+            ),
             "horizon": horizon,
             "horizon_evaluable": available_horizons.get(horizon, False),
             "available_horizons": available_horizons,

@@ -153,6 +153,34 @@ async def test_lists_only_real_prospective_cohorts_newest_default(session):
     assert out["default_cohort_id"] == newest_id
 
 
+async def test_cohort_list_exposes_frozen_category_capability_and_public_counts(session):
+    entries = [
+        _entry(
+            role=ROLE_PUBLIC, rank=1, market="crypto", direction="up", midpoint=0.5,
+            ttc=100, primary_category="Crypto",
+        ),
+        _entry(
+            role=ROLE_PUBLIC, rank=2, market="sports", direction="down", midpoint=0.5,
+            ttc=100, primary_category="Sports",
+        ),
+        _entry(
+            role=ROLE_SHADOW, rank=3, market="shadow", direction="up", midpoint=0.5,
+            ttc=100, primary_category="Crypto",
+        ),
+        _entry(
+            role=ROLE_PUBLIC, rank=4, market="legacy", direction="up", midpoint=0.5,
+            ttc=100, primary_category=None,
+        ),
+    ]
+    await _make_cohort(session, entries)
+    summary = (await ResearchReplayService(session).list_cohorts())["cohorts"][0]
+    assert summary["category_metadata_available"] == 3
+    assert summary["category_metadata_unavailable"] == 1
+    assert summary["public_category_counts"]["Crypto"] == 1
+    assert summary["public_category_counts"]["Sports"] == 1
+    assert summary["public_category_counts"]["Commodities"] == 0
+
+
 async def test_cadence_filtering_only_shows_present_cadences(session):
     await _make_cohort(session, [_entry(role=ROLE_PUBLIC, rank=1, market="m1",
                                         direction="up", midpoint=0.5, ttc=100)],

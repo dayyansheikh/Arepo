@@ -117,6 +117,34 @@ export function pickCohortForHorizon(
   return { cohort: cohorts[0], evaluated: false };
 }
 
+/** Named categories need frozen point-in-time category metadata more than an already-evaluable
+ * horizon. Pick the newest category-capable prospective cohort even while its horizon is pending.
+ * All preserves the established horizon-first behaviour. Manual cohort selection is handled by
+ * the page and deliberately overrides this helper. */
+export function pickCohortForCategory(
+  list: ReplayCohortList | null | undefined,
+  tab: HorizonTab,
+  category: string,
+  now: Date,
+): { cohort: ReplayCohort | undefined; evaluated: boolean; categoryCapable: boolean } {
+  if (category === "All") {
+    return { ...pickCohortForHorizon(list, tab, now), categoryCapable: true };
+  }
+  const cohorts = list?.cohorts ?? [];
+  if (cohorts.length === 0) {
+    return { cohort: undefined, evaluated: false, categoryCapable: false };
+  }
+  const capable = cohorts.find((cohort) => cohort.category_metadata_available > 0);
+  if (!capable) {
+    return { cohort: cohorts[0], evaluated: false, categoryCapable: false };
+  }
+  return {
+    cohort: capable,
+    evaluated: horizonAvailability(capable, tab, now) === "evaluable",
+    categoryCapable: true,
+  };
+}
+
 /** "Frozen 6 Aug, 17:02 · 1,382 markets" - the one subtle cohort line. */
 export function cohortSummaryLine(cohort: ReplayCohort | undefined): string {
   if (!cohort) return "";

@@ -32,18 +32,25 @@ async def search_markets(
 @router.get("/markets", response_model=MarketListResponse)
 async def list_markets(
     search: str | None = Query(None, description="Case-insensitive substring of the question"),
-    category: str | None = None,
+    category: str | None = Query("All"),
     status: str | None = None,
-    sort: str = Query("volume", pattern="^(volume|volume_24hr|liquidity|end_date)$"),
+    closing: str = Query("any", pattern="^(any|week|month|later)$"),
+    sort: str = Query(
+        "signal_desc",
+        pattern="^(signal_desc|signal_asc|volume|volume_24hr|liquidity|end_date)$",
+    ),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     mode: str | None = Query(None, description="live | cached | replay (default from settings)"),
     service: MarketService = Depends(get_service),
 ) -> MarketListResponse:
-    return await service.list_markets(
-        requested_mode=mode, search=search, category=category, status=status,
-        sort=sort, limit=limit, offset=offset,
-    )
+    try:
+        return await service.list_markets(
+            requested_mode=mode, search=search, category=category, status=status,
+            closing=closing, sort=sort, limit=limit, offset=offset,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/markets/facets", response_model=MarketFacetsResponse)

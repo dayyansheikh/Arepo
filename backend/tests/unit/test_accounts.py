@@ -95,13 +95,20 @@ async def test_register_sends_verification_and_blocks_login_until_verified(clien
 
 
 async def test_verify_then_login_succeeds(client, outbox):
-    _verify_and_login(client, outbox)
+    login = _verify_and_login(client, outbox)
+    cookie = login.headers["set-cookie"]
+    assert "arepo_auth=" in cookie
+    assert "HttpOnly" in cookie
+    assert "SameSite=lax" in cookie
+    assert "Path=/" in cookie
     me = client.get("/api/users/me")
     assert me.status_code == 200
     assert me.json()["email"] == "a@example.com"
     assert me.json()["first_name"] == "Ada"
     assert me.json()["last_name"] == "Lovelace"
     assert me.json()["is_verified"] is True
+    # A later request (the same behaviour used by refresh/navigation) remains authenticated.
+    assert client.get("/api/users/me").status_code == 200
 
 
 async def test_forgot_password_sends_reset_template_and_new_password_works(client, outbox):

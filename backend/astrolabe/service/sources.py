@@ -272,7 +272,9 @@ class CachedSource:
             return []
         from ..storage.repository import Repository  # lazy: storage may load late
         async with self._session_factory() as session:
-            return await Repository(session).get_markets(limit=self._limit())
+            # MarketRow is the latest complete scan universe. Do not clip it to a display limit:
+            # Explore applies filters/sorting to the complete genuine set before pagination.
+            return await Repository(session).get_markets(limit=None)
 
     async def get_token_data(self, market_id: str, token_id: str) -> TokenData:
         if not self._session_factory:
@@ -297,14 +299,6 @@ class CachedSource:
             SourceHealth(name="cache", state=state),
             SourceHealth(name="clob_ws", state=ConnState.UNKNOWN),
         )
-
-    @staticmethod
-    def _limit() -> int:
-        # The cached source is the OFFLINE fallback that serves the latest COMPLETE scan universe
-        # (persisted to MarketRow by the scan job). It must not be clipped to the small live-
-        # discovery politeness limit, or Explore would show only a sliver when live is down.
-        return max(get_settings().discovery_limit, get_settings().cached_market_limit)
-
 
 def _is_tradeable(market: Market) -> bool:
     """Keep only markets likely to have a live, two-sided CLOB book worth analysing.

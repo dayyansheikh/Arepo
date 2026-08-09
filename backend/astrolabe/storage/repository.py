@@ -146,7 +146,7 @@ class Repository:
         search: str | None = None,
         category: str | None = None,
         status: MarketStatus | str | None = None,
-        limit: int = 100,
+        limit: int | None = 100,
         offset: int = 0,
         order_by: str = "volume",
     ) -> list[Market]:
@@ -154,7 +154,10 @@ class Repository:
         stmt = self._apply_filters(stmt, search=search, category=category, status=status)
         order_col = _ORDER_COLUMNS.get(order_by, MarketRow.volume)
         stmt = stmt.order_by(order_col.desc().nulls_last())
-        stmt = stmt.limit(limit).offset(offset)
+        if limit is not None:
+            stmt = stmt.limit(limit)
+        if offset:
+            stmt = stmt.offset(offset)
         result = await self._session.execute(stmt)
         return [_row_to_market(row) for row in result.scalars().all()]
 

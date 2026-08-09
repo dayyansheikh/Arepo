@@ -236,6 +236,43 @@ async def test_no_scan_returns_empty_instead_of_demo_opportunities(session):
     assert out["rows"] == []
 
 
+async def test_signal_lab_filters_and_sorts_full_set_before_pagination(session):
+    categories = {"d0": "Crypto", "d1": "Crypto", "d2": "Sports", "d20": "Crypto"}
+    await scan_store.record_scan(
+        session,
+        _result("scan-signal-filters", complete=True, categories=categories),
+    )
+    rows = await scan_store.snapshots_for_scan(session, "scan-signal-filters")
+    by_id = {row.market_id: row for row in rows}
+    by_id["d0"].strength = 0.2
+    by_id["d1"].strength = 0.8
+    by_id["d20"].strength = 0.5
+    await session.commit()
+
+    svc = SignalReadService(session)
+    high = await svc.signals(
+        bucket=BUCKET_0_6H,
+        scope="directional",
+        category="Crypto",
+        search="Qd",
+        sort="strength_desc",
+        limit=2,
+    )
+    assert high["total_matching"] == 3
+    assert [row["market_id"] for row in high["rows"]] == ["d1", "d20"]
+
+    low = await svc.signals(
+        bucket=BUCKET_0_6H,
+        scope="directional",
+        category="Crypto",
+        sort="strength_asc",
+        limit=2,
+    )
+    assert [row["market_id"] for row in low["rows"]] == ["d0", "d20"]
+    # Stored scope/eligibility remains unchanged; filtering never manufactures signals.
+    assert all(row["direction"] in ("up", "down") for row in low["rows"])
+
+
 def test_freshness_thresholds():
     # 30-min complete-scan cadence: fresh <= 60 min, refresh_delayed 60-180 min, out_of_date > 180.
     assert freshness(60)["state"] == "fresh"               # 1 min

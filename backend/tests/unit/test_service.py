@@ -92,8 +92,8 @@ async def test_list_markets_filters_and_pagination(svc):
     resp = await svc.list_markets(requested_mode="replay", limit=2, offset=0)
     assert resp.total == 3 and len(resp.markets) == 2 and resp.status.mode == DataMode.REPLAY
     # category filter
-    econ = await svc.list_markets(requested_mode="replay", category="Economics")
-    assert econ.total == 1 and econ.markets[0].category == "Economics"
+    econ = await svc.list_markets(requested_mode="replay", category="Economics / Macro")
+    assert econ.total == 1 and econ.markets[0].category == "Economics / Macro"
     # search filter
     aurora = await svc.list_markets(requested_mode="replay", search="aurora")
     assert aurora.total == 1

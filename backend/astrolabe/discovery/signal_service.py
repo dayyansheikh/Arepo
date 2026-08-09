@@ -168,12 +168,20 @@ class SignalReadService:
         }
 
     async def signals(
-        self, *, bucket: str | None = None, scope: str = SCOPE_DIRECTIONAL, limit: int = 10
+        self,
+        *,
+        bucket: str | None = None,
+        scope: str = SCOPE_DIRECTIONAL,
+        category: str = ALL_CATEGORY,
+        search: str | None = None,
+        sort: str = "priority_desc",
+        limit: int = 50,
+        offset: int = 0,
     ) -> dict:
         """Current signals for the latest scan, filtered by closing-time bucket + scope.
 
-        ``public`` is capped at ``limit`` (ten) as a display subset; ``directional``/``full``/
-        ``shadow`` return the complete matching set so the underlying universe is never hidden.
+        Category/search/sort are applied to the complete matching universe before pagination.
+        Eligibility, signal thresholds and the stored public/shadow membership are never changed.
         """
         latest = await scan_store.latest_scan(self.session)
         if latest is None:
@@ -189,8 +197,30 @@ class SignalReadService:
         else:  # directional
             matching = [r for r in rows if r.direction in ("up", "down")]
 
-        matching.sort(key=lambda r: (r.rank_in_bucket is None, r.rank_in_bucket or 1 << 30))
-        shown = matching[:limit] if scope == SCOPE_PUBLIC else matching
+        selected_category = normalize_category_filter(category)
+        matching = [
+            row for row in matching
+            if category_matches(selected_category, row.primary_category)
+        ]
+        if search:
+            needle = search.strip().lower()
+            matching = [row for row in matching if needle in row.market_question.lower()]
+
+        metric = "strength" if sort.startswith("strength") else "research_priority"
+        descending = sort.endswith("desc")
+
+        def sort_key(row: SignalSnapshotRow):
+            value = getattr(row, metric, None)
+            return (
+                value is None,
+                -(value or 0) if descending else (value or 0),
+                row.rank_in_bucket is None,
+                row.rank_in_bucket or 1 << 30,
+                row.market_id,
+            )
+
+        matching.sort(key=sort_key)
+        shown = matching[offset: offset + limit]
         eligible_in_bucket = len(rows)
         directional_in_bucket = sum(1 for r in rows if r.direction in ("up", "down"))
         # Server-side trajectory per shown market (prompt section 19: the frontend never infers
@@ -211,9 +241,12 @@ class SignalReadService:
             "rows": out_rows,
             # The line the UI shows so ten is never read as "only ten analysed".
             "coverage_caption": (
-                f"Top {min(limit, len(matching))} shown from {eligible_in_bucket} eligible markets"
+                f"Top {len(shown)} shown from {eligible_in_bucket} eligible markets"
                 if scope == SCOPE_PUBLIC
-                else f"{len(matching)} of {eligible_in_bucket} eligible markets in this window"
+                else (
+                    f"{len(shown)} shown from {len(matching)} matching signals across "
+                    f"{eligible_in_bucket} eligible markets"
+                )
             ),
         }
 

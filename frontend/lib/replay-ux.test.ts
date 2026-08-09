@@ -14,6 +14,7 @@ import {
   nextFreezeAt,
   nextFreezeLine,
   pendingMessage,
+  pickCohortForCategory,
   pickCohortForHorizon,
   resultTitle,
 } from "@/lib/replay-ux";
@@ -41,6 +42,9 @@ function cohort(p: Partial<ReplayCohort>): ReplayCohort {
     excluded_markets: 0,
     available_horizons: { "1h": false, "6h": false, "24h": false, "7d": false },
     resolution_available: false,
+    category_metadata_available: 0,
+    category_metadata_unavailable: 1382,
+    public_category_counts: {},
     model_version: "m",
     ...p,
   };
@@ -115,6 +119,45 @@ describe("pickCohortForHorizon", () => {
     const r = pickCohortForHorizon(list, "24h", NOW);
     expect(r.cohort?.id).toBe(2); // newest, but pending
     expect(r.evaluated).toBe(false);
+  });
+});
+
+describe("pickCohortForCategory", () => {
+  const list = {
+    cohorts: [
+      cohort({
+        id: 3,
+        category_metadata_available: 100,
+        category_metadata_unavailable: 0,
+        available_horizons: { "1h": false, "6h": false, "24h": false, "7d": false },
+      }),
+      cohort({
+        id: 2,
+        category_metadata_available: 0,
+        available_horizons: { "1h": true, "6h": true, "24h": false, "7d": false },
+      }),
+    ],
+  } as unknown as ReplayCohortList;
+
+  it("keeps All on the established evaluable-horizon selection", () => {
+    expect(pickCohortForCategory(list, "6h", "All", NOW).cohort?.id).toBe(2);
+  });
+
+  it("chooses the newest category-capable cohort even while pending", () => {
+    const picked = pickCohortForCategory(list, "6h", "Crypto", NOW);
+    expect(picked.cohort?.id).toBe(3);
+    expect(picked.evaluated).toBe(false);
+    expect(picked.categoryCapable).toBe(true);
+  });
+
+  it("reports honestly when no category-capable prospective cohort exists", () => {
+    const legacy = {
+      cohorts: [cohort({ id: 2, category_metadata_available: 0 })],
+    } as unknown as ReplayCohortList;
+    expect(pickCohortForCategory(legacy, "6h", "Crypto", NOW)).toMatchObject({
+      cohort: { id: 2 },
+      categoryCapable: false,
+    });
   });
 });
 
