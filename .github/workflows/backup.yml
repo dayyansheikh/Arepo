@@ -10,7 +10,12 @@ name: arepo-db-backup
 
 on:
   schedule:
-    - cron: "40 3 * * *"   # 03:40 UTC daily, away from congested top-of-hour boundaries
+    # WEEKLY (Sunday 03:40 UTC), reduced from daily to cut Supabase egress: a full pg_dump egresses
+    # the entire logical DB uncompressed over the wire (~0.38 GB at current size), so daily backups
+    # alone were ~9-11 GB/month — over the Free 5 GB egress allowance. The database itself is the
+    # durable primary; weekly external DR snapshots are sufficient, and the retention/compaction work
+    # keeps the DB (and therefore each dump) small. Run on demand any time via workflow_dispatch.
+    - cron: "40 3 * * 0"
   workflow_dispatch: {}
 
 concurrency:
