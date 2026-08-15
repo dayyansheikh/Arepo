@@ -128,8 +128,52 @@ class ResearchRepository:
         found = res.scalar_one_or_none()
         if found is not None:
             return found
-        row = ResearchEntryRow(
-            cohort_id=cohort.id,
+        row = self._build_entry_row(cohort.id, e)
+        self.session.add(row)
+        await self.session.flush()
+        return row
+
+    async def add_entries(
+        self, cohort: ResearchCohortRow, entries: list[EntryInput]
+    ) -> int:
+        """Bulk-insert screened entries for a freeze. Returns the number of NEW rows added.
+
+        Freezing a full cohort (~2,000 entries) via per-entry ``add_entry`` cost ~2 round trips
+        each (an existence SELECT + a flush) over the Supabase pooler — ~20 min, the dominant slice
+        that pushed a freeze-due scan tick past its hard deadline. This loads the existing
+        (market_id, token_id) keys for the cohort in ONE query, then ``add_all`` + a single flush.
+        Idempotent on the same unique key (existing pairs are skipped), identical row content.
+        """
+        if cohort.frozen:
+            raise CohortFrozenError(
+                f"research cohort {cohort.cadence}@{cohort.cutoff_at} is frozen; cannot add entries"
+            )
+        if not entries:
+            return 0
+        res = await self.session.execute(
+            select(ResearchEntryRow.market_id, ResearchEntryRow.token_id).where(
+                ResearchEntryRow.cohort_id == cohort.id
+            )
+        )
+        existing: set[tuple[str, str]] = {(m, t) for m, t in res.all()}
+        seen: set[tuple[str, str]] = set()
+        new_rows: list[ResearchEntryRow] = []
+        for e in entries:
+            key = (e.market_id, e.token_id)
+            if key in existing or key in seen:
+                continue
+            seen.add(key)
+            new_rows.append(self._build_entry_row(cohort.id, e))
+        if new_rows:
+            self.session.add_all(new_rows)
+            await self.session.flush()
+        return len(new_rows)
+
+    def _build_entry_row(self, cohort_id: int, e: EntryInput) -> ResearchEntryRow:
+        """Construct a ResearchEntryRow from an EntryInput. Shared by add_entry / add_entries so the
+        single-row and bulk paths can never diverge on which fields are frozen."""
+        return ResearchEntryRow(
+            cohort_id=cohort_id,
             role=e.role,
             rank=e.rank,
             walk_forward_partition=e.walk_forward_partition,
@@ -170,9 +214,6 @@ class ResearchRepository:
             public_selected=e.public_selected,
             created_at=_now(),
         )
-        self.session.add(row)
-        await self.session.flush()
-        return row
 
     async def freeze_cohort(
         self, cohort: ResearchCohortRow, *, frozen_at: datetime | None = None,

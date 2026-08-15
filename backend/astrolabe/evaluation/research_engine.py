@@ -338,8 +338,9 @@ async def freeze_from_inputs(
         cohort.selection_policy = selection_policy
         cohort.public_selection_limit = public_selection_limit
     try:
-        for e in inputs:
-            await repo.add_entry(cohort, e)
+        # Bulk insert (one existence query + add_all + single flush) instead of ~2,000 per-entry
+        # round trips. Same atomic transaction / rollback semantics; identical frozen entry content.
+        await repo.add_entries(cohort, list(inputs))
         await repo.freeze_cohort(
             cohort, frozen_at=frozen_at,
             excluded_markets=(funnel.excluded if funnel else 0),
