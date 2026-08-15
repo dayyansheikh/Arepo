@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..domain.enums import ConnState, MarketStatus
@@ -41,27 +41,36 @@ def _ensure_utc(dt: datetime | None) -> datetime | None:
     return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
 
 
+def _market_fields(market: Market) -> dict:
+    """The mutable MarketRow column values for a domain Market (everything except the ``id`` PK).
+    Shared by the ORM-object path and the bulk-update path so they cannot diverge."""
+    return {
+        "question": market.question,
+        "slug": market.slug,
+        "condition_id": market.condition_id,
+        "status": market.status.value,
+        "enable_order_book": market.enable_order_book,
+        "category": market.category,
+        "tags": list(market.tags),
+        "volume": market.volume,
+        "volume_24hr": market.volume_24hr,
+        "liquidity": market.liquidity,
+        "tick_size": market.tick_size,
+        "min_order_size": market.min_order_size,
+        "start_date": market.start_date,
+        "end_date": market.end_date,
+        "description": market.description,
+        "image": market.image,
+        "outcomes": [
+            {"name": o.name, "token_id": o.token_id, "price": o.price} for o in market.outcomes
+        ],
+        "updated_at": market.updated_at,
+    }
+
+
 def _apply_market_fields(row: MarketRow, market: Market) -> None:
-    row.question = market.question
-    row.slug = market.slug
-    row.condition_id = market.condition_id
-    row.status = market.status.value
-    row.enable_order_book = market.enable_order_book
-    row.category = market.category
-    row.tags = list(market.tags)
-    row.volume = market.volume
-    row.volume_24hr = market.volume_24hr
-    row.liquidity = market.liquidity
-    row.tick_size = market.tick_size
-    row.min_order_size = market.min_order_size
-    row.start_date = market.start_date
-    row.end_date = market.end_date
-    row.description = market.description
-    row.image = market.image
-    row.outcomes = [
-        {"name": o.name, "token_id": o.token_id, "price": o.price} for o in market.outcomes
-    ]
-    row.updated_at = market.updated_at
+    for key, value in _market_fields(market).items():
+        setattr(row, key, value)
 
 
 def _row_to_market(row: MarketRow) -> Market:
@@ -146,22 +155,32 @@ class Repository:
             by_id[market.id] = market
         ids = list(by_id.keys())
 
-        existing: dict[str, MarketRow] = {}
+        # Read only the IDs that already exist (not full rows). Selecting whole MarketRow rows here
+        # egressed ~1.5 KB x ~3,700 rows (~5.5 MB) from Supabase on EVERY scan (30x/day ~ 5 GB/mo);
+        # existence is all we need to split insert-vs-update, so pull just the id column.
+        existing_ids: set[str] = set()
         CHUNK = 500  # keep each IN-list comfortably within driver/param limits
         for start in range(0, len(ids), CHUNK):
             chunk = ids[start:start + CHUNK]
-            rows = await self._session.scalars(
-                select(MarketRow).where(MarketRow.id.in_(chunk))
+            found = await self._session.scalars(
+                select(MarketRow.id).where(MarketRow.id.in_(chunk))
             )
-            for row in rows:
-                existing[row.id] = row
+            existing_ids.update(found)
 
+        new_rows: list[MarketRow] = []
+        updates: list[dict] = []
         for market_id, market in by_id.items():
-            row = existing.get(market_id)
-            if row is None:
-                row = MarketRow(id=market_id)
-                self._session.add(row)
-            _apply_market_fields(row, market)
+            fields = _market_fields(market)
+            if market_id in existing_ids:
+                updates.append({"id": market_id, **fields})
+            else:
+                new_rows.append(MarketRow(id=market_id, **fields))
+        if new_rows:
+            self._session.add_all(new_rows)
+        if updates:
+            # Bulk UPDATE by primary key (one executemany), so existing rows are refreshed without
+            # ever loading them into the session.
+            await self._session.execute(update(MarketRow), updates)
         await self._session.commit()
         return len(by_id)
 
