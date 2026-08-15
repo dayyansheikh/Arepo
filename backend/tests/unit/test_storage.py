@@ -191,6 +191,11 @@ async def test_upsert_markets_batches_reads_not_one_select_per_market(engine, re
 
     # Existing-row load is chunked: ceil(1200/500) = 3 SELECTs, NOT 1200. Allow a small margin.
     assert len(market_selects) <= 4, f"expected batched reads, got {len(market_selects)} SELECTs"
+    # Egress: the existence check must read only the id column, never whole rows (which egressed
+    # ~1.5 KB x thousands of rows from Supabase on every scan).
+    assert all(
+        "markets.id" in s and "markets.question" not in s for s in market_selects
+    ), "existence read must select only markets.id, not full rows"
 
     # A second identical upsert still round-trips in batches and updates in place (no duplicates).
     market_selects.clear()
