@@ -116,6 +116,11 @@ class Settings(BaseSettings):
     collect_concurrency: int = 8              # due forward-observation quotes fetched in parallel
     scan_lease_seconds: int = 2400            # discovery scan lease TTL (40 min > scan_timeout)
     tick_lease_seconds: int = 2400            # scheduler-lease TTL (40 min > scan_timeout)
+    # Bound on the non-critical Explore market-cache upsert that runs after a complete scan. It must
+    # never eat the tick's hard deadline or delay a due cohort freeze, so it is abandoned cleanly if
+    # it exceeds this (idempotent: the next scan refreshes the cache). Small because the upsert is
+    # now a few batched IN-queries, not ~1,900 per-row round trips.
+    market_cache_upsert_timeout_seconds: int = 180
     # True OUTER wall-clock deadline for the ENTIRE tick (all jobs + cleanup + exit). Must be < the
     # workflow's timeout-minutes so the app always terminates itself first; a daemon watchdog force-
     # exits at this deadline even if the event loop / a connection pool refuses to close.

@@ -168,6 +168,49 @@ async def test_get_markets_search_category_ordering_limit_offset(repo: Repositor
     assert await repo.count_markets(search="rain") == 1
 
 
+async def test_upsert_markets_batches_reads_not_one_select_per_market(engine, repo: Repository):
+    """Regression for the scan-stability hotfix: a full-universe upsert must not issue one SELECT
+    per market. The old per-row ``session.get`` form cost ~1 round trip per market (~1,900 over the
+    Supabase pooler), which dominated post-scan persistence and pushed the scan tick past its hard
+    deadline. The batched form loads existing rows with chunked ``IN`` queries: O(n/chunk) not O(n).
+    """
+    from sqlalchemy import event
+
+    market_selects: list[str] = []
+
+    @event.listens_for(engine.sync_engine, "before_cursor_execute")
+    def _count(conn, cursor, statement, params, context, executemany):  # noqa: ANN001
+        s = statement.lower()
+        if s.startswith("select") and "from markets" in s:
+            market_selects.append(statement)
+
+    n = 1200  # > one CHUNK (500) so batching spans multiple IN-queries
+    markets = [_make_market(f"m{i}") for i in range(n)]
+    count = await repo.upsert_markets(markets)
+    assert count == n
+
+    # Existing-row load is chunked: ceil(1200/500) = 3 SELECTs, NOT 1200. Allow a small margin.
+    assert len(market_selects) <= 4, f"expected batched reads, got {len(market_selects)} SELECTs"
+
+    # A second identical upsert still round-trips in batches and updates in place (no duplicates).
+    market_selects.clear()
+    count2 = await repo.upsert_markets(markets)
+    assert count2 == n
+    assert len(market_selects) <= 4
+    assert await repo.count_markets() == n
+
+
+async def test_upsert_markets_dedupes_repeated_id_last_write_wins(repo: Repository):
+    """A repeated id within one batch collapses to a single row (last value wins), not two."""
+    first = _make_market("dup", question="First")
+    second = _make_market("dup", question="Second")
+    count = await repo.upsert_markets([first, second])
+    assert count == 1
+    assert await repo.count_markets() == 1
+    fetched = await repo.get_market("dup")
+    assert fetched is not None and fetched.question == "Second"
+
+
 async def test_get_markets_order_by_end_date(repo: Repository):
     markets = [
         _make_market("m1", end_date=datetime(2026, 6, 1, tzinfo=UTC)),

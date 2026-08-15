@@ -128,17 +128,42 @@ class Repository:
 
     # ------------------------------------------------------------------ markets ----
     async def upsert_markets(self, markets: list[Market]) -> int:
-        """Insert or update each market by id. Returns the number of markets processed."""
-        count = 0
+        """Insert or update each market by id. Returns the number of markets processed.
+
+        Existing rows are loaded in bulk (chunked ``WHERE id IN (...)``) rather than one
+        ``session.get`` per market. The per-row form issued a separate SELECT round trip for every
+        market, so a full-universe scan (~1,900 markets) cost ~1,900 sequential round trips over the
+        Supabase pooler — the dominant slice of post-scan persistence that pushed the scan tick past
+        its hard deadline. Behaviour is identical (same insert/update per id); only the read pattern
+        changes from O(n) round trips to O(n/chunk).
+        """
+        if not markets:
+            return 0
+        # De-duplicate by id (last write wins), preserving input order, so a repeated id does not
+        # cause two rows or a redundant lookup.
+        by_id: dict[str, Market] = {}
         for market in markets:
-            row = await self._session.get(MarketRow, market.id)
+            by_id[market.id] = market
+        ids = list(by_id.keys())
+
+        existing: dict[str, MarketRow] = {}
+        CHUNK = 500  # keep each IN-list comfortably within driver/param limits
+        for start in range(0, len(ids), CHUNK):
+            chunk = ids[start:start + CHUNK]
+            rows = await self._session.scalars(
+                select(MarketRow).where(MarketRow.id.in_(chunk))
+            )
+            for row in rows:
+                existing[row.id] = row
+
+        for market_id, market in by_id.items():
+            row = existing.get(market_id)
             if row is None:
-                row = MarketRow(id=market.id)
+                row = MarketRow(id=market_id)
                 self._session.add(row)
             _apply_market_fields(row, market)
-            count += 1
         await self._session.commit()
-        return count
+        return len(by_id)
 
     async def get_markets(
         self,

@@ -63,12 +63,19 @@ async def run_refresh(
             try:
                 from ..storage.repository import Repository
 
-                persisted = await Repository(session).upsert_markets(result.eligible_markets)
-            except Exception as exc:  # noqa: BLE001 - the scan itself must not fail on a cache write
+                # Bounded: the Explore market-cache is a non-critical convenience (the offline
+                # fallback), so it must never consume the tick's hard deadline or delay a due cohort
+                # freeze. If it exceeds its budget it is abandoned cleanly (best-effort, idempotent
+                # next scan) rather than being allowed to run the whole tick into the watchdog.
+                persisted = await asyncio.wait_for(
+                    Repository(session).upsert_markets(result.eligible_markets),
+                    timeout=settings.market_cache_upsert_timeout_seconds,
+                )
+            except (Exception, TimeoutError) as exc:  # noqa: BLE001 - scan must not fail on cache
                 from ..observability.logging import get_logger
 
                 get_logger("astrolabe.discovery.refresh").warning(
-                    "market cache upsert failed", extra={"ctx_err": str(exc)}
+                    "market cache upsert skipped", extra={"ctx_err": str(exc)}
                 )
         summary = scanner.result_summary(result)
         summary["record"] = rec
