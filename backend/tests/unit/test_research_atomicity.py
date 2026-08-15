@@ -47,17 +47,12 @@ def _screen(mid):
 async def test_failure_midway_leaves_no_visible_cohort(session, monkeypatch):
     inputs = build_entry_inputs([_screen("a"), _screen("b"), _screen("c")], now=CUTOFF)
 
-    # Make the THIRD add_entry blow up, simulating a mid-freeze failure.
-    original = ResearchRepository.add_entry
-    calls = {"n": 0}
+    # Make the bulk entry-insert blow up, simulating a mid-freeze failure. (Freeze now writes all
+    # entries via the batched add_entries; the atomic-rollback guarantee is unchanged.)
+    async def flaky(self, cohort, entries):
+        raise RuntimeError("simulated mid-freeze failure")
 
-    async def flaky(self, cohort, e):
-        calls["n"] += 1
-        if calls["n"] == 3:
-            raise RuntimeError("simulated mid-freeze failure")
-        return await original(self, cohort, e)
-
-    monkeypatch.setattr(ResearchRepository, "add_entry", flaky)
+    monkeypatch.setattr(ResearchRepository, "add_entries", flaky)
 
     with pytest.raises(RuntimeError, match="simulated mid-freeze failure"):
         await freeze_from_inputs(session, cadence=CADENCE_6H, cutoff_at=CUTOFF,
@@ -71,20 +66,20 @@ async def test_failure_midway_leaves_no_visible_cohort(session, monkeypatch):
 
 async def test_retry_after_failure_succeeds_cleanly(session, monkeypatch):
     inputs = build_entry_inputs([_screen("a"), _screen("b")], now=CUTOFF)
-    original = ResearchRepository.add_entry
+    original = ResearchRepository.add_entries
     state = {"fail": True}
 
-    async def flaky(self, cohort, e):
-        if state["fail"] and e.market_id == "b":
+    async def flaky(self, cohort, entries):
+        if state["fail"]:
             state["fail"] = False
             raise RuntimeError("boom")
-        return await original(self, cohort, e)
+        return await original(self, cohort, entries)
 
-    monkeypatch.setattr(ResearchRepository, "add_entry", flaky)
+    monkeypatch.setattr(ResearchRepository, "add_entries", flaky)
     with pytest.raises(RuntimeError):
         await freeze_from_inputs(session, cadence=CADENCE_6H, cutoff_at=CUTOFF,
                                  inputs=inputs, calculation_version="t", frozen_at=CUTOFF)
-    # Retry (add_entry no longer fails): a clean, frozen, complete cohort results.
+    # Retry (add_entries no longer fails): a clean, frozen, complete cohort results.
     summary = await freeze_from_inputs(session, cadence=CADENCE_6H, cutoff_at=CUTOFF,
                                        inputs=inputs, calculation_version="t", frozen_at=CUTOFF)
     assert summary["frozen"] and summary["universe_size"] == 2

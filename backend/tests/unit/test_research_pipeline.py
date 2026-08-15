@@ -225,3 +225,51 @@ def test_execution_unavailable_without_depth():
                            forward_depth=None)
     assert r.executable_move is None and r.unavailable_reason is not None
     assert slippage_points(None, 100.0) is None  # missing depth stays missing, never free
+
+
+async def test_add_entries_batches_reads_not_one_select_per_entry():
+    """Scan-stability (freeze half): freezing a cohort must not issue one existence SELECT per
+    entry. The per-entry add_entry form cost ~2 round trips each (~2,000 over the Supabase pooler)
+    and was the dominant slice that pushed a freeze-due scan tick past its hard deadline. The bulk
+    add_entries loads existing keys in ONE query, then add_all + a single flush."""
+    from sqlalchemy import event
+
+    from astrolabe.storage.db import Base, make_engine, make_sessionmaker
+
+    engine_ = make_engine("sqlite+aiosqlite:///:memory:")
+    async with engine_.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    entry_selects: list[str] = []
+
+    @event.listens_for(engine_.sync_engine, "before_cursor_execute")
+    def _count(conn, cursor, statement, params, context, executemany):  # noqa: ANN001
+        s = statement.lower()
+        if s.startswith("select") and "from research_entries" in s:
+            entry_selects.append(statement)
+
+    sm = make_sessionmaker(engine_)
+    try:
+        async with sm() as session:
+            repo = ResearchRepository(session)
+            cohort, _ = await repo.get_or_create_cohort(
+                cadence=CADENCE_6H, cutoff_at=CUTOFF,
+                model_version="arepo-model-1", calculation_version="t",
+            )
+            screens = [_screen(f"m{i}", 0.5, "up", 2, rp=200 - i) for i in range(300)]
+            inputs = build_entry_inputs(screens, now=CUTOFF)
+
+            added = await repo.add_entries(cohort, inputs)
+            await session.commit()
+            assert added == len(inputs)
+            # ONE existence query for the whole cohort, not one per entry.
+            assert len(entry_selects) <= 2, f"expected batched reads, got {len(entry_selects)}"
+
+            # Idempotent: re-adding the same inputs adds nothing new (existing keys skipped).
+            entry_selects.clear()
+            again = await repo.add_entries(cohort, inputs)
+            await session.commit()
+            assert again == 0
+            assert len(entry_selects) <= 2
+    finally:
+        await engine_.dispose()
