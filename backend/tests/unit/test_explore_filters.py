@@ -100,3 +100,45 @@ async def test_production_replay_mode_state_cannot_bypass_complete_cached_univer
     assert result.total == 4
     assert [market.id for market in result.markets] == ["high", "middle", "low", "none"]
     assert result.status.mode.value == "cached"
+
+
+async def test_explore_universe_read_is_cached_in_production(explore_service):
+    """Egress: repeated Explore/facets requests must not re-read the full universe from Supabase
+    each time. In production the universe (latest complete scan) is cached in-process, so N requests
+    within the window trigger ONE storage read, not N."""
+    reads = {"n": 0}
+    original = explore_service._read_explore_universe
+
+    async def counting(mode):
+        reads["n"] += 1
+        return await original(mode)
+
+    explore_service._read_explore_universe = counting  # type: ignore[assignment]
+
+    # A typical Explore page load: list + facets, then a category change, then a sort change.
+    await explore_service.list_markets(requested_mode="cached", limit=20)
+    await explore_service.facets(requested_mode="cached")
+    await explore_service.list_markets(requested_mode="cached", category="Crypto", limit=20)
+    await explore_service.list_markets(requested_mode="cached", sort="signal_desc", limit=20)
+
+    assert reads["n"] == 1, f"expected one cached universe read, got {reads['n']}"
+    # The cached result is still correct (same data): Crypto filter returns the 3 crypto markets.
+    resp = await explore_service.list_markets(requested_mode="cached", category="Crypto", limit=50)
+    assert {c.id for c in resp.markets} == {"low", "high", "none"}
+
+
+async def test_explore_cache_disabled_reads_fresh_each_call(explore_service):
+    """With explore_cache_seconds=0 (or non-production), every call reads fresh — identical to the
+    pre-cache behaviour, so tests/dev never serve stale in-process data."""
+    explore_service._settings.explore_cache_seconds = 0
+    reads = {"n": 0}
+    original = explore_service._read_explore_universe
+
+    async def counting(mode):
+        reads["n"] += 1
+        return await original(mode)
+
+    explore_service._read_explore_universe = counting  # type: ignore[assignment]
+    await explore_service.list_markets(requested_mode="cached", limit=20)
+    await explore_service.list_markets(requested_mode="cached", limit=20)
+    assert reads["n"] == 2

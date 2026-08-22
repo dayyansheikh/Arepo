@@ -87,6 +87,12 @@ class Settings(BaseSettings):
     # scan universe and applies filters/sorting before response pagination; this value must never
     # reduce research or market-universe completeness.
     cached_market_limit: int = 500
+    # Explore/facets serve the latest COMPLETE scan universe, which only changes when a new scan
+    # lands (~every 30 min). Caching that full-universe read in-process for this many seconds turns
+    # a per-request full-universe Supabase read into ~one read per window — a large egress cut with
+    # identical data (never fakes freshness; a new scan is picked up within the window). Applied in
+    # production only; 0 disables (dev/test read fresh every call).
+    explore_cache_seconds: int = 60
 
     # --- Production scheduler (single idempotent tick; see astrolabe/scheduler) ---
     # A hosted runner (GitHub Actions) wakes ~every 5 min and the app decides what is DUE. All of

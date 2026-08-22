@@ -8,6 +8,8 @@ the degradation reason.
 from __future__ import annotations
 
 import asyncio
+import time
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -48,6 +50,18 @@ OVERVIEW_ENRICH = 15       # bound how many markets we deep-fetch for the overvi
 DETAIL_HISTORY_MAX = 400
 
 
+@dataclass
+class _UniverseCache:
+    """A cached full-universe Explore read: the markets, the latest-scan signal index, the source
+    that produced them and its degradation reason, plus the monotonic time it was loaded."""
+
+    source: Any
+    reason: str | None
+    markets: list[Market]
+    signal_by_market: dict[str, Any]
+    loaded_at: float
+
+
 class MarketService:
     def __init__(
         self,
@@ -65,6 +79,8 @@ class MarketService:
         # cached enrich path records a snapshot per token and reads the persisted series to compute
         # spread-change / depth-change / volume-acceleration. None (e.g. in unit tests) disables it.
         self._session_factory = cached_session_factory
+        # In-process cache of the Explore/facets full-universe read (see _load_explore_universe).
+        self._universe_cache: _UniverseCache | None = None
 
     # -- mode resolution -------------------------------------------------------------
     def _default_mode(self) -> DataMode:
@@ -253,15 +269,13 @@ class MarketService:
                 out[row.market_id] = row
         return out
 
-    # -- public API ------------------------------------------------------------------
-    async def list_markets(
-        self, *, requested_mode=None, search=None, category=None, status=None,
-        closing="any", sort="volume", limit=50, offset=0,
-    ) -> MarketListResponse:
+    async def _read_explore_universe(self, requested_mode):
+        """Read (source, reason, markets, signal_by_market) for Explore/facets from storage.
+        The uncached read; :meth:`_load_explore_universe` wraps it with the process cache."""
         # Explore needs the complete universe produced by the scheduled scan. A normal browser
         # request must never run full Gamma pagination, so prefer the genuine MarketRow cache for
         # live/cached browsing. Explicit replay remains available outside production for tests/dev.
-        source = reason = None
+        source = reason = markets = None
         # Production never serves the replay fixture. Treat a stale browser ``mode=replay`` value
         # exactly like normal Explore traffic there, so it cannot bypass the complete persisted
         # universe and fall back to the live politeness window. Development/test keeps an explicit
@@ -275,8 +289,43 @@ class MarketService:
         if source is None:
             source, reason = await self._select_source(requested_mode)
             markets = await source.markets()
-
         signal_by_market = await self._latest_signal_by_market()
+        return source, reason, markets, signal_by_market
+
+    async def _load_explore_universe(self, requested_mode):
+        """(source, reason, markets, signal_by_market) with an in-process cache.
+
+        The Explore universe is the latest COMPLETE scan, which only changes when a new scan lands
+        (~every 30 min). Serving repeated browser/API requests from a short-lived process cache
+        turns a per-request full-universe Supabase read (~thousands of rows) into ~one read per
+        window — a large egress reduction with identical data. Production-only so dev/test read
+        fresh each call; a new scan is picked up within it. Never fakes freshness:
+        the cached rows ARE the genuine latest persisted scan.
+        """
+        cache_seconds = self._settings.explore_cache_seconds
+        caching_on = cache_seconds > 0 and self._settings.environment == "production"
+        if caching_on:
+            cache = self._universe_cache
+            if cache is not None and (time.monotonic() - cache.loaded_at) < cache_seconds:
+                return cache.source, cache.reason, cache.markets, cache.signal_by_market
+        source, reason, markets, signal_by_market = await self._read_explore_universe(
+            requested_mode
+        )
+        if caching_on:
+            self._universe_cache = _UniverseCache(
+                source=source, reason=reason, markets=markets,
+                signal_by_market=signal_by_market, loaded_at=time.monotonic(),
+            )
+        return source, reason, markets, signal_by_market
+
+    # -- public API ------------------------------------------------------------------
+    async def list_markets(
+        self, *, requested_mode=None, search=None, category=None, status=None,
+        closing="any", sort="volume", limit=50, offset=0,
+    ) -> MarketListResponse:
+        source, reason, markets, signal_by_market = await self._load_explore_universe(
+            requested_mode
+        )
         selected_category = normalize_category_filter(category)
 
         from ..ingest.aliases import expand_query
@@ -335,11 +384,11 @@ class MarketService:
     async def facets(self, *, requested_mode=None) -> MarketFacetsResponse:
         """Distinct real filter values (category/sport/competition/status) currently present.
 
-        Reuses the same source path as :meth:`list_markets` (no filtering/paging applied)
-        so the facets always describe what a user could actually filter down to.
+        Reuses the same cached universe as :meth:`list_markets` (no filtering/paging applied)
+        so the facets always describe what a user could actually filter down to, and a browser that
+        loads Explore (list + facets together) triggers at most one full-universe Supabase read.
         """
-        source, _ = await self._select_source(requested_mode)
-        markets = await source.markets()
+        _source, _reason, markets, _signals = await self._load_explore_universe(requested_mode)
         categories = sorted({m.category for m in markets if m.category})
         sports = sorted({m.sport for m in markets if m.sport})
         competitions = sorted({m.competition for m in markets if m.competition})
