@@ -106,3 +106,73 @@ real per-table sizes and replaces these estimates with measurements before any c
   forward collection.
 - Prospective only (§3): recorded via a new `coverage_policy_version` / `scan_cadence` on cohorts
   frozen *after* the change. **Old cohorts are never rewritten** to pretend they used the new cadence.
+
+---
+
+# MEASURED UPDATE (supersedes the estimates above)
+
+Exact `pg_total_relation_size` from a direct production Supabase query (2026-08-22). These replace
+the schema-derived estimates.
+
+## Measured table sizes (~935 MiB total)
+
+| Table | Total | Data | Index | ~B/row (data) | Notes |
+|---|---:|---:|---:|---:|---|
+| `discovery_signal_snapshots` | **597 MiB** | 500 | 97 | ~1,500 | ~349k rows; **the #1 target** |
+| `research_entries` | **166 MiB** | 142 | 24 | ~1,034 | ~144k rows (permanent) |
+| `markets` | **84 MiB** | 82 | 2 | **~17,000** | ~5k rows — **bloated** (description/tags/outcomes JSON) |
+| `research_forward_observations` | **74 MiB** | 49 | 25 | ~257 | ~200k rows (permanent, valuable) |
+| `microstructure_snapshots` | 1.4 MiB | | | | |
+| `research_preclose_observations` | 0.9 MiB | | | | |
+
+## discovery_signal_snapshots decomposed (§1)
+
+- **~343 MiB is 2-day churn** from the ~48 scans/day cadence → **collapses ~24× to ~14 MiB** once the
+  twice-daily cadence deploys and the 2-day window ages out. (Purely from the cadence change already
+  committed — no compaction needed.)
+- **~157 MiB is cohort-referenced "permanent provenance"** — but those rows **duplicate
+  `research_entries`** (the freeze copies direction/strength/component_scores/microstructure into the
+  entry). Once a cohort is frozen and verified, the heavy snapshot is **redundant** and can be pruned,
+  keeping `research_entries` as the record. → target ~0 MiB permanent snapshots.
+
+One snapshot row holds: identity (market/token/question), point-in-time timing/eligibility, the full
+signal (direction + per-family directions, strength, confidence, research_priority, ranks, selection
+flags), **JSON `component_scores` / `component_availability` / `evidence_families`** (the bulk), and
+microstructure scalars (midpoint/bid/ask/spread/depth/liquidity/volume). For a frozen signal, every
+one of these is also in `research_entries`; for a non-frozen scan it is only needed for ~2-day
+operational Replay/debugging. **Nothing in a cohort-referenced snapshot is uniquely required for ML
+that is not already in the entry** → the compact archive is built from the entry + forward outcomes.
+
+## markets bloat (§4)
+
+~17 KB/row for ~5k markets is ~10× what a searchable index needs. Cause: full `description`, raw
+`tags`, and `outcomes` JSON stored on every row. Split into (a) a compact **current** searchable
+index (id, question, slug, category, close_time, status, liquidity, top outcome/prob, canonical
+Polymarket ref — ~1–2 KB) and (b) heavy fields only where an archive genuinely needs them.
+Target **84 → ~20 MiB**.
+
+## Recomputed feasibility (real-anchored, §5)
+
+Sequential levers, each measured-anchored:
+
+1. **Cadence 48→2 scans/day** (committed): snapshots 597 → ~250 MiB → **DB ~590 MiB**.
+2. **Prune cohort-referenced snapshots** (redundant w/ entries, after verify): −~157 MiB → **~430 MiB**.
+3. **Compact market index** (84→~20): −~64 MiB → **~370 MiB**.
+4. **14-day retention + compact archive** on entries/forward-obs keeps the permanent tail bounded.
+
+**Target steady state ≈ 300 MiB working set with indexes** (research_entries 14d ~102, forward_obs
+14d ~70, snapshots ~21, market index ~19, base ~20; +~30% indexes). The compact archive
+(directional-only, ~350 B/row) grows ~1.7 MiB/day → day-30 ~330, day-90 ~432, day-365 ~899 MiB.
+
+**Free-tier verdict:** the lean architecture reaches a **~300–430 MiB working range for the first
+~3 months** — within Free with margin. Sustaining *multi-year* history under 500 MiB additionally
+needs a tighter compact row (~200 B, directional-only) and/or cold archival of >90-day compact rows
+(archive-before-delete). This is the §25 infra input: **efficient architecture makes Free viable
+near-term; long-horizon history is the only thing that eventually needs Pro or cold storage.**
+
+## Compaction priority order (measured)
+
+1. `discovery_signal_snapshots` — cadence (done) + prune cohort-referenced (redundant). Biggest win.
+2. `markets` — compact the index (bloated ~17 KB/row).
+3. `research_entries` (166) + `research_forward_observations` (74) — compact ML archive after 14 days
+   and horizon completion, with before/after equivalence proof (§9–10).
