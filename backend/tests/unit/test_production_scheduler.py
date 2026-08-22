@@ -157,6 +157,19 @@ async def test_storage_health_levels(session, monkeypatch, size_mb, expected):
     assert health["level"] == expected
 
 
+async def test_table_sizes_is_none_on_sqlite_and_health_tables_optional(session, monkeypatch):
+    # table_sizes uses Postgres-only pg_total_relation_size; on SQLite it must degrade to None
+    # (never raise), and storage_health only includes the breakdown when asked.
+    monkeypatch.setattr(retention_mod, "get_settings", lambda: _settings())
+    monkeypatch.setattr(retention_mod, "database_size_bytes",
+                        lambda *_a, **_k: _async(100 * 1024 * 1024))
+    assert await retention_mod.table_sizes(session) is None
+    base = await retention_mod.storage_health(session)
+    assert "tables" not in base
+    with_tables = await retention_mod.storage_health(session, include_tables=True)
+    assert with_tables["tables"] is None  # present (asked for) but None on sqlite
+
+
 def _async(value):
     async def _c():
         return value

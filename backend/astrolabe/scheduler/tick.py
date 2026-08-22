@@ -301,7 +301,9 @@ async def health_from_session(session) -> dict:
             "universe_size": c.universe_size, "directional_count": c.directional_count,
             "scan_id": c.scan_id, "scan_complete": c.scan_complete,
         }
-    storage = await storage_health(session)
+    # Include the per-table size breakdown so a `status` run reports real table sizes (storage
+    # diagnostics for the lean-architecture retention/compaction work), not just the DB total.
+    storage = await storage_health(session, include_tables=True)
     # A concise refresh-health verdict the API can surface to users without engineering detail.
     stale = (latest_scan_age is not None
              and latest_scan_age > settings.scan_refresh_interval_minutes * 60 * 3)

@@ -50,8 +50,48 @@ async def database_size_bytes(session: AsyncSession) -> int | None:
     return None
 
 
-async def storage_health(session: AsyncSession) -> dict:
-    """Storage-size + quota-warning snapshot. Never raises (health path)."""
+async def table_sizes(session: AsyncSession, *, top: int = 12) -> list[dict] | None:
+    """Per-table total size (Postgres only), largest first, for storage diagnostics.
+
+    Read-only. Lets the health snapshot report the REAL per-table byte breakdown so the lean-
+    architecture retention/compaction decisions rest on measurement, not estimates. None on
+    non-Postgres or error (health must never raise)."""
+    dialect = session.bind.dialect.name if session.bind is not None else ""
+    if dialect != "postgresql":
+        return None
+    try:
+        rows = (await session.execute(text(
+            """
+            SELECT relname AS table_name,
+                   pg_total_relation_size(c.oid) AS total_bytes,
+                   pg_relation_size(c.oid)       AS table_bytes,
+                   COALESCE(n_live_tup, 0)       AS live_rows
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
+            WHERE c.relkind = 'r' AND n.nspname = 'public'
+            ORDER BY pg_total_relation_size(c.oid) DESC
+            LIMIT :top
+            """
+        ), {"top": top})).all()
+    except Exception:  # noqa: BLE001 - health must never raise
+        return None
+    return [
+        {
+            "table": r.table_name,
+            "total_mb": round((r.total_bytes or 0) / 1024 / 1024, 1),
+            "table_mb": round((r.table_bytes or 0) / 1024 / 1024, 1),
+            "index_mb": round(((r.total_bytes or 0) - (r.table_bytes or 0)) / 1024 / 1024, 1),
+            "live_rows": int(r.live_rows or 0),
+        }
+        for r in rows
+    ]
+
+
+async def storage_health(session: AsyncSession, *, include_tables: bool = False) -> dict:
+    """Storage-size + quota-warning snapshot. Never raises (health path).
+
+    ``include_tables`` adds the per-table size breakdown (Postgres) for storage diagnostics."""
     settings = get_settings()
     size = await database_size_bytes(session)
     limit = settings.storage_soft_limit_mb * 1024 * 1024
@@ -64,7 +104,7 @@ async def storage_health(session: AsyncSession) -> dict:
             level = "warn"
         else:
             level = "ok"
-    return {
+    out = {
         "size_bytes": size,
         "size_mb": round(size / 1024 / 1024, 1) if size else None,
         "soft_limit_mb": settings.storage_soft_limit_mb,
@@ -73,6 +113,9 @@ async def storage_health(session: AsyncSession) -> dict:
         "warn_ratio": settings.storage_warn_ratio,
         "crit_ratio": settings.storage_crit_ratio,
     }
+    if include_tables:
+        out["tables"] = await table_sizes(session)
+    return out
 
 
 async def _cohort_referenced_scan_ids(session: AsyncSession) -> set[str]:
