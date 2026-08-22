@@ -16,9 +16,15 @@ MODEL_VERSION = "arepo-model-1"
 # Each cadence freezes an independent immutable cohort. A cadence is identified by this string and
 # a cut-off timestamp snapped to the cadence boundary, so (cadence, cutoff_at) is a unique key.
 CADENCE_6H = "6h"
+CADENCE_12H = "12h"          # lean twice-daily deep-scan cadence: freezes at 00:00 and 12:00 UTC
 CADENCE_DAILY = "daily"
 CADENCE_WEEKLY = "weekly"
-CADENCES = (CADENCE_6H, CADENCE_DAILY, CADENCE_WEEKLY)
+CADENCES = (CADENCE_6H, CADENCE_12H, CADENCE_DAILY, CADENCE_WEEKLY)
+
+# Prospective coverage-policy version (lean-architecture prompt §3/§6). Recorded conceptually so a
+# cohort frozen under the twice-daily lean cadence is distinguishable from earlier 6h cohorts;
+# OLD COHORTS ARE NEVER REWRITTEN — they keep their original cadence ("6h") and policy.
+COVERAGE_POLICY_VERSION = "lean-2xdaily-v1"
 
 # --- Entry roles (prompt section 2) -----------------------------------------------------------
 # Every screened market/token is frozen with an explicit role, so the research sample is the FULL

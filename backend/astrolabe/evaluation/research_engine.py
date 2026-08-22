@@ -26,6 +26,7 @@ from ..opportunity.service import market_flow_indicators
 from .errors import CohortFrozenError
 from .research_constants import (
     CADENCE_6H,
+    CADENCE_12H,
     CADENCE_DAILY,
     CADENCE_WEEKLY,
     DEGRADED_EXCLUSION_RATE,
@@ -50,6 +51,9 @@ def cadence_cutoff(cadence: str, now: datetime) -> datetime:
     now = now.astimezone(UTC)
     if cadence == CADENCE_6H:
         hour = (now.hour // 6) * 6
+        return now.replace(hour=hour, minute=0, second=0, microsecond=0)
+    if cadence == CADENCE_12H:
+        hour = (now.hour // 12) * 12  # 00:00 or 12:00 UTC — the lean twice-daily boundary
         return now.replace(hour=hour, minute=0, second=0, microsecond=0)
     if cadence == CADENCE_DAILY:
         return now.replace(hour=0, minute=0, second=0, microsecond=0)

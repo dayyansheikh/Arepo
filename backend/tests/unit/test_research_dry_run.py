@@ -13,7 +13,12 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from astrolabe.evaluation.research_constants import CADENCE_6H, CADENCE_DAILY, CADENCE_WEEKLY
+from astrolabe.evaluation.research_constants import (
+    CADENCE_6H,
+    CADENCE_12H,
+    CADENCE_DAILY,
+    CADENCE_WEEKLY,
+)
 from astrolabe.evaluation.research_engine import (
     ScoredScreen,
     build_entry_inputs,
@@ -121,7 +126,7 @@ async def test_end_to_end_dry_run(session):
 
     status = await svc.status()
     assert status["cohort_counts_by_cadence"] == {
-        CADENCE_6H: 1, CADENCE_DAILY: 1, CADENCE_WEEKLY: 1,
+        CADENCE_6H: 1, CADENCE_12H: 0, CADENCE_DAILY: 1, CADENCE_WEEKLY: 1,
     }
     assert status["total_frozen_markets"] == 15   # 5 markets x 3 cadences
     assert status["public_selections"] == 9       # 3 directional x 3 cadences (all within top-10)

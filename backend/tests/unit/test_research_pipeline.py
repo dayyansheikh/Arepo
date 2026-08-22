@@ -68,6 +68,19 @@ def test_cadence_cutoff_snaps_down():
     assert cadence_cutoff(CADENCE_WEEKLY, now) == datetime(2026, 8, 3, 0, 0, tzinfo=UTC)
 
 
+def test_cadence_12h_snaps_to_0000_or_1200_utc():
+    from astrolabe.evaluation.research_constants import CADENCE_12H
+    # Afternoon snaps to 12:00; morning snaps to 00:00 — the twice-daily lean boundaries.
+    assert cadence_cutoff(CADENCE_12H, datetime(2026, 8, 5, 14, 37, tzinfo=UTC)) == \
+        datetime(2026, 8, 5, 12, 0, tzinfo=UTC)
+    assert cadence_cutoff(CADENCE_12H, datetime(2026, 8, 5, 3, 5, tzinfo=UTC)) == \
+        datetime(2026, 8, 5, 0, 0, tzinfo=UTC)
+    assert cadence_cutoff(CADENCE_12H, datetime(2026, 8, 5, 12, 0, tzinfo=UTC)) == \
+        datetime(2026, 8, 5, 12, 0, tzinfo=UTC)
+    assert cadence_cutoff(CADENCE_12H, datetime(2026, 8, 5, 23, 59, tzinfo=UTC)) == \
+        datetime(2026, 8, 5, 12, 0, tzinfo=UTC)
+
+
 def test_classification_is_selective():
     def c(direction, nf, st, dq="good"):
         return classify_signal(direction=direction, n_families=nf, strength=st, data_quality=dq)

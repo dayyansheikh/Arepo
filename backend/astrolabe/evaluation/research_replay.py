@@ -49,9 +49,12 @@ from .research_repository import ResearchRepository
 # A cadence's human name and the honest description of WHICH scheduled job freezes it. A manually
 # created six-hour cohort must never be described as a weekly cohort (prompt section 2), so the
 # description is derived from the stored cadence string, never assumed.
-CADENCE_LABELS: dict[str, str] = {"6h": "Six-hourly", "daily": "Daily", "weekly": "Weekly"}
+CADENCE_LABELS: dict[str, str] = {
+    "6h": "Six-hourly", "12h": "Twice-daily", "daily": "Daily", "weekly": "Weekly",
+}
 CADENCE_DESCRIPTIONS: dict[str, str] = {
     "6h": "a cohort frozen by the six-hourly scheduled job",
+    "12h": "a cohort frozen by the twice-daily (00:00/12:00 UTC) deep scan",
     "daily": "a cohort frozen by the daily scheduled job",
     "weekly": "a cohort frozen by the weekly scheduled job",
 }
@@ -324,7 +327,7 @@ class ResearchReplayService:
         summaries = [await self._cohort_summary(c, with_horizons=True) for c in cohorts]
 
         cadences: list[dict] = []
-        for cad in ("6h", "daily", "weekly"):
+        for cad in ("12h", "6h", "daily", "weekly"):
             members = [s for s in summaries if s["cadence"] == cad]
             if not members:
                 continue

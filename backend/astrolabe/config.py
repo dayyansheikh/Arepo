@@ -102,12 +102,13 @@ class Settings(BaseSettings):
     resolve_interval_minutes: int = 60        # how often to check for newly-available resolutions
     preclose_interval_minutes: int = 15       # how often to collect freeze-to-close quotes
     forward_interval_minutes: int = 15        # how often to collect due 1h/6h/24h/7d observations
-    # Prospective cohort cadence (final production decision): freeze one immutable cohort every 6h
-    # at stable UTC boundaries (00/06/12/18) from the latest valid COMPLETE scan at that boundary.
-    # Daily/weekly research summaries are DERIVED from the 6h cohorts (see research headline), so no
-    # redundant separate daily/weekly cohorts are frozen. The dependence of repeated 6h snapshots of
-    # the same market is handled in analysis by a MARKET-DEDUPLICATED headline, not by dropping it.
-    research_freeze_cadences: str = "6h"  # cadences the tick freezes when causally due
+    # Prospective cohort cadence (lean-architecture prompt §1-3, §6): freeze one immutable cohort
+    # TWICE DAILY at 00:00 and 12:00 UTC ("12h"), from the latest valid COMPLETE deep scan at that
+    # boundary. This replaces the earlier 6h (four/day) cadence to cut snapshot churn ~24x and halve
+    # permanent research growth, with unchanged per-scan coverage and fully preserved forward labels
+    # (collection cadence is independent). PROSPECTIVE ONLY: cohorts already frozen under "6h" keep
+    # their cadence and are never rewritten; only cohorts frozen after this change are "12h".
+    research_freeze_cadences: str = "12h"  # cadences the tick freezes when causally due
 
     # --- Complete-scan runtime protection (hosted runners are slower than the local benchmark) ---
     # The complete scan measured ~269–302 s locally (home IP), but a GitHub Actions runner is much
