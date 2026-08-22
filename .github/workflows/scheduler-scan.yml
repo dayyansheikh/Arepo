@@ -8,10 +8,16 @@
 name: arepo-scan
 
 on:
-  schedule:
-    - cron: "5,35 * * * *"   # every 30 min at :05/:35 UTC (offset off the top of the hour). The
-                             # 6-hour cohort freeze rides on this: the first scan after each 00/06/
-                             # 12/18 boundary freezes that boundary's cohort. Measured ~9-10 min.
+  # AUTOMATIC DEEP SCANS PAUSED (2026-08-22) during the lean-architecture development period. The
+  # database reached 935 MB / 500 MB (Supabase Free) and continuous availability is not currently
+  # required, so the heavy scan (complete universe + cohort freeze) — the dominant source of storage,
+  # egress and compute — is paused to stop growth while the two-deep-scans/day + retention/compaction
+  # architecture is built and validated on the feature branch. Manual runs remain available via
+  # workflow_dispatch. Re-enable the schedule (originally: cron "5,35 * * * *") when the new
+  # architecture is deployed with its intended cadence. Collect stays scheduled so already-frozen
+  # cohorts still complete their forward horizons; no prospective cohort is reconstructed.
+  # schedule:
+  #   - cron: "5,35 * * * *"
   workflow_dispatch:
     inputs:
       force:
