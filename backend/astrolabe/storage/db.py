@@ -37,6 +37,15 @@ def make_engine(url: str | None = None) -> AsyncEngine:
     kwargs: dict = {"future": True}
     if ":memory:" in db_url:
         kwargs["poolclass"] = StaticPool
+    elif not db_url.startswith("sqlite"):
+        # Real (Postgres) pooling: liveness-check every pooled connection before use, and recycle
+        # connections older than the pooler's idle window. A scan does no DB work for ~16-28 min
+        # during discovery/enrichment; the connection it later re-acquires for persistence could be
+        # one the Supabase pooler already dropped, which surfaced as intermittent empty-message
+        # "flush failed / transaction rolled back" scan failures. pre_ping discards a dead
+        # connection and transparently opens a fresh one; recycle proactively avoids stale ones.
+        kwargs["pool_pre_ping"] = True
+        kwargs["pool_recycle"] = 1800
     return create_async_engine(db_url, **kwargs)
 
 
