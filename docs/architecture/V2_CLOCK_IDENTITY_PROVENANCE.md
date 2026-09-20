@@ -2,6 +2,11 @@
 
 Normative companion to [Feature Store contract](FEATURE_STORE_V2_CONTRACT.md), version `arepo-fs-v2.0`.
 
+Phase 2's bounded source-journal implementation is refined by
+[prospective source admission](V2_PROSPECTIVE_SOURCE_ADMISSION.md). Primary fact durability,
+later SQL index visibility and actual model read/computation are separate clocks. The
+source-only path does not admit arbitrary historical diagnostics or derived model outputs.
+
 ## Clock envelope
 
 | Clock | Meaning | Unknown/precision rule |

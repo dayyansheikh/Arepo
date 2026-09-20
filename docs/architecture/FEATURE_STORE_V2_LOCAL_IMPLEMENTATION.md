@@ -29,20 +29,24 @@ Database owners retain the power to bypass guards; no production grants are intr
 
 ## Clock boundary and prospective gate
 
-The public generic writer **rejects prospective writes** until Phase 2 supplies the durable
-receipt/clock boundary. No parameter bypasses that gate. A timestamp sampled before commit
+The public generic writer **rejects prospective writes**. No parameter bypasses that gate.
+Phase 2 adds the dedicated `SourceRun`/`index_source_run` path described in
+[prospective source admission](V2_PROSPECTIVE_SOURCE_ADMISSION.md), restricted to verified
+predeclared source journals; it accepts no caller-provided record payloads. SQL is a later
+index with a separate post-commit receipt. A timestamp sampled before commit
 cannot certify post-commit availability. Phase 1 writer-assigned record time identifies local
 transaction admission, not a proven live research availability boundary. Do not use it as
 such. Nonproduction synthetic fixtures test structural chronology; they are not a completed
-live ingestion implementation. Phase 2 must reconcile durable acknowledgements, parser
-completion, restart/retry behavior and first-receipt evidence before opening live admission.
+live ingestion implementation. The dedicated Phase 2 path retains raw/source-specific parse
+and admission acknowledgements, immutable build and policy binding, and actual first receipt.
 
 Domain availability is taken from explicit model/manifest/mapping/label/prediction clocks;
 record time is the fallback for metadata with no separate availability field. A feature's
 association with its frozen origin is not itself an observed feature input. Pre-origin
 computation must be independently evidenced; storing a derived record later does not prove
 that computation happened earlier. Sources, transforms and actual calculations must satisfy
-the frozen cutoff. A later calculation is reconstructed. Prospective capture remains gated.
+the frozen cutoff. A later calculation is reconstructed. Source-only admission does not open
+generic origin, feature, prediction or label writes; their actual computation paths are later work.
 
 Outcome `quote_rule.clock` currently supports `receipt`, `source_event` and
 `source_published`, each matched to the exact source-envelope clock. Missing source time
