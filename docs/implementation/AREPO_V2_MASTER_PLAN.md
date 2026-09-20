@@ -1,6 +1,6 @@
 # AREPO v2 master implementation plan
 
-Updated 2026-09-20. This programme evolves the existing dayyansheikh/Arepo repository. Phase numbers follow the user's implementation programme, not the older report's differently numbered design roadmap. Phase 00 complete; next phase: **01 — Feature Store**.
+Updated 2026-09-20. This programme evolves the existing dayyansheikh/Arepo repository. Phase numbers follow the user's implementation programme, not the older report's differently numbered design roadmap. Phases 00–01 complete; next phase: **02 — Sources, clocks and identities**.
 
 ## Recovery order and authority
 
@@ -11,7 +11,7 @@ Read ../AREPO_V2_CHECKPOINT.md first, then AGENTS.md, this plan, the current pha
 | Phase | Contract | Dependency | State |
 |---|---|---|---|
 | 00 | [Canonical foundation](phases/PHASE_00_FOUNDATION.md) | Verified production + supplied research | Complete — draft PR #13 |
-| 01 | [Feature Store v2 foundations](phases/PHASE_01_FEATURE_STORE.md) | 00 accepted outputs | Planned |
+| 01 | [Feature Store v2 foundations](phases/PHASE_01_FEATURE_STORE.md) | 00 accepted outputs | Complete — draft PR #14; 610 backend tests passed |
 | 02 | [Sources, clocks and identities](phases/PHASE_02_SOURCES_CLOCKS_IDENTITY.md) | 01 accepted outputs | Planned |
 | 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Planned |
 | 04 | [Baselines and initial edge experiments](phases/PHASE_04_EDGE_EXPERIMENTS.md) | 03 accepted outputs + sufficient clean independent events | Provisional |
@@ -49,4 +49,4 @@ Never merge/deploy, migrate production, change infrastructure/credentials/live r
 
 ## Continuation and stop conditions
 
-One same-task heartbeat, continue-arepo-v2-implementation, every 305 minutes. Reload checkpoint and recover from exact next action; no duplicate continuation chains. Finish current phase before advancing. Save progress before usage exhaustion. If protected approval is needed: BLOCKED — USER DECISION REQUIRED. If access/data or longer-term allowance is unavailable, document investigated alternatives and stop productive work. If all nonproduction work is complete: IMPLEMENTATION ROADMAP COMPLETE — AWAITING REVIEW. Stay quiet for unchanged blocked state and notify meaningful changes only.
+One same-task heartbeat, continue-arepo-v2-implementation, every 310 minutes under the user's revised schedule. Requested initial anchor: 2026-09-20 17:30 Europe/London; see checkpoint for observed scheduler state. Reload checkpoint and recover from exact next action; no duplicate continuation chains. Finish current phase before advancing. Save progress before usage exhaustion. If protected approval is needed: BLOCKED — USER DECISION REQUIRED. If access/data or longer-term allowance is unavailable, document investigated alternatives and stop productive work. If all nonproduction work is complete: IMPLEMENTATION ROADMAP COMPLETE — AWAITING REVIEW. Stay quiet for unchanged blocked state and notify meaningful changes only.

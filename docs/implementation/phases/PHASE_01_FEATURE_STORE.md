@@ -1,6 +1,6 @@
 # Phase 01 — Feature Store v2 foundations
 
-Status: planned. Owner: current AREPO implementation task.
+Status: complete — nonproduction foundation accepted; draft PR #14, stacked on #13. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -20,7 +20,13 @@ Phase 00 accepted/tested tip and its actual outputs. Earlier contracts remain bi
 
 ## Current repository state
 
-v1 uses storage.db.Base and metadata-diff migrator SCHEMA_VERSION=12. New Base imports would be auto-created by existing entry points. v1 tests exercise SQLite and PostgreSQL DDL, not a full live PostgreSQL integration suite. No v2 code exists at Phase 0. This is the Phase 0 inventory; refresh this section from actual code before starting.
+v1 uses storage.db.Base and metadata-diff migrator SCHEMA_VERSION=12. New Base imports would be auto-created by existing entry points. Phase 1 reload completed against Phase 0 tip 46799a7 and draft PR #13. Isolated v2 models/types/local migrator now exist. PostgreSQL 17.11 is installed locally; opt-in integration tests create and stop a separate temporary password-protected loopback cluster. No persistent service or production connection. Writer/admission, fuller drift detection, natural-key enforcement and preservation fixtures remain pending; this is not phase acceptance.
+
+Implementation update: writer/admission, schema/privilege fingerprints, natural-key constraints,
+manifest closure and local preservation fixtures now exist and passed their targeted tests.
+Final review and the full backend suite passed: 610 tests, zero skipped, including disposable PostgreSQL. See ../../architecture/FEATURE_STORE_V2_LOCAL_IMPLEMENTATION.md for
+the explicit prospective gate, clock semantics and fixed-horizon admission scope. Runtime
+source chronology remains Phase 2; no test fixture is promoted to prospective evidence.
 
 ## In scope
 
@@ -62,13 +68,13 @@ All 21 schema entities/types/relations match the canonical catalogue; all requir
 
 ## Exit checklist
 
-- [ ] Prerequisites reloaded and plan refined against real outputs.
-- [ ] All scoped tasks and acceptance criteria satisfied; limitations explicit.
-- [ ] Required tests passed with exact command/target/result recorded.
-- [ ] Diff self-reviewed for causal leakage, data loss, unrelated changes and protected boundaries.
-- [ ] Documentation/decision log/master status current.
-- [ ] Coherent safe work committed; branch and draft PR/dependency recorded.
-- [ ] Checkpoint updated with safe commit, files, tests, blockers and exact next action.
+- [x] Prerequisites reloaded and plan refined against real outputs.
+- [x] All scoped tasks and acceptance criteria satisfied; limitations explicit.
+- [x] Required tests passed with exact command/target/result recorded in ../PHASE_01_REVIEW.md.
+- [x] Diff self-reviewed for causal leakage, data loss, unrelated changes and protected boundaries.
+- [x] Documentation/decision log/master status current.
+- [x] Coherent safe work committed; branch and draft PR/dependency recorded in checkpoint.
+- [x] Checkpoint updated with safe commit, files, tests, blockers and exact next action.
 
 ## Protected boundaries
 
