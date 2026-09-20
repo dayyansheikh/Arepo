@@ -1,11 +1,11 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-09-20 22:20 UTC. Status: Phase 2 in progress; Phases 0–1 complete.
+Updated: 2026-09-20 22:24 UTC. Status: Phase 2 in progress; Phases 0–1 complete.
 
 ## Second milestone — authoritative recovery update
 
-The following supersedes the first milestone inventory below. Latest safe commit is recorded
-in the follow-up checkpoint commit; previous safe tip was `81d271c`.
+The following supersedes the first milestone inventory below. Latest safe implementation
+commit: `0d3bc1a` (674 passing tests); previous safe tip was `81d271c`.
 
 - Completed: diagnostic source-to-store bridge and registry verification; evidence-linked
   Gamma identity/group projection; exact book snapshot/delta/gap replay; bounded live stream
@@ -23,9 +23,9 @@ in the follow-up checkpoint commit; previous safe tip was `81d271c`.
   evidence JSON summaries, including active-token selection. They are numerical evidence.
 - Decisions D026–D028 separate diagnostic imports from prospective admission, preserve
   failure/gap states, and retain unresolved economic grouping/chain/collateral evidence.
-- No protected decision currently required. Latest allowance check 22:15 UTC: primary 92%
-  used, weekly 93% used, ordinary usage allowed. Saving before window exhaustion; no reset
-  credit consumed. Stop if longer-term usage is exhausted on continuation.
+- No protected decision currently required. Allowance refreshed externally by 22:23 UTC:
+  primary 2% used / weekly 0% used, ordinary usage allowed. This agent did not redeem a
+  reset credit. Productive work resumed; stop if longer-term usage becomes exhausted.
 - **Exact next action:** read `PHASE_02_SOURCE_ADMISSION.md`, Phase 2 review/plan and current
   source bridge/repository invariants. Design and test the trusted prospective admission
   path: choose journal versus SQL model-readable availability, prove post-durability clocks,
@@ -33,7 +33,8 @@ in the follow-up checkpoint commit; previous safe tip was `81d271c`.
   promotion. Record contract changes before implementation. Complete Phase 2 acceptance,
   tests, review, docs, commit and draft PR before advancing. Do not repeat completed probes.
 - PR #15 remains open draft, stacked on #14/#13, no merges. Phase 3 remains next, not started.
-- One existing 310-minute continuation maintained; no duplicate created. Delay cause unverified.
+- One existing 310-minute continuation maintained; no duplicate created. An explicit heartbeat
+  for this automation arrived at 22:23:10 UTC, confirming a dispatch. Earlier delay cause unverified.
 
 ## First milestone inventory (historical)
 
