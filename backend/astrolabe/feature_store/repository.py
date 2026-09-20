@@ -672,3 +672,61 @@ async def append_batch(url, records, *, fixture_clock=None):
                 await asyncio.sleep(0.01 * 2**attempt)
     finally:
         await engine.dispose()
+
+
+async def index_source_run(url, root):
+    """Materialize verified primary source facts; no caller row/clock/provenance bypass.
+
+    Primary journal durability is immutable. An independent index receipt acknowledges
+    this later SQL commit. Models must record actual read/computation before origins.
+    """
+    import uuid
+    from pathlib import Path
+
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+    from .admission import content_hash
+    from .capture import _clock, _json_bytes, _write_once
+    from .migrations import check, validate_local_url
+    from .source_run import read_source_run
+
+    validate_local_url(url)
+    if not (await check(url))["current"]:
+        raise AdmissionError("current guarded local schema required before source index")
+    records = read_source_run(root)
+    if any(kind not in {"source_registry", "source_observation"} for kind, _ in records):
+        raise AdmissionError("source index accepts source records only")
+    cache = {(kind, row["id"]): row for kind, row in records}
+    engine = local_engine(url)
+    try:
+        for attempt in range(4):
+            try:
+                async with engine.begin() as conn:
+                    insert_fn = pg_insert if conn.dialect.name == "postgresql" else sqlite_insert
+                    for kind, row in records:
+                        await _validate(conn, kind, row, cache)
+                        table = MODEL_BY_ENTITY[kind].__table__
+                        await conn.execute(
+                            insert_fn(table).values(**row).on_conflict_do_nothing(index_elements=["id"])
+                        )
+                        stored = (await conn.execute(
+                            select(table).where(table.c.id == row["id"])
+                        )).mappings().one()
+                        if canonical_json(dict(stored)) != canonical_json(row):
+                            raise PayloadConflict("source journal/index immutable facts differ")
+                break
+            except OperationalError as exc:
+                if (engine.dialect.name != "sqlite" or "locked" not in str(exc).lower()
+                        or attempt == 3):
+                    raise
+                await asyncio.sleep(0.01 * 2**attempt)
+    finally:
+        await engine.dispose()
+    # Never log/store connection credentials. Receipt identifies the dialect and immutable
+    # content only; URL/config is not source research evidence.
+    receipt = {"schema_version": "fs2-source-index-v1", "records_hash": content_hash(records),
+               "row_count": len(records), "dialect": engine.dialect.name,
+               "index_committed_ack": _clock()}
+    _write_once(Path(root) / ("index_" + str(uuid.uuid4()) + ".json"), _json_bytes(receipt))
+    return records, receipt

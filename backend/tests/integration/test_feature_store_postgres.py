@@ -241,6 +241,16 @@ async def test_postgres_migration_precision_security_and_preservation(postgres_u
         assert imported["observation"]["provenance_class"] == "synthetic"
         assert await import_diagnostic_capture(postgres_url, capture["folder"]) == imported
 
+        from astrolabe.feature_store.repository import index_source_run
+        from astrolabe.feature_store.source_run import SourceRun
+        from tests.unit.test_feature_store_source_run import mock_transport
+
+        run_root = tmp_path.resolve() / "fs2_capture_postgres_source_run"
+        source_run = SourceRun(run_root, transport=mock_transport(run_root))
+        primary = await source_run.fetch("clob.book", {"token_id": "1"})
+        assert (await index_source_run(postgres_url, run_root))[0] == primary
+        assert (await index_source_run(postgres_url, run_root))[0] == primary
+
         # Changing privileges without changing column names must be detected.
         async with engine.begin() as conn:
             await conn.execute(text("GRANT SELECT ON fs2_source_observation TO anon"))

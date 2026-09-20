@@ -4,6 +4,14 @@ Updated: 2026-09-20 22:24 UTC. Status: Phase 2 in progress; Phases 0–1 complet
 
 ## Second milestone — authoritative recovery update
 
+Third milestone ready for runtime acceptance: D029 source-run primary-journal design is
+implemented with pre-request policy/build binding and a dedicated local SQL index. Full
+backend **685 passed**, zero skipped, 36.03s; Ruff/contract/whitespace checks passed. Exact
+next action superseding the second milestone: commit this tested implementation, then run
+one bounded new Gamma/book/trade verification under its predeclared policy; preserve its
+new source facts and index receipts, update admission matrix/review and close Phase 2 only
+after all acceptance criteria. Earlier diagnostics remain reconstructed. No Phase 3 yet.
+
 The following supersedes the first milestone inventory below. Latest safe implementation
 commit: `0d3bc1a` (674 passing tests); previous safe tip was `81d271c`.
 

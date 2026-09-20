@@ -96,7 +96,7 @@ def parse_source(capture):
         return {"value": None, "error": "source_schema_invalid"}
 
 
-def source_parse_artifact(folder):
+def source_parse_artifact(folder, *, create=True):
     """Parse now or read the original complete parse; never overwrite a torn attempt."""
     capture = verify_capture(Path(folder))
     receipt = capture["receipt"]
@@ -110,6 +110,8 @@ def source_parse_artifact(folder):
     implementation_hash = content_hash(code_manifest)
     path = Path(folder) / ("source_parse_" + source.version + "_" + implementation_hash)
     if not path.exists():
+        if not create:
+            raise ValueError("complete pinned source parse required; read cannot reconstruct it")
         path.mkdir(mode=0o700)
         _sync_directory(path.parent)
         parsed = parse_source(capture)

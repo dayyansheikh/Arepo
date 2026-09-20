@@ -112,6 +112,28 @@ No production code paths, configuration, migration activation or scheduler chang
 
 ## Exact remaining work
 
+### Third milestone — source admission implementation
+
+`SourceRun` now durably predeclares bounded internal receipt-time measurement policy and
+an immutable parser build before requests. Package files are pinned before import, loaded
+function code is compared with compiled source, and changes cause refusal. Synthetic
+transports stay synthetic; old diagnostic directories cannot be adopted. Complete source
+facts retain primary journal acknowledgements; the dedicated local SQL index checks existing
+store invariants and emits its own post-commit receipt. Generic prospective writes stay closed.
+
+Eleven new tests cover pre-request policy, cutoff exclusion, provenance separation, torn
+admission, index interruption/rollback, index receipt failure after commit, read-only recovery,
+loaded-code changes, denied sources/remote targets and exact preserved-copy projection.
+The actual PostgreSQL integration also exercises source indexing and identical retries.
+Full backend: **685 passed, zero skipped**, 36.03s, same isolated setup and existing warning.
+Full Ruff, canonical checker and whitespace checks passed. Self-review checked causality,
+source/identity limitations, finite budgets, numerical preservation and protected boundaries.
+
+Next: perform a new finite three-source runtime verification through this predeclared path,
+record the source-only evidence without promoting old diagnostics, then evaluate every exit
+gate and update final phase/checkpoint/PR state. The earlier remaining-design paragraph below
+is historical: the implementation above resolves it; runtime acceptance is still pending.
+
 Final second-milestone validation: **674 passed, zero skipped**, 30.46s, including disposable
 PostgreSQL 17.11; one existing Starlette/httpx warning. Full backend Ruff, canonical contract
 checker and whitespace checks passed. Full suite used an explicit temporary SQLite URL,
