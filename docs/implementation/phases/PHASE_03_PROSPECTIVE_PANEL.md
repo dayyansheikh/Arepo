@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: planned. Owner: current AREPO implementation task.
+Status: in progress, stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -23,6 +23,40 @@ Phase 02 accepted/tested tip and its actual outputs. Earlier contracts remain bi
 Complete discovery analyses all eligible markets; top-20 display is separate. Scan and collect leases/deadlines are separated; production scan schedule paused, collect remains scheduled. v1 forward targets are 1h/6h/24h/7d with 900s exact tolerance; not adequate for new minute-scale tests. This is the Phase 0 inventory; refresh this section from actual code before starting.
 
 ## In scope
+
+### Refinement after Phase 2 acceptance
+
+Phase 2 supplied new receipt-time Gamma/book/trade source journals (685 tests), not a
+population frame or model origins. Streams and Coinbase remain diagnostic-only. Native
+event time, historical fill identity and economic independence are unresolved. Review
+../PHASE_02_SOURCE_ADMISSION.md and ../../architecture/V2_PROSPECTIVE_SOURCE_ADMISSION.md.
+
+Implement in reviewable milestones:
+
+1. Pure versioned protocol, exact stratified sampling and matched control planner, then
+   first-valid receipt-time quote target selection. No collection or evidence claim in this
+   milestone. Preserve missing strata and all exclusions. Incomplete source pages cannot be
+   labelled representative of the eligible universe. Preserve rational inclusion weights;
+   a nonterminating probability is not rounded and called exact.
+2. Build a prospective frame adapter with explicit scope, pagination/exhaustion evidence,
+   byte/request deadlines and source-native identity. Inspect existing Gamma keyset code
+   and current official protocol; do not call v1 application startup or alter its public
+   eligibility. Complete discovery and the bounded deep sample remain separate.
+3. Durable panel protocol/frame/sampling records, bounded leases and actual feature-read,
+   computation/origin persistence. Reuse primary-journal semantics with separate later SQL
+   indexing; no caller-payload prospective bypass. Pin source and panel build versions.
+4. Bounded scheduled/triggered/control collector and due targets. Reserve control/outcome
+   budgets in advance; budget stops retain missing labels, never drop inconvenient origins.
+   Record family eligibility: complete flow, pre-trade depth, persistent imbalance, withdrawal,
+   related markets and external information require their own measured evidence coverage.
+5. Freeze the pilot protocol before collection. Run finite local tests and actual pilot,
+   report timing/control/target coverage and exact numerical preservation. Never reinterpret
+   a failed pilot by relaxing its thresholds afterward. No Phase 4 until all exit gates pass.
+
+Initial target implementation follows the research proposal: first valid two-sided,
+noncrossed quote at/after actual origin+horizon within a frozen tolerance, with receipt-time
+basis on both ends. One-minute/5-second timing is a development pilot candidate, not a
+proven guarantee or final confirmation protocol. Sparse quotes do not identify path extrema.
 
 Build and validate a deliberately sampled prospective collector with scheduled controls and causal target collection. Work remains in the existing repository and nonproduction environment.
 

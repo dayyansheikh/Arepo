@@ -1,0 +1,77 @@
+# Phase 3 planning milestone — 2026-09-20
+
+Phase 3 remains **in progress**, stacked from accepted Phase 2 `747485c` / draft #15.
+This milestone implements pure sampling/target rules. It does not attest to an actual
+population frame, durable origins, collected panel or predictive improvement.
+
+## Implemented
+
+- Versioned stratified scheduled/triggered/control sampling with a predeclared seed, bounded
+  counts, source/trigger/group cutoff checks and explicit category/close/price/liquidity/event
+  strata. Missing strata remain unknown; categories or long time-to-close cases are not
+  silently excluded. Every exclusion and unfilled control slot is retained.
+- Exact reduced rational inclusion probabilities, with a finite decimal only when exactly
+  representable. Control arm inclusion differs from conditional matching probability;
+  both are recorded. No arm-union probability is claimed. A market with multiple roles
+  remains one market; downstream origins/evaluation must deduplicate it.
+- Order-invariant keyed hash selection. The eventual trusted protocol writer must freeze
+  the random seed before selection; this pure function cannot prove preregistration.
+  Frame completeness supplied by a caller is only a claim, so the planner explicitly leaves
+  population inference ineligible pending actual source-frame verification. Over-budget plans
+  refuse rather than truncate controls or silently narrow the population.
+- Receipt-time fixed-horizon target selection: first valid two-sided noncrossed quote at/after
+  target within tolerance. Preserve actual delay, missing/late/closed/pending states, invalid
+  numbers and identities not known at the origin. Earlier unprocessed receipts block final
+  selection; unavailable numerical values and future receipts do not enter current results.
+  Ties use the declared observation-ID ordering, not a favourable price. These are receipt
+  clocks, not proof of venue-update freshness or millisecond ordering.
+- Exact midpoint and delay arithmetic independent of ambient Decimal rounding; equivalent
+  aware timezones produce canonical UTC. No carried trade-price fallback, flat label for a
+  missing quote, sparse-path extrema or execution-profit claim.
+
+## Validation and review
+
+The planning milestone has 19 targeted tests. Full backend **704 passed**, zero skipped,
+38.45s in the final review regression, including actual disposable PostgreSQL; one existing
+Starlette/httpx warning. Final review made censoring/blocking receipt IDs explicit and
+tightened the exclusion-reason vocabulary before that regression.
+Full Ruff, canonical checker and whitespace checks passed. Validation uses the same isolated
+temporary SQLite/disabled-email/PostgreSQL fixture setup as Phase 2.
+
+Self-review caught future numerical/identity quality leaking into an as-of inventory hash,
+ambient Decimal delay rounding and timezone-dependent output. Fixes now gate all unavailable
+values, retain only known receipt metadata, use exact contexts and normalize UTC. Reviewed
+conditional control weights, role double-counting, exclusions and iterator/request budgets.
+No source/network calls or production paths are invoked by these modules.
+
+## Next milestone and acceptance still outstanding
+
+Implement and verify a bounded prospective population-frame adapter. Preserve enumeration
+scope, all pages, cursor progression, exact values and genuine termination. Measure metadata
+bytes/rows/time before deciding complete-frame collection budgets; never call the first few
+responses a universe. Keep the existing complete 30-day production discovery unchanged.
+Then build durable protocol/frame/sample/origin/feature-read records, separate leases and
+bounded collectors/targets, followed by an actually preregistered local pilot and its timing,
+control coverage, missingness and preservation report. Phase 4 remains gated.
+
+Source-frame preparation findings (documentation checked 2026-09-20):
+
+- Existing `clients/gamma.py` and `discovery/bounded_discovery.py` already reconcile market
+  and event keyset paths with completion reports, but normalize through v1 clients/settings
+  and do not provide v2 raw receipt evidence. Reuse the completion ideas, not their live entry
+  points. Current v1 public eligibility is a separate 30-day/20k-liquidity product rule.
+- [Gamma keyset documentation](https://docs.polymarket.com/api-reference/markets/list-markets-keyset-pagination)
+  specifies `after_cursor`, response `next_cursor`, maximum page size 100 and rejects offset.
+  It exposes date/liquidity filters and `include_tag`; runtime effect and complete termination
+  still require v2 evidence. The current parameter list does not show `active`; do not silently
+  assume the old client's filter is supported. Use explicit returned-state eligibility and
+  preserve the request/coverage contract. Do not inherit the 30-day cutoff as a research claim.
+- [CLOB simplified markets](https://docs.polymarket.com/api-reference/markets/get-simplified-markets)
+  is a possible smaller frame with condition/tokens/status and a cursor, but this task has not
+  verified runtime completeness, endpoint termination or category/liquidity coverage. It is
+  not automatically interchangeable with Gamma or its similarly named sampling endpoint.
+
+These are read-only documentation findings, not newly admitted source implementations or a
+decision to bulk-collect. Next follow [the frame adapter contract](PHASE_03_FRAME_CONTRACT.md):
+pin and test cursor/scope/completeness semantics, then bounded first-page measurement before
+setting a complete-frame collection budget. No live panel has been run.
