@@ -1,6 +1,6 @@
 # Phase 01 — Feature Store v2 foundations
 
-Status: planned. Owner: current AREPO implementation task.
+Status: in progress. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -20,7 +20,7 @@ Phase 00 accepted/tested tip and its actual outputs. Earlier contracts remain bi
 
 ## Current repository state
 
-v1 uses storage.db.Base and metadata-diff migrator SCHEMA_VERSION=12. New Base imports would be auto-created by existing entry points. v1 tests exercise SQLite and PostgreSQL DDL, not a full live PostgreSQL integration suite. No v2 code exists at Phase 0. This is the Phase 0 inventory; refresh this section from actual code before starting.
+v1 uses storage.db.Base and metadata-diff migrator SCHEMA_VERSION=12. New Base imports would be auto-created by existing entry points. Phase 1 reload completed against Phase 0 tip 46799a7 and draft PR #13. Isolated v2 models/types/local migrator now exist. PostgreSQL 17.11 is installed locally; opt-in integration tests create and stop a separate temporary password-protected loopback cluster. No persistent service or production connection. Writer/admission, fuller drift detection, natural-key enforcement and preservation fixtures remain pending; this is not phase acceptance.
 
 ## In scope
 

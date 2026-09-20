@@ -18,3 +18,8 @@
 | D011 | Single 305-minute same-task continuation | Active automation continue-arepo-v2-implementation, no duplicate chain; preserve checkpoint before stopping. |
 
 Future architecture changes append here with reason, affected contracts and migration/test consequences. Do not silently alter a frozen scientific definition; create a new version and retain prior trial evidence.
+
+## Phase 1 refinements
+
+- D012: preserve dictionary-compatible column declarations explicitly and test them against the canonical CSV; no runtime reads from docs or v1 metadata imports.
+- D013: install PostgreSQL locally only for a disposable isolated test cluster; no system service or production connection. Record actual integration evidence before phase acceptance.
