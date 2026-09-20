@@ -1,0 +1,141 @@
+research_field,canonical_field,resolution,note
+identity.venue,market_identity_version.venue,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.market_id,market_identity_version.market_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.event_id,market_identity_version.event_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.event_group_id,event_group_membership.event_group_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.condition_id,condition_identity.condition_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.question_id,condition_identity.question_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.token_id,token_outcome_version.token_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.outcome_index,token_outcome_version.outcome_index,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.outcome_label,token_outcome_version.outcome_label,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.chain_id,condition_identity.chain_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.token_contract,token_outcome_version.token_contract,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.collateral_address,condition_identity.collateral_address,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.collateral_decimals,condition_identity.collateral_decimals,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.mapping_version,market_identity_version.mapping_version,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.valid_from_at,market_identity_version.valid_from_at,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.valid_to_at,market_identity_version.valid_to_at,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.observed_from_at,market_identity_version.observed_from_at,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.observed_to_at,market_identity_version.observed_to_at,Versioned alias; no scientific change,Interval end derived at query cutoff from append-only supersession records
+identity.mapping_confidence,market_identity_version.mapping_confidence,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+identity.mapping_evidence_ids,market_identity_version.mapping_evidence_ids,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.observation_id,source_observation.observation_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.source_id,source_observation.source_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.native_record_id,source_observation.native_record_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.source_event_at,source_observation.source_event_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.source_published_at,source_observation.source_published_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.first_available_at,source_observation.first_available_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.first_received_at,source_observation.first_received_at,Conditional nullability,"Required for prospective capture; nullable unknown_legacy for imports with no receipt evidence. Import ingestion time is actual current time, never fake first receipt."
+source_observation.ingested_at,source_observation.ingested_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.available_to_model_at,source_observation.available_to_model_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.raw_timestamp,source_observation.raw_timestamp,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.timestamp_unit,source_observation.timestamp_unit,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.clock_error_bound_ms,source_observation.clock_error_bound_ms,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.source_sequence,source_observation.source_sequence,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.request_cursor,source_observation.request_cursor,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.payload_hash,source_observation.payload_hash,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.raw_payload_uri,source_observation.raw_payload_uri,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.schema_version,source_observation.schema_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.parser_version,source_observation.parser_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.protocol_version,source_observation.protocol_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.revision_of,source_observation.revision_of,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.provenance_class,source_observation.provenance_class,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.missing_reason,source_observation.missing_reason,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.quality_flags,source_observation.quality_flags,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+source_observation.coverage_fraction,source_observation.coverage_fraction,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+research_origin.origin_id,research_origin.origin_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+research_origin.scheduled_origin_at,research_origin.scheduled_origin_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+research_origin.feature_cutoff_at,research_origin.feature_cutoff_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+research_origin.prediction_origin_at,research_origin.prediction_origin_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+research_origin.eligibility_version,research_origin.eligibility_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+research_origin.eligibility_reason,research_origin.eligibility_reason,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+research_origin.sampling_arm,research_origin.sampling_arm,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+research_origin.selection_probability,research_origin.selection_probability,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+research_origin.trigger_id,research_origin.trigger_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+research_origin.event_group_version,research_origin.event_group_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+book_level.snapshot_id,book_level.snapshot_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+book_level.side,book_level.side,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+book_level.level,book_level.level,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+book_level.price_raw,book_level.price_raw,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+book_level.price_decimal,book_level.price_decimal,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+book_level.size_raw,book_level.size_raw,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+book_level.size_decimal,book_level.size_decimal,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+book_level.unit,book_level.unit,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+book_level.book_hash,book_snapshot.book_hash,Direct field,"Header fact belongs to snapshot, not repeated at every level"
+book_level.quote_age_ms,book_snapshot.quote_age_ms,Direct field,"Header fact belongs to snapshot, not repeated at every level"
+book_level.reconstruction_status,book_snapshot.reconstruction_status,Direct field,"Header fact belongs to snapshot, not repeated at every level"
+trade_observation.trade_id,trade_observation.trade_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.trade_price_raw,trade_observation.trade_price_raw,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.trade_size_raw,trade_observation.trade_size_raw,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.trade_notional,trade_observation.trade_notional,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.fee_native,trade_observation.fee_native,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.aggressor_side,trade_observation.aggressor_side,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.maker_wallet,trade_observation.maker_wallet,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.taker_wallet,trade_observation.taker_wallet,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.transaction_hash,trade_observation.transaction_hash,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.log_index,trade_observation.log_index,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.block_hash,trade_observation.block_hash,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.block_number,trade_observation.block_number,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+trade_observation.settlement_status,trade_observation.settlement_status,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.feature_id,feature_value.feature_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.feature_version,feature_value.feature_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.raw_value_decimal,feature_value.raw_value_decimal,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.raw_value_text,feature_value.raw_value_text,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.raw_value_vector,feature_value.raw_value_vector,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.transformed_value,feature_value.transformed_value,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.numerator,feature_value.numerator,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.denominator,feature_value.denominator,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.units,feature_value.units,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.window_start_at,feature_value.window_start_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.window_end_at,feature_value.window_end_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.input_observation_ids,feature_value.input_observation_ids,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.transform_version,feature_value.transform_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+feature_value.missingness_reason,feature_value.missingness_reason,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+wallet_state.wallet_id,wallet_state_version.wallet_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+wallet_state.coverage_start_at,wallet_state_version.coverage_start_at,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+wallet_state.first_observed_at,wallet_state_version.first_observed_at,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+wallet_state.prior_mature_event_count,wallet_state_version.prior_mature_event_count,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+wallet_state.holding_shares,wallet_state_version.holding_shares,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+wallet_state.net_flow,wallet_state_version.net_flow,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+wallet_state.skill_posterior_mean,wallet_state_version.skill_posterior_mean,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+wallet_state.skill_posterior_sd,wallet_state_version.skill_posterior_sd,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+wallet_state.history_manifest_id,wallet_state_version.history_manifest_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+wallet_state.role_flags,wallet_state_version.role_flags,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.document_id,information_event_version.document_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.claim_id,information_event_version.claim_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.original_source_id,information_event_version.original_source_id,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.entity_ids,information_event_version.entity_ids,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.numeric_actual_raw,information_event_version.numeric_actual_raw,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.numeric_expectation_raw,information_event_version.numeric_expectation_raw,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.expectation_available_at,information_event_version.expectation_available_at,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.novelty_value,information_event_version.novelty_value,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.stance_probabilities,information_event_version.stance_probabilities,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.match_confidence,information_event_version.match_confidence,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.extraction_model_version,information_event_version.extraction_model_version,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.prompt_hash,information_event_version.prompt_hash,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.embedding_version,information_event_version.embedding_version,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.independent_source_count,information_event_version.independent_source_count,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+information_event.text_rights_state,information_event_version.text_rights_state,Versioned alias; no scientific change,Concrete type/nullability in canonical field catalogue; no legacy backfill
+prediction.prediction_id,prediction.prediction_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+prediction.model_version,prediction.model_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+prediction.training_manifest_id,prediction.training_manifest_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+prediction.calibration_version,prediction.calibration_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+prediction.target_version,prediction.target_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+prediction.horizon_seconds,prediction.horizon_seconds,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+prediction.class_probabilities,prediction.class_probabilities,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+prediction.distribution_parameters,prediction.distribution_parameters,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+prediction.prediction_persisted_at,prediction.prediction_persisted_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+prediction.abstention_reason,prediction.abstention_reason,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+label_version.label_id,label_version.label_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+label_version.target_at,label_version.target_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+label_version.label_observed_at,label_version.label_observed_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+label_version.label_available_at,label_version.label_available_at,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+label_version.actual_delay_seconds,label_version.actual_delay_seconds,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+label_version.outcome_midpoint,outcome_observation.midpoint,Direct field,Raw quote belongs to outcome observation; labels reference it
+label_version.outcome_bid,outcome_observation.bid,Direct field,Raw quote belongs to outcome observation; labels reference it
+label_version.outcome_ask,outcome_observation.ask,Direct field,Raw quote belongs to outcome observation; labels reference it
+label_version.censoring_reason,label_version.censoring_reason,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+label_version.payout_vector,label_version.payout_vector,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+label_version.supersedes_label_id,label_version.supersedes_label_id,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+label_version.fee_config_version,label_version.fee_config_version,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill
+label_version.outcome_observation_ids,label_version.outcome_observation_ids,Direct field,Concrete type/nullability in canonical field catalogue; no legacy backfill

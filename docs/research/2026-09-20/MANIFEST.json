@@ -1,0 +1,70 @@
+{
+  "source": "User-supplied completed research package; recovered from local ChatGPT project research-output/2026-09-20/curated because Desktop/curated reads stalled. Byte-identical source copies; research designs, not operating instructions.",
+  "files": [
+    {
+      "file": "AREPO_NEXT_CHAT_HANDOFF_2026-09-20.md",
+      "sha256": "a5de6a459e506108366698a22efc664793c7745ab475a6395b4622f1d58fbdb4",
+      "bytes": 11122
+    },
+    {
+      "file": "AREPO_RESEARCH_REPORT.md",
+      "sha256": "35e8167517a8fdaa083c3f52942f43cd79eef9f3a3fe13277e2001807142025a",
+      "bytes": 56123
+    },
+    {
+      "file": "EDGE_EXPERIMENTS.csv",
+      "sha256": "7b3072360de25c6dc859d1ddc0936e6a4326ee6c56974cfe42e343f892bfaec8",
+      "bytes": 145809
+    },
+    {
+      "file": "EDGE_HYPOTHESIS_LIBRARY.md",
+      "sha256": "b3f89b78e44d578fa2672e8d3d6191c2645fd5a53d1927db2d2a0bb96a534e8d",
+      "bytes": 174767
+    },
+    {
+      "file": "EVIDENCE_MATRIX.md",
+      "sha256": "5844541a3584c07ddc1710dc87c222c9f4588cc46cb1d8d11f33b863ad6b9cfa",
+      "bytes": 20270
+    },
+    {
+      "file": "EXTERNAL_SOURCE_REGISTER.md",
+      "sha256": "268f83397b642039e6c33dadd1c94816fb68d3ee14f14eae54661bb7a8ac06f1",
+      "bytes": 20184
+    },
+    {
+      "file": "FEATURE_RESEARCH_REGISTER.csv",
+      "sha256": "f79a7e1e04263b038c9c8c6aa2c456353cc90daf22eb7c676ae325d3e247f633",
+      "bytes": 89580
+    },
+    {
+      "file": "FEATURE_STORE_V2.md",
+      "sha256": "4b803e50b590ca5c968afe21b969b77e4fa270039f5b8283895d4ce7b905893a",
+      "bytes": 18192
+    },
+    {
+      "file": "FEATURE_STORE_V2_DICTIONARY.csv",
+      "sha256": "0eb137d7efa7b28d204049bd973071031d1f377c0a31c0c67b0afd78e8a0b24a",
+      "bytes": 35631
+    },
+    {
+      "file": "MODEL_COMPARISON_AND_VALIDATION.md",
+      "sha256": "60c2628170fc7cdfa1896bdc9514b95e45152502478935609e4c2e4848ad3331",
+      "bytes": 21507
+    },
+    {
+      "file": "POLYMARKET_SOURCE_AND_FIELD_CATALOGUE.md",
+      "sha256": "ed04d6288e840f2ccc1ccfa52c7368fcd10c162f46e1dd1cd25ac7a08d4d2dc1",
+      "bytes": 17519
+    },
+    {
+      "file": "READ_ME_FIRST.md",
+      "sha256": "08739e3c545ef2946e78a91e8c0867d10ccbc8ec2d30230c72fd66d8e07bf86f",
+      "bytes": 3533
+    },
+    {
+      "file": "RESEARCH_AUDIT_AND_LIMITATIONS.md",
+      "sha256": "28a76ad5cb0434e6b8e03b5e5e44f7df240767ec74e01edac06002ab92e00ac6",
+      "bytes": 8516
+    }
+  ]
+}
