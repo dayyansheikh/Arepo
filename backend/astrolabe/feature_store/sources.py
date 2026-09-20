@@ -83,5 +83,11 @@ SOURCES = {
             "exchange-rest", "coinbase-ticker-v1", "time is last trade, not entire snapshot time",
             "BTC-USD; quote USD/base BTC; decimal strings; trade ID",
         ),
+        SourceContract(
+            "clob.market_stream", "wss://ws-subscriptions-clob.polymarket.com/ws/market",
+            "https://docs.polymarket.com/api-reference/wss/market", "clob-market-channel",
+            "clob-stream-diagnostic-v1", "raw message clocks retained; no native sequence proof",
+            "BUY=bid and SELL=ask price-level changes; decimal strings; zero removes level",
+        ),
     )
 }

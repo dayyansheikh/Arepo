@@ -1,5 +1,6 @@
 """Synthetic transport only; live probes are explicit separate operator actions."""
 
+import asyncio
 import json
 import uuid
 from pathlib import Path
@@ -206,3 +207,93 @@ def test_directory_and_budget_guards(tmp_path):
         Budget(requests=11)
     with pytest.raises(ValueError):
         Budget(total_bytes=True)
+
+
+@pytest.mark.asyncio
+async def test_cursor_requires_parent_scope_and_progress(tmp_path):
+    store = journal(tmp_path, b'{"data":[],"pagination":{"has_more":true,"next_cursor":"a"}}')
+    params = {"limit": 2, "taker_only": "true"}
+    first = await store.fetch("data.v2.trades", params)
+    parent = first["receipt"]["capture_id"]
+    with pytest.raises(ValueError, match="prior page"):
+        await store.fetch("data.v2.trades", {**params, "cursor": "a"})
+    with pytest.raises(ValueError, match="scope"):
+        await store.fetch("data.v2.trades", {**params, "limit": 3, "cursor": "a"},
+                          previous_capture_id=parent)
+    with pytest.raises(ValueError, match="progress"):
+        await store.fetch("data.v2.trades", {**params, "cursor": "invented"},
+                          previous_capture_id=parent)
+    second = await store.fetch("data.v2.trades", {**params, "cursor": "a"},
+                               previous_capture_id=parent)
+    with pytest.raises(ValueError, match="progress"):
+        await store.fetch("data.v2.trades", {**params, "cursor": "a"},
+                          previous_capture_id=second["receipt"]["capture_id"])
+    assert store.count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cancel", [False, True])
+async def test_stream_deadline_and_cancellation_preserve_partial(tmp_path, cancel):
+    received = asyncio.Event()
+
+    class WaitingStream(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            yield b'{"partial":'
+            received.set()
+            await asyncio.Event().wait()
+
+    async def handler(request):
+        return httpx.Response(200, stream=WaitingStream())
+
+    store = CaptureJournal(tmp_path.resolve() / "fs2_capture_deadline",
+                           transport=httpx.MockTransport(handler),
+                           budget=Budget(seconds_per_request=1))
+    task = asyncio.create_task(fetch(store))
+    await received.wait()
+    if cancel:
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    else:
+        await task
+    folder = next(p for p in store.root.iterdir() if p.is_dir())
+    result = verify_capture(folder)
+    assert result["raw"] == b'{"partial":'
+    assert result["parsed"]["parse_error"] == ("cancelled" if cancel else "TimeoutError")
+
+
+@pytest.mark.asyncio
+async def test_actual_fsync_failure_retains_unacknowledged_raw(tmp_path, monkeypatch):
+    store = journal(tmp_path)
+    original = capture.os.fsync
+    count = 0
+
+    def fail_second(fd):
+        nonlocal count
+        count += 1
+        if count == 2:  # first = new capture directory; second = raw file
+            raise OSError("synthetic fsync failure")
+        original(fd)
+
+    monkeypatch.setattr(capture.os, "fsync", fail_second)
+    with pytest.raises(OSError):
+        await fetch(store)
+    folder = next(p for p in store.root.iterdir() if p.is_dir())
+    assert (folder / "raw.bin").exists()
+    assert not (folder / "raw_ack.json").exists()
+    with pytest.raises(FileNotFoundError):
+        finish_parse(folder)
+
+
+@pytest.mark.asyncio
+async def test_session_mismatch_and_symlink_refused(tmp_path):
+    store = journal(tmp_path)
+    result = await fetch(store)
+    folder = Path(result["folder"])
+    alias = store.root / str(uuid.uuid4())
+    alias.symlink_to(folder, target_is_directory=True)
+    with pytest.raises(ValueError, match="canonical"):
+        verify_capture(alias)
+    (store.root / "session.json").write_text('{}')
+    with pytest.raises(ValueError, match="session integrity"):
+        verify_capture(folder)

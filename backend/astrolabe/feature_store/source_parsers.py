@@ -154,6 +154,8 @@ def data_v2_trades(payload, *, expected_condition=None):
     fingerprints = set()
     duplicate_count = 0
     for raw in payload["data"]:
+        if not isinstance(raw, dict):
+            raise ValueError("trade row object required")
         condition = _condition(raw.get("condition_id"))
         if expected_condition is not None and condition != expected_condition:
             raise ValueError("trade condition mismatch")

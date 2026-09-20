@@ -45,7 +45,7 @@ Current official sources checked:
   timestamp retained; this REST page alone does not establish its unit unambiguously.
 - [Markets](https://docs.polymarket.com/api-reference/markets/list-markets) and
   [market stream](https://docs.polymarket.com/api-reference/wss/market): ordered source
-  identity and snapshot/delta forms; live stream verification remains pending.
+  identity and snapshot/delta forms; bounded live stream verification is now recorded below.
 - [Coinbase ticker](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-ticker):
   last-trade time is distinct from the complete bid/ask snapshot's receipt time.
 
@@ -69,17 +69,61 @@ actual computation time rather than borrow the earlier generic JSON parse timest
 The as-of helpers operate on validated version rows; group annotation quality is a separate
 scientific prerequisite, not inferred from connected-component output.
 
+## Second milestone — continuation at 21:43 UTC
+
+The cursor/deadline/filesystem failure regressions are implemented: 23 capture tests pass.
+Cancellation preserves partial bytes and remains cancellation; failed raw fsync leaves no
+acknowledgement; v2 receipts hash-link the session file. Original v1 diagnostics still verify.
+
+The diagnostic bridge adds source-specific parse artefacts with actual later parse/ack
+clocks, imports to an explicitly guarded local schema, preserves receipt/raw bytes, and
+appends runtime registry verification without a circular FK. Real earlier diagnostics are
+reconstructed; mock transports are synthetic. Rights scope explicitly denies model-feature
+admission. Nine bridge tests pass, including interrupted import, same-payload retries,
+permission/rate-limit/source errors, partial source parse refusal and concurrency. The bridge
+also ran inside the actual disposable PostgreSQL integration before testing privilege drift.
+
+All four preserved live diagnostic captures imported successfully to disposable local SQLite
+at `/var/folders/l7/7lfr1jg93_n7jjr5wswnzs4r0000gn/T/arepo_v2_bridge_p1ssbs48/fs2_test_diagnostics.sqlite`;
+each retry was identical. Source-specific artefacts were appended under the original capture
+directories, leaving prior bytes unchanged. No further live source requests were needed.
+
+Exact book replay has six tests: snapshots, zero-size removal, atomic invalid batches,
+receipt identity conflicts, reconnects, clock regressions, bounded work and raw lineage.
+Review found that rejecting an invalid delta must also invalidate continuity: the numerical
+book remains unchanged, but further deltas now require a fresh snapshot. Continuous native
+sequence completeness is never claimed, even with a usable returned snapshot.
+
+Evidence-linked Gamma projection now preserves condition, market, ordered token and group
+versions with actual transform acknowledgements. Source event groups remain explicitly
+unresolved economic dependence; chain/collateral are not inferred. A local end-to-end test
+checks exact values, as-of links and idempotency. The two captured markets projected to
+12 immutable records and an identical retry in disposable SQLite.
+
+Four stream tests cover finite capture, quiet timeout, oversized mock frame and local fsync
+failure. Actual public verification captured a quiet snapshot/timeout, then a separately
+selected active token's snapshot and four price changes; exact replay succeeded. See the
+two stream evidence JSON files. These are finite diagnostics, not a continuous collector.
+
+Self-review fixed cross-session UTC regression, rejection-induced replay gaps, filesystem
+errors being mistaken for network errors, and parser-build versioning. Remaining loaded-code
+versus on-disk hash limitation is explicitly recorded in PHASE_02_SOURCE_ADMISSION.md.
+No production code paths, configuration, migration activation or scheduler changed.
+
 ## Exact remaining work
 
-1. Test cursor-parent progression, actual cancellation/deadline and filesystem-failure
-   paths more deeply before collector use; retain failed attempts without invented clocks.
-2. Design/test the receipt-to-store bridge, including source registry versions, durability
-   links, parser completion clocks, immutable retries and crash recovery. Generic prospective
-   admission remains closed. No caller Boolean may bypass it.
-3. Build evidence-linked market/condition/token records and graph versions; leave unresolved
-   chain/collateral/group links excluded. Refine canonical contract only with explicit decision.
-4. Replay snapshots/deltas/gaps/reconnects, then bounded live stream verification; never
-   assert complete sequences where the source supplies no proof.
-5. Finish source rights/clock/coverage admission matrix, SQLite/PostgreSQL integration and
-   v1 regression, self-review, current docs, coherent commits and draft PR acceptance.
-   Only then proceed to Phase 3.
+Final second-milestone validation: **674 passed, zero skipped**, 30.46s, including disposable
+PostgreSQL 17.11; one existing Starlette/httpx warning. Full backend Ruff, canonical contract
+checker and whitespace checks passed. Full suite used an explicit temporary SQLite URL,
+AUTO_MIGRATE=true, disabled alert/digest email, AREPO_FS2_POSTGRES_BIN pointing to local
+PostgreSQL 17 binaries, and `backend/.venv/bin/python -m pytest backend/tests -q --tb=short`.
+Frontend unchanged. Self-review of causal clocks, failure handling, immutable retries and
+protected production paths is complete for this diagnostic milestone, not Phase 2 acceptance.
+
+Design and test the trusted prospective capture/registry admission boundary described in
+[PHASE_02_SOURCE_ADMISSION.md](PHASE_02_SOURCE_ADMISSION.md). The diagnostic bridge is
+deliberately not that interface. Pin loaded parser builds, settle journal versus SQL-readable
+availability and preserve post-durability evidence. Refine the canonical contract explicitly
+where needed, then implement causal admission and failure/recovery tests. Recheck all phase
+acceptance gates, final tests/review/docs/commit/draft PR before Phase 3. Current Phase 2
+acceptance remains incomplete.

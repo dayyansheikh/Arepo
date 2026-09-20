@@ -101,7 +101,7 @@ def postgres_url(tmp_path_factory):
         pwfile.unlink()
 
 
-async def test_postgres_migration_precision_security_and_preservation(postgres_url):
+async def test_postgres_migration_precision_security_and_preservation(postgres_url, tmp_path):
     # Failure before guards must roll back PostgreSQL DDL, just as on SQLite.
     engine = migrations.local_engine(postgres_url)
     try:
@@ -232,6 +232,15 @@ async def test_postgres_migration_precision_security_and_preservation(postgres_u
                 fixture_clock=AT,
             )
 
+        # Actual receipt-to-store bridge on PostgreSQL, including immutable retry.
+        from astrolabe.feature_store.source_bridge import import_diagnostic_capture
+        from tests.unit.test_feature_store_source_bridge import captured
+
+        capture = await captured(tmp_path)
+        imported = await import_diagnostic_capture(postgres_url, capture["folder"])
+        assert imported["observation"]["provenance_class"] == "synthetic"
+        assert await import_diagnostic_capture(postgres_url, capture["folder"]) == imported
+
         # Changing privileges without changing column names must be detected.
         async with engine.begin() as conn:
             await conn.execute(text("GRANT SELECT ON fs2_source_observation TO anon"))
@@ -239,5 +248,7 @@ async def test_postgres_migration_precision_security_and_preservation(postgres_u
         assert not drift["current"] and any("drifted" in error for error in drift["errors"])
         with pytest.raises(migrations.MigrationRefused, match="incompatible"):
             await migrations.upgrade(postgres_url)
+        with pytest.raises(ValueError, match="guarded local schema"):
+            await import_diagnostic_capture(postgres_url, capture["folder"])
     finally:
         await engine.dispose()

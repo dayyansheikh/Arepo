@@ -1,6 +1,41 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-09-20 21:43 UTC. Status: Phase 2 in progress; Phases 0–1 complete.
+Updated: 2026-09-20 22:20 UTC. Status: Phase 2 in progress; Phases 0–1 complete.
+
+## Second milestone — authoritative recovery update
+
+The following supersedes the first milestone inventory below. Latest safe commit is recorded
+in the follow-up checkpoint commit; previous safe tip was `81d271c`.
+
+- Completed: diagnostic source-to-store bridge and registry verification; evidence-linked
+  Gamma identity/group projection; exact book snapshot/delta/gap replay; bounded live stream
+  diagnostics; source admission matrix. Real diagnostic imports remain reconstructed, mocks
+  synthetic. Generic prospective admission remains closed.
+- Modules added: `source_bridge.py`, `identity_bridge.py`, `book_replay.py`, `stream_probe.py`.
+  Capture/parser/source/as-of helpers and related unit/PostgreSQL tests extended. No v1,
+  application configuration, API or scheduler changes. Unrelated residue preserved.
+- Final tests: **674 passed, zero skipped**, 30.46s, including disposable PostgreSQL 17.11;
+  one existing Starlette/httpx warning. Full backend Ruff, canonical checker and whitespace
+  checks passed. Self-review and test setup: `docs/implementation/PHASE_02_REVIEW.md`.
+- Evidence: four HTTP diagnostics imported and retried locally; Gamma produced 12 immutable
+  identity/group records. Quiet stream snapshot/timeout and active snapshot/four deltas
+  preserved and replayed. Preserve every data-dumps root referenced in the three runtime
+  evidence JSON summaries, including active-token selection. They are numerical evidence.
+- Decisions D026–D028 separate diagnostic imports from prospective admission, preserve
+  failure/gap states, and retain unresolved economic grouping/chain/collateral evidence.
+- No protected decision currently required. Latest allowance check 22:15 UTC: primary 92%
+  used, weekly 93% used, ordinary usage allowed. Saving before window exhaustion; no reset
+  credit consumed. Stop if longer-term usage is exhausted on continuation.
+- **Exact next action:** read `PHASE_02_SOURCE_ADMISSION.md`, Phase 2 review/plan and current
+  source bridge/repository invariants. Design and test the trusted prospective admission
+  path: choose journal versus SQL model-readable availability, prove post-durability clocks,
+  bind loaded code to an immutable build, pin registry/rights policy and reject retrospective
+  promotion. Record contract changes before implementation. Complete Phase 2 acceptance,
+  tests, review, docs, commit and draft PR before advancing. Do not repeat completed probes.
+- PR #15 remains open draft, stacked on #14/#13, no merges. Phase 3 remains next, not started.
+- One existing 310-minute continuation maintained; no duplicate created. Delay cause unverified.
+
+## First milestone inventory (historical)
 
 - Current phase: 02 — Sources, clocks and identities.
 - Objective: durable receipt capture, source semantics, evidence-linked identity and as-of dependence views before prospective collection.

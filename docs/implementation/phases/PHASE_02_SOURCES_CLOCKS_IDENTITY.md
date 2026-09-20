@@ -42,6 +42,11 @@ capture; subsequent probes remain finite, opt-in and disconnected from all sched
 
 ## In scope
 
+Second milestone: diagnostic source/identity imports and bounded live stream verification
+are implemented; 674 backend tests pass. See ../PHASE_02_SOURCE_ADMISSION.md and review.
+Trusted prospective admission, loaded-code binding and journal-versus-index availability
+remain the next scoped work; the phase exit gate has not passed.
+
 Prove identity and timestamp semantics for a bounded set of public sources before admitting their observations to research. Work remains in the existing repository and nonproduction environment.
 
 ## Out of scope

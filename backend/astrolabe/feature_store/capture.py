@@ -157,6 +157,7 @@ class CaptureJournal:
             headers = {}
             error = None
             first_byte = None
+            cancelled = None
             limit = min(self.budget.bytes_per_response, self.budget.total_bytes - self.bytes)
             try:
                 async with asyncio.timeout(min(remaining, self.budget.seconds_per_request)):
@@ -181,10 +182,15 @@ class CaptureJournal:
                                     break
             except (httpx.HTTPError, TimeoutError) as exc:
                 error = type(exc).__name__  # Do not leak response bodies/credentials in errors.
+            except asyncio.CancelledError as exc:
+                # Preserve a cancelled partial attempt synchronously before propagating
+                # cancellation. It must never resemble a complete empty response.
+                error, cancelled = "cancelled", exc
             received = _clock()  # Complete response/partial-attempt receipt, before parsing.
             self.bytes += len(raw)
             receipt = {
-                "schema_version": "fs2-receipt-v1", "capture_id": capture_id,
+                "schema_version": "fs2-receipt-v2", "capture_id": capture_id,
+                "session_hash": _digest((self.root / "session.json").read_bytes()),
                 "session_id": self.session_id, "receipt_ordinal": self.count,
                 "capture_kind": self.kind, "source_id": source_id,
                 "source_version": source.version, "source_contract": asdict(source),
@@ -203,7 +209,10 @@ class CaptureJournal:
                 "receipt_hash": _digest(receipt_bytes), "raw_hash": _digest(raw),
                 "durable_ack": _clock(),
             }))
-            return finish_parse(folder)
+            result = finish_parse(folder)
+            if cancelled is not None:
+                raise cancelled
+            return result
 
 
 def finish_parse(folder: Path):
@@ -222,7 +231,8 @@ def finish_parse(folder: Path):
     encoding = receipt["headers"].get("content-encoding", "identity")
     parsed = None
     error = receipt["transport_error"]
-    if error is None and not (receipt["status"] is not None and 200 <= receipt["status"] < 300):
+    if (error is None and receipt["request"]["method"] != "WS_RECEIVE"
+            and not (receipt["status"] is not None and 200 <= receipt["status"] < 300)):
         error = "http_non_success"
     if error is None and encoding != "identity":
         error = "unsupported_content_encoding"
@@ -260,14 +270,24 @@ def verify_capture(folder: Path, *, raw_only=False):
         return path.read_bytes()
 
     receipt_bytes, raw, ack_bytes = read("receipt.json"), read("raw.bin"), read("raw_ack.json")
-    receipt, ack = json.loads(receipt_bytes), json.loads(ack_bytes)
+    receipt, ack = _strict_json(receipt_bytes), _strict_json(ack_bytes)
     if (
         receipt["capture_id"] != folder.name
-        or receipt["schema_version"] != "fs2-receipt-v1"
+        or receipt["schema_version"] not in {"fs2-receipt-v1", "fs2-receipt-v2"}
         or _digest(raw) != receipt["raw_hash"] or len(raw) != receipt["raw_bytes"]
         or ack["raw_hash"] != _digest(raw) or ack["receipt_hash"] != _digest(receipt_bytes)
     ):
         raise ValueError("raw capture integrity mismatch")
+    if receipt["schema_version"] == "fs2-receipt-v2":
+        session_path = folder.parent / "session.json"
+        if session_path.is_symlink() or session_path.stat().st_size > 1048576:
+            raise ValueError("invalid capture session")
+        session_bytes = session_path.read_bytes()
+        session = _strict_json(session_bytes)
+        if (receipt["session_hash"] != _digest(session_bytes)
+                or session["session_id"] != receipt["session_id"]
+                or session["capture_kind"] != receipt["capture_kind"]):
+            raise ValueError("capture session integrity mismatch")
     clocks = [receipt["request_started"]]
     if receipt["first_byte"] is not None:
         clocks.append(receipt["first_byte"])
@@ -275,7 +295,7 @@ def verify_capture(folder: Path, *, raw_only=False):
     result = {"folder": str(folder), "receipt": receipt, "raw": raw, "raw_ack": ack}
     if not raw_only:
         parsed_bytes = read("parsed.json")
-        parsed, parsed_ack = json.loads(parsed_bytes), json.loads(read("parsed_ack.json"))
+        parsed, parsed_ack = _strict_json(parsed_bytes), _strict_json(read("parsed_ack.json"))
         if (
             parsed_ack["parsed_hash"] != _digest(parsed_bytes)
             or parsed_ack["raw_ack_hash"] != _digest(ack_bytes)
@@ -286,8 +306,11 @@ def verify_capture(folder: Path, *, raw_only=False):
         clocks.extend([parsed["parsed_at"], parsed_ack["durable_ack"]])
         result.update(parsed=parsed, parsed_ack=parsed_ack)
     for previous, current in zip(clocks, clocks[1:], strict=False):
+        from .types import utc_datetime
+
         if (
-            datetime.fromisoformat(current["utc"]) < datetime.fromisoformat(previous["utc"])
+            utc_datetime(datetime.fromisoformat(current["utc"]))
+            < utc_datetime(datetime.fromisoformat(previous["utc"]))
             or (current["clock_session_id"] == previous["clock_session_id"]
                 and int(current["monotonic_ns"]) < int(previous["monotonic_ns"]))
         ):

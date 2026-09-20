@@ -74,7 +74,8 @@ def dependence_components(market_ids, memberships, *, view, cutoff):
         if group is None or not row["mapping_evidence_ids"]:
             continue
         groups.setdefault(group, []).append(member)
-        known.add(member)
+        if row.get("mapping_method") != "source_event_only_v1":
+            known.add(member)
     for members in groups.values():
         first = root(members[0])
         for member in members[1:]:
