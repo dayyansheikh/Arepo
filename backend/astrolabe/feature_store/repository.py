@@ -1,7 +1,8 @@
 """Transactional append-only local store. No production URL or application settings.
 
 Rows and their dependency closure are validated together before any insert. The public
-writer owns the transaction and stamps durable availability; fixture clocks are synthetic.
+writer owns the transaction; generic prospective writes remain closed pending Phase 2
+durable receipt evidence. Fixture clocks are allowed only for synthetic records.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from .admission import AdmissionError, prepare
 from .migrations import local_engine
 from .models import MODEL_BY_ENTITY
 from .schema import FIELD_SPECS
-from .types import canonical_json, utc_datetime
+from .types import HASH_PATTERN, canonical_json, utc_datetime
 
 # Lists with entity-qualified references. Flags and external entity namespaces are not FKs.
 LIST_REFERENCES = {
@@ -86,7 +87,10 @@ def direct_references(entity, row):
                 if (
                     not isinstance(value, dict)
                     or set(value) != {"entity", "id"}
+                    or not isinstance(value["entity"], str)
                     or value["entity"] not in MODEL_BY_ENTITY
+                    or not isinstance(value["id"], str)
+                    or not HASH_PATTERN.fullmatch(value["id"])
                 ):
                     raise AdmissionError("manifest references require known entity and id")
             if len({(v["entity"], v["id"]) for v in values}) != len(values):
@@ -111,40 +115,75 @@ async def _load(conn, entity, key, cache):
     return cache[identity]
 
 
-async def _closure(conn, entity, row, cache, visiting=None):
-    visiting = set() if visiting is None else visiting
-    identity = (entity, row["id"])
-    if identity in visiting:
-        raise AdmissionError("cyclic dependency/revision graph")
-    visiting = visiting | {identity}
-    closure = set()
-    references = direct_references(entity, row)
-    if entity == "book_snapshot":
-        table = MODEL_BY_ENTITY["book_level"].__table__
-        for level in (
-            await conn.execute(select(table).where(table.c.snapshot_id == row["id"]))
-        ).mappings():
-            cache.setdefault(("book_level", level["id"]), dict(level))
-        references.extend(
-            (kind, key)
-            for (kind, key), value in list(cache.items())
-            if kind == "book_level" and value["snapshot_id"] == row["id"]
-        )
-    for target, key in references:
-        dependency = await _load(conn, target, key, cache)
-        closure.add((target, key))
-        # A level is a constituent of its book; its parent FK is not a revision cycle.
-        if entity == "book_level" and target == "book_snapshot" and (target, key) in visiting:
+async def _closure(conn, entity, row, cache):
+    """Visit shared dependencies once per graph, without recursive path expansion.
+
+    Book/level composition is a permitted bidirectional relationship. All other cycles,
+    including long revision cycles, are rejected by an iterative depth-first check.
+    """
+    root = (entity, row["id"])
+    cache.setdefault(root, row)
+    graph = {}
+    pending = [root]
+    while pending:
+        identity = pending.pop()
+        if identity in graph:
             continue
-        if entity == "book_snapshot" and target == "book_level" and (target, key) in visiting:
+        kind, key = identity
+        value = await _load(conn, kind, key, cache)
+        references = set(direct_references(kind, value))
+        if kind == "book_snapshot":
+            table = MODEL_BY_ENTITY["book_level"].__table__
+            for level in (
+                await conn.execute(select(table).where(table.c.snapshot_id == key))
+            ).mappings():
+                cache.setdefault(("book_level", level["id"]), dict(level))
+            references.update(
+                (k, i)
+                for (k, i), v in list(cache.items())
+                if k == "book_level" and v["snapshot_id"] == key
+            )
+        graph[identity] = references
+        pending.extend(references - graph.keys())
+
+    state = {}
+    for start in graph:
+        if state.get(start) == 2:
             continue
-        closure.update(await _closure(conn, target, dependency, cache, visiting))
-    closure.discard(identity)
-    if entity == "artifact_manifest":
-        declared = {(r["entity"], r["id"]) for r in row["payload"]["closure"]}
-        if declared != closure:
+        stack = [(start, False)]
+        while stack:
+            node, finished = stack.pop()
+            if finished:
+                state[node] = 2
+                continue
+            if state.get(node) == 1:
+                raise AdmissionError("cyclic dependency/revision graph")
+            if state.get(node) == 2:
+                continue
+            state[node] = 1
+            stack.append((node, True))
+            stack.extend(
+                (child, False)
+                for child in graph[node]
+                if not (node[0] == "book_level" and child[0] == "book_snapshot")
+            )
+
+    for identity, value in (
+        (node, cache[node]) for node in graph if node[0] == "artifact_manifest"
+    ):
+        reachable = set()
+        pending = list(graph[identity])
+        while pending:
+            node = pending.pop()
+            if node in reachable:
+                continue
+            reachable.add(node)
+            pending.extend(graph[node] - reachable)
+        reachable.discard(identity)
+        declared = {(r["entity"], r["id"]) for r in value["payload"]["closure"]}
+        if declared != reachable:
             raise AdmissionError("manifest transitive closure differs from declared inventory")
-    return closure
+    return set(graph) - {root}
 
 
 def _ordered(row, earlier, later):
@@ -225,6 +264,12 @@ async def _validate(conn, entity, row, cache):
         _same(row, source, ("source_id", "parser_version"))
         if prospective and row["first_received_at"] is None:
             raise AdmissionError("prospective receipt is required")
+        if row["first_received_at"] is None and row["provenance_class"] != "synthetic":
+            if (
+                row["provenance_class"] != "legacy_unverified"
+                or row["missing_fields"]["first_received_at"] != "unknown_legacy"
+            ):
+                raise AdmissionError("absent historical receipt must remain legacy_unverified")
         for earlier, later in (
             ("first_received_at", "parsed_at"),
             ("first_received_at", "ingested_at"),
@@ -463,6 +508,25 @@ async def _validate(conn, entity, row, cache):
                     await ref("uncalibrated_prediction_id"),
                     ("origin_id", "target_definition_id"),
                 )
+        elif entity == "outcome_observation":
+            source = await ref("source_observation_id")
+            if row["first_received_at"] != source["first_received_at"]:
+                raise AdmissionError("outcome receipt differs from source evidence")
+            if row["available_to_model_at"] is not None and (
+                row["available_to_model_at"] < availability("source_observation", source)
+            ):
+                raise AdmissionError("outcome availability precedes source evidence")
+            _ordered(row, "first_received_at", "available_to_model_at")
+            if row["observation_status"] == "observed":
+                clock_field = {
+                    "receipt": "first_received_at",
+                    "source_event": "source_event_at",
+                    "source_published": "source_published_at",
+                }.get(target["quote_rule"].get("clock"))
+                if clock_field is None or source[clock_field] is None:
+                    raise AdmissionError("observed outcome requires its declared source clock")
+                if row["label_observed_at"] != source[clock_field]:
+                    raise AdmissionError("outcome observation differs from declared clock evidence")
         elif entity == "label_version":
             _ordered(row, "label_observed_at", "label_available_at")
             if row["status"] in {"evaluated", "unchanged"} and (
@@ -471,6 +535,18 @@ async def _validate(conn, entity, row, cache):
                 or not row["outcome_observation_ids"]
             ):
                 raise AdmissionError("evaluated label requires value, availability and outcomes")
+            if row["status"] not in {"evaluated", "unchanged"} and row["label_value"] is not None:
+                raise AdmissionError("unavailable label cannot carry an evaluated target value")
+            if row["actual_delay_seconds"] is not None:
+                if row["label_observed_at"] is None:
+                    raise AdmissionError("label delay requires observation clock")
+                delta = row["label_observed_at"] - row["target_at"]
+                delay = (
+                    Decimal(delta.days * 86400 + delta.seconds)
+                    + Decimal(delta.microseconds) / 1000000
+                )
+                if row["actual_delay_seconds"] != delay:
+                    raise AdmissionError("label delay differs from observed and target clocks")
             for key in row["outcome_observation_ids"]:
                 outcome = await _load(conn, "outcome_observation", key, cache)
                 _same(row, outcome, ("origin_id", "target_definition_id", "target_at"))

@@ -1,7 +1,8 @@
 # Phase 1 review record
 
-Phase remains **in progress**. This record covers the first tested schema milestone,
-not the complete phase or any validated research finding.
+Phase 1 is **complete as a nonproduction foundation**. The chronological milestones below
+retain their original results; final acceptance supersedes their pending-work statements.
+This implementation supplies no validated research finding.
 
 ## Schema milestone, 2026-09-20
 
@@ -72,3 +73,39 @@ separate label revision availability, exact raw book zeroes and level inventorie
 all missingness reasons, corruption detection and fresh-store codec restore. A genuine
 populated v1 scan/cohort fixture retains every table value and its schema across two v2
 upgrade calls. Numerical float values are compared by their hexadecimal representation.
+
+## Final acceptance, 2026-09-20
+
+Full backend regression: **610 passed, zero skipped**, 38.31 seconds; one existing
+Starlette/httpx deprecation warning. Actual PostgreSQL 17.11 tests ran and their disposable
+cluster stopped. Reproduction from repository root:
+
+```sh
+AREPO_TEST_DIR=$(mktemp -d "${TMPDIR%/}/arepo_v2_final.XXXXXX")
+DATABASE_URL="sqlite+aiosqlite:///$AREPO_TEST_DIR/regression.sqlite" \
+AUTO_MIGRATE=true ALERT_EMAIL_ENABLED=false DIGEST_EMAIL_ENABLED=false \
+AREPO_FS2_POSTGRES_BIN=/usr/local/opt/postgresql@17/bin \
+backend/.venv/bin/python -m pytest backend/tests -q --tb=short
+backend/.venv/bin/ruff check backend/astrolabe backend/tests backend/scripts
+backend/.venv/bin/python backend/scripts/check_v2_contract.py
+git diff --check
+```
+
+Ruff, the canonical checker (13 artefacts, 452 fields/21 entities, 140 mappings, 60 cards,
+11 phase plans), and authored-file whitespace checks passed. Frontend code is unchanged.
+GitHub's combined status reported a Vercel success, not backend CI evidence; local backend
+execution above is the acceptance evidence. No deployment was requested by this programme.
+
+Self-review covered correctness, causal leakage, security/access, preservation, scalability
+and unrelated changes. Final fixes replace recursive manifest expansion with iterative
+deduplicated traversal (deep-chain/shared-diamond regressions), bind outcome clock claims to
+raw envelope fields, require exact label-delay semantics and preserve cluster cleanup on
+startup failure. Tests cover nonempty training cutoffs and missing legacy receipt reasons.
+No unresolved Phase 1 acceptance blocker remains. Production configuration, workflows,
+v1 storage, API and scheduler are unchanged; user orchestration residue is not committed.
+
+Phase 2 must implement the durable receipt/acknowledgement boundary before prospective
+admission can open. Event-driven prediction timing remains closed pending its own protocol;
+fixed horizons are implemented. The codec is only local preservation evidence: full archive
+equivalence, source rights, collection and scientific validation remain later scoped work.
+Draft PR #14 targets Phase 0 branch; neither #13 nor #14 is merged.

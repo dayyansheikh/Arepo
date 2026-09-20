@@ -35,6 +35,11 @@ Production merges/deployments/migrations, infrastructure or credential changes, 
 1. Reload prerequisite outputs and inspect actual store invariants. Branch codex/arepo-v2-phase-2-sources-clocks-identity from tested Phase 1 tip.
 2. Pin source registry definitions for Gamma identity/rules, public CLOB books, public trades and one feasible official/reference source. Record allowed use, endpoint/protocol/schema, native units, timestamp/side meaning and documented-only status.
 3. Wrap raw clients with receipt-before-parse envelope capture, session monotonic ordinal, parser/ingestion completion, request/page lineage, rights-aware raw payload and explicit error states. Preserve v1 normalisers for v1 behaviour.
+   First establish a durable raw receipt/acknowledgement boundary and crash/retry tests. Phase 1's
+   generic writer deliberately rejects prospective records: pre-commit transaction time is not
+   evidence of durable model availability. Refine the canonical contract if an explicit receipt
+   artifact/link is needed, preserve the acknowledgement evidence, and open live admission only
+   through the validated source path. Do not add a Boolean bypass to the generic writer.
 4. Implement exact identity mapping: Gamma market/event, condition/question/chain/collateral, token/outcome order and metadata/rules revisions; unresolved links remain excluded from dependent research.
 5. Implement two versioned group views and as-of selection; corrected current metadata cannot become old as-known evidence. Graph connected-component split helpers must report unresolved dependence.
 6. Build bounded fixture replay and opt-in public read-only source probe (finite requests/time/bytes, no scans/schedules). Verify current official docs before adapters; no authenticated order/wallet credential use or access bypass.

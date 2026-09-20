@@ -250,10 +250,45 @@ async def test_outcome_and_revised_label_keep_separate_availability(url):  # noq
         ("source_observation", raw),
         ("outcome_observation", outcome),
     ]
+    for field in ("first_received_at", "available_to_model_at", "label_observed_at"):
+        changed = {**outcome, field: observed - timedelta(seconds=1)}
+        with pytest.raises(AdmissionError, match="receipt|availability|clock evidence"):
+            await append_batch(
+                url, [*base[:-1], ("outcome_observation", changed)], fixture_clock=AT
+            )
     late = {**label, "label_available_at": observed - timedelta(seconds=1)}
     with pytest.raises(AdmissionError, match="label_observed_at|precedes"):
         await append_batch(url, [*base, ("label_version", late)], fixture_clock=AT)
     first = (await append_batch(url, [*base, ("label_version", label)], fixture_clock=AT))[-1]
+    training_payload = {
+        "schema_version": "fs2-manifest-v1",
+        "roots": [{"entity": "label_version", "id": first["id"]}],
+        "closure": [
+            {"entity": entity, "id": prepare(entity, value)["id"]}
+            for entity, value in base
+            if entity != "feature_definition"
+        ]
+        + [{"entity": "label_version", "id": first["id"]}],
+        "as_of_cutoff_at": (observed - timedelta(seconds=1)).isoformat(),
+    }
+    training = manifest(
+        manifest_kind="training",
+        payload=training_payload,
+        content_hash=content_hash(training_payload),
+        available_at=observed,
+        recorded_at=observed,
+    )
+    with pytest.raises(AdmissionError, match="training cutoff"):
+        await append_batch(url, [("artifact_manifest", training)], fixture_clock=AT)
+    training_payload["as_of_cutoff_at"] = observed.isoformat()
+    training = manifest(
+        manifest_kind="training",
+        payload=training_payload,
+        content_hash=content_hash(training_payload),
+        available_at=observed,
+        recorded_at=observed,
+    )
+    await append_batch(url, [("artifact_manifest", training)], fixture_clock=AT)
     revision = {
         **label,
         "label_computation_version": "3" * 64,

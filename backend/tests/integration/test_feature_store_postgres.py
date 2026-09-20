@@ -56,20 +56,20 @@ def postgres_url(tmp_path_factory):
             "--no-locale",
         ]
     )
-    run(
-        [
-            str(binaries / "pg_ctl"),
-            "-D",
-            str(data),
-            "-l",
-            str(root / "postgres.log"),
-            "-o",
-            f"-h 127.0.0.1 -p {port} -c unix_socket_directories=''",
-            "-w",
-            "start",
-        ]
-    )
     try:
+        run(
+            [
+                str(binaries / "pg_ctl"),
+                "-D",
+                str(data),
+                "-l",
+                str(root / "postgres.log"),
+                "-o",
+                f"-h 127.0.0.1 -p {port} -c unix_socket_directories=''",
+                "-w",
+                "start",
+            ]
+        )
         run(
             [
                 str(binaries / "createdb"),
@@ -92,7 +92,12 @@ def postgres_url(tmp_path_factory):
             database="fs2_test_store",
         )
     finally:
-        run([str(binaries / "pg_ctl"), "-D", str(data), "-m", "immediate", "-w", "stop"])
+        # Startup can time out after the daemon starts; still stop only this test cluster.
+        status = subprocess.run(
+            [str(binaries / "pg_ctl"), "-D", str(data), "status"], capture_output=True, timeout=10
+        )
+        if status.returncode == 0:
+            run([str(binaries / "pg_ctl"), "-D", str(data), "-m", "immediate", "-w", "stop"])
         pwfile.unlink()
 
 

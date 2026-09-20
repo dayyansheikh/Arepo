@@ -296,3 +296,48 @@ def test_probability_sum_cannot_hide_a_small_positive_component():
     spec = {"type": "DECIMAL_VECTOR", "nullable": "true"}
     with pytest.raises(AdmissionError, match="sum exactly"):
         normalise_value("prediction", "class_probabilities", ["1", "1e-1000"], spec)
+
+
+async def test_deep_dependency_chain_does_not_hit_python_recursion_limit(monkeypatch):
+    from astrolabe.feature_store import repository
+
+    cache = {}
+    for number in range(1500):
+        key = f"{number:064x}"
+        cache[("source_registry", key)] = {
+            "id": key,
+            "links": ([("source_registry", f"{number + 1:064x}")] if number < 1499 else []),
+        }
+    monkeypatch.setattr(repository, "direct_references", lambda entity, row: row["links"])
+    root = cache[("source_registry", "0" * 64)]
+    assert len(await repository._closure(None, "source_registry", root, cache)) == 1499
+    cache[("source_registry", f"{1499:064x}")]["links"] = [("source_registry", "0" * 64)]
+    with pytest.raises(AdmissionError, match="cyclic"):
+        await repository._closure(None, "source_registry", root, cache)
+
+
+async def test_shared_dependency_diamonds_are_not_expanded_per_path(monkeypatch):
+    from collections import Counter
+
+    from astrolabe.feature_store import repository
+
+    cache = {}
+    for number in range(60):
+        key = f"{number:064x}"
+        cache[("source_registry", key)] = {
+            "id": key,
+            "links": [
+                ("source_registry", f"{child:064x}")
+                for child in (number + 1, number + 2)
+                if child < 60
+            ],
+        }
+    visits = Counter()
+
+    def references(entity, row):
+        visits[row["id"]] += 1
+        return row["links"]
+
+    monkeypatch.setattr(repository, "direct_references", references)
+    await repository._closure(None, "source_registry", cache[("source_registry", "0" * 64)], cache)
+    assert len(visits) == 60 and max(visits.values()) == 1

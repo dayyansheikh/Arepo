@@ -1,28 +1,26 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-09-20. Status: Phase 1 in progress; Phase 0 complete.
+Updated: 2026-09-20. Status: Phase 1 accepted; Phase 2 next.
 
-- Current phase: 01 — Feature Store foundations.
-- Objective: implement exact types, isolated schema and guarded local migrations with preservation tests.
-- Repository: `/Users/DayyanSheikh/Projects/astrolabe`, origin `https://github.com/dayyansheikh/Arepo.git`.
+- Current phase: 01 — Feature Store foundations, complete at this checkpoint commit.
+- Objective: isolated exact schema, immutable lineage, guarded local migrations and preservation tests.
+- Repository: `/Users/DayyanSheikh/Projects/astrolabe`; origin `https://github.com/dayyansheikh/Arepo.git`.
 - Branch: `codex/arepo-v2-phase-1-feature-store`, stacked from Phase 0 tip `46799a7`.
-- Latest safe commit: `0d35316` (tested Phase 1 schema milestone and draft PR recovery record). Writer/admission milestone being checkpointed next. Production base remains `e50f063d1a51a07eb32fcffeedd841b565ebca33`.
-- Draft PR: https://github.com/dayyansheikh/Arepo/pull/14, open draft stacked against Phase 0 branch; prerequisite https://github.com/dayyansheikh/Arepo/pull/13 targets arepo-free-production-v1. Neither merged. Phase 1 remains incomplete.
-- Completed: full Phase 0 design/reconciliation and implementation audit; master plan and 11 phase contracts; canonical 21-entity/452-field contract; all 140 research fields mapped; clock/identity/provenance, legacy loss and migration/archive specifications; AGENTS updated; self-review complete.
-- Files changed: AGENTS.md; docs/research/2026-09-20; docs/architecture; docs/implementation; this checkpoint; backend/scripts/check_v2_contract.py. Unrelated untracked user files untouched.
-- Tests run/results: 105 targeted backend tests passed on disposable SQLite; contract checker passed 13 hashes/140 mappings/60 cards/11 phase files; checker lint passed; disposable v1 schema check passed version 12. Authored-file whitespace passed; research source CRLF/Markdown spacing preserved byte-exact. See docs/implementation/PHASE_00_REVIEW.md for commands and initial environment-only test failure.
-- Decisions: D000–D011 in docs/implementation/AREPO_V2_DECISIONS.md. Isolated v2 metadata/ledger; exact decimal text; immutable version records; stricter clock admission; no v1 repairs or automatic lean import.
-- Unresolved questions: actual runtime source access/rights, safe local PostgreSQL execution for Phase 1, later event-count readiness. These do not block Phase 0 specification.
-- Blockers: none for Phase 0. Desktop curated reads stalled; complete named package recovered from original local research-output. Excluded raw audit/catalogue subdirectories unavailable in curated package, explicitly recorded.
-- Phase 1 progress: isolated 21-entity schema; exact adapters; append-only writer; structural admission; recursive manifest closure including book levels; revisions; clock/identity checks; local preservation codec; installed-schema/privilege fingerprint; natural-key/enum constraints implemented. Public generic writer rejects prospective writes pending Phase 2 durable receipt evidence. Scientific fixtures remain synthetic. No v1 entry point imports the store.
-- Local PostgreSQL: Homebrew PostgreSQL 17.11 installed; no service started. Use a temporary cluster on a nondefault loopback port for integration tests, then stop it. Never use the default cluster or production database.
-- Phase 1 validation: latest targeted run completed with 98 passed, including actual temporary PostgreSQL integration, writer concurrency and permission drift. Earlier full backend run passed 581 tests; later additions still need the final full regression run. Ruff passes. A legacy test's monitoring clock was pinned to its existing synthetic collection time; API regression uses a disposable SQLite file because separate legacy engine singletons do not share in-memory databases. Temporary PostgreSQL cluster stopped by fixture teardown.
-- Exact next action: finish Phase 1 self-review, reconcile implemented admission/clock semantics with architecture documents, add any missing acceptance regression, run final full backend suite with explicit disposable SQLite and PostgreSQL, commit and update draft PR #14. Do not advance until every acceptance gate passes. The writer/admission work already exists; do not rebuild it.
-- Next phase: 02 — Sources, clocks and identities, only after all Phase 1 acceptance criteria.
-- Continuation: one active same-task heartbeat, `continue-arepo-v2-implementation`, every 310 minutes per user's revised request. Requested initial anchor: 2026-09-20 17:30 Europe/London. Current saved settings contain the interval but not the explicit start anchor (checked 17:39 London); do not claim exact execution timing without scheduler evidence. No duplicate chain.
+- Latest safe commit: `3e69d7f` is the prior tested milestone; this checkpoint's commit adds final reviewed fixes and 610-test acceptance. Resolve its hash with Git history. Production base remains `e50f063d1a51a07eb32fcffeedd841b565ebca33`.
+- Draft PR: https://github.com/dayyansheikh/Arepo/pull/14 against Phase 0 branch. Prerequisite https://github.com/dayyansheikh/Arepo/pull/13 targets `arepo-free-production-v1`. Both open draft/unmerged.
+- Completed: Phase 0 canonical research reconciliation/plans; Phase 1's 21 isolated entities, exact adapters, immutable writer, causal admission, manifest closure, revisions, local codec, guarded migrations and installed-schema/access drift detection. Final self-review complete.
+- Files/modules: `backend/astrolabe/feature_store/`, associated unit/integration tests, one legacy test clock fixture, architecture/decision/phase/review documents. v1 code/configuration/API/scheduler unchanged. Unrelated user files untouched.
+- Tests/results: full backend **610 passed, zero skipped**, including actual disposable PostgreSQL 17.11, 38.31s; one existing deprecation warning. Full backend Ruff, canonical checker and whitespace checks passed. See `docs/implementation/PHASE_01_REVIEW.md` for commands and evidence.
+- Decisions: D000–D023 in decision log. Generic prospective writes fail closed until Phase 2 durable receipt evidence. Exact numerical storage, local-only explicit targets, immutable records, iterative closure, explicit outcome clocks. Local codec is not full archive equivalence.
+- Unresolved questions: runtime source semantics/rights/access and durable receipt implementation belong to Phase 2; event-driven prediction protocols and empirical readiness remain later scope.
+- Blockers: none for Phase 1. No validated predictive finding or live prospective collection is claimed.
+- Exact next action: commit/push this final acceptance boundary, update draft PR #14 with 610-test results, then branch `codex/arepo-v2-phase-2-sources-clocks-identity` from the tested completion tip. Reload master, Phase 2, clock/identity contract and actual store/client code; refine the plan before implementing durable capture and bounded source verification. Do not repeat Phase 1 implementation.
+- Next phase: 02 — Sources, clocks and identities.
+- Local PostgreSQL: binaries `/usr/local/opt/postgresql@17/bin`; tests create/stop their own temporary authenticated cluster on a nondefault loopback port. No persistent service/default cluster started. Never substitute production.
+- Continuation: one active same-task heartbeat `continue-arepo-v2-implementation`, every 310 minutes. Requested initial anchor 2026-09-20 17:30 Europe/London; saved settings checked at 17:39 contain the interval but no explicit anchor. Exact dispatch timing/cause of delay unverified. No duplicate chain.
 
 ## Recovery and protected boundaries
 
-Read AGENTS.md, the master plan, current phase plan and prerequisite outputs before edits. Inspect git status and commits; preserve unrelated changes. The local production branch initially pointed to `8dff5f5ee489f2e9b7ded648f1f18dc679138b51`, an ancestor of fetched production, with no local-only commits. It was not reset. The older lean branch is 3 ahead/0 behind fetched production and was not used as a base.
+Read AGENTS.md, master/current phase plan, prerequisite outputs and current code/tests before edits. Inspect git status and history. The initial local production branch was an ancestor of fetched production and was not reset. The older lean branch was 3 ahead/0 behind and was never used as a base or imported.
 
-No production deployments, migrations, infrastructure/credential/retention changes, data deletion, production scan restarts, purchases or trades are authorised. Draft PRs and local tests are authorised. Existing production retention and auto-migration paths are not safe entry points for this programme. Do not run a scheduler/application CLI against inherited database settings.
+No production merge/deployment/migration, infrastructure/credential/retention change, data deletion, production scan restart, purchase or trade is authorised. Draft PRs and local tests are authorised. Existing production retention and auto-migration paths are not safe v2 entry points. Never run application/scheduler CLIs with inherited database settings. Research candidates are not validated evidence.
