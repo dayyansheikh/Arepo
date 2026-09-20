@@ -1,6 +1,6 @@
 # Phase 02 — Sources, clocks and identities
 
-Status: in progress, stacked from accepted Phase 1 tip `43999b5`. Owner: current AREPO implementation task.
+Status: complete, stacked from accepted Phase 1 tip `43999b5`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -44,8 +44,9 @@ capture; subsequent probes remain finite, opt-in and disconnected from all sched
 
 Second milestone: diagnostic source/identity imports and bounded live stream verification
 are implemented; 674 backend tests pass. See ../PHASE_02_SOURCE_ADMISSION.md and review.
-Trusted prospective admission, loaded-code binding and journal-versus-index availability
-remain the next scoped work; the phase exit gate has not passed.
+The final source-only admission path, loaded-code binding and journal-versus-index clocks
+are accepted at implementation 54be417: 685 tests passed, and a new three-source predeclared
+runtime run passed. See the final review and admission matrix; Phase 2 exit gate passed.
 
 Prove identity and timestamp semantics for a bounded set of public sources before admitting their observations to research. Work remains in the existing repository and nonproduction environment.
 
@@ -88,13 +89,13 @@ At least the admitted core identity/book/trade sources have observed runtime fie
 
 ## Exit checklist
 
-- [ ] Prerequisites reloaded and plan refined against real outputs.
-- [ ] All scoped tasks and acceptance criteria satisfied; limitations explicit.
-- [ ] Required tests passed with exact command/target/result recorded.
-- [ ] Diff self-reviewed for causal leakage, data loss, unrelated changes and protected boundaries.
-- [ ] Documentation/decision log/master status current.
-- [ ] Coherent safe work committed; branch and draft PR/dependency recorded.
-- [ ] Checkpoint updated with safe commit, files, tests, blockers and exact next action.
+- [x] Prerequisites reloaded and plan refined against real outputs.
+- [x] All scoped tasks and acceptance criteria satisfied; limitations explicit.
+- [x] Required tests passed with exact command/target/result recorded.
+- [x] Diff self-reviewed for causal leakage, data loss, unrelated changes and protected boundaries.
+- [x] Documentation/decision log/master status current.
+- [x] Coherent safe work committed; branch and draft PR/dependency recorded.
+- [x] Checkpoint updated with safe commit, files, tests, blockers and exact next action.
 
 ## Protected boundaries
 

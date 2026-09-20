@@ -1,44 +1,45 @@
 # Phase 2 source admission matrix
 
-Updated 2026-09-20. All current captures are **diagnostics**, not prospective model
-inputs. Synthetic tests remain synthetic; importing real diagnostics yields reconstructed
-records. Runtime verification establishes access and observed shape, not research validity
-or redistribution rights. Native clock ambiguity is retained, never guessed from magnitude.
+Updated 2026-09-20; Phase 2 accepted for the bounded scope below. A new source-only run under
+implementation `54be417` verifies three core sources. Earlier diagnostics remain reconstructed;
+injected transports remain synthetic. Runtime access is neither redistribution permission nor
+predictive evidence. Native clock ambiguity is preserved.
 
-| Source | Runtime evidence | Clock admission | Identity/coverage limits | Current permitted implementation use |
-|---|---|---|---|---|
-| Gamma markets | Two preserved market objects, HTTP 200 | Local receipt and durable parse acknowledgements; lifecycle end is not publication time | Ordered outcomes retained; chain/collateral unresolved; source event is not an independent economic event | Local diagnostic identity projection only |
-| CLOB REST book | 36 bid / 130 ask levels, HTTP 200 | Receipt/ack clocks; native numeric timestamp retained without inferred unit | Token-scoped snapshot; no historical deltas or continuity claim | Exact diagnostic snapshot |
-| Data API v2 trades | Two rows, HTTP 200; cursor reports more available | Receipt/ack clocks; raw native clock retained pending semantic admission | Explicit taker-only scope, bounded page, transaction hash not unique fill ID; no completeness claim | Local diagnostic trades, no flow feature admission |
-| CLOB market stream | Quiet-token snapshot plus timeout; active-token snapshot plus four price-change frames | Per-frame receipt/ack clocks; native clocks remain unadmitted | One subscription at a time, bounded duration/frames; no native sequence completeness; rejected delta/reconnect requires fresh snapshot | Exact bounded replay with gaps, no continuous research history |
-| Coinbase BTC-USD ticker | Preserved ticker, HTTP 200 | ISO last-trade time distinguished from full quote receipt; no quote-wide publish time invented | Single instrument and observation; no external lead/lag evidence | Reference-source diagnostic only |
+| Source | Runtime evidence | Admitted clock/use | Identity/coverage limits |
+|---|---|---|---|
+| Gamma markets | Two-market diagnostics and a new predeclared HTTP 200 response | New SourceRun receipt-time internal measurement; exact ordered identity primitives | Chain/collateral unresolved; source event is not economic independence |
+| CLOB REST book | Exact diagnostic depth; new predeclared HTTP 200 snapshot | New SourceRun receipt-time snapshot | Native numeric clock unit unadmitted; token-scoped snapshot, no prior deltas |
+| Data API v2 trades | Bounded diagnostic pages and new predeclared HTTP 200 page | New SourceRun receipt-time knowledge of returned taker-only rows | Historical event-time availability unproved; cursor may have more data; tx hash not fill ID; no complete-flow admission |
+| CLOB market stream | Quiet snapshot/timeout, active snapshot/four changes | Diagnostic only; not a prospective model input | Bounded one-token stream, no native sequence completeness; gaps require fresh snapshot |
+| Coinbase BTC-USD ticker | HTTP 200 diagnostic | Diagnostic only; not a prospective model input | Last-trade ISO time differs from whole quote receipt; single instrument/sample |
 
-Source contract hashes pin protocol/parser declarations. Source-specific parse artefacts also
-record implementation hashes and their actual later computation/acknowledgement clocks.
-Old artefacts are retained when code changes. The present diagnostic implementation hashes
-files at invocation; a long-running prospective process must additionally bind loaded code
-to its immutable build and refuse on-disk changes. This is an open admission requirement.
+Source contracts pin protocol/parser declarations. New SourceRun also pins the loaded
+implementation and internal measurement policy before collection; file changes or loaded-code
+mismatch refuse admission. Existing diagnostic import remains a separate reconstructed path.
+The new restricted source policy admits bounded local receipt-time measurement and excludes
+redistribution, authenticated operations, paid sources, historical availability inference and
+arbitrary derived models. It does not claim a commercial licence.
 
-Raw evidence roots and numerical/hash summaries are in PHASE_02_RUNTIME_EVIDENCE.json,
-PHASE_02_STREAM_EVIDENCE.json and PHASE_02_ACTIVE_STREAM_EVIDENCE.json. Preserve their
-local data-dumps directories. Earlier hash-only preflights do not acquire receipt evidence
-retroactively. Tests cover synthetic failures; a tested failure is not an observed outage.
+See the four PHASE_02_*EVIDENCE.json files for hashes and original local roots. Preserve raw
+journals and the exact code build. Missing chain namespaces, native clock units, fill identity
+and complete histories cannot be reconstructed from successful requests. Synthetic fault
+coverage is not an observed upstream outage.
 
-The official documentation links and scope are recorded in PHASE_02_REVIEW.md. No source
-has established bulk/commercial redistribution permission in this programme. Current registry
-rights scope is source verification only and model-feature admission is false.
+## Durable admission and consumer obligations
 
-## Remaining prospective boundary
+[The normative admission refinement](../architecture/V2_PROSPECTIVE_SOURCE_ADMISSION.md)
+selects the journal as primary input authority. SQL records preserve journal fact clocks and
+have an additional post-commit index receipt. A pre-commit transaction time never proves
+durable source or index availability. Actual model reads and feature computation must be
+captured separately before an origin is frozen. Offline as-of filtering does not establish
+that a model ran.
 
-Before opening a trusted prospective path, specify whether the model reads durable journal
-artefacts or the SQL index. A journal acknowledgement does not establish that a later index
-transaction was visible. Likewise, a pre-commit timestamp cannot establish post-commit
-availability. Bind the chosen readable artefact, actual acknowledgement, source version,
-loaded parser build and predeclared admission policy without a caller Boolean override.
+The dedicated source index verifies run/policy/build, immutable raw/parse/admission receipts,
+causal clocks and source relationships. It accepts a run directory, not arbitrary prospective
+payloads. Missing/torn artefacts refuse admission without repair. Generic origin/feature/
+prediction writes remain closed until their own trusted paths are implemented.
 
-Required tests: torn writes/acknowledgements, recovery and duplicate imports, unavailable
-index after durable journal, code-version changes, provenance/rights refusal, clock regression,
-and cutoff exclusion until every required artefact is durably available. Keep source-event,
-publication, receipt, raw durability, parsing and model-readable durability distinct.
-No existing diagnostic may be relabelled prospective. This design and implementation gate
-is still open; Phase 2 has not met its exit criteria.
+This meets Phase 2's core-source acceptance with explicit scope and exclusions. Phase 3 must
+freeze a suitable frame/protocol and either admit additional source families through tested
+paths or retain their missingness/ineligibility; it cannot treat diagnostic or sparse coverage
+as complete prospective information.
