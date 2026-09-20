@@ -1,12 +1,12 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-09-20 22:57 UTC. Status: Phase 3 in progress; Phases 0–2 complete.
+Updated: 2026-09-20 22:58 UTC. Status: Phase 3 in progress; Phases 0–2 complete.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
-- Latest safe prerequisite: Phase 2 `747485c`; this tested Phase 3 milestone is being committed, exact hash/PR will be recorded in the following checkpoint commit.
-- Draft PR: Phase 3 draft being opened against Phase 2; see following update. Prerequisite https://github.com/dayyansheikh/Arepo/pull/15 is complete, open draft/unmerged, stacked on #14/#13. Ultimate production base remains `e50f063d1a51a07eb32fcffeedd841b565ebca33`.
+- Latest safe implementation commit: `0ff180f85af010cba2ce7258db40eb1ea5b3b28e`, 704 backend tests passed; accepted Phase 2 prerequisite `747485c`.
+- Draft PR: https://github.com/dayyansheikh/Arepo/pull/16, open draft against Phase 2. Prerequisite https://github.com/dayyansheikh/Arepo/pull/15 is complete, open draft/unmerged, stacked on #14/#13. Ultimate production base remains `e50f063d1a51a07eb32fcffeedd841b565ebca33`.
 - Completed: Phase 0 canonical foundation; Phase 1 isolated immutable store; Phase 2 source journals/admission, exact identities and bounded replay, accepted with 685 tests and new three-source runtime run. Phase 3 milestone: pure versioned sampling/control planner and causal receipt-time target rules; refined phase and frame-adapter contracts.
 - Files/modules changed in Phase 3: new research_panel/{__init__,sampling,targets}.py, test_research_panel_planning.py, Phase 3 review/frame contract/plan, decision D030 and recovery docs. No v1/config/API/scheduler/frontend changes or additional runtime data collection.
 - Tests/results: final full backend **704 passed**, zero skipped, 38.45s, including disposable PostgreSQL 17.11; 19 targeted planning tests. Ruff/contract/whitespace checks passed. One existing Starlette/httpx warning.

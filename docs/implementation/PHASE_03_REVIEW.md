@@ -1,6 +1,7 @@
 # Phase 3 planning milestone — 2026-09-20
 
 Phase 3 remains **in progress**, stacked from accepted Phase 2 `747485c` / draft #15.
+Safe milestone `0ff180f`; draft PR https://github.com/dayyansheikh/Arepo/pull/16.
 This milestone implements pure sampling/target rules. It does not attest to an actual
 population frame, durable origins, collected panel or predictive improvement.
 
