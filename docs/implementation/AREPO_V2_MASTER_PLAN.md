@@ -1,6 +1,6 @@
 # AREPO v2 master implementation plan
 
-Updated 2026-09-20. This programme evolves the existing dayyansheikh/Arepo repository. Phase numbers follow the user's implementation programme, not the older report's differently numbered design roadmap. Current phase: **00 — foundation**.
+Updated 2026-09-20. This programme evolves the existing dayyansheikh/Arepo repository. Phase numbers follow the user's implementation programme, not the older report's differently numbered design roadmap. Phase 00 complete; next phase: **01 — Feature Store**.
 
 ## Recovery order and authority
 
@@ -10,7 +10,7 @@ Read ../AREPO_V2_CHECKPOINT.md first, then AGENTS.md, this plan, the current pha
 
 | Phase | Contract | Dependency | State |
 |---|---|---|---|
-| 00 | [Canonical foundation](phases/PHASE_00_FOUNDATION.md) | Verified production + supplied research | In progress |
+| 00 | [Canonical foundation](phases/PHASE_00_FOUNDATION.md) | Verified production + supplied research | Complete — draft PR #13 |
 | 01 | [Feature Store v2 foundations](phases/PHASE_01_FEATURE_STORE.md) | 00 accepted outputs | Planned |
 | 02 | [Sources, clocks and identities](phases/PHASE_02_SOURCES_CLOCKS_IDENTITY.md) | 01 accepted outputs | Planned |
 | 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Planned |

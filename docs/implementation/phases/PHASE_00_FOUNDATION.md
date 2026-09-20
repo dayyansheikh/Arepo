@@ -1,6 +1,6 @@
 # Phase 00 — Canonical foundation
 
-Status: in progress. Owner: current AREPO implementation task.
+Status: complete; draft PR https://github.com/dayyansheikh/Arepo/pull/13. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -59,13 +59,13 @@ All 20 user Phase 0 outputs exist, safe tests pass, contracts self-reviewed, coh
 
 ## Exit checklist
 
-- [ ] Prerequisites reloaded and plan refined against real outputs.
-- [ ] All scoped tasks and acceptance criteria satisfied; limitations explicit.
-- [ ] Required tests passed with exact command/target/result recorded.
-- [ ] Diff self-reviewed for causal leakage, data loss, unrelated changes and protected boundaries.
-- [ ] Documentation/decision log/master status current.
-- [ ] Coherent safe work committed; branch and draft PR/dependency recorded.
-- [ ] Checkpoint updated with safe commit, files, tests, blockers and exact next action.
+- [x] Prerequisites reloaded and plan refined against real outputs.
+- [x] All scoped tasks and acceptance criteria satisfied; limitations explicit.
+- [x] Required tests passed with exact command/target/result recorded.
+- [x] Diff self-reviewed for causal leakage, data loss, unrelated changes and protected boundaries.
+- [x] Documentation/decision log/master status current.
+- [x] Coherent safe work committed; branch and draft PR/dependency recorded.
+- [x] Checkpoint updated with safe commit, files, tests, blockers and exact next action.
 
 ## Protected boundaries
 
@@ -74,3 +74,7 @@ Never fabricate prospective observations, tune on final confirmation, or treat r
 ## Handoff/output
 
 Canonical contracts, legacy loss register, phase memory, tested docs commit and Phase 0 draft PR.
+
+## Completion evidence
+
+Implementation/specification commit 07ee1f5b704ea437f246488cf6cd61363338c94e. Draft PR #13 targets production e50f063 and remains unmerged. See ../PHASE_00_REVIEW.md for 105 passing local tests and contract validation. Recovery metadata is committed immediately after the reviewed foundation commit.
