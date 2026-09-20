@@ -1,6 +1,6 @@
 # Phase 02 — Sources, clocks and identities
 
-Status: planned. Owner: current AREPO implementation task.
+Status: in progress, stacked from accepted Phase 1 tip `43999b5`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -21,6 +21,24 @@ Phase 01 accepted/tested tip and its actual outputs. Earlier contracts remain bi
 ## Current repository state
 
 Gamma keyset/event reconciliation, REST books and public trade clients and CLOB WebSocket already exist. Normalisation uses floats and missing timestamp fallbacks; public Data API trade meaning must be verified per protocol era. No complete timestamp envelope or event graph. This is the Phase 0 inventory; refresh this section from actual code before starting.
+
+Reload 2026-09-20: Phase 1 is accepted (610 tests). Existing v1 clients parse JSON before
+returning and import application settings; they cannot provide raw receipt chronology to
+v2. Keep them unchanged. Use isolated allowlisted read-only adapters with explicit budgets.
+Three diagnostic requests returned HTTP 200: Gamma markets, Data API v2 trades and CLOB
+server time. These preflight checks retained hashes/field inventory only, so they are not
+prospective research. Current official documentation confirms v2 snake_case/cursor envelopes;
+the v1 trade client is not silently upgraded.
+
+Implementation refinement: first build an exclusive append-only local capture directory.
+Persist raw bytes plus receipt metadata, fsync both and their directory, then record the
+post-durability acknowledgement; parse only afterward. Persist parsed output before sampling
+its availability acknowledgement. Retain separate receipt, parse and recovery clocks. A
+crash leaves partial artefacts intact and unadmitted; recovery never recreates an old parse
+time. This establishes availability of the referenced raw/parsed artefacts, not the later
+Feature Store index transaction. The generic writer remains closed until the separately
+tested bridge verifies these artefacts and source contracts. Test this boundary before live
+capture; subsequent probes remain finite, opt-in and disconnected from all schedulers.
 
 ## In scope
 
