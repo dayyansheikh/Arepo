@@ -6,7 +6,16 @@ checks parity. Admission semantics live in repository.py, never in a production 
 
 from __future__ import annotations
 
-from sqlalchemy import JSON, BigInteger, CheckConstraint, Column, ForeignKey, String, Text
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    CheckConstraint,
+    Column,
+    ForeignKey,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase
 
 from .types import ExactDecimal, UnsignedIntegerText, UTCDateTime
@@ -1438,3 +1447,42 @@ MODEL_BY_ENTITY = {
     "trade_observation": TradeObservationRow,
     "wallet_state_version": WalletStateVersionRow,
 }
+
+
+def _add_contract_constraints():
+    """Share closed vocabularies with admission; JSON-list keys use the validated SHA PK."""
+    from .admission import ALIASES, ENUMS, MISSING
+    from .schema import FIELD_SPECS, KEY_FIELDS
+
+    for entity, model in MODEL_BY_ENTITY.items():
+        table = model.__table__
+        keys = KEY_FIELDS[entity]
+        if all(not isinstance(table.c[key].type, JSON) for key in keys):
+            table.append_constraint(UniqueConstraint(*keys, name=f"uq_fs2_{entity}_natural"))
+        if entity in ALIASES:
+            table.append_constraint(
+                CheckConstraint(f"{ALIASES[entity]} = id", name=f"ck_fs2_{entity}_alias")
+            )
+        for field, spec in FIELD_SPECS[entity].items():
+            if spec["type"] == "ENUM" and field != "provenance_class":
+                allowed = (
+                    MISSING
+                    if field in {"missing_reason", "missingness_reason"}
+                    else set(ENUMS[(entity, field)].split())
+                )
+                values = ",".join("'" + value + "'" for value in sorted(allowed))
+                table.append_constraint(
+                    CheckConstraint(
+                        f"{field} IS NULL OR {field} IN ({values})",
+                        name=f"ck_fs2_{entity}_{field}_enum",
+                    )
+                )
+            if spec["type"] == "INT64":
+                table.append_constraint(
+                    CheckConstraint(
+                        f"{field} IS NULL OR {field} >= 0", name=f"ck_fs2_{entity}_{field}_count"
+                    )
+                )
+
+
+_add_contract_constraints()

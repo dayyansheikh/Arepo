@@ -149,7 +149,7 @@ async def test_postgres_migration_precision_security_and_preservation(postgres_u
                 insert(table).values(
                     id="a" * 64,
                     content_hash="b" * 64,
-                    manifest_kind="fixture",
+                    manifest_kind="sampling",
                     payload={},
                     available_at=at,
                     recorded_at=at,
@@ -189,5 +189,50 @@ async def test_postgres_migration_precision_security_and_preservation(postgres_u
             got = (await conn.execute(select(values))).one()
             assert got.amount.as_tuple() == Decimal(raw).as_tuple()
             assert got.token == str(2**256 - 1)
+
+        # Execute the actual immutable writer/causal graph, not only compiled DDL.
+        import asyncio
+
+        from astrolabe.feature_store.repository import PayloadConflict, append_batch
+        from tests.unit.test_feature_store_causality import graph
+        from tests.unit.test_feature_store_repository import AT, registry
+
+        rows, feature, _ = graph()
+        batch = [*rows, ("feature_value", feature)]
+        first = await append_batch(postgres_url, batch, fixture_clock=AT)
+        assert await append_batch(postgres_url, batch, fixture_clock=AT) == first
+        concurrent = [("source_registry", registry(source_id="fixture:concurrent"))]
+        results = await asyncio.gather(
+            *[append_batch(postgres_url, concurrent, fixture_clock=AT) for _ in range(2)]
+        )
+        assert results[0] == results[1]
+        clocked = registry(source_id="fixture:clocked", provenance_class="reconstructed")
+        clocked.pop("recorded_at")
+        clocked_results = await asyncio.gather(
+            *[append_batch(postgres_url, [("source_registry", clocked)]) for _ in range(2)]
+        )
+        assert clocked_results[0] == clocked_results[1]
+        with pytest.raises(PayloadConflict):
+            await append_batch(
+                postgres_url,
+                [
+                    (
+                        "source_registry",
+                        registry(
+                            source_id="fixture:concurrent",
+                            endpoint="https://example.invalid/changed",
+                        ),
+                    )
+                ],
+                fixture_clock=AT,
+            )
+
+        # Changing privileges without changing column names must be detected.
+        async with engine.begin() as conn:
+            await conn.execute(text("GRANT SELECT ON fs2_source_observation TO anon"))
+        drift = await migrations.check(postgres_url)
+        assert not drift["current"] and any("drifted" in error for error in drift["errors"])
+        with pytest.raises(migrations.MigrationRefused, match="incompatible"):
+            await migrations.upgrade(postgres_url)
     finally:
         await engine.dispose()

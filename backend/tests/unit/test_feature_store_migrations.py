@@ -86,6 +86,15 @@ async def test_check_is_read_only_then_upgrade_is_idempotent(local_url):
         await engine.dispose()
 
 
+async def test_check_does_not_create_absent_database(local_url):
+    from sqlalchemy.engine import make_url
+
+    path = Path(make_url(local_url).database)
+    assert not path.exists()
+    assert not (await migrations.check(local_url))["database_present"]
+    assert not path.exists()
+
+
 async def test_failed_creation_rolls_back_all_ddl(local_url, monkeypatch):
     def fail_after_tables(conn):
         raise RuntimeError("injected after schema creation")
@@ -125,6 +134,24 @@ async def test_guard_drift_is_detected_and_not_repaired(local_url):
         await engine.dispose()
 
 
+async def test_same_named_but_disabled_guard_is_detected(local_url):
+    await migrations.upgrade(local_url)
+    engine = migrations.local_engine(local_url)
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("DROP TRIGGER fs2_artifact_manifest_no_update"))
+            await conn.execute(
+                text(
+                    "CREATE TRIGGER fs2_artifact_manifest_no_update BEFORE UPDATE "
+                    "ON fs2_artifact_manifest BEGIN SELECT 1; END"
+                )
+            )
+        result = await migrations.check(local_url)
+        assert not result["current"] and any("drifted" in error for error in result["errors"])
+    finally:
+        await engine.dispose()
+
+
 async def test_direct_sql_update_delete_and_replace_cannot_change_evidence(local_url):
     from datetime import UTC, datetime
 
@@ -133,7 +160,7 @@ async def test_direct_sql_update_delete_and_replace_cannot_change_evidence(local
     row = dict(
         id="a" * 64,
         content_hash="b" * 64,
-        manifest_kind="fixture",
+        manifest_kind="sampling",
         payload={},
         available_at=datetime.now(UTC),
         recorded_at=datetime.now(UTC),
@@ -154,7 +181,7 @@ async def test_direct_sql_update_delete_and_replace_cannot_change_evidence(local
                 async with engine.begin() as conn:
                     await conn.execute(text(statement))
         async with engine.connect() as conn:
-            assert (await conn.execute(select(table.c.manifest_kind))).scalar_one() == "fixture"
+            assert (await conn.execute(select(table.c.manifest_kind))).scalar_one() == "sampling"
     finally:
         await engine.dispose()
 
@@ -166,3 +193,47 @@ def test_metadata_isolated_from_v1():
     _load_all_models()
     assert not set(Base.metadata.tables) & set(FeatureStoreBase.metadata.tables)
     assert not any(name.startswith("fs2_") for name in Base.metadata.tables)
+
+
+async def test_actual_populated_v1_research_and_schema_remain_exact(tmp_path):
+    from astrolabe.storage.db import Base
+    from tests.unit.test_production_migration import _populate
+
+    path = tmp_path / "fs2_test_populated_v1.sqlite"
+    await _populate(str(path))
+    url = f"sqlite+aiosqlite:///{path}"
+    engine = migrations.local_engine(url)
+
+    async def snapshot():
+        async with engine.connect() as conn:
+            schema = (
+                await conn.execute(
+                    text(
+                        "SELECT name, sql FROM sqlite_master WHERE name NOT LIKE 'fs2_%' "
+                        "AND name NOT LIKE 'ix_fs2_%' AND sql IS NOT NULL ORDER BY name"
+                    )
+                )
+            ).all()
+            values = {}
+            for name in sorted(Base.metadata.tables):
+                rows = (await conn.execute(text(f'SELECT * FROM "{name}"'))).all()
+                values[name] = sorted(
+                    [
+                        tuple(
+                            ("float64", cell.hex()) if isinstance(cell, float) else cell
+                            for cell in row
+                        )
+                        for row in rows
+                    ],
+                    key=repr,
+                )
+            return schema, values
+
+    try:
+        before = await snapshot()
+        assert before[1]["research_entries"] and before[1]["research_cohorts"]
+        await migrations.upgrade(url)
+        await migrations.upgrade(url)
+        assert await snapshot() == before
+    finally:
+        await engine.dispose()
