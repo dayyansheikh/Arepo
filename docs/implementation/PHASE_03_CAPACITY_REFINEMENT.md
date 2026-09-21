@@ -1,7 +1,7 @@
 # Phase 3 next finite frame capacity — implementation contract
 
 Status: D036 bounds and original-decoder capacity gate implemented; validated (**766 tests passed**),
-new collection not yet run. Prior attempts remain incomplete. Read checkpoint,
+third attempt completed **incomplete on a response timeout**. All prior attempts remain incomplete. Read checkpoint,
 phase/frame/panel contracts and D034–D035 before implementation. No scientific threshold or
 population definition changes are proposed. This is the exact next engineering milestone.
 
@@ -82,3 +82,33 @@ Required disk capacity for the proposed run: 10,737,418,240 bytes. Runtime reche
 
 Final precollection regression: **766 passed**, zero skipped, 91.45s, isolated PostgreSQL included.
 Full Ruff, canonical checker and whitespace checks pass. Existing Starlette/httpx warning only.
+
+## Actual attempt and data gate
+
+Third attempt under `5cdb2d2`, journal `fs2_capture_ff7f05b057b647109b4239ca781e10fb`,
+retained 73 complete pages /7,300 rows, then a partial HTTP 200 response timed out at 15s.
+The failed 74th attempt retained 604,209 raw bytes; no retry was part of this frozen protocol.
+Whole run: 46,929,025 raw bytes, 112,224,334 retained bytes and 118,849,536 peak resident bytes.
+The original-code capacity proof succeeded; the new failure is response availability, not a
+mislabelled success or evidence that the memory/storage ceiling was reached. Source terminal
+was not observed. 7,256 row identities eligible, 44 unresolved; no observed identity conflicts
+in the prefix. See `PHASE_03_ENUMERATION_ATTEMPT_3.json` for exact hashes/clocks/costs.
+
+**BLOCKED — REQUIRED DATA UNAVAILABLE:** no complete sampling frame has been obtained under
+any frozen attempt. This single timeout does not prove a persistent venue outage. Current
+productive collection/implementation stops at this checkpoint under the user's data gate.
+No protected approval is requested. All code/test/review gates for D036 passed; Phase 3 did not.
+
+Safe alternatives inspected: old prefixes remain incomplete; original-code rereading verifies
+what exists but cannot supply missing pages; synthetic capacity does not replace real evidence;
+CLOB compact/sampling endpoints have no established equivalent population; dropping categories,
+dates, raw fields or controls would not solve the stated requirement. The current HTTP capture
+creates a client per request; connection reuse and bounded, separately declared retry lineage
+are possible future engineering work, not demonstrated fixes. No new transport or deadline was
+substituted during this run. No unbounded retries, partial-frame sampling or production changes.
+
+A later continuation must inspect this completed result, confirm source/access conditions and
+refine/test/freeze any resilience protocol before another enumeration. Do not automatically
+repeat the same failed full run, extend an old journal or loosen its clocks/timeout retrospectively.
+If the required data remains unavailable and no evidenced safe path exists, leave the blocker
+unchanged and stay quiet. Only an actually verified complete frame can open the panel milestone.

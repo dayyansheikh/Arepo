@@ -203,3 +203,18 @@ expanded bound and unused proof arguments. Full regression **766 passed**, zero 
 Self-review checked source/scope equivalence, fresh receipt clocks, declared budgets, no
 hidden retries/extensions, disk reserve before/after verification and unchanged production
 boundaries. Safe protocol/code commit precedes the single finite third attempt.
+
+### Third enumeration outcome — data blocker preserved
+
+The committed D036 attempt successfully verified original request-ceiling evidence, then
+stopped incomplete on a 15s timeout during response 74. It retained 7,300 complete source
+rows plus the failed response; all facts, clocks, partial bytes and acknowledgements remain.
+See `PHASE_03_ENUMERATION_ATTEMPT_3.json`. Peak memory 118,849,536 bytes, retained bytes
+112,224,334; collection did not reach the larger capacity ceilings. No source terminal,
+complete population, model-ready origin or pilot acceptance was observed. A timeout is not
+proof of persistent outage. Existing prefixes and synthetic sizing cannot replace missing
+complete-frame evidence. Follow the user data-unavailability stop condition; no silent retry.
+Final code validation remains **766 passed**, zero skipped, 91.45s with local PostgreSQL;
+no further source/module changes since that regression. The final evidence/docs-only update
+uses canonical/whitespace checks. D036 engineering milestone is committed; Phase 3 is blocked
+on required complete-frame data and remains incomplete. Draft #16 stays open/unmerged.

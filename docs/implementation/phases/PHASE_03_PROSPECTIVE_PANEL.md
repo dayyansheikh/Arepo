@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: in progress, stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
+Status: incomplete — required complete-frame data unavailable; stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -26,7 +26,9 @@ first finite enumeration are preserved; the latter is incomplete at 256MiB after
 complete rows and a partial 410th page. The second, separately frozen capacity attempt retained 100,000 rows but stopped incomplete
 at its request limit. D034 original-build read receipts now permit verified consumption through
 the exact original Git code without mutating source evidence (755 regression tests after D035). D035 measures explicit 400,000-member sampler capacity;
-next implement the separately gated bounds in ../PHASE_03_CAPACITY_REFINEMENT.md. See ../PHASE_03_FRAME_CONTRACT.md,
+D036 larger finite bounds are implemented (766 tests). Attempt 3 stopped on a response timeout
+after 7,300 complete rows; no complete frame exists. Follow the data gate and next-action
+contract in ../PHASE_03_CAPACITY_REFINEMENT.md. See ../PHASE_03_FRAME_CONTRACT.md,
 ../PHASE_03_REVIEW.md and the evidence JSONs. No model-ready panel/origins exist yet.
 
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
