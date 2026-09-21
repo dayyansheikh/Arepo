@@ -96,3 +96,27 @@ raw/fact/selection/origin/index acknowledgement failure, and local cold copy equ
 Measure primitive coverage, receipt/parse/compute/origin lag, target delay, disk and memory.
 Document immutable run roots, original implementation commits and all missing evidence.
 These gates supplement the current phase plan; they do not mark Phase 3 complete.
+
+## Integration details identified before sample implementation
+
+The frame page projection preserves source index, original row hash, exact source-local
+identity/mapping version, eligibility reasons and first source-ordered outcome. Source
+metadata (category/end date/liquidity/outcome price) remains in the lossless original raw
+page. A later metadata projection is a **new computation**, with a new build/read/availability
+receipt; it does not become an old source fact. Pin input page/receipt/raw hashes and verify
+them again as actually consumed after original-code full-frame verification. Keep the
+original acknowledgement distinct from this later computation and from subsequent origins.
+
+`FrameMember` requires a real token even for excluded members. Therefore never manufacture a
+zero token for unmapped source rows. Preserve a complete row inventory keyed by original page
+hash/source index, with explicit unresolved/excluded records; only valid mapped eligible
+members enter the sampling pool. Include the full inventory manifest/counts and exclusion
+reasons in the durable selection record. This is an explicit eligible-population definition,
+not permission to drop inconvenient metadata. Deduplicate identical market versions for
+sampling while retaining every source row; contradictory identities refuse admission.
+
+Gamma metadata prices are context values, never executable quotes or CLOB midpoint labels.
+Unknown category/close/liquidity/probability remain unknown strata. Source event IDs do not
+populate an economic-independence group by assumption. Trigger evidence must exist by the
+cutoff; a scheduled-only initial frame cannot fabricate triggered arms/control matches.
+The eventual pilot must separately establish its frozen trigger/control coverage requirements.
