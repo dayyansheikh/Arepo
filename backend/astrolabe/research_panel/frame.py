@@ -22,6 +22,7 @@ from astrolabe.feature_store.capture import (
     _strict_json,
     verify_capture,
 )
+from astrolabe.feature_store.source_bridge import _time
 from astrolabe.feature_store.source_parsers import gamma_identity
 from astrolabe.feature_store.source_run import _ordered_clocks, _pair, _persist, _read
 from astrolabe.feature_store.sources import SOURCES
@@ -29,7 +30,7 @@ from astrolabe.feature_store.sources import SOURCES
 from .build_identity import verified_panel_build
 
 SOURCE = 'gamma.markets.keyset'
-VERSION = 'fs2-gamma-frame-v2'
+VERSION = 'fs2-gamma-frame-v3'
 POLICY = {
     'population': 'all Gamma /markets/keyset rows returned under closed=false',
     'scope': 'no date, liquidity, category, active, display or top-N filter',
@@ -60,6 +61,35 @@ class FrameBudget(Budget):
         for value, maximum in zip(asdict(self).values(), maxima, strict=True):
             if type(value) is not int or not 1 <= value <= maximum:
                 raise ValueError('frame budget outside finite enumeration ceilings')
+
+
+@dataclass(frozen=True)
+class FrameRetryPolicy:
+    """Explicit opt-in only. Every retry consumes the original global budgets."""
+
+    per_cursor: int = 1
+    total: int = 8
+    backoff_seconds: int = 1
+
+    def __post_init__(self):
+        for value, maximum in zip(asdict(self).values(), (1, 8, 5), strict=True):
+            if type(value) is not int or not 1 <= value <= maximum:
+                raise ValueError('retry policy outside finite ceilings')
+
+
+def _retryable(error, receipt):
+    status = receipt['status']
+    if error == 'http_non_success':
+        return status in {502, 503, 504}
+    return (error in {'TimeoutError', 'ReadTimeout', 'ReadError', 'RemoteProtocolError',
+                      'ConnectTimeout', 'ConnectError'}
+            and (status is None or 200 <= status < 300))
+
+
+def _retry_delay_met(before, after, seconds):
+    return ((_time(after) - _time(before)).total_seconds() >= seconds
+            and (before['clock_session_id'] != after['clock_session_id']
+                 or int(after['monotonic_ns']) - int(before['monotonic_ns']) >= seconds * 10**9))
 
 
 def _cost_basis(root, *, synthetic):
@@ -229,6 +259,9 @@ def _verify_policy(root):
     session = json.loads(session_bytes)
     expected_kind = 'synthetic' if session['capture_kind'] == 'synthetic' else 'prospective'
     params = SOURCES[SOURCE].params(policy['params'])
+    retry = policy['retry_policy']
+    if retry is not None and asdict(FrameRetryPolicy(**retry)) != retry:
+        raise ValueError('frame retry policy differs')
     if (policy['schema_version'] != VERSION or policy['policy'] != POLICY
             or policy['build'] != verified_panel_build()
             or policy['source'] != asdict(SOURCES[SOURCE])
@@ -263,6 +296,8 @@ def _inventory(root, policy, policy_ack):
     ordered.sort()
     previous_id, previous_cursor, prior_clock = None, None, policy_ack['durable_ack']
     seen_cursors, total_bytes = set(), 0
+    pending_failure, retries_at_cursor, total_retries = None, 0, 0
+    retry = policy['retry_policy']
     for index, (ordinal, folder) in enumerate(ordered, 1):
         try:
             capture = verify_capture(folder)
@@ -290,11 +325,20 @@ def _inventory(root, policy, policy_ack):
                 or receipt['request'] != {'method': 'GET', 'url': SOURCES[SOURCE].endpoint,
                                           'params': params}
                 or receipt['previous_capture_id'] != previous_id
-                or (ordinal > 1 and previous_cursor is None)
                 or not _ordered_clocks(prior_clock, receipt['request_started'])
                 or receipt['raw_bytes'] > policy['budget']['bytes_per_response']
                 or total_bytes > policy['budget']['total_bytes']):
             raise ValueError('frame cursor/scope/ordinal/budget mismatch')
+        if page['retry_of'] != pending_failure:
+            raise ValueError('frame retry lineage differs')
+        if pending_failure is not None:
+            if (retry is None or retries_at_cursor >= retry['per_cursor']
+                    or total_retries >= retry['total']
+                    or not _retry_delay_met(prior_clock, receipt['request_started'],
+                                           retry['backoff_seconds'])):
+                raise ValueError('frame retry budget/backoff differs')
+            retries_at_cursor += 1
+            total_retries += 1
         facts = page['facts']
         result = facts['result']
         cursor = result['next_cursor'] if result else None
@@ -308,13 +352,21 @@ def _inventory(root, policy, policy_ack):
             'raw_bytes': receipt['raw_bytes'], 'http_status': receipt['status'],
             'request_started': receipt['request_started'],
             'first_received': receipt['first_received'], 'available_at': ack['durable_ack'],
-            'error': 'cursor_cycle' if repeated else facts['error'],
+            'error': 'cursor_cycle' if repeated else facts['error'], 'retry_of': pending_failure,
             'result': result,
         }
         yield entry
-        previous_id, previous_cursor = receipt['capture_id'], cursor
         prior_clock = ack['durable_ack']
-        stopped = repeated or facts['error'] or (result and result['terminal'])
+        error = entry['error']
+        can_retry = bool(retry and _retryable(error, receipt)
+                         and retries_at_cursor < retry['per_cursor']
+                         and total_retries < retry['total'])
+        if error:
+            pending_failure = receipt['capture_id']
+        else:
+            previous_id, previous_cursor = receipt['capture_id'], cursor
+            pending_failure, retries_at_cursor = None, 0
+        stopped = repeated or (error and not can_retry) or (result and result['terminal'])
         if stopped and index < len(ordered):
             raise ValueError('frame continued beyond stop/termination')
 
@@ -323,12 +375,19 @@ def _summarize(policy, policy_ack, entries):
     good, unknown, retained_entries = [], [], []
     by_market, by_condition, by_token, exclusions = {}, {}, {}, {}
     total_rows, identified_rows, eligible_rows = 0, 0, 0
+    failures, pending_errors, retried = 0, [], 0
     for entry in entries:
         if entry['state'] == 'unverified_attempt':
             unknown.append(entry)
             retained_entries.append(entry)
             continue
         result = entry['result']
+        retried += entry['retry_of'] is not None
+        if entry['error']:
+            failures += 1
+            pending_errors.append(entry['error'])
+        else:
+            pending_errors = []
         # The page's immutable projection retains all rows. Do not duplicate full payloads
         # in the final manifest or keep all raw/parsed pages resident simultaneously.
         rows = result['rows'] if result else []
@@ -361,14 +420,16 @@ def _summarize(policy, policy_ack, entries):
     token_conflicts = sorted(k for k, values in by_token.items() if len(values) > 1)
     inconsistent = bool(conflicts or condition_conflicts or token_conflicts
                         or exclusions.get('market_id_unavailable') or exclusions.get('closed'))
-    state = ('incomplete' if unknown or errors or not terminal else
+    state = ('incomplete' if unknown or pending_errors or not terminal else
              'exhausted_inconsistent' if inconsistent else 'exhausted_consistent')
     return {
         'schema_version': VERSION, 'policy_hash': policy_ack['payload_hash'],
         'provenance_class': policy['provenance_class'], 'state': state,
         'population_inference_eligible': False,
         'source_semantics': 'interval enumeration, not atomic snapshot or independent events',
-        'enumeration_terminal_observed': terminal and not errors and not unknown,
+        'enumeration_terminal_observed': terminal and not pending_errors and not unknown,
+        'retry_attempts': retried, 'recovered_failed_attempts': failures - len(pending_errors),
+        'unrecovered_errors': sorted(set(pending_errors)),
         'page_manifest_hash': content_hash(retained_entries), 'pages': retained_entries,
         'verified_attempts': len(good), 'unverified_attempts': len(unknown),
         'raw_bytes': sum(e['raw_bytes'] for e in good), 'source_rows': total_rows,
@@ -389,8 +450,10 @@ class GammaFrameRun:
 
     def __init__(self, root, *, limit=100, budget=Budget(requests=1), transport=None,
                  measurement_root=None, capacity_root=None, request_capacity_root=None,
-                 request_capacity_commit=None):
+                 request_capacity_commit=None, retry_policy=None):
         params = SOURCES[SOURCE].params({'closed': 'false', 'limit': limit})
+        if retry_policy is not None and type(retry_policy) is not FrameRetryPolicy:
+            raise ValueError('explicit bounded frame retry policy required')
         if type(budget) not in {Budget, FrameBudget}:
             raise ValueError('explicit diagnostic or frame budget required')
         cost_basis, capacity_basis, request_basis, preflight = None, None, None, None
@@ -435,6 +498,7 @@ class GammaFrameRun:
             'budget_kind': 'frame' if isinstance(budget, FrameBudget) else 'diagnostic',
             'cost_basis': cost_basis, 'capacity_basis': capacity_basis,
             'request_capacity_basis': request_basis, 'storage_preflight': preflight,
+            'retry_policy': asdict(retry_policy) if retry_policy is not None else None,
             'session_hash': _digest(_read(self.journal.root / 'session.json')),
             'provenance_class': 'synthetic' if transport is not None else 'prospective',
         })
@@ -448,8 +512,12 @@ class GammaFrameRun:
                 raise ValueError('interrupted run retained; never silently resume or overwrite')
             previous, cursor, seen_cursors = None, None, set()
             stop = 'request_budget'
+            pending_failure, retries_at_cursor, total_retries = None, 0, 0
+            retry = policy['retry_policy']
             retained = _retained_bytes(root)
             for _ in range(self.journal.budget.requests):
+                if pending_failure is not None:
+                    await asyncio.sleep(retry['backoff_seconds'])
                 if isinstance(self.journal.budget, FrameBudget):
                     # Reserve conservative per-page file amplification plus final manifest space.
                     reserve = self.journal.budget.bytes_per_response * 8 + 1048576
@@ -470,19 +538,28 @@ class GammaFrameRun:
                 params = dict(policy['params'])
                 if cursor is not None:
                     params['after_cursor'] = cursor
+                if pending_failure is not None:
+                    retries_at_cursor += 1
+                    total_retries += 1
                 capture = await self.journal.fetch(SOURCE, params, previous_capture_id=previous)
                 verified_panel_build()
                 facts = _page_facts(capture, params['limit'])
                 _persist(Path(capture['folder']), 'frame_page', {
-                    'policy_hash': ack['payload_hash'],
+                    'policy_hash': ack['payload_hash'], 'retry_of': pending_failure,
                     'receipt_hash': capture['raw_ack']['receipt_hash'],
                     'generic_parse_hash': capture['parsed_ack']['parsed_hash'], 'facts': facts,
                 })
                 retained += _retained_bytes(Path(capture['folder']))
                 result = facts['result']
                 if facts['error']:
-                    stop = 'page_error'
+                    eligible = bool(retry and _retryable(facts['error'], capture['receipt']))
+                    if (eligible and retries_at_cursor < retry['per_cursor']
+                            and total_retries < retry['total']):
+                        pending_failure = capture['receipt']['capture_id']
+                        continue
+                    stop = 'retry_exhausted' if eligible else 'page_error'
                     break
+                pending_failure, retries_at_cursor = None, 0
                 if result['terminal']:
                     stop = 'terminal'
                     break

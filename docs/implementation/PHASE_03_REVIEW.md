@@ -218,3 +218,20 @@ Final code validation remains **766 passed**, zero skipped, 91.45s with local Po
 no further source/module changes since that regression. The final evidence/docs-only update
 uses canonical/whitespace checks. D036 engineering milestone is committed; Phase 3 is blocked
 on required complete-frame data and remains incomplete. Draft #16 stays open/unmerged.
+
+### D037 bounded retry implementation
+
+After the user requested continued engineering, the preserved failed body was inspected:
+first bytes arrived about 0.63s after request start, followed by a mid-JSON stall. Manifest v3
+now supports an explicitly frozen opt-in retry with exact failed-attempt/cursor linkage.
+Failures remain raw immutable records and historical report errors; only validated recovery
+removes an outstanding gap. Source scope, global ceilings and no-retry defaults stay intact.
+Self-review covered request/byte/time accounting, first-page versus later-cursor parents,
+backoff clocks, denied/rate-limited/schema errors, maximum one retry per cursor and eight total,
+retry evidence tampering, unchanged v2 original-code readers and no retrospective relabelling.
+
+Eighteen new retry tests pass. Full backend **784 passed**, zero skipped, 106.17s, including
+isolated PostgreSQL; Ruff/canonical/whitespace checks pass, existing Starlette/httpx warning
+only. Focused earlier frame/capacity/original-reader/retry suite passed 75 tests before the
+three additional global-budget/backoff checks. No claim that retries improve latency or
+prove a complete frame. Commit this exact code/protocol before the fourth finite attempt.

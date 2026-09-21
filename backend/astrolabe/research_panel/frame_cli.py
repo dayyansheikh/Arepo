@@ -11,7 +11,7 @@ from pathlib import Path
 
 from astrolabe.feature_store.capture import Budget
 
-from .frame import FrameBudget, GammaFrameRun, read_frame
+from .frame import FrameBudget, FrameRetryPolicy, GammaFrameRun, read_frame
 
 
 def summary(root):
@@ -33,6 +33,7 @@ def main():
     sizes.add_argument('--capacity-journal', type=Path)
     sizes.add_argument('--request-capacity-journal', type=Path)
     bounded.add_argument('--request-capacity-commit')
+    bounded.add_argument('--bounded-retries', action='store_true')
     inspect = commands.add_parser('inspect')
     inspect.add_argument('--journal', required=True, type=Path)
     original = commands.add_parser('inspect-original')
@@ -73,7 +74,9 @@ def main():
                                  retained_bytes=8589934592)
         run = GammaFrameRun(root, limit=100, budget=budget, measurement_root=basis,
                             capacity_root=capacity, request_capacity_root=request_capacity,
-                            request_capacity_commit=commit)
+                            request_capacity_commit=commit,
+                            retry_policy=FrameRetryPolicy() if args.command == 'enumerate'
+                            and args.bounded_retries else None)
         asyncio.run(run.collect())
     else:
         root = args.journal

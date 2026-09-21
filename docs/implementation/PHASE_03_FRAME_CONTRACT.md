@@ -190,3 +190,19 @@ The prior byte-ceiling proof is insufficient for this mode. Full retained budget
 reserve must fit current disk before and after verification. Defaults remain unchanged.
 See `PHASE_03_CAPACITY_REFINEMENT.md`; tests and committed code must precede the attempt.
 All incomplete attempts remain incomplete. No complete frame or prospective pilot is implied.
+
+### Manifest v3 and opt-in retry lineage — D037
+
+Default remains no retry. Explicit `--bounded-retries` freezes one retry per cursor, eight
+total and a one-second wait after the failed page acknowledgement. Every failed response
+remains in the manifest/raw journal and consumes the original global budgets. A retry has a
+`retry_of` capture ID and repeats the exact source scope/cursor, anchored to the last successful
+page. Source/HTTP/schema/rate-limit errors outside the declared transient allowlist stop.
+
+Manifest v3 retains `errors` as historical failures, even when recovered. Completion uses
+verified same-cursor recovery, `unrecovered_errors`, intact successful pagination and genuine
+terminal evidence; consumers must not erase historical errors or mistake them for missing
+closure. Counts of retries/recovered attempts remain explicit. No scientific observation is
+created from partial bytes. Old v2 journals retain their original status/parser/build and are
+read only through their original implementation. Crashed runs still cannot resume or repair
+missing acknowledgements. Retry support changes neither source scope nor origin admission.

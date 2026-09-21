@@ -112,3 +112,31 @@ refine/test/freeze any resilience protocol before another enumeration. Do not au
 repeat the same failed full run, extend an old journal or loosen its clocks/timeout retrospectively.
 If the required data remains unavailable and no evidenced safe path exists, leave the blocker
 unchanged and stay quiet. Only an actually verified complete frame can open the panel milestone.
+
+## User-directed continuation: bounded retry protocol D037
+
+The user explicitly requested continued engineering after the data checkpoint. The failure
+began receiving bytes after about 0.63s but stalled mid-body; the preserved JSON is incomplete.
+This is evidence for a bounded transport retry, not parser loosening. Implement manifest v3
+with `FrameRetryPolicy` and explicit CLI `--bounded-retries`. The default stays no-retry.
+
+Freeze one retry per cursor, eight total and one-second backoff. Qualifying errors are
+TimeoutError/ReadTimeout/ReadError/RemoteProtocolError/ConnectTimeout/ConnectError (only with
+no status or a 2xx status), or HTTP502/503/504. All other errors stop, including HTTP429,
+permission denials, invalid schemas, cursor cycles, partial byte caps and cancellation.
+Retry requests repeat exactly the failed scope/cursor and link to its capture ID; the source
+cursor parent remains the last successful page. Every attempt consumes the original global
+limits. A successful retry advances pagination once; a second failure at that cursor stops.
+
+The v3 final report retains all errors, failed bytes and attempt clocks and separately records
+retry count, recovered failures and unrecovered errors. Source exhaustion can be reported only
+if the complete successful cursor chain terminates and every transient failure has its
+verified same-cursor recovery. Such a frame is still an interval enumeration, not an atomic
+snapshot or model-ready sample. Old attempts remain incomplete, read under their old builds.
+
+Test partial first/later-page failures, exact cursor/parent linkage, retry exhaustion, global
+retry and request caps, denied/rate-limited/schema responses, default no-retry behavior, retry
+lineage tampering and fixed backoff. Run regression and self-review; commit this protocol
+before any new attempt. A fourth finite run, if made, keeps D036's capacity/deadline bounds
+and adds only this predeclared retry policy; do not promise completion at today's latency.
+Connection pooling is a separate possible transport change and is not implemented here.

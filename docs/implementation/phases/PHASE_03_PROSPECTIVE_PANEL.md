@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — required complete-frame data unavailable; stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
+Status: in progress after explicit user continuation; complete-frame data outstanding; stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
