@@ -9,6 +9,7 @@ import asyncio
 import json
 import shutil
 import time
+import uuid
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -55,7 +56,7 @@ class FrameBudget(Budget):
     minimum_free_bytes: int = 2147483648
 
     def __post_init__(self):
-        maxima = (1000, 4194304, 1073741824, 30, 900, 3221225472, 2147483648)
+        maxima = (4000, 4194304, 3221225472, 30, 900, 8589934592, 2147483648)
         for value, maximum in zip(asdict(self).values(), maxima, strict=True):
             if type(value) is not int or not 1 <= value <= maximum:
                 raise ValueError('frame budget outside finite enumeration ceilings')
@@ -129,6 +130,36 @@ def _capacity_basis(root, *, synthetic):
             'original_budget': policy['budget'], 'original_build': policy['build'],
             'retained_file_bytes': _retained_bytes(root),
             'usage': 'capacity evidence only; original run remains incomplete'}
+
+
+def _request_capacity_basis(root, commit, *, read_root, synthetic, repository=None):
+    """Original decoder verifies full closure; new receipt proves this capacity read."""
+    from .original_reader import read_original_frame
+
+    read = read_original_frame(root, implementation_commit=commit, output_root=read_root,
+                               repository=repository)
+    report = read['report']
+    read_policy, _ = _pair(read_root, 'read_policy')
+    policy, ack = _pair(Path(root), 'frame_policy')
+    requests = policy['budget']['requests']
+    if (ack['payload_hash'] != read_policy['frame_policy_hash']
+            or policy['source'] != asdict(SOURCES[SOURCE]) or policy['policy'] != POLICY
+            or report['state'] != 'incomplete' or report['stop_reason'] != 'request_budget'
+            or report['errors'] or report['unverified_attempts']
+            or report['enumeration_terminal_observed']
+            or report['verified_attempts'] != requests or len(report['pages']) != requests
+            or report['source_rows'] != requests * 100 or report['raw_bytes'] <= 0
+            or policy['params'] != {'closed': 'false', 'limit': 100}
+            or (not synthetic and (requests != 1000
+                                   or policy['provenance_class'] != 'prospective'))):
+        raise ValueError('verified prior request-ceiling measurement required for larger capacity')
+    return {'original_root': str(root), 'implementation_commit': commit,
+            'policy_hash': ack['payload_hash'], 'report_hash': report['frame_report_hash'],
+            'read_root': str(read_root), 'read_receipt_hash': read['read_receipt_hash'],
+            'read_available_at': read['read_available_at'], 'raw_bytes': report['raw_bytes'],
+            'original_budget': policy['budget'], 'original_build': policy['build'],
+            'retained_file_bytes': _retained_bytes(Path(root)),
+            'usage': 'request-ceiling cost evidence only; original frame remains incomplete'}
 
 
 def _retained_bytes(root):
@@ -357,23 +388,44 @@ class GammaFrameRun:
     """Predeclare scope and budgets durably, then make a single bounded collection pass."""
 
     def __init__(self, root, *, limit=100, budget=Budget(requests=1), transport=None,
-                 measurement_root=None, capacity_root=None):
+                 measurement_root=None, capacity_root=None, request_capacity_root=None,
+                 request_capacity_commit=None):
         params = SOURCES[SOURCE].params({'closed': 'false', 'limit': limit})
         if type(budget) not in {Budget, FrameBudget}:
             raise ValueError('explicit diagnostic or frame budget required')
-        cost_basis, capacity_basis = None, None
+        cost_basis, capacity_basis, request_basis, preflight = None, None, None, None
+        expanded = isinstance(budget, FrameBudget) and (
+            budget.requests > 1000 or budget.total_bytes > 1073741824
+            or budget.retained_bytes > 3221225472)
+        if not expanded and (request_capacity_root is not None
+                             or request_capacity_commit is not None):
+            raise ValueError('request-ceiling proof applies only to explicitly larger frame bounds')
         if isinstance(budget, FrameBudget):
             if measurement_root is None:
                 raise ValueError('first-page cost evidence required before frame enumeration')
+            required = budget.retained_bytes + budget.minimum_free_bytes
+            free = shutil.disk_usage(Path(root).parent).free
+            if free < required:
+                raise ValueError('insufficient measured local storage reserve')
+            preflight = {'free_bytes': free, 'required_bytes': required}
             cost_basis = _cost_basis(measurement_root, synthetic=transport is not None)
-            if budget.total_bytes > 268435456 or budget.retained_bytes > 1073741824:
+            if expanded:
+                if request_capacity_root is None or request_capacity_commit is None:
+                    raise ValueError('original request-ceiling journal and commit required')
+                if capacity_root is not None:
+                    raise ValueError('byte-ceiling proof cannot substitute request-ceiling proof')
+                request_basis = _request_capacity_basis(
+                    request_capacity_root, request_capacity_commit,
+                    read_root=Path(root).parent / ('fs2_frame_read_' + uuid.uuid4().hex),
+                    synthetic=transport is not None,
+                )
+            elif budget.total_bytes > 268435456 or budget.retained_bytes > 1073741824:
                 if capacity_root is None:
                     raise ValueError('measured prior ceiling required before expanding capacity')
                 capacity_basis = _capacity_basis(capacity_root, synthetic=transport is not None)
-            if shutil.disk_usage(Path(root).parent).free < (
-                budget.retained_bytes + budget.minimum_free_bytes
-            ):
-                raise ValueError('insufficient measured local storage reserve')
+            # Verification may take time and preserve a read journal: recheck before admission.
+            if shutil.disk_usage(Path(root).parent).free < required:
+                raise ValueError('insufficient measured local storage reserve after verification')
         build = verified_panel_build()
         self.journal = CaptureJournal(root, budget=budget, transport=transport)
         self._lock = asyncio.Lock()
@@ -382,6 +434,7 @@ class GammaFrameRun:
             'source': asdict(SOURCES[SOURCE]), 'build': build, 'budget': asdict(budget),
             'budget_kind': 'frame' if isinstance(budget, FrameBudget) else 'diagnostic',
             'cost_basis': cost_basis, 'capacity_basis': capacity_basis,
+            'request_capacity_basis': request_basis, 'storage_preflight': preflight,
             'session_hash': _digest(_read(self.journal.root / 'session.json')),
             'provenance_class': 'synthetic' if transport is not None else 'prospective',
         })

@@ -380,8 +380,8 @@ async def test_preflight_free_space_refusal_never_creates_run(tmp_path, monkeypa
     assert not (tmp_path / 'fs2_capture_frame').exists()
 
 
-@pytest.mark.parametrize('values', [{'requests': 1001}, {'total_seconds': 901},
-                                    {'total_bytes': 1073741825}, {'retained_bytes': 3221225473}])
+@pytest.mark.parametrize('values', [{'requests': 4001}, {'total_seconds': 901},
+                                    {'total_bytes': 3221225473}, {'retained_bytes': 8589934593}])
 def test_cannot_silently_expand_enumeration_budget(values):
     with pytest.raises(ValueError, match='finite enumeration ceilings'):
         FrameBudget(**values)

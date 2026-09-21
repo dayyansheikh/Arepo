@@ -179,3 +179,14 @@ complete-enumeration/streaming strategy. A compact alternative needs explicit so
 and coverage evidence; CLOB's sampling endpoint is not an assumed random population sample.
 Also resolve original-build evidence consumption before recollecting solely for code changes.
 This is an unresolved Phase 3 data/engineering gate, not a production approval request.
+
+### Separately gated third attempt — D036
+
+After D034 actual original-build verification and D035 sampler sizing, the new explicit mode
+uses at most 4,000 requests, 3 GiB raw and 8 GiB retained with the same source/scope/parser,
+per-response limits and 900-second admission deadline. It requires the preserved 1,000-page
+request-ceiling attempt, decoded under its original full Git commit into a new read receipt.
+The prior byte-ceiling proof is insufficient for this mode. Full retained budget plus 2 GiB
+reserve must fit current disk before and after verification. Defaults remain unchanged.
+See `PHASE_03_CAPACITY_REFINEMENT.md`; tests and committed code must precede the attempt.
+All incomplete attempts remain incomplete. No complete frame or prospective pilot is implied.

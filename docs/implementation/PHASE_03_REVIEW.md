@@ -191,3 +191,15 @@ matches the earlier run. Exact build/script hash and results are preserved in
 `PHASE_03_SAMPLING_CAPACITY_EVIDENCE.json`. No tests ran concurrently with this confirmation.
 At 87% primary usage, coherent progress is checkpointed for the single 18:13 London heartbeat;
 weekly allowance remains available (45% used). No access/data gate has been waived.
+
+### D036 request-ceiling capacity gate
+
+Implemented explicit larger finite bounds only after newly verified original-code evidence
+of the prior 1,000-request stop. Original diagnostic/default and byte-cap modes remain intact.
+Eleven capacity tests cover actual old-code verification, retained original facts, synthetic/
+live separation, complete-versus-incomplete status, corrupted raw bytes, missing code, each
+expanded bound and unused proof arguments. Full regression **766 passed**, zero skipped,
+91.45s with isolated PostgreSQL; Ruff/canonical/whitespace checks pass. Existing warning only.
+Self-review checked source/scope equivalence, fresh receipt clocks, declared budgets, no
+hidden retries/extensions, disk reserve before/after verification and unchanged production
+boundaries. Safe protocol/code commit precedes the single finite third attempt.

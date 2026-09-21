@@ -1,6 +1,7 @@
 # Phase 3 next finite frame capacity — implementation contract
 
-Status: planned, not implemented or run. Prior attempts remain incomplete. Read checkpoint,
+Status: D036 bounds and original-decoder capacity gate implemented; validated (**766 tests passed**),
+new collection not yet run. Prior attempts remain incomplete. Read checkpoint,
 phase/frame/panel contracts and D034–D035 before implementation. No scientific threshold or
 population definition changes are proposed. This is the exact next engineering milestone.
 
@@ -58,3 +59,26 @@ byte intact and retain original status. The new result truthfully reports exhaus
 exact incomplete stop; no caller-supplied completeness or synthetic evidence admits a panel.
 Update checkpoint/review/master and draft #16. Commit the measurement evidence separately from
 its predeclared code/protocol. Phase 3 acceptance still requires the full prospective pilot.
+
+## Implementation review before new collection
+
+`FrameBudget` supports the explicit finite maxima while keeping existing defaults. CLI
+`enumerate --request-capacity-journal <root> --request-capacity-commit <full-sha>` selects
+only the separately planned larger mode. These flags are paired and mutually exclusive with
+the earlier byte-ceiling mode. The constructor verifies prior evidence with the D034 original
+reader, preserving an actual new read journal. Source/scope, nonterminal request stop, full
+page count, raw bytes, original policy/report lineage and live provenance are checked before
+new requests. Insufficient disk or missing/invalid proof refuses without creating a new
+capture run. Original evidence is never extended or overwritten.
+
+Self-review covers old defaults, every expanded ceiling, unsupported argument combinations,
+synthetic/live separation, corruption, original-code availability, byte-versus-request stop,
+source scope, free-space checks and complete-frame misclassification. New capacity tests use
+real isolated original-code child decoders with synthetic HTTP; no production or network
+requests. Full regression results and safe code commit must be recorded before collection.
+
+Local preflight at this revision: 14711009280 free bytes; 8,589,934,592 bytes RAM.
+Required disk capacity for the proposed run: 10,737,418,240 bytes. Runtime rechecks it.
+
+Final precollection regression: **766 passed**, zero skipped, 91.45s, isolated PostgreSQL included.
+Full Ruff, canonical checker and whitespace checks pass. Existing Starlette/httpx warning only.

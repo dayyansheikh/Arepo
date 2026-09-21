@@ -29,7 +29,10 @@ def main():
     bounded = commands.add_parser('enumerate')
     bounded.add_argument('--output-parent', required=True, type=Path)
     bounded.add_argument('--first-page-journal', required=True, type=Path)
-    bounded.add_argument('--capacity-journal', type=Path)
+    sizes = bounded.add_mutually_exclusive_group()
+    sizes.add_argument('--capacity-journal', type=Path)
+    sizes.add_argument('--request-capacity-journal', type=Path)
+    bounded.add_argument('--request-capacity-commit')
     inspect = commands.add_parser('inspect')
     inspect.add_argument('--journal', required=True, type=Path)
     original = commands.add_parser('inspect-original')
@@ -61,8 +64,16 @@ def main():
         capacity = args.capacity_journal if args.command == 'enumerate' else None
         if capacity is not None:
             budget = FrameBudget(total_bytes=1073741824, retained_bytes=3221225472)
+        request_capacity = args.request_capacity_journal if args.command == 'enumerate' else None
+        commit = args.request_capacity_commit if args.command == 'enumerate' else None
+        if (request_capacity is None) != (commit is None):
+            parser.error('request-capacity journal and original full commit must be paired')
+        if request_capacity is not None:
+            budget = FrameBudget(requests=4000, total_bytes=3221225472,
+                                 retained_bytes=8589934592)
         run = GammaFrameRun(root, limit=100, budget=budget, measurement_root=basis,
-                            capacity_root=capacity)
+                            capacity_root=capacity, request_capacity_root=request_capacity,
+                            request_capacity_commit=commit)
         asyncio.run(run.collect())
     else:
         root = args.journal
