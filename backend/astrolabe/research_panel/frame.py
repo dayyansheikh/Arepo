@@ -55,7 +55,7 @@ class FrameBudget(Budget):
     minimum_free_bytes: int = 2147483648
 
     def __post_init__(self):
-        maxima = (1000, 4194304, 268435456, 30, 900, 1073741824, 2147483648)
+        maxima = (1000, 4194304, 1073741824, 30, 900, 3221225472, 2147483648)
         for value, maximum in zip(asdict(self).values(), maxima, strict=True):
             if type(value) is not int or not 1 <= value <= maximum:
                 raise ValueError('frame budget outside finite enumeration ceilings')
@@ -89,6 +89,46 @@ def _cost_basis(root, *, synthetic):
             'receipt_hash': capture['raw_ack']['receipt_hash'], 'raw_bytes': receipt['raw_bytes'],
             'original_build': policy['build'], 'capture_kind': receipt['capture_kind'],
             'usage': 'cost evidence only; no changed-build re-admission'}
+
+
+
+def _capacity_basis(root, *, synthetic):
+    """Bind observed prior ceiling/retention costs, without changing its old admission."""
+    root = Path(root)
+    policy, policy_ack = _pair(root, 'frame_policy')
+    report, report_ack = _pair(root, 'frame_report')
+    if (report['policy_hash'] != policy_ack['payload_hash']
+            or report['state'] != 'incomplete'
+            or report['errors'] != ['byte_budget_exceeded']
+            or report['unverified_attempts'] != 0
+            or policy['params'] != {'closed': 'false', 'limit': 100}
+            or (not synthetic and policy['provenance_class'] != 'prospective')):
+        raise ValueError('prior raw-ceiling measurement required for expanded capacity')
+    files = {p.name for p in root.iterdir() if p.is_dir()}
+    if files != {entry['capture_id'] for entry in report['pages']}:
+        raise ValueError('prior capacity manifest omits attempts')
+    total = 0
+    for entry in report['pages']:
+        folder = root / entry['capture_id']
+        captured = verify_capture(folder)
+        receipt = captured['receipt']
+        _, page_ack = _pair(folder, 'frame_page')
+        if (receipt['source_id'] != SOURCE
+                or receipt['raw_hash'] != entry['raw_hash']
+                or captured['raw_ack']['receipt_hash'] != entry['receipt_hash']
+                or page_ack['payload_hash'] != entry['page_hash']
+                or (not synthetic and receipt['capture_kind'] != 'live_diagnostic')):
+            raise ValueError('prior capacity receipts differ')
+        total += receipt['raw_bytes']
+    if total != report['raw_bytes'] or total != policy['budget']['total_bytes']:
+        raise ValueError('prior capacity byte total differs')
+    if not synthetic and total < 268435456:
+        raise ValueError('256MiB measured ceiling required before larger live attempt')
+    return {'original_root': str(root), 'policy_hash': policy_ack['payload_hash'],
+            'report_hash': report_ack['payload_hash'], 'raw_bytes': total,
+            'original_budget': policy['budget'], 'original_build': policy['build'],
+            'retained_file_bytes': _retained_bytes(root),
+            'usage': 'capacity evidence only; original run remains incomplete'}
 
 
 def _retained_bytes(root):
@@ -317,15 +357,19 @@ class GammaFrameRun:
     """Predeclare scope and budgets durably, then make a single bounded collection pass."""
 
     def __init__(self, root, *, limit=100, budget=Budget(requests=1), transport=None,
-                 measurement_root=None):
+                 measurement_root=None, capacity_root=None):
         params = SOURCES[SOURCE].params({'closed': 'false', 'limit': limit})
         if type(budget) not in {Budget, FrameBudget}:
             raise ValueError('explicit diagnostic or frame budget required')
-        cost_basis = None
+        cost_basis, capacity_basis = None, None
         if isinstance(budget, FrameBudget):
             if measurement_root is None:
                 raise ValueError('first-page cost evidence required before frame enumeration')
             cost_basis = _cost_basis(measurement_root, synthetic=transport is not None)
+            if budget.total_bytes > 268435456 or budget.retained_bytes > 1073741824:
+                if capacity_root is None:
+                    raise ValueError('measured prior ceiling required before expanding capacity')
+                capacity_basis = _capacity_basis(capacity_root, synthetic=transport is not None)
             if shutil.disk_usage(Path(root).parent).free < (
                 budget.retained_bytes + budget.minimum_free_bytes
             ):
@@ -337,7 +381,7 @@ class GammaFrameRun:
             'schema_version': VERSION, 'policy': POLICY, 'params': params,
             'source': asdict(SOURCES[SOURCE]), 'build': build, 'budget': asdict(budget),
             'budget_kind': 'frame' if isinstance(budget, FrameBudget) else 'diagnostic',
-            'cost_basis': cost_basis,
+            'cost_basis': cost_basis, 'capacity_basis': capacity_basis,
             'session_hash': _digest(_read(self.journal.root / 'session.json')),
             'provenance_class': 'synthetic' if transport is not None else 'prospective',
         })

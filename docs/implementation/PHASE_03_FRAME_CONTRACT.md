@@ -137,3 +137,24 @@ small identity/conflict indexes and ordered page references. Original raw/generi
 projections remain intact. This bounds memory and final-report size as page count grows.
 Run only after tests and the code/protocol commit. Report observed coverage, stop reason,
 latency, disk/memory and exclusions before deciding subsequent collection or sampling.
+
+### Attempt 1 result and revised finite attempt
+
+Attempt 1 (`f66dea1`, journal `fs2_capture_95cbb8cdd4334bc1836249e7d7864473`) stopped exactly
+at its frozen 256 MiB raw ceiling: 410 attempts, 409 complete pages / 40,900 market rows,
+44 unresolved identities, no observed duplicate/conflicting identities. Page 410 is truncated
+and retained. No terminal was reached; **incomplete**, never a representative frame. Actual
+retained bytes 654,055,783; process peak resident memory 202,407,936 bytes; complete command
+elapsed 109,404,831,458 ns. See `PHASE_03_ENUMERATION_ATTEMPT_1.json`.
+
+Before a second fresh attempt, keep the population/parser/eligibility unchanged and revise
+only the finite raw/retained stopping ceilings to **1 GiB raw and 3 GiB retained**. Keep
+1,000 requests, 100 rows/page, 4 MiB/page, 15s/request, 900s admission, and 2 GiB free reserve.
+Require the observed 256 MiB attempt as additional cost evidence in the second run's policy.
+Its average retained/raw ratio was about 2.44 and the observed memory footprint is manageable.
+The run constructor checks capacity for both the complete new retained budget and free reserve.
+These observations support a finite attempt within current local capacity, not a guaranteed
+population size or completeness. Retain both previous journals exactly, and restart from the
+first cursor to avoid calling an unregistered extension of attempt 1 complete. No outcomes or
+model results informed this capacity choice. If the 100,000-row ceiling is insufficient,
+preserve the failure and revisit the sampling/reader capacity contract before further runs.

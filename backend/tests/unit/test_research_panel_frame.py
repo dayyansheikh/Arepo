@@ -381,7 +381,44 @@ async def test_preflight_free_space_refusal_never_creates_run(tmp_path, monkeypa
 
 
 @pytest.mark.parametrize('values', [{'requests': 1001}, {'total_seconds': 901},
-                                    {'total_bytes': 268435457}, {'retained_bytes': 1073741825}])
+                                    {'total_bytes': 1073741825}, {'retained_bytes': 3221225473}])
 def test_cannot_silently_expand_enumeration_budget(values):
     with pytest.raises(ValueError, match='finite enumeration ceilings'):
         FrameBudget(**values)
+
+
+async def test_expanded_capacity_needs_its_own_prior_stop_evidence(tmp_path):
+    basis = await measured_cost(tmp_path)
+    with pytest.raises(ValueError, match='measured prior ceiling'):
+        run(tmp_path, [body([market()])], budget=FrameBudget(total_bytes=1073741824),
+            measurement_root=basis)
+    assert not (tmp_path / 'fs2_capture_frame').exists()
+
+
+async def test_prior_partial_raw_attempt_stays_incomplete_in_expansion(tmp_path):
+    basis = await measured_cost(tmp_path)
+    prior_path = tmp_path / 'prior'
+    prior_path.mkdir()
+    prior, _ = run(prior_path, [body([market()])], limit=100,
+                   budget=FrameBudget(requests=1, total_bytes=20), measurement_root=basis)
+    prior_report = await prior.collect()
+    assert prior_report['state'] == 'incomplete'
+    root = tmp_path.resolve() / 'fs2_capture_expanded'
+    expanded = GammaFrameRun(
+        root, budget=FrameBudget(requests=1, total_bytes=1073741824),
+        measurement_root=basis, capacity_root=prior.journal.root,
+        transport=httpx.MockTransport(lambda r: httpx.Response(200, stream=Stream([body([])]))),
+    )
+    assert (await expanded.collect())['state'] == 'exhausted_consistent'
+    assert read_frame(prior.journal.root) == prior_report
+    declaration = json.loads((root / 'frame_policy.json').read_bytes())
+    assert declaration['capacity_basis']['report_hash'] == prior_report['frame_report_hash']
+
+
+async def test_expansion_rejects_incomplete_prior_manifest(tmp_path):
+    basis = await measured_cost(tmp_path)
+    with pytest.raises(ValueError, match='prior raw-ceiling measurement'):
+        GammaFrameRun(tmp_path.resolve() / 'fs2_capture_expanded',
+                      budget=FrameBudget(total_bytes=1073741824),
+                      measurement_root=basis, capacity_root=basis,
+                      transport=httpx.MockTransport(lambda r: None))

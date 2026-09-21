@@ -29,6 +29,7 @@ def main():
     bounded = commands.add_parser('enumerate')
     bounded.add_argument('--output-parent', required=True, type=Path)
     bounded.add_argument('--first-page-journal', required=True, type=Path)
+    bounded.add_argument('--capacity-journal', type=Path)
     inspect = commands.add_parser('inspect')
     inspect.add_argument('--journal', required=True, type=Path)
     args = parser.parse_args()
@@ -44,7 +45,11 @@ def main():
             seconds_per_request=15, total_seconds=30,
         ) if args.command == 'first-page' else FrameBudget()
         basis = args.first_page_journal if args.command == 'enumerate' else None
-        run = GammaFrameRun(root, limit=100, budget=budget, measurement_root=basis)
+        capacity = args.capacity_journal if args.command == 'enumerate' else None
+        if capacity is not None:
+            budget = FrameBudget(total_bytes=1073741824, retained_bytes=3221225472)
+        run = GammaFrameRun(root, limit=100, budget=budget, measurement_root=basis,
+                            capacity_root=capacity)
         asyncio.run(run.collect())
     else:
         root = args.journal

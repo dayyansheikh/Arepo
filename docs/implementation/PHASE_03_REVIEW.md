@@ -120,3 +120,13 @@ Full backend **740 passed**, zero skipped, 40.32s, including disposable PostgreS
 tests. Full Ruff and canonical checker passed. One launch initially resolved the virtualenv
 interpreter symlink to global Python (pytest unavailable); correcting the launch path produced
 the complete successful regression. This was a test-launch error, not a skipped code failure.
+
+### First enumeration result and separately gated second attempt
+
+Attempt 1 stopped at its frozen byte limit. 40,900 complete rows and the truncated page were
+retained; 44 identity exclusions remain explicit. No completion/population claim. Observed
+memory and disk costs support one separately declared larger attempt within local capacity.
+The new preflight requires both first-page evidence and verified prior raw-ceiling receipts;
+it cannot silently increase a live run's limit or use a synthetic attempt for live admission.
+Original runs remain unchanged/incomplete. See D033 and the frame contract. 39 targeted frame
+tests pass, including capacity-proof requirements and original-run immutability.
