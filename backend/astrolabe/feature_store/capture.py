@@ -146,6 +146,19 @@ class CaptureJournal:
                         or page.get("pagination", {}).get("next_cursor") != params["cursor"]
                         or params["cursor"] == parent.get("cursor")):
                     raise ValueError("cursor does not progress from captured page")
+            if "after_cursor" in params:
+                if previous_capture_id is None:
+                    raise ValueError("keyset cursor requires captured prior page")
+                parent = previous["receipt"]["request"]["params"]
+                if ({k: v for k, v in parent.items() if k != "after_cursor"}
+                        != {k: v for k, v in params.items() if k != "after_cursor"}):
+                    raise ValueError("keyset cursor cannot change query scope")
+                page = _strict_json(previous["raw"])
+                if (previous["parsed"]["parse_error"] is not None
+                        or not isinstance(page, dict)
+                        or page.get("next_cursor") != params["after_cursor"]
+                        or params["after_cursor"] == parent.get("after_cursor")):
+                    raise ValueError("keyset cursor does not progress from captured page")
             self.count += 1
             capture_id = str(uuid.uuid4())
             folder = self.root / capture_id

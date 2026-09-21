@@ -1,6 +1,6 @@
 # AREPO v2 master implementation plan
 
-Updated 2026-09-20. This programme evolves the existing dayyansheikh/Arepo repository. Phase numbers follow the user's implementation programme, not the older report's differently numbered design roadmap. Phases 00–02 complete; next phase: **03 — Bounded prospective panel**.
+Updated 2026-09-21. This programme evolves the existing dayyansheikh/Arepo repository. Phase numbers follow the user's implementation programme, not the older report's differently numbered design roadmap. Phases 00–02 complete; next phase: **03 — Bounded prospective panel**.
 
 ## Recovery order and authority
 
@@ -13,7 +13,7 @@ Read ../AREPO_V2_CHECKPOINT.md first, then AGENTS.md, this plan, the current pha
 | 00 | [Canonical foundation](phases/PHASE_00_FOUNDATION.md) | Verified production + supplied research | Complete — draft PR #13 |
 | 01 | [Feature Store v2 foundations](phases/PHASE_01_FEATURE_STORE.md) | 00 accepted outputs | Complete — draft PR #14; 610 backend tests passed |
 | 02 | [Sources, clocks and identities](phases/PHASE_02_SOURCES_CLOCKS_IDENTITY.md) | 01 accepted outputs | Complete — draft PR #15; 685 tests and new predeclared core-source run |
-| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | In progress — draft #16; protocol/sampling/target milestone, 704 tests |
+| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | In progress — draft #16; sampling/target and bounded frame adapter milestones, 732 tests |
 | 04 | [Baselines and initial edge experiments](phases/PHASE_04_EDGE_EXPERIMENTS.md) | 03 accepted outputs + sufficient clean independent events | Provisional |
 | 05 | [Wallet and information event engine](phases/PHASE_05_WALLET_INFORMATION.md) | 04 accepted outputs + sufficient clean independent events | Provisional |
 | 06 | [Bayesian and ML candidates](phases/PHASE_06_MODELS.md) | 05 accepted outputs + sufficient clean independent events | Provisional |
@@ -49,4 +49,4 @@ Never merge/deploy, migrate production, change infrastructure/credentials/live r
 
 ## Continuation and stop conditions
 
-One same-task heartbeat, continue-arepo-v2-implementation, every 310 minutes under the user's revised schedule. Requested initial anchor: 2026-09-20 17:30 Europe/London; see checkpoint for observed scheduler state. Reload checkpoint and recover from exact next action; no duplicate continuation chains. Finish current phase before advancing. Save progress before usage exhaustion. If protected approval is needed: BLOCKED — USER DECISION REQUIRED. If access/data or longer-term allowance is unavailable, document investigated alternatives and stop productive work. If all nonproduction work is complete: IMPLEMENTATION ROADMAP COMPLETE — AWAITING REVIEW. Stay quiet for unchanged blocked state and notify meaningful changes only.
+One same-task continuation chain. The user replaced the earlier interval schedule with a 2026-09-21 04:30 Europe/London one-shot and instructed that each continuation schedule the next one 310 minutes ahead. The 04:30 run was observed; its replacement is arepo-v2-continuation-at-09-40, due today at 09:40 London. Verify current automation state before replacement; historical IDs are not authority. Reload checkpoint and recover from exact next action; no duplicate continuation chains. Finish current phase before advancing. Save progress before usage exhaustion. If protected approval is needed: BLOCKED — USER DECISION REQUIRED. If access/data or longer-term allowance is unavailable, document investigated alternatives and stop productive work. If all nonproduction work is complete: IMPLEMENTATION ROADMAP COMPLETE — AWAITING REVIEW. Stay quiet for unchanged blocked state and notify meaningful changes only.

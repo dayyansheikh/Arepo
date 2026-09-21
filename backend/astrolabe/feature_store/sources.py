@@ -27,6 +27,15 @@ class SourceContract:
             allowed = {"limit", "active", "closed"}
             if values.get("active") != "true" or values.get("closed") != "false":
                 raise ValueError("diagnostic Gamma query requires explicit active/open filter")
+        elif self.source_id == "gamma.markets.keyset":
+            allowed = {"limit", "closed", "after_cursor"}
+            if values.get("closed") != "false":
+                raise ValueError("keyset frame requires explicit open-market scope")
+            if "after_cursor" in values and (
+                not isinstance(values["after_cursor"], str)
+                or not 1 <= len(values["after_cursor"]) <= 8192
+            ):
+                raise ValueError("invalid keyset cursor")
         elif self.source_id == "data.v2.trades":
             allowed = {"limit", "condition", "taker_only", "cursor"}
             if values.get("taker_only") != "true":
@@ -51,8 +60,9 @@ class SourceContract:
             raise ValueError("unsupported query parameters")
         if "limit" in allowed:
             limit = values.get("limit")
-            if type(limit) is not int or not 1 <= limit <= 10:
-                raise ValueError("probe limit must be an integer in 1..10")
+            maximum = 100 if self.source_id == "gamma.markets.keyset" else 10
+            if type(limit) is not int or not 1 <= limit <= maximum:
+                raise ValueError(f"probe limit must be an integer in 1..{maximum}")
         return dict(values)
 
 
@@ -64,6 +74,13 @@ SOURCES = {
             "https://docs.polymarket.com/api-reference/markets/list-markets", "gamma",
             "gamma-identity-v1", "createdAt/updatedAt are metadata clocks, not first receipt",
             "market/condition IDs; ordered string outcome/token arrays; source-native decimals",
+        ),
+        SourceContract(
+            "gamma.markets.keyset", "https://gamma-api.polymarket.com/markets/keyset",
+            "https://docs.polymarket.com/api-reference/markets/list-markets-keyset-pagination",
+            "gamma-keyset", "gamma-keyset-frame-v1",
+            "metadata clocks are not first receipt; enumeration spans an interval",
+            "markets array with exact native values; opaque next_cursor omitted on last page",
         ),
         SourceContract(
             "clob.book", "https://clob.polymarket.com/book",

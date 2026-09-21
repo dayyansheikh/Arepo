@@ -69,3 +69,36 @@ remain separate following milestones. Unknown economic grouping prevents indepen
 Documentation basis: [Gamma keyset](https://docs.polymarket.com/api-reference/markets/list-markets-keyset-pagination)
 and [CLOB simplified markets](https://docs.polymarket.com/api-reference/markets/get-simplified-markets),
 read 2026-09-20. These describe interfaces; empirical coverage and costs are not yet measured.
+
+## Implemented first-page / finite-chain adapter (2026-09-21)
+
+`research_panel/frame.py` freezes the source, build, scope and limits before the first request.
+`frame_cli first-page` admits exactly one request, limit 100, at most 1 MiB of raw bytes,
+15 seconds for the request and 30 seconds for the request-session budget. Final file sealing
+and verification are separate local work. Existing diagnostic maxima remain in force; no
+full-universe budget is inferred from a one-page test. All source rows, unknown metadata,
+failed requests and duplicate versions are retained. Eligibility counts refer to source rows,
+not independent events or deduplicated sample size. No models/origins are written.
+
+Rechecked the official endpoint documentation on 2026-09-21: a continuation cursor occurs
+on a full page; the last page omits it. The adapter requires fewer than `limit` rows AND an
+omitted cursor for terminal evidence. An explicit null/empty cursor, a short continuing page
+or a full page without a cursor is inconsistent with this pinned protocol and fails closed.
+Exact page-size multiples therefore require a final empty page. Runtime measurement may
+reveal a protocol disagreement; preserve it and investigate a future version instead of
+silently loosening the current run. Documentation is not runtime verification.
+
+Every page has the raw receipt, lossless generic parse, frame projection and their durable
+acknowledgements. The final ordered manifest references all page hashes. Source and panel
+builds are independently pinned; old measurement journals must be read using their original
+implementation rather than silently projected under current code. A reader never fills torn
+page/report acknowledgements or resumes network collection. Complete file-copy verification
+is useful local recovery evidence, not the full archive-equivalence gate.
+
+`exhausted_consistent` means this finite chain ended consistently with the pinned source
+protocol. It still sets population inference eligibility false: sampling integration, interval
+freshness/churn, source coverage, durable seed/protocol and eventual panel acceptance are
+separate obligations. `exhausted_inconsistent` retains contradictory market/condition/token
+versions; `incomplete` retains any page/budget/clock/integrity interruption. There is no
+first/last-version winner. One source-ordered outcome is selected deterministically per valid
+row for future frame mapping, never selected by its price or result.

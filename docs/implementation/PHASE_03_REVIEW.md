@@ -76,3 +76,27 @@ These are read-only documentation findings, not newly admitted source implementa
 decision to bulk-collect. Next follow [the frame adapter contract](PHASE_03_FRAME_CONTRACT.md):
 pin and test cursor/scope/completeness semantics, then bounded first-page measurement before
 setting a complete-frame collection budget. No live panel has been run.
+
+## Gamma frame adapter milestone — 2026-09-21
+
+Implemented `research_panel/frame.py`, `build_identity.py`, `frame_cli.py` and 28 fault/
+contract tests, plus isolated keyset source parameters and captured-parent verification.
+The original Phase 2 `SourceRun` policy and all production entry points remain untouched.
+A durable policy precedes every request; both code packages and source contracts are pinned.
+Raw numerical JSON, generic parsed values, every duplicate row and native identity survive.
+Schema/HTTP/truncation/cursor/budget/clock failures cannot become successful enumeration.
+Torn page/report files remain ineligible and are not repaired on read or retry. A complete
+local copy gives identical evidence; that does not waive the full archive-equivalence gate.
+
+Full backend: **732 passed**, zero skipped, 39.85s with disposable PostgreSQL, one existing
+Starlette/httpx warning. Targeted frame/capture/source-run tests: **62 passed** in 7.72s.
+Full Ruff, canonical contract and whitespace checks passed. No database outside test
+fixtures was accessed. Reviewed scope drift, page order/parentage, missing terminal signals,
+unknown identities, condition/token conflicts, retained unknown strata, future clocks,
+changed loaded code and accidental replay promotion. All population inference flags remain
+false pending subsequent integration/acceptance. No new model or edge finding is claimed.
+
+Next: commit this tested implementation, then execute only the frozen one-page CLI. Inspect
+actual receipt/size/latency/schema evidence before designing a larger frame budget. The phase
+remains incomplete until durable sampling/origins/feature reads, collectors/targets and the
+actual prospective pilot satisfy the existing acceptance criteria.
