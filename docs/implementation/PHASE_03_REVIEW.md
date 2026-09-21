@@ -266,3 +266,18 @@ After a whitespace wrap and one added storage-failure test, **94 focused tests p
 Starlette/httpx warning only. No current live-source performance claim follows from these
 tests. D038 permits one new finite measurement after this reviewed code/protocol is committed;
 the four earlier attempts remain incomplete and no phase gate has passed.
+
+### Fifth outcome — complete interval enumeration verified
+
+Under committed D038 `41fcb01`, 1,755 pages reached the terminal page and passed final integrity,
+clock, cursor and identity verification: **175,427 distinct markets**, 175,383 eligible mappings
+and 44 explicit unresolved identities. No errors, retries, duplicates or conflicting identities.
+Raw 1,115,618,904 bytes; retained 2,728,778,097; peak resident 478,052,352. Whole command
+514,493,751,417ns; source interval 23:30:55–23:36:47 UTC, sealed 23:37:32 UTC September 21.
+No regression tests ran concurrently; lightweight read-only progress checks were made.
+Exact facts/hashes: PHASE_03_ENUMERATION_ATTEMPT_5.json and its original local journal.
+
+This clears the complete-frame prerequisite, not Phase 3 acceptance or population inference.
+One uncontrolled successful run cannot attribute success causally to connection reuse.
+No prior failed run was changed and no raw evidence was removed. Next is durable selection
+with actual read/computation clocks and an explicit freshness rule, followed by the pilot.

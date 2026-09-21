@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — D038 connection-reuse engineering in progress; complete-frame and pilot gates outstanding. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
+Status: incomplete — attempt 5 cleared complete-frame gate; durable selection/origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -39,7 +39,10 @@ was established. See PHASE_03_ENUMERATION_ATTEMPT_4.json and the live checkpoint
 The renewed continuation evaluates D038 opt-in connection reuse with unchanged finite bounds.
 Loopback/fault tests, full regression, self-review and a committed protocol precede any fifth
 attempt. This is a transport experiment, not a relaxation of the required complete-frame gate.
-No productive live collection is currently running; the four original failures stay preserved.
+Attempt 5 then completed under `41fcb01`: 175,427 distinct source markets, 175,383 usable
+outcome mappings, 44 unresolved, no duplicates/conflicts/errors. All verification passed.
+The four original failures stay preserved. No collector is running. Next: durable policy,
+seed, complete inventory, actual read/projection/selection records; see the panel contract.
 
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
 remain unchanged. No production scans were restarted. v2 collection uses isolated local
