@@ -281,3 +281,15 @@ This clears the complete-frame prerequisite, not Phase 3 acceptance or populatio
 One uncontrolled successful run cannot attribute success causally to connection reuse.
 No prior failed run was changed and no raw evidence was removed. Next is durable selection
 with actual read/computation clocks and an explicit freshness rule, followed by the pilot.
+
+### D039 pure metadata prerequisite
+
+The reviewed projector reads only the explicit category, aware endDate, liquidity and first
+source-ordered outcomePrices value. Exact numerical text/trailing zeros survive; float,
+malformed array, wrong mapping length and naive-date cases remain invalid. Missing values
+do not fall back to related fields, become zero or exclude eligible markets. Source event IDs
+do not become economic groups. No raw row is changed and no availability/origin is asserted.
+Full isolated backend **818 passed**, zero skipped, 74.04s, including PostgreSQL and 23 new
+projection cases. Ruff/canonical/whitespace pass; existing Starlette/httpx warning only.
+Self-review checked bounded inputs, unsupported type handling, source-order selection,
+preserved provenance boundaries and no caller payload admission. Durable integration remains.

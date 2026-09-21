@@ -1,6 +1,7 @@
 # Phase 3 durable panel journal — next milestone contract
 
-Status: original-build read boundary implemented; remaining panel design only, 2026-09-21.
+Status: original-build read boundary and pure metadata projection implemented; durable panel
+journal remains design only, 2026-09-22. Attempt 5 supplied the first verified complete frame.
 Read actual frame evidence before refining/implementing.
 No origins, features, controls or labels are produced by this document. Prerequisites:
 Phase 2 source journals, Phase 3 pure sampling/targets and a usable verified frame.
@@ -120,3 +121,27 @@ Unknown category/close/liquidity/probability remain unknown strata. Source event
 populate an economic-independence group by assumption. Trigger evidence must exist by the
 cutoff; a scheduled-only initial frame cannot fabricate triggered arms/control matches.
 The eventual pilot must separately establish its frozen trigger/control coverage requirements.
+
+## Metadata projection boundary — D039
+
+`research_panel/metadata.py` is a pure, versioned projection; it creates no receipt, actual
+read, selection or origin. Its consumer must bind the exact original row hash, validated
+outcome count and actual computation clocks. Original raw representations remain authority.
+
+Use only explicit `category`, aware `endDate`, `liquidity` and first source-ordered
+`outcomePrices` entry. Preserve exact decimals and trailing zeros; reject binary floats,
+nonfinite/negative liquidity, probabilities outside [0,1], malformed or wrong-length price
+arrays and naive dates. Keep missing versus invalid versus present distinct, including zero.
+No inference from sports tags, best bid/ask, liquidityNum, endDateIso or source event IDs.
+Unknown metadata is an unknown stratum, not an eligibility exclusion. A category longer
+than 256 characters is invalid for this bounded projection but remains in the original row.
+Do not choose the more favorable outcome or treat Gamma metadata as an executable quote.
+
+Next integrate this pure projection with the complete inventory and durable consumer. Freeze
+policy/seed before selection reads; preserve all 44 unmapped rows without synthetic tokens;
+record every row's original page/hash/index and projection-state reasons. Only validated
+mapped eligible members enter sampling. Deduplicate identical versions while retaining every
+row; refuse conflicting identities. Consume the complete old frame via its original code,
+then independently bind the actual metadata reads/projection clocks. No original availability
+timestamp may be reused as the current computation time. Explicitly separate development
+replay from a future fresh prospective pilot; freshness limits must be frozen before origins.

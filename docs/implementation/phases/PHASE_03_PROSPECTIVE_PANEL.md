@@ -44,6 +44,10 @@ outcome mappings, 44 unresolved, no duplicates/conflicts/errors. All verificatio
 The four original failures stay preserved. No collector is running. Next: durable policy,
 seed, complete inventory, actual read/projection/selection records; see the panel contract.
 
+D039's pure exact metadata projection is now implemented and tested (818 full backend tests,
+including 23 new projection cases). It records no actual read or origin; integrating it with
+the durable journal remains the next milestone. Unknown metadata must not exclude markets.
+
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
 remain unchanged. No production scans were restarted. v2 collection uses isolated local
 journals and public read endpoints only. Upcoming journal/consumer requirements are in
