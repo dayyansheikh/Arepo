@@ -100,3 +100,23 @@ Next: commit this tested implementation, then execute only the frozen one-page C
 actual receipt/size/latency/schema evidence before designing a larger frame budget. The phase
 remains incomplete until durable sampling/origins/feature reads, collectors/targets and the
 actual prospective pilot satisfy the existing acceptance criteria.
+
+### First-page evidence and bounded enumeration refinement
+
+Live measurement from `bf734a0` succeeded: 100 markets / 557,140 raw bytes / 1,501,764
+retained bytes / 157,199,875 ns source request-to-receipt time. The cursor continued, so the
+run is correctly **incomplete**. Full evidence references and original journal are recorded
+in `PHASE_03_FIRST_PAGE_EVIDENCE.json`. No old diagnostic was relabelled or reused as origins.
+
+The v2 frame format streams page verification and references full page projections from its
+final manifest. Separate FrameBudget ceilings and cost-evidence preflight are now implemented;
+old diagnostic maxima remain unchanged. Free-space and retained-byte stops preserve prior
+files. Synthetic cost evidence cannot authorize a real collection. First-page results estimate
+neither total population nor worst-case page volume. Larger-run caps are frozen in the frame
+contract before collection. Self-review includes memory growth and conservative file-space
+reservation; actual CLI resident-memory and elapsed-time metrics will be reported.
+
+Full backend **740 passed**, zero skipped, 40.32s, including disposable PostgreSQL; 36 frame
+tests. Full Ruff and canonical checker passed. One launch initially resolved the virtualenv
+interpreter symlink to global Python (pytest unavailable); correcting the launch path produced
+the complete successful regression. This was a test-launch error, not a skipped code failure.

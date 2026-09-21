@@ -7,8 +7,9 @@ under a new clock/build or silently promoted into a complete population frame.
 
 import asyncio
 import json
+import shutil
 import time
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from astrolabe.feature_store.admission import content_hash
@@ -27,7 +28,7 @@ from astrolabe.feature_store.sources import SOURCES
 from .build_identity import verified_panel_build
 
 SOURCE = 'gamma.markets.keyset'
-VERSION = 'fs2-gamma-frame-v1'
+VERSION = 'fs2-gamma-frame-v2'
 POLICY = {
     'population': 'all Gamma /markets/keyset rows returned under closed=false',
     'scope': 'no date, liquidity, category, active, display or top-N filter',
@@ -39,6 +40,59 @@ POLICY = {
     'clocks': 'local receipt/availability; native venue clocks and global atomicity unadmitted',
     'scientific_stage': 'measurement_development_only',
 }
+
+
+@dataclass(frozen=True)
+class FrameBudget(Budget):
+    """Separate measured-enumeration ceilings; existing diagnostic caps stay unchanged."""
+
+    requests: int = 1000
+    bytes_per_response: int = 4194304
+    total_bytes: int = 268435456
+    seconds_per_request: int = 15
+    total_seconds: int = 900
+    retained_bytes: int = 1073741824
+    minimum_free_bytes: int = 2147483648
+
+    def __post_init__(self):
+        maxima = (1000, 4194304, 268435456, 30, 900, 1073741824, 2147483648)
+        for value, maximum in zip(asdict(self).values(), maxima, strict=True):
+            if type(value) is not int or not 1 <= value <= maximum:
+                raise ValueError('frame budget outside finite enumeration ceilings')
+
+
+def _cost_basis(root, *, synthetic):
+    """Verify original first-page cost evidence without re-admitting it under this build."""
+    root = Path(root)
+    policy, policy_ack = _pair(root, 'frame_policy')
+    report, report_ack = _pair(root, 'frame_report')
+    folders = [p for p in root.iterdir() if p.is_dir()]
+    if len(folders) != 1:
+        raise ValueError('one first-page measurement required before enumeration')
+    capture = verify_capture(folders[0])
+    receipt = capture['receipt']
+    if (policy['params'] != {'closed': 'false', 'limit': 100}
+            or policy['budget']['requests'] != 1
+            or report['policy_hash'] != policy_ack['payload_hash']
+            or receipt['source_id'] != SOURCE
+            or receipt['source_version'] != SOURCES[SOURCE].version
+            or receipt['raw_bytes'] != report['raw_bytes']
+            or report['errors'] or report['unverified_attempts']
+            or capture['parsed']['parse_error'] is not None
+            or (not synthetic and receipt['capture_kind'] != 'live_diagnostic')
+            or not _ordered_clocks(policy_ack['durable_ack'], receipt['request_started'],
+                                   capture['parsed_ack']['durable_ack'],
+                                   report_ack['durable_ack'])):
+        raise ValueError('ineligible first-page cost evidence')
+    return {'original_root': str(root), 'policy_hash': policy_ack['payload_hash'],
+            'report_hash': report_ack['payload_hash'], 'raw_hash': receipt['raw_hash'],
+            'receipt_hash': capture['raw_ack']['receipt_hash'], 'raw_bytes': receipt['raw_bytes'],
+            'original_build': policy['build'], 'capture_kind': receipt['capture_kind'],
+            'usage': 'cost evidence only; no changed-build re-admission'}
+
+
+def _retained_bytes(root):
+    return sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
 
 
 def parse_page(raw, limit):
@@ -108,9 +162,12 @@ def _verify_policy(root):
             or policy['build'] != verified_panel_build()
             or policy['source'] != asdict(SOURCES[SOURCE])
             or policy['session_hash'] != _digest(session_bytes)
-            or policy['budget'] != asdict(Budget(**session['budget']))
+            or policy['budget'] != asdict((FrameBudget if policy['budget_kind'] == 'frame'
+                                            else Budget)(**session['budget']))
             or session['capture_kind'] not in {'synthetic', 'live_diagnostic'}
             or policy['provenance_class'] != expected_kind
+            or policy['budget_kind'] not in {'frame', 'diagnostic'}
+            or (policy['budget_kind'] == 'frame' and not policy['cost_basis'])
             or set(params) != {'limit', 'closed'}
             or not _ordered_clocks(session['started'], ack['durable_ack'])):
         raise ValueError('frame policy/build/source/clock differs')
@@ -119,17 +176,28 @@ def _verify_policy(root):
 
 def _inventory(root, policy, policy_ack):
     """Read all attempts, never omit torn/unindexed folders from the ordered manifest."""
-    entries, captures = [], []
     folders = sorted(p for p in root.iterdir() if p.is_dir())
     if len(folders) > policy['budget']['requests']:
         raise ValueError('frame exceeds request budget')
+    ordered = []
     for folder in folders:
+        try:
+            ordinal = json.loads(_read(folder / 'receipt.json'))['receipt_ordinal']
+            if type(ordinal) is not int:
+                raise ValueError('invalid receipt ordinal')
+        except (OSError, ValueError, KeyError, TypeError):
+            yield {'capture_id': folder.name, 'state': 'unverified_attempt'}
+            continue
+        ordered.append((ordinal, folder))
+    ordered.sort()
+    previous_id, previous_cursor, prior_clock = None, None, policy_ack['durable_ack']
+    seen_cursors, total_bytes = set(), 0
+    for index, (ordinal, folder) in enumerate(ordered, 1):
         try:
             capture = verify_capture(folder)
             page, ack = _pair(folder, 'frame_page')
         except (OSError, ValueError, KeyError, TypeError):
-            # Raw evidence is retained; unavailable chronology cannot be inferred.
-            entries.append({'capture_id': folder.name, 'state': 'unverified_attempt'})
+            yield {'capture_id': folder.name, 'state': 'unverified_attempt'}
             continue
         receipt = capture['receipt']
         expected = _page_facts(capture, policy['params']['limit'])
@@ -143,17 +211,11 @@ def _inventory(root, policy, policy_ack):
                 or not _ordered_clocks(policy_ack['durable_ack'], receipt['request_started'],
                                        capture['parsed_ack']['durable_ack'], ack['durable_ack'])):
             raise ValueError('frame page integrity/chronology mismatch')
-        captures.append((capture, page, ack))
-    captures.sort(key=lambda v: v[0]['receipt']['receipt_ordinal'])
-    previous_id, previous_cursor, prior_clock = None, None, policy_ack['durable_ack']
-    seen_cursors, total_bytes = set(), 0
-    for ordinal, (capture, page, ack) in enumerate(captures, 1):
-        receipt = capture['receipt']
         params = {**policy['params']}
         if previous_cursor is not None:
             params['after_cursor'] = previous_cursor
         total_bytes += receipt['raw_bytes']
-        if (receipt['receipt_ordinal'] != ordinal
+        if (receipt['receipt_ordinal'] != index
                 or receipt['request'] != {'method': 'GET', 'url': SOURCES[SOURCE].endpoint,
                                           'params': params}
                 or receipt['previous_capture_id'] != previous_id
@@ -178,35 +240,51 @@ def _inventory(root, policy, policy_ack):
             'error': 'cursor_cycle' if repeated else facts['error'],
             'result': result,
         }
-        entries.append(entry)
+        yield entry
         previous_id, previous_cursor = receipt['capture_id'], cursor
         prior_clock = ack['durable_ack']
         stopped = repeated or facts['error'] or (result and result['terminal'])
-        if stopped and ordinal < len(captures):
+        if stopped and index < len(ordered):
             raise ValueError('frame continued beyond stop/termination')
-    return entries
 
 
 def _summarize(policy, policy_ack, entries):
-    good = [e for e in entries if e['state'] == 'verified_attempt']
-    unknown = [e for e in entries if e['state'] == 'unverified_attempt']
+    good, unknown, retained_entries = [], [], []
+    by_market, by_condition, by_token, exclusions = {}, {}, {}, {}
+    total_rows, identified_rows, eligible_rows = 0, 0, 0
+    for entry in entries:
+        if entry['state'] == 'unverified_attempt':
+            unknown.append(entry)
+            retained_entries.append(entry)
+            continue
+        result = entry['result']
+        # The page's immutable projection retains all rows. Do not duplicate full payloads
+        # in the final manifest or keep all raw/parsed pages resident simultaneously.
+        rows = result['rows'] if result else []
+        total_rows += len(rows)
+        small_result = {k: v for k, v in result.items() if k != 'rows'} if result else None
+        if small_result is not None:
+            small_result['row_count'] = len(rows)
+        small = {**entry, 'result': small_result}
+        good.append(small)
+        retained_entries.append(small)
+        for row in rows:
+            eligible_rows += row['eligible']
+            if row['market_id'] is not None:
+                identified_rows += 1
+                by_market.setdefault(row['market_id'], set()).add(row['row_hash'])
+            for reason in row['exclusion_reasons']:
+                exclusions[reason] = exclusions.get(reason, 0) + 1
+            identity = row['identity']
+            if identity:
+                mapping = content_hash(identity['outcomes'])
+                by_condition.setdefault(identity['condition_id'], set()).add(mapping)
+                for outcome in identity['outcomes']:
+                    by_token.setdefault(outcome['token_id'], set()).add(
+                        (identity['condition_id'], outcome['outcome_index'],
+                         outcome['outcome_label']))
     terminal = bool(good and good[-1]['result'] and good[-1]['result']['terminal'])
     errors = sorted({e['error'] for e in good if e['error']})
-    rows = [r for e in good if e['result'] for r in e['result']['rows']]
-    by_market, by_condition, by_token = {}, {}, {}
-    exclusions = {}
-    for row in rows:
-        if row['market_id'] is not None:
-            by_market.setdefault(row['market_id'], set()).add(row['row_hash'])
-        for reason in row['exclusion_reasons']:
-            exclusions[reason] = exclusions.get(reason, 0) + 1
-        identity = row['identity']
-        if identity:
-            mapping = content_hash(identity['outcomes'])
-            by_condition.setdefault(identity['condition_id'], set()).add(mapping)
-            for outcome in identity['outcomes']:
-                by_token.setdefault(outcome['token_id'], set()).add(
-                    (identity['condition_id'], outcome['outcome_index'], outcome['outcome_label']))
     conflicts = sorted(k for k, values in by_market.items() if len(values) > 1)
     condition_conflicts = sorted(k for k, values in by_condition.items() if len(values) > 1)
     token_conflicts = sorted(k for k, values in by_token.items() if len(values) > 1)
@@ -220,14 +298,14 @@ def _summarize(policy, policy_ack, entries):
         'population_inference_eligible': False,
         'source_semantics': 'interval enumeration, not atomic snapshot or independent events',
         'enumeration_terminal_observed': terminal and not errors and not unknown,
-        'page_manifest_hash': content_hash(entries), 'pages': entries,
+        'page_manifest_hash': content_hash(retained_entries), 'pages': retained_entries,
         'verified_attempts': len(good), 'unverified_attempts': len(unknown),
-        'raw_bytes': sum(e['raw_bytes'] for e in good), 'source_rows': len(rows),
+        'raw_bytes': sum(e['raw_bytes'] for e in good), 'source_rows': total_rows,
         'unique_market_ids': len(by_market),
-        'duplicate_market_rows': sum(r['market_id'] is not None for r in rows) - len(by_market),
+        'duplicate_market_rows': identified_rows - len(by_market),
         'conflicting_market_ids': conflicts, 'conflicting_condition_ids': condition_conflicts,
         'conflicting_token_ids': token_conflicts, 'exclusion_counts': exclusions,
-        'eligible_row_count': sum(r['eligible'] for r in rows), 'errors': errors,
+        'eligible_row_count': eligible_rows, 'errors': errors,
         'interval_start': good[0]['request_started'] if good else None,
         'interval_end': good[-1]['first_received'] if good else None,
         'availability_basis': 'page acknowledgements; full frame needs report acknowledgement',
@@ -238,14 +316,28 @@ def _summarize(policy, policy_ack, entries):
 class GammaFrameRun:
     """Predeclare scope and budgets durably, then make a single bounded collection pass."""
 
-    def __init__(self, root, *, limit=100, budget=Budget(requests=1), transport=None):
+    def __init__(self, root, *, limit=100, budget=Budget(requests=1), transport=None,
+                 measurement_root=None):
         params = SOURCES[SOURCE].params({'closed': 'false', 'limit': limit})
+        if type(budget) not in {Budget, FrameBudget}:
+            raise ValueError('explicit diagnostic or frame budget required')
+        cost_basis = None
+        if isinstance(budget, FrameBudget):
+            if measurement_root is None:
+                raise ValueError('first-page cost evidence required before frame enumeration')
+            cost_basis = _cost_basis(measurement_root, synthetic=transport is not None)
+            if shutil.disk_usage(Path(root).parent).free < (
+                budget.retained_bytes + budget.minimum_free_bytes
+            ):
+                raise ValueError('insufficient measured local storage reserve')
         build = verified_panel_build()
         self.journal = CaptureJournal(root, budget=budget, transport=transport)
         self._lock = asyncio.Lock()
         _persist(self.journal.root, 'frame_policy', {
             'schema_version': VERSION, 'policy': POLICY, 'params': params,
             'source': asdict(SOURCES[SOURCE]), 'build': build, 'budget': asdict(budget),
+            'budget_kind': 'frame' if isinstance(budget, FrameBudget) else 'diagnostic',
+            'cost_basis': cost_basis,
             'session_hash': _digest(_read(self.journal.root / 'session.json')),
             'provenance_class': 'synthetic' if transport is not None else 'prospective',
         })
@@ -259,7 +351,19 @@ class GammaFrameRun:
                 raise ValueError('interrupted run retained; never silently resume or overwrite')
             previous, cursor, seen_cursors = None, None, set()
             stop = 'request_budget'
+            retained = _retained_bytes(root)
             for _ in range(self.journal.budget.requests):
+                if isinstance(self.journal.budget, FrameBudget):
+                    # Reserve conservative per-page file amplification plus final manifest space.
+                    reserve = self.journal.budget.bytes_per_response * 8 + 1048576
+                    if retained + reserve > self.journal.budget.retained_bytes:
+                        stop = 'retained_byte_budget'
+                        break
+                    if shutil.disk_usage(root).free < (
+                        self.journal.budget.minimum_free_bytes + reserve
+                    ):
+                        stop = 'free_space_reserve'
+                        break
                 if self.journal.bytes >= self.journal.budget.total_bytes:
                     stop = 'byte_budget'
                     break
@@ -277,6 +381,7 @@ class GammaFrameRun:
                     'receipt_hash': capture['raw_ack']['receipt_hash'],
                     'generic_parse_hash': capture['parsed_ack']['parsed_hash'], 'facts': facts,
                 })
+                retained += _retained_bytes(Path(capture['folder']))
                 result = facts['result']
                 if facts['error']:
                     stop = 'page_error'
@@ -299,8 +404,8 @@ class GammaFrameRun:
 def read_frame(root):
     """Read-only recovery. A torn run stays incomplete; this never reparses into new evidence."""
     root, policy, ack = _verify_policy(root)
-    entries = _inventory(root, policy, ack)
-    summary = _summarize(policy, ack, entries)
+    summary = _summarize(policy, ack, _inventory(root, policy, ack))
+    entries = summary['pages']
     if not (root / 'frame_report_ack.json').exists():
         return {**summary, 'state': 'incomplete', 'stop_reason': 'interrupted',
                 'frame_available_at': None, 'frame_report_hash': None}

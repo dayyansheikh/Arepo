@@ -3,12 +3,15 @@
 import argparse
 import asyncio
 import json
+import resource
+import sys
+import time
 import uuid
 from pathlib import Path
 
 from astrolabe.feature_store.capture import Budget
 
-from .frame import GammaFrameRun, read_frame
+from .frame import FrameBudget, GammaFrameRun, read_frame
 
 
 def summary(root):
@@ -23,23 +26,33 @@ def main():
     commands = parser.add_subparsers(dest='command', required=True)
     first = commands.add_parser('first-page')
     first.add_argument('--output-parent', required=True, type=Path)
+    bounded = commands.add_parser('enumerate')
+    bounded.add_argument('--output-parent', required=True, type=Path)
+    bounded.add_argument('--first-page-journal', required=True, type=Path)
     inspect = commands.add_parser('inspect')
     inspect.add_argument('--journal', required=True, type=Path)
     args = parser.parse_args()
-    if args.command == 'first-page':
+    started = time.monotonic_ns()
+    if args.command in {'first-page', 'enumerate'}:
         parent = args.output_parent
         if not parent.is_absolute() or parent.resolve() != parent or not parent.is_dir():
             parser.error('existing canonical absolute output directory required')
         root = parent / ('fs2_capture_' + uuid.uuid4().hex)
         # Freeze measurement caps before sending the single first-page request.
-        run = GammaFrameRun(root, limit=100, budget=Budget(
+        budget = Budget(
             requests=1, bytes_per_response=1048576, total_bytes=1048576,
             seconds_per_request=15, total_seconds=30,
-        ))
+        ) if args.command == 'first-page' else FrameBudget()
+        basis = args.first_page_journal if args.command == 'enumerate' else None
+        run = GammaFrameRun(root, limit=100, budget=budget, measurement_root=basis)
         asyncio.run(run.collect())
     else:
         root = args.journal
-    print(json.dumps(summary(root), sort_keys=True, indent=2))
+    result = summary(root)
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    result.update(process_peak_resident_bytes=peak if sys.platform == 'darwin' else peak * 1024,
+                  process_elapsed_ns=str(time.monotonic_ns() - started))
+    print(json.dumps(result, sort_keys=True, indent=2))
 
 
 if __name__ == '__main__':

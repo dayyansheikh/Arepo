@@ -102,3 +102,38 @@ separate obligations. `exhausted_inconsistent` retains contradictory market/cond
 versions; `incomplete` retains any page/budget/clock/integrity interruption. There is no
 first/last-version winner. One source-ordered outcome is selected deterministically per valid
 row for future frame mapping, never selected by its price or result.
+
+## Measured enumeration protocol v2 (frozen before larger run)
+
+First-page evidence: `PHASE_03_FIRST_PAGE_EVIDENCE.json`, implementation `bf734a0`.
+100 returned rows, 557,140 raw bytes, 1,501,764 retained file bytes and 157,199,875 ns of
+request-to-final-receipt monotonic time. It is incomplete with a continuing cursor. One page
+cannot estimate total population, tail page sizes or complete-run latency. Local free capacity
+at the sizing check was 17,415,118,848 bytes; no hosted infrastructure was inspected/changed.
+
+The next **finite attempt**, not a completeness promise, has these frozen ceilings:
+
+- 1,000 sequential requests, 100 rows/page (at most 100,000 returned row slots), no retries;
+- 4 MiB per response and 256 MiB total raw response bytes;
+- 15 seconds/request and 900 seconds for admitting requests;
+- 1 GiB retained-file stopping budget, plus at least 2 GiB free-space reserve;
+- unchanged `closed=false` population with no added date, category, activity or liquidity filter.
+
+These are deliberately bounded cost limits based on the measured first page and local space,
+not an estimate of the number of open markets. Any ceiling produces an incomplete report.
+The storage stop reserves eight response caps plus 1 MiB before each page for parsed/projection
+amplification and final reporting; actual retained bytes are measured, not assumed from raw
+bytes. Housekeeping/report verification may extend beyond the request-admission deadline.
+No chunk deletion or compaction is performed. Full archive equivalence remains outstanding.
+
+`FrameBudget` is separate from the existing small diagnostic Budget. The larger CLI requires
+an intact first-page cost journal and rejects synthetic cost evidence for real collection.
+Historical cost bytes/hashes are referenced without promoting or reinterpreting the original
+journal under the new build. Source and panel code for the new attempt are frozen independently.
+
+Frame manifest schema v2 keeps per-page hashes and summaries instead of copying every row
+into the final report. A streaming verifier reads one full page at a time, retaining only
+small identity/conflict indexes and ordered page references. Original raw/generic/frame page
+projections remain intact. This bounds memory and final-report size as page count grows.
+Run only after tests and the code/protocol commit. Report observed coverage, stop reason,
+latency, disk/memory and exclusions before deciding subsequent collection or sampling.

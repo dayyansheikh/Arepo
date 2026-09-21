@@ -12,7 +12,7 @@ from astrolabe.feature_store.capture import Budget, CaptureJournal, _strict_json
 from astrolabe.feature_store.sources import SOURCES
 from astrolabe.research_panel import _PACKAGE_FILES, frame
 from astrolabe.research_panel.build_identity import verified_panel_build
-from astrolabe.research_panel.frame import GammaFrameRun, parse_page, read_frame
+from astrolabe.research_panel.frame import FrameBudget, GammaFrameRun, parse_page, read_frame
 from tests.unit.test_feature_store_capture import Stream
 
 
@@ -29,7 +29,7 @@ def body(rows, cursor=None):
     return json.dumps(value).encode()
 
 
-def run(tmp_path, pages, *, limit=2, budget=None):
+def run(tmp_path, pages, *, limit=2, budget=None, measurement_root=None):
     requests = []
     root = tmp_path.resolve() / 'fs2_capture_frame'
 
@@ -42,7 +42,8 @@ def run(tmp_path, pages, *, limit=2, budget=None):
         return httpx.Response(200, stream=Stream([item]))
 
     result = GammaFrameRun(root, limit=limit, transport=httpx.MockTransport(handler),
-                           budget=budget or Budget(requests=len(pages)))
+                           budget=budget or Budget(requests=len(pages)),
+                           measurement_root=measurement_root)
     return result, requests
 
 
@@ -58,7 +59,9 @@ async def test_scope_cursor_terminal_identity_and_causal_manifest(tmp_path):
     assert report['source_rows'] == report['unique_market_ids'] == 3
     assert report['interval_start']['utc'] <= report['interval_end']['utc']
     assert report['interval_end']['utc'] <= report['frame_available_at']['utc']
-    assert report['pages'][0]['result']['rows'][0]['selected_token_id'] == '2'
+    page_file = item.journal.root / report['pages'][0]['capture_id'] / 'frame_page.json'
+    page = json.loads(page_file.read_bytes())
+    assert page['facts']['result']['rows'][0]['selected_token_id'] == '2'
     before = {p: p.read_bytes() for p in item.journal.root.rglob('*') if p.is_file()}
     assert read_frame(item.journal.root) == report
     assert await item.collect() == report
@@ -317,3 +320,68 @@ async def test_expired_request_budget_sends_nothing_and_retains_missing_frame(tm
     assert report['state'] == 'incomplete'
     assert report['stop_reason'] == 'time_budget'
     assert report['source_rows'] == 0
+
+
+async def measured_cost(tmp_path):
+    cost_path = tmp_path / 'cost'
+    cost_path.mkdir()
+    cost, _ = run(cost_path, [body([market(i) for i in range(1, 101)], 'next')], limit=100)
+    await cost.collect()
+    return cost.journal.root
+
+
+async def test_larger_frame_budget_requires_first_page_and_keeps_diagnostic_ceiling(tmp_path):
+    with pytest.raises(ValueError, match='first-page cost evidence'):
+        GammaFrameRun(tmp_path.resolve() / 'fs2_capture_refused', budget=FrameBudget())
+    assert not (tmp_path / 'fs2_capture_refused').exists()
+    with pytest.raises(ValueError, match='diagnostic'):
+        Budget(requests=11)
+    basis = await measured_cost(tmp_path)
+    item, _ = run(tmp_path, [body([market()])], budget=FrameBudget(requests=1),
+                  measurement_root=basis)
+    report = await item.collect()
+    assert report['state'] == 'exhausted_consistent'
+    declaration = json.loads((item.journal.root / 'frame_policy.json').read_bytes())
+    assert declaration['budget_kind'] == 'frame'
+    assert declaration['cost_basis']['raw_bytes'] > 0
+    assert declaration['cost_basis']['original_root'] == str(basis)
+    assert len(json.dumps(report)) < 10000  # final manifest references rows; no full duplication
+    assert 'rows' not in report['pages'][0]['result']
+
+
+async def test_synthetic_cost_cannot_authorize_real_source_enumeration(tmp_path):
+    basis = await measured_cost(tmp_path)
+    with pytest.raises(ValueError, match='ineligible first-page cost evidence'):
+        GammaFrameRun(tmp_path.resolve() / 'fs2_capture_real', budget=FrameBudget(),
+                      measurement_root=basis)
+    assert not (tmp_path / 'fs2_capture_real').exists()
+
+
+async def test_retained_storage_budget_stops_with_all_prior_evidence_kept(tmp_path):
+    basis = await measured_cost(tmp_path)
+    item, requests = run(tmp_path, [body([market()])],
+                          budget=FrameBudget(requests=1, retained_bytes=1024),
+                          measurement_root=basis)
+    report = await item.collect()
+    assert not requests
+    assert report['state'] == 'incomplete'
+    assert report['stop_reason'] == 'retained_byte_budget'
+    assert (basis / 'frame_report.json').exists()
+
+
+async def test_preflight_free_space_refusal_never_creates_run(tmp_path, monkeypatch):
+    basis = await measured_cost(tmp_path)
+    from collections import namedtuple
+
+    usage = namedtuple('usage', 'total used free')
+    monkeypatch.setattr(frame.shutil, 'disk_usage', lambda _: usage(100, 100, 0))
+    with pytest.raises(ValueError, match='storage reserve'):
+        run(tmp_path, [body([market()])], budget=FrameBudget(), measurement_root=basis)
+    assert not (tmp_path / 'fs2_capture_frame').exists()
+
+
+@pytest.mark.parametrize('values', [{'requests': 1001}, {'total_seconds': 901},
+                                    {'total_bytes': 268435457}, {'retained_bytes': 1073741825}])
+def test_cannot_silently_expand_enumeration_budget(values):
+    with pytest.raises(ValueError, match='finite enumeration ceilings'):
+        FrameBudget(**values)
