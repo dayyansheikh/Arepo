@@ -206,3 +206,15 @@ closure. Counts of retries/recovered attempts remain explicit. No scientific obs
 created from partial bytes. Old v2 journals retain their original status/parser/build and are
 read only through their original implementation. Crashed runs still cannot resume or repair
 missing acknowledgements. Retry support changes neither source scope nor origin admission.
+
+### Manifest v4 and opt-in connection reuse — D038
+
+`--reuse-connections` pins `http_connection_policy` in the frame policy and its hashed capture
+session. The optional session v2 policy is `single-client-http1-v1`: one connection and one
+keepalive slot, 30-second idle expiry, zero implicit retries, cookies cleared on every request.
+The client lifetime is one collection scope, closed even on cancellation or storage failure.
+Default session v1 retains per-request clients and a null frame connection policy. Explicit
+retry lineage and all source/clock/budget constraints are unchanged. A server may close a
+connection; a new connection does not itself retry a failed response or create a new origin.
+Current readers reject older frame versions explicitly and require their original decoder.
+See D038's precollection tests and finite next-attempt contract in the capacity refinement.

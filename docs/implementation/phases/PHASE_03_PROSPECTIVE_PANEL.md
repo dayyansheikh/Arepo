@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — required complete-frame data unavailable; stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
+Status: incomplete — D038 connection-reuse engineering in progress; complete-frame and pilot gates outstanding. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -35,6 +35,11 @@ D037 bounded retries were then tested (784 tests) and used in attempt 4. That at
 after 20,000 rows at retry exhaustion, with unrecovered ConnectError/TimeoutError. All retry
 attempts and partial bytes remain preserved; no complete frame or representative population
 was established. See PHASE_03_ENUMERATION_ATTEMPT_4.json and the live checkpoint.
+
+The renewed continuation evaluates D038 opt-in connection reuse with unchanged finite bounds.
+Loopback/fault tests, full regression, self-review and a committed protocol precede any fifth
+attempt. This is a transport experiment, not a relaxation of the required complete-frame gate.
+No productive live collection is currently running; the four original failures stay preserved.
 
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
 remain unchanged. No production scans were restarted. v2 collection uses isolated local

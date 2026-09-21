@@ -244,3 +244,25 @@ Three transient retries were used; two recovered and the final unrecovered error
 peak resident memory 141,836,288 bytes. No source terminal, population inference, model-ready
 origin or pilot acceptance was observed. Exact report hashes and costs are preserved in
 `PHASE_03_ENUMERATION_ATTEMPT_4.json`. This evidence does not justify another automatic run.
+
+### D038 connection reuse — reviewed before fifth attempt
+
+Renewed continuation identified fresh HTTP client creation for every page. The opt-in v4
+frame policy binds a single client, finite one-connection pool and stateless cookie handling.
+The source query, identity/parser, limits, error allowlist, retry counts and causal clocks are
+unchanged. Default callers still open per-request clients; supplied transports stay synthetic.
+No production/source admission gate changed. Old frames keep their original decoder/build.
+
+Real loopback HTTP tests establish one connection for two pages and correct reconnection
+after a server close. Fault checks cover partial-response retry, cancellation, hard deadline,
+storage-fsync failure, cleanup, scope misuse and manifest-policy mismatch. The initial
+contextlib-decorated methods failed the loaded-code guard; context-manager factories preserve
+direct code verification without weakening that guard. A damaged-session test caught error
+ordering, corrected before regression. Private exception text remains excluded from receipts.
+
+Full isolated backend **794 passed**, zero skipped, 69.08s, including disposable PostgreSQL.
+After a whitespace wrap and one added storage-failure test, **94 focused tests passed** in
+19.76s, including all 11 connection cases. Ruff, canonical and whitespace checks pass. Existing
+Starlette/httpx warning only. No current live-source performance claim follows from these
+tests. D038 permits one new finite measurement after this reviewed code/protocol is committed;
+the four earlier attempts remain incomplete and no phase gate has passed.

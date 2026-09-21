@@ -34,6 +34,7 @@ def main():
     sizes.add_argument('--request-capacity-journal', type=Path)
     bounded.add_argument('--request-capacity-commit')
     bounded.add_argument('--bounded-retries', action='store_true')
+    bounded.add_argument('--reuse-connections', action='store_true')
     inspect = commands.add_parser('inspect')
     inspect.add_argument('--journal', required=True, type=Path)
     original = commands.add_parser('inspect-original')
@@ -76,7 +77,9 @@ def main():
                             capacity_root=capacity, request_capacity_root=request_capacity,
                             request_capacity_commit=commit,
                             retry_policy=FrameRetryPolicy() if args.command == 'enumerate'
-                            and args.bounded_retries else None)
+                            and args.bounded_retries else None,
+                            reuse_connections=args.command == 'enumerate'
+                            and args.reuse_connections)
         asyncio.run(run.collect())
     else:
         root = args.journal

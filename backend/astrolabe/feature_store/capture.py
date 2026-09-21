@@ -13,6 +13,7 @@ import json
 import os
 import time
 import uuid
+from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -24,6 +25,22 @@ from .sources import SOURCES
 from .types import canonical_json, utc_text
 
 _CLOCK_SESSION = str(uuid.uuid4())
+REUSED_HTTP_POLICY = {
+    "version": "single-client-http1-v1", "max_connections": 1,
+    "max_keepalive_connections": 1, "keepalive_expiry_seconds": 30,
+    "transport_retries": 0, "cookies": "cleared_before_each_request",
+}
+
+
+def connection_policy(session):
+    """Read the frozen transport policy; older one-client-per-request sessions stay valid."""
+    if (session.get("schema_version") == "fs2-capture-v1"
+            and "http_connection_policy" not in session):
+        return None
+    if (session.get("schema_version") == "fs2-capture-v2"
+            and session.get("http_connection_policy") == REUSED_HTTP_POLICY):
+        return dict(REUSED_HTTP_POLICY)
+    raise ValueError("capture HTTP connection policy differs")
 
 
 def _clock():
@@ -96,7 +113,10 @@ class CaptureJournal:
     diagnostic capture only; none of its rows are automatically research-admitted.
     """
 
-    def __init__(self, root: Path, *, budget: Budget = Budget(), transport=None):
+    def __init__(self, root: Path, *, budget: Budget = Budget(), transport=None,
+                 reuse_connections=False):
+        if type(reuse_connections) is not bool:
+            raise ValueError("explicit boolean connection reuse policy required")
         root = Path(root)
         if not root.is_absolute() or not root.name.startswith("fs2_capture_"):
             raise ValueError("explicit absolute fs2_capture_ directory required")
@@ -107,20 +127,80 @@ class CaptureJournal:
         self.root = root
         self.budget = budget
         self.transport = transport
+        self.reuse_connections = reuse_connections
+        self._client = None
+        self._scope_active = False
         self.session_id = str(uuid.uuid4())
         self.kind = "synthetic" if transport is not None else "live_diagnostic"
         self.started = time.monotonic()
         self.count = 0
         self.bytes = 0
         self._lock = asyncio.Lock()
-        _write_once(root / "session.json", _json_bytes({
+        session = {
             "schema_version": "fs2-capture-v1", "session_id": self.session_id,
             "capture_kind": self.kind, "started": _clock(), "budget": asdict(budget),
-        }))
+        }
+        if reuse_connections:
+            session.update(schema_version="fs2-capture-v2",
+                           http_connection_policy=dict(REUSED_HTTP_POLICY))
+        _write_once(root / "session.json", _json_bytes(session))
+
+    def _new_client(self):
+        limits = ({"limits": httpx.Limits(max_connections=1, max_keepalive_connections=1,
+                                          keepalive_expiry=30)} if self.reuse_connections else {})
+        return httpx.AsyncClient(
+            timeout=self.budget.seconds_per_request, follow_redirects=False,
+            transport=self.transport, trust_env=False, http2=False, **limits,
+            headers={"User-Agent": "Arepo-Research-Verification/2.0",
+                     "Accept": "application/json", "Accept-Encoding": "identity"},
+        )
+
+    def connection_scope(self):
+        # Keep loaded functions directly verifiable against compiled source. Decorating
+        # the method itself would replace its code object with a contextlib wrapper.
+        return asynccontextmanager(self._connection_scope)()
+
+    async def _connection_scope(self):
+        """Own and close one optional client, including cancellation and failed collection.
+
+        The pool may reconnect after a server close; it does not retry failed requests.
+        Injected transports remain synthetic. No caller-supplied live client is admitted.
+        """
+        if not self.reuse_connections:
+            yield
+            return
+        if self._scope_active:
+            raise ValueError("connection scope already active")
+        self._scope_active = True
+        try:
+            async with self._new_client() as client:
+                self._client = client
+                try:
+                    yield
+                finally:
+                    self._client = None
+        finally:
+            self._scope_active = False
+
+    def _request_client(self):
+        return asynccontextmanager(self._request_client_scope)()
+
+    async def _request_client_scope(self):
+        if self.reuse_connections:
+            if self._client is None:
+                raise ValueError("connection reuse requires an active scope")
+            # Pooling must not add cookie-based state to these public stateless requests.
+            self._client.cookies.clear()
+            yield self._client
+        else:
+            async with self._new_client() as client:
+                yield client
 
     async def fetch(self, source_id, params, *, previous_capture_id=None):
         # Serialize this small diagnostic session so total budgets and ordinals are exact.
         async with self._lock:
+            if self.reuse_connections and self._client is None:
+                raise ValueError("connection reuse requires an active scope")
             source = SOURCES[source_id]
             params = source.params(params)
             if self.count >= self.budget.requests or self.bytes >= self.budget.total_bytes:
@@ -174,12 +254,7 @@ class CaptureJournal:
             limit = min(self.budget.bytes_per_response, self.budget.total_bytes - self.bytes)
             try:
                 async with asyncio.timeout(min(remaining, self.budget.seconds_per_request)):
-                    async with httpx.AsyncClient(
-                        timeout=self.budget.seconds_per_request, follow_redirects=False,
-                        transport=self.transport, trust_env=False,
-                        headers={"User-Agent": "Arepo-Research-Verification/2.0",
-                                 "Accept": "application/json", "Accept-Encoding": "identity"},
-                    ) as client:
+                    async with self._request_client() as client:
                         async with client.stream("GET", source.endpoint, params=params) as response:
                             status = response.status_code
                             headers = {k: response.headers[k] for k in
@@ -301,6 +376,7 @@ def verify_capture(folder: Path, *, raw_only=False):
                 or session["session_id"] != receipt["session_id"]
                 or session["capture_kind"] != receipt["capture_kind"]):
             raise ValueError("capture session integrity mismatch")
+        connection_policy(session)
     clocks = [receipt["request_started"]]
     if receipt["first_byte"] is not None:
         clocks.append(receipt["first_byte"])

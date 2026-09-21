@@ -20,6 +20,7 @@ from astrolabe.feature_store.capture import (
     _digest,
     _json_bytes,
     _strict_json,
+    connection_policy,
     verify_capture,
 )
 from astrolabe.feature_store.source_bridge import _time
@@ -30,7 +31,7 @@ from astrolabe.feature_store.sources import SOURCES
 from .build_identity import verified_panel_build
 
 SOURCE = 'gamma.markets.keyset'
-VERSION = 'fs2-gamma-frame-v3'
+VERSION = 'fs2-gamma-frame-v4'
 POLICY = {
     'population': 'all Gamma /markets/keyset rows returned under closed=false',
     'scope': 'no date, liquidity, category, active, display or top-N filter',
@@ -257,6 +258,8 @@ def _verify_policy(root):
     policy, ack = _pair(root, 'frame_policy')
     session_bytes = _read(root / 'session.json')
     session = json.loads(session_bytes)
+    if policy.get('schema_version') != VERSION:
+        raise ValueError('frame version differs; use the original implementation reader')
     expected_kind = 'synthetic' if session['capture_kind'] == 'synthetic' else 'prospective'
     params = SOURCES[SOURCE].params(policy['params'])
     retry = policy['retry_policy']
@@ -266,6 +269,7 @@ def _verify_policy(root):
             or policy['build'] != verified_panel_build()
             or policy['source'] != asdict(SOURCES[SOURCE])
             or policy['session_hash'] != _digest(session_bytes)
+            or policy['http_connection_policy'] != connection_policy(session)
             or policy['budget'] != asdict((FrameBudget if policy['budget_kind'] == 'frame'
                                             else Budget)(**session['budget']))
             or session['capture_kind'] not in {'synthetic', 'live_diagnostic'}
@@ -450,7 +454,9 @@ class GammaFrameRun:
 
     def __init__(self, root, *, limit=100, budget=Budget(requests=1), transport=None,
                  measurement_root=None, capacity_root=None, request_capacity_root=None,
-                 request_capacity_commit=None, retry_policy=None):
+                 request_capacity_commit=None, retry_policy=None, reuse_connections=False):
+        if type(reuse_connections) is not bool:
+            raise ValueError('explicit boolean connection reuse policy required')
         params = SOURCES[SOURCE].params({'closed': 'false', 'limit': limit})
         if retry_policy is not None and type(retry_policy) is not FrameRetryPolicy:
             raise ValueError('explicit bounded frame retry policy required')
@@ -490,7 +496,8 @@ class GammaFrameRun:
             if shutil.disk_usage(Path(root).parent).free < required:
                 raise ValueError('insufficient measured local storage reserve after verification')
         build = verified_panel_build()
-        self.journal = CaptureJournal(root, budget=budget, transport=transport)
+        self.journal = CaptureJournal(root, budget=budget, transport=transport,
+                                      reuse_connections=reuse_connections)
         self._lock = asyncio.Lock()
         _persist(self.journal.root, 'frame_policy', {
             'schema_version': VERSION, 'policy': POLICY, 'params': params,
@@ -499,12 +506,14 @@ class GammaFrameRun:
             'cost_basis': cost_basis, 'capacity_basis': capacity_basis,
             'request_capacity_basis': request_basis, 'storage_preflight': preflight,
             'retry_policy': asdict(retry_policy) if retry_policy is not None else None,
+            'http_connection_policy': connection_policy(
+                json.loads(_read(self.journal.root / 'session.json'))),
             'session_hash': _digest(_read(self.journal.root / 'session.json')),
             'provenance_class': 'synthetic' if transport is not None else 'prospective',
         })
 
     async def collect(self):
-        async with self._lock:
+        async with self._lock, self.journal.connection_scope():
             root, policy, ack = _verify_policy(self.journal.root)
             if (root / 'frame_report_ack.json').exists():
                 return read_frame(root)

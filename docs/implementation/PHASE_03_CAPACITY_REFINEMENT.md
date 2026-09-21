@@ -140,3 +140,32 @@ lineage tampering and fixed backoff. Run regression and self-review; commit this
 before any new attempt. A fourth finite run, if made, keeps D036's capacity/deadline bounds
 and adds only this predeclared retry policy; do not promise completion at today's latency.
 Connection pooling is a separate possible transport change and is not implemented here.
+
+## Renewed continuation: connection reuse D038
+
+Attempt 4 recovered two transient failures but stopped on a timeout followed by ConnectError.
+Its receipt records do not identify the underlying DNS/TLS/socket cause. The existing collector
+creates and closes an HTTP client for every page; an opt-in shared connection is a concrete,
+reversible transport change to evaluate. It is not evidence of a persistent outage or a fix.
+
+Use frame manifest v4 and capture session v2 to freeze one client for the collection scope,
+HTTP/1.1, one active connection/one keepalive slot, 30-second idle expiry and zero transport
+retries. Clear response cookies before each public request so reuse cannot introduce session
+selection. Do not follow redirects, use environment proxies, add concurrency or accept an
+injected client as live. Injected transports remain synthetic. Close the scope on every exit.
+Default paths keep per-request clients; old journals use their original committed reader.
+
+Required validation: actual loopback sockets prove two pages reuse one connection and server
+closure reconnects without dropping a page; default mode opens two connections. Test cookie
+isolation, cursor lineage, partial timeout/cancellation preservation, explicit retry recovery,
+no hidden retry, scope misuse, policy mismatch and closure. Retain build-integrity checking;
+context-manager factories keep original method code directly verifiable. Run focused/full
+isolated regression, canonical checks and self-review; commit before any public request.
+
+Only then, with the original first-page and original-decoded request-capacity proof and fresh
+disk preflight, run one new finite attempt using both `--bounded-retries` and
+`--reuse-connections`. All D036/D037 limits stay fixed: 4,000 total requests, 100 rows/page,
+4 MiB/page, 3 GiB raw, 8 GiB retained, 2 GiB disk reserve, 15 seconds/request, 900 seconds
+admission, one retry/cursor, eight retries total and one-second backoff. Preserve and report
+the actual outcome regardless of success. No old journal is extended or relabelled. A complete
+interval frame would open the next engineering milestone, not population inference or Phase 4.
