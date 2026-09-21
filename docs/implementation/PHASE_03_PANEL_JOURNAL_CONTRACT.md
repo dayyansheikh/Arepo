@@ -66,7 +66,9 @@ inside evidence, repeated output paths and original journal/repository immutabil
 5. Record actual verified frame read start/end, projection computation, policy/sample hashes,
    selection cutoff, causal input manifest and durable selection acknowledgement. All used
    page/identity/group/trigger availability must be <= cutoff. Only then request origin inputs.
-6. Use the pure sample planner under the frozen scope/strata; preserve exact rational weights,
+6. Use the pure sample planner under the frozen scope/strata and explicit frame-capacity limit;
+   the default remains 100,000, while explicit version-2 output supports at most 400,000.
+   Preserve exact rational weights,
    role overlap, matching probabilities, exclusions and unfilled control slots. Do not choose
    a smaller population or discard controls to fit a budget after selection.
 7. Admit source captures through their own durable declarations. Record actual feature reads,

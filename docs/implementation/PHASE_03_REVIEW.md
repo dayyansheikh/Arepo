@@ -164,3 +164,23 @@ frame completeness. The original decoder still verifies all original dependencie
 source requests, application startup, databases or dependency installation in this path.
 Next verify an actual preserved journal after committing this implementation, then reconcile
 finite sampling capacity beyond 100,000 rows before any new source enumeration.
+
+### Original evidence read and finite sampler capacity
+
+The new reader at `2eb7ec4` verified the actual 100,000-row attempt through original commit
+`726cec27ff6eeb4c10b01dd0ebde84b9804d3fb0`, preserving its original report hash and incomplete
+state. See `PHASE_03_ORIGINAL_READ_EVIDENCE.json`; read journal
+`data-dumps/fs2_frame_read_2f0ba791e3974a369a8f5e551fe5f73c`. This was a local read only.
+
+D035 streams the canonical frame digest and uses bounded heap selection. The default output
+was compared in full against original `2eb7ec4` code; a frozen golden plan hash and Unicode/
+exact-value hash tests preserve that regression. Explicit expanded capacity is versioned and
+hashed; over-budget frames still fail instead of truncating. Original default is 100,000.
+The deterministic 400,000-row synthetic capacity fixture passed its predeclared 1 GiB /180s
+gates at **322,699,264 resident bytes and 29,322,234,667ns**. This single-stratum fixture does
+not bound arbitrary string lengths, huge stratum counts, raw Gamma identity verification or
+all end-to-end ingestion costs. It supports further finite design, not source completeness.
+Full backend **755 passed**, zero skipped, 72.43s, isolated PostgreSQL included; 21 planning
+tests passed again after adding the frozen golden assertion. Ruff/canonical/whitespace checks
+passed. Existing Starlette/httpx warning only. No collection caps were increased in this
+milestone and no new network collection occurred. See the next capacity-refinement contract.

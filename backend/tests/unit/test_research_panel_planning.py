@@ -204,3 +204,36 @@ def test_equivalent_aware_timezones_project_identical_utc_targets():
         row, received_at=row.received_at.astimezone(zone),
         available_at=row.available_at.astimezone(zone),
     )])
+
+
+def test_streamed_frame_hash_exactly_matches_original_canonical_encoding():
+    from dataclasses import asdict
+
+    from astrolabe.feature_store.admission import content_hash
+    from astrolabe.research_panel.sampling import _frame_hash
+
+    rows = [replace(member(9), category="café🐈"), member(1, True),
+            replace(member(4), probability=None, liquidity=None)]
+    expected = content_hash([asdict(r) for r in sorted(rows, key=lambda r: r.market_id)])
+    assert _frame_hash(rows) == expected == _frame_hash(list(reversed(rows)))
+
+
+def test_expanded_capacity_is_explicit_and_never_truncates_or_changes_selection():
+    rows = [member(i, triggered=i < 4) for i in range(1, 17)]
+    original = plan(rows)
+    # Golden full output hash verified against the original 2eb7ec4 implementation.
+    assert original["plan_hash"] == (
+        "bb8781ef2aaa778fbad4e384bd39bd925014fc39537a3b18f6185dd103c42535"
+    )
+    expanded = plan(rows, max_frame_members=400000)
+    assert expanded["schema_version"] == "fs2-sampling-plan-v2"
+    assert expanded["max_frame_members"] == 400000
+    for key in ("frame_hash", "assignments", "strata", "exclusions"):
+        assert expanded[key] == original[key]
+    assert expanded["plan_hash"] != original["plan_hash"]
+    with pytest.raises(ValueError, match="bounded frame"):
+        plan(rows, max_frame_members=15)
+    for invalid in (0, True, 400001):
+        with pytest.raises(ValueError, match="finite frame capacity"):
+            plan(rows, max_frame_members=invalid)
+    assert exact_probability(1, 400000)["decimal"] == "0.0000025"

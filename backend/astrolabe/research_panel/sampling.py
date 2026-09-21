@@ -1,13 +1,15 @@
 """Exact stratified sampling plans, never a collector or evidence of actual origins."""
 
+import hashlib
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from decimal import Decimal, localcontext
 from fractions import Fraction
+from heapq import nsmallest
 from itertools import islice
 
 from astrolabe.feature_store.admission import content_hash
-from astrolabe.feature_store.types import HASH_PATTERN, exact_decimal, utc_datetime
+from astrolabe.feature_store.types import HASH_PATTERN, canonical_json, exact_decimal, utc_datetime
 
 
 @dataclass(frozen=True)
@@ -67,7 +69,7 @@ class FrameMember:
 def exact_probability(numerator, denominator):
     """Finite decimal only when exact; manifest rational always remains authoritative."""
     if (type(numerator) is not int or type(denominator) is not int
-            or not 0 <= numerator <= denominator or not 1 <= denominator <= 100000):
+            or not 0 <= numerator <= denominator or not 1 <= denominator <= 400000):
         raise ValueError("valid nonnegative inclusion count/frequency required")
     value = Fraction(numerator, denominator)
     remainder = value.denominator
@@ -128,15 +130,29 @@ def _band(value, edges):
     return str(sum(number >= exact_decimal(edge) for edge in edges))
 
 
-def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_evidence_ids):
+def _frame_hash(members):
+    # Exactly the canonical list encoding, without duplicating every dataclass/dict/string.
+    digest = hashlib.sha256(b"[")
+    for index, row in enumerate(sorted(members, key=lambda r: r.market_id)):
+        if index:
+            digest.update(b",")
+        digest.update(canonical_json(asdict(row)).encode())
+    digest.update(b"]")
+    return digest.hexdigest()
+
+
+def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_evidence_ids,
+                max_frame_members=100000):
     """Each arm has its own conditional inclusion probability, not a union weight.
 
     The caller must durably freeze this output before capture; this pure planner cannot
     attest that happened. Unknown event groups are a stratum, never independent events.
     """
     cutoff = utc_datetime(cutoff)
-    members = list(islice(members, 100001))
-    if not 1 <= len(members) <= 100000:
+    if type(max_frame_members) is not int or not 1 <= max_frame_members <= 400000:
+        raise ValueError("finite frame capacity up to 400000 required")
+    members = list(islice(members, max_frame_members + 1))
+    if not 1 <= len(members) <= max_frame_members:
         raise ValueError("nonempty bounded frame required")
     if frame_status not in {"enumerated_complete", "source_partial", "explicit_list"}:
         raise ValueError("explicit frame completeness required")
@@ -166,10 +182,10 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
     assignments, reports = [], []
 
     def select(rows, count, stratum, arm):
-        return sorted(rows, key=lambda r: (
+        return nsmallest(count, rows, key=lambda r: (
             content_hash({"seed": protocol.seed, "stratum": stratum,
                           "arm": arm, "market": r.market_id}), r.market_id,
-        ))[:count]
+        ))
 
     def add(row, arm, stratum, count, population, matched=(), matching_probability=None):
         assignments.append({"market_id": row.market_id, "token_id": row.token_id,
@@ -215,7 +231,7 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
         "protocol": asdict(protocol), "cutoff": cutoff.isoformat(),
         "frame_scope": frame_scope, "frame_status": frame_status,
         "frame_evidence_ids": sorted(frame_evidence_ids),
-        "frame_hash": content_hash([asdict(r) for r in sorted(members, key=lambda r: r.market_id)]),
+        "frame_hash": _frame_hash(members),
         "frame_size": len(members), "unique_selected_markets": unique,
         "assignments": sorted(assignments, key=lambda a: (a["market_id"], a["arm"])),
         "strata": reports, "exclusions": excluded,
@@ -224,4 +240,7 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
         "role_count_is_not_independent_sample_size": True,
         "scientific_stage": "measurement_development_only",
     }
+    if max_frame_members != 100000:
+        # Changed capacity is explicit in the output contract; the v1 default stays identical.
+        result.update(schema_version="fs2-sampling-plan-v2", max_frame_members=max_frame_members)
     return {**result, "plan_hash": content_hash(result)}
