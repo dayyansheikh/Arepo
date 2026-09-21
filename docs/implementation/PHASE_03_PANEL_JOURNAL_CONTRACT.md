@@ -1,6 +1,7 @@
 # Phase 3 durable panel journal — next milestone contract
 
-Status: design only, 2026-09-21. Read actual frame evidence before refining/implementing.
+Status: original-build read boundary implemented; remaining panel design only, 2026-09-21.
+Read actual frame evidence before refining/implementing.
 No origins, features, controls or labels are produced by this document. Prerequisites:
 Phase 2 source journals, Phase 3 pure sampling/targets and a usable verified frame.
 
@@ -22,21 +23,29 @@ Keep failed/incomplete frame attempts as research records but outside population
 
 ## Original-build evidence consumption
 
-Frame/source readers currently require their exact implementation build. Adding a panel module
-changes the package build hash. Do not remove that guard to make old runs readable or rerun an
-old parser silently under new code. Before integrating, choose and test one explicit mechanism:
+Decision D034 implements mechanism 1: `research_panel/original_reader.py` extracts the
+original journal-declared Python packages from an explicit full local Git commit into a
+disposable directory, verifies every file hash/set and uses an isolated child interpreter.
+The original decoder still checks source contracts, Python/library versions, raw/parsed/page
+closure and original build identity. Current code never reparses old numerical facts.
+No checkout/reset, dependency installation, source request or journal mutation occurs.
+Temporary code copies are disposable; source journals and read receipts remain preserved.
 
-1. Use a read-only original-build decoder in an isolated process, verify its file/library
-   hashes against the original journal, then record the consuming panel's actual read receipt.
-2. Specify a versioned structural verifier for already sealed original projections, preserving
-   their original parser/build/fact hashes and clocks. It must not recompute numerical facts
-   with current code or treat later verification as original availability. This requires an
-   explicit decision/reconciliation with V2_PROSPECTIVE_SOURCE_ADMISSION.md first.
+`frame_cli inspect-original --journal <absolute-root> --implementation-commit <full-sha>
+--output-parent <absolute-existing-directory>` creates a fresh `fs2_frame_read_*` journal.
+Its policy pins original policy/report hashes, extracted code, current reader build and actual
+metadata-read clock. Its receipt pins the child output and actual verification clocks after
+original availability. An incomplete source frame remains incomplete; synthetic remains
+synthetic; no origin or model execution is admitted by this command. A read receipt proves
+this read, not that a later sampler/model consumed it. Later consumers need their own clocks.
 
-Both must preserve complete raw/parsed dependency closure and reject corruption, missing
-acknowledgements, unknown formats, parent gaps and changed facts. A mutable payload exported
-without verified source lineage is insufficient. Prototype and test this read boundary before
-collecting another large frame solely because code changed.
+Only sealed original reports are accepted. Missing original Git objects or incompatible
+installed libraries fail closed; there is no current-parser fallback or automatic package
+installation. Failure after declaration preserves partial output/failure acknowledgement and
+requires a fresh read directory. The child has a 300-second timeout; returned JSON is limited
+to 16 MiB and must exactly match the sealed original report plus its original acknowledgement.
+Tests cover corruption, changed code, library mismatch, mutable/invalid revisions, output
+inside evidence, repeated output paths and original journal/repository immutability.
 
 ## Ordered implementation tasks
 

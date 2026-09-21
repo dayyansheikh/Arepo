@@ -13,7 +13,7 @@ Read ../AREPO_V2_CHECKPOINT.md first, then AGENTS.md, this plan, the current pha
 | 00 | [Canonical foundation](phases/PHASE_00_FOUNDATION.md) | Verified production + supplied research | Complete — draft PR #13 |
 | 01 | [Feature Store v2 foundations](phases/PHASE_01_FEATURE_STORE.md) | 00 accepted outputs | Complete — draft PR #14; 610 backend tests passed |
 | 02 | [Sources, clocks and identities](phases/PHASE_02_SOURCES_CLOCKS_IDENTITY.md) | 01 accepted outputs | Complete — draft PR #15; 685 tests and new predeclared core-source run |
-| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | In progress — draft #16; 743 tests; bounded frame adapter and measured attempts complete; both enumeration attempts incomplete, latest at 100,000 rows. Panel acceptance outstanding |
+| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | In progress — draft #16; 753 tests; original-build reader and bounded frame adapter and measured attempts complete; both enumeration attempts incomplete, latest at 100,000 rows. Panel acceptance outstanding |
 | 04 | [Baselines and initial edge experiments](phases/PHASE_04_EDGE_EXPERIMENTS.md) | 03 accepted outputs + sufficient clean independent events | Provisional |
 | 05 | [Wallet and information event engine](phases/PHASE_05_WALLET_INFORMATION.md) | 04 accepted outputs + sufficient clean independent events | Provisional |
 | 06 | [Bayesian and ML candidates](phases/PHASE_06_MODELS.md) | 05 accepted outputs + sufficient clean independent events | Provisional |
@@ -49,4 +49,15 @@ Never merge/deploy, migrate production, change infrastructure/credentials/live r
 
 ## Continuation and stop conditions
 
-One same-task continuation chain. The user replaced the earlier interval schedule with a 2026-09-21 04:30 Europe/London one-shot and instructed that each continuation schedule the next one 310 minutes ahead. The 04:30 run was observed and its replacement arepo-v2-continuation-at-09-40 invoked this run. At 2026-09-21 12:05 UTC, supported usage/scheduling app tools were unavailable and Codex computer-use access was explicitly denied. Implementation stopped under the access stop condition; current allowance is unknown, not known exhausted. No next run was scheduled. Restore supported tool access and verify existing automation state before the next 310-minute continuation; the implementation next action remains unchanged in the checkpoint. Verify current automation state before replacement; historical IDs are not authority. Reload checkpoint and recover from exact next action; no duplicate continuation chains. Finish current phase before advancing. Save progress before usage exhaustion. If protected approval is needed: BLOCKED — USER DECISION REQUIRED. If access/data or longer-term allowance is unavailable, document investigated alternatives and stop productive work. If all nonproduction work is complete: IMPLEMENTATION ROADMAP COMPLETE — AWAITING REVIEW. Stay quiet for unchanged blocked state and notify meaningful changes only.
+One same-task continuation chain, with each invocation scheduling the next 310 minutes ahead.
+Current main-task continuation restored supported usage/scheduling access: 2% primary /32%
+weekly used at 13:03 Europe/London on 2026-09-21. Exactly one replacement heartbeat
+`arepo-v2-continuation-at-18-13` is saved for 18:13 Europe/London with the user's exact prompt.
+The previous 09:40 automation was removed; its separate task's docs-only access-blocker commit
+`8a55335` is retained as history, resolved here. Verify actual current automation state before
+replacement; historical IDs are not authority. Reload checkpoint and exact next action; no
+duplicate continuation chains. Finish the current phase before advancing and save progress
+before usage exhaustion. Protected approval: BLOCKED — USER DECISION REQUIRED. If required
+access/data or longer-term allowance is unavailable, document alternatives and stop productive
+work. On full completion: IMPLEMENTATION ROADMAP COMPLETE — AWAITING REVIEW. Stay quiet for
+unchanged blocked state and notify meaningful changes only.

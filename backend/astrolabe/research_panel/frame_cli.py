@@ -32,8 +32,21 @@ def main():
     bounded.add_argument('--capacity-journal', type=Path)
     inspect = commands.add_parser('inspect')
     inspect.add_argument('--journal', required=True, type=Path)
+    original = commands.add_parser('inspect-original')
+    original.add_argument('--journal', required=True, type=Path)
+    original.add_argument('--implementation-commit', required=True)
+    original.add_argument('--output-parent', required=True, type=Path)
     args = parser.parse_args()
     started = time.monotonic_ns()
+    if args.command == 'inspect-original':
+        from .original_reader import read_original_frame
+
+        root = args.output_parent / ('fs2_frame_read_' + uuid.uuid4().hex)
+        read = read_original_frame(args.journal, implementation_commit=args.implementation_commit,
+                                   output_root=root)
+        read['report'] = {k: v for k, v in read['report'].items() if k != 'pages'}
+        print(json.dumps(read, sort_keys=True, indent=2))
+        return
     if args.command in {'first-page', 'enumerate'}:
         parent = args.output_parent
         if not parent.is_absolute() or parent.resolve() != parent or not parent.is_dir():

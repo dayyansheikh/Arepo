@@ -23,8 +23,9 @@ Phase 02 accepted/tested tip and its actual outputs. Earlier contracts remain bi
 2026-09-21: Phase 2 accepted at `747485c`. Phase 3 sampling/target rules plus standalone
 Gamma keyset frame capture/verifier/CLI are implemented on draft #16. First-page cost and
 first finite enumeration are preserved; the latter is incomplete at 256MiB after 40,900
-complete rows and a partial 410th page. The second, separately frozen capacity attempt must
-be judged from its actual report; do not assume it completed. See ../PHASE_03_FRAME_CONTRACT.md,
+complete rows and a partial 410th page. The second, separately frozen capacity attempt retained 100,000 rows but stopped incomplete
+at its request limit. D034 original-build read receipts now permit verified consumption through
+the exact original Git code without mutating source evidence (753 regression tests). See ../PHASE_03_FRAME_CONTRACT.md,
 ../PHASE_03_REVIEW.md and the evidence JSONs. No model-ready panel/origins exist yet.
 
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence

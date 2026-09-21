@@ -151,3 +151,16 @@ durable protocol/seed/sample/feature-read/origin records, leases, family coverag
 due targets and actual pilot. The new panel-journal contract defines that next milestone without
 pretending it exists. Phase 3 stays in progress and Phase 4 stays gated. No production code,
 configuration, scheduling, migrations, credentials, retention, data deletion or trades changed.
+
+### Original-build read boundary — 2026-09-21
+
+D034 is implemented and self-reviewed. Ten new tests exercise original code extraction,
+unchanged source journals and repository state, immutable commit requirements, corrupted
+raw bytes, changed source/library builds, output path isolation and repeat-read behavior.
+Full backend **753 passed**, zero skipped, 71.62s, including isolated PostgreSQL. Ruff,
+canonical contract and whitespace checks pass; existing Starlette/httpx warning only.
+The reader produces a new actual read receipt, never a retrospective origin or upgraded
+frame completeness. The original decoder still verifies all original dependencies. No
+source requests, application startup, databases or dependency installation in this path.
+Next verify an actual preserved journal after committing this implementation, then reconcile
+finite sampling capacity beyond 100,000 rows before any new source enumeration.
