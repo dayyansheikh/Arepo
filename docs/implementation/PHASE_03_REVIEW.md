@@ -184,3 +184,10 @@ Full backend **755 passed**, zero skipped, 72.43s, isolated PostgreSQL included;
 tests passed again after adding the frozen golden assertion. Ruff/canonical/whitespace checks
 passed. Existing Starlette/httpx warning only. No collection caps were increased in this
 milestone and no new network collection occurred. See the next capacity-refinement contract.
+
+Committed-code capacity confirmation at `84cf4b132bfb9cca4772b0cce0a5a694c7e8ce57`: 400,000 synthetic members,
+320,897,024 resident bytes, 27,764,313,417ns; both original gates pass and the plan hash
+matches the earlier run. Exact build/script hash and results are preserved in
+`PHASE_03_SAMPLING_CAPACITY_EVIDENCE.json`. No tests ran concurrently with this confirmation.
+At 87% primary usage, coherent progress is checkpointed for the single 18:13 London heartbeat;
+weekly allowance remains available (45% used). No access/data gate has been waived.
