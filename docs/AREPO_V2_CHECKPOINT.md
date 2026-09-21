@@ -1,6 +1,6 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-09-21 04:00 UTC. Status: Phase 3 in progress; complete-frame data gate outstanding. Phases 0–2 complete.
+Updated: 2026-09-21 12:05 UTC. Status: Phase 3 in progress; continuation stopped on required tool access. Complete-frame data gate outstanding. Phases 0–2 complete.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
@@ -15,14 +15,35 @@ Updated: 2026-09-21 04:00 UTC. Status: Phase 3 in progress; complete-frame data 
 - Enumeration attempt 2: `726cec2`, 1,000 complete pages /100,000 distinct market IDs, still continuing. 99,956 eligible row identities and 44 unresolved, no observed duplicates/conflicts within prefix. Raw644,897,535 / retained 1,577,956,669 / peak resident 343,457,792 bytes. Request-cap stop; incomplete. PHASE_03_ENUMERATION_ATTEMPT_2.json. Final verification overlapped backend regression, so whole-command elapsed is not an isolated performance benchmark.
 - Self-review: checked exact primitives and clocks, scope/cursor parentage, documented omitted-cursor termination, failed/torn attempts, conflicting market/condition/token identity, build drift, synthetic/live separation, capacity stops and bounded memory. All raw history retained. No source exhaustion, population inference, pilot acceptance, model result or predictive improvement is claimed.
 - Decisions: D000–D033. Cost-based larger attempts are separately frozen; old failed attempts remain failed. Full frame manifest references immutable per-page rows rather than duplicating all data in memory/report. Exact rational inclusion weights retained from planning milestone. Source events are not independent economic groups.
-- Required data gate: a complete sampling frame is still unavailable under the measured bounds. A 100,000-row prefix cannot establish representativeness. No protected user decision currently required; ordinary allowance remains available, but saving before primary-window exhaustion (last check85% used / weekly 29% used). No reset credit redeemed.
-- Exact next action: read PHASE_03_FRAME_CONTRACT.md, both enumeration evidence JSONs and PHASE_03_PANEL_JOURNAL_CONTRACT.md. Do NOT rerun the same 1,000-page protocol unchanged. Reconcile actual >100,000-row population with the pure planner's 100,000-member ceiling and devise/test a finite complete-frame/streaming strategy within measured local capacity. Investigate compact-source scope/equivalence if useful; never assume CLOB sampling is random or narrow the universe merely for cost. Resolve original-build evidence consumption before recollecting only because code changed. Freeze/commit any revised future protocol before new collection. Once a usable frame exists, implement durable protocol/seed/sample/read/computation/origin records, then collectors/targets and the actual pilot. Follow phase acceptance criteria; do not advance to Phase 4 now.
+- Required data gate: a complete sampling frame is still unavailable under the measured bounds. A 100,000-row prefix cannot establish representativeness. No protected user decision currently required. Historical allowance check was 85% primary / 29% weekly used; this is not current allowance evidence. The present run cannot verify live longer-term allowance because the app tool is unavailable. No exhaustion is inferred and no reset credit was redeemed.
+- Exact next action: restore supported app-tool access, verify current usage allowance and inspect the existing continuation state before scheduling any replacement. The frame contract, both enumeration evidence JSONs and panel journal contract were reloaded in this run. Once access is available, resume the unchanged implementation action: Do NOT rerun the same 1,000-page protocol unchanged. Reconcile actual >100,000-row population with the pure planner's 100,000-member ceiling and devise/test a finite complete-frame/streaming strategy within measured local capacity. Investigate compact-source scope/equivalence if useful; never assume CLOB sampling is random or narrow the universe merely for cost. Resolve original-build evidence consumption before recollecting only because code changed. Freeze/commit any revised future protocol before new collection. Once a usable frame exists, implement durable protocol/seed/sample/read/computation/origin records, then collectors/targets and the actual pilot. Follow phase acceptance criteria; do not advance to Phase 4 now.
 - Unresolved: complete population enumeration, interval freshness/churn, original-build downstream read boundary, durable panel facts/leases, family coverage, selected external-source admission and actual pilot timing/control/target acceptance. Economic grouping, native event-time and complete trade/depth coverage remain evidence-dependent.
 - Next planned phase: 04 — baselines/experiments, only after full Phase 3 acceptance and sufficient clean data.
-- Continuation: 04:30 London one-shot fired at 03:30:10 UTC. Deleted that consumed schedule and created one same-task replacement `arepo-v2-continuation-at-09-40`, due 2026-09-21 09:40 London (310 minutes later), verified ACTIVE. Prompt unchanged including next-continuation instruction. Target task 01a0bd77-ed42-79d3-8c5b-2c207b0ead04. No duplicate chain or separate task.
+- Continuation: this run was invoked as `arepo-v2-continuation-at-09-40`. Its automation.toml path appeared in the initial file inventory, but a subsequent read found the path absent; cause unknown. The automation_update capability was initially advertised, but its view call failed because it was not callable; subsequent tool discovery did not list it. No replacement was scheduled or raw scheduler files written. The requested next run 310 minutes later remains unfulfilled. Do not infer an active continuation from the previous checkpoint. Historical target task: 01a0bd77-ed42-79d3-8c5b-2c207b0ead04; verify current state before replacement to avoid duplicates.
 - Preserved frame roots: data-dumps/fs2_capture_c63c72a0fe194f47824ccc862b0619cd; data-dumps/fs2_capture_95cbb8cdd4334bc1836249e7d7864473; data-dumps/fs2_capture_3a4f80db7fa94d248fc16e1397af4c71. Exact original code commits/hashes in the evidence JSONs. Original-build readers intentionally reject changed code; do not disable that guard or reinterpret old journals under new parsers.
 - Earlier evidence: four Phase 2 evidence JSONs; admitted primary source run data-dumps/fs2_capture_ae0d089c24e24bc18f1e6f548c878432 uses exact source implementation `54be417`. SQL is an index; primary journals remain authority.
 - Local PostgreSQL binaries: /usr/local/opt/postgresql@17/bin. Tests create/stop only their isolated temporary loopback cluster.
+
+## Continuation access checkpoint — 2026-09-21 12:05 UTC
+
+**BLOCKED — REQUIRED ACCESS UNAVAILABLE.** The current run cannot read live usage limits or
+manage the next continuation through supported app tools. A usage-tool call returned
+unavailable; automation_update was not callable and disappeared from subsequent discovery.
+The computer-use fallback explicitly denied access to Codex for safety reasons; no bypass
+was attempted. This establishes unavailable verification/scheduling access, not exhausted
+allowance. Under the user's stop condition, implementation and collection were stopped.
+No protected approval is requested and no programme gate is waived.
+
+Read checkpoint/master/AGENTS/current phase, frame and journal contracts, both enumeration
+reports, current sampling/build code, relevant test coverage and configuration; inspected
+Git status/history and draft PR #16. Branch still matches the existing Phase 3 stack, with
+safe recovery tip `4d3d8a7` before this docs-only checkpoint. PR #16 remains open/draft against
+Phase 2, with existing checks successful. Unrelated untracked files were preserved. No code,
+data, database, source collection, deployment or production state was changed. The prior
+743-test result remains historical; backend tests were not rerun for this documentation-only
+checkpoint. Read-only canonical and whitespace checks validate this checkpoint. No new phase
+acceptance, complete-frame evidence or research result is claimed. This recovery update is a
+local docs-only commit; the existing remote draft PR was inspected and left unchanged.
 
 ## Recovery and protected boundaries
 
