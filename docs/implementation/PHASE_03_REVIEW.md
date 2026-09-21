@@ -1,6 +1,6 @@
 # Phase 3 planning milestone — 2026-09-20
 
-Phase 3 remains **in progress**, stacked from accepted Phase 2 `747485c` / draft #15.
+Phase 3 remains **incomplete**, stacked from accepted Phase 2 `747485c` / draft #15.
 Safe milestone `0ff180f`; draft PR https://github.com/dayyansheikh/Arepo/pull/16.
 This milestone implements pure sampling/target rules. It does not attest to an actual
 population frame, durable origins, collected panel or predictive improvement.
@@ -235,3 +235,12 @@ isolated PostgreSQL; Ruff/canonical/whitespace checks pass, existing Starlette/h
 only. Focused earlier frame/capacity/original-reader/retry suite passed 75 tests before the
 three additional global-budget/backoff checks. No claim that retries improve latency or
 prove a complete frame. Commit this exact code/protocol before the fourth finite attempt.
+
+### Fourth enumeration outcome — retry exhaustion
+
+The D037 retry-enabled attempt retained 20,000 source rows across 204 verified attempts.
+Three transient retries were used; two recovered and the final unrecovered errors were
+`ConnectError` and `TimeoutError`. Raw bytes were 132,580,143, retained files 318,668,335,
+peak resident memory 141,836,288 bytes. No source terminal, population inference, model-ready
+origin or pilot acceptance was observed. Exact report hashes and costs are preserved in
+`PHASE_03_ENUMERATION_ATTEMPT_4.json`. This evidence does not justify another automatic run.

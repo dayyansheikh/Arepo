@@ -13,7 +13,7 @@ Read ../AREPO_V2_CHECKPOINT.md first, then AGENTS.md, this plan, the current pha
 | 00 | [Canonical foundation](phases/PHASE_00_FOUNDATION.md) | Verified production + supplied research | Complete — draft PR #13 |
 | 01 | [Feature Store v2 foundations](phases/PHASE_01_FEATURE_STORE.md) | 00 accepted outputs | Complete — draft PR #14; 610 backend tests passed |
 | 02 | [Sources, clocks and identities](phases/PHASE_02_SOURCES_CLOCKS_IDENTITY.md) | 01 accepted outputs | Complete — draft PR #15; 685 tests and new predeclared core-source run |
-| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | In progress after explicit user continuation — complete-frame data outstanding. Draft #16; 784 tests; D037 bounded retries validated; D036 capacity gate implemented. Attempt 3 timed out on response 74 after 7,300 complete rows; earlier attempts also incomplete. Panel acceptance outstanding |
+| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Incomplete — required complete-frame data unavailable. Draft #16; 784 tests; D037 retries validated. Attempt 4 stopped after 20,000 rows on unrecovered transient failures; all attempts incomplete. Panel acceptance outstanding |
 | 04 | [Baselines and initial edge experiments](phases/PHASE_04_EDGE_EXPERIMENTS.md) | 03 accepted outputs + sufficient clean independent events | Provisional |
 | 05 | [Wallet and information event engine](phases/PHASE_05_WALLET_INFORMATION.md) | 04 accepted outputs + sufficient clean independent events | Provisional |
 | 06 | [Bayesian and ML candidates](phases/PHASE_06_MODELS.md) | 05 accepted outputs + sufficient clean independent events | Provisional |
@@ -50,9 +50,9 @@ Never merge/deploy, migrate production, change infrastructure/credentials/live r
 ## Continuation and stop conditions
 
 One same-task continuation chain, with each invocation scheduling the next 310 minutes ahead.
-Current main-task continuation restored supported usage/scheduling access: 1% primary /46%
-weekly used at 18:07 Europe/London on 2026-09-21. Exactly one replacement heartbeat
-`arepo-v2-continuation-at-23-17` is saved for 23:17 Europe/London with the user's exact prompt.
+Current continuation allowance is available after reset; the latest check found 0% primary /
+62% weekly used. Exactly one replacement heartbeat will be saved for 05:10 Europe/London
+with the user's exact prompt.
 The previous 09:40 automation was removed; its separate task's docs-only access-blocker commit
 `8a55335` is retained as history, resolved here. Verify actual current automation state before
 replacement; historical IDs are not authority. Reload checkpoint and exact next action; no
