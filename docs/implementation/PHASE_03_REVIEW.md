@@ -130,3 +130,24 @@ The new preflight requires both first-page evidence and verified prior raw-ceili
 it cannot silently increase a live run's limit or use a synthetic attempt for live admission.
 Original runs remain unchanged/incomplete. See D033 and the frame contract. 39 targeted frame
 tests pass, including capacity-proof requirements and original-run immutability.
+
+### Final review of this continuation — 2026-09-21
+
+Second attempt retained 100,000 distinct source rows across 1,000 pages, then stopped incomplete
+at its request cap. 99,956 eligible row identities, 44 unresolved, no observed duplicates or
+mapping conflicts. See `PHASE_03_ENUMERATION_ATTEMPT_2.json`. Actual raw 644,897,535 bytes,
+retained 1,577,956,669 bytes, peak resident 343,457,792 bytes; original journal fully verified.
+No complete frame, sample, origin, prospective panel or predictive finding is claimed.
+Both failed-to-exhaust runs remain evidence, not discarded/relabelled successes.
+
+Final full backend **743 passed**, zero skipped, 41.64s, including disposable PostgreSQL 17.11;
+39 frame tests; Ruff/canonical/whitespace checks passed. Existing Starlette/httpx warning only.
+Self-review covered all new frame/capacity code, numerical preservation, request/parent scope,
+source and panel build pinning, stopping ceilings, no synthetic promotion, original-attempt
+immutability, memory growth, future/absent clocks and all protected production boundaries.
+
+Outstanding: complete frame beyond current100,000-member boundary, original-build read boundary,
+durable protocol/seed/sample/feature-read/origin records, leases, family coverage, collectors,
+due targets and actual pilot. The new panel-journal contract defines that next milestone without
+pretending it exists. Phase 3 stays in progress and Phase 4 stays gated. No production code,
+configuration, scheduling, migrations, credentials, retention, data deletion or trades changed.

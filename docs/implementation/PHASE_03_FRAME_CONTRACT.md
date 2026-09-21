@@ -158,3 +158,24 @@ population size or completeness. Retain both previous journals exactly, and rest
 first cursor to avoid calling an unregistered extension of attempt 1 complete. No outcomes or
 model results informed this capacity choice. If the 100,000-row ceiling is insufficient,
 preserve the failure and revisit the sampling/reader capacity contract before further runs.
+
+### Attempt 2 result and remaining data gate
+
+Attempt 2 (`726cec2`, `fs2_capture_3a4f80db7fa94d248fc16e1397af4c71`) retained 1,000 complete
+pages / 100,000 distinct market IDs and still had a continuation cursor. It stopped at the
+request ceiling, with **incomplete** status and population inference disabled. 99,956 row
+identities were eligible; 44 were explicitly unresolved. No duplicates or mapping conflicts
+were observed within this prefix. Raw bytes 644,897,535; retained bytes 1,577,956,669; process
+peak resident bytes 343,457,792. Source enumeration spanned about 196 seconds; whole-command
+elapsed 270,294,986,000 ns includes repeated integrity verification (the final verification
+phase overlapped backend regression tests and is not an isolated throughput benchmark).
+See `PHASE_03_ENUMERATION_ATTEMPT_2.json` for exact hashes/clocks/paths.
+
+A complete eligible population remains unavailable under the tried limits. Do not rerun the
+same protocol unchanged, sample this prefix as a universe, narrow categories/dates/liquidity,
+or merge the two prefixes as independent observations. Before another live attempt, reconcile
+the measured population/capacity with the planner's 100,000-member ceiling and decide a finite
+complete-enumeration/streaming strategy. A compact alternative needs explicit source scope
+and coverage evidence; CLOB's sampling endpoint is not an assumed random population sample.
+Also resolve original-build evidence consumption before recollecting solely for code changes.
+This is an unresolved Phase 3 data/engineering gate, not a production approval request.

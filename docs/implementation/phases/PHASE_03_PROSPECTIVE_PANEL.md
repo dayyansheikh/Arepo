@@ -20,7 +20,17 @@ Phase 02 accepted/tested tip and its actual outputs. Earlier contracts remain bi
 
 ## Current repository state
 
-Complete discovery analyses all eligible markets; top-20 display is separate. Scan and collect leases/deadlines are separated; production scan schedule paused, collect remains scheduled. v1 forward targets are 1h/6h/24h/7d with 900s exact tolerance; not adequate for new minute-scale tests. This is the Phase 0 inventory; refresh this section from actual code before starting.
+2026-09-21: Phase 2 accepted at `747485c`. Phase 3 sampling/target rules plus standalone
+Gamma keyset frame capture/verifier/CLI are implemented on draft #16. First-page cost and
+first finite enumeration are preserved; the latter is incomplete at 256MiB after 40,900
+complete rows and a partial 410th page. The second, separately frozen capacity attempt must
+be judged from its actual report; do not assume it completed. See ../PHASE_03_FRAME_CONTRACT.md,
+../PHASE_03_REVIEW.md and the evidence JSONs. No model-ready panel/origins exist yet.
+
+v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
+remain unchanged. No production scans were restarted. v2 collection uses isolated local
+journals and public read endpoints only. Upcoming journal/consumer requirements are in
+[the panel journal contract](../PHASE_03_PANEL_JOURNAL_CONTRACT.md).
 
 ## In scope
 
