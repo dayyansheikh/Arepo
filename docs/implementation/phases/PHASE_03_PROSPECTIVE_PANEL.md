@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — frame/development selection and D042–D047 controls/input-read/quote computation, targeted identity and original recovery implemented; two-read runtime measurement passed. D048 freezes panel declaration/reservation; D049 enforces source-write quotas. Full panel integration/origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
+Status: incomplete — frame/development selection and D042–D047 controls/input-read/quote computation, targeted identity and original recovery implemented; two-read runtime measurement passed. D048 freezes panel declaration/reservation; D049 enforces source-write quotas; D050 binds fresh selection to the frozen declaration. Origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -183,3 +183,16 @@ selection/origins and due collection. D046 runtime evidence is
 ## Handoff/output
 
 Frozen sampling/measurement protocol, bounded pilot dataset/manifests, timing/coverage/cost report and baseline-ready origins.
+
+### D050 fresh selection and next capacity refinement
+
+Declaration-bound selection now uses its immutable seed, full capacity reservation, verified
+original frame, exact complete inventory and explicit D042 not-assessed states. Freshness
+is checked at actual cutoff and durable selection acknowledgement. No legacy draw is
+promoted, no unknown becomes a negative control, and slot overflow fails without truncation.
+See ../PHASE_03_FRESH_SELECTION_CONTRACT.md. No live collection used the new path.
+
+Before sizing a live run, implement the separately tested optional compact writer profile in
+../PHASE_03_COMPACT_COMPUTATION_CONTRACT.md; do not assume small observed responses imply
+a small enforced cap. Then integrate actual origin intents, source/compute consumption and
+due targets under the full panel contract. Phase 3 remains incomplete; Phase 4 stays gated.

@@ -482,3 +482,19 @@ to quote computation. A fixture filename was corrected to satisfy the existing l
 safeguard; the prematurely started full run was cancelled, then restarted after focused checks.
 No live collection or production action. Full isolated backend **1,059 passed**, zero skipped, 167.05s, including disposable PostgreSQL.
 Full Ruff/canonical/whitespace checks pass; one existing Starlette/httpx warning.
+
+### D050 declaration-bound fresh selection
+
+Reviewed frozen seed and full reservation binding, exclusive deterministic directory, full
+original-code frame/projection closure, exact rational weights and lossless uniform
+not-assessed inventory. Missing trigger evidence never becomes a measured negative control.
+Verified source interval/age at actual cutoff and post-fsync acknowledgement; replay checks
+original times without re-aging or current free-space requirements. Old development schema
+and reconstructed provenance stay intact. Nested extra files/symlinks and changed evidence
+are rejected. No live request, origin, SQL admission or production change.
+
+Initial focused failures were fixture clock-key errors and a fabricated future acknowledgement;
+the corrected durability-expiry test uses an actual 10-second save delay. Final new-path focus:
+**26 passed**, 38.03s. Earlier combined legacy/new selection focus: 46 passed, 54.02s. Full
+isolated backend **1,085 passed**, zero skipped, 214.23s, including disposable PostgreSQL.
+Ruff/canonical/whitespace pass; one existing Starlette/httpx warning.

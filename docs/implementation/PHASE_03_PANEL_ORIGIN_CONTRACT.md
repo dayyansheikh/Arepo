@@ -1,6 +1,6 @@
 # Phase 3 next integration — declared panel, actual origins and due observations
 
-Status: D048 declaration/reservation implemented and tested; collector/origin integration
+Status: D048 declaration/reservation, D049 source quotas and D050 fresh selection implemented; collector/origin integration
 remains planned. D040/D041 historical selection, D042 assessment-aware
 sampling, D043 actual input reads, D044–D046 quote computation/identity refresh and D047
 original computation reads are prerequisites. Phase 3 remains incomplete.
@@ -104,3 +104,14 @@ immutable failed/late/closed records under frozen rules. Full Phase 3 additional
 its feature-family and control coverage, bounded live pilot and timing/target acceptance.
 Synthetic fixtures prove software behavior only. Phase 4 remains gated. No production
 migrations, deployment, scans, retention changes or external scheduler activation.
+
+### D050 selection integration
+
+The declaration-bound path now verifies fresh original-frame facts and uses the declared
+seed, full inventory, exact weights and explicit absent-assessment policy. It freezes one
+selection attempt per declaration and checks age at cutoff and durable save. Full closure
+recovery does not re-age historical results. See PHASE_03_FRESH_SELECTION_CONTRACT.md.
+No live run has used this path; collection remains disabled. Next implement immutable
+origin intents and actual source/computation consumption, with separately verified fresh
+identity consistency at due targets. The existing fixed computation reservation still
+requires capacity refinement before a broad live pilot; never truncate the old 107 draws.

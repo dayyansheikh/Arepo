@@ -206,6 +206,10 @@ def _check_counts(counts, report):
 
 
 def _plan(policy, members, cutoff, original_hash, inventory_hash):
+    if policy['schema_version'] != VERSION:
+        from .panel_selection import bound_plan
+
+        return bound_plan(policy, members, cutoff, original_hash, inventory_hash)
     return plan_sample(
         _protocol(policy), members, cutoff=_time(cutoff),
         frame_scope='eligible mapped Gamma rows in the preserved complete source interval',
@@ -217,6 +221,15 @@ def _plan(policy, members, cutoff, original_hash, inventory_hash):
 def create_selection(frame_root, *, implementation_commit, output_root, repository=None,
                      budget=SelectionBudget(), scheduled_per_stratum=1, max_unique_markets=256):
     """Seal a new bounded development selection; never resume/reseed an existing directory."""
+    return _create_selection(
+        frame_root, implementation_commit=implementation_commit, output_root=output_root,
+        repository=repository, budget=budget, scheduled_per_stratum=scheduled_per_stratum,
+        max_unique_markets=max_unique_markets)
+
+
+def _create_selection(frame_root, *, implementation_commit, output_root, repository=None,
+                      budget=SelectionBudget(), scheduled_per_stratum=1, max_unique_markets=256,
+                      panel_root=None):
     frame_root, root = _canonical(frame_root), _canonical(output_root)
     if (not root.name.startswith('fs2_selection_') or root == frame_root
             or frame_root in root.parents or root in frame_root.parents):
@@ -230,18 +243,25 @@ def create_selection(frame_root, *, implementation_commit, output_root, reposito
     if shutil.disk_usage(root.parent).free < budget.output_bytes + budget.free_reserve_bytes:
         raise ValueError('insufficient selection storage reserve')
     build = verified_panel_build()
-    protocol = SamplingProtocol(secrets.token_hex(32), scheduled_per_stratum, 1, 1,
-                                max_unique_markets)
-    root.mkdir(mode=0o700)
-    _sync_directory(root.parent)
-    resource = _Budget(root, budget)
-    try:
-        resource.persist(root, 'selection_policy', {
+    if panel_root is None:
+        protocol = SamplingProtocol(secrets.token_hex(32), scheduled_per_stratum, 1, 1,
+                                    max_unique_markets)
+        declaration = {
             'schema_version': VERSION, 'policy': POLICY, 'build': build,
             'frame_root': str(frame_root), 'implementation_commit': implementation_commit,
             'budget': asdict(budget), 'sampling_protocol': asdict(protocol),
             'declared_at': _clock(),
-        })
+        }
+    else:
+        from .panel_selection import selection_policy
+
+        declaration = selection_policy(panel_root, frame_root, root, implementation_commit,
+                                       budget, build)
+    root.mkdir(mode=0o700)
+    _sync_directory(root.parent)
+    resource = _Budget(root, budget)
+    try:
+        resource.persist(root, 'selection_policy', declaration)
         policy, policy_ack = _pair(root, 'selection_policy')
         # Reserve maximum child report plus declaration/receipt before invoking its decoder.
         resource.check(34 * 1048576)
@@ -285,6 +305,10 @@ def create_selection(frame_root, *, implementation_commit, output_root, reposito
                                              'pages': manifest, 'counts': dict(counts)})
         _, inventory_ack = _pair(root, 'inventory')
         cutoff, started = _clock(), _clock()
+        if panel_root is not None:
+            from .panel_selection import freshness
+
+            freshness(policy, report, cutoff)
         plan = _plan(policy, members, cutoff, report['frame_report_hash'],
                      inventory_ack['payload_hash'])
         completed = _clock()
@@ -292,7 +316,7 @@ def create_selection(frame_root, *, implementation_commit, output_root, reposito
         resource.persist(root, 'selection_plan', plan)
         _, plan_ack = _pair(root, 'selection_plan')
         resource.persist(root, 'selection_report', {
-            'schema_version': VERSION, 'policy_hash': policy_ack['payload_hash'],
+            'schema_version': policy['schema_version'], 'policy_hash': policy_ack['payload_hash'],
             'original_read_hash': original['read_receipt_hash'],
             'frame_report_hash': report['frame_report_hash'],
             'inventory_hash': inventory_ack['payload_hash'], 'plan_hash': plan_ack['payload_hash'],
@@ -300,11 +324,13 @@ def create_selection(frame_root, *, implementation_commit, output_root, reposito
             'source_interval_start': report['interval_start'],
             'source_interval_end': report['interval_end'],
             'original_frame_available_at': report['frame_available_at'],
-            'provenance_class': 'synthetic' if report['provenance_class'] == 'synthetic'
-            else 'reconstructed', 'state': 'development_selection_sealed',
+            **_status(policy, report),
             'counts': dict(counts), 'unique_selected_markets': plan['unique_selected_markets'],
             'origin_admitted': False, 'population_inference_eligible': False,
         })
+        if panel_root is not None:
+            _, report_ack = _pair(root, 'selection_report')
+            freshness(policy, report, report_ack['durable_ack'])
     except (OSError, ValueError, KeyError, TypeError) as exc:
         try:
             _persist(root, 'selection_failure', {
@@ -317,6 +343,15 @@ def create_selection(frame_root, *, implementation_commit, output_root, reposito
     # independent replay does not retain two copies of the entire eligible population.
     del members, seen
     return read_selection(root)
+
+
+def _status(policy, original):
+    if policy['schema_version'] != VERSION:
+        from .panel_selection import status
+
+        return status(original)
+    return {'provenance_class': 'synthetic' if original['provenance_class'] == 'synthetic'
+            else 'reconstructed', 'state': 'development_selection_sealed'}
 
 
 def _read_original(root, policy):
@@ -364,8 +399,13 @@ def read_selection(root):
     """Read-only full closure and deterministic replay; torn runs are refused, not repaired."""
     root = _canonical(root)
     policy, policy_ack = _pair(root, 'selection_policy')
-    if (policy['schema_version'] != VERSION or policy['policy'] != POLICY
-            or policy['build'] != verified_panel_build()
+    if policy['schema_version'] != VERSION:
+        from .panel_selection import verify_policy
+
+        verify_policy(root, policy, policy_ack)
+    elif policy['policy'] != POLICY:
+        raise ValueError('selection policy/build differs')
+    if (policy['build'] != verified_panel_build()
             or not _ordered_clocks(policy['declared_at'], policy_ack['durable_ack'])):
         raise ValueError('selection policy/build differs')
     budget = SelectionBudget(**policy['budget'])
@@ -421,10 +461,16 @@ def read_selection(root):
         raise ValueError('selection verification time budget exhausted')
     if sum(p.stat().st_size for p in root.rglob('*') if p.is_file()) > budget.output_bytes:
         raise ValueError('selection retained output exceeds frozen budget')
-    provenance = 'synthetic' if original['provenance_class'] == 'synthetic' else 'reconstructed'
-    if (plan != json.loads(_json_bytes(expected)) or report['schema_version'] != VERSION
-            or report['state'] != 'development_selection_sealed'
-            or report['provenance_class'] != provenance or report['origin_admitted'] is not False
+    if policy['schema_version'] != VERSION:
+        from .panel_selection import freshness
+
+        freshness(policy, original, report['sampling_cutoff'])
+        freshness(policy, original, report_ack['durable_ack'])
+    if (plan != json.loads(_json_bytes(expected))
+            or report['schema_version'] != policy['schema_version']
+            or _json_bytes({k: report.get(k) for k in _status(policy, original)})
+                != _json_bytes(_status(policy, original))
+            or report['origin_admitted'] is not False
             or report['population_inference_eligible'] is not False
             or report['unique_selected_markets'] != expected['unique_selected_markets']
             or report['source_interval_start'] != original['interval_start']
