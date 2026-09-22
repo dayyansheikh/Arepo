@@ -448,3 +448,10 @@ Ten new tests cover exact preservation, five closure corruptions, three nested o
 and mutable/changed original code. Thirty focused original-reader tests pass (37.09s).
 Full isolated backend **996 passed**, zero skipped, 155.90s, including disposable PostgreSQL. Full Ruff, canonical
 and whitespace checks pass. No new collection or production changes.
+
+Committed D047 then read the saved D046 journal under its original `761d279` code. Exact
+full facts/summary equality and unchanged source/computation bytes passed. New read receipt
+available 2026-09-22T13:23:45.247836Z; PHASE_03_ORIGINAL_QUOTE_READ_EVIDENCE.json preserves
+its hashes and clocks. No new source request or origin admission. The next heartbeat found
+this completed evidence file after the preceding usage window ended and records it without
+repeating the operation. Documentation-only recovery check: canonical/whitespace pass.
