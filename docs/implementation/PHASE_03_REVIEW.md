@@ -395,3 +395,17 @@ pass; 46 focused quote/input-read tests pass. Full isolated backend **930 passed
 skipped, 116.97s, disposable PostgreSQL included. Full Ruff, canonical and whitespace checks
 pass; one existing Starlette/httpx warning. No live collection or production changes.
 The next bounded writer's ordered contract is PHASE_03_QUOTE_COMPUTATION_CONTRACT.md.
+
+### D045 durable quote computation
+
+Reviewed policy-before-read and read-before-compute ordering in UTC and comparable
+monotonic clocks; exact input hash/ack lineage; original-cutoff replay; separate canonical
+paths, concurrent exclusive output, failed/torn writes and recursive child budget accounting.
+Every source remains inventoried, source provenance unchanged, no SQL or origin admission.
+Whole-parent preflight precedes output creation. The 180-second checks are operation-boundary
+checks, not hard process cancellation. Readers preserve evidence and refuse changed source
+closure or build. Synthetic tests establish software behavior, not live panel acceptance.
+
+22 new tests; 68 focused tests passed. Full isolated backend **952 passed**, zero skipped,
+139.29s, including disposable PostgreSQL. Full Ruff, canonical and whitespace checks pass.
+One existing Starlette/httpx warning. No live collection or production changes.

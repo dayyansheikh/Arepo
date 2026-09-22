@@ -1,6 +1,7 @@
 # Phase 3 next milestone — durable quote computation
 
-Status: planned, not implemented or empirically validated. Prerequisites: D043 verified
+Status: D045 implemented and locally tested (952 backend tests); no live computation
+measurement or prospective panel validation claimed. Prerequisites: D043 verified
 actual source reads and D044 pure quote/identity projection. This is an internal Phase 3
 milestone, not a completed research panel or a Phase 4 baseline.
 
@@ -53,6 +54,15 @@ Choose and test a finite total parent budget; do not count only top-level files 
 spend the reserve. Time checks must cover child verification and final replay. A deadline
 checked at operation boundaries is not a hard process cancellation guarantee; state that
 limit accurately. No disk-history deletion or reduced market discovery is authorized.
+
+D045 implementation refinement: freeze 64 MiB total recursive retained output (including
+the child's 32 MiB allowance), 16 MiB per artefact, 180 seconds checked at operation
+boundaries including initial child read and final replay, and 2 GiB free reserve. Reserve
+64 KiB for failure evidence. Preflight the whole parent bound plus reserve; recheck the
+child's full allowance before calling it. Only the named immediate child input-read
+journal is allowed, with no symlinks or deeper directories. The successful parent closure
+is policy/facts with both acknowledgements and exactly that child. Old source/child
+timestamps are never reused as computation clocks.
 
 ## Tests and acceptance
 

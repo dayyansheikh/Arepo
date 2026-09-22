@@ -308,3 +308,8 @@ boundaries, failed sources, row order invariance, source inventory and input bou
 
 The ordered next writer contract and resource-accounting review are in
 [PHASE_03_QUOTE_COMPUTATION_CONTRACT.md](PHASE_03_QUOTE_COMPUTATION_CONTRACT.md).
+
+D045 now implements that bounded writer: actual child read, actual computation start/end,
+post-fsync availability and exact replay at the recorded cutoff. It retains source
+provenance and still admits no origin. Fresh selected-market identities require a separate
+versioned source contract before integration; no arbitrary lookup filter is implicit.
