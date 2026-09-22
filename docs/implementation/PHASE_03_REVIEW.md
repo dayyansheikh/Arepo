@@ -323,3 +323,18 @@ including original-code verification and final replay. All bounds passed. No tes
 concurrently; lightweight status reads occurred. The explicit category field is missing on
 every mapped row; other missingness is preserved in PHASE_03_SELECTION_ATTEMPT_1.json.
 This validates development plumbing/capacity, not fresh population inference or pilot acceptance.
+
+### D041 original-selection reader before actual evidence read
+
+The shared original-code reader now has two fixed decoder choices, preserving the existing
+frame schema/fields and adding a separate selection-read schema. It pins both original report
+and plan, checks Git file sets/hashes, and runs the original full-closure reader in an isolated
+child. Entire report/plan equality is required, with old clocks/seed/provenance unchanged.
+Review added protection against output inside the selection's transitive source frame and
+noncanonical source paths, so recording the new read cannot modify either evidence journal.
+The 300-second child timeout, 16 MiB output limit and sanitized environment remain in force.
+
+Ten new selection-reader tests cover original status/clocks/weights, corruption, wrong code,
+mutable revisions and both evidence-path boundaries. Full isolated backend **851 passed**,
+zero skipped, 105.20s, PostgreSQL included; Ruff/canonical/whitespace pass. Existing warning
+only. Commit before the actual D040 original-code read; no redraw or source collection needed.

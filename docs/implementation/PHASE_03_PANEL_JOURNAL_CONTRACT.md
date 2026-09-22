@@ -194,3 +194,21 @@ refusal; interrupted selection/ack failure; no reseeding/overwrite; deterministi
 recovery; original evidence unchanged. Run isolated regression, review and commit before a
 single local development selection from the preserved 175,427-row frame. Report actual costs,
 strata/exclusions and the outcome even if it fails its frozen budget. No live collection needed.
+
+## D041 original-selection consumption
+
+D040's actual full-frame measurement passed. Later code adds files and therefore changes the
+full panel build; consume its saved selection through original commit `018dbd3` instead of
+redrawing or weakening that guard. Extend the existing original-reader implementation with
+an allowlisted `read_selection` child script and `fs2_selection_read_*` output directory.
+Keep original frame-reader v1 fields and semantics unchanged. The new selection-read schema
+pins both original report and plan, source/consumer builds, script hash and actual read clocks.
+The existing 300-second child timeout, 16 MiB output cap, sanitized environment and hash-checked
+Git extraction stay in force. Compare the child's entire report and plan to the pinned sealed
+artefacts. Failures retain their new read evidence; old seed/weights/clocks/status never change.
+
+Test selection/frame reader compatibility, exact plan/clock preservation, source/inventory/plan
+corruption, wrong original code, immutable commit and output-path restrictions, synthetic status
+and no journal/worktree mutation. After full tests/review/commit, perform one actual local
+original-code selection read and record its result. This is current consumption of development
+evidence; it does not create prospective origins or constitute pilot acceptance.

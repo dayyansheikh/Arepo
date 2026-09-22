@@ -22,8 +22,22 @@ def main():
     select.add_argument('--max-unique-markets', type=int, default=256)
     inspect = commands.add_parser('inspect')
     inspect.add_argument('--journal', required=True, type=Path)
+    original = commands.add_parser('inspect-original')
+    original.add_argument('--journal', required=True, type=Path)
+    original.add_argument('--implementation-commit', required=True)
+    original.add_argument('--output-parent', required=True, type=Path)
     args = parser.parse_args()
     started = time.monotonic_ns()
+    if args.command == 'inspect-original':
+        from .original_reader import read_original_selection
+
+        root = args.output_parent / ('fs2_selection_read_' + uuid.uuid4().hex)
+        result = read_original_selection(args.journal,
+                                         implementation_commit=args.implementation_commit,
+                                         output_root=root)
+        result['report'] = {k: v for k, v in result['report'].items() if k != 'plan'}
+        print(json.dumps(result, sort_keys=True, indent=2))
+        return
     if args.command == 'select':
         parent = args.output_parent
         if not parent.is_absolute() or parent.resolve() != parent or not parent.is_dir():

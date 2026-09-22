@@ -30,6 +30,13 @@ from astrolabe.research_panel.frame import read_frame
 report = read_frame(Path(sys.argv[2]))
 json.dump(report, sys.stdout, sort_keys=True, separators=(",", ":"))
 '''
+_SELECTION_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.selection import read_selection
+report = read_selection(Path(sys.argv[2]))
+json.dump(report, sys.stdout, sort_keys=True, separators=(",", ":"))
+'''
 
 
 def _git(repository, *args):
@@ -91,34 +98,63 @@ def read_original_frame(frame_root, *, implementation_commit, output_root, repos
     origin, sample, model execution or SQL visibility. No old run is modified. A failed
     attempt retains its declaration/partial output and requires a fresh output directory.
     """
+    return _read_original(frame_root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='frame')
+
+
+def read_original_selection(selection_root, *, implementation_commit, output_root, repository=None):
+    """Verify the original selection and exact plan; never redraw or change its clocks."""
+    return _read_original(selection_root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='selection')
+
+
+def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
+    if kind not in {'frame', 'selection'}:
+        raise ValueError('unsupported original journal kind')
+    schema = VERSION if kind == 'frame' else 'fs2-original-selection-read-v1'
+    script = _SCRIPT if kind == 'frame' else _SELECTION_SCRIPT
+    prefix = 'fs2_' + kind + '_read_'
+    hash_key = kind + '_report_hash'
+    available_key = kind + '_available_at'
     build = verified_panel_build()
     frame_root, output_root = Path(frame_root), Path(output_root)
     repository = Path(repository) if repository else Path(__file__).parents[3]
     for path in (frame_root, output_root, repository):
         if not path.is_absolute() or path.resolve() != path:
             raise ValueError('canonical absolute original-read paths required')
-    if (not output_root.name.startswith('fs2_frame_read_')
+    if (not output_root.name.startswith(prefix)
             or output_root == frame_root or frame_root in output_root.parents):
-        raise ValueError('separate fresh fs2_frame_read_ output directory required')
+        raise ValueError('separate fresh ' + prefix + ' output directory required')
     metadata_started = _clock()
-    policy, policy_ack = _pair(frame_root, 'frame_policy')
+    policy, policy_ack = _pair(frame_root, kind + '_policy')
     # Only sealed original reports are consumed. No crash-repair or semantic reconstruction.
-    original_report, report_ack = _pair(frame_root, 'frame_report')
+    original_report, report_ack = _pair(frame_root, kind + '_report')
     if original_report['policy_hash'] != policy_ack['payload_hash']:
         raise ValueError('original report/policy lineage differs')
+    extra, extra_hashes = {}, {}
+    if kind == 'selection':
+        source_root = Path(policy['frame_root'])
+        if not source_root.is_absolute() or source_root.resolve() != source_root:
+            raise ValueError('canonical original source evidence path required')
+        if output_root == source_root or source_root in output_root.parents:
+            raise ValueError('separate output outside original source evidence required')
+        plan, plan_ack = _pair(frame_root, 'selection_plan')
+        if original_report['plan_hash'] != plan_ack['payload_hash']:
+            raise ValueError('original selection report/plan lineage differs')
+        extra, extra_hashes = {'plan': plan}, {'selection_plan_hash': plan_ack['payload_hash']}
     with tempfile.TemporaryDirectory(prefix='arepo_original_decoder_') as tmp:
         code = Path(tmp)
         code_manifest = _extract(repository, implementation_commit, policy['build'], code)
         output_root.mkdir(mode=0o700, exist_ok=False)
         _sync_directory(output_root.parent)
         _persist(output_root, 'read_policy', {
-            'schema_version': VERSION, 'frame_root': str(frame_root),
-            'frame_policy_hash': policy_ack['payload_hash'],
+            'schema_version': schema, kind + '_root': str(frame_root),
+            kind + '_policy_hash': policy_ack['payload_hash'],
             'metadata_read_started_at': metadata_started,
-            'frame_report_hash': report_ack['payload_hash'],
+            hash_key: report_ack['payload_hash'], **extra_hashes,
             'original_build': policy['build'], 'implementation_commit': implementation_commit,
             'extracted_code': code_manifest, 'reader_build': build,
-            'reader_script_hash': _digest(_SCRIPT.encode()),
+            'reader_script_hash': _digest(script.encode()),
             'timeout_seconds': 300, 'max_output_bytes': 16 * 1048576,
             'purpose': 'actual verified read only; no new observation or origin admission',
         })
@@ -129,7 +165,7 @@ def read_original_frame(frame_root, *, implementation_commit, output_root, repos
             # -I ignores Python path/user-site environment; -B avoids source-tree bytecode writes.
             with output.open('xb') as handle:
                 child = subprocess.run(
-                    [sys.executable, '-I', '-B', '-c', _SCRIPT,
+                    [sys.executable, '-I', '-B', '-c', script,
                      str(code / 'backend'), str(frame_root)],
                     env=_ENV, cwd=code, stdout=handle, stderr=subprocess.PIPE, timeout=300,
                 )
@@ -137,14 +173,16 @@ def read_original_frame(frame_root, *, implementation_commit, output_root, repos
                 os.fsync(handle.fileno())
             _sync_directory(output_root)
             if child.returncode:
-                raise ValueError('original-build verification refused the frame or environment')
+                raise ValueError(
+                    'original-build verification refused the ' + kind + ' or environment')
             result_bytes = _read(output)
             result = json.loads(result_bytes)
             facts = {k: v for k, v in result.items()
-                     if k not in {'frame_report_hash', 'frame_available_at'}}
-            if (result['frame_report_hash'] != report_ack['payload_hash']
-                    or result['frame_available_at'] != report_ack['durable_ack']
-                    or facts != original_report):
+                     if k not in {hash_key, available_key, *extra}}
+            if (result[hash_key] != report_ack['payload_hash']
+                    or result[available_key] != report_ack['durable_ack']
+                    or facts != original_report
+                    or any(result.get(k) != v for k, v in extra.items())):
                 raise ValueError('original-build read output differs from sealed facts')
             verified_panel_build()
             completed = _clock()
@@ -153,7 +191,7 @@ def read_original_frame(frame_root, *, implementation_commit, output_root, repos
                                    started, completed):
                 raise ValueError('original read chronology differs')
             _persist(output_root, 'read_receipt', {
-                'schema_version': VERSION, 'read_policy_hash': read_policy_ack['payload_hash'],
+                'schema_version': schema, 'read_policy_hash': read_policy_ack['payload_hash'],
                 'original_report_hash': report_ack['payload_hash'],
                 'output_hash': _digest(result_bytes), 'output_bytes': len(result_bytes),
                 'metadata_read_started_at': metadata_started,
@@ -165,7 +203,7 @@ def read_original_frame(frame_root, *, implementation_commit, output_root, repos
         except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
             # Never expose upstream content/environment in an error receipt.
             _persist(output_root, 'read_failure', {
-                'schema_version': VERSION, 'read_policy_hash': read_policy_ack['payload_hash'],
+                'schema_version': schema, 'read_policy_hash': read_policy_ack['payload_hash'],
                 'started_at': started, 'failed_at': _clock(), 'error_class': type(exc).__name__,
             })
             raise
