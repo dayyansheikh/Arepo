@@ -1,6 +1,7 @@
 # Phase 3 next integration — declared panel, actual origins and due observations
 
-Status: planned, not implemented. D040/D041 historical selection, D042 assessment-aware
+Status: D048 declaration/reservation implemented and tested; collector/origin integration
+remains planned. D040/D041 historical selection, D042 assessment-aware
 sampling, D043 actual input reads, D044–D046 quote computation/identity refresh and D047
 original computation reads are prerequisites. Phase 3 remains incomplete.
 
@@ -64,6 +65,26 @@ retains original states and distinguishes known closure, invalid identity and un
    runs; refine a later protocol version rather than its old acceptance criteria.
 
 ## Tests and review gates
+
+### D048 declaration milestone refinement
+
+Implement the immutable declaration first; no collection function is exposed. Freeze explicit
+scheduled/trigger/control slot ceilings, cycle cadence, origin save/delay bounds, receipt-age
+limits, frame age/interval, fixed horizon/tolerance/attempt count, source response cap and
+per-source-run retained-byte quota. Generate a fresh internal random seed before numerical
+reads. Reserve worst-case distinct role slots without assuming overlap, all source requests
+and all D045 computation outputs, plus 1 GiB future selection output, 16 MiB original-frame
+read output, 1 MiB declaration/failure space and 2 GiB free reserve. Inspect disk before writing.
+
+An allocation is a frozen quota, not proof that existing SourceRun writes enforce it. Record
+`runtime_source_retention_guard_required` and keep collection disabled. The next collector
+must add/test that guard before any public use of this declaration. Reserve origin reads
+as three source calls (identity/book/trades) and each target attempt as two (identity/book);
+flow/window completeness remains unavailable. Use existing SourceRun per-response bounds and
+D045's 64 MiB whole-computation reservation. Overlarge panels must fail capacity preflight,
+not truncate scheduled/control assignments. Future refinement can reduce writer limits only
+with its own tested explicit version; do not infer a smaller guaranteed quota from one small
+runtime response. This milestone neither validates the frame nor accepts a selected panel.
 
 - Policy and capacity reservation precede reads/selection/requests; reject future/late inputs,
   old selection promotion, fabricated trigger negatives and origin acknowledgement after due time.

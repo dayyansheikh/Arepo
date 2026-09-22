@@ -455,3 +455,15 @@ available 2026-09-22T13:23:45.247836Z; PHASE_03_ORIGINAL_QUOTE_READ_EVIDENCE.jso
 its hashes and clocks. No new source request or origin admission. The next heartbeat found
 this completed evidence file after the preceding usage window ended and records it without
 repeating the operation. Documentation-only recovery check: canonical/whitespace pass.
+
+### D048 immutable panel declaration
+
+Reviewed explicit timing bounds, pre-read internal seed, complete scheduled/trigger/control
+slot and outcome reservation, exact derived quotas, full disk preflight, fresh exclusive
+output, failure preservation and independent replay. The declaration does not read source
+numbers, resolve frame completeness, invent feature coverage or admit origins. Per-source
+retained quotas remain planned until D049 guards actual writes. Existing computation caps
+are reserved in full; no discount for measured-small responses or overlapping roles.
+Thirty-nine focused cases passed (1.69s), including tampering, insufficient capacity, failed
+acknowledgement and concurrent declarations. Full isolated backend **1,035 passed**, zero skipped, 167.83s, disposable PostgreSQL included.
+Full Ruff/canonical/whitespace checks pass; one existing Starlette/httpx warning.

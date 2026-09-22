@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — frame/development selection and D042–D047 controls/input-read/quote computation, targeted identity and original recovery implemented; two-read runtime measurement passed. Panel integration/origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
+Status: incomplete — frame/development selection and D042–D047 controls/input-read/quote computation, targeted identity and original recovery implemented; two-read runtime measurement passed. D048 freezes panel declaration/reservation; source-write quota enforcement and full panel integration/origin/pilot work remain. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
