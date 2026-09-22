@@ -81,6 +81,18 @@ timestamps are never reused as computation clocks.
 
 ## Following integration, still unimplemented
 
+D047 implements the bounded original-Git-code reader for these
+computation journals. After subsequent implementation changes, their strict build guard
+remains intact. Use only the original pinned packages to verify transitive source/read
+closure and exact computation, return both unchanged facts and verified summary, and seal
+a new actual read receipt. Keep old computation/source clocks, cutoff, provenance and
+admission flags unchanged. Protect both the computation tree and separate source tree
+from output nesting. Preserve existing frame/selection reader APIs and semantics.
+Tests must cover exact facts/summary, corrupted child/source/computation, changed original
+code, mutable revisions, path protection, repeat outputs and source immutability. Perform
+full local regression and commit before a read-only measurement of the saved D046 journal.
+This does not upgrade that diagnostic target to an accepted panel or create new observations.
+
 Fresh broad-frame protocol and identity refresh, durable trigger computation (D042's
 evidence hashes must resolve to verified records), conditional/two-stage weights, matched
 controls, actual origin freeze, due outcome collection, leases, coverage and accepted pilot.

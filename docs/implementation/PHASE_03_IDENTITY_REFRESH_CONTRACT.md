@@ -1,7 +1,7 @@
 # Phase 3 selected-market identity refresh
 
-Status: D046 implemented and self-reviewed; 986 full backend tests passed. No live
-refresh or panel admission yet. The fixed two-request runtime plan is
+Status: D046 implemented and self-reviewed; 986 full backend tests passed. A two-request live development measurement and independent replay passed; no panel
+or origin admission. Exact clocks/hashes/results are in PHASE_03_TARGETED_QUOTE_EVIDENCE.json. The fixed two-request runtime plan is
 PHASE_03_IDENTITY_REFRESH_MEASUREMENT.json; execute only after commit/PR update.
 
 ## Basis and scope

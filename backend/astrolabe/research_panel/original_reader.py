@@ -37,6 +37,16 @@ from astrolabe.research_panel.selection import read_selection
 report = read_selection(Path(sys.argv[2]))
 json.dump(report, sys.stdout, sort_keys=True, separators=(",", ":"))
 '''
+_QUOTE_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.quote_computation import read_quote_computation
+from astrolabe.feature_store.source_run import _pair
+root = Path(sys.argv[2])
+summary = read_quote_computation(root)
+facts, ack = _pair(root, 'quote_facts')
+json.dump({'facts': facts, 'summary': summary}, sys.stdout, sort_keys=True, separators=(",", ":"))
+'''
 
 
 def _git(repository, *args):
@@ -108,11 +118,18 @@ def read_original_selection(selection_root, *, implementation_commit, output_roo
                           output_root=output_root, repository=repository, kind='selection')
 
 
+def read_original_quote_computation(root, *, implementation_commit, output_root, repository=None):
+    """Verify original exact quote facts/summary without restamping its computation cutoff."""
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='quote_computation')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
-    if kind not in {'frame', 'selection'}:
+    if kind not in {'frame', 'selection', 'quote_computation'}:
         raise ValueError('unsupported original journal kind')
-    schema = VERSION if kind == 'frame' else 'fs2-original-selection-read-v1'
-    script = _SCRIPT if kind == 'frame' else _SELECTION_SCRIPT
+    schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
+    script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
+              'quote_computation': _QUOTE_SCRIPT}[kind]
     prefix = 'fs2_' + kind + '_read_'
     hash_key = kind + '_report_hash'
     available_key = kind + '_available_at'
@@ -126,18 +143,21 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             or output_root == frame_root or frame_root in output_root.parents):
         raise ValueError('separate fresh ' + prefix + ' output directory required')
     metadata_started = _clock()
-    policy, policy_ack = _pair(frame_root, kind + '_policy')
+    policy, policy_ack = _pair(frame_root, 'quote_policy' if kind == 'quote_computation'
+                               else kind + '_policy')
     # Only sealed original reports are consumed. No crash-repair or semantic reconstruction.
-    original_report, report_ack = _pair(frame_root, kind + '_report')
+    original_report, report_ack = _pair(frame_root, 'quote_facts' if kind == 'quote_computation'
+                                        else kind + '_report')
     if original_report['policy_hash'] != policy_ack['payload_hash']:
         raise ValueError('original report/policy lineage differs')
     extra, extra_hashes = {}, {}
-    if kind == 'selection':
-        source_root = Path(policy['frame_root'])
+    if kind in {'selection', 'quote_computation'}:
+        source_root = Path(policy['frame_root' if kind == 'selection' else 'source_root'])
         if not source_root.is_absolute() or source_root.resolve() != source_root:
             raise ValueError('canonical original source evidence path required')
         if output_root == source_root or source_root in output_root.parents:
             raise ValueError('separate output outside original source evidence required')
+    if kind == 'selection':
         plan, plan_ack = _pair(frame_root, 'selection_plan')
         if original_report['plan_hash'] != plan_ack['payload_hash']:
             raise ValueError('original selection report/plan lineage differs')
@@ -177,10 +197,18 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
                     'original-build verification refused the ' + kind + ' or environment')
             result_bytes = _read(output)
             result = json.loads(result_bytes)
-            facts = {k: v for k, v in result.items()
-                     if k not in {hash_key, available_key, *extra}}
-            if (result[hash_key] != report_ack['payload_hash']
-                    or result[available_key] != report_ack['durable_ack']
+            if kind == 'quote_computation':
+                facts, summary = result['facts'], result['summary']
+                actual_hash, actual_available = summary['computation_hash'], summary[
+                    'computation_available_at']
+                provenance, state = summary['source_provenance_class'], 'verified_quote_computation'
+            else:
+                facts = {k: v for k, v in result.items()
+                         if k not in {hash_key, available_key, *extra}}
+                actual_hash, actual_available = result[hash_key], result[available_key]
+                provenance, state = result['provenance_class'], result['state']
+            if (actual_hash != report_ack['payload_hash']
+                    or actual_available != report_ack['durable_ack']
                     or facts != original_report
                     or any(result.get(k) != v for k, v in extra.items())):
                 raise ValueError('original-build read output differs from sealed facts')
@@ -196,8 +224,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
                 'output_hash': _digest(result_bytes), 'output_bytes': len(result_bytes),
                 'metadata_read_started_at': metadata_started,
                 'verification_started_at': started, 'completed_at': completed,
-                'original_provenance_class': result['provenance_class'],
-                'original_state': result['state'],
+                'original_provenance_class': provenance,
+                'original_state': state,
                 'observation_clocks_changed': False, 'origin_admitted': False,
             })
         except (OSError, ValueError, subprocess.TimeoutExpired) as exc:

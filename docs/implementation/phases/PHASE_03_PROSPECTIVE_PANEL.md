@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — frame/development selection and D042–D046 controls/input-read/quote computation and targeted identity source implemented; runtime measurement/panel integration/origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
+Status: incomplete — frame/development selection and D042–D047 controls/input-read/quote computation, targeted identity and original recovery implemented; two-read runtime measurement passed. Panel integration/origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -173,6 +173,12 @@ Bounded representative nonproduction pilot preserves scheduled controls, exact i
 ## Protected boundaries
 
 Never fabricate prospective observations, tune on final confirmation, or treat repeated rows as independent events. Preserve complete discovery separately from public limits and sampled deep collection. Archive equivalence does not authorise deletion. A protected action requires the user's explicit decision; record BLOCKED — USER DECISION REQUIRED with the concrete action. Missing access/data is a real blocker; synthetic fixtures are not a substitute for empirical acceptance.
+
+## Next ordered integration contract
+
+Read ../PHASE_03_PANEL_ORIGIN_CONTRACT.md before implementing panel declaration, fresh
+selection/origins and due collection. D046 runtime evidence is
+../PHASE_03_TARGETED_QUOTE_EVIDENCE.json. No accepted panel or model-ready origins yet.
 
 ## Handoff/output
 

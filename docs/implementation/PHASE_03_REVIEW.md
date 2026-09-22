@@ -425,3 +425,26 @@ corrected the tests without changing that API. Full isolated backend **986 passe
 skipped, 142.87s, including disposable PostgreSQL. Full Ruff/canonical/whitespace checks
 passed; one existing Starlette/httpx warning. Two-request runtime measurement is separately
 frozen before collection, with fixed historical target, no retries and no origin claim.
+
+D046 runtime measurement executed once from committed `761d27991fb24073dda3bc819114c8f912a205e9`
+under the separately committed fixed-target plan. Both HTTP responses were 200; Gamma
+identity became available before book receipt. One receipt-time quote was observed and its
+durable computation independently replayed with source/computation bytes unchanged. Raw
+6,178 bytes; 81,737 retained before report; 75,972,608 peak resident bytes; whole-process
+1,046,331,792 ns. Measurement plan available 13:13:10.462421 UTC; computation available
+13:13:11.141974 UTC. Full evidence, report acknowledgement and script/plan/build hashes
+are in PHASE_03_TARGETED_QUOTE_EVIDENCE.json. Source provenance is prospective; selection
+remains historical, and no research origin, SQL row, predictive finding or pilot is admitted.
+No source or measurement process remains active. No production action was taken.
+
+### D047 original quote-computation reader
+
+Reviewed original package extraction/hash binding, transitive source/child verification,
+complete facts equality, original summary hash/availability and new read chronology. No
+recomputation under current numerical code, source request, dependency installation,
+checkout/reset or historical-clock changes. Existing frame/selection APIs stay compatible.
+Output nesting inside either source or computation is refused; failed reads are preserved.
+Ten new tests cover exact preservation, five closure corruptions, three nested output paths
+and mutable/changed original code. Thirty focused original-reader tests pass (37.09s).
+Full isolated backend **996 passed**, zero skipped, 155.90s, including disposable PostgreSQL. Full Ruff, canonical
+and whitespace checks pass. No new collection or production changes.
