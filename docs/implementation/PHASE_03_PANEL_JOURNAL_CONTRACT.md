@@ -212,3 +212,37 @@ corruption, wrong original code, immutable commit and output-path restrictions, 
 and no journal/worktree mutation. After full tests/review/commit, perform one actual local
 original-code selection read and record its result. This is current consumption of development
 evidence; it does not create prospective origins or constitute pilot acceptance.
+
+## D042 explicit trigger-assessment sampling prerequisite
+
+The original planner's boolean `triggered=False` is insufficient to distinguish a measured
+negative from no measurement. Preserve v1/v2 output byte-for-byte when the new mode is not
+requested; D040's historical draw stays scheduled-only. Add an explicit assessment-aware
+mode with a separately hashed policy declaration, input-window freshness and assessment-age
+bounds. These are development engineering inputs, not optimized scientific thresholds.
+
+Each supplied assessment identifies exactly one frame market/token, one pinned trigger policy,
+a content-addressed evidence record, input-window end and durable assessment availability.
+States are `triggered`, `untriggered`, or `unavailable` with a reason. Missing assessments
+remain `not_assessed`. The pure planner validates declared identities, hashes, UTC chronology
+and bounds; it cannot attest that evidence exists or a process actually ran. Its output must
+explicitly require runtime assessment verification and must never admit an origin.
+
+Only fresh explicit `untriggered` assessments enter the matched-control pool. Fresh triggered
+assessments enter the trigger pool. Unavailable, unassessed or stale records remain in the
+scheduled population and a complete assessment inventory with reasons; no inferred negative,
+zero-filled feature, dropped market or redraw. All assessments use the same policy, with its
+declaration at/before their input-window end, availability at/before cutoff and input-window
+end at/before availability. A future/conflicting/duplicate assessment is an error, not an
+exclusion. Require neutral legacy boolean fields in the new mode to avoid two authorities.
+
+Preserve exact conditional arm and matching weights over the actual eligible pools and every
+unfilled control slot. Never interpret arm weights as union/two-stage/population weights.
+Keep original assessment records and effective states in the versioned plan hash. Durable
+trigger computation, source closure, actual read clocks, broad-frame selection weights and
+origin admission remain the next collector integration contracts, not claims of this helper.
+
+Test unknown/unavailable/stale controls, exact threshold boundaries, full scheduled coverage,
+future/negative clocks, wrong identities/policies, duplicate evidence, order invariance,
+conditional fractions, shortage, bounded iterators, budget refusal and the existing golden
+v1 hash. Run full isolated regression and self-review before committing; no live collection.

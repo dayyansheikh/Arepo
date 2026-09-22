@@ -66,6 +66,11 @@ actual input-read/computation/origin boundaries, trigger/control evidence and a 
 prospective pilot protocol. All origins and pilot acceptance remain gated; current local
 free disk is below expanded-frame preflight, so inspect checkpoint constraints first.
 
+D042 adds explicit assessment-aware v3 sampling with 884 passing backend tests. Unknown,
+unavailable and stale assessments stay scheduled but cannot masquerade as untriggered
+controls. Legacy plan hashes remain unchanged. The next journal milestone must record
+actual verified source reads; pure assessment declarations cannot establish those clocks.
+
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
 remain unchanged. No production scans were restarted. v2 collection uses isolated local
 journals and public read endpoints only. Upcoming journal/consumer requirements are in

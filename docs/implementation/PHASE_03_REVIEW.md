@@ -346,3 +346,20 @@ seed, weights and reconstructed status unchanged. The isolated child emitted 107
 bytes within its limit; CLI exited 0. New read policy/receipt and exact hashes are in
 PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No source requests or origins occurred.
 No process remains active. Phase 3 acceptance remains open; this is development evidence.
+
+### D042 assessment-aware controls
+
+Added an opt-in v3 sampling plan that distinguishes measured negatives, triggered,
+unavailable, stale and absent assessments. Only fresh explicit negatives enter controls;
+unknowns stay in the scheduled population and full inventory. Review confirmed that
+declaration/window/availability bounds are inclusive, future facts refuse the plan, all
+assessments match the frozen policy and market/token, and duplicate evidence cannot
+represent multiple decisions. Legacy trigger fields must be neutral in this mode.
+Exact arm/matching denominators use the actual admitted pools; shortages remain explicit.
+The pure helper cannot authenticate caller evidence, and its output requires runtime
+verification and explicitly admits no origin. No production or source collection changes.
+
+54 focused tests passed, including the original golden v1 hash. Full isolated backend:
+**884 passed**, zero skipped, 118.98s, disposable PostgreSQL included; full Ruff,
+canonical contract and whitespace checks pass. One existing Starlette/httpx warning.
+No empirical trigger quality, live coverage or pilot acceptance is implied by these fixtures.

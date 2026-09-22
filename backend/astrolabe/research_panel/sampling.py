@@ -11,6 +11,8 @@ from itertools import islice
 from astrolabe.feature_store.admission import content_hash
 from astrolabe.feature_store.types import HASH_PATTERN, canonical_json, exact_decimal, utc_datetime
 
+from .assessments import assessment_inventory
+
 
 @dataclass(frozen=True)
 class SamplingProtocol:
@@ -142,7 +144,7 @@ def _frame_hash(members):
 
 
 def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_evidence_ids,
-                max_frame_members=100000):
+                max_frame_members=100000, assessment_policy=None, trigger_assessments=None):
     """Each arm has its own conditional inclusion probability, not a union weight.
 
     The caller must durably freeze this output before capture; this pure planner cannot
@@ -163,6 +165,16 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
         raise ValueError("frame completion/coverage evidence required")
     if len({r.market_id for r in members}) != len(members):
         raise ValueError("one predeclared outcome per market; duplicate market inflates sampling")
+    assessed_mode = assessment_policy is not None or trigger_assessments is not None
+    assessed = {}
+    if assessed_mode:
+        if assessment_policy is None or trigger_assessments is None:
+            raise ValueError('both assessment policy and explicit inventory required')
+        if any(r.triggered is not False or r.trigger_id is not None
+               or r.trigger_available_at is not None for r in members):
+            raise ValueError('assessment mode requires neutral legacy trigger fields')
+        inventory = assessment_inventory(assessment_policy, trigger_assessments, members, cutoff)
+        assessed = {r['market_id']: r for r in inventory}
     triggers = [r.trigger_id for r in members if r.triggered]
     if len(set(triggers)) != len(triggers):
         raise ValueError("trigger IDs must identify one market decision, not duplicate events")
@@ -181,6 +193,14 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
         strata.setdefault(key, {"fields": fields, "members": []})["members"].append(row)
     assignments, reports = [], []
 
+    def trigger_id(row):
+        return (assessed[row.market_id]['assessment']['evidence_id']
+                if assessed_mode else row.trigger_id)
+
+    def state(row):
+        return (assessed[row.market_id]['effective_state'] if assessed_mode
+                else 'triggered' if row.triggered else 'untriggered')
+
     def select(rows, count, stratum, arm):
         return nsmallest(count, rows, key=lambda r: (
             content_hash({"seed": protocol.seed, "stratum": stratum,
@@ -193,17 +213,24 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
                             "arm": arm, "stratum": stratum,
                             "inclusion_probability": exact_probability(count, population),
                             "probability_scope": "market within arm/stratum, frozen trigger states",
-                            "trigger_id": row.trigger_id if arm == "triggered" else None,
+                            "trigger_id": trigger_id(row) if arm == "triggered" else None,
                             "matched_trigger_ids": list(matched),
                             "conditional_matching_probability": matching_probability})
+        if assessed_mode:
+            record = assessed[row.market_id]
+            assignments[-1].update(
+                assessment_state=record['effective_state'],
+                assessment_evidence_id=(record['assessment']['evidence_id']
+                                        if record['assessment'] is not None else None),
+            )
 
     for key, stratum in sorted(strata.items()):
         rows = stratum["members"]
         scheduled_n = min(protocol.scheduled_per_stratum, len(rows))
         for row in select(rows, scheduled_n, key, "scheduled"):
             add(row, "scheduled", key, scheduled_n, len(rows))
-        triggered_pool = [r for r in rows if r.triggered]
-        control_pool = [r for r in rows if not r.triggered]
+        triggered_pool = [r for r in rows if state(r) == 'triggered']
+        control_pool = [r for r in rows if state(r) == 'untriggered']
         triggered = select(triggered_pool, protocol.triggered_per_stratum, key, "triggered")
         wanted = len(triggered) * protocol.controls_per_trigger
         controls = select(control_pool, wanted, key, "control")
@@ -213,7 +240,8 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
             trigger_index = index % len(triggered)
             slots = (len(controls) + len(triggered) - 1 - trigger_index) // len(triggered)
             add(row, "control", key, len(controls), len(control_pool),
-                (triggered[trigger_index].trigger_id,), exact_probability(slots, len(control_pool)))
+                (trigger_id(triggered[trigger_index]),),
+                exact_probability(slots, len(control_pool)))
         reports.append({"stratum": key, **stratum["fields"], "eligible_count": len(rows),
                         "scheduled_count": scheduled_n, "triggered_pool": len(triggered_pool),
                         "triggered_count": len(triggered), "control_pool": len(control_pool),
@@ -221,6 +249,11 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
                         "unfilled_control_slots": wanted - len(controls),
                         "economic_independence": "unresolved" if stratum["fields"]["event_group"]
                         is None else "grouped_not_independent_rows"})
+        if assessed_mode:
+            reports[-1]['assessment_counts'] = {
+                name: sum(state(r) == name for r in rows)
+                for name in ('triggered', 'untriggered', 'unavailable', 'not_assessed')
+            }
     unique = len({a["market_id"] for a in assignments})
     if unique > protocol.max_unique_markets:
         raise ValueError(
@@ -243,4 +276,12 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
     if max_frame_members != 100000:
         # Changed capacity is explicit in the output contract; the v1 default stays identical.
         result.update(schema_version="fs2-sampling-plan-v2", max_frame_members=max_frame_members)
+    if assessed_mode:
+        result.update(
+            schema_version='fs2-sampling-plan-v3', max_frame_members=max_frame_members,
+            assessment_policy=asdict(assessment_policy),
+            assessment_policy_hash=assessment_policy.hash,
+            assessment_inventory=inventory,
+            runtime_assessment_verification_required=True, origin_admitted=False,
+        )
     return {**result, "plan_hash": content_hash(result)}
