@@ -363,3 +363,19 @@ verification and explicitly admits no origin. No production or source collection
 **884 passed**, zero skipped, 118.98s, disposable PostgreSQL included; full Ruff,
 canonical contract and whitespace checks pass. One existing Starlette/httpx warning.
 No empirical trigger quality, live coverage or pilot acceptance is implied by these fixtures.
+
+### D043 actual input-read journal
+
+Reviewed the source policy/build boundary, full current-build SourceRun validation, exact
+retained rows/admission hashes, failed-response preservation, separate exclusive output,
+UTC and same-session monotonic ordering, final independent source closure replay, bounded
+storage/time and failure retention. Added monotonic source-ack-to-read checks during review;
+UTC alone was insufficient. A source append invalidates this completed-run v1 read, and old
+diagnostics cannot be admitted. Reads have no clock/payload/provenance/subset injection API.
+Synthetic source status stays synthetic, and no origin or feature is admitted.
+
+The first fixture used an already-consumed HTTP body; corrected it to the existing streamed
+mock transport without changing production capture logic. 31 focused read/source tests pass.
+Full isolated backend **904 passed**, zero skipped, 119.73s; disposable PostgreSQL included.
+Full Ruff, canonical and whitespace checks pass; existing Starlette/httpx warning only.
+All 20 new cases use synthetic temporary journals; no new live collection occurred.

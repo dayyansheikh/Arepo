@@ -246,3 +246,37 @@ Test unknown/unavailable/stale controls, exact threshold boundaries, full schedu
 future/negative clocks, wrong identities/policies, duplicate evidence, order invariance,
 conditional fractions, shortage, bounded iterators, budget refusal and the existing golden
 v1 hash. Run full isolated regression and self-review before committing; no live collection.
+
+## D043 bounded actual source-input read journal
+
+Implement a one-shot local `record_input_read` over one completed, current-build SourceRun.
+Freeze the read policy/build and source path before reading source metadata. The source
+journal stays the authority; this record proves a later actual verified read, not new source
+availability, identity freshness, trigger computation, a feature or an origin. Capture all
+of that bounded run's observations, including failed responses. No caller payload, capture
+subset, clock, provenance or completeness override; old diagnostic directories are refused.
+
+Require canonical separate source/output directories and exclusive `fs2_input_read_*`
+creation. Verify the source run's entire bounded closure using `read_source_run`, retain
+the exact relational projection including numerical representations and raw hashes, and
+bind every source admission/parse receipt. All source facts must already be available at
+the actual read start; appending source attempts during or after sealing invalidates this
+version's read closure. Future streaming consumers need separately versioned prefix rules.
+This milestone assumes completed finite source runs, never production scans or startup.
+
+Record policy durability, actual read start, projection completion and durable read facts.
+Keep the source observations' receipt/availability clocks intact. Source provenance remains
+unchanged; the read journal is explicitly consumption-only and admits no origin. Store
+source-registry and observation rows exactly as consumed with an inventory hash. Refuse empty
+runs, torn acknowledgements, changed builds, raw/parse/source mutation and chronology faults.
+Read-only replay re-verifies the complete source closure and stored projection, without
+replacing timestamps or repairing files. A copied source requires its original path in v1;
+portable archive equivalence remains a distinct later contract.
+
+Bound this helper to SourceRun's existing maximum 10 requests /4 MiB raw, 16 MiB per output
+artefact, 32 MiB total retained, 60 seconds checked at operation boundaries and 2 GiB free
+reserve. Freeze limits internally; no new collection allowance follows. Preserve failure
+receipts and partial files, never resume or overwrite; original data stays byte-identical.
+Test actual clock ordering, failed responses retained, synthetic separation, source closure
+mutation, future/unavailable facts, torn writes, path protection, changed builds, budget
+failure and deterministic read-only verification. No live source calls for this milestone.

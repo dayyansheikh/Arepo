@@ -71,6 +71,12 @@ unavailable and stale assessments stay scheduled but cannot masquerade as untrig
 controls. Legacy plan hashes remain unchanged. The next journal milestone must record
 actual verified source reads; pure assessment declarations cannot establish those clocks.
 
+D043 now records and verifies bounded actual reads of completed SourceRuns, preserving all
+source facts and their original clocks. UTC/monotonic causality, closure and failure tests
+pass within the **904-test** backend regression. Next build exact quote/identity feature
+computation on these reads, with separate freshness and actual computation/durability clocks;
+neither source availability nor this read receipt is itself a research origin.
+
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
 remain unchanged. No production scans were restarted. v2 collection uses isolated local
 journals and public read endpoints only. Upcoming journal/consumer requirements are in
