@@ -48,6 +48,11 @@ D039's pure exact metadata projection is now implemented and tested (818 full ba
 including 23 new projection cases). It records no actual read or origin; integrating it with
 the durable journal remains the next milestone. Unknown metadata must not exclude markets.
 
+D040 now implements durable development policy/seed/full inventory/actual read/projection/
+scheduled selection and read-only replay (841 full tests). Single local measurement from
+the preserved frame is pending committed code. This scheduled-only development selection
+does not supply triggers, controls or fresh origins; those acceptance gates remain open.
+
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
 remain unchanged. No production scans were restarted. v2 collection uses isolated local
 journals and public read endpoints only. Upcoming journal/consumer requirements are in

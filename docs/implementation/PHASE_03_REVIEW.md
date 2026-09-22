@@ -293,3 +293,25 @@ Full isolated backend **818 passed**, zero skipped, 74.04s, including PostgreSQL
 projection cases. Ruff/canonical/whitespace pass; existing Starlette/httpx warning only.
 Self-review checked bounded inputs, unsupported type handling, source-order selection,
 preserved provenance boundaries and no caller payload admission. Durable integration remains.
+
+### D040 durable development selection before capacity measurement
+
+Reviewed seed/policy fsync before original frame reads, original-code verification, exact
+raw/page/row linkage on the actual projection read, per-page computation acknowledgements,
+full unknown/unmapped inventory and deterministic sampling replay. Identical versions are
+deduplicated only for sampling; conflicts stop. Exact rational weights and all failed outputs
+are retained. Source categories cannot collide with the missing-category sentinel. No source
+request, SQL/startup import, caller seed/clock/provenance, origin or control admission exists.
+
+Review added checks for original policy/page closure after selection and failed child-read
+markers. Construction state is released before independent verification to avoid retaining
+two full populations in memory. Frozen processing/output/row limits and disk reserve fail
+without reseeding, truncating or silently repairing a run. Read-only replay has its own same
+processing limit and does not reinterpret low current free space as historical invalidity.
+
+Twenty-three focused cases pass, including real isolated original-code child decoders,
+tampering/rehashed false weights, clock order, missing/extra pages, no overwrite, cold copy,
+unknown/unmapped rows, budget refusal and immutable source bytes. Full backend **841 passed**,
+zero skipped, 94.97s, disposable PostgreSQL included. Ruff/canonical/whitespace pass; existing
+Starlette/httpx warning only. Commit this exact protocol/code before the local full-frame
+measurement. A synthetic fixture pass does not establish real capacity or Phase 3 acceptance.

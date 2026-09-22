@@ -145,3 +145,52 @@ row; refuse conflicting identities. Consume the complete old frame via its origi
 then independently bind the actual metadata reads/projection clocks. No original availability
 timestamp may be reused as the current computation time. Explicitly separate development
 replay from a future fresh prospective pilot; freshness limits must be frozen before origins.
+
+## D040 durable development selection — implementation contract
+
+Implement `selection.py` and an explicit local CLI. The sole admitted mode in this milestone
+is `development_selection_only`; a real historical frame yields reconstructed selection,
+and a synthetic frame stays synthetic. Neither mode admits origins or population inference.
+No source requests, SQL, application settings or production startup are involved.
+
+1. Require a canonical fresh `fs2_selection_*` directory separate from the source frame,
+   an immutable original implementation SHA and a frozen finite budget. Generate a cryptographic
+   256-bit seed internally once; persist/acknowledge the policy before any frame metadata read.
+   Do not accept caller clocks, seeds, row lists or completeness/provenance overrides.
+2. Consume the original frame through D034 into a child read journal. Require verified
+   `exhausted_consistent`, terminal evidence, no unrecovered gaps/conflicting identities and
+   positive eligible population. Preserve original source interval and availability separately.
+3. Stream every original page through a new actual read/projection. Recheck pinned raw,
+   receipt and page hashes, count and each source-row hash as consumed. Preserve every row,
+   its page/source index, original identity/eligibility and metadata states. Unmapped rows
+   retain raw references and explicit exclusions without fabricated tokens. Identical repeated
+   market versions are deduplicated only for sampling, retaining every original inventory row;
+   conflicting versions refuse the run. Each page gets its own actual read/projected/ack clocks.
+4. Use D039 metadata only. Unknown/invalid fields map to explicit unknown strata. Compute
+   time-to-close against the policy declaration time with fixed development bins: past,
+   <=1 day, <=7 days, <=30 days, >30 days, unknown. The time stratum is that UTC date.
+   Economic groups stay unresolved. All members are scheduled-arm candidates; no trigger
+   or matched-control evidence is invented. Default one scheduled draw/stratum, at most 256
+   unique markets; an over-budget draw fails intact rather than truncating or reseeding.
+5. Seal a full inventory manifest before fixing the actual sampling cutoff. Sample with
+   the existing exact rational planner, using projection acknowledgements as derived-input
+   availability and row-qualified evidence hashes as planner lineage identifiers (not SQL
+   source_observation rows). Record computation start/end, original-read and inventory hashes,
+   plan hash and final durable acknowledgement. Original availability is never a current read.
+6. Bound work to 4,000 page attempts, 400,000 source rows, 3 GiB consumed raw, 1 GiB output,
+   600 seconds processing and a 2 GiB disk reserve; check storage before admitting the run
+   and between pages. The original child decoder additionally retains its own 300-second cap.
+   Failed/torn runs keep all files and failure evidence; no overwrite, automatic repair/resume,
+   reseeding or silent partial sample. Output-budget checks include the child read journal.
+7. Read-only verification requires the original consumer build, complete inventory closure,
+   source/hash lineage, chronology and exact recomputation of the frozen plan. Later changed
+   builds will need an original-selection decoder before consuming this journal; do not weaken
+   the build guard. Validate cold-copy readability without implying full archive equivalence.
+
+Required tests: actual original-code verification with synthetic Git fixtures; policy-before-read;
+unknown/unmapped rows; duplicates/conflicts; exact weights; source tampering and missing/extra
+inventory pages; changed build; clock regression/future input; over-budget and insufficient-disk
+refusal; interrupted selection/ack failure; no reseeding/overwrite; deterministic read-only
+recovery; original evidence unchanged. Run isolated regression, review and commit before a
+single local development selection from the preserved 175,427-row frame. Report actual costs,
+strata/exclusions and the outcome even if it fails its frozen budget. No live collection needed.
