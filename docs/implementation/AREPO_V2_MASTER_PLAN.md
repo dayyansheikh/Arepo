@@ -13,7 +13,7 @@ Read ../AREPO_V2_CHECKPOINT.md first, then AGENTS.md, this plan, the current pha
 | 00 | [Canonical foundation](phases/PHASE_00_FOUNDATION.md) | Verified production + supplied research | Complete — draft PR #13 |
 | 01 | [Feature Store v2 foundations](phases/PHASE_01_FEATURE_STORE.md) | 00 accepted outputs | Complete — draft PR #14; 610 backend tests passed |
 | 02 | [Sources, clocks and identities](phases/PHASE_02_SOURCES_CLOCKS_IDENTITY.md) | 01 accepted outputs | Complete — draft PR #15; 685 tests and new predeclared core-source run |
-| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Incomplete — D040 local selection passed; D041 reader validated with 851 full tests. Draft #16. Actual original-selection read, freshness/origins/collectors/pilot remain |
+| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Incomplete — D040 local selection and D041 actual original-code read passed; 851 full tests. Draft #16. Freshness/origins/collectors/pilot remain |
 | 04 | [Baselines and initial edge experiments](phases/PHASE_04_EDGE_EXPERIMENTS.md) | 03 accepted outputs + sufficient clean independent events | Provisional |
 | 05 | [Wallet and information event engine](phases/PHASE_05_WALLET_INFORMATION.md) | 04 accepted outputs + sufficient clean independent events | Provisional |
 | 06 | [Bayesian and ML candidates](phases/PHASE_06_MODELS.md) | 05 accepted outputs + sufficient clean independent events | Provisional |
@@ -50,8 +50,9 @@ Never merge/deploy, migrate production, change infrastructure/credentials/live r
 ## Continuation and stop conditions
 
 One same-task continuation chain, with each invocation scheduling the next 310 minutes ahead.
-Current continuation has available allowance; the latest check found 28% primary /
-82% weekly used. The existing heartbeat was updated and verified for 2026-09-22 10:36
+Current continuation is saving its safe boundary near the five-hour allowance limit;
+the latest check found 93% primary /92% weekly used, ordinary usage still allowed.
+The existing heartbeat was updated and verified for 2026-09-22 10:36
 Europe/London with the user's exact prompt, in this same task; no second chain was created.
 The previous 09:40 automation was removed; its separate task's docs-only access-blocker commit
 `8a55335` is retained as history, resolved here. Verify actual current automation state before

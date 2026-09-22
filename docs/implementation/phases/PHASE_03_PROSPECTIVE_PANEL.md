@@ -49,15 +49,22 @@ including 23 new projection cases). It records no actual read or origin; integra
 the durable journal remains the next milestone. Unknown metadata must not exclude markets.
 
 D040 now implements durable development policy/seed/full inventory/actual read/projection/
-scheduled selection and read-only replay (841 full tests). Single local measurement from
-the preserved frame is pending committed code. This scheduled-only development selection
+scheduled selection and read-only replay (841 full tests). The local measurement below
+ran under committed code. This scheduled-only development selection
 does not supply triggers, controls or fresh origins; those acceptance gates remain open.
 
 Actual D040 measurement passed under `018dbd3`: all 175,427 source rows preserved, 175,383
 eligible sampling members, 107 draws/strata and 44 unresolved rows retained. Reconstructed
 development only. All mapped rows lack the explicit category field; unknown-category strata
-remain, not inferred taxonomy. Costs/hashes: PHASE_03_SELECTION_ATTEMPT_1.json. Before new
-collector code consumes this saved selection, add original-build selection verification.
+remain, not inferred taxonomy. Costs/hashes: PHASE_03_SELECTION_ATTEMPT_1.json.
+
+D041 `d24ed88` adds bounded original-build selection verification (851 full backend tests).
+The actual saved selection read passed under original `018dbd3`, preserving the entire
+report/plan, seed, weights, old clocks and reconstructed status. New actual read receipt
+and hashes: PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. Next refine freshness,
+actual input-read/computation/origin boundaries, trigger/control evidence and a separate
+prospective pilot protocol. All origins and pilot acceptance remain gated; current local
+free disk is below expanded-frame preflight, so inspect checkpoint constraints first.
 
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
 remain unchanged. No production scans were restarted. v2 collection uses isolated local

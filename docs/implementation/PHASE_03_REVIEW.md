@@ -338,3 +338,11 @@ Ten new selection-reader tests cover original status/clocks/weights, corruption,
 mutable revisions and both evidence-path boundaries. Full isolated backend **851 passed**,
 zero skipped, 105.20s, PostgreSQL included; Ruff/canonical/whitespace pass. Existing warning
 only. Commit before the actual D040 original-code read; no redraw or source collection needed.
+
+Actual read under committed D041 `d24ed88` passed on 2026-09-22 at 04:56:02 UTC,
+with original D040 `018dbd3` decoding the complete saved journal. Original report and
+plan equality passed: 175,427 rows, 175,383 members, 107 selected markets; old clocks,
+seed, weights and reconstructed status unchanged. The isolated child emitted 107,797
+bytes within its limit; CLI exited 0. New read policy/receipt and exact hashes are in
+PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No source requests or origins occurred.
+No process remains active. Phase 3 acceptance remains open; this is development evidence.
