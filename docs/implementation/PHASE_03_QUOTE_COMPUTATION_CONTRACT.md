@@ -85,6 +85,6 @@ Fresh broad-frame protocol and identity refresh, durable trigger computation (D0
 evidence hashes must resolve to verified records), conditional/two-stage weights, matched
 controls, actual origin freeze, due outcome collection, leases, coverage and accepted pilot.
 Existing D040 assignments stay historical development evidence. Gamma's explicit category
-field is absent across the measured mapped frame; no invented taxonomy. SourceRun currently
-allows bounded active/open Gamma lists, not arbitrary selected-market lookup filters; any
-new identity-refresh query requires its own reviewed source contract and official verification.
+field is absent across the measured mapped frame; no invented taxonomy. D046 adds an explicit selected-market SourceRun policy under
+PHASE_03_IDENTITY_REFRESH_CONTRACT.md. Default active/open list semantics stay unchanged.
+Targeted runtime verification and full panel identity integration remain separate gates.

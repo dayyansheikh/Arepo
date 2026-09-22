@@ -24,7 +24,14 @@ from .capture import (
 )
 from .repository import append_batch
 from .schema import FIELD_SPECS
-from .source_parsers import _condition, clob_book, data_v2_trades, gamma_identity, native_clock
+from .source_parsers import (
+    _condition,
+    clob_book,
+    data_v2_trades,
+    gamma_identity,
+    gamma_market,
+    native_clock,
+)
 from .sources import SOURCES
 from .types import exact_decimal, uint_text, utc_datetime
 
@@ -43,7 +50,10 @@ def parse_source(capture):
     source = capture["receipt"]["source_id"]
     params = capture["receipt"]["request"]["params"]
     try:
-        if source == "gamma.markets":
+        if source == "gamma.market":
+            value = gamma_market(value, expected_market=SOURCES[source].market_request_id(
+                capture["receipt"]["request"]))
+        elif source == "gamma.markets":
             if not isinstance(value, list):
                 raise ValueError("market list required")
             value = [gamma_identity(row) for row in value]

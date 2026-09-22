@@ -7,7 +7,8 @@ from itertools import islice
 
 from astrolabe.feature_store.admission import content_hash
 from astrolabe.feature_store.capture import _digest, _strict_json
-from astrolabe.feature_store.source_parsers import clob_book, gamma_identity
+from astrolabe.feature_store.source_parsers import clob_book, gamma_identity, gamma_market
+from astrolabe.feature_store.sources import SOURCES
 from astrolabe.feature_store.types import HASH_PATTERN, utc_datetime
 
 from .targets import Quote, quote_state
@@ -66,7 +67,7 @@ def project_quote_inputs(observations, *, policy, cutoff):
         if identity in seen:
             raise ValueError('duplicate source observation')
         seen.add(identity)
-        if row['source_id'] not in {'gamma.markets', 'clob.book', 'data.v2.trades'}:
+        if row['source_id'] not in {'gamma.market', 'gamma.markets', 'clob.book', 'data.v2.trades'}:
             raise ValueError('source outside admitted input projection')
         if (row['payload_encoding'] != 'base64' or row['missing_reason'] not in {
             'observed', 'permission_denied', 'rate_limited', 'transport_gap',
@@ -89,6 +90,9 @@ def project_quote_inputs(observations, *, policy, cutoff):
                           'provenance_class': row['provenance_class']})
     mappings = []
     for row in rows:
+        if row['source_id'] == 'gamma.market' and row['id'] in decoded:
+            target = SOURCES['gamma.market'].market_request_id(row['request_metadata']['request'])
+            mappings.append((gamma_market(decoded[row['id']], expected_market=target), row))
         if row['source_id'] == 'gamma.markets' and row['id'] in decoded:
             values = decoded[row['id']]
             if not isinstance(values, list) or len(values) > 10:
@@ -151,6 +155,17 @@ def project_quote_inputs(observations, *, policy, cutoff):
                 state = 'identity_stale'
             elif cutoff - received > timedelta(seconds=policy.max_receipt_age_seconds):
                 state = 'receipt_stale'
+            if 'lifecycle' in mapping:
+                lifecycle = mapping['lifecycle']
+                record['mapping']['lifecycle'] = lifecycle
+                if lifecycle['closed'] is True:
+                    state = 'market_closed'
+                elif lifecycle['archived'] is True:
+                    state = 'market_archived'
+                elif lifecycle['active'] is False or lifecycle['acceptingOrders'] is False:
+                    state = 'market_not_accepting_orders'
+                elif any(v is None for v in lifecycle.values()):
+                    state = 'market_lifecycle_unknown'
             record['state'] = state
             record['midpoint'] = str(midpoint) if state == 'observed' else None
         quotes.append(record)

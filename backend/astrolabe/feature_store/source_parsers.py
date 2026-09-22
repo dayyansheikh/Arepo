@@ -69,6 +69,16 @@ def _array(value):
     return result
 
 
+def gamma_market(row, *, expected_market):
+    """Single-target identity plus nullable source lifecycle, without invented defaults."""
+    if not isinstance(row, dict) or row.get("id") != expected_market:
+        raise ValueError("Gamma response differs from requested market")
+    lifecycle = {key: row.get(key) for key in ("active", "closed", "archived", "acceptingOrders")}
+    if any(value is not None and type(value) is not bool for value in lifecycle.values()):
+        raise ValueError("Gamma lifecycle must be boolean or unknown")
+    return {**gamma_identity(row), "lifecycle": lifecycle}
+
+
 def gamma_identity(row):
     """Preserve source-local mappings; no asserted chain/collateral from defaults."""
     if not isinstance(row, dict) or not isinstance(row.get("id"), str) or not row["id"]:

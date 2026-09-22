@@ -203,6 +203,7 @@ class CaptureJournal:
                 raise ValueError("connection reuse requires an active scope")
             source = SOURCES[source_id]
             params = source.params(params)
+            request = source.request(params)
             if self.count >= self.budget.requests or self.bytes >= self.budget.total_bytes:
                 raise ValueError("session request/byte budget exhausted")
             remaining = self.budget.total_seconds - (time.monotonic() - self.started)
@@ -255,7 +256,8 @@ class CaptureJournal:
             try:
                 async with asyncio.timeout(min(remaining, self.budget.seconds_per_request)):
                     async with self._request_client() as client:
-                        async with client.stream("GET", source.endpoint, params=params) as response:
+                        async with client.stream("GET", request["url"],
+                                                 params=request["params"]) as response:
                             status = response.status_code
                             headers = {k: response.headers[k] for k in
                                        ("content-type", "content-encoding", "date", "retry-after")
@@ -282,7 +284,7 @@ class CaptureJournal:
                 "session_id": self.session_id, "receipt_ordinal": self.count,
                 "capture_kind": self.kind, "source_id": source_id,
                 "source_version": source.version, "source_contract": asdict(source),
-                "request": {"method": "GET", "url": source.endpoint, "params": params},
+                "request": request,
                 "previous_capture_id": previous_capture_id, "request_started": started,
                 "first_byte": first_byte, "first_received": received,
                 "status": status, "headers": headers, "transport_error": error,
@@ -366,6 +368,8 @@ def verify_capture(folder: Path, *, raw_only=False):
         or ack["raw_hash"] != _digest(raw) or ack["receipt_hash"] != _digest(receipt_bytes)
     ):
         raise ValueError("raw capture integrity mismatch")
+    if receipt["source_id"] == "gamma.market":
+        SOURCES["gamma.market"].market_request_id(receipt["request"])
     if receipt["schema_version"] == "fs2-receipt-v2":
         session_path = folder.parent / "session.json"
         if session_path.is_symlink() or session_path.stat().st_size > 1048576:

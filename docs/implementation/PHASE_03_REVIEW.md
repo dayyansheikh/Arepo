@@ -409,3 +409,19 @@ closure or build. Synthetic tests establish software behavior, not live panel ac
 22 new tests; 68 focused tests passed. Full isolated backend **952 passed**, zero skipped,
 139.29s, including disposable PostgreSQL. Full Ruff, canonical and whitespace checks pass.
 One existing Starlette/httpx warning. No live collection or production changes.
+
+### D046 targeted identity refresh
+
+Reviewed fixed host/path, canonical bounded IDs, request replay, exact response binding,
+raw failure retention, nullable lifecycle and unchanged default-policy/source contracts.
+Targeted source registry still pins rights and native-clock limitations. No mutable
+caller-defined source list, diagnostic SQL importer expansion, broad-frame filtering or
+old-build bypass. Quotes use identities known by receipt and abstain for closed, archived,
+inactive, not-accepting or unknown lifecycle. Lifecycle does not change economic identity.
+
+34 new cases; 71 focused tests passed. Initial test failures were an incorrect test-only
+assumption that read_source_run returned a dictionary rather than its existing list API;
+corrected the tests without changing that API. Full isolated backend **986 passed**, zero
+skipped, 142.87s, including disposable PostgreSQL. Full Ruff/canonical/whitespace checks
+passed; one existing Starlette/httpx warning. Two-request runtime measurement is separately
+frozen before collection, with fixed historical target, no retries and no origin claim.

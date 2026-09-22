@@ -63,3 +63,14 @@ refusal, code/version changes, raw/parse/facts/ack failures, immutable retry con
 clock regression, cutoff filtering, index failure/recovery, SQLite and PostgreSQL. Model
 origins/features/predictions remain outside this source-only interface and must be added
 with actual computation/durability evidence in their own phase.
+
+## D046 opt-in targeted identity source
+
+The default receipt-time source policy is unchanged. Explicit
+`receipt-time-selected-market-v1` instead permits `gamma.market`, `clob.book` and
+`data.v2.trades`. `gamma.market` uses a fixed documented host/path, exact canonical decimal
+market ID and no query filters. Preserve raw responses and nullable lifecycle flags; an
+ID mismatch is invalid evidence for the requested mapping. Default list-source journals
+cannot silently adopt this source. Current-build verification and native-clock/rights
+restrictions remain in force. See ../implementation/PHASE_03_IDENTITY_REFRESH_CONTRACT.md.
+This does not establish panel eligibility, economic event grouping or origin admission.
