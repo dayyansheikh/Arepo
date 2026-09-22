@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — attempt 5 cleared complete-frame gate; durable selection/origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
+Status: incomplete — frame/development selection and D042–D044 controls/input-read/quote primitives implemented; durable computation/origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -76,6 +76,12 @@ source facts and their original clocks. UTC/monotonic causality, closure and fai
 pass within the **904-test** backend regression. Next build exact quote/identity feature
 computation on these reads, with separate freshness and actual computation/durability clocks;
 neither source availability nor this read receipt is itself a research origin.
+
+D044 pure exact quote/identity projection passes the **930-test** regression, including
+actual D043 serialization, conflicting/late mappings, stale and invalid quotes. It creates
+no actual computation clock or origin. Resume with
+[the next writer contract](../PHASE_03_QUOTE_COMPUTATION_CONTRACT.md), then implement and
+verify durable computation before advancing toward trigger/origin/pilot integration.
 
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
 remain unchanged. No production scans were restarted. v2 collection uses isolated local

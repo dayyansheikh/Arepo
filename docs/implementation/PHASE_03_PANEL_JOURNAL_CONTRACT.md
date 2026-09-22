@@ -280,3 +280,31 @@ receipts and partial files, never resume or overwrite; original data stays byte-
 Test actual clock ordering, failed responses retained, synthetic separation, source closure
 mutation, future/unavailable facts, torn writes, path protection, changed builds, budget
 failure and deterministic read-only verification. No live source calls for this milestone.
+
+## D044 quote/identity projection prerequisite
+
+Before the durable feature writer, add a pure bounded projection over D043's exact source
+rows. Use only successful Gamma identities already available by a book's actual receipt;
+match exact token and condition, preserve original outcome order and mapping version.
+Contradictory known mappings are ambiguous, not latest-wins. A later identity cannot repair
+an earlier quote. Require explicit finite receipt-age and identity-age bounds against a
+declared computation cutoff; these are development policy inputs, not venue update age.
+
+For each book response retain its lineage, receipt/source availability, source quality,
+identity status and exact best positive-size bid/ask/size plus midpoint when valid. Unsorted
+levels are allowed; duplicate prices, one-sided/crossed books, unknown/stale identities and
+stale receipts remain explicit exclusions. Preserve every source observation in an inventory,
+including failed Gamma/book/trade responses. Never substitute trade or Gamma metadata prices.
+Native event clocks, complete flow, persistence, depth withdrawal and executable profit
+remain unadmitted. Bound inputs to the existing ten source responses and source payload caps.
+
+This pure helper accepts declarations for replay/tests and records no actual clocks. Its
+output must require runtime verified D043 inputs and later durable computation, admitting
+no feature-store record or origin. The subsequent writer must freeze its policy before
+source reads, invoke D043, record computation start/end and durable acknowledgement and
+replay exact results. Test future inputs, identity known after receipt, condition conflicts,
+duplicate identities/levels, exact tiny values and ambient decimal precision, freshness
+boundaries, failed sources, row order invariance, source inventory and input bounds.
+
+The ordered next writer contract and resource-accounting review are in
+[PHASE_03_QUOTE_COMPUTATION_CONTRACT.md](PHASE_03_QUOTE_COMPUTATION_CONTRACT.md).

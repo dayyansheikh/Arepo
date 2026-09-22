@@ -379,3 +379,19 @@ mock transport without changing production capture logic. 31 focused read/source
 Full isolated backend **904 passed**, zero skipped, 119.73s; disposable PostgreSQL included.
 Full Ruff, canonical and whitespace checks pass; existing Starlette/httpx warning only.
 All 20 new cases use synthetic temporary journals; no new live collection occurred.
+
+### D044 exact quote/identity projection
+
+Reviewed strict token/condition matching, identity availability before quote receipt,
+conflicting-version refusal, source-order outcome identity, exact positive-size best levels,
+duplicate/one-sided/crossed exclusions, receipt/identity freshness boundaries and retained
+failed-source inventory. Mixed provenance is refused; no Gamma/trade price fallback or
+native-time/flow/economic claim exists. Results explicitly require verified sources and
+durable computation; this pure helper creates no clocks, feature-store record or origin.
+
+The streamed SourceRun → D043 integration test exposed canonical `$utc` wrappers, which the
+projector now reads explicitly without accepting naive timestamps. Twenty-six new cases
+pass; 46 focused quote/input-read tests pass. Full isolated backend **930 passed**, zero
+skipped, 116.97s, disposable PostgreSQL included. Full Ruff, canonical and whitespace checks
+pass; one existing Starlette/httpx warning. No live collection or production changes.
+The next bounded writer's ordered contract is PHASE_03_QUOTE_COMPUTATION_CONTRACT.md.
