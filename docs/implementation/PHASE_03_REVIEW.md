@@ -315,3 +315,11 @@ unknown/unmapped rows, budget refusal and immutable source bytes. Full backend *
 zero skipped, 94.97s, disposable PostgreSQL included. Ruff/canonical/whitespace pass; existing
 Starlette/httpx warning only. Commit this exact protocol/code before the local full-frame
 measurement. A synthetic fixture pass does not establish real capacity or Phase 3 acceptance.
+
+Actual local D040 run under `018dbd3` passed independent full inventory and plan replay:
+175,427 rows, 175,383 eligible members, 107 scheduled draws/strata, 44 unresolved identities.
+It retained 566,741,238 bytes, used 294,977,536 peak resident bytes and took 146,486,870,416ns
+including original-code verification and final replay. All bounds passed. No tests ran
+concurrently; lightweight status reads occurred. The explicit category field is missing on
+every mapped row; other missingness is preserved in PHASE_03_SELECTION_ATTEMPT_1.json.
+This validates development plumbing/capacity, not fresh population inference or pilot acceptance.

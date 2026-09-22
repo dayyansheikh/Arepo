@@ -53,6 +53,12 @@ scheduled selection and read-only replay (841 full tests). Single local measurem
 the preserved frame is pending committed code. This scheduled-only development selection
 does not supply triggers, controls or fresh origins; those acceptance gates remain open.
 
+Actual D040 measurement passed under `018dbd3`: all 175,427 source rows preserved, 175,383
+eligible sampling members, 107 draws/strata and 44 unresolved rows retained. Reconstructed
+development only. All mapped rows lack the explicit category field; unknown-category strata
+remain, not inferred taxonomy. Costs/hashes: PHASE_03_SELECTION_ATTEMPT_1.json. Before new
+collector code consumes this saved selection, add original-build selection verification.
+
 v1 complete discovery, separate scan/collect leases, public eligibility and target cadence
 remain unchanged. No production scans were restarted. v2 collection uses isolated local
 journals and public read endpoints only. Upcoming journal/consumer requirements are in
