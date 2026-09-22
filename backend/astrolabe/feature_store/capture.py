@@ -58,6 +58,9 @@ def _sync_directory(path):
 
 def _write_once(path, content):
     # A torn exclusive file is retained on failure, never silently overwritten/repaired.
+    from .source_quota import guard_write
+
+    guard_write(path, content)
     with path.open("xb") as handle:
         handle.write(content)
         handle.flush()

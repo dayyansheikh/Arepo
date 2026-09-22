@@ -467,3 +467,18 @@ are reserved in full; no discount for measured-small responses or overlapping ro
 Thirty-nine focused cases passed (1.69s), including tampering, insufficient capacity, failed
 acknowledgement and concurrent declarations. Full isolated backend **1,035 passed**, zero skipped, 167.83s, disposable PostgreSQL included.
 Full Ruff/canonical/whitespace checks pass; one existing Starlette/httpx warning.
+
+### D049 source retained-byte guard
+
+Reviewed every managed source write, raw capacity preflight before HTTP, exact recursive
+byte/file/depth accounting, free-space checks, task-local async isolation, failed constructor
+collisions, reserved failure evidence and terminal retry refusal. Raw responses survive later
+generic/source parsing quota stops. No delete/overwrite or old source-clock reconstruction.
+The original build verifier rejected a decorated context manager; a directly inspectable
+generator plus factory preserves that guard without weakening it. Guarded runs refuse the
+unbudgeted index-receipt path before DB access; default indexing remains unchanged.
+24 new cases; **69 focused tests passed**, 13.64s, including full synthetic identity/book/trade
+to quote computation. A fixture filename was corrected to satisfy the existing local-database
+safeguard; the prematurely started full run was cancelled, then restarted after focused checks.
+No live collection or production action. Full isolated backend **1,059 passed**, zero skipped, 167.05s, including disposable PostgreSQL.
+Full Ruff/canonical/whitespace checks pass; one existing Starlette/httpx warning.

@@ -1,6 +1,6 @@
 # Phase 3 source-journal quota prerequisite
 
-Status: planned. D048's resource reservation cannot authorize collection until actual
+Status: D049 implemented; 1,059 full backend tests passed (167.05s), self-reviewed; no live measurement in this milestone. D048's resource reservation cannot authorize collection until actual
 SourceRun writes enforce the declared retained-byte quota.
 
 ## Scope and implementation
@@ -38,3 +38,15 @@ No live measurement or production action is part of this implementation mileston
 - No inherited application settings, database, credentials, runtime network during tests,
   deletion, shortened retention or production collection. Full isolated regression and
   reviewed coherent commit/draft PR before the next panel integration step.
+
+Implementation scope: quotas are cooperative application write guards for one SourceRun,
+not filesystem preallocation or protection against an external process changing files.
+Before HTTP reserve the bounded raw response plus a 64 KiB receipt/ack allowance; every
+actual write still checks its exact size and free space. Unexpected I/O failures preserve
+whatever reached disk and never establish unavailable acknowledgement clocks.
+
+Guarded v2 SourceRuns remain journal-only: the existing optional SQL index writes a receipt
+back into its source root, so it refuses this new run schema before database access until
+that separate writer is quota-aware. Existing default v1 indexing remains supported.
+No parsing/repair writer outside SourceRun is authorized to mutate guarded primary journals.
+D048 declarations still require a future collector to apply and verify these quotas.
