@@ -37,3 +37,13 @@ The runtime composes the unchanged per-origin and per-target writers/readers ins
 activation and each verified durable per-origin plan; it checks every dispatch against actual
 intent/save clocks. Ineligible targets are dispatched at plan acknowledgement without source
 requests. Five focused tests passed in 65.88s. Full regression and final acceptance remain pending.
+
+Original-build recovery now has a separate allowlisted runtime decoder. It pins the exact
+runtime policy/report, extracts only the declared packages from an immutable local Git commit,
+and invokes that implementation's full runtime reader. A new read receipt preserves the
+complete report, original clocks and synthetic status; it never redispatches work. Output
+must be outside the runtime, panel, frame, activation and selection evidence trees. Changed
+raw bytes, reordered events and resealed wrong outcomes are refused. Four focused cases pass;
+combined regression remains pending until recorded in the review/checkpoint.
+
+Next implementation boundary: [numerical features and windows](PHASE_03_FEATURE_WINDOWS_NEXT.md).

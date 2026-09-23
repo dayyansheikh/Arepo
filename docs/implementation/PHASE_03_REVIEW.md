@@ -593,3 +593,14 @@ and schemas are unchanged. Five focused tests passed in 65.88s: two real-clock c
 before the next origin, ties/ineligible dispatch, honest slow-origin expiration, cancellation/
 concurrent ownership and live/clock/capacity refusal. Full regression is pending; do not mark
 D056 or Phase 3 complete. No live requests, admission, production change or evidence promotion.
+
+
+D056 follow-up review recovered the 1,198-pass result at `418a130` (zero skipped,
+1,260.04s); the saved and current fingerprints matched before further code changes. Review
+identified the missing original-runtime recovery path, now added through the existing bounded
+Git decoder. Four new cases passed in 130.48s: exact full-report recovery and dependency-path
+protection, plus altered raw source, event ordering and outcome refusal. Source snapshots and
+Git fixtures remain byte-identical after successful/failed reads. This is read-only recovery,
+not redispatch or retrospective admission. Ruff and canonical checks pass. Combined regression
+is pending; the sandbox loopback denial is an environment restriction, not a passing test.
+The suite was restarted with approved local-service permission. No production service is used.

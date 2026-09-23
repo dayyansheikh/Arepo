@@ -48,6 +48,20 @@ facts, ack = _pair(root, 'quote_facts')
 json.dump({'facts': facts, 'summary': summary}, sys.stdout, sort_keys=True, separators=(",", ":"))
 '''
 
+_RUNTIME_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.runtime import read_runtime, run_root
+from astrolabe.feature_store.source_run import _pair
+root = Path(sys.argv[2])
+policy, ack = _pair(root, 'runtime_policy')
+panel = Path(policy['panel_root'])
+if run_root(panel) != root:
+    raise ValueError('original runtime root differs')
+report = read_runtime(panel)
+json.dump(report, sys.stdout, sort_keys=True, separators=(",", ":"))
+'''
+
 
 def _git(repository, *args):
     result = subprocess.run(['git', '-C', str(repository), *args], env=_ENV,
@@ -124,12 +138,18 @@ def read_original_quote_computation(root, *, implementation_commit, output_root,
                           output_root=output_root, repository=repository, kind='quote_computation')
 
 
+def read_original_runtime(root, *, implementation_commit, output_root, repository=None):
+    """Read a sealed runtime under its original code; never redispatch or refresh clocks."""
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='runtime')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
-    if kind not in {'frame', 'selection', 'quote_computation'}:
+    if kind not in {'frame', 'selection', 'quote_computation', 'runtime'}:
         raise ValueError('unsupported original journal kind')
     schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
     script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
-              'quote_computation': _QUOTE_SCRIPT}[kind]
+              'quote_computation': _QUOTE_SCRIPT, 'runtime': _RUNTIME_SCRIPT}[kind]
     prefix = 'fs2_' + kind + '_read_'
     hash_key = kind + '_report_hash'
     available_key = kind + '_available_at'
@@ -148,7 +168,7 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
     # Only sealed original reports are consumed. No crash-repair or semantic reconstruction.
     original_report, report_ack = _pair(frame_root, 'quote_facts' if kind == 'quote_computation'
                                         else kind + '_report')
-    if original_report['policy_hash'] != policy_ack['payload_hash']:
+    if kind != 'runtime' and original_report['policy_hash'] != policy_ack['payload_hash']:
         raise ValueError('original report/policy lineage differs')
     extra, extra_hashes = {}, {}
     if kind in {'selection', 'quote_computation'}:
@@ -157,6 +177,20 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             raise ValueError('canonical original source evidence path required')
         if output_root == source_root or source_root in output_root.parents:
             raise ValueError('separate output outside original source evidence required')
+    if kind == 'runtime':
+        if policy['schema_version'] != 'fs2-interleaved-synthetic-runtime-v1':
+            raise ValueError('unsupported original runtime layout')
+        panel = Path(policy['panel_root'])
+        declaration, _ = _pair(panel, 'panel_policy')
+        suffix = panel.name.removeprefix('fs2_panel_')
+        dependencies = [panel, Path(declaration['frame_root']),
+                        panel.with_name('fs2_activation_' + suffix),
+                        panel.with_name('fs2_selection_panel_' + suffix)]
+        for dependency in dependencies:
+            if not dependency.is_absolute() or dependency.resolve() != dependency:
+                raise ValueError('canonical original runtime dependency required')
+            if output_root == dependency or dependency in output_root.parents:
+                raise ValueError('separate output outside original runtime dependencies required')
     if kind == 'selection':
         plan, plan_ack = _pair(frame_root, 'selection_plan')
         if original_report['plan_hash'] != plan_ack['payload_hash']:
@@ -206,7 +240,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
                 facts = {k: v for k, v in result.items()
                          if k not in {hash_key, available_key, *extra}}
                 actual_hash, actual_available = result[hash_key], result[available_key]
-                provenance, state = result['provenance_class'], result['state']
+                provenance = result['provenance_class']
+                state = 'verified_synthetic_runtime' if kind == 'runtime' else result['state']
             if (actual_hash != report_ack['payload_hash']
                     or actual_available != report_ack['durable_ack']
                     or facts != original_report

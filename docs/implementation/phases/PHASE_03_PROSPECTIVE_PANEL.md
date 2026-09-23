@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — frame/development selection and D042–D047 controls/input-read/quote computation, targeted identity and original recovery implemented; two-read runtime measurement passed. D048 freezes panel declaration/reservation; D049 enforces source-write quotas; D050 binds fresh selection to the frozen declaration. D051 adds optional compact computation quotas. D052 adds actual activation and immutable schedules. Origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
+Status: incomplete — D048–D052 declaration/selection/activation, D053 synthetic origins, D054 identity adapter and D055 synthetic due collection are implemented. D056 interleaving and original-runtime recovery are in final validation. All live feature-family/control/pilot gates remain open. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -225,3 +225,10 @@ states and incomplete-evidence blocking. Outcome availability includes target/ad
 durability; signed midpoint change is a price diagnostic only. All 1,193 backend tests pass,
 including 17 new due-worker cases. Next refine the interleaved orchestration boundary in
 ../PHASE_03_DUE_WORKER_NEXT.md. No live collector, SQL labels or accepted pilot exists yet.
+
+D056 composes the origin and due writers into a serialized queue with immutable per-origin
+plans, actual dispatch clocks and full evolving-queue replay. Original-build recovery is
+covered separately. Acceptance results belong in the live checkpoint/review. The next ordered
+work is [numerical features and windows](../PHASE_03_FEATURE_WINDOWS_NEXT.md): snapshot
+primitives and actual computation first, then measured dense-window coverage and controls.
+The existing family limitations remain explicit; Phase 4 is still gated.
