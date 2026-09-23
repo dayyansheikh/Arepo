@@ -528,3 +528,20 @@ No collector, origin, source request, SQL admission or production change. Twenty
 passed in 43.20s, including actual save delay, tampering and resource checks. Full isolated
 backend **1,125 passed**, zero skipped, 276.63s, including disposable PostgreSQL.
 Ruff/canonical/whitespace checks pass; one existing Starlette/httpx warning.
+
+### D053 synthetic origin integration
+
+Reviewed immutable schedule ownership, fixed request lineage and quotas, actual read-before-
+freeze ordering, exact selected identity/rule matching, late-save derivation, partial-source
+preservation, replayed source/computation closure and the live-transport refusal. Source parser
+records require four path components below the origin root; the bounded inventory reflects
+that real layout. Oversized Gamma responses preserve partial raw bytes as `transport_gap` and
+produce `identity_unresolved_at_receipt`; they need not raise a worker exception. Cancellation
+preserves an incomplete run and cannot resume. Resealed tampered price/intent tests exercise
+semantic verification beyond outer checksums. No targets or live observations were collected.
+
+Final focused tests: **19 passed**, 103.43s. Full isolated backend: **1,144 passed**, zero skipped,
+386.55s including disposable PostgreSQL. The prior-window recovery report records unchanged
+code during both runs; this continuation recovered the results without repeating the suite.
+Full Ruff, canonical and whitespace checks pass; one existing Starlette/httpx warning.
+Phase 3 remains incomplete. Next: frozen-identity target adaptation and due collection.

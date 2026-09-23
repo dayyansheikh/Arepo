@@ -207,3 +207,9 @@ D052 actual activation consumes/reverifies selection and selected identity/role 
 reserves additional runtime metadata, and anchors schedules to its actual durable save.
 Twenty focused tests and 1,125 full backend tests passed. No source collector or origin is
 enabled. Next execute the worker portion of ../PHASE_03_ORIGIN_WRITER_NEXT.md.
+
+D053 now exercises the actual activation→intent→source→read→compute→origin path with
+synthetic transports only. Nineteen focused and 1,144 full backend tests pass. Partial raw
+evidence, abstentions, expired/late slots and original freeze/save times remain preserved.
+See ../PHASE_03_ORIGIN_WORKER_CONTRACT.md. Next: frozen-identity target adapter and due worker;
+live collection, measured controls and full pilot acceptance remain gated.
