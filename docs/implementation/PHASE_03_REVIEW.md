@@ -583,3 +583,13 @@ PostgreSQL and all 17 new due-worker cases. The following heartbeat recovered th
 result and verified that code was unchanged during and since the run; it did not repeat
 tests or measurements. One existing Starlette/httpx warning. Synthetic due integration is
 accepted as a software milestone; interleaved orchestration and full Phase 3 gates remain.
+
+### D056 interleaved runtime — checkpoint, acceptance pending
+
+Reviewed one serialized deterministic queue, exclusive runtime/activation ownership, whole
+reservation, per-origin target plans before calls, source/intent/fact hash binding, actual
+dispatch/completion clocks and full replay of the evolving queue. Existing origin/due APIs
+and schemas are unchanged. Five focused tests passed in 65.88s: two real-clock cycles, target
+before the next origin, ties/ineligible dispatch, honest slow-origin expiration, cancellation/
+concurrent ownership and live/clock/capacity refusal. Full regression is pending; do not mark
+D056 or Phase 3 complete. No live requests, admission, production change or evidence promotion.
