@@ -213,3 +213,8 @@ synthetic transports only. Nineteen focused and 1,144 full backend tests pass. P
 evidence, abstentions, expired/late slots and original freeze/save times remain preserved.
 See ../PHASE_03_ORIGIN_WORKER_CONTRACT.md. Next: frozen-identity target adapter and due worker;
 live collection, measured controls and full pilot acceptance remain gated.
+
+D054's versioned target adapter retains origin mapping availability, fresh identity/lifecycle
+consistency, exact source-quality states and durable computation availability. Thirty-two new
+cases and 1,176 full tests pass. Next execute ../PHASE_03_DUE_WORKER_NEXT.md; this pure helper
+does not authenticate or persist outcomes and does not enable a live collector.

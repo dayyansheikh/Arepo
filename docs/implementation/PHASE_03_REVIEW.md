@@ -545,3 +545,17 @@ Final focused tests: **19 passed**, 103.43s. Full isolated backend: **1,144 pass
 code during both runs; this continuation recovered the results without repeating the suite.
 Full Ruff, canonical and whitespace checks pass; one existing Starlette/httpx warning.
 Phase 3 remains incomplete. Next: frozen-identity target adaptation and due collection.
+
+### D054 frozen identity target adapter
+
+Reviewed exact projection replay/request binding, original mapping availability, separate fresh
+identity consistency, changed-rule closure refusal, failed-book token lineage, explicit quality
+states and computation-acknowledgement freshness. Earlier delayed computations still block
+later quotes under the existing selector. The pure helper admits no caller-provided outcome;
+the due worker must authenticate journals and record actual consumption. Source/runtime
+formats were exercised with guarded synthetic journals, and old target outputs are unchanged.
+
+Focused adapter plus existing target rules: **53 passed**, 2.97s, including 32 new cases. Full
+isolated backend: **1,176 passed**, zero skipped, 581.27s, including disposable PostgreSQL.
+The recovery report records unchanged code during regression. Ruff/canonical/whitespace pass.
+One existing Starlette/httpx warning. No live collection, SQL or production changes.

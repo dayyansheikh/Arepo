@@ -8,6 +8,16 @@ from itertools import islice
 from astrolabe.feature_store.admission import content_hash
 from astrolabe.feature_store.types import HASH_PATTERN, exact_decimal, uint_text, utc_datetime
 
+# Explicit vocabulary; arbitrary caller status strings never become outcomes.
+TARGET_ABSTENTIONS = frozenset({
+    'source_error', 'rate_limited', 'transport_gap', 'permission_denied', 'invalid',
+    'identity_unresolved_at_receipt', 'identity_ambiguous_or_conflicting',
+    'identity_changed_since_origin', 'identity_stale', 'receipt_stale',
+    'market_archived', 'market_not_accepting_orders', 'market_lifecycle_unknown',
+    'one_sided_or_missing', 'invalid_numerical', 'invalid_or_crossed',
+    'numerical_budget_exceeded', 'duplicate_price_level',
+})
+
 
 @dataclass(frozen=True)
 class Quote:
@@ -37,7 +47,7 @@ def quote_state(quote):
     if utc_datetime(quote.mapping_available_at) > received:
         return "identity_not_known_at_receipt", None
     if quote.source_status != "observed":
-        if quote.source_status not in {"source_error", "rate_limited", "transport_gap", "closed"}:
+        if quote.source_status not in TARGET_ABSTENTIONS | {"closed"}:
             raise ValueError("unknown quote source state")
         return quote.source_status, None
     if any(v is None for v in (quote.bid, quote.ask, quote.bid_size, quote.ask_size)):
