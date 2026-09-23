@@ -1,6 +1,7 @@
-# Next Phase 3 boundary — synthetic due worker (D055 proposal)
+# Next Phase 3 boundary — synthetic due worker (D055 implemented)
 
-Prerequisites: accepted D053 origin worker and D054 frozen-identity adapter. Keep the API
+Prerequisites: accepted D053 origin worker and D054 frozen-identity adapter. D055 passes
+all 1,193 backend tests, including 17 new due-worker cases. Keep the API
 synthetic-only until full origin/target orchestration, feature-family/control coverage and
 pilot policy are tested. Do not restart live scans or recapture the historical frame.
 
@@ -50,3 +51,48 @@ A separate worker started after an entire multi-cycle origin run can legitimatel
 windows. Record those misses. This milestone must not be described as concurrent live panel
 orchestration. Integrate origins and due scheduling before any pilot; do not extend old
 horizons or silently reschedule to compensate for worker startup/verification overhead.
+
+## D055 implementation refinement
+
+`research_panel/due_worker.py` now provides a separate synthetic-only executor and full
+read-only replay. It claims `fs2_target_run_<panel>` once, with 32 MiB top-level metadata,
+16 MiB artefacts, 128 KiB per-attempt metadata, 64 KiB failure reserves and 2 GiB free disk.
+All original source/computation reservations remain required; storage is never reclaimed.
+Every origin's frozen attempt count is retained, including ineligible and expired attempts.
+Partial failure is `incomplete_evidence` and blocks selection of later valid quotes.
+
+Requests begin only after the saved target plan and verified origin receipt. Frozen two-request
+budgets use the remaining deadline rounded up to a whole second, with at most 15 seconds per
+request and 180 seconds total; deadline is rechecked before each request. This permits a final
+response to finish beyond tolerance, which is recorded and excluded as late. It never permits
+a new request after the tolerance deadline. No source retry or outcome-driven early stop.
+
+Outcome selection uses availability of the final durable target receipt, including adapter
+calculation/persistence; the earlier quote-computation acknowledgement remains separately
+preserved in the adaptation. The report records its actual final cutoff and durability. An
+exact signed midpoint change is retained only for an observed target, in price units, with
+no executable-profit or edge claim. Review binds the consumed origin facts/intent bytes to
+the exact hashes verified during origin recovery.
+
+## Next integration boundary after D055 acceptance
+
+Read checkpoint/master/current phase and actual D053–D055 outputs before refining this work.
+Implement one bounded synthetic orchestration policy that can process due targets while later
+origin cycles remain outstanding. The standalone due worker cannot meet that timing contract
+by waiting for the entire origin run; retain its missed windows as recorded.
+
+Freeze single-worker ownership, complete source/metadata reservation and deterministic queue
+ordering before activation. Enqueue each origin from the immutable activation schedule; only
+a freshly verified durable origin may add its fixed target attempts. Persist each per-origin
+target schedule before any request. Prefer a deterministic serialized queue with due time,
+then a predeclared tie rule, so a bounded test never opens uncontrolled request concurrency.
+Record actual dispatch times and preserve expiration after slow source/compute operations.
+The implementation must not backdate targets, reuse caller-provided origin facts, silently
+resume torn work, or change the horizon to compensate for latency.
+
+Keep old journal readers and standalone APIs intact; use an explicit new orchestration schema
+and full closure reader. Test at least two interleaved origin cycles, due-before-next-origin
+ordering, ties, slow origins causing honest missed targets, cancellation, duplicate ownership,
+all-role coverage, exact old mapping and availability, and original-build recovery. Validate
+and commit before evaluating any live activation. Dense primitive families, durable measured
+trigger/control evidence and full prospective pilot gates remain subsequent Phase 3 work.

@@ -559,3 +559,27 @@ Focused adapter plus existing target rules: **53 passed**, 2.97s, including 32 n
 isolated backend: **1,176 passed**, zero skipped, 581.27s, including disposable PostgreSQL.
 The recovery report records unchanged code during regression. Ruff/canonical/whitespace pass.
 One existing Starlette/httpx warning. No live collection, SQL or production changes.
+
+### D055 synthetic due worker
+
+Reviewed exclusive ownership, fixed target schedules/attempt count, source quota/profile
+binding, request-start deadline checks, and origin receipt before all target requests.
+Origin facts and intent bytes are rebound to the verified hashes when consumed. Every
+ineligible/expired/failed attempt remains in the plan/report. Partial computation failure
+blocks later outcome selection; known failed-source states stay explicit exclusions.
+Independent replay recomputes source/adaptation/target output and exact signed midpoint
+change under original clocks. It does not infer executable value or admit SQL labels.
+
+Review corrected availability to include the final target receipt, including the adapter's
+actual read/calculation/save, while retaining earlier quote-computation availability. A real
+delayed-save test exercises the boundary. A late response can finish within the rounded
+request budget but beyond tolerance; the actual late receipt is retained and excluded.
+The standalone executor can miss early horizons if launched after a multi-cycle origin run;
+interleaved orchestration remains required. MockTransport-only gating remains in place.
+
+Initial focused tests: 15 passed, 269.61s. Final changed-path checks: 3 passed, 14 deselected,
+76.15s. Ruff/canonical/whitespace checks pass. Full isolated backend: **1,193 passed**, zero skipped, 1,565.57s, including disposable
+PostgreSQL and all 17 new due-worker cases. The following heartbeat recovered this completed
+result and verified that code was unchanged during and since the run; it did not repeat
+tests or measurements. One existing Starlette/httpx warning. Synthetic due integration is
+accepted as a software milestone; interleaved orchestration and full Phase 3 gates remain.

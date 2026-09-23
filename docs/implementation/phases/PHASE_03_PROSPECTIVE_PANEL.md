@@ -218,3 +218,10 @@ D054's versioned target adapter retains origin mapping availability, fresh ident
 consistency, exact source-quality states and durable computation availability. Thirty-two new
 cases and 1,176 full tests pass. Next execute ../PHASE_03_DUE_WORKER_NEXT.md; this pure helper
 does not authenticate or persist outcomes and does not enable a live collector.
+
+D055 now implements separate synthetic due collection and full recovery: fixed attempts,
+original deadlines, verified origin-before-request causality, preserved failed/late/closed
+states and incomplete-evidence blocking. Outcome availability includes target/adapter
+durability; signed midpoint change is a price diagnostic only. All 1,193 backend tests pass,
+including 17 new due-worker cases. Next refine the interleaved orchestration boundary in
+../PHASE_03_DUE_WORKER_NEXT.md. No live collector, SQL labels or accepted pilot exists yet.
