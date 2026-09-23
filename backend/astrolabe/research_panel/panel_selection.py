@@ -54,6 +54,8 @@ def selection_policy(panel, frame, root, commit, budget, build):
     if shutil.disk_usage(root.parent).free < declaration['reservation']['required_free_bytes']:
         raise ValueError('insufficient full panel/control/target capacity before selection')
     return {
+        **({'computation_storage_profile': payload['computation_storage_profile']}
+           if 'computation_storage_profile' in payload else {}),
         'schema_version': VERSION, 'policy': POLICY, 'build': build,
         'frame_root': str(frame), 'implementation_commit': commit, 'budget': asdict(budget),
         'sampling_protocol': payload['sampling_recipe'], 'declared_at': _clock(),
@@ -79,6 +81,8 @@ def verify_policy(root, policy, ack):
             or policy['implementation_commit'] != payload['frame_implementation_commit']
             or _json_bytes(policy['sampling_protocol']) != _json_bytes(payload['sampling_recipe'])
             or policy['panel_protocol'] != payload['protocol']
+            or policy.get('computation_storage_profile')
+                != payload.get('computation_storage_profile')
             or not _ordered_clocks(panel_ack['durable_ack'], policy['declared_at'],
                                    ack['durable_ack'])):
         raise ValueError('selection declaration/recipe/assessment/chronology differs')

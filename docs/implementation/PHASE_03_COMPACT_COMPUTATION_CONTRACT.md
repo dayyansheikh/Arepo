@@ -1,11 +1,11 @@
 # Phase 3 — explicit compact computation reservation (D051)
 
-Planned next bounded engineering milestone. Current D045 defaults reserve 64 MiB per
+Implemented and self-reviewed; 20 focused tests and 1,105 full backend tests passed. Current D045 defaults reserve 64 MiB per
 computation, including a 32 MiB child source-read journal. The saved complete frame has 107
 scheduled strata; one origin and one target per assignment would reserve more storage than
 is currently available. Measured-small responses do not themselves reduce enforced quotas.
 
-Implement a separately named `compact-v1` profile: child read output 4 MiB and per-artefact
+The separately named `compact-v1` profile uses child read output 4 MiB and per-artefact
 2 MiB; parent computation output 8 MiB, including that child, and per-artefact 2 MiB. Preserve
 all existing source/request/raw limits, deadlines, failure reserves, free-space reserves,
 exact numerics and source/build verification. Default APIs and schemas remain unchanged.

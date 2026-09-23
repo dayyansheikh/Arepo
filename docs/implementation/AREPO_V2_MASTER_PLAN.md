@@ -13,7 +13,7 @@ Read ../AREPO_V2_CHECKPOINT.md first, then AGENTS.md, this plan, the current pha
 | 00 | [Canonical foundation](phases/PHASE_00_FOUNDATION.md) | Verified production + supplied research | Complete — draft PR #13 |
 | 01 | [Feature Store v2 foundations](phases/PHASE_01_FEATURE_STORE.md) | 00 accepted outputs | Complete — draft PR #14; 610 backend tests passed |
 | 02 | [Sources, clocks and identities](phases/PHASE_02_SOURCES_CLOCKS_IDENTITY.md) | 01 accepted outputs | Complete — draft PR #15; 685 tests and new predeclared core-source run |
-| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Incomplete — D042 controls, D043 input-read journal, D045 computation, D046 targeted identity plus successful two-read measurement, D047 original computation recovery, D048 declaration/reservation and D049 source-write quotas and D050 declaration-bound fresh selection; 1,085 full tests. Draft #16. Panel integration/origins/collectors/pilot remain |
+| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Incomplete — D042 controls, D043 input-read journal, D045 computation, D046 targeted identity plus successful two-read measurement, D047 original computation recovery, D048 declaration/reservation and D049 source-write quotas and D050 declaration-bound fresh selection and D051 compact computation bounds; 1,105 full tests. Draft #16. Panel integration/origins/collectors/pilot remain |
 | 04 | [Baselines and initial edge experiments](phases/PHASE_04_EDGE_EXPERIMENTS.md) | 03 accepted outputs + sufficient clean independent events | Provisional |
 | 05 | [Wallet and information event engine](phases/PHASE_05_WALLET_INFORMATION.md) | 04 accepted outputs + sufficient clean independent events | Provisional |
 | 06 | [Bayesian and ML candidates](phases/PHASE_06_MODELS.md) | 05 accepted outputs + sufficient clean independent events | Provisional |
@@ -52,7 +52,7 @@ Never merge/deploy, migrate production, change infrastructure/credentials/live r
 One same-task continuation chain, with each invocation scheduling the next 310 minutes ahead.
 Current implementation/test/allowance state is recorded in the live checkpoint; older usage
 snapshots do not govern a resumed window. No reset credit was redeemed by this task.
-The existing heartbeat was updated and verified for 2026-09-23 05:21 Europe/London
+The existing heartbeat was updated and verified for 2026-09-23 10:31 Europe/London
 with the user's exact prompt and same target task; no second chain was created.
 The previous 09:40 automation was removed; its separate task's docs-only access-blocker commit
 `8a55335` is retained as history, resolved here. Verify actual current automation state before

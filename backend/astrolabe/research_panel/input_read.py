@@ -27,6 +27,18 @@ POLICY = {
     'origin_admitted': False, 'source_clocks_changed': False,
 }
 
+COMPACT_VERSION = 'fs2-panel-input-read-v2'
+COMPACT_POLICY = {**POLICY, 'storage_profile': 'compact-v1',
+                  'max_artifact_bytes': 2 * 1048576, 'max_output_bytes': 4 * 1048576}
+
+
+def input_limits(storage_profile):
+    if storage_profile is None:
+        return POLICY
+    if storage_profile == 'compact-v1':
+        return COMPACT_POLICY
+    raise ValueError('unknown input-read storage profile')
+
 
 def _canonical(path):
     path = Path(path)
@@ -84,30 +96,34 @@ def _available(projection, read_started):
         raise ValueError('source facts unavailable when actual input read began')
 
 
-def _check(root, started, addition=0, *, writing=False):
-    if time.monotonic() - started > POLICY['max_seconds']:
+def _check(root, started, addition=0, *, writing=False, limits=POLICY):
+    if any(p.stat().st_size > limits['max_artifact_bytes'] for p in root.iterdir()):
+        raise ValueError('input-read artefact exceeds readable limit')
+    if time.monotonic() - started > limits['max_seconds']:
         raise ValueError('input-read processing deadline exceeded')
-    if _size(root) + addition > POLICY['max_output_bytes'] - 65536:
+    if _size(root) + addition > limits['max_output_bytes'] - 65536:
         raise ValueError('input-read retained-byte budget exceeded')
-    if writing and shutil.disk_usage(root).free < POLICY['free_reserve_bytes'] + addition:
+    if writing and shutil.disk_usage(root).free < limits['free_reserve_bytes'] + addition:
         raise ValueError('input-read free-space reserve reached')
 
 
-def _save(root, name, payload, started):
+def _save(root, name, payload, started, *, limits=POLICY):
     size = len(_json_bytes(payload))
-    if size > POLICY['max_artifact_bytes']:
+    if size > limits['max_artifact_bytes']:
         raise ValueError('input-read artefact exceeds readable limit')
-    _check(root, started, size + 4096, writing=True)
+    _check(root, started, size + 4096, writing=True, limits=limits)
     _persist(root, name, payload)
 
 
-def record_input_read(source_root, *, output_root):
+def record_input_read(source_root, *, output_root, storage_profile=None):
     """Freeze a policy then record an actual complete source read, never caller facts."""
+    limits = input_limits(storage_profile)
+    version = VERSION if storage_profile is None else COMPACT_VERSION
     source, root = _paths(source_root, output_root)
     if root.exists():
         raise FileExistsError('existing input read retained; never resume or overwrite')
     if shutil.disk_usage(root.parent).free < (
-        POLICY['free_reserve_bytes'] + POLICY['max_output_bytes']
+        limits['free_reserve_bytes'] + limits['max_output_bytes']
     ):
         raise ValueError('insufficient input-read storage reserve')
     build, started = verified_panel_build(), time.monotonic()
@@ -115,9 +131,9 @@ def record_input_read(source_root, *, output_root):
     _sync_directory(root.parent)
     try:
         _save(root, 'read_policy', {
-            'schema_version': VERSION, 'policy': POLICY, 'build': build,
+            'schema_version': version, 'policy': limits, 'build': build,
             'source_root': str(source), 'declared_at': _clock(),
-        }, started)
+        }, started, limits=limits)
         policy, policy_ack = _pair(root, 'read_policy')
         read_started = _clock()
         projection = _source(source)
@@ -128,18 +144,18 @@ def record_input_read(source_root, *, output_root):
         if verified_panel_build() != build:
             raise ValueError('input-read build changed')
         _save(root, 'read_facts', {
-            'schema_version': VERSION, 'policy_hash': policy_ack['payload_hash'],
+            'schema_version': version, 'policy_hash': policy_ack['payload_hash'],
             'source_projection': projection, 'projection_hash': content_hash(projection),
             'read_started_at': read_started, 'projection_completed_at': completed,
             'origin_admitted': False, 'source_clocks_changed': False,
-        }, started)
+        }, started, limits=limits)
         # A concurrent append/mutation fails this run instead of producing a partial prefix.
         report = read_input_read(root)
-        _check(root, started)
+        _check(root, started, limits=limits)
         return report
     except BaseException as exc:
         try:
-            _persist(root, 'read_failure', {'schema_version': VERSION,
+            _persist(root, 'read_failure', {'schema_version': version,
                                           'exception_type': type(exc).__name__, 'at': _clock()})
         except (OSError, ValueError):
             pass
@@ -156,12 +172,17 @@ def read_input_read(output_root):
         raise ValueError('complete successful input-read closure required')
     _check(root, started)
     policy, policy_ack = _pair(root, 'read_policy')
+    profile = (None if policy['schema_version'] == VERSION
+               else policy['policy'].get('storage_profile'))
+    limits = input_limits(profile)
+    version = VERSION if profile is None else COMPACT_VERSION
+    _check(root, started, limits=limits)
     source, root = _paths(policy['source_root'], root)
-    if (policy['schema_version'] != VERSION or policy['policy'] != POLICY
+    if (policy['schema_version'] != version or policy['policy'] != limits
             or policy['build'] != verified_panel_build()):
         raise ValueError('input-read build/policy differs')
     facts, ack = _pair(root, 'read_facts')
-    if (facts['schema_version'] != VERSION
+    if (facts['schema_version'] != version
             or facts['policy_hash'] != policy_ack['payload_hash']
             or facts['origin_admitted'] is not False or facts['source_clocks_changed'] is not False
             or not _ordered_clocks(policy['declared_at'], policy_ack['durable_ack'],
@@ -175,8 +196,8 @@ def read_input_read(output_root):
     _available(projection, facts['read_started_at'])
     if policy['build'] != verified_panel_build():
         raise ValueError('input-read build changed during verification')
-    _check(root, started)
-    return {'schema_version': VERSION, 'read_facts_hash': ack['payload_hash'],
+    _check(root, started, limits=limits)
+    return {'schema_version': version, 'read_facts_hash': ack['payload_hash'],
             'projection_hash': facts['projection_hash'],
             'read_started_at': facts['read_started_at'],
             'projection_completed_at': facts['projection_completed_at'],

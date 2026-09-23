@@ -115,3 +115,7 @@ No live run has used this path; collection remains disabled. Next implement immu
 origin intents and actual source/computation consumption, with separately verified fresh
 identity consistency at due targets. The existing fixed computation reservation still
 requires capacity refinement before a broad live pilot; never truncate the old 107 draws.
+
+D051 now provides the opt-in compact writer profile and exact panel reservation binding.
+The refined next worker contract is PHASE_03_ORIGIN_WRITER_NEXT.md. Neither milestone
+enables collection or accepts origins; the worker must enforce these declarations itself.

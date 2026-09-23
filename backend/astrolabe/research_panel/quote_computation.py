@@ -11,8 +11,7 @@ from astrolabe.feature_store.source_bridge import _time
 from astrolabe.feature_store.source_run import _ordered_clocks, _pair, _persist
 
 from .build_identity import verified_panel_build
-from .input_read import POLICY as INPUT_LIMITS
-from .input_read import _canonical, read_input_read, record_input_read
+from .input_read import _canonical, input_limits, read_input_read, record_input_read
 from .quote_inputs import QuoteInputPolicy, project_quote_inputs
 
 VERSION = 'fs2-quote-computation-v1'
@@ -20,6 +19,18 @@ CHILD = 'fs2_input_read_source'
 LIMITS = {'max_output_bytes': 64 * 1048576, 'max_artifact_bytes': 16 * 1048576,
           'max_seconds': 180, 'free_reserve_bytes': 2 * 1024**3,
           'failure_reserve_bytes': 65536}
+
+COMPACT_VERSION = 'fs2-quote-computation-v2'
+COMPACT_LIMITS = {**LIMITS, 'storage_profile': 'compact-v1',
+                  'max_output_bytes': 8 * 1048576, 'max_artifact_bytes': 2 * 1048576}
+
+
+def computation_limits(storage_profile):
+    if storage_profile is None:
+        return LIMITS
+    if storage_profile == 'compact-v1':
+        return COMPACT_LIMITS
+    raise ValueError('unknown quote computation storage profile')
 
 
 def _paths(source_root, output_root):
@@ -30,7 +41,7 @@ def _paths(source_root, output_root):
     return source, root
 
 
-def _size(root):
+def _size(root, limits=LIMITS):
     """Finite-depth accounting includes the full child, with no symlink traversal."""
     files = []
     for path in root.iterdir():
@@ -49,26 +60,27 @@ def _size(root):
         if path.is_symlink() or not path.is_file():
             raise ValueError('unexpected nested quote computation entry')
         size = path.stat().st_size
-        if size > LIMITS['max_artifact_bytes']:
+        if size > limits['max_artifact_bytes']:
             raise ValueError('quote computation artefact exceeds readable limit')
         total += size
     return total
 
 
-def _check(root, started, addition=0, *, writing=False):
-    if time.monotonic() - started > LIMITS['max_seconds']:
+def _check(root, started, addition=0, *, writing=False, limits=LIMITS):
+    if time.monotonic() - started > limits['max_seconds']:
         raise ValueError('quote computation processing deadline exceeded')
-    if _size(root) + addition > LIMITS['max_output_bytes'] - LIMITS['failure_reserve_bytes']:
+    if (_size(root, limits) + addition
+            > limits['max_output_bytes'] - limits['failure_reserve_bytes']):
         raise ValueError('quote computation total retained-byte budget exceeded')
-    if writing and shutil.disk_usage(root).free < LIMITS['free_reserve_bytes'] + addition:
+    if writing and shutil.disk_usage(root).free < limits['free_reserve_bytes'] + addition:
         raise ValueError('quote computation free-space reserve reached')
 
 
-def _save(root, name, payload, started):
+def _save(root, name, payload, started, *, limits=LIMITS):
     size = len(_json_bytes(payload))
-    if size > LIMITS['max_artifact_bytes']:
+    if size > limits['max_artifact_bytes']:
         raise ValueError('quote computation artefact exceeds readable limit')
-    _check(root, started, size + 4096, writing=True)
+    _check(root, started, size + 4096, writing=True, limits=limits)
     _persist(root, name, payload)
 
 
@@ -82,15 +94,17 @@ def _inputs(root, summary):
     return [row for kind, row in facts['source_projection']['rows'] if kind == 'source_observation']
 
 
-def record_quote_computation(source_root, *, output_root, policy):
+def record_quote_computation(source_root, *, output_root, policy, storage_profile=None):
     """Create a fresh computation, accepting no caller rows, clocks or admission flags."""
+    limits, child_limits = computation_limits(storage_profile), input_limits(storage_profile)
+    version = VERSION if storage_profile is None else COMPACT_VERSION
     source, root = _paths(source_root, output_root)
     if type(policy) is not QuoteInputPolicy:
         raise ValueError('explicit finite quote input policy required')
     if root.exists():
         raise FileExistsError('existing computation retained; never resume or overwrite')
     if shutil.disk_usage(root.parent).free < (
-        LIMITS['free_reserve_bytes'] + LIMITS['max_output_bytes']
+        limits['free_reserve_bytes'] + limits['max_output_bytes']
     ):
         raise ValueError('insufficient quote computation storage reserve')
     build, started = verified_panel_build(), time.monotonic()
@@ -98,15 +112,15 @@ def record_quote_computation(source_root, *, output_root, policy):
     _sync_directory(root.parent)
     try:
         _save(root, 'quote_policy', {
-            'schema_version': VERSION, 'limits': LIMITS, 'child_limits': INPUT_LIMITS,
+            'schema_version': version, 'limits': limits, 'child_limits': child_limits,
             'source_root': str(source), 'child_name': CHILD, 'build': build,
             'quote_policy': asdict(policy), 'quote_policy_hash': content_hash(asdict(policy)),
             'declared_at': _clock(),
-        }, started)
+        }, started, limits=limits)
         _, policy_ack = _pair(root, 'quote_policy')
-        _check(root, started, INPUT_LIMITS['max_output_bytes'], writing=True)
-        read = record_input_read(source, output_root=root / CHILD)
-        _check(root, started)
+        _check(root, started, child_limits['max_output_bytes'], writing=True, limits=limits)
+        read = record_input_read(source, output_root=root / CHILD, storage_profile=storage_profile)
+        _check(root, started, limits=limits)
         computation_started = _clock()
         rows = _inputs(root, read)
         projection = project_quote_inputs(rows, policy=policy, cutoff=_time(computation_started))
@@ -117,17 +131,17 @@ def record_quote_computation(source_root, *, output_root, policy):
         if verified_panel_build() != build:
             raise ValueError('quote computation build changed')
         _save(root, 'quote_facts', {
-            'schema_version': VERSION, 'policy_hash': policy_ack['payload_hash'],
+            'schema_version': version, 'policy_hash': policy_ack['payload_hash'],
             'input_read': read, 'projection': projection,
             'computation_started_at': computation_started, 'computed_at': completed,
             'origin_admitted': False, 'feature_store_admitted': False,
-        }, started)
+        }, started, limits=limits)
         result = read_quote_computation(root)
-        _check(root, started)
+        _check(root, started, limits=limits)
         return result
     except BaseException as exc:
         try:
-            _persist(root, 'quote_failure', {'schema_version': VERSION,
+            _persist(root, 'quote_failure', {'schema_version': version,
                                            'exception_type': type(exc).__name__, 'at': _clock()})
         except (OSError, ValueError):
             pass
@@ -144,23 +158,29 @@ def read_quote_computation(output_root):
         raise ValueError('complete successful quote computation closure required')
     _check(root, started)
     declaration, policy_ack = _pair(root, 'quote_policy')
+    profile = (None if declaration['schema_version'] == VERSION
+               else declaration['limits'].get('storage_profile'))
+    limits, child_limits = computation_limits(profile), input_limits(profile)
+    version = VERSION if profile is None else COMPACT_VERSION
+    _check(root, started, limits=limits)
     source, root = _paths(declaration['source_root'], root)
     policy = QuoteInputPolicy(**declaration['quote_policy'])
     build = verified_panel_build()
-    if (declaration['schema_version'] != VERSION or declaration['limits'] != LIMITS
-            or declaration['child_limits'] != INPUT_LIMITS or declaration['child_name'] != CHILD
+    if (declaration['schema_version'] != version or declaration['limits'] != limits
+            or declaration['child_limits'] != child_limits or declaration['child_name'] != CHILD
             or declaration['build'] != build
             or declaration['quote_policy_hash'] != content_hash(asdict(policy))):
         raise ValueError('quote computation build/policy differs')
     child_policy, child_ack = _pair(root / CHILD, 'read_policy')
-    if (child_policy['source_root'] != str(source) or child_policy['build'] != build
+    if (child_policy['policy'] != child_limits or child_policy['source_root'] != str(source)
+            or child_policy['build'] != build
             or not _ordered_clocks(declaration['declared_at'], policy_ack['durable_ack'],
                                    child_policy['declared_at'], child_ack['durable_ack'])):
         raise ValueError('quote computation child lineage/declaration differs')
     read = read_input_read(root / CHILD)
-    _check(root, started)
+    _check(root, started, limits=limits)
     facts, ack = _pair(root, 'quote_facts')
-    if (facts['schema_version'] != VERSION or facts['policy_hash'] != policy_ack['payload_hash']
+    if (facts['schema_version'] != version or facts['policy_hash'] != policy_ack['payload_hash']
             or facts['input_read'] != read or facts['origin_admitted'] is not False
             or facts['feature_store_admitted'] is not False
             or not _ordered_clocks(read['read_available_at'], facts['computation_started_at'],
@@ -172,8 +192,8 @@ def read_quote_computation(output_root):
         raise ValueError('quote computation exact replay differs')
     if verified_panel_build() != build:
         raise ValueError('quote computation build changed during verification')
-    _check(root, started)
-    return {'schema_version': VERSION, 'computation_hash': ack['payload_hash'],
+    _check(root, started, limits=limits)
+    return {'schema_version': version, 'computation_hash': ack['payload_hash'],
             'policy_hash': policy_ack['payload_hash'], 'input_read_hash': read['read_facts_hash'],
             'projection_hash': projection['projection_hash'],
             'computation_started_at': facts['computation_started_at'],

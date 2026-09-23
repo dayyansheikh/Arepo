@@ -498,3 +498,21 @@ the corrected durability-expiry test uses an actual 10-second save delay. Final 
 **26 passed**, 38.03s. Earlier combined legacy/new selection focus: 46 passed, 54.02s. Full
 isolated backend **1,085 passed**, zero skipped, 214.23s, including disposable PostgreSQL.
 Ruff/canonical/whitespace pass; one existing Starlette/httpx warning.
+
+### D051 compact computation profile
+
+Reviewed opt-in schema/profile selection, per-write artefact and recursive total checks,
+whole child reservation, original source preservation, exact parent/child policy matching,
+read-only recovery and panel cost/selection binding. Defaults retain 32/64 MiB bounds and v1
+schemas. New compact 4/8 MiB bounds retain 2 GiB free and 64 KiB failure reserves; insufficient
+capacity or oversized input stops without deletion, truncation or in-place profile upgrades.
+Collection remains disabled and no live source requests were made.
+
+The original-recovery fixture initially compared the full result wrapper to its summary;
+corrected it to verify both the exact summary and full facts. The three-source fixture now
+uses the actual trade pagination shape and asserts every source observation is observed.
+Final compact focus: **20 passed**, 12.00s; prior combined defaults/declaration focus had
+100 passing cases plus that single fixture assertion failure. Full isolated backend **1,105 passed**,
+zero skipped, 225.33s, including disposable PostgreSQL. Ruff/canonical/whitespace pass;
+one existing Starlette/httpx warning. The next heartbeat records these completed results
+without repeating tests or measurements; prior short-window usage reached 100% before commit.

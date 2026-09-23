@@ -12,10 +12,11 @@ from astrolabe.feature_store.types import HASH_PATTERN
 
 from .build_identity import verified_panel_build
 from .input_read import _canonical
-from .quote_computation import LIMITS as COMPUTATION_LIMITS
+from .quote_computation import computation_limits
 from .sampling import SamplingProtocol
 
 VERSION = 'fs2-panel-declaration-v1'
+COMPACT_VERSION = 'fs2-panel-declaration-v2'
 MIB = 1048576
 FIXED = {'selection_bytes': 1024 * MIB, 'frame_read_bytes': 16 * MIB,
          'declaration_bytes': MIB, 'free_reserve_bytes': 2048 * MIB,
@@ -97,7 +98,7 @@ class PanelProtocol:
                 + self.horizon_seconds + self.tolerance_seconds)
 
 
-def reservation(protocol):
+def reservation(protocol, *, storage_profile=None):
     if type(protocol) is not PanelProtocol:
         raise ValueError('explicit immutable panel protocol required')
     origins = protocol.market_slots * protocol.cycles
@@ -105,12 +106,14 @@ def reservation(protocol):
     requests = origins * 3 + targets * 2
     computations = origins + targets
     source_bytes = computations * protocol.source_run_retained_bytes
-    computation_bytes = computations * COMPUTATION_LIMITS['max_output_bytes']
+    computation_bytes = computations * computation_limits(storage_profile)['max_output_bytes']
     total = source_bytes + computation_bytes + sum(
         FIXED[k] for k in ('selection_bytes', 'frame_read_bytes', 'declaration_bytes'))
     if total > FIXED['max_panel_bytes']:
         raise ValueError('aggregate panel reservation exceeds finite storage ceiling')
-    return {'market_slots': protocol.market_slots, 'origin_slots': origins,
+    return {**({'computation_storage_profile': storage_profile}
+               if storage_profile is not None else {}),
+            'market_slots': protocol.market_slots, 'origin_slots': origins,
             'scheduled_origin_slots': protocol.scheduled_slots * protocol.cycles,
             'triggered_origin_slots': protocol.triggered_slots * protocol.cycles,
             'control_origin_slots': protocol.triggered_slots * protocol.controls_per_trigger
@@ -143,10 +146,12 @@ def _recipe(protocol, seed):
         max_unique_markets=protocol.market_slots))
 
 
-def declare_panel(frame_root, *, implementation_commit, output_root, protocol):
+def declare_panel(frame_root, *, implementation_commit, output_root, protocol,
+                  storage_profile=None):
     """No numerical reads, caller seed/clocks/provenance, network, SQL or accepted origin."""
     frame, root = _paths(frame_root, output_root, implementation_commit)
-    allocation = reservation(protocol)
+    allocation = reservation(protocol, storage_profile=storage_profile)
+    version = VERSION if storage_profile is None else COMPACT_VERSION
     if not frame.is_dir():
         raise ValueError('existing frame directory required; numerical verification comes later')
     if root.exists():
@@ -158,7 +163,9 @@ def declare_panel(frame_root, *, implementation_commit, output_root, protocol):
     _sync_directory(root.parent)
     try:
         payload = {
-            'schema_version': VERSION, 'protocol': asdict(protocol), 'fixed_limits': FIXED,
+            'schema_version': version, 'protocol': asdict(protocol), 'fixed_limits': FIXED,
+            **({'computation_storage_profile': storage_profile}
+               if storage_profile is not None else {}),
             'reservation': allocation, 'sampling_recipe': _recipe(protocol, secrets.token_hex(32)),
             'frame_root': str(frame), 'frame_implementation_commit': implementation_commit,
             'build': build, 'source_policy': TARGETED_POLICY, 'feature_families': FAMILIES,
@@ -188,13 +195,16 @@ def read_panel_declaration(output_root):
     payload, ack = _pair(root, 'panel_policy')
     _paths(payload['frame_root'], root, payload['frame_implementation_commit'])
     protocol = PanelProtocol(**payload['protocol'])
+    profile = payload.get('computation_storage_profile')
+    version = VERSION if profile is None else COMPACT_VERSION
     seed = payload['sampling_recipe']['seed']
     if not isinstance(seed, str) or not HASH_PATTERN.fullmatch(seed):
         raise ValueError('invalid frozen panel seed')
-    if (payload['schema_version'] != VERSION or payload['build'] != verified_panel_build()
+    if (payload['schema_version'] != version or payload['build'] != verified_panel_build()
             or payload['fixed_limits'] != FIXED or payload['source_policy'] != TARGETED_POLICY
             or payload['feature_families'] != FAMILIES
-            or _json_bytes(payload['reservation']) != _json_bytes(reservation(protocol))
+            or _json_bytes(payload['reservation']) != _json_bytes(
+                reservation(protocol, storage_profile=profile))
             or _json_bytes(payload['sampling_recipe']) != _json_bytes(_recipe(protocol, seed))
             or any(payload[key] is not False for key in ('frame_verified', 'collection_enabled',
                        'origin_admitted', 'feature_store_admitted', 'accepted_panel'))
@@ -204,7 +214,8 @@ def read_panel_declaration(output_root):
                 'slot ceilings are not a sampling result; do not truncate'
             or not _ordered_clocks(payload['declared_at'], ack['durable_ack'])):
         raise ValueError('panel declaration build/policy/chronology differs')
-    return {'schema_version': VERSION, 'declaration_hash': ack['payload_hash'],
+    return {**({'computation_storage_profile': profile} if profile is not None else {}),
+            'schema_version': version, 'declaration_hash': ack['payload_hash'],
             'declaration_available_at': ack['durable_ack'],
             'protocol_hash': content_hash(payload['protocol']),
             'reservation': payload['reservation'], 'sampling_recipe': payload['sampling_recipe'],
