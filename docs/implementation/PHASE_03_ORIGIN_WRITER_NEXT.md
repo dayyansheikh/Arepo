@@ -63,3 +63,28 @@ runtime causality. Pin a coherent tested build and self-review before any live p
 Full Phase 3 acceptance still requires the remaining feature families, actual measured trigger
 negatives/control coverage and prospective pilot gates. Synthetic success or scheduled-only
 receipt quotes cannot substitute for them. Production and historical evidence remain untouched.
+
+## D052 activation refinement
+
+The activation read/schedule milestone is implemented in `research_panel/activation.py`;
+see PHASE_03_ACTIVATION_CONTRACT.md. Its development lead is explicitly two seconds,
+not an empirically validated latency guarantee. It reserves additional activation and
+per-origin/target metadata space and keeps all collection/admission flags false. Resume
+with the actual worker, not another selection or activation measurement.
+
+The next worker should own one deterministic run directory before invoking activation,
+reserve its own bounded top-level manifest space in addition to D052 allocation, and derive
+every source/computation/intent directory from the frozen slot IDs. It must consume actual
+activation output internally (no caller-supplied summary), enforce each slot's delay gate
+before requests and at origin freeze, and record every failed/late/abstaining slot. Default
+SourceRun bounds may be reduced from the remaining delay but never expanded past declared
+response/retention caps. Match Gamma/book/trade requests to selected market/token/condition
+and verify the exact fresh mapping version against the selected identity. A fresh changed
+identity is an abstention, not permission to reinterpret the draw.
+
+Persist exact quote/identity facts, all source and computation lineage, actual freeze and
+acknowledgement. Derive eligibility from immutable facts and acknowledgements: a late save
+must not be repaired into an eligible origin. Retain failed source/compute trees without
+claiming their partial contents are validated observations. A source quota failure or HTTP
+error cannot silently drop an assigned slot. Complete this synthetic end-to-end path and
+the target adapter/worker before a new live pilot. No production entry point or scheduler.

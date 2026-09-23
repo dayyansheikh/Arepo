@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — frame/development selection and D042–D047 controls/input-read/quote computation, targeted identity and original recovery implemented; two-read runtime measurement passed. D048 freezes panel declaration/reservation; D049 enforces source-write quotas; D050 binds fresh selection to the frozen declaration. D051 adds optional compact computation quotas. Origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
+Status: incomplete — frame/development selection and D042–D047 controls/input-read/quote computation, targeted identity and original recovery implemented; two-read runtime measurement passed. D048 freezes panel declaration/reservation; D049 enforces source-write quotas; D050 binds fresh selection to the frozen declaration. D051 adds optional compact computation quotas. D052 adds actual activation and immutable schedules. Origin/pilot work remains. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task.
 
 ## Objective
 
@@ -202,3 +202,8 @@ binding. Default schemas and reservations remain unchanged. No collector uses th
 The next executable integration contract is ../PHASE_03_ORIGIN_WRITER_NEXT.md: actual activation,
 exclusive per-slot intents, guarded fixed requests, computation consumption and immutable
 origin/target records. Follow its tests before any new local live measurement.
+
+D052 actual activation consumes/reverifies selection and selected identity/role lineage,
+reserves additional runtime metadata, and anchors schedules to its actual durable save.
+Twenty focused tests and 1,125 full backend tests passed. No source collector or origin is
+enabled. Next execute the worker portion of ../PHASE_03_ORIGIN_WRITER_NEXT.md.

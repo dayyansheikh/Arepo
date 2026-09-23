@@ -516,3 +516,15 @@ Final compact focus: **20 passed**, 12.00s; prior combined defaults/declaration 
 zero skipped, 225.33s, including disposable PostgreSQL. Ruff/canonical/whitespace pass;
 one existing Starlette/httpx warning. The next heartbeat records these completed results
 without repeating tests or measurements; prior short-window usage reached 100% before commit.
+
+### D052 activation and immutable schedule
+
+Reviewed complete selection/source replay before identity consumption, hash-bound projection
+reads, no role duplication, extra origin/target metadata reservation, actual read/save clocks
+and freshness at both completion and save. Schedules derive from acknowledgement plus the
+frozen two-second lead; independent recovery preserves expired schedules and does not use
+current disk capacity. Concurrent ownership has one winner; failures preserve partial output.
+No collector, origin, source request, SQL admission or production change. Twenty focused tests
+passed in 43.20s, including actual save delay, tampering and resource checks. Full isolated
+backend **1,125 passed**, zero skipped, 276.63s, including disposable PostgreSQL.
+Ruff/canonical/whitespace checks pass; one existing Starlette/httpx warning.
