@@ -604,3 +604,13 @@ Git fixtures remain byte-identical after successful/failed reads. This is read-o
 not redispatch or retrospective admission. Ruff and canonical checks pass. Combined regression
 is pending; the sandbox loopback denial is an environment restriction, not a passing test.
 The suite was restarted with approved local-service permission. No production service is used.
+
+
+D056 final acceptance recovered on 2026-09-24: **1,202 passed**, zero skipped, 1,363.95s,
+including disposable PostgreSQL. The recorded and freshly recomputed source/test fingerprints
+match `0ef54cf49942a41862416a9bff36a3087ba96bc517aeb11e2e364b9ebb6f2df0`; the tested
+implementation is committed at `72f89a8`. One existing Starlette/httpx warning. No unchanged
+suite was rerun. Final review includes the canonical-directory checks inherited from `_pair`,
+exact original-report equality, source dependency output isolation, immutable clocks, queue
+ordering and terminal cancellation. D056 is accepted as a synthetic software milestone;
+Phase 3 remains incomplete. The next feature-window contract preserves the stricter data gates.

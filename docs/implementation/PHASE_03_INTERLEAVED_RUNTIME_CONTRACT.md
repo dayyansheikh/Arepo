@@ -1,6 +1,6 @@
 # Phase 3 — interleaved synthetic runtime (D056)
 
-Status: implementation checkpointed; focused tests pass, full validation pending. D053 origin, D054 identity adapter and D055 due worker are
+Status: accepted synthetic software milestone at `72f89a8`; 1,202 backend tests passed. D053 origin, D054 identity adapter and D055 due worker are
 accepted software prerequisites. No live transport, SQL admission or accepted panel is enabled.
 
 One exclusive `fs2_runtime_<panel>` owns bounded origins, target attempts and per-origin target
@@ -36,7 +36,7 @@ The runtime composes the unchanged per-origin and per-target writers/readers ins
 `origins`, `targets` and `plans` directories. Replay reconstructs the evolving queue from
 activation and each verified durable per-origin plan; it checks every dispatch against actual
 intent/save clocks. Ineligible targets are dispatched at plan acknowledgement without source
-requests. Five focused tests passed in 65.88s. Full regression and final acceptance remain pending.
+requests. Five focused tests passed in 65.88s. Combined full regression: 1,202 passed; synthetic runtime accepted.
 
 Original-build recovery now has a separate allowlisted runtime decoder. It pins the exact
 runtime policy/report, extracts only the declared packages from an immutable local Git commit,
@@ -44,6 +44,6 @@ and invokes that implementation's full runtime reader. A new read receipt preser
 complete report, original clocks and synthetic status; it never redispatches work. Output
 must be outside the runtime, panel, frame, activation and selection evidence trees. Changed
 raw bytes, reordered events and resealed wrong outcomes are refused. Four focused cases pass;
-combined regression remains pending until recorded in the review/checkpoint.
+combined regression passed with unchanged code. This does not satisfy the live pilot gate.
 
 Next implementation boundary: [numerical features and windows](PHASE_03_FEATURE_WINDOWS_NEXT.md).
