@@ -688,3 +688,29 @@ Only synthetic receipt diagnostics are accepted here. The declared window identi
 causally admitted; native sequence, native age, complete fills and economic independence remain
 unknown. Next execute PHASE_03_WINDOW_IDENTITY_NEXT.md before live transport. Full Phase 3 pilot,
 measured controls/external admission and acceptance remain outstanding; Phase 4 stays out of scope.
+
+### D060 pre-subscription binding
+
+Reviewed exact two-source targeted identity/book closure, ordered mapping/rule fingerprint and
+explicit known-active lifecycle. Derived token/condition has no caller override. Actual read,
+computation receipt, binding fsync and child subscription chronology are checked independently.
+Freshness is replayed at original read/save/subscription times, never current time. Delayed
+subscription remains identity_expired_before_subscription; it does not rewrite a binding or
+admit an origin. Whole 40 MiB reservation includes the unchanged 32 MiB child. Cancellation,
+partial acknowledgements and concurrent ownership preserve all evidence. Original-Git recovery
+protects parent, pre-computation and raw-source dependencies and rejects corruption.
+
+New binding/recovery suite: **17 passed in 87.37s**. Initial late-subscription fixture used a
+2-second pre-age limit, which correctly rejected already-stale evidence before binding. The
+fixture was changed to a predeclared 10-second limit and 10.2-second delay so it reaches the
+intended later boundary; no production policy or empirical data was changed. Affected existing
+book/window/recovery regression is recorded in the final acceptance note below. Ruff, canonical
+and whitespace checks pass. Tests use explicit isolated SQLite and disabled email. No real
+source requests, live socket, SQL, frontend or production changes.
+
+Scoped software acceptance does not complete Phase 3. Post-window comparison must verify actual
+primary request-start clocks after the bound report, not infer chronology from response receipt.
+Then the bounded live adapter, measured controls, selected external information and prospective
+pilot remain. Phase 4 is reserved for a fresh Codex conversation.
+
+D060 final acceptance (2026-09-24): **17 new tests passed in 87.37s**, plus **52 existing affected tests passed in 96.36s** (69 total across the two disjoint runs). No code changed between these runs. Ruff/canonical/whitespace pass. No test or collector remains running. D060 is accepted only as the pre-subscription synthetic binding/recovery milestone; Phase 3 is incomplete. Resume post-window chronology/reconciliation as specified above.

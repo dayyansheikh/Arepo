@@ -59,3 +59,18 @@ Once this milestone is accepted, proceed to measured trigger/control assessments
 external-source admission, followed by the separately frozen representative development pilot.
 Those requirements still block Phase 3 acceptance. On genuine acceptance stop with the fresh-chat
 handover specified by the user's Phase 3-only continuation instruction.
+
+## D060 implementation scope — 2026-09-24
+
+Steps 1–3 now have an exclusive synthetic wrapper, actual pre-computation read and binding
+receipt, identity-derived child subscription, original-time freshness replay and transitive
+original-code recovery. See PHASE_03_BOUND_WINDOW_CONTRACT.md. This does not supply steps 4–8.
+
+The next post-window consumer must inspect primary `verify_capture` receipt request-start
+clocks, reached through verified source-observation capture URIs. The projected row's first
+receipt time alone cannot exclude a request initiated during the window and completed later.
+Freeze the comparison policy before those reads; use the bound window's durable report receipt
+as a conservative after-window boundary and preserve the raw window's earlier terminal time
+separately. Source errors, changed mapping/rules, closure, stale and mismatching endpoint values
+remain explicit outcomes. An invalid/expired pre-binding can never produce an eligible
+comparison. All new original-code recovery output must be outside every transitive dependency.

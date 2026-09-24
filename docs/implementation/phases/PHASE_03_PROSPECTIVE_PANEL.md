@@ -245,3 +245,5 @@ and honest numerical replay, then causal identity/pre/post reconciliation and bo
 transport. Duration completion is not gap-free coverage or pilot acceptance.
 
 D059 now records decoded receipt-window diagnostics with exact time weighting, missing intervals and actual read/computation/durability clocks. Ninety affected checks passed, including original-code recovery. Next execute ../PHASE_03_WINDOW_IDENTITY_NEXT.md. Phase 3 remains incomplete; Phase 4 will begin only in a fresh conversation after the required handover.
+
+D060 adds actual pre-window source reads, durable ordered identity binding and derived synthetic subscription, with original-code recovery. Seventeen new tests passed; final affected regression is recorded in the checkpoint/review. Next implement steps 4–6 of ../PHASE_03_WINDOW_IDENTITY_NEXT.md: post-window request chronology and endpoint comparison. Live transport and full Phase 3 pilot acceptance remain gated.

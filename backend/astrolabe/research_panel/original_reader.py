@@ -70,6 +70,13 @@ facts, ack = _pair(root, 'window_facts')
 json.dump({'facts': facts, 'summary': summary}, sys.stdout, sort_keys=True, separators=(",", ":"))
 '''
 
+_BOUND_WINDOW_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.bound_window import read_bound_window
+json.dump(read_bound_window(Path(sys.argv[2])), sys.stdout, sort_keys=True, separators=(",", ":"))
+'''
+
 _WINDOW_SCRIPT = '''import json,sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
@@ -191,15 +198,22 @@ def read_original_window_computation(root, *, implementation_commit, output_root
                           output_root=output_root, repository=repository, kind='window_computation')
 
 
+def read_original_bound_window(root, *, implementation_commit, output_root, repository=None):
+    """Verify original pre-subscription identity and raw window without collecting again."""
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='bound_window')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
     if kind not in {'frame', 'selection', 'quote_computation', 'book_computation',
-                    'runtime', 'window', 'window_computation'}:
+                    'runtime', 'window', 'window_computation', 'bound_window'}:
         raise ValueError('unsupported original journal kind')
     schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
     script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
               'quote_computation': _QUOTE_SCRIPT, 'book_computation': _BOOK_SCRIPT,
               'runtime': _RUNTIME_SCRIPT, 'window': _WINDOW_SCRIPT,
-              'window_computation': _WINDOW_COMPUTATION_SCRIPT}[kind]
+              'window_computation': _WINDOW_COMPUTATION_SCRIPT,
+              'bound_window': _BOUND_WINDOW_SCRIPT}[kind]
     computation = kind in {'quote_computation', 'book_computation', 'window_computation'}
     fact_prefix = {'quote_computation': 'quote', 'book_computation': 'book',
                    'window_computation': 'window'}.get(kind, kind)
@@ -229,6 +243,14 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             raise ValueError('canonical original source evidence path required')
         if output_root == source_root or source_root in output_root.parents:
             raise ValueError('separate output outside original source evidence required')
+    if kind == 'bound_window':
+        pre = Path(policy['pre_computation_root'])
+        pre_policy, _ = _pair(pre, 'book_policy')
+        for dependency in (pre, Path(pre_policy['source_root'])):
+            if not dependency.is_absolute() or dependency.resolve() != dependency:
+                raise ValueError('canonical pre-window dependency required')
+            if output_root == dependency or dependency in output_root.parents:
+                raise ValueError('separate output outside pre-window dependencies required')
     if kind == 'runtime':
         if policy['schema_version'] != 'fs2-interleaved-synthetic-runtime-v1':
             raise ValueError('unsupported original runtime layout')
