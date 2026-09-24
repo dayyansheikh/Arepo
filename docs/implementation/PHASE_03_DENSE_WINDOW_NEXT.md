@@ -82,3 +82,12 @@ a declared shorter test policy, always recorded as such, never pretending sixty 
 
 Once the capture milestone passes, checkpoint its exact evidence and then implement numerical
 window/control integration. Phase 3 and all downstream phases remain gated by the main plan.
+
+## D058 progress — 2026-09-24
+
+A separate synthetic raw-window driver and journal now implement the finite event/persistence,
+heartbeat, boundary, byte-count and exact recovery foundations. 40 affected tests passed.
+See PHASE_03_WINDOW_CAPTURE_CONTRACT.md for implemented scope and limits. There is still no
+live socket adapter, causal identity admission or pre/post REST reconciliation. Next execute
+the decoded coverage consumer (step 6), preserving unavailable native sequencing; then refine
+steps 7–8 against its outputs and the measured source capabilities. Do not repeat D057/D058.

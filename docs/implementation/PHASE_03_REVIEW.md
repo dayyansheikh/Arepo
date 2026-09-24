@@ -638,3 +638,27 @@ named a nonexistent compact test file and collected no tests; the corrected file
 This accepts the scoped snapshot software milestone only. New capture/coverage contract
 PHASE_03_DENSE_WINDOW_NEXT.md preserves the public feed's unproven sequence semantics; no
 native event order, feature-window completeness, predictive edge or Phase 3 completion inferred.
+
+### D058 bounded synthetic raw window and original recovery
+
+Reviewed subscription-anchored actual duration, fixed heartbeat schedule, one pending receive,
+completed-receive draining before termination, late-frame accounting and cancellation cleanup.
+Raw text/binary/control/invalid JSON bytes remain uninterpreted evidence. Journal records actual
+receipt and post-fsync clocks, preceding hash and ordinal, exact prefix/full-observed hashes and
+explicit truncation. Strict file/byte/event limits include outbound payloads; partial write or
+capacity failures cannot seal a valid report. Replay enforces same-session chronology, exact
+closure, outbound send order and original policy/build, without sampling new observation clocks.
+The only admitted driver input is the exact bounded immutable synthetic fixture class. There is
+no socket/live transport, SQL operation, production path or feature eligibility claim.
+
+Initial 23 tests passed in 20.39s. Final affected regression **40 passed in 42.46s**, including
+26 new window/original-window cases, original-book recovery, legacy stream probe and book
+replay. Added reduced synthetic-budget tests cover frame and raw-total stops; production limits
+remain fixed. Ruff, canonical checker and whitespace checks pass. Explicit isolated SQLite URL
+and disabled email; no external source requests. D057's 170 affected checks remain the preceding
+accepted baseline; no combined full-suite result is claimed for D058.
+
+This accepts raw synthetic capture/recovery only. Next decoded coverage must distinguish
+control/invalid/unrelated/late events and gaps from numerical updates. Native sequence, fill
+identity, source-rights/identity verification, live transport and pre/post reconciliation remain
+unproven. Phase 3 is incomplete; no further phase is started.

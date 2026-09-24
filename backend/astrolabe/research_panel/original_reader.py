@@ -59,6 +59,13 @@ facts, ack = _pair(root, 'book_facts')
 json.dump({'facts': facts, 'summary': summary}, sys.stdout, sort_keys=True, separators=(",", ":"))
 '''
 
+_WINDOW_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.window_journal import read_window
+json.dump(read_window(Path(sys.argv[2])), sys.stdout, sort_keys=True, separators=(",", ":"))
+'''
+
 _RUNTIME_SCRIPT = '''import json,sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
@@ -161,13 +168,20 @@ def read_original_book_computation(root, *, implementation_commit, output_root, 
                           output_root=output_root, repository=repository, kind='book_computation')
 
 
+def read_original_window(root, *, implementation_commit, output_root, repository=None):
+    """Read a sealed original synthetic window without changing source clocks."""
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='window')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
-    if kind not in {'frame', 'selection', 'quote_computation', 'book_computation', 'runtime'}:
+    if kind not in {'frame', 'selection', 'quote_computation', 'book_computation',
+                    'runtime', 'window'}:
         raise ValueError('unsupported original journal kind')
     schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
     script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
               'quote_computation': _QUOTE_SCRIPT, 'book_computation': _BOOK_SCRIPT,
-              'runtime': _RUNTIME_SCRIPT}[kind]
+              'runtime': _RUNTIME_SCRIPT, 'window': _WINDOW_SCRIPT}[kind]
     computation = kind in {'quote_computation', 'book_computation'}
     fact_prefix = {'quote_computation': 'quote', 'book_computation': 'book'}.get(kind, kind)
     prefix = 'fs2_' + kind + '_read_'

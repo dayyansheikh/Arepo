@@ -238,3 +238,8 @@ and actual durable computations with original-build recovery. 170 affected regre
 passed. See ../PHASE_03_BOOK_COMPUTATION_CONTRACT.md. Next implement the bounded capture and
 coverage contract ../PHASE_03_DENSE_WINDOW_NEXT.md; keep native sequence gaps explicit. This
 milestone does not supply the registered continuous-window features or admit the live pilot.
+
+D058 adds finite synthetic raw-window capture, fixed heartbeats and original-code recovery;
+40 affected tests pass. See ../PHASE_03_WINDOW_CAPTURE_CONTRACT.md. Next: decoded coverage
+and honest numerical replay, then causal identity/pre/post reconciliation and bounded live
+transport. Duration completion is not gap-free coverage or pilot acceptance.
