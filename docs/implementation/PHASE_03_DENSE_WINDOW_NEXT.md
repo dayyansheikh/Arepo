@@ -91,3 +91,5 @@ See PHASE_03_WINDOW_CAPTURE_CONTRACT.md for implemented scope and limits. There 
 live socket adapter, causal identity admission or pre/post REST reconciliation. Next execute
 the decoded coverage consumer (step 6), preserving unavailable native sequencing; then refine
 steps 7–8 against its outputs and the measured source capabilities. Do not repeat D057/D058.
+
+D059 now implements step 6 through actual durable reads/computation and original-code recovery (90 affected tests passed). Next execute PHASE_03_WINDOW_IDENTITY_NEXT.md for causal source binding, endpoint comparison and a separately tested bounded live adapter. No registered window-feature or live-panel acceptance is inferred.

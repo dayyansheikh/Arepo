@@ -662,3 +662,29 @@ This accepts raw synthetic capture/recovery only. Next decoded coverage must dis
 control/invalid/unrelated/late events and gaps from numerical updates. Native sequence, fill
 identity, source-rights/identity verification, live transport and pre/post reconciliation remain
 unproven. Phase 3 is incomplete; no further phase is started.
+
+### D059 decoded coverage and durable computation
+
+Reviewed source/report/event/raw binding at actual consumption; immutable read/computation/fsync
+clocks; exclusive ownership; whole/artifact/storage/time limits and terminal partial failures.
+Raw arrays keep element lineage and common receipt time. Unrelated/control events cannot create
+elapsed updates; PONG/trade/tick does not refresh book receipt age. Missing initial snapshots,
+invalidated/stale intervals, early tails and late frames remain explicit. Repeated equal numeric
+books do not become independent changes. Exact rational time weighting differs from update-count
+weighting and never fills an uncovered interval with zero. Best-price assertions, including
+integer-form token IDs, are checked against replay. Unsupported relevant input or identity/book
+conflict requires a new snapshot; earlier gaps remain. Original-code reads preserve complete
+facts/summary and source/output bytes, while protecting all source dependency paths.
+
+Initial pure focus: 22 passed in 0.47s. Initial durable/new recovery focus: 41 passed in 29.48s.
+After review added source clock-order/terminal guards and an integer-token best-assertion case.
+Final affected regression: **90 passed in 112.85s**, including all new pure/durable/original
+coverage paths, prior window capture/recovery, original book/quote recovery and BookReplay.
+Ruff, canonical and whitespace checks pass. Explicit isolated SQLite and disabled email; no
+live source requests, database migration or frontend/production changes. Prior full D056
+regression remains historical baseline coverage, not a combined full-suite claim for D059.
+
+Only synthetic receipt diagnostics are accepted here. The declared window identity is not yet
+causally admitted; native sequence, native age, complete fills and economic independence remain
+unknown. Next execute PHASE_03_WINDOW_IDENTITY_NEXT.md before live transport. Full Phase 3 pilot,
+measured controls/external admission and acceptance remain outstanding; Phase 4 stays out of scope.

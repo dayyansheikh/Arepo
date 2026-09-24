@@ -13,7 +13,7 @@ Read ../AREPO_V2_CHECKPOINT.md first, then AGENTS.md, this plan, the current pha
 | 00 | [Canonical foundation](phases/PHASE_00_FOUNDATION.md) | Verified production + supplied research | Complete — draft PR #13 |
 | 01 | [Feature Store v2 foundations](phases/PHASE_01_FEATURE_STORE.md) | 00 accepted outputs | Complete — draft PR #14; 610 backend tests passed |
 | 02 | [Sources, clocks and identities](phases/PHASE_02_SOURCES_CLOCKS_IDENTITY.md) | 01 accepted outputs | Complete — draft PR #15; 685 tests and new predeclared core-source run |
-| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Incomplete — frame/selection/causal computation and D056 synthetic interleaving, D057 exact snapshot computation and D058 synthetic raw-window/recovery implemented; D056 1,202 full tests, D057 170 and D058 40 affected checks. Draft #16. Numerical windows, measured controls, external admission and live pilot remain |
+| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Incomplete — frame/selection/causal computation and D056 synthetic interleaving, D057 exact snapshot computation and D058 raw-window/recovery and D059 decoded receipt coverage implemented; D056 1,202 full tests, D057 170, D058 40 and D059 90 affected checks. Draft #16. Numerical windows, measured controls, external admission and live pilot remain |
 | 04 | [Baselines and initial edge experiments](phases/PHASE_04_EDGE_EXPERIMENTS.md) | 03 accepted outputs + sufficient clean independent events | Provisional |
 | 05 | [Wallet and information event engine](phases/PHASE_05_WALLET_INFORMATION.md) | 04 accepted outputs + sufficient clean independent events | Provisional |
 | 06 | [Bayesian and ML candidates](phases/PHASE_06_MODELS.md) | 05 accepted outputs + sufficient clean independent events | Provisional |
@@ -52,7 +52,7 @@ Never merge/deploy, migrate production, change infrastructure/credentials/live r
 One same-task continuation chain, with each invocation scheduling the next 310 minutes ahead.
 Current implementation/test/allowance state is recorded in the live checkpoint; older usage
 snapshots do not govern a resumed window. No reset credit was redeemed by this task.
-The existing heartbeat was updated and verified for 2026-09-24 21:07 Europe/London
+The existing heartbeat was updated and verified for 2026-09-25 02:07 Europe/London
 with the user's exact prompt and same target task; no second chain was created.
 The previous 09:40 automation was removed; its separate task's docs-only access-blocker commit
 `8a55335` is retained as history, resolved here. Verify actual current automation state before
@@ -60,5 +60,5 @@ replacement; historical IDs are not authority. Reload checkpoint and exact next 
 duplicate continuation chains. Finish the current phase before advancing and save progress
 before usage exhaustion. Protected approval: BLOCKED — USER DECISION REQUIRED. If required
 access/data or longer-term allowance is unavailable, document alternatives and stop productive
-work. On full completion: IMPLEMENTATION ROADMAP COMPLETE — AWAITING REVIEW. Stay quiet for
+work. User scope override 2026-09-24: this task continues Phase 3 only. On full Phase 3 acceptance, cancel the pending successor, finalise the durable fresh-chat handover and emit PHASE 3 COMPLETE — READY FOR FRESH CODEX HANDOVER. Phase 4 starts in a fresh Codex conversation; do not start it here. Stay quiet for
 unchanged blocked state and notify meaningful changes only.
