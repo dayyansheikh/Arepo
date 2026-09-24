@@ -99,3 +99,9 @@ Each scoped milestone needs proportionate regression, self-review, docs, coheren
 draft PR update. The full Phase 3 exit requires measured representative controls and causal
 pilot outcomes with honest family coverage; Phase 4 remains gated. No schema migration,
 production scheduling, data deletion, model fitting or product redesign is authorized here.
+
+## D057 progress — 2026-09-24
+
+Snapshot tasks 1–4 are implemented and tested under PHASE_03_BOOK_COMPUTATION_CONTRACT.md,
+including exact original-build recovery. No old origin format or reservation was expanded.
+Next execute task 5 using PHASE_03_DENSE_WINDOW_NEXT.md, then measured family/control integration.

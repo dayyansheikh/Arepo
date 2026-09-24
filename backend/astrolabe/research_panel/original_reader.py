@@ -48,6 +48,17 @@ facts, ack = _pair(root, 'quote_facts')
 json.dump({'facts': facts, 'summary': summary}, sys.stdout, sort_keys=True, separators=(",", ":"))
 '''
 
+_BOOK_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.book_computation import read_book_computation
+from astrolabe.feature_store.source_run import _pair
+root = Path(sys.argv[2])
+summary = read_book_computation(root)
+facts, ack = _pair(root, 'book_facts')
+json.dump({'facts': facts, 'summary': summary}, sys.stdout, sort_keys=True, separators=(",", ":"))
+'''
+
 _RUNTIME_SCRIPT = '''import json,sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
@@ -144,12 +155,21 @@ def read_original_runtime(root, *, implementation_commit, output_root, repositor
                           output_root=output_root, repository=repository, kind='runtime')
 
 
+def read_original_book_computation(root, *, implementation_commit, output_root, repository=None):
+    """Verify exact original snapshot components without changing their computation clocks."""
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='book_computation')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
-    if kind not in {'frame', 'selection', 'quote_computation', 'runtime'}:
+    if kind not in {'frame', 'selection', 'quote_computation', 'book_computation', 'runtime'}:
         raise ValueError('unsupported original journal kind')
     schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
     script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
-              'quote_computation': _QUOTE_SCRIPT, 'runtime': _RUNTIME_SCRIPT}[kind]
+              'quote_computation': _QUOTE_SCRIPT, 'book_computation': _BOOK_SCRIPT,
+              'runtime': _RUNTIME_SCRIPT}[kind]
+    computation = kind in {'quote_computation', 'book_computation'}
+    fact_prefix = {'quote_computation': 'quote', 'book_computation': 'book'}.get(kind, kind)
     prefix = 'fs2_' + kind + '_read_'
     hash_key = kind + '_report_hash'
     available_key = kind + '_available_at'
@@ -163,15 +183,14 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             or output_root == frame_root or frame_root in output_root.parents):
         raise ValueError('separate fresh ' + prefix + ' output directory required')
     metadata_started = _clock()
-    policy, policy_ack = _pair(frame_root, 'quote_policy' if kind == 'quote_computation'
-                               else kind + '_policy')
+    policy, policy_ack = _pair(frame_root, fact_prefix + '_policy')
     # Only sealed original reports are consumed. No crash-repair or semantic reconstruction.
-    original_report, report_ack = _pair(frame_root, 'quote_facts' if kind == 'quote_computation'
+    original_report, report_ack = _pair(frame_root, fact_prefix + '_facts' if computation
                                         else kind + '_report')
     if kind != 'runtime' and original_report['policy_hash'] != policy_ack['payload_hash']:
         raise ValueError('original report/policy lineage differs')
     extra, extra_hashes = {}, {}
-    if kind in {'selection', 'quote_computation'}:
+    if kind in {'selection', 'quote_computation', 'book_computation'}:
         source_root = Path(policy['frame_root' if kind == 'selection' else 'source_root'])
         if not source_root.is_absolute() or source_root.resolve() != source_root:
             raise ValueError('canonical original source evidence path required')
@@ -231,11 +250,11 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
                     'original-build verification refused the ' + kind + ' or environment')
             result_bytes = _read(output)
             result = json.loads(result_bytes)
-            if kind == 'quote_computation':
+            if computation:
                 facts, summary = result['facts'], result['summary']
                 actual_hash, actual_available = summary['computation_hash'], summary[
                     'computation_available_at']
-                provenance, state = summary['source_provenance_class'], 'verified_quote_computation'
+                provenance, state = summary['source_provenance_class'], 'verified_' + kind
             else:
                 facts = {k: v for k, v in result.items()
                          if k not in {hash_key, available_key, *extra}}

@@ -614,3 +614,27 @@ suite was rerun. Final review includes the canonical-directory checks inherited 
 exact original-report equality, source dependency output isolation, immutable clocks, queue
 ordering and terminal cancellation. D056 is accepted as a synthetic software milestone;
 Phase 3 remains incomplete. The next feature-window contract preserves the stricter data gates.
+
+### D057 exact book snapshot components and durable recovery
+
+Reviewed exact F08/F09 algebra, raw level order/precision/zeros, arithmetic exponent/digit
+bounds before rational expansion, native clock/tick missingness and source-local units.
+Invalid/stale/closed/failed sources remain explicit without zero price/component fallbacks.
+Policy/result dictionaries do not alias mutable global policy. Writer/replay bind complete
+source/child closure, actual read/compute/fsync chronology, frozen build and exact canonical
+results. Partial acknowledgement/cancellation retains evidence; concurrent ownership has one
+winner. Capacity checks include child files, failure reserve, per-artefact and whole ceilings.
+Original-code recovery verifies all facts under the exact pinned code without rewriting clocks;
+shared frame/selection/quote/runtime original-reader paths remain compatible.
+
+Validation: 150 affected tests passed in 326.69s across book primitives/computation/original-book,
+all other original readers, quote computation/inputs and input reads. Compact-storage regression:
+20 passed in 39.38s. Earlier new-path focus: 44 passed in 25.85s. Full backend Ruff, canonical
+contract checker and whitespace checks passed. Tests used explicit isolated SQLite URLs with
+email disabled; no production DB, source requests or frontend changes. The prior full 1,202
+D056 result is historical baseline coverage, not a full-suite claim for D057. A first invocation
+named a nonexistent compact test file and collected no tests; the corrected file passed above.
+
+This accepts the scoped snapshot software milestone only. New capture/coverage contract
+PHASE_03_DENSE_WINDOW_NEXT.md preserves the public feed's unproven sequence semantics; no
+native event order, feature-window completeness, predictive edge or Phase 3 completion inferred.

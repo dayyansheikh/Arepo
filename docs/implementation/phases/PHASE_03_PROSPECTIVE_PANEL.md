@@ -232,3 +232,9 @@ covered separately. Acceptance results belong in the live checkpoint/review. The
 work is [numerical features and windows](../PHASE_03_FEATURE_WINDOWS_NEXT.md): snapshot
 primitives and actual computation first, then measured dense-window coverage and controls.
 The existing family limitations remain explicit; Phase 4 is still gated.
+
+D057 now preserves exact F08/F09 snapshot components, source-ordered levels, explicit missingness
+and actual durable computations with original-build recovery. 170 affected regression checks
+passed. See ../PHASE_03_BOOK_COMPUTATION_CONTRACT.md. Next implement the bounded capture and
+coverage contract ../PHASE_03_DENSE_WINDOW_NEXT.md; keep native sequence gaps explicit. This
+milestone does not supply the registered continuous-window features or admit the live pilot.
