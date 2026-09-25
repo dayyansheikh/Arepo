@@ -7,6 +7,7 @@ adopted. Synthetic transports keep synthetic provenance through the exact same p
 import asyncio
 import base64
 import json
+import shutil
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -22,6 +23,7 @@ from .capture import (
     _write_once,
 )
 from .source_bridge import _record, _time, source_parse_artifact
+from .source_quota import quota_policy, reserve_response, retained_size, retention_scope
 from .sources import SOURCES
 from .types import utc_datetime
 
@@ -35,6 +37,16 @@ POLICY = {
     "historical_event_availability_admitted": False,
     "claim": "documented public read interface; not a redistribution licence or predictive result",
 }
+TARGETED_POLICY = {**POLICY, "version": "receipt-time-selected-market-v1",
+                   "sources": ["gamma.market", "clob.book", "data.v2.trades"]}
+
+
+def _policy(version):
+    if version == POLICY["version"]:
+        return POLICY
+    if version == TARGETED_POLICY["version"]:
+        return TARGETED_POLICY
+    raise ValueError("unknown source measurement policy version")
 
 
 def _read(path):
@@ -98,12 +110,18 @@ def _verify_run(root):
     if root.resolve() != root or not root.name.startswith("fs2_capture_"):
         raise ValueError("canonical measurement run directory required")
     run, ack = _pair(root, "run")
+    if (root / 'run_failure.json').exists() or (root / 'run_failure_ack.json').exists():
+        raise ValueError('failed source run is retained and terminal')
+    quota = _run_quota(run)
+    if quota is not None:
+        retained_size(root, quota)
+    policy = _policy(run["policy"]["version"])
     session = json.loads(_read(root / "session.json"))
-    if (run["schema_version"] != VERSION or run["policy"] != POLICY
+    if (run["policy"] != policy
             or run["build"] != verified_build()
             or run["session_hash"] != _digest(_read(root / "session.json"))
             or run["budget"] != asdict(Budget(**session["budget"]))
-            or run["sources"] != {k: asdict(SOURCES[k]) for k in POLICY["sources"]}
+            or run["sources"] != {k: asdict(SOURCES[k]) for k in policy["sources"]}
             or run["provenance_class"] != (
                 "synthetic" if session["capture_kind"] == "synthetic" else "prospective")
             or session["capture_kind"] not in {"synthetic", "live_diagnostic"}
@@ -112,44 +130,97 @@ def _verify_run(root):
     return root, run, ack
 
 
+def _run_quota(run):
+    if run['schema_version'] == VERSION and 'retention_quota' not in run:
+        return None
+    if run['schema_version'] == 'fs2-source-run-v2':
+        quota = run['retention_quota']
+        expected = quota_policy(quota['retained_bytes'])
+        if _json_bytes(quota) == _json_bytes(expected):
+            return expected
+    raise ValueError('source run schema/retention quota differs')
+
+
+def _failed_quota_run(root, quota, exc):
+    if quota is None or not root.is_dir():
+        return
+    try:
+        with retention_scope(root, quota, failure=True):
+            _persist(root, 'run_failure', {'schema_version': 'fs2-source-run-v2',
+                                         'exception_type': type(exc).__name__, 'at': _clock()})
+    except (OSError, ValueError):
+        pass  # Preserve the original failure and every successfully written earlier byte.
+
+
 class SourceRun:
     """Fresh finite measurement; registration is durable before any request can start."""
 
-    def __init__(self, root, *, budget=Budget(), transport=None):
+    def __init__(self, root, *, budget=Budget(), transport=None,
+                 policy_version="receipt-time-internal-measurement-v1", retained_bytes=None):
+        policy = _policy(policy_version)
         build = verified_build()
-        self.journal = CaptureJournal(root, budget=budget, transport=transport)
+        root = Path(root)
+        quota = quota_policy(retained_bytes) if retained_bytes is not None else None
+        if quota is not None:
+            if root.exists():
+                raise FileExistsError('source run retained; never resume or overwrite')
+            if shutil.disk_usage(root.parent).free < (
+                quota['free_reserve_bytes'] + quota['retained_bytes']
+            ):
+                raise ValueError('insufficient source retained quota reserve')
         self._lock = asyncio.Lock()
-        _persist(self.journal.root, "run", {
-            "schema_version": VERSION, "policy": POLICY, "build": build,
-            "origin_uri": str(self.journal.root),
-            "budget": asdict(budget),
-            "provenance_class": "synthetic" if transport is not None else "prospective",
-            "session_hash": _digest(_read(self.journal.root / "session.json")),
-            "sources": {k: asdict(SOURCES[k]) for k in POLICY["sources"]},
-        })
+        try:
+            with retention_scope(root, quota):
+                self.journal = CaptureJournal(root, budget=budget, transport=transport)
+                _persist(self.journal.root, "run", {
+                    "schema_version": VERSION if quota is None else 'fs2-source-run-v2',
+                    **({} if quota is None else {'retention_quota': quota}),
+                    "policy": policy, "build": build, "origin_uri": str(self.journal.root),
+                    "budget": asdict(budget),
+                    "provenance_class": "synthetic" if transport is not None else "prospective",
+                    "session_hash": _digest(_read(self.journal.root / "session.json")),
+                    "sources": {k: asdict(SOURCES[k]) for k in policy["sources"]},
+                })
+        except FileExistsError:
+            raise  # An exclusive-path loser must not add a failure marker to the winner.
+        except BaseException as exc:
+            _failed_quota_run(root, quota, exc)
+            raise
 
     async def fetch(self, source_id, params, *, previous_capture_id=None):
         async with self._lock:
             root, run, ack = _verify_run(self.journal.root)
-            if source_id not in POLICY["sources"]:
+            if source_id not in run["policy"]["sources"]:
                 raise ValueError("source outside predeclared measurement policy")
-            captured = await self.journal.fetch(source_id, params,
-                                                previous_capture_id=previous_capture_id)
-            verified_build()
-            folder = Path(captured["folder"])
-            capture, parsed, parsed_ack, path = source_parse_artifact(folder)
-            if not _ordered_clocks(ack["durable_ack"], capture["receipt"]["request_started"]):
-                raise ValueError("source request preceded durable run declaration")
-            verified_build()
-            # Only this run's freshly returned capture is sealed. No old-folder admission API.
-            _persist(folder, "admission", {
-                "schema_version": VERSION, "run_hash": ack["payload_hash"],
-                "capture_id": capture["receipt"]["capture_id"],
-                "source_parse_hash": parsed_ack["payload_hash"],
-                "source_parse_folder": path.name,
-                "ready_at": _clock(),
-            })
-            return read_source_run(root, capture_id=capture["receipt"]["capture_id"])
+            SOURCES[source_id].params(params)
+            quota = _run_quota(run)
+            try:
+                with retention_scope(root, quota):
+                    return await self._fetch(root, ack, source_id, params, previous_capture_id)
+            except BaseException as exc:
+                _failed_quota_run(root, quota, exc)
+                raise
+
+    async def _fetch(self, root, ack, source_id, params, previous_capture_id):
+        reserve_response(min(self.journal.budget.bytes_per_response,
+                             self.journal.budget.total_bytes - self.journal.bytes))
+        captured = await self.journal.fetch(source_id, params,
+                                            previous_capture_id=previous_capture_id)
+        verified_build()
+        folder = Path(captured["folder"])
+        capture, parsed, parsed_ack, path = source_parse_artifact(folder)
+        if not _ordered_clocks(ack["durable_ack"], capture["receipt"]["request_started"]):
+            raise ValueError("source request preceded durable run declaration")
+        verified_build()
+        # Only this run's freshly returned capture is sealed. No old-folder admission API.
+        _persist(folder, "admission", {
+            "schema_version": VERSION, "run_hash": ack["payload_hash"],
+            "capture_id": capture["receipt"]["capture_id"],
+            "source_parse_hash": parsed_ack["payload_hash"],
+            "source_parse_folder": path.name,
+            "ready_at": _clock(),
+        })
+        return read_source_run(root, capture_id=capture["receipt"]["capture_id"])
 
 
 def read_source_run(root, *, capture_id=None, cutoff=None):
@@ -160,7 +231,7 @@ def read_source_run(root, *, capture_id=None, cutoff=None):
     """
     root, run, run_ack = _verify_run(root)
     cutoff = utc_datetime(cutoff) if cutoff is not None else None
-    registries = {k: _registry(run, run_ack, k) for k in POLICY["sources"]}
+    registries = {k: _registry(run, run_ack, k) for k in run["policy"]["sources"]}
     rows = [("source_registry", value) for value in registries.values()
             if cutoff is None or value["recorded_at"] <= cutoff]
     seen_ordinals = set()
