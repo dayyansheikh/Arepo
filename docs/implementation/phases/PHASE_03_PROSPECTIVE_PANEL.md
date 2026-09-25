@@ -279,3 +279,8 @@ D066 supplies predeclared exact snapshot-imbalance assessment journals with auth
 request chronology, genuine measured negatives, explicit unavailable states and full original-Git
 recovery. 52 affected tests pass; no measured assessment/control run or sampler admission yet.
 See ../PHASE_03_TRIGGER_ASSESSMENT_CONTRACT.md. D065 historical socket result remains immutable.
+
+Current validation blocker (2026-09-25): full backend attempt stopped at 728 passed/19 local
+capacity failures. Required disk reservations remain unchanged. See ../PHASE_03_FULL_REGRESSION_CAPACITY_EVIDENCE.json
+and checkpoint; obtain sufficient local test capacity before rerunning, then continue the
+screening/control contract. Phase 3 remains incomplete.

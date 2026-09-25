@@ -877,3 +877,12 @@ No code changed during the run. Ruff/canonical/whitespace pass. D066 is a softwa
 Next run a backend-wide isolated regression because original-reader dispatch/build manifests now
 include several new journal types since the D056 full baseline; untouched recovery kinds must
 also be checked before composing them into a measured screening/control pipeline.
+
+D066 backend-wide attempt: **728 passed, 19 failed**, one existing warning; interrupted after
+196.14s of pytest. All recorded failures arose in existing activation fixtures at the unchanged
+full storage-reservation check. No final full-suite pass; remaining tests unrun. Fingerprints
+unchanged. See PHASE_03_FULL_REGRESSION_CAPACITY_EVIDENCE.json. Current disk about 4 GiB cannot
+satisfy the 4,289 MiB compact or 5,969 MiB default fixture reservations plus temporary headroom.
+/tmp shares the volume; no other local data volume found; all pytest temporary roots combined
+would not clear the larger requirement. No evidence deleted or safeguard weakened. Local test
+capacity requested (at least 8 GiB free); further implementation waits for this validation gate.
