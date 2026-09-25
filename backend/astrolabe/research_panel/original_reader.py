@@ -77,6 +77,14 @@ from astrolabe.research_panel.bound_window import read_bound_window
 json.dump(read_bound_window(Path(sys.argv[2])), sys.stdout, sort_keys=True, separators=(",", ":"))
 '''
 
+_WINDOW_RECONCILIATION_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.window_reconciliation import read_window_reconciliation
+json.dump(read_window_reconciliation(Path(sys.argv[2])), sys.stdout,
+          sort_keys=True, separators=(",", ":"))
+'''
+
 _WINDOW_SCRIPT = '''import json,sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
@@ -204,16 +212,26 @@ def read_original_bound_window(root, *, implementation_commit, output_root, repo
                           output_root=output_root, repository=repository, kind='bound_window')
 
 
+def read_original_window_reconciliation(root, *, implementation_commit, output_root,
+                                        repository=None):
+    """Replay endpoint diagnostics under their exact original code and original clocks."""
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository,
+                          kind='window_reconciliation')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
     if kind not in {'frame', 'selection', 'quote_computation', 'book_computation',
-                    'runtime', 'window', 'window_computation', 'bound_window'}:
+                    'runtime', 'window', 'window_computation', 'bound_window',
+                    'window_reconciliation'}:
         raise ValueError('unsupported original journal kind')
     schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
     script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
               'quote_computation': _QUOTE_SCRIPT, 'book_computation': _BOOK_SCRIPT,
               'runtime': _RUNTIME_SCRIPT, 'window': _WINDOW_SCRIPT,
               'window_computation': _WINDOW_COMPUTATION_SCRIPT,
-              'bound_window': _BOUND_WINDOW_SCRIPT}[kind]
+              'bound_window': _BOUND_WINDOW_SCRIPT,
+              'window_reconciliation': _WINDOW_RECONCILIATION_SCRIPT}[kind]
     computation = kind in {'quote_computation', 'book_computation', 'window_computation'}
     fact_prefix = {'quote_computation': 'quote', 'book_computation': 'book',
                    'window_computation': 'window'}.get(kind, kind)
@@ -243,6 +261,20 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             raise ValueError('canonical original source evidence path required')
         if output_root == source_root or source_root in output_root.parents:
             raise ValueError('separate output outside original source evidence required')
+    if kind == 'window_reconciliation':
+        bound, post = Path(policy['bound_root']), Path(policy['post_root'])
+        bound_policy, _ = _pair(bound, 'bound_window_policy')
+        pre = Path(bound_policy['pre_computation_root'])
+        dependencies = [bound, post, pre]
+        for computation_root in (pre, post):
+            book_policy, _ = _pair(computation_root, 'book_policy')
+            dependencies.append(Path(book_policy['source_root']))
+        for dependency in dependencies:
+            if not dependency.is_absolute() or dependency.resolve() != dependency:
+                raise ValueError('canonical reconciliation dependency required')
+            if (output_root == dependency or dependency in output_root.parents
+                    or output_root in dependency.parents):
+                raise ValueError('separate output outside reconciliation dependencies required')
     if kind == 'bound_window':
         pre = Path(policy['pre_computation_root'])
         pre_policy, _ = _pair(pre, 'book_policy')

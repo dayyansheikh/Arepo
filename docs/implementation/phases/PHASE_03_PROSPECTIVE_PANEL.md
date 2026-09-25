@@ -247,3 +247,9 @@ transport. Duration completion is not gap-free coverage or pilot acceptance.
 D059 now records decoded receipt-window diagnostics with exact time weighting, missing intervals and actual read/computation/durability clocks. Ninety affected checks passed, including original-code recovery. Next execute ../PHASE_03_WINDOW_IDENTITY_NEXT.md. Phase 3 remains incomplete; Phase 4 will begin only in a fresh conversation after the required handover.
 
 D060 adds actual pre-window source reads, durable ordered identity binding and derived synthetic subscription, with original-code recovery. Seventeen new tests passed; final affected regression is recorded in the checkpoint/review. Next implement steps 4–6 of ../PHASE_03_WINDOW_IDENTITY_NEXT.md: post-window request chronology and endpoint comparison. Live transport and full Phase 3 pilot acceptance remain gated.
+
+D061 implements post-window primary request-start verification and exact best-quote endpoint
+reconciliation with retained changed/closed/failed/stale/gap states and original-Git recovery.
+See ../PHASE_03_WINDOW_RECONCILIATION_CONTRACT.md; final validation is in the checkpoint/review.
+Next implement ../PHASE_03_SOCKET_TRANSPORT_NEXT.md before a public diagnostic. No live or
+empirical acceptance is inferred from these synthetic tests. Phase 4 remains a fresh-chat task.

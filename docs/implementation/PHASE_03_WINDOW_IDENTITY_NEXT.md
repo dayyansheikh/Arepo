@@ -74,3 +74,12 @@ as a conservative after-window boundary and preserve the raw window's earlier te
 separately. Source errors, changed mapping/rules, closure, stale and mismatching endpoint values
 remain explicit outcomes. An invalid/expired pre-binding can never produce an eligible
 comparison. All new original-code recovery output must be outside every transitive dependency.
+
+## D061 implementation scope — 2026-09-25
+
+Steps 4–6 are implemented with primary post-request chronology, original mapping/rule lineage,
+explicit unavailability and exact scoped endpoint diagnostics. Final validation is recorded in
+the checkpoint/review; see PHASE_03_WINDOW_RECONCILIATION_CONTRACT.md. Next steps 7–8 are refined
+in PHASE_03_SOCKET_TRANSPORT_NEXT.md. Redirect rejection is necessary in addition to disabling
+proxy discovery; local library inspection found automatic redirect handling. No live socket or
+prospective journal admission is enabled by D061.

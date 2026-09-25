@@ -714,3 +714,34 @@ Then the bounded live adapter, measured controls, selected external information 
 pilot remain. Phase 4 is reserved for a fresh Codex conversation.
 
 D060 final acceptance (2026-09-24): **17 new tests passed in 87.37s**, plus **52 existing affected tests passed in 96.36s** (69 total across the two disjoint runs). No code changed between these runs. Ruff/canonical/whitespace pass. No test or collector remains running. D060 is accepted only as the pre-subscription synthetic binding/recovery milestone; Phase 3 is incomplete. Resume post-window chronology/reconciliation as specified above.
+
+### D061 post-window request chronology and endpoint reconciliation
+
+Self-review checked primary capture request-start/hash/request binding against verified input
+rows, conservative after-bound-report chronology, original ordered mapping/rule availability,
+known lifecycle, explicit failed/missing/stale states and expired pre-binding refusal. Exact best
+price/size differences preserve raw-primary references and source-local units. First observed
+snapshot is not a subscription-time observation; invalid/stale/early tail cannot use the last
+good snapshot. Earlier gaps and native continuity remain unaltered. Independent replay verifies
+actual read/calculation/durability, exact values, complete closure and all dependency hashes.
+Original-Git recovery protects bound, pre/post computation and raw-source roots. Exclusive output,
+finite metadata/storage/time bounds, partial failures and cancellation retain evidence.
+
+Initial test fixture inherited disconnect-on-exhaustion from the D060 helper: the unavailable
+end state was correct. The endpoint fixture now explicitly keeps its synthetic connection open
+for a fixed 500ms window; no implementation guard was relaxed. Subsequent initial run had
+20 passes before a cancellation fixture replaced loaded module code and correctly hit the build
+identity guard. Cancellation is now injected at a file acknowledgement boundary; no build guard
+was weakened. Final affected validation is recorded in the checkpoint/acceptance note.
+
+Only synthetic software is tested. No public requests, production changes, live socket, SQL
+admission or Phase 3 empirical acceptance occurred. The separately planned socket transport must
+reject redirects as well as proxies, preserve actual failure clocks/bytes and pass loopback tests
+before a committed diagnostic protocol can run. Measured controls/external information/pilot
+remain required; Phase 4 does not begin in this task.
+
+D061 final affected validation: **63 passed in 300.57s**. Command: explicit isolated SQLite URL
+and disabled email, `.venv/bin/pytest -q` over unit/test_research_panel_{window_reconciliation,
+original_window_reconciliation,original_bound_window,original_window_computation,original_window,
+original_book,window_coverage}.py. Ruff, canonical contract and whitespace checks pass.
+No code changed during this final run. Prior full D056 result is historical, not a new full suite.
