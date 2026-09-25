@@ -823,3 +823,22 @@ tests/unit/test_research_panel_window_coverage.py`. Code unchanged during the ru
 and whitespace checks passed. Initial 13 new tests remain a preliminary subset, not additive
 coverage. All 19 final new cases plus 51 affected cases passed. No active collector/test remains.
 D064 software contract accepted; public-source and panel acceptance remain open.
+
+### D065 fixed diagnostic orchestration
+
+Reviewed exact fixed target/request count, committed source/panel hash check before requests, full
+capacity reservation, retained stage intents, no implicit retries, unknown/closed/failed-prior
+abstention, socket-controlled identity freshness and post request chronology. All children retain
+their own bounded persistence/error semantics and source provenance. Successful children receive
+independent and original-Git recovery; parent memory reporting explicitly excludes child peaks.
+The CLI has one fixed attempt directory and refuses restart. Failure records contain class/stage/
+time only and never erase partial evidence. Initial full-chain fixture caught an unsupported
+floating-point elapsed time; changed report to exact integer nanoseconds. Final affected tests
+are recorded below before any public run. See PHASE_03_SOCKET_DIAGNOSTIC_PROTOCOL.md.
+
+D065 final validation: **8 passed in 82.46s** on explicit isolated SQLite/email-disabled pytest:
+`backend/tests/unit/test_research_panel_socket_diagnostic.py` (5),
+`backend/tests/unit/test_research_panel_original_socket_analysis.py` (1) and
+`backend/tests/unit/test_research_panel_original_socket_window.py` (2). No code changed during
+the run. Ruff/canonical/whitespace passed. Public diagnostic not yet run at this commit; all
+new tests use synthetic HTTP and local sockets. Underlying D064 70/D063 47 remain accepted.

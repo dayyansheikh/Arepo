@@ -269,3 +269,8 @@ a separately authenticated optional post-window comparison. Refused/early/missin
 states, provenance, actual computation clocks and full original-code recovery remain explicit.
 See ../PHASE_03_SOCKET_ANALYSIS_CONTRACT.md and ../PHASE_03_REVIEW.md for acceptance. No public
 socket measurement or live panel admission yet; separately frozen diagnostic protocol is next.
+
+D065 composes one fixed-target public diagnostic with Git-verified code, full capacity reservation,
+explicit source/window/post branches and original-code recovery. Eight affected tests passed;
+see ../PHASE_03_SOCKET_DIAGNOSTIC_PROTOCOL.md. Run once only after this protocol/runner is committed
+and the draft PR updated. A source diagnostic cannot satisfy the representative pilot gate.
