@@ -800,3 +800,26 @@ D063 final validation: **47 passed in 183.97s** using explicit isolated SQLite/e
 socket_connector,original_bound_window,original_window_reconciliation}.py. Code unchanged during
 the final run. Ruff/canonical/whitespace pass. This is scoped software validation; prior full
 D056 result is historical. No collector/test remains active.
+
+### D064 socket coverage and post-window diagnostics
+
+Self-review covered policy-before-read, dependency path protection, actual read/compute/durability
+ordering, exact raw chain/manifest replay and original full-facts recovery. The adapter derives
+identity/provenance from the socket journal and authenticates every post request using its primary
+capture receipt. It shares only pure numerical algebra with D061; old synthetic guards remain.
+Missing post, early request, changed rules, closed/failed sources, refused subscription and early
+termination remain explicit. Receipt persistence never proves native continuity or feature
+admission. Endpoint agreement cannot repair gaps. No public request, production change or SQL
+admission occurred. Initial 13 new tests passed in 157.66s. Added resource/concurrency/early-close
+cases before the final affected run. Final result is recorded below when complete.
+
+D064 final validation: **70 passed in 471.27s** on explicit isolated SQLite with email disabled:
+`.venv/bin/pytest -q tests/unit/test_research_panel_socket_analysis.py
+tests/unit/test_research_panel_original_socket_analysis.py
+tests/unit/test_research_panel_window_reconciliation.py
+tests/unit/test_research_panel_original_window_reconciliation.py
+tests/unit/test_research_panel_original_socket_window.py
+tests/unit/test_research_panel_window_coverage.py`. Code unchanged during the run. Ruff, canonical
+and whitespace checks passed. Initial 13 new tests remain a preliminary subset, not additive
+coverage. All 19 final new cases plus 51 affected cases passed. No active collector/test remains.
+D064 software contract accepted; public-source and panel acceptance remain open.

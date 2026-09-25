@@ -132,10 +132,15 @@ def _comparison(left, right):
 
 def _project(inputs, material, policy, at):
     pre, post, events = material
-    bound = inputs['bound_window']
     window = inputs['window_input']
     coverage = project_window_coverage(window['source_policy'], window['source_summary'], events,
                                        policy=WindowCoveragePolicy(policy.max_receipt_hold_ms))
+    return _endpoints(inputs, pre, post, coverage, policy, at)
+
+
+def _endpoints(inputs, pre, post, coverage, policy, at):
+    """Pure shared arithmetic; only the owning verified consumer authenticates its envelope."""
+    bound = inputs['bound_window']
     items = [v for v in coverage['items'] if v['snapshot'] is not None]
     frames = {v['frame']: v for v in coverage['frames']}
     first = items[0] if items else None
@@ -207,7 +212,7 @@ def _project(inputs, material, policy, at):
             'post_request_boundary': boundary,
             'coverage_projection_hash': coverage['projection_hash'],
             'uncovered_duration_ns': coverage['uncovered_duration_ns'],
-            'provenance_class': 'synthetic', 'continuous_sequence_proven': False,
+            'provenance_class': bound['provenance_class'], 'continuous_sequence_proven': False,
             'full_book_equivalence': False, 'origin_admitted': False,
             'feature_store_admitted': False}
 

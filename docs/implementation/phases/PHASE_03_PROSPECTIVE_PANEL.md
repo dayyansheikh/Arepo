@@ -263,3 +263,9 @@ D063 adds the versioned durable socket driver with verified prebinding, actual s
 fsync clocks, finite wire/storage budgets, explicit failures and original recovery. Forty-seven
 affected checks passed. Next execute ../PHASE_03_SOCKET_ANALYSIS_NEXT.md before a public diagnostic.
 No measured source/pilot admission is claimed; Phase 4 remains a fresh-conversation task.
+
+D064 adds versioned durable consumption of D063 socket evidence into exact receipt coverage and
+a separately authenticated optional post-window comparison. Refused/early/missing/changed/failed
+states, provenance, actual computation clocks and full original-code recovery remain explicit.
+See ../PHASE_03_SOCKET_ANALYSIS_CONTRACT.md and ../PHASE_03_REVIEW.md for acceptance. No public
+socket measurement or live panel admission yet; separately frozen diagnostic protocol is next.

@@ -1,6 +1,6 @@
 # Phase 3 — socket receipt diagnostics and post-window integration
 
-Status: next after D063 driver acceptance. Do not recollect accepted historical evidence.
+Status: implemented by D064; see PHASE_03_SOCKET_ANALYSIS_CONTRACT.md and the final validation in PHASE_03_REVIEW.md. Items 1–6 are the accepted software scope after those checks pass. Item 7 remains a separately frozen diagnostic gate. Do not recollect accepted historical evidence.
 
 1. A new versioned durable consumer reads a completed D063 socket journal, its verified prior
    computation and optionally one separately collected post-Gamma/book computation. Preserve the
