@@ -85,6 +85,17 @@ json.dump(read_window_reconciliation(Path(sys.argv[2])), sys.stdout,
           sort_keys=True, separators=(",", ":"))
 '''
 
+_TRIGGER_COMPUTATION_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.trigger_computation import read_snapshot_trigger
+from astrolabe.feature_store.source_run import _pair
+root = Path(sys.argv[2])
+summary = read_snapshot_trigger(root)
+facts, ack = _pair(root, 'trigger_computation_facts')
+json.dump({'facts': facts, 'summary': summary}, sys.stdout, sort_keys=True, separators=(",", ":"))
+'''
+
 _SOCKET_ANALYSIS_SCRIPT = '''import json,sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
@@ -250,10 +261,18 @@ def read_original_socket_analysis(root, *, implementation_commit, output_root, r
                           output_root=output_root, repository=repository, kind='socket_analysis')
 
 
+def read_original_trigger_computation(root, *, implementation_commit, output_root, repository=None):
+    """Recover predeclared snapshot decisions with full immutable facts and original clocks."""
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository,
+                          kind='trigger_computation')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
     if kind not in {'frame', 'selection', 'quote_computation', 'book_computation',
                     'runtime', 'window', 'window_computation', 'bound_window',
-                    'window_reconciliation', 'socket_window', 'socket_analysis'}:
+                    'window_reconciliation', 'socket_window', 'socket_analysis',
+                    'trigger_computation'}:
         raise ValueError('unsupported original journal kind')
     schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
     script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
@@ -263,9 +282,10 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
               'bound_window': _BOUND_WINDOW_SCRIPT,
               'window_reconciliation': _WINDOW_RECONCILIATION_SCRIPT,
               'socket_window': _SOCKET_WINDOW_SCRIPT,
-              'socket_analysis': _SOCKET_ANALYSIS_SCRIPT}[kind]
+              'socket_analysis': _SOCKET_ANALYSIS_SCRIPT,
+              'trigger_computation': _TRIGGER_COMPUTATION_SCRIPT}[kind]
     computation = kind in {'quote_computation', 'book_computation', 'window_computation',
-                           'socket_analysis'}
+                           'socket_analysis', 'trigger_computation'}
     fact_prefix = {'quote_computation': 'quote', 'book_computation': 'book',
                    'window_computation': 'window'}.get(kind, kind)
     prefix = 'fs2_' + kind + '_read_'
@@ -294,6 +314,15 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             raise ValueError('canonical original source evidence path required')
         if output_root == source_root or source_root in output_root.parents:
             raise ValueError('separate output outside original source evidence required')
+    if kind == 'trigger_computation':
+        declaration, book = Path(policy['declaration_root']), Path(policy['book_root'])
+        book_policy, _ = _pair(book, 'book_policy')
+        for dependency in (declaration, book, Path(book_policy['source_root'])):
+            if not dependency.is_absolute() or dependency.resolve() != dependency:
+                raise ValueError('canonical trigger dependency required')
+            if (output_root == dependency or dependency in output_root.parents
+                    or output_root in dependency.parents):
+                raise ValueError('separate output outside trigger dependencies required')
     if kind == 'socket_analysis':
         socket = Path(policy['socket_root'])
         socket_policy, _ = _pair(socket, 'socket_window_policy')

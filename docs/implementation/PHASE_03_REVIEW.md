@@ -857,3 +857,23 @@ retained including final report 372,356 bytes. Elapsed 88,618,854,542ns; parent 
 bytes, excluding recovery-child peaks. Report durable after 11:38:04 UTC. No retries, alternate
 targets, production/SQL changes or accepted panel. Preserve the failed coverage formulation;
 do not lengthen its hold or reinterpret quiet history retrospectively.
+
+### D066 predeclared snapshot assessment
+
+Reviewed exact reduced threshold, signed/absolute/difference preservation, explicit negative vs
+unavailable state, actual declaration before primary request starts, fixed requested and returned
+identity, known-active lifecycle and freshness at calculation. Read/computation/durability clocks
+remain separate, and later sampling must recheck age. No native-window/registered-feature or
+scientific-winner claim. Exclusive child ownership prevents competing writers from damaging the
+winner; cancellation/partial writes remain terminal. Full independent/original-Git recovery
+protects declaration/book/source roots. No new public request or alteration of D065 evidence.
+Initial 15 new tests passed in 63.43s; added the in-flight early-request trap (response arrives
+after declaration but request began before it) before final affected regression.
+
+D066 final affected validation: **52 passed in 98.16s** on explicit isolated SQLite/email-disabled
+pytest over unit/test_research_panel_trigger_computation.py, test_research_panel_assessments.py,
+test_research_panel_original_socket_analysis.py and test_research_panel_original_socket_window.py.
+No code changed during the run. Ruff/canonical/whitespace pass. D066 is a software milestone only.
+Next run a backend-wide isolated regression because original-reader dispatch/build manifests now
+include several new journal types since the D056 full baseline; untouched recovery kinds must
+also be checked before composing them into a measured screening/control pipeline.

@@ -274,3 +274,8 @@ D065 composes one fixed-target public diagnostic with Git-verified code, full ca
 explicit source/window/post branches and original-code recovery. Eight affected tests passed;
 see ../PHASE_03_SOCKET_DIAGNOSTIC_PROTOCOL.md. Run once only after this protocol/runner is committed
 and the draft PR updated. A source diagnostic cannot satisfy the representative pilot gate.
+
+D066 supplies predeclared exact snapshot-imbalance assessment journals with authenticated primary
+request chronology, genuine measured negatives, explicit unavailable states and full original-Git
+recovery. 52 affected tests pass; no measured assessment/control run or sampler admission yet.
+See ../PHASE_03_TRIGGER_ASSESSMENT_CONTRACT.md. D065 historical socket result remains immutable.
