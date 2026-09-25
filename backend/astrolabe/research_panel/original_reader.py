@@ -85,6 +85,13 @@ json.dump(read_window_reconciliation(Path(sys.argv[2])), sys.stdout,
           sort_keys=True, separators=(",", ":"))
 '''
 
+_SOCKET_WINDOW_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.socket_window_journal import read_socket_window
+json.dump(read_socket_window(Path(sys.argv[2])), sys.stdout, sort_keys=True, separators=(",", ":"))
+'''
+
 _WINDOW_SCRIPT = '''import json,sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
@@ -220,10 +227,16 @@ def read_original_window_reconciliation(root, *, implementation_commit, output_r
                           kind='window_reconciliation')
 
 
+def read_original_socket_window(root, *, implementation_commit, output_root, repository=None):
+    """Recover exact socket facts without reconnecting or replacing original observation clocks."""
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='socket_window')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
     if kind not in {'frame', 'selection', 'quote_computation', 'book_computation',
                     'runtime', 'window', 'window_computation', 'bound_window',
-                    'window_reconciliation'}:
+                    'window_reconciliation', 'socket_window'}:
         raise ValueError('unsupported original journal kind')
     schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
     script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
@@ -231,7 +244,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
               'runtime': _RUNTIME_SCRIPT, 'window': _WINDOW_SCRIPT,
               'window_computation': _WINDOW_COMPUTATION_SCRIPT,
               'bound_window': _BOUND_WINDOW_SCRIPT,
-              'window_reconciliation': _WINDOW_RECONCILIATION_SCRIPT}[kind]
+              'window_reconciliation': _WINDOW_RECONCILIATION_SCRIPT,
+              'socket_window': _SOCKET_WINDOW_SCRIPT}[kind]
     computation = kind in {'quote_computation', 'book_computation', 'window_computation'}
     fact_prefix = {'quote_computation': 'quote', 'book_computation': 'book',
                    'window_computation': 'window'}.get(kind, kind)
@@ -275,7 +289,7 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             if (output_root == dependency or dependency in output_root.parents
                     or output_root in dependency.parents):
                 raise ValueError('separate output outside reconciliation dependencies required')
-    if kind == 'bound_window':
+    if kind in {'bound_window', 'socket_window'}:
         pre = Path(policy['pre_computation_root'])
         pre_policy, _ = _pair(pre, 'book_policy')
         for dependency in (pre, Path(pre_policy['source_root'])):

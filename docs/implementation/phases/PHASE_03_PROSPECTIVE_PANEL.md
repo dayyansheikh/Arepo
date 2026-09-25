@@ -258,3 +258,8 @@ D062 supplies the fixed socket connection primitive and actual loopback fault te
 collector/journal integration or public connection. See ../PHASE_03_SOCKET_TRANSPORT_NEXT.md for
 the remaining versioned durable driver, source/coverage/reconciliation integration and required
 committed diagnostic. The primitive alone does not satisfy those tasks or Phase 3 acceptance.
+
+D063 adds the versioned durable socket driver with verified prebinding, actual send/receive/record/
+fsync clocks, finite wire/storage budgets, explicit failures and original recovery. Forty-seven
+affected checks passed. Next execute ../PHASE_03_SOCKET_ANALYSIS_NEXT.md before a public diagnostic.
+No measured source/pilot admission is claimed; Phase 4 remains a fresh-conversation task.

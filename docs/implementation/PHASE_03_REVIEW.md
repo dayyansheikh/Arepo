@@ -769,3 +769,34 @@ unit/test_research_panel_original_window_reconciliation.py (2) and
 unit/test_research_panel_original_bound_window.py (4). No code changed during the final run.
 Ruff/canonical/whitespace checks passed. No test/collector remains running. This accepts the
 connector boundary only; all durable integration and empirical Phase 3 gates remain open.
+
+### D063 durable socket driver and recovery
+
+Reviewed policy-before-read/connect, immutable prior identity/rules and source provenance, actual
+read/fsync availability and fresh checks after connection and subscription-intent persistence.
+Loopback and public entry points expose no arbitrary identity/clock/factory/provenance override;
+a refused public attempt with synthetic inputs remains synthetic. Actual receive, journal record
+and durable availability are separate. Single connection/subscription, fixed ten-second PINGs,
+one pending receive, finite frame/byte/event/processing budgets and close-on-failure remain.
+Raw prefixes with observed full hashes/counts differ from wholly unavailable rejected data.
+Network error records retain class/close codes without peer reason text; local I/O errors remain
+local failures. Replay checks append/hash/clock/session/order/freshness/terminal/cleanup facts and
+transitive source dependencies. Original-code recovery opens no new connection and preserves clocks.
+
+Initial focus caught integer-enum WebSocket close codes being omitted by an exact-type check.
+Accepting bounded integer enum values and serialising their integer value fixes evidence retention;
+no source or admission gate was weakened. After that fix, 19 new driver/recovery checks passed
+in 99.58s. Added explicit send/timeout/close-error and reduced synthetic byte/frame-budget tests.
+Final affected result is recorded in the checkpoint/acceptance note. Tests use actual local
+loopback only, isolated SQLite URLs and disabled email; no public source requests, production
+changes, SQL admission or empirical Phase 3 acceptance.
+
+Next consume these verified journals into versioned receipt coverage/post-window diagnostics,
+then commit a separate bounded public diagnostic protocol. All measured control/external/pilot
+gates remain open; Phase 4 is reserved for a fresh conversation.
+
+D063 final validation: **47 passed in 183.97s** using explicit isolated SQLite/email-disabled
+`.venv/bin/pytest -q` over unit/test_research_panel_{socket_window,original_socket_window,
+socket_connector,original_bound_window,original_window_reconciliation}.py. Code unchanged during
+the final run. Ruff/canonical/whitespace pass. This is scoped software validation; prior full
+D056 result is historical. No collector/test remains active.

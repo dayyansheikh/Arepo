@@ -78,3 +78,11 @@ Add a separate explicitly synthetic loopback path for fault tests. Extend indepe
 original-code recovery, then integrate coverage/post-window reconciliation. Commit and test that
 whole driver before any separately frozen public diagnostic. All remaining Phase 3 empirical
 gates still apply.
+
+## D063 driver progress — 2026-09-25
+
+A versioned driver and separate socket journal now own verified prior binding, fixed connection,
+subscription, heartbeat/receive, raw byte/event budgets and cleanup. See
+PHASE_03_SOCKET_WINDOW_CONTRACT.md; acceptance is recorded in the checkpoint/review.
+The next integration contract is PHASE_03_SOCKET_ANALYSIS_NEXT.md. Do not promote old synthetic
+journals or start a public diagnostic before that consumer and a finite protocol are committed.
