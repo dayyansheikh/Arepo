@@ -253,3 +253,8 @@ reconciliation with retained changed/closed/failed/stale/gap states and original
 See ../PHASE_03_WINDOW_RECONCILIATION_CONTRACT.md; final validation is in the checkpoint/review.
 Next implement ../PHASE_03_SOCKET_TRANSPORT_NEXT.md before a public diagnostic. No live or
 empirical acceptance is inferred from these synthetic tests. Phase 4 remains a fresh-chat task.
+
+D062 supplies the fixed socket connection primitive and actual loopback fault tests, with no
+collector/journal integration or public connection. See ../PHASE_03_SOCKET_TRANSPORT_NEXT.md for
+the remaining versioned durable driver, source/coverage/reconciliation integration and required
+committed diagnostic. The primitive alone does not satisfy those tasks or Phase 3 acceptance.

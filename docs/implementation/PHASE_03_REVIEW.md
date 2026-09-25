@@ -745,3 +745,27 @@ and disabled email, `.venv/bin/pytest -q` over unit/test_research_panel_{window_
 original_window_reconciliation,original_bound_window,original_window_computation,original_window,
 original_book,window_coverage}.py. Ruff, canonical contract and whitespace checks pass.
 No code changed during this final run. Prior full D056 result is historical, not a new full suite.
+
+### D062 fixed socket connector
+
+Self-review checked fixed source URI/options, no caller auth/headers/host overrides, proxy=None,
+compression=None, disabled transport pings and single-await connection with no retry iterator.
+All redirects return the original refusal, including same-origin changes. The explicit loopback
+seam permits only canonical integer ports at 127.0.0.1 and remains synthetic. Tested dependency
+version is checked before opening. Returned contract dictionaries do not alias options. Connect
+has a five-second outer deadline; close has two seconds and aborts on failure/cancellation without
+masking the original error if abort also fails. Importing the module opens nothing.
+
+This is a connection primitive, not the durable driver. It does not authenticate caller identities,
+persist receipts, schedule PINGs or enforce a whole capture's message/window/total-byte budget.
+No runtime/CLI/production path calls it. The next driver must own those obligations before a
+public diagnostic is allowed. Initial local transport tests: 15 passed in 0.29s. Added actual
+handshake deadline and close-abort failure tests, plus original recovery regression; final result
+is recorded below. No public socket, data acquisition or empirical Phase 3 acceptance occurred.
+
+D062 final validation: **23 passed in 64.86s** using explicit isolated SQLite/email-disabled
+`.venv/bin/pytest -q` on unit/test_research_panel_socket_connector.py (17),
+unit/test_research_panel_original_window_reconciliation.py (2) and
+unit/test_research_panel_original_bound_window.py (4). No code changed during the final run.
+Ruff/canonical/whitespace checks passed. No test/collector remains running. This accepts the
+connector boundary only; all durable integration and empirical Phase 3 gates remain open.

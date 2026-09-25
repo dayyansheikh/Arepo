@@ -53,3 +53,28 @@ Primary sources rechecked 2026-09-25:
 - https://websockets.readthedocs.io/en/stable/reference/asyncio/client.html (17.0.1).
 - Installed websockets.asyncio.client.connect signature and process_redirect implementation
   inspected read-only. No dependency or environment configuration changed.
+
+## D062 connector boundary — 2026-09-25
+
+The connection primitive is implemented in socket_connector.py. It fixes the public URI and
+all connection options, refuses redirects/retries, pins tested websockets 17.0.1, and exposes
+an explicit numeric 127.0.0.1 loopback seam whose transport provenance remains synthetic. Actual
+loopback tests cover raw text/binary/PING-PONG, rejected oversize data, redirects, disconnects
+and cancellation. Close has an outer two-second deadline and aborts on failure without hiding
+the original exception. Validation counts belong in the checkpoint/review.
+
+This is a transport primitive only. It opens no socket on import, is not wired into any app,
+CLI, journal, scheduler or collector, and does not verify identity or confer source admission.
+The returned raw connection requires its owning driver to schedule ten-second PINGs, record
+actual operation/receipt/durability clocks, impose window/message/total-byte budgets and close
+in finally. Do not call the public factory manually as a substitute for the still-required
+durable driver. Synthetic D058–D061 files remain unchanged and cannot be relabelled prospective.
+
+Exact next implementation: versioned durable socket-window driver with verified fresh prebinding,
+actual connection/subscription/receive/close facts and explicit partial/failed attempts. Freeze the
+whole transport/source protocol before connect; recheck prebinding after connection and before
+send. Use the new connector internally with no arbitrary factory/URI override in the public path.
+Add a separate explicitly synthetic loopback path for fault tests. Extend independent and
+original-code recovery, then integrate coverage/post-window reconciliation. Commit and test that
+whole driver before any separately frozen public diagnostic. All remaining Phase 3 empirical
+gates still apply.
