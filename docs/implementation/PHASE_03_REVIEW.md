@@ -842,3 +842,18 @@ D065 final validation: **8 passed in 82.46s** on explicit isolated SQLite/email-
 `backend/tests/unit/test_research_panel_original_socket_window.py` (2). No code changed during
 the run. Ruff/canonical/whitespace passed. Public diagnostic not yet run at this commit; all
 new tests use synthetic HTTP and local sockets. Underlying D064 70/D063 47 remain accepted.
+
+D065 public attempt under committed `c9042eca9f9e2dc6f616b097836f259a32331dc5` completed once,
+CLI exit 0. Root `data-dumps/fs2_socket_diagnostic_20260925_1`; source/analysis/recovery evidence
+in PHASE_03_SOCKET_DIAGNOSTIC_EVIDENCE.json. Four fixed HTTP requests, all retained; one 60-second
+socket from 11:36:38.677297 to 11:37:38.679786 UTC on September 25. One initial book plus five
+PONGs; 23 journal events, five PINGs, clean close. The frozen one-second receipt hold yielded
+exactly 1,000,000,000 covered and 59,000,000,000 uncovered nanoseconds. Initial best-price/size
+comparison agreed; endpoint stayed unavailable (`window_end_unavailable`). Quiet transport and
+PONGs do not establish unchanged market state or extend book freshness. Registered F02/F10/F27
+remain unavailable. Four independent/original-code recoveries passed without changing old clocks.
+HTTP raw 12,378 bytes; socket retained raw 1,470 bytes (includes sent/control evidence); total
+retained including final report 372,356 bytes. Elapsed 88,618,854,542ns; parent peak 80,150,528
+bytes, excluding recovery-child peaks. Report durable after 11:38:04 UTC. No retries, alternate
+targets, production/SQL changes or accepted panel. Preserve the failed coverage formulation;
+do not lengthen its hold or reinterpret quiet history retrospectively.
