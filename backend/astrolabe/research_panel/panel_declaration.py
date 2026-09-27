@@ -3,6 +3,7 @@
 import re
 import secrets
 import shutil
+from collections import Counter
 from dataclasses import asdict, dataclass
 
 from astrolabe.feature_store.admission import content_hash
@@ -238,3 +239,16 @@ def read_panel_declaration(output_root):
             'reservation': payload['reservation'], 'sampling_recipe': payload['sampling_recipe'],
             'frame_verified': False, 'collection_enabled': False, 'origin_admitted': False,
             'accepted_panel': False}
+
+
+def role_capacity(plan, protocol):
+    """Every frozen arm spends its own slots; never assume overlap or truncate roles."""
+    if type(protocol) is not PanelProtocol:
+        raise ValueError('immutable panel protocol required for role capacity')
+    counts = Counter(row['arm'] for row in plan['assignments'])
+    ceilings = {'scheduled': protocol.scheduled_slots, 'triggered': protocol.triggered_slots,
+                'control': protocol.triggered_slots * protocol.controls_per_trigger}
+    fits = set(counts) <= set(ceilings) and all(counts[arm] <= cap for arm, cap in ceilings.items())
+    return {'counts_per_cycle': dict(counts), 'ceilings_per_cycle': ceilings,
+            'fits': fits, 'overlap_discount_applied': False,
+            'origin_admitted': False, 'accepted_panel': False}

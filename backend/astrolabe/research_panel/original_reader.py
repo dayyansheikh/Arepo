@@ -128,6 +128,21 @@ from astrolabe.research_panel.window_journal import read_window
 json.dump(read_window(Path(sys.argv[2])), sys.stdout, sort_keys=True, separators=(",", ":"))
 '''
 
+_ACTIVATION_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.activation import read_activation, activation_root
+from astrolabe.feature_store.source_run import _pair
+root = Path(sys.argv[2])
+policy, ack = _pair(root, 'activation_policy')
+panel = Path(policy['panel_root'])
+if activation_root(panel) != root:
+    raise ValueError('original activation root differs')
+summary = read_activation(panel)
+facts, ack = _pair(root, 'activation_facts')
+json.dump({'facts': facts, 'summary': summary}, sys.stdout, sort_keys=True, separators=(",", ":"))
+'''
+
 _RUNTIME_SCRIPT = '''import json,sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
@@ -280,11 +295,17 @@ def read_original_screening(root, *, implementation_commit, output_root, reposit
                           output_root=output_root, repository=repository, kind='screening')
 
 
+def read_original_activation(root, *, implementation_commit, output_root, repository=None):
+    """Recover exact activation facts/schedules without reactivation or source requests."""
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='activation')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
     if kind not in {'frame', 'selection', 'quote_computation', 'book_computation',
                     'runtime', 'window', 'window_computation', 'bound_window',
                     'window_reconciliation', 'socket_window', 'socket_analysis',
-                    'trigger_computation', 'screening'}:
+                    'trigger_computation', 'screening', 'activation'}:
         raise ValueError('unsupported original journal kind')
     schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
     script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
@@ -296,9 +317,9 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
               'socket_window': _SOCKET_WINDOW_SCRIPT,
               'socket_analysis': _SOCKET_ANALYSIS_SCRIPT,
               'trigger_computation': _TRIGGER_COMPUTATION_SCRIPT,
-              'screening': _SCREENING_SCRIPT}[kind]
+              'screening': _SCREENING_SCRIPT, 'activation': _ACTIVATION_SCRIPT}[kind]
     computation = kind in {'quote_computation', 'book_computation', 'window_computation',
-                           'socket_analysis', 'trigger_computation'}
+                           'socket_analysis', 'trigger_computation', 'activation'}
     fact_prefix = {'quote_computation': 'quote', 'book_computation': 'book',
                    'window_computation': 'window'}.get(kind, kind)
     prefix = 'fs2_' + kind + '_read_'
@@ -327,14 +348,27 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             raise ValueError('canonical original source evidence path required')
         if output_root == source_root or source_root in output_root.parents:
             raise ValueError('separate output outside original source evidence required')
-    if kind == 'screening':
-        selection = Path(policy['selection_root'])
+    if kind in {'screening', 'activation'}:
+        screen_policy = policy if kind == 'screening' else None
+        dependencies = []
+        if kind == 'activation':
+            panel = Path(policy['panel_root'])
+            from .panel_selection import selection_root
+
+            selection = selection_root(panel)
+            dependencies.append(panel)
+            if 'screening_root' in policy:
+                screen = Path(policy['screening_root'])
+                dependencies.append(screen)
+                screen_policy, _ = _pair(screen, 'screening_policy')
+        else:
+            selection = Path(policy['selection_root'])
         selection_policy, _ = _pair(selection, 'selection_policy')
-        dependencies = [selection, Path(selection_policy['frame_root']),
-                        Path(selection_policy['panel_root'])]
-        if not 1 <= len(policy['selected']) <= 256:
+        dependencies.extend([selection, Path(selection_policy['frame_root']),
+                             Path(selection_policy['panel_root'])])
+        if screen_policy is not None and not 1 <= len(screen_policy['selected']) <= 256:
             raise ValueError('bounded screening dependencies required')
-        for item in policy['selected']:
+        for item in ([] if screen_policy is None else screen_policy['selected']):
             book = Path(item['book_root'])
             dependencies.extend([Path(item['declaration_root']), book])
             if book.exists():
@@ -449,9 +483,13 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             result = json.loads(result_bytes)
             if computation:
                 facts, summary = result['facts'], result['summary']
-                actual_hash, actual_available = summary['computation_hash'], summary[
-                    'computation_available_at']
-                provenance, state = summary['source_provenance_class'], 'verified_' + kind
+                actual_hash = summary['activation_hash' if kind == 'activation'
+                                      else 'computation_hash']
+                actual_available = summary['activation_available_at' if kind == 'activation'
+                                           else 'computation_available_at']
+                provenance = summary['provenance_class' if kind == 'activation'
+                                     else 'source_provenance_class']
+                state = 'verified_' + kind
             else:
                 facts = {k: v for k, v in result.items()
                          if k not in {hash_key, available_key, *extra}}

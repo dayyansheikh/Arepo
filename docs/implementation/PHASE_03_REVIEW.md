@@ -968,3 +968,19 @@ selection/frame/panel; separate original child reads would duplicate that proof.
 Only synthetic acquisition is enabled. Worker summaries are not admission authority; future
 activation must consume read_screening and prove role/identity/clock closure. No public panel,
 new empirical measurement, production change, external-source admission or Phase 3 completion.
+
+
+## D071 — authenticated screened-role activation (2026-09-27)
+
+57 affected tests passed in 402.86s: test_research_panel_{screened_activation,activation,
+original_runtime,screening_worker}.py. Development: 18 passed in 178.02s; final adds exact
+age-boundary checks. Explicit isolated SQLite, disabled email and caffeinate; log
+/tmp/arepo_d071_final.log. Ruff/backend, canonical-contract and whitespace checks pass.
+
+Self-review covered actual screening availability, role count ceilings without overlap
+discounts, market deduplication, exact first-stage/conditional weights, canonical assessment
+clocks, freshness at read and save, seed/report pinning, changed source/identity/context
+refusal, legacy schema behavior, output outside evidence and original-Git recovery.
+Pure role-capacity arithmetic moved from screening_worker to panel_declaration for reuse.
+No public collection or phase acceptance. Next: bounded concurrent screened runtime with
+reserved target capacity, replayable actual dispatch/completion and cancellation drainage.

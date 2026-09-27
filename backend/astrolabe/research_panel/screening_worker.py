@@ -4,7 +4,6 @@ import asyncio
 import shutil
 import tempfile
 import time
-from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
 
@@ -21,7 +20,7 @@ from .original_reader import (
     _extract,
     read_original_screening,
 )
-from .panel_declaration import FIXED, PanelProtocol, read_panel_declaration
+from .panel_declaration import FIXED, PanelProtocol, read_panel_declaration, role_capacity
 from .panel_selection import selection_root
 from .quote_inputs import QuoteInputPolicy
 from .runtime import _reserved
@@ -115,24 +114,6 @@ def _save(root, name, value, *, failure=False):
     if size > LIMITS["artifact_bytes"] or used + size > LIMITS["worker_metadata_bytes"] - reserve:
         raise ValueError("screening worker metadata quota exceeded")
     _persist(root, name, value)
-
-
-def role_capacity(plan, protocol):
-    counts = Counter(row["arm"] for row in plan["assignments"])
-    ceilings = {
-        "scheduled": protocol.scheduled_slots,
-        "triggered": protocol.triggered_slots,
-        "control": protocol.triggered_slots * protocol.controls_per_trigger,
-    }
-    fits = set(counts) <= set(ceilings) and all(counts[arm] <= cap for arm, cap in ceilings.items())
-    return {
-        "counts_per_cycle": dict(counts),
-        "ceilings_per_cycle": ceilings,
-        "fits": fits,
-        "overlap_discount_applied": False,
-        "origin_admitted": False,
-        "accepted_panel": False,
-    }
 
 
 async def _durable_call(function, *args, **kwargs):

@@ -80,3 +80,5 @@ remains incomplete, and Phase 4 begins only in a fresh conversation.
 D069 bounded stratum selection accepted with 193 affected tests (217.52s). Exact stage probabilities and full inventory/recovery retained; source worker and empirical pilot remain. Current next work: PHASE_03_SCREENING_CONTROL_NEXT.md.
 
 D070 bounded synthetic screening worker passes 29 affected tests (189.01s). Whole current-runtime/recovery reservation, bounded concurrency and cancellation drainage implemented. Next: authenticated screened-role activation, scalable runtime and empirical pilot. Phase 3 incomplete.
+
+D071 screened-role activation accepted with 57 affected tests (402.86s). Actual evidence availability/freshness and role capacity verified; legacy/original recovery passes. Next: bounded concurrent screened runtime. Empirical Phase 3 gates remain open.

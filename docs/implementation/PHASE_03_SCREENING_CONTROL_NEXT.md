@@ -203,3 +203,24 @@ scalable observation runtime with pre-t0 readiness and immutable causal freezes/
 resolve measured multi-market timing rather than forcing artificial staggering. Only after
 these boundaries and selected external/family requirements are ready, commit a public pilot
 protocol and collect. Phase 3 remains incomplete; Phase 4 starts in a fresh chat only.
+
+## D071 activation contract
+
+The versioned screened activation consumes `read_screening`, verifies its selection/protocol/
+provenance and actual role counts, and retains exact roles, seed, cutoff, availability and first-
+stage/conditional weights. It deduplicates markets before scheduling and checks measured-role
+age at actual activation read completion and durable acknowledgement. Unknown scheduled members
+remain scheduled without acquiring negative-control status. Roles describe the frozen screening
+occasion; they are not fresh repeated triggers at every later cycle. Recovery checks the original
+cutoffs and immutable schedule, never the current clock. Original activation recovery protects the
+full transitive screening/selection/source dependencies. Collection remains disabled.
+
+Next runtime contract: preserve the legacy serial schema. Add explicit synthetic screened runtime
+with a frozen bound of 2–8 in-flight jobs and at most C−1 origins, leaving capacity for due targets.
+Among currently ready jobs, targets precede origins, then scheduled UTC/id. Preserve distinct
+actual parent dispatch/completion events and every child intent/receipt/freeze clock; replay the
+same evolving queue and capacity from those events. Drain in-flight durable writers on failure.
+Use bounded isolated job event loops so synchronous decoding/fsync cannot stall another job's
+receipt handling. Verify delayed multi-market jobs, target priority, limits, cancellation, queue/
+clock/raw/outcome tampering and full original recovery before public use. This fixes the known
+origin-queue starvation risk; it does not yet add persistent socket state or prove live timing.

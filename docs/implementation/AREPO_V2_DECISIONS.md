@@ -137,3 +137,11 @@ Future architecture changes append here with reason, affected contracts and migr
   screening recovery authenticates the entire transitive evidence chain, avoiding redundant
   child recoveries. Drain durable computation threads on cancellation. No live transport or
   activation is enabled; later socket/external writers require additional reservations.
+
+- D071 (2026-09-27): screened activation v2 authenticates the complete screening journal
+  and binds its exact seed, report, availability, frozen roles and sampling weights. Check
+  measured-role freshness at both actual read completion and durable acknowledgement; retain
+  scheduled unknowns, deduplicate markets and refuse capacity overflow without redraw. Roles
+  describe the screening occasion, not fresh signals at every cycle. Recovery preserves the
+  original cutoff/schedule and all source dependencies. Legacy activation defaults remain v1.
+  No live collection or synthetic-runtime admission is enabled merely by activation.
