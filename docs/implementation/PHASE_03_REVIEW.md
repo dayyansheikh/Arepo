@@ -948,3 +948,23 @@ backend, canonical contract and git diff --check pass. No full backend regressio
 
 Remaining: full-reservation acquisition worker, verified-role activation and scalable observation
 runtime, selected external information and actual prospective pilot acceptance. Phase 3 incomplete.
+
+
+## D070 — bounded synthetic screening acquisition (2026-09-27)
+
+29 affected tests passed in 189.01s: test_research_panel_screening_worker.py (14) and
+test_research_panel_screening.py (15), explicit local SQLite, disabled email, caffeinate.
+Log: /tmp/arepo_d070_final.log. Ruff/backend, canonical contract and whitespace checks passed.
+Prior development run: 10 passed/one failed expectation in 91.58s; oversize source responses
+correctly yielded retained unavailable evidence rather than exceptions. The test now asserts
+that behavior; a separate injected storage failure checks cancellation and preserved raw data.
+
+Self-review: exclusive ownership, frozen request/response/retained quotas, bounded parallelism,
+full future current-runtime reservation, provenance, no source replacement/retry, changed/rate-
+failed sources, exact matched roles, role overflow refusal, immutable original recovery and
+cancellation drainage. Original screening recovery covers every source/book/decision plus
+selection/frame/panel; separate original child reads would duplicate that proof.
+
+Only synthetic acquisition is enabled. Worker summaries are not admission authority; future
+activation must consume read_screening and prove role/identity/clock closure. No public panel,
+new empirical measurement, production change, external-source admission or Phase 3 completion.

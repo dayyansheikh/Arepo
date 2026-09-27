@@ -1,0 +1,309 @@
+"""Bounded synthetic screening acquisition; live panel admission remains a separate gate."""
+
+import asyncio
+import shutil
+import tempfile
+import time
+from collections import Counter
+from dataclasses import asdict
+from pathlib import Path
+
+import httpx
+
+from astrolabe.feature_store.capture import Budget, _clock, _json_bytes, _sync_directory
+from astrolabe.feature_store.source_run import SourceRun, _pair, _persist
+
+from .book_computation import LIMITS as BOOK_LIMITS
+from .book_computation import record_book_computation
+from .build_identity import verified_panel_build
+from .input_read import _canonical
+from .original_reader import (
+    _extract,
+    read_original_screening,
+)
+from .panel_declaration import FIXED, PanelProtocol, read_panel_declaration
+from .panel_selection import selection_root
+from .quote_inputs import QuoteInputPolicy
+from .runtime import _reserved
+from .screening import LIMITS as SCREEN_LIMITS
+from .screening import PER_DECISION_BYTES, ScreeningPolicy, declare_screening, finish_screening
+from .trigger_computation import SnapshotTriggerPolicy, record_snapshot_trigger
+
+VERSION = "fs2-synthetic-screening-worker-v1"
+MIB = 1048576
+LIMITS = {
+    "worker_metadata_bytes": 32 * MIB,
+    "artifact_bytes": 16 * MIB,
+    "failure_reserve_bytes": 65536,
+    "free_reserve_bytes": 2 * 1024**3,
+    "original_read_bytes": 32 * MIB,
+    "max_files_per_screen": 256,
+    "acquisition_seconds": 1800,
+    "max_seconds": 7200,
+    "live_collection_enabled": False,
+}
+
+
+def worker_root(panel_root):
+    panel = _canonical(panel_root)
+    if not panel.name.startswith("fs2_panel_"):
+        raise ValueError("canonical panel root required")
+    return panel.with_name("fs2_screening_worker_" + panel.name.removeprefix("fs2_panel_"))
+
+
+def allocation(declaration):
+    p = declaration["reservation"]
+    # Reserve all slots before the actual draw/role overlap is known. Original readers reserve
+    # twice their 16 MiB output ceiling, allowing policy/receipt/failure metadata as well.
+    slots = p["scheduled_origin_slots"] // (p["origin_slots"] // p["market_slots"])
+    source = p["source_retained_bytes"] // p["source_run_slots"]
+    screen = (
+        slots * (source + BOOK_LIMITS["max_output_bytes"] + PER_DECISION_BYTES)
+        + SCREEN_LIMITS["max_output_bytes"]
+        + LIMITS["worker_metadata_bytes"]
+        + LIMITS["original_read_bytes"]
+    )
+    future = _reserved(declaration) - LIMITS["free_reserve_bytes"]
+    future += LIMITS["original_read_bytes"]  # complete eventual runtime recovery
+    total = screen + future
+    if total > FIXED["max_panel_bytes"]:
+        raise ValueError("complete screening/runtime reservation exceeds bounded ceiling")
+    return {
+        "screen_slots": slots,
+        "source_bytes_per_screen": source,
+        "screening_retained_bytes": screen,
+        "future_runtime_retained_bytes": future,
+        "total_retained_bytes": total,
+        "required_free_bytes": total + LIMITS["free_reserve_bytes"],
+        "overlap_discount_applied": False,
+    }
+
+
+def _size(root, reserved):
+    total = files = 0
+    for path in root.rglob("*"):
+        if path.is_symlink():
+            raise ValueError("screening worker symlink refused")
+        if path.is_file():
+            total += path.stat().st_size
+            files += 1
+        elif not path.is_dir():
+            raise ValueError("screening worker nonregular path refused")
+    if (
+        total > reserved["screening_retained_bytes"]
+        or files > 128 + reserved["screen_slots"] * LIMITS["max_files_per_screen"]
+    ):
+        raise ValueError("screening worker retained budget exceeded")
+    return total
+
+
+def _check(root, reserved, started, *, acquisition=False):
+    limit = LIMITS["acquisition_seconds"] if acquisition else LIMITS["max_seconds"]
+    if time.monotonic() - started > limit:
+        raise ValueError("screening worker deadline exceeded")
+    retained = _size(root, reserved)
+    if shutil.disk_usage(root).free < reserved["required_free_bytes"] - retained:
+        raise ValueError("complete remaining screening/runtime reservation unavailable")
+    return retained
+
+
+def _save(root, name, value, *, failure=False):
+    # Only worker top-level manifests here; child writers independently enforce their caps.
+    size = len(_json_bytes(value)) + 4096
+    used = sum(p.stat().st_size for p in root.iterdir() if p.is_file())
+    reserve = 0 if failure else LIMITS["failure_reserve_bytes"]
+    if size > LIMITS["artifact_bytes"] or used + size > LIMITS["worker_metadata_bytes"] - reserve:
+        raise ValueError("screening worker metadata quota exceeded")
+    _persist(root, name, value)
+
+
+def role_capacity(plan, protocol):
+    counts = Counter(row["arm"] for row in plan["assignments"])
+    ceilings = {
+        "scheduled": protocol.scheduled_slots,
+        "triggered": protocol.triggered_slots,
+        "control": protocol.triggered_slots * protocol.controls_per_trigger,
+    }
+    fits = set(counts) <= set(ceilings) and all(counts[arm] <= cap for arm, cap in ceilings.items())
+    return {
+        "counts_per_cycle": dict(counts),
+        "ceilings_per_cycle": ceilings,
+        "fits": fits,
+        "overlap_discount_applied": False,
+        "origin_admitted": False,
+        "accepted_panel": False,
+    }
+
+
+async def _durable_call(function, *args, **kwargs):
+    # Cancellation cannot leave an untracked thread writing evidence after the worker returns.
+    task = asyncio.create_task(asyncio.to_thread(function, *args, **kwargs))
+    try:
+        return await asyncio.shield(task)
+    except asyncio.CancelledError:
+        await task
+        raise
+
+
+async def run_synthetic_screening(
+    panel_root, *, implementation_commit, rule, freshness, transport, concurrency=4, repository=None
+):
+    """Acquire only owned assignments. No live transport, replacement draw, retry or activation."""
+    if type(transport) is not httpx.MockTransport:
+        raise ValueError("screening worker requires explicit synthetic MockTransport")
+    if (
+        type(concurrency) is not int
+        or not 1 <= concurrency <= 8
+        or type(rule) is not SnapshotTriggerPolicy
+        or type(freshness) is not ScreeningPolicy
+    ):
+        raise ValueError("bounded concurrency and explicit screening policies required")
+    panel, root = _canonical(panel_root), worker_root(panel_root)
+    if root.exists():
+        raise FileExistsError("screening worker already owned; never resume or overwrite")
+    declaration = read_panel_declaration(panel)
+    policy, da = _pair(panel, "panel_policy")
+    protocol = PanelProtocol(**policy["protocol"])
+    reserved = allocation(declaration)
+    if shutil.disk_usage(root.parent).free < reserved["required_free_bytes"]:
+        raise ValueError("full screening/source/recovery/runtime capacity unavailable")
+    build = verified_panel_build()
+    repository = _canonical(repository or Path(__file__).parents[3])
+    with tempfile.TemporaryDirectory(prefix="arepo_screening_code_") as tmp:
+        _extract(repository, implementation_commit, build, Path(tmp))
+    root.mkdir(mode=0o700)
+    _sync_directory(root.parent)
+    started = time.monotonic()
+    budget = Budget(
+        requests=2,
+        bytes_per_response=protocol.source_response_bytes,
+        total_bytes=2 * protocol.source_response_bytes,
+        seconds_per_request=15,
+        total_seconds=60,
+    )
+    quotes = QuoteInputPolicy(protocol.max_quote_age_seconds, protocol.max_identity_age_seconds)
+    screening = root / "fs2_screening_batch"
+    stage = "declaration"
+    try:
+        _save(
+            root,
+            "worker_policy",
+            {
+                "schema_version": VERSION,
+                "build": build,
+                "panel_root": str(panel),
+                "panel_declaration_hash": da["payload_hash"],
+                "implementation_commit": implementation_commit,
+                "limits": LIMITS,
+                "reservation": reserved,
+                "concurrency": concurrency,
+                "source_budget": asdict(budget),
+                "source_policy": "receipt-time-selected-market-v1",
+                "quote_policy": asdict(quotes),
+                "rule": asdict(rule),
+                "freshness": asdict(freshness),
+                "declared_at": _clock(),
+                "provenance_class": "synthetic",
+                "source_paths": [
+                    str(root / f"fs2_capture_screen_{i:03d}")
+                    for i in range(reserved["screen_slots"])
+                ],
+                "live_collection_enabled": False,
+                "origin_admitted": False,
+                "accepted_panel": False,
+            },
+        )
+        frozen = declare_screening(
+            selection_root(panel), output_root=screening, rule=rule, policy=freshness
+        )
+        if (
+            frozen["source_provenance_class"] != "synthetic"
+            or len(frozen["selected"]) > reserved["screen_slots"]
+        ):
+            raise ValueError("synthetic screening assignments exceed declared scope")
+        _, wa = _pair(root, "worker_policy")
+        semaphore = asyncio.Semaphore(concurrency)
+
+        async def collect(index, item):
+            async with semaphore:
+                _check(root, reserved, started, acquisition=True)
+                if verified_panel_build() != build:
+                    raise ValueError("screening worker build changed")
+                source = root / f"fs2_capture_screen_{index:03d}"
+                _save(
+                    root,
+                    f"intent_{index:03d}",
+                    {
+                        "policy_hash": wa["payload_hash"],
+                        "item": item,
+                        "source_root": str(source),
+                        "at": _clock(),
+                    },
+                )
+                run = SourceRun(
+                    source,
+                    transport=transport,
+                    budget=budget,
+                    policy_version="receipt-time-selected-market-v1",
+                    retained_bytes=protocol.source_run_retained_bytes,
+                )
+                await run.fetch("gamma.market", {"market_id": item["member"]["market_id"]})
+                _check(root, reserved, started, acquisition=True)
+                await run.fetch("clob.book", {"token_id": item["member"]["token_id"]})
+                _check(root, reserved, started, acquisition=True)
+                await _durable_call(
+                    record_book_computation,
+                    source,
+                    output_root=Path(item["book_root"]),
+                    policy=quotes,
+                )
+                await _durable_call(record_snapshot_trigger, Path(item["declaration_root"]))
+
+        stage = "acquisition"
+        async with asyncio.timeout(LIMITS["acquisition_seconds"]):
+            async with asyncio.TaskGroup() as group:
+                for index, item in enumerate(frozen["selected"]):
+                    group.create_task(collect(index, item))
+        stage = "screening"
+        _check(root, reserved, started)
+        screened = finish_screening(screening)
+        roles = role_capacity(screened["plan"], protocol)
+        stage = "recovery"
+        # The original screening reader replays the full selection/frame/panel and every
+        # source/book/decision dependency. Separate per-child reads would duplicate this proof.
+        _check(root, reserved, started)
+        read = read_original_screening(
+            screening,
+            implementation_commit=implementation_commit,
+            repository=repository,
+            output_root=root / "fs2_screening_read_batch",
+        )
+        if read["report"] != screened:
+            raise ValueError("original screening replay differs")
+        retained = _check(root, reserved, started)
+        result = {
+            "schema_version": VERSION,
+            "policy_hash": wa["payload_hash"],
+            "screening": screened,
+            "role_capacity": roles,
+            "recovery": [read["read_receipt"]],
+            "reported_at": _clock(),
+            "retained_bytes_before_report": retained,
+            "state": "screening_complete" if roles["fits"] else "blocked_role_capacity",
+            "origin_admitted": False,
+            "accepted_panel": False,
+        }
+        _save(root, "worker_report", result)
+        _check(root, reserved, started)
+        return result
+    except BaseException as exc:
+        try:
+            _save(
+                root,
+                "worker_failure",
+                {"stage": stage, "at": _clock(), "exception_type": type(exc).__name__},
+                failure=True,
+            )
+        except (OSError, ValueError):
+            pass
+        raise

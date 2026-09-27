@@ -172,3 +172,34 @@ requiring artificial staggering: prefer persistent pre-t0 subscriptions, bounded
 sharded observers and causal state freezing when appropriate. Duplicate observers need measured
 reliability benefit. Preserve fixed deadlines and uncovered intervals; socket silence is not
 continuity evidence. Collect, measure, identify the actual limitation, fix it, then collect again.
+
+## D070 worker boundary
+
+`screening_worker.run_synthetic_screening` connects owned assignments to bounded SourceRun,
+exact book computation, D066 decisions and D068 authenticated roles. It accepts only explicit
+MockTransport, verifies the loaded package against an immutable Git commit, and owns a single
+terminal worker root per panel. Request/computation concurrency is frozen in 1–8; no replacement
+markets, retry, activation or public transport. Cancellation drains durable computation threads
+before returning, preserving failures and preventing detached evidence writes.
+
+Allocation reserves every declared screen slot (source + book + decision), worker/batch metadata,
+one full original-screening recovery, and the existing origin/control/target runtime reservation
+including activation/plan metadata and eventual runtime recovery, plus the 2 GiB reserve. It
+uses no anticipated overlap discount and rechecks remaining free space before further work.
+Original screening recovery already replays the entire frame/selection/panel and all source,
+book and decision dependencies, so separate per-child original reads would duplicate its proof.
+The worker checks actual role counts without truncation; overflow remains a retained blocked
+result. Its summary is orchestration evidence, not an input authority replacing read_screening.
+
+This allocation covers the **current** snapshot/quote/trade origin-target runtime. Any later
+persistent socket/external-source writer must add its own finite reservation before public use.
+No public pilot size has been chosen. The old runtime still refuses the new bounded selection.
+
+Next: implement versioned activation that authenticates read_screening, binds its report/seed/
+actual availability and selected identity/roles, preserves first-stage and conditional weights,
+and refuses role overflow before creating origin schedules. Test stale/future/changed/missing
+screening evidence, role overlap/deduplication and original-code recovery. Then integrate the
+scalable observation runtime with pre-t0 readiness and immutable causal freezes/deadlines;
+resolve measured multi-market timing rather than forcing artificial staggering. Only after
+these boundaries and selected external/family requirements are ready, commit a public pilot
+protocol and collect. Phase 3 remains incomplete; Phase 4 starts in a fresh chat only.

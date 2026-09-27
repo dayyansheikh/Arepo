@@ -129,3 +129,11 @@ Future architecture changes append here with reason, affected contracts and migr
   new version until verified-role integration; this is no permission for live collection.
   The cap is configurable, not a scientifically selected pilot size. Full collector reservation
   remains required before any public request.
+
+- D070 (2026-09-27): bounded synthetic screening owns finite source paths/budgets before
+  acquisition, freezes concurrency in 1–8, and enforces full screening plus existing runtime
+  and recovery reservation without overlap discounts. Reuse D066/D068 for actual decisions
+  and exact conditional roles; overflow is retained, never truncated. A single original-Git
+  screening recovery authenticates the entire transitive evidence chain, avoiding redundant
+  child recoveries. Drain durable computation threads on cancellation. No live transport or
+  activation is enabled; later socket/external writers require additional reservations.

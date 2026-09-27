@@ -300,3 +300,5 @@ admission or empirical acceptance yet. Continue PHASE_03_SCREENING_CONTROL_NEXT.
 remains incomplete, and Phase 4 begins only in a fresh conversation.
 
 D069 bounded stratum selection passes 193 affected tests (217.52s); full inventory and exact first-stage probabilities retained. Continue the full-reservation source worker and verified-role/runtime integration. This remains synthetic software validation, not pilot acceptance.
+
+D070 bounded synthetic screening worker passes 29 affected tests (189.01s). Whole current-runtime/recovery reservation, bounded concurrency and cancellation drainage implemented. Next: authenticated screened-role activation, scalable runtime and empirical pilot. Phase 3 incomplete.
