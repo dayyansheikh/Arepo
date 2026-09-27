@@ -260,7 +260,8 @@ class CaptureJournal:
                 async with asyncio.timeout(min(remaining, self.budget.seconds_per_request)):
                     async with self._request_client() as client:
                         async with client.stream("GET", request["url"],
-                                                 params=request["params"]) as response:
+                                                 params=request["params"],
+                                                 headers=request.get("headers")) as response:
                             status = response.status_code
                             headers = {k: response.headers[k] for k in
                                        ("content-type", "content-encoding", "date", "retry-after")
@@ -373,6 +374,8 @@ def verify_capture(folder: Path, *, raw_only=False):
         raise ValueError("raw capture integrity mismatch")
     if receipt["source_id"] == "gamma.market":
         SOURCES["gamma.market"].market_request_id(receipt["request"])
+    if receipt["source_id"] == "nws.station.observation":
+        SOURCES["nws.station.observation"].station_request_id(receipt["request"])
     if receipt["schema_version"] == "fs2-receipt-v2":
         session_path = folder.parent / "session.json"
         if session_path.is_symlink() or session_path.stat().st_size > 1048576:

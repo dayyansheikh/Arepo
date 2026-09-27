@@ -56,6 +56,11 @@ class SourceContract:
         elif self.source_id == "clob.book":
             allowed = {"token_id"}
             uint_text(values.get("token_id"), bits=256)
+        elif self.source_id == "nws.station.observation":
+            allowed = {"station_id"}
+            value = values.get("station_id")
+            if not isinstance(value, str) or not re.fullmatch(r"[A-Z0-9]{3,8}", value):
+                raise ValueError("one canonical NWS station ID required")
         elif self.source_id == "coinbase.btc_usd.ticker":
             allowed = set()
         else:
@@ -75,6 +80,10 @@ class SourceContract:
         if self.source_id == "gamma.market":
             return {"method": "GET", "url": self.endpoint.format(id=params["market_id"]),
                     "params": {}, "path_params": {"id": params["market_id"]}}
+        if self.source_id == "nws.station.observation":
+            return {"method": "GET", "url": self.endpoint.format(station=params["station_id"]),
+                    "params": {}, "path_params": {"station": params["station_id"]},
+                    "headers": {"Accept": "application/geo+json"}}
         return {"method": "GET", "url": self.endpoint, "params": params}
 
     def market_request_id(self, request):
@@ -86,10 +95,26 @@ class SourceContract:
             raise ValueError("targeted market request differs from pinned contract")
         return value
 
+    def station_request_id(self, request):
+        if not isinstance(request, dict) or not isinstance(request.get("path_params"), dict):
+            raise ValueError("station path parameters required")
+        value = request["path_params"].get("station")
+        if (self.source_id != "nws.station.observation"
+                or request != self.request({"station_id": value})):
+            raise ValueError("station request differs from pinned contract")
+        return value
+
 
 SOURCES = {
     source.source_id: source
     for source in (
+        SourceContract(
+            "nws.station.observation", "https://api.weather.gov/stations/{station}/observations/latest",
+            "https://www.weather.gov/documentation/services-web-api", "nws-observation-geojson",
+            "nws-observation-v1", "timestamp is station observation time, not publication/receipt",
+            "native quantitative values/unitCode without conversion; MADIS QC retained",
+            "NWS API open data for any purpose; attribution NWS/NOAA; no endorsement",
+        ),
         SourceContract(
             "gamma.market", "https://gamma-api.polymarket.com/markets/{id}",
             "https://docs.polymarket.com/api-reference/markets/get-market-by-id", "gamma-by-id",

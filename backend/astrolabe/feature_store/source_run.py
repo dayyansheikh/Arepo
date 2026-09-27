@@ -40,12 +40,24 @@ POLICY = {
 TARGETED_POLICY = {**POLICY, "version": "receipt-time-selected-market-v1",
                    "sources": ["gamma.market", "clob.book", "data.v2.trades"]}
 
+NWS_POLICY = {
+    **POLICY, "version": "receipt-time-nws-observation-v1",
+    "sources": ["nws.station.observation"],
+    "rights_documentation": "https://www.weather.gov/documentation/services-web-api",
+    "rights_reviewed_on": "2026-09-27",
+    "market_relevance_admitted": False,
+    "forecast_or_daily_extreme_admitted": False,
+    "claim": "bounded NWS station receipt measurement; no automatic market/resolution mapping",
+}
+
 
 def _policy(version):
     if version == POLICY["version"]:
         return POLICY
     if version == TARGETED_POLICY["version"]:
         return TARGETED_POLICY
+    if version == NWS_POLICY["version"]:
+        return NWS_POLICY
     raise ValueError("unknown source measurement policy version")
 
 

@@ -74,3 +74,15 @@ ID mismatch is invalid evidence for the requested mapping. Default list-source j
 cannot silently adopt this source. Current-build verification and native-clock/rights
 restrictions remain in force. See ../implementation/PHASE_03_IDENTITY_REFRESH_CONTRACT.md.
 This does not establish panel eligibility, economic event grouping or origin admission.
+
+## D073 opt-in official weather observation
+
+Explicit `receipt-time-nws-observation-v1` permits only the fixed NWS latest-station endpoint,
+with a bounded canonical station path and source-specific GeoJSON negotiation. The default and
+targeted Polymarket policies remain unchanged. Native quantities/units/QC and observation-time
+metadata are retained exactly; native publication time, first-vintage status, market relevance
+and forecast/daily-extreme use are not admitted. Existing SourceRun/input-read journals and
+original-code recovery provide the causal boundary. See ../implementation/PHASE_03_EXTERNAL_OBSERVATION.md
+for rights review, tests and the separately frozen one-request measurement protocol. Coinbase
+remains excluded under the newly reviewed automated-system/AI restrictions; old evidence stays
+intact. This admits a source path only, not a panel feature or an empirical Phase 3 result.

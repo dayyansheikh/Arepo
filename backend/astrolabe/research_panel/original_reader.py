@@ -48,6 +48,17 @@ facts, ack = _pair(root, 'quote_facts')
 json.dump({'facts': facts, 'summary': summary}, sys.stdout, sort_keys=True, separators=(",", ":"))
 '''
 
+_INPUT_READ_SCRIPT = """import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.input_read import read_input_read
+from astrolabe.feature_store.source_run import _pair
+root = Path(sys.argv[2])
+summary = read_input_read(root)
+facts, ack = _pair(root, 'read_facts')
+json.dump({'facts': facts, 'summary': summary}, sys.stdout, sort_keys=True, separators=(",", ":"))
+"""
+
 _BOOK_SCRIPT = '''import json,sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
@@ -301,11 +312,17 @@ def read_original_activation(root, *, implementation_commit, output_root, reposi
                           output_root=output_root, repository=repository, kind='activation')
 
 
+def read_original_input_read(root, *, implementation_commit, output_root, repository=None):
+    """Recover the actual source read and its full original source dependency closure."""
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='input_read')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
     if kind not in {'frame', 'selection', 'quote_computation', 'book_computation',
                     'runtime', 'window', 'window_computation', 'bound_window',
                     'window_reconciliation', 'socket_window', 'socket_analysis',
-                    'trigger_computation', 'screening', 'activation'}:
+                    'trigger_computation', 'screening', 'activation', 'input_read'}:
         raise ValueError('unsupported original journal kind')
     schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
     script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
@@ -317,11 +334,12 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
               'socket_window': _SOCKET_WINDOW_SCRIPT,
               'socket_analysis': _SOCKET_ANALYSIS_SCRIPT,
               'trigger_computation': _TRIGGER_COMPUTATION_SCRIPT,
-              'screening': _SCREENING_SCRIPT, 'activation': _ACTIVATION_SCRIPT}[kind]
+              'screening': _SCREENING_SCRIPT, 'activation': _ACTIVATION_SCRIPT,
+              'input_read': _INPUT_READ_SCRIPT}[kind]
     computation = kind in {'quote_computation', 'book_computation', 'window_computation',
-                           'socket_analysis', 'trigger_computation', 'activation'}
+                           'socket_analysis', 'trigger_computation', 'activation', 'input_read'}
     fact_prefix = {'quote_computation': 'quote', 'book_computation': 'book',
-                   'window_computation': 'window'}.get(kind, kind)
+                   'window_computation': 'window', 'input_read': 'read'}.get(kind, kind)
     prefix = 'fs2_' + kind + '_read_'
     hash_key = kind + '_report_hash'
     available_key = kind + '_available_at'
@@ -342,7 +360,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
     if kind != 'runtime' and original_report['policy_hash'] != policy_ack['payload_hash']:
         raise ValueError('original report/policy lineage differs')
     extra, extra_hashes = {}, {}
-    if kind in {'selection', 'quote_computation', 'book_computation', 'window_computation'}:
+    if kind in {'selection', 'quote_computation', 'book_computation', 'window_computation',
+                'input_read'}:
         source_root = Path(policy['frame_root' if kind == 'selection' else 'source_root'])
         if not source_root.is_absolute() or source_root.resolve() != source_root:
             raise ValueError('canonical original source evidence path required')
@@ -497,8 +516,10 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             if computation:
                 facts, summary = result['facts'], result['summary']
                 actual_hash = summary['activation_hash' if kind == 'activation'
+                                      else 'read_facts_hash' if kind == 'input_read'
                                       else 'computation_hash']
                 actual_available = summary['activation_available_at' if kind == 'activation'
+                                           else 'read_available_at' if kind == 'input_read'
                                            else 'computation_available_at']
                 provenance = summary['provenance_class' if kind == 'activation'
                                      else 'source_provenance_class']

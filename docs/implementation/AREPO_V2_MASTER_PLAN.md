@@ -84,3 +84,5 @@ D070 bounded synthetic screening worker passes 29 affected tests (189.01s). Whol
 D071 screened-role activation accepted with 57 affected tests (402.86s). Actual evidence availability/freshness and role capacity verified; legacy/original recovery passes. Next: bounded concurrent screened runtime. Empirical Phase 3 gates remain open.
 
 D072 bounded concurrent screened runtime accepted as a synthetic software milestone: 21 affected tests passed in 246.37s. Reserved target capacity, actual queue/child replay and cancellation drainage pass. No public runtime or empirical admission. Next resolve numerical-window and selected-external observation integration before the bounded pilot; Phase 3 remains incomplete.
+
+D073 NWS external source path is implemented/tested (105 affected cases, then 57 after the final GeoJSON header change). Current Coinbase rights exclude its admission. Frozen one-request NWS protocol: PHASE_03_EXTERNAL_OBSERVATION.md; empirical result pending. Station data has no automatic market/rule relevance, forecast or daily-extreme admission. Phase 3 remains incomplete.

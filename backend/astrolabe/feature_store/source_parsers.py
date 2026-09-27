@@ -184,3 +184,53 @@ def data_v2_trades(payload, *, expected_condition=None):
     return {"rows": rows, "pagination": pagination, "identical_rows": duplicate_count,
             "coverage_fraction": None, "coverage_state": "bounded_page",
             "economic_deduplication": "unresolved"}
+
+
+NWS_QUANTITIES = (
+    "elevation", "temperature", "dewpoint", "windDirection", "windSpeed", "windGust",
+    "barometricPressure", "seaLevelPressure", "visibility", "maxTemperatureLast24Hours",
+    "minTemperatureLast24Hours", "precipitationLastHour", "precipitationLast3Hours",
+    "precipitationLast6Hours", "relativeHumidity", "windChill", "heatIndex",
+)
+
+
+def nws_observation(row, *, expected_station, received_at):
+    """Receipt-time knowledge of exact native quantities, not first release or QC admission."""
+    if not isinstance(row, dict) or row.get("type") != "Feature":
+        raise ValueError("NWS observation GeoJSON feature required")
+    props = row.get("properties")
+    if not isinstance(props, dict):
+        raise ValueError("NWS observation properties required")
+    station = "https://api.weather.gov/stations/" + expected_station
+    identity = props.get("@id")
+    if (props.get("station") != station
+            or props.get("stationId", expected_station) != expected_station
+            or not isinstance(identity, str) or len(identity) > 512
+            or not identity.startswith(station + "/observations/")
+            or not identity.removeprefix(station + "/observations/")
+            or any(c in identity for c in ("?", "#", "\\"))):
+        raise ValueError("NWS station/observation identity mismatch")
+    observation_clock = native_clock(props.get("timestamp"), unit="iso8601",
+                                     received_at=received_at)
+    quantities = {}
+    for name in NWS_QUANTITIES:
+        if name not in props:
+            quantities[name] = {"state": "not_reported"}
+            continue
+        q = props[name]
+        if not isinstance(q, dict) or "value" not in q:
+            raise ValueError("NWS quantitative value required")
+        unit, qc = q.get("unitCode"), q.get("qualityControl")
+        if (not isinstance(unit, str) or not 1 <= len(unit) <= 128
+                or qc is not None and (not isinstance(qc, str) or len(qc) > 32)):
+            raise ValueError("NWS quantity units/QC required")
+        quantities[name] = {
+            "state": "source_null" if q["value"] is None else "reported",
+            "value": None if q["value"] is None else exact_decimal(q["value"]),
+            "unit_code": unit, "quality_control": qc,
+            "bounds": {k: exact_decimal(q[k]) for k in ("minValue", "maxValue") if k in q},
+        }
+    return {"station_id": expected_station, "observation_id": identity,
+            "observation_clock": observation_clock, "quantities": quantities,
+            "publication_clock": None, "first_release_known": False,
+            "market_relevance_admitted": False, "quality_control_interpreted": False}
