@@ -1,0 +1,26 @@
+{
+  "started": "2026-09-27T00:06:40.865423+00:00",
+  "finished": "2026-09-27T01:34:47.977385+00:00",
+  "elapsed_seconds": 1469.6117219580337,
+  "exit_code": 1,
+  "code_before": "535f547291f7ae29ece085c80b67481de7df1b3d50179a732e70e6d78919f8ce",
+  "code_after": "535f547291f7ae29ece085c80b67481de7df1b3d50179a732e70e6d78919f8ce",
+  "code_unchanged": true,
+  "implementation_commit": "9f79c67dfcc9e790dbe538d2942b7f7dd83afd96",
+  "passed": 1438,
+  "failed": 4,
+  "warnings": 1,
+  "pytest_seconds": "1468.63",
+  "log": "/tmp/arepo_d066_capacity_restored_validation.log",
+  "database_scope": "explicit temporary SQLite and disposable loopback PostgreSQL",
+  "failure_analysis": {
+    "early_intent_microseconds_before_boundary": [
+      751,
+      2551,
+      1084
+    ],
+    "early_intents": "one target and two origin intents; strict journal checks correctly refused",
+    "original_bound_window": "identity_stale after a host pause; no freshness limit waived"
+  },
+  "full_suite_pass": false
+}

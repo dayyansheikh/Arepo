@@ -62,3 +62,10 @@ before usage exhaustion. Protected approval: BLOCKED — USER DECISION REQUIRED.
 access/data or longer-term allowance is unavailable, document alternatives and stop productive
 work. User scope override 2026-09-24: this task continues Phase 3 only. On full Phase 3 acceptance, cancel the pending successor, finalise the durable fresh-chat handover and emit PHASE 3 COMPLETE — READY FOR FRESH CODEX HANDOVER. Phase 4 starts in a fresh Codex conversation; do not start it here. Stay quiet for
 unchanged blocked state and notify meaningful changes only.
+
+
+2026-09-27 recovery: local capacity blocker cleared. Unchanged full regression: 1,438 passed,
+4 failed (three early UTC intents, one pause-staled pre-binding). D067 now rechecks UTC after
+timer completion without weakening causal deadlines; all 55 affected cases pass across the
+recorded targeted runs. Full evidence and commands are in the checkpoint/review. Resume
+screening/control integration; Phase 3 remains incomplete and Phase 4 stays in a fresh chat.

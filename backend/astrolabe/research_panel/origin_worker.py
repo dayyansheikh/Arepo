@@ -1,6 +1,5 @@
 """Synthetic origin-worker integration with actual clocks; live collection stays closed."""
 
-import asyncio
 import hashlib
 import re
 import shutil
@@ -33,6 +32,7 @@ from .quote_computation import (
     record_quote_computation,
 )
 from .quote_inputs import QuoteInputPolicy, _at
+from .scheduling import wait_until
 
 VERSION = 'fs2-synthetic-origin-worker-v1'
 SOURCE = 'fs2_capture_origin'
@@ -211,7 +211,7 @@ async def _collect_one(root, slot, member, panel_policy, activation, transport):
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
     try:
-        at = _clock()
+        at = await wait_until(_at(slot['scheduled_at']))
         budget = _budget(protocol, slot, at)
         _save(root, 'origin_intent', {
             'schema_version': VERSION, 'slot': slot, 'member': member,
@@ -339,9 +339,6 @@ async def exercise_origins(panel_root, *, transport):
         members = {m['market_id']: m for m in activated['selected']}
         results = []
         for slot in activated['slots']:
-            remaining = (_at(slot['scheduled_at']) - _time(_clock())).total_seconds()
-            if remaining > 0:
-                await asyncio.sleep(remaining)
             results.append(await _collect_one(root / slot['intent_id'], slot,
                 members[slot['market_id']], panel_policy, activated, transport))
         if verified_panel_build() != build:

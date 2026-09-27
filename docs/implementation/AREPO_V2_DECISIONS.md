@@ -98,3 +98,11 @@ Future architecture changes append here with reason, affected contracts and migr
 - D065 (2026-09-25): compose the accepted socket/source/analysis/recovery primitives into one fixed-target diagnostic with a one-attempt CLI path. Git-hash verification and the entire storage reservation precede any request. Preserve actual declaration/stage/child/recovery clocks, unknown/failed/closed prior states and terminal partial failure. A successful prior allows one bounded socket; a sent, fresh subscription alone permits a separate post pair. No replacement target, reconnect or source request during original-code recovery. Explicit MockTransport+loopback entry stays synthetic. Bounds and source-documentation review are frozen in PHASE_03_SOCKET_DIAGNOSTIC_PROTOCOL.md. The diagnostic cannot accept the representative panel or scientific feature/edge gates.
 
 - D066 (2026-09-25): declare an exact configurable absolute snapshot-imbalance rule before fresh Gamma/book requests, then authenticate sources and actually read/compute/persist a three-state decision. Exact signed/absolute/difference values and unavailable reasons are retained; failed or stale data is never an untriggered control. A response arriving after declaration cannot legitimize an earlier request. New exclusive computation and full original-Git recovery protect old clocks and transitive source evidence. This is development control-measurement plumbing, not a validated threshold, registered dense feature or admitted sampler/model input. See PHASE_03_TRIGGER_ASSESSMENT_CONTRACT.md.
+
+- D067 (2026-09-27): a completed asyncio timer is not proof that its UTC boundary has arrived.
+  The full regression preserved three intent clocks 751/2,551/1,084 microseconds early.
+  Recheck actual UTC before origin/target intent creation, runtime dispatch and outcome cutoff;
+  retain actual returned clock, do not clamp/backdate it or relax replay. A monotonic wait
+  budget refuses persistent wall-clock divergence. Host pauses keep expiry/staleness semantics.
+  Six deterministic timer/clock cases plus existing worker/runtime/original-recovery tests
+  cover the correction. This is a causal correctness fix, not empirical Phase 3 acceptance.

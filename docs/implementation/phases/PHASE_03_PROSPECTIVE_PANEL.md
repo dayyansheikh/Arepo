@@ -284,3 +284,10 @@ Current validation blocker (2026-09-25): full backend attempt stopped at 728 pas
 capacity failures. Required disk reservations remain unchanged. See ../PHASE_03_FULL_REGRESSION_CAPACITY_EVIDENCE.json
 and checkpoint; obtain sufficient local test capacity before rerunning, then continue the
 screening/control contract. Phase 3 remains incomplete.
+
+
+2026-09-27 recovery: local capacity blocker cleared. Unchanged full regression: 1,438 passed,
+4 failed (three early UTC intents, one pause-staled pre-binding). D067 now rechecks UTC after
+timer completion without weakening causal deadlines; all 55 affected cases pass across the
+recorded targeted runs. Full evidence and commands are in the checkpoint/review. Resume
+screening/control integration; Phase 3 remains incomplete and Phase 4 stays in a fresh chat.

@@ -1,6 +1,5 @@
 """Interleaved synthetic origins and due targets with an immutable dispatch journal."""
 
-import asyncio
 import hashlib
 import heapq
 import shutil
@@ -18,6 +17,7 @@ from .build_identity import verified_panel_build
 from .input_read import _canonical
 from .panel_declaration import PanelProtocol, read_panel_declaration
 from .quote_inputs import _at
+from .scheduling import wait_until
 
 VERSION = 'fs2-interleaved-synthetic-runtime-v1'
 POLICY = {'live_collection_enabled': False, 'top_bytes': 32 * 1048576,
@@ -153,10 +153,7 @@ async def exercise_panel(panel_root, *, transport):
         origins, attempts, events = {}, [], []
         while queue:
             due, _, identity, kind, job = heapq.heappop(queue)
-            remaining = (due - _time(_clock())).total_seconds()
-            if remaining > 0:
-                await asyncio.sleep(remaining)
-            dispatched = _clock()
+            dispatched = await wait_until(due)
             if kind == 'origin':
                 result = await origin_worker._collect_one(root / 'origins' / identity,
                     job, members[job['market_id']], panel_policy, activation, transport)
@@ -171,9 +168,8 @@ async def exercise_panel(panel_root, *, transport):
         deadlines = [_time(o['facts']['origin_at']) + timedelta(
             seconds=protocol.horizon_seconds + protocol.tolerance_seconds)
             for o in origins.values() if o['result']['state'] == 'observed']
-        remaining = (max(deadlines) - _time(_clock())).total_seconds() if deadlines else 0
-        if remaining > 0:
-            await asyncio.sleep(remaining)
+        if deadlines:
+            await wait_until(max(deadlines))
         cutoff = _clock()
         outcomes = due_worker._outcomes(list(origins.values()), attempts, protocol, cutoff)
         if verified_panel_build() != build:

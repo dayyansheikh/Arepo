@@ -1,6 +1,5 @@
 """Synthetic due observations over durable origins; no live or SQL admission."""
 
-import asyncio
 import hashlib
 import math
 import re
@@ -45,6 +44,7 @@ from .quote_computation import (
     record_quote_computation,
 )
 from .quote_inputs import QuoteInputPolicy, _at
+from .scheduling import wait_until
 from .target_adapter import adapt_target_quote
 from .targets import Quote, select_target
 
@@ -279,8 +279,8 @@ async def _collect_one(root, job, origin, panel_policy, transport):
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
     try:
-        at = _clock()
         eligible = origin["result"]["state"] == "observed"
+        at = await wait_until(_at(job["scheduled_at"])) if eligible else _clock()
         budget = _budget(protocol, job, at) if eligible else None
         _save(
             root,
@@ -546,10 +546,6 @@ async def exercise_targets(panel_root, *, transport):
         attempts = []
         for job in jobs:
             origin = by_id[job["origin_id"]]
-            if origin["result"]["state"] == "observed":
-                remaining = (_at(job["scheduled_at"]) - _time(_clock())).total_seconds()
-                if remaining > 0:
-                    await asyncio.sleep(remaining)
             attempts.append(
                 await _collect_one(root / job["attempt_id"], job, origin, panel_policy, transport)
             )
@@ -559,9 +555,8 @@ async def exercise_targets(panel_root, *, transport):
             for j in jobs
             if by_id[j["origin_id"]]["result"]["state"] == "observed"
         ]
-        remaining = (max(deadlines) - _time(_clock())).total_seconds() if deadlines else 0
-        if remaining > 0:
-            await asyncio.sleep(remaining)
+        if deadlines:
+            await wait_until(max(deadlines))
         cutoff = _clock()
         outcomes = _outcomes(origins, attempts, protocol, cutoff)
         if verified_panel_build() != build:

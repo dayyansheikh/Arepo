@@ -886,3 +886,22 @@ satisfy the 4,289 MiB compact or 5,969 MiB default fixture reservations plus tem
 /tmp shares the volume; no other local data volume found; all pytest temporary roots combined
 would not clear the larger requirement. No evidence deleted or safeguard weakened. Local test
 capacity requested (at least 8 GiB free); further implementation waits for this validation gate.
+
+
+## D067 — UTC boundary verification (2026-09-27)
+
+Capacity restored; unchanged D066 full run: 1,438 passed/4 failed, 1,468.63s, unchanged code/test
+fingerprint. Evidence: PHASE_03_REGRESSION_RECOVERY_EVIDENCE.json. Three failures were genuine
+early timer wakeups; strict replay refused early intents. Fourth was a stale book after a
+host pause. D067 rechecks UTC at collection intent, dispatch and final cutoff, returning the
+actual clock; bounded backward-clock waiting refuses divergence. No guard loosened.
+
+Affected command: pytest backend/tests/unit/test_research_panel_{scheduling,origin_worker,
+due_worker,runtime,original_runtime,original_bound_window}.py -q --tb=short, explicit local
+SQLite and disabled email. Initial 53 passed/2 failed/1 teardown error in 483.75s. New clock
+test isolation fixed (shared time module mock affected asyncio); six clock tests pass in 0.12s.
+Scheduling+due retry: 22 passed/1 pause-induced expiry in 229.48s. Exact remaining rate-limit
+case passed in 18.64s under temporary process-scoped sleep prevention. All 55 distinct affected
+cases pass across runs; no all-green full-suite claim. Ruff/canonical/whitespace pass. Review
+confirmed no clock fabrication, evidence edits, production changes or source requests. Phase 3
+is incomplete. Next: authenticated screening/control integration using existing sampler.
