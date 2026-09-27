@@ -108,3 +108,38 @@ frame, panel, declarations, books and their sources.
    include selected external information and honest unsupported family states. Measure actual
    controls, origin/target timing and coverage against its predeclared gate. Phase 3 remains
    incomplete until that empirical acceptance passes; Phase 4 remains a fresh-chat task.
+
+
+## Capacity finding and next design — 2026-09-27 (not implemented)
+
+Read only the already accepted historical selection plan for sizing: 107 strata, 98 with at
+least two members and nine singletons. Two per stratum would select 205 markets. Current free
+space was 27,055,919,104 bytes. D068 declarations/results (96 MiB each), existing book outputs
+(16 MiB each) and two original-reader output ceilings (16 MiB each) alone imply 205 ×144 MiB,
+plus 64 MiB batch metadata and 2 GiB reserve: 33168556032 bytes, before source captures,
+frame/selection, origin/control/target journals and recovery metadata. The unrestricted shape
+therefore cannot be promised within current capacity. These are historical sizing facts, not
+a new sampling draw or empirical pilot. No history was deleted or revalidated.
+
+Use a versioned bounded two-stage stratum draw to retain the existing matching dimensions;
+do not coarsen or truncate them to evade the limit. Predeclare a cap L, uniform without-
+replacement stratum selection, and up to two scheduled markets per selected stratum before
+source assessment. For T eligible strata and N eligible members in a stratum, preserve both
+stage probabilities and the exact first-stage market inclusion:
+
+    min(L,T)/T × min(2,N)/N
+
+All eligible members retain a nonzero chance, including unknown strata; all unsampled strata,
+full inventory and singleton/unfilled-control outcomes remain explicit. D068's later matched
+roles still have only conditional probabilities, not an invented global arm weight. A 32-stratum
+cap (at most 64 screens) is a sizing candidate, not a frozen public protocol: settle it only
+with the complete enforced source/book/recovery/origin/control/target reservation. Keep all
+numerical covariates and current matching fields. Never reuse an old draw as a fresh selection.
+
+Implement this as a small versioned extension of the existing sampler/declaration/selection,
+with legacy hashes/readers preserved; no new service, database, queue or storage system. Test
+small-population exact inclusion, T<L, singletons/unknowns, reproducibility, no future inputs,
+full inventory, resource overflow, and original-code recovery. Then connect D068, the bounded
+source worker and verified-role activation. This resolves a required sampling/resource gate,
+not an optional infrastructure project. Do not spend public requests before these boundaries
+are tested and the full pilot protocol committed.
