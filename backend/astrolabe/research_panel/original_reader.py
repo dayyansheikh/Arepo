@@ -428,7 +428,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             if output_root == dependency or dependency in output_root.parents:
                 raise ValueError('separate output outside pre-window dependencies required')
     if kind == 'runtime':
-        if policy['schema_version'] != 'fs2-interleaved-synthetic-runtime-v1':
+        if policy['schema_version'] not in {'fs2-interleaved-synthetic-runtime-v1',
+                                            'fs2-concurrent-synthetic-runtime-v2'}:
             raise ValueError('unsupported original runtime layout')
         panel = Path(policy['panel_root'])
         declaration, _ = _pair(panel, 'panel_policy')
@@ -436,6 +437,18 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
         dependencies = [panel, Path(declaration['frame_root']),
                         panel.with_name('fs2_activation_' + suffix),
                         panel.with_name('fs2_selection_panel_' + suffix)]
+        if policy['schema_version'] == 'fs2-concurrent-synthetic-runtime-v2':
+            screen = Path(policy['screening_root'])
+            screen_policy, _ = _pair(screen, 'screening_policy')
+            dependencies.append(screen)
+            if not 1 <= len(screen_policy['selected']) <= 256:
+                raise ValueError('bounded concurrent screening dependencies required')
+            for item in screen_policy['selected']:
+                book = Path(item['book_root'])
+                dependencies.extend([Path(item['declaration_root']), book])
+                if book.exists():
+                    book_policy, _ = _pair(book, 'book_policy')
+                    dependencies.append(Path(book_policy['source_root']))
         for dependency in dependencies:
             if not dependency.is_absolute() or dependency.resolve() != dependency:
                 raise ValueError('canonical original runtime dependency required')

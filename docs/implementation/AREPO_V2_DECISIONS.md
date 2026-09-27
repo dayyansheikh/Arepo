@@ -145,3 +145,5 @@ Future architecture changes append here with reason, affected contracts and migr
   describe the screening occasion, not fresh signals at every cycle. Recovery preserves the
   original cutoff/schedule and all source dependencies. Legacy activation defaults remain v1.
   No live collection or synthetic-runtime admission is enabled merely by activation.
+
+- D072 (2026-09-27): reserve one concurrent slot from origins for due targets; dispatch ready targets first, then scheduled UTC/id. Use 2–8 bounded isolated job event loops and drain durable writers on cancellation. Record/replay actual dispatch/completion and child clocks, with no early start or altered deadline. Version the screened synthetic runtime explicitly and retain legacy replay. This addresses observed queue starvation risk; it does not establish empirical timing, continuous socket state or feature admission.

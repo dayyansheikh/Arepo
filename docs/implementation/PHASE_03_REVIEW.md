@@ -984,3 +984,11 @@ refusal, legacy schema behavior, output outside evidence and original-Git recove
 Pure role-capacity arithmetic moved from screening_worker to panel_declaration for reuse.
 No public collection or phase acceptance. Next: bounded concurrent screened runtime with
 reserved target capacity, replayable actual dispatch/completion and cancellation drainage.
+
+## D072 — bounded concurrent screened runtime (2026-09-27)
+
+21 affected tests passed in 246.37s: test_research_panel_{concurrent_runtime,runtime,original_runtime}.py, explicit local SQLite, disabled email, process-scoped caffeinate. Log: /tmp/arepo_d072_final.log. Ruff/backend, canonical and whitespace checks pass. No full regression repeated.
+
+Self-review: 2–8 jobs, at most C−1 origins, ready targets before ready origins, actual parent dispatch/completion events separate from child intent/receipt/freeze clocks. Isolated job event loops prevent synchronous parsing/fsync from stalling other jobs. Cancellation drains durable writers. Replay verifies evolving queue/capacity, all child roots/clocks/outcomes and original-code screening dependencies. Legacy runtime remains compatible.
+
+Development fixture initially retained a late third origin under an 8s synthetic budget; final fixture uses a predeclared 20s budget and deterministic slow second dispatch. No real protocol deadline or causal guard changed. Delayed multi-market validation proves target dispatch during a slow origin, not real-world throughput. Runtime remains MockTransport-only, synthetic, unadmitted. Persistent numerical windows, selected external admission and the empirical panel remain required.

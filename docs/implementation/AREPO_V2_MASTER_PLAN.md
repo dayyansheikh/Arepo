@@ -82,3 +82,5 @@ D069 bounded stratum selection accepted with 193 affected tests (217.52s). Exact
 D070 bounded synthetic screening worker passes 29 affected tests (189.01s). Whole current-runtime/recovery reservation, bounded concurrency and cancellation drainage implemented. Next: authenticated screened-role activation, scalable runtime and empirical pilot. Phase 3 incomplete.
 
 D071 screened-role activation accepted with 57 affected tests (402.86s). Actual evidence availability/freshness and role capacity verified; legacy/original recovery passes. Next: bounded concurrent screened runtime. Empirical Phase 3 gates remain open.
+
+D072 bounded concurrent screened runtime accepted as a synthetic software milestone: 21 affected tests passed in 246.37s. Reserved target capacity, actual queue/child replay and cancellation drainage pass. No public runtime or empirical admission. Next resolve numerical-window and selected-external observation integration before the bounded pilot; Phase 3 remains incomplete.

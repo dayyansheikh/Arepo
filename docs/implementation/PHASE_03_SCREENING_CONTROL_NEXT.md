@@ -224,3 +224,5 @@ Use bounded isolated job event loops so synchronous decoding/fsync cannot stall 
 receipt handling. Verify delayed multi-market jobs, target priority, limits, cancellation, queue/
 clock/raw/outcome tampering and full original recovery before public use. This fixes the known
 origin-queue starvation risk; it does not yet add persistent socket state or prove live timing.
+
+D072 implements and tests the preceding runtime contract (21 affected tests, 246.37s). It remains synthetic and does not acquire persistent pre-t0 socket state. The next gate is causal numerical-window and selected-external integration under a finite reservation, followed by a committed bounded public pilot. Choose the smallest integration required by the existing acceptance criteria; avoid new services or duplicate observers without measured need.
