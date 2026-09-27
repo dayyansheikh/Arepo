@@ -85,6 +85,13 @@ json.dump(read_window_reconciliation(Path(sys.argv[2])), sys.stdout,
           sort_keys=True, separators=(",", ":"))
 '''
 
+_SCREENING_SCRIPT = '''import json,sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from astrolabe.research_panel.screening import read_screening
+json.dump(read_screening(Path(sys.argv[2])), sys.stdout, sort_keys=True, separators=(",", ":"))
+'''
+
 _TRIGGER_COMPUTATION_SCRIPT = '''import json,sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
@@ -268,11 +275,16 @@ def read_original_trigger_computation(root, *, implementation_commit, output_roo
                           kind='trigger_computation')
 
 
+def read_original_screening(root, *, implementation_commit, output_root, repository=None):
+    return _read_original(root, implementation_commit=implementation_commit,
+                          output_root=output_root, repository=repository, kind='screening')
+
+
 def _read_original(frame_root, *, implementation_commit, output_root, repository, kind):
     if kind not in {'frame', 'selection', 'quote_computation', 'book_computation',
                     'runtime', 'window', 'window_computation', 'bound_window',
                     'window_reconciliation', 'socket_window', 'socket_analysis',
-                    'trigger_computation'}:
+                    'trigger_computation', 'screening'}:
         raise ValueError('unsupported original journal kind')
     schema = VERSION if kind == 'frame' else 'fs2-original-' + kind.replace('_', '-') + '-read-v1'
     script = {'frame': _SCRIPT, 'selection': _SELECTION_SCRIPT,
@@ -283,7 +295,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
               'window_reconciliation': _WINDOW_RECONCILIATION_SCRIPT,
               'socket_window': _SOCKET_WINDOW_SCRIPT,
               'socket_analysis': _SOCKET_ANALYSIS_SCRIPT,
-              'trigger_computation': _TRIGGER_COMPUTATION_SCRIPT}[kind]
+              'trigger_computation': _TRIGGER_COMPUTATION_SCRIPT,
+              'screening': _SCREENING_SCRIPT}[kind]
     computation = kind in {'quote_computation', 'book_computation', 'window_computation',
                            'socket_analysis', 'trigger_computation'}
     fact_prefix = {'quote_computation': 'quote', 'book_computation': 'book',
@@ -314,6 +327,25 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
             raise ValueError('canonical original source evidence path required')
         if output_root == source_root or source_root in output_root.parents:
             raise ValueError('separate output outside original source evidence required')
+    if kind == 'screening':
+        selection = Path(policy['selection_root'])
+        selection_policy, _ = _pair(selection, 'selection_policy')
+        dependencies = [selection, Path(selection_policy['frame_root']),
+                        Path(selection_policy['panel_root'])]
+        if not 1 <= len(policy['selected']) <= 256:
+            raise ValueError('bounded screening dependencies required')
+        for item in policy['selected']:
+            book = Path(item['book_root'])
+            dependencies.extend([Path(item['declaration_root']), book])
+            if book.exists():
+                book_policy, _ = _pair(book, 'book_policy')
+                dependencies.append(Path(book_policy['source_root']))
+        for dependency in dependencies:
+            if not dependency.is_absolute() or dependency.resolve() != dependency:
+                raise ValueError('canonical screening dependency required')
+            if (output_root == dependency or dependency in output_root.parents
+                    or output_root in dependency.parents):
+                raise ValueError('separate output outside screening dependencies required')
     if kind == 'trigger_computation':
         declaration, book = Path(policy['declaration_root']), Path(policy['book_root'])
         book_policy, _ = _pair(book, 'book_policy')

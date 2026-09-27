@@ -106,3 +106,13 @@ Future architecture changes append here with reason, affected contracts and migr
   budget refuses persistent wall-clock divergence. Host pauses keep expiry/staleness semantics.
   Six deterministic timer/clock cases plus existing worker/runtime/original-recovery tests
   cover the correction. This is a causal correctness fix, not empirical Phase 3 acceptance.
+
+- D068 (2026-09-27): reuse the existing complete selection and sampler. Freeze all sampled
+  assignments, exact rule, new random second-stage seed and deterministic future decision paths
+  before requests. Authenticate D066 primary journals, frame mapping/rule lineage and actual
+  cutoff availability before matched-control planning. Keep measured negatives separate from
+  stale/changed/failed/unknown evidence; retain unfilled slots and first-stage assignments.
+  Preserve first-stage inclusion and conditional second-stage probabilities without inventing a
+  global arm/union weight. Exclusive completion and original-code recovery prevent later evidence
+  additions changing a sealed result. Full collector reservation and role admission remain separate;
+  no source worker, origin, SQL admission, live pilot or edge claim is enabled by this boundary.

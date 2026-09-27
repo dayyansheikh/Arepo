@@ -291,3 +291,10 @@ screening/control contract. Phase 3 remains incomplete.
 timer completion without weakening causal deadlines; all 55 affected cases pass across the
 recorded targeted runs. Full evidence and commands are in the checkpoint/review. Resume
 screening/control integration; Phase 3 remains incomplete and Phase 4 stays in a fresh chat.
+
+
+D068 screening declaration and authenticated matched-role consumer pass 64 affected tests
+(140.15s). They reuse the existing selection/sampler, preserve conditional weights and explicit
+unknown/unfilled states, and recover through original code. No source worker, origin/runtime
+admission or empirical acceptance yet. Continue PHASE_03_SCREENING_CONTROL_NEXT.md; Phase 3
+remains incomplete, and Phase 4 begins only in a fresh conversation.

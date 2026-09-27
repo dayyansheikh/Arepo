@@ -1,13 +1,15 @@
-# Phase 3 — next measured screening/control boundary
+# Phase 3 — measured screening/control integration
 
-After D066 and backend-wide recovery regression. Read checkpoint, Phase 3 plan, D042 assessment
+After D066 and D067 regression recovery. D068 implements the declaration and authenticated consumer described below; the bounded source worker and origin integration remain. Read checkpoint, Phase 3 plan, D042 assessment
 checks, D050 scheduled-only selection, D056 runtime and D065/D066 evidence/contracts first.
 Do not recollect the diagnostic or upgrade its 1s-covered/59s-uncovered result.
 
 ## Gaps established by current code
 
-- `panel_selection.py` deliberately sets every member to not-assessed. D066 now authenticates
-  individual predeclared snapshot decisions, but no selector consumes those journals yet.
+- `panel_selection.py` retains the original all-unassessed first-stage draw. D068 consumes its
+  exact selected members into a separate predeclared screening journal, authenticates D066
+  decisions and calls the existing sampler for conditional trigger/control roles. The original
+  selection and complete inventory remain unchanged; no live collector or origin admits these roles yet.
 - `sampling.py` assigns arm/stratum-conditional probabilities; it does not supply a global union
   probability or an automatic product weight for a newly invented screening stage.
 - The preserved development selection has 107 strata and absent categories. Measuring every
@@ -63,3 +65,46 @@ continuity families stay explicit unavailable until their own prerequisites are 
 
 Exit remains the Phase 3 representative prospective pilot with measured controls, timing and target
 coverage. Neither D065 nor D066 completes Phase 3. Phase 4 starts in a fresh conversation only.
+
+
+## D068 implemented boundary
+
+`screening.py` owns a bounded batch of 1–256 selected markets. It verifies the complete fresh
+selection before declaring a random second-stage seed, exact snapshot rule, freshness limits,
+all assignments and deterministic future D066/book paths. Every D066 declaration follows that
+acknowledgement and precedes its own primary source requests. The screening journal reserves
+64 MiB of metadata plus 96 MiB per decision (64 MiB result and two 16 MiB declaration artefacts),
+with the existing 2 GiB free reserve. This is **not** the full collector reservation.
+
+Completion has one exclusive intent and actual cutoff/read/compute/save clocks. It authenticates
+source-backed D066 decisions, matches frame mapping/rule versions and provenance, then retains
+measured negatives, positives, unavailable and unassessed states. Missing result roots remain
+unassessed; torn/corrupt results refuse completion. Later additions cannot alter a sealed batch.
+Partial screening keeps scheduled assignments and unfilled control slots; no automatic redraw.
+
+The first-stage inclusion probability stays on each assignment. Second-stage inclusion and
+matching probabilities are conditional on the screened sample and measured states; no global
+arm/union weight is invented by multiplying them. All scheduled first-stage members remain in
+the resulting plan. The result is development measurement plumbing, not an admitted origin,
+representative live pilot or validated edge. Full original-code recovery protects selection,
+frame, panel, declarations, books and their sources.
+
+## Exact next implementation work
+
+1. Add one bounded worker around existing SourceRun → book computation → D066 → D068. Freeze
+   source paths, response/request/time quotas and the *whole* source/book/assessment/recovery/
+   origin/control/target reservation before requests. Consume only the owned assignments;
+   preserve failure/unknown states and never search for replacement markets.
+2. Before activation, prove the selected role counts fit the frozen panel reservation. D068
+   produces a conditional research plan, not resource admission. Its roles may overlap but
+   cannot spend an assumed overlap discount. Existing one-per-stratum sampling cannot produce
+   within-stratum matched controls from that screen; predeclare an adequate future sample.
+   Inspect current capacity and existing protocol before choosing its shape. Do not silently
+   truncate strata, reinterpret historical draws, or introduce a new sampler unnecessarily.
+3. Integrate a versioned activation/runtime that actually consumes the verified screening roles
+   and keeps the existing immutable origin/target deadlines. Preserve all causal checks,
+   finite budgets and original-code recovery. The current runtime stays synthetic-only.
+4. Freeze and commit a scientifically explicit public pilot protocol before any collection;
+   include selected external information and honest unsupported family states. Measure actual
+   controls, origin/target timing and coverage against its predeclared gate. Phase 3 remains
+   incomplete until that empirical acceptance passes; Phase 4 remains a fresh-chat task.

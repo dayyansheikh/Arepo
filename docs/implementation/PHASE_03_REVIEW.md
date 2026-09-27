@@ -905,3 +905,24 @@ case passed in 18.64s under temporary process-scoped sleep prevention. All 55 di
 cases pass across runs; no all-green full-suite claim. Ruff/canonical/whitespace pass. Review
 confirmed no clock fabrication, evidence edits, production changes or source requests. Phase 3
 is incomplete. Next: authenticated screening/control integration using existing sampler.
+
+
+## D068 — authenticated screening/control planning
+
+Reuses the first-stage selection, D066 journals and existing sampler; no alternate sampler or
+infrastructure. Owns rule/seed/assignments before acquisition, verifies current mapping/rule and
+source provenance, preserves all first-stage selections and computes conditional matched roles.
+Unknowns never become negative controls; unavailable/stale identities, one-sided pools, partial
+screening and unfilled controls remain explicit. Original-code recovery protects transitive
+inputs, exact facts and old clocks. No global arm probability or empirical acceptance is claimed.
+
+Final validation: 64 passed in 140.15s using pytest on test_research_panel_screening.py,
+test_research_panel_assessments.py and test_research_panel_trigger_computation.py -xq --tb=short.
+Explicit local SQLite, disabled email, synthetic HTTP only, process-scoped sleep prevention.
+Fifteen new screening cases include positive/negative, both one-sided pools, no assessments,
+changed mapping, staleness, source failures, partial screen, tampered raw/plan/clock/assignment,
+exclusive completion, full original recovery and retained nonterminating 2/3 first-stage weight.
+Initial tagged-UTC decoding defect corrected without relaxing datetime checks. Full backend
+baseline remains as recorded under D067; no redundant full-suite rerun. Ruff/canonical/whitespace
+pass. Self-review confirmed no future inputs, no redraw, no negative imputation and no production
+changes. Next: bounded source worker and verified-role activation under the full reservation.
