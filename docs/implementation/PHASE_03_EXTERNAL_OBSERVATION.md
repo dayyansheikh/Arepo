@@ -67,3 +67,5 @@ Then measure once. For panel use predeclare and verify station/location/date/met
 source correspondence against actual selected market rules, and register native age/QC/window
 eligibility. Unsupported assignments remain not-applicable or unresolved. This is the external
 source prerequisite; no forecast feature or Phase 4 model is implemented here.
+
+D073 measured once under `77d6652`: HTTP 200 observed prospective NWS response, actual input read and original-Git recovery passed. Evidence: PHASE_03_NWS_SOURCE_EVIDENCE.json. The fixed KNYC reading has no automatic selected-market relevance and does not complete Phase 3. Do not repeat this measurement. Resume the live checkpoint's numerical-family/origin integration step.

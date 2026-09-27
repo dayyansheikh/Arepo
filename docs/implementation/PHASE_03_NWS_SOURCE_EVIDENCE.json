@@ -1,0 +1,99 @@
+{
+  "schema_version": "fs2-phase3-nws-source-evidence-v1",
+  "implementation_commit": "77d66522a5eee7054396663848932b27e63d3954",
+  "root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_nws_measurement_20260927_1",
+  "protocol": "PHASE_03_EXTERNAL_OBSERVATION.md",
+  "report": {
+    "accepted_panel": false,
+    "actual_input_read": {
+      "observation_count": 1,
+      "origin_admitted": false,
+      "projection_completed_at": {
+        "clock_session_id": "67eda4fa-9df0-48a5-b111-e91c914bd9d9",
+        "monotonic_ns": "1447497445224500",
+        "utc": "2026-09-27T21:13:05.889469Z"
+      },
+      "projection_hash": "4370a73bc9e2c06d126a1a774834111f180056ab361f0ef8ce45ce700447c4b1",
+      "read_available_at": {
+        "clock_session_id": "67eda4fa-9df0-48a5-b111-e91c914bd9d9",
+        "monotonic_ns": "1447497488068375",
+        "utc": "2026-09-27T21:13:05.932312Z"
+      },
+      "read_facts_hash": "06853b9713701c782d7cf8744d6d2936e364647d67ca97ec84a08a58eb651f49",
+      "read_started_at": {
+        "clock_session_id": "67eda4fa-9df0-48a5-b111-e91c914bd9d9",
+        "monotonic_ns": "1447497338646916",
+        "utc": "2026-09-27T21:13:05.782891Z"
+      },
+      "schema_version": "fs2-panel-input-read-v2",
+      "source_clocks_changed": false,
+      "source_provenance_class": "prospective"
+    },
+    "finished_at": {
+      "clock_session_id": "67eda4fa-9df0-48a5-b111-e91c914bd9d9",
+      "monotonic_ns": "1447499976414708",
+      "utc": "2026-09-27T21:13:08.420666Z"
+    },
+    "market_relevance_admitted": false,
+    "observation_id": "698d428f4d2c1c9718b52671eedb3051d8633c21b14c321a2ebe2d7c86dee288",
+    "origin_admitted": false,
+    "original_read_available_at": {
+      "clock_session_id": "67eda4fa-9df0-48a5-b111-e91c914bd9d9",
+      "monotonic_ns": "1447499899485291",
+      "utc": "2026-09-27T21:13:08.343735Z"
+    },
+    "payload_hash": "4dce44bcb18d9035bedd6632ad5cf0365920bba5e656980caa82ecb8fc506410",
+    "provenance_class": "prospective",
+    "received_at": {
+      "$utc": "2026-09-27T21:13:05.590868Z"
+    },
+    "retained_bytes_before_report": 90013,
+    "schema_version": "fs2-nws-source-measurement-v1",
+    "source_available_at": {
+      "$utc": "2026-09-27T21:13:05.666599Z"
+    },
+    "source_records_hash": "984a69febc8f99c3a869a10c6bb42be799b6a45a419b12317c709cbf7332dac8",
+    "state": "observed"
+  },
+  "report_sha256": "5dc84de1d3851e9d676310039d265fe5140bcc723205791e0a4f0dc2df864497",
+  "status": 200,
+  "raw_bytes": 5036,
+  "request_started": {
+    "clock_session_id": "67eda4fa-9df0-48a5-b111-e91c914bd9d9",
+    "monotonic_ns": "1447497013422750",
+    "utc": "2026-09-27T21:13:05.457661Z"
+  },
+  "native_observation_clock": {
+    "missing_reason": "observed",
+    "quality_flags": [],
+    "raw": "2026-09-27T20:43:00+00:00",
+    "unit": "iso8601",
+    "value": {
+      "$utc": "2026-09-27T20:43:00.000000Z"
+    }
+  },
+  "quantity_states": {
+    "reported": 10,
+    "source_null": 7
+  },
+  "units": [
+    "wmoUnit:Pa",
+    "wmoUnit:degC",
+    "wmoUnit:degree_(angle)",
+    "wmoUnit:km_h-1",
+    "wmoUnit:m",
+    "wmoUnit:mm",
+    "wmoUnit:percent"
+  ],
+  "retained_bytes": 91937,
+  "limitations": [
+    "One fixed KNYC source-path measurement, not a representative panel",
+    "No automatic selected-market station/date/metric/resolution-source mapping",
+    "Observation timestamp is not publication or first-vintage availability",
+    "QC retained without scientific acceptance; null daily extrema not reconstructed",
+    "No forecast innovation, source-complete window, predictive or executable value claim"
+  ],
+  "no_retry": true,
+  "original_recovery_passed": true,
+  "phase3_complete": false
+}
