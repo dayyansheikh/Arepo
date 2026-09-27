@@ -926,3 +926,25 @@ Initial tagged-UTC decoding defect corrected without relaxing datetime checks. F
 baseline remains as recorded under D067; no redundant full-suite rerun. Ruff/canonical/whitespace
 pass. Self-review confirmed no future inputs, no redraw, no negative imputation and no production
 changes. Next: bounded source worker and verified-role activation under the full reservation.
+
+
+## D069 — bounded first-stage stratum draw (2026-09-27)
+
+Self-review: full inventory and original matching dimensions survive; only complete entirely
+unassessed frames use the new design. Independent domain-tagged stratum ranking precedes the
+existing member ranking. Exact min(L,T)/T × min(n,N)/N is preserved even when its denominator
+exceeds the single-frame count limit. The cap is frozen before frame reads and checked against
+worst-case scheduled slots. Unknown/singleton/unsampled strata remain explicit; controls are not
+inferred. Legacy defaults and golden plan hash pass unchanged. New selection versions reach
+D068 but remain refused by old activation. No runtime, public source or scientific gate enabled.
+
+Validation: **193 passed in 217.52s**, explicit isolated SQLite, disabled email, process-scoped
+caffeinate. Suites: test_research_panel_{bounded_sampling,planning,assessments,declaration,
+bound_selection,screening,compact_storage,original_selection}.py. Includes exhaustive small
+population design mass, cap/population boundaries, future/measured-input refusal, original-Git
+recovery, full inventory and resealed cap/stage-weight/unsampled-inventory corruption.
+Development run: 45 passed in 16.88s. Final log /tmp/arepo_d069_acceptance.log. Ruff across
+backend, canonical contract and git diff --check pass. No full backend regression repeated.
+
+Remaining: full-reservation acquisition worker, verified-role activation and scalable observation
+runtime, selected external information and actual prospective pilot acceptance. Phase 3 incomplete.

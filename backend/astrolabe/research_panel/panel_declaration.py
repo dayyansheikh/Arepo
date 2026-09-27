@@ -17,6 +17,7 @@ from .sampling import SamplingProtocol
 
 VERSION = 'fs2-panel-declaration-v1'
 COMPACT_VERSION = 'fs2-panel-declaration-v2'
+BOUNDED_VERSION = 'fs2-panel-declaration-v3'
 MIB = 1048576
 FIXED = {'selection_bytes': 1024 * MIB, 'frame_read_bytes': 16 * MIB,
          'declaration_bytes': MIB, 'free_reserve_bytes': 2048 * MIB,
@@ -146,12 +147,22 @@ def _recipe(protocol, seed):
         max_unique_markets=protocol.market_slots))
 
 
+def _stratum_limit(protocol, strata_limit):
+    if strata_limit is not None and (
+        type(strata_limit) is not int or not 1 <= strata_limit <= 256
+        or strata_limit * protocol.scheduled_per_stratum > protocol.scheduled_slots
+    ):
+        raise ValueError('bounded stratum design exceeds declared scheduled slots')
+
+
 def declare_panel(frame_root, *, implementation_commit, output_root, protocol,
-                  storage_profile=None):
+                  storage_profile=None, strata_limit=None):
     """No numerical reads, caller seed/clocks/provenance, network, SQL or accepted origin."""
     frame, root = _paths(frame_root, output_root, implementation_commit)
     allocation = reservation(protocol, storage_profile=storage_profile)
-    version = VERSION if storage_profile is None else COMPACT_VERSION
+    _stratum_limit(protocol, strata_limit)
+    version = (BOUNDED_VERSION if strata_limit is not None else
+               VERSION if storage_profile is None else COMPACT_VERSION)
     if not frame.is_dir():
         raise ValueError('existing frame directory required; numerical verification comes later')
     if root.exists():
@@ -164,6 +175,7 @@ def declare_panel(frame_root, *, implementation_commit, output_root, protocol,
     try:
         payload = {
             'schema_version': version, 'protocol': asdict(protocol), 'fixed_limits': FIXED,
+            **({'strata_limit': strata_limit} if strata_limit is not None else {}),
             **({'computation_storage_profile': storage_profile}
                if storage_profile is not None else {}),
             'reservation': allocation, 'sampling_recipe': _recipe(protocol, secrets.token_hex(32)),
@@ -196,11 +208,15 @@ def read_panel_declaration(output_root):
     _paths(payload['frame_root'], root, payload['frame_implementation_commit'])
     protocol = PanelProtocol(**payload['protocol'])
     profile = payload.get('computation_storage_profile')
-    version = VERSION if profile is None else COMPACT_VERSION
+    limit = payload.get('strata_limit')
+    _stratum_limit(protocol, limit)
+    version = (BOUNDED_VERSION if limit is not None else
+               VERSION if profile is None else COMPACT_VERSION)
     seed = payload['sampling_recipe']['seed']
     if not isinstance(seed, str) or not HASH_PATTERN.fullmatch(seed):
         raise ValueError('invalid frozen panel seed')
-    if (payload['schema_version'] != version or payload['build'] != verified_panel_build()
+    if (payload['schema_version'] != version or ('strata_limit' in payload and limit is None)
+            or payload['build'] != verified_panel_build()
             or payload['fixed_limits'] != FIXED or payload['source_policy'] != TARGETED_POLICY
             or payload['feature_families'] != FAMILIES
             or _json_bytes(payload['reservation']) != _json_bytes(
@@ -215,6 +231,7 @@ def read_panel_declaration(output_root):
             or not _ordered_clocks(payload['declared_at'], ack['durable_ack'])):
         raise ValueError('panel declaration build/policy/chronology differs')
     return {**({'computation_storage_profile': profile} if profile is not None else {}),
+            **({'strata_limit': limit} if limit is not None else {}),
             'schema_version': version, 'declaration_hash': ack['payload_hash'],
             'declaration_available_at': ack['durable_ack'],
             'protocol_hash': content_hash(payload['protocol']),

@@ -18,7 +18,7 @@ from astrolabe.feature_store.types import canonical_json
 from .assessments import TriggerAssessment, TriggerAssessmentPolicy
 from .build_identity import verified_panel_build
 from .input_read import _canonical
-from .panel_selection import VERSION as SELECTION_VERSION
+from .panel_selection import VERSIONS as SELECTION_VERSIONS
 from .panel_selection import freshness
 from .sampling import FrameMember, SamplingProtocol, plan_sample
 from .selection import _member, read_selection
@@ -47,7 +47,7 @@ class ScreeningPolicy:
 
 def _selected(selection):
     report = read_selection(selection)
-    if report["schema_version"] != SELECTION_VERSION:
+    if report["schema_version"] not in SELECTION_VERSIONS:
         raise ValueError("fresh declaration-bound selection required")
     policy, _ = _pair(selection, "selection_policy")
     inventory, _ = _pair(selection, "inventory")

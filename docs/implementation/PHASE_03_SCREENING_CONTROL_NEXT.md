@@ -153,3 +153,22 @@ budget, or otherwise prove the queue meets the frozen target tolerances at the c
 Test multi-market source/computation delays and target-before-origin ties before the public
 pilot. Do not simply widen deadlines after observing misses or alter old schedules. This is
 an existing timing-acceptance requirement, not a request for new hosted scheduling infrastructure.
+
+## D069 implementation and current next action
+
+The bounded stratum draw is implemented in sampling/panel declaration/selection and accepted
+by the D068 screening reader. Each selected assignment and every stratum report retain exact
+stage probabilities; unselected strata remain `stratum_not_sampled`, never exclusions. Full
+inventory/recovery stays unchanged. Default legacy schemas remain unchanged. The old activation
+rejects the new selection version. This resolves the sampling design prerequisite only.
+
+Next implement the bounded source worker with whole source/book/assessment/recovery plus
+origin/control/target reservation. Then consume authenticated roles in a versioned runtime.
+Do not select a public cap until that complete reservation fits actual capacity. The panel
+remains a pilot/validation mechanism, not the final ML dataset.
+
+Current user observation guidance supersedes any interpretation of the timing note above as
+requiring artificial staggering: prefer persistent pre-t0 subscriptions, bounded concurrent or
+sharded observers and causal state freezing when appropriate. Duplicate observers need measured
+reliability benefit. Preserve fixed deadlines and uncovered intervals; socket silence is not
+continuity evidence. Collect, measure, identify the actual limitation, fix it, then collect again.

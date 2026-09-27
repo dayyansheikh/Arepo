@@ -73,7 +73,11 @@ def exact_probability(numerator, denominator):
     if (type(numerator) is not int or type(denominator) is not int
             or not 0 <= numerator <= denominator or not 1 <= denominator <= 400000):
         raise ValueError("valid nonnegative inclusion count/frequency required")
-    value = Fraction(numerator, denominator)
+    return _probability_fraction(Fraction(numerator, denominator))
+
+
+def _probability_fraction(value):
+    # Stage products can exceed the single-frame denominator ceiling without rounding.
     remainder = value.denominator
     for factor in (2, 5):
         while remainder % factor == 0:
@@ -144,7 +148,8 @@ def _frame_hash(members):
 
 
 def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_evidence_ids,
-                max_frame_members=100000, assessment_policy=None, trigger_assessments=None):
+                max_frame_members=100000, assessment_policy=None, trigger_assessments=None,
+                strata_limit=None):
     """Each arm has its own conditional inclusion probability, not a union weight.
 
     The caller must durably freeze this output before capture; this pure planner cannot
@@ -175,6 +180,12 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
             raise ValueError('assessment mode requires neutral legacy trigger fields')
         inventory = assessment_inventory(assessment_policy, trigger_assessments, members, cutoff)
         assessed = {r['market_id']: r for r in inventory}
+    if strata_limit is not None:
+        if type(strata_limit) is not int or not 1 <= strata_limit <= 256:
+            raise ValueError('bounded stratum limit from 1 to 256 required')
+        if (frame_status != 'enumerated_complete' or not assessed_mode
+                or any(r['assessment'] is not None for r in inventory)):
+            raise ValueError('bounded stratum draw requires complete unassessed frame')
     triggers = [r.trigger_id for r in members if r.triggered]
     if len(set(triggers)) != len(triggers):
         raise ValueError("trigger IDs must identify one market decision, not duplicate events")
@@ -192,6 +203,14 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
         key = content_hash(fields)
         strata.setdefault(key, {"fields": fields, "members": []})["members"].append(row)
     assignments, reports = [], []
+    drawn_strata = set(strata)
+    stage_probability = None
+    if strata_limit is not None:
+        drawn_strata = set(nsmallest(strata_limit, strata, key=lambda key: (
+            content_hash({'seed': protocol.seed, 'stratum': key,
+                          'arm': 'screening_stratum_v1'}), key)))
+        if strata:
+            stage_probability = exact_probability(len(drawn_strata), len(strata))
 
     def trigger_id(row):
         return (assessed[row.market_id]['assessment']['evidence_id']
@@ -223,10 +242,18 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
                 assessment_evidence_id=(record['assessment']['evidence_id']
                                         if record['assessment'] is not None else None),
             )
+        if strata_limit is not None:
+            assignments[-1].update(
+                stratum_inclusion_probability=stage_probability,
+                conditional_market_inclusion_probability=exact_probability(count, population),
+                inclusion_probability=_probability_fraction(
+                    Fraction(len(drawn_strata), len(strata)) * Fraction(count, population)),
+                probability_scope='market in complete eligible frame; stratum then market draw',
+            )
 
     for key, stratum in sorted(strata.items()):
         rows = stratum["members"]
-        scheduled_n = min(protocol.scheduled_per_stratum, len(rows))
+        scheduled_n = min(protocol.scheduled_per_stratum, len(rows)) if key in drawn_strata else 0
         for row in select(rows, scheduled_n, key, "scheduled"):
             add(row, "scheduled", key, scheduled_n, len(rows))
         triggered_pool = [r for r in rows if state(r) == 'triggered']
@@ -254,6 +281,16 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
                 name: sum(state(r) == name for r in rows)
                 for name in ('triggered', 'untriggered', 'unavailable', 'not_assessed')
             }
+        if strata_limit is not None:
+            reports[-1].update(
+                sampling_state='sampled' if key in drawn_strata else 'stratum_not_sampled',
+                stratum_inclusion_probability=stage_probability,
+                conditional_market_inclusion_probability=exact_probability(
+                    min(protocol.scheduled_per_stratum, len(rows)), len(rows)),
+                market_inclusion_probability=_probability_fraction(
+                    Fraction(len(drawn_strata), len(strata))
+                    * Fraction(min(protocol.scheduled_per_stratum, len(rows)), len(rows))),
+            )
     unique = len({a["market_id"] for a in assignments})
     if unique > protocol.max_unique_markets:
         raise ValueError(
@@ -283,5 +320,15 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
             assessment_policy_hash=assessment_policy.hash,
             assessment_inventory=inventory,
             runtime_assessment_verification_required=True, origin_admitted=False,
+        )
+    if strata_limit is not None:
+        result.update(
+            schema_version='fs2-sampling-plan-v4',
+            stratum_draw={'version': 'fs2-bounded-stratum-draw-v1',
+                          'strata_limit': strata_limit, 'eligible_strata': len(strata),
+                          'selected_strata': len(drawn_strata),
+                          'stratum_inclusion_probability': stage_probability,
+                          'ranking_domain': 'screening_stratum_v1',
+                          'design': 'uniform_without_replacement_then_within_stratum'},
         )
     return {**result, "plan_hash": content_hash(result)}

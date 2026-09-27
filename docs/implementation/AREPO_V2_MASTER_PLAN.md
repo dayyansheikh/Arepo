@@ -1,6 +1,6 @@
 # AREPO v2 master implementation plan
 
-Updated 2026-09-25. This programme evolves the existing dayyansheikh/Arepo repository. Phase numbers follow the user's implementation programme, not the older report's differently numbered design roadmap. Phases 00–02 complete; next phase: **03 — Bounded prospective panel**.
+Updated 2026-09-27. This programme evolves the existing dayyansheikh/Arepo repository. Phase numbers follow the user's implementation programme, not the older report's differently numbered design roadmap. Phases 00–02 complete; next phase: **03 — Bounded prospective panel**.
 
 ## Recovery order and authority
 
@@ -76,3 +76,5 @@ D068 screening declaration and authenticated matched-role consumer pass 64 affec
 unknown/unfilled states, and recover through original code. No source worker, origin/runtime
 admission or empirical acceptance yet. Continue PHASE_03_SCREENING_CONTROL_NEXT.md; Phase 3
 remains incomplete, and Phase 4 begins only in a fresh conversation.
+
+D069 bounded stratum selection accepted with 193 affected tests (217.52s). Exact stage probabilities and full inventory/recovery retained; source worker and empirical pilot remain. Current next work: PHASE_03_SCREENING_CONTROL_NEXT.md.

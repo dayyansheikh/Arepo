@@ -17,6 +17,8 @@ from .selection import POLICY as LEGACY_POLICY
 from .selection import SelectionBudget, _canonical, _create_selection, _protocol
 
 VERSION = 'fs2-panel-selection-v1'
+BOUNDED_VERSION = 'fs2-panel-selection-v2'
+VERSIONS = {VERSION, BOUNDED_VERSION}
 ASSESSMENTS = {'version': 'fs2-no-measured-assessments-v1',
                'state': 'not_assessed', 'reason': 'not_assessed',
                'supplied_assessments': 0, 'matched_controls_eligible': False}
@@ -56,7 +58,9 @@ def selection_policy(panel, frame, root, commit, budget, build):
     return {
         **({'computation_storage_profile': payload['computation_storage_profile']}
            if 'computation_storage_profile' in payload else {}),
-        'schema_version': VERSION, 'policy': POLICY, 'build': build,
+        **({'strata_limit': payload['strata_limit']} if 'strata_limit' in payload else {}),
+        'schema_version': BOUNDED_VERSION if 'strata_limit' in payload else VERSION,
+        'policy': POLICY, 'build': build,
         'frame_root': str(frame), 'implementation_commit': commit, 'budget': asdict(budget),
         'sampling_protocol': payload['sampling_recipe'], 'declared_at': _clock(),
         'panel_root': str(panel), 'panel_declaration_hash': ack['payload_hash'],
@@ -66,12 +70,16 @@ def selection_policy(panel, frame, root, commit, budget, build):
 
 
 def verify_policy(root, policy, ack):
-    if policy['schema_version'] != VERSION:
+    if policy['schema_version'] not in VERSIONS:
         raise ValueError('unknown selection schema')
     panel = _canonical(policy['panel_root'])
     declaration = read_panel_declaration(panel)
     payload, panel_ack = _pair(panel, 'panel_policy')
+    version = BOUNDED_VERSION if 'strata_limit' in payload else VERSION
     if (root != selection_root(panel) or policy['policy'] != POLICY
+            or policy['schema_version'] != version
+            or ('strata_limit' in policy) != ('strata_limit' in payload)
+            or policy.get('strata_limit') != payload.get('strata_limit')
             or policy['assessment_policy'] != ASSESSMENTS
             or policy['budget'] != asdict(SelectionBudget())
             or policy['build'] != payload['build']
@@ -128,7 +136,9 @@ def freshness(policy, original, point):
 
 
 def bound_plan(policy, members, cutoff, original_hash, inventory_hash):
-    if policy['schema_version'] != VERSION or policy['assessment_policy'] != ASSESSMENTS:
+    if (policy['schema_version'] not in VERSIONS or policy['assessment_policy'] != ASSESSMENTS
+            or (policy['schema_version'] == BOUNDED_VERSION) != ('strata_limit' in policy)
+            or ('strata_limit' in policy and policy['strata_limit'] is None)):
         raise ValueError('explicit no-measured-assessments policy required')
     assessment = TriggerAssessmentPolicy(
         trigger_policy_hash=content_hash(ASSESSMENTS), declared_at=_time(policy['declared_at']),
@@ -138,7 +148,7 @@ def bound_plan(policy, members, cutoff, original_hash, inventory_hash):
         frame_scope='eligible mapped Gamma rows in the preserved complete source interval',
         frame_status='enumerated_complete', frame_evidence_ids=[original_hash, inventory_hash],
         max_frame_members=policy['budget']['rows'], assessment_policy=assessment,
-        trigger_assessments=(),
+        trigger_assessments=(), strata_limit=policy.get('strata_limit'),
     )
     counts = Counter(a['arm'] for a in plan['assignments'])
     if counts['scheduled'] > policy['panel_protocol']['scheduled_slots']:
@@ -148,7 +158,8 @@ def bound_plan(policy, members, cutoff, original_hash, inventory_hash):
     inventory = plan.pop('assessment_inventory')
     plan.pop('plan_hash')
     plan.update(
-        schema_version='fs2-panel-selection-plan-v1',
+        schema_version=('fs2-panel-selection-plan-v2' if 'strata_limit' in policy
+                        else 'fs2-panel-selection-plan-v1'),
         assessment_inventory_encoding={
             'version': 'fs2-uniform-not-assessed-inventory-v1',
             'member_domain': 'all members in the complete retained selection inventory',

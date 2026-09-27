@@ -116,3 +116,16 @@ Future architecture changes append here with reason, affected contracts and migr
   global arm/union weight. Exclusive completion and original-code recovery prevent later evidence
   additions changing a sealed result. Full collector reservation and role admission remain separate;
   no source worker, origin, SQL admission, live pilot or edge claim is enabled by this boundary.
+
+- D069 (2026-09-27): bound screening by sampling strata before markets, rather than dropping
+  matching dimensions or taking a deterministic prefix. Freeze `strata_limit` before frame
+  reads; worst-case limit × scheduled-per-stratum must fit declared scheduled slots. New
+  declaration v3, selection v2 and sampling-plan v4 retain every stratum, full inventory,
+  unknowns/exclusions and exact stratum × conditional-market inclusion. A separate ranking
+  domain separates stratum and member draws; the complete plan hash binds the design as well
+  as the unchanged sampling recipe. Only complete, entirely unassessed frames use this mode.
+  D068 retains the resulting screening probability; later arm/matching weights stay conditional.
+  Legacy default encodings/hashes are unchanged. Existing activation intentionally refuses the
+  new version until verified-role integration; this is no permission for live collection.
+  The cap is configurable, not a scientifically selected pilot size. Full collector reservation
+  remains required before any public request.
