@@ -147,3 +147,11 @@ already exceed current ~25 GiB capacity before sources and target journals. A bo
 stratum draw preserves matching and nonzero inclusion; its exact probability/acceptance contract
 is at the end of PHASE_03_SCREENING_CONTROL_NEXT.md. This design is not implemented or validated.
 No public screening or new data was collected. The source worker remains the subsequent step.
+
+
+Window shutdown: allowance last checked at 89% primary /30% weekly used, ordinary usage still
+allowed. Coherent accepted work is committed/pushed and draft PR #16 updated; stop before
+exhaustion rather than start an unfinishable schema/sampler change. This is not an access,
+weekly-exhaustion or user-approval blocker. Exactly one successor remains at 11:35 London.
+Before the future pilot, the next activation must address the documented same-boundary origin
+queue starvation risk through predeclared spacing/timing validation; keep old schedules intact.

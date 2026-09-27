@@ -143,3 +143,13 @@ full inventory, resource overflow, and original-code recovery. Then connect D068
 source worker and verified-role activation. This resolves a required sampling/resource gate,
 not an optional infrastructure project. Do not spend public requests before these boundaries
 are tested and the full pilot protocol committed.
+
+
+Runtime timing finding: current activation gives every market in a cycle the same scheduled
+UTC boundary (activation.py, _summary). The serialized runtime orders jobs by that boundary,
+so a large initial batch can keep dispatching already-due origins ahead of a subsequently due
+target. The next versioned activation must predeclare market offsets and a finite dispatch
+budget, or otherwise prove the queue meets the frozen target tolerances at the chosen size.
+Test multi-market source/computation delays and target-before-origin ties before the public
+pilot. Do not simply widen deadlines after observing misses or alter old schedules. This is
+an existing timing-acceptance requirement, not a request for new hosted scheduling infrastructure.
