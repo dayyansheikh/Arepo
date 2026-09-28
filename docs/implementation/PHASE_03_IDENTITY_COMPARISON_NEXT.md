@@ -53,3 +53,16 @@ New source-stage measurement must preserve exact sampling probabilities, full fa
 actual measurement/recovery clocks and conditional control weights. A finite screen is
 still not the full Phase 3 origin/target pilot. Resume bounded pre-t0 observation and
 selected-market external mapping against the measured limitations. No Phase 4 here.
+
+## D076a implemented boundary — 2026-09-28 12:25 UTC
+
+identity_comparison.compare_mapping implements steps 1–3 as a pure helper. 28 targeted
+tests cover endpoint asymmetry, every core field, outcome ordering/labels/tokens, changed
+nonempty membership, corrupt/incomplete frame, malformed current hash and nonmutation.
+Current source parser hashes and all production consumers remain unchanged.
+
+Next start at step 4: freeze an opt-in screening schema/policy before acquisition, invoke
+this helper only with raw-authenticated current hashes, preserve its comparison evidence,
+retain v1 replay, and add asymmetric end-to-end screening/original-code/tamper tests.
+Do not silently feed the new comparison into strict legacy activation/origin/target rules;
+finish their explicit contracts before a new live pilot. No new collection was run.
