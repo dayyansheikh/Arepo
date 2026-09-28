@@ -1018,3 +1018,5 @@ Unsupported registered windows remain unavailable. Ruff/canonical/whitespace che
 
 The next bounded screening measurement is a sequencing refinement toward empirical progress,
 not a waiver of window/external relevance or full origin/target pilot acceptance.
+
+D075 public screening entry point accepted as software only: 16 screening-worker tests passed in 156.35s. Public API accepts no transport/provenance override; prospective assignment lineage is checked before source construction, while synthetic API still requires MockTransport. Existing concurrency, budgets, raw failures, cancellation and original recovery pass. No public measurement yet. Execute the single frozen script in PHASE_03_SCREENING_MEASUREMENT_PROTOCOL.md; no redraw/retry.

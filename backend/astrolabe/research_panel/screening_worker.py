@@ -1,4 +1,4 @@
-"""Bounded synthetic screening acquisition; live panel admission remains a separate gate."""
+"""Bounded screening acquisition; prospective panel admission remains a separate gate."""
 
 import asyncio
 import shutil
@@ -29,6 +29,7 @@ from .screening import PER_DECISION_BYTES, ScreeningPolicy, declare_screening, f
 from .trigger_computation import SnapshotTriggerPolicy, record_snapshot_trigger
 
 VERSION = "fs2-synthetic-screening-worker-v1"
+PUBLIC_VERSION = "fs2-public-screening-worker-v2"
 MIB = 1048576
 LIMITS = {
     "worker_metadata_bytes": 32 * MIB,
@@ -132,6 +133,29 @@ async def run_synthetic_screening(
     """Acquire only owned assignments. No live transport, replacement draw, retry or activation."""
     if type(transport) is not httpx.MockTransport:
         raise ValueError("screening worker requires explicit synthetic MockTransport")
+    return await _run_screening(
+        panel_root, implementation_commit=implementation_commit, rule=rule, freshness=freshness,
+        transport=transport, concurrency=concurrency, repository=repository)
+
+
+async def run_public_screening(
+    panel_root, *, implementation_commit, rule, freshness, concurrency=4, repository=None
+):
+    """Public read-only requests for prospective assignments; no injected transport or payload."""
+    return await _run_screening(
+        panel_root, implementation_commit=implementation_commit, rule=rule, freshness=freshness,
+        transport=None, concurrency=concurrency, repository=repository)
+
+
+async def _run_screening(
+    panel_root, *, implementation_commit, rule, freshness, transport, concurrency, repository
+):
+    if transport is not None and type(transport) is not httpx.MockTransport:
+        raise ValueError("unsupported screening transport")
+    public = transport is None
+    version = PUBLIC_VERSION if public else VERSION
+    provenance = "prospective" if public else "synthetic"
+    limits = {**LIMITS, "live_collection_enabled": public}
     if (
         type(concurrency) is not int
         or not 1 <= concurrency <= 8
@@ -170,12 +194,12 @@ async def run_synthetic_screening(
             root,
             "worker_policy",
             {
-                "schema_version": VERSION,
+                "schema_version": version,
                 "build": build,
                 "panel_root": str(panel),
                 "panel_declaration_hash": da["payload_hash"],
                 "implementation_commit": implementation_commit,
-                "limits": LIMITS,
+                "limits": limits,
                 "reservation": reserved,
                 "concurrency": concurrency,
                 "source_budget": asdict(budget),
@@ -184,12 +208,12 @@ async def run_synthetic_screening(
                 "rule": asdict(rule),
                 "freshness": asdict(freshness),
                 "declared_at": _clock(),
-                "provenance_class": "synthetic",
+                "provenance_class": provenance,
                 "source_paths": [
                     str(root / f"fs2_capture_screen_{i:03d}")
                     for i in range(reserved["screen_slots"])
                 ],
-                "live_collection_enabled": False,
+                "live_collection_enabled": public,
                 "origin_admitted": False,
                 "accepted_panel": False,
             },
@@ -198,10 +222,10 @@ async def run_synthetic_screening(
             selection_root(panel), output_root=screening, rule=rule, policy=freshness
         )
         if (
-            frozen["source_provenance_class"] != "synthetic"
+            frozen["source_provenance_class"] != provenance
             or len(frozen["selected"]) > reserved["screen_slots"]
         ):
-            raise ValueError("synthetic screening assignments exceed declared scope")
+            raise ValueError("screening assignment provenance or declared scope differs")
         _, wa = _pair(root, "worker_policy")
         semaphore = asyncio.Semaphore(concurrency)
 
@@ -263,7 +287,7 @@ async def run_synthetic_screening(
             raise ValueError("original screening replay differs")
         retained = _check(root, reserved, started)
         result = {
-            "schema_version": VERSION,
+            "schema_version": version,
             "policy_hash": wa["payload_hash"],
             "screening": screened,
             "role_capacity": roles,

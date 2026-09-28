@@ -70,3 +70,49 @@ coverage, full matched-control coverage or an accepted panel. Empty/ineligible p
 useful measured limitation, not permission to retune thresholds or relabel unknowns. Use the
 result to choose the next prospective protocol, preserving this attempt unchanged. Then resume
 pre-t0/window and selected-market external mapping integration toward the full bounded pilot.
+
+## Frozen execution
+
+Run from the repository with `PYTHONPATH=backend`, isolated local SQLite URL and all email disabled. The following script contains the preflight, declaration, new draw and one acquisition; execute it once after this commit. Preserve its stdout/stderr outside Git.
+
+```python
+import asyncio
+import json
+import shutil
+import subprocess
+import time
+from pathlib import Path
+from astrolabe.feature_store.capture import _clock
+from astrolabe.research_panel.panel_declaration import PanelProtocol, declare_panel, reservation
+from astrolabe.research_panel.panel_selection import create_panel_selection, selection_root
+from astrolabe.research_panel.screening_worker import allocation, run_public_screening, worker_root
+from astrolabe.research_panel.screening import ScreeningPolicy
+from astrolabe.research_panel.trigger_computation import SnapshotTriggerPolicy
+
+repo = Path('/Users/DayyanSheikh/Projects/astrolabe')
+panel = repo/'data-dumps/fs2_panel_screening_measurement_20260928_1'
+frame = repo/'data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a'
+commit = subprocess.check_output(['git','rev-parse','HEAD'], cwd=repo, text=True).strip()
+p = PanelProtocol(scheduled_slots=8, triggered_slots=8, controls_per_trigger=1, cycles=1,
+ target_attempts=1, scheduled_per_stratum=2, triggered_per_stratum=2, cadence_seconds=120,
+ max_origin_delay_seconds=60, max_origin_save_seconds=5, horizon_seconds=60, tolerance_seconds=5,
+ max_frame_age_seconds=604800, max_frame_interval_seconds=600, max_quote_age_seconds=60,
+ max_identity_age_seconds=180, source_response_bytes=65536, source_run_retained_bytes=1048576)
+reserved = allocation({'reservation':reservation(p,storage_profile='compact-v1')})
+free=shutil.disk_usage(repo).free
+if free < reserved['required_free_bytes']:
+ raise ValueError('insufficient full measurement reservation')
+for root in (panel, selection_root(panel), worker_root(panel)):
+ if root.exists(): raise FileExistsError(str(root))
+print(json.dumps({'stage':'preflight','commit':commit,'at':_clock(),'free':free,'reservation':reserved}),flush=True)
+started=time.monotonic_ns()
+declare_panel(frame,implementation_commit='41fcb0170c7d71716873847639dc181ea12422aa',
+ output_root=panel,protocol=p,storage_profile='compact-v1',strata_limit=4)
+selection=create_panel_selection(panel,repository=repo)
+print(json.dumps({'stage':'selection_complete','at':_clock(),'provenance':selection['provenance_class']}),flush=True)
+result=asyncio.run(run_public_screening(panel,implementation_commit=commit,rule=SnapshotTriggerPolicy(1,3,60000),
+ freshness=ScreeningPolicy(120,120),concurrency=4,repository=repo))
+print(json.dumps({'stage':'complete','at':_clock(),'elapsed_ns':time.monotonic_ns()-started,
+ 'state':result['state'],'roles':result['role_capacity'],'states':result['screening']['states'],
+ 'retained_bytes_before_report':result['retained_bytes_before_report'],'recovery':result['recovery']}),flush=True)
+```

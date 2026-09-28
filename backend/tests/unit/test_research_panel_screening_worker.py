@@ -283,3 +283,37 @@ def test_allocation_accounts_for_screening_and_entire_future_runtime():
     # More cycles/targets add future costs rather than discounting observed role overlap.
     larger = {"reservation": reservation(replace(p, cycles=3), storage_profile="compact-v1")}
     assert worker.allocation(larger)["required_free_bytes"] > result["required_free_bytes"]
+
+
+async def test_public_entry_rejects_synthetic_lineage_before_source_creation(
+    tmp_path, original_code, monkeypatch
+):
+    source, panel, _ = await prepared(tmp_path, original_code)
+    before = snapshot(source), snapshot(panel)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("public source constructed for synthetic assignments")
+
+    monkeypatch.setattr(worker, "SourceRun", forbidden)
+    with pytest.raises(ValueError, match="provenance"):
+        await worker.run_public_screening(
+            panel, implementation_commit=original_code[1], repository=original_code[0],
+            rule=SnapshotTriggerPolicy(1, 3, 60000), freshness=ScreeningPolicy(60, 60))
+    root = worker.worker_root(panel)
+    policy, _ = _pair(root, "worker_policy")
+    assert policy["schema_version"] == worker.PUBLIC_VERSION
+    assert policy["provenance_class"] == "prospective"
+    assert policy["live_collection_enabled"]
+    assert not list(root.glob("fs2_capture_*"))
+    assert (root / "worker_failure.json").exists()
+    assert before == (snapshot(source), snapshot(panel))
+
+
+async def test_public_api_cannot_accept_injected_transport_or_provenance(tmp_path):
+    kwargs = dict(implementation_commit="a" * 40, rule=SnapshotTriggerPolicy(1, 3, 60000),
+                  freshness=ScreeningPolicy(60, 60))
+    for override in ({"transport": httpx.MockTransport(lambda _: None)},
+                     {"provenance": "prospective"}):
+        with pytest.raises(TypeError):
+            await worker.run_public_screening(tmp_path / "fs2_panel_public", **kwargs, **override)
+    assert not list(tmp_path.iterdir())
