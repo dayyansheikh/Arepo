@@ -1002,3 +1002,19 @@ Development 67 passed in 38.45s. Final affected suites (NWS, capture, source_bri
 Self-review: default policies remain closed; fixed host/path/header and bounded station, exact raw/native value/unit/QC/null retention, source timestamp distinct from unknown publication/first availability, unknown/future native times preserved, changed same-ID revisions retained, new-source parser replay against raw, actual input-read chronology and original-Git recovery, no dependency overwrite, source failures, no retry, full one-request/recovery reservation and pre-request build pin. No source-defined URL is followed. Synthetic tests are not empirical evidence. Commit/update PR before the single predeclared public request; record failed/unavailable responses as such. Phase 3 remains incomplete.
 
 D073 measured once under `77d6652`: HTTP 200 observed prospective NWS response, actual input read and original-Git recovery passed. Evidence: PHASE_03_NWS_SOURCE_EVIDENCE.json. The fixed KNYC reading has no automatic selected-market relevance and does not complete Phase 3. Do not repeat this measurement. Resume the live checkpoint's numerical-family/origin integration step.
+
+## D074 — exact snapshot components at causal origins (2026-09-28)
+
+D074 numerical origin integration accepted as a synthetic software milestone: 44 affected tests passed in 615.56s. Exact snapshot ratios, actual computation/freeze clocks, ineligible-origin preservation, due targets, original-Git recovery and legacy compatibility pass. No public runtime or predictive admission. Next execute PHASE_03_SCREENING_MEASUREMENT_PROTOCOL.md to measure source/control limitations before further window orchestration; all full pilot gates remain.
+
+Validation: isolated SQLite/email-disabled pytest on test_research_panel_origin_features.py,
+origin_worker.py, concurrent_runtime.py and original_runtime.py: **44 passed in 615.56s**;
+full log /tmp/arepo_d074_final.log. One development test-helper callback error was corrected;
+no scientific safeguard was relaxed. No package files changed during the final run.
+Self-review: source/input closure reused, full level authority preserved, 16 KiB manifest
+inside unchanged metadata reservations, policy bound before requests, computation before
+freeze, eligibility refreshed at freeze, original cutoff replay, explicit version dispatch.
+Unsupported registered windows remain unavailable. Ruff/canonical/whitespace checks pass.
+
+The next bounded screening measurement is a sequencing refinement toward empirical progress,
+not a waiver of window/external relevance or full origin/target pilot acceptance.

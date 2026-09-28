@@ -21,6 +21,7 @@ from astrolabe.feature_store.source_run import (
 )
 from astrolabe.feature_store.sources import SOURCES
 
+from . import origin_features
 from .activation import activate_panel, activation_root, allocation, read_activation
 from .build_identity import verified_panel_build
 from .input_read import _canonical
@@ -35,6 +36,7 @@ from .quote_inputs import QuoteInputPolicy, _at
 from .scheduling import wait_until
 
 VERSION = 'fs2-synthetic-origin-worker-v1'
+FEATURE_VERSION = 'fs2-synthetic-feature-origin-v2'
 SOURCE = 'fs2_capture_origin'
 COMPUTATION = 'fs2_quote_computation_origin'
 POLICY = {'live_collection_enabled': False, 'targets_collected': False,
@@ -164,12 +166,17 @@ def _projection(root, intent, panel_policy, freeze):
     if len(quotes) != 1:
         raise ValueError('one fixed origin book observation required')
     quote = quotes[0]
-    return {'computation': summary, 'quote': quote,
+    result = {'computation': summary, 'quote': quote,
             'state_at_freeze': _choice(quote, member, protocol, intent['slot'], freeze),
             'source_statuses': [{'source_id': r['source_id'], 'state': r['missing_reason'],
                                  'observation_id': r['id']} for r in rows],
             'provenance_class': 'synthetic', 'clock_basis': 'receipt',
             'flow_window_complete': False, 'economic_value_claim': False}
+    if intent['schema_version'] == FEATURE_VERSION:
+        result['feature_manifest'] = origin_features.project_origin_features(
+            rows, policy=QuoteInputPolicy(protocol.max_quote_age_seconds,
+                                          protocol.max_identity_age_seconds), cutoff=_time(freeze))
+    return result
 
 
 def _choice(quote, member, protocol, slot, freeze):
@@ -206,7 +213,10 @@ def _state(facts, ack, protocol):
     return facts['projection']['state_at_freeze']
 
 
-async def _collect_one(root, slot, member, panel_policy, activation, transport):
+async def _collect_one(root, slot, member, panel_policy, activation, transport, *, features=False):
+    if type(features) is not bool:
+        raise ValueError("explicit feature mode required")
+    version = FEATURE_VERSION if features else VERSION
     protocol = PanelProtocol(**panel_policy['protocol'])
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
@@ -214,7 +224,8 @@ async def _collect_one(root, slot, member, panel_policy, activation, transport):
         at = await wait_until(_at(slot['scheduled_at']))
         budget = _budget(protocol, slot, at)
         _save(root, 'origin_intent', {
-            'schema_version': VERSION, 'slot': slot, 'member': member,
+            'schema_version': version, 'slot': slot, 'member': member,
+            **({'feature_policy': origin_features.POLICY} if features else {}),
             'activation_hash': activation['activation_hash'], 'budget_basis_at': at,
             'source_budget': asdict(budget) if budget else None,
             'created_at': at,
@@ -239,11 +250,16 @@ async def _collect_one(root, slot, member, panel_policy, activation, transport):
             # Recheck ages at freeze without fetching any new values afterward.
             read_started = _clock()
             projection = _projection(root, intent, panel_policy, read_started)
+            computed = _clock() if features else None
             freeze = _clock()
             projection['state_at_freeze'] = _choice(
                 projection['quote'], member, protocol, slot, freeze)
+            if features:
+                origin_features.freeze_eligibility(projection)
             _save(root, 'origin_facts', {
-                'schema_version': VERSION, 'intent_hash': intent_ack['payload_hash'],
+                'schema_version': version,
+                **({'feature_computed_at': computed} if features else {}),
+                'intent_hash': intent_ack['payload_hash'],
                 'read_started_at': read_started, 'origin_at': freeze,
                 'projection': projection, 'origin_admitted': False,
                 'feature_store_admitted': False, 'accepted_panel': False,
@@ -274,8 +290,14 @@ def _read_one(root, slot, member, panel_policy, activation):
     if not _ordered_clocks(receipt['completed_at'], receipt_ack['durable_ack']):
         raise ValueError('origin receipt chronology differs')
     intent, intent_ack = _pair(root, 'origin_intent')
+    version = intent['schema_version']
+    features = version == FEATURE_VERSION
+    if (version not in {VERSION, FEATURE_VERSION}
+            or features and intent.get('feature_policy') != origin_features.POLICY
+            or not features and 'feature_policy' in intent):
+        raise ValueError('origin feature version/policy differs')
     budget = _budget(protocol, slot, intent['budget_basis_at'])
-    if (intent['schema_version'] != VERSION or intent['slot'] != slot or intent['member'] != member
+    if (intent['slot'] != slot or intent['member'] != member
             or intent['activation_hash'] != activation['activation_hash']
             or intent['source_budget'] != (asdict(budget) if budget else None)
             or not _ordered_clocks(activation['activation_available_at'], intent['created_at'],
@@ -292,8 +314,16 @@ def _read_one(root, slot, member, panel_policy, activation):
         state, origin_hash = failure['state'], None
     else:
         facts, ack = _pair(root, 'origin_facts')
-        projection = _projection(root, intent, panel_policy, facts['origin_at'])
-        if (facts['schema_version'] != VERSION or facts['intent_hash'] != intent_ack['payload_hash']
+        projection = _projection(root, intent, panel_policy,
+                                 facts['read_started_at'] if features else facts['origin_at'])
+        if features:
+            projection['state_at_freeze'] = _choice(projection['quote'], member, protocol, slot,
+                                                    facts['origin_at'])
+            origin_features.freeze_eligibility(projection)
+            if not _ordered_clocks(facts['read_started_at'], facts['feature_computed_at'],
+                                   facts['origin_at']):
+                raise ValueError('feature computation followed origin freeze')
+        if (facts['schema_version'] != version or facts['intent_hash'] != intent_ack['payload_hash']
                 or _json_bytes(facts['projection']) != _json_bytes(projection)
                 or any(facts[k] is not False for k in
                        ('origin_admitted', 'feature_store_admitted', 'accepted_panel'))

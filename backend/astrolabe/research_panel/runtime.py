@@ -191,17 +191,20 @@ async def exercise_panel(panel_root, *, transport):
         raise
 
 
-async def exercise_screened_panel(panel_root, screening_root, *, transport, concurrency=4):
+async def exercise_screened_panel(panel_root, screening_root, *, transport, concurrency=4,
+                                  features=False):
     """Opt-in bounded synthetic screened runtime; legacy serial execution stays unchanged."""
     from .concurrent_runtime import exercise_screened_panel as exercise
 
-    return await exercise(panel_root, screening_root, transport=transport, concurrency=concurrency)
+    return await exercise(panel_root, screening_root, transport=transport, concurrency=concurrency,
+                          features=features)
 
 
 def read_runtime(panel_root):
     panel, root = _canonical(panel_root), run_root(panel_root)
     layout, _ = _pair(root, 'runtime_policy')
-    if layout['schema_version'] == 'fs2-concurrent-synthetic-runtime-v2':
+    if layout['schema_version'] in {'fs2-concurrent-synthetic-runtime-v2',
+                                    'fs2-concurrent-feature-runtime-v3'}:
         from .concurrent_runtime import read_runtime as read_concurrent
 
         return read_concurrent(panel)

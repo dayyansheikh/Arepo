@@ -21,6 +21,7 @@ from .scheduling import wait_until
 from .screening_worker import _durable_call
 
 VERSION = "fs2-concurrent-synthetic-runtime-v2"
+FEATURE_VERSION = "fs2-concurrent-feature-runtime-v3"
 POLICY = {
     **base.POLICY,
     "queue_order": "ready targets before ready origins; then scheduled UTC/id",
@@ -53,7 +54,7 @@ def _remove(queue, entry):
     heapq.heapify(queue)
 
 
-async def _execute(root, entry, members, panel_policy, activation, origins, transport):
+async def _execute(root, entry, members, panel_policy, activation, origins, transport, features):
     _, _, identity, kind, job = entry
     protocol = PanelProtocol(**panel_policy["protocol"])
     if kind == "origin":
@@ -63,7 +64,7 @@ async def _execute(root, entry, members, panel_policy, activation, origins, tran
             members[job["market_id"]],
             panel_policy,
             activation,
-            transport,
+            transport, features=features,
         )
         return base._plan(root, result, protocol)
     return await due_worker._collect_one(
@@ -71,7 +72,11 @@ async def _execute(root, entry, members, panel_policy, activation, origins, tran
     )
 
 
-async def exercise_screened_panel(panel_root, screening_root, *, transport, concurrency=4):
+async def exercise_screened_panel(panel_root, screening_root, *, transport, concurrency=4,
+                                  features=False):
+    if type(features) is not bool:
+        raise ValueError("explicit feature mode required")
+    version = FEATURE_VERSION if features else VERSION
     if type(transport) is not httpx.MockTransport:
         raise ValueError("concurrent runtime requires explicit synthetic MockTransport")
     _capacity(concurrency)
@@ -95,7 +100,7 @@ async def exercise_screened_panel(panel_root, screening_root, *, transport, conc
             root,
             "runtime_policy",
             {
-                "schema_version": VERSION,
+                "schema_version": version,
                 "policy": POLICY,
                 "build": build,
                 "panel_root": str(panel),
@@ -143,7 +148,8 @@ async def exercise_screened_panel(panel_root, screening_root, *, transport, conc
                     def execute(entry=entry):
                         return asyncio.run(
                             _execute(
-                                root, entry, members, panel_policy, activation, origins, transport
+                                root, entry, members, panel_policy, activation, origins,
+                                transport, features
                             )
                         )
 
@@ -174,7 +180,7 @@ async def exercise_screened_panel(panel_root, screening_root, *, transport, conc
             root,
             "runtime_report",
             {
-                "schema_version": VERSION,
+                "schema_version": version,
                 "activation_hash": activation["activation_hash"],
                 "events": events,
                 "origins": [o["result"] for o in origins.values()],
@@ -209,6 +215,10 @@ def read_runtime(panel_root):
     policy, policy_ack = _pair(root, "runtime_policy")
     report, report_ack = _pair(root, "runtime_report")
     activation = read_activation(panel)
+    version = policy["schema_version"]
+    features = version == FEATURE_VERSION
+    if version not in {VERSION, FEATURE_VERSION}:
+        raise ValueError("unknown concurrent runtime version")
     concurrency = policy["concurrency"]
     _capacity(concurrency)
     if (
@@ -221,14 +231,14 @@ def read_runtime(panel_root):
             "runtime_report_ack.json",
         }
         or base._size(root) > POLICY["top_bytes"]
-        or policy["schema_version"] != VERSION
+        or policy["schema_version"] != version
         or policy["policy"] != POLICY
         or policy["build"] != verified_panel_build()
         or policy["panel_root"] != str(panel)
         or policy["screening_root"] != activation.get("screening_root")
         or policy["declaration_hash"] != declaration["declaration_hash"]
         or policy["required_free_bytes"] != base._reserved(declaration)
-        or report["schema_version"] != VERSION
+        or report["schema_version"] != version
         or report["activation_hash"] != activation["activation_hash"]
         or not _ordered_clocks(
             policy["declared_at"],
@@ -266,6 +276,10 @@ def read_runtime(panel_root):
                     child, job, members[job["market_id"]], panel_policy, activation
                 )
                 intent, _ = _pair(child, "origin_intent")
+                if intent["schema_version"] != (
+                    origin_worker.FEATURE_VERSION if features else origin_worker.VERSION
+                ):
+                    raise ValueError("runtime and origin feature modes differ")
                 origin, jobs, ack = base._read_plan(root, result, protocol)
                 origins[identity] = origin
                 base._enqueue(queue, jobs, ack, origin["result"]["state"] == "observed")
