@@ -24,8 +24,11 @@ from tests.unit.test_research_panel_selection import frame
 original_code = _original_code
 
 
-async def prepared(tmp_path, code, **changes):
+async def prepared(tmp_path, code, event_ids=False, **changes):
     rows = [market(i, description="Rules", archived=False, acceptingOrders=True) for i in (1, 2)]
+    if event_ids:
+        for row in rows:
+            row["events"] = [{"id": "42"}]
     source = await frame(tmp_path, rows)
     panel = tmp_path / "fs2_panel_worker"
     p = protocol(
@@ -48,7 +51,7 @@ async def prepared(tmp_path, code, **changes):
     return source, panel, rows
 
 
-def mock(rows, *, status=200, all_positive=False, changed=False):
+def mock(rows, *, status=200, all_positive=False, changed=False, omit_events=False):
     by_id = {r["id"]: r for r in rows}
     by_token = {json.loads(r["clobTokenIds"])[0]: r for r in rows}
     calls = {"active": 0, "peak": 0, "requests": []}
@@ -62,6 +65,8 @@ def mock(rows, *, status=200, all_positive=False, changed=False):
             gamma = request.url.path.startswith("/markets/")
             if gamma:
                 data = dict(by_id[request.url.path.split("/")[-1]])
+                if omit_events:
+                    data.pop("events", None)
                 if changed:
                     data["description"] = "Changed rules"
             else:
@@ -316,4 +321,36 @@ async def test_public_api_cannot_accept_injected_transport_or_provenance(tmp_pat
                      {"provenance": "prospective"}):
         with pytest.raises(TypeError):
             await worker.run_public_screening(tmp_path / "fs2_panel_public", **kwargs, **override)
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize('identity_policy', [None, worker.IDENTITY_POLICY])
+async def test_worker_freezes_asymmetric_identity_policy_and_recovers(
+    tmp_path, original_code, identity_policy
+):
+    _, panel, rows = await prepared(tmp_path, original_code, event_ids=True)
+    transport, calls = mock(rows, omit_events=True)
+    result = await run(panel, original_code, transport, identity_policy=identity_policy)
+    policy, _ = _pair(worker.worker_root(panel), 'worker_policy')
+    assert policy.get('identity_policy') == identity_policy
+    assert len(calls['requests']) == 4 and len(result['recovery']) == 1
+    if identity_policy:
+        assert policy['schema_version'] == worker.IDENTITY_VERSION
+        assert result['role_capacity']['counts_per_cycle'] == {
+            'scheduled': 2, 'triggered': 1, 'control': 1}
+        assert all(s['identity_comparison']['current_event_membership'] == 'unavailable'
+                   for s in result['screening']['states'])
+    else:
+        assert policy['schema_version'] == worker.VERSION
+        assert {s['state'] for s in result['screening']['states']} == {'unavailable'}
+        assert result['role_capacity']['counts_per_cycle'] == {'scheduled': 2}
+    assert not result['origin_admitted'] and not result['accepted_panel']
+
+
+async def test_public_worker_unknown_identity_policy_refused_before_writes(tmp_path):
+    with pytest.raises(ValueError, match='identity policy'):
+        await worker.run_public_screening(
+            tmp_path / 'fs2_panel_absent', implementation_commit='a' * 40,
+            rule=SnapshotTriggerPolicy(1, 3, 60000), freshness=ScreeningPolicy(60, 60),
+            identity_policy='unknown')
     assert not list(tmp_path.iterdir())

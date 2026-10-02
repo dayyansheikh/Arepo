@@ -1026,3 +1026,16 @@ D075 measured once under e271497: eight Gamma 200, six book 200, two book 404; 4
 D076a comparison primitive implemented: 28 focused tests passed in 0.36s. Exact canonical frame-hash validation and current authenticated hash comparison distinguish full equality, only-event-omission equality, absent mapping and other differences. All core changes are rejected; event membership remains unavailable, economic grouping unresolved, and admission false. This pure helper is not wired into screening/origins/targets yet; no new collection or reinterpretation of D075.
 
 D076b opt-in screening identity policy accepted: 39 screening/screened-activation tests passed in 697.66s (/tmp/arepo_d076b_final.log). New schema freezes the comparator before collection, retains raw-backed comparison evidence and preserves v1 replay. Asymmetric endpoint original-Git recovery and tamper refusal pass; changed rules remain unavailable. Legacy activation explicitly refuses the new policy pending its versioned origin contract. Worker API wiring and new empirical validation remain; D075 is unchanged.
+
+D076c worker policy integration accepted: 19 worker tests passed in 205.20s, followed by 3 focused asymmetric-policy/original-recovery tests in 51.65s after import/line-format cleanup. Explicit identity_policy selects worker v3 and frozen screening v2; public/synthetic provenance still derives from actual transport. Defaults retain strict legacy behavior. Whole reservations, source failures, original-code recovery and no-redraw behavior pass. No new public collection; legacy activation remains barred from the new policy.
+
+D076c self-review: policy validated before writes, version recorded before requests, identical
+comparator passed into the durable screen declaration, original reader authenticates full
+closure, source provenance remains transport-derived, default worker metadata unchanged.
+No public collection or implicit activation. Exact logs /tmp/arepo_d076c.log and
+/tmp/arepo_d076c_formatted.log. Ruff/canonical/whitespace pass.
+
+Observed follow-on timing concern: D075 screen cutoff02:34:57UTC, recovery ended02:38:39UTC.
+Do not place full original-code audit recovery before time-sensitive live activation/targets.
+Resolve causal consumption and audit scheduling in the eventual live pilot contract; keep
+original freshness limits and immutable evidence. No new service is implied.

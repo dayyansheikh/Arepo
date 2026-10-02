@@ -24,12 +24,19 @@ from .panel_declaration import FIXED, PanelProtocol, read_panel_declaration, rol
 from .panel_selection import selection_root
 from .quote_inputs import QuoteInputPolicy
 from .runtime import _reserved
+from .screening import (
+    IDENTITY_POLICY,
+    PER_DECISION_BYTES,
+    ScreeningPolicy,
+    declare_screening,
+    finish_screening,
+)
 from .screening import LIMITS as SCREEN_LIMITS
-from .screening import PER_DECISION_BYTES, ScreeningPolicy, declare_screening, finish_screening
 from .trigger_computation import SnapshotTriggerPolicy, record_snapshot_trigger
 
 VERSION = "fs2-synthetic-screening-worker-v1"
 PUBLIC_VERSION = "fs2-public-screening-worker-v2"
+IDENTITY_VERSION = "fs2-identity-screening-worker-v3"
 MIB = 1048576
 LIMITS = {
     "worker_metadata_bytes": 32 * MIB,
@@ -128,32 +135,39 @@ async def _durable_call(function, *args, **kwargs):
 
 
 async def run_synthetic_screening(
-    panel_root, *, implementation_commit, rule, freshness, transport, concurrency=4, repository=None
+    panel_root, *, implementation_commit, rule, freshness, transport, concurrency=4,
+    repository=None, identity_policy=None
 ):
     """Acquire only owned assignments. No live transport, replacement draw, retry or activation."""
     if type(transport) is not httpx.MockTransport:
         raise ValueError("screening worker requires explicit synthetic MockTransport")
     return await _run_screening(
         panel_root, implementation_commit=implementation_commit, rule=rule, freshness=freshness,
-        transport=transport, concurrency=concurrency, repository=repository)
+        transport=transport, concurrency=concurrency, repository=repository,
+        identity_policy=identity_policy)
 
 
 async def run_public_screening(
-    panel_root, *, implementation_commit, rule, freshness, concurrency=4, repository=None
+    panel_root, *, implementation_commit, rule, freshness, concurrency=4, repository=None,
+    identity_policy=None
 ):
     """Public read-only requests for prospective assignments; no injected transport or payload."""
     return await _run_screening(
         panel_root, implementation_commit=implementation_commit, rule=rule, freshness=freshness,
-        transport=None, concurrency=concurrency, repository=repository)
+        transport=None, concurrency=concurrency, repository=repository,
+        identity_policy=identity_policy)
 
 
 async def _run_screening(
-    panel_root, *, implementation_commit, rule, freshness, transport, concurrency, repository
+    panel_root, *, implementation_commit, rule, freshness, transport, concurrency, repository,
+    identity_policy=None
 ):
+    if identity_policy not in (None, IDENTITY_POLICY):
+        raise ValueError("unsupported screening identity policy")
     if transport is not None and type(transport) is not httpx.MockTransport:
         raise ValueError("unsupported screening transport")
     public = transport is None
-    version = PUBLIC_VERSION if public else VERSION
+    version = IDENTITY_VERSION if identity_policy else (PUBLIC_VERSION if public else VERSION)
     provenance = "prospective" if public else "synthetic"
     limits = {**LIMITS, "live_collection_enabled": public}
     if (
@@ -195,6 +209,7 @@ async def _run_screening(
             "worker_policy",
             {
                 "schema_version": version,
+                **({"identity_policy": identity_policy} if identity_policy else {}),
                 "build": build,
                 "panel_root": str(panel),
                 "panel_declaration_hash": da["payload_hash"],
@@ -219,7 +234,8 @@ async def _run_screening(
             },
         )
         frozen = declare_screening(
-            selection_root(panel), output_root=screening, rule=rule, policy=freshness
+            selection_root(panel), output_root=screening, rule=rule, policy=freshness,
+            identity_policy=identity_policy
         )
         if (
             frozen["source_provenance_class"] != provenance
