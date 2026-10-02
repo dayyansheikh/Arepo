@@ -17,6 +17,8 @@ from astrolabe.feature_store.types import canonical_json
 
 from .assessments import TriggerAssessment, TriggerAssessmentPolicy
 from .build_identity import verified_panel_build
+from .identity_comparison import VERSION as IDENTITY_POLICY
+from .identity_comparison import compare_mapping
 from .input_read import _canonical
 from .panel_selection import VERSIONS as SELECTION_VERSIONS
 from .panel_selection import freshness
@@ -31,6 +33,7 @@ from .trigger_computation import (
 from .window_computation import LIMITS, _check, _save
 
 VERSION = "fs2-screening-v1"
+IDENTITY_VERSION = "fs2-screening-identity-v2"
 PER_DECISION_BYTES = LIMITS["max_output_bytes"] + 2 * LIMITS["max_artifact_bytes"]
 
 
@@ -93,8 +96,10 @@ def _paths(root, count):
     ]
 
 
-def declare_screening(selection_root, *, output_root, rule, policy):
+def declare_screening(selection_root, *, output_root, rule, policy, identity_policy=None):
     """Own every assignment before its D066 declaration/source acquisition; no caller seed."""
+    if identity_policy not in (None, IDENTITY_POLICY):
+        raise ValueError("unsupported screening identity policy")
     selection, root = _canonical(selection_root), _canonical(output_root)
     if (
         not root.name.startswith("fs2_screening_")
@@ -134,7 +139,8 @@ def declare_screening(selection_root, *, output_root, rule, policy):
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
     frozen = {
-        "schema_version": VERSION,
+        "schema_version": IDENTITY_VERSION if identity_policy else VERSION,
+        **({"identity_policy": identity_policy} if identity_policy else {}),
         "build": verified_panel_build(),
         "limits": dict(LIMITS),
         "selection_root": str(selection),
@@ -172,7 +178,9 @@ def _policy(root):
     rule = SnapshotTriggerPolicy(**value["rule"])
     ScreeningPolicy(**value["freshness"])
     if (
-        value["schema_version"] != VERSION
+        value["schema_version"] not in {VERSION, IDENTITY_VERSION}
+        or (value["schema_version"] == IDENTITY_VERSION) != ("identity_policy" in value)
+        or ("identity_policy" in value and value["identity_policy"] != IDENTITY_POLICY)
         or value["build"] != verified_panel_build()
         or value["limits"] != LIMITS
         or not _ordered_clocks(
@@ -236,7 +244,14 @@ def _inputs(policy, cutoff):
             raise ValueError("screening decision identity/rule/cutoff differs")
         state, reasons = p["state"], list(p["reasons"])
         mapping = p["mapping"]
-        if mapping is None or mapping["mapping_version"] != item["identity"]["mapping_version"]:
+        comparison = None
+        matches = (mapping is not None
+                   and mapping["mapping_version"] == item["identity"]["mapping_version"])
+        if policy['schema_version'] == IDENTITY_VERSION:
+            comparison = compare_mapping(item['identity'],
+                                         mapping['mapping_version'] if mapping else None)
+            matches = comparison['core_identity_equal']
+        if not matches:
             state, reasons = "unavailable", reasons + ["frame_mapping_changed_or_unavailable"]
         if p["provenance_class"] != policy["source_provenance_class"]:
             raise ValueError("mixed screening provenance cannot be promoted")
@@ -245,6 +260,7 @@ def _inputs(policy, cutoff):
                 "market_id": p["market_id"],
                 "summary": summary,
                 "projection_hash": p["projection_hash"],
+                **({"identity_comparison": comparison} if comparison is not None else {}),
                 "state": state,
                 "reasons": reasons,
             }
@@ -329,7 +345,7 @@ def finish_screening(root):
         root,
         "screening_report",
         {
-            "schema_version": VERSION,
+            "schema_version": policy["schema_version"],
             "policy_hash": ack["payload_hash"],
             "completion_hash": ca["payload_hash"],
             "cutoff": cutoff,
@@ -377,7 +393,7 @@ def read_screening(root):
     completion, ca = _pair(root, "screening_completion_policy")
     report, ra = _pair(root, "screening_report")
     if (
-        report["schema_version"] != VERSION
+        report["schema_version"] != policy["schema_version"]
         or report["policy_hash"] != ack["payload_hash"]
         or report["completion_hash"] != ca["payload_hash"]
         or not _ordered_clocks(

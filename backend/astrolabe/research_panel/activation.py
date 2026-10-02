@@ -86,6 +86,8 @@ def _consume(panel, started, root, screening=None):
     screen_report = None
     if screening is not None:
         screen_report = read_screening(screening)
+        if screen_report["schema_version"] != "fs2-screening-v1":
+            raise ValueError("new screening identity policy requires versioned origin contract")
         screen_policy, _ = _pair(screening, 'screening_policy')
         capacity = role_capacity(screen_report['plan'], PanelProtocol(**policy['panel_protocol']))
         if (screen_policy['selection_root'] != str(selection)

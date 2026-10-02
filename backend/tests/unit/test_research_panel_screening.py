@@ -37,9 +37,10 @@ from tests.unit.test_research_panel_selection import frame
 original_code = _original_code
 
 
-async def prepared(tmp_path, code, age=60, count=2):
+async def prepared(tmp_path, code, age=60, count=2, identity_policy=None):
     rows = [
-        market(i, description="Rules", archived=False, acceptingOrders=True)
+        market(i, description="Rules", archived=False, acceptingOrders=True,
+               **({"events": [{"id": "42"}]} if identity_policy else {}))
         for i in range(1, count + 1)
     ]
     source = await frame(tmp_path, rows)
@@ -57,7 +58,7 @@ async def prepared(tmp_path, code, age=60, count=2):
         selection_root(panel),
         output_root=root,
         rule=SnapshotTriggerPolicy(1, 3, 60000),
-        policy=ScreeningPolicy(age, age),
+        policy=ScreeningPolicy(age, age), identity_policy=identity_policy,
     )
     ids = {r["member"]["market_id"] for r in policy["selected"]}
     return root, policy, [r for r in rows if r["id"] in ids]
@@ -262,3 +263,51 @@ async def test_partial_screen_keeps_unknown_and_unfilled_control_slots(tmp_path,
     assert strata["controls_selected"] == 0 and strata["unfilled_control_slots"] == 2
     assert strata["assessment_counts"]["not_assessed"] == 1
     assert len([r for r in result["plan"]["assignments"] if r["arm"] == "scheduled"]) == 2
+
+
+async def test_endpoint_asymmetry_versioned_evidence_original_recovery(tmp_path, original_code):
+    from astrolabe.research_panel.identity_comparison import VERSION as comparator
+    from astrolabe.research_panel.original_reader import read_original_screening
+
+    root, policy, rows = await prepared(tmp_path, original_code, identity_policy=comparator)
+    targeted = [{k: v for k, v in row.items() if k != 'events'} for row in rows]
+    await assessed(tmp_path, policy, targeted)
+    result = finish_screening(root)
+    assert {s['state'] for s in result['states']} == {'triggered', 'untriggered'}
+    assert all(s['identity_comparison']['current_event_membership'] == 'unavailable'
+               for s in result['states'])
+    assert not result['origin_admitted']
+    recovered = read_original_screening(root, implementation_commit=original_code[1],
+                                        repository=original_code[0],
+                                        output_root=tmp_path / 'fs2_screening_read_asymmetry')
+    assert recovered['report'] == result
+    from astrolabe.research_panel.activation import activate_screened_panel
+
+    with pytest.raises(ValueError, match='versioned origin contract'):
+        activate_screened_panel(tmp_path / 'fs2_panel_screen', root)
+
+    def corrupt(value):
+        value['states'][0]['identity_comparison']['core_identity_equal'] = False
+
+    rewrite(root, 'screening_report', corrupt)
+    with pytest.raises(ValueError):
+        read_screening(root)
+
+
+async def test_new_identity_policy_still_rejects_changed_rules(tmp_path, original_code):
+    from astrolabe.research_panel.identity_comparison import VERSION as comparator
+
+    root, policy, rows = await prepared(tmp_path, original_code, identity_policy=comparator)
+    await assessed(tmp_path, policy, rows, changed=True)
+    result = finish_screening(root)
+    assert {s['state'] for s in result['states']} == {'unavailable'}
+    assert all(not s['identity_comparison']['core_identity_equal'] for s in result['states'])
+
+
+@pytest.mark.parametrize('policy', ['', True, 'future-policy'])
+def test_unknown_identity_policy_refused_before_any_write(tmp_path, policy):
+    with pytest.raises(ValueError, match='identity policy'):
+        declare_screening(tmp_path / 'absent', output_root=tmp_path / 'fs2_screening_invalid',
+                          rule=SnapshotTriggerPolicy(1, 3, 60000),
+                          policy=ScreeningPolicy(60, 60), identity_policy=policy)
+    assert not list(tmp_path.iterdir())

@@ -66,3 +66,5 @@ this helper only with raw-authenticated current hashes, preserve its comparison 
 retain v1 replay, and add asymmetric end-to-end screening/original-code/tamper tests.
 Do not silently feed the new comparison into strict legacy activation/origin/target rules;
 finish their explicit contracts before a new live pilot. No new collection was run.
+
+D076b opt-in screening identity policy accepted: 39 screening/screened-activation tests passed in 697.66s (/tmp/arepo_d076b_final.log). New schema freezes the comparator before collection, retains raw-backed comparison evidence and preserves v1 replay. Asymmetric endpoint original-Git recovery and tamper refusal pass; changed rules remain unavailable. Legacy activation explicitly refuses the new policy pending its versioned origin contract. Worker API wiring and new empirical validation remain; D075 is unchanged.
