@@ -1,0 +1,91 @@
+{
+  "accepted_panel": false,
+  "implementation_commit": "c6f4891661a979ab91755714869288152b8679fb",
+  "interpretation": "Complete source interval, not an atomic snapshot or predictive evidence. Previous frame and all failed attempts preserved.",
+  "launch": {
+    "command": [
+      "caffeinate",
+      "-is",
+      "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+      "-m",
+      "astrolabe.research_panel.frame_cli",
+      "enumerate",
+      "--output-parent",
+      "/Users/DayyanSheikh/Projects/astrolabe/data-dumps",
+      "--first-page-journal",
+      "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_c63c72a0fe194f47824ccc862b0619cd",
+      "--request-capacity-journal",
+      "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_3a4f80db7fa94d248fc16e1397af4c71",
+      "--request-capacity-commit",
+      "726cec27ff6eeb4c10b01dd0ebde84b9804d3fb0",
+      "--bounded-retries",
+      "--reuse-connections"
+    ],
+    "free_bytes": 23455125504,
+    "implementation_commit": "c6f4891661a979ab91755714869288152b8679fb",
+    "paths": {
+      "launch": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_refresh_20261003_1_launch.json",
+      "result": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_refresh_20261003_1_result.json",
+      "stderr": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_refresh_20261003_1_stderr.log",
+      "stdout": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_refresh_20261003_1_stdout.json"
+    },
+    "started_at": "2026-10-03T03:56:45.117671+00:00"
+  },
+  "measurement": "D077 fresh complete frame after prior freshness expiry",
+  "report": {
+    "availability_basis": "page acknowledgements; full frame needs report acknowledgement",
+    "conflicting_condition_ids": [],
+    "conflicting_market_ids": [],
+    "conflicting_token_ids": [],
+    "duplicate_market_rows": 0,
+    "eligible_row_count": 236574,
+    "enumeration_terminal_observed": true,
+    "errors": [],
+    "exclusion_counts": {
+      "identity_unresolved": 44
+    },
+    "frame_available_at": {
+      "clock_session_id": "5c6f6543-431c-4855-860f-cfaa3a75c086",
+      "monotonic_ns": "1904442193223291",
+      "utc": "2026-10-03T04:08:53.722299Z"
+    },
+    "frame_report_hash": "efe829656b0f6571c4e075c9007ccbd3efaebe84f1f4c66613ede40439fa61e6",
+    "interval_end": {
+      "clock_session_id": "5c6f6543-431c-4855-860f-cfaa3a75c086",
+      "monotonic_ns": "1904324537601666",
+      "utc": "2026-10-03T04:06:56.065833Z"
+    },
+    "interval_start": {
+      "clock_session_id": "5c6f6543-431c-4855-860f-cfaa3a75c086",
+      "monotonic_ns": "1903766113386166",
+      "utc": "2026-10-03T03:57:37.637470Z"
+    },
+    "journal_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_f1f8ed0835e544228439115e4c2f8efc",
+    "page_manifest_hash": "d54d57da7257d2e8ef2ea2d0aae252cd5e371dfdd2206c502f0bfd3dd9e5ffea",
+    "policy_hash": "5ddf4c55a9503febf43b59f23b3de5d58c7b241c1d6dc50041be3b2835e89411",
+    "population_inference_eligible": false,
+    "process_elapsed_ns": "964104725917",
+    "process_peak_resident_bytes": 581140480,
+    "provenance_class": "prospective",
+    "raw_bytes": 1487581084,
+    "recovered_failed_attempts": 0,
+    "retained_file_bytes": 3648559511,
+    "retained_files": 16574,
+    "retry_attempts": 0,
+    "schema_version": "fs2-gamma-frame-v4",
+    "scientific_stage": "measurement_development_only",
+    "source_rows": 236618,
+    "source_semantics": "interval enumeration, not atomic snapshot or independent events",
+    "state": "exhausted_consistent",
+    "stop_reason": "terminal",
+    "unique_market_ids": 236618,
+    "unrecovered_errors": [],
+    "unverified_attempts": 0,
+    "verified_attempts": 2367
+  },
+  "result": {
+    "completed_at": "2026-10-03T04:12:49.892348+00:00",
+    "elapsed_ns": 964766408250,
+    "returncode": 0
+  }
+}

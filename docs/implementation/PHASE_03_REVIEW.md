@@ -1039,3 +1039,5 @@ Observed follow-on timing concern: D075 screen cutoff02:34:57UTC, recovery ended
 Do not place full original-code audit recovery before time-sensitive live activation/targets.
 Resolve causal consumption and audit scheduling in the eventual live pilot contract; keep
 original freshness limits and immutable evidence. No new service is implied.
+
+D077 completed once under c6f4891661a979ab91755714869288152b8679fb: exhausted-consistent refreshed Gamma frame,236618 distinct/236574 mapped markets,44 unresolved;2367 requests,no retries/errors. Collection interval558.428363s fits the frozen600s screening cap. CLI exit0; complete verification passed. Evidence PHASE_03_FRESH_FRAME_EVIDENCE.json. Old frame remains unchanged; no accepted panel or predictive claim.
