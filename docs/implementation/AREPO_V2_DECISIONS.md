@@ -159,3 +159,10 @@ Future architecture changes append here with reason, affected contracts and migr
 - D076b (2026-10-02): opt-in fs2-screening-identity-v2 freezes D076a before source requests and records comparison evidence in every assessed state. Original v1 defaults remain strict. Legacy activation refuses this new schema until origin/target semantics are explicitly integrated. No historical result is rewritten.
 
 - D076c (2026-10-02): bounded worker v3 records an explicit identity_policy before acquisition and passes it to the new screening declaration. No transport/provenance injection, default-policy changes, reservation reductions or historical reinterpretation. Synthetic asymmetric-source tests establish software behavior only. Next refresh the expired frame under D077 before a separately frozen new screening attempt.
+
+
+## D078 — corrected screening measured; full-population replay is off the future causal path
+
+Frozen6cbcf4d protocol executed once under9ea4e38; numerical evidence and limitations are in PHASE_03_SCREENING_REFRESH_EVIDENCE.json. No threshold/sample retuning, changed history or missing-control imputation. Endpoint-aware core identity comparison resolved the measured D075 blocker while preserving unknown current event membership. Four missing controls remain.
+
+The292.963009s screening-cutoff-to-original-recovery delay exceeds the frozen120s freshness limit. The next active execution must authenticate frame/selection before sources, own immutable bounded verified context, and perform full original-code audit after collection. Actual input/freeze/save clocks and cutoffs are never reset by verification. Any changed dependency fails final acceptance. This is justified by measured timing, not speculative infrastructure. New active version and asymmetric-identity origin contract remain required; see PHASE_03_PILOT_EXECUTION_NEXT.md.
