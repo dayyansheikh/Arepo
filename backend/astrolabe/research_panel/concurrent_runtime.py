@@ -1,4 +1,4 @@
-"""Bounded synthetic jobs with target capacity and replayable dispatch/completion events."""
+"""Bounded origin/target jobs with replayable dispatch events and explicit source provenance."""
 
 import asyncio
 import heapq
@@ -22,6 +22,7 @@ from .screening_worker import _durable_call
 
 VERSION = "fs2-concurrent-synthetic-runtime-v2"
 FEATURE_VERSION = "fs2-concurrent-feature-runtime-v3"
+OWNED_VERSION = "fs2-owned-concurrent-runtime-v4"
 POLICY = {
     **base.POLICY,
     "queue_order": "ready targets before ready origins; then scheduled UTC/id",
@@ -74,11 +75,32 @@ async def _execute(root, entry, members, panel_policy, activation, origins, tran
 
 async def exercise_screened_panel(panel_root, screening_root, *, transport, concurrency=4,
                                   features=False):
-    if type(features) is not bool:
-        raise ValueError("explicit feature mode required")
-    version = FEATURE_VERSION if features else VERSION
     if type(transport) is not httpx.MockTransport:
         raise ValueError("concurrent runtime requires explicit synthetic MockTransport")
+    return await _exercise(panel_root, screening_root, transport=transport,
+                           concurrency=concurrency, features=features)
+
+
+async def _exercise_owned_panel(panel_root, screening_root, *, finish_owned, transport,
+                                 concurrency):
+    return await _exercise(panel_root, screening_root, transport=transport,
+                           concurrency=concurrency, features=True, finish_owned=finish_owned)
+
+
+async def _exercise(panel_root, screening_root, *, transport, concurrency, features,
+                    finish_owned=None):
+    if type(features) is not bool:
+        raise ValueError("explicit feature mode required")
+    owned = finish_owned is not None
+    if transport is not None and type(transport) is not httpx.MockTransport:
+        raise ValueError("unsupported owned runtime transport")
+    if not owned and transport is None:
+        raise ValueError("legacy runtime requires synthetic transport")
+    provenance = 'prospective' if transport is None else 'synthetic'
+    version = OWNED_VERSION if owned else FEATURE_VERSION if features else VERSION
+    runtime_policy = ({**POLICY, 'live_collection_enabled': transport is None,
+                       'identity_policy': origin_worker.IDENTITY_POLICY}
+                      if owned else POLICY)
     _capacity(concurrency)
     panel, root = _canonical(panel_root), base.run_root(panel_root)
     screening = _canonical(screening_root)
@@ -101,7 +123,8 @@ async def exercise_screened_panel(panel_root, screening_root, *, transport, conc
             "runtime_policy",
             {
                 "schema_version": version,
-                "policy": POLICY,
+                "policy": runtime_policy,
+                **({'provenance_class': provenance} if owned else {}),
                 "build": build,
                 "panel_root": str(panel),
                 "screening_root": str(screening),
@@ -111,7 +134,12 @@ async def exercise_screened_panel(panel_root, screening_root, *, transport, conc
                 "declared_at": _clock(),
             },
         )
-        activation = activate_screened_panel(panel, screening)
+        if owned:
+            screened, activation = finish_owned(activate=True)
+            if activation['provenance_class'] != provenance:
+                raise ValueError('owned activation transport provenance differs')
+        else:
+            activation = activate_screened_panel(panel, screening)
         members = {m["market_id"]: m for m in activation["selected"]}
         queue = base._queue(activation)
         heapq.heapify(queue)
@@ -188,12 +216,13 @@ async def exercise_screened_panel(panel_root, screening_root, *, transport, conc
                 "outcomes": outcomes,
                 "as_of": cutoff,
                 "finished_at": _clock(),
-                "provenance_class": "synthetic",
+                "provenance_class": provenance,
                 "accepted_panel": False,
                 "feature_store_admitted": False,
             },
         )
-        return read_runtime(panel)
+        result = read_runtime(panel)
+        return (screened, result) if owned else result
     except BaseException as exc:
         try:
             base._save(
@@ -216,8 +245,17 @@ def read_runtime(panel_root):
     report, report_ack = _pair(root, "runtime_report")
     activation = read_activation(panel)
     version = policy["schema_version"]
-    features = version == FEATURE_VERSION
-    if version not in {VERSION, FEATURE_VERSION}:
+    owned = version == OWNED_VERSION
+    features = version in {FEATURE_VERSION, OWNED_VERSION}
+    provenance = activation['provenance_class'] if owned else 'synthetic'
+    runtime_policy = ({**POLICY, 'live_collection_enabled': provenance == 'prospective',
+                       'identity_policy': origin_worker.IDENTITY_POLICY}
+                      if owned else POLICY)
+    if (version not in {VERSION, FEATURE_VERSION, OWNED_VERSION}
+            or owned and (policy.get('provenance_class') != provenance
+                          or activation['schema_version'] != origin_worker.OWNED_ACTIVATION
+                          or provenance not in {'synthetic', 'prospective'})
+            or not owned and 'provenance_class' in policy):
         raise ValueError("unknown concurrent runtime version")
     concurrency = policy["concurrency"]
     _capacity(concurrency)
@@ -232,7 +270,7 @@ def read_runtime(panel_root):
         }
         or base._size(root) > POLICY["top_bytes"]
         or policy["schema_version"] != version
-        or policy["policy"] != POLICY
+        or policy["policy"] != runtime_policy
         or policy["build"] != verified_panel_build()
         or policy["panel_root"] != str(panel)
         or policy["screening_root"] != activation.get("screening_root")
@@ -277,7 +315,8 @@ def read_runtime(panel_root):
                 )
                 intent, _ = _pair(child, "origin_intent")
                 if intent["schema_version"] != (
-                    origin_worker.FEATURE_VERSION if features else origin_worker.VERSION
+                    origin_worker.OWNED_VERSION if owned
+                    else origin_worker.FEATURE_VERSION if features else origin_worker.VERSION
                 ):
                     raise ValueError("runtime and origin feature modes differ")
                 origin, jobs, ack = base._read_plan(root, result, protocol)
@@ -313,7 +352,7 @@ def read_runtime(panel_root):
         != _json_bytes(
             due_worker._outcomes(list(origins.values()), attempts, protocol, report["as_of"])
         )
-        or report["provenance_class"] != "synthetic"
+        or report["provenance_class"] != provenance
         or report["accepted_panel"] is not False
         or report["feature_store_admitted"] is not False
     ):

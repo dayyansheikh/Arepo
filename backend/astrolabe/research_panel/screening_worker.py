@@ -18,6 +18,7 @@ from .build_identity import verified_panel_build
 from .input_read import _canonical
 from .original_reader import (
     _extract,
+    read_original_runtime,
     read_original_screening,
 )
 from .panel_declaration import FIXED, PanelProtocol, read_panel_declaration, role_capacity
@@ -39,6 +40,7 @@ VERSION = "fs2-synthetic-screening-worker-v1"
 PUBLIC_VERSION = "fs2-public-screening-worker-v2"
 IDENTITY_VERSION = "fs2-identity-screening-worker-v3"
 OWNED_VERSION = "fs2-owned-screening-worker-v4"
+PILOT_VERSION = "fs2-owned-pilot-worker-v5"
 MIB = 1048576
 LIMITS = {
     "worker_metadata_bytes": 32 * MIB,
@@ -160,16 +162,45 @@ async def run_public_screening(
         identity_policy=identity_policy)
 
 
+async def run_synthetic_pilot(panel_root, *, implementation_commit, rule, freshness, transport,
+                              concurrency=4, runtime_concurrency=4, repository=None):
+    """Exercise the complete owned path with synthetic sources; never empirical evidence."""
+    if runtime_concurrency is None:
+        raise ValueError('explicit runtime concurrency required')
+    if type(transport) is not httpx.MockTransport:
+        raise ValueError('synthetic pilot requires MockTransport')
+    return await _run_screening(
+        panel_root, implementation_commit=implementation_commit, rule=rule, freshness=freshness,
+        transport=transport, concurrency=concurrency, repository=repository,
+        identity_policy=IDENTITY_POLICY, runtime_concurrency=runtime_concurrency)
+
+
+async def run_public_pilot(panel_root, *, implementation_commit, rule, freshness,
+                           concurrency=4, runtime_concurrency=4, repository=None):
+    """One finite public read-only pilot. No injected payload, clock, provenance or transport."""
+    if runtime_concurrency is None:
+        raise ValueError('explicit runtime concurrency required')
+    return await _run_screening(
+        panel_root, implementation_commit=implementation_commit, rule=rule, freshness=freshness,
+        transport=None, concurrency=concurrency, repository=repository,
+        identity_policy=IDENTITY_POLICY, runtime_concurrency=runtime_concurrency)
+
+
 async def _run_screening(
     panel_root, *, implementation_commit, rule, freshness, transport, concurrency, repository,
-    identity_policy=None
+    identity_policy=None, runtime_concurrency=None
 ):
+    pilot = runtime_concurrency is not None
+    if pilot and (type(runtime_concurrency) is not int or not 2 <= runtime_concurrency <= 8
+                  or identity_policy != IDENTITY_POLICY):
+        raise ValueError('bounded owned runtime concurrency and identity policy required')
     if identity_policy not in (None, IDENTITY_POLICY):
         raise ValueError("unsupported screening identity policy")
     if transport is not None and type(transport) is not httpx.MockTransport:
         raise ValueError("unsupported screening transport")
     public = transport is None
-    version = OWNED_VERSION if identity_policy else (PUBLIC_VERSION if public else VERSION)
+    version = (PILOT_VERSION if pilot else OWNED_VERSION if identity_policy
+               else PUBLIC_VERSION if public else VERSION)
     provenance = "prospective" if public else "synthetic"
     limits = {**LIMITS, "live_collection_enabled": public}
     if (
@@ -186,6 +217,10 @@ async def _run_screening(
     policy, da = _pair(panel, "panel_policy")
     protocol = PanelProtocol(**policy["protocol"])
     reserved = allocation(declaration)
+    if pilot and declaration['reservation']['duration_seconds'] > (
+        LIMITS['max_seconds'] - LIMITS['acquisition_seconds'] - 600
+    ):
+        raise ValueError('owned pilot duration exceeds worker budget')
     if shutil.disk_usage(root.parent).free < reserved["required_free_bytes"]:
         raise ValueError("full screening/source/recovery/runtime capacity unavailable")
     build = verified_panel_build()
@@ -219,6 +254,7 @@ async def _run_screening(
                 "limits": limits,
                 "reservation": reserved,
                 "concurrency": concurrency,
+                **({'runtime_concurrency': runtime_concurrency} if pilot else {}),
                 "source_budget": asdict(budget),
                 "source_policy": "receipt-time-selected-market-v1",
                 "quote_policy": asdict(quotes),
@@ -292,30 +328,46 @@ async def _run_screening(
                     group.create_task(collect(index, item))
         stage = "screening"
         _check(root, reserved, started)
-        screened = finish_owned() if finish_owned is not None else finish_screening(screening)
+        runtime = None
+        if pilot:
+            from .concurrent_runtime import _exercise_owned_panel
+            from .runtime import run_root
+
+            stage = "runtime"
+            screened, runtime = await _exercise_owned_panel(
+                panel, screening, finish_owned=finish_owned, transport=transport,
+                concurrency=runtime_concurrency)
+        else:
+            screened = finish_owned() if finish_owned is not None else finish_screening(screening)
         roles = role_capacity(screened["plan"], protocol)
         stage = "recovery"
-        # The original screening reader replays the full selection/frame/panel and every
-        # source/book/decision dependency. Separate per-child reads would duplicate this proof.
+        # One complete original audit after the last source/origin/target. No duplicate
+        # per-child audit or full-population replay on an origin/target deadline.
         _check(root, reserved, started)
-        read = read_original_screening(
-            screening,
-            implementation_commit=implementation_commit,
-            repository=repository,
-            output_root=root / "fs2_screening_read_batch",
-        )
-        if read["report"] != screened:
-            raise ValueError("original screening replay differs")
+        if pilot:
+            read = read_original_runtime(
+                run_root(panel), implementation_commit=implementation_commit,
+                repository=repository, output_root=root / "fs2_runtime_read_batch")
+            if read['report'] != runtime:
+                raise ValueError('original owned runtime replay differs')
+        else:
+            read = read_original_screening(
+                screening, implementation_commit=implementation_commit,
+                repository=repository, output_root=root / "fs2_screening_read_batch")
+            if read["report"] != screened:
+                raise ValueError("original screening replay differs")
         retained = _check(root, reserved, started)
         result = {
             "schema_version": version,
             "policy_hash": wa["payload_hash"],
             "screening": screened,
+            **({'runtime': runtime} if pilot else {}),
             "role_capacity": roles,
             "recovery": [read["read_receipt"]],
             "reported_at": _clock(),
             "retained_bytes_before_report": retained,
-            "state": "screening_complete" if roles["fits"] else "blocked_role_capacity",
+            "state": ("pilot_collected_unaccepted" if pilot else "screening_complete")
+            if roles["fits"] else "blocked_role_capacity",
             "origin_admitted": False,
             "accepted_panel": False,
         }

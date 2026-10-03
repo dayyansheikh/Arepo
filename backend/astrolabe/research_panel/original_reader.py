@@ -449,7 +449,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
     if kind == 'runtime':
         if policy['schema_version'] not in {'fs2-interleaved-synthetic-runtime-v1',
                                             'fs2-concurrent-synthetic-runtime-v2',
-                                            'fs2-concurrent-feature-runtime-v3'}:
+                                            'fs2-concurrent-feature-runtime-v3',
+                                            'fs2-owned-concurrent-runtime-v4'}:
             raise ValueError('unsupported original runtime layout')
         panel = Path(policy['panel_root'])
         declaration, _ = _pair(panel, 'panel_policy')
@@ -458,7 +459,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
                         panel.with_name('fs2_activation_' + suffix),
                         panel.with_name('fs2_selection_panel_' + suffix)]
         if policy['schema_version'] in {'fs2-concurrent-synthetic-runtime-v2',
-                                         'fs2-concurrent-feature-runtime-v3'}:
+                                         'fs2-concurrent-feature-runtime-v3',
+                                            'fs2-owned-concurrent-runtime-v4'}:
             screen = Path(policy['screening_root'])
             screen_policy, _ = _pair(screen, 'screening_policy')
             dependencies.append(screen)

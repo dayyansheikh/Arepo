@@ -1,4 +1,4 @@
-"""Synthetic origin-worker integration with actual clocks; live collection stays closed."""
+"""Versioned causal origins with actual clocks; public sources require owned activation."""
 
 import hashlib
 import re
@@ -22,8 +22,11 @@ from astrolabe.feature_store.source_run import (
 from astrolabe.feature_store.sources import SOURCES
 
 from . import origin_features
+from .activation import OWNED_VERSION as OWNED_ACTIVATION
 from .activation import activate_panel, activation_root, allocation, read_activation
 from .build_identity import verified_panel_build
+from .identity_comparison import VERSION as IDENTITY_POLICY
+from .identity_comparison import compare_mapping
 from .input_read import _canonical
 from .panel_declaration import PanelProtocol, read_panel_declaration
 from .quote_computation import (
@@ -37,6 +40,7 @@ from .scheduling import wait_until
 
 VERSION = 'fs2-synthetic-origin-worker-v1'
 FEATURE_VERSION = 'fs2-synthetic-feature-origin-v2'
+OWNED_VERSION = 'fs2-owned-feature-origin-v3'
 SOURCE = 'fs2_capture_origin'
 COMPUTATION = 'fs2_quote_computation_origin'
 POLICY = {'live_collection_enabled': False, 'targets_collected': False,
@@ -137,6 +141,8 @@ def _projection(root, intent, panel_policy, freeze):
     """Consume verified journal facts directly; replay uses the original actual freeze."""
     protocol = PanelProtocol(**panel_policy['protocol'])
     member = intent['member']
+    owned = intent['schema_version'] == OWNED_VERSION
+    provenance = intent['provenance_class'] if owned else 'synthetic'
     summary = read_quote_computation(root / COMPUTATION)
     policy, _ = _pair(root / COMPUTATION, 'quote_policy')
     facts, _ = _pair(root / COMPUTATION, 'quote_facts')
@@ -149,7 +155,7 @@ def _projection(root, intent, panel_policy, freeze):
     if (len(rows) != 3 or source['policy'] != TARGETED_POLICY
             or source['budget'] != intent['source_budget']
             or source['retention_quota'] != quota_policy(protocol.source_run_retained_bytes)
-            or source['provenance_class'] != 'synthetic'
+            or source['provenance_class'] != provenance
             or policy['source_root'] != str(root / SOURCE)
             or policy['limits'].get('storage_profile')
                 != panel_policy.get('computation_storage_profile')
@@ -167,26 +173,40 @@ def _projection(root, intent, panel_policy, freeze):
         raise ValueError('one fixed origin book observation required')
     quote = quotes[0]
     result = {'computation': summary, 'quote': quote,
-            'state_at_freeze': _choice(quote, member, protocol, intent['slot'], freeze),
+            'state_at_freeze': _choice(
+                quote, member, protocol, intent['slot'], freeze, owned=owned),
             'source_statuses': [{'source_id': r['source_id'], 'state': r['missing_reason'],
                                  'observation_id': r['id']} for r in rows],
-            'provenance_class': 'synthetic', 'clock_basis': 'receipt',
+            'provenance_class': provenance, 'clock_basis': 'receipt',
             'flow_window_complete': False, 'economic_value_claim': False}
-    if intent['schema_version'] == FEATURE_VERSION:
+    if owned:
+        result['identity_comparison'] = compare_mapping(
+            member['frame_identity'],
+            quote['mapping']['mapping_version'] if quote['mapping'] else None)
+    if intent['schema_version'] in {FEATURE_VERSION, OWNED_VERSION}:
         result['feature_manifest'] = origin_features.project_origin_features(
             rows, policy=QuoteInputPolicy(protocol.max_quote_age_seconds,
                                           protocol.max_identity_age_seconds), cutoff=_time(freeze))
     return result
 
 
-def _choice(quote, member, protocol, slot, freeze):
+def _choice(quote, member, protocol, slot, freeze, *, owned=False):
     state = quote['state']
     mapping = quote['mapping']
+    if owned and (member['identity_policy'] != IDENTITY_POLICY
+                  or member['mapping_version'] != member['frame_identity']['mapping_version']):
+        raise ValueError('owned origin identity policy/frame differs')
+    matches = (mapping is not None
+               and mapping['mapping_version'] == member['mapping_version'])
+    if owned:
+        matches = compare_mapping(
+            member['frame_identity'],
+            mapping['mapping_version'] if mapping else None)['core_identity_equal']
     if state == 'observed':
         if (quote['token_id'] != member['token_id']
                 or quote['condition_id'] != member['condition_id']
                 or mapping['market_id'] != member['market_id']
-                or mapping['mapping_version'] != member['mapping_version']
+                or not matches
                 or mapping['outcome_index'] != member['outcome_index']
                 or mapping['outcome_label'] != member['outcome_label']):
             state = 'identity_changed_since_selection'
@@ -214,11 +234,15 @@ def _state(facts, ack, protocol):
 
 
 async def _collect_one(root, slot, member, panel_policy, activation, transport, *, features=False):
-    if activation['schema_version'] == 'fs2-owned-selection-activation-v3':
-        raise ValueError('owned activation requires the versioned origin identity contract')
     if type(features) is not bool:
         raise ValueError("explicit feature mode required")
-    version = FEATURE_VERSION if features else VERSION
+    owned = activation['schema_version'] == OWNED_ACTIVATION
+    provenance = activation['provenance_class'] if owned else 'synthetic'
+    if owned and (not features or provenance not in {'synthetic', 'prospective'}
+                  or (type(transport) is httpx.MockTransport) != (provenance == 'synthetic')
+                  or transport is not None and type(transport) is not httpx.MockTransport):
+        raise ValueError('owned origin feature mode/transport provenance differs')
+    version = OWNED_VERSION if owned else FEATURE_VERSION if features else VERSION
     protocol = PanelProtocol(**panel_policy['protocol'])
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
@@ -227,6 +251,7 @@ async def _collect_one(root, slot, member, panel_policy, activation, transport, 
         budget = _budget(protocol, slot, at)
         _save(root, 'origin_intent', {
             'schema_version': version, 'slot': slot, 'member': member,
+            **({'provenance_class': provenance} if owned else {}),
             **({'feature_policy': origin_features.POLICY} if features else {}),
             'activation_hash': activation['activation_hash'], 'budget_basis_at': at,
             'source_budget': asdict(budget) if budget else None,
@@ -255,7 +280,7 @@ async def _collect_one(root, slot, member, panel_policy, activation, transport, 
             computed = _clock() if features else None
             freeze = _clock()
             projection['state_at_freeze'] = _choice(
-                projection['quote'], member, protocol, slot, freeze)
+                projection['quote'], member, protocol, slot, freeze, owned=owned)
             if features:
                 origin_features.freeze_eligibility(projection)
             _save(root, 'origin_facts', {
@@ -293,8 +318,14 @@ def _read_one(root, slot, member, panel_policy, activation):
         raise ValueError('origin receipt chronology differs')
     intent, intent_ack = _pair(root, 'origin_intent')
     version = intent['schema_version']
-    features = version == FEATURE_VERSION
-    if (version not in {VERSION, FEATURE_VERSION}
+    owned = activation['schema_version'] == OWNED_ACTIVATION
+    features = version in {FEATURE_VERSION, OWNED_VERSION}
+    provenance = activation['provenance_class'] if owned else 'synthetic'
+    if (version not in {VERSION, FEATURE_VERSION, OWNED_VERSION}
+            or (version == OWNED_VERSION) != owned
+            or owned and (intent.get('provenance_class') != provenance
+                          or provenance not in {'synthetic', 'prospective'})
+            or not owned and 'provenance_class' in intent
             or features and intent.get('feature_policy') != origin_features.POLICY
             or not features and 'feature_policy' in intent):
         raise ValueError('origin feature version/policy differs')
@@ -320,7 +351,7 @@ def _read_one(root, slot, member, panel_policy, activation):
                                  facts['read_started_at'] if features else facts['origin_at'])
         if features:
             projection['state_at_freeze'] = _choice(projection['quote'], member, protocol, slot,
-                                                    facts['origin_at'])
+                                                    facts['origin_at'], owned=owned)
             origin_features.freeze_eligibility(projection)
             if not _ordered_clocks(facts['read_started_at'], facts['feature_computed_at'],
                                    facts['origin_at']):
@@ -341,7 +372,8 @@ def _read_one(root, slot, member, panel_policy, activation):
         ):
             state = 'late_persistence'
     return {'intent_id': slot['intent_id'], 'state': state, 'origin_hash': origin_hash,
-            'receipt_hash': receipt_ack['payload_hash'], 'provenance_class': 'synthetic',
+            'receipt_hash': receipt_ack['payload_hash'], 'provenance_class': provenance,
+            **({'identity_policy': IDENTITY_POLICY} if owned else {}),
             'origin_admitted': False, 'targets_collected': False}
 
 

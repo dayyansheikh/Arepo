@@ -204,7 +204,8 @@ def read_runtime(panel_root):
     panel, root = _canonical(panel_root), run_root(panel_root)
     layout, _ = _pair(root, 'runtime_policy')
     if layout['schema_version'] in {'fs2-concurrent-synthetic-runtime-v2',
-                                    'fs2-concurrent-feature-runtime-v3'}:
+                                    'fs2-concurrent-feature-runtime-v3',
+                                            'fs2-owned-concurrent-runtime-v4'}:
         from .concurrent_runtime import read_runtime as read_concurrent
 
         return read_concurrent(panel)

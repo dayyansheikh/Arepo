@@ -1,4 +1,4 @@
-"""Synthetic due observations over durable origins; no live or SQL admission."""
+"""Versioned due observations over durable origins; no SQL or production admission."""
 
 import hashlib
 import math
@@ -33,6 +33,7 @@ from astrolabe.feature_store.sources import SOURCES
 
 from .activation import allocation
 from .build_identity import verified_panel_build
+from .identity_comparison import VERSION as IDENTITY_POLICY
 from .input_read import _canonical
 from .origin_worker import read_origin_run
 from .origin_worker import run_root as origin_run_root
@@ -49,6 +50,7 @@ from .target_adapter import adapt_target_quote
 from .targets import Quote, select_target
 
 VERSION = "fs2-synthetic-due-worker-v1"
+OWNED_VERSION = "fs2-owned-due-worker-v2"
 SOURCE = "fs2_capture_target"
 COMPUTATION = "fs2_quote_computation_target"
 POLICY = {
@@ -221,6 +223,13 @@ def _ceiling(panel_policy):
     )
 
 
+def _version(origin):
+    owned = origin['result'].get('identity_policy') == IDENTITY_POLICY
+    if owned and origin['member'].get('identity_policy') != IDENTITY_POLICY:
+        raise ValueError('owned target origin identity policy differs')
+    return OWNED_VERSION if owned else VERSION
+
+
 def _adapt(root, origin, panel_policy, intent_ack):
     protocol = PanelProtocol(**panel_policy["protocol"])
     summary = read_quote_computation(root / COMPUTATION)
@@ -243,7 +252,7 @@ def _adapt(root, origin, panel_policy, intent_ack):
         or source["policy"] != TARGETED_POLICY
         or source["budget"] != intent["source_budget"]
         or source["retention_quota"] != quota_policy(protocol.source_run_retained_bytes)
-        or source["provenance_class"] != "synthetic"
+        or source["provenance_class"] != origin["result"]["provenance_class"]
         or policy["source_root"] != str(root / SOURCE)
         or policy["limits"].get("storage_profile")
         != panel_policy.get("computation_storage_profile")
@@ -275,6 +284,14 @@ def _adapt(root, origin, panel_policy, intent_ack):
 
 
 async def _collect_one(root, job, origin, panel_policy, transport):
+    version = _version(origin)
+    provenance = origin['result']['provenance_class']
+    if version == OWNED_VERSION and (
+        provenance not in {'synthetic', 'prospective'}
+        or (type(transport) is httpx.MockTransport) != (provenance == 'synthetic')
+        or transport is not None and type(transport) is not httpx.MockTransport
+    ):
+        raise ValueError('owned target transport provenance differs')
     protocol = PanelProtocol(**panel_policy["protocol"])
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
@@ -286,7 +303,7 @@ async def _collect_one(root, job, origin, panel_policy, transport):
             root,
             "target_intent",
             {
-                "schema_version": VERSION,
+                "schema_version": version,
                 "job": job,
                 "origin_result": origin["result"],
                 "created_at": at,
@@ -331,7 +348,7 @@ async def _collect_one(root, job, origin, panel_policy, transport):
                 root,
                 "target_facts",
                 {
-                    "schema_version": VERSION,
+                    "schema_version": version,
                     "intent_hash": intent_ack["payload_hash"],
                     "read_started_at": read_started,
                     "computed_at": _clock(),
@@ -359,6 +376,7 @@ async def _collect_one(root, job, origin, panel_policy, transport):
 
 
 def _read_one(root, job, origin, panel_policy):
+    version = _version(origin)
     protocol = PanelProtocol(**panel_policy["protocol"])
     receipt, receipt_ack = _pair(root, "target_receipt")
     intent, intent_ack = _pair(root, "target_intent")
@@ -367,7 +385,7 @@ def _read_one(root, job, origin, panel_policy):
     if (
         receipt["inventory"] != _inventory(root, _ceiling(panel_policy))
         or _size(root, True) > POLICY["attempt_metadata_bytes"]
-        or intent["schema_version"] != VERSION
+        or intent["schema_version"] != version
         or intent["job"] != job
         or intent["origin_result"] != origin["result"]
         or intent["source_budget"] != (asdict(budget) if budget else None)
@@ -411,7 +429,7 @@ def _read_one(root, job, origin, panel_policy):
         facts, ack = _pair(root, "target_facts")
         projection = _adapt(root, origin, panel_policy, intent_ack)
         if (
-            facts["schema_version"] != VERSION
+            facts["schema_version"] != version
             or facts["intent_hash"] != intent_ack["payload_hash"]
             or facts["feature_store_admitted"] is not False
             or _json_bytes(facts["projection"]) != _json_bytes(projection)

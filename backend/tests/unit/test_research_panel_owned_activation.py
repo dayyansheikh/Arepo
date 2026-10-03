@@ -2,7 +2,6 @@
 
 import sys
 
-import httpx
 import pytest
 
 from astrolabe.feature_store.source_run import _pair
@@ -66,10 +65,10 @@ async def test_owned_activation_skips_population_work_and_recovers_original_iden
     assert recovered['report']['summary'] == active
     assert not active['origin_admitted'] and not active['accepted_panel']
     policy, _ = _pair(panel, 'panel_policy')
-    with pytest.raises(ValueError, match='versioned origin identity contract'):
+    with pytest.raises(ValueError, match='transport provenance'):
         await origin_worker._collect_one(
             tmp_path / 'must_not_create_origin', active['slots'][0], active['selected'][0],
-            policy, active, httpx.MockTransport(lambda _: pytest.fail('source requested')),
+            policy, active, None,
             features=True)
     assert not (tmp_path / 'must_not_create_origin').exists()
 
