@@ -214,6 +214,8 @@ def _state(facts, ack, protocol):
 
 
 async def _collect_one(root, slot, member, panel_policy, activation, transport, *, features=False):
+    if activation['schema_version'] == 'fs2-owned-selection-activation-v3':
+        raise ValueError('owned activation requires the versioned origin identity contract')
     if type(features) is not bool:
         raise ValueError("explicit feature mode required")
     version = FEATURE_VERSION if features else VERSION

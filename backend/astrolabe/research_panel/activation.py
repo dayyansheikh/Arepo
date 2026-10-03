@@ -15,11 +15,13 @@ from .panel_declaration import PanelProtocol, read_panel_declaration, role_capac
 from .panel_selection import VERSION as SELECTION_VERSION
 from .panel_selection import VERSIONS as SELECTION_VERSIONS
 from .panel_selection import freshness, selection_root
-from .screening import read_screening
+from .screening import IDENTITY_POLICY, read_screening
+from .screening import OWNED_VERSION as OWNED_SCREENING_VERSION
 from .selection import read_selection
 
 VERSION = 'fs2-panel-activation-v1'
 SCREENED_VERSION = 'fs2-panel-activation-v2'
+OWNED_VERSION = 'fs2-owned-selection-activation-v3'
 POLICY = {'lead_seconds': 2, 'max_output_bytes': 32 * 1048576,
           'max_artifact_bytes': 16 * 1048576, 'max_seconds': 600,
           'per_origin_metadata_bytes': 131072, 'per_target_metadata_bytes': 131072,
@@ -140,6 +142,76 @@ def _consume(panel, started, root, screening=None):
             screen_report)
 
 
+
+def _consume_owned(panel, screening, screened=None):
+    """Owned live transition or complete cold replay; preserve the original frame identity."""
+    if screening is None:
+        raise ValueError('owned activation requires screening')
+    declaration = read_panel_declaration(panel)
+    report = read_screening(screening) if screened is None else screened
+    frozen, fa = _pair(screening, 'screening_policy')
+    saved, ra = _pair(screening, 'screening_report')
+    selection = selection_root(panel)
+    selected_report, sa = _pair(selection, 'selection_report')
+    selected_policy, pa = _pair(selection, 'selection_policy')
+    capacity = role_capacity(report['plan'], PanelProtocol(**frozen['protocol']))
+    if (frozen['schema_version'] != OWNED_SCREENING_VERSION
+            or report['schema_version'] != OWNED_SCREENING_VERSION
+            or frozen['identity_policy'] != IDENTITY_POLICY
+            or report['policy_hash'] != fa['payload_hash']
+            or report['screening_report_hash'] != ra['payload_hash']
+            or report['screening_available_at'] != ra['durable_ack']
+            or _json_bytes(report) != _json_bytes(
+                {**saved, 'screening_report_hash': ra['payload_hash'],
+                 'screening_available_at': ra['durable_ack']})
+            or frozen['selection_root'] != str(selection)
+            or frozen['selection_report_hash'] != sa['payload_hash']
+            or frozen['selection_available_at'] != sa['durable_ack']
+            or selected_report['state'] != 'fresh_selection_sealed'
+            or selected_report['policy_hash'] != pa['payload_hash']
+            or selected_policy['panel_declaration_hash'] != declaration['declaration_hash']
+            or selected_policy['panel_protocol'] != frozen['protocol']
+            or selected_report['provenance_class'] != report['provenance_class']
+            or not capacity['fits']):
+        raise ValueError('owned activation selection/screening lineage differs')
+    roles = {}
+    for role in report['plan']['assignments']:
+        roles.setdefault(role['market_id'], []).append(role)
+    selected = []
+    for item in frozen['selected']:
+        member, identity = item['member'], item['identity']
+        assignments = roles.pop(member['market_id'], None)
+        outcomes = [o for o in identity['outcomes'] if o['token_id'] == member['token_id']]
+        if (not assignments or len(outcomes) != 1
+                or identity['market_id'] != member['market_id']
+                or any(a['token_id'] != member['token_id']
+                       or a['source_observation_id'] != member['source_observation_id']
+                       for a in assignments)):
+            raise ValueError('owned activation selected identity/role closure differs')
+        selected.append({
+            'market_id': member['market_id'], 'token_id': member['token_id'],
+            'condition_id': identity['condition_id'],
+            'mapping_version': identity['mapping_version'],
+            'outcome_index': outcomes[0]['outcome_index'],
+            'outcome_label': outcomes[0]['outcome_label'],
+            'source_observation_id': member['source_observation_id'],
+            'identity_policy': IDENTITY_POLICY, 'frame_identity': identity,
+            'screening_policy_hash': fa['payload_hash'], 'roles': assignments,
+        })
+    if (roles or len(selected) != selected_report['unique_selected_markets']
+            or len({r['market_id'] for r in selected}) != len(selected)):
+        raise ValueError('owned activation member closure differs')
+    original = {**selected_report, 'selection_report_hash': sa['payload_hash'],
+                'selection_available_at': sa['durable_ack']}
+    return (declaration, selected_policy, original,
+            sorted(selected, key=lambda r: r['market_id']), report)
+
+
+def _activate_owned_panel(panel, screening, screened):
+    # Called only by the finish operation minted by a full pre-source selection read.
+    # No public API accepts a caller-supplied report as prospective authentication.
+    return _activate(panel, screening, owned_screened=screened)
+
 def _fresh(policy, report, at):
     freshness(policy, {'interval_start': report['source_interval_start'],
                        'interval_end': report['source_interval_end'],
@@ -222,12 +294,13 @@ def activate_screened_panel(panel_root, screening_root):
     return _activate(panel_root, _canonical(screening_root))
 
 
-def _activate(panel_root, screening):
+def _activate(panel_root, screening, *, owned_screened=None):
     panel = _canonical(panel_root)
     declaration = read_panel_declaration(panel)
     panel_policy, _ = _pair(panel, 'panel_policy')
     root = activation_root(panel)
-    version = VERSION if screening is None else SCREENED_VERSION
+    version = (OWNED_VERSION if owned_screened is not None
+               else VERSION if screening is None else SCREENED_VERSION)
     if screening is not None and (root == screening or root in screening.parents
                                   or screening in root.parents):
         raise ValueError('activation output must be separate from screening evidence')
@@ -248,8 +321,9 @@ def _activate(panel_root, screening):
         }, started)
         policy, policy_ack = _pair(root, 'activation_policy')
         read_started = _clock()
-        current, selection_policy, report, selected, screen_report = _consume(
-            panel, started, root, screening)
+        current, selection_policy, report, selected, screen_report = (
+            _consume(panel, started, root, screening) if owned_screened is None
+            else _consume_owned(panel, screening, owned_screened))
         completed = _clock()
         if (current != declaration or not _ordered_clocks(
             policy['declared_at'], policy_ack['durable_ack'], read_started, completed
@@ -302,9 +376,11 @@ def read_activation(panel_root):
     _check(root, started)
     policy, policy_ack = _pair(root, 'activation_policy')
     screening = _canonical(policy['screening_root']) if 'screening_root' in policy else None
-    version = VERSION if screening is None else SCREENED_VERSION
-    declaration, selection_policy, report, selected, screen_report = _consume(
-        panel, started, root, screening)
+    owned = policy['schema_version'] == OWNED_VERSION
+    version = OWNED_VERSION if owned else VERSION if screening is None else SCREENED_VERSION
+    declaration, selection_policy, report, selected, screen_report = (
+        _consume_owned(panel, screening) if owned
+        else _consume(panel, started, root, screening))
     panel_policy, _ = _pair(panel, 'panel_policy')
     facts, ack = _pair(root, 'activation_facts')
     if (policy['schema_version'] != version or policy['policy'] != POLICY

@@ -124,10 +124,19 @@ def _prepare_owned_screening(selection_root, *, output_root, rule, policy):
     if len(proof.encode()) > LIMITS["max_artifact_bytes"]:
         raise ValueError("owned screening selection context exceeds bounded size")
 
-    def finish():
+    def finish(*, activate=False):
+        if type(activate) is not bool:
+            raise ValueError("explicit owned activation mode required")
         if _pair(root, "screening_policy")[1]["payload_hash"] != policy_hash:
             raise ValueError("owned screening policy changed after authentication")
-        return _finish_screening(root, selected_state=json.loads(proof))
+        state = json.loads(proof)
+        screened = _finish_screening(root, selected_state=state)
+        if not activate:
+            return screened
+        from .activation import _activate_owned_panel
+
+        activated = _activate_owned_panel(_canonical(state[1]['panel_root']), root, screened)
+        return screened, activated
 
     return frozen, finish
 
@@ -214,7 +223,8 @@ def _declare_screening(selection_root, *, output_root, rule, policy, identity_po
             "source_interval_start", "source_interval_end", "original_frame_available_at")}
         | {"plan": {"protocol": {k: report["plan"]["protocol"][k]
                                  for k in ("probability_edges", "liquidity_edges")}}},
-        {"panel_protocol": selection_policy["panel_protocol"]}, selected)
+        {"panel_protocol": selection_policy["panel_protocol"],
+         "panel_root": selection_policy["panel_root"]}, selected)
     return frozen, state
 
 
