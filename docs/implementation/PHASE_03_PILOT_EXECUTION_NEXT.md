@@ -59,3 +59,32 @@ No new hosted service, database, broad collector or model is justified.
 Only an actual timestamp-faithful pilot satisfying its frozen criteria can close Phase3.
 Document limitations and exact build/tests/evidence, finalise the fresh-chat handover and
 cancel the pending successor on completion. Phase4 begins only in a fresh conversation.
+
+
+## D079 implementation scope and next wiring
+
+The owned screening path uses a private finish operation minted only by the actual full
+selection read. Its immutable canonical context contains only the authenticated selected
+members, original report hash/clocks, frozen panel protocol and bin edges. It never accepts a
+caller-supplied cache or prospective payload. Screening v3 and worker v4 identify this path;
+legacy standalone declarations/recovery retain their versions. The policy's actual read
+clocks precede all source requests. In-process finish replays bounded source evidence against
+that context; public cold/original recovery still authenticates the entire selection/frame.
+Worker return still requires original recovery, and all admission flags remain false.
+
+The next integration must pass this owned result directly to a versioned activation/origin
+runtime before the full audit, within one orchestrator that owns both operations. A callback
+or mutable report supplied by an external caller is not prospective authentication. New
+activation members retain full frame identity plus the screening policy/report hashes and
+exact roles. Cold activation recovery derives the same members through full read_screening.
+Origin comparisons use the explicit D076 policy only for this new activation version and
+retain the current raw-backed mapping, unknown event membership and original frame mapping.
+Fresh targets still compare against the exact actual origin mapping. Preserve legacy
+activation's rejection of screening v2, and do not remove its guard as a shortcut.
+
+No full public pilot was enabled by D079. Test that full-population work occurs before sources
+and after the complete origin/target run, never between screening and activation or on due
+queues. Public entry points must derive provenance from real transport and accept no payload,
+clock or transport override. Test cold/original recovery, changed dependencies, asymmetric
+identities, rules/token/outcome changes, late saves, due priority and cancellations before
+freezing any actual pilot protocol. Include every added writer in the upfront capacity cap.

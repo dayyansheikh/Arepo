@@ -28,6 +28,7 @@ from .screening import (
     IDENTITY_POLICY,
     PER_DECISION_BYTES,
     ScreeningPolicy,
+    _prepare_owned_screening,
     declare_screening,
     finish_screening,
 )
@@ -37,6 +38,7 @@ from .trigger_computation import SnapshotTriggerPolicy, record_snapshot_trigger
 VERSION = "fs2-synthetic-screening-worker-v1"
 PUBLIC_VERSION = "fs2-public-screening-worker-v2"
 IDENTITY_VERSION = "fs2-identity-screening-worker-v3"
+OWNED_VERSION = "fs2-owned-screening-worker-v4"
 MIB = 1048576
 LIMITS = {
     "worker_metadata_bytes": 32 * MIB,
@@ -167,7 +169,7 @@ async def _run_screening(
     if transport is not None and type(transport) is not httpx.MockTransport:
         raise ValueError("unsupported screening transport")
     public = transport is None
-    version = IDENTITY_VERSION if identity_policy else (PUBLIC_VERSION if public else VERSION)
+    version = OWNED_VERSION if identity_policy else (PUBLIC_VERSION if public else VERSION)
     provenance = "prospective" if public else "synthetic"
     limits = {**LIMITS, "live_collection_enabled": public}
     if (
@@ -233,10 +235,13 @@ async def _run_screening(
                 "accepted_panel": False,
             },
         )
-        frozen = declare_screening(
-            selection_root(panel), output_root=screening, rule=rule, policy=freshness,
-            identity_policy=identity_policy
-        )
+        if identity_policy:
+            frozen, finish_owned = _prepare_owned_screening(
+                selection_root(panel), output_root=screening, rule=rule, policy=freshness)
+        else:
+            frozen = declare_screening(
+                selection_root(panel), output_root=screening, rule=rule, policy=freshness)
+            finish_owned = None
         if (
             frozen["source_provenance_class"] != provenance
             or len(frozen["selected"]) > reserved["screen_slots"]
@@ -287,7 +292,7 @@ async def _run_screening(
                     group.create_task(collect(index, item))
         stage = "screening"
         _check(root, reserved, started)
-        screened = finish_screening(screening)
+        screened = finish_owned() if finish_owned is not None else finish_screening(screening)
         roles = role_capacity(screened["plan"], protocol)
         stage = "recovery"
         # The original screening reader replays the full selection/frame/panel and every

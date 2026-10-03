@@ -4,6 +4,7 @@ No source requests, origins, SQL admission or claim of prospective panel accepta
 The first-stage scheduled draw remains intact; second-stage probabilities are conditional.
 """
 
+import json
 import secrets
 import shutil
 import time
@@ -34,6 +35,8 @@ from .window_computation import LIMITS, _check, _save
 
 VERSION = "fs2-screening-v1"
 IDENTITY_VERSION = "fs2-screening-identity-v2"
+OWNED_VERSION = "fs2-screening-owned-selection-v3"
+OWNED_READ_MODE = "full_selection_before_sources; full_cold_replay_before_acceptance"
 PER_DECISION_BYTES = LIMITS["max_output_bytes"] + 2 * LIMITS["max_artifact_bytes"]
 
 
@@ -98,6 +101,38 @@ def _paths(root, count):
 
 def declare_screening(selection_root, *, output_root, rule, policy, identity_policy=None):
     """Own every assignment before its D066 declaration/source acquisition; no caller seed."""
+    frozen, _ = _declare_screening(
+        selection_root, output_root=output_root, rule=rule, policy=policy,
+        identity_policy=identity_policy, owned=False)
+    return frozen
+
+
+def _prepare_owned_screening(selection_root, *, output_root, rule, policy):
+    """Return a process-owned finish operation after authenticating the full selection.
+
+    No supplied payload, cached hash or persisted context can mint this operation.
+    Cold readers still reauthenticate every dependency. Its output cannot admit an origin.
+    """
+    frozen, state = _declare_screening(
+        selection_root, output_root=output_root, rule=rule, policy=policy,
+        identity_policy=IDENTITY_POLICY, owned=True)
+    root = _canonical(output_root)
+    _, ack = _pair(root, "screening_policy")
+    policy_hash = ack["payload_hash"]
+    # Isolate the owned proof from the mutable dictionary returned to the collector.
+    proof = canonical_json(state)
+    if len(proof.encode()) > LIMITS["max_artifact_bytes"]:
+        raise ValueError("owned screening selection context exceeds bounded size")
+
+    def finish():
+        if _pair(root, "screening_policy")[1]["payload_hash"] != policy_hash:
+            raise ValueError("owned screening policy changed after authentication")
+        return _finish_screening(root, selected_state=json.loads(proof))
+
+    return frozen, finish
+
+
+def _declare_screening(selection_root, *, output_root, rule, policy, identity_policy, owned):
     if identity_policy not in (None, IDENTITY_POLICY):
         raise ValueError("unsupported screening identity policy")
     selection, root = _canonical(selection_root), _canonical(output_root)
@@ -139,7 +174,9 @@ def declare_screening(selection_root, *, output_root, rule, policy, identity_pol
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
     frozen = {
-        "schema_version": IDENTITY_VERSION if identity_policy else VERSION,
+        "schema_version": (OWNED_VERSION if owned
+                           else IDENTITY_VERSION if identity_policy else VERSION),
+        **({"selection_read_mode": OWNED_READ_MODE} if owned else {}),
         **({"identity_policy": identity_policy} if identity_policy else {}),
         "build": verified_panel_build(),
         "limits": dict(LIMITS),
@@ -170,7 +207,15 @@ def declare_screening(selection_root, *, output_root, rule, policy, identity_pol
             token_id=item["member"]["token_id"],
             policy=rule,
         )
-    return frozen
+    # Retain only the bounded state needed for this draw, not the population inventory.
+    state = (
+        {k: report[k] for k in (
+            "selection_report_hash", "selection_available_at", "provenance_class",
+            "source_interval_start", "source_interval_end", "original_frame_available_at")}
+        | {"plan": {"protocol": {k: report["plan"]["protocol"][k]
+                                 for k in ("probability_edges", "liquidity_edges")}}},
+        {"panel_protocol": selection_policy["panel_protocol"]}, selected)
+    return frozen, state
 
 
 def _policy(root):
@@ -178,8 +223,10 @@ def _policy(root):
     rule = SnapshotTriggerPolicy(**value["rule"])
     ScreeningPolicy(**value["freshness"])
     if (
-        value["schema_version"] not in {VERSION, IDENTITY_VERSION}
-        or (value["schema_version"] == IDENTITY_VERSION) != ("identity_policy" in value)
+        value["schema_version"] not in {VERSION, IDENTITY_VERSION, OWNED_VERSION}
+        or (value["schema_version"] != VERSION) != ("identity_policy" in value)
+        or (value["schema_version"] == OWNED_VERSION) != ("selection_read_mode" in value)
+        or ("selection_read_mode" in value and value["selection_read_mode"] != OWNED_READ_MODE)
         or ("identity_policy" in value and value["identity_policy"] != IDENTITY_POLICY)
         or value["build"] != verified_panel_build()
         or value["limits"] != LIMITS
@@ -247,7 +294,7 @@ def _inputs(policy, cutoff):
         comparison = None
         matches = (mapping is not None
                    and mapping["mapping_version"] == item["identity"]["mapping_version"])
-        if policy['schema_version'] == IDENTITY_VERSION:
+        if policy['schema_version'] in {IDENTITY_VERSION, OWNED_VERSION}:
             comparison = compare_mapping(item['identity'],
                                          mapping['mapping_version'] if mapping else None)
             matches = comparison['core_identity_equal']
@@ -330,6 +377,10 @@ def _plan(policy, ack, cutoff, records):
 
 
 def finish_screening(root):
+    return _finish_screening(root)
+
+
+def _finish_screening(root, *, selected_state=None):
     root, started = _canonical(root), time.monotonic()
     policy, ack = _policy(root)
     # Exclusive completion intent; no second selection cutoff or retuning after results.
@@ -360,10 +411,15 @@ def finish_screening(root):
         },
         started,
     )
-    return read_screening(root)
+    return _read_screening(root, selected_state=selected_state)
 
 
 def read_screening(root):
+    """Cold recovery always authenticates the complete selection and source dependencies."""
+    return _read_screening(root)
+
+
+def _read_screening(root, *, selected_state=None):
     root, started = _canonical(root), time.monotonic()
     if {p.name for p in root.iterdir()} != {
         n + suffix
@@ -373,7 +429,12 @@ def read_screening(root):
         raise ValueError("complete screening journal required")
     _check(root, started)
     policy, ack = _policy(root)
-    original, selection_policy, selected = _selected(_canonical(policy["selection_root"]))
+    if selected_state is not None and policy["schema_version"] != OWNED_VERSION:
+        raise ValueError("owned selection cannot replace legacy recovery")
+    original, selection_policy, selected = (
+        _selected(_canonical(policy["selection_root"])) if selected_state is None
+        else selected_state)
+
     if (
         original["selection_report_hash"] != policy["selection_report_hash"]
         or original["selection_available_at"] != policy["selection_available_at"]

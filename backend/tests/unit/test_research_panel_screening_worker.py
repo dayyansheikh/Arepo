@@ -335,7 +335,7 @@ async def test_worker_freezes_asymmetric_identity_policy_and_recovers(
     assert policy.get('identity_policy') == identity_policy
     assert len(calls['requests']) == 4 and len(result['recovery']) == 1
     if identity_policy:
-        assert policy['schema_version'] == worker.IDENTITY_VERSION
+        assert policy['schema_version'] == worker.OWNED_VERSION
         assert result['role_capacity']['counts_per_cycle'] == {
             'scheduled': 2, 'triggered': 1, 'control': 1}
         assert all(s['identity_comparison']['current_event_membership'] == 'unavailable'
