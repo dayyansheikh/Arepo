@@ -270,3 +270,9 @@ Retained D085 lifecycle review:8 raw Gamma hashes verified;4 unavailable pre-boo
 to closed/non-accepting current state. Future lifecycle freshness must be declared before a
 new draw. Preserve D085 as failed; no posthoc selection, denominator substitution or threshold
 change. See PHASE_03_WINDOW_AVAILABILITY_REVIEW.json and PHASE_03_WINDOW_LATENCY_NEXT.md.
+
+D086 implementation531c3c3 passes21 scoped tests, but its eight-member synthetic measurement
+failed stale-role activation before any origins. Owned/cold contexts agree; handoff0.622521s
+versus later cold replay29.326286833s. First-batch windows already~81s old (60s limit).
+Next D087: bounded local CPU/call profile and acquisition/analysis repair per
+PHASE_03_WINDOW_LATENCY_NEXT.md. Preserve failed runs and original freshness; Phase3 incomplete.

@@ -1,6 +1,6 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-05. Phase3 incomplete — D086 steps1–2 implemented and tested (21 scoped cases). Next: committed eight-member synthetic latency measurement in PHASE_03_WINDOW_LATENCY_NEXT.md. D085 remains failed/immutable; no new public collection or Phase4.
+Updated: 2026-10-05. Phase3 incomplete — D086 replay repair accepted in21 scoped tests, but eight-member synthetic measurement failed stale-role activation. Next D087 bounded CPU/call profile and acquisition/analysis delay repair. No active process or public collector; D085/D086 evidence immutable.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
@@ -25,7 +25,7 @@ Updated: 2026-10-05. Phase3 incomplete — D086 steps1–2 implemented and teste
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: run the finite eight-member synthetic D086 measurement under the committed implementation; inspect actual window freshness and owned-finish versus post-target cold replay timing. Script /tmp/arepo_d086_benchmark.py; output data-dumps/fs2_synthetic_latency_20261005_1 (must be new). Do not repeat accepted21 tests. Then decide remaining latency repair from evidence and freeze any new public protocol separately; D085 never relaunched.
+- Exact next action: D087 bounded read-only CPU/call profile of pre-book/binding/socket-analysis verification on retained D086 synthetic inputs, with output persisted even on failure. Follow the D086 result/next-action section in PHASE_03_WINDOW_LATENCY_NEXT.md. Do not rerun D085/D086 or accepted21 tests; do not loosen freshness. No Phase4.
 - Latest modules/files: D068 screening.py, original_reader.py, 15 screening tests, and screening integration contract; D067 scheduling.py, origin/due/runtime waits and six timer tests. D066 trigger_computation.py, original-reader support, 16 new assessment/recovery cases and trigger contract. D065 socket_diagnostic.py, fixed orchestration tests and frozen protocol. D064 socket_analysis.py, original_reader.py, shared pure endpoint algebra in window_reconciliation.py, two new socket-analysis test modules and phase/master/review/decisions/checkpoint/analysis contract. D063 socket_window.py/socket_window_journal.py and driver/recovery tests accepted at 742b65e. D061 window_reconciliation.py, original_reader.py and reconciliation/original recovery tests accepted at 73b1ccc. No v1/API/config/workflow/frontend/SQL/production changes.
 - Current capacity observation (2026-09-27): 26,634,020 KiB free during regression; previous 4 GiB blocker cleared. Remeasure before collection. Preserve all raw/failed runs.
 - Next-run constraints: category is absent in all mapped source rows; enrichment requires separate versioned source evidence, never a fallback invented from other fields. Local disk snapshot after D041: 9,133,616 KiB free, below the existing expanded-frame 8 GiB retained +2 GiB reserve preflight. Do not launch that mode unchanged, delete evidence or narrow the population. A separately designed/tested finite budget refinement may use the actual 2,728,778,097-byte complete-frame cost; remeasure disk first. No new collection budget has been frozen or authorized by this note.
@@ -415,3 +415,36 @@ must precede a new draw and preserve the full population; never change D085 deno
 Allowance last read65% primary/58% weekly used; ordinary usage allowed. One existing same-task
 successor updated to2026-10-05 05:37 Europe/London (04:37UTC), exact prompt, no duplicate.
 Next planned phase remains04 only in a fresh chat after genuine Phase3 acceptance.
+
+## D086 eight-member result and next action — 2026-10-05
+
+Implementation531c3c38b511069e1c2a5d13d9766f9385cfe2e6. Finite synthetic measurement
+`data-dumps/fs2_synthetic_latency_20261005_1` is terminal and must not be rerun/resumed.
+Eight10s windows retained; activation refused stale screened roles before any origin/target.
+No public request, complete runtime audit, predictive evidence or Phase3 acceptance.
+
+Saved context equals complete post-failure cold replay. Last entry durable availability to
+runtime declaration0.622521s; cold replay29.326286833s. This is an observed handoff interval
+versus later replay, not randomized A/B or isolated CPU timing. First-batch windows already
+81.319464–81.385908s old at declaration (limit60s); second batch22.160243–26.437577s.
+Prior quotes49.88355–113.198221s old then; further activation processing caused the stale-role
+refusal. These clocks show remaining acquisition/analysis delay; the handoff repair alone is
+insufficient. The wrapper lost in-memory profiler timings on exception; those are unavailable,
+not reconstructed. Full script, failure trace, clocks and artifact hashes are retained in
+PHASE_03_WINDOW_LATENCY_EVIDENCE.json. First extraction needed a tagged-UTC decoding fix;
+final independent cold/context equality and evidence extraction passed. Raw runs unchanged.
+
+Exact next action (D087): read this evidence, then make one bounded local read-only CPU/call
+profile of existing pre-book/binding/socket-analysis verification over the retained synthetic
+inputs. Persist profiling output even on failure. Quantify repeated build/source replay and
+queue costs before choosing the smallest repair (owned verified inputs, or persistent/sharded
+observation with a causal freeze if required). Keep existing60s/120s freshness, full original
+recovery, one observer per token unless measured reliability justifies duplication, complete
+population inventory and explicit missingness. Do not repeat accepted21 tests without changes.
+No new public run until the repair and separately frozen lifecycle/frame protocol are ready.
+The four closed D085 markets remain in their failed draw; no retrospective filtering/redraw.
+Phase3 stays incomplete, Phase4 only in a fresh conversation after genuine acceptance.
+
+Shutdown: implementation531c3c3 pushed to draft PR16; evidence/checkpoint commit follows.
+No collector/test remains active. Allowance last observed86% primary/61% weekly used before
+final evidence/checkpoint work; save coherent state for the single05:37 London successor.

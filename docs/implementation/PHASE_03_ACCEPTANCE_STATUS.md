@@ -52,3 +52,9 @@ The exact new limits/versions depend on that inspection and must be frozen befor
 D082's60s/15s rules remain immutable. No new collection is authorised by a fabricated native
 continuity claim. The existing user authorisation permits bounded public read-only research;
 production, paid sources and all other protected boundaries remain closed.
+
+D086 implementation531c3c3 passes21 scoped tests, but its eight-member synthetic measurement
+failed stale-role activation before any origins. Owned/cold contexts agree; handoff0.622521s
+versus later cold replay29.326286833s. First-batch windows already~81s old (60s limit).
+Next D087: bounded local CPU/call profile and acquisition/analysis repair per
+PHASE_03_WINDOW_LATENCY_NEXT.md. Preserve failed runs and original freshness; Phase3 incomplete.

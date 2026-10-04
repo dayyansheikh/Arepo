@@ -1148,3 +1148,32 @@ Retained D085 lifecycle review:8 raw Gamma hashes verified;4 unavailable pre-boo
 to closed/non-accepting current state. Future lifecycle freshness must be declared before a
 new draw. Preserve D085 as failed; no posthoc selection, denominator substitution or threshold
 change. See PHASE_03_WINDOW_AVAILABILITY_REVIEW.json and PHASE_03_WINDOW_LATENCY_NEXT.md.
+
+## D086 eight-member result and next action — 2026-10-05
+
+Implementation531c3c38b511069e1c2a5d13d9766f9385cfe2e6. Finite synthetic measurement
+`data-dumps/fs2_synthetic_latency_20261005_1` is terminal and must not be rerun/resumed.
+Eight10s windows retained; activation refused stale screened roles before any origin/target.
+No public request, complete runtime audit, predictive evidence or Phase3 acceptance.
+
+Saved context equals complete post-failure cold replay. Last entry durable availability to
+runtime declaration0.622521s; cold replay29.326286833s. This is an observed handoff interval
+versus later replay, not randomized A/B or isolated CPU timing. First-batch windows already
+81.319464–81.385908s old at declaration (limit60s); second batch22.160243–26.437577s.
+Prior quotes49.88355–113.198221s old then; further activation processing caused the stale-role
+refusal. These clocks show remaining acquisition/analysis delay; the handoff repair alone is
+insufficient. The wrapper lost in-memory profiler timings on exception; those are unavailable,
+not reconstructed. Full script, failure trace, clocks and artifact hashes are retained in
+PHASE_03_WINDOW_LATENCY_EVIDENCE.json. First extraction needed a tagged-UTC decoding fix;
+final independent cold/context equality and evidence extraction passed. Raw runs unchanged.
+
+Exact next action (D087): read this evidence, then make one bounded local read-only CPU/call
+profile of existing pre-book/binding/socket-analysis verification over the retained synthetic
+inputs. Persist profiling output even on failure. Quantify repeated build/source replay and
+queue costs before choosing the smallest repair (owned verified inputs, or persistent/sharded
+observation with a causal freeze if required). Keep existing60s/120s freshness, full original
+recovery, one observer per token unless measured reliability justifies duplication, complete
+population inventory and explicit missingness. Do not repeat accepted21 tests without changes.
+No new public run until the repair and separately frozen lifecycle/frame protocol are ready.
+The four closed D085 markets remain in their failed draw; no retrospective filtering/redraw.
+Phase3 stays incomplete, Phase4 only in a fresh conversation after genuine acceptance.
