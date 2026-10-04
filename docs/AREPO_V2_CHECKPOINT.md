@@ -1,12 +1,12 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-04. Phase3 incomplete — D084 owned pre-origin window/runtime integration tested. Next: freeze/execute the separate D085 window pilot and evaluate its evidence. D082 remains immutable; Phases0–2 complete.
+Updated: 2026-10-04. Phase3 incomplete — D085 integrated pilot finished and failed freshness/availability gates. Next: D086 measured causal-path replay-delay repair; see PHASE_03_WINDOW_LATENCY_NEXT.md. D082/D085 evidence immutable; Phases0–2 complete.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
 - Previous implementation continuation: 2026-09-27 10:35 UTC. Initial allowance 1% primary /32% weekly used; ordinary usage allowed. D069 bounded stratum sampler/declaration/selection implemented; 193 affected tests passed in 217.52s. Full original-code recovery and legacy defaults pass. No public collection or empirical acceptance.
 - Current successor: exactly one same-task automation, October5 00:27 Europe/London /October4 23:27UTC (+310minutes from18:17 heartbeat), exact prompt retained.
-- Current continuation: October4 18:17UTC. Allowance0% primary/32% weekly used at recovery. D084 tests complete. D085 one bounded public measurement is active, session94732; no production scan or SQL migration.
+- Current continuation: October4 18:17UTC. Initial allowance0% primary/32% weekly used. D085 finished18:38:34UTC, exit0/original audit passed, but execution gates failed. No test or collector active.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
 - Latest safe implementation commit: dd9aa07 (D084 owned window/runtime integration); frozen D085 protocol1c27f31. Both pushed to draftPR16. D0838f947a5 and D082 evidence remain unchanged.
@@ -25,7 +25,7 @@ Updated: 2026-10-04. Phase3 incomplete — D084 owned pre-origin window/runtime 
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: recover the active D085 one-shot run from data-dumps/fs2_window_pilot_20261004_1_{launch.json,stdout.jsonl,stderr.log,result.json} (session94732). Do not relaunch or edit source packages until collection/original audit finishes. Then independently assess frozen PHASE_03_WINDOW_PILOT_PROTOCOL.md gates, preserve evidence/limitations, update docs/PR. No Phase4.
+- Exact next action: implement step1–2 of PHASE_03_WINDOW_LATENCY_NEXT.md: internally owned immutable window context from actual writer outputs, replacing redundant pre-activation cold replay while retaining cold/original verification. D085 must not be relaunched or reinterpreted; preserve unavailable books and frozen freshness. No Phase4.
 - Latest modules/files: D068 screening.py, original_reader.py, 15 screening tests, and screening integration contract; D067 scheduling.py, origin/due/runtime waits and six timer tests. D066 trigger_computation.py, original-reader support, 16 new assessment/recovery cases and trigger contract. D065 socket_diagnostic.py, fixed orchestration tests and frozen protocol. D064 socket_analysis.py, original_reader.py, shared pure endpoint algebra in window_reconciliation.py, two new socket-analysis test modules and phase/master/review/decisions/checkpoint/analysis contract. D063 socket_window.py/socket_window_journal.py and driver/recovery tests accepted at 742b65e. D061 window_reconciliation.py, original_reader.py and reconciliation/original recovery tests accepted at 73b1ccc. No v1/API/config/workflow/frontend/SQL/production changes.
 - Current capacity observation (2026-09-27): 26,634,020 KiB free during regression; previous 4 GiB blocker cleared. Remeasure before collection. Preserve all raw/failed runs.
 - Next-run constraints: category is absent in all mapped source rows; enrichment requires separate versioned source evidence, never a fallback invented from other fields. Local disk snapshot after D041: 9,133,616 KiB free, below the existing expanded-frame 8 GiB retained +2 GiB reserve preflight. Do not launch that mode unchanged, delete evidence or narrow the population. A separately designed/tested finite budget refinement may use the actual 2,728,778,097-byte complete-frame cost; remeasure disk first. No new collection budget has been frozen or authorized by this note.
@@ -363,3 +363,24 @@ Script comes directly from the committed protocol; no second draw/retry/resume. 
 must remain fixed until the wrapper result and original-code audit are terminal. Completion
 requires inspecting the actual result and frozen gates, never inferring success from time.
 DraftPR16 updated/attached. No Phase3 or predictive acceptance yet.
+
+
+## D085 — failed integrated window pilot (2026-10-04)
+
+Executed once under1c27f31d6c526758d4b27cff4def7d2275de26b5; completed18:38:34.217034UTC,
+exit0 with full original-code audit. Forty-six HTTP responses:19Gamma200,11book200,8book404,
+8taker-trade200;128019 raw bytes. Eight sampled members retained;3observed origins/3valid
+targets, one observed matched trigger/control pair,2unfilled controls. Four completed socket
+intervals, but zero histories passed frozen freshness. Source unavailability and replay delay
+are distinct limitations. Execution gates fail; Phase3 is NOT accepted.
+
+Evidence PHASE_03_WINDOW_PILOT_EVIDENCE.json preserves raw-linked clocks, exact probabilities,
+all failure states, windows and target results;276 artifact hashes/sizes independently verified.
+Window ages at read67.367183–103.429699s exceed60s. Prior quote ages at freeze121.217612–
+155.643060s exceed120s. Three windows cover1s/10s, one4.196189209s/10s under the original
+receipt hold rule; no native continuity claim. No relevant selected external information;
+economic grouping remains unresolved. No rerun, redraw, retrospective limit change or Phase4.
+
+Next: PHASE_03_WINDOW_LATENCY_NEXT.md. Remove measured redundant cold replay through bounded
+process-owned writer outputs, retain full cold/original checks, then reassess availability and
+freeze a separate protocol. The latency fix cannot erase unavailable books or manufacture edge.

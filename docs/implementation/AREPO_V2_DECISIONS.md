@@ -232,3 +232,24 @@ cancellation drainage, immutable numerical/gap evidence, original recovery and l
 Next: separately committed PHASE_03_WINDOW_PILOT_PROTOCOL.md, execute once and preserve all
 results. D082 is unchanged; receipt diagnostics never establish native venue continuity.
 Phase3 incomplete; Phase4 remains reserved for a fresh conversation.
+
+
+## D085 — failed integrated window pilot (2026-10-04)
+
+Executed once under1c27f31d6c526758d4b27cff4def7d2275de26b5; completed18:38:34.217034UTC,
+exit0 with full original-code audit. Forty-six HTTP responses:19Gamma200,11book200,8book404,
+8taker-trade200;128019 raw bytes. Eight sampled members retained;3observed origins/3valid
+targets, one observed matched trigger/control pair,2unfilled controls. Four completed socket
+intervals, but zero histories passed frozen freshness. Source unavailability and replay delay
+are distinct limitations. Execution gates fail; Phase3 is NOT accepted.
+
+Evidence PHASE_03_WINDOW_PILOT_EVIDENCE.json preserves raw-linked clocks, exact probabilities,
+all failure states, windows and target results;276 artifact hashes/sizes independently verified.
+Window ages at read67.367183–103.429699s exceed60s. Prior quote ages at freeze121.217612–
+155.643060s exceed120s. Three windows cover1s/10s, one4.196189209s/10s under the original
+receipt hold rule; no native continuity claim. No relevant selected external information;
+economic grouping remains unresolved. No rerun, redraw, retrospective limit change or Phase4.
+
+Next: PHASE_03_WINDOW_LATENCY_NEXT.md. Remove measured redundant cold replay through bounded
+process-owned writer outputs, retain full cold/original checks, then reassess availability and
+freeze a separate protocol. The latency fix cannot erase unavailable books or manufacture edge.

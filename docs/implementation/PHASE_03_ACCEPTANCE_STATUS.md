@@ -12,7 +12,7 @@ earlier milestone statements in the chronological review are historical.
 | Causal numerical origins | Eight observed origins, exact snapshot components, source/read/computation/freeze/save clocks and both identity hashes. Original frame events are never filled into current missing membership. Accepted for snapshot scope. |
 | Actual due outcomes | Eight valid selected targets, all within frozen60s horizon/15s tolerance; first-valid rule and immutable origin linkage retained. Accepted execution gate. Midpoint changes are not executable profit. |
 | Numerical provenance and original recovery | Original-code audit passed under c881288;107 artifact hashes/sizes and exact timing/request totals independently checked. No observation clocks changed. Accepted for D082. |
-| Pre-origin windows and history | D083 origin component tested: authenticated pre-window dependency and exact irregular prior/current history with actual freeze eligibility. D084 owned runtime integration now passes9 new cases and49 affected regressions with original-code recovery; empirical measurement remains open; F01/F02/F10/F27 are unavailable at D082 origins. D065 socket silence/PONGs never prove continuity. |
+| Pre-origin windows and history | D083 origin component tested: authenticated pre-window dependency and exact irregular prior/current history with actual freeze eligibility. D084 owned runtime integration now passes9 new cases and49 affected regressions with original-code recovery; D085 measured4completed windows but0fresh histories; empirical gate failed and remains open; F01/F02/F10/F27 are unavailable at D082 origins. D065 socket silence/PONGs never prove continuity. |
 | Related/external relevance | Still open as an integration/eligibility review: D082 retains unavailable reasons. None of its eight questions concerns the measured KNYC weather quantity; D073 cannot be attached as relevant evidence. Related economic grouping is unresolved. No invented grouping or unrelated external feature. |
 | Baseline recording fixtures | D083 tests serialize no-change/current midpoint and exact simple-momentum input deltas (negative/zero/positive), retaining receipt separation and missingness. Accepted as synthetic recording plumbing only. Scientific baseline selection/locking remains Phase4. |
 | Full phase exit | Incomplete until scoped window/history and family eligibility integration, required fixtures, review and durable handover genuinely pass. D082 cannot retrospectively acquire new inputs or be relabelled as a richer panel. |
@@ -20,8 +20,8 @@ earlier milestone statements in the chronological review are historical.
 ## Exact next bounded implementation
 
 D083 causal input/origin and D084 internally owned bounded window/runtime integration are
-tested; do not repeat them. Next commit PHASE_03_WINDOW_PILOT_PROTOCOL.md and execute its
-one bounded empirical run, then evaluate the frozen gates and related/external eligibility.
+tested; do not repeat them. D085 is terminal and failed; do not rerun it. Next follow PHASE_03_WINDOW_LATENCY_NEXT.md
+to remove measured causal-path replay delay while preserving freshness and original recovery.
 The implementation sequence below is retained as the scope map; steps1–4 now pass as software. Inspect `socket_window.py`, `socket_window_journal.py`,
 `socket_analysis.py`, `bound_window.py`, `window_coverage.py`, `origin_features.py`,
 `screening_worker.py`, `concurrent_runtime.py`, their tests and the frozen D082 evidence.
