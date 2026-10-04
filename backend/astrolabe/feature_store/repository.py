@@ -689,9 +689,12 @@ async def index_source_run(url, root):
     from .admission import content_hash
     from .capture import _clock, _json_bytes, _write_once
     from .migrations import check, validate_local_url
-    from .source_run import read_source_run
+    from .source_run import _verify_run, read_source_run
 
     validate_local_url(url)
+    if _verify_run(root)[1]['schema_version'] == 'fs2-source-run-v2':
+        raise AdmissionError(
+            'quota-guarded runs remain journal-only; index receipts need a quota guard')
     if not (await check(url))["current"]:
         raise AdmissionError("current guarded local schema required before source index")
     records = read_source_run(root)

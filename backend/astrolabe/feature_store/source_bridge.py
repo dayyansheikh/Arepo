@@ -24,7 +24,15 @@ from .capture import (
 )
 from .repository import append_batch
 from .schema import FIELD_SPECS
-from .source_parsers import _condition, clob_book, data_v2_trades, gamma_identity, native_clock
+from .source_parsers import (
+    _condition,
+    clob_book,
+    data_v2_trades,
+    gamma_identity,
+    gamma_market,
+    native_clock,
+    nws_observation,
+)
 from .sources import SOURCES
 from .types import exact_decimal, uint_text, utc_datetime
 
@@ -43,7 +51,10 @@ def parse_source(capture):
     source = capture["receipt"]["source_id"]
     params = capture["receipt"]["request"]["params"]
     try:
-        if source == "gamma.markets":
+        if source == "gamma.market":
+            value = gamma_market(value, expected_market=SOURCES[source].market_request_id(
+                capture["receipt"]["request"]))
+        elif source == "gamma.markets":
             if not isinstance(value, list):
                 raise ValueError("market list required")
             value = [gamma_identity(row) for row in value]
@@ -51,6 +62,10 @@ def parse_source(capture):
             value = clob_book(value, expected_token=params["token_id"])
         elif source == "data.v2.trades":
             value = data_v2_trades(value, expected_condition=params.get("condition"))
+        elif source == "nws.station.observation":
+            value = nws_observation(value, expected_station=SOURCES[source].station_request_id(
+                capture["receipt"]["request"]),
+                received_at=_time(capture["receipt"]["first_received"]))
         elif source == "coinbase.btc_usd.ticker":
             if not isinstance(value, dict):
                 raise ValueError("ticker object required")
@@ -148,6 +163,9 @@ def source_parse_artifact(folder, *, create=True):
                 <= _time(payload["parsed_at"]) <= _time(ack["durable_ack"]))
     ):
         raise ValueError("source parse integrity/clock mismatch")
+    if (source.source_id == "nws.station.observation"
+            and _json_bytes(payload["result"]) != _json_bytes(parse_source(capture))):
+        raise ValueError("NWS source parse differs from exact raw replay")
     return capture, payload, ack, path
 
 
