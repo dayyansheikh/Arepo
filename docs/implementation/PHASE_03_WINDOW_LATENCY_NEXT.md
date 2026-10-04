@@ -51,3 +51,25 @@ proofs to keep full-population replay off this path; apply that established patt
 
 No new public collection until this scoped repair is tested/reviewed/committed and a separate
 protocol is frozen. Phase3 remains incomplete; production and Phase4 stay closed.
+
+## Narrow ownership design for the next implementation
+
+Prefer extending owned_windows.py rather than a new service. A private factory, called only
+by the actual owned screening worker after frozen selection, can return per-index acquisition
+and finish closures. Freeze a bounded canonical copy of the selected assignments, worker
+policy hash/build and configuration. Each acquisition closure calls the real existing writer
+and captures its verified return plus persisted entry acknowledgement inside private state;
+finish must refuse missing, duplicate or substituted members. It accepts no caller results.
+
+Before reusing that proof, verify unchanged policy/build and a bounded byte/hash manifest of
+all actual immutable pre-book/source/socket/analysis dependencies, including expected absence
+for unavailable windows. Hash verification is not a substitute for initial parser verification:
+only real writer outputs can mint the proof. Full cold/original readers continue replaying
+all sources and formulas. Require warm/cold output equality and post-capture mutation refusal.
+
+Test call counts without replacing protected functions (profiling was used in D079): no
+owned_windows.read full replay before source/origin/target completion on the warm path;
+cold/original recovery still invokes it afterward. Add missing/duplicate slot, mutation and
+reservation/cancellation regressions. This first repair only removes the measured pre-runtime
+replay interval; measure remaining latency before deciding on deeper origin projection reuse
+or persistent observation. No new empirical attempt is frozen by this note.

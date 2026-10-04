@@ -9,7 +9,7 @@ Updated: 2026-10-04. Phase3 incomplete — D085 integrated pilot finished and fa
 - Current continuation: October4 18:17UTC. Initial allowance0% primary/32% weekly used. D085 finished18:38:34UTC, exit0/original audit passed, but execution gates failed. No test or collector active.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
-- Latest safe implementation commit: dd9aa07 (D084 owned window/runtime integration); frozen D085 protocol1c27f31. Both pushed to draftPR16. D0838f947a5 and D082 evidence remain unchanged.
+- Latest safe implementation commit: dd9aa07 (D084); frozen D085 protocol1c27f31; terminal evidence/latency contract b46096c. All pushed to updated draftPR16. D083/D082 evidence unchanged.
 - Draft PR: https://github.com/dayyansheikh/Arepo/pull/16, open draft against Phase2. Head/body updated with each coherent commit; never merged.
 - Completed: Phase 0 canonical foundation; Phase 1 isolated immutable store; Phase 2 source journals/admission, exact identities and bounded replay. Phase 3 milestones: pure sampling/control/receipt-target rules; isolated keyset frame journal, source+panel build binding, bounded CLI, raw/parsed/page manifests, cursor/scope/duplicate/conflict/clock/error checks, crash-safe read-only recovery, streaming verification and measured-capacity preflights.
 - Files/modules changed: research_panel/{__init__,sampling,targets,frame,frame_cli,build_identity,original_reader,metadata,selection,selection_cli}.py; planning/frame/metadata/selection/original-reader tests; isolated feature_store/{capture,sources}.py; phase/review/frame/panel-journal contracts, decisions D030–D041 and measurement evidence JSONs. Latest D041 changes cover original_reader, selection_cli, original-selection tests, evidence and recovery docs. No v1/config/API/scheduler/frontend changes.
@@ -384,3 +384,12 @@ economic grouping remains unresolved. No rerun, redraw, retrospective limit chan
 Next: PHASE_03_WINDOW_LATENCY_NEXT.md. Remove measured redundant cold replay through bounded
 process-owned writer outputs, retain full cold/original checks, then reassess availability and
 freeze a separate protocol. The latency fix cannot erase unavailable books or manufacture edge.
+
+
+Window shutdown:98% primary/47% weekly used, ordinary usage still allowed (not a weekly
+exhaustion claim). No reset credit or protected action. All coherent implementation/evidence
+committed; no test/collector active. D085 ended18:38:34UTC. DraftPR16 updated and attached.
+One same-task successor remains October5 00:27London/October4 23:27UTC. Exact next action is
+D086 step1–2 in PHASE_03_WINDOW_LATENCY_NEXT.md, including its narrow private ownership
+design. No D084 regression or D085 public run should be repeated without a relevant change.
+Unrelated untracked orchestration files remain untouched. Phase3 incomplete; no Phase4.
