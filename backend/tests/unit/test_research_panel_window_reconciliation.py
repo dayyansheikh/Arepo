@@ -35,7 +35,8 @@ async def capture(computation, tmp_path, *, feed=None):
 
 
 async def post(tmp_path, *, closed=False, rules='Rules', token='1', market='10',
-               gamma_status=200, book_status=200, bid='2', omit_book=False, gamma_gate=None):
+               gamma_status=200, book_status=200, bid='2', omit_book=False, gamma_gate=None,
+               bid_price=None):
     gamma = {'id': market, 'conditionId': CONDITION, 'outcomes': ['Yes', 'No'],
              'clobTokenIds': [token, '2'], 'description': rules, 'active': True,
              'closed': closed, 'archived': False, 'acceptingOrders': not closed}
@@ -45,6 +46,8 @@ async def post(tmp_path, *, closed=False, rules='Rules', token='1', market='10',
             gamma_gate[0].set()
             await gamma_gate[1].wait()
         payload = gamma if is_gamma else book(bid, asset_id=token)
+        if not is_gamma and bid_price is not None:
+            payload['bids'][0]['price'] = bid_price
         return httpx.Response(gamma_status if is_gamma else book_status,
                               stream=Stream([json.dumps(payload).encode()]))
     root = tmp_path.resolve() / 'fs2_capture_post'

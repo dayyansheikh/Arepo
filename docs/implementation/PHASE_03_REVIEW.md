@@ -1062,3 +1062,25 @@ Next: freeze PHASE_03_OWNED_PILOT_PROTOCOL.md and execute D082 once under the co
 D082 executed once under c881288d80dbeddfc195c6eacceeb63b78f58e20 and passed its frozen execution gates: eight observed origins/eight valid targets, six triggered roles/two observed matched controls over eight distinct markets; four unfilled controls retained. All56 requests returned200 (24 Gamma/24 book/8 taker-trade),183036 raw bytes. Origin freeze delay8.084763–29.097624s within60s; freeze-to-save1.463–17.300ms within5s; target durable availability5.477850–8.155644s after due within15s. Exact probabilities and raw numerics/clocks preserved. Full original-code audit passed; independent evidence check verified107 artifact hashes/sizes, all eight timing pairs, both matched pairs and exact counts. No code tests repeated for evidence-only changes.
 
 Evidence: PHASE_03_OWNED_PILOT_EVIDENCE.json. Run completed2026-10-03T19:49:41.661088UTC, exit0, elapsed1003342292167ns including selection/audits; no collector remains active. D082 is a successful execution pilot, not predictive evidence or full Phase3 acceptance. PHASE_03_ACCEPTANCE_STATUS.md maps remaining pre-origin windows/history, related/external eligibility and baseline plumbing to the exact D083 next action. Do not rerun D077/D078/D082 or retrofit richer inputs into those origins. No Phase4.
+
+
+## D083 — authenticated pre-origin window component (2026-10-04)
+
+Owned origin v4/manifestv2 bind a verified pre-origin socket analysis and exact irregular
+prior/current price primitives. Strict actual identity/provenance and cutoff/freeze age
+checks preserve missingness; late eligibility never erases raw numbers. Sparse receipt
+coverage never becomes venue continuity or a registered window feature. Legacy defaults
+remain strict. See PHASE_03_PRE_ORIGIN_WINDOW_CONTRACT.md.
+
+Validation:21 new input/origin cases passed255.10s; after final frozen16KiB quota guard,
+53 affected window_origin/origin_worker/origin_features/window_reconciliation cases passed
+611.89s (/tmp/arepo_d083_regression.log). Explicit isolated SQLite, disabled email; no source
+edits during validation. Ruff/backend, canonical contract and whitespace pass. Self-review
+covered actual clocks/freshness, identity/provenance, hash/raw tampering, negative/zero/missing
+history, silence/disconnection, byte ceilings and legacy replay. Cold per-origin recovery
+passes; full original-runtime dependency recovery is not yet wired. No public requests.
+
+This accepts a software component, not Phase3. Next bind selected observers internally in
+a bounded owned batch/runtime, reserve all dependencies before reads, retain failed members,
+and test cancellation/original-runtime recovery before a separately frozen public measurement.
+D082 remains immutable; related/external eligibility and full empirical scope remain open.

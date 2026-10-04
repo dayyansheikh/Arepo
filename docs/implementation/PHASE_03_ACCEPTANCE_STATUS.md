@@ -1,4 +1,4 @@
-# Phase 3 acceptance after D082
+# Phase 3 acceptance after D083 origin component
 
 Phase 3 remains incomplete. D082 closes the real origin/control/target **execution** gate;
 it does not waive the remaining observation scope. Phase 4 starts in a fresh conversation
@@ -12,20 +12,20 @@ earlier milestone statements in the chronological review are historical.
 | Causal numerical origins | Eight observed origins, exact snapshot components, source/read/computation/freeze/save clocks and both identity hashes. Original frame events are never filled into current missing membership. Accepted for snapshot scope. |
 | Actual due outcomes | Eight valid selected targets, all within frozen60s horizon/15s tolerance; first-valid rule and immutable origin linkage retained. Accepted execution gate. Midpoint changes are not executable profit. |
 | Numerical provenance and original recovery | Original-code audit passed under c881288;107 artifact hashes/sizes and exact timing/request totals independently checked. No observation clocks changed. Accepted for D082. |
-| Pre-origin windows and history | Still open: origins explicitly lack causal previous-price binding; F01/F02/F10/F27 are unavailable. Standalone D057–D065 primitives/tests exist, but no sampled origin binds an actual pre-t0 window. D065 socket silence/PONGs never prove continuity. |
+| Pre-origin windows and history | D083 origin component tested: authenticated pre-window dependency and exact irregular prior/current history with actual freeze eligibility. Public owned runtime integration and empirical measurement remain open; F01/F02/F10/F27 are unavailable at D082 origins. D065 socket silence/PONGs never prove continuity. |
 | Related/external relevance | Still open as an integration/eligibility review: D082 retains unavailable reasons. None of its eight questions concerns the measured KNYC weather quantity; D073 cannot be attached as relevant evidence. Related economic grouping is unresolved. No invented grouping or unrelated external feature. |
-| Baseline recording fixtures | The Phase 3 plan asks for no-change/simple-momentum plumbing fixtures. No research_panel baseline fixture was found in the current tests; causal previous-price inputs must exist before this check. Scientific baseline selection/locking remains Phase4. |
+| Baseline recording fixtures | D083 tests serialize no-change/current midpoint and exact simple-momentum input deltas (negative/zero/positive), retaining receipt separation and missingness. Accepted as synthetic recording plumbing only. Scientific baseline selection/locking remains Phase4. |
 | Full phase exit | Incomplete until scoped window/history and family eligibility integration, required fixtures, review and durable handover genuinely pass. D082 cannot retrospectively acquire new inputs or be relabelled as a richer panel. |
 
 ## Exact next bounded implementation
 
-D083: bind the existing bounded pre-origin observation primitives to sampled origins, starting
-with the causal input/recovery contract. Inspect `socket_window.py`, `socket_window_journal.py`,
-`socket_analysis.py`, `window_binding.py`, `window_coverage.py`, `origin_features.py`,
+D083 causal input/origin component is tested; do not repeat it. Continue with internally owned
+bounded window batch/runtime integration in PHASE_03_PRE_ORIGIN_WINDOW_CONTRACT.md. Inspect `socket_window.py`, `socket_window_journal.py`,
+`socket_analysis.py`, `bound_window.py`, `window_coverage.py`, `origin_features.py`,
 `screening_worker.py`, `concurrent_runtime.py`, their tests and the frozen D082 evidence.
 Reuse source journals and the authenticated owned selection; do not build a new service.
 
-1. Define an explicit versioned pre-origin dependency: original pre-book/source hashes,
+1. Accepted D083 component; reuse its explicit versioned pre-origin dependency: original pre-book/source hashes,
    token/condition/rule identity, actual read/availability clocks, bounded window start/end,
    raw receipts, coverage/gaps and computation available before origin freeze. Preserve the
    native versus receipt-time distinction. A post-origin endpoint cannot enter a feature.

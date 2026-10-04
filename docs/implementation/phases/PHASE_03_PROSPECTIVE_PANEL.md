@@ -345,3 +345,11 @@ Next: freeze PHASE_03_OWNED_PILOT_PROTOCOL.md and execute D082 once under the co
 D082 executed once under c881288d80dbeddfc195c6eacceeb63b78f58e20 and passed its frozen execution gates: eight observed origins/eight valid targets, six triggered roles/two observed matched controls over eight distinct markets; four unfilled controls retained. All56 requests returned200 (24 Gamma/24 book/8 taker-trade),183036 raw bytes. Origin freeze delay8.084763–29.097624s within60s; freeze-to-save1.463–17.300ms within5s; target durable availability5.477850–8.155644s after due within15s. Exact probabilities and raw numerics/clocks preserved. Full original-code audit passed; independent evidence check verified107 artifact hashes/sizes, all eight timing pairs, both matched pairs and exact counts. No code tests repeated for evidence-only changes.
 
 Evidence: PHASE_03_OWNED_PILOT_EVIDENCE.json. Run completed2026-10-03T19:49:41.661088UTC, exit0, elapsed1003342292167ns including selection/audits; no collector remains active. D082 is a successful execution pilot, not predictive evidence or full Phase3 acceptance. PHASE_03_ACCEPTANCE_STATUS.md maps remaining pre-origin windows/history, related/external eligibility and baseline plumbing to the exact D083 next action. Do not rerun D077/D078/D082 or retrofit richer inputs into those origins. No Phase4.
+
+
+D083 origin-window component tested (2026-10-04):21 new cases plus53 affected regressions
+pass; exact causal history, coverage gaps, freeze-time eligibility and cold origin replay
+are preserved. Phase3 remains incomplete. Next: internally owned bounded window batch/runtime
+with full reservation, failed-member retention and original-runtime recovery, then a separate
+frozen empirical protocol. Reuse PHASE_03_PRE_ORIGIN_WINDOW_CONTRACT.md and the acceptance
+map; do not repeat D082 or begin Phase4.

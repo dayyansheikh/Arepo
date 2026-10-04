@@ -1,10 +1,14 @@
 """Bounded origin snapshot manifest; complete windows are never inferred from sparse inputs."""
 
 import time
+from datetime import timedelta
 
 from astrolabe.feature_store.capture import _json_bytes
+from astrolabe.feature_store.source_run import _ordered_clocks, _time
 
 from .book_primitives import project_book_primitives
+from .origin_window import MAX_BYTES as WINDOW_MAX_BYTES
+from .quote_inputs import _at
 
 VERSION = 'fs2-origin-snapshot-manifest-v1'
 POLICY = {
@@ -53,7 +57,7 @@ def project_origin_features(rows, *, policy, cutoff):
     return result
 
 
-def freeze_eligibility(projection):
+def freeze_eligibility(projection, *, freeze=None):
     """Numerical evidence survives an ineligible origin; values never imply admission."""
     manifest = projection['feature_manifest']
     state = projection['state_at_freeze']
@@ -61,5 +65,57 @@ def freeze_eligibility(projection):
         state = manifest['snapshot_state']
     manifest['state_at_freeze'] = state
     manifest['snapshot_candidates_eligible_at_freeze'] = state == 'observed'
+    if 'pre_origin_window' in projection:
+        _freeze_window(projection, freeze, state)
     if len(_json_bytes(manifest)) > POLICY['max_manifest_bytes']:
         raise ValueError('frozen feature manifest byte budget exceeded')
+
+
+WINDOW_VERSION = 'fs2-origin-window-manifest-v2'
+WINDOW_POLICY = {**POLICY, 'version': WINDOW_VERSION,
+                 'pre_origin_dependency': 'fs2-origin-window-input-v1'}
+
+
+def attach_window(projection, window):
+    """New explicit manifest version; never retrofit a saved snapshot origin."""
+    manifest = projection['feature_manifest']
+    manifest['schema_version'] = WINDOW_VERSION
+    manifest['policy'] = WINDOW_POLICY
+    projection['pre_origin_window'] = window
+    manifest['unavailable_families']['price_history'] = {
+        'state': 'unavailable', 'reason': 'awaiting_actual_origin_freeze'}
+    manifest['pre_origin_window_analysis_hash'] = window['analysis']['computation_hash']
+    if len(_json_bytes(manifest)) > POLICY['max_manifest_bytes']:
+        raise ValueError('window origin manifest byte budget exceeded')
+
+
+def _freeze_window(projection, freeze, origin_state):
+    window, manifest = projection['pre_origin_window'], projection['feature_manifest']
+    if freeze is None or not _ordered_clocks(window['cutoff'], freeze):
+        raise ValueError('actual ordered origin freeze required for window eligibility')
+    reasons = list(window['history_reasons'])
+    if origin_state != 'observed':
+        reasons.append('origin_' + origin_state)
+    if window['history'] is not None:
+        prior_at = _at(window['history']['prior_received_at'])
+        if _time(freeze) - prior_at > timedelta(
+            milliseconds=window['policy']['max_history_age_ms']
+        ):
+            reasons.append('prior_quote_stale_at_freeze')
+    if _time(freeze) - _time(window['window_ended_at']) > timedelta(
+        milliseconds=window['policy']['max_window_age_ms']
+    ):
+        reasons.append('window_stale_at_freeze')
+    window['eligible_at_freeze'] = not reasons and window['history'] is not None
+    window['freeze_reasons'] = reasons
+    window['frozen_at'] = freeze
+    if window['eligible_at_freeze']:
+        manifest['price_history'] = window['history']
+        manifest['unavailable_families'].pop('price_history', None)
+    else:
+        manifest.pop('price_history', None)
+        manifest['unavailable_families']['price_history'] = {
+            'state': 'unavailable', 'reasons': reasons}
+
+    if len(_json_bytes(window)) > WINDOW_MAX_BYTES:
+        raise ValueError('frozen origin window manifest byte budget exceeded')

@@ -28,6 +28,7 @@ from .build_identity import verified_panel_build
 from .identity_comparison import VERSION as IDENTITY_POLICY
 from .identity_comparison import compare_mapping
 from .input_read import _canonical
+from .origin_window import OriginWindowPolicy, project_origin_window
 from .panel_declaration import PanelProtocol, read_panel_declaration
 from .quote_computation import (
     CHILD,
@@ -41,6 +42,7 @@ from .scheduling import wait_until
 VERSION = 'fs2-synthetic-origin-worker-v1'
 FEATURE_VERSION = 'fs2-synthetic-feature-origin-v2'
 OWNED_VERSION = 'fs2-owned-feature-origin-v3'
+WINDOW_VERSION = 'fs2-owned-window-origin-v4'
 SOURCE = 'fs2_capture_origin'
 COMPUTATION = 'fs2_quote_computation_origin'
 POLICY = {'live_collection_enabled': False, 'targets_collected': False,
@@ -141,7 +143,7 @@ def _projection(root, intent, panel_policy, freeze):
     """Consume verified journal facts directly; replay uses the original actual freeze."""
     protocol = PanelProtocol(**panel_policy['protocol'])
     member = intent['member']
-    owned = intent['schema_version'] == OWNED_VERSION
+    owned = intent['schema_version'] in {OWNED_VERSION, WINDOW_VERSION}
     provenance = intent['provenance_class'] if owned else 'synthetic'
     summary = read_quote_computation(root / COMPUTATION)
     policy, _ = _pair(root / COMPUTATION, 'quote_policy')
@@ -183,10 +185,16 @@ def _projection(root, intent, panel_policy, freeze):
         result['identity_comparison'] = compare_mapping(
             member['frame_identity'],
             quote['mapping']['mapping_version'] if quote['mapping'] else None)
-    if intent['schema_version'] in {FEATURE_VERSION, OWNED_VERSION}:
+    if intent['schema_version'] in {FEATURE_VERSION, OWNED_VERSION, WINDOW_VERSION}:
         result['feature_manifest'] = origin_features.project_origin_features(
             rows, policy=QuoteInputPolicy(protocol.max_quote_age_seconds,
                                           protocol.max_identity_age_seconds), cutoff=_time(freeze))
+    if intent['schema_version'] == WINDOW_VERSION:
+        dependency = intent['window_dependency']
+        window = project_origin_window(
+            dependency['analysis_root'], quote, provenance=provenance, cutoff=freeze,
+            policy=OriginWindowPolicy(**dependency['policy']))
+        origin_features.attach_window(result, window)
     return result
 
 
@@ -233,7 +241,8 @@ def _state(facts, ack, protocol):
     return facts['projection']['state_at_freeze']
 
 
-async def _collect_one(root, slot, member, panel_policy, activation, transport, *, features=False):
+async def _collect_one(root, slot, member, panel_policy, activation, transport, *, features=False,
+                       window_root=None, window_policy=None):
     if type(features) is not bool:
         raise ValueError("explicit feature mode required")
     owned = activation['schema_version'] == OWNED_ACTIVATION
@@ -242,7 +251,19 @@ async def _collect_one(root, slot, member, panel_policy, activation, transport, 
                   or (type(transport) is httpx.MockTransport) != (provenance == 'synthetic')
                   or transport is not None and type(transport) is not httpx.MockTransport):
         raise ValueError('owned origin feature mode/transport provenance differs')
-    version = OWNED_VERSION if owned else FEATURE_VERSION if features else VERSION
+    window = window_root is not None
+    if window != (window_policy is not None) or window and (
+        not owned or not features or type(window_policy) is not OriginWindowPolicy
+    ):
+        raise ValueError('explicit owned origin window dependency/policy required')
+    dependency = ({'analysis_root': str(_canonical(window_root)),
+                   'policy': asdict(window_policy)} if window else None)
+    if window and (_canonical(root) == _canonical(window_root)
+                   or _canonical(root) in _canonical(window_root).parents
+                   or _canonical(window_root) in _canonical(root).parents):
+        raise ValueError('origin and window must have separate journal roots')
+    version = WINDOW_VERSION if window else OWNED_VERSION if owned else (
+        FEATURE_VERSION if features else VERSION)
     protocol = PanelProtocol(**panel_policy['protocol'])
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
@@ -252,7 +273,9 @@ async def _collect_one(root, slot, member, panel_policy, activation, transport, 
         _save(root, 'origin_intent', {
             'schema_version': version, 'slot': slot, 'member': member,
             **({'provenance_class': provenance} if owned else {}),
-            **({'feature_policy': origin_features.POLICY} if features else {}),
+            **({'feature_policy': origin_features.WINDOW_POLICY if window
+                else origin_features.POLICY} if features else {}),
+            **({'window_dependency': dependency} if window else {}),
             'activation_hash': activation['activation_hash'], 'budget_basis_at': at,
             'source_budget': asdict(budget) if budget else None,
             'created_at': at,
@@ -282,7 +305,7 @@ async def _collect_one(root, slot, member, panel_policy, activation, transport, 
             projection['state_at_freeze'] = _choice(
                 projection['quote'], member, protocol, slot, freeze, owned=owned)
             if features:
-                origin_features.freeze_eligibility(projection)
+                origin_features.freeze_eligibility(projection, freeze=freeze)
             _save(root, 'origin_facts', {
                 'schema_version': version,
                 **({'feature_computed_at': computed} if features else {}),
@@ -319,14 +342,17 @@ def _read_one(root, slot, member, panel_policy, activation):
     intent, intent_ack = _pair(root, 'origin_intent')
     version = intent['schema_version']
     owned = activation['schema_version'] == OWNED_ACTIVATION
-    features = version in {FEATURE_VERSION, OWNED_VERSION}
+    window = version == WINDOW_VERSION
+    features = version in {FEATURE_VERSION, OWNED_VERSION, WINDOW_VERSION}
     provenance = activation['provenance_class'] if owned else 'synthetic'
-    if (version not in {VERSION, FEATURE_VERSION, OWNED_VERSION}
-            or (version == OWNED_VERSION) != owned
+    if (version not in {VERSION, FEATURE_VERSION, OWNED_VERSION, WINDOW_VERSION}
+            or (version in {OWNED_VERSION, WINDOW_VERSION}) != owned
+            or window != ('window_dependency' in intent)
             or owned and (intent.get('provenance_class') != provenance
                           or provenance not in {'synthetic', 'prospective'})
             or not owned and 'provenance_class' in intent
-            or features and intent.get('feature_policy') != origin_features.POLICY
+            or features and intent.get('feature_policy') != (
+                origin_features.WINDOW_POLICY if window else origin_features.POLICY)
             or not features and 'feature_policy' in intent):
         raise ValueError('origin feature version/policy differs')
     budget = _budget(protocol, slot, intent['budget_basis_at'])
@@ -352,7 +378,7 @@ def _read_one(root, slot, member, panel_policy, activation):
         if features:
             projection['state_at_freeze'] = _choice(projection['quote'], member, protocol, slot,
                                                     facts['origin_at'], owned=owned)
-            origin_features.freeze_eligibility(projection)
+            origin_features.freeze_eligibility(projection, freeze=facts['origin_at'])
             if not _ordered_clocks(facts['read_started_at'], facts['feature_computed_at'],
                                    facts['origin_at']):
                 raise ValueError('feature computation followed origin freeze')
