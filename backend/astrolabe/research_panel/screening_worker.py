@@ -62,7 +62,7 @@ def worker_root(panel_root):
     return panel.with_name("fs2_screening_worker_" + panel.name.removeprefix("fs2_panel_"))
 
 
-def allocation(declaration):
+def allocation(declaration, *, windows=False):
     p = declaration["reservation"]
     # Reserve all slots before the actual draw/role overlap is known. Original readers reserve
     # twice their 16 MiB output ceiling, allowing policy/receipt/failure metadata as well.
@@ -76,6 +76,10 @@ def allocation(declaration):
     )
     future = _reserved(declaration) - LIMITS["free_reserve_bytes"]
     future += LIMITS["original_read_bytes"]  # complete eventual runtime recovery
+    if windows:
+        from .owned_windows import reservation
+
+        screen += reservation(slots)
     total = screen + future
     if total > FIXED["max_panel_bytes"]:
         raise ValueError("complete screening/runtime reservation exceeds bounded ceiling")
@@ -87,6 +91,7 @@ def allocation(declaration):
         "total_retained_bytes": total,
         "required_free_bytes": total + LIMITS["free_reserve_bytes"],
         "overlap_discount_applied": False,
+        **({"window_bytes": reservation(slots)} if windows else {}),
     }
 
 
@@ -102,7 +107,8 @@ def _size(root, reserved):
             raise ValueError("screening worker nonregular path refused")
     if (
         total > reserved["screening_retained_bytes"]
-        or files > 128 + reserved["screen_slots"] * LIMITS["max_files_per_screen"]
+        or files > 128 + reserved["screen_slots"] * (LIMITS["max_files_per_screen"]
+            + (3200 if reserved.get("window_bytes", 0) else 0))
     ):
         raise ValueError("screening worker retained budget exceeded")
     return total
@@ -186,11 +192,43 @@ async def run_public_pilot(panel_root, *, implementation_commit, rule, freshness
         identity_policy=IDENTITY_POLICY, runtime_concurrency=runtime_concurrency)
 
 
+async def run_public_window_pilot(panel_root, *, implementation_commit, rule, freshness,
+        window_policy, concurrency=4, runtime_concurrency=4, repository=None):
+    from .owned_windows import OwnedWindowPolicy
+
+    if type(window_policy) is not OwnedWindowPolicy or runtime_concurrency is None:
+        raise ValueError('explicit owned window policy and runtime concurrency required')
+    return await _run_screening(panel_root, implementation_commit=implementation_commit,
+        rule=rule, freshness=freshness, transport=None, concurrency=concurrency,
+        runtime_concurrency=runtime_concurrency, repository=repository,
+        identity_policy=IDENTITY_POLICY, window_policy=window_policy)
+
+
+async def run_synthetic_window_pilot(panel_root, *, implementation_commit, rule, freshness,
+        window_policy, port, transport, concurrency=4, runtime_concurrency=4, repository=None):
+    from .owned_windows import OwnedWindowPolicy
+    from .socket_window_journal import scope
+
+    if (type(window_policy) is not OwnedWindowPolicy or runtime_concurrency is None
+            or type(transport) is not httpx.MockTransport or port is None):
+        raise ValueError('explicit synthetic window policy/transport/port/concurrency required')
+    scope(port)
+    return await _run_screening(panel_root, implementation_commit=implementation_commit,
+        rule=rule, freshness=freshness, transport=transport, concurrency=concurrency,
+        runtime_concurrency=runtime_concurrency, repository=repository,
+        identity_policy=IDENTITY_POLICY, window_policy=window_policy, window_port=port)
+
+
 async def _run_screening(
     panel_root, *, implementation_commit, rule, freshness, transport, concurrency, repository,
-    identity_policy=None, runtime_concurrency=None
+    identity_policy=None, runtime_concurrency=None, window_policy=None, window_port=None
 ):
+    from . import owned_windows
+
+    windows = window_policy is not None
     pilot = runtime_concurrency is not None
+    if windows and (not pilot or type(window_policy) is not owned_windows.OwnedWindowPolicy):
+        raise ValueError("owned pilot required for window collection")
     if pilot and (type(runtime_concurrency) is not int or not 2 <= runtime_concurrency <= 8
                   or identity_policy != IDENTITY_POLICY):
         raise ValueError('bounded owned runtime concurrency and identity policy required')
@@ -199,7 +237,8 @@ async def _run_screening(
     if transport is not None and type(transport) is not httpx.MockTransport:
         raise ValueError("unsupported screening transport")
     public = transport is None
-    version = (PILOT_VERSION if pilot else OWNED_VERSION if identity_policy
+    version = (owned_windows.VERSION if windows else PILOT_VERSION if pilot
+               else OWNED_VERSION if identity_policy
                else PUBLIC_VERSION if public else VERSION)
     provenance = "prospective" if public else "synthetic"
     limits = {**LIMITS, "live_collection_enabled": public}
@@ -216,7 +255,7 @@ async def _run_screening(
     declaration = read_panel_declaration(panel)
     policy, da = _pair(panel, "panel_policy")
     protocol = PanelProtocol(**policy["protocol"])
-    reserved = allocation(declaration)
+    reserved = allocation(declaration, windows=windows)
     if pilot and declaration['reservation']['duration_seconds'] > (
         LIMITS['max_seconds'] - LIMITS['acquisition_seconds'] - 600
     ):
@@ -255,6 +294,8 @@ async def _run_screening(
                 "reservation": reserved,
                 "concurrency": concurrency,
                 **({'runtime_concurrency': runtime_concurrency} if pilot else {}),
+                **({"window_policy": asdict(window_policy), "window_port": window_port}
+                   if windows else {}),
                 "source_budget": asdict(budget),
                 "source_policy": "receipt-time-selected-market-v1",
                 "quote_policy": asdict(quotes),
@@ -320,6 +361,9 @@ async def _run_screening(
                     policy=quotes,
                 )
                 await _durable_call(record_snapshot_trigger, Path(item["declaration_root"]))
+                if windows:
+                    await _durable_call(owned_windows.collect, root, index, item,
+                                        window_policy, window_port)
 
         stage = "acquisition"
         async with asyncio.timeout(LIMITS["acquisition_seconds"]):
@@ -336,7 +380,9 @@ async def _run_screening(
             stage = "runtime"
             screened, runtime = await _exercise_owned_panel(
                 panel, screening, finish_owned=finish_owned, transport=transport,
-                concurrency=runtime_concurrency)
+                concurrency=runtime_concurrency,
+                window_inputs=owned_windows.read(root, frozen["selected"], provenance)
+                if windows else None)
         else:
             screened = finish_owned() if finish_owned is not None else finish_screening(screening)
         roles = role_capacity(screened["plan"], protocol)

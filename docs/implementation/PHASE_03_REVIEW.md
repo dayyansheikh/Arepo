@@ -1084,3 +1084,29 @@ This accepts a software component, not Phase3. Next bind selected observers inte
 a bounded owned batch/runtime, reserve all dependencies before reads, retain failed members,
 and test cancellation/original-runtime recovery before a separately frozen public measurement.
 D082 remains immutable; related/external eligibility and full empirical scope remain open.
+
+
+## D084 — owned bounded windows and runtime (2026-10-04)
+
+Worker v6 starts one bounded observer per actual selected pre-book in independent event
+loops, before activation/origins. Whole socket40MiB+analysis64MiB costs per possible member
+are reserved before requests with no overlap discount. Runtime v5 binds exact worker/member
+hashes and routes actual dependencies to origin v4. Unavailable pre-books retain their
+sampled member and explicit missingness; local integrity failures terminate without erasure.
+Original-Git recovery authenticates window, analysis, pre-book and raw source dependencies.
+
+Nine new integration cases pass across targeted runs: concurrent success/original replay/
+dependency tamper; eight remaining cases127.20s. Final affected legacy regression49 passed
+722.18s (/tmp/arepo_d084_regression.log): owned_pilot, concurrent_runtime, screening_worker,
+original_runtime. Explicit isolated SQLite/email disabled; source remained fixed throughout.
+Ruff/backend, canonical and whitespace checks pass. No full-backend or empirical claim.
+Development fixture errors (timing bounds, streaming404 response, string-encoded duration)
+were corrected; canonical selected metadata comparison handles saved versus in-memory types.
+No causal guard, quota or deadline was weakened.
+
+Self-review covered owned selection/provenance, actual pre-t0 clocks, strict dependency/root
+binding, whole reservation, unavailable and disconnected members, terminal failure retention,
+cancellation drainage, immutable numerical/gap evidence, original recovery and legacy defaults.
+Next: separately committed PHASE_03_WINDOW_PILOT_PROTOCOL.md, execute once and preserve all
+results. D082 is unchanged; receipt diagnostics never establish native venue continuity.
+Phase3 incomplete; Phase4 remains reserved for a fresh conversation.

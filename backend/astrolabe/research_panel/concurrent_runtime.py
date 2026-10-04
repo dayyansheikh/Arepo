@@ -11,7 +11,7 @@ from astrolabe.feature_store.capture import _clock, _json_bytes, _sync_directory
 from astrolabe.feature_store.source_bridge import _time
 from astrolabe.feature_store.source_run import _ordered_clocks, _pair
 
-from . import due_worker, origin_worker
+from . import due_worker, origin_worker, owned_windows
 from . import runtime as base
 from .activation import activate_screened_panel, read_activation
 from .build_identity import verified_panel_build
@@ -23,6 +23,7 @@ from .screening_worker import _durable_call
 VERSION = "fs2-concurrent-synthetic-runtime-v2"
 FEATURE_VERSION = "fs2-concurrent-feature-runtime-v3"
 OWNED_VERSION = "fs2-owned-concurrent-runtime-v4"
+WINDOW_VERSION = "fs2-owned-window-runtime-v5"
 POLICY = {
     **base.POLICY,
     "queue_order": "ready targets before ready origins; then scheduled UTC/id",
@@ -55,17 +56,22 @@ def _remove(queue, entry):
     heapq.heapify(queue)
 
 
-async def _execute(root, entry, members, panel_policy, activation, origins, transport, features):
+async def _execute(root, entry, members, panel_policy, activation, origins, transport, features,
+                   window_inputs=None):
     _, _, identity, kind, job = entry
     protocol = PanelProtocol(**panel_policy["protocol"])
     if kind == "origin":
+        dependency = (window_inputs["members"][job["market_id"]]["analysis_root"]
+                      if window_inputs else None)
         result = await origin_worker._collect_one(
             root / "origins" / identity,
             job,
             members[job["market_id"]],
             panel_policy,
             activation,
-            transport, features=features,
+            transport, features=features, window_root=dependency,
+            window_policy=owned_windows.policy_from_dict(window_inputs["policy"]).origin
+            if dependency else None,
         )
         return base._plan(root, result, protocol)
     return await due_worker._collect_one(
@@ -82,13 +88,14 @@ async def exercise_screened_panel(panel_root, screening_root, *, transport, conc
 
 
 async def _exercise_owned_panel(panel_root, screening_root, *, finish_owned, transport,
-                                 concurrency):
+                                 concurrency, window_inputs=None):
     return await _exercise(panel_root, screening_root, transport=transport,
-                           concurrency=concurrency, features=True, finish_owned=finish_owned)
+                           concurrency=concurrency, features=True, finish_owned=finish_owned,
+                           window_inputs=window_inputs)
 
 
 async def _exercise(panel_root, screening_root, *, transport, concurrency, features,
-                    finish_owned=None):
+                    finish_owned=None, window_inputs=None):
     if type(features) is not bool:
         raise ValueError("explicit feature mode required")
     owned = finish_owned is not None
@@ -97,7 +104,10 @@ async def _exercise(panel_root, screening_root, *, transport, concurrency, featu
     if not owned and transport is None:
         raise ValueError("legacy runtime requires synthetic transport")
     provenance = 'prospective' if transport is None else 'synthetic'
-    version = OWNED_VERSION if owned else FEATURE_VERSION if features else VERSION
+    if window_inputs is not None and not owned:
+        raise ValueError("owned runtime required for window inputs")
+    version = WINDOW_VERSION if window_inputs is not None else (
+        OWNED_VERSION if owned else FEATURE_VERSION if features else VERSION)
     runtime_policy = ({**POLICY, 'live_collection_enabled': transport is None,
                        'identity_policy': origin_worker.IDENTITY_POLICY}
                       if owned else POLICY)
@@ -129,6 +139,7 @@ async def _exercise(panel_root, screening_root, *, transport, concurrency, featu
                 "panel_root": str(panel),
                 "screening_root": str(screening),
                 "concurrency": concurrency,
+                **({"window_inputs": window_inputs} if window_inputs is not None else {}),
                 "declaration_hash": declaration["declaration_hash"],
                 "required_free_bytes": base._reserved(declaration),
                 "declared_at": _clock(),
@@ -177,7 +188,7 @@ async def _exercise(panel_root, screening_root, *, transport, concurrency, featu
                         return asyncio.run(
                             _execute(
                                 root, entry, members, panel_policy, activation, origins,
-                                transport, features
+                                transport, features, window_inputs
                             )
                         )
 
@@ -245,13 +256,15 @@ def read_runtime(panel_root):
     report, report_ack = _pair(root, "runtime_report")
     activation = read_activation(panel)
     version = policy["schema_version"]
-    owned = version == OWNED_VERSION
-    features = version in {FEATURE_VERSION, OWNED_VERSION}
+    windows = version == WINDOW_VERSION
+    owned = version in {OWNED_VERSION, WINDOW_VERSION}
+    features = version in {FEATURE_VERSION, OWNED_VERSION, WINDOW_VERSION}
     provenance = activation['provenance_class'] if owned else 'synthetic'
     runtime_policy = ({**POLICY, 'live_collection_enabled': provenance == 'prospective',
                        'identity_policy': origin_worker.IDENTITY_POLICY}
                       if owned else POLICY)
-    if (version not in {VERSION, FEATURE_VERSION, OWNED_VERSION}
+    if (version not in {VERSION, FEATURE_VERSION, OWNED_VERSION, WINDOW_VERSION}
+            or windows != ("window_inputs" in policy)
             or owned and (policy.get('provenance_class') != provenance
                           or activation['schema_version'] != origin_worker.OWNED_ACTIVATION
                           or provenance not in {'synthetic', 'prospective'})
@@ -288,6 +301,16 @@ def read_runtime(panel_root):
         )
     ):
         raise ValueError("concurrent runtime policy/activation/chronology differs")
+    window_inputs = None
+    if windows:
+        sp, _ = _pair(_canonical(policy['screening_root']), 'screening_policy')
+        window_inputs = owned_windows.read(_canonical(policy['screening_root']).parent,
+                                          sp['selected'], provenance)
+        if window_inputs != policy['window_inputs'] or any(
+            not _ordered_clocks(v['available_at'], policy['declared_at'])
+            for v in window_inputs['members'].values()
+        ):
+            raise ValueError('runtime window ownership/availability differs')
     members = {m["market_id"]: m for m in activation["selected"]}
     queue = base._queue(activation)
     heapq.heapify(queue)
@@ -314,7 +337,14 @@ def read_runtime(panel_root):
                     child, job, members[job["market_id"]], panel_policy, activation
                 )
                 intent, _ = _pair(child, "origin_intent")
+                dependency = (window_inputs["members"][job["market_id"]]["analysis_root"]
+                              if windows else None)
+                if dependency and intent.get("window_dependency") != {
+                    "analysis_root": dependency, "policy": window_inputs["policy"]["origin"]
+                }:
+                    raise ValueError("origin window differs from owned selected dependency")
                 if intent["schema_version"] != (
+                    origin_worker.WINDOW_VERSION if dependency else
                     origin_worker.OWNED_VERSION if owned
                     else origin_worker.FEATURE_VERSION if features else origin_worker.VERSION
                 ):

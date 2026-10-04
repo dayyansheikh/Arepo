@@ -353,3 +353,9 @@ are preserved. Phase3 remains incomplete. Next: internally owned bounded window 
 with full reservation, failed-member retention and original-runtime recovery, then a separate
 frozen empirical protocol. Reuse PHASE_03_PRE_ORIGIN_WINDOW_CONTRACT.md and the acceptance
 map; do not repeat D082 or begin Phase4.
+
+
+D084 owned window/runtime integration accepted as software:9 new cases and49 affected
+regressions pass, including original-code recovery and cancellation drainage. Next freeze
+and execute PHASE_03_WINDOW_PILOT_PROTOCOL.md once; empirical window/history and remaining
+family eligibility review still govern Phase3 exit. No Phase4 or production action.

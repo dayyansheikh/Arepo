@@ -74,3 +74,45 @@ concurrent runtime still expects snapshot-only origin v3. The next version must 
 internally collected per-market window dependencies and preserve failed/missing observers,
 expand the preflight reservation, route original-runtime recovery and prove bounded
 cancellation/target scheduling. No caller-supplied prospective history shortcut is enabled.
+
+## D084 owned runtime integration
+
+The worker v6 owns one socket/analysis pair for each actual selected screening member.
+Observers begin as soon as that member's authenticated pre-book and trigger record exist,
+in bounded independent event loops. The existing worker concurrency bounds both source and
+window jobs; there is no redraw, duplicate observer, fabricated common start time or artificial
+stagger. All window jobs finish before owned activation schedules origins. Multi-cycle
+origins retain the original dependency and become unavailable when its frozen ages expire;
+this finite pilot does not pretend to supply persistent multi-day coverage.
+
+The public wrapper accepts an explicit duration/binding/analysis/history policy but no port,
+transport, history payload, root or clock injection. A separate synthetic wrapper requires
+MockTransport and a loopback port. Source provenance must match the authenticated selection.
+Socket network refusal/closure is preserved by the existing journal. Unavailable pre-books
+retain the sampled member with explicit missingness and a snapshot-only origin. Local
+integrity/persistence failures terminate the worker without erasing failed evidence.
+
+Before any screening request the v6 allocation adds the full40MiB socket plus64MiB analysis
+ceiling per possible scheduled member, with no role-overlap discount. These are the actual
+child-writer limits (the analysis artifact ceiling is16MiB, total64MiB). Metadata/recovery
+and future origin/target reservations remain additional. Worker file inventory expands by
+a bounded3200 files per window. Cancellation drains durable jobs before returning.
+
+Runtime v5 binds the exact worker policy hash and per-member result hashes/availability,
+then routes actual analysis dependencies to D083 origin v4. Unavailable windows remain in
+the runtime policy while their origins use the unchanged snapshot format. Cold runtime and
+original-Git recovery authenticate all socket/raw/analysis/pre-source dependencies and
+refuse altered, missing or substituted entries. Full audit occurs after causal targets.
+
+Required acceptance: real loopback concurrency and pre-origin ordering, original-code round
+trip, exact reservation, silent/disconnected and unavailable pre-book preservation, changed
+window refusal, cancellation drainage and legacy regression. No public measurement until
+these gates pass, the implementation is committed and a separate finite protocol is frozen.
+
+D084 targeted validation: the success/original-recovery/dependency-tamper case passed in the
+first completed combined run; eight remaining cases passed127.20s after correcting only test
+fixtures (streaming404 response and an integer-string coverage assertion). Nine cases total.
+Two real loopback observers overlapped. Unavailable pre-book and early-disconnect evidence
+retain their members; invalid injected inputs and insufficient whole reservation are refused;
+cancellation leaves no detached writers. Affected legacy regression:49 passed722.18s. No public
+requests or acceptance based on these synthetic fixtures.

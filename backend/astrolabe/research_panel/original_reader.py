@@ -450,7 +450,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
         if policy['schema_version'] not in {'fs2-interleaved-synthetic-runtime-v1',
                                             'fs2-concurrent-synthetic-runtime-v2',
                                             'fs2-concurrent-feature-runtime-v3',
-                                            'fs2-owned-concurrent-runtime-v4'}:
+                                            'fs2-owned-concurrent-runtime-v4',
+                                            'fs2-owned-window-runtime-v5'}:
             raise ValueError('unsupported original runtime layout')
         panel = Path(policy['panel_root'])
         declaration, _ = _pair(panel, 'panel_policy')
@@ -460,7 +461,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
                         panel.with_name('fs2_selection_panel_' + suffix)]
         if policy['schema_version'] in {'fs2-concurrent-synthetic-runtime-v2',
                                          'fs2-concurrent-feature-runtime-v3',
-                                            'fs2-owned-concurrent-runtime-v4'}:
+                                            'fs2-owned-concurrent-runtime-v4',
+                                            'fs2-owned-window-runtime-v5'}:
             screen = Path(policy['screening_root'])
             screen_policy, _ = _pair(screen, 'screening_policy')
             dependencies.append(screen)
@@ -472,6 +474,16 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
                 if book.exists():
                     book_policy, _ = _pair(book, 'book_policy')
                     dependencies.append(Path(book_policy['source_root']))
+        if policy['schema_version'] == 'fs2-owned-window-runtime-v5':
+            worker = screen.parent
+            for index in range(len(screen_policy['selected'])):
+                dependencies.extend([worker / f'window_{index:03d}.json',
+                                     worker / f'window_{index:03d}_ack.json'])
+                for prefix in ('fs2_socket_window_', 'fs2_socket_analysis_'):
+                    child = worker / f'{prefix}{index:03d}'
+                    if child.exists():
+                        dependencies.append(child)
+            dependencies.extend([worker / 'worker_policy.json', worker / 'worker_policy_ack.json'])
         for dependency in dependencies:
             if not dependency.is_absolute() or dependency.resolve() != dependency:
                 raise ValueError('canonical original runtime dependency required')
