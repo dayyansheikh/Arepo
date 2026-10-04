@@ -380,3 +380,7 @@ economic grouping remains unresolved. No rerun, redraw, retrospective limit chan
 Next: PHASE_03_WINDOW_LATENCY_NEXT.md. Remove measured redundant cold replay through bounded
 process-owned writer outputs, retain full cold/original checks, then reassess availability and
 freeze a separate protocol. The latency fix cannot erase unavailable books or manufacture edge.
+
+D086 removes pre-activation full window replay through a tested bounded owned context (21 cases).
+Cold/original recovery and frozen ages remain unchanged. Next: eight-member synthetic timing;
+Phase3 stays incomplete. Current scope/evidence: ../PHASE_03_WINDOW_LATENCY_NEXT.md.

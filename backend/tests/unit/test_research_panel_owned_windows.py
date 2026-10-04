@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import sys
 from dataclasses import asdict
 
 import httpx
@@ -9,7 +10,12 @@ import pytest
 from websockets.asyncio.server import serve
 
 from astrolabe.feature_store.source_run import _pair, _time
-from astrolabe.research_panel import concurrent_runtime, origin_worker, screening_worker
+from astrolabe.research_panel import (
+    concurrent_runtime,
+    origin_worker,
+    owned_windows,
+    screening_worker,
+)
 from astrolabe.research_panel.bound_window import WindowBindingPolicy
 from astrolabe.research_panel.origin_window import OriginWindowPolicy
 from astrolabe.research_panel.owned_windows import OwnedWindowPolicy, reservation
@@ -65,8 +71,21 @@ async def test_owned_window_runtime_original_recovery_and_dependency_tamper(
         await socket.wait_closed()
         active.remove(token)
 
-    async with serve(handle, '127.0.0.1', 0) as server:
-        result = await execute(panel, original_code, source, server.sockets[0].getsockname()[1])
+    full_reads = []
+
+    def observe(frame, event, arg):
+        if event == 'call' and frame.f_code is owned_windows.read.__code__:
+            full_reads.append(len(calls))
+
+    previous = sys.getprofile()
+    sys.setprofile(observe)
+    try:
+        async with serve(handle, '127.0.0.1', 0) as server:
+            result = await execute(panel, original_code, source, server.sockets[0].getsockname()[1])
+    finally:
+        sys.setprofile(previous)
+    assert full_reads == [14]  # only after all screening/origin/target requests, never before t0
+
     assert peak == 2 and not active
     assert len(calls) == 14
     assert len(result['recovery']) == 1

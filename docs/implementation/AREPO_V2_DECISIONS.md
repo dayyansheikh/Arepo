@@ -253,3 +253,20 @@ economic grouping remains unresolved. No rerun, redraw, retrospective limit chan
 Next: PHASE_03_WINDOW_LATENCY_NEXT.md. Remove measured redundant cold replay through bounded
 process-owned writer outputs, retain full cold/original checks, then reassess availability and
 freeze a separate protocol. The latency fix cannot erase unavailable books or manufacture edge.
+
+## D086 — owned window reuse (2026-10-05)
+
+Removed redundant pre-activation replay using actual collector-owned results with immutable
+assignment copies, one-shot slots and bounded byte seals. Seal pre/source before verification;
+seal socket before analysis; bind analysis and entry results to returned writer hashes and
+check all bytes/closure before activation. Cold/original readers still replay original facts.
+Read/freeze ages, missingness, sampling, receipt gaps and native-continuity refusals unchanged.
+21 scoped tests pass:19 in338.88s plus2 mutation-boundary cases in38.92s. Ruff/canonical/diff
+checks pass. Full runtime test observes no owned-window cold read before14 source calls, and
+original recovery agrees. No new empirical acceptance. Next: eight-member synthetic timing.
+Self-review covered source substitution, private state, closure/bounds/symlinks, post-verification
+mutation and cancellation drainage; no production/database/API changes.
+Retained D085 lifecycle review:8 raw Gamma hashes verified;4 unavailable pre-books correspond
+to closed/non-accepting current state. Future lifecycle freshness must be declared before a
+new draw. Preserve D085 as failed; no posthoc selection, denominator substitution or threshold
+change. See PHASE_03_WINDOW_AVAILABILITY_REVIEW.json and PHASE_03_WINDOW_LATENCY_NEXT.md.

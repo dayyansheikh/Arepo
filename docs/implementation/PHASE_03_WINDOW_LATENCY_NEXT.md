@@ -73,3 +73,31 @@ cold/original recovery still invokes it afterward. Add missing/duplicate slot, m
 reservation/cancellation regressions. This first repair only removes the measured pre-runtime
 replay interval; measure remaining latency before deciding on deeper origin projection reuse
 or persistent observation. No new empirical attempt is frozen by this note.
+
+
+## D086 implementation boundary (2026-10-05)
+
+Steps1–2 implemented: the owned worker freezes private bounded assignments and acquisition/
+finish closures. Actual collectors populate each slot once. Pre-book/source bytes are sealed
+before acquisition and checked afterward; socket bytes are sealed before the analysis writer
+verifies them. Entry and analysis hashes/results bind the writer output before reuse. Bounded
+streamed manifests cover directories, files and expected window absence, reject symlinks and
+mutations, and are rechecked before activation. No caller payload or persisted context mints
+this proof. Missing members remain explicit. The existing full cold/original reader and all
+read/freeze freshness checks remain in force; no output schema, empirical threshold or limit
+was relaxed. Collection still uses one bounded observer per selected token.
+
+Nineteen scoped tests pass in338.88s, including the profiled full runtime/original recovery:
+full owned_windows.read occurs only after all14 synthetic HTTP calls. Two additional
+verification-to-proof mutation cases passed in38.92s (21 scoped cases total). No public collection ran.
+Next measure the eight-member synthetic causal path under the committed implementation;
+compare owned finish with post-target full cold replay on the same retained evidence, report
+that comparison's timing/order limitations, and inspect remaining origin freshness/queue costs.
+
+Separate retained-evidence review: PHASE_03_WINDOW_AVAILABILITY_REVIEW.json verifies eight
+Gamma payload hashes. All four unavailable D085 pre-books accompanied closed=true and
+acceptingOrders=false at their actual screening receipts. This is stale frame lifecycle, not
+proof of a transport defect. Keep D085 unchanged. A future frame/eligibility design must be
+frozen before a new draw, retain the complete universe and unknown/excluded states, and must
+not relabel this failed panel or substitute its denominator. No future draw is authorized by
+this review alone; the finite protocol gate above still applies.

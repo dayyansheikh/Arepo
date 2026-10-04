@@ -325,6 +325,9 @@ async def _run_screening(
         ):
             raise ValueError("screening assignment provenance or declared scope differs")
         _, wa = _pair(root, "worker_policy")
+        if windows:
+            acquire_window, finish_windows = owned_windows._prepare(
+                root, frozen["selected"], provenance)
         semaphore = asyncio.Semaphore(concurrency)
 
         async def collect(index, item):
@@ -362,8 +365,7 @@ async def _run_screening(
                 )
                 await _durable_call(record_snapshot_trigger, Path(item["declaration_root"]))
                 if windows:
-                    await _durable_call(owned_windows.collect, root, index, item,
-                                        window_policy, window_port)
+                    await _durable_call(acquire_window, index)
 
         stage = "acquisition"
         async with asyncio.timeout(LIMITS["acquisition_seconds"]):
@@ -381,8 +383,7 @@ async def _run_screening(
             screened, runtime = await _exercise_owned_panel(
                 panel, screening, finish_owned=finish_owned, transport=transport,
                 concurrency=runtime_concurrency,
-                window_inputs=owned_windows.read(root, frozen["selected"], provenance)
-                if windows else None)
+                window_inputs=finish_windows() if windows else None)
         else:
             screened = finish_owned() if finish_owned is not None else finish_screening(screening)
         roles = role_capacity(screened["plan"], protocol)
