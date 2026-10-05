@@ -1,19 +1,19 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-05. Phase3 incomplete — D086 replay repair accepted in21 scoped tests, but eight-member synthetic measurement failed stale-role activation. Next D087 bounded CPU/call profile and acquisition/analysis delay repair. No active process or public collector; D085/D086 evidence immutable.
+Updated: 2026-10-05 04:37UTC continuation. Phase3 incomplete — D087 identified compilation as~75% of measured verification reads; bounded exact-code expectation cache passes76 targeted tests. Next new eight-member synthetic measurement; no public run yet.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
 - Previous implementation continuation: 2026-09-27 10:35 UTC. Initial allowance 1% primary /32% weekly used; ordinary usage allowed. D069 bounded stratum sampler/declaration/selection implemented; 193 affected tests passed in 217.52s. Full original-code recovery and legacy defaults pass. No public collection or empirical acceptance.
-- Current successor: exactly one same-task automation, October5 00:27 Europe/London /October4 23:27UTC (+310minutes from18:17 heartbeat), exact prompt retained.
-- Current continuation: October4 18:17UTC. Initial allowance0% primary/32% weekly used. D085 finished18:38:34UTC, exit0/original audit passed, but execution gates failed. No test or collector active.
+- Current successor: one same-task automation for October5 10:47 Europe/London /09:47UTC (+310minutes from04:37 heartbeat), exact prompt retained.
+- Current continuation: October5 04:37UTC. Initial allowance0% primary/63% weekly used; ordinary usage allowed.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
-- Latest safe implementation commit: dd9aa07 (D084); frozen D085 protocol1c27f31; terminal evidence/latency contract b46096c. All pushed to updated draftPR16. D083/D082 evidence unchanged.
+- Latest safe implementation commit:531c3c38b511069e1c2a5d13d9766f9385cfe2e6 (D086); evidence/checkpoint21441342896a210f20601ad968ea644a34f057b3. D087 code/tests documented below; containing commit is the next safe implementation boundary.
 - Draft PR: https://github.com/dayyansheikh/Arepo/pull/16, open draft against Phase2. Head/body updated with each coherent commit; never merged.
 - Completed: Phase 0 canonical foundation; Phase 1 isolated immutable store; Phase 2 source journals/admission, exact identities and bounded replay. Phase 3 milestones: pure sampling/control/receipt-target rules; isolated keyset frame journal, source+panel build binding, bounded CLI, raw/parsed/page manifests, cursor/scope/duplicate/conflict/clock/error checks, crash-safe read-only recovery, streaming verification and measured-capacity preflights.
 - Files/modules changed: research_panel/{__init__,sampling,targets,frame,frame_cli,build_identity,original_reader,metadata,selection,selection_cli}.py; planning/frame/metadata/selection/original-reader tests; isolated feature_store/{capture,sources}.py; phase/review/frame/panel-journal contracts, decisions D030–D041 and measurement evidence JSONs. Latest D041 changes cover original_reader, selection_cli, original-selection tests, evidence and recovery docs. No v1/config/API/scheduler/frontend changes.
-- Tests/results: D084 nine new integration cases pass; final affected legacy regression49 passed722.18s. Ruff/backend/canonical/whitespace pass. D083 accepted53-case regression unchanged; no full-backend or new empirical claim.
+- Tests/results: D08776 targeted cases passed119.88s; Ruff/backend/canonical/whitespace pass. Prior scoped results remain historical, no full-backend/empirical claim.
 - Measured first page: `bf734a0`, 100 rows, 557,140 raw bytes, 1,501,764 retained bytes, 157,199,875ns request-to-receipt; continuing cursor, incomplete. PHASE_03_FIRST_PAGE_EVIDENCE.json.
 - Enumeration attempt 1: `f66dea1`, 410 attempts / 409 complete pages / 40,900 rows; stopped at 256MiB raw cap with partial 410th response preserved. Raw268,435,456 / retained 654,055,783 / peak resident 202,407,936 bytes. Incomplete. PHASE_03_ENUMERATION_ATTEMPT_1.json.
 - Enumeration attempt 2: `726cec2`, 1,000 complete pages /100,000 distinct market IDs, still continuing. 99,956 eligible row identities and 44 unresolved, no observed duplicates/conflicts within prefix. Raw644,897,535 / retained 1,577,956,669 / peak resident 343,457,792 bytes. Request-cap stop; incomplete. PHASE_03_ENUMERATION_ATTEMPT_2.json. Final verification overlapped backend regression, so whole-command elapsed is not an isolated performance benchmark.
@@ -25,7 +25,7 @@ Updated: 2026-10-05. Phase3 incomplete — D086 replay repair accepted in21 scop
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: D087 bounded read-only CPU/call profile of pre-book/binding/socket-analysis verification on retained D086 synthetic inputs, with output persisted even on failure. Follow the D086 result/next-action section in PHASE_03_WINDOW_LATENCY_NEXT.md. Do not rerun D085/D086 or accepted21 tests; do not loosen freshness. No Phase4.
+- Exact next action: commit D087 and execute /tmp/arepo_d087_benchmark.py once with isolated SQLite/email disabled, output fs2_synthetic_latency_20261005_2. Inspect freshness/timings and original recovery before any separately frozen public protocol. No repeat of failed D085/D086 or Phase4.
 - Latest modules/files: D068 screening.py, original_reader.py, 15 screening tests, and screening integration contract; D067 scheduling.py, origin/due/runtime waits and six timer tests. D066 trigger_computation.py, original-reader support, 16 new assessment/recovery cases and trigger contract. D065 socket_diagnostic.py, fixed orchestration tests and frozen protocol. D064 socket_analysis.py, original_reader.py, shared pure endpoint algebra in window_reconciliation.py, two new socket-analysis test modules and phase/master/review/decisions/checkpoint/analysis contract. D063 socket_window.py/socket_window_journal.py and driver/recovery tests accepted at 742b65e. D061 window_reconciliation.py, original_reader.py and reconciliation/original recovery tests accepted at 73b1ccc. No v1/API/config/workflow/frontend/SQL/production changes.
 - Current capacity observation (2026-09-27): 26,634,020 KiB free during regression; previous 4 GiB blocker cleared. Remeasure before collection. Preserve all raw/failed runs.
 - Next-run constraints: category is absent in all mapped source rows; enrichment requires separate versioned source evidence, never a fallback invented from other fields. Local disk snapshot after D041: 9,133,616 KiB free, below the existing expanded-frame 8 GiB retained +2 GiB reserve preflight. Do not launch that mode unchanged, delete evidence or narrow the population. A separately designed/tested finite budget refinement may use the actual 2,728,778,097-byte complete-frame cost; remeasure disk first. No new collection budget has been frozen or authorized by this note.
@@ -448,3 +448,28 @@ Phase3 stays incomplete, Phase4 only in a fresh conversation after genuine accep
 Shutdown: implementation531c3c3 pushed to draft PR16; evidence/checkpoint commit follows.
 No collector/test remains active. Allowance last observed86% primary/61% weekly used before
 final evidence/checkpoint work; save coherent state for the single05:37 London successor.
+
+## D087 — measured compilation overhead and bounded expectation cache
+
+Read-only cProfile of retained D086 member000: pre-book487130500ns, with162 compilations
+consuming363913126ns; socket analysis2013804375ns, with666 compilations consuming1541182456ns.
+Profiling overhead included; not an end-to-end or empirical market measurement. Full script/
+results: PHASE_03_VERIFICATION_PROFILE.json. Evidence supports a small verifier optimization
+before new observer infrastructure.
+
+Cache at most256 immutable expected-code tuples keyed by exact source bytes AND filename,
+with a lock for concurrent first use and LRU eviction. Do not cache successful verification:
+every call still hashes current package files, checks the import-time build, checks actual
+loaded functions and reads dependency versions. Changed bytes/paths never reuse expectations;
+warm function replacement still fails. Output schema, numerical/source recovery and all causal
+clocks/freshness remain unchanged. This is not an owner-tamper security boundary.
+
+76 targeted tests passed119.88s: research_build_cache, feature_store_source_run,
+research_panel_frame, research_panel_owned_windows, research_panel_window_context. Includes
+cold/warm compile counts, mutation after warmup, source byte changes, key separation, threads,
+eviction, public override refusals, missingness, cancellation and original-code recovery.
+Ruff/backend, canonical and whitespace checks pass. Self-review covered cache mutability/
+bounds/concurrency, freshness and unchanged per-call code/file checks. No public request.
+Next: one fresh eight-member synthetic measurement at fs2_synthetic_latency_20261005_2,
+script /tmp/arepo_d087_benchmark.py, after commit. Same4 workers,10s windows,60s window/120s
+history freshness; preserve timing even on failure. Failed D086 roots remain untouched.

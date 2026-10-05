@@ -3,6 +3,8 @@
 import hashlib
 import importlib.metadata
 import sys
+import threading
+from collections import OrderedDict
 from pathlib import Path
 from types import CodeType
 
@@ -17,6 +19,25 @@ def _codes(code):
     return result
 
 
+# Cache only immutable expectations, never a verification result. File bytes and loaded
+# function identities are checked on every call. No mtime-only or root-only trust shortcut.
+_COMPILED_LIMIT = 256
+_COMPILED = OrderedDict()
+_COMPILED_LOCK = threading.Lock()
+
+
+def _compiled_codes(source, filename):
+    key = (source, filename)
+    with _COMPILED_LOCK:
+        if key not in _COMPILED:
+            codes = tuple(_codes(compile(source, filename, 'exec', dont_inherit=True)).items())
+            _COMPILED[key] = codes
+            if len(_COMPILED) > _COMPILED_LIMIT:
+                _COMPILED.popitem(last=False)
+        _COMPILED.move_to_end(key)
+        return _COMPILED[key]
+
+
 def verified_build():
     root = Path(__file__).parent
     current = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in root.glob("*.py")}
@@ -29,8 +50,8 @@ def verified_build():
         path = Path(module.__file__)
         if path.parent != root or path.name not in current:
             raise ValueError("unexpected measurement module location")
-        codes = _codes(compile(path.read_bytes(), str(path), "exec", dont_inherit=True))
-        for qualname, expected in codes.items():
+        codes = _compiled_codes(path.read_bytes(), str(path))
+        for qualname, expected in codes:
             if "<" in qualname:
                 continue  # nested code is part of its parent code's digest
             obj = module

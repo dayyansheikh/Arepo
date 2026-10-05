@@ -4,7 +4,7 @@ import hashlib
 import sys
 from pathlib import Path
 
-from astrolabe.feature_store.build_identity import _codes, verified_build
+from astrolabe.feature_store.build_identity import _compiled_codes, verified_build
 
 from . import _PACKAGE_FILES
 
@@ -21,9 +21,7 @@ def verified_panel_build():
         path = Path(module.__file__)
         if path.parent != root or path.name not in files:
             raise ValueError('unexpected panel module location')
-        for qualname, expected in _codes(compile(
-            path.read_bytes(), str(path), 'exec', dont_inherit=True,
-        )).items():
+        for qualname, expected in _compiled_codes(path.read_bytes(), str(path)):
             if '<' in qualname:
                 continue
             obj = module

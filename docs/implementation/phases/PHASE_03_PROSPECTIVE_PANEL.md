@@ -390,3 +390,7 @@ failed stale-role activation before any origins. Owned/cold contexts agree; hand
 versus later cold replay29.326286833s. First-batch windows already~81s old (60s limit).
 Next D087: bounded local CPU/call profile and acquisition/analysis repair per
 PHASE_03_WINDOW_LATENCY_NEXT.md. Preserve failed runs and original freshness; Phase3 incomplete.
+
+D087 measured compilation overhead (~75% of two profiled reads); bounded immutable expected-code
+cache retains all per-call build checks.76 targeted tests pass; next fresh synthetic8-member
+measurement. Phase3 remains incomplete; see ../PHASE_03_WINDOW_LATENCY_NEXT.md.

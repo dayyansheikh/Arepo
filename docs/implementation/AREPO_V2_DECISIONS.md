@@ -276,3 +276,28 @@ failed stale-role activation before any origins. Owned/cold contexts agree; hand
 versus later cold replay29.326286833s. First-batch windows already~81s old (60s limit).
 Next D087: bounded local CPU/call profile and acquisition/analysis repair per
 PHASE_03_WINDOW_LATENCY_NEXT.md. Preserve failed runs and original freshness; Phase3 incomplete.
+
+## D087 — measured compilation overhead and bounded expectation cache
+
+Read-only cProfile of retained D086 member000: pre-book487130500ns, with162 compilations
+consuming363913126ns; socket analysis2013804375ns, with666 compilations consuming1541182456ns.
+Profiling overhead included; not an end-to-end or empirical market measurement. Full script/
+results: PHASE_03_VERIFICATION_PROFILE.json. Evidence supports a small verifier optimization
+before new observer infrastructure.
+
+Cache at most256 immutable expected-code tuples keyed by exact source bytes AND filename,
+with a lock for concurrent first use and LRU eviction. Do not cache successful verification:
+every call still hashes current package files, checks the import-time build, checks actual
+loaded functions and reads dependency versions. Changed bytes/paths never reuse expectations;
+warm function replacement still fails. Output schema, numerical/source recovery and all causal
+clocks/freshness remain unchanged. This is not an owner-tamper security boundary.
+
+76 targeted tests passed119.88s: research_build_cache, feature_store_source_run,
+research_panel_frame, research_panel_owned_windows, research_panel_window_context. Includes
+cold/warm compile counts, mutation after warmup, source byte changes, key separation, threads,
+eviction, public override refusals, missingness, cancellation and original-code recovery.
+Ruff/backend, canonical and whitespace checks pass. Self-review covered cache mutability/
+bounds/concurrency, freshness and unchanged per-call code/file checks. No public request.
+Next: one fresh eight-member synthetic measurement at fs2_synthetic_latency_20261005_2,
+script /tmp/arepo_d087_benchmark.py, after commit. Same4 workers,10s windows,60s window/120s
+history freshness; preserve timing even on failure. Failed D086 roots remain untouched.
