@@ -9,6 +9,7 @@ Updated: 2026-10-05. D089 terminal/audited under404ad5e; empirical6/8gates faile
 - Current continuation: October5 14:57UTC. Initial allowance0% primary/94% weekly used; latest10%/96%, ordinary usage allowed. Save evidence before longer-term exhaustion; no reset redeemed.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
+- Latest safe evidence commit: e0fa103 (D089 failed empirical pilot, source diagnosis and next bounded observation contract), pushed.
 - Latest safe implementation commit:5678b10 (D087 expectation-cache optimization), pushed. D086 prior code531c3c3/failed evidence2144134 remain immutable. Current evidence/protocol commit is the next recovery boundary.
 - Draft PR: https://github.com/dayyansheikh/Arepo/pull/16, open draft against Phase2. Head/body updated with each coherent commit; never merged.
 - Completed: Phase 0 canonical foundation; Phase 1 isolated immutable store; Phase 2 source journals/admission, exact identities and bounded replay. Phase 3 milestones: pure sampling/control/receipt-target rules; isolated keyset frame journal, source+panel build binding, bounded CLI, raw/parsed/page manifests, cursor/scope/duplicate/conflict/clock/error checks, crash-safe read-only recovery, streaming verification and measured-capacity preflights.
