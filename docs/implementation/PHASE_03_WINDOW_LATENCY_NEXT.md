@@ -155,3 +155,13 @@ bounds/concurrency, freshness and unchanged per-call code/file checks. No public
 Next: one fresh eight-member synthetic measurement at fs2_synthetic_latency_20261005_2,
 script /tmp/arepo_d087_benchmark.py, after commit. Same4 workers,10s windows,60s window/120s
 history freshness; preserve timing even on failure. Failed D086 roots remain untouched.
+
+
+D087 measurement completed under5678b10:8/8 observed origins,8/8 histories eligible at freeze,
+8/8 observed targets and complete original-code recovery;56 synthetic HTTP calls, no public
+requests. Elapsed149.854142709s; owned finish0.177550291s and post-target cold read6.686687208s.
+Synthetic diagnostic, not alpha or full Phase3 acceptance. Full clocks, code, script and1270
+artifact hashes: PHASE_03_VERIFIER_CACHE_TIMING_EVIDENCE.json. The old failed D086 is unchanged.
+Next D088: freeze/execute one complete lifecycle-fresh frame per
+PHASE_03_LIFECYCLE_FRAME_PROTOCOL.md, then a separately frozen public pilot. No new observer
+infrastructure or freshness relaxation is justified by this successful scoped measurement.
