@@ -61,3 +61,9 @@ PHASE_03_WINDOW_LATENCY_NEXT.md. Preserve failed runs and original freshness; Ph
 
 D087 synthetic8-member window/history/runtime gate now passes after the bounded verifier cache;
 no public acceptance inferred. Next D088 fresh complete frame and separately frozen pilot.
+
+D089 final: original audit passes, but only5/8 observed origins and fresh histories;5/5 targets
+and one matched control pair. Three HTTP200 books are genuinely one-sided despite active,
+nonclosed Gamma flags. All8denominators and exact4/109stratum weights retained. Phase3 remains
+incomplete; see PHASE_03_FRESH_WINDOW_PILOT_EVIDENCE.json, review and PHASE_03_ONE_SIDED_NEXT.md.
+Do not rerun or filter the failed sample. No Phase4 in this conversation.

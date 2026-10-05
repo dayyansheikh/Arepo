@@ -398,3 +398,9 @@ measurement. Phase3 remains incomplete; see ../PHASE_03_WINDOW_LATENCY_NEXT.md.
 D088 complete frame expired before its1h selection gate at the next assistant continuation.
 D089 single-process frame/selection/pilot protocol removes that orchestration gap while
 preserving existing causal/measurement gates; see ../PHASE_03_FRESH_WINDOW_PILOT_PROTOCOL.md.
+
+D089 final: original audit passes, but only5/8 observed origins and fresh histories;5/5 targets
+and one matched control pair. Three HTTP200 books are genuinely one-sided despite active,
+nonclosed Gamma flags. All8denominators and exact4/109stratum weights retained. Phase3 remains
+incomplete; see PHASE_03_FRESH_WINDOW_PILOT_EVIDENCE.json, review and PHASE_03_ONE_SIDED_NEXT.md.
+Do not rerun or filter the failed sample. No Phase4 in this conversation.

@@ -1235,3 +1235,37 @@ are not repeated for orchestration. Review: exclusive roots/logs, immutable buil
 reservation, source completion and real clock gates, no redraw, complete original recovery.
 One successor updated to15:57London/14:57UTC, same task/prompt; initial allowance0% primary/
 79% weekly used. Phase3 only; no Phase4 or full acceptance claim.
+
+## D089 final empirical result — 2026-10-05
+
+Complete under404ad5efd12c6913ff062aa3f702db1630c08ea4, wrapper exit0 at10:22:50.943457UTC.
+No collector/test remains active. Fresh frame236887 distinct/236843 mapped/44 unresolved,
+2369requests, no retries/errors/conflicts, full source and original-code audit. Selection
+uniformly chose4of109strata (4/109), with exact conditional member/role fractions preserved.
+Eight scheduled/three triggered/one control roles span eight unique markets; two unfilled
+control slots remain. Five observed origins/five fresh completed histories/five valid targets,
+one actually observed matched pair. Six-of-eight origin/history gates FAIL. Phase3 incomplete.
+Full immutable clocks, receipts, values,258 independently checked window/origin/report artifacts,
+additional target hashes and extraction scripts: PHASE_03_FRESH_WINDOW_PILOT_EVIDENCE.json.
+
+All50HTTPrequests returned200 (21Gamma,21book,8trades),191706raw bytes. The three absent
+histories came from genuine one-sided pre-books:5233594 has67bids/0asks;5299067 has74/0;
+628957 has0/54. All three Gamma records were active/nonclosed/accepting orders. Thus refreshing
+the frame did not cure this limitation; no transport failure, freshness relaxation, retrospective
+filtering or repeat-draw-until-success is justified. Five available histories passed unchanged
+clock gates after D087. Native continuity remains unproven; these are receipt-time diagnostics.
+None of eight questions matches the KNYC quantity. France/Spain EURO2028 questions suggest a
+possible relation but do not establish a rule-aware economic group or causal related-price input.
+F01/F02/F10/F27, related/external and v1 rolling-z-score inputs remain honestly unavailable.
+
+Self-review: original audit, exact rational stage weights, all8denominators, actual freeze
+eligibility, matched IDs, target deadlines, source raw hashes/level counts, gaps and missingness.
+No new implementation; prior76D087 tests remain accepted, not rerun. Canonical/whitespace and
+JSON/hash checks validate this evidence change. D085 prose previously copied4of110 from D082;
+its immutable evidence actually records4of108 (1/27). No old protocol/data was rewritten.
+
+Next action: read this evidence and PHASE_03_ONE_SIDED_NEXT.md. Do not rerun D089 or reinterpret
+one-sided books as midpoint observations. Source data cannot retroactively supply the missing
+three histories. Develop only the smallest prospective identity-bound observation refinement
+needed to measure recovery from one-sided state; preserve failed pilots and all strict gates.
+Phase4 stays in a fresh conversation after genuine full acceptance.

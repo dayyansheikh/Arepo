@@ -131,3 +131,9 @@ are preserved. Phase3 remains incomplete. Next: internally owned bounded window 
 with full reservation, failed-member retention and original-runtime recovery, then a separate
 frozen empirical protocol. Reuse PHASE_03_PRE_ORIGIN_WINDOW_CONTRACT.md and the acceptance
 map; do not repeat D082 or begin Phase4.
+
+D089 final: original audit passes, but only5/8 observed origins and fresh histories;5/5 targets
+and one matched control pair. Three HTTP200 books are genuinely one-sided despite active,
+nonclosed Gamma flags. All8denominators and exact4/109stratum weights retained. Phase3 remains
+incomplete; see PHASE_03_FRESH_WINDOW_PILOT_EVIDENCE.json, review and PHASE_03_ONE_SIDED_NEXT.md.
+Do not rerun or filter the failed sample. No Phase4 in this conversation.
