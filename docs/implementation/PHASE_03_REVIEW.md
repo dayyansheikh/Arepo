@@ -1212,3 +1212,26 @@ artifact hashes: PHASE_03_VERIFIER_CACHE_TIMING_EVIDENCE.json. The old failed D0
 Next D088: freeze/execute one complete lifecycle-fresh frame per
 PHASE_03_LIFECYCLE_FRAME_PROTOCOL.md, then a separately frozen public pilot. No new observer
 infrastructure or freshness relaxation is justified by this successful scoped measurement.
+
+## D088 complete frame; D089 unattended fresh-frame/pilot boundary
+
+D088 finished2026-10-05 04:58:57UTC underf5eee00, exit0. Rootfs2_capture_0da49550169349f9adc9947dcaecc76f:
+235224 distinct rows,235180 mapped,44 unresolved;2353 requests, zero retries/errors/conflicts.
+Source interval04:46:15–04:53:20UTC (425.282097s), raw1524579122/retained3739809659bytes,
+peak583254016bytes. Full CLI verification passed; report/metadata/wrapper hashes preserved in
+PHASE_03_LIFECYCLE_FRAME_EVIDENCE.json. No collector remains. The next assistant continuation
+arrived09:47UTC, outside the prospective1h rule. Do not re-age or use this frame for that pilot.
+
+D089 freezes one end-to-end process so verified fresh frame immediately feeds selection and
+pilot without an assistant-turn boundary. Existing APIs only; no production/scheduler change.
+New frame allocation7GiB (~2x observed retained cost), same4000 requests/3GiB raw/900s/limits,
+universe and retries. Full combined reserve13308526592bytes includes frame, all panel/selection/
+window/target/original-recovery budgets,2GiB free reserve and34MiB frame-capacity read overhead.
+Observed free14327640064bytes; launcher must recheck. Quota/incomplete source stops the chain,
+never admits a partial universe. No old evidence deleted or live retention changed.
+Exact code and unchanged five pilot gates: PHASE_03_FRESH_WINDOW_PILOT_PROTOCOL.md.
+Offline syntax/API budget validation and canonical/whitespace checks pass; unchanged76 tests
+are not repeated for orchestration. Review: exclusive roots/logs, immutable build, all-stage
+reservation, source completion and real clock gates, no redraw, complete original recovery.
+One successor updated to15:57London/14:57UTC, same task/prompt; initial allowance0% primary/
+79% weekly used. Phase3 only; no Phase4 or full acceptance claim.

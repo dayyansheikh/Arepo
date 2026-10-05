@@ -394,3 +394,7 @@ PHASE_03_WINDOW_LATENCY_NEXT.md. Preserve failed runs and original freshness; Ph
 D087 measured compilation overhead (~75% of two profiled reads); bounded immutable expected-code
 cache retains all per-call build checks.76 targeted tests pass; next fresh synthetic8-member
 measurement. Phase3 remains incomplete; see ../PHASE_03_WINDOW_LATENCY_NEXT.md.
+
+D088 complete frame expired before its1h selection gate at the next assistant continuation.
+D089 single-process frame/selection/pilot protocol removes that orchestration gap while
+preserving existing causal/measurement gates; see ../PHASE_03_FRESH_WINDOW_PILOT_PROTOCOL.md.

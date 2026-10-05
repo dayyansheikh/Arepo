@@ -1,12 +1,12 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-05. Phase3 incomplete — D087 verifier optimization and eight-member synthetic runtime accepted; D088 complete-frame acquisition is ACTIVE under frozen protocol; do not relaunch. No Phase4.
+Updated: 2026-10-05 09:47UTC continuation. Phase3 incomplete — D088 frame completed successfully but expired before selection; D089 freezes an unattended fresh-frame-to-pilot chain. No active collector before launch; no Phase4.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
 - Previous implementation continuation: 2026-09-27 10:35 UTC. Initial allowance 1% primary /32% weekly used; ordinary usage allowed. D069 bounded stratum sampler/declaration/selection implemented; 193 affected tests passed in 217.52s. Full original-code recovery and legacy defaults pass. No public collection or empirical acceptance.
-- Current successor: one same-task automation for October5 10:47 Europe/London /09:47UTC (+310minutes from04:37 heartbeat), exact prompt retained.
-- Current continuation: October5 04:37UTC. Initial allowance0% primary/63% weekly used; ordinary usage allowed.
+- Current successor: one same-task automation for October5 15:57 Europe/London /14:57UTC (+310minutes from09:47 heartbeat), exact prompt retained.
+- Current continuation: October5 09:47UTC. Initial allowance0% primary/79% weekly used; ordinary usage allowed.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
 - Latest safe implementation commit:5678b10 (D087 expectation-cache optimization), pushed. D086 prior code531c3c3/failed evidence2144134 remain immutable. Current evidence/protocol commit is the next recovery boundary.
@@ -25,7 +25,7 @@ Updated: 2026-10-05. Phase3 incomplete — D087 verifier optimization and eight-
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: inspect data-dumps/fs2_frame_refresh_20261005_1_{launch,stdout,stderr,result} files and active process before any work. D088 launched once under f5eee00, exec session11974 in this context. Poll to terminal, preserve all partial evidence; NEVER relaunch this attempt. Only after successful complete-frame verification freeze the next pilot protocol.
+- Exact next action: commit PHASE_03_FRESH_WINDOW_PILOT_PROTOCOL.md, update draft PR16, then launch its exact script once with exclusive fs2_lifecycle_pilot_20261005_1 wrapper files. No assistant boundary inside the frame/selection/pilot chain. Check all roots/logs and combined capacity before launch; preserve failure and never relaunch silently.
 - Latest modules/files: D068 screening.py, original_reader.py, 15 screening tests, and screening integration contract; D067 scheduling.py, origin/due/runtime waits and six timer tests. D066 trigger_computation.py, original-reader support, 16 new assessment/recovery cases and trigger contract. D065 socket_diagnostic.py, fixed orchestration tests and frozen protocol. D064 socket_analysis.py, original_reader.py, shared pure endpoint algebra in window_reconciliation.py, two new socket-analysis test modules and phase/master/review/decisions/checkpoint/analysis contract. D063 socket_window.py/socket_window_journal.py and driver/recovery tests accepted at 742b65e. D061 window_reconciliation.py, original_reader.py and reconciliation/original recovery tests accepted at 73b1ccc. No v1/API/config/workflow/frontend/SQL/production changes.
 - Current capacity observation (2026-09-27): 26,634,020 KiB free during regression; previous 4 GiB blocker cleared. Remeasure before collection. Preserve all raw/failed runs.
 - Next-run constraints: category is absent in all mapped source rows; enrichment requires separate versioned source evidence, never a fallback invented from other fields. Local disk snapshot after D041: 9,133,616 KiB free, below the existing expanded-frame 8 GiB retained +2 GiB reserve preflight. Do not launch that mode unchanged, delete evidence or narrow the population. A separately designed/tested finite budget refinement may use the actual 2,728,778,097-byte complete-frame cost; remeasure disk first. No new collection budget has been frozen or authorized by this note.
@@ -487,3 +487,26 @@ infrastructure or freshness relaxation is justified by this successful scoped me
 D088 active acquisition launched 2026-10-05T04:45:24.985867+00:00 under f5eee00a6f294b0ce040b94ca95cec71b258dc94.
 Preflight free18124161024bytes. Exactly one bounded public frame enumeration;
 no production jobs/DB. Source packages must stay fixed through acquisition/recovery.
+
+## D088 complete frame; D089 unattended fresh-frame/pilot boundary
+
+D088 finished2026-10-05 04:58:57UTC underf5eee00, exit0. Rootfs2_capture_0da49550169349f9adc9947dcaecc76f:
+235224 distinct rows,235180 mapped,44 unresolved;2353 requests, zero retries/errors/conflicts.
+Source interval04:46:15–04:53:20UTC (425.282097s), raw1524579122/retained3739809659bytes,
+peak583254016bytes. Full CLI verification passed; report/metadata/wrapper hashes preserved in
+PHASE_03_LIFECYCLE_FRAME_EVIDENCE.json. No collector remains. The next assistant continuation
+arrived09:47UTC, outside the prospective1h rule. Do not re-age or use this frame for that pilot.
+
+D089 freezes one end-to-end process so verified fresh frame immediately feeds selection and
+pilot without an assistant-turn boundary. Existing APIs only; no production/scheduler change.
+New frame allocation7GiB (~2x observed retained cost), same4000 requests/3GiB raw/900s/limits,
+universe and retries. Full combined reserve13308526592bytes includes frame, all panel/selection/
+window/target/original-recovery budgets,2GiB free reserve and34MiB frame-capacity read overhead.
+Observed free14327640064bytes; launcher must recheck. Quota/incomplete source stops the chain,
+never admits a partial universe. No old evidence deleted or live retention changed.
+Exact code and unchanged five pilot gates: PHASE_03_FRESH_WINDOW_PILOT_PROTOCOL.md.
+Offline syntax/API budget validation and canonical/whitespace checks pass; unchanged76 tests
+are not repeated for orchestration. Review: exclusive roots/logs, immutable build, all-stage
+reservation, source completion and real clock gates, no redraw, complete original recovery.
+One successor updated to15:57London/14:57UTC, same task/prompt; initial allowance0% primary/
+79% weekly used. Phase3 only; no Phase4 or full acceptance claim.
