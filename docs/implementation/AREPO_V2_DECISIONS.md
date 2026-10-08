@@ -526,3 +526,10 @@ The deep sample excludes known stated ends at/before the selection declaration, 
 original inventory and explicit exclusions. Unknown dates and one-sided books remain. This is a
 new conditional population; no old pilot is repaired or claimed representative of it. Legacy
 selection remains unchanged. Full original runtime audit and controls pass synthetically.
+
+## D097 — one predeclared temporal-population measurement
+
+After tested D096 and independently restored capacity, freeze the exact protocol/script in
+PHASE_03_TEMPORAL_PILOT_PROTOCOL.md. Same6/8history/origin,80%target,matched-control,observer
+accounting and audit gates; additional population/exclusion denominator audit. One new
+conditional-population draw, no reinterpretation of D094 or repeated sampling to pass.
