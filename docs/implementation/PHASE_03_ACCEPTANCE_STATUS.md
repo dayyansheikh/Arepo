@@ -119,3 +119,7 @@ combined D097 pilot fails matched controls. Family eligibility was reviewed agai
 actual rules, with unsupported features explicitly unavailable. Full phase exit remains
 open; do not combine successes across failed protocols into an accepted integrated panel.
 Exact next action: PHASE_03_CONTROL_AVAILABILITY_NEXT.md after capacity recovery.
+
+Current capacity update D099: storage blocker cleared with exact-byte transparent filesystem
+compression; original-reader equivalence passed. See PHASE_03_STORAGE_COMPRESSION_EVIDENCE.json
+and live checkpoint. D097 control failure remains; no new pilot or Phase4 started.

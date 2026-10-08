@@ -565,3 +565,18 @@ Raw arithmetic verifies the snapshot rule; no classification bug or eligible neg
 found. Broader matching cannot invent controls. Candidate-pool design review must precede
 any future justified protocol; see PHASE_03_CONTROL_AVAILABILITY_NEXT.md. No new code or
 new infrastructure is justified by the present capacity blocker.
+
+## D099 — exact-byte online compression clears storage blocker
+
+D099 (October8): local capacity restored by transparent macOS filesystem compression of
+one closed D094 frame, without changing any logical file or original path.18709files /
+4220053077logical bytes; physical allocation4272533504→662069248bytes (3610464256saved).
+Every content hash, size, mode, owner and modification time matched before/after handoff;
+only the redundant uncompressed physical copy was removed. Original53c19a4 reader passed
+and its full2992810byte report exactly matches the pre-compression report. Observation clocks
+are unchanged. This is online storage representation, not deletion/retention or archive-only
+replacement. No cohorts, failed runs or numerical evidence were lost. Exact manifest,
+operation and independent original-reader proof: PHASE_03_STORAGE_COMPRESSION_EVIDENCE.json.
+After verification13.72GB was free versus13.31GBrequired; remeasure before acquisition.
+Storage blocker cleared. D097 still fails matched controls; next review candidate-pool design
+under PHASE_03_CONTROL_AVAILABILITY_NEXT.md before a justified new protocol. No redraw/Phase4.

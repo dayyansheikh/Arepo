@@ -1,0 +1,98 @@
+{
+  "decision": "D099",
+  "purpose": "Resolve local capacity while preserving every original record online",
+  "user_request": "Can you delete anything from data dump?",
+  "operation": {
+    "version": "arepo-local-transparent-compression-v1",
+    "source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_cb25bb8e990e43c38d0215decfc43768",
+    "candidate": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-compression-candidate-20261008-1",
+    "rollback_copy": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-uncompressed-backup-20261008-1",
+    "started_at": "2026-10-08T18:51:46.130659+00:00",
+    "free_before_bytes": 10317078528,
+    "state": "complete",
+    "semantics": "All primary files stay at the same paths with exact bytes. No record deletion, archive-only substitution, retention or production change.",
+    "operation_sha256": "8d1e5eb64674bd2f389c3d2042bfeb52a68226348b86eb858e78fc6a843a9858",
+    "files": 18709,
+    "logical_bytes": 4220053077,
+    "allocated_before_bytes": 4272533504,
+    "manifest_sha256": "e8c0f14a8b411ec01b80116939f726f0d574253f891f8837cf89125547235065",
+    "allocated_compressed_bytes": 662069248,
+    "expected_allocated_saving_bytes": 3610464256,
+    "finished_at": "2026-10-08T18:54:35.203238+00:00",
+    "free_after_bytes": 13951205376,
+    "all_content_hashes_equal": true,
+    "all_sizes_modes_owners_mtimes_equal": true,
+    "original_paths_preserved": true,
+    "logical_records_deleted": 0,
+    "observed_free_delta_bytes": 3634126848
+  },
+  "verification": {
+    "original_report_equal": true,
+    "original_report_source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_observation_pilot_20261008_1/fs2_frame_read_original/original_report.json",
+    "original_report_sha256": "52c4c3951dfb715691d69084c64c2691e774da229ec5bec44695aa39bf0130b9",
+    "verification_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261008_1",
+    "read_receipt": {
+      "completed_at": {
+        "clock_session_id": "c8a4249e-bf6f-4191-a6c8-c098ac17bae5",
+        "monotonic_ns": "2389882548685916",
+        "utc": "2026-10-08T18:59:36.774171Z"
+      },
+      "metadata_read_started_at": {
+        "clock_session_id": "c8a4249e-bf6f-4191-a6c8-c098ac17bae5",
+        "monotonic_ns": "2389601397819041",
+        "utc": "2026-10-08T18:54:55.619228Z"
+      },
+      "observation_clocks_changed": false,
+      "origin_admitted": false,
+      "original_provenance_class": "prospective",
+      "original_report_hash": "8037330d2129ce1d347f1e1e30c06a62530974d25abef5089cec817927cff4ee",
+      "original_state": "exhausted_consistent",
+      "output_bytes": 2992810,
+      "output_hash": "52c4c3951dfb715691d69084c64c2691e774da229ec5bec44695aa39bf0130b9",
+      "read_policy_hash": "3d175550aed7963ee2ca9eb00ab12d1f974b5591e3351d5a5aa22aa9cae49172",
+      "schema_version": "fs2-original-frame-read-v1",
+      "verification_started_at": {
+        "clock_session_id": "c8a4249e-bf6f-4191-a6c8-c098ac17bae5",
+        "monotonic_ns": "2389606805268708",
+        "utc": "2026-10-08T18:55:01.026790Z"
+      }
+    },
+    "read_available_at": {
+      "clock_session_id": "c8a4249e-bf6f-4191-a6c8-c098ac17bae5",
+      "monotonic_ns": "2389882553085750",
+      "utc": "2026-10-08T18:59:36.778619Z"
+    },
+    "free_bytes_after_verification": 13723488256
+  },
+  "artifacts": [
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_storage_compression_20261008_1/operation.json",
+      "sha256": "b9c27f637a70c5625cb4e4a66413022005cec9779d329631d982eaa979d19a84",
+      "bytes": 1295
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_storage_compression_20261008_1/operation.py",
+      "sha256": "8d1e5eb64674bd2f389c3d2042bfeb52a68226348b86eb858e78fc6a843a9858",
+      "bytes": 3957
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_storage_compression_20261008_1/manifest.json.gz",
+      "sha256": "c0d2459250ee103ffed08a27ce2fc5140d64ec89838836eeba1db70010a0b1aa",
+      "bytes": 1082285
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_storage_compression_20261008_1/verification.json",
+      "sha256": "df640e3149e85453e786c1ace30d7ad2e64fbb8768cd4c5027dd54736e7458f6",
+      "bytes": 1752
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_storage_compression_20261008_1/verification.py",
+      "sha256": "bbdbd249f014573481c8c57c6140eb0c423e54a3f00933d332a0bad2fe197e11",
+      "bytes": 1100
+    }
+  ],
+  "free_bytes_now": 13723357184,
+  "required_full_run_bytes": 13308526592,
+  "remaining_scientific_gate": "D097 matched controls failed; storage recovery does not change pilot acceptance.",
+  "capacity_available": true
+}

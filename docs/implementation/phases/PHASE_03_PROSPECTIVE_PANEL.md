@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — current D097 empirical origin/history/target gates pass; matched-control gate fails. See current status below and ../PHASE_03_ACCEPTANCE_STATUS.md. Local capacity remains insufficient after safe cleanup. Phase4 only in a fresh conversation after genuine acceptance.
+Status: incomplete — current D097 empirical origin/history/target gates pass; matched-control gate fails. See current status below and ../PHASE_03_ACCEPTANCE_STATUS.md. D099 restores local capacity through verified lossless filesystem compression. Phase4 only in a fresh conversation after genuine acceptance.
 
 ## Objective
 
@@ -436,3 +436,7 @@ matched controls (6triggered,0negative,2unavailable). Phase3 remains incomplete.
 and411artifact checks: PHASE_03_TEMPORAL_PILOT_EVIDENCE.json; gate map: PHASE_03_ACCEPTANCE_STATUS.md.
 Safe cleanup still leaves10.34GB versus13.31GBrequired. Exact next action and future control
 pool review: PHASE_03_CONTROL_AVAILABILITY_NEXT.md and live checkpoint. No redraw or Phase4.
+
+Current capacity update D099: storage blocker cleared with exact-byte transparent filesystem
+compression; original-reader equivalence passed. See PHASE_03_STORAGE_COMPRESSION_EVIDENCE.json
+and live checkpoint. D097 control failure remains; no new pilot or Phase4 started.

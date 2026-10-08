@@ -16,9 +16,9 @@ as a confirmation panel.
 ## Exact recovery action
 
 1. Check local free space once against the unchanged full13308526592byte reservation.
-   D097 aftermath leaves10336686080bytes even after audited safe cleanup. If unchanged,
-   stop quietly without redundant tests/commits/collection. Preserve all empirical runs and
-   capacity/original-code recovery dependencies. No paid/production storage workaround.
+   D099 restores~13.72GBfree through verified transparent compression of a closed journal.
+   Remeasure before acquisition; all evidence and recovery dependencies remain online.
+   If below reservation again, preserve evidence and inspect safe local capacity options.
 2. Once capacity is available, resolve a prospective candidate-pool design before requests.
    Reuse current parameterised planner/reservation/runtime; no new service is indicated.
    Compare within-stratum candidate support against stratum breadth at fixed total cost
@@ -35,7 +35,11 @@ as a confirmation panel.
    matched controls and every remaining phase gate still govern exit. Phase4 only in a
    fresh chat after genuine Phase3 acceptance.
 
-BLOCKED — LOCAL CAPACITY INSUFFICIENT AFTER SAFE CLEANUP for another full empirical run.
+Historical D098 blocker: LOCAL CAPACITY INSUFFICIENT AFTER SAFE CLEANUP; resolved by D099.
 This is not approval to delete research or reduce the complete discovery universe. The
 current source-code milestone is tested; additional speculative code is not needed to fill
 time while storage is unavailable. A future run must inspect the live checkpoint first.
+
+D099 clears the storage blocker without removing logical evidence. Resume step2 above;
+current API/planner support should be inspected before proposing new code. No automatic
+retry of D097. Full evidence: PHASE_03_STORAGE_COMPRESSION_EVIDENCE.json.
