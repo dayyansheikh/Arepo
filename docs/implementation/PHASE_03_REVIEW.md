@@ -1269,3 +1269,27 @@ one-sided books as midpoint observations. Source data cannot retroactively suppl
 three histories. Develop only the smallest prospective identity-bound observation refinement
 needed to measure recovery from one-sided state; preserve failed pilots and all strict gates.
 Phase4 stays in a fresh conversation after genuine full acceptance.
+
+## D090 — one-sided diagnostic observation binding (2026-10-08)
+
+Recovered unfinished D090 work after allowance interruption. New observation_binding reader
+verifies original targeted identity/book computation while preserving null midpoint for one-sided
+and empty books. Explicit socket binding_mode=observation selects a new v2 journal; default
+v1 behavior stays strict. Freshness is rechecked at actual read/save/connect/subscription,
+with all actual clocks, raw bytes, failure states and original-code recovery preserved.
+No caller transport override, origin/history admission or continuity inference. Endpoint
+comparison returns unavailable for an unavailable pre-quote instead of converting null to decimal.
+
+34 targeted socket/binding/original-socket tests passed49.65s. Expanded analysis initially found
+the null endpoint bug; after its fix51 binding/socket-analysis/endpoint/original-analysis tests
+passed71.53s. Initial reader fixture import error corrected before these runs. Logs:
+/tmp/arepo_d090b_tests.log and /tmp/arepo_d090d_tests.log. Explicit isolated /tmp SQLite,
+AUTO_MIGRATE=false and disabled email. Ruff/backend, canonical and whitespace checks passed.
+Self-review covered opt-in version/event consistency, unavailable arithmetic, legacy defaults,
+source identity, fresh subscription and old evidence preservation. These are synthetic software
+tests, not empirical Phase3 acceptance. No collector/test active before the next launch.
+
+Next: execute once the committed PHASE_03_ONE_SIDED_DIAGNOSTIC_PROTOCOL.md; fixed three
+D089 cases, six bounded HTTP reads, at most three60s subscriptions, all failures retained.
+No full-frame redraw, retrospective D089 repair or production action. Then preserve measured
+availability/coverage and decide the next prospective design from actual evidence.

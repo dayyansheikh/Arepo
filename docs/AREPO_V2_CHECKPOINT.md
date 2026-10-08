@@ -1,12 +1,12 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-05. D089 terminal/audited under404ad5e; empirical6/8gates failed with5/8. All evidence preserved. No active collector/test. Phase3 incomplete; no Phase4.
+Updated: 2026-10-08. D090 observation binding/socket software accepted; fixed diagnostic pending. D089 remains failed; Phase3 incomplete, no Phase4.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
 - Previous implementation continuation: 2026-09-27 10:35 UTC. Initial allowance 1% primary /32% weekly used; ordinary usage allowed. D069 bounded stratum sampler/declaration/selection implemented; 193 affected tests passed in 217.52s. Full original-code recovery and legacy defaults pass. No public collection or empirical acceptance.
-- Current successor: one same-task automation for October5 21:07 Europe/London /20:07UTC (+310minutes from14:57 heartbeat), exact prompt retained.
-- Current continuation: October5 14:57UTC. Initial allowance0% primary/94% weekly used; latest10%/96%, ordinary usage allowed. Save evidence before longer-term exhaustion; no reset redeemed.
+- Current successor: one same-task continuation October8 08:58 Europe/London /07:58UTC, exact prompt.
+- Current continuation: October8 02:48UTC; initial allowance0% primary/16% weekly used, ordinary usage allowed. No reset credit redeemed.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
 - Latest safe evidence commit: e0fa103 (D089 failed empirical pilot, source diagnosis and next bounded observation contract), pushed.
@@ -26,7 +26,7 @@ Updated: 2026-10-05. D089 terminal/audited under404ad5e; empirical6/8gates faile
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: D089 is terminal; do not relaunch. Read PHASE_03_FRESH_WINDOW_PILOT_EVIDENCE.json and PHASE_03_ONE_SIDED_NEXT.md. Next scoped work is identity-bound observation of one-sided books without inventing midpoints or changing old gates. Check allowance first; weekly96% used. No Phase4.
+- Exact next action: execute the committed PHASE_03_ONE_SIDED_DIAGNOSTIC_PROTOCOL.md once, after checking exclusive roots/logs; no source edits until terminal recovery. Preserve every outcome, then evaluate availability without repairing D089.
 - Latest modules/files: D068 screening.py, original_reader.py, 15 screening tests, and screening integration contract; D067 scheduling.py, origin/due/runtime waits and six timer tests. D066 trigger_computation.py, original-reader support, 16 new assessment/recovery cases and trigger contract. D065 socket_diagnostic.py, fixed orchestration tests and frozen protocol. D064 socket_analysis.py, original_reader.py, shared pure endpoint algebra in window_reconciliation.py, two new socket-analysis test modules and phase/master/review/decisions/checkpoint/analysis contract. D063 socket_window.py/socket_window_journal.py and driver/recovery tests accepted at 742b65e. D061 window_reconciliation.py, original_reader.py and reconciliation/original recovery tests accepted at 73b1ccc. No v1/API/config/workflow/frontend/SQL/production changes.
 - Current capacity observation (2026-09-27): 26,634,020 KiB free during regression; previous 4 GiB blocker cleared. Remeasure before collection. Preserve all raw/failed runs.
 - Next-run constraints: category is absent in all mapped source rows; enrichment requires separate versioned source evidence, never a fallback invented from other fields. Local disk snapshot after D041: 9,133,616 KiB free, below the existing expanded-frame 8 GiB retained +2 GiB reserve preflight. Do not launch that mode unchanged, delete evidence or narrow the population. A separately designed/tested finite budget refinement may use the actual 2,728,778,097-byte complete-frame cost; remeasure disk first. No new collection budget has been frozen or authorized by this note.
@@ -549,3 +549,27 @@ one-sided books as midpoint observations. Source data cannot retroactively suppl
 three histories. Develop only the smallest prospective identity-bound observation refinement
 needed to measure recovery from one-sided state; preserve failed pilots and all strict gates.
 Phase4 stays in a fresh conversation after genuine full acceptance.
+
+## D090 — one-sided diagnostic observation binding (2026-10-08)
+
+Recovered unfinished D090 work after allowance interruption. New observation_binding reader
+verifies original targeted identity/book computation while preserving null midpoint for one-sided
+and empty books. Explicit socket binding_mode=observation selects a new v2 journal; default
+v1 behavior stays strict. Freshness is rechecked at actual read/save/connect/subscription,
+with all actual clocks, raw bytes, failure states and original-code recovery preserved.
+No caller transport override, origin/history admission or continuity inference. Endpoint
+comparison returns unavailable for an unavailable pre-quote instead of converting null to decimal.
+
+34 targeted socket/binding/original-socket tests passed49.65s. Expanded analysis initially found
+the null endpoint bug; after its fix51 binding/socket-analysis/endpoint/original-analysis tests
+passed71.53s. Initial reader fixture import error corrected before these runs. Logs:
+/tmp/arepo_d090b_tests.log and /tmp/arepo_d090d_tests.log. Explicit isolated /tmp SQLite,
+AUTO_MIGRATE=false and disabled email. Ruff/backend, canonical and whitespace checks passed.
+Self-review covered opt-in version/event consistency, unavailable arithmetic, legacy defaults,
+source identity, fresh subscription and old evidence preservation. These are synthetic software
+tests, not empirical Phase3 acceptance. No collector/test active before the next launch.
+
+Next: execute once the committed PHASE_03_ONE_SIDED_DIAGNOSTIC_PROTOCOL.md; fixed three
+D089 cases, six bounded HTTP reads, at most three60s subscriptions, all failures retained.
+No full-frame redraw, retrospective D089 repair or production action. Then preserve measured
+availability/coverage and decide the next prospective design from actual evidence.

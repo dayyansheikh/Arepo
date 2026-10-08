@@ -190,6 +190,8 @@ def _endpoints(inputs, pre, post, coverage, policy, at):
         reasons.append('post_endpoint_separation_exceeded')
     pre_quote = pre['snapshots'][0]['quote']
     def values(q):
+        if q['state'] != 'observed':
+            return None
         return {k: _ratio(_number(q[k])) for k in FIELDS}
     start = _comparison(values(pre_quote), {k: first['snapshot'][k] for k in FIELDS}
                         if first else None)

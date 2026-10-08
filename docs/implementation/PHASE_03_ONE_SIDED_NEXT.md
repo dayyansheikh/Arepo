@@ -36,3 +36,5 @@ cannot reconstruct those absent inputs. Full baseline implementation/locking bel
 At October5 14:57 restart weekly allowance was94% used, then96% after evidence recovery. Preserve
 this boundary before exhaustion; do not spend the remaining allowance repeating the accepted76
 cache tests or a full regression for documentation. Phase3 incomplete; Phase4 requires a fresh chat.
+
+D090 software gate passed (34 socket cases, then51 analysis/endpoint cases after the null-comparison fix). Next execute the fixed one-sided diagnostic protocol once; Phase3 remains incomplete.

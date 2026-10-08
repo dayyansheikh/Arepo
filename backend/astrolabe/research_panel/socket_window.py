@@ -9,9 +9,15 @@ from websockets.exceptions import WebSocketException
 from astrolabe.feature_store.capture import _clock, _json_bytes
 from astrolabe.feature_store.source_run import _ordered_clocks, _pair
 
-from .bound_window import _fresh, _pre
 from .socket_connector import open_loopback_socket, open_market_socket
-from .socket_window_journal import LIMITS, SocketJournal, check, scope
+from .socket_window_journal import (
+    LIMITS,
+    SocketJournal,
+    binding_for_version,
+    check,
+    fresh_binding,
+    scope,
+)
 
 NETWORK_ERRORS = (OSError, TimeoutError, WebSocketException)
 
@@ -39,7 +45,7 @@ async def _receive(socket):
 async def _send(journal, socket, binding, policy, payload, kind):
     journal.event(kind + "_intent", raw=payload)
     start = _clock()
-    if kind == "subscription" and not _fresh(binding, start, policy):
+    if kind == "subscription" and not fresh_binding(binding, start, policy):
         journal.event("refused", observed=start, reason="identity_expired_before_subscription")
         return None
     try:
@@ -114,13 +120,13 @@ async def _interval(journal, connection, binding, policy, duration_ms):
                 await pending
 
 
-async def _capture(pre_root, *, output_root, policy, duration_ms, port):
-    journal = SocketJournal(pre_root, output_root, policy, duration_ms, port)
+async def _capture(pre_root, *, output_root, policy, duration_ms, port, binding_mode="quote"):
+    journal = SocketJournal(pre_root, output_root, policy, duration_ms, port, binding_mode)
     connection, failed, stage = None, None, "pre_binding"
     try:
         _, pa = _pair(journal.root, "socket_window_policy")
         read_started = _clock()
-        binding = _pre(journal.pre)
+        binding = binding_for_version(journal.pre, journal.version)
         completed = _clock()
         if not _ordered_clocks(
             binding["pre_computation"]["computation_available_at"], read_started
@@ -139,7 +145,7 @@ async def _capture(pre_root, *, output_root, policy, duration_ms, port):
         provenance_ok = (
             binding["pre_computation"]["source_provenance_class"] == scope(port)["provenance_class"]
         )
-        fresh = all(_fresh(binding, at, policy) for at in (completed, ba["durable_ack"]))
+        fresh = all(fresh_binding(binding, at, policy) for at in (completed, ba["durable_ack"]))
         if not provenance_ok or not fresh:
             journal.event(
                 "refused",
@@ -148,7 +154,7 @@ async def _capture(pre_root, *, output_root, policy, duration_ms, port):
         else:
             stage = "connect"
             now = _clock()
-            if not _fresh(binding, now, policy):
+            if not fresh_binding(binding, now, policy):
                 journal.event(
                     "refused", observed=now, reason="identity_expired_before_subscription"
                 )
@@ -216,19 +222,21 @@ async def _capture(pre_root, *, output_root, policy, duration_ms, port):
         raise
 
 
-async def capture_market_socket(pre_computation_root, *, output_root, policy, duration_ms=60000):
+async def capture_market_socket(
+    pre_computation_root, *, output_root, policy, duration_ms=60000, binding_mode="quote"
+):
     """Explicit standalone public diagnostic; no production/CLI/scheduler entry point."""
     return await _capture(
         pre_computation_root,
         output_root=output_root,
         policy=policy,
         duration_ms=duration_ms,
-        port=None,
+        port=None, binding_mode=binding_mode,
     )
 
 
 async def capture_loopback_socket(
-    pre_computation_root, *, output_root, policy, port, duration_ms=60000
+    pre_computation_root, *, output_root, policy, port, duration_ms=60000, binding_mode="quote"
 ):
     """Real local wire tests retain synthetic provenance; never accept an external URI."""
     return await _capture(
@@ -236,5 +244,5 @@ async def capture_loopback_socket(
         output_root=output_root,
         policy=policy,
         duration_ms=duration_ms,
-        port=port,
+        port=port, binding_mode=binding_mode,
     )

@@ -17,9 +17,12 @@ from astrolabe.feature_store.types import HASH_PATTERN
 from .bound_window import WindowBindingPolicy, _fresh, _pre
 from .build_identity import verified_panel_build
 from .input_read import _canonical
+from .observation_binding import VERSION as BINDING_VERSION
+from .observation_binding import read_observation_binding
 from .socket_connector import connector_contract
 
 VERSION = "fs2-socket-window-v1"
+OBSERVATION_VERSION = "fs2-observation-socket-window-v2"
 LIMITS = {
     "max_frames": 1000,
     "max_frame_bytes": 262144,
@@ -52,6 +55,20 @@ KINDS = {
     "closed",
     "close_error",
 }
+
+
+def binding_for_version(pre, version):
+    if version == VERSION:
+        return _pre(pre)
+    if version == OBSERVATION_VERSION:
+        return read_observation_binding(pre)
+    raise ValueError("unknown socket binding version")
+
+
+def fresh_binding(binding, at, policy):
+    if binding.get('schema_version') == BINDING_VERSION:
+        binding = {**binding, 'quote_received_at': binding['book_received_at']}
+    return _fresh(binding, at, policy)
 
 
 def paths(pre_root, output_root):
@@ -106,7 +123,10 @@ def check(root, started, addition=0):
 
 
 class SocketJournal:
-    def __init__(self, pre_root, output_root, policy, duration_ms, port):
+    def __init__(self, pre_root, output_root, policy, duration_ms, port, binding_mode="quote"):
+        if binding_mode not in {"quote", "observation"}:
+            raise ValueError("explicit known socket binding mode required")
+        self.version = VERSION if binding_mode == "quote" else OBSERVATION_VERSION
         self.pre, self.root = paths(pre_root, output_root)
         if type(policy) is not WindowBindingPolicy:
             raise ValueError("explicit source freshness policy required")
@@ -128,7 +148,7 @@ class SocketJournal:
         self.save(
             "socket_window_policy",
             {
-                "schema_version": VERSION,
+                "schema_version": self.version,
                 "limits": dict(LIMITS),
                 "build": self.build,
                 "connector": contract,
@@ -156,7 +176,7 @@ class SocketJournal:
         observed = recorded if observed is None else observed
         name = f"event_{self.count + 1:06d}"
         value = {
-            "schema_version": VERSION,
+            "schema_version": self.version,
             "ordinal": self.count + 1,
             "kind": kind,
             "observed_at": observed,
@@ -205,7 +225,7 @@ class SocketJournal:
             self.root,
             "socket_window_failure",
             {
-                "schema_version": VERSION,
+                "schema_version": self.version,
                 "exception_type": type(exc).__name__,
                 "stage": stage,
                 "at": _clock(),
@@ -226,7 +246,7 @@ def replay(root, count):
     policy = WindowBindingPolicy(**declaration["binding_policy"])
     transport = scope(declaration["transport"]["loopback_port"])
     if (
-        declaration["schema_version"] != VERSION
+        declaration["schema_version"] not in {VERSION, OBSERVATION_VERSION}
         or declaration["limits"] != LIMITS
         or declaration["build"] != verified_panel_build()
         or declaration["connector"] != connector_contract()
@@ -238,7 +258,7 @@ def replay(root, count):
     ):
         raise ValueError("socket declaration/build/scope differs")
     binding, ba = _pair(root, "socket_window_binding")
-    original = _pre(pre)
+    original = binding_for_version(pre, declaration["schema_version"])
     if (
         binding["binding"] != original
         or binding["policy_hash"] != pa["payload_hash"]
@@ -271,7 +291,8 @@ def replay(root, count):
         original["pre_computation"]["source_provenance_class"] == transport["provenance_class"]
     )
     pre_fresh = all(
-        _fresh(original, at, policy) for at in (binding["read_completed_at"], ba["durable_ack"])
+        fresh_binding(original, at, policy)
+        for at in (binding["read_completed_at"], ba["durable_ack"])
     )
     for ordinal in range(1, count + 1):
         check(root, started)
@@ -280,7 +301,7 @@ def replay(root, count):
         expected.update({name + ".json", name + "_ack.json"})
         kind, observed, recorded = event["kind"], event["observed_at"], event["recorded_at"]
         if (
-            event["schema_version"] != VERSION
+            event["schema_version"] != declaration["schema_version"]
             or event["ordinal"] != ordinal
             or event["previous_hash"] != previous_hash
             or kind not in KINDS
@@ -354,7 +375,7 @@ def replay(root, count):
                 ordinal != 1
                 or not provenance_ok
                 or not pre_fresh
-                or not _fresh(original, observed, policy)
+                or not fresh_binding(original, observed, policy)
             ):
                 raise ValueError("socket connection without fresh matching prior evidence")
             pending = kind
@@ -370,7 +391,7 @@ def replay(root, count):
                 raise ValueError("socket subscription scope/order differs")
             pending = kind
         elif kind in {"subscription_sent", "subscription_error"}:
-            if pending != "subscription_intent" or not _fresh(original, operation, policy):
+            if pending != "subscription_intent" or not fresh_binding(original, operation, policy):
                 raise ValueError("socket subscription freshness/order differs")
             pending = None
             if kind == "subscription_sent":
@@ -426,7 +447,7 @@ def replay(root, count):
             )
             if (
                 event["reason"] != reason
-                or (provenance_ok and pre_fresh and _fresh(original, observed, policy))
+                or (provenance_ok and pre_fresh and fresh_binding(original, observed, policy))
                 or anchor
             ):
                 raise ValueError("socket refusal not supported by original facts")
@@ -466,7 +487,7 @@ def replay(root, count):
     if declaration["build"] != verified_panel_build():
         raise ValueError("socket build changed during replay")
     report = {
-        "schema_version": VERSION,
+        "schema_version": declaration["schema_version"],
         "policy_hash": pa["payload_hash"],
         "binding_hash": ba["payload_hash"],
         "binding_available_at": ba["durable_ack"],
@@ -481,7 +502,7 @@ def replay(root, count):
         "subscription_sent_at": anchor,
         "ended_at": terminal_at,
         "terminal": terminal,
-        "identity_fresh_at_subscription_completion": _fresh(original, anchor, policy)
+        "identity_fresh_at_subscription_completion": fresh_binding(original, anchor, policy)
         if anchor
         else None,
         "close_state": close or "not_connected",

@@ -137,3 +137,5 @@ and one matched control pair. Three HTTP200 books are genuinely one-sided despit
 nonclosed Gamma flags. All8denominators and exact4/109stratum weights retained. Phase3 remains
 incomplete; see PHASE_03_FRESH_WINDOW_PILOT_EVIDENCE.json, review and PHASE_03_ONE_SIDED_NEXT.md.
 Do not rerun or filter the failed sample. No Phase4 in this conversation.
+
+D090 software gate passed (34 socket cases, then51 analysis/endpoint cases after the null-comparison fix). Next execute the fixed one-sided diagnostic protocol once; Phase3 remains incomplete.
