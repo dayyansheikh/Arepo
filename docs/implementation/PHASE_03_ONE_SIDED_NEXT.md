@@ -64,3 +64,11 @@ Any fresh sample must have a predeclared complete-frame selection, exact stage p
 fixed attempts and all missing members retained; it cannot retroactively satisfy D089's6/8gate.
 If the necessary real data are unavailable, record that limitation instead of claiming Phase3
 acceptance. Phase4 remains reserved for a fresh conversation.
+
+
+D094 is terminal: original audit and new observer-accounting gate pass, but5/8observed origins/
+fresh histories fail the unchanged6/8gates. Five valid targets and one observed matched pair;
+all8members retained. Complete source/rule/clock evidence: PHASE_03_OBSERVATION_PILOT_EVIDENCE.json.
+Current full-run reserve13.31GB exceeds9.51GB free; no deletion or redraw. Phase3 remains
+incomplete. Resume only per the live checkpoint's capacity/temporal-eligibility next action;
+do not rerun D094 or start Phase4. Prior pending-execution statements are historical.

@@ -1,6 +1,6 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-08. D090 diagnostic and D091 retrospective classification complete. D092 explicit observation integration passed24 affected tests and self-review. D089 remains failed; Phase3 incomplete, no Phase4.
+Updated: 2026-10-08. D094 terminal, original audit passed,5/8origin/history gates failed. Capacity blocks another full measurement. Phase3 incomplete; no Phase4.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
@@ -26,7 +26,7 @@ Updated: 2026-10-08. D090 diagnostic and D091 retrospective classification compl
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: D094 is ACTIVE under53c19a43d9784e7f98a41e22131799f5a63b7e1f. Inspect data-dumps/fs2_observation_pilot_20261008_1_{launch,stdout,stderr,result} files; wait for terminal wrapper result and original audit, then extract/check evidence with /tmp/arepo_d094_evidence.py. Do not relaunch or edit source packages. Frozen protocol: PHASE_03_OBSERVATION_PILOT_PROTOCOL.md; no Phase4.
+- Exact next action: recheck local free capacity once (latest9,511,227,392bytes; current full-run reserve13,308,526,592). If unchanged, stop quietly without collection/tests/commits. If capacity is restored, review sampling-time lifecycle/close eligibility and define a separately justified prospective design before requests. D094 is terminal and must not be relaunched; see final D094 section.
 - Latest modules/files: D068 screening.py, original_reader.py, 15 screening tests, and screening integration contract; D067 scheduling.py, origin/due/runtime waits and six timer tests. D066 trigger_computation.py, original-reader support, 16 new assessment/recovery cases and trigger contract. D065 socket_diagnostic.py, fixed orchestration tests and frozen protocol. D064 socket_analysis.py, original_reader.py, shared pure endpoint algebra in window_reconciliation.py, two new socket-analysis test modules and phase/master/review/decisions/checkpoint/analysis contract. D063 socket_window.py/socket_window_journal.py and driver/recovery tests accepted at 742b65e. D061 window_reconciliation.py, original_reader.py and reconciliation/original recovery tests accepted at 73b1ccc. No v1/API/config/workflow/frontend/SQL/production changes.
 - Current capacity observation (2026-09-27): 26,634,020 KiB free during regression; previous 4 GiB blocker cleared. Remeasure before collection. Preserve all raw/failed runs.
 - Next-run constraints: category is absent in all mapped source rows; enrichment requires separate versioned source evidence, never a fallback invented from other fields. Local disk snapshot after D041: 9,133,616 KiB free, below the existing expanded-frame 8 GiB retained +2 GiB reserve preflight. Do not launch that mode unchanged, delete evidence or narrow the population. A separately designed/tested finite budget refinement may use the actual 2,728,778,097-byte complete-frame cost; remeasure disk first. No new collection budget has been frozen or authorized by this note.
@@ -651,3 +651,49 @@ observation_pilot_20261008_1. Free14128500736bytes exceeded reserved13308526592 
 Wrapper files data-dumps/fs2_observation_pilot_20261008_1_launch.json, _stdout.log, _stderr.log,
 _result.json (terminal only). No assistant-stage gap. Source packages remain frozen through
 original recovery. This record is activity, not a completion or acceptance claim.
+
+
+## D094 terminal evidence — October8
+
+Single attempt under53c19a43d9784e7f98a41e22131799f5a63b7e1f completed08:33:57.532132UTC,
+exit0, full original-code audit passed. Complete frame267180 distinct/267136 mapped/44unresolved;
+2672requests, no retries/errors/conflicts, source interval531.668300s, raw1722038541bytes,
+retained4220053077bytes. Four of109 strata sampled (4/109) with exact conditional weights.
+Eight scheduled/one triggered/one matched control roles over eight markets; zero unfilled
+control slots. Five observed origins/five eligible completed histories/five valid targets.
+Both six-of-eight gates FAIL. Original audit, observer-attempt accounting, matched control,
+target coverage, origin clocks and reporting pass. Phase3 remains incomplete.
+
+50HTTPrequests:21Gamma200,17book200,4book404,8taker-trade200;142618raw bytes. Six subscriptions
+completed their10s intervals. TyroneTracy market3400453 remained one-sided (0bids/20asks at
+pre-read); coverage0. Five other windows have bounded receipt coverage (four1s, one1.068165750s).
+Two Bitcoin markets5424711/5424716 are closed/nonaccepting with book404; their specified08:00UTC
+candle was already past before this frame's08:02:40 start. All eight remain in the denominator.
+One-sided deltas reported best_bid0 against an empty bid side and were conservatively marked
+conflicting; do not silently reinterpret0 as an empty-side sentinel or invent a prior quote.
+
+PHASE_03_OBSERVATION_PILOT_EVIDENCE.json preserves full manifests, exact timing/numerics,
+321 independently checked artifacts, source receipts/raw hashes, all8resolution descriptions,
+extractor scripts and gate results. Related Bitcoin thresholds share a candle rule, but no
+pre-origin related-price input was bound. Sports/Bitcoin quantities do not match KNYC weather.
+No new external source rights/admission; unsupported families and v1 components stay unavailable.
+Self-review checked exact sampling products, all denominators, source failures, actual clock
+ordering, observed matched IDs, target selection, original recovery and no retrospective repair.
+Evidence-only change: no accepted code tests repeated; JSON/hash checks and canonical/whitespace
+checks pass. No collector/test active, production/retention untouched, Phase4 not started.
+
+BLOCKED — CAPACITY AND REQUIRED EMPIRICAL DATA UNAVAILABLE for another full measurement at
+current bounds. Free9511227392bytes versus required13308526592 (short3797299200bytes).
+No repeated draw, source-universe narrowing, destructive cleanup, paid/production storage or
+missing-history manufacture is an acceptable workaround. Preserve this failed run. A future
+protocol must first reconcile sampling-time lifecycle/close eligibility with its intended
+population while retaining the complete discovery inventory and all old denominators; it may
+not merely redraw until6/8passes. Then remeasure/reserve capacity before collection.
+
+Exact next action: recheck capacity once on continuation. If unchanged, stop quietly without
+new commits/tests/collection. After capacity is available, review that temporal-eligibility
+question against current sampling/metadata code and raw frame evidence before designing any
+separate prospective attempt. Do not rerun D094. Any additional storage/deletion or production
+change requires its own applicable authorisation; no such approval is implied here.
+
+Allowance84% primary/45% weekly used; ordinary usage allowed. Stopping at the data/capacity boundary, not claiming allowance exhaustion. One existing same-task successor14:08London/13:08UTC. No reset credit redeemed.

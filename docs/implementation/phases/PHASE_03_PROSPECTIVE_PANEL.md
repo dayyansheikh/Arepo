@@ -414,3 +414,11 @@ D092 opt-in owned observation integration passes24 affected tests172.73s, includ
 runtime audit and no invented history after later two-sided arrivals. Phase3 remains incomplete.
 Current next action: PHASE_03_ONE_SIDED_NEXT.md current-state section; family-eligibility review
 then a justified finite prospective design. No D089/D090 rerun or Phase4 in this conversation.
+
+
+D094 is terminal: original audit and new observer-accounting gate pass, but5/8observed origins/
+fresh histories fail the unchanged6/8gates. Five valid targets and one observed matched pair;
+all8members retained. Complete source/rule/clock evidence: PHASE_03_OBSERVATION_PILOT_EVIDENCE.json.
+Current full-run reserve13.31GB exceeds9.51GB free; no deletion or redraw. Phase3 remains
+incomplete. Resume only per the live checkpoint's capacity/temporal-eligibility next action;
+do not rerun D094 or start Phase4. Prior pending-execution statements are historical.

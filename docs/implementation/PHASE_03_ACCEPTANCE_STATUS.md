@@ -78,3 +78,11 @@ observation integration is tested (24 affected cases), not empirically accepted.
 one-sided states without altering origin/history eligibility. Read the current-state section
 of PHASE_03_ONE_SIDED_NEXT.md: reconcile family eligibility with actual evidence, then freeze
 a separately justified finite prospective design; no redraw merely to pass6/8. Phase3 incomplete.
+
+
+D094 is terminal: original audit and new observer-accounting gate pass, but5/8observed origins/
+fresh histories fail the unchanged6/8gates. Five valid targets and one observed matched pair;
+all8members retained. Complete source/rule/clock evidence: PHASE_03_OBSERVATION_PILOT_EVIDENCE.json.
+Current full-run reserve13.31GB exceeds9.51GB free; no deletion or redraw. Phase3 remains
+incomplete. Resume only per the live checkpoint's capacity/temporal-eligibility next action;
+do not rerun D094 or start Phase4. Prior pending-execution statements are historical.

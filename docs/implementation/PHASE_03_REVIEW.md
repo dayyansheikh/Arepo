@@ -1372,3 +1372,47 @@ terminal/no-repeat rule: PHASE_03_OBSERVATION_PILOT_PROTOCOL.md. Self-review: mo
 explicitly, complete-frame prerequisites, exact probabilities, exclusive roots, full reserve,
 causal clocks, original audit, missing-history distinction and no protected changes. No code
 changed; D09224 tests stay accepted. Syntax/API/canonical/whitespace checks apply to this plan.
+
+
+## D094 terminal evidence — October8
+
+Single attempt under53c19a43d9784e7f98a41e22131799f5a63b7e1f completed08:33:57.532132UTC,
+exit0, full original-code audit passed. Complete frame267180 distinct/267136 mapped/44unresolved;
+2672requests, no retries/errors/conflicts, source interval531.668300s, raw1722038541bytes,
+retained4220053077bytes. Four of109 strata sampled (4/109) with exact conditional weights.
+Eight scheduled/one triggered/one matched control roles over eight markets; zero unfilled
+control slots. Five observed origins/five eligible completed histories/five valid targets.
+Both six-of-eight gates FAIL. Original audit, observer-attempt accounting, matched control,
+target coverage, origin clocks and reporting pass. Phase3 remains incomplete.
+
+50HTTPrequests:21Gamma200,17book200,4book404,8taker-trade200;142618raw bytes. Six subscriptions
+completed their10s intervals. TyroneTracy market3400453 remained one-sided (0bids/20asks at
+pre-read); coverage0. Five other windows have bounded receipt coverage (four1s, one1.068165750s).
+Two Bitcoin markets5424711/5424716 are closed/nonaccepting with book404; their specified08:00UTC
+candle was already past before this frame's08:02:40 start. All eight remain in the denominator.
+One-sided deltas reported best_bid0 against an empty bid side and were conservatively marked
+conflicting; do not silently reinterpret0 as an empty-side sentinel or invent a prior quote.
+
+PHASE_03_OBSERVATION_PILOT_EVIDENCE.json preserves full manifests, exact timing/numerics,
+321 independently checked artifacts, source receipts/raw hashes, all8resolution descriptions,
+extractor scripts and gate results. Related Bitcoin thresholds share a candle rule, but no
+pre-origin related-price input was bound. Sports/Bitcoin quantities do not match KNYC weather.
+No new external source rights/admission; unsupported families and v1 components stay unavailable.
+Self-review checked exact sampling products, all denominators, source failures, actual clock
+ordering, observed matched IDs, target selection, original recovery and no retrospective repair.
+Evidence-only change: no accepted code tests repeated; JSON/hash checks and canonical/whitespace
+checks pass. No collector/test active, production/retention untouched, Phase4 not started.
+
+BLOCKED — CAPACITY AND REQUIRED EMPIRICAL DATA UNAVAILABLE for another full measurement at
+current bounds. Free9511227392bytes versus required13308526592 (short3797299200bytes).
+No repeated draw, source-universe narrowing, destructive cleanup, paid/production storage or
+missing-history manufacture is an acceptable workaround. Preserve this failed run. A future
+protocol must first reconcile sampling-time lifecycle/close eligibility with its intended
+population while retaining the complete discovery inventory and all old denominators; it may
+not merely redraw until6/8passes. Then remeasure/reserve capacity before collection.
+
+Exact next action: recheck capacity once on continuation. If unchanged, stop quietly without
+new commits/tests/collection. After capacity is available, review that temporal-eligibility
+question against current sampling/metadata code and raw frame evidence before designing any
+separate prospective attempt. Do not rerun D094. Any additional storage/deletion or production
+change requires its own applicable authorisation; no such approval is implied here.
