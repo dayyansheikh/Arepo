@@ -1,6 +1,6 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-08 23:28UTC. D100 design sensitivity complete; D101 freezes one2strata*4member pilot with unchanged gates/budget. Phase3 incomplete; D097 remains failed.
+Updated: 2026-10-08 23:31UTC. D101 ACTIVE under884adb6; full reservation passed. Do not launch again or edit source during collection/original recovery. Phase3 incomplete.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
@@ -26,7 +26,7 @@ Updated: 2026-10-08 23:28UTC. D100 design sensitivity complete; D101 freezes one
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: commit D101 protocol, recheck full13308526592byte reservation and execute PHASE_03_CONTROL_POOL_PILOT_PROTOCOL.md once using exclusive new roots. Then preserve full evidence, unchanged gate results and rule/family eligibility. No D097 redraw or Phase4.
+- Exact next action: inspect D101 exclusive data-dumps/fs2_control_pool_pilot_20261008_1_{launch,result}.json and stdout/stderr logs (tool session84830). Wait for terminal original audit without source edits/duplicate launch, then extract/gate full evidence and actual family rules under PHASE_03_CONTROL_POOL_PILOT_PROTOCOL.md. No D097/D101 rerun or Phase4.
 - Latest modules/files: D096 research_panel/panel_declaration.py, panel_selection.py and test_research_panel_temporal_population.py; D097 temporal protocol/evidence; D098 cleanup audit and control-availability next contract, checkpoint/master/phase/review/decision/gate docs. No source edits after32590d7.
 - Current capacity observation (2026-10-08 18:59UTC):13723488256bytes free after verified D099 compression;13308526592required. Original journal stays online at the same path; no logical data deleted. Storage blocker cleared; recheck at launch.
 - Next-run constraints: complete discovery separate from conditional temporal deep population; category still missing. Unknown metadata retained. No control fabrication or relaxed threshold. Check full7GiBframe+declared panel/recovery+2GiBreserve before future measurement; no paid/production storage.
@@ -795,3 +795,13 @@ operation and independent original-reader proof: PHASE_03_STORAGE_COMPRESSION_EV
 After verification13.72GB was free versus13.31GBrequired; remeasure before acquisition.
 Storage blocker cleared. D097 still fails matched controls; next review candidate-pool design
 under PHASE_03_CONTROL_AVAILABILITY_NEXT.md before a justified new protocol. No redraw/Phase4.
+
+## D101 active measurement
+
+Launched once23:31:40UTC under884adb6c74c1937fa5e1a3dce10f27add26d5e3d;
+free13483130880bytes exceeds13308526592required. Frame root
+data-dumps/fs2_capture_92e1a92ad25144e48ecf15b46bf2db6e; downstream roots derive from
+control_pool_pilot_20261008_1. Wrapper/script hashes and clocks are recorded. Changed allocation
+uses existing APIs; no source changes. D100 exact hypothetical calculations passed176checks.
+Tracked-tree preflight initially refused uncommitted documentation, as designed; after commit
+actual launch passed the unchanged guard and reservation. No request preceded that launch.
