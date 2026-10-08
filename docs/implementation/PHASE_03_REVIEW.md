@@ -1293,3 +1293,15 @@ Next: execute once the committed PHASE_03_ONE_SIDED_DIAGNOSTIC_PROTOCOL.md; fixe
 D089 cases, six bounded HTTP reads, at most three60s subscriptions, all failures retained.
 No full-frame redraw, retrospective D089 repair or production action. Then preserve measured
 availability/coverage and decide the next prospective design from actual evidence.
+
+D090 empirical diagnostic completed once under e8021098b19cb9d6d8651b14c378767ea54a2200,
+2026-10-08 02:49:40–02:50:54UTC, exit0. Six HTTP requests,14188 raw bytes; two closed/nonaccepting
+Gamma markets with book404, one active market with an observed one-sided book. The active case
+completed60s, one book frame/five PONGs, no received two-sided recovery. Original book/socket/
+analysis recovery passed;183 artifact hashes preserve519491bytes. Full result:
+PHASE_03_ONE_SIDED_DIAGNOSTIC_EVIDENCE.json. No collector remains; D089 remains failed.
+Legacy coverage labels the valid one-sided frame invalid_or_conflicting_message and60s uncovered.
+Next D091: distinguish valid one-sided/empty state from malformed input in an explicitly versioned
+receipt-coverage diagnostic, with zero midpoint/imbalance admission and unchanged legacy output.
+Use synthetic transition tests plus read-only checksum-bound reanalysis; no new collection needed
+for this parser distinction. Preserve D090's original analysis and never assert socket continuity.
