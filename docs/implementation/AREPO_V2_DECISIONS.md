@@ -533,3 +533,35 @@ After tested D096 and independently restored capacity, freeze the exact protocol
 PHASE_03_TEMPORAL_PILOT_PROTOCOL.md. Same6/8history/origin,80%target,matched-control,observer
 accounting and audit gates; additional population/exclusion denominator audit. One new
 conditional-population draw, no reinterpretation of D094 or repeated sampling to pass.
+
+## D098 — preserve absent controls, stop at measured capacity
+
+D097 terminal under8bb82c4488c83cc0fdac6707cc27a9af079562d9: complete268684-row frame,
+268640 mapped/44unresolved;25954 temporal exclusions retained,242686 eligible members.
+Four of87strata sampled (4/87), all8members preserved. Six observed origins, six fresh
+completed histories and six valid targets pass those frozen gates. All8subscriptions ended
+normally. Original-code audit, observation accounting, exact temporal inventory/exclusion
+reconciliation and clock/reporting gates pass. Matched-control gate FAILS: all6assessable
+markets triggered;2one-sided markets unavailable,0untriggered candidates,6unfilled control slots.
+Phase3 remains incomplete. No repeated draw, relaxed threshold or retrospective repair.
+
+PHASE_03_TEMPORAL_PILOT_EVIDENCE.json records full clocks/numerics/manifests,52targeted HTTP
+requests (22Gamma200/22book200/8trades200),134680raw targeted bytes, exact rational weights,
+411independently checked artifacts, all8raw-linked rules and independent best-size imbalance
+recomputation. Two distinct House districts, AAPL month-end close, TSLA intramonth low and
+four distinct sports outcomes provide no admitted pre-origin related/external binding.
+Receipt coverage is partial (0 to6.647785333s), never native continuity. Unsupported families
+and v1 components remain unavailable; no predictive/economic or model-dataset claim.
+
+After safe local cleanup, free10336686080bytes remains below13308526592required (short2971840512).
+Deleted only completed synthetic pytest528/529fixtures and inactive Next.js build cache;
+249100915logical bytes, observed free delta284999680bytes. Full file-hash manifest and scope
+checks in PHASE_03_LOCAL_CLEANUP_AFTER_D097.json. Empirical/failed/recovery data, latest test
+fixtures, logs, source, canonical docs and uncertain files preserved. No remaining identified
+reconstructible local AREPO material can supply the missing~2.97GB without touching protected
+research/recovery evidence. No test/collector is active. Phase4 has not started.
+
+Raw arithmetic verifies the snapshot rule; no classification bug or eligible negative was
+found. Broader matching cannot invent controls. Candidate-pool design review must precede
+any future justified protocol; see PHASE_03_CONTROL_AVAILABILITY_NEXT.md. No new code or
+new infrastructure is justified by the present capacity blocker.

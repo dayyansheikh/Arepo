@@ -161,3 +161,11 @@ D095 capacity restored; safe prompt cleanup audited without evidence deletion. D
 future-or-unknown stated-end deep population tested (101+1cases), full inventory/defaults
 preserved. See PHASE_03_TEMPORAL_POPULATION.md and current checkpoint. Phase3 incomplete;
 next one separately frozen finite measurement, no alteration of old failed gates or Phase4.
+
+## Current status — D097 / D098, October8
+
+D097 passes6/8origin/history and6/6target gates plus original/temporal audit, but fails
+matched controls (6triggered,0negative,2unavailable). Phase3 remains incomplete. Full evidence
+and411artifact checks: PHASE_03_TEMPORAL_PILOT_EVIDENCE.json; gate map: PHASE_03_ACCEPTANCE_STATUS.md.
+Safe cleanup still leaves10.34GB versus13.31GBrequired. Exact next action and future control
+pool review: PHASE_03_CONTROL_AVAILABILITY_NEXT.md and live checkpoint. No redraw or Phase4.

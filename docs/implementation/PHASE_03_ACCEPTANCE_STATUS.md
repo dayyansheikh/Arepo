@@ -1,4 +1,4 @@
-# Phase 3 acceptance — current through D092
+# Phase 3 acceptance — current through D097
 
 Phase 3 remains incomplete. D082 closes the real origin/control/target **execution** gate;
 it does not waive the remaining observation scope. Phase 4 starts in a fresh conversation
@@ -69,7 +69,7 @@ incomplete; see PHASE_03_FRESH_WINDOW_PILOT_EVIDENCE.json, review and PHASE_03_O
 Do not rerun or filter the failed sample. No Phase4 in this conversation.
 
 
-## Current next action — D092 complete
+## Historical next action — D092 complete
 
 The historical steps above remain a scope map. D089's empirical window/history gate failed
 5/8; it stays failed. D090 fixed availability diagnostic and D091 retrospective classification
@@ -86,3 +86,36 @@ all8members retained. Complete source/rule/clock evidence: PHASE_03_OBSERVATION_
 Current full-run reserve13.31GB exceeds9.51GB free; no deletion or redraw. Phase3 remains
 incomplete. Resume only per the live checkpoint's capacity/temporal-eligibility next action;
 do not rerun D094 or start Phase4. Prior pending-execution statements are historical.
+
+## Current gate update — D097
+
+D097 terminal under8bb82c4488c83cc0fdac6707cc27a9af079562d9: complete268684-row frame,
+268640 mapped/44unresolved;25954 temporal exclusions retained,242686 eligible members.
+Four of87strata sampled (4/87), all8members preserved. Six observed origins, six fresh
+completed histories and six valid targets pass those frozen gates. All8subscriptions ended
+normally. Original-code audit, observation accounting, exact temporal inventory/exclusion
+reconciliation and clock/reporting gates pass. Matched-control gate FAILS: all6assessable
+markets triggered;2one-sided markets unavailable,0untriggered candidates,6unfilled control slots.
+Phase3 remains incomplete. No repeated draw, relaxed threshold or retrospective repair.
+
+PHASE_03_TEMPORAL_PILOT_EVIDENCE.json records full clocks/numerics/manifests,52targeted HTTP
+requests (22Gamma200/22book200/8trades200),134680raw targeted bytes, exact rational weights,
+411independently checked artifacts, all8raw-linked rules and independent best-size imbalance
+recomputation. Two distinct House districts, AAPL month-end close, TSLA intramonth low and
+four distinct sports outcomes provide no admitted pre-origin related/external binding.
+Receipt coverage is partial (0 to6.647785333s), never native continuity. Unsupported families
+and v1 components remain unavailable; no predictive/economic or model-dataset claim.
+
+After safe local cleanup, free10336686080bytes remains below13308526592required (short2971840512).
+Deleted only completed synthetic pytest528/529fixtures and inactive Next.js build cache;
+249100915logical bytes, observed free delta284999680bytes. Full file-hash manifest and scope
+checks in PHASE_03_LOCAL_CLEANUP_AFTER_D097.json. Empirical/failed/recovery data, latest test
+fixtures, logs, source, canonical docs and uncertain files preserved. No remaining identified
+reconstructible local AREPO material can supply the missing~2.97GB without touching protected
+research/recovery evidence. No test/collector is active. Phase4 has not started.
+
+The empirical window/history gate now passes for the declared temporal population. The
+combined D097 pilot fails matched controls. Family eligibility was reviewed against all
+actual rules, with unsupported features explicitly unavailable. Full phase exit remains
+open; do not combine successes across failed protocols into an accepted integrated panel.
+Exact next action: PHASE_03_CONTROL_AVAILABILITY_NEXT.md after capacity recovery.

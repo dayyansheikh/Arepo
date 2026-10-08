@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — D048–D052 declaration/selection/activation, D053 synthetic origins, D054 identity adapter and D055 synthetic due collection are implemented. D056 synthetic interleaving and original-runtime recovery passed 1,202 backend tests at `72f89a8`. All live feature-family/control/pilot gates remain open. Stacked from accepted Phase 2 tip `747485c`. Owner: current AREPO implementation task. User scope override 2026-09-24: stop after genuine Phase 3 acceptance and fresh-chat handover; Phase 4 begins only in a fresh Codex conversation.
+Status: incomplete — current D097 empirical origin/history/target gates pass; matched-control gate fails. See current status below and ../PHASE_03_ACCEPTANCE_STATUS.md. Local capacity remains insufficient after safe cleanup. Phase4 only in a fresh conversation after genuine acceptance.
 
 ## Objective
 
@@ -428,3 +428,11 @@ D095 capacity restored; safe prompt cleanup audited without evidence deletion. D
 future-or-unknown stated-end deep population tested (101+1cases), full inventory/defaults
 preserved. See PHASE_03_TEMPORAL_POPULATION.md and current checkpoint. Phase3 incomplete;
 next one separately frozen finite measurement, no alteration of old failed gates or Phase4.
+
+## Current status — D097 / D098, October8
+
+D097 passes6/8origin/history and6/6target gates plus original/temporal audit, but fails
+matched controls (6triggered,0negative,2unavailable). Phase3 remains incomplete. Full evidence
+and411artifact checks: PHASE_03_TEMPORAL_PILOT_EVIDENCE.json; gate map: PHASE_03_ACCEPTANCE_STATUS.md.
+Safe cleanup still leaves10.34GB versus13.31GBrequired. Exact next action and future control
+pool review: PHASE_03_CONTROL_AVAILABILITY_NEXT.md and live checkpoint. No redraw or Phase4.
