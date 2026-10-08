@@ -1,0 +1,251 @@
+{
+  "accepted_panel": false,
+  "analysed_at": "2026-10-08T02:55:58.200949+00:00",
+  "analysis_provenance": "retrospective_reanalysis",
+  "decision": "D091",
+  "implementation_commit": "282ed360d58730809fb5a194dd733f51e368cc41",
+  "input_evidence_sha256": "28819e185c85cd3b7e8b288ae7949caf3024a8fa33e407f887126fa9686ade0a",
+  "limitation": "New diagnostic interpretation of preserved prospective raw receipts; no new prospective observation, two-sided recovery, native continuity or predictive evidence.",
+  "new_result": {
+    "complete_continuous_history": false,
+    "covered_mean_imbalance": null,
+    "covered_persistence_ratio": null,
+    "declared_duration_ns": "60000000000",
+    "end_imbalance": null,
+    "feature_store_admitted": false,
+    "frames": [
+      {
+        "event_hash": "b5d244d76e4002f86feec63f4efccd61ae097e840abb019b93bd3e9a8ab7ee56",
+        "frame": "event_000005",
+        "item_count": 1,
+        "raw_hash": "7a1f86fcc2e509588126947574e0aff80f0c6d231dd5172d3ba46c81e88d11cc",
+        "received_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331688905250083",
+          "utc": "2026-10-08T02:49:42.608630Z"
+        },
+        "source_available_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331688906405375",
+          "utc": "2026-10-08T02:49:42.609787Z"
+        },
+        "state": "decoded"
+      },
+      {
+        "event_hash": "2c149ca6674a834e98f2daaa738fe3a3797f4164b17064e20a908efe67ac59e4",
+        "frame": "event_000008",
+        "item_count": 0,
+        "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+        "received_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331698894358416",
+          "utc": "2026-10-08T02:49:52.597787Z"
+        },
+        "source_available_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331698895212791",
+          "utc": "2026-10-08T02:49:52.598644Z"
+        },
+        "state": "heartbeat_control"
+      },
+      {
+        "event_hash": "54e8c03fbeaa488c1f2b2b8b34c0ab57b2ee77c926d8ac65a42ad3249c4e9ecb",
+        "frame": "event_000011",
+        "item_count": 0,
+        "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+        "received_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331708899141166",
+          "utc": "2026-10-08T02:50:02.602620Z"
+        },
+        "source_available_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331708900054750",
+          "utc": "2026-10-08T02:50:02.603535Z"
+        },
+        "state": "heartbeat_control"
+      },
+      {
+        "event_hash": "3caa74b5bff555db8415f64bb7795cccf6933035e2af53aa06d1a6bf08e46d45",
+        "frame": "event_000014",
+        "item_count": 0,
+        "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+        "received_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331718907792208",
+          "utc": "2026-10-08T02:50:12.611317Z"
+        },
+        "source_available_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331718908838500",
+          "utc": "2026-10-08T02:50:12.612367Z"
+        },
+        "state": "heartbeat_control"
+      },
+      {
+        "event_hash": "a10fbcf581cc64837817ee5464b4b7cd575adfba3e0e46b599ee7802784dd1bd",
+        "frame": "event_000017",
+        "item_count": 0,
+        "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+        "received_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331728898127833",
+          "utc": "2026-10-08T02:50:22.601700Z"
+        },
+        "source_available_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331728899469458",
+          "utc": "2026-10-08T02:50:22.603041Z"
+        },
+        "state": "heartbeat_control"
+      },
+      {
+        "event_hash": "f131e82d6325452158984e456876092bb60ab1a09262070fa94f07df0298460f",
+        "frame": "event_000020",
+        "item_count": 0,
+        "raw_hash": "95784973cc639977bff93619700168505cb8f7855e44fa643d34622a43706c87",
+        "received_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331738894035916",
+          "utc": "2026-10-08T02:50:32.597661Z"
+        },
+        "source_available_at": {
+          "clock_session_id": "29b39b7e-b27a-4c04-b0fd-33409e9b0f08",
+          "monotonic_ns": "2331738895230875",
+          "utc": "2026-10-08T02:50:32.598857Z"
+        },
+        "state": "heartbeat_control"
+      }
+    ],
+    "gaps": [],
+    "identity_state": "declared_source_local_not_causally_admitted",
+    "imbalance_ns_integral": {
+      "decimal": "0",
+      "decimal_state": "exact",
+      "denominator": "1",
+      "numerator": "0"
+    },
+    "items": [
+      {
+        "ask_levels": 58,
+        "bid_levels": 0,
+        "book_state_hash": "ae1a2e7214a44eb3bb8985b2619322a00fce7b8cf10efbe2b3fc216ad4ccd2b5",
+        "element_index": 0,
+        "event_type": "book",
+        "frame": "event_000005",
+        "item_id": "event_000005:0",
+        "message_hash": "95b692003c1c0247ce5f43644b0f04edeacf04f0fd2cdcc110e62f956a2e0550",
+        "native_timestamp_raw": "1791427747815",
+        "numerical_change": true,
+        "previous_state_item_id": null,
+        "snapshot": null,
+        "state": "one_sided_book"
+      }
+    ],
+    "limits": {
+      "max_array_items": 100,
+      "max_items": 10000,
+      "max_levels": 10000,
+      "max_processing_seconds": 180
+    },
+    "native_book_age": null,
+    "native_clock_admitted": false,
+    "origin_admitted": false,
+    "persistence_missing_reason": "unavailable",
+    "policy": {
+      "max_receipt_hold_ms": 1000,
+      "version": "fs2-window-coverage-policy-v2"
+    },
+    "provenance_class": "prospective",
+    "reconstructed_receipt_duration_ns": "0",
+    "registered_features": {
+      "F02": {
+        "state": "prerequisites_unproven",
+        "value": null
+      },
+      "F10": {
+        "state": "prerequisites_unproven",
+        "value": null
+      },
+      "F27": {
+        "state": "prerequisites_unproven",
+        "value": null
+      }
+    },
+    "runtime_source_verification_required": true,
+    "schema_version": "fs2-receipt-window-coverage-v2",
+    "segments": [
+      {
+        "duration_ns": "29082583",
+        "end_ns": "2331688905250083",
+        "imbalance": null,
+        "start_ns": "2331688876167500",
+        "state": "awaiting_initial_snapshot",
+        "state_item_id": null
+      },
+      {
+        "duration_ns": "9989108333",
+        "end_ns": "2331698894358416",
+        "imbalance": null,
+        "start_ns": "2331688905250083",
+        "state": "one_sided_book",
+        "state_item_id": null
+      },
+      {
+        "duration_ns": "10004782750",
+        "end_ns": "2331708899141166",
+        "imbalance": null,
+        "start_ns": "2331698894358416",
+        "state": "one_sided_book",
+        "state_item_id": null
+      },
+      {
+        "duration_ns": "10008651042",
+        "end_ns": "2331718907792208",
+        "imbalance": null,
+        "start_ns": "2331708899141166",
+        "state": "one_sided_book",
+        "state_item_id": null
+      },
+      {
+        "duration_ns": "9990335625",
+        "end_ns": "2331728898127833",
+        "imbalance": null,
+        "start_ns": "2331718907792208",
+        "state": "one_sided_book",
+        "state_item_id": null
+      },
+      {
+        "duration_ns": "9995908083",
+        "end_ns": "2331738894035916",
+        "imbalance": null,
+        "start_ns": "2331728898127833",
+        "state": "one_sided_book",
+        "state_item_id": null
+      },
+      {
+        "duration_ns": "9982131584",
+        "end_ns": "2331748876167500",
+        "imbalance": null,
+        "start_ns": "2331738894035916",
+        "state": "one_sided_book",
+        "state_item_id": null
+      }
+    ],
+    "source_policy": {
+      "condition_id": "0x58b0474e74a03480c439d50e13dd0b75146c3596e5a475f95e70035c90cee4ca",
+      "duration_ms": 60000,
+      "token_id": "113017673827188867377109454527754982157460887938297582871131403025795572613918"
+    },
+    "source_report_hash": "5d73fbe7dfd233e7c059d20bf24f7f17b9d44dbeb6d75caf6d9b545746585780",
+    "uncovered_duration_ns": "60000000000"
+  },
+  "old_classification": "invalid_or_conflicting_message",
+  "origin_admitted": false,
+  "original_result_preserved": true,
+  "script": {
+    "sha256": "5cfd74737d8fe7f90819b18804a58f6fa6d35b3d77fef56aea6b97595b516298",
+    "source": "import json,hashlib,subprocess\nfrom pathlib import Path\nfrom datetime import datetime,timezone\nfrom astrolabe.research_panel.window_coverage import _Projection,WindowCoveragePolicy\nrepo=Path('/Users/DayyanSheikh/Projects/astrolabe');proof=repo/'docs/implementation/PHASE_03_ONE_SIDED_DIAGNOSTIC_EVIDENCE.json';e=json.loads(proof.read_text())\nfor a in e['artifacts']:\n b=(repo/a['path']).read_bytes();assert len(b)==a['bytes'] and hashlib.sha256(b).hexdigest()==a['sha256']\nroot=repo/'data-dumps/fs2_one_sided_diagnostic_20261007_1';sock=root/'fs2_socket_window_case_2';analysis=root/'fs2_socket_analysis_case_2'\ninputs=json.loads((analysis/'socket_analysis_input.json').read_text())['inputs'];s=inputs['socket'];decl=inputs['socket_policy']\nengine=_Projection({**{k:s['identity'][k] for k in ['token_id','condition_id']},'duration_ms':decl['duration_ms']},{**s,'window_report_hash':s['socket_window_report_hash']},WindowCoveragePolicy(1000,version='fs2-window-coverage-policy-v2'))\nfor i in range(1,s['event_count']+1):\n stem=f'event_{i:06d}';event=json.loads((sock/(stem+'.json')).read_text());ack=json.loads((sock/(stem+'_ack.json')).read_text());raw=(sock/(stem+'.bin')).read_bytes() if event['raw_state']=='observed' else None\n engine.frame({'event':event,'ack':ack,'raw':raw})\nr=engine.result();old=json.loads((analysis/'socket_analysis_facts.json').read_text())['projection']['coverage']\nassert r['reconstructed_receipt_duration_ns']==old['reconstructed_receipt_duration_ns']=='0'\nassert r['uncovered_duration_ns']==old['uncovered_duration_ns']=='60000000000'\nassert r['items'][0]['state']=='one_sided_book' and r['items'][0]['snapshot'] is None\nassert not r['gaps'] and not r['complete_continuous_history']\nout={'decision':'D091','implementation_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),'analysis_provenance':'retrospective_reanalysis','analysed_at':datetime.now(timezone.utc).isoformat(),'input_evidence_sha256':hashlib.sha256(proof.read_bytes()).hexdigest(),'verified_artifacts':len(e['artifacts']),'original_result_preserved':True,'old_classification':old['items'][0]['state'],'new_result':r,'accepted_panel':False,'origin_admitted':False,'limitation':'New diagnostic interpretation of preserved prospective raw receipts; no new prospective observation, two-sided recovery, native continuity or predictive evidence.'}\nscript=Path(__file__);out['script']={'source':script.read_text(),'sha256':hashlib.sha256(script.read_bytes()).hexdigest()}\n(repo/'docs/implementation/PHASE_03_ONE_SIDED_REANALYSIS.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\\n')\nprint(json.dumps({k:out[k] for k in ['implementation_commit','verified_artifacts','old_classification','analysis_provenance']}));print(r['items'][0]['state'],r['uncovered_duration_ns'])\n"
+  },
+  "verified_artifacts": 183
+}

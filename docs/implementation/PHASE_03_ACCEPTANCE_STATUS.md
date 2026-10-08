@@ -1,4 +1,4 @@
-# Phase 3 acceptance after D083 origin component
+# Phase 3 acceptance — current through D092
 
 Phase 3 remains incomplete. D082 closes the real origin/control/target **execution** gate;
 it does not waive the remaining observation scope. Phase 4 starts in a fresh conversation
@@ -17,7 +17,7 @@ earlier milestone statements in the chronological review are historical.
 | Baseline recording fixtures | D083 tests serialize no-change/current midpoint and exact simple-momentum input deltas (negative/zero/positive), retaining receipt separation and missingness. Accepted as synthetic recording plumbing only. Scientific baseline selection/locking remains Phase4. |
 | Full phase exit | Incomplete until scoped window/history and family eligibility integration, required fixtures, review and durable handover genuinely pass. D082 cannot retrospectively acquire new inputs or be relabelled as a richer panel. |
 
-## Exact next bounded implementation
+## Historical implementation sequence (current action below)
 
 D083 causal input/origin and D084 internally owned bounded window/runtime integration are
 tested; do not repeat them. D085 is terminal and failed; do not rerun it. Next follow PHASE_03_WINDOW_LATENCY_NEXT.md
@@ -67,3 +67,14 @@ and one matched control pair. Three HTTP200 books are genuinely one-sided despit
 nonclosed Gamma flags. All8denominators and exact4/109stratum weights retained. Phase3 remains
 incomplete; see PHASE_03_FRESH_WINDOW_PILOT_EVIDENCE.json, review and PHASE_03_ONE_SIDED_NEXT.md.
 Do not rerun or filter the failed sample. No Phase4 in this conversation.
+
+
+## Current next action — D092 complete
+
+The historical steps above remain a scope map. D089's empirical window/history gate failed
+5/8; it stays failed. D090 fixed availability diagnostic and D091 retrospective classification
+are complete, with no recovered two-sided book or additional eligible history. D092 explicit
+observation integration is tested (24 affected cases), not empirically accepted. It retains
+one-sided states without altering origin/history eligibility. Read the current-state section
+of PHASE_03_ONE_SIDED_NEXT.md: reconcile family eligibility with actual evidence, then freeze
+a separately justified finite prospective design; no redraw merely to pass6/8. Phase3 incomplete.

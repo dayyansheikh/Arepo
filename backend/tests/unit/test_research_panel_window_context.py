@@ -4,7 +4,6 @@ import asyncio
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict
 from pathlib import Path
 
 import httpx
@@ -38,7 +37,7 @@ async def owned(tmp_path, code, *, missing=True):
     worker._save(root, 'worker_policy', {
         'schema_version': windows.VERSION, 'build': verified_panel_build(),
         'panel_root': str(panel), 'provenance_class': 'synthetic',
-        'window_policy': asdict(config()), 'window_port': 1,
+        'window_policy': windows.policy_dict(config()), 'window_port': 1,
         'reservation': worker.allocation(read_panel_declaration(panel), windows=True),
     })
     frozen, _ = _prepare_owned_screening(selection_root(panel),

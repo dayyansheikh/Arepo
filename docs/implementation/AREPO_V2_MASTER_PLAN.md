@@ -139,3 +139,11 @@ incomplete; see PHASE_03_FRESH_WINDOW_PILOT_EVIDENCE.json, review and PHASE_03_O
 Do not rerun or filter the failed sample. No Phase4 in this conversation.
 
 D090 software gate passed (34 socket cases, then51 analysis/endpoint cases after the null-comparison fix). Next execute the fixed one-sided diagnostic protocol once; Phase3 remains incomplete.
+
+
+D090 diagnostic is terminal: two closed/book404, one active one-sided receipt, no two-sided
+recovery. D091 preserves this as explicit retrospective classification with zero coverage.
+D092 opt-in owned observation integration passes24 affected tests172.73s, including original
+runtime audit and no invented history after later two-sided arrivals. Phase3 remains incomplete.
+Current next action: PHASE_03_ONE_SIDED_NEXT.md current-state section; family-eligibility review
+then a justified finite prospective design. No D089/D090 rerun or Phase4 in this conversation.

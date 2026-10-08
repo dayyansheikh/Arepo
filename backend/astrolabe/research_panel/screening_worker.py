@@ -237,7 +237,7 @@ async def _run_screening(
     if transport is not None and type(transport) is not httpx.MockTransport:
         raise ValueError("unsupported screening transport")
     public = transport is None
-    version = (owned_windows.VERSION if windows else PILOT_VERSION if pilot
+    version = (owned_windows.version(window_policy) if windows else PILOT_VERSION if pilot
                else OWNED_VERSION if identity_policy
                else PUBLIC_VERSION if public else VERSION)
     provenance = "prospective" if public else "synthetic"
@@ -294,7 +294,8 @@ async def _run_screening(
                 "reservation": reserved,
                 "concurrency": concurrency,
                 **({'runtime_concurrency': runtime_concurrency} if pilot else {}),
-                **({"window_policy": asdict(window_policy), "window_port": window_port}
+                **({"window_policy": owned_windows.policy_dict(window_policy),
+                    "window_port": window_port}
                    if windows else {}),
                 "source_budget": asdict(budget),
                 "source_policy": "receipt-time-selected-market-v1",

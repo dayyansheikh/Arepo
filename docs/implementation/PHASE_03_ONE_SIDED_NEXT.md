@@ -38,3 +38,29 @@ this boundary before exhaustion; do not spend the remaining allowance repeating 
 cache tests or a full regression for documentation. Phase3 incomplete; Phase4 requires a fresh chat.
 
 D090 software gate passed (34 socket cases, then51 analysis/endpoint cases after the null-comparison fix). Next execute the fixed one-sided diagnostic protocol once; Phase3 remains incomplete.
+
+
+## Current state after D090/D091 (October8)
+
+The fixed diagnostic is complete: two originally selected cases are now closed with book404;
+the active case delivered one one-sided frame and five PONGs in60s, with no two-sided recovery.
+This is evidence against assuming a short subscription will repair missing history. D091's
+explicit retrospective classification distinguishes valid one-sided input from malformed input
+without adding coverage. Do not rerun the fixed diagnostic or redraw D089 for a favourable result.
+
+D092 wires the already tested observation mode into the owned worker, explicitly opt-in and
+versioned. It can preserve all actual received states for scheduled members even when the
+pre-book lacks a side. History still requires the actual eligible pre-book/current quote pair;
+a later two-sided frame alone never fills the missing prior midpoint. No stream-history policy
+or empirical gate changes are part of D092.
+
+After the integration tests/review/commit, the next decision is a finite prospective measurement
+contract, with an explicit scientific reason for its observation times, sample size and source
+scope. First reconcile the remaining family-eligibility gate with existing evidence and actual
+selected questions. Use public source rules where relevant; keep unresolved external/related
+inputs unavailable. Do not add another observer service or broaden collection just because
+allowance remains. Measure current disk and reserve the entire proposed run before launch.
+Any fresh sample must have a predeclared complete-frame selection, exact stage probabilities,
+fixed attempts and all missing members retained; it cannot retroactively satisfy D089's6/8gate.
+If the necessary real data are unavailable, record that limitation instead of claiming Phase3
+acceptance. Phase4 remains reserved for a fresh conversation.

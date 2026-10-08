@@ -19,11 +19,14 @@ from .origin_window import OriginWindowPolicy
 from .socket_analysis import read_socket_analysis, record_socket_analysis
 from .socket_window import capture_loopback_socket, capture_market_socket
 from .socket_window_journal import LIMITS as SOCKET_LIMITS
+from .socket_window_journal import OBSERVATION_VERSION as OBSERVATION_SOCKET_VERSION
+from .socket_window_journal import VERSION as SOCKET_VERSION
 from .socket_window_journal import read_socket_window, scope
 from .window_computation import LIMITS as ANALYSIS_LIMITS
 from .window_reconciliation import WindowReconciliationPolicy
 
 VERSION = 'fs2-owned-window-worker-v6'
+OBSERVATION_VERSION = 'fs2-owned-observation-worker-v7'
 
 
 @dataclass(frozen=True)
@@ -32,18 +35,32 @@ class OwnedWindowPolicy:
     binding: WindowBindingPolicy
     analysis: WindowReconciliationPolicy
     origin: OriginWindowPolicy
+    binding_mode: str = 'quote'
 
     def __post_init__(self):
         if (type(self.duration_ms) is not int or not 1 <= self.duration_ms <= 60000
                 or type(self.binding) is not WindowBindingPolicy
                 or type(self.analysis) is not WindowReconciliationPolicy
-                or type(self.origin) is not OriginWindowPolicy):
+                or type(self.origin) is not OriginWindowPolicy
+                or self.binding_mode not in ('quote', 'observation')):
             raise ValueError('explicit bounded owned window policies required')
 
 
 def policy_from_dict(value):
     return OwnedWindowPolicy(value['duration_ms'], WindowBindingPolicy(**value['binding']),
-        WindowReconciliationPolicy(**value['analysis']), OriginWindowPolicy(**value['origin']))
+        WindowReconciliationPolicy(**value['analysis']), OriginWindowPolicy(**value['origin']),
+        value.get('binding_mode', 'quote'))
+
+
+def policy_dict(policy):
+    value = asdict(policy)
+    if policy.binding_mode == 'quote':
+        del value['binding_mode']  # preserve the legacy persisted policy shape
+    return value
+
+
+def version(policy):
+    return OBSERVATION_VERSION if policy.binding_mode == 'observation' else VERSION
 
 
 def reservation(slots):
@@ -55,7 +72,7 @@ def paths(root, index):
             root / f'fs2_socket_analysis_{index:03d}')
 
 
-def _pre_state(item, provenance):
+def _pre_state(item, provenance, binding_mode='quote'):
     pre = Path(item['book_root'])
     summary = read_book_computation(pre)
     facts, ack = _pair(pre, 'book_facts')
@@ -68,7 +85,8 @@ def _pre_state(item, provenance):
         return summary, 'pre_snapshot_unavailable'
     snap = snapshots[0]
     quote = snap['quote']
-    if snap['state'] != 'observed' or quote['state'] != 'observed':
+    states = {'observed', 'one_sided_or_missing'} if binding_mode == 'observation' else {'observed'}
+    if snap['state'] != quote['state'] or quote['state'] not in states:
         return summary, 'pre_snapshot_unavailable'
     member, mapping = item['member'], quote['mapping']
     if mapping is None or quote['token_id'] != member['token_id'] or (
@@ -88,7 +106,7 @@ def collect(root, index, item, policy, port):
     from .screening_worker import _save
 
     provenance = scope(port)['provenance_class']
-    pre, missing = _pre_state(item, provenance)
+    pre, missing = _pre_state(item, provenance, policy.binding_mode)
     started = _clock()
     socket, analysis = paths(root, index)
     socket_seal = None
@@ -96,7 +114,8 @@ def collect(root, index, item, policy, port):
               'missing_reason': missing, 'analysis': None, 'socket': None}
     if missing is None:
         async def capture():
-            args = dict(output_root=socket, policy=policy.binding, duration_ms=policy.duration_ms)
+            args = dict(output_root=socket, policy=policy.binding, duration_ms=policy.duration_ms,
+                        binding_mode=policy.binding_mode)
             if port is None:
                 return await capture_market_socket(item['book_root'], **args)
             return await capture_loopback_socket(item['book_root'], port=port, **args)
@@ -118,7 +137,7 @@ def _worker(root, provenance):
     wp, wa = _pair(root, 'worker_policy')
     config = policy_from_dict(wp['window_policy'])
     port = wp['window_port']
-    if (wp['schema_version'] != VERSION or wp['build'] != verified_panel_build()
+    if (wp['schema_version'] != version(config) or wp['build'] != verified_panel_build()
             or worker_root(wp['panel_root']) != root
             or wp['provenance_class'] != provenance or scope(port)['provenance_class'] != provenance
             or wp['reservation'] != allocation(
@@ -136,7 +155,11 @@ def _entry(root, index, item, wp, wa, config, pre, missing, socket, analysis):
     if missing is None:
         sp, _ = _pair(socket_root, 'socket_window_policy')
         ap, _ = _pair(analysis_root, 'socket_analysis_policy')
-        if (sp['pre_computation_root'] != item['book_root']
+        socket_version = (OBSERVATION_SOCKET_VERSION if config.binding_mode == 'observation'
+                          else SOCKET_VERSION)
+        if (sp['schema_version'] != socket_version
+                or socket['schema_version'] != socket_version
+                or sp['pre_computation_root'] != item['book_root']
                 or sp['binding_policy'] != asdict(config.binding)
                 or sp['transport'] != scope(wp['window_port'])
                 or sp['duration_ms'] != config.duration_ms
@@ -177,7 +200,7 @@ def _scope(selected, wp):
 
 def _result(root, wa, config, results):
     return {'worker_root': str(root), 'worker_policy_hash': wa['payload_hash'],
-            'policy': asdict(config), 'members': results}
+            'policy': policy_dict(config), 'members': results}
 
 
 def read(root, selected, provenance):
@@ -186,7 +209,7 @@ def read(root, selected, provenance):
     _scope(selected, wp)
     expected, results = set(), {}
     for index, item in enumerate(selected):
-        pre, missing = _pre_state(item, provenance)
+        pre, missing = _pre_state(item, provenance, config.binding_mode)
         socket_root, analysis_root = paths(root, index)
         socket = read_socket_window(socket_root) if missing is None else None
         analysis = read_socket_analysis(analysis_root) if missing is None else None

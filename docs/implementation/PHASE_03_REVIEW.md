@@ -1320,3 +1320,37 @@ Ruff/backend, canonical/whitespace checks pass. Self-review: explicit version se
 state invalidation/recovery, exact receipt durations, all source/phase admission flags remainfalse.
 Next perform checksum-bound retrospective reanalysis of D090 once under this committed code,
 preserving its old analysis. No new external request or empirical acceptance is implied.
+
+
+D091 reanalysis completed under282ed360d58730809fb5a194dd733f51e368cc41. All183 original
+artifacts verified by hash/size before read-only projection. PHASE_03_ONE_SIDED_REANALYSIS.json
+retains the script, input/build hashes and actual new analysis clock. Explicit retrospective
+classification changes invalid-message to valid one-sided state; covered duration stays0,
+uncovered duration stays60000000000ns. Original D090 analysis/raw clocks remain unchanged.
+No source request, new observation, history, acceptance or predictive evidence.
+
+
+## D092 — explicit one-sided observation in the owned panel worker
+
+Opt-in OwnedWindowPolicy.binding_mode=observation selects worker v7 and observation socketv2;
+legacy quote mode retains worker v6 and its persisted policy shape. Verified one-sided/empty
+pre-books can now be observed without filtering sampled members. The worker checks policy/socket
+version consistency, current lifecycle/core identity and all existing acquisition/cold-replay
+seals. Real source clocks, freshness, quotas, cancellation and original-code audits stay binding.
+Origins still require actual eligible quotes; a two-sided frame received after an unavailable
+pre-book never retroactively supplies its midpoint or an eligible price history.
+
+24 affected owned_windows/window_context tests passed172.73s, including two complete synthetic
+one-sided pilot variants (remains one-sided versus later two-sided), original runtime recovery,
+unavailable histories, policy tamper rejection, legacy behavior, reservations, cancellation and
+byte-seal mutation checks. Log /tmp/arepo_d092_tests.log; explicit isolated /tmp SQLite/emailoff.
+One line was wrapped after tests for lint only. Ruff/backend, canonical and whitespace pass.
+Self-review: explicit mode/version dispatch, legacy serialization, full missing-member accounting,
+no history/continuity inference, authenticated dependency chain and unchanged capacity bounds.
+No public run under D092, no Phase3 acceptance, no Phase4 or production action.
+
+Next: PHASE_03_ONE_SIDED_NEXT.md current-state section. Reconcile remaining family eligibility
+with measured source/selected-question evidence, then freeze a separately justified finite
+prospective design before any new requests. Do not repeat D089/D090, weaken old6/8gates or
+implement speculative services. Latest disk snapshot13915540KiB free; remeasure and reserve the
+entire proposed run before launch. No test/collector remains active.

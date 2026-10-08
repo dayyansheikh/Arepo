@@ -1,6 +1,6 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-08. D090 software and fixed diagnostic complete; explicit one-sided coverage classification is next. D089 remains failed; Phase3 incomplete, no Phase4.
+Updated: 2026-10-08. D090 diagnostic and D091 retrospective classification complete. D092 explicit observation integration passed24 affected tests and self-review. D089 remains failed; Phase3 incomplete, no Phase4.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
@@ -9,12 +9,12 @@ Updated: 2026-10-08. D090 software and fixed diagnostic complete; explicit one-s
 - Current continuation: October8 02:48UTC; initial allowance0% primary/16% weekly used, ordinary usage allowed. No reset credit redeemed.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
-- Latest safe evidence commit: e0fa103 (D089 failed empirical pilot, source diagnosis and next bounded observation contract), pushed.
-- Latest safe implementation commit: e802109 (D090 diagnostic binding/socket implementation and frozen protocol), pushed.
+- Latest safe evidence commit: e14522c (D090 fixed diagnostic, source availability and next classification contract), pushed.
+- Latest safe implementation commit: 282ed360d58730809fb5a194dd733f51e368cc41 (D091 explicit coverage classification), pushed.
 - Draft PR: https://github.com/dayyansheikh/Arepo/pull/16, open draft against Phase2. Head/body updated with each coherent commit; never merged.
 - Completed: Phase 0 canonical foundation; Phase 1 isolated immutable store; Phase 2 source journals/admission, exact identities and bounded replay. Phase 3 milestones: pure sampling/control/receipt-target rules; isolated keyset frame journal, source+panel build binding, bounded CLI, raw/parsed/page manifests, cursor/scope/duplicate/conflict/clock/error checks, crash-safe read-only recovery, streaming verification and measured-capacity preflights.
 - Files/modules changed: research_panel/{__init__,sampling,targets,frame,frame_cli,build_identity,original_reader,metadata,selection,selection_cli}.py; planning/frame/metadata/selection/original-reader tests; isolated feature_store/{capture,sources}.py; phase/review/frame/panel-journal contracts, decisions D030–D041 and measurement evidence JSONs. Latest D041 changes cover original_reader, selection_cli, original-selection tests, evidence and recovery docs. No v1/config/API/scheduler/frontend changes.
-- Tests/results: D08776 targeted cases passed119.88s; Ruff/backend/canonical/whitespace pass. Prior scoped results remain historical, no full-backend/empirical claim.
+- Tests/results: D09224 affected cases passed172.73s; D09159 cases39.56s; D09034 cases49.65s plus51 after endpoint fix71.53s. Ruff/backend/canonical/whitespace pass. Synthetic validation only; D090 empirical diagnostic separately retained, no Phase3 acceptance.
 - Measured first page: `bf734a0`, 100 rows, 557,140 raw bytes, 1,501,764 retained bytes, 157,199,875ns request-to-receipt; continuing cursor, incomplete. PHASE_03_FIRST_PAGE_EVIDENCE.json.
 - Enumeration attempt 1: `f66dea1`, 410 attempts / 409 complete pages / 40,900 rows; stopped at 256MiB raw cap with partial 410th response preserved. Raw268,435,456 / retained 654,055,783 / peak resident 202,407,936 bytes. Incomplete. PHASE_03_ENUMERATION_ATTEMPT_1.json.
 - Enumeration attempt 2: `726cec2`, 1,000 complete pages /100,000 distinct market IDs, still continuing. 99,956 eligible row identities and 44 unresolved, no observed duplicates/conflicts within prefix. Raw644,897,535 / retained 1,577,956,669 / peak resident 343,457,792 bytes. Request-cap stop; incomplete. PHASE_03_ENUMERATION_ATTEMPT_2.json. Final verification overlapped backend regression, so whole-command elapsed is not an isolated performance benchmark.
@@ -26,7 +26,7 @@ Updated: 2026-10-08. D090 software and fixed diagnostic complete; explicit one-s
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: D091 code/tests passed; commit then checksum-bound retrospective reanalysis of D090. Preserve original analysis, no new collection. After evidence review, refine the next finite prospective design; no repeated draw to obtain acceptance.
+- Exact next action: reconcile the remaining related/external family-eligibility gate with existing source and selected-question evidence, then freeze a separately justified finite prospective measurement per PHASE_03_ONE_SIDED_NEXT.md. D090/D091/D092 work is complete; do not repeat accepted tests or diagnostics. Preserve failed D089 gates; no repeat draw to obtain acceptance.
 - Latest modules/files: D068 screening.py, original_reader.py, 15 screening tests, and screening integration contract; D067 scheduling.py, origin/due/runtime waits and six timer tests. D066 trigger_computation.py, original-reader support, 16 new assessment/recovery cases and trigger contract. D065 socket_diagnostic.py, fixed orchestration tests and frozen protocol. D064 socket_analysis.py, original_reader.py, shared pure endpoint algebra in window_reconciliation.py, two new socket-analysis test modules and phase/master/review/decisions/checkpoint/analysis contract. D063 socket_window.py/socket_window_journal.py and driver/recovery tests accepted at 742b65e. D061 window_reconciliation.py, original_reader.py and reconciliation/original recovery tests accepted at 73b1ccc. No v1/API/config/workflow/frontend/SQL/production changes.
 - Current capacity observation (2026-09-27): 26,634,020 KiB free during regression; previous 4 GiB blocker cleared. Remeasure before collection. Preserve all raw/failed runs.
 - Next-run constraints: category is absent in all mapped source rows; enrichment requires separate versioned source evidence, never a fallback invented from other fields. Local disk snapshot after D041: 9,133,616 KiB free, below the existing expanded-frame 8 GiB retained +2 GiB reserve preflight. Do not launch that mode unchanged, delete evidence or narrow the population. A separately designed/tested finite budget refinement may use the actual 2,728,778,097-byte complete-frame cost; remeasure disk first. No new collection budget has been frozen or authorized by this note.
@@ -600,3 +600,37 @@ Ruff/backend, canonical/whitespace checks pass. Self-review: explicit version se
 state invalidation/recovery, exact receipt durations, all source/phase admission flags remainfalse.
 Next perform checksum-bound retrospective reanalysis of D090 once under this committed code,
 preserving its old analysis. No new external request or empirical acceptance is implied.
+
+
+D091 reanalysis completed under282ed360d58730809fb5a194dd733f51e368cc41. All183 original
+artifacts verified by hash/size before read-only projection. PHASE_03_ONE_SIDED_REANALYSIS.json
+retains the script, input/build hashes and actual new analysis clock. Explicit retrospective
+classification changes invalid-message to valid one-sided state; covered duration stays0,
+uncovered duration stays60000000000ns. Original D090 analysis/raw clocks remain unchanged.
+No source request, new observation, history, acceptance or predictive evidence.
+
+
+## D092 — explicit one-sided observation in the owned panel worker
+
+Opt-in OwnedWindowPolicy.binding_mode=observation selects worker v7 and observation socketv2;
+legacy quote mode retains worker v6 and its persisted policy shape. Verified one-sided/empty
+pre-books can now be observed without filtering sampled members. The worker checks policy/socket
+version consistency, current lifecycle/core identity and all existing acquisition/cold-replay
+seals. Real source clocks, freshness, quotas, cancellation and original-code audits stay binding.
+Origins still require actual eligible quotes; a two-sided frame received after an unavailable
+pre-book never retroactively supplies its midpoint or an eligible price history.
+
+24 affected owned_windows/window_context tests passed172.73s, including two complete synthetic
+one-sided pilot variants (remains one-sided versus later two-sided), original runtime recovery,
+unavailable histories, policy tamper rejection, legacy behavior, reservations, cancellation and
+byte-seal mutation checks. Log /tmp/arepo_d092_tests.log; explicit isolated /tmp SQLite/emailoff.
+One line was wrapped after tests for lint only. Ruff/backend, canonical and whitespace pass.
+Self-review: explicit mode/version dispatch, legacy serialization, full missing-member accounting,
+no history/continuity inference, authenticated dependency chain and unchanged capacity bounds.
+No public run under D092, no Phase3 acceptance, no Phase4 or production action.
+
+Next: PHASE_03_ONE_SIDED_NEXT.md current-state section. Reconcile remaining family eligibility
+with measured source/selected-question evidence, then freeze a separately justified finite
+prospective design before any new requests. Do not repeat D089/D090, weaken old6/8gates or
+implement speculative services. Latest disk snapshot13915540KiB free; remeasure and reserve the
+entire proposed run before launch. No test/collector remains active.
