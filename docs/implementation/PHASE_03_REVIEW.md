@@ -1416,3 +1416,11 @@ new commits/tests/collection. After capacity is available, review that temporal-
 question against current sampling/metadata code and raw frame evidence before designing any
 separate prospective attempt. Do not rerun D094. Any additional storage/deletion or production
 change requires its own applicable authorisation; no such approval is implied here.
+
+
+D095/D096 review (October8 13:08 run): safe cleanup and new general continuation recorded in
+decisions/PHASE_03_LOCAL_CLEANUP_2026-10-08.json. Capacity restored before cleanup. D096 temporal
+population passes101 scoped tests56.63s plus1 full owned pilot/original audit20.85s. Details,
+scientific scope, conditional weighting and review: PHASE_03_TEMPORAL_POPULATION.md. No old
+source/failed pilot changed. Next freeze one finite measurement of this newly declared population;
+no successive draw-to-pass loop, relaxed threshold or Phase4. Raw discovery stays complete.

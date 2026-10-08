@@ -155,3 +155,9 @@ all8members retained. Complete source/rule/clock evidence: PHASE_03_OBSERVATION_
 Current full-run reserve13.31GB exceeds9.51GB free; no deletion or redraw. Phase3 remains
 incomplete. Resume only per the live checkpoint's capacity/temporal-eligibility next action;
 do not rerun D094 or start Phase4. Prior pending-execution statements are historical.
+
+
+D095 capacity restored; safe prompt cleanup audited without evidence deletion. D096 explicit
+future-or-unknown stated-end deep population tested (101+1cases), full inventory/defaults
+preserved. See PHASE_03_TEMPORAL_POPULATION.md and current checkpoint. Phase3 incomplete;
+next one separately frozen finite measurement, no alteration of old failed gates or Phase4.

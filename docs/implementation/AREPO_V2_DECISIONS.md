@@ -507,3 +507,22 @@ new commits/tests/collection. After capacity is available, review that temporal-
 question against current sampling/metadata code and raw frame evidence before designing any
 separate prospective attempt. Do not rerun D094. Any additional storage/deletion or production
 change requires its own applicable authorisation; no such approval is implied here.
+
+
+## D095 — safe cleanup authority and general continuation
+
+The October8 13:08 heartbeat authorises disposal only of verified obsolete/reconstructible local
+artefacts and stale unreferenced prompts, preserving evidence and anything uncertain. Before
+cleanup, free space had independently recovered to~15GB. Removed only two untracked obsolete
+v1 orchestration prompts after reference/open-handle checks:35151 logical bytes,40960 allocated
+bytes estimated. Full paths/hashes/space observations: PHASE_03_LOCAL_CLEANUP_2026-10-08.json.
+All data-dumps and referenced prompts preserved; no empirical or recovery dependency deleted.
+One same-task successor19:18London/18:18UTC; canonical general prompt PHASE_03_HEARTBEAT.md.
+
+## D096 — explicit prospective endpoint population
+
+See PHASE_03_TEMPORAL_POPULATION.md for semantics, limits,102 passing scoped tests and review.
+The deep sample excludes known stated ends at/before the selection declaration, retaining all
+original inventory and explicit exclusions. Unknown dates and one-sided books remain. This is a
+new conditional population; no old pilot is repaired or claimed representative of it. Legacy
+selection remains unchanged. Full original runtime audit and controls pass synthetically.
