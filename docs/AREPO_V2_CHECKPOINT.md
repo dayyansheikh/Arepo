@@ -10,7 +10,7 @@ Updated: 2026-10-08. D090 diagnostic and D091 retrospective classification compl
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
 - Latest safe evidence commit: e14522c (D090 fixed diagnostic, source availability and next classification contract), pushed.
-- Latest safe implementation commit: 282ed360d58730809fb5a194dd733f51e368cc41 (D091 explicit coverage classification), pushed.
+- Latest safe implementation/evidence commit: 006b006 (D092 bounded observation integration and D091 retrospective evidence), pushed. The following documentation-only checkpoint commit records this boundary.
 - Draft PR: https://github.com/dayyansheikh/Arepo/pull/16, open draft against Phase2. Head/body updated with each coherent commit; never merged.
 - Completed: Phase 0 canonical foundation; Phase 1 isolated immutable store; Phase 2 source journals/admission, exact identities and bounded replay. Phase 3 milestones: pure sampling/control/receipt-target rules; isolated keyset frame journal, source+panel build binding, bounded CLI, raw/parsed/page manifests, cursor/scope/duplicate/conflict/clock/error checks, crash-safe read-only recovery, streaming verification and measured-capacity preflights.
 - Files/modules changed: research_panel/{__init__,sampling,targets,frame,frame_cli,build_identity,original_reader,metadata,selection,selection_cli}.py; planning/frame/metadata/selection/original-reader tests; isolated feature_store/{capture,sources}.py; phase/review/frame/panel-journal contracts, decisions D030–D041 and measurement evidence JSONs. Latest D041 changes cover original_reader, selection_cli, original-selection tests, evidence and recovery docs. No v1/config/API/scheduler/frontend changes.
@@ -634,3 +634,11 @@ with measured source/selected-question evidence, then freeze a separately justif
 prospective design before any new requests. Do not repeat D089/D090, weaken old6/8gates or
 implement speculative services. Latest disk snapshot13915540KiB free; remeasure and reserve the
 entire proposed run before launch. No test/collector remains active.
+
+October8 window shutdown: D092 implementation/evidence006b006 pushed; draftPR16 body rewritten
+around current results and remaining gates. Allowance94% primary/31% weekly used, ordinary usage
+still allowed; save before primary exhaustion, not a claim of weekly exhaustion. No reset credit
+redeemed. No test/collector active. One existing same-task successor remains08:58Europe/London
+(07:58UTC), five hours ten minutes after this run. Exact next action is the current checkpoint
+bullet and PHASE_03_ONE_SIDED_NEXT.md current-state section. Preserve all empirical failures;
+Phase3 incomplete, Phase4 not started. Unrelated untracked orchestration residue untouched.
