@@ -580,3 +580,12 @@ operation and independent original-reader proof: PHASE_03_STORAGE_COMPRESSION_EV
 After verification13.72GB was free versus13.31GBrequired; remeasure before acquisition.
 Storage blocker cleared. D097 still fails matched controls; next review candidate-pool design
 under PHASE_03_CONTROL_AVAILABILITY_NEXT.md before a justified new protocol. No redraw/Phase4.
+
+## D100 / D101 — fixed-cost within-stratum control support
+
+D100 exact hypothetical sensitivity checks176 finite cases, with explicit heterogeneity and
+no-control counterexamples. D101 freezes one2strata*4member design, with unchanged eight-member
+budget,1/3trigger rule, timing/history/target/control gates and complete discovery. Pair support
+triples for strataN>=4 at unchanged marginal member inclusion; breadth/missingness trade-offs
+remain. No implementation change or old-pilot rewrite. See the sensitivity JSON and
+PHASE_03_CONTROL_POOL_PILOT_PROTOCOL.md. No search-until-success or Phase4.
