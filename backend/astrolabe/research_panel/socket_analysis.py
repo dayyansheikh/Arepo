@@ -135,7 +135,10 @@ def _project(inputs, material, policy, at):
         }
         summary = {**socket, "window_report_hash": socket["socket_window_report_hash"]}
         engine = _Projection(
-            source_policy, summary, WindowCoveragePolicy(policy.max_receipt_hold_ms)
+            source_policy, summary, WindowCoveragePolicy(policy.max_receipt_hold_ms, version=(
+                "fs2-window-coverage-policy-v2"
+                if socket["schema_version"] == "fs2-observation-socket-window-v2"
+                else "fs2-window-coverage-policy-v1"))
         )
         started = time.monotonic()
         for entry in events:
@@ -144,7 +147,9 @@ def _project(inputs, material, policy, at):
             engine.frame(entry)
         result = engine.result()
         result.update(
-            schema_version="fs2-socket-receipt-coverage-v1",
+            schema_version=("fs2-socket-receipt-coverage-v2"
+                            if socket["schema_version"] == "fs2-observation-socket-window-v2"
+                            else "fs2-socket-receipt-coverage-v1"),
             identity_state="verified_prior_source_local_binding",
             source_admitted=False,
             socket_terminal=socket["terminal"],

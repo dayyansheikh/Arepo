@@ -404,3 +404,18 @@ Next D091: distinguish valid one-sided/empty state from malformed input in an ex
 receipt-coverage diagnostic, with zero midpoint/imbalance admission and unchanged legacy output.
 Use synthetic transition tests plus read-only checksum-bound reanalysis; no new collection needed
 for this parser distinction. Preserve D090's original analysis and never assert socket continuity.
+
+## D091 — distinguish one-sided receipt state from malformed messages
+
+Explicit window-coverage policy v2 is selected only for D090 observation sockets. Valid one-sided
+or empty books retain exact side counts/state hash and replay lineage, while midpoint/imbalance
+remain unavailable and the entire interval is uncovered until an actual two-sided update arrives.
+Malformed/conflicting input still invalidates replay and requires a fresh full snapshot. PONGs
+do not refresh any quote. Legacy policy v1 and its old numerical output remain unchanged.
+59 targeted coverage/binding/socket-analysis/original-analysis cases passed39.56s, including
+one-sided/empty states, delta recovery, side removal, malformed gaps, no invented history and
+original-code recovery. Source formatting corrected afterward only; no behavior change.
+Ruff/backend, canonical/whitespace checks pass. Self-review: explicit version selection, bounds,
+state invalidation/recovery, exact receipt durations, all source/phase admission flags remainfalse.
+Next perform checksum-bound retrospective reanalysis of D090 once under this committed code,
+preserving its old analysis. No new external request or empirical acceptance is implied.

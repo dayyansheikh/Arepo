@@ -13,6 +13,7 @@ from astrolabe.feature_store.types import uint_text
 from .book_primitives import _number, _ratio
 
 VERSION = 'fs2-receipt-window-coverage-v1'
+OBSERVATION_POLICY = 'fs2-window-coverage-policy-v2'
 LIMITS = {'max_array_items': 100, 'max_items': 10000, 'max_levels': 10000,
           'max_processing_seconds': 180}
 
@@ -25,7 +26,7 @@ class WindowCoveragePolicy:
     def __post_init__(self):
         if (type(self.max_receipt_hold_ms) is not int
                 or not 1 <= self.max_receipt_hold_ms <= 60000
-                or self.version != 'fs2-window-coverage-policy-v1'):
+                or self.version not in {'fs2-window-coverage-policy-v1', OBSERVATION_POLICY}):
             raise ValueError('explicit finite receipt-hold policy required')
 
 
@@ -175,9 +176,20 @@ class _Projection:
                 view = self.replay.apply(message, evidence_id=item_id,
                     session_id=event['observed_at']['clock_session_id'],
                     received_at=_time(event['observed_at']), monotonic_ns=str(at))
-                top, imbalance = _top(view)
                 _assert_best(message, view, token)
-                record.update(state='snapshot' if kind == 'book' else 'delta', snapshot=top,
+                one_sided = (self.policy.version == OBSERVATION_POLICY
+                             and not view['requires_snapshot']
+                             and (not view['bids'] or not view['asks']))
+                if one_sided:
+                    if len(view['bids']) + len(view['asks']) > LIMITS['max_levels']:
+                        raise ValueError('book level budget exceeded')
+                    top = imbalance = None
+                    self.reason = 'empty_book' if not view['bids'] and not view['asks'] else (
+                        'one_sided_book')
+                else:
+                    top, imbalance = _top(view)
+                record.update(state=self.reason if one_sided else (
+                    'snapshot' if kind == 'book' else 'delta'), snapshot=top,
                     numerical_change=(before['requires_snapshot'] or before['bids'] != view['bids']
                                       or before['asks'] != view['asks']),
                     book_state_hash=content_hash({'bids': view['bids'], 'asks': view['asks']}),
@@ -263,7 +275,9 @@ class _Projection:
         instant = (self.imbalance if self.state is not None and self.end
                    < self.state_at + self.policy.max_receipt_hold_ms * 1000000 else None)
         ratio = mean / instant if mean is not None and instant not in {None, 0} else None
-        return {'schema_version': VERSION, 'policy': asdict(self.policy), 'limits': dict(LIMITS),
+        return {'schema_version': ('fs2-receipt-window-coverage-v2'
+                                  if self.policy.version == OBSERVATION_POLICY else VERSION),
+                'policy': asdict(self.policy), 'limits': dict(LIMITS),
                 'source_policy': self.source_policy,
                 'source_report_hash': self.summary['window_report_hash'],
                 'frames': self.frames, 'items': self.items, 'segments': self.segments,

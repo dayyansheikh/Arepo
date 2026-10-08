@@ -30,7 +30,8 @@ def delta(size='1', **kwargs):
                                **kwargs}]}
 
 
-def project(messages, *, hold=1000, terminal=1000, duration=1000):
+def project(messages, *, hold=1000, terminal=1000, duration=1000,
+            version='fs2-window-coverage-policy-v1'):
     events = []
     for i, (ms, value) in enumerate(messages, 1):
         raw = (value if isinstance(value, bytes) else value.encode() if isinstance(value, str)
@@ -44,7 +45,7 @@ def project(messages, *, hold=1000, terminal=1000, duration=1000):
         {'token_id': '1', 'condition_id': CONDITION, 'duration_ms': duration},
         {'subscription_sent_at': clock(0), 'ended_at': clock(terminal),
          'window_report_hash': 'a' * 64, 'provenance_class': 'synthetic'}, events,
-        policy=WindowCoveragePolicy(hold))
+        policy=WindowCoveragePolicy(hold, version=version))
 
 
 def ratio(value):
@@ -193,3 +194,42 @@ def test_integer_token_best_assertions_are_not_silently_skipped():
     change['price_changes'][0]['asset_id'] = 1
     result = project([(100, book()), (200, change)])
     assert result['items'][-1]['state'] == 'invalid_or_conflicting_message'
+
+
+@pytest.mark.parametrize('side', ['bids', 'asks', 'both'])
+def test_v2_missing_side_is_observed_state_without_numerical_coverage(side):
+    partial = book()
+    for key in ('bids', 'asks'):
+        if side in (key, 'both'):
+            partial[key] = []
+    result = project([(100, partial), (300, 'PONG')],
+                     version='fs2-window-coverage-policy-v2')
+    expected = 'empty_book' if side == 'both' else 'one_sided_book'
+    assert result['schema_version'] == 'fs2-receipt-window-coverage-v2'
+    assert result['items'][0]['state'] == expected
+    assert result['items'][0]['snapshot'] is None
+    assert result['uncovered_duration_ns'] == '1000000000'
+    assert result['covered_mean_imbalance'] is None and result['end_imbalance'] is None
+    assert not result['gaps'] and not result['complete_continuous_history']
+    assert expected in {x['state'] for x in result['segments']}
+
+
+def test_v2_delta_recovers_missing_side_without_backdating_coverage():
+    partial = book()
+    partial['bids'] = []
+    result = project([(100, partial), (300, delta()), (600, delta('0'))],
+                     version='fs2-window-coverage-policy-v2')
+    assert [x['state'] for x in result['items']] == ['one_sided_book', 'delta', 'one_sided_book']
+    assert result['reconstructed_receipt_duration_ns'] == '300000000'
+    assert result['end_imbalance'] is None
+    assert not result['gaps'] and not result['complete_continuous_history']
+
+
+def test_v2_malformed_gap_still_requires_new_full_snapshot():
+    partial = book()
+    partial['bids'] = []
+    result = project([(100, partial), (200, 'bad json'), (300, delta()), (600, book())],
+                     version='fs2-window-coverage-policy-v2')
+    assert result['items'][1]['state'] == 'invalid_or_conflicting_message'
+    assert result['reconstructed_receipt_duration_ns'] == '400000000'
+    assert result['gaps']
