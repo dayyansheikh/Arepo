@@ -1354,3 +1354,21 @@ with measured source/selected-question evidence, then freeze a separately justif
 prospective design before any new requests. Do not repeat D089/D090, weaken old6/8gates or
 implement speculative services. Latest disk snapshot13915540KiB free; remeasure and reserve the
 entire proposed run before launch. No test/collector remains active.
+
+
+## D093/D094 — rule evidence and finite observation integration measurement
+
+Verified all8 retained Gamma raw/receipt hashes and reviewed complete resolution descriptions.
+France/Spain share identical tournament-winner rules; this is stronger than title matching,
+but does not establish a complete outcome set or retroactive causal price binding. No sampled
+rule matches the collected KNYC quantity. Explicit retrospective per-market record:
+PHASE_03_FAMILY_ELIGIBILITY_REVIEW.json. External/related features remain unavailable; current
+source rights and actual prospective observations would be required for any new admission.
+
+D094 freezes one public attempt of the newly implemented owned observation mode, with all
+D089 gates/budgets unchanged and a new complete observer-attempt accounting gate. Its reason
+is validation of a changed data path, not another draw to obtain success. Exact script and
+terminal/no-repeat rule: PHASE_03_OBSERVATION_PILOT_PROTOCOL.md. Self-review: mode selected
+explicitly, complete-frame prerequisites, exact probabilities, exclusive roots, full reserve,
+causal clocks, original audit, missing-history distinction and no protected changes. No code
+changed; D09224 tests stay accepted. Syntax/API/canonical/whitespace checks apply to this plan.
