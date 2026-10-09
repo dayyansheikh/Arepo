@@ -123,3 +123,21 @@ Exact next action: PHASE_03_CONTROL_AVAILABILITY_NEXT.md after capacity recovery
 Current capacity update D099: storage blocker cleared with exact-byte transparent filesystem
 compression; original-reader equivalence passed. See PHASE_03_STORAGE_COMPRESSION_EVIDENCE.json
 and live checkpoint. D097 control failure remains; no new pilot or Phase4 started.
+
+## D101 terminal / D102 verification profile — October9
+
+D101 failed before selection: the complete276795-row frame was captured under884adb6,
+but original-code verification exceeded300s. No origins/targets or control-design result.
+Failure, raw evidence and original clocks preserved; no retry, relaxed deadline or redraw.
+PHASE_03_CONTROL_POOL_PILOT_EVIDENCE.json records14 verified artifact hashes/sizes.
+
+D102 read-only32-page ordinal-spread profile localises substantial cost in canonical
+serialisation/page-fact re-derivation (7.393s total with profiler overhead). It is not a
+full-verification benchmark or repaired pilot. Next evaluate exact-byte-preserving
+serialisation improvements with hostile-type/equivalence and affected parser/recovery
+tests before any source change is accepted. Old records must still use pinned code.
+PHASE_03_FRAME_VERIFICATION_PROFILE.json contains page hashes, timings and script.
+
+Phase3 remains incomplete; D097 controls still fail. No source changed, accepted tests
+not repeated, no production or Phase4 action. Current capacity9.535GB<13.309GBrequired;
+no collection until full reservation restored. Follow live checkpoint for next action.
