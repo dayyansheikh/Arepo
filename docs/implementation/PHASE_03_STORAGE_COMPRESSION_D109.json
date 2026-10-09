@@ -1,0 +1,244 @@
+{
+  "decision": "D109",
+  "operations": [
+    {
+      "operation": {
+        "version": "arepo-local-transparent-compression-v1",
+        "source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_2413ff8c20c04a4ba31763fdadd3a84e",
+        "candidate": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-compression-candidate-20261009-3",
+        "rollback_copy": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-uncompressed-backup-20261009-3",
+        "started_at": "2026-10-09T16:35:28.986934+00:00",
+        "free_before_bytes": 8302538752,
+        "state": "complete",
+        "semantics": "All primary files stay at the same paths with exact bytes. No record deletion, archive-only substitution, retention or production change.",
+        "operation_sha256": "9f921684a2a397e8a5e08d82a0220d004ed4988457927d34a9a663ffbf4abd0b",
+        "files": 19339,
+        "logical_bytes": 4381096845,
+        "allocated_before_bytes": 4435140608,
+        "manifest_sha256": "a09685e39ee418cc62d742af77b47a99f67d8b27fbcea84be846e98d8279eebe",
+        "allocated_compressed_bytes": 686166016,
+        "expected_allocated_saving_bytes": 3748974592,
+        "finished_at": "2026-10-09T16:37:14.287817+00:00",
+        "free_after_bytes": 12076445696,
+        "all_content_hashes_equal": true,
+        "all_sizes_modes_owners_mtimes_equal": true,
+        "original_paths_preserved": true,
+        "logical_records_deleted": 0,
+        "observed_free_delta_bytes": 3773906944
+      },
+      "proof": {
+        "original_report_equal": true,
+        "original_report_source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/fs2_frame_read_original/original_report.json",
+        "original_report_sha256": "09fc6c79e58319a02ca15f33540087d2f8cac1de95d4144cd2cb71599cb26751",
+        "verification_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_3",
+        "read_receipt": {
+          "completed_at": {
+            "clock_session_id": "ab621672-172b-4e83-aa7b-ad0115bab0f3",
+            "monotonic_ns": "2485147479138333",
+            "utc": "2026-10-09T21:27:23.092227Z"
+          },
+          "metadata_read_started_at": {
+            "clock_session_id": "ab621672-172b-4e83-aa7b-ad0115bab0f3",
+            "monotonic_ns": "2484981979035541",
+            "utc": "2026-10-09T21:24:37.589751Z"
+          },
+          "observation_clocks_changed": false,
+          "origin_admitted": false,
+          "original_provenance_class": "prospective",
+          "original_report_hash": "4e815dbddb4a9895a144eed2cf7a2e7ec473e7a4140729b8576a4a2a4d082708",
+          "original_state": "exhausted_consistent",
+          "output_bytes": 3093610,
+          "output_hash": "09fc6c79e58319a02ca15f33540087d2f8cac1de95d4144cd2cb71599cb26751",
+          "read_policy_hash": "0969a2c87b7a14c913ed5ed35ce80e1f4052119c6b1ec83cdeb0611d72956cc6",
+          "schema_version": "fs2-original-frame-read-v1",
+          "verification_started_at": {
+            "clock_session_id": "ab621672-172b-4e83-aa7b-ad0115bab0f3",
+            "monotonic_ns": "2484984674342250",
+            "utc": "2026-10-09T21:24:40.285111Z"
+          }
+        },
+        "read_available_at": {
+          "clock_session_id": "ab621672-172b-4e83-aa7b-ad0115bab0f3",
+          "monotonic_ns": "2485147482905125",
+          "utc": "2026-10-09T21:27:23.096036Z"
+        },
+        "free_bytes_after_verification": 12243984384
+      },
+      "artifacts": [
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_3/manifest.json.gz",
+          "bytes": 1119687,
+          "sha256": "87a995cfa7a078d66579542e2beace6911ed606f78d8c78538c4dd3e721aac19"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_3/operation.json",
+          "bytes": 1294,
+          "sha256": "528e7e42760fca080707874c4fc1748252a9632858f8683957a2d4e5fd1c975a"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_3/operation.py",
+          "bytes": 3957,
+          "sha256": "9f921684a2a397e8a5e08d82a0220d004ed4988457927d34a9a663ffbf4abd0b"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_3/verification.json",
+          "bytes": 1754,
+          "sha256": "601ede5636e604e0905407e1f15a654a02070f396229be30a2322b8f2f74c8fe"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_3/verification.py",
+          "bytes": 1102,
+          "sha256": "6f1af87775cd2ced73b77683c97140cb8a7889d21e3dc67ec6347249f863b5c4"
+        },
+        {
+          "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_3/original_report.json",
+          "bytes": 3093610,
+          "sha256": "09fc6c79e58319a02ca15f33540087d2f8cac1de95d4144cd2cb71599cb26751"
+        },
+        {
+          "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_3/read_policy.json",
+          "bytes": 18203,
+          "sha256": "0969a2c87b7a14c913ed5ed35ce80e1f4052119c6b1ec83cdeb0611d72956cc6"
+        },
+        {
+          "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_3/read_policy_ack.json",
+          "bytes": 227,
+          "sha256": "14fd7ace268fe4729b35e16731c1de856149c7c0607663bab687a9715e5d372e"
+        },
+        {
+          "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_3/read_receipt.json",
+          "bytes": 926,
+          "sha256": "92766b294efd119bdd4c5a19a972d2e847b13dd8bcf40f506b6e61b7d2363374"
+        },
+        {
+          "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_3/read_receipt_ack.json",
+          "bytes": 227,
+          "sha256": "ed2df86febe92c6d2ef71b0ec5c6d7a3e775f1fca12a0594ec1d33bb96e2f1bb"
+        }
+      ]
+    },
+    {
+      "operation": {
+        "version": "arepo-local-transparent-compression-v1",
+        "source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_f1f8ed0835e544228439115e4c2f8efc",
+        "candidate": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-compression-candidate-20261009-4",
+        "rollback_copy": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-uncompressed-backup-20261009-4",
+        "started_at": "2026-10-09T21:27:56.000546+00:00",
+        "free_before_bytes": 12242685952,
+        "state": "complete",
+        "semantics": "All primary files stay at the same paths with exact bytes. No record deletion, archive-only substitution, retention or production change.",
+        "operation_sha256": "6877260fd210a476b4072c381f8865b19af53e7d482cfef6e73ed00b1701eb97",
+        "files": 16574,
+        "logical_bytes": 3648559511,
+        "allocated_before_bytes": 3694923776,
+        "manifest_sha256": "7fda7e8efd86dbbe433797e0cbc0c6b361ffb1d4f19abec8b84cd39fe271a2d2",
+        "allocated_compressed_bytes": 581537792,
+        "expected_allocated_saving_bytes": 3113385984,
+        "finished_at": "2026-10-09T21:29:17.608301+00:00",
+        "free_after_bytes": 15347556352,
+        "all_content_hashes_equal": true,
+        "all_sizes_modes_owners_mtimes_equal": true,
+        "original_paths_preserved": true,
+        "logical_records_deleted": 0,
+        "observed_free_delta_bytes": 3104870400
+      },
+      "proof": {
+        "original_report_equal": true,
+        "original_report_source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_owned_pilot_20261003_1/fs2_frame_read_original/original_report.json",
+        "original_report_sha256": "56df02780a6c89452c79eb35831ac49dd52622f8b4117a6a0eaf04a9671215f2",
+        "verification_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_4",
+        "read_receipt": {
+          "completed_at": {
+            "clock_session_id": "a4872766-a458-4719-8db8-5d54c2d97dbb",
+            "monotonic_ns": "2485425255803041",
+            "utc": "2026-10-09T21:32:00.872924Z"
+          },
+          "metadata_read_started_at": {
+            "clock_session_id": "a4872766-a458-4719-8db8-5d54c2d97dbb",
+            "monotonic_ns": "2485267388000708",
+            "utc": "2026-10-09T21:29:23.002835Z"
+          },
+          "observation_clocks_changed": false,
+          "origin_admitted": false,
+          "original_provenance_class": "prospective",
+          "original_report_hash": "efe829656b0f6571c4e075c9007ccbd3efaebe84f1f4c66613ede40439fa61e6",
+          "original_state": "exhausted_consistent",
+          "output_bytes": 2651208,
+          "output_hash": "56df02780a6c89452c79eb35831ac49dd52622f8b4117a6a0eaf04a9671215f2",
+          "read_policy_hash": "b7723e423ffb4af7009246c0fdbdc604d58307f4d7af77ab2344294eb01e5ef7",
+          "schema_version": "fs2-original-frame-read-v1",
+          "verification_started_at": {
+            "clock_session_id": "a4872766-a458-4719-8db8-5d54c2d97dbb",
+            "monotonic_ns": "2485272830492541",
+            "utc": "2026-10-09T21:29:28.445459Z"
+          }
+        },
+        "read_available_at": {
+          "clock_session_id": "a4872766-a458-4719-8db8-5d54c2d97dbb",
+          "monotonic_ns": "2485425259804041",
+          "utc": "2026-10-09T21:32:00.876985Z"
+        },
+        "free_bytes_after_verification": 15339786240
+      },
+      "artifacts": [
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_4/manifest.json.gz",
+          "bytes": 960163,
+          "sha256": "b485e3c1d0642bd2fc30a4c64309d0c6743e0611ef826e3312495e7ee7f353f0"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_4/operation.json",
+          "bytes": 1295,
+          "sha256": "2dd64729b540b931642b39e80086339bc30beac848ded79cda9c85a45854b8e5"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_4/operation.py",
+          "bytes": 3957,
+          "sha256": "6877260fd210a476b4072c381f8865b19af53e7d482cfef6e73ed00b1701eb97"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_4/verification.json",
+          "bytes": 1746,
+          "sha256": "50b5614a2829b7184a9744a4c04a74071379d7f84864854e9309b662ec6dacee"
+        },
+        {
+          "path": "data-dumps/fs2_storage_compression_20261009_4/verification.py",
+          "bytes": 1094,
+          "sha256": "9066eb6b896fc2a048f5cb944446375ccb3d42e91b7895c1a26eb004319fa7bb"
+        },
+        {
+          "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_4/original_report.json",
+          "bytes": 2651208,
+          "sha256": "56df02780a6c89452c79eb35831ac49dd52622f8b4117a6a0eaf04a9671215f2"
+        },
+        {
+          "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_4/read_policy.json",
+          "bytes": 17675,
+          "sha256": "b7723e423ffb4af7009246c0fdbdc604d58307f4d7af77ab2344294eb01e5ef7"
+        },
+        {
+          "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_4/read_policy_ack.json",
+          "bytes": 227,
+          "sha256": "10d52c0456c960e157ef1ee2c9909f67468a16030dc108c6c487417e4f5bd071"
+        },
+        {
+          "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_4/read_receipt.json",
+          "bytes": 926,
+          "sha256": "d6522a69af28d711000a5fec43bc8d0e4ade11d536b787ebb936e86b29c3f8fc"
+        },
+        {
+          "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261009_4/read_receipt_ack.json",
+          "bytes": 227,
+          "sha256": "d6b1a4beb983b12ed91e26b985acb71f588f4354794ade5aef71a2a9747a3e2c"
+        }
+      ]
+    }
+  ],
+  "files_preserved": 35913,
+  "logical_bytes_preserved": 8029656356,
+  "allocated_bytes_saved": 6862360576,
+  "logical_records_deleted": 0,
+  "free_bytes_after_verification": 15338749952,
+  "required_full_reservation_bytes": 13308526592,
+  "interpretation": "Transparent local filesystem compression only. Every file stays at the original path with exact logical bytes/mode/owner/mtime; original-code reports equal prior reports. No retention, evidence deletion, archive-only replacement or production change. D106 remains failed."
+}

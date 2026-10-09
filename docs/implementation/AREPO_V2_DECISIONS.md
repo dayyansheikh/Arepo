@@ -720,3 +720,19 @@ Next restore the full local reservation using verified lossless compression of c
 journals, preserving exact bytes/metadata/paths and original-reader report equivalence.
 Then assess one separately frozen integration of this measured implementation improvement;
 never rerun unchanged or relax a failed deadline. Phase3 remains incomplete; no Phase4.
+
+## D109 preservation / D110 integration contract
+
+D109 transparently compresses closed D106 and D077 journals, preserving35913files
+and8029656356logical bytes at their original paths. Exact hashes/sizes/modes/owners/mtimes
+match; both original-code readers reproduce the prior full report. Physical allocation
+saved6862360576bytes; no logical records or cohorts deleted. Evidence:
+PHASE_03_STORAGE_COMPRESSION_D109.json. Free15338749952bytes exceeds
+13308526592required; remeasure at launch. Failed D106 remains failed, clocks unchanged.
+
+D110 freezes one integration after the measured/tested D108 improvement. Script differs
+from D106 only in exclusive output paths.600s interval, sampling/control threshold, observer
+policy, provenance and all gates remain unchanged.209 affected tests passed; no accepted
+test repeated for these documentation/storage operations. Canonical/whitespace checks pass.
+No source edits during collection or original audit. Extract the actual terminal outcome;
+a failure stops acquisition and is preserved, not retried. No Phase4 or production action.

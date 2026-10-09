@@ -1,6 +1,6 @@
 # AREPO v2 master implementation plan
 
-Updated 2026-09-27. This programme evolves the existing dayyansheikh/Arepo repository. Phase numbers follow the user's implementation programme, not the older report's differently numbered design roadmap. Phases 00–02 complete; next phase: **03 — Bounded prospective panel**.
+Updated 2026-10-09. This programme evolves the existing dayyansheikh/Arepo repository. Phases00–02 complete; current phase03 remains incomplete. Phase4 starts only in a fresh conversation after genuine Phase3 acceptance.
 
 ## Recovery order and authority
 
@@ -13,7 +13,7 @@ Read ../AREPO_V2_CHECKPOINT.md first, then AGENTS.md, this plan, the current pha
 | 00 | [Canonical foundation](phases/PHASE_00_FOUNDATION.md) | Verified production + supplied research | Complete — draft PR #13 |
 | 01 | [Feature Store v2 foundations](phases/PHASE_01_FEATURE_STORE.md) | 00 accepted outputs | Complete — draft PR #14; 610 backend tests passed |
 | 02 | [Sources, clocks and identities](phases/PHASE_02_SOURCES_CLOCKS_IDENTITY.md) | 01 accepted outputs | Complete — draft PR #15; 685 tests and new predeclared core-source run |
-| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Incomplete — D082 real bounded snapshot/control/target execution accepted; D083 causal window/history component accepted. D084 owned observer/runtime integration passes9 new cases and49 affected regressions; D085 integrated empirical run failed freshness/availability gates; D086 pre-activation replay repair passes21 scoped tests; eight-member synthetic timing failed activation; D087 bounded expected-code cache passes76 tests; 8-member synthetic runtime/history/target/original recovery passes; D088 complete but expired before selection; next D089 single-process fresh-frame/pilot in PHASE_03_WINDOW_LATENCY_NEXT.md. Current evidence gates and limitations: [acceptance map](PHASE_03_ACCEPTANCE_STATUS.md); exact active work: live checkpoint. Draft PR #16. |
+| 03 | [Bounded prospective panel](phases/PHASE_03_PROSPECTIVE_PANEL.md) | 02 accepted outputs | Incomplete — D097 failed matched controls; D106 failed frame interval before selection. D108 measured capture optimisation passes209 affected tests. D109 local preservation/capacity recovery precedes any D110 integration. See [acceptance map](PHASE_03_ACCEPTANCE_STATUS.md) and live checkpoint for exact active work. Draft PR #16. |
 | 04 | [Baselines and initial edge experiments](phases/PHASE_04_EDGE_EXPERIMENTS.md) | 03 accepted outputs + sufficient clean independent events | Provisional |
 | 05 | [Wallet and information event engine](phases/PHASE_05_WALLET_INFORMATION.md) | 04 accepted outputs + sufficient clean independent events | Provisional |
 | 06 | [Bayesian and ML candidates](phases/PHASE_06_MODELS.md) | 05 accepted outputs + sufficient clean independent events | Provisional |

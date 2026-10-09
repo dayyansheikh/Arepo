@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — D101 failed original-frame verification before selection; D102 profile identifies the next performance investigation. D097 matched-control failure remains. See live checkpoint and acceptance map.
+Status: incomplete — D106 failed600s frame interval before selection. D108 strict capture improvements pass209 affected tests and exact-byte comparison; full-run timing remains unproved. D109 storage recovery precedes any D110 integration. Follow live checkpoint.
 
 ## Objective
 

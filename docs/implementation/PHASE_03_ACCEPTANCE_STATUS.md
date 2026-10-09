@@ -1,4 +1,4 @@
-# Phase 3 acceptance — current through D097
+# Phase 3 acceptance — current through D108
 
 Phase 3 remains incomplete. D082 closes the real origin/control/target **execution** gate;
 it does not waive the remaining observation scope. Phase 4 starts in a fresh conversation

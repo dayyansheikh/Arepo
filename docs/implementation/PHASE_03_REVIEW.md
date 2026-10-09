@@ -1,3 +1,10 @@
+# Current review state — October9
+
+D108 implementation a28be2e passes209 affected tests and exact32-page parsed/ack/page-fact
+equivalence. Phase3 remains incomplete: D106 failed frame interval before selection; D097
+failed matched controls. D109 storage proof and any D110 integration follow the live checkpoint.
+The sections below retain chronological milestone evidence, not current task instructions.
+
 # Phase 3 planning milestone — 2026-09-20
 
 Phase 3 remains **incomplete**, stacked from accepted Phase 2 `747485c` / draft #15.
@@ -1603,3 +1610,19 @@ Next restore the full local reservation using verified lossless compression of c
 journals, preserving exact bytes/metadata/paths and original-reader report equivalence.
 Then assess one separately frozen integration of this measured implementation improvement;
 never rerun unchanged or relax a failed deadline. Phase3 remains incomplete; no Phase4.
+
+## D109 preservation / D110 integration contract
+
+D109 transparently compresses closed D106 and D077 journals, preserving35913files
+and8029656356logical bytes at their original paths. Exact hashes/sizes/modes/owners/mtimes
+match; both original-code readers reproduce the prior full report. Physical allocation
+saved6862360576bytes; no logical records or cohorts deleted. Evidence:
+PHASE_03_STORAGE_COMPRESSION_D109.json. Free15338749952bytes exceeds
+13308526592required; remeasure at launch. Failed D106 remains failed, clocks unchanged.
+
+D110 freezes one integration after the measured/tested D108 improvement. Script differs
+from D106 only in exclusive output paths.600s interval, sampling/control threshold, observer
+policy, provenance and all gates remain unchanged.209 affected tests passed; no accepted
+test repeated for these documentation/storage operations. Canonical/whitespace checks pass.
+No source edits during collection or original audit. Extract the actual terminal outcome;
+a failure stops acquisition and is preserved, not retried. No Phase4 or production action.
