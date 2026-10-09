@@ -1,12 +1,12 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-09 09:48 UTC recovery. D101 is terminal, failed before selection; D102 bounded profile retained. Phase 3 incomplete. No collector/test is active.
+Updated: 2026-10-09 11:04 UTC manual continuation. D101 is terminal, failed before selection; D102 bounded profile retained. Phase 3 incomplete. No collector/test is active.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
 - Previous implementation continuation: 2026-09-27 10:35 UTC. Initial allowance 1% primary /32% weekly used; ordinary usage allowed. D069 bounded stratum sampler/declaration/selection implemented; 193 affected tests passed in 217.52s. Full original-code recovery and legacy defaults pass. No public collection or empirical acceptance.
-- Current successor: exactly one same-task continuation October9 15:58 Europe/London /14:58 UTC (+310min), canonical PHASE_03_HEARTBEAT.md prompt.
-- Current continuation: October9 09:48 UTC; 1% primary /98% weekly used, ordinary usage available. No reset credit redeemed.
+- Current successor: exactly one same-task continuation October9 17:14 Europe/London /16:14 UTC (+310min), canonical PHASE_03_HEARTBEAT.md prompt.
+- Current continuation: October9 11:04 UTC; 1% primary /0% weekly used, ordinary usage available. This agent made no reset-credit redemption call; platform now reports no available reset credits.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
 - Latest safe terminal/profile evidence commit: 4b6b6dd, pushed (D101 failure and D102 profile).
@@ -27,7 +27,7 @@ Updated: 2026-10-09 09:48 UTC recovery. D101 is terminal, failed before selectio
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: evaluate the D103 strict-JSON row-hash candidate in PHASE_03_STRICT_JSON_HASH_PROBE.json for a narrowly scoped parse_page implementation. Only freshly _strict_json-decoded row values may use it; never substitute it for generic canonical_json, which must reject arbitrary floats/nonstring keys. Require exact bytes/errors on decimals, exponent spellings, nested tags, Unicode, malformed/duplicate/nonfinite JSON and invalid rows, affected frame/recovery tests, then a representative whole-path benchmark before accepting a repair. Do not repeat rejected D102 dispatch probes. D101 stays failed; no deadline relaxation, redraw or Phase4. Recheck/restore the full reservation before any justified new collection.
+- Exact next action: run D104 bounded offline full-frame computational benchmark, comparing old/new page facts and summaries without journal admission or a changed original-reader deadline. Implementation97tests pass;32-page measured gain is only a component result. D101 stays failed; restore full capacity before any justified prospective measurement. No Phase4.
 - Latest modules/files: D096 research_panel/panel_declaration.py, panel_selection.py and test_research_panel_temporal_population.py; D097 temporal protocol/evidence; D098 cleanup audit and control-availability next contract, checkpoint/master/phase/review/decision/gate docs. No source edits after32590d7.
 - Current capacity observation (October9 recovery): 9,534,107,648 bytes free versus 13,308,526,592 required. No new collection permitted at this capacity. Safe local code/profile work remains possible; D099 offers a proven lossless representation option, not evidence deletion.
 - Next-run constraints: complete discovery separate from conditional temporal deep population; category still missing. Unknown metadata retained. No control fabrication or relaxed threshold. Check full7GiBframe+declared panel/recovery+2GiBreserve before future measurement; no paid/production storage.
@@ -861,3 +861,22 @@ validation. Ordinary usage remains allowed; not an exhausted-allowance claim. No
 test repeated, no source/collector active. Evidence JSON/canonical/whitespace checks pass.
 Safe prior boundary d02eb0a; current evidence commit is identifiable in Git history.
 PR16 remains draft. Exactly one successor14:58UTC/15:58London, unchanged canonical prompt.
+
+## D104 — exact row hashing at the strict raw-JSON boundary
+
+parse_page now hashes its freshly decoded JSON row directly, using canonical_value only
+for Decimal tags. The strict parser guarantees string keys/int/Decimal/JSON types; generic
+canonical_json/content_hash remain unchanged and reject arbitrary Python floats/nonstring
+keys. No guard, timestamp, source scope, cohort or parser acceptance is relaxed. Existing
+malformed/nonfinite/duplicate-key and oversized-numeric errors remain. Source changed only
+in research_panel/frame.py; focused test_research_panel_row_hash.py adds22 cases.
+
+Validation:97 targeted row-hash/frame/original-reader/type cases passed39.13s; log
+/tmp/arepo_d104_tests.log. The32-page component pipeline matched every original persisted
+fact, with old2.528/2.196s versus new2.096/1.953s. Exact script/input hashes/source hash/order
+in PHASE_03_ROW_HASH_BENCHMARK.json. No whole-frame deadline or empirical acceptance claim.
+Self-review: optimisation is private to raw parsing, strict generic hashing is unchanged,
+old records still require original code, all identity/missingness fields are unchanged.
+Next bounded offline full-frame computational benchmark, comparing old/new summaries and
+persisted facts without admitting a frame under a new build; then assess the measured gap.
+D101 remains failed and no new source collection is authorised without full reservation.

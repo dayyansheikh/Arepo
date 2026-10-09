@@ -27,6 +27,7 @@ from astrolabe.feature_store.source_bridge import _time
 from astrolabe.feature_store.source_parsers import gamma_identity
 from astrolabe.feature_store.source_run import _ordered_clocks, _pair, _persist, _read
 from astrolabe.feature_store.sources import SOURCES
+from astrolabe.feature_store.types import canonical_value
 
 from .build_identity import verified_panel_build
 
@@ -215,6 +216,14 @@ def parse_page(raw, limit):
         raise ValueError('full page missing cursor is not proven exhaustion')
     rows = []
     for index, row in enumerate(markets):
+        # Only fresh _strict_json output reaches this encoder: string keys, int/Decimal
+        # numbers, and JSON containers/primitives. Decimal tags still use the canonical
+        # converter. Do not use this shortcut for arbitrary Python inputs (finite floats
+        # would otherwise be accepted); generic content_hash remains strict everywhere.
+        row_hash = _digest(json.dumps(
+            row, default=canonical_value, sort_keys=True, separators=(',', ':'),
+            ensure_ascii=False, allow_nan=False,
+        ).encode('utf-8'))
         identity, reasons = None, []
         market_id = row.get('id') if isinstance(row, dict) else None
         if not isinstance(market_id, str) or not market_id:
@@ -233,7 +242,7 @@ def parse_page(raw, limit):
         elif not row['active']:
             reasons.append('inactive')
         rows.append({
-            'source_index': index, 'market_id': market_id, 'row_hash': content_hash(row),
+            'source_index': index, 'market_id': market_id, 'row_hash': row_hash,
             'identity': identity, 'eligible': not reasons, 'exclusion_reasons': reasons,
             'selected_token_id': identity['outcomes'][0]['token_id'] if identity else None,
         })

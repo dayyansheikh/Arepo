@@ -625,3 +625,22 @@ continue rejecting binary floats/nonstring keys; this shortcut is eligible only 
 the strict raw-JSON parse boundary. Before adoption require hostile-input/equivalence
 and affected frame/original-recovery tests plus a whole-path benchmark. Old D101 remains
 failed. Phase3 incomplete; no redraw, deadline change, data deletion or Phase4.
+
+## D104 — exact row hashing at the strict raw-JSON boundary
+
+parse_page now hashes its freshly decoded JSON row directly, using canonical_value only
+for Decimal tags. The strict parser guarantees string keys/int/Decimal/JSON types; generic
+canonical_json/content_hash remain unchanged and reject arbitrary Python floats/nonstring
+keys. No guard, timestamp, source scope, cohort or parser acceptance is relaxed. Existing
+malformed/nonfinite/duplicate-key and oversized-numeric errors remain. Source changed only
+in research_panel/frame.py; focused test_research_panel_row_hash.py adds22 cases.
+
+Validation:97 targeted row-hash/frame/original-reader/type cases passed39.13s; log
+/tmp/arepo_d104_tests.log. The32-page component pipeline matched every original persisted
+fact, with old2.528/2.196s versus new2.096/1.953s. Exact script/input hashes/source hash/order
+in PHASE_03_ROW_HASH_BENCHMARK.json. No whole-frame deadline or empirical acceptance claim.
+Self-review: optimisation is private to raw parsing, strict generic hashing is unchanged,
+old records still require original code, all identity/missingness fields are unchanged.
+Next bounded offline full-frame computational benchmark, comparing old/new summaries and
+persisted facts without admitting a frame under a new build; then assess the measured gap.
+D101 remains failed and no new source collection is authorised without full reservation.
