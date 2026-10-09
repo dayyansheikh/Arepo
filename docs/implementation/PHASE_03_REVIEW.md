@@ -1527,3 +1527,13 @@ old records still require original code, all identity/missingness fields are unc
 Next bounded offline full-frame computational benchmark, comparing old/new summaries and
 persisted facts without admitting a frame under a new build; then assess the measured gap.
 D101 remains failed and no new source collection is authorised without full reservation.
+
+D104 full offline computational comparison completed:276795 rows/2769 attempts, every
+persisted summary field matches, identical summary hash0355a5ed029a3491fc9247cf3264a842a2d5bf926ea66abf181555d0d291dfcf.
+Original226.301s, candidate210.875s (~6.8% reduction). This is one ordered paired measurement,
+not a statistical speed guarantee, a full subprocess-reader benchmark or D101 repair.
+PHASE_03_FULL_FRAME_HASH_BENCHMARK.json preserves code/input references and exact script.
+The old algorithm also finished below300s here; D101's earlier deadline failure therefore
+cannot be attributed solely to hashing or declared resolved. Original source recovery and
+all prospective gates remain mandatory. Next restore measured full local capacity, then
+consider one separately frozen integration measurement of the tested optimisation.

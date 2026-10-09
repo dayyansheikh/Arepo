@@ -27,7 +27,7 @@ Updated: 2026-10-09 11:04 UTC manual continuation. D101 is terminal, failed befo
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: run D104 bounded offline full-frame computational benchmark, comparing old/new page facts and summaries without journal admission or a changed original-reader deadline. Implementation97tests pass;32-page measured gain is only a component result. D101 stays failed; restore full capacity before any justified prospective measurement. No Phase4.
+- Exact next action: finish D105 lossless compression of closed D097 and D089 journals using prepared /tmp/arepo_d105_compress_{1,2}.py and original-reader verification scripts. First operation is active (session36820, log /tmp/arepo_d105_compress_1.log); never launch duplicate or touch active journal. Validate exact bytes/metadata and original report equality, record capacity. D104 full comparison completed; then freeze at most one justified prospective integration measurement, preserving D101 failure and all gates. No Phase4.
 - Latest modules/files: D096 research_panel/panel_declaration.py, panel_selection.py and test_research_panel_temporal_population.py; D097 temporal protocol/evidence; D098 cleanup audit and control-availability next contract, checkpoint/master/phase/review/decision/gate docs. No source edits after32590d7.
 - Current capacity observation (October9 recovery): 9,534,107,648 bytes free versus 13,308,526,592 required. No new collection permitted at this capacity. Safe local code/profile work remains possible; D099 offers a proven lossless representation option, not evidence deletion.
 - Next-run constraints: complete discovery separate from conditional temporal deep population; category still missing. Unknown metadata retained. No control fabrication or relaxed threshold. Check full7GiBframe+declared panel/recovery+2GiBreserve before future measurement; no paid/production storage.
@@ -824,7 +824,7 @@ Decimal/datetime tags and original-build guards in any prospective optimisation.
 
 Evidence: PHASE_03_CONTROL_POOL_PILOT_EVIDENCE.json (14 artifact hashes/sizes rechecked),
 PHASE_03_FRAME_VERIFICATION_PROFILE.json (32 page references, complete profiling script).
-No source edits since32590d7; no accepted code tests repeated. This evidence/docs commit
+Historical D102 boundary had no source edits since32590d7; D104 now changes only frame row hashing, with97affected tests passing. This evidence/docs commit
 is the latest safe recovery boundary; resolve its exact hash with git log. PR16 remains
 draft on the same Phase2 base. Remaining Phase3 gates and older failures unchanged.
 
@@ -880,3 +880,13 @@ old records still require original code, all identity/missingness fields are unc
 Next bounded offline full-frame computational benchmark, comparing old/new summaries and
 persisted facts without admitting a frame under a new build; then assess the measured gap.
 D101 remains failed and no new source collection is authorised without full reservation.
+
+D104 full offline computational comparison completed:276795 rows/2769 attempts, every
+persisted summary field matches, identical summary hash0355a5ed029a3491fc9247cf3264a842a2d5bf926ea66abf181555d0d291dfcf.
+Original226.301s, candidate210.875s (~6.8% reduction). This is one ordered paired measurement,
+not a statistical speed guarantee, a full subprocess-reader benchmark or D101 repair.
+PHASE_03_FULL_FRAME_HASH_BENCHMARK.json preserves code/input references and exact script.
+The old algorithm also finished below300s here; D101's earlier deadline failure therefore
+cannot be attributed solely to hashing or declared resolved. Original source recovery and
+all prospective gates remain mandatory. Next restore measured full local capacity, then
+consider one separately frozen integration measurement of the tested optimisation.
