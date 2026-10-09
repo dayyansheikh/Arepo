@@ -1,6 +1,6 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-09 21:32UTC. D109 exact-byte/original-reader preservation complete; full capacity restored. D110 frozen integration not yet launched. Phase3 incomplete.
+Updated: 2026-10-09 21:33UTC. D110 active under81d415a after successful full reservation; no source edits until terminal original audit. Phase3 incomplete.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
@@ -9,7 +9,7 @@ Updated: 2026-10-09 21:32UTC. D109 exact-byte/original-reader preservation compl
 - Current continuation: October9 21:24UTC;1% primary/31% weekly used, ordinary usage available; no reset credit redeemed by this agent.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
-- Latest safe terminal/profile evidence commit: df01fa1, pushed (D106 failure and D107 timing/probes). D108 implementation/test/equivalence commit follows; resolve exact hash from Git history.
+- Latest safe protocol/preservation commit: 81d415a042cae8301bad1e6f3d42503424a2dc80, pushed; D109 proof and D110 frozen protocol. D108 implementation a28be2e,209 tests pass. D110 actual run uses81d415a regardless of later docs commits.
 - Previous safe empirical evidence commit: e84d6f8 (D097 terminal evidence), pushed. Current D099 documentation commit records verified storage recovery; resolve its exact hash from Git history. D097 executed13:21:26–13:41:47UTC under8bb82c4488c83cc0fdac6707cc27a9af079562d9, original audit passed. D101 later failed before selection; no collector active; never rerun unchanged.
 - Latest safe implementation commit: a28be2e, pushed (D108 strict capture encoding/duplicate validation),209 affected tests pass. Benchmark preserves all32 copied-journal parsed/ack bytes/page facts; not full-run compliance.
 - Draft PR: https://github.com/dayyansheikh/Arepo/pull/16, open draft against Phase2. Head/body updated with each coherent commit; never merged.
@@ -27,7 +27,7 @@ Updated: 2026-10-09 21:32UTC. D109 exact-byte/original-reader preservation compl
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: commit/review D109 proof and D110 frozen protocol, then launch once via /tmp/arepo_d110_launch.py after clean-tree/full reservation preflight. Preserve any terminal failure; no unchanged rerun or relaxed gates. No source edits during collection or original audit.
+- Exact next action: inspect the existing D110 wrapper result/logs (fs2_capture_encoding_pilot_20261009_1) and active process before any action. If still running, allow bounded acquisition/original audit to finish without source edits. If terminal, extract actual gates/failure, preserve raw evidence and review actual selected rules if any. Never relaunch this prefix, redraw or relax gates. No Phase4.
 - Latest modules/files: research_panel/frame.py and test_research_panel_row_hash.py; D103–D106 profile/equivalence/validation/storage/protocol evidence, checkpoint/review/decisions/master/phase docs. No production/API/configuration changes.
 - Current capacity observation after D109 original-code proofs:15338749952bytes free versus13,308,526,592required. All logical evidence remains online; remeasure before acquisition.
 - Next-run constraints: complete discovery separate from conditional temporal deep population; category still missing. Unknown metadata retained. No control fabrication or relaxed threshold. Check full7GiBframe+declared panel/recovery+2GiBreserve before future measurement; no paid/production storage.
@@ -978,3 +978,13 @@ policy, provenance and all gates remain unchanged.209 affected tests passed; no 
 test repeated for these documentation/storage operations. Canonical/whitespace checks pass.
 No source edits during collection or original audit. Extract the actual terminal outcome;
 a failure stops acquisition and is preserved, not retried. No Phase4 or production action.
+
+## D110 active integration — October9 21:32UTC
+
+Launched once at2026-10-09T21:32:52.112680+00:00 under81d415a042cae8301bad1e6f3d42503424a2dc80.
+Full preflight15302623232bytes free exceeds13308526592required. Frame root:
+/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_4659a62f50f84a68a5101fcbedb2c49b
+Frozen script SHA256ef1eaf966b6134a43bd5db6d1d6abcc3c1f642a4cd183ce5e07bf9ed340f1024.
+Wrapper prefix data-dumps/fs2_capture_encoding_pilot_20261009_1; launch.json/stdout.log/
+stderr.log/result.json suffixes. No source edits during acquisition or original recovery.
+No new origins or acceptance claimed before actual terminal evidence. No duplicate launch.
