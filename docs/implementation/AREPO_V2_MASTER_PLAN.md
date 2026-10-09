@@ -191,3 +191,9 @@ PHASE_03_FRAME_VERIFICATION_PROFILE.json contains page hashes, timings and scrip
 Phase3 remains incomplete; D097 controls still fail. No source changed, accepted tests
 not repeated, no production or Phase4 action. Current capacity9.535GB<13.309GBrequired;
 no collection until full reservation restored. Follow live checkpoint for next action.
+
+Current D104–D106: strict-input row hashing passes97 targeted tests and full offline
+equivalence (226.301→210.875s; no original-reader deadline claim). D105 preserves all
+bytes with verified lossless compression, restoring full reservation. D106 freezes one
+integration with unchanged D101 design/gates; see PHASE_03_VERIFIED_HASH_PILOT_PROTOCOL.md
+and live checkpoint. Phase3 remains incomplete; no Phase4.

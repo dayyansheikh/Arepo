@@ -1537,3 +1537,19 @@ The old algorithm also finished below300s here; D101's earlier deadline failure 
 cannot be attributed solely to hashing or declared resolved. Original source recovery and
 all prospective gates remain mandatory. Next restore measured full local capacity, then
 consider one separately frozen integration measurement of the tested optimisation.
+
+## D105 / D106 — preserved capacity and one integration measurement
+
+D105 losslessly compresses closed D097/D089 journals:35402 files,8022672073 logical
+bytes preserved at original paths;6860333056 physical bytes saved. Every hash/size/mode/
+owner/mtime matches, both original-code readers reproduce exact prior reports. No logical
+evidence/cohorts deleted. PHASE_03_STORAGE_COMPRESSION_2026-10-09.json records manifests,
+scripts, proofs and13950021632 free bytes against13308526592required. Remeasure at launch.
+
+D106 protocol: PHASE_03_VERIFIED_HASH_PILOT_PROTOCOL.md. One bounded integration after
+D104 measured optimisation; source scope, sampling, trigger, clocks, deadlines and all gates
+are identical to D101. Script comparison proves only exclusive paths differ. D101 remains
+failed with no control-design observations. No repeated draw-to-pass loop; preserve any
+D106 failure and stop acquisition.97 targeted tests pass; validation JSON retains exact
+command/log/hash. Complete offline computation matches old facts and summaries but does
+not prove actual subprocess/causal gate compliance. No Phase4 or protected action.
