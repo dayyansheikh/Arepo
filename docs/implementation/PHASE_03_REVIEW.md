@@ -1553,3 +1553,28 @@ failed with no control-design observations. No repeated draw-to-pass loop; prese
 D106 failure and stop acquisition.97 targeted tests pass; validation JSON retains exact
 command/log/hash. Complete offline computation matches old facts and summaries but does
 not prove actual subprocess/causal gate compliance. No Phase4 or protected action.
+
+## D106 terminal / D107 timing diagnosis — October9 16:14 continuation
+
+D106 ran11:27:14–11:53:30UTC underb698306015ca20c42752f885fb9405f46eaed98d, exit1.
+Complete276190-row frame (276146mapped/44unresolved),2762attempts, no retries/errors.
+Original-code read passed (~163.505s verification interval), but selection correctly
+rejected the642.420689s frame interval against the frozen600s limit. No completed
+selection, origins or targets. D106 is not repaired or accepted; do not rerun unchanged.
+PHASE_03_VERIFIED_HASH_PILOT_EVIDENCE.json binds terminal artifacts and a4.26MB full
+per-page timing sidecar at data-dumps/fs2_frame_timing_d106_20261009_1.json.
+
+Recorded monotonic components:305.277s request/response,8.877s receipt-to-raw-ack,91.145s
+raw-to-parse-ack,182.016s parse-to-frame-page-ack,55.194s between pages. These are wall
+intervals, not pure network/CPU timings; final-page persistence is beyond interval_end.
+D10732-page profile adds the live path's build checks and synthetic persistence. No old
+journal is mutated or admitted. Fresh strict parsed-payload encoding and duplicate-key
+checking have bounded exact-output probes; neither is an implemented repair yet.
+
+Official keyset docs checked October9: page limit1–100, opaque returned cursor, no offset.
+https://docs.polymarket.com/api-reference/markets/list-markets-keyset-pagination
+Larger pages or guessed cursor sharding are not supported alternatives. Keep full scope.
+No protocol deadline has changed. Next evaluate the two small semantics-preserving
+parser/serialization improvements with malformed/duplicate/nonfinite/type and affected
+capture/frame/original-recovery tests, then measure combined cost before proposing any
+new collection. Current free~8.38GB<13.31GBreservation; no collection at this capacity.

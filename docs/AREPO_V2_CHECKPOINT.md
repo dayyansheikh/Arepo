@@ -1,12 +1,12 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-09 11:27UTC. D106 ACTIVE underb698306015ca20c42752f885fb9405f46eaed98d; full reservation passed. No source edits or duplicate launch during collection/original audit. Phase3 incomplete.
+Updated: 2026-10-09 16:14UTC. D106 terminal, selection rejected642.420689s interval>600s after original verification passed. D107 timing evidence/probes preserved. No collector active; Phase3 incomplete.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
 - Previous implementation continuation: 2026-09-27 10:35 UTC. Initial allowance 1% primary /32% weekly used; ordinary usage allowed. D069 bounded stratum sampler/declaration/selection implemented; 193 affected tests passed in 217.52s. Full original-code recovery and legacy defaults pass. No public collection or empirical acceptance.
-- Current successor: exactly one same-task continuation October9 17:14 Europe/London /16:14 UTC (+310min), canonical PHASE_03_HEARTBEAT.md prompt.
-- Current continuation: October9 11:04 UTC; 1% primary /0% weekly used, ordinary usage available. This agent made no reset-credit redemption call; platform now reports no available reset credits.
+- Current successor: exactly one same-task continuation October9 22:24 Europe/London /21:24 UTC (+310min), canonical PHASE_03_HEARTBEAT.md prompt.
+- Current continuation: October9 16:14UTC;0% primary/16% weekly used, ordinary usage available; no reset credit redeemed by this agent.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
 - Latest safe terminal/profile evidence commit: 4b6b6dd, pushed (D101 failure and D102 profile).
@@ -27,9 +27,9 @@ Updated: 2026-10-09 11:27UTC. D106 ACTIVE underb698306015ca20c42752f885fb9405f46
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: inspect exclusive data-dumps/fs2_verified_hash_pilot_20261009_1_{launch,result}.json and stdout/stderr logs (session56588). Wait for terminal outcome without source edits, then extract all unchanged D106 gates, timing/weights/artifact hashes and actual selected-rule/family eligibility. Do not repeat launch or relax failure; no Phase4.
+- Exact next action: evaluate D107 strict parsed-envelope encoding and duplicate-key-hook optimisations with exact-byte/error and affected capture/frame/original-recovery tests; see PHASE_03_POST_RECEIPT_PROFILE.json and paired probe JSONs. Preserve every generic numeric/type and provenance guard. Measure combined effect before any new protocol; D106 remains failed, no unchanged rerun or deadline relaxation. Full collection reservation currently unavailable; safe local development remains possible.
 - Latest modules/files: research_panel/frame.py and test_research_panel_row_hash.py; D103–D106 profile/equivalence/validation/storage/protocol evidence, checkpoint/review/decisions/master/phase docs. No production/API/configuration changes.
-- Current capacity observation (D105 proofs complete):13,950,021,632bytes free versus13,308,526,592required; both compressed journals reproduce original reports, all bytes/paths unchanged. Recheck at launch.
+- Current capacity observation after D106/extraction:8,378,544,128bytes free versus13,308,526,592required. D105 compression remains verified; new raw frame/partial selection retained. No collection until full reservation restored.
 - Next-run constraints: complete discovery separate from conditional temporal deep population; category still missing. Unknown metadata retained. No control fabrication or relaxed threshold. Check full7GiBframe+declared panel/recovery+2GiBreserve before future measurement; no paid/production storage.
 - New evidence: `PHASE_03_ORIGINAL_READ_EVIDENCE.json` records actual original-code verification of the existing 100,000-row journal without source requests. Its incomplete status and original hashes/clocks remain unchanged. D035 committed-code synthetic 400,000-member capacity used 320,897,024 resident bytes and 27,764,313,417ns; exact build/fixture/result in `PHASE_03_SAMPLING_CAPACITY_EVIDENCE.json`; synthetic capacity is not live source/panel evidence. D036 larger collection caps were tested/committed before attempt 3; its timeout did not reach those caps.
 - Unresolved: no eligible negative control in D097; combined pilot unaccepted. D099 recovered space before D101; collection capacity is insufficient again after D101. Complete flow/native continuity/external/related-price/v1 vector remain unavailable where unsupported. Phase4 only in fresh conversation.
@@ -912,3 +912,28 @@ Free13949612032bytes exceeds13308526592required. Source root
 data-dumps/fs2_capture_2413ff8c20c04a4ba31763fdadd3a84e. Exact frozen script SHA256
 195b6ff1e219a339e2b4d8ab2f12d852a14e35d284e7770b281724ac4fc2aa68.
 Current API/parser source must remain unchanged until terminal original audit.
+
+## D106 terminal / D107 timing diagnosis — October9 16:14 continuation
+
+D106 ran11:27:14–11:53:30UTC underb698306015ca20c42752f885fb9405f46eaed98d, exit1.
+Complete276190-row frame (276146mapped/44unresolved),2762attempts, no retries/errors.
+Original-code read passed (~163.505s verification interval), but selection correctly
+rejected the642.420689s frame interval against the frozen600s limit. No completed
+selection, origins or targets. D106 is not repaired or accepted; do not rerun unchanged.
+PHASE_03_VERIFIED_HASH_PILOT_EVIDENCE.json binds terminal artifacts and a4.26MB full
+per-page timing sidecar at data-dumps/fs2_frame_timing_d106_20261009_1.json.
+
+Recorded monotonic components:305.277s request/response,8.877s receipt-to-raw-ack,91.145s
+raw-to-parse-ack,182.016s parse-to-frame-page-ack,55.194s between pages. These are wall
+intervals, not pure network/CPU timings; final-page persistence is beyond interval_end.
+D10732-page profile adds the live path's build checks and synthetic persistence. No old
+journal is mutated or admitted. Fresh strict parsed-payload encoding and duplicate-key
+checking have bounded exact-output probes; neither is an implemented repair yet.
+
+Official keyset docs checked October9: page limit1–100, opaque returned cursor, no offset.
+https://docs.polymarket.com/api-reference/markets/list-markets-keyset-pagination
+Larger pages or guessed cursor sharding are not supported alternatives. Keep full scope.
+No protocol deadline has changed. Next evaluate the two small semantics-preserving
+parser/serialization improvements with malformed/duplicate/nonfinite/type and affected
+capture/frame/original-recovery tests, then measure combined cost before proposing any
+new collection. Current free~8.38GB<13.31GBreservation; no collection at this capacity.
