@@ -197,3 +197,8 @@ equivalence (226.301→210.875s; no original-reader deadline claim). D105 preser
 bytes with verified lossless compression, restoring full reservation. D106 freezes one
 integration with unchanged D101 design/gates; see PHASE_03_VERIFIED_HASH_PILOT_PROTOCOL.md
 and live checkpoint. Phase3 remains incomplete; no Phase4.
+
+Current D108: D106 failed642.42s frame interval (600s gate), despite successful original
+verification. Measured strict capture optimisations pass209 tests and32-page exact-byte
+comparison; they do not establish full-run compliance. See live checkpoint for capacity
+recovery and next integration decision. Phase3 remains incomplete; no Phase4.

@@ -695,3 +695,28 @@ No protocol deadline has changed. Next evaluate the two small semantics-preservi
 parser/serialization improvements with malformed/duplicate/nonfinite/type and affected
 capture/frame/original-recovery tests, then measure combined cost before proposing any
 new collection. Current free~8.38GB<13.31GBreservation; no collection at this capacity.
+
+## D108 — strict capture encoding and duplicate validation
+
+After D107 measurement, capture.py avoids a recursive primitive copy only for freshly
+strict-decoded raw JSON. Metadata still uses generic canonical_value; Decimal tags retain
+exact scale/sign/exponent and numeric limits. Duplicate-key validation compares dictionary
+and pair counts, preserving nested/escaped duplicate refusal. Generic encoding stays strict.
+No source scope, clocks, stored schema, sampling, deadline or old evidence changed.
+
+209 affected capture/source/frame/original-reader/selection/window/type tests pass106.00s,
+including20 new exact-byte/error regressions. PHASE_03_CAPTURE_VALIDATION.json preserves
+command, log and source hash.32-page synthetic copied-journal pipeline matches all parsed
+and acknowledgement bytes and page facts: original2.506/2.247s, candidate1.998/2.018s.
+PHASE_03_CAPTURE_PIPELINE_BENCHMARK.json contains exact script/input hashes and limits.
+No network/build checks/frame-page persistence included; this does not prove600s compliance.
+
+Self-review: only strict raw payload bypasses primitive conversion; arbitrary metadata,
+nonfinite/duplicate/malformed input, oversized decimals, fsync/crash recovery and original
+code refusal retain their protections. Temporary synthetic copies were removed; original
+journals were read-only. D106 remains a failed642.42s frame, with no selection/origins.
+
+Next restore the full local reservation using verified lossless compression of closed
+journals, preserving exact bytes/metadata/paths and original-reader report equivalence.
+Then assess one separately frozen integration of this measured implementation improvement;
+never rerun unchanged or relax a failed deadline. Phase3 remains incomplete; no Phase4.

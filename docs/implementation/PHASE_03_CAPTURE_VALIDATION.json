@@ -1,0 +1,11 @@
+{
+  "decision": "D108",
+  "command": "DATABASE_URL=sqlite+aiosqlite:////tmp/arepo_d108_tests.sqlite AUTO_MIGRATE=false EMAIL_PROVIDER=disabled caffeinate -is .venv/bin/pytest -q tests/unit/test_feature_store_capture.py tests/unit/test_feature_store_source_parsers.py tests/unit/test_feature_store_source_run.py tests/unit/test_feature_store_source_bridge.py tests/unit/test_feature_store_types.py tests/unit/test_research_panel_frame.py tests/unit/test_research_panel_row_hash.py tests/unit/test_research_panel_original_reader.py tests/unit/test_research_panel_original_selection.py tests/unit/test_research_panel_window_capture.py",
+  "cwd": "backend",
+  "result": "209 passed in 106.00s",
+  "log_path": "/tmp/arepo_d108_tests.log",
+  "log_sha256": "84390d4831e47d476ce3fc6e00c712777e870b41a3d331835bb2692ab561cb10",
+  "log": "........................................................................ [ 34%]\n........................................................................ [ 68%]\n.................................................................        [100%]\n209 passed in 106.00s (0:01:46)\n",
+  "source_sha256": "57f5c386e09f527b2335c9d2fd600e26aba50a261f15193a3d42a94d6e276e59",
+  "synthetic_not_empirical": true
+}

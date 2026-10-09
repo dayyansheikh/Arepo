@@ -9,7 +9,7 @@ Updated: 2026-10-09 16:14UTC. D106 terminal, selection rejected642.420689s inter
 - Current continuation: October9 16:14UTC;0% primary/16% weekly used, ordinary usage available; no reset credit redeemed by this agent.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
-- Latest safe terminal/profile evidence commit: 4b6b6dd, pushed (D101 failure and D102 profile).
+- Latest safe terminal/profile evidence commit: df01fa1, pushed (D106 failure and D107 timing/probes). D108 implementation/test/equivalence commit follows; resolve exact hash from Git history.
 - Previous safe empirical evidence commit: e84d6f8 (D097 terminal evidence), pushed. Current D099 documentation commit records verified storage recovery; resolve its exact hash from Git history. D097 executed13:21:26–13:41:47UTC under8bb82c4488c83cc0fdac6707cc27a9af079562d9, original audit passed. D101 later failed before selection; no collector active; never rerun unchanged.
 - Latest safe implementation commit: 3ce788b (D104 strict raw-row hashing), pushed;97 targeted tests pass. Full offline benchmark evidence b0175c5. D09632590d7 remains accepted prior temporal-population implementation.
 - Draft PR: https://github.com/dayyansheikh/Arepo/pull/16, open draft against Phase2. Head/body updated with each coherent commit; never merged.
@@ -22,12 +22,12 @@ Updated: 2026-10-09 16:14UTC. D106 terminal, selection rejected642.420689s inter
 - Enumeration attempt 3: `5cdb2d2`, 74 attempts /73 complete pages /7,300 rows plus partial response 74. Incomplete, `page_error`/`TimeoutError` after 15s. Raw46,929,025 /retained112,224,334 /peak resident118,849,536 bytes. Original-code prior-capacity verification succeeded. Root `data-dumps/fs2_capture_ff7f05b057b647109b4239ca781e10fb`; full evidence in PHASE_03_ENUMERATION_ATTEMPT_3.json. 7,256 eligible rows, 44 unresolved; no terminal or population inference.
 - Enumeration attempt 4: `b93f9aa`, 204 verified attempts /200 complete pages /20,000 rows, with 3 bounded retries (2 recovered). Incomplete, `retry_exhausted`; unrecovered `ConnectError` and `TimeoutError`. Raw132,580,143 /retained318,668,335 /peak resident141,836,288 bytes. 19,956 eligible rows, 44 unresolved, no duplicates/conflicts or terminal. Root `data-dumps/fs2_capture_8e6a8d4a22b846ae91ca70f70f6b3939`; evidence in PHASE_03_ENUMERATION_ATTEMPT_4.json.
 - Self-review: source/clock/identity/raw preservation, internally frozen seed, actual read/projection/cutoff ordering, exact rational replay, unknown and unmapped inventory, duplicate handling, failed-run refusal, original-frame policy/page closure, bounded storage/time and changed-build refusal. Source exhaustion is established only for attempt 5. No population inference, pilot acceptance or predictive improvement is claimed.
-- Decisions: through D102. D100 fixed-cost control-pool sensitivity; D101 terminal original-verification timeout; D102 bounded page profile. No control-design empirical result or retrospective repair.
+- Decisions: through D108; strict capture optimisations preserve bytes/errors,209 affected tests pass. D106 remains failed; no control-design empirical result.
 - Required data gate: complete-frame blocker **cleared** by verified attempt 5. Earlier failures remain incomplete. No current protected approval/access blocker. Current allowance is recorded above; the preceding window's 93% primary /92% weekly snapshot is historical and no longer controls this continuation.
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: evaluate D107 strict parsed-envelope encoding and duplicate-key-hook optimisations with exact-byte/error and affected capture/frame/original-recovery tests; see PHASE_03_POST_RECEIPT_PROFILE.json and paired probe JSONs. Preserve every generic numeric/type and provenance guard. Measure combined effect before any new protocol; D106 remains failed, no unchanged rerun or deadline relaxation. Full collection reservation currently unavailable; safe local development remains possible.
+- Exact next action: D108 tests and bounded combined benchmark pass; restore full local capacity using verified lossless closed-journal compression with original-reader equivalence. Then assess one separately frozen integration of the measured implementation improvement. No unchanged D106 rerun, retrospective admission or relaxed deadlines.
 - Latest modules/files: research_panel/frame.py and test_research_panel_row_hash.py; D103–D106 profile/equivalence/validation/storage/protocol evidence, checkpoint/review/decisions/master/phase docs. No production/API/configuration changes.
 - Current capacity observation after D106/extraction:8,378,544,128bytes free versus13,308,526,592required. D105 compression remains verified; new raw frame/partial selection retained. No collection until full reservation restored.
 - Next-run constraints: complete discovery separate from conditional temporal deep population; category still missing. Unknown metadata retained. No control fabrication or relaxed threshold. Check full7GiBframe+declared panel/recovery+2GiBreserve before future measurement; no paid/production storage.
@@ -937,3 +937,28 @@ No protocol deadline has changed. Next evaluate the two small semantics-preservi
 parser/serialization improvements with malformed/duplicate/nonfinite/type and affected
 capture/frame/original-recovery tests, then measure combined cost before proposing any
 new collection. Current free~8.38GB<13.31GBreservation; no collection at this capacity.
+
+## D108 — strict capture encoding and duplicate validation
+
+After D107 measurement, capture.py avoids a recursive primitive copy only for freshly
+strict-decoded raw JSON. Metadata still uses generic canonical_value; Decimal tags retain
+exact scale/sign/exponent and numeric limits. Duplicate-key validation compares dictionary
+and pair counts, preserving nested/escaped duplicate refusal. Generic encoding stays strict.
+No source scope, clocks, stored schema, sampling, deadline or old evidence changed.
+
+209 affected capture/source/frame/original-reader/selection/window/type tests pass106.00s,
+including20 new exact-byte/error regressions. PHASE_03_CAPTURE_VALIDATION.json preserves
+command, log and source hash.32-page synthetic copied-journal pipeline matches all parsed
+and acknowledgement bytes and page facts: original2.506/2.247s, candidate1.998/2.018s.
+PHASE_03_CAPTURE_PIPELINE_BENCHMARK.json contains exact script/input hashes and limits.
+No network/build checks/frame-page persistence included; this does not prove600s compliance.
+
+Self-review: only strict raw payload bypasses primitive conversion; arbitrary metadata,
+nonfinite/duplicate/malformed input, oversized decimals, fsync/crash recovery and original
+code refusal retain their protections. Temporary synthetic copies were removed; original
+journals were read-only. D106 remains a failed642.42s frame, with no selection/origins.
+
+Next restore the full local reservation using verified lossless compression of closed
+journals, preserving exact bytes/metadata/paths and original-reader report equivalence.
+Then assess one separately frozen integration of this measured implementation improvement;
+never rerun unchanged or relax a failed deadline. Phase3 remains incomplete; no Phase4.

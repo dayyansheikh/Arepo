@@ -22,7 +22,7 @@ from pathlib import Path
 import httpx
 
 from .sources import SOURCES
-from .types import canonical_json, utc_text
+from .types import canonical_json, canonical_value, utc_text
 
 _CLOCK_SESSION = str(uuid.uuid4())
 REUSED_HTTP_POLICY = {
@@ -78,11 +78,9 @@ def _digest(content):
 
 def _strict_json(raw):
     def pairs(values):
-        result = {}
-        for key, value in values:
-            if key in result:
-                raise ValueError("duplicate JSON key")
-            result[key] = value
+        result = dict(values)
+        if len(result) != len(values):
+            raise ValueError("duplicate JSON key")
         return result
 
     def reject(value):
@@ -340,7 +338,15 @@ def finish_parse(folder: Path):
         "parser_version": "lossless-json-v1", "raw_hash": receipt["raw_hash"],
         "parsed_at": _clock(), "parse_error": error, "value": parsed,
     }
-    output = _json_bytes(result)
+    # Metadata keeps the generic strict canonical conversion. Only the freshly decoded
+    # JSON value (string keys, int/Decimal numbers) can skip the recursive primitive copy.
+    # Decimal tags still use canonical_value; this is not a generic encoder for callers.
+    envelope = canonical_value({key: value for key, value in result.items() if key != "value"})
+    envelope["value"] = parsed
+    output = json.dumps(
+        envelope, default=canonical_value, sort_keys=True, separators=(",", ":"),
+        ensure_ascii=False, allow_nan=False,
+    ).encode("utf-8")
     _write_once(folder / "parsed.json", output)
     _write_once(folder / "parsed_ack.json", _json_bytes({
         "parsed_hash": _digest(output),

@@ -166,3 +166,8 @@ No protocol deadline has changed. Next evaluate the two small semantics-preservi
 parser/serialization improvements with malformed/duplicate/nonfinite/type and affected
 capture/frame/original-recovery tests, then measure combined cost before proposing any
 new collection. Current free~8.38GB<13.31GBreservation; no collection at this capacity.
+
+Current D108: D106 failed642.42s frame interval (600s gate), despite successful original
+verification. Measured strict capture optimisations pass209 tests and32-page exact-byte
+comparison; they do not establish full-run compliance. See live checkpoint for capacity
+recovery and next integration decision. Phase3 remains incomplete; no Phase4.
