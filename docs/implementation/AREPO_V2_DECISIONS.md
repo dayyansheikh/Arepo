@@ -612,3 +612,16 @@ D102 rejected alternatives: scalar-only and container/scalar dispatch shortcuts 
 show reliable speedup in bounded interleaved3195-row probes. Exact outputs matched but
 performance evidence does not justify adoption. Preserve negative finding in
 PHASE_03_SERIALIZATION_PROBES.json; no production source edit or deadline relaxation.
+
+## D103 — strict-input-only row hashing candidate
+
+D103 local diagnostic serializes3195 freshly strict-decoded preserved rows with a Decimal
+default encoder. All canonical bytes match; original0.716/0.921s versus candidate0.640/
+0.612s in interleaved unprofiled passes. Two numeric-spelling/nested-tag/Unicode fixtures
+also match. See PHASE_03_STRICT_JSON_HASH_PROBE.json for script/input hashes and limits.
+
+No implementation change or whole-frame speed guarantee. Generic canonical_json must
+continue rejecting binary floats/nonstring keys; this shortcut is eligible only inside
+the strict raw-JSON parse boundary. Before adoption require hostile-input/equivalence
+and affected frame/original-recovery tests plus a whole-path benchmark. Old D101 remains
+failed. Phase3 incomplete; no redraw, deadline change, data deletion or Phase4.
