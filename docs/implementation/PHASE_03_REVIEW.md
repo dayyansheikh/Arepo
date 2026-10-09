@@ -1489,3 +1489,9 @@ PHASE_03_FRAME_VERIFICATION_PROFILE.json contains page hashes, timings and scrip
 Phase3 remains incomplete; D097 controls still fail. No source changed, accepted tests
 not repeated, no production or Phase4 action. Current capacity9.535GB<13.309GBrequired;
 no collection until full reservation restored. Follow live checkpoint for next action.
+
+D102 optimisation review: two local dispatch fast paths both matched3195 source-row
+canonical JSON outputs. Scalar-only was slower; container/scalar results mixed. Neither
+adopted; no repair claim. See PHASE_03_SERIALIZATION_PROBES.json for exact scripts/order/
+inputs. No shared serializer semantics changed and no accepted tests repeated. Save
+coherent evidence before a larger repair at96% weekly use; ordinary usage still allowed.
