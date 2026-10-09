@@ -1,6 +1,6 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-09 11:04 UTC manual continuation. D101 is terminal, failed before selection; D102 bounded profile retained. Phase 3 incomplete. No collector/test is active.
+Updated: 2026-10-09 11:27UTC. D106 ACTIVE underb698306015ca20c42752f885fb9405f46eaed98d; full reservation passed. No source edits or duplicate launch during collection/original audit. Phase3 incomplete.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
@@ -27,7 +27,7 @@ Updated: 2026-10-09 11:04 UTC manual continuation. D101 is terminal, failed befo
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: commit reviewed D105 evidence/D106 protocol, then launch /tmp/arepo_d106_launch.py exactly once with exclusive fs2_verified_hash_pilot_20261009_1 prefix. Recheck full13308526592byte reservation in frozen script. Do not edit source during collection/original audit. On terminal result extract unchanged gates/rules/evidence, preserve failure if any; no redraw or Phase4.
+- Exact next action: inspect exclusive data-dumps/fs2_verified_hash_pilot_20261009_1_{launch,result}.json and stdout/stderr logs (session56588). Wait for terminal outcome without source edits, then extract all unchanged D106 gates, timing/weights/artifact hashes and actual selected-rule/family eligibility. Do not repeat launch or relax failure; no Phase4.
 - Latest modules/files: research_panel/frame.py and test_research_panel_row_hash.py; D103–D106 profile/equivalence/validation/storage/protocol evidence, checkpoint/review/decisions/master/phase docs. No production/API/configuration changes.
 - Current capacity observation (D105 proofs complete):13,950,021,632bytes free versus13,308,526,592required; both compressed journals reproduce original reports, all bytes/paths unchanged. Recheck at launch.
 - Next-run constraints: complete discovery separate from conditional temporal deep population; category still missing. Unknown metadata retained. No control fabrication or relaxed threshold. Check full7GiBframe+declared panel/recovery+2GiBreserve before future measurement; no paid/production storage.
@@ -906,3 +906,9 @@ failed with no control-design observations. No repeated draw-to-pass loop; prese
 D106 failure and stop acquisition.97 targeted tests pass; validation JSON retains exact
 command/log/hash. Complete offline computation matches old facts and summaries but does
 not prove actual subprocess/causal gate compliance. No Phase4 or protected action.
+
+D106 launched once11:27:14UTC underb698306015ca20c42752f885fb9405f46eaed98d.
+Free13949612032bytes exceeds13308526592required. Source root
+data-dumps/fs2_capture_2413ff8c20c04a4ba31763fdadd3a84e. Exact frozen script SHA256
+195b6ff1e219a339e2b4d8ab2f12d852a14e35d284e7770b281724ac4fc2aa68.
+Current API/parser source must remain unchanged until terminal original audit.
