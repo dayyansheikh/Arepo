@@ -1,3 +1,20 @@
+
+## October10 terminal D114 and revised Phase3 scope
+
+D114 under163cdca ran07:50:06–08:19:48UTC, exit1. Complete273075-row frame,2731attempts,
+409.265394s interval,116965543wire/1767714352decoded bytes, no retries/errors; original frame
+read and prospective selection pass. Selected strata contain3and1members: four actual draws,
+not eight. Screening declaration failed the shared180s processing limit before source calls;
+203.846420s worker-declaration-to-failure. Zero origins/histories/controls/targets. Both the
+nominal eight-member gate and runtime declaration fail; preserve them.
+
+PHASE_03_GZIP_PILOT_EVIDENCE.json records exact artifacts/probabilities/gates. Do not run
+the success-only extractor or relaunch D114. The latest user clarification is implemented in
+PHASE_03_EXIT_SCOPE.md, PHASE_03_BOUNDED_RETENTION.md and canonical PHASE_03_HEARTBEAT.md.
+Prioritise the measured pre-source budget repair and scientific evidence sufficiency review.
+No automatic new frame; missing feature families are explicit, not an endless completion
+requirement. Capsules precede permitted retirement of resolved failed bulk frames.
+
 # Current review state — October10
 
 ## D112 bounded gzip implementation — October10

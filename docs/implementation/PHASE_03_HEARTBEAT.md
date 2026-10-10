@@ -1,11 +1,8 @@
-Continue authorised AREPO v2 Phase 3 in this same task and /Users/DayyanSheikh/Projects/astrolabe. Recover state from AGENTS.md, docs/AREPO_V2_CHECKPOINT.md, the master/current phase plans and review, Git and draft PR #16. Resume the exact next action autonomously; do not repeat accepted work or begin Phase 4.
-
-Build a scientifically valid, scalable product with efficient Codex use. Prioritise measured limitations and empirical progress; preserve exact sampling, controls, missingness, numerical/causal provenance and original-code recovery. Synthetic tests are not empirical evidence. Never infer socket continuity from silence, fabricate data, redraw merely to pass gates or relax failed protocols retrospectively.
-
-If capacity alone blocks useful work, inspect local AREPO storage and remove only verified obsolete/reconstructible temporary, duplicate, test or debug artefacts and unreferenced stale orchestration prompts. Preserve empirical runs, evidence/recovery dependencies, manifests, hashes, canonical instructions/plans/decisions and anything uncertain. Record removals and reclaimed space; remeasure the full reservation before collection.
-
-Never merge/deploy production, apply production migrations, change production infrastructure/credentials/retention, delete research evidence, restart production scans, buy services/data or trade. Checkpoint and stop at genuine access, capacity, allowance or protected-decision blockers.
-
-While Phase 3 is incomplete, retain/update exactly one same-task successor for 5h10m from this run using this exact prompt; never create duplicate chains. Commit coherent tested/reviewed progress and update checkpoint/PR. If Phase 3 genuinely passes every acceptance gate, cancel any successor, finalise durable fresh-chat handover with branch/commit/tests/limitations and Phase 4 starting point, emit PHASE 3 COMPLETE — READY FOR FRESH CODEX HANDOVER, and stop. Phase 4 begins in a fresh conversation.
-
-Notify only meaningful progress, completion, failure or required user action; remain quiet for unchanged blockers.
+Continue authorised AREPO v2 Phase 3. Recover exact live state/next action from the authoritative checkpoint, Phase 3 acceptance/review docs, AGENTS.md, Git/PR and empirical evidence. Do not rely on stale D-specific prompt details or repeat accepted/unchanged failed work.
+Primary objective: finish Phase 3 efficiently while preserving scientific integrity. Focus only on requirements necessary for a trustworthy prospective panel and Phase 4 handover. Prefer measured empirical progress and the smallest justified repair over speculative infrastructure, repeated micro-optimisation or perfectionism.
+Preserve pre-t0 chronology, sampling probabilities, controls, missingness, provenance, targets and immutable old outcomes. Never redraw until success, manufacture data or retrospectively repair failures. Distinguish scientific requirements from engineering conventions; any changed rule must be prospectively justified.
+Keep storage bounded. For completed failed/superseded runs, first create a durable evidence capsule, then delete/compact bulk raw data no longer materially required for unresolved diagnosis, canonical evidence or original recovery. Retain minimal supporting raw subsets and record reclaimed space.
+If Phase 3 remains incomplete and work is not genuinely blocked, ensure exactly one same-task successor at +5h10m using this exact heartbeat; no duplicates. If usage is insufficient to finish the next coherent unit, checkpoint exact state, ensure that successor exists and stop cleanly.
+If Phase 3 is genuinely sufficient for Phase 4, do not invent more work for perfection. Finalise the durable dataset/evidence boundary and fresh-chat handover, cancel any equivalent successor, record branch/commit/tests/evidence/limitations/Phase 4 starting point, emit exactly:
+PHASE 3 COMPLETE — READY FOR FRESH CODEX HANDOVER
+Then stop. Do not start Phase 4 here.
