@@ -757,3 +757,16 @@ capture/admission, source scope, sampling, controls or deadlines. Check compress
 and measured size/latency before deciding on implementation; do not assume it fixes timing.
 Full panel reservation unavailable again (~9.92GB versus13.31GB); bounded128MiB diagnostic
 reservation fits. No Phase4 or protected action.209 D108 tests remain accepted, not repeated.
+
+## D111 measured gzip feasibility / D112 scoped next implementation
+
+Four fixed first-page requests all returned200/cache HIT. Gzip47252 versus identity548290
+wire bytes; all decoded548290-byte payloads are byte-identical. Latencies31.7/34.9ms versus
+158.0/99.7ms; cached/connection effects preclude a full-frame speed guarantee. Every wire/
+decoded hash and frozen script rechecked. PHASE_03_HTTP_ENCODING_PROBE_EVIDENCE.json.
+
+D112 plan: PHASE_03_GZIP_CAPTURE_PLAN.md. Explicit Gamma-only opt-in; exact wire raw retained
+before bounded CRC/EOF-checked decoding; independent wire/decoded budgets and versioned
+receipts/frame counters; original-build recovery and all causal/sampling guards preserved.
+Default capture remains identity. Implement/test/review/commit before any full acquisition.
+No new panel or accepted empirical gate. Current full-run capacity remains insufficient.

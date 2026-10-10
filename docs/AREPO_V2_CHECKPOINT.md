@@ -27,7 +27,7 @@ Updated: 2026-10-10 02:34UTC. D110 terminal failure665.126435s>600s, original au
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: commit/review D110 terminal evidence and D111 fixed HTTP encoding diagnostic protocol; execute its four bounded first-page requests once via /tmp/arepo_d111_probe.py, preserving all wire/decoded bytes/errors/clocks. Use all outcomes to decide whether an opt-in transport implementation is justified. No new panel, redraw or relaxed deadline; no Phase4.
+- Exact next action: implement D112 per PHASE_03_GZIP_CAPTURE_PLAN.md: Gamma-only opt-in bounded wire decoding, versioned evidence and independent decoded budgets, frame/selection integration and affected original-recovery tests. D111 four-request feasibility diagnostic is complete; never rerun it. No full acquisition before tested/reviewed commit and fresh frozen protocol/reservation.
 - Latest modules/files: research_panel/frame.py and test_research_panel_row_hash.py; D103–D106 profile/equivalence/validation/storage/protocol evidence, checkpoint/review/decisions/master/phase docs. No production/API/configuration changes.
 - Current capacity observation after D110:9916743680bytes free versus13,308,526,592required for full collection. D111 diagnostic requires128MiB only; no full collection until reservation restored.
 - Next-run constraints: complete discovery separate from conditional temporal deep population; category still missing. Unknown metadata retained. No control fabrication or relaxed threshold. Check full7GiBframe+declared panel/recovery+2GiBreserve before future measurement; no paid/production storage.
@@ -1009,3 +1009,16 @@ capture/admission, source scope, sampling, controls or deadlines. Check compress
 and measured size/latency before deciding on implementation; do not assume it fixes timing.
 Full panel reservation unavailable again (~9.92GB versus13.31GB); bounded128MiB diagnostic
 reservation fits. No Phase4 or protected action.209 D108 tests remain accepted, not repeated.
+
+## D111 measured gzip feasibility / D112 scoped next implementation
+
+Four fixed first-page requests all returned200/cache HIT. Gzip47252 versus identity548290
+wire bytes; all decoded548290-byte payloads are byte-identical. Latencies31.7/34.9ms versus
+158.0/99.7ms; cached/connection effects preclude a full-frame speed guarantee. Every wire/
+decoded hash and frozen script rechecked. PHASE_03_HTTP_ENCODING_PROBE_EVIDENCE.json.
+
+D112 plan: PHASE_03_GZIP_CAPTURE_PLAN.md. Explicit Gamma-only opt-in; exact wire raw retained
+before bounded CRC/EOF-checked decoding; independent wire/decoded budgets and versioned
+receipts/frame counters; original-build recovery and all causal/sampling guards preserved.
+Default capture remains identity. Implement/test/review/commit before any full acquisition.
+No new panel or accepted empirical gate. Current full-run capacity remains insufficient.
