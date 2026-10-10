@@ -3,7 +3,11 @@
 Reads only the retained panel / selection / screening-worker / activation / runtime roots. Makes
 no network request, writes only the report path given, and never touches the roots.
 
-    python scripts/evaluate_d116.py <panel_root> --out <report.json>
+    python scripts/evaluate_d116.py <panel_root> --launch-commit <40-hex> --out <report.json>
+
+The report is authoritative only when every run-identity check (gate E0) passes. The root
+overrides and --no-protocol-check are test aids: using one forces FAIL (test_override_used).
+A missing report is a FAIL (protocol section 4.4).
 """
 
 import argparse
@@ -16,25 +20,49 @@ from astrolabe.research_panel.d116_evaluator import evaluate_d116
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("panel_root", type=Path, help="fs2_panel_* root of the D116 run")
+    parser.add_argument("panel_root", type=Path, help="fs2_panel_d116_integrated_1 root")
     parser.add_argument("--out", type=Path, required=True, help="report JSON path (must not exist)")
+    parser.add_argument(
+        "--launch-commit",
+        required=True,
+        help="40-hex commit the run was launched from; must equal every artifact's commit",
+    )
     for name in ("selection", "worker", "runtime", "activation"):
-        parser.add_argument(f"--{name}-root", type=Path, default=None,
-                            help=f"override the derived {name} root")
-    parser.add_argument("--no-protocol-check", action="store_true",
-                        help="skip the frozen D116 protocol-value comparison (test fixtures only)")
+        parser.add_argument(
+            f"--{name}-root",
+            type=Path,
+            default=None,
+            help=f"TEST AID: override the derived {name} root (forces FAIL)",
+        )
+    parser.add_argument(
+        "--no-protocol-check",
+        action="store_true",
+        help="TEST AID: skip the frozen-value comparison (forces FAIL)",
+    )
     args = parser.parse_args(argv)
     if args.out.exists():
         parser.error(f"refusing to overwrite {args.out}")
-    kwargs = {"activation_root": args.activation_root}
-    if args.no_protocol_check:
-        kwargs["protocol_expectation"] = None
-    report = evaluate_d116(args.panel_root, args.selection_root, args.worker_root,
-                           args.runtime_root, **kwargs)
+    report = evaluate_d116(
+        args.panel_root,
+        args.selection_root,
+        args.worker_root,
+        args.runtime_root,
+        activation_root=args.activation_root,
+        launch_commit=args.launch_commit,
+        protocol_check=not args.no_protocol_check,
+    )
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(report, indent=1, sort_keys=True) + "\n")
-    print(json.dumps({"outcome": report["outcome"], "reasons": report["outcome_reasons"],
-                      "report": str(args.out)}))
+    args.out.write_text(json.dumps(report, indent=1, sort_keys=True, default=str) + "\n")
+    print(
+        json.dumps(
+            {
+                "outcome": report["outcome"],
+                "authoritative": report["authoritative"],
+                "reasons": report["outcome_reasons"],
+                "report": str(args.out),
+            }
+        )
+    )
     return 0
 
 

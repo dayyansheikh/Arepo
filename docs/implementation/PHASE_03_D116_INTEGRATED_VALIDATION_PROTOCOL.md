@@ -10,18 +10,32 @@ were not exhaustive; (3) several field names and states were not the real ones; 
 budget was presented as a bound; (5) the 4x2 fill probability was over-read; (6) the sufficiency
 floor was too weak; (7) the panel name carried a placeholder. Each is resolved below (sections
 2, 4, 5, 7, 10). The acceptance logic is implemented as code, not prose:
-`backend/astrolabe/research_panel/d116_evaluator.py` (version `d116-evaluator-v1`), with the
+`backend/astrolabe/research_panel/d116_evaluator.py` (version `d116-evaluator-v2`), with the
 command-line entry `backend/scripts/evaluate_d116.py` and tests
 `backend/tests/unit/test_research_panel_d116_evaluator.py`. **At freeze the evaluator's commit
 hash and the sha256 of each of those three files are recorded next to the script hash; the
 evaluator and the classification table are never edited after the first D116 request.** The
 evaluator also reports the sha256 of its classification table (`classification_table_sha256`).
 
+Revision 3 answers a second independent review (REVISE) of the evaluator: (1) no run-identity gate:
+a synthetic or mis-launched tree could produce PASS, now gate E0 and `authoritative`; (2) the
+common-mode text and code differed, now one rule, written identically in both (section 4.1);
+(3) the `invalid` citation accepted any status below 500; (4) several gates did not fail closed
+(finish duration, eligible-member reconciliation, frozen constants); (5) E5 under-fill and trigger
+assignment were not checked; (6) socket-event and read-receipt integrity, orphan target folders and
+evaluator exceptions; (7) token/condition mismatches were classed as data. Each is resolved in
+sections 4.1, 4.2, 4.4 and 7. The evaluator, its tests and this protocol are the only files changed.
+
 ## 1. Purpose and non-claims
 
 D115 withdrew the 2026-10-10 Phase 3 closeout; Phase 3 stays PROVISIONAL. D116 is the one
 integrated live prospective validation of the FINAL Phase 3 code: HEAD must contain `8afbdff`
-(600 s screening ceiling, owned screening schema `fs2-screening-owned-selection-v4`). It runs the
+(600 s screening ceiling, owned screening schema `fs2-screening-owned-selection-v4`). That
+ancestry is a **protocol launch precondition**: the launch wrapper must run
+`git merge-base --is-ancestor 8afbdff HEAD` before any request and record the result in its launch
+log. The evaluator does not call git (it stays pure and deterministic); instead it requires the
+caller to pass the launch commit and checks it for equality with every commit the artifacts record
+(gate E0). It runs the
 whole path once on real data: complete Gamma discovery, exact sampling, screening, selected-market
 observation, pre-origin histories, trigger/control assessment, origins (feature freeze), future
 targets and the terminal original-code audit.
@@ -118,7 +132,7 @@ relabelled as data availability. Gates, the classification table and the decisio
 before any D116 data exist and are never changed afterwards. They are executed by the evaluator
 (`d116_evaluator.py`, `evaluate_d116(panel_root, selection_root, worker_root, runtime_root, ...)`),
 which reads only the retained artifacts, checks every pair file against its acknowledged sha256,
-makes no request, and returns the per-member per-stage states and classes, E1-E9, the chain and
+makes no request, and returns the per-member per-stage states and classes, E0-E9, the chain and
 pair counts, the sufficiency checks and the outcome class as JSON.
 
 ### 4.1 Exhaustive state classification (predeclared)
@@ -149,25 +163,41 @@ provider-state mapping at `feature_store/source_run.py:285-288`). Checks, by id:
 | `http_auth_denied` / `http_rate_limited` | no transport_error and status in {401,403} / == 429 |
 | `transport_error` | transport_error is not null |
 | `http_5xx_or_none` | no transport_error and status null or >= 500 |
-| `http_invalid` | no transport_error and status < 500 and not 401/403/429 |
+| `http_invalid` | no transport_error and either a 4xx status other than 401/403/429, or a 2xx/3xx status whose raw bytes, parsed by the evaluator itself, are not a JSON object, or lack the requested `asset_id`/`bids`/`asks` (book) or `id`/`conditionId`/`clobTokenIds` (Gamma), or whose `asset_id` / `id` differs from the requested token / market. A 2xx/3xx whose parsed body is a valid book or market is `citation_failed` (ENGINEERING); 1xx and 5xx never support `invalid` |
 | `book_empty_side` | 2xx `clob.book`, parsed body has an empty bid or ask side (size > 0 levels) |
-| `book_non_decimal` / `book_crossed` / `book_duplicate_price` | 2xx `clob.book` whose parsed body shows a non-decimal level / best bid > best ask or price outside [0,1] / a repeated price on one side |
+| `book_non_decimal` / `book_crossed` / `book_duplicate_price` | 2xx `clob.book` whose parsed body shows a level whose price or size does not parse as a finite decimal (a zero size is a valid decimal and is **not** non-decimal; it is `invalid_or_crossed`, `targets.py:61`, and is cited by `book_crossed` only when bids and asks both have positive-size levels, otherwise the finding is ENGINEERING, conservatively) / best bid > best ask or price outside [0,1] / a repeated price on one side |
 | `lifecycle_closed` / `_archived` / `_not_accepting` / `_unknown` | 2xx `gamma.market`, parsed `closed` is true / `archived` is true / `active` or `acceptingOrders` is false / any lifecycle field null or absent |
 | `identity_unresolved` | `gamma.market` failed, or its `clobTokenIds` lack the member token, or the book failed (mapping is null whenever the book failed) |
 | `identity_conflict` | 2xx gamma `conditionId` differs from 2xx book `market` |
 | `frame_mapping_citation` | cites the `compare_mapping` result (`screening.py:324-325`): `mapping_differs` needs current != frame `mapping_version` with a 2xx gamma receipt (differing field `mapping_version`); `mapping_unavailable` needs current null and a failing gamma/book receipt or unresolved token |
-| `pre_identity_citation` | `owned_windows.py:92-96` compares token, condition and market IDs (it does not call `compare_mapping`): cites the differing field among `token_id`, `condition_id`, `market_id`, or a null mapping with a failing receipt |
+| `pre_identity_citation` | `owned_windows.py:92-96` compares token, condition and market IDs (it does not call `compare_mapping`): DATA_SOURCE only if `market_id` differs, or the mapping is null with a failing receipt. A differing `token_id` or `condition_id` is ENGINEERING (the sample is keyed by them; this is never a provider mapping change) |
 | `pre_snapshot_citation`, `pre_lifecycle_citation` | the pre-window quote state classifies DATA through the quote-state rows against the screening receipts; the pre-window lifecycle differs from active and the gamma receipt agrees or failed |
-| `origin_mapping_differs`, `target_mapping_differs` | cites the differing field(s) among token, condition, market, outcome index/label, mapping_version, or `core_identity_equal` false |
+| `origin_mapping_differs` | DATA_SOURCE only if the differing fields are among market, outcome index/label or `core_identity_equal` false; any differing `token_id` or `condition_id` is ENGINEERING |
+| `target_mapping_differs` | cites the differing field(s) among market, mapping_version, outcome index/label |
 | `history_snapshot_citation`, `history_identity_citation` | the prior or current quote state classifies DATA with receipts; or prior and current `mapping_version` differ (both non-null) |
 | `socket_error_event` | the terminal socket journal event carries a non-null `error` |
 | `target_lifecycle_closed` | gamma lifecycle `closed` true in a target-attempt receipt |
 
-**Common-mode guard** (applied before any INCONCLUSIVE or PASS WITH LIMITATION): if every selected
-member ends without a complete chain and (a) two or more members share one limiting `(stage,
-state)`, or (b) every member's limiting cause is DATA_TRANSPORT, or (c) every member has a
-transport error or 4xx/5xx receipt on a market listed in the frame minutes earlier, the outcome is
-FAIL pending diagnosis, never INCONCLUSIVE.
+**Common-mode guard** (the same rule is the code `common_mode_flags`; applied before any
+INCONCLUSIVE or PASS WITH LIMITATION). A member's *limiting cause* is its first non-OK cause in
+stage order **screening, window (pre-state), origin, history, target**; screening and window causes
+count, not only origin/history/target. The outcome is FAIL pending diagnosis, never INCONCLUSIVE,
+if any of:
+
+- (a) there are at least two members, **no** member has a complete chain, and every member's
+  limiting cause is one identical `(stage, state)`;
+- (b) every member's limiting cause is class DATA_TRANSPORT (no member has a complete chain);
+- (c) at least half of the members (`2 x failing >= n`) have a transport error or an HTTP 4xx
+  receipt (screening, origin or target) on a market that was selected from the frame, i.e. listed
+  and eligible (open under the declared population) minutes earlier. HTTP 5xx alone does not count
+  here; it is DATA_TRANSPORT and is caught by (b) when it limits every member.
+
+Justification. Two one-sided books among eight is a legitimate data outcome, so a few members with
+one data cause never triggers the guard (the rule needs the same cause at every member, or all
+members transport-limited, or transport/4xx at half of them). An identical failure across all
+members, or transport failures at half of the markets the frame had just listed, is the signature
+of a systematic defect (ours or the provider's), which must be diagnosed rather than counted as
+unavailable data.
 
 Condensed table (class; check):
 
@@ -189,7 +219,7 @@ Condensed table (class; check):
 | | connect_error, subscription_error, receive_error, ping_error | DATA_TRANSPORT (cited event error) |
 | | budget_stop, refused (provenance_mismatch, pre_binding_stale, identity_expired_before_subscription) | ENGINEERING |
 | socket close state | closed (or not_connected after connect_error) | OK |
-| | close_error, any other | ENGINEERING |
+| | close_error, any other | ENGINEERING (`close_error` is a network-only event of the close handshake, `socket_window_journal.py:459-462`; it is conservatively ENGINEERING and never a data outcome) |
 | origin state (runtime `origins[].state`) | observed | OK |
 | | transport_gap, rate_limited, permission_denied, source_error | DATA_TRANSPORT |
 | | invalid, one_sided_or_missing, invalid_numerical, invalid_or_crossed, duplicate_price_level, identity_unresolved_at_receipt, identity_ambiguous_or_conflicting, market_closed, market_archived, market_not_accepting_orders, market_lifecycle_unknown, identity_changed_since_selection | DATA_SOURCE (cited) |
@@ -217,7 +247,34 @@ Note that `origin_ineligible` is an outcome/attempt state, not an origin state. 
 other than `observed` abstains the origin only for a DATA reason; a timing or defect abstention
 (`late_persistence`, `failed`, ...) is an engineering failure, not an acceptable abstention.
 
-### 4.2 Engineering gates E1-E9 (all must pass; the evaluator's checks, with real fields)
+### 4.2 Engineering gates E0-E9 (all must pass; the evaluator's checks, with real fields)
+
+- **E0 Run identity (fail closed; any failure is FAIL and is recorded).** The panel root name is
+  `fs2_panel_d116_integrated_1` and the selection / worker / activation / runtime roots are the
+  derived names of section 7, beside it, with no override. A launch commit (40 lowercase hex,
+  `--launch-commit`, required) is supplied by the caller and **equals** the commit recorded by
+  every artifact that carries one: `panel_policy.frame_implementation_commit`,
+  `selection_policy.implementation_commit`, the frame `read_policy.implementation_commit`,
+  `worker_policy.implementation_commit` and the runtime `read_policy.implementation_commit`. The
+  schema string is `fs2-screening-owned-selection-v4` in `screening_policy`, `screening_report` and
+  `worker_report.screening`. Provenance is live: every one of `selection_report`, the frame
+  `original_report`, `screening_policy.source_provenance_class`, `screening_report`,
+  `worker_policy`, `worker_report.screening/runtime`, `activation_facts`, `runtime_policy`,
+  `runtime_report`, `read_receipt.original_provenance_class` (loaded with its hash check) and
+  `worker_report.recovery[0].original_provenance_class` equals `prospective`; every socket window's
+  `socket_window_policy.transport` has `provenance_class` `prospective` and `kind` `public` and
+  its `socket_window_report.provenance_class` is `prospective`; and every screening / origin /
+  target capture `run.json` records `prospective`. The synthetic code records `synthetic`
+  (`screening_worker.py`, `socket_window_journal.py:scope`, `source_run.py:192`, loopback transport
+  kind). Note: the runtime read's `original_state` is the fixed string `verified_synthetic_runtime`
+  even for live runs (`original_reader.py:548`); it is not a provenance signal,
+  `original_provenance_class` is. Ancestry of `8afbdff` is a launch precondition (section 1), not
+  an evaluator check; the evaluator records `required_ancestor_commit` and `launch_commit` in the
+  report. **`authoritative` is true only if E0 passes, no override was used and no exception
+  occurred.** The root overrides and `--no-protocol-check` are test aids: using any of them forces
+  outcome FAIL with reason `test_override_used` and `authoritative: false`. Test fixtures are
+  judged only through the non-authoritative logic-only test aid or the pure `decide_outcome`; no
+  command-line path reaches it.
 
 - **E1 Discovery.** `selection/fs2_frame_read_original/original_report.json`: `state ==
   exhausted_consistent`; `interval_end - interval_start <= 600 s`; `frame_report_hash` and
@@ -225,7 +282,16 @@ other than `observed` abstains the origin only for a DATA reason; a timing or de
   (measured from `interval_start`) <= 3600 s at screening declaration (`screening_policy.declared_at`,
   re-check `screening.py:175-182`), at the screening cutoff (`screening.py:494-501`) and at
   activation read completion and acknowledgement (`activation.py:332`, `:352`, replay `:415-416`);
-  the panel protocol equals the frozen section 3 values.
+  the panel protocol equals the frozen section 3 values, and every retained policy equals the
+  frozen module constant `FROZEN_EXPECTATIONS` (the only copy of these values; cited by this
+  section): `strata_limit` 4, `population_policy`
+  `scheduled_end_after_selection_declaration_or_unknown_v1`, `scheduled_per_stratum` and
+  `triggered_per_stratum` 2 (in the panel protocol), `SnapshotTriggerPolicy(1,3,60000)`,
+  `ScreeningPolicy(120,120)`, the `OwnedWindowPolicy(10000, WindowBindingPolicy(60000,180000),
+  WindowReconciliationPolicy(120000,120000,1000), OriginWindowPolicy(120000,60000),
+  binding_mode='observation')` dictionary, worker `concurrency` 8 / `runtime_concurrency` 4,
+  worker `max_seconds` 7200 / `acquisition_seconds` 1800, and `screening_policy.limits` equal to
+  `screening.LIMITS` with `max_seconds` 600.
 - **E2 Sampling.** `panel_policy.declared_at >= selection_report.original_frame_available_at`
   (the evaluator enforces this; the code does not); selection policy declared after the panel and
   before the selection numerical reads (`selection_report.computation_started_at`); sealed `seed`
@@ -235,7 +301,8 @@ other than `observed` abstains the origin only for a DATA reason; a timing or de
   `scheduled_end_at_or_before_selection_declaration`, `panel_selection.py:164-166`, count
   `selection_eligible_member_count`, `:196-199`), and `selection_report.counts` (`selection.py:329`:
   `source_rows`, `eligible_row_count`, `duplicate_market_rows`, `sampling_members`) reconcile:
-  `counts.sampling_members == plan.frame_size == len(exclusions) + selection_eligible_member_count`;
+  `counts.sampling_members == plan.frame_size == len(exclusions) + selection_eligible_member_count`
+  (an absent `selection_eligible_member_count` fails E2: reconciliation is impossible);
   `unique_selected_markets` (n) reported and equal to the screened member count; underfill below 8
   explained from the per-stratum `eligible_count`/`scheduled_count`; no `selection_failure`; no
   redraw. (The script's stdout `accounting` key that earlier drafts called `exclusions` is the
@@ -244,7 +311,8 @@ other than `observed` abstains the origin only for a DATA reason; a timing or de
 - **E3 Screening.** The worker report exists with state `pilot_collected_unaccepted`; each selected
   member has a `screening_report.states[]` row (triggered, untriggered or unavailable) whose every
   reason is classified (section 4.1); `plan.assessment_inventory` shows no `input_window_stale` /
-  `assessment_stale`; the finish call lasted <= 600 s.
+  `assessment_stale`; the finish call lasted <= 600 s (the frozen constant, not the retained
+  policy). A missing `read_started_at` or finish acknowledgement clock fails E3.
 - **E4 Observation and histories.** For every selected member `window_NNN.json` exists with
   `missing_reason` in {null, pre_snapshot_unavailable, pre_identity_differs,
   pre_lifecycle_unavailable} (also `runtime_policy.json window_inputs.members[...].missing_reason`);
@@ -259,8 +327,15 @@ other than `observed` abstains the origin only for a DATA reason; a timing or de
   triggered assignment (`trigger_id` is that member's assessment `evidence_id`,
   `sampling.py:215-217`) in the **same stratum**, and the control's `assessment_state` is
   `untriggered`; each stratum reports integer `triggered_pool`, `control_pool`, `controls_wanted`,
-  `controls_selected` and `unfilled_control_slots == controls_wanted - controls_selected`;
-  `role_capacity.fits` is true.
+  `controls_selected` and `unfilled_control_slots == controls_wanted - controls_selected`, and
+  **`controls_selected == min(controls_wanted, control_pool)` in every stratum** (an under-filled
+  control draw fails); `triggered_count == min(triggered_per_stratum, triggered_pool)` and every
+  authenticated triggered member has a triggered assignment (unless its stratum's `triggered_pool`
+  exceeds `triggered_per_stratum`, which cannot occur at 2 members per stratum and
+  `triggered_per_stratum=2`); a triggered/untriggered state without an authenticated assessment
+  `evidence_id` equal to the inventory state is an ENGINEERING finding; the triggered, untriggered
+  and zero-triggered counts used by the outcome classes use only the authenticated
+  `effective_state`; `role_capacity.fits` is true.
 - **E6 Origins.** Runtime origins carry only `intent_id` (`origin_worker.py:400-403`); the member is
   resolved through `origin_intent.json slot.market_id` (the activation slot, `activation.py:267-274`,
   whose `intent_id` the evaluator recomputes from the slot identity, checked under E9). Exactly one origin result and a
@@ -276,12 +351,15 @@ other than `observed` abstains the origin only for a DATA reason; a timing or de
   `:126`) and are ENGINEERING; none may be `pending`.
 - **E8 Original-code audit.** Worker `state == pilot_collected_unaccepted`; exactly one recovery
   receipt whose `original_report_hash` equals the runtime report hash and whose `original_state`
-  starts `verified_`; the `fs2_runtime_read_batch/read_receipt.json` file exists. No retry.
+  starts `verified_`; `fs2_runtime_read_batch/read_receipt.json` is loaded with its acknowledged
+  sha256 and equals `recovery[0]` field for field. No retry.
 - **E9 Accounting.** Every selected member appears exactly once at each stage (screening state,
   assessment inventory, window entry, origin result, outcome, activation selection) and has
   exactly 2 screening receipts, 3 origin receipts (observed origins) and 2 receipts per target
   attempt (observed/unavailable/closed); every cited receipt re-hashes; retained bytes <= the
-  screening reservation; stage clocks are ordered across artifacts; nothing is fabricated,
+  screening reservation; stage clocks are ordered across artifacts; every socket journal event
+  re-hashes to its acknowledgement (and its raw frame to `raw_hash`); every target folder's
+  `origin_id` matches an origin (otherwise an ENGINEERING finding); nothing is fabricated,
   backfilled or reconstructed.
 
 ### 4.3 Exercise sufficiency
@@ -300,23 +378,28 @@ A PASS pair requires **both** pair members' origins observed with eligible histo
 
 ### 4.4 Outcome classes (exhaustive; first match in order FAIL, INCONCLUSIVE, PASS, PASS WITH LIMITATION)
 
-- **FAIL** — any ENGINEERING finding (section 4.1), any failed E-gate, or a common-mode pattern.
+- **FAIL** — any ENGINEERING finding (section 4.1), any failed E-gate (including E0), a
+  common-mode pattern, a test override, or an evaluator exception (reason
+  `evaluator_exception:<type>`, produced as a report). **No report is also FAIL.**
   Engineering defect or timing: preserve all evidence, diagnose, fix the smallest justified issue,
   and freeze any changed rule prospectively with written justification and review. D116 is never
   reinterpreted.
-- **INCONCLUSIVE** — E1-E9 pass, no ENGINEERING finding, no common-mode pattern, but a sufficiency
+- **INCONCLUSIVE** — E0-E9 pass, no ENGINEERING finding, no common-mode pattern, but a sufficiency
   condition (section 4.3) is unmet, every cause being a classified DATA reason. Phase 3 stays
   provisional; a new protocol is designed. No automatic relaunch.
-- **PASS** — E1-E9 pass, sufficiency met, and >= 1 observed matched pair (section 4.3).
-- **PASS WITH LIMITATION** — E1-E9 pass, sufficiency met, no observed matched pair, and every cause
+- **PASS** — E0-E9 pass, sufficiency met, and >= 1 observed matched pair (section 4.3).
+- **PASS WITH LIMITATION** — E0-E9 pass, sufficiency met, no observed matched pair, and every cause
   is a classified DATA reason. Exactly one sub-label:
   - `all_triggered_no_control`: every selected member is triggered, so no untriggered control
     exists;
-  - `zero_triggered_control_matching_not_exercised`: no member has an authenticated triggered state;
+  - `zero_triggered_control_matching_not_exercised`: no member has an authenticated triggered
+    `effective_state`;
   - `pair_member_unobserved_data_reason`: a control/trigger pair was drawn but a member lacks a
     complete chain for a classified DATA reason;
   - `no_eligible_untriggered`: triggered members exist but no eligible untriggered member in their
-    strata (the rest unavailable or in other strata).
+    strata (the rest unavailable or in other strata); requires `control_pool == 0` in every
+    stratum that has a trigger (otherwise a control should have been drawn and the outcome is
+    FAIL).
   The limitation is stated in the evidence; Phase 3 may close with it recorded.
 
 The class and its reasons are recorded in `PHASE_03_D116_EVIDENCE.json` from the evaluator report.
@@ -403,9 +486,11 @@ no data retirement, no logical evidence deletion and no production storage actio
 - No assistant turn or scheduler transition between frame completion, selection, screening and
   runtime.
 - After the audit, evaluate the retained artifacts (no network, no writes to the run roots):
-  `python backend/scripts/evaluate_d116.py data-dumps/fs2_panel_d116_integrated_1 --out
-  data-dumps/fs2_d116_integrated_1_evaluation.json`. The report is the single source for the
-  outcome class.
+  `python backend/scripts/evaluate_d116.py data-dumps/fs2_panel_d116_integrated_1
+  --launch-commit <the recorded launch HEAD> --out data-dumps/fs2_d116_integrated_1_evaluation.json`.
+  The report is the single source for the outcome class and counts only if its `authoritative`
+  field is true. The launch wrapper records, before any request, that `git merge-base
+  --is-ancestor 8afbdff HEAD` succeeded (launch precondition).
 - Evidence output `docs/implementation/PHASE_03_D116_EVIDENCE.json` is written afterwards (not by
   the script) and includes the evaluator report (outcome class and reasons, gate-by-gate results
   with the cited fields, per-member per-stage states and classes, the section 4.5 diagnostics),
@@ -420,7 +505,7 @@ Script stdout stages: `preflight`, `frame_owned`, `frame_complete` (frame summar
 report with `events`, `origins`, `attempts`, `outcomes`), `accounting` (see section 10).
 Per-window histories, observer attempts and refusals, origin facts and the selection
 inventory/exclusions live in retained artifacts. The evaluator reads these roots only, all derived
-from the panel root and overridable on its command line: panel (`panel_policy`), selection
+from the panel root alone (overrides exist only as test aids that force FAIL): panel (`panel_policy`), selection
 (`selection_policy`, `selection_plan`, `selection_report`, `fs2_frame_read_original/
 original_report.json`, `pages/`), screening worker (`worker_policy`, `worker_report`,
 `fs2_screening_batch/screening_report`, `window_NNN`, `intent_NNN`, `fs2_capture_screen_NNN`,

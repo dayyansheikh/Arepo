@@ -25,11 +25,21 @@ import hashlib
 import json
 import re
 from collections import Counter
+from dataclasses import asdict
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-EVALUATOR_VERSION = "d116-evaluator-v1"
+from .bound_window import WindowBindingPolicy
+from .origin_window import OriginWindowPolicy
+from .owned_windows import OwnedWindowPolicy, policy_dict
+from .panel_declaration import TEMPORAL_POPULATION
+from .screening import LIMITS as SCREENING_LIMITS
+from .screening import ScreeningPolicy
+from .trigger_computation import SnapshotTriggerPolicy
+from .window_reconciliation import WindowReconciliationPolicy
+
+EVALUATOR_VERSION = "d116-evaluator-v2"
 OK = "OK"
 DATA_SOURCE = "DATA_SOURCE"
 DATA_TRANSPORT = "DATA_TRANSPORT"
@@ -55,6 +65,46 @@ D116_PROTOCOL = {
     "max_identity_age_seconds": 180,
     "source_response_bytes": 65536,
     "source_run_retained_bytes": 1048576,
+}
+
+# --------------------------------------------------------------------------------------------
+# Frozen run identity and frozen policy values (protocol sections 3 and 4.2 E0/E1). Every value
+# below is compared against the retained artifacts; nothing here is tunable at evaluation time.
+# --------------------------------------------------------------------------------------------
+FROZEN_PANEL_NAME = "fs2_panel_d116_integrated_1"
+FROZEN_ROOT_NAMES = {
+    "selection": "fs2_selection_panel_d116_integrated_1",
+    "worker": "fs2_screening_worker_d116_integrated_1",
+    "activation": "fs2_activation_d116_integrated_1",
+    "runtime": "fs2_runtime_d116_integrated_1",
+}
+# Recorded only: ancestry of this commit in the launch commit is a protocol launch precondition
+# checked by the launch wrapper (git is not consulted here: the evaluator stays pure).
+REQUIRED_ANCESTOR_COMMIT = "8afbdff"
+REQUIRED_SCREENING_SCHEMA = "fs2-screening-owned-selection-v4"
+LIVE_PROVENANCE = "prospective"  # synthetic runs record "synthetic"; socket transport kind "public"
+LIVE_SOCKET_KIND = "public"
+_COMMIT = re.compile("[0-9a-f]{40}")
+FROZEN_EXPECTATIONS = {
+    "panel": {"strata_limit": 4, "population_policy": TEMPORAL_POPULATION},
+    "worker": {
+        "rule": asdict(SnapshotTriggerPolicy(1, 3, 60000)),
+        "freshness": asdict(ScreeningPolicy(120, 120)),
+        "window_policy": policy_dict(
+            OwnedWindowPolicy(
+                10000,
+                WindowBindingPolicy(60000, 180000),
+                WindowReconciliationPolicy(120000, 120000, 1000),
+                OriginWindowPolicy(120000, 60000),
+                binding_mode="observation",
+            )
+        ),
+        "concurrency": 8,
+        "runtime_concurrency": 4,
+        "limits": {"max_seconds": 7200, "acquisition_seconds": 1800},
+    },
+    "screening_max_seconds": 600,
+    "screening_limits": dict(SCREENING_LIMITS),
 }
 SOURCE_REASONS = ("permission_denied", "rate_limited", "transport_gap", "source_error", "invalid")
 _LIFECYCLE_KEYS = ("active", "closed", "archived", "acceptingOrders")
@@ -208,7 +258,11 @@ def _build_table():
     table["socket_close_state"] = {
         "closed": _row(OK, basis="socket_window_journal.py:459-462"),
         "not_connected": _row(OK, basis="only valid after connect_error; checked with terminal"),
-        "close_error": _row(ENGINEERING, basis="socket_window_journal.py:459-462 cleanup"),
+        "close_error": _row(
+            ENGINEERING,
+            basis="socket_window_journal.py:459-462 close_error is network-only "
+            "(close handshake); conservatively ENGINEERING, never a data outcome",
+        ),
     }
     origin = {
         "observed": _row(OK, basis="origin_worker.py:231,395"),
@@ -488,9 +542,13 @@ def _levels(body, side):
     out = []
     for level in (body.get(side) if isinstance(body, dict) else None) or []:
         try:
-            out.append((Decimal(str(level["price"])), Decimal(str(level["size"]))))
+            price, size = Decimal(str(level["price"])), Decimal(str(level["size"]))
         except (InvalidOperation, KeyError, TypeError):
             out.append((None, None))
+            continue
+        # NaN/Infinity parse as Decimal but are not decimals (targets.py:57-59). A zero size is a
+        # valid decimal; it is invalid_or_crossed (targets.py:61), never non-decimal.
+        out.append((price, size) if price.is_finite() and size.is_finite() else (None, None))
     return out
 
 
@@ -554,18 +612,37 @@ def _chk_5xx(ctx, entry):
     )
 
 
+_INVALID_BODY_KEYS = {
+    "clob.book": ("asset_id", "bids", "asks"),
+    "gamma.market": ("id", "conditionId", "clobTokenIds"),
+}
+
+
+def _invalid_supported(receipt, source):
+    """``invalid`` (source_run.py:288) is DATA only for a 4xx outside 401/403/429, or a 2xx/3xx
+    whose raw bytes, parsed here, are not JSON or lack the requested identity or required keys."""
+    if not (
+        receipt.raw_verified and receipt.transport_error is None and isinstance(receipt.status, int)
+    ):
+        return False
+    if 400 <= receipt.status < 500:
+        return receipt.status not in (401, 403, 429)
+    if not 200 <= receipt.status < 400:
+        return False
+    body = receipt.body()
+    if not isinstance(body, dict):
+        return True  # not JSON (or not an object) on the evaluator's own parse
+    if any(key not in body for key in _INVALID_BODY_KEYS.get(source, ())):
+        return True
+    book = source == "clob.book"
+    requested = receipt.token_id if book else receipt.market_id
+    returned = body.get("asset_id") if book else body.get("id")
+    return requested is not None and str(returned) != str(requested)
+
+
 def _chk_invalid(ctx, entry):
-    return _any(
-        ctx,
-        _source(entry),
-        lambda r: (
-            r.raw_verified
-            and r.transport_error is None
-            and isinstance(r.status, int)
-            and r.status < 500
-            and r.status not in (401, 403, 429)
-        ),
-    )
+    source = _source(entry)
+    return _any(ctx, source, lambda r: _invalid_supported(r, source))
 
 
 def _chk_empty_side(ctx, entry):
@@ -736,7 +813,14 @@ def _chk_origin_mapping(ctx, entry):
     fields = [k for k, (a, b) in pairs.items() if a != b]
     if cmp_.get("core_identity_equal") is False:
         fields.append("compare_mapping:" + str(cmp_.get("state")))
-    return bool(fields), {"differing_fields": fields, "compare_mapping_state": cmp_.get("state")}
+    # A different token or condition is a defect of ours (the sample is keyed by them), never a
+    # provider mapping change: only mapping, market and outcome differences are DATA_SOURCE.
+    engineering = [k for k in fields if k in ("token_id", "condition_id")]
+    return bool(fields) and not engineering, {
+        "differing_fields": fields,
+        "engineering_fields": engineering,
+        "compare_mapping_state": cmp_.get("state"),
+    }
 
 
 def _chk_socket_error(ctx, entry):
@@ -781,7 +865,11 @@ def _chk_pre_identity(ctx, entry):
         }.items()
         if a != b
     ]
-    return bool(fields), {"differing_fields": fields}
+    engineering = [k for k in fields if k in ("token_id", "condition_id")]
+    return bool(fields) and not engineering, {
+        "differing_fields": fields,
+        "engineering_fields": engineering,
+    }
 
 
 def _chk_pre_lifecycle(ctx, entry):
@@ -854,8 +942,45 @@ CHECKS = {
 
 
 # --------------------------------------------------------------------------------------------
-# Pure outcome decision
+# Pure common-mode guard and outcome decision
 # --------------------------------------------------------------------------------------------
+
+
+def common_mode_flags(rows):
+    """Systematic-defect signatures over per-member rows.
+
+    Each row is ``{"complete": bool, "limiting": {"stage", "state", "class"} | None,
+    "listed_market_failure": bool}``; ``limiting`` is the first non-OK cause in stage order
+    screening, window (pre-state), origin, history, target. Flags (FAIL pending diagnosis):
+
+    (a) at least two members, none with a complete chain, and every member shares one identical
+        ``(stage, state)`` limiting cause;
+    (b) every member's limiting cause is DATA_TRANSPORT;
+    (c) at least half of the members have a transport error or an HTTP 4xx receipt on a market
+        that was selected from the frame (listed, open under the declared population).
+
+    Two one-sided books among eight is a legitimate data outcome; the identical cause at every
+    member, an all-transport failure, or transport/4xx failures at half the members on markets the
+    frame had just listed are the signature of a systematic defect (ours or the provider's), which
+    must be diagnosed rather than counted as unavailable data.
+    """
+    if not rows:
+        return ["no selected members"]
+    flags = []
+    limits = [r.get("limiting") for r in rows]
+    if len(rows) >= 2 and not any(r["complete"] for r in rows) and all(limits):
+        causes = {(c["stage"], c["state"]) for c in limits}
+        if len(causes) == 1:
+            flags.append(f"every member ends in the same cause {sorted(causes)[0]}")
+    if all(limits) and all(c.get("class") == DATA_TRANSPORT for c in limits):
+        flags.append("every member's limiting cause is a transport failure")
+    failing = sum(1 for r in rows if r.get("listed_market_failure"))
+    if 2 * failing >= len(rows):
+        flags.append(
+            f"{failing} of {len(rows)} members have transport errors or HTTP 4xx on markets "
+            "selected from the frame"
+        )
+    return flags
 
 
 def decide_outcome(summary):
@@ -895,6 +1020,11 @@ def decide_outcome(summary):
             return (
                 "PASS_WITH_LIMITATION:all_triggered_no_control",
                 ["every selected member is triggered; no untriggered control exists"],
+            )
+        if not summary.get("control_pool_zero_in_triggered_strata"):
+            return (
+                "FAIL",
+                ["no control drawn although a stratum with a trigger has a non-empty control pool"],
             )
         return (
             "PASS_WITH_LIMITATION:no_eligible_untriggered",
@@ -939,33 +1069,117 @@ def evaluate_d116(
     runtime_root=None,
     *,
     activation_root=None,
-    protocol_expectation=D116_PROTOCOL,
+    launch_commit=None,
+    protocol_check=True,
 ):
-    """Evaluate one retained D116 run; ``protocol_expectation=None`` skips frozen values."""
-    panel_root = Path(panel_root)
-    defaults = _default_roots(panel_root)
-    selection_root = Path(selection_root) if selection_root else defaults[0]
-    worker_root = Path(worker_root) if worker_root else defaults[1]
-    runtime_root = Path(runtime_root) if runtime_root else defaults[2]
-    activation_root = Path(activation_root) if activation_root else defaults[3]
-    reader = _Reader()
-    ev = _Evaluation(
-        reader,
+    """Evaluate one retained D116 run; the only authoritative entry point.
+
+    ``launch_commit`` (the commit the run was launched from) is required: gate E0 fails closed
+    without it. The root overrides and ``protocol_check=False`` are test aids: using any of them
+    forces ``FAIL`` (reason ``test_override_used``) and ``authoritative`` false. Any exception
+    yields a report with ``FAIL`` (reason ``evaluator_exception:<type>``). Absence of a report is
+    itself a FAIL (protocol section 4.4).
+    """
+    overrides = [
+        name
+        for name, value in (
+            ("selection_root", selection_root),
+            ("worker_root", worker_root),
+            ("runtime_root", runtime_root),
+            ("activation_root", activation_root),
+        )
+        if value is not None
+    ]
+    if not protocol_check:
+        overrides.append("no_protocol_check")
+    return _guarded(
         panel_root,
         selection_root,
         worker_root,
         runtime_root,
         activation_root,
-        protocol_expectation,
+        launch_commit,
+        overrides,
+        enforce=True,
     )
-    return ev.run()
+
+
+def evaluate_d116_logic_only_test_aid(panel_root, **roots):
+    """TEST AID ONLY. Applies every gate except E0 and the frozen-value comparisons to a
+    (typically synthetic) tree. The report is always ``authoritative: false`` and carries
+    ``non_authoritative_logic_only``; its outcome is never a D116 result, and no command-line
+    entry reaches this function."""
+    return _guarded(
+        panel_root,
+        roots.get("selection_root"),
+        roots.get("worker_root"),
+        roots.get("runtime_root"),
+        roots.get("activation_root"),
+        roots.get("launch_commit"),
+        [],
+        enforce=False,
+    )
+
+
+def _guarded(panel_root, selection, worker, runtime, activation, launch_commit, overrides, enforce):
+    try:
+        panel_root = Path(panel_root)
+        defaults = _default_roots(panel_root)
+        ev = _Evaluation(
+            _Reader(),
+            panel_root,
+            Path(selection) if selection else defaults[0],
+            Path(worker) if worker else defaults[1],
+            Path(runtime) if runtime else defaults[2],
+            Path(activation) if activation else defaults[3],
+            launch_commit=launch_commit,
+            overrides=overrides,
+            enforce=enforce,
+            derived=not (selection or worker or runtime or activation),
+        )
+        return ev.run()
+    except Exception as exc:  # noqa: BLE001 - every failure must become a FAIL report
+        return {
+            "evaluator_version": EVALUATOR_VERSION,
+            "classification_table_sha256": TABLE_SHA256,
+            "roots": {"panel": str(panel_root)},
+            "authoritative": False,
+            "non_authoritative_logic_only": not enforce,
+            "test_override_used": list(overrides),
+            "outcome": "FAIL",
+            "outcome_reasons": [f"evaluator_exception:{type(exc).__name__}"],
+            "gates": {},
+            "summary": {},
+            "pairs": [],
+            "common_mode": [],
+            "finding_counts": {},
+            "findings": [],
+            "members": {},
+            "timeline": {},
+            "diagnostics": {},
+        }
 
 
 class _Evaluation:
-    def __init__(self, reader, panel, selection, worker, runtime, activation, expectation):
+    def __init__(
+        self,
+        reader,
+        panel,
+        selection,
+        worker,
+        runtime,
+        activation,
+        *,
+        launch_commit,
+        overrides,
+        enforce,
+        derived,
+    ):
         self.r, self.panel, self.selection = reader, panel, selection
         self.worker, self.runtime, self.activation = worker, runtime, activation
-        self.expectation = expectation
+        self.launch_commit, self.overrides = launch_commit, list(overrides)
+        self.enforce, self.derived = enforce, derived
+        self.expectation = D116_PROTOCOL if enforce else None
         self.members = {}  # market_id -> record
         self.order = []
 
@@ -1001,10 +1215,21 @@ class _Evaluation:
         timeline = self.timeline()
         summary = self.summarise(gates, pairs, common)
         outcome, outcome_reasons = decide_outcome(summary)
+        if self.overrides:
+            outcome = "FAIL"
+            outcome_reasons = ["test_override_used: " + ",".join(self.overrides), *outcome_reasons]
+        if not self.enforce:
+            outcome_reasons = ["non_authoritative_logic_only", *outcome_reasons]
+        authoritative = bool(self.enforce and not self.overrides and gates["E0"]["pass"])
         counts = Counter(f["class"] for f in r.findings)
         return {
             "evaluator_version": EVALUATOR_VERSION,
             "classification_table_sha256": TABLE_SHA256,
+            "authoritative": authoritative,
+            "non_authoritative_logic_only": not self.enforce,
+            "test_override_used": self.overrides,
+            "launch_commit": self.launch_commit,
+            "required_ancestor_commit": REQUIRED_ANCESTOR_COMMIT,
             "roots": {
                 "panel": str(self.panel),
                 "selection": str(self.selection),
@@ -1038,6 +1263,12 @@ class _Evaluation:
             )
             or {}
         )
+        self.frame_read_policy = (
+            r.pair(self.selection / "fs2_frame_read_original", "read_policy", "selection") or {}
+        )
+        self.read_batch = self.worker / "fs2_runtime_read_batch"
+        self.rt_read_policy = r.pair(self.read_batch, "read_policy", "screening") or {}
+        self.read_receipt = r.pair(self.read_batch, "read_receipt", "screening") or {}
         self.worker_policy = r.pair(self.worker, "worker_policy", "screening") or {}
         self.worker_report = r.pair(self.worker, "worker_report", "screening") or {}
         batch = self.worker / "fs2_screening_batch"
@@ -1097,6 +1328,12 @@ class _Evaluation:
                 market = self.by_intent.get(origin_id)
                 if market:
                     self.members[market].setdefault("target_dirs", []).append(folder)
+                elif intent is not None:
+                    r.note(
+                        "target",
+                        "missing_or_unreadable_artifact",
+                        f"target {folder.name} origin_id {origin_id} matches no origin",
+                    )
         for roles in self.plan.get("assignments") or []:
             if roles.get("market_id") in self.members:
                 self.members[roles["market_id"]]["roles"].append(roles)
@@ -1120,9 +1357,12 @@ class _Evaluation:
         target_ok = stages.get("target", {}).get("state") == "observed"
         m["complete_chain"] = bool(origin_ok and history_ok and target_ok)
         if not m["complete_chain"]:
-            for stage in ("origin", "history", "target"):
+            # First non-OK cause in stage order; screening and window causes count (common mode).
+            for stage in ("screening", "window", "origin", "history", "target"):
                 info = stages.get(stage) or {}
-                if info.get("state") in (None, "observed") and info.get("eligible") is not False:
+                if stage in ("origin", "target") and info.get("state") == "observed":
+                    continue
+                if stage == "history" and info.get("eligible") is not False:
                     continue
                 for cause in info.get("causes", []):
                     m["causes"].append({"stage": stage, **cause})
@@ -1207,6 +1447,14 @@ class _Evaluation:
             m["authenticated_state"] = bool(evidence and _HEX64.fullmatch(str(evidence)))
         else:
             m["authenticated_state"] = False
+        if state.get("state") in ("triggered", "untriggered") and not m["authenticated_state"]:
+            self.add(
+                market,
+                "screening",
+                "artifact",
+                "missing_or_unreadable_artifact",
+                "triggered/untriggered state without an authenticated assessment evidence_id",
+            )
 
     def window_stage(self, m):
         market, index = m["market_id"], m["index"]
@@ -1246,7 +1494,7 @@ class _Evaluation:
         for path in sorted(folder.glob("event_*.json")):
             if path.name.endswith("_ack.json"):
                 continue
-            event = self.r.plain(path, "window", market)
+            event = self.socket_event(path, market)
             if event:
                 events[event.get("ordinal")] = event
         last = events[max(events)] if events else {}
@@ -1278,6 +1526,28 @@ class _Evaluation:
                 f"close_state {close} inconsistent with terminal {terminal}",
             )
         info["last_event"] = last.get("kind")
+
+    def socket_event(self, path, market):
+        """Load one journal event, verifying its ack hash and the sibling raw frame hash."""
+        try:
+            raw = path.read_bytes()
+            event = json.loads(raw)
+            ack = json.loads(path.with_name(path.stem + "_ack.json").read_bytes())
+        except (OSError, ValueError) as exc:
+            self.r.note(
+                "window", "missing_or_unreadable_artifact", f"{path}: {type(exc).__name__}", market
+            )
+            return None
+        if ack.get("payload_hash") != hashlib.sha256(raw).hexdigest():
+            self.r.note("window", "artifact_hash_mismatch", str(path), market)
+            return None
+        frame = path.with_suffix(".bin")
+        if frame.exists() and hashlib.sha256(frame.read_bytes()).hexdigest() != event.get(
+            "raw_hash"
+        ):
+            self.r.note("window", "artifact_hash_mismatch", str(frame), market)
+            return None
+        return event
 
     def origin_stage(self, m):
         market = m["market_id"]
@@ -1552,8 +1822,141 @@ class _Evaluation:
     def stage_engineering(self, *stages):
         return [f for f in self.r.findings if f["class"] == ENGINEERING and f["stage"] in stages]
 
+    def identity_gate(self):
+        """E0: this is the one frozen D116 run, launched from the stated commit, on live data."""
+        reasons, evidence = [], {}
+        if self.panel.name != FROZEN_PANEL_NAME:
+            reasons.append(f"panel root name {self.panel.name} != {FROZEN_PANEL_NAME}")
+        if self.overrides or not self.derived:
+            reasons.append("roots are not derived from the panel root alone")
+        actual = {
+            "selection": self.selection,
+            "worker": self.worker,
+            "activation": self.activation,
+            "runtime": self.runtime,
+        }
+        for key, name in FROZEN_ROOT_NAMES.items():
+            if actual[key].name != name or actual[key].parent != self.panel.parent:
+                reasons.append(f"{key} root {actual[key].name} != {name} beside the panel root")
+        # Implementation commit recorded by every artifact that carries one.
+        launch = self.launch_commit
+        if not (isinstance(launch, str) and _COMMIT.fullmatch(launch)):
+            reasons.append("launch commit absent or not a 40-hex commit")
+        commits = {
+            "panel_policy.frame_implementation_commit": self.panel_policy.get(
+                "frame_implementation_commit"
+            ),
+            "selection_policy.implementation_commit": self.sel_policy.get("implementation_commit"),
+            "frame_read_policy.implementation_commit": self.frame_read_policy.get(
+                "implementation_commit"
+            ),
+            "worker_policy.implementation_commit": self.worker_policy.get("implementation_commit"),
+            "runtime_read_policy.implementation_commit": self.rt_read_policy.get(
+                "implementation_commit"
+            ),
+        }
+        for name, value in commits.items():
+            if not (isinstance(value, str) and _COMMIT.fullmatch(value)):
+                reasons.append(f"{name} absent or malformed")
+            elif value != launch:
+                reasons.append(f"{name} {value} != launch commit {launch}")
+        evidence["commits"] = commits
+        # Screening schema: the final owned-selection screening contract.
+        schemas = {
+            "screening_policy": self.screen_policy.get("schema_version"),
+            "screening_report": self.screen_report.get("schema_version"),
+            "worker_report.screening": (self.worker_report.get("screening") or {}).get(
+                "schema_version"
+            ),
+        }
+        for name, value in schemas.items():
+            if value != REQUIRED_SCREENING_SCHEMA:
+                reasons.append(f"{name} schema {value} != {REQUIRED_SCREENING_SCHEMA}")
+        evidence["screening_schemas"] = schemas
+        # Provenance: public/prospective throughout, never synthetic/loopback/mock.
+        recovery = self.worker_report.get("recovery") or []
+        provenance = {
+            "frame_original_report": self.sel_original.get("provenance_class"),
+            "selection_report": self.sel_report.get("provenance_class"),
+            "screening_policy.source": self.screen_policy.get("source_provenance_class"),
+            "screening_report": self.screen_report.get("provenance_class"),
+            "worker_policy": self.worker_policy.get("provenance_class"),
+            "worker_report.screening": (self.worker_report.get("screening") or {}).get(
+                "provenance_class"
+            ),
+            "worker_report.runtime": (self.worker_report.get("runtime") or {}).get(
+                "provenance_class"
+            ),
+            "activation_facts": self.act_facts.get("provenance_class"),
+            "runtime_policy": self.rt_policy.get("provenance_class"),
+            "runtime_report": self.rt_report.get("provenance_class"),
+            "read_receipt.original_provenance_class": self.read_receipt.get(
+                "original_provenance_class"
+            ),
+            "worker_report.recovery[0].original_provenance_class": (
+                recovery[0].get("original_provenance_class") if len(recovery) == 1 else None
+            ),
+        }
+        for m in self.members.values():
+            index, market = m["index"], m["market_id"]
+            for stage, folder in (
+                ("screening", self.worker / f"fs2_capture_screen_{index:03d}"),
+                ("origin", (m.get("origin_dir") or Path("/nonexistent")) / "fs2_capture_origin"),
+            ):
+                if folder.is_dir():
+                    run = self.r.plain(folder / "run.json", stage, market) or {}
+                    provenance[f"{market}.{stage}_capture"] = run.get("provenance_class")
+            for n, target in enumerate(m.get("target_dirs") or []):
+                if (target / "fs2_capture_target").is_dir():
+                    run = self.r.plain(target / "fs2_capture_target" / "run.json", "target", market)
+                    provenance[f"{market}.target_capture[{n}]"] = (run or {}).get(
+                        "provenance_class"
+                    )
+            socket_dir = self.worker / f"fs2_socket_window_{index:03d}"
+            if socket_dir.is_dir():
+                policy = self.r.pair(socket_dir, "socket_window_policy", "window", market) or {}
+                report = self.r.pair(socket_dir, "socket_window_report", "window", market) or {}
+                transport = policy.get("transport") or {}
+                provenance[f"{market}.socket_policy"] = transport.get("provenance_class")
+                provenance[f"{market}.socket_report"] = report.get("provenance_class")
+                if transport.get("kind") != LIVE_SOCKET_KIND:
+                    reasons.append(f"{market}: socket transport kind {transport.get('kind')}")
+            elif (m["stages"].get("window") or {}).get("missing_reason") is None:
+                reasons.append(f"{market}: socket window artifacts absent")
+        bad = {k: v for k, v in sorted(provenance.items()) if v != LIVE_PROVENANCE}
+        if bad:
+            reasons.append(f"provenance is not {LIVE_PROVENANCE}: {bad}")
+        evidence["provenance"] = provenance
+        evidence["required_ancestor_commit"] = REQUIRED_ANCESTOR_COMMIT
+        evidence["ancestry_note"] = "ancestry of the required commit is a launch precondition"
+        return _gate(not reasons, reasons, **evidence)
+
+    def frozen_failures(self):
+        """E1 comparison of retained policies with the frozen module constants."""
+        reasons = []
+        frozen = FROZEN_EXPECTATIONS
+        for key, expected in frozen["panel"].items():
+            if self.panel_policy.get(key) != expected:
+                reasons.append(f"panel_policy.{key} {self.panel_policy.get(key)!r} != {expected!r}")
+        worker = self.worker_policy
+        for key, expected in frozen["worker"].items():
+            actual = worker.get(key)
+            if key == "limits":
+                actual = {k: (worker.get("limits") or {}).get(k) for k in expected}
+            if actual != expected:
+                reasons.append(f"worker_policy.{key} {actual!r} != {expected!r}")
+        screening = self.screen_policy
+        if (screening.get("limits") or {}).get("max_seconds") != frozen["screening_max_seconds"]:
+            reasons.append("screening_policy.limits.max_seconds != 600")
+        if screening.get("limits") != frozen["screening_limits"]:
+            reasons.append("screening_policy.limits differ from screening.LIMITS")
+        for key in ("freshness", "rule"):
+            if screening.get(key) != frozen["worker"][key]:
+                reasons.append(f"screening_policy.{key} differs from the frozen value")
+        return reasons
+
     def gates(self):
-        g = {}
+        g = {"E0": self.identity_gate()}
         proto = self.protocol
         # E1
         reasons = []
@@ -1577,6 +1980,7 @@ class _Evaluation:
             diff = {k: (proto.get(k), v) for k, v in self.expectation.items() if proto.get(k) != v}
             if diff:
                 reasons.append(f"panel protocol differs from frozen D116 values: {diff}")
+            reasons += self.frozen_failures()
         g["E1"] = _gate(not reasons, reasons)
         # E2
         reasons = []
@@ -1608,7 +2012,12 @@ class _Evaluation:
         eligible = self.sel_plan.get("selection_eligible_member_count")
         if counts.get("sampling_members") != size:
             reasons.append("selection_report.counts.sampling_members != plan frame_size")
-        if eligible is not None and size != len(exclusions) + eligible:
+        if eligible is None:
+            # The frozen D116 population policy always records it; the legacy (non-temporal)
+            # synthetic fixtures do not, so only the logic-only test aid tolerates its absence.
+            if self.enforce:
+                reasons.append("selection_eligible_member_count absent: reconciliation impossible")
+        elif size != len(exclusions) + eligible:
             reasons.append("frame_size != zero-inclusion exclusions + eligible members")
         if self.sel_report.get("unique_selected_markets") != self.sel_plan.get(
             "unique_selected_markets"
@@ -1651,8 +2060,10 @@ class _Evaluation:
             reasons.append(f"{e['member']}: {e['rule']}")
         started = _utc(self.completion.get("read_started_at"))
         done = _utc(self.screen_available())
-        limit = (self.screen_policy.get("limits") or {}).get("max_seconds")
-        if started and done and limit and _seconds(done, started) > limit:
+        limit = FROZEN_EXPECTATIONS["screening_max_seconds"]
+        if started is None or done is None:
+            reasons.append("finish-call clocks missing: duration cannot be checked")
+        elif _seconds(done, started) > limit:
             reasons.append(f"finish call {_seconds(done, started)} s exceeds {limit}")
         g["E3"] = _gate(
             not reasons,
@@ -1706,8 +2117,38 @@ class _Evaluation:
             )
             if any(not isinstance(s.get(k), int) for k in keys):
                 reasons.append(f"stratum {str(s.get('stratum'))[:8]} lacks control accounting")
-            elif s["controls_wanted"] - s["controls_selected"] != s["unfilled_control_slots"]:
-                reasons.append(f"stratum {str(s.get('stratum'))[:8]} unfilled slots inconsistent")
+            else:
+                label = str(s.get("stratum"))[:8]
+                if s["controls_wanted"] - s["controls_selected"] != s["unfilled_control_slots"]:
+                    reasons.append(f"stratum {label} unfilled slots inconsistent")
+                expected_controls = min(s["controls_wanted"], s["control_pool"])
+                if s["controls_selected"] != expected_controls:
+                    reasons.append(
+                        f"stratum {label} controls_selected {s['controls_selected']} != "
+                        f"min(controls_wanted, control_pool) {expected_controls}"
+                    )
+        per_stratum = (self.plan.get("protocol") or {}).get("triggered_per_stratum")
+        pools = {s.get("stratum"): s.get("triggered_pool") for s in self.plan.get("strata") or []}
+        if not isinstance(per_stratum, int):
+            reasons.append("plan protocol triggered_per_stratum unreadable")
+        else:
+            for s in self.plan.get("strata") or []:
+                pool, count = s.get("triggered_pool"), s.get("triggered_count")
+                if isinstance(pool, int) and count != min(per_stratum, pool):
+                    reasons.append(
+                        f"stratum {str(s.get('stratum'))[:8]} triggered_count {count} != "
+                        f"min(triggered_per_stratum, triggered_pool)"
+                    )
+            for m in self.members.values():
+                if not (m.get("authenticated_state") and m.get("assessment_state") == "triggered"):
+                    continue
+                strata = {a.get("stratum") for a in m["roles"]}
+                has_role = any(a.get("arm") == "triggered" for a in m["roles"])
+                oversubscribed = any((pools.get(x) or 0) > per_stratum for x in strata)
+                if not has_role and not oversubscribed:
+                    reasons.append(
+                        f"{m['market_id']}: triggered member has no triggered assignment"
+                    )
         if not (self.worker_report.get("role_capacity") or {}).get("fits"):
             reasons.append("role_capacity.fits is not true")
         for m in self.members.values():
@@ -1763,8 +2204,11 @@ class _Evaluation:
                 reasons.append("recovery original_report_hash != runtime report hash")
             if not str(rec.get("original_state", "")).startswith("verified_"):
                 reasons.append(f"recovery state {rec.get('original_state')}")
-        if not (self.worker / "fs2_runtime_read_batch" / "read_receipt.json").exists():
-            reasons.append("original read receipt file absent")
+        receipt = {k: v for k, v in self.read_receipt.items() if k != "__ack__"}
+        if not receipt:
+            reasons.append("original read receipt absent or failed its hash check")
+        elif len(recovery) == 1 and receipt != recovery[0]:
+            reasons.append("read_receipt.json differs from worker_report recovery[0]")
         g["E8"] = _gate(not reasons, reasons)
         # E9
         reasons = self.accounting()
@@ -1945,46 +2389,49 @@ class _Evaluation:
         return result
 
     def common_mode(self):
-        ms = list(self.members.values())
-        flags = []
-        if not ms:
-            return ["no selected members"]
-        limited = [m for m in ms if not m["complete_chain"]]
-        if len(limited) == len(ms):
-            primary = [(c["stage"], c["state"]) for m in ms for c in m["causes"][:1]]
-            if len(ms) >= 2 and len(set(primary)) == 1:
-                flags.append(f"every member ends in the same cause {primary[0]}")
-            if all(m["causes"] and m["causes"][0].get("class") == DATA_TRANSPORT for m in ms):
-                flags.append("every member's limiting cause is a transport failure")
-            failing = 0
-            for m in ms:
-                receipts = [
-                    r
-                    for d in (
-                        m.get("screen_receipts"),
-                        m.get("origin_receipts"),
-                        m.get("target_receipts"),
-                    )
-                    for v in (d or {}).values()
-                    for r in v
-                ]
-                if any(
-                    r.transport_error is not None or (isinstance(r.status, int) and r.status >= 400)
-                    for r in receipts
-                ):
-                    failing += 1
-            if failing == len(ms):
-                flags.append(
-                    "every member has transport errors or 4xx/5xx on markets listed in "
-                    "the frame minutes earlier"
+        rows = []
+        for m in self.members.values():
+            receipts = [
+                r
+                for d in (
+                    m.get("screen_receipts"),
+                    m.get("origin_receipts"),
+                    m.get("target_receipts"),
                 )
-        return flags
+                for v in (d or {}).values()
+                for r in v
+            ]
+            failing = any(
+                r.transport_error is not None
+                or (isinstance(r.status, int) and 400 <= r.status < 500)
+                for r in receipts
+            )
+            limiting = None
+            if not m["complete_chain"] and m["causes"]:
+                limiting = {k: m["causes"][0].get(k) for k in ("stage", "state", "class")}
+            rows.append(
+                {
+                    "complete": m["complete_chain"],
+                    "limiting": limiting,
+                    "listed_market_failure": failing,
+                }
+            )
+        return common_mode_flags(rows)
 
     def summarise(self, gates, pairs, common):
         ms = list(self.members.values())
-        states = Counter(m["stages"]["screening"].get("effective_state") for m in ms)
+        # Only an authenticated effective state counts as triggered/untriggered (E5, sub-labels).
+        states = Counter(
+            "unauthenticated"
+            if m["stages"]["screening"].get("effective_state") in ("triggered", "untriggered")
+            and not m.get("authenticated_state")
+            else m["stages"]["screening"].get("effective_state")
+            for m in ms
+        )
         controls = [a for a in self.plan.get("assignments") or [] if a.get("arm") == "control"]
         strata = self.plan.get("strata") or []
+        triggered_strata = [s for s in strata if (s.get("triggered_pool") or 0) > 0]
+        pool_zero = all(s.get("control_pool") == 0 for s in triggered_strata)
         strata_ok = bool(strata) and all(
             isinstance(s.get("control_pool"), int) and isinstance(s.get("controls_wanted"), int)
             for s in strata
@@ -1992,7 +2439,9 @@ class _Evaluation:
         return {
             "n_members": len(ms),
             "engineering_findings": sum(1 for f in self.r.findings if f["class"] == ENGINEERING),
-            "failed_gates": sorted(k for k, v in gates.items() if not v["pass"]),
+            "failed_gates": sorted(
+                k for k, v in gates.items() if not v["pass"] and (self.enforce or k != "E0")
+            ),
             "common_mode": common,
             "complete_chains": sum(1 for m in ms if m["complete_chain"]),
             "authenticated_state_members": sum(1 for m in ms if m.get("authenticated_state")),
@@ -2003,6 +2452,7 @@ class _Evaluation:
             "pairs_drawn": len(pairs),
             "pairs_both_complete": sum(1 for p in pairs if p["both_complete"]),
             "strata_report_computed": strata_ok,
+            "control_pool_zero_in_triggered_strata": pool_zero,
             "pass_pair_requires": "both pair members' origins observed with eligible histories "
             "and valid (observed) targets",
         }
