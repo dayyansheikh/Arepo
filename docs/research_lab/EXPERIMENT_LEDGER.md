@@ -357,3 +357,10 @@ criteria are unchanged.
 - **Not adopted:** the alternative feature `c_k` (proportional allocation of excess), which rests on a stronger assumption than the
   bid/ask band. It may become a later experiment.
 - **Confirmation data:** unchanged (the 12 E004-qualifying snapshots, all taken after this amendment).
+
+**E004/E005 collection rule refinement (before the first qualifying snapshot; replaces "record pending" above).**
+- If any loop pass fails, collection continues at the same about 2h cadence until 12 snapshots qualify. This depends only on availability, never on outcomes.
+- Gaps over 3h are flagged and kept.
+- No other capture is written to `snapshots/` until then.
+- The E004 result additionally reports that the frozen spec file equals `git show 3d7335e:` of the same path.
+- The neg-risk columns added in 19d7bd3 are additive and are not read by E004.
