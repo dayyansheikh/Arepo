@@ -46,6 +46,10 @@ COLUMNS = [
     "updated_at",
     "dup_count",
     "clob_token_id_0",
+    "neg_risk",
+    "neg_risk_market_id",
+    "neg_risk_other",
+    "event_neg_risk_augmented",
 ]
 
 
@@ -90,6 +94,22 @@ def _event_id(m: dict) -> str | None:
     return None
 
 
+def _flag(v: Any) -> int | None:
+    """Gamma boolean (bool or 'true'/'false' string) to 1/0, else None."""
+    if isinstance(v, bool):
+        return int(v)
+    if isinstance(v, str) and v.strip().lower() in ("true", "false"):
+        return int(v.strip().lower() == "true")
+    return None
+
+
+def _event_flag(m: dict, key: str) -> int | None:
+    ev = m.get("events")
+    if isinstance(ev, list) and ev and isinstance(ev[0], dict):
+        return _flag(ev[0].get(key))
+    return None
+
+
 def _token0(m: dict) -> str | None:
     """Outcome-0 CLOB token id (``clobTokenIds[0]``), or None if absent."""
     ids = _json_list(m.get("clobTokenIds"))
@@ -126,6 +146,10 @@ def market_row(m: dict, capture_id: str, capture_start: str, received: str) -> d
         "updated_at": m.get("updatedAt"),
         "dup_count": 0,
         "clob_token_id_0": _token0(m),
+        "neg_risk": _flag(m.get("negRisk")),
+        "neg_risk_market_id": m.get("negRiskMarketID") or None,
+        "neg_risk_other": _flag(m.get("negRiskOther")),
+        "event_neg_risk_augmented": _event_flag(m, "negRiskAugmented"),
     }
 
 

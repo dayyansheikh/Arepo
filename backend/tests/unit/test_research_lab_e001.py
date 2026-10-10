@@ -328,3 +328,22 @@ def test_bootstrap_determinism_and_clustering():
     assert a[0] < a[1]
     point = 1 - ssem.sum() / sse0.sum()
     assert a[0] <= point <= a[1]
+
+
+def test_market_row_neg_risk_fields():
+    from astrolabe.research_lab import extract as ex
+
+    m = {
+        "id": "1",
+        "outcomes": '["Yes","No"]',
+        "negRisk": True,
+        "negRiskMarketID": "0xabc",
+        "negRiskOther": "false",
+        "events": [{"id": "9", "negRiskAugmented": False}],
+    }
+    r = ex.market_row(m, "c", "s", "r")
+    assert (r["neg_risk"], r["neg_risk_market_id"], r["neg_risk_other"]) == (1, "0xabc", 0)
+    assert r["event_neg_risk_augmented"] == 0
+    r2 = ex.market_row({"id": "2"}, "c", "s", "r")
+    assert r2["neg_risk"] is None and r2["neg_risk_market_id"] is None
+    assert set(ex.COLUMNS) == set(r)
