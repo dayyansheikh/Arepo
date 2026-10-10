@@ -7,7 +7,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 
 | ID | Status | Question | Result summary |
 |---|---|---|---|
-| E001 | REGISTERED (pre-outcome) | Do price/momentum/context fields in Gamma full-universe snapshots predict repricing by the next snapshot, beyond no-change? | pending |
+| E001 | COMPLETE (exploratory) | Do price/momentum/context fields in Gamma full-universe snapshots predict repricing by the next snapshot, beyond no-change? | 1h-change model *Indicative (exploratory)*: R2_oos +0.037, positive in 4/4 periods; the fitted sign is **reversal** (about -0.3). Others inconclusive. No edge claim. |
 
 ---
 
@@ -71,3 +71,39 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
   - Gamma-computed change fields have unknown update latency (`updatedAt` is recorded).
   - Cross-sectional dependence within a capture time.
   - Survivorship from the "not closed at i" rule.
+
+### E001 results (2026-10-10; code `backend/astrolabe/research_lab/`, runner `backend/scripts/run_research_e001.py`)
+
+**Data**
+- 6 full captures (2026-10-03 to 2026-10-10, receipt clock = per-page `receipt.json` `first_received.utc`).
+- 1,517,668 rows.
+- 5 consecutive pairs, giving 4 test periods (median horizons about 5h, 70h, 5h, 42h).
+- 161,902 test pairs, 67,228 markets, 14,879 events.
+- 5,379 target-unavailable pairs: 2,761 missing at j, 2,618 one-sided or closed at j.
+
+| Model | Pooled R2_oos [95% CI] | Per period | Mean Spearman | MAE | Label |
+|---|---|---|---|---|---|
+| B0 | 0 | 0,0,0,0 | n/a | 0.01679 | baseline |
+| B1 (1d) | -0.024 [-0.030,-0.017] | -0.155,+0.032,-0.026,+0.018 | 0.109 | 0.01961 | Inconclusive |
+| B1h (1h) | +0.037 [+0.030,+0.043] | +0.042,+0.056,+0.034,+0.017 | 0.112 | 0.01702 | **Indicative (exploratory)** |
+| B2 | +0.021 [+0.013,+0.029] | -0.037,+0.075,-0.016,+0.031 | 0.086 | 0.02129 | Inconclusive |
+| B3 | +0.038 [+0.030,+0.047] | +0.004,+0.082,-0.006,+0.044 | 0.081 | 0.02195 | Inconclusive |
+
+**Post-hoc diagnostic (not pre-registered; hypothesis generation only)**
+- The OLS coefficient of `dmid` on `oneHourPriceChange` is **negative** in every pair period: -0.335, -0.373, -0.363, -0.280, -0.279.
+- It is almost unchanged after adding `lastTradePrice - mid`, and corr(1h change, gap) is about -0.03.
+- So about 30% of the Gamma-reported 1h change reverses by the next snapshot, regardless of horizon (5-70h). "Momentum" is a misnomer for B1h here.
+- B1h's MAE is slightly worse than B0. The gain is in squared error on large moves.
+
+**Deviations from registration**
+- 6 captures, not about 7: the >=2000-page rule excluded the 1,755-page frame.
+- The purge was applied per 60s bin of test origins. This is conservative.
+- Test bins with fewer than 500 purged training pairs were skipped (9,216 period-1 pairs).
+- The lambda inner split fell back to the latest 25% of training when a side had fewer than 500 pairs.
+- Ridge uses an unpenalised intercept.
+- Extra missing-value flags: lastTradePrice missing flag; missing liquidity/volume set to 0.
+- The target at j requires a valid two-sided, not-closed book, with no spread or mid filter.
+
+**Interpretation**
+- Short-horizon price changes on Polymarket partially revert. This may be quote noise or thin-book overreaction rather than an exploitable edge: midpoint reversal is not executable value.
+- Development data only. The next step is prospective confirmation (E002).
