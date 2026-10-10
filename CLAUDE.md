@@ -50,4 +50,4 @@ useful, give clear scope and success criteria, avoid concurrent edits to the sam
 Keep `docs/AREPO_PROGRESS_PLAIN_ENGLISH.md` (the user's one-page dashboard; complements, never contradicts, the
 technical checkpoint) current after milestones, experiments, consequential failures, phase transitions, new decisions
 for the user, and before handover/compaction. Rewrite, do not append logs. The `Last updated` line must carry
-date and exact time (HH:MM, with timezone, e.g. `2026-10-10 21:17 UTC`), taken from `date -u`, never an estimate.
+date and exact time (HH:MM, user local time written as UTC+1, e.g. `2026-10-10 22:17 UTC+1`), taken from `TZ=Etc/GMT-1 date`, never an estimate.
