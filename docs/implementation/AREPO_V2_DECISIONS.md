@@ -736,3 +736,24 @@ policy, provenance and all gates remain unchanged.209 affected tests passed; no 
 test repeated for these documentation/storage operations. Canonical/whitespace checks pass.
 No source edits during collection or original audit. Extract the actual terminal outcome;
 a failure stops acquisition and is preserved, not retried. No Phase4 or production action.
+
+## D110 terminal / D111 bounded transport diagnostic
+
+D110 ran once October9 21:32:52–21:58:54UTC under81d415a042cae8301bad1e6f3d42503424a2dc80,
+exit1. Complete280090-row frame,2801attempts; original-code audit passed. Selection refused
+665.126435s against600s. No selection plan, origins or targets. The unchanged control design
+remains empirically unmeasured. Preserve all raw data and the terminal failure; no rerun.
+
+Compared with D106, local receipt/persistence intervals fell337.233→289.637s despite39more
+pages, but request/response intervals rose305.277→375.543s. These are wall-clock partitions,
+not pure network/CPU attribution; endpoint/cache/payload/system conditions differ. D108's
+component improvement does not establish reliable full-run performance. Evidence and full
+per-page clock/hash sidecar: PHASE_03_CAPTURE_ENCODING_PILOT_EVIDENCE.json.
+
+Next D111: one fixed four-request first-page identity/gzip/gzip/identity diagnostic, frozen
+before requests in PHASE_03_HTTP_ENCODING_PROBE_PROTOCOL.md. Preserve wire/decoded bytes,
+headers, errors and clocks under an explicitly unadmitted diagnostic root. No changes to
+capture/admission, source scope, sampling, controls or deadlines. Check compression support
+and measured size/latency before deciding on implementation; do not assume it fixes timing.
+Full panel reservation unavailable again (~9.92GB versus13.31GB); bounded128MiB diagnostic
+reservation fits. No Phase4 or protected action.209 D108 tests remain accepted, not repeated.

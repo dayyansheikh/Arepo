@@ -1,4 +1,4 @@
-# Phase 3 acceptance — current through D108
+# Phase 3 acceptance — current through D110
 
 Phase 3 remains incomplete. D082 closes the real origin/control/target **execution** gate;
 it does not waive the remaining observation scope. Phase 4 starts in a fresh conversation
@@ -171,3 +171,7 @@ Current D108: D106 failed642.42s frame interval (600s gate), despite successful 
 verification. Measured strict capture optimisations pass209 tests and32-page exact-byte
 comparison; they do not establish full-run compliance. See live checkpoint for capacity
 recovery and next integration decision. Phase3 remains incomplete; no Phase4.
+
+D110 also failed the unchanged600s frame interval before selection (665.126435s); original
+audit passed, no origins/targets. Phase3 remains incomplete. Next D111 bounded diagnostic
+is not another panel or evidence of improved prediction. Follow the live checkpoint.

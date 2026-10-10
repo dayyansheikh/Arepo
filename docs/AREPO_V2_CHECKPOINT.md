@@ -1,12 +1,12 @@
 # AREPO v2 live checkpoint
 
-Updated: 2026-10-09 21:33UTC. D110 active under81d415a after successful full reservation; no source edits until terminal original audit. Phase3 incomplete.
+Updated: 2026-10-10 02:34UTC. D110 terminal failure665.126435s>600s, original audit passed; no collector active. D111 fixed HTTP encoding diagnostic pending. Phase3 incomplete.
 
 - Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
 - Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
 - Previous implementation continuation: 2026-09-27 10:35 UTC. Initial allowance 1% primary /32% weekly used; ordinary usage allowed. D069 bounded stratum sampler/declaration/selection implemented; 193 affected tests passed in 217.52s. Full original-code recovery and legacy defaults pass. No public collection or empirical acceptance.
-- Current successor: exactly one same-task continuation October10 03:34 Europe/London /02:34 UTC (+310min), canonical PHASE_03_HEARTBEAT.md prompt.
-- Current continuation: October9 21:24UTC;1% primary/31% weekly used, ordinary usage available; no reset credit redeemed by this agent.
+- Current successor: exactly one same-task continuation October10 08:44 Europe/London /07:44 UTC (+310min), canonical PHASE_03_HEARTBEAT.md prompt.
+- Current continuation: October10 02:34UTC;5% primary/48% weekly used, ordinary usage available; no reset credit redeemed by this agent.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
 - Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
 - Latest safe protocol/preservation commit: 81d415a042cae8301bad1e6f3d42503424a2dc80, pushed; D109 proof and D110 frozen protocol. D108 implementation a28be2e,209 tests pass. D110 actual run uses81d415a regardless of later docs commits.
@@ -22,14 +22,14 @@ Updated: 2026-10-09 21:33UTC. D110 active under81d415a after successful full res
 - Enumeration attempt 3: `5cdb2d2`, 74 attempts /73 complete pages /7,300 rows plus partial response 74. Incomplete, `page_error`/`TimeoutError` after 15s. Raw46,929,025 /retained112,224,334 /peak resident118,849,536 bytes. Original-code prior-capacity verification succeeded. Root `data-dumps/fs2_capture_ff7f05b057b647109b4239ca781e10fb`; full evidence in PHASE_03_ENUMERATION_ATTEMPT_3.json. 7,256 eligible rows, 44 unresolved; no terminal or population inference.
 - Enumeration attempt 4: `b93f9aa`, 204 verified attempts /200 complete pages /20,000 rows, with 3 bounded retries (2 recovered). Incomplete, `retry_exhausted`; unrecovered `ConnectError` and `TimeoutError`. Raw132,580,143 /retained318,668,335 /peak resident141,836,288 bytes. 19,956 eligible rows, 44 unresolved, no duplicates/conflicts or terminal. Root `data-dumps/fs2_capture_8e6a8d4a22b846ae91ca70f70f6b3939`; evidence in PHASE_03_ENUMERATION_ATTEMPT_4.json.
 - Self-review: source/clock/identity/raw preservation, internally frozen seed, actual read/projection/cutoff ordering, exact rational replay, unknown and unmapped inventory, duplicate handling, failed-run refusal, original-frame policy/page closure, bounded storage/time and changed-build refusal. Source exhaustion is established only for attempt 5. No population inference, pilot acceptance or predictive improvement is claimed.
-- Decisions: through D108; strict capture optimisations preserve bytes/errors,209 affected tests pass. D106 remains failed; no control-design empirical result.
+- Decisions: through D111 protocol. D110 local processing improved but overall interval failed amid longer request/response times. No control-design empirical result or retrospective repair.
 - Required data gate: complete-frame blocker **cleared** by verified attempt 5. Earlier failures remain incomplete. No current protected approval/access blocker. Current allowance is recorded above; the preceding window's 93% primary /92% weekly snapshot is historical and no longer controls this continuation.
 - Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
 - Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
 - Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: inspect the existing D110 wrapper result/logs (fs2_capture_encoding_pilot_20261009_1) and active process before any action. If still running, allow bounded acquisition/original audit to finish without source edits. If terminal, extract actual gates/failure, preserve raw evidence and review actual selected rules if any. Never relaunch this prefix, redraw or relax gates. No Phase4.
+- Exact next action: commit/review D110 terminal evidence and D111 fixed HTTP encoding diagnostic protocol; execute its four bounded first-page requests once via /tmp/arepo_d111_probe.py, preserving all wire/decoded bytes/errors/clocks. Use all outcomes to decide whether an opt-in transport implementation is justified. No new panel, redraw or relaxed deadline; no Phase4.
 - Latest modules/files: research_panel/frame.py and test_research_panel_row_hash.py; D103–D106 profile/equivalence/validation/storage/protocol evidence, checkpoint/review/decisions/master/phase docs. No production/API/configuration changes.
-- Current capacity observation after D109 original-code proofs:15338749952bytes free versus13,308,526,592required. All logical evidence remains online; remeasure before acquisition.
+- Current capacity observation after D110:9916743680bytes free versus13,308,526,592required for full collection. D111 diagnostic requires128MiB only; no full collection until reservation restored.
 - Next-run constraints: complete discovery separate from conditional temporal deep population; category still missing. Unknown metadata retained. No control fabrication or relaxed threshold. Check full7GiBframe+declared panel/recovery+2GiBreserve before future measurement; no paid/production storage.
 - New evidence: `PHASE_03_ORIGINAL_READ_EVIDENCE.json` records actual original-code verification of the existing 100,000-row journal without source requests. Its incomplete status and original hashes/clocks remain unchanged. D035 committed-code synthetic 400,000-member capacity used 320,897,024 resident bytes and 27,764,313,417ns; exact build/fixture/result in `PHASE_03_SAMPLING_CAPACITY_EVIDENCE.json`; synthetic capacity is not live source/panel evidence. D036 larger collection caps were tested/committed before attempt 3; its timeout did not reach those caps.
 - Unresolved: D097 matched controls failed; D106 frame interval failed before selection. Combined pilot unaccepted. Native continuity/complete flow/related/external families remain unavailable where unsupported. Full local capacity restored by D109, subject to launch remeasurement. Phase4 only in a fresh conversation.
@@ -988,3 +988,24 @@ Frozen script SHA256ef1eaf966b6134a43bd5db6d1d6abcc3c1f642a4cd183ce5e07bf9ed340f
 Wrapper prefix data-dumps/fs2_capture_encoding_pilot_20261009_1; launch.json/stdout.log/
 stderr.log/result.json suffixes. No source edits during acquisition or original recovery.
 No new origins or acceptance claimed before actual terminal evidence. No duplicate launch.
+
+## D110 terminal / D111 bounded transport diagnostic
+
+D110 ran once October9 21:32:52–21:58:54UTC under81d415a042cae8301bad1e6f3d42503424a2dc80,
+exit1. Complete280090-row frame,2801attempts; original-code audit passed. Selection refused
+665.126435s against600s. No selection plan, origins or targets. The unchanged control design
+remains empirically unmeasured. Preserve all raw data and the terminal failure; no rerun.
+
+Compared with D106, local receipt/persistence intervals fell337.233→289.637s despite39more
+pages, but request/response intervals rose305.277→375.543s. These are wall-clock partitions,
+not pure network/CPU attribution; endpoint/cache/payload/system conditions differ. D108's
+component improvement does not establish reliable full-run performance. Evidence and full
+per-page clock/hash sidecar: PHASE_03_CAPTURE_ENCODING_PILOT_EVIDENCE.json.
+
+Next D111: one fixed four-request first-page identity/gzip/gzip/identity diagnostic, frozen
+before requests in PHASE_03_HTTP_ENCODING_PROBE_PROTOCOL.md. Preserve wire/decoded bytes,
+headers, errors and clocks under an explicitly unadmitted diagnostic root. No changes to
+capture/admission, source scope, sampling, controls or deadlines. Check compression support
+and measured size/latency before deciding on implementation; do not assume it fixes timing.
+Full panel reservation unavailable again (~9.92GB versus13.31GB); bounded128MiB diagnostic
+reservation fits. No Phase4 or protected action.209 D108 tests remain accepted, not repeated.

@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — D106 failed600s frame interval before selection. D108 strict capture improvements pass209 affected tests and exact-byte comparison; full-run timing remains unproved. D109 storage recovery precedes any D110 integration. Follow live checkpoint.
+Status: incomplete — D110 failed665.13s frame interval before selection, despite original audit passing. D108 processing improvements pass209 tests but do not guarantee full-run timing. Next D111 bounded transport diagnostic; follow live checkpoint.
 
 ## Objective
 
