@@ -1,3 +1,27 @@
+# Phase3 scientific contract acceptance — October10
+
+**Complete under the latest user-defined programme exit scope.** Phase4 begins in a fresh
+conversation. This does not promote any historically failed pilot or imply a powered dataset.
+See PHASE_03_EXIT_SCOPE.md, PHASE_03_DATA_BOUNDARY.md and ../AREPO_V2_PHASE_3_HANDOVER.md.
+
+| Scientifically necessary contract | Verified evidence |
+|---|---|
+| Complete discovery and exact bounded sampling | D082/D094/D097 existing scopes; D114 complete gzip frame, exact selection probabilities and honest four-member draw. Population differences/exclusions remain explicit. |
+| Actual controls, causal origins and future targets | D0828origins/8targets/2pairs. D0945histories/5targets including1paired trigger/control history. No fabricated controls or retrospective inputs. |
+| Pre-origin history and unavailable states | D094/D097 measured histories, gaps, one-sided/missing members, full denominators; original eligibility unchanged. |
+| Immutable provenance, causal arithmetic and recovery | Exit audit verifies371/498/649artifact references, probabilities, history arithmetic and origin ordering; pinned original-code results preserved. |
+| Feature/baseline input contract | Exact snapshot/prior-current recording fixtures; unavailable flow/continuity/related/external families explicitly excluded. Baseline selection and sufficient new prospective data belong to Phase4. |
+| Measured operational repair and fault checks | Screening-specific600s engineering bound/owned v4; default window180s and scientific freshness unchanged.56+1targeted tests pass, including original recovery. No new large live validation claimed. |
+| Bounded storage and durable recovery | Sufficient capsules before authorised resolved failed-frame retirement; canonical pilots and all origins/targets retained, full-replay losses explicit. |
+
+Historical6/8availability, eight-member fill and matched-control pilot gates are unchanged.
+D094/D097/D114 remain failed against their original protocols. Programme sufficiency relies
+on demonstrated real contracts across separate preserved pilots, never a pooled passing
+experiment. Final code/evidence commit8afbdffd30812e7098f3ec532c47797724e6b445; final handover
+and checkpoint are docs-only successors. No Phase4 code or production rollout.
+
+## Historical acceptance map and milestone record (superseded programme scope)
+
 # Phase 3 acceptance — current through D112
 
 Phase 3 remains incomplete. D082 closes the real origin/control/target **execution** gate;

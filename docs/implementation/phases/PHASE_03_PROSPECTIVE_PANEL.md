@@ -1,6 +1,6 @@
 # Phase 03 — Bounded prospective panel
 
-Status: incomplete — D114 terminal; see ../PHASE_03_GZIP_PILOT_EVIDENCE.json and ../PHASE_03_EXIT_SCOPE.md. Latest user finish-fast and capsule-first bounded-retention guidance supersedes older sequencing; old failures unchanged.
+Status: COMPLETE under October10 user-defined scientific contract scope. See ../PHASE_03_EXIT_SCOPE.md, ../PHASE_03_DATA_BOUNDARY.md and ../../AREPO_V2_PHASE_3_HANDOVER.md. Historical pilot failures are unchanged; Phase4 begins in a fresh conversation.
 
 ## Objective
 
@@ -158,17 +158,22 @@ Fixed-seed sampling reproducibility and nonzero control coverage; no top-N-only 
 
 ## Acceptance criteria
 
+October10 refinement: the authoritative scientific contract gates and evidence are in
+../PHASE_03_ACCEPTANCE_STATUS.md. Pilot availability thresholds remain historical outcomes;
+no failed run is relabelled. Explicit unavailable families and tiny development-data limits
+are part of the accepted handover, not missing observations to invent.
+
 Bounded representative nonproduction pilot preserves scheduled controls, exact inputs and clocks; origins precede outcomes; target timing/coverage passes its frozen measurement contract. A replay-only run cannot satisfy the real prospective measurement gate.
 
 ## Exit checklist
 
-- [ ] Prerequisites reloaded and plan refined against real outputs.
-- [ ] All scoped tasks and acceptance criteria satisfied; limitations explicit.
-- [ ] Required tests passed with exact command/target/result recorded.
-- [ ] Diff self-reviewed for causal leakage, data loss, unrelated changes and protected boundaries.
-- [ ] Documentation/decision log/master status current.
-- [ ] Coherent safe work committed; branch and draft PR/dependency recorded.
-- [ ] Checkpoint updated with safe commit, files, tests, blockers and exact next action.
+- [x] Prerequisites reloaded and plan refined against real outputs.
+- [x] All scoped tasks and acceptance criteria satisfied; limitations explicit.
+- [x] Required tests passed with exact command/target/result recorded.
+- [x] Diff self-reviewed for causal leakage, data loss, unrelated changes and protected boundaries.
+- [x] Documentation/decision log/master status current.
+- [x] Coherent safe work committed; branch and draft PR/dependency recorded.
+- [x] Checkpoint updated with safe commit, files, tests, blockers and exact next action.
 
 ## Protected boundaries
 

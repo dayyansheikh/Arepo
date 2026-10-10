@@ -1,45 +1,59 @@
 # AREPO v2 live checkpoint
 
-Updated: October10 12:46UTC continuation. D114 TERMINAL FAILED at08:19:48UTC; no collector/test active. New user finish-fast/bounded-retention guidance governs. Phase3 incomplete.
+**PHASE 3 COMPLETE — READY FOR FRESH CODEX HANDOVER**
 
-- Current phase/objective: 03 — bounded prospective panel, with frozen sampling/control design, actual causal origins and measured target coverage.
-- Previous continuation: 2026-09-27 05:25 UTC heartbeat resumed the same run. Local capacity restored (~25 GiB). Allowance reset verified: 0% primary /16% weekly used, ordinary usage allowed. D067 repairs early timer wakeups discovered by the completed regression; no empirical panel admission.
-- Previous implementation continuation: 2026-09-27 10:35 UTC. Initial allowance 1% primary /32% weekly used; ordinary usage allowed. D069 bounded stratum sampler/declaration/selection implemented; 193 affected tests passed in 217.52s. Full original-code recovery and legacy defaults pass. No public collection or empirical acceptance.
-- Current successor: exactly one same-task continuation October10 18:56 Europe/London /17:56UTC (+310min from12:46 continuation), updated canonical PHASE_03_HEARTBEAT.md prompt.
-- Current continuation: October10 12:46UTC;6% primary/79% weekly used, ordinary usage available. No reset credit used.
+Updated October10. This front section supersedes historical next-action entries below.
+Phase4 begins in a fresh Codex conversation. Stop implementation in this task.
+
+- Current phase/objective:03, scientific prospective panel/data contract accepted under the
+  latest user-defined exit scope. Original pilot failures remain unchanged.
 - Repository: /Users/DayyanSheikh/Projects/astrolabe; origin https://github.com/dayyansheikh/Arepo.git.
-- Current branch: codex/arepo-v2-phase-3-prospective-panel, stacked from accepted Phase 2 `747485c6724fafd33b60aa222843d7d94116746b`.
-- Latest safe protocol/preservation commit: 163cdca7c2af2939a84c9969c2f3536f26785c7d, pushed; D113 exact-byte proof and frozen D114 protocol. D114 actual build remains163cdca regardless of subsequent documentation commits.
-- Previous safe empirical evidence commit: e84d6f8 (D097 terminal evidence), pushed. Current D099 documentation commit records verified storage recovery; resolve its exact hash from Git history. D097 executed13:21:26–13:41:47UTC under8bb82c4488c83cc0fdac6707cc27a9af079562d9, original audit passed. D101 later failed before selection; no collector active; never rerun unchanged.
-- Latest safe implementation commit: 013f259, pushed; D112 opt-in gzip,265 affected and78 final scoped tests (overlapping). Exact logs/source hashes in PHASE_03_GZIP_VALIDATION.json.
-- Draft PR: https://github.com/dayyansheikh/Arepo/pull/16, open draft against Phase2. Head/body updated with each coherent commit; never merged.
-- Completed: Phase 0 canonical foundation; Phase 1 isolated immutable store; Phase 2 source journals/admission, exact identities and bounded replay. Phase 3 milestones: pure sampling/control/receipt-target rules; isolated keyset frame journal, source+panel build binding, bounded CLI, raw/parsed/page manifests, cursor/scope/duplicate/conflict/clock/error checks, crash-safe read-only recovery, streaming verification and measured-capacity preflights.
-- Files/modules changed: research_panel/{__init__,sampling,targets,frame,frame_cli,build_identity,original_reader,metadata,selection,selection_cli}.py; planning/frame/metadata/selection/original-reader tests; isolated feature_store/{capture,sources}.py; phase/review/frame/panel-journal contracts, decisions D030–D041 and measurement evidence JSONs. Latest D041 changes cover original_reader, selection_cli, original-selection tests, evidence and recovery docs. No v1/config/API/scheduler/frontend changes.
-- Tests/results: D112265 affected cases179.90s before final field/header/retry refinements; final78 scoped cases16.87s. Runs overlap. Ruff/whitespace pass; synthetic software acceptance only. Prior empirical results unchanged.
-- Measured first page: `bf734a0`, 100 rows, 557,140 raw bytes, 1,501,764 retained bytes, 157,199,875ns request-to-receipt; continuing cursor, incomplete. PHASE_03_FIRST_PAGE_EVIDENCE.json.
-- Enumeration attempt 1: `f66dea1`, 410 attempts / 409 complete pages / 40,900 rows; stopped at 256MiB raw cap with partial 410th response preserved. Raw268,435,456 / retained 654,055,783 / peak resident 202,407,936 bytes. Incomplete. PHASE_03_ENUMERATION_ATTEMPT_1.json.
-- Enumeration attempt 2: `726cec2`, 1,000 complete pages /100,000 distinct market IDs, still continuing. 99,956 eligible row identities and 44 unresolved, no observed duplicates/conflicts within prefix. Raw644,897,535 / retained 1,577,956,669 / peak resident 343,457,792 bytes. Request-cap stop; incomplete. PHASE_03_ENUMERATION_ATTEMPT_2.json. Final verification overlapped backend regression, so whole-command elapsed is not an isolated performance benchmark.
-- Enumeration attempt 3: `5cdb2d2`, 74 attempts /73 complete pages /7,300 rows plus partial response 74. Incomplete, `page_error`/`TimeoutError` after 15s. Raw46,929,025 /retained112,224,334 /peak resident118,849,536 bytes. Original-code prior-capacity verification succeeded. Root `data-dumps/fs2_capture_ff7f05b057b647109b4239ca781e10fb`; full evidence in PHASE_03_ENUMERATION_ATTEMPT_3.json. 7,256 eligible rows, 44 unresolved; no terminal or population inference.
-- Enumeration attempt 4: `b93f9aa`, 204 verified attempts /200 complete pages /20,000 rows, with 3 bounded retries (2 recovered). Incomplete, `retry_exhausted`; unrecovered `ConnectError` and `TimeoutError`. Raw132,580,143 /retained318,668,335 /peak resident141,836,288 bytes. 19,956 eligible rows, 44 unresolved, no duplicates/conflicts or terminal. Root `data-dumps/fs2_capture_8e6a8d4a22b846ae91ca70f70f6b3939`; evidence in PHASE_03_ENUMERATION_ATTEMPT_4.json.
-- Self-review: source/clock/identity/raw preservation, internally frozen seed, actual read/projection/cutoff ordering, exact rational replay, unknown and unmapped inventory, duplicate handling, failed-run refusal, original-frame policy/page closure, bounded storage/time and changed-build refusal. Source exhaustion is established only for attempt 5. No population inference, pilot acceptance or predictive improvement is claimed.
-- Decisions: through D112. D111 first-page gzip wire bytes47252 versus548290 identity, identical decoded payloads; all cache HIT, no full-frame speed guarantee. D112 opt-in independent decoded budgets preserve raw wire before decoding; defaults unchanged.
-- Required data gate: complete-frame blocker **cleared** by verified attempt 5. Earlier failures remain incomplete. No current protected approval/access blocker. Current allowance is recorded above; the preceding window's 93% primary /92% weekly snapshot is historical and no longer controls this continuation.
-- Completed attempt 5: `data-dumps/fs2_capture_eaec9cd7e8684953952e1b683c33dd3a`, implementation `41fcb0170c7d71716873847639dc181ea12422aa`. 1,755 pages, 175,427 distinct markets, 175,383 mapped eligible rows, 44 unresolved; no retries, errors, duplicates or conflicting identities. State `exhausted_consistent`, terminal observed. Raw 1,115,618,904 /retained 2,728,778,097 /peak resident 478,052,352 bytes; whole-command 514,493,751,417ns. Actual interval 23:30:55–23:36:47 UTC on September 21; sealed at 23:37:32 UTC. Source/clock/manifest verification passed; CLI exited 0. See PHASE_03_ENUMERATION_ATTEMPT_5.json. Original capacity-read root `data-dumps/fs2_frame_read_b9ef454ed5e64e8f82fa623e464135b2`; CLI `data-dumps/fs2_attempt5_cli_20260921T233100Z.json`. No collector remains active.
-- Completed local selection: `data-dumps/fs2_selection_56ff541cb2c74477b5ae56de1a78ad54`, implementation `018dbd3916448f922ef79425aead3d2b5aac735d`; CLI `data-dumps/fs2_selection_attempt1_cli.json`, exit 0 and independent replay passed. Retains 175,427 rows, 175,383 sampling members, 44 unresolved identities; 107 scheduled draws in 107 strata, exact weights. Category missing for all mapped rows; close missing 1,168, liquidity 25,879, metadata probability 65. No metadata-based exclusions or invented category mappings. Retained 566,741,238 /peak resident 294,977,536 bytes; elapsed 146,486,870,416ns. Reconstructed development only, no source requests/origins/controls. No active measurement remains. PHASE_03_SELECTION_ATTEMPT_1.json preserves clocks/hashes.
-- Completed original-selection read: committed D041 `d24ed88` verified the saved D040 selection under its original `018dbd3`, exit 0. Root `data-dumps/fs2_selection_read_40ff23f9869d43c3bce9cab1b6585900`; CLI `data-dumps/fs2_original_selection_read_attempt1_cli.json`. Full original report/plan equality passed; 107 selected markets, old seed/weights/clocks and reconstructed status unchanged. New receipt available at 2026-09-22T04:56:02.327631Z; evidence PHASE_03_ORIGINAL_SELECTION_READ_EVIDENCE.json. No process remains active.
-- Exact next action: D114 terminal evidence extracted; read PHASE_03_EXIT_SCOPE.md. Retire only resolved failed discovery bulk after sufficient capsules per PHASE_03_BOUNDED_RETENTION.md. Apply smallest tested prospective engineering-budget repair for full-selection authentication currently included in shared180s computation limit. Then independently review scientific sufficiency/handover; do not automatically collect another frame or start Phase4.
-- Latest modules/files: research_panel/frame.py and test_research_panel_row_hash.py; D103–D106 profile/equivalence/validation/storage/protocol evidence, checkpoint/review/decisions/master/phase docs. No production/API/configuration changes.
-- Current capacity: ~7.69GB free after D114, below13.31GB full collection reservation. User now authorises sufficient-capsule-first retirement of resolved failed bulk; canonical/active/unresolved evidence remains protected.
-- Next-run constraints: complete discovery separate from conditional temporal deep population; category still missing. Unknown metadata retained. No control fabrication or relaxed threshold. Check full7GiBframe+declared panel/recovery+2GiBreserve before future measurement; no paid/production storage.
-- New evidence: `PHASE_03_ORIGINAL_READ_EVIDENCE.json` records actual original-code verification of the existing 100,000-row journal without source requests. Its incomplete status and original hashes/clocks remain unchanged. D035 committed-code synthetic 400,000-member capacity used 320,897,024 resident bytes and 27,764,313,417ns; exact build/fixture/result in `PHASE_03_SAMPLING_CAPACITY_EVIDENCE.json`; synthetic capacity is not live source/panel evidence. D036 larger collection caps were tested/committed before attempt 3; its timeout did not reach those caps.
-- Unresolved: D114 pre-source declaration budget failed and its random strata yielded only4members, so nominal8/6gates were unreachable. Preserve failure; distinguish engineering limits from scientific contract. Required work classification in PHASE_03_EXIT_SCOPE.md; Phase4 only fresh chat.
-- Targeted runtime evidence: D046 `761d279`, root `data-dumps/fs2_target_probe_1646679dd37f444ba9185748c4bdc0c3`. Both fixed requests returned 200; identity available before book receipt; one observed receipt-time quote, independent replay and immutable source/computation checks passed. Raw 6,178 bytes, retained before report 81,737, peak resident 75,972,608, elapsed 1,046,331,792 ns. Computation available 2026-09-22T13:13:11.141974Z. Exact plan/script/build/clocks/acknowledgements in PHASE_03_TARGETED_QUOTE_EVIDENCE.json. No origin, feature-store admission or accepted panel; historical draw unchanged.
-- Original quote read evidence: D047 `fc8389a` verified the saved D046 computation under original `761d279`, preserving exact full facts and summary, old clocks/cutoff/provenance and source/computation bytes. Root `data-dumps/fs2_quote_computation_read_c08fa81c7aab4fbc8197547591b57876`; actual new read available 2026-09-22T13:23:45.247836Z. PHASE_03_ORIGINAL_QUOTE_READ_EVIDENCE.json. No new source requests or origin admission.
-- Scope override (user 2026-09-24): continue Phase 3 only in this task. Do not start Phase 4. On genuine Phase 3 acceptance finalise durable handover, cancel any pending successor, emit PHASE 3 COMPLETE — READY FOR FRESH CODEX HANDOVER and stop. Phase 4 begins in a fresh Codex conversation, with its data prerequisites still binding.
-- Historical continuation (2026-09-27): existing arepo-v2-continuation-at-05-10 updated for 2026-09-27 11:35 Europe/London (10:35 UTC; +310 minutes from the 05:25 UTC heartbeat), same task 01a0bd77-ed42-79d3-8c5b-2c207b0ead04, exact efficiency-focused Phase 3 prompt. No duplicate chain.
-- Preserved frame roots: data-dumps/fs2_capture_c63c72a0fe194f47824ccc862b0619cd; data-dumps/fs2_capture_95cbb8cdd4334bc1836249e7d7864473; data-dumps/fs2_capture_3a4f80db7fa94d248fc16e1397af4c71; data-dumps/fs2_capture_ff7f05b057b647109b4239ca781e10fb. Exact original code commits/hashes in the evidence JSONs. Original-build readers intentionally reject changed code; do not disable that guard or reinterpret old journals under new parsers.
-- Earlier evidence: four Phase 2 evidence JSONs; admitted primary source run data-dumps/fs2_capture_ae0d089c24e24bc18f1e6f548c878432 uses exact source implementation `54be417`. SQL is an index; primary journals remain authority.
-- Local PostgreSQL binaries: /usr/local/opt/postgresql@17/bin. Tests create/stop only their isolated temporary loopback cluster.
+- Current branch: codex/arepo-v2-phase-3-prospective-panel.
+- Latest safe tested implementation/evidence commit: `8afbdffd30812e7098f3ec532c47797724e6b445`, pushed. Final documentation
+  is in subsequent docs-only closeout commit(s); inspect Git HEAD/status during recovery.
+- Draft PR:https://github.com/dayyansheikh/Arepo/pull/16, OPEN/DRAFT, stacked on
+  codex/arepo-v2-phase-2-sources-clocks-identity at747485c6724fafd33b60aa222843d7d94116746b.
+- Completed: audited causal snapshot/history inputs, exact sampling/missingness, real controls,
+  origins/future targets, pinned recovery, bounded gzip capture, measured screening-budget
+  repair and user-authorised capsule-first retirement of resolved failed bulk frames.
+- Final files/modules: screening.py, window_computation.py and owned_screening tests; final
+  exit scope/audit, data boundary, validation/storage summaries, plan/review/decisions/AGENTS,
+  checkpoint and docs/AREPO_V2_PHASE_3_HANDOVER.md. No production/frontend/model changes.
+- Tests:56affected159.83s +1owned-window original-recovery/tamper32.41s, all pass. Gzip265
+  pre-final/78final scoped tests overlap; exact commands/log/source hashes in validation JSONs.
+  Ruff changed files, canonical contract and whitespace pass. No redundant full-suite claim.
+- Self-review: frozen engineering limit/version, unchanged window defaults and causal/target
+  guards, raw bytes/budgets, old-code recovery, artifact arithmetic/chronology and capsule
+  sufficiency. Unrelated untracked prompts/logs/PIDs/email docs/overnight residue untouched.
+- Evidence: D0828origins/8targets/2pairs; D0945histories/5targets/1paired-history control;
+  D0976histories/6targets/no controls. Exit audit371/498/649artifact references. Original D094
+  availability and D097control gates remain failed. Pilots are not pooled independent evidence.
+- D114 terminal FAILED:273075rows,409.265394s complete gzip frame and original recovery pass;
+  four draws from strata3and1; pre-source180s declaration budget fails. No observed origins/
+  histories/controls/targets. No relaunch or retrospective repair. Exact artifacts in
+  PHASE_03_GZIP_PILOT_EVIDENCE.json; actual run build163cdca7c2af2939a84c9969c2f3536f26785c7d.
+- Decisions: screening600s/owned v4 is an engineering repair, not a changed scientific clock.
+  Window180s/freshness unchanged. No new large live pilot of this repair claimed. Exit depends
+  on audited data-contract capabilities across preserved runs, not redrawing until a fill-rate
+  target passes. Missing feature families are faithfully represented and deferred.
+- Storage:13.08GB logical resolved failed-frame bulk retired after capsules;5.75GBallocated
+  reclaimed, about14.48GBfree at closeout. D101/D106/D110 whole-frame replay intentionally
+  unavailable;35/33/3supporting captures and manifests retained. Canonical D082/D094/D097 and
+  full D114 remain. No cohorts/origins/targets deleted. Remeasure before future collection.
+- Limitations: no complete native flow/continuity, pre-trade depth/persistence, economic groups
+  or selected rule-matched external histories. Sparse development pilots, no powered model
+  dataset, calibrated forecast, validated alpha or economic claim. See PHASE_03_DATA_BOUNDARY.md.
+- Blockers: none for the revised Phase3 contract handover. Future scientific claims require
+  new prospectively locked data and sufficient independent events; production remains protected.
+- Current successor: completion closeout must cancel arepo-v2-continuation-at-05-10; no new
+  successor or Phase4 automation is authorised by this completed Phase3 request.
+- Exact next action: finish docs-only closeout/PR state and cancel the equivalent heartbeat,
+  then STOP. A fresh chat recovers docs/AREPO_V2_PHASE_3_HANDOVER.md and the Phase4 plan.
+- Next planned phase:04baseline/experiment protocol work in a fresh conversation; not started.
+  Stack from reviewed Phase3 tip without production merge, lock baselines/common origins/
+  targets/splits/missingness first. No model selection from these tiny pilots.
+
+## Historical milestones — not live next actions
 
 ## Historical continuation access checkpoint — 2026-09-21 12:05 UTC
 
