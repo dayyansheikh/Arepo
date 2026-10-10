@@ -195,3 +195,10 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
   - Book `timestamp` semantics are to be checked on the first batch.
   - Batch receipt is not book creation time.
   - This is midpoint movement, not executable value.
+
+**E003 pre-outcome clarifications (2026-10-10 ~19:55Z, before any fit or S2 data)**
+- "OLS on I1" (M8) and "OLS on micro" (M9) are fitted through the origin, consistent with R1. MC keeps an intercept.
+- Series S1 = `20261010T193535Z_ccc0e4d7` snapshot plus sweeps `...194225Z_94956338`, `...194347Z_d61a9354` and `...194506Z_f1051015`. All 43,420 tokens were returned in each sweep.
+- Venue book `timestamp` is Unix milliseconds of the book's last change. It is not used as an observation clock; batch receipt time is.
+- Rows with a zero-size denominator get feature = NaN and are excluded and counted.
+- Event clusters fall back to market_id where event_id is missing, and those fallbacks are counted.
