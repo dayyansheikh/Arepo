@@ -9,6 +9,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 |---|---|---|---|
 | E001 | COMPLETE (exploratory) | Do price/momentum/context fields in Gamma full-universe snapshots predict repricing by the next snapshot, beyond no-change? | 1h-change model *Indicative (exploratory)*: R2_oos +0.037, positive in 4/4 periods; the fitted sign is **reversal** (about -0.3). Others inconclusive. No edge claim. |
 | E002 | REGISTERED (pre-outcome) | Does the E001 1h-change reversal hold prospectively on new full-universe snapshots, using a frozen coefficient? | pending |
+| E003 | REGISTERED (pre-outcome) | Does top-of-book imbalance or microprice displacement (H08/H09) predict the next few minutes of midpoint repricing, beyond no-change and the 1h reversal? | pending |
 
 ---
 
@@ -146,3 +147,51 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 - Forecasts for that capture were logged before outcomes at `data-dumps/research_lab/forecasts/` (43,162 eligible markets).
   Scoring recomputes them and asserts exact equality with the log.
 - Code: `backend/astrolabe/research_lab/forecast.py`, `backend/scripts/run_forecast.py score-e002`.
+
+---
+
+## E003 — Short-horizon book imbalance and microprice (H08/H09 cross-sectional variant)
+
+- **Registered:** 2026-10-10, before any book sweep exists.
+- **Relation to the research package:** an exploratory variant of H08 (top-level imbalance) and H09 (microprice displacement).
+  - The registered horizon is minutes, matching H08's 1-5m range.
+  - The population is the whole eligible universe swept in batches, not the H08 sampled panel, so this is development evidence, not the H08 confirmation.
+- **Collection:**
+  - Two *series* S1 (development) and S2 (confirmation). Each is a fresh complete universe snapshot followed immediately by `sweep_books.py --repeat 3` (sweeps A, B, C over a fixed token order).
+  - S2 starts at least 60 minutes after S1 ends.
+  - Token = outcome 0 of each forecast-eligible market (E001 eligibility; endDate unknown or later than receipt + 3h).
+- **Unit:** a token that is two-sided in sweep A.
+- **Primary target:** `dmid_AB = mid_B - mid_A`. The per-token horizon is the receipt-time difference between its batches, recorded.
+- **Secondary target:** `dmid_AC`.
+- **Target unavailable:** the token is not two-sided at B (or C for the secondary). Counted, never imputed.
+- **Features at A:**
+  - `I1 = (bid_size_1 - ask_size_1) / (bid_size_1 + ask_size_1)` (H08)
+  - `micro = (ask*bid_size_1 + bid*ask_size_1)/(bid_size_1 + ask_size_1) - mid` (H09)
+  - `I5 = (depth_bid_5c - depth_ask_5c)/(sum)`
+  - `spread`
+  - the Gamma `oneHourPriceChange` from the series snapshot (reversal control)
+- **Models**, fitted on S1 only and frozen, then evaluated on S2:
+  - R0: no-change.
+  - R1: reversal, OLS through origin on `chg_1h`.
+  - M8: OLS on `I1`.
+  - M9: OLS on `micro`.
+  - MC: OLS with intercept on {`I1`, `micro`, `I5`, `spread`, `chg_1h`}.
+- **Primary tests on S2 (AB target)**, each using a 95% CI from an event-clustered bootstrap (1,000 resamples, seed 116):
+  - (a) `R2_oos(M8)` against R0 is above 0 with its CI above 0. This tests H08.
+  - (b) `R2_oos(M9)` against R0 is above 0 with its CI above 0. This tests H09.
+  - (c) The incremental test: `1 - SSE(MC)/SSE(R1)` is above 0 with its CI above 0. This asks whether book features add beyond reversal.
+- **Verdicts:**
+  - Each test is **supported (exploratory)** if it meets its condition.
+  - It is **wrong sign** if the S2 slope sign differs from S1.
+  - Otherwise it is **inconclusive**.
+  - H09 counts as "adds beyond H08" only if `R2_oos(M9) > R2_oos(M8)` with the paired-bootstrap CI of the difference above 0.
+- **Secondary (descriptive):**
+  - The same tests on the AC target.
+  - Results by spread tercile.
+  - The share of tokens whose mid changed at all between A and B.
+- **Known limitations:**
+  - There is one time period per series.
+  - Common shocks within a series are only partly handled by event clustering.
+  - Book `timestamp` semantics are to be checked on the first batch.
+  - Batch receipt is not book creation time.
+  - This is midpoint movement, not executable value.
