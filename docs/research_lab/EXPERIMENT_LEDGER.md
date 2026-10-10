@@ -272,3 +272,9 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
   - Fees, depth, queue position and latency are ignored, so even a positive result is an upper bound.
   - **Economically interesting (exploratory)** only if the touch-to-touch mean P&L CI lies above 0.
 - **Non-claims:** no profitability claim. The book depth needed to fill and the capture latency are not modelled.
+
+**E004 pre-outcome clarification (2026-10-10, before any qualifying snapshot exists)**
+- The registration commit `3d7335e` time is 21:09:17Z. The "~21:15Z" in the text above is approximate.
+- "Snapshots from E002 are excluded" is implemented as the E002 pair chosen by E002's own rule (start times only).
+- Qualifying snapshots are complete, started after 21:09:17Z, not in that pair, and taken as the first 12 by start time.
+- Event clusters fall back to `market_id`, and the fallbacks are counted.
