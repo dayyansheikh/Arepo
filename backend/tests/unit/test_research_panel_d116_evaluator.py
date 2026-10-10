@@ -752,12 +752,14 @@ def receipt(status, body, source_id="clob.book", token="7", market="1", **extra)
         "token_id": token,
         "market_id": market,
         "body": lambda: body,
+        "raw_text": b"not json" if body is None else json.dumps(body).encode(),
     }
     fields.update(extra)
     return SimpleNamespace(**fields)
 
 
-GOOD_BOOK = {"asset_id": "7", "market": "0xc", "bids": [], "asks": []}
+COND = "0x" + "c" * 64
+GOOD_BOOK = {"asset_id": "7", "market": COND, "bids": [], "asks": []}
 
 
 @pytest.mark.parametrize(
@@ -774,6 +776,7 @@ GOOD_BOOK = {"asset_id": "7", "market": "0xc", "bids": [], "asks": []}
         (200, {"bids": [], "asks": []}, True),  # asset_id missing
         (200, {"asset_id": "8", "bids": [], "asks": []}, True),  # not the requested token
         (200, {"asset_id": "7", "bids": []}, True),  # asks missing
+        (200, {**GOOD_BOOK, "bids": [{"price": "1.5", "size": "1"}]}, True),  # price out of range
         (301, GOOD_BOOK, False),
         (500, None, False),
         (None, None, False),
@@ -784,11 +787,17 @@ def test_invalid_citation_book(status, body, expected):
 
 
 def test_invalid_citation_gamma_and_unverified_raw():
-    good = {"id": "1", "conditionId": "0xc", "clobTokenIds": "[]"}
+    good = {"id": "1", "conditionId": COND, "clobTokenIds": '["7"]', "outcomes": '["Yes"]'}
     assert ev._invalid_supported(receipt(200, good), "gamma.market") is False
-    assert ev._invalid_supported(receipt(200, {"id": "1", "conditionId": "0xc"}), "gamma.market")
+    assert ev._invalid_supported(receipt(200, {"id": "1", "conditionId": COND}), "gamma.market")
     assert not ev._invalid_supported(receipt(404, None, raw_verified=False), "gamma.market")
     assert not ev._invalid_supported(receipt(404, None, transport_error="x"), "gamma.market")
+
+
+def test_invalid_verdict_records_parser_exception():
+    ok, exc = ev._invalid_verdict(receipt(200, None), "clob.book")
+    assert ok and exc and exc.split(":")[0].endswith("Error")
+    assert ev._invalid_verdict(receipt(200, GOOD_BOOK), "clob.book") == (False, None)
 
 
 def test_two_xx_invalid_with_valid_book_body_is_engineering(tree):
@@ -939,6 +948,53 @@ def test_socket_event_hash_is_verified(tree):
     frame = root / "fs2_screening_worker_worker" / "fs2_socket_window_000" / "event_000003.bin"
     frame.write_bytes(frame.read_bytes() + b" ")
     assert "artifact:artifact_hash_mismatch" in rules(evaluate(root))
+
+
+def test_socket_event_missing_frame_is_engineering(tree):
+    root = tree("pair")
+    frame = root / "fs2_screening_worker_worker" / "fs2_socket_window_000" / "event_000003.bin"
+    frame.unlink()
+    report = evaluate(root)
+    assert report["outcome"] == "FAIL"
+    assert any(
+        "raw frame event_000003.bin missing" in (f["detail"] or "") for f in report["findings"]
+    )
+
+
+def test_socket_event_ordinal_gap_is_engineering(tree):
+    root = tree("pair")
+    folder = root / "fs2_screening_worker_worker" / "fs2_socket_window_000"
+    (folder / "event_000002.json").unlink()
+    (folder / "event_000002_ack.json").unlink()
+    report = evaluate(root)
+    assert report["outcome"] == "FAIL"
+    assert any("not contiguous" in (f["detail"] or "") for f in report["findings"])
+
+
+def test_cli_resolves_relative_panel_root_and_refuses_symlink(tree, tmp_path, monkeypatch):
+    cli = _load_cli()
+    root = tree("pair")
+    monkeypatch.chdir(root)
+    out = tmp_path / "rel.json"
+    assert (
+        cli.main(
+            [
+                PANEL,
+                "--launch-commit",
+                fixture_commit(root),
+                "--no-protocol-check",
+                "--out",
+                str(out),
+            ]
+        )
+        == 0
+    )
+    report = json.loads(out.read_bytes())
+    assert not any(r.startswith("evaluator_exception") for r in report["outcome_reasons"])
+    link = tmp_path / "link"
+    link.symlink_to(root / PANEL)
+    with pytest.raises(SystemExit):
+        cli.main([str(link), "--launch-commit", "a" * 40, "--out", str(tmp_path / "x.json")])
 
 
 def test_target_folder_matching_no_origin_is_engineering(tree):

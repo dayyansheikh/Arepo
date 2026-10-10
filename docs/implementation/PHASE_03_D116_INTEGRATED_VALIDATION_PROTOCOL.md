@@ -163,7 +163,7 @@ provider-state mapping at `feature_store/source_run.py:285-288`). Checks, by id:
 | `http_auth_denied` / `http_rate_limited` | no transport_error and status in {401,403} / == 429 |
 | `transport_error` | transport_error is not null |
 | `http_5xx_or_none` | no transport_error and status null or >= 500 |
-| `http_invalid` | no transport_error and either a 4xx status other than 401/403/429, or a 2xx/3xx status whose raw bytes, parsed by the evaluator itself, are not a JSON object, or lack the requested `asset_id`/`bids`/`asks` (book) or `id`/`conditionId`/`clobTokenIds` (Gamma), or whose `asset_id` / `id` differs from the requested token / market. A 2xx/3xx whose parsed body is a valid book or market is `citation_failed` (ENGINEERING); 1xx and 5xx never support `invalid` |
+| `http_invalid` | no transport_error and either a 4xx status other than 401/403/429, or a 2xx/3xx status whose hash-verified raw bytes the frozen production parsers reject: the evaluator runs `_strict_json` then `clob_book(expected_token=<requested token>)` / `gamma_market(expected_market=<requested market>)` (`feature_store/source_parsers.py`, as `source_bridge.parse_source` does) and accepts `invalid` exactly when they raise ValueError, TypeError or KeyError (exception type and message recorded in the citation). A 2xx/3xx the parser accepts is `citation_failed` (ENGINEERING); 1xx, 5xx, 401, 403 and 429 never support `invalid` |
 | `book_empty_side` | 2xx `clob.book`, parsed body has an empty bid or ask side (size > 0 levels) |
 | `book_non_decimal` / `book_crossed` / `book_duplicate_price` | 2xx `clob.book` whose parsed body shows a level whose price or size does not parse as a finite decimal (a zero size is a valid decimal and is **not** non-decimal; it is `invalid_or_crossed`, `targets.py:61`, and is cited by `book_crossed` only when bids and asks both have positive-size levels, otherwise the finding is ENGINEERING, conservatively) / best bid > best ask or price outside [0,1] / a repeated price on one side |
 | `lifecycle_closed` / `_archived` / `_not_accepting` / `_unknown` | 2xx `gamma.market`, parsed `closed` is true / `archived` is true / `active` or `acceptingOrders` is false / any lifecycle field null or absent |
@@ -485,8 +485,9 @@ no data retirement, no logical evidence deletion and no production storage actio
   retained for diagnosis.
 - No assistant turn or scheduler transition between frame completion, selection, screening and
   runtime.
-- After the audit, evaluate the retained artifacts (no network, no writes to the run roots):
-  `python backend/scripts/evaluate_d116.py data-dumps/fs2_panel_d116_integrated_1
+- After the audit, evaluate the retained artifacts (no network, no writes to the run roots; the CLI resolves the panel root to an absolute path and refuses a symlinked root):
+  `python backend/scripts/evaluate_d116.py
+  /Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_panel_d116_integrated_1
   --launch-commit <the recorded launch HEAD> --out data-dumps/fs2_d116_integrated_1_evaluation.json`.
   The report is the single source for the outcome class and counts only if its `authoritative`
   field is true. The launch wrapper records, before any request, that `git merge-base

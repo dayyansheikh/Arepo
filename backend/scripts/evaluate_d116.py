@@ -12,6 +12,7 @@ A missing report is a FAIL (protocol section 4.4).
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -40,6 +41,15 @@ def main(argv=None):
         help="TEST AID: skip the frozen-value comparison (forces FAIL)",
     )
     args = parser.parse_args(argv)
+    raw_root = args.panel_root.absolute()
+    try:
+        resolved = raw_root.resolve(strict=True)
+    except OSError as exc:
+        parser.error(f"panel root unreadable: {exc}")
+    # Refuse symlinked roots: the evaluator needs canonical absolute paths (selection.py:88-92).
+    if Path(os.path.normpath(raw_root)) != resolved:
+        parser.error(f"panel root {raw_root} is or traverses a symlink (resolves to {resolved})")
+    args.panel_root = resolved
     if args.out.exists():
         parser.error(f"refusing to overwrite {args.out}")
     report = evaluate_d116(

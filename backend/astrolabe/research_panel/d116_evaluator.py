@@ -30,6 +30,8 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
+from ..feature_store.capture import _strict_json
+from ..feature_store.source_parsers import clob_book, gamma_market
 from .bound_window import WindowBindingPolicy
 from .origin_window import OriginWindowPolicy
 from .owned_windows import OwnedWindowPolicy, policy_dict
@@ -468,9 +470,12 @@ class _Receipt:
         self.token_id = (request.get("params") or {}).get("token_id")
         self.first_received = _utc(self.receipt.get("first_received"))
         try:
-            text = gzip.decompress(raw) if raw[:2] == b"\x1f\x8b" else raw
-            self._body = json.loads(text)
-        except (OSError, EOFError, ValueError):
+            self.raw_text = gzip.decompress(raw) if raw[:2] == b"\x1f\x8b" else raw
+        except (OSError, EOFError):
+            self.raw_text = b""
+        try:
+            self._body = json.loads(self.raw_text)
+        except ValueError:
             self._body = None
 
     @property
@@ -612,37 +617,49 @@ def _chk_5xx(ctx, entry):
     )
 
 
-_INVALID_BODY_KEYS = {
-    "clob.book": ("asset_id", "bids", "asks"),
-    "gamma.market": ("id", "conditionId", "clobTokenIds"),
-}
+def _invalid_verdict(receipt, source):
+    """Return ``(supported, parser_exception)``.
 
-
-def _invalid_supported(receipt, source):
-    """``invalid`` (source_run.py:288) is DATA only for a 4xx outside 401/403/429, or a 2xx/3xx
-    whose raw bytes, parsed here, are not JSON or lack the requested identity or required keys."""
+    ``invalid`` (source_run.py:283-288) is DATA for a 4xx outside 401/403/429, or for a 2xx/3xx
+    whose hash-verified raw bytes the frozen production parsers (source_bridge.parse_source:
+    ``_strict_json`` then ``gamma_market`` / ``clob_book``) reject with ValueError, TypeError or
+    KeyError. A 2xx/3xx the parser accepts is not invalid. 1xx/5xx/401/403/429 never support it."""
     if not (
         receipt.raw_verified and receipt.transport_error is None and isinstance(receipt.status, int)
     ):
-        return False
+        return False, None
     if 400 <= receipt.status < 500:
-        return receipt.status not in (401, 403, 429)
+        return receipt.status not in (401, 403, 429), None
     if not 200 <= receipt.status < 400:
-        return False
-    body = receipt.body()
-    if not isinstance(body, dict):
-        return True  # not JSON (or not an object) on the evaluator's own parse
-    if any(key not in body for key in _INVALID_BODY_KEYS.get(source, ())):
-        return True
-    book = source == "clob.book"
-    requested = receipt.token_id if book else receipt.market_id
-    returned = body.get("asset_id") if book else body.get("id")
-    return requested is not None and str(returned) != str(requested)
+        return False, None
+    try:
+        value = _strict_json(receipt.raw_text)
+        if source == "clob.book":
+            clob_book(value, expected_token=receipt.token_id)
+        elif source == "gamma.market":
+            gamma_market(value, expected_market=receipt.market_id)
+        else:
+            return False, None
+    except (ValueError, TypeError, KeyError) as exc:
+        return True, f"{type(exc).__name__}: {exc}"[:200]
+    return False, None
+
+
+def _invalid_supported(receipt, source):
+    return _invalid_verdict(receipt, source)[0]
 
 
 def _chk_invalid(ctx, entry):
     source = _source(entry)
-    return _any(ctx, source, lambda r: _invalid_supported(r, source))
+    hits = []
+    for r in _rx(ctx, source):
+        ok, exc = _invalid_verdict(r, source)
+        if ok:
+            hits.append((r, exc))
+    if not hits:
+        return False, _cite(_rx(ctx, source))
+    citation = [{**r.cite(), "parser_exception": exc} for r, exc in hits]
+    return True, citation
 
 
 def _chk_empty_side(ctx, entry):
@@ -1497,6 +1514,26 @@ class _Evaluation:
             event = self.socket_event(path, market)
             if event:
                 events[event.get("ordinal")] = event
+        sock_report = self.r.pair(folder, "socket_window_report", "window", market, required=False)
+        count = (sock_report or {}).get("event_count")
+        if events:
+            first = min(events)
+            last_expected = count if type(count) is int else max(events)
+            if sorted(events) != list(range(first, last_expected + 1)):
+                self.r.note(
+                    "window",
+                    "missing_or_unreadable_artifact",
+                    f"socket event ordinals not contiguous from {first} through "
+                    f"event_count {count}: have {sorted(events)}",
+                    market,
+                )
+        elif type(count) is int and count > 0:
+            self.r.note(
+                "window",
+                "missing_or_unreadable_artifact",
+                f"report event_count {count} but no readable events",
+                market,
+            )
         last = events[max(events)] if events else {}
         terminal_event = next(
             (e for _, e in sorted(events.items()) if e.get("kind") == terminal), {}
@@ -1542,6 +1579,14 @@ class _Evaluation:
             self.r.note("window", "artifact_hash_mismatch", str(path), market)
             return None
         frame = path.with_suffix(".bin")
+        if event.get("raw_hash") is not None and not frame.exists():
+            self.r.note(
+                "window",
+                "missing_or_unreadable_artifact",
+                f"raw frame {frame.name} missing for recorded raw_hash",
+                market,
+            )
+            return None
         if frame.exists() and hashlib.sha256(frame.read_bytes()).hexdigest() != event.get(
             "raw_hash"
         ):
