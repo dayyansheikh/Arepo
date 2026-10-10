@@ -10,6 +10,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 | E001 | COMPLETE (exploratory) | Do price/momentum/context fields in Gamma full-universe snapshots predict repricing by the next snapshot, beyond no-change? | 1h-change model *Indicative (exploratory)*: R2_oos +0.037, positive in 4/4 periods; the fitted sign is **reversal** (about -0.3). Others inconclusive. No edge claim. |
 | E002 | REGISTERED (pre-outcome) | Does the E001 1h-change reversal hold prospectively on new full-universe snapshots, using a frozen coefficient? | pending |
 | E003 | COMPLETE (exploratory) | Does top-of-book imbalance or microprice displacement (H08/H09) predict the next few minutes of midpoint repricing, beyond no-change and the 1h reversal? | H08 and H09 **inconclusive** (R2 about 0). The combined model beats reversal-only (+0.031 [+0.011,+0.049]), but only in wide-spread markets; the gain comes from spread/intercept drift, not imbalance. No edge claim. |
+| E004 | REGISTERED (pre-outcome) | Does the frozen 1h reversal hold over 12 consecutive prospective periods (event-clustered), and does it survive crossing the spread? | pending |
 
 ---
 
@@ -249,3 +250,25 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 - MC's gain sits entirely in wide-spread books and comes from its spread and intercept terms, which describe midpoint drift in illiquid books. Those terms hurt badly in tight books.
 - That is unlikely to be executable value, since the spreads are wide. The family-level conclusion for H08/H09 is **no evidence of short-horizon value at this population and horizon**.
 - **Next:** if imbalance is revisited, condition on tight, deep books and longer horizons, register first, and model a spread interaction rather than a global spread term.
+
+---
+
+## E004 — Multi-period prospective reversal test with an execution check
+
+- **Registered:** 2026-10-10 ~21:15Z, before the collection loop starts. No loop snapshot exists yet.
+- **Model:** frozen `e002_reversal_v1` (`dmid_hat = -0.331610 * chg_1h`, missing = 0). No refitting.
+- **Data:** the first 12 complete research-lab snapshots taken by the 2-hourly collection loop started after this commit,
+  forming 11 consecutive pair periods. Snapshots from E002 or E003 are excluded. Eligibility, target and features are as in E001.
+- **Primary statistical test**, all three must hold:
+  1. Pooled `R2_oos` versus B0 is above 0, with its **event-clustered** bootstrap 95% CI (1,000 resamples, seed 116) above 0.
+  2. Per-period `R2_oos` is above 0 in at least 8 of 11 periods.
+  3. The pooled through-origin slope is below 0, with its event-clustered CI below 0.
+- **Statistical verdict:** **Supported (exploratory, prospective)** if all three hold. **Not supported** if the pooled `R2_oos` is at or below 0 or the slope is at or above 0. **Inconclusive** otherwise.
+- **Execution check** (economic stage, descriptive with CI):
+  - For pairs where `|dmid_hat| > spread_i/2`, take a hypothetical 1-share position in the predicted direction at the origin touch: buy at `bestAsk_i` if up, sell at `bestBid_i` if down.
+  - Exit at the next-snapshot touch: sell at `bestBid_j` or buy back at `bestAsk_j`.
+  - Report mean P&L per trade with an event-clustered CI, the hit rate, and the trade count.
+  - Report also an *optimistic* variant that exits at `mid_j`.
+  - Fees, depth, queue position and latency are ignored, so even a positive result is an upper bound.
+  - **Economically interesting (exploratory)** only if the touch-to-touch mean P&L CI lies above 0.
+- **Non-claims:** no profitability claim. The book depth needed to fill and the capture latency are not modelled.
