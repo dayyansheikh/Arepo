@@ -1,9 +1,28 @@
 # Current review state — October10
 
-D108 implementation a28be2e passes209 affected tests and exact32-page parsed/ack/page-fact
-equivalence. Phase3 remains incomplete: D106 failed frame interval before selection; D097
-failed matched controls. D109 proof passed; D110 failed665.13s interval. Next D111 bounded transport diagnostic; follow checkpoint.
-The sections below retain chronological milestone evidence, not current task instructions.
+## D112 bounded gzip implementation — October10
+
+Gamma keyset alone can opt into capture/session v3, parsed v2 and frame v5. Raw files retain
+exact encoded HTTP entity-body bytes, persisted before bounded single-member CRC/EOF decode.
+Wire and decoded budgets are independent. Failed decoding retains unknown size/hash and
+charges the entire reservation; decoded_budget_before is explicitly a charge, not a length.
+Default identity/legacy paths remain unchanged. Frame cursor/clock/source checks and exact
+selection probabilities use verified decoded payloads. Public cache/representation headers
+are retained only for v3; cookies and private headers are excluded. No SQL/production change.
+
+265 affected regression tests passed179.90s. Final field/header/retry-test refinements then
+passed78 scoped tests16.87s, including pinned original-frame/selection recovery and legacy
+capture. These runs overlap; do not sum them as unique tests. Ruff and whitespace pass.
+Exact commands/logs/final source hashes: PHASE_03_GZIP_VALIDATION.json. Tests are synthetic;
+D111's four cached first-page requests establish feasibility only, not full-frame speed.
+
+Self-review checked bounded allocation, truncated/concatenated/trailing/CRC bodies, raw-before-
+decode cancellation/crash recovery, conservative failure charges, cumulative frame lineage,
+rehashed metadata tampering, unchanged numeric/duplicate rejection and source isolation.
+The scientific600s frame interval and all sampling/control/observation gates remain unchanged.
+D110 remains failed665.126435s, with no selection/origins. Next restore full13,308,526,592byte
+reservation through verified exact-byte preservation, then freeze one gzip integration.
+Phase3 is incomplete; do not start Phase4 or rerun failed pilots.
 
 # Phase 3 planning milestone — 2026-09-20
 

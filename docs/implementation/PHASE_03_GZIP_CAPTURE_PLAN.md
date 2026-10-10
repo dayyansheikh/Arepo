@@ -56,3 +56,30 @@ Canonical field implications are additive at the isolated journal layer: encoded
 bytes and deterministic decoded hashes retain exact numerical provenance. No database
 migration, retention change or reinterpretation of legacy records. Synthetic gzip fixtures
 are not empirical frame acceptance. Phase3 remains incomplete; Phase4 stays excluded.
+
+## Exact additive journal fields
+
+| Location | Field | Type / semantics |
+|---|---|---|
+| Session v3 | http_payload_policy | Exact frozen GZIP_HTTP_POLICY object; Gamma keyset only, reused HTTP/1 and bounded single-member gzip. |
+| Receipt v3 | request.headers.Accept-Encoding | Literal string gzip; actual response may be identity fallback. |
+| Receipt v3 | decoded_budget_before | Exact JSON integer,0..total-1 bytes previously **charged**, including conservative failed-decode reservations; not an observed decoded length. |
+| Receipt v3 | decoded_byte_limit | Exact JSON integer,1..4,194,304 bytes; min(response ceiling,remaining charged-byte budget). |
+| Parsed v2 | decoded_bytes | Exact integer0..decoded_byte_limit or null; only the actual successful decoded length. |
+| Parsed v2 | decoded_hash | Lowercase SHA256 of exact decoded bytes, or null if decoding was not successful/available. |
+| Parsed v2 | decoded_budget_charge | Exact integer0..decoded_byte_limit; actual decoded length when known, full reservation otherwise. |
+| Frame v5 page | decoded_bytes/hash/budget_charge | Verified copies of the parsed evidence; ordered budget lineage must reconcile. |
+| Frame v5 report | decoded_bytes | Sum of known decoded lengths; never substitute it for a complete total when any are unavailable. |
+| Frame v5 report | decoded_unavailable_attempts | Integer count of verified attempts with unknown decoded size. |
+| Frame v5 report | decoded_budget_charge | Sum of conservative charges, bounded by the session total. |
+| Frame v5 report | raw_bytes_semantics | Explicit received HTTP entity-body semantics; gzip raw.bin is encoded. |
+
+All are immutable exclusive-write fields covered by existing payload/ack hashes and the
+pinned implementation. No lossy numeric conversion. Encoded bytes have the actual receive
+clock; decoding/JSON conversion is available only after parsed acknowledgement. HTTP Date,
+Age/cache headers are source metadata, never a reconstructed venue event clock. Missing
+fields in old schemas are not backfilled. No SQL migration or production adoption.
+
+Implementation and synthetic acceptance complete:265 pre-final affected tests;78 final scoped
+tests, overlapping. Exact evidence in PHASE_03_GZIP_VALIDATION.json. Full empirical integration
+is still gated by reservation and a new frozen protocol; no timing improvement is presumed.

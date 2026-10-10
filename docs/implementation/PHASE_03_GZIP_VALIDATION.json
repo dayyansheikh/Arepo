@@ -1,0 +1,29 @@
+{
+  "decision": "D112",
+  "synthetic_not_empirical": true,
+  "source_sha256": {
+    "backend/astrolabe/feature_store/capture.py": "a896bb1aaa5285ecb783cbc6b7375c5726e3a6858a80eb6a4ee775d1e0187e3e",
+    "backend/astrolabe/research_panel/frame.py": "f0466d6122de53dffa04351f0fba1023b07836461548d0af8e5f5daf1cc2e428",
+    "backend/astrolabe/research_panel/selection.py": "b6fbbb744a17aee0077a5039fb2249450bb97f48ae7b7a6595290743faed61c1",
+    "backend/tests/unit/test_feature_store_gzip.py": "5bf0fded75f368ed316550b629fa68aef4455aa39a355404163d4c790551cd43",
+    "backend/tests/unit/test_research_panel_gzip.py": "e4af52737f32d5e62faba8bc26cd8aeb43769d43fa4f4428c12c1a5fb59c2d5d"
+  },
+  "validation": [
+    {
+      "command": "DATABASE_URL=sqlite+aiosqlite:////tmp/arepo_d112_regression.sqlite AUTO_MIGRATE=false EMAIL_PROVIDER=disabled caffeinate -is .venv/bin/pytest -q tests/unit/test_feature_store_gzip.py tests/unit/test_research_panel_gzip.py tests/unit/test_feature_store_capture.py tests/unit/test_feature_store_source_parsers.py tests/unit/test_feature_store_source_run.py tests/unit/test_feature_store_source_bridge.py tests/unit/test_feature_store_types.py tests/unit/test_research_panel_frame.py tests/unit/test_research_panel_row_hash.py tests/unit/test_research_panel_original_reader.py tests/unit/test_research_panel_selection.py tests/unit/test_research_panel_original_selection.py tests/unit/test_research_panel_window_capture.py",
+      "cwd": "backend",
+      "log_path": "/tmp/arepo_d112_regression.log",
+      "log_sha256": "f58a9388cfd155afe0e326c9172b0ac2951e6bb7555a24a7f82656863077c749",
+      "log": "........................................................................ [ 27%]\n........................................................................ [ 54%]\n........................................................................ [ 81%]\n.................................................                        [100%]\n265 passed in 179.90s (0:02:59)\n",
+      "note": "Before final field rename decoded_bytes_before to decoded_budget_before, opt-in public cache headers and explicit retry/header test refinements. Do not attribute this exact run to final source hashes."
+    },
+    {
+      "command": "DATABASE_URL=sqlite+aiosqlite:////tmp/arepo_d112_final.sqlite AUTO_MIGRATE=false EMAIL_PROVIDER=disabled caffeinate -is .venv/bin/pytest -q tests/unit/test_feature_store_gzip.py tests/unit/test_research_panel_gzip.py tests/unit/test_feature_store_capture.py",
+      "cwd": "backend",
+      "log_path": "/tmp/arepo_d112_final.log",
+      "log_sha256": "a0da56268aeb48bfcc36a1a7e0084fa48790b3071a4621761281428aa9ec6009",
+      "log": "........................................................................ [ 92%]\n......                                                                   [100%]\n78 passed in 16.87s\n",
+      "note": "Final source hashes above; affected final refinements and legacy capture rerun. Original-code frame/selection recovery included."
+    }
+  ]
+}

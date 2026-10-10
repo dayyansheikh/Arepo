@@ -21,6 +21,7 @@ from astrolabe.feature_store.capture import (
     _json_bytes,
     _strict_json,
     _sync_directory,
+    json_payload,
     verify_capture,
 )
 from astrolabe.feature_store.source_bridge import _time
@@ -131,7 +132,7 @@ def _projection(frame_root, entry, seen, report_hash):
     if {**{k: v for k, v in result.items() if k != 'rows'},
         'row_count': len(result['rows'])} != entry['result']:
         raise ValueError('original page count/terminal differs')
-    raw_rows = _strict_json(capture['raw'])['markets']
+    raw_rows = _strict_json(json_payload(capture))['markets']
     if len(raw_rows) != len(result['rows']):
         raise ValueError('original source-row count differs')
     rows = []

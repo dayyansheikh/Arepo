@@ -86,3 +86,11 @@ original-code recovery provide the causal boundary. See ../implementation/PHASE_
 for rights review, tests and the separately frozen one-request measurement protocol. Coinbase
 remains excluded under the newly reviewed automated-system/AI restrictions; old evidence stays
 intact. This admits a source path only, not a panel feature or an empirical Phase 3 result.
+
+### Phase3 encoded HTTP journal extension
+
+The isolated Gamma frame path has an opt-in bounded wire/decoded representation contract:
+[Phase3 D112](../implementation/PHASE_03_GZIP_CAPTURE_PLAN.md). Exact encoded source bytes,
+decoded hashes, missingness and independent budgets are preserved; gzip is not enabled by
+default or retroactively for prior captures. This transport specification alone grants no
+research admission, source continuity, production rollout or empirical panel acceptance.

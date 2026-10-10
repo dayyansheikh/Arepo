@@ -1,4 +1,4 @@
-# Phase 3 acceptance — current through D110
+# Phase 3 acceptance — current through D112
 
 Phase 3 remains incomplete. D082 closes the real origin/control/target **execution** gate;
 it does not waive the remaining observation scope. Phase 4 starts in a fresh conversation
@@ -175,3 +175,8 @@ recovery and next integration decision. Phase3 remains incomplete; no Phase4.
 D110 also failed the unchanged600s frame interval before selection (665.126435s); original
 audit passed, no origins/targets. Phase3 remains incomplete. Next D111 bounded diagnostic
 is not another panel or evidence of improved prediction. Follow the live checkpoint.
+
+D112 synthetic transport acceptance:265 affected tests before final refinements and78 final
+scoped tests pass (overlapping). Exact encoded wire preserved; decoded bytes/hashes/charges
+verified under original code. D111 cached first-page feasibility is not full-frame timing or
+empirical panel acceptance. D110 failure stands. Next reservation recovery/new protocol only.

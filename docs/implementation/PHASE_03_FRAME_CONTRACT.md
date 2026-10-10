@@ -218,3 +218,12 @@ retry lineage and all source/clock/budget constraints are unchanged. A server ma
 connection; a new connection does not itself retry a failed response or create a new origin.
 Current readers reject older frame versions explicitly and require their original decoder.
 See D038's precollection tests and finite next-attempt contract in the capacity refinement.
+
+## Opt-in encoded transport (D112)
+
+The bounded gzip journal extension is specified in [D112](PHASE_03_GZIP_CAPTURE_PLAN.md).
+Identity/v4 remains the default. Gzip/v5 preserves encoded wire raw.bin, separately bounded
+and hashed decoded JSON, charged-byte lineage and exact existing cursor/sampling clocks.
+Old records require original code; no raw history is rewritten. Its software tests and
+empirical integration status are separate in the live checkpoint. D111's cached first-page
+diagnostic does not establish full-frame acceptance.

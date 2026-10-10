@@ -21,6 +21,8 @@ from astrolabe.feature_store.capture import (
     _json_bytes,
     _strict_json,
     connection_policy,
+    json_payload,
+    payload_policy,
     verify_capture,
 )
 from astrolabe.feature_store.source_bridge import _time
@@ -33,6 +35,7 @@ from .build_identity import verified_panel_build
 
 SOURCE = 'gamma.markets.keyset'
 VERSION = 'fs2-gamma-frame-v4'
+GZIP_VERSION = 'fs2-gamma-frame-v5'
 POLICY = {
     'population': 'all Gamma /markets/keyset rows returned under closed=false',
     'scope': 'no date, liquidity, category, active, display or top-N filter',
@@ -254,7 +257,7 @@ def _page_facts(capture, limit):
     result = None
     if error is None:
         try:
-            result = parse_page(capture['raw'], limit)
+            result = parse_page(json_payload(capture), limit)
         except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
             error = 'source_schema_invalid'
     return {'result': result, 'error': error}
@@ -267,14 +270,21 @@ def _verify_policy(root):
     policy, ack = _pair(root, 'frame_policy')
     session_bytes = _read(root / 'session.json')
     session = json.loads(session_bytes)
-    if policy.get('schema_version') != VERSION:
+    if policy.get('schema_version') not in {VERSION, GZIP_VERSION}:
         raise ValueError('frame version differs; use the original implementation reader')
+    encoded = policy['schema_version'] == GZIP_VERSION
+    expected_payload = payload_policy(session)
+    if ((encoded and (expected_payload is None
+                     or policy.get('http_payload_policy') != expected_payload))
+            or (not encoded and (expected_payload is not None
+                                 or 'http_payload_policy' in policy))):
+        raise ValueError('frame HTTP payload policy differs')
     expected_kind = 'synthetic' if session['capture_kind'] == 'synthetic' else 'prospective'
     params = SOURCES[SOURCE].params(policy['params'])
     retry = policy['retry_policy']
     if retry is not None and asdict(FrameRetryPolicy(**retry)) != retry:
         raise ValueError('frame retry policy differs')
-    if (policy['schema_version'] != VERSION or policy['policy'] != POLICY
+    if (policy['policy'] != POLICY
             or policy['build'] != verified_panel_build()
             or policy['source'] != asdict(SOURCES[SOURCE])
             or policy['session_hash'] != _digest(session_bytes)
@@ -308,7 +318,7 @@ def _inventory(root, policy, policy_ack):
         ordered.append((ordinal, folder))
     ordered.sort()
     previous_id, previous_cursor, prior_clock = None, None, policy_ack['durable_ack']
-    seen_cursors, total_bytes = set(), 0
+    seen_cursors, total_bytes, total_decoded = set(), 0, 0
     pending_failure, retries_at_cursor, total_retries = None, 0, 0
     retry = policy['retry_policy']
     for index, (ordinal, folder) in enumerate(ordered, 1):
@@ -334,9 +344,19 @@ def _inventory(root, policy, policy_ack):
         if previous_cursor is not None:
             params['after_cursor'] = previous_cursor
         total_bytes += receipt['raw_bytes']
+        expected_request = {'method': 'GET', 'url': SOURCES[SOURCE].endpoint, 'params': params}
+        if policy['schema_version'] == GZIP_VERSION:
+            expected_request['headers'] = {'Accept-Encoding': 'gzip'}
+            if (receipt['schema_version'] != 'fs2-receipt-v3'
+                    or receipt['decoded_budget_before'] != total_decoded):
+                raise ValueError('frame decoded budget lineage differs')
+            total_decoded += capture['parsed']['decoded_budget_charge']
+            if total_decoded > policy['budget']['total_bytes']:
+                raise ValueError('frame decoded byte budget exceeded')
+        elif receipt['schema_version'] == 'fs2-receipt-v3':
+            raise ValueError('legacy frame cannot contain encoded capture')
         if (receipt['receipt_ordinal'] != index
-                or receipt['request'] != {'method': 'GET', 'url': SOURCES[SOURCE].endpoint,
-                                          'params': params}
+                or receipt['request'] != expected_request
                 or receipt['previous_capture_id'] != previous_id
                 or not _ordered_clocks(prior_clock, receipt['request_started'])
                 or receipt['raw_bytes'] > policy['budget']['bytes_per_response']
@@ -368,6 +388,9 @@ def _inventory(root, policy, policy_ack):
             'error': 'cursor_cycle' if repeated else facts['error'], 'retry_of': pending_failure,
             'result': result,
         }
+        if policy['schema_version'] == GZIP_VERSION:
+            entry.update({k: capture['parsed'][k] for k in (
+                'decoded_bytes', 'decoded_hash', 'decoded_budget_charge')})
         yield entry
         prior_clock = ack['durable_ack']
         error = entry['error']
@@ -436,7 +459,12 @@ def _summarize(policy, policy_ack, entries):
     state = ('incomplete' if unknown or pending_errors or not terminal else
              'exhausted_inconsistent' if inconsistent else 'exhausted_consistent')
     return {
-        'schema_version': VERSION, 'policy_hash': policy_ack['payload_hash'],
+        **({'decoded_bytes': sum(e['decoded_bytes'] or 0 for e in good),
+            'decoded_unavailable_attempts': sum(e['decoded_bytes'] is None for e in good),
+            'decoded_budget_charge': sum(e['decoded_budget_charge'] for e in good),
+            'raw_bytes_semantics': 'received HTTP entity-body bytes; gzip remains encoded'}
+           if policy['schema_version'] == GZIP_VERSION else {}),
+        'schema_version': policy['schema_version'], 'policy_hash': policy_ack['payload_hash'],
         'provenance_class': policy['provenance_class'], 'state': state,
         'population_inference_eligible': False,
         'source_semantics': 'interval enumeration, not atomic snapshot or independent events',
@@ -463,9 +491,12 @@ class GammaFrameRun:
 
     def __init__(self, root, *, limit=100, budget=Budget(requests=1), transport=None,
                  measurement_root=None, capacity_root=None, request_capacity_root=None,
-                 request_capacity_commit=None, retry_policy=None, reuse_connections=False):
+                 request_capacity_commit=None, retry_policy=None, reuse_connections=False,
+                 accept_gzip=False):
         if type(reuse_connections) is not bool:
             raise ValueError('explicit boolean connection reuse policy required')
+        if type(accept_gzip) is not bool or (accept_gzip and not reuse_connections):
+            raise ValueError("gzip requires explicit boolean opt-in and reused connection")
         params = SOURCES[SOURCE].params({'closed': 'false', 'limit': limit})
         if retry_policy is not None and type(retry_policy) is not FrameRetryPolicy:
             raise ValueError('explicit bounded frame retry policy required')
@@ -506,10 +537,13 @@ class GammaFrameRun:
                 raise ValueError('insufficient measured local storage reserve after verification')
         build = verified_panel_build()
         self.journal = CaptureJournal(root, budget=budget, transport=transport,
-                                      reuse_connections=reuse_connections)
+                                      reuse_connections=reuse_connections, accept_gzip=accept_gzip)
         self._lock = asyncio.Lock()
         _persist(self.journal.root, 'frame_policy', {
-            'schema_version': VERSION, 'policy': POLICY, 'params': params,
+            'schema_version': GZIP_VERSION if accept_gzip else VERSION,
+            **({'http_payload_policy': payload_policy(
+                json.loads(_read(self.journal.root / 'session.json')))} if accept_gzip else {}),
+            'policy': POLICY, 'params': params,
             'source': asdict(SOURCES[SOURCE]), 'build': build, 'budget': asdict(budget),
             'budget_kind': 'frame' if isinstance(budget, FrameBudget) else 'diagnostic',
             'cost_basis': cost_basis, 'capacity_basis': capacity_basis,
@@ -547,6 +581,10 @@ class GammaFrameRun:
                     ):
                         stop = 'free_space_reserve'
                         break
+                if (self.journal.accept_gzip
+                        and self.journal.decoded_bytes >= self.journal.budget.total_bytes):
+                    stop = 'decoded_byte_budget'
+                    break
                 if self.journal.bytes >= self.journal.budget.total_bytes:
                     stop = 'byte_budget'
                     break
