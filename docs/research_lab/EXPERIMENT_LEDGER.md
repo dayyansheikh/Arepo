@@ -340,3 +340,20 @@ criteria are unchanged.
   - Group completeness cannot be verified (unlisted, inactive or placeholder siblings).
   - Fees and depth are absent.
   - The data are shared with E004, so results are correlated, not independent.
+
+**E005 amendment v2 (lead decision after a second challenger critique, before any confirmation snapshot exists).**
+- The registered band feature `dev_i` is kept.
+- Baseline R becomes `dmid_hat = a + s*spread_i - 0.331610*chg_1h`. The reversal coefficient stays frozen; `a` and `s` are fitted by OLS on dev
+  residuals `(dmid + 0.331610*chg_1h)` using dev_snapshots_v2 only, then frozen.
+- RC = R + b*dev, with `b` fitted on dev residuals `(dmid - R_hat)` through the origin, then frozen.
+- Primary tests (1)-(3) compare against this R.
+- **Reason:** E003 showed that spread-related drift in wide books can masquerade as signal. Without the spread term, a positive
+  result could be spread drift correlated with `dev`.
+- **Added secondaries:**
+  - tight groups (all present spreads ≤ 0.03);
+  - exclusivity asymmetry: separate slopes for `dev>0` and `dev<0`, since neg-risk guarantees mutual exclusivity but not exhaustiveness.
+- **Clusters:** event_id, falling back to neg_risk_market_id and then market_id (counted).
+- **Disclose:** spread and |S-1| are highly correlated at origin (0.92 on a dev capture).
+- **Not adopted:** the alternative feature `c_k` (proportional allocation of excess), which rests on a stronger assumption than the
+  bid/ask band. It may become a later experiment.
+- **Confirmation data:** unchanged (the 12 E004-qualifying snapshots, all taken after this amendment).
