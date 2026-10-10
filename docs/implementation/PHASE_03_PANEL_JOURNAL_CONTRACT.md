@@ -1,0 +1,315 @@
+# Phase 3 durable panel journal — next milestone contract
+
+Status: original-build read boundary and pure metadata projection implemented; durable panel
+journal remains design only, 2026-09-22. Attempt 5 supplied the first verified complete frame.
+Read actual frame evidence before refining/implementing.
+No origins, features, controls or labels are produced by this document. Prerequisites:
+Phase 2 source journals, Phase 3 pure sampling/targets and a usable verified frame.
+
+## Dependencies and admission boundary
+
+A fresh measurement run freezes protocol parameters, seed generation, source/frame references,
+budgets, target rules and both source/panel computation builds before selection or feature
+collection. Synthetic transports remain synthetic. The public generic prospective writer
+stays closed; a caller-supplied clock, payload or `prospective` flag cannot open the gate.
+Capture/selection/feature/target operations never import application settings or invoke v1
+startup, SQL migrations, scans or browser routes. Any SQL indexing remains a separate explicit
+local operation with its own post-commit acknowledgement.
+
+A frame's source-exhaustion status is necessary but does not prove an atomic global snapshot.
+Freeze permitted enumeration age/interval and coverage interpretation before the pilot, retain
+all churn/identity exclusions, and describe the population as the enumerated source population
+over that interval. Do not retrospectively call a current complete frame available earlier.
+Keep failed/incomplete frame attempts as research records but outside population inference.
+
+## Original-build evidence consumption
+
+Decision D034 implements mechanism 1: `research_panel/original_reader.py` extracts the
+original journal-declared Python packages from an explicit full local Git commit into a
+disposable directory, verifies every file hash/set and uses an isolated child interpreter.
+The original decoder still checks source contracts, Python/library versions, raw/parsed/page
+closure and original build identity. Current code never reparses old numerical facts.
+No checkout/reset, dependency installation, source request or journal mutation occurs.
+Temporary code copies are disposable; source journals and read receipts remain preserved.
+
+`frame_cli inspect-original --journal <absolute-root> --implementation-commit <full-sha>
+--output-parent <absolute-existing-directory>` creates a fresh `fs2_frame_read_*` journal.
+Its policy pins original policy/report hashes, extracted code, current reader build and actual
+metadata-read clock. Its receipt pins the child output and actual verification clocks after
+original availability. An incomplete source frame remains incomplete; synthetic remains
+synthetic; no origin or model execution is admitted by this command. A read receipt proves
+this read, not that a later sampler/model consumed it. Later consumers need their own clocks.
+
+Only sealed original reports are accepted. Missing original Git objects or incompatible
+installed libraries fail closed; there is no current-parser fallback or automatic package
+installation. Failure after declaration preserves partial output/failure acknowledgement and
+requires a fresh read directory. The child has a 300-second timeout; returned JSON is limited
+to 16 MiB and must exactly match the sealed original report plus its original acknowledgement.
+Tests cover corruption, changed code, library mismatch, mutable/invalid revisions, output
+inside evidence, repeated output paths and original journal/repository immutability.
+
+## Ordered implementation tasks
+
+1. Recheck latest frame report/limits/identity exclusions and current tests. If no complete
+   usable frame exists, record the actual source/capacity blocker; do not sample the first N
+   pages and describe them as representative. Resolve a finite source strategy first.
+2. Define immutable panel policy/schema/version and named budgets for frame reads, scheduled
+   arms, triggers, controls, dense windows and due outcomes. Reserve control/outcome resources
+   before admitting origins. Use disjoint leases and make crash/retry evidence append-only.
+3. Generate and seal the random seed before reading selection values. Preserve the full frame
+   inventory and row/page references, including excluded/unresolved members and identical or
+   contradictory repeated IDs. One predeclared source-ordered outcome per market; no favourable
+   outcome choice. Never arbitrate conflicting market versions by arbitrary first/last wins.
+4. Define deterministic known-at-cutoff metadata projection. Distinguish Gamma metadata price
+   from a valid observed two-sided CLOB midpoint. Keep absent/invalid category, close, liquidity,
+   price and source-event/economic grouping as explicit unknowns. Source event IDs are not
+   proof of economic independence. Do not infer chain/collateral namespaces from defaults.
+5. Record actual verified frame read start/end, projection computation, policy/sample hashes,
+   selection cutoff, causal input manifest and durable selection acknowledgement. All used
+   page/identity/group/trigger availability must be <= cutoff. Only then request origin inputs.
+6. Use the pure sample planner under the frozen scope/strata and explicit frame-capacity limit;
+   the default remains 100,000, while explicit version-2 output supports at most 400,000.
+   Preserve exact rational weights,
+   role overlap, matching probabilities, exclusions and unfilled control slots. Do not choose
+   a smaller population or discard controls to fit a budget after selection.
+7. Admit source captures through their own durable declarations. Record actual feature reads,
+   computation and availability; freeze actual origin time after all origin inputs are ready.
+   Scheduled boundary and actual origin must remain separate. Do not call a source-availability
+   timestamp proof that the model read it. No retrospective origins from today's old data.
+8. Register explicit family coverage for price/context, books, raw trades, flow, depth-normalised
+   flow, persistent imbalance, withdrawal, related-market and selected external information.
+   A bounded trade page does not prove a complete window; receipt timestamps do not prove venue
+   ordering/pre-trade depth. Unsupported families stay unavailable, with primitives retained.
+9. Seal origins/feature manifests/abstentions before due-target reads. First-valid receipt-time
+   target policy applies to controls and triggered origins alike. Failed/closed/late/missed
+   targets remain records. Sparse quotes cannot label first passage or exact path extrema.
+10. Implement local replay/crash/concurrency tests, then freeze an actual finite pilot policy
+    with timing/control/target coverage gates before its first request. No model winners or
+    predictive claims; Phase 4 baseline locking is separate. An unsuccessful pilot remains
+    unsuccessful under its original thresholds; refine only a subsequent version.
+
+## Tests and exit evidence for this milestone
+
+Test actual read-before-origin causality, future input rejection, source/panel build mismatch,
+old-format handling, deterministic sampling and exact rational round trip, full frame retention,
+failed controls, source/page gaps, late/missing/closed labels, lease collision, recovery after
+raw/fact/selection/origin/index acknowledgement failure, and local cold copy equivalence.
+Measure primitive coverage, receipt/parse/compute/origin lag, target delay, disk and memory.
+Document immutable run roots, original implementation commits and all missing evidence.
+These gates supplement the current phase plan; they do not mark Phase 3 complete.
+
+## Integration details identified before sample implementation
+
+The frame page projection preserves source index, original row hash, exact source-local
+identity/mapping version, eligibility reasons and first source-ordered outcome. Source
+metadata (category/end date/liquidity/outcome price) remains in the lossless original raw
+page. A later metadata projection is a **new computation**, with a new build/read/availability
+receipt; it does not become an old source fact. Pin input page/receipt/raw hashes and verify
+them again as actually consumed after original-code full-frame verification. Keep the
+original acknowledgement distinct from this later computation and from subsequent origins.
+
+`FrameMember` requires a real token even for excluded members. Therefore never manufacture a
+zero token for unmapped source rows. Preserve a complete row inventory keyed by original page
+hash/source index, with explicit unresolved/excluded records; only valid mapped eligible
+members enter the sampling pool. Include the full inventory manifest/counts and exclusion
+reasons in the durable selection record. This is an explicit eligible-population definition,
+not permission to drop inconvenient metadata. Deduplicate identical market versions for
+sampling while retaining every source row; contradictory identities refuse admission.
+
+Gamma metadata prices are context values, never executable quotes or CLOB midpoint labels.
+Unknown category/close/liquidity/probability remain unknown strata. Source event IDs do not
+populate an economic-independence group by assumption. Trigger evidence must exist by the
+cutoff; a scheduled-only initial frame cannot fabricate triggered arms/control matches.
+The eventual pilot must separately establish its frozen trigger/control coverage requirements.
+
+## Metadata projection boundary — D039
+
+`research_panel/metadata.py` is a pure, versioned projection; it creates no receipt, actual
+read, selection or origin. Its consumer must bind the exact original row hash, validated
+outcome count and actual computation clocks. Original raw representations remain authority.
+
+Use only explicit `category`, aware `endDate`, `liquidity` and first source-ordered
+`outcomePrices` entry. Preserve exact decimals and trailing zeros; reject binary floats,
+nonfinite/negative liquidity, probabilities outside [0,1], malformed or wrong-length price
+arrays and naive dates. Keep missing versus invalid versus present distinct, including zero.
+No inference from sports tags, best bid/ask, liquidityNum, endDateIso or source event IDs.
+Unknown metadata is an unknown stratum, not an eligibility exclusion. A category longer
+than 256 characters is invalid for this bounded projection but remains in the original row.
+Do not choose the more favorable outcome or treat Gamma metadata as an executable quote.
+
+Next integrate this pure projection with the complete inventory and durable consumer. Freeze
+policy/seed before selection reads; preserve all 44 unmapped rows without synthetic tokens;
+record every row's original page/hash/index and projection-state reasons. Only validated
+mapped eligible members enter sampling. Deduplicate identical versions while retaining every
+row; refuse conflicting identities. Consume the complete old frame via its original code,
+then independently bind the actual metadata reads/projection clocks. No original availability
+timestamp may be reused as the current computation time. Explicitly separate development
+replay from a future fresh prospective pilot; freshness limits must be frozen before origins.
+
+## D040 durable development selection — implementation contract
+
+Implement `selection.py` and an explicit local CLI. The sole admitted mode in this milestone
+is `development_selection_only`; a real historical frame yields reconstructed selection,
+and a synthetic frame stays synthetic. Neither mode admits origins or population inference.
+No source requests, SQL, application settings or production startup are involved.
+
+1. Require a canonical fresh `fs2_selection_*` directory separate from the source frame,
+   an immutable original implementation SHA and a frozen finite budget. Generate a cryptographic
+   256-bit seed internally once; persist/acknowledge the policy before any frame metadata read.
+   Do not accept caller clocks, seeds, row lists or completeness/provenance overrides.
+2. Consume the original frame through D034 into a child read journal. Require verified
+   `exhausted_consistent`, terminal evidence, no unrecovered gaps/conflicting identities and
+   positive eligible population. Preserve original source interval and availability separately.
+3. Stream every original page through a new actual read/projection. Recheck pinned raw,
+   receipt and page hashes, count and each source-row hash as consumed. Preserve every row,
+   its page/source index, original identity/eligibility and metadata states. Unmapped rows
+   retain raw references and explicit exclusions without fabricated tokens. Identical repeated
+   market versions are deduplicated only for sampling, retaining every original inventory row;
+   conflicting versions refuse the run. Each page gets its own actual read/projected/ack clocks.
+4. Use D039 metadata only. Unknown/invalid fields map to explicit unknown strata. Compute
+   time-to-close against the policy declaration time with fixed development bins: past,
+   <=1 day, <=7 days, <=30 days, >30 days, unknown. The time stratum is that UTC date.
+   Economic groups stay unresolved. All members are scheduled-arm candidates; no trigger
+   or matched-control evidence is invented. Default one scheduled draw/stratum, at most 256
+   unique markets; an over-budget draw fails intact rather than truncating or reseeding.
+5. Seal a full inventory manifest before fixing the actual sampling cutoff. Sample with
+   the existing exact rational planner, using projection acknowledgements as derived-input
+   availability and row-qualified evidence hashes as planner lineage identifiers (not SQL
+   source_observation rows). Record computation start/end, original-read and inventory hashes,
+   plan hash and final durable acknowledgement. Original availability is never a current read.
+6. Bound work to 4,000 page attempts, 400,000 source rows, 3 GiB consumed raw, 1 GiB output,
+   600 seconds processing and a 2 GiB disk reserve; check storage before admitting the run
+   and between pages. The original child decoder additionally retains its own 300-second cap.
+   Failed/torn runs keep all files and failure evidence; no overwrite, automatic repair/resume,
+   reseeding or silent partial sample. Output-budget checks include the child read journal.
+7. Read-only verification requires the original consumer build, complete inventory closure,
+   source/hash lineage, chronology and exact recomputation of the frozen plan. Later changed
+   builds will need an original-selection decoder before consuming this journal; do not weaken
+   the build guard. Validate cold-copy readability without implying full archive equivalence.
+
+Required tests: actual original-code verification with synthetic Git fixtures; policy-before-read;
+unknown/unmapped rows; duplicates/conflicts; exact weights; source tampering and missing/extra
+inventory pages; changed build; clock regression/future input; over-budget and insufficient-disk
+refusal; interrupted selection/ack failure; no reseeding/overwrite; deterministic read-only
+recovery; original evidence unchanged. Run isolated regression, review and commit before a
+single local development selection from the preserved 175,427-row frame. Report actual costs,
+strata/exclusions and the outcome even if it fails its frozen budget. No live collection needed.
+
+## D041 original-selection consumption
+
+D040's actual full-frame measurement passed. Later code adds files and therefore changes the
+full panel build; consume its saved selection through original commit `018dbd3` instead of
+redrawing or weakening that guard. Extend the existing original-reader implementation with
+an allowlisted `read_selection` child script and `fs2_selection_read_*` output directory.
+Keep original frame-reader v1 fields and semantics unchanged. The new selection-read schema
+pins both original report and plan, source/consumer builds, script hash and actual read clocks.
+The existing 300-second child timeout, 16 MiB output cap, sanitized environment and hash-checked
+Git extraction stay in force. Compare the child's entire report and plan to the pinned sealed
+artefacts. Failures retain their new read evidence; old seed/weights/clocks/status never change.
+
+Test selection/frame reader compatibility, exact plan/clock preservation, source/inventory/plan
+corruption, wrong original code, immutable commit and output-path restrictions, synthetic status
+and no journal/worktree mutation. After full tests/review/commit, perform one actual local
+original-code selection read and record its result. This is current consumption of development
+evidence; it does not create prospective origins or constitute pilot acceptance.
+
+## D042 explicit trigger-assessment sampling prerequisite
+
+The original planner's boolean `triggered=False` is insufficient to distinguish a measured
+negative from no measurement. Preserve v1/v2 output byte-for-byte when the new mode is not
+requested; D040's historical draw stays scheduled-only. Add an explicit assessment-aware
+mode with a separately hashed policy declaration, input-window freshness and assessment-age
+bounds. These are development engineering inputs, not optimized scientific thresholds.
+
+Each supplied assessment identifies exactly one frame market/token, one pinned trigger policy,
+a content-addressed evidence record, input-window end and durable assessment availability.
+States are `triggered`, `untriggered`, or `unavailable` with a reason. Missing assessments
+remain `not_assessed`. The pure planner validates declared identities, hashes, UTC chronology
+and bounds; it cannot attest that evidence exists or a process actually ran. Its output must
+explicitly require runtime assessment verification and must never admit an origin.
+
+Only fresh explicit `untriggered` assessments enter the matched-control pool. Fresh triggered
+assessments enter the trigger pool. Unavailable, unassessed or stale records remain in the
+scheduled population and a complete assessment inventory with reasons; no inferred negative,
+zero-filled feature, dropped market or redraw. All assessments use the same policy, with its
+declaration at/before their input-window end, availability at/before cutoff and input-window
+end at/before availability. A future/conflicting/duplicate assessment is an error, not an
+exclusion. Require neutral legacy boolean fields in the new mode to avoid two authorities.
+
+Preserve exact conditional arm and matching weights over the actual eligible pools and every
+unfilled control slot. Never interpret arm weights as union/two-stage/population weights.
+Keep original assessment records and effective states in the versioned plan hash. Durable
+trigger computation, source closure, actual read clocks, broad-frame selection weights and
+origin admission remain the next collector integration contracts, not claims of this helper.
+
+Test unknown/unavailable/stale controls, exact threshold boundaries, full scheduled coverage,
+future/negative clocks, wrong identities/policies, duplicate evidence, order invariance,
+conditional fractions, shortage, bounded iterators, budget refusal and the existing golden
+v1 hash. Run full isolated regression and self-review before committing; no live collection.
+
+## D043 bounded actual source-input read journal
+
+Implement a one-shot local `record_input_read` over one completed, current-build SourceRun.
+Freeze the read policy/build and source path before reading source metadata. The source
+journal stays the authority; this record proves a later actual verified read, not new source
+availability, identity freshness, trigger computation, a feature or an origin. Capture all
+of that bounded run's observations, including failed responses. No caller payload, capture
+subset, clock, provenance or completeness override; old diagnostic directories are refused.
+
+Require canonical separate source/output directories and exclusive `fs2_input_read_*`
+creation. Verify the source run's entire bounded closure using `read_source_run`, retain
+the exact relational projection including numerical representations and raw hashes, and
+bind every source admission/parse receipt. All source facts must already be available at
+the actual read start; appending source attempts during or after sealing invalidates this
+version's read closure. Future streaming consumers need separately versioned prefix rules.
+This milestone assumes completed finite source runs, never production scans or startup.
+
+Record policy durability, actual read start, projection completion and durable read facts.
+Keep the source observations' receipt/availability clocks intact. Source provenance remains
+unchanged; the read journal is explicitly consumption-only and admits no origin. Store
+source-registry and observation rows exactly as consumed with an inventory hash. Refuse empty
+runs, torn acknowledgements, changed builds, raw/parse/source mutation and chronology faults.
+Read-only replay re-verifies the complete source closure and stored projection, without
+replacing timestamps or repairing files. A copied source requires its original path in v1;
+portable archive equivalence remains a distinct later contract.
+
+Bound this helper to SourceRun's existing maximum 10 requests /4 MiB raw, 16 MiB per output
+artefact, 32 MiB total retained, 60 seconds checked at operation boundaries and 2 GiB free
+reserve. Freeze limits internally; no new collection allowance follows. Preserve failure
+receipts and partial files, never resume or overwrite; original data stays byte-identical.
+Test actual clock ordering, failed responses retained, synthetic separation, source closure
+mutation, future/unavailable facts, torn writes, path protection, changed builds, budget
+failure and deterministic read-only verification. No live source calls for this milestone.
+
+## D044 quote/identity projection prerequisite
+
+Before the durable feature writer, add a pure bounded projection over D043's exact source
+rows. Use only successful Gamma identities already available by a book's actual receipt;
+match exact token and condition, preserve original outcome order and mapping version.
+Contradictory known mappings are ambiguous, not latest-wins. A later identity cannot repair
+an earlier quote. Require explicit finite receipt-age and identity-age bounds against a
+declared computation cutoff; these are development policy inputs, not venue update age.
+
+For each book response retain its lineage, receipt/source availability, source quality,
+identity status and exact best positive-size bid/ask/size plus midpoint when valid. Unsorted
+levels are allowed; duplicate prices, one-sided/crossed books, unknown/stale identities and
+stale receipts remain explicit exclusions. Preserve every source observation in an inventory,
+including failed Gamma/book/trade responses. Never substitute trade or Gamma metadata prices.
+Native event clocks, complete flow, persistence, depth withdrawal and executable profit
+remain unadmitted. Bound inputs to the existing ten source responses and source payload caps.
+
+This pure helper accepts declarations for replay/tests and records no actual clocks. Its
+output must require runtime verified D043 inputs and later durable computation, admitting
+no feature-store record or origin. The subsequent writer must freeze its policy before
+source reads, invoke D043, record computation start/end and durable acknowledgement and
+replay exact results. Test future inputs, identity known after receipt, condition conflicts,
+duplicate identities/levels, exact tiny values and ambient decimal precision, freshness
+boundaries, failed sources, row order invariance, source inventory and input bounds.
+
+The ordered next writer contract and resource-accounting review are in
+[PHASE_03_QUOTE_COMPUTATION_CONTRACT.md](PHASE_03_QUOTE_COMPUTATION_CONTRACT.md).
+
+D045 now implements that bounded writer: actual child read, actual computation start/end,
+post-fsync availability and exact replay at the recorded cutoff. It retains source
+provenance and still admits no origin. Fresh selected-market identities require a separate
+versioned source contract before integration; no arbitrary lookup filter is implicit.

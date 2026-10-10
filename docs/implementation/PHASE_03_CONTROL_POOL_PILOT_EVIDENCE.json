@@ -1,0 +1,196 @@
+{
+  "decision": "D101",
+  "protocol": "docs/implementation/PHASE_03_CONTROL_POOL_PILOT_PROTOCOL.md",
+  "implementation_commit": "884adb6c74c1937fa5e1a3dce10f27add26d5e3d",
+  "wrapper_result": {
+    "implementation_commit": "884adb6c74c1937fa5e1a3dce10f27add26d5e3d",
+    "started_at": "2026-10-08T23:31:40.012897+00:00",
+    "script_sha256": "17506d6e0f8111ef3e8617c1a2149a4c8a223a14b5dd893868bb35184d98fd07",
+    "command": [
+      "caffeinate",
+      "-is",
+      "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+      "/tmp/arepo_d101_frozen.py"
+    ],
+    "completed_at": "2026-10-08T23:56:58.296766+00:00",
+    "elapsed_ns": "1518260642000",
+    "returncode": 1
+  },
+  "preflight": {
+    "stage": "preflight",
+    "implementation_commit": "884adb6c74c1937fa5e1a3dce10f27add26d5e3d",
+    "at": {
+      "utc": "2026-10-08T23:31:40.463715Z",
+      "monotonic_ns": "2406206000445458",
+      "clock_session_id": "88ad2a71-eb86-43ac-8e0f-34b45e38516f"
+    },
+    "free_bytes": 13483130880,
+    "required_free_bytes": 13308526592,
+    "panel_reservation": {
+      "screen_slots": 8,
+      "source_bytes_per_screen": 1048576,
+      "screening_retained_bytes": 1954545664,
+      "future_runtime_retained_bytes": 1654652928,
+      "total_retained_bytes": 3609198592,
+      "required_free_bytes": 5756682240,
+      "overlap_discount_applied": false,
+      "window_bytes": 872415232
+    },
+    "frame_retained_limit": 7516192768
+  },
+  "frame_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_92e1a92ad25144e48ecf15b46bf2db6e",
+  "source_frame_report": {
+    "availability_basis": "page acknowledgements; full frame needs report acknowledgement",
+    "conflicting_condition_ids": [],
+    "conflicting_market_ids": [],
+    "conflicting_token_ids": [],
+    "duplicate_market_rows": 0,
+    "eligible_row_count": 276751,
+    "enumeration_terminal_observed": true,
+    "errors": [
+      "TimeoutError"
+    ],
+    "exclusion_counts": {
+      "identity_unresolved": 44
+    },
+    "interval_end": {
+      "clock_session_id": "88ad2a71-eb86-43ac-8e0f-34b45e38516f",
+      "monotonic_ns": "2406835255209458",
+      "utc": "2026-10-08T23:42:09.727671Z"
+    },
+    "interval_start": {
+      "clock_session_id": "88ad2a71-eb86-43ac-8e0f-34b45e38516f",
+      "monotonic_ns": "2406256551807791",
+      "utc": "2026-10-08T23:32:31.015834Z"
+    },
+    "page_manifest_hash": "c9be7993cc1e5829a8320e620e59c5a17ac0c0bce49760c6d162ec0f1a2efbba",
+    "policy_hash": "201ee0b108c42c2b841a3598a3f635cc9888c488098851babeeecde333c10313",
+    "population_inference_eligible": false,
+    "provenance_class": "prospective",
+    "raw_bytes": 1786759963,
+    "recovered_failed_attempts": 1,
+    "retry_attempts": 1,
+    "schema_version": "fs2-gamma-frame-v4",
+    "scientific_stage": "measurement_development_only",
+    "source_rows": 276795,
+    "source_semantics": "interval enumeration, not atomic snapshot or independent events",
+    "state": "exhausted_consistent",
+    "stop_reason": "terminal",
+    "unique_market_ids": 276795,
+    "unrecovered_errors": [],
+    "unverified_attempts": 0,
+    "verified_attempts": 2769,
+    "frame_available_at": {
+      "clock_session_id": "88ad2a71-eb86-43ac-8e0f-34b45e38516f",
+      "monotonic_ns": "2406976389187333",
+      "utc": "2026-10-08T23:44:30.863686Z"
+    },
+    "frame_report_hash": "d07788237f16de024be0a3e9e4af984ee8a6abbcb0ee9b6805c0cbc36e7eff12",
+    "journal_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_92e1a92ad25144e48ecf15b46bf2db6e",
+    "retained_file_bytes": 4379387014,
+    "retained_files": 19388
+  },
+  "failure": {
+    "error_class": "TimeoutExpired",
+    "failed_at": {
+      "clock_session_id": "88ad2a71-eb86-43ac-8e0f-34b45e38516f",
+      "monotonic_ns": "2407723241512083",
+      "utc": "2026-10-08T23:56:57.726449Z"
+    },
+    "read_policy_hash": "75ea3a76a6fa6decb8c8056cc2b8045148157e95f0009db5c6577bccee4279f4",
+    "schema_version": "fs2-original-frame-read-v1",
+    "started_at": {
+      "clock_session_id": "88ad2a71-eb86-43ac-8e0f-34b45e38516f",
+      "monotonic_ns": "2407423198177166",
+      "utc": "2026-10-08T23:51:57.679199Z"
+    }
+  },
+  "failure_ack": {
+    "durable_ack": {
+      "clock_session_id": "88ad2a71-eb86-43ac-8e0f-34b45e38516f",
+      "monotonic_ns": "2407723244867375",
+      "utc": "2026-10-08T23:56:57.730230Z"
+    },
+    "payload_hash": "944a34add72b92553385d1d562b23fe768d68a965c1016f35f0a34fd2ec520dd"
+  },
+  "artifacts": [
+    {
+      "path": "data-dumps/fs2_control_pool_pilot_20261008_1_launch.json",
+      "bytes": 364,
+      "sha256": "2879bec4a3bceec7ba3306bed3311579a6d92b28888ba3ec1a99a6ce843e2215"
+    },
+    {
+      "path": "data-dumps/fs2_control_pool_pilot_20261008_1_result.json",
+      "bytes": 470,
+      "sha256": "5f97d88dafd8e519ad7d0c747bbd77f3161a8774c26196c06a354171dfbfd7e5"
+    },
+    {
+      "path": "data-dumps/fs2_control_pool_pilot_20261008_1_stdout.log",
+      "bytes": 2861,
+      "sha256": "b433b6677a0fc819595e300af8a8a208d5070f9ce301f8ba535559eb57ff7e8b"
+    },
+    {
+      "path": "data-dumps/fs2_control_pool_pilot_20261008_1_stderr.log",
+      "bytes": 2595,
+      "sha256": "5ed594bdd91b731395e044859dc712b2255dbd424bcdb2f598d5c8c252bd685d"
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_92e1a92ad25144e48ecf15b46bf2db6e/frame_policy.json",
+      "bytes": 14253,
+      "sha256": "201ee0b108c42c2b841a3598a3f635cc9888c488098851babeeecde333c10313"
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_92e1a92ad25144e48ecf15b46bf2db6e/frame_report.json",
+      "bytes": 3101001,
+      "sha256": "d07788237f16de024be0a3e9e4af984ee8a6abbcb0ee9b6805c0cbc36e7eff12"
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_92e1a92ad25144e48ecf15b46bf2db6e/frame_report_ack.json",
+      "bytes": 227,
+      "sha256": "749e115c02cc82c1ecd5fe9d6a1ca37dfefb96b6d1b57f1779dd7d115498b9b3"
+    },
+    {
+      "path": "data-dumps/fs2_panel_control_pool_pilot_20261008_1/panel_policy_ack.json",
+      "bytes": 227,
+      "sha256": "6f0fe7768cebf34170a6420770a188225e51a11db8b066429b3eeb66bf8437fb"
+    },
+    {
+      "path": "data-dumps/fs2_panel_control_pool_pilot_20261008_1/panel_policy.json",
+      "bytes": 8996,
+      "sha256": "5a98a211f91343fb27f9362ac1408d4ddb9e31a71350bdd464c9fcfec5026c91"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_control_pool_pilot_20261008_1/fs2_frame_read_original/read_policy.json",
+      "bytes": 18203,
+      "sha256": "75ea3a76a6fa6decb8c8056cc2b8045148157e95f0009db5c6577bccee4279f4"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_control_pool_pilot_20261008_1/fs2_frame_read_original/read_failure.json",
+      "bytes": 449,
+      "sha256": "944a34add72b92553385d1d562b23fe768d68a965c1016f35f0a34fd2ec520dd"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_control_pool_pilot_20261008_1/fs2_frame_read_original/read_failure_ack.json",
+      "bytes": 227,
+      "sha256": "6b85f0c0454c2f6c0851bfa83cfef6b8abf05148f8df6727c1a87da4c55a71a9"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_control_pool_pilot_20261008_1/fs2_frame_read_original/read_policy_ack.json",
+      "bytes": 227,
+      "sha256": "452e3754d58b9a2377d804521a6353e7ea72d1e9f10e858b35bfadbe8eb60b95"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_control_pool_pilot_20261008_1/fs2_frame_read_original/original_report.json",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "phase3_accepted": false,
+  "selection_completed": false,
+  "origins_collected": 0,
+  "targets_collected": 0,
+  "control_design_empirically_tested": false,
+  "conclusion": "Fresh frame completed, but original-code verification timed out at300seconds before selection. This run is terminal, failed/unaccepted; no original deadline raised, no retry/redraw or outcome claim.",
+  "free_bytes_after_run": 9646768128,
+  "script": "from pathlib import Path\nimport json,hashlib,shutil\nbase=Path('data-dumps');prefix='fs2_control_pool_pilot_20261008_1'\ndef read(p):return json.loads(p.read_text())\ndef artifact(p):return {'path':str(p),'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}\nwrapper={k:base/f'{prefix}_{f}' for k,f in {'launch':'launch.json','result':'result.json','stdout':'stdout.log','stderr':'stderr.log'}.items()}\nstages=[json.loads(l) for l in wrapper['stdout'].read_text().splitlines()];root=Path(next(s['root'] for s in stages if s['stage']=='frame_owned'))\nsel=base/'fs2_selection_panel_control_pool_pilot_20261008_1';child=sel/'fs2_frame_read_original';panel=base/'fs2_panel_control_pool_pilot_20261008_1'\nreport=next(s['report'] for s in stages if s['stage']=='frame_complete')\nassert read(wrapper['result'])['returncode']==1 and read(child/'read_failure.json')['error_class']=='TimeoutExpired'\nassert not (sel/'selection_plan.json').exists()\nassert not (base/'fs2_screening_worker_control_pool_pilot_20261008_1').exists()\nfiles=[*wrapper.values(),root/'frame_policy.json',root/'frame_report.json',root/'frame_report_ack.json']\nfiles += [p for d in (panel,child) for p in d.iterdir() if p.is_file()]\ne={'decision':'D101','protocol':'docs/implementation/PHASE_03_CONTROL_POOL_PILOT_PROTOCOL.md','implementation_commit':read(wrapper['launch'])['implementation_commit'],'wrapper_result':read(wrapper['result']),'preflight':stages[0],'frame_root':str(root),'source_frame_report':report,'failure':read(child/'read_failure.json'),'failure_ack':read(child/'read_failure_ack.json'),'artifacts':[artifact(p) for p in files],'phase3_accepted':False,'selection_completed':False,'origins_collected':0,'targets_collected':0,'control_design_empirically_tested':False,'conclusion':'Fresh frame completed, but original-code verification timed out at300seconds before selection. This run is terminal, failed/unaccepted; no original deadline raised, no retry/redraw or outcome claim.','free_bytes_after_run':shutil.disk_usage('.').free,'script':Path(__file__).read_text()}\nPath('docs/implementation/PHASE_03_CONTROL_POOL_PILOT_EVIDENCE.json').write_text(json.dumps(e,indent=2)+'\\n')\nprint(json.dumps({k:report[k] for k in ['source_rows','eligible_row_count','verified_attempts','retry_attempts','recovered_failed_attempts','raw_bytes','retained_file_bytes','interval_start','interval_end']}));print('free_bytes',e['free_bytes_after_run'])\n"
+}

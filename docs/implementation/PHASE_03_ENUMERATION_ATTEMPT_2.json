@@ -1,0 +1,52 @@
+{
+  "availability_basis": "page acknowledgements; full frame needs report acknowledgement",
+  "benchmark_context": "Final journal verification overlapped final backend regression; elapsed time is not an isolated throughput benchmark",
+  "collection_process_elapsed_ns": "270294986000",
+  "collection_process_peak_resident_bytes": 343457792,
+  "conflicting_condition_ids": [],
+  "conflicting_market_ids": [],
+  "conflicting_token_ids": [],
+  "duplicate_market_rows": 0,
+  "eligible_row_count": 99956,
+  "enumeration_terminal_observed": false,
+  "errors": [],
+  "exclusion_counts": {
+    "identity_unresolved": 44
+  },
+  "frame_available_at": {
+    "clock_session_id": "b0e64d13-ede6-4c19-b59d-bc64636dcae0",
+    "monotonic_ns": "1008325453932125",
+    "utc": "2026-09-21T03:57:04.234294Z"
+  },
+  "frame_report_hash": "5414f0489bd15828774ae413f4a1e4de524ed5c18b3f8ce9d24fe9ecbff98f68",
+  "implementation_commit": "726cec27ff6eeb4c10b01dd0ebde84b9804d3fb0",
+  "interval_end": {
+    "clock_session_id": "b0e64d13-ede6-4c19-b59d-bc64636dcae0",
+    "monotonic_ns": "1008301743214708",
+    "utc": "2026-09-21T03:56:40.523620Z"
+  },
+  "interval_start": {
+    "clock_session_id": "b0e64d13-ede6-4c19-b59d-bc64636dcae0",
+    "monotonic_ns": "1008106113366666",
+    "utc": "2026-09-21T03:53:24.894058Z"
+  },
+  "journal_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_3a4f80db7fa94d248fc16e1397af4c71",
+  "latency_ns": "195629848042",
+  "measurement": "second finite enumeration attempt; incomplete at frozen 1000-request limit; original CLI verification succeeded",
+  "page_manifest_hash": "0b63b9bef0e98c007485c9ca70f8159ccc1f2f72bc73bb5faa7523eed88fa25a",
+  "policy_hash": "f55f9dd2fe413e24f9c726e714a5a2258e094721dbc1d918c3d01861ff4d1968",
+  "population_inference_eligible": false,
+  "provenance_class": "prospective",
+  "raw_bytes": 644897535,
+  "retained_file_bytes": 1577956669,
+  "retained_files": 7005,
+  "schema_version": "fs2-gamma-frame-v2",
+  "scientific_stage": "measurement_development_only",
+  "source_rows": 100000,
+  "source_semantics": "interval enumeration, not atomic snapshot or independent events",
+  "state": "incomplete",
+  "stop_reason": "request_budget",
+  "unique_market_ids": 100000,
+  "unverified_attempts": 0,
+  "verified_attempts": 1000
+}

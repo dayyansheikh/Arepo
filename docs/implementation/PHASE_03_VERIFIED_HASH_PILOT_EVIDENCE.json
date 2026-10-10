@@ -1,0 +1,229 @@
+{
+  "decision": "D106",
+  "implementation_commit": "b698306015ca20c42752f885fb9405f46eaed98d",
+  "wrapper_result": {
+    "implementation_commit": "b698306015ca20c42752f885fb9405f46eaed98d",
+    "started_at": "2026-10-09T11:27:14.719111+00:00",
+    "script_sha256": "195b6ff1e219a339e2b4d8ab2f12d852a14e35d284e7770b281724ac4fc2aa68",
+    "command": [
+      "caffeinate",
+      "-is",
+      "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+      "/tmp/arepo_d106_frozen.py"
+    ],
+    "completed_at": "2026-10-09T11:53:30.310280+00:00",
+    "elapsed_ns": "1575567231708",
+    "returncode": 1
+  },
+  "protocol": "docs/implementation/PHASE_03_VERIFIED_HASH_PILOT_PROTOCOL.md",
+  "frame_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_2413ff8c20c04a4ba31763fdadd3a84e",
+  "source_frame_report": {
+    "availability_basis": "page acknowledgements; full frame needs report acknowledgement",
+    "conflicting_condition_ids": [],
+    "conflicting_market_ids": [],
+    "conflicting_token_ids": [],
+    "duplicate_market_rows": 0,
+    "eligible_row_count": 276146,
+    "enumeration_terminal_observed": true,
+    "errors": [],
+    "exclusion_counts": {
+      "identity_unresolved": 44
+    },
+    "interval_end": {
+      "clock_session_id": "489f3a66-0e1b-4a5a-b6c1-daee1c225e95",
+      "monotonic_ns": "2449853196160375",
+      "utc": "2026-10-09T11:39:08.295205Z"
+    },
+    "interval_start": {
+      "clock_session_id": "489f3a66-0e1b-4a5a-b6c1-daee1c225e95",
+      "monotonic_ns": "2449210784827583",
+      "utc": "2026-10-09T11:28:25.874516Z"
+    },
+    "page_manifest_hash": "038a877a441c032a35db0bc2e4c94c3975a4b0c47ee08abdc7705d60aab9d963",
+    "policy_hash": "e54f44f803b2c45f85b6f27a37dc1465d60cac9c7f2808452e7b3e5967102710",
+    "population_inference_eligible": false,
+    "provenance_class": "prospective",
+    "raw_bytes": 1786932255,
+    "recovered_failed_attempts": 0,
+    "retry_attempts": 0,
+    "schema_version": "fs2-gamma-frame-v4",
+    "scientific_stage": "measurement_development_only",
+    "source_rows": 276190,
+    "source_semantics": "interval enumeration, not atomic snapshot or independent events",
+    "state": "exhausted_consistent",
+    "stop_reason": "terminal",
+    "unique_market_ids": 276190,
+    "unrecovered_errors": [],
+    "unverified_attempts": 0,
+    "verified_attempts": 2762,
+    "frame_available_at": {
+      "clock_session_id": "489f3a66-0e1b-4a5a-b6c1-daee1c225e95",
+      "monotonic_ns": "2450015853031833",
+      "utc": "2026-10-09T11:41:50.954422Z"
+    },
+    "frame_report_hash": "4e815dbddb4a9895a144eed2cf7a2e7ec473e7a4140729b8576a4a2a4d082708",
+    "journal_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_2413ff8c20c04a4ba31763fdadd3a84e",
+    "retained_file_bytes": 4381096845,
+    "retained_files": 19339
+  },
+  "original_read_receipt": {
+    "completed_at": {
+      "clock_session_id": "489f3a66-0e1b-4a5a-b6c1-daee1c225e95",
+      "monotonic_ns": "2450510130391458",
+      "utc": "2026-10-09T11:50:05.238930Z"
+    },
+    "metadata_read_started_at": {
+      "clock_session_id": "489f3a66-0e1b-4a5a-b6c1-daee1c225e95",
+      "monotonic_ns": "2450343108579291",
+      "utc": "2026-10-09T11:47:18.214767Z"
+    },
+    "observation_clocks_changed": false,
+    "origin_admitted": false,
+    "original_provenance_class": "prospective",
+    "original_report_hash": "4e815dbddb4a9895a144eed2cf7a2e7ec473e7a4140729b8576a4a2a4d082708",
+    "original_state": "exhausted_consistent",
+    "output_bytes": 3093610,
+    "output_hash": "09fc6c79e58319a02ca15f33540087d2f8cac1de95d4144cd2cb71599cb26751",
+    "read_policy_hash": "40a21abacbafa8266d8fb0454acf9b622554b6f1b1698800f903ac765720607b",
+    "schema_version": "fs2-original-frame-read-v1",
+    "verification_started_at": {
+      "clock_session_id": "489f3a66-0e1b-4a5a-b6c1-daee1c225e95",
+      "monotonic_ns": "2450346627234250",
+      "utc": "2026-10-09T11:47:21.733477Z"
+    }
+  },
+  "selection_failure": {
+    "error_class": "ValueError",
+    "failed_at": {
+      "clock_session_id": "489f3a66-0e1b-4a5a-b6c1-daee1c225e95",
+      "monotonic_ns": "2450714523246208",
+      "utc": "2026-10-09T11:53:29.634850Z"
+    },
+    "schema_version": "fs2-development-selection-v1"
+  },
+  "artifacts": [
+    {
+      "path": "data-dumps/fs2_verified_hash_pilot_20261009_1_launch.json",
+      "bytes": 364,
+      "sha256": "72dfbb32356612dd96161f55d6a3e8632292a63514f9740778671806c7e11f5f"
+    },
+    {
+      "path": "data-dumps/fs2_verified_hash_pilot_20261009_1_result.json",
+      "bytes": 470,
+      "sha256": "ff9ee9c4034f4725a6b658ff9d0663a2772e9e484643512e905a504629018049"
+    },
+    {
+      "path": "data-dumps/fs2_verified_hash_pilot_20261009_1_stdout.log",
+      "bytes": 2847,
+      "sha256": "cafa27ab6776bf0b7ec8ac61dc1cc68cac2025ab52a73a912ad5cef3da9f48dd"
+    },
+    {
+      "path": "data-dumps/fs2_verified_hash_pilot_20261009_1_stderr.log",
+      "bytes": 824,
+      "sha256": "ea87d7f228a43b46253bd5a24545f8ccda816f5d80f76d436cfa9a6d4b5fabf1"
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_2413ff8c20c04a4ba31763fdadd3a84e/frame_policy.json",
+      "bytes": 14253,
+      "sha256": "e54f44f803b2c45f85b6f27a37dc1465d60cac9c7f2808452e7b3e5967102710"
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_2413ff8c20c04a4ba31763fdadd3a84e/frame_report.json",
+      "bytes": 3093372,
+      "sha256": "4e815dbddb4a9895a144eed2cf7a2e7ec473e7a4140729b8576a4a2a4d082708"
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_2413ff8c20c04a4ba31763fdadd3a84e/frame_report_ack.json",
+      "bytes": 227,
+      "sha256": "3341f1433e930858730c0282f4ee23298c20a9e5836757ebeda259d543cae040"
+    },
+    {
+      "path": "data-dumps/fs2_panel_verified_hash_pilot_20261009_1/panel_policy_ack.json",
+      "bytes": 227,
+      "sha256": "0546a4eabc7e5211515f370f93aac07f67964fdaad79c25615fa66e47c336105"
+    },
+    {
+      "path": "data-dumps/fs2_panel_verified_hash_pilot_20261009_1/panel_policy.json",
+      "bytes": 8996,
+      "sha256": "3a6d8584cb07bce075b126e729dcbd467e14953dc7032c0711854c80b7d8f1ce"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/selection_failure.json",
+      "bytes": 218,
+      "sha256": "933b2a0ec2e382e319f74a3a3be962e5fc913cc5c3aea320e4419351868eb091"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/selection_failure_ack.json",
+      "bytes": 227,
+      "sha256": "efadc7cb6839b3433e0c121f09f481430ea351cce8e4951f102672bb524d298f"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/selection_policy.json",
+      "bytes": 8406,
+      "sha256": "fca7c76a2a3712ca2d795a88cc8c459698a9c33d13ec61f0f7cc37ad7961c068"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/inventory_ack.json",
+      "bytes": 227,
+      "sha256": "7658f22067b16798fe0bac010f7453a30ac6ac1284b044df5fbff42e3f89720d"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/inventory.json",
+      "bytes": 384432,
+      "sha256": "45e8c1961faab960f97754e4d54ca1307a276b2184dd5e86c736646cdcb14219"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/selection_policy_ack.json",
+      "bytes": 227,
+      "sha256": "481041ba3beca72536fb952763ef3fd8cd74f758bac5e78859abc97a50561769"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/fs2_frame_read_original/read_receipt_ack.json",
+      "bytes": 227,
+      "sha256": "d4885751fa21090e008adc0e0296d82e2ba7066095e61f4e43ac35f8c2ffd566"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/fs2_frame_read_original/read_policy.json",
+      "bytes": 18203,
+      "sha256": "40a21abacbafa8266d8fb0454acf9b622554b6f1b1698800f903ac765720607b"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/fs2_frame_read_original/read_policy_ack.json",
+      "bytes": 227,
+      "sha256": "0c7784928fe88d647c5218ad27017a253561028831f2a63a55aeeded959b8451"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/fs2_frame_read_original/read_receipt.json",
+      "bytes": 926,
+      "sha256": "ade8c88a3f9f421226b9d31552cdeb1a34bcaa07fd922351f36fc81d07468318"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_verified_hash_pilot_20261009_1/fs2_frame_read_original/original_report.json",
+      "bytes": 3093610,
+      "sha256": "09fc6c79e58319a02ca15f33540087d2f8cac1de95d4144cd2cb71599cb26751"
+    }
+  ],
+  "selection_completed": false,
+  "origins_collected": 0,
+  "targets_collected": 0,
+  "phase3_accepted": false,
+  "failure": "frame interval exceeds frozen selection limit",
+  "frame_interval_seconds": "642.420689",
+  "frozen_interval_limit_seconds": 600,
+  "clock_component_totals_ns": {
+    "request_ns": 305276694311,
+    "raw_save_ns": 8877084448,
+    "parse_save_ns": 91145475956,
+    "frame_page_save_ns": 182016460297,
+    "between_page_ns": 55194472321
+  },
+  "timing_limits": "Receipt clocks partition request/response and local persistence/processing intervals, not pure network or CPU time. Final page persistence occurs after source interval_end. No service-latency attribution from these clocks alone.",
+  "free_bytes_after_extraction": 8378544128,
+  "script": "from pathlib import Path\nfrom datetime import datetime\nimport json,hashlib,shutil\nbase=Path('data-dumps');prefix=base/'fs2_verified_hash_pilot_20261009_1'\ndef read(p):return json.loads(p.read_text())\ndef artifact(p):return {'path':str(p),'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}\ndef utc(c):return datetime.fromisoformat(c['utc'].replace('Z','+00:00'))\ndef ns(a,b):\n assert a['clock_session_id']==b['clock_session_id']\n return int(b['monotonic_ns'])-int(a['monotonic_ns'])\nwrapper={k:Path(str(prefix)+'_'+v) for k,v in {'launch':'launch.json','result':'result.json','stdout':'stdout.log','stderr':'stderr.log'}.items()}\nstages=[json.loads(l) for l in wrapper['stdout'].read_text().splitlines()];root=Path(next(s['root'] for s in stages if s['stage']=='frame_owned'));summary=next(s['report'] for s in stages if s['stage']=='frame_complete');report=read(root/'frame_report.json')\nsel=base/'fs2_selection_panel_verified_hash_pilot_20261009_1';original=sel/'fs2_frame_read_original';panel=base/'fs2_panel_verified_hash_pilot_20261009_1'\nassert read(wrapper['result'])['returncode']==1\nassert not (sel/'selection_plan.json').exists()\nassert not (base/'fs2_screening_worker_verified_hash_pilot_20261009_1').exists()\nassert 'frame interval exceeds frozen selection limit' in wrapper['stderr'].read_text()\nrows=[];previous=None\nfor p in report['pages']:\n folder=root/p['capture_id'];r=read(folder/'receipt.json');ra=read(folder/'raw_ack.json');pa=read(folder/'parsed_ack.json');fa=read(folder/'frame_page_ack.json')\n row={'ordinal':p['ordinal'],'capture_id':p['capture_id'],'request_ns':ns(r['request_started'],r['first_received']),'raw_save_ns':ns(r['first_received'],ra['durable_ack']),'parse_save_ns':ns(ra['durable_ack'],pa['durable_ack']),'frame_page_save_ns':ns(pa['durable_ack'],fa['durable_ack']),'between_page_ns':ns(previous,r['request_started']) if previous else 0,'raw_bytes':r['raw_bytes'],'status':r['status'],'artifacts':[artifact(folder/n) for n in ('receipt.json','raw_ack.json','parsed_ack.json','frame_page_ack.json')]}\n assert min(row[k] for k in ('request_ns','raw_save_ns','parse_save_ns','frame_page_save_ns','between_page_ns'))>=0\n rows.append(row);previous=fa['durable_ack']\ninterval=(utc(summary['interval_end'])-utc(summary['interval_start'])).total_seconds()\nfiles=[*wrapper.values(),root/'frame_policy.json',root/'frame_report.json',root/'frame_report_ack.json']\nfiles += [p for parent in (panel,sel,original) for p in parent.iterdir() if p.is_file()]\nfields=['request_ns','raw_save_ns','parse_save_ns','frame_page_save_ns','between_page_ns']\ne={'decision':'D106','implementation_commit':read(wrapper['launch'])['implementation_commit'],'wrapper_result':read(wrapper['result']),'protocol':'docs/implementation/PHASE_03_VERIFIED_HASH_PILOT_PROTOCOL.md','frame_root':str(root),'source_frame_report':summary,'original_read_receipt':read(original/'read_receipt.json'),'selection_failure':read(sel/'selection_failure.json'),'artifacts':[artifact(p) for p in files],'selection_completed':False,'origins_collected':0,'targets_collected':0,'phase3_accepted':False,'failure':'frame interval exceeds frozen selection limit','frame_interval_seconds':str(interval),'frozen_interval_limit_seconds':600,'clock_component_totals_ns':{k:sum(r[k] for r in rows) for k in fields},'clock_components':rows,'timing_limits':'Receipt clocks partition request/response and local persistence/processing intervals, not pure network or CPU time. Final page persistence occurs after source interval_end. No service-latency attribution from these clocks alone.','free_bytes_after_extraction':shutil.disk_usage('.').free,'script':Path(__file__).read_text()}\nPath('docs/implementation/PHASE_03_VERIFIED_HASH_PILOT_EVIDENCE.json').write_text(json.dumps(e,indent=2)+'\\n')\nprint(json.dumps({k:e[k] for k in ('frame_interval_seconds','clock_component_totals_ns','free_bytes_after_extraction')}))\n",
+  "clock_component_detail": {
+    "path": "data-dumps/fs2_frame_timing_d106_20261009_1.json",
+    "bytes": 4261127,
+    "sha256": "682405bab1cbd150b9916f1e314c1a309dc853aaf299300883710085e874d68c",
+    "entries": 2762
+  }
+}

@@ -1,0 +1,828 @@
+{
+  "accepted_panel": false,
+  "assignments": [
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": "1",
+        "decimal_state": "exact",
+        "denominator": "1",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "101",
+        "numerator": "4"
+      },
+      "market_id": "1068745",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "4ffe83dfb78bc568bf8663b7f3d7f5e5c45ae7e09d12b59f620138b07148494b",
+      "stratum": "1531bc5513ec0aa4afc037a6541f0b5bb50d385149f5eaded7cfcf9fa98cdb32",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "101",
+        "numerator": "4"
+      },
+      "token_id": "71990823545476172057397539228999083435242402644332688321711165550800328090716",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "43",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "4343",
+        "numerator": "4"
+      },
+      "market_id": "1919738",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "7d57fbc4f48c024cbb4e3ad59cfcca913834aaa7539e827931e40e54aef7c5cb",
+      "stratum": "24cc38e6f42d5d977bff93bbf709cb83a78e330e64ba895622e2ef9c0c088176",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "101",
+        "numerator": "4"
+      },
+      "token_id": "45051748908850462249633120527071687789875184356392882186238340245484039044901",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": "1",
+        "decimal_state": "exact",
+        "denominator": "1",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "101",
+        "numerator": "4"
+      },
+      "market_id": "2268703",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "bc719566694712865fb5fb6d84d068620815f67bc7892dbebb148b7ade45da76",
+      "stratum": "1531bc5513ec0aa4afc037a6541f0b5bb50d385149f5eaded7cfcf9fa98cdb32",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "101",
+        "numerator": "4"
+      },
+      "token_id": "37228355403085489631690834179158267510372738945596020309386005794735726177993",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "43",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "4343",
+        "numerator": "4"
+      },
+      "market_id": "2772223",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "7212fe5ee1ab7857d38462af2f4d56ac4955be843bece457363d71b394b51aa4",
+      "stratum": "24cc38e6f42d5d977bff93bbf709cb83a78e330e64ba895622e2ef9c0c088176",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "101",
+        "numerator": "4"
+      },
+      "token_id": "101510369632695485618012795086114586537814615245146970263847614333191437389726",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "37",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "3737",
+        "numerator": "4"
+      },
+      "market_id": "3364543",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "201d1bfd570249e8c16ef285e79f5a6efe61647c67d26255a0f4e89727d0eed3",
+      "stratum": "cdac7a03f7dc80d9eb8ef94e11307eec5e93be0bdaa536f1ca6fb3b0da28811e",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "101",
+        "numerator": "4"
+      },
+      "token_id": "78329308589463250121086125691109028570051040249314026029726929826566230041918",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "37",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "3737",
+        "numerator": "4"
+      },
+      "market_id": "3369415",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "8616c1ccf400273c1b8b05bec4d524f2ab389de65befa844fbab1b81b7d2b005",
+      "stratum": "cdac7a03f7dc80d9eb8ef94e11307eec5e93be0bdaa536f1ca6fb3b0da28811e",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "101",
+        "numerator": "4"
+      },
+      "token_id": "15725934240716180149695356853386755427226311553652923781809548243126834596799",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "287",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "28987",
+        "numerator": "4"
+      },
+      "market_id": "4492851",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "2cde36978dd52fd31565d963063784ec35fdd45742356db2703dda396aef5a92",
+      "stratum": "01518197f824c224e28b09c54c6243ce9f1eef32c0a8c7adb4020f0649706bf7",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "101",
+        "numerator": "4"
+      },
+      "token_id": "5099054973860796736890937897847152901644693825854033999873731939658228385999",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "287",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "28987",
+        "numerator": "4"
+      },
+      "market_id": "4570560",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "f0665aec7228bf8f960cda28f9f297c03c2ab7c2eb69b30b3a9541014acf7146",
+      "stratum": "01518197f824c224e28b09c54c6243ce9f1eef32c0a8c7adb4020f0649706bf7",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "101",
+        "numerator": "4"
+      },
+      "token_id": "43558008273259864796672159913304019959032458843561821814234715224987976625583",
+      "trigger_id": null
+    }
+  ],
+  "cli": [
+    {
+      "at": {
+        "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+        "monotonic_ns": "1466370643188791",
+        "utc": "2026-09-28T02:27:39.145564Z"
+      },
+      "commit": "e27149761b1fdc73ff10915fa7a331de30d03da7",
+      "free": 26539331584,
+      "reservation": {
+        "future_runtime_retained_bytes": 1654652928,
+        "overlap_discount_applied": false,
+        "required_free_bytes": 4884267008,
+        "screen_slots": 8,
+        "screening_retained_bytes": 1082130432,
+        "source_bytes_per_screen": 1048576,
+        "total_retained_bytes": 2736783360
+      },
+      "stage": "preflight"
+    },
+    {
+      "at": {
+        "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+        "monotonic_ns": "1466673190334291",
+        "utc": "2026-09-28T02:32:41.693641Z"
+      },
+      "provenance": "prospective",
+      "stage": "selection_complete"
+    },
+    {
+      "at": {
+        "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+        "monotonic_ns": "1467030675445833",
+        "utc": "2026-09-28T02:38:39.179889Z"
+      },
+      "elapsed_ns": 660032069917,
+      "recovery": [
+        {
+          "completed_at": {
+            "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+            "monotonic_ns": "1467030632018166",
+            "utc": "2026-09-28T02:38:39.136394Z"
+          },
+          "metadata_read_started_at": {
+            "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+            "monotonic_ns": "1466921516217166",
+            "utc": "2026-09-28T02:36:50.020306Z"
+          },
+          "observation_clocks_changed": false,
+          "origin_admitted": false,
+          "original_provenance_class": "prospective",
+          "original_report_hash": "7da4f2fdc16c6a9b7d2af1571e6aa1528908da14c7f70b7c4ad5099732318800",
+          "original_state": "screening_sealed",
+          "output_bytes": 25659,
+          "output_hash": "2f42364a1765aecc313bb6b5c98a85ca925e284f32bf707195dc5e6fba05b46a",
+          "read_policy_hash": "19ae34e5a4ee959ad809e02f8f6d0556a9c72f172d00e7454d2da1bd8ce0871a",
+          "schema_version": "fs2-original-screening-read-v1",
+          "verification_started_at": {
+            "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+            "monotonic_ns": "1466923668386708",
+            "utc": "2026-09-28T02:36:52.172468Z"
+          }
+        }
+      ],
+      "retained_bytes_before_report": 1085658,
+      "roles": {
+        "accepted_panel": false,
+        "ceilings_per_cycle": {
+          "control": 8,
+          "scheduled": 8,
+          "triggered": 8
+        },
+        "counts_per_cycle": {
+          "scheduled": 8
+        },
+        "fits": true,
+        "origin_admitted": false,
+        "overlap_discount_applied": false
+      },
+      "stage": "complete",
+      "state": "screening_complete",
+      "states": [
+        {
+          "market_id": "1068745",
+          "projection_hash": "8308281fe678311f715c933c8157493e032d143697e3a1271eaeadce3a5e5b25",
+          "reasons": [
+            "frame_mapping_changed_or_unavailable"
+          ],
+          "state": "unavailable",
+          "summary": {
+            "computation_available_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466786544065916",
+              "utc": "2026-09-28T02:34:35.047755Z"
+            },
+            "computation_hash": "faba4a0c7ec4342a55410f9d27793ecb1c35b2837f857a7f7513c589853d8766",
+            "computation_started_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466786526957958",
+              "utc": "2026-09-28T02:34:35.030654Z"
+            },
+            "computed_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466786527107083",
+              "utc": "2026-09-28T02:34:35.030804Z"
+            },
+            "feature_store_admitted": false,
+            "origin_admitted": false,
+            "projection_hash": "8308281fe678311f715c933c8157493e032d143697e3a1271eaeadce3a5e5b25",
+            "schema_version": "fs2-snapshot-trigger-computation-v1",
+            "source_provenance_class": "prospective",
+            "state": "untriggered"
+          }
+        },
+        {
+          "market_id": "1919738",
+          "projection_hash": "a2df5e5516f1e938fe54ac96d5929df55795b0a70802d247485eb4b29897ca67",
+          "reasons": [
+            "frame_mapping_changed_or_unavailable"
+          ],
+          "state": "unavailable",
+          "summary": {
+            "computation_available_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466786548944416",
+              "utc": "2026-09-28T02:34:35.052636Z"
+            },
+            "computation_hash": "cb0436c44199488e788da12a44278f66fd6ad567f60498941b696762ec8d4f80",
+            "computation_started_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466786532811208",
+              "utc": "2026-09-28T02:34:35.036507Z"
+            },
+            "computed_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466786532950666",
+              "utc": "2026-09-28T02:34:35.036648Z"
+            },
+            "feature_store_admitted": false,
+            "origin_admitted": false,
+            "projection_hash": "a2df5e5516f1e938fe54ac96d5929df55795b0a70802d247485eb4b29897ca67",
+            "schema_version": "fs2-snapshot-trigger-computation-v1",
+            "source_provenance_class": "prospective",
+            "state": "triggered"
+          }
+        },
+        {
+          "market_id": "2268703",
+          "projection_hash": "b5225db1c49efdad7fa535cb1839713306f81806fc5b42c5982dcfe486ed6099",
+          "reasons": [
+            "frame_mapping_changed_or_unavailable"
+          ],
+          "state": "unavailable",
+          "summary": {
+            "computation_available_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466790450815000",
+              "utc": "2026-09-28T02:34:38.954520Z"
+            },
+            "computation_hash": "cd651e6ed0f5694f9b408fd8f6d3d9283bddc4e3ce1cecd3452b67dd71a7e442",
+            "computation_started_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466790446472916",
+              "utc": "2026-09-28T02:34:38.950178Z"
+            },
+            "computed_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466790446639541",
+              "utc": "2026-09-28T02:34:38.950347Z"
+            },
+            "feature_store_admitted": false,
+            "origin_admitted": false,
+            "projection_hash": "b5225db1c49efdad7fa535cb1839713306f81806fc5b42c5982dcfe486ed6099",
+            "schema_version": "fs2-snapshot-trigger-computation-v1",
+            "source_provenance_class": "prospective",
+            "state": "triggered"
+          }
+        },
+        {
+          "market_id": "2772223",
+          "projection_hash": "a279861fe5e71f677500b7ad18303ea24dd016d1f4311ed8e7fdebc641ce2ad8",
+          "reasons": [
+            "frame_mapping_changed_or_unavailable"
+          ],
+          "state": "unavailable",
+          "summary": {
+            "computation_available_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466790380481791",
+              "utc": "2026-09-28T02:34:38.884180Z"
+            },
+            "computation_hash": "e48f4c71459cbd87cd638d3d4631251f5f11eec15afd00116b5c237fd904367b",
+            "computation_started_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466790348278666",
+              "utc": "2026-09-28T02:34:38.851983Z"
+            },
+            "computed_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466790348524458",
+              "utc": "2026-09-28T02:34:38.852231Z"
+            },
+            "feature_store_admitted": false,
+            "origin_admitted": false,
+            "projection_hash": "a279861fe5e71f677500b7ad18303ea24dd016d1f4311ed8e7fdebc641ce2ad8",
+            "schema_version": "fs2-snapshot-trigger-computation-v1",
+            "source_provenance_class": "prospective",
+            "state": "untriggered"
+          }
+        },
+        {
+          "market_id": "3364543",
+          "projection_hash": "37b59918b57a0ad2b42cdb5982f8780b9705a1d8cb553796a62b0d890ede5610",
+          "reasons": [
+            "frame_mapping_changed_or_unavailable"
+          ],
+          "state": "unavailable",
+          "summary": {
+            "computation_available_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466802305125916",
+              "utc": "2026-09-28T02:34:50.808864Z"
+            },
+            "computation_hash": "ca1146fe5f393f5c2b0b8acaa889d363e222dc182fa440fbc39a1671fc42be21",
+            "computation_started_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466802293040875",
+              "utc": "2026-09-28T02:34:50.796783Z"
+            },
+            "computed_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466802293198625",
+              "utc": "2026-09-28T02:34:50.796943Z"
+            },
+            "feature_store_admitted": false,
+            "origin_admitted": false,
+            "projection_hash": "37b59918b57a0ad2b42cdb5982f8780b9705a1d8cb553796a62b0d890ede5610",
+            "schema_version": "fs2-snapshot-trigger-computation-v1",
+            "source_provenance_class": "prospective",
+            "state": "triggered"
+          }
+        },
+        {
+          "market_id": "3369415",
+          "projection_hash": "47e7d8233a13dfe26a2902068c139c8da1233ac859e6aabf445273f94f1711cb",
+          "reasons": [
+            "frame_mapping_changed_or_unavailable"
+          ],
+          "state": "unavailable",
+          "summary": {
+            "computation_available_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466804408584500",
+              "utc": "2026-09-28T02:34:52.912333Z"
+            },
+            "computation_hash": "749db0c78f330bc58b339f93f383ac2d66492eaa2eb0e7031625e5ddef5739ac",
+            "computation_started_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466804406932333",
+              "utc": "2026-09-28T02:34:52.910682Z"
+            },
+            "computed_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466804407081791",
+              "utc": "2026-09-28T02:34:52.910833Z"
+            },
+            "feature_store_admitted": false,
+            "origin_admitted": false,
+            "projection_hash": "47e7d8233a13dfe26a2902068c139c8da1233ac859e6aabf445273f94f1711cb",
+            "schema_version": "fs2-snapshot-trigger-computation-v1",
+            "source_provenance_class": "prospective",
+            "state": "untriggered"
+          }
+        },
+        {
+          "market_id": "4492851",
+          "projection_hash": "85f97ba59d52ade172b003a94b1a13d5fdb30803437ea9e0eb0e9921f75c1945",
+          "reasons": [
+            "clob.book_invalid",
+            "known_active_lifecycle_unavailable",
+            "snapshot_identity_unavailable_or_changed",
+            "snapshot_invalid",
+            "frame_mapping_changed_or_unavailable"
+          ],
+          "state": "unavailable",
+          "summary": {
+            "computation_available_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466807992173250",
+              "utc": "2026-09-28T02:34:56.495932Z"
+            },
+            "computation_hash": "139d24bf1a2cf5460840786c179c4222af4fe588bf12de485ddae6f7ac0c9fc6",
+            "computation_started_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466807990468541",
+              "utc": "2026-09-28T02:34:56.494230Z"
+            },
+            "computed_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466807990576750",
+              "utc": "2026-09-28T02:34:56.494340Z"
+            },
+            "feature_store_admitted": false,
+            "origin_admitted": false,
+            "projection_hash": "85f97ba59d52ade172b003a94b1a13d5fdb30803437ea9e0eb0e9921f75c1945",
+            "schema_version": "fs2-snapshot-trigger-computation-v1",
+            "source_provenance_class": "prospective",
+            "state": "unavailable"
+          }
+        },
+        {
+          "market_id": "4570560",
+          "projection_hash": "c55ae25decbb8cc227435e17fa982200932a4de65bd226474c27dea0d0ca526e",
+          "reasons": [
+            "clob.book_invalid",
+            "known_active_lifecycle_unavailable",
+            "snapshot_identity_unavailable_or_changed",
+            "snapshot_invalid",
+            "frame_mapping_changed_or_unavailable"
+          ],
+          "state": "unavailable",
+          "summary": {
+            "computation_available_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466806570475750",
+              "utc": "2026-09-28T02:34:55.074230Z"
+            },
+            "computation_hash": "095eed07b963edba474de82444d98d57ae7ba81ec36de322560d0cc36f57f1df",
+            "computation_started_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466806569289333",
+              "utc": "2026-09-28T02:34:55.073045Z"
+            },
+            "computed_at": {
+              "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+              "monotonic_ns": "1466806569400125",
+              "utc": "2026-09-28T02:34:55.073158Z"
+            },
+            "feature_store_admitted": false,
+            "origin_admitted": false,
+            "projection_hash": "c55ae25decbb8cc227435e17fa982200932a4de65bd226474c27dea0d0ca526e",
+            "schema_version": "fs2-snapshot-trigger-computation-v1",
+            "source_provenance_class": "prospective",
+            "state": "unavailable"
+          }
+        }
+      ]
+    }
+  ],
+  "first_request": "2026-09-28T02:34:24.071165Z",
+  "identity_differences": [
+    {
+      "differences": {
+        "source_event_ids": {
+          "new": [],
+          "old": [
+            "133793"
+          ]
+        }
+      },
+      "market_id": "1068745",
+      "new_mapping_version": "621c7a7f4bf4f2077ffd270d6b6bab4b0d8952028c76cf55fbebae485c8e8f2e",
+      "old_mapping_version": "85fe875f612d99425f180c789526d64c0d76c07b5bb03e3757b5bd5f5cf74db1",
+      "source_raw_hash": "dbd706a21de1ceced4c8f60c7464c7ac71b4fc63becdc2b2335a5043741f2b1d"
+    },
+    {
+      "differences": {
+        "source_event_ids": {
+          "new": [],
+          "old": [
+            "357914"
+          ]
+        }
+      },
+      "market_id": "1919738",
+      "new_mapping_version": "429a94ee9a8b304fff646bc0291a2cb97195d332d0fb984db5cb81f47c47368f",
+      "old_mapping_version": "08d874d4e4c402ec21a3bb607ebb2251b3d7a4fac9d4a1a0aa2c763ebcf99f9e",
+      "source_raw_hash": "a2f2b3d11388e32dbd0fcc81bcc7a18c55dd252007f2a116e93218af04a64a7e"
+    },
+    {
+      "differences": {
+        "source_event_ids": {
+          "new": [],
+          "old": [
+            "488234"
+          ]
+        }
+      },
+      "market_id": "2268703",
+      "new_mapping_version": "55832be85090db6997ef084c571ebfbd716bd5f91138d7920f5629f692b9350d",
+      "old_mapping_version": "0d5a8e51592ee89a67164f883441fdc1f733fa0d04651ad8950d367faf7195f8",
+      "source_raw_hash": "b6cb684ba9a7e5e5591847fbe27f3e9a128e9684845c58acfdc346964dd0f90a"
+    },
+    {
+      "differences": {
+        "source_event_ids": {
+          "new": [],
+          "old": [
+            "659672"
+          ]
+        }
+      },
+      "market_id": "2772223",
+      "new_mapping_version": "998088f47a8bc51eaa164fcb29fe9e8a42dcef92ef4cdb54c09ecc008bd07c10",
+      "old_mapping_version": "1546666cbf84fe02643a028681ae6282db512b44656e21a383abf71fd13ba865",
+      "source_raw_hash": "77eece553c2b3bd653caeb086897640d4dfa2757a876ee1f4f8f900e423e5f80"
+    },
+    {
+      "differences": {
+        "source_event_ids": {
+          "new": [],
+          "old": [
+            "801992"
+          ]
+        }
+      },
+      "market_id": "3364543",
+      "new_mapping_version": "2fd73d2937cecc1ebce9eb9ecd493da07033053516a6e4dc70419b487bd4462e",
+      "old_mapping_version": "27fb5c4abb43ac68c6a420e876ea618af351c5c83d4648f8821d840e64bab6e6",
+      "source_raw_hash": "332240217cef4edea01941b5927ccdea447ae43044d28f2894a9422c1c866854"
+    },
+    {
+      "differences": {
+        "source_event_ids": {
+          "new": [],
+          "old": [
+            "803096"
+          ]
+        }
+      },
+      "market_id": "3369415",
+      "new_mapping_version": "704559b8587f8f7047b79427d5a97775d5a05cc676dab34fb4b66b8f485cd217",
+      "old_mapping_version": "832ae01ab8253c4cdc1f10b6f8a9c3c7f5ab1da638268d0cb47301d9707f97e3",
+      "source_raw_hash": "c32eb2f9e157b757a043a9276788a7c54e62b71c8c73819322621a6ced40d7ba"
+    },
+    {
+      "differences": {
+        "source_event_ids": {
+          "new": [],
+          "old": [
+            "1009632"
+          ]
+        }
+      },
+      "market_id": "4492851",
+      "new_mapping_version": "f5edf306b1379a93e1f78626b927dab5c5626daf4f5d54443338625d3494be9a",
+      "old_mapping_version": "a6699b49ff5ad279dc30a98321fe388da821523cf0abfe173874409e4b245c13",
+      "source_raw_hash": "c1ece7a2232b37fb5b2656951f9e5c18e01588d450f94ff72e065c632a2c3746"
+    },
+    {
+      "differences": {
+        "source_event_ids": {
+          "new": [],
+          "old": [
+            "1025269"
+          ]
+        }
+      },
+      "market_id": "4570560",
+      "new_mapping_version": "3ffba8d109817074a8fd9581e0a671a6f81e392e427b422cb6a0447926fe1ffe",
+      "old_mapping_version": "73eea6ee7d497ddec0352873d7fc629eacfa6eac15af87e46ecd7ba98f728509",
+      "source_raw_hash": "da82b2ecd0b5752b4e65632cafcb52a05e509f863acaff20a1188e37a7119e23"
+    }
+  ],
+  "implementation_commit": "e27149761b1fdc73ff10915fa7a331de30d03da7",
+  "last_received": "2026-09-28T02:34:45.851367Z",
+  "limitations": [
+    "All eight targeted responses omit frame event IDs; no other identity field differs.",
+    "Original screening result remains eight unavailable, zero triggered/control roles.",
+    "Six observed snapshot decisions are not admitted roles or predictive evidence.",
+    "Two invalid books/lifecycle-unavailable cases remain unavailable.",
+    "Frozen September 21 population is not the current universe; no redraw or retry."
+  ],
+  "measured_state_counts": {
+    "unavailable": 8
+  },
+  "original_recovery_passed": true,
+  "panel_root": "data-dumps/fs2_panel_screening_measurement_20260928_1",
+  "raw_bytes": 41576,
+  "request_count": 16,
+  "retained_bytes": {
+    "panel": 8790,
+    "selection": 566742776,
+    "worker": 1113094
+  },
+  "sampling_seed": "070aadd913e538f7b75672348a6303f08d6bf11b0bef5c83dd01c6bc0a676a13",
+  "schema_version": "fs2-screening-measurement-evidence-v1",
+  "screening_report_hash": "7da4f2fdc16c6a9b7d2af1571e6aa1528908da14c7f70b7c4ad5099732318800",
+  "selection_report": {
+    "accepted_panel": false,
+    "collection_enabled": false,
+    "computation_started_at": {
+      "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+      "monotonic_ns": "1466562944380916",
+      "utc": "2026-09-28T02:30:51.447391Z"
+    },
+    "computed_at": {
+      "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+      "monotonic_ns": "1466578921664708",
+      "utc": "2026-09-28T02:31:07.424688Z"
+    },
+    "counts": {
+      "duplicate_market_rows": 0,
+      "eligible_row_count": 175383,
+      "excluded:identity_unresolved": 44,
+      "metadata:category:missing": 175383,
+      "metadata:close_time_utc:missing": 1168,
+      "metadata:close_time_utc:present": 174215,
+      "metadata:liquidity:missing": 25879,
+      "metadata:liquidity:present": 149504,
+      "metadata:metadata_probability:missing": 65,
+      "metadata:metadata_probability:present": 175318,
+      "sampling_members": 175383,
+      "source_rows": 175427
+    },
+    "feature_store_admitted": false,
+    "frame_report_hash": "e1c84c2cf43fa23ff94b179c97e66d8deba206de17dcfa8b28475c29db62ebe4",
+    "inventory_hash": "a5381368a96a69b87cb86f9cbb4cfe76f6edcb7a16a300f70dbcc47f5b64dd94",
+    "origin_admitted": false,
+    "original_frame_available_at": {
+      "clock_session_id": "533ff9de-e128-4023-844d-a1c0fd66f928",
+      "monotonic_ns": "1049357647497333",
+      "utc": "2026-09-21T23:37:32.077104Z"
+    },
+    "original_read_hash": "bbbfcc5042f3e8cf7e81678950d5208f635d8dd3c84d62c0b91b0de49fbed9b9",
+    "plan_hash": "c40e210f43cabe10e38f2b1940669ff60c4b9c4302dad420ca53e581799c57a7",
+    "policy_hash": "9afe20ab2ba5ba3aeac016177a9bd1eb3066a7c53369a6cbd8c96538fb7055d0",
+    "population_inference_eligible": false,
+    "provenance_class": "prospective",
+    "sampling_cutoff": {
+      "clock_session_id": "bb7b468e-061d-4ddd-9a1c-832f753e6dfc",
+      "monotonic_ns": "1466562944376958",
+      "utc": "2026-09-28T02:30:51.447384Z"
+    },
+    "schema_version": "fs2-panel-selection-v2",
+    "source_interval_end": {
+      "clock_session_id": "533ff9de-e128-4023-844d-a1c0fd66f928",
+      "monotonic_ns": "1049313453456083",
+      "utc": "2026-09-21T23:36:47.882152Z"
+    },
+    "source_interval_start": {
+      "clock_session_id": "533ff9de-e128-4023-844d-a1c0fd66f928",
+      "monotonic_ns": "1048960713787083",
+      "utc": "2026-09-21T23:30:55.135072Z"
+    },
+    "state": "fresh_selection_sealed",
+    "unique_selected_markets": 8
+  },
+  "selection_root": "data-dumps/fs2_selection_panel_screening_measurement_20260928_1",
+  "snapshot_rule_state_counts_before_frame_comparison": {
+    "triggered": 3,
+    "unavailable": 2,
+    "untriggered": 3
+  },
+  "source_statuses": {
+    "clob.book:200": 6,
+    "clob.book:404": 2,
+    "gamma.market:200": 8
+  },
+  "stratum_draw": {
+    "design": "uniform_without_replacement_then_within_stratum",
+    "eligible_strata": 101,
+    "ranking_domain": "screening_stratum_v1",
+    "selected_strata": 4,
+    "strata_limit": 4,
+    "stratum_inclusion_probability": {
+      "decimal": null,
+      "decimal_state": "nonterminating",
+      "denominator": "101",
+      "numerator": "4"
+    },
+    "version": "fs2-bounded-stratum-draw-v1"
+  },
+  "worker_report_hash": "ddfbac236eeeab45aaa299af6a794e57ee9558b4f3d2c369a7ad6dfe241b79cf",
+  "worker_root": "data-dumps/fs2_screening_worker_screening_measurement_20260928_1"
+}

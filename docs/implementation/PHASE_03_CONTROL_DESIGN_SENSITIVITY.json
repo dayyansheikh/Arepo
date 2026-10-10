@@ -1,0 +1,165 @@
+{
+  "decision": "D100",
+  "provenance": "exact hypothetical design sensitivity, not empirical prevalence or predictive validation",
+  "cases_exhaustively_checked": 176,
+  "fixed_total_members": 8,
+  "pair_inclusion_ratio_for_N_at_least_4": {
+    "numerator": "3",
+    "denominator": "1",
+    "display_approximation": 3.0
+  },
+  "single_member_inclusion_ratio_for_N_at_least_4": {
+    "numerator": "1",
+    "denominator": "1",
+    "display_approximation": 1.0
+  },
+  "scenarios": {
+    "homogeneous_sparse_controls": {
+      "groups_T_U_M": [
+        [
+          70,
+          10,
+          20
+        ],
+        [
+          70,
+          10,
+          20
+        ],
+        [
+          70,
+          10,
+          20
+        ],
+        [
+          70,
+          10,
+          20
+        ]
+      ],
+      "four_strata_two_members": {
+        "numerator": "43858976",
+        "denominator": "96059601",
+        "display_approximation": 0.45658086795509384
+      },
+      "two_strata_four_members": {
+        "numerator": "31677861",
+        "denominator": "55785961",
+        "display_approximation": 0.5678464694728482
+      }
+    },
+    "homogeneous_balanced": {
+      "groups_T_U_M": [
+        [
+          40,
+          40,
+          20
+        ],
+        [
+          40,
+          40,
+          20
+        ],
+        [
+          40,
+          40,
+          20
+        ],
+        [
+          40,
+          40,
+          20
+        ]
+      ],
+      "four_strata_two_members": {
+        "numerator": "75908480",
+        "denominator": "96059601",
+        "display_approximation": 0.7902227284912416
+      },
+      "two_strata_four_members": {
+        "numerator": "2566094368",
+        "denominator": "2733512089",
+        "display_approximation": 0.9387536196844674
+      }
+    },
+    "one_rare_mixed_stratum": {
+      "groups_T_U_M": [
+        [
+          10,
+          90,
+          0
+        ],
+        [
+          100,
+          0,
+          0
+        ],
+        [
+          100,
+          0,
+          0
+        ],
+        [
+          100,
+          0,
+          0
+        ]
+      ],
+      "four_strata_two_members": {
+        "numerator": "2",
+        "denominator": "11",
+        "display_approximation": 0.18181818181818182
+      },
+      "two_strata_four_members": {
+        "numerator": "18211",
+        "denominator": "104566",
+        "display_approximation": 0.1741579480902014
+      }
+    },
+    "no_controls": {
+      "groups_T_U_M": [
+        [
+          80,
+          0,
+          20
+        ],
+        [
+          80,
+          0,
+          20
+        ],
+        [
+          80,
+          0,
+          20
+        ],
+        [
+          80,
+          0,
+          20
+        ]
+      ],
+      "four_strata_two_members": {
+        "numerator": "0",
+        "denominator": "1",
+        "display_approximation": 0.0
+      },
+      "two_strata_four_members": {
+        "numerator": "0",
+        "denominator": "1",
+        "display_approximation": 0.0
+      }
+    }
+  },
+  "limitations": [
+    "Not inferred from D097 or pooled old pilots.",
+    "Finite mixed-stratum probability is not probability of passing fresh origins, targets and actual matched role assignment.",
+    "Greater within-stratum support sacrifices breadth; clustered unavailable data can worsen the six-of-eight gate.",
+    "No negative candidate can be manufactured in a population containing none.",
+    "For strata smaller than4, saturation changes marginal probabilities; exact sampler weights remain authoritative."
+  ],
+  "script": {
+    "source": "from fractions import Fraction as F\nfrom math import comb\nfrom itertools import combinations\nfrom pathlib import Path\nimport json,hashlib\n\ndef choose(n,k):return comb(n,k) if n>=k else 0\ndef mixed(t,u,m,n):\n N=t+u+m;d=choose(N,n)\n return 1-F(choose(N-t,n),d)-F(choose(N-u,n),d)+F(choose(m,n),d)\ndef panel(groups,k,n):\n absence=F(0)\n for selected in combinations(groups,k):\n  q=F(1)\n  for t,u,m in selected:q*=1-mixed(t,u,m,n)\n  absence+=q\n return 1-absence/comb(len(groups),k)\ndef ratio(p):return {'numerator':str(p.numerator),'denominator':str(p.denominator),'display_approximation':float(p)}\n# Exhaustive independent check of the inclusion-exclusion formula on small toy populations.\nchecked=0\nfor t in range(5):\n for u in range(5):\n  for m in range(4):\n   rows='T'*t+'U'*u+'M'*m\n   for n in [2,4]:\n    if len(rows)<n:continue\n    tuples=list(combinations(rows,n));direct=F(sum('T' in s and 'U' in s for s in tuples),len(tuples))\n    assert mixed(t,u,m,n)==direct;checked+=1\nscenarios={'homogeneous_sparse_controls':[(70,10,20)]*4,'homogeneous_balanced':[(40,40,20)]*4,'one_rare_mixed_stratum':[(10,90,0)]+[(100,0,0)]*3,'no_controls':[(80,0,20)]*4}\nresult={'decision':'D100','provenance':'exact hypothetical design sensitivity, not empirical prevalence or predictive validation','cases_exhaustively_checked':checked,'fixed_total_members':8,'pair_inclusion_ratio_for_N_at_least_4':ratio(F(2*4*3,4*2*1)),'single_member_inclusion_ratio_for_N_at_least_4':ratio(F(2*4,4*2)),'scenarios':{name:{'groups_T_U_M':groups,'four_strata_two_members':ratio(panel(groups,4,2)),'two_strata_four_members':ratio(panel(groups,2,4))} for name,groups in scenarios.items()},'limitations':['Not inferred from D097 or pooled old pilots.','Finite mixed-stratum probability is not probability of passing fresh origins, targets and actual matched role assignment.','Greater within-stratum support sacrifices breadth; clustered unavailable data can worsen the six-of-eight gate.','No negative candidate can be manufactured in a population containing none.','For strata smaller than4, saturation changes marginal probabilities; exact sampler weights remain authoritative.']}\nresult['script']={'source':Path(__file__).read_text(),'sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}\nPath('docs/implementation/PHASE_03_CONTROL_DESIGN_SENSITIVITY.json').write_text(json.dumps(result,indent=2)+'\\n')\nprint(json.dumps({k:v for k,v in result.items() if k!='script'},indent=2))\n",
+    "sha256": "c48ee9dbb802cdef55bdde0f714a43b0a22de0027fea82c056109d81caca818d"
+  }
+}

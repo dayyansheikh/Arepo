@@ -113,6 +113,7 @@ Maintain separate leases, deadlines, due gates and idempotency. Browser/API requ
 - SQLite-to-Postgres imports must remain read-only on the source, idempotent and value-reconciled.
 - Existing high-frequency retention is a legacy behaviour, not v2 preservation approval. No new destructive retention/compaction or shorter live retention before full archive equivalence and separate explicit user approval.
 - Frozen research data and permanent observations must never be pruned.
+- October10 user-authorised local exception: completed failed/superseded bulk discovery data may be retired only after a sufficient durable evidence capsule and dependency review, per `docs/implementation/PHASE_03_BOUNDED_RETENTION.md`. Preserve canonical/active/unresolved evidence and frozen cohorts/origins/targets; record lost full-replay capability explicitly. This does not authorise production retention changes.
 - Supabase Free has a 500 MB database constraint. Monitor warning thresholds and plan archival or tier changes before capacity is exhausted.
 - Never trade research integrity or universe completeness for free-tier capacity.
 - Archive-before-delete is mandatory whenever cold archival is enabled.

@@ -1,0 +1,27 @@
+{
+  "decision": "D104",
+  "scope": "Full saved-frame computational comparison only; no current-build admission of old data, new clocks, original-reader deadline change or prospective acceptance",
+  "original_commit": "884adb6c74c1937fa5e1a3dce10f27add26d5e3d",
+  "candidate_commit": "3ce788be3a621e07872e2276a81daa2cd10f599a",
+  "root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_92e1a92ad25144e48ecf15b46bf2db6e",
+  "policy_hash": "201ee0b108c42c2b841a3598a3f635cc9888c488098851babeeecde333c10313",
+  "script": "\"\"\"Offline algorithm comparison, never an original reader or admission receipt.\"\"\"\nimport ast,json,time,hashlib,subprocess\nfrom pathlib import Path\nfrom astrolabe.research_panel import frame\nfrom astrolabe.feature_store.source_run import _pair\nfrom astrolabe.feature_store.admission import content_hash\nroot=Path('data-dumps/fs2_capture_92e1a92ad25144e48ecf15b46bf2db6e').resolve()\npolicy,ack=_pair(root,'frame_policy');persisted,_=_pair(root,'frame_report')\noldcommit='884adb6c74c1937fa5e1a3dce10f27add26d5e3d'\nsource=subprocess.check_output(['git','show',oldcommit+':backend/astrolabe/research_panel/frame.py']).decode()\n# Extract only identical algorithm dependencies plus old parse_page. No source package\n# mutation or patched build guard; explicitly not the read_frame admission interface.\nnames={'parse_page','_page_facts','_inventory','_summarize'}\nnodes=[n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef) and n.name in names]\nassert len(nodes)==4\nns=dict(vars(frame));exec(compile(ast.Module(body=nodes,type_ignores=[]),'<original algorithm diagnostic>','exec'),ns)\nresult={'decision':'D104','scope':'Full saved-frame computational comparison only; no current-build admission of old data, new clocks, original-reader deadline change or prospective acceptance','original_commit':oldcommit,'candidate_commit':subprocess.check_output(['git','rev-parse','HEAD']).decode().strip(),'root':str(root),'policy_hash':ack['payload_hash'],'script':Path(__file__).read_text(),'passes':[]}\noutput=Path('docs/implementation/PHASE_03_FULL_FRAME_HASH_BENCHMARK.json')\nexpected=None\nfor label,inventory,summarize in [('original',ns['_inventory'],ns['_summarize']),('candidate',frame._inventory,frame._summarize)]:\n print(json.dumps({'started':label}),flush=True);start=time.perf_counter_ns()\n summary=summarize(policy,ack,inventory(root,policy,ack));elapsed=time.perf_counter_ns()-start\n assert all(persisted[k]==v for k,v in summary.items())\n if expected is not None:assert summary==expected\n expected=summary\n item={'implementation':label,'elapsed_ns':elapsed,'summary_hash':content_hash(summary),'source_rows':summary['source_rows'],'verified_attempts':summary['verified_attempts'],'all_persisted_summary_fields_match':True}\n result['passes'].append(item);output.write_text(json.dumps(result,indent=2)+'\\n');print(json.dumps(item),flush=True)\n",
+  "passes": [
+    {
+      "implementation": "original",
+      "elapsed_ns": 226301120042,
+      "summary_hash": "0355a5ed029a3491fc9247cf3264a842a2d5bf926ea66abf181555d0d291dfcf",
+      "source_rows": 276795,
+      "verified_attempts": 2769,
+      "all_persisted_summary_fields_match": true
+    },
+    {
+      "implementation": "candidate",
+      "elapsed_ns": 210875359209,
+      "summary_hash": "0355a5ed029a3491fc9247cf3264a842a2d5bf926ea66abf181555d0d291dfcf",
+      "source_rows": 276795,
+      "verified_attempts": 2769,
+      "all_persisted_summary_fields_match": true
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "decision": "D113",
+  "operation": {
+    "version": "arepo-local-transparent-compression-v1",
+    "source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_4659a62f50f84a68a5101fcbedb2c49b",
+    "candidate": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-compression-candidate-20261010-1",
+    "rollback_copy": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/.arepo-uncompressed-backup-20261010-1",
+    "started_at": "2026-10-10T07:44:54.739676+00:00",
+    "free_before_bytes": 9836793856,
+    "state": "complete",
+    "semantics": "All primary files stay at the same paths with exact bytes. No record deletion, archive-only substitution, retention or production change.",
+    "operation_sha256": "bc71f7ae3bf206ebaedaba24759ed80c771c7bda9939bb6c7360e7b50847e7a2",
+    "files": 19612,
+    "logical_bytes": 4440104524,
+    "allocated_before_bytes": 4494909440,
+    "manifest_sha256": "97ce631b41262b08bcd7842a89ec1241a824f0155924eeb6c11b7cbc580f05a0",
+    "allocated_compressed_bytes": 695050240,
+    "expected_allocated_saving_bytes": 3799859200,
+    "finished_at": "2026-10-10T07:46:31.477516+00:00",
+    "free_after_bytes": 13634170880,
+    "all_content_hashes_equal": true,
+    "all_sizes_modes_owners_mtimes_equal": true,
+    "original_paths_preserved": true,
+    "logical_records_deleted": 0,
+    "observed_free_delta_bytes": 3797377024
+  },
+  "original_code_verification": {
+    "original_report_equal": true,
+    "original_report_source": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_capture_encoding_pilot_20261009_1/fs2_frame_read_original/original_report.json",
+    "original_report_sha256": "5ac380a0a0de3341f14d272ee27878f436dbc7252a25698fa552d66b2f2ea087",
+    "verification_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_compression_20261010_1",
+    "read_receipt": {
+      "completed_at": {
+        "clock_session_id": "534c9b26-e4e2-4df1-85d0-3bcc43d92386",
+        "monotonic_ns": "2522475593719041",
+        "utc": "2026-10-10T07:49:31.750499Z"
+      },
+      "metadata_read_started_at": {
+        "clock_session_id": "534c9b26-e4e2-4df1-85d0-3bcc43d92386",
+        "monotonic_ns": "2522326857180750",
+        "utc": "2026-10-10T07:47:03.011851Z"
+      },
+      "observation_clocks_changed": false,
+      "origin_admitted": false,
+      "original_provenance_class": "prospective",
+      "original_report_hash": "03d9d9bc5a9fb22dc9bf2b6d4739c4cf1583913abb2976cec046b2f64adc7b15",
+      "original_state": "exhausted_consistent",
+      "output_bytes": 3137291,
+      "output_hash": "5ac380a0a0de3341f14d272ee27878f436dbc7252a25698fa552d66b2f2ea087",
+      "read_policy_hash": "1d20db8431c107540348f03be8c43039d25622f1fecd2bb870cefbf435455319",
+      "schema_version": "fs2-original-frame-read-v1",
+      "verification_started_at": {
+        "clock_session_id": "534c9b26-e4e2-4df1-85d0-3bcc43d92386",
+        "monotonic_ns": "2522329625405500",
+        "utc": "2026-10-10T07:47:05.780123Z"
+      }
+    },
+    "read_available_at": {
+      "clock_session_id": "534c9b26-e4e2-4df1-85d0-3bcc43d92386",
+      "monotonic_ns": "2522475596843083",
+      "utc": "2026-10-10T07:49:31.753685Z"
+    },
+    "free_bytes_after_verification": 13655781376
+  },
+  "artifacts": [
+    {
+      "path": "data-dumps/fs2_storage_compression_20261010_1/operation.py",
+      "bytes": 3957,
+      "sha256": "bc71f7ae3bf206ebaedaba24759ed80c771c7bda9939bb6c7360e7b50847e7a2"
+    },
+    {
+      "path": "data-dumps/fs2_storage_compression_20261010_1/operation.json",
+      "bytes": 1294,
+      "sha256": "117b317814fb8228c35c831dbf83ce12d2b4aa3a127790f4eaaac182703531d0"
+    },
+    {
+      "path": "data-dumps/fs2_storage_compression_20261010_1/manifest.json.gz",
+      "bytes": 1135913,
+      "sha256": "19efd471604a2fa6c24ad1f52634dce9748b8ed990f41aac4e63d4e17ff99945"
+    },
+    {
+      "path": "data-dumps/fs2_storage_compression_20261010_1/verification.py",
+      "bytes": 1105,
+      "sha256": "c687b25d90e5ef1d6bfe905c705f5ad8d8784903e0fd84bfe24860e6e420b577"
+    },
+    {
+      "path": "data-dumps/fs2_storage_compression_20261010_1/verification.json",
+      "bytes": 1757,
+      "sha256": "e3c2228378721c73684eda29098e28b642ee2775f70a5bbb93421564c6dee8aa"
+    }
+  ],
+  "free_bytes_after": 13654593536,
+  "required_full_reservation_bytes": 13308526592,
+  "semantics": "Exact original evidence bytes at original paths; native filesystem compression only. D110 remains failed. No cohort/evidence deletion or retention/production change."
+}

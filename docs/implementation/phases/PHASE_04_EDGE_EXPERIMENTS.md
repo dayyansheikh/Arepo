@@ -1,6 +1,6 @@
 # Phase 04 — Baselines and initial edge experiments
 
-Status: provisional; refine after prerequisite evidence. Owner: current AREPO implementation task.
+Status: NOT STARTED. Begin only in a fresh Codex conversation. Phase3 contract handover is ready; refine this provisional plan against its real evidence and limitations.
 
 ## Objective
 
@@ -19,6 +19,11 @@ Experiment cards H02/H08/H09/H10/H14/H15/H24/H27/H28; model protocol baselines, 
 Phase 03 accepted/tested tip and its actual outputs. Earlier contracts remain binding. Before work: read checkpoint/master/this plan, inspect prior outputs and relevant current code/tests, refine tasks and record architecture changes in ../AREPO_V2_DECISIONS.md.
 
 ## Current repository state
+
+First read ../../AREPO_V2_PHASE_3_HANDOVER.md and ../PHASE_03_DATA_BOUNDARY.md. Phase3
+implementation/evidence tip8afbdffd30812e7098f3ec532c47797724e6b445; final docs-only successors
+record closeout. Tiny pilots exercise causal/sampling/control/target plumbing; they are not
+a model-selection/confirmation panel. No Phase4 implementation occurred in the Phase3 chat.
 
 research_predictors.py exposes momentum-derived v1 directions and historical ablations. No-change/price/context probability candidates and locked v2 common-panel experiments are not implemented. This is the Phase 0 inventory; refresh this section from actual code before starting.
 

@@ -1,0 +1,546 @@
+{
+  "decision": "D114",
+  "implementation_commit": "163cdca7c2af2939a84c9969c2f3536f26785c7d",
+  "protocol": "docs/implementation/PHASE_03_GZIP_PILOT_PROTOCOL.md",
+  "wrapper_result": {
+    "implementation_commit": "163cdca7c2af2939a84c9969c2f3536f26785c7d",
+    "started_at": "2026-10-10T07:50:06.943228+00:00",
+    "script_sha256": "a449a0488e139591c10545b031de0b66b07ddb1f7f236c13f70c4fde6a2446f8",
+    "command": [
+      "caffeinate",
+      "-is",
+      "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+      "/tmp/arepo_d114_frozen.py"
+    ],
+    "completed_at": "2026-10-10T08:19:48.702886+00:00",
+    "elapsed_ns": "1781733068042",
+    "returncode": 1
+  },
+  "source_frame_report": {
+    "availability_basis": "page acknowledgements; full frame needs report acknowledgement",
+    "conflicting_condition_ids": [],
+    "conflicting_market_ids": [],
+    "conflicting_token_ids": [],
+    "decoded_budget_charge": 1767714352,
+    "decoded_bytes": 1767714352,
+    "decoded_unavailable_attempts": 0,
+    "duplicate_market_rows": 0,
+    "eligible_row_count": 273031,
+    "enumeration_terminal_observed": true,
+    "errors": [],
+    "exclusion_counts": {
+      "identity_unresolved": 44
+    },
+    "interval_end": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2522978827264416",
+      "utc": "2026-10-10T07:57:54.991443Z"
+    },
+    "interval_start": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2522569567836041",
+      "utc": "2026-10-10T07:51:05.726049Z"
+    },
+    "page_manifest_hash": "fb5458e6e267a6207657e7af439bb60eb09f5229cb406457ee8f2fa8ca9d880b",
+    "policy_hash": "adb3faa6e41b14f7904b852616be4b712e20f36b9d6892025a0c2b2e0a8ba789",
+    "population_inference_eligible": false,
+    "provenance_class": "prospective",
+    "raw_bytes": 116965543,
+    "raw_bytes_semantics": "received HTTP entity-body bytes; gzip remains encoded",
+    "recovered_failed_attempts": 0,
+    "retry_attempts": 0,
+    "schema_version": "fs2-gamma-frame-v5",
+    "scientific_stage": "measurement_development_only",
+    "source_rows": 273075,
+    "source_semantics": "interval enumeration, not atomic snapshot or independent events",
+    "state": "exhausted_consistent",
+    "stop_reason": "terminal",
+    "unique_market_ids": 273075,
+    "unrecovered_errors": [],
+    "unverified_attempts": 0,
+    "verified_attempts": 2731,
+    "frame_available_at": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2523142343466166",
+      "utc": "2026-10-10T08:00:38.509976Z"
+    },
+    "frame_report_hash": "da55c7f029ac4f953f99a116ba85d7ae13238b8126b185ac04d528670d611461",
+    "journal_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_e9d035a809a14a4992c32599b936e63e",
+    "retained_file_bytes": 2685034394,
+    "retained_files": 19122
+  },
+  "frame_interval_seconds": "409.265394",
+  "selection_report": {
+    "accepted_panel": false,
+    "collection_enabled": false,
+    "computation_started_at": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2523855171342750",
+      "utc": "2026-10-10T08:12:31.348291Z"
+    },
+    "computed_at": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2523889565690125",
+      "utc": "2026-10-10T08:13:05.743039Z"
+    },
+    "counts": {
+      "duplicate_market_rows": 0,
+      "eligible_row_count": 273031,
+      "excluded:identity_unresolved": 44,
+      "metadata:category:missing": 273031,
+      "metadata:close_time_utc:missing": 491,
+      "metadata:close_time_utc:present": 272540,
+      "metadata:liquidity:missing": 30003,
+      "metadata:liquidity:present": 243028,
+      "metadata:metadata_probability:missing": 98,
+      "metadata:metadata_probability:present": 272933,
+      "sampling_members": 273031,
+      "source_rows": 273075
+    },
+    "feature_store_admitted": false,
+    "frame_report_hash": "da55c7f029ac4f953f99a116ba85d7ae13238b8126b185ac04d528670d611461",
+    "inventory_hash": "006ff95609283dd2d0dab4508ce25772938a083fc68ebe798398897d92d5b87a",
+    "origin_admitted": false,
+    "original_frame_available_at": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2523142343466166",
+      "utc": "2026-10-10T08:00:38.509976Z"
+    },
+    "original_read_hash": "a242d717ac069ed00e89a90168ae464e717eddc653b992fb23d7e987cf62a259",
+    "plan_hash": "134336c09b5ce63cd594972feaadde9ad1d9d1c28b2d289d7feade9352b19c3d",
+    "policy_hash": "ba6af74b077d9e043de96dcce8ad9e6eab93c8a773ce8ad5c57ada4a52e1f684",
+    "population_inference_eligible": false,
+    "provenance_class": "prospective",
+    "sampling_cutoff": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2523855171336541",
+      "utc": "2026-10-10T08:12:31.348277Z"
+    },
+    "schema_version": "fs2-panel-selection-v3",
+    "source_interval_end": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2522978827264416",
+      "utc": "2026-10-10T07:57:54.991443Z"
+    },
+    "source_interval_start": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2522569567836041",
+      "utc": "2026-10-10T07:51:05.726049Z"
+    },
+    "state": "fresh_selection_sealed",
+    "unique_selected_markets": 4
+  },
+  "sampling": {
+    "assignments": [
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": null,
+        "assessment_state": "not_assessed",
+        "conditional_market_inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "45",
+          "numerator": "1"
+        },
+        "market_id": "3532211",
+        "matched_trigger_ids": [],
+        "probability_scope": "market in complete eligible frame; stratum then market draw",
+        "source_observation_id": "4794c8b14d4b89516c3e98730e48384bb119cc6617db08c8fa47e425049d8c6a",
+        "stratum": "73a9609687bd94fecba9f0b7d2437bcaec0ccbcc8c4363edba8ad8fed1ee7283",
+        "stratum_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "45",
+          "numerator": "1"
+        },
+        "token_id": "102405031957307560503561333409618095593477871114890353966023375026462360097063",
+        "trigger_id": null
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": null,
+        "assessment_state": "not_assessed",
+        "conditional_market_inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "45",
+          "numerator": "1"
+        },
+        "market_id": "5130978",
+        "matched_trigger_ids": [],
+        "probability_scope": "market in complete eligible frame; stratum then market draw",
+        "source_observation_id": "6c2a9ae02efb59a1fcb7e3357b0b6e7e35d6a917aed1d23e4f5ce3592d3dc9e6",
+        "stratum": "4c0bf014da0c2fb6c49f21ac331402b4d959caa6edaa57fb94648dadc8e54537",
+        "stratum_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "45",
+          "numerator": "1"
+        },
+        "token_id": "16433157430487286816362342013001121290769377529788531146050707169389503371968",
+        "trigger_id": null
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": null,
+        "assessment_state": "not_assessed",
+        "conditional_market_inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "45",
+          "numerator": "1"
+        },
+        "market_id": "5234660",
+        "matched_trigger_ids": [],
+        "probability_scope": "market in complete eligible frame; stratum then market draw",
+        "source_observation_id": "28fb1555bcff18242d33881f5fcd09ed50d4f92071d382a41a7ed1ed66575790",
+        "stratum": "4c0bf014da0c2fb6c49f21ac331402b4d959caa6edaa57fb94648dadc8e54537",
+        "stratum_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "45",
+          "numerator": "1"
+        },
+        "token_id": "107540403103917101723616128435236138591116364556711257437238922612332295492509",
+        "trigger_id": null
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": null,
+        "assessment_state": "not_assessed",
+        "conditional_market_inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "45",
+          "numerator": "1"
+        },
+        "market_id": "5461080",
+        "matched_trigger_ids": [],
+        "probability_scope": "market in complete eligible frame; stratum then market draw",
+        "source_observation_id": "06fac6c7dc67519b97ed671183e29b588567da0f35bbb2397b0b04a5cd01d8f3",
+        "stratum": "4c0bf014da0c2fb6c49f21ac331402b4d959caa6edaa57fb94648dadc8e54537",
+        "stratum_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "45",
+          "numerator": "1"
+        },
+        "token_id": "7422253598863396169606698466199828849401547378967612498218807326530479849928",
+        "trigger_id": null
+      }
+    ],
+    "stratum_draw": {
+      "design": "uniform_without_replacement_then_within_stratum",
+      "eligible_strata": 90,
+      "ranking_domain": "screening_stratum_v1",
+      "selected_strata": 2,
+      "strata_limit": 2,
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "45",
+        "numerator": "1"
+      },
+      "version": "fs2-bounded-stratum-draw-v1"
+    },
+    "protocol": {
+      "controls_per_trigger": 1,
+      "liquidity_edges": [
+        "1000",
+        "10000",
+        "100000"
+      ],
+      "max_unique_markets": 24,
+      "probability_edges": [
+        "0.1",
+        "0.5",
+        "0.9"
+      ],
+      "scheduled_per_stratum": 4,
+      "seed": "6c98ff0f03f61dd8992c37bb34f2e1bebeb5ca97232d7c14c9b0a00ea7c9c5b4",
+      "triggered_per_stratum": 4,
+      "version": "fs2-panel-sampling-v1"
+    },
+    "population_policy": "scheduled_end_after_selection_declaration_or_unknown_v1",
+    "population_reference_at": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2523471153576458",
+      "utc": "2026-10-10T08:06:07.324921Z"
+    },
+    "frame_size": 273031,
+    "selection_eligible_member_count": 245607,
+    "unique_selected_markets": 4
+  },
+  "selected_strata": [
+    {
+      "assessment_counts": {
+        "not_assessed": 3,
+        "triggered": 0,
+        "unavailable": 0,
+        "untriggered": 0
+      },
+      "category": "unknown",
+      "conditional_market_inclusion_probability": {
+        "decimal": "1",
+        "decimal_state": "exact",
+        "denominator": "1",
+        "numerator": "1"
+      },
+      "control_pool": 0,
+      "controls_selected": 0,
+      "controls_wanted": 0,
+      "economic_independence": "unresolved",
+      "eligible_count": 3,
+      "event_group": null,
+      "liquidity_band": "3",
+      "market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "45",
+        "numerator": "1"
+      },
+      "probability_band": "3",
+      "sampling_state": "sampled",
+      "scheduled_count": 3,
+      "stratum": "4c0bf014da0c2fb6c49f21ac331402b4d959caa6edaa57fb94648dadc8e54537",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "45",
+        "numerator": "1"
+      },
+      "time": "2026-10-10",
+      "time_to_close": "le_7d",
+      "triggered_count": 0,
+      "triggered_pool": 0,
+      "unfilled_control_slots": 0
+    },
+    {
+      "assessment_counts": {
+        "not_assessed": 1,
+        "triggered": 0,
+        "unavailable": 0,
+        "untriggered": 0
+      },
+      "category": "unknown",
+      "conditional_market_inclusion_probability": {
+        "decimal": "1",
+        "decimal_state": "exact",
+        "denominator": "1",
+        "numerator": "1"
+      },
+      "control_pool": 0,
+      "controls_selected": 0,
+      "controls_wanted": 0,
+      "economic_independence": "unresolved",
+      "eligible_count": 1,
+      "event_group": null,
+      "liquidity_band": "2",
+      "market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "45",
+        "numerator": "1"
+      },
+      "probability_band": "2",
+      "sampling_state": "sampled",
+      "scheduled_count": 1,
+      "stratum": "73a9609687bd94fecba9f0b7d2437bcaec0ccbcc8c4363edba8ad8fed1ee7283",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "45",
+        "numerator": "1"
+      },
+      "time": "2026-10-10",
+      "time_to_close": "unknown",
+      "triggered_count": 0,
+      "triggered_pool": 0,
+      "unfilled_control_slots": 0
+    }
+  ],
+  "population_exclusions": {
+    "count": 27424,
+    "immutable_full_plan": {
+      "path": "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1/selection_plan.json",
+      "bytes": 2390689,
+      "sha256": "134336c09b5ce63cd594972feaadde9ad1d9d1c28b2d289d7feade9352b19c3d"
+    }
+  },
+  "original_frame_read_receipt": {
+    "completed_at": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2523640401620500",
+      "utc": "2026-10-10T08:08:56.575339Z"
+    },
+    "metadata_read_started_at": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2523471169558291",
+      "utc": "2026-10-10T08:06:07.340901Z"
+    },
+    "observation_clocks_changed": false,
+    "origin_admitted": false,
+    "original_provenance_class": "prospective",
+    "original_report_hash": "da55c7f029ac4f953f99a116ba85d7ae13238b8126b185ac04d528670d611461",
+    "original_state": "exhausted_consistent",
+    "output_bytes": 3427748,
+    "output_hash": "9e9d5eeb9971cc3e47a25acc201ecffbcebe0cefa5f386b3e00c11c02f9b0808",
+    "read_policy_hash": "b1ef41357a0656c0b3f564ee1fd9f9eb32a4575f56c32729ff41e4c17747d6aa",
+    "schema_version": "fs2-original-frame-read-v1",
+    "verification_started_at": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2523474396559500",
+      "utc": "2026-10-10T08:06:10.567950Z"
+    }
+  },
+  "worker_failure": {
+    "at": {
+      "clock_session_id": "6982c5b3-88b3-4ea0-8d11-4d14fc8ee628",
+      "monotonic_ns": "2524292361465000",
+      "utc": "2026-10-10T08:19:48.544724Z"
+    },
+    "exception_type": "ValueError",
+    "stage": "declaration"
+  },
+  "worker_declaration_to_failure_seconds": "203.84642",
+  "gates": {
+    "complete_frame": true,
+    "frame_interval_600_seconds": true,
+    "original_frame_recovery": true,
+    "prospective_selection": true,
+    "selected_exact_probability_arithmetic": true,
+    "eight_member_reporting_design": false,
+    "screening_declaration": false,
+    "observed_origins": false,
+    "eligible_histories": false,
+    "matched_controls": false,
+    "future_targets": false
+  },
+  "observed_origins": 0,
+  "histories": 0,
+  "trigger_assessments": 0,
+  "matched_controls": 0,
+  "targets": 0,
+  "source_family_findings": "No selected-market acquisition occurred; only Gamma discovery/selection metadata. Books/trades/flow/history/related/external input families unobserved in D114. No source silence interpreted as continuity.",
+  "failure": "pre-source screening declaration exceeded shared180s computation budget",
+  "accepted_panel": false,
+  "phase3_accepted": false,
+  "artifacts": [
+    {
+      "path": "data-dumps/fs2_gzip_pilot_20261010_1_launch.json",
+      "bytes": 364,
+      "sha256": "243db7fce0d272fd81e3a4b4233ee87f11ee908b054028e432baa7879efa8830"
+    },
+    {
+      "path": "data-dumps/fs2_gzip_pilot_20261010_1_result.json",
+      "bytes": 470,
+      "sha256": "8f3f96f1dcb12d5a0edd4c09ab4fb9dc876ea1e29b823234e46bacfea31a73d9"
+    },
+    {
+      "path": "data-dumps/fs2_gzip_pilot_20261010_1_stdout.log",
+      "bytes": 3236,
+      "sha256": "be96c70ab912993dc884f26ef6370bd50cb2b780dd843581b1f0459ecf5855db"
+    },
+    {
+      "path": "data-dumps/fs2_gzip_pilot_20261010_1_stderr.log",
+      "bytes": 2245,
+      "sha256": "9d2e5f3b3eabaa7b7df67d43de7bca1b486f4abfac852f0feb491c42fae75590"
+    },
+    {
+      "path": "data-dumps/fs2_capture_e9d035a809a14a4992c32599b936e63e/session.json",
+      "bytes": 982,
+      "sha256": "438539abc4690dbf824feb3c3a69d428e3e7242b51f654f7a6ef0b71f0f02ab1"
+    },
+    {
+      "path": "data-dumps/fs2_capture_e9d035a809a14a4992c32599b936e63e/frame_policy.json",
+      "bytes": 14585,
+      "sha256": "adb3faa6e41b14f7904b852616be4b712e20f36b9d6892025a0c2b2e0a8ba789"
+    },
+    {
+      "path": "data-dumps/fs2_capture_e9d035a809a14a4992c32599b936e63e/frame_report.json",
+      "bytes": 3427510,
+      "sha256": "da55c7f029ac4f953f99a116ba85d7ae13238b8126b185ac04d528670d611461"
+    },
+    {
+      "path": "data-dumps/fs2_capture_e9d035a809a14a4992c32599b936e63e/frame_report_ack.json",
+      "bytes": 227,
+      "sha256": "78415b6697b4094b6e9bb941a90e004c86c9f38d1538ec3b5536f815ce4cba42"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1/selection_policy.json",
+      "bytes": 8397,
+      "sha256": "ba6af74b077d9e043de96dcce8ad9e6eab93c8a773ce8ad5c57ada4a52e1f684"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1/selection_plan.json",
+      "bytes": 2390689,
+      "sha256": "134336c09b5ce63cd594972feaadde9ad1d9d1c28b2d289d7feade9352b19c3d"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1/selection_report.json",
+      "bytes": 2033,
+      "sha256": "fb4a7f988256dac9237a28e0b565c06d14a65fa91e6c47c872324baa3a1786ae"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1/selection_report_ack.json",
+      "bytes": 227,
+      "sha256": "71d892f537fa867894e0879856969222f7de3f0bc260fe955844216246f78869"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1/inventory.json",
+      "bytes": 380122,
+      "sha256": "006ff95609283dd2d0dab4508ce25772938a083fc68ebe798398897d92d5b87a"
+    },
+    {
+      "path": "data-dumps/fs2_screening_worker_gzip_pilot_20261010_1/worker_policy.json",
+      "bytes": 8941,
+      "sha256": "9ac43ac55b1d004e4b9d01e87f0a43ee74099a98389607c7c7b921900423225d"
+    },
+    {
+      "path": "data-dumps/fs2_screening_worker_gzip_pilot_20261010_1/worker_failure.json",
+      "bytes": 188,
+      "sha256": "57f2b2544626a2620e0323d89051a1fbb3fbf4fe3e85f2e9856a6501883d6cb1"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1/fs2_frame_read_original/read_receipt.json",
+      "bytes": 926,
+      "sha256": "a242d717ac069ed00e89a90168ae464e717eddc653b992fb23d7e987cf62a259"
+    },
+    {
+      "path": "data-dumps/fs2_selection_panel_gzip_pilot_20261010_1/fs2_frame_read_original/read_policy.json",
+      "bytes": 18203,
+      "sha256": "b1ef41357a0656c0b3f564ee1fd9f9eb32a4575f56c32729ff41e4c17747d6aa"
+    }
+  ],
+  "conclusion": "Gzip integration clears unchanged source interval with exact wire/decoded provenance. Complete selection read consumes pre-source declaration engineering budget; investigate separately from quote freshness and origin causality. D114 remains failed, never resumed or redrawn.",
+  "free_bytes": 7685832704,
+  "script_sha256": "b17c662a7772018ef26445ab85432f0031a2f943217dc46968274ac7478f747b"
+}

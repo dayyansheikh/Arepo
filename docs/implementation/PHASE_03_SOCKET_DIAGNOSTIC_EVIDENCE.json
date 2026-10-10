@@ -1,0 +1,430 @@
+{
+  "accepted_panel": false,
+  "cli_exit_code": 0,
+  "coverage": {
+    "covered_mean_imbalance": {
+      "decimal": null,
+      "decimal_state": "nonterminating_decimal",
+      "denominator": "28719",
+      "numerator": "21821"
+    },
+    "covered_persistence_ratio": null,
+    "declared_duration_ns": "60000000000",
+    "end_imbalance": null,
+    "projection_hash": "374a1065dc1487f53555248983e4fc8e8a27510bdc05ac2cdcb57f357892da0a",
+    "reconstructed_receipt_duration_ns": "1000000000",
+    "registered_features": {
+      "F02": {
+        "state": "prerequisites_unproven",
+        "value": null
+      },
+      "F10": {
+        "state": "prerequisites_unproven",
+        "value": null
+      },
+      "F27": {
+        "state": "prerequisites_unproven",
+        "value": null
+      }
+    },
+    "uncovered_duration_ns": "59000000000"
+  },
+  "end_comparison_state": "unavailable",
+  "feature_store_admitted": false,
+  "frame_states": {
+    "decoded": 1,
+    "heartbeat_control": 5
+  },
+  "implementation_commit": "c9042eca9f9e2dc6f616b097836f259a32331dc5",
+  "independent_and_original_recovery_passed": true,
+  "item_states": {
+    "snapshot": 1
+  },
+  "limitations": [
+    "One fixed target and one 60-second window; no representative panel or control/edge inference.",
+    "Receipt hold was frozen at one second; five PONGs do not refresh book-state age.",
+    "One received initial book does not prove continuity or unchanged state between receipts.",
+    "Native timestamp/sequence/fill and collateral prerequisites remain unproven.",
+    "Endpoint unavailable because the final reconstructed state expired; post quote cannot repair it.",
+    "Parent-process memory excludes original-recovery child peak memory."
+  ],
+  "measurement_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_socket_diagnostic_20260925_1",
+  "origin_admitted": false,
+  "policy_available_at": {
+    "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+    "monotonic_ns": "1351699015818541",
+    "utc": "2026-09-25T11:36:35.410193Z"
+  },
+  "policy_hash": "5177221e5f01215ee8f880be15d8a41cdec567995b16277f041a753e9eb75c98",
+  "protocol_file": "docs/implementation/PHASE_03_SOCKET_DIAGNOSTIC_PROTOCOL.md",
+  "protocol_file_sha256": "7cc07a3dd93c53aca75eae93d6557db54e367c63a81f00274033dbe94c1e7404",
+  "raw_http_bytes": 12378,
+  "reconciliation_reasons": [
+    "window_end_unavailable"
+  ],
+  "reconciliation_state": "unavailable",
+  "report": {
+    "accepted_panel": false,
+    "elapsed_ns": "88618854542",
+    "feature_store_admitted": false,
+    "origin_admitted": false,
+    "parent_peak_resident_bytes": 80150528,
+    "policy_hash": "5177221e5f01215ee8f880be15d8a41cdec567995b16277f041a753e9eb75c98",
+    "recovery": {
+      "analysis": {
+        "completed_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351784500877250",
+          "utc": "2026-09-25T11:38:00.895699Z"
+        },
+        "metadata_read_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351780163427416",
+          "utc": "2026-09-25T11:37:56.558250Z"
+        },
+        "observation_clocks_changed": false,
+        "origin_admitted": false,
+        "original_provenance_class": "prospective",
+        "original_report_hash": "c26f70c6ec4b8e64c4c44e761ce9459efefc11145c4014047bfb3ebecb6bf088",
+        "original_state": "verified_socket_analysis",
+        "output_bytes": 14275,
+        "output_hash": "6d0f994e12bddc7623dfaf1c729268384fb5767fafcef47f6469606f05fde9d1",
+        "read_policy_hash": "b3849a52b2f4ab4459d262e2904a17031e2fda38522dab45d77dd534beedb3ca",
+        "schema_version": "fs2-original-socket-analysis-read-v1",
+        "verification_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351781681850125",
+          "utc": "2026-09-25T11:37:58.076692Z"
+        }
+      },
+      "post": {
+        "completed_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351787623152083",
+          "utc": "2026-09-25T11:38:04.017986Z"
+        },
+        "metadata_read_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351785113678791",
+          "utc": "2026-09-25T11:38:01.508529Z"
+        },
+        "observation_clocks_changed": false,
+        "origin_admitted": false,
+        "original_provenance_class": "prospective",
+        "original_report_hash": "6b384b79c81add62a6f7c594db33a9d4d5613e63db21f8e18fc17989dac3dfe8",
+        "original_state": "verified_book_computation",
+        "output_bytes": 12684,
+        "output_hash": "81a504ac8217347e7a1dea28d2fe3974b9d1278c4f51727eb29b8a94665e934d",
+        "read_policy_hash": "7f4041e7e6a7dd68e3b27b9a2de78aafda4a464b67bdd25dddda63fcec5daa0d",
+        "schema_version": "fs2-original-book-computation-read-v1",
+        "verification_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351786707970041",
+          "utc": "2026-09-25T11:38:03.102837Z"
+        }
+      },
+      "pre": {
+        "completed_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351773836155416",
+          "utc": "2026-09-25T11:37:50.230920Z"
+        },
+        "metadata_read_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351771118735416",
+          "utc": "2026-09-25T11:37:47.513507Z"
+        },
+        "observation_clocks_changed": false,
+        "origin_admitted": false,
+        "original_provenance_class": "prospective",
+        "original_report_hash": "ff3a86fdb07f694861b8dcff600e0af0fd438cbb8ae8eae7f0e933bb2867d7fc",
+        "original_state": "verified_book_computation",
+        "output_bytes": 12684,
+        "output_hash": "a0aa35d92317930d2588805ad111dae395eafa5a0d7294a9e615580c23a34cc5",
+        "read_policy_hash": "3ab4e8bf3e8404a24f10f4ce829fb78bc173eafcd0df1f53cfe66626a115d764",
+        "schema_version": "fs2-original-book-computation-read-v1",
+        "verification_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351772806102250",
+          "utc": "2026-09-25T11:37:49.200894Z"
+        }
+      },
+      "socket": {
+        "completed_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351777452547333",
+          "utc": "2026-09-25T11:37:53.847329Z"
+        },
+        "metadata_read_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351774618061458",
+          "utc": "2026-09-25T11:37:51.012852Z"
+        },
+        "observation_clocks_changed": false,
+        "origin_admitted": false,
+        "original_provenance_class": "prospective",
+        "original_report_hash": "a68e378f67ffac5b6ca4aff664493b5c7f6598c7da2713c4831184df052e0239",
+        "original_state": "duration_completed",
+        "output_bytes": 1935,
+        "output_hash": "527232e7bc5a304a97b2906a68a22b963cdfac065c343b6a4065a5a874db5017",
+        "read_policy_hash": "68e91326b6b83df0825ecbf81101157180b855d4dddb49efa73c6311b18b1627",
+        "schema_version": "fs2-original-socket-window-read-v1",
+        "verification_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351776215819791",
+          "utc": "2026-09-25T11:37:52.610627Z"
+        }
+      }
+    },
+    "reported_at": {
+      "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+      "monotonic_ns": "1351787633644416",
+      "utc": "2026-09-25T11:38:04.028518Z"
+    },
+    "retained_bytes_before_report": 362913,
+    "schema_version": "fs2-fixed-socket-diagnostic-v1",
+    "state": "completed_with_retained_source_states",
+    "summaries": {
+      "analysis": {
+        "computation_available_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351768237708000",
+          "utc": "2026-09-25T11:37:44.632471Z"
+        },
+        "computation_hash": "c26f70c6ec4b8e64c4c44e761ce9459efefc11145c4014047bfb3ebecb6bf088",
+        "computation_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351768234697416",
+          "utc": "2026-09-25T11:37:44.629465Z"
+        },
+        "computed_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351768236496333",
+          "utc": "2026-09-25T11:37:44.631264Z"
+        },
+        "feature_store_admitted": false,
+        "origin_admitted": false,
+        "policy_hash": "f6405eb8047a068ac5daa4be5c74d9b7cf4f77ebeec49f90ba808dced58de6e8",
+        "projection_hash": "670248bdc9487afa75b580f610fa25826762e2f4ef3c2b0ba3f78db6d23440c9",
+        "schema_version": "fs2-socket-analysis-v1",
+        "source_admitted": false,
+        "source_provenance_class": "prospective",
+        "state": "diagnostics_available"
+      },
+      "post": {
+        "computation_available_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351765246160250",
+          "utc": "2026-09-25T11:37:41.640902Z"
+        },
+        "computation_hash": "6b384b79c81add62a6f7c594db33a9d4d5613e63db21f8e18fc17989dac3dfe8",
+        "computation_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351765152238041",
+          "utc": "2026-09-25T11:37:41.546976Z"
+        },
+        "computed_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351765155370916",
+          "utc": "2026-09-25T11:37:41.550121Z"
+        },
+        "feature_store_admitted": false,
+        "input_read_hash": "3f25086fde1844b5941a963904cc3f8f30467a54c99286f869d29027af837458",
+        "origin_admitted": false,
+        "policy_hash": "f775ce18142436588ae7a1ee813fb2e757a842e828cab05926986afaa1fd669f",
+        "projection_hash": "adc73e921e075d06ceaeae9603d7f54574e3c1973d43f2cf355901767e0670ae",
+        "schema_version": "fs2-book-computation-v1",
+        "snapshot_count": 1,
+        "snapshot_states": {
+          "observed": 1
+        },
+        "source_observation_count": 2,
+        "source_provenance_class": "prospective"
+      },
+      "pre": {
+        "computation_available_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351701013144125",
+          "utc": "2026-09-25T11:36:37.407527Z"
+        },
+        "computation_hash": "ff3a86fdb07f694861b8dcff600e0af0fd438cbb8ae8eae7f0e933bb2867d7fc",
+        "computation_started_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351700909829000",
+          "utc": "2026-09-25T11:36:37.304207Z"
+        },
+        "computed_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351700914571791",
+          "utc": "2026-09-25T11:36:37.308961Z"
+        },
+        "feature_store_admitted": false,
+        "input_read_hash": "ec4f9b3b741b3bdcccae3fa5bea76bd4106a3b9eeef0e173a53f1ad88549aa4a",
+        "origin_admitted": false,
+        "policy_hash": "f23ea4fc750e416a8051eb367a745549efac242b581df670366ce76b7e335be3",
+        "projection_hash": "e51ff06c3d923daa6ee2598e6fd185b7d4a9abb553e7192746d3a5cddb34aa80",
+        "schema_version": "fs2-book-computation-v1",
+        "snapshot_count": 1,
+        "snapshot_states": {
+          "observed": 1
+        },
+        "source_observation_count": 2,
+        "source_provenance_class": "prospective"
+      },
+      "socket": {
+        "binding_available_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351702195732916",
+          "utc": "2026-09-25T11:36:38.590126Z"
+        },
+        "binding_hash": "94d1fe0bba099037dc78d07f5913ccc4d0c86916d391c203b50ba784b78c5012",
+        "close_state": "closed",
+        "continuous_sequence_proven": false,
+        "ended_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351762285071458",
+          "utc": "2026-09-25T11:37:38.679786Z"
+        },
+        "event_count": 23,
+        "feature_store_admitted": false,
+        "frame_count": 6,
+        "identity": {
+          "condition_id": "0xfe9d1a32b46991e6895baece1bf6bb1467b814a28aefd6f33f13c6ba91b8d3c9",
+          "lifecycle": {
+            "acceptingOrders": true,
+            "active": true,
+            "archived": false,
+            "closed": false
+          },
+          "mapping_version": "621c7a7f4bf4f2077ffd270d6b6bab4b0d8952028c76cf55fbebae485c8e8f2e",
+          "market_id": "1068745",
+          "outcome_index": 0,
+          "outcome_label": "Yes",
+          "token_id": "71990823545476172057397539228999083435242402644332688321711165550800328090716"
+        },
+        "identity_available_at": {
+          "$utc": "2026-09-25T11:36:35.870816Z"
+        },
+        "identity_fresh_at_subscription_completion": true,
+        "last_event_hash": "78faaeecf01f75d1d2f1509f61c45aaa74b358674f5facd3b4f7f90ea85085ee",
+        "late_frame_count": 0,
+        "native_clock_admitted": false,
+        "origin_admitted": false,
+        "ping_count": 5,
+        "policy_hash": "fd5dd0fba1bcc87b579ce5fba577449aa73270f8457a4f208f7c7d3a3c3ca697",
+        "provenance_class": "prospective",
+        "retained_raw_bytes": 1470,
+        "schema_version": "fs2-socket-window-v1",
+        "socket_window_available_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351762874524000",
+          "utc": "2026-09-25T11:37:39.269254Z"
+        },
+        "socket_window_report_hash": "a68e378f67ffac5b6ca4aff664493b5c7f6598c7da2713c4831184df052e0239",
+        "source_admitted": false,
+        "source_provenance_compatible": true,
+        "state": "duration_completed",
+        "subscription_sent_at": {
+          "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+          "monotonic_ns": "1351702282899083",
+          "utc": "2026-09-25T11:36:38.677297Z"
+        },
+        "terminal": "interval_ended",
+        "transport_scope": "public"
+      }
+    }
+  },
+  "report_available_at": {
+    "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+    "monotonic_ns": "1351787634363791",
+    "utc": "2026-09-25T11:38:04.029239Z"
+  },
+  "report_hash": "b026c01db29c872a8221e1d424fb60ce1d08b115232a531ca5a0a7c6a01dbffe",
+  "requests": [
+    {
+      "capture_id": "2f11a96d-b5f0-4aaa-bbe3-464ea094a3b4",
+      "first_received": {
+        "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+        "monotonic_ns": "1351699729749916",
+        "utc": "2026-09-25T11:36:36.124127Z"
+      },
+      "raw_bytes": 1333,
+      "raw_hash": "be37a3ffb564fb2a4cae1d6159ecec6f05ffa94a09e9962a98707a0c0deb8af5",
+      "request_started": {
+        "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+        "monotonic_ns": "1351699634843208",
+        "utc": "2026-09-25T11:36:36.029216Z"
+      },
+      "role": "pre",
+      "source_id": "clob.book",
+      "status": 200,
+      "transport_error": null
+    },
+    {
+      "capture_id": "36290892-1ab6-4ef4-be16-a1cd148567e7",
+      "first_received": {
+        "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+        "monotonic_ns": "1351699363215416",
+        "utc": "2026-09-25T11:36:35.757586Z"
+      },
+      "raw_bytes": 4856,
+      "raw_hash": "670c4ecb7d6379e065d97a7654703f6b361679a4b46616564a6e0db8ad835ef8",
+      "request_started": {
+        "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+        "monotonic_ns": "1351699216852625",
+        "utc": "2026-09-25T11:36:35.611223Z"
+      },
+      "role": "pre",
+      "source_id": "gamma.market",
+      "status": 200,
+      "transport_error": null
+    },
+    {
+      "capture_id": "6bb02b5c-40c0-4a8a-8d03-62357adf7242",
+      "first_received": {
+        "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+        "monotonic_ns": "1351763753866541",
+        "utc": "2026-09-25T11:37:40.148606Z"
+      },
+      "raw_bytes": 4856,
+      "raw_hash": "670c4ecb7d6379e065d97a7654703f6b361679a4b46616564a6e0db8ad835ef8",
+      "request_started": {
+        "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+        "monotonic_ns": "1351763689411708",
+        "utc": "2026-09-25T11:37:40.084146Z"
+      },
+      "role": "post",
+      "source_id": "gamma.market",
+      "status": 200,
+      "transport_error": null
+    },
+    {
+      "capture_id": "f47b3595-e50e-4e0b-aefa-2fb980bec7a6",
+      "first_received": {
+        "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+        "monotonic_ns": "1351764089519500",
+        "utc": "2026-09-25T11:37:40.484260Z"
+      },
+      "raw_bytes": 1333,
+      "raw_hash": "be37a3ffb564fb2a4cae1d6159ecec6f05ffa94a09e9962a98707a0c0deb8af5",
+      "request_started": {
+        "clock_session_id": "68d2529d-5dfe-40c8-9556-bc087b5b593f",
+        "monotonic_ns": "1351763994786500",
+        "utc": "2026-09-25T11:37:40.389522Z"
+      },
+      "role": "post",
+      "source_id": "clob.book",
+      "status": 200,
+      "transport_error": null
+    }
+  ],
+  "retained_bytes_including_report": 372356,
+  "schema_version": "fs2-fixed-socket-diagnostic-evidence-v1",
+  "segment_states": {
+    "awaiting_initial_snapshot": 1,
+    "receipt_reconstruction": 1,
+    "receipt_stale": 6
+  },
+  "socket_retained_raw_bytes": 1470,
+  "start_comparison_state": "agreement"
+}

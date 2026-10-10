@@ -297,3 +297,63 @@ async def test_session_mismatch_and_symlink_refused(tmp_path):
     (store.root / "session.json").write_text('{}')
     with pytest.raises(ValueError, match="session integrity"):
         verify_capture(folder)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("raw", [
+    b'null', b'true', b'false', b'0', b'-0', b'-0.000', b'1.2300e-10',
+    b'1234567890123456789012345678901234567890',
+    b'"unicode: \\u00e9 \\ud83c\\udf0d"', b'[]', b'{}',
+    b'{"z":[0.123456789012345678900,{"$decimal":"literal","x":-0.00}],"a":true}',
+    b'{"escaped\\u006bey":{"x":1e100,"y":1e-100},"integer":42}',
+])
+async def test_parsed_journal_matches_strict_generic_canonical_bytes(tmp_path, raw):
+    result = await fetch(journal(tmp_path, raw))
+    expected = dict(result["parsed"], value=capture._strict_json(raw))
+    persisted = (Path(result["folder"]) / "parsed.json").read_bytes()
+    assert persisted == capture._json_bytes(expected)
+    assert result["parsed_ack"]["parsed_hash"] == capture._digest(persisted)
+    assert result["raw"] == raw
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("raw", [
+    b'{"nested":{"a":1,"a":2}}', b'{"a":1,"\\u0061":2}',
+    b'[{"x":1,"x":1}]', b'{"x":Infinity}', b'{"x":-Infinity}',
+])
+async def test_duplicate_and_nonfinite_payloads_remain_invalid(tmp_path, raw):
+    result = await fetch(journal(tmp_path, raw))
+    assert result["raw"] == raw
+    assert result["parsed"]["parse_error"] == "invalid_json"
+    assert result["parsed"]["value"] is None
+    assert (Path(result["folder"]) / "parsed.json").read_bytes() == capture._json_bytes(
+        result["parsed"])
+
+
+@pytest.mark.asyncio
+async def test_oversized_decimal_does_not_gain_a_parsed_ack(tmp_path):
+    raw = b'{"x":0.' + b'1' * 4100 + b'}'
+    store = journal(tmp_path, raw)
+    with pytest.raises(ValueError, match="oversized exact decimal"):
+        await fetch(store)
+    folder = next(p for p in store.root.iterdir() if p.is_dir())
+    assert verify_capture(folder, raw_only=True)["raw"] == raw
+    assert not (folder / "parsed.json").exists()
+    assert not (folder / "parsed_ack.json").exists()
+
+
+@pytest.mark.asyncio
+async def test_parse_metadata_keeps_generic_float_rejection(tmp_path, monkeypatch):
+    store = journal(tmp_path)
+    original = capture.finish_parse
+    monkeypatch.setattr(capture, "finish_parse", lambda folder: (_ for _ in ()).throw(
+        RuntimeError("stop after raw ack")))
+    with pytest.raises(RuntimeError, match="stop after raw ack"):
+        await fetch(store)
+    folder = next(p for p in store.root.iterdir() if p.is_dir())
+    monkeypatch.setattr(capture, "finish_parse", original)
+    monkeypatch.setattr(capture, "_clock", lambda: {"monotonic_ns": 1.5})
+    with pytest.raises(ValueError, match="unsupported canonical value: float"):
+        finish_parse(folder)
+    assert verify_capture(folder, raw_only=True)["raw"]
+    assert not (folder / "parsed.json").exists()
