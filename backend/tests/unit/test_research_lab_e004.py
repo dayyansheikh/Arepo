@@ -194,3 +194,27 @@ def test_e002_exclusion_removes_e002_pair():
     reg = base + timedelta(minutes=30)
     got = [c["capture_id"] for c in e004.qualifying_captures(caps, reg, n=12)]
     assert got == ["mid", "loop1"]
+
+
+def test_lost_selected_trades_counted_overall_and_per_period():
+    pairs = pd.DataFrame(
+        {
+            "period": [0, 0, 0, 1, 1],
+            "dmid_hat": [0.05, -0.05, 0.01, 0.06, 0.07],
+            "spread": [0.04, 0.04, 0.04, 0.04, 0.04],
+            "dmid": [np.nan, 0.01, np.nan, np.nan, 0.02],
+        }
+    )
+    r = e004.lost_selected(pairs)
+    assert r["n_selected_trades_lost_to_target_unavailability"] == 2
+    assert r["n_selected_at_origin"] == 4
+    assert r["by_period"][0] == {"lost": 1, "selected_at_origin": 2}
+    assert r["by_period"][1] == {"lost": 1, "selected_at_origin": 2}
+
+
+def test_end_to_end_reports_lost_trades(tmp_path):
+    _series(tmp_path / "s", 13)
+    res = e004.score(tmp_path / "s", tmp_path / "out", REG, SPEC)
+    lost = res["execution"]["lost_to_target_unavailability"]
+    assert lost["n_selected_trades_lost_to_target_unavailability"] >= 0
+    assert len(lost["by_period"]) == 11

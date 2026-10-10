@@ -108,6 +108,29 @@ def clustered_mean_ci(
     return float(lo), float(hi)
 
 
+def lost_selected(pairs: pd.DataFrame) -> dict:
+    """Descriptive: pairs selected at origin (|dmid_hat| > spread_i/2) whose target is unavailable.
+
+    Overall and per period. Uses only origin quantities, so it is defined for every pair.
+    """
+    hat = pairs["dmid_hat"].to_numpy(float)
+    with np.errstate(invalid="ignore"):
+        sel = np.abs(hat) > pairs["spread"].to_numpy(float) / 2
+    lost = sel & pairs["dmid"].isna().to_numpy()
+    per = pairs["period"].to_numpy()
+    return {
+        "n_selected_trades_lost_to_target_unavailability": int(lost.sum()),
+        "n_selected_at_origin": int(sel.sum()),
+        "by_period": {
+            int(p): {
+                "lost": int((lost & (per == p)).sum()),
+                "selected_at_origin": int((sel & (per == p)).sum()),
+            }
+            for p in sorted(np.unique(per))
+        },
+    }
+
+
 def _exec_block(cl: np.ndarray, v: np.ndarray) -> dict:
     if len(v) == 0:
         return {"n_trades": 0, "mean_pnl": None, "ci": None, "hit_rate": None}
@@ -212,6 +235,7 @@ def analyse(pairs: pd.DataFrame, counts: list[dict]) -> dict:
             "touch_to_touch": touch,
             "optimistic_mid_exit": mid,
             "by_period": by_period,
+            "lost_to_target_unavailability": lost_selected(pairs),
             "label": "economically interesting (exploratory)" if interesting else "not shown",
         },
     }

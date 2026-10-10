@@ -364,3 +364,10 @@ criteria are unchanged.
 - No other capture is written to `snapshots/` until then.
 - The E004 result additionally reports that the frozen spec file equals `git show 3d7335e:` of the same path.
 - The neg-risk columns added in 19d7bd3 are additive and are not read by E004.
+
+**E005 development fit (frozen `data-dumps/research_lab/e005/dev_fit.json`, before any confirmation outcome)**
+- `a = -0.00116`, `s = +0.0793`, `b = -0.0590`.
+- 45,624 in-group pairs. 1,164 of them have `dev≠0` (2.55%), across 277 groups.
+- In-sample incremental R2 is about 2e-5.
+- **The development data show no support:** the band-deviation coefficient has the opposite sign to the hypothesis and is negligible in size.
+- The confirmation test proceeds unchanged. Its primary test (2) requires a positive slope.
