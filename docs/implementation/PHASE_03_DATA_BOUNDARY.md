@@ -53,6 +53,8 @@ within tolerance; retain pending/late/closed/missing cases separately. Midpoint 
 not executable return. Deduplicate markets, account for repeated/shared events and dependence;
 these tiny pilots do not establish an effective independent sample size or predictive edge.
 
+> **Superseded 2026-10-10 (D115):** the text below records the withdrawn October10 closeout; Phase 3 is PROVISIONAL pending the D116 integrated live validation.
+
 ## Scientific sufficiency versus historical pilot thresholds
 
 The revised October10 user scope accepts explicit unavailable families and asks for the

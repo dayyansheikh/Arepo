@@ -53,6 +53,8 @@ screening budget may change prospectively without changing historical outcomes o
 freshness rules. The next-action checkpoint governs whether further empirical collection is
 necessary after the repair and sufficiency review; do not automatically launch another frame.
 
+> **Superseded 2026-10-10 (D115):** the text below records the withdrawn October10 closeout; Phase 3 is PROVISIONAL pending the D116 integrated live validation.
+
 ## Final sufficiency decision
 
 Independent review in PHASE_03_EXIT_EVIDENCE_AUDIT.json verifies the existing empirical

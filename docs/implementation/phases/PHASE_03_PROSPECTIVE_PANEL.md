@@ -160,6 +160,8 @@ Fixed-seed sampling reproducibility and nonzero control coverage; no top-N-only 
 
 ## Acceptance criteria
 
+> **Superseded 2026-10-10 (D115):** the text below records the withdrawn October10 closeout; Phase 3 is PROVISIONAL pending the D116 integrated live validation.
+
 October10 refinement: the authoritative scientific contract gates and evidence are in
 ../PHASE_03_ACCEPTANCE_STATUS.md. Pilot availability thresholds remain historical outcomes;
 no failed run is relabelled. Explicit unavailable families and tiny development-data limits
@@ -168,6 +170,8 @@ are part of the accepted handover, not missing observations to invent.
 Bounded representative nonproduction pilot preserves scheduled controls, exact inputs and clocks; origins precede outcomes; target timing/coverage passes its frozen measurement contract. A replay-only run cannot satisfy the real prospective measurement gate.
 
 ## Exit checklist
+
+> **Superseded 2026-10-10 (D115):** the text below records the withdrawn October10 closeout; Phase 3 is PROVISIONAL pending the D116 integrated live validation.
 
 - [x] Prerequisites reloaded and plan refined against real outputs.
 - [x] All scoped tasks and acceptance criteria satisfied; limitations explicit.

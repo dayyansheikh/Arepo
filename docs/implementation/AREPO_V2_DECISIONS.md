@@ -864,3 +864,37 @@ Effect: no old evidence, protocol, gate result or JSON changes status (D082/D094
 stand exactly as recorded). Phase 4 modelling is paused. The validation protocol is NOT designed or
 approved here; it must be proposed and independently scrutinised in a fresh session before any source
 request. See docs/AREPO_V2_CHECKPOINT.md for live state. No numbered D-entry is assigned to this note.
+
+## D115 — Phase 3 closeout withdrawn; D116 validation scope; two-track direction (2026-10-10)
+
+1. Independent review (2026-10-10, Opus science-reviewer): the Oct 10 Phase 3 "complete" closeout was
+   scientifically invalid under the original criteria (phases/PHASE_03_PROSPECTIVE_PANEL.md:122,147,168,182;
+   PHASE_03_ACCEPTANCE_STATUS.md:145-146 forbids combining successes across failed protocols). Phase 3
+   remains PROVISIONAL. No old outcome changes.
+2. 600s repair (8afbdff) reviewed: correct and fail-closed; selection and thresholds unchanged. The ceiling
+   is per function call (declare/inputs/finish/read), not cumulative. The `_inputs` evidence-read deadline
+   (screening.py ~:296) also moved 180 -> 600 (previously undocumented). VERSION/IDENTITY_VERSION were not
+   bumped; this is not a provenance defect because `_policy` checks the embedded limits and the build-hash
+   manifest. Recorded; no code change.
+3. Live risk: frame age (3600s) is measured from frame interval_start and re-checked at screening
+   declaration, screening cutoff and activation. D114 clocks (s after interval_start): interval end 409.27,
+   frame available 572.78, selection declaration 901.60 (~329s gap attributed from code to
+   verified_panel_build hashing and declaration checks; no per-step timing recorded), read completed 1070.85,
+   cutoff 1285.62, saved 1320.02, screening declaration ~1518.97, failure 1722.82. Future protocols
+   pre-declare a clock budget; the 3600s limit is unchanged.
+4. Sampling design defect: D114's 2 strata x 4 members could not fill (drawn strata had 3 and 1 members);
+   D100 sensitivity assumed N>=4. On D114's actual stratum-size structure (90 eligible strata: 3 of size 1,
+   7 of size 2, 3 of size 3, 1 of 5, 1 of 6, 2 of 7, 73 of >=10; uniform stratum draw without replacement)
+   P(8 distinct members) = 0.871 for 4x2 versus 0.731 for 2x4. D116 uses 4x2.
+5. User decision 2026-10-10 (new standing direction): the purpose of the final Phase 3 validation is to
+   demonstrate that the final current-build machinery traverses the whole path once under real conditions.
+   Acceptance reflects the actual prospective design and denominator, not nominal member counts;
+   unavailable markets, one-sided books, all-triggered candidates, zero eligible controls and closed markets
+   are data results, distinct from engineering failures. Consequently the D089-era availability gates
+   (>=6/8 origins, >=6/8 histories, >=1 matched pair) are re-classified, prospectively and for D116 onward
+   only, as reported availability diagnostics; they remain failed gates for D089/D094/D097/D114 exactly as
+   recorded. This is a programme-level methodology decision by the user, frozen before any D116 data exist.
+6. Programme direction (user, 2026-10-10): two tracks. (A) Build forecasting product capability (baselines,
+   evaluation/split machinery, experiment ledger, exploratory models on development data, clearly labelled
+   exploratory, no edge claims). (B) Finish the D116 integrated validation. Phase 4 empirical findings
+   remain non-validated until Phase 3 closes; development infrastructure may proceed now.

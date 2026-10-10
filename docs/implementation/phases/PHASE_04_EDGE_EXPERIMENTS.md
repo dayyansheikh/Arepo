@@ -1,6 +1,6 @@
 # Phase 04 — Baselines and initial edge experiments
 
-Status: NOT STARTED. Begin only in a fresh Codex conversation. Phase3 contract handover is ready; refine this provisional plan against its real evidence and limitations.
+Status: DEVELOPMENT INFRASTRUCTURE IN PROGRESS (D115 Track A). Empirical findings are exploratory and non-validated until Phase 3 closes via D116.
 
 ## Objective
 
