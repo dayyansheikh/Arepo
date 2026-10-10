@@ -1,0 +1,25 @@
+{
+  "_note": "INERT PROPOSAL. Rename to settings.json to activate. Wires .claude/hooks/protect_evidence.py (tested) and minimal permissions.",
+  "model": "sonnet",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)", "Bash(git show:*)", "Bash(git branch:*)",
+      "Bash(git worktree list:*)", "Bash(git rev-parse:*)", "Bash(git merge-base:*)", "Bash(git rev-list:*)",
+      "Bash(gh pr view:*)", "Bash(gh pr list:*)", "Bash(pytest:*)", "Bash(ruff check:*)",
+      "Bash(python scripts/check_v2_contract.py)", "Bash(npm test:*)", "Bash(npx tsc --noEmit)", "Bash(npm run lint)",
+      "Bash(df -h:*)", "Bash(du -sh:*)"
+    ],
+    "deny": [
+      "Edit(docs/implementation/*EVIDENCE*.json)", "Write(docs/implementation/*EVIDENCE*.json)",
+      "Edit(docs/implementation/PHASE_03_*_PROTOCOL.md)", "Write(docs/implementation/PHASE_03_*_PROTOCOL.md)",
+      "Edit(data-dumps/**)", "Write(data-dumps/**)", "Read(**/.env)", "Read(**/.env.*)",
+      "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git push origin --delete:*)",
+      "Bash(vercel:*)", "Bash(supabase:*)", "Bash(render:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Bash", "hooks": [ { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect_evidence.py\"" } ] }
+    ]
+  }
+}
