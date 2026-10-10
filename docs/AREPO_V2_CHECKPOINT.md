@@ -21,7 +21,9 @@ requires one integrated live prospective validation of the final implementation 
   (D082, D094, D097, D114, `fs2_capture_3a4f80db...`, `fs2_capture_c63c72a0...`); never expose secrets.
 - Heartbeat: the old +5h10 Codex continuation is not scheduled locally (verified 2026-10-10). No recurring
   automation is authorised.
-- Storage: disk was ~97% full and volatile; closeout free-space figures are stale. Remeasure before any run.
+- Storage: 2026-10-10 second retirement retired D106/D110 leftover panel pages (1.82 GB logical; summary in
+  `PHASE_03_STORAGE_RETIREMENT_20261010B.json`); D088 deliberately KEPT (protocol says retain). Free ~11.8 GB then, volatile;
+  closeout figures are stale. Remeasure before any run.
   Canonical raw evidence has NO external backup; only local disk.
 - Index of everything else: `docs/DOCS_INDEX.md`.
 
