@@ -1679,3 +1679,18 @@ before bounded CRC/EOF-checked decoding; independent wire/decoded budgets and ve
 receipts/frame counters; original-build recovery and all causal/sampling guards preserved.
 Default capture remains identity. Implement/test/review/commit before any full acquisition.
 No new panel or accepted empirical gate. Current full-run capacity remains insufficient.
+
+## D113 preservation / D114 frozen gzip integration
+
+Closed D110 journal: 19612 files /4440104524 logical bytes, all hashes, sizes,
+modes, owners and mtimes preserved at original paths. Native filesystem compression saves
+3799859200 allocated bytes. Original81d415a reader reproduces
+the complete previous report exactly; no old clocks or failure status changed. No logical
+evidence/cohorts deleted. PHASE_03_STORAGE_COMPRESSION_D113.json records full manifests/proof.
+Free after verification13654593536bytes; full reservation13308526592, remeasure at launch.
+
+D114 protocol PHASE_03_GZIP_PILOT_PROTOCOL.md changes only exclusive output paths and
+accept_gzip=True from D110. Scientific sampling/control/clock/deadline/observer gates remain
+unchanged. D111 feasibility and tested D112 transport justify one measured integration.
+No source edits while running; preserve every failure and stop for actual terminal analysis.
+Do not rerun D110/D106, weaken gates or begin Phase4.
