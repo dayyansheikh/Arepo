@@ -245,3 +245,31 @@ def effective_sample(panel: pd.DataFrame, preds: pd.DataFrame) -> dict:
             for p, g in preds.groupby("period")
         ],
     }
+
+
+def ols_origin_slope(x: np.ndarray, y: np.ndarray) -> float:
+    """Slope of OLS through the origin, sum(xy)/sum(xx); NaN if x is all zero."""
+    d = float(np.dot(x, x))
+    return float(np.dot(x, y) / d) if d > 0 else float("nan")
+
+
+def clustered_bootstrap_slope(
+    cluster: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
+    n: int = BOOT_N,
+    seed: int = BOOT_SEED,
+) -> tuple[float, float]:
+    """Market-clustered bootstrap 95% CI for the through-origin OLS slope of y on x."""
+    codes, uniq = pd.factorize(cluster)
+    k = len(uniq)
+    cxy = np.bincount(codes, weights=x * y, minlength=k)
+    cxx = np.bincount(codes, weights=x * x, minlength=k)
+    rng = np.random.default_rng(seed)
+    vals = np.empty(n)
+    for b in range(n):
+        idx = rng.integers(0, k, size=k)
+        d = cxx[idx].sum()
+        vals[b] = cxy[idx].sum() / d if d > 0 else np.nan
+    lo, hi = np.nanpercentile(vals, [2.5, 97.5])
+    return float(lo), float(hi)

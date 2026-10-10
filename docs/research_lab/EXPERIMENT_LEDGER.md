@@ -137,3 +137,12 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
   - Executable check: the share of eligible pairs where `|dmid_hat| > spread/2`.
 - **Non-claims:** midpoint reversal is not executable value; spread, depth and fees are not modelled. One time period is
   thin evidence.
+
+**E002 pre-outcome clarifications (2026-10-10 ~19:50Z, before the second E002 capture exists)**
+- The primary "OLS slope" is the slope through the origin, consistent with the frozen model and the E001 diagnostic.
+  The with-intercept slope is descriptive only.
+- "Wrong sign" means `R2_oos <= 0` or `slope >= 0`.
+- The first E002 capture is `20261010T192208Z_db7c7287`. It is the first complete capture after registration commit `58a13a6` (19:20:42Z).
+- Forecasts for that capture were logged before outcomes at `data-dumps/research_lab/forecasts/` (43,162 eligible markets).
+  Scoring recomputes them and asserts exact equality with the log.
+- Code: `backend/astrolabe/research_lab/forecast.py`, `backend/scripts/run_forecast.py score-e002`.
