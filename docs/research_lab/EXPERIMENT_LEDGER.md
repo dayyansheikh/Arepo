@@ -202,3 +202,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 - Venue book `timestamp` is Unix milliseconds of the book's last change. It is not used as an observation clock; batch receipt time is.
 - Rows with a zero-size denominator get feature = NaN and are excluded and counted.
 - Event clusters fall back to market_id where event_id is missing, and those fallbacks are counted.
+- (~20:05Z, after the S1 development fit and before any S2 data) A missing `oneHourPriceChange` is set to 0, following the E001/E002
+  convention; the share is reported (S1: 62%). Verdict order: the sign check comes first. A zero or NaN sign is inconclusive. The AC target
+  is scored with the AB-fitted coefficients. S1 was frozen to `data-dumps/research_lab/e003/s1_fit.json`; its in-sample stats are
+  development only.
