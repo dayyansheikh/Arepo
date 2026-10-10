@@ -1,57 +1,62 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-10 20:31 UTC
-**Current phase:** Phase 3 finishing (provisional). Phase 4 forecasting tools and first experiments are under way (Track A).
-**Overall status:** Needs my decision (storage) before the final Phase 3 live test. Everything else is continuing autonomously.
-**Current objective:** Run the frozen D116 live test once disk space allows. Meanwhile, finish tonight's two forecasting
-experiments (E002, E003).
+**Last updated:** 2026-10-10 21:09 UTC
+**Current phase:** Phase 3 finishing (provisional; D116 frozen and waiting for disk). Phase 4 forecasting work is under way (Track A).
+**Overall status:** Needs my decision (storage) for D116. All other work continues autonomously.
+**Current objective:** Turn tonight's prospective experiments into honest evidence, keep a 24-hour snapshot-and-forecast
+loop running, and launch D116 once disk allows.
 
 ## 1. Where we are
 AREPO asks whether information available *before* a prediction helps forecast Polymarket price moves better than the
-current price and recent momentum. There are two halves:
-- **The research machinery** is built. Its final live test (D116) is now fully designed, independently checked three times, and frozen.
-- **The forecasting experiments** have started. Everything there is still exploratory, with no proven edge.
+current price and recent momentum.
+- **Research machinery:** built. Its final live test (D116) is frozen and only waiting for disk space.
+- **Forecasting:** a real working loop now exists: snapshot the market, log forecasts *before* outcomes, score them later, and show them in the app. No proven edge yet.
 
 ## 2. What AREPO can actually do today
-- Snapshot every live Polymarket market (about 276,000) in about 7 minutes, stored compactly (16 MB).
-- Read the order books of all ~43,000 actively quoted markets in about 80 seconds.
-- Turn snapshots into honest point-in-time datasets: features come only from before the prediction, and outcomes only from after.
-- Fit simple models, test them walk-forward (always on later data), log forecasts *before* outcomes exist, and score them later.
-- Judge the D116 live test automatically. A checker classifies every outcome by fixed rules (224 cases), so a software bug cannot pass as "the market had no data".
+- Snapshot every live Polymarket market (about 276,000) in about 7 minutes, and read ~43,000 order books in about 80 seconds.
+- Build leakage-safe point-in-time datasets, and compare models fairly with one shared, tested pipeline. The pipeline reproduces earlier results exactly and supports "remove one feature family" tests.
+- Log forecasts from a frozen model before outcomes exist, then score them prospectively.
+- **New in the app:** a "Research Lab" page and API show the latest experimental forecasts and their scoring status. They are clearly labelled experimental and are not deployed.
+- Judge the D116 live test automatically by fixed rules.
 
-## 3. What changed since the last update
-- **D116 is frozen.** Three independent reviews found and closed real loopholes, including one bug that would have failed a perfectly good live run.
-- **E001 (past data):** about 30% of a market's last-hour price move reverses by the next snapshot. This held in all four test periods. It is exploratory only.
-- **E003, first half:** order-book imbalance on its own explained almost nothing over the next ~80 seconds in the development data. Only about 10% of prices move at all in that time. The independent test is still to come.
-- The disk scare was transient: about 4 GB was briefly taken by macOS update staging. AREPO's new data is only about 140 MB.
+## 3. What the newest experiments establish
+- **E001 (past data):** about 30% of a market's last-hour price move tends to reverse by the next snapshot. This is exploratory.
+- **Method lesson:** related markets in the same event move together. Measuring uncertainty by *event* instead of by market makes the error bars about four times wider. Earlier confidence was overstated, and all future experiments now use the stricter method.
+- **E003 (order books, independently confirmed on a second data round):**
+  - Book imbalance and microprice show **no measurable predictive value** over ~2 minutes. That is a useful negative result.
+  - A combined model did better, but only in wide-spread, illiquid markets, through spread effects that are probably not tradable.
+- **E002 (reversal on brand-new data):** forecasts are logged. The outcome snapshot arrives about 22:36 UTC.
 
-## 4. What we're working on now
-- **E002:** the first truly prospective test of the reversal pattern. Forecasts are already logged; the outcome snapshot arrives about 22:36 UTC.
-- **E003:** the second, independent round of order-book data is being collected (about 20:50 UTC), then scored once against the frozen models.
+## 4. Work progressing in parallel
+- **E004:** a stronger 24-hour test of the reversal over 12 new snapshots, with the first realistic-trading check (does it survive paying the bid-ask spread?). Pre-registered; data collection starts about 22:55 UTC.
+- The E004 scorer is being built while the data accumulates.
 
 ## 5. Issues and risks
 | Issue | Why it matters | Blocks progress? | What is being done |
 |---|---|---|---|
-| Disk: about 11 GiB free; D116 needs about 13.3 GB plus a 1 GB margin | The live test cannot start | **Yes, D116 only** | Lossless compression could free about 4 GB (needs your OK) |
-| No external backup of raw research evidence | A disk failure would lose it | No, but it raises risk | Recommend a backup of `data-dumps/` (20 GB) |
-| The reversal pattern may be quote noise | Might not be usable in practice | No | E002, plus spread/liquidity breakdowns |
-| D116 may end "pass with limitation" (no matched pair) | Likely with 2 markets per group | No | Disclosed in advance; Phase 3 can still close |
+| Disk: about 11 GiB free; D116 needs about 13.3 GB plus a 1 GB margin | D116 cannot launch | **Yes, D116 only** | Lossless compression could free about 4 GB (needs your OK) |
+| No external backup of raw research evidence | Risk of irreplaceable loss | No | Backup of `data-dumps/` recommended |
+| The 24h collection loop runs inside this session | If the session ends, collection stops | No | It will be reported honestly; partial data stays valid |
+| Reversal may be untradable noise | It might not be useful | No | E004's spread-crossing check addresses this directly |
 
 ## 6. Decisions I need from you
 | Decision needed | Why it matters | My recommendation | Urgency |
 |---|---|---|---|
-| Free about 4 GB by lossless compression of 6 old data folders (same bytes, nothing deleted, verified before swap) | D116 cannot launch without the space | Yes. Ideally back up `data-dumps/` to an external drive first. Then restart Claude with `AREPO_RETIREMENT_SESSION=1` so the safety hook allows it, or run `backend/scripts/storage_compress_exact.py` yourself on the folders listed in the checkpoint | Now; D116 is otherwise ready |
+| Free about 4 GB by lossless compression of 6 old data folders (nothing deleted, verified before swap) | D116 cannot launch without it | Back up `data-dumps/` externally, then restart Claude with `AREPO_RETIREMENT_SESSION=1`, or run `backend/scripts/storage_compress_exact.py` yourself on the folders in the checkpoint | Now |
 
 ## 7. What's next
-1. Score E003 (tonight) and E002 (after about 22:36 UTC), and record the results honestly whatever they show.
-2. Once storage is resolved: run D116 once. A pass closes Phase 3.
-3. Grow the forecasting side: more feature families (order-flow, related markets), regularised and boosted models on the same walk-forward framework, and a regular snapshot-and-forecast loop.
+1. Score E002 after about 22:36 UTC. Score E004 when its 12 snapshots exist (about 24h).
+2. Run D116 once storage is resolved. A pass closes Phase 3.
+3. Next registered experiments, using the shared pipeline:
+   - whether context features help *conditionally*, for example the reversal by liquidity and spread;
+   - trade-flow features;
+   - related-market signals.
 
 ## 8. Scientific reality check
-- **Demonstrated:** the data machinery works stage by stage. The forecasting framework runs end to end without leaking future data.
-- **Unproven:** the whole final pipeline in a single live run, and any signal on unseen future data.
-- **Validated edge beyond momentum:** **none yet.**
-- **Next phase?** Phase 4 findings stay exploratory until D116 passes. Tool building continues meanwhile.
+- **Demonstrated:** working data machinery and an honest, leakage-safe forecasting loop.
+- **Unproven:** any signal on unseen future data (E002 and E004 pending), and the full Phase 3 pipeline in one live run.
+- **Validated edge beyond momentum:** **none.** One promising pattern (short-term reversal) and one clear negative (book imbalance at ~2 min).
+- **Next phase?** Phase 4 findings stay exploratory until D116 passes.
 
-Details: [AREPO_V2_CHECKPOINT.md](AREPO_V2_CHECKPOINT.md), [D116 freeze record](implementation/PHASE_03_D116_FREEZE_RECORD.md),
-[experiment ledger](research_lab/EXPERIMENT_LEDGER.md).
+Details: [checkpoint](AREPO_V2_CHECKPOINT.md), [experiment ledger](research_lab/EXPERIMENT_LEDGER.md),
+[D116 freeze record](implementation/PHASE_03_D116_FREEZE_RECORD.md).
