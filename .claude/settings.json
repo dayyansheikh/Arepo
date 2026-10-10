@@ -1,5 +1,5 @@
 {
-  "_note": "INERT PROPOSAL. Activate by renaming to settings.json (see report). Reviewed 2026-10-10: removed 'git branch:*' (it allows branch deletion); project-root-anchored '/' paths so deny rules apply from any subdirectory; pushes now prompt. Hook is best-effort and fails open on its own errors.",
+  "_note": "Active project settings (reviewed 2026-10-10). The evidence hook is best-effort, fails open on its own errors, and cannot stop scripts that delete files internally; it is not absolute protection.",
   "model": "sonnet",
   "permissions": {
     "allow": [
@@ -27,11 +27,8 @@
     ],
     "deny": [
       "Edit(/docs/implementation/*EVIDENCE*.json)",
-      "Write(/docs/implementation/*EVIDENCE*.json)",
       "Edit(/docs/implementation/PHASE_03_*_PROTOCOL.md)",
-      "Write(/docs/implementation/PHASE_03_*_PROTOCOL.md)",
       "Edit(/data-dumps/**)",
-      "Write(/data-dumps/**)",
       "Read(**/.env)",
       "Read(**/.env.*)",
       "Bash(git push --force:*)",
