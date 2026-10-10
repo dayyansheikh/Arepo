@@ -11,6 +11,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 | E002 | REGISTERED (pre-outcome) | Does the E001 1h-change reversal hold prospectively on new full-universe snapshots, using a frozen coefficient? | pending |
 | E003 | COMPLETE (exploratory) | Does top-of-book imbalance or microprice displacement (H08/H09) predict the next few minutes of midpoint repricing, beyond no-change and the 1h reversal? | H08 and H09 **inconclusive** (R2 about 0). The combined model beats reversal-only (+0.031 [+0.011,+0.049]), but only in wide-spread markets; the gain comes from spread/intercept drift, not imbalance. No edge claim. |
 | E004 | REGISTERED (pre-outcome) | Does the frozen 1h reversal hold over 12 consecutive prospective periods (event-clustered), and does it survive crossing the spread? | pending |
+| E005 | REGISTERED (pre-outcome) | In neg-risk groups, does a market's deviation from its arbitrage band (from siblings' bids/asks) predict repricing beyond the frozen reversal? | pending |
 
 ---
 
@@ -278,3 +279,64 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 - "Snapshots from E002 are excluded" is implemented as the E002 pair chosen by E002's own rule (start times only).
 - Qualifying snapshots are complete, started after 21:09:17Z, not in that pair, and taken as the first 12 by start time.
 - Event clusters fall back to `market_id`, and the fallbacks are counted.
+
+
+**E004 challenger review (Opus, 2026-10-10 ~21:20Z, before any qualifying snapshot) and lead decisions.** The registered
+criteria are unchanged.
+- **Verdict:** E004 is interpretable as a statistical test of a frozen model. The code matches the registration and no leakage path was found.
+- **Operational rule (lead decision):** no other capture is written to `data-dumps/research_lab/snapshots/` until E004 has 12
+  qualifying snapshots. If the loop yields only 11 (for example because the 22:36Z one-shot fails and loop pass 1 becomes E002's
+  capture), E004 is recorded **pending/unavailable**. It is not filled with an extra capture.
+- **Execution check reinterpretation (disclosure, not a rule change):**
+  - The touch-to-touch P&L is **optimistic by an unknown amount**, not an upper bound. Stale Gamma quotes specifically flatter a reversal bet, and a fill is only possible after receipt.
+  - Survivorship from excluding target-unavailable pairs probably biases P&L and the reversal estimate upward.
+  - A descriptive count of selected trades lost to target-unavailability will be reported.
+  - Mean P&L per share mixes capital bases (long `ask_i` against short `1-bid_i`).
+  - Fees, depth, tick size and minimum order size are not in the data.
+  - Shorting YES is equivalent to buying NO in P&L terms. Whether Gamma touch prices include mirrored orders is unverified.
+- **Statistical disclosures:**
+  - Quote noise alone predicts a negative slope; only the execution stage speaks to value.
+  - The coefficient was fitted on multi-day spacing and is applied to about 2h horizons.
+  - Under a coin-flip null, P(≥8 of 11) ≈ 0.11, so the period rule is a consistency check, not a test.
+  - The event bootstrap does not capture period-wide shocks; 11 periods is the true replication count.
+
+---
+
+## E005 — Cross-market consistency in neg-risk groups (arbitrage-band deviation)
+
+- **Registered:** 2026-10-10, before the first E004-qualifying snapshot exists.
+- **Design origin:** the challenger's revision of a lead draft. The draft's mid-sum "gap" was rejected for these reasons:
+  - It encodes group size and spread, and largely confounds with `-chg_1h`.
+  - At origin, mid-sums are often far above 1 (quartiles 1.00/1.03/1.41) while `Σbid>1` or `Σask<1` holds in only about 0.2% of groups.
+- **Group g:** rows with `neg_risk==1` and the same non-null `neg_risk_market_id`.
+  - Exclude g if any member has `event_neg_risk_augmented!=0` or `neg_risk_other==1`, if g has fewer than 2 members, if any member lacks `best_ask`, or if member receipt times span more than 120s.
+  - A missing `best_bid` is treated as 0 (no buyer).
+- **Synthetic band** for member i, from origin rows only, over all present members including E001-ineligible ones:
+  - `SB_i = 1 - Σ_{k≠i} ask_k`
+  - `SA_i = 1 - Σ_{k≠i} bid_k`
+- **Feature:** `dev_i = max(0, SB_i - mid_i) - max(0, mid_i - SA_i)`, which is 0 inside the band.
+- **Descriptive only:** `A_g = Σask`, `B_g = Σbid`, `N_g`, and the arbitrage flags (`A_g<1`, `B_g>1`).
+- **Unit:** members passing E001 eligibility. Target `dmid` with E001 panel semantics.
+- **Models:**
+  - R is the frozen `e002_reversal_v1`.
+  - RC is `dmid_hat = R + b*dev`. `b` is fitted by OLS through the origin on the residual `(dmid - R)` against `dev`, using only the re-extracted E001 captures (`data-dumps/research_lab/dev_snapshots_v2/`).
+  - `b` is then frozen. `b` and its fit counts are committed before any confirmation-period outcome is computed.
+- **Confirmation data:** the 12 E004-qualifying snapshots (11 periods). E004 itself is untouched.
+- **Primary tests (all must hold):**
+  1. Pooled `1-SSE(RC)/SSE(R) > 0`, with an event-clustered bootstrap CI above 0 (1,000 resamples, seed 116, market_id fallback counted).
+  2. The through-origin slope of `(dmid-R)` on `dev` is above 0, with its CI above 0.
+  3. Incremental R2 is above 0 in at least 8 of 11 periods.
+- **Verdict:**
+  - **Supported (exploratory)** if all three hold.
+  - **Not supported** if the point estimate of (1) or (2) is at or below 0.
+  - **Inconclusive** otherwise.
+  - **Unavailable (no verdict)** if there are fewer than 200 pairs with `dev!=0` or fewer than 30 groups with `dev!=0`.
+- **Secondary (descriptive):**
+  - G-only against B0.
+  - Terciles of `N_g` and of band width.
+  - A spread+mid drift baseline.
+  - Touch-to-touch as in E004, plus a count of selected trades lost to target-unavailability.
+- **Disclose:**
+  - Group completeness cannot be verified (unlisted, inactive or placeholder siblings).
+  - Fees and depth are absent.
+  - The data are shared with E004, so results are correlated, not independent.
