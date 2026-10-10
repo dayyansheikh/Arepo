@@ -31,13 +31,26 @@ from .trigger_computation import (
     declare_snapshot_trigger,
     read_snapshot_trigger,
 )
-from .window_computation import LIMITS, _check, _save
+from .window_computation import LIMITS as WINDOW_LIMITS
+from .window_computation import _check as _window_check
+from .window_computation import _save as _window_save
 
 VERSION = "fs2-screening-v1"
 IDENTITY_VERSION = "fs2-screening-identity-v2"
-OWNED_VERSION = "fs2-screening-owned-selection-v3"
+OWNED_VERSION = "fs2-screening-owned-selection-v4"
 OWNED_READ_MODE = "full_selection_before_sources; full_cold_replay_before_acceptance"
+# Full selection authentication precedes sources; its existing budget is 600 seconds.
+# This resource ceiling is separate from frozen source/quote/origin freshness checks.
+LIMITS = {**WINDOW_LIMITS, "max_seconds": 600}
 PER_DECISION_BYTES = LIMITS["max_output_bytes"] + 2 * LIMITS["max_artifact_bytes"]
+
+
+def _check(root, started, addition=0):
+    return _window_check(root, started, addition, limits=LIMITS)
+
+
+def _save(root, name, value, started):
+    return _window_save(root, name, value, started, limits=LIMITS)
 
 
 @dataclass(frozen=True)

@@ -1711,3 +1711,33 @@ accept_gzip=True from D110. Scientific sampling/control/clock/deadline/observer 
 unchanged. D111 feasibility and tested D112 transport justify one measured integration.
 No source edits while running; preserve every failure and stop for actual terminal analysis.
 Do not rerun D110/D106, weaken gates or begin Phase4.
+
+## Final October10 review under revised user exit scope
+
+PHASE_03_EXIT_SCOPE.md and PHASE_03_DATA_BOUNDARY.md define scientific programme sufficiency,
+without relabeling any historical pilot. The independent artifact/arithmetic/chronology audit
+verifies371/498/649references for D082/D094/D097, including the real paired history/target
+contract. Unavailable families and all failed availability/control gates remain explicit.
+No new random draw or new public source request was used to obtain a better result.
+
+Small measured repair: screening freezes600s engineering resource ceiling/owned schema v4;
+window computation retains180s default. Same source/quote/origin/target chronology/freshness,
+byte/file/free-space bounds, private ownership, full cold/original recovery and no payload
+injection.56 affected tests pass159.83s plus1window runtime/original recovery/dependency-tamper
+test32.41s. Exact commands/source/log hashes: PHASE_03_SCREENING_BUDGET_VALIDATION.json.
+Initial misspelled test filename ran no tests and was corrected; no safeguard was weakened.
+Self-review covers explicit frozen limit/version, unchanged defaults and causal admission.
+No new large live validation of the changed engineering budget is claimed.
+
+Under explicit October10 bounded-retention authority, completed resolved pre-selection
+D101/D106/D110 bulk journals were retired only after sufficient durable capsules/manifests.
+Retained35/33/3raw capture folders respectively, all referenced bounded regression inputs,
+errors and boundary/largest examples; all retained hashes verified.13,080,712,217logical bytes
+retired /5,746,561,024allocated bytes reclaimed. Full original replay of those retired frames
+is intentionally unavailable and recorded. Historical failures stay failed. Complete
+D082/D094/D097 and current D114 evidence, cohorts/origins/targets and production are untouched.
+PHASE_03_STORAGE_RETIREMENT_SUMMARY.json binds exact capsule/deletion manifests. About14.48GB
+free after retirement; all future acquisition must remeasure its prospective reservation.
+
+No active acquisition, tests or original reader remain. No Phase4 code, production action,
+paid data or trading. Final handover/checkpoint/PR and cancellation close the programme task.

@@ -52,3 +52,23 @@ universe coverage. D114 passes it; no relaxation is needed for the current repai
 screening budget may change prospectively without changing historical outcomes or source
 freshness rules. The next-action checkpoint governs whether further empirical collection is
 necessary after the repair and sufficiency review; do not automatically launch another frame.
+
+## Final sufficiency decision
+
+Independent review in PHASE_03_EXIT_EVIDENCE_AUDIT.json verifies the existing empirical
+contract, including D094's paired trigger/control histories and valid targets, plus D082's
+complete snapshot execution and D097's explicit temporal population. No new draw is needed
+merely to obtain six observed members or fill a nominal eight slots. Those old gates remain
+failed. The programme's revised scientific exit requirements are supported by these separate
+preserved pilots; no single failed run is promoted or pooled into a passing experiment.
+
+The smallest screening-budget repair uses a separate600s resource ceiling and owned schema
+v4. Window helpers retain180s by default; byte, capacity, chronology, source freshness and
+target rules remain.56 affected tests plus1window/original-recovery test pass; source/code
+hashes and exact commands are in PHASE_03_SCREENING_BUDGET_VALIDATION.json. There is no new
+large live validation of this budget change, and no prediction/alpha or data-volume sufficiency
+claim. Phase4 must declare and validate its own ongoing collection/analysis protocol.
+
+Final exit is contingent only on coherent committed handover/PR/checkpoint/storage state and
+cancelling the equivalent continuation. No further Phase3 infrastructure or collection is
+required by this review. PHASE_03_DATA_BOUNDARY.md defines exactly what evidence is usable.

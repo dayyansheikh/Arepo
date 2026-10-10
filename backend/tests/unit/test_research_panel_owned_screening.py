@@ -105,3 +105,26 @@ async def test_returned_mutable_copy_cannot_change_owned_proof_or_repeat_cutoff(
     assert screening.read_screening(root) == result
     with pytest.raises(FileExistsError, match='already attempted'):
         finish()
+
+
+def test_screening_budget_covers_full_selection_but_window_deadline_is_unchanged(tmp_path):
+    import time
+
+    from astrolabe.research_panel import window_computation
+
+    root = tmp_path / "bounds"
+    root.mkdir()
+    # D114 used ~204s before any source acquisition. Resource budget only: clocks and
+    # freshness are checked independently by the real owned/original recovery tests.
+    screening._check(root, time.monotonic() - 204)
+    with pytest.raises(ValueError, match="deadline"):
+        window_computation._check(root, time.monotonic() - 204)
+    with pytest.raises(ValueError, match="deadline"):
+        screening._check(root, time.monotonic() - 601)
+    with pytest.raises(ValueError, match="retained"):
+        screening._check(root, time.monotonic(), screening.LIMITS["max_output_bytes"])
+    (root / "link").symlink_to(tmp_path)
+    with pytest.raises(ValueError, match="invalid"):
+        screening._check(root, time.monotonic())
+    assert screening.LIMITS["max_seconds"] == 600
+    assert window_computation.LIMITS["max_seconds"] == 180

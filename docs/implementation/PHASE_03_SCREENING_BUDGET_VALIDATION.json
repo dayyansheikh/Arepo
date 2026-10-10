@@ -1,0 +1,24 @@
+{
+  "purpose": "Screening-specific600s engineering resource limit; scientific windows/freshness unchanged",
+  "source_sha256": {
+    "backend/astrolabe/research_panel/screening.py": "a4b7e57335a7cb8b00f79b88b46cd4ae131e2a7d9a51caa9ca95cc1add667e36",
+    "backend/astrolabe/research_panel/window_computation.py": "a8dd6b1aadf50d074920187dc226e1147dc5012fcf9691050a0f60001513a34c",
+    "backend/tests/unit/test_research_panel_owned_screening.py": "52ce3cebec5a29163204154dd83bd8761206e89593dcb2c1ca288d58745985a1"
+  },
+  "runs": [
+    {
+      "command": "DATABASE_URL=sqlite+aiosqlite:////tmp/arepo_screening_budget_tests.sqlite AUTO_MIGRATE=false EMAIL_PROVIDER=disabled caffeinate -is .venv/bin/pytest -q tests/unit/test_research_panel_owned_screening.py tests/unit/test_research_panel_owned_activation.py tests/unit/test_research_panel_screening.py tests/unit/test_research_panel_window_computation.py tests/unit/test_research_panel_owned_pilot.py",
+      "cwd": "backend",
+      "log": "........................................................                 [100%]\n56 passed in 159.83s (0:02:39)\n",
+      "log_sha256": "24ef73d13898f671d252781b3f6bd470d1b5bd5e3c0fac980ff6ddddffa89ec1"
+    },
+    {
+      "command": "DATABASE_URL=sqlite+aiosqlite:////tmp/arepo_screening_window_test.sqlite AUTO_MIGRATE=false EMAIL_PROVIDER=disabled caffeinate -is .venv/bin/pytest -q tests/unit/test_research_panel_owned_windows.py::test_owned_window_runtime_original_recovery_and_dependency_tamper",
+      "cwd": "backend",
+      "log": ".                                                                        [100%]\n1 passed in 32.41s\n",
+      "log_sha256": "5df2cd6557f1258826e8040c548771e5ae8cc4668d3f3496ef1c24889601ca6e"
+    }
+  ],
+  "initial_invocation_error": "A mistyped nonexistent owned_window_pilot test path produced exit4 and no tests; corrected before validation.",
+  "synthetic_not_new_live_validation": true
+}

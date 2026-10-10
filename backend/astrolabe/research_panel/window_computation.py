@@ -29,8 +29,9 @@ def _paths(source_root, output_root):
     return source, root
 
 
-def _check(root, started, addition=0):
-    if time.monotonic() - started > LIMITS['max_seconds']:
+def _check(root, started, addition=0, *, limits=None):
+    limits = LIMITS if limits is None else limits
+    if time.monotonic() - started > limits['max_seconds']:
         raise ValueError('window computation processing deadline exceeded')
     files = list(root.iterdir())
     if len(files) > 8:
@@ -40,20 +41,21 @@ def _check(root, started, addition=0):
         if file.is_symlink() or not file.is_file():
             raise ValueError('invalid window computation file')
         size = file.stat().st_size
-        if size > LIMITS['max_artifact_bytes']:
+        if size > limits['max_artifact_bytes']:
             raise ValueError('window computation artefact budget exceeded')
         total += size
-    if total + addition > LIMITS['max_output_bytes'] - LIMITS['failure_reserve_bytes']:
+    if total + addition > limits['max_output_bytes'] - limits['failure_reserve_bytes']:
         raise ValueError('window computation retained budget exceeded')
-    if addition and shutil.disk_usage(root).free < LIMITS['free_reserve_bytes'] + addition:
+    if addition and shutil.disk_usage(root).free < limits['free_reserve_bytes'] + addition:
         raise ValueError('window computation free-space reserve reached')
 
 
-def _save(root, name, value, started):
+def _save(root, name, value, started, *, limits=None):
+    limits = LIMITS if limits is None else limits
     size = len(_json_bytes(value))
-    if size > LIMITS['max_artifact_bytes']:
+    if size > limits['max_artifact_bytes']:
         raise ValueError('window computation artefact budget exceeded')
-    _check(root, started, size + 4096)
+    _check(root, started, size + 4096, limits=limits)
     _persist(root, name, value)
 
 

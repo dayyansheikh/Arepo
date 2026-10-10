@@ -825,3 +825,28 @@ PHASE_03_EXIT_SCOPE.md, PHASE_03_BOUNDED_RETENTION.md and canonical PHASE_03_HEA
 Prioritise the measured pre-source budget repair and scientific evidence sufficiency review.
 No automatic new frame; missing feature families are explicit, not an endless completion
 requirement. Capsules precede permitted retirement of resolved failed bulk frames.
+
+## October10 — bounded screening repair and scientific Phase3 exit
+
+D114 revealed the shared180s window-computation resource guard was also bounding full
+pre-source selection authentication (203.846420s worker declaration to failure). Screening
+now freezes its own600s resource ceiling, aligned with selection verification, and owned
+screening schema v4. Shared window default180s, retained bytes/files/free reserve, causal
+clocks, source freshness and target deadlines stay unchanged. Full cold and original-code
+verification remain required.56 affected tests159.83s plus1owned-window recovery/tamper test
+32.41s pass; lint/canonical/whitespace pass. This is synthetic repair validation, not a new
+empirical pilot or retrospective fix to D114.
+
+The user's revised programme scope distinguishes scientific data-contract requirements from
+pilot engineering/availability targets. PHASE_03_EXIT_SCOPE.md and PHASE_03_DATA_BOUNDARY.md
+record the final sufficiency reasoning. D082 demonstrates8causal snapshot origins/targets
+and2pairs; D094 supplies5causal histories/targets including1paired control/trigger history;
+D097 supplies6histories/targets with exact temporal population and explicit missing controls.
+The audit verifies371/498/649artifact references and arithmetic/chronology. Original failed
+six-of-eight/matched-control gates stay false. No pooling as independent samples, retrospective
+pilot promotion, leakage, model performance claim or new random draw is justified.
+
+Unavailable complete flow, depth/persistence, related and external families remain explicit.
+Phase4 starts fresh with baseline/prospective protocol locks and sufficient new observations;
+these tiny development pilots are not a model-selection or confirmation dataset. No Phase4
+work was started. Finalise handover and stop, rather than adding Phase3 performance polish.
