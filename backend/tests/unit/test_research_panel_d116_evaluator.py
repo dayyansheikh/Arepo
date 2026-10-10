@@ -177,7 +177,7 @@ def test_clean_pass_with_observed_matched_pair(tree):
     assert {pair["triggered_market"], pair["control_market"]} == {"1", "2"}
     assert pair["both_complete"]
     assert report["finding_counts"].get("ENGINEERING", 0) == 0
-    assert report["evaluator_version"] == "d116-evaluator-v2"
+    assert report["evaluator_version"] == "d116-evaluator-v3"
     assert report["classification_table_sha256"] == ev.TABLE_SHA256
     assert report["diagnostics"]["observed_matched_pairs"] == 1
     assert report["diagnostics"]["target_ratio_5v_ge_4o"] is True

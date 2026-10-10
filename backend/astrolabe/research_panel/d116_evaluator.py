@@ -41,7 +41,7 @@ from .screening import ScreeningPolicy
 from .trigger_computation import SnapshotTriggerPolicy
 from .window_reconciliation import WindowReconciliationPolicy
 
-EVALUATOR_VERSION = "d116-evaluator-v2"
+EVALUATOR_VERSION = "d116-evaluator-v3"
 OK = "OK"
 DATA_SOURCE = "DATA_SOURCE"
 DATA_TRANSPORT = "DATA_TRANSPORT"
