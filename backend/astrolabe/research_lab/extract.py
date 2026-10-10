@@ -45,6 +45,7 @@ COLUMNS = [
     "end_date",
     "updated_at",
     "dup_count",
+    "clob_token_id_0",
 ]
 
 
@@ -89,6 +90,14 @@ def _event_id(m: dict) -> str | None:
     return None
 
 
+def _token0(m: dict) -> str | None:
+    """Outcome-0 CLOB token id (``clobTokenIds[0]``), or None if absent."""
+    ids = _json_list(m.get("clobTokenIds"))
+    if ids and ids[0] not in (None, ""):
+        return str(ids[0])
+    return None
+
+
 def market_row(m: dict, capture_id: str, capture_start: str, received: str) -> dict | None:
     """Compact row for one Gamma market dict (None if it has no market id)."""
     if m.get("id") is None:
@@ -116,6 +125,7 @@ def market_row(m: dict, capture_id: str, capture_start: str, received: str) -> d
         "end_date": m.get("endDate"),
         "updated_at": m.get("updatedAt"),
         "dup_count": 0,
+        "clob_token_id_0": _token0(m),
     }
 
 
