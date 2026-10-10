@@ -144,6 +144,10 @@ class Settings(BaseSettings):
     storage_soft_limit_mb: int = 500          # Supabase Free database cap
     storage_warn_ratio: float = 0.8           # WARN at 80%, CRITICAL at storage_crit_ratio
     storage_crit_ratio: float = 0.92
+    # Root of the research-lab data (forecast logs, scores) served read-only by /api/research-lab.
+    # Empty = local-dev default (repo data-dumps/research_lab) outside production; in production an
+    # empty value means "unavailable" (never a fixture). Env: RESEARCH_LAB_DATA_ROOT.
+    research_lab_data_root: str = ""
     # Optional pluggable cold archive (default OFF). When enabled, category-C rows are archived
     # (compressed + checksummed) BEFORE deletion; an archive failure RETAINS the source (never
     # deletes). Backends: "" (none / prune-only), "local" (compressed files), "r2" (Cloudflare R2).

@@ -38,6 +38,7 @@ const NAV_LINKS = [
   { href: "/markets", label: "Explore" },
   { href: "/signals", label: "Signal Lab" },
   { href: "/replay", label: "Replay" },
+  { href: "/research-lab", label: "Research Lab" },
   { href: "/how-it-works", label: "How It Works" },
   { href: "/methodology", label: "Methodology" },
 ];
