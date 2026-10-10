@@ -1,5 +1,7 @@
 # Phase3 scientific contract acceptance — October10
 
+> **PROVISIONAL (user correction, 2026-10-10).** The completion status below is retained as history. Phase 3 is not scientifically closed until the final implementation has had one integrated live prospective validation. Phase 4 is paused. See `../AREPO_V2_CHECKPOINT.md` and the decisions entry "October10 user correction".
+
 **Complete under the latest user-defined programme exit scope.** Phase4 begins in a fresh
 conversation. This does not promote any historically failed pilot or imply a powered dataset.
 See PHASE_03_EXIT_SCOPE.md, PHASE_03_DATA_BOUNDARY.md and ../AREPO_V2_PHASE_3_HANDOVER.md.

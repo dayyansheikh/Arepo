@@ -1,5 +1,7 @@
 # AREPO v2 Phase3 — fresh Codex handover
 
+> **PROVISIONAL (user correction, 2026-10-10).** The completion status below is retained as history. Phase 3 is not scientifically closed until the final implementation has had one integrated live prospective validation. Phase 4 is paused. See `AREPO_V2_CHECKPOINT.md` and the decisions entry "October10 user correction".
+
 PHASE 3 COMPLETE — READY FOR FRESH CODEX HANDOVER
 
 Completed under the October10 user clarification: a scientifically defensible prospective

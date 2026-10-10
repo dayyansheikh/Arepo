@@ -1,3 +1,5 @@
+> **INACTIVE (2026-10-10).** Historical Codex continuation prompt. Do not schedule any successor from it; no recurring automation is authorised. Phase 3 is PROVISIONAL (see `../AREPO_V2_CHECKPOINT.md`).
+
 Continue authorised AREPO v2 Phase 3. Recover exact live state/next action from the authoritative checkpoint, Phase 3 acceptance/review docs, AGENTS.md, Git/PR and empirical evidence. Do not rely on stale D-specific prompt details or repeat accepted/unchanged failed work.
 Primary objective: finish Phase 3 efficiently while preserving scientific integrity. Focus only on requirements necessary for a trustworthy prospective panel and Phase 4 handover. Prefer measured empirical progress and the smallest justified repair over speculative infrastructure, repeated micro-optimisation or perfectionism.
 Preserve pre-t0 chronology, sampling probabilities, controls, missingness, provenance, targets and immutable old outcomes. Never redraw until success, manufacture data or retrospectively repair failures. Distinguish scientific requirements from engineering conventions; any changed rule must be prospectively justified.

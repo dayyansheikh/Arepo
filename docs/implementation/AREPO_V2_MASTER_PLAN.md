@@ -1,5 +1,7 @@
 # AREPO v2 master implementation plan
 
+> **PROVISIONAL (user correction, 2026-10-10).** The completion status below is retained as history. Phase 3 is not scientifically closed until the final implementation has had one integrated live prospective validation. Phase 4 is paused. See `../AREPO_V2_CHECKPOINT.md` and the decisions entry "October10 user correction".
+
 Updated 2026-10-09. This programme evolves the existing dayyansheikh/Arepo repository. Phases00–02 complete; current phase03 remains incomplete. Phase4 starts only in a fresh conversation after genuine Phase3 acceptance.
 
 ## Recovery order and authority

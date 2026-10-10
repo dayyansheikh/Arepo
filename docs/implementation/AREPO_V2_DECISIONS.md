@@ -850,3 +850,17 @@ Unavailable complete flow, depth/persistence, related and external families rema
 Phase4 starts fresh with baseline/prospective protocol locks and sufficient new observations;
 these tiny development pilots are not a model-selection or confirmation dataset. No Phase4
 work was started. Finalise handover and stop, rather than adding Phase3 performance polish.
+
+## October10 user correction: Phase 3 is PROVISIONAL (supersedes the exit status above)
+
+The October10 programme-level Phase 3 exit recorded above is retained as a historical fact. The user
+subsequently required that Phase 3 not be treated as scientifically closed until the FINAL current
+implementation has received one prudent integrated prospective live validation. The 600s screening
+repair (owned schema v4) has been validated only synthetically; no single live run of the final code
+has yet gone from complete discovery through exact sampling, screening, selected-market observation,
+histories, trigger/control assessment, origins and future targets to terminal original-code audit.
+
+Effect: no old evidence, protocol, gate result or JSON changes status (D082/D094/D097/D114 outcomes
+stand exactly as recorded). Phase 4 modelling is paused. The validation protocol is NOT designed or
+approved here; it must be proposed and independently scrutinised in a fresh session before any source
+request. See docs/AREPO_V2_CHECKPOINT.md for live state. No numbered D-entry is assigned to this note.
