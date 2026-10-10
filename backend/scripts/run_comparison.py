@@ -21,7 +21,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend"))
 
-from astrolabe.research_lab import compare, panel  # noqa: E402
+from astrolabe.research_lab import compare, panel, provenance  # noqa: E402
 
 E001_DIR = ROOT / "data-dumps" / "research_lab" / "e001"
 OUT_ROOT = ROOT / "data-dumps" / "research_lab" / "comparisons"
@@ -107,6 +107,7 @@ def main() -> int:
     ap.add_argument("--preset", required=True, choices=["e001_repro", "family_ablation"])
     ap.add_argument("--run-id")
     ap.add_argument("--n-boot", type=int, default=1000)
+    ap.add_argument("--label", default=provenance.DEV_LABEL, help="registered experiment id")
     ap.add_argument("--seed", type=int, default=116)
     a = ap.parse_args()
     run_id = a.run_id or f"{a.dataset}-{a.preset}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
@@ -114,6 +115,24 @@ def main() -> int:
     if out_dir.exists():
         print(f"refusing to overwrite existing run {out_dir}", file=sys.stderr)
         return 2
+    try:
+        return _run(a, run_id, out_dir)
+    except Exception as exc:
+        provenance.append_trial(
+            {
+                "status": "failed",
+                "error_type": type(exc).__name__,
+                "dataset": a.dataset,
+                "preset": a.preset,
+                "run_id": run_id,
+                "label": a.label,
+                "provenance": provenance.run_provenance(),
+            }
+        )
+        raise
+
+
+def _run(a: argparse.Namespace, run_id: str, out_dir: Path) -> int:
     pairs = load_e001()
     base = next(s for s in compare.e001_models() if s.name == "B3")
     if a.preset == "e001_repro":
@@ -137,6 +156,20 @@ def main() -> int:
     if a.preset == "e001_repro":
         res["repro_max_abs_diff_vs_e001_results"] = repro_diff(res)
     path = compare.write_new_json(out_dir, res)
+    trial = provenance.append_trial(
+        {
+            "status": "ok",
+            "dataset": a.dataset,
+            "preset": a.preset,
+            "run_id": run_id,
+            "label": a.label,
+            "result_path": str(path.relative_to(ROOT)),
+            "results_sha256": provenance.sha256_file(path),
+            "summary": provenance.summarize_pooled(res),
+            "provenance": res["provenance_v2"],
+        }
+    )
+    print(f"trial {trial['trial_id']} appended to {provenance.TRIALS_PATH.relative_to(ROOT)}")
     print_table(res, banner)
     print(f"\nwrote {path}")
     if a.preset == "e001_repro":

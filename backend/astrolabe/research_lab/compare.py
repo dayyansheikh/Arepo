@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import evaluate, features
+from . import evaluate, features, provenance
 from .models import LAMBDA_GRID, Ridge, choose_lambda, fit_origin_ols
 from .panel import FEATURES_B2, FEATURES_B3
 
@@ -302,6 +302,7 @@ def run_comparison(
             "git_head": git_head(),
             "seed": seed,
         },
+        "provenance_v2": provenance.run_provenance(),
     }
 
 
