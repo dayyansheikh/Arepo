@@ -206,3 +206,19 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
   convention; the share is reported (S1: 62%). Verdict order: the sign check comes first. A zero or NaN sign is inconclusive. The AC target
   is scored with the AB-fitted coefficients. S1 was frozen to `data-dumps/research_lab/e003/s1_fit.json`; its in-sample stats are
   development only.
+
+---
+
+## Methods note M1 — Reusable comparison pipeline and the event-clustering lesson (2026-10-10)
+- `backend/astrolabe/research_lab/compare.py` and `features.py` (CLI `scripts/run_comparison.py`) are now the shared,
+  leakage-guarded comparison path. Features are computed from origin columns only. Purging follows label availability.
+  Paired bootstrap uses shared resamples.
+  - Preset `e001_repro` reproduces every E001 metric to within 1.6e-13.
+- **Lesson:** clustering the bootstrap by **event** instead of by market widens the B3 pooled R2_oos CI from
+  [+0.030, +0.047] to [+0.004, +0.069], because markets within an event move together.
+  - E001's market-clustered intervals overstate precision.
+  - **From now on, experiments cluster by event** unless they register a different rule. E002's registered market clustering stays
+    as registered; an event-clustered result will be reported alongside it as descriptive.
+- Post-hoc family ablation on E001 data (DEVELOPMENT only, not registered): removing the momentum/reversal family costs
+  the most. The paired R2 difference is +0.030 [+0.011, +0.049]. Context features and the interaction add +0.013 to +0.014.
+  These are hypotheses for future registered experiments, not findings.
