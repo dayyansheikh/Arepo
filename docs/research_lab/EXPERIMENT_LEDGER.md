@@ -8,6 +8,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 | ID | Status | Question | Result summary |
 |---|---|---|---|
 | E001 | COMPLETE (exploratory) | Do price/momentum/context fields in Gamma full-universe snapshots predict repricing by the next snapshot, beyond no-change? | 1h-change model *Indicative (exploratory)*: R2_oos +0.037, positive in 4/4 periods; the fitted sign is **reversal** (about -0.3). Others inconclusive. No edge claim. |
+| E002 | REGISTERED (pre-outcome) | Does the E001 1h-change reversal hold prospectively on new full-universe snapshots, using a frozen coefficient? | pending |
 
 ---
 
@@ -107,3 +108,32 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 **Interpretation**
 - Short-horizon price changes on Polymarket partially revert. This may be quote noise or thin-book overreaction rather than an exploitable edge: midpoint reversal is not executable value.
 - Development data only. The next step is prospective confirmation (E002).
+
+---
+
+## E002 — Prospective confirmation of the 1h-change reversal (frozen model)
+
+- **Registered:** 2026-10-10, before any E002 snapshot exists. Git commit hash records the freeze.
+- **Hypothesis**, generated post hoc in E001: the next-snapshot `dmid` is negatively related to the Gamma
+  `oneHourPriceChange` at origin.
+- **Frozen model:** `dmid_hat = -0.331610 * oneHourPriceChange` (missing = 0). This is OLS through the origin on all
+  197,341 E001 target-available pairs. No refitting.
+- **Data:** new compact full-universe Gamma snapshots from the research-lab collector, taken after this commit.
+  - Complete keyset enumeration, `closed=false`.
+  - Per-page receipt clock.
+  - E001 field set and parsing.
+  - No E001 capture is reused.
+- **Pairs:** consecutive new captures at least 3h apart. Eligibility, target and features are identical to E001.
+- **Primary test**, on the first new pair period. Both conditions must hold:
+  1. `R2_oos` of the frozen model against B0 is above 0, and its market-clustered bootstrap 95% CI (1,000 resamples, seed 116) lies above 0.
+  2. The OLS slope of `dmid` on `oneHourPriceChange` is below 0, with its market-clustered 95% CI below 0.
+- **Verdicts:**
+  - **Confirmed (exploratory, prospective)** if both conditions hold.
+  - **Not confirmed** if either point estimate has the wrong sign.
+  - **Inconclusive** otherwise.
+  - Later new pair periods are reported as replications under the same rules. They never replace the first-period verdict.
+- **Secondary (descriptive):**
+  - Slope by spread tercile and by `log1p(liquidity)` tercile (noise versus overreaction).
+  - Executable check: the share of eligible pairs where `|dmid_hat| > spread/2`.
+- **Non-claims:** midpoint reversal is not executable value; spread, depth and fees are not modelled. One time period is
+  thin evidence.
