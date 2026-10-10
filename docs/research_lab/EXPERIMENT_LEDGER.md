@@ -9,7 +9,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 |---|---|---|---|
 | E001 | COMPLETE (exploratory) | Do price/momentum/context fields in Gamma full-universe snapshots predict repricing by the next snapshot, beyond no-change? | 1h-change model *Indicative (exploratory)*: R2_oos +0.037, positive in 4/4 periods; the fitted sign is **reversal** (about -0.3). Others inconclusive. No edge claim. |
 | E002 | REGISTERED (pre-outcome) | Does the E001 1h-change reversal hold prospectively on new full-universe snapshots, using a frozen coefficient? | pending |
-| E003 | REGISTERED (pre-outcome) | Does top-of-book imbalance or microprice displacement (H08/H09) predict the next few minutes of midpoint repricing, beyond no-change and the 1h reversal? | pending |
+| E003 | COMPLETE (exploratory) | Does top-of-book imbalance or microprice displacement (H08/H09) predict the next few minutes of midpoint repricing, beyond no-change and the 1h reversal? | H08 and H09 **inconclusive** (R2 about 0). The combined model beats reversal-only (+0.031 [+0.011,+0.049]), but only in wide-spread markets; the gain comes from spread/intercept drift, not imbalance. No edge claim. |
 
 ---
 
@@ -222,3 +222,30 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 - Post-hoc family ablation on E001 data (DEVELOPMENT only, not registered): removing the momentum/reversal family costs
   the most. The paired R2 difference is +0.030 [+0.011, +0.049]. Context features and the interaction add +0.013 to +0.014.
   These are hypotheses for future registered experiments, not findings.
+
+### E003 results (S2 scored once, 2026-10-10 21:08Z; `data-dumps/research_lab/e003/s2_results.json`)
+**S2 data**
+- Series `series_20261010T210152Z_7d8b4190` on snapshot `20261010T204959Z_4520b6b7`, 75 min after S1.
+- 42,372 tokens across 10,250 events, clustered by event.
+- Median horizon: 129s for AB, 268s for AC.
+- 11.0% of mids changed between A and B; 16.8% between A and C. 68% of tokens have no `chg_1h`.
+
+| Test (AB) | R2_oos [95% CI] | Verdict |
+|---|---|---|
+| (a) M8 imbalance vs R0 | +0.00047 [-0.00008, +0.00093] | inconclusive (same sign as S1) |
+| (b) M9 microprice vs R0 | +0.000003 [-0.00093, +0.00081] | inconclusive |
+| (c) MC vs R1 | +0.0306 [+0.0114, +0.0491] | **supported (exploratory)** |
+| H09 beyond H08 | -0.00047 [-0.0011, +0.0002] | no |
+
+**AC secondary:** M8 inconclusive. M9 **wrong sign**. MC vs R1 is +0.024 [+0.016, +0.033].
+
+**Spread terciles (descriptive), MC vs R1:**
+- low spread (≤0.02): **-0.39**
+- mid spread: -0.004
+- high spread (≥0.041): **+0.035**
+
+**Interpretation:**
+- Over about 2 minutes, top-of-book imbalance and microprice carry no measurable information about the midpoint across the eligible universe.
+- MC's gain sits entirely in wide-spread books and comes from its spread and intercept terms, which describe midpoint drift in illiquid books. Those terms hurt badly in tight books.
+- That is unlikely to be executable value, since the spreads are wide. The family-level conclusion for H08/H09 is **no evidence of short-horizon value at this population and horizon**.
+- **Next:** if imbalance is revisited, condition on tight, deep books and longer horizons, register first, and model a spread interaction rather than a global spread term.
