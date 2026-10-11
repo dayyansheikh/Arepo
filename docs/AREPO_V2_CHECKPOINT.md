@@ -18,38 +18,46 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
 - Website wording, physical backup and compression are parked.
 - Bypass permissions mode is persisted in `.claude/settings.local.json`. The `git push` ask rule has been removed. Branch-delete and worktree-remove asks remain; do not use them.
 
-## State (2026-10-11 ~11:05Z)
-- **Branch:** `chore/arepo-claude-setup`, pushed. Production is untouched. Another Claude session also commits docs here, so commit only your own files.
-- **Backup:** private repo `dayyansheikh/arepo-data`, release `data-20261011`. A 2.88 GB zstd archive of `data-dumps/` as of about 01:00Z, verified: remote digests match and 206,934 files are listed. A local copy is in `~/arepo_data_archive/20261011`.
-- **Disk:** about 13 GiB free.
+## State (2026-10-11 ~13:45Z)
+- **Branch:** `chore/arepo-claude-setup`, pushed. Production is untouched. Another session also commits here, so commit only your own files.
+- **Backup:** private repo `dayyansheikh/arepo-data`, release `data-20261011`, verified. The local archive parts were deleted 13:4xZ with user approval after a hash re-check; the local manifest and index files remain.
+- **Disk:** about 16.3 GB free. D120 launch needs 15,382,085,632 B.
+
+## Multi-signal ML pipeline (user direction, 2026-10-11)
+Edge search now goes through combined models plus SHAP, not a chain of single E-tests (memory `multi-signal-ml-direction`).
+- **Design:** `research_lab/MULTI_SIGNAL_PIPELINE_DESIGN.md`. Reviewed twice and accepted; amendment A1 (M3 Laplace-EM, fixed-effect categories) has been re-simulated.
+- **Target:** 3-class Gamma-mid move over the next snapshot, δ = 0.005.
+- **Confirmation:** one model, fixed-sequence H1 (log loss vs M0), then H2a/H2b (economic). Needs ≥40 development snapshots plus 24 test periods.
+- **Code:**
+  - `ml_panel.py` (latest 6c5a074): pairs, features, sweep A features, siblings, dependence groups, fold plan, sweep-gap diagnostic.
+  - `ml_models.py` (a1de02e): M0, elastic net, LightGBM (20-config search), M3_eb, clustered bootstrap, OOF SHAP, trials logging.
+  - `requirements-research.txt` and `scripts/research_ml_setup.sh` (libomp workaround).
+- **Sidecar:** `ext_sidecar.py` writes `rows_ext.csv.gz` per snapshot (v2, from pass 7 on). Main files are byte-identical.
+- **Clustering:** `research_lab/DEPENDENCE_CLUSTERING_ANALYSIS.md` (393249a) concludes ML co-primary = fixture-day groups (event ∪ parentEventId ∪ negRisk ∪ series×UTC day ∪ underlying), with season-level as a sensitivity.
+  - Being implemented now: ml_panel plus sidecar v3 adding parentEventId.
+- **Next:** a dev-data runner; first development fits at about 40 snapshots. Every fit logs to trials.jsonl.
 
 ## Experiments
-- E001: exploratory reversal.
-- **E002: Confirmed (exploratory, prospective).**
-- E003: H08/H09 inconclusive.
-- **E004/E005/E006:** 2-hourly loop, 6 of 12 qualifying. Pass 7 is due about 12:31Z.
-  - The loop uses scratchpad scripts (`pass.sh <delay>` for the snapshot plus forecast, `pass_extras.sh` for 2 book sweeps plus a trade-active sample). Each pass is a separate background job that re-schedules the next.
-  - Scoring scripts: `backend/scripts/run_research_e00{4,5,6}.py score`.
-- **E007 (order-flow continuation):** registered at `1e5efad`; dev fit frozen at `3b2498c` (sha `7e2c4f79…`).
-  - Confirmation needs 12 qualifying active samples, one per loop pass, sealed after 10:42:19Z. Deadline 2026-10-18.
-  - `run_research_e007.py score --status`.
-- **Collector v2** routes around Cloudflare-blocked Gamma cursors (`6a1c9d3`). Pass 6 was lost to that block; this is disclosed in the ledger.
+- E002: Confirmed (exploratory). E003: inconclusive.
+- E004/E005/E006: 7 of 12 qualifying. Pass 8 is due about 14:31Z (background `pass.sh 6600`).
+- E007: 0 of 12. The first post-seal sample, from pass 7, counts once snapshot 8 exists. Deadline 2026-10-18.
+- Loop after each pass: `pass_extras.sh` → `run_flow_screen.py` → `run_research_e007.py score --status` → `pass.sh <delay>` for the next pass (~2h). Then commit the trials.jsonl lines.
 
-## Results today (2026-10-11)
-- **C1 calibration** (development, about 3,000 resolved markets): prices 1 day before close are close to calibrated (slope 1.07 [0.94, 1.24]). The 7-day anchor and the $100k+ volume band are not interpretable yet.
-- **L1 lead-lag** (development): nothing worth registering.
-- **Flow screens S1-S5:** only F1 survived. It is registered as E007.
-- **Regression:** 2,125 backend tests and 101 frontend tests pass. Ruff reports only on the frozen `d116_launch.py`, which is left as is (`521506b`).
+## D120 (pairing redesign)
+- Built with design 6×12 (6×16 failed the dry run).
+- Review fixes are in: da81c9d, 3f0d25f.
+  - Plan size 14.1 MB against 16 MiB.
+  - Audit 59.7 s against 300 s.
+  - parentEventId unioned.
+  - S4q PASS odds 0.434.
+- The clustering analysis says D120's grouping is stricter than needed: valid, so no change.
+- **Final pre-freeze review is running.** If it accepts: freeze record, then a single live launch (window HH:46 even to HH:49 odd UTC, no collectors running, disk checked).
 
-## Running workstreams
-- **D120 pairing redesign** (screen-then-activate, group-disjoint pairs, `fee_category` strata, category policy parameter). The design and the Fable 5.1 review (proceed with changes, all adopted) are in `implementation/d120/`. Opus-medium is implementing it.
-  - Next: Opus-high review, dry run, freeze, then a single live run (launch window HH:46 even to HH:49 odd UTC; no collectors running).
-- **Loop:** E004/E005/E006 have 6 of 12 qualifying. Pass 7 is due about 12:31Z (scratchpad `pass.sh`; extras `pass_extras.sh`).
-  - After each pass: run the extras, then `run_flow_screen.py`, then `run_research_e007.py score --status`, then schedule the next pass with `pass.sh <delay>`.
-- **Hourly user update job** (session cron `dbea28e0`, :07 past each hour, until 23:59 UTC+1 today). It rewrites `docs/AREPO_EMAIL_UPDATE.md`, tries Gmail (the connector is currently disconnected in this session), and sends a PushNotification. Remote Control is connected.
+## Hourly update job
+Cron `dbea28e0` fires only when the session is idle, so run the update manually if it is missed. Gmail is unavailable in this session; updates go out as push notifications. Stop after 23:59 UTC+1 with a final push.
 
 ## Exact next actions
-1. After each loop pass, run the extras and the flow screen (`run_flow_screen.py`), then schedule the next pass.
-2. At 12 qualifying snapshots, score E004, E005 and E006.
-3. Take each agent's result through challenger review, then a ledger entry, then commit.
-4. Update the dashboard at each milestone.
+1. When pass 8 completes: run the loop steps above.
+2. D120 review verdict → freeze → launch.
+3. Fixture-day clustering agent → review → dev-data runner.
+4. At 12 qualifying snapshots, score E004/E005/E006 (tonight).

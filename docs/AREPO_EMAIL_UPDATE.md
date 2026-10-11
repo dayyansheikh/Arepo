@@ -1,20 +1,20 @@
-AREPO update 12:19 UTC+1
+AREPO update 14:45 UTC+1
 
 Status: working
 
-What happened this past hour
-- Calibration study finished, on about 3,000 resolved markets: one day before markets close, Polymarket prices are close to accurate as probabilities.
-- The sibling-market test finished: when one market in an event moves, its siblings do not reliably follow. Nothing to pursue.
-- The new pairing design was reviewed by Fable 5.1 (verdict: proceed with changes) and is now being built.
-- A new order-flow experiment (E007) is registered and waiting for data.
+What happened since the last update
+- Started the combined-signal model you asked for. It brings together many signals (price moves, order books, sibling markets, fees, market age, open interest), four models including a Bayesian one, and a Shapley-value breakdown of what each signal adds. The design and code each passed independent reviews; we made about 20 fixes along the way.
+- Each snapshot now also keeps extra market details we used to throw away.
+- A specialist checked how to group related markets so they aren't counted as independent evidence. Answer: group them by game-day (for example, one NFL game's main lines and player props together), not by whole season.
+- Deleted the local backup copy with your OK (verified safe on GitHub). There is now enough disk for the pairing test.
 
 What it means
-If markets priced at 85% resolve "yes" about 84% of the time, the price is an honest probability, with no easy bias to exploit at 1 day out. One possible exception, for very high-volume markets, is not proven. None of this beats trading costs or proves an edge.
+It's like a doctor using blood pressure, age and diet together instead of one test at a time. Nothing has been trained on real data yet, so no edge is proven.
 
 Needs your decision
 Nothing needed.
 
 Next
-- Snapshot 7 of 12 at about 13:31.
-- First E007 order-flow sample right after that.
-- Finish building the pairing redesign, then a review and a rehearsal.
+- Snapshot 8 at about 15:31.
+- Final review, then the pairing test runs once.
+- First development model fits once about 40 snapshots are in (about 3–4 days).

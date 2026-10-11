@@ -1,9 +1,9 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-11 11:18 UTC+1
+**Last updated:** 2026-10-11 14:45 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. No decisions needed from you.
-**Current objective:** Finish the 24-hour forecasting test (E004/E005/E006, results tonight) and decide whether order flow earns a registered experiment.
+**Current objective:** Build the combined-signal model (many signals, ML + Bayesian, Shapley breakdown) and collect its data; finish the 24-hour forecasting test tonight; run the pairing redesign (D120) once.
 
 ## 1. Where we are
 AREPO asks whether information knowable *before* a prediction helps forecast Polymarket price moves better than the
@@ -14,21 +14,15 @@ current price and recent momentum.
 - **Forecasting:** one confirmed short-term pattern (price reversal), which is not tradable as it stands. More tests finish tonight.
 
 ## 2. What changed since the last update
-- **D118 PASSED (09:22–09:36 UTC).**
-  - 12 markets went end to end, all of them complete.
-  - Two triggered markets were each matched with a comparison market, and both pairs completed.
-  - There were zero engineering problems, and timing was well inside the safety limits (26 s against 40 s).
-  - An independent review accepted it.
-- **How we got there:**
-  - an Opus max-effort diagnosis;
-  - a Fable 5.1 review that corrected over-optimistic odds;
-  - a rehearsal that **rejected** the first design before launch (it would have run too slow);
-  - a smaller redesign;
-  - two Opus reviews, then the freeze.
-- **Honest scope:** this proves the comparison *mechanism* works, on markets with at least $1,000 liquidity.
-  - One of the two pairs was almost certainly sibling markets (Knicks vs Thunder playoff odds), so it isn't an independent comparison.
-  - 5 of 7 triggered markets found no comparison partner. It works, but not reliably enough yet to measure effects.
-- **Order flow lead weakened.** In the latest trade-active sample it mostly turned negative. One more sample decides it.
+- **Combined-signal model (your direction):** instead of testing one idea at a time, AREPO now combines many signals in four models (the price+momentum baseline, a regularised model, gradient boosting and a Bayesian model) with a Shapley breakdown of what each signal adds.
+  - Its design, data builder and model code each passed independent reviews (about 20 fixes made).
+  - It will be judged once, prospectively, against the baseline, on accuracy and a fees-included money check.
+  - It needs about 40 snapshots (3–4 days) of development data, then 2–3 days of test data. Nothing is trained on real data yet.
+- **Extra market details** (fees, market age, open interest, rewards, linked events) are now saved with every snapshot. The existing files are unchanged.
+- **Grouping related markets:** a specialist found related markets should be grouped by game-day, not whole season. The pairing test's stricter grouping stays valid.
+- **Disk:** the local backup copy was deleted with your OK (verified identical on GitHub); 16 GB free.
+- **Pairing redesign (D120):** built and passed full-size checks. A final review is running, then it gets locked in and run once.
+- **Snapshot 7 of 12** done; the first valid order-flow (E007) sample is taken.
 
 ## 3. What AREPO can actually do today
 - Run its full research pipeline live, including matched comparisons, in about 14–24 minutes.
@@ -42,13 +36,14 @@ current price and recent momentum.
 |---|---|
 | E002 reversal | **Confirmed (exploratory)**: about 21% of the last-hour move reverses within about 5h; not shown tradable |
 | E003 order-book imbalance | No value at about 2 min (a useful negative) |
-| E004/E005/E006 | Collecting, 5 of 12 snapshots; results about 23:00 UTC+1 tonight |
-| Order flow (development) | Lead weakened; one more sample decides whether it becomes E007 |
+| E004/E005/E006 | Collecting, 7 of 12 snapshots; results about 23:00 UTC+1 tonight |
+| E007 order flow | Registered; collecting (0 of 12, first sample counts after snapshot 8) |
+| Combined-signal model | Built and reviewed; collecting development data (needs ~40 snapshots) |
 
 ## 5. Issues and risks
 | Issue | Why it matters | Blocks? | Action |
 |---|---|---|---|
-| Disk 14 GiB free (D118 added about 3 GB) | Fine for collection | No | The local backup copy (2.9 GB, safe on GitHub) could be removed with your OK if needed |
+| Disk 16 GB free; each pass adds ~150 MB | Fine; the pairing test needs 15.4 GB at launch | No | Run the pairing test soon |
 | Comparison markets are often unavailable | Limits future trigger-vs-control studies | No | Any such study must be designed around it |
 | Reversal may be quote noise | It may not be usable | No | E004's spread-crossing test |
 
@@ -58,9 +53,9 @@ Data rights are out of scope during the private research phase (your decision, 2
 **None. Autonomous work is continuing.**
 
 ## 7. What's next
-1. Collection passes every 2h; E004/E005/E006 scored tonight.
-2. Decide on order flow (E007) after the next trade-active sample.
-3. Lock the Phase 4 baselines formally and plan the next experiment families.
+1. Collection every 2h; E004/E005/E006 scored tonight.
+2. Final review, lock-in and one live run of the pairing test (D120).
+3. Switch the model's grouping to game-day groups; first development fits at ~40 snapshots.
 
 ## 8. Scientific reality check
 - **Demonstrated:** the full, honest data machinery works live, comparisons included; one forecasting pattern held on unseen data.
