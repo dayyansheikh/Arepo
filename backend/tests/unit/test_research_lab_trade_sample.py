@@ -292,3 +292,68 @@ def test_non_json_body_is_schema_error(tmp_path):
 
     man, _ = run(tmp_path, Bad(), n_total=2)
     assert man["status_counts"] == {"schema_error": 2}
+
+
+def active_rows():
+    df = make_rows()
+    vol = np.arange(len(df), dtype=float) * 10.0 + 1.0
+    df["volume24hr"] = vol
+    df.loc[0:9, "volume24hr"] = 0.0
+    df.loc[10:19, "volume24hr"] = np.nan
+    return df
+
+
+def test_active_frame_excludes_nan_and_zero_and_counts():
+    rows = active_rows()
+    full = ts.build_frame(rows)
+    frame = ts.build_frame(rows, "active")
+    assert len(full) == 120 and len(frame) == 100
+    assert (frame["volume24hr_eff"] > 0).all()
+    assert frame.attrs["exclusions"] == {"eligible_before_activity_filter": 120,
+                                         "excluded_volume24hr_nan": 10,
+                                         "excluded_volume24hr_nonpositive": 10}
+
+
+def test_active_strata_by_volume_and_probabilities_sum_to_n():
+    rows = active_rows()
+    plan, sample = ts.build_plan(rows, {"capture_id": "c"}, "", "", 40, SEED, "active")
+    assert all(s["stratum"].startswith("V") for s in plan["strata"])
+    assert len(plan["cuts"]["volume24hr_quartile_cuts"]) == 3
+    assert "liquidity_quartile_cuts" not in plan["cuts"]
+    assert len(sample) == 40 and sample["condition_id"].is_unique
+    assert sum(Fraction(s["n_h"], s["N_h"]) * s["N_h"] for s in plan["strata"]) == 40
+    assert sum(Fraction(m["inclusion_prob"]) for m in plan["sample"]) <= 40
+    assert plan["sum_inclusion_over_frame"] == pytest.approx(40)
+    assert len({s["N_h"] for s in plan["strata"] if s["stratum"].endswith("S0")}) >= 1
+
+
+def test_default_frame_unchanged_and_plan_records_definition():
+    rows = active_rows()
+    plan, _ = ts.build_plan(rows, {"capture_id": "c"}, "", "", 40, SEED)
+    assert plan["frame"] == "eligible" and plan["frame_size"] == 120
+    assert all(s["stratum"].startswith("L") for s in plan["strata"])
+    assert plan["frame_definition"] == ts.FRAME_DEFS["eligible"]
+    plan_a, _ = ts.build_plan(rows, {"capture_id": "c"}, "", "", 40, SEED, "active")
+    assert plan_a["frame"] == "active" and plan_a["frame_size"] == 100
+    assert "volume24hr > 0" in plan_a["frame_definition"]
+    assert plan_a["frame_exclusions"]["excluded_volume24hr_nan"] == 10
+
+
+def test_n_validation():
+    rows = active_rows()
+    with pytest.raises(ValueError, match="frame size"):
+        ts.build_plan(rows, {"capture_id": "c"}, "", "", 101, SEED, "active")
+    with pytest.raises(ValueError):
+        ts.build_plan(rows, {"capture_id": "c"}, "", "", 0, SEED)
+    with pytest.raises(ValueError, match="unknown frame"):
+        ts.build_frame(rows, "bogus")
+
+
+def test_run_records_frame_in_plan_and_manifest(tmp_path):
+    snap = make_snapshot(tmp_path, active_rows())
+    m = ts.run(snap, Fake(), out_root=tmp_path / "out", sleep=lambda s: None, seed=SEED,
+               n_total=30, frame="active")
+    out = tmp_path / "out" / m["sample_id"]
+    plan = json.loads((out / "plan.json").read_text())
+    assert plan["frame"] == "active" and m["frame"] == "active" and m["frame_size"] == 100
+    assert m["frame_exclusions"]["excluded_volume24hr_nan"] == 10

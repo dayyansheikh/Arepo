@@ -1,7 +1,9 @@
 """Probability sample of markets with recorded inclusion probabilities, plus recent trades.
 
-Frame: forecast-eligible markets of one complete snapshot (``panel.eligibility_mask`` exactly as
-``forecast.predict_frame`` / ``book_sweep.select_tokens`` use it), one row per condition id.
+Frame ("eligible", default; "active" adds snapshot volume24hr > 0 and stratifies volume24hr
+quartile x spread tercile): forecast-eligible markets of one complete snapshot
+(``panel.eligibility_mask`` exactly as ``forecast.predict_frame`` / ``book_sweep.select_tokens``
+use it), one row per condition id.
 Strata: liquidity quartile x spread tercile, cut points computed on the frame. Proportional
 allocation (min 1 per non-empty stratum), simple random sampling without replacement per stratum,
 with a seed that is generated and written to ``plan.json`` before the first request (sealed).
@@ -54,6 +56,12 @@ DELAY_SECONDS = 0.1
 BACKOFF_BASE = 1.0
 N_TOTAL = 2000
 VERSION = "trade-sample-v1"
+FRAMES = ("eligible", "active")
+FRAME_DEFS = {
+    "eligible": "forecast-eligible binary markets, one per condition id",
+    "active": "forecast-eligible binary markets, one per condition id, with snapshot "
+              "volume24hr > 0 (origin-time field; NaN excluded and counted)",
+}
 
 Transport = Callable[[dict], tuple[int, bytes, dict]]
 TRADE_COLS = ["market_id", "condition_id", "ts", "side", "price", "size",
@@ -119,8 +127,14 @@ def _atomic_csv_gz(path: Path, df: pd.DataFrame) -> None:
 # --- frame, strata, allocation, sampling ------------------------------------------------------
 
 
-def build_frame(rows: pd.DataFrame) -> pd.DataFrame:
-    """Forecast-eligible binary markets, one per condition id, sorted by condition id."""
+def build_frame(rows: pd.DataFrame, frame: str = "eligible") -> pd.DataFrame:
+    """Forecast-eligible binary markets, one per condition id, sorted by condition id.
+
+    ``frame="active"`` additionally requires snapshot ``volume24hr`` > 0; NaN and <= 0 rows are
+    excluded and counted in ``result.attrs["exclusions"]``.
+    """
+    if frame not in FRAMES:
+        raise ValueError(f"unknown frame {frame!r}; expected one of {FRAMES}")
     binary = rows[rows["binary"] == 1].reset_index(drop=True)
     t_i = panel._epoch(binary["received_utc"])
     ok = panel.eligibility_mask(binary, t_i + forecast.FORECAST_END_MARGIN_H * 3600.0)
@@ -130,17 +144,33 @@ def build_frame(rows: pd.DataFrame) -> pd.DataFrame:
     o["spread_eff"] = np.where(np.isnan(spread), o["best_ask"] - o["best_bid"], spread)
     o["liquidity_eff"] = o["liquidity"].astype(float).fillna(0.0)
     o = o.sort_values(["condition_id", "market_id"]).drop_duplicates("condition_id")
-    return o.reset_index(drop=True)
+    o = o.reset_index(drop=True)
+    o["volume24hr_eff"] = o["volume24hr"].astype(float)
+    excl = {"eligible_before_activity_filter": len(o)}
+    if frame == "active":
+        vol = o["volume24hr_eff"]
+        excl["excluded_volume24hr_nan"] = int(vol.isna().sum())
+        excl["excluded_volume24hr_nonpositive"] = int((vol <= 0).sum())
+        o = o[vol > 0].reset_index(drop=True)
+    o.attrs["exclusions"] = excl
+    return o
 
 
-def assign_strata(frame: pd.DataFrame) -> tuple[pd.Series, dict]:
-    """Stratum label ``Lq-Sq`` (liquidity quartile 0-3, spread tercile 0-2); cuts on the frame."""
-    liq_cuts = [float(x) for x in np.quantile(frame["liquidity_eff"], [0.25, 0.5, 0.75])]
+def assign_strata(frame: pd.DataFrame, kind: str = "eligible") -> tuple[pd.Series, dict]:
+    """Stratum label ``Lq-Sq`` (liquidity quartile 0-3, spread tercile 0-2); cuts on the frame.
+
+    ``kind="active"`` stratifies on volume24hr quartile instead: label ``Vq-Sq``.
+    """
+    active = kind == "active"
+    col, prefix, key = (("volume24hr_eff", "V", "volume24hr_quartile_cuts") if active
+                        else ("liquidity_eff", "L", "liquidity_quartile_cuts"))
+    liq_cuts = [float(x) for x in np.quantile(frame[col], [0.25, 0.5, 0.75])]
     spr_cuts = [float(x) for x in np.quantile(frame["spread_eff"], [1 / 3, 2 / 3])]
-    li = np.searchsorted(liq_cuts, frame["liquidity_eff"].to_numpy(), side="right")
+    li = np.searchsorted(liq_cuts, frame[col].to_numpy(), side="right")
     si = np.searchsorted(spr_cuts, frame["spread_eff"].to_numpy(), side="right")
-    labels = pd.Series([f"L{a}-S{b}" for a, b in zip(li, si, strict=True)], index=frame.index)
-    return labels, {"liquidity_quartile_cuts": liq_cuts, "spread_tercile_cuts": spr_cuts,
+    labels = pd.Series([f"{prefix}{a}-S{b}" for a, b in zip(li, si, strict=True)],
+                       index=frame.index)
+    return labels, {key: liq_cuts, "spread_tercile_cuts": spr_cuts,
                     "rule": "index = searchsorted(cuts, x, side='right'); ties go to upper bin"}
 
 
@@ -182,11 +212,14 @@ def draw_sample(frame: pd.DataFrame, strata: pd.Series, n_total: int, seed: str)
 
 
 def build_plan(rows: pd.DataFrame, manifest: dict, manifest_sha: str, rows_sha: str,
-               n_total: int, seed: str) -> tuple[dict, pd.DataFrame]:
-    frame = build_frame(rows)
+               n_total: int, seed: str, frame_kind: str = "eligible"
+               ) -> tuple[dict, pd.DataFrame]:
+    frame = build_frame(rows, frame_kind)
     if frame.empty:
         raise ValueError("empty frame")
-    strata, cuts = assign_strata(frame)
+    if not 1 <= n_total <= len(frame):
+        raise ValueError(f"n={n_total} must satisfy 1 <= n <= frame size ({len(frame)})")
+    strata, cuts = assign_strata(frame, frame_kind)
     sample = draw_sample(frame, strata, n_total, seed)
     sizes = {k: int(v) for k, v in strata.value_counts().items()}
     alloc = allocate(sizes, n_total)
@@ -208,7 +241,9 @@ def build_plan(rows: pd.DataFrame, manifest: dict, manifest_sha: str, rows_sha: 
         "version": VERSION, "seed": seed, "seed_note": "sealed before any request",
         "snapshot_id": manifest.get("capture_id"), "snapshot_manifest_sha256": manifest_sha,
         "snapshot_rows_sha256": rows_sha, "n_total_requested": n_total,
-        "n_sampled": len(members), "frame_size": len(frame), "cuts": cuts, "strata": srows,
+        "n_sampled": len(members), "frame_size": len(frame), "frame": frame_kind,
+        "frame_definition": FRAME_DEFS[frame_kind],
+        "frame_exclusions": frame.attrs.get("exclusions", {}), "cuts": cuts, "strata": srows,
         "eligibility": "panel.eligibility_mask at origin + FORECAST_END_MARGIN_H, one per "
                        "condition_id (smallest market_id); NaN liquidity treated as 0",
         "sum_inclusion_over_frame": float(sum(r["N_h"] * r["inclusion_float"] for r in srows)),
@@ -283,6 +318,7 @@ def origin_features(trades: list[dict], origin_epoch: float, n_returned: int,
 
 def run(snapshot_dir: Path, transport: Transport, *, n_total: int = N_TOTAL,
         out_root: Path = SAMPLE_ROOT, seed: str | None = None, keep_raw: bool = False,
+        frame: str = "eligible",
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic, now: Callable[[], datetime] = _now,
         max_requests: int = MAX_REQUESTS, max_seconds: float = MAX_SECONDS) -> dict:
@@ -291,7 +327,7 @@ def run(snapshot_dir: Path, transport: Transport, *, n_total: int = N_TOTAL,
     man_sha = forecast.sha256_file(snapshot_dir / "manifest.json")
     rows_sha = forecast.sha256_file(snapshot_dir / "rows.csv.gz")
     seed = seed or secrets.token_hex(16)
-    plan, sample = build_plan(rows, snap_man, man_sha, rows_sha, n_total, seed)
+    plan, sample = build_plan(rows, snap_man, man_sha, rows_sha, n_total, seed, frame)
     started = now()
     sample_id = f"{started.strftime('%Y%m%dT%H%M%SZ')}_{seed[:8]}"
     out = Path(out_root) / sample_id
@@ -302,7 +338,9 @@ def run(snapshot_dir: Path, transport: Transport, *, n_total: int = N_TOTAL,
     manifest: dict = {
         "sample_id": sample_id, "version": VERSION, "state": "planned", "seed": seed,
         "plan_sha256": forecast.sha256_file(out / "plan.json"),
-        "snapshot_id": snap_man.get("capture_id"), "code_commit": _git_commit(),
+        "snapshot_id": snap_man.get("capture_id"), "frame": frame,
+        "frame_definition": FRAME_DEFS[frame], "frame_size": plan["frame_size"],
+        "frame_exclusions": plan["frame_exclusions"], "code_commit": _git_commit(),
         "endpoint": ENDPOINT, "limit": TRADE_LIMIT, "takerOnly": "true",
         "caps": {"max_requests": max_requests, "max_seconds": max_seconds,
                  "max_retries": MAX_RETRIES},
