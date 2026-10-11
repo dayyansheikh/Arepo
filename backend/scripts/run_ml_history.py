@@ -46,7 +46,8 @@ from astrolabe.research_lab import (  # noqa: E402
 HIST_ROOT = ROOT / "data-dumps" / "research_lab" / "history"
 ROLE = "exploratory_historical"
 HORIZON_FILES = {1: 2, 3: 6, 12: 24}  # k grid steps -> panel horizon hours
-STATE_COLS = tuple(c for c in ml_models.M12_FEATURES)
+SW_COLS = tuple(ml_panel.SWEEP_NAMES)  # book family (joined from pmxt features when present)
+STATE_COLS = tuple(c for c in ml_models.M12_FEATURES if c not in SW_COLS)
 FLOW_COLS = hb.TF_NAMES
 WALLET_COLS = hb.WLT_NAMES
 ID_COLS = ["market_id", "event_id", "period", "t_i", "t0", "t_j", "mid_i", "mid_j", "dmid",
@@ -90,6 +91,41 @@ def load_panel(path: Path, markets: set[str]) -> pd.DataFrame:
     df["event_id"] = df["event_id"].where(df["event_id"].fillna("").ne(""), np.nan)
     df["target_available"] = df["target_available"].astype(bool)
     return df.sort_values(["period", "market_id"], kind="stable").reset_index(drop=True)
+
+
+def join_external(df: pd.DataFrame, book_path: Path | None, wage_path: Path | None,
+                  ) -> tuple[pd.DataFrame, dict]:
+    """Optional external tables keyed by (market_id, origin_ts == panel t_i). Missing stays NaN.
+    ``book``: ``history_sources.load_book_features`` (ml_sw_* columns); rows are restricted to
+    origins inside the pmxt window. ``wallet_age``: any numeric columns prefixed ml_wage_/ml_wa_."""
+    info: dict = {"book": None, "wallet_age": None}
+    df = df.copy()
+    df["_ts"] = df["t_i"].astype(float)
+    if book_path is not None and Path(book_path).exists():
+        from astrolabe.research_lab import history_sources as hs
+
+        bf = hs.load_book_features(book_path)
+        cols = [c for c in bf.columns if c in SW_COLS]
+        inwin = np.array([hs.origin_in_window(t) for t in df["_ts"].to_numpy()])
+        df = df[inwin].reset_index(drop=True)
+        bf = bf.drop_duplicates(["market_id", "origin_ts"])[["market_id", "origin_ts", *cols]]
+        df = df.drop(columns=[c for c in cols if c in df.columns]).merge(
+            bf, left_on=["market_id", "_ts"], right_on=["market_id", "origin_ts"], how="left")
+        df = df.drop(columns=["origin_ts"])
+        has = df[cols].notna().any(axis=1) if cols else pd.Series(False, index=df.index)
+        info["book"] = {"path": str(book_path), "columns": cols, "rows_in_window": int(len(df)),
+                        "rows_with_book": int(has.sum())}
+    if wage_path is not None and Path(wage_path).exists():
+        wa = pd.read_csv(wage_path, dtype={"market_id": str})
+        wa["origin_ts"] = wa["origin_ts"].astype(float)
+        cols = [c for c in wa.columns if c.startswith(("ml_wage_", "ml_wa_"))]
+        wa = wa.drop_duplicates(["market_id", "origin_ts"])[["market_id", "origin_ts", *cols]]
+        df = df.merge(wa, left_on=["market_id", "_ts"], right_on=["market_id", "origin_ts"],
+                      how="left").drop(columns=["origin_ts"])
+        info["wallet_age"] = {"path": str(wage_path), "columns": cols,
+                              "rows_with_value": int(df[cols].notna().any(axis=1).sum())
+                              if cols else 0}
+    return df.drop(columns=["_ts"]).reset_index(drop=True), info
 
 
 def usable(cols, lab: pd.DataFrame, min_non_nan: float = 0.05) -> list[str]:
@@ -151,12 +187,12 @@ def score_target_generic(target, lab, results, clusters, n_boot, sink, manifest)
 
 
 def ablate(lab: pd.DataFrame, ycol: str, folds, base_cols, families: dict[str, list[str]],
-           clusters, n_boot: int, n_classes: int) -> dict:
+           clusters, n_boot: int, n_classes: int, eval_mask=None) -> dict:
     cols = list(dict.fromkeys([*base_cols, *sum(families.values(), [])]))
     X = lab[cols].reset_index(drop=True)
     y = lab[ycol].to_numpy(float).astype(int)
     rep = ml_explain.ablation_study(
-        X, y, folds, families, base_cols, clusters, n_boot=n_boot,
+        X, y, folds, families, base_cols, clusters, n_boot=n_boot, eval_mask=eval_mask,
         prior_tests=ml_explain.prior_ml_explain_tests(),
     )
     rep.pop("_full_oof", None)
@@ -210,6 +246,8 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
     hours = HORIZON_FILES[k]
     log(f"horizon k={k} ({hours}h): loading panel")
     df = load_panel(run_dir / f"panel_H{hours}h.csv.gz", markets)
+    df, ext = join_external(df, args.book_table, args.wallet_age_table)
+    res_ext = ext
     table = ml_panel.period_table(df)
     sha = provenance.git_state().get("git_head", "unknown")
     manifest = ml_panel.plan_folds(
@@ -221,7 +259,7 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
             "manifest_sha256": manifest["manifest_sha256"], "embargo_s": manifest["embargo_s"],
             "markets": int(df["market_id"].nunique())}
     log(f"  {info}")
-    res: dict = {"panel": info}
+    res: dict = {"panel": info, "external": res_ext}
     if len(manifest["folds"]) < 2:
         res["error"] = "fewer than 2 folds; not run"
         results[str(k)] = res
@@ -236,6 +274,11 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
     state = tuple(STATE_COLS)
     flow = tuple(usable(FLOW_COLS, lab))
     wallet = tuple(usable(WALLET_COLS, lab))
+    book = tuple(usable(SW_COLS, lab, 0.01)) if ext["book"] else ()
+    wage = tuple(usable([c for c in lab.columns if c.startswith(("ml_wage_", "ml_wa_"))], lab,
+                        0.01)) if ext["wallet_age"] else ()
+    extra_cols = (*book, *wage)
+    eval_mask = (lab[list(book)].notna().any(axis=1).to_numpy() if book else None)
     res["coverage"] = {c: float(lab[c].notna().mean()) for c in (*FLOW_COLS, *WALLET_COLS)}
     res["state_cols_non_nan"] = [c for c in state if lab[c].notna().mean() >= 0.05]
     sink.extra.update(horizon_snapshots_k=k, horizon_hours=hours)
@@ -243,9 +286,12 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
     for target in args.targets:
         tag = f"{target}"
         log(f"  target {target}")
-        arms = {"M0": ("M0", None), "M1": ("M1", None), "M2": ("M2", None),
+        arms = {"M0": ("M0", None), "M1": ("M1", state), "M2": ("M2", state),
                 "M1F": ("M1", (*state, *flow, *wallet)),
                 "M2F": ("M2", (*state, *flow, *wallet))}
+        if extra_cols:
+            arms.update({"M1FX": ("M1", (*state, *flow, *wallet, *extra_cols)),
+                         "M2FX": ("M2", (*state, *flow, *wallet, *extra_cols))})
         if args.skip_arms:
             arms = {"M0": arms["M0"]}
         fits = run_variants(target, lab, manifest, sink, arms)
@@ -256,10 +302,14 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
         fams = {"market_state_extra": [c for c in res["state_cols_non_nan"]
                                        if c not in ml_models.M0_FEATURES],
                 "flow": list(flow), "wallet": list(wallet)}
+        if book:
+            fams["book"] = list(book)
+        if wage:
+            fams["wallet_age"] = list(wage)
         fams = {f: v for f, v in fams.items() if v}
         base = [c for c in ml_models.M0_FEATURES]
         t0 = time.perf_counter()
-        rep = ablate(lab, ycol, folds, base, fams, clusters_x, args.n_boot, ncls)
+        rep = ablate(lab, ycol, folds, base, fams, clusters_x, args.n_boot, ncls, eval_mask)
         log(f"    ablation {time.perf_counter() - t0:.0f}s: "
             + ", ".join(f"{r['unit']}={r['delta_ll']:.5f}({r['label']})" for r in rep["ranking"]))
         res[tag]["ablation"] = compact_ablation(rep)
@@ -267,22 +317,25 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
                "n_rows": int(len(lab)), "manifest_sha256": manifest["manifest_sha256"],
                "dataset": f"history:{run_dir.name}"}
         ablation_trial(rep, hdr, ROLE, args.trials_path,
-                       {"data_provenance": hb.PROVENANCE, "evidence_role_note": ROLE})
+                       {"data_provenance": hb.PROVENANCE, "evidence_role_note": ROLE,
+                        "revision": args.revision})
         if args.placebo and (args.placebo_all or k == 1):
             shuf = shuffle_within_period(lab, ["y_class", "y_absmove"], args.seed + k)
-            prep = ablate(shuf, ycol, folds, base, fams, clusters_x, args.n_boot, ncls)
+            prep = ablate(shuf, ycol, folds, base, fams, clusters_x, args.n_boot, ncls, eval_mask)
             res[tag]["placebo_shuffled_ablation"] = compact_ablation(prep)
             ablation_trial(prep, {**hdr, "placebo": "shuffled_labels_within_period"},
                            "placebo", args.trials_path, {"source_evidence_role": ROLE,
-                                                         "data_provenance": hb.PROVENANCE})
+                                                         "data_provenance": hb.PROVENANCE,
+                                                         "revision": args.revision})
             lk = lab.copy()
             lk["leak_future_move"] = leak_column(lab, args.seed + 100 + k)
             lrep = ablate(lk, ycol, folds, base, {**fams, "leak": ["leak_future_move"]},
-                          clusters_x, args.n_boot, ncls)
+                          clusters_x, args.n_boot, ncls, eval_mask)
             res[tag]["leak_positive_control_ablation"] = compact_ablation(lrep)
             ablation_trial(lrep, {**hdr, "placebo": "leak_positive_control"}, "placebo",
                            args.trials_path, {"source_evidence_role": ROLE,
-                                              "data_provenance": hb.PROVENANCE})
+                                              "data_provenance": hb.PROVENANCE,
+                                              "revision": args.revision})
             if target == "direction" and not args.skip_arms:
                 sf = run_variants(target, shuf, manifest, placebo_sink,
                                   {"M0": ("M0", None), "M2F": ("M2", (*state, *flow, *wallet))})
@@ -290,8 +343,8 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
                     ml_models.score_arms(shuf, sf, clusters, n_boot=args.n_boot,
                                          sink=placebo_sink, manifest=manifest))
         results[str(k)] = res
-        (run_dir / "ml_history_results.json").write_text(json.dumps(results, indent=1,
-                                                                    default=float))
+        (run_dir / f"ml_history_results_{args.revision}.json").write_text(
+            json.dumps(results, indent=1, default=float))
 
 
 def main(argv=None) -> int:
@@ -310,6 +363,12 @@ def main(argv=None) -> int:
     ap.add_argument("--no-placebo", dest="placebo", action="store_false")
     ap.add_argument("--placebo-all", action="store_true")
     ap.add_argument("--skip-arms", action="store_true", help="ablation only")
+    ap.add_argument("--book-table", type=Path, default=None,
+                    help="optional pmxt book_features.csv.gz (history_sources.load_book_features)")
+    ap.add_argument("--wallet-age-table", type=Path, default=None,
+                    help="optional (market_id, origin_ts, ml_wage_*) table")
+    ap.add_argument("--revision", default="r0_no_external",
+                    help="separate governance revision label stamped on every trial line")
     ap.add_argument("--trials-path", type=Path, default=provenance.TRIALS_PATH)
     a = ap.parse_args(argv)
     a.targets = [t for t in a.targets.split(",") if t]
@@ -334,14 +393,15 @@ def main(argv=None) -> int:
     }
     sink = ml_models.TrialSink(dataset=f"history:{a.run_id}", path=a.trials_path,
                                evidence_role=ROLE,
-                               extra={"data_provenance": hb.PROVENANCE})
+                               extra={"data_provenance": hb.PROVENANCE, "revision": a.revision})
     placebo_sink = ml_models.TrialSink(
         dataset=f"history:{a.run_id}", path=a.trials_path, evidence_role="placebo",
         extra={"data_provenance": hb.PROVENANCE, "source_evidence_role": ROLE,
-               "placebo": "shuffled_labels_within_period"})
+               "placebo": "shuffled_labels_within_period", "revision": a.revision})
     for k in [int(x) for x in a.horizons.split(",")]:
         run_horizon(k, a, markets, sink, placebo_sink, results, run_dir)
-    (run_dir / "ml_history_results.json").write_text(json.dumps(results, indent=1, default=float))
+    (run_dir / f"ml_history_results_{a.revision}.json").write_text(
+        json.dumps(results, indent=1, default=float))
     log("done")
     return 0
 
