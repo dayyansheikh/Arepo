@@ -114,6 +114,16 @@ Current confirmatory slots: E004, E005, E006 (three of four).
 Rules for adding to the queue: one registration per question; no new experiment fills a slot until a current
 one has a scored verdict; post hoc dev screens (`features_dev.py` style) generate hypotheses, never evidence.
 
+## Multi-signal and feature-discovery track (user direction, 2026-10-11)
+
+- Edge search now runs mainly through combined models with attribution, not single E-tests:
+  `../../research_lab/MULTI_SIGNAL_PIPELINE_DESIGN.md` (MC1, reviewed and accepted).
+- Cross-cycle feature, interaction and regime discovery, the promotion ladder (exploratory, dev-validated,
+  registered, prospectively confirmed, economically checked) and the search budget are in
+  `../../research_lab/FEATURE_DISCOVERY_PROGRAMME.md` (governance section pending `science-reviewer` review).
+- For this track, development fits of elastic net, LightGBM and the hierarchical model follow the design's own
+  budget and gates; the Stage-2 non-goal below still governs any other registration.
+
 ## Data-readiness criteria
 
 - **Registering a confirmatory test**: data exist or a registered collection is running, power statement shows the
