@@ -23,6 +23,7 @@ import contextlib
 import hashlib
 import json
 import math
+import os
 import resource
 import sys
 import time
@@ -42,6 +43,8 @@ CACHE_ROOT = DUMPS / "ml_cache"
 OUT_DIR = ROOT / "docs" / "research_lab" / "ml_dev"
 
 MIN_SNAPSHOTS = 40
+# Test code only: lowers the gate. Any use is stamped gate_overridden=true everywhere.
+TEST_GATE_ENV = "AREPO_ML_DEV_TEST_ONLY_MIN_SNAPSHOTS"
 CADENCE_H = 2.0
 HASHED_MODULES = ("ml_panel", "panel", "features", "features_dev", "evaluate")
 
@@ -55,15 +58,28 @@ def _start_epoch(cap: dict) -> float:
     return pd.Timestamp(cap["started_utc"]).timestamp()
 
 
-def has_complete_sidecar(snapshot_dir: Path) -> bool:
+MIN_EXT_VERSION = 3  # parent links (parentEventId) enter dep_group only from sidecar v3
+
+
+def sidecar_version(snapshot_dir: Path) -> int | None:
+    """Sidecar ``ext_version`` number (``snapshot-ext-v3`` -> 3) when the sidecar is complete."""
     d = Path(snapshot_dir)
     mp = d / "ext_manifest.json"
     if not (d / "rows_ext.csv.gz").exists() or not mp.exists():
-        return False
+        return None
     try:
-        return json.loads(mp.read_text()).get("sidecar_status") == "complete"
-    except (OSError, ValueError):
-        return False
+        m = json.loads(mp.read_text())
+        if m.get("sidecar_status") != "complete":
+            return None
+        return int(str(m.get("ext_version", "")).rsplit("v", 1)[1])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def has_complete_sidecar(snapshot_dir: Path) -> bool:
+    """Counts toward the gate only with a complete sidecar of ext_version >= 3."""
+    v = sidecar_version(snapshot_dir)
+    return v is not None and v >= MIN_EXT_VERSION
 
 
 def discover_captures(snapshot_root: Path) -> list[dict]:
@@ -75,7 +91,8 @@ def discover_captures(snapshot_root: Path) -> list[dict]:
             continue
         caps.append({"capture_id": man["capture_id"], "started_utc": man["started_utc"],
                      "finished_utc": man.get("finished_utc"), "dir": str(mp.parent),
-                     "sidecar": has_complete_sidecar(mp.parent)})
+                     "sidecar": has_complete_sidecar(mp.parent),
+                     "ext_version": sidecar_version(mp.parent)})
     return sorted(caps, key=_start_epoch)
 
 
@@ -153,7 +170,8 @@ def usable_sweeps(sweep_root: Path, caps: list[dict]) -> tuple[dict, dict]:
 # ---------------------------------------------------------------------------------------------
 
 
-def panel_hash(caps: list[dict], sweeps: dict, policy: dict, delta: float) -> str:
+def panel_hash(caps: list[dict], sweeps: dict, policy: dict, delta: float,
+               with_leak: bool = False) -> str:
     from astrolabe.research_lab import ml_panel, provenance
 
     here = Path(ml_panel.__file__).parent
@@ -161,7 +179,7 @@ def panel_hash(caps: list[dict], sweeps: dict, policy: dict, delta: float) -> st
         "captures": [[c["capture_id"], c["started_utc"], bool(c["sidecar"])] for c in caps],
         "sweeps": {k: [v["sweep_id"], v["returned"], v["eligible"]]
                    for k, v in sorted(sweeps.items())},
-        "policy": policy, "delta": delta,
+        "policy": policy, "delta": delta, "with_leak": with_leak,
         "features": ml_panel.extended_feature_versions(),
         "modules": {m: provenance.sha256_file(here / f"{m}.py") for m in HASHED_MODULES},
         "dep_underlying_date": ml_panel.DEP_GROUP_UNDERLYING,
@@ -195,11 +213,12 @@ def _clean(o):
     return o
 
 
-def get_panel(caps, sweeps, policy, delta, cache_root: Path, rebuild: bool = False):
+def get_panel(caps, sweeps, policy, delta, cache_root: Path, rebuild: bool = False,
+              with_leak: bool = False):
     """Returns (panel, counts, hash, cache_dir, from_cache). Snapshots are only read."""
     from astrolabe.research_lab import ml_panel
 
-    h = panel_hash(caps, sweeps, policy, delta)
+    h = panel_hash(caps, sweeps, policy, delta, with_leak)
     cdir = Path(cache_root) / h
     pq, meta = cdir / "panel.parquet", cdir / "meta.json"
     if pq.exists() and meta.exists() and not rebuild:
@@ -207,7 +226,8 @@ def get_panel(caps, sweeps, policy, delta, cache_root: Path, rebuild: bool = Fal
         m = json.loads(meta.read_text())
         df.attrs["category_info"] = m["category_info"]
         return df, m["counts"], h, cdir, True
-    df, counts = ml_panel.build_panel(caps, sweep_receipts=sweeps, delta=delta, policy=policy)
+    df, counts = ml_panel.build_panel(caps, sweep_receipts=sweeps, delta=delta, policy=policy,
+                                       with_leak=with_leak)
     cdir.mkdir(parents=True, exist_ok=True)
     tmp = cdir / "panel.parquet.tmp"
     df.to_parquet(tmp, index=False)
@@ -272,6 +292,8 @@ def panel_summary(df: pd.DataFrame) -> dict:
         "largest_cluster_share_labelled": {
             k: float(s.value_counts(normalize=True).iloc[0]) if len(s) else None
             for k, s in series.items()},
+        "dep_group_no_parent_share": float(lab["dep_group_no_parent"].astype(float).mean())
+        if len(lab) else None,
         "sweep_gap_rows": int(df["rep_sw_gap"].notna().sum()) if "rep_sw_gap" in df else 0,
     }
 
@@ -326,6 +348,7 @@ def print_dry(out: dict) -> None:
     share = {k: None if v is None else round(v, 3)
              for k, v in p["largest_cluster_share_labelled"].items()}
     print(f"[dry-run] K (labelled): {p['k_clusters_labelled']}  largest share: {share}")
+    print(f"[dry-run] dep_group_no_parent share: {p['dep_group_no_parent_share']}")
     print(f"[dry-run] folds: {out['folds']['n_folds']} ({out['folds']['reason']})")
     hi = sorted(p["feature_nan_rates"].items(), key=lambda kv: -kv[1])[:8]
     print("[dry-run] highest NaN rates: " + ", ".join(f"{k}={v:.2f}" for k, v in hi))
@@ -339,24 +362,24 @@ def print_dry(out: dict) -> None:
 
 
 @contextlib.contextmanager
-def _m0_columns(cols):
-    """Run ``ml_models.fit_m0`` on a different column set without editing ml_models."""
+def _columns(attr: str, cols):
+    """Run an ``ml_models`` fit on a different column set (``M0_FEATURES`` or ``M12_FEATURES``)."""
     from astrolabe.research_lab import ml_models as mm
 
-    old = mm.M0_FEATURES
-    mm.M0_FEATURES = tuple(cols)
+    old = getattr(mm, attr)
+    setattr(mm, attr, tuple(cols))
     try:
         yield
     finally:
-        mm.M0_FEATURES = old
+        setattr(mm, attr, old)
 
 
-def fit_probe(name: str, cols, lab, manifest, sink, fn=None):
+def fit_probe(name: str, cols, lab, manifest, sink, fn=None, attr: str = "M0_FEATURES"):
     from astrolabe.research_lab import ml_models as mm
 
     mm.ARMS[name] = fn or mm.fit_m0
     try:
-        with _m0_columns(cols or mm.M0_FEATURES):
+        with _columns(attr, cols or getattr(mm, attr)):
             return mm.run_arm(name, lab, manifest, sink=sink)
     finally:
         mm.ARMS.pop(name, None)
@@ -393,46 +416,94 @@ def run_gap_diagnostics(lab, manifest, results, sink) -> dict:
 
 
 SHUFFLE_SEED = 116
-LEAK_COLUMN = "dmid"  # the target-snapshot move itself: a deliberate leak
+LEAK_COLUMN = "dmid"  # the target-snapshot move itself (scorer sanity check)
+SHUFFLE_BLOCKS = {"period": ["period"], "period_event": ["period", "event"]}
 
 
-def shuffle_labels(lab: pd.DataFrame, seed: int = SHUFFLE_SEED) -> pd.DataFrame:
-    """Labels permuted within period x event blocks (design section 4), seeded. Features and
-    all timing columns are untouched, so the fold plan and purge are unchanged."""
+def _block_key(lab: pd.DataFrame, by: str) -> pd.Series:
+    ev = lab["event_id"].where(lab["event_id"].notna(), "mkt:" + lab["market_id"].astype(str))
+    parts = {"period": lab["period"].astype(str), "event": ev.astype(str)}
+    key = parts[SHUFFLE_BLOCKS[by][0]]
+    for c in SHUFFLE_BLOCKS[by][1:]:
+        key = key + "|" + parts[c]
+    return key
+
+
+def singleton_share(lab: pd.DataFrame, by: str) -> float:
+    """Share of rows alone in their shuffle block (their label cannot move)."""
+    size = _block_key(lab, by).map(_block_key(lab, by).value_counts())
+    return float((size == 1).mean()) if len(lab) else 0.0
+
+
+def shuffle_labels(lab: pd.DataFrame, by: str = "period", seed: int = SHUFFLE_SEED) -> pd.DataFrame:
+    """Seeded label permutation inside blocks: ``period`` is the global null; ``period_event``
+    (design wording) is the secondary placebo. Features and timing columns are untouched, so the
+    fold plan and purge are unchanged."""
     rng = np.random.default_rng(seed)
     out = lab.copy()
     y = out["y_class"].to_numpy(float).copy()
-    ev = out["event_id"].where(out["event_id"].notna(), "mkt:" + out["market_id"].astype(str))
-    key = out["period"].astype(str) + "|" + ev.astype(str)
-    for idx in out.groupby(key, sort=True).indices.values():
+    for idx in out.groupby(_block_key(out, by), sort=True).indices.values():
         y[idx] = y[rng.permutation(idx)]
     out["y_class"] = y
     return out
 
 
 def run_placebos(lab, manifest, results, clusters, sink) -> dict:
-    """Report-only placebos, logged as placebo arms: shuffled labels (M0 and M1 refitted on the
-    permuted labels), the target-snapshot leak positive control (M0 + dmid; it must win big) and
-    the quote-age-only model (M0 + quote staleness). Never enters a verdict."""
+    """Report-only placebos, logged as placebo arms (never enter a verdict): shuffled labels
+    (global within-period null, plus period x event), the leak positive control with EVERY
+    feature shifted to the target snapshot (``leak_*`` panel columns) and the ``dmid`` scorer
+    sanity check, and the quote-age-only model."""
     from astrolabe.research_lab import ml_models as mm
 
     base = list(mm.M0_FEATURES)
-    shuf = shuffle_labels(lab)
-    m0s = fit_probe("M0_placebo_shuffled", None, shuf, manifest, sink)
-    m1s = fit_probe("M1_placebo_shuffled", None, shuf, manifest, sink, fn=mm.fit_m1)
     m0 = results["M0"]
-    leak = fit_probe("M0_placebo_leak", [*base, LEAK_COLUMN], lab, manifest, sink)
-    qage = fit_probe("M0_placebo_quote_age", [*base, "ml_quote_staleness_h"], lab, manifest, sink)
-    out = {
-        "status": "REPORT-ONLY placebos; never enter a verdict",
-        "shuffled_labels": mm.score_arms(
-            shuf, {"M0": m0s, "M1_placebo_shuffled": m1s}, clusters, sink=sink, manifest=manifest),
-        "leak_positive_control": mm.score_arms(
-            lab, {"M0": m0, "M0_placebo_leak": leak}, clusters, sink=sink, manifest=manifest),
-        "quote_age_only": mm.score_arms(
-            lab, {"M0": m0, "M0_placebo_quote_age": qage}, clusters, sink=sink, manifest=manifest),
-    }
+    out: dict = {"status": "REPORT-ONLY placebos; never enter a verdict", "singleton_share": {
+        by: singleton_share(lab, by) for by in SHUFFLE_BLOCKS}}
+    for by in SHUFFLE_BLOCKS:
+        shuf = shuffle_labels(lab, by)
+        m0s = fit_probe(f"M0_placebo_shuffled_{by}", None, shuf, manifest, sink)
+        m1s = fit_probe(f"M1_placebo_shuffled_{by}", None, shuf, manifest, sink, fn=mm.fit_m1)
+        out[f"shuffled_labels_{by}"] = mm.score_arms(
+            shuf, {"M0": m0s, f"M1_placebo_shuffled_{by}": m1s}, clusters, sink=sink,
+            manifest=manifest)
+    leak_cols = [f"leak_{n}" for n in mm.M12_FEATURES]
+    if all(c in lab.columns for c in leak_cols):
+        lk = lab.copy()
+        for n in mm.M12_FEATURES:
+            lk[n] = lab[f"leak_{n}"]
+        m1l = fit_probe("M1_placebo_leak_all_features", None, lk, manifest, sink, fn=mm.fit_m1)
+        out["leak_all_features_positive_control"] = mm.score_arms(
+            lab, {"M0": m0, "M1_placebo_leak_all_features": m1l}, clusters, sink=sink,
+            manifest=manifest)
+    else:
+        out["leak_all_features_positive_control"] = {
+            "status": "NOT RUN: leak_* columns absent (panel built without with_leak)"}
+    dm = fit_probe("M0_placebo_leak_dmid", [*base, LEAK_COLUMN], lab, manifest, sink)
+    out["leak_dmid_sanity_check"] = mm.score_arms(
+        lab, {"M0": m0, "M0_placebo_leak_dmid": dm}, clusters, sink=sink, manifest=manifest)
+    qa = fit_probe("M0_placebo_quote_age", [*base, "ml_quote_staleness_h"], lab, manifest, sink)
+    out["quote_age_only"] = mm.score_arms(
+        lab, {"M0": m0, "M0_placebo_quote_age": qa}, clusters, sink=sink, manifest=manifest)
     return out
+
+
+def run_no_sweep_sensitivity(lab, manifest, results, clusters, sink) -> dict:
+    """Report-only: M1 and M2 refitted on tier (a) minus the sweep (a11) features."""
+    from astrolabe.research_lab import ml_models as mm
+
+    fits = {
+        "M1_noSweep": fit_probe("M1_noSweep", mm.M12_NO_SWEEP, lab, manifest, sink,
+                                fn=mm.fit_m1, attr="M12_FEATURES"),
+        "M2_noSweep": fit_probe("M2_noSweep", mm.M12_NO_SWEEP, lab, manifest, sink,
+                                fn=mm.fit_m2, attr="M12_FEATURES"),
+    }
+    return {
+        "status": "REPORT-ONLY sensitivity: tier (a) minus sweep (ml_sw_*) features",
+        "features_removed": sorted(set(mm.M12_FEATURES) - set(mm.M12_NO_SWEEP)),
+        "score": mm.score_arms(
+            lab, {"M0": results["M0"], "M1": results["M1"], "M2": results["M2"], **fits},
+            clusters, sink=sink, manifest=manifest),
+    }
 
 
 # ---------------------------------------------------------------------------------------------
@@ -466,7 +537,7 @@ def real_run(args, caps, gate, policy) -> dict:
     run_caps = [c for c in caps if c["capture_id"] in run_ids]
     sweeps, sweep_report = usable_sweeps(args.sweep_root, run_caps)
     df, counts, h, cdir, cached = get_panel(run_caps, sweeps, policy, args.delta,
-                                            args.cache_root, args.rebuild)
+                                            args.cache_root, args.rebuild, with_leak=True)
     man, why = plan(df)
     if man is None or why:
         raise SystemExit(f"cannot plan folds: {why}")
@@ -480,7 +551,15 @@ def real_run(args, caps, gate, policy) -> dict:
     lab = ml_panel.labelled(df)
     trials_path = Path(args.trials_path)
     before = _count_lines(trials_path)
-    sink = mm.TrialSink(dataset=f"ml_dev panel {h[:12]}", path=trials_path)
+    overridden = bool(gate.get("gate_overridden"))
+    sink = mm.TrialSink(dataset=f"ml_dev panel {h[:12]}", path=trials_path,
+                        extra={"gate_overridden": True} if overridden else {})
+    # M1/M2 use the sweep (a11) features, so the sweep-gap diagnostic is mandatory
+    sweep_used = bool(len(lab) and lab[list(ml_panel.SWEEP_NAMES)].notna().any().any()
+                      and lab["rep_sw_gap"].notna().any())
+    if not sweep_used:
+        raise SystemExit("REFUSED: no sweep features / sweep-minus-Gamma gap in the labelled "
+                         "panel, but the sweep-gap diagnostic is mandatory for M1/M2")
 
     results = mm.run_arms(lab, man, mm.ARM_NAMES, sink=sink, collect_shap=True)
     clusters = mm.cluster_vectors(lab, lab["dep_group"].to_numpy())
@@ -488,30 +567,29 @@ def real_run(args, caps, gate, policy) -> dict:
     score = mm.score_arms(lab, results, clusters, sink=sink, manifest=man)
     shap = mm.summarize_shap(lab, results["M2"])
 
-    diag, probe_results = None, {}
-    sweep_used = bool(
-        len(lab) and lab[list(ml_panel.SWEEP_NAMES)].notna().any().any()
-        and lab["rep_sw_gap"].notna().any())
-    if sweep_used:
-        diag = run_gap_diagnostics(lab, man, results, sink)
-        probe_results = diag.pop("fits")
-        diag["gap_placebo_vs_M0"] = mm.score_arms(
-            lab, {"M0": results["M0"], "M0_gap_placebo": probe_results["M0_gap_placebo"]},
-            clusters, sink=sink, manifest=man)
+    diag = run_gap_diagnostics(lab, man, results, sink)
+    probe_results = diag.pop("fits")
+    diag["gap_placebo_vs_M0"] = mm.score_arms(
+        lab, {"M0": results["M0"], "M0_gap_placebo": probe_results["M0_gap_placebo"]},
+        clusters, sink=sink, manifest=man)
+    no_sweep = run_no_sweep_sensitivity(lab, man, results, clusters, sink)
     placebos = run_placebos(lab, man, results, clusters, sink)
     report = {
-        "placebos": placebos,
-        "status": "DEVELOPMENT/post-hoc. Exploratory. No edge, calibration or profitability claim.",
+        "placebos": placebos, "no_sweep_sensitivity": no_sweep,
+        "gate_overridden": overridden,
+        "status": ("GATE OVERRIDDEN (TEST ONLY). " if overridden else "")
+        + "DEVELOPMENT/post-hoc. Exploratory. No edge, calibration or profitability claim.",
+        "feature_lists": {"M0": list(mm.M0_FEATURES), "M1_M2": list(mm.M12_FEATURES),
+                          "M3_eb": list(mm.BAYES_FEATURES),
+                          "M1_M2_no_sweep": list(mm.M12_NO_SWEEP)},
         "utc": stamp, "panel_hash": h, "from_cache": cached, "cache_dir": str(cdir),
         "gate": {k: v for k, v in gate.items() if k != "run_capture_ids"},
         "capture_ids": [c["capture_id"] for c in run_caps], "sweeps": sweep_report,
         "manifest_sha256": man["manifest_sha256"], "n_folds": len(man["folds"]),
         "category_policy": man["category_policy"], "code_sha": man["code_sha"],
         "panel": panel_summary(df), "score": score, "shap": shap,
-        "sweep_features_in_probe": sweep_used,
-        "sweep_gap": diag if diag else {
-            "status": "not run: no sweep features or sweep-minus-Gamma gap in the labelled panel"},
-        "arms_use_sweep_features": False,
+        "sweep_gap": diag, "sweep_gap_diagnostic_mandatory": True,
+        "arms_use_sweep_features": True,
         "arm_fold_diagnostics": {a: r.folds for a, r in {**results, **probe_results}.items()},
         "accounting": accounting(results, probe_results, before, trials_path),
         "provenance": provenance.run_provenance(),
@@ -531,6 +609,7 @@ def render_md(r: dict) -> str:
 
     sc, pn = r["score"], r["panel"]
     L = [f"# ML development run {r['utc']}", "", f"**{r['status']}**", "",
+         f"- dep_group_no_parent share: {r['panel']['dep_group_no_parent_share']}",
          f"- Panel `{r['panel_hash'][:12]}`: {pn['n_rows']} rows, {pn['n_labelled']} labelled, "
          f"{pn['n_periods']} periods, {r['n_folds']} folds; "
          f"manifest `{r['manifest_sha256'][:12]}`.",
@@ -567,15 +646,29 @@ def render_md(r: dict) -> str:
                  f"median |gap| {f(c['gap_abs_median'], 5)}.")
     else:
         L.append(sg["status"])
-    for tag, key, arm in (("Shuffled labels (expect ~0)", "shuffled_labels", "M1_placebo_shuffled"),
-                          ("Leak positive control (must win)", "leak_positive_control",
-                           "M0_placebo_leak"),
-                          ("Quote-age-only", "quote_age_only", "M0_placebo_quote_age")):
-        blk = r["placebos"][key]["bootstrap"]["event"]["log_loss"][arm]
+    pl = r["placebos"]
+    L.append(f"- Singleton-block share of rows: {pl['singleton_share']}.")
+    for tag, key, arm in (
+            ("Shuffled labels, within period (global null; expect ~0)",
+             "shuffled_labels_period", "M1_placebo_shuffled_period"),
+            ("Shuffled labels, period x event (secondary)",
+             "shuffled_labels_period_event", "M1_placebo_shuffled_period_event"),
+            ("Leak control, ALL features shifted to target (must win)",
+             "leak_all_features_positive_control", "M1_placebo_leak_all_features"),
+            ("Leak sanity check, dmid added", "leak_dmid_sanity_check", "M0_placebo_leak_dmid"),
+            ("Quote-age-only", "quote_age_only", "M0_placebo_quote_age")):
+        if "bootstrap" not in pl[key]:
+            L.append(f"- Placebo, {tag}: {pl[key].get('status')}")
+            continue
+        blk = pl[key]["bootstrap"]["event"]["log_loss"][arm]
         L.append(f"- Placebo, {tag}: rel. log-loss improvement vs M0 "
                  f"{f(blk['rel_improvement'])} (event-cluster CI {blk['ci95']}).")
-    L += ["", f"Arms M0-M3_eb use no sweep features (`arms_use_sweep_features = "
-          f"{r['arms_use_sweep_features']}`); sweep features enter only the report-only probes.",
+    ns = r["no_sweep_sensitivity"]["score"]["bootstrap"]["event"]["log_loss"]
+    L += ["", "## Tier (a) minus sweep sensitivity (report-only)", ""]
+    L += [f"- {a}: rel. improvement vs M0 {f(e['rel_improvement'])}" for a, e in ns.items()]
+    L += ["", f"M1/M2 use the sweep (a11) and sibling (a10) features "
+          f"(`arms_use_sweep_features = {r['arms_use_sweep_features']}`); the sweep-gap "
+          "diagnostic above is mandatory. M0 and M3_eb use their own declared features.",
           "", "## SHAP (M2, out-of-fold, exploratory)", "",
           "Never evidence of edge or mechanism. Mean |SHAP| by family (up minus down):", ""]
     fam = r["shap"]["margins"]["up_minus_down"]["mean_abs_by_family"]
@@ -605,7 +698,6 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--delta", type=float, default=ml_panel.DELTA_PRIMARY)
     ap.add_argument("--category-mode", choices=ml_panel.CATEGORY_MODES, default="all")
     ap.add_argument("--categories", default="", help="comma-separated fee categories")
-    ap.add_argument("--min-snapshots", type=int, default=MIN_SNAPSHOTS)
     ap.add_argument("--rebuild", action="store_true", help="ignore the parquet cache")
     args = ap.parse_args(argv)
     policy = ml_panel.category_policy(
@@ -623,7 +715,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     caps = discover_captures(args.snapshot_root)
-    gate = gate_status(caps, args.min_snapshots)
+    minimum, overridden = MIN_SNAPSHOTS, False
+    if os.environ.get(TEST_GATE_ENV):
+        minimum, overridden = int(os.environ[TEST_GATE_ENV]), True
+        if minimum != MIN_SNAPSHOTS:
+            print(f"!!! WARNING: development gate OVERRIDDEN to {minimum} snapshots via "
+                  f"{TEST_GATE_ENV}. TEST USE ONLY. Reports and trials are stamped "
+                  "gate_overridden=true. !!!", file=sys.stderr)
+        else:
+            overridden = False
+    gate = gate_status(caps, minimum)
+    gate["gate_overridden"] = overridden
     if not gate["met"]:
         print(f"REFUSED: development gate not met. {gate['longest_consecutive_run']} consecutive "
               f"sidecar-complete snapshots exist ({gate['qualifying_with_sidecar']} with sidecar, "

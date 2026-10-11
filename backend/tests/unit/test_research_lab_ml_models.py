@@ -21,7 +21,7 @@ CATS = ["crypto", "politics", "other"]
 
 def _panel(signal: str | None = "ml_spread", seed: int = 5, noise_only: bool = False):
     rng = np.random.default_rng(seed)
-    names = ml_panel.TIER_A_NAMES
+    names = ml_panel.EXTENDED_NAMES
     n = N_PERIODS * ROWS
     X = pd.DataFrame(rng.normal(size=(n, len(names))), columns=names)
     X.loc[rng.random(n) < 0.1, "ml_own_dmid_prev"] = np.nan
@@ -127,7 +127,7 @@ def test_no_test_row_in_tuning_or_training(panel_signal, arm):
     assert np.array_equal(ff.proba, ff2.proba)
     # rows are scored independently: perturbing one test row's features moves no other row
     d3 = df.copy()
-    feat = list(ml_panel.TIER_A_NAMES)
+    feat = list(mm.M12_FEATURES)
     d3.loc[test_pos[0], feat] = 1e3
     ff3, _, _ = mm.fit_fold(arm, d3, fold, man["embargo_s"])
     assert np.array_equal(ff.proba[1:], ff3.proba[1:])
@@ -148,7 +148,7 @@ def test_shap_shape_and_sums(panel_signal, results):
     df, man = panel_signal
     r = results["M2"]
     assert len(r.shap_folds) == 2
-    p = len(ml_panel.TIER_A_NAMES)
+    p = len(mm.M12_FEATURES)
     for f in r.shap_folds:
         sh = f["shap"]
         assert sh["contrib"].shape == (len(f["test_pos"]), 3, p)
@@ -157,7 +157,7 @@ def test_shap_shape_and_sums(panel_signal, results):
     out = mm.summarize_shap(df, r)
     assert "EXPLORATORY" in out["status"]
     m = out["margins"]["up_minus_down"]
-    assert set(m["mean_abs_by_feature"]) == set(ml_panel.TIER_A_NAMES)
+    assert set(m["mean_abs_by_feature"]) == set(mm.M12_FEATURES)
     assert set(m["mean_abs_by_category"]) == set(CATS)
     # the planted features lead; family aggregation is a sum of SHAP, not of |SHAP|
     top = max(m["mean_abs_by_feature"], key=m["mean_abs_by_feature"].get)

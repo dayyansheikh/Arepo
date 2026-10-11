@@ -818,6 +818,30 @@ def assert_sweep_coverage(
     return cov
 
 
+def leak_feature_frame(
+    snap_i: pd.DataFrame, snap_j: pd.DataFrame, market_ids: np.ndarray, pairs: pd.DataFrame,
+    period: int, history: list[pd.DataFrame], sweep_rows_j: pd.DataFrame | None,
+) -> pd.DataFrame:
+    """DELIBERATE LEAK (leakage-alarm positive control): every extended feature computed from the
+    **target** snapshot j exactly as ``build_period`` computes it from the origin snapshot (j's
+    rows, history shifted by one so ``hist_1`` is snapshot i, j's sibling moves and sweep).
+    Returns ``leak_<name>`` columns. It is never part of any feature set."""
+    hist_j = [slim_history(snap_i)] + list(history)[: HISTORY_DEPTH - 1]
+    rj = snap_j.drop_duplicates("market_id").set_index("market_id").reindex(market_ids)
+    rj = rj.rename_axis("market_id").reset_index()
+    t_ij = panel._epoch(rj["received_utc"])
+    hj = history_columns(market_ids, t_ij, hist_j)
+    nrj = features_dev.add_negrisk_columns(pairs[["market_id", "period"]], {period: snap_j})
+    sw = sweep_columns(market_ids, sweep_rows_j)
+    sib = sibling_moves(snap_j, hist_j[0], market_ids)
+    oj = pd.concat([rj, hj, pd.DataFrame({"t_i": t_ij})], axis=1)
+    oj["nr_excess"] = nrj["nr_excess"].to_numpy()
+    oj["nr_member"] = nrj["nr_member"].to_numpy()
+    oj = pd.concat([oj, sw.drop(columns="sw_mid"), sib], axis=1)
+    lf = feature_frame(oj, EXTENDED_NAMES)
+    return lf.add_prefix("leak_")
+
+
 def build_period(
     snap_i: pd.DataFrame,
     snap_j: pd.DataFrame,
@@ -833,6 +857,8 @@ def build_period(
     sweep_rows: pd.DataFrame | None = None,
     sweep_started_epoch: float | None = None,
     dep_underlying_date: bool = DEP_GROUP_UNDERLYING,
+    with_leak: bool = False,
+    leak_sweep_rows: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame | None, dict]:
     """Paired rows for one consecutive complete-snapshot couple, with features and labels.
 
@@ -885,6 +911,10 @@ def build_period(
     origin = pd.concat([origin, sw.drop(columns="sw_mid"), sib], axis=1)
     dg = dependence_group_ids(snap_i, mkt, dep_underlying_date)
     feats = feature_frame(origin, EXTENDED_NAMES)
+    leak = None
+    if with_leak:  # placebo positive control only: columns ``leak_<feature>``, never features
+        leak = leak_feature_frame(snap_i, snap_j, mkt, pairs, period, history or [],
+                                  leak_sweep_rows)
 
     sweep_info = None
     if sweep_receipt_epoch is not None:
@@ -921,6 +951,8 @@ def build_period(
         }
     )
     out = pd.concat([out, feats.reset_index(drop=True)], axis=1)
+    if leak is not None:
+        out = pd.concat([out, leak.reset_index(drop=True)], axis=1)
     out["rep_sw_gap"] = sw["sw_mid"].to_numpy() - mid_i  # report-only gap placebo; not a feature
     out["dep_group"] = dg["dep_group"].to_numpy()
     out["dep_group_season"] = dg["dep_group_season"].to_numpy()
@@ -960,6 +992,7 @@ def build_panel(
     policy: dict | None = None,
     sweep_loader: Callable[[dict], pd.DataFrame] | None = None,
     dep_underlying_date: bool = DEP_GROUP_UNDERLYING,
+    with_leak: bool = False,
 ) -> tuple[pd.DataFrame, list[dict]]:
     """All consecutive complete-snapshot pairs. ``captures`` ordered by start (with ``dir``).
 
@@ -984,15 +1017,19 @@ def build_panel(
         srows = None
         if sw is not None and sw.get("dir"):
             srows = (sweep_loader or load_sweep_rows)(sw)
+        lsw = None
+        nx = sweep_receipts.get(captures[k + 1]["capture_id"])
+        if with_leak and nx is not None and nx.get("dir"):
+            lsw = (sweep_loader or load_sweep_rows)(nx)
         out, c = build_period(
             cur, nxt, captures[k], captures[k + 1], k, hist,
             None if sw is None else sw["receipt_epoch"], delta,
             sweep_returned=None if sw is None else sw["returned"],
             sweep_eligible=None if sw is None else sw["eligible"],
             sweep_rows=srows, sweep_started_epoch=None if sw is None else sw.get("started_epoch"),
-            dep_underlying_date=dep_underlying_date,
+            dep_underlying_date=dep_underlying_date, with_leak=with_leak, leak_sweep_rows=lsw,
         )
-        del srows
+        del srows, lsw
         counts.append(c)
         if out is not None:
             frames.append(out)

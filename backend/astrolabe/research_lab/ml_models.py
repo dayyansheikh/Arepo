@@ -65,6 +65,12 @@ M0_FEATURES: tuple[str, ...] = (
     "ml_logit_mid", "ml_abs_mid_dev", "ml_chg_1h", "ml_chg_1d", "ml_chg_1w",
     "ml_chg_1h_missing", "ml_chg_1d_missing", "ml_chg_1w_missing",
 )
+# M1/M2 feature set: full tier (a) without a13 (design section 2), which includes a10 sibling
+# (ml_sib_*) and a11 sweep (ml_sw_*) features. The sweep-minus-Gamma gap (rep_sw_gap) is NOT a
+# feature. Module-level so a report-only sensitivity arm can run on M12_NO_SWEEP.
+M12_FEATURES: tuple[str, ...] = ml_panel.EXTENDED_NAMES
+M12_NO_SWEEP: tuple[str, ...] = tuple(
+    n for n in ml_panel.EXTENDED_NAMES if n not in ml_panel.SWEEP_NAMES)
 SPLINE_FEATURES: tuple[str, ...] = ("ml_logit_mid", "ml_chg_1h", "ml_log_hours_to_end")
 INTERACTION_PARTNERS: tuple[str, ...] = ("ml_spread", "ml_log1p_liq", "ml_log_hours_to_end")
 BAYES_FEATURES: tuple[str, ...] = (
@@ -321,7 +327,7 @@ def _m1_model(cfg: dict):
 
 
 def fit_m1(df, train_pos, test_pos, inner, **_) -> FoldFit:
-    cols = ml_panel.TIER_A_NAMES
+    cols = M12_FEATURES
     itr, iva = inner
     xtr_all = _xmat(df.iloc[train_pos], cols)
     design_in = _M1Design(cols).fit(_xmat(df.iloc[itr], cols))
@@ -365,7 +371,7 @@ def _lgb_params(cfg: dict) -> dict:
 def fit_m2(df, train_pos, test_pos, inner, *, collect_shap: bool = False, **_) -> FoldFit:
     import lightgbm as lgb
 
-    cols = ml_panel.TIER_A_NAMES
+    cols = M12_FEATURES
     itr, iva = inner
     xin, xva = _xmat(df.iloc[itr], cols), _xmat(df.iloc[iva], cols)
     yin, yva = _y(df, itr), _y(df, iva)
@@ -619,6 +625,7 @@ class TrialSink:
     path: Path = provenance.TRIALS_PATH
     provenance_record: dict | None = None
     label: str = provenance.DEV_LABEL
+    extra: dict = field(default_factory=dict)  # stamped on every line (e.g. gate_overridden)
 
     def write(self, record: dict) -> dict:
         if self.provenance_record is None:
@@ -626,7 +633,7 @@ class TrialSink:
             self.provenance_record["env"].update(_ml_versions())
         return provenance.append_trial(
             {"label": self.label, "dataset": self.dataset,
-             "provenance": self.provenance_record, **record},
+             "provenance": self.provenance_record, **self.extra, **record},
             self.path,
         )
 
@@ -672,6 +679,14 @@ def _ml_versions() -> dict:
     return out
 
 
+def _arm_features(arm: str) -> tuple[str, ...]:
+    if arm.startswith(("M1", "M2")):
+        return M12_FEATURES
+    if arm.startswith("M3"):
+        return BAYES_FEATURES
+    return M0_FEATURES  # M0 and the M0-column probes (patched M0_FEATURES at call time)
+
+
 def _trial_header(arm: str, manifest: dict) -> dict:
     return {
         "arm": arm,
@@ -682,6 +697,9 @@ def _trial_header(arm: str, manifest: dict) -> dict:
         "manifest_sha256": manifest["manifest_sha256"],
         "category_policy": manifest["category_policy"],
         "seed": SEED,
+        "feature_list": (
+            {"M0": list(M0_FEATURES), "M1_M2": list(M12_FEATURES), "M3_eb": list(BAYES_FEATURES)}
+            if arm == "all" else list(_arm_features(arm))),
     }
 
 
@@ -702,6 +720,7 @@ class ArmResult:
 def fit_fold(arm: str, df: pd.DataFrame, fold: dict, embargo_s: float, *, collect_shap=False):
     """Fit one arm on one fold. Returns (FoldFit, train_pos, test_pos)."""
     ml_panel.register_tier_a()
+    ml_panel.register_extended()
     tr_mask, te_mask = ml_panel.fold_masks(df, fold)
     train_pos, test_pos = np.flatnonzero(tr_mask), np.flatnonzero(te_mask)
     if len(train_pos) == 0 or len(test_pos) == 0:
