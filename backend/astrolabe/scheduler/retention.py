@@ -121,9 +121,11 @@ async def run_retention(
         protected.add(latest_complete)
 
     # Candidate scans: older than the window and not protected.
+    # Only the keys (the full header carries large JSON funnel/discovery blobs; ~180 of them were
+    # re-read on every daily pass).
     candidates = (await session.execute(
-        select(ScanRunRow).where(ScanRunRow.started_at < signal_cutoff)
-    )).scalars().all()
+        select(ScanRunRow.id, ScanRunRow.scan_id).where(ScanRunRow.started_at < signal_cutoff)
+    )).all()
 
     pruned_scans = 0
     pruned_signal_rows = 0
@@ -132,9 +134,10 @@ async def run_retention(
     for scan in candidates:
         if scan.scan_id in protected:
             continue
+        # Full rows are needed only to archive them; prune-only mode never loads them.
         rows = (await session.execute(
             select(SignalSnapshotRow).where(SignalSnapshotRow.scan_id == scan.scan_id)
-        )).scalars().all()
+        )).scalars().all() if archive is not None else []
         if archive is not None and rows:
             try:
                 manifest = archive.put_scan(scan.scan_id, [_row_to_dict(r) for r in rows])
