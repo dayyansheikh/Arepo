@@ -226,7 +226,7 @@ def test_bootstrap_resamples_whole_clusters_across_periods():
 def test_trial_logging(panel_signal, tmp_path):
     df, man = panel_signal
     path = tmp_path / "trials.jsonl"
-    sink = mm.TrialSink(dataset="synthetic", path=path)
+    sink = mm.TrialSink(dataset="synthetic", path=path, evidence_role="exploratory_dev")
     res = {a: mm.run_arm(a, df, man, sink=sink) for a in ("M0", "M2")}
     mm.score_arms(df, res, mm.cluster_vectors(df), n_boot=50, sink=sink, manifest=man)
     lines = [json.loads(x) for x in path.read_text().splitlines()]

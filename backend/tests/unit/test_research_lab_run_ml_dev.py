@@ -123,7 +123,8 @@ def test_dry_run_builds_panel_fits_nothing_logs_nothing(tmp_path, capsys, monkey
     assert not (tmp_path / "trials.jsonl").exists() and not (tmp_path / "out").exists()
     s = json.loads(next((tmp_path / "cache").glob("dry_run_*.json")).read_text())
     assert s["panel"]["n_periods"] == 11 and s["folds"]["n_folds"] == 0
-    assert set(s["panel"]["k_clusters_labelled"]) == {"event", "dep_group", "dep_group_season"}
+    assert set(s["panel"]["k_clusters_labelled"]) == {
+        "event", "dep_group", "dep_group_season", "dep_group_econ", "dep_group_category_driver"}
     assert s["panel"]["feature_nan_rates"] and s["sweeps"]["used"] == 11
     # second call reuses the parquet cache (keyed by panel hash) and gives the same hash
     assert rmd.main(_args(tmp_path, "--dry-run")) == 0
@@ -262,3 +263,44 @@ def test_exploratory_target_run_is_separate_and_labelled(tmp_path_factory):
     assert lines and all(x["target"] == "dmid_magnitude" and x["horizon_snapshots"] == 3
                          and x["evidence_status"] == "EXPLORATORY" for x in lines)
     assert not list((tmp / "out").glob("ml_dev_2*.md"))  # no primary-style report written
+
+
+def test_families_dry_run_reports_coverage_and_marks_exploratory(tmp_path, capsys):
+    _write_world(tmp_path, 12)
+    h, mk = 3 * 2.0, [f"m{i}" for i in range(20)]
+    root = tmp_path / "trade_samples" / "20261011T080000Z_abcd1234"
+    root.mkdir(parents=True)
+    members = [{"market_id": m, "condition_id": "c" + m, "stratum": "L0-S0", "token0": "t0",
+                "origin_utc": _ts(h, 5 + (i % 40) / 10), "inclusion_prob": "1/8",
+                "inclusion_float": 0.125} for i, m in enumerate(mk)]
+    (root / "plan.json").write_text(json.dumps(
+        {"sample_id": root.name, "snapshot_id": "cap003", "sample": members, "frame_size": 160}))
+    (root / "manifest.json").write_text(json.dumps({"state": "complete"}))
+    pd.DataFrame({"market_id": mk, "n_returned": 3, "status": "ok"}).to_csv(
+        root / "features.csv.gz", index=False)
+    ts = int((T0 + pd.Timedelta(hours=h)).timestamp()) + 60  # before every origin
+    pd.DataFrame([{"market_id": m, "condition_id": "c" + m, "ts": ts, "side": "BUY",
+                   "outcome_index": 0, "asset": "t0", "size": 5.0, "price": 0.5,
+                   "wallet_hash": "w1"} for m in mk]).to_csv(root / "wallets.csv.gz", index=False)
+    rc = rmd.main(_args(tmp_path, "--dry-run", "--families", "market_state,flow,wallet",
+                        "--sample-root", str(tmp_path / "trade_samples")))
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "family flow (exploratory_family)" in out and "family market_state (MC1)" in out
+    s = json.loads(next((tmp_path / "cache").glob("dry_run_*.json")).read_text())
+    assert s["families"]["flow"]["exploratory_family"] is True
+    assert s["families"]["flow"]["sampled_rows"] == 20
+    assert s["families"]["market_state"]["exploratory_family"] is False
+    assert s["families"]["_join"]["captures_with_sample"] == 1
+    assert not (tmp_path / "trials.jsonl").exists()
+    with pytest.raises(SystemExit):
+        rmd.parse_families("market_state,news")
+    assert rmd.parse_families("market_state") == []
+
+
+def test_primary_run_lines_carry_evidence_role(e2e):
+    _, rep, lines = e2e
+    assert lines and all(x["evidence_role"] in ("exploratory_dev", "placebo") for x in lines)
+    assert any(x["evidence_role"] == "placebo" for x in lines)
+    assert any(x["evidence_role"] == "exploratory_dev" for x in lines)
+    assert "dep_group_econ" in rep["panel"]["k_clusters_labelled"]

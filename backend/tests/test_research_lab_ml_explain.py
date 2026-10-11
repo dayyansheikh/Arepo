@@ -159,8 +159,14 @@ def test_run_explain_and_trial_log(tmp_path):
     )
     assert res["label"] == "EXPLORATORY" and res["judge_fold_ids"] == ["f2", "f3"]
     log = tmp_path / "trials.jsonl"
-    rec = mx.log_trial(res, path=log)
+    assert sum(res["n_tests_by_family"].values()) == res["n_tests"]
+    with pytest.raises(ValueError, match="evidence_role"):
+        mx.log_trial(res, path=log)
+    assert not log.exists()
+    rec = mx.log_trial(res, path=log, evidence_role="exploratory_dev")
     line = json.loads(log.read_text().splitlines()[0])
+    assert line["evidence_role"] == "exploratory_dev"
+    assert mx.prior_ml_explain_tests(log) == res["n_tests"]  # next run's BY carry-over
     assert line["kind"] == "ml_explain" and line["label"] == "EXPLORATORY"
     assert line["trial_id"] == rec["trial_id"] and "multiple_testing" in line
     json.dumps(res, default=float)  # result is serialisable

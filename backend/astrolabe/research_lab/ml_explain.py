@@ -57,8 +57,8 @@ DEFAULT_FAMILY_PREFIXES: dict[str, tuple[str, ...]] = {
         "vol",
     ),
     "book": ("sw_", "depth", "imbalance", "microprice", "best_"),
-    "flow": ("flow_", "trade_", "ofi", "turnover"),
-    "wallet": ("wallet_", "w_"),
+    "flow": ("flow_", "ml_flow_", "trade_", "ofi", "turnover"),
+    "wallet": ("wallet_", "ml_wlt_", "w_"),
     "relationships": ("sibling_", "rel_", "corr_"),
     "metadata": ("hours_to_end", "end_", "market_age", "liq", "category", "staleness"),
     "external": ("ext_", "ext"),
@@ -286,9 +286,25 @@ def fit_oof(
 # ---------------------------------------------------------------------------------------------
 
 
+CO_PRIMARY_CLUSTERS = ("event", "dep_group", "dependence_group")
+
+
+def _co_primary(names) -> list[str]:
+    """Co-primary clusterings among ``names`` (event and dep_group). Sensitivities such as
+    ``dep_group_season`` / ``dep_group_econ`` / ``dep_group_category_driver`` are reported but never
+    enter the conservative combination; with no co-primary name present all names are used."""
+    names = [n for n in names if not n.startswith("_") and n != "p_conservative"
+             and n != "conservative"]
+    prim = [n for n in names if n in CO_PRIMARY_CLUSTERS]
+    return prim or names
+
+
 def conservative(boots: dict[str, dict]) -> dict:
-    """Combine cluster definitions pessimistically: the hull of the CIs and the larger p."""
-    items = [v for v in boots.values() if isinstance(v, dict) and v.get("mean") is not None]
+    """Combine the co-primary cluster definitions pessimistically: the hull of the CIs and the
+    larger p (sensitivity clusterings are reported alongside, not combined)."""
+    keep = set(_co_primary(list(boots)))
+    items = [v for k, v in boots.items()
+             if k in keep and isinstance(v, dict) and v.get("mean") is not None]
     if not items:
         return {"mean": None, "ci": [None, None], "p_pos": None, "n_clusters": 0}
     return {
@@ -302,8 +318,11 @@ def conservative(boots: dict[str, dict]) -> dict:
 
 def _all_boot(d: np.ndarray, clusters: dict[str, np.ndarray], n_boot: int, seed: int) -> dict:
     out = {name: cluster_boot(d, cl, n_boot, seed) for name, cl in clusters.items()}
-    ps = [v["p_two_sided"] for v in out.values() if v["p_two_sided"] is not None]
-    out["p_conservative"] = max(ps) if ps else None  # worst two-sided p over the clusterings
+    keep = set(_co_primary(list(out)))
+    ps = [v["p_two_sided"] for k, v in out.items() if k in keep and v["p_two_sided"] is not None]
+    out["p_conservative"] = max(ps) if ps else None  # worst two-sided p over co-primary clusterings
+    out["sensitivities"] = sorted(k for k in out if k not in keep and not k.startswith("_")
+                                  and k != "p_conservative")
     out["conservative"] = conservative(out)
     return out
 
@@ -1427,6 +1446,7 @@ def run_explain(
             seed=seed,
         )
         res["n_tests"] += len(res["regimes"]["multiple_testing"]["adjusted"])
+    res["n_tests_by_family"] = tests_by_family(res, family_map)
     res["interpretation_caveat"] = (
         "Only entries labelled demonstrated have shown incremental out-of-sample value on later "
         "blocks (CI excludes 0, BY q=0.10 over the cumulative set). SHAP, permutation importance "
@@ -1437,20 +1457,43 @@ def run_explain(
 
 
 def prior_ml_explain_tests(path: Path = provenance.TRIALS_PATH) -> int:
-    """Cumulative number of tests already logged by ml_explain runs (BY denominator carry-over)."""
-    p = Path(path)
-    if not p.exists():
-        return 0
-    n = 0
-    with open(p, encoding="utf-8") as fh:
-        for line in fh:
-            try:
-                rec = json.loads(line)
-            except ValueError:
-                continue
-            if rec.get("kind") == KIND:
-                n += int(rec.get("n_tests") or 0)
-    return n
+    """Cumulative number of tests already logged by ml_explain runs (BY denominator carry-over),
+    the sum of ``provenance.cumulative_tests_by_family``."""
+    return int(sum(provenance.cumulative_tests_by_family(path, KIND).values()))
+
+
+def tests_by_family(res: dict, family_map: dict[str, list[str]]) -> dict[str, int]:
+    """Attribute this run's ``n_tests`` to families (sums exactly to ``n_tests``).
+
+    Family and feature units go to their family; interactions, thresholds and regimes go to
+    ``interaction`` / ``threshold:<family>`` / ``regime``.
+    """
+    inv = {c: f for f, cols in family_map.items() for c in cols}
+    out: dict[str, int] = {}
+
+    def add(k: str, n: int = 1) -> None:
+        if n:
+            out[k] = out.get(k, 0) + n
+
+    def of(unit: str) -> str:
+        return unit if unit in family_map else inv.get(unit, UNASSIGNED)
+
+    for r in res["ablation"]["ranking"]:
+        add(of(r["unit"]))
+    for u in res["discovery_ablation"]["families"]:  # rankings; count by their own kind
+        if u.get("kind", "family") == "family":
+            add(of(u["unit"]))
+    for u in res["discovery_ablation"]["features"]:
+        if u.get("kind", "feature") == "feature":
+            add(of(u["unit"]))
+    add("interaction", len((res["interactions"].get("validation") or {}).get("pairs", {})))
+    for k in res["thresholds"]["values"]:
+        add("threshold:" + of(k.split("@")[0]))
+    reg = (res.get("regimes") or {}).get("multiple_testing", {}).get("adjusted", {})
+    add("regime", len(reg))
+    drift = res["n_tests"] - sum(out.values())
+    add("_other", drift) if drift > 0 else None
+    return out
 
 
 def trial_record(result: dict) -> dict:
@@ -1474,6 +1517,7 @@ def trial_record(result: dict) -> dict:
             k: abl["multiple_testing"][k] for k in ("by_q", "m_tests", "prior_tests", "m_total")
         },
         "n_tests": result["n_tests"],
+        "n_tests_by_family": result.get("n_tests_by_family") or {},
         "top_features": result["top_features"],
         "interaction_labels": {k: v["label"] for k, v in inter.get("pairs", {}).items()},
         "n_threshold_hypotheses": len(result["threshold_hypotheses"]),
@@ -1481,11 +1525,17 @@ def trial_record(result: dict) -> dict:
     }
 
 
-def log_trial(result: dict, path: Path = provenance.TRIALS_PATH, extra: dict | None = None) -> dict:
+def log_trial(
+    result: dict,
+    path: Path = provenance.TRIALS_PATH,
+    extra: dict | None = None,
+    evidence_role: str | None = None,
+) -> dict:
     """Append this explain run to the trial log (kind ml_explain, label EXPLORATORY)."""
     rec = {
         **trial_record(result),
         **(extra or {}),
+        "evidence_role": evidence_role,  # required for kind ml_explain (provenance validates)
         "provenance": provenance.run_provenance([Path(__file__)]),
     }
     return provenance.append_trial(rec, path=path)
@@ -1514,6 +1564,7 @@ __all__ = [
     "finalize_demonstration",
     "make_lgb_fit",
     "prior_ml_explain_tests",
+    "tests_by_family",
     "log_trial",
     "propose_ale_changepoints",
     "propose_gbm_thresholds",

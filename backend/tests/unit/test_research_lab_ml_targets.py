@@ -198,7 +198,9 @@ def test_binary_recovers_planted_volatility_signal():
 def test_target_trial_lines_record_target_and_horizon(tmp_path):
     d, _ = _synth()
     man = _manifest(d)
-    sink = mm.TrialSink(dataset="t", path=tmp_path / "trials.jsonl")
+    sink = mm.TrialSink(
+        dataset="t", path=tmp_path / "trials.jsonl", evidence_role="exploratory_dev"
+    )
     mm.run_target_arm("dmid", "M0", d, man, sink=sink)
     import json
 
@@ -206,7 +208,9 @@ def test_target_trial_lines_record_target_and_horizon(tmp_path):
     assert lines and all(x["target"] == "dmid_magnitude" for x in lines)
     assert all(x["evidence_status"] == "EXPLORATORY" and x["horizon_snapshots"] == 1
                for x in lines)
-    sink2 = mm.TrialSink(dataset="t", path=tmp_path / "t2.jsonl")
+    sink2 = mm.TrialSink(
+        dataset="t", path=tmp_path / "t2.jsonl", evidence_role="exploratory_dev"
+    )
     mm.run_arm("M0", d, man, sink=sink2)
     l2 = [json.loads(x) for x in (tmp_path / "t2.jsonl").read_text().splitlines()]
     assert l2[0]["target"] == "direction_3class" and "CONFIRMATORY" in l2[0]["evidence_status"]

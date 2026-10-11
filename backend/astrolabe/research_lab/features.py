@@ -30,6 +30,8 @@ ML_FAMILIES = (
     "ml_quality",
     "ml_structure",
     "ml_metadata",
+    "ml_flow",  # exploratory families, NOT in the confirmatory MC1 set (ml_panel.register_flow)
+    "ml_wallet",
 )
 FAMILIES = ("price", "momentum", "context", "interaction", "book", *ML_FAMILIES)
 E001_ORIGIN_COLUMNS = (

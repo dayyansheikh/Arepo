@@ -14,6 +14,17 @@ The default (direction, 1 snapshot, ~2h) is the only confirmatory target. Every 
 runs as a separate EXPLORATORY run with its own manifest, report and ``trials.jsonl`` lines
 (target name and horizon recorded); it never enters the confirmation family.
 
+Families (``--families``): ``market_state`` (the confirmatory MC1 set, always on) plus the
+exploratory ``flow`` and ``wallet`` families joined from each snapshot's trade sample
+(``ml_panel.add_flow_wallet_columns``, origin-side trades only, NaN + ``ml_flow_sampled`` outside
+the ~2,000-market sample). They are NOT in MC1 (adding them is a feature-set revision), so any run
+selecting them is stamped ``exploratory_family``, runs through the separate EXPLORATORY path with
+its own manifest and report, and never enters the confirmation family. ``--dry-run`` reports
+coverage per family.
+
+Evidence role: every trial line written here carries ``evidence_role`` (``exploratory_dev``;
+``placebo`` for the placebo arms). ``provenance.append_trial`` rejects ml_* lines without one.
+
 Gate (design section 6): at least 40 *consecutive* complete snapshots with the sidecar present,
 consecutive meaning every start-to-start gap lies in [1.5, 3.0] h (the ``ml_panel`` pairing rule).
 Snapshots are only read, never modified. The panel is built period by period by
@@ -25,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import dataclasses
 import hashlib
 import json
 import math
@@ -44,6 +56,7 @@ import pandas as pd  # noqa: E402
 DUMPS = ROOT / "data-dumps" / "research_lab"
 SNAPSHOT_ROOT = DUMPS / "snapshots"
 SWEEP_ROOT = DUMPS / "book_sweeps"
+SAMPLE_ROOT = DUMPS / "trade_samples"
 CACHE_ROOT = DUMPS / "ml_cache"
 OUT_DIR = ROOT / "docs" / "research_lab" / "ml_dev"
 
@@ -52,6 +65,20 @@ MIN_SNAPSHOTS = 40
 TEST_GATE_ENV = "AREPO_ML_DEV_TEST_ONLY_MIN_SNAPSHOTS"
 CADENCE_H = 2.0
 HASHED_MODULES = ("ml_panel", "panel", "features", "features_dev", "evaluate")
+CORE_FAMILY = "market_state"
+EVIDENCE_ROLE = "exploratory_dev"  # this runner never produces prospective_confirmation
+
+
+def parse_families(spec: str) -> list[str]:
+    """``--families`` value -> exploratory families beyond the always-on ``market_state``."""
+    from astrolabe.research_lab import ml_panel
+
+    names = [x.strip() for x in str(spec).split(",") if x.strip()] or [CORE_FAMILY]
+    bad = [n for n in names if n != CORE_FAMILY and n not in ml_panel.EXPLORATORY_FAMILY_CHOICES]
+    if bad:
+        raise SystemExit(f"unknown --families {bad}; choose from "
+                         f"{[CORE_FAMILY, *ml_panel.EXPLORATORY_FAMILY_CHOICES]}")
+    return [n for n in dict.fromkeys(names) if n != CORE_FAMILY]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -175,8 +202,22 @@ def usable_sweeps(sweep_root: Path, caps: list[dict]) -> tuple[dict, dict]:
 # ---------------------------------------------------------------------------------------------
 
 
+def load_link_fields(frame: Path | None) -> tuple[dict | None, str | None]:
+    """Event titles and resolution-source domains from one fs2 frame, for the non-sports
+    dependence links (``ml_panel.category_group_columns``). Static metadata used only to form
+    clusters, never as a feature. Returns (link_fields, digest) or (None, None)."""
+    if frame is None:
+        return None, None
+    from astrolabe.research_lab import ml_panel
+
+    ev, src, _ = ml_panel._analysis().stream_frame(Path(frame))
+    lf = {"event_titles": dict(zip(ev["event_id"], ev["event_title"], strict=True)),
+          "sources": dict(zip(src["market_id"], src["source"], strict=True))}
+    return lf, f"{Path(frame).name}:{len(lf['event_titles'])}:{len(lf['sources'])}"
+
+
 def panel_hash(caps: list[dict], sweeps: dict, policy: dict, delta: float,
-               with_leak: bool = False) -> str:
+               with_leak: bool = False, link_digest: str | None = None) -> str:
     from astrolabe.research_lab import ml_panel, provenance
 
     here = Path(ml_panel.__file__).parent
@@ -184,7 +225,7 @@ def panel_hash(caps: list[dict], sweeps: dict, policy: dict, delta: float,
         "captures": [[c["capture_id"], c["started_utc"], bool(c["sidecar"])] for c in caps],
         "sweeps": {k: [v["sweep_id"], v["returned"], v["eligible"]]
                    for k, v in sorted(sweeps.items())},
-        "policy": policy, "delta": delta, "with_leak": with_leak,
+        "policy": policy, "delta": delta, "with_leak": with_leak, "link_digest": link_digest,
         "features": ml_panel.extended_feature_versions(),
         "modules": {m: provenance.sha256_file(here / f"{m}.py") for m in HASHED_MODULES},
         "dep_underlying_date": ml_panel.DEP_GROUP_UNDERLYING,
@@ -219,11 +260,12 @@ def _clean(o):
 
 
 def get_panel(caps, sweeps, policy, delta, cache_root: Path, rebuild: bool = False,
-              with_leak: bool = False):
+              with_leak: bool = False, link_frame: Path | None = None):
     """Returns (panel, counts, hash, cache_dir, from_cache). Snapshots are only read."""
     from astrolabe.research_lab import ml_panel
 
-    h = panel_hash(caps, sweeps, policy, delta, with_leak)
+    link_fields, link_digest = load_link_fields(link_frame)
+    h = panel_hash(caps, sweeps, policy, delta, with_leak, link_digest)
     cdir = Path(cache_root) / h
     pq, meta = cdir / "panel.parquet", cdir / "meta.json"
     if pq.exists() and meta.exists() and not rebuild:
@@ -232,7 +274,7 @@ def get_panel(caps, sweeps, policy, delta, cache_root: Path, rebuild: bool = Fal
         df.attrs["category_info"] = m["category_info"]
         return df, m["counts"], h, cdir, True
     df, counts = ml_panel.build_panel(caps, sweep_receipts=sweeps, delta=delta, policy=policy,
-                                       with_leak=with_leak)
+                                       with_leak=with_leak, link_fields=link_fields)
     cdir.mkdir(parents=True, exist_ok=True)
     tmp = cdir / "panel.parquet.tmp"
     df.to_parquet(tmp, index=False)
@@ -249,7 +291,8 @@ def code_sha() -> str:
     return g["git_head"] + ("+dirty" if g["git_dirty"] else "")
 
 
-def plan(df: pd.DataFrame, horizon: int = 1) -> tuple[dict | None, str | None]:
+def plan(df: pd.DataFrame, horizon: int = 1,
+         extra_names: tuple[str, ...] = ()) -> tuple[dict | None, str | None]:
     """Fold manifest, or (manifest-or-None, reason) when the panel cannot support one.
 
     For ``horizon`` k > 1 the panel must carry ``add_horizon_targets`` columns; periods, label
@@ -262,7 +305,10 @@ def plan(df: pd.DataFrame, horizon: int = 1) -> tuple[dict | None, str | None]:
     try:
         man = ml_panel.plan_folds(ml_panel.period_table(ml_panel.horizon_view(df, horizon)),
                                   horizon=horizon, code_sha=code_sha(),
-                                  feature_vers=ml_panel.extended_feature_versions(),
+                                  feature_vers={
+                                      **ml_panel.extended_feature_versions(),
+                                      **(ml_panel.flow_feature_versions(extra_names)
+                                         if extra_names else {})},
                                   category_info=df.attrs.get("category_info"))
     except ValueError as e:
         return None, str(e)
@@ -291,7 +337,8 @@ def panel_summary(df: pd.DataFrame) -> dict:
     nan_rates = {c: float(df[c].isna().mean()) for c in feats} if len(df) else {}
     ev = lab["event_id"].where(lab["event_id"].notna(), "mkt:" + lab["market_id"].astype(str))
     series = {"event": ev, "dep_group": lab["dep_group"],
-              "dep_group_season": lab["dep_group_season"]}
+              **{c: lab[c] for c in ("dep_group_season", "dep_group_econ",
+                                     "dep_group_category_driver") if c in lab.columns}}
     return {
         "n_rows": int(len(df)), "n_labelled": int(len(lab)),
         "n_periods": int(df["period"].nunique()) if len(df) else 0,
@@ -308,6 +355,17 @@ def panel_summary(df: pd.DataFrame) -> dict:
     }
 
 
+SENSITIVITY_CLUSTERS = ("dep_group_season", "dep_group_econ", "dep_group_category_driver")
+
+
+def add_sensitivity_clusters(clusters: dict, lab: pd.DataFrame) -> None:
+    """S1 season, S4 economic driver, S5 category driver: reported next to the co-primary
+    event and dep_group clusterings (which stay ``category_aware``), never combined into them."""
+    for c in SENSITIVITY_CLUSTERS:
+        if c in lab.columns:
+            clusters[c] = lab[c].to_numpy()
+
+
 def peak_rss_mb() -> float:
     r = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     return r / 1e6 if sys.platform == "darwin" else r / 1e3
@@ -318,8 +376,29 @@ def peak_rss_mb() -> float:
 # ---------------------------------------------------------------------------------------------
 
 
+def family_coverage(df: pd.DataFrame, extra: list[str], sample_root: Path) -> tuple[
+        pd.DataFrame, dict]:
+    """Per-family coverage. ``market_state`` = MC1 columns; flow/wallet join the trade samples."""
+    from astrolabe.research_lab import ml_panel
+
+    mc1 = [c for c in ml_panel.EXTENDED_NAMES if c in df.columns]
+    rates = [float(df[c].isna().mean()) for c in mc1] if len(df) else []
+    cov: dict = {CORE_FAMILY: {
+        "n_features": len(mc1), "exploratory_family": False,
+        "mean_nan_rate": float(np.mean(rates)) if rates else None}}
+    if extra:
+        df, rep = ml_panel.add_flow_wallet_columns(df, sample_root, extra)
+        for f, c in rep["coverage"]["families"].items():
+            cov[f] = {**c, "exploratory_family": True}
+        cov["_join"] = {k: v for k, v in rep.items() if k != "coverage"}
+        cov["_join"]["captures_in_panel"] = rep["coverage"]["captures_in_panel"]
+        cov["_join"]["captures_with_sample"] = rep["coverage"]["captures_with_sample"]
+    return df, cov
+
+
 def dry_run(snapshot_root: Path, sweep_root: Path, cache_root: Path, policy: dict,
-            delta: float, rebuild: bool = False) -> dict:
+            delta: float, rebuild: bool = False, families: list[str] | None = None,
+            sample_root: Path = SAMPLE_ROOT, link_frame: Path | None = None) -> dict:
     t0 = time.perf_counter()
     caps = discover_captures(snapshot_root)
     gate = gate_status(caps)
@@ -327,10 +406,15 @@ def dry_run(snapshot_root: Path, sweep_root: Path, cache_root: Path, policy: dic
     if len(caps) < 2:
         return {"mode": "dry-run", "gate": gate_pub, "error": "fewer than 2 complete snapshots"}
     sweeps, sweep_report = usable_sweeps(sweep_root, caps)
-    df, counts, h, cdir, cached = get_panel(caps, sweeps, policy, delta, cache_root, rebuild)
-    man, why = plan(df)
+    df, counts, h, cdir, cached = get_panel(caps, sweeps, policy, delta, cache_root, rebuild,
+                                            link_frame=link_frame)
+    df, fam_cov = family_coverage(df, families or [], sample_root)
+    extra_names = tuple(n for f in (families or [])
+                        for n in ml_panel_family_names(f))
+    man, why = plan(df, 1, extra_names)
     return {
         "mode": "dry-run (nothing fitted on real labels, nothing logged)",
+        "families": fam_cov,
         "gate": gate_pub, "panel_hash": h, "cache_dir": str(cdir), "from_cache": cached,
         "n_snapshots_used": len(caps), "sweeps": sweep_report,
         "periods_skipped": [c for c in counts if c.get("skipped")],
@@ -340,6 +424,12 @@ def dry_run(snapshot_root: Path, sweep_root: Path, cache_root: Path, policy: dic
                   "periods": len(man["periods"]) if man else 0},
         "seconds": round(time.perf_counter() - t0, 1), "peak_rss_mb": round(peak_rss_mb(), 0),
     }
+
+
+def ml_panel_family_names(family: str) -> tuple[str, ...]:
+    from astrolabe.research_lab import ml_panel
+
+    return ml_panel.family_features([family])[family]
 
 
 def print_dry(out: dict) -> None:
@@ -360,6 +450,22 @@ def print_dry(out: dict) -> None:
     print(f"[dry-run] K (labelled): {p['k_clusters_labelled']}  largest share: {share}")
     print(f"[dry-run] dep_group_no_parent share: {p['dep_group_no_parent_share']}")
     print(f"[dry-run] folds: {out['folds']['n_folds']} ({out['folds']['reason']})")
+    for f, c in out.get("families", {}).items():
+        if f.startswith("_"):
+            continue
+        if c.get("exploratory_family"):
+            nn = c["mean_non_nan_share_among_sampled"]
+            print(f"[dry-run] family {f} (exploratory_family): {c['sampled_rows']} sampled rows "
+                  f"({c['sampled_share']:.1%} of panel), {c['n_features']} features, "
+                  f"mean non-NaN among sampled {'n/a' if nn is None else f'{nn:.2f}'}")
+        else:
+            print(f"[dry-run] family {f} (MC1): {c['n_features']} features, "
+                  f"mean NaN rate {c['mean_nan_rate']}")
+    j = out.get("families", {}).get("_join")
+    if j:
+        print(f"[dry-run] trade samples: {len(j['samples'])} joined over "
+              f"{j['captures_with_sample']}/{j['captures_in_panel']} panel captures, "
+              f"{len(j['skipped'])} skipped, origin mismatches {j['origin_mismatch_rows']}")
     hi = sorted(p["feature_nan_rates"].items(), key=lambda kv: -kv[1])[:8]
     print("[dry-run] highest NaN rates: " + ", ".join(f"{k}={v:.2f}" for k, v in hi))
     print(f"[dry-run] sweeps used {out['sweeps'].get('used')}, gap rows {p['sweep_gap_rows']}; "
@@ -465,6 +571,7 @@ def run_placebos(lab, manifest, results, clusters, sink) -> dict:
     sanity check, and the quote-age-only model."""
     from astrolabe.research_lab import ml_models as mm
 
+    sink = dataclasses.replace(sink, evidence_role="placebo")  # placebo arms carry their own role
     base = list(mm.M0_FEATURES)
     m0 = results["M0"]
     out: dict = {"status": "REPORT-ONLY placebos; never enter a verdict", "singleton_share": {
@@ -547,11 +654,17 @@ def real_run(args, caps, gate, policy) -> dict:
     run_caps = [c for c in caps if c["capture_id"] in run_ids]
     sweeps, sweep_report = usable_sweeps(args.sweep_root, run_caps)
     df, counts, h, cdir, cached = get_panel(run_caps, sweeps, policy, args.delta,
-                                            args.cache_root, args.rebuild, with_leak=True)
+                                            args.cache_root, args.rebuild, with_leak=True,
+                                            link_frame=getattr(args, "link_frame", None))
     target, horizon = getattr(args, "target", "direction"), int(getattr(args, "horizon", 1))
-    if not (target == "direction" and horizon == 1):
+    extra = list(getattr(args, "families_extra", []) or [])
+    join_report = None
+    if extra:  # exploratory flow/wallet families: joined after the cached MC1 panel
+        df, join_report = ml_panel.add_flow_wallet_columns(
+            df, getattr(args, "sample_root", SAMPLE_ROOT), extra)
+    if extra or not (target == "direction" and horizon == 1):
         return exploratory_run(args, df, h, cdir, cached, gate, run_caps, sweeps, sweep_report,
-                               target, horizon, t0)
+                               target, horizon, t0, extra, join_report)
     man, why = plan(df)
     if man is None or why:
         raise SystemExit(f"cannot plan folds: {why}")
@@ -567,7 +680,8 @@ def real_run(args, caps, gate, policy) -> dict:
     before = _count_lines(trials_path)
     overridden = bool(gate.get("gate_overridden"))
     sink = mm.TrialSink(dataset=f"ml_dev panel {h[:12]}", path=trials_path,
-                        extra={"gate_overridden": True} if overridden else {})
+                        extra={"gate_overridden": True} if overridden else {},
+                        evidence_role=EVIDENCE_ROLE)
     # M1/M2 use the sweep (a11) features, so the sweep-gap diagnostic is mandatory
     sweep_used = bool(len(lab) and lab[list(ml_panel.SWEEP_NAMES)].notna().any().any()
                       and lab["rep_sw_gap"].notna().any())
@@ -577,7 +691,7 @@ def real_run(args, caps, gate, policy) -> dict:
 
     results = mm.run_arms(lab, man, mm.ARM_NAMES, sink=sink, collect_shap=True)
     clusters = mm.cluster_vectors(lab, lab["dep_group"].to_numpy())
-    clusters["dep_group_season"] = lab["dep_group_season"].to_numpy()  # sensitivity S1
+    add_sensitivity_clusters(clusters, lab)
     score = mm.score_arms(lab, results, clusters, sink=sink, manifest=man)
     shap = mm.summarize_shap(lab, results["M2"])
 
@@ -618,7 +732,7 @@ def real_run(args, caps, gate, policy) -> dict:
 
 
 def exploratory_run(args, df, h, cdir, cached, gate, run_caps, sweeps, sweep_report,
-                    target, horizon, t0) -> dict:
+                    target, horizon, t0, extra_families=(), join_report=None) -> dict:
     """Separate EXPLORATORY run for a non-primary target / horizon.
 
     Own fold manifest (horizon-scaled purge and embargo), own report, own trial lines stamped with
@@ -633,7 +747,9 @@ def exploratory_run(args, df, h, cdir, cached, gate, run_caps, sweeps, sweep_rep
         raise SystemExit(f"horizon must be one of {ml_panel.HORIZONS}")
     if horizon > 1:
         df = ml_panel.add_horizon_targets(df, (horizon,), args.delta)
-    man, why = plan(df, horizon)
+    extra_families = list(extra_families)
+    extra_names = tuple(n for f in extra_families for n in ml_panel_family_names(f))
+    man, why = plan(df, horizon, extra_names)
     if man is None or why:
         raise SystemExit(f"cannot plan folds: {why}")
     tname = mm.target_name(target, horizon)
@@ -648,23 +764,35 @@ def exploratory_run(args, df, h, cdir, cached, gate, run_caps, sweeps, sweep_rep
     before = _count_lines(trials_path)
     overridden = bool(gate.get("gate_overridden"))
     extra = {"evidence_status_run": "EXPLORATORY", "target_name": tname}
+    if extra_families:
+        # not in MC1: adding a family is one feature-set revision (programme section 3)
+        extra["exploratory_family"] = extra_families
+        extra["families"] = [CORE_FAMILY, *extra_families]
     if overridden:
         extra["gate_overridden"] = True
-    sink = mm.TrialSink(dataset=f"ml_dev panel {h[:12]} {tname}", path=trials_path, extra=extra)
+    sink = mm.TrialSink(dataset=f"ml_dev panel {h[:12]} {tname}", path=trials_path, extra=extra,
+                        evidence_role=EVIDENCE_ROLE)
     clusters = mm.cluster_vectors(lab, lab["dep_group"].to_numpy())
-    clusters["dep_group_season"] = lab["dep_group_season"].to_numpy()
-    if target == "direction":
-        results = mm.run_arms(lab, man, mm.ARM_NAMES, sink=sink, collect_shap=False)
-        score = mm.score_arms(lab, results, clusters, sink=sink, manifest=man)
-    else:
-        results = mm.run_target_arms(target, lab, man, sink=sink)
-        score = mm.score_target(lab, results, clusters, target, sink=sink, manifest=man)
+    add_sensitivity_clusters(clusters, lab)
+    # M0 keeps the MC1 baseline; M1/M2 see MC1 plus the selected exploratory families
+    cols_ctx = (_columns("M12_FEATURES", [*mm.M12_FEATURES, *extra_names]) if extra_names
+                else contextlib.nullcontext())
+    with cols_ctx:
+        if target == "direction":
+            results = mm.run_arms(lab, man, mm.ARM_NAMES, sink=sink, collect_shap=False)
+            score = mm.score_arms(lab, results, clusters, sink=sink, manifest=man)
+        else:
+            results = mm.run_target_arms(target, lab, man, sink=sink)
+            score = mm.score_target(lab, results, clusters, target, sink=sink, manifest=man)
     report = _clean({
         "target": tname, "target_family": target, "horizon_snapshots": horizon,
         "status": ("GATE OVERRIDDEN (TEST ONLY). " if overridden else "")
         + "EXPLORATORY (not in the confirmation family). DEVELOPMENT/post-hoc. "
         "No edge, calibration or profitability claim.",
         "sweep_gap_diagnostic": "NOT RUN for this target; M1/M2 use sweep features",
+        "evidence_role": EVIDENCE_ROLE, "families": [CORE_FAMILY, *extra_families],
+        "exploratory_family": extra_families or None,
+        "family_join": join_report,
         "utc": stamp, "panel_hash": h, "from_cache": cached, "cache_dir": str(cdir),
         "gate": {k: v for k, v in gate.items() if k != "run_capture_ids"},
         "manifest_sha256": man["manifest_sha256"], "n_folds": len(man["folds"]),
@@ -703,7 +831,10 @@ def render_md(r: dict) -> str:
     L += ["", "## Relative log-loss improvement vs M0 (95% clustered CI)", ""]
     names = {"event": "event (co-primary)",
              "dependence_group": "fixture-day dep_group (co-primary)",
-             "dep_group_season": "season-level dep_group (sensitivity S1)"}
+             "dep_group_season": "season-level dep_group (sensitivity S1)",
+             "dep_group_econ": "economic-driver dep_group (sensitivity S4)",
+             "dep_group_category_driver": "category-driver dep_group (sensitivity S5, "
+                                          "cluster-sensitive)"}
     for cname, blk in sc["bootstrap"].items():
         L += [f"### {names.get(cname, cname)}: K = {blk['n_clusters']}", "",
               "| arm | rel. improvement | CI95 |", "|---|---|---|"]
@@ -781,14 +912,24 @@ def main(argv: list[str] | None = None) -> int:
                     "regression) | absmove (|dmid| >= delta, binary); non-primary = EXPLORATORY")
     ap.add_argument("--horizon", type=int, choices=ml_panel.HORIZONS, default=1,
                     help="target snapshots ahead: 1 (~2h), 3 (~6h), 12 (~24h)")
+    ap.add_argument("--families", default=CORE_FAMILY,
+                    help="comma-separated: market_state (MC1, always on), flow, wallet. flow and "
+                    "wallet are exploratory_family: not in MC1, separate EXPLORATORY run")
+    ap.add_argument("--sample-root", type=Path, default=SAMPLE_ROOT,
+                    help="trade_sample root holding plan.json + wallets.csv.gz per pass")
+    ap.add_argument("--link-frame", type=Path, default=None,
+                    help="fs2 frame dir giving event titles / resolution sources for the "
+                    "non-sports dependence links (weather city x day, culture source, S4, S5); "
+                    "without it dep_group equals fixture-day and dep_group_links_missing = 1")
     ap.add_argument("--rebuild", action="store_true", help="ignore the parquet cache")
     args = ap.parse_args(argv)
+    args.families_extra = parse_families(args.families)
     policy = ml_panel.category_policy(
         args.category_mode, [c for c in args.categories.split(",") if c])
 
     if args.dry_run:
         out = dry_run(args.snapshot_root, args.sweep_root, args.cache_root, policy, args.delta,
-                      args.rebuild)
+                      args.rebuild, args.families_extra, args.sample_root, args.link_frame)
         print_dry(out)
         Path(args.cache_root).mkdir(parents=True, exist_ok=True)
         now = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")

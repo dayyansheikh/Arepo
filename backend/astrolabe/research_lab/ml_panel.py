@@ -574,6 +574,8 @@ def _json_list(v) -> list[str]:
 
 
 SERIES_DATE_PREFIX = "sd:"
+# sensitivity cluster columns (S4 economic driver, S5 category driver); reported, never co-primary
+SENSITIVITY_GROUP_COLS = ("dep_group_econ", "dep_group_category_driver")
 
 
 def group_facts(rows_i: pd.DataFrame, underlying_date: bool = DEP_GROUP_UNDERLYING,
@@ -640,8 +642,92 @@ def group_facts(rows_i: pd.DataFrame, underlying_date: bool = DEP_GROUP_UNDERLYI
     return facts, fallback, no_parent
 
 
+_ANALYSIS = None
+
+
+def _analysis():
+    """The dependence-clustering analysis module (``backend/scripts``): its entity / economy
+    dictionaries and ``build_category_groups`` are the single source of the non-sports link
+    definitions (DEPENDENCE_CLUSTERING_ANALYSIS.md section 8); they are imported, not copied."""
+    global _ANALYSIS
+    if _ANALYSIS is None:
+        import importlib.util
+        import sys
+
+        path = Path(__file__).resolve().parents[2] / "scripts" / "dependence_clustering_analysis.py"
+        name = "dependence_clustering_analysis"
+        mod = sys.modules.get(name)
+        if mod is None:
+            spec = importlib.util.spec_from_file_location(name, path)
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules[name] = mod
+            spec.loader.exec_module(mod)
+        _ANALYSIS = mod
+    return _ANALYSIS
+
+
+# co-primary / sensitivity rule sets of the analysis (section 8)
+CATEGORY_RULES = {
+    "dep_group": "category_aware",  # fixture-day + weather city x day + culture source
+    "dep_group_econ": "category_aware+econ_driver",  # S4
+    "dep_group_category_driver": "category_driver",  # S5 (cluster-sensitive: politics block)
+}
+
+
+def category_group_columns(
+    rows_i: pd.DataFrame, market_ids: np.ndarray, base: np.ndarray | pd.Series,
+    link_fields: dict | None = None,
+) -> tuple[pd.DataFrame, np.ndarray]:
+    """Non-sports dependence columns on top of the fixture-day groups ``base``.
+
+    Link fields (event title, resolution-source domain) are not in the snapshot rows or sidecar.
+    They come from ``rows_i`` columns ``event_title`` / ``resolution_source`` when present, else
+    from ``link_fields = {"event_titles": {event_id: title}, "sources": {market_id: domain}}``.
+    A market without them gets no category link (its group equals its fixture-day group) and is
+    flagged in the returned ``links_missing`` array (1.0 = neither title nor source known).
+    Returns the columns ``dep_group``, ``dep_group_econ``, ``dep_group_category_driver`` (in
+    ``market_ids`` order) and ``links_missing``.
+    """
+    an = _analysis()
+    r = rows_i.drop_duplicates("market_id").set_index(rows_i.drop_duplicates("market_id")[
+        "market_id"].astype(str).to_numpy())
+    mids = [str(m) for m in market_ids]
+    r = r.reindex(mids)
+    lf = link_fields or {}
+    et, srcs = lf.get("event_titles", {}), lf.get("sources", {})
+    ext = (pd.to_numeric(r["ext_present"], errors="coerce").to_numpy(float) == 1) if (
+        "ext_present" in r) else np.zeros(len(r), bool)
+    title, src = [], []
+    for k, m in enumerate(mids):
+        evs = (_json_list(r["event_ids"].iat[k]) if ext[k] and "event_ids" in r
+               else ([] if pd.isna(r["event_id"].iat[k]) else [str(r["event_id"].iat[k])]))
+        t = r["event_title"].iat[k] if "event_title" in r else None
+        if t is None or pd.isna(t):
+            t = next((et[x] for x in evs if x in et), None)
+        title.append(t)
+        sv = r["resolution_source"].iat[k] if "resolution_source" in r else None
+        src.append(srcs.get(m) if sv is None or pd.isna(sv) else sv)
+    end = r["end_date"] if "end_date" in r else pd.Series([None] * len(r), index=r.index)
+    f = pd.DataFrame({
+        "market_id": mids,
+        "fee_category": (r["fee_category"].to_numpy() if "fee_category" in r
+                         else np.full(len(r), None)),
+        "ent": [an.entity(t) for t in title], "econ": [an.economy(t) for t in title],
+        "src": src, "endts": [None if pd.isna(x) else str(x) for x in end],
+        "day": an.utc_day(panel._epoch(end)),
+    })
+    base = np.asarray(base, dtype=object)
+    present = np.isin(mids, rows_i["market_id"].astype(str).to_numpy())
+    cols = {name: np.where(present, an.build_category_groups(f, base, an.CAT_RULES[rule]), base)
+            for name, rule in CATEGORY_RULES.items()}  # absent markets keep their singleton id
+    missing = (pd.isna(pd.Series(title, dtype=object)).to_numpy()
+               & pd.isna(pd.Series(src, dtype=object)).to_numpy()).astype(float)
+    return pd.DataFrame(cols), missing
+
+
 def dependence_group_ids(
-    rows_i: pd.DataFrame, market_ids: np.ndarray, underlying_date: bool = DEP_GROUP_UNDERLYING
+    rows_i: pd.DataFrame, market_ids: np.ndarray, underlying_date: bool = DEP_GROUP_UNDERLYING,
+    link_fields: dict | None = None,
 ) -> pd.DataFrame:
     """``dep_group`` (fixture-day: event, parentEventId, negRisk, series x UTC end date,
     underlying x UTC date), ``dep_group_season`` (the former league-season grouping: D120
@@ -649,7 +735,15 @@ def dependence_group_ids(
     ``dep_group_fallback`` (1.0 = event-id fallback, no sidecar), ``dep_group_no_parent`` (1.0 =
     no ``parentEventId`` information: fixture-day group lacks parent links) and
     ``dep_group_unmatched`` (1.0 = market absent from the snapshot: singleton ``g:u:<id>``) per
-    market, via ``pairing.dependence_groups`` (imported, not reimplemented). Never None."""
+    market, via ``pairing.dependence_groups`` (imported, not reimplemented). Never None.
+
+    Non-sports links (DEPENDENCE_CLUSTERING_ANALYSIS.md section 8, ``category_group_columns``):
+    ``dep_group`` is the co-primary ``category_aware`` grouping = fixture-day ∪ weather city x
+    UTC day ∪ culture resolution source; the plain fixture-day grouping stays as
+    ``dep_group_fixture_day``. ``dep_group_econ`` (S4, + economic driver) and
+    ``dep_group_category_driver`` (S5, + politics end time, crypto window, finance end time) are
+    sensitivities next to ``dep_group_season``. ``dep_group_links_missing`` = 1.0 where neither
+    event title nor resolution source is known (no category link possible)."""
     mids = [str(m) for m in market_ids]
     out: dict = {}
     for col, mode in (("dep_group", "fixture_day"), ("dep_group_season", "season")):
@@ -661,6 +755,11 @@ def dependence_group_ids(
             out["dep_group_unmatched"] = [float(m not in groups) for m in mids]
         else:
             out["dep_group_no_parent"] = [float(npar[m]) if m in npar else 1.0 for m in mids]
+    out["dep_group_fixture_day"] = list(out["dep_group"])
+    cat, missing = category_group_columns(rows_i, np.asarray(mids), out["dep_group"], link_fields)
+    for c in cat.columns:
+        out[c] = cat[c].to_numpy()
+    out["dep_group_links_missing"] = missing
     return pd.DataFrame(out)
 
 
@@ -703,6 +802,197 @@ def feature_frame(origin: pd.DataFrame, names: Iterable[str] = ()) -> pd.DataFra
 def feature_versions() -> dict:
     register_tier_a()
     return features.versions(list(TIER_A_NAMES))
+
+
+# ---------------------------------------------------------------------------------------------
+# Exploratory families: trade flow and wallet behaviour (NOT part of the confirmatory MC1 set)
+# ---------------------------------------------------------------------------------------------
+# Adding either family to MC1 counts as one feature-set revision (FEATURE_DISCOVERY_PROGRAMME
+# section 3); they are therefore never in TIER_A_NAMES / EXTENDED_NAMES / M12_FEATURES and the
+# runner marks any run that uses them ``exploratory_family``. Values come from the trade sample of
+# the same snapshot (``trade_sample`` plan + ``wallets.csv.gz``), computed from trades strictly
+# before the market's snapshot origin (``flow_features``). Only ~2,000 markets per snapshot are
+# sampled; every other row is NaN (never 0) with ``ml_flow_sampled = 0``.
+
+FLOW_VERSION = "ml-flow-v1"
+FLOW_JOIN_VERSION = "ml-flow-join-v1"
+FLOW_SAMPLED = "ml_flow_sampled"
+FLOW_FAMILY, WALLET_FAMILY = "ml_flow", "ml_wallet"
+# ml_explain family labels for the two registry families (ml_explain.assign_families `exact`)
+EXPLAIN_FAMILY = {FLOW_FAMILY: "flow", WALLET_FAMILY: "wallet"}
+# Not features: the first-seen index span grows with calendar time (a clock proxy) and the
+# wallet-age hook is not wired. Both stay out of the panel.
+_FLOW_EXCLUDED = ("wlt_index_span_days", "wlt_age_activity_median_days")
+EXPLORATORY_FAMILY_CHOICES = ("flow", "wallet")
+ORIGIN_TOL_S = 1.0  # plan origin vs panel t_i; a larger gap blanks the row
+
+
+def _flow_cols() -> tuple[tuple[str, ...], tuple[str, ...]]:
+    from . import flow_features
+
+    names = [n for n in flow_features.feature_names() if n not in _FLOW_EXCLUDED]
+    flow = tuple(f"ml_{n}" for n in names if n.startswith("flow_"))
+    wallet = tuple(f"ml_{n}" for n in names if n.startswith("wlt_"))
+    return (FLOW_SAMPLED, *flow), wallet
+
+
+FLOW_NAMES, WALLET_NAMES = _flow_cols()
+
+
+def register_flow() -> tuple[str, ...]:
+    """Register flow and wallet features once (idempotent) through ``register_ml``. They read the
+    joined column of the same name (``add_flow_wallet_columns``); NaN stays NaN."""
+    for fam, names in ((FLOW_FAMILY, FLOW_NAMES), (WALLET_FAMILY, WALLET_NAMES)):
+        for name in names:
+            cur = features.REGISTRY.get(name)
+            if cur is not None:
+                if cur.version != FLOW_VERSION or cur.family != fam:
+                    raise ValueError(f"feature {name!r} registered with a different definition")
+                continue
+            register_ml(FeatureSpec(name, fam, FLOW_VERSION, _passthrough(name), (name,)))
+    return (*FLOW_NAMES, *WALLET_NAMES)
+
+
+def family_features(families: Iterable[str]) -> dict[str, tuple[str, ...]]:
+    """Selected exploratory families ('flow', 'wallet') -> registered feature names."""
+    register_flow()
+    table = {"flow": FLOW_NAMES, "wallet": WALLET_NAMES}
+    bad = [f for f in families if f not in table]
+    if bad:
+        raise ValueError(f"unknown exploratory families {bad}; choose from {list(table)}")
+    return {f: table[f] for f in dict.fromkeys(families)}
+
+
+def flow_feature_versions(names: Iterable[str]) -> dict:
+    register_flow()
+    return features.versions(list(names))
+
+
+def _sample_dirs(sample_root: Path) -> list[Path]:
+    root = Path(sample_root)
+    return sorted(p for p in root.iterdir() if p.is_dir()) if root.is_dir() else []
+
+
+def add_flow_wallet_columns(
+    panel_df: pd.DataFrame, sample_root: Path, families: Iterable[str] = ("flow", "wallet"),
+) -> tuple[pd.DataFrame, dict]:
+    """Join flow/wallet features of each snapshot's trade sample into the panel (origin side).
+
+    A panel row (capture_i, market_id) receives the features of the sample whose
+    ``plan.snapshot_id`` is its ``capture_i`` and whose plan lists that market with status ``ok``;
+    trades strictly before the market's snapshot origin only (``flow_features``; also checked
+    against the panel's ``t_i`` within ``ORIGIN_TOL_S``). Everything else is NaN with
+    ``ml_flow_sampled = 0``; nothing is imputed. ``rep_flow_incl_prob`` (the plan's inclusion
+    probability, sampled rows only) and ``rep_flow_sample_id`` are report-only (``rep_`` columns
+    are refused as features). The first-seen wallet index is built incrementally from strictly
+    earlier samples; one sample's wallets are in memory at a time. Returns (panel, report).
+    """
+    from . import flow_features as ff
+
+    fam = family_features(families)
+    cols = [c for names in fam.values() for c in names]
+    wanted = set(cols) | {FLOW_SAMPLED}
+    out = panel_df.copy()
+    for c in {*FLOW_NAMES, *WALLET_NAMES}:
+        out[c] = np.nan
+    out[FLOW_SAMPLED] = 0.0
+    out["rep_flow_incl_prob"] = np.nan
+    out["rep_flow_sample_id"] = None
+    liq = (np.expm1(out["ml_log1p_liq"].to_numpy(float)) if "ml_log1p_liq" in out.columns
+           else np.full(len(out), np.nan))
+    cap = out["capture_i"].astype(str).to_numpy()
+    mkt = out["market_id"].astype(str).to_numpy()
+    t_i = out["t_i"].to_numpy(float)
+    by_cap: dict[str, np.ndarray] = {}
+    for c in np.unique(cap):
+        by_cap[c] = np.flatnonzero(cap == c)
+    idx = ff.FirstSeenIndex()
+    used: dict[str, str] = {}
+    report: dict = {"version": FLOW_JOIN_VERSION, "flow_version": FLOW_VERSION,
+                    "families": list(fam), "samples": [], "skipped": [],
+                    "duplicate_snapshot_samples_ignored": [], "origin_mismatch_rows": 0}
+    for d in _sample_dirs(sample_root):
+        wpath = d / "wallets.csv.gz"
+        try:
+            plan = json.loads((d / "plan.json").read_text())
+            man = json.loads((d / "manifest.json").read_text())
+            fdf = pd.read_csv(d / "features.csv.gz", dtype={"market_id": str},
+                              usecols=["market_id", "status"])
+        except (OSError, ValueError):
+            report["skipped"].append({"sample": d.name, "reason": "unreadable plan/manifest"})
+            continue
+        if not wpath.exists():  # sidecar missing: skipped, never reconstructed
+            report["skipped"].append({"sample": d.name, "reason": "no wallets sidecar"})
+            continue
+        snap = str(plan.get("snapshot_id"))
+        rows = by_cap.get(snap)
+        if rows is not None and snap in used:
+            report["duplicate_snapshot_samples_ignored"].append(d.name)
+            rows = None
+        if rows is not None and man.get("state") != "complete":
+            report["skipped"].append({"sample": d.name, "reason": f"state {man.get('state')}"})
+            rows = None
+        if rows is not None:
+            liqmap = {mkt[r]: float(liq[r]) for r in rows if np.isfinite(liq[r])}
+            feat = ff.features_for_sample(  # strictly earlier samples only
+                d, liquidity=liqmap, first_seen=idx)
+            feat = feat.set_index("market_id")
+            okset = set(fdf.loc[fdf["status"] == "ok", "market_id"])
+            plan_by = {m["market_id"]: m for m in plan["sample"]}
+            keep_cols = [c for c in feat.columns if f"ml_{c}" in wanted]
+            n_join = n_mismatch = 0
+            for r in rows:
+                m = plan_by.get(mkt[r])
+                if m is None or mkt[r] not in okset:
+                    continue
+                origin = pd.Timestamp(m["origin_utc"]).timestamp()
+                if abs(origin - t_i[r]) > ORIGIN_TOL_S:
+                    n_mismatch += 1
+                    continue
+                fr = feat.loc[mkt[r]]
+                if isinstance(fr, pd.DataFrame):  # duplicate market in plan: keep first
+                    fr = fr.iloc[0]
+                for c in keep_cols:
+                    out.iat[r, out.columns.get_loc(f"ml_{c}")] = fr[c]
+                out.iat[r, out.columns.get_loc(FLOW_SAMPLED)] = 1.0
+                out.iat[r, out.columns.get_loc("rep_flow_incl_prob")] = m["inclusion_float"]
+                out.iat[r, out.columns.get_loc("rep_flow_sample_id")] = d.name
+                n_join += 1
+            used[snap] = d.name
+            report["origin_mismatch_rows"] += n_mismatch
+            report["samples"].append({"sample": d.name, "snapshot_id": snap,
+                                      "rows_joined": n_join, "origin_mismatch": n_mismatch,
+                                      "n_sampled_plan": len(plan["sample"]),
+                                      "frame_size": plan.get("frame_size")})
+        # only after joining: a sample never sees itself or later samples
+        idx.add_frame(ff.read_wallets(wpath), d.name)
+    report["first_seen_index_sha256"] = idx.digest()
+    report["coverage"] = flow_coverage(out, fam)
+    report["coverage"]["captures_in_panel"] = len(by_cap)
+    report["coverage"]["captures_with_sample"] = len(used)
+    out.attrs = dict(panel_df.attrs)
+    return out, report
+
+
+def flow_coverage(df: pd.DataFrame, fam: dict[str, tuple[str, ...]]) -> dict:
+    """Per family: rows, sampled rows and share, mean non-NaN share among sampled rows."""
+    n = int(len(df))
+    sampled = df[FLOW_SAMPLED].to_numpy(float) == 1.0 if FLOW_SAMPLED in df.columns else None
+    n_s = int(sampled.sum()) if sampled is not None else 0
+    out: dict = {"n_rows": n, "n_sampled_rows": n_s,
+                 "sampled_share": (n_s / n) if n else None, "families": {}}
+    for f, names in fam.items():
+        cols = [c for c in names if c != FLOW_SAMPLED and c in df.columns]
+        sub = df.loc[sampled, cols] if sampled is not None and n_s else df.iloc[0:0][cols]
+        nonnan = {c: float(sub[c].notna().mean()) if len(sub) else None for c in cols}
+        out["families"][f] = {
+            "n_features": len(cols), "sampled_rows": n_s,
+            "sampled_share": (n_s / n) if n else None,
+            "mean_non_nan_share_among_sampled": (float(np.mean(list(nonnan.values())))
+                                                 if nonnan and len(sub) else None),
+            "features_all_nan_among_sampled": sorted(c for c, v in nonnan.items() if not v),
+        }
+    return out
 
 
 # ---------------------------------------------------------------------------------------------
@@ -862,6 +1152,7 @@ def build_period(
     dep_underlying_date: bool = DEP_GROUP_UNDERLYING,
     with_leak: bool = False,
     leak_sweep_rows: pd.DataFrame | None = None,
+    link_fields: dict | None = None,
 ) -> tuple[pd.DataFrame | None, dict]:
     """Paired rows for one consecutive complete-snapshot couple, with features and labels.
 
@@ -912,7 +1203,7 @@ def build_period(
     sw = sweep_columns(mkt, sweep_rows)
     sib = sibling_moves(snap_i, history[0] if history else None, mkt)
     origin = pd.concat([origin, sw.drop(columns="sw_mid"), sib], axis=1)
-    dg = dependence_group_ids(snap_i, mkt, dep_underlying_date)
+    dg = dependence_group_ids(snap_i, mkt, dep_underlying_date, link_fields)
     feats = feature_frame(origin, EXTENDED_NAMES)
     leak = None
     if with_leak:  # placebo positive control only: columns ``leak_<feature>``, never features
@@ -959,6 +1250,9 @@ def build_period(
     out["rep_sw_gap"] = sw["sw_mid"].to_numpy() - mid_i  # report-only gap placebo; not a feature
     out["dep_group"] = dg["dep_group"].to_numpy()
     out["dep_group_season"] = dg["dep_group_season"].to_numpy()
+    for c in ("dep_group_fixture_day", *SENSITIVITY_GROUP_COLS):
+        out[c] = dg[c].to_numpy()
+    out["dep_group_links_missing"] = dg["dep_group_links_missing"].to_numpy()
     out["dep_group_fallback"] = dg["dep_group_fallback"].to_numpy()
     out["dep_group_no_parent"] = dg["dep_group_no_parent"].to_numpy()
     out["dep_group_unmatched"] = dg["dep_group_unmatched"].to_numpy()
@@ -996,6 +1290,7 @@ def build_panel(
     sweep_loader: Callable[[dict], pd.DataFrame] | None = None,
     dep_underlying_date: bool = DEP_GROUP_UNDERLYING,
     with_leak: bool = False,
+    link_fields: dict | None = None,
 ) -> tuple[pd.DataFrame, list[dict]]:
     """All consecutive complete-snapshot pairs. ``captures`` ordered by start (with ``dir``).
 
@@ -1031,6 +1326,7 @@ def build_panel(
             sweep_eligible=None if sw is None else sw["eligible"],
             sweep_rows=srows, sweep_started_epoch=None if sw is None else sw.get("started_epoch"),
             dep_underlying_date=dep_underlying_date, with_leak=with_leak, leak_sweep_rows=lsw,
+            link_fields=link_fields,
         )
         del srows, lsw
         counts.append(c)
@@ -1044,6 +1340,8 @@ def build_panel(
         panel_df["dep_group_season_period"] = panel_df["dep_group_season"]
         panel_df["dep_group"] = pool_dependence_groups(panel_df, "dep_group")
         panel_df["dep_group_season"] = pool_dependence_groups(panel_df, "dep_group_season")
+        for c in ("dep_group_fixture_day", *SENSITIVITY_GROUP_COLS):
+            panel_df[c] = pool_dependence_groups(panel_df, c)
     panel_df, info = apply_category_policy(panel_df, policy)
     panel_df.attrs["category_info"] = info
     return panel_df, counts

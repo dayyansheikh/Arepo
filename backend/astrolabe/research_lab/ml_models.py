@@ -626,6 +626,8 @@ class TrialSink:
     provenance_record: dict | None = None
     label: str = provenance.DEV_LABEL
     extra: dict = field(default_factory=dict)  # stamped on every line (e.g. gate_overridden)
+    # Required for ml_* kinds (provenance.EVIDENCE_ROLES); a missing role raises at write time.
+    evidence_role: str | None = None
 
     def write(self, record: dict) -> dict:
         if self.provenance_record is None:
@@ -633,7 +635,8 @@ class TrialSink:
             self.provenance_record["env"].update(_ml_versions())
         return provenance.append_trial(
             {"label": self.label, "dataset": self.dataset,
-             "provenance": self.provenance_record, **self.extra, **record},
+             "provenance": self.provenance_record, "evidence_role": self.evidence_role,
+             **self.extra, **record},
             self.path,
         )
 
@@ -884,6 +887,19 @@ def score_arms(
     if sink is not None and manifest is not None:
         sink.write({"kind": "ml_score", **_trial_header("all", manifest), "summary": summary})
     return summary
+
+
+def score_confirmation(
+    df: pd.DataFrame, results: dict[str, ArmResult], clusters: dict, *,
+    evidence_role: str | dict | None, sink: TrialSink | None = None, **kw,
+) -> dict:
+    """L4 confirmation scoring: refuses any input whose ``evidence_role`` is not
+    ``prospective_confirmation`` (development, historical and placebo inputs never reach L4).
+    The sink, when given, must carry the same role. Otherwise identical to ``score_arms``."""
+    provenance.require_confirmation_role(evidence_role)
+    if sink is not None:
+        provenance.require_confirmation_role(sink.evidence_role)
+    return score_arms(df, results, clusters, sink=sink, **kw)
 
 
 # ---------------------------------------------------------------------------------------------

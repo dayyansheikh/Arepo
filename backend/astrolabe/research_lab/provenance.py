@@ -26,6 +26,77 @@ DEV_LABEL = "DEVELOPMENT/post-hoc"
 CORE_MODULES = ("compare", "features", "panel", "evaluate", "models", "extract")
 UNKNOWN = "unknown"
 
+# Evidence role (FEATURE_DISCOVERY_PROGRAMME section 5): required on every trial line of the new
+# ML / history kinds and checked by L4 confirmation scoring. Legacy kinds are not affected.
+EVIDENCE_ROLES = (
+    "exploratory_dev",
+    "exploratory_historical",
+    "prospective_confirmation",
+    "placebo",
+)
+ROLE_REQUIRED_PREFIXES = ("ml_", "history_")  # covers ml_fit, ml_score, ml_explain, history_*
+CONFIRMATION_ROLE = "prospective_confirmation"
+
+
+class EvidenceRoleError(ValueError):
+    """A trial record or scoring input has a missing, invalid or non-confirmatory evidence role."""
+
+
+def role_required(kind: str | None) -> bool:
+    return bool(kind) and str(kind).startswith(ROLE_REQUIRED_PREFIXES)
+
+
+def validate_evidence_role(record: dict) -> None:
+    """Raise ``EvidenceRoleError`` if a record of an ml_*/history_* kind lacks a valid role."""
+    if not role_required(record.get("kind")):
+        return
+    role = record.get("evidence_role")
+    if role is None:
+        raise EvidenceRoleError(f"kind {record['kind']!r} requires evidence_role")
+    if role not in EVIDENCE_ROLES:
+        raise EvidenceRoleError(f"invalid evidence_role {role!r}; allowed: {EVIDENCE_ROLES}")
+
+
+def require_confirmation_role(source) -> str:
+    """L4 check: ``source`` (a role string or a dict/manifest with ``evidence_role``) must be
+    ``prospective_confirmation``; anything else, including a missing role, is refused."""
+    role = source.get("evidence_role") if isinstance(source, dict) else source
+    if role != CONFIRMATION_ROLE:
+        raise EvidenceRoleError(
+            f"confirmation scoring refuses evidence_role {role!r}; "
+            f"only {CONFIRMATION_ROLE!r} is accepted"
+        )
+    return role
+
+
+def cumulative_tests_by_family(
+    path: Path = TRIALS_PATH, kind: str = "ml_explain"
+) -> dict[str, int]:
+    """Cumulative number of tests logged under ``kind``, per feature family, across the log.
+
+    Lines carry ``n_tests_by_family``; a line without it (written before that field existed)
+    contributes its ``n_tests`` under ``"_unattributed"``, so the total is never under-counted.
+    """
+    out: dict[str, int] = {}
+    p = Path(path)
+    if not p.exists():
+        return out
+    with open(p, encoding="utf-8") as fh:
+        for line in fh:
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                continue
+            if rec.get("kind") != kind:
+                continue
+            by = rec.get("n_tests_by_family")
+            if isinstance(by, dict) and by:
+                for fam, n in by.items():
+                    out[fam] = out.get(fam, 0) + int(n or 0)
+            elif rec.get("n_tests"):
+                out["_unattributed"] = out.get("_unattributed", 0) + int(rec["n_tests"])
+    return out
+
 
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -110,6 +181,7 @@ def append_trial(record: dict, path: Path = TRIALS_PATH) -> dict:
         "label": DEV_LABEL,
         **record,
     }
+    validate_evidence_role(full)
     line = json.dumps(full, sort_keys=True, default=float, allow_nan=True) + "\n"
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
