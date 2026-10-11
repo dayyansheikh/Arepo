@@ -93,6 +93,9 @@ class Settings(BaseSettings):
     # identical data (never fakes freshness; a new scan is picked up within the window). Applied in
     # production only; 0 disables (dev/test read fresh every call).
     explore_cache_seconds: int = 60
+    # Upper bound on how long an unchanged-scan Explore universe is served from memory before a
+    # forced re-read (the scan-id check normally keeps it until a new scan lands).
+    explore_cache_max_age_seconds: int = 1800
 
     # --- Production scheduler (single idempotent tick; see astrolabe/scheduler) ---
     # A hosted runner (GitHub Actions) wakes ~every 5 min and the app decides what is DUE. All of

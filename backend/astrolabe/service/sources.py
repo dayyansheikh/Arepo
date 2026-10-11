@@ -276,6 +276,47 @@ class CachedSource:
             # Explore applies filters/sorting to the complete genuine set before pagination.
             return await Repository(session).get_markets(limit=None)
 
+    async def has_markets(self) -> bool:
+        """Cheap existence probe (one ``SELECT id ... LIMIT 1``). Replaces materialising the whole
+        markets cache just to learn that it is non-empty (the live-failure fallback path)."""
+        if not self._session_factory:
+            return False
+        from sqlalchemy import select
+
+        from ..storage.models import MarketRow
+        async with self._session_factory() as session:
+            return (await session.scalar(select(MarketRow.id).limit(1))) is not None
+
+    async def get_market(self, market_id: str) -> Market | None:
+        """One market by primary key (instead of loading the full universe and scanning it)."""
+        if not self._session_factory:
+            return None
+        from ..storage.repository import Repository
+        async with self._session_factory() as session:
+            return await Repository(session).get_market(market_id)
+
+    async def explore_markets(self, *, partition: int = 2000) -> list:
+        """The complete markets cache as memory-lean :class:`LeanMarket` records, streamed in
+        partitions with only the columns Explore/facets/cards/search read (never clipped)."""
+        if not self._session_factory:
+            return []
+        from sqlalchemy import select
+
+        from ..storage.models import MarketRow
+        from .explore_lean import lean_from_row
+        stmt = select(
+            MarketRow.id, MarketRow.question, MarketRow.slug, MarketRow.status,
+            MarketRow.category, MarketRow.tags, MarketRow.volume, MarketRow.volume_24hr,
+            MarketRow.liquidity, MarketRow.end_date, MarketRow.updated_at, MarketRow.outcomes,
+            MarketRow.description,
+        ).order_by(MarketRow.volume.desc().nulls_last())
+        out: list = []
+        async with self._session_factory() as session:
+            result = await session.stream(stmt.execution_options(yield_per=partition))
+            async for part in result.partitions(partition):
+                out.extend(lean_from_row(r) for r in part)
+        return out
+
     async def get_token_data(self, market_id: str, token_id: str) -> TokenData:
         if not self._session_factory:
             return TokenData(prices=[], book=None, volumes=[], captured_at=None)

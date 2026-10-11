@@ -60,6 +60,16 @@ class _UniverseCache:
     markets: list[Market]
     signal_by_market: dict[str, Any]
     loaded_at: float
+    scan_key: str | None = None     # latest scan id the cached universe was read against
+    checked_at: float = 0.0         # monotonic time the scan key was last re-validated
+
+
+@dataclass(frozen=True, slots=True)
+class _SignalLite:
+    """The two latest-scan fields Explore reads per market (not the ~60-column snapshot row)."""
+
+    strength: float
+    primary_category: str | None
 
 
 class MarketService:
@@ -81,6 +91,9 @@ class MarketService:
         self._session_factory = cached_session_factory
         # In-process cache of the Explore/facets full-universe read (see _load_explore_universe).
         self._universe_cache: _UniverseCache | None = None
+        # Single-flight guard: concurrent cache misses share ONE universe read instead of each
+        # materialising its own copy (a cold-start burst used to multiply peak memory).
+        self._universe_lock = asyncio.Lock()
 
     # -- mode resolution -------------------------------------------------------------
     def _default_mode(self) -> DataMode:
@@ -96,17 +109,20 @@ class MarketService:
         Allowed only outside production, so tests/dev keep working with no upstream."""
         return self._settings.environment != "production"
 
-    async def _cached_markets_if_any(self) -> list[Market] | None:
-        """The latest COMPLETE production scan persisted in Supabase, or None when empty/absent.
-        This is the genuine offline fallback the scan job keeps fresh (see refresh_cli)."""
+    async def _cached_universe_available(self) -> bool:
+        """Whether the persisted latest-complete-scan universe (the genuine offline fallback the
+        scan job keeps fresh, see refresh_cli) is non-empty."""
         if not self._cached.available():
-            return None
+            return False
         try:
-            markets = await self._cached.markets()
+            # Existence probe only (infra 2026-10-11): the old full-universe read here ran on every
+            # request (incl. the 30 s /api/status poll) whenever live discovery failed, pulling the
+            # whole markets table into memory just to learn it was non-empty.
+            has_any = await self._cached.has_markets()
         except Exception as exc:  # noqa: BLE001 - a cache read error is not fatal; treat as empty
             logger.warning("cached read failed", extra={"ctx_err": str(exc)})
-            return None
-        return markets or None
+            return False
+        return has_any
 
     async def _select_source(self, requested: str | None) -> tuple[DataSource, str | None]:
         """Return (source, degradation_reason). Live -> cached (latest complete scan) -> honest
@@ -136,7 +152,7 @@ class MarketService:
             return self._live, None
         except Exception as exc:  # noqa: BLE001 - fall back rather than fail the request
             logger.warning("live discovery failed; falling back", extra={"ctx_err": str(exc)})
-            if await self._cached_markets_if_any() is not None:
+            if await self._cached_universe_available():
                 return self._cached, f"live unavailable ({type(exc).__name__}); using latest scan"
             if self._replay_allowed():
                 return self._replay, f"live unavailable ({type(exc).__name__}); using replay"
@@ -255,19 +271,45 @@ class MarketService:
         """Latest complete-scan signal per market in two bounded queries, never an N+1."""
         if self._session_factory is None:
             return {}
-        from ..discovery import scan_store
+
+        from sqlalchemy import select
+
+        from ..discovery.snapshot_models import ScanRunRow, SignalSnapshotRow
 
         async with self._session_factory() as session:
-            latest = await scan_store.latest_scan(session)
-            if latest is None:
+            latest_id = await session.scalar(
+                select(ScanRunRow.scan_id).order_by(ScanRunRow.started_at.desc()).limit(1)
+            )
+            if latest_id is None:
                 return {}
-            rows = await scan_store.snapshots_for_scan(session, latest.scan_id)
+            # Same rows and order as scan_store.snapshots_for_scan, but only the three columns
+            # used here (memory/egress: the full snapshot row is ~2.5 KB x ~4k per scan).
+            rows = (await session.execute(
+                select(SignalSnapshotRow.market_id, SignalSnapshotRow.strength,
+                       SignalSnapshotRow.primary_category)
+                .where(SignalSnapshotRow.scan_id == latest_id)
+                .order_by(SignalSnapshotRow.rank_in_bucket.is_(None),
+                          SignalSnapshotRow.rank_in_bucket)
+            )).all()
         out: dict[str, Any] = {}
-        for row in rows:
-            previous = out.get(row.market_id)
-            if previous is None or row.strength > previous.strength:
-                out[row.market_id] = row
+        for market_id, strength, category in rows:
+            previous = out.get(market_id)
+            if previous is None or strength > previous.strength:
+                out[market_id] = _SignalLite(strength=strength, primary_category=category)
         return out
+
+    async def _latest_scan_key(self) -> str | None:
+        """Latest scan id (one indexed single-column read): the Explore cache's validity key."""
+        if self._session_factory is None:
+            return None
+        from sqlalchemy import select
+
+        from ..discovery.snapshot_models import ScanRunRow
+
+        async with self._session_factory() as session:
+            return await session.scalar(
+                select(ScanRunRow.scan_id).order_by(ScanRunRow.started_at.desc()).limit(1)
+            )
 
     async def _read_explore_universe(self, requested_mode):
         """Read (source, reason, markets, signal_by_market) for Explore/facets from storage.
@@ -282,7 +324,7 @@ class MarketService:
         # replay request for deterministic fixtures.
         use_complete_cache = requested_mode != "replay" or not self._replay_allowed()
         if use_complete_cache and self._cached.available():
-            cached = await self._cached.markets()
+            cached = await self._cached.explore_markets()
             if cached:
                 source, markets = self._cached, cached
                 reason = "using latest complete scan"
@@ -304,19 +346,55 @@ class MarketService:
         """
         cache_seconds = self._settings.explore_cache_seconds
         caching_on = cache_seconds > 0 and self._settings.environment == "production"
-        if caching_on:
+        if not caching_on:
+            return await self._read_explore_universe(requested_mode)
+        async with self._universe_lock:
             cache = self._universe_cache
-            if cache is not None and (time.monotonic() - cache.loaded_at) < cache_seconds:
-                return cache.source, cache.reason, cache.markets, cache.signal_by_market
-        source, reason, markets, signal_by_market = await self._read_explore_universe(
-            requested_mode
-        )
-        if caching_on:
+            now = time.monotonic()
+            if cache is not None:
+                age = now - cache.loaded_at
+                if now - cache.checked_at < cache_seconds:
+                    return cache.source, cache.reason, cache.markets, cache.signal_by_market
+                # Revalidate cheaply: the persisted universe only changes when a new scan lands, so
+                # while the latest scan id is unchanged keep serving the same (genuine) rows instead
+                # of re-reading the whole markets table every ``cache_seconds`` (egress + memory).
+                # A hard max age bounds any drift (e.g. a cache read that raced the post-scan
+                # market upsert). Only the persisted (cached-source) universe is held this way.
+                if (cache.scan_key is not None and cache.source is self._cached
+                        and age < self._settings.explore_cache_max_age_seconds):
+                    try:
+                        key = await self._latest_scan_key()
+                    except Exception:  # noqa: BLE001 - fall through to a fresh read
+                        key = None
+                    if key == cache.scan_key:
+                        cache.checked_at = now
+                        return cache.source, cache.reason, cache.markets, cache.signal_by_market
+            # Drop the old universe BEFORE reading the new one so the two never coexist in memory.
+            self._universe_cache = None
+            cache = None
+            try:
+                scan_key = await self._latest_scan_key()
+            except Exception:  # noqa: BLE001
+                scan_key = None
+            source, reason, markets, signal_by_market = await self._read_explore_universe(
+                requested_mode
+            )
+            loaded = time.monotonic()
             self._universe_cache = _UniverseCache(
                 source=source, reason=reason, markets=markets,
-                signal_by_market=signal_by_market, loaded_at=time.monotonic(),
+                signal_by_market=signal_by_market, loaded_at=loaded,
+                scan_key=scan_key, checked_at=loaded,
             )
-        return source, reason, markets, signal_by_market
+            return source, reason, markets, signal_by_market
+
+    async def _find_market(self, source, market_id: str) -> Market | None:
+        """One market from ``source``. The persisted cache answers by primary key; the old path
+        materialised the entire markets table per market-detail request whenever live discovery
+        was down (a Render OOM vector). Live/replay keep their in-memory list lookup."""
+        if source is self._cached:
+            return await self._cached.get_market(market_id)
+        markets = await source.markets()
+        return next((m for m in markets if m.id == market_id), None)
 
     # -- public API ------------------------------------------------------------------
     async def list_markets(
@@ -536,8 +614,7 @@ class MarketService:
         winning_outcome_name) or None when still unknown. A market counts as resolved only
         when it is closed and exactly one outcome sits at an extreme price (>= 0.99)."""
         source, _ = await self._select_source(requested_mode)
-        markets = await source.markets()
-        market = next((m for m in markets if m.id == market_id), None)
+        market = await self._find_market(source, market_id)
         if market is None:
             return None
         if market.status.value not in {"closed", "resolved"}:
@@ -597,8 +674,7 @@ class MarketService:
 
     async def market_detail(self, market_id: str, *, requested_mode=None, chart_range="all"):
         source, reason = await self._select_source(requested_mode)
-        markets = await source.markets()
-        market = next((m for m in markets if m.id == market_id), None)
+        market = await self._find_market(source, market_id)
         if market is None:
             # Canonical resolution (spec §3): the market is not in the selected mode's dataset, so
             # resolve it directly from the live universe by its Gamma id and load it against the
@@ -734,6 +810,9 @@ def _filter_markets(markets, *, search, category, status):
 def _market_search_matches(market: Market, terms: list[str]) -> bool:
     if not terms:
         return True
+    precomputed = getattr(market, "search_text", None)
+    if precomputed is not None:
+        return any(term in precomputed for term in terms)
     haystack = " ".join(
         [
             market.question,
