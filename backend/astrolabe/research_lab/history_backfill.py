@@ -331,10 +331,15 @@ def _paged(lim: Limiter, params: dict, max_rows: int = GAMMA_OFFSET_CAP) -> tupl
 FRAME_VERSION = "frame-v2-random-windows"
 
 
+class FrameInterrupted(RuntimeError):
+    """Frame fetch stopped between days (collection window); partial days are kept on disk."""
+
+
 def fetch_frame(
     lim: Limiter, now: float, lookback_days: int = 270, min_volume: float = 0.0,
     include_active: bool = True, windows_per_day: int = 6, window_minutes: int = 15,
-    pages_per_window: int = 3, seed: str = "arepo-h1",
+    pages_per_window: int = 3, seed: str = "arepo-h1", partial_path: Path | None = None,
+    should_stop: Callable[[], bool] | None = None,
 ) -> tuple[list[dict], dict]:
     """Market universe, sampled by time window (the full closed universe is far too large: one day
     can hold more than 20000 closed markets, mostly short crypto markets, and Gamma offset depth is
@@ -379,8 +384,26 @@ def fetch_frame(
 
     day0 = datetime.fromtimestamp(now, UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     slots = 1440 // window_minutes
+    done_days: set[str] = set()
+    if partial_path is not None and Path(partial_path).exists():  # resume: whole days only
+        for line in Path(partial_path).read_text().splitlines():
+            rec = json.loads(line)
+            done_days.add(rec["day"])
+            for r in rec["rows"]:
+                rows[r["market_id"]] = r
+            for key in ("closed", "active"):
+                rep["windows"][key] += rec["windows"][key]
+                rep["windows_capped"][key] += rec["capped"][key]
+            rep["raw"] += rec["raw"]
+            rep["non_binary_or_invalid"] += rec["invalid"]
     for d in range(lookback_days, -1, -1):
         day = day0 - timedelta(days=d)
+        if f"{day:%Y-%m-%d}" in done_days:
+            continue
+        if should_stop is not None and should_stop():
+            raise FrameInterrupted("collection window")
+        before = (dict(rep["windows"]), dict(rep["windows_capped"]), rep["raw"],
+                  rep["non_binary_or_invalid"], set(rows))
         rng = random.Random(f"{seed}|{day:%Y-%m-%d}")
         picks = sorted(rng.sample(range(slots), min(windows_per_day, slots)))
         for kind in (("closed", "active") if include_active else ("closed",)):
@@ -402,6 +425,15 @@ def fetch_frame(
                 rep["windows"][kind] += 1
                 rep["windows_capped"][kind] += int(capped)
                 take(batch)
+        if partial_path is not None:
+            new = [r for k, r in rows.items() if k not in before[4]]
+            rec = {"day": f"{day:%Y-%m-%d}", "rows": new,
+                   "windows": {k: rep["windows"][k] - before[0][k] for k in before[0]},
+                   "capped": {k: rep["windows_capped"][k] - before[1][k] for k in before[1]},
+                   "raw": rep["raw"] - before[2],
+                   "invalid": rep["non_binary_or_invalid"] - before[3]}
+            with Path(partial_path).open("a") as fh:
+                fh.write(json.dumps(rec, default=float) + "\n")
     return list(rows.values()), rep
 
 
@@ -638,7 +670,13 @@ def run(
                     r[k] = float("nan") if r[k] == "" else float(r[k])
             frame_rep = prior.get("frame_report", {})
         else:
-            frame, frame_rep = fetch_frame(lim, now, lookback_days, min_volume, seed=seed)
+            try:
+                frame, frame_rep = fetch_frame(
+                    lim, now, lookback_days, min_volume, seed=seed,
+                    partial_path=rdir / "frame_partial.jsonl", should_stop=should_stop)
+            except FrameInterrupted:
+                return {"stopped": "frame fetch paused (collection window); resumable",
+                        "counts": {"markets_done": 0}}
             budget.write(frame_path, _gz_csv_bytes(
                 FRAME_COLUMNS, ([r[c] for c in FRAME_COLUMNS] for r in frame)))
         sample, samp_rep = draw_sample(frame, n_markets, seed, True, categories, category_mode)

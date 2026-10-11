@@ -47,8 +47,8 @@ def main(argv: list[str] | None = None) -> int:
                        datetime.now(UTC)) and not a.allow_collection_window,
                    category_mode=a.category_mode,
                    categories=[c for c in a.categories.split(",") if c])
-        print(json.dumps({k: m[k] for k in ("counts", "requests", "disk_bytes", "stopped",
-                                           "elapsed_s_this_session")}, indent=1))
+        print(json.dumps({k: m.get(k) for k in ("counts", "requests", "disk_bytes", "stopped",
+                                                "elapsed_s_this_session")}, indent=1))
     else:
         print(json.dumps(hb.build_panel(root / a.run_id), indent=1))
     return 0

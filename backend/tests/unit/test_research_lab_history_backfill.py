@@ -335,3 +335,18 @@ def test_yield_to_live_collector():
                      live_check=lambda: next(flags))
     lim.get("u", {})
     assert lim.yielded_s == 30.0 and calls
+
+
+def test_frame_resumable_after_interrupt(tmp_path):
+    part = tmp_path / "p.jsonl"
+    stops = iter([False, False, True])
+    mk = lambda: hb.Limiter(Fake([_market(i) for i in range(1, 4)]), sleep=lambda s: None)  # noqa: E731
+    with pytest.raises(hb.FrameInterrupted):
+        hb.fetch_frame(mk(), NOW, lookback_days=4, windows_per_day=2, partial_path=part,
+                       should_stop=lambda: next(stops))
+    assert len(part.read_text().splitlines()) == 2
+    f2 = Fake([_market(i) for i in range(1, 4)])
+    rows, rep = hb.fetch_frame(hb.Limiter(f2, sleep=lambda s: None), NOW, lookback_days=4,
+                               windows_per_day=2, partial_path=part)
+    assert len(rows) == 3 and len(part.read_text().splitlines()) == 5
+    assert rep["windows"]["closed"] == 10  # 5 days x 2 windows, 2 resumed from disk
