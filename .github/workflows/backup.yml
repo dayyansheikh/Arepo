@@ -1,4 +1,5 @@
-# Daily Postgres backup (AREPO_FREE_PRODUCTION_DEPLOYMENT_MASTER_PROMPT §14).
+# Weekly Postgres backup (AREPO_FREE_PRODUCTION_DEPLOYMENT_MASTER_PROMPT §14), skipped when the
+# data fingerprint is unchanged since a successful dump in the same month (see the fp step).
 #
 # Runs pg_dump against the production database and uploads a compressed, timestamped artifact.
 # GitHub artifacts are free (retention configurable, default 90 days here). This is a genuinely-free
@@ -16,7 +17,12 @@ on:
     # durable primary; weekly external DR snapshots are sufficient, and the retention/compaction work
     # keeps the DB (and therefore each dump) small. Run on demand any time via workflow_dispatch.
     - cron: "40 3 * * 0"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Dump even if the data fingerprint is unchanged (true/false)"
+        required: false
+        default: "false"
 
 concurrency:
   group: arepo-db-backup
@@ -47,7 +53,47 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y postgresql-client-17
           /usr/lib/postgresql/17/bin/pg_dump --version
+      - name: Data fingerprint (catalog-only, no table scans)
+        id: fp
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          # EGRESS GUARD (infra 2026-10-11). A full pg_dump streams the whole logical DB uncompressed
+          # over the Supabase pooler (~0.5 GB per run; ~2-2.5 GB/month weekly) even when nothing
+          # changed: every weekly artifact since 2026-08-30 is the same ~66.8 MB, because scans are
+          # paused. Fingerprint the data from pg_stat_user_tables' cumulative insert/update/delete
+          # counters (a catalog read: a few KB, no table scans) plus the schema version, excluding
+          # the operational tables the collect tick touches on every run. Unchanged fingerprint in
+          # the same calendar month => a previous successful dump already holds this exact data, so
+          # skip. The month is part of the key, so there is still >= 1 fresh dump per month (artifact
+          # retention is 90 days). A stats reset (restart/crash) changes the fingerprint => dump
+          # (fails safe). An evicted/missing cache entry => dump (fails safe).
+          test -n "$BACKUP_DATABASE_URL" || { echo "BACKUP_DATABASE_URL secret is not set"; exit 1; }
+          FP=$(/usr/lib/postgresql/17/bin/psql "$BACKUP_DATABASE_URL" -X -A -t -v ON_ERROR_STOP=1 -c "
+            SELECT md5(coalesce(string_agg(
+                     relname || ':' || n_tup_ins || ':' || n_tup_upd || ':' || n_tup_del, ','
+                     ORDER BY relname), '')
+                   || '|v' || coalesce((SELECT max(version)::text FROM schema_migrations), '0'))
+            FROM pg_stat_user_tables
+            WHERE schemaname = 'public'
+              AND relname NOT IN ('scheduler_state', 'scheduler_leases', 'discovery_scan_locks',
+                                  'source_health', 'schema_migrations');")
+          test -n "$FP" || { echo "empty fingerprint"; exit 1; }
+          echo "hash=$FP" >> "$GITHUB_OUTPUT"
+          echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+          echo "fingerprint=$FP"
+      - name: Was this exact data already backed up this month?
+        id: seen
+        uses: actions/cache/restore@v4
+        with:
+          path: .backup-fingerprint
+          key: arepo-backup-fp-${{ steps.fp.outputs.month }}-${{ steps.fp.outputs.hash }}
+          lookup-only: true
+      - name: Skip (unchanged data)
+        if: steps.seen.outputs.cache-hit == 'true' && github.event.inputs.force != 'true'
+        run: echo "Data fingerprint unchanged since a successful dump this month; skipping the full dump (no egress)."
       - name: Dump and compress
+        if: steps.seen.outputs.cache-hit != 'true' || github.event.inputs.force == 'true'
         env:
           # Supabase SESSION pooler URL (…pooler.supabase.com:5432), plain postgresql:// (no +asyncpg).
           # The direct connection is IPv6-only on the free plan and unreachable from IPv4 Actions runners;
@@ -67,9 +113,19 @@ jobs:
           test "$SIZE" -gt 1000 || { echo "backup suspiciously small ($SIZE bytes)"; exit 1; }
           echo "OUT=$OUT" >> "$GITHUB_ENV"
       - name: Upload backup artifact
+        if: steps.seen.outputs.cache-hit != 'true' || github.event.inputs.force == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: arepo-db-backup
           path: ${{ env.OUT }}
           retention-days: 90
           if-no-files-found: error
+      - name: Record fingerprint of the successful dump
+        if: (steps.seen.outputs.cache-hit != 'true' || github.event.inputs.force == 'true') && success()
+        run: echo "${{ steps.fp.outputs.hash }}" > .backup-fingerprint
+      - name: Save fingerprint marker
+        if: (steps.seen.outputs.cache-hit != 'true' || github.event.inputs.force == 'true') && success()
+        uses: actions/cache/save@v4
+        with:
+          path: .backup-fingerprint
+          key: arepo-backup-fp-${{ steps.fp.outputs.month }}-${{ steps.fp.outputs.hash }}
