@@ -147,10 +147,29 @@ def test_end_to_end_development_run(tmp_path):
     sg = rep["sweep_gap"]
     assert sg["rescore"]["all"]["loss"]["base"] > 0 and "gap_placebo_vs_M0" in sg
     assert rep["arms_use_sweep_features"] is False
+    pl = rep["placebos"]
+    ev = "event"
+    shuf = pl["shuffled_labels"]["bootstrap"][ev]["log_loss"]["M1_placebo_shuffled"]
+    assert shuf["rel_improvement"] < 0.01  # no gain from permuted labels
+    leak = pl["leak_positive_control"]["bootstrap"][ev]["log_loss"]["M0_placebo_leak"]
+    assert leak["rel_improvement"] > 0.2 and leak["ci95"][0] > 0  # the leak alarm fires
+    assert "M0_placebo_quote_age" in pl["quote_age_only"]["arms"]
     lines = [json.loads(x) for x in (tmp_path / "trials.jsonl").read_text().splitlines()]
     fits = [x for x in lines if x["kind"] == "ml_fit"]
     assert {x["arm"] for x in fits} == {"M0", "M1", "M2", "M3_eb", "M0_gap_placebo",
-                                         "M0_probe_sw", "M0_probe_sw_gap"}
+                                         "M0_probe_sw", "M0_probe_sw_gap", "M0_placebo_shuffled",
+                                         "M1_placebo_shuffled",
+                                         "M0_placebo_leak", "M0_placebo_quote_age"}
     assert all(x["label"] == "DEVELOPMENT/post-hoc" for x in lines)
     assert rep["accounting"]["trial_lines_written"] == len(lines)
     assert rep["accounting"]["tuning_configs_evaluated_inside_folds"]["M2"] == 20
+
+
+def test_shuffle_is_seeded_within_period_event_blocks():
+    lab = pd.DataFrame({"period": [0] * 6 + [1] * 6, "event_id": ["a", "a", "a", "b", "b", "b"] * 2,
+                        "market_id": [f"m{i}" for i in range(12)],
+                        "y_class": [0.0, 1.0, 2.0, 0.0, 0.0, 2.0] * 2})
+    a, b = rmd.shuffle_labels(lab), rmd.shuffle_labels(lab)
+    assert a["y_class"].tolist() == b["y_class"].tolist()
+    for _, g in a.assign(orig=lab["y_class"]).groupby(["period", "event_id"]):
+        assert sorted(g["y_class"]) == sorted(g["orig"])

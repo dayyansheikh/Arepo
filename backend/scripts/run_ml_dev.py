@@ -351,12 +351,12 @@ def _m0_columns(cols):
         mm.M0_FEATURES = old
 
 
-def fit_probe(name: str, cols, lab, manifest, sink):
+def fit_probe(name: str, cols, lab, manifest, sink, fn=None):
     from astrolabe.research_lab import ml_models as mm
 
-    mm.ARMS[name] = mm.fit_m0
+    mm.ARMS[name] = fn or mm.fit_m0
     try:
-        with _m0_columns(cols):
+        with _m0_columns(cols or mm.M0_FEATURES):
             return mm.run_arm(name, lab, manifest, sink=sink)
     finally:
         mm.ARMS.pop(name, None)
@@ -390,6 +390,49 @@ def run_gap_diagnostics(lab, manifest, results, sink) -> dict:
         "rescore": ml_panel.rescore_with_gap_control(lab, base, score_fn),
         "fits": fits,
     }
+
+
+SHUFFLE_SEED = 116
+LEAK_COLUMN = "dmid"  # the target-snapshot move itself: a deliberate leak
+
+
+def shuffle_labels(lab: pd.DataFrame, seed: int = SHUFFLE_SEED) -> pd.DataFrame:
+    """Labels permuted within period x event blocks (design section 4), seeded. Features and
+    all timing columns are untouched, so the fold plan and purge are unchanged."""
+    rng = np.random.default_rng(seed)
+    out = lab.copy()
+    y = out["y_class"].to_numpy(float).copy()
+    ev = out["event_id"].where(out["event_id"].notna(), "mkt:" + out["market_id"].astype(str))
+    key = out["period"].astype(str) + "|" + ev.astype(str)
+    for idx in out.groupby(key, sort=True).indices.values():
+        y[idx] = y[rng.permutation(idx)]
+    out["y_class"] = y
+    return out
+
+
+def run_placebos(lab, manifest, results, clusters, sink) -> dict:
+    """Report-only placebos, logged as placebo arms: shuffled labels (M0 and M1 refitted on the
+    permuted labels), the target-snapshot leak positive control (M0 + dmid; it must win big) and
+    the quote-age-only model (M0 + quote staleness). Never enters a verdict."""
+    from astrolabe.research_lab import ml_models as mm
+
+    base = list(mm.M0_FEATURES)
+    shuf = shuffle_labels(lab)
+    m0s = fit_probe("M0_placebo_shuffled", None, shuf, manifest, sink)
+    m1s = fit_probe("M1_placebo_shuffled", None, shuf, manifest, sink, fn=mm.fit_m1)
+    m0 = results["M0"]
+    leak = fit_probe("M0_placebo_leak", [*base, LEAK_COLUMN], lab, manifest, sink)
+    qage = fit_probe("M0_placebo_quote_age", [*base, "ml_quote_staleness_h"], lab, manifest, sink)
+    out = {
+        "status": "REPORT-ONLY placebos; never enter a verdict",
+        "shuffled_labels": mm.score_arms(
+            shuf, {"M0": m0s, "M1_placebo_shuffled": m1s}, clusters, sink=sink, manifest=manifest),
+        "leak_positive_control": mm.score_arms(
+            lab, {"M0": m0, "M0_placebo_leak": leak}, clusters, sink=sink, manifest=manifest),
+        "quote_age_only": mm.score_arms(
+            lab, {"M0": m0, "M0_placebo_quote_age": qage}, clusters, sink=sink, manifest=manifest),
+    }
+    return out
 
 
 # ---------------------------------------------------------------------------------------------
@@ -455,7 +498,9 @@ def real_run(args, caps, gate, policy) -> dict:
         diag["gap_placebo_vs_M0"] = mm.score_arms(
             lab, {"M0": results["M0"], "M0_gap_placebo": probe_results["M0_gap_placebo"]},
             clusters, sink=sink, manifest=man)
+    placebos = run_placebos(lab, man, results, clusters, sink)
     report = {
+        "placebos": placebos,
         "status": "DEVELOPMENT/post-hoc. Exploratory. No edge, calibration or profitability claim.",
         "utc": stamp, "panel_hash": h, "from_cache": cached, "cache_dir": str(cdir),
         "gate": {k: v for k, v in gate.items() if k != "run_capture_ids"},
@@ -522,6 +567,13 @@ def render_md(r: dict) -> str:
                  f"median |gap| {f(c['gap_abs_median'], 5)}.")
     else:
         L.append(sg["status"])
+    for tag, key, arm in (("Shuffled labels (expect ~0)", "shuffled_labels", "M1_placebo_shuffled"),
+                          ("Leak positive control (must win)", "leak_positive_control",
+                           "M0_placebo_leak"),
+                          ("Quote-age-only", "quote_age_only", "M0_placebo_quote_age")):
+        blk = r["placebos"][key]["bootstrap"]["event"]["log_loss"][arm]
+        L.append(f"- Placebo, {tag}: rel. log-loss improvement vs M0 "
+                 f"{f(blk['rel_improvement'])} (event-cluster CI {blk['ci95']}).")
     L += ["", f"Arms M0-M3_eb use no sweep features (`arms_use_sweep_features = "
           f"{r['arms_use_sweep_features']}`); sweep features enter only the report-only probes.",
           "", "## SHAP (M2, out-of-fold, exploratory)", "",
