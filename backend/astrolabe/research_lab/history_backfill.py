@@ -1043,6 +1043,26 @@ def origin_frame(
         out[name] = feats.get(name, nan)
     for name in (*TF_NAMES, *WLT_NAMES):
         out[name] = feats[name]
+    # Placeholder-price flags (challenger rule): a price with no trade before the origin is a
+    # listing/placeholder price (often ~0.5), not an executable one.
+    # traded_before_t: 1 / 0 from trades strictly before t; NaN (unknown) when the trade history
+    # was truncated and t lies before the oldest fetched trade.
+    if trades is None:
+        traded = nan.copy()
+    else:
+        tts = np.sort(trades["ts"].to_numpy(float)) if len(trades) else np.array([])
+        any_before = (np.searchsorted(tts, t, side="left") > 0) if len(tts) else np.zeros(n, bool)
+        traded = np.where(any_before, 1.0, np.nan if trades_truncated else 0.0)
+    out["traded_before_t"] = traded
+    # price_unchanged_since_listing: every usable series point so far equals the first one; only
+    # defined when the fetched series starts near the listing (not cut by the fetch window)
+    first_p = vals[0]
+    moved = np.flatnonzero(np.abs(vals - first_p) > 1e-9)
+    first_move = ts[moved[0]] if len(moved) else np.inf
+    starts_at_listing = ts[0] <= r["start_epoch"] + 2 * 86400 if not math.isnan(
+        r["start_epoch"]) else False
+    unchanged = (first_move + POINT_LAG_S >= t).astype(float)
+    out["price_unchanged_since_listing"] = unchanged if starts_at_listing else nan
     out["dep_group"] = ("e:" + r["event_id"]) if r["event_id"] else "m:" + r["market_id"]
     out["provenance"] = PROVENANCE
     out["evidence_role"] = EVIDENCE_ROLE
@@ -1134,6 +1154,11 @@ def build_panel(run_dir: Path, horizons: Iterable[int] = HORIZONS_H) -> dict:
                "max_quote_age_s": MAX_QUOTE_AGE_S, "mid_range": list(MID_RANGE),
                "point_lag_s": POINT_LAG_S, "book_features": "absent (NaN)",
                "price_semantics": "unverified",
+               "placeholder_price_rule": "traded_before_t = any trade with ts < t (NaN = unknown "
+               "because the trade history is truncated before t); the primary analysis excludes "
+               "rows with traded_before_t == 0 and reports them separately; "
+               "price_unchanged_since_listing flags rows whose price series has not moved since "
+               "listing (NaN when the series does not start at listing)",
                "wallet_first_seen": {"burn_in_s": FIRST_SEEN_BURN_IN_S,
                                      "g0": None if math.isnan(fsi.g0) else fsi.g0,
                                      "n_wallets": int(len(fsi.keys)),

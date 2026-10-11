@@ -358,3 +358,29 @@ def test_live_pass_matcher_ignores_watchers():
     assert not hb._is_pass_command("/bin/zsh -c eval 'pgrep -f arepo_pass.sh; sleep 1'")
     assert not hb._is_pass_command("pgrep -f arepo_pass.sh")
     assert not hb._is_pass_command("python other.py")
+
+
+def test_traded_before_t_and_unchanged_since_listing():
+    ts, _ = _series(n_days=4)
+    vals = np.full(len(ts), 0.5)
+    vals[ts >= ts[0] + 2 * 86400] += 0.1  # price first moves after two days
+    t_tr = ts[0] + 2.5 * 86400
+    tr = pd.DataFrame([[t_tr, "BUY", 5.0, 0.6, 0, "a" * 32, "k"]], columns=hb.TRADE_COLUMNS)
+    mk = _mkt(start_epoch=ts[0])
+    df = hb.market_panel(mk, ts, vals, tr, False, 2, "r1")
+    early, late = df[df["t_i"] < t_tr], df[df["t_i"] > t_tr]
+    assert (early["traded_before_t"] == 0).all() and (late["traded_before_t"] == 1).all()
+    pre = df[df["t_i"] < ts[0] + 2 * 86400]
+    post = df[df["t_i"] > ts[0] + 2 * 86400 + 1200]
+    assert (pre["price_unchanged_since_listing"] == 1).all()
+    assert (post["price_unchanged_since_listing"] == 0).all()
+    # truncated history: no known earlier trade -> unknown, not 0
+    dt = hb.market_panel(mk, ts, vals, tr, True, 2, "r1")
+    assert dt[dt["t_i"] < t_tr]["traded_before_t"].isna().all()
+    # series not starting at listing: unchanged flag undefined
+    d2 = hb.market_panel(_mkt(start_epoch=ts[0] - 10 * 86400), ts, vals, tr, False, 2, "r1")
+    assert d2["price_unchanged_since_listing"].isna().all()
+    # trade exactly at t is not "before t"
+    tr2 = tr.assign(ts=float(df["t_i"].iloc[5]))
+    d3 = hb.market_panel(mk, ts, vals, tr2, False, 2, "r1")
+    assert d3.iloc[5]["traded_before_t"] == 0 and d3.iloc[6]["traded_before_t"] == 1

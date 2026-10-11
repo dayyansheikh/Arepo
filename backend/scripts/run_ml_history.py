@@ -52,7 +52,7 @@ FLOW_COLS = hb.TF_NAMES
 WALLET_COLS = hb.WLT_NAMES
 ID_COLS = ["market_id", "event_id", "period", "t_i", "t0", "t_j", "mid_i", "mid_j", "dmid",
            "y_class", "y_dmid", "y_absmove", "target_available", "dep_group", "fee_category",
-           "status"]
+           "status", "traded_before_t", "price_unchanged_since_listing"]
 
 
 def log(msg: str) -> None:
@@ -126,6 +126,36 @@ def join_external(df: pd.DataFrame, book_path: Path | None, wage_path: Path | No
                               "rows_with_value": int(df[cols].notna().any(axis=1).sum())
                               if cols else 0}
     return df.drop(columns=["_ts"]).reset_index(drop=True), info
+
+
+def placeholder_report(df: pd.DataFrame) -> dict:
+    """Rows without a prior trade carry placeholder/listing prices (challenger rule): described
+    separately from the primary analysis. ``traded_before_t`` NaN = unknown (truncated history)."""
+    def desc(d: pd.DataFrame) -> dict:
+        lab = d[d["target_available"]]
+        am = lab["dmid"].abs()
+        return {"rows": int(len(d)), "labelled": int(len(lab)),
+                "flat_share": float((am <= ml_panel.DELTA_PRIMARY + 1e-9).mean()) if len(lab)
+                else None,
+                "mean_abs_dmid": float(am.mean()) if len(lab) else None,
+                "mean_mid_i": float(d["mid_i"].mean()) if len(d) else None,
+                "share_mid_within_0.02_of_0.5": float((d["mid_i"] - 0.5).abs().lt(0.02).mean())
+                if len(d) else None}
+
+    tb = df["traded_before_t"]
+    un = df["price_unchanged_since_listing"]
+    return {
+        "rule": "primary analysis excludes traded_before_t == 0; unknown (NaN) rows are kept",
+        "traded_before_t": {"yes": int((tb == 1).sum()), "no": int((tb == 0).sum()),
+                            "unknown": int(tb.isna().sum())},
+        "price_unchanged_since_listing": {"yes": int((un == 1).sum()), "no": int((un == 0).sum()),
+                                          "undefined": int(un.isna().sum())},
+        "unchanged_and_untraded": int(((un == 1) & (tb == 0)).sum()),
+        "unchanged_but_traded": int(((un == 1) & (tb != 0)).sum()),
+        "excluded_no_prior_trade": desc(df[tb == 0]),
+        "unchanged_since_listing_rows": desc(df[un == 1]),
+        "included_primary": desc(df[tb != 0]),
+    }
 
 
 def usable(cols, lab: pd.DataFrame, min_non_nan: float = 0.05) -> list[str]:
@@ -247,6 +277,9 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
     log(f"horizon k={k} ({hours}h): loading panel")
     df = load_panel(run_dir / f"panel_H{hours}h.csv.gz", markets)
     df, ext = join_external(df, args.book_table, args.wallet_age_table)
+    placeholder = placeholder_report(df)
+    if not args.include_untraded:
+        df = df[df["traded_before_t"] != 0].reset_index(drop=True)
     res_ext = ext
     table = ml_panel.period_table(df)
     sha = provenance.git_state().get("git_head", "unknown")
@@ -259,7 +292,8 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
             "manifest_sha256": manifest["manifest_sha256"], "embargo_s": manifest["embargo_s"],
             "markets": int(df["market_id"].nunique())}
     log(f"  {info}")
-    res: dict = {"panel": info, "external": res_ext}
+    res: dict = {"panel": info, "external": res_ext, "placeholder_price_rule": placeholder,
+                 "primary_excludes_untraded": not args.include_untraded}
     if len(manifest["folds"]) < 2:
         res["error"] = "fewer than 2 folds; not run"
         results[str(k)] = res
@@ -281,7 +315,8 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
     eval_mask = (lab[list(book)].notna().any(axis=1).to_numpy() if book else None)
     res["coverage"] = {c: float(lab[c].notna().mean()) for c in (*FLOW_COLS, *WALLET_COLS)}
     res["state_cols_non_nan"] = [c for c in state if lab[c].notna().mean() >= 0.05]
-    sink.extra.update(horizon_snapshots_k=k, horizon_hours=hours)
+    sink.extra.update(horizon_snapshots_k=k, horizon_hours=hours,
+                      primary_excludes_untraded=not args.include_untraded)
     placebo_sink.extra.update(horizon_snapshots_k=k, horizon_hours=hours)
     for target in args.targets:
         tag = f"{target}"
@@ -367,6 +402,8 @@ def main(argv=None) -> int:
                     help="optional pmxt book_features.csv.gz (history_sources.load_book_features)")
     ap.add_argument("--wallet-age-table", type=Path, default=None,
                     help="optional (market_id, origin_ts, ml_wage_*) table")
+    ap.add_argument("--include-untraded", action="store_true",
+                    help="sensitivity only: keep rows with no prior trade (placeholder prices)")
     ap.add_argument("--revision", default="r0_no_external",
                     help="separate governance revision label stamped on every trial line")
     ap.add_argument("--trials-path", type=Path, default=provenance.TRIALS_PATH)
