@@ -371,3 +371,9 @@ criteria are unchanged.
 - In-sample incremental R2 is about 2e-5.
 - **The development data show no support:** the band-deviation coefficient has the opposite sign to the hypothesis and is negligible in size.
 - The confirmation test proceeds unchanged. Its primary test (2) requires a positive slope.
+
+**Crash note (2026-10-11 ~00:15 UTC, before any E002 or E004 outcome snapshot exists)**
+- The Mac crashed at about 22:00 UTC on 2026-10-10 (memory exhaustion).
+- Two scheduled background jobs never ran: the E002 outcome capture (due 22:36 UTC) and the E004 2-hourly loop (first pass due about 22:53 UTC). No partial snapshot exists; all 12 research-lab gzip files and every JSON passed integrity checks after the crash.
+- **E002:** the registered rule (first complete capture at least 3h after `20261010T192208Z_db7c7287`) has no maximum gap, so it still holds. The next complete capture becomes E002's target. Its horizon will be about 5h instead of about 3.2h. That is within E001's 5-70h training range, and it is disclosed.
+- **E004/E005:** no qualifying snapshot existed before the crash. The 2-hourly loop starts after the E002 capture, under the availability-only continuation rule already recorded. Nothing is redrawn or backfilled.
