@@ -77,6 +77,7 @@ def test_planted_signal_recovered(panel_signal, results):
     df, man = panel_signal
     clusters = mm.cluster_vectors(df)
     sc = mm.score_arms(df, results, clusters, n_boot=200)
+    assert sc["non_inferential"] is True and "NON-INFERENTIAL" in sc["non_inferential_reason"]
     ll = {a: v["log_loss"] for a, v in sc["arms"].items()}
     assert ll["M0"] > ll["M1"] and ll["M0"] > ll["M2"] and ll["M0"] > ll["M3_eb"]
     boot = sc["bootstrap"]["event"]["log_loss"]
@@ -114,13 +115,24 @@ def test_no_test_row_in_tuning_or_training(panel_signal, arm):
         assert not set(itr) & set(iva)
         assert per[itr].max() < per[iva].min()
         assert df["t_j"].to_numpy()[itr].max() <= df["t0"].to_numpy()[iva].min() - man["embargo_s"]
-    # decisive check: scrambling test-row labels cannot change a single prediction
+    # decisive check: scrambling the labels of EVERY non-training row (test rows, purged rows
+    # and future periods) cannot change a single prediction
     d2 = df.copy()
     rng = np.random.default_rng(1)
-    d2.loc[test_pos, "y_class"] = rng.integers(0, 3, size=len(test_pos)).astype(float)
+    other = np.setdiff1d(np.arange(len(df)), train_pos)
+    assert len(other) > len(test_pos)  # includes purged and future rows
+    d2.loc[other, "y_class"] = rng.integers(0, 3, size=len(other)).astype(float)
     ff2, _, test_pos2 = mm.fit_fold(arm, d2, fold, man["embargo_s"])
     assert np.array_equal(test_pos, test_pos2)
     assert np.array_equal(ff.proba, ff2.proba)
+    # rows are scored independently: perturbing one test row's features moves no other row
+    d3 = df.copy()
+    feat = list(ml_panel.TIER_A_NAMES)
+    d3.loc[test_pos[0], feat] = 1e3
+    ff3, _, _ = mm.fit_fold(arm, d3, fold, man["embargo_s"])
+    assert np.array_equal(ff.proba[1:], ff3.proba[1:])
+    assert not np.array_equal(ff.proba[0], ff3.proba[0])
+    assert "temperature" in ff.diag if arm != "M3_eb" else True
 
 
 def test_deterministic_seed(panel_signal):
@@ -256,3 +268,31 @@ def test_temperature_identity_and_sharpening():
     y = np.array([rng.choice(3, p=r) for r in p])
     assert abs(mm.fit_temperature(p, y) - 1.0) < 0.3
     assert np.allclose(mm.apply_temperature(p, 1.0), mm._finalise(p), atol=1e-6)
+
+
+def test_score_arms_requires_both_cluster_definitions(panel_signal, results):
+    df, _ = panel_signal
+    cl = mm.cluster_vectors(df, dependence_groups=df["event_id"].str[1:].astype(int) // 5)
+    sc = mm.score_arms(df, results, cl, n_boot=100)
+    assert sc["non_inferential"] is False and sc["non_inferential_reason"] is None
+    assert set(sc["bootstrap"]) == {"event", "dependence_group"}
+
+
+def test_lgb_grid_is_declared_seeded_random_search():
+    assert len(mm.LGB_GRID) == 20
+    assert len({tuple(sorted(c.items())) for c in mm.LGB_GRID}) == 20
+    assert mm.LGB_GRID == mm._sample_lgb_grid()
+    for c in mm.LGB_GRID:
+        assert all(c[k] in v for k, v in mm.LGB_SPACE.items())
+
+
+def test_temperature_source_documented(results):
+    for arm in ("M0", "M1", "M2"):
+        for d in results[arm].folds:
+            assert d["temperature_source"] == mm.TEMP_SOURCE and d["temperature"] > 0
+
+
+def test_simulation_recovers_partial_pooling_sd():
+    out = mm.simulate_hierarchical_check(n_reps=3, n=4000, n_event=100)
+    assert 0.4 < out["estimated_sd_mean"]["event"] < 0.8  # truth 0.6
+    assert out["coverage_95_mean"]["event"] > 0.8

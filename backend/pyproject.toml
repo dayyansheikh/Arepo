@@ -34,6 +34,12 @@ dev = [
 research = [
     "pyarrow==26.0.0",
 ]
+# Research-only ML extra for astrolabe.research_lab.ml_models; mirrors requirements-research.txt.
+research-ml = [
+    "scikit-learn==1.9.1",
+    "lightgbm==4.7.0",
+    "scipy==1.17.1",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

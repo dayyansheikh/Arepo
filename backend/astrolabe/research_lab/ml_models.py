@@ -7,19 +7,22 @@ profitability claim; every run is a development run.
 
 Arms
 ----
-* ``M0``  price + momentum multinomial logistic (a1 + a2 only), refitted per fold, no tuning.
+* ``M0``  price + momentum multinomial logistic (a1 + a2 only), refitted per fold; only its
+  temperature is fitted (inner split), so every arm is calibrated the same way.
 * ``M1``  elastic-net multinomial logistic (scikit-learn, saga) on all tier-(a) features, natural
   spline expansion of ``logit(mid)``, ``chg_1h`` and ``log hours``, and the three pre-declared
   ``chg_1h`` interactions. Grid and temperature are tuned on the inner split only.
-* ``M2``  LightGBM multiclass. 8-config fixed grid (``LGB_GRID``) with early stopping and
-  temperature on the inner split only; the winner is refitted on the whole training fold with
-  the early-stopping round count. Native NaN.
+* ``M2``  LightGBM multiclass. 20-config seeded random search over ``LGB_SPACE``
+  (``LGB_GRID``) with early stopping and temperature on the inner split only; the winner is
+  refitted on the whole training fold with the early-stopping round count. Native NaN.
 * ``M3``  Bayesian hierarchical multinomial logit, fitted as an **empirical-Bayes / Laplace**
   model in numpy + scipy: Gaussian priors N(0, 0.5^2) on standardised main effects, random
   intercepts by ``fee_category`` and by event, ``chg_1h`` and ``spread`` slopes partially pooled by
   category. The group standard deviations are estimated by Laplace-EM (posterior variances from
   the diagonal of the Hessian) under the design's half-normal(0, 0.5) prior, a fixed number of
-  outer iterations, and the coefficients are MAP via L-BFGS. Unseen events and categories get the
+  outer iterations (amendment A1 in the design document justifies this and reports a
+  simulation check, ``simulate_hierarchical_check``), and the coefficients are MAP via
+  L-BFGS. Unseen events and categories get the
   population value (zero random effect), as the design requires. **Why not NumPyro/NUTS:** the
   design's M3 (Task 5) needs jax (about 1 GB), MCMC diagnostics and a subsample; this is the
   lightest correct way to obtain partial pooling on all rows, deterministically and with no new
@@ -75,15 +78,32 @@ BAYES_SLOPES: tuple[str, ...] = ("ml_chg_1h", "ml_spread")
 M1_GRID: tuple[dict, ...] = tuple(
     {"C": c, "l1_ratio": r} for c, r in itertools.product((0.01, 0.1, 1.0), (0.1, 0.5))
 )
-LGB_GRID: tuple[dict, ...] = tuple(  # most regularised first: ties go to the earlier entry
-    {"num_leaves": nl, "min_data_in_leaf": md, "lambda_l2": l2}
-    for nl, md, l2 in itertools.product((7, 15), (200, 50), (10.0, 1.0))
-)
+LGB_SPACE: dict[str, tuple] = {  # declared search space (design: 20-config random search)
+    "num_leaves": (4, 7, 15, 31),
+    "min_data_in_leaf": (20, 50, 100, 200, 400),
+    "lambda_l2": (0.1, 1.0, 10.0, 30.0),
+    "feature_fraction": (0.6, 0.8, 1.0),
+}
+LGB_N_CONFIGS = 20
+
+
+def _sample_lgb_grid(seed: int = SEED, n: int = LGB_N_CONFIGS) -> tuple[dict, ...]:
+    """20 distinct configs drawn without replacement with a fixed seed; identical on every run."""
+    combos = list(itertools.product(*LGB_SPACE.values()))
+    pick = np.random.default_rng(seed).choice(len(combos), size=n, replace=False)
+    return tuple(dict(zip(LGB_SPACE, combos[i], strict=True)) for i in sorted(pick))
+
+
+LGB_GRID: tuple[dict, ...] = _sample_lgb_grid()
 LGB_MAX_ROUNDS = 300
 LGB_EARLY_STOP = 20
 LGB_LEARNING_RATE = 0.05
 
 ARM_NAMES = ("M0", "M1", "M2", "M3_eb")
+TEMP_SOURCE = (
+    "fitted on inner-validation predictions of the model trained on the inner-train rows; "
+    "applied unchanged to the model refitted on the whole training fold (rounds / config fixed)"
+)
 EXPLORATORY_NOTE = (
     "EXPLORATORY: out-of-fold SHAP on development folds. Descriptive only; never evidence of "
     "edge, causation or mechanism. Correlated features share credit arbitrarily; families are "
@@ -230,15 +250,37 @@ def _quiet_fit(model, x, y):
     return any("onverge" in str(i.message) for i in w)
 
 
-def fit_m0(df, train_pos, test_pos, inner, **_) -> FoldFit:
+def _m0_model():
     from sklearn.linear_model import LogisticRegression
 
-    xtr, xte = _xmat(df.iloc[train_pos], M0_FEATURES), _xmat(df.iloc[test_pos], M0_FEATURES)
-    prep = _Prep(M0_FEATURES).fit(xtr)
-    m = LogisticRegression(C=1e4, max_iter=500, random_state=SEED)
+    return LogisticRegression(C=1e4, max_iter=500, random_state=SEED)
+
+
+def fit_m0(df, train_pos, test_pos, inner, **_) -> FoldFit:
+    """Price + momentum logistic. Like every other arm, its temperature is fitted on the inner
+    validation block using a model trained on the inner-train rows, then applied to the model
+    refitted on the whole training fold."""
+    itr, iva = inner
+    cols = M0_FEATURES
+    prep_in = _Prep(cols).fit(_xmat(df.iloc[itr], cols))
+    m_in = _m0_model()
+    _quiet_fit(m_in, prep_in.transform(_xmat(df.iloc[itr], cols)), _y(df, itr))
+    p_va = _finalise(
+        _expand_classes(
+            m_in.classes_, m_in.predict_proba(prep_in.transform(_xmat(df.iloc[iva], cols)))
+        )
+    )
+    temp = fit_temperature(p_va, _y(df, iva))
+    xtr, xte = _xmat(df.iloc[train_pos], cols), _xmat(df.iloc[test_pos], cols)
+    prep = _Prep(cols).fit(xtr)
+    m = _m0_model()
     nonconv = _quiet_fit(m, prep.transform(xtr), _y(df, train_pos))
     p = _expand_classes(m.classes_, m.predict_proba(prep.transform(xte)))
-    return FoldFit(_finalise(p), {"config": {"C": 1e4}, "nonconverged": nonconv})
+    return FoldFit(
+        apply_temperature(_finalise(p), temp),
+        {"config": {"C": 1e4}, "temperature": temp, "temperature_source": TEMP_SOURCE,
+         "nonconverged": nonconv},
+    )
 
 
 class _M1Design:
@@ -301,8 +343,8 @@ def fit_m1(df, train_pos, test_pos, inner, **_) -> FoldFit:
     p = _expand_classes(m.classes_, m.predict_proba(xte))
     return FoldFit(
         apply_temperature(_finalise(p), temp),
-        {"selected": best[1], "temperature": temp, "hyper_search": search,
-         "nonconverged": nonconv},
+        {"selected": best[1], "temperature": temp, "temperature_source": TEMP_SOURCE,
+         "hyper_search": search, "nonconverged": nonconv},
     )
 
 
@@ -310,7 +352,8 @@ def _lgb_params(cfg: dict) -> dict:
     return {
         "objective": "multiclass", "num_class": N_CLASSES, "learning_rate": LGB_LEARNING_RATE,
         "num_leaves": cfg["num_leaves"], "min_data_in_leaf": cfg["min_data_in_leaf"],
-        "lambda_l2": cfg["lambda_l2"], "feature_fraction": 1.0, "bagging_fraction": 1.0,
+        "lambda_l2": cfg["lambda_l2"], "feature_fraction": cfg["feature_fraction"],
+        "bagging_fraction": 1.0,
         "seed": SEED, "deterministic": True, "force_row_wise": True, "num_threads": 1,
         "verbose": -1,
     }
@@ -343,7 +386,8 @@ def fit_m2(df, train_pos, test_pos, inner, *, collect_shap: bool = False, **_) -
         _lgb_params(best[1]), lgb.Dataset(xtr, _y(df, train_pos)), num_boost_round=best[2]
     )
     p = apply_temperature(_finalise(booster.predict(xte)), temp)
-    diag = {"selected": best[1], "rounds": best[2], "temperature": temp, "hyper_search": search}
+    diag = {"selected": best[1], "rounds": best[2], "temperature": temp,
+            "temperature_source": TEMP_SOURCE, "hyper_search": search}
     shap = None
     if collect_shap:
         shap = tree_shap(booster, xte, cols)
@@ -438,6 +482,7 @@ class BayesHier:
         self.sd = {"cat": 0.5, "slope": 0.5, "event": 0.5}
         v = np.zeros(self.q * 2 + 2 + self.C * 2 + self.C * ns * 2 + self.E * 2)
         self.sd_trace = []
+        self.post_var: dict[str, np.ndarray] = {}
 
         def obj(v):
             th = self._unpack(v)
@@ -494,6 +539,7 @@ class BayesHier:
             groups = (("cat", th["uc"], hc), ("slope", th["S"], hs), ("event", th["ue"], he))
             for key, u, h in groups:
                 var = 1.0 / (h + 1.0 / self.sd[key] ** 2)
+                self.post_var[key] = var
                 q_sum, n_par = float((u**2 + var).sum()), u.size
                 s2 = self.hs_scale**2
                 x2 = (-n_par + np.sqrt(n_par**2 + 4 * q_sum / s2)) * s2 / 2
@@ -561,10 +607,44 @@ class TrialSink:
         )
 
 
+def _libomp_info() -> dict:
+    """Source path, sha256 and version of the libomp that lib_lightgbm actually loads."""
+    import subprocess
+
+    try:
+        import importlib.util
+
+        spec = importlib.util.find_spec("lightgbm")
+        lib = Path(spec.origin).parent / "lib" / "lib_lightgbm.dylib"
+        if not lib.exists():
+            return {"libomp": "n/a (not a macOS dylib)"}
+        out = subprocess.run(["otool", "-L", str(lib)], capture_output=True, text=True,
+                             timeout=15, check=False).stdout
+        line = next((x for x in out.splitlines() if "libomp" in x), "")
+        rp = subprocess.run(["otool", "-l", str(lib)], capture_output=True, text=True,
+                            timeout=15, check=False).stdout
+        paths = [x.split("path ")[1].split(" (")[0] for x in rp.splitlines() if "path " in x]
+        found = next((Path(r) / "libomp.dylib" for r in paths
+                      if (Path(r) / "libomp.dylib").is_file()), None)
+        if found is None:
+            found = next((Path(r) for r in ("/opt/homebrew/opt/libomp/lib/libomp.dylib",
+                                            "/usr/local/opt/libomp/lib/libomp.dylib")
+                          if Path(r).is_file()), None)
+        return {
+            "libomp_link": line.strip(),
+            "libomp_path": str(found) if found else UNKNOWN,
+            "libomp_sha256": provenance.sha256_file(found) if found else UNKNOWN,
+        }
+    except Exception:  # provenance must never break a fit
+        return {"libomp": UNKNOWN}
+
+
+UNKNOWN = provenance.UNKNOWN
+
+
 def _ml_versions() -> dict:
-    out = {}
-    for name in ("sklearn", "lightgbm", "scipy"):
-        out[name] = provenance._version(name)
+    out = {name: provenance._version(name) for name in ("sklearn", "lightgbm", "scipy")}
+    out.update(_libomp_info())
     return out
 
 
@@ -602,7 +682,7 @@ def fit_fold(arm: str, df: pd.DataFrame, fold: dict, embargo_s: float, *, collec
     train_pos, test_pos = np.flatnonzero(tr_mask), np.flatnonzero(te_mask)
     if len(train_pos) == 0 or len(test_pos) == 0:
         raise ValueError(f"fold {fold['fold']}: empty train or test set")
-    inner = inner_split(df, train_pos, embargo_s) if arm in ("M1", "M2") else None
+    inner = inner_split(df, train_pos, embargo_s) if arm in ("M0", "M1", "M2") else None
     if inner is not None and not set(np.concatenate(inner)).issubset(set(train_pos)):
         raise AssertionError("inner split leaked outside the training fold")
     kw = {"collect_shap": collect_shap} if arm == "M2" else {}
@@ -688,7 +768,15 @@ def score_arms(
     y = df["y_class"].to_numpy(float)[mask].astype(int)
     loss = {a: log_loss_rows(r.proba[mask], y) for a, r in results.items()}
     brier = {a: brier_rows(r.proba[mask], y) for a, r in results.items()}
+    required = ("event", "dependence_group")
+    missing = [c for c in required if c not in clusters]
     summary = {
+        "non_inferential": bool(missing),
+        "non_inferential_reason": (
+            None if not missing else
+            f"NON-INFERENTIAL: co-primary cluster definition(s) {missing} not supplied; the "
+            "design requires the CI to exclude 0 under BOTH event and dependence-group clusters"
+        ),
         "n_rows": int(mask.sum()),
         "status": "DEVELOPMENT out-of-fold scores; no performance or edge claim",
         "arms": {
@@ -790,3 +878,67 @@ def summarize_shap(df: pd.DataFrame, res: ArmResult) -> dict:
             "n_rows": int(len(v)),
         }
     return out
+
+
+# ---------------------------------------------------------------------------------------------
+# Simulation check of the partial-pooling estimator (amendment A1)
+# ---------------------------------------------------------------------------------------------
+
+
+def _cover(est_arr: np.ndarray, post_var: np.ndarray, truth: np.ndarray) -> float:
+    return float(np.mean(np.abs(est_arr - truth) <= 1.96 * np.sqrt(post_var)))
+
+
+def simulate_hierarchical_check(
+    n_reps: int = 20, n: int = 6000, n_cat: int = 12, n_event: int = 150,
+    sd_cat: float = 0.5, sd_event: float = 0.6, sd_slope: float = 0.3, seed: int = SEED,
+) -> dict:
+    """Fit ``BayesHier`` on synthetic hierarchical data with known group SDs.
+
+    Reports the mean and spread of the estimated SDs against truth, and the empirical coverage
+    of nominal 95% Laplace intervals (estimate +/- 1.96 posterior SD) for the true category
+    intercepts, event intercepts and category slopes of the "up" logit. Nothing is tuned to make
+    the coverage look good; the numbers are reported as they come.
+    """
+    rng = np.random.default_rng(seed)
+    q = len(BAYES_FEATURES)
+    i_slope = [BAYES_FEATURES.index(c) for c in BAYES_SLOPES]
+    est = {"cat": [], "slope": [], "event": []}
+    hit = {"cat": [], "slope": [], "event": []}
+    for _ in range(n_reps):
+        uc = rng.normal(0, sd_cat, n_cat)
+        ue = rng.normal(0, sd_event, n_event)
+        sl = rng.normal(0, sd_slope, (n_cat, 2))
+        beta = rng.normal(0, 0.3, q)
+        x = rng.normal(size=(n, q))
+        ci, ei = rng.integers(0, n_cat, n), rng.integers(0, n_event, n)
+        eta = x @ beta + uc[ci] + ue[ei] + (sl[ci] * x[:, i_slope]).sum(1)
+        # "up" logit = eta, "down" logit = -eta, flat = 0 (one shared latent, K-1 logits)
+        L = np.column_stack([-eta, np.zeros(n), eta])
+        p = _softmax(L)
+        u = rng.random(n)
+        y = (u > p[:, 0]).astype(int) + (u > p[:, 0] + p[:, 1]).astype(int)
+        m = BayesHier().fit(
+            x, y, pd.Series([f"c{i}" for i in ci]), pd.Series([f"e{i}" for i in ei])
+        )
+        for k in est:
+            est[k].append(m.sd[k])
+        # slopes live on the standardised-feature scale: rescale the truth accordingly
+        scale = m.prep.sd[i_slope]
+        oc = [{lv: i for i, lv in enumerate(m.gc.levels)}[f"c{i}"] for i in range(n_cat)]
+        te = np.array([ue[int(lv[1:])] for lv in m.ge.levels])
+        hit["cat"].append(_cover(m.theta["uc"][oc, 1], m.post_var["cat"][oc, 1], uc))
+        hit["event"].append(_cover(m.theta["ue"][:, 1], m.post_var["event"][:, 1], te))
+        hit["slope"].append(
+            _cover(m.theta["S"][oc, :, 1], m.post_var["slope"][oc, :, 1], sl * scale[None, :])
+        )
+    truth = {"cat": sd_cat, "slope": sd_slope, "event": sd_event}
+    return {
+        "n_reps": n_reps, "n": n, "n_categories": n_cat, "n_events": n_event,
+        "truth_sd": truth,
+        "estimated_sd_mean": {k: float(np.mean(v)) for k, v in est.items()},
+        "estimated_sd_std": {k: float(np.std(v, ddof=1)) for k, v in est.items()},
+        "coverage_95_mean": {k: float(np.mean(v)) for k, v in hit.items()},
+        "note": "slope truth is on the standardised-feature scale; coverage uses diagonal "
+        "Laplace posterior variances (cross-class and cross-parameter terms ignored)",
+    }

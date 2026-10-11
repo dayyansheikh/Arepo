@@ -468,3 +468,26 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
 - any change to the E001–E007, C1 or L1 verdicts.
 
 Missing data stays missing. Thresholds, δ, τ and the gates are not changed after freeze to obtain a pass.
+
+## 9. Amendment A1 — model-fitting harness choices (PENDING REVIEW)
+
+- **Status:** proposed by the Task 4 implementer, **pending `science-reviewer` review**. It changes no frozen quantity (δ, folds, clusters, gates). Code: `backend/astrolabe/research_lab/ml_models.py`.
+
+1. **M3 as empirical-Bayes Laplace-EM (arm name `M3_eb`) instead of NumPyro NUTS/SVI.**
+   - **Model kept:** multinomial logit (flat = reference); N(0, 0.5²) main effects on standardised features; random intercepts by `fee_category` and by event; `chg_1h` and `spread` slopes partially pooled by category; group SDs under a half-normal(0, 0.5) prior; unseen events and categories get the population value.
+   - **Estimation:** coefficients are MAP (L-BFGS, analytic gradient). The group SDs are updated in 5 fixed outer iterations by Laplace-EM: posterior variances come from the diagonal Hessian, and the SD update has a closed form under the half-normal prior.
+   - **Why:** it runs on all rows, deterministically, in numpy/scipy, with no jax (about 1 GB) and no MCMC diagnostics to babysit. The NumPyro model of Task 5 is **not** replaced: `M3_eb` is a cheaper development arm, and any M3 claim in a registration must name which one was used.
+   - **Known limits:** point estimates of the group SDs (no uncertainty on them); a diagonal posterior-variance approximation that ignores cross-class and cross-parameter covariance; no posterior intervals for predictions.
+   - **Simulation check** (`simulate_hierarchical_check`, 20 replications, n = 6,000, 12 categories, 150 events, truth SD: category 0.5, slope 0.3, event 0.6; seed 116; results reported as obtained, nothing tuned):
+
+     | Group | Mean estimated SD (sd over reps) | Coverage of nominal 95% intervals for the true effects |
+     |---|---|---|
+     | event (0.6) | 0.601 (0.033) | 96.3% |
+     | category slope (0.3, standardised scale) | 0.273 (0.038) | 85.6% |
+     | category intercept (0.5) | 0.408 (0.075) | 71.3% |
+
+   - **Reading:** the event SD is recovered and its effects are well covered. With only 12 categories, the category SD is biased low (about -18%) and its intercepts under-cover, because the diagonal approximation ignores their covariance with the overall intercept. Slopes are mildly low. M3_eb is therefore adequate for event-level pooling, and category-level results from it are descriptive and probably over-shrunk. If M3 is selected as F\*, the NumPyro arm must be run before registration.
+2. **M1 grid:** `C` ∈ {0.01, 0.1, 1.0} × `l1_ratio` ∈ {0.1, 0.5}, 6 configs, chosen on the inner split. `C` spans two decades around the standardised-feature default (1.0), where 0.01 is strongly shrunk and 1.0 is nearly unpenalised. `l1_ratio` is kept at or below 0.5 because the tier-(a) features are strongly correlated (a ridge-leaning mix keeps correlated groups together; a lasso-leaning mix picks one member arbitrarily). The grid is small on purpose, so the search-accounting trial count stays low. It is not a search for the best-looking result.
+3. **M2:** the design's 20-config random search is implemented: 20 distinct configs drawn without replacement, seed 116, from `LGB_SPACE` (num_leaves, min_data_in_leaf, lambda_l2, feature_fraction), with early stopping on the inner validation block.
+4. **Temperature (all arms, including M0):** fitted on the inner-validation predictions of the model trained on the inner-train rows. It is then applied to the model refitted on the whole training fold with the config (and rounds) fixed. The refit model differs slightly from the one that produced the temperature, which is documented in the fit logs (`temperature_source`) and accepted for development. M3_eb has no temperature.
+5. **Clustering:** `score_arms` returns `non_inferential: true` with a reason unless both the event and the dependence-group cluster vectors are supplied.
