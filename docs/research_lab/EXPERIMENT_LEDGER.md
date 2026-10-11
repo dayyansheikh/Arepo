@@ -607,3 +607,34 @@ E007 dev_fit.json sha256: 7e2c4f79079ced0c74ad1899cfb3536e71f97385c499d9730dd620
 - **Known limitations declared up front:** retrospective (not prospective); volume is lifetime volume used as a liquidity proxy (Gamma `liquidity` is 0 for closed markets); no as-of metadata; prices are post-hoc backfill; hourly-crypto and sports markets with near-0.5 prices may dominate counts, which the weights partly offset; tick-size floors (0.001 / 0.0005) limit extreme-price resolution.
 - **Non-claims:** not calibration of any AREPO signal, not edge, not tradable. A finding here is a hypothesis for later prospective work.
 - **Outputs:** `data-dumps/research_lab/calibration/<run_id>/` (sample plan, per-market rows, results JSON). Raw API pages are not retained. Code: `astrolabe/research_lab/calibration.py`, `scripts/run_calibration_study.py`.
+
+## Development screen L1 — Related-market (sibling) information (2026-10-11)
+- **Label:** DEVELOPMENT, post-hoc, not evidence. Run `leadlag-62d593a402` (`data-dumps/research_lab/leadlag_screen/leadlag-62d593a402/results.json`). Code `astrolabe/research_lab/leadlag_screen.py`, runner `scripts/run_leadlag_screen.py`. Source: research package family H15 "Related-market lead".
+- **Family (listed in the module docstring before the run; all four run and reported):**
+  - L1 liquidity-weighted mean `chg_1h` of the other markets in the event (origin snapshot).
+  - L2 sibling move minus own `chg_1h`. It spans the same linear space as L1 once `chg_1h` is in the base, so it is a duplicate check of L1, not independent evidence.
+  - L3 neg-risk group mid-sum change since the previous snapshot (members quoted in both, at least 2; augmented/"other" groups excluded).
+  - L4 log sibling count, log moving-sibling count (`|chg_1h|` > 0.01) and its interaction with `chg_1h`.
+- **Method:** E001 panel pairs over all 16 complete captures (6 dev + 10 snapshots): 15 periods, 646,404 pairs, 96,418 markets, 22,833 event clusters. Walk-forward by period with the label-availability purge. Base R is a ridge on `chg_1h`. Add-one per variant. Event-clustered paired bootstrap (1,000 resamples, seed 116). Test rows 610,965 in 14 test periods.
+- **Data limits:**
+  - Horizons are very heterogeneous: periods 0, 2, 4 and 5 span 12-70h (dev captures); periods 6-14 span 0.1-3.4h. Per-period values are not comparable in size.
+  - Siblings are read from the same scan, so a sibling's receipt can be minutes after the market's own. All of it precedes the target.
+  - `neg_risk` columns exist only in the dev captures and the newest snapshots. L3 is therefore also run on the 11 periods where it is defined (config "neg_risk_periods": 10 test periods, 441,204 test rows, 19,036 clusters).
+  - 21% of eligible pairs have no usable sibling (feature 0 plus flag).
+- **Base R2 vs no-change:** R 0.0395, B3 0.0547 (B3 minus R +0.0152, CI -0.0007 to +0.0290).
+- **Results, pooled dR2 = R2(R+Lk) - R2(R), 95% CI, MDE at 4 tests, positive test periods:**
+
+| Variant | All periods | MDE | Pos | Neg-risk periods | MDE | Pos |
+|---|---|---|---|---|---|---|
+| L1 | +0.00513 [-0.00259, +0.01269] | 0.0130 | 11/14 | +0.00537 [-0.00140, +0.01192] | 0.0114 | 8/10 |
+| L2 | +0.00471 [-0.00280, +0.01196] | 0.0126 | 10/14 | +0.00540 [-0.00107, +0.01168] | 0.0109 | 8/10 |
+| L3 | +0.00013 [+0.00002, +0.00023] | 0.0002 | 10/14 | +0.00021 [+0.00007, +0.00033] | 0.0002 | 9/10 |
+| L4 | +0.00014 [-0.00534, +0.00532] | 0.0091 | 8/14 | +0.00141 [-0.00513, +0.00598] | 0.0095 | 8/10 |
+
+- **Reading:**
+  - L1/L2 are positive in most periods but the CI includes 0 and the per-period swings (to +/-0.04) exceed the effect. The result is underpowered (MDE about 0.012) and inconclusive. Even R+L1 stays below B3 (B3 minus R+L1 = +0.0101, CI +0.0003 to +0.0196).
+  - L4 is null.
+  - L3 has a CI above 0 but an effect of about 0.0002 R2, which is negligible. Its time-block interval across periods spans 0 (neg-risk periods: mean -0.0004, CI -0.0024 to +0.0016), and period 5 is -0.0083.
+- **Drafting rule (declared before the run):** pooled dR2 vs R above 0 with CI lower bound above 0, and positive in at least 75% of test periods. Result: only L3 in the neg-risk-periods configuration meets it (L3 is constant 0 elsewhere, so that is its natural frame). No member meets it on all periods. This is one hit among 8 member-configurations, after upstream sequential screens (winner's curse).
+- **Recommendation:** L3 is the sole rule-passing candidate, but its size is negligible and it overlaps E005 (already registered and showing no development support). Registration is not recommended on effect size. L1 is the only member with a plausible-size point estimate; if pursued it needs a design with a same-horizon, fixed-cadence frame (2h snapshots) and about 3x the clusters (MDE about 0.012 now).
+- **Post-run note:** after the run, `_diff` was fixed to find a pair keyed in either order (the stored `pooled_vs_B3` fields were null for that reason). Numbers vs B3 above were read from the stored pooled diffs. No result changed.
