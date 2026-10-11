@@ -533,3 +533,7 @@ criteria are unchanged.
 - **Fix:** collector v2 detours around blocked cursors. It re-requests the previous page with a reduced limit and continues. Enumeration semantics, rows, fields and dedup are otherwise unchanged, and every detour is recorded in the manifest.
 - **Why this is allowed:** it is an availability-only change, permitted by the pre-declared continuation rule. Collection continues at the ~2h cadence until 12 snapshots qualify. The gap from pass 5 (08:18Z) to the next complete snapshot will exceed 3h; it is flagged and kept.
 - **Future Phase 3-style panel frames** (`research_panel/frame.py`, frozen) would hit the same block. This is a known issue for any future live panel run; the frozen code is not changed.
+- **Flow screen S5 (DEVELOPMENT, ~10:45Z):** 6 periods, 11,941 pairs across 4,371 events.
+  - **F1 (signed share) against the ridge base:** pooled +0.00393 [+0.00054, +0.00721]. Per period +0.0046 (eligible), then +0.0079, +0.0087, -0.0042, +0.0061 and -0.0006 (active periods). The first 4 active periods are positive in 3 of 4, which **meets the pre-declared E007 drafting rule for F1 only**.
+  - F2a, F2b, F3 and F4 are inconsistent. They are not carried forward.
+  - E007 design is sent to challenger review before registration.
