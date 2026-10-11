@@ -14,6 +14,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 | E005 | REGISTERED (pre-outcome) | In neg-risk groups, does a market's deviation from its arbitrage band (from siblings' bids/asks) predict repricing beyond the frozen reversal? | pending |
 | E006 | REGISTERED (pre-outcome) | Is the 1h reversal moderated by liquidity (H1) or by time-to-end (H2), with centred interactions and a scale-free test? | pending |
 | E007 | REGISTERED (pre-outcome) | In trade-active markets, does net taker order-flow pressure (signed share) over the prior hour predict continuation over ~2h? | pending (needs 12 qualifying periods) |
+| T5-DEV | COMPLETE (development, exploratory_historical) | Do point-in-time features predict binary resolution at 1/3/7d before scheduled end better than price and a recalibrated (Platt/isotonic) price? | No: LightGBM vs Platt ΔLL 1d -0.0013, 3d -0.0004, 7d +0.0041 (all CIs span 0); only Platt-vs-raw-price at 7d is positive (+0.0069 [+0.0022, +0.0113]). See `RESOLUTION_DEV_STUDY.md` |
 
 ---
 
@@ -684,3 +685,34 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
 - **Minor records:**
   - E006 provenance cites E004's registration time; the actual time is 00:24:23Z (commit 32e6907), 19 s before the first qualifying capture.
   - E006 `dev_fit.json` is untracked; its hash is in `trials.jsonl`.
+
+## Development study T5-DEV — Resolution forecasting vs recalibrated price (2026-10-11)
+
+- **Label:** DEVELOPMENT, retrospective, `evidence_role: exploratory_historical`. Not evidence. No edge,
+  calibration or tradability claim. Full write-up: `docs/research_lab/RESOLUTION_DEV_STUDY.md`. Run
+  `resdev-t5-20261011b`. Trial lines: `history_resolution_dev` and `ml_explain` (114 tests).
+- **Design:**
+  - 48 seeded 6h `endDate` blocks over 2025-10-11 to 2026-10-04: 49,684 binary closed markets with volume of at least
+    $100; 24,432 were listed at least 30h before end.
+  - Seeded period x category draw (cap 600 per cell): 7,489 markets, 7,464 cleanly resolved.
+  - Horizon anchor: *scheduled* `endDate - h`, never `closedTime`, which leaks the outcome. Point-in-time
+    prices-history (10 min, 600 s lag) and trades strictly before the origin.
+  - Walk-forward over 8 chunks by end with a 2-day embargo.
+  - Arms: price, Platt, isotonic, elastic-net, LightGBM (init score logit p, nested tuning).
+  - Conservative cluster-bootstrap hull over event, neg-risk group and parent clusterings.
+- **Deviations:**
+  - Per-cell cap raised from 250 to 600 after the first enumeration showed only 4,031 draws. That decision used frame
+    cell sizes only, before any outcome was analysed. The first run (`resdev-t5-20261011`) was abandoned unanalysed.
+  - A 200-market smoke run's feature summary was viewed before the main run.
+  - The hierarchical arm was not run (it is bound to the 3-class `ml_panel` design).
+- **Scored rows:** 1d 4,980 (2,233 events); 3d 2,449 (862); 7d 1,272 (869, 81% sports).
+- **Results:** LightGBM vs Platt ΔLL: 1d -0.0013 [-0.0039, +0.0014]; 3d -0.0004 [-0.0080, +0.0059]; 7d +0.0041
+  [-0.0022, +0.0106]. The 7d gain reverses (-0.0031) without trade features. Elastic-net is worse than Platt at 1d and
+  3d (CIs below 0). No ml_explain unit is demonstrated (all BY p = 1.0). Platt vs raw price: 1d +0.0001, 3d +0.0009,
+  **7d +0.0069 [+0.0022, +0.0113]** (raw price intercept -0.33, slope 1.12 at 7d).
+- **Reading:** features add nothing measurable over a recalibrated price. The only signal is outcome-0 overpricing at
+  7d, which persists with the scheduled-end anchor (so C1's anchor artefact does not explain it).
+- **Recommendation:** no feature-model registration. A narrow recalibration hypothesis at 7d and 3d is a possible
+  MC2 candidate. It first needs a challenger check for a label-order or sports artefact, then a frozen map, recorded
+  book prices and an executable-ask economic check.
+
