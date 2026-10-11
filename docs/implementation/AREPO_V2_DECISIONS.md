@@ -918,3 +918,19 @@ request. See docs/AREPO_V2_CHECKPOINT.md for live state. No numbered D-entry is 
   - any change to D082/D089/D094/D097/D114 outcomes.
 - **Carried into Phase 4:** no triggered-versus-control contrasts until a prospectively frozen design shows a non-zero control pool.
 - Phase 4 may begin under the research-lab governance (ledger, pre-registration, MDE, Holm, challenger review).
+
+## D118 / D119 — Live control pairing validated (scoped); Phase 3 limitation lifted (2026-10-11)
+
+- **Diagnosis.** The limitation came from design, not a defect: few screened members per stratum, plus dead one-sided strata.
+  - An Opus-max diagnosis and a Fable 5.1 review shaped the fix.
+  - The 16-member design was aborted before freeze by its dry run (43 s > 40 s).
+  - The frozen design was 4×3 on the temporal ∩ liquidity ≥ $1000 population (`PHASE_03_D118_FREEZE_RECORD.md`).
+- **D118 ran once live** (2026-10-11 09:22–09:36Z, launch `8dc262f`). The authoritative outcome was **PASS**:
+  - E0–E9 passed, with 0 engineering findings;
+  - 12/12 chains completed;
+  - 2 complete matched pairs formed.
+  - Evidence: `PHASE_03_D118_EVIDENCE.json`. Disclosures: `d118/D118_ADDENDUM.md`.
+- **D119.** The independent review accepted the result with disclosures. Phase 3's recorded limitation "live control pairing unvalidated" is **lifted within scope**: the mechanism has run once on liquid markets.
+  - **Still not licensed:** triggered-vs-control effect contrasts, claims about control availability, and transfer to other populations.
+  - Pair 1 is very probably sibling markets.
+- **Phase 4 rule.** Any trigger-vs-control study needs its own registered design. That design must address control availability (5 of 7 triggers had no control) and pair dependence.

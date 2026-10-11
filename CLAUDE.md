@@ -7,9 +7,9 @@ AREPO tests whether information beyond market price and momentum has genuine out
 value on Polymarket data. It is research tooling: no alpha, calibration, profitability or trading claims exist.
 
 ## Hard status (read before acting)
-- **Phase 3 is CLOSED with limitation (D117, 2026-10-11)** via D116 (PASS_WITH_LIMITATION). Live control pairing is
-  unvalidated: no triggered-vs-control contrasts until a frozen design shows a non-zero control pool
-  (`docs/implementation/PHASE_03_D116_ADDENDUM.md`). **Phase 4 is in progress** under the research-lab governance
+- **Phase 3 is CLOSED** (D117, then D119: the D118 live PASS validated the control-pairing *mechanism* on liquid markets;
+  see `docs/implementation/d118/D118_ADDENDUM.md`). Trigger-vs-control *effect* studies still need their own registered
+  design that addresses control availability and pair dependence. **Phase 4 is in progress** under the research-lab governance
   (`docs/research_lab/EXPERIMENT_LEDGER.md`): pre-registration, MDE, event clustering, Holm, challenger review. No
   edge claims without prospective confirmation and an economic check.
 - Standing user authorisation (2026-10-10): work autonomously towards the research objective, including routine
