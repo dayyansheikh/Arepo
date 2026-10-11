@@ -32,7 +32,7 @@ from typing import Any
 
 from .extract import COLUMNS, dedup_rows, market_row
 
-COLLECTOR_VERSION = "universe-snapshot-v1"
+COLLECTOR_VERSION = "universe-snapshot-v2"
 ENDPOINT = "https://gamma-api.polymarket.com/markets/keyset"
 PARAMS = {"closed": "false", "limit": 100}
 HEADERS = {"Accept-Encoding": "gzip", "User-Agent": "arepo-research-lab/1"}
@@ -43,6 +43,8 @@ MAX_SECONDS = 30 * 60
 DELAY_SECONDS = 0.1
 BACKOFF_BASE = 1.0
 MAX_CURSOR_LEN = 8192
+LIMIT = PARAMS["limit"]
+MAX_DETOURS = 10  # reduced-limit tries (limit 99 .. 90) per blocked position
 
 Transport = Callable[[dict], tuple[int, bytes, dict]]
 
@@ -85,6 +87,12 @@ def parse_page(raw: bytes, limit: int) -> tuple[list[dict], str | None, bool]:
     if len(markets) == limit:
         raise ValueError("full page missing cursor is not proven exhaustion")
     return markets, None, True
+
+
+def _is_html_block(headers: dict, body: bytes) -> bool:
+    """True for a Cloudflare/HTML 403 body (as opposed to an API-level JSON refusal)."""
+    ctype = next((str(v) for k, v in headers.items() if str(k).lower() == "content-type"), "")
+    return "text/html" in ctype.lower() or b"cloudflare" in body.lower()
 
 
 def _git_commit() -> str:
@@ -137,14 +145,20 @@ def collect(
     t0 = monotonic()
     pages: list[dict] = []
     rows: list[dict] = []
+    detours: list[dict] = []
     requests = retries = skipped_no_id = 0
     cursor: str | None = None
+    prev: str | None = None  # the cursor whose page produced ``cursor``
+    detour_n = 0  # consecutive blocked-cursor detours at the current position
+    in_detour = False
+    limit = LIMIT
     seen: set[str] = set()
+    ids: set[str] = set()
     last_receipt = ""
     state = None
     try:
         while state is None:
-            params: dict[str, Any] = dict(PARAMS)
+            params: dict[str, Any] = {**PARAMS, "limit": limit}
             if cursor is not None:
                 params["after_cursor"] = cursor
             attempt = 0
@@ -182,12 +196,36 @@ def collect(
                     pass
                 attempt += 1
                 sleep(wait)
+            if state == "incomplete:http_403" and _is_html_block(headers, body) and (
+                in_detour or cursor is not None
+            ):
+                # Cloudflare-blocked cursor: re-request the previous page with a smaller limit
+                detour_n += 1
+                if detour_n > MAX_DETOURS:
+                    break
+                if not in_detour:
+                    detours.append({
+                        "blocked_cursor": cursor[:64],
+                        "blocked_cursor_sha256": hashlib.sha256(cursor.encode()).hexdigest(),
+                        "previous_cursor_sha256": (
+                            hashlib.sha256(prev.encode()).hexdigest() if prev else None
+                        ),
+                        "tries": [],
+                        "reduced_limit": None,
+                        "overlap_rows": 0,
+                    })
+                    cursor, in_detour = prev, True
+                detours[-1]["tries"].append(LIMIT - detour_n)
+                limit = LIMIT - detour_n
+                state = None
+                sleep(delay)
+                continue
             if state is not None:
                 break
             last_receipt = received
             digest = hashlib.sha256(body).hexdigest()
             try:
-                markets, nxt, terminal = parse_page(body, PARAMS["limit"])
+                markets, nxt, terminal = parse_page(body, limit)
             except ValueError as exc:
                 state = f"incomplete:protocol:{exc}"
                 break
@@ -197,9 +235,12 @@ def collect(
                 "n_markets": len(markets), "received_utc": received,
                 "cursor_requested": cursor,
             })
+            if in_detour:
+                pages[-1]["limit_requested"] = limit
             if keep_raw:
                 with gzip.open(raw_dir / f"page_{idx:05d}.json.gz", "wb") as fh:
                     fh.write(body)
+            overlap = 0
             for m in markets:
                 r = market_row(m, capture_id, started, received) if isinstance(m, dict) else None
                 if r is None:
@@ -207,25 +248,33 @@ def collect(
                     continue
                 r["page_index"] = idx
                 rows.append(r)
+                overlap += r["market_id"] in ids
+                ids.add(r["market_id"])
+            if in_detour:
+                detours[-1]["reduced_limit"] = limit
+                detours[-1]["overlap_rows"] = overlap
+            else:
+                detour_n = 0
             if terminal:
                 state = "complete"
             elif nxt in seen:
                 state = "incomplete:cursor_cycle"
             else:
                 seen.add(nxt)
-                cursor = nxt
+                prev, cursor = cursor, nxt
+                in_detour, limit = False, LIMIT
                 sleep(delay)
     except BaseException as exc:  # keep an incomplete manifest, then re-raise
         state = f"incomplete:exception:{type(exc).__name__}"
         _finish(tmp, final, capture_id, started, now(), state, requests, retries, pages, rows,
-                skipped_no_id, commit)
+                skipped_no_id, commit, detours)
         raise
     return _finish(tmp, final, capture_id, started, now(), state, requests, retries, pages,
-                   rows, skipped_no_id, commit)
+                   rows, skipped_no_id, commit, detours)
 
 
 def _finish(tmp, final, capture_id, started, finished, state, requests, retries, pages, rows,
-            skipped_no_id, commit) -> dict:
+            skipped_no_id, commit, detours) -> dict:
     kept, n_dup = dedup_rows(rows)
     _write_rows(tmp / "rows.csv.gz", kept)
     manifest = {
@@ -246,6 +295,7 @@ def _finish(tmp, final, capture_id, started, finished, state, requests, retries,
         "duplicates": n_dup,
         "skipped_without_id": skipped_no_id,
         "hash_note": "sha256 of decoded (post-gzip) response body",
+        "blocked_cursor_detours": detours,
         "pages": pages,
     }
     (tmp / "manifest.json").write_text(json.dumps(manifest, indent=1))

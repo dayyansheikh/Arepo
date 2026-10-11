@@ -157,3 +157,100 @@ def test_atomic_output_on_exception(tmp_path):
     assert len(dirs) == 1 and not dirs[0].name.startswith(".tmp_")
     man = json.loads((dirs[0] / "manifest.json").read_text())
     assert man["state"].startswith("incomplete:exception") and man["page_count"] == 1
+
+
+class Server:
+    """Fake keyset server over ids 0..n-1; cursor ``k<i>`` encodes the last market key."""
+
+    def __init__(self, n, blocked=(), html=True):
+        self.n, self.blocked, self.html = n, set(blocked), html
+        self.calls: list[dict] = []
+
+    def __call__(self, params):
+        self.calls.append(dict(params))
+        cur = params.get("after_cursor")
+        if cur in self.blocked:
+            if self.html:
+                return 403, b"<html>Attention Required! | Cloudflare</html>", {
+                    "content-type": "text/html"}
+            return 403, b'{"error":"forbidden"}', {"content-type": "application/json"}
+        start = 0 if cur is None else int(cur[1:]) + 1
+        ids = list(range(start, min(self.n, start + params["limit"])))
+        nxt = f"k{ids[-1]}" if len(ids) == params["limit"] else None
+        return 200, page(ids, nxt), {}
+
+
+def run_server(tmp_path, server, **kw):
+    m = collector.collect(tmp_path, transport=server, sleep=lambda s: None, commit="c", **kw)
+    with gzip.open(tmp_path / m["capture_id"] / "rows.csv.gz", "rt") as fh:
+        got = sorted(int(r["market_id"]) for r in csv.DictReader(fh))
+    return m, got
+
+
+def test_blocked_cursor_detour_completes_full_set(tmp_path):
+    srv = Server(450, blocked={"k199"})
+    m, got = run_server(tmp_path, srv)
+    assert m["state"] == "complete" and got == list(range(450))
+    assert m["collector_version"] == "universe-snapshot-v2"
+    (d,) = m["blocked_cursor_detours"]
+    assert d["blocked_cursor"] == "k199" and len(d["blocked_cursor_sha256"]) == 64
+    assert d["reduced_limit"] == 99 and d["overlap_rows"] == 99 and d["tries"] == [99]
+    assert m["duplicates"] == 100  # 99 in the detour page + id 199 again
+    assert [(c.get("after_cursor"), c["limit"]) for c in srv.calls][:5] == [
+        (None, 100), ("k99", 100), ("k199", 100), ("k99", 99), ("k198", 100)]
+    assert m["pages"][2]["limit_requested"] == 99 and "limit_requested" not in m["pages"][0]
+    assert m["request_count"] == len(srv.calls)
+
+
+def test_detour_on_first_page_continuation_and_terminal_with_mixed_limits(tmp_path):
+    # final short page requested after a detour must be judged against limit 100
+    srv = Server(250, blocked={"k99"})
+    m, got = run_server(tmp_path, srv)
+    assert m["state"] == "complete" and got == list(range(250))
+    assert m["blocked_cursor_detours"][0]["overlap_rows"] == 99  # previous cursor None: restart
+    assert srv.calls[2] == {**srv.calls[0], "limit": 99}
+
+
+def test_terminal_page_uses_requested_limit(tmp_path):
+    # a 99-limit detour page holding 99 markets without cursor is not proof of exhaustion
+    srv = Server(199, blocked={"k99"})
+    srv.__class__ = type("S2", (Server,), {})
+    base = Server.__call__
+
+    def call(self, params):
+        status, body, headers = base(self, params)
+        if params["limit"] == 99 and status == 200:
+            payload = json.loads(body)
+            payload.pop("next_cursor", None)
+            body = json.dumps(payload).encode()
+        return status, body, headers
+
+    srv.__class__.__call__ = call
+    m, _ = run_server(tmp_path, srv)
+    assert m["state"].startswith("incomplete:protocol")
+
+
+def test_repeated_blocks_exhaust_tries(tmp_path):
+    class Always(Server):
+        def __call__(self, params):
+            s, b, h = super().__call__(params)
+            if params["limit"] != 100 and s == 200:  # every detour yields another blocked cursor
+                b = page(range(5, 5 + params["limit"]), f"kBAD{params['limit']}")
+            return s, b, h
+
+    srv = Always(450, blocked={"k199", *(f"kBAD{i}" for i in range(80, 100))})
+    m, _ = run_server(tmp_path, srv)
+    assert m["state"] == "incomplete:http_403"
+    assert [c["limit"] for c in srv.calls if c["limit"] != 100] == list(range(99, 89, -1))
+
+
+def test_non_html_403_is_incomplete_without_detour(tmp_path):
+    srv = Server(450, blocked={"k199"}, html=False)
+    m, _ = run_server(tmp_path, srv)
+    assert m["state"] == "incomplete:http_403" and m["blocked_cursor_detours"] == []
+    assert len(srv.calls) == 3
+
+
+def test_detour_counts_against_request_cap(tmp_path):
+    m, _ = run_server(tmp_path, Server(450, blocked={"k199"}), max_requests=4)
+    assert m["state"] == "incomplete:request_cap" and m["request_count"] == 4
