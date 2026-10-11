@@ -1,0 +1,130 @@
+{
+ "provenance": "synthetic loopback dry run; never evidence about live data",
+ "latency_s_per_request": 0.9,
+ "runtime_concurrency": 8,
+ "abort_criteria": {
+  "max_window_age_at_freeze_s": 40,
+  "max_binding_age_s": 40,
+  "max_assessment_age_at_activation_s": 80,
+  "max_screening_s": 60,
+  "max_audit_s": 240
+ },
+ "rule": "try 6x16 first, then 6x12; stop at the first passing shape",
+ "runs": [
+  {
+   "shape": "6x16",
+   "screened": 96,
+   "activated": 12,
+   "pairs_drawn": 6,
+   "triggers_in_scope": 6,
+   "origin_states": {
+    "observed": 12
+   },
+   "target_states": [
+    "observed"
+   ],
+   "worker_state": "pilot_collected_unaccepted",
+   "elapsed_s": 200.903,
+   "retained_bytes_before_report": 12581824,
+   "window_ages_at_freeze_s": [
+    10.208,
+    10.256,
+    10.264,
+    20.053,
+    29.08,
+    29.09,
+    29.118,
+    29.13,
+    35.946,
+    36.051,
+    36.123,
+    37.015
+   ],
+   "max_window_age_at_freeze_s": 37.015283,
+   "binding_ages_s": [
+    0.792,
+    0.88,
+    0.999,
+    2.167,
+    2.235,
+    2.236,
+    2.319,
+    2.572,
+    2.664,
+    2.799,
+    2.949,
+    3.388
+   ],
+   "max_binding_age_s": 3.387794,
+   "max_assessment_age_at_activation_s": 85.333581,
+   "screening_s": 48.886625,
+   "audit_verification_s": 9.95576,
+   "activation_acknowledged_at": {
+    "clock_session_id": "375b3325-947d-4b17-bf96-4453156e7c5e",
+    "monotonic_ns": "52015072476041",
+    "utc": "2026-10-11T12:47:39.932442Z"
+   },
+   "breaches": [
+    "max_assessment_age_at_activation_s"
+   ],
+   "abort": true
+  },
+  {
+   "shape": "6x12",
+   "screened": 72,
+   "activated": 12,
+   "pairs_drawn": 6,
+   "triggers_in_scope": 6,
+   "origin_states": {
+    "observed": 12
+   },
+   "target_states": [
+    "observed"
+   ],
+   "worker_state": "pilot_collected_unaccepted",
+   "elapsed_s": 183.045,
+   "retained_bytes_before_report": 10104150,
+   "window_ages_at_freeze_s": [
+    10.791,
+    10.9,
+    17.797,
+    17.985,
+    29.559,
+    29.566,
+    29.793,
+    29.813,
+    29.87,
+    36.634,
+    36.899,
+    36.908
+   ],
+   "max_window_age_at_freeze_s": 36.9079,
+   "binding_ages_s": [
+    1.001,
+    1.166,
+    1.174,
+    1.241,
+    2.105,
+    2.163,
+    2.316,
+    2.373,
+    2.51,
+    2.525,
+    2.64,
+    2.742
+   ],
+   "max_binding_age_s": 2.742306,
+   "max_assessment_age_at_activation_s": 69.032131,
+   "screening_s": 33.520153,
+   "audit_verification_s": 9.110243,
+   "activation_acknowledged_at": {
+    "clock_session_id": "375b3325-947d-4b17-bf96-4453156e7c5e",
+    "monotonic_ns": "52201423490041",
+    "utc": "2026-10-11T12:50:46.284394Z"
+   },
+   "breaches": [],
+   "abort": false
+  }
+ ],
+ "chosen_shape": "6x12"
+}

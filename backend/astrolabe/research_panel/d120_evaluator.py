@@ -71,9 +71,9 @@ FROZEN_ROOT_NAMES = {
 }
 REQUIRED_SCREENING_SCHEMA = "fs2-screening-pairing-v5"
 RUNTIME_SCHEMA = "fs2-pairing-window-runtime-v6"
-FROZEN_DESIGN = _pairing.PairingDesign(strata=6, screen_per_stratum=16, min_groups_per_stratum=8)
+FROZEN_DESIGN = _pairing.PairingDesign(strata=6, screen_per_stratum=12, min_groups_per_stratum=8)
 D120_PROTOCOL = {
-    "screened_slots": 96, "origin_slots": 12, "cycles": 1, "target_attempts": 1,
+    "screened_slots": 72, "origin_slots": 12, "cycles": 1, "target_attempts": 1,
     "cadence_seconds": 120, "max_origin_delay_seconds": 60, "max_origin_save_seconds": 5,
     "horizon_seconds": 60, "tolerance_seconds": 15, "max_frame_age_seconds": 3600,
     "max_frame_interval_seconds": 600, "max_quote_age_seconds": 60,
