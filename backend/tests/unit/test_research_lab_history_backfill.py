@@ -350,3 +350,11 @@ def test_frame_resumable_after_interrupt(tmp_path):
                                windows_per_day=2, partial_path=part)
     assert len(rows) == 3 and len(part.read_text().splitlines()) == 5
     assert rep["windows"]["closed"] == 10  # 5 days x 2 windows, 2 resumed from disk
+
+
+def test_live_pass_matcher_ignores_watchers():
+    assert hb._is_pass_command("/bin/bash /x/y/arepo_pass.sh --once")
+    assert hb._is_pass_command("bash arepo_pass.sh")
+    assert not hb._is_pass_command("/bin/zsh -c eval 'pgrep -f arepo_pass.sh; sleep 1'")
+    assert not hb._is_pass_command("pgrep -f arepo_pass.sh")
+    assert not hb._is_pass_command("python other.py")

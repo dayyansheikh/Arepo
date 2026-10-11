@@ -129,15 +129,23 @@ LIVE_PASS_PATTERN = "arepo_pass.sh"
 LIVE_POLL_S = 30.0
 
 
+def _is_pass_command(cmd: str) -> bool:
+    """True for a command that runs arepo_pass.sh. Watchers that merely mention the name (another
+    agent's ``pgrep -f arepo_pass.sh`` loop) contain ``pgrep`` and are ignored, otherwise
+    ``pgrep -f`` matches itself and the exploratory work would starve forever."""
+    return LIVE_PASS_PATTERN in cmd and "pgrep" not in cmd
+
+
 def live_pass_running() -> bool:
-    """True while the live prospective collector pass is running (pgrep -f arepo_pass.sh)."""
+    """True while the live prospective collector pass is running."""
     import subprocess
 
     try:
-        return subprocess.run(["pgrep", "-f", LIVE_PASS_PATTERN], capture_output=True,
-                              timeout=10).returncode == 0
+        out = subprocess.run(["ps", "-axo", "command="], capture_output=True, text=True,
+                             timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return False
+    return any(_is_pass_command(line.strip()) for line in out.splitlines())
 
 
 def yield_to_live(is_running: Callable[[], bool] = live_pass_running,
