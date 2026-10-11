@@ -24,6 +24,7 @@ or `docs/research/2026-09-20/EDGE_HYPOTHESIS_LIBRARY.md` (3k lines) wholesale; g
 ## 3. Research plans and protocol (canonical science)
 - Research package `research/2026-09-20/`: start at `READ_ME_FIRST.md`; baselines B0-B4 in `MODEL_COMPARISON_AND_VALIDATION.md` section 4; feature/experiment registers are CSVs (grep them).
 - Architecture/infra/product strategy package `research/2026-10-10-architecture/` (independent session, 2026-10-10): start at `AREPO_FUTURE_ARCHITECTURE_2026-10-10.md`; specialist reports alongside. Strategic input, not implemented decisions; staged adoption is recorded in the decisions log.
+- Historical-data acquisition review `research/2026-10-11-historical-data/` (independent session, 2026-10-11): start at `HANDOFF.md`. It covers verified third-party sources (pmxt L2/trades, on-chain trades/wallets), sealed holdout windows, a demo template and an adapter plan. Development data only; not integrated.
 - Research-lab experiment ledger (Track A): [research_lab/EXPERIMENT_LEDGER.md](research_lab/EXPERIMENT_LEDGER.md).
 - Phase plans: [implementation/phases/](implementation/phases/) (`PHASE_03_PROSPECTIVE_PANEL.md` current; `PHASE_04_EDGE_EXPERIMENTS.md` NOT started, needs refresh).
 

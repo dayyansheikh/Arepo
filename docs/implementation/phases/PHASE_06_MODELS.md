@@ -12,7 +12,7 @@ Complex models cannot repair bad clocks, insufficient events or biased sampling.
 
 ## Research basis
 
-Model protocol Bayesian/ML sections, E24–E28/E31/E32; all challenger status remains unproven. See immutable package in ../../research/2026-09-20 and canonical contracts in ../../architecture.
+Model protocol Bayesian/ML sections, E24–E28/E31/E32; all challenger status remains unproven. See immutable package in ../../research/2026-09-20 and canonical contracts in ../../architecture. For pre-training and feature development on third-party historical data (development only, sealed holdouts defined), see ../../research/2026-10-11-historical-data/HANDOFF.md.
 
 ## Dependencies
 

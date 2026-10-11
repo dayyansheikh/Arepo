@@ -43,6 +43,13 @@ Not available: L2 depth history beyond sweeps, news/social/external-venue feeds,
 labels at scale from the lab pipeline. Anything needing these is blocked until a bounded registered collection
 exists (architecture doc §9.2).
 
+**Third-party historical data (development only; not integrated).**
+- `../../research/2026-10-11-historical-data/HANDOFF.md` assesses free historical sources that partly fill the gaps above. Read it before building depth, trade-flow or wallet features:
+  - pmxt v2 provides L2 books and trade prints for 2026-04-13 to 08-10;
+  - an on-chain trades and wallets dataset covers 2022-11 to 2026-03.
+- The handoff gives sealed holdout windows (embargoes, read budget), a working demo template and a minimal adapter plan.
+- Historical results are development evidence only, never prospective confirmation.
+
 ## Baselines (locked; every experiment names its version)
 
 Definitions follow `../../research/2026-09-20/MODEL_COMPARISON_AND_VALIDATION.md` §4 and E001 in
