@@ -30,6 +30,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from .ext_sidecar import SidecarBuilder
 from .extract import COLUMNS, dedup_rows, market_row
 
 COLLECTOR_VERSION = "universe-snapshot-v2"
@@ -156,6 +157,7 @@ def collect(
     ids: set[str] = set()
     last_receipt = ""
     state = None
+    ext = SidecarBuilder()  # metadata sidecar from the same pages; never affects the snapshot
     try:
         while state is None:
             params: dict[str, Any] = {**PARAMS, "limit": limit}
@@ -250,6 +252,7 @@ def collect(
                 rows.append(r)
                 overlap += r["market_id"] in ids
                 ids.add(r["market_id"])
+            ext.add_page(markets, capture_id, received, idx)
             if in_detour:
                 detours[-1]["reduced_limit"] = limit
                 detours[-1]["overlap_rows"] = overlap
@@ -267,16 +270,18 @@ def collect(
     except BaseException as exc:  # keep an incomplete manifest, then re-raise
         state = f"incomplete:exception:{type(exc).__name__}"
         _finish(tmp, final, capture_id, started, now(), state, requests, retries, pages, rows,
-                skipped_no_id, commit, detours)
+                skipped_no_id, commit, detours, ext)
         raise
     return _finish(tmp, final, capture_id, started, now(), state, requests, retries, pages,
-                   rows, skipped_no_id, commit, detours)
+                   rows, skipped_no_id, commit, detours, ext)
 
 
 def _finish(tmp, final, capture_id, started, finished, state, requests, retries, pages, rows,
-            skipped_no_id, commit, detours) -> dict:
+            skipped_no_id, commit, detours, ext=None) -> dict:
     kept, n_dup = dedup_rows(rows)
     _write_rows(tmp / "rows.csv.gz", kept)
+    if ext is not None:
+        ext.write(tmp, kept, state, capture_id)
     manifest = {
         "capture_id": capture_id,
         "collector_version": COLLECTOR_VERSION,
