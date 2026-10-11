@@ -476,3 +476,16 @@ criteria are unchanged.
   - Unknown end dates were coded as hours = 0 in dev; excluded here.
   - Possible survivorship linked to liquidity.
 - **Non-claims:** no edge, profitability, calibration or causal claim. No execution stage. This tests moderation of a reversal partly predicted by quote noise. It is not independent of E004 or E005.
+
+**E006 dev fit (frozen `data-dumps/research_lab/e006/dev_fit.json`, before any E004-qualifying snapshot)**
+- Fitted values:
+  - `m_L = 7.46337`, `m_H = 5.99568`, `m_S = 0.0486011`
+  - `b_2 = +0.012287` (H1 predicted sign: positive)
+  - `b_4 = -0.061687` (H2 predicted sign: negative, i.e. stronger reversal further from the end date)
+- 49,354 of 197,341 dev pairs have an observed `chg_1h`.
+- **Disclosure:** even after centring, corr(`chg_1h`, z2) = **-0.874** on dev, so H1's θ is weakly identified and an inconclusive result is
+  likely. For z4 the correlation is +0.439.
+- Implementation interpretations are recorded in the `e006.py` docstring:
+  - the spec hash is taken over the E006 ledger section at `32e6907`;
+  - γ is reported as both total and residual;
+  - the guard CI is set at the Holm rank level.
