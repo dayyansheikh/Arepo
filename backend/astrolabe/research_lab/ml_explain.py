@@ -293,18 +293,31 @@ def _co_primary(names) -> list[str]:
     """Co-primary clusterings among ``names`` (event and dep_group). Sensitivities such as
     ``dep_group_season`` / ``dep_group_econ`` / ``dep_group_category_driver`` are reported but never
     enter the conservative combination; with no co-primary name present all names are used."""
-    names = [n for n in names if not n.startswith("_") and n != "p_conservative"
-             and n != "conservative"]
+    names = [
+        n for n in names if not n.startswith("_") and n != "p_conservative" and n != "conservative"
+    ]
     prim = [n for n in names if n in CO_PRIMARY_CLUSTERS]
     return prim or names
+
+
+def _is_num(v) -> bool:
+    return v is not None and not (isinstance(v, float) and np.isnan(v))
+
+
+def _rank_key(v) -> float:
+    """Descending-sort key: a real 0.0 is a value; only None/NaN (missing) sorts last."""
+    return -float(v) if _is_num(v) else float("inf")
 
 
 def conservative(boots: dict[str, dict]) -> dict:
     """Combine the co-primary cluster definitions pessimistically: the hull of the CIs and the
     larger p (sensitivity clusterings are reported alongside, not combined)."""
     keep = set(_co_primary(list(boots)))
-    items = [v for k, v in boots.items()
-             if k in keep and isinstance(v, dict) and v.get("mean") is not None]
+    items = [
+        v
+        for k, v in boots.items()
+        if k in keep and isinstance(v, dict) and v.get("mean") is not None
+    ]
     if not items:
         return {"mean": None, "ci": [None, None], "p_pos": None, "n_clusters": 0}
     return {
@@ -321,8 +334,9 @@ def _all_boot(d: np.ndarray, clusters: dict[str, np.ndarray], n_boot: int, seed:
     keep = set(_co_primary(list(out)))
     ps = [v["p_two_sided"] for k, v in out.items() if k in keep and v["p_two_sided"] is not None]
     out["p_conservative"] = max(ps) if ps else None  # worst two-sided p over co-primary clusterings
-    out["sensitivities"] = sorted(k for k in out if k not in keep and not k.startswith("_")
-                                  and k != "p_conservative")
+    out["sensitivities"] = sorted(
+        k for k in out if k not in keep and not k.startswith("_") and k != "p_conservative"
+    )
     out["conservative"] = conservative(out)
     return out
 
@@ -518,7 +532,7 @@ def ablation_study(
         "BY (q=0.10) over the cumulative test set; p = one-sided clustered-bootstrap p for "
         "delta_ll > 0, max over cluster definitions (FEATURE_DISCOVERY_PROGRAMME triage rule)"
     )
-    ranked = sorted(entries.items(), key=lambda kv: -(kv[1]["delta_ll"] or -1e9))
+    ranked = sorted(entries.items(), key=lambda kv: _rank_key(kv[1]["delta_ll"]))
     rep["ranking"] = [
         {
             "rank": i + 1,
@@ -1311,8 +1325,8 @@ def run_explain(
     d_feat.pop("_full_oof"), d_feat.pop("_baseline_oof")
     top = [
         c
-        for c in sorted(cand, key=lambda c: -(d_feat["features"][c]["delta_ll"] or -1e9))
-        if (d_feat["features"][c]["delta_ll"] or 0) > 0
+        for c in sorted(cand, key=lambda c: _rank_key(d_feat["features"][c]["delta_ll"]))
+        if _is_num(d_feat["features"][c]["delta_ll"]) and d_feat["features"][c]["delta_ll"] > 0
     ][:top_k]
     # judging: later blocks only
     abl = ablation_study(

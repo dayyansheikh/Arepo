@@ -262,3 +262,10 @@ def test_threshold_value_refuses_discovery_fold_and_regime_needs_split():
         h, X, y, folds, list(X.columns), cl, judge_fold_ids=["f2", "f3"], row_ids=ids, n_boot=100
     )
     assert out["hypothesis"]["status"] == "HYPOTHESIS" and out["value"]["n_clusters"] > 0
+
+
+def test_zero_delta_ll_is_a_value_not_missing():
+    assert mx._rank_key(0.0) == 0.0
+    order = sorted([None, 0.0, 0.2, -0.1, float("nan")], key=mx._rank_key)
+    assert order[:3] == [0.2, 0.0, -0.1]  # 0.0 ranks between positive and negative
+    assert all(not mx._is_num(v) for v in order[3:])
