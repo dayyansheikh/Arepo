@@ -21,17 +21,15 @@ def mk(i: int) -> dict:
         "bestAsk": 0.45, "spread": {"$decimal": "0.05"}, "lastTradePrice": "0.42",
         "oneHourPriceChange": -0.01, "liquidity": "1000.5", "volume24hr": 12,
         "endDate": "2027-01-01T00:00:00Z", "updatedAt": "2026-10-10T00:00:00Z",
-        "negRiskMarketID": "nr1", "events": [{"id": 77, "series": [{"slug": "s-b"}, {"slug": "s-a"}],
-                    "openInterest": 55.5, "commentCount": 3, "negRiskAugmented": True,
-                    "createdAt": "2026-01-01T00:00:00Z"}, {"id": 5, "series": [{"slug": "s-a"}]}],
+        "events": [{"id": 77, "openInterest": 55.5, "commentCount": 3, "negRiskAugmented": True,
+                    "createdAt": "2026-01-01T00:00:00Z"}],
     }
     if i % 2 == 0:
         m.update(feeType="crypto_fees", feesEnabled=True, takerBaseFee=1000,
                  orderPriceMinTickSize=0.01, orderMinSize=5, createdAt="2026-09-01T00:00:00Z",
                  startDate="2026-09-02T00:00:00Z", competitive=0.9, rewardsMinSize=50,
                  rewardsMaxSpread=3.5, clobRewards=[{"rewardsDailyRate": 2}],
-                 acceptingOrders=False, feeSchedule='{"rate":0.07}',
-                 umaResolutionStatuses="[]", volumeNum=99.0)
+                 acceptingOrders=False, umaResolutionStatuses="[]", volumeNum=99.0)
     return m
 
 
@@ -115,10 +113,6 @@ def test_sidecar_joins_and_parses(tmp_path, monkeypatch):
     assert e0["clob_rewards"] == '[{"rewardsDailyRate":2}]' and e0["accepting_orders"] == "0"
     assert e0["clob_token_id_1"] == "t0b" and e0["event_open_interest"] == "55.5"
     assert e0["event_neg_risk_augmented"] == "1"
-    assert e0["fee_schedule"] == '{"rate":0.07}' and e0["event_ids"] == '["5","77"]'
-    assert e0["series_slugs"] == '["s-a","s-b"]' and e0["neg_risk_market_id"] == "nr1"
-    assert e1["fee_schedule"] == ""
-    assert json.loads((d / "ext_manifest.json").read_text())["ext_version"] == "snapshot-ext-v2"
     for k in ("fee_type", "taker_base_fee", "created_at", "rewards_min_size", "volume_num",
               "open_interest", "clob_rewards", "fees_enabled"):
         assert e1[k] == ""  # missing stays missing, never 0
@@ -155,3 +149,17 @@ def test_sidecar_write_failure_marks_missing(tmp_path, monkeypatch):
     _, _, d = run(tmp_path, monkeypatch)
     assert json.loads((d / "ext_manifest.json").read_text())["sidecar_status"] == "missing"
     assert (d / "rows.csv.gz").exists()
+
+
+def test_v2_fields_all_events_series_negrisk_feeschedule():
+    m = mk(2)
+    m.update(negRiskMarketID="nr1", feeSchedule='{"rate":0.07}')
+    m["events"] = [{"id": 77, "series": [{"slug": "s-b"}, {"slug": "s-a"}]},
+                   {"id": 5, "series": [{"slug": "s-a"}]}]
+    r = ext_sidecar.ext_row(m, "c", "t", 0)
+    assert r["fee_schedule"] == '{"rate":0.07}' and r["event_ids"] == '["5","77"]'
+    assert r["series_slugs"] == '["s-a","s-b"]' and r["neg_risk_market_id"] == "nr1"
+    bare = ext_sidecar.ext_row(mk(1), "c", "t", 0)
+    assert bare["fee_schedule"] is None and bare["series_slugs"] is None
+    assert bare["neg_risk_market_id"] is None and bare["event_ids"] == '["77"]'
+    assert ext_sidecar.EXT_VERSION == "snapshot-ext-v2"
