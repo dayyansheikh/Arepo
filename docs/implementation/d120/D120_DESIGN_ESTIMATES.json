@@ -1,0 +1,1392 @@
+{
+ "schema_version": "d120-design-estimates-v1",
+ "status": "design figures only; never acceptance criteria",
+ "script": "backend/scripts/d120_design_estimates.py",
+ "inputs": {
+  "frame_root": "fs2_capture_52eead5d6a984264a9eb0828502fb697",
+  "pinned_sha256": {
+   "frame_report": "c87995cd3608c824af20f468a8f1140d2a8835e10a9e1c994d3b20a838ceb4bb",
+   "selection_inventory": "f224f03608d1fa101de8914961ed07afc836c94a9863a8954d48de21f9ba0682",
+   "snapshot_rows": "55668d80733cf3599f9dd921288bf6fe4e01530901095b205d1bf1afe37ba986"
+  },
+  "frame_report_ack_sha256": "13c638a08b55dfe77c19ef1b9195180f3e1611a175d1816581ddbb67bf124f43",
+  "selection_root": "fs2_selection_panel_d118_control_pairing_1",
+  "selection_inventory_sha256": "f224f03608d1fa101de8914961ed07afc836c94a9863a8954d48de21f9ba0682",
+  "selection_plan_sha256": "34a7987dbdeba88376885db557e46a6e1116e9999fb0cf4b36586c2095b3061b",
+  "snapshot": "20261011T081844Z_24399984",
+  "snapshot_manifest_sha256": "f8444c44f9934e247a0848ab757cdb90a032825fa7e584e14757a9d0d8c0fdfa",
+  "sweeps": {
+   "20261011T022944Z_eba4a73e": {
+    "series_id": "series_20261011T022944Z_6469385f",
+    "series_index": 0,
+    "state": "complete",
+    "rows_sha256": "d9f4cfc78f4f9f33fdc85fe3385c9cdaf45ac75f6cd80ba81859ba2eed334e84",
+    "manifest_sha256": "7c75ae25fa75e31def9891654dd2ef2ecbfc186fde4374cc75e18d5a73745681"
+   },
+   "20261011T023104Z_4de8c806": {
+    "series_id": "series_20261011T022944Z_6469385f",
+    "series_index": 1,
+    "state": "complete",
+    "rows_sha256": "61eeb6384a544a51c2b11eea6e39cb2f4e148a7a9a8bef482e7898af711c1bad",
+    "manifest_sha256": "ebd59ad89363f0355f3778c2b6a3e348c4cf088863b17e19cfc6ca4a320f0dca"
+   },
+   "20261011T042652Z_b6267963": {
+    "series_id": "series_20261011T042652Z_cf8ac5c4",
+    "series_index": 0,
+    "state": "complete",
+    "rows_sha256": "0d582675d67696cec2a5d685bf105c3e04bf02ace6e9bc7272376244b7bf9626",
+    "manifest_sha256": "c253876d879ec56b6e22ea746cd358d7c48aaf16d4038921494bf78fd6235588"
+   },
+   "20261011T042817Z_4a74b788": {
+    "series_id": "series_20261011T042652Z_cf8ac5c4",
+    "series_index": 1,
+    "state": "complete",
+    "rows_sha256": "8ec2286279ff0de29fad009f2223e21fb25f825a69553afb1d688e04f3d38ff0",
+    "manifest_sha256": "0ed9e6524e8f2b22c519a5ddb372547bab7a1f40210e60d733237016072c3336"
+   },
+   "20261011T062543Z_2c949680": {
+    "series_id": "series_20261011T062543Z_70045bb9",
+    "series_index": 0,
+    "state": "complete",
+    "rows_sha256": "2387ac3cde5619f888ec7f6d25d4ec3b4cd3edc7d4ff9c6173ecefb512fc15dc",
+    "manifest_sha256": "3024f40ef723d8a164fb3f8b21d7ef7285816a8e7548fdd8ccf39d54df411933"
+   },
+   "20261011T062706Z_14acad4b": {
+    "series_id": "series_20261011T062543Z_70045bb9",
+    "series_index": 1,
+    "state": "complete",
+    "rows_sha256": "40162b90ec9fc076515d5ab2b127fa26a13569f6bb5d903d24d643c377cd23d1",
+    "manifest_sha256": "e89a448a9da3e921434519fd4950e444d29115644dbf853d35a3bf578be55c3e"
+   },
+   "20261011T082521Z_e0a9b847": {
+    "series_id": "series_20261011T082521Z_398eaacb",
+    "series_index": 0,
+    "state": "complete",
+    "rows_sha256": "2d1e89685cef60ee7eb5b4b6c802eae27938117351ba3c6fa63a1686ff702d6e",
+    "manifest_sha256": "eaf5434f88a897e2de8e0a33e4524e636693a443459bdbe8b114065cf87e748c"
+   },
+   "20261011T082643Z_077269f2": {
+    "series_id": "series_20261011T082521Z_398eaacb",
+    "series_index": 1,
+    "state": "complete",
+    "rows_sha256": "314e138233cdb1ef053ee6c7afd38fca38fca1f793d51a794f4c9efca47d2d41",
+    "manifest_sha256": "4a79c4f6bf6935e4dc17abada41e090fcedb4da5596a38657b26c0cbdd95dd4a"
+   }
+  },
+  "row_verification": "every eligible-frame raw row matched to its projection row_hash"
+ },
+ "seed": 20261011,
+ "reps": 4000,
+ "chain_completion_per_member": 0.95,
+ "scenarios": {
+  "S1": "pooled two-sided sweep trigger rate for every member",
+  "S4": "member-specific Jeffreys trigger probability (own sweeps, else band rate)",
+  "S4h": "S4 with every untriggered probability halved (stress)",
+  "S4q": "S4 with every untriggered probability quartered (harshest defined stress)"
+ },
+ "untriggered_scale": {
+  "S1": 1.0,
+  "S4": 1.0,
+  "S4h": 0.5,
+  "S4q": 0.25
+ },
+ "fidelity": {
+  "sampling_members": 240487,
+  "d118_plan_frame_size": 240487,
+  "eligible": 52084,
+  "d118_plan_selection_eligible_member_count": 52084,
+  "eligible_strata_without_category": 57,
+  "d118_plan_eligible_strata": 57,
+  "reproduces_d118": true
+ },
+ "model": {
+  "pooled_trigger_rate": 0.5598,
+  "band_trigger_rate": {
+   "1": 0.5363,
+   "2": 0.5941,
+   "3": 0.7534
+  },
+  "band_snapshot_availability": {
+   "1": 0.9031,
+   "2": 0.9349,
+   "3": 0.8776
+  },
+  "coverage": {
+   "availability_from_own_sweeps": 36547,
+   "trigger_from_own_sweeps": 36537,
+   "availability_from_snapshot": 15432,
+   "trigger_from_band_rate": 15547,
+   "availability_from_band_rate": 105
+  },
+  "mean_a": 0.9161,
+  "mean_p_given_available": 0.5554
+ },
+ "trigger_persistence": {
+  "basis": "same token assessable in consecutive sweeps of one series (about 80 s apart)",
+  "pairs": 182708,
+  "unchanged_share": 0.9525,
+  "P_untriggered_next_given_triggered": 0.0426,
+  "P_triggered_next_given_untriggered": 0.0536,
+  "counts": {
+   "1->1": 96825,
+   "1->0": 4308,
+   "0->1": 4372,
+   "0->0": 77203
+  }
+ },
+ "fee_category_map": {
+  "version": "fs2-fee-category-map-v1",
+  "prefixes": [
+   [
+    "sports",
+    "sports"
+   ],
+   [
+    "politics",
+    "politics"
+   ],
+   [
+    "crypto",
+    "crypto"
+   ],
+   [
+    "weather",
+    "weather"
+   ],
+   [
+    "finance",
+    "finance"
+   ],
+   [
+    "economics",
+    "economics"
+   ],
+   [
+    "culture",
+    "culture"
+   ],
+   [
+    "tech",
+    "tech"
+   ],
+   [
+    "mentions",
+    "mentions"
+   ]
+  ]
+ },
+ "variants": {
+  "PL_all": {
+   "note": "D118 population (temporal and frame liquidity >= 1000), all categories",
+   "exclude_categories": [],
+   "underlying_grouping": true,
+   "grouping_policy": {
+    "version": "fs2-dependence-groups-v1",
+    "links": [
+     "event_ids",
+     "series_slugs",
+     "neg_risk_market_id"
+    ],
+    "all_events_and_series_per_row": true,
+    "underlying_table": {
+     "version": "fs2-underlying-slug-tokens-v1",
+     "tokens": {
+      "bitcoin": "btc",
+      "btc": "btc",
+      "doge": "doge",
+      "dogecoin": "doge",
+      "eth": "eth",
+      "ethereum": "eth",
+      "ripple": "xrp",
+      "sol": "sol",
+      "solana": "sol",
+      "xrp": "xrp"
+     },
+     "applies_to": "event and series slugs only"
+    },
+    "group_id": "smallest market id (length, then text) of the connected component",
+    "semantics": "dependence attribute; never part of the stratum key"
+   },
+   "members": 52084,
+   "dependence_groups": 3684,
+   "strata_all": 298,
+   "strata_drawable_ge_8_groups": 127,
+   "members_in_drawable_strata": 50041,
+   "share_members_in_drawable_strata": 0.9608,
+   "groups_per_drawable_stratum_quantiles": [
+    8.0,
+    10.0,
+    15.0,
+    25.0,
+    58.5,
+    99.00000000000003,
+    1109.0
+   ],
+   "drawable_strata_with_ge_16_groups": 93,
+   "drawable_strata_with_ge_12_groups": 103,
+   "drawable_strata_by_category": {
+    "sports": 36,
+    "politics": 21,
+    "unknown": 13,
+    "finance": 13,
+    "culture": 10,
+    "weather": 10,
+    "crypto": 8,
+    "economics": 8,
+    "tech": 8
+   },
+   "drawable_members_by_category": {
+    "sports": 33842,
+    "politics": 8252,
+    "crypto": 2787,
+    "weather": 1714,
+    "culture": 1183,
+    "unknown": 818,
+    "finance": 606,
+    "tech": 453,
+    "economics": 386
+   },
+   "shapes": {
+    "6x16": {
+     "S1": {
+      "P_fill_ok_and_ind_ge_3": 0.996,
+      "P_fill_ge_0.8_with_ge_4_triggers": 1.0,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.031,
+      "E_screened": 86.7,
+      "E_triggers_in_scope": 5.978,
+      "E_pairs": 5.947,
+      "E_group_disjoint_complete_pairs": 5.349,
+      "mean_fill_given_trigger": 0.995,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.996,
+      "P_group_disjoint_complete_pairs_ge_4": 0.979,
+      "P_group_disjoint_complete_pairs_ge_5": 0.877,
+      "P_group_disjoint_complete_pairs_ge_6": 0.497,
+      "expected_run_category_share_screened": {
+       "sports": 0.2855,
+       "politics": 0.1768,
+       "finance": 0.0959,
+       "unknown": 0.0945,
+       "weather": 0.0865,
+       "culture": 0.0739,
+       "economics": 0.0635,
+       "crypto": 0.062,
+       "tech": 0.0615
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2859,
+       "politics": 0.1656,
+       "finance": 0.1045,
+       "unknown": 0.1014,
+       "culture": 0.0787,
+       "weather": 0.0751,
+       "crypto": 0.0636,
+       "tech": 0.0626,
+       "economics": 0.0625
+      }
+     },
+     "S4": {
+      "P_fill_ok_and_ind_ge_3": 0.994,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.998,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.056,
+      "E_screened": 86.7,
+      "E_triggers_in_scope": 5.978,
+      "E_pairs": 5.92,
+      "E_group_disjoint_complete_pairs": 5.324,
+      "mean_fill_given_trigger": 0.99,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.996,
+      "P_group_disjoint_complete_pairs_ge_4": 0.978,
+      "P_group_disjoint_complete_pairs_ge_5": 0.868,
+      "P_group_disjoint_complete_pairs_ge_6": 0.483,
+      "expected_run_category_share_screened": {
+       "sports": 0.2855,
+       "politics": 0.1768,
+       "finance": 0.0959,
+       "unknown": 0.0945,
+       "weather": 0.0865,
+       "culture": 0.0739,
+       "economics": 0.0635,
+       "crypto": 0.062,
+       "tech": 0.0615
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2857,
+       "politics": 0.1634,
+       "finance": 0.1049,
+       "unknown": 0.1021,
+       "culture": 0.079,
+       "weather": 0.0753,
+       "crypto": 0.0641,
+       "tech": 0.063,
+       "economics": 0.0627
+      }
+     },
+     "S4h": {
+      "P_fill_ok_and_ind_ge_3": 0.95,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.955,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.312,
+      "E_screened": 86.7,
+      "E_triggers_in_scope": 5.99,
+      "E_pairs": 5.626,
+      "E_group_disjoint_complete_pairs": 5.066,
+      "mean_fill_given_trigger": 0.939,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 0.999,
+      "P_group_disjoint_complete_pairs_ge_3": 0.992,
+      "P_group_disjoint_complete_pairs_ge_4": 0.947,
+      "P_group_disjoint_complete_pairs_ge_5": 0.773,
+      "P_group_disjoint_complete_pairs_ge_6": 0.357,
+      "expected_run_category_share_screened": {
+       "sports": 0.2855,
+       "politics": 0.1768,
+       "finance": 0.0959,
+       "unknown": 0.0945,
+       "weather": 0.0865,
+       "culture": 0.0739,
+       "economics": 0.0635,
+       "crypto": 0.062,
+       "tech": 0.0615
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2848,
+       "politics": 0.163,
+       "finance": 0.1057,
+       "unknown": 0.1017,
+       "culture": 0.0803,
+       "weather": 0.0728,
+       "crypto": 0.0651,
+       "tech": 0.0637,
+       "economics": 0.063
+      }
+     },
+     "S4q": {
+      "P_fill_ok_and_ind_ge_3": 0.586,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.59,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.782,
+      "E_screened": 86.7,
+      "E_triggers_in_scope": 5.992,
+      "E_pairs": 4.624,
+      "E_group_disjoint_complete_pairs": 4.157,
+      "mean_fill_given_trigger": 0.772,
+      "P_group_disjoint_complete_pairs_ge_1": 0.999,
+      "P_group_disjoint_complete_pairs_ge_2": 0.986,
+      "P_group_disjoint_complete_pairs_ge_3": 0.922,
+      "P_group_disjoint_complete_pairs_ge_4": 0.726,
+      "P_group_disjoint_complete_pairs_ge_5": 0.413,
+      "P_group_disjoint_complete_pairs_ge_6": 0.112,
+      "expected_run_category_share_screened": {
+       "sports": 0.2855,
+       "politics": 0.1768,
+       "finance": 0.0959,
+       "unknown": 0.0945,
+       "weather": 0.0865,
+       "culture": 0.0739,
+       "economics": 0.0635,
+       "crypto": 0.062,
+       "tech": 0.0615
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2807,
+       "politics": 0.1668,
+       "finance": 0.1051,
+       "unknown": 0.1007,
+       "culture": 0.0795,
+       "weather": 0.07,
+       "crypto": 0.0665,
+       "economics": 0.0658,
+       "tech": 0.0649
+      }
+     }
+    },
+    "6x12": {
+     "S1": {
+      "P_fill_ok_and_ind_ge_3": 0.998,
+      "P_fill_ge_0.8_with_ge_4_triggers": 1.0,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.043,
+      "E_screened": 68.93,
+      "E_triggers_in_scope": 5.973,
+      "E_pairs": 5.929,
+      "E_group_disjoint_complete_pairs": 5.353,
+      "mean_fill_given_trigger": 0.993,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.998,
+      "P_group_disjoint_complete_pairs_ge_4": 0.984,
+      "P_group_disjoint_complete_pairs_ge_5": 0.872,
+      "P_group_disjoint_complete_pairs_ge_6": 0.5,
+      "expected_run_category_share_screened": {
+       "sports": 0.2926,
+       "politics": 0.1713,
+       "finance": 0.0964,
+       "unknown": 0.0964,
+       "weather": 0.0813,
+       "culture": 0.0735,
+       "tech": 0.0638,
+       "crypto": 0.0624,
+       "economics": 0.0623
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2927,
+       "politics": 0.1667,
+       "unknown": 0.1009,
+       "finance": 0.1007,
+       "culture": 0.0764,
+       "weather": 0.0708,
+       "tech": 0.0649,
+       "crypto": 0.0643,
+       "economics": 0.0625
+      }
+     },
+     "S4": {
+      "P_fill_ok_and_ind_ge_3": 0.996,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.999,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.072,
+      "E_screened": 68.93,
+      "E_triggers_in_scope": 5.971,
+      "E_pairs": 5.899,
+      "E_group_disjoint_complete_pairs": 5.33,
+      "mean_fill_given_trigger": 0.988,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.997,
+      "P_group_disjoint_complete_pairs_ge_4": 0.982,
+      "P_group_disjoint_complete_pairs_ge_5": 0.865,
+      "P_group_disjoint_complete_pairs_ge_6": 0.486,
+      "expected_run_category_share_screened": {
+       "sports": 0.2926,
+       "politics": 0.1713,
+       "finance": 0.0964,
+       "unknown": 0.0964,
+       "weather": 0.0813,
+       "culture": 0.0735,
+       "tech": 0.0638,
+       "crypto": 0.0624,
+       "economics": 0.0623
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2928,
+       "politics": 0.1639,
+       "unknown": 0.1016,
+       "finance": 0.1014,
+       "culture": 0.0764,
+       "weather": 0.0711,
+       "tech": 0.0653,
+       "crypto": 0.0647,
+       "economics": 0.0628
+      }
+     },
+     "S4h": {
+      "P_fill_ok_and_ind_ge_3": 0.905,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.908,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.43,
+      "E_screened": 68.93,
+      "E_triggers_in_scope": 5.986,
+      "E_pairs": 5.453,
+      "E_group_disjoint_complete_pairs": 4.931,
+      "mean_fill_given_trigger": 0.911,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 0.999,
+      "P_group_disjoint_complete_pairs_ge_3": 0.989,
+      "P_group_disjoint_complete_pairs_ge_4": 0.93,
+      "P_group_disjoint_complete_pairs_ge_5": 0.704,
+      "P_group_disjoint_complete_pairs_ge_6": 0.309,
+      "expected_run_category_share_screened": {
+       "sports": 0.2926,
+       "politics": 0.1713,
+       "finance": 0.0964,
+       "unknown": 0.0964,
+       "weather": 0.0813,
+       "culture": 0.0735,
+       "tech": 0.0638,
+       "crypto": 0.0624,
+       "economics": 0.0623
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2907,
+       "politics": 0.1627,
+       "unknown": 0.1023,
+       "finance": 0.1021,
+       "culture": 0.077,
+       "weather": 0.0682,
+       "crypto": 0.0663,
+       "tech": 0.0662,
+       "economics": 0.0644
+      }
+     },
+     "S4q": {
+      "P_fill_ok_and_ind_ge_3": 0.437,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.44,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.87,
+      "E_screened": 68.93,
+      "E_triggers_in_scope": 5.988,
+      "E_pairs": 4.233,
+      "E_group_disjoint_complete_pairs": 3.824,
+      "mean_fill_given_trigger": 0.707,
+      "P_group_disjoint_complete_pairs_ge_1": 0.998,
+      "P_group_disjoint_complete_pairs_ge_2": 0.974,
+      "P_group_disjoint_complete_pairs_ge_3": 0.871,
+      "P_group_disjoint_complete_pairs_ge_4": 0.612,
+      "P_group_disjoint_complete_pairs_ge_5": 0.303,
+      "P_group_disjoint_complete_pairs_ge_6": 0.067,
+      "expected_run_category_share_screened": {
+       "sports": 0.2926,
+       "politics": 0.1713,
+       "finance": 0.0964,
+       "unknown": 0.0964,
+       "weather": 0.0813,
+       "culture": 0.0735,
+       "tech": 0.0638,
+       "crypto": 0.0624,
+       "economics": 0.0623
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.288,
+       "politics": 0.1622,
+       "finance": 0.1036,
+       "unknown": 0.1014,
+       "culture": 0.0792,
+       "crypto": 0.0679,
+       "tech": 0.0673,
+       "economics": 0.0662,
+       "weather": 0.0642
+      }
+     }
+    }
+   }
+  },
+  "PL_all_no_underlying": {
+   "note": "as PL_all without the underlying slug-token table",
+   "exclude_categories": [],
+   "underlying_grouping": false,
+   "grouping_policy": {
+    "version": "fs2-dependence-groups-v1",
+    "links": [
+     "event_ids",
+     "series_slugs",
+     "neg_risk_market_id"
+    ],
+    "all_events_and_series_per_row": true,
+    "underlying_table": null,
+    "group_id": "smallest market id (length, then text) of the connected component",
+    "semantics": "dependence attribute; never part of the stratum key"
+   },
+   "members": 52084,
+   "dependence_groups": 3759,
+   "strata_all": 298,
+   "strata_drawable_ge_8_groups": 134,
+   "members_in_drawable_strata": 50566,
+   "share_members_in_drawable_strata": 0.9709,
+   "groups_per_drawable_stratum_quantiles": [
+    8.0,
+    9.3,
+    14.0,
+    22.0,
+    58.75,
+    96.10000000000001,
+    1109.0
+   ],
+   "drawable_strata_with_ge_16_groups": 95,
+   "drawable_strata_with_ge_12_groups": 106,
+   "drawable_strata_by_category": {
+    "sports": 36,
+    "politics": 21,
+    "crypto": 15,
+    "unknown": 13,
+    "finance": 13,
+    "culture": 10,
+    "weather": 10,
+    "economics": 8,
+    "tech": 8
+   },
+   "drawable_members_by_category": {
+    "sports": 33842,
+    "politics": 8252,
+    "crypto": 3312,
+    "weather": 1714,
+    "culture": 1183,
+    "unknown": 818,
+    "finance": 606,
+    "tech": 453,
+    "economics": 386
+   },
+   "shapes": {
+    "6x16": {
+     "S1": {
+      "P_fill_ok_and_ind_ge_3": 0.997,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.999,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.042,
+      "E_screened": 85.57,
+      "E_triggers_in_scope": 5.976,
+      "E_pairs": 5.933,
+      "E_group_disjoint_complete_pairs": 5.336,
+      "mean_fill_given_trigger": 0.993,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.997,
+      "P_group_disjoint_complete_pairs_ge_4": 0.981,
+      "P_group_disjoint_complete_pairs_ge_5": 0.863,
+      "P_group_disjoint_complete_pairs_ge_6": 0.495,
+      "expected_run_category_share_screened": {
+       "sports": 0.2718,
+       "politics": 0.1675,
+       "crypto": 0.102,
+       "unknown": 0.0922,
+       "finance": 0.088,
+       "weather": 0.0848,
+       "culture": 0.0721,
+       "economics": 0.0632,
+       "tech": 0.0584
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2698,
+       "politics": 0.1552,
+       "crypto": 0.1124,
+       "unknown": 0.0983,
+       "finance": 0.0955,
+       "culture": 0.0761,
+       "weather": 0.073,
+       "economics": 0.0614,
+       "tech": 0.0583
+      }
+     },
+     "S4": {
+      "P_fill_ok_and_ind_ge_3": 0.997,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.999,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.064,
+      "E_screened": 85.57,
+      "E_triggers_in_scope": 5.974,
+      "E_pairs": 5.91,
+      "E_group_disjoint_complete_pairs": 5.315,
+      "mean_fill_given_trigger": 0.989,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.997,
+      "P_group_disjoint_complete_pairs_ge_4": 0.979,
+      "P_group_disjoint_complete_pairs_ge_5": 0.857,
+      "P_group_disjoint_complete_pairs_ge_6": 0.482,
+      "expected_run_category_share_screened": {
+       "sports": 0.2718,
+       "politics": 0.1675,
+       "crypto": 0.102,
+       "unknown": 0.0922,
+       "finance": 0.088,
+       "weather": 0.0848,
+       "culture": 0.0721,
+       "economics": 0.0632,
+       "tech": 0.0584
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2704,
+       "politics": 0.1532,
+       "crypto": 0.1125,
+       "unknown": 0.099,
+       "finance": 0.0956,
+       "culture": 0.0761,
+       "weather": 0.073,
+       "economics": 0.0616,
+       "tech": 0.0586
+      }
+     },
+     "S4h": {
+      "P_fill_ok_and_ind_ge_3": 0.943,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.948,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.344,
+      "E_screened": 85.57,
+      "E_triggers_in_scope": 5.991,
+      "E_pairs": 5.59,
+      "E_group_disjoint_complete_pairs": 5.029,
+      "mean_fill_given_trigger": 0.933,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.991,
+      "P_group_disjoint_complete_pairs_ge_4": 0.942,
+      "P_group_disjoint_complete_pairs_ge_5": 0.75,
+      "P_group_disjoint_complete_pairs_ge_6": 0.347,
+      "expected_run_category_share_screened": {
+       "sports": 0.2718,
+       "politics": 0.1675,
+       "crypto": 0.102,
+       "unknown": 0.0922,
+       "finance": 0.088,
+       "weather": 0.0848,
+       "culture": 0.0721,
+       "economics": 0.0632,
+       "tech": 0.0584
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2694,
+       "politics": 0.1542,
+       "crypto": 0.1105,
+       "unknown": 0.0989,
+       "finance": 0.0959,
+       "culture": 0.0772,
+       "weather": 0.0719,
+       "economics": 0.0626,
+       "tech": 0.0594
+      }
+     },
+     "S4q": {
+      "P_fill_ok_and_ind_ge_3": 0.564,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.568,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.798,
+      "E_screened": 85.57,
+      "E_triggers_in_scope": 5.993,
+      "E_pairs": 4.587,
+      "E_group_disjoint_complete_pairs": 4.128,
+      "mean_fill_given_trigger": 0.765,
+      "P_group_disjoint_complete_pairs_ge_1": 0.999,
+      "P_group_disjoint_complete_pairs_ge_2": 0.984,
+      "P_group_disjoint_complete_pairs_ge_3": 0.921,
+      "P_group_disjoint_complete_pairs_ge_4": 0.725,
+      "P_group_disjoint_complete_pairs_ge_5": 0.389,
+      "P_group_disjoint_complete_pairs_ge_6": 0.11,
+      "expected_run_category_share_screened": {
+       "sports": 0.2718,
+       "politics": 0.1675,
+       "crypto": 0.102,
+       "unknown": 0.0922,
+       "finance": 0.088,
+       "weather": 0.0848,
+       "culture": 0.0721,
+       "economics": 0.0632,
+       "tech": 0.0584
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2671,
+       "politics": 0.1563,
+       "crypto": 0.109,
+       "unknown": 0.0981,
+       "finance": 0.0971,
+       "culture": 0.0777,
+       "weather": 0.0689,
+       "economics": 0.0653,
+       "tech": 0.0605
+      }
+     }
+    },
+    "6x12": {
+     "S1": {
+      "P_fill_ok_and_ind_ge_3": 0.998,
+      "P_fill_ge_0.8_with_ge_4_triggers": 1.0,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.04,
+      "E_screened": 68.54,
+      "E_triggers_in_scope": 5.967,
+      "E_pairs": 5.928,
+      "E_group_disjoint_complete_pairs": 5.341,
+      "mean_fill_given_trigger": 0.993,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.998,
+      "P_group_disjoint_complete_pairs_ge_4": 0.982,
+      "P_group_disjoint_complete_pairs_ge_5": 0.876,
+      "P_group_disjoint_complete_pairs_ge_6": 0.484,
+      "expected_run_category_share_screened": {
+       "sports": 0.2674,
+       "politics": 0.1661,
+       "crypto": 0.1082,
+       "unknown": 0.0954,
+       "finance": 0.0951,
+       "weather": 0.077,
+       "culture": 0.0712,
+       "tech": 0.0599,
+       "economics": 0.0596
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2654,
+       "politics": 0.1607,
+       "crypto": 0.1154,
+       "unknown": 0.0995,
+       "finance": 0.0986,
+       "culture": 0.0735,
+       "weather": 0.0667,
+       "tech": 0.0608,
+       "economics": 0.0593
+      }
+     },
+     "S4": {
+      "P_fill_ok_and_ind_ge_3": 0.997,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.999,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.077,
+      "E_screened": 68.54,
+      "E_triggers_in_scope": 5.968,
+      "E_pairs": 5.89,
+      "E_group_disjoint_complete_pairs": 5.308,
+      "mean_fill_given_trigger": 0.987,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.998,
+      "P_group_disjoint_complete_pairs_ge_4": 0.98,
+      "P_group_disjoint_complete_pairs_ge_5": 0.862,
+      "P_group_disjoint_complete_pairs_ge_6": 0.468,
+      "expected_run_category_share_screened": {
+       "sports": 0.2674,
+       "politics": 0.1661,
+       "crypto": 0.1082,
+       "unknown": 0.0954,
+       "finance": 0.0951,
+       "weather": 0.077,
+       "culture": 0.0712,
+       "tech": 0.0599,
+       "economics": 0.0596
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2659,
+       "politics": 0.1585,
+       "crypto": 0.1151,
+       "unknown": 0.1001,
+       "finance": 0.0987,
+       "culture": 0.0736,
+       "weather": 0.067,
+       "tech": 0.0613,
+       "economics": 0.0598
+      }
+     },
+     "S4h": {
+      "P_fill_ok_and_ind_ge_3": 0.897,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.901,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.444,
+      "E_screened": 68.54,
+      "E_triggers_in_scope": 5.985,
+      "E_pairs": 5.427,
+      "E_group_disjoint_complete_pairs": 4.887,
+      "mean_fill_given_trigger": 0.907,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.988,
+      "P_group_disjoint_complete_pairs_ge_4": 0.919,
+      "P_group_disjoint_complete_pairs_ge_5": 0.698,
+      "P_group_disjoint_complete_pairs_ge_6": 0.282,
+      "expected_run_category_share_screened": {
+       "sports": 0.2674,
+       "politics": 0.1661,
+       "crypto": 0.1082,
+       "unknown": 0.0954,
+       "finance": 0.0951,
+       "weather": 0.077,
+       "culture": 0.0712,
+       "tech": 0.0599,
+       "economics": 0.0596
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2644,
+       "politics": 0.1569,
+       "crypto": 0.1151,
+       "unknown": 0.1012,
+       "finance": 0.1003,
+       "culture": 0.0751,
+       "weather": 0.0636,
+       "tech": 0.0621,
+       "economics": 0.0613
+      }
+     },
+     "S4q": {
+      "P_fill_ok_and_ind_ge_3": 0.417,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.42,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.876,
+      "E_screened": 68.54,
+      "E_triggers_in_scope": 5.988,
+      "E_pairs": 4.214,
+      "E_group_disjoint_complete_pairs": 3.794,
+      "mean_fill_given_trigger": 0.704,
+      "P_group_disjoint_complete_pairs_ge_1": 0.997,
+      "P_group_disjoint_complete_pairs_ge_2": 0.974,
+      "P_group_disjoint_complete_pairs_ge_3": 0.866,
+      "P_group_disjoint_complete_pairs_ge_4": 0.614,
+      "P_group_disjoint_complete_pairs_ge_5": 0.281,
+      "P_group_disjoint_complete_pairs_ge_6": 0.062,
+      "expected_run_category_share_screened": {
+       "sports": 0.2674,
+       "politics": 0.1661,
+       "crypto": 0.1082,
+       "unknown": 0.0954,
+       "finance": 0.0951,
+       "weather": 0.077,
+       "culture": 0.0712,
+       "tech": 0.0599,
+       "economics": 0.0596
+      },
+      "expected_run_category_share_pairs": {
+       "sports": 0.2616,
+       "politics": 0.1568,
+       "crypto": 0.1153,
+       "finance": 0.102,
+       "unknown": 0.1004,
+       "culture": 0.0755,
+       "economics": 0.0644,
+       "tech": 0.0634,
+       "weather": 0.0607
+      }
+     }
+    }
+   }
+  },
+  "PL_exclude_sports": {
+   "note": "category policy parameter: sports excluded",
+   "exclude_categories": [
+    "sports"
+   ],
+   "underlying_grouping": true,
+   "grouping_policy": {
+    "version": "fs2-dependence-groups-v1",
+    "links": [
+     "event_ids",
+     "series_slugs",
+     "neg_risk_market_id"
+    ],
+    "all_events_and_series_per_row": true,
+    "underlying_table": {
+     "version": "fs2-underlying-slug-tokens-v1",
+     "tokens": {
+      "bitcoin": "btc",
+      "btc": "btc",
+      "doge": "doge",
+      "dogecoin": "doge",
+      "eth": "eth",
+      "ethereum": "eth",
+      "ripple": "xrp",
+      "sol": "sol",
+      "solana": "sol",
+      "xrp": "xrp"
+     },
+     "applies_to": "event and series slugs only"
+    },
+    "group_id": "smallest market id (length, then text) of the connected component",
+    "semantics": "dependence attribute; never part of the stratum key"
+   },
+   "members": 18014,
+   "dependence_groups": 3060,
+   "strata_all": 244,
+   "strata_drawable_ge_8_groups": 91,
+   "members_in_drawable_strata": 16199,
+   "share_members_in_drawable_strata": 0.8992,
+   "groups_per_drawable_stratum_quantiles": [
+    8.0,
+    10.0,
+    15.0,
+    21.0,
+    52.0,
+    92.0,
+    1109.0
+   ],
+   "drawable_strata_with_ge_16_groups": 67,
+   "drawable_strata_with_ge_12_groups": 73,
+   "drawable_strata_by_category": {
+    "politics": 21,
+    "unknown": 13,
+    "finance": 13,
+    "culture": 10,
+    "weather": 10,
+    "crypto": 8,
+    "economics": 8,
+    "tech": 8
+   },
+   "drawable_members_by_category": {
+    "politics": 8252,
+    "crypto": 2787,
+    "weather": 1714,
+    "culture": 1183,
+    "unknown": 818,
+    "finance": 606,
+    "tech": 453,
+    "economics": 386
+   },
+   "shapes": {
+    "6x16": {
+     "S1": {
+      "P_fill_ok_and_ind_ge_3": 0.999,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.999,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.042,
+      "E_screened": 86.42,
+      "E_triggers_in_scope": 5.971,
+      "E_pairs": 5.929,
+      "E_group_disjoint_complete_pairs": 5.348,
+      "mean_fill_given_trigger": 0.993,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.999,
+      "P_group_disjoint_complete_pairs_ge_4": 0.983,
+      "P_group_disjoint_complete_pairs_ge_5": 0.865,
+      "P_group_disjoint_complete_pairs_ge_6": 0.502,
+      "expected_run_category_share_screened": {
+       "politics": 0.2487,
+       "unknown": 0.1322,
+       "finance": 0.1295,
+       "weather": 0.1188,
+       "culture": 0.1061,
+       "economics": 0.0895,
+       "tech": 0.0879,
+       "crypto": 0.0874
+      },
+      "expected_run_category_share_pairs": {
+       "politics": 0.2328,
+       "finance": 0.1429,
+       "unknown": 0.1419,
+       "culture": 0.1121,
+       "weather": 0.1028,
+       "crypto": 0.0897,
+       "tech": 0.0894,
+       "economics": 0.0885
+      }
+     },
+     "S4": {
+      "P_fill_ok_and_ind_ge_3": 0.998,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.999,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.062,
+      "E_screened": 86.42,
+      "E_triggers_in_scope": 5.968,
+      "E_pairs": 5.905,
+      "E_group_disjoint_complete_pairs": 5.327,
+      "mean_fill_given_trigger": 0.989,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.999,
+      "P_group_disjoint_complete_pairs_ge_4": 0.981,
+      "P_group_disjoint_complete_pairs_ge_5": 0.859,
+      "P_group_disjoint_complete_pairs_ge_6": 0.489,
+      "expected_run_category_share_screened": {
+       "politics": 0.2487,
+       "unknown": 0.1322,
+       "finance": 0.1295,
+       "weather": 0.1188,
+       "culture": 0.1061,
+       "economics": 0.0895,
+       "tech": 0.0879,
+       "crypto": 0.0874
+      },
+      "expected_run_category_share_pairs": {
+       "politics": 0.2301,
+       "finance": 0.1433,
+       "unknown": 0.1426,
+       "culture": 0.1121,
+       "weather": 0.1028,
+       "crypto": 0.0903,
+       "tech": 0.0898,
+       "economics": 0.0889
+      }
+     },
+     "S4h": {
+      "P_fill_ok_and_ind_ge_3": 0.952,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.954,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.316,
+      "E_screened": 86.42,
+      "E_triggers_in_scope": 5.985,
+      "E_pairs": 5.62,
+      "E_group_disjoint_complete_pairs": 5.065,
+      "mean_fill_given_trigger": 0.939,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.996,
+      "P_group_disjoint_complete_pairs_ge_4": 0.951,
+      "P_group_disjoint_complete_pairs_ge_5": 0.762,
+      "P_group_disjoint_complete_pairs_ge_6": 0.356,
+      "expected_run_category_share_screened": {
+       "politics": 0.2487,
+       "unknown": 0.1322,
+       "finance": 0.1295,
+       "weather": 0.1188,
+       "culture": 0.1061,
+       "economics": 0.0895,
+       "tech": 0.0879,
+       "crypto": 0.0874
+      },
+      "expected_run_category_share_pairs": {
+       "politics": 0.2302,
+       "unknown": 0.1429,
+       "finance": 0.1422,
+       "culture": 0.1139,
+       "weather": 0.0993,
+       "crypto": 0.0926,
+       "tech": 0.0896,
+       "economics": 0.0894
+      }
+     },
+     "S4q": {
+      "P_fill_ok_and_ind_ge_3": 0.589,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.592,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.787,
+      "E_screened": 86.42,
+      "E_triggers_in_scope": 5.989,
+      "E_pairs": 4.635,
+      "E_group_disjoint_complete_pairs": 4.175,
+      "mean_fill_given_trigger": 0.774,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 0.992,
+      "P_group_disjoint_complete_pairs_ge_3": 0.931,
+      "P_group_disjoint_complete_pairs_ge_4": 0.732,
+      "P_group_disjoint_complete_pairs_ge_5": 0.408,
+      "P_group_disjoint_complete_pairs_ge_6": 0.113,
+      "expected_run_category_share_screened": {
+       "politics": 0.2487,
+       "unknown": 0.1322,
+       "finance": 0.1295,
+       "weather": 0.1188,
+       "culture": 0.1061,
+       "economics": 0.0895,
+       "tech": 0.0879,
+       "crypto": 0.0874
+      },
+      "expected_run_category_share_pairs": {
+       "politics": 0.2325,
+       "finance": 0.1429,
+       "unknown": 0.1401,
+       "culture": 0.112,
+       "weather": 0.0966,
+       "crypto": 0.0942,
+       "economics": 0.0914,
+       "tech": 0.0902
+      }
+     }
+    },
+    "6x12": {
+     "S1": {
+      "P_fill_ok_and_ind_ge_3": 0.998,
+      "P_fill_ge_0.8_with_ge_4_triggers": 1.0,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.053,
+      "E_screened": 68.64,
+      "E_triggers_in_scope": 5.968,
+      "E_pairs": 5.915,
+      "E_group_disjoint_complete_pairs": 5.322,
+      "mean_fill_given_trigger": 0.991,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.998,
+      "P_group_disjoint_complete_pairs_ge_4": 0.98,
+      "P_group_disjoint_complete_pairs_ge_5": 0.86,
+      "P_group_disjoint_complete_pairs_ge_6": 0.484,
+      "expected_run_category_share_screened": {
+       "politics": 0.2404,
+       "finance": 0.1402,
+       "unknown": 0.1368,
+       "weather": 0.1141,
+       "culture": 0.1071,
+       "economics": 0.0894,
+       "tech": 0.087,
+       "crypto": 0.0851
+      },
+      "expected_run_category_share_pairs": {
+       "politics": 0.2331,
+       "finance": 0.147,
+       "unknown": 0.1429,
+       "culture": 0.1109,
+       "weather": 0.0996,
+       "economics": 0.0899,
+       "tech": 0.089,
+       "crypto": 0.0877
+      }
+     },
+     "S4": {
+      "P_fill_ok_and_ind_ge_3": 0.996,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.998,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.087,
+      "E_screened": 68.64,
+      "E_triggers_in_scope": 5.964,
+      "E_pairs": 5.875,
+      "E_group_disjoint_complete_pairs": 5.285,
+      "mean_fill_given_trigger": 0.985,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 1.0,
+      "P_group_disjoint_complete_pairs_ge_3": 0.998,
+      "P_group_disjoint_complete_pairs_ge_4": 0.976,
+      "P_group_disjoint_complete_pairs_ge_5": 0.849,
+      "P_group_disjoint_complete_pairs_ge_6": 0.462,
+      "expected_run_category_share_screened": {
+       "politics": 0.2404,
+       "finance": 0.1402,
+       "unknown": 0.1368,
+       "weather": 0.1141,
+       "culture": 0.1071,
+       "economics": 0.0894,
+       "tech": 0.087,
+       "crypto": 0.0851
+      },
+      "expected_run_category_share_pairs": {
+       "politics": 0.2297,
+       "finance": 0.1474,
+       "unknown": 0.1442,
+       "culture": 0.111,
+       "weather": 0.0997,
+       "economics": 0.0905,
+       "tech": 0.0893,
+       "crypto": 0.0883
+      }
+     },
+     "S4h": {
+      "P_fill_ok_and_ind_ge_3": 0.9,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.905,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.434,
+      "E_screened": 68.64,
+      "E_triggers_in_scope": 5.979,
+      "E_pairs": 5.438,
+      "E_group_disjoint_complete_pairs": 4.894,
+      "mean_fill_given_trigger": 0.91,
+      "P_group_disjoint_complete_pairs_ge_1": 1.0,
+      "P_group_disjoint_complete_pairs_ge_2": 0.999,
+      "P_group_disjoint_complete_pairs_ge_3": 0.987,
+      "P_group_disjoint_complete_pairs_ge_4": 0.925,
+      "P_group_disjoint_complete_pairs_ge_5": 0.695,
+      "P_group_disjoint_complete_pairs_ge_6": 0.288,
+      "expected_run_category_share_screened": {
+       "politics": 0.2404,
+       "finance": 0.1402,
+       "unknown": 0.1368,
+       "weather": 0.1141,
+       "culture": 0.1071,
+       "economics": 0.0894,
+       "tech": 0.087,
+       "crypto": 0.0851
+      },
+      "expected_run_category_share_pairs": {
+       "politics": 0.2262,
+       "finance": 0.1484,
+       "unknown": 0.1439,
+       "culture": 0.1132,
+       "weather": 0.0956,
+       "economics": 0.092,
+       "crypto": 0.0907,
+       "tech": 0.09
+      }
+     },
+     "S4q": {
+      "P_fill_ok_and_ind_ge_3": 0.438,
+      "P_fill_ge_0.8_with_ge_4_triggers": 0.442,
+      "P_triggers_in_scope_lt_4": 0.0,
+      "P_strata_with_trigger_lt_4": 0.0,
+      "P_any_control_scarcity": 0.866,
+      "E_screened": 68.64,
+      "E_triggers_in_scope": 5.984,
+      "E_pairs": 4.258,
+      "E_group_disjoint_complete_pairs": 3.833,
+      "mean_fill_given_trigger": 0.712,
+      "P_group_disjoint_complete_pairs_ge_1": 0.998,
+      "P_group_disjoint_complete_pairs_ge_2": 0.976,
+      "P_group_disjoint_complete_pairs_ge_3": 0.87,
+      "P_group_disjoint_complete_pairs_ge_4": 0.627,
+      "P_group_disjoint_complete_pairs_ge_5": 0.292,
+      "P_group_disjoint_complete_pairs_ge_6": 0.07,
+      "expected_run_category_share_screened": {
+       "politics": 0.2404,
+       "finance": 0.1402,
+       "unknown": 0.1368,
+       "weather": 0.1141,
+       "culture": 0.1071,
+       "economics": 0.0894,
+       "tech": 0.087,
+       "crypto": 0.0851
+      },
+      "expected_run_category_share_pairs": {
+       "politics": 0.2256,
+       "finance": 0.1496,
+       "unknown": 0.1394,
+       "culture": 0.1147,
+       "crypto": 0.0946,
+       "economics": 0.0939,
+       "weather": 0.0915,
+       "tech": 0.0908
+      }
+     }
+    }
+   }
+  }
+ },
+ "link_coverage_eligible": {
+  "rows": 52084,
+  "with_event": 52084,
+  "with_series": 37861,
+  "with_neg_risk": 26667,
+  "more_than_one_event": 0,
+  "more_than_one_series": 0,
+  "with_parent_event_not_unioned": 22344,
+  "with_underlying_token": 2963
+ },
+ "eligible_category_counts": {
+  "sports": 34070,
+  "politics": 8302,
+  "crypto": 4007,
+  "weather": 1768,
+  "culture": 1308,
+  "unknown": 897,
+  "finance": 649,
+  "tech": 545,
+  "economics": 482,
+  "other:general_fees": 38,
+  "other:zero_fees": 10,
+  "mentions": 8
+ },
+ "eligible_fee_type_counts": {
+  "sports_fees_v3": 27752,
+  "politics_fees": 8302,
+  "sports_fees_nfl_cfb_oct26": 5259,
+  "crypto_fees_v2": 4007,
+  "weather_fees": 1768,
+  "culture_fees": 1308,
+  "sports_fees_v2": 1059,
+  "null": 897,
+  "finance_prices_fees": 649,
+  "tech_fees": 545,
+  "economics_fees": 482,
+  "general_fees": 38,
+  "zero_fees": 10,
+  "mentions_fees": 8
+ },
+ "headline": {
+  "design": "PL_all, 6 strata x 16 screened groups, 1 pair per stratum, <= 12 origins",
+  "P_pass_by_scenario": {
+   "S1": 0.996,
+   "S4": 0.994,
+   "S4h": 0.95,
+   "S4q": 0.586
+  },
+  "honest_lower_bound_defined_scenarios": 0.586,
+  "lower_bound_note": "S4q is the harshest defined stress, not a true lower bound: availability is a sweep/snapshot proxy, members are modelled as independent and chain completion is an assumed 0.95",
+  "expected_state_disagreements_per_run_S4": 0.57
+ }
+}

@@ -1,6 +1,7 @@
 """Exact stratified sampling plans, never a collector or evidence of actual origins."""
 
 import hashlib
+from collections import Counter
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from decimal import Decimal, localcontext
@@ -149,12 +150,25 @@ def _frame_hash(members):
 
 def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_evidence_ids,
                 max_frame_members=100000, assessment_policy=None, trigger_assessments=None,
-                strata_limit=None):
+                strata_limit=None, pairing=None, dependence_groups=None,
+                screened_assignments=None):
     """Each arm has its own conditional inclusion probability, not a union weight.
 
     The caller must durably freeze this output before capture; this pure planner cannot
     attest that happened. Unknown event groups are a stratum, never independent events.
+
+    ``pairing`` (a ``pairing.PairingDesign``) selects the separate D120 screen-then-activate
+    planner (plans v5/v6, ``_plan_pairing``); without it this function is unchanged.
     """
+    if pairing is not None or dependence_groups is not None or screened_assignments is not None:
+        if strata_limit is not None:
+            raise ValueError('pairing design has its own stratum draw')
+        return _plan_pairing(protocol, members, cutoff=cutoff, frame_scope=frame_scope,
+                             frame_status=frame_status, frame_evidence_ids=frame_evidence_ids,
+                             max_frame_members=max_frame_members,
+                             assessment_policy=assessment_policy,
+                             trigger_assessments=trigger_assessments, design=pairing,
+                             groups=dependence_groups, screened=screened_assignments)
     cutoff = utc_datetime(cutoff)
     if type(max_frame_members) is not int or not 1 <= max_frame_members <= 400000:
         raise ValueError("finite frame capacity up to 400000 required")
@@ -331,4 +345,210 @@ def plan_sample(protocol, members, *, cutoff, frame_scope, frame_status, frame_e
                           'ranking_domain': 'screening_stratum_v1',
                           'design': 'uniform_without_replacement_then_within_stratum'},
         )
+    return {**result, "plan_hash": content_hash(result)}
+
+
+PAIRING_SCREEN_SCHEMA = 'fs2-sampling-plan-v5'
+PAIRING_ROLE_SCHEMA = 'fs2-sampling-plan-v6'
+
+
+def _stratum_fields(row, protocol):
+    return {"time": row.time_stratum, "category": row.category,
+            "time_to_close": row.close_stratum,
+            "probability_band": _band(row.probability, protocol.probability_edges),
+            "liquidity_band": _band(row.liquidity, protocol.liquidity_edges)}
+
+
+def _plan_pairing(protocol, members, *, cutoff, frame_scope, frame_status, frame_evidence_ids,
+                  max_frame_members, assessment_policy, trigger_assessments, design, groups,
+                  screened):
+    """D120 screen-then-activate planner; the dependence group is an attribute, not a stratum.
+
+    First stage (no assessments; complete frame): ``pairing.screen_draw`` over strata keyed by
+    time/category/time-to-close/probability/liquidity only. Second stage (assessments of the
+    screened list): ``pairing.role_draw`` within the first-stage strata; scheduled arm 0.
+    """
+    from . import pairing as pairing_rules
+
+    cutoff = utc_datetime(cutoff)
+    if type(design) is not pairing_rules.PairingDesign:
+        raise ValueError('explicit pairing design required')
+    if type(max_frame_members) is not int or not 1 <= max_frame_members <= 400000:
+        raise ValueError("finite frame capacity up to 400000 required")
+    members = list(islice(members, max_frame_members + 1))
+    if not 1 <= len(members) <= max_frame_members:
+        raise ValueError("nonempty bounded frame required")
+    if not isinstance(frame_scope, str) or not frame_scope:
+        raise ValueError("population scope required")
+    if (not frame_evidence_ids or len(set(frame_evidence_ids)) != len(frame_evidence_ids)
+            or any(not HASH_PATTERN.fullmatch(v) for v in frame_evidence_ids)):
+        raise ValueError("frame completion/coverage evidence required")
+    if len({r.market_id for r in members}) != len(members):
+        raise ValueError("one predeclared outcome per market; duplicate market inflates sampling")
+    if any(r.event_group is not None or r.group_available_at is not None or r.triggered
+           or r.trigger_id is not None or r.trigger_available_at is not None for r in members):
+        raise ValueError('pairing keeps groups as attributes and legacy trigger fields neutral')
+    for row in members:
+        _validate_member(row, cutoff)
+    role_stage = assessment_policy is not None or trigger_assessments is not None
+    if role_stage:
+        return _plan_pairing_roles(protocol, members, cutoff, frame_scope, frame_status,
+                                   frame_evidence_ids, max_frame_members, assessment_policy,
+                                   trigger_assessments, design, screened, pairing_rules)
+    if frame_status != 'enumerated_complete' or screened is not None:
+        raise ValueError('pairing screen draw requires the complete enumerated frame')
+    if not isinstance(groups, dict):
+        raise ValueError('explicit dependence groups required')
+    strata, excluded, fields = {}, [], {}
+    for row in sorted(members, key=lambda r: r.market_id):
+        if not row.eligible:
+            excluded.append({"market_id": row.market_id, "reason": row.exclusion_reason})
+            continue
+        group = groups.get(row.market_id)
+        if not isinstance(group, str) or not group:
+            raise ValueError('every eligible member requires a dependence group')
+        value = _stratum_fields(row, protocol)
+        key = content_hash(value)
+        fields[key] = value
+        strata.setdefault(key, {"fields": value, "groups": {}})["groups"].setdefault(
+            group, []).append(row.market_id)
+    draw = pairing_rules.screen_draw(protocol.seed, strata, design)
+    by_market = {r.market_id: r for r in members}
+    assignments = []
+    for pick in draw['screened']:
+        row = by_market[pick['market_id']]
+        assignments.append({
+            "market_id": row.market_id, "token_id": row.token_id,
+            "source_observation_id": row.source_observation_id, "arm": "screened",
+            **{k: pick[k] for k in pick if k != 'market_id'},
+            "fee_category": fields[pick['stratum']]['category'],
+            "probability_scope": ("market in complete eligible frame; uniform stratum draw then "
+                                  "seeded group order with a shared claim set; conditional on "
+                                  "earlier strata claims"),
+            "unconditional_inclusion_probability": None,
+            "unconditional_probability_reason": ("depends on the claims of strata processed "
+                                                 "earlier; conditional factors are exact"),
+            "trigger_id": None, "matched_trigger_ids": [], "activated": False})
+    drawable, drawn = set(draw['drawable_strata']), {k: i for i, k in
+                                                     enumerate(draw['drawn_strata'])}
+    picked = Counter(p['stratum'] for p in draw['screened'])
+    reports = []
+    for key, stratum in sorted(strata.items()):
+        reports.append({
+            "stratum": key, **stratum["fields"],
+            "eligible_count": sum(len(v) for v in stratum["groups"].values()),
+            "dependence_groups": len(stratum["groups"]),
+            "drawable": key in drawable,
+            "sampling_state": ('sampled' if key in drawn else 'stratum_not_sampled'
+                               if key in drawable else 'stratum_not_drawable_lt_min_groups'),
+            "stratum_order": drawn.get(key),
+            "stratum_inclusion_probability": (draw['stratum_inclusion_probability']
+                                              if key in drawable else
+                                              exact_probability(0, 1)),
+            "screened_count": picked.get(key, 0), "scheduled_count": 0,
+            "economic_independence": "group_disjoint_screening_not_independent"})
+    unique = len(assignments)
+    if unique > protocol.max_unique_markets or unique > design.screened_slots:
+        raise ValueError("sample exceeds predeclared budget; change future protocol, never "
+                         "truncate")
+    result = {
+        "schema_version": PAIRING_SCREEN_SCHEMA, "protocol_hash": protocol.hash,
+        "protocol": asdict(protocol), "pairing_design": design.as_dict(),
+        "cutoff": cutoff.isoformat(), "frame_scope": frame_scope, "frame_status": frame_status,
+        "frame_evidence_ids": sorted(frame_evidence_ids), "frame_hash": _frame_hash(members),
+        "frame_size": len(members), "max_frame_members": max_frame_members,
+        "dependence_groups_hash": content_hash(dict(sorted(groups.items()))),
+        "eligible_dependence_groups": len({g for s in strata.values() for g in s["groups"]}),
+        "unique_selected_markets": unique,
+        "assignments": sorted(assignments, key=lambda a: a["market_id"]),
+        "strata": reports, "exclusions": excluded,
+        "stratum_draw": {'version': 'fs2-pairing-stratum-draw-v1',
+                         'strata': design.strata, 'eligible_strata': len(strata),
+                         'drawable_strata': len(drawable),
+                         'min_groups_per_stratum': design.min_groups_per_stratum,
+                         'selected_strata': len(drawn),
+                         'stratum_inclusion_probability': draw['stratum_inclusion_probability'],
+                         'drawn_order': draw['drawn_strata'],
+                         'ranking_domains': ['pairing_stratum_v1', 'pairing_group_v1',
+                                             'pairing_member_v1'],
+                         'design': 'uniform drawable strata, then seeded group order with a '
+                                   'shared claim set, one member per group'},
+        "runtime_frame_verification_required": True, "population_inference_eligible": False,
+        "role_count_is_not_independent_sample_size": True,
+        "scientific_stage": "measurement_development_only", "origin_admitted": False,
+    }
+    return {**result, "plan_hash": content_hash(result)}
+
+
+def _plan_pairing_roles(protocol, members, cutoff, frame_scope, frame_status, frame_evidence_ids,
+                        max_frame_members, assessment_policy, trigger_assessments, design,
+                        screened, pairing_rules):
+    if frame_status != 'explicit_list' or not isinstance(screened, dict):
+        raise ValueError('pairing role draw requires the explicit screened list')
+    if assessment_policy is None or trigger_assessments is None:
+        raise ValueError('both assessment policy and explicit inventory required')
+    if set(screened) != {r.market_id for r in members}:
+        raise ValueError('screened first-stage assignments must cover the screened list')
+    inventory = assessment_inventory(assessment_policy, trigger_assessments, members, cutoff)
+    states = {}
+    for record in inventory:
+        evidence = (record['assessment']['evidence_id'] if record['assessment'] is not None
+                    else None)
+        states[record['market_id']] = {'state': record['effective_state'],
+                                       'evidence_id': evidence}
+    rows = [{'market_id': m, 'stratum': a['stratum'], 'stratum_order': a['stratum_order'],
+             'dependence_group': a['dependence_group']} for m, a in sorted(screened.items())]
+    if len({r['dependence_group'] for r in rows}) != len(rows):
+        raise ValueError('screened members must be dependence-group disjoint')
+    draw = pairing_rules.role_draw(protocol.seed, rows, states, design)
+    by_market = {r.market_id: r for r in members}
+    assignments = []
+    for role in draw['assignments']:
+        row, first = by_market[role['market_id']], screened[role['market_id']]
+        record = states[role['market_id']]
+        assignments.append({
+            "market_id": row.market_id, "token_id": row.token_id,
+            "source_observation_id": row.source_observation_id, "arm": role['arm'],
+            "stratum": role['stratum'], "dependence_group": first['dependence_group'],
+            "fee_category": first['fee_category'],
+            "inclusion_probability": role['conditional_role_probability'],
+            "probability_scope": "role within screened stratum, conditional on screened states",
+            "trigger_id": role['trigger_id'], "matched_trigger_ids": role['matched_trigger_ids'],
+            "conditional_matching_probability": role['conditional_matching_probability'],
+            "assessment_state": record['state'], "assessment_evidence_id": record['evidence_id'],
+            "screening_inclusion_probability": first['inclusion_probability'],
+            "screening_conditional_inclusion_probability":
+                first['conditional_market_inclusion_probability'],
+            "activated": True})
+    unique = len({a['market_id'] for a in assignments})
+    if unique > design.origin_slots or unique > protocol.max_unique_markets:
+        raise ValueError("activation exceeds predeclared origin slots; never truncate")
+    strata = []
+    for report in draw['strata']:
+        strata.append({**report, 'control_pool': report['untriggered_pool'],
+                       'triggered_count': report['pairs_drawn'],
+                       'controls_selected': report['pairs_drawn'],
+                       'controls_wanted': report['pairs_drawn'],
+                       'unfilled_control_slots': 0})
+    result = {
+        "schema_version": PAIRING_ROLE_SCHEMA, "protocol_hash": protocol.hash,
+        "protocol": asdict(protocol), "pairing_design": design.as_dict(),
+        "cutoff": cutoff.isoformat(), "frame_scope": frame_scope, "frame_status": frame_status,
+        "frame_evidence_ids": sorted(frame_evidence_ids), "frame_hash": _frame_hash(members),
+        "frame_size": len(members), "max_frame_members": max_frame_members,
+        "unique_selected_markets": unique,
+        "assignments": sorted(assignments, key=lambda a: (a["market_id"], a["arm"])),
+        "strata": strata, "exclusions": [],
+        "triggers_in_scope": draw['triggers_in_scope'], "pairs_drawn": draw['pairs_drawn'],
+        "fill": draw['fill'], "strata_with_trigger": draw['strata_with_trigger'],
+        "control_scarcity_strata": draw['control_scarcity_strata'],
+        "assessment_policy": asdict(assessment_policy),
+        "assessment_policy_hash": assessment_policy.hash, "assessment_inventory": inventory,
+        "screened_assignments": [dict(screened[m], market_id=m) for m in sorted(screened)],
+        "roles_fixed_at_screening": True, "activate_screened": False,
+        "runtime_assessment_verification_required": True, "origin_admitted": False,
+        "population_inference_eligible": False,
+        "role_count_is_not_independent_sample_size": True,
+        "scientific_stage": "measurement_development_only",
+    }
     return {**result, "plan_hash": content_hash(result)}
