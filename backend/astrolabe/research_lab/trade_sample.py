@@ -20,7 +20,9 @@ falling back to ``asset == clob_token_id_0``; trades with neither contribute 0 a
 
 Origin features use only trades with timestamp strictly before the market's snapshot
 ``received_utc``. Trades stamped after the request-sent time are dropped and counted (clock
-anomaly). Wallet fields are never stored.
+anomaly). Wallet fields are never stored in ``trades.csv.gz`` / ``features.csv.gz`` /
+``manifest.json`` (those stay byte-identical, E007 inputs). A separate ``wallets.csv.gz`` sidecar
+holds HMAC-hashed wallet ids only (see ``wallet_sidecar``); its failure never affects the sample.
 """
 
 from __future__ import annotations
@@ -43,6 +45,7 @@ import numpy as np
 import pandas as pd
 
 from . import forecast, panel
+from .wallet_sidecar import WalletSidecar
 
 SAMPLE_ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "trade_samples"
 ENDPOINT = "https://data-api.polymarket.com/trades"
@@ -356,6 +359,7 @@ def run(snapshot_dir: Path, transport: Transport, *, n_total: int = N_TOTAL,
     feat_rows: list[dict] = []
     n_req = n_retry = 0
     stopped: str | None = None
+    wallets = WalletSidecar()  # fail-safe: never raises
     for m in plan["sample"]:
         base = {"market_id": m["market_id"], "condition_id": m["condition_id"],
                 "stratum": m["stratum"], "origin_utc": m["origin_utc"]}
@@ -398,6 +402,7 @@ def run(snapshot_dir: Path, transport: Transport, *, n_total: int = N_TOTAL,
                 feat_rows.append(feat)
                 continue
             sent_epoch = sent.timestamp()
+            wallets.add_market(body, m["market_id"], m["condition_id"], sent_epoch)
             kept = [t for t in trades if t["ts"] <= sent_epoch]
             origin_epoch = float(panel._epoch(pd.Series([m["origin_utc"]]))[0])
             f = origin_features(kept, origin_epoch, len(trades), m["token0"])
@@ -427,4 +432,5 @@ def run(snapshot_dir: Path, transport: Transport, *, n_total: int = N_TOTAL,
         "requests": reqs,
     })
     _atomic_json(out / "manifest.json", manifest)
+    wallets.write(out, state)  # after the main outputs are final; never raises
     return manifest

@@ -271,7 +271,8 @@ def test_atomic_outputs_leave_no_tmp_and_manifest_final(tmp_path):
     d = next(out.iterdir())
     assert not list(d.glob("*.tmp")) and not list(d.rglob("*.tmp"))
     assert {p.name for p in d.iterdir()} == {"plan.json", "trades.csv.gz", "features.csv.gz",
-                                             "manifest.json", "raw"}
+                                             "manifest.json", "raw", "wallets.csv.gz",
+                                             "wallets_manifest.json"}
     assert len(list((d / "raw").iterdir())) == 5
     assert json.loads((d / "manifest.json").read_text())["state"] == "complete"
     with gzip.open(d / "features.csv.gz", "rt") as fh:
