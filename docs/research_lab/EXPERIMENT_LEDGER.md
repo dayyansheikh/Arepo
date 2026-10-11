@@ -518,3 +518,7 @@ criteria are unchanged.
   - Two periods: the eligible sample from S1 plus the first trade-active sample (`5a048dfe`, 1,996 pairs). In total 3,983 pairs across 2,652 events.
   - All pooled CIs span 0. In the trade-active period alone, F1, F2a and F3 against ridge come out at about +0.010 to +0.012.
   - This is to be watched as active periods accumulate. It is not a finding.
+- **Flow screen S3 (DEVELOPMENT, ~06:30Z):** 3 periods, 5,973 pairs across 3,338 events.
+  - Against the ridge base, the two **trade-active** periods both lean positive for F1, F2a, F2b and F3: +0.009 to +0.016 R2 each. The eligible-frame period is negative.
+  - Pooled CIs still span 0.
+  - **Plan (pre-declared before further data):** once at least 4 trade-active periods exist, screen on the active frame only. If the sign holds in at least 3 of 4, draft a registered flow experiment (E007) for confirmation on later active samples.
