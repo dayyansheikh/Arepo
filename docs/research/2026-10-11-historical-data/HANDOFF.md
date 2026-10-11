@@ -102,7 +102,8 @@
   - pmxt 2026-08-01T12 row group 40;
   - polyorderbooks 08-21 to 08-24;
   - HEAD/size probes of other periods (metadata only).
-- **Rights.** CC BY 4.0 requires attribution. pmxt's own terms and Polymarket's terms over derived fields are unverified. Keep everything private and do not redistribute raw data.
+- **Rights.** CC BY 4.0 requires attribution. Keep everything private and do not redistribute raw data. Full matrix (not legal advice): `../2026-10-11-data-rights/DATA_RIGHTS_MATRIX.md`. Polymarket ToS §4 may make upstream CC BY grants ineffective for redistribution.
+- **Alternative trades source.** Polymarket-v1 DB (`TimeSeventeen/Polymarket-v1`, CC BY 4.0): on-chain v1 fills 2022-11-21 to 2026-04-28 with a fee field, about 50 GB. Drop `winning_outcome_label` and `resolved_at`. Choose between it and vgregoire before any holdout read; the holdout windows apply to whichever is used. OpenMarket is BTC 15-minute only and not preferred.
 
 ## 4. Sealed historical holdouts (define BEFORE any use; disclose that the sources were chosen post hoc)
 

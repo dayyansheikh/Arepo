@@ -12,7 +12,7 @@ Forecast quality, screening usefulness and executable profits are different outc
 
 ## Research basis
 
-Model protocol economics/product sections, report Q/U/X/Y, E08/E09/E33; midpoint changes are not fills. See immutable package in ../../research/2026-09-20 and canonical contracts in ../../architecture. Fee, tick and taker-delay history by date and market category, including taker fees on most categories for markets listed since 2026-03-30 (fee = C·feeRate·p(1−p)), is in ../../research/2026-10-11-market-structure/POLYMARKET_REGIME_TIMELINE.md. Cost models must apply each market's own fee regime.
+Model protocol economics/product sections, report Q/U/X/Y, E08/E09/E33; midpoint changes are not fills. See immutable package in ../../research/2026-09-20 and canonical contracts in ../../architecture. Fee, tick and taker-delay history by date and market category, including taker fees on most categories for markets listed since 2026-03-30 (fee = C·feeRate·p(1−p)), is in ../../research/2026-10-11-market-structure/POLYMARKET_REGIME_TIMELINE.md. Cost models must apply each market's own fee regime. Product and commercial use is constrained by ../../research/2026-10-11-data-rights/DATA_RIGHTS_MATRIX.md (unresolved questions for the user or counsel).
 
 ## Dependencies
 

@@ -12,7 +12,7 @@ Production changes require a concrete auditable review package and separate auth
 
 ## Research basis
 
-Model protocol promotion sequence and audit limitations; current repository security/recovery and product boundaries. See immutable package in ../../research/2026-09-20 and canonical contracts in ../../architecture.
+Model protocol promotion sequence and audit limitations; current repository security/recovery and product boundaries. See immutable package in ../../research/2026-09-20 and canonical contracts in ../../architecture. Before any public promotion, redistribution or paid product, resolve the data-rights questions in ../../research/2026-10-11-data-rights/DATA_RIGHTS_MATRIX.md. That is not legal advice: Polymarket ToS §4 restricts redistribution and commercial use of raw, derived and on-chain data, and the UK is a restricted jurisdiction.
 
 ## Dependencies
 
