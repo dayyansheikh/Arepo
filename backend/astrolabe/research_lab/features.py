@@ -18,8 +18,20 @@ import pandas as pd
 
 from . import panel
 
-LABEL_COLUMNS = frozenset({"t_j", "mid_j", "dmid", "horizon_h"})
-FAMILIES = ("price", "momentum", "context", "interaction", "book")
+LABEL_COLUMNS = frozenset({"t_j", "mid_j", "dmid", "horizon_h", "y_class", "y_class_sens"})
+# ``ml_*`` families belong to the multi-signal pipeline (``ml_panel.register_tier_a``) and are
+# kept apart so legacy ``family:<name>`` expansion never picks them up.
+ML_FAMILIES = (
+    "ml_price",
+    "ml_momentum",
+    "ml_volatility",
+    "ml_liquidity",
+    "ml_time",
+    "ml_quality",
+    "ml_structure",
+    "ml_metadata",
+)
+FAMILIES = ("price", "momentum", "context", "interaction", "book", *ML_FAMILIES)
 E001_ORIGIN_COLUMNS = (
     "best_bid",
     "best_ask",
