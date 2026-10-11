@@ -716,3 +716,11 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
   MC2 candidate. It first needs a challenger check for a label-order or sports artefact, then a frozen map, recorded
   book prices and an executable-ask economic check.
 
+
+**T5-DEV challenger (2026-10-12): the 7d recalibration candidate is REJECTED AS AN ARTEFACT.**
+- The "outcome 0 overpriced at 7d" gap comes from 755 rows with **no trades before t**. Their placeholder or listing prices sit near 0.5, with a gap of −0.118. The 517 traded rows show a gap of +0.004.
+- It is concentrated in sports untraded win/draw/Over markets. Politics goes the opposite way.
+- About 18 views were taken without correction.
+- The study doc's "conservative hull" covers only event and neg-risk clustering, not parent clustering.
+- **Not registered.**
+- **Programme rule:** historical price-history values for markets with no trade before the origin are not executable prices. Every historical study must flag them and exclude them, or report them separately.
