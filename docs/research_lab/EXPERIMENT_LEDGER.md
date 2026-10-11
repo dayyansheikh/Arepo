@@ -13,6 +13,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 | E004 | REGISTERED (pre-outcome) | Does the frozen 1h reversal hold over 12 consecutive prospective periods (event-clustered), and does it survive crossing the spread? | pending |
 | E005 | REGISTERED (pre-outcome) | In neg-risk groups, does a market's deviation from its arbitrage band (from siblings' bids/asks) predict repricing beyond the frozen reversal? | pending |
 | E006 | REGISTERED (pre-outcome) | Is the 1h reversal moderated by liquidity (H1) or by time-to-end (H2), with centred interactions and a scale-free test? | pending |
+| E007 | REGISTERED (pre-outcome) | In trade-active markets, does net taker order-flow pressure (signed share) over the prior hour predict continuation over ~2h? | pending (needs 12 qualifying periods) |
 
 ---
 
@@ -537,3 +538,42 @@ criteria are unchanged.
   - **F1 (signed share) against the ridge base:** pooled +0.00393 [+0.00054, +0.00721]. Per period +0.0046 (eligible), then +0.0079, +0.0087, -0.0042, +0.0061 and -0.0006 (active periods). The first 4 active periods are positive in 3 of 4, which **meets the pre-declared E007 drafting rule for F1 only**.
   - F2a, F2b, F3 and F4 are inconsistent. They are not carried forward.
   - E007 design is sent to challenger review before registration.
+
+
+---
+
+## E007 — Order-flow continuation in trade-active markets (challenger spec, adopted verbatim with disclosures)
+- **Registered** 2026-10-11, before any confirmation-sample seed is sealed after this commit.
+- **Development-screen disclosures:**
+  - Periods 4 and 5 shared a source snapshot (`20261011T081844Z_24399984`) and a target, so there were really 5 time periods.
+  - The "active frame only" rule was not followed literally in S5.
+  - F1 was selected from 5 variants × 2 bases × 2 weightings across sequential screens (winner's curse). Expect a true effect well below 0.004.
+  - The frozen -0.331610 reversal is miscalibrated in this frame (OLS chg_1h about -0.13).
+- **Hypothesis:** `signed_share = signed_volume_1h / volume_1h` (0 if volume_1h = 0).
+  - Sign convention follows `trade_sample.py:16-19`: positive means net taker buying of outcome 0.
+  - Predicted β_ss > 0 for the outcome-0 dmid over the next ~2h.
+- **Population:** forecast-eligible binary markets with origin `volume24hr > 0`, from `trade_sample --frame active` (12 strata, sealed seed, 2,000 markets, inclusion probabilities recorded).
+  - All categories. Per-category results are descriptive only. The user has not decided on sports.
+- **Confirmation data:** samples whose plan seed is sealed after this commit. A period qualifies only if all of these hold:
+  - its source snapshot is distinct and has no other sample (the first by `sent_utc` is kept; later ones are excluded and counted);
+  - all requests are sent before the target snapshot starts;
+  - the target is the next complete snapshot, at most 3h after the source;
+  - it has at least 150 pairs with signed_share ≠ 0.
+  - Failed or ignored passes are logged as unavailable and never replaced or backfilled.
+- **Frozen model** (`data-dumps/research_lab/e007/dev_fit.json`, sha256 recorded here before the first confirmation seed):
+  - Fitted on active development periods 1-4, plus period 5's 1,646 markets not in period 4, merged into period 4.
+  - Base: dmid ~ 1 + chg_1h. Augmented: base + signed_share.
+  - Unweighted OLS.
+- **Primary test:** compute r = dmid − frozen-base prediction. Fit WLS of r on [period intercepts, chg_1h, signed_share] with weights 1/p.
+  - Test β_ss with a two-sided event-clustered bootstrap (1,000 resamples, seed 116; markets with no event fall back to market_id, counted).
+  - Consistency rule: per-period β_ss > 0 in at least 8 of 12 qualifying periods.
+- **Secondary (descriptive):** out-of-sample paired ΔR2 of frozen augmented minus frozen base, against no-change, weighted, with CI and MDE. **Pre-declared: this will probably be inconclusive at 12 periods** (pooled MDE about 0.004).
+- **Sample size:** **Pending until 12 qualifying periods.** The primary is powered for about half the dev effect (per-period slope SD about 0.0029), which needs about 9-10 periods.
+- **Verdicts:**
+  - **Supported (exploratory, prospective):** primary rejects with β_ss > 0 and the consistency rule is met.
+  - **Contradicted:** primary rejects with β_ss < 0.
+  - **Inconclusive:** otherwise.
+  - **Unavailable:** fewer than 12 qualifying periods by registration + 7 days, or fewer than 2,000 nonzero-signed_share pairs in total.
+- **Dependence:** windows run back to back. Market recurrence (about 17%) is handled by event clustering, and period intercepts absorb common shocks.
+- **Non-claims:** not tradable edge, profitability, calibration or causation. dmid is a quote mid, with no costs or fills.
+- **Operational note:** in the 2-hourly loop, one active trade sample is taken right after each snapshot, never re-sampling an older snapshot.
