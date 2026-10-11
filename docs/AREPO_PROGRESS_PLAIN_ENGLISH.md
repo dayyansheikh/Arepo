@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-11 14:45 UTC+1
+**Last updated:** 2026-10-11 17:48 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. No decisions needed from you.
 **Current objective:** Build the combined-signal model (many signals, ML + Bayesian, Shapley breakdown) and collect its data; finish the 24-hour forecasting test tonight; run the pairing redesign (D120) once.
@@ -21,8 +21,8 @@ current price and recent momentum.
 - **Extra market details** (fees, market age, open interest, rewards, linked events) are now saved with every snapshot. The existing files are unchanged.
 - **Grouping related markets:** a specialist found related markets should be grouped by game-day, not whole season. The pairing test's stricter grouping stays valid.
 - **Disk:** the local backup copy was deleted with your OK (verified identical on GitHub); 16 GB free.
-- **Pairing redesign (D120):** built and passed full-size checks. A final review is running, then it gets locked in and run once.
-- **Snapshot 7 of 12** done; the first valid order-flow (E007) sample is taken.
+- **Pairing redesign (D120) PASSED live (15:47–16:02 UTC+1):** 6 of 6 triggered markets got independent comparison partners (weather, politics, sports, economics). An independent check confirmed it, with caveats: one pair (ECB rate cut vs Eurozone inflation) shares an economic driver, and one run doesn't prove reliability. Recorded as D120/D121.
+- **Snapshots 8 and 9** done; order flow (E007) has 2 of 12 samples. The model runner is built and waits for 40 snapshots with the new details (around 14–15 Oct).
 
 ## 3. What AREPO can actually do today
 - Run its full research pipeline live, including matched comparisons, in about 14–24 minutes.
@@ -36,8 +36,9 @@ current price and recent momentum.
 |---|---|
 | E002 reversal | **Confirmed (exploratory)**: about 21% of the last-hour move reverses within about 5h; not shown tradable |
 | E003 order-book imbalance | No value at about 2 min (a useful negative) |
-| E004/E005/E006 | Collecting, 7 of 12 snapshots; results about 23:00 UTC+1 tonight |
-| E007 order flow | Registered; collecting (0 of 12, first sample counts after snapshot 8) |
+| E004/E005/E006 | Collecting, 9 of 12 snapshots; results about 23:40 UTC+1 tonight |
+| E007 order flow | Registered; collecting (2 of 12) |
+| D120 pairing | **PASS** (mechanism; reliability untested) |
 | Combined-signal model | Built and reviewed; collecting development data (needs ~40 snapshots) |
 
 ## 5. Issues and risks
@@ -54,8 +55,8 @@ Data rights are out of scope during the private research phase (your decision, 2
 
 ## 7. What's next
 1. Collection every 2h; E004/E005/E006 scored tonight.
-2. Final review, lock-in and one live run of the pairing test (D120).
-3. Switch the model's grouping to game-day groups; first development fits at ~40 snapshots.
+2. Add sanity-check placebos to the model runner; keep collecting for it.
+3. First development model fits at ~40 snapshots (around 14–15 Oct).
 
 ## 8. Scientific reality check
 - **Demonstrated:** the full, honest data machinery works live, comparisons included; one forecasting pattern held on unseen data.

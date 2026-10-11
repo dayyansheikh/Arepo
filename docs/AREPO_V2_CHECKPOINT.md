@@ -34,30 +34,26 @@ Edge search now goes through combined models plus SHAP, not a chain of single E-
   - `requirements-research.txt` and `scripts/research_ml_setup.sh` (libomp workaround).
 - **Sidecar:** `ext_sidecar.py` writes `rows_ext.csv.gz` per snapshot (v2, from pass 7 on). Main files are byte-identical.
 - **Clustering:** `research_lab/DEPENDENCE_CLUSTERING_ANALYSIS.md` (393249a) concludes ML co-primary = fixture-day groups (event ∪ parentEventId ∪ negRisk ∪ series×UTC day ∪ underlying), with season-level as a sensitivity.
-  - Being implemented now: ml_panel plus sidecar v3 adding parentEventId.
-- **Next:** a dev-data runner; first development fits at about 40 snapshots. Every fit logs to trials.jsonl.
+  - Done: ml_panel uses fixture-day `dep_group` plus `dep_group_season`; sidecar v3 adds parentEventId (pass 9 onwards).
+- **Runner:** `scripts/run_ml_dev.py` (87fb74c). Gate: 40 consecutive complete snapshots with sidecar, which means about 14–15 Oct. `--dry-run` is available. Placebos are being added.
 
 ## Experiments
 - E002: Confirmed (exploratory). E003: inconclusive.
-- E004/E005/E006: 7 of 12 qualifying. Pass 8 is due about 14:31Z (background `pass.sh 6600`).
-- E007: 0 of 12. The first post-seal sample, from pass 7, counts once snapshot 8 exists. Deadline 2026-10-18.
+- E004/E005/E006: 9 of 12 qualifying. Pass 10 is due about 18:31Z (background job); then 20:31Z and 22:31Z. Score at 12.
+- E007: 2 of 12. Deadline 2026-10-18.
 - Loop after each pass: `pass_extras.sh` → `run_flow_screen.py` → `run_research_e007.py score --status` → `pass.sh <delay>` for the next pass (~2h). Then commit the trials.jsonl lines.
 
-## D120 (pairing redesign)
-- Built with design 6×12 (6×16 failed the dry run).
-- Review fixes are in: da81c9d, 3f0d25f.
-  - Plan size 14.1 MB against 16 MiB.
-  - Audit 59.7 s against 300 s.
-  - parentEventId unioned.
-  - S4q PASS odds 0.434.
-- The clustering analysis says D120's grouping is stricter than needed: valid, so no change.
-- **Final pre-freeze review is running.** If it accepts: freeze record, then a single live launch (window HH:46 even to HH:49 odd UTC, no collectors running, disk checked).
+## D120 (pairing redesign): PASS
+- Frozen at 04e71ea (record ea29ae6). Launched once at 14:47Z (HEAD 47375bc).
+- Evaluator: PASS, 6/6 group-disjoint complete pairs, 0 engineering findings.
+- Challenger: PASS_WITH_CAVEATS. Economics pair shares a driver; reliability is untested.
+- Evidence `PHASE_03_D120_EVIDENCE.json`, addendum `d120/D120_ADDENDUM.md`, decision D120/D121 (86004ed).
 
 ## Hourly update job
 Cron `dbea28e0` fires only when the session is idle, so run the update manually if it is missed. Gmail is unavailable in this session; updates go out as push notifications. Stop after 23:59 UTC+1 with a final push.
 
 ## Exact next actions
 1. When pass 8 completes: run the loop steps above.
-2. D120 review verdict → freeze → launch.
-3. Fixture-day clustering agent → review → dev-data runner.
+2. Placebos in run_ml_dev, then a science review of the runner, fixture-day grouping and placebos.
+3. A future trigger-vs-control effect study needs repeated D120-style runs (D121).
 4. At 12 qualifying snapshots, score E004/E005/E006 (tonight).
