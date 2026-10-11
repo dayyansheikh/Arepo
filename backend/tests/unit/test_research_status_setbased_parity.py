@@ -151,3 +151,28 @@ async def test_status_roles_and_coverage_match_legacy(svc):
     assert status["horizon_coverage"] == cov
     old24 = await _legacy_horizon(svc, "24h")
     assert status["edge"] is not None and old24["evaluable"] >= 0
+
+
+async def test_status_query_count_is_constant_not_per_entry(svc):
+    from sqlalchemy import event
+
+    engine = svc.session.bind
+    seen: list[str] = []
+
+    def _cap(conn, cursor, statement, params, context, executemany):  # noqa: ARG001
+        seen.append(statement)
+
+    event.listen(engine.sync_engine, "before_cursor_execute", _cap)
+    try:
+        await svc.status()
+    finally:
+        event.remove(engine.sync_engine, "before_cursor_execute", _cap)
+    selects = [s for s in seen if s.lstrip().upper().startswith("SELECT")]
+    n_entries = (await svc.status())["total_frozen_markets"]
+    # Legacy issued >= 5 x entries SELECTs (4 coverage horizons + the 24h analysis).
+    assert len(selects) < 40 < 5 * n_entries
+    legacy_seen: list[str] = []
+    event.listen(engine.sync_engine, "before_cursor_execute",
+                 lambda *a: legacy_seen.append(a[2]))
+    await _legacy_roles_and_coverage(svc)
+    assert len(legacy_seen) > 4 * n_entries
