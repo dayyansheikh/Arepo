@@ -105,14 +105,27 @@ async def collect_due_forward(
     # Phase 1 (no network): decide what is due. Batched existing-load; closed-before written inline.
     to_fetch: list[tuple] = []  # (entry, horizon, target, delay, exact)
     cohorts = await repo.list_cohorts(provenance="prospective", frozen=True)
+    # Egress/IO guard (infra 2026-10-11): a cohort whose every (entry, horizon) observation already
+    # exists has nothing left to collect, ever (rows are write-once). Decide that with two grouped
+    # COUNT queries instead of pulling every full research_entries row (~166 MB in production) over
+    # the wire on every tick. (entry_id, horizon) is UNIQUE, so count == entries x horizons is an
+    # exact completeness test; incomplete cohorts take the unchanged per-entry path below.
+    entry_counts, forward_counts = await repo.cohort_forward_completeness(
+        [c.id for c in cohorts], list(RESEARCH_HORIZONS))
     for cohort in cohorts:
+        n_entries = entry_counts.get(cohort.id, 0)
+        n_forward = forward_counts.get(cohort.id, 0)
+        if n_entries and n_forward >= n_entries * len(RESEARCH_HORIZONS):
+            already += n_forward
+            continue
         # CAUSAL ORIGIN = when the prediction was actually made (evaluation_origin_at == frozen_at),
         # NEVER the cutoff_at cadence LABEL. Every horizon runs from here, so a cohort frozen late
         # (e.g. a missed weekly run frozen on Thursday) gets 1h/6h/24h/7d outcomes measured from
         # Thursday - it is never presented as if the prediction were made on the scheduled Monday.
         origin = (_utc(cohort.evaluation_origin_at) or _utc(cohort.frozen_at)
                   or _utc(cohort.cutoff_at))
-        entries = await repo.get_entries(cohort.id)
+        # Only the four columns this collector needs (not the ~1.5 KB full frozen row).
+        entries = await repo.get_entry_refs(cohort.id)
         existing = await repo.forward_horizons_for_entries([e.id for e in entries])
         for entry in entries:
             have = existing.get(entry.id, set())
