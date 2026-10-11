@@ -50,7 +50,7 @@
   - `h_chg_1h`, `h_chg_1d`, each with a missing flag;
   - `h_skip_1h_15m` (mid change from t−1h to t−15m, so it does not share the origin mid's quote noise);
   - `book_imbalance` within 5c.
-- Features are registered **in memory** through `features.register`, so the label guard applies. The run goes through unchanged `compare.run_comparison` (code sha in `demo/tk_demo_result.json`, git `4a96f31`).
+- Features are registered **in memory** through `features.register`. That is a name-level label guard only; the causality of the `h_*` columns rests on the `at_offset` code, which was reviewed and found to contain no look-ahead. The run goes through unchanged `compare.run_comparison` (code sha in `demo/tk_demo_result.json`, git `4a96f31`).
 - Runtime 14.5 s, peak RSS 0.45 GB.
 
 **Sample:**
@@ -75,7 +75,15 @@
 - Receive − exchange time: p50 4.5 s, p99 739 s, max 5,982 s. Exchange timestamps are often stale, so the receive clock must be the origin clock.
 - Run spacing: median 16 min (sample stride), maximum 31 min.
 
-**Reading (development only).** The large 1h reversal E001 found (about +0.037) is **not visible** in this liquid top-100 population at a 1h horizon. Book imbalance adds nothing here either. This is consistent with the main team's reversal-moderation screen (`features_dev.py`: reversal × spread and × liquidity), which tests whether the reversal lives in illiquid, wide-spread markets. It is a direction for development, not a finding.
+**Reading (development only; revised after challenger review).**
+- At a 1h horizon, in a top-100 vendor population, own-history 1h change gives no clear gain (B1h +0.003, CI includes 0).
+- **This does not test E001.** E001 used Gamma `oneHourPriceChange` at next-capture horizons of about 5–70h.
+- A 1h-to-15m skip-change model is positive pooled (CI +0.0013 to +0.0135) but positive in only 1 of 4 periods. That is inconclusive, and the CIs are anti-conservative under market clustering, with no time-block inference.
+- Book imbalance adds about 0 (−0.00007, CI −0.0003 to +0.0001).
+- No fitted coefficient sign is reported, so "reversal" is not shown.
+- Nothing here bears on liquidity moderation of E001.
+
+**Selection note.** The 3,598 origins without a valid target include pairs whose j snapshot was crossed even when a valid snapshot existed within tolerance. That is volatility-correlated selection. Whether `collected_at` is stamped per row or per run is unverified.
 
 ## 3. Scientific limitations
 
@@ -98,22 +106,28 @@
 
 ## 4. Sealed historical holdouts (define BEFORE any use; disclose that the sources were chosen post hoc)
 
-| Source | Development window | Sealed holdout (untouched) | Embargo / notes |
-|---|---|---|---|
-| pmxt v2 | 2026-04-13T19 to 2026-06-11 | **2026-06-18 to 2026-07-31** | The 06-12 to 06-17 gap is the embargo. Exclude 08-01 to 08-10 (inspected). The holdout's contents have never been read; only the 07-04 to 07-31 file sizes were probed |
-| vgregoire trades | 2022-11-11 to 2025-12-31 | **2026-01-01 to 2026-03-29** | Only one 2026 file size was probed |
-| trentmkelly | 2026-07-23 to 2026-09-21 | **2026-09-22 to 2026-10-10** | Only 09-15 to 09-19 was read |
+These windows were revised after the challenger review. They count as "defined before use" only from the commit that contains this text.
+
+| Source | Development window | Embargo | Sealed holdout | Notes |
+|---|---|---|---|---|
+| pmxt v2 | 2026-04-13T19 to 2026-06-04 | 2026-06-05 to 2026-06-17 (includes the 06-12 to 06-17 gap) | **2026-06-18 to 2026-07-31T23:59**, labels t_j ≤ 07-31T23:59 | 08-01 to 08-10 was inspected, so it is excluded. Of the holdout, only the 07-04 to 07-31 file sizes were probed |
+| vgregoire trades | 2022-11-11 to 2025-12-24 | 2025-12-25 to 2026-01-07 | **2026-01-08 to 2026-03-29** | Only one 2026 file size was probed |
+| trentmkelly | 2026-07-23 to 2026-10-04 | 2026-10-05 to 2026-10-11 | **2026-10-12 onward**, read only at a pinned revision with the per-file LFS-oid manifest recorded at registration | The earlier 09-22 to 10-10 window was **withdrawn**: AREPO's own E001 captures (2026-09-20 to 10-10) already cover that period's price paths, so it is not untouched |
 
 **Rules:**
-- Drop holdout origins whose label window crosses into the holdout.
-- One holdout read per frozen, registered spec, logged in `trials.jsonl`.
-- A historical-holdout pass is described as "historical out-of-sample (third-party data)". It is **never** described as prospective confirmation.
+- **Embargo** must be at least the maximum label horizon plus the maximum feature lookback, and never under 7 days. Drop development origins with t_j ≥ embargo start. Drop holdout origins with t_j > holdout end.
+- **Resolution-labelled analyses** split by market resolution date. Markets active in both windows are reported separately as a market-disjoint sensitivity check.
+- **Read budget: at most 3 holdout reads per source, fixed now.**
+  - Every read, including failures, is logged in `trials.jsonl` and reported with a multiplicity adjustment.
+  - A spec written after any holdout read on that source is labelled *post-holdout*.
+- **Labelling:** "historical out-of-sample (third-party data) on a post-hoc-selected, vendor-filtered population, possibly in a different regime; transport to AREPO's universe not assumed". It is **never** described as prospective confirmation.
+- **Gaps:** holdout gaps stay missing. No interpolation.
 
 ## 5. What can start now, and what needs prospective collection
 
 **Can start now** (development):
 - Feature and code development on pmxt book and trade data, and on vgregoire flow and wallet data.
-- Running the main team's reversal-moderation screen on a second, independent historical population.
+- Running the main team's reversal-moderation screen on a second, independent historical population. Match E001's horizons (about 5–70h) and its Gamma change definition where possible; the demo did not.
 - Estimating the per-day variance of R²_oos across many independent days. This feeds the main team's new MDE calculator (Methods note M2). The pmxt development window gives about 55 days, against the about 10 days AREPO has of its own.
 - Regime exploration.
 - Depth, flow and microstructure feature prototypes.
@@ -131,9 +145,16 @@
 1. **Register the holdouts first.** Commit section 4 to `docs/research_lab/EXPERIMENT_LEDGER.md` as a dated methods note, before downloading any holdout-window file.
 2. **Add one adapter**, `research_lab/hist_sources.py` (about 150 lines). It converts a source into the existing pair-frame contract: `market_id`, `event_id`, `period`, `t_i`, `t_j`, `dmid`, `horizon_h` and origin columns, matching `demo/tk_demo.py`.
    - Its manifest records source, revision/URL, file sha256s (pmxt: compute on download; Hugging Face: the LFS oid), licence, clock used and `evidence_role="development"`.
-   - It refuses holdout-window timestamps unless given a registered spec hash.
+   - **Holdout guard:** at the download/URL level, not at parse. It refuses holdout-window files unless the spec hash appears in committed `trials.jsonl` with its read not yet consumed and the source's read budget not exhausted. The read record is appended before data is returned.
+   - **Registry isolation:**
+     - Never register features on import, nor from the research_lab `__init__` or `run_dev_screen`.
+     - Prefix every feature name `hist_<source>_` and never reuse AREPO column names (`chg_1h`, `spread`, `bid_depth`).
+     - Write pair frames to a separate output directory.
+     - Add a test that importing `run_dev_screen` leaves the REGISTRY family sets unchanged.
+   - **Clustering:** when a source has no event id, `event_id` is null and `cluster_level="market"` is recorded. Never use `event_id = market_id` as the demo does.
    - Features are versioned `hist-<source>-v0`.
    - The adapter reuses `columnar.py` and the `[research]` pyarrow extra.
+   - Coordinate any ledger or `trials.jsonl` writes with the session that owns them; never interleave edits.
 3. **First run.** One pmxt development day at about 11 GB, **streamed and reduced on the fly** to 5-minute book summaries plus 1-minute trade aggregates, about 50–100 MB per day. Never store raw hours, never read remote parquet whole, and cap RSS (`/usr/bin/time -l`). Then run the reversal-moderation screen on it as a second development population.
 4. **Event ids.**
    - **trentmkelly:** join Gamma event ids by `market_id`.
