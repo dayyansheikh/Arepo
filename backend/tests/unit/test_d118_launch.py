@@ -109,21 +109,22 @@ def test_code_unchanged_since_freeze_uses_git_diff_quiet():
 
 
 @pytest.mark.parametrize("hour,minute,refused", [
-    (10, 14, False), (10, 15, True), (10, 30, True), (10, 45, True), (10, 46, False),
-    (0, 20, True), (22, 40, True), (9, 30, False), (11, 15, False), (23, 45, False)])
+    (10, 45, True), (10, 46, False), (11, 0, False), (11, 49, False), (11, 50, True),
+    (12, 10, True), (12, 18, True), (0, 20, True), (23, 30, False), (22, 50, False)])
 def test_collector_window_refusal(hour, minute, refused):
-    now = datetime(2026, 10, 11, hour, minute, 59, tzinfo=UTC)
+    now = datetime(2026, 10, 11, hour, minute, 30, tzinfo=UTC)
     if refused:
         with pytest.raises(Err, match="collector window"):
             launch.check_collector_window(now)
     else:
         launch.check_collector_window(now)
-    # Judged in UTC whatever the input zone (UTC+1 local 11:30 is 10:30 UTC).
+    # Judged in UTC whatever the input zone.
     local = now.astimezone(timezone(timedelta(hours=1)))
-    assert (local.hour % 2 == 1) == (now.hour % 2 == 0)
     if refused:
         with pytest.raises(Err):
             launch.check_collector_window(local)
+    else:
+        launch.check_collector_window(local)
 
 
 def test_verify_frozen_matches_and_detects_mismatch(tmp_path):

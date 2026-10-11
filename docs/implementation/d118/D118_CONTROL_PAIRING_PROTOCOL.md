@@ -323,9 +323,11 @@ Launch preconditions, all required, checked by `backend/scripts/d118_launch.py` 
    (about 2.98 GB) above that requirement. Free space on this 8 GB-RAM Mac is volatile
    (swap, caches, collector writes); the measurement immediately before launch is what counts, and
    a shortfall is a stop condition (section 9), never a reason to retire data.
-4. **Outside the collector window and no collector process running**: the wrapper refuses if the
-   current UTC time is within HH:15–HH:45 (inclusive) of an even hour (the research-lab collector
-   window), and if `pgrep -f` finds any of `collect_universe_snapshot`, `sweep_books`,
+4. **Outside the collector window and no collector process running**: the wrapper launches only
+   between HH:46 of an even UTC hour and HH:49 of the following odd hour. The research-lab
+   collectors (a 2-hourly loop started from the scratchpad `pass.sh`) begin at about HH:18 of even
+   UTC hours and run about 20 min with extras; the observed pass times are in the experiment ledger.
+   The wrapper also refuses on untracked or modified files under `backend/astrolabe`, and if `pgrep -f` finds any of `collect_universe_snapshot`, `sweep_books`,
    `sample_trades`, `run_forecast` (D116 addendum near-miss). After the run the wrapper checks the
    collectors again and records the result as `collectors_running_after` in
    `fs2_d118_control_pairing_1_result.json` (descriptive; it cannot change the outcome).

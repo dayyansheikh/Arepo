@@ -148,10 +148,22 @@ def running_collectors(pgrep=None, own_pids=None):
 
 
 def check_collector_window(now):
-    """Refuse inside HH:15-HH:45 (inclusive) of an even UTC hour: the collector window."""
+    """Launch only from an even UTC hour HH:46 to the next odd hour HH:49.
+
+    Research-lab collectors (scratchpad pass.sh, a 2-hourly loop) start about HH:18 of even UTC
+    hours and run about 20 min with their extras. A run of up to about 30 min launched in this
+    window cannot overlap the next collector start (pass timings in the experiment ledger).
+    """
     now = now.astimezone(UTC)
-    if now.hour % 2 == 0 and 15 <= now.minute <= 45:
-        raise PreconditionError(f'inside the even-hour collector window: {now.isoformat()}')
+    ok = (now.hour % 2 == 0 and now.minute >= 46) or (now.hour % 2 == 1 and now.minute <= 49)
+    if not ok:
+        raise PreconditionError(f'outside the launch window (collector window): {now.isoformat()}')
+
+
+def check_no_untracked_code():
+    out = git('status', '--porcelain', '--untracked-files=all', '--', 'backend/astrolabe').stdout
+    if out.strip():
+        raise PreconditionError(f'untracked or modified files under backend/astrolabe: {out[:200]}')
 
 
 def check_disk(free):
@@ -188,6 +200,7 @@ def preconditions():
     if git('status', '--porcelain', '--untracked-files=no').stdout.strip():
         raise PreconditionError('tracked tree not clean')
     check_code_unchanged(freeze_commit)
+    check_no_untracked_code()
     check_collector_window(datetime.now(UTC))
     collectors = running_collectors()
     if collectors:
