@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import evaluate, features, provenance
+from . import evaluate, features, power, provenance
 from .models import LAMBDA_GRID, Ridge, choose_lambda, fit_origin_ols
 from .panel import FEATURES_B2, FEATURES_B3
 
@@ -245,8 +245,12 @@ def run_comparison(
     seed: int = evaluate.BOOT_SEED,
     baseline: str | None = None,
     manifest_path: Path | None = None,
+    time_block_inference: bool = False,
 ) -> dict:
-    """Walk-forward comparison of ``model_specs``; baseline defaults to the first 'zero' model."""
+    """Walk-forward comparison of ``model_specs``; baseline defaults to the first 'zero' model.
+
+    ``time_block_inference=True`` adds the key ``time_block_inference`` (nothing else changes).
+    """
     if split != "walk_forward_by_period":
         raise ValueError(f"unsupported split {split!r}")
     if purge != "label_availability":
@@ -269,7 +273,7 @@ def run_comparison(
     manifest_hash = (
         hashlib.sha256(Path(manifest_path).read_bytes()).hexdigest() if manifest_path else None
     )
-    return {
+    result = {
         "config": {
             "split": split,
             "purge": purge,
@@ -304,6 +308,29 @@ def run_comparison(
         },
         "provenance_v2": provenance.run_provenance(),
     }
+    if time_block_inference:
+        result["time_block_inference"] = time_block_summary(per_period)
+    return result
+
+
+def time_block_summary(per_period: dict) -> dict:
+    """Per paired comparison: per-period R2 differences, mean, SD and a t-interval across periods.
+
+    Periods are the time blocks; with few of them the interval is wide and ``df`` says so.
+    """
+    keys = sorted({k for blk in per_period.values() for k in blk["diffs"]})
+    out = {}
+    wanted = ("n_periods", "df", "mean", "sd", "t_crit", "ci_lo", "ci_hi")
+    for key in keys:
+        periods = [p for p in sorted(per_period) if key in per_period[p]["diffs"]]
+        vals = [per_period[p]["diffs"][key]["diff_r2"] for p in periods]
+        t = power.per_period_test(vals)
+        out[key] = {
+            "periods": [int(p) for p in periods],
+            "diff_r2": [float(v) for v in vals],
+            **{k: t[k] for k in wanted if k in t},
+        }
+    return out
 
 
 def write_new_json(out_dir: Path, result: dict) -> Path:

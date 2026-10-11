@@ -377,3 +377,14 @@ criteria are unchanged.
 - Two scheduled background jobs never ran: the E002 outcome capture (due 22:36 UTC) and the E004 2-hourly loop (first pass due about 22:53 UTC). No partial snapshot exists; all 12 research-lab gzip files and every JSON passed integrity checks after the crash.
 - **E002:** the registered rule (first complete capture at least 3h after `20261010T192208Z_db7c7287`) has no maximum gap, so it still holds. The next complete capture becomes E002's target. Its horizon will be about 5h instead of about 3.2h. That is within E001's 5-70h training range, and it is disclosed.
 - **E004/E005:** no qualifying snapshot existed before the crash. The 2-hourly loop starts after the E002 capture, under the availability-only continuation rule already recorded. Nothing is redrawn or backfilled.
+
+## Methods note M2: power tools (2026-10-11)
+
+- **Tools:** `backend/astrolabe/research_lab/power.py`, `backend/scripts/power_check.py`, and the optional `time_block_inference=True` flag of `compare.run_comparison`.
+- **What they do:** planning arithmetic only. They change no existing result. With the flag off, `compare` output is identical.
+- **MDE:** `DeltaR2 = mean(c_k)`, `c_k = K * d_k / SSE_baseline` over clusters, so `SE = sd_c / sqrt(K)` and `MDE = (z_{1-a/2} + z_power) * sd_c / sqrt(K)`. `required_clusters` is its inverse. `sd_c` is backed out of a bootstrap CI as `SE * sqrt(K)` and held constant as K grows.
+- **Multiple tests:** Bonferroni divides alpha by the number of tests. Holm's first step is the same, so the MDE is identical. Holm only helps later steps (`adjust_pvalues`).
+- **Design effect:** `design_effect` returns the cluster-robust (sandwich) variance over the iid variance, or a bootstrap ratio. It also returns the implied ICC.
+- **Per-period inference:** `per_period_test` runs a t-test and exact sign test across time blocks. At 4 periods (df 3) the sign test cannot reach p<0.05 (floor: 6 periods), and the t-interval is very wide.
+- **Assumptions:** normal approximation, independent clusters, and independent periods. Time dependence between clusters is not modelled.
+- **Not evidence:** the numbers are not findings and make no edge claim.
