@@ -62,20 +62,23 @@ def test_absent_record_fails_closed(tmp_path):
 def test_required_frozen_pins_the_new_code_and_tests():
     assert launch.REQUIRED_FROZEN == {
         launch.PROTOCOL,
-        "backend/astrolabe/research_panel/d120_evaluator.py",
-        "backend/astrolabe/research_panel/d116_evaluator.py",
-        "backend/astrolabe/research_panel/pairing.py",
-        "backend/astrolabe/research_panel/pairing_declaration.py",
-        "backend/astrolabe/research_panel/pairing_selection.py",
-        "backend/astrolabe/research_panel/pairing_worker.py",
-        "backend/astrolabe/research_panel/panel_declaration.py",
-        "backend/astrolabe/research_panel/panel_selection.py",
+        "docs/implementation/d120/D120_DESIGN_ESTIMATES.json",
+        "docs/implementation/d120/D120_DRY_RUN.json",
+        *(f"backend/astrolabe/research_panel/{name}.py" for name in (
+            "d120_evaluator", "d116_evaluator", "pairing", "pairing_declaration",
+            "pairing_selection", "pairing_worker", "panel_declaration", "panel_selection",
+            "sampling", "selection", "screening", "screening_worker", "activation",
+            "concurrent_runtime", "runtime", "origin_worker", "due_worker", "owned_windows",
+            "original_reader")),
         "backend/scripts/evaluate_d120.py",
         "backend/scripts/d120_launch.py",
+        "backend/scripts/d120_design_estimates.py",
+        "backend/scripts/d120_window_dry_run.py",
         "backend/tests/unit/test_research_panel_d120_pairing.py",
         "backend/tests/unit/test_research_panel_pairing.py",
         "backend/tests/unit/test_d120_launch.py",
     }
+    assert launch.FREEZE_RECORD == "docs/implementation/d120/D120_FREEZE_RECORD.md"
     for rel in launch.REQUIRED_FROZEN:
         assert (launch.REPO / rel).is_file(), rel
     assert launch.FROZEN_CODE_PATHS == (
@@ -90,7 +93,7 @@ def test_freeze_commit_is_read_once_and_fails_closed(tmp_path):
                 f"Freeze commit: `{commit}`\nFreeze commit: `{commit}`"):
         with pytest.raises(Err, match="exactly one freeze commit"):
             launch.parse_freeze_commit(record(full(), bad))
-    (tmp_path / "docs" / "implementation").mkdir(parents=True)
+    (tmp_path / launch.FREEZE_RECORD).parent.mkdir(parents=True)
     (tmp_path / launch.FREEZE_RECORD).write_text(text)
     assert launch.load_frozen(tmp_path) == (full(), commit)
 

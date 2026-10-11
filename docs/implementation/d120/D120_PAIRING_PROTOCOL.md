@@ -1,7 +1,7 @@
 # D120 — single live prospective validation of screen-then-activate pairing
 
 Status: **DRAFT — NOT FROZEN.** Freezing requires an accepting `science-reviewer` pass on this
-draft, then a separate freeze record `docs/implementation/PHASE_03_D120_FREEZE_RECORD.md` holding
+draft, then a separate freeze record `docs/implementation/d120/D120_FREEZE_RECORD.md` holding
 the frozen file hashes and the freeze commit, before any request. No source request, pilot run or
 live network access has been made in drafting this document. Only the synthetic loopback dry runs
 of section 5 have been run.
@@ -310,11 +310,11 @@ Checked by `backend/scripts/d120_launch.py` before any request (any miss: exit w
 writing to any run root):
 
 1. Clean tracked tree; launch HEAD descends from `8afbdff`.
-2. Frozen hashes read from the artefact table of `PHASE_03_D120_FREEZE_RECORD.md` (this protocol,
-   `d120_evaluator.py`, the unedited `d116_evaluator.py`, `pairing.py`, `pairing_declaration.py`,
-   `pairing_selection.py`, `pairing_worker.py`, the frozen `panel_declaration.py` and
-   `panel_selection.py`, `evaluate_d120.py`, `d120_launch.py`, and the tests
-   `test_research_panel_d120_pairing.py`, `test_research_panel_pairing.py`, `test_d120_launch.py`);
+2. Frozen hashes read from the artefact table of `d120/D120_FREEZE_RECORD.md` (this protocol, the
+   design-estimate and dry-run records, `d120_evaluator.py`, the unedited `d116_evaluator.py`, every
+   `pairing*.py` module, the shared research-panel modules on the launch path, `evaluate_d120.py`,
+   `d120_launch.py`, the estimate and dry-run scripts, and the D120 tests; the exact list is
+   `REQUIRED_FROZEN` in the wrapper and the record's table);
    a missing record, a missing or extra row, or an unfilled hash fails closed. The record names one
    ``Freeze commit: `<40 hex>` ``; `git diff --quiet <freeze commit> HEAD -- backend/astrolabe
    backend/scripts/d120_launch.py backend/scripts/evaluate_d120.py` must succeed, and there are no

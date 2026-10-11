@@ -5,7 +5,7 @@ run roots), D120 protocol section 7:
 
 1. clean tracked tree; launch HEAD descends from 8afbdff;
 2. the frozen hashes are read from the artefact table of
-   ``docs/implementation/PHASE_03_D120_FREEZE_RECORD.md`` and every file matches; a missing record,
+   ``docs/implementation/d120/D120_FREEZE_RECORD.md`` and every file matches; a missing record,
    a missing or extra row, or an unfilled hash fails closed (no hashes live in this file);
 3. the freeze record names the freeze commit (``Freeze commit: `<40 hex>```) and
    ``git diff --quiet <freeze commit> HEAD -- backend/astrolabe backend/scripts/d120_launch.py
@@ -35,10 +35,12 @@ DD = REPO / 'data-dumps'
 PREFIX = 'fs2_d120_pairing_1'
 RUN = 'd120_pairing_1'
 PROTOCOL = 'docs/implementation/d120/D120_PAIRING_PROTOCOL.md'
-FREEZE_RECORD = 'docs/implementation/PHASE_03_D120_FREEZE_RECORD.md'
+FREEZE_RECORD = 'docs/implementation/d120/D120_FREEZE_RECORD.md'
 SCRATCH = Path('/private/tmp/claude-501/arepo_d120')
 REQUIRED_FROZEN = frozenset({
     PROTOCOL,
+    'docs/implementation/d120/D120_DESIGN_ESTIMATES.json',
+    'docs/implementation/d120/D120_DRY_RUN.json',
     'backend/astrolabe/research_panel/d120_evaluator.py',
     'backend/astrolabe/research_panel/d116_evaluator.py',
     'backend/astrolabe/research_panel/pairing.py',
@@ -47,8 +49,21 @@ REQUIRED_FROZEN = frozenset({
     'backend/astrolabe/research_panel/pairing_worker.py',
     'backend/astrolabe/research_panel/panel_declaration.py',
     'backend/astrolabe/research_panel/panel_selection.py',
+    'backend/astrolabe/research_panel/sampling.py',
+    'backend/astrolabe/research_panel/selection.py',
+    'backend/astrolabe/research_panel/screening.py',
+    'backend/astrolabe/research_panel/screening_worker.py',
+    'backend/astrolabe/research_panel/activation.py',
+    'backend/astrolabe/research_panel/concurrent_runtime.py',
+    'backend/astrolabe/research_panel/runtime.py',
+    'backend/astrolabe/research_panel/origin_worker.py',
+    'backend/astrolabe/research_panel/due_worker.py',
+    'backend/astrolabe/research_panel/owned_windows.py',
+    'backend/astrolabe/research_panel/original_reader.py',
     'backend/scripts/evaluate_d120.py',
     'backend/scripts/d120_launch.py',
+    'backend/scripts/d120_design_estimates.py',
+    'backend/scripts/d120_window_dry_run.py',
     'backend/tests/unit/test_research_panel_d120_pairing.py',
     'backend/tests/unit/test_research_panel_pairing.py',
     'backend/tests/unit/test_d120_launch.py',
