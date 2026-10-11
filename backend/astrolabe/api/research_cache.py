@@ -26,6 +26,7 @@ from ..discovery.snapshot_models import SignalSnapshotRow
 from ..evaluation.models import MarketResolutionRow
 from ..evaluation.research_models import (
     ResearchCohortRow,
+    ResearchEntryRow,
     ResearchForwardRow,
     ResearchPreCloseRow,
 )
@@ -44,6 +45,7 @@ async def data_version(session: AsyncSession) -> tuple:
         select(func.max(ResearchCohortRow.id)).scalar_subquery(),
         select(func.count(ResearchCohortRow.id)).where(ResearchCohortRow.frozen.is_(True))
         .scalar_subquery(),
+        select(func.max(ResearchEntryRow.id)).scalar_subquery(),
         select(func.max(ResearchForwardRow.id)).scalar_subquery(),
         select(func.max(ResearchPreCloseRow.updated_at)).scalar_subquery(),
         select(func.max(MarketResolutionRow.updated_at)).scalar_subquery(),
@@ -62,21 +64,28 @@ async def cached(session: AsyncSession, key: str,
     if not _enabled():
         return await compute()
     lock = _locks.setdefault(key, asyncio.Lock())
-    async with lock:
-        version = await data_version(session)
-        hit = _entries.get(key)
-        if hit is not None and hit[0] == version and time.monotonic() - hit[2] < max_age:
-            _entries.move_to_end(key)
-            return hit[1]
-        _entries.pop(key, None)
-        value = await compute()
-        _entries[key] = (version, value, time.monotonic())
-        while len(_entries) > MAX_ENTRIES:
-            old, _ = _entries.popitem(last=False)
-            old_lock = _locks.get(old)
-            if old_lock is not None and not old_lock.locked():
-                _locks.pop(old, None)
-        return value
+    try:
+        async with lock:
+            version = await data_version(session)
+            hit = _entries.get(key)
+            if (hit is not None and hit[0] == version
+                    and time.monotonic() - hit[2] < max_age):
+                _entries.move_to_end(key)
+                return hit[1]
+            _entries.pop(key, None)
+            value = await compute()
+            _entries[key] = (version, value, time.monotonic())
+            while len(_entries) > MAX_ENTRIES:
+                old, _ = _entries.popitem(last=False)
+                old_lock = _locks.get(old)
+                if old_lock is not None and not old_lock.locked():
+                    _locks.pop(old, None)
+            return value
+    finally:
+        # Never retain a lock for a key with no stored answer (e.g. the computation raised), so
+        # arbitrary failing keys cannot grow ``_locks`` without bound.
+        if key not in _entries and _locks.get(key) is lock and not lock.locked():
+            _locks.pop(key, None)
 
 
 def clear() -> None:

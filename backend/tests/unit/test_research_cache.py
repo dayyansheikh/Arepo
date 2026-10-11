@@ -59,3 +59,40 @@ async def test_disabled_outside_production(session, monkeypatch):
     await research_cache.cached(session, "k", compute)
     await research_cache.cached(session, "k", compute)
     assert len(calls) == 2
+
+
+async def test_failing_keys_leave_no_locks(session):
+    async def boom():
+        raise ValueError("bad params")
+
+    for i in range(1000):
+        with pytest.raises(ValueError):
+            await research_cache.cached(session, f"bad:{i}", boom)
+    assert research_cache._locks == {}
+    assert research_cache._entries == {}
+
+
+async def test_data_version_tracks_research_entries(session):
+    from datetime import timedelta
+
+    from astrolabe.evaluation.research_repository import EntryInput, ResearchRepository
+
+    cutoff = datetime(2026, 8, 2, tzinfo=UTC)
+    repo = ResearchRepository(session)
+    cohort, _ = await repo.get_or_create_cohort(
+        cadence="6h", cutoff_at=cutoff, model_version="m", calculation_version="c")
+    await session.commit()
+    before = await research_cache.data_version(session)
+    await repo.add_entry(cohort, EntryInput(
+        role="public_selection", rank=1, walk_forward_partition="live", market_id="m1",
+        condition_id="c1", event_id=None, token_id="t1", market_question="Q", outcome_name="Yes",
+        direction="up", momentum_direction="up", orderbook_direction=None,
+        tradeflow_direction=None, signal_classification="x", strength=0.5, confidence=0.5,
+        research_priority=50, n_families=1, evidence_families=[], component_scores=[],
+        component_availability={}, data_quality="good", entry_price=0.5, best_bid=0.49,
+        best_ask=0.51, midpoint=0.5, spread=0.02, near_mid_depth=1.0, liquidity=1.0,
+        volume=1.0, data_age_seconds=1.0, expected_close=cutoff + timedelta(days=1),
+        time_remaining_hours=24, intended_horizons=["1h"], bucket="closing_6_24h",
+        overall_rank_30d=1, public_selected=True))
+    await session.commit()
+    assert await research_cache.data_version(session) != before

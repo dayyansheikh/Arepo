@@ -9,7 +9,15 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...evaluation.research_replay import ResearchReplayService
+from ...categories import normalize_category_filter
+from ...evaluation.research_constants import RESEARCH_HORIZONS
+from ...evaluation.research_replay import (
+    CLOSING_FILTERS,
+    REPLAY_HORIZONS,
+    SCOPE_DIRECTIONAL,
+    SCOPE_PUBLIC,
+    ResearchReplayService,
+)
 from ...evaluation.research_service import ResearchReadService
 from ...storage.db import get_session
 from .. import research_cache
@@ -31,6 +39,9 @@ async def horizon(
     horizon: str, session: AsyncSession = Depends(get_session)
 ) -> dict:
     """Baseline + ablation tables for one forward horizon (1h | 6h | 24h | 7d)."""
+    if horizon not in RESEARCH_HORIZONS:
+        # Unknown horizon: not cached (bounded key space); the query matches no rows.
+        return await ResearchReadService(session).horizon_analysis(horizon)
     return await research_cache.cached(
         session, f"horizon:{horizon}",
         lambda: ResearchReadService(session).horizon_analysis(horizon))
@@ -79,8 +90,14 @@ async def replay_cohort_results(
     6h|24h|7d|30d|all (frozen time-to-close). Deterministic and read-only.
     """
     try:
+        # Canonicalise exactly as cohort_results does (invalid values fall back to its defaults;
+        # an unknown category raises -> 422) so the cache key space stays bounded.
+        key_h = horizon if horizon in REPLAY_HORIZONS else "6h"
+        key_s = scope if scope in (SCOPE_PUBLIC, SCOPE_DIRECTIONAL) else SCOPE_DIRECTIONAL
+        key_c = closing if closing in CLOSING_FILTERS else "all"
+        key_cat = normalize_category_filter(category)
         return await research_cache.cached(
-            session, f"replay:cohort:{cohort_id}:{horizon}:{scope}:{closing}:{category}",
+            session, f"replay:cohort:{cohort_id}:{key_h}:{key_s}:{key_c}:{key_cat}",
             lambda: ResearchReplayService(session).cohort_results(
                 cohort_id, horizon=horizon, scope=scope, closing=closing, category=category
             ),

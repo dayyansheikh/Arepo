@@ -17,9 +17,11 @@ BEGIN;
 REVOKE ALL ON ALL TABLES    IN SCHEMA public FROM anon, authenticated;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES    FROM anon, authenticated;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated;
+-- Default privileges are per CREATING role: target Supabase's ``postgres`` role explicitly (the
+-- app's migrations and the dashboard create objects as postgres), not just the session's role.
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES    FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated;
 
 DO $$
 DECLARE t record;
@@ -38,11 +40,14 @@ END $$;
 
 COMMIT;
 
--- Verification (expect 0 rows each):
+-- Verification (expect 0 rows each; the third checks future-object defaults for postgres):
 --   SELECT table_name FROM information_schema.role_table_grants
 --    WHERE table_schema='public' AND grantee IN ('anon','authenticated');
 --   SELECT relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
 --    WHERE n.nspname='public' AND c.relkind='r' AND NOT c.relrowsecurity;
+--   SELECT * FROM pg_default_acl d JOIN pg_roles r ON r.oid = d.defaclrole
+--    WHERE r.rolname = 'postgres' AND d.defaclnamespace = 'public'::regnamespace
+--      AND (d.defaclacl::text LIKE '%anon=%' OR d.defaclacl::text LIKE '%authenticated=%');
 
 -- ROLLBACK (only if ever needed):
 -- BEGIN;
@@ -52,6 +57,8 @@ COMMIT;
 -- GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 -- GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 -- GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
--- ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated;
+-- ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES    TO anon, authenticated;
+-- ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated;
+-- ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated;
 -- (RLS on non-account tables may be left enabled: with the policy dropped and no grants it is inert.)
 -- COMMIT;

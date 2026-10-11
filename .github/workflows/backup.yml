@@ -62,7 +62,9 @@ jobs:
           # over the Supabase pooler (~0.5 GB per run; ~2-2.5 GB/month weekly) even when nothing
           # changed: every weekly artifact since 2026-08-30 is the same ~66.8 MB, because scans are
           # paused. Fingerprint the data from pg_stat_user_tables' cumulative insert/update/delete
-          # counters (a catalog read: a few KB, no table scans) plus the schema version, excluding
+          # counters, live-row count (n_live_tup) and storage file node (relfilenode: TRUNCATE and table
+          # rewrites change it, while TRUNCATE moves no tuple counter), all catalog reads (a few KB,
+          # no table scans), plus the schema version, excluding
           # the operational tables the collect tick touches on every run. Unchanged fingerprint in
           # the same calendar month => a previous successful dump already holds this exact data, so
           # skip. The month is part of the key, so there is still >= 1 fresh dump per month (artifact
@@ -71,12 +73,13 @@ jobs:
           test -n "$BACKUP_DATABASE_URL" || { echo "BACKUP_DATABASE_URL secret is not set"; exit 1; }
           FP=$(/usr/lib/postgresql/17/bin/psql "$BACKUP_DATABASE_URL" -X -A -t -v ON_ERROR_STOP=1 -c "
             SELECT md5(coalesce(string_agg(
-                     relname || ':' || n_tup_ins || ':' || n_tup_upd || ':' || n_tup_del, ','
-                     ORDER BY relname), '')
+                     s.relname || ':' || s.n_tup_ins || ':' || s.n_tup_upd || ':' || s.n_tup_del
+                     || ':' || s.n_live_tup || ':' || c.relfilenode, ','
+                     ORDER BY s.relname), '')
                    || '|v' || coalesce((SELECT max(version)::text FROM schema_migrations), '0'))
-            FROM pg_stat_user_tables
-            WHERE schemaname = 'public'
-              AND relname NOT IN ('scheduler_state', 'scheduler_leases', 'discovery_scan_locks',
+            FROM pg_stat_user_tables s JOIN pg_class c ON c.oid = s.relid
+            WHERE s.schemaname = 'public'
+              AND s.relname NOT IN ('scheduler_state', 'scheduler_leases', 'discovery_scan_locks',
                                   'source_health', 'schema_migrations');")
           test -n "$FP" || { echo "empty fingerprint"; exit 1; }
           echo "hash=$FP" >> "$GITHUB_OUTPUT"

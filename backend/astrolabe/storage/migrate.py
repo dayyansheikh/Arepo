@@ -223,12 +223,14 @@ def _upgrade_sync(conn: Connection) -> dict:
         for table_name in _PRIVATE_ACCOUNT_TABLES:
             conn.execute(text(f"ALTER TABLE {table_name} ENABLE ROW LEVEL SECURITY"))
     # 4. Covering indexes for foreign keys that predate their ``index=True`` (Supabase advisor
-    # "unindexed foreign keys"). ``create_all`` only indexes NEW tables, so add them idempotently.
-    # Both tables are tiny legacy weekly-cohort tables; the build is instant.
-    for index_name, table_name, column_name in _FK_INDEXES:
-        conn.execute(text(
-            f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({column_name})"
-        ))
+    # "unindexed foreign keys"). ``create_all`` only indexes NEW tables. On Postgres they are built
+    # by ``_ensure_fk_indexes_concurrently`` AFTER this transaction (CONCURRENTLY cannot run inside
+    # one and must not block writers on tables of unknown size); SQLite builds them inline.
+    if conn.dialect.name != "postgresql":
+        for index_name, table_name, column_name in _FK_INDEXES:
+            conn.execute(text(
+                f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({column_name})"
+            ))
     # 5. Record the schema version if we advanced it.
     before = _read_version(conn)
     if before < SCHEMA_VERSION:
@@ -251,11 +253,44 @@ def _check_sync(conn: Connection) -> dict:
     }
 
 
+async def _ensure_fk_indexes_concurrently(eng: AsyncEngine) -> list[str]:
+    """Postgres: ``CREATE INDEX CONCURRENTLY IF NOT EXISTS`` in AUTOCOMMIT (outside any
+    transaction), so writers are never blocked. Idempotent. A previously interrupted concurrent
+    build leaves an INVALID index that ``IF NOT EXISTS`` would silently keep, so an invalid one is
+    dropped (concurrently) and rebuilt. A concurrent migrator racing the same build is tolerated."""
+    built: list[str] = []
+    async with eng.connect() as conn:
+        conn = await conn.execution_options(isolation_level="AUTOCOMMIT")
+        for index_name, table_name, column_name in _FK_INDEXES:
+            valid = await conn.scalar(text(
+                "SELECT i.indisvalid FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid "
+                "JOIN pg_namespace n ON n.oid = c.relnamespace "
+                "WHERE c.relname = :name AND n.nspname = current_schema()"
+            ), {"name": index_name})
+            if valid is True:
+                continue
+            try:
+                if valid is False:
+                    await conn.execute(text(f"DROP INDEX CONCURRENTLY IF EXISTS {index_name}"))
+                await conn.execute(text(
+                    f"CREATE INDEX CONCURRENTLY IF NOT EXISTS {index_name} "
+                    f"ON {table_name} ({column_name})"
+                ))
+                built.append(index_name)
+            except (OperationalError, ProgrammingError, IntegrityError) as exc:
+                if not _is_already_exists(exc):
+                    raise
+    return built
+
+
 async def upgrade(engine: AsyncEngine | None = None) -> dict:
     """Apply the additive migration. Idempotent: a second run adds nothing and returns []."""
     eng = engine or make_engine()
     async with eng.begin() as conn:
-        return await conn.run_sync(_upgrade_sync)
+        result = await conn.run_sync(_upgrade_sync)
+    if eng.dialect.name == "postgresql":
+        result["indexes_built"] = await _ensure_fk_indexes_concurrently(eng)
+    return result
 
 
 async def check(engine: AsyncEngine | None = None) -> dict:
