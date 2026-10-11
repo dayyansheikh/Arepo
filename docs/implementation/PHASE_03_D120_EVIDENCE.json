@@ -1,0 +1,2984 @@
+{
+ "decision": "D120",
+ "title": "Live validation of screen-then-activate group-disjoint control pairing",
+ "outcome": "PASS",
+ "authoritative": true,
+ "interpretation": "PASS (authoritative, with caveats): fill 6/6 with 6 triggers in scope and 6 group-disjoint complete pairs; E0-E9 pass, 0 ENGINEERING findings (5 DATA_SOURCE: one-sided books at screening; 143 OK). 71 screened (34 triggered, 32 untriggered, 5 unavailable); 6 triggered and 6 control activated; 12/12 role states agree. Validates the screen-then-activate group-disjoint pairing MECHANISM live, once, across categories. Run once: says nothing about fill reliability. Pairs are not independent observations (one run, shared run-level shocks); group-disjoint means separate events, not economic independence (economic_group_status unresolved). No predictive, calibration, prevalence, effect or population claim.",
+ "launch": {
+  "implementation_commit": "47375bcb77490c1b5923a20d676669acda3f1856",
+  "started_at": "2026-10-11T14:47:17.830146+00:00",
+  "script_sha256": "8d0aff882e909b615c33946268d8039cee21e7fe8d5a9dbfcfb9df4c93e6d3f2",
+  "protocol_sha256": "fe5882f757ecd7e54e479ac6c84fbcc7df6b7713d56dfeab945047299af8b9f0",
+  "freeze_record_sha256": "b3897c1ce3b87e5c02b74013881f661ffa7118f05d31e28d0198b7f7e3631913",
+  "frozen_hashes": {
+   "backend/astrolabe/research_panel/activation.py": "387d363f07b755db7c82920944d917e149e5be52748431f5a44f17a28762e554",
+   "backend/astrolabe/research_panel/concurrent_runtime.py": "d35b94971a7e3c94f99029cad07e748592806681e8d1c5339ea898335b1cdb3b",
+   "backend/astrolabe/research_panel/d116_evaluator.py": "772b984a83f7d984f9d127401d3fe38cd68fcb339bb828f88438176a29893ab9",
+   "backend/astrolabe/research_panel/d120_evaluator.py": "bba626fddfe53d36d74b74eb67ec590592644953fe00fc991b0c45c83996c90c",
+   "backend/astrolabe/research_panel/due_worker.py": "7d976fb30be9c0509242fe7c9afd0c28cd0a86d95d7b9e40582ca80586889219",
+   "backend/astrolabe/research_panel/origin_worker.py": "6278d947746667f23a3e1dc0e521f83a5edf064461e55c463c998098d0675b84",
+   "backend/astrolabe/research_panel/original_reader.py": "be23f64cee5812df4d9c03dd0923cfccf51679622e18359cceed474f6e14b370",
+   "backend/astrolabe/research_panel/owned_windows.py": "7787c2ffe757d9c353d4f2b2e87c06a6798abc9dffe4511a35b83f6379e1c72d",
+   "backend/astrolabe/research_panel/pairing.py": "9459b41a2285a7d3edfd2d2b5eb9ea98be08363c8fe962b770c55e9941f7abc1",
+   "backend/astrolabe/research_panel/pairing_declaration.py": "e61d3c323166cd4bcd87b16ec1f664234777f4336b87c6c94ce1e7e3c79640b1",
+   "backend/astrolabe/research_panel/pairing_selection.py": "3d1b70fd9c2d933bb97521cf5b947db198abf2b7fef80d794899c7e11748ddc4",
+   "backend/astrolabe/research_panel/pairing_worker.py": "6d0a5303613b71a858dea76da7cde72417b3cb41a3b78fb3c561a025471e5942",
+   "backend/astrolabe/research_panel/panel_declaration.py": "9ab71ae0c0411d5941c99ec1270067bd608dc63a76ceffc956908055fc75ba4a",
+   "backend/astrolabe/research_panel/panel_selection.py": "ecd2ddd5af58d893f3d123a2715161cd693298e93990a0100558175d2fbd9f3b",
+   "backend/astrolabe/research_panel/runtime.py": "17ba240b17b38fe31e2b498ed76cc1b9f596e238bda64a62045723e748717351",
+   "backend/astrolabe/research_panel/sampling.py": "e9058045403705e8f3e76567bbd877267d0b5d5b49995d93d8deeb50b4d00a7c",
+   "backend/astrolabe/research_panel/screening.py": "1143051093bf714d35b0ee8838b69a2968bd531fdad894c4006347c8926e4a19",
+   "backend/astrolabe/research_panel/screening_worker.py": "dec77b51760872c37248f5143a1464dffea2883bb76e734a0ef941faaaf0a84f",
+   "backend/astrolabe/research_panel/selection.py": "ee24eb1bfa844d1661f530fea9d376b68c6af5c9feb3be0b2dccfcf1c69f256f",
+   "backend/scripts/d120_design_estimates.py": "8933d3ce80eeb837336c1c5635a73153d8e794e96091250b5c7bc78dcb54d42e",
+   "backend/scripts/d120_launch.py": "0eab3d11432cba704111c358b7923e6e65e459b2485abc2b9a6dcc4a9763242a",
+   "backend/scripts/d120_window_dry_run.py": "c9d8ed11e20a6df4c071de8fa9499d10c27f8de1d4b7a46616343277b4437933",
+   "backend/scripts/evaluate_d120.py": "57e1bf7f477757bae65b911a4b235ab66a5462299a88e26faeaa705145646206",
+   "backend/tests/unit/test_d120_launch.py": "2ff42153db0b0b0388e94c5c94f73c4cc1b6adf0d8db0c3f7e865a54fbefdc5c",
+   "backend/tests/unit/test_research_panel_d120_pairing.py": "4708446d015c29269617521b3ceb153b1d1b27d5d956f167e19627636af965d8",
+   "backend/tests/unit/test_research_panel_pairing.py": "cc337c6ed9d8b036f7355e04c78a4e2ac4e33612edd07e5be4845bbd3f831451",
+   "docs/implementation/d120/D120_DESIGN_ESTIMATES.json": "6fac7bd9e2851e27a974792691497486c9131f60971042aeac8989a57b869fee",
+   "docs/implementation/d120/D120_DRY_RUN.json": "f35b7f68a6ac640191192a545e2a20d1a77fcc7791a0374be811bef644741295",
+   "docs/implementation/d120/D120_PAIRING_PROTOCOL.md": "fe5882f757ecd7e54e479ac6c84fbcc7df6b7713d56dfeab945047299af8b9f0"
+  },
+  "frozen_hashes_verified": true,
+  "freeze_commit": "04e71eab5f160d7299ba28c3655fbb66e86db742",
+  "code_unchanged_since_freeze": true,
+  "ancestor_8afbdff": true,
+  "outside_collector_window": true,
+  "free_bytes": 16487890944,
+  "required_free_bytes": 15382085632,
+  "collectors_running": {},
+  "command": [
+   "caffeinate",
+   "-is",
+   "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+   "/private/tmp/claude-501/arepo_d120/arepo_d120_frozen.py"
+  ],
+  "env_overrides": {
+   "AUTO_MIGRATE": "false",
+   "DIGEST_EMAIL_ENABLED": "false",
+   "DATABASE_URL": "sqlite+aiosqlite:////private/tmp/claude-501/arepo_d120/d120_isolated.sqlite"
+  }
+ },
+ "result": {
+  "implementation_commit": "47375bcb77490c1b5923a20d676669acda3f1856",
+  "started_at": "2026-10-11T14:47:17.830146+00:00",
+  "script_sha256": "8d0aff882e909b615c33946268d8039cee21e7fe8d5a9dbfcfb9df4c93e6d3f2",
+  "protocol_sha256": "fe5882f757ecd7e54e479ac6c84fbcc7df6b7713d56dfeab945047299af8b9f0",
+  "freeze_record_sha256": "b3897c1ce3b87e5c02b74013881f661ffa7118f05d31e28d0198b7f7e3631913",
+  "frozen_hashes": {
+   "backend/astrolabe/research_panel/activation.py": "387d363f07b755db7c82920944d917e149e5be52748431f5a44f17a28762e554",
+   "backend/astrolabe/research_panel/concurrent_runtime.py": "d35b94971a7e3c94f99029cad07e748592806681e8d1c5339ea898335b1cdb3b",
+   "backend/astrolabe/research_panel/d116_evaluator.py": "772b984a83f7d984f9d127401d3fe38cd68fcb339bb828f88438176a29893ab9",
+   "backend/astrolabe/research_panel/d120_evaluator.py": "bba626fddfe53d36d74b74eb67ec590592644953fe00fc991b0c45c83996c90c",
+   "backend/astrolabe/research_panel/due_worker.py": "7d976fb30be9c0509242fe7c9afd0c28cd0a86d95d7b9e40582ca80586889219",
+   "backend/astrolabe/research_panel/origin_worker.py": "6278d947746667f23a3e1dc0e521f83a5edf064461e55c463c998098d0675b84",
+   "backend/astrolabe/research_panel/original_reader.py": "be23f64cee5812df4d9c03dd0923cfccf51679622e18359cceed474f6e14b370",
+   "backend/astrolabe/research_panel/owned_windows.py": "7787c2ffe757d9c353d4f2b2e87c06a6798abc9dffe4511a35b83f6379e1c72d",
+   "backend/astrolabe/research_panel/pairing.py": "9459b41a2285a7d3edfd2d2b5eb9ea98be08363c8fe962b770c55e9941f7abc1",
+   "backend/astrolabe/research_panel/pairing_declaration.py": "e61d3c323166cd4bcd87b16ec1f664234777f4336b87c6c94ce1e7e3c79640b1",
+   "backend/astrolabe/research_panel/pairing_selection.py": "3d1b70fd9c2d933bb97521cf5b947db198abf2b7fef80d794899c7e11748ddc4",
+   "backend/astrolabe/research_panel/pairing_worker.py": "6d0a5303613b71a858dea76da7cde72417b3cb41a3b78fb3c561a025471e5942",
+   "backend/astrolabe/research_panel/panel_declaration.py": "9ab71ae0c0411d5941c99ec1270067bd608dc63a76ceffc956908055fc75ba4a",
+   "backend/astrolabe/research_panel/panel_selection.py": "ecd2ddd5af58d893f3d123a2715161cd693298e93990a0100558175d2fbd9f3b",
+   "backend/astrolabe/research_panel/runtime.py": "17ba240b17b38fe31e2b498ed76cc1b9f596e238bda64a62045723e748717351",
+   "backend/astrolabe/research_panel/sampling.py": "e9058045403705e8f3e76567bbd877267d0b5d5b49995d93d8deeb50b4d00a7c",
+   "backend/astrolabe/research_panel/screening.py": "1143051093bf714d35b0ee8838b69a2968bd531fdad894c4006347c8926e4a19",
+   "backend/astrolabe/research_panel/screening_worker.py": "dec77b51760872c37248f5143a1464dffea2883bb76e734a0ef941faaaf0a84f",
+   "backend/astrolabe/research_panel/selection.py": "ee24eb1bfa844d1661f530fea9d376b68c6af5c9feb3be0b2dccfcf1c69f256f",
+   "backend/scripts/d120_design_estimates.py": "8933d3ce80eeb837336c1c5635a73153d8e794e96091250b5c7bc78dcb54d42e",
+   "backend/scripts/d120_launch.py": "0eab3d11432cba704111c358b7923e6e65e459b2485abc2b9a6dcc4a9763242a",
+   "backend/scripts/d120_window_dry_run.py": "c9d8ed11e20a6df4c071de8fa9499d10c27f8de1d4b7a46616343277b4437933",
+   "backend/scripts/evaluate_d120.py": "57e1bf7f477757bae65b911a4b235ab66a5462299a88e26faeaa705145646206",
+   "backend/tests/unit/test_d120_launch.py": "2ff42153db0b0b0388e94c5c94f73c4cc1b6adf0d8db0c3f7e865a54fbefdc5c",
+   "backend/tests/unit/test_research_panel_d120_pairing.py": "4708446d015c29269617521b3ceb153b1d1b27d5d956f167e19627636af965d8",
+   "backend/tests/unit/test_research_panel_pairing.py": "cc337c6ed9d8b036f7355e04c78a4e2ac4e33612edd07e5be4845bbd3f831451",
+   "docs/implementation/d120/D120_DESIGN_ESTIMATES.json": "6fac7bd9e2851e27a974792691497486c9131f60971042aeac8989a57b869fee",
+   "docs/implementation/d120/D120_DRY_RUN.json": "f35b7f68a6ac640191192a545e2a20d1a77fcc7791a0374be811bef644741295",
+   "docs/implementation/d120/D120_PAIRING_PROTOCOL.md": "fe5882f757ecd7e54e479ac6c84fbcc7df6b7713d56dfeab945047299af8b9f0"
+  },
+  "frozen_hashes_verified": true,
+  "freeze_commit": "04e71eab5f160d7299ba28c3655fbb66e86db742",
+  "code_unchanged_since_freeze": true,
+  "ancestor_8afbdff": true,
+  "outside_collector_window": true,
+  "free_bytes": 16487890944,
+  "required_free_bytes": 15382085632,
+  "collectors_running": {},
+  "command": [
+   "caffeinate",
+   "-is",
+   "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+   "/private/tmp/claude-501/arepo_d120/arepo_d120_frozen.py"
+  ],
+  "env_overrides": {
+   "AUTO_MIGRATE": "false",
+   "DIGEST_EMAIL_ENABLED": "false",
+   "DATABASE_URL": "sqlite+aiosqlite:////private/tmp/claude-501/arepo_d120/d120_isolated.sqlite"
+  },
+  "completed_at": "2026-10-11T15:02:08.284358+00:00",
+  "elapsed_ns": "890438814708",
+  "returncode": 0,
+  "collectors_running_after": {}
+ },
+ "run_file_sha256": {
+  "fs2_d120_pairing_1_launch.json": "386956c13eecd087d1fe0d40f51960f52d7102996d826d39b95ddad918d6896d",
+  "fs2_d120_pairing_1_result.json": "c8afc8856e18702aa5b6fb3998f9c16090ef848e5a1a88772e39a11240b7bbc4",
+  "fs2_d120_pairing_1_stdout.log": "2c018ef12b09bd2eb5e9c9c85a79165455b5b3948c2558c04076453d58ea2313",
+  "fs2_d120_pairing_1_stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "fs2_d120_pairing_1_evaluation.json": "a9575831df212922807d8595ae8aefdf2dbfb8ad11bcb0adc7a523ca44a0cae4"
+ },
+ "freeze_record_sha256": "b3897c1ce3b87e5c02b74013881f661ffa7118f05d31e28d0198b7f7e3631913",
+ "run_roots": {
+  "activation": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_activation_d120_pairing_1",
+  "panel": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_panel_d120_pairing_1",
+  "runtime": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_runtime_d120_pairing_1",
+  "selection": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_d120_pairing_1",
+  "worker": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_screening_worker_d120_pairing_1"
+ },
+ "stdout_stages": [
+  {
+   "stage": "preflight",
+   "at": "2026-10-11T14:47:18.087019Z"
+  },
+  {
+   "stage": "frame_owned",
+   "at": "2026-10-11T14:47:18.087136Z"
+  },
+  {
+   "stage": "frame_complete",
+   "at": "2026-10-11T14:53:02.071729Z"
+  },
+  {
+   "stage": "panel_declared",
+   "at": "2026-10-11T14:53:02.098707Z"
+  },
+  {
+   "stage": "selection_complete",
+   "at": "2026-10-11T14:56:08.361161Z"
+  },
+  {
+   "stage": "complete",
+   "at": "2026-10-11T15:02:08.216706Z",
+   "state": "pilot_collected_unaccepted",
+   "peak_resident_bytes": 1050918912
+  },
+  {
+   "stage": "accounting",
+   "at": "2026-10-11T15:02:08.217595Z"
+  }
+ ],
+ "evaluator_report": {
+  "authoritative": true,
+  "classification_table_sha256": "6c7f273e43d51de7850d656d48b5913a589ec40f4edcd745d876c6e04130cbc4",
+  "common_mode": [],
+  "diagnostics": {
+   "binding_states": {
+    "triggered": 6,
+    "untriggered": 6
+   },
+   "descriptive_only": "not acceptance",
+   "eligible_completed_histories": 12,
+   "max_window_age_at_freeze_s": 28.103298,
+   "n_activated": 12,
+   "n_screened": 71,
+   "observed_origins": 12,
+   "screening_states": {
+    "triggered": 34,
+    "unavailable": 5,
+    "untriggered": 32
+   },
+   "valid_targets": 12
+  },
+  "evaluator_version": "d120-evaluator-v1",
+  "finding_counts": {
+   "DATA_SOURCE": 5,
+   "OK": 143
+  },
+  "findings": [
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "0393c2c2a903ecc1793eed51e975b8775f1dec8175d3d5f218a1a938079c9e51",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5535610",
+    "rule": "trigger_reason:snapshot_one_sided_or_missing",
+    "stage": "screening",
+    "state": "snapshot_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "19f2c9e5b50ece097004ef375fb9ad351efc6e049d768ecf13f06199a0d5da60",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5535634",
+    "rule": "trigger_reason:snapshot_one_sided_or_missing",
+    "stage": "screening",
+    "state": "snapshot_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "0001af314fb1644567cc0b4188cc0b30883c6b0344caeabd2556ff543b52e67a",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5538001",
+    "rule": "trigger_reason:snapshot_one_sided_or_missing",
+    "stage": "screening",
+    "state": "snapshot_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "cecb3b96e2825a34eb1e9d350c06fbcdad4144690ae74668ef8dcee9c48ab19e",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5540835",
+    "rule": "trigger_reason:snapshot_one_sided_or_missing",
+    "stage": "screening",
+    "state": "snapshot_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "5f9bab7b40090e6ef3db640777fe0a437e6e1cbe28ff2e1c2318ece3f95244a3",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "608542",
+    "rule": "trigger_reason:snapshot_one_sided_or_missing",
+    "stage": "screening",
+    "state": "snapshot_one_sided_or_missing"
+   }
+  ],
+  "gates": {
+   "E0": {
+    "commits": {
+     "frame_read_policy.implementation_commit": "47375bcb77490c1b5923a20d676669acda3f1856",
+     "panel_policy.frame_implementation_commit": "47375bcb77490c1b5923a20d676669acda3f1856",
+     "runtime_read_policy.implementation_commit": "47375bcb77490c1b5923a20d676669acda3f1856",
+     "selection_policy.implementation_commit": "47375bcb77490c1b5923a20d676669acda3f1856",
+     "worker_policy.implementation_commit": "47375bcb77490c1b5923a20d676669acda3f1856"
+    },
+    "pass": true,
+    "provenance": {
+     "1105742.screening_capture": "prospective",
+     "1124260.binding_capture": "prospective",
+     "1124260.origin_capture": "prospective",
+     "1124260.screening_capture": "prospective",
+     "1124260.socket_policy": "prospective",
+     "1124260.socket_report": "prospective",
+     "1124260.target_capture[0]": "prospective",
+     "1180211.screening_capture": "prospective",
+     "1192819.screening_capture": "prospective",
+     "1245867.screening_capture": "prospective",
+     "1357371.binding_capture": "prospective",
+     "1357371.origin_capture": "prospective",
+     "1357371.screening_capture": "prospective",
+     "1357371.socket_policy": "prospective",
+     "1357371.socket_report": "prospective",
+     "1357371.target_capture[0]": "prospective",
+     "2054232.binding_capture": "prospective",
+     "2054232.origin_capture": "prospective",
+     "2054232.screening_capture": "prospective",
+     "2054232.socket_policy": "prospective",
+     "2054232.socket_report": "prospective",
+     "2054232.target_capture[0]": "prospective",
+     "2243299.screening_capture": "prospective",
+     "2520310.screening_capture": "prospective",
+     "2661538.screening_capture": "prospective",
+     "2771333.screening_capture": "prospective",
+     "2771501.screening_capture": "prospective",
+     "2771657.screening_capture": "prospective",
+     "2772194.binding_capture": "prospective",
+     "2772194.origin_capture": "prospective",
+     "2772194.screening_capture": "prospective",
+     "2772194.socket_policy": "prospective",
+     "2772194.socket_report": "prospective",
+     "2772194.target_capture[0]": "prospective",
+     "3004702.screening_capture": "prospective",
+     "3247716.screening_capture": "prospective",
+     "3347435.screening_capture": "prospective",
+     "3513205.screening_capture": "prospective",
+     "3581626.screening_capture": "prospective",
+     "3581793.screening_capture": "prospective",
+     "3581858.screening_capture": "prospective",
+     "3740634.binding_capture": "prospective",
+     "3740634.origin_capture": "prospective",
+     "3740634.screening_capture": "prospective",
+     "3740634.socket_policy": "prospective",
+     "3740634.socket_report": "prospective",
+     "3740634.target_capture[0]": "prospective",
+     "3752062.screening_capture": "prospective",
+     "3765286.screening_capture": "prospective",
+     "3767883.screening_capture": "prospective",
+     "3768161.screening_capture": "prospective",
+     "3930607.screening_capture": "prospective",
+     "4038723.screening_capture": "prospective",
+     "4199441.screening_capture": "prospective",
+     "4570986.screening_capture": "prospective",
+     "4591294.screening_capture": "prospective",
+     "4642725.binding_capture": "prospective",
+     "4642725.origin_capture": "prospective",
+     "4642725.screening_capture": "prospective",
+     "4642725.socket_policy": "prospective",
+     "4642725.socket_report": "prospective",
+     "4642725.target_capture[0]": "prospective",
+     "4844534.screening_capture": "prospective",
+     "4960175.screening_capture": "prospective",
+     "5126899.binding_capture": "prospective",
+     "5126899.origin_capture": "prospective",
+     "5126899.screening_capture": "prospective",
+     "5126899.socket_policy": "prospective",
+     "5126899.socket_report": "prospective",
+     "5126899.target_capture[0]": "prospective",
+     "5151687.binding_capture": "prospective",
+     "5151687.origin_capture": "prospective",
+     "5151687.screening_capture": "prospective",
+     "5151687.socket_policy": "prospective",
+     "5151687.socket_report": "prospective",
+     "5151687.target_capture[0]": "prospective",
+     "5151798.screening_capture": "prospective",
+     "5154346.screening_capture": "prospective",
+     "5158871.screening_capture": "prospective",
+     "5194895.screening_capture": "prospective",
+     "5230118.screening_capture": "prospective",
+     "5254243.screening_capture": "prospective",
+     "5279402.screening_capture": "prospective",
+     "5281710.screening_capture": "prospective",
+     "5284456.screening_capture": "prospective",
+     "5304405.screening_capture": "prospective",
+     "5363159.screening_capture": "prospective",
+     "5453130.screening_capture": "prospective",
+     "5463222.screening_capture": "prospective",
+     "5481797.screening_capture": "prospective",
+     "5503714.screening_capture": "prospective",
+     "5535610.screening_capture": "prospective",
+     "5535634.screening_capture": "prospective",
+     "5536283.screening_capture": "prospective",
+     "5536334.screening_capture": "prospective",
+     "5536428.screening_capture": "prospective",
+     "5536446.screening_capture": "prospective",
+     "5536533.binding_capture": "prospective",
+     "5536533.origin_capture": "prospective",
+     "5536533.screening_capture": "prospective",
+     "5536533.socket_policy": "prospective",
+     "5536533.socket_report": "prospective",
+     "5536533.target_capture[0]": "prospective",
+     "5536553.screening_capture": "prospective",
+     "5538001.screening_capture": "prospective",
+     "5538279.binding_capture": "prospective",
+     "5538279.origin_capture": "prospective",
+     "5538279.screening_capture": "prospective",
+     "5538279.socket_policy": "prospective",
+     "5538279.socket_report": "prospective",
+     "5538279.target_capture[0]": "prospective",
+     "5539908.screening_capture": "prospective",
+     "5540816.binding_capture": "prospective",
+     "5540816.origin_capture": "prospective",
+     "5540816.screening_capture": "prospective",
+     "5540816.socket_policy": "prospective",
+     "5540816.socket_report": "prospective",
+     "5540816.target_capture[0]": "prospective",
+     "5540835.screening_capture": "prospective",
+     "608542.screening_capture": "prospective",
+     "665520.screening_capture": "prospective",
+     "813506.screening_capture": "prospective",
+     "898415.screening_capture": "prospective",
+     "898659.screening_capture": "prospective",
+     "919484.screening_capture": "prospective",
+     "999108.binding_capture": "prospective",
+     "999108.origin_capture": "prospective",
+     "999108.screening_capture": "prospective",
+     "999108.socket_policy": "prospective",
+     "999108.socket_report": "prospective",
+     "999108.target_capture[0]": "prospective",
+     "activation_facts": "prospective",
+     "frame_original_report": "prospective",
+     "read_receipt.original_provenance_class": "prospective",
+     "runtime_policy": "prospective",
+     "runtime_report": "prospective",
+     "screening_policy.source": "prospective",
+     "screening_report": "prospective",
+     "selection_report": "prospective",
+     "worker_policy": "prospective",
+     "worker_report.recovery[0].original_provenance_class": "prospective",
+     "worker_report.runtime": "prospective",
+     "worker_report.screening": "prospective"
+    },
+    "reasons": [],
+    "required_ancestor_commit": "8afbdff",
+    "screening_schemas": {
+     "screening_policy": "fs2-screening-pairing-v5",
+     "screening_report": "fs2-screening-pairing-v5",
+     "worker_report.screening": "fs2-screening-pairing-v5"
+    }
+   },
+   "E1": {
+    "pass": true,
+    "reasons": []
+   },
+   "E2": {
+    "drawable_strata": 127,
+    "pass": true,
+    "population_exclusion_counts": {
+     "frame_gamma_liquidity_below_1000": 152203,
+     "frame_gamma_liquidity_missing_or_invalid": 4531,
+     "scheduled_end_at_or_before_selection_declaration": 47348
+    },
+    "reasons": [],
+    "sampled_strata": 6,
+    "unique_selected_markets": 71,
+    "zero_inclusion_exclusions": 204082
+   },
+   "E3": {
+    "pass": true,
+    "reasons": [],
+    "states": {
+     "triggered": 34,
+     "unavailable": 5,
+     "untriggered": 32
+    }
+   },
+   "E4": {
+    "pass": true,
+    "reasons": []
+   },
+   "E5": {
+    "pass": true,
+    "reasons": [],
+    "roles": {
+     "control": 6,
+     "triggered": 6
+    }
+   },
+   "E6": {
+    "pass": true,
+    "reasons": []
+   },
+   "E7": {
+    "pass": true,
+    "reasons": []
+   },
+   "E8": {
+    "pass": true,
+    "reasons": []
+   },
+   "E9": {
+    "pass": true,
+    "reasons": []
+   }
+  },
+  "launch_commit": "47375bcb77490c1b5923a20d676669acda3f1856",
+  "members": {
+   "1105742": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:1105740",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "1105742",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "38667196958602416137463628517439560119304765709104570192447644733106171420112"
+   },
+   "1124260": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "untriggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:1124254",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:economics",
+    "market_id": "1124260",
+    "roles": [
+     {
+      "arm": "control",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [
+       "8ee2c78e5786c2f391261965b7d9d6fdd9fea28a3605030f11635385dbb470ab"
+      ],
+      "stratum": "edbe6bb37b150ed3fc8a7fcd35a3fe3892fd26a63c8fe20246588bc053034193",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "1017",
+       "numerator": "-17"
+      },
+      "state": "untriggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "13553104868522289891706617978108934659595621559257124193405544577733275980690"
+   },
+   "1180211": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:1180211",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "1180211",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "71398471540223286383853289011528043411006354340319407468205968769528769085934"
+   },
+   "1192819": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:1192816",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:economics",
+    "market_id": "1192819",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "25147981947604159782072037502759197697003690235312360623763907130544047260835"
+   },
+   "1245867": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:1245861",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:economics",
+    "market_id": "1245867",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "41986941563725476401809498628598512472263948166257660005029783694097583004596"
+   },
+   "1357371": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "untriggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:1357371",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:sports",
+    "market_id": "1357371",
+    "roles": [
+     {
+      "arm": "control",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [
+       "3de6b970896d822d1106a372db83b1033f070d95691907e41cd496e549142dd1"
+      ],
+      "stratum": "e7633287d643dfdc03b041842b6299c187770d7f385173e126a4108b4af39c75",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "2104925",
+       "numerator": "-177637"
+      },
+      "state": "untriggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "6807083143822791639785484162000434089482535992404945766593723006919421743513"
+   },
+   "2054232": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "triggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:2054223",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:politics",
+    "market_id": "2054232",
+    "roles": [
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "6d21f2ea9f68c616b1f9ef80314bda3b34f08e21fcb615e77f93f3831192af0b",
+      "trigger_id": "9d8708f80493f4c7d96f0ea85b11ba456263d05d8fcc10fb3f2d644d181afe4e"
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "8069",
+       "numerator": "7809"
+      },
+      "state": "triggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "7593969562324822692501363565205182443860928099163461045185140593084672689930"
+   },
+   "2243299": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:2243296",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "2243299",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "104764677445041735405004295087562978678692922058505365615073838332507558341437"
+   },
+   "2520310": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:2520276",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "2520310",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "91274072014544240810088388480737773272299053720966072408183603477147259368027"
+   },
+   "2661538": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:2661538",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "2661538",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "107346566321107892286947531207338459823289209490763398384329474652294039652693"
+   },
+   "2771333": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:2771324",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "2771333",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "35746559934598687044244313512841185288491694151858023596582191133240765938021"
+   },
+   "2771501": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:2771489",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "2771501",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "35612016242198072428734492254411526590176190680676763180799235711086942662735"
+   },
+   "2771657": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:2771642",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "2771657",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "100765064011562894589490437761615822647267588727738521153915012235454617282817"
+   },
+   "2772194": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "triggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:2772166",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "2772194",
+    "roles": [
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "e7633287d643dfdc03b041842b6299c187770d7f385173e126a4108b4af39c75",
+      "trigger_id": "3de6b970896d822d1106a372db83b1033f070d95691907e41cd496e549142dd1"
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "226056011",
+       "numerator": "159610809"
+      },
+      "state": "triggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "33339798372916037220786136133406478491116150628220441951753426683441228279665"
+   },
+   "3004702": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3004664",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:sports",
+    "market_id": "3004702",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "93602081497545704556871106386668224932280857735852203076926356152051449574969"
+   },
+   "3247716": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3215054",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:economics",
+    "market_id": "3247716",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "65614983602564904238247829214210634890426673612111435813869290708189764706322"
+   },
+   "3347435": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3347435",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "3347435",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "21199411345755684028591267686053057743544270653314518622867024645473852081044"
+   },
+   "3513205": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3513199",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:politics",
+    "market_id": "3513205",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "60072273750509820899672535389857216207420094235212343188124937286477478039293"
+   },
+   "3581626": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3581626",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:politics",
+    "market_id": "3581626",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "33113729317614658724593994337661955840799151281426131061054321667101578860585"
+   },
+   "3581793": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3581793",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "3581793",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "20105165847428493252943690173190011549344504640904873749666714069082561646390"
+   },
+   "3581858": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3581858",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "3581858",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "10296670244940424059973374651246059016486985971544461416965873776705617741600"
+   },
+   "3740634": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "untriggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:3740633",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "3740634",
+    "roles": [
+     {
+      "arm": "control",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [
+       "9d8708f80493f4c7d96f0ea85b11ba456263d05d8fcc10fb3f2d644d181afe4e"
+      ],
+      "stratum": "6d21f2ea9f68c616b1f9ef80314bda3b34f08e21fcb615e77f93f3831192af0b",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "1861",
+       "numerator": "-611"
+      },
+      "state": "untriggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "76083482372231980815268524244484955391915832791289553998630619148217159147283"
+   },
+   "3752062": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3752061",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:politics",
+    "market_id": "3752062",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "23605663098567247252186227771568385160095657982614151851837330224559463698614"
+   },
+   "3765286": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3765286",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "3765286",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "106252137878036675632524571912055518607203218511456137740837392069531747152908"
+   },
+   "3767883": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3767883",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:politics",
+    "market_id": "3767883",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "60229981007151835684729000003856733664249267037657502336357165600893862089425"
+   },
+   "3768161": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3768157",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:politics",
+    "market_id": "3768161",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "82478040966666264247051868176002547878941145324065733611254284630659444059626"
+   },
+   "3930607": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3930607",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "3930607",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "48255552515844421740417399108077651555976685089518230824066308452870190358128"
+   },
+   "4038723": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:4038723",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:politics",
+    "market_id": "4038723",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "104758748743724093776849044008658307309553447626781092772560064358250247384505"
+   },
+   "4199441": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:4199436",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:economics",
+    "market_id": "4199441",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "32552859477895868085291715691248245315129234570828849722632986368310027938765"
+   },
+   "4570986": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3081958",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:economics",
+    "market_id": "4570986",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "22132050876036030114785149595570408145000968229405602171519824769228439029842"
+   },
+   "4591294": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:4591292",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "4591294",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "43889850006482732448950397721547162205855544094700625481732138585909845975190"
+   },
+   "4642725": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "untriggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:4642725",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "4642725",
+    "roles": [
+     {
+      "arm": "control",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [
+       "ae3ab4c45262884ac1bfc2bf8730d904a32ad8f1629abd07bd400ce6be79f8b3"
+      ],
+      "stratum": "a158cbfdb889342c2517bdf21b4ea57bcffc1e64104db456e2ce949876a9642b",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "21149",
+       "numerator": "5251"
+      },
+      "state": "untriggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "92551604312813419602643793801810494809944046980098235191822213003556025058262"
+   },
+   "4844534": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:4844531",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:economics",
+    "market_id": "4844534",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "58479726034423401932220029698310534485144294202179549076317802689050881762841"
+   },
+   "4960175": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:4960175",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "4960175",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "50073003129799751182512955871006934238453931923518446443477027471472756004413"
+   },
+   "5126899": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "triggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:3040132",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "5126899",
+    "roles": [
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "9eb1406e2ba457384c2d3049d3273e55303fb3bf32bc14cbcd61fecfb229e62f",
+      "trigger_id": "9516842557d5e06ad5333268c16ee561026c84248224f8c2b4848112d7f4dad3"
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "168207",
+       "numerator": "-155707"
+      },
+      "state": "triggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "13445349598703725708900414296995949184736727344296283430474271920802529295580"
+   },
+   "5151687": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "triggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:5151684",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:politics",
+    "market_id": "5151687",
+    "roles": [
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "a158cbfdb889342c2517bdf21b4ea57bcffc1e64104db456e2ce949876a9642b",
+      "trigger_id": "ae3ab4c45262884ac1bfc2bf8730d904a32ad8f1629abd07bd400ce6be79f8b3"
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "3311",
+       "numerator": "-2536"
+      },
+      "state": "triggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "75249865626873820096867750354609015935959041342869709339481017996162788596052"
+   },
+   "5151798": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5151784",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:politics",
+    "market_id": "5151798",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "62980226068414154177659968599038634568644960300368197999984566082485048757689"
+   },
+   "5154346": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:4170752",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:economics",
+    "market_id": "5154346",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "66493177960509957943373891262901124414059025667276222004058075575555464027071"
+   },
+   "5158871": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3227643",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "5158871",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "47076859187381332655852600016379995111478774380556138119586310927160483109204"
+   },
+   "5194895": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5194888",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:economics",
+    "market_id": "5194895",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "75972993738177226090618928137966858584413619047855846380974961666175564097986"
+   },
+   "5230118": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5230118",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:economics",
+    "market_id": "5230118",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "42230820221779727108970032417644826798905850651937219940589222735160331430794"
+   },
+   "5254243": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:1470304",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:sports",
+    "market_id": "5254243",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "108072673316969946427103051282011929668918531708636787781194943572187168128745"
+   },
+   "5279402": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3042375",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:sports",
+    "market_id": "5279402",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "94479876752952144010174552240113505352840777634288684611655077836168754407910"
+   },
+   "5281710": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3043272",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:sports",
+    "market_id": "5281710",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "111363412703745720030679456536680828542319679472545923093611664130937297895998"
+   },
+   "5284456": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3116545",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "5284456",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "49441674868683550637649309586750027701073109404705562219224987917741938339780"
+   },
+   "5304405": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3798708",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "5304405",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "91531569087351968554886295555562950303238475469993989915915972514559893380147"
+   },
+   "5363159": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:3059621",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:sports",
+    "market_id": "5363159",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "99672134643235770685727011462637448367194848973721831515638578596066466936599"
+   },
+   "5453130": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:4475945",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "5453130",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "28790115620661028322612737778815877592673708373621683812834230125394662588295"
+   },
+   "5463222": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5463222",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "5463222",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "103992516895604469166082904087650901610026244293944090886595726606583115183685"
+   },
+   "5481797": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5481168",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:sports",
+    "market_id": "5481797",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "85768580183720394428218187067187637785651731203203955446809014939219734831721"
+   },
+   "5503714": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:2580317",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:sports",
+    "market_id": "5503714",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "3243220420129509460457766565174886017548664392131231535183279814265815115288"
+   },
+   "5535610": {
+    "activated": false,
+    "authenticated_state": false,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5448690",
+    "effective_assessment_state": "unavailable",
+    "fee_category": "fee:weather",
+    "market_id": "5535610",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "0393c2c2a903ecc1793eed51e975b8775f1dec8175d3d5f218a1a938079c9e51",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "trigger_reason:snapshot_one_sided_or_missing",
+        "state": "snapshot_one_sided_or_missing"
+       }
+      ],
+      "effective_state": "unavailable",
+      "reasons": [
+       "snapshot_one_sided_or_missing"
+      ],
+      "state": "unavailable"
+     }
+    },
+    "token_id": "36288100302655264223825603477482104499402303490488928916642617192914443916795"
+   },
+   "5535634": {
+    "activated": false,
+    "authenticated_state": false,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5448712",
+    "effective_assessment_state": "unavailable",
+    "fee_category": "fee:weather",
+    "market_id": "5535634",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "19f2c9e5b50ece097004ef375fb9ad351efc6e049d768ecf13f06199a0d5da60",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "trigger_reason:snapshot_one_sided_or_missing",
+        "state": "snapshot_one_sided_or_missing"
+       }
+      ],
+      "effective_state": "unavailable",
+      "reasons": [
+       "snapshot_one_sided_or_missing"
+      ],
+      "state": "unavailable"
+     }
+    },
+    "token_id": "100027209254406704306742144646915548316280748488664858763718839592896443582608"
+   },
+   "5536283": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5449059",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:weather",
+    "market_id": "5536283",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "37605772740990886980456643232198626374051397627984023514295828250678478584277"
+   },
+   "5536334": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5449114",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:weather",
+    "market_id": "5536334",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "41696403117026308632140095291778435627335703367335903562478374537054329331089"
+   },
+   "5536428": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5449210",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:weather",
+    "market_id": "5536428",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "88597410594102081116447330951344067616665589510299030978407405797165174812260"
+   },
+   "5536446": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5449232",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:weather",
+    "market_id": "5536446",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "79669859251558369215599405759877620991134586408099260439161560376773571764474"
+   },
+   "5536533": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "triggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:5449309",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:weather",
+    "market_id": "5536533",
+    "roles": [
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "2612b8f6c3693b7cb35fa8e55afc0bd7384a183ab959136542b9df210e1ecf37",
+      "trigger_id": "907f749b6731a880b35e8b132e1b952a0e65ec65cf3635adcd2cd8ae14284f11"
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "3",
+       "numerator": "-1"
+      },
+      "state": "triggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "20582385962323545346132581585377750693989821711291128515774307125604922686140"
+   },
+   "5536553": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5449331",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:weather",
+    "market_id": "5536553",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "58708844379303587210818494601642410115044417366369066200663136749371505280312"
+   },
+   "5538001": {
+    "activated": false,
+    "authenticated_state": false,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5448624",
+    "effective_assessment_state": "unavailable",
+    "fee_category": "fee:weather",
+    "market_id": "5538001",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "0001af314fb1644567cc0b4188cc0b30883c6b0344caeabd2556ff543b52e67a",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "trigger_reason:snapshot_one_sided_or_missing",
+        "state": "snapshot_one_sided_or_missing"
+       }
+      ],
+      "effective_state": "unavailable",
+      "reasons": [
+       "snapshot_one_sided_or_missing"
+      ],
+      "state": "unavailable"
+     }
+    },
+    "token_id": "5774930175061060957763719493871395191466421806464992315908726991172066687176"
+   },
+   "5538279": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "untriggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:5227537",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:sports",
+    "market_id": "5538279",
+    "roles": [
+     {
+      "arm": "control",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [
+       "9516842557d5e06ad5333268c16ee561026c84248224f8c2b4848112d7f4dad3"
+      ],
+      "stratum": "9eb1406e2ba457384c2d3049d3273e55303fb3bf32bc14cbcd61fecfb229e62f",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": "0",
+       "decimal_state": "exact",
+       "denominator": "1",
+       "numerator": "0"
+      },
+      "state": "untriggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "78884653117296810424147279366319190459313167319814023992626203925373064763234"
+   },
+   "5539908": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:2247194",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:weather",
+    "market_id": "5539908",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "68381852069095669114670658378651111223709655923690030949020548660993576317798"
+   },
+   "5540816": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "untriggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:5451739",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:weather",
+    "market_id": "5540816",
+    "roles": [
+     {
+      "arm": "control",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [
+       "907f749b6731a880b35e8b132e1b952a0e65ec65cf3635adcd2cd8ae14284f11"
+      ],
+      "stratum": "2612b8f6c3693b7cb35fa8e55afc0bd7384a183ab959136542b9df210e1ecf37",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "9",
+       "numerator": "-1"
+      },
+      "state": "untriggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "40683013820052404121761766912463102336924281970049849034123109844814610272826"
+   },
+   "5540835": {
+    "activated": false,
+    "authenticated_state": false,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:5451761",
+    "effective_assessment_state": "unavailable",
+    "fee_category": "fee:weather",
+    "market_id": "5540835",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "cecb3b96e2825a34eb1e9d350c06fbcdad4144690ae74668ef8dcee9c48ab19e",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "trigger_reason:snapshot_one_sided_or_missing",
+        "state": "snapshot_one_sided_or_missing"
+       }
+      ],
+      "effective_state": "unavailable",
+      "reasons": [
+       "snapshot_one_sided_or_missing"
+      ],
+      "state": "unavailable"
+     }
+    },
+    "token_id": "1067360681036132347057162300451213845541110671953529267838033055479024626006"
+   },
+   "608542": {
+    "activated": false,
+    "authenticated_state": false,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:608540",
+    "effective_assessment_state": "unavailable",
+    "fee_category": "fee:sports",
+    "market_id": "608542",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "5f9bab7b40090e6ef3db640777fe0a437e6e1cbe28ff2e1c2318ece3f95244a3",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "trigger_reason:snapshot_one_sided_or_missing",
+        "state": "snapshot_one_sided_or_missing"
+       }
+      ],
+      "effective_state": "unavailable",
+      "reasons": [
+       "snapshot_one_sided_or_missing"
+      ],
+      "state": "unavailable"
+     }
+    },
+    "token_id": "35466012767924254839738113787085950010503473575312851228505226571790709275819"
+   },
+   "665520": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:665519",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:economics",
+    "market_id": "665520",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "68420402359099809757188966515856762918029694502033360833978058041565763991088"
+   },
+   "813506": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:813506",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:politics",
+    "market_id": "813506",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "113505976183184081887469552604570721227802596386749270798093363567289365382437"
+   },
+   "898415": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:898409",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "898415",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "2709284834738258468924839192854829143750961889384406449536217899798175177890"
+   },
+   "898659": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:898659",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:sports",
+    "market_id": "898659",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     }
+    },
+    "token_id": "63575687681907441240703046859976736246007169544686604626212007174091647597288"
+   },
+   "919484": {
+    "activated": false,
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": false,
+    "dependence_group": "g:919484",
+    "effective_assessment_state": "untriggered",
+    "fee_category": "fee:politics",
+    "market_id": "919484",
+    "roles": [],
+    "stages": {
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     }
+    },
+    "token_id": "39304778737903437923367588791275882452466557469208611430474206291179458010087"
+   },
+   "999108": {
+    "activated": true,
+    "authenticated_state": true,
+    "binding_state": "triggered",
+    "causes": [],
+    "complete_chain": true,
+    "dependence_group": "g:999108",
+    "effective_assessment_state": "triggered",
+    "fee_category": "fee:economics",
+    "market_id": "999108",
+    "roles": [
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "edbe6bb37b150ed3fc8a7fcd35a3fe3892fd26a63c8fe20246588bc053034193",
+      "trigger_id": "8ee2c78e5786c2f391261965b7d9d6fdd9fea28a3605030f11635385dbb470ab"
+     }
+    ],
+    "stages": {
+     "binding": {
+      "causes": [],
+      "reasons": [],
+      "signed_imbalance": {
+       "decimal": null,
+       "decimal_state": "nonterminating_decimal",
+       "denominator": "213325",
+       "numerator": "137873"
+      },
+      "state": "triggered"
+     },
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "state_agreement": "agree",
+    "token_id": "63360646175488031611133855389183515534733634266770407912899019617490090363649"
+   }
+  },
+  "non_authoritative_logic_only": false,
+  "outcome": "PASS",
+  "outcome_reasons": [
+   "fill 6/6 with 6 triggers in scope and 6 group-disjoint complete pairs"
+  ],
+  "pairs": [
+   {
+    "both_complete": true,
+    "control_market": "5540816",
+    "counts_as": "group-disjoint mechanism execution; not an independent observation (all origins share run-level shocks)",
+    "dependence_groups": [
+     "g:5451739",
+     "g:5449309"
+    ],
+    "group_disjoint": true,
+    "group_disjoint_complete": true,
+    "state_agreement": {
+     "5536533": "agree",
+     "5540816": "agree"
+    },
+    "stratum": "2612b8f6c3693b7cb35fa8e55afc0bd7384a183ab959136542b9df210e1ecf37",
+    "trigger_id": "907f749b6731a880b35e8b132e1b952a0e65ec65cf3635adcd2cd8ae14284f11",
+    "triggered_market": "5536533",
+    "unobserved_causes": {},
+    "unobserved_members": []
+   },
+   {
+    "both_complete": true,
+    "control_market": "3740634",
+    "counts_as": "group-disjoint mechanism execution; not an independent observation (all origins share run-level shocks)",
+    "dependence_groups": [
+     "g:3740633",
+     "g:2054223"
+    ],
+    "group_disjoint": true,
+    "group_disjoint_complete": true,
+    "state_agreement": {
+     "2054232": "agree",
+     "3740634": "agree"
+    },
+    "stratum": "6d21f2ea9f68c616b1f9ef80314bda3b34f08e21fcb615e77f93f3831192af0b",
+    "trigger_id": "9d8708f80493f4c7d96f0ea85b11ba456263d05d8fcc10fb3f2d644d181afe4e",
+    "triggered_market": "2054232",
+    "unobserved_causes": {},
+    "unobserved_members": []
+   },
+   {
+    "both_complete": true,
+    "control_market": "5538279",
+    "counts_as": "group-disjoint mechanism execution; not an independent observation (all origins share run-level shocks)",
+    "dependence_groups": [
+     "g:5227537",
+     "g:3040132"
+    ],
+    "group_disjoint": true,
+    "group_disjoint_complete": true,
+    "state_agreement": {
+     "5126899": "agree",
+     "5538279": "agree"
+    },
+    "stratum": "9eb1406e2ba457384c2d3049d3273e55303fb3bf32bc14cbcd61fecfb229e62f",
+    "trigger_id": "9516842557d5e06ad5333268c16ee561026c84248224f8c2b4848112d7f4dad3",
+    "triggered_market": "5126899",
+    "unobserved_causes": {},
+    "unobserved_members": []
+   },
+   {
+    "both_complete": true,
+    "control_market": "4642725",
+    "counts_as": "group-disjoint mechanism execution; not an independent observation (all origins share run-level shocks)",
+    "dependence_groups": [
+     "g:4642725",
+     "g:5151684"
+    ],
+    "group_disjoint": true,
+    "group_disjoint_complete": true,
+    "state_agreement": {
+     "4642725": "agree",
+     "5151687": "agree"
+    },
+    "stratum": "a158cbfdb889342c2517bdf21b4ea57bcffc1e64104db456e2ce949876a9642b",
+    "trigger_id": "ae3ab4c45262884ac1bfc2bf8730d904a32ad8f1629abd07bd400ce6be79f8b3",
+    "triggered_market": "5151687",
+    "unobserved_causes": {},
+    "unobserved_members": []
+   },
+   {
+    "both_complete": true,
+    "control_market": "1357371",
+    "counts_as": "group-disjoint mechanism execution; not an independent observation (all origins share run-level shocks)",
+    "dependence_groups": [
+     "g:1357371",
+     "g:2772166"
+    ],
+    "group_disjoint": true,
+    "group_disjoint_complete": true,
+    "state_agreement": {
+     "1357371": "agree",
+     "2772194": "agree"
+    },
+    "stratum": "e7633287d643dfdc03b041842b6299c187770d7f385173e126a4108b4af39c75",
+    "trigger_id": "3de6b970896d822d1106a372db83b1033f070d95691907e41cd496e549142dd1",
+    "triggered_market": "2772194",
+    "unobserved_causes": {},
+    "unobserved_members": []
+   },
+   {
+    "both_complete": true,
+    "control_market": "1124260",
+    "counts_as": "group-disjoint mechanism execution; not an independent observation (all origins share run-level shocks)",
+    "dependence_groups": [
+     "g:1124254",
+     "g:999108"
+    ],
+    "group_disjoint": true,
+    "group_disjoint_complete": true,
+    "state_agreement": {
+     "1124260": "agree",
+     "999108": "agree"
+    },
+    "stratum": "edbe6bb37b150ed3fc8a7fcd35a3fe3892fd26a63c8fe20246588bc053034193",
+    "trigger_id": "8ee2c78e5786c2f391261965b7d9d6fdd9fea28a3605030f11635385dbb470ab",
+    "triggered_market": "999108",
+    "unobserved_causes": {},
+    "unobserved_members": []
+   }
+  ],
+  "required_ancestor_commit": "8afbdff",
+  "roots": {
+   "activation": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_activation_d120_pairing_1",
+   "panel": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_panel_d120_pairing_1",
+   "runtime": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_runtime_d120_pairing_1",
+   "selection": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_d120_pairing_1",
+   "worker": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_screening_worker_d120_pairing_1"
+  },
+  "summary": {
+   "authenticated_state_members": 66,
+   "common_mode": [],
+   "control_scarcity_strata": 0,
+   "engineering_findings": 0,
+   "failed_gates": [],
+   "fill": "6/6",
+   "fill_ok": true,
+   "group_disjoint_complete_pairs": 6,
+   "incomplete_pair_members_data_only": false,
+   "n_activated": 12,
+   "n_screened": 71,
+   "n_triggered_members": 34,
+   "n_unavailable_members": 5,
+   "n_untriggered_members": 32,
+   "pairs_both_complete": 6,
+   "pairs_drawn": 6,
+   "pass_requires": "fill >= 0.8 with >= 4 triggers in scope and >= 3 group-disjoint complete pairs",
+   "screening_coverage": "66/71",
+   "screening_coverage_ok": true,
+   "screening_unassessable_data_reason": 5,
+   "state_agreement_counts": {
+    "agree": 12
+   },
+   "state_disagreement_note": "descriptive only: roles are fixed at screening and never relabelled; Phase 4 uses the origin_window imbalance fields",
+   "state_disagreements": 0,
+   "strata_with_trigger": 6,
+   "triggers_in_scope": 6
+  },
+  "test_override_used": [],
+  "timeline": {
+   "margins": {
+    "assessment_ages_at_activation": [
+     {
+      "assessment_age_s": 61.423071,
+      "market_id": "1124260",
+      "window_age_s": 62.707149
+     },
+     {
+      "assessment_age_s": 60.879034,
+      "market_id": "1357371",
+      "window_age_s": 62.459102
+     },
+     {
+      "assessment_age_s": 61.440925,
+      "market_id": "2054232",
+      "window_age_s": 62.791776
+     },
+     {
+      "assessment_age_s": 58.484651,
+      "market_id": "2772194",
+      "window_age_s": 59.856083
+     },
+     {
+      "assessment_age_s": 56.024671,
+      "market_id": "3740634",
+      "window_age_s": 57.530527
+     },
+     {
+      "assessment_age_s": 53.091015,
+      "market_id": "4642725",
+      "window_age_s": 54.548809
+     },
+     {
+      "assessment_age_s": 49.924815,
+      "market_id": "5126899",
+      "window_age_s": 51.525979
+     },
+     {
+      "assessment_age_s": 49.939938,
+      "market_id": "5151687",
+      "window_age_s": 51.577942
+     },
+     {
+      "assessment_age_s": 43.596631,
+      "market_id": "5536533",
+      "window_age_s": 45.090845
+     },
+     {
+      "assessment_age_s": 41.148533,
+      "market_id": "5538279",
+      "window_age_s": 42.120629
+     },
+     {
+      "assessment_age_s": 40.328744,
+      "market_id": "5540816",
+      "window_age_s": 41.854139
+     },
+     {
+      "assessment_age_s": 38.838762,
+      "market_id": "999108",
+      "window_age_s": 39.354886
+     }
+    ],
+    "assessment_limits_s": {
+     "assessment": 120,
+     "window": 120
+    },
+    "binding_age_at_subscription": [
+     {
+      "binding_age_at_subscription_s": 2.993549,
+      "market_id": "1124260"
+     },
+     {
+      "binding_age_at_subscription_s": 2.586751,
+      "market_id": "1357371"
+     },
+     {
+      "binding_age_at_subscription_s": 2.91166,
+      "market_id": "2054232"
+     },
+     {
+      "binding_age_at_subscription_s": 2.692131,
+      "market_id": "2772194"
+     },
+     {
+      "binding_age_at_subscription_s": 2.590875,
+      "market_id": "3740634"
+     },
+     {
+      "binding_age_at_subscription_s": 2.79823,
+      "market_id": "4642725"
+     },
+     {
+      "binding_age_at_subscription_s": 2.598862,
+      "market_id": "5126899"
+     },
+     {
+      "binding_age_at_subscription_s": 2.744547,
+      "market_id": "5151687"
+     },
+     {
+      "binding_age_at_subscription_s": 2.925317,
+      "market_id": "5536533"
+     },
+     {
+      "binding_age_at_subscription_s": 0.840991,
+      "market_id": "5538279"
+     },
+     {
+      "binding_age_at_subscription_s": 0.915111,
+      "market_id": "5540816"
+     },
+     {
+      "binding_age_at_subscription_s": 0.985596,
+      "market_id": "999108"
+     }
+    ],
+    "frame_age_margin_at_activation_ack_s": 2963.13958,
+    "screening_s": 28.273191,
+    "window_age_at_freeze": [
+     {
+      "market_id": "1124260",
+      "window_age_at_freeze_s": 26.751168
+     },
+     {
+      "market_id": "1357371",
+      "window_age_at_freeze_s": 23.654196
+     },
+     {
+      "market_id": "2054232",
+      "window_age_at_freeze_s": 26.934115
+     },
+     {
+      "market_id": "2772194",
+      "window_age_at_freeze_s": 24.213544
+     },
+     {
+      "market_id": "3740634",
+      "window_age_at_freeze_s": 23.781642
+     },
+     {
+      "market_id": "4642725",
+      "window_age_at_freeze_s": 26.88445
+     },
+     {
+      "market_id": "5126899",
+      "window_age_at_freeze_s": 23.171112
+     },
+     {
+      "market_id": "5151687",
+      "window_age_at_freeze_s": 28.103298
+     },
+     {
+      "market_id": "5536533",
+      "window_age_at_freeze_s": 9.60236
+     },
+     {
+      "market_id": "5538279",
+      "window_age_at_freeze_s": 6.43825
+     },
+     {
+      "market_id": "5540816",
+      "window_age_at_freeze_s": 10.449624
+     },
+     {
+      "market_id": "999108",
+      "window_age_at_freeze_s": 6.582058
+     }
+    ]
+   },
+   "note": "estimates of measured clocks; frame age (fail-closed) is the real bound",
+   "seconds_after_interval_start": {
+    "activation_acknowledged_at": 636.86042,
+    "activation_read_completed_at": 636.85408,
+    "frame_available_at": 226.192986,
+    "interval_end": 178.800257,
+    "interval_start": 0.0,
+    "panel_declared_at": 322.131334,
+    "runtime_declared_at": 636.829609,
+    "runtime_finished_at": 721.90091,
+    "screening_available_at": 601.513106,
+    "screening_cutoff": 598.589868,
+    "screening_declared_at": 573.239915,
+    "selection_computed_at": 447.302708,
+    "selection_cutoff": 437.866531,
+    "selection_declared_at": 322.149142,
+    "worker_declared_at": 509.479505,
+    "worker_reported_at": 868.166316
+   }
+  }
+ }
+}

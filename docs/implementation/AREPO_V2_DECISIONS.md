@@ -934,3 +934,15 @@ request. See docs/AREPO_V2_CHECKPOINT.md for live state. No numbered D-entry is 
   - **Still not licensed:** triggered-vs-control effect contrasts, claims about control availability, and transfer to other populations.
   - Pair 1 is very probably sibling markets.
 - **Phase 4 rule.** Any trigger-vs-control study needs its own registered design. That design must address control availability (5 of 7 triggers had no control) and pair dependence.
+
+## D120 / D121 — Group-disjoint control pairing validated live (mechanism); reliability untested (2026-10-11)
+
+- **D120 ran once live** (2026-10-11 14:47-15:02Z, frozen at `04e71ea`, launch from `47375bc`). The authoritative outcome was **PASS**:
+  - fill 6/6 with 6 triggers in scope and 6 group-disjoint complete pairs;
+  - E0-E9 passed, with 0 engineering findings (5 DATA_SOURCE: one-sided books at screening);
+  - 71 screened, 6 triggered and 6 control activated, 12/12 role states agree.
+  - Evidence: `PHASE_03_D120_EVIDENCE.json`. Disclosures: `d120/D120_ADDENDUM.md`. Challenger review: PASS_WITH_CAVEATS.
+- **D121.** The D119 scope is extended: screen-then-activate group-disjoint pairing works live across categories (weather, politics, sports, economics).
+  - **Still not licensed:** triggered-vs-control effect contrasts, fill-reliability claims (one run only), and economic independence (the economics pair shares a driver; `economic_group_status` is unresolved).
+  - Open item: the unexplained `verified_synthetic_runtime` recovery label next to `prospective` provenance.
+- **Phase 4 rule.** An effect study needs repeated runs, or a design that tolerates control scarcity, plus economic-linkage handling.

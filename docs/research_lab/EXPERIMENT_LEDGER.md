@@ -654,3 +654,8 @@ E007 dev_fit.json sha256: 7e2c4f79079ced0c74ad1899cfb3536e71f97385c499d9730dd620
 - **By category at 1d (descriptive, no category excluded):** sports (n=1,274) slope 1.00 [0.85, 1.19], intercept +0.03; crypto (239) 1.13 [0.80, 2.51]; science/weather (307) 1.52 [1.14, 2.24] with low prices (mean 0.13); economy (57) and politics (72) too small and wide. culture, tech and geopolitics have fewer than 12 each and are not estimated. Yes/No-only (977): slope 1.14 [0.96, 1.38], intercept +0.21 [-0.06, +0.50].
 - **Reading:** at 1 day before resolution, prices are close to calibrated as a population; the only 1d subgroup signals are the 100k+ volume band (slope below 1) and science/weather (slope above 1), both exploratory. At 7d there is an outcome-0 overpricing that needs the anchor and price-definition artefacts ruled out before any interpretation. This is retrospective backfill and says nothing about tradability.
 - **Outputs:** `data-dumps/research_lab/calibration/calibration-c1-20261011/` (`sample_plan.json.gz`, `market_rows.jsonl`, `results.json`; gitignored). Trial entry in `trials.jsonl` (`kind: calibration_study_c1`).
+
+### D120 live control pairing (Phase 3, mechanism only; 2026-10-11)
+
+- D120 passed (authoritative, PASS_WITH_CAVEATS): 6/6 group-disjoint complete pairs, 0 engineering findings, one run. It validates the pairing mechanism only. It is not an effect result, says nothing about fill reliability, and does not establish economic independence of pairs.
+- Evidence: `docs/implementation/PHASE_03_D120_EVIDENCE.json`; disclosures: `docs/implementation/d120/D120_ADDENDUM.md`; decision D120 / D121 in `AREPO_V2_DECISIONS.md`.
