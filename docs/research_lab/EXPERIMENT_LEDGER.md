@@ -8,10 +8,11 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 | ID | Status | Question | Result summary |
 |---|---|---|---|
 | E001 | COMPLETE (exploratory) | Do price/momentum/context fields in Gamma full-universe snapshots predict repricing by the next snapshot, beyond no-change? | 1h-change model *Indicative (exploratory)*: R2_oos +0.037, positive in 4/4 periods; the fitted sign is **reversal** (about -0.3). Others inconclusive. No edge claim. |
-| E002 | REGISTERED (pre-outcome) | Does the E001 1h-change reversal hold prospectively on new full-universe snapshots, using a frozen coefficient? | pending |
+| E002 | COMPLETE — **Confirmed (exploratory, prospective)** | Does the E001 1h-change reversal hold prospectively on new full-universe snapshots, using a frozen coefficient? | R2_oos +0.026 [+0.005,+0.046]; slope -0.21 [-0.25,-0.17]; 40,436 markets, 9,967 events, horizon 4.9h; only ~2% of forecasts exceed half the spread |
 | E003 | COMPLETE (exploratory) | Does top-of-book imbalance or microprice displacement (H08/H09) predict the next few minutes of midpoint repricing, beyond no-change and the 1h reversal? | H08 and H09 **inconclusive** (R2 about 0). The combined model beats reversal-only (+0.031 [+0.011,+0.049]), but only in wide-spread markets; the gain comes from spread/intercept drift, not imbalance. No edge claim. |
 | E004 | REGISTERED (pre-outcome) | Does the frozen 1h reversal hold over 12 consecutive prospective periods (event-clustered), and does it survive crossing the spread? | pending |
 | E005 | REGISTERED (pre-outcome) | In neg-risk groups, does a market's deviation from its arbitrage band (from siblings' bids/asks) predict repricing beyond the frozen reversal? | pending |
+| E006 | REGISTERED (pre-outcome) | Is the 1h reversal moderated by liquidity (H1) or by time-to-end (H2), with centred interactions and a scale-free test? | pending |
 
 ---
 
@@ -388,3 +389,90 @@ criteria are unchanged.
 - **Per-period inference:** `per_period_test` runs a t-test and exact sign test across time blocks. At 4 periods (df 3) the sign test cannot reach p<0.05 (floor: 6 periods), and the t-interval is very wide.
 - **Assumptions:** normal approximation, independent clusters, and independent periods. Time dependence between clusters is not modelled.
 - **Not evidence:** the numbers are not findings and make no edge claim.
+
+
+### E002 result (scored once, 2026-10-11 ~00:25Z; `data-dumps/research_lab/e002/results.json`)
+- **Pair:** `20261010T192208Z_db7c7287` -> `20261011T001707Z_c0f0fb92`, a 4.92h gap. The first post-crash attempt
+  (`20261011T001311Z_80cc2683`) ended `incomplete:http_403` after 1,311 pages and was ignored by rule. A
+  retry is an availability-only event.
+- **Logged-forecast check:** passed. 40,688 compared, 0 scored without a logged forecast.
+- **Primary:** `R2_oos` = **+0.0265** [+0.0054, +0.0458]. Through-origin slope = **-0.212** [-0.252, -0.174], market-clustered as registered.
+  - **Verdict: Confirmed (exploratory, prospective).**
+- **Descriptive:**
+  - Slope with intercept: -0.205.
+  - Slope by spread tercile: low -0.12 [-0.24, -0.04]; mid -0.13; high -0.26.
+  - Slope by log-liquidity tercile: low -0.26, mid -0.04, high -0.22 (wide CI).
+  - |dmid_hat| > half-spread for only **2.0%** of eligible pairs.
+- **Interpretation:**
+  - A reversal of about 21% of the Gamma 1h change held on unseen data at about 5h. It is present even in tight-spread markets.
+  - Magnitude is about 2/3 of the dev fit.
+  - This is a single time period, and quote noise alone predicts a negative slope.
+  - Executable value is not shown: forecasts rarely exceed the half-spread.
+  - **Not edge.** E004 tests 11 periods and touch-to-touch execution.
+
+---
+
+## E006 — Reversal moderation by liquidity (H1) and time-to-end (H2)
+
+- **Registered:** 2026-10-11, before any E004-qualifying snapshot exists.
+- **Origin:** the 6-variant development screen (`a3cb9cf`; trials in `trials.jsonl`). The spec below is the challenger's, adopted verbatim.
+- **Disclosures:**
+  - The lead saw E002's descriptive liquidity-tercile slopes (non-monotone) before registering. E002 data are not part of E006's confirmation set.
+  - The dev effects are winner's-curse-inflated: 2 of 6 variants were kept from 18 contrasts.
+  - The pre-listing of the 6 variants cannot be verified from git.
+- **Data:** the E004-qualifying snapshots (12 snapshots, 11 periods), using E004's eligibility, target, collection-continuation and crash rules unchanged.
+  - E004 and E005 are untouched. Results share data with them and are correlated.
+- **Baseline R (frozen, E005 v2):** `R_hat = a + s*spread_i - 0.331610*chg_1h`, with `a` and `s` from `data-dumps/research_lab/e005/dev_fit.json`.
+- **Moderators:**
+  - `z2 = chg_1h*(log_liq - m_L)`
+  - `z4 = chg_1h*(log_hours_to_end - m_H)`
+  - `m_L` and `m_H` are dev means over pairs with observed `chg_1h`, frozen at 6 significant figures.
+- **Missing values:**
+  - Missing `chg_1h` gives z = 0 (kept, contributes nothing). Report n_eff (pairs) and K_eff (events) with observed `chg_1h`.
+  - Missing liquidity: excluded from H1 and counted.
+  - `end_unknown=1`: excluded from H2 and counted.
+- **Frozen predictive models:** `M_k = R_hat + b_k*z_k`.
+  - `b_k` is a through-origin OLS of `(dmid - R_hat)` on `z_k`, fitted on all `dev_snapshots_v2` pairs.
+  - Commit `b_k`, counts and corr(chg_1h, z_k) on dev before any E004 outcome is computed. No ridge and no refitting.
+- **Hypotheses (Holm, family α = 0.05):**
+  - H1 (v2): the liquidity moderator has the sign of `b_2`.
+  - H2 (v4): the time-to-end moderator has the sign of `b_4`.
+- **Primary statistic (scale-free):**
+  - On confirmation data, fit a through-origin OLS of `(dmid - R_hat)` on `[chg_1h, z_k]`.
+  - θ_k is the coefficient on `z_k`. The free `chg_1h` term absorbs horizon rescaling of the reversal.
+  - Event-clustered bootstrap: 1,000 resamples, seed 116, falling back to market_id (counted). Two-sided p-value, then Holm.
+- **Secondaries (reported, do not decide the verdict):**
+  - S1: `ΔR2_k = 1 - SSE(M_k)/SSE(R)` with its event-clustered CI. This asks whether the frozen magnitudes transfer to ~2h.
+  - S2: θ_k/γ, where γ is the fitted `chg_1h` coefficient.
+  - S3: target-unavailable rate by liquidity tercile.
+- **v4 guard (required for H2 Supported):**
+  - θ_4 keeps its sign, with a Holm-level CI excluding 0, in the augmented regression `[chg_1h, z4, chg_1h*(spread - m_S), (log_hours_to_end - m_H)]`. `m_S` is frozen from dev.
+  - The same augmented regression is run for H1 as a disclosed secondary, because corr(log_liq, spread) = -0.535 on dev.
+- **Period consistency:**
+  - θ_k must have the predicted sign in at least 7 of 11 periods.
+  - Disclosure: 11 consecutive ~2h periods span about 1 calendar day, which is 1-2 independent time blocks. P(≥7/11 | coin) = 0.27, so this is a consistency check, not a test. The bootstrap does not capture day-wide shocks.
+- **Verdict per hypothesis:**
+  - **Supported (exploratory, prospective):** Holm-rejected in the predicted direction, consistency met, and (H2 only) guard met.
+  - **Supported and transferable:** additionally, the S1 CI is above 0.
+  - **Not supported:** θ_k point estimate at or below 0 in the predicted direction.
+  - **Inconclusive:** otherwise.
+- **Unavailable (no verdict):**
+  - E004 is unavailable;
+  - n_eff < 2,000 or K_eff < 500 for a hypothesis;
+  - fewer than 9 periods with any observed `chg_1h`;
+  - the frozen spec hash differs from the registration commit.
+  - **Pending** until 12 snapshots qualify. **Failed:** runtime errors, logged in `trials.jsonl`.
+- **MDE (M2 logic, S1 only):**
+  - `MDE = 3.083*sd_c/sqrt(K_eff)`.
+  - Dev sd_c: v2 0.0947, v4 0.166.
+  - At K_eff = 3,000: v2 0.0053, v4 0.0093. At 6,000: v2 0.0038, v4 0.0066.
+  - The dev effects (+0.0038 and +0.0086) are selection-inflated. **H1 is likely underpowered on S1.** sd_c is probably larger at short horizons.
+  - There is no slope-MDE tool for θ yet.
+- **Dev-screen defects carried as disclosures:**
+  - The original interactions were uncentred, with corr about 0.96 with `chg_1h`. Fixed here by centring.
+  - 75% of dev pairs lack `chg_1h`.
+  - The two short-horizon dev periods were mixed.
+  - Use the B1h_r reference only.
+  - Unknown end dates were coded as hours = 0 in dev; excluded here.
+  - Possible survivorship linked to liquidity.
+- **Non-claims:** no edge, profitability, calibration or causal claim. No execution stage. This tests moderation of a reversal partly predicted by quote noise. It is not independent of E004 or E005.
