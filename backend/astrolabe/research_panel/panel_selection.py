@@ -9,9 +9,17 @@ from astrolabe.feature_store.admission import content_hash
 from astrolabe.feature_store.capture import _clock, _json_bytes
 from astrolabe.feature_store.source_bridge import _time
 from astrolabe.feature_store.source_run import _ordered_clocks, _pair
+from astrolabe.feature_store.types import exact_decimal
 
 from .assessments import TriggerAssessmentPolicy
-from .panel_declaration import TEMPORAL_POPULATION, PanelProtocol, read_panel_declaration
+from .panel_declaration import (
+    LIQUIDITY_FLOOR,
+    LIQUIDITY_POPULATION,
+    POPULATIONS,
+    TEMPORAL_POPULATION,
+    PanelProtocol,
+    read_panel_declaration,
+)
 from .sampling import plan_sample
 from .selection import POLICY as LEGACY_POLICY
 from .selection import SelectionBudget, _canonical, _create_selection, _protocol
@@ -19,16 +27,20 @@ from .selection import SelectionBudget, _canonical, _create_selection, _protocol
 VERSION = 'fs2-panel-selection-v1'
 BOUNDED_VERSION = 'fs2-panel-selection-v2'
 TEMPORAL_VERSION = 'fs2-panel-selection-v3'
-VERSIONS = {VERSION, BOUNDED_VERSION, TEMPORAL_VERSION}
+LIQUIDITY_VERSION = 'fs2-panel-selection-v4'
+VERSIONS = {VERSION, BOUNDED_VERSION, TEMPORAL_VERSION, LIQUIDITY_VERSION}
+LIQUIDITY_UNKNOWN = 'frame_gamma_liquidity_missing_or_invalid'
+LIQUIDITY_BELOW = 'frame_gamma_liquidity_below_1000'
 
 
 def _version(value):
     population = value.get('population_policy')
-    if population not in (None, TEMPORAL_POPULATION) or (
+    if population not in POPULATIONS or (
         'population_policy' in value and population is None
     ):
         raise ValueError('unknown prospective population policy')
-    return (TEMPORAL_VERSION if population is not None else
+    return (LIQUIDITY_VERSION if population == LIQUIDITY_POPULATION else
+            TEMPORAL_VERSION if population is not None else
             BOUNDED_VERSION if 'strata_limit' in value else VERSION)
 ASSESSMENTS = {'version': 'fs2-no-measured-assessments-v1',
                'state': 'not_assessed', 'reason': 'not_assessed',
@@ -157,16 +169,20 @@ def bound_plan(policy, members, cutoff, original_hash, inventory_hash):
     assessment = TriggerAssessmentPolicy(
         trigger_policy_hash=content_hash(ASSESSMENTS), declared_at=_time(policy['declared_at']),
         max_window_age_seconds=0, max_assessment_age_seconds=0)
-    temporal = policy.get('population_policy') == TEMPORAL_POPULATION
+    liquid = policy.get('population_policy') == LIQUIDITY_POPULATION
+    temporal = liquid or policy.get('population_policy') == TEMPORAL_POPULATION
     if temporal:
         # Members retain the close band computed from original metadata at the actual
         # selection declaration, before its numerical reads; never use later outcomes.
         members = [replace(m, eligible=False,
                            exclusion_reason='scheduled_end_at_or_before_selection_declaration')
                    if m.eligible and m.close_stratum == 'past' else m for m in members]
+    if liquid:
+        members = _liquidity_scope(policy, members)
     plan = plan_sample(
         _protocol(policy), members, cutoff=_time(cutoff),
-        frame_scope=('mapped Gamma rows with scheduled end after selection declaration or unknown; '
+        frame_scope=(LIQUIDITY_SCOPE if liquid else
+                     'mapped Gamma rows with scheduled end after selection declaration or unknown; '
                      'complete discovery inventory retained; not a claim of active trading'
                      if temporal else
                      'eligible mapped Gamma rows in the preserved complete source interval'),
@@ -182,7 +198,8 @@ def bound_plan(policy, members, cutoff, original_hash, inventory_hash):
     inventory = plan.pop('assessment_inventory')
     plan.pop('plan_hash')
     plan.update(
-        schema_version=('fs2-panel-selection-plan-v3' if temporal else
+        schema_version=('fs2-panel-selection-plan-v4' if liquid else
+                        'fs2-panel-selection-plan-v3' if temporal else
                         'fs2-panel-selection-plan-v2' if 'strata_limit' in policy
                         else 'fs2-panel-selection-plan-v1'),
         assessment_inventory_encoding={
@@ -194,10 +211,39 @@ def bound_plan(policy, members, cutoff, original_hash, inventory_hash):
         collection_enabled=False, accepted_panel=False,
     )
     if temporal:
-        plan['population_policy'] = TEMPORAL_POPULATION
+        plan['population_policy'] = policy['population_policy']
         plan['population_reference_at'] = policy['declared_at']
         plan['selection_eligible_member_count'] = sum(m.eligible for m in members)
+    if liquid:
+        plan['liquidity_floor'] = LIQUIDITY_FLOOR
+        plan['liquidity_source'] = LIQUIDITY_SOURCE
+        plan['population_exclusion_counts'] = dict(sorted(
+            Counter(m.exclusion_reason for m in members if not m.eligible).items()))
     return {**plan, 'plan_hash': content_hash(plan)}
+
+
+LIQUIDITY_SCOPE = ('mapped Gamma rows with scheduled end after selection declaration or unknown '
+                   'and original-frame Gamma liquidity at least 1000; complete discovery '
+                   'inventory retained; liquidity is frame metadata, not an executable book; '
+                   'not a claim of active trading')
+LIQUIDITY_SOURCE = ('Gamma market row field liquidity in the original complete frame page '
+                    '(metadata.py), read before selection numerical reads; never re-fetched')
+
+
+def _liquidity_scope(policy, members):
+    # The floor is the first predeclared sampling liquidity edge, so the retained population is
+    # exactly the liquidity bands 1..3. Missing/invalid liquidity is excluded, never imputed.
+    if _protocol(policy).liquidity_edges[0] != LIQUIDITY_FLOOR:
+        raise ValueError('liquidity floor must equal the first frozen liquidity edge')
+    floor = exact_decimal(LIQUIDITY_FLOOR)
+    scoped = []
+    for m in members:
+        if m.eligible and m.liquidity is None:
+            m = replace(m, eligible=False, exclusion_reason=LIQUIDITY_UNKNOWN)
+        elif m.eligible and exact_decimal(m.liquidity) < floor:
+            m = replace(m, eligible=False, exclusion_reason=LIQUIDITY_BELOW)
+        scoped.append(m)
+    return scoped
 
 
 def status(original):

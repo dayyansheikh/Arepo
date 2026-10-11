@@ -21,6 +21,13 @@ COMPACT_VERSION = 'fs2-panel-declaration-v2'
 BOUNDED_VERSION = 'fs2-panel-declaration-v3'
 TEMPORAL_VERSION = 'fs2-panel-declaration-v4'
 TEMPORAL_POPULATION = 'scheduled_end_after_selection_declaration_or_unknown_v1'
+# D118: the temporal population intersected with Gamma `liquidity` >= the first predeclared
+# sampling liquidity edge, read from the original frame row (pre-t0 frame metadata).
+LIQUIDITY_VERSION = 'fs2-panel-declaration-v5'
+LIQUIDITY_FLOOR = '1000'
+LIQUIDITY_POPULATION = ('scheduled_end_after_selection_declaration_or_unknown'
+                        '_and_frame_gamma_liquidity_at_least_1000_v1')
+POPULATIONS = (None, TEMPORAL_POPULATION, LIQUIDITY_POPULATION)
 MIB = 1048576
 FIXED = {'selection_bytes': 1024 * MIB, 'frame_read_bytes': 16 * MIB,
          'declaration_bytes': MIB, 'free_reserve_bytes': 2048 * MIB,
@@ -164,9 +171,10 @@ def declare_panel(frame_root, *, implementation_commit, output_root, protocol,
     frame, root = _paths(frame_root, output_root, implementation_commit)
     allocation = reservation(protocol, storage_profile=storage_profile)
     _stratum_limit(protocol, strata_limit)
-    if population_policy not in (None, TEMPORAL_POPULATION):
+    if population_policy not in POPULATIONS:
         raise ValueError('unknown prospective population policy')
-    version = (TEMPORAL_VERSION if population_policy is not None else
+    version = (LIQUIDITY_VERSION if population_policy == LIQUIDITY_POPULATION else
+               TEMPORAL_VERSION if population_policy is not None else
                BOUNDED_VERSION if strata_limit is not None else
                VERSION if storage_profile is None else COMPACT_VERSION)
     if not frame.is_dir():
@@ -218,11 +226,12 @@ def read_panel_declaration(output_root):
     limit = payload.get('strata_limit')
     _stratum_limit(protocol, limit)
     population = payload.get('population_policy')
-    if population not in (None, TEMPORAL_POPULATION) or (
+    if population not in POPULATIONS or (
         'population_policy' in payload and population is None
     ):
         raise ValueError('unknown prospective population policy')
-    version = (TEMPORAL_VERSION if population is not None else
+    version = (LIQUIDITY_VERSION if population == LIQUIDITY_POPULATION else
+               TEMPORAL_VERSION if population is not None else
                BOUNDED_VERSION if limit is not None else
                VERSION if profile is None else COMPACT_VERSION)
     seed = payload['sampling_recipe']['seed']
