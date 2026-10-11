@@ -91,10 +91,11 @@ permutation importance, fold-to-fold rank stability, and agreement across regime
    A regime effect is a stable sign/size difference across folds, not a single split that looks good.
 
 **Search budget and multiple testing.**
-- **One programme-wide revision budget (chosen rule).** The design §3 cap of ≤ 3 feature-set revisions after the
-  first MC1 dev run is shared by every discovery cycle, not reset per cycle. Adding a family (flow, wallet, own
-  history, new targets) to MC1 counts as one revision. Also kept: one arm selection, one τ selection per arm.
-  When the budget is spent, further screening needs a new registered design with its own budget.
+- **Revision budget per data window (hybrid rule).** The design §3 cap of ≤ 3 feature-set revisions after the
+  first dev run applies to any given development data window, across all cycles that screen it. Adding a family
+  (flow, wallet, own history, new targets) to MC1 counts as one revision. A new budget of 3 is available **only**
+  to a cycle that screens exclusively on rows dated after the last row screened by any previous cycle (fresh
+  data). Also kept: one arm selection, one τ selection per arm.
 - **Cumulative accounting.** The trial count and the BY denominator accumulate across all discovery cycles since
   the first MC1 dev run. Development screens produce rankings and triage labels, never claims. Every attempt
   (feature, interaction, threshold, regime, horizon) is a `trials.jsonl` line; the cumulative trial count is
@@ -187,7 +188,7 @@ spot/IV, then GDELT, then Kalshi.
 1. Land agents (a)-(d) with tests; register their features under declared families (`ml_flow`, `ml_wallet`)
    and their targets under versioned names; nothing enters the MC1 feature set retroactively.
 2. `science-reviewer` pass on §3: ACCEPT_WITH_CHANGES, changes applied. Add a ledger methods note (M3) adopting
-   the ladder, programme-wide budget and BY triage. Code task (later, not docs): enforce required `evidence_role`
+   the ladder, per-window revision budget (fresh data resets it), cumulative trial count and BY triage. Code task (later, not docs): enforce required `evidence_role`
    in manifests and `trials.jsonl` for new ML/history kinds, and the L4 role check in confirmation scoring.
 3. MC1 development run (`scripts/run_ml_dev.py`, gate ~14-15 Oct): all arms, family ablations, SHAP, placebos;
    ranks tier-(a) families (L1/L2).
