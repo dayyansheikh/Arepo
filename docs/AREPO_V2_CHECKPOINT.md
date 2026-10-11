@@ -54,7 +54,7 @@ Edge search now goes through combined models plus SHAP, not a chain of single E-
 - Evidence `PHASE_03_D120_EVIDENCE.json`, addendum `d120/D120_ADDENDUM.md`, decision D120/D121 (86004ed).
 
 ## Hourly update job
-Cron `dbea28e0` fires only when the session is idle, so run the update manually if it is missed. Gmail is unavailable in this session; updates go out as push notifications. Stop after 23:59 UTC+1 with a final push.
+Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` deleted).
 
 ## Exact next actions
 1. When pass 8 completes: run the loop steps above.
