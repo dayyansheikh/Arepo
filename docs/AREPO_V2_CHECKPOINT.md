@@ -1,36 +1,37 @@
 # AREPO v2 live checkpoint
 
-**PHASE 3 IS PROVISIONAL** (D115 withdrew the Oct 10 closeout). It closes only through D116. Two tracks run
-(D115 item 6): Track A covers forecasting tools and exploratory or prospective experiments, with no edge claims. Track B is D116.
-Prior text is in `docs/history/AREPO_V2_CHECKPOINT_HISTORY.md`. The user dashboard is `docs/AREPO_PROGRESS_PLAIN_ENGLISH.md`.
+**PHASE 3 CLOSED WITH LIMITATION (D117, 2026-10-11)** via D116 (`PASS_WITH_LIMITATION:no_eligible_untriggered`,
+authoritative, E0–E9 pass, 0 engineering findings). Live control pairing remains unvalidated, so there are no
+triggered-vs-control contrasts until a frozen design shows a non-zero control pool. See `implementation/PHASE_03_D116_ADDENDUM.md`.
+**PHASE 4 IN PROGRESS** (`implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md`, refreshed).
+User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`. History: `history/AREPO_V2_CHECKPOINT_HISTORY.md`.
 
-- **Repo and branch:** /Users/DayyanSheikh/Projects/astrolabe, branch `chore/arepo-claude-setup` (pushed).
-  - Production `arepo-free-production-v1` at `e50f063` is untouched.
-  - Draft PRs #13-#16 are unmerged.
-- **Crash recovery (2026-10-11):**
-  - The Mac crashed at about 23:00 UTC+1 on 10-10 from memory exhaustion. Last persisted work: `e5c0f05` at 22:57 UTC+1, all pushed, so nothing was lost.
-  - The scheduled E002 outcome capture and the E004 loop never ran. Research-lab data verified intact (gzip, JSON, SQLite copy).
-  - The SD-card copy made after the crash is **partial and unverified**. It is NOT a backup.
-- **Track B, D116:**
-  - **FROZEN** (`docs/implementation/PHASE_03_D116_FREEZE_RECORD.md`, `5b02d28`), with protocol plus `d116-evaluator-v3` hashes, after 3 Opus reviews.
-  - Launch is blocked by storage: about 13.3 GB + 1 GiB margin is needed and about 9.6 GiB is free.
-  - The remedy is exact-byte compression (`backend/scripts/storage_compress_exact.py`) in a **user storage session** (`AREPO_RETIREMENT_SESSION=1`, never set by Claude), after a verified backup.
-- **Track A** (ledger `docs/research_lab/EXPERIMENT_LEDGER.md`, trial log `docs/research_lab/trials.jsonl`):
-  - **E001:** exploratory reversal, about -0.33 on the Gamma 1h change.
-  - **E002:** frozen reversal. Forecasts logged at 19:22Z. The outcome capture was taken 2026-10-11 ~00:15Z after the crash (≥3h rule intact), then scored.
-  - **E003:** H08/H09 inconclusive. Combined-model gain only in wide spreads.
-  - **E004:** pre-registered 12-snapshot reversal test plus a touch-to-touch execution check.
-  - **E005:** neg-risk arbitrage-band consistency, amendment v2; the dev fit has b<0.
-  - **Tools:** collector, book sweep, forecast log/scorer, comparison pipeline with provenance, trade sampler (not run live), Research Lab page/API (not deployed).
-- **Strategy input:** `docs/research/2026-10-10-architecture/`.
-  - Adopted: provenance and trial log.
-  - Deferred until E004/E005 are scored: Parquet, collector metadata, e003/e004 dedup.
-- **Concurrency:** another Claude session (architecture/historical-data research) commits docs to this branch too (e.g. `09f82ca`); commit only own files, never reset.
-- **Safeguard:** if swap use exceeds 5500 MB, a command times out, or the Mac is unresponsive, stop launching jobs, wait and tell the user. Run one heavy job at a time.
-- **Evidence boundary:** D082/D094/D097/D114 outcomes are unchanged, never pooled, never used as model data.
+- **Repo and branch:** branch `chore/arepo-claude-setup`, pushed.
+  - Production `arepo-free-production-v1@e50f063` is untouched.
+  - The wording-fix branch `copy/honest-baseline-wording` (local worktree) is parked by the user until a model exists.
+- **D116:**
+  - Evidence: `implementation/PHASE_03_D116_EVIDENCE.json` (immutable).
+  - The addendum lists the protected roots, including frame journal `fs2_capture_583d0107…` and `fs2_frame_read_c4189356…`.
+  - Launched with wrapper `backend/scripts/d116_launch.py` at commit `de934f3`.
+- **Data backup:**
+  - Private repo `dayyansheikh/arepo-data`, release `data-20261011`: `data-dumps/` as of about 01:00Z (21 GB) compressed to a 2.88 GB zstd tar in 2 parts, plus `MANIFEST.sha256` and `files.sha256` for every file.
+  - Local archive copy is in `~/arepo_data_archive/20261011/`.
+  - Remote digest verification is in progress or completed; see the dashboard.
+  - The SD-card copy is partial and unverified.
+  - A physical backup is parked by the user.
+- **Disk:** about 19 GiB free after D116 and the archive. Compression is optional; it needs a user session (`AREPO_RETIREMENT_SESSION=1`) and was not done.
+- **Experiments** (ledger `research_lab/EXPERIMENT_LEDGER.md`; trials `research_lab/trials.jsonl`):
+  - E001: exploratory reversal.
+  - **E002: Confirmed (exploratory, prospective).** R2_oos +0.026, slope -0.21, about 2% of forecasts beat half the spread.
+  - E003: H08/H09 inconclusive.
+  - E004/E005/E006: 2-hourly loop under way, needing 12 qualifying snapshots. Pass 1 was 00:24Z; passes run via the scratchpad `pass.sh`, each as its own background job.
+  - E006: centred moderators, with H1 weakly identified (disclosed).
+- **Tools (research lab):** collector, book sweep, trade sampler (not yet run live), forecast log/scorer, comparison pipeline with provenance, power/MDE, columnar writer (not wired in), dev-screen features.
+- **Product:** Research Lab page v2 (open lab notebook), not deployed.
+- **Memory rule:** never run two multi-GB jobs at once; otherwise full pace.
+- **Concurrency:** other Claude sessions on this machine may commit docs. Commit only your own files.
 
 **Exact next action:**
-1. Score E002 once (`backend/scripts/run_forecast.py score-e002`).
-2. Start the E004 2-hourly loop: 12 qualifying snapshots plus forecast logging, with the swap guard.
-3. Score E004 and E005 when 12 snapshots exist.
-4. User decisions: verified backup destination, storage session, and production wording sign-off.
+1. Confirm the arepo-data upload verification.
+2. After each loop pass, run a development trade-flow sample (`backend/scripts/sample_trades.py`) right after the snapshot. Screen flow features on dev data, then register an experiment.
+3. Score E004, E005 and E006 at 12 snapshots.
