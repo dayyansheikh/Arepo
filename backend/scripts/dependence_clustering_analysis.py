@@ -13,6 +13,12 @@ Inputs, read one at a time and only the needed columns (peak RSS about 0.6 GB):
   created in between have no parent information and are counted);
 * three consecutive complete snapshots, i.e. two 2h periods (gap 1.5-3h, as ``ml_panel``).
 
+Non-sports links (section 8 of the doc): a deterministic dictionary/regex entity extractor on event
+titles (economy/central bank, crypto and finance assets, AI/media organisations, named people,
+geopolitical theatres, weather city, US elections), resolution-source domain and end timestamp,
+tested within fee category over ``fixture_day`` clusters. Gamma tags are absent from the snapshot
+rows, the sidecar and the ``/markets/keyset`` payload (counted, not assumed).
+
 Group definitions are built with ``pairing.dependence_groups`` (imported, never reimplemented);
 the ``season_series`` definition is asserted equal to ``ml_panel.dependence_group_ids``.
 
@@ -24,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -63,6 +70,99 @@ DEFS = {
 }
 
 
+NON_SPORTS = ["politics", "economics", "finance", "crypto", "weather", "tech", "culture", "unknown"]
+D120_ECON_PAIR = ("999108", "1124260")  # D120 economics trigger/control (ECB cut / EZ inflation)
+# Deterministic entity table on lower-cased event titles: first match wins (most specific first).
+_ECON = [
+    ("econ:EA", r"\b(ecb|european central bank|eurozone|euro area|euro zone|eurostat|lagarde)\b"),
+    ("econ:US", r"\b(fed|fomc|federal reserve|powell|us cpi|us inflation|us gdp|us unemployment|"
+                r"nonfarm|payrolls|treasury|us recession|us trade deficit|us dollar index|dxy)\b"),
+    ("econ:UK", r"\b(boe|bank of england|uk inflation|inflation uk|uk gdp|uk cpi)\b"),
+    ("econ:JP", r"\b(boj|bank of japan|japan|japanese|nikkei)\b"),
+    ("econ:CN", r"\b(pboc|people's bank of china|china annual inflation|china gdp|yuan)\b"),
+    ("econ:CA", r"\b(bank of canada|canada annual inflation|canada inflation|canada gdp)\b"),
+    ("econ:AU", r"\b(rba|reserve bank of australia|australia inflation)\b"),
+    ("econ:IN", r"\b(rbi|reserve bank of india|india inflation)\b"),
+    ("econ:CO", r"\b(central bank of colombia|colombia)\b"),
+    ("econ:BR", r"\b(central bank of brazil|selic|brazil inflation)\b"),
+    ("econ:MX", r"\b(banxico|bank of mexico)\b"),
+    ("econ:TR", r"\b(central bank of turkey|turkey inflation|turkish lira)\b"),
+    ("econ:CH", r"\b(snb|swiss national bank)\b"),
+]
+_ENTITIES = [
+    ("person:trump", r"\btrump\b"), ("person:musk", r"\b(elon musk|musk)\b"),
+    ("person:putin", r"\bputin\b"), ("person:zelensky", r"\bzelensky[iy]?\b"),
+    ("person:netanyahu", r"\bnetanyahu\b"), ("person:vance", r"\bvance\b"),
+    ("person:newsom", r"\bnewsom\b"), ("person:mamdani", r"\bmamdani\b"),
+    ("person:xi", r"\bxi jinping\b"), ("person:maduro", r"\bmaduro\b"),
+    ("person:starmer", r"\bstarmer\b"), ("person:macron", r"\bmacron\b"),
+    ("person:swift", r"\btaylor swift\b"), ("person:mrbeast", r"\bmrbeast\b"),
+    ("asset:btc", r"\b(bitcoin|btc|microstrategy|mstr)\b"), ("asset:eth", r"\b(ethereum|eth)\b"),
+    ("asset:sol", r"\b(solana|sol)\b"), ("asset:xrp", r"\b(xrp|ripple)\b"),
+    ("asset:doge", r"\b(dogecoin|doge)\b"), ("asset:bnb", r"\bbnb\b"),
+    ("asset:hype", r"\b(hyperliquid|hype)\b"), ("asset:zec", r"\b(zcash|zec)\b"),
+    ("asset:ada", r"\b(cardano|ada)\b"), ("asset:pepe", r"\bpepe\b"), ("asset:sui", r"\bsui\b"),
+    ("asset:spx", r"\b(s&p 500|s&p500|spx|spy)\b"), ("asset:ndx", r"\b(nasdaq|ndx|qqq)\b"),
+    ("asset:oil", r"\b(wti|crude oil|brent|oil price)\b"), ("asset:gold", r"\b(gold|xau)\b"),
+    ("asset:silver", r"\b(silver|xag)\b"),
+    ("org:openai", r"\b(openai|chatgpt|gpt)\b"), ("org:anthropic", r"\b(anthropic|claude)\b"),
+    ("org:google", r"\b(google|gemini|deepmind)\b"), ("org:xai", r"\b(xai|grok)\b"),
+    ("org:deepseek", r"\bdeepseek\b"), ("org:meta", r"\b(meta|llama)\b"),
+    ("org:alibaba", r"\b(alibaba|qwen)\b"), ("org:netflix", r"\bnetflix\b"),
+    ("org:apple", r"\bapple\b"), ("org:tesla", r"\b(tesla|tsla)\b"),
+    ("org:nvidia", r"\b(nvidia|nvda)\b"),
+    *_ECON,
+    ("geo:russia-ukraine", r"\b(russia|russian|ukraine|ukrainian|kyiv|donbas|crimea|pokrovsk|"
+                           r"kupiansk|lyman|sloviansk|kramatorsk|zaporizhzhia|kherson)\b"),
+    ("geo:israel-iran", r"\b(israel|israeli|iran|iranian|gaza|hamas|hezbollah|lebanon|houthi|"
+                        r"yemen)\b"),
+    ("geo:china-taiwan", r"\b(taiwan|china|chinese)\b"), ("geo:venezuela", r"\bvenezuela\b"),
+    ("geo:korea", r"\b(north korea|south korea|korea)\b"),
+    ("geo:india-pakistan", r"\b(india|pakistan|kashmir)\b"), ("geo:syria", r"\bsyria\b"),
+]
+_ENT_RE = [(lab, re.compile(pat)) for lab, pat in _ENTITIES]
+_ECON_RE = [(lab, re.compile(pat)) for lab, pat in _ECON]
+_CITY = re.compile(r"(?:temperature|precipitation|rain(?:fall)?|snow(?:fall)?|weather) in "
+                   r"([a-z .'-]+?)(?: on | in | this | by |\?|$)")
+_TICKER = re.compile(r"\(([A-Z]{1,5})\)")
+_US_ELECTION = re.compile(r"\b([a-z]{2}-\d{2}|house|senate|governor|gubernatorial|"
+                          r"congress(ional)?)\b.*\b(election|winner|margin|seats?|primary)\b|"
+                          r"\bmidterms?\b")
+# Category-aware groupings: fixture_day plus extra link nodes for the named fee categories.
+CAT_RULES = {
+    "category_aware": {"weather_city_day", "culture_source"},
+    "category_aware+econ_driver": {"weather_city_day", "culture_source", "econ_driver"},
+    "category_driver": {"weather_city_day", "culture_source", "crypto_window", "politics_end",
+                        "finance_end"},
+    "entity_all": {"entity"},
+}
+
+
+def entity(title) -> str | None:
+    """Primary entity of an event title (one label per event, so events never chain)."""
+    if not isinstance(title, str) or not title:
+        return None
+    low = title.lower()
+    city = _CITY.search(low)
+    if city:
+        return "city:" + city.group(1).strip()
+    for lab, pat in _ENT_RE:
+        if pat.search(low):
+            return lab
+    tick = _TICKER.search(title)
+    if tick:
+        return "ticker:" + tick.group(1)
+    return "us-elections" if _US_ELECTION.search(low) else None
+
+
+def economy(title) -> str | None:
+    """Economic-driver label: the economy or central bank named by an event title."""
+    if not isinstance(title, str) or not title:
+        return None
+    low = title.lower()
+    return next((lab for lab, pat in _ECON_RE if pat.search(low)), None)
+
+
 def collectors_running() -> list[str]:
     try:
         out = subprocess.run(["pgrep", "-fl", "collect"], capture_output=True, text=True).stdout
@@ -95,19 +195,31 @@ def load_facts(snap: str) -> pd.DataFrame:
     return rows.drop_duplicates("market_id").reset_index(drop=True)
 
 
-def stream_parents(frame: Path) -> pd.DataFrame:
-    """event id -> (parentEventId, event slug), one frame page at a time."""
-    seen: dict[str, tuple] = {}
+def stream_frame(frame: Path) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    """One frame page at a time: event id -> (parentEventId, slug, title); market id ->
+    resolution-source domain; and counts of ``tags`` keys on market and event objects."""
+    events: dict[str, tuple] = {}
+    src: dict[str, str] = {}
+    tags = {"market_objects": 0, "market_objects_with_tags": 0, "event_objects_with_tags": 0}
     for d in sorted(p for p in frame.iterdir() if (p / "parsed.json").is_file()):
         value = json.loads((d / "parsed.json").read_text()).get("value") or {}
         for m in value.get("markets") or []:
-            for e in m.get("events") or []:
-                if isinstance(e, dict) and e.get("id") is not None:
+            tags["market_objects"] += 1
+            tags["market_objects_with_tags"] += int("tags" in m)
+            evs = [e for e in m.get("events") or [] if isinstance(e, dict)]
+            for e in evs:
+                tags["event_objects_with_tags"] += int("tags" in e)
+                if e.get("id") is not None:
                     par = e.get("parentEventId")
-                    seen.setdefault(str(e["id"]), (None if par is None else str(par),
-                                                   e.get("slug")))
-    return pd.DataFrame([(k, a, b) for k, (a, b) in seen.items()],
-                        columns=["event_id", "parent_event_id", "event_slug"])
+                    events.setdefault(str(e["id"]), (None if par is None else str(par),
+                                                     e.get("slug"), e.get("title")))
+            rs = m.get("resolutionSource") or (evs[0].get("resolutionSource") if evs else None)
+            hit = re.match(r"https?://(?:www\.)?([^/?#]+)", rs or "")
+            if m.get("id") is not None and hit:
+                src[str(m["id"])] = hit.group(1).lower()
+    ev = pd.DataFrame([(k, *v) for k, v in events.items()],
+                      columns=["event_id", "parent_event_id", "event_slug", "event_title"])
+    return ev, pd.DataFrame(list(src.items()), columns=["market_id", "source"]), tags
 
 
 def utc_day(epoch: np.ndarray) -> list:
@@ -115,7 +227,8 @@ def utc_day(epoch: np.ndarray) -> list:
             for x in epoch]
 
 
-def prepare(f: pd.DataFrame, parents: pd.DataFrame | None) -> pd.DataFrame:
+def prepare(f: pd.DataFrame, parents: pd.DataFrame | None,
+            sources: pd.DataFrame | None = None) -> pd.DataFrame:
     f = f.copy()
     f["evs"] = f["event_ids"].map(ml_panel._json_list)
     f["sers"] = f["series_slugs"].map(ml_panel._json_list)
@@ -123,11 +236,12 @@ def prepare(f: pd.DataFrame, parents: pd.DataFrame | None) -> pd.DataFrame:
     f["day"] = utc_day(panel._epoch(f["end_date"]))
     f["neg"] = [None if pd.isna(x) or not str(x).strip() else str(x)
                 for x in f["neg_risk_market_id"]]
-    pmap, smap = {}, {}
+    pmap, smap, tmap = {}, {}, {}
     if parents is not None:
         p = parents.set_index("event_id")
         pmap = p["parent_event_id"].dropna().to_dict()
         smap = p["event_slug"].dropna().to_dict()
+        tmap = p["event_title"].dropna().to_dict() if "event_title" in p else {}
         f["parent_info"] = [bool(e) and all(x in p.index for x in e) for e in f["evs"]]
     else:
         f["parent_info"] = False
@@ -136,6 +250,13 @@ def prepare(f: pd.DataFrame, parents: pd.DataFrame | None) -> pd.DataFrame:
     f["tok_ud"] = [pairing.underlyings({"series_slugs": s, "event_slugs": []}) for s in f["sers"]]
     f["tok_u"] = [pairing.underlyings({"series_slugs": s, "event_slugs": es})
                   for s, es in zip(f["sers"], f["eslugs"], strict=True)]
+    titles = [next((tmap[x] for x in e if x in tmap), None) for e in f["evs"]]
+    f["ent"] = [entity(t) for t in titles]
+    f["econ"] = [economy(t) for t in titles]
+    smk = {} if sources is None else dict(zip(sources["market_id"], sources["source"],
+                                              strict=True))
+    f["src"] = [smk.get(m) for m in f["market_id"]]
+    f["endts"] = [None if pd.isna(x) else str(x) for x in f["end_date"]]
     return f
 
 
@@ -322,6 +443,64 @@ def category_period(d: pd.DataFrame, proxy: str, min_rows: int = 300) -> dict:
     return out
 
 
+def build_category_groups(f: pd.DataFrame, base: np.ndarray, rule: set) -> np.ndarray:
+    """``base`` (fixture_day) plus category-specific link nodes, by union-find."""
+    facts = {}
+    for m, b, fe, en, ec, src, ets, day in zip(
+            f["market_id"], base, f["fee_category"], f["ent"], f["econ"], f["src"], f["endts"],
+            f["day"], strict=True):
+        n = [b]
+        if "weather_city_day" in rule and fe == "weather" and en and en.startswith("city:"):
+            n.append(f"wc:{en}|{day}")
+        if "culture_source" in rule and fe == "culture" and src:
+            n.append(f"cs:{src}")
+        if "crypto_window" in rule and fe == "crypto" and ets:
+            n.append(f"cw:{ets}")
+        if "politics_end" in rule and fe == "politics" and ets:
+            n.append(f"pe:{ets}")
+        if "finance_end" in rule and fe == "finance" and ets:
+            n.append(f"fe:{ets}")
+        if "econ_driver" in rule and ec:
+            n.append(f"ec:{ec}")
+        if "entity" in rule and en and fe != "sports":
+            n.append(f"en:{en}")
+        facts[m] = {"event_ids": n, "series_slugs": [], "event_slugs": [],
+                    "neg_risk_market_id": None}
+    g = pairing.dependence_groups(facts, underlying=False)
+    return np.array([g[m] for m in f["market_id"]], dtype=object)
+
+
+def nonsports_links(d: pd.DataFrame, rng) -> dict:
+    """Per non-sports category: each candidate link merged over fixture_day clusters, against the
+    label-permutation null (rows without an observed 2h dmid are not in ``d``)."""
+    out = {}
+    for proxy in PROXIES:
+        e = centred(d, proxy, "strata")
+        out[proxy] = {}
+        for lab in ("ent", "ent_day", "econ", "src", "endts"):
+            r = perm_link(d, e, "fixture_day", lab, NON_SPORTS, rng)
+            out[proxy][lab] = {c: v for c, v in r.items() if v["base_clusters_with_label"] >= 5}
+    return out
+
+
+def variance_share(d: pd.DataFrame, G: dict) -> dict:
+    """Share of the panel CR variance (fixture_day) per category, and the within-category ratio
+    of each category-aware grouping over fixture_day (strata centring)."""
+    out = {}
+    for proxy in PROXIES:
+        e = centred(d, proxy, "strata")
+        vt = V(e, d["fixture_day"])[0]
+        out[proxy] = {"panel_ratio": {k: round(V(e, d[k])[0] / vt, 3) for k in G}}
+        for cat in NON_SPORTS:
+            m = (d["fee"] == cat).to_numpy()
+            if m.sum() < 100:
+                continue
+            vb = V(e[m], d.loc[m, "fixture_day"])[0]
+            out[proxy][cat] = {"variance_share": round(vb / vt, 4), **{
+                k: round(V(e[m], d.loc[m, k])[0] / vb, 3) for k in G}}
+    return out
+
+
 def clean(o):
     if isinstance(o, dict):
         return {str(k): clean(v) for k, v in o.items()}
@@ -353,10 +532,14 @@ def main(argv: list[str] | None = None) -> int:
                  "permutations": N_PERM}
     manifest(a.facts)
     f = load_facts(a.facts)
-    parents = None if a.no_parents else stream_parents(a.frame)
+    parents, sources, tags = (None, None, None) if a.no_parents else stream_frame(a.frame)
     rep["parent_source"] = None if a.no_parents else a.frame.name
-    f = prepare(f, parents)
-    del parents
+    rep["gamma_tags"] = {"rows_columns": int(any("tag" in c for c in ROW_COLS)),
+                         "sidecar_columns": [c for c in json.loads(
+                             (SNAPS / a.facts / "ext_manifest.json").read_text()).get(
+                             "columns", []) if "tag" in c], "frame_markets_keyset": tags}
+    f = prepare(f, parents, sources)
+    del parents, sources
     G = {k: build_groups(f, *v) for k, v in DEFS.items()}
     dg = ml_panel.dependence_group_ids(f, f["market_id"].to_numpy())
     # ml_panel: dep_group_season = league-season (6c5a074 dep_group); dep_group = fixture-day
@@ -377,6 +560,19 @@ def main(argv: list[str] | None = None) -> int:
     pops = {"universe": np.ones(len(f), bool), "ml_eligible": elig, "d120_population": d120}
     rep["sizes"] = {k: {p: size_metrics(G[k][m]) for p, m in pops.items()} for k in DEFS}
     rep["largest_cluster_ml_eligible"] = {k: largest_cluster(f, G[k], elig) for k in DEFS}
+    # category-aware groupings (section 8): fixture_day + evidence-backed non-sports links
+    CG = {k: build_category_groups(f, G["fixture_day"], r) for k, r in CAT_RULES.items()}
+    pair = [int(np.where(f["market_id"] == m)[0][0]) for m in D120_ECON_PAIR]
+    rep["category_sizes"] = {k: {**{p: size_metrics(g[m]) for p, m in pops.items()},
+                                 "largest_ml_eligible": largest_cluster(f, g, elig),
+                                 "d120_econ_pair_grouped": bool(g[pair[0]] == g[pair[1]])}
+                             for k, g in {"fixture_day": G["fixture_day"], **CG}.items()}
+    rep["d120_econ_pair"] = {m: {"ent": f["ent"].iat[i], "econ": f["econ"].iat[i],
+                                 "src": f["src"].iat[i], "end": f["endts"].iat[i],
+                                 "ml_eligible": bool(elig[i]), "d120_population": bool(d120[i])}
+                             for m, i in zip(D120_ECON_PAIR, pair, strict=True)}
+    rep["entity_coverage"] = {c: round(float(f.loc[f["fee_category"] == c, "ent"].notna().mean()),
+                                       3) for c in NON_SPORTS}
     # two 2h periods
     d = period_rows(tuple(a.periods), f)
     rep["pair_rows"] = {"rows": int(len(d)), "in_facts": int(d["in_facts"].sum())}
@@ -391,6 +587,12 @@ def main(argv: list[str] | None = None) -> int:
     d["absd"] = d["dmid"].abs()
     d["moved"] = (d["absd"] > ml_panel.DELTA_PRIMARY + ml_panel._DELTA_EPS).astype(float)
     d["cell"] = strata(d)
+    for c in ("ent", "econ", "src", "endts"):
+        d[c] = f[c].to_numpy()[idx]
+    d["ent_day"] = [None if x is None else f"{x}|{dy}" for x, dy in zip(d["ent"], days,
+                                                                          strict=True)]
+    for k, g in CG.items():
+        d[k] = g[idx]
     rep["moved_share"] = round(float(d["moved"].mean()), 4)
     rep["pooled_sizes"] = {}
     for k in DEFS:
@@ -431,6 +633,10 @@ def main(argv: list[str] | None = None) -> int:
             out[f"outcome_u_over_ud|{how}"] = round(
                 V(e, sub["outcome"])[0] / V(e, sub["outcome_ud"])[0], 3)
         rep.setdefault("crypto", {})[proxy] = out
+    rep["d120_econ_pair_rows"] = {m: int((d["market_id"] == m).sum()) for m in D120_ECON_PAIR}
+    rep["nonsports_links"] = nonsports_links(d, rng)
+    rep["category_variance"] = variance_share(d, {"fixture_day": d["fixture_day"].to_numpy(),
+                                                  **CG})
     text = json.dumps(clean(rep), indent=1)
     if a.out:
         a.out.write_text(text)

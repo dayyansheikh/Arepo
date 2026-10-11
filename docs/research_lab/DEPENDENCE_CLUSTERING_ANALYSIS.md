@@ -7,13 +7,13 @@ Question: is the giant dependence group a real dependence unit or a series-label
 
 Nothing here fits, scores or reads a model. The only outcome quantities are 2h Gamma mid changes, used as dependence
 proxies. Reproduce with `cd backend && python scripts/dependence_clustering_analysis.py --out <report.json>`. The run takes
-33 s with a peak RSS of 0.85 GB, and the script refuses to run while a collector process is active.
+about 4.5 minutes with a peak RSS below 0.9 GB, and the script refuses to run while a collector process is active.
 
 ## 1. Data and method
 
 - **Facts:** snapshot `20261011T123356Z_9cd3cdb9`, `rows.csv.gz` plus the `rows_ext.csv.gz` sidecar (needed columns only):
   event ids, series slugs, `neg_risk_market_id`, fee category and end date. It holds 249,719 markets and 22,128 events.
-- **Parent links:** the sidecar has no `parentEventId` and no event slugs. Both come from the D118 frame
+- **Parent links and event titles:** the sidecar has no `parentEventId`, event slugs or titles. They come from the D118 frame
   (`fs2_capture_52eead5d...`), streamed one page at a time (183 MB). They cover 95.5% of markets. Events created after
   the frame (about 2h earlier) have no parent information.
 - **Periods:** two consecutive complete 2h periods, `081844Z -> 103157Z -> 123356Z` (Sunday 08:18 to 12:33 UTC). Rows come
@@ -55,15 +55,10 @@ proxies. Reproduce with `cd backend && python scripts/dependence_clustering_anal
   days.
 - **Other league-season containers:** `fa-cup` (661 events), `cfb-2026` (221), and soccer leagues with 250 to 330 events
   each.
-- **What the series link captures.** Polymarket splits one game into up to 4 events:
-  - main lines, about 300 markets;
-  - player props, about 200;
-  - first-TD scorer, about 25;
-  - a 5-market neg-risk event.
-
-  43 of the 86 `nfl-2026` events carry `parentEventId` pointing to the main game event. For example,
-  `nfl-phi-jax-2026-10-11-first-td-scorer` has parent 941330, whose kickoff is 13:30Z, the same as its satellites. Across
-  the universe, 8,258 of 22,128 events have a parent, and 59.6% of markets sit in such an event.
+- **What the series link captures.** Polymarket splits one game into up to 4 events (main lines about 300 markets,
+  player props about 200, first-TD scorer about 25, a 5-market neg-risk event). 43 of the 86 `nfl-2026` events carry
+  `parentEventId` pointing to the main game event (e.g. `nfl-phi-jax-2026-10-11-first-td-scorer` has parent 941330,
+  kickoff 13:30Z like its satellites). Across the universe, 8,258 of 22,128 events have a parent (59.6% of markets).
 - **Why the series is the only link today.** The ML sidecar has no `parentEventId`, so the season-level series slug is
   the only thing tying a game's events together. It does this by tying the whole season together.
 
@@ -143,14 +138,10 @@ rule reproduces the protocol's D118-frame figure closely: 3,657 here against 3,6
 
 ## 5. Recommendation for ML inference (MC1 H1/H2)
 
-**The season-level groups are conservative, not meaningless.** The largest cluster is 6.4% of rows, with G_eff 118 per
-period. Their costs are:
-
-- **no detectable dependence beyond the league-day for price moves** (season over `fixture_day`: 0.97 and 1.01);
-- **fewer effective clusters:** G_eff is 118 against 171 per period;
-- **growth across the window:** one NFL or EPL cluster absorbs every game day of a multi-day confirmation window;
-- **K saturation:** a new game day of an existing series adds no cluster. This stalls the `K ≥ K*` stopping rule, which
-  counts clusters, not information.
+**The season-level groups are conservative, not meaningless** (largest cluster 6.4% of rows, G_eff 118 per period).
+Their costs: no detectable dependence beyond the league-day for price moves (season over `fixture_day`: 0.97 and 1.01);
+G_eff 118 against 171; one NFL or EPL cluster absorbs every game day of a multi-day window; and K saturates (a new game
+day of an existing series adds no cluster), which stalls the `K ≥ K*` stopping rule.
 
 **Dropping series altogether under-clusters.**
 
@@ -171,7 +162,7 @@ period. Their costs are:
    It keeps all of the season-level excess for price moves and about 60% for activity, with K = 4,791 and the largest
    cluster at 5.4% per period.
    - **Implementable now:** the current sidecar gives `fixture_day_sidecar` with practically identical design effects
-     (K = 4,868).
+     (K = 4,868). Implemented in `ml_panel` at `c2079dc` (`dep_group`; season kept as `dep_group_season`).
    - **Next sidecar version:** add `events[].parentEventId` and event slugs (ext v3), to match D120 and to link satellites
      that have no series.
 2. **Keep co-primary (ii), the event (market fallback).** It is dominated and rarely binds, but it costs nothing.
@@ -213,14 +204,9 @@ activated member, on this evidence:
 and ETH. The protocol already says group-disjoint is not independent. Phase 4 must cluster by run.
 
 **v2 is a strict superset of this requirement.** A season series contains every series-day, so it can only be stricter.
-Over-clustering costs availability only:
-
-- D120 population K is 3,657 against 4,077 for `fixture_day`;
-- the largest group is 9.7% against 7.4%;
-- each run can screen one `nfl-2026` member, not one per game day.
-
-These costs are already priced into `D120_DESIGN_ESTIMATES.json` (3,677 groups, 127 drawable strata holding 96.1% of
-eligible members), and they cannot produce a false PASS.
+Over-clustering costs availability only (D120 population K 3,657 against 4,077 for `fixture_day`; largest group 9.7%
+against 7.4%; one `nfl-2026` member per run), already priced into `D120_DESIGN_ESTIMATES.json` (3,677 groups, 127
+drawable strata holding 96.1% of eligible members); it cannot produce a false PASS. Section 8 covers non-sports drivers.
 
 **Verdict: D120 does not need to change before its freeze.**
 
@@ -241,3 +227,113 @@ Non-blocking notes for later registrations:
   applied to all three; series and event membership are static.
 - **Few large clusters.** Permutation p-values floor at 0.0033. The design effects are driven by a few large clusters:
   `nfl-2026` carries 51 to 68% of the excess for price moves.
+
+## 8. Non-sports links (follow-up, same data and method)
+
+The question here is whether shared drivers outside sports need grouping. The D120 economics pair is the motivating
+case: ECB 2026 rate cut (`999108`) against Eurozone 2026 inflation 1.6-1.8% (`1124260`). These are separate events with
+`economic_group_status: unresolved`.
+
+**Link sources:**
+
+- **Gamma tags: not captured anywhere.** They are not in the snapshot rows or the sidecar. In the `/markets/keyset`
+  payload, none of 240,531 market objects (nor their events) carries `tags`. In this codebase tags come only from
+  `/events/keyset`: `BoundedDiscovery` attaches them as `_arepo_event_tags` (`ingest/normalize.py`).
+  - **Capturing them without new requests:** join, by event id and capture time, the event-keyset tags that the
+    complete-universe scan already fetches.
+  - **Store the link fields the markets payload already delivers but the sidecar drops:** `parentEventId`, event
+    title/slug/ticker, `resolutionSource`, series `recurrence` and `eventMetadata` fixture ids and league.
+  - Adding `/events/keyset` to the snapshot loop would mean new requests, about 1 per 100 events.
+- **Entities** come from a deterministic dictionary plus regex on the **event title**, not on question text.
+  - Each event gets one label, so events never chain.
+  - The dictionary covers 13 economies or central banks, 16 crypto/finance assets, 11 AI/media organisations, 14
+    people, 7 geopolitical theatres, weather city, a ticker in parentheses, and US elections (district, House, Senate,
+    governor).
+  - Coverage of markets: weather 83%, crypto 74%, finance 71%, politics 70%, geopolitics (fee `unknown`) 69%,
+    economics 63%, culture 32%, tech 23%.
+- **Further candidate links:** entity × UTC end day; the economy label alone ("economic driver"); resolution-source
+  domain; and exact end timestamp. negRisk and parent links are already in `fixture_day`.
+
+**Measurement.** Each link merges `fixture_day` clusters within one fee category. The baseline is the label-permutation
+null: random groupings of the same sizes.
+
+Only rows with an observed 2h dmid enter. Markets with no co-movement data are excluded, among them the Eurozone
+inflation market, whose mid of 0.0065 is below the 0.02 floor. Its ECB counterpart has 2 rows.
+
+Results use residual-proxy centring. Each cell is the ratio, then [null 95th percentile], then the p-value; labelled
+cluster counts are in brackets.
+
+| category | link | dmid | \|dmid\| | moved |
+|---|---|---|---|---|
+| politics (1,268) | entity (mostly US elections) | 0.27 [0.83] .61 | 6.76 [5.41] .003 | 10.0 [7.82] .003 |
+| politics (1,827) | same end timestamp | 0.94 [1.57] .19 | 4.20 [1.42] .003 | 8.41 [1.41] .003 |
+| economics (110) | entity | 0.76 [1.25] .82 | 0.88 [1.25] .66 | 0.93 [1.18] .45 |
+| economics (67) | economic driver | 0.75 [1.11] .78 | 0.87 [1.30] .86 | 0.88 [1.16] .57 |
+| economics (130) | resolution source | 1.11 [1.28] .17 | 1.19 [1.30] .11 | 1.04 [1.31] .29 |
+| finance (240) | same end timestamp | 1.54 [1.55] .06 | 1.33 [1.52] .13 | 1.97 [1.53] .02 |
+| crypto (198) | resolution source (cross-underlying) | 1.12 [1.42] .12 | 1.80 [1.71] .03 | 2.13 [1.56] .01 |
+| crypto (44) | entity (adds bnb/hype/zec...) | 1.14 [1.87] .38 | 1.16 [1.49] .19 | 1.04 [1.38] .34 |
+| weather (157) | city | 1.17 [1.23] .10 | 1.24 [1.16] .01 | 0.92 [1.23] .68 |
+| weather (157) | city × day | 1.02 [1.08] .33 | 1.08 [1.06] .03 | 1.02 [1.09] .37 |
+| culture (118) | resolution source | 1.33 [1.21] .02 | 2.19 [1.20] .003 | 1.51 [1.44] .03 |
+| geopolitics (258) | entity | 0.50 [1.57] .98 | 0.45 [1.66] .93 | 0.68 [1.55] .64 |
+
+Tech shows nothing on any link (p ≥ .08).
+
+**Reading:**
+
+1. **Directional co-movement across events is absent for every non-sports link except culture's shared source** (1.33).
+   Economics and the economic-driver link show none (0.75 to 0.93). That is low power, not independence: these are two
+   Sunday periods with no macro releases.
+2. **Activity co-movement is strong for US elections**, whether linked by shared entity or by resolution time.
+   It is moderate for crypto windows that share a resolution source across underlyings, and for culture's shared
+   source. It is weak for weather city and finance end time.
+3. **Only politics (activity) and culture (source) clearly beat the null.** About 100 tests were run, so about 5 false
+   positives at p < 0.05 are expected; the remaining hits are marginal.
+4. **Non-sports markets carry little of the panel variance.** Under `fixture_day`, politics holds 0.3% (dmid), 0.5%
+   (`|dmid|`) and 7.2% (`moved`); every other non-sports category holds at most 1.1%.
+   - So the small links change pooled variance by at most 0.4%. Within their categories they matter: culture's source
+     link gives 1.33 / 2.19 / 1.51, weather city × day 1.02 / 1.08 / 1.02.
+   - The exception is the politics block on activity: grouping by entity raises panel variance 1.62x for `moved`, and
+     not at all for dmid or `|dmid|`.
+5. **Giant non-sports groups cannot be measured with cell centring.** A cluster spanning whole cells has its sum removed
+   by the centring: the crypto-wide ratio is 0.01. Their dependence must be measured on ΔLL, through S2.
+
+**Groupings.** All add links over `fixture_day`; figures are ML-eligible at 12:33 and the D120 population.
+
+| grouping | added links | ML-eligible K (largest, G_eff) | D120 pop. K (largest) | D120 econ pair grouped |
+|---|---|---|---|---|
+| `fixture_day` | none | 4,791 (5.4%, 171) | 4,077 (7.4%) | no |
+| **`category_aware`** | weather city × UTC day; culture resolution source | **4,682 (5.4%, 170)** | 3,984 (7.4%) | no |
+| `+ economic driver` | + economy / central-bank label, all categories | 4,602 (5.4%, 164) | 3,914 (7.4%) | **yes** |
+| `category_driver` | + politics end time, crypto window, finance end time | 2,489 (12.6% politics, 31) | 1,890 (13.3%) | no |
+| `entity_all` | + any non-sports entity label | 2,840 (10.3% politics, 59) | 2,212 (11.2%) | yes |
+
+**Recommendation:**
+
+- **Co-primary (i) becomes `category_aware`:** fixture-day everywhere, plus weather city × day and culture resolution
+  source. These links are evidence-backed and local, and they cost nothing: K falls 2% and the largest cluster is
+  unchanged.
+- **Sensitivity S4 (economic driver).** The evidence is weak, so this is a conservative sensitivity. It costs K -1.7%,
+  so the registration may fold it into (i).
+- **Sensitivity S5 (category driver):** the politics election-time block, cross-underlying crypto windows and finance
+  end time.
+  - The politics block is the strongest non-sports dependence, but only in activity, and it forms a 12.6% cluster
+    (G_eff 31).
+  - Report S5 with the cluster-sensitive label. It is better modelled as the second dimension of S2, driver block ×
+    period.
+- **Per-category results**, for example politics-only rows, must use S5.
+
+**D120's economics pair.** The two markets share nothing that `category_aware` uses:
+
+| | `999108` (ECB) | `1124260` (Eurozone inflation) |
+|---|---|---|
+| resolution source | ecb.europa.eu | ec.europa.eu |
+| end date | 2027-01-01 | 2027-01-19 |
+
+They also share no event, parent, negRisk or series, so under `category_aware` they stay in separate groups. Under S4
+both are `econ:EA` and are grouped.
+
+For Phase 4 disjointness, adding the economy label is cheap: D120-population K goes from 3,984 to 3,914, and it resolves
+`economic_group_status` deterministically. The same dictionary matches the event slugs `ecb-rate-cut-in-2026` and
+`eurozone-2026-annual-inflation` (with hyphens read as spaces), so it stays within D120's slug-only rule.
