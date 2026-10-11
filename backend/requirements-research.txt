@@ -1,0 +1,8 @@
+# Research-only dependencies for astrolabe.research_lab.ml_models (NOT used by production/Render).
+# Install into backend/.venv:  pip install -r requirements-research.txt
+# macOS note: the lightgbm wheel needs libomp. Either `brew install libomp`, or point the wheel at
+# scikit-learn's vendored copy:  install_name_tool -add_rpath <site-packages>/sklearn/.dylibs \
+#   <site-packages>/lightgbm/lib/lib_lightgbm.dylib && codesign --force -s - <same file>
+scikit-learn==1.9.1
+lightgbm==4.7.0
+scipy==1.17.1
