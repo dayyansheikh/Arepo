@@ -10,7 +10,12 @@ Predeclared abort criteria (protocol section 5): if the maximum window age at or
 exceeds 40 s, or the original-code audit takes longer than 240 s, D118 must not be frozen.
 
     cd backend && python scripts/d118_window_dry_run.py --work-dir <empty scratch dir>
-        [--per-stratum 4] [--latency 0.9] [--runtime-concurrency 8]
+        [--strata 4] [--per-stratum 4] [--latency 0.9] [--runtime-concurrency 8]
+
+``--strata`` (V2, after the 16-member abort) sets ``strata_limit`` and the slot count
+(strata x per-stratum); the synthetic frame always has the same four strata, so 3 x 4 draws three
+of them. The logic-only evaluator report is used only for its timeline margins: its outcome is
+against the evaluator constants of the commit it runs at.
 
 Writes only under ``--work-dir`` and prints one JSON summary. Makes no network request other
 than loopback.
@@ -134,8 +139,8 @@ async def frame(root, markets):
     await run.collect()
 
 
-def protocol(per_stratum):
-    slots = 4 * per_stratum
+def protocol(per_stratum, strata=4):
+    slots = strata * per_stratum
     return PanelProtocol(
         scheduled_slots=slots, triggered_slots=slots, controls_per_trigger=1, cycles=1,
         target_attempts=1, scheduled_per_stratum=per_stratum, triggered_per_stratum=per_stratum,
@@ -161,8 +166,9 @@ async def main_async(args):
     await frame(source_frame, markets)
     panel = work / "fs2_panel_dry_run"
     declare_panel(source_frame, implementation_commit=code[1], output_root=panel,
-                  protocol=protocol(args.per_stratum), storage_profile="compact-v1",
-                  strata_limit=4, population_policy=LIQUIDITY_POPULATION)
+                  protocol=protocol(args.per_stratum, args.strata),
+                  storage_profile="compact-v1", strata_limit=args.strata,
+                  population_policy=LIQUIDITY_POPULATION)
     create_panel_selection(panel, repository=code[0])
     by_token = {json.loads(r["clobTokenIds"])[0]: r for r in markets}
 
@@ -199,7 +205,8 @@ async def main_async(args):
     assessment = report["timeline"]["margins"]["assessment_ages_at_activation"]
     summary = {
         "provenance": "synthetic loopback dry run; never evidence about live data",
-        "per_stratum": args.per_stratum, "members": len(result["screening"]["states"]),
+        "strata": args.strata, "per_stratum": args.per_stratum,
+        "members": len(result["screening"]["states"]),
         "latency_s_per_request": args.latency, "runtime_concurrency": args.runtime_concurrency,
         "worker_state": result["state"], "elapsed_s": round(elapsed, 3),
         "max_window_age_at_freeze_s": max(ages) if ages else None,
@@ -223,7 +230,8 @@ async def main_async(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--work-dir", type=Path, required=True)
-    parser.add_argument("--per-stratum", type=int, default=4, choices=(2, 4))
+    parser.add_argument("--strata", type=int, default=4, choices=(3, 4))
+    parser.add_argument("--per-stratum", type=int, default=4, choices=(2, 3, 4))
     parser.add_argument("--latency", type=float, default=0.9)
     parser.add_argument("--runtime-concurrency", type=int, default=8)
     args = parser.parse_args(argv)

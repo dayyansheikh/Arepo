@@ -10,9 +10,16 @@ Design figures only, never acceptance criteria. Reproducible and read-only:
   per-member trigger probabilities from the local CLOB book sweeps (|imbalance| >= 1/3 at the
   best level, the frozen ``SnapshotTriggerPolicy(1,3,...)`` rule).
 
-Output: ``docs/implementation/d118/D118_DESIGN_ESTIMATES.json``.
+Output: ``docs/implementation/d118/D118_DESIGN_ESTIMATES.json`` (original designs). ``--v2``
+appends the 12-member rows (PL 4x3, 3x4, 2x6) after the original rows, so the seeded subset draws
+of the original designs are unchanged, and writes ``D118_DESIGN_ESTIMATES_V2.json``.
 
-    cd backend && python scripts/d118_design_estimates.py [--out PATH] [--subsets 2000]
+Book sweeps are pinned (``PINNED_SWEEPS``, sha256-verified) to the eight sweeps the original file
+used, so the original figures stay reproducible while the collector keeps adding sweeps. With
+``--v2`` the candidate rows are also recomputed on every sweep present at run time and recorded as
+a sensitivity block (never the primary figures).
+
+    cd backend && python scripts/d118_design_estimates.py [--v2] [--out PATH] [--subsets 2000]
 """
 
 import argparse
@@ -44,6 +51,25 @@ SWEEPS = DD / "research_lab" / "book_sweeps"
 D116_EVALUATION = DD / "fs2_d116_integrated_1_evaluation.json"
 D097_EVIDENCE = REPO / "docs" / "implementation" / "PHASE_03_TEMPORAL_PILOT_EVIDENCE.json"
 OUT = REPO / "docs" / "implementation" / "d118" / "D118_DESIGN_ESTIMATES.json"
+OUT_V2 = REPO / "docs" / "implementation" / "d118" / "D118_DESIGN_ESTIMATES_V2.json"
+PINNED_SWEEPS = (  # the sweep inventory of D118_DESIGN_ESTIMATES.json (script aec8418e)
+    ("20261010T194225Z_94956338",
+     "7867d18c044fa41beced573b3f2e788c3c6cf07b76d1c5910e0ba720824def17"),
+    ("20261010T194347Z_d61a9354",
+     "96f9f23786545d92a0965c2e4200992d5a00330f0e9b7fc935984f4fa69c713b"),
+    ("20261010T194506Z_f1051015",
+     "7ee4d96bee5df8e223cb894eff70c3165932df1e6e8af089017909ae23fc422f"),
+    ("20261010T210152Z_e46bbf90",
+     "151eda02dcaded8eb23ba9c89d92749247101d80ad00fe17f872240b3482246a"),
+    ("20261010T210348Z_afeb30f2",
+     "4de5442ed4fc5821666244a6f6ffa28edc900114c80e151cdc4d66c697f3ec06"),
+    ("20261010T210603Z_0f474a80",
+     "00ab8c6cbed2335862e7c90e8150a7f245db48aa883b0306ddeae603c7059778"),
+    ("20261011T022944Z_eba4a73e",
+     "d9f4cfc78f4f9f33fdc85fe3385c9cdaf45ac75f6cd80ba81859ba2eed334e84"),
+    ("20261011T023104Z_4de8c806",
+     "61eeb6384a544a51c2b11eea6e39cb2f4e148a7a9a8bef482e7898af711c1bad"),
+)
 SEED = 20261011
 CHAIN = 0.95  # per-member probability that an assessable member completes origin/history/target
 POPULATIONS = {
@@ -53,6 +79,9 @@ POPULATIONS = {
 }
 DESIGNS = [("P0", 4, 2), ("P0", 4, 4), ("PL", 2, 4), ("PL", 4, 2), ("PL", 4, 4), ("PL", 6, 4)]
 RECOMMENDED = ("PL", 4, 4)
+# V2: 12-member candidates after the 16-member dry-run abort (appended; original draws unchanged).
+# 2x6 is included because the PanelProtocol / strata_limit bounds (1..256, k*m <= slots) allow it.
+DESIGNS_V2 = [("PL", 4, 3), ("PL", 3, 4), ("PL", 2, 6)]
 SCENARIOS = {
     "S1": "availability = member two-sided in the Gamma snapshot; trigger probability = pooled "
           "sweep rate over all two-sided sweep books (one rate for every member)",
@@ -139,11 +168,21 @@ def triggered(bid_size, ask_size):
     return 3 * abs(b - a) >= b + a  # |b-a|/(b+a) >= 1/3, exact decimal arithmetic
 
 
-def load_sweeps():
+def pinned_sweep_files():
+    files = []
+    for name, digest in PINNED_SWEEPS:
+        path = SWEEPS / name / "rows.csv.gz"
+        if sha(path) != digest:
+            raise ValueError(f"pinned book sweep differs from its recorded sha256: {name}")
+        files.append(path)
+    return files
+
+
+def load_sweeps(files=None):
     import pandas as pd
 
     per_token = defaultdict(lambda: [0, 0])
-    files = sorted(SWEEPS.glob("*/rows.csv.gz"))
+    files = pinned_sweep_files() if files is None else files
     books = trig = 0
     for path in files:
         for chunk in pd.read_csv(path, usecols=["token_id", "state", "bid_size_1", "ask_size_1"],
@@ -314,13 +353,57 @@ def pilots(model_d116, snapshot, sweeps, pooled):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--out", type=Path, default=OUT)
+    parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--subsets", type=int, default=2000)
+    parser.add_argument("--v2", action="store_true",
+                        help="append the 12-member designs and write the V2 file")
     args = parser.parse_args(argv)
-    rng = np.random.default_rng(SEED)
+    designs = DESIGNS + DESIGNS_V2 if args.v2 else DESIGNS
+    out = args.out or (OUT_V2 if args.v2 else OUT)
     members, fidelity, reference = load_members()
     snapshot = load_snapshot()
-    sweeps, books, trig, sweep_files = load_sweeps()
+    output = estimate(args, designs, members, fidelity, reference, snapshot, None)
+    if args.v2:
+        current = sorted(SWEEPS.glob("*/rows.csv.gz"))
+        sensitivity = estimate(args, designs, members, fidelity, reference, snapshot, current)
+        output["status"] = ("design figures only; not acceptance criteria; D118 pre-freeze V2 "
+                            "(12-member candidates after the 16-member dry-run abort)")
+        output["original_designs_note"] = (
+            "rows of the original designs are drawn first with the same seed on the same pinned "
+            "sweeps, so they equal D118_DESIGN_ESTIMATES.json; recommended_design is the original "
+            "4x4 field and is superseded by twelve_member_candidates (choice follows the V2 dry "
+            "run)")
+        output["twelve_member_candidates"] = candidates(output["table"])
+        output["sensitivity_all_sweeps_at_run_time"] = {
+            "note": "not the primary figures: same model on every sweep present at run time",
+            "book_sweeps": sensitivity["inputs"]["book_sweeps"],
+            "pooled_sweep_trigger_rate": sensitivity["model_inputs"]["pooled_sweep_trigger_rate"],
+            "likelihood_ratio_vs_S1": sensitivity["pilots"]["likelihood_ratio_vs_S1"],
+            "candidates": candidates(sensitivity["table"], with_original=True),
+        }
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(output, indent=1, sort_keys=True) + "\n")
+    print(json.dumps({"fidelity": fidelity, "recommended": output["recommended_design"],
+                      "candidates": output.get("twelve_member_candidates")}, indent=1))
+
+
+def candidates(table, with_original=False):
+    chosen = DESIGNS_V2 + ([RECOMMENDED] if with_original else [])
+    result = {}
+    for pop, k, m in chosen:
+        rows = [r for r in table if r["population"] == pop and r["design"] == f"{k}x{m}"]
+        result[f"{k}x{m}"] = {
+            "population": pop, "strata_limit": k, "per_stratum": m,
+            "P_complete_pair_by_scenario": {r["scenario"]: r["P_complete_pair"] for r in rows},
+            "E_complete_pairs_by_scenario": {r["scenario"]: r["E_complete_pairs"] for r in rows},
+            "required_free_bytes": required_free(k, m),
+        }
+    return result
+
+
+def estimate(args, designs, members, fidelity, reference, snapshot, sweep_paths):
+    rng = np.random.default_rng(SEED)
+    sweeps, books, trig, sweep_files = load_sweeps(sweep_paths)
     pooled = trig / books
     per_member, coverage, band_rate, avail_rate = model(members, snapshot, sweeps, pooled)
     floor = Decimal(LIQUIDITY_FLOOR)
@@ -357,11 +440,11 @@ def main(argv=None):
                 [v[:, 0].mean() for v in strata[name]])), 4),
         }
     indices = {}
-    for pop, _, m in DESIGNS:
+    for pop, _, m in designs:
         if (pop, m) not in indices:
             indices[pop, m] = [subset_index(len(v), m, rng, args.subsets) for v in strata[pop]]
     table = []
-    for (pop, k, m), scenario in itertools.product(DESIGNS, SCENARIOS):
+    for (pop, k, m), scenario in itertools.product(designs, SCENARIOS):
         result = design_probability(strata[pop], indices[pop, m], k, scenario, CHAIN,
                                     pooled)
         table.append({"population": pop, "design": f"{k}x{m}", "strata_limit": k,
@@ -432,10 +515,7 @@ def main(argv=None):
             "harshest_scenario": min(values, key=values.get),
         },
     }
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(output, indent=1, sort_keys=True) + "\n")
-    print(json.dumps({"fidelity": fidelity, "recommended": output["recommended_design"],
-                      "likelihood": likelihood}, indent=1))
+    return output
 
 
 if __name__ == "__main__":
