@@ -38,6 +38,7 @@ EPS = 1e-15
 SEED = 116
 UNASSIGNED = "unassigned"
 HYPOTHESIS = "HYPOTHESIS"
+BY_Q = 0.10  # Benjamini-Yekutieli q (FEATURE_DISCOVERY_PROGRAMME triage rule)
 
 # Declared mapping of feature name -> family. Families that do not exist yet are fine: a family
 # with no present feature is reported as absent, and new features are mapped by adding to this
@@ -114,7 +115,14 @@ def cluster_boot(d: np.ndarray, cluster: np.ndarray, n_boot: int = 1000, seed: i
     ok = np.isfinite(d)
     d, cl = d[ok], np.asarray(cluster)[ok]
     if len(d) == 0:
-        return {"mean": None, "ci": [None, None], "p_two_sided": None, "n_rows": 0, "n_clusters": 0}
+        return {
+            "mean": None,
+            "ci": [None, None],
+            "p_two_sided": None,
+            "p_pos": None,
+            "n_rows": 0,
+            "n_clusters": 0,
+        }
     codes, uniq = pd.factorize(cl)
     k = len(uniq)
     s = np.bincount(codes, weights=d, minlength=k)
@@ -131,6 +139,7 @@ def cluster_boot(d: np.ndarray, cluster: np.ndarray, n_boot: int = 1000, seed: i
         "mean": float(d.mean()),
         "ci": [float(lo), float(hi)],
         "p_two_sided": p,
+        "p_pos": float(max((means <= 0).mean(), 1.0 / (n_boot + 1))),  # one-sided, mean > 0
         "n_rows": int(len(d)),
         "n_clusters": int(k),
     }
@@ -193,6 +202,15 @@ class LGBModel:
 
 def lgb_fit(x: np.ndarray, y: np.ndarray, cols: Sequence[str]) -> LGBModel:
     """Fixed-configuration LightGBM; deliberately untuned so ablations compare like with like."""
+    return _lgb_fit(x, y, cols, None)
+
+
+def make_lgb_fit(forbid_pair: tuple[str, str] | None = None) -> FitFn:
+    """``lgb_fit`` optionally forbidding a feature pair from sharing any branch."""
+    return lambda x, y, cols: _lgb_fit(x, y, cols, forbid_pair)
+
+
+def _lgb_fit(x, y, cols, forbid_pair) -> LGBModel:
     import lightgbm as lgb
 
     k = int(max(2, np.max(y) + 1))
@@ -211,6 +229,13 @@ def lgb_fit(x: np.ndarray, y: np.ndarray, cols: Sequence[str]) -> LGBModel:
     }
     if k > 2:
         params["num_class"] = k
+    if forbid_pair is not None and all(c in cols for c in forbid_pair):
+        a, b2 = (list(cols).index(c) for c in forbid_pair)
+        allf = range(len(cols))
+        params["interaction_constraints"] = [
+            [i for i in allf if i != a],
+            [i for i in allf if i != b2],
+        ]
     b = lgb.train(
         params, lgb.Dataset(np.asarray(x, float), np.asarray(y, int)), num_boost_round=100
     )
@@ -261,11 +286,96 @@ def fit_oof(
 # ---------------------------------------------------------------------------------------------
 
 
+def conservative(boots: dict[str, dict]) -> dict:
+    """Combine cluster definitions pessimistically: the hull of the CIs and the larger p."""
+    items = [v for v in boots.values() if isinstance(v, dict) and v.get("mean") is not None]
+    if not items:
+        return {"mean": None, "ci": [None, None], "p_pos": None, "n_clusters": 0}
+    return {
+        "mean": items[0]["mean"],
+        "ci": [min(v["ci"][0] for v in items), max(v["ci"][1] for v in items)],
+        "p_pos": max(v["p_pos"] for v in items),
+        "n_clusters": min(v["n_clusters"] for v in items),
+        "definition": "hull of CIs, max one-sided p over event and dep_group clusterings",
+    }
+
+
 def _all_boot(d: np.ndarray, clusters: dict[str, np.ndarray], n_boot: int, seed: int) -> dict:
     out = {name: cluster_boot(d, cl, n_boot, seed) for name, cl in clusters.items()}
     ps = [v["p_two_sided"] for v in out.values() if v["p_two_sided"] is not None]
-    out["p_conservative"] = max(ps) if ps else None  # worst p over the cluster definitions
+    out["p_conservative"] = max(ps) if ps else None  # worst two-sided p over the clusterings
+    out["conservative"] = conservative(out)
     return out
+
+
+def benjamini_yekutieli(
+    pvals: dict[str, float], m_total: int | None = None, q: float = BY_Q
+) -> dict[str, dict]:
+    """BY FDR (valid under dependence) with a cumulative denominator ``m_total`` >= len(pvals)."""
+    items = sorted(pvals.items(), key=lambda kv: kv[1])
+    n = len(items)
+    big = max(m_total or n, n)
+    c = float(sum(1.0 / k for k in range(1, big + 1)))
+    adj = np.empty(n)
+    run = 1.0
+    for i in range(n - 1, -1, -1):
+        run = min(run, items[i][1] * big * c / (i + 1))
+        adj[i] = min(1.0, run)
+    return {
+        name: {"p": float(p), "p_by": float(adj[i]), "pass_by": bool(adj[i] < q)}
+        for i, (name, p) in enumerate(items)
+    }
+
+
+def later_blocks_ok(
+    folds: Sequence[Fold], selection_ids: Sequence[str], judge_ids: Sequence[str]
+) -> bool:
+    """True if every judging block is strictly later than every block used to select."""
+    if not selection_ids:
+        return True
+    order = {f.fold_id: i for i, f in enumerate(folds)}
+    return bool(judge_ids) and min(order[j] for j in judge_ids) > max(
+        order[s] for s in selection_ids
+    )
+
+
+def finalize_demonstration(
+    entries: dict[str, dict], *, prior_tests: int = 0, q: float = BY_Q
+) -> dict:
+    """Attach BY and the ``demonstrated_incremental_value`` label to ``entries``.
+
+    Each entry needs ``value`` (a ``conservative`` dict, positive = out-of-sample log-loss
+    improvement), ``later_blocks_ok`` and optionally ``informative``. The label is True only if
+    the conservative CI excludes 0 on the positive side AND BY at ``q`` over the cumulative set
+    (this run's tests plus ``prior_tests``) passes AND the judging blocks are later than any
+    block used to select. Everything else is ``descriptive_only``.
+    """
+    ps = {
+        k: e["value"]["p_pos"]
+        for k, e in entries.items()
+        if e["value"].get("p_pos") is not None and e.get("informative", True)
+    }
+    by = benjamini_yekutieli(ps, len(ps) + prior_tests, q)
+    for k, e in entries.items():
+        b = by.get(k, {})
+        lo = e["value"]["ci"][0]
+        e["p_by"], e["pass_by"] = b.get("p_by"), bool(b.get("pass_by", False))
+        e["ci_excludes_0"] = bool(lo is not None and lo > 0)
+        ok = (
+            e["ci_excludes_0"]
+            and e["pass_by"]
+            and bool(e.get("later_blocks_ok", False))
+            and e.get("informative", True)
+        )
+        e["demonstrated_incremental_value"] = bool(ok)
+        e["label"] = "demonstrated" if ok else "descriptive_only"
+    return {
+        "by_q": q,
+        "m_tests": len(ps),
+        "prior_tests": prior_tests,
+        "m_total": len(ps) + prior_tests,
+        "adjusted": by,
+    }
 
 
 def ablation_study(
@@ -276,85 +386,133 @@ def ablation_study(
     baseline_features: Sequence[str],
     clusters: dict[str, np.ndarray],
     *,
+    extra_units: dict[str, Sequence[str]] | None = None,
+    eval_mask: np.ndarray | None = None,
+    judge_fold_ids: Sequence[str] | None = None,
+    selection_fold_ids: Sequence[str] = (),
+    prior_tests: int = 0,
     fit_fn: FitFn = lgb_fit,
     n_boot: int = 1000,
     seed: int = SEED,
+    cache: dict | None = None,
 ) -> dict:
-    """Refit with each family dropped, and with baseline + only that family.
+    """Incremental out-of-sample value by refit: drop-one and add-one against baseline.
 
-    Differences are mean per-row out-of-fold log loss: positive ``drop_minus_full`` means removing
-    the family hurts; negative ``only_minus_baseline`` means adding the family to the baseline
-    helps. Cluster-bootstrap CI for every cluster definition in ``clusters`` (event, dep_group).
+    Each unit (a declared family, or an ``extra_units`` single-feature unit) is refit without it
+    (``drop_minus_full``) and as baseline + only it (``only_minus_baseline``), on mean per-row
+    out-of-fold log loss. Positive ``delta_ll`` (= drop minus full) means the unit helps. The CI
+    is the conservative hull over every clustering in ``clusters`` (event, dep_group). Only rows in
+    ``eval_mask`` (default: rows of ``judge_fold_ids``, else every out-of-fold row) are judged.
+    Families are declared a priori; ``extra_units`` are treated as selected on
+    ``selection_fold_ids``, which must all precede ``judge_fold_ids`` to be demonstrable.
+    ``rank`` orders units by ``delta_ll``; SHAP/permutation/ALE never enter the ranking.
     """
     y = np.asarray(y)
-    all_cols = [
-        c for c in X.columns if c in set(sum(family_map.values(), [])) | set(baseline_features)
-    ]
+    cache = {} if cache is None else cache
+
+    def oof_for(cols: Sequence[str]) -> OOF:
+        key = tuple(cols)
+        if key not in cache:
+            cache[key] = fit_oof(X, y, folds, cols, fit_fn)
+        return cache[key]
+
+    in_map = set(sum(family_map.values(), []))
+    all_cols = [c for c in X.columns if c in in_map | set(baseline_features)]
     base_cols = list(baseline_features)
-    full = fit_oof(X, y, folds, all_cols, fit_fn)
-    base = fit_oof(X, y, folds, base_cols, fit_fn)
+    full, base = oof_for(all_cols), oof_for(base_cols)
     lf, lb = full.loss(y), base.loss(y)
-    primary = next(iter(clusters))
-    rep = {
-        "baseline_features": base_cols,
-        "all_features": all_cols,
-        "full_vs_baseline": _all_boot(lb - lf, clusters, n_boot, seed),
-        "mean_loss": {"full": float(np.nanmean(lf)), "baseline": float(np.nanmean(lb))},
-        "families": {},
-        "absent_families": [],
-        "unassigned": family_map.get(UNASSIGNED, []),
-    }
-    sse = {"baseline": lb[full.mask], "full": lf[full.mask]}
+    if eval_mask is None:
+        eval_mask = np.zeros(len(y), bool)
+        for f in folds:
+            if judge_fold_ids is None or f.fold_id in judge_fold_ids:
+                eval_mask[f.test_pos] = True
+    ev = np.asarray(eval_mask, bool) & full.mask
+
+    def masked(d: np.ndarray) -> np.ndarray:
+        return np.where(ev, d, np.nan)
+
+    judge = list(judge_fold_ids) if judge_fold_ids is not None else [f.fold_id for f in folds]
+    fam_ok = True  # declared families: nothing was selected
+    feat_ok = later_blocks_ok(folds, selection_fold_ids, judge)
+    units: list[tuple[str, str, list[str]]] = []
+    absent = []
     for fam, cols in family_map.items():
         cols = [c for c in cols if c in X.columns]
         if fam == UNASSIGNED:
             continue
         if not cols:
-            rep["absent_families"].append(fam)
+            absent.append(fam)
             continue
+        units.append((fam, "family", cols))
+    units += [
+        (n, "feature", [c for c in cs if c in X.columns]) for n, cs in (extra_units or {}).items()
+    ]
+    rep: dict = {
+        "baseline_features": base_cols,
+        "all_features": all_cols,
+        "full_vs_baseline": _all_boot(masked(lb - lf), clusters, n_boot, seed),
+        "mean_loss": {
+            "full": float(np.nanmean(masked(lf))),
+            "baseline": float(np.nanmean(masked(lb))),
+        },
+        "families": {},
+        "features": {},
+        "absent_families": absent,
+        "unassigned": family_map.get(UNASSIGNED, []),
+        "judge_fold_ids": judge,
+        "selection_fold_ids": list(selection_fold_ids),
+    }
+    entries: dict[str, dict] = {}
+    sse = {"baseline": lb[ev], "full": lf[ev]}
+    for name, kind, cols in units:
         rest = [c for c in all_cols if c not in cols]
-        if not rest:
-            rep["families"][fam] = {
-                "features": cols,
-                "skipped": "removing the family leaves no features",
-            }
+        if not rest or not cols:
             continue
-        only_cols = list(dict.fromkeys(base_cols + cols))
-        drop = fit_oof(X, y, folds, rest, fit_fn)
-        only = fit_oof(X, y, folds, only_cols, fit_fn)
-        ld, lo = drop.loss(y), only.loss(y)
-        sse[f"drop:{fam}"], sse[f"only:{fam}"] = ld[full.mask], lo[full.mask]
-        rep["families"][fam] = {
+        ld = oof_for(rest).loss(y)
+        lo = oof_for(list(dict.fromkeys(base_cols + cols))).loss(y)
+        sse[f"drop:{name}"], sse[f"only:{name}"] = ld[ev], lo[ev]
+        drop = _all_boot(masked(ld - lf), clusters, n_boot, seed)
+        only = _all_boot(masked(lo - lb), clusters, n_boot, seed)
+        e = {
+            "kind": kind,
             "features": cols,
             "mean_loss": {
-                "drop": float(np.nanmean(ld)),
-                "only_plus_baseline": float(np.nanmean(lo)),
+                "drop": float(np.nanmean(masked(ld))),
+                "only_plus_baseline": float(np.nanmean(masked(lo))),
             },
-            "drop_minus_full": _all_boot(ld - lf, clusters, n_boot, seed),
-            "only_minus_baseline": _all_boot(lo - lb, clusters, n_boot, seed),
-            "only_minus_full": _all_boot(lo - lf, clusters, n_boot, seed),
+            "drop_minus_full": drop,
+            "only_minus_baseline": only,
+            "value": drop["conservative"],
+            "delta_ll": drop["conservative"]["mean"],
+            "add_one_delta_ll": None
+            if only["conservative"]["mean"] is None
+            else -only["conservative"]["mean"],
+            "later_blocks_ok": fam_ok if kind == "family" else feat_ok,
         }
+        (rep["families"] if kind == "family" else rep["features"])[name] = e
+        entries[name] = e
     rep["relative_improvement_vs_baseline"] = compare.paired_bootstrap(
-        np.asarray(clusters[primary])[full.mask], sse, "baseline", n_boot=n_boot, seed=seed
+        np.asarray(next(iter(clusters.values())))[ev], sse, "baseline", n_boot=n_boot, seed=seed
     )["models"]
-    rep["multiple_testing"] = {
-        "drop_minus_full": holm(
-            {
-                f: v["drop_minus_full"]["p_conservative"]
-                for f, v in rep["families"].items()
-                if "drop_minus_full" in v and v["drop_minus_full"]["p_conservative"] is not None
-            }
-        ),
-        "only_minus_baseline": holm(
-            {
-                f: v["only_minus_baseline"]["p_conservative"]
-                for f, v in rep["families"].items()
-                if "only_minus_baseline" in v
-                and v["only_minus_baseline"]["p_conservative"] is not None
-            }
-        ),
-        "note": "Holm within the declared family set; p = max over cluster definitions",
-    }
+    rep["multiple_testing"] = finalize_demonstration(entries, prior_tests=prior_tests)
+    rep["multiple_testing"]["note"] = (
+        "BY (q=0.10) over the cumulative test set; p = one-sided clustered-bootstrap p for "
+        "delta_ll > 0, max over cluster definitions (FEATURE_DISCOVERY_PROGRAMME triage rule)"
+    )
+    ranked = sorted(entries.items(), key=lambda kv: -(kv[1]["delta_ll"] or -1e9))
+    rep["ranking"] = [
+        {
+            "rank": i + 1,
+            "unit": n,
+            "kind": e["kind"],
+            "delta_ll": e["delta_ll"],
+            "ci": e["value"]["ci"],
+            "p_by": e["p_by"],
+            "label": e["label"],
+            "demonstrated_incremental_value": e["demonstrated_incremental_value"],
+        }
+        for i, (n, e) in enumerate(ranked)
+    ]
     rep["_full_oof"], rep["_baseline_oof"] = full, base  # popped before serialisation
     return rep
 
@@ -561,6 +719,7 @@ def interaction_study(
     top_pairs: int = 10,
     score: Callable[[np.ndarray], np.ndarray] = score_from_proba,
     seed: int = SEED,
+    fold_ids: Sequence[str] | None = None,
 ) -> dict:
     """Pairwise interaction strength on out-of-fold test rows.
 
@@ -574,6 +733,8 @@ def interaction_study(
     rng = np.random.default_rng(seed)
     pairs: dict[tuple[str, str], list[float]] = {}
     for fold, model in oof.models:
+        if fold_ids is not None and fold.fold_id not in fold_ids:
+            continue
         xt = X.iloc[fold.test_pos][cols].to_numpy(float)
         xb = xt[rng.permutation(len(xt))[:m]]
         for a in range(len(features)):
@@ -589,8 +750,9 @@ def interaction_study(
             {"pair": list(p), "h2_mean": mean, "h2_by_fold": [float(x) for x in v]}
             for mean, p, v in ranked
         ],
-        "note": "H^2 is not a significance test; confirm any interaction by a refit with the "
-        "interaction removed on held-out data.",
+        "fold_ids": None if fold_ids is None else list(fold_ids),
+        "note": "H^2 is a discovery lead only (descriptive). An interaction counts as "
+        "demonstrated only via interaction_validation on later blocks.",
     }
 
 
@@ -608,17 +770,20 @@ class RegimeSpec:
     labels: tuple[str, ...] = ()
 
 
+# Real ml_panel column names: ``mid_i`` (panel origin mid), ``ml_log_hours_to_end`` (log1p of
+# hours to end_date), ``ml_log1p_liq`` (log1p liquidity; tercile cuts are rank-based so the log
+# is immaterial) and ``fee_category``. Edges for hours are log1p(24, 168, 720).
 DECLARED_REGIMES: tuple[RegimeSpec, ...] = (
-    RegimeSpec("price_extremity", "mid", "edges", (0.1, 0.9), ("<0.1", "0.1-0.9", ">0.9")),
+    RegimeSpec("price_extremity", "mid_i", "edges", (0.1, 0.9), ("<0.1", "0.1-0.9", ">0.9")),
     RegimeSpec(
         "time_to_resolution",
-        "hours_to_end",
+        "ml_log_hours_to_end",
         "edges",
-        (24.0, 168.0, 720.0),
+        (float(np.log1p(24.0)), float(np.log1p(168.0)), float(np.log1p(720.0))),
         ("<24h", "24h-7d", "7d-30d", ">30d"),
     ),
-    RegimeSpec("liquidity", "liquidity", "quantile", (1 / 3, 2 / 3), ("low", "mid", "high")),
-    RegimeSpec("category", "category", "categorical"),
+    RegimeSpec("liquidity", "ml_log1p_liq", "quantile", (1 / 3, 2 / 3), ("low", "mid", "high")),
+    RegimeSpec("category", "fee_category", "categorical"),
 )
 
 
@@ -652,19 +817,31 @@ def regime_study(
     X: pd.DataFrame,
     *,
     specs: Sequence[RegimeSpec] = DECLARED_REGIMES,
+    discovery_mask: np.ndarray | None = None,
+    judge_mask: np.ndarray | None = None,
+    later_ok: bool = False,
+    prior_tests: int = 0,
     n_boot: int = 1000,
     seed: int = SEED,
     with_shap: bool = True,
 ) -> dict:
-    """Performance (full minus baseline log loss) and family SHAP by pre-declared regime.
+    """Value of the full model over baseline by pre-declared regime: discover early, judge late.
 
-    ``frame`` carries the regime columns (aligned with ``y``); regimes with a missing column are
-    reported as unavailable. Cells with fewer than ``MIN_CLUSTERS`` clusters (under ANY cluster
-    definition) are flagged uninformative.
+    ``baseline_minus_full`` log loss is computed per cell on ``judge_mask`` rows (later blocks);
+    the same cell on ``discovery_mask`` rows gives ``early_mean`` and a sign-stability check. A
+    cell is ``demonstrated`` only if informative (>= 50 clusters under every clustering on the
+    judging rows), its conservative CI excludes 0, the early sign agrees, it passes BY over the
+    cumulative cell set, and ``later_ok`` (judging blocks later than discovery blocks) holds.
+    Without a declared split (``later_ok`` False) nothing can be demonstrated. SHAP by family is a
+    descriptive column only.
     """
     y = np.asarray(y)
     lf, lb = full.loss(y), base.loss(y)
     delta = lb - lf  # positive = full model better
+    judge = full.mask if judge_mask is None else (np.asarray(judge_mask, bool) & full.mask)
+    early = (
+        np.zeros(len(y), bool) if discovery_mask is None else np.asarray(discovery_mask, bool)
+    ) & full.mask
     fam_abs = None
     if with_shap and full.models and hasattr(full.models[0][1], "contrib"):
         cols = list(full.cols)
@@ -680,7 +857,9 @@ def regime_study(
         "declaration_hash": regime_declaration_hash(specs),
         "regimes": {},
         "min_clusters": MIN_CLUSTERS,
+        "later_blocks_ok": bool(later_ok),
     }
+    entries: dict[str, dict] = {}
     for spec in specs:
         if spec.column not in frame.columns:
             out["regimes"][spec.name] = {"unavailable": f"column {spec.column!r} not in frame"}
@@ -688,33 +867,48 @@ def regime_study(
         lab = assign_regime(spec, frame[spec.column]).to_numpy()
         cells = {}
         for level in pd.unique(lab):
-            sel = (lab == level) & full.mask
+            sel = (lab == level) & judge
             if not sel.any():
                 continue
-            ncl = {
-                name: int(pd.Series(np.asarray(cl)[sel]).nunique()) for name, cl in clusters.items()
-            }
+            ncl = {n: int(pd.Series(np.asarray(c)[sel]).nunique()) for n, c in clusters.items()}
+            d_j = np.where(sel, delta, np.nan)
+            boots = {n: cluster_boot(d_j, c, n_boot, seed) for n, c in clusters.items()}
+            cons = conservative(boots)
+            e_sel = (lab == level) & early
+            early_mean = float(delta[e_sel].mean()) if e_sel.any() else None
             cell = {
                 "n_rows": int(sel.sum()),
                 "n_clusters": ncl,
                 "informative": bool(min(ncl.values()) >= MIN_CLUSTERS),
                 "mean_loss_full": float(lf[sel].mean()),
                 "mean_loss_baseline": float(lb[sel].mean()),
-                "baseline_minus_full": {
-                    name: cluster_boot(delta[sel], np.asarray(cl)[sel], n_boot, seed)
-                    for name, cl in clusters.items()
-                },
+                "baseline_minus_full": boots,
+                "value": cons,
+                "early_mean": early_mean,
+                "sign_stable": bool(
+                    early_mean is not None
+                    and cons["mean"] is not None
+                    and np.sign(early_mean) == np.sign(cons["mean"])
+                    and early_mean > 0
+                ),
+                "later_blocks_ok": bool(later_ok),
             }
             if fam_abs is not None:
-                cell["mean_abs_shap_by_family"] = {
+                cell["descriptive_mean_abs_shap_by_family"] = {
                     f: float(v[sel].mean()) for f, v in fam_abs.items()
                 }
             cells[str(level)] = cell
+            entries[f"{spec.name}={level}"] = cell
         out["regimes"][spec.name] = cells
+    # sign stability is an extra gate on top of finalize_demonstration
+    out["multiple_testing"] = finalize_demonstration(entries, prior_tests=prior_tests)
+    for e in entries.values():
+        if not e["sign_stable"]:
+            e["demonstrated_incremental_value"], e["label"] = False, "descriptive_only"
     out["note"] = (
-        "Regimes are declared in DECLARED_REGIMES before any result is seen. SHAP is "
-        "descriptive of the fitted model. Cells flagged informative=false (<50 clusters) "
-        "must not be interpreted."
+        "Regimes are declared in DECLARED_REGIMES before any result is seen. Cells with fewer "
+        "than 50 clusters are uninformative and never demonstrated. A cell is demonstrated only "
+        "when the full model beats the baseline on later blocks with the early sign agreeing."
     )
     return out
 
@@ -898,6 +1092,130 @@ def evaluate_threshold(
 # ---------------------------------------------------------------------------------------------
 
 
+def interaction_validation(
+    X: pd.DataFrame,
+    y: np.ndarray,
+    folds: Sequence[Fold],
+    cols: Sequence[str],
+    pairs: Sequence[Sequence[str]],
+    clusters: dict[str, np.ndarray],
+    *,
+    discovery_fold_ids: Sequence[str],
+    judge_fold_ids: Sequence[str],
+    prior_tests: int = 0,
+    n_boot: int = 1000,
+    seed: int = SEED,
+    cache: dict | None = None,
+) -> dict:
+    """Judge pairs found on early blocks by later-block out-of-sample value.
+
+    Compares a GBM forbidden from using the pair together in any branch (LightGBM
+    ``interaction_constraints``) against the unconstrained GBM, refit per fold. ``delta_ll`` is
+    constrained minus free log loss on judging rows: positive means allowing the interaction
+    helps. A pair is demonstrated only if the conservative CI excludes 0, BY passes over the
+    cumulative set, and the judging blocks are later than the discovery blocks.
+    """
+    y = np.asarray(y)
+    cache = {} if cache is None else cache
+    key = tuple(cols)
+    if key not in cache:
+        cache[key] = fit_oof(X, y, folds, cols)
+    free = cache[key]
+    ev = np.zeros(len(y), bool)
+    for f in folds:
+        if f.fold_id in judge_fold_ids:
+            ev[f.test_pos] = True
+    ev &= free.mask
+    ok = later_blocks_ok(folds, discovery_fold_ids, judge_fold_ids)
+    lf = free.loss(y)
+    entries = {}
+    for a, b in pairs:
+        con = fit_oof(X, y, folds, cols, make_lgb_fit(forbid_pair=(a, b)))
+        d = np.where(ev, con.loss(y) - lf, np.nan)
+        boots = _all_boot(d, clusters, n_boot, seed)
+        entries[f"{a}x{b}"] = {
+            "pair": [a, b],
+            "value": boots["conservative"],
+            "delta_ll": boots["conservative"]["mean"],
+            "by_cluster": {k: v for k, v in boots.items() if k in clusters},
+            "later_blocks_ok": ok,
+            "test": "constrained GBM (pair forbidden) vs free GBM, later blocks",
+        }
+    mt = finalize_demonstration(entries, prior_tests=prior_tests)
+    return {
+        "pairs": entries,
+        "multiple_testing": mt,
+        "discovery_fold_ids": list(discovery_fold_ids),
+        "judge_fold_ids": list(judge_fold_ids),
+    }
+
+
+def threshold_value(
+    h: ThresholdHypothesis,
+    X: pd.DataFrame,
+    y: np.ndarray,
+    folds: Sequence[Fold],
+    cols: Sequence[str],
+    clusters: dict[str, np.ndarray],
+    *,
+    judge_fold_ids: Sequence[str],
+    row_ids: np.ndarray,
+    n_boot: int = 1000,
+    seed: int = SEED,
+) -> dict:
+    """Later-block out-of-sample ΔLL from adding the indicator ``X[feature] > value``.
+
+    Refuses to value a threshold on its discovery fold or on rows it was discovered in; rows whose
+    event/cluster appeared in the discovery fold are dropped (counted) rather than reused.
+    """
+    y = np.asarray(y)
+    if h.discovered_in in judge_fold_ids:
+        raise ThresholdReuseError(
+            f"threshold discovered in {h.discovered_in!r}; cannot judge in it"
+        )
+    ev = np.zeros(len(y), bool)
+    for f in folds:
+        if f.fold_id in judge_fold_ids:
+            ev[f.test_pos] = True
+    if set(np.asarray(row_ids)[ev].tolist()) & h.discovery_row_ids:
+        raise ThresholdReuseError("evaluation rows overlap the discovery fold")
+    first = np.asarray(next(iter(clusters.values())))
+    overlap = (
+        np.isin(first, list(h.discovery_clusters))
+        if h.discovery_clusters
+        else np.zeros(len(y), bool)
+    )
+    n_excl = int((ev & overlap).sum())
+    ev &= ~overlap
+    xi = X.copy()
+    name = f"thr:{h.feature}>{h.value:.6g}"
+    v = xi[h.feature].to_numpy(float)
+    xi[name] = np.where(np.isnan(v), np.nan, (v > h.value).astype(float))
+    base = fit_oof(xi, y, folds, list(cols))
+    with_t = fit_oof(xi, y, folds, [*cols, name])
+    d = np.where(ev & base.mask, base.loss(y) - with_t.loss(y), np.nan)
+    boots = _all_boot(d, clusters, n_boot, seed)
+    return {
+        "hypothesis": h.to_dict(),
+        "value": boots["conservative"],
+        "delta_ll": boots["conservative"]["mean"],
+        "n_rows_excluded_cluster_overlap": n_excl,
+        "judge_fold_ids": list(judge_fold_ids),
+        "later_blocks_ok": True,
+    }
+
+
+def _mean_abs_shap(X: pd.DataFrame, full: OOF) -> dict[str, float]:
+    cols = list(full.cols)
+    acc, n = np.zeros(len(cols)), 0
+    for fold, model in full.models:
+        if not hasattr(model, "contrib"):
+            return {}
+        acc += np.abs(model.contrib(X.iloc[fold.test_pos][cols].to_numpy(float))).sum(axis=0)
+        n += len(fold.test_pos)
+    return {c: float(a / max(n, 1)) for c, a in zip(cols, acc, strict=True)}
+
+
 def run_explain(
     X: pd.DataFrame,
     y: np.ndarray,
@@ -909,12 +1227,75 @@ def run_explain(
     frame: pd.DataFrame | None = None,
     row_ids: np.ndarray | None = None,
     fit_fn: FitFn = lgb_fit,
-    top_k: int = 5,
+    top_k: int = 4,
+    max_pairs: int = 5,
+    max_feature_units: int = 20,
+    prior_tests: int | None = None,
     n_boot: int = 1000,
     seed: int = SEED,
 ) -> tuple[dict, list[ThresholdHypothesis]]:
-    """Run every analysis; returns (JSON-safe result, threshold hypotheses). Writes no file."""
+    """Run every analysis, judged by incremental out-of-sample log-loss value.
+
+    Folds are split in time: the first half is DISCOVERY (families screened, features,
+    interaction pairs and thresholds proposed), the later half is JUDGING (their ΔLL with
+    cluster-bootstrap CI and BY over the cumulative set). Rankings use ΔLL only; SHAP, conditional
+    permutation importance and ALE are attached as ``descriptive`` columns. Returns the JSON-safe
+    result and the threshold hypotheses. Writes no file.
+    """
     y = np.asarray(y)
+    if len(folds) < 2:
+        raise ValueError("need at least 2 folds to split discovery from judging")
+    if prior_tests is None:
+        prior_tests = prior_ml_explain_tests()
+    h = max(1, len(folds) // 2)
+    early, late = list(folds[:h]), list(folds[h:])
+    eids, lids = [f.fold_id for f in early], [f.fold_id for f in late]
+    cache: dict = {}
+    # discovery: families, then single features inside surviving families, on early blocks
+    d_fam = ablation_study(
+        X,
+        y,
+        early and folds,
+        family_map,
+        baseline_features,
+        clusters,
+        judge_fold_ids=eids,
+        fit_fn=fit_fn,
+        n_boot=n_boot,
+        seed=seed,
+        cache=cache,
+    )
+    d_fam.pop("_full_oof"), d_fam.pop("_baseline_oof")
+    surv = [
+        f
+        for f, e in d_fam["families"].items()
+        if e["value"]["ci"][0] is not None and e["value"]["ci"][0] > 0
+    ]
+    cand = [
+        c for f in surv for c in family_map[f] if c in X.columns and c not in baseline_features
+    ][:max_feature_units]
+    extra = {c: [c] for c in cand}
+    d_feat = ablation_study(
+        X,
+        y,
+        folds,
+        family_map,
+        baseline_features,
+        clusters,
+        extra_units=extra,
+        judge_fold_ids=eids,
+        fit_fn=fit_fn,
+        n_boot=n_boot,
+        seed=seed,
+        cache=cache,
+    )
+    d_feat.pop("_full_oof"), d_feat.pop("_baseline_oof")
+    top = [
+        c
+        for c in sorted(cand, key=lambda c: -(d_feat["features"][c]["delta_ll"] or -1e9))
+        if (d_feat["features"][c]["delta_ll"] or 0) > 0
+    ][:top_k]
+    # judging: later blocks only
     abl = ablation_study(
         X,
         y,
@@ -922,78 +1303,179 @@ def run_explain(
         family_map,
         baseline_features,
         clusters,
+        extra_units=extra,
+        judge_fold_ids=lids,
+        selection_fold_ids=eids,
+        prior_tests=prior_tests,
         fit_fn=fit_fn,
         n_boot=n_boot,
         seed=seed,
+        cache=cache,
     )
     full, base = abl.pop("_full_oof"), abl.pop("_baseline_oof")
     full = fit_oof(X, y, folds, full.cols, fit_fn, keep_models=True)
-    cpi = conditional_permutation_importance(X, y, full, clusters, n_boot=n_boot, seed=seed)
-    ranked = sorted(
-        cpi["features"],
-        key=lambda f: -(cpi["features"][f]["conditional"][next(iter(clusters))]["mean"] or 0.0),
+    cache[tuple(full.cols)] = full
+    cpi = conditional_permutation_importance(
+        X, y, full, clusters, features=cand or None, n_boot=n_boot, seed=seed
     )
-    top = ranked[:top_k]
+    shap = _mean_abs_shap(X, full)
+    ale = ale_study(X, full, top) if top else {"features": {}}
+    first = next(iter(clusters))
+    for r in abl["ranking"]:
+        c = r["unit"]
+        fam_cols = family_map.get(c) or [c]
+        r["descriptive"] = {
+            "mean_abs_shap": float(sum(shap.get(k, 0.0) for k in fam_cols)) if shap else None,
+            "conditional_permutation": (
+                cpi["features"].get(c, {}).get("conditional", {}).get(first, {}).get("mean")
+            ),
+            "ale_range": ale["features"].get(c, {}).get("range"),
+            "note": "descriptive only; not used for ranking or labelling",
+        }
+    hyps: list[ThresholdHypothesis] = []
+    interactions = {"discovery": None, "validation": None}
+    thresholds = []
+    if len(top) >= 2:
+        disc = interaction_study(X, full, top, seed=seed, fold_ids=eids)
+        pairs = [p["pair"] for p in disc["top_pairs"][:max_pairs]]
+        interactions = {
+            "discovery": disc,
+            "validation": interaction_validation(
+                X,
+                y,
+                folds,
+                list(full.cols),
+                pairs,
+                clusters,
+                discovery_fold_ids=eids,
+                judge_fold_ids=lids,
+                prior_tests=prior_tests,
+                n_boot=n_boot,
+                seed=seed,
+                cache=cache,
+            ),
+        }
+    ids = np.arange(len(y)) if row_ids is None else np.asarray(row_ids)
+    for fold, model in full.models:
+        if fold.fold_id in eids and hasattr(model, "booster") and top:
+            hyps += propose_gbm_thresholds(
+                model, fold, ids, clusters[first], features=top, per_feature=1
+            )
+    entries = {}
+    for hy in hyps:
+        tv = threshold_value(
+            hy,
+            X,
+            y,
+            folds,
+            list(full.cols),
+            clusters,
+            judge_fold_ids=lids,
+            row_ids=ids,
+            n_boot=n_boot,
+            seed=seed,
+        )
+        entries[f"{hy.feature}@{hy.value:.4g}#{hy.discovered_in}"] = tv
+    thr_mt = finalize_demonstration(entries, prior_tests=prior_tests) if entries else None
+    thresholds = {"values": entries, "multiple_testing": thr_mt}
+    n_tests = (
+        len(abl["ranking"])
+        + len(d_fam["families"])
+        + len(d_feat["features"])
+        + len((interactions["validation"] or {}).get("pairs", {}))
+        + len(entries)
+    )
     res = {
         "kind": KIND,
         "label": LABEL,
         "n_rows": int(len(y)),
         "n_folds": len(folds),
         "fold_ids": [f.fold_id for f in folds],
+        "discovery_fold_ids": eids,
+        "judge_fold_ids": lids,
         "cluster_definitions": list(clusters),
+        "ranking_key": "incremental out-of-sample delta log loss (refit), conservative CI",
         "ablation": abl,
-        "conditional_permutation": cpi,
+        "discovery_ablation": {"families": d_fam["ranking"], "features": d_feat["ranking"]},
         "top_features": top,
-        "ale": ale_study(X, full, top),
-        "interactions": interaction_study(X, full, top, seed=seed),
+        "descriptive": {"conditional_permutation": cpi, "ale": ale, "mean_abs_shap": shap},
+        "interactions": interactions,
+        "thresholds": thresholds,
+        "threshold_hypotheses": [x.to_dict() for x in hyps],
+        "n_tests": int(n_tests),
+        "prior_tests": int(prior_tests),
     }
     if frame is not None:
+        mask_e, mask_l = np.zeros(len(y), bool), np.zeros(len(y), bool)
+        for f in early:
+            mask_e[f.test_pos] = True
+        for f in late:
+            mask_l[f.test_pos] = True
         res["regimes"] = regime_study(
-            frame, y, full, base, clusters, family_map, X, n_boot=n_boot, seed=seed
+            frame,
+            y,
+            full,
+            base,
+            clusters,
+            family_map,
+            X,
+            discovery_mask=mask_e,
+            judge_mask=mask_l,
+            later_ok=True,
+            prior_tests=prior_tests,
+            n_boot=n_boot,
+            seed=seed,
         )
-    ids = np.arange(len(y)) if row_ids is None else row_ids
-    hyps: list[ThresholdHypothesis] = []
-    first = next(iter(clusters))
-    for fold, model in full.models:
-        if hasattr(model, "booster"):
-            hyps += propose_gbm_thresholds(
-                model, fold, ids, clusters[first], features=top, per_feature=1
-            )
-    res["threshold_hypotheses"] = [h.to_dict() for h in hyps]
+        res["n_tests"] += len(res["regimes"]["multiple_testing"]["adjusted"])
     res["interpretation_caveat"] = (
-        "SHAP/ALE/H2 describe fitted models. Value added is judged by the refit ablations only; "
-        "all thresholds are hypotheses needing new held-out data; nothing here is an edge claim."
+        "Only entries labelled demonstrated have shown incremental out-of-sample value on later "
+        "blocks (CI excludes 0, BY q=0.10 over the cumulative set). SHAP, permutation importance "
+        "and ALE describe the fitted model and never rank or label. Thresholds are hypotheses; "
+        "nothing here is an edge claim."
     )
     return res, hyps
 
 
+def prior_ml_explain_tests(path: Path = provenance.TRIALS_PATH) -> int:
+    """Cumulative number of tests already logged by ml_explain runs (BY denominator carry-over)."""
+    p = Path(path)
+    if not p.exists():
+        return 0
+    n = 0
+    with open(p, encoding="utf-8") as fh:
+        for line in fh:
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                continue
+            if rec.get("kind") == KIND:
+                n += int(rec.get("n_tests") or 0)
+    return n
+
+
 def trial_record(result: dict) -> dict:
-    """Compact trial-log record: family-level effects with Holm, top interactions, counts."""
+    """Compact trial-log record: ΔLL ranking with labels, interactions, counts."""
     abl = result["ablation"]
-    fams = {}
-    for f, v in abl["families"].items():
-        if "drop_minus_full" not in v:
-            continue
-        key = next(iter(c for c in result["cluster_definitions"]))
-        fams[f] = {
-            "drop_minus_full": v["drop_minus_full"][key]["mean"],
-            "drop_minus_full_ci": v["drop_minus_full"][key]["ci"],
-            "only_minus_baseline": v["only_minus_baseline"][key]["mean"],
-            "only_minus_baseline_ci": v["only_minus_baseline"][key]["ci"],
-            "n_clusters": v["drop_minus_full"][key]["n_clusters"],
-        }
+    inter = (result["interactions"] or {}).get("validation") or {}
     return {
         "kind": KIND,
         "label": LABEL,
         "n_rows": result["n_rows"],
         "n_folds": result["n_folds"],
+        "discovery_fold_ids": result["discovery_fold_ids"],
+        "judge_fold_ids": result["judge_fold_ids"],
         "cluster_definitions": result["cluster_definitions"],
-        "families": fams,
+        "ranking": [
+            {k: r[k] for k in ("rank", "unit", "kind", "delta_ll", "ci", "p_by", "label")}
+            for r in abl["ranking"]
+        ],
         "absent_families": abl["absent_families"],
-        "multiple_testing": abl["multiple_testing"],
-        "n_family_tests": len(fams),
+        "multiple_testing": {
+            k: abl["multiple_testing"][k] for k in ("by_q", "m_tests", "prior_tests", "m_total")
+        },
+        "n_tests": result["n_tests"],
         "top_features": result["top_features"],
-        "top_interactions": [p["pair"] for p in result["interactions"]["top_pairs"][:3]],
+        "interaction_labels": {k: v["label"] for k, v in inter.get("pairs", {}).items()},
         "n_threshold_hypotheses": len(result["threshold_hypotheses"]),
         "note": result["interpretation_caveat"],
     }
@@ -1026,6 +1508,12 @@ __all__ = [
     "folds_from_manifest",
     "holm",
     "interaction_study",
+    "interaction_validation",
+    "threshold_value",
+    "benjamini_yekutieli",
+    "finalize_demonstration",
+    "make_lgb_fit",
+    "prior_ml_explain_tests",
     "log_trial",
     "propose_ale_changepoints",
     "propose_gbm_thresholds",

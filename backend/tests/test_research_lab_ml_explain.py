@@ -76,8 +76,11 @@ def test_ablation_noise_family_ci_covers_zero_and_signal_does_not():
     assert noise[0] < 0 < noise[1]
     sig = rep["families"]["flow"]["only_minus_baseline"]["dep_group"]
     assert sig["ci"][1] < 0  # adding flow to the baseline lowers log loss
-    mt = rep["multiple_testing"]["only_minus_baseline"]
-    assert mt["flow"]["reject_5pct"] and not mt["external"]["reject_5pct"]
+    assert rep["families"]["flow"]["demonstrated_incremental_value"] is True
+    assert rep["families"]["external"]["demonstrated_incremental_value"] is False
+    assert rep["families"]["external"]["label"] == "descriptive_only"
+    assert rep["ranking"][0]["unit"] in {"flow", "market_state"}
+    assert rep["multiple_testing"]["m_total"] == rep["multiple_testing"]["m_tests"]
 
 
 def test_threshold_reuse_refused_and_heldout_allowed():
@@ -124,13 +127,13 @@ def test_regimes_flag_uninformative_and_declared_hash():
     y = ((X.flow_a + rng.normal(size=n)) > 0).astype(int).to_numpy()
     frame = pd.DataFrame(
         {
-            "mid": rng.uniform(0, 1, n),
-            "hours_to_end": rng.uniform(0, 900, n),
-            "liquidity": rng.lognormal(size=n),
-            "category": rng.choice(["a", "b"], n),
+            "mid_i": rng.uniform(0, 1, n),
+            "ml_log_hours_to_end": np.log1p(rng.uniform(0, 900, n)),
+            "ml_log1p_liq": rng.normal(size=n),
+            "fee_category": rng.choice(["a", "b"], n),
         }
     )
-    frame.loc[n - 20 :, "category"] = "tiny"
+    frame.loc[n - 20 :, "fee_category"] = "tiny"
     folds, cl = _folds(n), _clusters(n)
     fam = mx.assign_families(X.columns)
     full = mx.fit_oof(X, y, folds, list(X.columns), keep_models=True)
@@ -139,9 +142,10 @@ def test_regimes_flag_uninformative_and_declared_hash():
     assert r["declaration_hash"] == mx.regime_declaration_hash()
     cat = r["regimes"]["category"]
     assert cat["tiny"]["informative"] is False
+    assert not any(c["demonstrated_incremental_value"] for c in cat.values())  # no split declared
     assert cat["a"]["informative"] is True
     assert set(r["regimes"]["price_extremity"]) <= {"<0.1", "0.1-0.9", ">0.9"}
-    assert "mean_abs_shap_by_family" in cat["a"]
+    assert "descriptive_mean_abs_shap_by_family" in cat["a"]
 
 
 def test_run_explain_and_trial_log(tmp_path):
@@ -150,11 +154,105 @@ def test_run_explain_and_trial_log(tmp_path):
     X = pd.DataFrame(rng.normal(size=(n, 4)), columns=["mid", "spread", "flow_a", "ext_n"])
     y = ((X.mid + X.flow_a + rng.normal(size=n)) > 0).astype(int).to_numpy()
     fam = mx.assign_families(X.columns)
-    res, hyps = mx.run_explain(X, y, _folds(n), fam, ["mid"], _clusters(n), top_k=3, n_boot=100)
-    assert res["label"] == "EXPLORATORY" and hyps
+    res, hyps = mx.run_explain(
+        X, y, _folds(n, 4), fam, ["mid"], _clusters(n), top_k=3, n_boot=100, prior_tests=0
+    )
+    assert res["label"] == "EXPLORATORY" and res["judge_fold_ids"] == ["f2", "f3"]
     log = tmp_path / "trials.jsonl"
     rec = mx.log_trial(res, path=log)
     line = json.loads(log.read_text().splitlines()[0])
     assert line["kind"] == "ml_explain" and line["label"] == "EXPLORATORY"
     assert line["trial_id"] == rec["trial_id"] and "multiple_testing" in line
     json.dumps(res, default=float)  # result is serialisable
+
+
+def _dup_data(seed=7, n=4000):
+    rng = np.random.default_rng(seed)
+    x = rng.normal(size=n)
+    X = pd.DataFrame(
+        {
+            "mid": rng.normal(size=n),
+            "flow_s": x,
+            "flow_dup": x + 0.01 * rng.normal(size=n),
+            "ext_n": rng.normal(size=n),
+        }
+    )
+    y = ((x + rng.normal(scale=0.7, size=n)) > 0).astype(int)
+    return X, y
+
+
+def test_high_shap_duplicate_is_descriptive_only():
+    X, y = _dup_data()
+    n = len(y)
+    res, _ = mx.run_explain(
+        X,
+        y,
+        _folds(n, 4),
+        mx.assign_families(X.columns),
+        ["mid"],
+        _clusters(n),
+        top_k=3,
+        n_boot=200,
+        prior_tests=0,
+    )
+    units = {r["unit"]: r for r in res["ablation"]["ranking"]}
+    shap = res["descriptive"]["mean_abs_shap"]
+    assert units["flow"]["label"] == "demonstrated"  # the family does add value
+    dup = units["flow_dup"]
+    assert shap["flow_dup"] > 2 * shap["ext_n"]  # the model leans on it...
+    assert dup["label"] == "descriptive_only"  # ...but removing it costs nothing
+    assert dup["demonstrated_incremental_value"] is False
+    assert dup["descriptive"]["mean_abs_shap"] == pytest.approx(shap["flow_dup"])
+    assert res["ranking_key"].startswith("incremental out-of-sample")
+
+
+def test_interaction_demonstrated_only_on_later_blocks():
+    rng = np.random.default_rng(8)
+    n = 4000
+    X = pd.DataFrame(rng.normal(size=(n, 4)), columns=["a0", "a1", "a2", "a3"])
+    y = ((X.a0 * X.a1 > 0) ^ (rng.random(n) < 0.1)).astype(int).to_numpy()
+    folds, cl = _folds(n, 4), _clusters(n)
+    cols = list(X.columns)
+    pairs = [["a0", "a1"], ["a2", "a3"]]
+    kw = {"n_boot": 200, "prior_tests": 0}
+    ok = mx.interaction_validation(
+        X,
+        y,
+        folds,
+        cols,
+        pairs,
+        cl,
+        discovery_fold_ids=["f0", "f1"],
+        judge_fold_ids=["f2", "f3"],
+        **kw,
+    )
+    assert ok["pairs"]["a0xa1"]["label"] == "demonstrated"
+    assert ok["pairs"]["a2xa3"]["label"] == "descriptive_only"
+    # judging blocks not later than discovery blocks: never demonstrated
+    bad = mx.interaction_validation(
+        X,
+        y,
+        folds,
+        cols,
+        pairs,
+        cl,
+        discovery_fold_ids=["f2", "f3"],
+        judge_fold_ids=["f0", "f1"],
+        **kw,
+    )
+    assert bad["pairs"]["a0xa1"]["label"] == "descriptive_only"
+
+
+def test_threshold_value_refuses_discovery_fold_and_regime_needs_split():
+    X, y = _dup_data(9, 2400)
+    n = len(y)
+    folds, cl = _folds(n, 4), _clusters(n)
+    ids = np.arange(n)
+    m = mx.lgb_fit(X.to_numpy()[folds[0].train_pos], y[folds[0].train_pos], list(X.columns))
+    h = mx.propose_gbm_thresholds(m, folds[0], ids, cl["event"], features=["flow_s"])[0]
+    with pytest.raises(mx.ThresholdReuseError):
+        mx.threshold_value(h, X, y, folds, list(X.columns), cl, judge_fold_ids=["f0"], row_ids=ids)
+    out = mx.threshold_value(
+        h, X, y, folds, list(X.columns), cl, judge_fold_ids=["f2", "f3"], row_ids=ids, n_boot=100
+    )
+    assert out["hypothesis"]["status"] == "HYPOTHESIS" and out["value"]["n_clusters"] > 0
