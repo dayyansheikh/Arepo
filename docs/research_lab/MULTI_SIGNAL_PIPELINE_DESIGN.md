@@ -501,3 +501,24 @@ Missing data stays missing. Thresholds, δ, τ and the gates are not changed aft
 
 The book sweep is observed about 7-8 minutes after its snapshot, inside the label window, so a sweep feature may partly carry the sweep-minus-Gamma gap (`rep_sw_gap`). This diagnostic is **pre-declared and mandatory** in every development report that uses `ml_sw_*` features: `ml_panel.sweep_gap_diagnostic` (correlation of each sweep feature with the gap) and `ml_panel.rescore_with_gap_control` (the sweep arm's gain re-scored with the gap controlled, on all rows and on `|gap| < 0.0025`). It is report-only, never gates a verdict, and never removes a feature. Dependence groups use underlying x UTC end date for crypto (`ud:<underlying>|<date>` node added in `ml_panel`).
 
+
+## Amendment A2 — Targets (separate, explicitly named)
+
+Targets are never mixed. Each has its own name in `trials.jsonl` (`target`, `horizon_snapshots`, `evidence_status`), its own fold manifest and its own report. **Only T1 direction at h = 1 enters the confirmation family. Every other row is EXPLORATORY until separately registered** (its own MDE, clustering, multiplicity and review).
+
+| Target (column) | Horizon | Question | Arms | Loss (primary; robustness) | Evidence standard |
+|---|---|---|---|---|---|
+| `direction_3class` (`y_class`) | h1 (~2h) | direction of the next move | M0, M1, M2, M3_eb | log loss; Brier | **Confirmatory (MC1)**; unchanged |
+| `direction_3class` (`y_class_h{3,12}`) | ~6h, ~24h | direction at a longer horizon | as above | log loss; Brier | Exploratory |
+| `dmid_magnitude` (`y_dmid_h{k}`) | h1, h3, h12 | size of the signed Gamma-mid change | M0 OLS (price+momentum), M1 elastic net, M2 LightGBM (L2) | MSE and MAE; Huber (delta 0.01) as a robustness report | Exploratory; zero-forecast reference reported |
+| `absmove_binary` (`y_absmove_h{k}`) | h1, h3, h12 | will it move (`abs(dmid) > delta`) | M0 logistic, M1 elastic net, M2 LightGBM | log loss; Brier | Exploratory; base-rate reference reported |
+| resolution (T5) | to close | eventual outcome | not implemented | not applicable | Needs resolved-outcome labels (available only at resolution) and a separate evidence standard (MC2) |
+| executable opportunity | n/a | would a fill have been profitable | not implemented | not applicable | Needs its own registered design (costs, depth, fill model) |
+
+Rules for k-step targets (`ml_panel.add_horizon_targets`, `horizon_view`, `plan_folds(horizon=k)`):
+- Origin snapshot i, target snapshot i+k; the Gamma mid at both ends. The k snapshot pairs must form a contiguous capture chain, each hop inside the 1.5-3h gap rule. Otherwise the target is unavailable and never imputed.
+- A target quote received before the origin cutoff `t0` (or before any intermediate hop's own `t0`, which is conservative) is unavailable.
+- **Label availability is `t_{i+k}`.** The purge keeps a training row only if that time is at most the earliest test `t0` minus the embargo; the embargo scales to k nominal periods (2h, 6h, 24h); the inner split uses the same scaled embargo. The default minimum training span grows by 4(k-1) periods, so short panels simply plan no full fold (h12 needs about 60 periods). The h1 manifest is byte-identical to before.
+- Known limitation: the origin-side UMA exclusion is evaluated on the target-side row for k > 1, so a market excluded later has no k-step label. Another reason these targets are exploratory.
+- Tuning is nested as for T1 (inner validation of the last 25% of training periods; temperature on the logit for `absmove`; regression has no temperature). Market clustered bootstrap with both co-primary clusterings, same validity gate as T1.
+- Run: `run_ml_dev.py --target {direction,dmid,absmove} --horizon {1,3,12}`. The default is the confirmatory target. Exploratory runs skip the placebos and the sweep-gap diagnostic, so M1/M2 results stay uninterpretable until the T1 diagnostic is satisfied.

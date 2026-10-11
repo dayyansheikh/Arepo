@@ -245,3 +245,20 @@ def test_shuffle_is_seeded_within_blocks_and_singletons_reported():
             assert sorted(g["y_class"]) == sorted(g["orig"])
     assert rmd.singleton_share(lab, "period_event") == pytest.approx(2 / 12)
     assert rmd.singleton_share(lab, "period") == 0.0
+
+
+def test_exploratory_target_run_is_separate_and_labelled(tmp_path_factory):
+    tmp = tmp_path_factory.mktemp("expl")
+    mp = pytest.MonkeyPatch()
+    mp.setenv(rmd.TEST_GATE_ENV, "28")
+    _write_world(tmp, 28)
+    assert rmd.main(_args(tmp, "--target", "dmid", "--horizon", "3")) == 0
+    mp.undo()
+    path = next((tmp / "out").glob("ml_dev_dmid_magnitude_h3_*[0-9a-f].json"))
+    rep = json.loads(path.read_text())
+    assert "EXPLORATORY" in rep["status"] and rep["horizon_snapshots"] == 3
+    assert rep["embargo_s"] == 3 * 7200.0
+    lines = [json.loads(x) for x in (tmp / "trials.jsonl").read_text().splitlines()]
+    assert lines and all(x["target"] == "dmid_magnitude" and x["horizon_snapshots"] == 3
+                         and x["evidence_status"] == "EXPLORATORY" for x in lines)
+    assert not list((tmp / "out").glob("ml_dev_2*.md"))  # no primary-style report written

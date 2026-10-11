@@ -63,6 +63,9 @@ SWEEP_VERSION_OK = "book-sweep-v1"
 DEP_GROUP_UNDERLYING = True  # D120 crypto rule: underlying x UTC date (design line 199)
 UNDERLYING_DATE_PREFIX = "ud:"  # synthetic node injected as an event id (pairing has no date term)
 FOLD_MANIFEST_VERSION = "ml-fold-manifest-v1"
+HORIZONS = (1, 3, 12)  # target snapshots ahead (~2h, ~6h, ~24h); k = 1 is the confirmatory one
+PRIMARY_HORIZON = 1
+TARGET_FAMILIES = ("direction", "dmid", "absmove")  # y_class_h{k}, y_dmid_h{k}, y_absmove_h{k}
 DEFAULT_MAP_VERSION = "fs2-fee-category-map-v1"
 CATEGORY_MODES = ("all", "include", "exclude")
 
@@ -1046,6 +1049,98 @@ def build_panel(
     return panel_df, counts
 
 
+# ---------------------------------------------------------------------------------------------
+# Multi-horizon targets (EXPLORATORY except k = 1 direction)
+# ---------------------------------------------------------------------------------------------
+# Resolution targets (T5, "eventual resolution") are deliberately NOT implemented here: they need
+# resolved-outcome labels fetched after close (label available only at resolution time) and a
+# separate evidence standard (design section 1, T5 / MC2). An "executable opportunity" target
+# likewise needs its own registered design (costs, depth, fill). Neither is a column of this panel.
+
+_LABEL_NAMES = ("t_j", "mid_j", "dmid", "y_class", "y_dmid", "y_absmove", "target_available")
+
+
+def add_horizon_targets(
+    df: pd.DataFrame, horizons: Iterable[int] = HORIZONS, delta: float = DELTA_PRIMARY
+) -> pd.DataFrame:
+    """Add k-step targets: origin snapshot i, target snapshot i+k (``*_h{k}`` columns).
+
+    The target for the row (market, period p) is the Gamma mid at the target snapshot of the same
+    market's row in period p+k-1 (its ``mid_j``), so the source is the Gamma mid at both ends. It is
+    NaN (unavailable, never imputed) unless every period p..p+k-1 is in the panel with a
+    contiguous capture chain (``capture_j`` of one period is ``capture_i`` of the next, so each
+    step passed the 1.5-3h gap rule), the market row exists in period p+k-1, and the target
+    quote was received at or after the origin cutoff ``t0``. The latter is also required of every
+    intermediate hop (their own ``t0``), which is conservative. ``t_j_h{k}`` is the label
+    availability time used by the purge. k = 1 reproduces ``t_j``, ``dmid`` and ``y_class``
+    exactly. Rows removed by the origin-side UMA exclusion in period p+k-1 give an unavailable
+    target (documented selection limitation; these targets are exploratory).
+
+    Targets: ``y_class_h{k}`` (3-class, ``assign_class``), ``y_dmid_h{k}`` (signed Gamma-mid
+    change) and ``y_absmove_h{k}`` (1 iff ``|dmid| > delta``, the complement of the flat class).
+    """
+    out = df.copy(deep=False)
+    if not len(df):
+        return out
+    per = df["period"].to_numpy()
+    ci = df.groupby("period")["capture_i"].first().to_dict()
+    cj = df.groupby("period")["capture_j"].first().to_dict()
+    key = pd.MultiIndex.from_arrays([df["market_id"].to_numpy(), per])
+    mid_j_s = pd.Series(df["mid_j"].to_numpy(float), index=key)
+    t_j_s = pd.Series(df["t_j"].to_numpy(float), index=key)
+    mid_j_s = mid_j_s[~mid_j_s.index.duplicated()]
+    t_j_s = t_j_s[~t_j_s.index.duplicated()]
+    t0, mid_i = df["t0"].to_numpy(float), df["mid_i"].to_numpy(float)
+    for k in horizons:
+        if k < 1:
+            raise ValueError("horizon must be >= 1")
+        ok_p = {}  # period p is chain-complete when periods p..p+k-1 exist and are contiguous
+        for p in ci:
+            ok_p[p] = all(p + m in ci and ci[p + m] == cj[p + m - 1] for m in range(1, k))
+        chain = pd.Series(per).map(ok_p).fillna(False).to_numpy(bool)
+        tgt_key = pd.MultiIndex.from_arrays([df["market_id"].to_numpy(), per + (k - 1)])
+        t_j = t_j_s.reindex(tgt_key).to_numpy(float)
+        mid_j = mid_j_s.reindex(tgt_key).to_numpy(float)
+        bad = ~chain | np.isnan(t_j) | np.isnan(mid_j) | (t_j < t0)
+        t_j, mid_j = np.where(bad, np.nan, t_j), np.where(bad, np.nan, mid_j)
+        dmid = mid_j - mid_i
+        cls = assign_class(dmid, delta)
+        out[f"t_j_h{k}"] = t_j
+        out[f"mid_j_h{k}"] = mid_j
+        out[f"dmid_h{k}"] = dmid
+        out[f"y_class_h{k}"] = cls
+        out[f"y_dmid_h{k}"] = dmid
+        out[f"y_absmove_h{k}"] = np.where(np.isnan(cls), np.nan, (cls != CLASS_FLAT).astype(float))
+        out[f"target_available_h{k}"] = ~np.isnan(dmid)
+    out.attrs = dict(df.attrs)
+    return out
+
+
+def horizon_view(df: pd.DataFrame, k: int) -> pd.DataFrame:
+    """The panel with the canonical label columns replaced by the horizon-k ones.
+
+    ``t_j``, ``mid_j``, ``dmid``, ``y_class``, ``y_dmid``, ``y_absmove`` and ``target_available``
+    now describe snapshot i+k, so ``period_table``, ``fold_masks``, ``inner_split`` and every arm
+    purge on the label-availability time of the k-step target. For k = 1 the existing columns are
+    kept (``y_dmid`` / ``y_absmove`` are derived if absent), so the confirmatory target is
+    unchanged. Requires ``add_horizon_targets`` for k > 1.
+    """
+    v = df.copy(deep=False)
+    if k == 1:
+        if "y_dmid" not in v.columns:
+            v["y_dmid"] = v["dmid"]
+            cls = v["y_class"].to_numpy(float)
+            v["y_absmove"] = np.where(np.isnan(cls), np.nan, (cls != CLASS_FLAT).astype(float))
+    else:
+        if f"y_class_h{k}" not in df.columns:
+            raise ValueError(f"horizon {k} targets missing; call add_horizon_targets first")
+        for n in _LABEL_NAMES:
+            v[n] = df[f"{n}_h{k}"]
+        v["horizon_h"] = (v["t_j"] - v["t_i"]) / 3600.0
+    v.attrs = dict(df.attrs)
+    return v
+
+
 def labelled(df: pd.DataFrame) -> pd.DataFrame:
     return df[df["target_available"]].reset_index(drop=True)
 
@@ -1086,11 +1181,12 @@ def plan_folds(
     feature_vers: dict | None = None,
     code_sha: str | None = None,
     block: int = BLOCK_PERIODS,
-    min_train: int = MIN_TRAIN_PERIODS,
+    min_train: int | None = None,
     embargo_s: float | None = None,
     delta: float = DELTA_PRIMARY,
     delta_sens: float = DELTA_SENSITIVITY,
     category_info: dict | None = None,
+    horizon: int = PRIMARY_HORIZON,
 ) -> dict:
     """Deterministic expanding-window fold manifest with a sha256 over its canonical JSON.
 
@@ -1098,7 +1194,12 @@ def plan_folds(
     ``min_train`` periods. A training row is kept only if its label time is at most
     ``(earliest test t0) - embargo`` (``evaluate.purged_train_mask``). The embargo is fixed at one
     nominal period (``EMBARGO_S``); the observed median period spacing is recorded and must lie in
-    [GAP_MIN_H, GAP_MAX_H] hours. ``category_info`` (from ``build_panel``) supplies the applied
+    [GAP_MIN_H, GAP_MAX_H] hours. For ``horizon`` k > 1 (the table must come from
+    ``period_table(horizon_view(df, k))``, so ``t_label_max`` is the k-step label time) the
+    default embargo scales to k nominal periods, the label-availability horizon, and the default
+    minimum training span grows by 4(k-1) periods (the outer purge and the inner split each lose
+    about 2k periods of recent labels; with too few periods no full fold is planned).
+    ``category_info`` (from ``build_panel``) supplies the applied
     policy and counts. ``code_sha`` is required. Only full blocks are planned.
     """
     if not code_sha:
@@ -1111,8 +1212,12 @@ def plan_folds(
     spacing = float(np.median(np.diff(t0s))) if len(t0s) > 1 else None
     if spacing is not None and not (GAP_MIN_H * 3600 <= spacing <= GAP_MAX_H * 3600):
         raise ValueError(f"observed period spacing {spacing / 3600:.2f}h outside allowed range")
+    if horizon < 1:
+        raise ValueError("horizon must be >= 1")
     if embargo_s is None:
-        embargo_s = EMBARGO_S * EMBARGO_PERIODS
+        embargo_s = EMBARGO_S * EMBARGO_PERIODS * horizon
+    if min_train is None:
+        min_train = MIN_TRAIN_PERIODS + 4 * (horizon - 1)
     folds = []
     s = min_train
     while s + block <= len(periods):
@@ -1154,6 +1259,9 @@ def plan_folds(
             r["period"] for r in periods
         ],
     }
+    if horizon != PRIMARY_HORIZON:  # k = 1 manifests stay byte-identical
+        body["horizon_snapshots"] = horizon
+        body["purge_rule"] += f"; k={horizon}-step labels, embargo scaled to {horizon} periods"
     body["manifest_sha256"] = manifest_hash(body)
     return body
 

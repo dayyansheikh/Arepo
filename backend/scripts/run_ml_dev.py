@@ -9,6 +9,11 @@ Usage::
     python backend/scripts/run_ml_dev.py --dry-run   # panel + folds only; fits and logs nothing
     python backend/scripts/run_ml_dev.py             # real run: refused below the 40-snapshot gate
 
+Targets (design "Targets" amendment): ``--target direction|dmid|absmove`` and ``--horizon 1|3|12``.
+The default (direction, 1 snapshot, ~2h) is the only confirmatory target. Every other combination
+runs as a separate EXPLORATORY run with its own manifest, report and ``trials.jsonl`` lines
+(target name and horizon recorded); it never enters the confirmation family.
+
 Gate (design section 6): at least 40 *consecutive* complete snapshots with the sidecar present,
 consecutive meaning every start-to-start gap lies in [1.5, 3.0] h (the ``ml_panel`` pairing rule).
 Snapshots are only read, never modified. The panel is built period by period by
@@ -244,20 +249,25 @@ def code_sha() -> str:
     return g["git_head"] + ("+dirty" if g["git_dirty"] else "")
 
 
-def plan(df: pd.DataFrame) -> tuple[dict | None, str | None]:
-    """Fold manifest, or (manifest-or-None, reason) when the panel cannot support one."""
+def plan(df: pd.DataFrame, horizon: int = 1) -> tuple[dict | None, str | None]:
+    """Fold manifest, or (manifest-or-None, reason) when the panel cannot support one.
+
+    For ``horizon`` k > 1 the panel must carry ``add_horizon_targets`` columns; periods, label
+    times and the embargo are those of the k-step target.
+    """
     from astrolabe.research_lab import ml_panel
 
     if not len(df):
         return None, "empty panel"
     try:
-        man = ml_panel.plan_folds(ml_panel.period_table(df), code_sha=code_sha(),
+        man = ml_panel.plan_folds(ml_panel.period_table(ml_panel.horizon_view(df, horizon)),
+                                  horizon=horizon, code_sha=code_sha(),
                                   feature_vers=ml_panel.extended_feature_versions(),
                                   category_info=df.attrs.get("category_info"))
     except ValueError as e:
         return None, str(e)
     if not man["folds"]:
-        need = ml_panel.MIN_TRAIN_PERIODS + ml_panel.BLOCK_PERIODS
+        need = man["min_train_periods"] + ml_panel.BLOCK_PERIODS
         return man, f"no full fold: {len(man['periods'])} periods, need at least {need}"
     return man, None
 
@@ -538,6 +548,10 @@ def real_run(args, caps, gate, policy) -> dict:
     sweeps, sweep_report = usable_sweeps(args.sweep_root, run_caps)
     df, counts, h, cdir, cached = get_panel(run_caps, sweeps, policy, args.delta,
                                             args.cache_root, args.rebuild, with_leak=True)
+    target, horizon = getattr(args, "target", "direction"), int(getattr(args, "horizon", 1))
+    if not (target == "direction" and horizon == 1):
+        return exploratory_run(args, df, h, cdir, cached, gate, run_caps, sweeps, sweep_report,
+                               target, horizon, t0)
     man, why = plan(df)
     if man is None or why:
         raise SystemExit(f"cannot plan folds: {why}")
@@ -600,6 +614,70 @@ def real_run(args, caps, gate, policy) -> dict:
     jp.write_text(json.dumps(report, indent=1, default=_jsonable))
     mp.write_text(render_md(report))
     report["_paths"] = [str(jp), str(mp)]
+    return report
+
+
+def exploratory_run(args, df, h, cdir, cached, gate, run_caps, sweeps, sweep_report,
+                    target, horizon, t0) -> dict:
+    """Separate EXPLORATORY run for a non-primary target / horizon.
+
+    Own fold manifest (horizon-scaled purge and embargo), own report, own trial lines stamped with
+    the target name and horizon. Not part of the confirmation family. The M0 / sweep-gap probes and
+    placebos of the primary run are not repeated here: M1/M2 use the sweep features, so their
+    results stay uninterpretable until the direction run's sweep-gap diagnostic is satisfied.
+    """
+    from astrolabe.research_lab import ml_models as mm
+    from astrolabe.research_lab import ml_panel, provenance
+
+    if horizon not in ml_panel.HORIZONS:
+        raise SystemExit(f"horizon must be one of {ml_panel.HORIZONS}")
+    if horizon > 1:
+        df = ml_panel.add_horizon_targets(df, (horizon,), args.delta)
+    man, why = plan(df, horizon)
+    if man is None or why:
+        raise SystemExit(f"cannot plan folds: {why}")
+    tname = mm.target_name(target, horizon)
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    stem = f"ml_dev_{tname}_{stamp}_{man['manifest_sha256'][:8]}"
+    (out_dir / f"{stem}_fold_manifest.json").write_text(
+        json.dumps(_clean(man), indent=1, default=_jsonable))
+    lab = ml_panel.labelled(ml_panel.horizon_view(df, horizon))
+    trials_path = Path(args.trials_path)
+    before = _count_lines(trials_path)
+    overridden = bool(gate.get("gate_overridden"))
+    extra = {"evidence_status_run": "EXPLORATORY", "target_name": tname}
+    if overridden:
+        extra["gate_overridden"] = True
+    sink = mm.TrialSink(dataset=f"ml_dev panel {h[:12]} {tname}", path=trials_path, extra=extra)
+    clusters = mm.cluster_vectors(lab, lab["dep_group"].to_numpy())
+    clusters["dep_group_season"] = lab["dep_group_season"].to_numpy()
+    if target == "direction":
+        results = mm.run_arms(lab, man, mm.ARM_NAMES, sink=sink, collect_shap=False)
+        score = mm.score_arms(lab, results, clusters, sink=sink, manifest=man)
+    else:
+        results = mm.run_target_arms(target, lab, man, sink=sink)
+        score = mm.score_target(lab, results, clusters, target, sink=sink, manifest=man)
+    report = _clean({
+        "target": tname, "target_family": target, "horizon_snapshots": horizon,
+        "status": ("GATE OVERRIDDEN (TEST ONLY). " if overridden else "")
+        + "EXPLORATORY (not in the confirmation family). DEVELOPMENT/post-hoc. "
+        "No edge, calibration or profitability claim.",
+        "sweep_gap_diagnostic": "NOT RUN for this target; M1/M2 use sweep features",
+        "utc": stamp, "panel_hash": h, "from_cache": cached, "cache_dir": str(cdir),
+        "gate": {k: v for k, v in gate.items() if k != "run_capture_ids"},
+        "manifest_sha256": man["manifest_sha256"], "n_folds": len(man["folds"]),
+        "embargo_s": man["embargo_s"], "code_sha": man["code_sha"],
+        "n_labelled": int(len(lab)), "score": score,
+        "arm_fold_diagnostics": {a: r.folds for a, r in results.items()},
+        "accounting": {"trial_lines_written": _count_lines(trials_path) - before},
+        "provenance": provenance.run_provenance(),
+        "seconds": round(time.perf_counter() - t0, 1), "peak_rss_mb": round(peak_rss_mb(), 0),
+    })
+    jp = out_dir / f"{stem}.json"
+    jp.write_text(json.dumps(report, indent=1, default=_jsonable))
+    report["_paths"] = [str(jp)]
     return report
 
 
@@ -698,6 +776,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--delta", type=float, default=ml_panel.DELTA_PRIMARY)
     ap.add_argument("--category-mode", choices=ml_panel.CATEGORY_MODES, default="all")
     ap.add_argument("--categories", default="", help="comma-separated fee categories")
+    ap.add_argument("--target", choices=("direction", "dmid", "absmove"), default="direction",
+                    help="direction (3-class, confirmatory at --horizon 1) | dmid (magnitude "
+                    "regression) | absmove (|dmid| >= delta, binary); non-primary = EXPLORATORY")
+    ap.add_argument("--horizon", type=int, choices=ml_panel.HORIZONS, default=1,
+                    help="target snapshots ahead: 1 (~2h), 3 (~6h), 12 (~24h)")
     ap.add_argument("--rebuild", action="store_true", help="ignore the parquet cache")
     args = ap.parse_args(argv)
     policy = ml_panel.category_policy(
@@ -733,7 +816,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ETA: {gate['eta_utc']} ({gate['eta_assumption']}). Use --dry-run to inspect.")
         return 2
     rep = real_run(args, caps, gate, policy)
-    print("DEVELOPMENT RUN (not evidence). Reports: " + ", ".join(rep["_paths"]))
+    kind = ("DEVELOPMENT RUN" if args.target == "direction" and args.horizon == 1
+            else f"EXPLORATORY RUN ({args.target}, h{args.horizon})")
+    print(f"{kind} (not evidence). Reports: " + ", ".join(rep["_paths"]))
     return 0
 
 
