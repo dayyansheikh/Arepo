@@ -522,3 +522,7 @@ criteria are unchanged.
   - Against the ridge base, the two **trade-active** periods both lean positive for F1, F2a, F2b and F3: +0.009 to +0.016 R2 each. The eligible-frame period is negative.
   - Pooled CIs still span 0.
   - **Plan (pre-declared before further data):** once at least 4 trade-active periods exist, screen on the active frame only. If the sign holds in at least 3 of 4, draft a registered flow experiment (E007) for confirmation on later active samples.
+- **Flow screen S4 (DEVELOPMENT, ~09:35Z):** 4 periods (3 trade-active), 7,965 pairs across 3,781 events.
+  - **The lead weakened.** In the third active period F2a, F2b and F4 are negative. F1 (signed share) against ridge is +0.009, +0.010, -0.002 across the active periods, so it is positive in 2 of 3. Its pooled CI is [-0.0002, +0.0047].
+  - **Method caveat:** the screen cross-fits on all periods pooled, so earlier per-period values shift as periods are added. Per-period figures are indicative only.
+  - The pre-declared E007 rule needs at least 3 of 4 active periods with the same sign. One more active period decides it.
