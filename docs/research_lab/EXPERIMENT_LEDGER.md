@@ -577,3 +577,5 @@ criteria are unchanged.
 - **Dependence:** windows run back to back. Market recurrence (about 17%) is handled by event clustering, and period intercepts absorb common shocks.
 - **Non-claims:** not tradable edge, profitability, calibration or causation. dmid is a quote mid, with no costs or fills.
 - **Operational note:** in the 2-hourly loop, one active trade sample is taken right after each snapshot, never re-sampling an older snapshot.
+
+E007 dev_fit.json sha256: 7e2c4f79079ced0c74ad1899cfb3536e71f97385c499d9730dd62046560124c6 (n=9610, nonzero signed_share=1504; P1: n=1996, nz=289, P2: n=1990, nz=317, P3: n=1992, nz=333, P4: n=3632, nz=565)
