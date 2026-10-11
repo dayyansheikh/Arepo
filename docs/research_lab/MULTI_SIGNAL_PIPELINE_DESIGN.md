@@ -5,7 +5,15 @@
 - **Relation to the ledger:** E001–E007, C1 and L1 keep their outcomes and registrations unchanged. This pipeline does not refit, pool or reinterpret them.
   - The frozen E002 reversal is used only as a reference arm.
   - E004–E007 continue on their own rules.
-- **Next gate:** an accepting `science-reviewer` pass on this design. Then Tasks 1–2 (section 7).
+- **Review:** the `science-reviewer` accepted it with 7 changes (2026-10-11). Revision 2 adopts all of them:
+  1. one price source at both ends;
+  2. δ frozen now;
+  3. power numbers marked non-binding;
+  4. dependence-group clustering;
+  5. economic rule fixed;
+  6. search accounting;
+  7. development calendar.
+- **Next gate:** the pre-implementation checks (section 7), then Tasks 1–2.
 
 ## 0. Why change approach
 
@@ -34,16 +42,26 @@ The data are 10 complete loop snapshots, each about 240–277k rows (about 40k E
 
 | ID | Target | Horizon | Needs | Role |
 |---|---|---|---|---|
-| **T1** | 3-class material direction of `mid` (down / flat / up). `|dmid| <= δ` is flat. Proposed δ = max(0.01, 2·tick) (see note 1) | next snapshot, ~2h | consecutive complete snapshots with a gap ≤ 3h. Tick size needs the sidecar (Task 1) or a book sweep. | **Primary** (MC1). Scored by log loss and Brier |
+| **T1** | 3-class material direction of `mid` (down / flat / up). `|dmid| <= δ` is flat. **δ = 0.005 (frozen; see note 1)**. `dmid` is the **Gamma** mid at *j* minus the **Gamma** mid at *i* (note 2) | next snapshot, ~2h | consecutive complete snapshots with a gap ≤ 3h | **Primary** (MC1). Scored by log loss and Brier |
 | T2 | continuous `dmid` | ~2h | same as T1 | Secondary. Comparable with E001–E007 (R2_oos against no-change and against frozen E002) |
 | T1-24 | T1 at ~24h (snapshot 12 periods later) | 24h | 12 consecutive snapshots. Overlapping labels are purged by availability. | Descriptive in development only |
 | **T5** | resolution: outcome 0 pays 1 | close within 1–7 days of origin | resolution labels fetched after close (C1 rules: `umaResolutionStatus`, `outcomePrices`). The label is available at resolution time. | Later confirmation **MC2**. Baseline: the market price, which C1 found close to calibrated at 1d |
 
-1. **δ** is fixed in development, with a single pre-declared sensitivity (δ = spread/2). It is frozen before confirmation. The flat class is kept; about 62% of active pairs have dmid = 0.
-2. **The origin price must be the latest price known at the origin cutoff, and the same price for every model.** A book sweep runs about 6 minutes after the snapshot it pairs with. If the full model reads the sweep's mid while the baseline reads the older Gamma mid, the full model "wins" by seeing part of the path, not by forecasting.
-   - Rule: the origin time `t0 = max(row receipt, sweep receipt)` for book-joined pairs.
-   - For those pairs, `mid_0` is the sweep mid in **every** arm, and the target is measured from `mid_0`.
-   - A target row must have its receipt after `t0`; a row received earlier is target-unavailable.
+1. **δ is frozen in this document, before any development fit.**
+   - Primary: δ = **0.005**, with flat meaning `|dmid| ≤ 0.005`.
+   - The single sensitivity: δ = **0.01**.
+   - Both are absolute and tick-independent. So δ is defined identically when tick size is missing, which covers all pre-sidecar data. Tick enters only as a feature (with a missing flag).
+   - **Basis:** class balance only, re-measured on the chosen source (Gamma mid at both ends) before any fit, on two loop pairs (06:19→08:18Z and 02:23→04:20Z; about 46k matched rows each; approximate E001 eligibility without the endDate term):
+     - dmid = 0 in 59.8% and 62.4% of rows;
+     - flat share at δ = 0.005: 84.3% and 86.3%; at δ = 0.01: 90.8% and 92.1%;
+     - median spread 0.03.
+   - δ = 0.005 keeps about 7% in each moving class. δ = 0.01 leaves about 4%.
+   - No model was fitted and no feature was looked at in choosing δ. This choice is logged in `trials.jsonl` as the first Task 8 entry.
+2. **One price source at both ends.** `mid_i` and `mid_j` are both the Gamma snapshot mid (`(bestBid + bestAsk)/2` of the row) in every arm and every target. Book sweeps feed **features only**.
+   - **Why:** a sweep runs about 7–8 minutes after its snapshot starts. If the origin used the sweep mid and the target used the Gamma mid, `dmid` would contain the sweep-minus-Gamma gap. A book feature would then partly predict that measurement gap.
+   - **Book features** are computed within the sweep, relative to the sweep's own mid. Examples: imbalance, depth, microprice minus *sweep* mid.
+   - **The sweep–Gamma mid gap is excluded from the confirmatory model.** It is used only in the gap-only placebo arm (section 4).
+   - **Timing:** the origin cutoff is `t0 = max(row receipt, sweep receipt)` whenever sweep features are used. A target row received before `t0` is target-unavailable.
 3. **T3/T4** (first passage, path) need dense quote paths that we do not have. They are out of scope.
 
 ## 2. Feature library
@@ -68,7 +86,7 @@ The general rules:
 | a8 | quote staleness: `t_i − updated_at` (quality) | row | it may also proxy for activity |
 | a9 | neg-risk member flag, group mid-sum excess (`nr_excess`), sibling count (structure) | same scan | L3/E005 are small or unsupported. Kept as context, not as hypotheses |
 | a10 | liquidity-weighted sibling `chg_1h` (L1) (structure) | same scan; sibling receipt may be minutes later | it still precedes the target. The L1 screen was underpowered, not negative |
-| a11 | book: top imbalance (F08), microprice displacement (F09), depth within 1c/5c per side, 5c depth imbalance, level counts, book–Gamma mid gap, `book_timestamp` age (book) | `book_sweep` batch receipt (all eligible tokens, 2 sweeps per pass) | E003 found the imbalance inconclusive on its own. Here it is an input. Section 1 note 2 applies |
+| a11 | book: top imbalance (F08), microprice displacement (F09), depth within 1c/5c per side, 5c depth imbalance, level counts, `book_timestamp` age (book). The microprice is relative to the **sweep** mid. **No** sweep–Gamma gap (placebo only) | `book_sweep` batch receipt. The latest sweep returned 43,734 of 43,734 eligible tokens; 2 sweeps per pass | E003 found the imbalance inconclusive on its own. Here it is an input. Section 1 note 2 applies |
 | a12 | **sidecar metadata** (Task 1) from the same Gamma pages (metadata): `feeType` → `fee_category` (the D120 map, imported, never copied), `feesEnabled`/`takerBaseFee`, `orderPriceMinTickSize`, `orderMinSize`, `createdAt` (market age, F41), `startDate`, `competitive`, `rewardsMinSize`/`rewardsMaxSpread`/`clobRewards` (F42), `acceptingOrders`, `umaResolutionStatuses` (F56 early state), lifetime `volumeNum`; event `openInterest`, `commentCount`, `volume`, `liquidity`, `createdAt`, `negRiskAugmented` | page receipt | **Prospective only.** The research-lab collector does not keep raw bodies, so history before Task 1 cannot be recovered. That gap stays missing. The 6 `fs2_capture_*` dev captures keep raw pages and may be backfilled for development only |
 | a13 | trade-flow: `signed_share` (E007), `n_trades_1h`, `notional_1h`, max trade / liquidity (F01), time since last trade (flow) | `trade_sample` (2,000-market probability sample of the active frame) | **Not in the primary universe model**: 95% of rows would be missing by design. It feeds a secondary active-frame model weighted by 1/π |
 
@@ -125,7 +143,27 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
 | E50 (optional) | 0.5·p(M2) + 0.5·p(M3) | — | no fitted weights, so no extra tuning. Only if M3 is ready in time |
 
 - **Calibration:** temperature scaling, fitted on the inner validation block of each training fold.
-- **Selection:** in development, one arm is chosen as **F\*** (expected: M2 or E50) by mean out-of-fold log loss, calibration and fold stability. Only F\* goes to confirmation. Every development fit is logged to `trials.jsonl` with its config, so the search size is on the record.
+- **Selection:** in development, one arm is chosen as **F\*** (expected: M2 or E50) by mean out-of-fold log loss, calibration and fold stability. Only F\* goes to confirmation.
+- **Search accounting.** Every development fit and decision is one line in `trials.jsonl`, including:
+  - each feature-set version (a revision means added, removed or redefined features);
+  - δ (already frozen);
+  - τ and τ_M0;
+  - the hyperparameter search results;
+  - the arm choice.
+
+  Caps:
+  - at most **3 feature-set revisions** after the first development run;
+  - **one** arm selection;
+  - **one** τ selection per arm.
+
+  When a cap is reached, the current version is final. The registration reports the total number of trial lines.
+- **Full-development refit of F\* (before the sha256 freeze):**
+  - Hyperparameters are the most common per-fold selected config (ties go to the more regularised one).
+  - LightGBM rounds are the median per-fold early-stopping round.
+  - F\* is refitted once on **all** development periods with these fixed. Nothing is tuned in this step.
+  - The temperature is fitted on the pooled out-of-fold predictions of the last 2 development test blocks.
+  - M0 is refitted on all development periods, with no tuning.
+  - The sha256 of both artifacts, the config and the trial count is then recorded in the registration.
 - **Libraries:** `backend/.venv` currently has only numpy, pandas and pyarrow. sklearn, lightgbm, shap, statsmodels, scipy, pymc, numpyro/jax and polars are all **missing**. Task 3 adds an optional extra `research-ml`:
   - `scikit-learn`, `lightgbm`, `numpyro` + `jax[cpu]`;
   - free, about 0.5–1 GB of disk, with 13 GiB free.
@@ -144,9 +182,14 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
 - **Fold manifest:**
   - written and hashed before any fit;
   - it records period IDs, cutoffs, embargo, `category_policy`, feature versions and the code sha.
-- **Primary inference: event-clustered paired bootstrap.**
-  - Loss difference `ΔLL = LL(M0) − LL(arm)` per row. 1,000 resamples, seed 116, shared across arms. The cluster is the event; a market with no event uses its market ID, and those are counted.
-  - Generalises `compare.paired_bootstrap` from SSE to any per-row loss.
+- **Primary inference: clustered paired bootstrap, with two co-primary cluster definitions.**
+  - Loss difference `ΔLL = LL(M0) − LL(arm)` per row. 1,000 resamples, seed 116, shared across arms.
+  - **Clusters:**
+    - (i) **D120 dependence groups** (`fs2-dependence-groups-v1`): connected components over event IDs, series slugs and `neg_risk_market_id`. For crypto, underlying × UTC date (the D120 underlying token table).
+    - (ii) the event, with market ID as the fallback (counted).
+  - A cluster is defined once over the whole evaluation window. **Each bootstrap draw resamples all of a cluster's rows across all periods together**, so a market or event that recurs over periods is a single unit.
+  - A claim needs the CI to exclude 0 under **both** definitions.
+  - **Implementation:** `compare.paired_bootstrap` already sums any per-row quantity within clusters and returns `1 − tot/tot_baseline`. Passing per-row log loss (or Brier) in place of SSE gives the relative loss improvement `ΔLL/LL(M0)` directly, with no new code. The cluster vector is the dependence-group ID or the event ID.
   - Time-block check: `power.per_period_test` (t-test and sign test across test periods).
   - The secondary deployment question uses event-held-out folds. It is descriptive.
 - **Metrics:**
@@ -162,7 +205,7 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
     - mean |SHAP| per feature and **per family**. Family values are SHAP sums, which is valid because SHAP is additive;
     - fold-to-fold rank stability (Spearman);
     - dependence plots for the top 5 features;
-    - event-clustered CIs on mean |SHAP|.
+    - clustered CIs (dependence groups) on mean |SHAP|.
   - Correlated features share credit arbitrarily, so families are the unit of interpretation.
   - **SHAP is exploratory. It is never evidence of edge or of a mechanism.**
 - **Ablations:** pre-declared, at most 6 drops. Each is the F\* candidate with one family removed:
@@ -173,11 +216,12 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
   5. liquidity/time/quality (a5–a8);
   6. external (tier b, when present).
 
-  They are reported with event-clustered CIs and are descriptive. No family is promoted to a hypothesis from these results without a new registration.
+  They are reported with dependence-group and event-clustered CIs and are descriptive. No family is promoted to a hypothesis from these results without a new registration.
 - **Placebos** (development, required before freeze):
   - labels shuffled within period × event blocks (ΔLL should be about 0);
   - every feature shifted to the *target* snapshot (the leakage alarm must fire);
-  - the quote-age-only model.
+  - the quote-age-only model;
+  - **gap-only model:** M0 + the sweep–Gamma mid gap. This measures how much a pure fresher-price measurement can buy. The registration reports F\*'s gain against this model, and F\*'s gain on rows where `|gap| < 0.0025`.
 
 ## 5. Prospective confirmation MC1 (one registration)
 
@@ -185,75 +229,95 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
   - one ledger entry, written and committed before any confirmation snapshot exists;
   - an accepting `science-reviewer` pass.
   - Frozen at registration:
-    - the F\* artifact (sha256);
-    - M0 coefficients, fitted on all development periods;
-    - δ, the feature versions, `category_policy`, the fee model and the economic rule τ.
+    - the refitted F\* and M0 artifacts (sha256; section 3);
+    - δ = 0.005 (already frozen) and its sensitivity 0.01;
+    - feature versions, `category_policy`, the fee table, τ and τ_M0;
+    - `sd_c` and K\*;
+    - the trial count.
   - **No refitting** during confirmation.
   - Forecasts from both arms are logged per snapshot before the target exists (the `forecast.predict` pattern), and scoring asserts equality with the log.
-- **Hypotheses (Holm across exactly two):**
+- **Hypotheses (fixed-sequence gatekeeping, family-wise α = 0.05).** Each is tested at α only if every earlier one is Supported.
   - **H1 (predictive):**
-    - mean ΔLL = LL(M0) − LL(F\*) > 0 on T1, in relative units (ΔLL / LL(M0));
-    - event-clustered bootstrap CI.
-  - **H2 (economic):** the cost-aware rule (below) has net mean P&L per trade > 0, and beats the same rule driven by M0. Event-clustered CI.
+    - relative ΔLL = (LL(M0) − LL(F\*)) / LL(M0) > 0 on T1;
+    - two-sided 95% CI excludes 0 under both cluster definitions (section 4).
+  - **H2a (economic, absolute):** net mean P&L per trade of the F\* rule > 0.
+  - **H2b (economic, incremental):** the F\* rule's mean P&L per opportunity exceeds the M0 rule's, as a paired comparison on the same origins (a no-trade origin counts 0).
+
+  This replaces Holm across two hypotheses. The economic labels require predictive support anyway (change 5), so a fixed sequence controls family-wise error without splitting α. It also keeps H1's MDE at the single-test value.
 - **Secondary (descriptive):**
   - Brier;
   - calibration slope;
+  - δ = 0.01 sensitivity;
   - T2 R2_oos against frozen E002;
+  - gain over the gap-only placebo;
   - per-category rows;
   - E50 if registered as secondary.
 - **Verdicts:**
   - **Supported (exploratory, prospective), predictive** requires all three:
-    - H1 rejects at its Holm level with ΔLL > 0;
-    - positive in ≥ 17 of 24 qualifying periods (sign test p ≈ 0.032; if the period count changes, the threshold is the smallest count with one-sided p < 0.05);
+    - H1 rejects with ΔLL > 0 under both cluster definitions;
+    - positive in ≥ 17 of 24 qualifying periods (sign test p ≈ 0.032; if the period count differs, the threshold is the smallest count with one-sided p < 0.05);
     - F\* calibration slope CI overlaps 1, or is at least as close to 1 as M0's.
-  - **Economically non-negative at stated costs:** H2 rejects with P&L > 0.
+  - **Economically non-negative at stated costs (optimistic):** predictive Supported, **and** H2a rejects with P&L > 0.
+  - **Economically incremental:** additionally H2b rejects with F\* > M0.
   - **Contradicted:** H1 rejects with ΔLL < 0.
+  - **Underpowered:** the cap is reached with K < K\* (see the stopping rule).
   - **Inconclusive:** otherwise.
-  - **Unavailable:** fewer than 24 qualifying periods by registration + 7 days.
-- **Economic rule** (an improvement on E004's touch-to-touch, which ignored fees):
-  - At `t0`, if P(up) − P(down) > τ, buy outcome 0 at the sweep `best_ask`. If it is below −τ, buy outcome 1 at `1 − best_bid`. τ is fixed in development.
-  - Require touch size ≥ `orderMinSize`, a size of 1 share, and the sweep receipt before the decision.
-  - Exit at the target snapshot touch (sell at `best_bid_j`, or the complement).
-  - Subtract the taker fee on both legs, `feeRate·p·(1−p)` from the sidecar `feeType`/`takerBaseFee`. If the fee is unknown, use the highest rate in the frozen map.
-  - Latency and queue position are not modelled, and stale Gamma exit quotes can flatter results. So even a pass is labelled "optimistic, not tradable".
+  - **Unavailable:** fewer than 24 qualifying periods by the cap.
+- **Economic rule** (an improvement on E004's touch-to-touch):
+  - **Size:** q = max(1, `orderMinSize`) shares. Require top-of-book size ≥ q on the entry side.
+  - **Entry** at the origin sweep (receipt before the decision):
+    - if P(up) − P(down) > τ, buy outcome 0 at `best_ask`;
+    - if it is below −τ, buy outcome 1 at `1 − best_bid`.
+  - **Exit (primary):** at the **first complete sweep after target snapshot *j* starts**, selling at its `best_bid` (or the complement). The target side then uses a fresh book, not the stale Gamma bid.
+    - The loop already runs 2 sweeps per pass, so no new collection is needed.
+    - A period whose exit sweep is missing does not qualify for H2. It is counted.
+    - The Gamma-bid exit is reported only as a sensitivity.
+  - **Fees:** the taker fee on both legs. The fee table is frozen from the pre-implementation fee check (section 7). If a market's fee is unknown, use the highest rate in that table.
+  - **Thresholds:** τ for F\* and τ_M0 for M0 are each chosen once in development, by the same rule: the smallest τ on a frozen grid {0.02, 0.05, 0.10, 0.20} with at least 200 development trades and the highest out-of-fold mean net P&L. Both are frozen.
+  - Latency, queue position and mirrored orders are not modelled. Even a pass is labelled "optimistic, not tradable".
 - **MDE (`power.py` logic, unchanged):**
   - The ΔR2 algebra applies to any normalised paired loss: `c_k = K·d_k / LL_M0,total`, `SE = sd_c/√K`, `MDE = (z_{1−α/2} + z_power)·sd_c/√K`.
-  - `sd_c` is measured on development out-of-fold ΔLL by `power.cluster_contrib_sd` (Task 8) and frozen in the registration.
-  - Planning value until then: `sd_c ≈ 0.6`, the scale implied by L1's ΔR2 (MDE 0.013 at 22.8k events).
-  - With Holm at m = 2, the first step has α = 0.025 two-sided and power 0.8 (z-sum 3.08):
-    - K = 20k events → MDE ≈ 1.3% relative log loss;
-    - K = 34k → 1.0%.
-  - The research package's ≥1% relative-improvement gate therefore needs about 30–35k distinct events.
-- **Stopping rule:**
-  - Fixed sample: score **once**, when both of these hold:
-    - ≥ 24 qualifying periods;
-    - distinct events K ≥ K\* (K\* is computed from the frozen `sd_c` for MDE = 1%).
-  - Cap: 36 periods or registration + 7 days.
-  - If the cap is reached with K < K\*, score anyway and label the result "underpowered". It cannot be Supported unless the H1 CI still excludes 0.
-  - Before scoring, only availability counts (periods, rows, events) may be viewed. No interim looks at the metric.
-- **Qualifying period:**
+  - `sd_c` is measured on development out-of-fold ΔLL by `power.cluster_contrib_sd`, under the dependence-group clusters, which give the larger value (Task 8). It is frozen in the registration.
+  - **Non-binding planning values only.** `sd_c ≈ 0.6` is borrowed from L1's ΔR2, whose periods had mixed 5–70h gaps and a different loss. At single-test α = 0.05 and power 0.8 (z-sum 2.80), that would give:
+    - K = 20k → MDE ≈ 1.2% relative log loss;
+    - K ≈ 28k → MDE ≈ 1.0%.
+  - These numbers are not used to set any registered quantity. Only the development-measured `sd_c` sets K\*.
+- **Stopping rule (pre-declared):**
+  - Fixed sample: score **once**, at the first qualifying period count ≥ 24 at which distinct dependence groups K ≥ K\* (K\* is set for MDE = 1% from the frozen `sd_c`).
+  - Cap: 36 qualifying periods, or registration + 7 days.
+  - **If the cap is reached with K < K\*:** score once, and report the estimate and CI. The verdict is **Underpowered**, and it can never be Supported or economically labelled, whatever the CI shows.
+  - Before scoring, only availability counts (periods, rows, groups) may be viewed. No interim looks at any metric.
+- **Qualifying period (H1):**
   - source and target are complete snapshots, with a gap of 1.5–3h;
   - forecast logged before the target capture starts;
-  - sidecar present;
-  - book sweep receipt before the target starts.
+  - sidecar present for the source;
+  - origin sweep complete, with ≥ 99% of eligible tokens returned and receipt before the target starts.
+  - **For H2, additionally:** the exit sweep is complete.
   - Failed passes are logged as unavailable, never backfilled.
 
 **MC2 (later, separate registration):** T5 resolution within 1–7 days.
 - Hypothesis: F\*-T5 vs the price-only recalibrated logistic.
 - It needs a resolution-label collector and weeks of accrual. C1 had 1,976 markets with only ±0.15 slope precision.
 
-## 6. Data volume
+## 6. Data volume and calendar
 
-- **Now:** 10 complete loop snapshots, with irregular gaps (a 3h+ gap around pass 6). That is about 8 usable 2h pairs, plus 6 dev captures (5–70h gaps; usable for T2 context only).
-  - Book sweeps: 18. Trade samples: 7. Sidecar: none.
-- **Development (sidecar-dependent features):** ≥ 36 periods with the sidecar present, which is **about 3 days** of uninterrupted 2-hourly passes after Task 1 is live.
-  - This gives 12 training periods plus 6 test blocks of 4. A tier-(a)-without-a12 development run can start on existing data now, as a dry run of the machinery.
-- **Distinct-event accrual:**
-  - L1: 15 periods gave 22.8k event clusters. About 10k events appear in the first period, then roughly +900 per period.
-  - So K = 20k needs about 12–15 periods, and K = 34k needs about 27 periods.
-  - Repeated events across periods are a single cluster, so more rows do not mean more independent evidence.
-- **Confirmation:** 24–36 qualifying periods, which is **2–3 days** at the 2h cadence (budget 4 days for failures, cap 7).
-- **Total:** about **6–8 days** of continuous 2-hourly collection from Task 1 going live to an MC1 verdict.
+- **Now:** 10 complete loop snapshots, with irregular gaps (a 3h+ gap around pass 6). That is about 8 usable 2h pairs, plus 6 dev captures (5–70h gaps; T2 context only).
+  - Book sweeps: 18. Trade samples: 7. Sidecar: not yet live (Task 1 is in progress, uncommitted).
+- **Development calendar:** **≥ 40 consecutive complete snapshots with the sidecar present**, about 3.3–3.5 days at the 2h cadence, plus about 1 day for failed passes. The 40 are:
+  - 36 origin periods (12 training + 6 test blocks of 4);
+  - 1 earlier snapshot for the *i−1* history (a3);
+  - 1 target snapshot after the last origin;
+  - 1 embargo period at the first fold boundary;
+  - 1 spare.
+
+  A dry run of the machinery on existing snapshots (tier (a) without a12) can start now. It is not used for selection.
+- **Distinct-cluster accrual (non-binding):** in L1, 15 mixed-gap periods gave 22.8k events, about 10k in the first period and roughly +900 per period after that.
+  - This is only a planning guide. Dependence groups are coarser than events, so K will accrue more slowly.
+  - The development dry run measures the actual accrual of both cluster types at a 2h cadence, before registration.
+- **Confirmation calendar:**
+  - At least **26 snapshots** for 24 qualifying periods: an *i−1* and a final target are needed.
+  - Budget 30–38 snapshots: about 2.5–3 days, cap 7 days.
+- **Total:** about **7–9 days** of continuous 2-hourly collection, from Task 1 going live to an MC1 verdict.
   - MC1 can share snapshots with the E004–E007 confirmations: different registrations, no conflict. Development periods must end before MC1's registration commit.
 - **Memory:** about 40k rows × ~70 float32 features × 60 periods ≈ 0.7 GB.
   - Build per-period Parquet and fit in one process.
@@ -261,9 +325,24 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
 
 ## 7. Implementation plan (Sonnet implementer; each task has tests and a review)
 
+**Pre-implementation checks** (open items; each is resolved and written down before the task that needs it):
+- **P1 Fee model.**
+  - D120's `fee_category` is a category map only. No fee *rate* exists anywhere in the repo, and the sidecar draft does not capture `feeSchedule`.
+  - Before Task 7:
+    - verify the current Polymarket taker-fee formula and the units of `takerBaseFee` / `feeSchedule` against the official docs;
+    - add raw `feeSchedule` to the sidecar;
+    - freeze a versioned fee table keyed by (`fee_category`, `feesEnabled`, schedule) with a conservative maximum.
+  - Until then, the economic rule cannot be finalised.
+- **P2 Dependence groups.** The sidecar draft lacks event **series slugs**, which D120 grouping needs (`GROUPING_LINKS`). Add `events[].series[].slug` (or the D120 equivalent) to the sidecar before the development window starts. Otherwise the co-primary clustering is not computable prospectively.
+- **P3 Sweep coverage and timing.**
+  - Sweep `20261011T103957Z_1ed72f5a` returned 43,734 of 43,734 eligible tokens. It started about 8 minutes after its snapshot and took 80 s.
+  - Task 2 must assert coverage ≥ 99% and receipt ordering per period. It must also record the timing distribution across all sweeps, not only this one.
+- **P4 `paired_bootstrap` reuse** is resolved (section 4): pass per-row loss in place of SSE. Task 4 adds only a test that `1 − tot/tot_M0` equals the hand-computed relative log-loss improvement.
+- **P5 Sidecar status.** `research_lab/ext_sidecar.py` and a modified `collector.py` already exist, uncommitted, from another session. Task 1 below is the acceptance spec for that work, not a second implementation.
+
 1. **Task 1 — Snapshot metadata sidecar** (time-critical, because the data is prospective only).
    - **Change:** `collector.collect` additionally writes `rows_ext.csv.gz` and `ext_manifest.json` from the **same** page bodies.
-     - Fields: those listed under a12.
+     - Fields: those listed under a12, plus raw `feeSchedule` (P1) and event series slugs (P2).
      - `fee_category` via `research_panel.pairing.fee_category`, imported.
      - Raw `feeType` is kept.
      - NaN when absent; never 0.
@@ -280,7 +359,7 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
    - **Builds:**
      - T1/T2 pairs from consecutive complete snapshots, reusing `panel.build_pair` eligibility;
      - own-history features a3/a4 from snapshot *i−1…i−6*;
-     - joins: sidecar, book sweep (section 1 note 2, origin cutoff), neg-risk/sibling (reusing `features_dev`/`leadlag_screen` code);
+     - joins: sidecar, book sweep (features only; section 1 note 2, origin cutoff), dependence-group IDs (D120 grouping, imported), neg-risk/sibling (reusing `features_dev`/`leadlag_screen` code);
      - `category_policy` filter and recording;
      - label-time columns;
      - the hashed fold manifest (expanding window, 4-period blocks, 1-period embargo).
@@ -288,7 +367,10 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
      - no feature reads a *j* column (`features.register` guard);
      - a feature computed from *i+1* raises an error;
      - purge plus embargo removes exactly the overlapping pairs;
-     - book-joined pairs use the sweep mid in every arm, and targets received before `t0` are unavailable;
+     - `mid_i` and `mid_j` are Gamma mids in every arm, even when sweep features are present;
+     - no confirmatory feature equals or encodes the sweep–Gamma gap;
+     - targets received before `t0` are unavailable;
+     - sweep coverage ≥ 99% is asserted;
      - `category_policy` include/exclude/all, recorded in the manifest;
      - deterministic manifest hash;
      - a3 is missing when *i−1* is more than 3h earlier.
@@ -297,7 +379,7 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
    - **Test:** import smoke, skipped when the extra is absent.
 4. **Task 4 — `ml_models.py` + `ml_compare.py`.**
    - M0/M1/M2, nested inner split, fixed search budget, temperature calibration.
-   - Generic per-row-loss paired event-clustered bootstrap.
+   - `compare.paired_bootstrap` with per-row loss and both cluster vectors (P4).
    - `power.cluster_contrib_sd` on ΔLL.
    - **Tests:**
      - synthetic data with a known signal is recovered;
@@ -321,7 +403,7 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
      - unknown fee → maximum rate.
 8. **Task 8 — development run** (a DEVELOPMENT ledger entry, pre-declared before the run).
    - All arms, SHAP, ablations, placebos.
-   - Choose F\*; compute `sd_c`, K\* and τ.
+   - Choose F\*; compute `sd_c`, K\* (dependence groups), τ and τ_M0; full-development refit and hashes (section 3).
    - Then a challenger review.
 9. **Task 9 — MC1 registration, forecast logger and scorer.**
    - `science-reviewer` freeze, then sealed confirmation.
@@ -333,7 +415,10 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
 ## 8. Risks, and what not to claim
 
 **Risks:**
-- **Fresher-price leakage.** Book sweeps and sibling reads arrive after the row they join. Section 1 note 2 is mandatory.
+- **Fresher-price and source mismatch.**
+  - Book sweeps and sibling reads arrive after the row they join.
+  - Both ends of `dmid` use the Gamma mid, and the gap is placebo-only (section 1 note 2).
+  - Book features may still carry some fresher-price information. The gap-only placebo and the small-gap subset bound how much.
 - **Gamma field latency.** The update lag of `chg_*` and `updatedAt` is unknown, and "reversal" may be partly quote noise (D1: 51% of eligible markets never trade).
 - **Garden of forking paths in development.** It is bounded by:
   - the fixed search budget;
