@@ -162,4 +162,9 @@ def test_v2_fields_all_events_series_negrisk_feeschedule():
     bare = ext_sidecar.ext_row(mk(1), "c", "t", 0)
     assert bare["fee_schedule"] is None and bare["series_slugs"] is None
     assert bare["neg_risk_market_id"] is None and bare["event_ids"] == '["77"]'
-    assert ext_sidecar.EXT_VERSION == "snapshot-ext-v2"
+    assert ext_sidecar.EXT_VERSION == "snapshot-ext-v3"
+    assert r["parent_event_ids"] == "[null,null]" and bare["parent_event_ids"] == "[null]"
+    m["events"][0]["parentEventId"] = 5000
+    assert ext_sidecar.ext_row(m, "c", "t", 0)["parent_event_ids"] == '[null,"5000"]'
+    m["events"] = []
+    assert ext_sidecar.ext_row(m, "c", "t", 0)["parent_event_ids"] is None

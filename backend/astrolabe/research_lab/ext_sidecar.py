@@ -21,7 +21,7 @@ from astrolabe.research_panel.pairing import fee_category, row_facts
 
 from .extract import _event_id, _flag, _json_list, _token0, parse_num
 
-EXT_VERSION = "snapshot-ext-v2"
+EXT_VERSION = "snapshot-ext-v3"
 log = logging.getLogger(__name__)
 
 KEYS = ["capture_id", "received_utc", "page_index", "market_id", "condition_id",
@@ -40,7 +40,8 @@ EVENT_NUM = {"event_open_interest": "openInterest", "event_comment_count": "comm
 EVENT_TEXT = {"event_created_at": "createdAt"}
 COLUMNS = [*KEYS, "fee_type", "fee_category", *MARKET_FLAG, *MARKET_NUM, *MARKET_TEXT,
            "clob_rewards", *EVENT_NUM, *EVENT_TEXT, "event_neg_risk_augmented",
-           "fee_schedule", "event_ids", "series_slugs", "neg_risk_market_id"]
+           "fee_schedule", "event_ids", "series_slugs", "neg_risk_market_id",
+           "parent_event_ids"]
 
 
 def _text(v: Any) -> str | None:
@@ -53,6 +54,19 @@ def _text(v: Any) -> str | None:
 
 def _json_col(values: list) -> str | None:
     return json.dumps(values, separators=(",", ":")) if values else None
+
+
+def _parent_ids(m: dict, event_ids: list) -> str | None:
+    """JSON list aligned with ``event_ids`` (same sorted order): each event's ``parentEventId`` or
+    null. Blank only when the market has no event ids; an all-null list means "no parent"."""
+    if not event_ids:
+        return None
+    par: dict = {}
+    for e in (m.get("events") if isinstance(m.get("events"), list) else []):
+        pid = e.get("parentEventId") if isinstance(e, dict) else None
+        if pid not in (None, "") and e.get("id") is not None:
+            par.setdefault(str(e["id"]), str(pid))
+    return json.dumps([par.get(i) for i in event_ids], separators=(",", ":"))
 
 
 def ext_row(m: dict, capture_id: str, received: str, page_index: int) -> dict | None:
@@ -75,6 +89,7 @@ def ext_row(m: dict, capture_id: str, received: str, page_index: int) -> dict | 
         "fee_schedule": _text(m.get("feeSchedule")),  # raw string kept verbatim
         "event_ids": _json_col(facts["event_ids"]),  # JSON lists, sorted unique; blank = none
         "series_slugs": _json_col(facts["series_slugs"]),
+        "parent_event_ids": _parent_ids(m, facts["event_ids"]),  # v3, aligned with event_ids
         "neg_risk_market_id": facts["neg_risk_market_id"],
         "event_neg_risk_augmented": _flag(ev0.get("negRiskAugmented")),
     }
