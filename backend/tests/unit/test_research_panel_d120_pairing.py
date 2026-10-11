@@ -365,6 +365,16 @@ def test_decision_is_exhaustive(changes, outcome):
     assert ev.decide_outcome(summary(**changes))[0] == outcome
 
 
+def test_data_reason_limitation_needs_an_incomplete_member_and_every_cause_data():
+    data, eng = {"class": "DATA_SOURCE"}, {"class": "ENGINEERING"}
+    members = {"a": {"causes": [data]}, "b": {"causes": [data, eng]}, "c": {"causes": []}}
+    assert ev.incomplete_data_only(members, ["a"]) is True
+    assert ev.incomplete_data_only(members, []) is False          # nothing incomplete
+    assert ev.incomplete_data_only(members, ["a", "b"]) is False  # a later cause is ENGINEERING
+    assert ev.incomplete_data_only(members, ["c"]) is False       # no classified cause
+    assert ev.incomplete_data_only(members, ["zz"]) is False      # unknown member
+
+
 def test_dry_run_and_estimates_records_exist():
     docs = Path(__file__).resolve().parents[3] / "docs" / "implementation" / "d120"
     estimates = json.loads((docs / "D120_DESIGN_ESTIMATES.json").read_text())

@@ -835,6 +835,18 @@ def _pairs(self):
     return result
 
 
+def incomplete_data_only(members, incomplete):
+    """True only if at least one pair member is incomplete and EVERY cause of EVERY incomplete
+    member is a classified DATA cause (an unknown member or an empty cause list is not)."""
+    if not incomplete:
+        return False
+    for market in incomplete:
+        causes = (members.get(market) or {}).get("causes") or []
+        if not causes or any(c.get("class") not in DATA_CLASSES for c in causes):
+            return False
+    return True
+
+
 def _summarise(self, gates, pairs, common):
     ms = list(self.members.values())
     states = Counter(
@@ -851,9 +863,7 @@ def _summarise(self, gates, pairs, common):
     fill = (Fraction(drawn, triggers) if isinstance(triggers, int) and triggers
             and isinstance(drawn, int) else None)
     incomplete = [x for p in pairs for x in p["unobserved_members"]]
-    data_only = all(
-        (self.members[x]["causes"] or [{}])[0].get("class") in DATA_CLASSES
-        for x in incomplete if x in self.members)
+    data_only = incomplete_data_only(self.members, incomplete)
     agreement = Counter(self.members[m].get("state_agreement") for m in self.activated)
     return {
         "n_screened": len(ms), "n_activated": len(self.activated),

@@ -43,8 +43,9 @@ UNDERLYING_TOKENS = {
     'sol': 'sol', 'solana': 'sol', 'xrp': 'xrp', 'ripple': 'xrp',
     'doge': 'doge', 'dogecoin': 'doge',
 }
-GROUPING_VERSION = 'fs2-dependence-groups-v1'
-GROUPING_LINKS = ('event_ids', 'series_slugs', 'neg_risk_market_id')
+GROUPING_VERSION = 'fs2-dependence-groups-v2'
+# v2 (pre-freeze, stricter): parentEventId is an event id and is unioned with event ids.
+GROUPING_LINKS = ('event_ids', 'parent_event_ids', 'series_slugs', 'neg_risk_market_id')
 
 DESIGN_VERSION = 'fs2-pairing-design-v1'
 CATEGORY_POLICY_EXCLUDED = 'category_excluded_by_population_policy'
@@ -139,7 +140,8 @@ def underlyings(facts, table=None):
 
 
 def dependence_groups(facts_by_market, *, underlying=True):
-    """Union-find over market, event id, series slug, negRiskMarketID (and underlying) nodes.
+    """Union-find over market, event id (incl. parentEventId), series slug, negRiskMarketID
+    (and underlying) nodes.
 
     Every event and series of a row is linked, not only the first. The group id is the smallest
     market id of its component, so it is independent of input order.
@@ -161,7 +163,7 @@ def dependence_groups(facts_by_market, *, underlying=True):
     for market, facts in facts_by_market.items():
         node = 'm:' + market
         find(node)
-        for event in facts['event_ids']:
+        for event in (*facts['event_ids'], *facts.get('parent_event_ids', ())):
             union(node, 'e:' + event)
         for slug in facts['series_slugs']:
             union(node, 's:' + slug)

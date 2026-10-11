@@ -69,6 +69,9 @@ def test_dependence_groups_transitive_order_independent_and_slug_only_underlying
     assert groups["40"] == "g:40"
     assert pairing.dependence_groups(dict(reversed(list(rows.items())))) == groups
     assert pairing.underlyings(facts(slugs=["solar-eclipse"])) == []  # exact tokens only
+    # parentEventId is an event id: a child event's market joins its parent event's group.
+    child = {**facts(events=["e9"]), "parent_event_ids": ["e7"]}
+    assert pairing.dependence_groups({**rows, "41": child})["41"] == groups["40"]
 
 
 def test_design_keeps_scheduled_arm_zero_and_activation_of_pairs_only():

@@ -411,7 +411,7 @@ def main(argv=None):
     model_info, pooled = model(pl, sweeps, snapshot)
     del sweeps, snapshot
     report = {
-        "schema_version": "d120-design-estimates-v1",
+        "schema_version": "d120-design-estimates-v2",
         "status": "design figures only; never acceptance criteria",
         "script": "backend/scripts/d120_design_estimates.py",
         "inputs": {
@@ -443,7 +443,7 @@ def main(argv=None):
         links["with_neg_risk"] += f["neg_risk_market_id"] is not None
         links["more_than_one_event"] += len(f["event_ids"]) > 1
         links["more_than_one_series"] += len(f["series_slugs"]) > 1
-        links["with_parent_event_not_unioned"] += bool(f["parent_event_ids"])
+        links["with_parent_event_id"] += bool(f["parent_event_ids"])
         links["with_underlying_token"] += bool(pairing.underlyings(f))
     report["link_coverage_eligible"] = dict(links)
     report["eligible_category_counts"] = dict(Counter(m["category"] for m in pl).most_common())
@@ -488,9 +488,10 @@ def main(argv=None):
                                                                  args.reps)
             print("simulated", name, shape, file=sys.stderr, flush=True)
         report["variants"][name] = info
-    chosen = report["variants"]["PL_all"]["shapes"]["6x16"]
+    chosen = report["variants"]["PL_all"]["shapes"]["6x12"]
     report["headline"] = {
-        "design": "PL_all, 6 strata x 16 screened groups, 1 pair per stratum, <= 12 origins",
+        "design": ("PL_all, 6 strata x 12 screened groups (chosen by the dry run), "
+                   "1 pair per stratum, <= 12 origins"),
         "P_pass_by_scenario": {sc: chosen[sc]["P_fill_ok_and_ind_ge_3"] for sc in SCALES},
         "honest_lower_bound_defined_scenarios": min(
             chosen[sc]["P_fill_ok_and_ind_ge_3"] for sc in ("S4", "S4h", "S4q")),
