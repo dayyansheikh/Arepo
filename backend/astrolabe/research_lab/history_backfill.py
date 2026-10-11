@@ -713,11 +713,17 @@ def run(
 # ---------------------------------------------------------------------------------------------
 
 _TF_WINDOWS = ((2, "2h"), (24, "24h"))
-TF_NAMES = tuple(
-    f"ml_tf_{k}_{w}" for w in ("2h", "24h")
-    for k in ("n", "signed_vol", "buy_share", "log_notional", "n_wallets")
-) + ("ml_tf_last_age_h", "ml_tf_ltp_minus_mid")
+TF_NAMES = (
+    *(f"ml_tf_{k}_{w}" for w in ("2h", "24h")
+      for k in ("n", "signed_vol", "buy_share", "log_notional")),
+    "ml_tf_last_age_h", "ml_tf_ltp_minus_mid", "ml_tf_burst_2h", "ml_tf_large_2h",
+)
+WLT_NAMES = (
+    "ml_tf_n_wallets_2h", "ml_tf_n_wallets_24h", "ml_wlt_hhi_24h", "ml_wlt_top1_24h",
+    "ml_wlt_new_n_2h", "ml_wlt_new_n_24h", "ml_wlt_new_share_24h",
+)
 HIST_STEPS = 6  # prior 2h grid steps for ml_own_vol
+FIRST_SEEN_BURN_IN_S = 14 * 86400  # first-seen index is censored at the sample start
 
 
 def _asof(ts: np.ndarray, vals: np.ndarray, t: np.ndarray, max_age: float
@@ -743,58 +749,157 @@ def load_trades(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, dtype={"wallet_hash": str, "trade_key": str})
 
 
-def _trade_flow(tr: pd.DataFrame, t: np.ndarray, mid: np.ndarray, covered_from: float
-                ) -> dict[str, np.ndarray]:
-    """Flow features at grid times ``t`` from trades with ts strictly < t (token-0 terms:
-    BUY outcome 0 / SELL outcome 1 count as buying the token). A window not fully inside the
-    fetched trade history (``covered_from``) is NaN, never 0."""
+class FirstSeen:
+    """Causal first-seen index of hashed wallets inside the history data: wallet -> earliest trade
+    timestamp over every fetched market. At origin ``t`` only wallets whose first trade is before
+    ``t`` can appear in a window, so the index never carries future information; it is left-
+    censored at the start of the sample and by per-market trade truncation, hence the burn-in."""
+
+    def __init__(self, keys: np.ndarray, vals: np.ndarray, g0: float) -> None:
+        self.keys, self.vals, self.g0 = keys, vals, g0
+
+    @staticmethod
+    def key(h: str) -> int:
+        return int(h[:15], 16)
+
+    @classmethod
+    def build(cls, files: Iterable[Path]) -> FirstSeen:
+        acc = None
+        buf: list[pd.Series] = []
+        for f in files:
+            tr = pd.read_csv(f, usecols=["ts", "wallet_hash"], dtype={"wallet_hash": str})
+            if not len(tr):
+                continue
+            k = tr["wallet_hash"].str[:15].map(lambda x: int(x, 16))
+            buf.append(tr["ts"].groupby(k).min())
+            if len(buf) >= 200:
+                acc = pd.concat([acc, *buf]) if acc is not None else pd.concat(buf)
+                acc = acc.groupby(level=0).min()
+                buf = []
+        if buf:
+            acc = pd.concat([acc, *buf]) if acc is not None else pd.concat(buf)
+            acc = acc.groupby(level=0).min()
+        if acc is None:
+            return cls(np.array([], dtype=np.int64), np.array([]), float("nan"))
+        acc = acc.sort_index()
+        return cls(acc.index.to_numpy(np.int64), acc.to_numpy(float), float(acc.min()))
+
+    @classmethod
+    def from_trades(cls, tr: pd.DataFrame) -> FirstSeen:
+        k = tr["wallet_hash"].str[:15].map(lambda x: int(x, 16))
+        acc = tr["ts"].groupby(k).min().sort_index()
+        return cls(acc.index.to_numpy(np.int64), acc.to_numpy(float), float(acc.min()))
+
+    def lookup(self, hashes: np.ndarray) -> np.ndarray:
+        ks = np.array([self.key(h) for h in hashes], dtype=np.int64)
+        idx = np.searchsorted(self.keys, ks)
+        ok = (idx < len(self.keys)) & (self.keys[np.minimum(idx, len(self.keys) - 1)] == ks)
+        return np.where(ok, self.vals[np.minimum(idx, len(self.vals) - 1)], np.nan)
+
+
+def _trade_flow(tr: pd.DataFrame, t: np.ndarray, mid: np.ndarray, covered_from: float,
+                first_seen: FirstSeen | None = None) -> dict[str, np.ndarray]:
+    """Flow and wallet features at grid times ``t`` from trades with ts strictly < t (token-0
+    terms: BUY outcome 0 / SELL outcome 1 count as buying the token). A window not fully inside
+    the fetched trade history (``covered_from``) is NaN, never 0. Wallet metrics use hashed ids
+    only; "new" wallets are those whose first trade in the sample falls inside the window."""
     n = len(t)
-    out = {k: np.full(n, np.nan) for k in TF_NAMES}
+    names = (*TF_NAMES, *WLT_NAMES)
+    out = {k: np.full(n, np.nan) for k in names}
     if tr is None:
         return out
     ts = tr["ts"].to_numpy(float)
-    px = np.where(tr["outcome_index"].to_numpy() == 0, tr["price"].to_numpy(float),
-                  1 - tr["price"].to_numpy(float))
-    sgn = np.where((tr["side"].to_numpy() == "BUY") == (tr["outcome_index"].to_numpy() == 0), 1, -1)
+    oi = tr["outcome_index"].to_numpy()
+    px = np.where(oi == 0, tr["price"].to_numpy(float), 1 - tr["price"].to_numpy(float))
+    sgn = np.where((tr["side"].to_numpy() == "BUY") == (oi == 0), 1, -1)
     sz = tr["size"].to_numpy(float)
-    wal = tr["wallet_hash"].to_numpy()
+    codes, uniq = pd.factorize(tr["wallet_hash"].to_numpy())
+    fs = first_seen.lookup(uniq)[codes] if first_seen is not None and len(uniq) else (
+        np.full(len(ts), np.nan))
     order = np.argsort(ts, kind="stable")
-    ts, px, sgn, sz, wal = ts[order], px[order], sgn[order], sz[order], wal[order]
+    ts, px, sgn, sz = ts[order], px[order], sgn[order], sz[order]
+    codes, fs = codes[order], fs[order]
     hi = np.searchsorted(ts, t, side="left")  # first index with ts >= t -> strictly before t
     cum_sz = np.concatenate([[0.0], np.cumsum(sz)])
     cum_sg = np.concatenate([[0.0], np.cumsum(sgn * sz)])
     cum_buy = np.concatenate([[0.0], np.cumsum(np.where(sgn > 0, sz, 0.0))])
     cum_notional = np.concatenate([[0.0], np.cumsum(sz * px)])
+    lo_w, full_w = {}, {}
     for hrs, tag in _TF_WINDOWS:
         lo = np.searchsorted(ts, t - hrs * 3600, side="left")
         full = (t - hrs * 3600) >= covered_from
+        lo_w[tag], full_w[tag] = lo, full
         cnt = (hi - lo).astype(float)
         vol = cum_sz[hi] - cum_sz[lo]
         with np.errstate(divide="ignore", invalid="ignore"):
             share = np.where(vol > 0, (cum_buy[hi] - cum_buy[lo]) / vol, np.nan)
-        nw = np.array([len(set(wal[a:b])) for a, b in zip(lo, hi, strict=True)], float)
         for name, v in (("n", cnt), ("signed_vol", cum_sg[hi] - cum_sg[lo]), ("buy_share", share),
-                        ("log_notional", np.log1p(cum_notional[hi] - cum_notional[lo])),
-                        ("n_wallets", nw)):
+                        ("log_notional", np.log1p(cum_notional[hi] - cum_notional[lo]))):
             out[f"ml_tf_{name}_{tag}"] = np.where(full, v, np.nan)
+    # burst: 2h count against the trailing 24h average per 2h; large: biggest 2h trade against the
+    # mean trade size of the trailing 24h (book depth is unavailable historically)
+    n2, n24 = out["ml_tf_n_2h"], out["ml_tf_n_24h"]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out["ml_tf_burst_2h"] = np.where(n24 > 0, n2 / (n24 / 12.0), np.nan)
+    both = full_w["2h"] & full_w["24h"]
+    max2 = np.full(n, np.nan)
+    wal = {tag: np.full(n, np.nan) for tag in ("hhi", "top1", "dist2", "dist24", "new2", "new24",
+                                                "newshare24")}
+    burn_ok = np.zeros(n, bool)
+    if first_seen is not None and not math.isnan(first_seen.g0):
+        burn_ok = (t - 24 * 3600) >= first_seen.g0 + FIRST_SEEN_BURN_IN_S
+    for i in range(n):
+        a24, b = lo_w["24h"][i], hi[i]
+        a2 = lo_w["2h"][i]
+        if b > a2 and full_w["2h"][i]:
+            max2[i] = sz[a2:b].max()
+        if full_w["2h"][i]:
+            c2 = codes[a2:b]
+            wal["dist2"][i] = len(np.unique(c2)) if b > a2 else 0.0
+            if burn_ok[i]:
+                nw = fs[a2:b] >= t[i] - 2 * 3600
+                wal["new2"][i] = len(np.unique(c2[nw])) if b > a2 else 0.0
+        if full_w["24h"][i]:
+            if b > a24:
+                c = codes[a24:b]
+                v = np.bincount(c, weights=sz[a24:b])
+                v = v[v > 0]
+                tot = v.sum()
+                wal["dist24"][i] = float(len(v))
+                if tot > 0:
+                    wal["hhi"][i] = float(((v / tot) ** 2).sum())
+                    wal["top1"][i] = float(v.max() / tot)
+                if burn_ok[i]:
+                    nw = fs[a24:b] >= t[i] - 24 * 3600
+                    wal["new24"][i] = float(len(np.unique(c[nw])))
+                    wal["newshare24"][i] = wal["new24"][i] / len(v)
+            else:
+                wal["dist24"][i] = 0.0
+                if burn_ok[i]:
+                    wal["new24"][i] = 0.0
+    mean24 = np.where(n24 > 0, (cum_sz[hi] - cum_sz[lo_w["24h"]]) / np.maximum(n24, 1), np.nan)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out["ml_tf_large_2h"] = np.where(both & (mean24 > 0), max2 / mean24, np.nan)
+    out["ml_tf_n_wallets_2h"], out["ml_tf_n_wallets_24h"] = wal["dist2"], wal["dist24"]
+    out["ml_wlt_hhi_24h"], out["ml_wlt_top1_24h"] = wal["hhi"], wal["top1"]
+    out["ml_wlt_new_n_2h"], out["ml_wlt_new_n_24h"] = wal["new2"], wal["new24"]
+    out["ml_wlt_new_share_24h"] = wal["newshare24"]
     last = hi - 1
     has = last >= 0
     safe = np.where(has, last, 0)
-    age = np.where(has, (t - ts[safe]) / 3600.0, np.nan)
-    out["ml_tf_last_age_h"] = np.where(has, age, np.nan)
+    out["ml_tf_last_age_h"] = np.where(has, (t - ts[safe]) / 3600.0, np.nan)
     out["ml_tf_ltp_minus_mid"] = np.where(has, px[safe] - mid, np.nan)
     return out
 
 
-def market_panel(
+def origin_frame(
     r: dict, ts: np.ndarray, vals: np.ndarray, trades: pd.DataFrame | None,
-    trades_truncated: bool, horizon_h: int, run_id: str, delta: float = ml_panel.DELTA_PRIMARY,
-    delta_sens: float = ml_panel.DELTA_SENSITIVITY,
+    trades_truncated: bool, run_id: str, first_seen: FirstSeen | None = None,
 ) -> pd.DataFrame:
-    """Rows of one market on the fixed 2h UTC grid for one horizon. Empty frame if no rows."""
+    """Horizon-independent origin rows and features of one market on the fixed 2h UTC grid.
+    Empty frame if the market has no eligible origin."""
     if len(ts) < 2:
         return pd.DataFrame()
-    H = horizon_h * 3600
     first = math.ceil((ts[0] + 24 * 3600) / GRID_S) * GRID_S  # one day of history for lags
     last = ts[-1]
     t = np.arange(first, last + 1, GRID_S, dtype=float)
@@ -814,10 +919,6 @@ def market_panel(
     t, mid, age_i = t[keep], mid[keep], age_i[keep]
     if len(t) == 0:
         return pd.DataFrame()
-    t_j = t + H
-    mid_j, age_j = _asof(ts, vals, t_j, MAX_QUOTE_AGE_S)
-    mid_j = np.where(t_j <= last + MAX_QUOTE_AGE_S, mid_j, np.nan)  # no extrapolation past data
-    dmid = mid_j - mid
     lag = {k: _asof(ts, vals, t - s, MAX_QUOTE_AGE_S)[0]
            for k, s in (("1h", 3600), ("1d", 86400), ("1w", 7 * 86400))}
     steps = np.column_stack([mid] + [_asof(ts, vals, t - GRID_S * k, MAX_QUOTE_AGE_S)[0]
@@ -846,27 +947,23 @@ def market_panel(
     covered_from = (float(trades["ts"].min()) if (trades is not None and len(trades)) else np.inf)
     if trades is not None and not trades_truncated:
         covered_from = -np.inf  # complete history: every window is covered
-    tf = _trade_flow(trades if trades is not None and len(trades) else None, t, mid, covered_from)
+    tf = _trade_flow(trades if trades is not None and len(trades) else None, t, mid, covered_from,
+                     first_seen)
     if trades is not None and not len(trades) and not trades_truncated:
-        for k in TF_NAMES:  # fully fetched market with no trades: zero flow, not missing
-            tf[k] = np.zeros(n) if k.startswith(("ml_tf_n", "ml_tf_signed", "ml_tf_log")) else nan
+        zero = ("ml_tf_n", "ml_tf_signed", "ml_tf_log", "ml_tf_n_wallets")
+        for k in tf:  # fully fetched market with no trades: zero flow, not missing
+            if k.startswith(zero):
+                tf[k] = np.zeros(n)
     feats.update(tf)
     out = pd.DataFrame({
         "market_id": r["market_id"], "event_id": r["event_id"] or "",
-        "period": (t // GRID_S).astype(int),
-        "capture_i": run_id, "capture_j": run_id, "t_i": t, "t0": t, "t_j": np.where(
-            np.isnan(mid_j), np.nan, t_j), "mid_i": mid, "mid_j": mid_j, "dmid": dmid,
-        "horizon_h": np.where(np.isnan(mid_j), np.nan, float(horizon_h)),
-        "horizon_target_h": float(horizon_h),
-        "y_class": ml_panel.assign_class(dmid, delta),
-        "y_class_sens": ml_panel.assign_class(dmid, delta_sens),
-        "target_available": ~np.isnan(dmid), "fee_category": r["fee_category"],
-        "status": r["status"], "stratum": r.get("stratum", ""),
-        "quote_age_s": age_i, "target_quote_age_s": age_j,
+        "period": (t // GRID_S).astype(int), "capture_i": run_id, "capture_j": run_id,
+        "t_i": t, "t0": t, "mid_i": mid, "fee_category": r["fee_category"],
+        "status": r["status"], "stratum": r.get("stratum", ""), "quote_age_s": age_i,
     })
     for name in ml_panel.EXTENDED_NAMES:  # book / liquidity / sweep / sibling: absent, stay NaN
         out[name] = feats.get(name, nan)
-    for name in TF_NAMES:
+    for name in (*TF_NAMES, *WLT_NAMES):
         out[name] = feats[name]
     out["dep_group"] = ("e:" + r["event_id"]) if r["event_id"] else "m:" + r["market_id"]
     out["provenance"] = PROVENANCE
@@ -874,15 +971,55 @@ def market_panel(
     return out.reset_index(drop=True)
 
 
+def attach_labels(
+    of: pd.DataFrame, ts: np.ndarray, vals: np.ndarray, horizon_h: int,
+    delta: float = ml_panel.DELTA_PRIMARY, delta_sens: float = ml_panel.DELTA_SENSITIVITY,
+) -> pd.DataFrame:
+    """Labels for one horizon: the last series price usable strictly before ``t + H``."""
+    t = of["t_i"].to_numpy(float)
+    mid = of["mid_i"].to_numpy(float)
+    last = ts[-1]
+    t_j = t + horizon_h * 3600
+    mid_j, age_j = _asof(ts, vals, t_j, MAX_QUOTE_AGE_S)
+    mid_j = np.where(t_j <= last + MAX_QUOTE_AGE_S, mid_j, np.nan)  # no extrapolation past data
+    dmid = mid_j - mid
+    cls = ml_panel.assign_class(dmid, delta)
+    lab = pd.DataFrame({
+        "t_j": np.where(np.isnan(mid_j), np.nan, t_j), "mid_j": mid_j, "dmid": dmid,
+        "horizon_h": np.where(np.isnan(mid_j), np.nan, float(horizon_h)),
+        "horizon_target_h": float(horizon_h),
+        "y_class": cls, "y_class_sens": ml_panel.assign_class(dmid, delta_sens),
+        "y_dmid": dmid, "y_absmove": np.where(np.isnan(cls), np.nan,
+                                              (cls != ml_panel.CLASS_FLAT).astype(float)),
+        "target_available": ~np.isnan(dmid), "target_quote_age_s": age_j,
+    })
+    return pd.concat([of.reset_index(drop=True), lab], axis=1)
+
+
+def market_panel(
+    r: dict, ts: np.ndarray, vals: np.ndarray, trades: pd.DataFrame | None,
+    trades_truncated: bool, horizon_h: int, run_id: str, delta: float = ml_panel.DELTA_PRIMARY,
+    delta_sens: float = ml_panel.DELTA_SENSITIVITY, first_seen: FirstSeen | None = None,
+) -> pd.DataFrame:
+    """Rows of one market for one horizon (origin features plus labels)."""
+    of = origin_frame(r, ts, vals, trades, trades_truncated, run_id, first_seen)
+    if not len(of):
+        return of
+    return attach_labels(of, ts, vals, horizon_h, delta, delta_sens)
+
+
 def build_panel(run_dir: Path, horizons: Iterable[int] = HORIZONS_H) -> dict:
     """Stream every finished market of ``run_dir`` into ``panel_H<h>h.csv.gz`` (one per horizon).
-    One market in memory at a time. Every row carries ``provenance=EXPLORATORY_HISTORICAL``."""
+    One market in memory at a time (plus the wallet first-seen index). Every row carries
+    ``provenance=EXPLORATORY_HISTORICAL`` and ``evidence_role=exploratory_historical``."""
     run_dir = Path(run_dir)
     sample = pd.read_csv(run_dir / "sample.csv.gz", dtype={"market_id": str, "token0": str,
                                                           "token1": str, "event_id": str},
                          keep_default_na=False)
     prog = _read_progress(run_dir / "progress.jsonl")
     horizons = tuple(horizons)
+    done = [m for m in sample["market_id"] if m in prog and prog[m]["status"] == "done"]
+    fsi = FirstSeen.build(run_dir / "trades" / f"{m}.csv.gz" for m in done)
     writers: dict[int, Any] = {}
     files: dict[int, Any] = {}
     counts = {h: {"rows": 0, "target_available": 0, "markets": 0} for h in horizons}
@@ -895,11 +1032,12 @@ def build_panel(run_dir: Path, horizons: Iterable[int] = HORIZONS_H) -> dict:
                 rec[k] = float("nan") if rec[k] == "" else float(rec[k])
             ts, vals = load_prices(run_dir / "prices" / f"{mid}.csv.gz")
             tr = load_trades(run_dir / "trades" / f"{mid}.csv.gz")
+            of = origin_frame(rec, ts, vals, tr, bool(prog[mid]["trades_truncated"]),
+                              run_dir.name, fsi)
+            if not len(of):
+                continue
             for h in horizons:
-                df = market_panel(rec, ts, vals, tr, bool(prog[mid]["trades_truncated"]), h,
-                                  run_dir.name)
-                if not len(df):
-                    continue
+                df = attach_labels(of, ts, vals, h)
                 if h not in writers:
                     f = gzip.open(run_dir / f"panel_H{h}h.csv.gz", "wt", newline="")
                     files[h] = f
@@ -912,11 +1050,17 @@ def build_panel(run_dir: Path, horizons: Iterable[int] = HORIZONS_H) -> dict:
     finally:
         for f in files.values():
             f.close()
-    summary = {"provenance": PROVENANCE,
-               "evidence_role": EVIDENCE_ROLE, "grid_s": GRID_S, "horizons_h": list(horizons),
+    summary = {"provenance": PROVENANCE, "evidence_role": EVIDENCE_ROLE, "grid_s": GRID_S,
+               "horizons_h": list(horizons),
                "counts": {str(h): c for h, c in counts.items()}, "built_utc": utc_iso(),
                "max_quote_age_s": MAX_QUOTE_AGE_S, "mid_range": list(MID_RANGE),
-               "book_features": "absent (NaN)", "price_semantics": "unverified"}
+               "point_lag_s": POINT_LAG_S, "book_features": "absent (NaN)",
+               "price_semantics": "unverified",
+               "wallet_first_seen": {"burn_in_s": FIRST_SEEN_BURN_IN_S,
+                                     "g0": None if math.isnan(fsi.g0) else fsi.g0,
+                                     "n_wallets": int(len(fsi.keys)),
+                                     "note": "left-censored at sample start and by trade "
+                                     "truncation; features NaN during burn-in"}}
     (run_dir / "panel_manifest.json").write_text(json.dumps(summary, indent=1))
     return summary
 

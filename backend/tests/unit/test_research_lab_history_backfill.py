@@ -286,3 +286,32 @@ def test_frame_windows_seeded_random_and_report():
     _, rep2 = hb.fetch_frame(hb.Limiter(Fake([]), sleep=lambda s: None), NOW, lookback_days=1,
                              min_volume=1000, seed="a")
     assert rep2["volume_floor_label"] == "SEPARATE SUB-FRAME"
+
+
+def test_wallet_features_causal_and_new_wallet_burn_in():
+    ts, vals = _series(n_days=40)
+    t_or = float(np.ceil((ts[0] + 30 * 86400) / hb.GRID_S) * hb.GRID_S)
+    rows = []
+    # wallet "old" trades early; wallet "new" first trades 1h before the origin; "late" after it
+    for w, tt, sz in (("00" * 16, ts[0] + 3600, 5.0), ("00" * 16, t_or - 7000, 5.0),
+                      ("11" * 16, t_or - 3600, 50.0), ("22" * 16, t_or + 10, 999.0)):
+        rows.append([tt, "BUY", sz, 0.5, 0, w, f"k{tt}{w[:2]}"])
+    tr = pd.DataFrame(rows, columns=hb.TRADE_COLUMNS)
+    fsi = hb.FirstSeen.from_trades(tr)
+    df = hb.market_panel(_mkt(), ts, vals, tr, False, 2, "r1", first_seen=fsi)
+    row = df[df["t_i"] == t_or].iloc[0]
+    assert row["ml_tf_n_wallets_2h"] == 2 and row["ml_wlt_new_n_2h"] == 1  # 'late' excluded
+    assert row["ml_wlt_new_n_24h"] == 1 and row["ml_wlt_new_share_24h"] == 0.5
+    assert abs(row["ml_wlt_hhi_24h"] - ((5 / 55) ** 2 + (50 / 55) ** 2)) < 1e-9
+    assert row["ml_tf_large_2h"] == 50.0 / (55.0 / 2)  # max size / mean size over 24h
+    # burn-in: an origin within 14 days of the first-seen sample start has no 'new' features
+    early = df[df["t_i"] < fsi.g0 + hb.FIRST_SEEN_BURN_IN_S + 86400]
+    assert len(early) and early["ml_wlt_new_n_24h"].isna().all()
+    # the wallet features at t_or do not depend on trades at/after t_or
+    tr2 = tr.copy()
+    tr2.loc[3, "size"] = 1.0
+    df2 = hb.market_panel(_mkt(), ts, vals, tr2, False, 2, "r1",
+                          first_seen=hb.FirstSeen.from_trades(tr2))
+    r2 = df2[df2["t_i"] == t_or].iloc[0]
+    for c in hb.WLT_NAMES + hb.TF_NAMES:
+        assert (np.isnan(row[c]) and np.isnan(r2[c])) or row[c] == r2[c]
