@@ -1,79 +1,144 @@
-# Phase 04 — Baselines and initial edge experiments
+# Phase 04 — Baselines and edge experiments
 
-Status: DEVELOPMENT INFRASTRUCTURE IN PROGRESS (D115 Track A). Empirical findings are exploratory and non-validated until Phase 3 closes via D116.
+Status: **IN PROGRESS — Phase 3 closed with limitation (D117, 2026-10-11).** Track A (D115) research-lab
+infrastructure already exists and has produced E001-E003 and E002 results. Every finding is exploratory and
+non-validated until Phase 3 closure is confirmed; no edge, calibration or profitability claim exists.
+Refreshed 2026-10-11 against actual code and ledger. Supersedes the earlier provisional template.
 
 ## Objective
 
-Freeze reproducible no-change, momentum, richer price/context and v1 baselines; test a small registered feature subset.
+Run a small number of pre-registered, event-clustered, prospectively confirmed experiments that test whether
+information beyond price and momentum predicts repricing, always against locked simple baselines, and produce
+honest positive, negative and inconclusive verdicts. Output is knowledge and a trustworthy experiment ledger,
+not a product signal.
 
-## Why this phase exists
+## What Phase 3 hands over
 
-Strong baselines and falsifiable protocols distinguish information from impact and overfitting.
+- D116 outcome `PASS_WITH_LIMITATION:no_eligible_untriggered` (`../PHASE_03_D116_EVIDENCE.json`): E0-E9 passed,
+  4 complete chains, 0 engineering findings. Per D115 item 5 (`../AREPO_V2_DECISIONS.md`) this permits closure.
+  D089-era availability gates are reclassified as diagnostics for D116 onward only; D089/D094/D097/D114 keep
+  their failed outcomes.
+- **Known limitation: control pairing never formed live (D097 and D116).** The panel's matched trigger/control
+  design is therefore machinery-validated only (causal clocks, freezing, sampling, target plumbing). It has never
+  produced a matched pair, so Phase 4 must NOT rely on the panel's matched-control comparison for any effect
+  estimate. Phase 4 experiments use the research-lab design instead: complete-universe snapshots, all
+  E001-eligible markets, no-change and simple-model comparators, event-clustered inference. Panel machinery is
+  reused only for provenance, clocks and freezing rules. Revisit matched controls only if a registered design
+  first shows that eligible untriggered members exist in sufficient number.
+- Contracts: `../PHASE_03_DATA_BOUNDARY.md`, `../../AREPO_V2_PHASE_3_HANDOVER.md`, `../../architecture/`.
 
-## Research basis
+## Data actually available (limits stated)
 
-Experiment cards H02/H08/H09/H10/H14/H15/H24/H27/H28; model protocol baselines, splitting, power and multiplicity. See immutable package in ../../research/2026-09-20 and canonical contracts in ../../architecture.
+All under `data-dumps/research_lab/` (read-only for experiments; never edit canonical runs).
 
-## Dependencies
+| Source | Code | Limits |
+|---|---|---|
+| Complete-universe Gamma snapshots, ~2-hourly loop (Parquet+zstd via `columnar.py`, immutable ID map) | `collector.py`, `columnar.py`, `panel.py` | Binary markets only; Gamma-computed change fields have unknown latency; 68% of tokens lack `chg_1h`; capture spans of minutes, not simultaneous; the E004 loop covers about 1 calendar day, i.e. 1-2 independent time blocks; laptop collector can have gaps (flag gaps over 3h, never backfill). |
+| Dev snapshots (`dev_snapshots_v2`, E001 CSV captures) | `extract.py`, `features_dev.py` | Development only; not collected under a frozen design; CSVs are lossy-parsed; unlimited use but every run logged. |
+| CLOB book sweeps (outcome-0 token, `POST /books`) | `book_sweep.py` | Top-of-book and depth snapshots of eligible markets only; sequential batches so book time differs by market; minutes-scale targets only (E003). |
+| Forecast log (append-only) | `forecast.py` | Frozen-model forecasts logged before outcomes; only E002's reversal spec exists (`model_specs/e002_reversal_v1.json`). |
+| Trade sampler (stratified probability sample, Data API `/trades`) | `trade_sample.py` | Code exists with sealed seed and inclusion probabilities; no collected trade panel is recorded in the ledger yet; taker-only pages; wallets never stored; recent trades only (backfill depth unknown, to be probed). |
 
-Phase 03 accepted/tested tip and its actual outputs. Earlier contracts remain binding. Before work: read checkpoint/master/this plan, inspect prior outputs and relevant current code/tests, refine tasks and record architecture changes in ../AREPO_V2_DECISIONS.md.
+Not available: L2 depth history beyond sweeps, news/social/external-venue feeds, wallet history, resolution
+labels at scale from the lab pipeline. Anything needing these is blocked until a bounded registered collection
+exists (architecture doc §9.2).
 
-## Current repository state
+## Baselines (locked; every experiment names its version)
 
-First read ../../AREPO_V2_PHASE_3_HANDOVER.md and ../PHASE_03_DATA_BOUNDARY.md. Phase3
-implementation/evidence tip8afbdffd30812e7098f3ec532c47797724e6b445; final docs-only successors
-record closeout. Tiny pilots exercise causal/sampling/control/target plumbing; they are not
-a model-selection/confirmation panel. No Phase4 implementation occurred in the Phase3 chat.
+Definitions follow `../../research/2026-09-20/MODEL_COMPARISON_AND_VALIDATION.md` §4 and E001 in
+`../../research_lab/EXPERIMENT_LEDGER.md`.
 
-research_predictors.py exposes momentum-derived v1 directions and historical ablations. No-change/price/context probability candidates and locked v2 common-panel experiments are not implemented. This is the Phase 0 inventory; refresh this section from actual code before starting.
+| ID | Definition | Status / code |
+|---|---|---|
+| B0 | No-change (`dmid_hat = 0`) | Exists: `models.py`. |
+| B1 | Momentum/reversal on trailing change. E001's 1d and 1h variants; the frozen reversal spec `dmid_hat = -0.331610 * chg_1h` | Exists: `models.py`, frozen at `model_specs/e002_reversal_v1.json`. E001/E002 show the sign is reversal, not momentum. |
+| B2 | Price/context ridge (mid + 1h/1d/1w changes) | Exists: `models.py`, `features.py`. |
+| B3 | Full E001 context ridge (adds spread, liquidity, volume, time-to-end, last-trade gap, interaction) | Exists: `models.py`, `features.py`; reproduced to 1.6e-13 by `compare.py` preset `e001_repro`. |
+| B4 | Domain baseline (rule-aware asset threshold, official forecast, cross-venue probability) | **Not implemented; no data source ingested.** Only relevant to resolution-target and external-lead experiments (H14, H36, H44, H47). Any such experiment must first define B4 in its registration. |
+| v1 | Legacy AREPO score replay (`evaluation/research_predictors.py`) | Pinned reference only; reproduce where a registration needs it. |
 
-## In scope
+**Rule:** every experiment reports its model vs B0 AND vs the strongest simple baseline available at registration
+(currently the frozen B1 reversal; for book-timescale targets, B1 plus spread/intercept terms, per the E003
+lesson). A gain over B0 alone is not a finding. Fit baseline transforms in development only.
 
-Freeze reproducible no-change, momentum, richer price/context and v1 baselines; test a small registered feature subset. Work remains in the existing repository and nonproduction environment.
+## Governance (binding on every registration)
 
-## Out of scope
+Sources: architecture doc §6 and §9.1 (`../../research/2026-10-10-architecture/AREPO_FUTURE_ARCHITECTURE_2026-10-10.md`),
+ledger Methods notes M1/M2.
 
-Production merges/deployments/migrations, infrastructure or credential changes, data deletion, retention shortening, scan restarts, paid purchases and trades. Later scientific choices remain evidence-dependent; do not implement later phases to bypass this phase gate.
+1. **Pre-register before any outcome**: question, data, unit, features, models, split, metric, interpretation
+   rule, non-claims, committed to `EXPERIMENT_LEDGER.md` before outcomes exist. Later edits only add results or
+   disclosed deviations. Never change a threshold or formula to obtain a pass.
+2. **Dev vs confirmation windows**: development data are unlimited but every run is appended to
+   `docs/research_lab/trials.jsonl` (`provenance.append_trial`; code hash, dirty flag, environment). Confirmation
+   uses only origins strictly after the registration commit, in a window declared at registration; drop origins
+   whose label window crosses the window edge. Frozen coefficients are never refit.
+3. **MDE per registration** via `power.py` (M2): state the minimum detectable effect, required clusters and the
+   design effect; treat DeltaR2 < 0.02 as out of reach until months of independent days exist.
+4. **Clustering**: event-clustered bootstrap by default (1,000 resamples, seed 116, `market_id` fallback counted).
+   Market clustering overstates precision (M1: CI widens roughly 4x).
+5. **Time**: report per-period and per-day results; time-block inference; consecutive ~2h periods are not
+   independent. Two-way clustering is unreliable below about 20 time clusters.
+6. **Multiplicity**: pre-declared alpha, Holm within a declared family, tracked in the ledger. 2-4 concurrent
+   confirmatory slots; 60 candidate experiments do not run at once.
+7. **Challenger review**: a `science-reviewer` pass on each registration before the collection that confirms it
+   starts, and on each verdict before it is relied upon.
+8. **Unit/leakage tests**: features from origin columns only (`features.py` refuses label-side columns), purge by
+   actual label availability, future-shift placebo, equal-origin parity across models.
+9. All verdicts are preserved: positive, negative, inconclusive, invalid, unavailable.
 
-## Ordered implementation tasks
+## Experiment queue (prioritised)
 
-1. Inspect Phase 3 admissibility and sample composition; specify common origin/target panel and frozen baseline definitions.
-2. Implement B0/B1/B2/B3 and v1 replay with exact versions; fit baseline transforms only in development.
-3. Prioritise the registered book/flow/related/reference experiments; refine ambiguous sign/unit/window details before lock.
-4. Register all trials, chronological/grouped splits, actual-label purging, quote-age/source-outage and future-shift placebos, family multiplicity and pilot power.
-5. Run analyses only on eligible real data; preserve positive, negative, inconclusive and invalid verdicts with effective event/time counts.
-6. Freeze a small confirmation subset and publish reproducibility report; do not advance data-dependent work without sufficient clean events.
+Priorities from `../../research/2026-09-20/EDGE_EXPERIMENTS.csv` (P1 = highest) combined with measured results.
+Current confirmatory slots: E004, E005, E006 (three of four).
 
-## Likely modules/files
+| Order | Experiment | Status | Data needed | Data exists? |
+|---|---|---|---|---|
+| 1 | **E004** multi-period reversal, 12 qualifying snapshots, with spread-crossing execution check | Registered, running (collection loop) | 2-hourly snapshots | Yes, accruing. Covers ~1 day; verdict is a consistency check, not independent days. |
+| 2 | **E005** neg-risk arbitrage-band deviation (H37-type coherence) beyond reversal | Registered, running; dev fit frozen (in-sample incremental R2 ~2e-5, expect inconclusive) | Same snapshots plus neg-risk columns | Yes |
+| 3 | **E006** reversal moderation by liquidity (H1) and time-to-end (H2) | Registered, running; dev fit frozen, H1 weakly identified (disclosed) | Same snapshots | Yes |
+| 4 | **Trade-flow family** (H01/H02 size vs liquidity/depth, H05/H11/H12/H29 flow shape; wallet fields excluded) via `trade_sample.py` | Next candidate; needs registration, a bounded backfill-availability probe and a collected sample | Stratified trade sample with inclusion probabilities, plus snapshots for targets | Code yes; collected data no |
+| 5 | **Book signals conditional on tight books** (H08/H09, H23-H25, H27) | Candidate. E003 found imbalance/microprice inconclusive and the model gain driven by spread/intercept drift in wide-spread markets; re-test only in tight-spread strata with a spread-aware baseline | Book sweeps, ideally a one-day hourly series | Sweeps yes; hourly series no |
+| 6 | **Related-market families** (H15 related lead, H37/H38 coherence beyond neg-risk) | Candidate after E005 verdict | Event/group structure from snapshots | Partly (event ids present; nested-threshold mapping not built) |
+| 7 | **Reversal tradability** (H27/H28 persistence and impact reversal after spread, depth and fees) | Candidate after E004 execution check | Book sweeps at origin and later quotes | Partial |
+| Later | External/news/wallet/social (H14, H16-H22, H36, H44-H50) | Blocked | External feeds, B4 baselines | No |
 
-New research_panel baseline/experiment/split modules; evaluation/research_predictors.py used as pinned baseline reference; experiment artifacts.
+Rules for adding to the queue: one registration per question; no new experiment fills a slot until a current
+one has a scored verdict; post hoc dev screens (`features_dev.py` style) generate hypotheses, never evidence.
 
-## Data model, API and migration implications
+## Data-readiness criteria
 
-Use versioned v2 entities and immutable artifact manifests. Refine any additive schema proposal from observed prerequisite needs; no automatic production migration or serving API promotion.
+- **Registering a confirmatory test**: data exist or a registered collection is running, power statement shows the
+  target effect is detectable at the expected cluster count, and the dev/confirmation split is declared.
+- **Stage-2 models (LightGBM, hierarchical Bayesian)**: an effect that survived development AND confirmation,
+  with at least 16 independent days and at least 50k event clusters (architecture doc §6). Until then ridge/OLS only.
+- **Stage 1 storage triggers** (Parquet ID map in place; generic scoring): more than 30 snapshots, 3 GB of frames
+  or 10 experiments. Archive backup (§9.1) precedes any space recovery; no retirement without explicit approval.
+- Independent time blocks, not period counts, decide whether a result may be called confirmed.
 
-## Tests required
+## Exit criteria
 
-Baseline equal-origin and target parity; flat/abstain distinction; fold leakage/future-shift; purging by actual label availability; event/market deduplication; all-trial retention and uncertainty; known synthetic effects for machinery only, never scientific evidence.
+- [ ] Phase 3 closure confirmed (D116 review) and recorded in the checkpoint.
+- [ ] B0-B3 frozen with exact versions and reproducible (met in code); B4 status stated per experiment.
+- [ ] E004, E005, E006 scored once each under their registered rules, with MDE, per-day and event-clustered
+      results, and execution check; verdicts recorded whatever their sign.
+- [ ] At least one further registered experiment from the queue (item 4 or 5) scored or blocked on documented data.
+- [ ] `trials.jsonl` complete; ledger, decisions log and checkpoint current; data-readiness report written
+      stating how many independent days exist and what Stage 2 would still need.
+- [ ] Tests: `cd backend && source .venv/bin/activate && pytest tests -k research_lab && ruff check astrolabe/research_lab`.
+- [ ] Diff reviewed for leakage, repeated-row inflation and protected boundaries.
 
-## Acceptance criteria
+## Non-goals
 
-Four baselines reproducible and frozen; initial registered experiments honestly evaluated with adequate predeclared evidence or explicit data blocker; negative/inconclusive results preserved; no winner invented.
-
-## Exit checklist
-
-- [ ] Prerequisites reloaded and plan refined against real outputs.
-- [ ] All scoped tasks and acceptance criteria satisfied; limitations explicit.
-- [ ] Required tests passed with exact command/target/result recorded.
-- [ ] Diff self-reviewed for causal leakage, data loss, unrelated changes and protected boundaries.
-- [ ] Documentation/decision log/master status current.
-- [ ] Coherent safe work committed; branch and draft PR/dependency recorded.
-- [ ] Checkpoint updated with safe commit, files, tests, blockers and exact next action.
+- No nonlinear, boosted or Bayesian models before the Stage-2 trigger; no ensembles before Stage 3.
+- No product promotion of any signal (forecast cards, alerts, rankings) before prospective confirmation plus an
+  economic check (spread, depth, fees). Midpoint reversal is not executable value.
+- No matched-control claims from the Phase 3 panel; no pooling, redrawing, relabelling or backfilling of old pilots.
+- No retention changes, deletion, production migration, deploy, trades or paid purchases; no wallet identifiers stored.
+- No synthetic data as scientific evidence; synthetic effects test machinery only.
 
 ## Protected boundaries
 
-Never fabricate prospective observations, tune on final confirmation, or treat repeated rows as independent events. Preserve complete discovery separately from public limits and sampled deep collection. Archive equivalence does not authorise deletion. A protected action requires the user's explicit decision; record BLOCKED — USER DECISION REQUIRED with the concrete action. Missing access/data is a real blocker; synthetic fixtures are not a substitute for empirical acceptance.
-
-## Handoff/output
-
-Locked baselines, experiment ledger, initial evidence/negative results and data-readiness report.
+Never fabricate prospective observations, tune on confirmation data, or treat repeated rows as independent events.
+Missing data stays missing. A protected action needs the user's explicit decision; record
+BLOCKED - USER DECISION REQUIRED with the concrete action.
