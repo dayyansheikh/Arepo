@@ -21,15 +21,17 @@ def mk(i: int) -> dict:
         "bestAsk": 0.45, "spread": {"$decimal": "0.05"}, "lastTradePrice": "0.42",
         "oneHourPriceChange": -0.01, "liquidity": "1000.5", "volume24hr": 12,
         "endDate": "2027-01-01T00:00:00Z", "updatedAt": "2026-10-10T00:00:00Z",
-        "events": [{"id": 77, "openInterest": 55.5, "commentCount": 3, "negRiskAugmented": True,
-                    "createdAt": "2026-01-01T00:00:00Z"}],
+        "negRiskMarketID": "nr1", "events": [{"id": 77, "series": [{"slug": "s-b"}, {"slug": "s-a"}],
+                    "openInterest": 55.5, "commentCount": 3, "negRiskAugmented": True,
+                    "createdAt": "2026-01-01T00:00:00Z"}, {"id": 5, "series": [{"slug": "s-a"}]}],
     }
     if i % 2 == 0:
         m.update(feeType="crypto_fees", feesEnabled=True, takerBaseFee=1000,
                  orderPriceMinTickSize=0.01, orderMinSize=5, createdAt="2026-09-01T00:00:00Z",
                  startDate="2026-09-02T00:00:00Z", competitive=0.9, rewardsMinSize=50,
                  rewardsMaxSpread=3.5, clobRewards=[{"rewardsDailyRate": 2}],
-                 acceptingOrders=False, umaResolutionStatuses="[]", volumeNum=99.0)
+                 acceptingOrders=False, feeSchedule='{"rate":0.07}',
+                 umaResolutionStatuses="[]", volumeNum=99.0)
     return m
 
 
@@ -80,7 +82,7 @@ def read_ext(d):
         return list(csv.DictReader(fh))
 
 
-def test_main_outputs_byte_identical_with_and_without_sidecar(tmp_path, monkeypatch):
+def test_main_decompressed_content_identical_with_and_without_sidecar(tmp_path, monkeypatch):
     class Off:
         def add_page(self, *a): pass
         def write(self, *a): pass
@@ -113,6 +115,10 @@ def test_sidecar_joins_and_parses(tmp_path, monkeypatch):
     assert e0["clob_rewards"] == '[{"rewardsDailyRate":2}]' and e0["accepting_orders"] == "0"
     assert e0["clob_token_id_1"] == "t0b" and e0["event_open_interest"] == "55.5"
     assert e0["event_neg_risk_augmented"] == "1"
+    assert e0["fee_schedule"] == '{"rate":0.07}' and e0["event_ids"] == '["5","77"]'
+    assert e0["series_slugs"] == '["s-a","s-b"]' and e0["neg_risk_market_id"] == "nr1"
+    assert e1["fee_schedule"] == ""
+    assert json.loads((d / "ext_manifest.json").read_text())["ext_version"] == "snapshot-ext-v2"
     for k in ("fee_type", "taker_base_fee", "created_at", "rewards_min_size", "volume_num",
               "open_interest", "clob_rewards", "fees_enabled"):
         assert e1[k] == ""  # missing stays missing, never 0

@@ -17,11 +17,11 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from astrolabe.research_panel.pairing import fee_category
+from astrolabe.research_panel.pairing import fee_category, row_facts
 
 from .extract import _event_id, _flag, _json_list, _token0, parse_num
 
-EXT_VERSION = "snapshot-ext-v1"
+EXT_VERSION = "snapshot-ext-v2"
 log = logging.getLogger(__name__)
 
 KEYS = ["capture_id", "received_utc", "page_index", "market_id", "condition_id",
@@ -39,7 +39,8 @@ EVENT_NUM = {"event_open_interest": "openInterest", "event_comment_count": "comm
              "event_volume": "volume", "event_liquidity": "liquidity"}
 EVENT_TEXT = {"event_created_at": "createdAt"}
 COLUMNS = [*KEYS, "fee_type", "fee_category", *MARKET_FLAG, *MARKET_NUM, *MARKET_TEXT,
-           "clob_rewards", *EVENT_NUM, *EVENT_TEXT, "event_neg_risk_augmented"]
+           "clob_rewards", *EVENT_NUM, *EVENT_TEXT, "event_neg_risk_augmented",
+           "fee_schedule", "event_ids", "series_slugs", "neg_risk_market_id"]
 
 
 def _text(v: Any) -> str | None:
@@ -48,6 +49,10 @@ def _text(v: Any) -> str | None:
     if isinstance(v, (list, dict)):
         return json.dumps(v, sort_keys=True, separators=(",", ":"))
     return str(v)
+
+
+def _json_col(values: list) -> str | None:
+    return json.dumps(values, separators=(",", ":")) if values else None
 
 
 def ext_row(m: dict, capture_id: str, received: str, page_index: int) -> dict | None:
@@ -59,6 +64,7 @@ def ext_row(m: dict, capture_id: str, received: str, page_index: int) -> dict | 
     ids = _json_list(m.get("clobTokenIds"))
     tok1 = str(ids[1]) if ids and len(ids) > 1 and ids[1] not in (None, "") else None
     fee_type = m.get("feeType")
+    facts = row_facts(m)  # same extraction D120 uses for GROUPING_LINKS (ALL events, not ev0)
     r: dict = {
         "capture_id": capture_id, "received_utc": received, "page_index": page_index,
         "market_id": str(m["id"]), "condition_id": m.get("conditionId"),
@@ -66,6 +72,10 @@ def ext_row(m: dict, capture_id: str, received: str, page_index: int) -> dict | 
         "fee_type": _text(fee_type),
         "fee_category": fee_category(fee_type),
         "clob_rewards": _text(m.get("clobRewards")),
+        "fee_schedule": _text(m.get("feeSchedule")),  # raw string kept verbatim
+        "event_ids": _json_col(facts["event_ids"]),  # JSON lists, sorted unique; blank = none
+        "series_slugs": _json_col(facts["series_slugs"]),
+        "neg_risk_market_id": facts["neg_risk_market_id"],
         "event_neg_risk_augmented": _flag(ev0.get("negRiskAugmented")),
     }
     r.update({k: _flag(m.get(s)) for k, s in MARKET_FLAG.items()})
@@ -103,18 +113,20 @@ class SidecarBuilder:
             if self.error:
                 raise RuntimeError(self.error)
             keep = {(r["market_id"], r["received_utc"], r["page_index"]) for r in kept}
-            out = [r for r in self.rows
-                   if (r["market_id"], r["received_utc"], r["page_index"]) in keep]
-            if len(out) != len(kept):
-                raise RuntimeError(f"alignment {len(out)} != {len(kept)}")
+            n = 0
             part = tmp / "rows_ext.csv.gz.part"
             with gzip.open(part, "wt", newline="", encoding="utf-8") as fh:
                 w = csv.DictWriter(fh, fieldnames=COLUMNS)
                 w.writeheader()
-                w.writerows(out)
+                for r in self.rows:
+                    if (r["market_id"], r["received_utc"], r["page_index"]) in keep:
+                        w.writerow(r)
+                        n += 1
+            if n != len(kept):
+                raise RuntimeError(f"alignment {n} != {len(kept)}")
             part.rename(tmp / "rows_ext.csv.gz")
             manifest.update(sidecar_status="complete" if main_state == "complete"
-                            else "partial_capture", row_count=len(out))
+                            else "partial_capture", row_count=n)
         except Exception as exc:
             log.exception("snapshot sidecar write failed")
             (tmp / "rows_ext.csv.gz.part").unlink(missing_ok=True)
