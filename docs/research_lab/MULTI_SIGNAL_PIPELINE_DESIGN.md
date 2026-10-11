@@ -87,7 +87,7 @@ The general rules:
 | a9 | neg-risk member flag, group mid-sum excess (`nr_excess`), sibling count (structure) | same scan | L3/E005 are small or unsupported. Kept as context, not as hypotheses |
 | a10 | liquidity-weighted sibling `chg_1h` (L1) (structure) | same scan; sibling receipt may be minutes later | it still precedes the target. The L1 screen was underpowered, not negative |
 | a11 | book: top imbalance (F08), microprice displacement (F09), depth within 1c/5c per side, 5c depth imbalance, level counts, `book_timestamp` age (book). The microprice is relative to the **sweep** mid. **No** sweep–Gamma gap (placebo only) | `book_sweep` batch receipt. The latest sweep returned 43,734 of 43,734 eligible tokens; 2 sweeps per pass | E003 found the imbalance inconclusive on its own. Here it is an input. Section 1 note 2 applies |
-| a12 | **sidecar metadata** (Task 1) from the same Gamma pages (metadata): `feeType` → `fee_category` (the D120 map, imported, never copied), `feesEnabled`/`takerBaseFee`, `orderPriceMinTickSize`, `orderMinSize`, `createdAt` (market age, F41), `startDate`, `competitive`, `rewardsMinSize`/`rewardsMaxSpread`/`clobRewards` (F42), `acceptingOrders`, `umaResolutionStatuses` (F56 early state), lifetime `volumeNum`; event `openInterest`, `commentCount`, `volume`, `liquidity`, `createdAt`, `negRiskAugmented` | page receipt | **Prospective only.** The research-lab collector does not keep raw bodies, so history before Task 1 cannot be recovered. That gap stays missing. The 6 `fs2_capture_*` dev captures keep raw pages and may be backfilled for development only |
+| a12 | **sidecar metadata** (Task 1) from the same Gamma pages (metadata): `feeType` → `fee_category` (the D120 map, imported, never copied), `feesEnabled`/`takerBaseFee`, `orderPriceMinTickSize`, `orderMinSize`, `createdAt` (market age, F41), `startDate`, `competitive`, `rewardsMinSize`/`rewardsMaxSpread`/`clobRewards` (F42), `acceptingOrders`, `umaResolutionStatuses` (eligibility filter only; see the timing rules below), lifetime `volumeNum`; event `openInterest`, `commentCount`, `volume`, `liquidity`, `createdAt`, `negRiskAugmented` | page receipt | **Prospective only.** The research-lab collector does not keep raw bodies, so history before Task 1 cannot be recovered. That gap stays missing. The 6 `fs2_capture_*` dev captures keep raw pages and may be backfilled for development only |
 | a13 | trade-flow: `signed_share` (E007), `n_trades_1h`, `notional_1h`, max trade / liquidity (F01), time since last trade (flow) | `trade_sample` (2,000-market probability sample of the active frame) | **Not in the primary universe model**: 95% of rows would be missing by design. It feeds a secondary active-frame model weighted by 1/π |
 
 `category` (`fee_category`, a12) is a **model input and a pooling group, never a hard-coded filter**. The population is set by a single config parameter:
@@ -95,6 +95,17 @@ The general rules:
     category_policy = {"mode": "all" | "include" | "exclude", "categories": [...], "map_version": "fs2-fee-category-map-v1"}
 
 The default is `all`. The policy is recorded in every run, fold manifest and registration. Per-category results are descriptive. Sports is the user's later decision.
+
+**Feature-timing rules for the sidecar fields (a12), fixed now:**
+- **Cumulative fields** (`volumeNum`, event `volume`, `commentCount`, `openInterest`):
+  - used only as the origin-row level, or as differences from *i−1* to *i*;
+  - **never** read from snapshot *j*, and never differenced from *i* to *j*.
+- **`umaResolutionStatuses`:**
+  - **T1:** an origin eligibility filter, not a feature. A market is excluded if its origin row shows any resolution proposal (any non-empty status list). Exclusions are counted.
+  - **MC2/T5:** the same origin exclusion is pre-declared. A proposal largely reveals the outcome, so including it would make T5 trivial. The status is kept for descriptive splits only.
+- **Possibly stale fields** (`competitive`, `rewardsMinSize`, `rewardsMaxSpread`, `clobRewards`):
+  - treated as Gamma-computed, with opaque update timing, like `chg_*`;
+  - used only as origin-row values, with no claim about when they changed.
 
 ### Tier (b): free external sources worth adding
 
@@ -221,7 +232,7 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
   - labels shuffled within period × event blocks (ΔLL should be about 0);
   - every feature shifted to the *target* snapshot (the leakage alarm must fire);
   - the quote-age-only model;
-  - **gap-only model:** M0 + the sweep–Gamma mid gap. This measures how much a pure fresher-price measurement can buy. The registration reports F\*'s gain against this model, and F\*'s gain on rows where `|gap| < 0.0025`.
+  - **gap-only model:** M0 + the sweep–Gamma mid gap. This measures how much a pure fresher-price measurement can buy. The registration reports F\*'s gain against this model, and F\*'s gain on rows where `|gap| < 0.0025`. **Report-only and non-gating:** it never enters a verdict.
 
 ## 5. Prospective confirmation MC1 (one registration)
 
@@ -240,8 +251,16 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
   - **H1 (predictive):**
     - relative ΔLL = (LL(M0) − LL(F\*)) / LL(M0) > 0 on T1;
     - two-sided 95% CI excludes 0 under both cluster definitions (section 4).
-  - **H2a (economic, absolute):** net mean P&L per trade of the F\* rule > 0.
-  - **H2b (economic, incremental):** the F\* rule's mean P&L per opportunity exceeds the M0 rule's, as a paired comparison on the same origins (a no-trade origin counts 0).
+  - **H2a (economic, absolute):**
+    - **Statistic:** net mean P&L per trade of the F\* rule (total net P&L ÷ number of trades, recomputed in each resample as a ratio of cluster sums).
+    - **Test:** one-sided, H2a: mean > 0. Reject if the one-sided 95% percentile-bootstrap lower bound (the 5th percentile) is above 0.
+    - **Clustering:** the same co-primary clusters as H1, resampling whole clusters across periods. 1,000 resamples, seed 116, the same draws as H1.
+    - **Rule:** it must reject under **both** cluster definitions.
+    - **Minimum:** fewer than 30 trades, or fewer than 10 clusters with a trade, means "not testable". The result is reported, but H2a is not rejected.
+  - **H2b (economic, incremental):**
+    - **Statistic:** mean over all H2-qualifying origins of (P&L of the F\* rule − P&L of the M0 rule), where an origin without a trade counts 0. This is a paired comparison per opportunity.
+    - **Test:** one-sided, H2b: mean > 0. Reject if the 5th-percentile bootstrap lower bound is above 0.
+    - **Clustering and rule:** the same co-primary clusters, whole-cluster resampling, shared draws, and rejection required under both definitions.
 
   This replaces Holm across two hypotheses. The economic labels require predictive support anyway (change 5), so a fixed sequence controls family-wise error without splitting α. It also keeps H1's MDE at the single-test value.
 - **Secondary (descriptive):**
@@ -273,7 +292,7 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
     - A period whose exit sweep is missing does not qualify for H2. It is counted.
     - The Gamma-bid exit is reported only as a sensitivity.
   - **Fees:** the taker fee on both legs. The fee table is frozen from the pre-implementation fee check (section 7). If a market's fee is unknown, use the highest rate in that table.
-  - **Thresholds:** τ for F\* and τ_M0 for M0 are each chosen once in development, by the same rule: the smallest τ on a frozen grid {0.02, 0.05, 0.10, 0.20} with at least 200 development trades and the highest out-of-fold mean net P&L. Both are frozen.
+  - **Thresholds:** τ for F\* and τ_M0 for M0 are each chosen once in development, by the same rule: among the τ on a frozen grid {0.02, 0.05, 0.10, 0.20} with at least 200 development trades, pick the one with the **highest** out-of-fold mean net P&L per trade. Ties go to the smallest τ. Both are frozen.
   - Latency, queue position and mirrored orders are not modelled. Even a pass is labelled "optimistic, not tradable".
 - **MDE (`power.py` logic, unchanged):**
   - The ΔR2 algebra applies to any normalised paired loss: `c_k = K·d_k / LL_M0,total`, `SE = sd_c/√K`, `MDE = (z_{1−α/2} + z_power)·sd_c/√K`.
@@ -302,7 +321,7 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
 ## 6. Data volume and calendar
 
 - **Now:** 10 complete loop snapshots, with irregular gaps (a 3h+ gap around pass 6). That is about 8 usable 2h pairs, plus 6 dev captures (5–70h gaps; T2 context only).
-  - Book sweeps: 18. Trade samples: 7. Sidecar: not yet live (Task 1 is in progress, uncommitted).
+  - Book sweeps: 18. Trade samples: 7. Sidecar: committed in `359d675`. It lacks `feeSchedule`, series slugs and events beyond the first; a follow-up implementer is adding those now.
 - **Development calendar:** **≥ 40 consecutive complete snapshots with the sidecar present**, about 3.3–3.5 days at the 2h cadence, plus about 1 day for failed passes. The 40 are:
   - 36 origin periods (12 training + 6 test blocks of 4);
   - 1 earlier snapshot for the *i−1* history (a3);
@@ -338,7 +357,10 @@ The set is small, and fixed now. Every arm sees the same origin IDs, folds, targ
   - Sweep `20261011T103957Z_1ed72f5a` returned 43,734 of 43,734 eligible tokens. It started about 8 minutes after its snapshot and took 80 s.
   - Task 2 must assert coverage ≥ 99% and receipt ordering per period. It must also record the timing distribution across all sweeps, not only this one.
 - **P4 `paired_bootstrap` reuse** is resolved (section 4): pass per-row loss in place of SSE. Task 4 adds only a test that `1 − tot/tot_M0` equals the hand-computed relative log-loss improvement.
-- **P5 Sidecar status.** `research_lab/ext_sidecar.py` and a modified `collector.py` already exist, uncommitted, from another session. Task 1 below is the acceptance spec for that work, not a second implementation.
+- **P5 Sidecar status.**
+  - `research_lab/ext_sidecar.py` and the collector hook are committed in `359d675`.
+  - Still missing: `feeSchedule` (P1), event series slugs (P2), and events beyond the first in `events[]`. A follow-up implementer is adding these now.
+  - Task 1 below is the acceptance spec for that work, not a second implementation.
 
 1. **Task 1 — Snapshot metadata sidecar** (time-critical, because the data is prospective only).
    - **Change:** `collector.collect` additionally writes `rows_ext.csv.gz` and `ext_manifest.json` from the **same** page bodies.
