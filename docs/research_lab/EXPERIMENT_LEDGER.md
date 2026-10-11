@@ -514,3 +514,7 @@ criteria are unchanged.
   - Every flow variant F1-F4 is null or negative against both bases (frozen reversal and a ridge on chg_1h). The minimum detectable effects are 0.04-0.10, except F1 and F4 against ridge (about 0.001-0.008).
   - The frozen reversal base gives R2 = 0.165 against no-change in this single period. That is a development observation only, not evidence; E004 tests the reversal over 11 periods.
 - **Interpretation:** the eligible frame is mostly untraded (Data note D1). Flow screening continues on trade-active samples (`--frame active`), collected after each loop pass.
+- **Flow screen S2 (DEVELOPMENT, ~04:30Z, `flowscreen-9dd7f7852f`)**
+  - Two periods: the eligible sample from S1 plus the first trade-active sample (`5a048dfe`, 1,996 pairs). In total 3,983 pairs across 2,652 events.
+  - All pooled CIs span 0. In the trade-active period alone, F1, F2a and F3 against ridge come out at about +0.010 to +0.012.
+  - This is to be watched as active periods accumulate. It is not a finding.
