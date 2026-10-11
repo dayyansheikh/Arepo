@@ -39,7 +39,6 @@
       "Bash(render:*)"
     ],
     "ask": [
-      "Bash(git push:*)",
       "Bash(git branch -D:*)",
       "Bash(git branch -d:*)",
       "Bash(git worktree remove:*)"
