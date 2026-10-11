@@ -35,6 +35,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from astrolabe.research_panel import pairing
+
 from . import evaluate, features, features_dev, panel
 from .features import FeatureSpec
 
@@ -55,6 +57,10 @@ EMBARGO_S = 7200.0  # one nominal period (2h cadence)
 SWEEP_MIN_COVERAGE = 0.99
 
 FEATURE_SET_VERSION = "ml-tier-a-v1"
+EXT_FEATURE_SET_VERSION = "ml-tier-a-ext-v1"  # sweep (a11) + sibling (a10) features
+SWEEP_SERIES_INDEX = 0  # sweeps come in pairs (A, B): A (series_index 0) is the one joined
+SWEEP_VERSION_OK = "book-sweep-v1"
+DEP_GROUP_UNDERLYING = False  # links: event_ids, series_slugs, neg_risk_market_id only
 FOLD_MANIFEST_VERSION = "ml-fold-manifest-v1"
 DEFAULT_MAP_VERSION = "fs2-fee-category-map-v1"
 CATEGORY_MODES = ("all", "include", "exclude")
@@ -142,7 +148,10 @@ def apply_category_policy(
 # ---------------------------------------------------------------------------------------------
 
 _HIST_RE = re.compile(r"^hist_(?:mid|t|vol)_([0-9]+)$")
-_FORBIDDEN_PREFIX = ("j_", "next_", "fut_", "future_", "target_", "label_", "y_")
+# "rep_" = report-only columns (sweep-minus-Gamma gap), "dep_" = dependence-group ids (clustering).
+_FORBIDDEN_PREFIX = (
+    "j_", "next_", "fut_", "future_", "target_", "label_", "y_", "rep_", "dep_",
+)
 _FORBIDDEN_SUFFIX = ("_j", "_next", "_future")
 
 
@@ -334,6 +343,287 @@ _TIER_A: list[tuple[str, str, tuple[str, ...], Callable[[pd.DataFrame], pd.Serie
 ]
 TIER_A_NAMES: tuple[str, ...] = tuple(n for n, *_ in _TIER_A)
 
+# ---------------------------------------------------------------------------------------------
+# Extended features: book sweep (a11, features only) and sibling moves (a10). Origin-side only.
+# ---------------------------------------------------------------------------------------------
+
+
+def _sw(name: str):
+    return lambda o: _s(o, _num(o, name))
+
+
+def _sw_imbalance(bid: str, ask: str):
+    def f(o):
+        b, a = _num(o, bid), _num(o, ask)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return _s(o, np.where(b + a > 0, (b - a) / (b + a), np.nan))
+
+    return f
+
+
+def _sw_log_depth(name: str):
+    return lambda o: _s(o, np.log1p(np.clip(_num(o, name), 0, None)))
+
+
+def _sw_microprice_disp(o):
+    # relative to the SWEEP's own mid, never to the Gamma mid
+    bb, ba = _num(o, "sw_best_bid"), _num(o, "sw_best_ask")
+    bs, as_ = _num(o, "sw_bid_size_1"), _num(o, "sw_ask_size_1")
+    with np.errstate(divide="ignore", invalid="ignore"):
+        micro = np.where(bs + as_ > 0, (ba * bs + bb * as_) / (bs + as_), np.nan)
+    return _s(o, micro - (bb + ba) / 2)
+
+
+def _sw_spread(o):
+    return _s(o, _num(o, "sw_best_ask") - _num(o, "sw_best_bid"))
+
+
+_SW_BOOK = ("sw_best_bid", "sw_best_ask", "sw_bid_size_1", "sw_ask_size_1")
+_EXT: list[tuple[str, str, tuple[str, ...], Callable[[pd.DataFrame], pd.Series]]] = [
+    ("ml_sw_imb_top", "book", ("sw_bid_size_1", "sw_ask_size_1"),
+     _sw_imbalance("sw_bid_size_1", "sw_ask_size_1")),
+    ("ml_sw_microprice_disp", "book", _SW_BOOK, _sw_microprice_disp),
+    ("ml_sw_spread", "book", ("sw_best_bid", "sw_best_ask"), _sw_spread),
+    ("ml_sw_log_depth_bid_1c", "book", ("sw_depth_bid_1c",), _sw_log_depth("sw_depth_bid_1c")),
+    ("ml_sw_log_depth_ask_1c", "book", ("sw_depth_ask_1c",), _sw_log_depth("sw_depth_ask_1c")),
+    ("ml_sw_log_depth_bid_5c", "book", ("sw_depth_bid_5c",), _sw_log_depth("sw_depth_bid_5c")),
+    ("ml_sw_log_depth_ask_5c", "book", ("sw_depth_ask_5c",), _sw_log_depth("sw_depth_ask_5c")),
+    ("ml_sw_imb_1c", "book", ("sw_depth_bid_1c", "sw_depth_ask_1c"),
+     _sw_imbalance("sw_depth_bid_1c", "sw_depth_ask_1c")),
+    ("ml_sw_imb_5c", "book", ("sw_depth_bid_5c", "sw_depth_ask_5c"),
+     _sw_imbalance("sw_depth_bid_5c", "sw_depth_ask_5c")),
+    ("ml_sw_n_bid_levels", "book", ("sw_n_bid_levels",), _sw("sw_n_bid_levels")),
+    ("ml_sw_n_ask_levels", "book", ("sw_n_ask_levels",), _sw("sw_n_ask_levels")),
+    ("ml_sw_book_age_s", "book", ("sw_book_age_s",), _sw("sw_book_age_s")),
+    ("ml_sib_mean_abs_dmid", "ml_structure", ("sib_mean_abs_dmid",), _sw("sib_mean_abs_dmid")),
+    ("ml_sib_max_abs_dmid", "ml_structure", ("sib_max_abs_dmid",), _sw("sib_max_abs_dmid")),
+]
+EXT_NAMES: tuple[str, ...] = tuple(n for n, *_ in _EXT)
+SWEEP_NAMES: tuple[str, ...] = tuple(n for n in EXT_NAMES if n.startswith("ml_sw_"))
+SIBLING_NAMES: tuple[str, ...] = tuple(n for n in EXT_NAMES if n.startswith("ml_sib_"))
+EXTENDED_NAMES: tuple[str, ...] = (*TIER_A_NAMES, *EXT_NAMES)  # TIER_A_NAMES itself is unchanged
+SW_COLUMNS = (
+    "sw_best_bid", "sw_best_ask", "sw_bid_size_1", "sw_ask_size_1", "sw_depth_bid_1c",
+    "sw_depth_ask_1c", "sw_depth_bid_5c", "sw_depth_ask_5c", "sw_n_bid_levels",
+    "sw_n_ask_levels", "sw_book_age_s",
+)
+
+
+def register_extended() -> tuple[str, ...]:
+    """Register the sweep and sibling features once (idempotent) through ``register_ml``."""
+    for name, fam, req, fn in _EXT:
+        cur = features.REGISTRY.get(name)
+        if cur is not None:
+            if cur.version != EXT_FEATURE_SET_VERSION or cur.requires != req:
+                raise ValueError(f"feature {name!r} registered with a different definition")
+            continue
+        register_ml(FeatureSpec(name, fam, EXT_FEATURE_SET_VERSION, fn, req))
+    return EXT_NAMES
+
+
+def extended_feature_versions() -> dict:
+    register_tier_a()
+    register_extended()
+    return features.versions(list(EXTENDED_NAMES))
+
+
+def sweep_columns(market_ids: np.ndarray, sweep_rows: pd.DataFrame | None) -> pd.DataFrame:
+    """Origin-side ``sw_*`` columns for ``market_ids`` from ONE sweep's rows (the declared A sweep).
+
+    Missing sweep, a market not in the sweep, or ``missing_from_response`` gives NaN (never 0).
+    Also returns ``sw_mid`` (two-sided books only) for the report-only gap placebo; it is never
+    a feature column. ``sw_book_age_s`` is the batch receipt minus the book's own timestamp
+    (negative: invalid, NaN).
+    """
+    n = len(market_ids)
+    cols = {c: np.full(n, np.nan) for c in (*SW_COLUMNS, "sw_mid")}
+    if sweep_rows is not None and len(sweep_rows):
+        sw = sweep_rows.copy()
+        sw["market_id"] = sw["market_id"].astype(str)
+        sw = sw[sw["state"].isin(["two_sided", "one_sided", "empty"])]
+        sw = sw.drop_duplicates("market_id").set_index("market_id").reindex(market_ids)
+        src = {
+            "sw_best_bid": "best_bid", "sw_best_ask": "best_ask", "sw_bid_size_1": "bid_size_1",
+            "sw_ask_size_1": "ask_size_1", "sw_depth_bid_1c": "depth_bid_1c",
+            "sw_depth_ask_1c": "depth_ask_1c", "sw_depth_bid_5c": "depth_bid_5c",
+            "sw_depth_ask_5c": "depth_ask_5c", "sw_n_bid_levels": "n_bid_levels",
+            "sw_n_ask_levels": "n_ask_levels",
+        }
+        for dst, c in src.items():
+            cols[dst] = pd.to_numeric(sw[c], errors="coerce").to_numpy(float)
+        two = (sw["state"] == "two_sided").to_numpy()
+        cols["sw_mid"] = np.where(two, (cols["sw_best_bid"] + cols["sw_best_ask"]) / 2, np.nan)
+        rec = panel._epoch(sw["batch_receipt_utc"])
+        ts = pd.to_numeric(sw["book_timestamp"], errors="coerce").to_numpy(float) / 1000.0
+        age = rec - ts
+        cols["sw_book_age_s"] = np.where(age < 0, np.nan, age)
+    return pd.DataFrame(cols)
+
+
+def pick_sweeps(sweep_root: Path, min_coverage: float = SWEEP_MIN_COVERAGE) -> tuple[dict, dict]:
+    """Declared sweep per snapshot: the **A** sweep (``series_index == 0``) of the earliest
+    complete series for that ``snapshot_id`` (B is never used). Returns ``(usable, report)``;
+    ``usable[capture_id] = {receipt_epoch, started_epoch, returned, eligible, dir, sweep_id}``
+    where ``receipt_epoch`` is the sweep's ``finished_utc`` (>= every batch receipt). Sweeps that
+    are incomplete or below ``min_coverage`` are listed in ``report`` and not usable. Reads
+    manifests only.
+    """
+    usable: dict[str, dict] = {}
+    report: dict = {"considered": 0, "not_a_sweep": 0, "not_complete": 0, "low_coverage": [],
+                    "duplicate_a_for_snapshot": 0}
+    for mp in sorted(Path(sweep_root).glob("*/manifest.json")):
+        m = json.loads(mp.read_text())
+        if m.get("series_index") != SWEEP_SERIES_INDEX:
+            report["not_a_sweep"] += 1
+            continue
+        report["considered"] += 1
+        if m.get("state") != "complete" or m.get("sweep_version") != SWEEP_VERSION_OK:
+            report["not_complete"] += 1
+            continue
+        req, ret = int(m["tokens_requested"]), int(m["tokens_returned"])
+        if req <= 0 or ret / req < min_coverage:
+            report["low_coverage"].append(m["sweep_id"])
+            continue
+        started = float(panel._epoch(pd.Series([m["started_utc"]]))[0])
+        rec = {
+            "receipt_epoch": float(panel._epoch(pd.Series([m["finished_utc"]]))[0]),
+            "started_epoch": started, "returned": ret, "eligible": req,
+            "dir": str(mp.parent), "sweep_id": m["sweep_id"],
+        }
+        cid = m["snapshot_id"]
+        if cid in usable:
+            report["duplicate_a_for_snapshot"] += 1
+            if usable[cid]["started_epoch"] <= started:
+                continue
+        usable[cid] = rec
+    return usable, report
+
+
+def load_sweep_rows(entry: dict) -> pd.DataFrame:
+    """Slim rows of one declared sweep (ids as strings)."""
+    use = ["market_id", "batch_receipt_utc", "book_timestamp", "best_bid", "best_ask",
+           "bid_size_1", "ask_size_1", "depth_bid_1c", "depth_ask_1c", "depth_bid_5c",
+           "depth_ask_5c", "n_bid_levels", "n_ask_levels", "state"]
+    return pd.read_csv(Path(entry["dir"]) / "rows.csv.gz", usecols=use,
+                       dtype={"market_id": str, "book_timestamp": str})
+
+
+def sibling_moves(
+    rows_i: pd.DataFrame, hist1: pd.DataFrame | None, market_ids: np.ndarray
+) -> pd.DataFrame:
+    """a10: mean and max ``|d mid|`` over ``i-1 -> i`` of the OTHER markets in the same group.
+
+    Group = ``neg_risk_market_id`` when present, else ``event_id`` (origin snapshot rows only).
+    A market never counts toward its own statistic. ``hist1`` is ``slim_history`` of snapshot
+    i-1; a link older than ``HISTORY_MAX_GAP_H`` or an invalid quote gives NaN for that sibling,
+    and a market without a valid sibling gets NaN (never 0). Nothing from j is read.
+    """
+    n = len(market_ids)
+    nan = pd.DataFrame({"sib_mean_abs_dmid": np.full(n, np.nan),
+                        "sib_max_abs_dmid": np.full(n, np.nan)})
+    if hist1 is None or not len(rows_i):
+        return nan
+    r = rows_i.drop_duplicates("market_id").reset_index(drop=True)
+    mid = np.where(panel.target_valid(r), (_num(r, "best_bid") + _num(r, "best_ask")) / 2, np.nan)
+    t = panel._epoch(r["received_utc"])
+    h = hist1.reindex(r["market_id"].to_numpy())
+    gap = t - h["t"].to_numpy(float)
+    link = (gap > 0) & (gap <= HISTORY_MAX_GAP_H * 3600)
+    a = np.where(link, np.abs(mid - h["mid"].to_numpy(float)), np.nan)
+    nr = r["neg_risk_market_id"] if "neg_risk_market_id" in r else pd.Series(np.nan, index=r.index)
+    nr = nr.where(nr.astype(str).str.strip().ne(""))
+    key = pd.Series(np.where(nr.notna(), "n:" + nr.astype(str), "e:" + r["event_id"].astype(str)),
+                    index=r.index).where(nr.notna() | r["event_id"].notna())
+    d = pd.DataFrame({"key": key, "a": a, "mkt": r["market_id"].to_numpy()})
+    valid = d.dropna(subset=["key", "a"]).sort_values(["key", "a"], ascending=[True, False])
+    rank = valid.groupby("key").cumcount()
+    top1 = valid[rank == 0].set_index("key")["a"]
+    top2 = valid[rank == 1].set_index("key")["a"]
+    agg = valid.groupby("key")["a"].agg(["sum", "count"])
+    k = d["key"]
+    own = d["a"].to_numpy(float)
+    has = ~np.isnan(own)
+    cnt = agg["count"].reindex(k).to_numpy(float) - has
+    tot = agg["sum"].reindex(k).to_numpy(float) - np.where(has, own, 0.0)
+    t1, t2 = top1.reindex(k).to_numpy(float), top2.reindex(k).to_numpy(float)
+    mx = np.where(has & (own >= t1), t2, t1)  # drop self when self is the group maximum
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean = np.where(cnt > 0, tot / cnt, np.nan)
+    mx = np.where(cnt > 0, mx, np.nan)
+    out = pd.DataFrame({"sib_mean_abs_dmid": mean, "sib_max_abs_dmid": mx}, index=d["mkt"])
+    return out.reindex(market_ids).reset_index(drop=True)
+
+
+# ---------------------------------------------------------------------------------------------
+# D120 dependence groups (clustering ids, never features)
+# ---------------------------------------------------------------------------------------------
+
+
+def _json_list(v) -> list[str]:
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return []
+    try:
+        x = json.loads(v) if isinstance(v, str) else v
+    except ValueError:
+        return []
+    return sorted({str(i) for i in x if i not in (None, "")}) if isinstance(x, list) else []
+
+
+def group_facts(rows_i: pd.DataFrame) -> tuple[dict, dict]:
+    """Per-market ``pairing.dependence_groups`` inputs from one origin snapshot, and a
+    ``market_id -> fallback`` map. A row with a sidecar (``ext_present`` and a ``fee_category``)
+    uses ``event_ids``/``series_slugs``/``neg_risk_market_id``; an older snapshot falls back to
+    its single ``event_id`` (no series, no neg-risk link) and is flagged."""
+    r = rows_i.drop_duplicates("market_id")
+    ext = np.zeros(len(r), bool)
+    if "ext_present" in r and "fee_category" in r:
+        ext = (pd.to_numeric(r["ext_present"], errors="coerce").to_numpy(float) == 1) & (
+            r["fee_category"].notna().to_numpy()
+        )
+    facts: dict[str, dict] = {}
+    fallback: dict[str, bool] = {}
+    ev = r["event_id"].to_numpy()
+    nrm = r["neg_risk_market_id"].to_numpy() if "neg_risk_market_id" in r else np.full(len(r), None)
+    eids = r["event_ids"].to_numpy() if "event_ids" in r else np.full(len(r), None)
+    sl = r["series_slugs"].to_numpy() if "series_slugs" in r else np.full(len(r), None)
+    for k, m in enumerate(r["market_id"].astype(str).to_numpy()):
+        if ext[k]:
+            neg = None if pd.isna(nrm[k]) or str(nrm[k]).strip() == "" else str(nrm[k])
+            facts[m] = {"event_ids": _json_list(eids[k]), "series_slugs": _json_list(sl[k]),
+                        "event_slugs": [], "neg_risk_market_id": neg}
+        else:
+            facts[m] = {"event_ids": [] if pd.isna(ev[k]) else [str(ev[k])], "series_slugs": [],
+                        "event_slugs": [], "neg_risk_market_id": None}
+        fallback[m] = not ext[k]
+    return facts, fallback
+
+
+def dependence_group_ids(rows_i: pd.DataFrame, market_ids: np.ndarray) -> pd.DataFrame:
+    """``dep_group`` (D120 ``fs2-dependence-groups-v1`` over this snapshot) and
+    ``dep_group_fallback`` (1.0 = event-id fallback, no sidecar) per market, via
+    ``pairing.dependence_groups`` (imported, not reimplemented)."""
+    facts, fb = group_facts(rows_i)
+    groups = pairing.dependence_groups(facts, underlying=DEP_GROUP_UNDERLYING)
+    mids = [str(m) for m in market_ids]
+    return pd.DataFrame({
+        "dep_group": [groups.get(m) for m in mids],
+        "dep_group_fallback": [float(fb[m]) if m in fb else np.nan for m in mids],
+    })
+
+
+def pool_dependence_groups(df: pd.DataFrame) -> pd.Series:
+    """Connect per-period groups across periods. Each market's period-local groups become its
+    ``event_ids`` for ``pairing.dependence_groups``, so a market seen in two periods merges them."""
+    if not len(df):
+        return pd.Series(dtype=object)
+    loc = df.assign(_k=df["period"].astype(str) + "|" + df["dep_group"].astype(str))
+    sets = loc.groupby(loc["market_id"].astype(str))["_k"].agg(lambda x: sorted(set(x)))
+    facts = {m: {"event_ids": v, "series_slugs": [], "event_slugs": [], "neg_risk_market_id": None}
+             for m, v in sets.items()}
+    groups = pairing.dependence_groups(facts, underlying=False)
+    return df["market_id"].astype(str).map(groups)
+
+
 
 def register_tier_a() -> tuple[str, ...]:
     """Register the tier-(a) feature set once (idempotent). Returns the ordered names."""
@@ -350,6 +640,7 @@ def register_tier_a() -> tuple[str, ...]:
 def feature_frame(origin: pd.DataFrame, names: Iterable[str] = ()) -> pd.DataFrame:
     """Compute tier-(a) features from an origin frame. NaN is kept (trees take it natively)."""
     register_tier_a()
+    register_extended()
     names = list(names) or list(TIER_A_NAMES)
     out = {n: features.compute_origin(features.REGISTRY[n], origin) for n in names}
     return pd.DataFrame(out, index=origin.index)
@@ -488,11 +779,18 @@ def build_period(
     delta_sens: float = DELTA_SENSITIVITY,
     sweep_returned: int | None = None,
     sweep_eligible: int | None = None,
+    sweep_rows: pd.DataFrame | None = None,
+    sweep_started_epoch: float | None = None,
 ) -> tuple[pd.DataFrame | None, dict]:
     """Paired rows for one consecutive complete-snapshot couple, with features and labels.
 
     ``history`` holds slim records (``slim_history``) of snapshots i-1, i-2, ... (nearest first).
     ``sweep_receipt_epoch`` (optional) is the origin sweep's receipt time; it only moves ``t0``.
+    ``sweep_rows`` (the declared A sweep of snapshot i, see ``pick_sweeps``) feeds the ``ml_sw_*``
+    features only; it needs ``sweep_receipt_epoch`` and, when ``sweep_started_epoch`` is given, the
+    sweep must start at or after snapshot i's start and finish by snapshot j's start. Sibling
+    moves (``ml_sib_*``) use ``history[0]`` (snapshot i-1). ``dep_group`` and
+    ``dep_group_fallback`` are clustering ids, not features.
     Returns (None, counts) when the source/target start gap is outside 1.5 - 3h.
     """
     register_tier_a()
@@ -515,6 +813,13 @@ def build_period(
                             and len(snap_i) else False)
 
     t_i = pairs["t_i"].to_numpy(float)
+    if sweep_rows is not None:
+        if sweep_receipt_epoch is None:
+            raise ValueError("sweep_rows needs sweep_receipt_epoch")
+        if sweep_receipt_epoch > j_sched:
+            raise ValueError("sweep finished after the target snapshot started")
+        if sweep_started_epoch is not None and sweep_started_epoch < _start_epoch(cap_i):
+            raise ValueError("sweep started before the origin snapshot")
     hist = history_columns(o["market_id"].to_numpy(), t_i, history or [])
     nr = features_dev.add_negrisk_columns(pairs[["market_id", "period"]], {period: snap_i})
     origin = pd.concat(
@@ -522,7 +827,12 @@ def build_period(
     )
     origin["nr_excess"] = nr["nr_excess"].to_numpy()
     origin["nr_member"] = nr["nr_member"].to_numpy()
-    feats = feature_frame(origin)
+    mkt = o["market_id"].to_numpy()
+    sw = sweep_columns(mkt, sweep_rows)
+    sib = sibling_moves(snap_i, history[0] if history else None, mkt)
+    origin = pd.concat([origin, sw.drop(columns="sw_mid"), sib], axis=1)
+    dg = dependence_group_ids(snap_i, mkt)
+    feats = feature_frame(origin, EXTENDED_NAMES)
 
     sweep_info = None
     if sweep_receipt_epoch is not None:
@@ -559,6 +869,9 @@ def build_period(
         }
     )
     out = pd.concat([out, feats.reset_index(drop=True)], axis=1)
+    out["rep_sw_gap"] = sw["sw_mid"].to_numpy() - mid_i  # report-only gap placebo; not a feature
+    out["dep_group"] = dg["dep_group"].to_numpy()
+    out["dep_group_fallback"] = dg["dep_group_fallback"].to_numpy()
     # UMA exclusion (origin sidecar field only). Missing = unknown: kept and flagged.
     uma = origin["uma_resolution_statuses"]
     unknown = uma.isna().to_numpy()
@@ -570,6 +883,9 @@ def build_period(
         uma_unknown=int(unknown.sum()),
         stale_negative_age=int((panel._epoch(origin["updated_at"]) > t_i).sum()),
         sweep=sweep_info,
+        sweep_book_rows=int(sw["sw_mid"].notna().sum()),
+        sibling_rows=int(sib["sib_mean_abs_dmid"].notna().sum()),
+        dep_group_fallback_rows=int(np.nansum(dg["dep_group_fallback"].to_numpy(float))),
     )
     out = out[~proposed].reset_index(drop=True)
     counts.update(
@@ -587,12 +903,16 @@ def build_panel(
     sweep_receipts: dict[str, float] | None = None,
     delta: float = DELTA_PRIMARY,
     policy: dict | None = None,
+    sweep_loader: Callable[[dict], pd.DataFrame] | None = None,
 ) -> tuple[pd.DataFrame, list[dict]]:
     """All consecutive complete-snapshot pairs. ``captures`` ordered by start (with ``dir``).
 
     Loads one snapshot at a time (plus the previous one) and keeps only slim history records, so
     at most two full snapshots are in memory at once. ``sweep_receipts[capture_id]`` is a dict
-    ``{"receipt_epoch", "returned", "eligible"}`` (coverage is asserted). ``policy`` is applied
+    ``{"receipt_epoch", "returned", "eligible"}`` (coverage is asserted); an entry with ``dir``
+    (from ``pick_sweeps``, the declared A sweep) is also joined as ``ml_sw_*`` features via
+    ``sweep_loader`` (default ``load_sweep_rows``), one sweep in memory at a time. Per-period
+    ``dep_group`` ids are pooled across periods (``pool_dependence_groups``). ``policy`` is applied
     to the whole panel; the applied counts are in ``df.attrs["category_info"]`` and are passed to
     ``plan_folds(category_info=...)``.
     """
@@ -605,18 +925,26 @@ def build_panel(
     for k in range(len(captures) - 1):
         nxt = load(captures[k + 1])
         sw = sweep_receipts.get(captures[k]["capture_id"])
+        srows = None
+        if sw is not None and sw.get("dir"):
+            srows = (sweep_loader or load_sweep_rows)(sw)
         out, c = build_period(
             cur, nxt, captures[k], captures[k + 1], k, hist,
             None if sw is None else sw["receipt_epoch"], delta,
             sweep_returned=None if sw is None else sw["returned"],
             sweep_eligible=None if sw is None else sw["eligible"],
+            sweep_rows=srows, sweep_started_epoch=None if sw is None else sw.get("started_epoch"),
         )
+        del srows
         counts.append(c)
         if out is not None:
             frames.append(out)
         hist = [slim_history(cur)] + hist[: HISTORY_DEPTH - 1]
         cur = nxt
     panel_df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+    if len(panel_df):
+        panel_df["dep_group_period"] = panel_df["dep_group"]
+        panel_df["dep_group"] = pool_dependence_groups(panel_df)
     panel_df, info = apply_category_policy(panel_df, policy)
     panel_df.attrs["category_info"] = info
     return panel_df, counts

@@ -404,3 +404,194 @@ def test_negative_staleness_is_nan_and_counted():
     df, c = ml_panel.build_period(si, sj, _cap(1, 0), _cap(2, 2), 1, [])
     r = df.set_index("market_id")["ml_quote_staleness_h"]
     assert np.isnan(r["2"]) and r["1"] >= 0 and c["stale_negative_age"] == 1
+
+
+# ---- extended features: sweep (a11), sibling (a10), dependence groups ------------------------
+
+
+def _sweep_dir(root, sid, idx, snap, *, start_h, end_h, bid_size=100.0, req=3, ret=3,
+               state="complete"):
+    d = root / sid
+    d.mkdir(parents=True)
+    man = {"sweep_id": sid, "series_index": idx, "snapshot_id": snap, "state": state,
+           "sweep_version": "book-sweep-v1", "tokens_requested": req, "tokens_returned": ret,
+           "started_utc": _ts(start_h), "finished_utc": _ts(end_h)}
+    (d / "manifest.json").write_text(json.dumps(man))
+    rows = pd.DataFrame({
+        "market_id": ["1", "2", "3"], "batch_receipt_utc": _ts(end_h),
+        "book_timestamp": str(int((T0 + pd.Timedelta(hours=end_h, seconds=-5)).timestamp() * 1000)),
+        "best_bid": [0.49, 0.29, np.nan], "best_ask": [0.52, 0.31, 0.72],
+        "bid_size_1": [bid_size, 50.0, np.nan], "ask_size_1": [100.0, 50.0, 10.0],
+        "depth_bid_1c": [bid_size, 50.0, np.nan], "depth_ask_1c": [100.0, 50.0, 10.0],
+        "depth_bid_5c": [300.0, 80.0, np.nan], "depth_ask_5c": [100.0, 90.0, 10.0],
+        "n_bid_levels": [5, 3, 0], "n_ask_levels": [4, 3, 1],
+        "state": ["two_sided", "two_sided", "one_sided"],
+    })
+    rows.to_csv(d / "rows.csv.gz", index=False)
+    return d
+
+
+def test_pick_sweeps_declares_A_and_applies_coverage(tmp_path):
+    _sweep_dir(tmp_path, "sA", 0, "c1", start_h=0.12, end_h=0.2, bid_size=100.0)
+    _sweep_dir(tmp_path, "sB", 1, "c1", start_h=0.21, end_h=0.3, bid_size=999.0)
+    _sweep_dir(tmp_path, "sLow", 0, "c9", start_h=0.1, end_h=0.2, req=1000, ret=980)
+    _sweep_dir(tmp_path, "sInc", 0, "c8", start_h=0.1, end_h=0.2, state="incomplete:x")
+    use, rep = ml_panel.pick_sweeps(tmp_path)
+    assert list(use) == ["c1"] and use["c1"]["sweep_id"] == "sA"
+    assert rep["not_a_sweep"] == 1 and rep["low_coverage"] == ["sLow"] and rep["not_complete"] == 1
+    rows = ml_panel.load_sweep_rows(use["c1"])
+    col = ml_panel.sweep_columns(np.array(["1", "2", "3", "zz"]), rows)
+    assert list(col["sw_bid_size_1"][:2]) == [100.0, 50.0]  # A, never B's 999
+    assert np.isnan(col["sw_bid_size_1"][2]) and np.isnan(col["sw_best_bid"][3])  # NaN, not 0
+    assert col["sw_book_age_s"][0] == pytest.approx(5.0)
+    assert np.isnan(col["sw_mid"][2])  # one-sided: no mid
+
+
+def test_sweep_features_joined_relative_to_sweep_mid_and_gap_is_report_only(tmp_path):
+    _sweep_dir(tmp_path, "sA", 0, "c1", start_h=0.12, end_h=0.2)
+    use, _ = ml_panel.pick_sweeps(tmp_path)
+    e = use["c1"]
+    si, sj = _snap(0, MIDS, cap="c1"), _snap(2, MIDS, cap="c2")
+    df, c = ml_panel.build_period(
+        si, sj, _cap(1, 0), _cap(2, 2), 1, [], sweep_receipt_epoch=e["receipt_epoch"],
+        sweep_returned=e["returned"], sweep_eligible=e["eligible"],
+        sweep_rows=ml_panel.load_sweep_rows(e), sweep_started_epoch=e["started_epoch"])
+    r = df.set_index("market_id")
+    assert r.loc["1", "ml_sw_imb_top"] == 0.0
+    assert r.loc["1", "ml_sw_imb_5c"] == pytest.approx(0.5)
+    micro = (0.52 * 100 + 0.49 * 100) / 200 - (0.49 + 0.52) / 2
+    assert r.loc["1", "ml_sw_microprice_disp"] == pytest.approx(micro)
+    assert np.isnan(r.loc["3", "ml_sw_imb_top"])  # one-sided book stays NaN
+    assert r.loc["1", "rep_sw_gap"] == pytest.approx(0.505 - 0.5)
+    assert c["sweep_book_rows"] == 2
+    assert not any("gap" in n for n in ml_panel.EXTENDED_NAMES) and "rep_sw_gap" not in (
+        ml_panel.EXTENDED_NAMES)
+    # t0 moved to the sweep receipt, target stays Gamma mid to Gamma mid
+    assert (df["t0"] >= e["receipt_epoch"]).all()
+    assert df.loc[df.market_id == "1", "mid_j"].iloc[0] == pytest.approx(0.5)
+    with pytest.raises(ValueError):  # the gap and group ids can never be registered as features
+        ml_panel.register_ml(FeatureSpec("ml_bad", "x", "v", lambda o: o["rep_sw_gap"],
+                                         ("rep_sw_gap",)))
+    with pytest.raises(ValueError):
+        ml_panel.register_ml(FeatureSpec("ml_bad2", "x", "v", lambda o: o["dep_group"],
+                                         ("dep_group",)))
+
+
+def test_sweep_timing_guards_in_build_period(tmp_path):
+    d = _sweep_dir(tmp_path, "sA", 0, "c1", start_h=0.1, end_h=0.2)
+    rows = ml_panel.load_sweep_rows({"dir": str(d)})
+    si, sj = _snap(0, MIDS, cap="c1"), _snap(2, MIDS, cap="c2")
+    kw = dict(sweep_returned=3, sweep_eligible=3, sweep_rows=rows)
+    late = float(pd.Timestamp(_ts(2.5)).timestamp())
+    with pytest.raises(ValueError, match="after the target"):
+        ml_panel.build_period(si, sj, _cap(1, 0), _cap(2, 2), 1, [], sweep_receipt_epoch=late, **kw)
+    early_start = float(pd.Timestamp(_ts(-1)).timestamp())
+    with pytest.raises(ValueError, match="before the origin"):
+        ml_panel.build_period(si, sj, _cap(1, 0), _cap(2, 2), 1, [], sweep_receipt_epoch=1.0,
+                              sweep_started_epoch=early_start, **kw)
+    with pytest.raises(ValueError, match="needs sweep_receipt_epoch"):
+        ml_panel.build_period(si, sj, _cap(1, 0), _cap(2, 2), 1, [], **kw)
+
+
+def test_extended_features_and_groups_ignore_everything_in_j(tmp_path):
+    d = _sweep_dir(tmp_path, "sA", 0, "c1", start_h=0.1, end_h=0.2)
+    rows = ml_panel.load_sweep_rows({"dir": str(d)})
+    e = {"receipt_epoch": float(pd.Timestamp(_ts(0.2)).timestamp())}
+    prev = _snap(-2, {"1": 0.48, "2": 0.30, "3": 0.72}, cap="c0")
+    si = _snap(0, MIDS, cap="c1", event_id="A")  # one event: siblings exist
+    sj_a = _snap(2, {"1": 0.55, "2": 0.30, "3": 0.60}, cap="c2", event_id="A")
+    sj_b = _snap(2, {"1": 0.40, "2": 0.45, "3": 0.65}, cap="c2", liquidity=7.0, event_id="zzz",
+                 neg_risk_market_id="N9", chg_1h=0.5)
+    kw = dict(sweep_receipt_epoch=e["receipt_epoch"], sweep_returned=3, sweep_eligible=3,
+              sweep_rows=rows)
+    a, _ = ml_panel.build_period(si, sj_a, _cap(1, 0), _cap(2, 2), 1, _hist(prev), **kw)
+    b, _ = ml_panel.build_period(si, sj_b, _cap(1, 0), _cap(2, 2), 1, _hist(prev), **kw)
+    cols = [*ml_panel.EXTENDED_NAMES, "dep_group", "dep_group_fallback", "rep_sw_gap"]
+    pd.testing.assert_frame_equal(a[cols], b[cols])
+    assert a["ml_sib_mean_abs_dmid"].notna().all() and a["ml_sw_imb_top"].notna().any()
+
+
+def _hist1(mids: dict[str, float], hours=-2.0):
+    t = float(pd.Timestamp(_ts(hours)).timestamp())
+    return pd.DataFrame({"mid": list(mids.values()), "t": [t] * len(mids)},
+                        index=pd.Index(list(mids), name="market_id"))
+
+
+def test_sibling_moves_exclude_self_and_use_nan_when_no_sibling():
+    si = _snap(0, {"1": 0.60, "2": 0.32, "3": 0.74, "4": 0.50, "5": 0.50}, cap="c1")
+    si["event_id"] = ["A", "A", "A", "B", "C"]
+    si["neg_risk_market_id"] = [None, None, None, None, "NR"]
+    h = _hist1({"1": 0.50, "2": 0.30, "3": 0.70, "4": 0.40, "5": 0.40})
+    out = ml_panel.sibling_moves(si, h, np.array(["1", "2", "3", "4", "5", "9"]))
+    # market 1 (d=.10): siblings 2 (.02), 3 (.04); self excluded from mean and max
+    assert out.loc[0, "sib_mean_abs_dmid"] == pytest.approx(0.03)
+    assert out.loc[0, "sib_max_abs_dmid"] == pytest.approx(0.04)
+    # market 2 (d=.02): siblings 1 (.10) and 3 (.04)
+    assert out.loc[1, "sib_mean_abs_dmid"] == pytest.approx(0.07)
+    assert out.loc[1, "sib_max_abs_dmid"] == pytest.approx(0.10)
+    # singletons (event B, neg-risk group NR) and an unknown market: NaN, never 0 or self
+    assert out.loc[[3, 4, 5]].isna().all().all()
+    # no history: all NaN
+    assert ml_panel.sibling_moves(si, None, np.array(["1"])).isna().all().all()
+    # a sibling with a stale link (> 3h) does not count
+    h2 = _hist1({"1": 0.50, "2": 0.30, "3": 0.70}, hours=-4.0)
+    assert ml_panel.sibling_moves(si, h2, np.array(["1"])).isna().all().all()
+
+
+def test_sibling_max_handles_ties_for_self():
+    si = _snap(0, {"1": 0.60, "2": 0.60, "3": 0.50}, cap="c1")
+    si["event_id"] = "A"
+    h = _hist1({"1": 0.50, "2": 0.50, "3": 0.50})
+    out = ml_panel.sibling_moves(si, h, np.array(["1", "3"]))
+    assert out.loc[0, "sib_max_abs_dmid"] == pytest.approx(0.10)  # the other tied sibling
+    assert out.loc[1, "sib_max_abs_dmid"] == pytest.approx(0.10)
+    assert out.loc[1, "sib_mean_abs_dmid"] == pytest.approx(0.10)
+
+
+def test_dependence_groups_use_pairing_and_flag_fallback(monkeypatch):
+    from astrolabe.research_panel import pairing
+
+    calls = []
+    real = pairing.dependence_groups
+    monkeypatch.setattr(pairing, "dependence_groups",
+                        lambda *a, **k: calls.append(1) or real(*a, **k))
+    new = _snap(0, {"10": 0.5, "11": 0.5, "12": 0.5}, cap="c1")
+    new["ext_present"] = 1.0
+    new["fee_category"] = "politics"
+    new["event_ids"] = ['["E1"]', '["E2"]', '["E3"]']
+    new["series_slugs"] = ['["s-x"]', '["s-x"]', None]  # series links E1 and E2
+    new["neg_risk_market_id"] = [None, None, "NR1"]
+    g = ml_panel.dependence_group_ids(new, np.array(["10", "11", "12"]))
+    assert calls and g["dep_group"][0] == g["dep_group"][1] != g["dep_group"][2]
+    assert g["dep_group_fallback"].tolist() == [0.0, 0.0, 0.0]
+    old = _snap(0, {"10": 0.5, "11": 0.5, "12": 0.5}, cap="c1")
+    old["event_id"] = ["E1", "E1", "E3"]
+    old["neg_risk_market_id"] = [None, None, "NR1"]
+    old["ext_present"] = 0.0
+    g2 = ml_panel.dependence_group_ids(old, np.array(["10", "11", "12"]))
+    assert g2["dep_group_fallback"].tolist() == [1.0, 1.0, 1.0]  # event id only, flagged
+    assert g2["dep_group"][0] == g2["dep_group"][1] != g2["dep_group"][2]
+    assert "dep_group" not in ml_panel.EXTENDED_NAMES
+
+
+def test_build_panel_pools_groups_across_periods_and_joins_declared_sweeps(tmp_path):
+    caps = [{"capture_id": f"c{k}", "started_utc": _ts(2.0 * k), "dir": ""} for k in range(3)]
+    snaps = {
+        "c0": _snap(0, {"1": 0.5, "2": 0.3}, cap="c0"),
+        "c1": _snap(2, {"1": 0.5, "2": 0.3}, cap="c1"),
+        "c2": _snap(4, {"1": 0.5, "2": 0.3}, cap="c2"),
+    }
+    snaps["c0"]["event_id"] = ["A", "B"]  # period 0: markets 1, 2 apart
+    snaps["c1"]["event_id"] = ["A", "A"]  # period 1: together
+    snaps["c2"]["event_id"] = ["A", "B"]
+    d = _sweep_dir(tmp_path, "sA", 0, "c1", start_h=2.1, end_h=2.2)
+    use, _ = ml_panel.pick_sweeps(tmp_path)
+    df, counts = ml_panel.build_panel(caps, load=lambda cap: snaps[cap["capture_id"]],
+                                      sweep_receipts=use)
+    assert d.exists()
+    assert df["dep_group"].nunique() == 1  # period 1 joins them; pooled over the panel
+    assert df.groupby("period")["dep_group_period"].nunique().tolist() == [2, 1]
+    assert (df["dep_group_fallback"] == 1.0).all()
+    p1 = df[df.period == 1]
+    assert p1["ml_sw_imb_top"].notna().any()
+    assert df[df.period == 0]["ml_sw_imb_top"].isna().all()  # no sweep declared for c0
