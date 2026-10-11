@@ -111,7 +111,7 @@ def _complete(report, budget):
         raise ValueError('original frame exceeds selection budget')
 
 
-def _projection(frame_root, entry, seen, report_hash):
+def _projection(frame_root, entry, seen, report_hash, pairing=False):
     capture_id = entry['capture_id']
     if str(uuid.UUID(capture_id)) != capture_id:
         raise ValueError('canonical capture identity required')
@@ -152,6 +152,11 @@ def _projection(frame_root, entry, seen, report_hash):
                     if identity else None)
         rows.append({**fact, 'evidence_id': evidence, 'metadata': metadata,
                      'duplicate_of': duplicate[1] if duplicate else None})
+        if pairing:
+            # D120 only: pre-t0 group/category facts of the same original row.
+            from .pairing import row_facts
+
+            rows[-1]['pairing'] = row_facts(raw)
     return rows
 
 
@@ -206,7 +211,37 @@ def _check_counts(counts, report):
         raise ValueError('selection inventory exclusions differ')
 
 
-def _plan(policy, members, cutoff, original_hash, inventory_hash):
+def _is_pairing(policy):
+    from .pairing_selection import VERSION as PAIRING_VERSION
+
+    return policy.get('schema_version') == PAIRING_VERSION
+
+
+def _panel_rules(policy):
+    if _is_pairing(policy):
+        from . import pairing_selection
+
+        return pairing_selection
+    from . import panel_selection
+
+    return panel_selection
+
+
+def _facts(facts, rows, members_before, members):
+    # Pairing facts of exactly the rows that became sampling members.
+    if facts is None:
+        return
+    added = {m.market_id for m in members[members_before:]}
+    for row in rows:
+        if row['market_id'] in added:
+            facts[row['market_id']] = row['pairing']
+
+
+def _plan(policy, members, cutoff, original_hash, inventory_hash, facts=None):
+    if _is_pairing(policy):
+        from .pairing_selection import bound_plan as pairing_plan
+
+        return pairing_plan(policy, members, cutoff, original_hash, inventory_hash, facts)
     if policy['schema_version'] != VERSION:
         from .panel_selection import bound_plan
 
@@ -254,7 +289,12 @@ def _create_selection(frame_root, *, implementation_commit, output_root, reposit
             'declared_at': _clock(),
         }
     else:
-        from .panel_selection import selection_policy
+        from .pairing_declaration import is_pairing_panel
+
+        if is_pairing_panel(panel_root):
+            from .pairing_selection import selection_policy
+        else:
+            from .panel_selection import selection_policy
 
         declaration = selection_policy(panel_root, frame_root, root, implementation_commit,
                                        budget, build)
@@ -280,10 +320,12 @@ def _create_selection(frame_root, *, implementation_commit, output_root, reposit
         pages_root.mkdir(mode=0o700)
         _sync_directory(root)
         seen, counts, members, manifest = {}, Counter(), [], []
+        facts = {} if _is_pairing(policy) else None
         for entry in report['pages']:
             resource.check()
             started = _clock()
-            rows = _projection(frame_root, entry, seen, report['frame_report_hash'])
+            rows = _projection(frame_root, entry, seen, report['frame_report_hash'],
+                               pairing=facts is not None)
             completed = _clock()
             if not _ordered_clocks(entry['available_at'], original['read_available_at'],
                                    started, completed):
@@ -299,19 +341,19 @@ def _create_selection(frame_root, *, implementation_commit, output_root, reposit
             manifest.append({'capture_id': entry['capture_id'],
                              'projection_hash': ack['payload_hash']})
             _add_counts(counts, rows)
+            before = len(members)
             members.extend(m for r in rows if (m := _member(r, ack['durable_ack'],
                                                              policy['declared_at'])) is not None)
+            _facts(facts, rows, before, members)
         _check_counts(counts, report)
         resource.persist(root, 'inventory', {'policy_hash': policy_ack['payload_hash'],
                                              'pages': manifest, 'counts': dict(counts)})
         _, inventory_ack = _pair(root, 'inventory')
         cutoff, started = _clock(), _clock()
         if panel_root is not None:
-            from .panel_selection import freshness
-
-            freshness(policy, report, cutoff)
+            _panel_rules(policy).freshness(policy, report, cutoff)
         plan = _plan(policy, members, cutoff, report['frame_report_hash'],
-                     inventory_ack['payload_hash'])
+                     inventory_ack['payload_hash'], facts)
         completed = _clock()
         verified_panel_build()
         resource.persist(root, 'selection_plan', plan)
@@ -331,7 +373,7 @@ def _create_selection(frame_root, *, implementation_commit, output_root, reposit
         })
         if panel_root is not None:
             _, report_ack = _pair(root, 'selection_report')
-            freshness(policy, report, report_ack['durable_ack'])
+            _panel_rules(policy).freshness(policy, report, report_ack['durable_ack'])
     except (OSError, ValueError, KeyError, TypeError) as exc:
         try:
             _persist(root, 'selection_failure', {
@@ -342,15 +384,13 @@ def _create_selection(frame_root, *, implementation_commit, output_root, reposit
         raise
     # Verification streams the inventory again. Release construction state so the
     # independent replay does not retain two copies of the entire eligible population.
-    del members, seen
+    del members, seen, facts
     return read_selection(root)
 
 
 def _status(policy, original):
     if policy['schema_version'] != VERSION:
-        from .panel_selection import status
-
-        return status(original)
+        return _panel_rules(policy).status(original)
     return {'provenance_class': 'synthetic' if original['provenance_class'] == 'synthetic'
             else 'reconstructed', 'state': 'development_selection_sealed'}
 
@@ -401,9 +441,7 @@ def read_selection(root):
     root = _canonical(root)
     policy, policy_ack = _pair(root, 'selection_policy')
     if policy['schema_version'] != VERSION:
-        from .panel_selection import verify_policy
-
-        verify_policy(root, policy, policy_ack)
+        _panel_rules(policy).verify_policy(root, policy, policy_ack)
     elif policy['policy'] != POLICY:
         raise ValueError('selection policy/build differs')
     if (policy['build'] != verified_panel_build()
@@ -430,6 +468,7 @@ def read_selection(root):
             or {p.name for p in (root / 'pages').iterdir()} != set(expected_ids)):
         raise ValueError('selection inventory page closure differs')
     seen, counts, members = {}, Counter(), []
+    facts = {} if _is_pairing(policy) else None
     prior = original_ack['durable_ack']
     if not _ordered_clocks(policy_ack['durable_ack'],
                            declaration['metadata_read_started_at'], prior):
@@ -440,7 +479,8 @@ def read_selection(root):
         if time.monotonic() - resource.started > budget.seconds:
             raise ValueError('selection verification time budget exhausted')
         page, ack = _pair(root / 'pages' / entry['capture_id'], 'projection')
-        rows = _projection(Path(policy['frame_root']), entry, seen, original['frame_report_hash'])
+        rows = _projection(Path(policy['frame_root']), entry, seen, original['frame_report_hash'],
+                           pairing=facts is not None)
         if (page['policy_hash'] != policy_ack['payload_hash'] or page['source_page'] != entry
                 or page['rows'] != rows or ack['payload_hash'] != manifest['projection_hash']
                 or not _ordered_clocks(entry['available_at'], prior, page['read_started_at'],
@@ -448,8 +488,10 @@ def read_selection(root):
             raise ValueError('selection projection/source/clock differs')
         prior = ack['durable_ack']
         _add_counts(counts, rows)
+        before = len(members)
         members.extend(m for r in rows if (m := _member(r, ack['durable_ack'],
                                                          policy['declared_at'])) is not None)
+        _facts(facts, rows, before, members)
     _check_counts(counts, original)
     if (inventory['counts'] != dict(counts) or report['counts'] != dict(counts)
             or not _ordered_clocks(prior, inventory_ack['durable_ack'], report['sampling_cutoff'],
@@ -457,16 +499,15 @@ def read_selection(root):
                                    plan_ack['durable_ack'], report_ack['durable_ack'])):
         raise ValueError('selection counts/cutoff/chronology differs')
     expected = _plan(policy, members, report['sampling_cutoff'], original['frame_report_hash'],
-                     inventory_ack['payload_hash'])
+                     inventory_ack['payload_hash'], facts)
     if time.monotonic() - resource.started > budget.seconds:
         raise ValueError('selection verification time budget exhausted')
     if sum(p.stat().st_size for p in root.rglob('*') if p.is_file()) > budget.output_bytes:
         raise ValueError('selection retained output exceeds frozen budget')
     if policy['schema_version'] != VERSION:
-        from .panel_selection import freshness
-
-        freshness(policy, original, report['sampling_cutoff'])
-        freshness(policy, original, report_ack['durable_ack'])
+        rules = _panel_rules(policy)
+        rules.freshness(policy, original, report['sampling_cutoff'])
+        rules.freshness(policy, original, report_ack['durable_ack'])
     if (plan != json.loads(_json_bytes(expected))
             or report['schema_version'] != policy['schema_version']
             or _json_bytes({k: report.get(k) for k in _status(policy, original)})

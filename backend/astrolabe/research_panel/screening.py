@@ -21,8 +21,8 @@ from .build_identity import verified_panel_build
 from .identity_comparison import VERSION as IDENTITY_POLICY
 from .identity_comparison import compare_mapping
 from .input_read import _canonical
+from .pairing_selection import frame_freshness as freshness
 from .panel_selection import VERSIONS as SELECTION_VERSIONS
-from .panel_selection import freshness
 from .sampling import FrameMember, SamplingProtocol, plan_sample
 from .selection import _member, read_selection
 from .trigger_computation import (
@@ -38,6 +38,9 @@ from .window_computation import _save as _window_save
 VERSION = "fs2-screening-v1"
 IDENTITY_VERSION = "fs2-screening-identity-v2"
 OWNED_VERSION = "fs2-screening-owned-selection-v4"
+# D120: owned screening of a group-disjoint screened list; roles are drawn at completion.
+PAIRING_VERSION = "fs2-screening-pairing-v5"
+OWNED_VERSIONS = {OWNED_VERSION, PAIRING_VERSION}
 OWNED_READ_MODE = "full_selection_before_sources; full_cold_replay_before_acceptance"
 # Full selection authentication precedes sources; its existing budget is 600 seconds.
 # This resource ceiling is separate from frozen source/quote/origin freshness checks.
@@ -66,12 +69,17 @@ class ScreeningPolicy:
 
 def _selected(selection):
     report = read_selection(selection)
-    if report["schema_version"] not in SELECTION_VERSIONS:
+    from .pairing_selection import VERSION as PAIRING_SELECTION
+
+    if report["schema_version"] not in {*SELECTION_VERSIONS, PAIRING_SELECTION}:
         raise ValueError("fresh declaration-bound selection required")
     policy, _ = _pair(selection, "selection_policy")
     inventory, _ = _pair(selection, "inventory")
     wanted = {r["market_id"]: r for r in report["plan"]["assignments"]}
-    if not 1 <= len(wanted) <= 256 or any(r["arm"] != "scheduled" for r in wanted.values()):
+    from .pairing_selection import PLAN_VERSION as PAIRING_PLAN
+
+    arm = "screened" if report["plan"]["schema_version"] == PAIRING_PLAN else "scheduled"
+    if not 1 <= len(wanted) <= 256 or any(r["arm"] != arm for r in wanted.values()):
         raise ValueError("bounded scheduled first-stage sample required")
     selected = []
     for entry in inventory["pages"]:
@@ -171,6 +179,9 @@ def _declare_screening(selection_root, *, output_root, rule, policy, identity_po
         raise ValueError("explicit screening rule and freshness required")
     started, read_started = time.monotonic(), _clock()
     report, selection_policy, selected = _selected(selection)
+    paired = "pairing_design" in selection_policy
+    if paired and not owned:
+        raise ValueError("pairing screening requires the owned selection path")
     read_completed = _clock()
     freshness(
         selection_policy,
@@ -196,8 +207,9 @@ def _declare_screening(selection_root, *, output_root, rule, policy, identity_po
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
     frozen = {
-        "schema_version": (OWNED_VERSION if owned
+        "schema_version": (PAIRING_VERSION if paired else OWNED_VERSION if owned
                            else IDENTITY_VERSION if identity_policy else VERSION),
+        **({"pairing_design": selection_policy["pairing_design"]} if paired else {}),
         **({"selection_read_mode": OWNED_READ_MODE} if owned else {}),
         **({"identity_policy": identity_policy} if identity_policy else {}),
         "build": verified_panel_build(),
@@ -237,7 +249,9 @@ def _declare_screening(selection_root, *, output_root, rule, policy, identity_po
         | {"plan": {"protocol": {k: report["plan"]["protocol"][k]
                                  for k in ("probability_edges", "liquidity_edges")}}},
         {"panel_protocol": selection_policy["panel_protocol"],
-         "panel_root": selection_policy["panel_root"]}, selected)
+         "panel_root": selection_policy["panel_root"],
+         **({"pairing_design": selection_policy["pairing_design"]} if paired else {})},
+        selected)
     return frozen, state
 
 
@@ -246,9 +260,10 @@ def _policy(root):
     rule = SnapshotTriggerPolicy(**value["rule"])
     ScreeningPolicy(**value["freshness"])
     if (
-        value["schema_version"] not in {VERSION, IDENTITY_VERSION, OWNED_VERSION}
+        value["schema_version"] not in {VERSION, IDENTITY_VERSION, *OWNED_VERSIONS}
         or (value["schema_version"] != VERSION) != ("identity_policy" in value)
-        or (value["schema_version"] == OWNED_VERSION) != ("selection_read_mode" in value)
+        or (value["schema_version"] in OWNED_VERSIONS) != ("selection_read_mode" in value)
+        or (value["schema_version"] == PAIRING_VERSION) != ("pairing_design" in value)
         or ("selection_read_mode" in value and value["selection_read_mode"] != OWNED_READ_MODE)
         or ("identity_policy" in value and value["identity_policy"] != IDENTITY_POLICY)
         or value["build"] != verified_panel_build()
@@ -317,7 +332,7 @@ def _inputs(policy, cutoff):
         comparison = None
         matches = (mapping is not None
                    and mapping["mapping_version"] == item["identity"]["mapping_version"])
-        if policy['schema_version'] in {IDENTITY_VERSION, OWNED_VERSION}:
+        if policy['schema_version'] in {IDENTITY_VERSION, *OWNED_VERSIONS}:
             comparison = compare_mapping(item['identity'],
                                          mapping['mapping_version'] if mapping else None)
             matches = comparison['core_identity_equal']
@@ -325,6 +340,13 @@ def _inputs(policy, cutoff):
             state, reasons = "unavailable", reasons + ["frame_mapping_changed_or_unavailable"]
         if p["provenance_class"] != policy["source_provenance_class"]:
             raise ValueError("mixed screening provenance cannot be promoted")
+        covariates = None
+        if policy["schema_version"] == PAIRING_VERSION:
+            # Retained for every screened member (Phase 4 matching/post-stratification only).
+            inputs, ia = _pair(result, "trigger_input")
+            if ia["payload_hash"] != facts["input_hash"]:
+                raise ValueError("screening covariate input differs from the decision")
+            covariates = _covariates(inputs["inputs"]["book_projection"], p)
         states.append(
             {
                 "market_id": p["market_id"],
@@ -333,6 +355,7 @@ def _inputs(policy, cutoff):
                 **({"identity_comparison": comparison} if comparison is not None else {}),
                 "state": state,
                 "reasons": reasons,
+                **({"covariates": covariates} if covariates is not None else {}),
             }
         )
         if p["input_window_start"] is None or p["input_window_end"] is None:
@@ -353,7 +376,46 @@ def _inputs(policy, cutoff):
     return records, states
 
 
+def _covariates(book, projection):
+    """Exact screening book covariates; descriptive, never used by the D120 role draw."""
+    from fractions import Fraction
+
+    from astrolabe.feature_store.types import exact_decimal
+
+    from .book_primitives import _ratio
+
+    snapshots = book.get("snapshots") or []
+    result = {"version": "fs2-screening-covariates-v1", "snapshot_state": None,
+              "best_bid": None, "best_ask": None, "best_bid_size": None, "best_ask_size": None,
+              "spread": None, "signed_imbalance": projection.get("signed_imbalance"),
+              "bid_levels": None, "ask_levels": None, "bid_size_total": None,
+              "ask_size_total": None}
+    if len(snapshots) != 1:
+        return result
+    snapshot = snapshots[0]
+    quote = snapshot.get("quote") or {}
+    result.update(snapshot_state=snapshot.get("state"),
+                  **{k: quote.get(f) for k, f in (("best_bid", "bid"), ("best_ask", "ask"),
+                                                  ("best_bid_size", "bid_size"),
+                                                  ("best_ask_size", "ask_size"))},
+                  spread=(snapshot.get("intermediates") or {}).get("spread"))
+    levels = snapshot.get("levels") or {}
+    for side in ("bids", "asks"):
+        rows = levels.get(side)
+        if not isinstance(rows, list):
+            continue
+        try:
+            total = sum((Fraction(exact_decimal(str(r["size"]))) for r in rows), Fraction(0))
+        except (KeyError, TypeError, ValueError, ArithmeticError):
+            continue
+        result[side[:3] + "_levels"] = len(rows)
+        result[side[:3] + "_size_total"] = _ratio(total)
+    return result
+
+
 def _plan(policy, ack, cutoff, records):
+    if policy["schema_version"] == PAIRING_VERSION:
+        return _pairing_plan(policy, ack, cutoff, records)
     members = []
     for row in policy["selected"]:
         member = dict(row["member"])
@@ -396,6 +458,37 @@ def _plan(policy, ack, cutoff, records):
     result["global_arm_inclusion_probability"] = None
     result["global_arm_probability_reason"] = "second-stage pool depends on measured states"
     result["origin_admitted"] = False
+    return {**result, "plan_hash": content_hash(result)}
+
+
+def _pairing_plan(policy, ack, cutoff, records):
+    from .pairing import design_from_dict
+
+    members, screened = [], {}
+    for row in policy["selected"]:
+        member = dict(row["member"])
+        for key in ("available_at", "group_available_at", "trigger_available_at"):
+            if member[key] is not None:
+                if not isinstance(member[key], dict) or set(member[key]) != {"$utc"}:
+                    raise ValueError("canonical UTC member clock required")
+                member[key] = datetime.fromisoformat(member[key]["$utc"].replace("Z", "+00:00"))
+        members.append(FrameMember(**member))
+        screened[member["market_id"]] = row["screening_assignment"]
+    design = design_from_dict(policy["pairing_design"])
+    protocol = SamplingProtocol(
+        policy["seed"], len(members), 1, 1, len(members),
+        tuple(policy["probability_edges"]), tuple(policy["liquidity_edges"]))
+    result = plan_sample(
+        protocol, members, cutoff=_time(cutoff),
+        frame_scope="predeclared group-disjoint screened list; complete frame remains in selection",
+        frame_status="explicit_list", frame_evidence_ids=[policy["selection_report_hash"]],
+        max_frame_members=256,
+        assessment_policy=TriggerAssessmentPolicy(
+            content_hash(policy["rule"]), _time(ack["durable_ack"]), **policy["freshness"]),
+        trigger_assessments=records, pairing=design, screened_assignments=screened)
+    result.pop("plan_hash")
+    result["global_arm_inclusion_probability"] = None
+    result["global_arm_probability_reason"] = "second-stage pool depends on measured states"
     return {**result, "plan_hash": content_hash(result)}
 
 
@@ -452,7 +545,7 @@ def _read_screening(root, *, selected_state=None):
         raise ValueError("complete screening journal required")
     _check(root, started)
     policy, ack = _policy(root)
-    if selected_state is not None and policy["schema_version"] != OWNED_VERSION:
+    if selected_state is not None and policy["schema_version"] not in OWNED_VERSIONS:
         raise ValueError("owned selection cannot replace legacy recovery")
     original, selection_policy, selected = (
         _selected(_canonical(policy["selection_root"])) if selected_state is None

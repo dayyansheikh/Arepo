@@ -16,7 +16,7 @@ from . import runtime as base
 from .activation import activate_screened_panel, read_activation
 from .build_identity import verified_panel_build
 from .input_read import _canonical
-from .panel_declaration import PanelProtocol, read_panel_declaration
+from .pairing_declaration import panel_protocol, read_declaration
 from .scheduling import wait_until
 from .screening_worker import _durable_call
 
@@ -24,6 +24,8 @@ VERSION = "fs2-concurrent-synthetic-runtime-v2"
 FEATURE_VERSION = "fs2-concurrent-feature-runtime-v3"
 OWNED_VERSION = "fs2-owned-concurrent-runtime-v4"
 WINDOW_VERSION = "fs2-owned-window-runtime-v5"
+# D120: activated pair members only; windows bound to fresh binding reads (pairing worker).
+PAIRING_VERSION = "fs2-pairing-window-runtime-v6"
 POLICY = {
     **base.POLICY,
     "queue_order": "ready targets before ready origins; then scheduled UTC/id",
@@ -59,7 +61,7 @@ def _remove(queue, entry):
 async def _execute(root, entry, members, panel_policy, activation, origins, transport, features,
                    window_inputs=None):
     _, _, identity, kind, job = entry
-    protocol = PanelProtocol(**panel_policy["protocol"])
+    protocol = panel_protocol(panel_policy["protocol"])
     if kind == "origin":
         dependency = (window_inputs["members"][job["market_id"]]["analysis_root"]
                       if window_inputs else None)
@@ -88,17 +90,19 @@ async def exercise_screened_panel(panel_root, screening_root, *, transport, conc
 
 
 async def _exercise_owned_panel(panel_root, screening_root, *, finish_owned, transport,
-                                 concurrency, window_inputs=None):
+                                 concurrency, window_inputs=None, pairing=False):
     return await _exercise(panel_root, screening_root, transport=transport,
                            concurrency=concurrency, features=True, finish_owned=finish_owned,
-                           window_inputs=window_inputs)
+                           window_inputs=window_inputs, pairing=pairing)
 
 
 async def _exercise(panel_root, screening_root, *, transport, concurrency, features,
-                    finish_owned=None, window_inputs=None):
-    if type(features) is not bool:
+                    finish_owned=None, window_inputs=None, pairing=False):
+    if type(features) is not bool or type(pairing) is not bool:
         raise ValueError("explicit feature mode required")
     owned = finish_owned is not None
+    if pairing and not owned:
+        raise ValueError("pairing runtime requires the owned worker")
     if transport is not None and type(transport) is not httpx.MockTransport:
         raise ValueError("unsupported owned runtime transport")
     if not owned and transport is None:
@@ -106,7 +110,7 @@ async def _exercise(panel_root, screening_root, *, transport, concurrency, featu
     provenance = 'prospective' if transport is None else 'synthetic'
     if window_inputs is not None and not owned:
         raise ValueError("owned runtime required for window inputs")
-    version = WINDOW_VERSION if window_inputs is not None else (
+    version = PAIRING_VERSION if pairing else WINDOW_VERSION if window_inputs is not None else (
         OWNED_VERSION if owned else FEATURE_VERSION if features else VERSION)
     runtime_policy = ({**POLICY, 'live_collection_enabled': transport is None,
                        'identity_policy': origin_worker.IDENTITY_POLICY}
@@ -114,9 +118,9 @@ async def _exercise(panel_root, screening_root, *, transport, concurrency, featu
     _capacity(concurrency)
     panel, root = _canonical(panel_root), base.run_root(panel_root)
     screening = _canonical(screening_root)
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     panel_policy, _ = _pair(panel, "panel_policy")
-    protocol = PanelProtocol(**panel_policy["protocol"])
+    protocol = panel_protocol(panel_policy["protocol"])
     if root.exists():
         raise FileExistsError("runtime retained; never resume or reschedule")
     if shutil.disk_usage(root.parent).free < base._reserved(declaration):
@@ -249,21 +253,22 @@ async def _exercise(panel_root, screening_root, *, transport, concurrency, featu
 
 def read_runtime(panel_root):
     panel, root = _canonical(panel_root), base.run_root(panel_root)
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     panel_policy, _ = _pair(panel, "panel_policy")
-    protocol = PanelProtocol(**panel_policy["protocol"])
+    protocol = panel_protocol(panel_policy["protocol"])
     policy, policy_ack = _pair(root, "runtime_policy")
     report, report_ack = _pair(root, "runtime_report")
     activation = read_activation(panel)
     version = policy["schema_version"]
-    windows = version == WINDOW_VERSION
-    owned = version in {OWNED_VERSION, WINDOW_VERSION}
-    features = version in {FEATURE_VERSION, OWNED_VERSION, WINDOW_VERSION}
+    pairing = version == PAIRING_VERSION
+    windows = version == WINDOW_VERSION or (pairing and "window_inputs" in policy)
+    owned = version in {OWNED_VERSION, WINDOW_VERSION, PAIRING_VERSION}
+    features = version in {FEATURE_VERSION, OWNED_VERSION, WINDOW_VERSION, PAIRING_VERSION}
     provenance = activation['provenance_class'] if owned else 'synthetic'
     runtime_policy = ({**POLICY, 'live_collection_enabled': provenance == 'prospective',
                        'identity_policy': origin_worker.IDENTITY_POLICY}
                       if owned else POLICY)
-    if (version not in {VERSION, FEATURE_VERSION, OWNED_VERSION, WINDOW_VERSION}
+    if (version not in {VERSION, FEATURE_VERSION, OWNED_VERSION, WINDOW_VERSION, PAIRING_VERSION}
             or windows != ("window_inputs" in policy)
             or owned and (policy.get('provenance_class') != provenance
                           or activation['schema_version'] != origin_worker.OWNED_ACTIVATION
@@ -302,10 +307,21 @@ def read_runtime(panel_root):
     ):
         raise ValueError("concurrent runtime policy/activation/chronology differs")
     window_inputs = None
+    if pairing:
+        from .pairing_worker import read_bindings
+
+        bindings = read_bindings(_canonical(policy['screening_root']).parent)
+        if (sorted(i['member']['market_id'] for i in bindings['items'])
+                != sorted(m['market_id'] for m in activation['selected'])
+                or bool(bindings['items']) != windows
+                or not _ordered_clocks(bindings['bindings_available_at'],
+                                       activation['activation_available_at'])):
+            raise ValueError('pairing bindings differ from the activated members')
     if windows:
         sp, _ = _pair(_canonical(policy['screening_root']), 'screening_policy')
         window_inputs = owned_windows.read(_canonical(policy['screening_root']).parent,
-                                          sp['selected'], provenance)
+                                          bindings['items'] if pairing else sp['selected'],
+                                          provenance)
         if window_inputs != policy['window_inputs'] or any(
             not _ordered_clocks(v['available_at'], policy['declared_at'])
             for v in window_inputs['members'].values()

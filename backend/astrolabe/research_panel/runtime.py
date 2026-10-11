@@ -15,7 +15,7 @@ from . import due_worker, origin_worker
 from .activation import activate_panel, allocation, read_activation
 from .build_identity import verified_panel_build
 from .input_read import _canonical
-from .panel_declaration import PanelProtocol, read_panel_declaration
+from .pairing_declaration import panel_protocol, read_declaration
 from .quote_inputs import _at
 from .scheduling import wait_until
 
@@ -128,9 +128,9 @@ async def exercise_panel(panel_root, *, transport):
     if type(transport) is not httpx.MockTransport:
         raise ValueError('synthetic MockTransport required; live runtime remains closed')
     panel, root = _canonical(panel_root), run_root(panel_root)
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     panel_policy, _ = _pair(panel, 'panel_policy')
-    protocol = PanelProtocol(**panel_policy['protocol'])
+    protocol = panel_protocol(panel_policy['protocol'])
     if root.exists():
         raise FileExistsError('runtime retained; no resume or reschedule')
     if shutil.disk_usage(root.parent).free < _reserved(declaration):
@@ -206,13 +206,14 @@ def read_runtime(panel_root):
     if layout['schema_version'] in {'fs2-concurrent-synthetic-runtime-v2',
                                     'fs2-concurrent-feature-runtime-v3',
                                             'fs2-owned-concurrent-runtime-v4',
-                                            'fs2-owned-window-runtime-v5'}:
+                                            'fs2-owned-window-runtime-v5',
+                                            'fs2-pairing-window-runtime-v6'}:
         from .concurrent_runtime import read_runtime as read_concurrent
 
         return read_concurrent(panel)
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     panel_policy, _ = _pair(panel, 'panel_policy')
-    protocol = PanelProtocol(**panel_policy['protocol'])
+    protocol = panel_protocol(panel_policy['protocol'])
     policy, policy_ack = _pair(root, 'runtime_policy')
     report, report_ack = _pair(root, 'runtime_report')
     activation = read_activation(panel)

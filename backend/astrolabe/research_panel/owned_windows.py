@@ -26,6 +26,7 @@ from .window_computation import LIMITS as ANALYSIS_LIMITS
 from .window_reconciliation import WindowReconciliationPolicy
 
 VERSION = 'fs2-owned-window-worker-v6'
+PAIRING_WORKER_VERSION = 'fs2-pairing-worker-v8'
 OBSERVATION_VERSION = 'fs2-owned-observation-worker-v7'
 
 
@@ -137,6 +138,19 @@ def _worker(root, provenance):
     wp, wa = _pair(root, 'worker_policy')
     config = policy_from_dict(wp['window_policy'])
     port = wp['window_port']
+    if wp['schema_version'] == PAIRING_WORKER_VERSION:
+        # D120: windows for activated members only, bound to their fresh binding reads.
+        from .pairing_declaration import read_pairing_declaration
+        from .pairing_worker import allocation as pairing_allocation
+
+        if (config.binding_mode != 'observation' or wp['build'] != verified_panel_build()
+                or worker_root(wp['panel_root']) != root
+                or wp['provenance_class'] != provenance
+                or scope(port)['provenance_class'] != provenance
+                or wp['reservation'] != pairing_allocation(
+                    read_pairing_declaration(wp['panel_root']))):
+            raise ValueError('owned window worker lineage/reservation differs')
+        return wp, wa, config
     if (wp['schema_version'] != version(config) or wp['build'] != verified_panel_build()
             or worker_root(wp['panel_root']) != root
             or wp['provenance_class'] != provenance or scope(port)['provenance_class'] != provenance
@@ -193,7 +207,10 @@ def _closure(root, expected):
 
 
 def _scope(selected, wp):
-    if (not 1 <= len(selected) <= wp['reservation']['screen_slots']
+    slots = (wp['reservation']['window_slots']
+             if wp['schema_version'] == PAIRING_WORKER_VERSION
+             else wp['reservation']['screen_slots'])
+    if (not 1 <= len(selected) <= slots
             or len({i['member']['market_id'] for i in selected}) != len(selected)):
         raise ValueError('owned window scope differs')
 
@@ -301,7 +318,8 @@ def _prepare(root, selected, provenance):
         item = selected[index]
         pre = Path(item['book_root'])
         bp, _ = _pair(pre, 'book_policy')
-        source = root / f'fs2_capture_screen_{index:03d}'
+        source = root / (('fs2_capture_bind_' if wp['schema_version'] == PAIRING_WORKER_VERSION
+                          else 'fs2_capture_screen_') + f'{index:03d}')
         if bp['source_root'] != str(source):
             raise ValueError('owned window source substituted')
         prior_roots = (pre, source)

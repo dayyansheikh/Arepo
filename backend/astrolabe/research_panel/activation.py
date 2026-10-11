@@ -11,12 +11,14 @@ from astrolabe.feature_store.source_run import _ordered_clocks, _pair, _persist
 
 from .build_identity import verified_panel_build
 from .input_read import _canonical
-from .panel_declaration import PanelProtocol, read_panel_declaration, role_capacity
+from .pairing_declaration import panel_protocol, read_declaration, role_capacity
+from .pairing_selection import frame_freshness as freshness
 from .panel_selection import VERSION as SELECTION_VERSION
 from .panel_selection import VERSIONS as SELECTION_VERSIONS
-from .panel_selection import freshness, selection_root
+from .panel_selection import selection_root
 from .screening import IDENTITY_POLICY, read_screening
 from .screening import OWNED_VERSION as OWNED_SCREENING_VERSION
+from .screening import PAIRING_VERSION as PAIRING_SCREENING_VERSION
 from .selection import read_selection
 
 VERSION = 'fs2-panel-activation-v1'
@@ -74,7 +76,7 @@ def _save(root, name, payload, started):
 
 
 def _consume(panel, started, root, screening=None):
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     selection = selection_root(panel)
     report = read_selection(selection)
     versions = {SELECTION_VERSION} if screening is None else SELECTION_VERSIONS
@@ -91,7 +93,7 @@ def _consume(panel, started, root, screening=None):
         if screen_report["schema_version"] != "fs2-screening-v1":
             raise ValueError("new screening identity policy requires versioned origin contract")
         screen_policy, _ = _pair(screening, 'screening_policy')
-        capacity = role_capacity(screen_report['plan'], PanelProtocol(**policy['panel_protocol']))
+        capacity = role_capacity(screen_report['plan'], panel_protocol(policy['panel_protocol']))
         if (screen_policy['selection_root'] != str(selection)
                 or screen_policy['selection_report_hash'] != report['selection_report_hash']
                 or screen_policy['protocol'] != policy['panel_protocol']
@@ -147,16 +149,18 @@ def _consume_owned(panel, screening, screened=None):
     """Owned live transition or complete cold replay; preserve the original frame identity."""
     if screening is None:
         raise ValueError('owned activation requires screening')
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     report = read_screening(screening) if screened is None else screened
     frozen, fa = _pair(screening, 'screening_policy')
     saved, ra = _pair(screening, 'screening_report')
     selection = selection_root(panel)
     selected_report, sa = _pair(selection, 'selection_report')
     selected_policy, pa = _pair(selection, 'selection_policy')
-    capacity = role_capacity(report['plan'], PanelProtocol(**frozen['protocol']))
-    if (frozen['schema_version'] != OWNED_SCREENING_VERSION
-            or report['schema_version'] != OWNED_SCREENING_VERSION
+    capacity = role_capacity(report['plan'], panel_protocol(frozen['protocol']))
+    # D120: a pairing screening activates only its drawn trigger/control roles.
+    paired = frozen['schema_version'] == PAIRING_SCREENING_VERSION
+    if (frozen['schema_version'] not in {OWNED_SCREENING_VERSION, PAIRING_SCREENING_VERSION}
+            or report['schema_version'] != frozen['schema_version']
             or frozen['identity_policy'] != IDENTITY_POLICY
             or report['policy_hash'] != fa['payload_hash']
             or report['screening_report_hash'] != ra['payload_hash']
@@ -181,6 +185,8 @@ def _consume_owned(panel, screening, screened=None):
     for item in frozen['selected']:
         member, identity = item['member'], item['identity']
         assignments = roles.pop(member['market_id'], None)
+        if paired and assignments is None:
+            continue  # screened only; never an origin
         outcomes = [o for o in identity['outcomes'] if o['token_id'] == member['token_id']]
         if (not assignments or len(outcomes) != 1
                 or identity['market_id'] != member['market_id']
@@ -198,7 +204,9 @@ def _consume_owned(panel, screening, screened=None):
             'identity_policy': IDENTITY_POLICY, 'frame_identity': identity,
             'screening_policy_hash': fa['payload_hash'], 'roles': assignments,
         })
-    if (roles or len(selected) != selected_report['unique_selected_markets']
+    expected = (report['plan']['unique_selected_markets'] if paired
+                else selected_report['unique_selected_markets'])
+    if (roles or len(selected) != expected
             or len({r['market_id'] for r in selected}) != len(selected)):
         raise ValueError('owned activation member closure differs')
     original = {**selected_report, 'selection_report_hash': sa['payload_hash'],
@@ -229,7 +237,7 @@ def _screen_context(screening, report):
             'screening_available_at': report['screening_available_at'],
             'screening_cutoff': report['cutoff'], 'screening_policy_hash': ack['payload_hash'],
             'screening_seed': policy['seed'],
-            'role_capacity': role_capacity(report['plan'], PanelProtocol(**policy['protocol']))}
+            'role_capacity': role_capacity(report['plan'], panel_protocol(policy['protocol']))}
 
 
 def _screen_fresh(report, at):
@@ -259,7 +267,7 @@ def _screen_fresh(report, at):
 
 
 def _summary(facts, ack, panel_policy):
-    protocol = PanelProtocol(**panel_policy['protocol'])
+    protocol = panel_protocol(panel_policy['protocol'])
     first = _time(ack['durable_ack']) + timedelta(seconds=POLICY['lead_seconds'])
     slots = []
     for cycle in range(protocol.cycles):
@@ -296,7 +304,7 @@ def activate_screened_panel(panel_root, screening_root):
 
 def _activate(panel_root, screening, *, owned_screened=None):
     panel = _canonical(panel_root)
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     panel_policy, _ = _pair(panel, 'panel_policy')
     root = activation_root(panel)
     version = (OWNED_VERSION if owned_screened is not None

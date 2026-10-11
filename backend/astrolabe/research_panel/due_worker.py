@@ -37,7 +37,7 @@ from .identity_comparison import VERSION as IDENTITY_POLICY
 from .input_read import _canonical
 from .origin_worker import read_origin_run
 from .origin_worker import run_root as origin_run_root
-from .panel_declaration import PanelProtocol, read_panel_declaration
+from .pairing_declaration import panel_protocol, read_declaration
 from .quote_computation import (
     CHILD,
     computation_limits,
@@ -231,7 +231,7 @@ def _version(origin):
 
 
 def _adapt(root, origin, panel_policy, intent_ack):
-    protocol = PanelProtocol(**panel_policy["protocol"])
+    protocol = panel_protocol(panel_policy["protocol"])
     summary = read_quote_computation(root / COMPUTATION)
     facts, _ = _pair(root / COMPUTATION, "quote_facts")
     policy, _ = _pair(root / COMPUTATION, "quote_policy")
@@ -292,7 +292,7 @@ async def _collect_one(root, job, origin, panel_policy, transport):
         or transport is not None and type(transport) is not httpx.MockTransport
     ):
         raise ValueError('owned target transport provenance differs')
-    protocol = PanelProtocol(**panel_policy["protocol"])
+    protocol = panel_protocol(panel_policy["protocol"])
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
     try:
@@ -377,7 +377,7 @@ async def _collect_one(root, job, origin, panel_policy, transport):
 
 def _read_one(root, job, origin, panel_policy):
     version = _version(origin)
-    protocol = PanelProtocol(**panel_policy["protocol"])
+    protocol = panel_protocol(panel_policy["protocol"])
     receipt, receipt_ack = _pair(root, "target_receipt")
     intent, intent_ack = _pair(root, "target_intent")
     eligible = origin["result"]["state"] == "observed"
@@ -520,9 +520,9 @@ async def exercise_targets(panel_root, *, transport):
     if type(transport) is not httpx.MockTransport:
         raise ValueError("synthetic MockTransport required; live due collection remains closed")
     panel, root = _canonical(panel_root), run_root(panel_root)
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     panel_policy, _ = _pair(panel, "panel_policy")
-    protocol = PanelProtocol(**panel_policy["protocol"])
+    protocol = panel_protocol(panel_policy["protocol"])
     if root.exists():
         raise FileExistsError("target run retained; no resume or reschedule")
     reserved = allocation(declaration)["required_free_bytes"] + POLICY["top_bytes"]
@@ -609,9 +609,9 @@ async def exercise_targets(panel_root, *, transport):
 
 def read_target_run(panel_root):
     panel, root = _canonical(panel_root), run_root(panel_root)
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     panel_policy, _ = _pair(panel, "panel_policy")
-    protocol = PanelProtocol(**panel_policy["protocol"])
+    protocol = panel_protocol(panel_policy["protocol"])
     policy, policy_ack = _pair(root, "target_policy")
     plan, plan_ack = _pair(root, "target_plan")
     report, report_ack = _pair(root, "target_report")

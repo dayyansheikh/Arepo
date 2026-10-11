@@ -451,7 +451,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
                                             'fs2-concurrent-synthetic-runtime-v2',
                                             'fs2-concurrent-feature-runtime-v3',
                                             'fs2-owned-concurrent-runtime-v4',
-                                            'fs2-owned-window-runtime-v5'}:
+                                            'fs2-owned-window-runtime-v5',
+                                            'fs2-pairing-window-runtime-v6'}:
             raise ValueError('unsupported original runtime layout')
         panel = Path(policy['panel_root'])
         declaration, _ = _pair(panel, 'panel_policy')
@@ -462,7 +463,8 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
         if policy['schema_version'] in {'fs2-concurrent-synthetic-runtime-v2',
                                          'fs2-concurrent-feature-runtime-v3',
                                             'fs2-owned-concurrent-runtime-v4',
-                                            'fs2-owned-window-runtime-v5'}:
+                                            'fs2-owned-window-runtime-v5',
+                                            'fs2-pairing-window-runtime-v6'}:
             screen = Path(policy['screening_root'])
             screen_policy, _ = _pair(screen, 'screening_policy')
             dependencies.append(screen)
@@ -484,6 +486,24 @@ def _read_original(frame_root, *, implementation_commit, output_root, repository
                     if child.exists():
                         dependencies.append(child)
             dependencies.extend([worker / 'worker_policy.json', worker / 'worker_policy_ack.json'])
+        if policy['schema_version'] == 'fs2-pairing-window-runtime-v6':
+            # D120: windows and fresh binding reads of the activated members only.
+            worker = screen.parent
+            bindings, _ = _pair(worker, 'bindings')
+            if not 0 <= len(bindings['items']) <= 12:
+                raise ValueError('bounded pairing binding dependencies required')
+            dependencies.extend([worker / 'bindings.json', worker / 'bindings_ack.json',
+                                 worker / 'worker_policy.json',
+                                 worker / 'worker_policy_ack.json'])
+            for index, item in enumerate(bindings['items']):
+                dependencies.extend([Path(item['source_root']), Path(item['book_root']),
+                                     Path(item['declaration_root']),
+                                     worker / f'window_{index:03d}.json',
+                                     worker / f'window_{index:03d}_ack.json'])
+                for prefix in ('fs2_socket_window_', 'fs2_socket_analysis_'):
+                    child = worker / f'{prefix}{index:03d}'
+                    if child.exists():
+                        dependencies.append(child)
         for dependency in dependencies:
             if not dependency.is_absolute() or dependency.resolve() != dependency:
                 raise ValueError('canonical original runtime dependency required')

@@ -29,7 +29,7 @@ from .identity_comparison import VERSION as IDENTITY_POLICY
 from .identity_comparison import compare_mapping
 from .input_read import _canonical
 from .origin_window import OriginWindowPolicy, project_origin_window
-from .panel_declaration import PanelProtocol, read_panel_declaration
+from .pairing_declaration import panel_protocol, read_declaration
 from .quote_computation import (
     CHILD,
     computation_limits,
@@ -141,7 +141,7 @@ def _budget(protocol, slot, at):
 
 def _projection(root, intent, panel_policy, freeze):
     """Consume verified journal facts directly; replay uses the original actual freeze."""
-    protocol = PanelProtocol(**panel_policy['protocol'])
+    protocol = panel_protocol(panel_policy['protocol'])
     member = intent['member']
     owned = intent['schema_version'] in {OWNED_VERSION, WINDOW_VERSION}
     provenance = intent['provenance_class'] if owned else 'synthetic'
@@ -264,7 +264,7 @@ async def _collect_one(root, slot, member, panel_policy, activation, transport, 
         raise ValueError('origin and window must have separate journal roots')
     version = WINDOW_VERSION if window else OWNED_VERSION if owned else (
         FEATURE_VERSION if features else VERSION)
-    protocol = PanelProtocol(**panel_policy['protocol'])
+    protocol = panel_protocol(panel_policy['protocol'])
     root.mkdir(mode=0o700)
     _sync_directory(root.parent)
     try:
@@ -328,7 +328,7 @@ async def _collect_one(root, slot, member, panel_policy, activation, transport, 
 
 
 def _read_one(root, slot, member, panel_policy, activation):
-    protocol = PanelProtocol(**panel_policy['protocol'])
+    protocol = panel_protocol(panel_policy['protocol'])
     receipt, receipt_ack = _pair(root, 'origin_receipt')
     ceiling = (protocol.source_run_retained_bytes + POLICY['origin_metadata_bytes']
                + computation_limits(panel_policy.get('computation_storage_profile'))[
@@ -408,7 +408,7 @@ async def exercise_origins(panel_root, *, transport):
     if type(transport) is not httpx.MockTransport:
         raise ValueError('synthetic MockTransport required until target integration is complete')
     panel = _canonical(panel_root)
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     panel_policy, _ = _pair(panel, 'panel_policy')
     root = run_root(panel)
     if root.exists():
@@ -450,7 +450,7 @@ async def exercise_origins(panel_root, *, transport):
 def read_origin_run(panel_root):
     panel, root = _canonical(panel_root), run_root(panel_root)
     activated = read_activation(panel)
-    declaration = read_panel_declaration(panel)
+    declaration = read_declaration(panel)
     panel_policy, _ = _pair(panel, 'panel_policy')
     policy, policy_ack = _pair(root, 'worker_policy')
     report, report_ack = _pair(root, 'worker_report')
