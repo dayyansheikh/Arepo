@@ -39,9 +39,13 @@ Edge search now goes through combined models plus SHAP, not a chain of single E-
 
 ## Experiments
 - E002: Confirmed (exploratory). E003: inconclusive.
-- E004/E005/E006: 9 of 12 qualifying. Pass 10 is due about 18:31Z (background job); then 20:31Z and 22:31Z. Score at 12.
+- E004/E005/E006: 9 of 12 qualifying. Passes run at 18:31Z, 20:31Z and 22:31Z. Score at 12.
 - E007: 2 of 12. Deadline 2026-10-18.
-- Loop after each pass: `pass_extras.sh` → `run_flow_screen.py` → `run_research_e007.py score --status` → `pass.sh <delay>` for the next pass (~2h). Then commit the trials.jsonl lines.
+- **Collection is now a user-approved launchd job, `com.arepo.collector`** (installed 2026-10-11). It runs every even UTC hour at :31, doing snapshot, forecast, sweeps, trades, flow screen and E004/E007 status.
+  - Script: `~/arepo_collector/arepo_pass.sh`. Logs: `~/arepo_collector/logs/`.
+  - Do NOT chain session passes while it is loaded. Commit trials.jsonl lines periodically.
+  - Avoid heavy jobs and live launches at :25–:50 after even UTC hours.
+  - Remove it when collection ends (about 15 Oct) with `launchctl unload` plus deleting the plist.
 
 ## D120 (pairing redesign): PASS
 - Frozen at 04e71ea (record ea29ae6). Launched once at 14:47Z (HEAD 47375bc).
