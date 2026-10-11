@@ -130,6 +130,7 @@ def test_sample_seeded_and_category_policy():
     assert [r["market_id"] for r in a] == [r["market_id"] for r in b] and len(a) == 20
     assert [r["market_id"] for r in a] != [r["market_id"] for r in c]
     assert {r["status"] for r in a} == {"closed", "active"}  # closed and active both present
+    assert not any("vol" in k for k in a[0]["stratum"].split("|"))
     inc, _ = hb.draw_sample(frame, 10, "s1", categories=["sports"], category_mode="include")
     assert inc and all(r["fee_category"] == "sports" for r in inc)
     with pytest.raises(ValueError):
@@ -270,3 +271,18 @@ def test_no_end_of_life_or_static_metadata_features():
 def test_never_under_snapshots(tmp_path):
     with pytest.raises(ValueError):
         hb.run(tmp_path / "snapshots", "r1", Fake([]), key=KEY, now=NOW)
+
+
+def test_frame_windows_seeded_random_and_report():
+    f1 = Fake([_market(i) for i in range(1, 6)])
+    f2 = Fake([_market(i) for i in range(1, 6)])
+    lim1 = hb.Limiter(f1, sleep=lambda s: None)
+    lim2 = hb.Limiter(f2, sleep=lambda s: None)
+    rows, rep = hb.fetch_frame(lim1, NOW, lookback_days=3, seed="a", windows_per_day=4)
+    hb.fetch_frame(lim2, NOW, lookback_days=3, seed="a", windows_per_day=4)
+    assert [c[1] for c in f1.calls] == [c[1] for c in f2.calls]  # same seed, same windows
+    assert all("volume_num_min" not in c[1] for c in f1.calls)  # no final-volume filter
+    assert rep["volume_floor"] is None and rep["excludes"] and len(rows) == 5
+    _, rep2 = hb.fetch_frame(hb.Limiter(Fake([]), sleep=lambda s: None), NOW, lookback_days=1,
+                             min_volume=1000, seed="a")
+    assert rep2["volume_floor_label"] == "SEPARATE SUB-FRAME"

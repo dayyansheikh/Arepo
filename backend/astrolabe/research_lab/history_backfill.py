@@ -297,17 +297,45 @@ def _paged(lim: Limiter, params: dict, max_rows: int = GAMMA_OFFSET_CAP) -> tupl
             return out, True
 
 
+FRAME_VERSION = "frame-v2-random-windows"
+
+
 def fetch_frame(
-    lim: Limiter, now: float, lookback_days: int = 270, min_volume: float = 1000.0,
-    include_active: bool = True, max_pages_per_day: int = 2,
+    lim: Limiter, now: float, lookback_days: int = 270, min_volume: float = 0.0,
+    include_active: bool = True, windows_per_day: int = 6, window_minutes: int = 15,
+    pages_per_window: int = 3, seed: str = "arepo-h1",
 ) -> tuple[list[dict], dict]:
-    """Market universe: closed markets by one-day ``end_date`` windows over ``lookback_days`` and
-    active markets by liquidity slice. Binary markets only. Returns (rows, report)."""
+    """Market universe, sampled by time window (the full closed universe is far too large: one day
+    can hold more than 20000 closed markets, mostly short crypto markets, and Gamma offset depth is
+    capped near 2100).
+
+    For every day of ``lookback_days`` a seeded set of ``windows_per_day`` random
+    ``window_minutes`` windows is drawn independently of any market attribute. Closed markets are
+    selected by ``end_date`` in the window, active markets by ``startDate`` in the window; each
+    window is read in id order up to ``pages_per_window`` pages. A window that still has rows after
+    that is "capped" and only its lowest ids enter the frame (documented bias). Nothing is
+    filtered on final volume unless ``min_volume > 0`` (a separate, labelled sub-frame).
+    Binary markets only. Returns (rows, report) with the exclusions spelled out.
+    """
+    import random
+
     rows: dict[str, dict] = {}
-    rep: dict = {"closed_windows": 0, "closed_windows_capped": 0, "active_slices_capped": 0,
-                 "non_binary_or_invalid": 0, "raw": 0,
-                 "max_pages_per_closed_day": max_pages_per_day,
-                 "closed_order": "id ascending (lowest ids per end-date day; documented bias)"}
+    rep: dict = {
+        "frame_version": FRAME_VERSION, "lookback_days": lookback_days,
+        "windows_per_day": windows_per_day, "window_minutes": window_minutes,
+        "pages_per_window": pages_per_window, "windows": {"closed": 0, "active": 0},
+        "windows_capped": {"closed": 0, "active": 0}, "raw": 0, "non_binary_or_invalid": 0,
+        "volume_floor": min_volume if min_volume > 0 else None,
+        "volume_floor_label": "SEPARATE SUB-FRAME" if min_volume > 0 else None,
+        "excludes": [
+            "non-binary markets and markets without two CLOB token ids",
+            f"closed markets whose endDate is outside the last {lookback_days} days",
+            f"active markets whose startDate is outside the last {lookback_days} days",
+            "all markets outside the randomly drawn windows (about "
+            f"{windows_per_day * window_minutes / 1440:.1%} of each day's time axis)",
+            f"markets beyond page {pages_per_window} of a capped window (highest ids)",
+        ] + ([f"markets with final volume < {min_volume}"] if min_volume > 0 else []),
+    }
 
     def take(batch: list[dict]) -> None:
         for m in batch:
@@ -319,27 +347,30 @@ def fetch_frame(
                 rows[r["market_id"]] = r
 
     day0 = datetime.fromtimestamp(now, UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    slots = 1440 // window_minutes
     for d in range(lookback_days, -1, -1):
-        a = day0 - timedelta(days=d)
-        b = a + timedelta(days=1)
-        batch, capped = _paged(lim, {
-            "closed": "true", "volume_num_min": min_volume, "order": "id", "ascending": "true",
-            "end_date_min": a.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "end_date_max": b.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }, max_rows=max_pages_per_day * GAMMA_PAGE)
-        rep["closed_windows"] += 1
-        rep["closed_windows_capped"] += int(capped)
-        take(batch)
-    if include_active:
-        edges = [0.0, 1e3, 1e4, 1e5, None]
-        for lo, hi in zip(edges[:-1], edges[1:], strict=True):
-            p: dict = {"closed": "false", "order": "volume24hr", "ascending": "false",
-                       "liquidity_num_min": lo}
-            if hi is not None:
-                p["liquidity_num_max"] = hi
-            batch, capped = _paged(lim, p)
-            rep["active_slices_capped"] += int(capped)
-            take(batch)
+        day = day0 - timedelta(days=d)
+        rng = random.Random(f"{seed}|{day:%Y-%m-%d}")
+        picks = sorted(rng.sample(range(slots), min(windows_per_day, slots)))
+        for kind in (("closed", "active") if include_active else ("closed",)):
+            for k in picks:
+                a = day + timedelta(minutes=k * window_minutes)
+                b = a + timedelta(minutes=window_minutes)
+                if b.timestamp() > now:
+                    continue
+                f = "%Y-%m-%dT%H:%M:%SZ"
+                p: dict = {"order": "id", "ascending": "true"}
+                if kind == "closed":
+                    p.update(closed="true", end_date_min=a.strftime(f), end_date_max=b.strftime(f))
+                else:
+                    p.update(closed="false", start_date_min=a.strftime(f),
+                             start_date_max=b.strftime(f))
+                if min_volume > 0:
+                    p["volume_num_min"] = min_volume
+                batch, capped = _paged(lim, p, max_rows=pages_per_window * GAMMA_PAGE)
+                rep["windows"][kind] += 1
+                rep["windows_capped"][kind] += int(capped)
+                take(batch)
     return list(rows.values()), rep
 
 
@@ -356,9 +387,10 @@ def lifetime_band(start_epoch: float, end_epoch: float) -> str:
 
 
 def stratum(r: dict, by_category: bool = True) -> str:
+    """status x fee_category x creation month. All known when the market is created (status is
+    the closed/active design mix, not a creation attribute); no volume or liquidity."""
     cat = r["fee_category"] if by_category else "all"
-    return "|".join([r["status"], str(cat), liquidity_band(r["volume"]),
-                     lifetime_band(r["start_epoch"], r["end_epoch"])])
+    return "|".join([r["status"], str(cat), str(r["created_at"])[:7] or "unknown"])
 
 
 def _rank(seed: str, market_id: str) -> str:
@@ -533,10 +565,11 @@ def _read_progress(path: Path) -> dict[str, dict]:
 
 def run(
     root: Path, run_id: str, transport: Transport, *, n_markets: int = 500, seed: str = "arepo-h1",
-    lookback_days: int = 270, min_volume: float = 1000.0, max_days: int = 120,
+    lookback_days: int = 270, min_volume: float = 0.0, max_days: int = 120,
     max_trades: int = 5000, category_mode: str = "all", categories: Iterable[str] = (),
     key: bytes | None = None, rps: float = MAX_RPS, disk_cap: int = DISK_CAP_BYTES,
     now: float | None = None, sleep: Callable[[float], None] = time.sleep,
+    should_stop: Callable[[], bool] | None = None,
 ) -> dict:
     """Fetch universe, draw the seeded sample, fetch prices and trades per market. Resumable:
     re-running with the same ``run_id`` reuses ``sample.csv.gz`` and skips finished markets."""
@@ -573,7 +606,7 @@ def run(
                     r[k] = float("nan") if r[k] == "" else float(r[k])
             frame_rep = prior.get("frame_report", {})
         else:
-            frame, frame_rep = fetch_frame(lim, now, lookback_days, min_volume)
+            frame, frame_rep = fetch_frame(lim, now, lookback_days, min_volume, seed=seed)
             budget.write(frame_path, _gz_csv_bytes(
                 FRAME_COLUMNS, ([r[c] for c in FRAME_COLUMNS] for r in frame)))
         sample, samp_rep = draw_sample(frame, n_markets, seed, True, categories, category_mode)
@@ -595,6 +628,9 @@ def run(
     stopped = None
     for r in sample:
         mid = r["market_id"]
+        if should_stop is not None and should_stop():
+            stopped = "should_stop (collection window)"
+            break
         if mid in done and done[mid]["status"] == "done":
             continue
         try:
@@ -640,14 +676,16 @@ def run(
         "wallet_hash": {"method": "wallet_sidecar.hash_wallet (HMAC-SHA256, lowercase)",
                         "key_id": key_id(key), "raw_addresses_stored": False},
         "stratification": {
-            "attributes": ["status", "fee_category", "volume_band", "lifetime_band"],
-            "end_of_life_attributes": ["volume_band (final/current Gamma volumeNum)",
-                                       "frame filter volume_num_min", "status"],
-            "known_at_creation": ["fee_category", "lifetime_band (startDate to endDate)"],
-            "survivorship_note": "the sample frame excludes closed markets whose final volume "
-            "is below min_volume and includes volume-band stratification on end-of-life volume; "
-            "closed markets are ordered by id within each end-date day and capped, so the frame "
-            "is not a uniform draw. Panel membership never uses these attributes.",
+            "attributes": ["status", "fee_category", "created_month"],
+            "known_at_creation": ["fee_category", "created_month"],
+            "design_mix": ["status (closed vs active)"],
+            "end_of_life_attributes_used": [],
+            "frame_exclusions": frame_rep.get("excludes"),
+            "survivorship_note": "no volume/liquidity/outcome attribute enters the frame or the "
+            "stratification unless frame_report.volume_floor is set (then it is a separate "
+            "labelled sub-frame). Closed markets are those that closed inside the lookback; "
+            "active markets are those still open at the request time, so older still-open "
+            "markets and markets that lived entirely outside the lookback are absent.",
             "frame_min_volume": min_volume},
         "evidence_notes": {
             "origin_features": "price points with stamp + POINT_LAG_S < t, trades with ts < t",

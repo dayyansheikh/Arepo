@@ -18,7 +18,7 @@ from astrolabe.research_lab import history_backfill as hb
 
 
 def collection_window(now: datetime) -> bool:
-    return now.hour % 2 == 0 and 25 <= now.minute < 55
+    return now.hour % 2 == 0 and 24 <= now.minute < 59
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -29,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--n-markets", type=int, default=500)
     ap.add_argument("--seed", default="arepo-h1")
     ap.add_argument("--lookback-days", type=int, default=270)
-    ap.add_argument("--min-volume", type=float, default=1000.0)
+    ap.add_argument("--min-volume", type=float, default=0.0)
     ap.add_argument("--max-days", type=int, default=120)
     ap.add_argument("--max-trades", type=int, default=5000)
     ap.add_argument("--category-mode", default="all", choices=["all", "include", "exclude"])
@@ -43,7 +43,9 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd == "run":
         m = hb.run(root, a.run_id, hb.httpx_transport(), n_markets=a.n_markets, seed=a.seed,
                    lookback_days=a.lookback_days, min_volume=a.min_volume, max_days=a.max_days,
-                   max_trades=a.max_trades, category_mode=a.category_mode,
+                   max_trades=a.max_trades, should_stop=lambda: collection_window(
+                       datetime.now(UTC)) and not a.allow_collection_window,
+                   category_mode=a.category_mode,
                    categories=[c for c in a.categories.split(",") if c])
         print(json.dumps({k: m[k] for k in ("counts", "requests", "disk_bytes", "stopped",
                                            "elapsed_s_this_session")}, indent=1))
