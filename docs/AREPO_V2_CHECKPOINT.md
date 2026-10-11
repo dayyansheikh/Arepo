@@ -35,11 +35,18 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
   - `run_research_e007.py score --status`.
 - **Collector v2** routes around Cloudflare-blocked Gamma cursors (`6a1c9d3`). Pass 6 was lost to that block; this is disclosed in the ledger.
 
+## Results today (2026-10-11)
+- **C1 calibration** (development, about 3,000 resolved markets): prices 1 day before close are close to calibrated (slope 1.07 [0.94, 1.24]). The 7-day anchor and the $100k+ volume band are not interpretable yet.
+- **L1 lead-lag** (development): nothing worth registering.
+- **Flow screens S1-S5:** only F1 survived. It is registered as E007.
+- **Regression:** 2,125 backend tests and 101 frontend tests pass. Ruff reports only on the frozen `d116_launch.py`, which is left as is (`521506b`).
+
 ## Running workstreams
-- **Comparison-mechanism redesign:** Opus max, then one Fable 5.1 review, then Opus-medium build, Opus-high review, dry run, freeze, and a single live run (D120). Goals: reliable, independent (no siblings), category-agnostic.
-- **Development study C1:** calibration of resolved-market prices (Sonnet).
-- **Development screen L1:** cross-market lead-lag (Sonnet).
-- **Full regression suites:** report only, `docs/research_lab/REGRESSION_2026-10-11.md` (Sonnet).
+- **D120 pairing redesign** (screen-then-activate, group-disjoint pairs, `fee_category` strata, category policy parameter). The design and the Fable 5.1 review (proceed with changes, all adopted) are in `implementation/d120/`. Opus-medium is implementing it.
+  - Next: Opus-high review, dry run, freeze, then a single live run (launch window HH:46 even to HH:49 odd UTC; no collectors running).
+- **Loop:** E004/E005/E006 have 6 of 12 qualifying. Pass 7 is due about 12:31Z (scratchpad `pass.sh`; extras `pass_extras.sh`).
+  - After each pass: run the extras, then `run_flow_screen.py`, then `run_research_e007.py score --status`, then schedule the next pass with `pass.sh <delay>`.
+- **Hourly user update job** (session cron `dbea28e0`, :07 past each hour, until 23:59 UTC+1 today). It rewrites `docs/AREPO_EMAIL_UPDATE.md`, tries Gmail (the connector is currently disconnected in this session), and sends a PushNotification. Remote Control is connected.
 
 ## Exact next actions
 1. After each loop pass, run the extras and the flow screen (`run_flow_screen.py`), then schedule the next pass.
