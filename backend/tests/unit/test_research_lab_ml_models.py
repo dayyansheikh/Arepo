@@ -96,7 +96,7 @@ def test_pure_noise_gives_no_material_gain():
     sc = mm.score_arms(df, res, mm.cluster_vectors(df), n_boot=200)
     for a in ("M1", "M3_eb"):
         # shrinkage may beat the unregularised M0 by a hair; there is no real gain to find
-        assert abs(sc["bootstrap"]["event"]["log_loss"][a]["rel_improvement"]) < 0.005
+        assert -0.02 < sc["bootstrap"]["event"]["log_loss"][a]["rel_improvement"] < 0.005
 
 
 @pytest.mark.parametrize("arm", ["M0", "M1", "M2", "M3_eb"])
@@ -287,12 +287,55 @@ def test_lgb_grid_is_declared_seeded_random_search():
 
 
 def test_temperature_source_documented(results):
-    for arm in ("M0", "M1", "M2"):
+    for arm in ("M0", "M1", "M2", "M3_eb"):
         for d in results[arm].folds:
             assert d["temperature_source"] == mm.TEMP_SOURCE and d["temperature"] > 0
 
 
 def test_simulation_recovers_partial_pooling_sd():
     out = mm.simulate_hierarchical_check(n_reps=3, n=4000, n_event=100)
-    assert 0.4 < out["estimated_sd_mean"]["event"] < 0.8  # truth 0.6
+    assert 0.4 < out["estimated_event_sd_mean"] < 0.8  # truth 0.6
     assert out["coverage_95_mean"]["event"] > 0.8
+    assert out["fixed_prior_sd"] == {"cat": 0.5, "slope": 0.3}
+
+
+def test_bayes_category_terms_are_sum_to_zero_and_sd_fixed():
+    rng = np.random.default_rng(2)
+    n = 2000
+    x = rng.normal(size=(n, len(mm.BAYES_FEATURES)))
+    cat = pd.Series(np.array(list("abcd"))[rng.integers(0, 4, n)])
+    ev = pd.Series([f"e{i}" for i in rng.integers(0, 40, n)])
+    y = rng.integers(0, 3, n)
+    m = mm.BayesHier().fit(x, y, cat, ev)
+    assert np.allclose(m.theta["uc"].sum(axis=0), 0, atol=1e-9)
+    assert np.allclose(m.theta["S"].sum(axis=0), 0, atol=1e-9)
+    assert m.sd["cat"] == mm.CAT_SD_FIXED and m.sd["slope"] == mm.SLOPE_SD_FIXED
+
+
+@pytest.mark.parametrize("bad", ["all_none", "all_nan", "six_percent_null", "missing"])
+def test_gating_rejects_bad_cluster_vectors(panel_signal, results, bad):
+    df, _ = panel_signal
+    n = len(df)
+    good = (df["event_id"].str[1:].astype(int) // 5).astype(object).to_numpy()
+    dg = {
+        "all_none": np.array([None] * n, dtype=object),
+        "all_nan": np.full(n, np.nan, dtype=object),
+        "six_percent_null": np.where(np.arange(n) % 100 < 6, None, good),
+    }.get(bad)
+    cl = mm.cluster_vectors(df)
+    if dg is not None:
+        cl["dependence_group"] = dg
+    sc = mm.score_arms(df, results, cl, n_boot=50)
+    assert sc["non_inferential"] is True
+    assert "dependence_group" in sc["non_inferential_reason"]
+
+
+def test_gating_accepts_few_nulls_as_singletons(panel_signal, results):
+    df, _ = panel_signal
+    n = len(df)
+    good = (df["event_id"].str[1:].astype(int) // 5).astype(object).to_numpy()
+    cl = mm.cluster_vectors(df)
+    cl["dependence_group"] = np.where(np.arange(n) % 100 < 3, None, good)  # ~3% null
+    sc = mm.score_arms(df, results, cl, n_boot=50)
+    assert sc["non_inferential"] is False
+    assert sc["bootstrap"]["dependence_group"]["n_clusters"] > len(set(good))

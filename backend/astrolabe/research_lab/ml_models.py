@@ -15,20 +15,20 @@ Arms
 * ``M2``  LightGBM multiclass. 20-config seeded random search over ``LGB_SPACE``
   (``LGB_GRID``) with early stopping and temperature on the inner split only; the winner is
   refitted on the whole training fold with the early-stopping round count. Native NaN.
-* ``M3``  Bayesian hierarchical multinomial logit, fitted as an **empirical-Bayes / Laplace**
-  model in numpy + scipy: Gaussian priors N(0, 0.5^2) on standardised main effects, random
-  intercepts by ``fee_category`` and by event, ``chg_1h`` and ``spread`` slopes partially pooled by
-  category. The group standard deviations are estimated by Laplace-EM (posterior variances from
-  the diagonal of the Hessian) under the design's half-normal(0, 0.5) prior, a fixed number of
-  outer iterations (amendment A1 in the design document justifies this and reports a
-  simulation check, ``simulate_hierarchical_check``), and the coefficients are MAP via
-  L-BFGS. Unseen events and categories get the
-  population value (zero random effect), as the design requires. **Why not NumPyro/NUTS:** the
-  design's M3 (Task 5) needs jax (about 1 GB), MCMC diagnostics and a subsample; this is the
-  lightest correct way to obtain partial pooling on all rows, deterministically and with no new
-  dependency beyond scipy. Its limits: point estimates of the group SDs, a diagonal
-  (cross-class-ignoring) variance approximation, and no posterior intervals. It is named
-  ``M3_eb`` in the logs so it is never confused with the NumPyro model.
+* ``M3``  Bayesian hierarchical multinomial logit (``M3_eb``), numpy + scipy, MAP via L-BFGS.
+  N(0, 0.5^2) priors on standardised main effects. ``fee_category`` intercepts and the
+  ``chg_1h`` / ``spread`` category slopes are **fixed effects** with N(0, 0.5^2) / N(0, 0.3^2)
+  priors and sum-to-zero centring against the global terms (equivalent to fixing their SDs at the
+  prior scale: with a dozen categories the SD is not identifiable, see amendment A1). **Event**
+  intercepts are partially pooled: their SD is estimated by Laplace-EM (posterior variances from
+  the diagonal Hessian, closed-form update under the half-normal(0, 0.5) prior, 5 fixed outer
+  iterations). Unseen events and categories get the population value (zero effect). Temperature
+  is fitted on the same inner split as every other arm. **Why not NumPyro/NUTS:** the design's M3
+  (Task 5) needs jax (about 1 GB), MCMC diagnostics and a subsample; this is the lightest correct
+  way to pool events over all rows, deterministically. Limits: a point estimate of the event SD,
+  a diagonal (cross-class-ignoring) variance approximation, no posterior intervals.
+  ``simulate_hierarchical_check`` reports recovery and coverage. It is named ``M3_eb`` in the
+  logs so it is never confused with the NumPyro model.
 
 Rules enforced here: tuning, early stopping and temperature use only training-fold rows (an
 inner split of the last 25% of training periods with its own purge and embargo); test rows are
@@ -55,6 +55,7 @@ from .compare import paired_bootstrap
 
 SEED = 116
 EPS = 1e-15
+MAX_NULL_CLUSTER_FRACTION = 0.05
 PROB_FLOOR = 1e-6
 INNER_VAL_FRACTION = 0.25
 N_CLASSES = 3
@@ -73,6 +74,8 @@ BAYES_FEATURES: tuple[str, ...] = (
 )
 BAYES_FLAG_FEATURES: tuple[str, ...] = ("ml_own_dmid_prev", "ml_own_vol")
 BAYES_SLOPES: tuple[str, ...] = ("ml_chg_1h", "ml_spread")
+CAT_SD_FIXED = 0.5  # category intercepts: fixed effects, N(0, 0.5^2), sum-to-zero (amendment A1)
+SLOPE_SD_FIXED = 0.3  # category slopes: fixed effects, N(0, 0.3^2), sum-to-zero (amendment A1)
 
 # Fixed search budgets, declared in code (design section 4: the budget is fixed and logged).
 M1_GRID: tuple[dict, ...] = tuple(
@@ -464,6 +467,10 @@ class BayesHier:
             size = int(np.prod(shape))
             th[name] = v[o : o + size].reshape(shape)
             o += size
+        # sum-to-zero centring across categories: the global intercept a0 / main effects carry
+        # the mean, the category terms are deviations from it
+        th["uc"] = th["uc"] - th["uc"].mean(axis=0, keepdims=True)
+        th["S"] = th["S"] - th["S"].mean(axis=0, keepdims=True)
         return th
 
     def _pack(self, th):
@@ -479,7 +486,7 @@ class BayesHier:
         G0 = np.zeros((len(yi), 2))
         G0[yi == 0, 0] = 1.0
         G0[yi == 2, 1] = 1.0
-        self.sd = {"cat": 0.5, "slope": 0.5, "event": 0.5}
+        self.sd = {"cat": CAT_SD_FIXED, "slope": SLOPE_SD_FIXED, "event": 0.5}
         v = np.zeros(self.q * 2 + 2 + self.C * 2 + self.C * ns * 2 + self.E * 2)
         self.sd_trace = []
         self.post_var: dict[str, np.ndarray] = {}
@@ -515,6 +522,8 @@ class BayesHier:
                 "ue": np.column_stack([np.bincount(ei, G[:, k], self.E) for k in (0, 1)])
                 + th["ue"] / self.sd["event"] ** 2,
             }
+            for k in ("uc", "S"):  # gradient of the centred parameters w.r.t. the raw ones
+                g[k] = g[k] - g[k].mean(axis=0, keepdims=True)
             return nll + pen, self._pack(g)
 
         for _ in range(self.n_outer):
@@ -540,6 +549,8 @@ class BayesHier:
             for key, u, h in groups:
                 var = 1.0 / (h + 1.0 / self.sd[key] ** 2)
                 self.post_var[key] = var
+                if key != "event":  # category and slope SDs are fixed at the declared prior scale
+                    continue
                 q_sum, n_par = float((u**2 + var).sum()), u.size
                 s2 = self.hs_scale**2
                 x2 = (-n_par + np.sqrt(n_par**2 + 4 * q_sum / s2)) * s2 / 2
@@ -556,17 +567,30 @@ class BayesHier:
 
 
 def fit_m3(df, train_pos, test_pos, inner, **_) -> FoldFit:
-    tr, te = df.iloc[train_pos], df.iloc[test_pos]
-    ev_tr = _event_or_market(tr)
-    ev_te = _event_or_market(te)
-    m = BayesHier().fit(_xmat(tr, BAYES_FEATURES), _y(df, train_pos), tr["fee_category"], ev_tr)
-    p = m.predict_proba(_xmat(te, BAYES_FEATURES), te["fee_category"], ev_te)
-    n_unseen = int((m.ge.encode(ev_te) < 0).sum())
+    """Event-pooled hierarchical logit. Temperature: same inner-split rule as every other arm."""
+    itr, iva = inner
+
+    def fit_on(pos):
+        d = df.iloc[pos]
+        return BayesHier().fit(
+            _xmat(d, BAYES_FEATURES), _y(df, pos), d["fee_category"], _event_or_market(d)
+        )
+
+    def predict(m, pos):
+        d = df.iloc[pos]
+        return m.predict_proba(_xmat(d, BAYES_FEATURES), d["fee_category"], _event_or_market(d))
+
+    temp = fit_temperature(predict(fit_on(itr), iva), _y(df, iva))
+    m = fit_on(train_pos)
+    p = apply_temperature(predict(m, test_pos), temp)
+    n_unseen = int((m.ge.encode(_event_or_market(df.iloc[test_pos])) < 0).sum())
     return FoldFit(
         p,
         {"group_sd": m.sd, "sd_trace": m.sd_trace, "n_categories": m.C, "n_events": m.E,
          "test_rows_unseen_event": n_unseen, "optimizer_converged": m.converged,
-         "method": "empirical-Bayes Laplace-EM, MAP (not NUTS)"},
+         "temperature": temp, "temperature_source": TEMP_SOURCE,
+         "method": "empirical-Bayes Laplace-EM for event SD; category terms fixed-effect "
+         "priors (not NUTS)"},
     )
 
 
@@ -682,7 +706,7 @@ def fit_fold(arm: str, df: pd.DataFrame, fold: dict, embargo_s: float, *, collec
     train_pos, test_pos = np.flatnonzero(tr_mask), np.flatnonzero(te_mask)
     if len(train_pos) == 0 or len(test_pos) == 0:
         raise ValueError(f"fold {fold['fold']}: empty train or test set")
-    inner = inner_split(df, train_pos, embargo_s) if arm in ("M0", "M1", "M2") else None
+    inner = inner_split(df, train_pos, embargo_s) if arm in ARMS else None
     if inner is not None and not set(np.concatenate(inner)).issubset(set(train_pos)):
         raise AssertionError("inner split leaked outside the training fold")
     kw = {"collect_shap": collect_shap} if arm == "M2" else {}
@@ -769,13 +793,33 @@ def score_arms(
     loss = {a: log_loss_rows(r.proba[mask], y) for a, r in results.items()}
     brier = {a: brier_rows(r.proba[mask], y) for a, r in results.items()}
     required = ("event", "dependence_group")
-    missing = [c for c in required if c not in clusters]
+    reasons: list[str] = []
+    prepared: dict[str, pd.Series] = {}
+    for cname in required:
+        if cname not in clusters:
+            reasons.append(f"cluster definition {cname!r} not supplied")
+            continue
+        cl = pd.Series(np.asarray(clusters[cname], dtype=object)[mask])
+        frac = float(cl.isna().mean()) if len(cl) else 1.0
+        if frac >= 1.0:
+            reasons.append(f"cluster definition {cname!r} is entirely null")
+        elif frac > MAX_NULL_CLUSTER_FRACTION:
+            reasons.append(
+                f"cluster definition {cname!r} has {frac:.1%} null ids "
+                f"(limit {MAX_NULL_CLUSTER_FRACTION:.0%})"
+            )
+        else:  # a few nulls: each null row is its own singleton cluster (counted)
+            prepared[cname] = cl.where(cl.notna(), "__null_" + cl.index.astype(str))
+    for cname in clusters:
+        if not cname.startswith("_") and cname not in required and cname not in prepared:
+            prepared[cname] = pd.Series(np.asarray(clusters[cname], dtype=object)[mask])
+    missing = bool(reasons)
     summary = {
-        "non_inferential": bool(missing),
+        "non_inferential": missing,
         "non_inferential_reason": (
             None if not missing else
-            f"NON-INFERENTIAL: co-primary cluster definition(s) {missing} not supplied; the "
-            "design requires the CI to exclude 0 under BOTH event and dependence-group clusters"
+            "NON-INFERENTIAL: " + "; ".join(reasons) + ". The design requires the CI to exclude "
+            "0 under BOTH valid event and dependence-group clusters"
         ),
         "n_rows": int(mask.sum()),
         "status": "DEVELOPMENT out-of-fold scores; no performance or edge claim",
@@ -785,10 +829,8 @@ def score_arms(
         },
         "bootstrap": {},
     }
-    for cname, cvec in clusters.items():
-        if cname.startswith("_"):
-            continue
-        cl = np.asarray(cvec)[mask]
+    for cname, clser in prepared.items():
+        cl = clser.to_numpy()
         block = {"n_clusters": int(pd.Series(cl).nunique()), "n_boot": n_boot, "seed": seed}
         for metric, rows in (("log_loss", loss), ("brier", brier)):
             bt = paired_bootstrap(cl, rows, baseline, n_boot=n_boot, seed=seed)
@@ -895,15 +937,18 @@ def simulate_hierarchical_check(
 ) -> dict:
     """Fit ``BayesHier`` on synthetic hierarchical data with known group SDs.
 
-    Reports the mean and spread of the estimated SDs against truth, and the empirical coverage
-    of nominal 95% Laplace intervals (estimate +/- 1.96 posterior SD) for the true category
-    intercepts, event intercepts and category slopes of the "up" logit. Nothing is tuned to make
-    the coverage look good; the numbers are reported as they come.
+    The event SD is estimated (Laplace-EM); the category and slope SDs are fixed at
+    ``CAT_SD_FIXED`` / ``SLOPE_SD_FIXED``, so ``sd_cat`` / ``sd_slope`` here may be set away from
+    those values to show the cost of a wrong prior scale. Reports the mean and spread of the
+    estimated event SD, and the empirical coverage of nominal 95% Laplace intervals
+    (estimate +/- 1.96 posterior SD) for the true (sum-to-zero centred) category intercepts, event
+    intercepts and category slopes of the "up" logit. Nothing is tuned to make the numbers look
+    good; they are reported as they come.
     """
     rng = np.random.default_rng(seed)
     q = len(BAYES_FEATURES)
     i_slope = [BAYES_FEATURES.index(c) for c in BAYES_SLOPES]
-    est = {"cat": [], "slope": [], "event": []}
+    est_event: list[float] = []
     hit = {"cat": [], "slope": [], "event": []}
     for _ in range(n_reps):
         uc = rng.normal(0, sd_cat, n_cat)
@@ -914,31 +959,29 @@ def simulate_hierarchical_check(
         ci, ei = rng.integers(0, n_cat, n), rng.integers(0, n_event, n)
         eta = x @ beta + uc[ci] + ue[ei] + (sl[ci] * x[:, i_slope]).sum(1)
         # "up" logit = eta, "down" logit = -eta, flat = 0 (one shared latent, K-1 logits)
-        L = np.column_stack([-eta, np.zeros(n), eta])
-        p = _softmax(L)
+        p = _softmax(np.column_stack([-eta, np.zeros(n), eta]))
         u = rng.random(n)
         y = (u > p[:, 0]).astype(int) + (u > p[:, 0] + p[:, 1]).astype(int)
         m = BayesHier().fit(
             x, y, pd.Series([f"c{i}" for i in ci]), pd.Series([f"e{i}" for i in ei])
         )
-        for k in est:
-            est[k].append(m.sd[k])
+        est_event.append(m.sd["event"])
         # slopes live on the standardised-feature scale: rescale the truth accordingly
         scale = m.prep.sd[i_slope]
-        oc = [{lv: i for i, lv in enumerate(m.gc.levels)}[f"c{i}"] for i in range(n_cat)]
-        te = np.array([ue[int(lv[1:])] for lv in m.ge.levels])
-        hit["cat"].append(_cover(m.theta["uc"][oc, 1], m.post_var["cat"][oc, 1], uc))
+        lv = {v: i for i, v in enumerate(m.gc.levels)}
+        oc = [lv[f"c{i}"] for i in range(n_cat)]
+        te = np.array([ue[int(v[1:])] for v in m.ge.levels])
+        uc_c, sl_c = uc - uc.mean(), (sl - sl.mean(0)) * scale[None, :]
+        hit["cat"].append(_cover(m.theta["uc"][oc, 1], m.post_var["cat"][oc, 1], uc_c))
         hit["event"].append(_cover(m.theta["ue"][:, 1], m.post_var["event"][:, 1], te))
-        hit["slope"].append(
-            _cover(m.theta["S"][oc, :, 1], m.post_var["slope"][oc, :, 1], sl * scale[None, :])
-        )
-    truth = {"cat": sd_cat, "slope": sd_slope, "event": sd_event}
+        hit["slope"].append(_cover(m.theta["S"][oc, :, 1], m.post_var["slope"][oc, :, 1], sl_c))
     return {
         "n_reps": n_reps, "n": n, "n_categories": n_cat, "n_events": n_event,
-        "truth_sd": truth,
-        "estimated_sd_mean": {k: float(np.mean(v)) for k, v in est.items()},
-        "estimated_sd_std": {k: float(np.std(v, ddof=1)) for k, v in est.items()},
+        "truth_sd": {"cat": sd_cat, "slope": sd_slope, "event": sd_event},
+        "fixed_prior_sd": {"cat": CAT_SD_FIXED, "slope": SLOPE_SD_FIXED},
+        "estimated_event_sd_mean": float(np.mean(est_event)),
+        "estimated_event_sd_std": float(np.std(est_event, ddof=1)),
         "coverage_95_mean": {k: float(np.mean(v)) for k, v in hit.items()},
-        "note": "slope truth is on the standardised-feature scale; coverage uses diagonal "
-        "Laplace posterior variances (cross-class and cross-parameter terms ignored)",
+        "note": "coverage uses diagonal Laplace posterior variances (cross-class and "
+        "cross-parameter terms ignored); slope truth is on the standardised-feature scale",
     }

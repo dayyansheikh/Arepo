@@ -473,21 +473,30 @@ Missing data stays missing. Thresholds, δ, τ and the gates are not changed aft
 
 - **Status:** proposed by the Task 4 implementer, **pending `science-reviewer` review**. It changes no frozen quantity (δ, folds, clusters, gates). Code: `backend/astrolabe/research_lab/ml_models.py`.
 
-1. **M3 as empirical-Bayes Laplace-EM (arm name `M3_eb`) instead of NumPyro NUTS/SVI.**
-   - **Model kept:** multinomial logit (flat = reference); N(0, 0.5²) main effects on standardised features; random intercepts by `fee_category` and by event; `chg_1h` and `spread` slopes partially pooled by category; group SDs under a half-normal(0, 0.5) prior; unseen events and categories get the population value.
-   - **Estimation:** coefficients are MAP (L-BFGS, analytic gradient). The group SDs are updated in 5 fixed outer iterations by Laplace-EM: posterior variances come from the diagonal Hessian, and the SD update has a closed form under the half-normal prior.
-   - **Why:** it runs on all rows, deterministically, in numpy/scipy, with no jax (about 1 GB) and no MCMC diagnostics to babysit. The NumPyro model of Task 5 is **not** replaced: `M3_eb` is a cheaper development arm, and any M3 claim in a registration must name which one was used.
-   - **Known limits:** point estimates of the group SDs (no uncertainty on them); a diagonal posterior-variance approximation that ignores cross-class and cross-parameter covariance; no posterior intervals for predictions.
-   - **Simulation check** (`simulate_hierarchical_check`, 20 replications, n = 6,000, 12 categories, 150 events, truth SD: category 0.5, slope 0.3, event 0.6; seed 116; results reported as obtained, nothing tuned):
+1. **M3 as `M3_eb` instead of NumPyro NUTS/SVI (revised after re-review).**
+   - **Model kept:** multinomial logit (flat = reference); N(0, 0.5²) main effects on standardised features; `fee_category` intercepts; `chg_1h` and `spread` category slopes; event random intercepts; unseen events and categories get the population value.
+   - **Revision (re-review):**
+     - **Category intercepts** are **fixed effects** with an N(0, 0.5²) prior and sum-to-zero centring against the global intercept. This is equivalent to fixing the category SD at 0.5.
+     - **Category slopes** are fixed effects the same way, with an N(0, 0.3²) prior. Chosen over "pooled but descriptive" because the first simulation (below) showed the pooled SD estimate was biased low (about −18% for intercepts, −9% for slopes) with only 12 categories, and a biased SD gives a silently wrong shrinkage. A declared prior scale is honest about being an assumption. The 0.3 is smaller than the 0.5 main-effect scale because category deviations are a priori smaller than the average effect. It is not tuned on any data.
+     - **Event intercepts** keep Laplace-EM pooling (5 fixed outer iterations; diagonal-Hessian posterior variances; closed-form update under the half-normal(0, 0.5) prior), since hundreds to thousands of events make the SD identifiable.
+     - **Temperature:** M3_eb is temperature-scaled on the same inner split as every other arm.
+   - **Estimation:** MAP by L-BFGS with an analytic gradient. No jax and no MCMC diagnostics. The NumPyro model of Task 5 is **not** replaced: any M3 claim in a registration must name which one was used.
+   - **Known limits:** a point estimate of the event SD; a diagonal posterior-variance approximation that ignores cross-class and cross-parameter covariance; no posterior intervals for predictions.
+   - **Simulation check, re-run on the revised model before any real-data fit** (`simulate_hierarchical_check`, 20 replications, n = 6,000, 12 categories, 150 events, true event SD 0.6, seed 116; results as obtained, nothing tuned). Coverage is that of nominal 95% Laplace intervals for the true sum-to-zero-centred effects:
 
-     | Group | Mean estimated SD (sd over reps) | Coverage of nominal 95% intervals for the true effects |
-     |---|---|---|
-     | event (0.6) | 0.601 (0.033) | 96.3% |
-     | category slope (0.3, standardised scale) | 0.273 (0.038) | 85.6% |
-     | category intercept (0.5) | 0.408 (0.075) | 71.3% |
+     | Scenario (true category / slope SD) | Mean estimated event SD (sd over reps) | Coverage: category | Coverage: slope | Coverage: event |
+     |---|---|---|---|---|
+     | matched to the priors (0.5 / 0.3) | 0.603 (0.033) | 92.9% | 94.8% | 96.3% |
+     | smaller (0.25 / 0.15) | 0.606 (0.032) | 94.2% | 95.2% | 96.2% |
+     | larger (1.0 / 0.6) | 0.568 (0.028) | 76.2% | 81.2% | 95.3% |
 
-   - **Reading:** the event SD is recovered and its effects are well covered. With only 12 categories, the category SD is biased low (about -18%) and its intercepts under-cover, because the diagonal approximation ignores their covariance with the overall intercept. Slopes are mildly low. M3_eb is therefore adequate for event-level pooling, and category-level results from it are descriptive and probably over-shrunk. If M3 is selected as F\*, the NumPyro arm must be run before registration.
+   - **Reading:** the event SD is recovered in all three scenarios (true 0.6) and event coverage is about 95–96%. Category and slope coverage is near nominal when the fixed prior scale is right or too wide, and **under-covers (76% and 81%) when the true category effects are twice the prior scale**: the fixed prior then over-shrinks. Per-category results from M3_eb are therefore descriptive. If M3 is selected as F\*, the NumPyro arm must be run before registration.
 2. **M1 grid:** `C` ∈ {0.01, 0.1, 1.0} × `l1_ratio` ∈ {0.1, 0.5}, 6 configs, chosen on the inner split. `C` spans two decades around the standardised-feature default (1.0), where 0.01 is strongly shrunk and 1.0 is nearly unpenalised. `l1_ratio` is kept at or below 0.5 because the tier-(a) features are strongly correlated (a ridge-leaning mix keeps correlated groups together; a lasso-leaning mix picks one member arbitrarily). The grid is small on purpose, so the search-accounting trial count stays low. It is not a search for the best-looking result.
 3. **M2:** the design's 20-config random search is implemented: 20 distinct configs drawn without replacement, seed 116, from `LGB_SPACE` (num_leaves, min_data_in_leaf, lambda_l2, feature_fraction), with early stopping on the inner validation block.
-4. **Temperature (all arms, including M0):** fitted on the inner-validation predictions of the model trained on the inner-train rows. It is then applied to the model refitted on the whole training fold with the config (and rounds) fixed. The refit model differs slightly from the one that produced the temperature, which is documented in the fit logs (`temperature_source`) and accepted for development. M3_eb has no temperature.
-5. **Clustering:** `score_arms` returns `non_inferential: true` with a reason unless both the event and the dependence-group cluster vectors are supplied.
+4. **Temperature (all arms, including M0):** fitted on the inner-validation predictions of the model trained on the inner-train rows. It is then applied to the model refitted on the whole training fold with the config (and rounds) fixed. The refit model differs slightly from the one that produced the temperature, which is documented in the fit logs (`temperature_source`) and accepted for development. M3_eb is included.
+5. **Clustering:** `score_arms` returns `non_inferential: true` with a reason unless both the event and the dependence-group cluster vectors are supplied and valid. A vector that is entirely null/NaN, or has more than 5% null ids, is rejected. With at most 5% nulls, each null row is its own singleton cluster.
+
+## Pre-declared sweep-gap diagnostic (added with the ml_panel review fixes)
+
+The book sweep is observed about 7-8 minutes after its snapshot, inside the label window, so a sweep feature may partly carry the sweep-minus-Gamma gap (`rep_sw_gap`). This diagnostic is **pre-declared and mandatory** in every development report that uses `ml_sw_*` features: `ml_panel.sweep_gap_diagnostic` (correlation of each sweep feature with the gap) and `ml_panel.rescore_with_gap_control` (the sweep arm's gain re-scored with the gap controlled, on all rows and on `|gap| < 0.0025`). It is report-only, never gates a verdict, and never removes a feature. Dependence groups use underlying x UTC end date for crypto (`ud:<underlying>|<date>` node added in `ml_panel`).
+
