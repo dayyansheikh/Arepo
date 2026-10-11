@@ -667,6 +667,17 @@ def _analysis():
 
 
 # co-primary / sensitivity rule sets of the analysis (section 8)
+_LABEL_CACHE: dict = {}
+
+
+def _cached(fn, title):
+    """Memoised title -> label (titles repeat across markets and periods; regex tables are slow)."""
+    key = (fn.__name__, title if isinstance(title, str) else None)
+    if key not in _LABEL_CACHE:
+        _LABEL_CACHE[key] = fn(title)
+    return _LABEL_CACHE[key]
+
+
 CATEGORY_RULES = {
     "dep_group": "category_aware",  # fixture-day + weather city x day + culture source
     "dep_group_econ": "category_aware+econ_driver",  # S4
@@ -712,12 +723,14 @@ def category_group_columns(
         "market_id": mids,
         "fee_category": (r["fee_category"].to_numpy() if "fee_category" in r
                          else np.full(len(r), None)),
-        "ent": [an.entity(t) for t in title], "econ": [an.economy(t) for t in title],
+        "ent": [_cached(an.entity, t) for t in title],
+        "econ": [_cached(an.economy, t) for t in title],
         "src": src, "endts": [None if pd.isna(x) else str(x) for x in end],
         "day": an.utc_day(panel._epoch(end)),
     })
     base = np.asarray(base, dtype=object)
-    present = np.isin(mids, rows_i["market_id"].astype(str).to_numpy())
+    have = set(rows_i["market_id"].astype(str))
+    present = np.fromiter((m in have for m in mids), bool, len(mids))
     cols = {name: np.where(present, an.build_category_groups(f, base, an.CAT_RULES[rule]), base)
             for name, rule in CATEGORY_RULES.items()}  # absent markets keep their singleton id
     missing = (pd.isna(pd.Series(title, dtype=object)).to_numpy()
@@ -921,9 +934,12 @@ def add_flow_wallet_columns(
         except (OSError, ValueError):
             report["skipped"].append({"sample": d.name, "reason": "unreadable plan/manifest"})
             continue
-        if not wpath.exists():  # sidecar missing: skipped, never reconstructed
-            report["skipped"].append({"sample": d.name, "reason": "no wallets sidecar"})
+        tpath = d / "trades.csv.gz"
+        if not wpath.exists() and not tpath.exists():
+            report["skipped"].append({"sample": d.name, "reason": "no trades or wallets file"})
             continue
+        # older passes have no wallets sidecar: flow features come from trades.csv.gz and every
+        # wallet feature stays NaN (wallets are never reconstructed)
         snap = str(plan.get("snapshot_id"))
         rows = by_cap.get(snap)
         if rows is not None and snap in used:
@@ -934,12 +950,14 @@ def add_flow_wallet_columns(
             rows = None
         if rows is not None:
             liqmap = {mkt[r]: float(liq[r]) for r in rows if np.isfinite(liq[r])}
-            feat = ff.features_for_sample(  # strictly earlier samples only
-                d, liquidity=liqmap, first_seen=idx)
+            feat = _sample_features(d, plan, wpath if wpath.exists() else tpath, liqmap, idx)
             feat = feat.set_index("market_id")
+            if not wpath.exists():
+                report.setdefault("flow_only_samples", []).append(d.name)
             okset = set(fdf.loc[fdf["status"] == "ok", "market_id"])
             plan_by = {m["market_id"]: m for m in plan["sample"]}
-            keep_cols = [c for c in feat.columns if f"ml_{c}" in wanted]
+            keep_cols = [c for c in feat.columns if f"ml_{c}" in wanted
+                         and (wpath.exists() or not c.startswith("wlt_"))]
             n_join = n_mismatch = 0
             for r in rows:
                 m = plan_by.get(mkt[r])
@@ -965,13 +983,38 @@ def add_flow_wallet_columns(
                                       "n_sampled_plan": len(plan["sample"]),
                                       "frame_size": plan.get("frame_size")})
         # only after joining: a sample never sees itself or later samples
-        idx.add_frame(ff.read_wallets(wpath), d.name)
+        if wpath.exists():
+            idx.add_frame(ff.read_wallets(wpath), d.name)
     report["first_seen_index_sha256"] = idx.digest()
     report["coverage"] = flow_coverage(out, fam)
     report["coverage"]["captures_in_panel"] = len(by_cap)
     report["coverage"]["captures_with_sample"] = len(used)
     out.attrs = dict(panel_df.attrs)
     return out, report
+
+
+def _sample_features(d: Path, plan: dict, src: Path, liquidity: dict, idx) -> pd.DataFrame:
+    """``flow_features`` rows for one sample from its wallets sidecar, or from ``trades.csv.gz``
+    (no wallet_hash) when the pass predates the sidecar. ``idx`` holds strictly earlier samples."""
+    from . import flow_features as ff
+
+    if src.name == "wallets.csv.gz":
+        return ff.features_for_sample(d, liquidity=liquidity, first_seen=idx)
+    w = ff.read_wallets(src)
+    w["wallet_hash"] = None
+    feats = pd.read_csv(d / "features.csv.gz", dtype={"market_id": str})
+    nret = dict(zip(feats["market_id"], feats["n_returned"], strict=True))
+    by = {k: g for k, g in w.groupby("market_id")}
+    rows = []
+    for m in plan["sample"]:
+        mid = m["market_id"]
+        nr = nret.get(mid)
+        f = ff.compute_flow_features(
+            by.get(mid, w.iloc[0:0]), pd.Timestamp(m["origin_utc"]).timestamp(),
+            liquidity=liquidity.get(mid), token0=m.get("token0"), first_seen=idx,
+            n_returned=None if pd.isna(nr) else int(nr))
+        rows.append({"sample_id": plan["sample_id"], "market_id": mid, **f})
+    return pd.DataFrame(rows)
 
 
 def flow_coverage(df: pd.DataFrame, fam: dict[str, tuple[str, ...]]) -> dict:

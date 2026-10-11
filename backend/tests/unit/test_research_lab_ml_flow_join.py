@@ -126,6 +126,17 @@ def test_origin_mismatch_blanks_row_and_incomplete_sample_is_skipped(tmp_path):
     assert [s["reason"] for s in rep["skipped"]] == ["state incomplete"]
 
 
+def test_pass_without_wallet_sidecar_gives_flow_only(tmp_path):
+    root = tmp_path / "s"
+    d = _sample(root, "20261011T050000Z_aaaa", "cap1", {"a": 1}, BASE_TRADES)
+    (d / "wallets.csv.gz").rename(d / "trades.csv.gz")
+    df, rep = ml_panel.add_flow_wallet_columns(_panel(), root)
+    a = _row(df, "a")
+    assert a["ml_flow_sampled"] == 1.0 and a["ml_flow_n_1h"] == 2.0
+    assert a[list(ml_panel.WALLET_NAMES)].isna().all()  # wallets are never reconstructed
+    assert rep["flow_only_samples"] == [d.name]
+
+
 def test_family_selection_fills_only_requested_columns(tmp_path):
     root = tmp_path / "s"
     _sample(root, "20261011T050000Z_aaaa", "cap1", {"a": 1}, BASE_TRADES)
