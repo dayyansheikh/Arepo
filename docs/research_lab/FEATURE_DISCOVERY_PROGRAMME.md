@@ -1,8 +1,8 @@
 # AREPO feature-discovery programme (2026-10-11)
 
 **Status:** programme map and governance proposal. It does not freeze anything, does not change any registered
-experiment, and makes no edge claim. Section 3 needs an accepting `science-reviewer` pass before it binds a
-registration. Data-driven model weights only: the legacy v1 score (`evaluation/research_predictors.py`) is a baseline.
+experiment, and makes no edge claim. Section 3: `science-reviewer` ACCEPT_WITH_CHANGES on ac1243b; changes
+applied 2026-10-11. Data-driven model weights only: the legacy v1 score (`evaluation/research_predictors.py`) is a baseline.
 
 **Objective (user, 2026-10-11).** Find which observable features, combinations, interactions, thresholds and
 regime-dependent relationships predict future Polymarket price movement. Weights are learned from data. Strict
@@ -82,24 +82,31 @@ permutation importance, fold-to-fold rank stability, and agreement across regime
    against M0. Only families whose ablation ΔLL interval excludes 0 under both cluster definitions advance.
 2. **Feature level**, inside surviving families only: grouped/conditional permutation (permute within strata of
    correlated partners), never raw marginal importance alone.
-3. **Interactions and thresholds**, among features from surviving families only: rank candidates by mean |SHAP
-   interaction| and Friedman H on OOF rows, confirm the shape with 2-D ALE. Cap: ≤ 10 interaction pairs carried
-   forward per cycle.
+3. **Interactions and thresholds**, among features from surviving families only. **Discover** on earlier test
+   blocks: rank candidates by mean |SHAP interaction| and Friedman H on OOF rows of the first half of the test
+   blocks. **Judge** only on later blocks: 2-D ALE shape and the ΔLL of adding the interaction, on test blocks not
+   used for discovery. Cap: ≤ 10 interaction pairs carried forward per cycle.
 4. **Regimes**, from a pre-declared list only: probability level (`|mid-0.5|`), liquidity tercile, time to end,
    `fee_category`, trade-active flag, fee/tick era, short-duration crypto. ≤ 5 regime variables per cycle.
    A regime effect is a stable sign/size difference across folds, not a single split that looks good.
 
 **Search budget and multiple testing.**
-- Keep the design §3 caps: ≤ 3 feature-set revisions after the first dev run, one arm selection, one τ selection.
-- Development screens produce rankings and descriptive intervals, never p-value claims. Every attempt (feature,
-  interaction, threshold, regime, horizon) is a `trials.jsonl` line; the trial count is reported in every
-  registration.
-- Triage label: Benjamini-Yekutieli FDR at q = 0.10 across the family screen (valid under dependence), then within
-  surviving families. Labels are "screen-positive", nothing more.
+- **One programme-wide revision budget (chosen rule).** The design §3 cap of ≤ 3 feature-set revisions after the
+  first MC1 dev run is shared by every discovery cycle, not reset per cycle. Adding a family (flow, wallet, own
+  history, new targets) to MC1 counts as one revision. Also kept: one arm selection, one τ selection per arm.
+  When the budget is spent, further screening needs a new registered design with its own budget.
+- **Cumulative accounting.** The trial count and the BY denominator accumulate across all discovery cycles since
+  the first MC1 dev run. Development screens produce rankings and triage labels, never claims. Every attempt
+  (feature, interaction, threshold, regime, horizon) is a `trials.jsonl` line; the cumulative trial count is
+  reported in every registration.
+- **Triage label:** Benjamini-Yekutieli FDR at q = 0.10 across the family screen (valid under dependence), then within
+  surviving families. The p-value is a one-sided clustered bootstrap p-value for family-ablation ΔLL > 0, taken
+  under the more conservative (larger p) of the two cluster definitions. A family is "screen-positive" only if it
+  passes BY **and** the both-cluster CI filter in step 1. Labels are "screen-positive", nothing more.
 - Confirmation spends α once per registration: one confirmatory model per cycle (the MC1 pattern), fixed-sequence
   gatekeeping or Holm within a declared family, 2-4 concurrent confirmatory slots (Phase 4 governance item 6).
 - **Dev vs confirmation split:** development = everything before the registration commit (plus sealed historical
-  holdouts, ≤ 3 reads per source, handoff §4); confirmation = origins strictly after the commit. Confirmation data
+  holdouts, ≤ 3 reads per source **programme-wide**, handoff §4); confirmation = origins strictly after the commit. Confirmation data
   are never used to rank, select or tune. A finding found on a dataset cannot be confirmed on the same dataset.
 - **Selection bias:** expect shrinkage (E002 kept ~2/3 of its dev effect). The registered MDE uses the dev `sd_c`;
   report the dev estimate next to the confirmation estimate.
@@ -114,6 +121,13 @@ permutation importance, fold-to-fold rank stability, and agreement across regime
 | L3 | Registered | Ledger registration, MDE, frozen artifacts (sha256), accepting `science-reviewer` pass |
 | L4 | Prospectively confirmed | Scored once under the registration; verdict recorded whatever its sign |
 | L5 | Economically checked | Separate H2a/H2b-style test at stated size, spread, fees; still "optimistic, not tradable" |
+
+**Model choice (Phase 4 amendment A-ML1).** M2, M3 and E50 are development challengers only. F\* defaults to M1;
+a complex arm replaces M1 only if its paired ΔLL vs M1 has a CI excluding 0 under both cluster definitions, its sign
+is stable in ≥ 2/3 of test blocks, and the development span covers ≥ 16 independent days (the Stage-2 day count).
+
+**Ensembles.** Fully nested: weights for a scored block come only from out-of-fold predictions on earlier blocks,
+shrunk toward 0.5. Fitting the weights counts as the one arm selection; calibration is nested the same way.
 
 Promotion beyond L5 goes to Phase 8/10 review. Negative and inconclusive results stay in the ledger at their rung.
 
@@ -140,7 +154,11 @@ First passage (T3) and path extrema (T4) stay out of scope until dense quote pat
   momentum, not as point-in-time features) and Data API trades.
 - **First use:** estimate per-day variance of ΔLL to set MDEs, and run the family-level screen on flow and wallet
   families, which our own collection cannot yet supply at depth.
-- **Labelling** (`evidence_role` in every manifest and trial): `development` (own pre-registration data or
+- **Survivorship:** each historical source's manifest records how its universe was built (are delisted,
+  never-traded and unresolved markets included?) and states the exclusions; results are labelled with them.
+- **Labelling.** `evidence_role` is a **required** field in every manifest and in every `trials.jsonl` line of new
+  ML/history kinds; a missing role means the record is rejected. L4 confirmation scoring refuses any role other
+  than `prospective_confirmation`. Roles: `development` (own pre-registration data or
   historical dev windows); `historical_holdout` ("historical out-of-sample, third-party, post-hoc-selected
   source, possibly different regime"); `prospective_confirmation` (own data after a registration commit only).
   Historical results can reach L2, never L4. Transport to AREPO's full universe is never assumed.
@@ -168,8 +186,9 @@ spot/IV, then GDELT, then Kalshi.
 
 1. Land agents (a)-(d) with tests; register their features under declared families (`ml_flow`, `ml_wallet`)
    and their targets under versioned names; nothing enters the MC1 feature set retroactively.
-2. `science-reviewer` pass on §3 of this document; on acceptance add a ledger methods note (M3) adopting the
-   ladder, budget and BY triage.
+2. `science-reviewer` pass on §3: ACCEPT_WITH_CHANGES, changes applied. Add a ledger methods note (M3) adopting
+   the ladder, programme-wide budget and BY triage. Code task (later, not docs): enforce required `evidence_role`
+   in manifests and `trials.jsonl` for new ML/history kinds, and the L4 role check in confirmation scoring.
 3. MC1 development run (`scripts/run_ml_dev.py`, gate ~14-15 Oct): all arms, family ablations, SHAP, placebos;
    ranks tier-(a) families (L1/L2).
 4. Historical family screen for trade-flow and wallet families on the dev windows (agent a/b data), regime
@@ -179,4 +198,4 @@ spot/IV, then GDELT, then Kalshi.
 7. Economic check (H2a/H2b) only after predictive support; fee table P1 first.
 8. Tier-(b) adapters one at a time (crypto spot/IV first), each with its own admission note and fresh dev data.
 9. Resolution-label collector, then MC2 (T5).
-10. Ensembles (Phase 7) only once ≥ 2 locked constituents exist.
+10. Ensembles (Phase 7) only once ≥ 2 locked constituents exist, fully nested as in §3.

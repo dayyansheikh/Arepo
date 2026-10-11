@@ -120,9 +120,13 @@ one has a scored verdict; post hoc dev screens (`features_dev.py` style) generat
   `../../research_lab/MULTI_SIGNAL_PIPELINE_DESIGN.md` (MC1, reviewed and accepted).
 - Cross-cycle feature, interaction and regime discovery, the promotion ladder (exploratory, dev-validated,
   registered, prospectively confirmed, economically checked) and the search budget are in
-  `../../research_lab/FEATURE_DISCOVERY_PROGRAMME.md` (governance section pending `science-reviewer` review).
-- For this track, development fits of elastic net, LightGBM and the hierarchical model follow the design's own
-  budget and gates; the Stage-2 non-goal below still governs any other registration.
+  `../../research_lab/FEATURE_DISCOVERY_PROGRAMME.md` (science-reviewer: ACCEPT_WITH_CHANGES, applied).
+- **Amendment A-ML1 (2026-10-11; resolves the conflict with the Stage-2 non-goal).**
+  1. In the multi-signal track, M2 (LightGBM), M3 (hierarchical) and E50 are **development challengers only**.
+  2. F\* defaults to M1 (elastic net). A complex arm replaces M1 only if all hold: its paired ΔLL vs M1 has a CI
+     excluding 0 under both cluster definitions; its sign is stable in ≥ 2/3 of test blocks; and the development
+     span covers ≥ 16 independent days (the Stage-2 day count).
+  3. The Stage-2 non-goal below otherwise stands, and still governs every other registration.
 
 ## Data-readiness criteria
 
