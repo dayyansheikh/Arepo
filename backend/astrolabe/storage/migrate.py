@@ -52,7 +52,7 @@ _load_all_models()
 # Bump whenever the ORM gains tables/columns. This is a monotonic marker recorded in
 # ``schema_migrations``; the actual work is metadata-driven so the number is documentation, not a
 # script selector.
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 SCHEMA_VERSION_NOTES = {
     1: "initial create_all schema",
     2: "research per-family directions (momentum/orderbook/tradeflow) + edge-research tables",
@@ -73,6 +73,8 @@ SCHEMA_VERSION_NOTES = {
         "digest_deliveries/digest_entries + Postgres RLS on private account tables",
     12: "discovery_signal_snapshots/research_entries primary_category (causal category reuse for "
         "Opportunities, digests and prospective Replay; old rows remain NULL)",
+    13: "indexes on signal_snapshots.calculation_version + cohort_entries.snapshot_id "
+        "(Supabase unindexed-foreign-key advisor; additive)",
 }
 
 _VERSION_TABLE = "schema_migrations"
@@ -178,6 +180,14 @@ _PRIVATE_ACCOUNT_TABLES = (
 )
 
 
+# (index name, table, column) — names match SQLAlchemy's ``ix_<table>_<column>`` convention so a
+# fresh ``create_all`` and this upgrade step converge on the same index.
+_FK_INDEXES = (
+    ("ix_signal_snapshots_calculation_version", "signal_snapshots", "calculation_version"),
+    ("ix_cohort_entries_snapshot_id", "cohort_entries", "snapshot_id"),
+)
+
+
 def _is_already_exists(exc: Exception) -> bool:
     msg = str(exc).lower()
     return "already exists" in msg or "duplicate column" in msg or "duplicate_column" in msg
@@ -212,7 +222,14 @@ def _upgrade_sync(conn: Connection) -> dict:
     if conn.dialect.name == "postgresql":
         for table_name in _PRIVATE_ACCOUNT_TABLES:
             conn.execute(text(f"ALTER TABLE {table_name} ENABLE ROW LEVEL SECURITY"))
-    # 4. Record the schema version if we advanced it.
+    # 4. Covering indexes for foreign keys that predate their ``index=True`` (Supabase advisor
+    # "unindexed foreign keys"). ``create_all`` only indexes NEW tables, so add them idempotently.
+    # Both tables are tiny legacy weekly-cohort tables; the build is instant.
+    for index_name, table_name, column_name in _FK_INDEXES:
+        conn.execute(text(
+            f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({column_name})"
+        ))
+    # 5. Record the schema version if we advanced it.
     before = _read_version(conn)
     if before < SCHEMA_VERSION:
         _set_version(conn, SCHEMA_VERSION)
