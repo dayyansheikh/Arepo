@@ -659,3 +659,28 @@ E007 dev_fit.json sha256: 7e2c4f79079ced0c74ad1899cfb3536e71f97385c499d9730dd620
 
 - D120 passed (authoritative, PASS_WITH_CAVEATS): 6/6 group-disjoint complete pairs, 0 engineering findings, one run. It validates the pairing mechanism only. It is not an effect result, says nothing about fill reliability, and does not establish economic independence of pairs.
 - Evidence: `docs/implementation/PHASE_03_D120_EVIDENCE.json`; disclosures: `docs/implementation/d120/D120_ADDENDUM.md`; decision D120 / D121 in `AREPO_V2_DECISIONS.md`.
+
+## Results: E004, E005, E006 (scored once, about 23:00Z on 2026-10-11)
+
+All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T223104Z`), giving 11 periods. Results are in `data-dumps/research_lab/e00{4,5,6}/results.json`, with git head `b27cf8c` at scoring. An independent challenger (science-reviewer) verified the integrity, the frozen hashes and that each verdict rule was applied exactly.
+
+- **E004: Supported (exploratory, prospective). Challenger: CONFIRMED_WITH_CAVEATS.**
+  - R²_oos 0.0385, CI [0.0194, 0.0538]; 8/11 periods positive (exactly at the threshold); slope -0.226, CI [-0.253, -0.195]; 475,740 pairs; 15,103 events.
+  - Execution: touch-to-touch mean P&L -0.045/share, CI [-0.047, -0.043], hit rate 5.4%, 9,541 trades. The optimistic mid-exit gives +0.019, CI [0.013, 0.025].
+  - Reading: the reversal is *consistent with* quote noise / bid-ask bounce. It is **not tradable as a taker**, and touch-to-touch is itself optimistic.
+  - Caveat: about 22h of one day means 1–2 independent time blocks; period 0 alone contributes R² 0.12.
+- **E005: Not supported. Challenger: CONFIRMED.**
+  - Incremental R² -0.00015; 2/11 periods positive.
+  - The confirmation slope (+0.062) has the opposite sign to the frozen b (-0.059). Treat it as noise; it does not license a follow-up.
+- **E006: H1 and H2 Supported on sign only. Challenger: CONFIRMED_WITH_CAVEATS.**
+  - H1 (liquidity): θ 0.051, p 0.002. θ > 0 means the reversal is weaker in liquid markets and stronger in illiquid ones, consistent with bounce.
+  - H2 (time-to-end): θ -0.017, p 0.012. The reversal is stronger further from the end date.
+  - Holm rejects both, and the sign holds in 9/11 periods.
+  - **However:** secondary S1 shows the frozen M_k models are significantly WORSE than R (ΔR² H1 -0.0041, H2 -0.0109). The sign transferred; the magnitude did not.
+  - Do not quote θ/γ: γ is unstable because of collinearity.
+  - Possible contamination: R's offset term sits in the residual. A disclosed sensitivity (adding an intercept and the spread level) is owed; it cannot change the verdict.
+  - Liquidity-correlated survivorship: target unavailable in 0.66% of the low tercile vs 0.22% of the high tercile.
+- **Licensed claims:** only exploratory and prospective claims, on about one day of Gamma quotes. No tradability, edge, transferable effect size or generality across time.
+- **Minor records:**
+  - E006 provenance cites E004's registration time; the actual time is 00:24:23Z (commit 32e6907), 19 s before the first qualifying capture.
+  - E006 `dev_fit.json` is untracked; its hash is in `trials.jsonl`.
