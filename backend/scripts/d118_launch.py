@@ -38,7 +38,7 @@ REQUIRED_FROZEN = frozenset({
     'backend/scripts/evaluate_d118.py',
     'backend/tests/unit/test_research_panel_d118_evaluator.py',
 })
-RESERVATION = 15591276544  # 7 GiB frame cap + 4x4 panel/window/runtime reservation + 34 MiB
+RESERVATION = 14449901568  # 7 GiB frame cap + 4x3 panel/window/runtime reservation + 34 MiB
 MARGIN = 1024 ** 3
 COLLECTORS = ('collect_universe_snapshot', 'sweep_books', 'sample_trades', 'run_forecast')
 ROW = re.compile(r'^\|\s*`([^`]+)`[^|]*\|\s*`([^`]*)`\s*\|\s*$')

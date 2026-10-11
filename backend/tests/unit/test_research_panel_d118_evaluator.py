@@ -209,8 +209,8 @@ def test_frozen_d118_values():
 
     protocol_ = ev.D118_PROTOCOL
     assert {k: v for k, v in protocol_.items() if d116.D116_PROTOCOL[k] != v} == {
-        "scheduled_slots": 16, "triggered_slots": 16,
-        "scheduled_per_stratum": 4, "triggered_per_stratum": 4}
+        "scheduled_slots": 12, "triggered_slots": 12,
+        "scheduled_per_stratum": 3, "triggered_per_stratum": 3}
     frozen = ev.FROZEN_EXPECTATIONS
     assert frozen["panel"] == {"strata_limit": 4, "population_policy": LIQUIDITY_POPULATION}
     assert frozen["worker"]["runtime_concurrency"] == 8
@@ -237,7 +237,7 @@ def test_pass_with_observed_pair(tree):
     assert report["summary"]["pairs_both_complete"] == 1
     assert report["gates"]["E2"]["population_exclusion_counts"] == {LIQUIDITY_BELOW: 1}
     assert report["diagnostics"]["max_window_age_at_freeze_s"] is not None
-    assert "observed_origins_of_16" in report["diagnostics"]
+    assert "observed_origins_of_12" in report["diagnostics"]
     # The fixture's Gamma market bodies carry no event ids: dependence is not established.
     dependence = report["pairs"][0]["dependence"]
     assert dependence["state"] == "unknown_group_membership"

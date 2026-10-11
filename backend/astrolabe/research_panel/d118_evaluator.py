@@ -42,10 +42,10 @@ common_mode_flags = _d116.common_mode_flags
 
 D118_PROTOCOL = {
     **_d116.D116_PROTOCOL,
-    "scheduled_slots": 16,
-    "triggered_slots": 16,
-    "scheduled_per_stratum": 4,
-    "triggered_per_stratum": 4,
+    "scheduled_slots": 12,
+    "triggered_slots": 12,
+    "scheduled_per_stratum": 3,
+    "triggered_per_stratum": 3,
 }
 RUN_NAME = "d118_control_pairing_1"
 FROZEN_PANEL_NAME = "fs2_panel_" + RUN_NAME

@@ -102,4 +102,4 @@ def test_protocol_has_exactly_one_d118_script_block():
     assert "fs2_panel_d118_control_pairing_1" in script
     assert "population_policy=LIQUIDITY_POPULATION" in script
     assert "runtime_concurrency=8" in script
-    assert re.search(r"scheduled_per_stratum=4,triggered_per_stratum=4", script)
+    assert re.search(r"scheduled_per_stratum=3,triggered_per_stratum=3", script)
