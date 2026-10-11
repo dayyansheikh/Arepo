@@ -56,6 +56,22 @@ Edge search now goes through combined models plus SHAP, not a chain of single E-
 ## Hourly update job
 Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` deleted).
 
+## Feature-discovery programme (user objective, 2026-10-11 evening)
+- **Mapping and governance:** `research_lab/FEATURE_DISCOVERY_PROGRAMME.md` (09afff6), plus Phase 4 amendment A-ML1. M1 is the default F*. Complex arms must beat M1 (CI under both clusterings, ≥2/3 blocks stable, ≥16 dev days). Budgets are cumulative.
+- **Done:**
+  - `flow_features.py` and `wallet_sidecar.py` (b3923b5): HMAC wallet hashes; E007 files unchanged.
+  - `ml_explain.py`: ranks by incremental out-of-sample ΔLL; `demonstrated_incremental_value` vs `descriptive_only`.
+  - Horizons h1/h3/h12 plus magnitude and binary targets (389a677).
+- **Running agents (usage budget high until Wed 14 Oct; user asked for max progress):**
+  - `history_backfill` (CLOB prices-history plus Data API trades; exploratory_historical);
+  - non-sports dependence analysis (Opus max);
+  - integration (flow/wallet into the panel, evidence_role enforcement, cumulative counter);
+  - `history_sources` (historical books, on-chain wallet history);
+  - `resolution_dev` (T5 resolution forecasting, Opus);
+  - `external_news` (GDELT);
+  - `economics` (fees, slippage, paper P&L, break-even).
+- **Disk caps:** history 1.5 GB, sources 1 GB, resolution 2 GB, news 0.5 GB.
+
 ## Exact next actions
 1. When pass 8 completes: run the loop steps above.
 2. Placebos in run_ml_dev, then a science review of the runner, fixture-day grouping and placebos.
