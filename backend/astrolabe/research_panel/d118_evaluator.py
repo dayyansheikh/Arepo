@@ -55,7 +55,6 @@ FROZEN_ROOT_NAMES = {
     "activation": "fs2_activation_" + RUN_NAME,
     "runtime": "fs2_runtime_" + RUN_NAME,
 }
-WRAPPER_PREFIX = "fs2_d118_control_pairing_1"
 FROZEN_EXPECTATIONS = copy.deepcopy(_d116.FROZEN_EXPECTATIONS)
 FROZEN_EXPECTATIONS["panel"] = {"strata_limit": 4, "population_policy": LIQUIDITY_POPULATION}
 FROZEN_EXPECTATIONS["worker"]["runtime_concurrency"] = 8

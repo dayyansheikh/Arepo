@@ -2,6 +2,8 @@
 
 import importlib.util
 import re
+import types
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -55,6 +57,73 @@ def test_missing_extra_and_duplicate_rows_fail_closed():
 def test_absent_record_fails_closed(tmp_path):
     with pytest.raises(Err, match="not frozen"):
         launch.load_frozen(tmp_path)
+
+
+def test_required_frozen_pins_the_new_code_and_tests():
+    assert launch.REQUIRED_FROZEN == {
+        launch.PROTOCOL,
+        "backend/astrolabe/research_panel/d118_evaluator.py",
+        "backend/astrolabe/research_panel/d116_evaluator.py",
+        "backend/astrolabe/research_panel/panel_declaration.py",
+        "backend/astrolabe/research_panel/panel_selection.py",
+        "backend/scripts/evaluate_d118.py",
+        "backend/scripts/d118_launch.py",
+        "backend/tests/unit/test_research_panel_d118_evaluator.py",
+        "backend/tests/unit/test_research_panel_liquidity_population.py",
+        "backend/tests/unit/test_d118_launch.py",
+    }
+    for rel in launch.REQUIRED_FROZEN:
+        assert (launch.REPO / rel).is_file(), rel
+    assert launch.FROZEN_CODE_PATHS == (
+        "backend/astrolabe", "backend/scripts/d118_launch.py", "backend/scripts/evaluate_d118.py")
+
+
+def test_freeze_commit_is_read_once_and_fails_closed(tmp_path):
+    commit = "0123456789abcdef0123456789abcdef01234567"
+    text = record(full(), f"\nFreeze commit: `{commit}`\n")
+    assert launch.parse_freeze_commit(text) == commit
+    for bad in ("", "Freeze commit: `<fill at freeze>`", f"Freeze commit: `{commit.upper()}`",
+                f"Freeze commit: `{commit}`\nFreeze commit: `{commit}`"):
+        with pytest.raises(Err, match="exactly one freeze commit"):
+            launch.parse_freeze_commit(record(full(), bad))
+    (tmp_path / "docs" / "implementation").mkdir(parents=True)
+    (tmp_path / launch.FREEZE_RECORD).write_text(text)
+    assert launch.load_frozen(tmp_path) == (full(), commit)
+
+
+def test_code_unchanged_since_freeze_uses_git_diff_quiet():
+    calls = []
+
+    def fake(rc):
+        def run_git(*args):
+            calls.append(args)
+            return types.SimpleNamespace(returncode=rc)
+        return run_git
+
+    launch.check_code_unchanged("f" * 40, fake(0))
+    assert calls[-1] == ("diff", "--quiet", "f" * 40, "HEAD", "--", "backend/astrolabe",
+                         "backend/scripts/d118_launch.py", "backend/scripts/evaluate_d118.py")
+    for rc in (1, 128):  # changed code, or an unknown commit: both refuse
+        with pytest.raises(Err, match="frozen code differs"):
+            launch.check_code_unchanged("f" * 40, fake(rc))
+
+
+@pytest.mark.parametrize("hour,minute,refused", [
+    (10, 14, False), (10, 15, True), (10, 30, True), (10, 45, True), (10, 46, False),
+    (0, 20, True), (22, 40, True), (9, 30, False), (11, 15, False), (23, 45, False)])
+def test_collector_window_refusal(hour, minute, refused):
+    now = datetime(2026, 10, 11, hour, minute, 59, tzinfo=UTC)
+    if refused:
+        with pytest.raises(Err, match="collector window"):
+            launch.check_collector_window(now)
+    else:
+        launch.check_collector_window(now)
+    # Judged in UTC whatever the input zone (UTC+1 local 11:30 is 10:30 UTC).
+    local = now.astimezone(timezone(timedelta(hours=1)))
+    assert (local.hour % 2 == 1) == (now.hour % 2 == 0)
+    if refused:
+        with pytest.raises(Err):
+            launch.check_collector_window(local)
 
 
 def test_verify_frozen_matches_and_detects_mismatch(tmp_path):

@@ -7,9 +7,15 @@ run roots), D118 protocol section 7:
 2. the frozen hashes are read from the artefact table of
    ``docs/implementation/PHASE_03_D118_FREEZE_RECORD.md`` and every file matches; a missing record,
    a missing or extra row, or an unfilled hash fails closed (no hashes live in this file);
-3. free disk >= reservation + 1 GiB (the script re-checks the reservation);
-4. no AREPO collector process is running (D116 addendum near-miss);
-5. no derived root or wrapper file exists.
+3. the freeze record names the freeze commit (``Freeze commit: `<40 hex>```) and
+   ``git diff --quiet <freeze commit> HEAD -- backend/astrolabe backend/scripts/d118_launch.py
+   backend/scripts/evaluate_d118.py`` succeeds (no code change since the freeze);
+4. free disk >= reservation + 1 GiB (the script re-checks the reservation);
+5. the current UTC time is not within HH:15-HH:45 of an even hour (research-lab collector window)
+   and no AREPO collector process is running (D116 addendum near-miss);
+6. no derived root or wrapper file exists.
+
+After the run the collectors are checked again and recorded in result.json.
 
 The isolated database URL is recorded in full in launch.json (D116 recorded a bare path).
 """
@@ -35,12 +41,21 @@ REQUIRED_FROZEN = frozenset({
     PROTOCOL,
     'backend/astrolabe/research_panel/d118_evaluator.py',
     'backend/astrolabe/research_panel/d116_evaluator.py',
+    'backend/astrolabe/research_panel/panel_declaration.py',
+    'backend/astrolabe/research_panel/panel_selection.py',
     'backend/scripts/evaluate_d118.py',
+    'backend/scripts/d118_launch.py',
     'backend/tests/unit/test_research_panel_d118_evaluator.py',
+    'backend/tests/unit/test_research_panel_liquidity_population.py',
+    'backend/tests/unit/test_d118_launch.py',
 })
+# Code paths that must be byte-identical between the freeze commit and the launch HEAD.
+FROZEN_CODE_PATHS = ('backend/astrolabe', 'backend/scripts/d118_launch.py',
+                     'backend/scripts/evaluate_d118.py')
 RESERVATION = 14449901568  # 7 GiB frame cap + 4x3 panel/window/runtime reservation + 34 MiB
 MARGIN = 1024 ** 3
 COLLECTORS = ('collect_universe_snapshot', 'sweep_books', 'sample_trades', 'run_forecast')
+FREEZE_COMMIT = re.compile(r'^Freeze commit:\s*`([0-9a-f]{40})`\s*$', flags=re.M)
 ROW = re.compile(r'^\|\s*`([^`]+)`[^|]*\|\s*`([^`]*)`\s*\|\s*$')
 HEX64 = re.compile(r'^[0-9a-f]{64}$')
 
@@ -83,11 +98,29 @@ def parse_freeze_record(text):
     return table
 
 
+def parse_freeze_commit(text):
+    """The single ``Freeze commit: `<40 hex>``` line of the freeze record; fail closed otherwise."""
+    found = FREEZE_COMMIT.findall(text)
+    if len(found) != 1:
+        raise PreconditionError(
+            f'freeze record must name exactly one freeze commit, found {len(found)}')
+    return found[0]
+
+
 def load_frozen(repo=REPO):
     record = repo / FREEZE_RECORD
     if not record.is_file():
         raise PreconditionError(f'D118 is not frozen: {FREEZE_RECORD} absent')
-    return parse_freeze_record(record.read_text())
+    text = record.read_text()
+    return parse_freeze_record(text), parse_freeze_commit(text)
+
+
+def check_code_unchanged(freeze_commit, run_git=None):
+    """``git diff --quiet <freeze commit> HEAD -- <frozen code paths>``; non-zero refuses."""
+    run_git = run_git or git
+    rc = run_git('diff', '--quiet', freeze_commit, 'HEAD', '--', *FROZEN_CODE_PATHS).returncode
+    if rc != 0:
+        raise PreconditionError(f'frozen code differs from freeze commit {freeze_commit} (rc {rc})')
 
 
 def verify_frozen(table, repo=REPO):
@@ -112,6 +145,13 @@ def running_collectors(pgrep=None, own_pids=None):
         if lines:
             found[name] = lines
     return found
+
+
+def check_collector_window(now):
+    """Refuse inside HH:15-HH:45 (inclusive) of an even UTC hour: the collector window."""
+    now = now.astimezone(UTC)
+    if now.hour % 2 == 0 and 15 <= now.minute <= 45:
+        raise PreconditionError(f'inside the even-hour collector window: {now.isoformat()}')
 
 
 def check_disk(free):
@@ -141,12 +181,14 @@ def database_url(scratch=SCRATCH):
 
 
 def preconditions():
-    frozen = load_frozen()
+    frozen, freeze_commit = load_frozen()
     verify_frozen(frozen)
     if git('merge-base', '--is-ancestor', '8afbdff', 'HEAD').returncode != 0:
         raise PreconditionError('HEAD does not descend from 8afbdff')
     if git('status', '--porcelain', '--untracked-files=no').stdout.strip():
         raise PreconditionError('tracked tree not clean')
+    check_code_unchanged(freeze_commit)
+    check_collector_window(datetime.now(UTC))
     collectors = running_collectors()
     if collectors:
         raise PreconditionError(f'collector process running: {collectors}')
@@ -154,12 +196,12 @@ def preconditions():
     check_disk(free)
     check_absent()
     script = extract_script((REPO / PROTOCOL).read_text())
-    return frozen, free, script
+    return frozen, freeze_commit, free, script
 
 
 def main():
     try:
-        frozen, free, script_text = preconditions()
+        frozen, freeze_commit, free, script_text = preconditions()
     except PreconditionError as exc:
         sys.exit(f'D118 launch refused: {exc}')
     SCRATCH.mkdir(parents=True, exist_ok=True)
@@ -173,7 +215,9 @@ def main():
     launch = {'implementation_commit': head, 'started_at': datetime.now(UTC).isoformat(),
               'script_sha256': sha(script), 'protocol_sha256': frozen[PROTOCOL],
               'freeze_record_sha256': sha(REPO / FREEZE_RECORD), 'frozen_hashes': frozen,
-              'frozen_hashes_verified': True, 'ancestor_8afbdff': True, 'free_bytes': free,
+              'frozen_hashes_verified': True, 'freeze_commit': freeze_commit,
+              'code_unchanged_since_freeze': True, 'ancestor_8afbdff': True,
+              'outside_collector_window': True, 'free_bytes': free,
               'required_free_bytes': RESERVATION + MARGIN, 'collectors_running': {},
               'command': cmd, 'env_overrides': {'AUTO_MIGRATE': 'false',
                                                 'DIGEST_EMAIL_ENABLED': 'false',
@@ -183,8 +227,9 @@ def main():
     with (open(DD / f'{PREFIX}_stdout.log', 'w') as out,
           open(DD / f'{PREFIX}_stderr.log', 'w') as err):
         rc = subprocess.run(cmd, cwd=REPO / 'backend', env=env, stdout=out, stderr=err).returncode
-    result = dict(launch, completed_at=datetime.now(UTC).isoformat(),
-                  elapsed_ns=str(time.monotonic_ns() - t0), returncode=rc)
+    elapsed = str(time.monotonic_ns() - t0)
+    result = dict(launch, completed_at=datetime.now(UTC).isoformat(), elapsed_ns=elapsed,
+                  returncode=rc, collectors_running_after=running_collectors())
     (DD / f'{PREFIX}_result.json').write_text(json.dumps(result, indent=2))
     print(json.dumps({'returncode': rc, 'head': head}))
 

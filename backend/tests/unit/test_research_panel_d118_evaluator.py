@@ -431,3 +431,127 @@ def test_cli_requires_launch_commit_and_writes_report(tree, tmp_path, capsys):
     assert report["outcome"] == "FAIL" and report["authoritative"] is False
     with pytest.raises(SystemExit):
         cli.main([str(root / PANEL), "--out", str(out), "--launch-commit", "0" * 40])
+
+
+# ---- acceptance path: a correct D118 tree with the exact frozen values ----------------------
+# 4 strata x 3 members (12/12 slots), liquidity population, the D118 protocol constants, the D116
+# trigger/freshness/window policies, concurrency 8 and runtime concurrency 8. Every value below is
+# built from its constructor, not copied from the evaluator, so E1 is a genuine comparison.
+
+FROZEN_STRATA = [("5000", '["0.3","0.7"]'), ("5000", '["0.6","0.4"]'),
+                 ("50000", '["0.3","0.7"]'), ("500000", '["0.6","0.4"]')]
+
+
+def _frozen_rows():
+    rows, index = [], 1
+    for liquidity, prices in FROZEN_STRATA:
+        for _ in range(4):  # three drawn members plus one spare per stratum
+            rows.append(market(index, description="Rules", archived=False, acceptingOrders=True,
+                               events=[{"id": "42"}], endDate="2099-01-01T00:00:00Z",
+                               liquidity=liquidity, outcomePrices=prices))
+            index += 1
+    rows.append(market(index, description="Rules", archived=False, acceptingOrders=True,
+                       events=[{"id": "42"}], endDate="2099-01-01T00:00:00Z", liquidity="10",
+                       outcomePrices='["0.3","0.7"]'))
+    return rows
+
+
+async def _build_frozen(root: Path):
+    from astrolabe.research_panel.bound_window import WindowBindingPolicy
+    from astrolabe.research_panel.origin_window import OriginWindowPolicy
+    from astrolabe.research_panel.owned_windows import OwnedWindowPolicy
+    from astrolabe.research_panel.panel_declaration import PanelProtocol
+    from astrolabe.research_panel.screening import ScreeningPolicy
+    from astrolabe.research_panel.screening_worker import run_synthetic_window_pilot
+    from astrolabe.research_panel.trigger_computation import SnapshotTriggerPolicy
+    from astrolabe.research_panel.window_reconciliation import WindowReconciliationPolicy
+
+    root.mkdir(parents=True)
+    code = _original_code(root)
+    rows = _frozen_rows()
+    source = await frame(root, rows)
+    panel = root / PANEL
+    frozen_protocol = PanelProtocol(
+        scheduled_slots=12, triggered_slots=12, controls_per_trigger=1, cycles=1,
+        target_attempts=1, scheduled_per_stratum=3, triggered_per_stratum=3,
+        cadence_seconds=120, max_origin_delay_seconds=60, max_origin_save_seconds=5,
+        horizon_seconds=60, tolerance_seconds=15, max_frame_age_seconds=3600,
+        max_frame_interval_seconds=600, max_quote_age_seconds=60, max_identity_age_seconds=180,
+        source_response_bytes=65536, source_run_retained_bytes=1048576)
+    declare_panel(source, implementation_commit=code[1], output_root=panel,
+                  protocol=frozen_protocol, strata_limit=4, storage_profile="compact-v1",
+                  population_policy=LIQUIDITY_POPULATION)
+    create_panel_selection(panel, repository=code[0])
+    by_token = {json.loads(r["clobTokenIds"])[0]: r for r in rows}
+    # Alternate members trigger (bid 2 vs ask 1, |imbalance| 1/3) so every stratum has pairs.
+    _transport_rows = _transport(
+        rows, lambda i, n: (_side("2" if int(i) % 2 else "1"), ASK))
+
+    async def handle(socket):
+        token = json.loads(await socket.recv())["assets_ids"][0]
+        row = by_token[token]
+        try:
+            while True:
+                await socket.send(json.dumps({
+                    "event_type": "book", "asset_id": token, "market": row["conditionId"],
+                    "bids": _side("2"), "asks": ASK}))
+                await asyncio.sleep(0.5)
+        except Exception:  # the observer closes the socket at window end
+            return
+
+    windows = OwnedWindowPolicy(10000, WindowBindingPolicy(60000, 180000),
+                                WindowReconciliationPolicy(120000, 120000, 1000),
+                                OriginWindowPolicy(120000, 60000), binding_mode="observation")
+    async with serve(handle, "127.0.0.1", 0) as server:
+        await run_synthetic_window_pilot(
+            panel, implementation_commit=code[1], repository=code[0],
+            transport=_transport_rows, port=server.sockets[0].getsockname()[1],
+            rule=SnapshotTriggerPolicy(1, 3, 60000), freshness=ScreeningPolicy(120, 120),
+            window_policy=windows, concurrency=8, runtime_concurrency=8)
+    shutil.rmtree(root / "original_code")
+    return root
+
+
+@pytest.fixture(scope="module")
+def frozen_baseline(tmp_path_factory):
+    root = tmp_path_factory.mktemp("d118_frozen") / "tree"
+    asyncio.run(_build_frozen(root))
+    return root
+
+
+def test_frozen_value_path_accepts_a_correct_d118_tree(frozen_baseline, tmp_path):
+    root = tmp_path / "frozen"
+    shutil.copytree(frozen_baseline, root)
+    commit = fixture_commit(root)
+    plan = json.loads((selection(root) / "selection_plan.json").read_bytes())
+    assert len(plan["strata"]) == 4
+    assert {s["liquidity_band"] for s in plan["strata"]} <= ev.LIQUID_BANDS
+    # Unrewritten tree: every gate but E0 (synthetic identity) passes on the frozen values.
+    logic = evaluate(root)
+    assert logic["outcome"] == "PASS", (logic["outcome_reasons"], logic["gates"])
+    assert [k for k, g in logic["gates"].items() if not g["pass"]] == ["E0"]
+    assert logic["diagnostics"]["observed_origins_of_12"] == "12/12"
+    panel = make_live(root)
+    report = ev.evaluate_d118(panel, launch_commit=commit)
+    for gate in ("E0", "E1", "E2"):
+        assert report["gates"][gate]["pass"], (gate, report["gates"][gate]["reasons"])
+        assert report["gates"][gate]["reasons"] == [], gate
+    # Authoritative semantics as in D116: identity proven and no override -> authoritative.
+    assert report["authoritative"] is True and not report["test_override_used"]
+    assert report["launch_commit"] == commit
+    assert report["evaluator_version"] == "d118-evaluator-v1"
+    # make_live rewrites synthetic provenance in runtime_report, so the worker's recovery record
+    # (written before the rewrite) no longer matches its hash: E8 is the only failure and it is
+    # a fixture artefact of the identity rewrite (the unrewritten tree passes E8 above), not a
+    # frozen-value or population defect.
+    assert [k for k, g in report["gates"].items() if not g["pass"]] == ["E8"]
+    assert report["gates"]["E8"]["reasons"] == [
+        "recovery original_report_hash != runtime report hash"]
+    assert report["outcome_reasons"] == ["failed gates: E8"]
+    assert report["gates"]["E2"]["population_exclusion_counts"] == {LIQUIDITY_BELOW: 1}
+    # Any override still forces FAIL and non-authoritative on the same correct tree.
+    forced = ev.evaluate_d118(panel, launch_commit=commit, protocol_check=False)
+    assert forced["outcome"] == "FAIL" and forced["authoritative"] is False
+    assert forced["test_override_used"]
+    # The D116 evaluator, judging the same tree, refuses the D118 identity.
+    assert not d116.evaluate_d116(panel, launch_commit=commit)["gates"]["E0"]["pass"]
