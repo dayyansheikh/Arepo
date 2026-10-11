@@ -526,3 +526,10 @@ criteria are unchanged.
   - **The lead weakened.** In the third active period F2a, F2b and F4 are negative. F1 (signed share) against ridge is +0.009, +0.010, -0.002 across the active periods, so it is positive in 2 of 3. Its pooled CI is [-0.0002, +0.0047].
   - **Method caveat:** the screen cross-fits on all periods pooled, so earlier per-period values shift as periods are added. Per-period figures are indicative only.
   - The pre-declared E007 rule needs at least 3 of 4 active periods with the same sign. One more active period decides it.
+
+**Collection availability note (2026-10-11 ~10:50Z; before any E004/E005/E006 outcome is computed)**
+- **What happened:** pass 6 (`20261011T101751Z_e5085995`) and its retry (`20261011T102601Z_f324d738`) both ended `incomplete:http_403` at page 1190. Both are ignored by rule.
+- **Cause, reproduced:** a Cloudflare firewall deterministically blocks one specific Gamma keyset cursor. Percent-encoding does not help. Re-requesting the previous page with limit 99 yields a different, unblocked cursor.
+- **Fix:** collector v2 detours around blocked cursors. It re-requests the previous page with a reduced limit and continues. Enumeration semantics, rows, fields and dedup are otherwise unchanged, and every detour is recorded in the manifest.
+- **Why this is allowed:** it is an availability-only change, permitted by the pre-declared continuation rule. Collection continues at the ~2h cadence until 12 snapshots qualify. The gap from pass 5 (08:18Z) to the next complete snapshot will exceed 3h; it is flagged and kept.
+- **Future Phase 3-style panel frames** (`research_panel/frame.py`, frozen) would hit the same block. This is a known issue for any future live panel run; the frozen code is not changed.
