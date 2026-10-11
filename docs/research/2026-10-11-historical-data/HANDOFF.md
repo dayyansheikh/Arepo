@@ -123,6 +123,11 @@ These windows were revised after the challenger review. They count as "defined b
 - **Labelling:** "historical out-of-sample (third-party data) on a post-hoc-selected, vendor-filtered population, possibly in a different regime; transport to AREPO's universe not assumed". It is **never** described as prospective confirmation.
 - **Gaps:** holdout gaps stay missing. No interpolation.
 
+**Regime stratification (declared 2026-10-11, before any holdout read; windows unchanged).** Based on `../2026-10-11-market-structure/POLYMARKET_REGIME_TIMELINE.md`:
+- **On-chain trades.** Development is almost entirely fee-free, while the holdout (2026-01-08 to 03-29) is entirely in the new fee era. Every holdout result is reported stratified into (a) fee-free markets excluding short-duration crypto up/down and (b) fee-enabled or short-duration crypto markets. Stratum (a) is primary.
+- **pmxt.** The development window straddles CLOB V2 (2026-04-28 ~11:00 UTC). Development comparisons use only post-V2 data from 2026-04-29T12:00 (a 24h buffer). Pre-V2 data from 04-13 to 04-28 is a separate exploratory slice. In the holdout, sports markets cross the 07-02 tick change (World Cup) and the 07-10 fee step, so holdout results are reported for non-sports (primary) and sports separately.
+- **All sources.** Short-duration crypto markets carry an indicator and are analysed separately, never pooled into the primary population.
+
 ## 5. What can start now, and what needs prospective collection
 
 **Can start now** (development):

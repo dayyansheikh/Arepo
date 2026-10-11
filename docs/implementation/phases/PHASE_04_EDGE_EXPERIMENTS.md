@@ -49,6 +49,7 @@ exists (architecture doc §9.2).
   - an on-chain trades and wallets dataset covers 2022-11 to 2026-03.
 - The handoff gives sealed holdout windows (embargoes, read budget), a working demo template and a minimal adapter plan.
 - Historical results are development evidence only, never prospective confirmation.
+- **Regime breaks.** Before pooling across dates or interpreting fees and ticks, see `../../research/2026-10-11-market-structure/POLYMARKET_REGIME_TIMELINE.md`. It covers CLOB V2 on 2026-04-28, fee regimes by market creation date, tick-size regimes, and short-duration crypto markets from ~2025-10.
 
 ## Baselines (locked; every experiment names its version)
 
