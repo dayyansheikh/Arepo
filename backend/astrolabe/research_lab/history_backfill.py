@@ -125,13 +125,41 @@ def httpx_transport(timeout: float = 60.0) -> Transport:
     return fetch
 
 
+LIVE_PASS_PATTERN = "arepo_pass.sh"
+LIVE_POLL_S = 30.0
+
+
+def live_pass_running() -> bool:
+    """True while the live prospective collector pass is running (pgrep -f arepo_pass.sh)."""
+    import subprocess
+
+    try:
+        return subprocess.run(["pgrep", "-f", LIVE_PASS_PATTERN], capture_output=True,
+                              timeout=10).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def yield_to_live(is_running: Callable[[], bool] = live_pass_running,
+                  sleep: Callable[[float], None] = time.sleep) -> float:
+    """Exploratory API traffic always yields to the live collector: while the pass runs, sleep
+    30 s and re-check. Returns the seconds waited."""
+    waited = 0.0
+    while is_running():
+        sleep(LIVE_POLL_S)
+        waited += LIVE_POLL_S
+    return waited
+
+
 class Limiter:
     """Global request pacing (<= ``rps``) and exponential backoff on 429/5xx/transport errors."""
 
     def __init__(self, transport: Transport, rps: float = MAX_RPS,
                  sleep: Callable[[float], None] = time.sleep,
-                 clock: Callable[[], float] = time.monotonic) -> None:
+                 clock: Callable[[], float] = time.monotonic,
+                 live_check: Callable[[], bool] | None = None) -> None:
         self.transport, self.min_gap = transport, 1.0 / rps
+        self.live_check, self.yielded_s, self._last_live = live_check, 0.0, -1e9
         self.sleep, self.clock = sleep, clock
         self.last = -1e9
         self.requests = 0
@@ -142,6 +170,9 @@ class Limiter:
     def get(self, url: str, params: dict) -> tuple[int, Any]:
         """Returns (status, parsed JSON) for 200/400/404/422; raises after MAX_RETRIES."""
         for attempt in range(MAX_RETRIES + 1):
+            if self.live_check is not None and self.clock() - self._last_live >= 2.0:
+                self.yielded_s += yield_to_live(self.live_check, self.sleep)
+                self._last_live = self.clock()
             wait = self.min_gap - (self.clock() - self.last)
             if wait > 0:
                 self.sleep(wait)
@@ -570,6 +601,7 @@ def run(
     key: bytes | None = None, rps: float = MAX_RPS, disk_cap: int = DISK_CAP_BYTES,
     now: float | None = None, sleep: Callable[[float], None] = time.sleep,
     should_stop: Callable[[], bool] | None = None,
+    live_check: Callable[[], bool] | None = live_pass_running,
 ) -> dict:
     """Fetch universe, draw the seeded sample, fetch prices and trades per market. Resumable:
     re-running with the same ``run_id`` reuses ``sample.csv.gz`` and skips finished markets."""
@@ -579,7 +611,7 @@ def run(
     rdir = root / run_id
     rdir.mkdir(parents=True, exist_ok=True)
     budget = DiskBudget(root, disk_cap)
-    lim = Limiter(transport, rps=rps, sleep=sleep)
+    lim = Limiter(transport, rps=rps, sleep=sleep, live_check=live_check)
     key = key if key is not None else load_or_create_key()
     now = time.time() if now is None else now
     t_start = time.time()
@@ -696,7 +728,7 @@ def run(
             "mid-like/derived, interval stamp convention not verifiable -> conservative lag"},
         "frame_report": frame_rep, "sample_report": samp_rep,
         "requests": {"total_this_session": lim.requests, "retries": lim.retries,
-                     "http_429": lim.throttled},
+                     "http_429": lim.throttled, "yielded_to_live_s": lim.yielded_s},
         "counts": stats, "stopped": stopped,
         "disk_bytes": budget.scan(), "disk_cap_bytes": disk_cap,
         "elapsed_s_this_session": round(time.time() - t_start, 1),

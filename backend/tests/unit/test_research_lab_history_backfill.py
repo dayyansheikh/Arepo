@@ -59,7 +59,7 @@ class Fake:
 def _run(tmp_path, fake=None, **kw):
     fake = fake or Fake([_market(i) for i in range(1, 6)])
     m = hb.run(tmp_path, "r1", fake, n_markets=3, key=KEY, now=NOW, sleep=lambda s: None,
-               lookback_days=2, **kw)
+               lookback_days=2, live_check=None, **kw)
     return fake, m
 
 
@@ -108,14 +108,15 @@ def test_resume_skips_finished(tmp_path):
     fake, _ = _run(tmp_path)
     n1 = len(fake.calls)
     fake2 = Fake([])
-    m = hb.run(tmp_path, "r1", fake2, n_markets=3, key=KEY, now=NOW, sleep=lambda s: None)
+    m = hb.run(tmp_path, "r1", fake2, n_markets=3, key=KEY, now=NOW, sleep=lambda s: None,
+               live_check=None)
     assert fake2.calls == [] and m["counts"]["markets_done"] == 3 and n1 > 0
 
 
 def test_disk_cap_stops_cleanly(tmp_path):
     fake = Fake([_market(i) for i in range(1, 6)])
     m = hb.run(tmp_path, "r1", fake, n_markets=3, key=KEY, now=NOW, sleep=lambda s: None,
-               lookback_days=2, disk_cap=3000)
+               lookback_days=2, disk_cap=3000, live_check=None)
     assert m["stopped"] and m["counts"]["markets_done"] < 3
     assert hb.DiskBudget(tmp_path).scan() < 3000 + 10**7
 
@@ -270,7 +271,7 @@ def test_no_end_of_life_or_static_metadata_features():
 
 def test_never_under_snapshots(tmp_path):
     with pytest.raises(ValueError):
-        hb.run(tmp_path / "snapshots", "r1", Fake([]), key=KEY, now=NOW)
+        hb.run(tmp_path / "snapshots", "r1", Fake([]), key=KEY, now=NOW, live_check=None)
 
 
 def test_frame_windows_seeded_random_and_report():
@@ -315,3 +316,22 @@ def test_wallet_features_causal_and_new_wallet_burn_in():
     r2 = df2[df2["t_i"] == t_or].iloc[0]
     for c in hb.WLT_NAMES + hb.TF_NAMES:
         assert (np.isnan(row[c]) and np.isnan(r2[c])) or row[c] == r2[c]
+
+
+def test_yield_to_live_collector():
+    state = iter([True, True, False])
+    slept = []
+    w = hb.yield_to_live(lambda: next(state), slept.append)
+    assert slept == [30.0, 30.0] and w == 60.0
+    calls = []
+
+    def tr(url, params):
+        calls.append(1)
+        return 200, b"[]", {}
+
+    t = [0.0]
+    flags = iter([True, False])
+    lim = hb.Limiter(tr, sleep=lambda s: t.__setitem__(0, t[0] + s), clock=lambda: t[0],
+                     live_check=lambda: next(flags))
+    lim.get("u", {})
+    assert lim.yielded_s == 30.0 and calls
