@@ -148,7 +148,9 @@ def test_sweep_moves_t0_only_and_marks_early_targets_unavailable():
     plain, _ = ml_panel.build_period(si, sj, _cap(1, 0), _cap(2, 2), 1, [])
     t_late = pd.Timestamp(_ts(2, 6.5)).timestamp()  # after market 1, before market 3
     swept, c = ml_panel.build_period(si, sj, _cap(1, 0), _cap(2, 2), 1, [],
-                                     sweep_receipt_epoch=t_late)
+                                     sweep_receipt_epoch=t_late,
+                                     sweep_returned=990, sweep_eligible=1000)
+    assert c["sweep"] == {"returned": 990, "eligible": 1000, "coverage": 0.99}
     assert (swept["t0"] >= plain["t_i"]).all() and swept["t0"].nunique() == 1
     assert swept["target_available"].sum() < plain["target_available"].sum()
     assert c["target_before_t0"] == (plain["target_available"].sum()
@@ -271,13 +273,15 @@ def _fold_frame(n_periods=20, per=3, spacing=7200.0, lag=7260.0):
 
 def test_fold_plan_structure_embargo_and_purge_exact():
     df = _fold_frame()
-    plan = ml_panel.plan_folds(ml_panel.period_table(df))
+    plan = ml_panel.plan_folds(ml_panel.period_table(df), code_sha="x")
     assert plan["embargo_s"] == 7200.0
     assert [f["test_periods"] for f in plan["folds"]] == [[12, 13, 14, 15], [16, 17, 18, 19]]
     assert plan["unused_trailing_periods"] == []
     f0 = plan["folds"][0]
     assert f0["train_periods"] == list(range(12))
     assert f0["purge_cutoff_t"] == pytest.approx(df[df.period == 12].t0.min() - 7200.0, abs=1e-3)
+    assert f0["purge_cutoff_t"] <= df[df.period == 12].t0.min() - 7200.0  # floored
+    assert plan["delta_sens"] == 0.01 and plan["observed_period_spacing_s"] == 7200.0
     tr, te = ml_panel.fold_masks(df, f0)
     # exactly the training rows with t_j <= cutoff survive, independent re-derivation
     expect = (df.period < 12).to_numpy() & (df.t_j.to_numpy() <= f0["purge_cutoff_t"])
@@ -298,9 +302,9 @@ def test_fold_plan_structure_embargo_and_purge_exact():
 
 def test_fold_plan_too_few_periods_and_partial_block():
     df = _fold_frame(n_periods=14)
-    plan = ml_panel.plan_folds(ml_panel.period_table(df))
+    plan = ml_panel.plan_folds(ml_panel.period_table(df), code_sha="x")
     assert plan["folds"] == [] and plan["unused_trailing_periods"] == list(range(14))
-    plan = ml_panel.plan_folds(ml_panel.period_table(_fold_frame(n_periods=18)))
+    plan = ml_panel.plan_folds(ml_panel.period_table(_fold_frame(n_periods=18)), code_sha="x")
     assert len(plan["folds"]) == 1 and plan["unused_trailing_periods"] == [16, 17]
 
 
@@ -342,3 +346,61 @@ def test_build_panel_chain_uses_history_and_skips_bad_gap():
     p1 = df[(df.period == 1) & (df.market_id == "1")].iloc[0]
     assert p1["ml_own_dmid_prev"] == pytest.approx(0.02)
     assert loaded == ["c0", "c1", "c1", "c2", "c2", "c3"] or len(loaded) <= 6
+
+
+# ---- reviewer changes -----------------------------------------------------------------------
+
+
+def test_uma_nonempty_excluded_missing_flagged():
+    si = _snap(0, MIDS, cap="c1")
+    si["uma_resolution_statuses"] = ["[]", '["proposed"]', np.nan]
+    sj = _snap(2, MIDS, cap="c2")
+    df, c = ml_panel.build_period(si, sj, _cap(1, 0), _cap(2, 2), 1, [])
+    assert sorted(df["market_id"]) == ["1", "3"]
+    assert c["uma_excluded"] == 1 and c["uma_unknown"] == 1
+    assert df.set_index("market_id")["uma_unknown"].to_dict() == {"1": 0.0, "3": 1.0}
+
+
+def test_sweep_coverage_enforced_in_build_period():
+    si, sj = _snap(0, MIDS, cap="c1"), _snap(2, MIDS, cap="c2")
+    with pytest.raises(ValueError):
+        ml_panel.build_period(si, sj, _cap(1, 0), _cap(2, 2), 1, [], sweep_receipt_epoch=1.0,
+                              sweep_returned=900, sweep_eligible=1000)
+    with pytest.raises(ValueError):
+        ml_panel.build_period(si, sj, _cap(1, 0), _cap(2, 2), 1, [], sweep_receipt_epoch=1.0)
+
+
+def test_build_panel_applies_category_and_manifest_records_it():
+    caps = [_cap(0, 0), _cap(1, 2)]
+    snaps = [_snap(0, MIDS, cap="c0"), _snap(2, MIDS, cap="c1")]
+    snaps[0]["fee_category"] = ["crypto", "sports", "crypto"]
+    pol = ml_panel.category_policy("include", ["crypto"])
+    it = iter(snaps)
+    df, _ = ml_panel.build_panel(caps, load=lambda cap: next(it), policy=pol)
+    assert sorted(df["market_id"]) == ["1", "3"]
+    info = df.attrs["category_info"]
+    assert info["rows_in"] == 3 and info["rows_kept"] == 2
+    plan = ml_panel.plan_folds(ml_panel.period_table(df), category_info=info, code_sha="x")
+    assert plan["category_policy"] == pol and plan["category_applied"] == info
+    with pytest.raises(ValueError):
+        ml_panel.plan_folds(ml_panel.period_table(df), policy=ml_panel.category_policy(),
+                            category_info=info, code_sha="x")
+
+
+def test_manifest_requires_code_sha_and_sane_spacing():
+    t = ml_panel.period_table(_fold_frame())
+    with pytest.raises(ValueError):
+        ml_panel.plan_folds(t)
+    with pytest.raises(ValueError):
+        ml_panel.plan_folds(ml_panel.period_table(_fold_frame(spacing=3600.0)), code_sha="x")
+    with pytest.raises(ValueError):
+        ml_panel.plan_folds(ml_panel.period_table(_fold_frame(spacing=14400.0)), code_sha="x")
+
+
+def test_negative_staleness_is_nan_and_counted():
+    si = _snap(0, MIDS, cap="c1")
+    si["updated_at"] = [_ts(0, 1), _ts(1), _ts(0, 1)]  # market 2 updated after receipt
+    sj = _snap(2, MIDS, cap="c2")
+    df, c = ml_panel.build_period(si, sj, _cap(1, 0), _cap(2, 2), 1, [])
+    r = df.set_index("market_id")["ml_quote_staleness_h"]
+    assert np.isnan(r["2"]) and r["1"] >= 0 and c["stale_negative_age"] == 1

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -50,6 +51,7 @@ HISTORY_DEPTH = 6  # snapshots i-1 .. i-6
 BLOCK_PERIODS = 4
 MIN_TRAIN_PERIODS = 12
 EMBARGO_PERIODS = 1
+EMBARGO_S = 7200.0  # one nominal period (2h cadence)
 SWEEP_MIN_COVERAGE = 0.99
 
 FEATURE_SET_VERSION = "ml-tier-a-v1"
@@ -265,7 +267,8 @@ def _end_unknown(o):
 
 def _staleness_h(o):
     upd = panel._epoch(o["updated_at"])
-    return _s(o, np.clip((_num(o, "t_i") - upd) / 3600.0, 0, None))
+    age = (_num(o, "t_i") - upd) / 3600.0
+    return _s(o, np.where(age < 0, np.nan, age))  # updated_at after t_i: invalid, not clipped
 
 
 def _passthrough(name: str):
@@ -483,6 +486,8 @@ def build_period(
     sweep_receipt_epoch: float | None = None,
     delta: float = DELTA_PRIMARY,
     delta_sens: float = DELTA_SENSITIVITY,
+    sweep_returned: int | None = None,
+    sweep_eligible: int | None = None,
 ) -> tuple[pd.DataFrame | None, dict]:
     """Paired rows for one consecutive complete-snapshot couple, with features and labels.
 
@@ -519,6 +524,13 @@ def build_period(
     origin["nr_member"] = nr["nr_member"].to_numpy()
     feats = feature_frame(origin)
 
+    sweep_info = None
+    if sweep_receipt_epoch is not None:
+        if sweep_returned is None or sweep_eligible is None:
+            raise ValueError("sweep_receipt_epoch needs sweep_returned and sweep_eligible")
+        cov = assert_sweep_coverage(sweep_returned, sweep_eligible)
+        sweep_info = {"returned": int(sweep_returned), "eligible": int(sweep_eligible),
+                      "coverage": cov}
     t0 = t_i if sweep_receipt_epoch is None else np.maximum(t_i, float(sweep_receipt_epoch))
     t_j = pairs["t_j"].to_numpy(float)
     mid_j = pairs["mid_j"].to_numpy(float)
@@ -547,6 +559,19 @@ def build_period(
         }
     )
     out = pd.concat([out, feats.reset_index(drop=True)], axis=1)
+    # UMA exclusion (origin sidecar field only). Missing = unknown: kept and flagged.
+    uma = origin["uma_resolution_statuses"]
+    unknown = uma.isna().to_numpy()
+    empty = uma.astype(str).str.strip().isin(["", "[]", "{}", "null"]).to_numpy()
+    proposed = ~unknown & ~empty
+    out["uma_unknown"] = unknown.astype(float)
+    counts.update(
+        uma_excluded=int(proposed.sum()),
+        uma_unknown=int(unknown.sum()),
+        stale_negative_age=int((panel._epoch(origin["updated_at"]) > t_i).sum()),
+        sweep=sweep_info,
+    )
+    out = out[~proposed].reset_index(drop=True)
     counts.update(
         target_before_t0=int(early.sum()),
         target_available_after_t0=int(out["target_available"].sum()),
@@ -561,11 +586,15 @@ def build_panel(
     load: Callable[[dict], pd.DataFrame] | None = None,
     sweep_receipts: dict[str, float] | None = None,
     delta: float = DELTA_PRIMARY,
+    policy: dict | None = None,
 ) -> tuple[pd.DataFrame, list[dict]]:
     """All consecutive complete-snapshot pairs. ``captures`` ordered by start (with ``dir``).
 
     Loads one snapshot at a time (plus the previous one) and keeps only slim history records, so
-    at most two full snapshots are in memory at once.
+    at most two full snapshots are in memory at once. ``sweep_receipts[capture_id]`` is a dict
+    ``{"receipt_epoch", "returned", "eligible"}`` (coverage is asserted). ``policy`` is applied
+    to the whole panel; the applied counts are in ``df.attrs["category_info"]`` and are passed to
+    ``plan_folds(category_info=...)``.
     """
     load = load or (lambda cap: load_snapshot_rows(Path(cap["dir"])))
     sweep_receipts = sweep_receipts or {}
@@ -575,9 +604,12 @@ def build_panel(
     cur = load(captures[0]) if captures else None
     for k in range(len(captures) - 1):
         nxt = load(captures[k + 1])
+        sw = sweep_receipts.get(captures[k]["capture_id"])
         out, c = build_period(
             cur, nxt, captures[k], captures[k + 1], k, hist,
-            sweep_receipts.get(captures[k]["capture_id"]), delta,
+            None if sw is None else sw["receipt_epoch"], delta,
+            sweep_returned=None if sw is None else sw["returned"],
+            sweep_eligible=None if sw is None else sw["eligible"],
         )
         counts.append(c)
         if out is not None:
@@ -585,6 +617,8 @@ def build_panel(
         hist = [slim_history(cur)] + hist[: HISTORY_DEPTH - 1]
         cur = nxt
     panel_df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+    panel_df, info = apply_category_policy(panel_df, policy)
+    panel_df.attrs["category_info"] = info
     return panel_df, counts
 
 
@@ -614,6 +648,10 @@ def period_table(df: pd.DataFrame) -> list[dict]:
     return sorted(rows, key=lambda r: (r["t0_min"], r["period"]))
 
 
+def _floor3(x: float) -> float:
+    return math.floor(float(x) * 1000.0) / 1000.0
+
+
 def _r(x: float | None) -> float | None:
     return None if x is None else round(float(x), 3)
 
@@ -627,19 +665,30 @@ def plan_folds(
     min_train: int = MIN_TRAIN_PERIODS,
     embargo_s: float | None = None,
     delta: float = DELTA_PRIMARY,
+    delta_sens: float = DELTA_SENSITIVITY,
+    category_info: dict | None = None,
 ) -> dict:
     """Deterministic expanding-window fold manifest with a sha256 over its canonical JSON.
 
     Fold k tests ``block`` consecutive periods; the first test block starts after at least
     ``min_train`` periods. A training row is kept only if its label time is at most
-    ``(earliest test t0) - embargo`` (``evaluate.purged_train_mask``). The embargo defaults to the
-    median spacing of period origin times (one period). Only full blocks are planned.
+    ``(earliest test t0) - embargo`` (``evaluate.purged_train_mask``). The embargo is fixed at one
+    nominal period (``EMBARGO_S``); the observed median period spacing is recorded and must lie in
+    [GAP_MIN_H, GAP_MAX_H] hours. ``category_info`` (from ``build_panel``) supplies the applied
+    policy and counts. ``code_sha`` is required. Only full blocks are planned.
     """
-    pol = policy or category_policy()
+    if not code_sha:
+        raise ValueError("code_sha is required")
+    pol = (category_info or {}).get("policy") or policy or category_policy()
+    if category_info is not None and policy is not None and policy != pol:
+        raise ValueError("policy differs from the policy actually applied in category_info")
     periods = sorted(table, key=lambda r: (r["t0_min"], r["period"]))
+    t0s = np.array([r["t0_min"] for r in periods])
+    spacing = float(np.median(np.diff(t0s))) if len(t0s) > 1 else None
+    if spacing is not None and not (GAP_MIN_H * 3600 <= spacing <= GAP_MAX_H * 3600):
+        raise ValueError(f"observed period spacing {spacing / 3600:.2f}h outside allowed range")
     if embargo_s is None:
-        t0s = np.array([r["t0_min"] for r in periods])
-        embargo_s = float(np.median(np.diff(t0s))) * EMBARGO_PERIODS if len(t0s) > 1 else 0.0
+        embargo_s = EMBARGO_S * EMBARGO_PERIODS
     folds = []
     s = min_train
     while s + block <= len(periods):
@@ -652,7 +701,7 @@ def plan_folds(
                 "test_periods": [r["period"] for r in test],
                 "test_t0_min": _r(min(r["t0_min"] for r in test)),
                 "embargo_s": _r(embargo_s),
-                "purge_cutoff_t": _r(cutoff),
+                "purge_cutoff_t": _floor3(cutoff),
             }
         )
         s += block
@@ -663,10 +712,13 @@ def plan_folds(
         "min_train_periods": min_train,
         "embargo_periods": EMBARGO_PERIODS,
         "embargo_s": _r(embargo_s),
+        "observed_period_spacing_s": _r(spacing),
         "purge_rule": "keep train row iff t_j <= test_t0_min - embargo_s "
         "(evaluate.purged_train_mask)",
         "delta": delta,
+        "delta_sens": delta_sens,
         "category_policy": pol,
+        "category_applied": category_info,
         "feature_set_version": FEATURE_SET_VERSION,
         "feature_versions": feature_vers if feature_vers is not None else feature_versions(),
         "code_sha": code_sha,
