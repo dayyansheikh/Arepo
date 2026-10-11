@@ -96,6 +96,9 @@ class Settings(BaseSettings):
     # Upper bound on how long an unchanged-scan Explore universe is served from memory before a
     # forced re-read (the scan-id check normally keeps it until a new scan lands).
     explore_cache_max_age_seconds: int = 1800
+    # Production-only memo of the live Gamma discovery page (the per-request live probe + the 30 s
+    # /api/status poll). Successes only; 0 disables.
+    live_discovery_cache_seconds: int = 30
 
     # --- Production scheduler (single idempotent tick; see astrolabe/scheduler) ---
     # A hosted runner (GitHub Actions) wakes ~every 5 min and the app decides what is DUE. All of

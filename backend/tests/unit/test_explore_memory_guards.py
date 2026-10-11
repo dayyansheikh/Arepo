@@ -168,3 +168,46 @@ async def test_live_failure_fallback_never_materialises_the_universe(svc_factory
     market = await service._find_market(service._cached, "m7")
     assert market is not None and market.id == "m7"
     assert await service._find_market(service._cached, "missing") is None
+
+
+def _live(env: str, ttl: int = 30):
+    from astrolabe.service.sources import LiveSource
+
+    src = LiveSource(Settings(environment=env, live_discovery_cache_seconds=ttl))
+    calls = {"n": 0, "fail": False}
+
+    async def list_events(limit, active=True, closed=False):  # noqa: ARG001
+        calls["n"] += 1
+        if calls["fail"]:
+            from astrolabe.clients.errors import UpstreamUnavailable
+            raise UpstreamUnavailable("down")
+        return []
+
+    src._gamma.list_events = list_events  # type: ignore[method-assign]
+    return src, calls
+
+
+async def test_live_discovery_memo_shares_one_fetch_in_production():
+    src, calls = _live("production")
+    await asyncio.gather(*(src.markets() for _ in range(5)))
+    await src.markets()
+    assert calls["n"] == 1
+    src._markets_memo = (src._markets_memo[0] - 60, src._markets_memo[1])  # expire
+    await src.markets()
+    assert calls["n"] == 2
+    await src.aclose()
+
+
+async def test_live_discovery_failures_are_not_memoised_and_dev_is_uncached():
+    src, calls = _live("production")
+    calls["fail"] = True
+    for _ in range(2):
+        with pytest.raises(Exception):  # noqa: B017,PT011
+            await src.markets()
+    assert calls["n"] == 2
+    await src.aclose()
+    dev, dcalls = _live("development")
+    await dev.markets()
+    await dev.markets()
+    assert dcalls["n"] == 2
+    await dev.aclose()

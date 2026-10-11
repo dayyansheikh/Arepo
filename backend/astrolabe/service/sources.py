@@ -12,6 +12,7 @@ can enrich it uniformly.
 from __future__ import annotations
 
 import asyncio
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
@@ -115,8 +116,30 @@ class LiveSource:
         self._clob = ClobRestClient(settings=self._settings)
         self._rest_health = SourceHealth(name="clob_rest", state=ConnState.UNKNOWN)
         self._gamma_health = SourceHealth(name="gamma", state=ConnState.UNKNOWN)
+        self._markets_memo: tuple[float, list[Market]] | None = None
+        self._markets_lock = asyncio.Lock()
 
     async def markets(self) -> list[Market]:
+        """Live discovery page, memoised for ``live_discovery_cache_seconds`` in production.
+
+        Every API request first PROBES live (``MarketService._select_source``) and then usually
+        reads ``markets()`` again, and every open tab polls /api/status every 30 s, so without a
+        memo each poll/request fetched + parsed the 60-event Gamma page once or twice. Successes
+        only are memoised (a failure always re-probes, preserving the fallback semantics), and
+        concurrent callers share one in-flight fetch. The list is shallow-copied per caller.
+        """
+        ttl = self._settings.live_discovery_cache_seconds
+        if ttl <= 0 or self._settings.environment != "production":
+            return await self._fetch_markets()
+        async with self._markets_lock:
+            if (self._markets_memo is not None
+                    and time.monotonic() - self._markets_memo[0] < ttl):
+                return list(self._markets_memo[1])
+            markets = await self._fetch_markets()
+            self._markets_memo = (time.monotonic(), markets)
+            return list(markets)
+
+    async def _fetch_markets(self) -> list[Market]:
         try:
             raw_events = await self._gamma.list_events(
                 limit=self._settings.discovery_limit, active=True, closed=False
