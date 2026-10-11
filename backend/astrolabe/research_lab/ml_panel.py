@@ -60,7 +60,8 @@ FEATURE_SET_VERSION = "ml-tier-a-v1"
 EXT_FEATURE_SET_VERSION = "ml-tier-a-ext-v1"  # sweep (a11) + sibling (a10) features
 SWEEP_SERIES_INDEX = 0  # sweeps come in pairs (A, B): A (series_index 0) is the one joined
 SWEEP_VERSION_OK = "book-sweep-v1"
-DEP_GROUP_UNDERLYING = False  # links: event_ids, series_slugs, neg_risk_market_id only
+DEP_GROUP_UNDERLYING = True  # D120 crypto rule: underlying x UTC date (design line 199)
+UNDERLYING_DATE_PREFIX = "ud:"  # synthetic node injected as an event id (pairing has no date term)
 FOLD_MANIFEST_VERSION = "ml-fold-manifest-v1"
 DEFAULT_MAP_VERSION = "fs2-fee-category-map-v1"
 CATEGORY_MODES = ("all", "include", "exclude")
@@ -569,17 +570,25 @@ def _json_list(v) -> list[str]:
     return sorted({str(i) for i in x if i not in (None, "")}) if isinstance(x, list) else []
 
 
-def group_facts(rows_i: pd.DataFrame) -> tuple[dict, dict]:
+def group_facts(rows_i: pd.DataFrame, underlying_date: bool = DEP_GROUP_UNDERLYING) -> tuple[
+        dict, dict]:
     """Per-market ``pairing.dependence_groups`` inputs from one origin snapshot, and a
     ``market_id -> fallback`` map. A row with a sidecar (``ext_present`` and a ``fee_category``)
     uses ``event_ids``/``series_slugs``/``neg_risk_market_id``; an older snapshot falls back to
-    its single ``event_id`` (no series, no neg-risk link) and is flagged."""
+    its single ``event_id`` (no series, no neg-risk link) and is flagged.
+
+    ``underlying_date``: a market whose series slugs name an underlying (``pairing.underlyings``,
+    the D120 token table) also gets the node ``ud:<underlying>|<UTC end date>``, injected as an
+    extra event id, so same-underlying same-day markets share a group but different days do not.
+    A market without an end date or without a named underlying gets no such node.
+    """
     r = rows_i.drop_duplicates("market_id")
     ext = np.zeros(len(r), bool)
     if "ext_present" in r and "fee_category" in r:
         ext = (pd.to_numeric(r["ext_present"], errors="coerce").to_numpy(float) == 1) & (
             r["fee_category"].notna().to_numpy()
         )
+    end = panel._epoch(r["end_date"]) if "end_date" in r else np.full(len(r), np.nan)
     facts: dict[str, dict] = {}
     fallback: dict[str, bool] = {}
     ev = r["event_id"].to_numpy()
@@ -589,8 +598,13 @@ def group_facts(rows_i: pd.DataFrame) -> tuple[dict, dict]:
     for k, m in enumerate(r["market_id"].astype(str).to_numpy()):
         if ext[k]:
             neg = None if pd.isna(nrm[k]) or str(nrm[k]).strip() == "" else str(nrm[k])
-            facts[m] = {"event_ids": _json_list(eids[k]), "series_slugs": _json_list(sl[k]),
-                        "event_slugs": [], "neg_risk_market_id": neg}
+            f = {"event_ids": _json_list(eids[k]), "series_slugs": _json_list(sl[k]),
+                 "event_slugs": [], "neg_risk_market_id": neg}
+            if underlying_date and not math.isnan(end[k]):
+                day = pd.Timestamp(end[k], unit="s", tz="UTC").strftime("%Y-%m-%d")
+                for u in pairing.underlyings(f):
+                    f["event_ids"] = sorted({*f["event_ids"], f"{UNDERLYING_DATE_PREFIX}{u}|{day}"})
+            facts[m] = f
         else:
             facts[m] = {"event_ids": [] if pd.isna(ev[k]) else [str(ev[k])], "series_slugs": [],
                         "event_slugs": [], "neg_risk_market_id": None}
@@ -598,16 +612,20 @@ def group_facts(rows_i: pd.DataFrame) -> tuple[dict, dict]:
     return facts, fallback
 
 
-def dependence_group_ids(rows_i: pd.DataFrame, market_ids: np.ndarray) -> pd.DataFrame:
-    """``dep_group`` (D120 ``fs2-dependence-groups-v1`` over this snapshot) and
-    ``dep_group_fallback`` (1.0 = event-id fallback, no sidecar) per market, via
-    ``pairing.dependence_groups`` (imported, not reimplemented)."""
-    facts, fb = group_facts(rows_i)
-    groups = pairing.dependence_groups(facts, underlying=DEP_GROUP_UNDERLYING)
+def dependence_group_ids(
+    rows_i: pd.DataFrame, market_ids: np.ndarray, underlying_date: bool = DEP_GROUP_UNDERLYING
+) -> pd.DataFrame:
+    """``dep_group`` (D120 ``fs2-dependence-groups-v1`` over this snapshot, plus underlying x UTC
+    date), ``dep_group_fallback`` (1.0 = event-id fallback, no sidecar) and
+    ``dep_group_unmatched`` (1.0 = market absent from the snapshot: singleton ``g:u:<id>``) per
+    market, via ``pairing.dependence_groups`` (imported, not reimplemented). Never None."""
+    facts, fb = group_facts(rows_i, underlying_date)
+    groups = pairing.dependence_groups(facts, underlying=False)  # underlying handled by date node
     mids = [str(m) for m in market_ids]
     return pd.DataFrame({
-        "dep_group": [groups.get(m) for m in mids],
-        "dep_group_fallback": [float(fb[m]) if m in fb else np.nan for m in mids],
+        "dep_group": [groups.get(m, "g:u:" + m) for m in mids],
+        "dep_group_fallback": [float(fb[m]) if m in fb else 1.0 for m in mids],
+        "dep_group_unmatched": [float(m not in groups) for m in mids],
     })
 
 
@@ -621,7 +639,8 @@ def pool_dependence_groups(df: pd.DataFrame) -> pd.Series:
     facts = {m: {"event_ids": v, "series_slugs": [], "event_slugs": [], "neg_risk_market_id": None}
              for m, v in sets.items()}
     groups = pairing.dependence_groups(facts, underlying=False)
-    return df["market_id"].astype(str).map(groups)
+    ids = df["market_id"].astype(str)
+    return pd.Series([groups.get(m, "g:u:" + m) for m in ids], index=df.index)
 
 
 
@@ -781,6 +800,7 @@ def build_period(
     sweep_eligible: int | None = None,
     sweep_rows: pd.DataFrame | None = None,
     sweep_started_epoch: float | None = None,
+    dep_underlying_date: bool = DEP_GROUP_UNDERLYING,
 ) -> tuple[pd.DataFrame | None, dict]:
     """Paired rows for one consecutive complete-snapshot couple, with features and labels.
 
@@ -831,7 +851,7 @@ def build_period(
     sw = sweep_columns(mkt, sweep_rows)
     sib = sibling_moves(snap_i, history[0] if history else None, mkt)
     origin = pd.concat([origin, sw.drop(columns="sw_mid"), sib], axis=1)
-    dg = dependence_group_ids(snap_i, mkt)
+    dg = dependence_group_ids(snap_i, mkt, dep_underlying_date)
     feats = feature_frame(origin, EXTENDED_NAMES)
 
     sweep_info = None
@@ -872,6 +892,7 @@ def build_period(
     out["rep_sw_gap"] = sw["sw_mid"].to_numpy() - mid_i  # report-only gap placebo; not a feature
     out["dep_group"] = dg["dep_group"].to_numpy()
     out["dep_group_fallback"] = dg["dep_group_fallback"].to_numpy()
+    out["dep_group_unmatched"] = dg["dep_group_unmatched"].to_numpy()
     # UMA exclusion (origin sidecar field only). Missing = unknown: kept and flagged.
     uma = origin["uma_resolution_statuses"]
     unknown = uma.isna().to_numpy()
@@ -904,6 +925,7 @@ def build_panel(
     delta: float = DELTA_PRIMARY,
     policy: dict | None = None,
     sweep_loader: Callable[[dict], pd.DataFrame] | None = None,
+    dep_underlying_date: bool = DEP_GROUP_UNDERLYING,
 ) -> tuple[pd.DataFrame, list[dict]]:
     """All consecutive complete-snapshot pairs. ``captures`` ordered by start (with ``dir``).
 
@@ -934,6 +956,7 @@ def build_panel(
             sweep_returned=None if sw is None else sw["returned"],
             sweep_eligible=None if sw is None else sw["eligible"],
             sweep_rows=srows, sweep_started_epoch=None if sw is None else sw.get("started_epoch"),
+            dep_underlying_date=dep_underlying_date,
         )
         del srows
         counts.append(c)
@@ -1078,3 +1101,54 @@ def fold_masks(df: pd.DataFrame, fold: dict) -> tuple[np.ndarray, np.ndarray]:
     train = cand & evaluate.purged_train_mask(t_j, float(fold["purge_cutoff_t"]))
     test = np.isin(per, fold["test_periods"]) & avail
     return train, test
+
+
+# ---------------------------------------------------------------------------------------------
+# Pre-declared sweep-gap diagnostic (mandatory in any development report using ml_sw_* features)
+# ---------------------------------------------------------------------------------------------
+
+
+def sweep_gap_diagnostic(df: pd.DataFrame, names: Iterable[str] = SWEEP_NAMES) -> dict:
+    """The sweep is observed inside the label window (about 7-8 min after snapshot i), so a book
+    feature could carry the sweep-minus-Gamma gap (``rep_sw_gap``). Reports, per feature, the
+    Pearson and Spearman correlation with the gap on rows where both exist, plus the gap's own
+    size. Report-only; it never selects or removes a feature."""
+    gap = pd.to_numeric(df["rep_sw_gap"], errors="coerce")
+    out: dict = {"n_gap": int(gap.notna().sum()),
+                 "gap_abs_median": float(gap.abs().median()) if gap.notna().any() else None,
+                 "share_abs_gap_lt_0025": float(
+                     (gap.abs() < 0.0025).sum() / max(gap.notna().sum(), 1)),
+                 "features": {}}
+    for n in names:
+        x = pd.to_numeric(df[n], errors="coerce")
+        ok = x.notna() & gap.notna()
+        if ok.sum() < 3 or x[ok].nunique() < 2 or gap[ok].nunique() < 2:
+            out["features"][n] = {"n": int(ok.sum()), "pearson": None, "spearman": None}
+            continue
+        out["features"][n] = {"n": int(ok.sum()), "pearson": float(x[ok].corr(gap[ok])),
+                              "spearman": float(x[ok].corr(gap[ok], method="spearman"))}
+    return out
+
+
+def rescore_with_gap_control(
+    df: pd.DataFrame, base_cols: list[str], score_fn: Callable[[pd.DataFrame, list[str]], float],
+    sweep_cols: Iterable[str] = SWEEP_NAMES,
+) -> dict:
+    """Hook: re-score the sweep arm with the gap controlled. ``score_fn(df, cols)`` returns a loss
+    (lower is better) for a model on ``cols`` (``rep_sw_gap`` may appear in ``cols`` here: this is
+    the report-only arm). Returns the losses of base, base+sweep, base+gap, base+sweep+gap and
+    the sweep arm's gain without and with the gap control, plus the same on rows with
+    ``|gap| < 0.0025``."""
+    sw = list(sweep_cols)
+
+    def run(d: pd.DataFrame) -> dict:
+        loss = {k: score_fn(d, c) for k, c in {
+            "base": base_cols, "base_sweep": [*base_cols, *sw],
+            "base_gap": [*base_cols, "rep_sw_gap"],
+            "base_sweep_gap": [*base_cols, *sw, "rep_sw_gap"],
+        }.items()}
+        return {"loss": loss, "gain_sweep": loss["base"] - loss["base_sweep"],
+                "gain_sweep_given_gap": loss["base_gap"] - loss["base_sweep_gap"]}
+
+    small = df[pd.to_numeric(df["rep_sw_gap"], errors="coerce").abs() < 0.0025]
+    return {"all": run(df), "abs_gap_lt_0025": run(small)}

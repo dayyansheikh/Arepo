@@ -595,3 +595,58 @@ def test_build_panel_pools_groups_across_periods_and_joins_declared_sweeps(tmp_p
     p1 = df[df.period == 1]
     assert p1["ml_sw_imb_top"].notna().any()
     assert df[df.period == 0]["ml_sw_imb_top"].isna().all()  # no sweep declared for c0
+
+
+# ---- review fixes: underlying x date, sweep-gap diagnostic, unmatched markets ----------------
+
+
+def _crypto_snap():
+    s = _snap(0, {"20": 0.5, "21": 0.5, "22": 0.5, "23": 0.5}, cap="c1")
+    s["ext_present"], s["fee_category"] = 1.0, "crypto"
+    s["event_ids"] = ['["E1"]', '["E2"]', '["E3"]', '["E4"]']
+    s["series_slugs"] = ['["btc-up-down"]', '["bitcoin-daily"]', '["btc-hourly"]', '["politics"]']
+    s["end_date"] = ["2026-10-12T16:00:00Z", "2026-10-12T20:00:00Z", "2026-10-13T16:00:00Z",
+                     "2026-10-12T16:00:00Z"]
+    return s
+
+
+def test_underlying_date_node_groups_same_day_only():
+    s = _crypto_snap()
+    ids = np.array(["20", "21", "22", "23"])
+    on = ml_panel.dependence_group_ids(s, ids)["dep_group"].tolist()
+    off = ml_panel.dependence_group_ids(s, ids, underlying_date=False)["dep_group"].tolist()
+    assert on[0] == on[1]  # btc / bitcoin, same UTC day
+    assert on[2] != on[0] and on[3] != on[0]  # other day, non-crypto
+    assert len(set(off)) == 4  # off: separate events and distinct series
+    assert ml_panel.DEP_GROUP_UNDERLYING is True
+
+
+def test_unmatched_market_gets_flagged_singleton_group():
+    s = _crypto_snap()
+    g = ml_panel.dependence_group_ids(s, np.array(["20", "nope"]))
+    assert g["dep_group"].notna().all() and g["dep_group"][1] == "g:u:nope"
+    assert g["dep_group_unmatched"].tolist() == [0.0, 1.0]
+    pooled = ml_panel.pool_dependence_groups(pd.DataFrame(
+        {"market_id": ["20", "21"], "period": [0, 0], "dep_group": ["g:20", "g:20"]}))
+    assert pooled.notna().all()
+
+
+def test_sweep_gap_diagnostic_and_rescore_hook():
+    rng = np.random.default_rng(0)
+    gap = rng.normal(0, 0.01, 200)
+    df = pd.DataFrame({"rep_sw_gap": gap, "ml_sw_imb_top": gap * 2 + rng.normal(0, 1e-4, 200),
+                       "ml_sw_spread": rng.normal(size=200), "b": rng.normal(size=200)})
+    d = ml_panel.sweep_gap_diagnostic(df, ["ml_sw_imb_top", "ml_sw_spread"])
+    assert d["features"]["ml_sw_imb_top"]["pearson"] > 0.99 and d["n_gap"] == 200
+    assert abs(d["features"]["ml_sw_spread"]["pearson"]) < 0.3
+    seen = []
+
+    def score(d_, cols):
+        seen.append(tuple(cols))
+        return 1.0 - 0.1 * ("ml_sw_imb_top" in cols) - 0.1 * ("rep_sw_gap" in cols)
+
+    r = ml_panel.rescore_with_gap_control(df, ["b"], score, ["ml_sw_imb_top"])
+    assert r["all"]["gain_sweep"] == pytest.approx(0.1)
+    assert r["all"]["gain_sweep_given_gap"] == pytest.approx(0.1)
+    assert ("b", "ml_sw_imb_top", "rep_sw_gap") in seen
+    assert "abs_gap_lt_0025" in r
