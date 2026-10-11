@@ -38,7 +38,7 @@ user approval for that session.
 Only for: a fundamental change of objective or methodology; an unresolvable material scientific disagreement; repeated
 failures where the next change would compromise a scientific contract; a result questioning programme validity; risk of
 losing irreplaceable evidence; insufficient storage or missing independent backup for a risky collection; any protected
-action (production, trades, purchases, credentials, data retirement); unexpected cost or provider-rights issues; an
+action (production, trades, purchases, credentials, data retirement); unexpected cost; an
 external blocker. Explain in plain English, recommend, and name the exact decision. Never silently bypass a boundary.
 Routine test failures, defects, commits, new D-numbers and protocols are handled autonomously.
 

@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-11 10:38 UTC+1
+**Last updated:** 2026-10-11 11:18 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. No decisions needed from you.
 **Current objective:** Finish the 24-hour forecasting test (E004/E005/E006, results tonight) and decide whether order flow earns a registered experiment.
@@ -51,6 +51,8 @@ current price and recent momentum.
 | Disk 14 GiB free (D118 added about 3 GB) | Fine for collection | No | The local backup copy (2.9 GB, safe on GitHub) could be removed with your OK if needed |
 | Comparison markets are often unavailable | Limits future trigger-vs-control studies | No | Any such study must be designed around it |
 | Reversal may be quote noise | It may not be usable | No | E004's spread-crossing test |
+
+Data rights are out of scope during the private research phase (your decision, 2026-10-11).
 
 ## 6. Decisions I need from you
 **None. Autonomous work is continuing.**

@@ -29,6 +29,8 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`. History: `history/AREPO_V2_CH
 - **Tools (research lab):** collector, book sweep, trade sampler (not yet run live), forecast log/scorer, comparison pipeline with provenance, power/MDE, columnar writer (not wired in), dev-screen features.
 - **Product:** Research Lab page v2 (open lab notebook), not deployed.
 - **Memory rule:** never run two multi-GB jobs at once; otherwise full pace.
+- **Data rights: out of scope (private phase).** User decision 2026-10-11: AREPO is private research and prototyping. Data rights, terms of service, licensing and provider-rights questions are out of scope; never stop, ask, warn about them or let them shape design, collection, storage, sources or scope (applies to all agents, including science-reviewer). `research/2026-10-11-data-rights/DATA_RIGHTS_MATRIX.md` is kept unchanged as reference only.
+  - User to revisit before anything public, paid, or shared with outside users.
 - **Concurrency:** other Claude sessions on this machine may commit docs. Commit only your own files.
 
 **Exact next action:**
