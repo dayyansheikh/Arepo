@@ -120,3 +120,92 @@ def test_production_default_is_absent(monkeypatch):
     s = Settings(environment="production", research_lab_data_root="")
     monkeypatch.setattr(rl, "get_settings", lambda: s)
     assert rl.get_research_lab_root() is None
+
+
+# --- experiments / trials ---
+
+LEDGER = """# Ledger
+| ID | Status | Question | Result summary |
+|---|---|---|---|
+| E001 | COMPLETE (exploratory) | Q one? | Did a | thing |
+| E002 | REGISTERED (pre-outcome) | Q two? | pending |
+| E00X | COMPLETE | bad id | x |
+| E003 | COMPLETE (exploratory) | Q three? | inconclusive |
+| E004 | weird | only three cells |
+| Model | Pooled | a | b |
+"""
+
+
+def _lab_client(root, ledger=None, trials=None):
+    app = create_app()
+    app.dependency_overrides[rl.get_research_lab_root] = lambda: root
+    if ledger is not None:
+        app.dependency_overrides[rl.get_ledger_path] = lambda: ledger
+    if trials is not None:
+        app.dependency_overrides[rl.get_trials_path] = lambda: trials
+    return TestClient(app)
+
+
+def test_parse_ledger_malformed_rows():
+    rows = rl.parse_ledger_table(LEDGER)
+    ids = [r["id"] for r in rows]
+    assert "E00X" not in ids and "E004" not in ids and "Model" not in ids
+    assert ids == ["E002", "E003"]  # E001 has 5 cells (stray pipe) and is skipped, not mis-parsed
+    assert rows[0]["status"] == "registered" and rows[1]["status"] == "complete"
+
+
+def test_experiments_unavailable(tmp_path):
+    c = _lab_client(tmp_path, ledger=tmp_path / "missing.md")
+    assert c.get("/api/research-lab/experiments").json()["status"] == "unavailable"
+    empty = tmp_path / "e.md"
+    empty.write_text("no table here")
+    r = _lab_client(tmp_path, ledger=empty).get("/api/research-lab/experiments")
+    assert r.json()["status"] == "unavailable"
+    big = tmp_path / "big.md"
+    big.write_text("x" * (rl.MAX_LEDGER_BYTES + 1))
+    r = _lab_client(tmp_path, ledger=big).get("/api/research-lab/experiments")
+    assert r.json()["status"] == "unavailable"
+
+
+def test_experiments_results_whitelisted(tmp_path):
+    ledger = tmp_path / "l.md"
+    ledger.write_text(LEDGER)
+    (tmp_path / "e003").mkdir()
+    (tmp_path / "e003" / "s2_results.json").write_text(json.dumps({
+        "experiment": "E003", "scored_utc": "2026-10-10T00:00:00Z", "secret_raw": "LEAK" * 10,
+        "rows": [1] * 5000,
+        "primary_AB": {"n": 5, "a": {"r2_oos": 0.01, "ci": [-0.1, 0.2], "verdict": "inconclusive",
+                                     "raw_dump": list(range(1000))}},
+    }))
+    (tmp_path / "e002").mkdir()
+    (tmp_path / "e002" / "results.json").write_text("{bad")
+    body = _lab_client(tmp_path, ledger=ledger).get("/api/research-lab/experiments").json()
+    by = {e["id"]: e for e in body["experiments"]}
+    r3 = by["E003"]["result"]
+    assert r3["status"] == "available" and r3["fields"]["experiment"] == "E003"
+    assert r3["metrics"][0]["ci"] == [-0.1, 0.2] and r3["metrics"][0]["name"] == "primary_AB.a"
+    assert "LEAK" not in json.dumps(body) and "raw_dump" not in json.dumps(body)
+    assert by["E002"]["result"]["status"] == "unavailable"
+    nd = _lab_client(tmp_path / "none", ledger=ledger)
+    nodata = nd.get("/api/research-lab/experiments").json()
+    assert nodata["experiments"][0]["result"]["status"] == "unavailable"
+
+
+def test_metrics_bounded():
+    node = {f"k{i}": {"r2_oos": 0.1} for i in range(100)}
+    assert len(rl.summarize_result(node)["metrics"]) == rl.MAX_METRICS
+
+
+def test_trials(tmp_path):
+    p = tmp_path / "t.jsonl"
+    lines = [json.dumps({"trial_id": str(i), "utc": "u", "dataset": "e001", "kind": "comparison",
+                         "summary": {"B0": {}}, "provenance": {"x": "SECRET"}}) for i in range(30)]
+    p.write_text("\n".join(lines[:10] + ["{broken", "[1]"] + lines[10:]) + "\n")
+    c = _lab_client(tmp_path, trials=p)
+    body = c.get("/api/research-lab/trials?limit=5").json()
+    assert body["total"] == 30 and body["malformed_lines"] == 2
+    assert [t["trial_id"] for t in body["trials"]] == ["29", "28", "27", "26", "25"]
+    assert "SECRET" not in json.dumps(body) and body["trials"][0]["n_models_summarised"] == 1
+    assert c.get("/api/research-lab/trials?limit=201").status_code == 422
+    r = _lab_client(tmp_path, trials=tmp_path / "no").get("/api/research-lab/trials")
+    assert r.json()["status"] == "unavailable"
