@@ -67,12 +67,14 @@ horizon, tolerance, quote and identity ages, source bounds, original-code audit.
   stratum). The stratum field is `fee:<category>` (selection v5 path), so no literal source value can
   collide with the missing-category stratum (the guard of `selection.py:178-180` is kept). Category is
   never inferred from question text; Gamma `category` is on 0 rows.
-- **Dependence group (attribute, never a stratum field).** Union-find over every event id and every
-  series slug of the row (not only `[0]`), `negRiskMarketID`, and the frozen slug-token table
+- **Dependence group (attribute, never a stratum field).** Union-find over every event id (including
+  each event's `parentEventId`, which is itself an event id) and every series slug of the row (not
+  only `[0]`), `negRiskMarketID`, and the frozen slug-token table
   `fs2-underlying-slug-tokens-v1` (btc/bitcoin, eth/ethereum, sol/solana, xrp/ripple, doge/dogecoin;
   exact `-`-separated tokens of event and series slugs only, never question text), computed over
-  every sampling member of the complete frame (`fs2-dependence-groups-v1`). `parentEventId` is
-  recorded but not unioned (it was not in the reviewed definition; see open questions).
+  every sampling member of the complete frame (`fs2-dependence-groups-v2`). `parentEventId` was
+  added at the pre-freeze review: 22,344 of 52,084 eligible rows carry it and it merges groups
+  (3,684 → 3,677 on the D118 frame), so it is unioned; this can only make grouping stricter.
 - **Strata.** time × fee category × time-to-close × probability band × liquidity band. A stratum is
   **drawable** only with ≥ 8 dependence groups.
 - **Screen draw (selection, before any book read).** 6 drawable strata uniformly without
@@ -84,8 +86,9 @@ horizon, tolerance, quote and identity ages, source bounds, original-code audit.
   group, and their product; the unconditional probability is recorded as `None` with its reason.
   The scheduled arm is a parameter kept at 0 (`PairingDesign.scheduled_per_stratum = 0`).
 - **Screening.** Every screened member: `gamma.market` + `clob.book`, book computation and the
-  frozen snapshot trigger, **no window**. All screening assessments are retained (the unconditional
-  prevalence estimate, with their inclusion probabilities), and every screened member's book
+  frozen snapshot trigger, **no window**. All screening assessments are retained with their
+  inclusion probabilities (a conditional, design-dependent prevalence estimate: conditional on the
+  drawn strata and the shared claim set, not an unconditional population prevalence), and every screened member's book
   covariates (best bid/ask, best sizes, spread, signed imbalance, level counts and total size per
   side) are retained for Phase 4 matched or post-stratified variants. D120 itself does no
   covariate matching.
@@ -126,24 +129,25 @@ replications; inputs pinned by sha256: the D118 frame report, the D118 selection
 2026-10-11 book sweeps in four 2-sweep series before the D118 frame, the 08:18 snapshot). The
 rebuild reproduces D118 exactly (240,487 sampling members, 52,084 eligible, 57 strata without
 category). With category strata: 298 strata, 127 drawable (≥ 8 groups) holding 96.1% of eligible
-members, 3,684 dependence groups (3,759 without the underlying table: the specialist's count, 134
-drawable strata). Single-run P(PASS) = P(fill ≥ 0.8 with ≥ 4 triggers in scope and ≥ 3
+members, 3,677 dependence groups with `parentEventId` and the underlying table (3,752 without the
+underlying table, 134 drawable strata; the specialist's 3,759 is reproduced exactly without both). Single-run P(PASS) = P(fill ≥ 0.8 with ≥ 4 triggers in scope and ≥ 3
 group-disjoint complete pairs), `P_fill_ok_and_ind_ge_3`:
 
 | Scenario | 6 × 16 (aborted, section 5) | **6 × 12 (chosen)** | E[pairs] 6 × 12 | E[complete group-disjoint pairs] 6 × 12 |
 |---|---|---|---|---|
-| S1 pooled trigger rate | 0.996 | **0.998** | 5.93 | 5.35 |
-| S4 member-specific | 0.994 | **0.996** | 5.90 | 5.33 |
-| S4h untriggered halved | 0.950 | **0.905** | 5.45 | 4.93 |
-| S4q untriggered quartered | 0.586 | **0.437** | 4.23 | 3.82 |
+| S1 pooled trigger rate | 0.999 | **0.998** | 5.93 | 5.35 |
+| S4 member-specific | 0.998 | **0.996** | 5.90 | 5.32 |
+| S4h untriggered halved | 0.951 | **0.906** | 5.47 | 4.93 |
+| S4q untriggered quartered | 0.578 | **0.434** | 4.24 | 3.82 |
 
-**Honest range for the chosen 6 × 12: about 0.44 to 1.00, lower half favoured** by both pilots
+**Honest range for the chosen 6 × 12: about 0.43 to 1.00, lower half favoured** by both pilots
 (every assessable pilot member was triggered); under S4q D120 is close to a coin flip, slightly
 against, between PASS and `PASS WITH LIMITATION:control_scarcity`. Fable's lower-bound estimate
-(about 0.45 under S4q) is consistent. Reducing 16 to 12 costs about 0.15 under S4q (0.586 → 0.437). S4q is the harshest *defined* scenario,
+(about 0.45 under S4q) is consistent. Reducing 16 to 12 costs about 0.14 under S4q (0.578 → 0.434).
+S4q is the harshest *defined* scenario,
 not a true lower bound: availability is a sweep/snapshot proxy, members are modelled as independent
 and chain completion is an assumed 0.95. P(< 4 strata with a trigger) is about 0 in every scenario;
-the dominant non-PASS outcome is `control_scarcity` (any scarcity stratum, 6 × 12: 0.07 S4, 0.43
+the dominant non-PASS outcome is `control_scarcity` (any scarcity stratum, 6 × 12: 0.07 S4, 0.41
 S4h, 0.87 S4q). The expected run is not frame-weighted: strata are drawn uniformly, so sports are about 29%
 of screened members and pairs (S4) against 65% of eligible members; drawable strata by category:
 sports 36, politics 21, unknown 13, finance 13, culture 10, weather 10, crypto 8, economics 8,
@@ -155,8 +159,16 @@ tech 8. Excluding sports leaves 91 drawable strata and S4q 0.438 (6 × 12).
 passes every abort criterion of section 5 is chosen, and no other shape is tried. **Result: 6 × 16
 breached the assessment-age criterion (85.3 s > 80 s) and is not frozen; 6 × 12 passed every
 criterion and is chosen.** This is a pre-freeze design iteration, not a failed run: no live request
-was made. The 40 s, 80 s,
-60 s and 240 s criteria are safety margins under the unchanged code limits (60 s window age, 60 s
+was made.
+
+**Disclosure (pre-freeze review).** Only the 40 s window-age and 240 s audit criteria were
+inherited from D118. The three additional criteria (binding age 40 s, assessment age at activation
+80 s, screening 60 s) and the "6 × 16, then 6 × 12" order were first committed together with the dry-run
+script and its results (`3edba22`), not in an earlier commit; they were written into the
+uncommitted draft before the 6 × 16 run, but the repository cannot prove that ordering. The cut is
+conservative, not threshold-shopping: moving from 6 × 16 to 6 × 12 lowers the design probability of
+PASS (S4q 0.578 → 0.434; S4h 0.951 → 0.906) and makes `control_scarcity` more likely, and no
+criterion was loosened to admit a shape. The 40 s, 80 s, 60 s and 240 s criteria are safety margins under the unchanged code limits (60 s window age, 60 s
 binding quote age, 120 s assessment age, 600 s screening ceiling, 300 s audit timeout) and are not
 loosened.
 
@@ -264,6 +276,24 @@ calibrated against a live run (D120 has none). The synthetic frame has seven cat
 groups, every screened book is quoted and every window event arrives every 0.5 s, so the dry run
 says nothing about live availability or fill.
 
+**Offline full-size measurements (pre-freeze review; no network).** The D120 pairing selection was
+rebuilt with the production code on the pinned D118 frame (`fs2_capture_52eead5d...`, 240,487
+sampling members) at code `da81c9d`, with one measurement-only deviation (frame age limit 604800 s,
+because the frame is from 09:22 UTC; the temporal rule therefore used the 13:09 UTC declaration and
+kept 46,402 eligible members, 296 strata, 125 drawable, 3,637 groups, against 52,084 at the D118
+declaration):
+
+- **Plan size:** `selection_plan.json` = 14,111,195 B against the 16 MiB (16,777,216 B) artefact
+  limit (`selection.py:80`): margin 2,666,021 B (2.54 MiB). D118's plan was 13,368,020 B. The plan
+  is dominated by the zero-inclusion exclusion list; an exclusion that removes about 30,000 more
+  members (for example excluding sports) could exceed the limit and would need a compact encoding
+  first. With the frozen policy `all` it fits.
+- **Audit time:** the original-code selection replay (`read_original_selection`, child process,
+  extracted code at `da81c9d`) took 59.7 s against the 300 s timeout (`original_reader.py`). This
+  replay is the dominant term of the runtime audit, which additionally replays 72 screened members,
+  12 bindings/windows, origins and targets (D118's live runtime audit took 62 s). Peak resident
+  memory of the measuring process was 0.96 GB; selection creation took 211 s.
+
 ## 6. Storage
 
 Reservation: 14,308,343,808 B (7 GiB frame retained cap + the pairing worker reservation of
@@ -289,8 +319,10 @@ writing to any run root):
    ``Freeze commit: `<40 hex>` ``; `git diff --quiet <freeze commit> HEAD -- backend/astrolabe
    backend/scripts/d120_launch.py backend/scripts/evaluate_d120.py` must succeed, and there are no
    untracked or modified files under `backend/astrolabe`.
-3. Free disk ≥ 15,382,085,632 B immediately before launch. (At 2026-10-11 12:00 UTC free space was
-   about 12 GiB: below this requirement; see open questions.)
+3. Free disk ≥ 15,382,085,632 B immediately before launch. For orientation only: after the local
+   backup copy was removed with the user's approval (verified against GitHub first), free space was
+   about 16.3 GB on 2026-10-11, about 0.9 GB above the requirement; the measurement immediately
+   before launch is what counts, and a shortfall is a stop condition (section 9).
 4. Launch only between HH:46 of an even UTC hour and HH:49 of the next odd hour (research-lab
    collectors start about HH:18 of even hours); no `collect_universe_snapshot`, `sweep_books`,
    `sample_trades` or `run_forecast` process; collectors are re-checked and recorded after the run.
