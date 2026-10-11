@@ -506,3 +506,11 @@ criteria are unchanged.
   1. Flow-family experiments must define their population as markets with recent trades, and record inclusion probabilities against that frame. The whole quoted universe is mostly untraded.
   2. In much of the eligible universe, Gamma "price changes" (E001/E002 reversal) are quote movements, not trades. This supports the quote-noise caveat on E002, and the "not shown to be tradable" finding.
   3. Future snapshot eligibility for product forecasts should consider a trade-activity filter. Any such filter must be registered before use; it must not be applied retroactively.
+
+**Flow screen S1 (DEVELOPMENT, 2026-10-11 ~02:35Z; `data-dumps/research_lab/flow_screen/flowscreen-ffcdee3436`)**
+- **Sample:** trade sample `0c287bab` (eligible frame, 1 period, horizon 1.97h) paired with snapshot `20261011T022316Z_f3cab565`.
+  1,987 pairs across 1,537 events. 61.8% have dmid = 0.
+- **Results:**
+  - Every flow variant F1-F4 is null or negative against both bases (frozen reversal and a ridge on chg_1h). The minimum detectable effects are 0.04-0.10, except F1 and F4 against ridge (about 0.001-0.008).
+  - The frozen reversal base gives R2 = 0.165 against no-change in this single period. That is a development observation only, not evidence; E004 tests the reversal over 11 periods.
+- **Interpretation:** the eligible frame is mostly untraded (Data note D1). Flow screening continues on trade-active samples (`--frame active`), collected after each loop pass.
