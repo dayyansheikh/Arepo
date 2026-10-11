@@ -489,3 +489,20 @@ criteria are unchanged.
   - the spec hash is taken over the E006 ledger section at `32e6907`;
   - γ is reported as both total and residual;
   - the guard CI is set at the Holm rank level.
+
+---
+
+## Data note D1 — Most quoted markets do not trade (first development trade-flow sample, 2026-10-11)
+- **Sample:** `data-dumps/research_lab/trade_samples/20261011T010752Z_0c287bab`.
+  - 2,000 markets, probability-sampled (12 liquidity×spread strata, sealed seed, inclusion probabilities recorded) from the
+    forecast-eligible frame of snapshot `20261011T002442Z_2173f20d`.
+  - Data API `/trades`, all 2,000 requests OK, in 528 s at a peak of 446 MB.
+- **Findings (descriptive, development):**
+  - **51% of eligible markets returned zero trades ever.** This was cross-checked with and without `takerOnly`.
+  - 96.8% had no trade in the hour before origin.
+  - The median time since the last trade, among markets that ever traded, was about 33h.
+  - No market hit the 500-trade truncation.
+- **Consequences:**
+  1. Flow-family experiments must define their population as markets with recent trades, and record inclusion probabilities against that frame. The whole quoted universe is mostly untraded.
+  2. In much of the eligible universe, Gamma "price changes" (E001/E002 reversal) are quote movements, not trades. This supports the quote-noise caveat on E002, and the "not shown to be tradable" finding.
+  3. Future snapshot eligibility for product forecasts should consider a trade-activity filter. Any such filter must be registered before use; it must not be applied retroactively.
