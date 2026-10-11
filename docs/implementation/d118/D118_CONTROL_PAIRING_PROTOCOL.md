@@ -11,10 +11,11 @@ request. No source request, pilot run or live network access has been made in dr
 document. Only the synthetic loopback dry runs of section 5 have been run.
 
 Location note: this file lives under `docs/implementation/d118/` rather than at
-`docs/implementation/PHASE_03_D118_CONTROL_PAIRING_PROTOCOL.md` because the project permission rule
-`Edit(/docs/implementation/PHASE_03_*_PROTOCOL.md)` denies creating files at that path too. Its
-immutability after freeze comes from the sha256 in the freeze record, which the launch wrapper
-checks.
+`docs/implementation/PHASE_03_D118_CONTROL_PAIRING_PROTOCOL.md` because the project deny rule
+`Edit(/docs/implementation/PHASE_03_*_PROTOCOL.md)` blocks creating files at that path too, not
+only editing them. The path confers no frozen status either way: after freeze, the sha256 of this
+file recorded in `docs/implementation/PHASE_03_D118_FREEZE_RECORD.md` governs, and the launch
+wrapper refuses to launch if the file differs from it.
 
 Inputs this protocol answers: the specialist diagnosis
 (`docs/implementation/d118/D118_SPECIALIST_DIAGNOSIS.md`), the independent Fable review
@@ -145,7 +146,7 @@ the rule fixed before the runs, not a judgement made after them. 4 × 3 keeps `s
 unchanged from revision 1 and from D116.
 
 **Disclosed costs.** (1) Lower pair probability (section 2 table). (2) The margin to the 40 s
-criterion is only about 3.8 s on loopback, so live latency above the synthetic 0.9 s per response
+criterion is only 3.744 s on loopback (4 × 3), so live latency above the synthetic 0.9 s per response
 could push window ages towards the 60 s code limit; a live `window_stale_at_freeze` is ENGINEERING
 (FAIL) and is never relabelled. (3) The decision rule of section 4 is unchanged: a PASS WITH
 LIMITATION leads to the screen-then-activate re-architecture, not to another size.
@@ -272,7 +273,20 @@ Revision 2 (12 members), recorded in `docs/implementation/d118/D118_DRY_RUN_V2.j
 candidate with the same method and settings: **4 × 3 (chosen): maximum window age at freeze
 36.26 s** (ages 10.7, 10.7, 17.8, 18.4, 28.9, 28.9, 29.1, 29.1, 29.2, 35.9, 36.2, 36.3 s; audit
 5.8 s; 138 s wall-clock); 3 × 4: 36.14 s (audit 5.8 s). Neither breaches 40 s or 240 s. The margin
-to 40 s is about 3.8 s; the 40 s criterion itself is unchanged.
+to 40 s is 3.744 s; the 40 s criterion itself is unchanged.
+
+**Calibration (recorded as calibration only; the 40 s criterion is unchanged).** After the
+independent review of revision 2, the same script was run once in D116's own shape (4 × 2, runtime
+concurrency 4, 0.9 s per response) and compared with D116's retained live timeline
+(`docs/implementation/d118/D118_DRY_RUN_CALIBRATION.json`). Synthetic window ages at freeze were
+11.8–21.2 s (maximum 21.19 s); D116 live were 11.4–16.7 s (maximum 16.74 s). On this one
+comparison the synthetic method is **conservative**: first-wave ages agree within 0.4 s and the
+synthetic tail is 4.45 s longer (live/synthetic maximum ratio 0.790). The 4 × 3 synthetic maximum
+36.26 s therefore leaves 3.744 s to the 40 s criterion and 23.744 s to the 60 s code limit as
+measured; scaled by that ratio, the implied live maximum is about 28.7 s and the effective margin to
+60 s about 31.4 s. This is an extrapolation from n = 1 against n = 1, from concurrency 4 and eight
+members, and D116 observed only 4/8 origins (unobserved origins may freeze sooner), so it is
+orientation only and is never used to relax a criterion.
 
 The dry run is synthetic engineering evidence only. Live latency may differ, and a live breach is
 ENGINEERING (FAIL), never relabelled.
@@ -295,12 +309,26 @@ Launch preconditions, all required, checked by `backend/scripts/d118_launch.py` 
    (`git merge-base --is-ancestor 8afbdff HEAD`).
 2. Frozen hashes: the wrapper reads the artefact table of
    `docs/implementation/PHASE_03_D118_FREEZE_RECORD.md` (this protocol, `d118_evaluator.py`, the
-   unedited `d116_evaluator.py`, `evaluate_d118.py`, the D118 evaluator tests) and every file's
-   sha256 must match. A missing record, a missing or extra row, or an unfilled hash fails closed.
-3. Free disk ≥ 14,449,901,568 B + 1 GiB, measured immediately before launch.
-4. **No collector process running**: `pgrep -f` finds none of `collect_universe_snapshot`,
-   `sweep_books`, `sample_trades`, `run_forecast` (D116 addendum near-miss). Launch only outside the
-   research-lab collector window.
+   unedited `d116_evaluator.py`, `panel_declaration.py`, `panel_selection.py`, `evaluate_d118.py`,
+   the wrapper `d118_launch.py` itself, and the D118 tests `test_research_panel_d118_evaluator.py`,
+   `test_research_panel_liquidity_population.py`, `test_d118_launch.py`) and every file's sha256
+   must match. A missing record, a missing or extra row, or an unfilled hash fails closed.
+   **Code pinned to a freeze commit**: the freeze record names exactly one
+   ``Freeze commit: `<40 hex>` `` (the commit holding the frozen code; the record itself is
+   committed after it), and `git diff --quiet <freeze commit> HEAD -- backend/astrolabe
+   backend/scripts/d118_launch.py backend/scripts/evaluate_d118.py` must succeed; any difference,
+   or an unknown commit, refuses the launch.
+3. Free disk ≥ 14,449,901,568 B + 1 GiB = **15,523,643,392 B**, measured immediately before launch.
+   For orientation only: at 2026-10-11 09:11 UTC free space was 18,499,936,256 B, i.e. 2,976,292,864 B
+   (about 2.98 GB) above that requirement. Free space on this 8 GB-RAM Mac is volatile
+   (swap, caches, collector writes); the measurement immediately before launch is what counts, and
+   a shortfall is a stop condition (section 9), never a reason to retire data.
+4. **Outside the collector window and no collector process running**: the wrapper refuses if the
+   current UTC time is within HH:15–HH:45 (inclusive) of an even hour (the research-lab collector
+   window), and if `pgrep -f` finds any of `collect_universe_snapshot`, `sweep_books`,
+   `sample_trades`, `run_forecast` (D116 addendum near-miss). After the run the wrapper checks the
+   collectors again and records the result as `collectors_running_after` in
+   `fs2_d118_control_pairing_1_result.json` (descriptive; it cannot change the outcome).
 5. Panel `fs2_panel_d118_control_pairing_1`; no root with that name, any derived name
    (`fs2_selection_panel_d118_control_pairing_1`, `fs2_screening_worker_d118_control_pairing_1`,
    `fs2_activation_d118_control_pairing_1`, `fs2_runtime_d118_control_pairing_1`) or any wrapper
