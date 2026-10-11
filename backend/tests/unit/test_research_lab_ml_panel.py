@@ -650,3 +650,25 @@ def test_sweep_gap_diagnostic_and_rescore_hook():
     assert r["all"]["gain_sweep_given_gap"] == pytest.approx(0.1)
     assert ("b", "ml_sw_imb_top", "rep_sw_gap") in seen
     assert "abs_gap_lt_0025" in r
+
+
+def test_fixture_day_groups_vs_season_sensitivity_and_parent_flag():
+    s = _snap(0, {"30": 0.5, "31": 0.5, "32": 0.5, "33": 0.5, "34": 0.5}, cap="c1")
+    s["ext_present"], s["fee_category"] = 1.0, "sports"
+    s["event_ids"] = ['["G1"]', '["G1P"]', '["G2"]', '["G3"]', '["G4"]']
+    s["series_slugs"] = ['["nfl-2026"]'] * 4 + [None]
+    s["end_date"] = ["2026-10-11T17:00:00Z", "2026-10-11T17:00:00Z", "2026-10-11T20:00:00Z",
+                     "2026-10-18T17:00:00Z", "2026-10-11T17:00:00Z"]
+    ids = np.array(["30", "31", "32", "33", "34"])
+    g = ml_panel.dependence_group_ids(s, ids)
+    assert g["dep_group_season"].iloc[:4].nunique() == 1  # whole season in one group
+    assert g["dep_group_season"][4] != g["dep_group_season"][0]
+    fd = g["dep_group"].tolist()  # no v3 column: series x day only, flagged
+    assert fd[0] == fd[1] == fd[2] and fd[3] != fd[0] and fd[4] != fd[0]
+    assert g["dep_group_no_parent"].tolist() == [1.0] * 5
+    s["parent_event_ids"] = ['[null]', '["G1"]', '[null]', '[null]', '["G3"]']
+    g2 = ml_panel.dependence_group_ids(s, ids)
+    assert g2["dep_group_no_parent"].tolist() == [0.0] * 5
+    fd2 = g2["dep_group"].tolist()
+    assert fd2[4] == fd2[3]  # parent G3 links the series-less satellite to the other-day game
+    assert fd2[3] != fd2[0] and fd2[0] == fd2[1]  # other day stays apart; G1P joins G1

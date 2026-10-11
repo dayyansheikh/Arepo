@@ -358,8 +358,11 @@ def main(argv: list[str] | None = None) -> int:
     f = prepare(f, parents)
     del parents
     G = {k: build_groups(f, *v) for k, v in DEFS.items()}
-    ref = ml_panel.dependence_group_ids(f, f["market_id"].to_numpy())["dep_group"].to_numpy()
-    assert (ref == G["season_series"]).all(), "season_series must equal ml_panel dep_group"
+    dg = ml_panel.dependence_group_ids(f, f["market_id"].to_numpy())
+    # ml_panel: dep_group_season = league-season (6c5a074 dep_group); dep_group = fixture-day
+    # (no parent_event_ids column here, so it equals the sidecar-only definition)
+    assert (dg["dep_group_season"].to_numpy() == G["season_series"]).all()
+    assert (dg["dep_group"].to_numpy() == G["fixture_day_sidecar"]).all()
     rep["chaining"] = chaining(f, G["season_series"])
     rep["event_slug_token_only_markets"] = int(sum(
         bool(set(u) - set(ud)) for u, ud in zip(f["tok_u"], f["tok_ud"], strict=True)))

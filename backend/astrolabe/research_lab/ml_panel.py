@@ -570,18 +570,30 @@ def _json_list(v) -> list[str]:
     return sorted({str(i) for i in x if i not in (None, "")}) if isinstance(x, list) else []
 
 
-def group_facts(rows_i: pd.DataFrame, underlying_date: bool = DEP_GROUP_UNDERLYING) -> tuple[
-        dict, dict]:
-    """Per-market ``pairing.dependence_groups`` inputs from one origin snapshot, and a
-    ``market_id -> fallback`` map. A row with a sidecar (``ext_present`` and a ``fee_category``)
-    uses ``event_ids``/``series_slugs``/``neg_risk_market_id``; an older snapshot falls back to
-    its single ``event_id`` (no series, no neg-risk link) and is flagged.
+SERIES_DATE_PREFIX = "sd:"
+
+
+def group_facts(rows_i: pd.DataFrame, underlying_date: bool = DEP_GROUP_UNDERLYING,
+                mode: str = "season") -> tuple[dict, dict, dict]:
+    """Per-market ``pairing.dependence_groups`` inputs from one origin snapshot, a
+    ``market_id -> fallback`` map and a ``market_id -> no_parent`` map. A row with a sidecar
+    (``ext_present`` and a ``fee_category``) uses ``event_ids``/``series_slugs``/
+    ``neg_risk_market_id``; an older snapshot falls back to its single ``event_id`` (no series, no
+    neg-risk link) and is flagged.
 
     ``underlying_date``: a market whose series slugs name an underlying (``pairing.underlyings``,
     the D120 token table) also gets the node ``ud:<underlying>|<UTC end date>``, injected as an
     extra event id, so same-underlying same-day markets share a group but different days do not.
     A market without an end date or without a named underlying gets no such node.
+
+    ``mode``: ``"season"`` links the series slug itself (league-season; the original
+    ``dep_group``). ``"fixture_day"`` (research_lab/DEPENDENCE_CLUSTERING_ANALYSIS.md) drops the
+    season link and instead injects ``sd:<series slug>|<UTC end date>`` nodes (no node without an
+    end date) and unions ``parentEventId`` (sidecar v3 ``parent_event_ids``). ``no_parent`` is True
+    for a sidecar row that lacks the v3 column (parent links unavailable) or a fallback row.
     """
+    if mode not in ("season", "fixture_day"):
+        raise ValueError(f"unknown dependence-group mode {mode!r}")
     r = rows_i.drop_duplicates("market_id")
     ext = np.zeros(len(r), bool)
     if "ext_present" in r and "fee_category" in r:
@@ -591,50 +603,70 @@ def group_facts(rows_i: pd.DataFrame, underlying_date: bool = DEP_GROUP_UNDERLYI
     end = panel._epoch(r["end_date"]) if "end_date" in r else np.full(len(r), np.nan)
     facts: dict[str, dict] = {}
     fallback: dict[str, bool] = {}
+    no_parent: dict[str, bool] = {}
     ev = r["event_id"].to_numpy()
     nrm = r["neg_risk_market_id"].to_numpy() if "neg_risk_market_id" in r else np.full(len(r), None)
     eids = r["event_ids"].to_numpy() if "event_ids" in r else np.full(len(r), None)
     sl = r["series_slugs"].to_numpy() if "series_slugs" in r else np.full(len(r), None)
+    pids = r["parent_event_ids"].to_numpy() if "parent_event_ids" in r else np.full(len(r), None)
     for k, m in enumerate(r["market_id"].astype(str).to_numpy()):
+        npar = True
         if ext[k]:
             neg = None if pd.isna(nrm[k]) or str(nrm[k]).strip() == "" else str(nrm[k])
             f = {"event_ids": _json_list(eids[k]), "series_slugs": _json_list(sl[k]),
                  "event_slugs": [], "neg_risk_market_id": neg}
-            if underlying_date and not math.isnan(end[k]):
-                day = pd.Timestamp(end[k], unit="s", tz="UTC").strftime("%Y-%m-%d")
+            day = None if math.isnan(end[k]) else pd.Timestamp(
+                end[k], unit="s", tz="UTC").strftime("%Y-%m-%d")
+            if underlying_date and day:
                 for u in pairing.underlyings(f):
                     f["event_ids"] = sorted({*f["event_ids"], f"{UNDERLYING_DATE_PREFIX}{u}|{day}"})
+            if mode == "fixture_day":
+                if day:
+                    f["event_ids"] = sorted(
+                        {*f["event_ids"], *(f"{SERIES_DATE_PREFIX}{x}|{day}"
+                                            for x in f["series_slugs"])})
+                f["series_slugs"] = []  # no season-level link
+                npar = not (isinstance(pids[k], str) and pids[k].strip())
+                f["parent_event_ids"] = [] if npar else _json_list(pids[k])
             facts[m] = f
         else:
             facts[m] = {"event_ids": [] if pd.isna(ev[k]) else [str(ev[k])], "series_slugs": [],
                         "event_slugs": [], "neg_risk_market_id": None}
         fallback[m] = not ext[k]
-    return facts, fallback
+        no_parent[m] = npar
+    return facts, fallback, no_parent
 
 
 def dependence_group_ids(
     rows_i: pd.DataFrame, market_ids: np.ndarray, underlying_date: bool = DEP_GROUP_UNDERLYING
 ) -> pd.DataFrame:
-    """``dep_group`` (D120 ``fs2-dependence-groups-v1`` over this snapshot, plus underlying x UTC
-    date), ``dep_group_fallback`` (1.0 = event-id fallback, no sidecar) and
+    """``dep_group`` (fixture-day: event, parentEventId, negRisk, series x UTC end date,
+    underlying x UTC date), ``dep_group_season`` (the former league-season grouping: D120
+    ``fs2-dependence-groups-v1`` plus underlying x UTC date; pre-declared sensitivity),
+    ``dep_group_fallback`` (1.0 = event-id fallback, no sidecar), ``dep_group_no_parent`` (1.0 =
+    no ``parentEventId`` information: fixture-day group lacks parent links) and
     ``dep_group_unmatched`` (1.0 = market absent from the snapshot: singleton ``g:u:<id>``) per
     market, via ``pairing.dependence_groups`` (imported, not reimplemented). Never None."""
-    facts, fb = group_facts(rows_i, underlying_date)
-    groups = pairing.dependence_groups(facts, underlying=False)  # underlying handled by date node
     mids = [str(m) for m in market_ids]
-    return pd.DataFrame({
-        "dep_group": [groups.get(m, "g:u:" + m) for m in mids],
-        "dep_group_fallback": [float(fb[m]) if m in fb else 1.0 for m in mids],
-        "dep_group_unmatched": [float(m not in groups) for m in mids],
-    })
+    out: dict = {}
+    for col, mode in (("dep_group", "fixture_day"), ("dep_group_season", "season")):
+        facts, fb, npar = group_facts(rows_i, underlying_date, mode)
+        groups = pairing.dependence_groups(facts, underlying=False)  # underlying via date node
+        out[col] = [groups.get(m, "g:u:" + m) for m in mids]
+        if mode == "season":
+            out["dep_group_fallback"] = [float(fb[m]) if m in fb else 1.0 for m in mids]
+            out["dep_group_unmatched"] = [float(m not in groups) for m in mids]
+        else:
+            out["dep_group_no_parent"] = [float(npar[m]) if m in npar else 1.0 for m in mids]
+    return pd.DataFrame(out)
 
 
-def pool_dependence_groups(df: pd.DataFrame) -> pd.Series:
+def pool_dependence_groups(df: pd.DataFrame, col: str = "dep_group") -> pd.Series:
     """Connect per-period groups across periods. Each market's period-local groups become its
     ``event_ids`` for ``pairing.dependence_groups``, so a market seen in two periods merges them."""
     if not len(df):
         return pd.Series(dtype=object)
-    loc = df.assign(_k=df["period"].astype(str) + "|" + df["dep_group"].astype(str))
+    loc = df.assign(_k=df["period"].astype(str) + "|" + df[col].astype(str))
     sets = loc.groupby(loc["market_id"].astype(str))["_k"].agg(lambda x: sorted(set(x)))
     facts = {m: {"event_ids": v, "series_slugs": [], "event_slugs": [], "neg_risk_market_id": None}
              for m, v in sets.items()}
@@ -891,7 +923,9 @@ def build_period(
     out = pd.concat([out, feats.reset_index(drop=True)], axis=1)
     out["rep_sw_gap"] = sw["sw_mid"].to_numpy() - mid_i  # report-only gap placebo; not a feature
     out["dep_group"] = dg["dep_group"].to_numpy()
+    out["dep_group_season"] = dg["dep_group_season"].to_numpy()
     out["dep_group_fallback"] = dg["dep_group_fallback"].to_numpy()
+    out["dep_group_no_parent"] = dg["dep_group_no_parent"].to_numpy()
     out["dep_group_unmatched"] = dg["dep_group_unmatched"].to_numpy()
     # UMA exclusion (origin sidecar field only). Missing = unknown: kept and flagged.
     uma = origin["uma_resolution_statuses"]
@@ -967,7 +1001,9 @@ def build_panel(
     panel_df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
     if len(panel_df):
         panel_df["dep_group_period"] = panel_df["dep_group"]
-        panel_df["dep_group"] = pool_dependence_groups(panel_df)
+        panel_df["dep_group_season_period"] = panel_df["dep_group_season"]
+        panel_df["dep_group"] = pool_dependence_groups(panel_df, "dep_group")
+        panel_df["dep_group_season"] = pool_dependence_groups(panel_df, "dep_group_season")
     panel_df, info = apply_category_policy(panel_df, policy)
     panel_df.attrs["category_info"] = info
     return panel_df, counts
