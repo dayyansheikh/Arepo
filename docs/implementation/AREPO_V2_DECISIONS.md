@@ -898,3 +898,23 @@ request. See docs/AREPO_V2_CHECKPOINT.md for live state. No numbered D-entry is 
    evaluation/split machinery, experiment ledger, exploratory models on development data, clearly labelled
    exploratory, no edge claims). (B) Finish the D116 integrated validation. Phase 4 empirical findings
    remain non-validated until Phase 3 closes; development infrastructure may proceed now.
+
+## D116 / D117 — Integrated live validation passed with limitation; Phase 3 closed (2026-10-11)
+
+- **D116:** the frozen single integrated live validation ran once (launch `de934f3`, 2026-10-11 00:31–00:55Z, frame
+  interval 261 s).
+  - The authoritative evaluator outcome (`d116-evaluator-v3`) was **PASS_WITH_LIMITATION:no_eligible_untriggered**.
+  - Gates E0–E9 all passed, with 0 ENGINEERING findings.
+  - 4 of 8 members completed the full chain; 4 were unavailable because of real one-sided or empty books (16 DATA_SOURCE findings, receipts verified).
+  - There were 0 matched pairs (control_pool = 0 in both triggered strata).
+  - Evidence is in `PHASE_03_D116_EVIDENCE.json`; extra protected roots and disclosures are in `PHASE_03_D116_ADDENDUM.md`.
+- **Independent closure review** (Opus challenger): **accept closure with required disclosures**. The limitation text in the
+  addendum is recorded verbatim.
+- **D117:** under protocol §4.4 and the user's D115 item 5 decision, **Phase 3 is CLOSED with the recorded limitation.**
+- **What closure licenses:** the current build has carried real public data once through the full path with zero engineering findings.
+- **What it does not license:**
+  - any predictive, calibration, prevalence or population claim;
+  - any claim that live control matching works;
+  - any change to D082/D089/D094/D097/D114 outcomes.
+- **Carried into Phase 4:** no triggered-versus-control contrasts until a prospectively frozen design shows a non-zero control pool.
+- Phase 4 may begin under the research-lab governance (ledger, pre-registration, MDE, Holm, challenger review).

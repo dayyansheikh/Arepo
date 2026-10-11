@@ -24,3 +24,6 @@ original verification. Retain root manifests/reports, all known profile/benchmar
 failed attempts and boundary/large-payload examples. Preserve wrapper logs, timing sidecars,
 read reports and failed selection declarations outside these journals. Canonical D082 and
 history pilots D094/D097, plus unresolved D114, remain untouched in this first compaction.
+
+
+**D116 protected roots (2026-10-11):** every root listed in `PHASE_03_D116_ADDENDUM.md` is canonical and protected, including the frame journal `fs2_capture_583d01076be84ac6b4f63327cbaaec16` and `fs2_frame_read_c418935649ce4535b0cbd72adce8731c`.

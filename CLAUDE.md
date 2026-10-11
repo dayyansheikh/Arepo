@@ -7,8 +7,11 @@ AREPO tests whether information beyond market price and momentum has genuine out
 value on Polymarket data. It is research tooling: no alpha, calibration, profitability or trading claims exist.
 
 ## Hard status (read before acting)
-- **Phase 3 is PROVISIONAL.** The final repaired implementation has had no integrated live prospective validation.
-  The Oct 10 "complete" closeout is history only. **No Phase 4 modelling.**
+- **Phase 3 is CLOSED with limitation (D117, 2026-10-11)** via D116 (PASS_WITH_LIMITATION). Live control pairing is
+  unvalidated: no triggered-vs-control contrasts until a frozen design shows a non-zero control pool
+  (`docs/implementation/PHASE_03_D116_ADDENDUM.md`). **Phase 4 is in progress** under the research-lab governance
+  (`docs/research_lab/EXPERIMENT_LEDGER.md`): pre-registration, MDE, event clustering, Holm, challenger review. No
+  edge claims without prospective confirmation and an economic check.
 - Standing user authorisation (2026-10-10): work autonomously towards the research objective, including routine
   protocol drafting, prospective freezing (after an accepting `science-reviewer` pass), bounded authorised public
   collection and phase advancement when acceptance is genuinely met. Never change thresholds, formulas or gates to
