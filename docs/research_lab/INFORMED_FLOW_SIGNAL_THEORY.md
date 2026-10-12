@@ -328,7 +328,7 @@ and price in the rare tail?
 
 **IF-H2 (IFC3, `ifx_term`): timing information in deadline ladders.** In class A/B ladders, a decay-adjusted near-term
 share residual `z` ≥ 2 over 6h without a news burst predicts the near-dated contract's 7-day drift and its resolution
-excess. *Why:* someone who knows *when* buys the cheapest, most convex near-dated contract, so the trace is in relative
+excess. **Development result (2026-10-13): null, wrong-signed; not registered** (`IF_H2_DEADLINE_LADDER.md`). *Why:* someone who knows *when* buys the cheapest, most convex near-dated contract, so the trace is in relative
 prices, which AREPO already captures for the whole universe every 2 hours. No wallet data is needed, the look-alikes
 (decay, public news, stale quotes) are controllable, and it can be developed now on prices-history. Needs N6.
 
