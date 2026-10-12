@@ -160,6 +160,82 @@ Delta log loss (drop-one minus full), positive = family helps; conservative 95% 
   `demonstrated` at all six target/horizon cells (delta 0.035 to 0.243), so the ablation machinery can find
   signal when it exists.
 
+## Revision r1 (M0v baseline, placebo diagnosis, conditional direction), r2 (wallet age), r3 (flow drill)
+
+Changes versus r0/r0b (all logged in `trials.jsonl` with `revision`): the panel gained realised-volatility
+windows (`ml_rv_2h/6h/1d/7d`), distance from 0/1 and the scheduled time to end (`endDate` as listed now; it may
+have been revised after t, flagged), and the reference baseline is now **M0v**: M0 features + `ml_own_vol` +
+the four realised-vol windows + time to end + distance from 0/1 + trading activity (24h trade count and log
+notional). "Demonstrated" now means ΔLL against M0v (LightGBM on both sides); the flow family excludes the two
+activity columns that live in M0v. Arms: M0, M0v (logistic), M2v (LightGBM on the M0v features, the like-for-like
+reference), M1, M2 (all tier-(a) historical features), M2F (M2 + flow + wallet). Same folds, subset (461 markets,
+98k origins after the untraded exclusion), seeds and 6-configuration search as r0.
+
+**Volatility was the discovery.** Against M0v the "market_state_extra" family collapses (direction 2h ΔLL 0.0023,
+descriptive only) and M2 is no better than M2v (-0.17% [-0.39, 0.04]). Learning from the M0v features with a
+GBM already gives 14.7% over the logistic M0v at 2h (direction), which is a learner effect, not a feature family.
+
+**Same-learner result (M2F against M2v, relative log-loss gain, 95% CI, event cluster):**
+
+| target | 2h | 6h | 24h |
+|---|---|---|---|
+| direction (3-class) | 2.07% [1.72, 2.43] | 0.98% [0.64, 1.29] | 0.15% [-0.15, 0.44] |
+| \|move\| | 1.16% [0.79, 1.49] (gated) | 0.58% [0.17, 1.17] | -0.47% [-1.15, 0.03] |
+| up vs down given a move | 4.00% [3.22, 4.73] | 2.65% [2.19, 3.07] | 0.66% [0.12, 1.20] |
+
+Labels against M0v (ablation, 10,000 draws, BY with 117 prior tests plus this run): flow is `demonstrated` for
+direction 2h, up-vs-down 2h and 6h, and market-state extras for up-vs-down 2h. Wallet: none. Everything at 24h
+and everything else: `descriptive_only`. \|move\| 2h flow (ΔLL 0.0035 [0.0023, 0.0047]) would have been
+demonstrated but is blocked by the placebo gate (below).
+
+### Shuffled-label placebo: cause and handling
+
+The r0 placebo (M2F +0.27% over M0, CI excluding 0) was a **learner asymmetry, not a label or leakage defect**.
+`ml_models` M0/M0v is a nearly unpenalised logistic regression (C = 1e4). On pure noise it overfits and loses
+about 0.2% log loss to a model that stays near the base rate. The early-stopped, temperature-scaled GBM does
+exactly that. Evidence (global shuffle, direction 2h): M2v over M0v +0.21% [0.10, 0.36] and M2F over M0v +0.21%,
+but **M2F over M2v 0.00% [-0.01, 0.01]**. Same pattern at every horizon and target. Conclusion: family claims
+must be measured with the same learner on both sides (M2F vs M2v; the ablation already is), and arm-versus-M0
+numbers carry a learner effect.
+
+Shuffle designs (k = 1; other horizons: global only):
+* **Global shuffle** (the null: only the label marginal survives): ablation shows no family above 0.0005;
+  same-learner arms clean for 8 of 9 cells.
+* **Within-period shuffle** (keeps each period's class mix): M2F over M2v +0.16% [0.03, 0.29] (direction),
+  +0.25% [0.13, 0.36] (|move|). **Within-market shuffle** (keeps each market's class mix): +0.51% and +0.34%
+  (the latter not significant). The model can learn time-varying and market-level flat shares from activity
+  features, so these designs are not null designs. They explain the original gain and are reported as diagnostics,
+  not gated.
+* **Gate rule**: a cell is gated if, on the global shuffle, any same-learner arm beats its baseline with a CI above
+  0 or any family is labelled `demonstrated`. A gated cell cannot carry a `demonstrated` label. One cell fails:
+  **|move| 2h** (M2F over M2v +0.01% [0.00, 0.03], a lower bound that rounds to zero; the real gain is 1.16%).
+  The strict rule is applied, so flow at |move| 2h is `descriptive_only (placebo_gate)` in r1 and r2.
+* **Leak positive control**: detected (`demonstrated`) in all nine cells (ΔLL 0.033 to 0.396).
+
+### Conditional direction (up vs down given |dmid| > 0.005; fitted on moved rows only)
+
+Moved rows: 19.8k (2h, 13 folds), 28.4k (6h, 14), 41.9k (24h, 16); about half are up. Loss of the best arm is
+0.626 (M2F, 2h) against 0.693 for a coin. Flow is `demonstrated` at 2h (ΔLL 0.0223 [0.0166, 0.0288]) and 6h
+(0.0119 [0.0071, 0.0166]) and market-state extras at 2h (0.0074 [0.0035, 0.0112]); nothing at 24h. Placebos
+(global shuffle) are clean and the leak control is detected. So **direction skill separate from volatility
+skill exists in this historical sample at 2-6h, carried by trade flow**.
+
+**Staleness caution (r3 drill, flow split by mechanism).** At 2h the biggest piece is "last trade versus the
+price series" (`ml_tf_ltp_minus_mid`, `ml_tf_last_age_h`): direction ΔLL 0.0040, |move| 0.0028 (the only
+demonstrated piece), up-vs-down 0.0078. Signed flow and buy share are also demonstrated at 2h (0.0020 direction,
+0.0049 up-vs-down) and at 6h for direction (0.0036); intensity is not. Because the prices-history value is
+mid-like and possibly lagged relative to trades, a last-trade-minus-price feature can be a price-series
+lag (the series catches up to the last trade), not information about the market. This data cannot separate
+the two. Read the flow result as "trade flow tells you where the lagged series is heading", and treat it as a
+hypothesis for the prospective data, where book mid and trades have receipt times.
+
+### Wallet age (r2; `nw_*` table from `history_sources.new_wallet_features`, 149,770 of 150,000 rows covered)
+
+`wallet_age` against M0v: no `demonstrated` label anywhere. Direction 2h ΔLL -0.0007 [-0.0014, -0.0001];
+up-vs-down 2h -0.0001; |move| 24h +0.0071 [0.0018, 0.0140] but not demonstrated and blocked by M2v-relative
+checks (M2FX over M2v +0.06%). Adding the table to M2F changes nothing material (e.g. direction 2h
+2.07% to 2.08% over M2v).
+
 ## Caveats
 
 * Historical and exploratory. Panels are reconstructed after the fact from prices-history, not point-in-time
@@ -173,18 +249,18 @@ Delta log loss (drop-one minus full), positive = family helps; conservative 95% 
 * Flow/wallet limitations: trade truncation (41 markets), first-seen index censoring, and the fact that
   prices in markets with sparse trading are stale by construction.
 * 623 of 1,759 panel markets were used (150,000-row cap); the hyperparameter search used 6 configurations.
-* Multiple testing: 117 cumulative tests in the BY denominator; this run adds more.
+* Multiple testing: 117 cumulative tests in the BY denominator (r1 onward); every revision adds more.
+* The M0/M0v logistic is nearly unpenalised; arm-versus-M0 gains include a learner effect (see the placebo
+  diagnosis). Use M2F-versus-M2v for family claims.
 * No directional claim: the 3-class lift is mostly flat-versus-move. No economic check (fees, spread,
   executability) was done.
 
 ## Pending revisions and next steps
 
-1. `book` and `wallet_age` families: `run_ml_history.py --book-table .../book_features.csv.gz` (analysis
-   restricted to origins inside the pmxt window; ablation judged on rows with a book) and
-   `--wallet-age-table` (columns `ml_wage_*`/`ml_wa_*` keyed by `market_id`, `origin_ts`). Each is a separate
-   `--revision` (`r1_book`, `r2_wallet_age`). The tables had not landed when this note was written.
-2. A conditional direction target (sign of the move given a move) with a volatility-aware baseline, so that
-   "beats M0" cannot be explained by volatility.
+1. `book` family: `--book-table` (analysis restricted to pmxt-window origins; judged on rows with a book).
+   `wallet_age` is done (r2). The `h2_main` book table is still being built (the `h1_first` table has 11.6%
+   coverage); run `--revision r4_book` when it lands.
+2. Done: conditional direction with the M0v baseline (r1).
 3. Capture neg-risk and parent event ids in the frame so the second cluster is distinct from the event.
 4. Scale to all 1,759 panel markets once the per-fold cost is acceptable.
 
@@ -197,4 +273,10 @@ python scripts/backfill_history.py panel --run-id h2_main
 python scripts/run_ml_history.py --run-id h2_main --max-rows 150000 --revision r0_no_external
 python scripts/run_ml_history.py --run-id h2_main --max-rows 150000 --skip-arms --placebo-all \
     --n-boot-ablation 10000 --revision r0b_ablation_nboot10000
+python scripts/run_ml_history.py --run-id h2_main --max-rows 150000 --n-boot-ablation 10000 \
+    --revision r1_m0v_placebo_updown   # M0v baseline, gated placebos, updown target
+python scripts/run_ml_history.py --run-id h2_main --max-rows 150000 --n-boot-ablation 10000 \
+    --revision r2_wallet_age --wallet-age-table ../data-dumps/research_lab/history_sources/new_wallets/new_wallet_features_h2_main.csv.gz
+python scripts/run_ml_history.py --run-id h2_main --max-rows 150000 --skip-arms --drill-flow \
+    --n-boot-ablation 10000 --horizons 1,3 --revision r3_flow_drill
 ```
