@@ -2721,17 +2721,37 @@ def coverage_report(d: pd.DataFrame) -> dict:
     return out
 
 
+def read_features(path: Path, columns: list[str] | None = None) -> pd.DataFrame:
+    """Read a feature table and turn nullable string columns back into plain object columns, so
+    comparisons give numpy booleans."""
+    d = pd.read_parquet(path, columns=columns)
+    for c in d.columns:
+        if isinstance(d[c].dtype, pd.StringDtype):
+            d[c] = d[c].astype(object).where(d[c].notna(), None)
+    return d
+
+
+def _to_parquet_safe(d: pd.DataFrame) -> pd.DataFrame:
+    """Object columns (strings with NaN from left joins) as nullable strings for parquet."""
+    for c in d.columns:
+        if d[c].dtype == object:
+            d[c] = d[c].astype("string")
+    return d
+
+
 def cli(cmd: str, a, out_dir: Path, run_dir: Path, log) -> int:
     feat_path = out_dir / "features.parquet"
     shift_path = out_dir / "features_shift30.parquet"
     if cmd == "features":
-        d = build_features(run_dir, out_dir, log)
+        d = _to_parquet_safe(build_features(run_dir, out_dir, log))
         d.to_parquet(feat_path, index=False)
-        ds = build_features(run_dir, out_dir, log, shift_s=1800.0)
-        ds.to_parquet(shift_path, index=False)
         log(f"features: {len(d)} rows, {d.shape[1]} columns -> {feat_path}")
+        del d
+        ds = _to_parquet_safe(build_features(run_dir, out_dir, log, shift_s=1800.0))
+        ds.to_parquet(shift_path, index=False)
+        log(f"features (flow windows ending 30 min earlier) -> {shift_path}")
         return 0
-    d = pd.read_parquet(feat_path)
+    d = read_features(feat_path)
     cuts = fit_cuts(d)
     d = apply_cuts(d, cuts)
     only = {x for x in a.only.split(",") if x} or None
@@ -2769,7 +2789,7 @@ def run_main(d: pd.DataFrame, cuts: dict, a, out_dir: Path, shift_path: Path, lo
         and hmap0[hid].family in ("flow", "wallet", "interaction", "category")
     ]
     if shift_path.exists() and need_shift:
-        ds = apply_cuts(pd.read_parquet(shift_path), cuts)
+        ds = apply_cuts(read_features(shift_path), cuts)
     hmap = {h.hid: h for h in HYPOTHESES}
     extra = {}
     for hid in summ["survivors"]:
