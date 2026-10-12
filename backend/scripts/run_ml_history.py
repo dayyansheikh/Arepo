@@ -426,6 +426,13 @@ def run_kind(kind, lab, manifest, k, hours, args, sink, placebo_sink, run_dir, e
     wage = [c for c in extra_cols if c not in book]
     if wage:
         fams["wallet_age"] = wage
+    if args.drill_flow:  # split flow into mechanisms: staleness-prone, signed flow, intensity
+        fl = [c for c in flow if c not in ACTIVITY]
+        stale = [c for c in fl if c in ("ml_tf_ltp_minus_mid", "ml_tf_last_age_h")]
+        signed = [c for c in fl if "signed_vol" in c or "buy_share" in c]
+        fams.pop("flow", None)
+        fams.update({"flow_last_trade_vs_price": stale, "flow_signed": signed,
+                     "flow_intensity": [c for c in fl if c not in stale and c not in signed]})
     fams = {f: v for f, v in fams.items() if v}
     hdr = {"target_family": target, "history_target": kind, "horizon_snapshots_k": k,
            "horizon_hours": hours, "n_rows": int(len(lab)), "baseline": "M0v",
@@ -572,6 +579,8 @@ def main(argv=None) -> int:
     ap.add_argument("--keep-subset", action="store_true",
                     help="with external tables: add their markets to the seeded subset instead of "
                     "restricting to them")
+    ap.add_argument("--drill-flow", action="store_true",
+                    help="split the flow family into last-trade-vs-price, signed flow, intensity")
     ap.add_argument("--revision", default="r0_no_external",
                     help="separate governance revision label stamped on every trial line")
     ap.add_argument("--trials-path", type=Path, default=provenance.TRIALS_PATH)
@@ -585,7 +594,7 @@ def main(argv=None) -> int:
     ml_panel.register_extended()
     first = run_dir / f"panel_H{HORIZON_FILES[1]}h.csv.gz"
     markets, rows = pick_markets(first, a.max_rows, a.seed)
-    for tab in (a.book_table, a.wallet_age_table):
+    for tab in (a.book_table,):  # sparse table: use its markets (wallet_age covers every origin)
         if tab is not None and Path(tab).exists():
             ids = set(pd.read_csv(tab, usecols=["market_id"], dtype=str)["market_id"])
             markets = markets | ids if a.keep_subset else ids
