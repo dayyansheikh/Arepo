@@ -798,7 +798,9 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
   `cross_venue_live.py` in the same commit; every origin before it (the pilot) stays `prospective_unregistered` and is
   excluded. The running poller is restarted on the registration code before 00:00Z (restart time recorded below); the
   **effective start** is max(REGISTERED_UTC, first cycle logged by a process started on registration code), and that exact
-  value is the `--analyze` START.
+  value is the `--analyze` START. **Restart record:** poller restarted on registration commit `39857e4` at
+  2026-10-12T22:54:35Z (log line `start ... code=39857e437982 registered=2026-10-13T00:00:00Z`), before REGISTERED_UTC, so
+  the effective start is **2026-10-13T00:00:00Z**.
   E008 is reserved for the IF-H2 deadline ladder. Design, code and pilot: `CROSS_VENUE_LIVE.md`.
 - **Origin of the hypothesis (post hoc, exploratory_historical):** `CROSS_VENUE_STUDY.md` 5.1-5.2: r(dK_t, dP_t+L) about 0.24
   at the peak lag, +5.3% (conservative alignment) / +9.8% (`pm_lag = 0`) relative MSE gain of M0 + gap + Kalshi changes over
