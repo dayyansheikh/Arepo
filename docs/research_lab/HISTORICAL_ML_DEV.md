@@ -232,8 +232,8 @@ hypothesis for the prospective data, where book mid and trades have receipt time
 ### Wallet age (r2; `nw_*` table from `history_sources.new_wallet_features`, 149,770 of 150,000 rows covered)
 
 `wallet_age` against M0v: no `demonstrated` label anywhere. Direction 2h ΔLL -0.0007 [-0.0014, -0.0001];
-up-vs-down 2h -0.0001; |move| 24h +0.0071 [0.0018, 0.0140] but not demonstrated and blocked by M2v-relative
-checks (M2FX over M2v +0.06%). Adding the table to M2F changes nothing material (e.g. direction 2h
+up-vs-down 2h -0.0001; |move| 24h +0.0071 [0.0018, 0.0140] but labelled `descriptive_only` (BY) and M2FX is only
++0.06% over M2v. Adding the table to M2F changes nothing material (e.g. direction 2h
 2.07% to 2.08% over M2v).
 
 ## Caveats
