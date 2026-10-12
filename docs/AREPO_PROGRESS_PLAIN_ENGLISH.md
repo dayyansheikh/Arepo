@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-12 04:45 UTC+1
+**Last updated:** 2026-10-12 08:37 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. No decisions needed from you.
 **Current objective:** Build the combined-signal model (many signals, ML + Bayesian, Shapley breakdown) and collect its data; finish the 24-hour forecasting test tonight; run the pairing redesign (D120) once.
@@ -59,25 +59,27 @@ current price and recent momentum.
 
 Data rights are out of scope during the private research phase (your decision, 2026-10-11).
 
-## 6. Decisions I need from you
-**Infrastructure fixes are READY FOR APPROVAL.** They are coded and tested on branch `fix/infra-2026-10-11`, not deployed. Details: `docs/infra/INFRA_FIXES_2026-10-11.md` on that branch.
-1. **Merge and deploy the fix branch.**
-   - The research status page was running about 550,000 database queries per request, which crashed the API. It now uses a few queries.
-   - The collector re-read about 110,000 rows twice per run and wrote nothing. It now skips finished cohorts.
-   - Backups no longer re-download unchanged data.
-   - Memory caches are capped.
-   - Expected effect: far less database bandwidth and disk I/O, and no more memory crashes.
-   - Rollback: revert the merge.
-   - An independent pre-deploy code review is running first.
-2. **Run the prepared security SQL in Supabase.** It locks 7 tables that the app never uses through the Data API. Rollback is included.
-3. **Database size (951 MB against the 500 MB free limit). Choose one:**
-   - **(a)** archive old snapshot history to a verified backup, then prune it. This is data-destructive, the restore is tested, and it also needs a science review.
-   - **(b)** Supabase Pro at $25/month.
-4. **Resend:** dashboard access is needed to check email delivery. The code looks fine, and digests are off.
+## 6. Your lunchtime checklist (about 10 minutes, in this order)
+Full guide: `docs/infra/DEPLOY_RUNBOOK_2026-10-12.md` on branch `fix/infra-2026-10-11`.
 
-5. **Optional: an API key for on-chain history.** To trace where a betting wallet's money came from (a strong signal for the Maduro-style detector), AREPO needs a blockchain-data key, because the free keyless routes are blocked. Free tiers exist (for example Polygonscan or Alchemy). Creating the key and storing it is your decision.
+1. **Deploy the infrastructure fixes.**
+   - Open https://github.com/dayyansheikh/Arepo/compare/arepo-free-production-v1...fix/infra-2026-10-11
+   - Click **Create pull request**, then **Merge**.
+   - If Render hasn't started a deploy within about 2 minutes: Render → `arepo-api` → **Manual Deploy**.
+   - Then tell me "deployed" and I'll verify the live site.
+2. **Security SQL.**
+   - Supabase → SQL Editor → paste `docs/infra/supabase_data_api_lockdown.sql` (on the fix branch) → **Run**.
+   - Run the check query from the runbook and paste me the result (expected: `0 | 0 | 0`).
+3. **Archive token.**
+   - GitHub → Settings → Developer settings → fine-grained token, with access ONLY to `dayyansheikh/arepo-data` and permission **Contents: Read and write**.
+   - Save it in the Arepo repo as the Actions secret `ARCHIVE_REPO_TOKEN`.
+   - Tell me "token added". I then run the archive in two steps: export, verify and test-restore first; delete only after that checks out.
+   - The archive can always be restored with one command.
+4. **Optional: Etherscan key.** Sign up free at etherscan.io → API Keys → create one. In Terminal, run:
+   `read -s k; mkdir -p ~/.arepo; printf %s "$k" > ~/.arepo/etherscan_key; chmod 600 ~/.arepo/etherscan_key; unset k`
+   Then tell me "key saved".
 
-Everything else is running autonomously.
+Done already: the **live large-trade monitor** is running permanently (approved). Resend is postponed.
 
 ## 7. What's next
 1. Collection every 2h; E004/E005/E006 scored tonight.
