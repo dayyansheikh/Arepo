@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-12 17:45 UTC+1
+**Last updated:** 2026-10-12 22:10 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. No decisions needed from you.
 **Current objective:** Build the combined-signal model (many signals, ML + Bayesian, Shapley breakdown) and collect its data; finish the 24-hour forecasting test tonight; run the pairing redesign (D120) once.
@@ -12,6 +12,16 @@ current price and recent momentum.
   - The full pipeline passed its final test (D116).
   - The one missing piece, matched "control" comparison markets, worked live this morning (D118 **PASS**).
 - **Forecasting:** one confirmed short-term pattern (price reversal), which is not tradable as it stands. More tests finish tonight.
+
+## 2a. Latest (12 Oct afternoon)
+- **E007 order flow: Supported**, and it is not a quote-lag artefact. It is real but tiny (about 0.36c).
+- **Hypothesis battery:** 72 pre-declared tests, 18 survived correction.
+  - Survivors include: aggressive buying continues; price moves without trades reverse (quote noise); longshots and favourites drift.
+  - Nulls: wallet freshness, repeat winners, cross-market and order-book effects.
+  - **None covers trading costs.**
+- **Economic conditions:** 95 setups (liquid markets, strong signals, combined signals, passive orders). **None is profitable after costs.**
+- **Learned surprise detector:** about 4x better than chance at flagging surprise jumps, and it beats 100/100 placebos. It is driven by "volatile week, quiet day", not wallets. It is mostly false alarms and has no paper profit. It is now **live in the monitor**, as a genuine prospective test.
+- **Running:** deadline ladders, Polymarket vs Kalshi, and about 10k more historical markets.
 
 ## 2. What changed overnight (11–12 Oct)
 - **24-hour forecasting test, scored and independently checked:**
