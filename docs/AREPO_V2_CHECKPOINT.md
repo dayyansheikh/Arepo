@@ -108,6 +108,15 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
 
 **Live jobs:** `com.arepo.cross-venue-live` (E009 poller + daily pair refresh), `com.arepo.collector`, `com.arepo.live-trade-monitor`, `com.arepo.live-trade-outcomes` and `com.arepo.notify` (ntfy topic in `~/.arepo/ntfy_topic`; the user still has to subscribe).
 
+## Latest results (12–13 Oct)
+- **Economics:** 95 conditions, none after-cost positive (`ECONOMIC_CONDITIONS_STUDY.md`).
+- **Battery 1:** 72 hypotheses, 18 survive BY, none cost-viable. Flow continuation is the main real effect; wallet effects are null (`HYPOTHESIS_BATTERY_1.md`).
+- **Learned surprise detector** `sm_learned_v1`: test-month lift about 4x, excess +1.8 pts, Holm p 0.008, placebo rank 1/100. It is volatility-driven. Deployed live in the monitor (`SURPRISE_MOVE_DETECTOR.md`).
+- **Cross-venue:** Kalshi leads Polymarket by 10–20 min (`CROSS_VENUE_STUDY.md`).
+  - **E009 registered:** live test, runs 2026-10-13 to 2026-11-03, analysed once (`CROSS_VENUE_LIVE.md`). launchd job `com.arepo.cross-venue-live`.
+  - The historical pairs are being re-audited for matcher errors: 56 of 167 live pairs were wrongly matched.
+- **Running:** IF-H2 (E008 is reserved for it) and `h3_power`.
+
 ## Pending user decisions (dashboard section 6)
 1. Infra deploy (branch `fix/infra-2026-10-11`, bed00bb, reviewed SAFE).
 2. Supabase lockdown SQL.
