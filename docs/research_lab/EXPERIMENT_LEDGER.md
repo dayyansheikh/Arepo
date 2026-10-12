@@ -892,7 +892,9 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
 - **Registered:** 2026-10-13 (commit containing this entry). `REGISTERED_UTC = 2026-10-13T02:00:00Z` in
   `cross_venue_live_e010.py`, later than the registration commit; the poller is restarted on the registration code before it
   (restart time recorded below). Effective start = max(REGISTERED_UTC, first cycle of a process on registration code).
-  E009 stays exactly as registered; this is a separate experiment.
+  E009 stays exactly as registered; this is a separate experiment. **Restart record:** poller restarted on registration commit
+  `9beda37` at 2026-10-12T23:28:59Z (log: `E010 writer on: spec=62b992c6af95 registered=2026-10-13T02:00:00Z`), before
+  REGISTERED_UTC, so the E010 effective start is **2026-10-13T02:00:00Z**. (This restart preceded E009's 00:00Z start too.)
 - **Origin (post hoc, exploratory_historical):** `CROSS_VENUE_STUDY.md` section 10 (revision r1, commit 86a41c2): dropping 25
   mismatched pairs (C1, 316 pairs, 183 events) reversed the v1 gap null. Walk-forward relative MSE gain over M0, C1:
   gap only +5.1% (1h, CI 4.1-6.2), +7.5% (6h, 1.2-11.2); gap + Kalshi changes +7.0% (1h, 3.2-12.7), +6.9% (6h, 2.3-9.8).
