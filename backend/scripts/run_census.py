@@ -47,7 +47,9 @@ DEV = ("2025-11-15", "2026-01-01")
 EVAL = ("2026-01-01", "2026-07-30")  # judgement half of the broad sample starts 2026-07-30T06Z
 
 CLASS_RULE = {
-    "version": "class-v1",
+    "version": "class-v2",
+    "change_from_v1": "pre-outcome metadata fix: v1 routed fee-less daily sports markets "
+    "('Will <club> win on <date>?') into B and matched 'deport*' on club names",
     "c_fee_categories": ["sports", "crypto", "weather", "finance"],
     "c_keywords": [
         "vs", "nfl", "nba", "mlb", "nhl", "ncaa*", "ufc", "fifa", "uefa", "epl", "premier league",
@@ -59,7 +61,11 @@ CLASS_RULE = {
         "bitcoin", "btc", "ethereum", "eth", "solana", "sol", "xrp", "doge*", "crypto",
         "up or down",
         "price of", "above", "below", "reach", "dip to", "s p 500", "nasdaq", "dow jones", "stock*",
-        "market cap", "fdv", "temperature", "rain", "snow", "weather", "hurricane*", "earthquake*"],
+        "market cap", "fdv", "temperature", "rain", "snow", "weather", "hurricane*", "earthquake*",
+        "win on", "fc", "cf", "afc", "draw", "exact score", "goalscorer", "top scorer", "pga",
+        "lpga", "golf", "olympic*", "medal", "ballon d or", "heisman", "end in a draw",
+        "relegat*", "transfer window", "box office", "rotten tomatoes", "billboard",
+        "spotify chart*", "album sales", "top global netflix"],
     "a_keywords": [
         "nobel", "oscar*", "grammy*", "emmy*", "golden globe*", "award*", "person of the year",
         "announce*", "launch*", "release*", "unveil*", "listing", "listed", "ipo", "strike*",
@@ -67,8 +73,8 @@ CLASS_RULE = {
         "forces", "capture*", "raid*", "sanction*", "pardon*", "executive order", "tariff*",
         "appoint*", "nominat*", "fired", "indict*", "charged", "arrest*", "verdict", "ruling",
         "court", "sentenc*", "say", "says", "said", "mention*", "tweet*", "post*", "truth social",
-        "speech", "deport*", "veto*", "declare*", "recogni*", "embassy", "withdraw*", "fed",
-        "fomc", "rate cut*", "interest rate*", "ban"],
+        "speech", "deport", "deported", "deportation*", "veto*", "declare*", "recogni*",
+        "embassy", "withdraw*", "fed", "fomc", "rate cut*", "interest rate*", "ban"],
     "b_keywords": [
         "election*", "elected", "win", "winner", "vote*", "primary", "referendum", "seats",
         "meet*", "talk*", "call", "summit", "negotiat*", "deal", "agreement", "ceasefire",
@@ -451,12 +457,17 @@ def cmd_universe(a) -> None:
     es.heavy_gate()
     lim = hb.Limiter(hb.httpx_transport(), rps=a.rps, live_check=hb.live_pass_running)
     rep = ltc.enumerate_universe(lim, V1, _e(UNIV[0]), _e(UNIV[1]), 500.0, _e(ACTIVE_FROM))
-    u = ltc.load_universe(V1)
     from astrolabe.research_panel.pairing import fee_category
 
-    u["fee_category"] = u["fee_type"].map(fee_category)
-    u["cls"] = [ih.classify(f"{q} {s_} {e}", fc, CLASS_RULE) for q, s_, e, fc in
-                zip(u["question"], u["slug"], u["event_slug"], u["fee_category"], strict=True)]
+    def slim(r: dict) -> dict:
+        fc = fee_category(r.get("fee_type") or None)
+        cls = ih.classify(f"{r['question']} {r['slug']} {r['event_slug']}", fc, CLASS_RULE)
+        out = {**r, "fee_category": fc, "cls": cls}
+        if cls not in ("A", "B"):  # class C / unclassified: counts only, no text or tokens
+            out.update(question="", token0="", token1="")
+        return out
+
+    u = ltc.load_universe(V1, slim)
     u.to_csv(V1 / "universe.csv.gz", index=False)
     es.write_json(V1 / "universe.manifest.json", {
         "min_volume": 500.0, "closed_end_window": list(UNIV), "active_start_from": ACTIVE_FROM,

@@ -262,17 +262,28 @@ def enumerate_universe(lim: hb.Limiter, out_dir: Path, start_ts: int, end_ts: in
     return rep
 
 
-def load_universe(out_dir: Path):
+def load_universe(out_dir: Path, transform: Callable[[dict], dict | None] | None = None):
+    """Stream the universe windows into a DataFrame (first record per condition id wins).
+    ``transform`` may slim or drop each row (used to keep text and tokens only where needed)."""
     import pandas as pd
 
-    rows, capped, n_win = [], 0, 0
-    for line in (Path(out_dir) / "universe" / "days.jsonl").read_text().splitlines():
-        if line:
+    rows: dict[str, dict] = {}
+    capped = n_win = 0
+    with (Path(out_dir) / "universe" / "days.jsonl").open() as fh:
+        for line in fh:
+            if not line.strip():
+                continue
             d = json.loads(line)
-            rows.extend(d["rows"])
             capped += d["capped_leaves"]
             n_win += 1
-    df = pd.DataFrame(rows, columns=UNIVERSE_COLS).drop_duplicates("condition_id")
+            for r in d["rows"]:
+                if r["condition_id"] in rows:
+                    continue
+                r2 = transform(r) if transform else r
+                if r2 is not None:
+                    rows[r["condition_id"]] = r2
+            del d
+    df = pd.DataFrame(list(rows.values()))
     df.attrs.update({"capped_leaves": capped, "windows": n_win})
     return df
 
