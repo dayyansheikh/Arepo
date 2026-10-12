@@ -182,3 +182,49 @@ Census as built:
   windows.
 - Episodes reaching $1k: 345,066 (dev 43,965; eval 301,101).
 - Disk 944 MB of the 2 GB cap, mostly the uncompressed universe JSON.
+
+### Results, revision census-anchored-1 (exploratory_historical; eval window 2026-01-01 to 2026-07-30)
+
+**IF-H1** (`if_h1_hist_v1`, one trial). Of 301,101 eval episodes, 10,945 are class A/B with pbar ≤ 0.20 and
+n_E ≥ $1k, and 498 pass the X1 ≥ q99 gate (340 wallets, 159 markets). All 498 identity profiles resolved: 225
+complete histories, 273 truncated at 500 events. Vetoes removed 323. Overlapping counts: reward or merge
+activity in 30d 244, ≥ 20 markets in 7d 155, end date passed 106; kappa and pre-trend also apply. 91 passed
+identity (fresh 85, focused 37, dormant 2; overlapping).
+
+| Alerts (weeks) | Precision (7d, +0.10) | Pool base rate | Alerts with identity-only controls | Excess (95% CI) | p one-sided | Testable | Naive top-10/week precision | Mean D_7d | MDE at 80% |
+|---|---|---|---|---|---|---|---|---|---|
+| 35 (18) | 0.086 | 0.086 (lift 1.0) | 9 (12 distinct controls) | -0.17 (-0.50, +0.22) | 0.84 | **no** (< 30 alerts with controls) | 0.058 (n = 310) | +0.016 | +0.46 |
+
+Three alerts hit (median lead 39h to the first +0.10 crossing). Reading: in this census, gated fresh or focused
+convex stakes hit no more often than the gated pool, and barely more than the naive size ranker. The
+identity-only control set is too thin to test the identity contrast (9 alerts had controls). Not testable;
+no claim.
+
+**5 frozen variants on the large-trade-anchored A/B panel.** 6,000 seeded anchors were drawn from 145,048
+(market, 2h slot) gate points, needing 11,952 requests. 2,885 anchors gave a panel row (1,288 markets, 734
+clusters); the others had an origin price outside [0.02, 0.98] or no quote. Spread and liquidity are NaN.
+Same `EvalConfig` (1% budget, h = 24, δ = 0.10).
+
+| rule_id | Alertable | Episodes (clusters) | Precision | Control base | Lift | Excess (95% CI) | p | **Holm p** | Testable | Recall large moves | Paper P&L $/alert (95% CI) | `alerts_needed(b, .05)` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `uf_new_wallet_concentration_v1` | 2,620 | 26 (22) | 0.125 | 0.018 | 6.9 | +0.118 (-0.009, +0.273) | 0.045 | **0.225** | no | 3/315 | -0.00 (-0.11, +0.12) | 204 |
+| `uf_imbalance_burst_v1` | 2,620 | 26 (21) | 0.125 | 0.062 | 2.0 | +0.033 (-0.043, +0.138) | 0.265 | **1.0** | no | 3/315 | +0.14 (-0.03, +0.39) | 392 |
+| `uf_pressure_no_response_v1` | 2,615 | 26 (23) | 0.167 | 0.109 | 1.5 | +0.022 (-0.130, +0.204) | 0.393 | **1.0** | no | 6/314 | +0.00 (-0.21, +0.23) | 572 |
+| `uf_large_trade_v1` | 2,754 | 27 (18) | 0.000 | 0.179 | 0.0 | -0.179 (-0.310, -0.067) | 1.0 | **1.0** | no | 0/320 | -0.12 (-0.16, -0.07) | 803 |
+| `uf_convex_longshot_v1` | 475 | 4 (3) | 0.000 | 0.062 | 0.0 | -0.062 (-0.25, 0.00) | 1.0 | **1.0** | no | 0/42 | -0.17 (-0.34, -0.07) | 394 |
+
+**Power achieved.** The anchored panel gives 26-27 episodes per variant (none testable); the frozen 1% budget
+caps alerts at about 1% of rows. `alerts_needed` for a +5-point excess is 204-803. The new-wallet
+concentration variant has the only interval that nearly excludes 0 (lower bound -0.009). After Holm it is
+nowhere near significance, so it is a lead for the live registration, not a finding. `uf_large_trade_v1` is
+worse than its controls here (its CI excludes 0 on the wrong side), consistent with large prints in thin A/B
+markets being absorbed rather than informative. IF-H1 reached 35 alerts, but its identity-only control set
+is the binding constraint. Cumulative detector trials after this revision: 18 (`prior_detector_trials`).
+**Nothing here reaches L2.**
+
+**Census coverage limits.**
+- Taker prints only.
+- Class A/B by a keyword rule (class-v2).
+- V_m from census prints, not total volume.
+- The v2 global cursor holds only the last 41 days.
+- The anchored rows' new-wallet index is census-based (first appearance among ≥ $500 A/B prints).
