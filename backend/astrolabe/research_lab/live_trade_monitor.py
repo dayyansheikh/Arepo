@@ -52,6 +52,9 @@ from .history_sources import DATA_API, RateLimiter, WalletHistory
 from .wallet_sidecar import hash_wallet, load_or_create_key
 
 log = logging.getLogger(__name__)
+# httpx logs full request URLs at INFO, and /activity URLs carry raw wallet addresses.
+for _n in ("httpx", "httpcore"):
+    logging.getLogger(_n).setLevel(logging.WARNING)
 
 VERSION = "live-trade-monitor-v1"
 ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "live_trades"

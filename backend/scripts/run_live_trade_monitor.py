@@ -36,6 +36,8 @@ def main() -> int:
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, stream=sys.stderr,
                         format="%(asctime)s %(levelname)s %(message)s")
+    for n in ("httpx", "httpcore"):  # their INFO lines contain raw wallet addresses in URLs
+        logging.getLogger(n).setLevel(logging.WARNING)
     lim = hb.Limiter(hb.httpx_transport(timeout=30.0), rps=min(a.rps, 0.95))
     if a.outcomes:
         print(json.dumps(ltm.write_outcomes(lim, a.root).__dict__))

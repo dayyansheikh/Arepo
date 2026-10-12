@@ -211,3 +211,9 @@ def test_day_cap_pauses(mk):
     m.cfg.day_cap_bytes = 1
     (m.root / f"trades-{ltm._day(NOW)}.jsonl").write_text("xx")
     assert m.run_cycle()["status"] == "day_cap"
+
+
+def test_httpx_url_logging_silenced():
+    import logging
+
+    assert logging.getLogger("httpx").level >= logging.WARNING
