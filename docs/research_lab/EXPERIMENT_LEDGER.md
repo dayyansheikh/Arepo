@@ -744,3 +744,17 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
   - **Collection changes:** the wallet sidecar and the launchd switch did not touch E007's inputs.
   - **Data span:** about 22h of back-to-back periods.
 - **Open mechanical risk:** Gamma quote staleness relative to trades just before origin could make "continuation" partly mechanical, especially alongside E004's reversal. Until a development check excludes trades in the last 5–15 minutes before origin, call this **"flow–quote continuation"**, not evidence of informed flow.
+
+### E007 staleness check (development)
+
+**DEVELOPMENT/post-hoc. Does not change E007's verdict.** Same 12 confirmation samples, frozen dev fit, weights and event-clustered bootstrap (`e007.analyse`, unmodified). `signed_share` was recomputed from each sample's `trades.csv.gz` over `[origin-3600s, origin-cutoff)`, with the denominator restricted to the same window. The 0-minute row reproduces the E007 primary exactly. Trial lines: kind `e007_staleness_dev`, role `exploratory_dev`.
+
+| Trades excluded / used | β | 95% CI | Nonzero pairs | Periods β>0 |
+|---|---|---|---|---|
+| none (E007 primary) | 0.003626 | [0.001726, 0.005316] | 3,859 | 11/12 |
+| last 5 min excluded | 0.002993 | [0.001046, 0.004671] | 3,622 | 10/12 |
+| last 10 min excluded | 0.003260 | [0.001301, 0.005118] | 3,454 | 11/12 |
+| last 15 min excluded | 0.003358 | [0.001305, 0.005385] | 3,237 | 11/12 |
+| ONLY last 15 min (complement) | 0.004454 | [0.000653, 0.008284] | 1,332 | 9/12 |
+
+**Interpretation:** β does not collapse. With the last 5–15 minutes removed, it stays at 83–93% of the original and the CIs exclude 0. Quote staleness for trades just before origin is therefore not the main driver. The last-15-minute-only β is larger but noisy and overlaps the others, so some recent-trade contribution is possible and not excluded. This is a single look at 12 periods over about 22h. The "flow–quote continuation" wording is still kept, because this check does not show informed flow.
