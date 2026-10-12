@@ -91,3 +91,32 @@ def test_evidence_role_guard(tmp_path):
         en.market_features(c, "Will Elon Musk tweet?", None, T, evidence_role="prospective_confirmation")
     r = en.market_features(c, "Will Elon Musk tweet?", None, T, evidence_role="exploratory_historical")
     assert r["evidence_role"] == "exploratory_historical" and r["query"].startswith('"Elon Musk"')
+
+
+def _pv(day, v):
+    return {"timestamp": day.strftime("%Y%m%d00"), "views": v}
+
+
+def test_wiki_title_and_pit_boundary():
+    assert en.wiki_article_title('"xi Jinping"') == "Xi_Jinping"
+    t = datetime(2026, 10, 11, 18, 0, tzinfo=UTC)
+    items = [_pv(datetime(2026, 10, d, tzinfo=UTC), v) for d, v in
+             [(3, 10), (4, 10), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10), (10, 40), (11, 999)]]
+    f = en.pageview_features(items, t)
+    # Oct 10 ends 10-11 00:00, +12 h lag -> usable at 12:00 (yes at 18:00); Oct 11 is partial: never used
+    assert f["ext_wiki_views_last_day"] == 40 and f["ext_wiki_ratio_1d_7d"] == pytest.approx(4.0)
+    g = en.pageview_features(items, datetime(2026, 10, 11, 11, 59, tzinfo=UTC))
+    assert g["ext_wiki_views_last_day"] == 10  # Oct 10 not yet published at 11:59
+
+
+def test_wiki_missing_and_fetch():
+    assert math.isnan(en.pageview_features(None, T)["ext_wiki_views_last_day"])
+    assert en.fetch_pageviews("Nope", T, fetch=lambda u: (404, "")) is None
+    seen = []
+
+    def ok(u):
+        seen.append(u)
+        return 200, json.dumps({"items": [_pv(datetime(2026, 10, 9, tzinfo=UTC), 5)]})
+
+    items = en.fetch_pageviews("Xi Jinping", T, fetch=ok)
+    assert "Xi_Jinping/daily/2026100100/2026101100" in seen[0] and items[0]["views"] == 5

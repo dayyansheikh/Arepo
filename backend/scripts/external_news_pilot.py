@@ -68,7 +68,7 @@ def main() -> None:
             for m in r.json():
                 ev = (m.get("events") or [{}])[0]
                 info[str(m["id"])] = {"question": m.get("question") or "", "event_title": ev.get("title")}
-    client = en.GdeltClient(max_retries=8)
+    client = en.GdeltClient(max_retries=4, min_interval_s=6.0)
     out = Path(en.CACHE_ROOT) / f"pilot_{d.name}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
     cmap = dict(zip(rows.market_id, rows.category, strict=True))

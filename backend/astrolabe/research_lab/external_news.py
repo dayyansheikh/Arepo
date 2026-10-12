@@ -311,3 +311,77 @@ def market_features(
 
 def nan_to_none(x: Any) -> Any:
     return None if isinstance(x, float) and math.isnan(x) else x
+
+
+# --------------------------------------------------------------------------------------- Wikipedia pageviews
+WIKI_ENDPOINT = (
+    "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user"
+)
+WIKI_PUBLISH_LAG = timedelta(hours=12)  # conservative: day D is used only from D+1 00:00 + 12 h
+PAGEVIEW_COLUMNS = ["ext_wiki_views_last_day", "ext_wiki_views_mean_7d", "ext_wiki_ratio_1d_7d",
+                    "ext_wiki_days_available"]
+
+
+def wiki_article_title(entity: str) -> str:
+    """Deterministic en.wikipedia title for an extracted entity (spaces to underscores, first letter
+    upper-case). No search, so a wrong or missing page is simply a 404 (missing, not 0)."""
+    s = entity.strip().strip('"')
+    return (s[:1].upper() + s[1:]).replace(" ", "_")
+
+
+def fetch_pageviews(
+    entity: str, t: datetime | str, days: int = 10,
+    fetch: Callable[[str], tuple[int, str]] | None = None,
+) -> list[dict] | None:
+    """Daily user pageviews for ``entity`` over ``days`` days ending at ``t``. None on 404/error."""
+    from urllib.parse import quote
+
+    t = _as_utc(t)
+    url = (f"{WIKI_ENDPOINT}/{quote(wiki_article_title(entity), safe='_')}/daily/"
+           f"{(t - timedelta(days=days)).strftime('%Y%m%d')}00/{t.strftime('%Y%m%d')}00")
+    if fetch is None:
+        def fetch(u: str) -> tuple[int, str]:
+            import httpx
+
+            r = httpx.get(u, timeout=30.0, headers={"User-Agent": "arepo-research/0.1"})
+            return r.status_code, r.text
+    try:
+        status, body = fetch(url)
+    except Exception:
+        return None
+    if status != 200:
+        return None
+    try:
+        return json.loads(body).get("items") or []
+    except ValueError:
+        return None
+
+
+def pageview_features(items: list[dict] | None, t: datetime | str) -> dict[str, float]:
+    """Attention features at ``t`` from daily items. Day ``YYYYMMDD00`` is usable only if
+    day_start + 24 h + ``WIKI_PUBLISH_LAG`` <= t (the day is over and published); the partial current
+    day is never used. Ratio = last usable day / mean of the up to 7 usable days before it."""
+    t = _as_utc(t)
+    nan = float("nan")
+    out = {c: nan for c in PAGEVIEW_COLUMNS}
+    if items is None:
+        return out
+    days = []
+    for it in items:
+        try:
+            d0 = datetime.strptime(str(it["timestamp"])[:8], "%Y%m%d").replace(tzinfo=UTC)
+            days.append((d0, float(it["views"])))
+        except (KeyError, ValueError, TypeError):
+            continue
+    days = sorted(x for x in days if x[0] + timedelta(days=1) + WIKI_PUBLISH_LAG <= t)
+    out["ext_wiki_days_available"] = float(len(days))
+    if not days:
+        return out
+    out["ext_wiki_views_last_day"] = days[-1][1]
+    prior = [v for _, v in days[-8:-1]]
+    if prior:
+        mean = sum(prior) / len(prior)
+        out["ext_wiki_views_mean_7d"] = mean
+        if mean > 0:
+            out["ext_wiki_ratio_1d_7d"] = days[-1][1] / mean
+    return out
