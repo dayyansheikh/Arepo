@@ -541,14 +541,27 @@ def swap_free_mb() -> float | None:
         return None
 
 
-def heavy_gate(min_swap_free_mb: float = 250.0, sleep: Callable[[float], None] = time.sleep) -> float:
-    """Wait while the live collector pass runs or swap headroom is below ``min_swap_free_mb``."""
+def memory_free_pct() -> float | None:
+    """System-wide free memory percentage from ``memory_pressure`` (None if unavailable)."""
+    import re
+    import subprocess
+
+    try:
+        out = subprocess.run(["memory_pressure"], capture_output=True, text=True, timeout=20).stdout
+        m = re.search(r"free percentage:\s*(\d+)%", out)
+        return float(m.group(1)) if m else None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def heavy_gate(min_free_pct: float = 15.0, sleep: Callable[[float], None] = time.sleep) -> float:
+    """Wait while the live collector pass runs or system free memory is below ``min_free_pct``."""
     from . import history_backfill as hb
 
     waited = 0.0
     while True:
-        free = swap_free_mb()
-        if hb.live_pass_running() or (free is not None and free < min_swap_free_mb):
+        free = memory_free_pct()
+        if hb.live_pass_running() or (free is not None and free < min_free_pct):
             sleep(30.0)
             waited += 30.0
             continue

@@ -314,9 +314,9 @@ def test_new_wallet_features_causal_and_coverage(tmp_path):
     assert df2.loc[100 * day + 3600].isna()["nw_share_new1d"]  # history does not reach the window start
 
 
-def test_swap_parse_and_gate(monkeypatch):
-    assert hs.heavy_gate.__defaults__[0] == 250.0
-    monkeypatch.setattr(hs, "swap_free_mb", lambda: 1000.0)
+def test_memory_gate(monkeypatch):
+    assert hs.heavy_gate.__defaults__[0] == 15.0
+    monkeypatch.setattr(hs, "memory_free_pct", lambda: 36.0)
     from astrolabe.research_lab import history_backfill as hb
     monkeypatch.setattr(hb, "live_pass_running", lambda: False)
     assert hs.heavy_gate(sleep=lambda s: None) == 0.0

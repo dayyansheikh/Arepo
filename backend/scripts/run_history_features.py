@@ -36,8 +36,8 @@ def main() -> None:
         if a.step == "books":
             pairs = hs.panel_pairs(runs_with("panel_H6h.csv.gz"))
             tokens = hs.load_frame_tokens(runs_with("frame.csv.gz"))
-            run = hs.BookFeatureRun(out, pairs, tokens, gate=lambda: hs.heavy_gate(min_swap_free_mb=1024.0))
-            hs.heavy_gate(min_swap_free_mb=1024.0)
+            run = hs.BookFeatureRun(out, pairs, tokens, gate=lambda: hs.heavy_gate(min_free_pct=15.0))
+            hs.heavy_gate(min_free_pct=15.0)
             print(json.dumps(run.run(a.budget_min * 60)), flush=True)
         print(hs.finalize_book_features(out))
     else:
