@@ -208,3 +208,126 @@ def test_market_stats_pruning_with_condition_ids():
                                  size_fn=lambda u: len(data), lookback_hours=0, stats=st,
                                  condition_ids={"94": "0xc1"})
     assert out[0]["best_bid"] == 0.31 and st["row_groups_read"] <= 2
+
+
+# --- historical features ----------------------------------------------------------------------
+
+
+def test_origin_window_and_pairs(tmp_path):
+    import pandas as pd
+
+    ts = lambda s: datetime.fromisoformat(s).replace(tzinfo=UTC).timestamp()  # noqa: E731
+    assert hs.origin_in_window(ts("2026-05-01T06:00:00"))
+    assert not hs.origin_in_window(ts("2026-06-14T06:00:00"))  # outage days
+    assert not hs.origin_in_window(ts("2026-08-10T00:00:00"))
+    assert not hs.origin_in_window(ts("2026-04-13T12:00:00"))
+    p = tmp_path / "panel.csv"
+    pd.DataFrame({"market_id": ["1", "1", "2", "3"],
+                  "t_i": [ts("2026-05-01T06:00:00"), ts("2026-05-01T08:00:00"),
+                          ts("2026-05-01T06:00:00"), ts("2026-06-14T06:00:00")]}).to_csv(p, index=False)
+    assert hs.panel_pairs([p]) == {ts("2026-05-01T06:00:00"): {"1", "2"}}
+
+
+def test_spread_order_covers_window():
+    o = [float(i) for i in range(30)]
+    first = hs.spread_origin_order(o)[:5]
+    assert first == [0.0, 7.0, 14.0, 21.0, 28.0] and sorted(hs.spread_origin_order(o)) == o
+
+
+def test_sw_row_nan_for_crossed_and_age():
+    ok = hs.book_row("s", "c", "t", {"bids": [{"price": "0.4", "size": "1"}],
+                                      "asks": [{"price": "0.5", "size": "1"}],
+                                      "tick_size": None, "receipt_ms": 9_000, "venue_ms": 8_000})
+    r = hs.sw_row(ok, 10.0)
+    assert r["sw_best_bid"] == 0.4 and r["sw_book_age_s"] == 2.0
+    bad = hs.book_row("s", "c", "t", {"bids": [{"price": "0.5", "size": "1"}],
+                                       "asks": [{"price": "0.4", "size": "1"}],
+                                       "tick_size": None, "receipt_ms": 1, "venue_ms": 1})
+    assert bad["crossed"] and all(v != v for v in hs.sw_row(bad, 10.0).values())
+
+
+def test_book_feature_run_end_to_end(tmp_path):
+    d = Decimal
+    t0 = datetime(2026, 5, 1, 6, tzinfo=UTC).timestamp()
+    prev = datetime(2026, 5, 1, 5, 30, tzinfo=UTC)
+    after = datetime(2026, 5, 1, 6, 0, 1, tzinfo=UTC)
+    rows = [
+        dict(timestamp_received=prev, timestamp=prev, market="0xa", event_type="book", asset_id="111",
+             bids='[["0.40","10"]]', asks='[["0.44","30"]]'),
+        dict(timestamp_received=after, timestamp=after, market="0xa", event_type="price_change",
+             asset_id="111", price=d("0.43"), size=d("5"), side="BUY"),  # after the origin
+    ]
+    data = _parquet_bytes(rows)
+    seen = []
+
+    def fetch(u, a, b):
+        seen.append(u)
+        return data[a: b + 1]
+
+    run = hs.BookFeatureRun(tmp_path, {t0: {"7"}}, {"7": ("0xa", "111")}, fetch=fetch,
+                            size_fn=lambda u: len(data), lookback_hours=0)
+    s = run.run(60)
+    assert s["origins_done_total"] == 1 and "2026-05-01T05" in seen[0]  # the previous hour's file
+    assert hs.BookFeatureRun(tmp_path, {t0: {"7"}}, {"7": ("0xa", "111")}).run(60)["origins_done_this_run"] == 0
+    out = hs.load_book_features(hs.finalize_book_features(tmp_path))
+    r = out.iloc[0]
+    assert r.market_id == "7" and r.origin_ts == t0 and r.sw_best_bid == 0.40  # after-origin ignored
+    assert r.ml_sw_spread == pytest.approx(0.04) and r.evidence_role == "exploratory_historical"
+
+
+def test_first_trade_one_request_and_hashed(tmp_path):
+    api = FakeApi(_events(5))
+    wh = _wh(tmp_path, api)
+    r = wh.first_trade(ADDR, 1020)
+    assert r["first_trade_ts"] == 1000 and len(api.calls) == 1 and api.calls[0]["limit"] == 1
+    assert ADDR.lower() not in json.dumps(r)
+    assert wh.first_trade(ADDR, 10)["first_trade_ts"] is None
+
+
+def test_new_wallet_features_causal_and_coverage(tmp_path):
+    import pandas as pd
+
+    tdir = tmp_path / "trades"
+    tdir.mkdir()
+    day = 86400
+    pd.DataFrame({"ts": [100 * day, 100 * day + 10, 100 * day + 20, 101 * day + 5],
+                  "side": "BUY", "size": [10, 10, 10, 100], "price": [0.5] * 4, "outcome_index": 0,
+                  "wallet_hash": ["a", "b", "c", "a"], "trade_key": list("wxyz")}
+                 ).to_csv(tdir / "m1.csv.gz", index=False)
+    pan = tmp_path / "panel.csv"
+    pd.DataFrame({"market_id": ["m1", "m1"], "t_i": [100 * day + 3600, 101 * day]}).to_csv(pan, index=False)
+    prog = tmp_path / "progress.jsonl"
+    prog.write_text(json.dumps({"market_id": "m1", "trades_truncated": False}) + "\n")
+    ft = tmp_path / "ft.jsonl"
+    ft.write_text("\n".join(json.dumps({"wallet_hash": h, "first_trade_ts": v, "end_ts": 0}) for h, v in
+                            [("a", 100 * day), ("b", 50 * day)]) + "\n")  # c unknown
+    df = hs.new_wallet_features(pan, tdir, prog, ft).set_index("origin_ts")
+    r = df.loc[100 * day + 3600]  # trades 1-3 only (the day-101 trade is in the future)
+    assert r.nw_n_trades_24h == 3 and r.nw_cov_vol_24h == pytest.approx(2 / 3)
+    assert r.nw_share_new1d == pytest.approx(0.5) and r.nw_n_new1d == 1  # a new, b old
+    assert r.nw_share_new30d == pytest.approx(0.5) and r.nw_n_new30d == 1
+    r2 = df.loc[101 * day]  # window [100d, 101d): same three trades, strictly before origin
+    assert r2.nw_n_trades_24h == 3
+    prog.write_text(json.dumps({"market_id": "m1", "trades_truncated": True,
+                                "trades_oldest_ts": 100 * day + 500}) + "\n")
+    df2 = hs.new_wallet_features(pan, tdir, prog, ft).set_index("origin_ts")
+    assert df2.loc[100 * day + 3600].isna()["nw_share_new1d"]  # history does not reach the window start
+
+
+def test_swap_parse_and_gate(monkeypatch):
+    assert hs.heavy_gate.__defaults__[0] == 250.0
+    monkeypatch.setattr(hs, "swap_free_mb", lambda: 1000.0)
+    from astrolabe.research_lab import history_backfill as hb
+    monkeypatch.setattr(hb, "live_pass_running", lambda: False)
+    assert hs.heavy_gate(sleep=lambda s: None) == 0.0
+
+
+def test_fetch_market_wallets_keeps_only_known_hashes():
+    class Lim:
+        def get(self, url, params):
+            return 200, [{"proxyWallet": ADDR, "size": 10, "price": 0.5},
+                         {"proxyWallet": "0xother", "size": 1, "price": 0.5}]
+
+    h = wallet_sidecar.hash_wallet(KEY, ADDR)
+    out = hs.fetch_market_wallets(Lim(), "0xc", KEY, {h})
+    assert list(out) == [h] and out[h] == [ADDR, 5.0]
