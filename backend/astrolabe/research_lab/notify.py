@@ -45,6 +45,7 @@ NTFY_URL = "https://ntfy.sh/"
 TRANSPORT = os.environ.get("AREPO_NOTIFY_TRANSPORT", "ntfy")  # ntfy | email | both
 TAGS = {"monitor_hit": "dart", "discovery": "mag", "experiment_result": "test_tube",
         "milestone": "tada", "breakage": "rotating_light", "test": "bell"}
+DRY_RUN: list | None = None  # when a list: collect (subject, body) instead of sending
 STATE_FILE = HOME / ".arepo" / "notify_state.json"
 LOG_FILE = HOME / "Library" / "Logs" / "arepo-notify.log"
 
@@ -180,6 +181,10 @@ def _sent_today(s: dict, now: float) -> int:
 
 
 def _deliver(s: dict, subject: str, body: str, now: float, etype: str = "test") -> bool:
+    if DRY_RUN is not None:
+        DRY_RUN.append((etype, subject, body))
+        s.setdefault("sent", []).append(now)
+        return True
     ok = False
     if TRANSPORT in ("ntfy", "both"):
         ok = _ntfy_send(subject, body, etype)

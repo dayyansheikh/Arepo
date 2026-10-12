@@ -22,7 +22,8 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--severity", default="info")
     sp.add_argument("--dedupe-key")
     sub.add_parser("flush")
-    sub.add_parser("check")
+    ck = sub.add_parser("check")
+    ck.add_argument("--dry-run", action="store_true", help="send nothing, save nothing")
     ap.add_argument("--transport", choices=("ntfy", "email", "both"))
     a = ap.parse_args(argv)
     if a.transport:
@@ -38,7 +39,22 @@ def main(argv: list[str] | None = None) -> int:
     elif a.cmd == "flush":
         print(n.flush(force=True))
     else:
-        print(n.check(Path(__file__).resolve().parents[2]))
+        repo = Path(__file__).resolve().parents[2]
+        if a.dry_run:
+            import shutil
+            import tempfile
+            tmp = Path(tempfile.mkdtemp()) / "state.json"
+            if n.STATE_FILE.exists():
+                shutil.copy(n.STATE_FILE, tmp)
+            n.STATE_FILE, n.DRY_RUN = tmp, []
+            res = n.check(repo)
+            print(res)
+            for etype, subj, body in n.DRY_RUN:
+                print(f"--- WOULD SEND [{etype}] {subj}\n{body}")
+            print(f"{len(n.DRY_RUN)} message(s) would be sent; "
+                  f"digest state: {n._load().get('digest')}")
+        else:
+            print(n.check(repo))
     return 0
 
 
