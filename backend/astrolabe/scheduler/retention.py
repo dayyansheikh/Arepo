@@ -8,7 +8,10 @@ history (trajectory needs <=6h; market-detail reads <=200 rows/market).
 Hard safety invariants (never weakened):
 
 1. A scan referenced by a frozen research cohort (``research_cohorts.scan_id`` /
-   ``research_entries.scan_id``) is PERMANENT provenance and is NEVER pruned.
+   ``research_entries.scan_id``) is PERMANENT provenance and is NEVER pruned by this pass.
+   Permanent means "in the database OR in the verified cold archive": older cohort-referenced
+   snapshot rows may be moved, only by the user-approved ``backend/scripts/provenance_archive.sh``
+   (count+md5 verified, restorable on demand; see docs/infra/PROVENANCE_ARCHIVE.md).
 2. The latest complete scan (current product state) is NEVER pruned, regardless of age.
 3. When a cold archive is configured, each scan is archived + verified BEFORE its rows are deleted;
    an archive failure retains the source (archive-before-delete). Default is prune-only.

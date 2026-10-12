@@ -50,6 +50,8 @@ async def data_version(session: AsyncSession) -> tuple:
         select(func.max(ResearchPreCloseRow.updated_at)).scalar_subquery(),
         select(func.max(MarketResolutionRow.updated_at)).scalar_subquery(),
         select(func.max(SignalSnapshotRow.id)).scalar_subquery(),
+        # min(id) moves when old scans are pruned/archived (max alone would not).
+        select(func.min(SignalSnapshotRow.id)).scalar_subquery(),
     ))).one()
     return tuple(str(v) for v in row)
 

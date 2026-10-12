@@ -1,0 +1,138 @@
+# Provenance cold archive (infra 2026-10-11/12): move old cohort-referenced scan snapshots
+# (discovery_signal_snapshots) out of the 500 MB Supabase Free database, LOSSLESSLY and RESTORABLY.
+#
+# Run 1 (confirm_prune=no, the default): export -> upload to a release in the private repo
+#   dayyansheikh/arepo-data -> download it back -> checksum check -> verify + full test restore into a
+#   scratch Postgres service container. Production is only READ.
+# Run 2 (confirm_prune=yes, same release_tag, after the science review): download the SAME release ->
+#   checksum check -> verify + test restore again -> prune production (each scan is re-fingerprinted
+#   under a lock and deleted only if it still matches the archive), then VACUUM FULL.
+#
+# Never archived: the latest scan and the latest complete scan (live product state). Never touched:
+# discovery_scan_runs headers, research cohorts/entries/forward/pre-close/resolution rows.
+# Re-access: docs/infra/PROVENANCE_ARCHIVE.md (one-command restore to any Postgres).
+#
+# Secrets: BACKUP_DATABASE_URL (existing; session pooler, plain postgresql://) and ARCHIVE_REPO_TOKEN
+# (fine-grained PAT, repository access = dayyansheikh/arepo-data only, permission Contents: read & write).
+
+name: arepo-provenance-archive
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag in dayyansheikh/arepo-data holding the archive"
+        required: true
+        default: "provenance-archive-2026-10-12"
+      confirm_prune:
+        description: "yes = prune production after re-verifying the EXISTING release (run 2 only)"
+        required: true
+        default: "no"
+        type: choice
+        options: ["no", "yes"]
+
+concurrency:
+  group: arepo-provenance-archive
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      scratch:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: scratch
+          POSTGRES_DB: scratch
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s
+          --health-retries 20
+    env:
+      ARCHIVE_REPO: dayyansheikh/arepo-data
+      TAG: ${{ github.event.inputs.release_tag }}
+      PRUNE: ${{ github.event.inputs.confirm_prune }}
+      GH_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
+      PROD_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      SCRATCH_URL: postgresql://postgres:scratch@127.0.0.1:5432/scratch
+      TOOL: backend/scripts/provenance_archive.sh
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          source /etc/os-release
+          printf '%s\n' 'Types: deb' 'URIs: https://apt.postgresql.org/pub/repos/apt' \
+            "Suites: ${VERSION_CODENAME}-pgdg" "Architectures: $(dpkg --print-architecture)" \
+            'Components: main' 'Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc' \
+            | sudo tee /etc/apt/sources.list.d/pgdg.sources > /dev/null
+          sudo apt-get update -y && sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: Preflight
+        run: |
+          test -n "$PROD_URL" || { echo "BACKUP_DATABASE_URL secret missing"; exit 1; }
+          test -n "$GH_TOKEN" || { echo "ARCHIVE_REPO_TOKEN secret missing (see header)"; exit 1; }
+          gh repo view "$ARCHIVE_REPO" --json isPrivate -q .isPrivate | grep -qx true \
+            || { echo "$ARCHIVE_REPO must exist and be private"; exit 1; }
+          psql "$PROD_URL" -X -A -t -c "SELECT 'db_size_mb=' || pg_database_size(current_database())/1048576"
+          psql "$PROD_URL" -X -A -t -c "SELECT 'snapshot_table_mb=' || pg_total_relation_size('discovery_signal_snapshots')/1048576"
+
+      - name: "Run 1: export from production (read-only) and upload to the private release"
+        if: env.PRUNE != 'yes'
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" -R "$ARCHIVE_REPO" >/dev/null 2>&1; then
+            echo "release $TAG already exists; refusing to overwrite (use a new tag)"; exit 1
+          fi
+          DATABASE_URL="$PROD_URL" bash "$TOOL" export out
+          pg_dump --no-owner --no-privileges --schema-only \
+            -t discovery_signal_snapshots -t discovery_scan_runs "$PROD_URL" > out/schema.sql
+          pg_dump --no-owner --no-privileges --data-only -t discovery_scan_runs "$PROD_URL" \
+            | gzip -9 > out/discovery_scan_runs.data.sql.gz
+          cp docs/infra/PROVENANCE_ARCHIVE.md out/README.md
+          (cd out && sha256sum * > SHA256SUMS)
+          echo "scans: $(($(wc -l < out/MANIFEST.tsv) - 1)); bytes: $(du -sb out | cut -f1)"
+          gh release create "$TAG" -R "$ARCHIVE_REPO" --title "AREPO provenance archive $TAG" \
+            --notes "discovery_signal_snapshots of cohort-referenced scans (except the latest scan and latest complete scan), exported from production by run ${{ github.run_id }}. Restore: README.md. Lossless: per-scan count + md5(row::text) in MANIFEST.tsv."
+          gh release upload "$TAG" -R "$ARCHIVE_REPO" out/*
+
+      - name: Download the release back and check every checksum
+        run: |
+          set -euo pipefail
+          gh release download "$TAG" -R "$ARCHIVE_REPO" -D dl
+          (cd dl && sha256sum -c SHA256SUMS)
+          # Run 1: the uploaded copy must be byte-identical to what was exported.
+          if [ -d out ]; then cmp out/SHA256SUMS dl/SHA256SUMS; (cd out && sha256sum -c ../dl/SHA256SUMS); fi
+
+      - name: Verify + full test restore into the scratch Postgres
+        run: |
+          set -euo pipefail
+          psql "$SCRATCH_URL" -X -q -v ON_ERROR_STOP=1 \
+            -c "DO \$\$BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END\$\$;" \
+            -c "DO \$\$BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END\$\$;"
+          psql "$SCRATCH_URL" -X -q -v ON_ERROR_STOP=1 -f dl/schema.sql
+          gunzip -c dl/discovery_scan_runs.data.sql.gz | psql "$SCRATCH_URL" -X -q -v ON_ERROR_STOP=1
+          VERIFY_DATABASE_URL="$SCRATCH_URL" bash "$TOOL" verify dl
+          DATABASE_URL="$SCRATCH_URL" bash "$TOOL" restore dl
+          psql "$SCRATCH_URL" -X -A -t -c "SELECT 'scratch_restored_rows=' || count(*) FROM discovery_signal_snapshots"
+          echo "TOTAL manifest rows: $(awk -F'\t' 'NR>1{s+=$2} END{print s}' dl/MANIFEST.tsv)"
+
+      - name: Extra copy as a workflow artifact (90 days; the release is the durable copy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: provenance-archive-${{ github.event.inputs.release_tag }}-${{ github.run_id }}
+          path: dl/
+          retention-days: 90
+          if-no-files-found: error
+      - name: "Run 2: prune production (approved-by user-2026-10-12)"
+        if: env.PRUNE == 'yes'
+        run: |
+          set -euo pipefail
+          DATABASE_URL="$PROD_URL" bash "$TOOL" prune dl --approved-by user-2026-10-12
+          psql "$PROD_URL" -X -A -t -c "SELECT 'db_size_mb_after=' || pg_database_size(current_database())/1048576"
+          cp dl/PRUNE_LOG.tsv "PRUNE_LOG-${{ github.run_id }}.tsv"
+          gh release upload "$TAG" -R "$ARCHIVE_REPO" "PRUNE_LOG-${{ github.run_id }}.tsv"
