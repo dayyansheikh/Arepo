@@ -1,8 +1,8 @@
 # Hypothesis battery 1 (HB1): pre-declared screen on `h2_main`
 
 `evidence_role: exploratory_historical` | provenance `EXPLORATORY_HISTORICAL` | revision `hb1_battery` |
-status: **DECLARED before any outcome was computed** (this section). Results are appended in section 11 after the
-single run. Development screen only: no prospective, confirmation, edge, calibration or profitability claim.
+status: **DECLARED before any outcome was computed** (sections 0-10, commit 7a4d80c); **results appended in section 11**
+after the single run (2026-10-12 21:01Z). Development screen only: no prospective, confirmation, edge, calibration or profitability claim.
 
 ## 0. What this is
 
@@ -320,6 +320,278 @@ volatility.
   the frame under-represents markets living less than a day (`HISTORICAL_ML_DEV.md`); fees of the current era are
   applied to older rows.
 
-## 11. Results
+## 11. Results (single run, 2026-10-12 21:01Z)
 
-Pending: appended after the single run.
+**Label: DEVELOPMENT, `exploratory_historical`, screen-positive (L1) at most. No edge, calibration or profitability
+claim.** Results file `data-dumps/research_lab/history/h2_main/battery1/results_hb1.json` (not committed; sha256 in
+the `history_battery` lines of `trials.jsonl`).
+
+### 11.1 Run facts
+
+- Code at git head `75eb706` (declaration commit `7a4d80c` plus I/O-only fixes; declaration hash unchanged,
+  `9e0f15de...`). The tree was dirty only through other workstreams' files.
+- Sibling fetch: 3,848 of 3,848 tokens (3,741 neg-risk members, 107 ladder rungs), 8,386 requests, cap not reached,
+  478 empty series (those events have incomplete neg-risk sums and drop out of XM1/XM2 by rule).
+- Feature table: 420,937 origins; primary rows 278,463. With the 2h target: discovery 103,487 and judgement 172,519
+  primary rows (490 judgement event clusters); with the 24h target: 353 judgement events.
+- **Cumulative count at run time: 396 prior tests** (five `flow_screen` lines were appended by the live collector
+  after the declaration; the declared rule uses the run-time value), so **m_total = 468**. BY passes the k-th
+  smallest p below about k x 3.2e-5.
+- **67 testable, 5 not testable** (p = 1, still counted): XM7 and XM8 (ladders: only 8 and 12 judgement events),
+  LQ1 and LQ4 (consecutive pmxt books: under 2,000 discovery rows), IX5 (too few rows with a >= $1,000 convex
+  trade).
+- **Calibration placebo** (all 72 on globally permuted targets): 4 of 72 p below 0.05. Its only BY "survivors" are
+  PX3 and PX4, and they are an artefact of the placebo, not of the data: a global permutation keeps the pooled mean
+  resolution excess of resolved traded rows (about -7c), so a subgroup mean is not centred at 0 under it. The
+  placebo is therefore not a null for the two mean tests (declared design flaw, disclosed here); the real PX3/PX4
+  were not significant. For the other 70: 2 of 70 p below 0.05, so the clustered inference is calibrated or
+  conservative. (The pooled -7c itself is an incidental, post-hoc observation about this sample and needs its own
+  study; it is not a finding.)
+
+### 11.2 Every result
+
+Effects: beta and mean tests in cents of probability (price points x 100) per discovery SD of the feature (`per SD`)
+or per unit (`raw`; interactions `dprev x moderator` are per unit of the 2h price change, so -27c means the slope on
+the previous 2h change is 0.27 lower); dll tests in nats per judgement row. "Sign tested" comes from the discovery
+fit. "BY within" is the descriptive BY over the 72 battery tests only.
+
+| ID | Test | n judge (events) | Sign tested (source) | Discovery effect | Judgement effect | 95% CI (event boot) | z event / two-way | p | p BY cum. | Survivor | BY within |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| MS1 | dll | 171,770 (444) | + (ΔLL>0) | - | -0.00177 | [-0.00296, -0.00054] | -2.83 / -2.83 | 0.997663 | 1.0000 | no | no |
+| MS2 | dll | 171,770 (444) | + (ΔLL>0) | - | +0.00108 | [+0.00025, +0.00213] | +2.31 / +2.33 | 0.010445 | 1.0000 | no | no |
+| MS3 | dll | 66,549 (432) | + (ΔLL>0) | - | +0.00076 | [+0.00002, +0.00138] | +2.17 / +2.13 | 0.016603 | 1.0000 | no | no |
+| MS4 | beta | 64,286 (344) | + (disc) | +0.261c | +0.173c | [+0.074, +0.288] | +3.24 / +2.94 | 0.001626 | 0.2560 | no | yes |
+| MI1 | beta | 172,519 (490) | - (disc) | -18.236c | -18.891c | [-24.012, -13.392] | -6.87 / -7.14 | 3.19e-12 | 2.51e-09 | **yes** | yes |
+| MI2 | beta | 172,519 (490) | - (disc) | -26.653c | -27.131c | [-33.147, -20.527] | -8.34 / -8.37 | 3.84e-17 | 6.04e-14 | **yes** | yes |
+| MI3 | beta | 172,519 (490) | - (disc) | -22.286c | -21.137c | [-26.722, -12.083] | -5.63 / -5.52 | 1.69e-08 | 8.86e-06 | **yes** | yes |
+| MI4 | beta | 172,519 (490) | + (disc) | +16.740c | +11.206c | [+3.542, +21.383] | +2.35 / +2.23 | 0.013033 | 1.0000 | no | no |
+| MI5 | beta | 171,574 (489) | - (disc) | -2.356c | -5.206c | [-7.446, -2.465] | -4.14 / -4.19 | 1.73e-05 | 0.0039 | **yes** | yes |
+| MI6 | beta | 172,519 (490) | + (disc) | +32.509c | +33.923c | [+27.669, +39.655] | +11.03 / +11.72 | 1.31e-28 | 4.12e-25 | **yes** | yes |
+| MI7 | dll | 172,519 (490) | + (ΔLL>0) | - | +0.00017 | [-0.00008, +0.00042] | +1.29 / +1.27 | 0.102269 | 1.0000 | no | no |
+| MI8 | dll | 3,243 (155) | + (ΔLL>0) | - | +0.00353 | [-0.00187, +0.00896] | +1.30 / +1.17 | 0.121190 | 1.0000 | no | no |
+| MI9 | beta | 3,243 (155) | + (disc) | +0.150c | +0.153c | [-0.014, +0.322] | +1.80 / +2.05 | 0.035578 | 1.0000 | no | no |
+| MI10 | beta | 3,243 (155) | + (disc) | +0.361c | +0.029c | [-0.313, +0.350] | +0.20 / +0.21 | 0.420982 | 1.0000 | no | no |
+| FL1 | beta | 10,164 (422) | + (disc) | +0.360c | +0.404c | [+0.246, +0.647] | +3.86 / +3.91 | 5.75e-05 | 0.0113 | **yes** | yes |
+| FL2 | beta | 33,042 (425) | + (disc) | +0.284c | +0.318c | [+0.216, +0.441] | +5.42 / +5.90 | 2.96e-08 | 1.33e-05 | **yes** | yes |
+| FL3 | beta | 64,315 (344) | + (disc) | +0.409c | +0.465c | [+0.330, +0.623] | +6.44 / +6.48 | 5.87e-11 | 3.70e-08 | **yes** | yes |
+| FL4 | beta | 33,013 (425) | + (disc) | +0.028c | +0.029c | [-0.144, +0.204] | +0.35 / +0.41 | 0.363731 | 1.0000 | no | no |
+| FL5 | beta | 31,134 (416) | + (disc) | +0.274c | +0.290c | [+0.197, +0.404] | +5.27 / +5.26 | 7.14e-08 | 2.81e-05 | **yes** | yes |
+| FL6 | beta | 33,042 (425) | + (disc) | +0.330c | +0.430c | [+0.323, +0.544] | +7.42 / +8.02 | 6.06e-14 | 6.36e-11 | **yes** | yes |
+| FL7 | beta | 4,100 (194) | + (disc) | +0.212c | +0.294c | [-0.131, +0.884] | +1.29 / +1.33 | 0.098255 | 1.0000 | no | no |
+| FL8 | beta | 64,286 (344) | + (disc) | +0.084c | +0.193c | [+0.094, +0.308] | +3.57 / +3.72 | 1.79e-04 | 0.0313 | **yes** | yes |
+| FL9 | dll | 66,578 (432) | + (ΔLL>0) | - | +0.00005 | [-0.00078, +0.00081] | +0.14 / +0.14 | 0.446181 | 1.0000 | no | no |
+| FL10 | beta | 15,541 (333) | + (disc) | +0.584c | +0.591c | [+0.398, +0.852] | +4.70 / +4.71 | 1.29e-06 | 3.70e-04 | **yes** | yes |
+| WA1 | dll | 43,796 (287) | + (ΔLL>0) | - | +0.00211 | [-0.00040, +0.00474] | +1.67 / +1.70 | 0.047140 | 1.0000 | no | no |
+| WA2 | beta | 2,609 (64) | + (disc) | +0.126c | +0.013c | [-0.543, +0.641] | +0.05 / +0.05 | 0.482045 | 1.0000 | no | no |
+| WA3 | beta | 2,037 (53) | + (disc) | +0.063c | +0.240c | [-0.389, +1.106] | +0.77 / +0.77 | 0.219592 | 1.0000 | no | no |
+| WA4 | beta | 42,825 (298) | + (disc) | +0.328c | +0.414c | [+0.256, +0.614] | +4.57 / +4.44 | 4.58e-06 | 0.0011 | **yes** | yes |
+| WA5 | dll | 64,315 (344) | + (ΔLL>0) | - | +0.00093 | [-0.00126, +0.00303] | +0.84 / +0.89 | 0.201057 | 1.0000 | no | no |
+| WA6 | beta | 14,472 (238) | + (disc) | +0.245c | +0.279c | [+0.127, +0.453] | +3.26 / +3.07 | 0.001072 | 0.1776 | no | yes |
+| WA7 | beta | 18,980 (234) | - (disc) | -0.120c | +0.056c | [-0.107, +0.203] | +0.72 / +0.73 | 0.767638 | 1.0000 | no | no |
+| WA8 | dll | 168,295 (353) | + (ΔLL>0) | - | +0.00000 | [+0.00000, +0.00000] | +0.00 / +0.00 | 0.500000 | 1.0000 | no | no |
+| XM1 | beta | 30,203 (127) | + (disc) | +0.736c | +0.188c | [-0.006, +0.443] | +1.70 / +1.66 | 0.048936 | 1.0000 | no | no |
+| XM2 | dll | 30,203 (127) | + (ΔLL>0) | - | -0.00308 | [-0.01196, +0.00381] | -0.75 / -0.76 | 0.775517 | 1.0000 | no | no |
+| XM3 | beta | 85,781 (201) | - (disc) | -0.107c | -0.094c | [-0.176, -0.026] | -2.47 / -2.66 | 0.006704 | 0.8514 | no | yes |
+| XM4 | beta | 43,438 (93) | - (disc) | -0.062c | +0.012c | [-0.100, +0.122] | +0.21 / +0.24 | 0.594015 | 1.0000 | no | no |
+| XM5 | beta | 84,009 (158) | + (disc) | +0.097c | +0.217c | [-0.032, +0.452] | +1.80 / +2.05 | 0.036194 | 1.0000 | no | no |
+| XM6 | beta | 42,295 (75) | + (disc) | +0.349c | +0.082c | [-0.187, +0.342] | +0.62 / +0.59 | 0.278932 | 1.0000 | no | no |
+| XM7 | beta | 3,648 | - | - | not testable: judgement too small (rows/clusters/nonzero) | - | - | 1 | 1.000 | no | no |
+| XM8 | beta | 3,906 | - | - | not testable: judgement too small (rows/clusters/nonzero) | - | - | 1 | 1.000 | no | no |
+| TI1 | dll | 172,519 (490) | + (ΔLL>0) | - | +0.00017 | [-0.00006, +0.00042] | +1.45 / +1.42 | 0.077278 | 1.0000 | no | no |
+| TI2 | dll | 171,770 (444) | + (ΔLL>0) | - | +0.00158 | [+0.00058, +0.00288] | +2.64 / +2.65 | 0.004119 | 0.5894 | no | yes |
+| TI3 | beta | 3,712 (178) | + (disc) | +3.787c | +0.329c | [-3.959, +3.848] | +0.17 / +0.16 | 0.435741 | 1.0000 | no | no |
+| TI4 | beta | 119,934 (270) | + (disc) | +0.221c | -0.988c | [-2.394, +0.425] | -1.37 / -1.32 | 0.914988 | 1.0000 | no | no |
+| TI5 | beta | 172,519 (490) | - (disc) | -2.230c | +3.023c | [-3.378, +9.408] | +0.95 / +0.82 | 0.829610 | 1.0000 | no | no |
+| CA1 | dll | 171,770 (444) | + (ΔLL>0) | - | +0.00009 | [-0.00070, +0.00092] | +0.22 / +0.22 | 0.413271 | 1.0000 | no | no |
+| CA2 | dll | 168,295 (353) | + (ΔLL>0) | - | +0.00048 | [-0.00166, +0.00291] | +0.42 / +0.41 | 0.340569 | 1.0000 | no | no |
+| CA3 | beta | 172,519 (490) | + (disc) | +3.027c | -3.104c | [-12.200, +6.612] | -0.62 / -0.61 | 0.733865 | 1.0000 | no | no |
+| CA4 | beta | 31,577 (338) | - (disc) | -0.384c | -0.048c | [-0.350, +0.207] | -0.32 / -0.33 | 0.373866 | 1.0000 | no | no |
+| CA5 | beta | 168,295 (353) | + (disc) | +0.008c | +0.132c | [-0.402, +0.628] | +0.51 / +0.52 | 0.303708 | 1.0000 | no | no |
+| PX1 | beta | 168,295 (353) | + (disc) | +0.508c | +0.482c | [+0.306, +0.674] | +5.25 / +5.15 | 1.28e-07 | 4.46e-05 | **yes** | yes |
+| PX2 | beta | 168,295 (353) | + (disc) | +0.429c | +0.357c | [+0.200, +0.566] | +4.23 / +4.12 | 1.91e-05 | 0.0040 | **yes** | yes |
+| PX3 | mean | 9,556 (177) | - (disc) | -1.022c | -2.213c | [-5.007, +2.052] | -1.28 / -1.32 | 0.099483 | 1.0000 | no | no |
+| PX4 | mean | 2,060 (61) | + (disc) | +1.246c | -1.141c | [-12.774, +7.435] | -0.22 / -0.22 | 0.588779 | 1.0000 | no | no |
+| PX5 | beta | 168,295 (353) | + (disc) | +4.486c | +8.661c | [+1.624, +15.272] | +2.51 / +2.93 | 0.006042 | 0.8270 | no | yes |
+| PX6 | beta | 64,315 (344) | - (disc) | -0.305c | -0.464c | [-0.666, -0.278] | -4.73 / -4.77 | 1.10e-06 | 3.45e-04 | **yes** | yes |
+| LQ1 | dll | 1,250 | - | - | not testable: too few rows/clusters | - | - | 1 | 1.000 | no | no |
+| LQ2 | beta | 1,250 (125) | + (disc) | +0.167c | +0.421c | [+0.065, +0.838] | +2.18 / +2.79 | 0.014645 | 1.0000 | no | no |
+| LQ3 | dll | 3,243 (155) | + (ΔLL>0) | - | +0.00516 | [+0.00029, +0.01035] | +2.03 / +2.16 | 0.021139 | 1.0000 | no | no |
+| LQ4 | dll | 1,250 | - | - | not testable: too few rows/clusters | - | - | 1 | 1.000 | no | no |
+| LQ5 | dll | 66,578 (432) | + (ΔLL>0) | - | -0.00051 | [-0.00119, +0.00027] | -1.31 / -1.36 | 0.912754 | 1.0000 | no | no |
+| VO1 | dll | 171,770 (444) | + (ΔLL>0) | - | +0.00007 | [-0.00045, +0.00068] | +0.24 / +0.24 | 0.405380 | 1.0000 | no | no |
+| VO2 | dll | 171,770 (444) | + (ΔLL>0) | - | +0.00138 | [+0.00048, +0.00248] | +2.71 / +2.72 | 0.003365 | 0.5045 | no | yes |
+| VO3 | dll | 172,519 (490) | + (ΔLL>0) | - | -0.00006 | [-0.00030, +0.00016] | -0.48 / -0.45 | 0.684487 | 1.0000 | no | no |
+| VO4 | dll | 171,770 (444) | + (ΔLL>0) | - | +0.00215 | [+0.00122, +0.00310] | +4.46 / +4.48 | 4.17e-06 | 0.0011 | **yes** | yes |
+| VO5 | beta | 119,513 (353) | + (disc) | +0.004c | +0.104c | [+0.022, +0.189] | +2.56 / +2.47 | 0.006761 | 0.8514 | no | yes |
+| IX1 | beta | 1,214 (117) | - (disc) | -0.112c | +0.465c | [-0.098, +1.431] | +1.53 / +1.49 | 0.936490 | 1.0000 | no | no |
+| IX2 | beta | 4,874 (231) | - (disc) | -0.156c | -0.252c | [-0.472, +0.019] | -2.23 / -1.82 | 0.034627 | 1.0000 | no | no |
+| IX3 | beta | 26,405 (175) | - (disc) | -0.128c | -0.171c | [-0.280, -0.074] | -3.64 / -3.58 | 1.72e-04 | 0.0313 | **yes** | yes |
+| IX4 | beta | 32,857 (424) | + (disc) | +0.095c | +0.282c | [+0.026, +0.532] | +2.12 / +2.23 | 0.016818 | 1.0000 | no | no |
+| IX5 | beta | 168,295 | - | - | not testable: judgement too small (rows/clusters/nonzero) | - | - | 1 | 1.000 | no | no |
+| IX6 | beta | 2,609 (64) | - (disc) | -0.275c | -0.499c | [-1.516, +0.121] | -1.34 / -1.36 | 0.089406 | 1.0000 | no | no |
+
+### 11.3 Survivors: 18 pass BY on the cumulative count
+
+| Group | Survivors | Reading |
+|---|---|---|
+| 2h reversal moderators | MI1, MI2, MI3, MI5, MI6 | The 2h reversal of the mid-like series is much stronger after moves **without any trade** (MI2, -27c per unit move), in illiquid markets (MI1), at high volatility (MI3) and far from the end date (MI5, the E006 H2 sign), and almost disappears when the move is **confirmed by same-sign taker flow** (MI6, +34c). This is the quote-noise / bounce structure behind E004, now split by trade confirmation. |
+| Flow continuation | FL1, FL2, FL3, FL6, FL10, FL8, (FL5, WA4) | Net taker imbalance predicts drift in its own direction at 2h, 6h and 24h (+0.3c to +0.6c per SD), with price-aligned windows, in 4 of 4 months and 8-10 of 10 categories, and it survives ending the windows 30 minutes earlier (68-94% of the effect). Aggressive flow (FL6) is the strongest 6h measure. FL5 (small trades) and WA4 (top-wallet direction) are redundant with plain imbalance (section 11.5). |
+| Flow moderators | PX6, IX3 | Flow continues **less** at longshot prices (PX6: -0.46c per SD for mid <= 0.20) and in quiet markets (IX3: -0.17c; opposite to the theory prior). |
+| Price-level drift | PX1, PX2 | Over 24h, mid <= 0.15 (+0.48c) and mid >= 0.85 (+0.36c) drift up relative to mid-range rows (PX1 opposite to the longshot-decay prior). Price only, so not "information beyond price". |
+| Volatility | VO4 | Hours since the last 10-minute move of >= 1c adds 0.0021 nats per row (0.58% of the M0v loss) to the 6h \|move\| forecast. No direction. |
+
+**Robustness (declared checks).** For flow, wallet and interaction survivors, "including untraded" and "trade in the
+prior 24h" are identical to the main estimate by construction (any row with trades in the window has traded and has a
+trade in the prior 24h); those two checks are informative only for MI and PX survivors.
+
+| ID | Effect (judgement) | Months same sign | Categories same sign | Incl. untraded | Trade in prior 24h | Window -30 min | Permutation p |
+|---|---|---|---|---|---|---|---|
+| FL1 | +0.404c | 4/4 | 10/10 | +0.404c [+0.240, +0.619] | +0.404c [+0.240, +0.619] | +0.276c [+0.142, +0.460] | <0.005 (0 of 200) |
+| FL10 | +0.591c | 4/4 | 10/10 | +0.591c [+0.407, +0.857] | +0.591c [+0.407, +0.857] | +0.495c [+0.322, +0.718] | <0.005 (0 of 200) |
+| FL2 | +0.318c | 4/4 | 9/10 | +0.318c [+0.218, +0.446] | +0.318c [+0.218, +0.446] | +0.273c [+0.191, +0.382] | <0.005 (0 of 200) |
+| FL3 | +0.465c | 4/4 | 10/10 | +0.465c [+0.329, +0.601] | +0.465c [+0.329, +0.601] | +0.439c [+0.311, +0.619] | <0.005 (0 of 200) |
+| FL5 | +0.290c | 4/4 | 10/10 | +0.290c [+0.201, +0.401] | +0.290c [+0.201, +0.401] | +0.255c [+0.164, +0.358] | <0.005 (0 of 200) |
+| FL6 | +0.430c | 4/4 | 10/10 | +0.430c [+0.316, +0.547] | +0.430c [+0.316, +0.547] | +0.358c [+0.251, +0.469] | <0.005 (0 of 200) |
+| FL8 | +0.193c | 4/4 | 8/10 | +0.193c [+0.094, +0.305] | +0.193c [+0.094, +0.305] | +0.179c [+0.077, +0.298] | <0.005 (0 of 200) |
+| IX3 | -0.171c | 3/4 | 7/8 | -0.171c [-0.275, -0.075] | -0.171c [-0.275, -0.075] | -0.162c [-0.271, -0.071] | <0.005 (0 of 200) |
+| MI1 | -18.891c | 4/4 | 8/10 | -11.047c [-15.517, -6.161] | -6.967c [-23.733, +8.841] | - | <0.005 (0 of 200) |
+| MI2 | -27.131c | 4/4 | 10/10 | -21.102c [-26.087, -15.444] | -23.340c [-30.705, -16.097] | - | <0.005 (0 of 200) |
+| MI3 | -21.137c | 4/4 | 9/10 | -17.056c [-22.703, -9.239] | -18.857c [-29.174, -5.879] | - | <0.005 (0 of 200) |
+| MI5 | -5.206c | 4/4 | 9/10 | -2.619c [-4.752, -0.437] | -2.453c [-5.021, +0.361] | - | <0.005 (0 of 200) |
+| MI6 | +33.923c | 4/4 | 10/10 | +28.585c [+22.775, +33.202] | +30.398c [+24.022, +37.220] | - | <0.005 (0 of 200) |
+| PX1 | +0.482c | 4/4 | 10/10 | +0.542c [+0.391, +0.701] | +0.419c [+0.185, +0.690] | - | <0.005 (0 of 200) |
+| PX2 | +0.357c | 4/4 | 7/9 | +0.264c [+0.068, +0.473] | +0.622c [+0.133, +1.146] | - | <0.005 (0 of 200) |
+| PX6 | -0.464c | 4/4 | 10/10 | -0.464c [-0.650, -0.283] | -0.464c [-0.650, -0.283] | - | <0.005 (0 of 200) |
+| VO4 | +0.00215 | 4/4 | 8/10 | n/a | +0.00125 [+0.00035, +0.00226] | n/a | n/a |
+| WA4 | +0.414c | 4/4 | 9/9 | +0.414c [+0.259, +0.608] | +0.414c [+0.259, +0.608] | +0.374c [+0.205, +0.575] | <0.005 (0 of 200) |
+
+**Economics (paper only, `economics.py` fee formula; "optimistic, not tradable").** Rule in section 6.
+
+| ID | Trades (events) | Gross mean | Spread | Fee | Net taker mean [CI] | Net half-spread, no fee [CI] | Hit rate | Book spread share |
+|---|---|---|---|---|---|---|---|---|
+| FL1 | 1,355 (104) | -0.003c | +2.973c | +0.955c | -3.931c [-4.16, -3.73] | -1.489c [-1.63, -1.24] | 0.173 | 0.067 |
+| FL10 | 1,954 (121) | -0.002c | +3.008c | +0.940c | -3.949c [-4.13, -3.73] | -1.506c [-1.71, -1.14] | 0.345 | 0.057 |
+| FL2 | 4,525 (135) | +0.038c | +2.936c | +1.039c | -3.937c [-4.05, -3.77] | -1.430c [-1.57, -1.25] | 0.250 | 0.030 |
+| FL3 | 9,274 (144) | +0.020c | +2.840c | +1.160c | -3.980c [-4.23, -3.73] | -1.400c [-1.63, -1.17] | 0.343 | 0.019 |
+| FL5 | 4,669 (138) | +0.144c | +2.922c | +1.065c | -3.843c [-3.97, -3.69] | -1.317c [-1.48, -1.12] | 0.265 | 0.032 |
+| FL6 | 5,433 (316) | +0.428c | +2.899c | +1.221c | -3.693c [-3.99, -3.41] | -1.022c [-1.29, -0.78] | 0.417 | 0.026 |
+| FL8 | 7,675 (167) | +0.162c | +2.966c | +1.030c | -3.834c [-4.09, -3.53] | -1.321c [-1.57, -1.01] | 0.351 | 0.019 |
+| IX3 | 2,634 (82) | -0.190c | +2.971c | +0.962c | -4.122c [-4.40, -3.90] | -1.675c [-1.90, -1.45] | 0.282 | 0.037 |
+| MI1 | 12,635 (216) | +1.490c | +3.059c | +1.478c | -3.046c [-3.38, -2.72] | -0.039c [-0.30, +0.23] | 0.566 | 0.017 |
+| MI2 | 11,339 (285) | +2.008c | +2.931c | +1.521c | -2.444c [-2.76, -2.09] | +0.543c [+0.27, +0.87] | 0.584 | 0.017 |
+| MI3 | 10,709 (378) | +2.130c | +2.945c | +1.555c | -2.370c [-2.71, -2.01] | +0.657c [+0.34, +1.01] | 0.566 | 0.022 |
+| MI5 | 12,028 (438) | +0.910c | +2.947c | +1.509c | -3.546c [-3.97, -3.20] | -0.564c [-1.00, -0.20] | 0.482 | 0.024 |
+| MI6 | 7,482 (406) | +0.133c | +2.848c | +1.202c | -3.918c [-4.09, -3.73] | -1.292c [-1.44, -1.13] | 0.356 | 0.051 |
+| PX1 | 81,403 (224) | +0.274c | +3.354c | +0.595c | -3.676c [-3.79, -3.55] | -1.403c [-1.51, -1.27] | 0.266 | 0.019 |
+| PX2 | 13,620 (55) | -0.099c | +2.834c | +0.573c | -3.507c [-3.77, -3.32] | -1.516c [-1.72, -1.39] | 0.235 | 0.018 |
+| PX6 | 14,910 (203) | +0.035c | +3.302c | +0.664c | -3.931c [-4.10, -3.77] | -1.616c [-1.78, -1.46] | 0.312 | 0.021 |
+| VO4 | not applicable: no directional trade rule (volatility or resolution-level test) | | | | | | | |
+| WA4 | 3,874 (179) | +0.551c | +3.058c | +0.847c | -3.354c [-3.71, -2.90] | -0.978c [-1.33, -0.51] | 0.392 | 0.027 |
+
+**No survivor covers taker costs.** Net per share as a taker is -2.4c to -4.1c for every directional survivor: the
+top-decile gross is at most +2.1c (reversal of unconfirmed moves) and +0.4c for flow, against about 3c of spread and
+0.6-1.6c of fees. In the optimistic variant (half the spread, no fee) only MI2 (+0.54c [+0.27, +0.87]) and MI3 (+0.66c
+[+0.34, +1.01]) are positive: these are mid-to-mid reversals of quote noise, which a taker cannot capture (E004 found
+the same prospectively). VO4 has no directional rule.
+
+### 11.4 What did not survive
+
+- **Wallet:** fresh-wallet volume share (WA1), fresh-wallet direction (WA2, WA3; only 64 and 53 judgement events),
+  wallet HHI (WA5), new-wallet counts (WA8: ΔLL exactly 0, the model never used it) and prior-loser flow (WA7) are null. Prior-winner flow (WA6,
+  a causal repeat-winner proxy) is the closest miss: +0.28c per SD [+0.13, +0.45], p 0.0011, BY-cumulative 0.18 (passes
+  only within the battery). WA4 survived but is redundant with imbalance.
+- **Cross-market:** neg-risk sum deviation (XM1, XM2) and sibling lead-lag (XM3-XM6) do not survive (XM3, neg-risk
+  siblings' 2h changes, passes only within the battery: -0.09c per SD). This matches E005 ("not supported"
+  prospectively). **IF-H2 ladders (XM7, XM8) were not testable on `h2_main`**: no evidence either way; the dedicated
+  IF-H2 study is the right test.
+- **Time:** hour of day (TI1) and weekday (TI2, within-battery only) add little to `|move|`; pre-resolution drift
+  (TI3), longshot decay near the end date (TI4) and the weekend reversal (TI5) are null.
+- **Category and asymmetry class:** all null (CA1-CA5), including flow x decision-asymmetric markets (CA4).
+- **Book and liquidity (pmxt, 3,243 judgement rows, 155 events):** spread, depth imbalance, microprice, depth level and
+  withdrawal are null or underpowered (LQ3 p 0.021; MI9 p 0.036); LQ1/LQ4 not testable.
+- **Volatility:** jump ratio, rv ratio (null) and vol-of-vol, semivariance asymmetry (within-battery only).
+- **Market state:** market age **hurts** the 6h `|move|` forecast out of sample (MS1, ΔLL -0.0018, CI below 0);
+  volume-confirmed momentum (MS4) passes within the battery only.
+- **Theory interactions:** convex longshot pressure (IX1, 117 events) and pressure without price response (IX2) are null;
+  flow x near expiry (IX4) and fresh flow x asymmetric (IX6) are null; IX5 not testable (convex >= $1,000 trades are
+  too rare in this sample).
+
+### 11.5 Post-hoc redundancy checks (labelled; not part of the declared family)
+
+Run after the results, only to avoid naming redundant candidates. Three extra tests, logged as
+`history_battery_posthoc` lines plus one `ml_explain` count line (so the cumulative count is now 396 + 72 + 3 = 471).
+Same judgement rows, scaling and tested sign; one added control.
+
+| Survivor | Added control | Slope with the control | Reading |
+|---|---|---|---|
+| WA4 top-wallet direction | `f_imb_24h` | -0.14c per SD [-0.43, +0.14], p 0.85 | redundant: the top wallet adds nothing beyond total 24h imbalance |
+| FL6 aggressive flow | `f_imb_6h` | +0.31c per SD [+0.19, +0.44], z 4.7 | incremental: aggressiveness carries most of the 6h flow signal |
+| FL5 small-trade imbalance | `f_imb_6h` | +0.11c per SD [-0.11, +0.33], p 0.19 | redundant with total imbalance |
+
+### 11.6 Candidates for live registration (declared rule, section 7)
+
+Ranking: sign stability, live feasibility, economic headroom, then z; mechanically suspect survivors flagged. Not
+named: PX1/PX2 (price level only, so outside "information beyond price"), MI1/MI3/MI5 (further quote-noise
+moderators), FL1 (the E007 analogue, already confirmed prospectively), FL2/FL8/FL10 (overlap C1/C2), FL5 and WA4
+(redundant), IX3 (3 of 4 months, 7 of 8 categories). Expect shrinkage: E002 kept about 2/3 and E007 about 70% of the
+development effect. No candidate is an economic candidate: all fail the taker cost check.
+
+**C1. HB1-FL6, aggressive taker flow -> 6h mid drift.**
+- Feature at origin `t` (snapshot receipt): over the trade sample's taker trades in `[t-6h, t)`, `x = sum over trades
+  with sgn*(p0 - ref) >= 0.01 of sgn*n / sum of n`, with the `trade_sample._sign` token-0 convention, `n` = USDC
+  notional and `ref` = the last CLOB `prices-history` point (10-minute fidelity) stamped at least 10 minutes before the
+  trade. Cheap addition: one `prices-history` request per sampled market with a trade in the window (roughly a fifth
+  of the 2,000 sampled markets per pass; to be measured). A window cut by the 500-trade cap is NaN.
+- Population: sampled markets with >= 1 trade in the window; traded before `t`.
+- Target and test: Gamma mid change to the snapshot about 6h later; slope on `x` with `chg_1h`, `chg_1d`, previous-pass
+  change and period intercepts as controls; event-clustered; one-sided `> 0`; >= 12 periods.
+- HB1 development estimate: +0.43c per SD (SD 0.66), CI [+0.32, +0.54], z 7.4; 4/4 months, 10/10 categories; +0.36c
+  with windows ending 30 min earlier; +0.31c beyond total imbalance (post-hoc).
+- Economics: top-decile gross +0.43c, taker net -3.7c [-4.0, -3.4], optimistic -1.0c. Predictive only.
+
+**C2. HB1-FL3, 24h net taker imbalance -> 24h mid drift (horizon extension of E007).**
+- Feature: `imb_24h = sum sgn*n / sum n` over trade-sample taker trades in `[t-24h, t)` (strictly before the snapshot
+  receipt; the E007 staleness check found the last 5-15 minutes immaterial). NaN when the 500-trade cap truncates the
+  window (about the busiest 10% of markets; disclose).
+- Population: >= 1 trade in the window. Target: Gamma mid change to the snapshot about 24h later (12 passes). Test as C1.
+- HB1: +0.47c per SD (SD 0.81), CI [+0.33, +0.62], z 6.4; 4/4 months, 10/10 categories; +0.44c with windows ending 30
+  minutes earlier.
+- Caveat for the registration design: the top decile by `|imb|` is dominated by one-trade windows and its gross is
+  about 0 (+0.02c), so the slope comes from markets with several trades. Any minimum-trade condition must be declared
+  in the registration with its own justification; it was not tested here.
+- Economics: taker net -4.0c; optimistic -1.4c.
+
+**C3. HB1-MI2/MI6, trade confirmation of 2h moves (mechanism candidate; flagged quote noise).**
+- Features from two consecutive snapshots and the trade sample: `dprev` = Gamma mid change over the previous pass;
+  `NT = 1[no taker trade in [t-2h, t)]`; `CF = 1[sign(net 2h taker flow) = sign(dprev) != 0]`.
+- Model: `d_next = a + b*dprev + c*dprev*NT + e*dprev*CF + controls`; a two-hypothesis Holm family: `c < 0` (unconfirmed
+  moves revert more), `e > 0` (confirmed moves revert less).
+- HB1: `c` = -0.27 [-0.33, -0.21] (z -8.3), `e` = +0.34 [+0.28, +0.40] (z 11.0), per unit of the 2h move; 4/4 months,
+  10/10 categories each.
+- Value: separates bounce from information in the E004 reversal and the E007 continuation. Not economic: reversal
+  trades on unconfirmed moves have taker net -2.4c; the optimistic +0.54c is a mid-to-mid capture (E004).
+
+**C4. HB1-PX6, flow continuation weaker at longshot prices (moderator).**
+- Feature: `imb_24h x 1[mid <= 0.20]`, with `imb_24h` and `1[mid <= 0.20]` as controls; target Gamma mid change about 24h
+  later; one-sided `< 0`.
+- HB1: -0.46c per SD [-0.65, -0.28], z -4.7; 4/4 months, 10/10 categories.
+- Value: at market level, buying pressure on cheap outcomes does not continue like ordinary flow (lottery-type demand).
+  It does not test IF-H1 (rare, identity-gated episodes), but it argues against registering market-level "longshot
+  pressure" as a continuation signal.
+
+**C5 (optional, risk filter only). HB1-VO4, hours since the last >= 1c 10-minute move -> 6h `|move|`.**
+- ΔLL +0.0021 nats per row over M0v (0.58%), CI [+0.0012, +0.0031], z 4.5; 4/4 months, 8/10 categories. Needs the
+  10-minute path (`prices-history`) or a coarser snapshot proxy, which would be a different feature. Volatility only:
+  a candidate for MC1's `|move|` target, never a directional signal.
+
+### 11.7 Deviations and disclosures after the run
+
+- m_total 468 instead of 463: the declared run-time recount (five collector `flow_screen` lines).
+- The calibration placebo is not a null for the two mean tests (section 11.1). No verdict depends on it.
+- Three post-hoc redundancy tests (section 11.5) were added after seeing the results; they are logged and counted and
+  change no verdict, but they did shape the candidate list.
+- For flow survivors the "including untraded" and "trade in prior 24h" checks are vacuous (section 11.3).
+- **What this licenses:** a ranked shortlist for prospective registration, nothing more. The judgement half had already
+  been seen by r0-r3 for the flow family, the series is mid-like and possibly trade-derived (flow could partly predict
+  the series rather than the book mid; only prospective Gamma/book mids settle this), and the frame under-represents
+  short-lived markets. Every candidate needs its own registration, MDE and `science-reviewer` pass.

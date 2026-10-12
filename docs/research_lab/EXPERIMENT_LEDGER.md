@@ -15,6 +15,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 | E006 | REGISTERED (pre-outcome) | Is the 1h reversal moderated by liquidity (H1) or by time-to-end (H2), with centred interactions and a scale-free test? | pending |
 | E007 | REGISTERED (pre-outcome) | In trade-active markets, does net taker order-flow pressure (signed share) over the prior hour predict continuation over ~2h? | pending (needs 12 qualifying periods) |
 | T5-DEV | COMPLETE (development, exploratory_historical) | Do point-in-time features predict binary resolution at 1/3/7d before scheduled end better than price and a recalibrated (Platt/isotonic) price? | No: LightGBM vs Platt ΔLL 1d -0.0013, 3d -0.0004, 7d +0.0041 (all CIs span 0); only Platt-vs-raw-price at 7d is positive (+0.0069 [+0.0022, +0.0113]). See `RESOLUTION_DEV_STUDY.md` |
+| HB1 | COMPLETE (development, exploratory_historical) | Which of 72 pre-declared market-state, microstructure, flow, wallet, cross-market, time, category, extremity, liquidity, volatility and interaction hypotheses predict `h2_main` moves out of sample (one split, BY q = 0.10 on the cumulative count)? | 18 of 72 pass BY (m = 468): 2h-reversal moderators by trade confirmation (quote noise), net taker flow continuation at 2-24h (+0.3 to +0.6c per SD; aggressive flow strongest), flow weaker at longshot prices and in quiet markets, a price-level drift, one volatility feature. No wallet, cross-market, time, category or book hypothesis survives; ladders untestable. No survivor covers taker costs (net -2.4c to -4.1c). See `HYPOTHESIS_BATTERY_1.md` |
 
 ---
 
@@ -758,3 +759,32 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
 | ONLY last 15 min (complement) | 0.004454 | [0.000653, 0.008284] | 1,332 | 9/12 |
 
 **Interpretation:** β does not collapse. With the last 5–15 minutes removed, it stays at 83–93% of the original and the CIs exclude 0. Quote staleness for trades just before origin is therefore not the main driver. The last-15-minute-only β is larger but noisy and overlaps the others, so some recent-trade contribution is possible and not excluded. This is a single look at 12 periods over about 22h. The "flow–quote continuation" wording is still kept, because this check does not show informed flow.
+
+## Development study HB1 — Hypothesis battery 1 on `h2_main` (2026-10-12)
+
+- **Label:** DEVELOPMENT, retrospective, `evidence_role: exploratory_historical`, one revision of the `h2_main` window
+  (beyond its per-window budget; disclosed). Not evidence. No edge, calibration or tradability claim. Full declaration
+  and results: `docs/research_lab/HYPOTHESIS_BATTERY_1.md`. Code `battery.py`, `battery_data.py`,
+  `scripts/run_hypothesis_battery.py`.
+- **Declared before outcomes:** commit `7a4d80c` (declaration sha256 `9e0f15de...`): 72 hypotheses (48 beta, 22
+  incremental ΔLL vs M0v, 2 resolution means), split 2026-07-01 with a 24h embargo, discovery sign / judgement test,
+  CR SEs by event and two-way event x day (larger p), BY at q = 0.10 over the cumulative count. Price-aligned trade
+  windows (trades older than the last usable price point). New bounded fetches: event metadata (2,750 events) and
+  3,848 sibling price series (8,386 requests).
+- **Result (run at `75eb706`, m_total = 468):** 18 survivors. MI1/MI2/MI3/MI5/MI6 (the 2h reversal is much stronger
+  after moves without trades and nearly absent after flow-confirmed moves), FL1/FL2/FL3/FL5/FL6/FL8/FL10 and WA4 (taker
+  imbalance continues at 2h-24h, 4/4 months, survives windows ending 30 min earlier; WA4 and FL5 are redundant with
+  plain imbalance, post-hoc), PX6 and IX3 (flow continues less at longshot prices and in quiet markets), PX1/PX2
+  (price-level drift), VO4 (`|move|` only). Nulls: wallet freshness/record (WA6 closest, BY 0.18), neg-risk sums and
+  sibling lead-lag, time of day/weekday, category/asymmetry class, book/liquidity (underpowered), theory interactions
+  IX1/IX2. Not testable: IF-H2 ladders (8-12 judgement events), LQ1/LQ4, IX5.
+- **Economics:** every directional survivor loses as a taker (net -2.4c to -4.1c per share); only the quote-noise
+  reversals MI2/MI3 are positive in the optimistic half-spread, no-fee variant (+0.5c, +0.7c), as in E004.
+- **Calibration placebo:** 2 of 70 p below 0.05 on permuted targets; the two mean tests' placebo is not a null
+  (disclosed design flaw; no verdict depends on it).
+- **Candidates for live registration (not registered):** C1 aggressive taker flow -> 6h (FL6), C2 24h imbalance -> 24h
+  (FL3, E007 horizon extension), C3 trade confirmation of 2h moves (MI2/MI6, mechanism only), C4 weaker flow
+  continuation at longshot prices (PX6); optional C5 `|move|` filter (VO4). Each needs its own registration, MDE and
+  `science-reviewer` pass.
+- **Count:** cumulative tests now 396 + 72 + 3 post-hoc = 471 (`ml_explain` count lines with source
+  `hypothesis_battery_1` and `hypothesis_battery_1_posthoc`).
