@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-12 22:10 UTC+1
+**Last updated:** 2026-10-12 23:54 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. No decisions needed from you.
 **Current objective:** Build the combined-signal model (many signals, ML + Bayesian, Shapley breakdown) and collect its data; finish the 24-hour forecasting test tonight; run the pairing redesign (D120) once.
@@ -21,7 +21,8 @@ current price and recent momentum.
   - **None covers trading costs.**
 - **Economic conditions:** 95 setups (liquid markets, strong signals, combined signals, passive orders). **None is profitable after costs.**
 - **Learned surprise detector:** about 4x better than chance at flagging surprise jumps, and it beats 100/100 placebos. It is driven by "volatile week, quiet day", not wallets. It is mostly false alarms and has no paper profit. It is now **live in the monitor**, as a genuine prospective test.
-- **Running:** deadline ladders, Polymarket vs Kalshi, and about 10k more historical markets.
+- **Polymarket vs Kalshi, now live (E009):** history said Kalshi moves first by 10-20 min. A live test now polls about 110 matched pairs on both venues every 2 minutes, writes a frozen prediction before the outcome exists and checks Polymarket 10/20/60 min later, including a paper taker trade. Registered (reviewed) to run until 3 Nov, analysed once. Honest expectation: probably **inconclusive** (only about 25-40 independent events; Kalshi prices in these long-dated markets rarely move).
+- **Running:** deadline ladders and about 10k more historical markets.
 
 ## 2. What changed overnight (11–12 Oct)
 - **24-hour forecasting test, scored and independently checked:**
@@ -57,6 +58,7 @@ current price and recent momentum.
 | E005 linked-market consistency | **Not supported** |
 | E006 when reversal is stronger | Supported on direction only: stronger in illiquid markets and far from close; the effect sizes did not carry over |
 | E007 order flow | **Supported**: one-sided buying predicts a small continued drift (about 0.36c), in 11/12 periods. It is not a quote-lag artefact (it survives excluding the last 15 min of trades). Too small to trade directly, but the first live evidence that flow carries information. |
+| E009 Kalshi lead (live) | **Registered**, collecting until 3 Nov; one analysis then |
 | D120 pairing | **PASS** (mechanism; reliability untested) |
 | Combined-signal model | Built and reviewed; collecting development data (needs ~40 snapshots) |
 

@@ -16,6 +16,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 | E007 | REGISTERED (pre-outcome) | In trade-active markets, does net taker order-flow pressure (signed share) over the prior hour predict continuation over ~2h? | pending (needs 12 qualifying periods) |
 | T5-DEV | COMPLETE (development, exploratory_historical) | Do point-in-time features predict binary resolution at 1/3/7d before scheduled end better than price and a recalibrated (Platt/isotonic) price? | No: LightGBM vs Platt ΔLL 1d -0.0013, 3d -0.0004, 7d +0.0041 (all CIs span 0); only Platt-vs-raw-price at 7d is positive (+0.0069 [+0.0022, +0.0113]). See `RESOLUTION_DEV_STUDY.md` |
 | HB1 | COMPLETE (development, exploratory_historical) | Which of 72 pre-declared market-state, microstructure, flow, wallet, cross-market, time, category, extremity, liquidity, volatility and interaction hypotheses predict `h2_main` moves out of sample (one split, BY q = 0.10 on the cumulative count)? | 18 of 72 pass BY (m = 468): 2h-reversal moderators by trade confirmation (quote noise), net taker flow continuation at 2-24h (+0.3 to +0.6c per SD; aggressive flow strongest), flow weaker at longshot prices and in quiet markets, a price-level drift, one volatility feature. No wallet, cross-market, time, category or book hypothesis survives; ladders untestable. No survivor covers taker costs (net -2.4c to -4.1c). See `HYPOTHESIS_BATTERY_1.md` |
+| E009 | REGISTERED (pre-outcome; challenger-reviewed) | Live, receipt-timed: does Kalshi's latest 10-min move (frozen historical model) predict Polymarket's next 20-min mid move beyond M0, and is it executable after taker costs? | pending (fixed end 2026-11-03 00:00Z) |
 
 ---
 
@@ -788,3 +789,88 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
   `science-reviewer` pass.
 - **Count:** cumulative tests now 396 + 72 + 3 post-hoc = 471 (`ml_explain` count lines with source
   `hypothesis_battery_1` and `hypothesis_battery_1_posthoc`).
+
+---
+
+## E009 — Live cross-venue lead: Kalshi's 10-minute move -> Polymarket's next 20 minutes (frozen model, receipt-timed)
+
+- **Registered:** 2026-10-12 (about 23:10Z), commit containing this entry. `REGISTERED_UTC = 2026-10-13T00:00:00Z` is set in
+  `cross_venue_live.py` in the same commit; every origin before it (the pilot) stays `prospective_unregistered` and is
+  excluded. The running poller is restarted on the registration code before 00:00Z (restart time recorded below); the
+  **effective start** is max(REGISTERED_UTC, first cycle logged by a process started on registration code), and that exact
+  value is the `--analyze` START.
+  E008 is reserved for the IF-H2 deadline ladder. Design, code and pilot: `CROSS_VENUE_LIVE.md`.
+- **Origin of the hypothesis (post hoc, exploratory_historical):** `CROSS_VENUE_STUDY.md` 5.1-5.2: r(dK_t, dP_t+L) about 0.24
+  at the peak lag, +5.3% (conservative alignment) / +9.8% (`pm_lag = 0`) relative MSE gain of M0 + gap + Kalshi changes over
+  M0 at 10 min. Timestamp semantics put the lead at 10 or 20 min, hence the 20-min primary target.
+- **Frozen model:** `model_specs/cross_venue_live_v1.json`, sha256 `e63f20cc095ba88346155cabe0d2e4289981017cc48450ccc575bbc7d0d16e2b`
+  (pinned in code, verified at every start). Unpenalised OLS on all 341 historical pairs (190 events), `pm_lag = 0` alignment,
+  one fit per horizon, never refitted. M0 = `[r1, r6, lvl, lvl2]`; M1 = M0 + `[gap, dk1, dk6]`. 20-min M1: dk1 0.339, dk6
+  0.123, gap 0.024, r1 -0.230, r6 -0.120.
+- **Population:** active matched Kalshi/Polymarket Yes/No pairs from the daily refresh (`cross_venue.match_markets` unchanged
+  + live-only conflict words + title-level hand verdicts, ranked hand-verified first then by min 24h volume, cap 200), polled
+  every 120 s. Features and predictions are written before any outcome quote exists.
+- **Primary metric:** relative MSE gain `G = 1 - SSE(M1) / SSE(M0)` of the frozen predictions for the Polymarket mid change
+  from `t` to `t + 20 min`, over origins with `t % 1200 == 0` (non-overlapping per pair), origins in
+  `[effective start, 2026-11-03T00:00:00Z)`, evidence role `prospective_confirmation`, outcome status `evaluated`.
+  Inference: event-clustered bootstrap (Polymarket event id; 4,000 resamples, seed 20261012), one-sided p for G > 0 (the
+  share of bootstrap G <= 0: a percentile-bootstrap tail share, not a null-centred test), 95% percentile CI. Single
+  primary test; alpha 0.05 one-sided.
+- **Data hygiene (challenger review, fixed pre-outcome, in `analyze`):** outcome lines de-duplicated on (id, h), first line
+  kept, duplicates counted; an origin whose Kalshi or Polymarket receipt (`kr`, `pr`) is more than 60 s after its poll time
+  `t` is excluded and counted (`origin_late`, e.g. laptop sleep or backoff); an outcome quote received more than 60 s after
+  its poll time is `unavailable`; grid origins whose outcome is due but has no line are counted as `missing_line`,
+  separately from `unavailable`.
+- **Secondary (each reported, no multiplicity claim):** G at 10 min (`t % 600 == 0`) and 60 min (`t % 3600 == 0`); the slope
+  of dP(20 min) on dk1 and the partial slope on dk1 given the frozen M0 prediction, with clustered CIs (scale-free check of
+  direction); largest event's share of SSE(M0) and the leave-one-event-out range of G; unavailable / late / missing counts.
+- **Executable metric (separate):** paper taker P&L per share at 20 min for origins where the frozen rule fires
+  (`|M1_20| > entry ask - entry bid + taker fees at entry and exit`), direction `sign(M1_20)`, entry at the touch at `t`, exit
+  at the touch at `t + 20 min`, `economics.taker_fee` both legs (feesEnabled + docs rate of feeType; unknown -> 0.07).
+  Event-clustered mean with one-sided p for > 0; valid only with >= 30 trades in >= 10 events (`economics.MIN_TRADES`,
+  `MIN_CLUSTERS`). Descriptive companion: the same P&L on every primary origin with `|dk1| >= 2c`. No depth, queue or latency;
+  optimistic.
+- **Stopping rule:** fixed end date **2026-11-03T00:00:00Z** (about 21 days). Analysis runs **once**, after
+  2026-11-03T02:00:00Z (all 60-min outcomes due), with
+  `run_cross_venue_live.py --analyze <REGISTERED_UTC> 2026-11-03T00:00:00Z`. No interim look at outcome statistics; only
+  operational counts (`--ops-stats`, which never reads outcomes) may be checked. `predictions.jsonl` holds later mids from
+  which outcomes could be rebuilt, so it is covered by the same rule: no analysis of it other than `--ops-stats`. If the 2 GB disk cap or a crash stops
+  collection early, the window is not extended; whatever was collected is analysed at the same time and the shortfall is
+  recorded.
+- **Pilot (2026-10-12 21:44Z-about 23:00Z, `prospective_unregistered`, excluded; operational counts only, outcomes not
+  read):** 167 then 109 pairs after the hand-verified refresh (106 verified `same`, 27 events); 4 requests per 120 s cycle
+  (2 per venue), no 429s; quotes two-sided on both venues for 96% of pair-polls; about 70 pairs (22 events) have complete
+  features per cycle (the rest sit outside [0.03, 0.97]); 546 bytes per prediction (about 28 MB/day); poller RSS 115 MB;
+  refresh subprocess RSS 118 MB (flat `/markets/keyset`; the first `/events/keyset` version peaked at 245-380 MB and was
+  replaced). |dk1| median 0, 90th percentile 0.5c, 99th 2c; **dk1 is non-zero on only 12% of origins** (long-dated
+  markets, Kalshi mids rarely move). The trade rule fired 0 times in the pilot (median Polymarket spread 1c).
+- **Sample size and MDE:** expected primary origins about 70 pairs x 3 per hour x 24 x 21 days, about 100,000, but the
+  binding quantity is event clusters: 22-27 now, plus new short-lived events (game props) from daily refreshes, planned
+  estimate 40 (range 25-60). Scaling the historical event-cluster SE of the frozen 20-min gain (1.42 points at 190
+  clusters, in-sample) by sqrt(190 / C): C = 40 gives SE about 3.1 points and **MDE about 7.7 points** (one-sided alpha
+  0.05, power 0.80: 2.49 x SE); C = 25 gives 9.8 points. The historical in-sample gain is 7.1 points, and live dk1
+  activity (12% non-zero) is likely lower than in the historical last-30-days windows, so **power against the historical
+  effect is about 50% at best and probably lower. Declared in advance: an Inconclusive result is the most likely outcome**;
+  only a large live effect or a clear contradiction is detectable. The executable metric will very likely be below its
+  30-trade minimum (0 trades in the pilot) and is then reported as not shown.
+- **Verdicts:**
+  - **Supported (exploratory, prospective):** G > 0 with one-sided p < 0.05 **and** the dk1 slope point estimate > 0.
+  - **Contradicted:** the 95% CI of G lies entirely below 0 (the frozen lead model is worse than M0 live). If at the same
+    time the partial-slope CI lies entirely above 0, the label is "lead present, frozen scale miscalibrated", not "no lead".
+  - **Inconclusive:** otherwise.
+  - **Unavailable:** fewer than 20 event clusters or fewer than 5,000 evaluated primary origins in the window.
+  - **Economics:** "covers taker costs (paper)" only if the executable mean is > 0 with p < 0.05 at the trade/cluster minimum;
+    otherwise "not shown". A Supported primary without this is information, not a tradable edge.
+- **Frozen for the window:** spec sha256 `e63f20cc...6e2b`; hand verdicts `model_specs/cross_venue_live_verified.json` sha256
+  `1d6f942a27c9ba1ba56b6514ecb0bad79bd06ce0236084683f722d71932ac54c` (111 same, 56 different); `LIVE_EXTRA_CONFLICT`; the
+  feature, prediction, outcome and analysis code at the registration commit (each prediction line carries the code commit
+  and spec hash). Verdicts added during the window are title level only, timestamped, apply only to later refreshes, and
+  are never based on observed prices or moves. Any operational fix during the window is logged here as a deviation.
+- **Dependence:** pairs within an event are dependent (e.g. 20 Time Person of the Year candidates form one event); the
+  event is the cluster. Common market-wide shocks across events at the same time are not modelled (as in the study), so CIs
+  may be too narrow. Pair recurrence across daily refreshes stays in its event cluster.
+- **Non-claims:** no calibration, causation, profitability or tradability claim. Matching is title level; about 2% of
+  historical matches were wrong, and live pairs without a hand verdict may include mismatches (they bias towards 0).
+- **Deviations from the historical study** (fixed pre-outcome, `CROSS_VENUE_LIVE.md`): book mid instead of history price;
+  Kalshi `expected_expiration_time` for matching; live-only conflict words and hand verdicts; long-dated open markets ranked
+  by volume rather than the last 30 days before resolution.

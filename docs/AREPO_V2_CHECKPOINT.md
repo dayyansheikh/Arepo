@@ -102,11 +102,11 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
 1. **Learned surprise-move detector** (Fable): `SURPRISE_MOVE_DETECTOR.md`. If it beats the hand rules on the test months, freeze it and add it to the live monitor.
 2. **Hypothesis battery 1: DONE (development).** 72 declared (7a4d80c), one run: 18 pass cumulative BY (m=468). Survivors are flow continuation (aggressive flow strongest), reversal moderators by trade confirmation (quote noise), flow weaker at longshots/quiet markets, price-level drift and one |move| feature. Wallet, cross-market, time, category and book hypotheses are null; ladders untestable. No survivor covers taker costs. Candidates C1-C4 (not registered) are in `HYPOTHESIS_BATTERY_1.md` section 11.6. Cumulative tests now 471.
 3. **`h3_power` backfill:** about 10k more markets, oversampling decision-asymmetric categories.
-4. **Cross-venue Kalshi lead-lag:** `CROSS_VENUE_STUDY.md`.
+4. **Cross-venue Kalshi lead-lag:** `CROSS_VENUE_STUDY.md` (historical, L1). **Live test E009 registered** (`CROSS_VENUE_LIVE.md`, `cross_venue_live.py`): `REGISTERED_UTC` 2026-10-13T00:00Z, fixed end 2026-11-03T00:00Z, analyse once after 02:00Z that day; no interim outcome looks.
 5. **Economic conditions** (liquid markets, large signals, maker-style paper analysis): `ECONOMIC_CONDITIONS_STUDY.md`.
 6. **IF-H2 deadline ladder:** development, then possible E008 registration (`IF_H2_DEADLINE_LADDER.md`).
 
-**Live jobs:** `com.arepo.collector`, `com.arepo.live-trade-monitor`, `com.arepo.live-trade-outcomes` and `com.arepo.notify` (ntfy topic in `~/.arepo/ntfy_topic`; the user still has to subscribe).
+**Live jobs:** `com.arepo.cross-venue-live` (E009 poller + daily pair refresh), `com.arepo.collector`, `com.arepo.live-trade-monitor`, `com.arepo.live-trade-outcomes` and `com.arepo.notify` (ntfy topic in `~/.arepo/ntfy_topic`; the user still has to subscribe).
 
 ## Pending user decisions (dashboard section 6)
 1. Infra deploy (branch `fix/infra-2026-10-11`, bed00bb, reviewed SAFE).
