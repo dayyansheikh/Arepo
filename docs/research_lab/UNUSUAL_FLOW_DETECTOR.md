@@ -56,7 +56,7 @@ Centres and scales are a priori feature-range values, as in batch 1, for the sam
 
 ## FINAL FREEZE
 
-**FINAL FREEZE: 5 variants, commit `__FINAL_FREEZE_SHA__`.** The set is closed: `FROZEN.json` holds exactly
+**FINAL FREEZE: 5 variants, commit `692ab61`.** The set is closed: `FROZEN.json` holds exactly
 the five `rule_id`s above with the hashes shown; the shipped-registry test asserts the count and the hashes. Any
 further rule is a new data window's budget, not an addition to this set. Holm runs across these five on the
 primary statistic.
