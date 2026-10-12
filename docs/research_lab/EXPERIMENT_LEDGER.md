@@ -17,6 +17,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 | T5-DEV | COMPLETE (development, exploratory_historical) | Do point-in-time features predict binary resolution at 1/3/7d before scheduled end better than price and a recalibrated (Platt/isotonic) price? | No: LightGBM vs Platt ΔLL 1d -0.0013, 3d -0.0004, 7d +0.0041 (all CIs span 0); only Platt-vs-raw-price at 7d is positive (+0.0069 [+0.0022, +0.0113]). See `RESOLUTION_DEV_STUDY.md` |
 | HB1 | COMPLETE (development, exploratory_historical) | Which of 72 pre-declared market-state, microstructure, flow, wallet, cross-market, time, category, extremity, liquidity, volatility and interaction hypotheses predict `h2_main` moves out of sample (one split, BY q = 0.10 on the cumulative count)? | 18 of 72 pass BY (m = 468): 2h-reversal moderators by trade confirmation (quote noise), net taker flow continuation at 2-24h (+0.3 to +0.6c per SD; aggressive flow strongest), flow weaker at longshot prices and in quiet markets, a price-level drift, one volatility feature. No wallet, cross-market, time, category or book hypothesis survives; ladders untestable. No survivor covers taker costs (net -2.4c to -4.1c). See `HYPOTHESIS_BATTERY_1.md` |
 | E009 | REGISTERED (pre-outcome; challenger-reviewed) | Live, receipt-timed: does Kalshi's latest 10-min move (frozen historical model) predict Polymarket's next 20-min mid move beyond M0, and is it executable after taker costs? | pending (fixed end 2026-11-03 00:00Z) |
+| E010 | REGISTERED (pre-outcome; challenger-reviewed) | Live, same stream as E009: does the model refitted on the cleaned historical set (Kalshi changes + gap) predict Polymarket's 1h and 6h mid moves beyond M0? | pending (fixed end 2026-11-03 00:00Z) |
 
 ---
 
@@ -877,3 +878,80 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
 - **Deviations from the historical study** (fixed pre-outcome, `CROSS_VENUE_LIVE.md`): book mid instead of history price;
   Kalshi `expected_expiration_time` for matching; live-only conflict words and hand verdicts; long-dated open markets ranked
   by volume rather than the last 30 days before resolution.
+- **Deviation log (operational, no effect on E009 lines or statistics):** 2026-10-13, for E010 the poller gained a hook that
+  runs later experiments' writers after the E009 lines of each cycle (failures are caught and never stop E009), and
+  `RETIRE_KEEP_S` grew from 70 min to 6 h 20 min (retired pairs are polled longer; E009 never predicts for retired pairs).
+  E009 feature, prediction, outcome-matching and `analyze` code are unchanged. Possible operational effects: longer cycles
+  (an extra request per venue once active + retired pairs exceed 200), hence later receipts and more E009 origins excluded
+  as late, and more quote rows towards the shared 2 GB cap (which stops E009 too). Monitored via `--ops-stats` and the cycle log.
+
+---
+
+## E010 — Live cross-venue, cleaned-set model: Kalshi changes + gap -> Polymarket at 1h and 6h
+
+- **Registered:** 2026-10-13 (commit containing this entry). `REGISTERED_UTC = 2026-10-13T02:00:00Z` in
+  `cross_venue_live_e010.py`, later than the registration commit; the poller is restarted on the registration code before it
+  (restart time recorded below). Effective start = max(REGISTERED_UTC, first cycle of a process on registration code).
+  E009 stays exactly as registered; this is a separate experiment.
+- **Origin (post hoc, exploratory_historical):** `CROSS_VENUE_STUDY.md` section 10 (revision r1, commit 86a41c2): dropping 25
+  mismatched pairs (C1, 316 pairs, 183 events) reversed the v1 gap null. Walk-forward relative MSE gain over M0, C1:
+  gap only +5.1% (1h, CI 4.1-6.2), +7.5% (6h, 1.2-11.2); gap + Kalshi changes +7.0% (1h, 3.2-12.7), +6.9% (6h, 2.3-9.8).
+  The primary designation of C1 over C2 in r1 was made after seeing both (disclosed there).
+- **Frozen model:** `model_specs/cross_venue_live_e010_v1.json`, sha256
+  `62b992c6af95ff9a508d8c3130c3ec3ae3333e582bf822d051ea72da46e4961c` (pinned in code). Refitted once on C1 (the study's analysis
+  set minus `results_r1.json` `audit.rule`, 25 tickers listed in the spec), `pm_lag = 0` alignment as E009, unpenalised OLS
+  on all non-overlapping origins per horizon, never refitted. Models per horizon: M0 `[r1, r6, lvl, lvl2]`; M-gap = M0 + gap;
+  **M1 = M0 + gap + dk1 + dk6**. M1 coefficients: 1h gap 0.089, dk1 0.205, dk6 0.197; 6h gap 0.263, dk1 0.427, dk6 0.014.
+  Features are E009's (`cross_venue_live.features`) at the same origins.
+- **Data stream and dependence (disclosed):** E010 uses E009's pairs, quotes, features and window. Its lines go to
+  `predictions_e010.jsonl` / `outcomes_e010.jsonl` (append-only; written by `E010Writer` inside the same poller cycle, after
+  the E009 lines and before any outcome quote exists). **E009 and E010 results are correlated** (shared data; the 20-min and
+  1h targets overlap; same events); they must never be counted as independent confirmations or pooled, and each keeps its
+  own alpha.
+- **Origins:** cycles with `t % 3600 == 0` in `[effective start, 2026-11-03T00:00:00Z)`, role `prospective_confirmation`.
+  Hourly origins overlap for the 6h target within a pair; the event-clustered bootstrap carries that dependence.
+- **Primary metrics (two):** for h in {60, 360} min, relative MSE gain `G_h = 1 - SSE(M1) / SSE(M0)` of the frozen
+  predictions for the Polymarket mid change `t -> t+h`. Event-clustered bootstrap (Polymarket event id, 4,000 resamples,
+  seed 20261013 + h), one-sided p for G > 0 (percentile-bootstrap tail share, not a null-centred test), **Holm over the two
+  primaries, familywise alpha 0.05 one-sided.**
+- **Secondary:** G of frozen M-gap over M0 at each horizon (is the gap alone informative live); largest event's SSE share;
+  leave-one-event-out range; unavailable / late / missing counts. Holm always uses m = 2: a horizon without a test enters
+  with p = 1.
+- **Executable metric (separate, per horizon):** paper taker P&L per share where the frozen rule fires (`|M1_h| > entry
+  round-trip cost`), direction `sign(M1_h)`, enter at the touch at `t`, exit at the touch at `t + h`, `economics.taker_fee`
+  both legs. Valid only with >= 30 trades in >= 10 events (6h trades from hourly origins overlap within a pair, so the
+  trade count includes dependent trades; inference is event-clustered). **Economics verdict per horizon:** "covers taker
+  costs (paper)" only if the event-clustered mean is > 0 with one-sided p < 0.05 at the trade/cluster minimum; otherwise
+  "not shown". A positive primary without it is information, not a tradable edge.
+- **Hygiene (as E009):** outcome lines de-duplicated on (id, h); origins with receipt lag > 60 s excluded; outcome quotes
+  with receipt lag > 60 s unavailable; poll at exactly `t+h` else nearest within +-120 s, else unavailable; due-but-missing
+  lines counted separately. Retired pairs are polled 6 h 20 min so 6h outcomes can complete; quote window after a restart
+  is recovered from disk (7 h+).
+- **Stopping rule:** fixed end **2026-11-03T00:00:00Z** (shared with E009: same stream, disk budget). Analysis **once**, after
+  2026-11-03T08:00:00Z (all 6h outcomes due), with `run_cross_venue_live.py --analyze-e010 <effective start>
+  2026-11-03T00:00:00Z`. No interim look at E010 outcomes or predictions beyond operational line counts. Early stop (cap,
+  crash) does not extend the window; the shortfall is recorded.
+- **Sample size and MDE:** about 70 pairs with complete features per origin (E009 pilot), so about 70 x 24 x 20 days = 34,000
+  hourly origins per horizon, but the binding quantity is event clusters: 22-27 now, planned estimate 40 (range 25-60).
+  Scaling the historical walk-forward event-cluster SE of the M1 gain (1h: 2.42 points at 158 clusters; 6h: 1.92 at 163) by
+  sqrt(C_hist / C) and using z = 1.96 + 0.84 (Holm worst case alpha 0.025 one-sided, power 0.80): **1h MDE about 13.5 points at
+  C = 40 (17.0 at 25); 6h MDE about 10.9 (13.7 at 25)** against historical gains of 7.0 and 6.9. Power against the historical
+  effect is roughly 20-30%. **Declared in advance: Inconclusive is the most likely outcome**; only a live effect about twice
+  the historical size, or a contradiction, is detectable. Live long-dated markets (dk1 non-zero on 12% of origins) are less
+  active than the historical last-30-days windows.
+- **Verdicts (per horizon, after Holm):**
+  - **Supported (exploratory, prospective):** Holm-adjusted p < 0.05 and G_h > 0.
+  - **Contradicted:** 95% CI of G_h entirely below 0.
+  - **Inconclusive:** otherwise. **Unavailable:** fewer than 20 event clusters or fewer than 2,000 evaluated origins at that
+    horizon.
+- **Frozen for the window:** spec sha above; E009's hand verdicts file (sha `1d6f942a...c54c`) and `LIVE_EXTRA_CONFLICT`
+  (shared pair list); `cross_venue_live_e010.py` writer and `analyze` at the registration commit. Any operational fix is
+  logged here as a deviation.
+- **Non-claims:** no calibration, causation, profitability or tradability claim; residual pair mismatches (2-4% historical,
+  unknown live) bias towards 0.
+- **C1 selection disclosure (challenger review):** C1 was designated primary after r1 results for C1 and C2 were seen. 4 of
+  the 9 hand-dropped pairs (Opus x2, Trump China x2) were first surfaced by the outcome-disagreement list (judged on titles),
+  and dropping those 9 alone produces the whole gap-null reversal (`CROSS_VENUE_STUDY.md` 10.3). The historical C1 gains
+  (7.0 at 1h, 6.9 at 6h) are therefore an optimistic reference. Live pairs never had an outcome-informed audit: the live
+  mismatch rate, which caused the v1 null historically, is unknown and would bias G towards 0 (and could make the gap term
+  harmful).

@@ -98,3 +98,11 @@ launchctl kickstart -k gui/$(id -u)/com.arepo.cross-venue-live   # restart
 launchctl bootout gui/$(id -u)/com.arepo.cross-venue-live        # stop
 pytest tests/test_research_lab_cross_venue_live.py && ruff check astrolabe/research_lab/cross_venue_live.py scripts/run_cross_venue_live.py
 ```
+
+## E010 on the same stream (2026-10-13)
+`backend/astrolabe/research_lab/cross_venue_live_e010.py` (`E010Writer`, hooked into `Poller.extras`) writes hourly-origin
+predictions of a model refitted once on the cleaned historical set C1 (316 pairs; spec `model_specs/cross_venue_live_e010_v1.json`,
+sha256 `62b992c6...961c`) to `predictions_e010.jsonl`, and +60/+360 min outcomes with paper taker P&L to `outcomes_e010.jsonl`.
+Retired pairs are now polled 6 h 20 min. E009 is unchanged. Registration, dependence on E009 and MDE: ledger E010.
+`python scripts/run_cross_venue_live.py --analyze-e010 <effective start> 2026-11-03T00:00:00Z` once, after 2026-11-03T08:00Z.
+Tests: `backend/tests/test_research_lab_cross_venue_live_e010.py`.

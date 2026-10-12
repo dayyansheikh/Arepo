@@ -81,7 +81,9 @@ MAX_RECV_LAG_S = 60  # analysis: receipt > 60 s after the poll time -> late / un
 HORIZONS_MIN = (10, 20, 60)
 PRIMARY_H = 20
 HISTORY_S = 3600 + LOOKBACK_TOL_S + 600
-RETIRE_KEEP_S = 3600 + 600  # retired pairs keep being polled so pending outcomes can complete
+# Retired pairs keep being polled so pending outcomes can complete. 70 min for E009; extended to
+# 6h20m on 2026-10-13 for E010's 360-min outcomes (E009 deviation: polling only, no E009 effect).
+RETIRE_KEEP_S = 6 * 3600 + 1200
 REFRESH_EVERY_S = 86400
 TOTAL_CAP_BYTES = 2 * 1024**3
 RSS_BUDGET_MB = 200
@@ -773,6 +775,9 @@ class Poller:
         self.pairs_loaded_utc: str | None = None
         self.outcomes = OutcomeWriter(self.root)
         self.totals = {"cycles": 0, "quotes": 0, "predictions": 0, "outcomes": 0}
+        # Writers of later experiments (E010), called after the E009 lines of the cycle are written:
+        # ``on_cycle(t, ready=[(pair, quote, features)], quotes)``.
+        self.extras: list = []
 
     # pairs ---------------------------------------------------------------------------------
     def load_pairs(self) -> bool:
@@ -851,7 +856,7 @@ class Poller:
         states = self.active_states(t_sched)
         k = self.fetch_kalshi([s.pair["k_ticker"] for s in states])
         b = self.fetch_books([s.pair["token0"] for s in states])
-        quotes, preds = [], []
+        quotes, preds, ready = [], [], []
         n_valid = 0
         for s in states:
             p = s.pair
@@ -867,6 +872,7 @@ class Poller:
                 f = features(s.hist, t_sched, q["k_mid"], q["p_mid"])
                 if f is not None:
                     preds.append(make_prediction(p, t_sched, q, f, self.spec))
+                    ready.append((p, q, f))
             if math.isfinite(q["k_mid"]) and math.isfinite(q["p_mid"]):
                 n_valid += 1
                 s.hist.append((t_sched, q["k_mid"], q["p_mid"]))
@@ -874,6 +880,11 @@ class Poller:
         append_jsonl(self.root / "quotes" / f"{day}.jsonl", quotes)
         append_jsonl(self.root / "predictions.jsonl", preds)  # before any outcome quote exists
         n_out = self.outcomes.update(t_sched, quotes, preds)
+        for x in self.extras:
+            try:
+                x.on_cycle(t_sched, ready, quotes)
+            except Exception as exc:  # a later experiment's writer never stops E009
+                log.warning("extra writer %s failed: %s", type(x).__name__, type(exc).__name__)
         self.totals["cycles"] += 1
         self.totals["quotes"] += len(quotes)
         self.totals["predictions"] += len(preds)
