@@ -106,3 +106,15 @@ collector change lands; they remain historical-only variants unless that happens
   and per-group alert rates with the reporting-conditioned caveat.
 - Both: yield to `arepo_pass.sh`, ≤ 5 req/s, check swap before `build_panel`; never edit
   `detector_specs/` or this file's hashes.
+
+## Judgement-half results (broad sample, 2026-10-12; exploratory_historical)
+
+Run exactly as programme §8 (d) after FINAL FREEZE (`692ab61`), on `h2_main_bsample_b1:judgement`
+(t ≥ 1785391200; 119,346 traded rows, 357 markets, 269 clusters, 44,575 untraded rows excluded).
+**Primary statistic (h = 24, δ = 0.10, 1% budget): no variant shows excess directional precision over matched
+controls; Holm p = 1.0 for all five; every CI includes 0. `uf_convex_longshot_v1`,
+`uf_new_wallet_concentration_v1` and `uf_pressure_no_response_v1` are not testable (< 30 episodes).** Recall on
+large moves is 0-2%, and mean paper P&L is negative for every variant. `alerts_needed(b, 0.05)` = 281-659
+episodes against 6-80 observed: null and underpowered. The full table, Maduro descriptive firings and
+caveats are in `CASE_STUDY_MADURO.md` (Part B). Results file:
+`data-dumps/research_lab/event_study/judgement_results.json`. Cumulative `detector_eval` trials: 8.

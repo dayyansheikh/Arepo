@@ -168,6 +168,7 @@ def _condition_ids(obj) -> set[str]:
 
 PANEL_KEEP = ("market_id", "event_id", "t_i", "mid_i", "horizon_target_h", "y_dmid",
               "traded_before_t", "fee_category", "status", "stratum")
+PANEL_PREFIXES = ("ml_tf_", "ml_wlt_", "ml_own_", "ml_chg_")
 
 
 def cmd_bpanel(a) -> None:
@@ -200,7 +201,7 @@ def cmd_bpanel(a) -> None:
     for h in (2, 6, 24):
         it = pd.read_csv(run / f"panel_H{h}h.csv.gz", dtype={"market_id": str, "event_id": str},
                          keep_default_na=False, na_values=[""], chunksize=200_000,
-                         usecols=lambda c: c in PANEL_KEEP or c.startswith(("ml_tf_", "ml_wlt_")))
+                         usecols=lambda c: c in PANEL_KEEP or c.startswith(PANEL_PREFIXES))
         for ch in it:
             parts.append(ch[ch["market_id"].isin(keep_ids)])
     raw = pd.concat(parts, ignore_index=True)
@@ -236,6 +237,33 @@ def cmd_bpanel(a) -> None:
           "excluded", int(drop.sum()))
 
 
+def cmd_evaluate(a) -> None:
+    """Programme section 8 (d): every frozen rule on the chosen half via the held-out harness
+    (each call appends a trials.jsonl line), then Holm across the frozen set."""
+    from astrolabe.research_lab import detector_eval as de
+
+    es.heavy_gate()
+    man = json.loads((OUT / "broad_panel.manifest.json").read_text())
+    cut = float(man["discovery_cut_epoch"])
+    panel = pd.read_csv(OUT / "broad_panel.csv.gz", dtype={"market_id": str, "cluster": str})
+    panel.attrs.update(man["panel_attrs"])
+    part = panel[panel["t"] >= cut] if a.half == "judgement" else panel[panel["t"] < cut]
+    part = part.copy()
+    part.attrs.update(man["panel_attrs"])
+    h = de.HeldOutHarness()
+    results = {}
+    for rid in de.RuleRegistry().frozen_ids():
+        results[rid] = h.evaluate(rid, part, evidence_role="exploratory_historical",
+                                  dataset=f"h2_main_bsample_b1:{a.half}", cfg=de.EvalConfig(),
+                                  extra={"discovery_cut_epoch": cut, "half": a.half})
+    holm = de.holm_across_rules(results)
+    es.write_json(OUT / f"{a.half}_results.json", {
+        "half": a.half, "discovery_cut_epoch": cut, "results": results, "holm": holm,
+        "prior_detector_trials_after": de.prior_detector_trials()})
+    for rid in results:
+        print(rid, json.dumps(holm.get(rid), default=float)[:300])
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(dest="cmd", required=True)
@@ -261,10 +289,12 @@ def main() -> None:
     b.add_argument("--seed", default="arepo-unusual-flow-b1")
     bp = sp.add_parser("bpanel")
     bp.add_argument("--run", default=str(REPO / "data-dumps/research_lab/history/h2_main"))
+    ev = sp.add_parser("evaluate")
+    ev.add_argument("--half", choices=["judgement", "discovery"], default="judgement")
     a = ap.parse_args()
     t0 = time.time()
     {"find": cmd_find, "probe": cmd_probe, "pull": cmd_pull, "timeline": cmd_timeline,
-     "bsample": cmd_bsample, "bpanel": cmd_bpanel}[a.cmd](a)
+     "bsample": cmd_bsample, "bpanel": cmd_bpanel, "evaluate": cmd_evaluate}[a.cmd](a)
     print(f"done in {time.time() - t0:.0f}s")
 
 
