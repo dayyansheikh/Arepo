@@ -68,6 +68,8 @@ Data rights are out of scope during the private research phase (your decision, 2
    - **(b)** Supabase Pro at $25/month.
 4. **Resend:** dashboard access is needed to check email delivery. The code looks fine, and digests are off.
 
+5. **Optional: an API key for on-chain history.** To trace where a betting wallet's money came from (a strong signal for the Maduro-style detector), AREPO needs a blockchain-data key, because the free keyless routes are blocked. Free tiers exist (for example Polygonscan or Alchemy). Creating the key and storing it is your decision.
+
 Everything else is running autonomously.
 
 ## 7. What's next
