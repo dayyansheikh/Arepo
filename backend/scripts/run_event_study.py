@@ -151,6 +151,91 @@ def cmd_bsample(a) -> None:
     print(rep["n"], "markets", "pool", rep["pool"])
 
 
+def _condition_ids(obj) -> set[str]:
+    """Every ``condition_id``/``conditionId`` value anywhere in a JSON document (not printed)."""
+    out: set[str] = set()
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k in ("condition_id", "conditionId") and isinstance(v, str) and v:
+                out.add(v.lower())
+            else:
+                out |= _condition_ids(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            out |= _condition_ids(v)
+    return out
+
+
+PANEL_KEEP = ("market_id", "event_id", "t_i", "mid_i", "horizon_target_h", "y_dmid",
+              "traded_before_t", "fee_category", "status", "stratum")
+
+
+def cmd_bpanel(a) -> None:
+    """Broad panel for the frozen-rule evaluation: the ``build_panel`` outputs of an existing
+    seeded history run, restricted to the seeded ``bsample`` sub-sample, minus Maduro/Venezuela
+    and catalogue markets (by condition_id), normalised with ``detector_eval.normalise_panel``.
+    Writes the discovery cut (row-time median of the normalised panel)."""
+    from astrolabe.research_lab import detector_eval as de
+
+    es.heavy_gate()
+    run = Path(a.run)
+    sub = pd.read_csv(OUT / "bsample.csv.gz", dtype={"market_id": str, "condition_id": str},
+                      keep_default_na=False)
+    excl = {m["condition_id"].lower() for m in
+            json.loads((OUT / "markets.json").read_text())["markets"] if m.get("condition_id")}
+    n_maduro = len(excl)
+    cat = REPO / "docs" / "research_lab" / "case_catalogue_registry.json"
+    cat_ids = _condition_ids(json.loads(cat.read_text())) if cat.exists() else set()
+    # the registry holds slugs; the catalogue agent's pulled manifests hold condition ids (case
+    # markets and their quiet controls, all excluded); re-checked at evaluation time
+    for f in (REPO / "data-dumps" / "research_lab" / "case_studies").rglob("*.json"):
+        try:
+            cat_ids |= _condition_ids(json.loads(f.read_text()))
+        except ValueError:
+            continue
+    excl |= cat_ids
+    drop = sub["condition_id"].str.lower().isin(excl)
+    keep_ids = set(sub.loc[~drop, "market_id"])
+    parts = []
+    for h in (2, 6, 24):
+        it = pd.read_csv(run / f"panel_H{h}h.csv.gz", dtype={"market_id": str, "event_id": str},
+                         keep_default_na=False, na_values=[""], chunksize=200_000,
+                         usecols=lambda c: c in PANEL_KEEP or c.startswith(("ml_tf_", "ml_wlt_")))
+        for ch in it:
+            parts.append(ch[ch["market_id"].isin(keep_ids)])
+    raw = pd.concat(parts, ignore_index=True)
+    raw["event_id"] = raw["event_id"].fillna("").astype(str)
+    panel = de.normalise_panel(raw, "history")
+    panel["status"] = raw.drop_duplicates(["market_id", "t_i"]).set_index(
+        ["market_id", "t_i"]).reindex(pd.MultiIndex.from_arrays(
+            [panel["market_id"], panel["t"]]))["status"].to_numpy()
+    attrs = dict(panel.attrs)
+    cut = float(np.median(panel["t"].to_numpy(float)))
+    panel["half"] = np.where(panel["t"] >= cut, "judgement", "discovery")
+    panel.to_csv(OUT / "broad_panel.csv.gz", index=False)
+    traded = panel["traded_before_t"]
+    es.write_json(OUT / "broad_panel.manifest.json", {
+        "source_run": str(run.relative_to(REPO)), "source_builder": "history_backfill.build_panel",
+        "bsample_seed": json.loads((OUT / "bsample.manifest.json").read_text())["report"]["seed"],
+        "markets_in_bsample": len(sub), "markets_excluded_maduro_venezuela_or_catalogue":
+            int(drop.sum()), "maduro_venezuela_condition_ids": n_maduro,
+        "catalogue_condition_ids": len(cat_ids),
+        "markets_with_rows": int(panel["market_id"].nunique()), "rows": len(panel),
+        "rows_traded_before_t": {"1": int((traded == 1).sum()), "0": int((traded == 0).sum()),
+                                 "nan": int(traded.isna().sum())},
+        "discovery_cut_epoch": cut, "discovery_cut_utc": hb.utc_iso(cut),
+        "discovery_cut_rule": "median of t over all rows of the normalised broad panel "
+        "(after exclusions, before the traded_before_t filter)",
+        "rows_by_half": panel["half"].value_counts().to_dict(),
+        "clusters_by_half": panel.groupby("half")["cluster"].nunique().to_dict(),
+        "panel_attrs": attrs, "created_utc": hb.utc_iso(),
+        "notes": ["liquidity is NaN in history panels (end-of-life Gamma value is look-ahead)",
+                  "new_wallet_share_l is new-to-sample (FirstSeen over the 3,200-market run), "
+                  "left-censored; not Polymarket wallet age"]})
+    print(len(panel), "rows", panel["market_id"].nunique(), "markets; cut", hb.utc_iso(cut),
+          "excluded", int(drop.sum()))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(dest="cmd", required=True)
@@ -174,10 +259,12 @@ def main() -> None:
     b.add_argument("--run", default=str(REPO / "data-dumps/research_lab/history/h2_main"))
     b.add_argument("--n", type=int, default=1500)
     b.add_argument("--seed", default="arepo-unusual-flow-b1")
+    bp = sp.add_parser("bpanel")
+    bp.add_argument("--run", default=str(REPO / "data-dumps/research_lab/history/h2_main"))
     a = ap.parse_args()
     t0 = time.time()
     {"find": cmd_find, "probe": cmd_probe, "pull": cmd_pull, "timeline": cmd_timeline,
-     "bsample": cmd_bsample}[a.cmd](a)
+     "bsample": cmd_bsample, "bpanel": cmd_bpanel}[a.cmd](a)
     print(f"done in {time.time() - t0:.0f}s")
 
 

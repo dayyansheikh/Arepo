@@ -47,7 +47,7 @@ frozen variants (≤ 5) on the primary statistic.
   paper P&L (`shares = 5`, `fee_policy = max_if_unknown`, spread from the panel or 0.02 assumed and counted).
 - Not testable below 30 alert episodes or 10 clusters with an alert; reported as such, never as a pass.
 - Discovery cut (broad sample row-time median): **to be written here by the Maduro agent before any
-  judgement-half metric is produced** (`discovery_cut_epoch = ____`).
+  judgement-half metric is produced** (`discovery_cut_epoch = 1785391200` = 2026-07-30T06:00:00Z; written 2026-10-12 before any judgement-half metric. Broad panel: `history/h2_main` `build_panel` outputs (2h grid, horizons 2/6/24) restricted to the seeded sub-sample `bsample` (1,500 of 3,200 markets, seed `arepo-unusual-flow-b1`, `draw_sample` by status x fee_category x created month), Maduro/Venezuela markets (2,316 condition ids from the Gamma search) and catalogue condition ids removed; 1,005 markets with rows, 327,766 rows (163,845 discovery / 163,921 judgement); cut = median `t` over all rows before the `traded_before_t` filter. File `data-dumps/research_lab/event_study/broad_panel.csv.gz` + manifest.)
 - Case-list hash (`sha256` of sorted catalogue `condition_id`s): **to be written in `CASE_CATALOGUE.md` by the
   catalogue agent before reading this file's variants**; the detector author did not see the case list.
 - Budget accounting: 3 detector trials pre-committed (one per variant on the judgement half) plus the

@@ -161,3 +161,18 @@ def test_first_trade_lookups_cache_has_no_addresses(tmp_path):
     assert addr.lower() not in text.lower() and h in text
     r2 = es.first_trade_lookups(_lim(fake), {h: (addr, 1200)}, p)
     assert r2["cached"] == 1 and r2["lookups_ok"] == 0
+
+
+def test_price_onset_and_describe_case():
+    ts = np.arange(0, 5 * 86400, 600, dtype=float)
+    p = np.where(ts < 4 * 86400, 0.07, 0.5)
+    on = es.price_onset(ts, p, 0.10, 86400)
+    assert on == 4 * 86400
+    df = pd.DataFrame({"t": np.arange(H, 5 * 86400, H)})
+    df["z_volume"] = 0.0
+    df.loc[df["t"] == on - 2 * H, "z_volume"] = 4.0
+    df.loc[df["t"] == 10 * H, "z_volume"] = 6.0  # earlier in the market's own history
+    r = es.describe_case(df, on, pre_h=24)
+    m = r["metrics"]["z_volume"]
+    assert m["z>=3"]["lead_h"] == 2.0 and m["z>=3"]["earlier_bins_exceeding"] == 1
+    assert m["z>=5"]["first_t"] is None

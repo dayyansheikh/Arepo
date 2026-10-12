@@ -573,3 +573,46 @@ def wallets_in_bins(tr: pd.DataFrame, bins: pd.DataFrame, bin_s: int) -> dict[st
         for h, t in zip(tr["wallet_hash"].to_numpy()[m], ts[m], strict=True):
             out[h] = min(out.get(h, int(t)), int(t))
     return out
+
+
+# ---------------------------------------------------------------------------------------------
+# Descriptive case summary (Part A; no thresholds are tuned here)
+# ---------------------------------------------------------------------------------------------
+
+Z_COLS = ("z_volume", "z_signed_yes", "z_nw_share_7d", "z_max_trade_over_trail7d")
+
+
+def price_onset(price_ts: np.ndarray, price_vals: np.ndarray, size: float = 0.10,
+                lookback_s: float = DAY_S, after: float = -np.inf) -> float | None:
+    """First series stamp (after ``after``) at which the price is at least ``size`` above its
+    median over the preceding ``lookback_s``: a data-defined "the market moved" time."""
+    for i in np.flatnonzero(price_ts > after):
+        a = np.searchsorted(price_ts, price_ts[i] - lookback_s, side="left")
+        if i - a < 6:
+            continue
+        if price_vals[i] - np.median(price_vals[a:i]) >= size - 1e-12:
+            return float(price_ts[i])
+    return None
+
+
+def describe_case(df: pd.DataFrame, onset_ts: float, z_thr: Iterable[float] = (3.0, 5.0),
+                  pre_h: int = 72) -> dict:
+    """Per z column: first bin end at or after which z >= thr within ``pre_h`` hours before the
+    onset (lead = onset - t), and how often the same exceedance happened earlier in the market's
+    own history (bins ending before onset - pre_h), as a crude own-history alarm rate."""
+    out: dict[str, Any] = {"onset_ts": onset_ts, "pre_h": pre_h, "metrics": {}}
+    lo = onset_ts - pre_h * 3600
+    hist = df[df["t"] <= lo]
+    for col in Z_COLS:
+        if col not in df:
+            continue
+        rec = {}
+        for thr in z_thr:
+            t1 = first_exceedance(df, col, thr, int(lo), int(onset_ts))
+            valid = hist[col].notna()
+            rec[f"z>={thr:g}"] = {
+                "first_t": t1, "lead_h": None if t1 is None else round((onset_ts - t1) / 3600, 2),
+                "earlier_bins_exceeding": int((hist.loc[valid, col] >= thr).sum()),
+                "earlier_bins_scored": int(valid.sum())}
+        out["metrics"][col] = rec
+    return out
