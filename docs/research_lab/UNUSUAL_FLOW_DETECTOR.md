@@ -160,3 +160,25 @@ Maduro/Venezuela and catalogue markets are excluded.
 **Power expectation.** For the 5 variants the declared 1% budget fixes alerts at about 1% of anchored rows,
 so 6,000 anchors give about 60 alerts: still below `alerts_needed`. Reaching it would need 30k or more
 anchors (about 90k requests). For IF-H1 (top 10 per week over about 30 weeks) the ceiling is about 300 alerts.
+
+### IF-H1 frozen (before any evaluation)
+
+`if_h1_hist_v1`, sha256 `f92952cbce94bdf260836de4c7e126439613e1a6c6049f694af2ec8480e6e839`, frozen
+2026-10-12T05:10:07Z (`detector_specs/if_h1_hist_v1.json`, index `FROZEN_IF_H1.json`; a `trials.jsonl` line
+of kind `detector_eval_if_h1`, status `frozen`). The class rule is `class-v2`: a pre-outcome metadata fix of
+v1, which had sent fee-less daily club matches ("Will <club> win on <date>?") to B and matched `deport*` on
+club names. No outcome or label was computed before the fix or the freeze.
+
+Dev-window `X1` q99 per class and band (pbar ≤ 0.05 / 0.10 / 0.20), with n in brackets:
+- A: 8,577 (397), 480 (174), 171 (396)
+- B: 303 (113), 214 (175), 157 (321)
+
+These are thin null cells: each q99 rests on its top 1-4 episodes.
+
+Census as built:
+- Universe: 1,155,140 markets with ≥ $500 volume, 0 capped windows; class A 26,888, B 19,759, C 1,085,822,
+  unclassified 22,671.
+- v1 census: 46,647 class A/B markets, 883 batches, 2,232 requests, 1,275,965 prints ≥ $500, 0 incomplete
+  windows.
+- Episodes reaching $1k: 345,066 (dev 43,965; eval 301,101).
+- Disk 944 MB of the 2 GB cap, mostly the uncompressed universe JSON.
