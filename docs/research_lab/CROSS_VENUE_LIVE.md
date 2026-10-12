@@ -74,14 +74,16 @@ other bytes). Built once by `run_cross_venue_live.py --freeze` on 2026-10-12 bef
 
 ## Pilot (2026-10-12 21:44Z to 2026-10-13 00:00Z, `prospective_unregistered`, excluded from E009)
 Operational numbers (no outcome read) are in the E009 ledger entry: about 70 pairs / 22 events with complete features per
-cycle, dk1 non-zero on 12% of origins, 0 trade-rule firings, no 429s, poller RSS 115 MB, refresh RSS 118 MB. Pilot outcome
+cycle, dk1 non-zero on 12% of origins, 0 trade-rule firings, no 429s, poller RSS 115 MB, refresh RSS 118 MB while paging, peak 194-204 MB at the end (matching); see Resource notes. Pilot outcome
 lines exist on disk but were not analysed. Registration: `REGISTERED_UTC = 2026-10-13T00:00:00Z`; challenger review
 (science-reviewer) accepted with required fixes, all applied before the registration commit (ledger E009).
 
 ## Resource notes
 - Refresh memory: the first version paged Gamma `/events/keyset` (pages can hold events with thousands of markets) and peaked at
   245-380 MB; it now pages the flat `/markets/keyset` (100 markets per page, about 2,600 pages, about 50 min at 0.9 req/s)
-  with compact candidate records and a matcher-equivalent Kalshi prefilter: peak 118 MB.
+  with compact candidate records and a matcher-equivalent Kalshi prefilter: 118 MB while paging, but the full run peaked at
+  204 MB (`/usr/bin/time` max RSS; 194 MB self-reported), so the refresh subprocess sits at the 200 MB budget. The long-running
+  poller is 115-132 MB. Open item: lower the refresh peak (e.g. tokenise Polymarket candidates once, drop texts after matching).
 - Disk: about 28 MB/day predictions, about 10 MB/day outcomes, about 30 MB/day raw quotes (gzipped after 2 days): well
   under the 2 GB cap by the end date.
 

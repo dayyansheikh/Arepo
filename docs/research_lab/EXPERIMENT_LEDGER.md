@@ -843,7 +843,8 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
   read):** 167 then 109 pairs after the hand-verified refresh (106 verified `same`, 27 events); 4 requests per 120 s cycle
   (2 per venue), no 429s; quotes two-sided on both venues for 96% of pair-polls; about 70 pairs (22 events) have complete
   features per cycle (the rest sit outside [0.03, 0.97]); 546 bytes per prediction (about 28 MB/day); poller RSS 115 MB;
-  refresh subprocess RSS 118 MB (flat `/markets/keyset`; the first `/events/keyset` version peaked at 245-380 MB and was
+  refresh subprocess RSS 118 MB while paging, full-run peak 204 MB (operational correction after registration, no design
+  effect) (flat `/markets/keyset`; the first `/events/keyset` version peaked at 245-380 MB and was
   replaced). |dk1| median 0, 90th percentile 0.5c, 99th 2c; **dk1 is non-zero on only 12% of origins** (long-dated
   markets, Kalshi mids rarely move). The trade rule fired 0 times in the pilot (median Polymarket spread 1c).
 - **Sample size and MDE:** expected primary origins about 70 pairs x 3 per hour x 24 x 21 days, about 100,000, but the
