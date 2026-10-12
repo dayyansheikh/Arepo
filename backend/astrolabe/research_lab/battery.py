@@ -765,9 +765,14 @@ def _read_panel(path: Path, cols: list[str], markets: set[str] | None) -> pd.Dat
     return pd.concat(parts, ignore_index=True)
 
 
-def load_base(run_dir: Path, markets: set[str] | None = None) -> pd.DataFrame:
-    """2h panel (features + 2h target) joined with the 6h and 24h targets."""
-    base = _read_panel(run_dir / "panel_H2h.csv.gz", PANEL_COLS + TARGET_COLS, markets)
+def load_base(
+    run_dir: Path, markets: set[str] | None = None, extra_cols: tuple[str, ...] = ()
+) -> pd.DataFrame:
+    """2h panel (features + 2h target) joined with the 6h and 24h targets. ``extra_cols``: further
+    panel columns to carry (e.g. ``sample_weight`` in weighted runs such as h3_power)."""
+    base = _read_panel(
+        run_dir / "panel_H2h.csv.gz", PANEL_COLS + list(extra_cols) + TARGET_COLS, markets
+    )
     base = base.rename(
         columns={"dmid": "d_2", "y_class": "y3_2", "y_absmove": "ya_2", "target_available": "ok_2"}
     )
@@ -808,10 +813,17 @@ def add_new_wallets(df: pd.DataFrame, run_dir: Path) -> pd.DataFrame:
 
 
 def build_features(
-    run_dir: Path, out_dir: Path, log=print, shift_s: float = 0.0, markets: set[str] | None = None
+    run_dir: Path,
+    out_dir: Path,
+    log=print,
+    shift_s: float = 0.0,
+    markets: set[str] | None = None,
+    first_trade_path: Path | None = None,
+    extra_cols: tuple[str, ...] = (),
 ) -> pd.DataFrame:
-    """Every battery feature for every panel origin (targets are carried through untouched)."""
-    base = load_base(run_dir, markets)
+    """Every battery feature for every panel origin (targets are carried through untouched).
+    ``first_trade_path``: wallet first-trade map (default: the h2-era ``history_sources`` map)."""
+    base = load_base(run_dir, markets, extra_cols)
     sample = pd.read_csv(run_dir / "sample.csv.gz", dtype=str, keep_default_na=False)
     meta = pd.read_csv(
         out_dir / "market_meta.csv.gz", dtype={"market_id": str, "event_id": str, "ladder_id": str}
@@ -825,7 +837,9 @@ def build_features(
             d = json.loads(line)
             prog[str(d["market_id"])] = d
     ft = {}
-    ftp = run_dir.parents[1] / "history_sources" / "new_wallets" / "first_trade.jsonl"
+    ftp = first_trade_path or (
+        run_dir.parents[1] / "history_sources" / "new_wallets" / "first_trade.jsonl"
+    )
     for line in ftp.read_text().splitlines():
         if line.strip():
             d = json.loads(line)
@@ -1094,18 +1108,27 @@ def beta_test(
     sign: int | None,
     n_boot: int = N_BOOT,
     seed: int = SEED,
+    w: np.ndarray | None = None,
 ) -> dict:
     """OLS slope of ``x`` given ``Z`` (with intercept), CR SEs (event; two-way event x day).
-    ``sign`` = direction to test one-sided (None: report two-sided only)."""
+    ``sign`` = direction to test one-sided (None: report two-sided only). ``w``: optional row
+    weights (WLS: weighted partialling, weighted scores); None gives the unweighted estimator."""
     Z1 = np.column_stack([np.ones(len(y)), Z]) if Z.size else np.ones((len(y), 1))
-    xt = _resid(x, Z1)
-    yt = _resid(y, Z1)
-    sxx = float((xt**2).sum())
+    wt = np.ones(len(y)) if w is None else np.asarray(w, float)
+    if w is None:
+        xt = _resid(x, Z1)
+        yt = _resid(y, Z1)
+    else:
+        sw = np.sqrt(wt)
+        cx, *_ = np.linalg.lstsq(Z1 * sw[:, None], x * sw, rcond=None)
+        cy, *_ = np.linalg.lstsq(Z1 * sw[:, None], y * sw, rcond=None)
+        xt, yt = x - Z1 @ cx, y - Z1 @ cy
+    sxx = float((wt * xt**2).sum())
     if sxx <= 1e-12 * max(1, len(x)):
         return {"testable": False, "reason": "no residual variation in x"}
-    b = float((xt * yt).sum() / sxx)
+    b = float((wt * xt * yt).sum() / sxx)
     e = yt - b * xt
-    sc = xt * e / sxx
+    sc = wt * xt * e / sxx
     n, k = len(y), Z1.shape[1] + 1
     adj = (n - 1) / max(n - k, 1)
     va, vd, v2 = _twoway(sc, ev, day)
@@ -1122,6 +1145,7 @@ def beta_test(
         "n": int(n),
         "n_event": int(len(pd.unique(ev))),
         "n_day": int(len(pd.unique(day))),
+        "weighted": w is not None,
     }
     if sign is not None:
         pe, p2 = float(norm.sf(sign * z_e)), float(norm.sf(sign * z_2))
@@ -1130,13 +1154,13 @@ def beta_test(
     # event-cluster bootstrap CI of the partial slope (partialling held fixed)
     codes, uniq = pd.factorize(ev)
     g = len(uniq)
-    A = np.bincount(codes, weights=xt * yt, minlength=g)
-    B = np.bincount(codes, weights=xt * xt, minlength=g)
+    A = np.bincount(codes, weights=wt * xt * yt, minlength=g)
+    B = np.bincount(codes, weights=wt * xt * xt, minlength=g)
     rng = np.random.default_rng(seed)
     bs = np.empty(n_boot)
     for i in range(n_boot):
-        w = np.bincount(rng.integers(0, g, g), minlength=g)
-        bs[i] = (w @ A) / max(w @ B, 1e-18)
+        m = np.bincount(rng.integers(0, g, g), minlength=g)
+        bs[i] = (m @ A) / max(m @ B, 1e-18)
     out["ci_event_boot"] = [float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))]
     return out
 
@@ -1148,24 +1172,27 @@ def mean_test(
     sign: int = 1,
     n_boot: int = N_BOOT,
     seed: int = SEED,
+    w: np.ndarray | None = None,
 ) -> dict:
-    """Mean of per-row values with CR SEs (event; two-way), one-sided p in ``sign``."""
+    """(Weighted) mean of per-row values with CR SEs (event; two-way), one-sided p in ``sign``."""
     n = len(dv)
-    mu = float(dv.mean())
-    sc = (dv - mu) / n
+    wt = np.ones(n) if w is None else np.asarray(w, float)
+    sw = float(wt.sum())
+    mu = float(dv.mean()) if w is None else float((wt * dv).sum() / sw)
+    sc = (dv - mu) / n if w is None else wt * (dv - mu) / sw
     va, vd, v2 = _twoway(sc, ev, day)
     se_e, se_2 = math.sqrt(va), math.sqrt(v2)
     z_e, z_2 = mu / se_e if se_e > 0 else 0.0, mu / se_2 if se_2 > 0 else 0.0
     pe, p2 = float(norm.sf(sign * z_e)), float(norm.sf(sign * z_2))
     codes, uniq = pd.factorize(ev)
     g = len(uniq)
-    S = np.bincount(codes, weights=dv, minlength=g)
-    C = np.bincount(codes, minlength=g).astype(float)
+    S = np.bincount(codes, weights=wt * dv, minlength=g)
+    C = np.bincount(codes, weights=wt, minlength=g).astype(float)
     rng = np.random.default_rng(seed)
     bs = np.empty(n_boot)
     for i in range(n_boot):
-        w = np.bincount(rng.integers(0, g, g), minlength=g)
-        bs[i] = (w @ S) / max(w @ C, 1.0)
+        m = np.bincount(rng.integers(0, g, g), minlength=g)
+        bs[i] = (m @ S) / max(m @ C, 1e-12)
     return {
         "testable": True,
         "mean": mu,
@@ -1181,6 +1208,7 @@ def mean_test(
         "n": int(n),
         "n_event": int(g),
         "n_day": int(len(pd.unique(day))),
+        "weighted": w is not None,
         "ci_event_boot": [float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))],
     }
 
