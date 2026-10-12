@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-12 08:37 UTC+1
+**Last updated:** 2026-10-12 17:45 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. No decisions needed from you.
 **Current objective:** Build the combined-signal model (many signals, ML + Bayesian, Shapley breakdown) and collect its data; finish the 24-hour forecasting test tonight; run the pairing redesign (D120) once.
@@ -46,7 +46,7 @@ current price and recent momentum.
 | E004 reversal (24h test) | **Supported** but **not tradable**: about 23% of the last-hour move reverses; buying at ask and selling at bid lost about 4.5c/share |
 | E005 linked-market consistency | **Not supported** |
 | E006 when reversal is stronger | Supported on direction only: stronger in illiquid markets and far from close; the effect sizes did not carry over |
-| E007 order flow | Collecting (5 of 12) |
+| E007 order flow | **Supported**: one-sided buying predicts a small continued drift (about 0.36c), in 11/12 periods. It is not a quote-lag artefact (it survives excluding the last 15 min of trades). Too small to trade directly, but the first live evidence that flow carries information. |
 | D120 pairing | **PASS** (mechanism; reliability untested) |
 | Combined-signal model | Built and reviewed; collecting development data (needs ~40 snapshots) |
 

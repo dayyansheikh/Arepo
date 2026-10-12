@@ -96,7 +96,7 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
 - T5 resolution: no model beats recalibrated price. The 7d candidate was an artefact (untraded placeholder prices).
 - Historical ML (`HISTORICAL_ML_DEV.md`, revisions r1–r3): against M0v, flow adds about 2% direction skill at 2h and 1% at 6h (demonstrated; possibly a series-lag artefact); wallet age shows nothing. r4_book is pending the h2 book table (background job, about 15h).
 - GDELT is unusable; the Wikipedia pageviews fallback is built (574b703).
-- E007: 8 of 12.
+- **E007: Supported** (β 0.0036, CI [0.0017, 0.0053], 11/12 periods). The challenger confirmed it with caveats. The staleness check (dev, 7cffda0) survives excluding the last 5–15 min. Not tradable as a taker.
 
 ## Pending user decisions (dashboard section 6)
 1. Infra deploy (branch `fix/infra-2026-10-11`, bed00bb, reviewed SAFE).
