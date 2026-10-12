@@ -1,4 +1,4 @@
-# Unusual-flow detector: frozen variants (batch 1, 2026-10-12)
+# Unusual-flow detector: frozen variants (final set of 5, 2026-10-12)
 
 **Status:** frozen rule specifications for the held-out and broad-sample evaluations described in
 `UNUSUAL_FLOW_PROGRAMME.md`. Nothing here is a result. `evidence_role: exploratory_historical` applies to
@@ -9,7 +9,7 @@ Specs live in `backend/astrolabe/research_lab/detector_specs/` (`<rule_id>.json`
 `detector_eval.HeldOutHarness` refuses anything not listed below with exactly these hashes, any
 `engine_version` other than `detector-eval-v1`, and any run without a valid `evidence_role`.
 
-## Frozen variants (3 of the 5 slots)
+## Batch 1: frozen variants (slots 1-3)
 
 Freeze commit `492efd6` (design + engine), `frozen_utc` 2026-10-12T00:59:28Z. Score = sum of
 `weight * clip((transform(x) - center) / scale, -cap, cap)` over present terms, `cap = 4`; higher = more
@@ -29,14 +29,37 @@ because neither panel existed at freeze time. This is weaker than the programme 
 budget (top 1%) makes ranking, not absolute scale, decisive. Re-centring with tuning data would be a new
 `rule_id`/version and spends one of the remaining slots.
 
-## Remaining slots (2 of 5) and the theory doc
+## Batch 2: theory-derived variants (slots 4-5)
 
-`INFORMED_FLOW_SIGNAL_THEORY.md` had not landed when batch 1 was frozen. Up to two theory-derived variants may be
-frozen as batch 2 under these conditions: (a) they are written from the theory doc and the Maduro tuning
-case only; (b) they are frozen (`freeze_rules`, committed, hashes added here) **before** any held-out or
-judgement-half result of batch 1 is committed to `CASE_CATALOGUE.md` or `CASE_STUDY_MADURO.md` Part B.
-Otherwise batch 2 is labelled `post_hoc` in this file and is not part of the Holm set. Holm runs across all
-frozen variants (≤ 5) on the primary statistic.
+Source: `INFORMED_FLOW_SIGNAL_THEORY.md` (de76b8d) section 4, hand-off paragraph: the two most distinct
+theory variants that map onto the market-level 2h canonical panel, each needing one derived column at `t`.
+Both are computable from historical data now (Data API trades for `imb_s`, `large_trade_rel`,
+`top1_share_l`; prices-history for `mid` and the 2h lag `ml_own_dmid_prev`). Frozen `frozen_utc`
+2026-10-12T01:18:28Z against `2ada424`; the engine support (`detector_eval.add_derived`, canonical columns
+`mid_change_s`, `p_acq`, `resp_s`) lands in the same commit as these specs. No judgement-half or catalogue
+outcome had been read or committed when they were frozen.
+
+Derived columns (`add_derived`, point in time): `p_acq = mid if imb_s > 0 else 1 - mid` (NaN when the
+flow is balanced or unknown); `resp_s = sign(imb_s) * mid_change_s`, with `mid_change_s = mid(t) - mid(t-2h)`
+historically (`ml_own_dmid_prev`) and Gamma `chg_1h` live (shorter lag; recorded by the panel map).
+
+| rule_id | sha256 | Mechanism (theory ref) | Conditions | Terms (feature, transform, center, scale, weight) |
+|---|---|---|---|---|
+| `uf_convex_longshot_v1` | `1230c0d14dab05a4ac8e0c60d4522ab99f8e14cf006adb83b5714f971f91f226` | Convex longshot pressure: one-sided flow acquiring an outcome priced ≤ 0.20, large print, concentrated participation (s3.1 `ifx_convex_stake`, IFC1 gate) | `n_s >= 3`, `p_acq <= 0.20` | `imb_s` abs 0.4 0.3 1.0; `large_trade_rel` log1p ln4 0.7 1.0; `top1_share_l` raw 0.35 0.2 1.0; min present 3 |
+| `uf_pressure_no_response_v1` | `14f234d7be348af2605de4288b32cfdaa598acd6212c5d65bdc361508296d183` | Pressure without price response: concentrated one-sided flow whose short-window price change in the flow's direction is small or negative (s3.10 `ifx_stealth`, IFC2) | `n_s >= 3` | `imb_s` abs 0.4 0.3 1.0; `top1_share_l` raw 0.35 0.2 1.0; `resp_s` raw 0.0 0.05 **-1.0**; min present 3 |
+
+The theory doc's IFC1 identity gate (`ifx_fresh`, `ifx_focus`: true wallet age, prior trade count, focus
+share) and `ifx_aggression` (book depth consumed) are **not** in these specs: the canonical panel carries no
+true wallet age or depth, and `new_wallet_share_l` is left-censored at sample start. They remain the live
+registration's candidates once `/activity` first-trade lookups run at collection time (programme doc section 7).
+Centres and scales are a priori feature-range values, as in batch 1, for the same reason.
+
+## FINAL FREEZE
+
+**FINAL FREEZE: 5 variants, commit `__FINAL_FREEZE_SHA__`.** The set is closed: `FROZEN.json` holds exactly
+the five `rule_id`s above with the hashes shown; the shipped-registry test asserts the count and the hashes. Any
+further rule is a new data window's budget, not an addition to this set. Holm runs across these five on the
+primary statistic.
 
 ## Declared evaluation (fixed before any run)
 
@@ -50,8 +73,8 @@ frozen variants (≤ 5) on the primary statistic.
   judgement-half metric is produced** (`discovery_cut_epoch = 1785391200` = 2026-07-30T06:00:00Z; written 2026-10-12 before any judgement-half metric. Broad panel: `history/h2_main` `build_panel` outputs (2h grid, horizons 2/6/24) restricted to the seeded sub-sample `bsample` (1,500 of 3,200 markets, seed `arepo-unusual-flow-b1`, `draw_sample` by status x fee_category x created month), Maduro/Venezuela markets (2,316 condition ids from the Gamma search) and catalogue condition ids removed; 1,005 markets with rows, 327,766 rows (163,845 discovery / 163,921 judgement); cut = median `t` over all rows before the `traded_before_t` filter. File `data-dumps/research_lab/event_study/broad_panel.csv.gz` + manifest.)
 - Case-list hash (`sha256` of sorted catalogue `condition_id`s): **to be written in `CASE_CATALOGUE.md` by the
   catalogue agent before reading this file's variants**; the detector author did not see the case list.
-- Budget accounting: 3 detector trials pre-committed (one per variant on the judgement half) plus the
-  same 3 in case mode; `prior_detector_trials` in every `trials.jsonl` line carries the cumulative count.
+- Budget accounting: 5 detector trials pre-committed (one per variant on the judgement half) plus the
+  same 5 in case mode; `prior_detector_trials` in every `trials.jsonl` line carries the cumulative count.
 
 ## Live data needed before a registered live test (programme doc section 7)
 
@@ -62,11 +85,13 @@ frozen variants (≤ 5) on the primary statistic.
 | `new_wallet_share_l` | `wlt_new_share_6h`, NaN until the first-seen index spans 7 days | Nothing; coverage grows with time |
 | `n_wallets_l` | `wlt_n_buy_6h + wlt_n_sell_6h` (wallets with net zero excluded) | Acceptable approximation; record in the admission note |
 | `burst` | derived `flow_n_1h / (flow_n_6h / 6)` | Nothing |
+| `mid_change_s`, `resp_s` | Gamma `chg_1h` (1h lag; history uses a 2h as-of lag) | Acceptable; or compute a 2h own-history lag from consecutive passes in the collector |
+| `p_acq` | derived from `imb_s` and `mid` | Nothing |
 | Alert line, matched-control ids at alert time | Not written anywhere | New append-only `alerts.jsonl` written by the pass before any outcome exists |
 | `fwd_move_6h/24h` | From complete-universe snapshots | Join step; pending/unavailable/evaluated kept distinct |
 
-`uf_large_trade_v1` therefore cannot be part of a live registration until the collector change lands; it
-remains a historical-only variant unless that happens.
+`uf_large_trade_v1` and `uf_convex_longshot_v1` therefore cannot be part of a live registration until the
+collector change lands; they remain historical-only variants unless that happens.
 
 ## Instructions (verbatim summary of programme doc section 8)
 

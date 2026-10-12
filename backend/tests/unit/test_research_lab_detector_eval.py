@@ -55,9 +55,10 @@ def synthetic_world(seed: int = 7) -> tuple[pd.DataFrame, Keys, Keys]:
         "n_s": n_s, "n_l": n_l, "burst": n_s / (n_l / 12.0) * rng.lognormal(0, 0.2, n),
         "new_wallet_share_l": rng.beta(1, 8, n), "top1_share_l": rng.beta(2, 5, n),
         "spread": 0.02, "fee_category": "politics",
+        "large_trade_rel": rng.lognormal(0.5, 0.6, n),
     })
-    for c in ("large_trade_rel", "hhi_l", "n_wallets_s", "n_wallets_l", "new_wallets_s",
-              "last_trade_age_h", "ltp_minus_mid"):
+    for c in ("hhi_l", "n_wallets_s", "n_wallets_l", "new_wallets_s", "last_trade_age_h",
+              "ltp_minus_mid"):
         df[c] = np.nan
     fwd = rng.normal(0, 0.02, n)
     tail = rng.random(n) < 0.03
@@ -65,6 +66,8 @@ def synthetic_world(seed: int = 7) -> tuple[pd.DataFrame, Keys, Keys]:
     df["fwd_move_24h"] = fwd
     df["fwd_move_6h"] = fwd / 2.0
     df["fwd_move_2h"] = fwd / 4.0
+    df["mid_change_s"] = rng.normal(0, 0.01, n)
+    de.add_derived(df)
     # a few rows with no trade before t: must be excluded, never alerted
     untraded = rng.choice(n, 150, replace=False)
     df.loc[untraded, "traded_before_t"] = 0.0
@@ -226,18 +229,36 @@ def test_holm_across_rules():
 # --- registry and harness refusals ------------------------------------------------------------
 
 
+def test_add_derived():
+    df = pd.DataFrame({"imb_s": [0.5, -0.5, 0.0, np.nan], "mid": [0.1, 0.1, 0.1, 0.1],
+                       "mid_change_s": [0.02, 0.02, 0.02, 0.02]})
+    de.add_derived(df)
+    assert df["p_acq"].tolist()[:2] == pytest.approx([0.1, 0.9])
+    assert np.isnan(df["p_acq"].to_numpy()[2:]).all()
+    assert df["resp_s"].tolist()[:2] == pytest.approx([0.02, -0.02])
+    assert np.isnan(df["resp_s"].to_numpy()[2:]).all()
+    d2 = pd.DataFrame({"imb_s": [0.5], "mid": [0.3]})
+    de.add_derived(d2)  # no mid_change_s column: resp_s is NaN, never 0
+    assert np.isnan(d2["resp_s"].iloc[0]) and d2["p_acq"].iloc[0] == 0.3
+
+
 def test_shipped_registry_verifies_and_matches_detector_doc():
     """Every frozen spec in the repo re-hashes to its FROZEN.json entry, scores the synthetic
-    panel schema, and its hash appears in UNUSUAL_FLOW_DETECTOR.md."""
+    panel schema, and its hash appears in UNUSUAL_FLOW_DETECTOR.md. The set is final at 5."""
     reg = de.RuleRegistry()
     ids = reg.frozen_ids()
-    assert 1 <= len(ids) <= 5
+    assert len(ids) == 5
     doc = (provenance.REPO_ROOT / "docs" / "research_lab" / "UNUSUAL_FLOW_DETECTOR.md").read_text()
     df, _, _ = synthetic_world()
+    alerted = {}
     for rid in ids:
         spec = reg.load(rid)
         assert spec.sha256() in doc and rid in doc
-        de.score_rule(spec, df)  # the canonical schema covers every referenced feature
+        sc = de.score_rule(spec, df)  # the canonical schema covers every referenced feature
+        alerted[rid] = int(sc["alertable"].sum())
+    # batch-2 rules depend on the derived columns: the longshot gate must bite, the response
+    # term must be present (synthetic mids are in (0.15, 0.85), so p_acq <= 0.20 is a minority)
+    assert 0 < alerted["uf_convex_longshot_v1"] < alerted["uf_pressure_no_response_v1"]
 
 
 def test_freeze_never_overwrites(tmp_path):
@@ -317,7 +338,7 @@ def test_normalise_history_panel_pivots_horizons():
             "ml_tf_n_2h": [4, 2, 0], "ml_tf_n_24h": [20, 20, 0],
             "ml_tf_burst_2h": [2.4, 1.2, np.nan],
             "ml_wlt_new_share_24h": [0.2, 0.1, np.nan], "traded_before_t": [1.0, 1.0, 0.0],
-            "liquidity": [1e4, 1e4, 50.0]}
+            "liquidity": [1e4, 1e4, 50.0], "ml_own_dmid_prev": [0.03, -0.01, np.nan]}
     rows = []
     for h in (6, 24):
         d = pd.DataFrame(base)
@@ -327,6 +348,9 @@ def test_normalise_history_panel_pivots_horizons():
     out = de.normalise_panel(pd.concat(rows, ignore_index=True), "history")
     assert len(out) == 3 and list(out["cluster"]) == ["e1", "e1", "b"]
     assert out["imb_s"].tolist()[0] == pytest.approx(0.5)
+    assert out["p_acq"].tolist()[0] == pytest.approx(0.4)  # flow buys outcome 0 at mid 0.4
+    assert out["resp_s"].tolist()[0] == pytest.approx(0.03)
+    assert np.isnan(out["p_acq"].iloc[1])  # balanced flow: no acquired outcome
     assert out["fwd_move_6h"].tolist()[0] == pytest.approx(0.06)
     assert out["fwd_move_24h"].tolist()[0] == pytest.approx(0.24)
     assert np.isnan(out["fwd_move_2h"]).all()
@@ -340,8 +364,11 @@ def test_normalise_live_panel():
                        "best_bid": [0.3], "best_ask": [0.34], "flow_imb_1h": [-0.6],
                        "flow_n_1h": [6],
                        "flow_n_6h": [12], "wlt_top1_share_6h": [0.5], "wlt_n_buy_1h": [2],
-                       "wlt_n_sell_1h": [1], "liquidity": [500.0], "traded_before_t": [1.0]})
+                       "wlt_n_sell_1h": [1], "liquidity": [500.0], "traded_before_t": [1.0],
+                       "chg_1h": [-0.05]})
     out = de.normalise_panel(df, "live")
+    assert out["p_acq"].iloc[0] == pytest.approx(0.68)  # flow sells outcome 0: acquires 1 at 0.68
+    assert out["resp_s"].iloc[0] == pytest.approx(0.05)  # mid fell 0.05 in the flow's direction
     assert out["mid"].iloc[0] == pytest.approx(0.32)
     assert out["spread"].iloc[0] == pytest.approx(0.04)
     assert out["burst"].iloc[0] == pytest.approx(3.0) and out["n_wallets_s"].iloc[0] == 3

@@ -23,6 +23,22 @@
    "rule_id": "uf_large_trade_v1",
    "sha256": "99b47270b24cdcdcb8cf174fa1d21e10d4fc97dcaa6a193664b072b7fedda464",
    "version": "1"
+  },
+  {
+   "engine_version": "detector-eval-v1",
+   "frozen_commit": "2ada424",
+   "frozen_utc": "2026-10-12T01:18:28Z",
+   "rule_id": "uf_convex_longshot_v1",
+   "sha256": "1230c0d14dab05a4ac8e0c60d4522ab99f8e14cf006adb83b5714f971f91f226",
+   "version": "1"
+  },
+  {
+   "engine_version": "detector-eval-v1",
+   "frozen_commit": "2ada424",
+   "frozen_utc": "2026-10-12T01:18:28Z",
+   "rule_id": "uf_pressure_no_response_v1",
+   "sha256": "14f234d7be348af2605de4288b32cfdaa598acd6212c5d65bdc361508296d183",
+   "version": "1"
   }
  ]
 }

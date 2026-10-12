@@ -1,0 +1,41 @@
+{
+ "conditions": [
+  {
+   "feature": "n_s",
+   "op": "ge",
+   "value": 3
+  }
+ ],
+ "description": "Pressure without price response: concentrated one-sided flow whose short-window price change in the flow's direction is small or negative.",
+ "direction_feature": "imb_s",
+ "min_terms_present": 3,
+ "rule_id": "uf_pressure_no_response_v1",
+ "terms": [
+  {
+   "cap": 4.0,
+   "center": 0.4,
+   "feature": "imb_s",
+   "scale": 0.3,
+   "transform": "abs",
+   "weight": 1.0
+  },
+  {
+   "cap": 4.0,
+   "center": 0.35,
+   "feature": "top1_share_l",
+   "scale": 0.2,
+   "transform": "raw",
+   "weight": 1.0
+  },
+  {
+   "cap": 4.0,
+   "center": 0.0,
+   "feature": "resp_s",
+   "scale": 0.05,
+   "transform": "raw",
+   "weight": -1.0
+  }
+ ],
+ "theory_ref": "INFORMED_FLOW_SIGNAL_THEORY:s3.10 ifx_stealth, s4 IFC2 hand-off (b)",
+ "version": "1"
+}

@@ -54,9 +54,13 @@ PANEL_MAP_VERSION = "detector-panel-map-v1"
 FLOW_FEATURES = (
     "imb_s", "n_s", "n_l", "burst", "large_trade_rel", "top1_share_l", "hhi_l", "n_wallets_s",
     "n_wallets_l", "new_wallet_share_l", "new_wallets_s", "last_trade_age_h", "ltp_minus_mid",
+    "mid_change_s",  # mid(t) - mid(t - short window): history ml_own_dmid_prev (2h), live chg_1h
 )
+# Derived at t from canonical columns (theory doc section 4 hand-off, batch 2). ``p_acq`` = price of
+# the outcome the short-window flow acquires; ``resp_s`` = price response signed by the flow.
+DERIVED_FEATURES = ("p_acq", "resp_s")
 CONTEXT_FEATURES = ("mid", "liquidity", "spread")
-RULE_FEATURES = (*FLOW_FEATURES, *CONTEXT_FEATURES)
+RULE_FEATURES = (*FLOW_FEATURES, *DERIVED_FEATURES, *CONTEXT_FEATURES)
 IDENTITY = ("market_id", "cluster", "t", "mid", "liquidity", "traded_before_t")
 HORIZONS_H = (2, 6, 24)
 OPS = {
@@ -320,6 +324,7 @@ def normalise_panel(df: pd.DataFrame, source: str) -> pd.DataFrame:
             "new_wallets_s": _col(df, "ml_wlt_new_n_2h"),
             "last_trade_age_h": _col(df, "ml_tf_last_age_h"),
             "ltp_minus_mid": _col(df, "ml_tf_ltp_minus_mid"),
+            "mid_change_s": _col(df, "ml_own_dmid_prev"),
         }
         out["spread"] = _col(df, "spread")
     else:
@@ -343,11 +348,13 @@ def normalise_panel(df: pd.DataFrame, source: str) -> pd.DataFrame:
             "new_wallets_s": pd.Series(np.nan, index=df.index),
             "last_trade_age_h": _col(df, "time_since_last_trade_s") / 3600.0,
             "ltp_minus_mid": _col(df, "last_trade_price") - out["mid"],
+            "mid_change_s": _col(df, "chg_1h"),  # Gamma 1h change: shorter than the 2h history lag
         }
         out["spread"] = (_col(df, "spread") if "spread" in df
                          else _col(df, "best_ask") - _col(df, "best_bid"))
     for k, v in m.items():
         out[k] = np.asarray(v, float)
+    add_derived(out)
     out["liquidity"] = _col(df, "liquidity")
     out["traded_before_t"] = _col(df, "traded_before_t")
     for c in ("fee_category", "fee_schedule", "fees_enabled", "news_ts", "control_group"):
@@ -355,11 +362,30 @@ def normalise_panel(df: pd.DataFrame, source: str) -> pd.DataFrame:
             out[c] = df[c].to_numpy()
     for h in HORIZONS_H:
         out[f"fwd_move_{h}h"] = _col(df, f"fwd_move_{h}h")
-    unmapped = [c for c in (*FLOW_FEATURES, "spread", "liquidity", "traded_before_t")
+    unmapped = [c for c in (*FLOW_FEATURES, *DERIVED_FEATURES, "spread", "liquidity",
+                            "traded_before_t")
                 if not np.isfinite(out[c].to_numpy(float)).any()]
     out.attrs.update({"panel_map": PANEL_MAP_VERSION, "panel_source": source,
                       "unmapped_all_nan": unmapped})
     return out
+
+
+def add_derived(panel: pd.DataFrame) -> pd.DataFrame:
+    """Add ``p_acq`` and ``resp_s`` in place from ``imb_s``, ``mid`` and ``mid_change_s``.
+
+    ``p_acq``: mid of the outcome the short-window net flow acquires (``mid`` when ``imb_s > 0``,
+    ``1 - mid`` when ``imb_s < 0``); NaN when the flow is balanced or unknown.
+    ``resp_s``: ``sign(imb_s) * mid_change_s``, the short-window price change in the direction of
+    the flow (small or negative = pressure without price response). Uses only values at ``t``.
+    """
+    imb = panel["imb_s"].to_numpy(float)
+    mid = panel["mid"].to_numpy(float)
+    sgn = np.where(np.isfinite(imb), np.sign(imb), 0.0)
+    panel["p_acq"] = np.where(sgn > 0, mid, np.where(sgn < 0, 1.0 - mid, np.nan))
+    chg = panel["mid_change_s"].to_numpy(float) if "mid_change_s" in panel else np.full(len(panel),
+                                                                                       np.nan)
+    panel["resp_s"] = np.where(sgn != 0, sgn * chg, np.nan)
+    return panel
 
 
 def check_panel(panel: pd.DataFrame) -> None:
@@ -733,6 +759,6 @@ class HeldOutHarness:
 __all__ = [
     "ENGINE_VERSION", "DetectorError", "EngineVersionError", "EvalConfig", "HeldOutHarness",
     "NotFrozenError", "PanelError", "RuleRegistry", "RuleSpec", "SpecTamperedError",
-    "alerts_needed", "check_panel", "evaluate", "freeze_rules", "holm_across_rules",
+    "add_derived", "alerts_needed", "check_panel", "evaluate", "freeze_rules", "holm_across_rules",
     "normalise_panel", "prior_detector_trials", "read_index", "score_rule",
 ]
