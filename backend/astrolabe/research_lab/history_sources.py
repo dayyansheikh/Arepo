@@ -641,18 +641,28 @@ class BookFeatureRun:
         self.dir.mkdir(parents=True, exist_ok=True)
         self.done = self._done()
 
-    def _done(self) -> set[float]:
-        p = self.dir / "progress.jsonl"
-        return {json.loads(x)["origin_ts"] for x in p.read_text().splitlines() if x} if p.exists() else set()
+    def _done(self) -> set[tuple[float, str]]:
+        """(origin_ts, market_id) pairs already extracted (every token yields a row, even no_book)."""
+        p = self.dir / "rows.jsonl"
+        out: set[tuple[float, str]] = set()
+        if p.exists():
+            for line in p.read_text().splitlines():
+                if line:
+                    d = json.loads(line)
+                    out.add((float(d["origin_ts"]), str(d["market_id"])))
+        return out
+
+    def _todo(self, ot: float) -> list[str]:
+        return sorted(m for m in self.pairs[ot] if m in self.tokens and (ot, m) not in self.done)
 
     def run(self, budget_s: float, max_origins: int | None = None,
             clock: Callable[[], float] = time.monotonic) -> dict:
         t0, n_done, n_rows, total_bytes = clock(), 0, 0, 0
-        for ot in spread_origin_order([o for o in self.pairs if o not in self.done]):
+        for ot in spread_origin_order([o for o in self.pairs if self._todo(o)]):
             if clock() - t0 > budget_s or (max_origins is not None and n_done >= max_origins):
                 break
             check_disk_cap(self.dir.parent)
-            mk = sorted(m for m in self.pairs[ot] if m in self.tokens)
+            mk = self._todo(ot)
             toks = {self.tokens[m][1]: m for m in mk}
             cond = {self.tokens[m][1]: self.tokens[m][0] for m in mk}
             st: dict = {}
@@ -672,12 +682,13 @@ class BookFeatureRun:
                 fh.write(json.dumps({"origin_ts": ot, "n_markets": len(rows), "bytes": st.get("bytes", 0),
                                      "requests": st.get("requests", 0), "seconds": round(clock() - tt, 1),
                                      "hours": st.get("hours", [])}) + "\n")
-            self.done.add(ot)
+            self.done.update((ot, m) for m in mk)
             n_done += 1
             n_rows += len(rows)
             total_bytes += st.get("bytes", 0)
         return {"origins_done_this_run": n_done, "rows_this_run": n_rows, "bytes_this_run": total_bytes,
-                "origins_done_total": len(self.done), "origins_total": len(self.pairs),
+                "origins_done_total": len({o for o, _ in self.done}), "pairs_done_total": len(self.done),
+                "pairs_total": sum(1 for o in self.pairs for m in self.pairs[o] if m in self.tokens), "origins_total": len(self.pairs),
                 "seconds": round(clock() - t0, 1)}
 
 

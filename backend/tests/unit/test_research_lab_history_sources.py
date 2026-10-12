@@ -331,3 +331,17 @@ def test_fetch_market_wallets_keeps_only_known_hashes():
     h = wallet_sidecar.hash_wallet(KEY, ADDR)
     out = hs.fetch_market_wallets(Lim(), "0xc", KEY, {h})
     assert list(out) == [h] and out[h] == [ADDR, 5.0]
+
+
+def test_book_feature_run_resumes_per_pair(tmp_path):
+    t0 = datetime(2026, 5, 1, 6, tzinfo=UTC).timestamp()
+    prev = datetime(2026, 5, 1, 5, 30, tzinfo=UTC)
+    rows = [dict(timestamp_received=prev, timestamp=prev, market=m, event_type="book", asset_id=a,
+                 bids='[["0.40","10"]]', asks='[["0.44","30"]]') for m, a in (("0xa", "111"), ("0xb", "222"))]
+    data = _parquet_bytes(rows)
+    kw = dict(fetch=lambda u, a, b: data[a: b + 1], size_fn=lambda u: len(data), lookback_hours=0)
+    tok = {"7": ("0xa", "111"), "8": ("0xb", "222")}
+    assert hs.BookFeatureRun(tmp_path, {t0: {"7"}}, tok, **kw).run(60)["rows_this_run"] == 1
+    r = hs.BookFeatureRun(tmp_path, {t0: {"7", "8"}}, tok, **kw).run(60)  # a second panel adds market 8
+    assert r["rows_this_run"] == 1 and r["pairs_done_total"] == 2
+    assert len(hs.load_book_features(hs.finalize_book_features(tmp_path))) == 2
