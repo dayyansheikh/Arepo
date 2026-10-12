@@ -56,6 +56,55 @@ ID_COLS = ["market_id", "event_id", "period", "t_i", "t0", "t_j", "mid_i", "mid_
            "status", "traded_before_t", "price_unchanged_since_listing"]
 
 
+LOCK_DIR = Path("/tmp/arepo_heavy.lock")  # ~/arepo_collector/heavy_lock.md
+MIN_FREE_PCT = 20
+
+
+def _free_pct() -> float:
+    import re
+    import subprocess
+
+    try:
+        out = subprocess.run(["memory_pressure"], capture_output=True, text=True,
+                             timeout=30).stdout
+        m = re.search(r"free percentage:\s*(\d+)%", out)
+        return float(m.group(1)) if m else 100.0
+    except (OSError, subprocess.SubprocessError):
+        return 100.0
+
+
+@contextlib.contextmanager
+def heavy_lock(poll_s: float = 60.0):
+    """Shared heavy-compute lock: mkdir /tmp/arepo_heavy.lock (retry every 60 s; a lock whose
+    holder PID is dead is stale), require system free memory >= 20%, release on exit."""
+    import os
+    import shutil
+
+    while True:
+        try:
+            LOCK_DIR.mkdir()
+        except FileExistsError:
+            try:
+                pid = int((LOCK_DIR / "pid").read_text().strip())
+                os.kill(pid, 0)
+            except (OSError, ValueError):
+                if (LOCK_DIR / "pid").exists():  # holder gone: stale lock
+                    shutil.rmtree(LOCK_DIR, ignore_errors=True)
+                    continue
+            time.sleep(poll_s)
+            continue
+        (LOCK_DIR / "pid").write_text(str(os.getpid()))
+        if _free_pct() >= MIN_FREE_PCT:
+            break
+        shutil.rmtree(LOCK_DIR, ignore_errors=True)
+        log(f"free memory below {MIN_FREE_PCT}%: waiting")
+        time.sleep(poll_s)
+    try:
+        yield
+    finally:
+        shutil.rmtree(LOCK_DIR, ignore_errors=True)
+
+
 def log(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
@@ -84,6 +133,8 @@ def pick_markets(path: Path, max_rows: int, seed: int) -> tuple[set[str], int]:
 def load_panel(path: Path, markets: set[str]) -> pd.DataFrame:
     cols = list(dict.fromkeys([*ID_COLS, *STATE_COLS, *FLOW_COLS, *WALLET_COLS,
                               *hb.HIST_EXTRA_NAMES]))
+    if "sample_weight" in pd.read_csv(path, nrows=0).columns:
+        cols.append("sample_weight")
     parts = []
     for ch in pd.read_csv(path, usecols=cols, dtype={"market_id": str, "event_id": str,
                                                       "dep_group": str},
@@ -331,6 +382,50 @@ def score_two(kind, lab, fits, clusters, n_boot, sink, manifest) -> dict:
     return out
 
 
+def weighted_scores(kind: str, lab: pd.DataFrame, fits: dict, baselines=("M0v", "M2v"),
+                    n_boot: int = 1000, seed: int = 11) -> dict | None:
+    """Sample-weighted out-of-fold comparison: weights are the inverse inclusion probabilities of
+    the stratified (topic-oversampled) market sample. Weighted mean log loss per arm and relative
+    improvement over each baseline, with a weighted cluster bootstrap (event clusters). Weights
+    enter the evaluation only; models are fitted unweighted."""
+    if "sample_weight" not in lab.columns:
+        return None
+    mask = np.ones(len(lab), bool)
+    for r in fits.values():
+        mask &= r.test_mask
+    w = lab["sample_weight"].to_numpy(float)[mask]
+    ycol = KINDS[kind][0]
+    y = lab[ycol].to_numpy(float)[mask]
+    loss = {}
+    for a, r in fits.items():
+        p = r.proba[mask]
+        loss[a] = (ml_models.log_loss_rows(p, y.astype(int)) if kind == "direction"
+                   else ml_models.binary_log_loss_rows(p, y))
+    cl = pd.factorize(ml_models._event_or_market(lab).to_numpy()[mask])[0]
+    ncl = cl.max() + 1
+    rng = np.random.default_rng(seed)
+    wl = {a: np.bincount(cl, weights=w * v, minlength=ncl) for a, v in loss.items()}
+    sw = np.bincount(cl, weights=w, minlength=ncl)
+    out = {"n_rows": int(mask.sum()), "n_clusters": int(ncl),
+           "weight_sum_ratio_max_min": float(w.max() / w.min()),
+           "effective_n": float(w.sum() ** 2 / (w ** 2).sum()),
+           "weighted_loss": {a: float(wl[a].sum() / sw.sum()) for a in loss}, "vs": {}}
+    draws = rng.integers(0, ncl, size=(n_boot, ncl))
+    for b in baselines:
+        if b not in loss:
+            continue
+        ent = {}
+        for a in loss:
+            if a == b:
+                continue
+            rel = 1 - wl[a].sum() / wl[b].sum()
+            boot = 1 - wl[a][draws].sum(1) / wl[b][draws].sum(1)
+            ent[a] = {"rel_improvement": float(rel),
+                      "ci95": [float(np.quantile(boot, 0.025)), float(np.quantile(boot, 0.975))]}
+        out["vs"][b] = ent
+    return out
+
+
 def shuffle_labels(lab: pd.DataFrame, mode: str, seed: int) -> pd.DataFrame:
     """Permute label columns together. ``global``: across all rows (the null: nothing but the label
     marginal survives); ``period``: within period (keeps period class mix); ``market``: within
@@ -417,6 +512,7 @@ def run_kind(kind, lab, manifest, k, hours, args, sink, placebo_sink, run_dir, e
     placebo_sink.extra.update(history_target=kind)
     fits = fit_arms(kind, lab, manifest, sink, specs)
     cell["scores"] = score_two(kind, lab, fits, clusters, args.n_boot, sink, manifest)
+    cell["weighted"] = weighted_scores(kind, lab, fits)
     base_cols = list(M0V)
     extra_state = [c for c in state_ext if c not in M0V and lab[c].notna().mean() >= 0.05]
     fams = {"state_extra": extra_state, "flow": [c for c in flow if c not in ACTIVITY],
@@ -619,7 +715,8 @@ def main(argv=None) -> int:
         extra={"data_provenance": hb.PROVENANCE, "source_evidence_role": ROLE,
                "placebo": "shuffled_labels_within_period", "revision": a.revision})
     for k in [int(x) for x in a.horizons.split(",")]:
-        run_horizon(k, a, markets, sink, placebo_sink, results, run_dir)
+        with heavy_lock():
+            run_horizon(k, a, markets, sink, placebo_sink, results, run_dir)
     (run_dir / f"ml_history_results_{a.revision}.json").write_text(
         json.dumps(results, indent=1, default=float))
     log("done")

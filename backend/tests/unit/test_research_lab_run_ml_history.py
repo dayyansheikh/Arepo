@@ -47,3 +47,30 @@ def test_join_wallet_age(tmp_path):
     out, info = rmh.join_external(_panel(), None, p)
     assert len(out) == 4 and out["ml_wage_median_days"].notna().sum() == 1
     assert "other" not in out.columns
+
+
+def test_weighted_scores_and_heavy_lock(tmp_path, monkeypatch):
+    from astrolabe.research_lab import ml_models
+
+    rng = np.random.default_rng(0)
+    n = 400
+    lab = pd.DataFrame({"y_absmove": rng.integers(0, 2, n).astype(float),
+                        "event_id": rng.integers(0, 40, n).astype(str),
+                        "market_id": np.arange(n).astype(str),
+                        "sample_weight": np.where(np.arange(n) < 100, 5.0, 1.0)})
+    good = np.where(lab["y_absmove"] == 1, 0.8, 0.2)
+    flat = np.full(n, 0.5)
+    mk = lambda p: ml_models.ArmResult("x", p, np.ones(n, bool), [])  # noqa: E731
+    out = rmh.weighted_scores("absmove", lab, {"M0v": mk(flat), "M2F": mk(good)}, ("M0v",))
+    ent = out["vs"]["M0v"]["M2F"]
+    assert ent["rel_improvement"] > 0.3 and ent["ci95"][0] > 0 and out["effective_n"] < n
+    assert rmh.weighted_scores("absmove", lab.drop(columns="sample_weight"), {}) is None
+    monkeypatch.setattr(rmh, "LOCK_DIR", tmp_path / "heavy.lock")
+    monkeypatch.setattr(rmh, "_free_pct", lambda: 90.0)
+    with rmh.heavy_lock(poll_s=0.01):
+        assert (tmp_path / "heavy.lock" / "pid").exists()
+    assert not (tmp_path / "heavy.lock").exists()
+    (tmp_path / "heavy.lock").mkdir()
+    (tmp_path / "heavy.lock" / "pid").write_text("999999")  # dead holder: stale lock is replaced
+    with rmh.heavy_lock(poll_s=0.01):
+        pass
