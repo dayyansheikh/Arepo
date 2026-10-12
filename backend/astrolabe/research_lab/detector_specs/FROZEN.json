@@ -1,0 +1,28 @@
+{
+ "frozen": [
+  {
+   "engine_version": "detector-eval-v1",
+   "frozen_commit": "492efd6",
+   "frozen_utc": "2026-10-12T00:59:28Z",
+   "rule_id": "uf_imbalance_burst_v1",
+   "sha256": "34ae5f40440e50124e63f4aa6989d7fcf154b78f6ba49b51fcd9c26f97d90acd",
+   "version": "1"
+  },
+  {
+   "engine_version": "detector-eval-v1",
+   "frozen_commit": "492efd6",
+   "frozen_utc": "2026-10-12T00:59:28Z",
+   "rule_id": "uf_new_wallet_concentration_v1",
+   "sha256": "c13c0cd5ed65b27cb0bb999cd6ecd855fb923089d77e5106996f923b464339f7",
+   "version": "1"
+  },
+  {
+   "engine_version": "detector-eval-v1",
+   "frozen_commit": "492efd6",
+   "frozen_utc": "2026-10-12T00:59:28Z",
+   "rule_id": "uf_large_trade_v1",
+   "sha256": "99b47270b24cdcdcb8cf174fa1d21e10d4fc97dcaa6a193664b072b7fedda464",
+   "version": "1"
+  }
+ ]
+}

@@ -226,6 +226,20 @@ def test_holm_across_rules():
 # --- registry and harness refusals ------------------------------------------------------------
 
 
+def test_shipped_registry_verifies_and_matches_detector_doc():
+    """Every frozen spec in the repo re-hashes to its FROZEN.json entry, scores the synthetic
+    panel schema, and its hash appears in UNUSUAL_FLOW_DETECTOR.md."""
+    reg = de.RuleRegistry()
+    ids = reg.frozen_ids()
+    assert 1 <= len(ids) <= 5
+    doc = (provenance.REPO_ROOT / "docs" / "research_lab" / "UNUSUAL_FLOW_DETECTOR.md").read_text()
+    df, _, _ = synthetic_world()
+    for rid in ids:
+        spec = reg.load(rid)
+        assert spec.sha256() in doc and rid in doc
+        de.score_rule(spec, df)  # the canonical schema covers every referenced feature
+
+
 def test_freeze_never_overwrites(tmp_path):
     d = tmp_path / "s"
     idx = de.freeze_rules([planted_rule()], d, commit="c1", now="2026-10-12T00:00:00Z")

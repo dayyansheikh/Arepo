@@ -1,0 +1,33 @@
+{
+ "conditions": [
+  {
+   "feature": "n_s",
+   "op": "ge",
+   "value": 1
+  }
+ ],
+ "description": "A single short-window print far larger than the market's long-window mean trade size, on one side. Not computable from the live sidecar yet.",
+ "direction_feature": "imb_s",
+ "min_terms_present": 2,
+ "rule_id": "uf_large_trade_v1",
+ "terms": [
+  {
+   "cap": 4.0,
+   "center": 1.3862943611198906,
+   "feature": "large_trade_rel",
+   "scale": 0.7,
+   "transform": "log1p",
+   "weight": 1.0
+  },
+  {
+   "cap": 4.0,
+   "center": 0.4,
+   "feature": "imb_s",
+   "scale": 0.3,
+   "transform": "abs",
+   "weight": 0.5
+  }
+ ],
+ "theory_ref": "programme_prelisted:F02,F12",
+ "version": "1"
+}
