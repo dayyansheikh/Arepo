@@ -724,3 +724,23 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
 - The study doc's "conservative hull" covers only event and neg-risk clustering, not parent clustering.
 - **Not registered.**
 - **Programme rule:** historical price-history values for markets with no trade before the origin are not executable prices. Every historical study must flag them and exclude them, or report them separately.
+
+## E007 result: scored once, 2026-10-12 about 16:45Z
+
+**Supported (exploratory, prospective). Challenger: CONFIRMED_WITH_CAVEATS.**
+- **Primary result:**
+  - β(`signed_share`) = 0.003626, CI [0.001726, 0.005316], with 4,703 event clusters.
+  - 11 of 12 periods positive.
+  - The first 12 post-registration samples were used (20261011T124341Z to 20261012T104608Z). All were sealed after 1e5efad.
+- **Secondary:** descriptive ΔR² 0.00138, CI [−0.00082, 0.00361], declared descriptive.
+- **Dev versus confirmation:** the dev β of 0.0050 shrank to 0.0036, as winner's curse predicts.
+- **Interpretation:**
+  - A fully one-sided hour of flow predicts about +0.36c of mid drift over about 2h.
+  - That is under a tenth of the roughly 4.5c median round trip, so it is **not tradable as a taker**.
+  - Only 16% of pairs have nonzero flow.
+- **Disclosures:**
+  - **Interim looks:** 25 `flow_screen` development lines (06:56Z–14:58Z on 10-12) looked at F1 on accumulating confirmation-period data before scoring. The 12-period trigger was fixed, so this was not optional stopping. Those lines are committed with this entry.
+  - **git_dirty:** only `CLAUDE.md` and `trials.jsonl` were dirty, neither in the code path.
+  - **Collection changes:** the wallet sidecar and the launchd switch did not touch E007's inputs.
+  - **Data span:** about 22h of back-to-back periods.
+- **Open mechanical risk:** Gamma quote staleness relative to trades just before origin could make "continuation" partly mechanical, especially alongside E004's reversal. Until a development check excludes trades in the last 5–15 minutes before origin, call this **"flow–quote continuation"**, not evidence of informed flow.
