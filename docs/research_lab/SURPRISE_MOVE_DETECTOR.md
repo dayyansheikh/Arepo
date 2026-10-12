@@ -220,3 +220,37 @@ not clear the budget either. The verbatim selection-bias caveat of `UNUSUAL_FLOW
   so the comparison is fair but not independent of that earlier evaluation.
 - Sports are included (509 of the 1,411 pre-cut surprises); results by category are reported, the scope decision is
   the user's.
+
+## 9. Independent replication on `h3_power`: protocol (pre-declared 2026-10-13, before any h3 outcome)
+
+Data: `data-dumps/research_lab/history/h3_power` (10,000 markets disjoint from `h1_first` and `h2_main`,
+365-day lookback, 3x topic oversampling recorded as `sample_weight` = 1 / inclusion probability, 2.02M trades,
+true first-trade table `new_wallets/first_trade_merged.jsonl` for wallets with ≥ $500 prints). Nothing in h3
+was read before this section was committed except the sample and manifest metadata.
+
+1. **Labels:** `surprise-labels-v1` unchanged (sha `d9cf42f7…`), same build code (`surprise_moves.build_dataset`),
+   same exclusions (Maduro/Venezuela and catalogue condition ids), game-start cut from a Gamma metadata pull.
+2. **Rule under test:** FROZEN `sm_learned_v1` (sha `ee7ea5f18e71b9ef6c4edad845c04d3f6aea596197098887c5bb787cdc77f7f6`),
+   scored through `detector_eval.score_rule`; **no refit, no re-centring**. The five frozen hand rules are scored
+   beside it as baselines (history mapping, as in §5).
+3. **Evaluation rows:** eligible rows (`traded_before_t == 1`, mid in [0.02, 0.98]). **Primary set:** rows with
+   `t ≥ 2026-08-01` (disjoint markets *and* months after the development window). **Secondary set:** all h3 rows
+   (disjoint markets, months overlapping the development window). Budgets 0.5 / 1 / 2 % of alertable rows;
+   the 1 % budget is primary.
+4. **Statistics** (as §5): precision of a surprise departure within 6 h (and 2 h), unconditional base rate and
+   lift, matched-control excess (UTC day | price band | 24 h-notional tercile | different market, k = 5, seeded,
+   event-clustered bootstrap, one-sided p), recall of surprise events, lead time, paper P&L. Holm across the six
+   rules at the 1 % budget on the matched excess. Every statistic is reported **unweighted and sample-weighted**
+   (row weight = the market's `sample_weight`; weighted precision, base rate and weighted mean of the per-alert
+   excess). Placebo: the 100 shuffled-label elastic-net refits of §5 (development sample of h2, same C) scored
+   on the h3 rows; the frozen rule's matched excess is ranked among them.
+5. **By topic:** the same table per `topic` (sports, crypto, other, corporate, politics, weather, awards,
+   geopolitics, macro, mentions) and per decision-asymmetry class (A/B/C/unclassified), descriptive, no Holm.
+6. **Exploratory, clearly labelled, not a rule change:** refit `en_logit_full` and the family ablation on the
+   combined h2 + h3 development months (train ≤ 2026-05, validation 2026-06/07; h3 wallet "newness" uses the
+   true first-trade table merged with the in-sample index) and report which families and features carry
+   incremental value, in particular flow and wallet ones. **This never alters `sm_learned_v1` or the live
+   monitor.** Any new rule would be a new rule id, a new budget line and a new live registration.
+7. Budget: one `surprise_detector` line per rule evaluated on h3 (6, primary set) plus one per rule on the
+   secondary set (6), one placebo line, one line for the exploratory refit; cumulative count carried in each line.
+   Heavy lock held for the build and the fits.

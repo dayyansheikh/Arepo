@@ -27,12 +27,20 @@ RUN = ROOT / "history" / "h2_main"
 log = logging.getLogger("surprise")
 
 
+def _paths(args) -> tuple[Path, Path]:
+    """(run_dir, out_dir): the h2_main development set by default, or ``--run``/``--out``."""
+    run = ROOT / "history" / args.run if getattr(args, "run", None) else RUN
+    out = ROOT / args.out if getattr(args, "out", None) else OUT
+    return run, out
+
+
 def _meta(args) -> None:
     import pandas as pd
 
-    OUT.mkdir(parents=True, exist_ok=True)
-    sample = pd.read_csv(RUN / "sample.csv.gz", dtype=str, keep_default_na=False)
-    path = OUT / "gamma_meta.json"
+    run, out = _paths(args)
+    out.mkdir(parents=True, exist_ok=True)
+    sample = pd.read_csv(run / "sample.csv.gz", dtype=str, keep_default_na=False)
+    path = out / "gamma_meta.json"
     have = json.loads(path.read_text()) if path.exists() else {}
     cids = [c for c in sample["condition_id"] if c not in have]
     lim = hb.Limiter(hb.httpx_transport(), rps=min(args.rps, 5.0))
@@ -276,6 +284,8 @@ def main(argv=None) -> None:
     s.add_argument("--note", default="")
     s = sub.add_parser("meta")
     s.add_argument("--rps", type=float, default=4.0)
+    s.add_argument("--run")
+    s.add_argument("--out")
     s = sub.add_parser("build")
     s.add_argument("--exclude", nargs="*", default=[])
     s = sub.add_parser("learn")
