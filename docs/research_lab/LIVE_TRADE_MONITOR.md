@@ -68,3 +68,24 @@ KeepAlive would restart it; remove KeepAlive or check disk before enabling.
 ## Status
 Collection tooling only, evidence role `prospective_unregistered`. A scored prospective test needs the registration
 in `UNUSUAL_FLOW_PROGRAMME.md` section 7 (rule hashes, primary metric, MDE, stopping rule, Holm, control recipe above).
+
+## Pilot (2026-10-12, 04:51-06:43 UTC, 24 cycles, takerOnly=true, >= $1,000)
+| Stat | Value |
+|---|---|
+| Prints stored | 805 (498 in the first cycle: 10-min bootstrap backlog; steady state about 13 per cycle, about 160/h) |
+| Wallets looked up | 173 (cap 40 per cycle; the first cycle used all 40) |
+| Alerts | 188 (about 100/h, inflated by the backlog cycle; 5 rules x cap 5 per cycle), 71 matched controls, 117 `control_unavailable` |
+| Requests | 654 total (about 0.1/s average, 0 HTTP 429); steady cycles 20-30 requests, 25 s |
+| Peak RSS | 116 MB |
+| Disk | about 2.9 MB for 2 h (about 35 MB/day), far below the 300 MB/day cap |
+| Raw addresses | none: the regex for 40-hex addresses (bounded) matches nothing in outputs or logs. An early run logged httpx URLs (which carry addresses) to stderr; those logs were deleted and httpx logging is now silenced (test added). |
+
+Alert volume is high for a screening list because the fixed floor (score >= 2.0) is low for live single-print rows.
+It is a pre-declared constant, not to be tuned on outcomes; a registration should set the alert budget before scoring.
+The `control_unavailable` rate (62% of alerts) is mostly missing same-category non-fresh wallets in the cycle pool and
+weak category labels (`feeType` often absent, slug prefix used). A registered design must address control availability.
+
+## Outcome writer status
+`run_live_trade_monitor.py --outcomes` ran once on the pilot alerts: 177 outcome lines written (+1h and +6h price
+points), 1,055 items pending (not yet due or beyond the 200-request budget per pass), 0 errors, 0 resolutions.
+Alert lines were not modified (tested). Run the pass repeatedly (daily or hourly) until all horizons are filled.
