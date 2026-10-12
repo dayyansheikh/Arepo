@@ -344,7 +344,7 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
         fams = {f: v for f, v in fams.items() if v}
         base = [c for c in ml_models.M0_FEATURES]
         t0 = time.perf_counter()
-        rep = ablate(lab, ycol, folds, base, fams, clusters_x, args.n_boot, ncls, eval_mask)
+        rep = ablate(lab, ycol, folds, base, fams, clusters_x, args.n_boot_abl, ncls, eval_mask)
         log(f"    ablation {time.perf_counter() - t0:.0f}s: "
             + ", ".join(f"{r['unit']}={r['delta_ll']:.5f}({r['label']})" for r in rep["ranking"]))
         res[tag]["ablation"] = compact_ablation(rep)
@@ -356,7 +356,8 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
                         "revision": args.revision})
         if args.placebo and (args.placebo_all or k == 1):
             shuf = shuffle_within_period(lab, ["y_class", "y_absmove"], args.seed + k)
-            prep = ablate(shuf, ycol, folds, base, fams, clusters_x, args.n_boot, ncls, eval_mask)
+            prep = ablate(shuf, ycol, folds, base, fams, clusters_x, args.n_boot_abl, ncls,
+                          eval_mask)
             res[tag]["placebo_shuffled_ablation"] = compact_ablation(prep)
             ablation_trial(prep, {**hdr, "placebo": "shuffled_labels_within_period"},
                            "placebo", args.trials_path, {"source_evidence_role": ROLE,
@@ -365,7 +366,7 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
             lk = lab.copy()
             lk["leak_future_move"] = leak_column(lab, args.seed + 100 + k)
             lrep = ablate(lk, ycol, folds, base, {**fams, "leak": ["leak_future_move"]},
-                          clusters_x, args.n_boot, ncls, eval_mask)
+                          clusters_x, args.n_boot_abl, ncls, eval_mask)
             res[tag]["leak_positive_control_ablation"] = compact_ablation(lrep)
             ablation_trial(lrep, {**hdr, "placebo": "leak_positive_control"}, "placebo",
                            args.trials_path, {"source_evidence_role": ROLE,
@@ -393,6 +394,9 @@ def main(argv=None) -> int:
     ap.add_argument("--block-periods", type=int, default=240, help="test block, 2h periods")
     ap.add_argument("--min-train-periods", type=int, default=480)
     ap.add_argument("--n-boot", type=int, default=500)
+    ap.add_argument("--n-boot-ablation", type=int, default=None,
+                    help="bootstrap draws for the ablation p-values (BY needs p resolution: with "
+                    "m_total tests the smallest passable p is about q / (m_total * H(m_total)))")
     ap.add_argument("--lgb-configs", type=int, default=6,
                     help="nested-tuning budget: first N of the declared LightGBM grid")
     ap.add_argument("--no-placebo", dest="placebo", action="store_false")
@@ -409,6 +413,7 @@ def main(argv=None) -> int:
     ap.add_argument("--trials-path", type=Path, default=provenance.TRIALS_PATH)
     a = ap.parse_args(argv)
     a.targets = [t for t in a.targets.split(",") if t]
+    a.n_boot_abl = a.n_boot_ablation or a.n_boot
     run_dir = a.root / a.run_id
     ml_models.LGB_GRID = ml_models.LGB_GRID[: a.lgb_configs]
     ml_panel.register_tier_a()
