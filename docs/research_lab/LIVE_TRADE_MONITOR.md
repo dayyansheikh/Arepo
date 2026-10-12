@@ -89,3 +89,19 @@ weak category labels (`feeType` often absent, slug prefix used). A registered de
 `run_live_trade_monitor.py --outcomes` ran once on the pilot alerts: 177 outcome lines written (+1h and +6h price
 points), 1,055 items pending (not yet due or beyond the 200-request budget per pass), 0 errors, 0 resolutions.
 Alert lines were not modified (tested). Run the pass repeatedly (daily or hourly) until all horizons are filled.
+
+## Revision 2 (alert budget and controls)
+- The fixed score floor is gone. A trade alerts when a rule's score passes the **trailing 99th percentile** of that rule's
+  alertable scores from the previous 7 days, using only earlier cycles (this cycle is added afterwards). Fewer than 200
+  trailing scores: no threshold, no alert. Until 7 days of score history exist, alerts are written with `warmup: true`
+  and counted separately (`alerts_warmup`). Cap of 5 per rule per cycle stays as a safety.
+- Every scored trade is appended to `scores-YYYYMMDD.jsonl` (features and per-rule score, even if not alertable), so
+  any budget can be recomputed later. History and the control pool are rebuilt from disk at start.
+- Controls come from all scored trades received in the previous 24 h (and this cycle), same category, other market and
+  wallet, wallet first trade at least 7 days old, within +/-24 h of the alert trade, size band 2x, widened to 4x then
+  10x if empty. Each control line (and each `control_unavailable`) carries `control_selection` with the rule, band used,
+  pool and candidate counts.
+- Pilot 2 (06:51-07:46 UTC, 12 cycles): 269 prints (about 270/h), 104 wallet lookups, 365 requests, 0 HTTP 429, RSS 112 MB,
+  **0 alerts** because the fresh history never reached 200 scores per rule. Alert rate and control coverage need a longer
+  burn-in. Offline replay of the control rule over the 1,084 enriched prints: a control was found for 750 of 841 prints
+  with a known wallet age (89%).
