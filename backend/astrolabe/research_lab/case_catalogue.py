@@ -524,6 +524,13 @@ def unusual_onset(df: pd.DataFrame, news_ts: int, lookback_h: int = 72) -> dict:
         n, k = out["pre_hours_scored"], int(flags[pre_cov].sum())
         out["pre_flag_expected"] = round(rate * n, 2)
         out["pre_flag_binom_p"] = binom_sf(k, n, rate)
+    zpre = df.loc[pre_cov, ["hour", "z_notional", "notional", "p_close"]]
+    if len(zpre) and zpre["z_notional"].notna().any():
+        pk = zpre.loc[zpre["z_notional"].idxmax()]
+        out["peak_lead_h"] = round((news_ts - int(pk["hour"])) / 3600.0, 2)
+        out["peak_z_notional"] = _f(pk["z_notional"])
+        out["peak_notional"] = _f(pk["notional"])
+        out["p_at_peak"] = _f(pk["p_close"])
     hits = df.loc[pre & flags]
     if hits.empty:
         out.update({"onset_ts": None, "lead_h": None})

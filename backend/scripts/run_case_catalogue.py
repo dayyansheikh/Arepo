@@ -169,6 +169,69 @@ def panel() -> None:
     print(json.dumps(meta, indent=1, default=str))
 
 
+def evaluate() -> None:
+    """Held-out case-mode run of every frozen rule (HeldOutHarness logs each to trials.jsonl),
+    plus a per-case breakdown that replicates the harness alert selection (checked equal)."""
+    import math
+
+    import numpy as np
+    import pandas as pd
+
+    from astrolabe.research_lab import detector_eval as de
+
+    raw = pd.read_csv(cc.ROOT / "case_panel.csv.gz", dtype={"market_id": str, "cluster": str})
+    panel = de.normalise_panel(raw, "history") if "imb_s" not in raw else raw
+    panel.attrs.update({"panel_map": de.PANEL_MAP_VERSION, "panel_source": "history"})
+    reg = de.RuleRegistry()
+    harness = de.HeldOutHarness(reg)
+    man = json.loads((cc.ROOT / "case_panel.manifest.json").read_text())
+    cfg = de.EvalConfig(case_mode=True)
+    out = {"panel_sha256": man["sha256"], "config": cfg.__dict__, "rules": {}}
+    news = {c.case_id: c.news_ts for c in cc.load_registry(REG)}
+    for rid in reg.frozen_ids():
+        res = harness.evaluate(rid, panel, evidence_role=cc.EVIDENCE_ROLE,
+                               dataset="case_catalogue:case_panel", cfg=cfg,
+                               extra={"case_list_sha256": CASE_HASH,
+                                      "panel_sha256": man["sha256"]})
+        spec = reg.load(rid)
+        p = panel[panel["traded_before_t"].to_numpy(float) == 1.0].copy()
+        sc = de.score_rule(spec, p)
+        p[["score", "alertable", "direction"]] = sc[["score", "alertable", "direction"]]
+        a = p[p["alertable"]].sort_values(["score", "market_id", "t"],
+                                          ascending=[False, True, True], kind="stable")
+        k = max(1, int(math.floor(cfg.budget * len(a)))) if len(a) else 0
+        alerts = a.iloc[:k]
+        assert k == res.get("n_alert_rows", 0), (k, res.get("n_alert_rows"))
+        per = {}
+        for (case_id, mid), g in panel.groupby(["case_id", "market_id"]):
+            grp = g["control_group"].iloc[0]
+            al = alerts[alerts["market_id"] == mid].sort_values("t")
+            nt = news[case_id] if grp == "case" else None
+            final = g.sort_values("t")["mid"].dropna()
+            rec = {"case_id": case_id, "group": grp, "n_rows": int(len(g)),
+                   "n_alert_rows": int(len(al)), "final_mid": float(final.iloc[-1])
+                   if len(final) else None}
+            if nt is not None:
+                pre = al[(al["t"] >= nt - cfg.news_window_s) & (al["t"] < nt)]
+                rec["fired_before_news"] = bool(len(pre))
+                rec["fired_anywhere_pre_news"] = bool(len(al[al["t"] < nt]))
+                if len(pre):
+                    f = pre.iloc[0]
+                    rec.update({"lead_h": round((nt - float(f["t"])) / 3600, 2),
+                                "mid_at_fire": round(float(f["mid"]), 4),
+                                "direction": int(f["direction"]),
+                                "fwd_move_24h": None if not np.isfinite(f["fwd_move_24h"])
+                                else round(float(f["fwd_move_24h"]), 4)})
+            per[mid] = rec
+        out["rules"][rid] = {"harness": {k2: v for k2, v in res.items() if k2 != "config"},
+                             "per_market": per}
+        print(rid, json.dumps(res.get("lead_time_cases"), default=str))
+    (cc.ROOT / "case_eval.json").write_text(json.dumps(out, indent=1, default=str))
+
+
+CASE_HASH = "6cea3fc56a1df06abd91da4a0d8fd20b1ba6c983f689dbe08b66999be02e8ebc"
+
+
 def timeline() -> None:
     out = {}
     for c in cc.load_registry(REG):
@@ -218,5 +281,7 @@ if __name__ == "__main__":
         controls(sys.argv[2:])
     elif cmd == "panel":
         panel()
+    elif cmd == "evaluate":
+        evaluate()
     else:
         timeline()
