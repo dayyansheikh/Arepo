@@ -118,3 +118,45 @@ large moves is 0-2%, and mean paper P&L is negative for every variant. `alerts_n
 episodes against 6-80 observed: null and underpowered. The full table, Maduro descriptive firings and
 caveats are in `CASE_STUDY_MADURO.md` (Part B). Results file:
 `data-dumps/research_lab/event_study/judgement_results.json`. Cumulative `detector_eval` trials: 8.
+
+## Revision census-anchored-1: large-trade census (plan, probes, estimates; written before any evaluation)
+
+**Why.** The judgement-half run was underpowered: 6-80 alert episodes against `alerts_needed` 281-659.
+This revision anchors evaluation on large taker prints across a fresh data window and adds IF-H1. It spends
+new budget: IF-H1 is one new trial, and the 5 frozen variants re-run on a new panel are 5 more. The
+cumulative count is carried in `trials.jsonl`.
+
+**Probes (2026-10-12, `large_trade_census.PROBE`).**
+- The global v1 `/trades` without `market` ignores `start`/`end`. It is newest-first with an offset cap of
+  10,000 and limit 10,000, so it reaches about 29h of prints ≥ $1k.
+- `/v2/trades` has a signed keyset cursor. It was monotonic and complete against a v1 cross-check
+  (331/331), but it is **exhausted at 2026-09-01 00:07Z**: 813 pages, 812,970 prints ≥ $500, about
+  20k/day. That covers only September-October 2026, all inside the judgement-half months, so it is kept on
+  disk but not used.
+- v1 `market=<comma-separated list>&start&end` honours windows. The census therefore uses this route.
+
+**Route and estimates.**
+1. **Gamma universe.** Closed markets by end date, 2025-11-01 to 2026-10-12, plus still-open markets by
+   start date from 2024-01. `volume_num_min=500` loses nothing for a ≥ $500 census. Days with 500 to
+   more than 2,100 markets are split recursively at the offset cap. Estimate: 10-25k requests (about
+   1-2h at 4 req/s), no bulk disk (slim rows).
+2. **Class rule** `class-v1` (`run_census.CLASS_RULE`; metadata only; fixed in code before any outcome was
+   seen): C first (fee category sports/crypto/weather/finance or C keywords), then A, then B.
+3. **v1 census of class A/B markets**, prints ≥ $500, window 2025-11-01 to 2026-08-07, 40 markets per
+   request, windows halved at the cap. Estimate: 3-6k requests, under 200 MB. Cap 2 GB, ≤ 5 req/s,
+   yields to `arepo_pass.sh`.
+4. **IF-H1 enrichment** for the gated pool only: one v1 request per wallet to recover the address
+   transiently, 1-2 `/activity` pages per episode, and prices per (market, outcome). Estimate: a few
+   thousand requests.
+5. **Anchored panel** for the 5 frozen variants: 6,000 seeded anchors (one per market and 2h slot, origin =
+   gate print + 10 min), all taker trades in [t-24h, t) (1-3 requests), and the merged token-0 price windows.
+   Estimate: about 15k requests, about 1.5h.
+
+**Windows.** IF-H1 null quantiles (dev): 2025-11-15 to 2025-12-31. Evaluation: 2026-01-01 to 2026-07-30
+(t_a). There is no overlap with the judgement half (t ≥ 2026-07-30T06Z). The months overlap the broad
+sample's discovery half, which was tuning data for the 5 variants but a different unit and different markets.
+Maduro/Venezuela and catalogue markets are excluded.
+
+**Power expectation.** For the 5 variants the declared 1% budget fixes alerts at about 1% of anchored rows,
+so 6,000 anchors give about 60 alerts: still below `alerts_needed`. Reaching it would need 30k or more
+anchors (about 90k requests). For IF-H1 (top 10 per week over about 30 weeks) the ceiling is about 300 alerts.
