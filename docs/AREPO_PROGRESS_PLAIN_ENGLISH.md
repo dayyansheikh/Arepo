@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-12 00:02 UTC+1
+**Last updated:** 2026-10-12 04:45 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. No decisions needed from you.
 **Current objective:** Build the combined-signal model (many signals, ML + Bayesian, Shapley breakdown) and collect its data; finish the 24-hour forecasting test tonight; run the pairing redesign (D120) once.
@@ -13,16 +13,23 @@ current price and recent momentum.
   - The one missing piece, matched "control" comparison markets, worked live this morning (D118 **PASS**).
 - **Forecasting:** one confirmed short-term pattern (price reversal), which is not tradable as it stands. More tests finish tonight.
 
-## 2. What changed since the last update
-- **Combined-signal model (your direction):** instead of testing one idea at a time, AREPO now combines many signals in four models (the price+momentum baseline, a regularised model, gradient boosting and a Bayesian model) with a Shapley breakdown of what each signal adds.
-  - Its design, data builder and model code each passed independent reviews (about 20 fixes made).
-  - It will be judged once, prospectively, against the baseline, on accuracy and a fees-included money check.
-  - It needs about 40 snapshots (3–4 days) of development data, then 2–3 days of test data. Nothing is trained on real data yet.
-- **Extra market details** (fees, market age, open interest, rewards, linked events) are now saved with every snapshot. The existing files are unchanged.
-- **Grouping related markets:** a specialist found related markets should be grouped by game-day, not whole season. The pairing test's stricter grouping stays valid.
-- **Disk:** the local backup copy was deleted with your OK (verified identical on GitHub); 16 GB free.
-- **Pairing redesign (D120) PASSED live (15:47–16:02 UTC+1):** 6 of 6 triggered markets got independent comparison partners (weather, politics, sports, economics). An independent check confirmed it, with caveats: one pair (ECB rate cut vs Eurozone inflation) shares an economic driver, and one run doesn't prove reliability. Recorded as D120/D121.
-- **Snapshots 8 and 9** done; order flow (E007) has 2 of 12 samples. The model runner is built and waits for 40 snapshots with the new details (around 14–15 Oct).
+## 2. What changed overnight (11–12 Oct)
+- **24-hour forecasting test, scored and independently checked:**
+  - Price reversal (E004) is real but **not tradable**. Buying at the ask and selling at the bid lost about 4.5c per share.
+  - Linked-market consistency (E005): no value.
+  - When reversal is stronger (E006): the direction was confirmed, but the effect size did not carry over.
+- **Resolution forecasting** (about 7,500 resolved markets): no model beat the bias-corrected market price. A 7-day "bias" turned out to be placeholder prices in markets that had never traded, so it was rejected.
+- **Historical ML** (3,200 markets, 9 months):
+  - Most of the apparent gain was just predicting volatility.
+  - Beyond a fair baseline, **trade flow adds a small, demonstrated amount of direction skill at 2h and 6h** (about 2%), but part of it may be a data-timing artefact.
+  - New-wallet signals: nothing demonstrated.
+  - The sanity checks (placebos) now behave correctly.
+- **Unusual pre-news flow** (your Maduro idea):
+  - **Maduro:** a 6-day-old wallet bought about $32.5k of "Maduro out" at about 7.5c, roughly 3.4h before the price jumped. But similar bets had happened 7 times before in that market with nothing following.
+  - **5 locked alarms on about 357 random past markets:** no better than chance, and far too few alarm episodes to tell.
+  - **11 reported cases** (Iran strikes, Nobel, Google Year in Search and others): alarms went off before 4 of 10. The "large trade" alarm fired on about half of the case markets against about 1 in 15 controls. But every alarm fired 36–52h early, while the reported bets came in the **final hours**.
+  - **So the next step is a live 5-minute large-trade monitor**, now being built and piloted.
+- **Trading costs:** a typical round trip costs about 4.5c. Any edge most likely lives in liquid markets or in large predicted moves.
 
 ## 3. What AREPO can actually do today
 - Run its full research pipeline live, including matched comparisons, in about 14–24 minutes.
