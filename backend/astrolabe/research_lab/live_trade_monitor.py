@@ -81,21 +81,26 @@ class MonitorConfig:
     max_pages: int = 10
     page_size: int = 500
     ctx_ttl_s: float = 300.0
-    alert_score_min: float = 2.0  # fixed before any outcome; never tuned on outcomes
+    alert_pct: float = 0.99  # alert iff score passes the trailing percentile (causal, fixed budget)
+    trailing_days: float = 7.0
+    warmup_days: float = 7.0  # alerts before this much score history exist are marked warmup
+    min_history: int = 200  # fewer trailing scores than this: no threshold, no alert
+    control_window_s: float = 86400.0
+    control_cash_factors: tuple = (2.0, 4.0, 10.0)  # size bands tried in order
     max_alerts_per_rule: int = 5  # per cycle
     max_lookups: int = 40  # wallet lookups per cycle, largest prints first (rest flagged)
     max_markets: int = 50  # markets enriched/scored per cycle, by total cash (rest flagged)
     taker_only: bool = True  # maker legs (takerOnly=false) are deferred to the N3 design
     fresh_days: float = NEW_DAYS
-    control_cash_factor: float = 2.0
     profile: bool = True
     day_cap_bytes: int = DAY_CAP_BYTES
     total_cap_bytes: int = TOTAL_CAP_BYTES
 
     def config_hash(self) -> str:
         d = {k: v for k, v in asdict(self).items() if k in (
-            "min_cash", "alert_score_min", "max_alerts_per_rule", "fresh_days",
-            "control_cash_factor", "overlap_s", "page_size")}
+            "min_cash", "alert_pct", "trailing_days", "warmup_days", "min_history",
+            "max_alerts_per_rule", "fresh_days", "control_cash_factors", "control_window_s",
+            "overlap_s", "page_size")}
         return hashlib.sha256(json.dumps(d, sort_keys=True).encode()).hexdigest()[:16]
 
 
@@ -166,32 +171,38 @@ def du_bytes(root: Path) -> int:
 
 
 def select_control(alert: dict, pool: list[dict], *, fresh_days: float = NEW_DAYS,
-                   cash_factor: float = 2.0, exclude: set[str] | None = None
-                   ) -> tuple[dict | None, str]:
-    """Random same-category trade of similar size from a known non-fresh wallet, other market.
+                   cash_factors: tuple = (2.0, 4.0, 10.0), window_s: float = 86400.0,
+                   exclude: set[str] | None = None) -> tuple[dict | None, str, dict]:
+    """Random same-category trade from a known non-fresh wallet in another market, within
+    ``window_s`` of the alert's trade time, from the size band closest to the alert's (bands are
+    tried in order, narrowest first). Pool rows must already have been received.
 
-    ``alert``/pool rows need: key, condition_id, category, cash, wallet_hash, wallet_age_h.
-    Deterministic given the alert key (seeded), so reruns choose the same control.
-    Returns (row or None, reason).
+    ``alert``/pool rows need: key, ts, condition_id, category, cash, wallet_hash, wallet_age_h.
+    Deterministic given the alert key (seeded). Returns (row or None, reason, selection rule).
     """
     exclude = exclude or set()
-    lo, hi = alert["cash"] / cash_factor, alert["cash"] * cash_factor
-    cands = []
+    base = []
     for r in pool:
         age = r.get("wallet_age_h")
         if (r["key"] == alert["key"] or r["key"] in exclude
                 or r["condition_id"] == alert["condition_id"]
                 or r["wallet_hash"] == alert["wallet_hash"]
                 or r["category"] != alert["category"]
-                or not lo <= r["cash"] <= hi
+                or abs(r["ts"] - alert["ts"]) > window_s
                 or age is None or not math.isfinite(age) or age < fresh_days * 24.0):
             continue
-        cands.append(r)
-    if not cands:
-        return None, "no_control_available"
-    cands.sort(key=lambda r: r["key"])
-    seed = int(hashlib.sha256(alert["key"].encode()).hexdigest()[:12], 16)
-    return random.Random(seed).choice(cands), "ok"
+        base.append(r)
+    rule = {"category": "same", "market": "other", "wallet": f"known_age>={fresh_days:g}d",
+            "window_h": window_s / 3600.0, "pool_n": len(pool), "eligible_n": len(base),
+            "pool": "received_before_alert", "draw": "seeded_random(alert_key)"}
+    for f in cash_factors:
+        cands = sorted((r for r in base if alert["cash"] / f <= r["cash"] <= alert["cash"] * f),
+                       key=lambda r: r["key"])
+        if cands:
+            seed = int(hashlib.sha256(alert["key"].encode()).hexdigest()[:12], 16)
+            return random.Random(seed).choice(cands), "ok", {**rule, "cash_band_factor": f,
+                                                             "candidates_n": len(cands)}
+    return None, "no_control_available", rule
 
 
 # --- monitor ----------------------------------------------------------------------------------
@@ -217,6 +228,9 @@ class Monitor:
         self.ctx_cache: dict[str, tuple[float, dict | None]] = {}
         self.state: dict = {"watermark_ts": None, "cycles": 0}
         self.day_cap_hit_day: str | None = None
+        self.score_hist: dict[str, list[tuple[float, float]]] = {rid: [] for rid in self.specs}
+        self.recent: OrderedDict[str, dict] = OrderedDict()  # last 24 h scored rows (controls)
+        self.alerted_keys: set[str] = set()
         self.totals = {"trades": 0, "wallets_looked_up": 0, "alerts": 0, "controls": 0,
                        "cycles": 0, "no_control": 0}
         self._load_state()
@@ -235,6 +249,33 @@ class Monitor:
         for d in (_day(now - 86400), _day(now)):
             for r in read_jsonl(self.root / f"trades-{d}.jsonl"):
                 self.seen[r["key"]] = r["ts"]
+        for a in read_jsonl(self.root / "alerts.jsonl"):
+            if a.get("type") == "alert":
+                self.alerted_keys.add(a["trade"]["key"])
+        horizon = now - self.cfg.trailing_days * 86400
+        trades = {}
+        for d in (_day(now - 86400), _day(now)):
+            for r in read_jsonl(self.root / f"trades-{d}.jsonl"):
+                trades[r["key"]] = r
+        for sp_ in sorted(self.root.glob("scores-*.jsonl")):
+            for r in read_jsonl(sp_):
+                if r["recv_ts"] < horizon:
+                    continue
+                for rid, sc in r["scores"].items():
+                    if rid in self.score_hist and sc["alertable"] and sc["score"] is not None:
+                        self.score_hist[rid].append((r["recv_ts"], sc["score"]))
+                rec = trades.get(r["key"])
+                if rec is not None and r["recv_ts"] >= now - 86400:
+                    self._remember(rec, r["features"], r["scores"])
+
+    def _remember(self, rec: dict, feat: dict, scores: dict) -> None:
+        ctx = {k[4:]: v for k, v in rec.items() if k.startswith("ctx_") and k != "ctx_status"}
+        ctx["token0"] = rec.get("token0")
+        self.recent[rec["key"]] = {
+            "rec": rec, "ctx": ctx, "feat": feat, "scores": scores, "key": rec["key"],
+            "ts": rec["ts"], "condition_id": rec["condition_id"], "category": ctx.get("category"),
+            "cash": rec["cash"], "wallet_hash": rec["wallet_hash"],
+            "wallet_age_h": rec.get("wallet_age_h")}
 
     def _save_state(self) -> None:
         tmp = self.root / "state.json.tmp"
@@ -462,7 +503,8 @@ class Monitor:
         req0 = self.lim.requests
         thr0 = getattr(self.lim, "throttled", 0)
         stats = {"cycle_start_utc": utc_iso(t0), "new_trades": 0, "wallets_looked_up": 0,
-                 "alerts": 0, "controls": 0, "no_control": 0, "status": "ok"}
+                 "alerts": 0, "alerts_warmup": 0, "controls": 0, "no_control": 0,
+                 "status": "ok"}
         if not self.check_caps(t0):
             stats["status"] = "day_cap"
             return stats
@@ -507,39 +549,72 @@ class Monitor:
         lines: list[dict] = []
         if scorable:
             scores = self.score_rows(scorable)
-            pool = [dict(r["rec"], category=r["ctx"]["category"]) for r in scorable]
-            used: set[str] = set()
+            recv = self.clock()
+            for i, r in enumerate(scorable):
+                r["scores"] = {rid: {"score": float(sc["score"].iloc[i]) if bool(
+                    sc["alertable"].iloc[i]) else None, "alertable": bool(sc["alertable"].iloc[i]),
+                    "direction": int(sc["direction"].iloc[i])} for rid, sc in scores.items()}
+            # every scored trade is kept so budgets can be recomputed later
+            append_jsonl(self.root / f"scores-{_day(t0)}.jsonl", [
+                {"key": r["rec"]["key"], "ts": r["rec"]["ts"], "recv_ts": recv,
+                 "features": r["feat"], "scores": r["scores"]} for r in scorable])
+            # causal thresholds: trailing history strictly before this cycle
+            horizon = recv - self.cfg.trailing_days * 86400
+            thr, info = {}, {}
+            if "scores_since" not in self.state:
+                self.state["scores_since"] = recv
+            span_d = (recv - self.state["scores_since"]) / 86400.0
+            for rid in self.specs:
+                self.score_hist[rid] = [x for x in self.score_hist[rid] if x[0] >= horizon]
+                v = np.array([x[1] for x in self.score_hist[rid]])
+                n = len(v)
+                thr[rid] = (float(np.quantile(v, self.cfg.alert_pct))
+                            if n and n >= self.cfg.min_history else None)
+                info[rid] = {"threshold": thr[rid], "trailing_pct": self.cfg.alert_pct,
+                             "hist_n": n, "hist_span_days": round(span_d, 3),
+                             "warmup": span_d < self.cfg.warmup_days}
             alerted = {}
-            for rid, sc in scores.items():
-                floor = self.cfg.alert_score_min
-                idx = [i for i in range(len(scorable))
-                       if bool(sc["alertable"].iloc[i]) and sc["score"].iloc[i] >= floor]
-                idx.sort(key=lambda i: -sc["score"].iloc[i])
+            for rid in self.specs:
+                idx = [i for i, r in enumerate(scorable)
+                       if thr[rid] is not None and r["scores"][rid]["alertable"]
+                       and r["scores"][rid]["score"] >= thr[rid]]
+                idx.sort(key=lambda i: -scorable[i]["scores"][rid]["score"])
                 alerted[rid] = idx[: self.cfg.max_alerts_per_rule]
-            all_alerted = {scorable[i]["rec"]["key"] for ids in alerted.values() for i in ids}
+            for r in scorable:  # now (and only now) add this cycle to history and the pool
+                for rid, sc in r["scores"].items():
+                    if sc["alertable"]:
+                        self.score_hist[rid].append((recv, sc["score"]))
+                self._remember(r["rec"], r["feat"], r["scores"])
+            while self.recent and next(iter(self.recent.values()))["rec"]["recv_ts"] < recv - 86400:
+                self.recent.popitem(last=False)
+            all_alerted = self.alerted_keys | {scorable[i]["rec"]["key"]
+                                               for ids in alerted.values() for i in ids}
+            pool = list(self.recent.values())
+            used: set[str] = set()
             for rid, ids in alerted.items():
                 entry = self.registry.entries()[rid]
                 for i in ids:
                     r = scorable[i]
-                    base = self._line(rid, entry, r, sc_row=scores[rid].iloc[i], now=self.clock())
+                    base = self._line(rid, entry, r, now=self.clock(), extra=info[rid])
                     aid = base["alert_id"]
                     lines.append(base)
-                    ctrl, why = select_control(
-                        dict(r["rec"], category=r["ctx"]["category"]), pool,
-                        fresh_days=self.cfg.fresh_days, cash_factor=self.cfg.control_cash_factor,
-                        exclude=all_alerted | used)
+                    ctrl, why, crule = select_control(
+                        {**self.recent[r["rec"]["key"]]}, pool, fresh_days=self.cfg.fresh_days,
+                        cash_factors=self.cfg.control_cash_factors,
+                        window_s=self.cfg.control_window_s, exclude=all_alerted | used)
                     if ctrl is None:
                         stats["no_control"] += 1
                         lines.append({"type": "control_unavailable", "alert_id": aid,
-                                      "reason": why, "written_utc": utc_iso(self.clock())})
-                        continue
-                    used.add(ctrl["key"])
-                    j = next(k for k, s in enumerate(scorable) if s["rec"]["key"] == ctrl["key"])
-                    cl = self._line(rid, entry, scorable[j], sc_row=scores[rid].iloc[j],
-                                    now=self.clock(), control_for=aid)
-                    lines.append(cl)
-                    stats["controls"] += 1
-                stats["alerts"] += len(ids)
+                                      "reason": why, "control_selection": crule,
+                                      "written_utc": utc_iso(self.clock())})
+                    else:
+                        used.add(ctrl["key"])
+                        cx = {"control_selection": crule, "warmup": info[rid]["warmup"]}
+                        lines.append(self._line(rid, entry, ctrl, now=self.clock(),
+                                                control_for=aid, extra=cx))
+                        stats["controls"] += 1
+                    self.alerted_keys.add(r["rec"]["key"])
+                    stats["alerts_warmup" if info[rid]["warmup"] else "alerts"] += 1
         append_jsonl(self.root / "alerts.jsonl", lines)  # append-only; before any outcome
         self.state["cycles"] = self.state.get("cycles", 0) + 1
         self._save_state()
@@ -547,16 +622,16 @@ class Monitor:
         stats["http_429"] = getattr(self.lim, "throttled", 0) - thr0
         stats["seconds"] = round(self.clock() - t0, 2)
         stats["rss_mb"] = rss_mb()
-        for k in ("alerts", "controls", "no_control"):
-            self.totals[k] += stats[k]
+        for k in ("alerts", "alerts_warmup", "controls", "no_control"):
+            self.totals[k] = self.totals.get(k, 0) + stats[k]
         self.totals["trades"] += stats["new_trades"]
         self.totals["cycles"] += 1
         append_jsonl(self.root / "stats.jsonl", [stats])
         return stats
 
-    def _line(self, rid: str, entry: dict, r: dict, *, sc_row, now: float,
-              control_for: str | None = None) -> dict:
-        rec, ctx = r["rec"], r["ctx"]
+    def _line(self, rid: str, entry: dict, r: dict, *, now: float,
+              control_for: str | None = None, extra: dict | None = None) -> dict:
+        rec, ctx, sc_row = r["rec"], r["ctx"], r["scores"][rid]
         kind = "control" if control_for else "alert"
         aid = hashlib.sha256(f"{kind}|{rid}|{rec['key']}".encode()).hexdigest()[:20]
         trade = {k: rec[k] for k in ("key", "ts", "recv_ts", "condition_id", "token_id", "side",
@@ -566,13 +641,13 @@ class Monitor:
         feats.update(wallet_age_h=rec["wallet_age_h"], wallet_first_trade_ts=rec[
             "wallet_first_trade_ts"], wallet_profile_created_ts=rec["wallet_profile_created_ts"],
                      wallet_lookup=rec["wallet_lookup"])
-        extra = {"control_for": control_for} if control_for else {}
+        extra = {**(extra or {}), **({"control_for": control_for} if control_for else {})}
         return {"type": kind, "alert_id": aid, **extra,
                 "rule_id": rid, "rule_sha256": entry["sha256"], "rule_version": entry["version"],
                 "engine_version": de.ENGINE_VERSION, "monitor_version": VERSION,
                 "config_hash": self.cfg.config_hash(), "evidence_role": EVIDENCE_ROLE,
-                "score": float(sc_row["score"]), "alertable": bool(sc_row["alertable"]),
-                "direction": int(sc_row["direction"]), "alert_score_min": self.cfg.alert_score_min,
+                "score": sc_row["score"], "alertable": bool(sc_row["alertable"]),
+                "direction": int(sc_row["direction"]),
                 "trade": trade, "market": {k: v for k, v in ctx.items()},
                 "features": feats, "detected_utc": utc_iso(now), "latency_s": round(
                     now - rec["ts"], 1), "written_utc": utc_iso(now)}

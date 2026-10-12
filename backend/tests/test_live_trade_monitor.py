@@ -66,6 +66,13 @@ def mk(tmp_path):
     return make
 
 
+def force_alerts(m, warmup_days=0.0):
+    """Seed a trailing history whose percentile is far below any score."""
+    m.cfg.alert_pct, m.cfg.min_history, m.cfg.warmup_days = 0.5, 1, warmup_days
+    for rid in m.specs:
+        m.score_hist[rid] = [(NOW - 10, -1e9)] * 3
+
+
 def all_text(root):
     return "".join(p.read_text() for p in root.rglob("*") if p.is_file())
 
@@ -96,7 +103,7 @@ def test_min_cash_filter_and_paging(mk):
 def test_no_raw_address_in_any_output(mk):
     feed = [trade(i, cid=f"0xc{i % 3}") for i in range(12)]
     m, lim = mk(feed, first={a: 1_700_000_000 for a in ADDRS})
-    m.cfg.alert_score_min = -99.0  # force alerts and controls
+    force_alerts(m)
     m.run_cycle()
     text = all_text(m.root).lower()
     for a in ADDRS:
@@ -110,7 +117,7 @@ def test_alerts_written_with_hash_before_outcomes_and_controls(mk):
     feed = [trade(i, cid=f"0xc{i % 4}", cash=2000 + 10 * i) for i in range(20)]
     first = {a: (NOW - 30 * 86400 if k % 2 else NOW - 600) for k, a in enumerate(ADDRS)}
     m, _ = mk(feed, first=first)
-    m.cfg.alert_score_min = -99.0
+    force_alerts(m)
     m.cfg.max_alerts_per_rule = 3
     m.run_cycle()
     lines = list(ltm.read_jsonl(m.root / "alerts.jsonl"))
@@ -132,7 +139,7 @@ def test_alerts_written_with_hash_before_outcomes_and_controls(mk):
 def test_outcome_writer_never_mutates_alerts(mk, tmp_path):
     feed = [trade(i, cid=f"0xc{i % 4}") for i in range(12)]
     m, _ = mk(feed, first={a: NOW - 30 * 86400 for a in ADDRS})
-    m.cfg.alert_score_min = -99.0
+    force_alerts(m)
     m.run_cycle()
     ap = m.root / "alerts.jsonl"
     before = ap.read_bytes()
@@ -162,7 +169,7 @@ def test_outcome_writer_never_mutates_alerts(mk, tmp_path):
 def test_outcomes_not_due_stay_pending(mk):
     m, _ = mk([trade(i, cid=f"0xc{i % 4}") for i in range(8)],
               first={a: NOW - 30 * 86400 for a in ADDRS})
-    m.cfg.alert_score_min = -99.0
+    force_alerts(m)
     m.run_cycle()
 
     class Never(FakeLim):
@@ -173,9 +180,9 @@ def test_outcomes_not_due_stay_pending(mk):
     assert st.written == 0 and st.pending > 0
 
 
-def row(key, cid, cat, cash, wh, age):
-    return {"key": key, "condition_id": cid, "category": cat, "cash": cash, "wallet_hash": wh,
-            "wallet_age_h": age}
+def row(key, cid, cat, cash, wh, age, ts=0):
+    return {"ts": ts, "key": key, "condition_id": cid, "category": cat, "cash": cash,
+            "wallet_hash": wh, "wallet_age_h": age}
 
 
 def test_control_selection():
@@ -183,18 +190,18 @@ def test_control_selection():
     pool = [a,
             row("same_market", "m1", "pol", 5000, "w1", 900),
             row("other_cat", "m2", "sports", 5000, "w2", 900),
-            row("too_big", "m3", "pol", 50000, "w3", 900),
+            row("too_big", "m3", "pol", 500000, "w3", 900),
             row("fresh", "m4", "pol", 5000, "w4", 2.0),
             row("unknown_age", "m5", "pol", 5000, "w5", None),
             row("same_wallet", "m6", "pol", 5000, "wa", 900),
             row("ok1", "m7", "pol", 6000, "w7", 900),
             row("ok2", "m8", "pol", 3000, "w8", 400)]
-    c, why = ltm.select_control(a, pool)
+    c, why, rule = ltm.select_control(a, pool)
     assert why == "ok" and c["key"] in {"ok1", "ok2"}
     assert ltm.select_control(a, pool)[0]["key"] == c["key"]  # deterministic
-    c2, _ = ltm.select_control(a, pool, exclude={c["key"]})
+    c2, _, _ = ltm.select_control(a, pool, exclude={c["key"]})
     assert c2["key"] != c["key"]
-    none, why = ltm.select_control(a, pool[:7])
+    none, why, _ = ltm.select_control(a, pool[:7])
     assert none is None and why == "no_control_available"
 
 
@@ -217,3 +224,60 @@ def test_httpx_url_logging_silenced():
     import logging
 
     assert logging.getLogger("httpx").level >= logging.WARNING
+
+
+def test_control_widens_band_and_logs_rule():
+    a = row("a", "m1", "pol", 1000, "wa", 1.0)
+    pool = [row("far", "m2", "pol", 8000, "w2", 900), row("old", "m3", "pol", 1000, "w3", 900,
+                                                           ts=3 * 86400)]
+    c, why, rule = ltm.select_control(a, pool)
+    assert c["key"] == "far" and rule["cash_band_factor"] == 10.0  # "old" is outside +-24 h
+    assert rule["window_h"] == 24.0 and rule["category"] == "same" and rule["eligible_n"] == 1
+    assert ltm.select_control(a, pool, cash_factors=(2.0,))[0] is None
+
+
+def test_causal_percentile_warmup_and_all_scores_logged(mk):
+    feed = [trade(i, cid=f"0xc{i % 4}", cash=2000 + 10 * i) for i in range(20)]
+    m, _ = mk(feed, first={a: NOW - 30 * 86400 for a in ADDRS})
+    m.cfg.alert_pct, m.cfg.min_history = 0.5, 1
+    for rid in m.specs:
+        m.score_hist[rid] = [(NOW - 10, -1e9)]
+    s = m.run_cycle()  # history younger than warmup_days (7): alerts are warmup, not counted
+    assert s["alerts"] == 0 and s["alerts_warmup"] > 0
+    al = [x for x in ltm.read_jsonl(m.root / "alerts.jsonl") if x["type"] == "alert"]
+    assert al and all(x["warmup"] and x["threshold"] == -1e9 and x["hist_n"] == 1 for x in al)
+    sc = list(ltm.read_jsonl(m.root / f"scores-{ltm._day(NOW)}.jsonl"))
+    assert len(sc) == 20 and all(set(x["scores"]) == set(m.specs) for x in sc)
+    # this cycle's scores entered the history only after thresholds were set
+    assert any(len(m.score_hist[rid]) > 1 for rid in m.specs)
+
+
+def test_no_alert_without_enough_history(mk):
+    m, _ = mk([trade(i, cid=f"0xc{i % 4}") for i in range(10)])
+    s = m.run_cycle()
+    assert s["alerts"] == 0 and s["alerts_warmup"] == 0
+    assert not (m.root / "alerts.jsonl").exists() or not list(
+        ltm.read_jsonl(m.root / "alerts.jsonl"))
+
+
+def test_threshold_excludes_current_cycle_and_history_reloads(mk):
+    m, _ = mk([trade(i, cid=f"0xc{i % 4}") for i in range(10)],
+              first={a: NOW - 30 * 86400 for a in ADDRS})
+    m.run_cycle()
+    n = {rid: len(v) for rid, v in m.score_hist.items()}
+    m2 = ltm.Monitor(FakeLim([]), root=m.root, cfg=m.cfg, key=KEY, clock=lambda: NOW)
+    assert {rid: len(v) for rid, v in m2.score_hist.items()} == n
+    assert len(m2.recent) == 10  # control pool rebuilt from disk
+
+
+def test_control_pool_spans_cycles(mk):
+    first = {a: NOW - 30 * 86400 for a in ADDRS}
+    m, lim = mk([trade(i, cid=f"0xc{i % 4}") for i in range(10)], first=first)
+    m.run_cycle()
+    lim.feed.insert(0, trade(60, cid="0xc9", ts=NOW - 5))
+    force_alerts(m)
+    m.run_cycle()
+    lines = list(ltm.read_jsonl(m.root / "alerts.jsonl"))
+    ctrl = [x for x in lines if x["type"] == "control"]
+    assert ctrl and all(c["control_selection"]["pool"] == "received_before_alert" for c in ctrl)
+    assert any(c["trade"]["recv_ts"] <= NOW for c in ctrl)
