@@ -72,6 +72,17 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
   - `economics` (fees, slippage, paper P&L, break-even).
 - **Disk caps:** history 1.5 GB, sources 1 GB, resolution 2 GB, news 0.5 GB.
 
+## Unusual pre-news flow programme (user's founding goal, 2026-10-12)
+- **Maduro case study** (Opus): Part A timeline. The detector freeze is ON HOLD until the Fable design lands. Outputs: `event_study.py`, `CASE_STUDY_MADURO.md`.
+- **Case catalogue** (Opus): web-researched reported cases, used as a HELD-OUT set (`CASE_CATALOGUE.md`).
+- **Signal theory** (Opus max, reasoning only): `INFORMED_FLOW_SIGNAL_THEORY.md`.
+- **Programme lead** (Fable 5.1): `UNUSUAL_FLOW_PROGRAMME.md`, `detector_eval.py`, and the frozen variants in `UNUSUAL_FLOW_DETECTOR.md`. Then release the Maduro agent for the broad backtest and the catalogue agent for the held-out evaluation.
+- **Results so far:**
+  - E004 Supported but not tradable; E005 Not supported; E006 sign-only (ad55b0f).
+  - T5 resolution: no model beats recalibrated price; the 7d candidate was rejected as an untraded-placeholder artefact.
+  - Historical ML (`HISTORICAL_ML_DEV.md`): gains are mostly volatility; flow is "demonstrated" at 2h/6h, pending a stronger M0v baseline and a shuffled-placebo investigation (in progress).
+- **Infrastructure:** branch `fix/infra-2026-10-11` (bed00bb) is READY FOR APPROVAL; see the dashboard.
+
 ## Exact next actions
 1. When pass 8 completes: run the loop steps above.
 2. Placebos in run_ml_dev, then a science review of the runner, fixture-day grouping and placebos.
