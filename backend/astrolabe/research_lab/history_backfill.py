@@ -801,6 +801,8 @@ WLT_NAMES = (
     "ml_wlt_new_n_2h", "ml_wlt_new_n_24h", "ml_wlt_new_share_24h",
 )
 HIST_STEPS = 6  # prior 2h grid steps for ml_own_vol
+RV_WINDOWS = ((2, "2h"), (6, "6h"), (24, "1d"), (168, "7d"))  # realised-vol windows (hours)
+HIST_EXTRA_NAMES = (*(f"ml_rv_{tag}" for _, tag in RV_WINDOWS), "ml_dist_01")  # beyond ml_panel
 FIRST_SEEN_BURN_IN_S = 14 * 86400  # first-seen index is censored at the sample start
 
 
@@ -1022,6 +1024,21 @@ def origin_frame(
         "ml_own_n_prior": (~np.isnan(steps[:, 1:])).sum(1).astype(float),
         "ml_market_age_h": np.clip((t - created) / 3600.0, 0, None),  # createdAt timestamp
     }
+    # realised volatility: rms of consecutive 10-minute price differences over usable points in
+    # (t - lag - W, t - lag]; NaN with fewer than 3 differences
+    cs = np.concatenate([[0.0], np.cumsum(np.diff(vals) ** 2)])  # cs[i] = sum of d_j^2, j < i
+    u = np.searchsorted(ts + POINT_LAG_S, t, side="left") - 1  # last usable point
+    for hrs, tag in RV_WINDOWS:
+        sidx = np.searchsorted(ts, t - POINT_LAG_S - hrs * 3600, side="left")
+        nd = u - sidx
+        with np.errstate(invalid="ignore", divide="ignore"):
+            feats[f"ml_rv_{tag}"] = np.where(
+                nd >= 3, np.sqrt((cs[np.maximum(u, 0)] - cs[np.minimum(sidx, u)]) / nd), np.nan)
+    feats["ml_dist_01"] = np.minimum(mid, 1 - mid)
+    end_e = r["end_epoch"]
+    # scheduled end as listed NOW (may have been revised after t): flagged in the write-up
+    feats["ml_log_hours_to_end"] = (np.full(n, np.nan) if math.isnan(end_e)
+                                    else np.log1p(np.clip((end_e - t) / 3600.0, 0, None)))
     covered_from = (float(trades["ts"].min()) if (trades is not None and len(trades)) else np.inf)
     if trades is not None and not trades_truncated:
         covered_from = -np.inf  # complete history: every window is covered
@@ -1041,7 +1058,7 @@ def origin_frame(
     })
     for name in ml_panel.EXTENDED_NAMES:  # book / liquidity / sweep / sibling: absent, stay NaN
         out[name] = feats.get(name, nan)
-    for name in (*TF_NAMES, *WLT_NAMES):
+    for name in (*TF_NAMES, *WLT_NAMES, *HIST_EXTRA_NAMES):
         out[name] = feats[name]
     # Placeholder-price flags (challenger rule): a price with no trade before the origin is a
     # listing/placeholder price (often ~0.5), not an executable one.

@@ -260,12 +260,12 @@ def test_open_at_t_membership():
 def test_no_end_of_life_or_static_metadata_features():
     ts, vals = _series()
     a = hb.market_panel(_mkt(), ts, vals, None, True, 2, "r1")
-    b = hb.market_panel(_mkt(liquidity=9e9, volume=9e9, neg_risk=1, end_epoch=ts[0] + 1.0,
+    b = hb.market_panel(_mkt(liquidity=9e9, volume=9e9, neg_risk=1,
                              fee_category="other:x"), ts, vals, None, True, 2, "r1")
     feat = [c for c in a.columns if c.startswith("ml_")]
     pd.testing.assert_frame_equal(a[feat], b[feat])
     for c in ("ml_log1p_liq", "ml_log1p_vol24", "ml_turnover", "ml_volume_num", "ml_neg_risk",
-              "ml_log_hours_to_end", "ml_end_unknown", "ml_spread", "ml_tick_size"):
+              "ml_end_unknown", "ml_spread", "ml_tick_size"):
         assert a[c].isna().all()
 
 
@@ -384,3 +384,24 @@ def test_traded_before_t_and_unchanged_since_listing():
     tr2 = tr.assign(ts=float(df["t_i"].iloc[5]))
     d3 = hb.market_panel(mk, ts, vals, tr2, False, 2, "r1")
     assert d3.iloc[5]["traded_before_t"] == 0 and d3.iloc[6]["traded_before_t"] == 1
+
+
+def test_realised_vol_end_time_and_distance_causal():
+    ts, vals = _series(n_days=10)
+    base = hb.market_panel(_mkt(end_epoch=ts[-1] + 86400.0), ts, vals, None, True, 2, "r1")
+    assert {"ml_rv_2h", "ml_rv_7d", "ml_dist_01", "ml_log_hours_to_end"} <= set(base.columns)
+    assert base["ml_rv_1d"].notna().mean() > 0.5 and base["ml_log_hours_to_end"].notna().all()
+    assert np.allclose(base["ml_dist_01"], np.minimum(base["mid_i"], 1 - base["mid_i"]))
+    cut = float(base["t_i"].iloc[40])
+    v2 = vals.copy()
+    v2[ts >= cut - hb.POINT_LAG_S] += 0.09  # change everything not yet usable at the origin
+    alt = hb.market_panel(_mkt(end_epoch=ts[-1] + 86400.0), ts, v2, None, True, 2, "r1")
+    a, b = base[base["t_i"] == cut].iloc[0], alt[alt["t_i"] == cut].iloc[0]
+    for c in ("ml_rv_2h", "ml_rv_6h", "ml_rv_1d", "ml_rv_7d", "mid_i"):
+        assert a[c] == b[c] or (np.isnan(a[c]) and np.isnan(b[c]))
+    # a larger move inside the window raises the realised vol
+    v3 = vals.copy()
+    k = np.searchsorted(ts + hb.POINT_LAG_S, cut, side="left") - 3
+    v3[k] += 0.1
+    c3 = hb.market_panel(_mkt(end_epoch=ts[-1] + 86400.0), ts, v3, None, True, 2, "r1")
+    assert c3[c3["t_i"] == cut].iloc[0]["ml_rv_1d"] > a["ml_rv_1d"]
