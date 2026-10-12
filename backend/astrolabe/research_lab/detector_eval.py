@@ -60,7 +60,20 @@ FLOW_FEATURES = (
 # the outcome the short-window flow acquires; ``resp_s`` = price response signed by the flow.
 DERIVED_FEATURES = ("p_acq", "resp_s")
 CONTEXT_FEATURES = ("mid", "liquidity", "spread")
-RULE_FEATURES = (*FLOW_FEATURES, *DERIVED_FEATURES, *CONTEXT_FEATURES)
+# Learned surprise-move detector (surprise_moves / surprise_learn): multi-window ``sm_*`` features
+# and the price/market context columns of the surprise dataset are also admissible rule features.
+LEARNED_CONTEXT_FEATURES = (
+    "abs_mid_dev", "logit_mid", "dist_01", "log_hours_to_end", "market_age_h", "chg_1h",
+    "chg_1d", "chg_1w", "own_vol", "rv_2h", "rv_6h", "rv_1d", "rv_7d", "hour_sin", "hour_cos",
+    "dow", "last_trade_age_h", "ltp_minus_mid", "sib_n", "sib_max_abs_chg_2h", "ladder_n",
+    "ladder_max_abs_chg_2h",
+)
+LEARNED_PREFIXES = ("sm_", "fee_", "dec_")
+RULE_FEATURES = (*FLOW_FEATURES, *DERIVED_FEATURES, *CONTEXT_FEATURES, *LEARNED_CONTEXT_FEATURES)
+
+
+def feature_allowed(name: str) -> bool:
+    return name in RULE_FEATURES or str(name).startswith(LEARNED_PREFIXES)
 IDENTITY = ("market_id", "cluster", "t", "mid", "liquidity", "traded_before_t")
 HORIZONS_H = (2, 6, 24)
 OPS = {
@@ -116,7 +129,7 @@ class RuleSpec:
         for c in self.conditions:
             if set(c) != {"feature", "op", "value"}:
                 raise ValueError(f"condition keys must be feature/op/value: {c}")
-            if c["feature"] not in RULE_FEATURES or c["op"] not in OPS:
+            if not feature_allowed(c["feature"]) or c["op"] not in OPS:
                 raise ValueError(f"bad condition {c}")
             if not math.isfinite(float(c["value"])):
                 raise ValueError(f"non-finite condition value {c}")
@@ -126,14 +139,14 @@ class RuleSpec:
             if set(t) != {"feature", "transform", "center", "scale", "weight", "cap"}:
                 raise ValueError(
                     f"term keys must be feature/transform/center/scale/weight/cap: {t}")
-            if t["feature"] not in RULE_FEATURES or t["transform"] not in TRANSFORMS:
+            if not feature_allowed(t["feature"]) or t["transform"] not in TRANSFORMS:
                 raise ValueError(f"bad term {t}")
             vals = [float(t[k]) for k in ("center", "scale", "weight", "cap")]
             if not all(math.isfinite(v) for v in vals) or vals[1] <= 0 or vals[3] <= 0:
                 raise ValueError(f"term needs finite numbers, scale > 0 and cap > 0: {t}")
         if self.min_terms_present < 0 or self.min_terms_present > len(self.terms):
             raise ValueError("min_terms_present must be in [0, len(terms)]")
-        if self.direction_feature is not None and self.direction_feature not in RULE_FEATURES:
+        if self.direction_feature is not None and not feature_allowed(self.direction_feature):
             raise ValueError(f"unknown direction_feature {self.direction_feature!r}")
 
     def to_dict(self) -> dict:
@@ -200,20 +213,29 @@ def _atomic_write(path: Path, text: str) -> None:
     os.replace(tmp, path)
 
 
-def read_index(spec_dir: Path = SPEC_DIR) -> dict:
-    p = Path(spec_dir) / FROZEN_INDEX
+def read_index(spec_dir: Path = SPEC_DIR, index: str = FROZEN_INDEX) -> dict:
+    p = Path(spec_dir) / index
     if not p.exists():
         return {"frozen": []}
     return json.loads(p.read_text(encoding="utf-8"))
 
 
 def freeze_rules(specs: list[RuleSpec], spec_dir: Path = SPEC_DIR, *, commit: str | None = None,
-                 now: str | None = None) -> dict:
-    """Write each spec and append it to FROZEN.json. Refuses to overwrite an existing rule_id."""
+                 now: str | None = None, index_name: str = FROZEN_INDEX) -> dict:
+    """Write each spec and append it to the index (``FROZEN.json`` by default; a separate index
+    such as ``FROZEN_SURPRISE.json`` keeps the closed unusual-flow set of five untouched).
+    Refuses to overwrite an existing rule_id in any index of ``spec_dir``."""
     spec_dir = Path(spec_dir)
     spec_dir.mkdir(parents=True, exist_ok=True)
-    index = read_index(spec_dir)
+    index = read_index(spec_dir, index_name)
     have = {e["rule_id"] for e in index["frozen"]}
+    for other in spec_dir.glob("FROZEN*.json"):
+        if other.name != index_name:
+            try:
+                have |= {e["rule_id"] for e in json.loads(other.read_text()).get("frozen", [])
+                         if isinstance(e, dict)}
+            except ValueError:
+                continue
     ids = [s.rule_id for s in specs]
     if len(set(ids)) != len(ids):
         raise DetectorError("duplicate rule_id in freeze batch")
@@ -228,18 +250,19 @@ def freeze_rules(specs: list[RuleSpec], spec_dir: Path = SPEC_DIR, *, commit: st
         index["frozen"].append({"rule_id": s.rule_id, "version": s.version, "sha256": s.sha256(),
                                 "engine_version": ENGINE_VERSION, "frozen_utc": stamp,
                                 "frozen_commit": head})
-    _atomic_write(spec_dir / FROZEN_INDEX, json.dumps(index, indent=1, sort_keys=True) + "\n")
+    _atomic_write(spec_dir / index_name, json.dumps(index, indent=1, sort_keys=True) + "\n")
     return index
 
 
 class RuleRegistry:
     """Read-only view of the frozen specs. ``load`` verifies hash and engine version."""
 
-    def __init__(self, spec_dir: Path = SPEC_DIR) -> None:
+    def __init__(self, spec_dir: Path = SPEC_DIR, index: str = FROZEN_INDEX) -> None:
         self.spec_dir = Path(spec_dir)
+        self.index = index
 
     def entries(self) -> dict[str, dict]:
-        return {e["rule_id"]: e for e in read_index(self.spec_dir)["frozen"]}
+        return {e["rule_id"]: e for e in read_index(self.spec_dir, self.index)["frozen"]}
 
     def frozen_ids(self) -> list[str]:
         return sorted(self.entries())
@@ -250,7 +273,7 @@ class RuleRegistry:
     def load(self, rule_id: str) -> RuleSpec:
         entry = self.entries().get(rule_id)
         if entry is None:
-            raise NotFrozenError(f"rule {rule_id!r} is not frozen (not in {FROZEN_INDEX})")
+            raise NotFrozenError(f"rule {rule_id!r} is not frozen (not in {self.index})")
         if entry.get("engine_version") != ENGINE_VERSION:
             raise EngineVersionError(f"rule {rule_id!r} frozen under engine "
                                      f"{entry.get('engine_version')!r}, running {ENGINE_VERSION!r}")

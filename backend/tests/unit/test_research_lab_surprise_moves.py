@@ -167,3 +167,49 @@ def test_group_moves_exclude_own_market():
     assert list(out["sib_max_abs_chg_2h"][:3]) == [0.2, 0.5, 0.5]
     assert list(out["ladder_n"][:2]) == [1, 1] and out["ladder_max_abs_chg_2h"][0] == 0.1
     assert np.isnan(out["sib_max_abs_chg_2h"][3])
+
+
+def test_price_context_matches_origin_frame():
+    rng = np.random.default_rng(1)
+    ts = np.arange(0, 12 * 86400, STEP)
+    p = np.clip(0.4 + np.cumsum(rng.normal(scale=0.005, size=len(ts))), 0.05, 0.95)
+    rec = {"market_id": "m", "event_id": "", "condition_id": "0x1", "fee_category": "politics",
+           "status": "active", "liquidity": np.nan, "volume": 1.0, "created_at": "",
+           "start_epoch": 0.0, "end_epoch": 20 * 86400.0, "close_epoch": np.nan, "closed": "",
+           "stratum": ""}
+    of = hb.origin_frame(rec, ts, p, None, False, "r", None)
+    i = len(of) // 2
+    t = float(of["t_i"].iloc[i])
+    live = sm.price_context(ts, p, t, created_ts=0.0, end_ts=20 * 86400.0)
+    for src, dst in sm.CONTEXT_MAP.items():
+        if dst in live and src in of:
+            a, b = float(of[src].iloc[i]), live[dst]
+            assert (np.isnan(a) and np.isnan(b)) or abs(a - b) < 1e-9, (dst, a, b)
+    assert live["dow"] == float(((t // 86400) + 3) % 7)
+
+
+def test_standardiser_falls_back_when_mad_is_floating_point_noise():
+    from astrolabe.research_lab import surprise_learn as sl
+
+    x = np.column_stack([np.where(np.arange(100) < 70, 1.0 - 1e-15, 0.2), np.arange(100.0)])
+    st = sl.Standardiser.fit(x, ["a", "b"])
+    assert st.scale["a"] > 0.1 and abs(st.center["a"] - 1.0) < 1e-9  # std, not the ~1e-15 MAD
+    z = st.transform(np.array([[np.nan, 49.5]]), ["a", "b"])
+    assert z[0, 0] == 0.0 and abs(z[0, 1]) < 1e-9  # missing -> centre; median -> 0
+
+
+def test_enet_rule_spec_reproduces_logit_up_to_intercept():
+    from astrolabe.research_lab import detector_eval as de
+    from astrolabe.research_lab import surprise_learn as sl
+
+    rng = np.random.default_rng(3)
+    cols = ["sm_abs_imb_1h", "rv_1d", "dow"]
+    x = rng.normal(size=(300, 3))
+    y = (x[:, 1] + 0.3 * rng.normal(size=300) > 0).astype(int)
+    m = sl.fit_enet(x, y, cols, C=1.0)
+    spec = m.to_rule_spec("sm_t", "1", "sm_imb_1h", "t")
+    xt = rng.normal(size=(20, 3))
+    panel = pd.DataFrame(xt, columns=cols)
+    panel["sm_imb_1h"] = rng.normal(size=20)
+    sc = de.score_rule(spec, panel)
+    assert np.allclose(sc["score"].to_numpy() + m.intercept, m.logit(xt))

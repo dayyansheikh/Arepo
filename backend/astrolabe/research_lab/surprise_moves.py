@@ -354,7 +354,12 @@ def surprise_features(tr: pd.DataFrame | None, t: np.ndarray, mid: np.ndarray, t
         for w, _ in WINDOWS:
             out[f"sm_covered_{w}"] = np.zeros(n)
         return out
-    mid_lag = {w: hb._asof(ts, vals, t - s, MAX_QUOTE_AGE_S)[0] for w, s in WINDOWS}
+    ts = np.asarray(ts, float)
+    vals = np.asarray(vals, float)
+    if len(ts) >= 1:
+        mid_lag = {w: hb._asof(ts, vals, t - s, MAX_QUOTE_AGE_S)[0] for w, s in WINDOWS}
+    else:  # no price series (live market without history): response terms stay NaN
+        mid_lag = {w: np.full(n, np.nan) for w, _ in WINDOWS}
     return _window_stats(sort_trades(tr, first_seen), t, mid, mid_lag, covered_from, first_seen)
 
 
@@ -392,41 +397,42 @@ def market_rows(rec: dict, ts: np.ndarray, vals: np.ndarray, tr: pd.DataFrame | 
         covered_from = -np.inf
     feats = surprise_features(tr if tr is not None and len(tr) else None, t, mid, ts, vals,
                               covered_from, first_seen)
-    rows = pd.DataFrame({"market_id": rec["market_id"], "event_id": rec["event_id"] or "",
-                         "condition_id": rec["condition_id"], "t": t,
-                         "fee_category": rec["fee_category"],
-                         "traded_before_t": of["traded_before_t"].to_numpy(float),
-                         "quote_age_s": of["quote_age_s"].to_numpy(float)})
+    n = len(t)
+    cols: dict = {"market_id": np.full(n, rec["market_id"], dtype=object),
+                  "event_id": np.full(n, rec["event_id"] or "", dtype=object),
+                  "condition_id": np.full(n, rec["condition_id"], dtype=object), "t": t,
+                  "fee_category": np.full(n, rec["fee_category"], dtype=object),
+                  "traded_before_t": of["traded_before_t"].to_numpy(float),
+                  "quote_age_s": of["quote_age_s"].to_numpy(float)}
     for src, dst in CONTEXT_MAP.items():
-        rows[dst] = of[src].to_numpy(float)
+        cols[dst] = of[src].to_numpy(float)
     for k in KEEP_HISTORY:
-        rows[k] = of[k].to_numpy(float)
+        cols[k] = of[k].to_numpy(float)
     hour = (t % DAY_S) / 3600.0
-    rows["hour_sin"] = np.sin(2 * np.pi * hour / 24.0)
-    rows["hour_cos"] = np.cos(2 * np.pi * hour / 24.0)
-    rows["dow"] = ((t // DAY_S) + 4) % 7  # 1970-01-01 was a Thursday (3); Monday = 0
-    for k, v in feats.items():
-        rows[k] = v
+    cols["hour_sin"] = np.sin(2 * np.pi * hour / 24.0)
+    cols["hour_cos"] = np.cos(2 * np.pi * hour / 24.0)
+    cols["dow"] = ((t // DAY_S) + 3) % 7  # 1970-01-01 was a Thursday; Monday = 0
+    cols.update(feats)
     last = ts[-1]
     for h in (2, 6, 24):
         tj = t + h * 3600.0
         mj = hb._asof(ts, vals, tj, MAX_QUOTE_AGE_S)[0]
         mj = np.where(tj <= last + MAX_QUOTE_AGE_S, mj, np.nan)
-        rows[f"fwd_move_{h}h"] = mj - mid
+        cols[f"fwd_move_{h}h"] = mj - mid
     # labels from the primary surprise events (and the union of variants for the clean pool)
-    prim = ev[(ev["variant"] == LABEL_SPEC["primary"]["id"]) & ev["surprise"]]
-    dep = np.sort(prim["t_dep"].to_numpy(float))
+    surp = ev["surprise"].astype(bool).to_numpy() if len(ev) else np.zeros(0, bool)
+    var = ev["variant"].astype(str).to_numpy() if len(ev) else np.zeros(0, dtype=object)
+    tdep = ev["t_dep"].to_numpy(float) if len(ev) else np.zeros(0)
     win6 = float(LABEL_SPEC["evaluation_hit"]["primary_window_s"])
-    rows["y_dep_2h"] = _count_in(dep, t, 0.0, GRID_S) > 0
-    rows["y_dep_6h"] = _count_in(dep, t, 0.0, win6) > 0
-    dep_any = np.sort(ev[ev["surprise"]]["t_dep"].to_numpy(float))
+    dep = np.sort(tdep[surp & (var == LABEL_SPEC["primary"]["id"])])
+    cols["y_dep_2h"] = _count_in(dep, t, 0.0, GRID_S) > 0
+    cols["y_dep_6h"] = _count_in(dep, t, 0.0, win6) > 0
     nb = LABEL_SPEC["negatives"]
-    rows["near_any_dep"] = _count_in(dep_any, t, -float(nb["clean_after_s"]),
+    cols["near_any_dep"] = _count_in(np.sort(tdep[surp]), t, -float(nb["clean_after_s"]),
                                      float(nb["clean_before_s"])) > 0
     for vid in ("extreme10_6h", "to_resolution_6h"):
-        d = np.sort(ev[(ev["variant"] == vid) & ev["surprise"]]["t_dep"].to_numpy(float))
-        rows[f"y_{vid}_6h"] = _count_in(d, t, 0.0, win6) > 0
-    return rows, ev
+        cols[f"y_{vid}_6h"] = _count_in(np.sort(tdep[surp & (var == vid)]), t, 0.0, win6) > 0
+    return pd.DataFrame(cols), ev
 
 
 def _count_in(sorted_pts: np.ndarray, t: np.ndarray, lo_off: float, hi_off: float) -> np.ndarray:
@@ -620,4 +626,51 @@ def log_label_spec(path: Path = provenance.TRIALS_PATH, **extra) -> dict:
 __all__ = ["LABEL_SPEC", "FEATURE_SPEC", "VERSION", "detect_events", "events_all_variants",
            "surprise_features", "feature_names", "market_rows", "build_dataset",
            "add_group_moves", "match_negatives", "strata", "question_stem", "label_spec_sha256",
-           "log_label_spec"]
+           "log_label_spec", "price_context"]
+
+
+# --- 5. live price context (same formulas as history_backfill.origin_frame) ------------------
+
+
+def price_context(ts: np.ndarray, vals: np.ndarray, t: float, *, mid: float | None = None,
+                  created_ts: float = math.nan, end_ts: float = math.nan) -> dict[str, float]:
+    """Context features at one origin ``t`` from a causal price series (points usable only after
+    ``stamp + POINT_LAG_S``), mirroring ``history_backfill.origin_frame``. ``mid`` overrides the
+    as-of series price (the live monitor passes the Gamma mid; recorded as a deviation)."""
+    ts = np.asarray(ts, float)
+    vals = np.asarray(vals, float)
+    tt = np.array([float(t)])
+    out: dict[str, float] = {}
+    if len(ts) < 2:
+        return out
+    m = hb._asof(ts, vals, tt, MAX_QUOTE_AGE_S)[0][0] if mid is None else float(mid)
+    out["mid"] = m
+    if np.isfinite(m) and 0 < m < 1:
+        out["logit_mid"] = float(np.log(m / (1 - m)))
+        out["abs_mid_dev"] = abs(m - 0.5)
+        out["dist_01"] = min(m, 1 - m)
+    lag = {k: hb._asof(ts, vals, tt - s, MAX_QUOTE_AGE_S)[0][0]
+           for k, s in (("1h", 3600), ("1d", 86400), ("1w", 7 * 86400))}
+    for k, v in lag.items():
+        out[f"chg_{k}"] = m - v
+    steps = np.array([m] + [hb._asof(ts, vals, tt - GRID_S * k, MAX_QUOTE_AGE_S)[0][0]
+                            for k in range(1, hb.HIST_STEPS + 1)])
+    d = np.diff(steps)
+    okd = np.isfinite(d)
+    out["own_vol"] = float(np.sqrt((d[okd] ** 2).sum() / okd.sum())) if okd.sum() >= 2 else np.nan
+    cs = np.concatenate([[0.0], np.cumsum(np.diff(vals) ** 2)])
+    u = int(np.searchsorted(ts + POINT_LAG_S, t, side="left") - 1)
+    for hrs, tag in hb.RV_WINDOWS:
+        sidx = int(np.searchsorted(ts, t - POINT_LAG_S - hrs * 3600, side="left"))
+        nd = u - sidx
+        out[f"rv_{tag}"] = (float(np.sqrt((cs[max(u, 0)] - cs[min(sidx, u)]) / nd))
+                            if nd >= 3 else np.nan)
+    out["market_age_h"] = (max(0.0, (t - created_ts) / 3600.0) if math.isfinite(created_ts)
+                           else np.nan)
+    out["log_hours_to_end"] = (float(np.log1p(max(0.0, (end_ts - t) / 3600.0)))
+                               if math.isfinite(end_ts) else np.nan)
+    hour = (t % DAY_S) / 3600.0
+    out["hour_sin"] = float(np.sin(2 * np.pi * hour / 24.0))
+    out["hour_cos"] = float(np.cos(2 * np.pi * hour / 24.0))
+    out["dow"] = float(((t // DAY_S) + 3) % 7)
+    return out

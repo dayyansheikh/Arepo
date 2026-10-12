@@ -121,3 +121,14 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
 2. Placebos in run_ml_dev, then a science review of the runner, fixture-day grouping and placebos.
 3. A future trigger-vs-control effect study needs repeated D120-style runs (D121).
 4. At 12 qualifying snapshots, score E004/E005/E006 (tonight).
+
+## Learned surprise-move detector (2026-10-12 evening)
+`docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
+sha `d9cf42f7…`), 1,186 surprise moves in `history/h2_main`, matched negatives, 83 pre-event features, three
+learned arms + 5 frozen hand rules, time split train ≤ 2026-05 / valid Jun-Jul / test Aug-Oct. Test months at
+the 1 % budget: `en_logit_full` precision 2.25 % vs 0.56 % base and 0.43 % matched controls (excess +1.8 pts,
+Holm p 0.008, first of 100 shuffled-label placebos); hand rules 0 %. Value sits in price-path context
+(`rv_1d` −, `rv_7d` +), flow/wallet families carry no demonstrated incremental value; paper P&L ≤ 0; no case
+clears the budget under the frozen arm. Frozen `sm_learned_v1` (sha `ee7ea5f1…`, `FROZEN_SURPRISE.json`) and
+deployed in `live_trade_monitor` v2 (prospective, unregistered). Next: let the live alert stream accumulate;
+register (programme §7) only if ≥ 30 episodes with controls; do not revise features on this data window.

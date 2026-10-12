@@ -23,6 +23,13 @@ Deviations from the historical panel definitions (recorded in every alert's ``fe
   ``ltr_window_h`` records which;
 * ``new_wallet_share_l`` is NaN (no first-trade lookup for every wallet in the window);
 * ``chg_1h`` is Gamma ``oneHourPriceChange`` at the (cached, <= 5 min old) market snapshot.
+
+Learned surprise-move rule (``detector_specs/FROZEN_SURPRISE.json``, ``surprise_moves``): scored
+only when that index exists. Its features come from the same 500-trade page (``sm_*`` windows
+15m/1h/6h/24h, NaN when the page does not reach back) and from one CLOB ``prices-history``
+request per market (8 days, 10-min fidelity, cached ``ctx_ttl_s``) for the price context
+(``rv_*``, ``chg_*``, ``own_vol``). Deviations from the historical dataset: ``mid`` is the Gamma
+mid, sibling/ladder and new-wallet terms are NaN (they contribute 0 = their training centre).
 """
 
 from __future__ import annotations
@@ -47,6 +54,7 @@ import pandas as pd
 
 from . import detector_eval as de
 from . import forecast
+from . import surprise_moves as sm
 from .flow_features import NEW_DAYS, compute_flow_features
 from .history_sources import DATA_API, RateLimiter, WalletHistory
 from .wallet_sidecar import hash_wallet, load_or_create_key
@@ -56,7 +64,9 @@ log = logging.getLogger(__name__)
 for _n in ("httpx", "httpcore"):
     logging.getLogger(_n).setLevel(logging.WARNING)
 
-VERSION = "live-trade-monitor-v1"
+VERSION = "live-trade-monitor-v2"  # v2: learned surprise-move rule when FROZEN_SURPRISE.json exists
+LEARNED_INDEX = "FROZEN_SURPRISE.json"
+PRICE_HISTORY_DAYS = 8
 ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "live_trades"
 GAMMA = "https://gamma-api.polymarket.com"
 CLOB = "https://clob.polymarket.com"
@@ -119,6 +129,13 @@ def _num(x: Any) -> float:
     except (TypeError, ValueError):
         return NAN
     return v if math.isfinite(v) else NAN
+
+
+def _epoch(v: Any) -> float:
+    try:
+        return float(datetime.fromisoformat(str(v).replace("Z", "+00:00")).timestamp())
+    except (TypeError, ValueError):
+        return NAN
 
 
 def _clean(d: dict) -> dict:
@@ -220,6 +237,20 @@ class Monitor:
         self._key = key if key is not None else load_or_create_key()
         self.registry = registry or de.RuleRegistry()
         self.specs = {rid: self.registry.load(rid) for rid in self.registry.frozen_ids()}
+        self.entries = dict(self.registry.entries())
+        self.learned = de.RuleRegistry(self.registry.spec_dir, LEARNED_INDEX)
+        self.learned_ids: list[str] = []
+        if (self.registry.spec_dir / LEARNED_INDEX).exists():
+            for rid in self.learned.frozen_ids():
+                self.specs[rid] = self.learned.load(rid)
+                self.entries[rid] = self.learned.entries()[rid]
+                self.learned_ids.append(rid)
+        self.learned_cols = sorted({t["feature"] for rid in self.learned_ids
+                                        for t in self.specs[rid].terms} | (
+            {self.specs[rid].direction_feature for rid in self.learned_ids
+             if self.specs[rid].direction_feature}))
+        self.price_cache: dict[str, tuple[float, tuple[np.ndarray, np.ndarray] | None]] = {}
+        self._class_rule = None
         self.if_h1_frozen = (de.SPEC_DIR / "FROZEN_IF_H1.json").exists()
         self.hist = WalletHistory(self.root / "_unused_wallet_cache", key=self._key,
                                   get=self._data_get, limiter=RateLimiter(min_interval=0.0))
@@ -407,6 +438,8 @@ class Monitor:
             slug = str(m.get("slug") or "")
             ctx = {"market_id": str(m.get("id")), "event_id": str(ev.get("id") or ""),
                    "mid": mid, "spread": _num(m.get("spread")),
+                   "created_ts": _epoch(m.get("createdAt")), "end_ts": _epoch(m.get("endDate")),
+                   "fee_type": m.get("feeType"), "question": str(m.get("question") or ""),
                    "liquidity": _num(m.get("liquidityNum") or m.get("liquidity")),
                    "volume24h": _num(m.get("volume24hr")), "end_date": m.get("endDate"),
                    "chg_1h": _num(m.get("oneHourPriceChange")),
@@ -436,6 +469,73 @@ class Monitor:
         cols = ["ts", "side", "outcome_index", "asset", "size", "price", "wallet_hash"]
         return pd.DataFrame(rows, columns=cols), len(rows)
 
+    def market_prices(self, token0: str | None) -> tuple[np.ndarray, np.ndarray] | None:
+        """Causal 10-minute price series of the outcome-0 token (cached ``ctx_ttl_s``)."""
+        now = self.clock()
+        if not token0:
+            return None
+        hit = self.price_cache.get(token0)
+        if hit and now - hit[0] < self.cfg.ctx_ttl_s:
+            return hit[1]
+        st, body = self._get(f"{CLOB}/prices-history", {
+            "market": token0, "startTs": int(now - PRICE_HISTORY_DAYS * 86400), "endTs": int(now),
+            "fidelity": 10})
+        series = None
+        hist = body.get("history") if st == 200 and isinstance(body, dict) else None
+        if hist:
+            try:
+                pts = sorted((float(h["t"]), float(h["p"])) for h in hist)
+                series = (np.array([p[0] for p in pts]), np.array([p[1] for p in pts]))
+            except (KeyError, TypeError, ValueError):
+                series = None
+        self.price_cache[token0] = (now, series)
+        return series
+
+    def learned_features(self, rec: dict, ctx: dict, flow: pd.DataFrame, n_ret: int,
+                         origin: float) -> dict:
+        """Features of the learned surprise-move rule (``surprise_moves``) at ``origin``."""
+        from astrolabe.research_panel.pairing import fee_category
+
+        out: dict[str, float] = {}
+        series = self.market_prices(ctx.get("token0"))
+        ts, vals = series if series is not None else (np.zeros(0), np.zeros(0))
+        prior = flow[flow["ts"] < origin].copy() if len(flow) else flow
+        if len(prior):
+            oi = prior["outcome_index"].to_numpy(dtype=object)
+            asset = prior["asset"].astype(str).to_numpy()
+            prior["outcome_index"] = np.where(
+                [o is not None for o in oi], [0 if o in (0, None) else 1 for o in oi],
+                np.where(asset == str(ctx.get("token0")), 0, 1))
+            prior["wallet_hash"] = prior["wallet_hash"].fillna("missing")
+        covered_from = float(flow["ts"].min()) if (len(flow) and n_ret >= 500) else -np.inf
+        f = sm.surprise_features(prior if len(prior) else None, np.array([origin]),
+                                 np.array([ctx["mid"]]), ts, vals, covered_from, None)
+        for k, v in f.items():
+            out[k] = float(v[0])
+        for w, _ in sm.WINDOWS:
+            out[f"sm_abs_imb_{w}"] = abs(out.get(f"sm_imb_{w}", NAN))
+        if len(ts) >= 2:
+            out.update(sm.price_context(ts, vals, origin, mid=ctx["mid"],
+                                        created_ts=ctx.get("created_ts", NAN),
+                                        end_ts=ctx.get("end_ts", NAN)))
+        else:
+            out["mid"] = ctx["mid"]
+        fc = fee_category(ctx.get("fee_type"))
+        for c in ("sports", "crypto", "unknown", "weather", "finance", "politics", "culture",
+                  "economics", "tech", "mentions"):
+            out[f"fee_{c}"] = float(fc == c)
+        if self._class_rule is None:
+            from . import if_h1
+
+            self._class_rule = if_h1.load_spec()["class_rule"]
+        from . import if_h1
+
+        dc = if_h1.classify(ctx.get("question", ""), ctx.get("fee_type"), self._class_rule)
+        for c in ("A", "B", "C"):
+            out[f"dec_{c}"] = float(dc == c)
+        out["price_points"] = float(len(ts))
+        return out
+
     def features_for(self, rec: dict, ctx: dict, flow: pd.DataFrame, n_ret: int) -> dict:
         origin = rec["ts"] + 1.0
         f = compute_flow_features(flow, origin, liquidity=ctx["liquidity"], token0=ctx["token0"],
@@ -457,8 +557,14 @@ class Monitor:
                 w = prior[prior["ts"] >= origin - win_h * 3600.0]
                 if len(w) and w["size"].mean() > 0:
                     ltr, ltr_w = rec["size"] / float(w["size"].mean()), win_h
-        return {**f, "origin_epoch": origin, "time_since_last_trade_s": last_age,
-                "last_trade_price": last_p, "large_trade_rel": ltr, "ltr_window_h": ltr_w}
+        out = {**f, "origin_epoch": origin, "time_since_last_trade_s": last_age,
+               "last_trade_price": last_p, "large_trade_rel": ltr, "ltr_window_h": ltr_w}
+        if self.learned_ids:
+            lf = self.learned_features(rec, ctx, flow, n_ret, origin)
+            lf["last_trade_age_h"] = last_age / 3600.0 if math.isfinite(last_age) else NAN
+            lf["ltp_minus_mid"] = last_p - ctx["mid"] if math.isfinite(last_p) else NAN
+            out["learned"] = lf
+        return out
 
     def score_rows(self, rows: list[dict]) -> dict[str, pd.DataFrame]:
         """rows carry ``feat`` and ``ctx``. Returns {rule_id: per-row score frame}."""
@@ -481,6 +587,9 @@ class Monitor:
                          "last_trade_price": f["last_trade_price"], "chg_1h": c["chg_1h"]})
         panel = de.normalise_panel(pd.DataFrame(recs), "live")
         panel["large_trade_rel"] = [r["feat"]["large_trade_rel"] for r in rows]
+        for c in self.learned_cols:
+            if c not in panel:
+                panel[c] = [float(r["feat"].get("learned", {}).get(c, NAN)) for r in rows]
         return {rid: de.score_rule(spec, panel) for rid, spec in self.specs.items()}
 
     # cycle ------------------------------------------------------------------------------
@@ -592,7 +701,7 @@ class Monitor:
             pool = list(self.recent.values())
             used: set[str] = set()
             for rid, ids in alerted.items():
-                entry = self.registry.entries()[rid]
+                entry = self.entries[rid]
                 for i in ids:
                     r = scorable[i]
                     base = self._line(rid, entry, r, now=self.clock(), extra=info[rid])
