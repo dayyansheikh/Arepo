@@ -405,3 +405,45 @@ def test_realised_vol_end_time_and_distance_causal():
     v3[k] += 0.1
     c3 = hb.market_panel(_mkt(end_epoch=ts[-1] + 86400.0), ts, v3, None, True, 2, "r1")
     assert c3[c3["t_i"] == cut].iloc[0]["ml_rv_1d"] > a["ml_rv_1d"]
+
+
+def test_topic_rules_and_weighted_sample():
+    from astrolabe.research_lab import history_topics as ht
+
+    assert ht.topic_of("Will Trump win the 2028 election?", "", "", "unknown") == "politics"
+    assert ht.topic_of("Fed cut rates in March?", "", "", "unknown") == "macro"
+    assert ht.topic_of("Best Picture at the Oscars", "", "", "culture") == "awards"
+    assert ht.topic_of("Bitcoin above 100k?", "", "", "crypto") == "crypto"
+    assert ht.topic_of("Lakers vs Celtics", "", "", "sports") == "sports"
+    assert ht.topic_of("Will it rain", "", "", "unknown") == "other"
+    frame = [{"market_id": str(i), "status": "closed", "created_at": "2026-05-01",
+              "topic": "politics" if i % 10 == 0 else "other"} for i in range(1000)]
+    ch, rep = hb.draw_sample_weighted(frame, 200, "s", 3.0, exclude_ids={"0"})
+    pol = [r for r in ch if r["topic"] == "politics"]
+    assert len(ch) == 200 and rep["excluded_prior_ids"] == 1
+    # 3x the sampling rate on the asymmetric stratum; weights are inverse inclusion probs
+    assert abs(pol[0]["inclusion_prob"] / [r for r in ch if r["topic"] == "other"][0]
+               ["inclusion_prob"] - 3.0) < 0.2
+    assert all(abs(r["sample_weight"] * r["inclusion_prob"] - 1) < 1e-9 for r in ch)
+    assert abs(sum(r["sample_weight"] for r in ch) - 999) < 1e-6  # reweights to the pool
+
+
+def test_power_mode_wallet_lookup_hashes_only(tmp_path):
+    base = Fake([_market(i) for i in range(1, 4)])
+    orig = base.__call__
+
+    def fake(url, params):
+        if url == hb.DATA_ACTIVITY:
+            assert params["type"] == "TRADE" and params["limit"] == 1
+            return 200, json.dumps([{"timestamp": 1_000_000}]).encode(), {}
+        return orig(url, params)
+
+    m = hb.run(tmp_path, "p1", fake, n_markets=3, key=KEY, now=NOW, sleep=lambda s: None,
+               lookback_days=2, live_check=None, oversample=3.0, wallet_min_usd=1.0,
+               wallet_cap=5, budget_scope="run", checkpoint_every=1)
+    ft = (tmp_path / "p1" / "new_wallets" / "first_trade.jsonl").read_text().splitlines()
+    assert m["wallet_first_trade"]["lookups_new"] == len(ft) == 5  # cap respected, cached after
+    assert "ABCDEF" not in "".join(ft).upper().replace("WALLET_HASH", "")
+    assert m["wallet_first_trade"]["cap_reached"] and m["params"]["oversample"] == 3.0
+    sample = pd.read_csv(tmp_path / "p1" / "sample.csv.gz")
+    assert {"topic", "sample_weight", "inclusion_prob"} <= set(sample.columns)

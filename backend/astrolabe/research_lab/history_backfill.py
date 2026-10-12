@@ -35,6 +35,7 @@ import hmac
 import json
 import math
 import os
+import re
 import time
 from collections.abc import Callable, Iterable, Iterator
 from datetime import UTC, datetime, timedelta
@@ -46,7 +47,7 @@ import pandas as pd
 
 from astrolabe.research_panel.pairing import fee_category
 
-from . import ml_panel
+from . import history_topics, ml_panel
 from .wallet_sidecar import hash_wallet, load_or_create_key
 
 PROVENANCE = "EXPLORATORY_HISTORICAL"
@@ -55,6 +56,7 @@ HISTORY_VERSION = "history-backfill-v1"
 GAMMA_MARKETS = "https://gamma-api.polymarket.com/markets"
 CLOB_PRICES = "https://clob.polymarket.com/prices-history"
 DATA_TRADES = "https://data-api.polymarket.com/trades"
+DATA_ACTIVITY = "https://data-api.polymarket.com/activity"
 HEADERS = {"User-Agent": "arepo-research-lab/1", "Accept-Encoding": "gzip"}
 
 FIDELITY_MIN = 10
@@ -146,6 +148,23 @@ def live_pass_running() -> bool:
     except (OSError, subprocess.SubprocessError):
         return False
     return any(_is_pass_command(line.strip()) for line in out.splitlines())
+
+
+ANCHORED_PASS = re.compile(r"^/bin/zsh\s+\S*arepo_pass\.sh")
+
+
+def live_pass_running_anchored() -> bool:
+    """Stricter live-collector check (the shared heavy-lock convention): only a command line that
+    *starts with* ``/bin/zsh <path>/arepo_pass.sh`` counts, so agent shells that merely mention the
+    script name never stall the backfill."""
+    import subprocess
+
+    try:
+        out = subprocess.run(["ps", "-axo", "command="], capture_output=True, text=True,
+                             timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return any(ANCHORED_PASS.match(line.strip()) for line in out.splitlines())
 
 
 def yield_to_live(is_running: Callable[[], bool] = live_pass_running,
@@ -252,6 +271,14 @@ class DiskBudget:
         tmp.write_bytes(data)
         os.replace(tmp, path)
 
+    def write_append(self, path: Path, text: str) -> None:
+        """Append a text line (cap-checked); used for small hash-only caches."""
+        data = text.encode()
+        self.charge(len(data))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("ab") as fh:
+            fh.write(data)
+
 
 def _gz_csv_bytes(header: list[str], rows: Iterable[list]) -> bytes:
     import io
@@ -267,6 +294,7 @@ def _gz_csv_bytes(header: list[str], rows: Iterable[list]) -> bytes:
 # Market universe (Gamma) and stratified sample
 # ---------------------------------------------------------------------------------------------
 
+FRAME_TEXT_COLUMNS = ["question", "event_title", "slug", "topic"]
 FRAME_COLUMNS = [
     "market_id", "condition_id", "token0", "token1", "event_id", "fee_category", "status",
     "liquidity", "volume", "created_at", "start_at", "end_at", "closed_time", "closed",
@@ -285,7 +313,7 @@ def _epoch(v: Any) -> float:
         return float("nan")
 
 
-def frame_row(m: dict) -> dict | None:
+def frame_row(m: dict, with_text: bool = False) -> dict | None:
     """Slim record of a Gamma market, or None unless it is a binary market with token ids."""
     try:
         toks = json.loads(m["clobTokenIds"]) if isinstance(m.get("clobTokenIds"), str) else None
@@ -317,6 +345,12 @@ def frame_row(m: dict) -> dict | None:
         "start_epoch": _epoch(start), "end_epoch": _epoch(m.get("endDate")),
         "close_epoch": _epoch(m.get("closedTime")),
     }
+    if with_text:  # creation-known text for the topic stratum (power runs only)
+        r["question"] = str(m.get("question") or "")[:300]
+        r["event_title"] = str(ev0.get("title") or "")[:300]
+        r["slug"] = str(m.get("slug") or "")[:200]
+        r["topic"] = history_topics.topic_of(r["question"], r["event_title"], r["slug"],
+                                              r["fee_category"])
     return r
 
 
@@ -347,7 +381,7 @@ def fetch_frame(
     lim: Limiter, now: float, lookback_days: int = 270, min_volume: float = 0.0,
     include_active: bool = True, windows_per_day: int = 6, window_minutes: int = 15,
     pages_per_window: int = 3, seed: str = "arepo-h1", partial_path: Path | None = None,
-    should_stop: Callable[[], bool] | None = None,
+    should_stop: Callable[[], bool] | None = None, with_text: bool = False,
 ) -> tuple[list[dict], dict]:
     """Market universe, sampled by time window (the full closed universe is far too large: one day
     can hold more than 20000 closed markets, mostly short crypto markets, and Gamma offset depth is
@@ -384,7 +418,7 @@ def fetch_frame(
     def take(batch: list[dict]) -> None:
         for m in batch:
             rep["raw"] += 1
-            r = frame_row(m)
+            r = frame_row(m, with_text)
             if r is None:
                 rep["non_binary_or_invalid"] += 1
             else:
@@ -524,6 +558,83 @@ def draw_sample(frame: list[dict], n_total: int, seed: str, by_category: bool = 
                     "categories": sorted(cats)}
 
 
+def allocate_weighted(sizes: dict[str, int], weights: dict[str, float], n_total: int
+                      ) -> dict[str, int]:
+    """Allocation proportional to ``weights[k] * sizes[k]`` (water-filling above a stratum's size,
+    largest remainder). With weight 1 everywhere this is proportional allocation; a stratum with
+    weight 3 is sampled at three times the rate of a weight-1 stratum (until it is exhausted)."""
+    n_total = min(n_total, sum(sizes.values()))
+    alloc = dict.fromkeys(sizes, 0)
+    full: set[str] = set()
+    while True:
+        open_ = [k for k in sizes if k not in full]
+        left = n_total - sum(alloc[k] for k in full)
+        mass = sum(weights[k] * sizes[k] for k in open_)
+        if not open_ or mass <= 0:
+            break
+        share = {k: left * weights[k] * sizes[k] / mass for k in open_}
+        over = [k for k in open_ if share[k] >= sizes[k]]
+        if not over:
+            break
+        for k in over:
+            alloc[k] = sizes[k]
+            full.add(k)
+    open_ = [k for k in sizes if k not in full]
+    if open_:
+        left = n_total - sum(alloc[k] for k in full)
+        mass = sum(weights[k] * sizes[k] for k in open_)
+        share = {k: left * weights[k] * sizes[k] / mass for k in open_}
+        for k in open_:
+            alloc[k] = min(sizes[k], int(math.floor(share[k])))
+        rem = n_total - sum(alloc.values())
+        for k in sorted(open_, key=lambda k: (-(share[k] - math.floor(share[k])), k)):
+            if rem <= 0:
+                break
+            if alloc[k] < sizes[k]:
+                alloc[k] += 1
+                rem -= 1
+    return alloc
+
+
+def draw_sample_weighted(frame: list[dict], n_total: int, seed: str, oversample: float = 3.0,
+                         exclude_ids: set[str] | None = None) -> tuple[list[dict], dict]:
+    """Seeded sample over strata ``status x topic x creation month`` (creation-known), with the
+    decision-asymmetric topics oversampled ``oversample``-fold. Within a stratum, markets are
+    ordered by sha256(seed|market_id). Each row records ``inclusion_prob`` (= n_s / N_s) and
+    ``sample_weight`` (= N_s / n_s, the inverse inclusion probability) so estimates can be
+    reweighted to the frame. ``exclude_ids`` (markets already sampled by earlier runs) are removed
+    from the pool before strata are formed; weights refer to this reduced pool."""
+    excl = exclude_ids or set()
+    pool = [r for r in frame if r["market_id"] not in excl]
+    strata: dict[str, list[dict]] = {}
+    for r in pool:
+        skey = "|".join([r["status"], r["topic"], str(r["created_at"])[:7] or "unknown"])
+        strata.setdefault(skey, []).append(r)
+    sizes = {k: len(v) for k, v in strata.items()}
+    w = {k: (oversample if history_topics.is_asymmetric(k.split("|")[1]) else 1.0)
+         for k in strata}
+    alloc = allocate_weighted(sizes, w, n_total)
+    chosen: list[dict] = []
+    for k in sorted(strata):
+        if not alloc[k]:
+            continue
+        pick = sorted(strata[k], key=lambda r: _rank(seed, r["market_id"]))[: alloc[k]]
+        for r in pick:
+            chosen.append({**r, "stratum": k, "inclusion_prob": alloc[k] / sizes[k],
+                           "sample_weight": sizes[k] / alloc[k]})
+    by_topic: dict[str, dict] = {}
+    for k in strata:
+        t = k.split("|")[1]
+        e = by_topic.setdefault(t, {"pool": 0, "sampled": 0})
+        e["pool"] += sizes[k]
+        e["sampled"] += alloc[k]
+    return chosen, {"pool": len(pool), "excluded_prior_ids": len(frame) - len(pool),
+                    "strata": sizes, "allocation": alloc, "n": len(chosen), "seed": seed,
+                    "design": "proportional allocation x stratum weight over status|topic|month",
+                    "oversample_factor": oversample, "asymmetric_topics":
+                    list(history_topics.ASYMMETRIC_TOPICS), "by_topic": by_topic}
+
+
 # ---------------------------------------------------------------------------------------------
 # Per-market fetch (prices, trades)
 # ---------------------------------------------------------------------------------------------
@@ -575,10 +686,15 @@ def trade_key(t: dict) -> str:
     return hashlib.sha256(s.encode()).hexdigest()[:16]
 
 
-def fetch_trades(lim: Limiter, condition_id: str, key: bytes, max_trades: int
+def fetch_trades(lim: Limiter, condition_id: str, key: bytes, max_trades: int,
+                 collect: dict | None = None, collect_min_usd: float = 500.0
                  ) -> tuple[list[list], dict]:
     """Newest-first pages up to ``max_trades`` (and the API offset cap). Wallets become keyed
-    hashes immediately; no raw address, name or pseudonym is kept. Returns rows + stats."""
+    hashes immediately; no raw address, name or pseudonym is kept. Returns rows + stats.
+
+    ``collect`` (transient, caller-owned, never persisted): ``{hash: [address, earliest_ts_here,
+    has_big_trade]}`` for the wallets seen, where big means one trade of size*price >=
+    ``collect_min_usd``."""
     rows: dict[str, list] = {}
     off, pages, truncated = 0, 0, False
     cap = min(max_trades, TRADE_OFFSET_CAP + TRADE_PAGE)
@@ -596,6 +712,11 @@ def fetch_trades(lim: Limiter, condition_id: str, key: bytes, max_trades: int
                     int(t["outcomeIndex"]), wallet_hash(key, str(t.get("proxyWallet", ""))),
                     trade_key(t),
                 ]
+                if collect is not None and t.get("proxyWallet"):
+                    row = rows[trade_key(t)]
+                    e = collect.setdefault(row[5], [str(t["proxyWallet"]), row[0], False])
+                    e[1] = min(e[1], row[0])
+                    e[2] = e[2] or row[2] * row[3] >= collect_min_usd
             except (KeyError, TypeError, ValueError):
                 continue
         if len(data) < TRADE_PAGE:
@@ -642,15 +763,29 @@ def run(
     now: float | None = None, sleep: Callable[[float], None] = time.sleep,
     should_stop: Callable[[], bool] | None = None,
     live_check: Callable[[], bool] | None = live_pass_running,
+    oversample: float | None = None, exclude_runs: Iterable[str] = (),
+    wallet_min_usd: float | None = None, wallet_cap: int = 60000,
+    wallet_cache_paths: Iterable[Path] = (), budget_scope: str = "root",
+    checkpoint_every: int = 0,
 ) -> dict:
     """Fetch universe, draw the seeded sample, fetch prices and trades per market. Resumable:
-    re-running with the same ``run_id`` reuses ``sample.csv.gz`` and skips finished markets."""
+    re-running with the same ``run_id`` reuses ``sample.csv.gz`` and skips finished markets.
+
+    Power mode (``oversample`` set, new options only): the frame also records question / event
+    title / slug / topic, the sample is ``draw_sample_weighted`` (asymmetric topics oversampled,
+    markets of ``exclude_runs`` removed, inverse-probability weights stored in ``sample.csv.gz``),
+    and with ``wallet_min_usd`` set, wallets with any trade of at least that notional get one
+    causal ``/activity`` first-trade lookup (hashes only, cached in
+    ``<run>/new_wallets/first_trade.jsonl`` plus the read-only ``wallet_cache_paths``, at most
+    ``wallet_cap`` new lookups). ``budget_scope="run"`` applies ``disk_cap`` to this run only.
+    ``checkpoint_every`` rewrites the manifest every N markets."""
     root = Path(root)
     if "snapshots" in root.parts or "snapshots" in run_id:
         raise ValueError("historical data must never be written under snapshots/")
     rdir = root / run_id
     rdir.mkdir(parents=True, exist_ok=True)
-    budget = DiskBudget(root, disk_cap)
+    power = oversample is not None
+    budget = DiskBudget(rdir if budget_scope == "run" else root, disk_cap)
     lim = Limiter(transport, rps=rps, sleep=sleep, live_check=live_check)
     key = key if key is not None else load_or_create_key()
     now = time.time() if now is None else now
@@ -658,6 +793,7 @@ def run(
     sample_path = rdir / "sample.csv.gz"
     manifest_path = rdir / "manifest.json"
     prior = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+    frame_cols = [*FRAME_COLUMNS, *FRAME_TEXT_COLUMNS] if power else FRAME_COLUMNS
 
     if sample_path.exists():
         sample = pd.read_csv(sample_path, dtype={"market_id": str, "token0": str, "token1": str,
@@ -681,15 +817,25 @@ def run(
             try:
                 frame, frame_rep = fetch_frame(
                     lim, now, lookback_days, min_volume, seed=seed,
-                    partial_path=rdir / "frame_partial.jsonl", should_stop=should_stop)
+                    partial_path=rdir / "frame_partial.jsonl", should_stop=should_stop,
+                    with_text=power)
             except FrameInterrupted:
                 return {"stopped": "frame fetch paused (collection window); resumable",
                         "counts": {"markets_done": 0}}
             budget.write(frame_path, _gz_csv_bytes(
-                FRAME_COLUMNS, ([r[c] for c in FRAME_COLUMNS] for r in frame)))
-        sample, samp_rep = draw_sample(frame, n_markets, seed, True, categories, category_mode)
+                frame_cols, ([r[c] for c in frame_cols] for r in frame)))
+        if power:
+            excl: set[str] = set()
+            for er in exclude_runs:
+                sp = root / er / "sample.csv.gz"
+                if sp.exists():
+                    excl |= set(pd.read_csv(sp, usecols=["market_id"], dtype=str).market_id)
+            sample, samp_rep = draw_sample_weighted(frame, n_markets, seed, oversample, excl)
+            samp_rep["exclude_runs"] = list(exclude_runs)
+        else:
+            sample, samp_rep = draw_sample(frame, n_markets, seed, True, categories, category_mode)
         frame_rep["frame_size"] = len(frame)
-        header = [*FRAME_COLUMNS, "stratum"]
+        header = [*frame_cols, "stratum"] + (["inclusion_prob", "sample_weight"] if power else [])
         budget.write(sample_path, _gz_csv_bytes(
             header, ([r[c] for c in header] for r in sample)))
 
@@ -704,6 +850,101 @@ def run(
             stats["trades"] += rec["trades"]
             stats["trades_truncated_markets"] += int(rec["trades_truncated"])
     stopped = None
+    # causal wallet first-trade cache (hashes only): own file + read-only earlier files
+    ft_dir = rdir / "new_wallets"
+    ft_path = ft_dir / "first_trade.jsonl"
+    ft_known: dict[str, int | None] = {}
+    for fp in (*wallet_cache_paths, ft_path):
+        if Path(fp).exists():
+            for line in Path(fp).read_text().splitlines():
+                if line.strip():
+                    d = json.loads(line)
+                    ft_known[d["wallet_hash"]] = d["first_trade_ts"]
+    wstats = {"lookups_new": sum(1 for _ in ft_path.read_text().splitlines())
+              if ft_path.exists() else 0, "lookups_failed": 0, "cache_hits": 0,
+              "wallets_seen_big": 0, "cap_reached": False}
+
+    def lookup_wallets(coll: dict) -> None:
+        big = sorted((v[1], h, v[0]) for h, v in coll.items() if v[2])
+        wstats["wallets_seen_big"] += len(big)
+        for ets, h, addr in big:
+            if h in ft_known:
+                wstats["cache_hits"] += 1
+                continue
+            if wstats["lookups_new"] >= wallet_cap:
+                wstats["cap_reached"] = True
+                break
+            try:
+                st, data = lim.get(DATA_ACTIVITY, {
+                    "user": addr, "type": "TRADE", "limit": 1, "offset": 0, "end": int(ets),
+                    "sortBy": "TIMESTAMP", "sortDirection": "ASC"})
+            except RuntimeError:
+                wstats["lookups_failed"] += 1
+                continue
+            if st != 200 or not isinstance(data, list):
+                wstats["lookups_failed"] += 1
+                continue
+            ft = int(data[0]["timestamp"]) if data else None
+            ft_known[h] = ft
+            wstats["lookups_new"] += 1
+            budget.write_append(ft_path, json.dumps(
+                {"wallet_hash": h, "first_trade_ts": ft, "end_ts": int(ets)}) + "\n")
+
+    def write_manifest(stopped_: str | None) -> dict:
+        manifest = {
+            "provenance": PROVENANCE,
+            "evidence_role": EVIDENCE_ROLE, "version": HISTORY_VERSION, "run_id": run_id,
+            "purpose": "exploratory ML development only; never prospective confirmation",
+            "git_commit": _git_commit(),
+            "endpoints": {"gamma_markets": GAMMA_MARKETS, "prices_history": CLOB_PRICES,
+                          "trades": DATA_TRADES},
+            "params": {"fidelity_min": FIDELITY_MIN, "window_days": WINDOW_DAYS,
+                       "lookback_days": lookback_days, "min_volume": min_volume,
+                       "max_days": max_days, "max_trades": max_trades, "seed": seed,
+                       "n_markets": n_markets, "category_mode": category_mode,
+                       "categories": sorted(categories), "max_rps": rps,
+                   "oversample": oversample, "exclude_runs": list(exclude_runs),
+                   "wallet_min_usd": wallet_min_usd, "wallet_cap": wallet_cap},
+            "started_utc": prior.get("started_utc", utc_iso(t_start)), "updated_utc": utc_iso(),
+            "request_clock_now": utc_iso(now),
+            "price_semantics": "unverified (last-trade vs mid not stated by API)",
+            "timestamps": "venue-stamped unix seconds; no receipt time",
+            "wallet_hash": {"method": "wallet_sidecar.hash_wallet (HMAC-SHA256, lowercase)",
+                            "key_id": key_id(key), "raw_addresses_stored": False},
+            "stratification": {
+                "attributes": ["status", "fee_category", "created_month"],
+                "known_at_creation": ["fee_category", "created_month"],
+                "design_mix": ["status (closed vs active)"],
+                "end_of_life_attributes_used": [],
+                "frame_exclusions": frame_rep.get("excludes"),
+                "survivorship_note": "no volume/liquidity/outcome attribute enters the frame or "
+                "the stratification unless frame_report.volume_floor is set (then it is a separate "
+                "labelled sub-frame). Closed markets are those that closed inside the lookback; "
+                "active markets are those still open at the request time, so older still-open "
+                "markets and markets that lived entirely outside the lookback are absent.",
+                "frame_min_volume": min_volume},
+            "evidence_notes": {
+                "origin_features": "price points with stamp + POINT_LAG_S < t, trades with ts < t",
+                "point_lag_s": POINT_LAG_S,
+                "membership": "createdAt <= t < closedTime (active: no upper bound)",
+                "static_gamma_metadata_as_features": False,
+                "price_series_nature": "p rarely equals any trade price (mean abs diff ~0.01): "
+                "mid-like/derived, interval stamp convention not verifiable -> conservative lag"},
+            "frame_report": frame_rep, "sample_report": samp_rep,
+            "requests": {"total_this_session": lim.requests, "retries": lim.retries,
+                         "http_429": lim.throttled, "yielded_to_live_s": lim.yielded_s},
+            "counts": stats, "stopped": stopped_,
+            "wallet_first_trade": wstats if wallet_min_usd is not None else None,
+            "disk_bytes": budget.scan(), "disk_cap_bytes": disk_cap, "disk_scope": budget_scope,
+            "elapsed_s_this_session": round(time.time() - t_start, 1),
+            "probe_findings": PROBE_FINDINGS,
+        }
+        budget.cap += 10**7  # manifest bookkeeping must still be writable at the cap
+        budget.write(manifest_path, json.dumps(manifest, indent=1, sort_keys=True,
+                                               default=float).encode())
+        return manifest
+
+    n_since_ckpt = 0
     for r in sample:
         mid = r["market_id"]
         if should_stop is not None and should_stop():
@@ -714,7 +955,12 @@ def run(
         try:
             win = price_window(r, now, max_days)
             pts, np_req = fetch_prices(lim, r["token0"], *win) if win else ([], 0)
-            trades, tst = fetch_trades(lim, r["condition_id"], key, max_trades)
+            coll: dict | None = {} if wallet_min_usd is not None else None
+            trades, tst = fetch_trades(lim, r["condition_id"], key, max_trades, coll,
+                                       wallet_min_usd or 0.0)
+            if coll:
+                lookup_wallets(coll)
+            coll = None  # raw addresses never leave this scope
             budget.write(rdir / "prices" / f"{mid}.csv.gz",
                          _gz_csv_bytes(["t", "p"], ([t, p] for t, p in pts)))
             budget.write(rdir / "trades" / f"{mid}.csv.gz", _gz_csv_bytes(TRADE_COLUMNS, trades))
@@ -734,56 +980,13 @@ def run(
             stats["markets_failed"] += 1
         with progress_path.open("a") as fh:
             fh.write(json.dumps(rec) + "\n")
+        n_since_ckpt += 1
+        if checkpoint_every and n_since_ckpt >= checkpoint_every:
+            n_since_ckpt = 0
+            write_manifest("in_progress")
 
-    manifest = {
-        "provenance": PROVENANCE,
-        "evidence_role": EVIDENCE_ROLE, "version": HISTORY_VERSION, "run_id": run_id,
-        "purpose": "exploratory ML development only; never prospective confirmation",
-        "git_commit": _git_commit(),
-        "endpoints": {"gamma_markets": GAMMA_MARKETS, "prices_history": CLOB_PRICES,
-                      "trades": DATA_TRADES},
-        "params": {"fidelity_min": FIDELITY_MIN, "window_days": WINDOW_DAYS,
-                   "lookback_days": lookback_days, "min_volume": min_volume,
-                   "max_days": max_days, "max_trades": max_trades, "seed": seed,
-                   "n_markets": n_markets, "category_mode": category_mode,
-                   "categories": sorted(categories), "max_rps": rps},
-        "started_utc": prior.get("started_utc", utc_iso(t_start)), "updated_utc": utc_iso(),
-        "request_clock_now": utc_iso(now),
-        "price_semantics": "unverified (last-trade vs mid not stated by API)",
-        "timestamps": "venue-stamped unix seconds; no receipt time",
-        "wallet_hash": {"method": "wallet_sidecar.hash_wallet (HMAC-SHA256, lowercase)",
-                        "key_id": key_id(key), "raw_addresses_stored": False},
-        "stratification": {
-            "attributes": ["status", "fee_category", "created_month"],
-            "known_at_creation": ["fee_category", "created_month"],
-            "design_mix": ["status (closed vs active)"],
-            "end_of_life_attributes_used": [],
-            "frame_exclusions": frame_rep.get("excludes"),
-            "survivorship_note": "no volume/liquidity/outcome attribute enters the frame or the "
-            "stratification unless frame_report.volume_floor is set (then it is a separate "
-            "labelled sub-frame). Closed markets are those that closed inside the lookback; "
-            "active markets are those still open at the request time, so older still-open "
-            "markets and markets that lived entirely outside the lookback are absent.",
-            "frame_min_volume": min_volume},
-        "evidence_notes": {
-            "origin_features": "price points with stamp + POINT_LAG_S < t, trades with ts < t",
-            "point_lag_s": POINT_LAG_S,
-            "membership": "createdAt <= t < closedTime (active: no upper bound)",
-            "static_gamma_metadata_as_features": False,
-            "price_series_nature": "p rarely equals any trade price (mean abs diff ~0.01): "
-            "mid-like/derived, interval stamp convention not verifiable -> conservative lag"},
-        "frame_report": frame_rep, "sample_report": samp_rep,
-        "requests": {"total_this_session": lim.requests, "retries": lim.retries,
-                     "http_429": lim.throttled, "yielded_to_live_s": lim.yielded_s},
-        "counts": stats, "stopped": stopped,
-        "disk_bytes": budget.scan(), "disk_cap_bytes": disk_cap,
-        "elapsed_s_this_session": round(time.time() - t_start, 1),
-        "probe_findings": PROBE_FINDINGS,
-    }
-    budget.cap += 10**7  # manifest bookkeeping must still be writable at the cap
-    budget.write(manifest_path, json.dumps(manifest, indent=1, sort_keys=True,
-                                           default=float).encode())
-    return manifest
+    return write_manifest(stopped)
+
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1080,6 +1283,9 @@ def origin_frame(
         r["start_epoch"]) else False
     unchanged = (first_move + POINT_LAG_S >= t).astype(float)
     out["price_unchanged_since_listing"] = unchanged if starts_at_listing else nan
+    for extra in ("topic", "inclusion_prob", "sample_weight"):  # power runs only
+        if extra in r and r[extra] != "":
+            out[extra] = r[extra]
     out["dep_group"] = ("e:" + r["event_id"]) if r["event_id"] else "m:" + r["market_id"]
     out["provenance"] = PROVENANCE
     out["evidence_role"] = EVIDENCE_ROLE

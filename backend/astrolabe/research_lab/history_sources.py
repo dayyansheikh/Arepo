@@ -931,3 +931,26 @@ def load_new_wallet_features(path: Path):
     df = pd.read_csv(path, dtype={"market_id": str})
     df["origin_ts"] = df["origin_ts"].astype(float)
     return df
+
+
+def build_new_wallet_table(run_dir: Path, out_dir: Path, extra_first_trade: Iterable[Path] = ()) -> dict:
+    """Write ``new_wallet_features_<run>.csv.gz`` (same keys/columns as the h1/h2 tables) from a
+    run's H6h panel, trades and its own ``new_wallets/first_trade.jsonl`` merged (hashes only) with
+    read-only earlier first-trade files. Heavy: hold the shared heavy lock."""
+    run_dir, out_dir = Path(run_dir), Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    merged: dict[str, int | None] = {}
+    for fp in (*extra_first_trade, run_dir / "new_wallets" / "first_trade.jsonl"):
+        merged.update(_read_first_trades(Path(fp)))
+    mpath = run_dir / "new_wallets" / "first_trade_merged.jsonl"
+    mpath.write_text("".join(json.dumps({"wallet_hash": h, "first_trade_ts": v}) + "\n"
+                             for h, v in merged.items()))
+    df = new_wallet_features(run_dir / "panel_H6h.csv.gz", run_dir / "trades",
+                             run_dir / "progress.jsonl", mpath)
+    name = f"new_wallet_features_{run_dir.name}"
+    df.to_csv(out_dir / f"{name}.csv.gz", index=False)
+    info = {"created_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "evidence_role": EVIDENCE_ROLE, "history_version": HISTORY_VERSION,
+            "join_keys": list(JOIN_KEYS), "rows": int(len(df)), "first_trade_wallets": len(merged)}
+    (out_dir / f"{name}.manifest.json").write_text(json.dumps(info, indent=1, sort_keys=True))
+    return info
