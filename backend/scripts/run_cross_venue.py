@@ -27,6 +27,18 @@ from astrolabe.research_lab import provenance
 ROOT = Path("data-dumps/research_lab/cross_venue")
 SELECT_CAP = {"Sports": 230}  # keeps the study within the 100-500 pair target
 SELECT_SEED = "cross-venue-v1"
+# Revision r1 hand verdicts: pairs read at title level and judged to be different contracts.
+HAND_DIFFERENT = {
+    "KXSPOTIFYALBUMRELEASE-25-DRA": "before Dec 2025 vs any time in 2025",
+    "KXWCAWARDCOMBO-26KMBAPP10-YES": "Golden Boot AND Golden Ball vs Golden Ball",
+    "KXWCAWARDCOMBO-26LMESSI10-YES": "Golden Boot AND Golden Ball vs Golden Ball",
+    "KXWCROUND-26QUAR-CPV": "qualify for quarterfinals vs eliminated in quarterfinals",
+    "KXWCSTAGEOFELIM-26BIH-R16": "eliminated in round of 16 vs reach round of 16",
+    "KXCLAUDE-OPUS-26JUL24": "released before Jul 24 vs released on Jul 24",
+    "KXCLAUDE-OPUS-26JUL31": "Yes/No inverted: Polymarket asks 'not be released'",
+    "KXTRUMPCHINA-26-MAY15": "visit before May 15 vs on May 15",
+    "KXTRUMPCHINA-26MAY09-MAY13": "visit before May 13 vs on May 13",
+}
 MIN_USABLE_STEPS = 200  # about 33 hours of joint two-sided quotes
 
 
@@ -148,6 +160,32 @@ def load_pair_series(pm_lag_s: float = cv.POINT_LAG_S) -> tuple[list[cv.PairSeri
     return pairs, kept
 
 
+def audit_sets(pairs: list[cv.PairSeries], kept: list[dict]) -> dict:
+    """Revision r1: tickers flagged by audit words, hand verdicts, and resolution disagreement."""
+    kalshi, poly = load_universes()
+    kb = {m["ticker"]: m for m in kalshi}
+    pb = {m["market_id"]: m for m in poly}
+    rule, res = {}, []
+    for row in kept:
+        t = row["k_ticker"]
+        why = cv.audit_conflict(row["k_text"], row["p_text"])
+        if why:
+            rule[t] = "audit words: " + ",".join(why)
+        if t in HAND_DIFFERENT:
+            rule[t] = "hand: " + HAND_DIFFERENT[t]
+    one = [p for p in kept if p["k_ticker"] not in rule]
+    conc = cv.concordance(
+        [cv.MatchPair(p["k_ticker"], p["p_market_id"], "", "", 0, 0, 0) for p in one], kb, pb
+    )
+    for row in one:
+        c = cv.concordance(
+            [cv.MatchPair(row["k_ticker"], row["p_market_id"], "", "", 0, 0, 0)], kb, pb
+        )
+        if c["n"] and c["agree"] == 0:
+            res.append(row["k_ticker"])
+    return {"rule": rule, "resolution_disagree": res, "concordance_after_rule": conc}
+
+
 def run_all(pairs: list[cv.PairSeries], n_boot: int, full: bool) -> dict:
     """All statistics for one alignment convention. ``full`` adds the Granger, demeaned
     error-correction, half-life and economics blocks."""
@@ -190,6 +228,57 @@ def by_family(res: dict) -> dict[str, float]:
         fam[f"ec_P_{h}"], fam[f"ec_K_{h}"] = v["p_beta_P"], v["p_beta_K"]
     fam["jump_lead"] = res["jumps"]["p_two_sided"]
     return fam
+
+
+def stage_revision(n_boot: int) -> None:
+    """Revision r1: same protocol on the cleaned set. C1 drops rule/hand flags; C2 (primary) also
+    drops resolution disagreements (an outcome-based data-quality audit, disclosed)."""
+    t0 = time.time()
+    pairs, kept = load_pair_series(cv.POINT_LAG_S)
+    aud = audit_sets(pairs, kept)
+    drop1 = set(aud["rule"])
+    drop2 = drop1 | set(aud["resolution_disagree"])
+    out: dict = {
+        "study": cv.STUDY_VERSION + "-r1",
+        "evidence_role": cv.EVIDENCE_ROLE,
+        "n_boot": n_boot,
+        "original_n_pairs": len(pairs),
+        "audit": aud,
+        "dropped_C1": len(drop1),
+        "dropped_C2": len(drop2),
+    }
+    for name, drop in (("C1_title_based_primary", drop1), ("C2_plus_outcome_audit", drop2)):
+        sel = [p for p in pairs if p.pair_id not in drop]
+        out[name] = run_all(sel, n_boot, full=True)
+    out["by_C2"] = cv.by_across(by_family(out["C2_plus_outcome_audit"]))
+    out["by_C1"] = cv.by_across(by_family(out["C1_title_based_primary"]))
+    out["runtime_s"] = round(time.time() - t0, 1)
+    (ROOT / "results_r1.json").write_text(json.dumps(out, indent=1, default=float))
+    prov = provenance.run_provenance()
+    for nm in ("C2_plus_outcome_audit", "C1_title_based_primary"):
+        for k, v in out[nm].items():
+            if isinstance(v, dict):
+                provenance.append_trial(
+                    {
+                        "kind": "history_cross_venue",
+                        "evidence_role": cv.EVIDENCE_ROLE,
+                        "label": "EXPLORATORY historical cross-venue study r1 (cleaned)",
+                        "dataset": "polymarket+kalshi",
+                        "analysis": f"r1_{nm}_{k}",
+                        "study": cv.STUDY_VERSION + "-r1",
+                        "n_pairs": out[nm]["n_pairs"],
+                        "n_events": out[nm]["n_events"],
+                        "by_family_size": 20,
+                        "by": out["by_C2" if nm == "C2_plus_outcome_audit" else "by_C1"]
+                        if k == "leadlag"
+                        else None,
+                        "result_path": str(ROOT / "results_r1.json"),
+                        "summary": v,
+                        "provenance": prov,
+                    }
+                )
+    print("dropped C1/C2:", len(drop1), len(drop2))
+    print(json.dumps(out["by_C2"], default=float)[:2500])
 
 
 def stage_analyze(n_boot: int) -> None:
@@ -253,12 +342,15 @@ def stage_analyze(n_boot: int) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", required=True, choices=["match", "fetch", "analyze"])
+    ap.add_argument("--stage", required=True, choices=["match", "fetch", "analyze", "revision"])
     ap.add_argument("--n-boot", type=int, default=4000)
     a = ap.parse_args()
-    {"match": stage_match, "fetch": stage_fetch, "analyze": lambda: stage_analyze(a.n_boot)}[
-        a.stage
-    ]()
+    {
+        "match": stage_match,
+        "fetch": stage_fetch,
+        "analyze": lambda: stage_analyze(a.n_boot),
+        "revision": lambda: stage_revision(a.n_boot),
+    }[a.stage]()
 
 
 if __name__ == "__main__":

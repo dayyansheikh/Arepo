@@ -280,3 +280,17 @@ def test_align_pm_lag_zero_uses_point_at_its_own_stamp():
     g0 = cv.align_pair(ps, kc, 0, 1200, pm_lag_s=0.0)
     g6 = cv.align_pair(ps, kc, 0, 1200)
     assert g0["p"][1] == 0.5 and np.isnan(g6["p"][1]) and g6["p"][2] == 0.5
+
+
+def test_audit_conflict_flags_template_mismatches():
+    assert cv.audit_conflict(
+        "Who will perform at the Super Bowl LX? Drake",
+        "Will Drake perform during the Super Bowl LX halftime show?",
+    ) == ["halftime"]
+    assert cv.audit_conflict(
+        "Will Smith win the presidency?", "Will Smith win the vice presidency?"
+    ) == ["vice"]
+    assert (
+        cv.audit_conflict("Will Alice win the 2026 election?", "Will Alice win the 2026 election?")
+        == []
+    )

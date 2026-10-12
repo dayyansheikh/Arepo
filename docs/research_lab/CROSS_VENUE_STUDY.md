@@ -1,10 +1,14 @@
 # Cross-venue study: Polymarket vs Kalshi (exploratory, historical)
 
-**Status (2026-10-12):** COMPLETE, `exploratory_historical`. Hypothesis-generating only. No edge, calibration, profitability or
+**Status (2026-10-13): REVISED, see section 10; the v1 sections below are kept as originally written and the gap conclusions in them are SUPERSEDED.** `exploratory_historical`. Hypothesis-generating only. No edge, calibration, profitability or
 tradability claim. Not prospective evidence and never poolable with prospective panels. Promotion-ladder rung for any
 finding below: L1 (Exploratory). Code: `backend/astrolabe/research_lab/cross_venue.py`, runner
 `backend/scripts/run_cross_venue.py`, tests `backend/tests/test_research_lab_cross_venue.py` (19 tests).
 Artifacts (git-ignored): `data-dumps/research_lab/cross_venue/` (356 MB; `results.json`, `matches.json`, `series/`).
+
+> **Revision r1 (2026-10-13).** An audit found 9 mismatched pairs (inverted Yes/No, before-vs-on dates, AND-vs-single awards) and 16
+> halftime-template pairs among the 341. On the cleaned set the lead-lag survives unchanged, but the "gap adds no out-of-sample value" result
+> below reverses (+5% at 1h, CI excludes 0). The v1 null was produced by the mismatched pairs. See section 10.
 
 ## 1. Question and short answer
 
@@ -237,3 +241,82 @@ PYTHONPATH=backend python backend/scripts/run_cross_venue.py --stage fetch    # 
 PYTHONPATH=backend python backend/scripts/run_cross_venue.py --stage analyze  # writes results.json, appends trials.jsonl
 cd backend && source .venv/bin/activate && pytest tests/test_research_lab_cross_venue.py && ruff check astrolabe/research_lab/cross_venue.py scripts/run_cross_venue.py
 ```
+
+## 10. Revision r1: pair audit and rerun on the cleaned set (2026-10-13)
+
+**Trigger.** The live build (\`cross_venue_live.py\`) found its matcher paired 56 of 167 live pairs wrongly (vice-president vs president,
+full match vs halftime, ...). I re-audited the 341 historical pairs. \`cross_venue.AUDIT_CONFLICT\` mirrors the live list
+(\`LIVE_EXTRA_CONFLICT\`); the v1 matcher (\`CONFLICT\`) is unchanged so the original selection stays reproducible. E009's registration
+is untouched by this document.
+
+### 10.1 Audit
+
+- **Audit words (symmetric difference)** flagged 16 pairs, all "Who will perform at the Super Bowl LX?" vs "...during the halftime show". In
+  substance these are probably the same proposition (performers appear at the halftime show) but they are dropped for consistency with
+  the live rule.
+- **Resolved outcomes disagreed for 9 pairs** (of 341; 98.4% agreement among the remaining pairs after the rule/hand drops). Title-level verdicts:
+  *different contracts (4)*: Claude Opus "before Jul 24" vs "released on Jul 24"; Claude Opus "before Jul 31" vs Polymarket "will **not** be
+  released by Jul 31" (Yes/No inverted); Trump visit China "before May 15" vs "on May 15"; "before May 13" vs "on May 13".
+  *Same by title, outcome differs (5)*: Mythos-class model by Sep 1; Time Person of the Year 2025 for Musk, Huang, Altman and "a woman"
+  (a Kalshi/Polymarket resolution-wording difference I cannot judge from titles). One further disagreement (Karol G, Super Bowl) is in the
+  halftime set.
+- **Random sample of 100 further pairs** (seeded, drawn from the unflagged 316; read at title level): 96 same, **4 different**: Cape Verde
+  "qualify for the quarterfinals" vs "be eliminated in the quarterfinals"; Bosnia "get eliminated in the Round of 16" vs "reach the Round of 16";
+  Messi "Golden Boot **and** Golden Ball" vs Golden Ball only; Drake album "before Dec 2025" vs "in 2025". A targeted template scan of the
+  remaining unsampled pairs (words such as eliminated, qualify, reach, not, boot, golden, before, by, exact) found one more of the same kind
+  (Mbappe Golden Boot and Golden Ball). Residual error rate among the pairs kept is therefore unknown but plausibly 2-4%.
+- Caveat: the 4 date/inversion pairs were first surfaced by the outcome-disagreement list, although each is identifiable from its title
+  alone, and I judged them on titles.
+
+### 10.2 Cleaned sets
+
+- **C1 (primary, title/rule based, no outcome used):** drop the 16 halftime pairs and 9 hand-different pairs (Opus x2, Trump China x2, the 4 from the
+  sample, Mbappe) minus overlap = **25 dropped, 316 pairs, 183 events, 517,616 usable steps** (Sports 149, Elections 83, Entertainment 37, Politics 19,
+  Mentions 18, Science and Technology 6, Financials 4).
+- **C2 (sensitivity, outcome-based):** C1 plus the 5 pairs whose outcomes still disagree = 311 pairs. Selecting on agreeing outcomes is selection on the
+  future (it favours pairs whose gap later converged), so C2 is reported but not primary. Results are nearly identical to C1.
+- Same protocol, bootstrap (4,000 event clusters), 20-test BY family, alignment and seeds as v1. The primary designation of C1 over C2 was made after
+  seeing both, for the look-ahead reason above.
+
+### 10.3 Results on C1
+
+| Quantity | v1 (341 pairs) | r1 / C1 (316 pairs) |
+|---|---|---|
+| r K->P at 20 min | 0.243 | **0.258** |
+| Asymmetry at 10 / 20 / 30 min | 0.057 / 0.242 / 0.029 | 0.058 (0.024, 0.102) / **0.257 (0.190, 0.332)** / 0.038 (0.020, 0.058); all BY-pass |
+| Asymmetry at 1 h and beyond | not distinguishable from 0 | unchanged (1 h 0.005, CI -0.014 to 0.024) |
+| Gap-only OOS gain, 10 min / 1 h / 6 h | +0.5% / +1.6% / +1.8% (all CIs span 0) | **+3.2% (2.3, 4.2) / +5.1% (4.1, 6.2) / +7.5% (1.2, 11.2)**; 3/3 blocks positive each; BY p 0.002 / 0.002 / 0.056 |
+| Gap + Kalshi changes, 10 min / 1 h / 6 h | +5.3% (BY p 0.067) / +3.3% / +0.8% | **+8.4% (6.4, 11.3) / +7.0% (3.2, 12.7) / +6.9% (2.3, 9.8)**; BY p 0.002 / 0.002 / 0.013 |
+| Polymarket adjustment share at 10 min / 1 h / 6 h | 92% / 86% / 73% | 93% / 88% (84, 92) / 78% (66, 86) |
+| Large-move events, Kalshi first (of decided) | 70% | 71% (722 vs 290; mean lead 0.72 steps, CI 0.53-0.88) |
+| Half-life (all / gap >= 3c) | 81 min (54-119) / 77 | 66 min (48-86) / 61 (43-81) |
+| Economics, mid scenario, steps net > 0 | 14.7% | 13.8% (13.2% -> 12.7% with gap <= 15c); mean net 3.3c |
+
+BY outcome: 16 of 20 tests pass in C1 (v1: 11). Only the lags >= 1 h of the lead-lag fail.
+
+**Attribution** (extra descriptive runs, logged): dropping only the 9 hand-different pairs reproduces the full reversal (gap-only +3.1% / +5.2% / +8.4%,
+all CIs above 0); dropping only the 16 halftime pairs leaves the v1 null (+0.5% / +1.4% / +1.6%). The v1 null was caused by the contract mismatches: a
+pair whose Yes/No is inverted or whose date differs has a large spurious gap that dominates squared error and attenuates the pooled coefficient.
+
+### 10.4 Does the finding survive?
+
+- **Lead-lag: yes.** About 0.26 correlation, Kalshi first, 10-20 minute lead (same timestamp-convention caveat), BY-passing, and the +8.4% gap+Kalshi
+  10-minute arm (v1 +5.3%) also passes.
+- **v1 null on the gap: no, reversed.** The gap now predicts Polymarket's next move out of sample at all three horizons (direction: Polymarket moves toward
+  Kalshi). This is a much stronger statement than v1 and is still exploratory: residual mismatches of 2-4% remain possible, the signal rests on
+  the tests of this one cleaned set, and the dependence and timestamp caveats of section 6 apply. It has not been tested for economic value.
+- **Economic reading is essentially unchanged**: still not a tradability estimate (section 5.6).
+
+### 10.5 Note for E009
+
+E009 froze its coefficients from the original v1 fit on the 341-pair set that included the 9 mismatched pairs. The cleaning materially changes
+the **gap coefficient's evidential standing** (it was estimated on data where the gap looked uninformative at 1h/6h; on C1 it is informative) and
+may change the fitted coefficients themselves; the lead-lag coefficient is stable. I have not refit or recompared E009's frozen coefficients; any use of
+the cleaned set for E009 would need a separate future registration, and E009's committed registration must not be edited.
+
+### 10.6 Disclosure
+
+\`trials.jsonl\` now has 34 \`r1_\` lines (one superseded first r1 run under the labels C1_rule_only / C2_primary, which used 21 flagged pairs and
+did not yet include the 4 date/inversion hand verdicts; the final run; and 2 attribution runs) on top of the 48 v1 lines. The BY family stays at 20 tests per set;
+v1 and r1 are not combined into one denominator. Reproduce: \`--stage revision\`; files \`results_r1.json\`, \`results_r1_attribution.json\`,
+\`audit_flags.json\`, \`audit_sample100.json\` under \`data-dumps/research_lab/cross_venue/\`.

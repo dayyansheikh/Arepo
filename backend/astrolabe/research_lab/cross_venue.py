@@ -53,6 +53,14 @@ CONFLICT = frozenset(
 )
 BY_Q = 0.10
 
+# Revision r1 (2026-10-13) audit words, mirroring the live build's list (cross_venue_live.py
+# LIVE_EXTRA_CONFLICT). Used only to audit/clean already matched pairs; ``CONFLICT`` (the matcher)
+# is unchanged so the original v1 selection stays reproducible.
+AUDIT_CONFLICT = frozenset(
+    "vice halftime leading second runoff round group removed nominee nomination justice "
+    "republican democrat quarter half period set map".split()
+)
+
 STOP = frozenset(
     "will the a an of in on by to be for or and at is are with from than this that who what "
     "when which before after win wins any does do it its as has have been".split()
@@ -262,6 +270,13 @@ def select_pairs(rows: Sequence[dict], cap: dict[str, int], seed: str) -> list[d
         grp = sorted((r for r in rows if r["k_cat"] == c), key=key)
         out.extend(grp[: cap[c]] if c in cap else grp)
     return sorted(out, key=lambda r: r["k_ticker"])
+
+
+def audit_conflict(k_text_: str, p_text_: str) -> list[str]:
+    """Audit words present on exactly one side (empty list = no flag)."""
+    kw, _ = tokenize(k_text_)
+    pw, _ = tokenize(p_text_)
+    return sorted((kw ^ pw) & AUDIT_CONFLICT)
 
 
 def concordance(pairs: Iterable[MatchPair], kalshi_by_ticker: dict, poly_by_id: dict) -> dict:
