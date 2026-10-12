@@ -79,6 +79,12 @@ Full guide: `docs/infra/DEPLOY_RUNBOOK_2026-10-12.md` on branch `fix/infra-2026-
    `read -s k; mkdir -p ~/.arepo; printf %s "$k" > ~/.arepo/etherscan_key; chmod 600 ~/.arepo/etherscan_key; unset k`
    Then tell me "key saved".
 
+5. **Email alerts: create a Gmail app password.**
+   - Google Account → Security → 2-Step Verification must be on → **App passwords** → create one named "AREPO".
+   - In Terminal, run:
+     `read -s k; mkdir -p ~/.arepo; printf %s "$k" > ~/.arepo/gmail_app_password; chmod 600 ~/.arepo/gmail_app_password; unset k`
+   - Then tell me "gmail saved". I'll send a test email.
+
 Done already: the **live large-trade monitor** is running permanently (approved). Resend is postponed.
 
 ## 7. What's next
