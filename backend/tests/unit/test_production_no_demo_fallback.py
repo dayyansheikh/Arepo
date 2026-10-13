@@ -35,6 +35,9 @@ class _Cached:
     async def markets(self):
         return list(self._markets)
 
+    async def has_markets(self) -> bool:  # the cheap existence probe CachedSource exposes
+        return bool(self._markets)
+
 
 def _prod_service() -> MarketService:
     return MarketService(settings=Settings(environment="production", default_mode="live"))

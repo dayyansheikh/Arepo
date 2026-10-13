@@ -50,8 +50,8 @@ jobs:
       APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
       ALERT_EMAIL_ENABLED: "false"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
