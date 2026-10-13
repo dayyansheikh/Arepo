@@ -17,6 +17,7 @@ validated edge or confirmation evidence. A positive result is a hypothesis for l
 | T5-DEV | COMPLETE (development, exploratory_historical) | Do point-in-time features predict binary resolution at 1/3/7d before scheduled end better than price and a recalibrated (Platt/isotonic) price? | No: LightGBM vs Platt ΔLL 1d -0.0013, 3d -0.0004, 7d +0.0041 (all CIs span 0); only Platt-vs-raw-price at 7d is positive (+0.0069 [+0.0022, +0.0113]). See `RESOLUTION_DEV_STUDY.md` |
 | IF-H2-DEV | COMPLETE (development, exploratory_historical): **null** | Does a decay-adjusted rise of the near deadline-ladder rung (`ifx_term` z >= 2) predict its 24h/7d drift beyond M0v? | No. Later months: ΔR² +0.00016 [-0.00010, +0.00041]; z >= 2 residual -0.20c [-0.48, +0.09] (all test months -0.35c [-0.57, -0.10], reversal). No E008 registered. See `IF_H2_DEADLINE_LADDER.md` |
 | HB1 | COMPLETE (development, exploratory_historical) | Which of 72 pre-declared market-state, microstructure, flow, wallet, cross-market, time, category, extremity, liquidity, volatility and interaction hypotheses predict `h2_main` moves out of sample (one split, BY q = 0.10 on the cumulative count)? | 18 of 72 pass BY (m = 468): 2h-reversal moderators by trade confirmation (quote noise), net taker flow continuation at 2-24h (+0.3 to +0.6c per SD; aggressive flow strongest), flow weaker at longshot prices and in quiet markets, a price-level drift, one volatility feature. No wallet, cross-market, time, category or book hypothesis survives; ladders untestable. No survivor covers taker costs (net -2.4c to -4.1c). See `HYPOTHESIS_BATTERY_1.md` |
+| HB1-R | COMPLETE (development, exploratory_historical) | Do the 18 HB1 survivors replicate on the independent `h3_power` markets with frozen definitions (Holm), and do wallet-age nulls change with h3's first-trade lookups? | 16 of 18 replicate (Holm, unweighted; same 16 weighted), all 18 signs agree, no shrinkage (median ratio 1.20); MI5 and PX2 fail; VO4 is fragile. Wallet family: WA2 rejects unweighted only and is mostly total flow (post-hoc). No cost viability. See `HYPOTHESIS_BATTERY_1_REPLICATION.md` |
 | E009 | REGISTERED (pre-outcome; challenger-reviewed) | Live, receipt-timed: does Kalshi's latest 10-min move (frozen historical model) predict Polymarket's next 20-min mid move beyond M0, and is it executable after taker costs? | pending (fixed end 2026-11-03 00:00Z) |
 | E010 | REGISTERED (pre-outcome; challenger-reviewed) | Live, same stream as E009: does the model refitted on the cleaned historical set (Kalshi changes + gap) predict Polymarket's 1h and 6h mid moves beyond M0? | pending (fixed end 2026-11-03 00:00Z) |
 
@@ -958,3 +959,21 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
   (7.0 at 1h, 6.9 at 6h) are therefore an optimistic reference. Live pairs never had an outcome-informed audit: the live
   mismatch rate, which caused the v1 null historically, is unknown and would bias G towards 0 (and could make the gap term
   harmful).
+
+## Development study HB1-R — HB1 replication on `h3_power` (2026-10-13)
+
+- **Label:** DEVELOPMENT, retrospective, `exploratory_historical`. Independent markets (none shared with h1/h2; 66
+  shared events, sensitivity reported), same calendar. Full declaration and results:
+  `docs/research_lab/HYPOTHESIS_BATTERY_1_REPLICATION.md`; code `battery_replication.py`,
+  `scripts/run_hb1_replication.py`; frozen spec `model_specs/hb1_replication_v1.json` (sha256 `f9b73416...`).
+- **Declared before any h3 outcome:** commit `e5a3ef3`. Family R = the 18 HB1 survivors with HB1's definitions,
+  directions, scaling, cuts and economics rule; Holm at 0.05; unweighted primary, `sample_weight` secondary. Family W =
+  WA1-WA3 (wallet-age nulls), Holm over 3.
+- **Result:** family R replicated 16/18 (MI1, MI2, MI3, MI6, FL1, FL2, FL3, FL5, FL6, FL8, FL10, WA4, PX1, PX6, IX3,
+  VO4); not MI5 or PX2. Signs agree 18/18; median h3/HB1 effect ratio 1.20 (flow 1.48, reversal moderators 0.92,
+  calendar-matched 1.16). VO4 loses significance without the shared events (refit-sensitive). Family W: WA2 Holm
+  0.030 unweighted, 0.10 weighted, and +0.51c (p 0.067) once total imbalance is controlled (post-hoc); WA1 and WA3 null.
+- **Economics:** every directional survivor still loses as a taker (net -1.2c to -4.1c); only the quote-noise reversals
+  are positive in the optimistic variant.
+- **Reading:** robust across markets, not shown across time or mechanism (same mid-like series). Candidates C1-C4 stand;
+  each still needs a prospective registration. Cumulative tests now 494.
