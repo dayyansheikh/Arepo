@@ -117,6 +117,19 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
   - The historical pairs are being re-audited for matcher errors: 56 of 167 live pairs were wrongly matched.
 - **Running:** IF-H2 (E008 is reserved for it) and `h3_power`.
 
+## Registered live experiments (as of 2026-10-13)
+- **E009 / E010:** Kalshi→Polymarket lead and gap. launchd `com.arepo.cross-venue-live`. Analyse once after 2026-11-03.
+- **E011:** ungated learned surprise score `sm_learned_v2` on complete-universe snapshots.
+  - Registered at 3e628ec; window starts 2026-10-13 14:00Z; analyse once after 2026-11-11 13:00Z.
+  - Wired into `~/arepo_collector/arepo_pass.sh` (`run_surprise_snapshot.py score`).
+- **Replications on `h3_power`:**
+  - HB1: 16/18 replicate.
+  - ML flow: 2/4 cells replicate.
+  - Frozen gated `sm_learned_v1`: null, because of the deployment gate. The ungated form replicates (excess +5.8 pts).
+  - Wallet effects stay null.
+- **Ops:** the live monitor crashed at 22:23Z on 10-12 (KeyError). Fixed in 1 commit; launchd now restarts it on any failure; the 11h gap stays missing.
+- **Disk:** about 6.3 GB free. A restart would reclaim swap.
+
 ## Pending user decisions (dashboard section 6)
 1. Infra deploy (branch `fix/infra-2026-10-11`, bed00bb, reviewed SAFE).
 2. Supabase lockdown SQL.
