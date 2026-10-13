@@ -977,3 +977,95 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
   are positive in the optimistic variant.
 - **Reading:** robust across markets, not shown across time or mechanism (same mid-like series). Candidates C1-C4 stand;
   each still needs a prospective registration. Cumulative tests now 494.
+
+## E011 — Live prospective test of the frozen ungated surprise-move detector on complete-universe snapshots
+
+- **Registered:** 2026-10-13 (commit containing this entry, after an accepting `science-reviewer` pass).
+  `REGISTERED_UTC = 2026-10-13T14:00:00Z`, `END_UTC = 2026-11-10T00:00:00Z` in `surprise_snapshot.py`. Captures
+  with start time in `[REGISTERED_UTC, END_UTC)` are `prospective_confirmation`; the dry-run pass on capture
+  `20261013T083104Z` and any pass before 14:00Z are `prospective_unregistered` and excluded by `analyze`.
+- **Origin (exploratory_historical, disclosed):** `SURPRISE_MOVE_DETECTOR.md`. `sm_learned_v1` (elastic net, 20
+  terms, fit on h2 months <= 2026-07) gave +1.8 pts matched excess on the h2 test months (§5). Its pre-declared h3
+  replication *with the deployment gate* was null (§10.1); the **ungated** score (the form evaluated on h2) replicated
+  on the disjoint h3 markets (§10.3: +5.8 pts at 1 %, weighted +7.2). The ungated reading was a secondary analysis
+  made after the gated null; the gate removal is therefore a post-hoc spec choice, which is why this live test exists.
+  The detector's value is price-path context (realised volatility over a week vs a day, market age, weekday), not
+  flow or wallet terms (§4, §10.5).
+- **Frozen rule:** `sm_learned_v2`, sha256 `ee227e7e0b850c6ace940d380aad48f54435a1bc4f487f9250125d2d77c14ef1`
+  (`detector_specs/FROZEN_SURPRISE_SNAPSHOT.json`): identical terms, centres, scales and weights to `sm_learned_v1`
+  (`ee7ea5f1…`), `direction_feature: null`, no refit. Scored by `detector_eval.score_rule` (engine `detector-eval-v1`).
+- **Live scoring path** (`surprise_snapshot.py`, `scripts/run_surprise_snapshot.py`, run inside each collector pass
+  after the snapshot is complete): eligible = binary, open, two-sided quote, mid in [0.02, 0.98], has a last trade,
+  end date > t + 1 h (about 27,000 markets per capture). **Stage 1** (no requests): pre-score = the frozen terms over
+  snapshot features, with 2h-grid volatility proxies (rms of consecutive-capture mid changes over 3/12/84 steps,
+  centres/scales fixed from the h3 development months; `STAGE1` sha256 `2f5ef2416346f5f8602e49ee376d7f0ea23abc63a79f0953f9daebee84a679c5`) in place of the 10-minute
+  `rv_6h/rv_1d/rv_7d` terms; flow, `rv_2h`, `last_trade_age_h`, `ladder_n` at their centres. Top 400 (about 1.5 %)
+  are candidates. **Stage 2** (800 requests, about 3.5 min at 4 req/s): per candidate one CLOB `prices-history`
+  (8 d, 10-min) and one Data API `trades` page; exact `price_context` + `surprise_features` at the capture time with
+  the snapshot mid; sibling terms from consecutive captures; `ladder_n` NaN. The origin `t` of every line is the
+  row's own `received_utc` (a capture takes about 13 min; the capture start is kept separately as `capture_t`), and
+  price history and trades end at that `t`. **Alerts = top 60 candidates by exact score** (about 0.22 % of eligible;
+  `SnapshotConfig` hash `7087fec7c4f95feb`), each with **3 seeded matched controls** (same capture, price band on
+  |mid − 0.5| (0.05/0.20/0.45), volume24h tercile, different market, **not a stage-1 candidate**; price band only
+  when that pool is short, recorded as `control_match`). Because controls are drawn outside the stage-1 top 1.5 %,
+  the comparison is "alerts vs same-stratum markets the pre-score did not shortlist", not vs random peers; this is
+  the stated question (does the frozen score select markets followed by surprise moves more often than matched
+  non-selected markets) and it inflates the excess relative to a random-peer control. All lines go to
+  `data-dumps/research_lab/surprise_live/alerts.jsonl` before any outcome exists; `passes.jsonl` records every pass.
+- **Validation of the two-stage path (h3, exploratory_historical, `live_config_validation.json`):** stage-1 vs exact
+  score Spearman 0.71. Deployed configuration (candidates 1.5 %, alerts 0.22 %) on the h3 primary months: 173
+  alerts, precision 10.4 %, base 0.87 %, matched controls 1.16 %, excess **+9.3 pts (95 % CI +3.4, +18.7)**; at a
+  1 % budget with 1.5 % candidates +3.8 pts (+1.9, +6.0) (precision 4.8 %; 5.3 % with 5 % candidates). Without the
+  proxies the path collapses (Spearman 0.375, 2.3 %). **Disclosed:** the deployed shares were chosen for the request
+  budget after seeing h3 outcomes for three configurations, and the h3 validation drew its controls from all
+  non-alerted rows (not excluding candidates); +9.3 pts is an optimistic, not like-for-like, reference.
+- **Outcomes** (`write_outcomes`, same script, later passes; reads `alerts.jsonl` only): one `prices-history`
+  request per alert/control line over [t − 25 h, t + 25 h] once t + 24 h 15 min has passed (so arrivals up to 6 h
+  after a departure, and the 24 h move, are inside the window): `surprise_moves.detect_events`
+  (`surprise-labels-v1`, sha `d9cf42f7…`, primary spec and filters, end cut from the line's end date), `hit_6h` =
+  a surprise departure in (t, t + 6 h], `sharp_any_6h` = any ≥ 0.15-in-6 h departure in that window without the
+  surprise filters, `fwd_move_6h` and `fwd_move_24h` from the same series (so a market that leaves the eligible
+  set still gets its outcome). `unavailable` only on a 200 with no usable series 12 h after due; non-200 stays
+  pending and is retried. Lines are never edited. About 240 outcome requests per pass.
+- **Unit and dependence:** unit = alert episode (alert lines of one market closer than 24 h collapse to the first);
+  cluster = Gamma event id (market id when absent). Controls are evaluated with the same label.
+- **Primary metric (one):** matched excess precision at the deployed budget: mean over episodes of
+  `hit_6h(alert) − mean hit_6h(its controls)`, event-clustered bootstrap (4,000 resamples, seed 20261013), one-sided
+  p for excess > 0. One primary, so no multiplicity correction; everything else is secondary.
+- **Secondary (descriptive):** (a) **matched excess on `sharp_any_6h`** (pre-declared reading: the surprise
+  filters require a quiet prior day, which overlaps score inputs such as `rv_1d`, so part of the primary excess may
+  be the score finding markets that *pass the filter*; if the `sharp_any_6h` excess is near zero while the primary
+  is positive, the detector mostly finds quiet markets that then move, which is still the registered question but
+  must be read as such); (b) alert precision and control base rate (the live base rate of the alert strata); (c)
+  2 h label; (d) |`fwd_move_6h`| >= 0.15 and |`fwd_move_24h`| >= 0.15 rates (undirected rule: no directional or
+  P&L claim); (e) by fee category and sports vs non-sports; (f) `control_match` composition; (g) the accounting:
+  pending, unavailable and dropped episodes split by alert vs control (`analyze()` uses the first alert line of a
+  market within 24 h and never substitutes a later line for a dropped head), passes missed, request and timing
+  stats.
+- **Sample size and MDE:** 60 alerts per pass, 12 passes per day, 27.4 days: about 19,700 alert lines; the binding
+  count is episodes (repeat alerts on a market within 24 h collapse) and event clusters. `alerts_needed(b, δ)` (80 %
+  power, one-sided 5 %, independent episodes): at a control base rate b = 1 %: δ = +2 pts needs 605 episodes, +3 pts
+  334, +5 pts 167; **at b = 3 %: 1,187 / 590 / 257; at b = 5 %: 1,743 / 834 / 343.** The dry run put 51 of 60 alerts
+  in sports (h3 sports base 1.45 %, matched-control rate for the deployed configuration 1.16 %), so the live
+  control rate is expected between 1 % and 5 %. With dependence inflating variance by up to 3x, about 5,200 episodes
+  power the test for +2 pts at b = 5 %; 25 % new markets per pass gives > 4,000 episodes, so **the test is powered
+  for about +2.5 pts at b = 5 % and +2 pts at b <= 3 %** against an optimistic historical reference of +9.3 pts.
+  The metric is the excess, not the level.
+- **Verdicts (after the single analysis):** **Supported (exploratory, prospective)** if one-sided p < 0.05 and
+  excess > 0; **Contradicted** if the 95 % CI lies entirely below 0; **Inconclusive** otherwise; **Unavailable**
+  with fewer than 30 episodes with a label and controls, or fewer than 10 clusters.
+- **Stopping rule:** fixed end `END_UTC`; analysis **once** after **2026-11-11T13:00:00Z** (the last lines are due
+  about 2026-11-11T00:30Z and an empty series becomes `unavailable` 12 h after due) with
+  `scripts/run_surprise_snapshot.py analyze`; any line still pending at analysis time is reported as pending, never
+  imputed. **Window membership is by capture start (`capture_t`)**, as the evidence role is: whole captures are in
+  or out at both the `REGISTERED_UTC` and `END_UTC` edges, even though each line's origin `t` is its row receipt.
+  No interim look at outcomes beyond operational counts. Early stop (disk cap 2 GB / 100 MB per day, collector
+  outage) does not extend the window; the shortfall is recorded.
+- **Hygiene:** idempotent per capture (`already_scored`); the scorer runs only after `state=complete`; capture start
+  time is the origin (receipt clock); venue stamps for outcomes; wallet addresses hashed in memory, never written;
+  no raw address in any line; read-only public endpoints; <= 4 req/s; no heavy lock needed (RSS about 500 MB while
+  the rolling series is loaded). Any operational fix is logged here as a deviation.
+- **Non-claims:** no calibration, causation, profitability or tradability claim; the rule is undirected; alerts
+  are not labels of any wallet, trade or market as informed or insider activity.
+- **Collector wiring (user action):** in `~/arepo_collector/arepo_pass.sh`, inside the `state=complete` block after
+  `run_flow_screen.py`: `caffeinate -i $PY scripts/run_surprise_snapshot.py score --rps 4 2>&1 | tail -2`.

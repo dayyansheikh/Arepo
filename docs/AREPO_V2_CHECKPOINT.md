@@ -147,3 +147,12 @@ register (programme §7) only if ≥ 30 episodes with controls; do not revise fe
   matched excess +5.8 pts, CI +2.6/+9.6, weighted +7.2), concentrated in sports/crypto/politics; asymmetric topics
   weak or absent. Combined h2+h3 refit: price path only; flow/wallet families still ≈ 0. Decision for the
   coordinator: freeze an ungated v2 and test it on the complete-universe passes, not the print monitor.
+- **E011 registered (2026-10-13):** frozen ungated `sm_learned_v2` (sha `ee227e7e…`, identical terms to v1,
+  `FROZEN_SURPRISE_SNAPSHOT.json`) scored on every complete-universe capture by
+  `scripts/run_surprise_snapshot.py score` (stage-1 proxies from the rolling capture series, Spearman 0.71 on h3;
+  stage-2 exact features for 400 candidates; top 60 alerts + 3 matched controls per capture written before
+  outcomes; one price-history fetch per line at t + 24 h 15 min for the surprise label and moves). Window
+  2026-10-13T14:00Z to 2026-11-10T00:00Z, single analysis after 2026-11-11T13:00Z (`analyze`). Primary: matched
+  excess of the 6 h surprise label, event-clustered, one-sided. Reviewer ACCEPT_WITH_CHANGES applied. **User action:**
+  add `caffeinate -i $PY scripts/run_surprise_snapshot.py score --rps 4 2>&1 | tail -2` after `run_flow_screen.py`
+  in `~/arepo_collector/arepo_pass.sh`.

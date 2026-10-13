@@ -351,3 +351,30 @@ change which features matter; the price path does, flow and wallet terms do not.
    than in the print-triggered monitor. Neither is done here.
 3. Budget: 13 replication lines (6 rules × 2 sets + placebo), 4 gating lines, 1 combined-refit line, 1 protocol
    line; 46 `surprise_*` trial lines in total. No feature-set revision was spent.
+
+## 11. Prospective live test of the ungated score (E011; registered 2026-10-13)
+
+- **Frozen `sm_learned_v2`** (sha `ee227e7e0b850c6ace940d380aad48f54435a1bc4f487f9250125d2d77c14ef1`,
+  `FROZEN_SURPRISE_SNAPSHOT.json`): the 20 terms, centres, scales and weights of `sm_learned_v1` unchanged, no refit;
+  the only difference is `direction_feature: null`. The ungated form is the one evaluated on the h2 test months
+  (§5) and replicated on h3 (§10.3). v1 stays frozen and continues in the print monitor as a separate, now
+  secondary, stream; v2 is scored on complete-universe snapshots, where every eligible market is alertable.
+- **Live path** (`surprise_snapshot.py`; registration and all parameters in `EXPERIMENT_LEDGER.md` E011): stage 1
+  pre-scores about 27,000 eligible markets per 2-hourly capture from snapshot features with 2h-grid volatility
+  proxies (validated on h3: Spearman 0.71 against the exact score; two-stage precision 4.8 % with the deployed
+  1.5 % candidate share, 5.3 % with 5 %, vs 6.5 % exact at a 1 % budget); stage 2 fetches 10-minute price history and the taker-trade page for the top 400 candidates and
+  scores the frozen rule exactly; the top 60 (about 0.22 %) are alerts, each with 3 matched controls, written to
+  `surprise_live/alerts.jsonl` before any outcome; the origin of every line is the row's own receipt time. Outcomes
+  (6 h surprise label by `surprise-labels-v1`, `sharp_any_6h`, 6 h and 24 h moves, one price-history fetch per line
+  at t + 24 h 15 min) are appended later. Deployed configuration on the h3 primary months: precision 10.4 % vs
+  1.16 % matched controls, excess +9.3 pts (CI +3.4/+18.7) (`surprise_moves_h3/live_config_validation.json`), an
+  optimistic reference: the shares were chosen after three looks and the h3 controls were not candidate-excluded.
+  Reviewer pass (`science-reviewer`, ACCEPT_WITH_CHANGES): per-row receipt origin, outcome window to t + 25 h,
+  `sharp_any_6h` secondary, outcome accounting and the disclosures above were applied before registration.
+- **Dry run** on capture `20261013T083104Z` (pre-registration, `prospective_unregistered`): 27,281 eligible, 400
+  candidates, 60 alerts (51 sports), 180 stratum controls, 800 requests, 213 s.
+- **Primary metric:** matched excess precision of the 6 h surprise label, episodes with a 24 h per-market cooloff,
+  event-clustered bootstrap, one-sided; single analysis after 2026-11-11T13:00Z (pending lines reported as pending);
+  window membership by capture start; verdict rules in the ledger.
+- Command added to the collector pass (user action): `caffeinate -i $PY scripts/run_surprise_snapshot.py score
+  --rps 4 2>&1 | tail -2` after `run_flow_screen.py` inside the `state=complete` block.
