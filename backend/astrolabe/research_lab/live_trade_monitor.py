@@ -740,7 +740,9 @@ class Monitor:
 
     def _line(self, rid: str, entry: dict, r: dict, *, now: float,
               control_for: str | None = None, extra: dict | None = None) -> dict:
-        rec, ctx, sc_row = r["rec"], r["ctx"], r["scores"][rid]
+        rec, ctx = r["rec"], r["ctx"]
+        # A control may be unscored for this rule (missing price context): record it, never crash.
+        sc_row = r["scores"].get(rid) or {"score": None, "alertable": False, "direction": 0}
         kind = "control" if control_for else "alert"
         aid = hashlib.sha256(f"{kind}|{rid}|{rec['key']}".encode()).hexdigest()[:20]
         trade = {k: rec[k] for k in ("key", "ts", "recv_ts", "condition_id", "token_id", "side",
@@ -756,6 +758,7 @@ class Monitor:
                 "engine_version": de.ENGINE_VERSION, "monitor_version": VERSION,
                 "config_hash": self.cfg.config_hash(), "evidence_role": EVIDENCE_ROLE,
                 "score": sc_row["score"], "alertable": bool(sc_row["alertable"]),
+                "scored": rid in r["scores"],
                 "direction": int(sc_row["direction"]),
                 "trade": trade, "market": {k: v for k, v in ctx.items()},
                 "features": feats, "detected_utc": utc_iso(now), "latency_s": round(
