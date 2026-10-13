@@ -1,0 +1,9 @@
+# --- AREPO collection (Oracle host; installed 2026-10-14; see docs/research_lab/COLLECTION_HOST.md) ---
+# Host clock is UTC. Replaces Mac launchd com.arepo.{collector,live-trade-monitor,live-trade-outcomes,
+# cross-venue-live,notify}. Remove: delete this block with `crontab -e`, then `supervise.sh stop`.
+31 */2 * * * /home/opc/arepo/scripts/oracle/arepo_pass.sh >> /home/opc/arepo_collector/logs/collector.log 2>> /home/opc/arepo_collector/logs/collector.err
+@reboot sleep 90 && /home/opc/arepo/scripts/oracle/supervise.sh
+*/5 * * * * /home/opc/arepo/scripts/oracle/supervise.sh
+10 2,14 * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/run_live_trade_monitor.py --outcomes >> /home/opc/arepo_collector/logs/live-trade-outcomes.out 2>> /home/opc/arepo_collector/logs/live-trade-outcomes.err
+*/15 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/arepo_notify.py check >> /home/opc/arepo_collector/logs/notify.out 2>> /home/opc/arepo_collector/logs/notify.err
+# --- end AREPO ---
