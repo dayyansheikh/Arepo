@@ -236,6 +236,57 @@ up-vs-down 2h -0.0001; |move| 24h +0.0071 [0.0018, 0.0140] but labelled `descrip
 +0.06% over M2v. Adding the table to M2F changes nothing material (e.g. direction 2h
 2.07% to 2.08% over M2v).
 
+## Replication on a new data window: `h3_power` (revision `h3_replication`)
+
+**Pre-declared** (trial line `history_replication_declaration`, 2026-10-12T23:37:50Z, committed and pushed before
+any result): independent replication of r1/r2 on `h3_power`, 10,000 markets disjoint from `h1_first` and
+`h2_main` (seed `arepo-h3-power`, topic-oversampled 3x for asymmetric topics, `sample_weight` = inverse
+inclusion probability). Panel: 582,587 origins, 5,112 markets; run on a seeded 2,138-market subset (250,000
+origins; 93,508 after the untraded exclusion, 1,324 markets; 20 folds). Same design as r1/r2 (M0v, M2v, M2F, M2FX
+with the `nw_*` table, nine cells, global/period/market placebos with the global gate, leak control). Declared
+criterion for a flow replication: flow ΔLL against M0v with a conservative CI lower bound above 0, **and** M2F over
+M2v relative gain with CI lower bound above 0, **and** the cell passes the global-shuffle gate. Cells declared:
+direction and up-vs-down at 2h and 6h. Wallet age "helps" only if ΔLL CI lower bound is above 0 and the BY label
+is `demonstrated`. The tests are added to the cumulative `ml_explain` count (154 lines in `trials.jsonl`); a new
+window is a new replication family, but the conservative cumulative BY denominator was kept. Weights enter the
+evaluation only (weighted out-of-fold comparison, weighted cluster bootstrap), not the fit.
+
+**BY labels are not usable here.** With a cumulative denominator above 150 the smallest passable p is below the
+10,000-draw bootstrap floor (1e-4), and the denominator grows as the run logs, so labels differ across cells for
+a bookkeeping reason (even the leak control is `descriptive_only` after the first cells). The declared CI
+criterion above is therefore the replication test; `label` fields in the JSON should not be compared across cells.
+
+| cell | flow ΔLL vs M0v [CI] | M2F over M2v [CI] | weighted M2F over M2v | placebo gate | declared criterion |
+|---|---|---|---|---|---|
+| direction 2h | 0.0081 [0.0057, 0.0105] | 1.67% [1.40, 1.94] | 1.70% [1.36, 2.05] | pass | **replicates** (h2: 0.0082, 2.07%) |
+| up-vs-down 2h | 0.0121 [0.0067, 0.0172] | 3.22% [2.67, 3.74] | 3.26% [2.54, 3.96] | **fail** | not met (gated) |
+| direction 6h | 0.0023 [-0.0018, 0.0059] | 0.99% [0.76, 1.18] | 1.00% [0.73, 1.23] | pass | not met (ablation CI includes 0) |
+| up-vs-down 6h | 0.0107 [0.0047, 0.0161] | 2.53% [2.00, 3.02] | 2.25% [1.75, 2.73] | pass | **replicates** (h2: 0.0119, 2.65%) |
+
+So **2 of 4 declared cells replicate**. The 2h up-vs-down gate failed on a tiny excess: M2F over M2v on shuffled
+labels is +0.05% [0.005%, 0.107%] against a real +3.22%, but the strict rule applies, so no `demonstrated`
+claim is made for that cell (the effect size and sign replicate; the gate is what blocks it). Direction 6h: the
+arm gain over M2v holds (0.99%) but the family ablation does not clear zero. |move| 2h: flow ΔLL 0.0025
+[0.0008, 0.0041], M2F over M2v 1.07% [0.80, 1.36], gate pass (it failed in h2). |move| 6h and all 24h cells:
+no flow effect (|move| 24h M2F -0.13%). Up-vs-down at 24h shows M2F over M2v +1.46% [0.99, 1.98] with flow ΔLL
+0.0103 [0.0020, 0.0183], which h2 only weakly showed (0.66%); undeclared, so exploratory only.
+
+Placebo diagnostics: the same-learner global shuffle is clean in 8 of 9 cells; the period shuffle gives M2F
+over M2v +0.05% [0.001, 0.10]% and the market shuffle +0.15% [-0.02, 0.32]% at direction 2h (h2: 0.16% and
+0.51%), consistent with the block-level base-rate explanation. The leak control is detected (CI above 0) in all
+nine cells.
+
+**Weighted results** agree with unweighted ones: weighted M2F over M2v is within 0.3 percentage points of the
+unweighted value in every declared cell; effective sample size is 64k (direction/|move|, 2h), 17k to 24k
+(up-vs-down 2h/6h) against 93k and 26k to 36k rows. The topic oversampling therefore does not drive the result.
+
+**Wallet age with better coverage** (247,739 of 250,000 rows covered, 99%): still no `demonstrated` help.
+ΔLL against M0v: direction 2h -0.0009 [-0.0018, -0.0001], up-vs-down 2h -0.0007, 6h up-vs-down +0.0029
+[0.0003, 0.0054] (BY not met), 24h direction +0.0019 [-0.0016, 0.0056]. In the arm view M2FX versus M2F adds
+nothing at 2h or 6h and a small amount at 24h (direction 0.54% [0.23, 0.83] over M2v against 0.28% for M2F;
+|move| and up-vs-down unchanged). By the declared criterion it does not help; the 24h direction hint is
+undeclared and small, to be re-examined only in a prospective sample.
+
 ## Caveats
 
 * Historical and exploratory. Panels are reconstructed after the fact from prices-history, not point-in-time
@@ -277,6 +328,8 @@ python scripts/run_ml_history.py --run-id h2_main --max-rows 150000 --n-boot-abl
     --revision r1_m0v_placebo_updown   # M0v baseline, gated placebos, updown target
 python scripts/run_ml_history.py --run-id h2_main --max-rows 150000 --n-boot-ablation 10000 \
     --revision r2_wallet_age --wallet-age-table ../data-dumps/research_lab/history_sources/new_wallets/new_wallet_features_h2_main.csv.gz
+python scripts/run_ml_history.py --run-id h3_power --max-rows 250000 --n-boot-ablation 10000 \
+    --revision h3_replication --wallet-age-table ../data-dumps/research_lab/history_sources/new_wallets/new_wallet_features_h3_power.csv.gz
 python scripts/run_ml_history.py --run-id h2_main --max-rows 150000 --skip-arms --drill-flow \
     --n-boot-ablation 10000 --horizons 1,3 --revision r3_flow_drill
 ```
