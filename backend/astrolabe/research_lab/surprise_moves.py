@@ -444,11 +444,43 @@ def _count_in(sorted_pts: np.ndarray, t: np.ndarray, lo_off: float, hi_off: floa
     return b - a
 
 
+def merge_first_seen(fsi: hb.FirstSeen, table: Path) -> tuple[hb.FirstSeen, dict]:
+    """In-sample first-seen index with true first-trade times (``/activity`` table, hash keyed)
+    merged in as the minimum; ``g0`` and the burn-in stay those of the in-sample index."""
+    acc: dict[int, float] = dict(zip(fsi.keys.tolist(), fsi.vals.tolist(), strict=True))
+    n_table = n_hit = 0
+    with open(table, encoding="utf-8") as fh:
+        for line in fh:
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            ft = r.get("first_trade_ts")
+            if ft is None:
+                continue
+            n_table += 1
+            k = hb.FirstSeen.key(r["wallet_hash"])
+            if k in acc:
+                n_hit += 1
+            acc[k] = min(acc.get(k, float("inf")), float(ft))
+    keys = np.array(sorted(acc), dtype=np.int64)
+    vals = np.array([acc[k] for k in keys], float)
+    return hb.FirstSeen(keys, vals, fsi.g0), {"table_wallets": n_table,
+                                               "table_wallets_in_sample": n_hit,
+                                               "index_wallets": int(len(keys))}
+
+
+SAMPLE_EXTRA = ("topic", "sample_weight", "inclusion_prob")
+
+
 def build_dataset(run_dir: Path, out_dir: Path, *, meta: dict[str, dict] | None = None,
-                  exclude_condition_ids: Iterable[str] = (), log=print) -> dict:
+                  exclude_condition_ids: Iterable[str] = (), first_trade_table: Path | None = None,
+                  log=print) -> dict:
     """Stream every finished market of ``run_dir`` into ``rows.csv.gz`` and ``events.csv.gz``.
     ``meta`` (condition_id -> {question, game_start_ts, ...}) adds the decision class and the
-    game-start end cut. ``exclude_condition_ids`` (Maduro/Venezuela, catalogue) are skipped."""
+    game-start end cut. ``exclude_condition_ids`` (Maduro/Venezuela, catalogue) are skipped.
+    ``first_trade_table`` merges true first-trade times into the wallet first-seen index. Sample
+    columns in ``SAMPLE_EXTRA`` (topic, sample weight) are copied onto the rows when present."""
     import csv
     import gzip
 
@@ -458,6 +490,10 @@ def build_dataset(run_dir: Path, out_dir: Path, *, meta: dict[str, dict] | None 
     prog = hb._read_progress(run_dir / "progress.jsonl")
     done = [m for m in sample["market_id"] if m in prog and prog[m]["status"] == "done"]
     fsi = hb.FirstSeen.build(run_dir / "trades" / f"{m}.csv.gz" for m in done)
+    merge_info = None
+    if first_trade_table is not None:
+        fsi, merge_info = merge_first_seen(fsi, Path(first_trade_table))
+    extra_cols = [c for c in SAMPLE_EXTRA if c in sample.columns]
     excl = set(exclude_condition_ids)
     meta = meta or {}
     counts = {"markets": 0, "rows": 0, "events": 0, "excluded_markets": 0, "no_rows": 0}
@@ -491,6 +527,8 @@ def build_dataset(run_dir: Path, out_dir: Path, *, meta: dict[str, dict] | None 
                 continue
             rows["decision_class"] = m.get("decision_class", "unclassified")
             rows["question_stem"] = m.get("question_stem", "")
+            for c in extra_cols:
+                rows[c] = rec[c]
             if rw is None:
                 rw = csv.writer(rows_f)
                 rw.writerow(rows.columns)
@@ -506,8 +544,9 @@ def build_dataset(run_dir: Path, out_dir: Path, *, meta: dict[str, dict] | None 
                 "label_spec_sha256": label_spec_sha256(), "feature_spec": FEATURE_SPEC,
                 "source_run": str(run_dir), "counts": counts, "built_utc": hb.utc_iso(),
                 "first_seen": {"g0": None if math.isnan(fsi.g0) else fsi.g0,
-                               "n_wallets": int(len(fsi.keys))},
-                "excluded_condition_ids": len(excl), "meta_markets": len(meta)}
+                               "n_wallets": int(len(fsi.keys)), "true_first_trade": merge_info},
+                "excluded_condition_ids": len(excl), "meta_markets": len(meta),
+                "sample_extra_columns": extra_cols}
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=1))
     return manifest
 

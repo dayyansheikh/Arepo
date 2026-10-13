@@ -213,3 +213,50 @@ def test_enet_rule_spec_reproduces_logit_up_to_intercept():
     panel["sm_imb_1h"] = rng.normal(size=20)
     sc = de.score_rule(spec, panel)
     assert np.allclose(sc["score"].to_numpy() + m.intercept, m.logit(xt))
+
+
+def test_merge_first_seen_takes_the_earlier_time_and_keeps_burn_in_origin(tmp_path):
+    import json
+
+    a, b, c = "a" * 64, "b" * 64, "c" * 64
+    fsi = hb.FirstSeen(np.array(sorted(hb.FirstSeen.key(h) for h in (a, b)), dtype=np.int64),
+                       np.array([1000.0, 2000.0]), 1000.0)
+    tbl = tmp_path / "ft.jsonl"
+    tbl.write_text("\n".join(json.dumps(x) for x in (
+        {"wallet_hash": a, "first_trade_ts": 10},  # earlier than in-sample: wins
+        {"wallet_hash": b, "first_trade_ts": 5000},  # later than in-sample: ignored
+        {"wallet_hash": c, "first_trade_ts": 42},  # new wallet
+        {"wallet_hash": "d" * 64, "first_trade_ts": None})) + "\n")
+    merged, info = sm.merge_first_seen(fsi, tbl)
+    got = merged.lookup(np.array([a, b, c, "e" * 64]))
+    assert list(got[:3]) == [10.0, 2000.0, 42.0] and np.isnan(got[3])
+    assert merged.g0 == 1000.0 and info == {"table_wallets": 3, "table_wallets_in_sample": 2,
+                                            "index_wallets": 3}
+
+
+def test_weighted_evaluation_and_matched_excess():
+    from astrolabe.research_lab import surprise_learn as sl
+
+    rng = np.random.default_rng(5)
+    n = 2000
+    t = 7200.0 * (np.arange(n) // 20)
+    test = pd.DataFrame({"market_id": [f"m{i % 20}" for i in range(n)],
+                         "event_id": [f"e{i % 10}" for i in range(n)], "t": t,
+                         "cluster": [f"e{i % 10}" for i in range(n)],
+                         "mid": 0.3, "fee_category": "politics",
+                         "sm_log_notional_24h": rng.normal(size=n),
+                         "sm_imb_1h": rng.normal(size=n), "fwd_move_6h": 0.0,
+                         "fwd_move_24h": 0.0})
+    score = rng.normal(size=n)
+    test["y_dep_6h"] = score > 2.0  # the score is perfectly informative at the top
+    test["y_dep_2h"] = False
+    w = np.where(np.arange(n) % 2 == 0, 3.0, 1.0)
+    events = pd.DataFrame({"market_id": [], "t_dep": [], "t_arr": []})
+    r = sl.evaluate_scores(test, score, np.sign(test["sm_imb_1h"].to_numpy()), events,
+                           n_boot=50, budgets=(0.01,), weights=w)
+    b = r["budgets"]["0.01"]
+    assert b["precision_6h"] == 1.0 and b["weighted"]["precision_6h"] == 1.0
+    assert abs(b["weighted"]["base_rate_6h"] - np.sum(w * test["y_dep_6h"]) / w.sum()) < 1e-12
+    assert b["matched_controls"]["excess_mean"] > 0.9
+    assert b["weighted"]["matched_excess"]["excess_mean"] > 0.9
+    assert "weighted" not in b["matched_controls"]

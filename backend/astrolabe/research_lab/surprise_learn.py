@@ -335,11 +335,14 @@ def _cluster(rows: pd.DataFrame) -> np.ndarray:
 
 def evaluate_scores(test: pd.DataFrame, score: np.ndarray, direction: np.ndarray,
                     events: pd.DataFrame, *, budgets=BUDGETS, n_boot: int = 1000,
-                    seed: int = SEED, k_of_all_rows: bool = False) -> dict:
+                    seed: int = SEED, k_of_all_rows: bool = False,
+                    weights: np.ndarray | None = None) -> dict:
     """Fixed-budget metrics of one scoring on the test rows. The budget is a share of the
     alertable rows (programme convention) or, with ``k_of_all_rows``, of every test row (the
-    same absolute alert count for every arm; capped by the alertable rows)."""
+    same absolute alert count for every arm; capped by the alertable rows). ``weights`` (row =
+    market sample weight) adds sample-weighted precision, base rate and matched excess."""
     ok = np.isfinite(score)
+    w_all = None if weights is None else np.asarray(weights, float)
     res: dict = {"n_rows": int(len(test)), "n_alertable": int(ok.sum()),
                  "k_of_all_rows": bool(k_of_all_rows),
                  "base_rate_6h": float(test["y_dep_6h"].mean()),
@@ -363,7 +366,17 @@ def evaluate_scores(test: pd.DataFrame, score: np.ndarray, direction: np.ndarray
         hit6, hit2 = y6[sel], y2[sel]
         d6 = hit6.astype(float) - res["base_rate_6h"]
         boot = ml_explain.cluster_boot(d6, cl[sel], n_boot=n_boot, seed=seed)
-        matched = matched_excess(sel, y6, strata_all, mkt_all, cl, rng, n_boot=n_boot, seed=seed)
+        matched = matched_excess(sel, y6, strata_all, mkt_all, cl, rng, n_boot=n_boot, seed=seed,
+                                 weights=w_all)
+        weighted = None
+        if w_all is not None:
+            ws = w_all[sel]
+            bw = float(np.sum(w_all * y6) / np.sum(w_all))
+            pw = float(np.sum(ws * hit6) / np.sum(ws))
+            weighted = {"precision_6h": pw, "base_rate_6h": bw, "lift_6h": pw / bw if bw else None,
+                        "precision_2h": float(np.sum(ws * hit2) / np.sum(ws)),
+                        "base_rate_2h": float(np.sum(w_all * y2) / np.sum(w_all)),
+                        "matched_excess": matched.get("weighted")}
         # recall of surprise events whose departure is in the test months
         al_by_m = {m: g["t"].to_numpy(float) for m, g in test[sel].groupby("market_id")}
         caught, lead_dep, lead_arr = [], [], []
@@ -399,7 +412,8 @@ def evaluate_scores(test: pd.DataFrame, score: np.ndarray, direction: np.ndarray
             "lift_2h": float(hit2.mean() / res["base_rate_2h"]) if res["base_rate_2h"] else None,
             "excess_6h_mean": boot["mean"], "excess_6h_ci95": boot["ci"],
             "p_one_sided": boot["p_pos"], "n_clusters": boot["n_clusters"],
-            "matched_controls": matched,
+            "matched_controls": {k: v for k, v in matched.items() if k != "weighted"},
+            "weighted": weighted,
             "directional_hit_6h_ge_0.15": dir_hit,
             "recall_events": float(caught_a.mean()) if len(caught_a) else None,
             "n_events": int(len(caught_a)), "n_events_caught": int(caught_a.sum()),
@@ -431,9 +445,31 @@ def eval_strata(test: pd.DataFrame) -> np.ndarray:
     return np.array([f"{d}|{p}|{b}" for d, p, b in zip(day, pband, lband, strict=True)])
 
 
+def _wcluster_boot(d: np.ndarray, w: np.ndarray, cluster: np.ndarray, n_boot: int,
+                   seed: int) -> dict:
+    """Weighted mean of ``d`` (weights ``w``) with a cluster bootstrap."""
+    ok = np.isfinite(d)
+    d, w, cl = d[ok], w[ok], np.asarray(cluster)[ok]
+    if len(d) == 0:
+        return {"mean": None, "ci": [None, None], "p_pos": None}
+    codes, uniq = pd.factorize(cl)
+    k = len(uniq)
+    num = np.bincount(codes, weights=d * w, minlength=k)
+    den = np.bincount(codes, weights=w, minlength=k)
+    r = np.random.default_rng(seed)
+    means = np.empty(n_boot)
+    for i in range(n_boot):
+        idx = r.integers(0, k, size=k)
+        means[i] = num[idx].sum() / den[idx].sum()
+    lo, hi = np.percentile(means, [2.5, 97.5])
+    return {"mean": float(num.sum() / den.sum()), "ci": [float(lo), float(hi)],
+            "p_pos": float(max((means <= 0).mean(), 1.0 / (n_boot + 1)))}
+
+
 def matched_excess(sel: np.ndarray, hit: np.ndarray, strata: np.ndarray, market: np.ndarray,
                    cluster: np.ndarray, rng: np.random.Generator, *, k: int = 5,
-                   n_boot: int = 1000, seed: int = SEED) -> dict:
+                   n_boot: int = 1000, seed: int = SEED,
+                   weights: np.ndarray | None = None) -> dict:
     """Per-alert excess hit rate over up to ``k`` non-alerted rows of the same stratum and a
     different market (seeded), event-clustered bootstrap of the mean (the primary statistic)."""
     pool_idx = np.flatnonzero(~sel)
@@ -457,7 +493,17 @@ def matched_excess(sel: np.ndarray, hit: np.ndarray, strata: np.ndarray, market:
         n_ctrl.append(int(len(pick)))
     d_arr = np.asarray(d, float)
     boot = ml_explain.cluster_boot(d_arr, cluster[sel], n_boot=n_boot, seed=seed)
-    return {"control_base_rate": float(np.nanmean(ctrl_rate)) if np.isfinite(ctrl_rate).any()
+    wres = None
+    if weights is not None:
+        ws = np.asarray(weights, float)[sel]
+        wb = _wcluster_boot(d_arr, ws, cluster[sel], n_boot, seed)
+        cr = np.asarray(ctrl_rate, float)
+        fin = np.isfinite(cr)
+        wres = {"excess_mean": wb["mean"], "excess_ci95": wb["ci"], "p_one_sided": wb["p_pos"],
+                "control_base_rate": (float(np.sum(ws[fin] * cr[fin]) / np.sum(ws[fin]))
+                                      if fin.any() else None)}
+    return {"weighted": wres,
+            "control_base_rate": float(np.nanmean(ctrl_rate)) if np.isfinite(ctrl_rate).any()
             else None, "excess_mean": boot["mean"], "excess_ci95": boot["ci"],
             "p_one_sided": boot["p_pos"], "n_clusters": boot["n_clusters"],
             "n_alerts_without_controls": int(sum(1 for x in n_ctrl if x == 0)),
@@ -848,4 +894,288 @@ def placebo_extension(out_dir: Path, *, n_draws: int = 100, arms: tuple[str, ...
                 "excess_mean"])) / (np.isfinite(ea).sum() + 1)),
             "draws_precision": [float(x) for x in pa], "draws_excess": [float(x) for x in ea]}
     (d["out_dir"] / "placebo_ext.json").write_text(json.dumps(out, indent=1, default=_json))
+    return out
+
+
+# --- independent replication on a disjoint run (protocol: SURPRISE_MOVE_DETECTOR.md section 9) ----
+
+LEARNED_INDEX = "FROZEN_SURPRISE.json"
+FROZEN_RULE = "sm_learned_v1"
+
+
+def load_frozen_rule(rule_id: str = FROZEN_RULE) -> de.RuleSpec:
+    return de.RuleRegistry(de.SPEC_DIR, LEARNED_INDEX).load(rule_id)
+
+
+def _subset_table(test: pd.DataFrame, sel: np.ndarray, key: str, events: pd.DataFrame,
+                  weights: np.ndarray | None) -> dict:
+    """Precision / base rate / recall of the global alert set inside each level of ``key``."""
+    y6 = test["y_dep_6h"].to_numpy(bool)
+    lv = test[key].astype(str).to_numpy()
+    mk = test[["market_id", key]].drop_duplicates("market_id").set_index("market_id")[key]
+    ev_level = events["market_id"].astype(str).map(mk).astype(str).to_numpy()
+    al_by_m = {m: g["t"].to_numpy(float) for m, g in test[sel].groupby("market_id")}
+    out = {}
+    for level in sorted(set(lv)):
+        m = lv == level
+        a = sel & m
+        ev = events[ev_level == level]
+        caught = 0
+        for mid, td in zip(ev["market_id"].astype(str), ev["t_dep"].to_numpy(float),
+                           strict=True):
+            ts_ = al_by_m.get(mid)
+            if ts_ is not None and np.any((ts_ < td) & (ts_ >= td - 21600.0)):
+                caught += 1
+        entry = {"n_rows": int(m.sum()), "n_alerts": int(a.sum()),
+                 "precision_6h": float(y6[a].mean()) if a.any() else None,
+                 "base_rate_6h": float(y6[m].mean()) if m.any() else None,
+                 "n_events": int(len(ev)), "n_events_caught": int(caught)}
+        if weights is not None and a.any():
+            w = np.asarray(weights, float)
+            entry["weighted"] = {"precision_6h": float(np.sum(w[a] * y6[a]) / np.sum(w[a])),
+                                 "base_rate_6h": float(np.sum(w[m] * y6[m]) / np.sum(w[m]))}
+        out[level] = entry
+    return out
+
+
+def replicate(out_h3: Path, out_h2: Path, *, primary_from: str = "2026-08", n_boot: int = 1000,
+              n_placebo: int = 100, log=print, trials_path: Path = provenance.TRIALS_PATH) -> dict:
+    """Frozen ``sm_learned_v1`` (no refit) and the five hand rules on the disjoint h3 rows."""
+    out_h3, out_h2 = Path(out_h3), Path(out_h2)
+    rows, events, manifest = load_dataset(out_h3)
+    rows = prepare(rows)
+    rows["month"] = month_of(rows["t"].to_numpy(float))
+    elig = rows["traded_before_t"] == 1.0
+    prim = events[(events["variant"] == sm.LABEL_SPEC["primary"]["id"]) & events["surprise"]]
+    prim = prim.assign(month=month_of(prim["t_dep"].to_numpy(float)))
+    spec = load_frozen_rule()
+    reg = de.RuleRegistry()
+    sets = {"primary": rows["month"] >= primary_from, "secondary": pd.Series(True, rows.index)}
+    result: dict = {"version": VERSION, "evidence_role": sm.EVIDENCE_ROLE, "run": str(out_h3),
+                    "rule_id": FROZEN_RULE, "spec_sha256": spec.sha256(), "refit": False,
+                    "label_spec_sha256": manifest["label_spec_sha256"],
+                    "rows_sha256": _sha(out_h3 / "rows.csv.gz"),
+                    "primary_from": primary_from, "sets": {}}
+    for set_name, mask in sets.items():
+        test = rows[elig & mask].copy()
+        ev = prim[prim["month"] >= primary_from] if set_name == "primary" else prim
+        w = (test["sample_weight"].to_numpy(float) if "sample_weight" in test else None)
+        direction = np.sign(test["sm_imb_1h"].to_numpy(float))
+        direction = np.where(np.isfinite(direction), direction, 0.0)
+        sc_rule = de.score_rule(spec, test)
+        scores = {FROZEN_RULE: (np.where(sc_rule["alertable"], sc_rule["score"], np.nan),
+                                sc_rule["direction"].to_numpy(float))}
+        for rid, sc in hand_rule_scores(test, reg).items():
+            scores[rid] = (np.where(sc["alertable"].to_numpy(bool), sc["score"].to_numpy(float),
+                                    np.nan), sc["direction"].to_numpy(float))
+        res_set: dict = {"n_rows": int(len(test)), "n_events": int(len(ev)),
+                         "n_markets": int(test["market_id"].nunique()),
+                         "base_rate_6h": float(test["y_dep_6h"].mean()), "rules": {}}
+        for rid, (s_, d_) in scores.items():
+            log(f"{set_name}: {rid}")
+            res_set["rules"][rid] = evaluate_scores(test, s_, d_, ev, n_boot=n_boot, weights=w)
+            if rid != FROZEN_RULE:
+                res_set["rules"][rid]["matched_k"] = evaluate_scores(
+                    test, s_, d_, ev, n_boot=n_boot, weights=w, k_of_all_rows=True,
+                    budgets=(PRIMARY_BUDGET,))
+        res_set["holm_matched_1pct"] = ml_explain.holm({
+            rid: r["budgets"][str(PRIMARY_BUDGET)]["matched_controls"]["p_one_sided"]
+            for rid, r in res_set["rules"].items()})
+        # by topic and by decision class for the frozen rule (global 1% alert set)
+        s_, _ = scores[FROZEN_RULE]
+        ok = np.isfinite(s_)
+        k = max(1, int(math.floor(PRIMARY_BUDGET * ok.sum())))
+        order = np.argsort(np.where(ok, -s_, np.inf), kind="stable")[:k]
+        sel = np.zeros(len(test), bool)
+        sel[order] = True
+        for key in ("topic", "decision_class", "fee_category"):
+            if key in test:
+                res_set[f"by_{key}"] = _subset_table(test, sel, key, ev, w)
+        result["sets"][set_name] = res_set
+        if set_name == "primary":
+            result["_primary_test"] = test
+            result["_primary_ev"] = ev
+            result["_primary_dir"] = direction
+            result["_primary_w"] = w
+    # placebo: shuffled-label refits on the h2 development sample scored on the h3 primary set
+    d2 = prep(out_h2, log)
+    cc_final = d2["cc"][d2["cc"]["role"].isin(["train", "valid"])]
+    res2 = json.loads((out_h2 / "results.json").read_text())
+    C = res2["arms"]["en_logit_full"]["selection"]["C"]
+    cols = feature_set(False)
+    test, ev, direction, w = (result.pop("_primary_test"), result.pop("_primary_ev"),
+                              result.pop("_primary_dir"), result.pop("_primary_w"))
+    rng = np.random.default_rng(SEED + 2)
+    exc, prec = [], []
+    for i in range(n_placebo):
+        y_perm = rng.permutation(cc_final["y"].to_numpy(int))
+        plc = fit_enet(cc_final[cols].to_numpy(float), y_perm, cols, C)
+        r = evaluate_scores(test, plc.logit(test[cols].to_numpy(float)), direction, ev,
+                            n_boot=20, budgets=(PRIMARY_BUDGET,))
+        b = r["budgets"][str(PRIMARY_BUDGET)]
+        exc.append(b["matched_controls"]["excess_mean"])
+        prec.append(b["precision_6h"])
+        if i % 20 == 0:
+            log(f"placebo draw {i}/{n_placebo}")
+    real = result["sets"]["primary"]["rules"][FROZEN_RULE]["budgets"][str(PRIMARY_BUDGET)]
+    ea, pa = np.asarray(exc, float), np.asarray(prec, float)
+    result["placebo_primary"] = {
+        "n_draws": n_placebo, "placebo_matched_excess": de._dist(
+            [float(x) for x in ea if np.isfinite(x)]),
+        "placebo_precision_6h": de._dist(list(pa)),
+        "real_matched_excess": real["matched_controls"]["excess_mean"],
+        "real_precision_6h": real["precision_6h"],
+        "p_rank_matched_excess": float((1 + np.nansum(ea >= real["matched_controls"][
+            "excess_mean"])) / (np.isfinite(ea).sum() + 1)),
+        "p_rank_precision": float((1 + (pa >= real["precision_6h"]).sum()) / (len(pa) + 1))}
+    (out_h3 / "results_replication.json").write_text(json.dumps(result, indent=1, default=_json))
+    # trial lines: one per rule per set, one placebo line
+    prior = sum(1 for _ in _iter_kind(trials_path, sm.TRIAL_KIND_ARM))
+    i = 0
+    for set_name, rs in result["sets"].items():
+        for rid, r in rs["rules"].items():
+            b = r["budgets"][str(PRIMARY_BUDGET)]
+            provenance.append_trial({
+                "kind": sm.TRIAL_KIND_ARM, "label": "EXPLORATORY surprise-move replication (h3)",
+                "evidence_role": sm.EVIDENCE_ROLE, "arm": rid, "learned": rid == FROZEN_RULE,
+                "refit": False, "dataset": f"h3_power:{set_name}", "rows_sha256": result[
+                    "rows_sha256"], "spec_sha256": spec.sha256() if rid == FROZEN_RULE else None,
+                "precision_6h": b["precision_6h"], "base_rate_6h": r["base_rate_6h"],
+                "matched_controls": b["matched_controls"], "weighted": b["weighted"],
+                "p_holm_matched": rs["holm_matched_1pct"].get(rid, {}).get("p_holm"),
+                "recall_events": b["recall_events"], "n_alerts": b["n_alerts"],
+                "prior_surprise_trials": prior + i,
+                "provenance": provenance.run_provenance([Path(__file__)])}, trials_path)
+            i += 1
+    provenance.append_trial({
+        "kind": sm.TRIAL_KIND_ARM, "label": "EXPLORATORY surprise-move replication placebo (h3)",
+        "evidence_role": sm.EVIDENCE_ROLE, "arm": "placebo_h3_primary", "learned": False,
+        "summary": {k: v for k, v in result["placebo_primary"].items()},
+        "prior_surprise_trials": prior + i,
+        "provenance": provenance.run_provenance([Path(__file__)])}, trials_path)
+    return result
+
+
+def combined_refit(out_h2: Path, out_h3: Path, *, n_boot: int = 1000, log=print,
+                   trials_path: Path = provenance.TRIALS_PATH) -> dict:
+    """EXPLORATORY: refit the elastic net and the family ablation on the h2 + h3 development
+    months. Writes ``results_combined.json`` next to the h3 outputs and never touches any spec."""
+    frames = []
+    for out in (Path(out_h2), Path(out_h3)):
+        rows, events, manifest = load_dataset(out)
+        rows = prepare(rows)
+        rows["role"] = role_of(rows["month"])
+        rows["source_run"] = out.name
+        elig = rows["traded_before_t"] == 1.0
+        frames.append(rows[elig & rows["role"].isin(["train", "valid"])])
+    dev = pd.concat(frames, ignore_index=True)
+    liq_cuts = sm.strata(dev)[1]
+    cc = sm.match_negatives(dev, liq_cuts=liq_cuts).sort_values(["t", "market_id"]).reset_index(
+        drop=True)
+    attrs = dict(cc.attrs)
+    log(f"combined case-control: {attrs}")
+    cols = feature_set(False)
+    sel = select_C(cc, cols)
+    cc_final = cc[cc["role"].isin(["train", "valid"])]
+    m = fit_enet(cc_final[cols].to_numpy(float), cc_final["y"].to_numpy(int), cols, sel["C"])
+    folds = dev_folds(cc)
+    judge = [f.fold_id for f in folds if f.fold_id in SPLIT["valid"]]
+    clusters = {"event": cc["cluster"].to_numpy(), "market": cc["market_id"].to_numpy()}
+    abl = ml_explain.ablation_study(
+        cc, cc["y"].to_numpy(int), folds, families(False), ["abs_mid_dev", "log_hours_to_end"],
+        clusters, extra_units={c: [c] for c in cols}, judge_fold_ids=judge or None,
+        prior_tests=ml_explain.prior_ml_explain_tests(trials_path),
+        fit_fn=lambda x, y, cs: fit_enet(x, y, list(cs), sel["C"]), n_boot=n_boot, seed=SEED)
+    abl.pop("_full_oof", None)
+    abl.pop("_baseline_oof", None)
+    nw = cc[[c for c in cols if c.startswith("sm_new_")]].notna().mean().to_dict()
+    result = {"version": VERSION, "evidence_role": sm.EVIDENCE_ROLE,
+              "label": "EXPLORATORY combined h2+h3 refit; not a rule; sm_learned_v1 unchanged",
+              "case_control": {k: v for k, v in attrs.items() if k != "liq_cuts"},
+              "by_source": cc.groupby("source_run")["y"].agg(["size", "sum"]).to_dict(),
+              "selection": sel, "n_nonzero": int((m.coef != 0).sum()),
+              "weights": dict(sorted(m.weights().items(), key=lambda kv: -abs(kv[1]))),
+              "new_wallet_feature_coverage": nw,
+              "incremental_value": {"folds": [f.fold_id for f in folds], "judge": judge,
+                                    "ranking": abl["ranking"],
+                                    "families": {k: {"delta_ll": v["delta_ll"],
+                                                     "ci": v["value"]["ci"], "p_by": v["p_by"],
+                                                     "label": v["label"]}
+                                                 for k, v in abl["families"].items()},
+                                    "multiple_testing": abl["multiple_testing"],
+                                    "full_vs_baseline": abl["full_vs_baseline"]["conservative"]}}
+    (Path(out_h3) / "results_combined.json").write_text(json.dumps(result, indent=1,
+                                                                   default=_json))
+    provenance.append_trial({
+        "kind": sm.TRIAL_KIND_ARM, "label": "EXPLORATORY surprise-move combined h2+h3 refit "
+                                            "(feature ranking only; no rule change)",
+        "evidence_role": sm.EVIDENCE_ROLE, "arm": "en_logit_full_combined_h2h3", "learned": True,
+        "rule_change": False, "selection": sel, "n_nonzero": result["n_nonzero"],
+        "families": result["incremental_value"]["families"],
+        "demonstrated": [x["unit"] for x in abl["ranking"] if x["demonstrated_incremental_value"]],
+        "prior_surprise_trials": sum(1 for _ in _iter_kind(trials_path, sm.TRIAL_KIND_ARM)),
+        "provenance": provenance.run_provenance([Path(__file__)])}, trials_path)
+    return result
+
+
+def gating_analysis(out_h3: Path, out_h2: Path, *, primary_from: str = "2026-08",
+                    n_boot: int = 1000, log=print, trials_path: Path = provenance.TRIALS_PATH
+                    ) -> dict:
+    """Why the h3 replication population differs from the h2 test: the frozen rule's direction
+    gate (``sign(sm_imb_1h) != 0``) admits only rows with 1h flow, while the h2 test scored the
+    elastic net on every eligible row. Reports (a) the ungated frozen score on the h3 sets and
+    (b) the gated rule on the h2 test months. Descriptive; logged."""
+    spec = load_frozen_rule()
+    ungated = de.RuleSpec(**{**spec.to_dict(), "direction_feature": None})
+    out: dict = {"rule_id": FROZEN_RULE, "spec_sha256": spec.sha256(), "note": "ungated = the "
+                 "same terms with direction_feature None (score identical to the h2 test's "
+                 "elastic-net logit minus the intercept); gated = the frozen rule as scored by "
+                 "score_rule and by the live monitor", "sets": {}}
+    rows3, events3, _ = load_dataset(out_h3)
+    rows3 = prepare(rows3)
+    rows3["month"] = month_of(rows3["t"].to_numpy(float))
+    prim3 = events3[(events3["variant"] == sm.LABEL_SPEC["primary"]["id"]) & events3["surprise"]]
+    prim3 = prim3.assign(month=month_of(prim3["t_dep"].to_numpy(float)))
+    d2 = prep(out_h2, log)
+    jobs = {
+        "h3_primary_ungated": (rows3[(rows3["traded_before_t"] == 1.0)
+                                     & (rows3["month"] >= primary_from)],
+                               prim3[prim3["month"] >= primary_from], ungated),
+        "h3_secondary_ungated": (rows3[rows3["traded_before_t"] == 1.0], prim3, ungated),
+        "h2_test_gated": (d2["test"], d2["test_events"], spec),
+        "h2_test_ungated_check": (d2["test"], d2["test_events"], ungated),
+    }
+    for name, (test, ev, sp) in jobs.items():
+        log(f"gating: {name}")
+        sc = de.score_rule(sp, test)
+        s_ = np.where(sc["alertable"].to_numpy(bool), sc["score"].to_numpy(float), np.nan)
+        direction = np.sign(test["sm_imb_1h"].to_numpy(float))
+        direction = np.where(np.isfinite(direction), direction, 0.0)
+        w = test["sample_weight"].to_numpy(float) if "sample_weight" in test else None
+        r = evaluate_scores(test, s_, direction, ev, n_boot=n_boot, weights=w)
+        r["n_rows_with_1h_flow"] = int(np.isfinite(test["sm_imb_1h"].to_numpy(float)).sum())
+        r["base_rate_6h_rows_with_1h_flow"] = float(test["y_dep_6h"][
+            np.isfinite(test["sm_imb_1h"].to_numpy(float))].mean())
+        if name.startswith("h3"):
+            ok = np.isfinite(s_)
+            k = max(1, int(math.floor(PRIMARY_BUDGET * ok.sum())))
+            order = np.argsort(np.where(ok, -s_, np.inf), kind="stable")[:k]
+            sel = np.zeros(len(test), bool)
+            sel[order] = True
+            r["by_topic"] = _subset_table(test, sel, "topic", ev, w)
+            r["by_decision_class"] = _subset_table(test, sel, "decision_class", ev, w)
+        out["sets"][name] = r
+    (Path(out_h3) / "results_gating.json").write_text(json.dumps(out, indent=1, default=_json))
+    prior = sum(1 for _ in _iter_kind(trials_path, sm.TRIAL_KIND_ARM))
+    for i, (name, r) in enumerate(out["sets"].items()):
+        b = r["budgets"][str(PRIMARY_BUDGET)]
+        provenance.append_trial({
+            "kind": sm.TRIAL_KIND_ARM, "label": "EXPLORATORY surprise-move gating analysis",
+            "evidence_role": sm.EVIDENCE_ROLE, "arm": f"{FROZEN_RULE}:{name}", "learned": True,
+            "refit": False, "spec_sha256": spec.sha256(), "n_alertable": r["n_alertable"],
+            "n_rows": r["n_rows"], "precision_6h": b["precision_6h"],
+            "base_rate_6h": r["base_rate_6h"], "matched_controls": b["matched_controls"],
+            "weighted": b["weighted"], "recall_events": b["recall_events"],
+            "n_alerts": b["n_alerts"], "prior_surprise_trials": prior + i,
+            "provenance": provenance.run_provenance([Path(__file__)])}, trials_path)
     return out

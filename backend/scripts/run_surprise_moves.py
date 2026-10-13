@@ -77,7 +77,8 @@ def _log_labels(args) -> None:
 def _build(args) -> None:
     import pandas as pd
 
-    meta_path = OUT / "gamma_meta.json"
+    run, out = _paths(args)
+    meta_path = out / "gamma_meta.json"
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
     excl: set[str] = set()
     for p in args.exclude:
@@ -89,8 +90,46 @@ def _build(args) -> None:
             excl.update(str(x) for x in items)
         else:
             excl.update(pd.read_csv(pth, dtype=str)["condition_id"].dropna())
-    man = sm.build_dataset(RUN, OUT, meta=meta, exclude_condition_ids=excl, log=log.info)
-    print(json.dumps(man["counts"]))
+    import contextlib
+
+    table = Path(args.first_trade_table) if args.first_trade_table else None
+    # the build streams one market at a time (RSS well under 1 GB); --no-lock skips the shared
+    # heavy lock, which is reserved for model fits and multi-GB loads
+    with contextlib.nullcontext() if args.no_lock else _heavy_lock():
+        man = sm.build_dataset(run, out, meta=meta, exclude_condition_ids=excl,
+                               first_trade_table=table, log=log.info)
+    print(json.dumps({**man["counts"], "first_seen": man["first_seen"]}))
+
+
+def _replicate(args) -> None:
+    from astrolabe.research_lab import surprise_learn as sl
+
+    with _heavy_lock():
+        res = sl.replicate(ROOT / args.out, OUT, n_boot=args.n_boot, n_placebo=args.n_placebo,
+                           log=log.info)
+    for set_name, rs in res["sets"].items():
+        print(f"[{set_name}] rows={rs['n_rows']} events={rs['n_events']} "
+              f"base={rs['base_rate_6h']:.4f}")
+        for rid, r in rs["rules"].items():
+            b = r["budgets"]["0.01"]
+            mc, wt = b["matched_controls"], b["weighted"] or {}
+            print(f"  {rid:32s} n={b['n_alerts']} prec={b['precision_6h']:.4f} "
+                  f"ctrl={mc['control_base_rate']} excess={mc['excess_mean']} "
+                  f"ci={mc['excess_ci95']} p={mc['p_one_sided']} "
+                  f"holm={rs['holm_matched_1pct'][rid]['p_holm']:.3f} "
+                  f"w_prec={wt.get('precision_6h')} w_base={wt.get('base_rate_6h')} "
+                  f"recall={b['recall_events']}")
+    print("placebo:", json.dumps(res["placebo_primary"], default=str)[:600])
+
+
+def _combined(args) -> None:
+    from astrolabe.research_lab import surprise_learn as sl
+
+    with _heavy_lock():
+        res = sl.combined_refit(OUT, ROOT / args.out, n_boot=args.n_boot, log=log.info)
+    print(json.dumps({"selection": res["selection"], "n_nonzero": res["n_nonzero"],
+                      "weights_top": dict(list(res["weights"].items())[:15]),
+                      "families": res["incremental_value"]["families"]}, default=str))
 
 
 def _heavy_lock():
@@ -277,6 +316,22 @@ def sl_index() -> str:
     return ltm.LEARNED_INDEX
 
 
+def _gating(args) -> None:
+    from astrolabe.research_lab import surprise_learn as sl
+
+    with _heavy_lock():
+        res = sl.gating_analysis(ROOT / args.out, OUT, n_boot=args.n_boot, log=log.info)
+    for name, r in res["sets"].items():
+        b = r["budgets"]["0.01"]
+        mc = b["matched_controls"]
+        print(f"{name:24s} rows={r['n_rows']} alertable={r['n_alertable']} n={b['n_alerts']} "
+              f"prec6={b['precision_6h']:.4f} base={r['base_rate_6h']:.4f} "
+              f"base_1h_flow={r['base_rate_6h_rows_with_1h_flow']:.4f} "
+              f"ctrl={mc['control_base_rate']} exc={mc['excess_mean']} "
+              f"ci={mc['excess_ci95']} p={mc['p_one_sided']} "
+              f"recall={b['recall_events']}")
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -288,6 +343,20 @@ def main(argv=None) -> None:
     s.add_argument("--out")
     s = sub.add_parser("build")
     s.add_argument("--exclude", nargs="*", default=[])
+    s.add_argument("--run")
+    s.add_argument("--out")
+    s.add_argument("--first-trade-table")
+    s.add_argument("--no-lock", action="store_true")
+    s = sub.add_parser("replicate")
+    s.add_argument("--out", default="surprise_moves_h3")
+    s.add_argument("--n-boot", type=int, default=1000)
+    s.add_argument("--n-placebo", type=int, default=100)
+    s = sub.add_parser("combined")
+    s.add_argument("--out", default="surprise_moves_h3")
+    s.add_argument("--n-boot", type=int, default=1000)
+    s = sub.add_parser("gating")
+    s.add_argument("--out", default="surprise_moves_h3")
+    s.add_argument("--n-boot", type=int, default=1000)
     s = sub.add_parser("learn")
     s.add_argument("--n-boot", type=int, default=1000)
     s.add_argument("--n-placebo", type=int, default=20)
@@ -303,7 +372,8 @@ def main(argv=None) -> None:
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     {"meta": _meta, "log-labels": _log_labels, "build": _build, "learn": _learn,
-     "cases": _cases, "placebo": _placebo, "freeze": _freeze}[args.cmd](args)
+     "cases": _cases, "placebo": _placebo, "freeze": _freeze, "replicate": _replicate,
+     "combined": _combined, "gating": _gating}[args.cmd](args)
 
 
 if __name__ == "__main__":

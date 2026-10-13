@@ -141,3 +141,9 @@ Holm p 0.008, first of 100 shuffled-label placebos); hand rules 0 %. Value sits 
 clears the budget under the frozen arm. Frozen `sm_learned_v1` (sha `ee7ea5f1…`, `FROZEN_SURPRISE.json`) and
 deployed in `live_trade_monitor` v2 (prospective, unregistered). Next: let the live alert stream accumulate;
 register (programme §7) only if ≥ 30 episodes with controls; do not revise features on this data window.
+- **h3 replication (2026-10-13):** frozen `sm_learned_v1` as specified (direction gate on) is **null** on the
+  disjoint h3 primary months (0/63 alerts, placebo rank 0.78); the gate admits only rows with 1 h flow (8 %), where
+  the signal is absent. The validated ungated score replicates strongly (1 %: precision 6.5 % vs 0.87 % base,
+  matched excess +5.8 pts, CI +2.6/+9.6, weighted +7.2), concentrated in sports/crypto/politics; asymmetric topics
+  weak or absent. Combined h2+h3 refit: price path only; flow/wallet families still ≈ 0. Decision for the
+  coordinator: freeze an ungated v2 and test it on the complete-universe passes, not the print monitor.

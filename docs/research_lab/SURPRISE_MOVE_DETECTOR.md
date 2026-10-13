@@ -254,3 +254,100 @@ was read before this section was committed except the sample and manifest metada
 7. Budget: one `surprise_detector` line per rule evaluated on h3 (6, primary set) plus one per rule on the
    secondary set (6), one placebo line, one line for the exploratory refit; cumulative count carried in each line.
    Heavy lock held for the build and the fits.
+
+## 10. Replication on `h3_power`: results (2026-10-13; `evidence_role: exploratory_historical`)
+
+Build: 5,106 of the 10,000 h3 markets have grid rows (582,360 rows; 23,397 raw events; 6 markets removed by
+the Maduro/catalogue exclusions; true first-trade times merged for 13,533 of the 19,230 table wallets).
+Eligible rows 207,294 (secondary set, 3,194 markets, 2,616 surprise events, base rate 0.90 %); **primary set**
+(`t ≥ 2026-08-01`) 78,693 rows, 1,024 markets, 1,179 events, base rate 0.87 %. Files:
+`data-dumps/research_lab/surprise_moves_h3/` (`results_replication.json`, `results_gating.json`,
+`results_combined.json`). Heavy lock: the streaming build ran without it (RSS 200 MB; the lock is for fits and
+multi-GB loads, and another agent held it for two hours); every fit ran under it.
+
+### 10.1 Pre-declared test: the frozen rule as specified (`score_rule`, direction gate on) — **does not replicate**
+
+| Set | Alertable rows | Alerts (1 %) | Precision 6 h | Base rate | Matched control rate | Excess (95 % CI) | p | Holm (6 rules) | Weighted precision / base / excess | Recall |
+|---|---|---|---|---|---|---|---|---|---|---|
+| primary | 6,369 of 78,693 | 63 | **0.0 %** | 0.87 % | 0.63 % | −0.6 pts (−1.6, 0) | 1.0 | 1.0 | 0.0 % / 1.09 % / −0.8 pts | 0/1,179 |
+| secondary | 24,329 of 207,294 | 243 | 1.65 % | 0.90 % | 0.82 % | +0.8 pts (−0.6, +2.5) | 0.15 | 0.91 | 2.08 % / 1.01 % / +1.1 pts (p 0.13) | 4/2,616 |
+
+0.5 % and 2 % budgets: primary 0/31 and 0/127; secondary +1.0 pts (p 0.20) and +1.6 pts (p 0.006, CI +0.4/+3.1).
+Placebo (100 shuffled-label refits scored on the primary set): the frozen rule's matched excess ranks at
+p_rank **0.78**, its precision at 1.0. Hand rules on the primary set: all 0 % except `uf_new_wallet_concentration_v1`
+(1/39 alerts, p 0.37); at the matched alert count none has p < 0.06. By topic and by decision class (primary): 0
+hits in every level. **Verdict on the pre-declared test: null; the frozen rule as deployed does not replicate.**
+
+### 10.2 Why: the direction gate changes the population (explanation, not a rule change)
+
+The two milestones two seconds apart were the symptom. `sm_learned_v1` carries `direction_feature = sm_imb_1h`
+(chosen for the paper-P&L direction), so `score_rule` marks a row alertable only when it has 1 h taker flow:
+6,369 of 78,693 primary rows (8 %). The h2 test-month evaluation of §5 scored the elastic net **ungated** on every
+eligible row, and 62 % of those rows have no trade in the prior 24 h. Rows with 1 h flow have a *lower* surprise
+base rate (h3 primary 0.34 % vs 0.87 % overall; h2 test 0.53 % vs 0.56 %). The gate therefore discards the
+population in which the §5 signal lives. The same rule gated on the h2 test months gives 69 alerts, precision
+2.9 %, excess +2.9 pts (CI 0 / +7.0, p 0.12): not testable, consistent with the h3 null.
+
+### 10.3 The validated score (same 20 terms, no gate) on h3 — **replicates, and more strongly than on h2**
+
+| Set | Budget | Alerts | Precision 6 h | Precision 2 h | Base rate | Matched control rate | Excess (95 % CI) | p | Weighted precision / base / excess (CI) | Recall | Lead to departure (median h) | Paper P&L 6 h / 24 h |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| primary | 0.5 % | 393 | 6.9 % | 2.5 % | 0.87 % | 0.69 % | +6.0 pts | 0.001 | 7.8 % / 1.09 % / +7.0 (+2.3, +12.6) | 12/1,179 | 4.2 | −0.19 / −0.29 |
+| primary | **1 %** | 786 | **6.5 %** | 2.0 % | 0.87 % | 0.69 % | **+5.8 pts (+2.6, +9.6)** | 0.001 | 8.0 % / 1.09 % / +7.2 (+2.9, +11.8) | 23/1,179 (2.0 %) | 4.3 | −0.11 / −0.21 |
+| primary | 2 % | 1,573 | 5.6 % | 1.8 % | 0.87 % | 0.69 % | +4.8 pts | 0.001 | 6.7 % / 1.09 % / +5.9 (+3.2, +9.0) | 39/1,179 (3.3 %) | 4.3 | −0.21 / −0.16 |
+| secondary | 1 % | 2,072 | 4.8 % | 1.7 % | 0.90 % | 0.77 % | +4.1 pts (+2.4, +5.9) | 0.001 | 5.6 % / 1.01 % / +4.8 (+2.6, +7.0) | 50/2,616 (1.9 %) | 4.3 | −0.14 / −0.17 |
+
+On h2 the same score gave +1.8 pts at 1 %; on disjoint markets and later months it gives +5.8 pts (lift 7.5 over
+the base rate, 9.4 over matched controls), weighted and unweighted alike. Directional hits (≥ 0.15 in the 1 h
+flow's direction) stay at 3-5 % and paper P&L stays negative: the score says *that* a market is about to jump,
+not which way; **no economic value**. This ungated analysis was not the pre-declared primary; it is reported as
+a secondary, clearly labelled analysis of the object that §5 actually validated (identical terms, no gate).
+
+### 10.4 By topic and decision class (ungated score, 1 % budget, primary set)
+
+| Topic | Rows | Alerts | Precision 6 h (weighted) | Base rate | Events caught |
+|---|---|---|---|---|---|
+| sports | 19,504 | 335 | 9.9 % (9.8 %) | 1.45 % | 13/477 |
+| politics | 35,783 | 224 | 4.0 % (4.0 %) | 0.72 % | 5/111 |
+| crypto | 2,767 | 26 | 26.9 % | 0.43 % | 3/7 |
+| corporate | 6,203 | 75 | 0 % | 0.29 % | 0/14 |
+| geopolitics | 5,300 | 31 | 0 % | 0.74 % | 0/14 |
+| macro | 4,136 | 14 | 7.1 % | 0.51 % | 1/7 |
+| mentions | 301 | 3 | 33 % (1 hit) | 7.97 % | 1/10 |
+| other | 2,299 | 47 | 0 % | 1.13 % | 0/28 |
+| weather | 348 | 31 | 0 % | 0.86 % | 0/1 |
+| awards | 2,052 | 0 | – | 0 % | 0/0 |
+
+Decision class (primary): C (scheduled, symmetric) 10.1 % on 398 alerts vs 1.26 % base; B 4.8 % on 209 vs
+0.73 %; **A (asymmetric announcement-type) 0 % on 46 alerts vs 0.42 %**; unclassified 0.8 % on 133. On the
+secondary set the asymmetric topics do show hits (awards 3.9 % vs 1.3 %, corporate 2.7 % vs 0.9 %, class A 2.2 %
+vs 1.0 %), but geopolitics is 0 % on both sets. The replicated signal is concentrated in sports, crypto and
+politics; for the asymmetric topics that motivated the programme (geopolitics, corporate, awards) it is weak or
+absent in the out-of-time months, with small counts.
+
+### 10.5 Exploratory combined refit (h2 + h3 development months; **not a rule, `sm_learned_v1` unchanged**)
+
+Case-control 770 positives (362 h2, 408 h3) + 3,850 negatives; C = 0.1; 53 non-zero weights. Full model vs the
+two-feature baseline ΔLL +0.029 (CI +0.014/+0.046). Family drop-one ΔLL: `price_context` +0.026 (CI +0.013/+0.041),
+`size` +0.0018 (CI 0/+0.0037), everything else within ±0.001: `intensity` −0.0008, `imbalance` +0.0001,
+`concentration` +0.0003, `new_wallets` −0.0003, `response` −0.0004, `group` +0.0003. Feature level: `rv_1d` +0.019
+(CI +0.011/+0.028), `rv_7d` +0.006, `rv_2h`, `rv_6h`, `market_age_h` +0.0007 (CI +0.0001/+0.0013), then
+`sm_large_rel_24h` +0.0007 and `sm_convex_24h` +0.0004 with intervals through 0. **Nothing is demonstrated after
+BY** (318 cumulative tests). New-wallet features now have true first-trade coverage for 50 % of the 24 h windows
+(5-29 % for shorter ones), and the refit does give them non-zero weights (`sm_new_n_24h` +0.11, `sm_new_vol_share_6h`
++0.08) together with `sm_abs_imb_15m` +0.18 and `sm_large_rel_15m` −0.17, but as a family they carry no
+incremental out-of-sample value. The answer to the question asked: better wallet-age coverage does **not**
+change which features matter; the price path does, flow and wallet terms do not.
+
+### 10.6 Consequences and recommendation (decisions for the coordinator)
+
+1. The pre-declared replication of `sm_learned_v1` **as specified is null**; the validated ungated score
+   **replicates strongly**. The difference is the direction gate, a spec choice never evaluated on h2.
+2. The live monitor scores only prints, i.e. rows with flow, which is the population in which the score has no
+   demonstrated value. The current live run of `sm_learned_v1` is therefore not a test of the replicated
+   signal. Recommendation: (a) freeze `sm_learned_v2` = identical terms, `direction_feature: null` (a rule
+   change under review, not a refit), and (b) evaluate it prospectively where it belongs, on the 2-hourly
+   complete-universe passes (every eligible market scored each pass, alerts written before outcomes), rather
+   than in the print-triggered monitor. Neither is done here.
+3. Budget: 13 replication lines (6 rules × 2 sets + placebo), 4 gating lines, 1 combined-refit line, 1 protocol
+   line; 46 `surprise_*` trial lines in total. No feature-set revision was spent.
