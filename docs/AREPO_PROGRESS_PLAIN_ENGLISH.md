@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-12 23:54 UTC+1
+**Last updated:** 2026-10-14 11:50 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. No decisions needed from you.
 **Current objective:** Build the combined-signal model (many signals, ML + Bayesian, Shapley breakdown) and collect its data; finish the 24-hour forecasting test tonight; run the pairing redesign (D120) once.
@@ -71,33 +71,16 @@ current price and recent momentum.
 
 Data rights are out of scope during the private research phase (your decision, 2026-10-11).
 
-## 6. Your lunchtime checklist (about 10 minutes, in this order)
-Full guide: `docs/infra/DEPLOY_RUNBOOK_2026-10-12.md` on branch `fix/infra-2026-10-11`.
+## 6. Decisions and actions
+**Done (13–14 Oct):**
+- Infrastructure fixes deployed (PR #18). The API no longer crashes on the status page.
+- Supabase security lockdown applied.
+- Supabase archived and pruned: **951 → 359 MB**, under the free limit. The old snapshots are in the private `arepo-data` release `provenance-archive-2026-10-12`, restorable with one command.
+- Etherscan key stored on the Mac, the Oracle server and as a GitHub secret.
+- ntfy push alerts are live.
+- **Collection moved to the Oracle server.** The Mac no longer runs anything in the background.
 
-1. **Deploy the infrastructure fixes.**
-   - Open https://github.com/dayyansheikh/Arepo/compare/arepo-free-production-v1...fix/infra-2026-10-11
-   - Click **Create pull request**, then **Merge**.
-   - If Render hasn't started a deploy within about 2 minutes: Render → `arepo-api` → **Manual Deploy**.
-   - Then tell me "deployed" and I'll verify the live site.
-2. **Security SQL.**
-   - Supabase → SQL Editor → paste `docs/infra/supabase_data_api_lockdown.sql` (on the fix branch) → **Run**.
-   - Run the check query from the runbook and paste me the result (expected: `0 | 0 | 0`).
-3. **Archive token.**
-   - GitHub → Settings → Developer settings → fine-grained token, with access ONLY to `dayyansheikh/arepo-data` and permission **Contents: Read and write**.
-   - Save it in the Arepo repo as the Actions secret `ARCHIVE_REPO_TOKEN`.
-   - Tell me "token added". I then run the archive in two steps: export, verify and test-restore first; delete only after that checks out.
-   - The archive can always be restored with one command.
-4. **Optional: Etherscan key.** Sign up free at etherscan.io → API Keys → create one. In Terminal, run:
-   `read -s k; mkdir -p ~/.arepo; printf %s "$k" > ~/.arepo/etherscan_key; chmod 600 ~/.arepo/etherscan_key; unset k`
-   Then tell me "key saved".
-
-5. **Email alerts: create a Gmail app password.**
-   - Google Account → Security → 2-Step Verification must be on → **App passwords** → create one named "AREPO".
-   - In Terminal, run:
-     `read -s k; mkdir -p ~/.arepo; printf %s "$k" > ~/.arepo/gmail_app_password; chmod 600 ~/.arepo/gmail_app_password; unset k`
-   - Then tell me "gmail saved". I'll send a test email.
-
-Done already: the **live large-trade monitor** is running permanently (approved). Resend is postponed.
+**Pending:** Resend audit (later); the Mac data deletion command once the archive is verified.
 
 ## 7. What's next
 1. Collection every 2h; E004/E005/E006 scored tonight.
