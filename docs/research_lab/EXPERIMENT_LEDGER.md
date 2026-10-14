@@ -1069,3 +1069,38 @@ All three use the same 12 qualifying snapshots (`20261011T002442Z` to `20261011T
   are not labels of any wallet, trade or market as informed or insider activity.
 - **Collector wiring (user action):** in `~/arepo_collector/arepo_pass.sh`, inside the `state=complete` block after
   `run_flow_screen.py`: `caffeinate -i $PY scripts/run_surprise_snapshot.py score --rps 4 2>&1 | tail -2`.
+
+## Operational deviation: collection host moved Mac → Oracle at 2026-10-14 11:29Z (E009, E010, E011; also E004/E007 status, live monitor)
+
+User-approved on 2026-10-13. Code, specs, frozen models and thresholds are unchanged. Spec hashes on the host match the Mac:
+E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. The runbook is `COLLECTION_HOST.md`.
+- **Cutover.** The Mac launchd jobs were unloaded at 11:29:09Z (plists kept as `*.disabled`). The final incremental data sync left
+  0 differences. Host monitors started at 11:30:55Z and were restarted at 11:32:32Z on code `5085e49` (an ops-only watchdog fix).
+  The first host collection pass is at 12:31Z.
+- **Gap from the cutover itself.**
+  - E009/E010 poll grid points 11:30Z (and possibly 11:32Z) are missing.
+  - New E009 predictions resume after the poller's 10-minute warm-up (about 11:42Z).
+  - The live trade monitor is down 11:29–11:32Z; trades are fetched by page, so later cycles may recover part of it.
+  - No collector pass is lost: none was due between 10:31Z and 12:31Z.
+- **Larger gap before the cutover (Mac offline or asleep, not caused by the move).**
+  - Collector passes 00:31Z to 10:31Z on 2026-10-14 did not run (6 passes). E011 has no captures for them.
+  - The E009/E010 poller had no valid quotes from 00:02Z to 10:44Z.
+  - The live trade monitor fetched no trades from about 00:00Z to 10:47Z.
+  - Missing stays missing. The E011 window is not extended.
+- **Parallel validation copy (not canonical, not merged).**
+  - A validation copy of both monitors ran on the host from 2026-10-13 23:33Z to 2026-10-14 11:29Z into
+    `/home/opc/arepo_val/data-dumps/research_lab/` with the identical code and specs. It therefore covers the Mac outage.
+  - It is kept as is. Whether any of it may stand in for the outage is a design question for review. Until such a decision,
+    it is NOT evidence for E009/E010.
+- **Validation results.**
+  - Host pass 23:20Z: complete; 262,295 rows vs the Mac's 22:31Z pass at 264,126; 261,908 market ids in both, which fits market
+    churn; same columns and manifest schema.
+  - All steps ran: forecast, 2 sweeps, 2,000-market trade sample, E011 score (60 alerts, 180 controls); about 18 min, about 1.0 GB
+    peak RSS.
+  - Monitors, 23:36–00:30Z: live trades 208/208 identical (including wallet hashes); E010 predictions 74/74.
+  - E009 quotes: Kalshi sides identical on all 1,582 shared rows; Polymarket sides identical on about 99%, the rest book-timing noise.
+  - E009 predictions: 854 of 881 shared identical. The host lacked 147 at 23:40–23:42Z, which is its own start-up warm-up.
+- **Environment.** The host runs Python 3.11.13 on Linux aarch64 with numpy, pandas, lightgbm, scikit-learn and scipy pinned to the
+  Mac versions. Provenance env fields now read `linux`.
+  - Scoped tests: 197 of 199 pass. The 2 failures are byte-identity checks of a gzip test fixture (Linux and macOS zlib compress
+    differently); the sampling plans are identical.

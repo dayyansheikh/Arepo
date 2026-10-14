@@ -41,11 +41,13 @@ Edge search now goes through combined models plus SHAP, not a chain of single E-
 - E002: Confirmed (exploratory). E003: inconclusive.
 - E004/E005/E006: 9 of 12 qualifying. Passes run at 18:31Z, 20:31Z and 22:31Z. Score at 12.
 - E007: 2 of 12. Deadline 2026-10-18.
-- **Collection is now a user-approved launchd job, `com.arepo.collector`** (installed 2026-10-11). It runs every even UTC hour at :31, doing snapshot, forecast, sweeps, trades, flow screen and E004/E007 status.
-  - Script: `~/arepo_collector/arepo_pass.sh`. Logs: `~/arepo_collector/logs/`.
-  - Do NOT chain session passes while it is loaded. Commit trials.jsonl lines periodically.
-  - Avoid heavy jobs and live launches at :25–:50 after even UTC hours.
-  - Remove it when collection ends (about 15 Oct) with `launchctl unload` plus deleting the plist.
+- **Collection runs on the Oracle host (`ssh oracle`) since 2026-10-14 11:29Z** (user-approved; runbook `research_lab/COLLECTION_HOST.md`).
+  - Mac launchd `com.arepo.*` is unloaded; the plists are kept as `*.plist.disabled` for rollback.
+  - Host cron (UTC): `scripts/oracle/arepo_pass.sh` at `31 */2` (flock, 4 GB free-disk guard, 12 GB data cap); `supervise.sh` watchdog at `@reboot` and `*/5` for the live trade monitor and E009/E010 poller; outcomes at `10 2,14`; notify every 15 min.
+  - Code reaches the host only via `scripts/oracle/deploy.sh` (committed tip; unions trials.jsonl both ways). Pull data read-only with rsync.
+  - Health: `ssh oracle '~/arepo/scripts/oracle/supervise.sh status; tail -n 12 ~/arepo_collector/logs/collector.log'`.
+  - Disk: about 1 GB/day against the 12 GB cap (3.7 GB at cutover), so it fills around 2026-10-22 unless archive rotation is installed (needs user decisions; see COLLECTION_HOST.md).
+  - Mac outage: 00:31Z–10:31Z passes on 10-14 were missed and monitors were down ~00:00–10:47Z (ledger: operational deviation). A host validation copy covering it sits unmerged in `/home/opc/arepo_val` pending a design decision.
 
 ## D120 (pairing redesign): PASS
 - Frozen at 04e71ea (record ea29ae6). Launched once at 14:47Z (HEAD 47375bc).
@@ -106,7 +108,7 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
 5. **Economic conditions** (liquid markets, large signals, maker-style paper analysis): `ECONOMIC_CONDITIONS_STUDY.md`.
 6. **IF-H2 deadline ladder:** development, then possible E008 registration (`IF_H2_DEADLINE_LADDER.md`).
 
-**Live jobs:** `com.arepo.cross-venue-live` (E009 poller + daily pair refresh), `com.arepo.collector`, `com.arepo.live-trade-monitor`, `com.arepo.live-trade-outcomes` and `com.arepo.notify` (ntfy topic in `~/.arepo/ntfy_topic`; the user still has to subscribe).
+**Live jobs (Oracle host since 2026-10-14 11:29Z):** collector pass, live trade monitor + outcomes, E009/E010 cross-venue poller (+ daily pair refresh) and notify (ntfy topic in `~/.arepo/ntfy_topic` on the host). See `research_lab/COLLECTION_HOST.md`.
 
 ## Latest results (12–13 Oct)
 - **Economics:** 95 conditions, none after-cost positive (`ECONOMIC_CONDITIONS_STUDY.md`).
@@ -118,10 +120,10 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
 - **Running:** IF-H2 (E008 is reserved for it) and `h3_power`.
 
 ## Registered live experiments (as of 2026-10-13)
-- **E009 / E010:** Kalshi→Polymarket lead and gap. launchd `com.arepo.cross-venue-live`. Analyse once after 2026-11-03.
+- **E009 / E010:** Kalshi→Polymarket lead and gap. Poller on the Oracle host (`supervise.sh`). Analyse once after 2026-11-03.
 - **E011:** ungated learned surprise score `sm_learned_v2` on complete-universe snapshots.
   - Registered at 3e628ec; window starts 2026-10-13 14:00Z; analyse once after 2026-11-11 13:00Z.
-  - Wired into `~/arepo_collector/arepo_pass.sh` (`run_surprise_snapshot.py score`).
+  - Wired into the host pass `scripts/oracle/arepo_pass.sh` (`run_surprise_snapshot.py score`).
 - **Replications on `h3_power`:**
   - HB1: 16/18 replicate.
   - ML flow: 2/4 cells replicate.
