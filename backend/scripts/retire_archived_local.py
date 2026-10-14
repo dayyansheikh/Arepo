@@ -36,7 +36,9 @@ def main():
     ap.add_argument(
         "--manifest-release", default="retire-20261013", help="release holding the manifest"
     )
-    ap.add_argument("--manifest-name", required=True, help="e.g. DELETION_MANIFEST_2026-10-13_tier1a.tsv.gz")
+    ap.add_argument(
+        "--manifest-name", required=True, help="e.g. DELETION_MANIFEST_2026-10-13_tier1a.tsv.gz"
+    )
     ap.add_argument("--manifest-sha256", required=True, help="pinned sha256 of the manifest file")
     ap.add_argument(
         "--base", default=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -44,6 +46,11 @@ def main():
     ap.add_argument("--repo", default="dayyansheikh/arepo-data")
     ap.add_argument("--workdir", default=os.path.expanduser("~/arepo_archive_tmp/retire"))
     ap.add_argument("--log-dir", default=os.path.expanduser("~/arepo_retirement_logs"))
+    ap.add_argument(
+        "--allow-research-lab",
+        action="store_true",
+        help="tier 2 only: permit data-dumps/research_lab/ rows (user-approved 2026-10-14 after the Oracle cutover)",
+    )
     ap.add_argument("--confirm", action="store_true", help="actually delete (default is a dry run)")
     a = ap.parse_args()
     if a.confirm and os.environ.get("AREPO_RETIREMENT_SESSION") != "1":
@@ -80,7 +87,7 @@ def main():
         q = r.get("path", "")
         if (
             not q.startswith("data-dumps/")
-            or q.startswith("data-dumps/research_lab/")
+            or (q.startswith("data-dumps/research_lab/") and not a.allow_research_lab)
             or ".." in q.split("/")
             or os.path.isabs(q)
         ):
@@ -161,8 +168,11 @@ def main():
     removed_dirs = 0
     stop = os.path.join(a.base, "data-dumps")
     # remove only directories that held a deleted file, and their emptied parents below data-dumps/
+    keep = {os.path.join(stop, "research_lab")}  # code expects this root to exist
     for d in sorted(touched, key=lambda x: -len(x)):
-        while d.startswith(stop + os.sep) and os.path.isdir(d) and not os.listdir(d):
+        while (
+            d.startswith(stop + os.sep) and d not in keep and os.path.isdir(d) and not os.listdir(d)
+        ):
             os.rmdir(d)
             removed_dirs += 1
             d = os.path.dirname(d)

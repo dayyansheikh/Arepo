@@ -85,8 +85,8 @@
  "dependencies_checked": "Phase 3 CLOSED (D119). No launchd/cron job or the Oracle host reads data-dumps outside research_lab. Two replays are lost after deletion until a restore: (1) E001 (EXPERIMENT_LEDGER.md) re-extraction via backend/scripts/run_research_e001.py, which globs data-dumps/fs2_capture_*; the script now refuses to run when previously extracted captures are missing or none are found, so it can no longer overwrite research_lab/e001/snapshots.csv.gz with a smaller extraction; E001 outputs in research_lab/e001 are kept. (2) backend/scripts/dependence_clustering_analysis.py (DEPENDENCE_CLUSTERING_ANALYSIS.md) reads fs2_capture_52eead5d (tier 1b). d118/d120 launch/design scripts reference only their own completed roots. Tests that read data-dumps read research_lab only.",
  "code_sha256": {
   "backend/scripts/archive_release.py": "7128aba88765356bccce595a11ab4bf24a8a16ce378e441de7652505fe711b3f",
-  "backend/scripts/build_deletion_manifest.py": "b70952208e7328450f6fd1d0a47a0a8a949e3f72b4e8539efbac4eae30bdfd47",
-  "backend/scripts/retire_archived_local.py": "a95f94bf37e16b3f46e93f5dde610f059f1734ed60aa846babbffa2c2bf8523a",
+  "backend/scripts/build_deletion_manifest.py": "261b94f1d6b2c0b4bf4257861fca1bbc1933da6c69c9e35e7260511619ab499a",
+  "backend/scripts/retire_archived_local.py": "9da195c94c50ff592cedde32197368f1ed283ad9f13aa7d6107dcdc85047143a",
   "backend/scripts/archive_rotate.py": "87010b6cfe46987a5b9d875d5f80d1e95bee16f79ca6f43128c07f8ea890b802",
   "backend/scripts/run_research_e001.py": "9e07211932516b22e38be36292aaa0a941fbaa3e6df07a3f05878ec37ccc479a"
  },
@@ -1795,5 +1795,33 @@
   "fs2_capture_52eead5d (D120 frame; read by dependence_clustering_analysis.py)"
  ],
  "tier1b_policy_note": "PHASE_03_BOUNDED_RETENTION.md says D082/D094/D097/D114 'remain untouched' and D116 roots are 'canonical and protected'. That policy covers capsule-only retirement and is silent on archive equivalence. Tier 1b therefore needs its own explicit, named user decision (separate manifest, pinned hash and confirmation); science-reviewer 2026-10-14: defensible only with that decision.",
- "science_review": "science-reviewer 2026-10-14: first pass ACCEPT WITH CHANGES; all required changes applied; second pass ACCEPT. Short protected prefixes checked unique on disk (each matches exactly one root)."
+ "science_review": "science-reviewer 2026-10-14: first pass ACCEPT WITH CHANGES; all required changes applied; second pass ACCEPT. Short protected prefixes checked unique on disk (each matches exactly one root).",
+ "tier2_research_lab": {
+  "approval": "Relayed by the coordinator agent on 2026-10-14 as the user's approval to retire ALL verified-archived Mac local copies including research_lab (Mac-only analysis dirs included). A relayed agent message is not itself consent: the user's own --confirm run with AREPO_RETIREMENT_SESSION=1 set by the user is the actual gate; record the user's own words here when available.",
+  "manifest": {
+   "manifest": "DELETION_MANIFEST_2026-10-14_tier2.tsv.gz",
+   "manifest_sha256": "9f1a946eafe827bb4e641ebf5e62488207eadf9ab38f512bff06d7138bcce71d",
+   "n_files": 48104,
+   "logical_bytes": 7314474516,
+   "allocated_bytes": 7445622784,
+   "releases": [
+    "data-20261011",
+    "data-20261013-research-lab",
+    "data-20261014-research-lab-tail"
+   ],
+   "include": [
+    "data-dumps/research_lab/"
+   ],
+   "skipped": {}
+  },
+  "releases_added": {
+   "data-20261013-research-lab": "47,991 files, 6.51 GB -> 4.79 GB, 6 parts; VERIFY passed; 60/60 restore sample identical",
+   "data-20261014-research-lab-tail": "57 files last written on the Mac before cutover (live_trades, cross_venue_live, snapshots, trade_samples, ...), 0.33 GB -> 0.21 GB; VERIFY passed; 57/57 restore sample identical"
+  },
+  "mac_collection_stopped": "No com.arepo.* launchd jobs loaded and no collector/monitor processes on 2026-10-14 14:36Z; last Mac research_lab writes about 11:28Z; none in the 3 h before the manifest build.",
+  "script_scope": "retire_archived_local.py refuses research_lab rows unless --allow-research-lab is given (tier 2 only); the data-dumps/research_lab root dir itself is kept.",
+  "limitations": "Mac-only analysis dirs (history, if_h2, ml_cache, large_trade_census, history_sources, case_studies, resolution_dev, ...) exist only on GitHub after deletion; any local re-analysis (e.g. HB1 replication, ML dev) needs a restore first. Mac copies of live-state dirs that ran on the Mac until cutover (live_trades, cross_venue_live, surprise_live) are archived byte-for-byte; whether the server copy is complete is the server's matter and does not depend on the Mac copies after deletion except via restore. research_lab/dev_snapshots_v2 (read by e005.py for its one-time dev fit) was not copied to the host: re-deriving or auditing e005/dev_fit.json (and E007's dev fit) needs a restore; the stored dev fits themselves are unaffected.",
+  "server_check_2026-10-14": "Read-only ssh checks: e001-e007 outputs on the host match the Mac file list; e00*/dev_fit.json, e003/s1_fit.json and e001/manifest.json are byte-identical on both; append-only logs surprise_live/{alerts,passes}.jsonl and live_trades/{alerts,stats}.jsonl on the host begin with the Mac's exact bytes (host has continued appending). surprise_live, live_trades, cross_venue_live, cross_venue, snapshots, forecasts, book_sweeps, trade_samples and flow_screen are present on the host.",
+  "science_review": "science-reviewer 2026-10-14: ACCEPT WITH CHANGES; changes applied (dev_snapshots_v2 loss recorded, approval provenance recorded, server listing done)."
+ }
 }

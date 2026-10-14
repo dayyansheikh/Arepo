@@ -9,8 +9,9 @@ disk. Claude did not delete anything on the Mac.
 |---|---|---|---|---|---|
 | `data-20261011` | All of `data-dumps` as of 2026-10-11 ~01:00Z | 206,934 | 38.8 GB | 2.88 GB (2 parts) | PASS, re-verified 2026-10-13 |
 | `data-20261013-fs2` | Phase 3 runs added after that (D118, D120, two captures) | 51,168 | 6.68 GB | 0.66 GB (1 part) | PASS |
-| `data-20261013-research-lab` | `research_lab` files new or changed since 2026-10-11 | 47,991 | 6.51 GB | in progress (uploading; the uplink is about 0.4 MB/s) | pending; `VERIFY.json` appears when it passes |
-| `retire-20261013` | Mac deletion manifests (tier 1a, tier 1b) and summaries | | | | round-trip hash checked |
+| `data-20261013-research-lab` | `research_lab` files new or changed since 2026-10-11 | 47,991 | 6.51 GB | 4.79 GB (6 parts) | PASS, restore sample 60/60 |
+| `data-20261014-research-lab-tail` | 57 `research_lab` files last written on the Mac before cutover | 57 | 0.33 GB | 0.21 GB | PASS, restore sample 57/57 |
+| `retire-20261013` | Mac deletion manifests (tier 1a, tier 1b, tier 2) and summaries | | | | round-trip hash checked |
 
 - **Format.** Each release is a tar of the original file bytes, compressed with zstd and split into parts (`*.tar.zst.part-aa`, ...).
   `files.sha256` lists every file's original hash, `MANIFEST.sha256` lists every part's hash, `README.md` has the restore command,
@@ -94,6 +95,21 @@ whose hash changed.
 The local wrapper files `data-dumps/fs2_d116/d118/d120_*_evaluation.json` are also deleted, and they are archived. Outcomes and
 statuses do not change.
 
+### Tier 2: `data-dumps/research_lab` (approved 2026-10-14, after the Oracle cutover)
+- **Scope.** The tier 2 manifest lists all 48,104 `research_lab` files, which frees **about 7.45 GB** on disk. Each file matches a verified
+  release: `data-20261011`, `data-20261013-research-lab` or `data-20261014-research-lab-tail`.
+- **Mac collection.** It has stopped: no `com.arepo` jobs are loaded and there have been no writes since about 11:28Z on 14 Oct.
+- **Opt-in.** The script refuses `research_lab` rows unless you pass `--allow-research-lab`, and it keeps the `research_lab` folder
+  itself.
+- **What you give up.** Afterwards the Mac-only analysis data (`history`, `if_h2`, `ml_cache`, `large_trade_census`,
+  `history_sources`, `dev_snapshots_v2`, ...) exists only on GitHub. Any local re-analysis, or a re-derivation of the E005/E007 dev
+  fits, needs a restore first. The live experiments read the server, which holds byte-identical dev fits and append-only logs that
+  extend the Mac's (checked 2026-10-14).
+
+```bash
+cd ~/Projects/astrolabe/backend && AREPO_RETIREMENT_SESSION=1 python3 scripts/retire_archived_local.py --manifest-name DELETION_MANIFEST_2026-10-14_tier2.tsv.gz --manifest-sha256 9f1a946eafe827bb4e641ebf5e62488207eadf9ab38f512bff06d7138bcce71d --allow-research-lab --confirm
+```
+
 ## Restore
 ```bash
 gh release download <release> -R dayyansheikh/arepo-data -p '*.tar.zst.part-*' -p MANIFEST.sha256 -p files.sha256
@@ -103,14 +119,10 @@ shasum -a 256 -c files.sha256
 ```
 A release's parts form one zstd stream, so restoring even one file needs every part of that release.
 
-## Not deleted, and why
-- **`research_lab` dirs that are now canonical on the Oracle host** (`snapshots`, `forecasts`, `book_sweeps`, `trade_samples`, `flow_screen`,
-  `surprise_live`, `live_trades`, `cross_venue`, `cross_venue_live`, `e001`–`e007`; see `COLLECTION_HOST.md`). The Mac copies are
-  duplicates once `data-20261013-research-lab` verifies. Retiring them would be a tier 2: a separate reviewed manifest, plus
-  a deliberate change to the deletion script, which refuses `research_lab/` paths by design. The rollback plan in `COLLECTION_HOST.md`
-  copies host data back, so it does not need them.
-- **Mac-only analysis dirs** (`history`, `if_h2`, `ml_cache`, `large_trade_census`, `history_sources`, `book_sweeps` history and others).
-  Local analyses still read them. They are archived, but deleting them is a separate decision.
+## research_lab before 2026-10-14
+Tier 1 left `research_lab` alone while the Mac collectors were still running. After the Oracle cutover, tier 2 above covers it. The
+deletion script only accepts its rows with `--allow-research-lab`. The rollback plan in `COLLECTION_HOST.md` copies host data back,
+so it does not need the Mac copies.
 
 ## Oracle server
 The server held only about 35 MB of fresh, actively written data at archive time, so nothing there was archived. The nightly rotation

@@ -43,7 +43,7 @@ def main():
         assert v["passed"] and v["files_sha256"] == man["files.sha256"], tag
         pr = "%s..%s" % (parts[0][0].rsplit("-", 1)[1], parts[-1][0].rsplit("-", 1)[1])
         for p, h in files.items():
-            archived.setdefault(p, (h, tag, pr))
+            archived.setdefault(p, []).append((h, tag, pr))
     cut = time.time() - a.min_age_hours * 3600
     rows, summ = [], defaultdict(lambda: {"files": 0, "bytes": 0, "allocated_bytes": 0, "release": set()})
     skipped = defaultdict(int)
@@ -69,10 +69,11 @@ def main():
                 with open(full, "rb") as fh:
                     for b in iter(lambda fh=fh: fh.read(1 << 20), b""):
                         h.update(b)
-                want, tag, pr = archived[rel]
-                if h.hexdigest() != want:
+                match = [x for x in archived[rel] if x[0] == h.hexdigest()]
+                if not match:
                     skipped["hash_differs_from_release"] += 1
                     continue
+                want, tag, pr = match[-1]  # latest listed release holding these exact bytes
                 rows.append((want, st.st_size, tag, pr, rel))
                 root = "/".join(rel.split("/")[:2])
                 s = summ[root]

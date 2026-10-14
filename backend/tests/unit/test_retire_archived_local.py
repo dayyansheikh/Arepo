@@ -127,3 +127,16 @@ def test_fails_closed(tmp_path, monkeypatch, kw):
     with pytest.raises(SystemExit):
         ret.main()
     assert (base / "data-dumps" / "fs2_x" / "sub" / "a.json").exists()
+
+
+def test_research_lab_rows_need_explicit_opt_in(tmp_path, monkeypatch):
+    rl = tmp_path / "repo" / "data-dumps" / "research_lab"
+    rl.mkdir(parents=True)
+    (rl / "x.csv").write_bytes(b"xx")
+    extra = [("data-dumps/research_lab/x.csv", _h(b"xx"))]
+    base, argv = _world(tmp_path, monkeypatch, rows_extra=extra)
+    monkeypatch.setenv("AREPO_RETIREMENT_SESSION", "1")
+    monkeypatch.setattr(sys, "argv", [*argv, "--confirm", "--allow-research-lab"])
+    ret.main()
+    assert not (rl / "x.csv").exists()
+    assert (base / "data-dumps" / "research_lab").is_dir()  # emptied parents below data-dumps only
