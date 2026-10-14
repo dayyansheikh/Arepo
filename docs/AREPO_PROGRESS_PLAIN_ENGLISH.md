@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-14 12:33 UTC+1
+**Last updated:** 2026-10-14 22:04 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. No decisions needed from you.
 **Current objective:** Build the combined-signal model (many signals, ML + Bayesian, Shapley breakdown) and collect its data; finish the 24-hour forecasting test tonight; run the pairing redesign (D120) once.
@@ -80,7 +80,12 @@ Data rights are out of scope during the private research phase (your decision, 2
 - ntfy push alerts are live.
 - **Collection moved to the Oracle server.** The Mac no longer runs anything in the background. Switched at 11:29 UTC on 14 Oct. Before the switch, the Mac was offline overnight from about 00:00 to 10:45 UTC, so 6 snapshots and about 11 hours of live monitoring are missing. Those gaps stay missing. The server has room for about 8 more days of data unless the archive rotation is switched on.
 
-**Pending:** Resend audit (later); the Mac data deletion command once the archive is verified.
+- **Mac data retired (user-run, 2026-10-14 ~21:30 UTC+1):** 306,147 files deleted after hash checks against verified GitHub releases. **Mac free disk: about 42 GiB.** Logs are in `~/arepo_retirement_logs/`.
+
+**Pending:**
+- A GitHub token for the server's archive rotation (the server disk cap is reached around 22 Oct without it).
+- Whether to count the server validation copy for the overnight E009/E010 gap.
+- The Resend audit (later).
 
 ## 7. What's next
 1. Collection every 2h; E004/E005/E006 scored tonight.
