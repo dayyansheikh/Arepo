@@ -13,8 +13,10 @@ RUN="$AREPO_HOME/run"
 LOGS=${AREPO_LOGS:-/home/opc/arepo_collector/logs}
 PY="$AREPO_HOME/.venv/bin/python"
 mkdir -p "$RUN" "$LOGS"
-exec 8>"$RUN/supervise.lock"
-flock -n 8 || exit 0
+if [ -z "${1:-}" ]; then  # only the restarting mode needs the lock; children must not inherit it
+  exec 8>"$RUN/supervise.lock"
+  flock -n 8 || exit 0
+fi
 
 declare -A CMD=(
   [live-trade-monitor]="scripts/run_live_trade_monitor.py"
@@ -49,6 +51,6 @@ for name in "${!CMD[@]}"; do
   # records its exit code for the restart policy above
   setsid nohup bash -c "'$PY' ${CMD[$name]} >> '$LOGS/$name.out' 2>> '$LOGS/$name.err' & \
     echo \$! > '$RUN/$name.pid'; wait \$!; echo \$? > '$RUN/$name.exit'" \
-    < /dev/null > /dev/null 2>&1 &
+    < /dev/null > /dev/null 2>&1 8>&- &
   sleep 2
 done
