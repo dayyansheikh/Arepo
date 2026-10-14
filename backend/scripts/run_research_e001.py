@@ -38,6 +38,19 @@ def _lam_summary(rows: list[dict]) -> dict:
 def main() -> None:
     t0 = time.time()
     captures = extract.discover_full_captures(DUMPS)
+    old_mf = OUT / "manifest.json"
+    if old_mf.exists():
+        old_ids = {c["capture_id"] for c in json.loads(old_mf.read_text()).get("captures", [])}
+        lost = old_ids - {c["capture_id"] for c in captures}
+        if lost:
+            # Local fs2 captures may be retired to the GitHub archive (DATA_ARCHIVE_2026-10-13.md).
+            # Never overwrite the recorded extraction with a smaller one: restore them first.
+            raise SystemExit(
+                f"E001: {len(lost)} previously extracted capture(s) are missing locally "
+                "(retired to the archive?); restore them before re-running. Nothing written."
+            )
+    if not captures:
+        raise SystemExit("E001: no fs2 captures found locally; nothing written.")
     if extract.manifest_matches(OUT, captures):
         print("extract: manifest matches, skipping extraction")
         manifest = json.loads((OUT / "manifest.json").read_text())
