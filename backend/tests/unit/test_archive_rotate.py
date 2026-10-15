@@ -32,10 +32,11 @@ def _setup(tmp_path, monkeypatch, remote_files, draft=False, manifest_hash="m1")
     def fake_fetch(repo, tag, dest):
         os.makedirs(dest, exist_ok=True)
         (open(os.path.join(dest, "MANIFEST.sha256"), "w")).write("x")
-        return {"files.sha256": "f"}, dict(remote_files), []
+        return {"files.sha256": "f"}, dict(remote_files), [("p-aa", "h")]
 
     monkeypatch.setattr(rot.ar, "fetch_meta", fake_fetch)
-    monkeypatch.setattr(rot.ar, "release_assets", lambda r, t: ({}, draft))
+    monkeypatch.setattr(rot.ar, "release_assets", lambda r, t: ({"p-aa": 5}, draft))
+    monkeypatch.setattr(rot, "recorded_part_sizes", lambda repo, tag, dest: {"p-aa": 5})
     monkeypatch.setattr(
         rot.ar,
         "sha256_file",
@@ -243,3 +244,22 @@ def test_catalogue_flags_active_snapshot():
     r = dc.classify("active_snapshots/20261018T043000Z/" + LOG)
     assert r["active_snapshot"] is True and r["original_path"] == LOG
     assert r["capture_time_utc"] == "2026-10-18T04:30:00Z" and r["dir"] == "cross_venue_live"
+
+
+def test_refuses_when_a_tar_part_is_missing_or_wrong_size(tmp_path, monkeypatch):
+    files = {"data-dumps/research_lab/x/a.csv": _h(b"aaa")}
+    a, root, state, mh = _setup(tmp_path, monkeypatch, files)
+    ledger = [{"tag": "t", "repo": "r", "manifest_sha256": mh, "files": files}]
+    monkeypatch.setattr(rot.ar, "release_assets", lambda r, t: ({}, False))  # part gone
+    with pytest.raises(SystemExit):
+        rot.delete_verified(a, str(state), ledger)
+    monkeypatch.setattr(rot.ar, "release_assets", lambda r, t: ({"p-aa": 4}, False))  # truncated
+    with pytest.raises(SystemExit):
+        rot.delete_verified(a, str(state), ledger)
+    assert (root / "data-dumps" / "research_lab" / "x" / "a.csv").exists()
+
+
+def test_delete_requires_retention_file(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["archive_rotate.py", "--root", ".", "--scan", "x", "--delete"])
+    with pytest.raises(SystemExit, match="--retention"):
+        rot.main()

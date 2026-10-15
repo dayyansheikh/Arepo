@@ -58,23 +58,26 @@ def sample_meta(sample_dir: Path) -> dict:
     first = last = None
     fp = sample_dir / "features.csv.gz"
     span_p = sample_dir.parent.parent / "pair_cache" / f"{man['sample_id']}__sent_span.json"
+    complete = man.get("state") == "complete"
     if fp.exists():
         sent = pd.to_datetime(pd.read_csv(fp, usecols=["sent_utc"])["sent_utc"], utc=True,
                               errors="coerce", format="ISO8601").dropna()
         if len(sent):
             first, last = sent.min().to_pydatetime(), sent.max().to_pydatetime()
-            if man.get("state") == "complete" and not span_p.exists():
-                try:  # kept for the day features.csv.gz is archived and removed (RETENTION.md)
+            # stored for every state (rewritten while growing, frozen once complete) so the span
+            # survives archiving and removal of features.csv.gz (RETENTION.md)
+            if not (complete and span_p.exists()):
+                try:
                     span_p.parent.mkdir(parents=True, exist_ok=True)
                     span = {"first": first.isoformat(), "last": last.isoformat()}
                     span_p.write_text(json.dumps(span))
                 except OSError:
                     pass
-    elif man.get("state") == "complete":
-        if not span_p.exists():
-            forecast.require_local(fp)  # archived and no cached span: never fall back silently
+    elif span_p.exists():
         span = json.loads(span_p.read_text())
         first, last = _ts(span["first"]), _ts(span["last"])
+    elif complete:
+        forecast.require_local(fp)  # archived and no stored span: never fall back silently
     if last is None:
         last = _ts(man.get("finished_utc"))
     return {

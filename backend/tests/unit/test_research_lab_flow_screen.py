@@ -189,7 +189,15 @@ def test_pair_cache_replays_identical_frame_after_raw_removal(world):
     snaps, samples = world
     before, counts_before = fs.build_all(samples, snaps)
     st = fs.pair_cache_status(samples, snaps)
-    assert st == {"samples_with_target": 1, "cached": 1, "complete": True}
+    assert st["samples_with_target"] == 1 and st["cached"] == 1
+    assert st["complete_samples"] == 1 and not st["complete"]  # span is written by e007
+    from astrolabe.research_lab import e007
+
+    f = pd.read_csv(samples / "s1" / "features.csv.gz", dtype={"market_id": str})
+    f["sent_utc"] = "2026-10-11T00:01:00Z"
+    f.to_csv(samples / "s1" / "features.csv.gz", index=False)
+    e007.list_metas(samples)
+    assert fs.pair_cache_status(samples, snaps)["complete"]
     _drop_raw(snaps, samples)
     after, counts_after = fs.build_all(samples, snaps)
     pd.testing.assert_frame_equal(before, after)

@@ -321,3 +321,24 @@ def test_conservative_uses_only_co_primary_clusterings():
     assert out["sensitivities"] == ["dep_group_econ"]
     pe, pd_ = out["event"]["p_two_sided"], out["dep_group"]["p_two_sided"]
     assert out["p_conservative"] == max(pe, pd_)
+
+
+def test_archived_sample_features_raise_instead_of_skipping(tmp_path):
+    from astrolabe.research_lab import forecast
+
+    root = tmp_path / "s"
+    d = _sample(root, "20261011T050000Z_aaaa", "cap1", {"a": 1}, BASE_TRADES)
+    (d / "features.csv.gz").unlink()  # archived and removed by the rotation
+    with pytest.raises(forecast.ArchivedDataError):
+        ml_panel.add_flow_wallet_columns(_panel(), root)
+
+
+def test_archived_snapshot_sidecar_raises(tmp_path):
+    from astrolabe.research_lab import forecast
+
+    d = tmp_path / "cap"
+    d.mkdir()
+    (d / "ext_manifest.json").write_text("{}")
+    pd.DataFrame({"market_id": ["a"]}).to_csv(d / "rows.csv.gz", index=False)
+    with pytest.raises(forecast.ArchivedDataError):
+        ml_panel.load_snapshot_rows(d)

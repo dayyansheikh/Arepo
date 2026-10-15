@@ -37,7 +37,7 @@ import pandas as pd
 
 from astrolabe.research_panel import pairing
 
-from . import evaluate, features, features_dev, panel
+from . import evaluate, features, features_dev, forecast, panel
 from .features import FeatureSpec
 
 DELTA_PRIMARY = 0.005
@@ -929,6 +929,12 @@ def add_flow_wallet_columns(
         try:
             plan = json.loads((d / "plan.json").read_text())
             man = json.loads((d / "manifest.json").read_text())
+        except (OSError, ValueError):
+            report["skipped"].append({"sample": d.name, "reason": "unreadable plan/manifest"})
+            continue
+        if man.get("state") == "complete" and not (d / "features.csv.gz").exists():
+            forecast.require_local(d / "features.csv.gz")  # archived: never skip silently
+        try:
             fdf = pd.read_csv(d / "features.csv.gz", dtype={"market_id": str},
                               usecols=["market_id", "status"])
         except (OSError, ValueError):
@@ -1055,9 +1061,11 @@ def load_snapshot_rows(snapshot_dir: Path, with_ext: bool = True) -> pd.DataFram
     Older snapshots have no sidecar: the sidecar columns are then all-NaN, never 0.
     """
     d = Path(snapshot_dir)
-    rows = pd.read_csv(d / "rows.csv.gz", dtype=ID_DTYPES)
+    rows = pd.read_csv(forecast.require_local(d / "rows.csv.gz"), dtype=ID_DTYPES)
     ext_cols = _ext_columns()
     got = False
+    if with_ext and (d / "ext_manifest.json").exists() and not (d / "rows_ext.csv.gz").exists():
+        forecast.require_local(d / "rows_ext.csv.gz")  # sidecar existed: archived
     if with_ext and (d / "rows_ext.csv.gz").exists() and (d / "ext_manifest.json").exists():
         man = json.loads((d / "ext_manifest.json").read_text())
         if man.get("sidecar_status") == "complete":

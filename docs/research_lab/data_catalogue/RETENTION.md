@@ -15,7 +15,7 @@ and it is older than the rule's cut-off. Directories without a rule are never de
 |---|---|---|
 | `snapshots/` | every 2h pass: `run_forecast predict`, `sweep_books`, `sample_trades` (latest capture only); `run_surprise_snapshot score` (E011: `bootstrap_series` re-reads captures newer than `SERIES_KEEP_S` = 7.5 days that are not yet in its series); `run_flow_screen` and `run_research_e007 --status` (every sample: source and next capture `rows.csv.gz`); `run_research_e004 --status` (`forecast.list_complete_captures`: manifests only; E004/E005/E006 are scored, results exist) | latest capture; captures up to 7.5 days old for E011; **all** `manifest.json` (capture list, provenance hashes); source/target rows for the flow screen and E007 status, now served from `pair_cache/` |
 | `trade_samples/` | `flow_screen.build_all` and `e007.status` every pass: `manifest.json`, `plan.json`, `features.csv.gz` (also `sample_meta` request-time span) | manifest and plan always; features through the cache |
-| `book_sweeps/` | none scheduled (E003 is COMPLETE; D118/D120 design scripts and `execution_cost_breakeven.py` are one-off) | manifests for listing |
+| `book_sweeps/` | queue jobs q0005, q0006a, q0006 (`leadlag_screen.py`, `bounce_decomp.py`; `run_bounce_decomp.py` hardcodes the roots) read **all** sweeps and **all** captures; no other scheduled reader (E003 is complete; D118/D120 scripts one-off) | all sweeps while those jobs are open |
 | `live_trades/` | `live_trade_monitor` restart: `trades-<day>.jsonl` for today and yesterday, `scores-*.jsonl` rows newer than `trailing_days` = 7, all of `wallets.jsonl`, `alerts.jsonl`; `--outcomes` (twice a day): `alerts.jsonl`; `arepo_notify`: `alerts.jsonl`, `stats.jsonl`, `outcomes.jsonl` | the append-only logs always; daily `trades-`/`scores-` files only while recent |
 | `cross_venue_live/` | E009/E010 collector and outcome writer: `predictions*.jsonl`, `outcomes*.jsonl`, `quotes/`, `pairs_current.json`; `analyze` after the fixed end 2026-11-03 reads the whole stream | everything until the analyses are done |
 | `surprise_live/` | E011: rolling series, `alerts.jsonl`, `outcomes.jsonl`, `analyze` after 2026-11-10 | everything (18 MB) |
@@ -26,13 +26,15 @@ and it is older than the rule's cut-off. Directories without a rule are never de
 
 | dir | rule (`--retention`) | local copy kept | why this number |
 |---|---|---|---|
-| `snapshots/` | delete files older than **8 days**, except `*/manifest.json`, `*/ext_manifest.json` | last 8 days of `rows*.csv.gz` (about 6 GB) + all manifests | E011 reads back to 7.5 days; 8 gives half a day of margin. After the last E011 capture (END 2026-11-10) the window can drop to 3 days |
+| `snapshots/` | **GATED: no rule now** (deferred: 8 days, keep `*/manifest.json`, `*/ext_manifest.json`) | all | E011 needs 7.5 days, but queue jobs q0005/q0006a/q0006 read ALL captures with hardcoded roots (`run_bounce_decomp.py:44`). Activate the deferred rule (`deferred_rules` in the JSON) when those jobs are done or take `--snapshot-root` |
 | `trade_samples/` | **3 days**, keep `*/manifest.json`, `*/plan.json` | 3 days of `features.csv.gz`, `trades.csv.gz` (about 0.6 GB) + manifest/plan (about 0.7 MB each) | nothing reads features after the pair is cached (about 2h after the sample) |
-| `book_sweeps/` | **3 days**, keep `*/manifest.json` | 3 days of `rows.csv.gz` (about 0.3 GB) + manifests | no scheduled reader |
+| `book_sweeps/` | **GATED: no rule now** (deferred: 3 days, keep manifests) | all | queue jobs q0005/q0006a/q0006 read every sweep; restore the rule when they are done or take `--sweep-root` |
 | `live_trades/scores-*`, `live_trades/trades-*` | **10 days** | the 7-day score history the monitor reloads, plus margin | `trailing_days` = 7; `trades-` only needs today and yesterday |
 | everything else | **never deleted** | all | read by open experiments or small |
 
-Estimated steady state with these rules: snapshots about 6.1 GB, samples 0.9 GB, sweeps 0.4 GB, live_trades 0.5 GB,
+**Capacity consequence of the gate:** with snapshots not deletable the data grows about 0.75 GB a day from snapshots alone; deleting samples (3 d) and live_trades frees little. The 12 GB cap (about 22 October) is then NOT avoided unless the queue jobs finish or accept a root argument first. Decision needed from the user/other session before about 20 October.
+
+Estimated steady state once the deferred rules are active: snapshots about 6.1 GB, samples 0.9 GB, sweeps 0.4 GB, live_trades 0.5 GB,
 `cross_venue_live` 0.3 GB and growing about 25 MB a day, `history*` and `cross_venue` about 1.2 GB, rest about 0.3 GB: **about 9.7 GB,
 under the 12 GB cap** (today 7.06 GB, growth about 1.1 GB a day). Without deletion the cap is reached about 22 October. The first
 snapshot deletions only start when captures turn 8 days old (from 18 October), so enable deletion by about 17-18 October; the sample and
@@ -58,12 +60,12 @@ sweep rules free about 1 GB immediately.
 
 Final analyses (E009/E010 after 2026-11-03, E011 after 2026-11-10, any re-run of E003-E007, ML development on old snapshots)
 **restore first**: `python3 backend/scripts/restore_from_archive.py --experiment E011 --dest ~/restore_e011` (see `README.md`), then
-point the reader at the restored copy with its existing `--snapshot-root`/root arguments. The restore re-hashes every file.
+point the reader at the restored copy. Only E004/E005/E006 (`--snapshot-root`) and E007 (`--sample-root`, `--snapshot-root`) take root arguments. All others (`run_bounce_decomp.py`, `run_leadlag_screen.py`, E011, E009/E010 `analyze`, E003, ML scripts) use the default roots must be run on a machine where the restored files are placed under a repo-like `data-dumps/research_lab/` (restore with `--dest <repo root>` on a scratch checkout, never the live tree). The restore re-hashes every file.
 
 ## Before enabling `--delete` (checklist for the user)
 
 1. `README.md` shows the latest nightly release as PASS, and `~/.arepo/archive_rotate/verified_releases.jsonl` has it.
-2. Pair cache complete (must print `complete: True`; run on the host after one pass with the new code):
+2. Pair cache and request-time spans complete (must print `complete: True`, which also needs `sent_spans_cached == complete_samples`; run on the host after one pass with the new code):
    `cd ~/arepo/backend && ../.venv/bin/python -c "from astrolabe.research_lab import flow_screen as f; print(f.pair_cache_status())"`
 3. Dry run for one night: add `--retention /home/opc/arepo/scripts/oracle/archive_retention.json --delete --dry-run` to the cron
    line, then read `~/.arepo/archive_rotate/deletions.jsonl` (`would_delete` rows) and the summary line in `archive-rotate.log`

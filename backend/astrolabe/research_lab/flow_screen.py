@@ -220,13 +220,17 @@ def build_sample_pairs(
 def pair_cache_status(sample_root: Path = SAMPLE_ROOT, snapshot_root: Path = SNAPSHOT_ROOT) -> dict:
     """Samples with a target snapshot vs cache files (all must be cached before raw files go)."""
     captures = forecast.list_complete_captures(snapshot_root)
-    need = have = 0
+    need = have = spans = n_samples = 0
     for sd in list_samples(sample_root):
+        n_samples += 1
+        sid = json.loads((sd / "manifest.json").read_text())["sample_id"]
+        spans += int((sd.parent.parent / "pair_cache" / f"{sid}__sent_span.json").exists())
         cp = pair_cache_path(sd, captures)
         if cp is not None:
             need += 1
             have += int(cp.exists())
-    return {"samples_with_target": need, "cached": have, "complete": need == have}
+    return {"samples_with_target": need, "cached": have, "complete_samples": n_samples,
+            "sent_spans_cached": spans, "complete": need == have and n_samples == spans}
 
 
 def _compute_sample_pairs(

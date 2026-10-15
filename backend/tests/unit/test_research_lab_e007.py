@@ -242,3 +242,12 @@ def test_sample_meta_identical_after_features_archived(roots):
     (samples.parent / "pair_cache" / "s1__sent_span.json").unlink()
     with pytest.raises(forecast.ArchivedDataError):
         e007.list_metas(samples)
+
+
+def test_span_stored_for_incomplete_sample_and_used_after_removal(roots):
+    samples, _ = roots
+    _write_sample(samples, "s2", "c1", _h(0), _h(0.2), state="running", sent_offset_s=90.0)
+    before = e007.list_metas(samples)
+    assert (samples.parent / "pair_cache" / "s2__sent_span.json").exists()
+    (samples / "s2" / "features.csv.gz").unlink()
+    assert e007.list_metas(samples) == before

@@ -325,6 +325,27 @@ def rule_for(rules, rel):
     return None
 
 
+def recorded_part_sizes(repo, tag, dest):
+    """Part name -> byte size recorded by the passing VERIFY.json of the release."""
+    ar.run(["gh", "release", "download", tag, "-R", repo, "-D", dest, "--clobber", "-p", "VERIFY.json"])
+    rep = json.load(open(os.path.join(dest, "VERIFY.json")))
+    if not rep.get("passed"):
+        raise SystemExit(f"release {tag} VERIFY.json does not say passed; refusing to delete")
+    return {p["name"]: p["bytes"] for p in rep["parts"]}
+
+
+def check_parts_present(e, parts, chk):
+    """Every tar part named in the manifest must exist on GitHub with the size the verification recorded."""
+    assets, _ = ar.release_assets(e["repo"], e["tag"])
+    want = recorded_part_sizes(e["repo"], e["tag"], chk)
+    names = [n for n, _ in parts]
+    if not names or set(names) != set(want):
+        raise SystemExit("release {}: manifest parts {} differ from verified parts {}; refusing to delete".format(e["tag"], names, sorted(want)))
+    bad = [n for n in names if assets.get(n) != want[n]]
+    if bad:
+        raise SystemExit("release {}: parts missing or wrong size on GitHub: {}; refusing to delete".format(e["tag"], bad))
+
+
 def delete_verified(a, state, ledger):
     now = time.time()
     rules = load_rules(getattr(a, "retention", None))
@@ -346,7 +367,7 @@ def delete_verified(a, state, ledger):
         if not live:
             continue
         chk = os.path.join(a.workdir, "recheck_" + e["tag"])
-        man, files, _ = ar.fetch_meta(e["repo"], e["tag"], chk)
+        man, files, parts = ar.fetch_meta(e["repo"], e["tag"], chk)
         if (
             ar.sha256_file(os.path.join(chk, "MANIFEST.sha256")) != e["manifest_sha256"]
             or files != e["files"]
@@ -359,6 +380,7 @@ def delete_verified(a, state, ledger):
         _, draft = ar.release_assets(e["repo"], e["tag"])
         if draft:
             raise SystemExit("release {} is still a draft; refusing to delete".format(e["tag"]))
+        check_parts_present(e, parts, chk)
         shutil.rmtree(chk, ignore_errors=True)
         for rel in live:
             p = os.path.join(a.root, rel)
@@ -451,6 +473,8 @@ def main():
         "--no-archive", action="store_true", help="skip archiving; only the deletion pass"
     )
     a = ap.parse_args()
+    if a.delete and not a.retention:
+        raise SystemExit("--delete requires --retention <rules.json> (no blanket deletion)")
     a.root = os.path.abspath(os.path.expanduser(a.root))
     if a.older_than_days < 1:
         raise SystemExit("--older-than-days must be >= 1")
