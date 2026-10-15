@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-15 19:10 UTC+1
+**Last updated:** 2026-10-15 19:15 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
 **Overall status:** On track. New mission received (autonomous edge-discovery programme); starting in a fresh session. Collection running on the server.
 **Current objective:** Set up verified always-on research (resumes after usage limits), a research queue, and start large-scale feature screening. Open for you: server GitHub token (by ~22 Oct), Kalshi-gap choice, and the one-time usage reset (expires Wed 21 Oct).
@@ -82,10 +82,11 @@ Data rights are out of scope during the private research phase (your decision, 2
 
 - **Mac data retired (user-run, 2026-10-14 ~21:30 UTC+1):** 306,147 files deleted after hash checks against verified GitHub releases. **Mac free disk: about 42 GiB.** Logs are in `~/arepo_retirement_logs/`.
 
-**Pending:**
-- A GitHub token for the server's archive rotation (the server disk cap is reached around 22 Oct without it).
-- Whether to count the server validation copy for the overnight E009/E010 gap.
-- The Resend audit (later).
+**Your to-do list:**
+1. **Server GitHub token (by ~20 Oct).** The existing `ARCHIVE_REPO_TOKEN` secret cannot be read back, so make a new one: github.com/settings/personal-access-tokens/new; name `arepo-server-archive`, 1 year, only repo `arepo-data`, Contents Read and write. Then run `ssh -t oracle 'umask 077; read -rs -p "Paste token: " t; echo; printf %s "$t" > ~/.arepo/github_token; echo saved'` and paste. Tell Claude "token saved".
+2. **Kalshi overnight gap:** reply "include it" (recommended) or "leave the gap".
+3. **One-time usage reset expires Wed 21 Oct:** watch for a phone alert with steps; if none by Monday, check it yourself.
+4. Resend audit (whenever).
 
 ## 7. What's next
 1. Collection every 2h; E004/E005/E006 scored tonight.
