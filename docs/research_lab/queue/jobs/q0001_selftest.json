@@ -1,0 +1,16 @@
+{
+ "id": "q0001_selftest",
+ "title": "Queue worker self-test (harmless, no research data)",
+ "family": "infrastructure",
+ "priority": 100,
+ "expected_value": "verifies the worker before research jobs",
+ "data": [],
+ "resources": {"mem_mb": 200, "cpu": 1},
+ "depends_on": [],
+ "argv": ["scripts/queue_selftest.py", "--seconds", "240"],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [],
+ "next_action": "none; first attempt is deliberately killed (-9) to test interruption recovery",
+ "notes": "2026-10-15 acceptance test of persistence mechanism"
+}
