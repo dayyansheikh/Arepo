@@ -45,5 +45,5 @@
   "data-dumps/research_lab/history/h5_cb1_ladders/{events,ladders}.jsonl.gz, probe.json, prices/, trades/, progress.jsonl, request_clock.json, manifest.json"
  ],
  "next_action": "q0018 (seal)",
- "notes": "Probe of 20 seeded rungs first; exits 0 with status probe_failed if fewer than 80% have prices (B1/B2 not testable). The IF-H2 ladder file defaults to data-dumps/research_lab/if_h2/ladders.jsonl.gz and must exist on the host (fails loudly otherwise). Wall time is dominated by the hourly price windows; yields to the collector. | HELD 2026-10-15 23:25Z: CB1 freeze check fix 1 (URGENT, price-window anchoring vs close time) and fix 2 (post-T_fetch trades) must land first; gate job q0033 is created with the fix."
+ "notes": "Probe of 20 seeded rungs first; exits 0 with status probe_failed if fewer than 80% have prices (B1/B2 not testable). The IF-H2 ladder file defaults to data-dumps/research_lab/if_h2/ladders.jsonl.gz and must exist on the host (fails loudly otherwise). Wall time is dominated by the hourly price windows; yields to the collector. | Fixes 1 (window union independent of close time) and 2 (trades capped at T_fetch, no chunk after T_seal 2026-10-22T00:00Z) landed; gated by q0033_h5_fix_gate."
 }

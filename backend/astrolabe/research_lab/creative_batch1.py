@@ -421,6 +421,18 @@ def _read_event_members(extract_root: Path) -> pd.DataFrame:
     return pd.read_csv(p, dtype=str, keep_default_na=False)
 
 
+def event_members_asof(extract_root: Path, asof_utc: str | None = None) -> pd.DataFrame:
+    """Latest ``event_members`` row per ``neg_risk_market_id`` with ``fetched_utc <= asof_utc``
+    (all rows when ``asof_utc`` is None). The file is append-only, so the member count that applied
+    at a capture time is the last refresh at or before it; ids first fetched after ``asof_utc``
+    are absent (missing stays missing). ISO-8601 UTC strings of equal format sort lexically."""
+    df = _read_event_members(extract_root)
+    if asof_utc is not None:
+        df = df[df["fetched_utc"] <= asof_utc]
+    return (df.sort_values(["neg_risk_market_id", "fetched_utc"], kind="stable")
+            .drop_duplicates("neg_risk_market_id", keep="last").reset_index(drop=True))
+
+
 def _targets(extract_root: Path, scan_last: int | None) -> dict[str, str]:
     """``neg_risk_market_id -> event_id`` over the last ``scan_last`` negrisk tables (all if None)."""
     files = sorted((extract_root / "negrisk").glob("*.csv.gz"))
@@ -442,7 +454,7 @@ def fetch_event_members(
     """Fetch Gamma ``/events/{id}`` once per new ``neg_risk_market_id`` (stale after 7 days;
     new ids first) within ``max_requests`` and the wall-clock ``deadline``. Metadata only."""
     targets = _targets(extract_root, scan_last)
-    cached = _read_event_members(extract_root)
+    cached = event_members_asof(extract_root)  # latest row per id; history stays in the file
     have = dict(zip(cached["neg_risk_market_id"], cached["fetched_utc"], strict=True))
     cutoff = _ts(now()) - timedelta(days=EVENT_REFRESH_DAYS)
     new = sorted(k for k in targets if k not in have)
@@ -479,10 +491,12 @@ def fetch_event_members(
         fresh[nrm] = row
         res["fetched"] += 1
     if fresh:
-        keep = cached[~cached["neg_risk_market_id"].isin(fresh)]
-        merged = pd.concat([keep, pd.DataFrame(list(fresh.values()))], ignore_index=True)
+        # append-only: earlier refresh rows are never overwritten (each row carries fetched_utc)
+        merged = pd.concat([_read_event_members(extract_root), pd.DataFrame(list(fresh.values()))],
+                           ignore_index=True)
         write_csv_gz(extract_root / "event_members.csv.gz",
-                     merged.sort_values("neg_risk_market_id"), EVENT_COLUMNS)
+                     merged.sort_values(["neg_risk_market_id", "fetched_utc"], kind="stable"),
+                     EVENT_COLUMNS)
     return res
 
 

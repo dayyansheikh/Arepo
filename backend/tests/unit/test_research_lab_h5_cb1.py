@@ -188,12 +188,177 @@ def test_close_or_end_max_extends_only_closed_markets():
     r = _mrow(end=NOW - 50 * 86400, close=NOW - 150 * 86400)  # end later than close
     assert hb.price_window(r, NOW, 120)[1] == int(NOW - 150 * 86400 + 86400)
     assert hb.price_windows(r, NOW, 120, "close_or_end_max")[0][1] == int(NOW - 50 * 86400 + 86400)
-    act = _mrow(closed=False)
+    act = _mrow(closed=False, end=NOW + 10 * 86400)  # active, end not yet passed: tail only
     assert hb.price_windows(act, NOW, 120, "close_or_end_max") == hb.price_windows(act, NOW, 120)
     fut = _mrow(end=NOW + 300 * 86400, close=NOW - 5 * 86400)  # scheduled far ahead, closed early
     assert hb.price_windows(fut, NOW, 120, "close_or_end_max")[0][1] == int(NOW)
     with pytest.raises(ValueError):
         hb.price_windows(r, NOW, 120, "bogus")
+
+
+def _gap(wins, a, b):
+    cur = a
+    for x, y in sorted(wins):
+        if x > cur + 1:
+            break
+        cur = max(cur, y)
+    return cur < b - 1
+
+
+@pytest.mark.parametrize("close_d", [-20, -60, -100, -149, -200, None])  # None = active
+def test_h5_price_coverage_of_created_to_end_independent_of_close_time(close_d):
+    """Fix 1: created T-200d, end T-150d. Coverage of [created, end+1d] must hold whether the market
+    closed at T-20d (the reviewer's repro), earlier, or is still active."""
+    day = 86400
+    r = {"closed": int(close_d is not None), "start_epoch": NOW - 200 * day,
+         "close_epoch": NOW + close_d * day if close_d is not None else float("nan"),
+         "end_epoch": NOW - 150 * day}
+    w = hb.price_windows(r, NOW, 120, "close_or_end_max", 8)
+    assert not _gap(w, r["start_epoch"], r["end_epoch"] + day), w
+    if close_d is not None and close_d > -149:  # the post-end tail is still fetched
+        assert w[-1][1] == int(min(NOW + close_d * day + day, NOW))
+    # A2-style 90-day life closing late: [end-?]: coverage of the whole life up to end+1d
+    r2 = {**r, "start_epoch": NOW - 240 * day, "end_epoch": NOW - 150 * day}
+    w2 = hb.price_windows(r2, NOW, 120, "close_or_end_max", 8)
+    assert not _gap(w2, r2["start_epoch"], r2["end_epoch"] + day), w2
+
+
+def test_h5_active_market_with_past_end_has_end_window():
+    day = 86400
+    r = {"closed": 0, "start_epoch": NOW - 400 * day, "close_epoch": float("nan"),
+         "end_epoch": NOW - 130 * day}
+    w = hb.price_windows(r, NOW, 120, "close_or_end_max", 8)
+    assert not _gap(w, r["end_epoch"] + day - 120 * day, r["end_epoch"] + day)
+    assert w[-1][1] == int(NOW)  # and the live tail
+    # the h2 plan is unchanged
+    assert hb.price_windows(r, NOW, 120) == [hb.price_window(r, NOW, 120)]
+
+
+# ------------------------------------------------------------------ fix 2: T_fetch cap, T_seal
+def test_fetch_trades_caps_at_ts_cap_and_counts_dropped():
+    page = [{"timestamp": t, "side": "BUY", "size": 1, "price": 0.5, "outcomeIndex": 0,
+             "proxyWallet": "0xabc", "transactionHash": f"h{t}", "asset": "a"} for t in (50, 100, 150, 200)]
+
+    class L:
+        def get(self, url, params):
+            return 200, page if params["offset"] == 0 else []
+
+    rows, st = hb.fetch_trades(L(), "c", KEY, 100, ts_cap=120)
+    assert [r[0] for r in rows] == [50, 100] and st["dropped_post_cap"] == 2
+    rows, st = hb.fetch_trades(L(), "c", KEY, 100)  # no cap (h2 path): all kept, no count
+    assert len(rows) == 4 and st["dropped_post_cap"] is None
+
+
+def TradesAfterClock():
+    fake = Fake()
+    base = fake.__call__
+
+    def call(url, params):
+        if url == hb.DATA_TRADES:
+            ts = [int(NOW) - 100, int(NOW) + 500, int(NOW) + 900]  # two after T_fetch
+            return 200, json.dumps([{"timestamp": t, "side": "BUY", "size": 1, "price": 0.4,
+                                     "outcomeIndex": 0, "proxyWallet": "0xabc",
+                                     "transactionHash": f"h{t}", "asset": "a"} for t in ts]).encode(), {}
+        return base(url, params)
+    return call
+
+
+def test_cb1_run_drops_post_tfetch_trades_and_records_counts(tmp_path):
+    import pandas as pd
+
+    _prior_run(tmp_path, "old", ["1"])
+    m = _cb1(tmp_path, TradesAfterClock())
+    assert m["counts"]["trades"] == 5 and m["counts"]["trades_dropped_post_tfetch"] == 10
+    t = pd.read_csv(next((tmp_path / "h5t" / "trades").glob("*.csv.gz")))
+    assert list(t["ts"]) == [int(NOW) - 100]
+    rec = json.loads((tmp_path / "h5t" / "progress.jsonl").read_text().splitlines()[0])
+    assert rec["trades_dropped_post_tfetch"] == 2 and rec["windows"]
+
+
+def test_cb1_refuses_new_chunk_after_t_seal(tmp_path):
+    _prior_run(tmp_path, "old", ["1"])
+    fake = Fake()
+    m = _cb1(tmp_path, fake, wall_clock=lambda: hb.T_SEAL_EPOCH)  # at T_seal: refused up front
+    assert m["stopped"].startswith("t_seal_passed") and not fake.calls
+    assert not (tmp_path / "h5t").exists() or not (tmp_path / "h5t" / "manifest.json").exists()
+    # passing T_seal mid-chunk stops before the next market
+    clock = {"n": 0}
+
+    def wc():
+        clock["n"] += 1
+        return hb.T_SEAL_EPOCH - 10 if clock["n"] <= 3 else hb.T_SEAL_EPOCH + 1
+
+    m = _cb1(tmp_path, Fake(), wall_clock=wc)
+    assert m["stopped"].startswith("t_seal_passed") and m["counts"]["markets_done"] < 5
+
+
+def test_ladders_refuses_after_t_seal(tmp_path):
+    from datetime import datetime as dt
+
+    m = h5_ladders.ladders_fetch(
+        tmp_path, "h5l", lambda *a: (404, b"", {}), start=dt(2024, 1, 1, tzinfo=UTC),
+        end=dt(2024, 1, 2, tzinfo=UTC), exclude_runs=[], ifh2_ladder_file=None, key=KEY,
+        wall_clock=lambda: hb.T_SEAL_EPOCH + 1)
+    assert m["stopped"] == "t_seal_passed"
+
+
+def test_paged_error_is_capped_only_when_requested():
+    pages = [(200, [{"id": i} for i in range(hb.GAMMA_PAGE)]), (500, None)]
+
+    class L:
+        def __init__(self):
+            self.i = 0
+
+        def get(self, url, params):
+            r = pages[min(self.i, 1)]
+            self.i += 1
+            return r
+
+    rows, capped = hb._paged(L(), {}, max_rows=10**6)
+    assert len(rows) == hb.GAMMA_PAGE and capped is False  # legacy
+    rows, capped = hb._paged(L(), {}, max_rows=10**6, error_is_capped=True)
+    assert capped is True
+
+
+def _load_cli():
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "cb1_h5_cli", Path(__file__).resolve().parents[2] / "scripts" / "cb1_h5.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_selfcheck_and_h2_coverage_counter(tmp_path):
+
+    import pandas as pd
+
+    cli = _load_cli()
+    cli.check_window_logic()
+    assert cli.main(["selfcheck"]) == 0
+    day = 86400
+    d = tmp_path / "h2_main"
+    d.mkdir()
+    rows = [
+        # closed late, window anchored on close: misses the end-anchored span
+        {"market_id": "1", "closed": 1, "start_epoch": NOW - 200 * day, "end_epoch": NOW - 150 * day, "close_epoch": NOW - 20 * day},
+        # covered
+        {"market_id": "2", "closed": 1, "start_epoch": NOW - 100 * day, "end_epoch": NOW - 50 * day, "close_epoch": NOW - 50 * day},
+        {"market_id": "3", "closed": 0, "start_epoch": NOW - 400 * day, "end_epoch": NOW - 130 * day, "close_epoch": ""},
+    ]
+    pd.DataFrame(rows).to_csv(d / "sample.csv.gz", index=False)
+    (d / "manifest.json").write_text(json.dumps({"request_clock_now": datetime.fromtimestamp(NOW, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}))
+    wins = {"1": [NOW - 139 * day, NOW - 19 * day], "2": [NOW - 100 * day, NOW - 49 * day], "3": [NOW - 120 * day, NOW]}
+    with open(d / "progress.jsonl", "w") as fh:
+        for mid, w in wins.items():
+            fh.write(json.dumps({"market_id": mid, "status": "done", "window": w}) + "\n")
+    out = cli.count_h2_coverage(tmp_path, "h2_main")
+    assert out["by_status"]["closed"]["units"] == 2 and out["by_status"]["closed"]["miss_end_anchor"] == 1
+    assert out["by_status"]["active"]["miss_end_anchor"] == 1 and out["by_status"]["active"]["miss_full_interval"] == 1
+    assert out["by_status"]["closed"]["miss_full_interval"] == 1
+    assert sorted(p.name for p in d.iterdir()) == ["manifest.json", "progress.jsonl", "sample.csv.gz"]  # read-only
 
 
 # ------------------------------------------------------------------ full cb1 run: budget, resume
@@ -226,6 +391,7 @@ def _prior_run(root, run_id, ids):
 
 
 def _cb1(tmp_path, fake, **kw):
+    kw.setdefault("wall_clock", lambda: NOW)  # before T_seal whatever the real date
     return hb.run(tmp_path, "h5t", fake, n_markets=5, key=KEY, now=NOW, sleep=lambda s: None,
                   lookback_days=2, closed_future_days=1, strata_profile="cb1", pages_per_window=20,
                   price_end="close_or_end_max", head_days=8, live_check=None, rps=9,
@@ -374,6 +540,27 @@ def test_seal_refuses_unfinished_run(tmp_path):
     with pytest.raises(h5_seal.SealError, match="unfinished"):
         h5_seal.seal_run(d, trials_path=tmp_path / "t.jsonl")
     assert not (d / "SEAL.json").exists()
+
+
+def test_committed_seal_is_one_file_per_run_named_run_id_SEAL(tmp_path):
+    d = _fake_run(tmp_path)
+    seals = tmp_path / "seals"
+    h5_seal.seal_run(d, trials_path=tmp_path / "t.jsonl")
+    p = h5_seal.write_committed_copy(d, seals)
+    assert p == seals / "h5x_SEAL.json" == h5_seal.committed_seal_path("h5x", seals)
+    doc = json.loads(p.read_text())
+    assert p.read_bytes() == (d / "SEAL.json").read_bytes() and doc["run_id"] == "h5x"
+    assert doc["listing_sha256"] == h5_seal.verify_seal(d)["listing_sha256"]
+    assert h5_seal.write_committed_copy(d, seals) == p  # idempotent
+    h5_seal.read_sealed(d, "j", ["sample.csv.gz"], p)
+    p.write_text(json.dumps({**doc, "run_id": "other"}))
+    with pytest.raises(h5_seal.SealError, match="not 'h5x'"):
+        h5_seal.require_sealed(d, p)
+    p.write_text(json.dumps({**doc, "listing_sha256": "0" * 64}))
+    with pytest.raises(h5_seal.SealError, match="does not match"):
+        h5_seal.require_sealed(d, p)
+    with pytest.raises(h5_seal.SealError, match="different content"):
+        h5_seal.write_committed_copy(d, seals)
 
 
 def test_committed_seal_copy_must_match_and_access_log_appends(tmp_path):

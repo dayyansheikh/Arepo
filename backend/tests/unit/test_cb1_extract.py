@@ -305,3 +305,26 @@ def test_peak_rss_on_300k_row_capture(tmp_path):
     assert res["rss_mb"] < 500
     neg = pd.read_csv(tmp_path / "ex" / "negrisk" / "big.csv.gz", dtype=str)
     assert len(neg) == int((nr != "").sum()) > 10_000
+
+
+def test_event_members_append_only_with_asof_reader(world):
+    def tr3(url, params):
+        return 200, json.dumps({"markets": [{"closed": False}] * 3}).encode(), {}
+
+    def tr4(url, params):
+        return 200, json.dumps({"markets": [{"closed": False}] * 4}).encode(), {}
+
+    _run(world, transport=tr3, now=lambda: "2026-10-12T05:00:00Z")
+    _run(world, transport=tr3, now=lambda: "2026-10-13T05:00:00Z")  # fresh: no new row
+    ex = world[2]
+    assert len(pd.read_csv(ex / "event_members.csv.gz", dtype=str)) == 1
+    _run(world, transport=tr4, now=lambda: "2026-10-20T05:00:00Z")  # stale (>7d): appended
+    raw = pd.read_csv(ex / "event_members.csv.gz", dtype=str)
+    assert list(raw["member_count"]) == ["3", "4"] and len(raw) == 2  # history kept
+    latest = cb.event_members_asof(ex)
+    assert list(latest["member_count"]) == ["4"]
+    mid = cb.event_members_asof(ex, "2026-10-15T00:00:00Z")  # the count that applied then
+    assert list(mid["member_count"]) == ["3"]
+    assert cb.event_members_asof(ex, "2026-10-12T00:00:00Z").empty  # not yet known: stays missing
+    _run(world, transport=tr4, now=lambda: "2026-10-20T06:00:00Z")  # idempotent
+    assert len(pd.read_csv(ex / "event_members.csv.gz", dtype=str)) == 2

@@ -78,8 +78,11 @@ def ladders_fetch(
     now: float | None = None, sleep: Callable[[float], None] = time.sleep,
     live_check: Callable[[], bool] | None = hb.live_pass_or_lock,
     should_stop: Callable[[], bool] | None = None,
+    wall_clock: Callable[[], float] = time.time, t_seal_epoch: float = hb.T_SEAL_EPOCH,
 ) -> dict:
     root = Path(root)
+    if wall_clock() >= t_seal_epoch:  # h5 must not grow after T_seal
+        return {"stopped": "t_seal_passed", "counts": {}, "requests": 0}
     rdir = root / run_id
     rdir.mkdir(parents=True, exist_ok=True)
     now = time.time() if now is None else now
@@ -215,10 +218,13 @@ def ladders_fetch(
         if out_of_budget():
             stopped = "budget reached"
             break
+        if wall_clock() >= t_seal_epoch:
+            stopped = "t_seal_passed"
+            break
         try:
             sp = span(r)
             pts = if_h2.fetch_ladder_prices(lim, r, *sp) if sp else []
-            trades, tst = hb.fetch_trades(lim, _condition(r), key, max_trades)
+            trades, tst = hb.fetch_trades(lim, _condition(r), key, max_trades, ts_cap=now)
             budget.write(rdir / "prices" / f"{mid}.csv.gz",
                          hb._gz_csv_bytes(["t", "p"], ([t, p] for t, p in pts)))
             budget.write(rdir / "trades" / f"{mid}.csv.gz",
@@ -226,6 +232,7 @@ def ladders_fetch(
             rec = {"market_id": mid, "ladder_id": lid, "status": "done", "price_points": len(pts),
                    "span": list(sp) if sp else None, "trades": tst["n"],
                    "trades_truncated": tst["truncated"], "trades_oldest_ts": tst["oldest_ts"],
+                   "trades_dropped_post_tfetch": tst["dropped_post_cap"],
                    "fetched_utc": _utc(time.time())}
             c = state["counts"]
             c["rungs_done"] += 1

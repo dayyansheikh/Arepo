@@ -26,9 +26,10 @@
  "max_retries": 1,
  "outputs": [
   "history/h5_cb1*/SEAL.json",
+  "docs/research_lab/seals/<run_id>_SEAL.json (byte copy of SEAL.json; h5_cb1_SEAL.json, h5_cb1_ladders_SEAL.json)",
   "history/h5_cb1*/ACCESS_LOG.jsonl",
   "trials.jsonl (1 history_seal_declaration per run)"
  ],
- "next_action": "Claude session: commit docs/research_lab/seals/h5_cb1_SEAL.json (copy of SEAL.json, both runs); then commit q0020-q0022",
+ "next_action": "Claude session: commit docs/research_lab/seals/h5_cb1_SEAL.json and h5_cb1_ladders_SEAL.json (the one valid format: one byte-for-byte SEAL.json copy per run, written by the seal command); then commit q0020-q0022",
  "notes": "Refuses an unfinished run (manifest stopped set) and never rewrites an existing seal. Later readers call h5_seal.require_sealed / read_sealed (verify + access log); verify manually with scripts/cb1_h5.py verify-seal."
 }

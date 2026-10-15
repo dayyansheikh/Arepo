@@ -390,14 +390,17 @@ def frame_row(m: dict, with_text: bool = False, with_outcomes: bool = False) -> 
     return r
 
 
-def _paged(lim: Limiter, params: dict, max_rows: int = GAMMA_OFFSET_CAP) -> tuple[list[dict], bool]:
-    """Walk one /markets query by offset; returns (rows, capped)."""
+def _paged(lim: Limiter, params: dict, max_rows: int = GAMMA_OFFSET_CAP,
+           error_is_capped: bool = False) -> tuple[list[dict], bool]:
+    """Walk one /markets query by offset; returns (rows, capped). With ``error_is_capped`` a
+    non-200 reply part-way through marks the window truncated (the default keeps the legacy
+    behaviour, where such a window looked complete)."""
     out: list[dict] = []
     off = 0
     while True:
         status, data = lim.get(GAMMA_MARKETS, {**params, "limit": GAMMA_PAGE, "offset": off})
         if status != 200 or not isinstance(data, list):
-            return out, off >= max_rows
+            return out, off >= max_rows or error_is_capped
         out.extend(data)
         if len(data) < GAMMA_PAGE:
             return out, False
@@ -536,7 +539,8 @@ def fetch_frame(
                              start_date_max=b.strftime(f))
                 if min_volume > 0:
                     p["volume_num_min"] = min_volume
-                batch, capped = _paged(lim, p, max_rows=pages_per_window * GAMMA_PAGE)
+                batch, capped = _paged(lim, p, max_rows=pages_per_window * GAMMA_PAGE,
+                                       error_is_capped=drop_capped_windows)
                 rep["windows"][kind] += 1
                 rep["windows_capped"][kind] += int(capped)
                 if capped and drop_capped_windows:
@@ -791,6 +795,10 @@ def price_window(r: dict, now: float, max_days: int) -> tuple[int, int] | None:
     return int(start), int(end)
 
 
+# h5 (CB1-F) must be complete before the h4 seal; no new chunk starts at or after this instant.
+T_SEAL_EPOCH = datetime(2026, 10, 22, tzinfo=UTC).timestamp()
+
+
 def pin_request_clock(rdir: Path, now: float) -> float:
     """Return the run's pinned request clock (``request_clock.json``), writing it on first use, so
     every resumed chunk uses the same ``T_fetch`` (frame days, price window ends)."""
@@ -810,28 +818,61 @@ def price_windows(r: dict, now: float, max_days: int, price_end: str = "min",
     when the tail window does not reach the listing."""
     if price_end not in ("min", "close_or_end_max"):
         raise ValueError("price_end must be min|close_or_end_max")
+    start = r["start_epoch"]
+    if math.isnan(start):
+        return []
     if price_end == "min":
         tail = price_window(r, now, max_days)
+        if tail is None:
+            return []
+        out = [tail]
     else:
-        tail = None
-        start = r["start_epoch"]
-        if not math.isnan(start):
-            if r["closed"]:
-                cand = [x for x in (r["close_epoch"], r["end_epoch"]) if not math.isnan(x)]
-                end = min((max(cand) if cand else now) + 86400, now)
-            else:
-                end = now
-            a = max(start, end - max_days * 86400)
-            tail = (int(a), int(end)) if end > a else None
-    if tail is None:
-        return []
-    out = [tail]
-    if head_days > 0 and not math.isnan(r["start_epoch"]) and tail[0] > int(r["start_epoch"]):
-        h0 = int(r["start_epoch"])
-        h1 = min(h0 + head_days * 86400, tail[0])
+        out = close_or_end_windows(r, now, max_days)
+        if not out:
+            return []
+        tail = out[-1]
+    if head_days > 0 and tail[0] > int(start):
+        h0 = int(start)
+        h1 = min(h0 + head_days * 86400, out[0][0])
         if h1 > h0:
             out.insert(0, (h0, h1))
     return out
+
+
+def close_or_end_windows(r: dict, now: float, max_days: int) -> list[tuple[int, int]]:
+    """``close_or_end_max`` windows (h5): the union of (a) the h2-style ``min`` window, anchored at
+    ``min(close, end) + 1d`` (or at ``end + 1d`` for an active market with a known end, else now),
+    (b) the post-end tail anchored at ``max(close, end) + 1d`` (``now`` for an active market),
+    each ``max_days`` long and clipped to ``[start, now]``. Coverage of the lifetime around the
+    scheduled end therefore does not depend on how late the market closed. Overlapping or touching
+    windows are merged; the result is sorted by start."""
+    start = r["start_epoch"]
+    if math.isnan(start):
+        return []
+    closed = bool(r["closed"])
+    cand = [x for x in (r["close_epoch"], r["end_epoch"]) if not math.isnan(x)]
+    ends: list[float] = []
+    if closed:
+        ends.append(min(cand) if cand else now)
+        ends.append(max(cand) if cand else now)
+    else:
+        ends.append(now)
+        if not math.isnan(r["end_epoch"]):
+            ends.append(r["end_epoch"])
+    wins = []
+    for e in ends:
+        e = min(e + 86400, now)
+        a = max(start, e - max_days * 86400)
+        if e > a:
+            wins.append((int(a), int(e)))
+    wins.sort()
+    merged: list[tuple[int, int]] = []
+    for a, b in wins:
+        if merged and a <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], b))
+        else:
+            merged.append((a, b))
+    return merged
 
 
 def fetch_prices(
@@ -864,15 +905,19 @@ def trade_key(t: dict) -> str:
 
 
 def fetch_trades(lim: Limiter, condition_id: str, key: bytes, max_trades: int,
-                 collect: dict | None = None, collect_min_usd: float = 500.0
-                 ) -> tuple[list[list], dict]:
+                 collect: dict | None = None, collect_min_usd: float = 500.0,
+                 ts_cap: float | None = None) -> tuple[list[list], dict]:
     """Newest-first pages up to ``max_trades`` (and the API offset cap). Wallets become keyed
     hashes immediately; no raw address, name or pseudonym is kept. Returns rows + stats.
 
     ``collect`` (transient, caller-owned, never persisted): ``{hash: [address, earliest_ts_here,
     has_big_trade]}`` for the wallets seen, where big means one trade of size*price >=
-    ``collect_min_usd``."""
+    ``collect_min_usd``.
+
+    ``ts_cap`` (the pinned request clock ``T_fetch`` for h5): rows with ``ts > ts_cap`` are not
+    stored; their count is returned as ``dropped_post_cap`` (None when no cap is set)."""
     rows: dict[str, list] = {}
+    dropped = 0
     off, pages, truncated = 0, 0, False
     cap = min(max_trades, TRADE_OFFSET_CAP + TRADE_PAGE)
     while off < cap:
@@ -884,6 +929,9 @@ def fetch_trades(lim: Limiter, condition_id: str, key: bytes, max_trades: int,
             break
         for t in data:
             try:
+                if ts_cap is not None and int(t["timestamp"]) > ts_cap:
+                    dropped += 1
+                    continue
                 rows[trade_key(t)] = [
                     int(t["timestamp"]), str(t["side"]), float(t["size"]), float(t["price"]),
                     int(t["outcomeIndex"]), wallet_hash(key, str(t.get("proxyWallet", ""))),
@@ -903,7 +951,8 @@ def fetch_trades(lim: Limiter, condition_id: str, key: bytes, max_trades: int,
         truncated = True  # stopped by our own / the API cap with pages still full
     out = sorted(rows.values(), key=lambda x: (x[0], x[6]))
     return out, {"pages": pages, "n": len(out), "truncated": truncated,
-                 "oldest_ts": out[0][0] if out else None}
+                 "oldest_ts": out[0][0] if out else None,
+                 "dropped_post_cap": dropped if ts_cap is not None else None}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -945,7 +994,8 @@ def run(
     wallet_cache_paths: Iterable[Path] = (), budget_scope: str = "root",
     checkpoint_every: int = 0, closed_future_days: int = 0, pages_per_window: int = 3,
     strata_profile: str = "default", price_end: str = "min", head_days: int = 0,
-    budget_min: float | None = None,
+    budget_min: float | None = None, wall_clock: Callable[[], float] = time.time,
+    t_seal_epoch: float = T_SEAL_EPOCH,
 ) -> dict:
     """Fetch universe, draw the seeded sample, fetch prices and trades per market. Resumable:
     re-running with the same ``run_id`` reuses ``sample.csv.gz`` and skips finished markets.
@@ -969,6 +1019,9 @@ def run(
     if strata_profile not in ("default", "cb1"):
         raise ValueError("strata_profile must be default|cb1")
     cb1 = strata_profile == "cb1"
+    if cb1 and wall_clock() >= t_seal_epoch:  # h5 must not grow after T_seal
+        return {"stopped": "t_seal_passed: no new h5 chunk after "
+                f"{utc_iso(t_seal_epoch)}", "counts": {"markets_done": 0}}
     if cb1:
         rps = min(rps, 4.0)
         if oversample is not None:
@@ -1075,6 +1128,9 @@ def run(
             stats["price_points"] += rec["price_points"]
             stats["trades"] += rec["trades"]
             stats["trades_truncated_markets"] += int(rec["trades_truncated"])
+            if rec.get("trades_dropped_post_tfetch") is not None:
+                stats["trades_dropped_post_tfetch"] = (
+                    stats.get("trades_dropped_post_tfetch", 0) + rec["trades_dropped_post_tfetch"])
     stopped = None
     # causal wallet first-trade cache (hashes only): own file + read-only earlier files
     ft_dir = rdir / "new_wallets"
@@ -1186,6 +1242,9 @@ def run(
         if out_of_budget():
             stopped = "budget reached"
             break
+        if cb1 and wall_clock() >= t_seal_epoch:
+            stopped = f"t_seal_passed: no new h5 chunk after {utc_iso(t_seal_epoch)}"
+            break
         try:
             if price_end == "min" and head_days == 0:
                 win = price_window(r, now, max_days)
@@ -1202,7 +1261,7 @@ def run(
             pts = sorted(ptd.items())
             coll: dict | None = {} if wallet_min_usd is not None else None
             trades, tst = fetch_trades(lim, r["condition_id"], key, max_trades, coll,
-                                       wallet_min_usd or 0.0)
+                                       wallet_min_usd or 0.0, ts_cap=now if cb1 else None)
             if coll:
                 lookup_wallets(coll)
             coll = None  # raw addresses never leave this scope
@@ -1214,7 +1273,14 @@ def run(
                    "trades": tst["n"], "trades_truncated": tst["truncated"],
                    "trades_oldest_ts": tst["oldest_ts"], "fetched_utc": utc_iso()}
             if head_days > 0:
-                rec["head_window"] = list(wins[0]) if len(wins) > 1 else None
+                rec["head_window"] = (list(wins[0]) if wins and wins[0][0] == int(r["start_epoch"])
+                                      and len(wins) > 1 else None)
+            if price_end != "min" or head_days > 0:
+                rec["windows"] = [list(w) for w in wins]
+            if tst["dropped_post_cap"] is not None:
+                rec["trades_dropped_post_tfetch"] = tst["dropped_post_cap"]
+                stats["trades_dropped_post_tfetch"] = (
+                    stats.get("trades_dropped_post_tfetch", 0) + tst["dropped_post_cap"])
             stats["markets_done"] += 1
             stats["price_points"] += len(pts)
             stats["trades"] += tst["n"]

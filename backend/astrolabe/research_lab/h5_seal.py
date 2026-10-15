@@ -8,6 +8,15 @@ hash. ``verify_seal`` recomputes everything and refuses on any added, missing or
 ``require_sealed`` is the guard every CB1 h5 reader calls first; ``read_sealed`` also appends to
 ``ACCESS_LOG.jsonl`` (time, job, git commit, files or globs, declaration hash).
 
+Committed seal copy (the ONE format): for each sealed run there is exactly one repo file
+``docs/research_lab/seals/<run_id>_SEAL.json`` (``h5_cb1_SEAL.json``, ``h5_cb1_ladders_SEAL.json``),
+a byte-for-byte copy of the run's ``SEAL.json``. Its top-level keys include ``run_id`` and
+``listing_sha256`` (the sha256 over the sorted ``<sha>  <path>`` table, see ``listing_sha256``);
+``require_sealed`` / ``read_sealed`` accept it as ``committed_seal`` and refuse when it is missing,
+unreadable, names another run, or carries a different ``listing_sha256``. ``write_committed_copy``
+produces it (the ``seal`` command of ``scripts/cb1_h5.py`` calls it); a Claude session commits it.
+No other seal file name or layout is valid.
+
 Sealing writes only ``SEAL.json`` and an empty ``ACCESS_LOG.jsonl`` (both outside the listing) and
 never touches the sealed data. An existing seal is never overwritten.
 """
@@ -32,6 +41,9 @@ DECLARATION = {
     "discovery or re-estimation on this data",
     "information_end": "manifest request_clock_now (T_fetch) < T_seal of h4_seal",
 }
+
+
+SEALS_DIR = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "seals"
 
 
 class SealError(RuntimeError):
@@ -169,6 +181,27 @@ def verify_seal(run_dir: Path) -> dict:
     return seal
 
 
+def committed_seal_path(run_id: str, seals_dir: Path | None = None) -> Path:
+    """The only valid committed seal location: ``<seals_dir>/<run_id>_SEAL.json``."""
+    return Path(SEALS_DIR if seals_dir is None else seals_dir) / f"{run_id}_SEAL.json"
+
+
+def write_committed_copy(run_dir: Path, seals_dir: Path | None = None) -> Path:
+    """Copy the run's ``SEAL.json`` byte-for-byte to :func:`committed_seal_path`. An existing copy
+    must be identical (never overwritten with different content)."""
+    run_dir = Path(run_dir)
+    seal = verify_seal(run_dir)
+    data = (run_dir / SEAL_NAME).read_bytes()
+    dest = committed_seal_path(seal["run_id"], seals_dir)
+    if dest.exists():
+        if dest.read_bytes() != data:
+            raise SealError(f"{dest} exists with different content; a seal is never rewritten")
+        return dest
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(data)
+    return dest
+
+
 def require_sealed(run_dir: Path, committed_seal: Path | None = None) -> dict:
     """The guard every CB1 h5 reader and screen job calls first: the run must be sealed, verify,
     and (if ``committed_seal`` is given) the committed repo copy must exist and carry the same
@@ -179,9 +212,13 @@ def require_sealed(run_dir: Path, committed_seal: Path | None = None) -> dict:
         if not cp.exists():
             raise SealError(f"committed seal copy missing: {cp}")
         try:
-            got = json.loads(cp.read_text()).get("listing_sha256")
-        except ValueError as exc:
+            doc = json.loads(cp.read_text())
+            got = doc.get("listing_sha256")
+        except (ValueError, AttributeError) as exc:
             raise SealError(f"committed seal copy unreadable: {cp}") from exc
+        if doc.get("run_id") not in (None, seal["run_id"]):
+            raise SealError(f"committed seal {cp.name} is for run {doc.get('run_id')!r}, "
+                            f"not {seal['run_id']!r}")
         if got != seal["listing_sha256"]:
             raise SealError(f"committed seal {cp.name} does not match {run_dir.name}")
     return seal
