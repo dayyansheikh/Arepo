@@ -54,10 +54,10 @@ ALLOWED_TOOLS = [
 MODE = os.environ.get("AREPO_AUTOPILOT_MODE", "full")
 PERMISSION_ARGS = (["--permission-mode", "bypassPermissions"] if MODE == "full"
                    else ["--permission-mode", "default", "--allowedTools", *ALLOWED_TOOLS])
-LIMIT_RE = re.compile(r"hit your (?:[\w ]+ )?limit", re.IGNORECASEGNORECASE)
-RESET_RE = re.compile(r"resets\s+([^\n\"·]+)", re.IGNORECASEGNORECASE)
+LIMIT_RE = re.compile(r"hit your (?:[\w ]+ )?limit", re.IGNORECASE)
+RESET_RE = re.compile(r"resets\s+([^\n\"·]+)", re.IGNORECASE)
 AUTH_RE = re.compile(r"Failed to authenticate|Login expired|Invalid bearer token|run /login|"
-                     r"Credit balance is too low|authentication_failed", re.IGNORECASEGNORECASE)
+                     r"Credit balance is too low|authentication_failed", re.IGNORECASE)
 
 
 def now() -> datetime:
@@ -108,7 +108,7 @@ def parse_reset(text: str) -> datetime | None:
     if not m:
         return None
     raw = m.group(1).strip()
-    tm = re.search(r"(\d{1,2})(?::(\d{2}))?\s*([ap]m)", raw, re.IGNORECASEGNORECASE)
+    tm = re.search(r"(\d{1,2})(?::(\d{2}))?\s*([ap]m)", raw, re.IGNORECASE)
     if not tm:
         return None
     hour = int(tm.group(1)) % 12 + (12 if tm.group(3).lower() == "pm" else 0)
