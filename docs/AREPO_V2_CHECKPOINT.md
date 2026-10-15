@@ -165,21 +165,23 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 23:10Z
-0. **Done this session (23:00Z):** CB1 extractor (pass step) + q0030 + h5_cb1 q0016-q0018 deployed (70603b4);
-   J4 (q0006) written up: placebo NOT null, verdicts withheld (`SCREENING_BATCH_2.md` Results/J4, ledger); diagnostic
-   q0031 queued (682b7c1, priority 75, no trials). Two implementer agents are finishing the untracked
-   `cb1_history.py` (A, C, E) and `cb1_structural.py` (D, B + battery2 KIND_RULES) with runners and tests.
-1. **q0031 done →** read `data-dumps/research_lab/bounce_decomp/diag_placebo_q0031.json`; if market-FE placebo ≈ 0 the
-   channel is cross-market (needs a corrected null: market-demeaned or half-shift); send corrected null + re-read
-   plan to science-reviewer (one round); the five tests stay counted once. J3 (q0011) inherits the same placebo; fix
-   `permute_book_targets` the same way before q0011 runs.
-2. q0005 (J5) running → write up with `meets_sb2_rule` only. Then q0007/q0007b/q0007c (HB2) → copy host
-   `hb2_v1.json` into the repo, check, commit, queue q0008 + conditional q0009/q0010/q0014/q0015 (§4).
-3. q0002 books (repeat) → q0003 → q0004 (r4_book write-up in `HISTORICAL_ML_DEV.md`) and q0011 (J3, after the J4 null fix).
-4. CB1: when the agents report, review, deploy; science-reviewer freeze check of CB1 code vs design; census/screens
-   (q0019+) only after the h5 seal (q0018) and, for D, the dev capture list freeze after 2026-10-17T00:00Z.
-5. Keep ≥ 12 h queued. Retention deletion needs the user by ~17-18 Oct (`data_catalogue/RETENTION.md`).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 23:35Z
+0. **This session (22:50Z-):** CB1 extractor live in the pass + q0030; J4 (q0006) placebo NOT null → diagnosed by
+   q0031/q0032 (between-market regime-toggle channel: origin-only eligibility + wide-spread h/j; regime-stable FE
+   P1 −0.127, P1x −0.098, placebo null; `SCREENING_BATCH_2.md` Results). J5 (q0005): L1 meets SB2 rule (event-level
+   reversal; over R only; caveats). CB1 code finished (9fd5378, 3bdd985, 8e42536) and freeze-checked: ACCEPT_WITH_
+   REQUIRED_FIXES ×4, 13 fixes; **q0016/q0017 HELD behind gate q0033** (3abb860) until fixes 1-2 land.
+   In flight (agents): (i) fixes 1,2,11,12 (history_backfill/h5_seal/creative_batch1 + q0033 gate job);
+   (ii) fixes 3-10,12,13 (cb1_history/cb1_structural); (iii) challenger on the J4 diagnosis + re-read plan;
+   (iv) Creative Batch 2 design draft (`CREATIVE_BATCH_2.md`, uncommitted until reviewed).
+1. When (i)+(ii) report: run tests, commit check, deploy (q0033 releases q0016/q0017). Re-check fix list against
+   the freeze-check message (13 items, recorded in CREATIVE_BATCH_1.md "Freeze check" section — add it there).
+2. When (iii) reports: apply required changes; queue the corrected J4 re-read as a new counted family (or on fresh
+   captures, per reviewer); fix J3 placebo (`permute_book_targets`) the same way before q0011.
+3. q0007c (HB2 fitspec) → copy host `hb2_v1.json` into the repo (`ssh oracle cat`), check signs/hashes, commit, queue
+   q0008 + conditional q0009/q0010/q0014/q0015 (§4).
+4. q0002 books (repeat) → q0003 → q0004 (r4_book write-up) and q0011 (J3, after its placebo fix).
+5. CB2 draft → science-reviewer → code. Keep ≥ 12 h queued. Retention deletion needs the user by ~17-18 Oct.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,

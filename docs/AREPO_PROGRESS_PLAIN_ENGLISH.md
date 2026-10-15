@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-16 00:07 UTC+1
+**Last updated:** 2026-10-16 00:22 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -15,12 +15,15 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   this market's price tends to drift back the other way over the next 2 hours. The signal is stable (34 of 39 fresh
   periods). But it only beats a simple baseline, not our best model; it may be quote noise; and it is not shown to be
   tradable. Next comes a check on newer data. No registration yet.
-- **Batch 2 first result: bounce test (J4) ran, but its built-in sanity check failed.** The shuffled-data control
-  showed the same "reversal" as the real data, so none of its conclusions can be trusted yet. Nothing is claimed from it.
-  A diagnostic job is queued to find out why. The 5 tests stay counted.
-- **Your creative priority:** the data-saving extractor for Creative Batch 1 is **now live on the server** (deployed
-  00:00 UTC+1), with the fresh 7,000-market download jobs queued. Code for the five creative tests is being finished
-  by two helper agents. Nothing creative has been tested yet; tests run only after the fresh data is sealed.
+- **Bounce test (J4): the failed sanity check is explained.** The apparent "price reversal" was mostly an artefact:
+  about 1 in 10 rows caught a market flipping between a normal and a near-empty order book, and those flips look like
+  reversals. With those removed and each market compared only with itself, the sanity check passes and a smaller real
+  reversal remains (about 13% of the previous 2-hour move). This is exploratory. An independent reviewer is checking
+  it before any formal re-test, and the same check is being applied to related results.
+- **Your creative priority:** the data-saving extractor is live on the server. The code for all five creative tests
+  is written and has been independently checked. The checker found 13 fixes, including one urgent one: the fresh
+  7,000-market download would have quietly missed some long-running markets. That download is **on hold** until the
+  fix lands (in progress now). A second creative batch is being designed. Nothing creative has been tested yet.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
