@@ -1113,11 +1113,12 @@ favourable tercile (it is chosen on h2 judgement rows and used only on h3).
   left in place by the permutation). Market-demeaned placebo P1 −0.003; real P1 with market fixed effects (FE)
   −0.011 vs pooled −0.207. Across markets, mean target and −mean `d_bm` correlate 0.55. **The pooled slope is almost
   entirely between-market, which is why a within-market permutation reproduces it.**
-- **Mechanism (q0032, confirmed on a synthetic world first).** Eligibility is checked only at origin `i` (spread ≤
-  0.10, mid in [0.02, 0.98]); `h` and `j` need only a two-sided quote. 9.6% of rows have `h` or `j` in a wide-spread
-  state, where `|d_bm|` averages 0.107 vs 0.003 for tight `h`. A market that toggles between a tight and a wide
-  state with different mids gives `d_bm` and `dmid` opposite signs whenever it toggles, regardless of timing. These
-  9.6% of rows dominate pooled OLS.
+- **Mechanism, one contributor (q0032; reproduced in a synthetic world).** Eligibility is checked only at origin
+  `i` (spread ≤ 0.10, mid in [0.02, 0.98]); `h` and `j` need only a two-sided quote. 9.6% of rows have `h` or `j`
+  in a wide-spread state, where `|d_bm|` averages 0.107 against 0.003 for tight `h`. When a market toggles between a
+  tight state and a wide state with different mids, `d_bm` and `dmid` take opposite signs, whatever the timing. **This
+  is not the whole story:** in the pooled h,i,j-tight column all five placebos are still non-null (P4 −0.174), so a
+  second between-market channel exists in tight markets.
 - **Point estimates by specification (real / placebo):**
 
   | Test | pooled, all rows | FE, all rows | pooled, h,i,j tight | FE, h,i,j tight |
@@ -1128,21 +1129,34 @@ favourable tercile (it is chosen on h2 judgement rows and used only on h3).
   | P3 | −0.165 / −0.297 | +0.148 / +0.003 | −0.172 / −0.018 | **−0.143 / +0.016** |
   | P4 | −0.166 / −0.127 | −0.048 / −0.000 | −0.009 / −0.174 | **−0.012 / +0.004** |
 
-- **Provisional reading (exploratory, post hoc, not a verdict).** Only the regime-stable FE column has a null
-  placebo on every test. There, the Gamma mid reverses about 13% of the previous 2h change within a market, and about
-  three quarters of that also shows against the independent sweep mid. That pattern would mean mostly genuine short-term
-  reversion, not Gamma quote noise. The last trade's position carries a small positive signal, one-sided moves revert more, and
-  `chg_1h` adds nothing once the 2h mid change and bounce position are controlled. Note: FE on panels with a median
-  of 11 periods carries a small negative (Nickell-type) bias, which the FE placebo does not fully measure.
+- **What the table does not show.** The FE-tight column was chosen after seeing 4 specifications × 5 tests. It also
+  filters on `j` (mid and spread at `j`, which is outcome-side information). Consecutive triples satisfy y_t = x_{t+1},
+  so market demeaning has a mechanical dynamic-panel (Nickell) bias of roughly −1/T, about −0.05 row-weighted here and
+  probably more in the tight subset. That is a large share of −0.127. A target-only permutation cannot detect it,
+  because on average a permuted y is uncorrelated with demeaned x. The q0032 placebo also took its tight mask from
+  the real `bid_j`/`ask_j` while permuting the targets, so it is not the same population. No SEs were computed. **No
+  reversal size or mechanism is claimed from these numbers.**
+- **Challenger (science-reviewer, 2026-10-15 ~23:45Z).** Diagnosis ACCEPT_WITH_REQUIRED_CHANGES (applied above). A
+  re-read on the same 49 periods is REJECTED as the basis for any verdict. Re-read design (to be frozen before the
+  data exist):
+  - **Data:** fresh captures only (h, i and j all started after 2026-10-15T21:00Z), at least 48 2h periods over 4 or
+    more complete UTC days (about 2026-10-19 21:00Z or later).
+  - **Estimator:** demean by each market's expanding past mean (causal, unbiased under independent increments).
+  - **Placebo:** shuffle each market's increment series within market, rebuild x and y, same estimator.
+  - **Eligibility:** tightness required at h and i; at j only E001 target validity (j-tight is a sensitivity).
+  - **Sensitivity:** markets with at least 20 triples.
+  - **Reporting:** SEs/MDEs for every placebo.
 - **Consequences.**
   1. The counted q0006 J4 verdicts are void as specified (placebo failure). They stay counted.
-  2. Any re-read is a new 5-test family under a new specification (h,i,j tight + market FE + FE placebo, SEs as declared).
-     It needs the challenger first (sent 2026-10-15 ~23:30Z).
+  2. Any re-read is a new 5-test family on fresh captures, with the estimator and placebo above (J4-R, to be declared
+     and frozen before 2026-10-19 21:00Z).
   3. J3's within-market placebo (`permute_book_targets`) has the same exposure, so it must be fixed before q0011.
-  4. J5's L1 event-level reversal and HB1's reversal moderators were estimated pooled. Their sizes may partly be this
-     regime-toggle channel, and they need a regime-stable re-check before any registration.
-  5. E004 (registered, prospectively confirmed) keeps its recorded outcome; this diagnosis is not a re-interpretation
-     of it.
+  4. J5's L1 event-level reversal and HB1's reversal moderators were estimated pooled. They need a within-market
+     placebo, tight h and i, and the expanding-past demeaning before any registration. HB1's moderators are often
+     spread or liquidity proxies, which line up with how often a market goes wide.
+  5. E004 and E011 keep their recorded outcomes. Future designs must pre-declare tightness at h and i, a rule for what
+     counts as a valid target at j, a placebo matched to the estimator, a within- vs between-market breakdown, and any
+     bias correction for demeaning.
 
 ### J5 (q0005, run `leadlag-sb2-snap2h`, finished 2026-10-15 23:05Z): SB2 rule MET for L1 (one candidate)
 - **Run.** 82.9 min; gap filter [1.5, 3] h excluded 5 periods (the 10-10 development spacing and the host outage);
