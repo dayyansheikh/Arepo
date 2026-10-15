@@ -53,7 +53,7 @@ def main() -> int:
         df, counts = bd.build_book_triples(
             hist / "battery1" / "features.parquet",
             bd.HIST_ROOT.parent / "history_sources" / "book_features" / "book_features.csv.gz",
-            hist / "panel_H6h.csv.gz", log=print)
+            hist / "panel_H6h.csv.gz", log=print, run_dir=hist)
         if not len(df):
             print("no book triples; nothing run")
             return 0

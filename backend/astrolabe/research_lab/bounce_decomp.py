@@ -103,11 +103,35 @@ def _clean(x):
     return x
 
 
+Z95 = 1.959963984540054
+
+
+def _hull(ci_boot, beta, se, z) -> tuple[tuple[float, float], tuple[str, str]]:
+    """Conservative interval for bound/absence clauses: hull of the bootstrap CI and
+    beta +/- z * se (se = max(se_event, se_twoway)). Returns ((lo, hi), (binding_lo, binding_hi))."""
+    nlo, nhi = (beta - z * se, beta + z * se) if se is not None and beta is not None else (None, None)
+    blo, bhi = (ci_boot if ci_boot else (None, None))
+    lo_c = [(v, k) for v, k in ((blo, "bootstrap"), (nlo, "normal_max_se")) if v is not None]
+    hi_c = [(v, k) for v, k in ((bhi, "bootstrap"), (nhi, "normal_max_se")) if v is not None]
+    lo, klo = min(lo_c)
+    hi, khi = max(hi_c)
+    return (lo, hi), (klo, khi)
+
+
+def cons_ci(t: dict, level: int = 95) -> tuple[tuple[float, float], tuple[str, str]]:
+    """Conservative interval of a ``fit_test`` result (95: hull of bootstrap and normal max-SE;
+    90: normal with max(se_event, se_twoway), already the conservative one)."""
+    if level == 90:
+        return (t["ci90"][0], t["ci90"][1]), ("normal_max_se", "normal_max_se")
+    return _hull(t.get("ci95"), t.get("beta"), t.get("se"), Z95)
+
+
 def fit_test(y, x, Z, ev, per, n_boot: int, seed: int) -> dict:
     """OLS slope of x given Z with event-clustered and two-way (event x period) SEs.
 
     p (two-sided) = max over the two clusterings (normal z). CI95 = event-cluster bootstrap of
-    ``battery.beta_test``; CI90 (TOST) is normal with SE = max(se_event, se_twoway)."""
+    ``battery.beta_test``; ``ci95_cons`` = hull of that and beta +/- 1.96 max-SE (used for every
+    bound/absence clause); CI90 (TOST) is normal with SE = max(se_event, se_twoway)."""
     from . import battery
 
     y, x = np.asarray(y, float), np.asarray(x, float)
@@ -123,6 +147,7 @@ def fit_test(y, x, Z, ev, per, n_boot: int, seed: int) -> dict:
         "testable": True, "beta": b, "se_event": r["se_event"], "se_twoway": r["se_twoway"],
         "se": se, "p": p2, "n": r["n"], "n_event": r["n_event"], "n_period": r["n_day"],
         "ci95": r["ci_event_boot"], "ci90": [b - Z90 * se, b + Z90 * se],
+        "ci95_cons": list(_hull(r["ci_event_boot"], b, se, Z95)[0]),
         "mde_80": 2.8 * se,
     }
 
@@ -355,14 +380,15 @@ def _within_perm(codes: np.ndarray, seed: int) -> np.ndarray:
 
 
 def permute_snapshot_targets(df: pd.DataFrame, seed: int) -> pd.DataFrame:
-    """Placebo: the j-side quote triple is permuted across captures within market (time link
-    broken); every target is rebuilt from the permuted quotes, features are untouched."""
+    """Placebo: the target VALUES (dmid, y_p1x, y_far_*, and the j-side quote columns) are permuted
+    across captures within market with ONE shared index; features are untouched. (Permuting levels
+    and rebuilding dmid = mid_j' - mid_i would put -mid_i in the target and +mid_i in d_bm: a
+    reversal by construction.)"""
     out = df.copy()
     idx = _within_perm(pd.factorize(df["market_id"])[0], seed)
-    for c in ("mid_j", "bid_j", "ask_j"):
-        out[c] = df[c].to_numpy()[idx]
-    out["dmid"] = out["mid_j"] - out["mid_i"]
-    out["y_p1x"] = out["mid_j"] - out["B_i"]
+    for c in J4_TARGETS:
+        if c in df.columns:
+            out[c] = df[c].to_numpy()[idx]
     return out
 
 
@@ -395,7 +421,9 @@ def _rows_for(df: pd.DataFrame, name: str) -> np.ndarray:
     for c in cols:
         m &= np.isfinite(df[c].to_numpy(float))
     if name == "P1x":
-        m &= df["sweep_lag_min"].to_numpy(float) <= SWEEP_MAX_LAG_MIN
+        lag = df["sweep_lag_min"].to_numpy(float)
+        with np.errstate(invalid="ignore"):
+            m &= (lag >= 0) & (lag <= SWEEP_MAX_LAG_MIN)  # sweep before Gamma receipt: excluded too
     if name == "P2":
         m &= df["volume_up"].to_numpy(bool)
     return m
@@ -427,6 +455,7 @@ def snapshot_tests(df: pd.DataFrame, n_boot: int = 2000, seed: int = 116) -> dic
                 np.median(df["spread"].to_numpy(float)[m] / 2 * 100)) if m.any() else None
         if name == "P1x":
             r["sweep_rows_lag_gt_20min"] = int((df["sweep_lag_min"] > SWEEP_MAX_LAG_MIN).sum())
+            r["sweep_rows_lag_negative"] = int((df["sweep_lag_min"] < 0).sum())
         res["tests"][name] = r
     adj = holm({n: t["p"] for n, t in res["tests"].items()})
     for n, t in res["tests"].items():
@@ -510,11 +539,21 @@ def verdicts(res: dict) -> dict:
                                "anomalous (positive P1)" if _rej(p1, 1) else "inconclusive")
     # genuine reversion vs quote noise
     genuine = gm and _rej(p1x, -1) and p1x["beta"] <= p1["beta"] / 2
+    bi: dict = {}  # per bound clause: which interval was used and which end bound
+    noise_ci = cons_ci(p1x) if p1x.get("testable") else None
+    if noise_ci:
+        bi["reversion_nature.quote_noise_route"] = {
+            "interval": list(noise_ci[0]), "binding": noise_ci[1][0], "rule": "lo95_cons > P1/2"}
+        bi["reversion_nature.equivalence_tost"] = {
+            "interval": list(p1x["ci90"]), "binding": "normal_max_se", "rule": "ci90 inside +/-0.05"}
     noise = gm and p1x.get("testable") and (_equiv(p1x, TOST_SLOPE_BAND)
-                                            or p1x["ci95"][0] > p1["beta"] / 2)
+                                            or noise_ci[0][0] > p1["beta"] / 2)
     v["reversion_nature"] = ("genuine reversion" if genuine else "quote noise" if noise
                              else "inconclusive")
     hs = p2.get("half_spread_cents_median")
+    if p2.get("testable") and hs:
+        bi["last_trade.pure_bounce_tost"] = {"interval": list(p2["ci90"]), "binding": "normal_max_se",
+                                             "rule": "ci90 inside +/-0.1 half-spread"}
     if p2.get("testable") and hs and _equiv(p2, TOST_BPOS_HS_FRAC * hs):
         v["last_trade"] = "pure bounce (no information in the last trade)"
     elif _rej(p2, 1):
@@ -524,7 +563,11 @@ def verdicts(res: dict) -> dict:
     else:
         v["last_trade"] = "inconclusive"
     v["quote_refill"] = ("supporting: refill" if _rej(p3, -1) and genuine else "inconclusive")
-    if p4.get("testable") and not p4["reject"] and p4["ci95"][0] > -0.05:
+    if p4.get("testable"):
+        c4 = cons_ci(p4)
+        bi["e004_reversal.explained"] = {"interval": list(c4[0]), "binding": c4[1][0],
+                                         "rule": "lo95_cons > -0.05"}
+    if p4.get("testable") and not p4["reject"] and cons_ci(p4)[0][0] > -0.05:
         v["e004_reversal"] = "explained"
     elif _rej(p4):
         v["e004_reversal"] = "not explained"
@@ -550,6 +593,7 @@ def verdicts(res: dict) -> dict:
             label = "inconclusive (day-unstable)"
         out[k] = label
     out["mde_80_by_test"] = mde
+    out["bound_intervals"] = bi
     out["note"] = "J4 does not close Q5; supporting evidence for J3 only"
     return out
 
@@ -565,17 +609,72 @@ FEATURE_READ = ["market_id", "event_c", "day_c", "t_i", "split", "mid_i", "d_6",
                 "bk_sw_depth_ask_5c", "bp_sw_best_bid", "bp_sw_best_ask"]
 
 
+def signed_notional_6h(run_dir: Path, markets_t: pd.DataFrame) -> np.ndarray:
+    """Signed 6h trade notional S (USDC, token-0 sign convention) on the price-aligned window used by
+    ``battery.flow_features`` (window ends at the last usable price stamp, else t - LAG; NaN where the
+    truncated trade history does not cover the window). Same ``battery.Trades`` cumulative sums, so
+    ``f_imb_6h == S / N`` of the stored features. ``markets_t``: columns market_id, t_i."""
+    from . import battery
+    from . import history_backfill as hb
+
+    run_dir = Path(run_dir)
+    prog = {}
+    pf_ = run_dir / "progress.jsonl"
+    if pf_.exists():
+        for line in pf_.read_text().splitlines():
+            if line.strip():
+                dd = json.loads(line)
+                prog[str(dd["market_id"])] = dd
+    out = np.full(len(markets_t), np.nan)
+    pos = np.arange(len(markets_t))
+    for mid, g in markets_t.assign(_pos=pos).groupby("market_id", sort=False):
+        tf = run_dir / "trades" / f"{mid}.csv.gz"
+        if not tf.exists():
+            continue
+        tr = hb.load_trades(tf)
+        if not len(tr):
+            continue
+        pfile = run_dir / "prices" / f"{mid}.csv.gz"
+        ts, v = hb.load_prices(pfile) if pfile.exists() else (np.array([]), np.array([]))
+        p = prog.get(str(mid), {})
+        cov_from = (float(p["trades_oldest_ts"]) if p.get("trades_truncated")
+                    and p.get("trades_oldest_ts") is not None else -np.inf)
+        T = battery.Trades(tr, (ts, v), {}, None, cov_from)
+        t = g["t_i"].to_numpy(float)
+        u = battery._last_idx(ts, t) if len(ts) else np.full(len(t), -1)
+        s_last = np.where(u >= 0, ts[np.maximum(u, 0)] if len(ts) else np.nan, np.nan)
+        e = np.where(np.isfinite(s_last), s_last, t - battery.LAG)
+        S = np.where(T.covered(e - H6), T.win("S", e - H6, e), np.nan)
+        out[g["_pos"].to_numpy()] = S
+    return out
+
+
 def build_book_triples(features_path: Path, book_table: Path, panel_6h: Path,
-                       log: Callable[[str], None] | None = None) -> tuple[pd.DataFrame, dict]:
+                       log: Callable[[str], None] | None = None, run_dir: Path | None = None
+                       ) -> tuple[pd.DataFrame, dict]:
     """h2_main primary 6h rows with two-sided, non-crossed books at t-6h, t and t+6h.
 
     ``features_path``: battery features.parquet (origin features; targets d_6/ok_6 carried);
     ``book_table``: history_sources book_features.csv.gz (book at t+6h is the target side);
     ``panel_6h``: panel_H6h.csv.gz (series mid at t-6h)."""
+    import pyarrow.parquet as pq
+
     from . import battery
 
-    d = battery.read_features(Path(features_path), FEATURE_READ)
+    have = set(pq.read_schema(Path(features_path)).names)
+    extra = [c for c in ("f_N_6h",) if c in have]
+    d = battery.read_features(Path(features_path), FEATURE_READ + extra)
     n0 = len(d)
+    # D2 numerator: signed 6h notional S (USDC). Stored 6h notional N if present (S = f_imb_6h * N),
+    # else recomputed from the trade files with the battery's own price-aligned window.
+    if "f_N_6h" in d.columns:
+        sn6 = d["f_imb_6h"].to_numpy(float) * d["f_N_6h"].to_numpy(float)
+        sn6_src = "f_imb_6h * f_N_6h (stored)"
+    elif run_dir is not None:
+        sn6 = signed_notional_6h(Path(run_dir), d[["market_id", "t_i"]])
+        sn6_src = "recomputed from trades via battery.Trades (price-aligned 6h window)"
+    else:
+        sn6, sn6_src = np.full(len(d), np.nan), "unavailable (no f_N_6h, no run_dir): D2 untestable"
     pn = pd.read_csv(panel_6h, usecols=["market_id", "t_i", "mid_i"], dtype={"market_id": str})
     prev = pn.rename(columns={"mid_i": "mid_prev"})
     prev["t_i"] = prev["t_i"] + H6
@@ -599,20 +698,24 @@ def build_book_triples(features_path: Path, book_table: Path, panel_6h: Path,
     den = np.abs(d_ask) + np.abs(d_bid)
     with np.errstate(invalid="ignore", divide="ignore"):
         w = np.where(den > 0, np.abs(d_ask - d_bid) / den, 0.0)
+    # depth5c: sum of CLOB level SIZES within 5c of the touch (book_sweep._depth) = outcome SHARES, not
+    # USDC. D2 converts to USDC at the book mid (shares x price; a +-5c band error, documented).
     depth = g("bk_sw_depth_bid_5c") + g("bk_sw_depth_ask_5c")
+    depth_usdc = depth * bm
     out = pd.DataFrame({
         "market_id": d["market_id"].to_numpy(), "cluster": d["event_c"].to_numpy(),
         "day": d["day_c"].to_numpy(), "period": g("t_i"), "t_i": g("t_i"),
         "split": d["split"].to_numpy(), "series_mid": g("mid_i"), "bm": bm,
         "e_t": g("mid_i") - bm, "d_bm_prev": bm - bm_prev,
         "d_series_prev": g("mid_i") - g("mid_prev"), "w": np.where(np.isfinite(d_bid), w, np.nan),
-        "depth5c": depth, "log_depth": np.log1p(depth),
-        "x6": g("f_imb_6h"), "n6": g("f_n_6h"),
+        "depth5c": depth, "depth5c_usdc": depth_usdc, "log_depth": np.log1p(depth),
+        "x6": g("f_imb_6h"), "n6": g("f_n_6h"), "sn6": sn6,
         "y_series": g("d_6"), "ok_series": d["ok_6"].to_numpy(bool),
         "y_bm": bm_next - bm, "bm_next": bm_next,
     })
     out["d_bm_x_w"] = out["d_bm_prev"] * out["w"]
-    out["flow_pressure"] = out["x6"] * out["n6"] / (out["depth5c"] + 100.0)
+    # D2 term: signed 6h notional (USDC) over book depth within 5c (USDC) + 100
+    out["flow_pressure"] = out["sn6"] / (out["depth5c_usdc"] + 100.0)
     for c in C0_COLS:
         out[c] = d[c].to_numpy(float)
     base = cur_ok & prv_ok & out["ok_series"].to_numpy(bool) & np.isfinite(out["d_series_prev"])
@@ -623,6 +726,11 @@ def build_book_triples(features_path: Path, book_table: Path, panel_6h: Path,
         "rows_base_series_target_ok": int(base.sum()),
         "rows_target_book_unavailable": int((base & ~tgt_ok).sum()),
         "rows_complete": int((base & tgt_ok).sum()),
+        "d2_notional_source": sn6_src,
+        "units": {"depth5c": "outcome shares (sum of level sizes within 5c; book_sweep._depth)",
+                  "depth5c_usdc": "depth5c x book mid (approx USDC)", "sn6": "signed 6h USDC notional",
+                  "flow_pressure": "sn6 / (depth5c_usdc + 100)"},
+        "rows_sn6_finite": int(np.isfinite(sn6).sum()),
         "target_unavailable_by_liquidity_tercile": {
             str(t): {"base": int((base & (ter == t)).sum()),
                      "target_book_unavailable": int((base & (ter == t) & ~tgt_ok).sum())}
@@ -664,7 +772,7 @@ def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, s
         res["verdicts"] = {"overall": "unavailable",
                            "reason": f"judgement rows {n_j} < {min_rows} or events {n_ev} < {min_events}"}
         return _clean(res)
-    per = df["period"].to_numpy()
+    per = df["day"].to_numpy()  # J3 second clustering axis = UTC day (not the origin time)
     C0 = list(C0_COLS)
     cols = {c: df[c].to_numpy(float) for c in set(C0) | {
         "bm", "e_t", "d_bm_prev", "w", "d_bm_x_w", "log_depth", "x6", "flow_pressure", "y_series",
@@ -682,14 +790,18 @@ def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, s
         "B1": (cols["y_bm"], cols["d_bm_prev"], np.column_stack([c0, cols["bm"]]), 0),
         "B2": (cols["y_series"], cols["e_t"], np.column_stack([c0, cols["bm"], cols["d_bm_prev"]]), 0),
         "B3": (cols["y_bm"], cols["e_t"], np.column_stack([c0, cols["bm"], cols["d_bm_prev"]]), 0),
-        "B4": (cols["y_bm"], cols["d_bm_x_w"], np.column_stack([cols["d_bm_prev"], cols["w"]]), 0),
-        "D1": (cols["y_series"], d1_term, np.column_stack([cols["x6"], zdepth]), None),
-        "D2": (cols["y_bm"], fp_s, cols["x6"].reshape(-1, 1), 1),
+        "B4": (cols["y_bm"], cols["d_bm_x_w"], np.column_stack([c0, cols["d_bm_prev"], cols["w"]]), 0),
+        "D1": (cols["y_series"], d1_term, np.column_stack([c0, cols["x6"], zdepth]), None),
+        "D2": (cols["y_bm"], fp_s, np.column_stack([c0, cols["x6"]]), 1),
     }
     for name, (y, x, Z, fixed_sign) in defs.items():
         ok = np.isfinite(y) & np.isfinite(x) & np.all(np.isfinite(Z), axis=1)
         mj, md = ok & judge, ok & disc
         r: dict = {"n_judge": int(mj.sum()), "n_disc": int(md.sum())}
+        if mj.sum() < 30:
+            r.update(testable=False, p=1.0, reason="fewer than 30 complete judgement rows")
+            res["tests"][name] = r
+            continue
         sign = fixed_sign
         if name == "D1":
             sign = None
@@ -718,6 +830,8 @@ def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, s
           & judge)
     rho = fit_test(cols["y_series"][ok], cols["d_series_prev"][ok], c0[ok], ev[ok], per[ok], n_boot, seed)
     res["rho_s"] = {k: rho.get(k) for k in ("testable", "beta", "se", "ci95", "n")}
+    res["flow_pressure_units"] = "signed 6h USDC notional / (depth5c shares x book mid + 100)"
+    res["second_clustering"] = "UTC day (day_c)"
     res["verdicts"] = book_verdicts(res)
     return _clean(res)
 
@@ -732,7 +846,10 @@ def book_verdicts(res: dict) -> dict:
         return out
     half = rho["beta"] / 2
     b1_rej_neg = _rej(b1, -1)
-    if b2.get("testable") and _rej(b2, -1) and not b1["reject"] and b1["ci95"][0] > half:
+    c1 = cons_ci(b1)
+    out["bound_intervals"] = {"B1.measurement_bounce": {
+        "interval": list(c1[0]), "binding": c1[1][0], "rule": "lo95_cons > rho_s/2"}}
+    if b2.get("testable") and _rej(b2, -1) and not b1["reject"] and c1[0][0] > half:
         out["overall"] = "measurement/bounce"
     elif b1_rej_neg and _rej(b4, -1):
         out["overall"] = "quote refill"

@@ -245,10 +245,91 @@ def test_placebo_permutation_breaks_time_link_within_market():
     for c in bd.J4_FEATURES:
         if c in df:
             assert df[c].equals(pdf[c])
-    assert (pdf.groupby("market_id")["mid_j"].apply(lambda s: sorted(s)).to_dict()
-            == df.groupby("market_id")["mid_j"].apply(lambda s: sorted(s)).to_dict())
-    assert not np.allclose(pdf["mid_j"], df["mid_j"])
-    assert np.allclose(pdf["dmid"], pdf["mid_j"] - pdf["mid_i"])
+    for c in ("dmid", "y_p1x", "y_far_bid", "mid_j"):
+        assert (pdf.groupby("market_id")[c].apply(lambda s: sorted(s)).to_dict()
+                == df.groupby("market_id")[c].apply(lambda s: sorted(s)).to_dict())
+        assert not np.allclose(pdf[c], df[c])
+    # one shared index: target columns stay row-aligned with each other
+    assert np.allclose(pdf["y_far_bid"] - pdf["mid_j"], (df["y_far_bid"] - df["mid_j"]).to_numpy()[
+        _perm_index(df, pdf)])
+
+
+def _perm_index(df, pdf):
+    # recover the shared index from mid_j (unique continuous values within market)
+    key = {(m, round(v, 12)): k for k, (m, v) in enumerate(zip(df["market_id"], df["mid_j"], strict=True))}
+    return np.array([key[(m, round(v, 12))] for m, v in zip(pdf["market_id"], pdf["mid_j"], strict=True)])
+
+
+def test_placebo_null_on_random_walk_world():
+    df = snap_world("walk")
+    r = bd.snapshot_tests(bd.permute_snapshot_targets(df, 7), n_boot=100, seed=1)
+    for name in ("P1", "P1x"):
+        t = r["tests"][name]
+        assert abs(t["beta"]) < 0.1 and not t["reject"], (name, t["beta"])
+
+
+def test_p1x_excludes_negative_lag_and_counts_it():
+    df = snap_world("walk", n_mkt=60, n_per=4)
+    df.loc[df.index % 7 == 0, "sweep_lag_min"] = -3.0
+    df.loc[df.index % 11 == 0, "sweep_lag_min"] = 30.0
+    r = bd.snapshot_tests(df, n_boot=50, seed=1)["tests"]["P1x"]
+    ok = (df["sweep_lag_min"] >= 0) & (df["sweep_lag_min"] <= 20)
+    assert r["rows_used"] == int(ok.sum())
+    assert r["sweep_rows_lag_negative"] == int((df["sweep_lag_min"] < 0).sum()) > 0
+
+
+def test_bound_verdicts_use_conservative_interval():
+    base = {"testable": True, "reject": False, "beta": -0.02, "ci95": [-0.04, 0.0],
+            "ci90": [-0.04, 0.0], "lodo": {"sign_stable": True, "betas": {"d1": -0.02, "d2": -0.01}}}
+    t = lambda **k: {**base, **k}  # noqa: E731
+    mk = lambda p4: {"tests": {"P1": t(reject=True, beta=-0.4, ci95=[-0.5, -0.3], ci90=[-0.48, -0.32]),  # noqa: E731
+                               "P1x": t(reject=True, beta=-0.3, ci95=[-0.4, -0.2], ci90=[-0.38, -0.22]),
+                               "P2": t(half_spread_cents_median=1.0), "P3": t(), "P4": p4}}
+    # no SE recorded: bootstrap bound -0.04 > -0.05 -> explained
+    assert bd.verdicts(mk(t()))["e004_reversal"] == "explained"
+    # larger two-way SE: beta - 1.96 se = -0.118 < -0.05 -> bound not met
+    v = bd.verdicts(mk(t(se=0.05)))
+    assert v["e004_reversal"] == "inconclusive"
+    assert v["bound_intervals"]["e004_reversal.explained"]["binding"] == "normal_max_se"
+    # B1 bound clause
+    b = lambda **k: {"testable": True, "reject": False, "beta": 0.0, "ci95": [-0.05, 0.05], **k}  # noqa: E731
+    res = {"tests": {"B1": b(se=0.01), "B2": b(reject=True, beta=-0.5), "B4": b()}, "rho_s": {"testable": True, "beta": -0.2}}
+    res["tests"]["B1"] = b(ci95=[-0.04, 0.05], se=0.01)  # -0.04 > -0.1 with small se
+    assert bd.book_verdicts(res)["overall"] == "measurement/bounce"
+    res["tests"]["B1"] = b(ci95=[-0.04, 0.05], se=0.04)  # -0.078 ... still > -0.1
+    assert bd.book_verdicts(res)["overall"] == "measurement/bounce"
+    res["tests"]["B1"] = b(ci95=[-0.04, 0.05], se=0.08)  # -0.157 < -0.1 -> not met
+    v = bd.book_verdicts(res)
+    assert v["overall"] != "measurement/bounce"
+    assert v["bound_intervals"]["B1.measurement_bounce"]["binding"] == "normal_max_se"
+
+
+SPEC = {"min_rows": 100, "min_events": 10}
+
+
+def test_book_tests_second_clustering_is_utc_day(monkeypatch):
+    seen = []
+    orig = bd.fit_test
+
+    def spy(y, x, Z, ev, per, n_boot, seed):
+        seen.append(set(np.asarray(per).astype(str)))
+        return orig(y, x, Z, ev, per, n_boot, seed)
+
+    monkeypatch.setattr(bd, "fit_test", spy)
+    d = book_world("reversion", n_mkt=300)
+    bd.book_tests(d, SPEC, n_boot=20, seed=2)
+    days = set(d["day"])
+    assert seen and all(s <= days for s in seen)
+
+
+def test_c0_in_b4_d1_d2_controls():
+    d = book_world("reversion", n_mkt=300)
+    d2 = d.copy()
+    d2["c_chg_1d"] = d2["c_chg_1d"] + 5.0 * d2["y_bm"]  # leak into a C0 control only
+    a = bd.book_tests(d, SPEC, n_boot=20, seed=2)["tests"]
+    b = bd.book_tests(d2, SPEC, n_boot=20, seed=2)["tests"]
+    for k in ("B4", "D1", "D2"):
+        assert a[k]["beta"] != pytest.approx(b[k]["beta"])
 
 
 # --- J3 -----------------------------------------------------------------------------------------
@@ -329,7 +410,7 @@ def test_build_book_triples_joins_and_counts(tmp_path):
     t = [1.7e9 + 6 * 3600 * k for k in range(3)]  # prev, t, next
     feats = pd.DataFrame({
         "market_id": ["a"], "event_c": ["e:1"], "day_c": ["d"], "t_i": [t[1]], "split": ["judge"],
-        "mid_i": [0.52], "d_6": [0.01], "ok_6": [True], "f_imb_6h": [0.1], "f_n_6h": [3.0],
+        "mid_i": [0.52], "d_6": [0.01], "ok_6": [True], "f_imb_6h": [0.1], "f_n_6h": [3.0], "f_N_6h": [500.0],
         "bk_sw_best_bid": [0.49], "bk_sw_best_ask": [0.51], "bk_sw_depth_bid_5c": [100.0],
         "bk_sw_depth_ask_5c": [100.0], "bp_sw_best_bid": [0.47], "bp_sw_best_ask": [0.50],
         **{c: [0.0] for c in bd.C0_COLS}})
@@ -344,6 +425,9 @@ def test_build_book_triples_joins_and_counts(tmp_path):
     assert r["bm"] == pytest.approx(0.50) and r["e_t"] == pytest.approx(0.02)
     assert r["d_bm_prev"] == pytest.approx(0.50 - 0.485) and r["y_bm"] == pytest.approx(0.01)
     assert r["d_series_prev"] == pytest.approx(0.02)
+    # D2 term: signed 6h notional (f_imb_6h * f_N_6h = 50 USDC) / (depth shares x book mid + 100)
+    assert r["flow_pressure"] == pytest.approx(50.0 / (200.0 * 0.50 + 100.0))
+    assert "shares" in c["units"]["depth5c"]
     # target book missing: row is counted unavailable, not silently kept
     pd.DataFrame({"market_id": ["z"], "origin_ts": [t[2]], "state": ["two_sided"],
                   "sw_best_bid": [0.5], "sw_best_ask": [0.52]}).to_csv(tmp_path / "b2.csv.gz", index=False)
