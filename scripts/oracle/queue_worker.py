@@ -13,15 +13,16 @@ Cron runs `queue_worker.py tick` every 2 minutes. A tick is short and stateless:
   1. take the worker lock (one tick at a time);
   2. reconcile: a 'running' job whose runner pid is gone becomes 'interrupted' (counted as an
      attempt) and is retried if it has attempts left, otherwise 'failed';
-  3. if nothing runs, not paused, the collector pass is not running and enough memory is free,
-     start the highest-priority ready job (deps done, attempts left, backoff elapsed) as a
+  3. if a lane is free (one job per lane: "cpu" default, "net" for network/IO-bound jobs), not paused,
+     the collector pass is not running and enough memory is free, start the highest-priority ready
+     job for a free lane (deps done, attempts left, backoff elapsed) as a
      detached runner (`queue_worker.py _run <id>`), which enforces the timeout and an address-
      space limit, runs at nice 19 and records the exit code.
-One job at a time (1 OCPU / ~5 GiB host; heavy-job rule). Idempotency: a job id is terminal once
+At most one cpu job plus one net job (1 OCPU / ~5.6 GiB host; heavy-job rule). Idempotency: a job id is terminal once
 'done' and its spec hash is recorded; a changed spec under the same id is refused (new id needed).
 
 Spec fields (JSON): id, title, priority (int, higher first), expected_value, family, data,
-resources {mem_mb, cpu}, depends_on [ids], argv [script under backend/scripts, args...],
+resources {mem_mb, cpu, lane}, depends_on [ids], argv [script under backend/scripts, args...],
 timeout_s, max_retries, outputs [paths], next_action, notes, and optionally
 repeat {max_runs, until_log_regex}: a resumable budgeted job exiting 0 is re-queued (not counted as a
 failed attempt) until its attempt log matches the regex or max_runs clean runs have happened.
@@ -62,6 +63,15 @@ def in_blackout(at: datetime | None = None) -> bool:
     m = at.hour * 60 + at.minute
     return BLACKOUT_UTC_MIN[0] <= m < BLACKOUT_UTC_MIN[1]
 BACKOFF_S = (300, 1800, 7200)
+# Lanes: at most one running job per lane. "cpu" (default) is compute-bound; "net" is for network/IO-bound
+# jobs (e.g. range-reading a remote archive at ~25% CPU) that can share the single OCPU with one cpu job.
+# Every start still needs MemAvailable >= mem_mb + MEM_RESERVE_MB, the blackout and the collector gate.
+LANES = ("cpu", "net")
+
+
+def lane(spec: dict) -> str:
+    v = spec.get("resources", {}).get("lane", "cpu")
+    return v if v in LANES else "cpu"
 STATE, LOGS = QROOT / "state", QROOT / "logs"
 
 
@@ -302,30 +312,32 @@ def tick() -> int:
             save_state(st)
     reconcile(specs)
     running = [j for j in specs if load_state(j)["status"] == "running"]
-    note = "running " + running[0] if running else "idle"
-    if not running:
+    busy_lanes = {lane(specs[j]) for j in running}
+    parts = ["running " + ", ".join(running)] if running else []
+    if len(busy_lanes) < len(LANES):  # at most one job per lane
         if (QROOT / "PAUSE").exists():
-            note = "paused"
+            parts.append("paused")
         elif collector_busy():
-            note = "waiting: collector pass running"
+            parts.append("waiting: collector pass running")
         else:
             cands = [(s, load_state(j)) for j, s in specs.items() if "_invalid" not in s]
-            cands = [(s, st) for s, st in cands if st["status"] != "invalid" and ready(s, st)]
+            cands = [(s, st) for s, st in cands if st["status"] != "invalid" and ready(s, st)
+                     and lane(s) not in busy_lanes]
             cands.sort(key=lambda x: (-x[0]["priority"], x[0]["id"]))
             if cands:
                 spec, st = cands[0]
                 mem_mb = int(spec.get("resources", {}).get("mem_mb", 2048))
                 need = mem_mb + MEM_RESERVE_MB
                 if in_blackout() and mem_mb >= BLACKOUT_EXEMPT_MB:
-                    note = f"waiting: start blackout 02:45-05:30 UTC ({spec['id']})"
+                    parts.append(f"waiting: start blackout 02:45-05:30 UTC ({spec['id']})")
                 elif mem_available_mb() < need:
-                    note = f"waiting: {spec['id']} needs {need} MB available"
+                    parts.append(f"waiting: {spec['id']} needs {need} MB available")
                 else:
                     start(spec, st)
-                    note = "started " + spec["id"]
-            else:
-                note = "idle: no ready jobs"
-    write_status(specs, note)
+                    parts.append("started " + spec["id"])
+            elif not running:
+                parts.append("idle: no ready jobs")
+    write_status(specs, "; ".join(parts) or "idle")
     return 0
 
 

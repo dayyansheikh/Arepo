@@ -29,7 +29,13 @@ and session ends; nothing here calls Claude or any paid API.
   - is killed (process group) at `timeout_s`;
   - is retried with backoff (5 min, 30 min, 2 h) up to `max_retries`, then becomes `failed`.
 - **Idempotency:** a job id is terminal once `done`. A spec changed after completion is ignored; use a new id.
-- **Concurrency:** one job at a time. The host has 1 OCPU and about 5.6 GiB RAM, shared with the collector and monitors.
+- **Concurrency (lanes, 2026-10-16):** at most one job per lane, so at most two at once.
+  - `cpu` is the default lane, for compute-bound jobs.
+  - `net` is for network/IO-bound jobs, such as pmxt range reads at about 25% CPU. Set it with `resources.lane`.
+  - Each start still needs `MemAvailable >= mem_mb + 1200 MB`, respects the blackout window and waits for the collector.
+  - The host has 1 OCPU and about 5.6 GiB RAM, shared with the collector and monitors.
+  - Oracle shows this tenancy's A1 limit as 2 cores / 12 GB. A second 1/6 instance was attempted on 2026-10-16 but no
+    AD had capacity, so retry later.
 
 ## Statuses
 - `queued`

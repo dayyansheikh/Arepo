@@ -12,7 +12,8 @@
  "resources": {
   "mem_mb": 1500,
   "cpu": 1,
-  "network": "r2v2.pmxt.dev"
+  "network": "r2v2.pmxt.dev",
+  "lane": "net"
  },
  "depends_on": [],
  "argv": [
@@ -31,5 +32,5 @@
   "data-dumps/research_lab/history_sources/book_features/{rows,progress}.jsonl"
  ],
  "next_action": "finalize (q0003) when pairs_done_total == pairs_total",
- "notes": "Resumes from the Mac-built progress restored from release data-20261013-research-lab. heavy_gate pauses during collector passes."
+ "notes": "Resumes from the Mac-built progress restored from release data-20261013-research-lab. heavy_gate pauses during collector passes. Lane 'net' (2026-10-16): range reads from the pmxt archive at ~25% CPU, so it may share the OCPU with one cpu-lane job."
 }
