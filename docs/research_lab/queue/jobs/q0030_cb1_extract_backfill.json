@@ -1,0 +1,38 @@
+{
+ "id": "q0030_cb1_extract_backfill",
+ "title": "CB1: one-off extract of complete captures from 2026-10-11T12:00Z (before possible deletion)",
+ "family": "creative_batch_1",
+ "priority": 62,
+ "expected_value": "preserves CB1-D dev inputs in MBs; writes the dev capture-id list",
+ "data": [
+  "research_lab/snapshots + rows_ext + book_sweeps present on host"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "network": "gamma-api (event member counts)"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb1_extract.py",
+  "--backfill-from",
+  "2026-10-11T12:00Z",
+  "--rps",
+  "2",
+  "--max-requests",
+  "3000",
+  "--budget-min",
+  "90"
+ ],
+ "timeout_s": 6000,
+ "max_retries": 2,
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"backfill_complete\": true"
+ },
+ "outputs": [
+  "data-dumps/research_lab/cb1_extract/{negrisk,postend}/, event_members.csv.gz, manifest.json, capture_lists/dev.json"
+ ],
+ "next_action": "pass step takes over (arepo_pass.sh line in CREATIVE_BATCH_1.md \u00a72.11); at the first run after T_dev_end: run_cb1_extract.py --freeze-list dev --until 2026-10-17T00:00Z and commit capture_lists/dev.json before q0022",
+ "notes": "idempotent by capture_id; read-only on snapshots/sweeps; self-limits at --budget-min 90 (timeout_s 6000 = 100 min); resumable via repeat; fails loudly (ArchivedDataError) on a listed-but-missing rows file; extract-root lock excludes concurrent pass extraction"
+}
