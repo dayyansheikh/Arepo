@@ -554,7 +554,7 @@ def _disc_rows(d: pd.DataFrame, h: B.Hyp) -> np.ndarray:
     return m & np.all(np.isfinite(Z), axis=1) & (d["split"] == "disc").to_numpy()
 
 
-def fit_spec(d_h2: pd.DataFrame) -> dict:
+def fit_spec(d_h2: pd.DataFrame, strict: bool = True) -> dict:
     """Freeze the quantities estimated on h2 **discovery rows only** (``split == 'disc'`` and a trade
     before t): per-hypothesis moderator mean / SD, F7 SDs, discovery signs, moderator tercile cuts and
     paper-rule thresholds. Judgement and embargo rows are dropped before anything is computed."""
@@ -567,13 +567,18 @@ def fit_spec(d_h2: pd.DataFrame) -> dict:
     for hid, (mod, _term) in MOD_SPEC.items():
         m = pop_mask2(HMAP2[hid].pop, dd).to_numpy() & np.isfinite(raw[mod])
         v = raw[mod][m]
+        if len(v) < 2 or not np.isfinite(v.std()) or v.std() == 0:
+            if strict:
+                raise ValueError(f"{hid}: too few discovery rows to standardise moderator {mod}")
+            v = np.array([0.0, 1.0])
         spec["hyps"][hid] = {"mod": mod, "mod_mean": float(v.mean()), "mod_sd": float(v.std()), "n_z": int(len(v))}
     m7 = pop_mask2("n6h_size", dd).to_numpy()
-    spec["f7"] = {
-        "sd_big": float(np.std(o["x_big6"].to_numpy(float)[m7])),
-        "sd_rest": float(np.std(o["x_rest6"].to_numpy(float)[m7])),
-        "n": int(m7.sum()),
-    }
+    sb, sr = np.std(o["x_big6"].to_numpy(float)[m7]), np.std(o["x_rest6"].to_numpy(float)[m7])
+    if not (np.isfinite(sb) and np.isfinite(sr) and sb > 0 and sr > 0):
+        if strict:
+            raise ValueError("F7: too few discovery rows to scale x_big6 / x_rest6")
+        sb, sr = 1.0, 1.0
+    spec["f7"] = {"sd_big": float(sb), "sd_rest": float(sr), "n": int(m7.sum())}
     derive2(dd, spec)
     ev, day = dd["event_c"].to_numpy(), dd["day_c"].to_numpy()
     for h in HYPOTHESES2:
