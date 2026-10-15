@@ -165,24 +165,26 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 19:30Z
-1. `q0002_books_h2main` running on the host since 19:02Z (repeat-until-complete), then q0003, q0004. When q0004 is done,
-   write up `r4_book` in `research_lab/HISTORICAL_ML_DEV.md` and the ledger.
-2. **Screening batch 2** (`research_lab/SCREENING_BATCH_2.md`): 12 challenger changes applied (c084a61); counter
-   `battery2.cumulative_count()` (991f04e, local 906); ledger methods note M3.
-   - **Code done, not yet run on real data:** J5 (eea5600), J4/J3 `bounce_decomp.py` (64c49d8, LODO amendment 7d83ecf),
-     J1/J2/J6 HB2 `battery2.py` + `run_hypothesis_battery2.py` (4d69803, declaration sha 567e2e52…), J7/J8 regime
-     contrasts + flags in `ml_explain.py`/`run_ml_history.py` (47b74e3, regime hash c5c143c6974d226a; NOT yet deployed,
-     deploy after the freeze review confirms q0004's path is unchanged).
-   - **Queued + deployed:** q0005 (J5 counted run), q0006a (J4 dry run), q0007 (HB2 features), q0007b (HB2 dry run),
-     q0007c (fitspec → host copy of `model_specs/hb2_v1.json`; copy it to the repo, review, commit).
-   - **Freeze review running** (science-reviewer, code vs design, all families). After it: apply required fixes, then
-     queue q0006 (J4 counted), q0008 (after hb2_v1.json committed), q0012 (J7), and conditional q0009-q0015 per §4.
-   - q0013 argv uses `--exclude-markets-from seed:7:250000` (no stored subset list exists).
-3. **User lead priority (bdc2eb0):** creative original hypotheses from `research_lab/CREATIVE_HYPOTHESES_*.md` (none
-   existed at 19:30Z; generate with a Fable xhigh subagent if still absent once SB2 is queued).
-4. Keep at least 12 h of queued work on the host. `--include-active` evidence-log backup is built (a69dd0e) but its cron
-   line is commented out pending the user.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 19:49Z
+1. `q0002_books_h2main` running on the host (repeat-until-complete), then q0003, q0004. When q0004 is done, write up
+   `r4_book` in `research_lab/HISTORICAL_ML_DEV.md` and the ledger.
+2. **Screening batch 2** (`research_lab/SCREENING_BATCH_2.md`): design, freeze check and fixes all committed
+   ("Freeze check" section). Frozen code: J4/J3 07b3f02, HB2 976b9da+d55890e (declaration sha 567e2e52…), J7/J8 6ad5dff
+   (regime hash c5c143c6974d226a), J5 eea5600. Everything deployed (25dfabc).
+   - **Queued on the host:** q0005 (J5, counted), q0006a (J4 dry run) → q0006 (J4 counted), q0007 (HB2 features) →
+     q0007b (HB2 dry run) → q0007c (fitspec writes `backend/astrolabe/research_lab/model_specs/hb2_v1.json` on the host),
+     q0012 (J7, counted) → q0013 (J8, fail-closed subset check).
+   - **When q0007c is done:** copy the host's `hb2_v1.json` into the repo (read-only `ssh oracle cat`), check signs and
+     feature hashes, commit it, then queue q0008 (`run_hypothesis_battery2.py run --run-id h2_main --n-boot 2000
+     --threads 1`) and the conditional q0009/q0010/q0014/q0015 per §4. q0011 (J3) after q0003.
+   - **Results write-up per job:** ledger + study section; J5 verdict from `meets_sb2_rule` only; J4 check the placebo
+     is null first; no h2 economics in the favourable tercile.
+3. **User lead priority (bdc2eb0): creative original hypotheses.** List: `research_lab/CREATIVE_HYPOTHESES_2026-10-15.md`
+   (CH01-CH34, top 10 in §3; written by session astrolabe-8c). Autopilot is designing **Creative Batch 1**
+   (`research_lab/CREATIVE_BATCH_1.md`: CH01, CH05, CH17, CH09, CH22) → science-reviewer → code → queue. Message sent
+   to astrolabe-8c to avoid duplicate design work.
+4. Keep at least 12 h of queued work on the host. `--include-active` evidence-log backup built (a69dd0e), cron line
+   commented out pending the user. Retention deletion needs the user by ~17-18 Oct (`data_catalogue/RETENTION.md`).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,

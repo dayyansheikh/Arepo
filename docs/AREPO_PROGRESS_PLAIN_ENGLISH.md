@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-15 20:30 UTC+1
+**Last updated:** 2026-10-15 20:49 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -16,10 +16,13 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   signals; delayed moves in related markets; whether reversal is just bid-ask bounce).
   - All **12 reviewer fixes applied** (20:15 UTC+1). The corrected multiple-testing total is **906** tests so far
     (it was undercounted at 598).
-  - **Code for all batch-2 tests is written and unit-tested** (20:27 UTC+1). An independent reviewer is checking it
-    against the design before any counted run.
-  - **Queued on the server:** the related-markets lead-lag re-screen, plus dry runs on shuffled data (these count
-    nothing; they check the code works on real data and how long it takes).
+  - **All batch-2 code passed an independent check** (it caught a real bug: the bounce test's shuffled-data control
+    produced a fake effect; fixed before anything ran). Everything is frozen and **queued on the server**: about
+    15-20 hours of work, behind the order-book build.
+- **Your new priority (creative, original money ideas):** a list of 34 ideas is in the repo
+  (`docs/research_lab/CREATIVE_HYPOTHESES_2026-10-15.md`). The autopilot is now turning the top runnable ones into a
+  reviewed test batch: holding near-certain markets to resolution, neg-risk price inconsistencies, selling longshots
+  passively, deadline ladders and newly listed markets.
 - **Autopilot tests passed:** a real unattended run, and a session killed mid-run that was recovered on the next check.
 
 ## 2. Approvals needed from you
