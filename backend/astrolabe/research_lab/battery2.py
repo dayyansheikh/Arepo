@@ -58,6 +58,21 @@ KIND_RULES: dict[str, tuple[str, str]] = {
     "calibration_study_c1": (ONE, "one study = one test (as battery.PRIOR_KIND_ONE)"),
     "dev_fit": (ONE, "one dev fit evaluated against a bar = one test (as battery.PRIOR_KIND_ONE)"),
     "history_seal_declaration": (EXCLUDE, "data seal (CB1-F h5); no test"),
+    "cb1_structural": (
+        EXCLUDE,
+        "CB1-D dev per-test lines (D1, D2); the tests are the n_tests of the ml_explain line "
+        "'creative_batch_1:D', counted there. Placebo lines count 0.",
+    ),
+    "cb1_structural_replication": (
+        EXCLUDE,
+        "CB1 Stage-2 per-test lines (D rep, B1/B2); counted by the n_tests of the matching "
+        "'creative_batch_1:D' / 'creative_batch_1:B' ml_explain line. Placebo lines count 0.",
+    ),
+    "cb1_structural_prospective": (
+        EXCLUDE,
+        "CB1-B3 stage-P line; the one test is the n_tests of the ml_explain line 'creative_batch_1:B3', "
+        "counted there. Placebo lines count 0.",
+    ),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "
