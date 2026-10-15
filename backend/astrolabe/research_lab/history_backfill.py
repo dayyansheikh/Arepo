@@ -167,6 +167,39 @@ def live_pass_running_anchored() -> bool:
     return any(ANCHORED_PASS.match(line.strip()) for line in out.splitlines())
 
 
+COLLECTOR_LOCK = os.environ.get("AREPO_COLLECTOR_LOCK", "/tmp/arepo_collector.lock")
+
+
+def collector_lock_busy(path: str | None = None) -> bool:
+    """True while another process holds the collector pass flock (the host pass runs under
+    ``flock -n 9 /tmp/arepo_collector.lock``). Non-blocking probe; never creates the file and
+    returns False on any error (including platforms without ``fcntl``)."""
+    lock = path or COLLECTOR_LOCK
+    if not os.path.exists(lock):
+        return False
+    try:
+        import fcntl
+
+        fd = os.open(lock, os.O_RDONLY)
+    except (OSError, ImportError):
+        return False
+    try:
+        fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        return False
+    except BlockingIOError:
+        return True
+    except OSError:
+        return False
+    finally:
+        os.close(fd)
+
+
+def live_pass_or_lock() -> bool:
+    """Collector yield check for the host: the flock probe or the anchored pass command line."""
+    return collector_lock_busy() or live_pass_running_anchored()
+
+
 def yield_to_live(is_running: Callable[[], bool] = live_pass_running,
                   sleep: Callable[[float], None] = time.sleep) -> float:
     """Exploratory API traffic always yields to the live collector: while the pass runs, sleep
@@ -295,6 +328,7 @@ def _gz_csv_bytes(header: list[str], rows: Iterable[list]) -> bytes:
 # ---------------------------------------------------------------------------------------------
 
 FRAME_TEXT_COLUMNS = ["question", "event_title", "slug", "topic"]
+FRAME_CB1_COLUMNS = [*FRAME_TEXT_COLUMNS, "outcomes"]  # cb1 profile adds the outcome labels
 FRAME_COLUMNS = [
     "market_id", "condition_id", "token0", "token1", "event_id", "fee_category", "status",
     "liquidity", "volume", "created_at", "start_at", "end_at", "closed_time", "closed",
@@ -313,7 +347,7 @@ def _epoch(v: Any) -> float:
         return float("nan")
 
 
-def frame_row(m: dict, with_text: bool = False) -> dict | None:
+def frame_row(m: dict, with_text: bool = False, with_outcomes: bool = False) -> dict | None:
     """Slim record of a Gamma market, or None unless it is a binary market with token ids."""
     try:
         toks = json.loads(m["clobTokenIds"]) if isinstance(m.get("clobTokenIds"), str) else None
@@ -351,6 +385,8 @@ def frame_row(m: dict, with_text: bool = False) -> dict | None:
         r["slug"] = str(m.get("slug") or "")[:200]
         r["topic"] = history_topics.topic_of(r["question"], r["event_title"], r["slug"],
                                               r["fee_category"])
+    if with_outcomes:  # outcome *labels* (e.g. ["Yes","No"]), listing-known; not outcome prices
+        r["outcomes"] = str(m.get("outcomes") or "")[:200]
     return r
 
 
@@ -382,6 +418,7 @@ def fetch_frame(
     include_active: bool = True, windows_per_day: int = 6, window_minutes: int = 15,
     pages_per_window: int = 3, seed: str = "arepo-h1", partial_path: Path | None = None,
     should_stop: Callable[[], bool] | None = None, with_text: bool = False,
+    closed_future_days: int = 0, drop_capped_windows: bool = False, with_outcomes: bool = False,
 ) -> tuple[list[dict], dict]:
     """Market universe, sampled by time window (the full closed universe is far too large: one day
     can hold more than 20000 closed markets, mostly short crypto markets, and Gamma offset depth is
@@ -393,7 +430,16 @@ def fetch_frame(
     window is read in id order up to ``pages_per_window`` pages. A window that still has rows after
     that is "capped" and only its lowest ids enter the frame (documented bias). Nothing is
     filtered on final volume unless ``min_volume > 0`` (a separate, labelled sub-frame).
-    Binary markets only. Returns (rows, report) with the exclusions spelled out.
+    Binary markets only.
+
+    Additive CB1 options (defaults reproduce the original behaviour exactly):
+    ``closed_future_days`` also walks the *next* N days for closed markets (same seeded windows,
+    ``end_date`` in the future: markets resolved early with a later ``endDate``);
+    ``drop_capped_windows`` drops every row of a window that still caps after
+    ``pages_per_window`` pages (instead of keeping its lowest ids) and counts those windows per
+    kind and day in ``windows_dropped_capped`` / ``dropped_capped_by_day``;
+    ``with_outcomes`` adds the ``outcomes`` label column (needs ``with_text``).
+    Returns (rows, report) with the exclusions spelled out.
     """
     import random
 
@@ -415,10 +461,26 @@ def fetch_frame(
         ] + ([f"markets with final volume < {min_volume}"] if min_volume > 0 else []),
     }
 
+    cb1 = drop_capped_windows or closed_future_days > 0
+    if cb1:
+        rep.update({
+            "closed_future_days": closed_future_days,
+            "drop_capped_windows": drop_capped_windows,
+            "windows_dropped_capped": {"closed": 0, "active": 0},
+            "rows_in_dropped_windows": 0, "dropped_capped_by_day": {},
+        })
+        rep["excludes"].append(
+            "rows of any window that still caps after pages_per_window pages (whole window "
+            "dropped; the frame refers to uncapped windows only)" if drop_capped_windows else
+            "(capped windows keep their lowest ids)")
+        if closed_future_days > 0:
+            rep["excludes"].append(
+                f"closed markets whose endDate is more than {closed_future_days} days ahead")
+
     def take(batch: list[dict]) -> None:
         for m in batch:
             rep["raw"] += 1
-            r = frame_row(m, with_text)
+            r = frame_row(m, with_text, with_outcomes)
             if r is None:
                 rep["non_binary_or_invalid"] += 1
             else:
@@ -436,9 +498,15 @@ def fetch_frame(
             for key in ("closed", "active"):
                 rep["windows"][key] += rec["windows"][key]
                 rep["windows_capped"][key] += rec["capped"][key]
+                if cb1:
+                    rep["windows_dropped_capped"][key] += rec.get("dropped", {}).get(key, 0)
+            if cb1:
+                rep["rows_in_dropped_windows"] += rec.get("dropped_rows", 0)
+                if any(rec.get("dropped", {}).values()):
+                    rep["dropped_capped_by_day"][rec["day"]] = rec["dropped"]
             rep["raw"] += rec["raw"]
             rep["non_binary_or_invalid"] += rec["invalid"]
-    for d in range(lookback_days, -1, -1):
+    for d in range(lookback_days, -closed_future_days - 1, -1):
         day = day0 - timedelta(days=d)
         if f"{day:%Y-%m-%d}" in done_days:
             continue
@@ -446,13 +514,18 @@ def fetch_frame(
             raise FrameInterrupted("collection window")
         before = (dict(rep["windows"]), dict(rep["windows_capped"]), rep["raw"],
                   rep["non_binary_or_invalid"], set(rows))
+        day_dropped = {"closed": 0, "active": 0}
+        day_dropped_rows = 0
         rng = random.Random(f"{seed}|{day:%Y-%m-%d}")
         picks = sorted(rng.sample(range(slots), min(windows_per_day, slots)))
-        for kind in (("closed", "active") if include_active else ("closed",)):
+        kinds = ("closed", "active") if include_active else ("closed",)
+        if d < 0:  # future days: closed markets only (nothing can have started yet)
+            kinds = ("closed",)
+        for kind in kinds:
             for k in picks:
                 a = day + timedelta(minutes=k * window_minutes)
                 b = a + timedelta(minutes=window_minutes)
-                if b.timestamp() > now:
+                if b.timestamp() > now and not (kind == "closed" and closed_future_days > 0):
                     continue
                 f = "%Y-%m-%dT%H:%M:%SZ"
                 p: dict = {"order": "id", "ascending": "true"}
@@ -466,7 +539,15 @@ def fetch_frame(
                 batch, capped = _paged(lim, p, max_rows=pages_per_window * GAMMA_PAGE)
                 rep["windows"][kind] += 1
                 rep["windows_capped"][kind] += int(capped)
+                if capped and drop_capped_windows:
+                    rep["windows_dropped_capped"][kind] += 1
+                    day_dropped[kind] += 1
+                    day_dropped_rows += len(batch)
+                    rep["rows_in_dropped_windows"] += len(batch)
+                    continue
                 take(batch)
+        if cb1 and any(day_dropped.values()):
+            rep["dropped_capped_by_day"][f"{day:%Y-%m-%d}"] = day_dropped
         if partial_path is not None:
             new = [r for k, r in rows.items() if k not in before[4]]
             rec = {"day": f"{day:%Y-%m-%d}", "rows": new,
@@ -474,6 +555,8 @@ def fetch_frame(
                    "capped": {k: rep["windows_capped"][k] - before[1][k] for k in before[1]},
                    "raw": rep["raw"] - before[2],
                    "invalid": rep["non_binary_or_invalid"] - before[3]}
+            if cb1:
+                rec["dropped"], rec["dropped_rows"] = day_dropped, day_dropped_rows
             with Path(partial_path).open("a") as fh:
                 fh.write(json.dumps(rec, default=float) + "\n")
     return list(rows.values()), rep
@@ -635,6 +718,57 @@ def draw_sample_weighted(frame: list[dict], n_total: int, seed: str, oversample:
                     list(history_topics.ASYMMETRIC_TOPICS), "by_topic": by_topic}
 
 
+CB1_UPDOWN_RE = re.compile(r"\bup or down\b|\bupdown\b|\bup-or-down\b", re.IGNORECASE)
+CB1_WEIGHTS = {"crypto_updown": 0.25, "sports": 1.0}  # every other topic: CB1_OTHER_WEIGHT
+CB1_OTHER_WEIGHT = 1.5
+
+
+def cb1_topic(r: dict) -> str:
+    """Creation-known CB1 sampling topic: crypto "Up or Down" questions split off as
+    ``crypto_updown``; otherwise the existing creation-known topic label. Reads text fields only."""
+    if r["topic"] == "crypto" and CB1_UPDOWN_RE.search(
+            f"{r.get('question', '')} {r.get('event_title', '')} {r.get('slug', '')}"):
+        return "crypto_updown"
+    return r["topic"]
+
+
+def draw_sample_cb1(frame: list[dict], n_total: int, seed: str,
+                    exclude_ids: set[str] | None = None) -> tuple[list[dict], dict]:
+    """CB1 profile: strata ``status x cb1_topic x creation month`` with creation-known weights
+    (crypto Up-or-Down 0.25, sports 1.0, other 1.5), allocation proportional to weight x stratum
+    size (so proportional over status). No price, volume, liquidity or outcome field is read.
+    ``inclusion_prob`` = n_s / N_s and ``sample_weight`` = N_s / n_s refer to the pool after
+    ``exclude_ids`` (the frame already excludes capped windows)."""
+    excl = exclude_ids or set()
+    pool = [r for r in frame if r["market_id"] not in excl]
+    strata: dict[str, list[dict]] = {}
+    for r in pool:
+        skey = "|".join([r["status"], cb1_topic(r), str(r["created_at"])[:7] or "unknown"])
+        strata.setdefault(skey, []).append(r)
+    sizes = {k: len(v) for k, v in strata.items()}
+    w = {k: CB1_WEIGHTS.get(k.split("|")[1], CB1_OTHER_WEIGHT) for k in strata}
+    alloc = allocate_weighted(sizes, w, n_total)
+    chosen: list[dict] = []
+    for k in sorted(strata):
+        if not alloc[k]:
+            continue
+        pick = sorted(strata[k], key=lambda r: _rank(seed, r["market_id"]))[: alloc[k]]
+        for r in pick:
+            chosen.append({**r, "stratum": k, "inclusion_prob": alloc[k] / sizes[k],
+                           "sample_weight": sizes[k] / alloc[k]})
+    by_topic: dict[str, dict] = {}
+    for k in strata:
+        e = by_topic.setdefault(k.split("|")[1], {"pool": 0, "sampled": 0})
+        e["pool"] += sizes[k]
+        e["sampled"] += alloc[k]
+    return chosen, {"pool": len(pool), "excluded_prior_ids": len(frame) - len(pool),
+                    "strata": sizes, "allocation": alloc, "n": len(chosen), "seed": seed,
+                    "design": "cb1: proportional over status; weight x stratum size over "
+                    "status|cb1_topic|month; creation-known only",
+                    "cb1_weights": {**CB1_WEIGHTS, "other": CB1_OTHER_WEIGHT},
+                    "by_topic": by_topic}
+
+
 # ---------------------------------------------------------------------------------------------
 # Per-market fetch (prices, trades)
 # ---------------------------------------------------------------------------------------------
@@ -655,6 +789,49 @@ def price_window(r: dict, now: float, max_days: int) -> tuple[int, int] | None:
     if end <= start:
         return None
     return int(start), int(end)
+
+
+def pin_request_clock(rdir: Path, now: float) -> float:
+    """Return the run's pinned request clock (``request_clock.json``), writing it on first use, so
+    every resumed chunk uses the same ``T_fetch`` (frame days, price window ends)."""
+    p = Path(rdir) / "request_clock.json"
+    if p.exists():
+        return float(json.loads(p.read_text())["request_clock_epoch"])
+    p.write_text(json.dumps({"request_clock_epoch": now, "request_clock_utc": utc_iso(now)}))
+    return now
+
+
+def price_windows(r: dict, now: float, max_days: int, price_end: str = "min",
+                  head_days: int = 0) -> list[tuple[int, int]]:
+    """Price windows to fetch. ``price_end="min"`` and ``head_days=0`` reproduce
+    :func:`price_window` exactly. ``close_or_end_max`` ends a *closed* market's tail window at
+    ``max(close, end) + 1d`` (post-end waits covered; active markets unaffected). ``head_days``
+    adds exactly one window ``[start, start + head_days]`` (clipped to where the tail begins)
+    when the tail window does not reach the listing."""
+    if price_end not in ("min", "close_or_end_max"):
+        raise ValueError("price_end must be min|close_or_end_max")
+    if price_end == "min":
+        tail = price_window(r, now, max_days)
+    else:
+        tail = None
+        start = r["start_epoch"]
+        if not math.isnan(start):
+            if r["closed"]:
+                cand = [x for x in (r["close_epoch"], r["end_epoch"]) if not math.isnan(x)]
+                end = min((max(cand) if cand else now) + 86400, now)
+            else:
+                end = now
+            a = max(start, end - max_days * 86400)
+            tail = (int(a), int(end)) if end > a else None
+    if tail is None:
+        return []
+    out = [tail]
+    if head_days > 0 and not math.isnan(r["start_epoch"]) and tail[0] > int(r["start_epoch"]):
+        h0 = int(r["start_epoch"])
+        h1 = min(h0 + head_days * 86400, tail[0])
+        if h1 > h0:
+            out.insert(0, (h0, h1))
+    return out
 
 
 def fetch_prices(
@@ -766,7 +943,9 @@ def run(
     oversample: float | None = None, exclude_runs: Iterable[str] = (),
     wallet_min_usd: float | None = None, wallet_cap: int = 60000,
     wallet_cache_paths: Iterable[Path] = (), budget_scope: str = "root",
-    checkpoint_every: int = 0,
+    checkpoint_every: int = 0, closed_future_days: int = 0, pages_per_window: int = 3,
+    strata_profile: str = "default", price_end: str = "min", head_days: int = 0,
+    budget_min: float | None = None,
 ) -> dict:
     """Fetch universe, draw the seeded sample, fetch prices and trades per market. Resumable:
     re-running with the same ``run_id`` reuses ``sample.csv.gz`` and skips finished markets.
@@ -778,22 +957,48 @@ def run(
     causal ``/activity`` first-trade lookup (hashes only, cached in
     ``<run>/new_wallets/first_trade.jsonl`` plus the read-only ``wallet_cache_paths``, at most
     ``wallet_cap`` new lookups). ``budget_scope="run"`` applies ``disk_cap`` to this run only.
-    ``checkpoint_every`` rewrites the manifest every N markets."""
+    ``checkpoint_every`` rewrites the manifest every N markets.
+
+    CB1 options (additive; every default reproduces the earlier runs exactly): ``strata_profile=
+    "cb1"`` (implies text columns plus ``outcomes``, the ``draw_sample_cb1`` weights, whole capped
+    windows dropped and counted, ``exclude_runs`` samples must exist, rate <= 4 rps),
+    ``closed_future_days`` (forward closed walk), ``pages_per_window``, ``price_end`` and
+    ``head_days`` (see :func:`price_windows`), and ``budget_min`` (wall-clock stop between markets
+    or frame days; the manifest says ``budget reached`` and a re-run resumes)."""
     root = Path(root)
+    if strata_profile not in ("default", "cb1"):
+        raise ValueError("strata_profile must be default|cb1")
+    cb1 = strata_profile == "cb1"
+    if cb1:
+        rps = min(rps, 4.0)
+        if oversample is not None:
+            raise ValueError("cb1 profile and oversample are mutually exclusive")
     if "snapshots" in root.parts or "snapshots" in run_id:
         raise ValueError("historical data must never be written under snapshots/")
     rdir = root / run_id
     rdir.mkdir(parents=True, exist_ok=True)
     power = oversample is not None
+    text_cols = cb1 or power
     budget = DiskBudget(rdir if budget_scope == "run" else root, disk_cap)
     lim = Limiter(transport, rps=rps, sleep=sleep, live_check=live_check)
     key = key if key is not None else load_or_create_key()
     now = time.time() if now is None else now
+    if cb1:  # T_fetch is one clock for the whole chunked run: pinned on the first chunk
+        now = pin_request_clock(rdir, now)
     t_start = time.time()
+    budget_s = None if not budget_min else budget_min * 60.0
+
+    def out_of_budget() -> bool:
+        return budget_s is not None and time.time() - t_start >= budget_s
+
+    def stop_frame() -> bool:
+        return out_of_budget() or bool(should_stop is not None and should_stop())
+
     sample_path = rdir / "sample.csv.gz"
     manifest_path = rdir / "manifest.json"
     prior = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
-    frame_cols = [*FRAME_COLUMNS, *FRAME_TEXT_COLUMNS] if power else FRAME_COLUMNS
+    frame_cols = ([*FRAME_COLUMNS, *FRAME_CB1_COLUMNS] if cb1 else
+                  [*FRAME_COLUMNS, *FRAME_TEXT_COLUMNS] if power else FRAME_COLUMNS)
 
     if sample_path.exists():
         sample = pd.read_csv(sample_path, dtype={"market_id": str, "token0": str, "token1": str,
@@ -815,29 +1020,50 @@ def run(
             frame_rep = prior.get("frame_report", {})
         else:
             try:
+                extra_frame = ({"closed_future_days": closed_future_days,
+                                "drop_capped_windows": True, "with_outcomes": True} if cb1 else {})
                 frame, frame_rep = fetch_frame(
                     lim, now, lookback_days, min_volume, seed=seed,
-                    partial_path=rdir / "frame_partial.jsonl", should_stop=should_stop,
-                    with_text=power)
+                    pages_per_window=pages_per_window,
+                    partial_path=rdir / "frame_partial.jsonl", should_stop=stop_frame,
+                    with_text=text_cols, **extra_frame)
             except FrameInterrupted:
-                return {"stopped": "frame fetch paused (collection window); resumable",
-                        "counts": {"markets_done": 0}}
-            budget.write(frame_path, _gz_csv_bytes(
-                frame_cols, ([r[c] for c in frame_cols] for r in frame)))
-        if power:
+                why = "budget reached" if out_of_budget() else "collection window"
+                return {"stopped": f"frame fetch paused ({why}); resumable",
+                        "counts": {"markets_done": 0}, "requests": lim.requests}
+            try:
+                budget.write(frame_path, _gz_csv_bytes(
+                    frame_cols, ([r[c] for c in frame_cols] for r in frame)))
+            except OSError as exc:
+                return {"stopped": f"disk_budget: {exc}", "counts": {"markets_done": 0}}
+        if power or cb1:
             excl: set[str] = set()
+            excl_counts: dict[str, int] = {}
             for er in exclude_runs:
                 sp = root / er / "sample.csv.gz"
                 if sp.exists():
-                    excl |= set(pd.read_csv(sp, usecols=["market_id"], dtype=str).market_id)
-            sample, samp_rep = draw_sample_weighted(frame, n_markets, seed, oversample, excl)
+                    ids = set(pd.read_csv(sp, usecols=["market_id"], dtype=str).market_id)
+                    excl_counts[er] = len(ids)
+                    excl |= ids
+                elif cb1:  # disjointness must never silently degrade
+                    raise FileNotFoundError(f"cb1: excluded run {er!r} has no {sp}")
+            if cb1:
+                sample, samp_rep = draw_sample_cb1(frame, n_markets, seed, excl)
+            else:
+                sample, samp_rep = draw_sample_weighted(frame, n_markets, seed, oversample, excl)
             samp_rep["exclude_runs"] = list(exclude_runs)
+            if cb1:
+                samp_rep["exclude_run_sample_sizes"] = excl_counts
         else:
             sample, samp_rep = draw_sample(frame, n_markets, seed, True, categories, category_mode)
         frame_rep["frame_size"] = len(frame)
-        header = [*frame_cols, "stratum"] + (["inclusion_prob", "sample_weight"] if power else [])
-        budget.write(sample_path, _gz_csv_bytes(
-            header, ([r[c] for c in header] for r in sample)))
+        header = [*frame_cols, "stratum"] + (
+            ["inclusion_prob", "sample_weight"] if (power or cb1) else [])
+        try:
+            budget.write(sample_path, _gz_csv_bytes(
+                header, ([r[c] for c in header] for r in sample)))
+        except OSError as exc:
+            return {"stopped": f"disk_budget: {exc}", "counts": {"markets_done": 0}}
 
     progress_path = rdir / "progress.jsonl"
     done = _read_progress(progress_path)
@@ -904,7 +1130,12 @@ def run(
                        "n_markets": n_markets, "category_mode": category_mode,
                        "categories": sorted(categories), "max_rps": rps,
                    "oversample": oversample, "exclude_runs": list(exclude_runs),
-                   "wallet_min_usd": wallet_min_usd, "wallet_cap": wallet_cap},
+                   "wallet_min_usd": wallet_min_usd, "wallet_cap": wallet_cap,
+                   **({"strata_profile": "cb1", "closed_future_days": closed_future_days,
+                       "pages_per_window": pages_per_window, "price_end": price_end,
+                       "head_days": head_days, "budget_min": budget_min}
+                      if (cb1 or closed_future_days or price_end != "min" or head_days
+                          or budget_min or pages_per_window != 3) else {})},
             "started_utc": prior.get("started_utc", utc_iso(t_start)), "updated_utc": utc_iso(),
             "request_clock_now": utc_iso(now),
             "price_semantics": "unverified (last-trade vs mid not stated by API)",
@@ -952,9 +1183,23 @@ def run(
             break
         if mid in done and done[mid]["status"] == "done":
             continue
+        if out_of_budget():
+            stopped = "budget reached"
+            break
         try:
-            win = price_window(r, now, max_days)
-            pts, np_req = fetch_prices(lim, r["token0"], *win) if win else ([], 0)
+            if price_end == "min" and head_days == 0:
+                win = price_window(r, now, max_days)
+                wins = [win] if win else []
+            else:
+                wins = price_windows(r, now, max_days, price_end, head_days)
+                win = (wins[-1] if wins else None)
+            ptd: dict[int, float] = {}
+            np_req = 0
+            for w in wins:
+                wp, wn = fetch_prices(lim, r["token0"], *w)
+                ptd.update(wp)
+                np_req += wn
+            pts = sorted(ptd.items())
             coll: dict | None = {} if wallet_min_usd is not None else None
             trades, tst = fetch_trades(lim, r["condition_id"], key, max_trades, coll,
                                        wallet_min_usd or 0.0)
@@ -968,6 +1213,8 @@ def run(
                    "price_requests": np_req, "window": list(win) if win else None,
                    "trades": tst["n"], "trades_truncated": tst["truncated"],
                    "trades_oldest_ts": tst["oldest_ts"], "fetched_utc": utc_iso()}
+            if head_days > 0:
+                rec["head_window"] = list(wins[0]) if len(wins) > 1 else None
             stats["markets_done"] += 1
             stats["price_points"] += len(pts)
             stats["trades"] += tst["n"]

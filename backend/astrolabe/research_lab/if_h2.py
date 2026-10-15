@@ -161,6 +161,8 @@ def group_ladders(events: Iterable[dict]) -> list[dict]:
                 "outcome_prices": m.get("outcomePrices") or "",
                 "outcomes": m.get("outcomes") or "",
             }
+            if m.get("conditionId"):  # additive: only when the walk stored it (CB1 ladders)
+                rung["condition_id"] = m["conditionId"]
             slot = by_stem.setdefault(stem(q), {})
             prev = slot.get(dl)
             if prev is None or int(rung["market_id"]) < int(prev["market_id"]):
@@ -193,7 +195,7 @@ def yes_payout(r: dict) -> float:
 
 
 def discover(lim: hb.Limiter, start: datetime, end: datetime, step_days: int = 7,
-             log=print) -> tuple[list[dict], dict]:
+             log=print, extra_market_keys: tuple[str, ...] = ()) -> tuple[list[dict], dict]:
     """Walk Gamma ``/events`` by event start_date windows (both open and closed), splitting any
     window that reaches the offset cap. Returns slim events and a coverage report."""
     events: dict[str, dict] = {}
@@ -233,7 +235,8 @@ def discover(lim: hb.Limiter, start: datetime, end: datetime, step_days: int = 7
         for e in rows:
             ms = [{k: m.get(k) for k in ("id", "question", "groupItemTitle", "clobTokenIds",
                                           "negRisk", "createdAt", "closedTime", "closed",
-                                          "outcomePrices", "outcomes", "endDate")}
+                                          "outcomePrices", "outcomes", "endDate",
+                                          *extra_market_keys)}
                   for m in (e.get("markets") or [])]
             events[str(e.get("id"))] = {"id": str(e.get("id")), "title": e.get("title"),
                                         "negRisk": e.get("negRisk"), "markets": ms}

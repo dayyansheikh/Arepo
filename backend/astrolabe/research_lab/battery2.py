@@ -57,6 +57,7 @@ KIND_RULES: dict[str, tuple[str, str]] = {
     "e007_staleness_dev": (ONE, "one dev test (as battery.PRIOR_KIND_ONE)"),
     "calibration_study_c1": (ONE, "one study = one test (as battery.PRIOR_KIND_ONE)"),
     "dev_fit": (ONE, "one dev fit evaluated against a bar = one test (as battery.PRIOR_KIND_ONE)"),
+    "history_seal_declaration": (EXCLUDE, "data seal (CB1-F h5); no test"),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "

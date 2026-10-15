@@ -1,0 +1,34 @@
+{
+ "id": "q0018_h5_cb1_seal",
+ "title": "CB1-F: seal h5_cb1 + h5_cb1_ladders (per-file sha256, listing hash, trial line, access log)",
+ "family": "history_data",
+ "priority": 61,
+ "expected_value": "fixes h5 before any CB1 screen result exists",
+ "data": [
+  "history/h5_cb1",
+  "history/h5_cb1_ladders"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0016_h5_cb1_fetch",
+  "q0017_h5_cb1_ladders_fetch"
+ ],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "seal",
+  "--run-id",
+  "h5_cb1,h5_cb1_ladders"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "history/h5_cb1*/SEAL.json",
+  "history/h5_cb1*/ACCESS_LOG.jsonl",
+  "trials.jsonl (1 history_seal_declaration per run)"
+ ],
+ "next_action": "Claude session: commit docs/research_lab/seals/h5_cb1_SEAL.json (copy of SEAL.json, both runs); then commit q0020-q0022",
+ "notes": "Refuses an unfinished run (manifest stopped set) and never rewrites an existing seal. Later readers call h5_seal.require_sealed / read_sealed (verify + access log); verify manually with scripts/cb1_h5.py verify-seal."
+}
