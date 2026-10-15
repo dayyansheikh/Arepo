@@ -19,8 +19,10 @@ and session ends; nothing here calls Claude or any paid API.
 - **Cron** runs `queue_worker.py tick` every 2 minutes; the line is in `scripts/oracle/crontab.txt`. A tick:
   - takes the worker lock;
   - marks a job whose runner vanished (reboot, kill, OOM) as `interrupted`, counting it as an attempt;
-  - starts at most one job, only if the queue is not paused, the collector pass is not running and
-    `MemAvailable ≥ mem_mb + 1200 MB`.
+  - starts at most one job, only if the queue is not paused, the collector pass is not running,
+    `MemAvailable ≥ mem_mb + 1200 MB`, and it is not 02:45-05:30 UTC (start blackout around the 03:30 archive run and
+    the 04:31 pass; jobs with `mem_mb` < 500 are exempt). A job already running continues; queue jobs run with
+    `oom_score_adj` 1000, so under memory pressure they are killed before the collector or the archive.
 - **Each job:**
   - runs detached at nice 19;
   - has an address-space cap of 2 × `mem_mb`;

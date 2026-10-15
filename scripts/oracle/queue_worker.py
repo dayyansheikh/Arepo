@@ -51,6 +51,16 @@ QROOT = Path(os.environ.get("AREPO_QUEUE_RUN", HOME / "run/queue"))
 PY = os.environ.get("AREPO_QUEUE_PY", str(HOME / ".venv/bin/python"))
 COLLECTOR_LOCK = os.environ.get("AREPO_COLLECTOR_LOCK", "/tmp/arepo_collector.lock")
 MEM_RESERVE_MB = int(os.environ.get("AREPO_QUEUE_MEM_RESERVE_MB", "1200"))
+# No job starts in this UTC window (minutes of day), so the 03:30 archive run (about 1 GB + zstd) and the 04:31
+# collector pass are not squeezed. Jobs with mem_mb < BLACKOUT_EXEMPT_MB may still start.
+BLACKOUT_UTC_MIN = (2 * 60 + 45, 5 * 60 + 30)
+BLACKOUT_EXEMPT_MB = 500
+
+
+def in_blackout(at: datetime | None = None) -> bool:
+    at = at or datetime.now(timezone.utc)
+    m = at.hour * 60 + at.minute
+    return BLACKOUT_UTC_MIN[0] <= m < BLACKOUT_UTC_MIN[1]
 BACKOFF_S = (300, 1800, 7200)
 STATE, LOGS = QROOT / "state", QROOT / "logs"
 
@@ -304,8 +314,11 @@ def tick() -> int:
             cands.sort(key=lambda x: (-x[0]["priority"], x[0]["id"]))
             if cands:
                 spec, st = cands[0]
-                need = int(spec.get("resources", {}).get("mem_mb", 2048)) + MEM_RESERVE_MB
-                if mem_available_mb() < need:
+                mem_mb = int(spec.get("resources", {}).get("mem_mb", 2048))
+                need = mem_mb + MEM_RESERVE_MB
+                if in_blackout() and mem_mb >= BLACKOUT_EXEMPT_MB:
+                    note = f"waiting: start blackout 02:45-05:30 UTC ({spec['id']})"
+                elif mem_available_mb() < need:
                     note = f"waiting: {spec['id']} needs {need} MB available"
                 else:
                     start(spec, st)
