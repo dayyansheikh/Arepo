@@ -1,4 +1,14 @@
-# Server retention proposal (deletion is OFF; for user review)
+# Server retention (deletion APPROVED by the user 2026-10-15; dry run first)
+
+**User approval (2026-10-15, about 21:10 UTC+1):** "If the copy is uploaded to GitHub, recorded properly and verified, then go ahead
+and delete them." The user also approved the weekly backup of the live evidence logs, which is installed.
+- **Scope:** only host files whose bytes are in a verified published release (identical sha256), under the rules in
+  `scripts/oracle/archive_retention.json`. This includes the deferred `snapshots/` and `book_sweeps/` rules once their gate
+  clears (queue jobs q0005, q0006a and q0006 are done or take root arguments).
+- **Never deleted:** frozen or prospective evidence, active or append-only logs, and `/home/opc/arepo_val`.
+- **State:**
+  - 2026-10-15 ~20:10Z: the nightly 03:30 UTC cron runs with `--retention ... --delete --dry-run`.
+  - Next session: complete checklist steps 1, 2, 3 and 5 below, then remove `--dry-run` (step 4). Record each step here.
 
 Status 2026-10-15: the nightly rotation (`backend/scripts/archive_rotate.py`, cron 03:30 UTC) is **archive-only**. This file says
 what may be deleted from the host's own copy once `--delete` is switched on, and what had to change so that deleting never

@@ -8,7 +8,10 @@
 */15 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/arepo_notify.py check >> /home/opc/arepo_collector/logs/notify.out 2>> /home/opc/arepo_collector/logs/notify.err
 # Research queue worker (scripts/oracle/queue_worker.py; pause: queue_worker.py pause)
 */2 * * * * /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py tick >> /home/opc/arepo_collector/logs/queue.log 2>&1
-# Weekly point-in-time copies of append-only evidence logs (E009/E010/E011); archive-only, never deletes.
-# NOT INSTALLED: install after user OK (see docs/research_lab/data_catalogue/RETENTION.md, Open risks).
-#30 4 * * 0 cd /home/opc/arepo/backend && nice -n 19 python3 scripts/archive_rotate.py --root /home/opc/arepo --scan data-dumps/research_lab --older-than-days 1 --include-active 'data-dumps/research_lab/cross_venue_live/predictions*.jsonl,data-dumps/research_lab/cross_venue_live/outcomes*.jsonl,data-dumps/research_lab/live_trades/alerts.jsonl,data-dumps/research_lab/live_trades/wallets.jsonl,data-dumps/research_lab/surprise_live/*' >> /home/opc/.arepo/archive_rotate/active.log 2>&1
+# Nightly archive to arepo-data (verify-before-publish) + retention. --dry-run: lists would_delete only.
+# Remove --dry-run per docs/research_lab/data_catalogue/RETENTION.md checklist (deletion approved by the user 2026-10-15).
+30 3 * * * PATH=/home/opc/.local/bin:/usr/bin:/bin; cd /home/opc/arepo/backend && nice -n 15 /home/opc/arepo/.venv/bin/python scripts/archive_rotate.py --root /home/opc/arepo --scan data-dumps/research_lab --older-than-days 1 --retention /home/opc/arepo/scripts/oracle/archive_retention.json --delete --dry-run >> /home/opc/arepo_collector/logs/archive-rotate.log 2>&1
+# Weekly point-in-time copies of append-only evidence logs (E009/E010/E011); archive-only, never deletes. INSTALLED 2026-10-15.
+# Sunday 06:10 UTC: outside the 02:45-05:30 archive/queue window and not on a :31 pass time.
+10 6 * * 0 PATH=/home/opc/.local/bin:/usr/bin:/bin; cd /home/opc/arepo/backend && nice -n 19 /home/opc/arepo/.venv/bin/python scripts/archive_rotate.py --root /home/opc/arepo --scan data-dumps/research_lab --older-than-days 1 --include-active 'data-dumps/research_lab/cross_venue_live/predictions*.jsonl,data-dumps/research_lab/cross_venue_live/outcomes*.jsonl,data-dumps/research_lab/live_trades/alerts.jsonl,data-dumps/research_lab/live_trades/wallets.jsonl,data-dumps/research_lab/surprise_live/*' >> /home/opc/arepo_collector/logs/archive-active.log 2>&1
 # --- end AREPO ---
