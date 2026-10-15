@@ -1303,3 +1303,35 @@ All required and optional items applied. This is the single response round; ther
 | 11 | A2/E restricted to `end_at ≤ T_fetch + 400d`. `--pages-per-window 20` (the Gamma offset cap), with any window that still caps excluded entirely and counted. The request estimate rises to ≈ 85k (≈ 7-9 h wall). |
 | 12 | `NAME_RE`/`VERB_RE` written out in CB1-E and covered by the declaration hash, committed before q0019 reads text (q0019 refuses otherwise). Disclosure of post-listing text edits added. |
 | Optional | Sports excluded from the A1 primary (reported separately); frame-window PSU clustering as a sensitivity; capacity reported next to every `R_ann` (§2.1); h5 `ACCESS_LOG.jsonl`; `KIND_RULES` entries in the code-needed list. |
+
+---
+
+## Freeze check (science-reviewer, 2026-10-15 ~23:25Z): code against the design
+Code: extractor 11054c9/519df70, h5 fetch/seal 70603b4, A/C/E 9fd5378, D/B 3bdd985, KIND_RULES 8e42536. 124 tests pass.
+**Verdict: ACCEPT_WITH_REQUIRED_FIXES for all four components.** q0016/q0017 held behind gate q0033 until fixes 1-2.
+
+Required fixes:
+1. **URGENT.** h5 price window anchored at max(close, end)+1d and 120 d back, so A1/A2 origin coverage depended on how late a
+   market closed (the long-wait, tail-risk markets). Fix: union of the `min`, head and post-end windows, plus an
+   invariance test. The same flaw affects h2 active markets, so the claim at the h2 coverage line in §CB1-F is false for
+   them. The affected h2 units are counted and disclosed (`cb1_h5.py count-h2-coverage`), not refetched.
+2. Trades not capped at T_fetch. Cap them and count the dropped rows; refuse new h5 chunks after T_seal.
+3. `replicate` wrote into the sealed h5 directory, which would break `verify_seal`. Write outside it.
+4. The completeness rule `created_at ≥ T_fetch − lookback` was not implemented.
+5. The tail gate counted censored units as non-losers. Exclude them, and report a censored-as-loser bound.
+6. Units with no as-of origin price were dropped silently. Count them by status.
+7. The declared missing-outcome-as-losing worst case was not computed.
+8. `replicated` came from a per-run Holm. Mark it provisional, and script the batch-wide Holm over all Stage-2 tests.
+9. `t_rep_start` was a free CLI value. Pin it in a committed file (freeze commit + 2h).
+10. The non-single-winner share was computed per trigger. Compute it per event.
+11. `event_members` was overwritten on each refresh. Make it append-only.
+12. Seal copy format: one file per run, `docs/research_lab/seals/<run_id>_SEAL.json`, with a top-level `listing_sha256`.
+13. `fetch-outcomes-D` must require the committed declaration first.
+
+Accepted deviations:
+- The kinds `cb1_history*`/`cb1_structural*` and the spec `cb1_history_v1.json`, provided both declarations are committed in one freeze commit.
+- The per-run Holm (with fix 8).
+- An R1 fee of 0.07 (conservative).
+- B, A, C and E results stored outside the sealed directories.
+- D events with a closed member ineligible.
+- B3 stays blocked until a `rungs/` extractor is live, which must be before T_rep_start or the B3 data are lost.
