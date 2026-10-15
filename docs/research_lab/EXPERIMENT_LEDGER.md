@@ -1112,3 +1112,20 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   Mac versions. Provenance env fields now read `linux`.
   - Scoped tests: 197 of 199 pass. The 2 failures are byte-identity checks of a gzip test fixture (Linux and macOS zlib compress
     differently); the sampling plans are identical.
+
+## Methods note M3 — Cumulative test count and the SB2 two-stage rule (2026-10-15)
+- **Count correction.** The HB1-era counter `battery.prior_test_count()` skipped the HB1 `ml_explain` line (72 tests)
+  and several non-placebo kinds (economics 95, cross-venue 82, surprise detector 46, case lines 12, IF-H2 1). Past
+  results keep the labels they were computed with; they are not re-labelled. From Screening Batch 2 on, every BY label
+  uses `battery2.cumulative_count()` (rule `battery2-count-v1`, 991f04e): an explicit rule for every trial kind,
+  fail-closed on unknown kinds, placebo lines 0. Local total 2026-10-15: **906**. Automatic `flow_screen` lines (one
+  per pass) count one each; whether they should is an open governance question, recorded, not changed.
+- **Two-stage rule for SB2 history families** (`SCREENING_BATCH_2.md` §2). Stage 1 on `h2_main` judgement rows:
+  one-sided p < 0.01 in the discovery sign advances a test (the BY label is still attached). Stage 2 on `h3_power`,
+  frozen definitions: Holm at 0.05 over the advanced set. Only a Stage-2 pass is reported as "development-replicated"
+  (L2-dev). Reason: at a denominator near 1,000, BY needs z ≈ 4.1, which on one sample hides every moderation smaller
+  than the main effect; an independent-markets replication with Holm controls family-wise error of what is carried
+  forward. Neither stage is confirmation; confirmation needs SEALED-P (prospective) or SEALED-H4 (origins ≥
+  2026-10-22T00:00Z).
+- **h3_power wear.** SB2's J2, J6, J8 are its reads 4-6 (frozen definitions only; J8 on markets never read by ML).
+  After SB2, h3_power is retired from replication use.
