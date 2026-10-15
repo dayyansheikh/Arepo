@@ -165,31 +165,28 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 23:45Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 23:58Z
 0. **This session (22:50Z-):**
-   - **CB1 FROZEN at 2fc0562.** Declarations: history 58e203bb, structural c9a2ec8d. T_rep_start is pinned at
-     2026-10-19T00:00Z (`seals/cb1_t_rep_start.json`).
-   - CB1 queue: q0019 census, q0020 A/E screen and q0023 B1/B2 (both gated on the q0018 seal), q0021 C (waits for q0003).
-     The h5 fetch q0016/q0017 was released by gate q0033. The CB1 B3 `rungs/` extractor is live (8546d7c).
-   - J4 is void, diagnosed and challenged; J4-R is declared. J4-R/J3 code is ebe55ca, and **its freeze check is running**.
-   - J5 written up (L1 candidate, with caveats). HB2 written up: 6 of 13 advance, F4 is the BY survivor, and **q0009/q0010
-     (h3 replication) are queued**.
-   - CB2 draft 3728e78: the challenger returned ACCEPT_WITH_REQUIRED_CHANGES (11). **A revision agent is running**, using
-     a time-ordered split, W1 as descriptive only, and no P1 code.
-   - **Fable xhigh round-2 hypotheses running** → `CREATIVE_HYPOTHESES_2026-10-16.md` (uncommitted until it reports).
-1. **J4-R:** apply the freeze-check rulings to the declaration and code. Freeze (commit the declaration hash). Queue
-   q0035 with argv `run_bounce_decomp.py snapshots --tag j4r --since 2026-10-16T00:00:00Z --until 2026-10-20T00:00:00Z
-   --h-tight --estimator expanding --placebo-draws 20 --min-periods 48`, to run after 2026-10-20 03:00Z. J3 (q0011,
-   `book --run-id h2_main --tag j3x --estimator expanding --placebo-draws 20`) runs after q0003.
-2. **CB1-D dev:** after 2026-10-17T00:00Z, `run_cb1_extract.py --freeze-list dev --until 2026-10-17T00:00Z` (host).
-   Commit the capture list and sha. Then `run_cb1_structural.py fetch-outcomes-D` and `snapshots --family D --window
-   dev` (q0022). **B3:** at T_rep_start (10-19), run `rung-list --as-of 2026-10-19T00:00:00Z` (q0029); copy it to
-   `<extract_root>/rung_list.json` and commit `seals/cb1_b3_rung_list.json` = {"sha256": …}.
-3. **When q0018 seals h5:** commit `seals/h5_cb1_SEAL.json` and `seals/h5_cb1_ladders_SEAL.json` (copies). Then
-   q0020/q0023 can run.
-4. Write up: q0034 (h2 coverage disclosure), q0019 census, q0010 (HB2 replication), q0002/q0003/q0004 (r4_book).
-5. CB2: after the revision, run one challenger response check, then code. Round-2 hypotheses: rank and design the
-   next batch. J5 follow-up design. Keep ≥ 12 h queued. Retention needs the user by ~17-18 Oct.
+   - **CB1 FROZEN** at 2fc0562; T_rep_start is 2026-10-19T00:00Z. Queued: q0019 census, q0020/q0023 (after the q0018
+     seal), q0021 (after q0003). The h5 fetch q0016/q0017 is released.
+   - **J4-R FROZEN** at d583905 (code 35cb33f). q0035 is held behind gate q0036, and q0011 (J3, expanding) waits on q0003.
+   - HB2: 6 of 13 advance; q0009/q0010 replication queued. J5 is written up.
+   - **CB2:** revised after challenger round 1 (eb30cd0). Code is being written by two implementer agents:
+     (A) cb2_weather + run_cb2 + h6 seal + KIND_RULES; (B) the extractor v2 (ladder_candidates, event_text, rewards)
+     + q0041 backfill, then cb2_structural.
+   - Round-2 hypotheses committed (CH35-CH59). **A CB3 draft agent is running** (selective maker CH39/CH40/CH41 +
+     CH35 mechanism) → `CREATIVE_BATCH_3.md`.
+1. **When B's STEP 1 commits:** test, deploy, and confirm q0041 runs (urgent before raw-capture deletion). When A and
+   B finish: tests, then a science-reviewer freeze check of the CB2 code. The freeze itself (`cb2_v1.json`) waits until
+   after T2_dev_end and the q0042 census (§8 of CREATIVE_BATCH_2.md).
+2. **After 2026-10-21T03:00Z:** create gate job q0036 (trivial) to release q0035 (J4-R). On exit 3, move `--until` forward by
+   one UTC day, log it, and re-queue.
+3. **CB1-D dev:** after 2026-10-17T00:00Z, freeze the dev capture list on the host (`run_cb1_extract.py --freeze-list
+   dev --until 2026-10-17T00:00Z`) and commit it, then run fetch-outcomes-D and q0022. **B3 at 10-19:** q0029
+   rung-list → `<extract_root>/rung_list.json` + commit `seals/cb1_b3_rung_list.json` {"sha256"}.
+4. **When q0018 seals h5:** commit the seal copies, after which q0020/q0023 run. Write up q0034, q0019, q0010, and
+   q0002/3/4 (r4_book).
+5. CB3 draft → challenger. J5 follow-up design. Keep ≥ 12 h queued. Retention needs the user by ~17-18 Oct.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
