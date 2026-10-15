@@ -66,6 +66,7 @@ LABEL = "DEVELOPMENT leadlag screen"
 MOVE_THRESHOLD = 0.01
 MIN_SIB_WEIGHT_REL = 1e-9
 MIN_COMMON_GROUP = 2
+SB2_MIN_DELTA_R2 = 0.001  # SB2 materiality floor (declared before the J5 run)
 SIGN_SHARE_RULE = 0.75
 USECOLS = [
     "market_id", "event_id", "neg_risk", "neg_risk_market_id", "neg_risk_other",
@@ -339,8 +340,15 @@ def build_period(snap_i: pd.DataFrame, snap_j: pd.DataFrame, j_start: str, perio
 
 
 def build_all(snapshot_root: Path = SNAPSHOT_ROOT, dev_dir: Path | None = DEV_DIR,
-              log: Callable[[str], None] | None = None) -> tuple[pd.DataFrame, list[dict]]:
-    """All consecutive complete-capture couples; two snapshots in memory at a time."""
+              log: Callable[[str], None] | None = None,
+              gap_h: tuple[float, float] | None = None) -> tuple[pd.DataFrame, list[dict]]:
+    """All consecutive complete-capture couples; two snapshots in memory at a time.
+
+    ``gap_h=(lo, hi)`` keeps a period only if its median pair horizon lies in [lo, hi] hours;
+    excluded periods stay in the counts list with ``excluded: "gap"``. ``prev_nr`` is always the
+    neg-risk table of the immediately preceding capture (also across an excluded period), so the
+    lagged L3 feature is never taken from a non-adjacent capture. Default None = unchanged.
+    """
     it = iter_captures(snapshot_root, dev_dir)
     frames, counts = [], []
     try:
@@ -355,7 +363,11 @@ def build_all(snapshot_root: Path = SNAPSHOT_ROOT, dev_dir: Path | None = DEV_DI
                     "gap_h": float(pairs["horizon_h"].median())
                     if pairs["horizon_h"].notna().any() else None})
         prev_nr = neg_risk_table(cur)
-        frames.append(pairs[pairs["dmid"].notna()].reset_index(drop=True))
+        g = cnt["gap_h"]
+        if gap_h is not None and (g is None or not (gap_h[0] <= g <= gap_h[1])):
+            cnt["excluded"] = "gap"
+        else:
+            frames.append(pairs[pairs["dmid"].notna()].reset_index(drop=True))
         counts.append(cnt)
         if log:
             log(json.dumps(clean(cnt)))
@@ -430,6 +442,10 @@ def run_screen(pairs: pd.DataFrame, n_boot: int = evaluate.BOOT_N,
             block["sd_c"] = sd_c
             block["mde"] = power.mde_delta_r2(k_clusters, sd_c, n_tests=n_tests)
         block["meets_drafting_rule"] = meets_rule(block)
+        block["sb2_min_delta_r2"] = SB2_MIN_DELTA_R2
+        block["meets_sb2_rule"] = bool(
+            block["meets_drafting_rule"] and d and np.isfinite(d["diff_r2"])
+            and d["diff_r2"] >= SB2_MIN_DELTA_R2)
         out["variants"][name] = block
     out["recommendation"] = recommend(out["variants"])
     out["comparison"] = {k: res[k] for k in ("config", "per_period", "pooled", "provenance",

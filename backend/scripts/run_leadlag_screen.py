@@ -23,6 +23,13 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 
 
+def parse_gap(text: str) -> tuple[float, float]:
+    lo, hi = (float(x) for x in text.split(","))
+    if not lo <= hi:
+        raise argparse.ArgumentTypeError("--gap-h needs LO,HI with LO <= HI")
+    return lo, hi
+
+
 def print_table(ls, name: str, res: dict) -> None:
     e = res["effective_sample"]
     print(f"\n=== {name}: {res['status']} ===")
@@ -41,7 +48,7 @@ def print_table(ls, name: str, res: dict) -> None:
         mde = v.get("mde")
         print(f"{n}: dR2 vs R {d['diff_r2']:+.5f} [{d['ci_lo']:+.5f},{d['ci_hi']:+.5f}] "
               f"MDE={'n/a' if mde is None else f'{mde:.5f}'} pos {v['n_positive_periods']}/"
-              f"{v['n_periods']} rule={v['meets_drafting_rule']}\n    per-period {per}")
+              f"{v['n_periods']} rule={v['meets_drafting_rule']} sb2={v['meets_sb2_rule']}\n    per-period {per}")
     print("recommendation:", json.dumps(res["recommendation"]))
 
 
@@ -53,8 +60,9 @@ def main() -> int:
     ap.add_argument("--tag")
     ap.add_argument("--n-boot", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=116)
+    ap.add_argument("--gap-h", type=parse_gap, default=None, metavar="LO,HI")
     a = ap.parse_args()
-    pairs, counts = ls.build_all(log=print)
+    pairs, counts = ls.build_all(log=print, gap_h=a.gap_h)
     if not len(pairs):
         print("no pairs; nothing run")
         return 0
@@ -74,7 +82,10 @@ def main() -> int:
         print(f"\nrunning {cname}: {len(frame)} pairs", flush=True)
         results[cname] = ls.run_screen(frame, a.n_boot, a.seed)
     prov = provenance.run_provenance()
-    doc = {"run_id": run_id, "seed": a.seed, "n_boot": a.n_boot, "pairing_counts": counts,
+    doc = {"run_id": run_id, "seed": a.seed, "n_boot": a.n_boot,
+           "gap_filter_h": list(a.gap_h) if a.gap_h else None,
+           "excluded_periods": [c for c in counts if c.get("excluded")],
+           "pairing_counts": counts,
            "configs": results, "provenance": prov}
     out_dir.mkdir(parents=True, exist_ok=False)
     path = out_dir / "results.json"
@@ -90,7 +101,8 @@ def main() -> int:
                 "summary": ls.clean({"pooled_vs_R": v["pooled_vs_R"],
                                      "share_positive_periods": v["share_positive_periods"],
                                      "mde": v.get("mde"),
-                                     "meets_drafting_rule": v["meets_drafting_rule"]}),
+                                     "meets_drafting_rule": v["meets_drafting_rule"],
+                                     "meets_sb2_rule": v["meets_sb2_rule"]}),
                 "provenance": prov,
             })
     print(f"results {path}")

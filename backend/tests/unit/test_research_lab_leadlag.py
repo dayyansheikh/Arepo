@@ -148,3 +148,39 @@ def test_diff_handles_either_key_order():
     flipped = ls._diff(blk, "R", "B3")
     assert flipped == {"diff_r2": -0.02, "ci_lo": -0.05, "ci_hi": -0.01}
     assert ls._diff(blk, "R", "X") is None
+
+
+def _fake_build(monkeypatch, gaps):
+    metas = [{"capture_id": f"c{i}", "source": "t", "start_utc": f"t{i}"}
+             for i in range(len(gaps) + 1)]
+    monkeypatch.setattr(ls, "iter_captures",
+                        lambda *a, **k: iter([(m, pd.DataFrame()) for m in metas]))
+    seen = []
+
+    def fake_period(cur, nxt, j_start, k, prev_nr):
+        seen.append(k)
+        return (pd.DataFrame({"dmid": [0.1, 0.2], "horizon_h": [gaps[k]] * 2, "period": k}),
+                {"period": k})
+
+    monkeypatch.setattr(ls, "build_period", fake_period)
+    monkeypatch.setattr(ls, "neg_risk_table", lambda s: None)
+    return seen
+
+
+def test_gap_filter_keeps_only_in_range_periods(monkeypatch):
+    gaps = [2.0, 10.0, 2.0, 0.5]
+    _fake_build(monkeypatch, gaps)
+    pairs, counts = ls.build_all(gap_h=(1.5, 3.0))
+    assert sorted(pairs["period"].unique()) == [0, 2]
+    assert [c.get("excluded") for c in counts] == [None, "gap", None, "gap"]
+    pairs_all, counts_all = ls.build_all()
+    assert sorted(pairs_all["period"].unique()) == [0, 1, 2, 3]
+    assert not any("excluded" in c for c in counts_all)
+
+
+def test_sb2_rule_requires_materiality():
+    d = {"diff_r2": 0.0002, "ci_lo": 0.0001, "ci_hi": 0.0003}
+    block = {"pooled_vs_R": d, "share_positive_periods": 1.0}
+    assert ls.meets_rule(block)
+    assert d["diff_r2"] < ls.SB2_MIN_DELTA_R2
+    assert ls.SB2_MIN_DELTA_R2 == 0.001
