@@ -1092,6 +1092,14 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
     `/home/opc/arepo_val/data-dumps/research_lab/` with the identical code and specs. It therefore covers the Mac outage.
   - It is kept as is. Whether any of it may stand in for the outage is a design question for review. Until such a decision,
     it is NOT evidence for E009/E010.
+  - **User decision 2026-10-15 19:31 UTC+1 (2026-10-15T18:31Z): fill the gap ("include it").** Made before any E009/E010 outcome analysis
+    (analysis is after 2026-11-03). Pre-declared rule for that analysis:
+    - The validation copy is used ONLY for the E009/E010 outage window where the canonical stream has no valid quotes
+      (2026-10-14 00:02Z to 10:44Z). Outside that window the canonical stream is used and the copy is ignored.
+    - Every substituted row carries `source=validation_copy`. The validation copy is not edited or merged in place.
+    - The primary result includes the window. A sensitivity result excluding it is reported next to it, with the
+      selection disclosed.
+    - The live trade monitor and E011 are unaffected (E011 keeps its gap; the copy ran no collector passes in the window).
 - **Validation results.**
   - Host pass 23:20Z: complete; 262,295 rows vs the Mac's 22:31Z pass at 264,126; 261,908 market ids in both, which fits market
     churn; same columns and manifest schema.
