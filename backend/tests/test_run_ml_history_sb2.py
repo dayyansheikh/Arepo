@@ -49,8 +49,24 @@ def test_exclude_markets_removes_every_listed_market_before_sampling(tmp_path):
     kept, rows2 = rmh.pick_markets(panel, 120, 7, exclude=ex)
     assert kept and not (kept & ex) and rows2 <= 120
     # the seed spec regenerates the original subset deterministically
-    regen, _ = rmh.load_market_list("seed:7:120", panel)
+    rec = tmp_path / "rec.json"
+    rec.write_text(json.dumps({"market_subset": {"n_markets": len(base), "n_rows": rows,
+                                                 "seed": 7}}))
+    chk: dict = {}
+    regen, _ = rmh.load_market_list("seed:7:120", panel, rec, chk)
     assert regen == base
+    assert chk["outcome"] == "match" and chk["sha256_sorted_ids"] == rmh._sha_ids(base)
+    import hashlib
+    assert chk["sha256_sorted_ids"] == hashlib.sha256(
+        "\n".join(sorted(base)).encode()).hexdigest()
+    rec.write_text(json.dumps({"market_subset": {"n_markets": len(base) + 1, "n_rows": rows,
+                                                 "seed": 7}}))
+    with pytest.raises(ValueError, match="does not reproduce"):
+        rmh.load_market_list("seed:7:120", panel, rec)
+    with pytest.raises(ValueError, match="not found"):
+        rmh.load_market_list("seed:7:120", panel, tmp_path / "missing.json")
+    with pytest.raises(ValueError, match="not found"):
+        rmh.load_market_list("seed:7:120", panel)
     js = tmp_path / "m.json"
     js.write_text(json.dumps({"market_ids": ["100", "101"]}))
     assert rmh.load_market_list(str(js), panel)[0] == {"100", "101"}
@@ -101,3 +117,19 @@ def test_prior_tests_equals_battery2_cumulative_total(tmp_path, monkeypatch):
     assert seen["family_tests"] == 4
     recs = [json.loads(ln) for ln in trials.read_text().splitlines()]
     assert recs[-1]["source"] == "screening_batch_2:J7" and recs[-1]["prior_tests"] == 9
+
+
+def test_j7_j8_refuse_to_overwrite_existing_results(tmp_path):
+    root = tmp_path / "hist"
+    (root / "h3").mkdir(parents=True)
+    res = root / "h3" / "ml_history_results_rv.json"
+    res.write_text("{}")
+    frozen = tmp_path / "r.json"
+    frozen.write_text(json.dumps({"1": {"direction": {"regime_ix": {
+        "advanced": {"contrasts": [], "pairs": []}}}}}))
+    tp = tmp_path / "t.jsonl"
+    for extra in (["--frozen-from", str(frozen)], ["--regimes"], ["--interactions", "2"]):
+        rc = rmh.main(["--run-id", "h3", "--root", str(root), "--revision", "rv",
+                       "--trials-path", str(tp)] + extra)
+        assert rc == 2
+        assert res.read_text() == "{}" and not tp.exists()

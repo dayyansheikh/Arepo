@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import json
 import re
 import sys
@@ -138,7 +139,51 @@ def pick_markets(path: Path, max_rows: int, seed: int,
 SEED_SPEC = re.compile(r"^seed:(\d+):(\d+)$")
 
 
-def load_market_list(spec: str, first_panel: Path) -> tuple[set[str], str]:
+RECORDED_SUBSET_FILE = "ml_history_results_h3_replication.json"
+
+
+def _sha_ids(ids) -> str:
+    return hashlib.sha256("\n".join(sorted(str(i) for i in ids)).encode()).hexdigest()
+
+
+def verify_seed_subset(ids: set[str], rows: int, seed: int, first_panel: Path,
+                       recorded_path: Path | None) -> dict:
+    """Fail-closed check that a regenerated ``pick_markets`` subset equals the one the recorded run
+    used (``value_counts`` tie order is not guaranteed across pandas versions/hosts). Compares the
+    recorded ``market_subset`` {n_markets, n_rows, seed} and, when recorded, the horizon-1 traded
+    ``panel`` {rows, markets} (rows kept after the untraded exclusion). Raises ValueError on any
+    mismatch or if the recorded file/fields are missing."""
+    if recorded_path is None or not Path(recorded_path).exists():
+        raise ValueError(f"seed-form market list refused: recorded results file not found "
+                         f"({recorded_path}); cannot verify the regenerated subset")
+    rec = json.loads(Path(recorded_path).read_text())
+    sub = rec.get("market_subset") or {}
+    exp = {"n_markets": sub.get("n_markets"), "n_rows": sub.get("n_rows")}
+    if exp["n_markets"] is None or exp["n_rows"] is None:
+        raise ValueError(f"{recorded_path}: no market_subset.n_markets/n_rows recorded")
+    got = {"n_markets": len(ids), "n_rows": int(rows)}
+    if sub.get("seed") is not None and int(sub["seed"]) != int(seed):
+        raise ValueError(f"seed mismatch: recorded {sub['seed']}, requested {seed}")
+    bad = {k: (exp[k], got[k]) for k in exp if int(exp[k]) != got[k]}
+    check = {"recorded_path": str(recorded_path), "expected": exp, "regenerated": got,
+             "sha256_sorted_ids": _sha_ids(ids)}
+    p1 = (rec.get("1") or {}).get("panel")
+    if p1 and "rows" in p1 and "markets" in p1:
+        df = load_panel(first_panel, ids)
+        df = df[df["traded_before_t"] != 0]
+        t = {"rows": int(len(df)), "markets": int(df["market_id"].nunique())}
+        check["traded_expected"] = {"rows": p1["rows"], "markets": p1["markets"]}
+        check["traded_regenerated"] = t
+        bad.update({f"traded_{k}": (p1[k], t[k]) for k in t if int(p1[k]) != t[k]})
+    if bad:
+        raise ValueError(f"regenerated seed subset does not reproduce the recorded run "
+                         f"(recorded, regenerated): {bad}; refusing")
+    check["outcome"] = "match"
+    return check
+
+
+def load_market_list(spec: str, first_panel: Path, recorded_path: Path | None = None,
+                     check_out: dict | None = None) -> tuple[set[str], str]:
     """Market ids for ``--exclude-markets-from``. Accepted: a ``.json`` list (or an object with
     ``market_ids``/``markets``/``market_subset.market_ids``), a ``.csv`` with a ``market_id``
     column, or a text file with one id per line; or ``seed:<seed>:<max_rows>``, which regenerates
@@ -146,7 +191,10 @@ def load_market_list(spec: str, first_panel: Path) -> tuple[set[str], str]:
     run sampled; that run did not write its list to disk)."""
     m = SEED_SPEC.match(spec)
     if m:
-        ids, _ = pick_markets(first_panel, int(m.group(2)), int(m.group(1)))
+        ids, nrows = pick_markets(first_panel, int(m.group(2)), int(m.group(1)))
+        chk = verify_seed_subset(ids, nrows, int(m.group(1)), first_panel, recorded_path)
+        if check_out is not None:
+            check_out.update(chk)
         return ids, f"regenerated pick_markets(seed={m.group(1)}, max_rows={m.group(2)})"
     path = Path(spec)
     if path.suffix == ".json":
@@ -854,12 +902,21 @@ def main(argv=None) -> int:
     ap.add_argument("--exclude-markets-from", default=None,
                     help="market list (csv/json/txt) or seed:<seed>:<max_rows>; excluded before "
                     "sampling")
+    ap.add_argument("--recorded-subset-from", type=Path, default=None,
+                    help="seed:<seed>:<max_rows> form: recorded h3_replication results file the "
+                    "regenerated subset must reproduce (default: <run>/"
+                    + RECORDED_SUBSET_FILE + ")")
     a = ap.parse_args(argv)
     a.kinds = [t for t in a.targets.split(",") if t]
     a.gate_modes = [m for m in a.gate_modes.split(",") if m]
     a.n_boot_abl = a.n_boot_ablation or a.n_boot
     run_dir = a.root / a.run_id
     a.cells_map = parse_cells(a.cells)
+    if a.regimes or a.interactions or a.frozen_from is not None:
+        existing = run_dir / f"ml_history_results_{a.revision}.json"
+        if existing.exists():  # J7/J8 must never overwrite a results file (before any logging)
+            log(f"refusing: {existing} already exists; use a new --revision")
+            return 2
     a.frozen, a.prior_tests, a.lookahead_markets = None, None, None
     if a.frozen_from is not None:
         a.frozen = json.loads(Path(a.frozen_from).read_text())
@@ -889,7 +946,10 @@ def main(argv=None) -> int:
     first = run_dir / f"panel_H{HORIZON_FILES[1]}h.csv.gz"
     excluded = None
     if a.exclude_markets_from:
-        excluded, src = load_market_list(a.exclude_markets_from, first)
+        subset_check: dict = {}
+        excluded, src = load_market_list(
+            a.exclude_markets_from, first,
+            a.recorded_subset_from or run_dir / RECORDED_SUBSET_FILE, subset_check)
         log(f"excluding {len(excluded)} markets ({src})")
     markets, rows = pick_markets(first, a.max_rows, a.seed, excluded)
     for tab in (a.book_table,):  # sparse table: use its markets (wallet_age covers every origin)
@@ -914,7 +974,9 @@ def main(argv=None) -> int:
     }
     if excluded is not None:
         results["excluded_markets"] = {"source": a.exclude_markets_from,
-                                       "n_excluded": len(excluded)}
+                                       "n_excluded": len(excluded),
+                                       "sha256_sorted_ids": _sha_ids(excluded),
+                                       "seed_subset_check": subset_check or None}
     if a.regimes or a.interactions or a.frozen is not None:
         results["regime_ix"] = {
             "declaration_hash": ml_explain.history_declaration_hash(),
@@ -926,6 +988,8 @@ def main(argv=None) -> int:
             "interactions": a.interactions, "frozen_from": str(a.frozen_from),
             "frozen_declaration_hash": (a.frozen or {}).get("regime_ix", {}).get(
                 "declaration_hash"),
+            "trial_log_note": "J7 re-logs r1-style ablation ml_explain lines; they inflate the "
+            "cumulative trial denominator (conservative; disclosed).",
             "h3_read_note": "frozen replication, no discovery" if a.frozen is not None else None,
         }
     if a.regimes:
