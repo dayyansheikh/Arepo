@@ -1046,3 +1046,28 @@ code against this text.
 
 Optional items: the ledger methods note for the two-stage rule is added with the first SB2 ledger entry; J3 reports
 target-unavailable counts by liquidity tercile.
+
+---
+
+## Freeze check (science-reviewer, 2026-10-15 ~19:40Z): code against the revised design
+
+Scoped tests 78 passed; counter 911 locally (906 + 5 host rows). Verdicts: **J5 ACCEPT** (q0005 already queued);
+**HB2 J1/J2/J6 ACCEPT**; **J4 ACCEPT_WITH_REQUIRED_FIXES**; **J3 ACCEPT_WITH_REQUIRED_FIXES**; **J7/J8
+ACCEPT_WITH_REQUIRED_FIXES**. q0004's path in `run_ml_history.py` confirmed unchanged.
+
+Required fixes (all being applied before any counted run of the affected job; recorded as pre-freeze amendments):
+1. J4 placebo rebuilt `dmid` from permuted j-side levels, which creates a reversal by construction (P1 −0.85 on a
+   random walk). Placebo now permutes target values within market (one index for all target columns).
+2. Bound/absence verdicts (J4 P4 "explained", quote-noise route, TOST; J3 B1 vs `ρ_s/2`) use the hull of the
+   bootstrap CI and β ± z·max(event SE, two-way SE), not the event-only bootstrap CI.
+3. J3 second clustering axis is the UTC day (as §2 declares), not the 6h origin.
+4. J3 D2 is signed 6h **notional** over depth (the code had imbalance × trade count); the depth unit is stated.
+5. J8's `--exclude-markets-from seed:7:250000` must reproduce the recorded h3_replication subset (2,138 markets, row
+   counts) or refuse; the sha256 of the excluded ids goes into the results.
+6. J7/J8 refuse to overwrite an existing results file (counted lines are appended during the run).
+
+Coordinator decisions taken with the fixes: J3 B4, D1 and D2 also get the C0 controls (§2's general rule); J4 P1x
+also excludes rows whose sweep precedes the Gamma receipt; HB2 gets feature-file hashes checked at `run`, the
+"without the 66 shared events" secondary on h2, and an F7 both-groups-non-empty secondary. J5's verdict is taken
+from `meets_sb2_rule` only (the module's `recommend()` still uses the old rule). Do not report h2 economics in the
+favourable tercile (it is chosen on h2 judgement rows and used only on h3).
