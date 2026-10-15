@@ -16,6 +16,10 @@ Subcommands (cwd = backend; paths default to <repo>/data-dumps/research_lab):
     replicate    --run-id h5_cb1       Stage-2 frozen replication of the tests that advanced (q0024 / q0026). Exits 0
                                        'nothing advanced' without reading h5. Verifies the seal, logs every h5 read.
     verify-seal  --run-id h5_cb1       seal check only.
+    batch-holm   --results a.json b.json ...  binding batch Holm over all CB1 Stage-2 tests (history rep files, D rep,
+                                       B R1 from run_cb1_structural). `replicate` only reports replicated_provisional_per_run.
+
+Results are written OUTSIDE the run directories (default <root>/../creative_batch1/history/<run_id>/): an h5 run is sealed.
 
 Results files are never overwritten. Nothing here is prospective, confirmatory, or an edge claim.
 """
@@ -50,8 +54,17 @@ def book_path(a, run_id: str) -> Path:
     return src / ("book_features_h5_cb1" if run_id.startswith("h5") else "book_features") / "book_features.csv.gz"
 
 
-def out_dir(a) -> Path:
-    return Path(a.root) / a.run_id / "cb1"
+def out_dir(a, run_id: str | None = None) -> Path:
+    """Results directory: OUTSIDE the run directory (an h5 run is sealed; any file added under it breaks verify_seal).
+    Default ``<root>/../creative_batch1/history/<run_id>`` (mirrors cb1_structural.OUT_ROOT)."""
+    rid = run_id or a.run_id
+    base = Path(a.out_root) if a.out_root else Path(a.root).parent / "creative_batch1" / "history"
+    out = base / rid
+    run = (Path(a.root) / rid).resolve()
+    o = out.resolve()
+    if o == run or run in o.parents:
+        raise cb.Refused(f"results directory {out} is inside the run directory {run}; refused (sealed runs must stay untouched)")
+    return out
 
 
 def dump(obj) -> dict:
@@ -119,7 +132,7 @@ def cmd_screen(a) -> int:
 
 def cmd_replicate(a) -> int:
     fams = cb.parse_families(a.family)
-    src = Path(a.root) / a.src / "cb1" / cb.results_name(fams, False)
+    src = out_dir(a, a.src) / cb.results_name(fams, False)
     if not src.exists():
         log(f"screen results {src} not found")
         return 1
@@ -133,7 +146,20 @@ def cmd_replicate(a) -> int:
         print(json.dumps({"status": "nothing advanced", "family": fams}))
         return 0
     cb.write_results_and_log(dump(res), path, replication=True)
-    print(json.dumps({"results": str(path), "replicated_local_holm": res["replicated"]}))
+    print(json.dumps({"results": str(path), "replicated_provisional_per_run": res["replicated_provisional_per_run"],
+                      "note": "per-run Holm is provisional; the binding verdict is `batch-holm` over all CB1 Stage-2 tests"}))
+    return 0
+
+
+def cmd_batch_holm(a) -> int:
+    if not a.results:
+        raise cb.Refused("batch-holm needs --results <json> [<json> ...]")
+    docs = [(str(Path(f)), json.loads(Path(f).read_text())) for f in a.results]
+    res = cb.batch_holm(docs)
+    res["inputs"] = [n for n, _ in docs]
+    path = Path(a.out) if a.out else (Path(a.out_root) if a.out_root else Path(a.root).parent / "creative_batch1" / "history") / "batch_holm.json"
+    cb.write_new(path, dump(res))
+    print(json.dumps({"batch_holm": str(path), "m": res["m"], "replicated": res["replicated"]}))
     return 0
 
 
@@ -151,11 +177,14 @@ def cmd_verify(a) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["declaration", "fetch-text", "census", "dryrun", "screen", "replicate", "verify-seal"])
+    ap.add_argument("cmd", choices=["declaration", "fetch-text", "census", "dryrun", "screen", "replicate", "verify-seal", "batch-holm"])
     ap.add_argument("--run-id", default="h2_main")
     ap.add_argument("--from", dest="src", default="h2_main", help="replicate: the screen run whose results select the tests")
     ap.add_argument("--family", default="A,E", help="A,E or C (comma separated)")
     ap.add_argument("--root", default=str(HIST))
+    ap.add_argument("--out-root", default=None, help="results directory root (default <root>/../creative_batch1/history); never inside a run dir")
+    ap.add_argument("--results", nargs="+", default=None, help="batch-holm: Stage-2 results files (history rep, D rep, B R1)")
+    ap.add_argument("--out", default=None, help="batch-holm: output path")
     ap.add_argument("--books", default=None, help="pmxt book table (CB1-C); default per run")
     ap.add_argument("--with-books", action="store_true", help="census: include the C1/C2 order counts")
     ap.add_argument("--n-boot", type=int, default=cb.N_BOOT)
@@ -176,7 +205,7 @@ def main(argv: list[str] | None = None) -> int:
         if a.cmd == "census" and a.fetch_text and not (Path(a.root) / a.run_id / "cb1" / "text.csv.gz").exists():
             cmd_fetch_text(a)
         return {"declaration": cmd_declaration, "fetch-text": cmd_fetch_text, "census": cmd_census, "dryrun": cmd_dryrun,
-                "screen": cmd_screen, "replicate": cmd_replicate, "verify-seal": cmd_verify}[a.cmd](a)
+                "screen": cmd_screen, "replicate": cmd_replicate, "verify-seal": cmd_verify, "batch-holm": cmd_batch_holm}[a.cmd](a)
     except (cb.Refused, h5_seal.SealError, FileExistsError) as exc:
         print(json.dumps({"refused": str(exc)[:400]}))
         return 2

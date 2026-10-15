@@ -82,6 +82,7 @@ NEAR_RUNG_BANDS = ((0.05, 0.0205), (0.20, 0.0150), (0.80, 0.0110), (0.95, 0.0150
 
 DECLARATION_FILE = provenance.REPO_ROOT / "docs" / "research_lab" / "seals" / "cb1_structural_DECLARATION.json"
 SEALS_DIR = provenance.REPO_ROOT / "docs" / "research_lab" / "seals"
+T_REP_START_FILE = SEALS_DIR / "cb1_t_rep_start.json"  # committed pin (written once by `pin-rep-start`)
 OUT_ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "creative_batch1"
 EXTRACT_ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "cb1_extract"
 HIST_ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "history"
@@ -109,6 +110,10 @@ class SealUnavailableError(Cb1Error):
 
 class RungListError(Cb1Error):
     pass
+
+
+class RepStartError(Cb1Error):
+    """The pinned T_rep_start file is missing, malformed, or disagrees with a capture list."""
 
 
 class TooEarlyError(Cb1Error):
@@ -203,6 +208,49 @@ def require_declaration(path: Path = DECLARATION_FILE) -> str:
 # =============================================================================================
 
 
+def _iso_z(t: float) -> str:
+    return datetime.fromtimestamp(t, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def pin_rep_start(freeze_commit: str, commit_time_iso: str, path: Path | None = None) -> dict:
+    """Write the committed T_rep_start pin (never overwritten): ``max(T_rep_start_floor, freeze commit time + 2h)``.
+    ``commit_time_iso`` is the committer date of the CB1 freeze commit (``git show -s --format=%cI <sha>``).
+    The first-complete-capture clause of the design is realised by the rep capture list, whose ``from_utc``
+    must equal this pinned value."""
+    path = Path(path) if path is not None else T_REP_START_FILE
+    if path.exists():
+        raise RepStartError(f"{path} exists; T_rep_start is pinned once and never rewritten")
+    sha = str(freeze_commit).strip()
+    if not (7 <= len(sha) <= 64) or any(c not in "0123456789abcdef" for c in sha.lower()):
+        raise RepStartError(f"not a commit sha: {freeze_commit!r}")
+    plus2h = _ep(commit_time_iso) + 2 * 3600.0
+    start = max(_ep(T_REP_START_FLOOR), plus2h)
+    doc = {"version": VERSION, "freeze_commit": sha, "freeze_commit_time": _iso_z(_ep(commit_time_iso)),
+           "freeze_commit_plus_2h": _iso_z(plus2h), "t_rep_start_floor": T_REP_START_FLOOR,
+           "t_rep_start": _iso_z(start),
+           "rule": "max(floor, freeze commit time + 2h); the rep capture list from_utc must equal t_rep_start"}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "x", encoding="utf-8") as fh:
+        json.dump(doc, fh, indent=1, sort_keys=True)
+        fh.write("\n")
+    return doc
+
+
+def load_pinned_rep_start(path: Path | None = None) -> str:
+    """The committed, pinned T_rep_start (ISO Z). Fail closed if absent or malformed."""
+    path = Path(path) if path is not None else T_REP_START_FILE
+    if not path.exists():
+        raise RepStartError(f"no pinned T_rep_start at {path}; run `pin-rep-start --freeze-commit <sha>` and commit it")
+    try:
+        t = json.loads(path.read_text())["t_rep_start"]
+        ep = _ep(t)
+    except (ValueError, KeyError, TypeError) as exc:
+        raise RepStartError(f"{path}: malformed pin: {exc}") from exc
+    if ep < _ep(T_REP_START_FLOOR):
+        raise RepStartError(f"{path}: t_rep_start {t} is before the declared floor {T_REP_START_FLOOR}")
+    return _iso_z(ep)
+
+
 def capture_list_sha256(ids) -> str:
     return hashlib.sha256("\n".join(sorted(str(i) for i in ids)).encode()).hexdigest()
 
@@ -232,6 +280,10 @@ def load_capture_list(path: Path, expected_sha256: str | None = None, *, window:
         if doc.get("until") and _ep(doc["until"]) != _ep(end):
             raise CaptureListError(f"{path}: until {doc['until']} != declared window end {end}")
         lo = T_DEV_START if window == "dev" else T_REP_START_FLOOR
+        if window == "rep":  # the rep list must start exactly at the pinned T_rep_start
+            pinned = load_pinned_rep_start()
+            if not doc.get("from_utc") or _ep(doc["from_utc"]) != _ep(pinned):
+                raise CaptureListError(f"{path}: from_utc {doc.get('from_utc')} != pinned T_rep_start {pinned}")
         if doc.get("from_utc") and _ep(doc["from_utc"]) < _ep(lo):
             raise CaptureListError(f"{path}: from_utc {doc['from_utc']} is before the declared floor {lo}")
         if window == "dev" and doc.get("from_utc") and _ep(doc["from_utc"]) != _ep(T_DEV_START):
@@ -248,7 +300,10 @@ def window_bounds(window: str, t_rep_start: str | None = None) -> tuple[float, f
     ``b3``: [T_rep_start, inf) (B3 follows its own frozen rung list)."""
     if window == "dev":
         return _ep(T_DEV_START), _ep(T_DEV_END)
-    start = t_rep_start or T_REP_START_FLOOR
+    pinned = load_pinned_rep_start()  # T_rep_start is never a free value
+    start = t_rep_start or pinned
+    if _ep(start) != _ep(pinned):
+        raise WindowError(f"t_rep_start {start} != pinned T_rep_start {pinned}")
     if _ep(start) < _ep(T_REP_START_FLOOR):
         raise WindowError(f"t_rep_start {start} is before the declared floor {T_REP_START_FLOOR}")
     if window == "rep":
@@ -286,14 +341,33 @@ def read_capture_table(extract_root: Path, sub: str, capture_id: str) -> pd.Data
     return pd.read_csv(p, dtype=_STR_COLS)
 
 
-def load_event_members(extract_root: Path) -> dict[str, int]:
-    p = forecast.require_local(Path(extract_root) / "event_members.csv.gz")
-    d = pd.read_csv(p, dtype={"neg_risk_market_id": str})
+def load_event_members(extract_root: Path, asof_utc: str | None = None) -> dict[str, int]:
+    """neg_risk_market_id -> member count. The file is append-only: with ``asof_utc`` only rows with
+    ``fetched_utc <= asof_utc`` count (``creative_batch1.event_members_asof``), so a count fetched after a capture is
+    absent for it (missing stays missing). Without ``asof_utc`` the latest row per id is used (census/diagnostics only)."""
+    from . import creative_batch1
+
+    root = Path(extract_root)
+    forecast.require_local(root / "event_members.csv.gz")
+    d = creative_batch1.event_members_asof(root, asof_utc)
     col = next((c for c in ("member_count", "n_members", "members") if c in d), None)
     if col is None:
-        raise Cb1Error(f"{p}: no member_count column")
-    d = d.dropna(subset=["neg_risk_market_id", col])
+        raise Cb1Error(f"{root / 'event_members.csv.gz'}: no member_count column")
+    d = d[d[col].astype(str).str.strip() != ""]
+    d = d.assign(**{col: pd.to_numeric(d[col], errors="coerce")}).dropna(subset=["neg_risk_market_id", col])
     return {str(k): int(v) for k, v in zip(d["neg_risk_market_id"], d[col], strict=True)}
+
+
+def members_asof_loader(extract_root: Path) -> Callable[[float], dict[str, int]]:
+    """capture start epoch -> member-count table valid at that time (cached per capture time)."""
+    cache: dict[float, dict[str, int]] = {}
+
+    def get(cs: float) -> dict[str, int]:
+        if cs not in cache:
+            cache[cs] = load_event_members(extract_root, _iso_z(cs))
+        return cache[cs]
+
+    return get
 
 
 def load_manifest_starts(extract_root: Path) -> dict[str, float]:
@@ -460,14 +534,15 @@ def _group_eligible(g: pd.DataFrame, n_members: int | None, outcomes: dict[str, 
             "event_id": str(g["event_id"].iloc[0]) if "event_id" in g else ""}, "ok"
 
 
-def negrisk_event_captures(df: pd.DataFrame, members: dict[str, int], outcomes: dict[str, float] | None = None
+def negrisk_event_captures(df: pd.DataFrame, members: dict[str, int] | Callable[[float], dict[str, int]], outcomes: dict[str, float] | None = None
                            ) -> tuple[pd.DataFrame, dict]:
     """Eligible event-captures (one row each) plus counts of ineligibility reasons."""
     reasons: dict[str, int] = {}
     rows = []
     if len(df):
         for (cid, gid), g in df.groupby(["capture_id", "neg_risk_market_id"], sort=False):
-            res, why = _group_eligible(g, members.get(str(gid)), outcomes)
+            mem = members(float(g["cs"].iloc[0])) if callable(members) else members
+            res, why = _group_eligible(g, mem.get(str(gid)), outcomes)
             reasons[why] = reasons.get(why, 0) + 1
             if res is None:
                 continue
@@ -646,7 +721,8 @@ def negrisk_tests(ec: pd.DataFrame, trig: pd.DataFrame, *, n_boot: int, dev: boo
         if n_res_ev < D_MIN_RESOLVED:
             cap = "inconclusive (payoff unverified)"
         else:
-            nsw = float((~res["single_winner"]).mean())
+            # per resolved triggered EVENT (design: share of resolved triggered events that are not single-winner)
+            nsw = float(res.groupby("gid")["single_winner"].all().eq(False).mean())
             real.update(non_single_winner_share=nsw, mean_net_realised=float(res["net_real"].mean()),
                         same_sign=bool(res["net_real"].mean() > 0), ceiling_ok=bool(nsw <= D_MAX_NON_SINGLE_WINNER))
             if not (real["same_sign"] and real["ceiling_ok"]):
@@ -707,7 +783,7 @@ def d2_placebo(ec: pd.DataFrame, trig: pd.DataFrame, *, draws: int = PLACEBO_DRA
 def build_negrisk(extract_root: Path, cl: dict, window: str, *, t_rep_start: str | None = None,
                   outcomes: dict[str, float] | None = None) -> dict:
     """Load a frozen window and build event-captures and triggers (no test statistic computed here)."""
-    members = load_event_members(extract_root)
+    members = members_asof_loader(extract_root)
     df, cs_by, load_cnt = load_window_captures(extract_root, cl, window, "negrisk", t_rep_start)
     ec, ecnt = negrisk_event_captures(df, members, outcomes)
     nxt, pcnt = next_capture_pairs(cs_by)
@@ -1015,23 +1091,19 @@ def calendar_disjoint_subset(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def committed_listing_hash(run_id: str, seals_dir: Path = SEALS_DIR) -> str:
-    """Listing hash of the committed seal copy for ``run_id`` (``<run_id>_SEAL.json``, or the combined
-    ``h5_cb1_SEAL.json`` keyed by run id). Fail closed if no committed copy can be found."""
-    for name in (f"{run_id}_SEAL.json", "h5_cb1_SEAL.json"):
-        p = Path(seals_dir) / name
-        if not p.exists():
-            continue
+    """Listing hash of the committed seal copy: ONE file per sealed run, ``<run_id>_SEAL.json``, with a top-level
+    ``listing_sha256`` (the format ``h5_seal.require_sealed`` reads). No other layout is accepted. Fail closed."""
+    p = Path(seals_dir) / f"{run_id}_SEAL.json"
+    if not p.exists():
+        raise SealUnavailableError(f"no committed seal copy {p}; refusing to read h5")
+    try:
         doc = json.loads(p.read_text())
-        for cand in (doc, doc.get(run_id), (doc.get("runs") or {}).get(run_id) if isinstance(doc.get("runs"), dict)
-                     else None):
-            if isinstance(cand, dict) and cand.get("listing_sha256") and \
-                    cand.get("run_id", run_id) == run_id:
-                return str(cand["listing_sha256"])
-        if isinstance(doc.get("runs"), list):
-            for cand in doc["runs"]:
-                if cand.get("run_id") == run_id and cand.get("listing_sha256"):
-                    return str(cand["listing_sha256"])
-    raise SealUnavailableError(f"no committed seal copy for {run_id} under {seals_dir}; refusing to read h5")
+    except ValueError as exc:
+        raise SealUnavailableError(f"committed seal copy unreadable: {p}") from exc
+    h = doc.get("listing_sha256") if isinstance(doc, dict) else None
+    if not isinstance(h, str) or not h:
+        raise SealUnavailableError(f"{p.name}: no top-level listing_sha256 (only the one-file-per-run format is accepted)")
+    return h
 
 
 def require_sealed(run_dir: Path, seals_dir: Path = SEALS_DIR) -> dict:

@@ -68,6 +68,7 @@ MAX_AGE = float(hb.MAX_QUOTE_AGE_S)  # 2h
 HOLD_BUFFER_D = 60.0  # origins t <= T_censor - 60d
 LIFE_MAX_D = 100.0  # A2 / E scheduled life
 END_FORWARD_D = 400.0  # end_at <= T_fetch + 400d
+LOOKBACK_D = 450.0  # CB1-F completeness rule: created_at >= T_fetch - 450d (h5; other runs use their manifest lookback_days)
 A1_WINDOW_S = DAY
 A2_PRE_END_S = DAY
 A2_TRADE_LOOKBACK_S = 7 * DAY
@@ -188,7 +189,12 @@ INTERPRETATIONS = [
     "Candidate origins for first-origin rules are those satisfying all non-trade conditions; an unavailable trade condition "
     "at such a candidate (before any available-True one) excludes the market.",
     "C post-fill drift: filled orders use m_c(t_fill + 24h) - m_c(t); unfilled orders use the end of the order life (t + 6h) as pseudo fill time.",
-    "Local Holm in replicate runs covers the tests of that run only; the CB1 batch Holm over all Stage-2 tests is done by the coordinator.",
+    "Local Holm in replicate runs covers the tests of that run only and is reported as replicated_provisional_per_run; the binding "
+    "verdict is the CB1 batch Holm over all Stage-2 tests (`run_cb1_history.py batch-holm`).",
+    "Completeness rule (CB1-F): A1, A2 and E use only markets with created_at >= T_fetch - lookback (450d for h5; the manifest "
+    "lookback_days for other runs); markets outside (or with no created_at) are not units and are counted in lookback_excluded.",
+    "Censored units are excluded from the denominator of the tail share pi; a censored-as-loser bound is reported, not binding.",
+    "Units with no as-of price at any candidate origin are dropped and counted by outcome status in no_asof_price_by_status.",
     "End-at sensitivity drops markets whose closed_time is more than 30 days after end_at.",
 ]
 
@@ -204,7 +210,7 @@ def declaration_blob() -> dict:
     return {
         "version": VERSION,
         "hyps": declaration_table(),
-        "dates": {"hold_buffer_d": HOLD_BUFFER_D, "life_max_d": LIFE_MAX_D, "end_forward_d": END_FORWARD_D},
+        "dates": {"hold_buffer_d": HOLD_BUFFER_D, "life_max_d": LIFE_MAX_D, "end_forward_d": END_FORWARD_D, "lookback_d": LOOKBACK_D},
         "windows": {
             "a1_window_s": A1_WINDOW_S, "a2_pre_end_s": A2_PRE_END_S, "a2_lookback_s": A2_TRADE_LOOKBACK_S,
             "e_origin_s": E_ORIGIN_S, "e_secondary_s": list(E_SECONDARY_S), "e_min_trades": E_MIN_TRADES,
@@ -385,10 +391,27 @@ class Ctx:
     t_fetch: float
     t_censor: float
     is_h5: bool = False
+    lookback_d: float = LOOKBACK_D
 
     @property
     def last_origin(self) -> float:
         return self.t_censor - HOLD_BUFFER_D * DAY
+
+
+def in_lookback(rec: dict, ctx: Ctx) -> bool:
+    """CB1-F completeness rule: ``created_at >= T_fetch - lookback``. A market with no creation time cannot be shown
+    to satisfy it and is excluded (and counted); missing data stays missing."""
+    cre = rec["created_epoch"]
+    return bool(not math.isnan(cre) and cre >= ctx.t_fetch - ctx.lookback_d * DAY)
+
+
+def status_tag(closed: bool, y0: float | None, close_epoch: float) -> str:
+    """Outcome status of a market for counting units that never formed: unresolved | missing | 5050 | resolved."""
+    if not closed:
+        return "unresolved"
+    if y0 is None or math.isnan(close_epoch):
+        return "missing"
+    return "5050" if y0 == 0.5 else "resolved"
 
 
 def drop_outcome_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -464,7 +487,7 @@ def _unit_base(rec: dict, ctx: Ctx, tid: str, t: float, side: int, p_side: float
     return u
 
 
-def select_a1(rec: dict, ts, vals, tr_ts, truncated, oldest_ts, ctx: Ctx) -> tuple[dict | None, dict | None]:
+def select_a1(rec: dict, ts, vals, tr_ts, truncated, oldest_ts, ctx: Ctx, diag: dict | None = None) -> tuple[dict | None, dict | None]:
     """A1: first qualifying 2h origin in [end_at, end_at + 24h). Returns (unit, excluded)."""
     if is_sports(rec["fee_category"]) or math.isnan(rec["end_epoch"]):
         return None, None
@@ -481,6 +504,8 @@ def select_a1(rec: dict, ts, vals, tr_ts, truncated, oldest_ts, ctx: Ctx) -> tup
     state = combine_states(c1, c2)
     i, st = first_qualifying(nontrade, state)
     if st == "none":
+        if diag is not None and not np.isfinite(p0).any():
+            diag["no_asof_price"] = True  # every candidate origin lacks an as-of price: dropped, counted by the caller
         return None, None
     cost = cost_model(float(ps[i]), rec["fee_category"])
     base = _unit_base(rec, ctx, "A1", t[i], int(side[i]), float(ps[i]), cost)
@@ -489,7 +514,7 @@ def select_a1(rec: dict, ts, vals, tr_ts, truncated, oldest_ts, ctx: Ctx) -> tup
     return base, None
 
 
-def select_a2(rec: dict, ts, vals, tr_ts, truncated, oldest_ts, ctx: Ctx) -> tuple[dict | None, dict | None]:
+def select_a2(rec: dict, ts, vals, tr_ts, truncated, oldest_ts, ctx: Ctx, diag: dict | None = None) -> tuple[dict | None, dict | None]:
     """A2: scheduled life <= 100d, first qualifying 2h origin with t < end_at - 24h."""
     end, cre = rec["end_epoch"], rec["created_epoch"]
     if math.isnan(end) or math.isnan(cre) or end - cre > LIFE_MAX_D * DAY or end > ctx.t_fetch + END_FORWARD_D * DAY:
@@ -504,6 +529,8 @@ def select_a2(rec: dict, ts, vals, tr_ts, truncated, oldest_ts, ctx: Ctx) -> tup
     state = trade_condition_state(tr_ts, truncated, oldest_ts, t - A2_TRADE_LOOKBACK_S, t, 1)
     i, st = first_qualifying(nontrade, state)
     if st == "none":
+        if diag is not None and not np.isfinite(p0).any():
+            diag["no_asof_price"] = True
         return None, None
     cost = cost_model(float(ps[i]), rec["fee_category"])
     base = _unit_base(rec, ctx, "A2", t[i], int(side[i]), float(ps[i]), cost)
@@ -522,7 +549,8 @@ def e_eligible_static(rec: dict, ctx: Ctx) -> bool:
     return (end - cre <= LIFE_MAX_D * DAY) and (end <= ctx.t_fetch + END_FORWARD_D * DAY)
 
 
-def select_e(rec: dict, ts, vals, tr_ts, truncated, oldest_ts, ctx: Ctx, offset: float = E_ORIGIN_S) -> tuple[dict | None, dict | None]:
+def select_e(rec: dict, ts, vals, tr_ts, truncated, oldest_ts, ctx: Ctx, offset: float = E_ORIGIN_S,
+             diag: dict | None = None) -> tuple[dict | None, dict | None]:
     """E1 population unit at origin created_at + offset (YES = outcome 0 = ``Yes``)."""
     if not e_eligible_static(rec, ctx):
         return None, None
@@ -531,7 +559,11 @@ def select_e(rec: dict, ts, vals, tr_ts, truncated, oldest_ts, ctx: Ctx, offset:
     if t[0] > ctx.last_origin:
         return None, None
     pY = asof_quote(ts, vals, t)
-    if not np.isfinite(pY[0]) or not (BAND_E[0] <= pY[0] <= BAND_E[1]):
+    if not np.isfinite(pY[0]):
+        if diag is not None:
+            diag["no_asof_price"] = True  # no as-of price at the origin: dropped, counted by the caller
+        return None, None
+    if not (BAND_E[0] <= pY[0] <= BAND_E[1]):
         return None, None
     if not open_at(cre, rec["close_epoch"], t)[0]:
         return None, None
@@ -684,12 +716,28 @@ def tail_bound(
 
 
 def tail_params(df: pd.DataFrame, which: str) -> tuple[np.ndarray, float]:
-    """(loss indicator, break-even pi*) for the declared tail: A (favourite loses) or C (longshot wins)."""
+    """(loss indicator, break-even pi*) for the declared tail: A (favourite loses) or C (longshot wins).
+    Computed over the NON-censored units only: a censored unit has no observed binary outcome, so it is not a
+    non-loser in the denominator of pi (see :func:`tail_inputs` for the censored-as-loser bound)."""
+    d = df[df["status"].to_numpy() != "censored"]
     if which == "A":
-        loses = (df["Y"].to_numpy() == 0.0) & (df["status"].to_numpy() != "censored")
-        return loses, float(1.0 - (df["a"] + df["f"]).mean())
-    loses = (df["Y"].to_numpy() == 1.0) & (df["status"].to_numpy() != "censored")
-    return loses, float(df["a"].mean())
+        return (d["Y"].to_numpy() == 0.0), float(1.0 - (d["a"] + d["f"]).mean()) if len(d) else float("nan")
+    return (d["Y"].to_numpy() == 1.0), float(d["a"].mean()) if len(d) else float("nan")
+
+
+def tail_inputs(df: pd.DataFrame, which: str) -> dict:
+    """Tail-gate inputs: non-censored (losses, clusters, pi*) and the censored-as-loser variant (reported)."""
+    cens = (df["status"].to_numpy() == "censored")
+    d = df[~cens]
+    losses, pi_star = tail_params(df, which)
+    ev_all, _ = cluster_arrays(df)
+    ev_all = np.asarray(ev_all)
+    base = (d["Y"].to_numpy() == (0.0 if which == "A" else 1.0))
+    full = np.zeros(len(df), bool)
+    full[~cens] = base
+    full[cens] = True  # worst case: every censored unit counted as a loser
+    return {"losses": losses, "clusters": ev_all[~cens], "pi_star": pi_star, "losses_cens_loser": full,
+            "clusters_all": ev_all, "n_censored": int(cens.sum())}
 
 
 def value_col(spec: dict) -> str:
@@ -719,10 +767,16 @@ def gate_core(
     z_usable = True
     tail = None
     if spec["tail"]:
-        losses, pi_star = tail_params(df, spec["tail"])
-        tb = tail_bound(losses, ev, alpha, "upper", n_boot=n_boot_deff, seed=seed)
-        tail_ok = bool(tb["bound"] < pi_star - spec["tail_floor"])
-        tail = {**tb, "pi_star": pi_star, "floor": spec["tail_floor"], "ok": tail_ok, "pi_star_minus_floor": pi_star - spec["tail_floor"]}
+        ti = tail_inputs(df, spec["tail"])
+        pi_star = ti["pi_star"]
+        tb = tail_bound(ti["losses"], ti["clusters"], alpha, "upper", n_boot=n_boot_deff, seed=seed)
+        tail_ok = bool(tb["bound"] < pi_star - spec["tail_floor"])  # censored units are NOT in the pi denominator
+        tail = {**tb, "pi_star": pi_star, "floor": spec["tail_floor"], "ok": tail_ok, "pi_star_minus_floor": pi_star - spec["tail_floor"],
+                "n_censored_excluded": ti["n_censored"]}
+        if ti["n_censored"]:  # reported bound: every censored unit counted as a loser (not binding)
+            tbc = tail_bound(ti["losses_cens_loser"], ti["clusters_all"], alpha, "upper", n_boot=n_boot_deff, seed=seed)
+            tail["censored_as_loser"] = {"pi_hat": tbc["pi_hat"], "bound": tbc["bound"], "method": tbc["method"],
+                                         "ok": bool(tbc["bound"] < pi_star - spec["tail_floor"])}
         z_usable = bool(tb.get("z_usable", True))
         if not tail_ok:
             fail.append("tail_gate")
@@ -822,8 +876,9 @@ def killed_categories(df: pd.DataFrame, spec: dict, alpha: float) -> dict:
     for cat, g in df.groupby(df["category"].str.split(":").str[0]):
         if g["market_id"].nunique() < KILL_MIN_MARKETS:
             continue
-        losses, pi_star = tail_params(g, spec["tail"])
-        tb = tail_bound(losses, g["event"].astype(str).to_numpy(), alpha, "lower", n_boot=200)
+        ti = tail_inputs(g, spec["tail"])
+        pi_star = ti["pi_star"]
+        tb = tail_bound(ti["losses"], ti["clusters"], alpha, "lower", n_boot=200)
         out[str(cat)] = {"n_markets": int(g["market_id"].nunique()), "lower_bound": tb["bound"], "pi_star": pi_star, "killed": bool(tb["bound"] > pi_star)}
     return out
 
@@ -976,6 +1031,20 @@ def economic_sensitivities(df: pd.DataFrame, spec: dict, rebuild) -> dict:
 
 
 # --- truncation / missing worst-case bounds (section 2.2) -----------------------------------------------------------------
+
+
+def missing_as_losing(d: pd.DataFrame, raw: pd.DataFrame) -> dict:
+    """Declared worst case (reported, not binding): units whose outcome is missing counted as losing at their own
+    price (long: Y = 0; short cheap side: Y = 1), added to the usable units ``d``."""
+    miss = raw[raw["status"] == "missing"] if len(raw) else raw
+    base = float(d["net"].mean()) if len(d) else float("nan")
+    if not len(miss):
+        return {"n_missing": 0, "mean": base}
+    m = miss.copy()
+    m["Y"] = np.where(m["kind"].to_numpy() == "long", 0.0, 1.0)
+    m = finalize_net(m)
+    allnet = np.r_[d["net"].to_numpy(float) if len(d) else np.empty(0), m["net"].to_numpy(float)]
+    return {"n_missing": int(len(m)), "mean": float(allnet.mean()), "mean_usable_only": base}
 
 
 def y_tag(u: dict, y0: float | None) -> str:
@@ -1242,6 +1311,8 @@ def build_family_units(run_dir: Path, family: str, ctx: Ctx, *, text_ok: bool = 
         bk_groups = {}
     e_secondary: dict[float, list[dict]] = {o: [] for o in E_SECONDARY_S}
     n_markets = 0
+    lb: dict = {"lookback_days": ctx.lookback_d, "markets_outside": 0, "created_missing": 0, "would_qualify": {t: 0 for t in FAMILY_TESTS[family]}}
+    noprice: dict[str, dict[str, int]] = {t: {} for t in FAMILY_TESTS[family]}
     for rec, ts, vals, tr, trunc, oldest in iter_markets(run_dir, frame):
         n_markets += 1
         tr_ts = np.sort(tr["ts"].to_numpy(float)) if len(tr) else np.empty(0)
@@ -1249,9 +1320,20 @@ def build_family_units(run_dir: Path, family: str, ctx: Ctx, *, text_ok: bool = 
             y0 = 1.0 if rec["closed"] else None
         else:
             y0 = None if census else parse_outcome0(rec.get("outcome_prices"))
+        outside = family in ("A", "E") and not in_lookback(rec, ctx)
+        if outside:
+            lb["markets_outside"] += 1
+            lb["created_missing"] += int(math.isnan(rec["created_epoch"]))
         if family == "A":
             for tid, fn in (("A1", select_a1), ("A2", select_a2)):
-                u, ex = fn(rec, ts, vals, tr_ts, trunc, oldest, ctx)
+                dg: dict = {}
+                u, ex = fn(rec, ts, vals, tr_ts, trunc, oldest, ctx, dg)
+                if outside:  # completeness rule: not a unit; counted if it would otherwise have qualified
+                    lb["would_qualify"][tid] += int(u is not None or ex is not None)
+                    continue
+                if dg.get("no_asof_price"):
+                    tag = "census" if census else status_tag(bool(rec["closed"]), y0, rec["close_epoch"])
+                    noprice[tid][tag] = noprice[tid].get(tag, 0) + 1
                 if u is not None:
                     units[tid].append(u if census else attach_outcome(u, y0, ts, vals, ctx))
                 if ex is not None:
@@ -1262,7 +1344,14 @@ def build_family_units(run_dir: Path, family: str, ctx: Ctx, *, text_ok: bool = 
                 if text_ok:
                     missing_text += 1
                 continue
-            u, ex = select_e(rec, ts, vals, tr_ts, trunc, oldest, ctx)
+            dg = {}
+            u, ex = select_e(rec, ts, vals, tr_ts, trunc, oldest, ctx, diag=dg)
+            if outside:
+                lb["would_qualify"]["E1"] += int(u is not None or ex is not None)
+                continue
+            if dg.get("no_asof_price"):
+                tag = "census" if census else status_tag(bool(rec["closed"]), y0, rec["close_epoch"])
+                noprice["E1"][tag] = noprice["E1"].get(tag, 0) + 1
             for off in E_SECONDARY_S:
                 us, _ = select_e(rec, ts, vals, tr_ts, trunc, oldest, ctx, offset=off)
                 if us is not None and not census:
@@ -1295,6 +1384,9 @@ def build_family_units(run_dir: Path, family: str, ctx: Ctx, *, text_ok: bool = 
                 e["y_tag"] = "census" if census else y_tag(e, y0)
                 c_excl.append(e)
     out: dict = {"n_markets_read": n_markets, "missing_text": missing_text}
+    if family in ("A", "E"):
+        out["lookback_excluded"] = lb
+        out["no_asof_price_by_status"] = noprice
     if family == "C":
         out["orders"] = pd.DataFrame(c_orders)
         out["excluded"] = {"C": c_excl}
@@ -1391,6 +1483,47 @@ def holm(pvals: dict[str, float], alpha: float = ALPHA_STAGE2) -> dict:
         rejecting = rejecting and (p <= alpha / (m - i))
         out[k] = {"p": p, "p_holm": running, "reject": bool(rejecting)}
     return out
+
+
+STAGE2_TEST_IDS = ("A1", "A2", "C1", "C2", "E1", "E2", "E3", "D1", "D2", "B1", "B2")
+
+
+def stage2_tests_from_results(doc: dict, name: str = "?") -> dict[str, dict]:
+    """The Stage-2 tests of one results file, from either module. History rep files carry ``stage == 2``; the
+    structural files are D rep (``window == 'rep'``) and B R1 (``stage == 'stage2_pre_holm'``). Anything else (a Stage-1
+    screen, the D dev window, B3 prospective) is refused: it is not in the Stage-2 family."""
+    tests = doc.get("tests")
+    if not isinstance(tests, dict):
+        raise Refused(f"{name}: no tests table")
+    is_hist = doc.get("stage") == 2 and doc.get("revision") == REVISION_R
+    is_d_rep = doc.get("window") == "rep" and set(tests) <= {"D1", "D2"}
+    is_b_r1 = doc.get("stage") == "stage2_pre_holm" and set(tests) <= {"B1", "B2"}
+    if not (is_hist or is_d_rep or is_b_r1):
+        raise Refused(f"{name}: not a CB1 Stage-2 results file (history rep, D rep window, or B R1)")
+    out = {}
+    for tid, r in tests.items():
+        if tid not in STAGE2_TEST_IDS:
+            raise Refused(f"{name}: unknown test id {tid!r}")
+        out[tid] = {"p": float(r.get("p", 1.0)), "advance": bool(r.get("advance")), "source": name}
+    return out
+
+
+def batch_holm(results_docs: list[tuple[str, dict]], alpha: float = ALPHA_STAGE2) -> dict:
+    """Batch-wide Holm (alpha, one-sided p-values) over ALL CB1 Stage-2 tests across the history (A/C/E) and structural
+    (D rep, B1, B2) results files. A test is ``replicated`` only if its own Stage-2 gate passed (``advance``: same sign,
+    floors, tail gate, binding robustness) AND the batch Holm rejects. A test id may appear once."""
+    pv: dict[str, dict] = {}
+    for name, doc in results_docs:
+        for tid, rec in stage2_tests_from_results(doc, name).items():
+            if tid in pv:
+                raise Refused(f"test {tid} appears in both {pv[tid]['source']} and {name}")
+            pv[tid] = rec
+    if not pv:
+        return {"m": 0, "alpha": alpha, "tests": {}, "replicated": []}
+    hm = holm({t: r["p"] for t, r in pv.items()}, alpha)
+    tests = {t: {**pv[t], **hm[t], "replicated": bool(pv[t]["advance"] and hm[t]["reject"])} for t in sorted(pv)}
+    return {"m": len(pv), "alpha": alpha, "tests": tests, "replicated": sorted(t for t, r in tests.items() if r["replicated"]),
+            "note": "batch Holm over the Stage-2 set present in the given files; a missing file means a smaller family (check m)"}
 
 
 def log_trials(out: dict, path: Path, *, replication: bool = False, family: str, dataset: str,
@@ -1526,6 +1659,9 @@ def evaluate_family(run_dir: Path, family: str, ctx: Ctx, *, stage: int = 1, onl
     built = build_family_units(run_dir, family, ctx, books=books, text_ok=text_ok, max_markets=max_markets, synthetic=placebo_y)
     fr = FamilyResult(family)
     fr.extras["n_markets_read"] = built["n_markets_read"]
+    if "lookback_excluded" in built:
+        fr.extras["lookback_excluded"] = built["lookback_excluded"]
+        fr.extras["no_asof_price_by_status"] = built["no_asof_price_by_status"]
     rng = np.random.default_rng(seed + 31)
 
     def prep(df: pd.DataFrame) -> pd.DataFrame:
@@ -1554,6 +1690,8 @@ def evaluate_family(run_dir: Path, family: str, ctx: Ctx, *, stage: int = 1, onl
             d = d[np.isfinite(d["drift"])] if len(d) else d
         r = evaluate_test(d, tid, stage=stage, n_boot=n_boot, n_placebo=n_placebo, seed=seed, placebo=True)
         r["n_missing_outcome"] = int((df["status"] == "missing").sum()) if len(df) else 0
+        if len(d) and "sensitivity" in r:
+            r["sensitivity"]["missing_as_losing"] = missing_as_losing(d, df)
         if tid != "E2":
             r["truncation"] = truncation_bound(d, built["excluded"][tid], tid) if len(d) else {"n_excluded": len(built["excluded"][tid])}
         else:
@@ -1608,6 +1746,8 @@ def evaluate_c(f: pd.DataFrame, orders_all: pd.DataFrame, tid: str, stage: int, 
                       depth=f["Q0"].to_numpy(float) if len(f) else None)
     if not len(f):
         return r
+    if "sensitivity" in r:
+        r["sensitivity"]["missing_as_losing"] = missing_as_losing(f, c_tests(orders_all)[tid])
     sp = orders_all["category"].map(is_sports)
     pop = orders_all[sp if tid == "C2" else ~sp]
     filled = pop[pop["filled"].astype(bool)]
@@ -1665,7 +1805,14 @@ def parse_families(spec: str) -> list[str]:
 def make_ctx(run_dir: Path) -> Ctx:
     forbid_run(Path(run_dir).name)
     t = request_clock(Path(run_dir))
-    return Ctx(run_id=Path(run_dir).name, t_fetch=t, t_censor=t, is_h5=Path(run_dir).name.startswith("h5"))
+    is_h5 = Path(run_dir).name.startswith("h5")
+    lb = LOOKBACK_D
+    if not is_h5:  # the run's own frame lookback (a longer rule would be vacuous, a shorter one is the frame's limit)
+        try:
+            lb = float(load_manifest(run_dir).get("lookback_days") or LOOKBACK_D)
+        except (TypeError, ValueError):
+            lb = LOOKBACK_D
+    return Ctx(run_id=Path(run_dir).name, t_fetch=t, t_censor=t, is_h5=is_h5, lookback_d=lb)
 
 
 def load_books(path: Path) -> pd.DataFrame:
@@ -1728,7 +1875,7 @@ def header(ctx: Ctx, families: list[str], stage: int, extra: dict | None = None)
         "version": VERSION, "revision": REVISION_R if stage == 2 else REVISION, "evidence_role": EVIDENCE_ROLE,
         "label": "EXPLORATORY", "run_id": ctx.run_id, "families": families, "stage": stage,
         "declaration_sha256": declaration_sha256(), "e3_text_rule_sha256": e3_text_rule_sha256(),
-        "t_fetch_utc": hb.utc_iso(ctx.t_fetch), "t_censor_utc": hb.utc_iso(ctx.t_censor), "cumulative_count": cum,
+        "lookback_days": ctx.lookback_d, "t_fetch_utc": hb.utc_iso(ctx.t_fetch), "t_censor_utc": hb.utc_iso(ctx.t_censor), "cumulative_count": cum,
         "interpretations": INTERPRETATIONS, "provenance": provenance.run_provenance(), "data_provenance": hb.PROVENANCE,
         "beyond_budget_note": "h2_main is worn far beyond its revision budget: every result on it is L1 at most, not naive"
         if ctx.run_id == "h2_main" else None,
@@ -1808,8 +1955,9 @@ def replicate(run_dir: Path, from_results: dict, families: list[str], *, books: 
     hm = holm({t: float(r.get("p", 1.0)) for t, r in out["tests"].items()}, ALPHA_STAGE2)
     out["holm_local"] = hm
     for t, r in out["tests"].items():
-        r["replicated"] = bool(r.get("advance") and hm[t]["reject"])
-    out["replicated"] = sorted(t for t, r in out["tests"].items() if r["replicated"])
+        r["replicated_provisional_per_run"] = bool(r.get("advance") and hm[t]["reject"])
+    out["replicated_provisional_per_run"] = sorted(t for t, r in out["tests"].items() if r["replicated_provisional_per_run"])
+    out["holm_note"] = "per-run Holm only; the binding CB1 verdict is the batch Holm over all Stage-2 tests (batch-holm)"
     return out
 
 

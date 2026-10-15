@@ -599,7 +599,7 @@ def test_replicate_guards_and_access_log(tmp_path, monkeypatch):
     run, copy = seal_dir(tmp_path / "ok")
     monkeypatch.setattr(cb, "evaluate_family", lambda *a, **k: cb.FamilyResult("A"))
     out = cb.replicate(run, adv, ["A"], spec_path=spec, seal_copy=copy, require_committed=False, job="jobx")
-    assert out["stage"] == 2 and out["replicated"] == []
+    assert out["stage"] == 2 and out["replicated_provisional_per_run"] == [] and "replicated" not in out
     log = [json.loads(x) for x in (run / "ACCESS_LOG.jsonl").read_text().splitlines()]
     assert len(log) == 1 and log[0]["job"] == "jobx" and log[0]["declaration_sha256"] == decl and "git_commit" in log[0]
 
@@ -723,3 +723,134 @@ def test_parse_families():
     with pytest.raises(cb.Refused):
         cb.parse_families("B")
     assert cb.results_name(["E", "A"], False) == "results_cb1_AE.json" and cb.results_name(["C"], True) == "results_cb1_C_rep.json"
+
+
+# ----------------------------------------------------------------------------------------------- freeze-check fixes 3-8, 12
+def test_tail_gate_excludes_censored_from_pi_and_reports_censored_as_loser():
+    df = long_units(n=600, lose=[1, 2, 3, 4, 5])
+    cens = np.zeros(600, bool)
+    cens[300:500] = True
+    df.loc[cens, "status"] = "censored"
+    df.loc[cens, "censored"] = True
+    ti = cb.tail_inputs(df, "A")
+    assert len(ti["losses"]) == 400 and ti["n_censored"] == 200 and len(ti["clusters"]) == 400
+    g = cb.gate_core(df, cb.HYPOTHESES_CB1["A1"], 0.01, n_boot=50)
+    t = g["tail"]
+    assert t["n"] == 400 and t["pi_hat"] == pytest.approx(5 / 400) and t["n_censored_excluded"] == 200
+    assert t["censored_as_loser"]["pi_hat"] == pytest.approx(205 / 600)  # worst case, reported only
+    assert t["censored_as_loser"]["ok"] is False
+
+
+def test_lookback_rule_counts_excluded_units_and_a2_not_a_survivor_sample(tmp_path):
+    ms = [a1_market(f"in{i}", close=END + (2 + i) * DAY) for i in range(3)]
+    ms += [a1_market(f"out{i}", close=END + (2 + i) * DAY, created=END - 600 * DAY) for i in range(2)]
+    run = write_run(tmp_path, "h2_main", ms, END + 300 * DAY)
+    ctx = ctx_for()
+    assert ctx.lookback_d == 450.0
+    b = cb.build_family_units(run, "A", ctx)
+    assert sorted(b["units"]["A1"]["market_id"]) == ["in0", "in1", "in2"]
+    lb = b["lookback_excluded"]
+    assert lb["markets_outside"] == 2 and lb["would_qualify"]["A1"] == 2 and lb["lookback_days"] == 450.0
+    assert cb.in_lookback({"created_epoch": float("nan")}, ctx) is False
+
+
+def test_units_with_no_asof_price_are_counted_by_status(tmp_path):
+    created = END - 10 * DAY
+    stale = dict(prices=price_series(created, END - 5 * DAY, 0.97))  # last price long before every origin
+    ms = [a1_market("r1", **stale), a1_market("r2", **stale), a1_market("u1", closed=0, close=None, **stale)]
+    ms[2]["close"] = ""
+    run = write_run(tmp_path, "h2_main", ms, END + 300 * DAY)
+    b = cb.build_family_units(run, "A", ctx_for())
+    assert b["no_asof_price_by_status"]["A1"] == {"resolved": 2, "unresolved": 1}
+    assert len(b["units"]["A1"]) == 0
+
+
+def test_missing_outcome_as_losing_worst_case():
+    df = long_units(n=300)
+    raw = pd.concat([df, long_units(n=20).assign(market_id=[f"x{i}" for i in range(20)], event=[f"y{i}" for i in range(20)],
+                                                status="missing", Y=np.nan, net=np.nan)], ignore_index=True)
+    r = cb.missing_as_losing(df, raw)
+    a, f = float(df["a"].iloc[0]), float(df["f"].iloc[0])
+    assert r["n_missing"] == 20
+    assert r["mean"] == pytest.approx((df["net"].sum() - 20 * (a + f)) / 320)
+    assert cb.missing_as_losing(df, df)["n_missing"] == 0
+
+
+def _hist_rep(tests, stage=2):
+    return {"stage": stage, "revision": cb.REVISION_R, "tests": tests}
+
+
+def test_batch_holm_over_both_modules_and_refusals():
+    docs = [
+        ("h", _hist_rep({"A1": {"p": 0.001, "advance": True}, "E1": {"p": 0.03, "advance": True}})),
+        ("d", {"window": "rep", "tests": {"D2": {"p": 0.01, "advance": True}}}),
+        ("b", {"stage": "stage2_pre_holm", "tests": {"B1": {"p": 0.2, "advance": False}, "B2": {"p": 1.0, "advance": False}}}),
+    ]
+    r = cb.batch_holm(docs)
+    assert r["m"] == 5 and r["replicated"] == ["A1", "D2"]  # E1: 0.03 > 0.05/3
+    assert r["tests"]["E1"]["replicated"] is False and r["tests"]["A1"]["p_holm"] == pytest.approx(0.005)
+    # reject only counts if the test's own Stage-2 gate passed
+    docs2 = [("h", _hist_rep({"A1": {"p": 0.001, "advance": False}}))]
+    assert cb.batch_holm(docs2)["replicated"] == []
+    for bad in ({"window": "dev", "tests": {"D1": {"p": 0.1}}}, _hist_rep({"A1": {"p": 0.1}}, stage=1),
+                {"tests": {"B3": {"p": 0.1}}}):
+        with pytest.raises(cb.Refused):
+            cb.batch_holm([("x", bad)])
+    with pytest.raises(cb.Refused, match="both"):
+        cb.batch_holm([("h", _hist_rep({"A1": {"p": 0.1}})), ("h2", _hist_rep({"A1": {"p": 0.1}}))])
+
+
+def _runner():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("run_cb1_history", Path(__file__).resolve().parents[2] / "scripts" / "run_cb1_history.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_replicate_writes_nothing_under_the_sealed_run_dir(tmp_path, monkeypatch, capsys):
+    r = _runner()
+    root = tmp_path / "history"
+    spec = good_spec(tmp_path)
+    run, copy = seal_dir(root)
+    orig = cb.replicate
+    monkeypatch.setattr(cb, "replicate", lambda *a, **k: orig(*a, seal_copy=copy, spec_path=spec, require_committed=False, **k))
+    before = h5_seal.list_files(run)
+    out_root = tmp_path / "creative_batch1" / "history"
+    screen_dir = out_root / "h2_main"
+    screen_dir.mkdir(parents=True)
+    (screen_dir / cb.results_name(["A"], False)).write_text(json.dumps({"declaration_sha256": cb.declaration_sha256(), "advanced": ["A1"]}))
+    monkeypatch.setattr(cb, "evaluate_family", lambda *a, **k: cb.FamilyResult("A"))
+    monkeypatch.setattr(cb, "write_results_and_log", lambda out, path, **k: cb.write_new(path, out))
+    assert r.main(["replicate", "--run-id", "h5_cb1", "--family", "A", "--root", str(root), "--out-root", str(out_root)]) == 0
+    assert (out_root / "h5_cb1" / cb.results_name(["A"], True)).exists()
+    assert h5_seal.list_files(run) == before  # no file added under the sealed dir (ACCESS_LOG is unlisted)
+    h5_seal.verify_seal(run)
+    # default out dir is outside the run dir too; an --out-root inside it is refused
+    ns = type("A", (), {"root": str(root), "run_id": "h5_cb1", "out_root": None})()
+    assert root.resolve() not in r.out_dir(ns).resolve().parents
+    ns.out_root = str(run.parent)
+    with pytest.raises(cb.Refused, match="inside the run directory"):
+        r.out_dir(ns)
+    capsys.readouterr()
+
+
+def test_runner_batch_holm_writes_outside_and_never_overwrites(tmp_path, capsys):
+    r = _runner()
+    f = tmp_path / "rep.json"
+    f.write_text(json.dumps(_hist_rep({"A1": {"p": 0.001, "advance": True}})))
+    out = tmp_path / "bh.json"
+    assert r.main(["batch-holm", "--results", str(f), "--out", str(out)]) == 0
+    assert json.loads(out.read_text())["replicated"] == ["A1"]
+    assert r.main(["batch-holm", "--results", str(f), "--out", str(out)]) == 2  # never overwritten
+
+
+def test_seal_copy_accepts_only_the_one_file_per_run_format(tmp_path):
+    run, copy = seal_dir(tmp_path)
+    assert cb.require_sealed(run, copy)["listing_sha256"]
+    lst = json.loads(copy.read_text())["listing_sha256"]
+    for layout in ({"runs": {"h5_cb1": {"listing_sha256": lst}}}, {"runs": [{"run_id": "h5_cb1", "listing_sha256": lst}]}, {}):
+        copy.write_text(json.dumps(layout))
+        with pytest.raises(cb.Refused):
+            cb.require_sealed(run, copy)

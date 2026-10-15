@@ -58,7 +58,8 @@ def make_extract(root: Path, captures: list[tuple[str, float, list[dict]]], memb
         man["captures"][cid] = {"started_utc": iso(t), "status": "extracted"}
         pd.DataFrame(rows).to_csv(root / "negrisk" / f"{cid}.csv.gz", index=False)
     (root / "manifest.json").write_text(json.dumps(man))
-    pd.DataFrame({"neg_risk_market_id": list(members), "member_count": list(members.values())}).to_csv(
+    pd.DataFrame({"neg_risk_market_id": list(members), "member_count": list(members.values()),
+                  "fetched_utc": "2026-01-01T00:00:00Z"}).to_csv(
         root / "event_members.csv.gz", index=False)
     ids = sorted(ids)
     doc = {"kind": name, "from_utc": from_utc, "until": until, "final": final, "capture_ids": ids, "n": len(ids),
@@ -171,13 +172,49 @@ def test_window_guard_rejects_capture_at_t_dev_end(tmp_path):
         cs.load_window_captures(tmp_path, cl, "dev")
 
 
-def test_rep_refused_before_t_rep_end_and_floor():
+def _pin(monkeypatch, tmp_path, start="2026-10-19T00:00:00Z"):
+    f = tmp_path / "cb1_t_rep_start.json"
+    f.write_text(json.dumps({"t_rep_start": start}))
+    monkeypatch.setattr(cs, "T_REP_START_FILE", f)
+    return f
+
+
+def test_rep_refused_before_t_rep_end_and_floor(tmp_path, monkeypatch):
     with pytest.raises(cs.TooEarlyError):
         cs.check_window_allowed("rep", datetime(2026, 11, 8, tzinfo=UTC))
     cs.check_window_allowed("rep", datetime(2026, 11, 9, tzinfo=UTC))
-    with pytest.raises(cs.WindowError):
+    _pin(monkeypatch, tmp_path)
+    with pytest.raises(cs.WindowError):  # a free value (here before the floor) never overrides the pin
         cs.window_bounds("rep", "2026-10-18T00:00:00Z")
     cs.check_window_allowed("dev", datetime(2026, 10, 1, tzinfo=UTC))
+
+
+def test_pin_rep_start_derivation_and_never_overwritten(tmp_path):
+    f = tmp_path / "pin.json"
+    doc = cs.pin_rep_start("abcdef1", "2026-10-20T10:00:00+01:00", f)  # 09:00Z + 2h
+    assert doc["t_rep_start"] == "2026-10-20T11:00:00Z" and cs.load_pinned_rep_start(f) == "2026-10-20T11:00:00Z"
+    with pytest.raises(cs.RepStartError):
+        cs.pin_rep_start("abcdef1", "2026-10-21T10:00:00Z", f)
+    g = tmp_path / "early.json"  # before the floor + 2h: the declared floor applies
+    assert cs.pin_rep_start("abcdef1", "2026-10-16T00:00:00Z", g)["t_rep_start"] == cs.T_REP_START_FLOOR
+    with pytest.raises(cs.RepStartError):
+        cs.pin_rep_start("not-a-sha!", "2026-10-16T00:00:00Z", tmp_path / "x.json")
+    with pytest.raises(cs.RepStartError):
+        cs.load_pinned_rep_start(tmp_path / "absent.json")
+
+
+def test_rep_capture_list_from_utc_must_equal_pin(tmp_path, monkeypatch):
+    _pin(monkeypatch, tmp_path, "2026-10-20T11:00:00Z")
+    caps, members = many_events(2, 2)
+    p = tmp_path / "capture_lists" / "rep.json"
+    make_extract(tmp_path, caps, members, name="rep", until=cs.T_REP_END, from_utc="2026-10-20T11:00:00Z")
+    assert cs.load_capture_list(p, window="rep")["ids"]
+    make_extract(tmp_path, caps, members, name="rep", until=cs.T_REP_END, from_utc="2026-10-19T00:00:00Z")
+    with pytest.raises(cs.CaptureListError, match="pinned"):
+        cs.load_capture_list(p, window="rep")
+    make_extract(tmp_path, caps, members, name="rep", until=cs.T_REP_END, from_utc="")
+    with pytest.raises(cs.CaptureListError, match="pinned"):
+        cs.load_capture_list(p, window="rep")
 
 
 def test_capture_list_guards(tmp_path):
@@ -718,13 +755,56 @@ def test_b3_tests_censoring_flag_and_no_units():
     assert set(res["sensitivities"]) == {"censored_at_0", "censored_at_1"}
 
 
-def test_committed_listing_hash_formats(tmp_path):
-    (tmp_path / "h5_cb1_SEAL.json").write_text(json.dumps({"runs": {"h5_cb1_ladders": {"listing_sha256": "ab"}}}))
+def test_committed_listing_hash_one_file_format_only(tmp_path):
+    (tmp_path / "h5_cb1_ladders_SEAL.json").write_text(json.dumps({"listing_sha256": "ab"}))
     assert cs.committed_listing_hash("h5_cb1_ladders", tmp_path) == "ab"
-    (tmp_path / "h5_cb1_SEAL.json").write_text(json.dumps({"runs": [{"run_id": "h5_cb1_ladders", "listing_sha256": "cd"}]}))
-    assert cs.committed_listing_hash("h5_cb1_ladders", tmp_path) == "cd"
     with pytest.raises(cs.SealUnavailableError):
         cs.committed_listing_hash("other", tmp_path)
+    # combined / nested layouts are no longer accepted
+    (tmp_path / "h5_cb1_SEAL.json").write_text(json.dumps({"runs": {"h5_cb1_ladders": {"listing_sha256": "ab"}}}))
+    with pytest.raises(cs.SealUnavailableError):
+        cs.committed_listing_hash("h5_cb1", tmp_path)
+    (tmp_path / "h5_cb1_SEAL.json").write_text(json.dumps({"runs": [{"run_id": "h5_cb1", "listing_sha256": "cd"}]}))
+    with pytest.raises(cs.SealUnavailableError):
+        cs.committed_listing_hash("h5_cb1", tmp_path)
+    (tmp_path / "h5_cb1_SEAL.json").write_text("not json")
+    with pytest.raises(cs.SealUnavailableError):
+        cs.committed_listing_hash("h5_cb1", tmp_path)
+
+
+def test_non_single_winner_share_is_per_event_not_per_trigger():
+    n_ev, per = 40, 3
+    rows = []
+    for e in range(n_ev):
+        for k in range(per):
+            rows.append({"gid": f"G{e}", "capture_id": f"c{k}", "day": f"2026-10-{12 + k}", "C": 0.9, "executed": True,
+                         "net": 0.1, "K": 0.9, "d": 5.0, "n_legs": 3, "sweep_ok": True, "net_sweep": 0.1, "resolved": True,
+                         "net_real": 0.1, "single_winner": not (e == 0 and k == 0)})
+    trig = pd.DataFrame(rows)
+    ec = pd.DataFrame({"gid": [f"G{e}" for e in range(n_ev)], "day": "2026-10-12", "U": 1.0, "O": 0.0})
+    real = cs.negrisk_tests(ec, trig, n_boot=20, dev=False, alpha=0.05)["D2"]["realised"]
+    # 1 of 120 triggers (0.8%) would pass a per-trigger 2% ceiling; 1 of 40 events (2.5%) does not
+    assert real["non_single_winner_share"] == pytest.approx(1 / 40) and real["ceiling_ok"] is False
+
+
+def test_event_members_are_read_as_of_the_capture(tmp_path):
+    caps, members = many_events(2, 2)
+    make_extract(tmp_path, caps, members)  # all counts fetched 2026-01-01
+    base = pd.read_csv(tmp_path / "event_members.csv.gz", compression="gzip")
+    late = pd.DataFrame({"neg_risk_market_id": ["G0", "Gnew"], "member_count": [99, 3],
+                         "fetched_utc": [iso(T0 + 3600), iso(T0 + 3600)]})
+    pd.concat([base, late]).to_csv(tmp_path / "event_members.csv.gz", index=False)
+    before = cs.load_event_members(tmp_path, iso(T0))
+    assert before["G0"] == 3 and "Gnew" not in before  # the later refresh and the new id are not yet known
+    after = cs.load_event_members(tmp_path, iso(T0 + 7200))
+    assert after["G0"] == 99 and after["Gnew"] == 3
+    # eligibility per capture: c00 (T0) sees count 3 (eligible); c01 (T0+2h) sees 99 (mismatch)
+    df = pd.concat([pd.DataFrame(r).assign(cs=t, capture_id=c) for c, t, r in caps], ignore_index=True)
+    ec, cnt = cs.negrisk_event_captures(df[df["neg_risk_market_id"] == "G0"], cs.members_asof_loader(tmp_path))
+    assert list(ec["capture_id"]) == ["c00"] and cnt["ineligible_reasons"]["member_count_mismatch"] == 1
+    # an id first fetched after the capture is absent (no_member_count), never back-filled
+    g = pd.DataFrame(_event_rows("c00", T0, "Gnew", [0.3, 0.3, 0.3])).assign(cs=T0, capture_id="c00")
+    assert cs.negrisk_event_captures(g, cs.members_asof_loader(tmp_path))[1]["ineligible_reasons"] == {"no_member_count": 1}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -763,3 +843,30 @@ def test_runner_refuses_h3_power(monkeypatch):
     monkeypatch.setattr(cs, "require_declaration", lambda *a, **k: "d")
     with pytest.raises(SystemExit):
         _runner().main(["ladders", "--run-id", "h3_power"])
+
+
+def test_runner_pin_rep_start_and_rung_list_and_fetch_outcomes_guards(tmp_path, monkeypatch, capsys):
+    r = _runner()
+    f = tmp_path / "pin.json"
+    monkeypatch.setattr(cs, "T_REP_START_FILE", f)
+    monkeypatch.setattr(r, "_git_commit_time", lambda sha: "2026-10-20T10:00:00+01:00")
+    assert r.main(["pin-rep-start", "--freeze-commit", "abc1234"]) == 0
+    assert json.loads(f.read_text())["t_rep_start"] == "2026-10-20T11:00:00Z"
+    assert r.main(["pin-rep-start", "--freeze-commit", "abc1234"]) == 3  # pinned once
+    with pytest.raises(SystemExit):  # --as-of must equal the pin
+        r.main(["rung-list", "--as-of", "2026-10-21T00:00:00Z", "--out", str(tmp_path / "rl.json")])
+    capsys.readouterr()
+
+    # fetch-outcomes-D: the committed declaration is required BEFORE any download
+    def _refuse(*a, **k):
+        raise cs.DeclarationError("no committed declaration")
+
+    def _no_network(*a, **k):
+        raise AssertionError("network touched before the declaration check")
+
+    from astrolabe.research_lab import history_backfill as hb
+    monkeypatch.setattr(cs, "require_declaration", _refuse)
+    monkeypatch.setattr(hb, "httpx_transport", _no_network)
+    monkeypatch.setattr(cs, "fetch_outcomes", _no_network)
+    assert r.main(["fetch-outcomes-D", "--window", "dev", "--extract-root", str(tmp_path), "--out", str(tmp_path / "o.csv")]) == 3
+    assert json.loads(capsys.readouterr().out.strip().splitlines()[-1])["refused"] == "DeclarationError"

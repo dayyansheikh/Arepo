@@ -7,11 +7,12 @@ Uncounted (no declaration needed, no trials written, counts only):
 Counted (refused unless the declaration record is committed and its hash matches this code; one trials.jsonl
 line per test, one count line per run, placebo lines count 0; results files are never overwritten):
     python scripts/run_cb1_structural.py declare                      # writes the declaration record once
+    python scripts/run_cb1_structural.py pin-rep-start --freeze-commit <sha>   # writes seals/cb1_t_rep_start.json once
     python scripts/run_cb1_structural.py fetch-outcomes-D --window dev --list-sha256 <sha> --out <csv>
     python scripts/run_cb1_structural.py snapshots --family D --window dev --list-sha256 <sha> --outcomes <csv>
     python scripts/run_cb1_structural.py snapshots --family D --window rep --list-sha256 <sha> --dev-results <json>
     python scripts/run_cb1_structural.py ladders --run-id h5_cb1_ladders          # B1/B2 (Stage 2, enter Holm)
-    python scripts/run_cb1_structural.py rung-list --as-of <T_rep_start> --out <rung_list.json>
+    python scripts/run_cb1_structural.py rung-list --as-of <pinned T_rep_start> --out <rung_list.json>
     python scripts/run_cb1_structural.py ladders --prospective --rung-list <json> --rung-list-sha256 <sha> ...  # B3
 """
 
@@ -67,7 +68,7 @@ def _cap_list(cs, a, window: str) -> dict:
 def cmd_census_d(cs, a) -> int:
     cs.check_window_allowed(a.window)
     cl = _cap_list(cs, a, a.window)
-    built = cs.build_negrisk(Path(a.extract_root), cl, a.window, t_rep_start=a.t_rep_start)
+    built = cs.build_negrisk(Path(a.extract_root), cl, a.window)
     _emit({"cb1_structural": cs.VERSION, "census": "D", "window": a.window, "list_sha256": cl["sha256"],
            "counts_only": True, **cs.census_negrisk(built)})
     return 0
@@ -79,12 +80,29 @@ def cmd_declare(cs, a) -> int:
     return 0
 
 
+def _git_commit_time(sha: str) -> str:
+    import subprocess
+
+    out = subprocess.run(["git", "show", "-s", "--format=%cI", sha], cwd=ROOT, capture_output=True, text=True, check=False)
+    if out.returncode != 0 or not out.stdout.strip():
+        raise SystemExit(f"cannot resolve commit {sha!r}: {out.stderr.strip()[:200]}")
+    return out.stdout.strip()
+
+
+def cmd_pin_rep_start(cs, a) -> int:
+    doc = cs.pin_rep_start(a.freeze_commit, _git_commit_time(a.freeze_commit))
+    _emit({"cb1_structural": cs.VERSION, "pinned": str(cs.T_REP_START_FILE), "t_rep_start": doc["t_rep_start"],
+           "note": "commit this file before any rep capture list is frozen"})
+    return 0
+
+
 def cmd_fetch_outcomes_d(cs, a) -> int:
     from astrolabe.research_lab import history_backfill as hb
 
+    cs.require_declaration()  # counted download: the committed declaration is required before any network access
     cs.check_window_allowed(a.window)
     cl = _cap_list(cs, a, a.window)
-    ids = cs.window_market_ids(Path(a.extract_root), cl, a.window, a.t_rep_start)
+    ids = cs.window_market_ids(Path(a.extract_root), cl, a.window)
     lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 4.0), live_check=hb.live_pass_or_lock)
     out = cs.fetch_outcomes(lim, ids)
     sha = cs.write_outcomes_csv(Path(a.out), out, ids)
@@ -114,7 +132,7 @@ def cmd_snapshots(cs, a) -> int:
             return 0
     outcomes = cs.load_outcomes_csv(Path(a.outcomes)) if a.outcomes else None
     res = cs.run_negrisk(Path(a.extract_root), cl, a.window, n_boot=a.n_boot, dev=dev,
-                         alpha=cs.ALPHA_STAGE1 if dev else cs.ALPHA_STAGE2, t_rep_start=a.t_rep_start,
+                         alpha=cs.ALPHA_STAGE1 if dev else cs.ALPHA_STAGE2,
                          placebo_draws=a.placebo_draws, outcomes=outcomes, tests=tests)
     out = Path(a.out) if a.out else cs.OUT_ROOT / f"D_{a.window}" / "results.json"
     job = f"run_cb1_structural:D:{a.window}"
@@ -130,8 +148,9 @@ def cmd_rung_list(cs, a) -> int:
     from astrolabe.research_lab import if_h2
 
     as_of = _iso(a.as_of)
-    if as_of < cs.T_REP_START_FLOOR:
-        raise SystemExit(f"--as-of {as_of} is before the declared floor {cs.T_REP_START_FLOOR}")
+    pinned = cs.load_pinned_rep_start()
+    if as_of != pinned:
+        raise SystemExit(f"--as-of {as_of} != pinned T_rep_start {pinned}")
     lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 4.0), live_check=hb.live_pass_or_lock)
     start = datetime(2024, 1, 1, tzinfo=UTC)
     end = datetime.fromisoformat(as_of.replace("Z", "+00:00"))
@@ -221,13 +240,13 @@ def main(argv: list[str] | None = None) -> int:
     from astrolabe.research_lab import cb1_structural as cs
 
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["census-D", "declare", "fetch-outcomes-D", "snapshots", "rung-list", "ladders"])
+    ap.add_argument("cmd", choices=["census-D", "declare", "pin-rep-start", "fetch-outcomes-D", "snapshots", "rung-list", "ladders"])
     ap.add_argument("--family", default="D")
     ap.add_argument("--window", choices=["dev", "rep"], default="dev")
     ap.add_argument("--extract-root", type=Path, default=cs.EXTRACT_ROOT)
     ap.add_argument("--capture-list", type=Path, default=None, help="default <extract-root>/capture_lists/<window>.json")
     ap.add_argument("--list-sha256", default=None, help="committed sha256 of the frozen capture-id list")
-    ap.add_argument("--t-rep-start", default=None, help="rep window start (ISO); default the declared floor")
+    ap.add_argument("--freeze-commit", default=None, help="pin-rep-start: the CB1 freeze commit sha")
     ap.add_argument("--outcomes", default=None, help="outcomes csv from fetch-outcomes-D (market_id, final_yes)")
     ap.add_argument("--dev-results", default=None, help="dev results.json (rep runs advanced tests only)")
     ap.add_argument("--run-id", default="h5_cb1_ladders")
@@ -249,6 +268,10 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_census_d(cs, a)
         if a.cmd == "declare":
             return cmd_declare(cs, a)
+        if a.cmd == "pin-rep-start":
+            if not a.freeze_commit:
+                ap.error("--freeze-commit required")
+            return cmd_pin_rep_start(cs, a)
         if a.cmd == "fetch-outcomes-D":
             if not a.out:
                 ap.error("--out required")
