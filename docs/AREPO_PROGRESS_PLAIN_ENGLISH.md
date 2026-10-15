@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-16 00:35 UTC+1
+**Last updated:** 2026-10-16 00:39 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -23,11 +23,11 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   Order-flow momentum is stronger in volatile and wide-spread markets, near resolution, and when it comes from
   trades that are large for that market. One result (volatility) passes the strict all-tests-so-far bar (947 tests).
   Now re-testing on 5,000 different markets (queued); only that counts as "replicated". Not yet tested against costs.
-- **Your creative priority:** all 13 reviewer fixes are verified. The fresh 7,000-market download is now allowed to
-  start. Two last rules are being added, then the five creative tests get frozen (locked before any results exist).
-  **Creative batch 2 drafted** (weather-market favourites; "impossible" price orderings in deadline ladders); its
-  review is running. **A new round of original ideas** is being generated (Fable, as you asked), steered by this
-  week's findings. Nothing creative has been tested yet.
+- **Your creative priority: creative batch 1 is FROZEN** (00:37 UTC+1): all five tests are locked before any results
+  exist. The fresh 7,000-market download is running or next on the server. The first screens run as soon as that
+  data is sealed (a few days). **Creative batch 2** (weather favourites; impossible orderings in deadline ladders):
+  the reviewer asked for 11 changes, which are being applied. **A new round of original ideas** is being generated
+  (Fable, as you asked).
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).

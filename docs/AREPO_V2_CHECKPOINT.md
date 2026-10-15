@@ -165,31 +165,31 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 23:40Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 23:45Z
 0. **This session (22:50Z-):**
-   - J4 q0006 void: the placebo failed. Diagnosed by q0031/q0032 as a between-market channel. The challenger accepted
-     the diagnosis with changes and rejected a same-data re-read. The **J4-R draft declaration** is in SCREENING_BATCH_2.md:
-     fresh captures from 10-16, ≥48 periods, expanding-past demeaning, increment-shuffle placebo.
-   - J5 written up: L1 met the SB2 rule; it is an event-level reversal, with caveats.
-   - HB2 spec committed (5723083); **q0008 queued**.
-   - CB1: 13 freeze fixes landed (36f34da, 1b97dea) and were deployed (1b97dea). The gate q0033 releases
-     q0016/q0017. q0034 counts the h2 coverage gaps.
-   - q0030/q0002 were stopped and re-queued at 23:27Z so q0030 runs the fixed extractor (no attempt counted).
-   - Agents in flight: (i) a reviewer verifying the 13 fixes and rulings (a) and (b), before the CB1 freeze commit;
-     (ii) J4-R/J3 estimator code (bounce_decomp.py); (iii) B3 `rungs/` extractor (creative_batch1.py);
-     (iv) the CB2 design draft (`CREATIVE_BATCH_2.md`, uncommitted).
-1. **CB1 freeze** once (i) accepts:
-   - `run_cb1_history.py declaration --write` and `run_cb1_structural.py declare`; commit both in ONE freeze commit;
-   - `run_cb1_structural.py pin-rep-start --freeze-commit <sha>` and commit it;
-   - then queue the census (q0019) and the h2 screens (q0020/q0021; q0021 waits for q0003). No h5 screen before the
-     q0018 seal and its committed copy.
-2. **J4-R:** when (ii) reports, run a science-reviewer freeze check of the code against the J4-R declaration, then
-   freeze. Queue q0035 to run once ≥48 fresh periods exist (≈ 2026-10-20 03:00Z). J3 (q0011) uses the expanding
-   estimator and must not run with the old placebo.
-3. **q0008 (HB2) done →** check the placebo lines are null first, then write up (ledger + SB2 Results); q0009/q0010
-   if F/L advance, q0014/q0015 if X advances.
-4. **J5 follow-up (design):** L1 beyond B3 plus regime-stable checks on fresh captures (challenger Q3).
-5. q0002 books → q0003 → q0004 (r4_book write-up). CB2: review → code. Keep ≥ 12 h queued. Retention needs the user by ~17-18 Oct.
+   - **CB1 FROZEN at 2fc0562.** Declarations: history 58e203bb, structural c9a2ec8d. T_rep_start is pinned at
+     2026-10-19T00:00Z (`seals/cb1_t_rep_start.json`).
+   - CB1 queue: q0019 census, q0020 A/E screen and q0023 B1/B2 (both gated on the q0018 seal), q0021 C (waits for q0003).
+     The h5 fetch q0016/q0017 was released by gate q0033. The CB1 B3 `rungs/` extractor is live (8546d7c).
+   - J4 is void, diagnosed and challenged; J4-R is declared. J4-R/J3 code is ebe55ca, and **its freeze check is running**.
+   - J5 written up (L1 candidate, with caveats). HB2 written up: 6 of 13 advance, F4 is the BY survivor, and **q0009/q0010
+     (h3 replication) are queued**.
+   - CB2 draft 3728e78: the challenger returned ACCEPT_WITH_REQUIRED_CHANGES (11). **A revision agent is running**, using
+     a time-ordered split, W1 as descriptive only, and no P1 code.
+   - **Fable xhigh round-2 hypotheses running** → `CREATIVE_HYPOTHESES_2026-10-16.md` (uncommitted until it reports).
+1. **J4-R:** apply the freeze-check rulings to the declaration and code. Freeze (commit the declaration hash). Queue
+   q0035 with argv `run_bounce_decomp.py snapshots --tag j4r --since 2026-10-16T00:00:00Z --until 2026-10-20T00:00:00Z
+   --h-tight --estimator expanding --placebo-draws 20 --min-periods 48`, to run after 2026-10-20 03:00Z. J3 (q0011,
+   `book --run-id h2_main --tag j3x --estimator expanding --placebo-draws 20`) runs after q0003.
+2. **CB1-D dev:** after 2026-10-17T00:00Z, `run_cb1_extract.py --freeze-list dev --until 2026-10-17T00:00Z` (host).
+   Commit the capture list and sha. Then `run_cb1_structural.py fetch-outcomes-D` and `snapshots --family D --window
+   dev` (q0022). **B3:** at T_rep_start (10-19), run `rung-list --as-of 2026-10-19T00:00:00Z` (q0029); copy it to
+   `<extract_root>/rung_list.json` and commit `seals/cb1_b3_rung_list.json` = {"sha256": …}.
+3. **When q0018 seals h5:** commit `seals/h5_cb1_SEAL.json` and `seals/h5_cb1_ladders_SEAL.json` (copies). Then
+   q0020/q0023 can run.
+4. Write up: q0034 (h2 coverage disclosure), q0019 census, q0010 (HB2 replication), q0002/q0003/q0004 (r4_book).
+5. CB2: after the revision, run one challenger response check, then code. Round-2 hypotheses: rank and design the
+   next batch. J5 follow-up design. Keep ≥ 12 h queued. Retention needs the user by ~17-18 Oct.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
