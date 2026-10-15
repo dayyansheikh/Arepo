@@ -315,10 +315,11 @@ Expected size: a few MB per day (about 0.1-0.2 GB over the batch).
 line (after the E011 score line):
 
 ```
-  timeout 900 nice -n 10 $PY scripts/run_cb1_extract.py --all-new --rps 2 --max-requests 300 2>&1 | tail -1 || true   # CB1 extract (CREATIVE_BATCH_1.md §2.11)
+  timeout 600 nice -n 10 $PY scripts/run_cb1_extract.py --all-new --rps 2 --max-requests 300 2>&1 | tail -1 || true   # CB1 extract (CREATIVE_BATCH_1.md §2.11)
 ```
 
-- It can never fail the pass: `|| true`, a 15-minute timeout, and the next steps (E004/E007 status) run regardless.
+- It can never fail the pass: `|| true`, a 10-minute timeout (host owner's limit, with peak RSS ≤ 500 MB; the script
+  self-limits below both), and the next steps (E004/E007 status) run regardless.
 - It reads only captures already written; it never touches E011's or any frozen experiment's inputs.
 - **Backfill now:** q0030 runs `run_cb1_extract.py --backfill-from 2026-10-11T12:00Z` once on the captures already
   present, before any deletion can affect them.
