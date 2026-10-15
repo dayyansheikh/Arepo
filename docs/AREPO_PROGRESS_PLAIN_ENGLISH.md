@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-15 21:06 UTC+1
+**Last updated:** 2026-10-15 21:26 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -23,7 +23,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   The top five runnable ones now have a full test design (`docs/research_lab/CREATIVE_BATCH_1.md`): holding
   near-certain markets to resolution, NO on the nearest deadline rung, selling longshots passively, neg-risk sets
   priced under $1, and newly listed markets. It includes a fresh 7,000-market download so results can be checked on
-  markets never looked at before. An independent reviewer is challenging it now; nothing has run yet.
+  markets never looked at before. The reviewer's 12 required fixes are applied; the code is being written now.
+  Nothing has run yet.
 - **Autopilot tests passed:** a real unattended run, and a session killed mid-run that was recovered on the next check.
 
 ## 2. Approvals needed from you

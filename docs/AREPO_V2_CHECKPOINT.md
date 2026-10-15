@@ -179,10 +179,17 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      --threads 1`) and the conditional q0009/q0010/q0014/q0015 per §4. q0011 (J3) after q0003.
    - **Results write-up per job:** ledger + study section; J5 verdict from `meets_sb2_rule` only; J4 check the placebo
      is null first; no h2 economics in the favourable tercile.
-3. **User lead priority (bdc2eb0): creative original hypotheses.** List: `research_lab/CREATIVE_HYPOTHESES_2026-10-15.md`
-   (CH01-CH34, top 10 in §3; written by session astrolabe-8c). Autopilot is designing **Creative Batch 1**
-   (`research_lab/CREATIVE_BATCH_1.md`: CH01, CH05, CH17, CH09, CH22) → science-reviewer → code → queue. Message sent
-   to astrolabe-8c to avoid duplicate design work.
+3. **User lead priority (bdc2eb0): creative original hypotheses.** List `research_lab/CREATIVE_HYPOTHESES_2026-10-15.md`
+   (by session astrolabe-8c, which owns data archiving/retention files only). **Creative Batch 1** design
+   `research_lab/CREATIVE_BATCH_1.md` (CH01, CH05, CH17, CH09, CH22 + new disjoint backfill `h5_cb1`): challenger
+   round 1 ACCEPT_WITH_REQUIRED_CHANGES, all 12 + optional applied (b70949e, 6ba7f11). Not frozen.
+   - Code being written (20:26Z, autopilot agents): extractor `creative_batch1.py` + `run_cb1_extract.py` + arepo_pass.sh
+     line (≤10 min, ≤500 MB, `|| true`) + q0030 backfill; h5_cb1 fetch/seal in `history_backfill.py` + q0016-q0018;
+     history tests `cb1_history.py`/`run_cb1_history.py` (A, C, E); structural `cb1_structural.py`/`run_cb1_structural.py`
+     (D, B; its KIND_RULES entries must be added to battery2.py afterwards).
+   - Then: deploy extractor + q0030 + q0016-q0018 at once (time-critical: retention deletes snapshots >8 days once
+     the gate clears; tell astrolabe-8c when the extractor is live and caught up). Then one science-reviewer freeze check
+     of CB1 code vs design, then census/screens (q0019+), never before the h5 seal.
 4. Keep at least 12 h of queued work on the host. `--include-active` evidence-log backup built (a69dd0e), cron line
    commented out pending the user. Retention deletion needs the user by ~17-18 Oct (`data_catalogue/RETENTION.md`).
 
