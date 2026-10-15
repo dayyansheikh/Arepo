@@ -1071,3 +1071,39 @@ also excludes rows whose sweep precedes the Gamma receipt; HB2 gets feature-file
 "without the 66 shared events" secondary on h2, and an F7 both-groups-non-empty secondary. J5's verdict is taken
 from `meets_sb2_rule` only (the module's `recommend()` still uses the old rule). Do not report h2 economics in the
 favourable tercile (it is chosen on h2 judgement rows and used only on h3).
+
+---
+
+## Results
+
+### J4 (q0006, run `bounce-sb2-snap`, finished 2026-10-15 21:41Z): COUNTED, VERDICTS WITHHELD (placebo not null)
+- **Run.** Host HEAD a9aa07a (provenance `git_dirty` true: untracked files only), n_boot 2000, seed 116. 49 periods,
+  2,256,748 triples, 33,375 event clusters, UTC days 2026-10-11 to 2026-10-15. Five `bounce_decomp` trial lines plus
+  the count line and placebo lines were appended on the host and merged into `trials.jsonl` (682b7c1). Prior count at
+  run time: 916. The dry run q0006a (permuted targets only) finished 21:36Z.
+- **Real-data estimates** (slope, max-SE, Holm p; every leave-one-day-out sign stable):
+
+  | Test | β | SE | p_Holm | LODO range |
+  |---|---|---|---|---|
+  | P1 Gamma-mid reversal | −0.207 | 0.015 | 1e-41 | −0.223 to −0.188 |
+  | P1x vs sweep mid B_i | −0.041 | 0.017 | 0.018 | −0.055 to −0.015 |
+  | P2 b_pos (cents per unit, n 93,610) | +0.117 | 0.026 | 2e-5 | +0.104 to +0.129 |
+  | P3 d_bm·w | −0.165 | 0.041 | 1e-4 | −0.195 to −0.134 |
+  | P4 chg_1h | −0.166 | 0.017 | 2e-22 | −0.177 to −0.147 |
+
+- **Placebo (targets permuted across captures within market, seed 117): NOT null.** P1 −0.202, P1x −0.056,
+  P2 +0.040, P3 −0.297, P4 −0.127, all Holm-significant. The pre-declared reading order (Next actions, "J4: check the
+  placebo is null first") therefore stops here. **No J4 verdict is reported**; the automatic verdict map output
+  (reversal present, quote noise, informed last trade, E004 not explained) is not adopted.
+- **Interpretation so far.** A within-market permutation keeps every market's own target distribution. Its expected
+  slope is non-zero whenever a market-level (non-temporal) property links `d_bm` and the target, so either the
+  within-market null is not the right null for a pooled regression without market effects, or there is a defect in
+  triple construction. Neither is settled. A synthetic stationary-noise world gives the expected null placebo
+  (−0.018 vs real −0.51), so the permutation code itself behaves as designed.
+- **Next.** Engineering diagnostic q0031 (`diag_bounce_placebo.py`, no trials): identity share, rows per market,
+  placebo with market-demeaned variables, a half-cycle within-market shift, and the real slope with market fixed
+  effects. Any corrected null, and any re-read of the five counted tests against it, goes to the challenger first; the
+  five tests stay counted once whatever happens.
+- **Descriptive (not tested):** `chg_1h` attenuation 0.34 (−0.251 alone → −0.166 with controls); `chg_1h` on
+  (Δltp, Δmid) R² 0.28, coefficient on Δmid 0.49, Δltp ≈ 0 (so `oneHourPriceChange` tracks the mid more than the last
+  trade); far-touch bid after an ask move −0.004, ask after a bid move −0.074.

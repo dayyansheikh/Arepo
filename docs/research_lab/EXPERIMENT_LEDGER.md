@@ -1129,3 +1129,12 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   2026-10-22T00:00Z).
 - **h3_power wear.** SB2's J2, J6, J8 are its reads 4-6 (frozen definitions only; J8 on markets never read by ML).
   After SB2, h3_power is retired from replication use.
+
+## Development screen SB2-J4 — bounce decomposition of the 2h reversal on prospective snapshots (q0006, 2026-10-15)
+- **Status:** counted (5 `bounce_decomp` tests, Holm family of 5; prior cumulative count 916), **verdicts withheld**.
+- **Why withheld:** the declared within-market permuted-target placebo was not null (P1 −0.202 vs real −0.207; all
+  five placebo tests Holm-significant). The reading rule required a null placebo first.
+- **Real estimates (for the record, not findings):** P1 −0.207, P1x −0.041, P2 +0.117 c/unit, P3 −0.165, P4 −0.166;
+  all LODO-sign-stable. Details and descriptives: `SCREENING_BATCH_2.md` "Results / J4".
+- **Next:** diagnostic q0031 (no trials). A corrected null and any re-read go to the challenger before anything is
+  stated. J4 never closes Q5 alone (supporting evidence for J3).

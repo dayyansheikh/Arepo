@@ -165,33 +165,21 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 19:49Z
-1. `q0002_books_h2main` running on the host (repeat-until-complete), then q0003, q0004. When q0004 is done, write up
-   `r4_book` in `research_lab/HISTORICAL_ML_DEV.md` and the ledger.
-2. **Screening batch 2** (`research_lab/SCREENING_BATCH_2.md`): design, freeze check and fixes all committed
-   ("Freeze check" section). Frozen code: J4/J3 07b3f02, HB2 976b9da+d55890e (declaration sha 567e2e52…), J7/J8 6ad5dff
-   (regime hash c5c143c6974d226a), J5 eea5600. Everything deployed (25dfabc).
-   - **Queued on the host:** q0005 (J5, counted), q0006a (J4 dry run) → q0006 (J4 counted), q0007 (HB2 features) →
-     q0007b (HB2 dry run) → q0007c (fitspec writes `backend/astrolabe/research_lab/model_specs/hb2_v1.json` on the host),
-     q0012 (J7, counted) → q0013 (J8, fail-closed subset check).
-   - **When q0007c is done:** copy the host's `hb2_v1.json` into the repo (read-only `ssh oracle cat`), check signs and
-     feature hashes, commit it, then queue q0008 (`run_hypothesis_battery2.py run --run-id h2_main --n-boot 2000
-     --threads 1`) and the conditional q0009/q0010/q0014/q0015 per §4. q0011 (J3) after q0003.
-   - **Results write-up per job:** ledger + study section; J5 verdict from `meets_sb2_rule` only; J4 check the placebo
-     is null first; no h2 economics in the favourable tercile.
-3. **User lead priority (bdc2eb0): creative original hypotheses.** List `research_lab/CREATIVE_HYPOTHESES_2026-10-15.md`
-   (by session astrolabe-8c, which owns data archiving/retention files only). **Creative Batch 1** design
-   `research_lab/CREATIVE_BATCH_1.md` (CH01, CH05, CH17, CH09, CH22 + new disjoint backfill `h5_cb1`): challenger
-   round 1 ACCEPT_WITH_REQUIRED_CHANGES, all 12 + optional applied (b70949e, 6ba7f11). Not frozen.
-   - Code being written (20:26Z, autopilot agents): extractor `creative_batch1.py` + `run_cb1_extract.py` + arepo_pass.sh
-     line (≤10 min, ≤500 MB, `|| true`) + q0030 backfill; h5_cb1 fetch/seal in `history_backfill.py` + q0016-q0018;
-     history tests `cb1_history.py`/`run_cb1_history.py` (A, C, E); structural `cb1_structural.py`/`run_cb1_structural.py`
-     (D, B; its KIND_RULES entries must be added to battery2.py afterwards).
-   - Then: deploy extractor + q0030 + q0016-q0018 at once (time-critical: retention deletes snapshots >8 days once
-     the gate clears; tell astrolabe-8c when the extractor is live and caught up). Then one science-reviewer freeze check
-     of CB1 code vs design, then census/screens (q0019+), never before the h5 seal.
-4. Keep at least 12 h of queued work on the host. `--include-active` evidence-log backup built (a69dd0e), cron line
-   commented out pending the user. Retention deletion needs the user by ~17-18 Oct (`data_catalogue/RETENTION.md`).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 23:10Z
+0. **Done this session (23:00Z):** CB1 extractor (pass step) + q0030 + h5_cb1 q0016-q0018 deployed (70603b4);
+   J4 (q0006) written up: placebo NOT null, verdicts withheld (`SCREENING_BATCH_2.md` Results/J4, ledger); diagnostic
+   q0031 queued (682b7c1, priority 75, no trials). Two implementer agents are finishing the untracked
+   `cb1_history.py` (A, C, E) and `cb1_structural.py` (D, B + battery2 KIND_RULES) with runners and tests.
+1. **q0031 done →** read `data-dumps/research_lab/bounce_decomp/diag_placebo_q0031.json`; if market-FE placebo ≈ 0 the
+   channel is cross-market (needs a corrected null: market-demeaned or half-shift); send corrected null + re-read
+   plan to science-reviewer (one round); the five tests stay counted once. J3 (q0011) inherits the same placebo; fix
+   `permute_book_targets` the same way before q0011 runs.
+2. q0005 (J5) running → write up with `meets_sb2_rule` only. Then q0007/q0007b/q0007c (HB2) → copy host
+   `hb2_v1.json` into the repo, check, commit, queue q0008 + conditional q0009/q0010/q0014/q0015 (§4).
+3. q0002 books (repeat) → q0003 → q0004 (r4_book write-up in `HISTORICAL_ML_DEV.md`) and q0011 (J3, after the J4 null fix).
+4. CB1: when the agents report, review, deploy; science-reviewer freeze check of CB1 code vs design; census/screens
+   (q0019+) only after the h5 seal (q0018) and, for D, the dev capture list freeze after 2026-10-17T00:00Z.
+5. Keep ≥ 12 h queued. Retention deletion needs the user by ~17-18 Oct (`data_catalogue/RETENTION.md`).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
