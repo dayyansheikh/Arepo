@@ -76,9 +76,16 @@ point the reader at the restored copy with its existing `--snapshot-root`/root a
 
 - **Growing append-only logs are not backed up until they go idle.** `cross_venue_live/predictions*.jsonl`, `outcomes*.jsonl`,
   `live_trades/alerts.jsonl`, `wallets.jsonl`, `surprise_live/*` are appended continuously, so their mtime is always newer than the
-  1-day archive cut-off and the nightly run skips them. They are prospective, irreplaceable evidence (E009/E010/E011). Recommend a
-  separate weekly "active logs" release (copy of the file as of that moment, labelled in the catalogue) or an
-  `--include-active` option in `archive_rotate.py`; I did not implement it because it archives files that are still being written.
+  1-day archive cut-off and the nightly run skips them. They are prospective, irreplaceable evidence (E009/E010/E011). Implemented, **not installed**:
+  `archive_rotate.py --include-active GLOB[,GLOB...]` archives a point-in-time copy of matching files that are still newer than
+  the cut-off: bytes up to and including the last newline (a half-written line is never archived), read-only on the live file,
+  staged as `active_snapshots/<UTC stamp>/<original path>` plus a sidecar `ACTIVE_SNAPSHOT.json` (`active_snapshot: true`, original
+  path, bytes copied, sha256 of the copied prefix, copy time), published through the normal build, verify-before-publish and ledger
+  path as release `data-YYYYMMDD-<host>-active`. The catalogue flags these rows (`active_snapshot`, `original_path`; capture time =
+  copy time) and `restore_from_archive.py` lists/extracts them like any member. An unchanged prefix is not re-archived. These files
+  are never deletion candidates (ledger entries marked `active_snapshot` are skipped, and any path with a recorded snapshot or
+  matching the globs is protected, even after it goes idle). A commented weekly cron line is in `scripts/oracle/crontab.txt`;
+  installing it is pending user OK.
 - Rotation re-archives `history/` (about 0.75 GB) that already exists in `data-20261013-research-lab`; harmless duplication.
 - `/home/opc/arepo_val` (E009/E010 outage-gap evidence) is archived by its own run (`--root /home/opc/arepo_val`) and is never a
   deletion target.

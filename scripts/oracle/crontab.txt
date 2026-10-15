@@ -8,4 +8,7 @@
 */15 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/arepo_notify.py check >> /home/opc/arepo_collector/logs/notify.out 2>> /home/opc/arepo_collector/logs/notify.err
 # Research queue worker (scripts/oracle/queue_worker.py; pause: queue_worker.py pause)
 */2 * * * * /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py tick >> /home/opc/arepo_collector/logs/queue.log 2>&1
+# Weekly point-in-time copies of append-only evidence logs (E009/E010/E011); archive-only, never deletes.
+# NOT INSTALLED: install after user OK (see docs/research_lab/data_catalogue/RETENTION.md, Open risks).
+#30 4 * * 0 cd /home/opc/arepo/backend && nice -n 19 python3 scripts/archive_rotate.py --root /home/opc/arepo --scan data-dumps/research_lab --older-than-days 1 --include-active 'data-dumps/research_lab/cross_venue_live/predictions*.jsonl,data-dumps/research_lab/cross_venue_live/outcomes*.jsonl,data-dumps/research_lab/live_trades/alerts.jsonl,data-dumps/research_lab/live_trades/wallets.jsonl,data-dumps/research_lab/surprise_live/*' >> /home/opc/.arepo/archive_rotate/active.log 2>&1
 # --- end AREPO ---

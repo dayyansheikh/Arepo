@@ -19,6 +19,11 @@ One run:
     <state>/deletions.jsonl. Anything else is kept and logged as `kept`.
 
 It refuses to delete any file that is not in a verified release. Exit code is non-zero on any failure.
+Optional --include-active GLOB[,GLOB...] (root-relative fnmatch, within --scan dirs): files matching a glob that are
+still newer than the cut-off (continuously appended evidence logs) get a point-in-time copy: the bytes up to and
+including the last newline (never a half-written JSONL line), read-only from the live file, staged under
+active_snapshots/<UTC stamp>/<original path> with a sidecar ACTIVE_SNAPSHOT.json (active_snapshot: true, original
+path, bytes copied, sha256 of the copied prefix, copy time). Such files are never deletion candidates.
 Python >= 3.6; needs `zstd` and an authenticated `gh` (token with access to the private data repo) on PATH.
 Example cron (03:30 UTC):
   30 3 * * * cd ~/arepo/backend && python3 scripts/archive_rotate.py --root ~/arepo \
@@ -39,6 +44,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import archive_release as ar  # noqa: E402
 
+ACTIVE_PREFIX = "active_snapshots/"
+ACTIVE_SIDECAR = "ACTIVE_SNAPSHOT.json"
 DEFAULT_EXCLUDES = ["*.lock", "*.pid", "*.tmp", "*.partial", "*/.DS_Store", "*state*.json"]
 
 
@@ -149,6 +156,155 @@ def archive_new(a, state, ledger):
     return entry
 
 
+def select_active(root, scans, cutoff, excludes, globs):
+    """Files matching --include-active globs that are still being written (mtime >= cut-off)."""
+    out = []
+    for s in scans:
+        for d, _, fs in os.walk(os.path.join(root, s)):
+            for f in fs:
+                p = os.path.join(d, f)
+                rel = os.path.relpath(p, root)
+                if os.path.islink(p) or any(fnmatch.fnmatch(rel, e) for e in excludes):
+                    continue
+                if any(fnmatch.fnmatch(rel, g) for g in globs) and os.stat(p).st_mtime >= cutoff:
+                    out.append(rel)
+    return sorted(out)
+
+
+def copy_prefix_to_last_newline(src, dst):
+    """Copy src's bytes up to and including the last newline into dst. src is only opened for reading and only the
+    size seen at open time is read, so a concurrent append cannot extend the copy. Returns (bytes, sha256) of the
+    copied prefix (0, None if there is no complete line)."""
+    last_nl = -1
+    pos = 0
+    with open(src, "rb") as fi, open(dst, "wb") as fo:
+        limit = os.fstat(fi.fileno()).st_size
+        while pos < limit:
+            b = fi.read(min(ar.CHUNK, limit - pos))
+            if not b:
+                break
+            i = b.rfind(b"\n")
+            if i >= 0:
+                last_nl = pos + i
+            fo.write(b)
+            pos += len(b)
+        fo.flush()
+        fo.truncate(last_nl + 1)  # staging copy only; the live file is never touched
+    if last_nl < 0:
+        os.remove(dst)
+        return 0, None
+    return last_nl + 1, ar.sha256_file(dst)
+
+
+def snapshot_active(a, state, ledger):
+    globs = [g for x in a.include_active for g in x.split(",") if g]
+    cutoff = time.time() - a.older_than_days * 86400
+    cands = select_active(a.root, a.scan, cutoff, DEFAULT_EXCLUDES + a.exclude, globs)
+    logp = os.path.join(state, "active_snapshots.jsonl")
+    last = {}
+    if os.path.exists(logp):
+        for ln in open(logp):
+            if ln.strip():
+                r = json.loads(ln)
+                last[r["original_path"]] = r["sha256"]
+    stamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    host = socket.gethostname().split(".")[0]
+    stage = os.path.join(a.workdir, "active_stage_" + stamp)
+    sdir = os.path.join(stage, ACTIVE_PREFIX + stamp)
+    recs = []
+    try:
+        for rel in cands:
+            dst = os.path.join(sdir, rel)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            n, h = copy_prefix_to_last_newline(os.path.join(a.root, rel), dst)
+            if not n or last.get(rel) == h:  # nothing complete yet, or identical to the previous snapshot
+                if n:
+                    os.remove(dst)
+                continue
+            recs.append(
+                {
+                    "active_snapshot": True,
+                    "original_path": rel,
+                    "snapshot_path": ACTIVE_PREFIX + stamp + "/" + rel,
+                    "bytes": n,
+                    "sha256": h,
+                    "copied_utc": now_iso(),
+                    "host": host,
+                }
+            )
+        print(
+            json.dumps(
+                {"event": "active_select", "ts": now_iso(), "matched": len(cands), "to_snapshot": len(recs)}
+            )
+        )
+        if not recs or a.no_archive:
+            return None
+        with open(os.path.join(sdir, ACTIVE_SIDECAR), "w") as o:
+            json.dump({"active_snapshot": True, "stamp": stamp, "host": host, "files": recs}, o, indent=1, sort_keys=True)
+            o.write("\n")
+        members = [r["snapshot_path"] for r in recs] + [ACTIVE_PREFIX + stamp + "/" + ACTIVE_SIDECAR]
+        listf = os.path.join(state, "list_active_%s.txt" % stamp)
+        with open(listf, "w") as o:
+            o.write("\n".join(members) + "\n")
+        base_tag = f"data-{stamp[:8]}-{host}-active"
+        if getattr(a, "tag_suffix", None):
+            base_tag += "-" + a.tag_suffix
+        tag = free_tag(a.repo, base_tag)
+        ar.build(
+            ns(
+                repo=a.repo,
+                workdir=a.workdir,
+                tag=tag,
+                base=stage,
+                list=listf,
+                prefix=None,
+                title="%s active-log point-in-time copies (%s)" % (host, stamp),
+                notes="Point-in-time copies (prefix to last newline) of append-only logs still being written. Not deletion candidates.",
+                part_size=a.part_size,
+                level=a.level,
+                long=a.long,
+                threads=a.threads,
+            )
+        )
+        rc = ar.verify(ns(repo=a.repo, workdir=a.workdir, tag=tag, upload_report=True, publish=True))
+        if rc != 0:
+            raise SystemExit("verification FAILED for %s; active snapshot not recorded" % tag)
+        vdir = os.path.join(a.workdir, tag, "verify")
+        man, files, _ = ar.fetch_meta(a.repo, tag, vdir)
+        rep = json.load(open(os.path.join(vdir, "VERIFY.json")))
+        append_jsonl(
+            os.path.join(state, "verified_releases.jsonl"),
+            {
+                "tag": tag,
+                "repo": a.repo,
+                "active_snapshot": True,
+                "verified_utc": rep["verified_utc"],
+                "files_sha256": man["files.sha256"],
+                "manifest_sha256": ar.sha256_file(os.path.join(vdir, "MANIFEST.sha256")),
+                "files": files,
+            },
+        )
+        for r in recs:
+            r["tag"] = tag
+            append_jsonl(logp, r)
+        shutil.rmtree(os.path.join(a.workdir, tag), ignore_errors=True)
+        print(json.dumps({"event": "active_archived", "ts": now_iso(), "tag": tag, "files": len(recs)}))
+        return tag
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+
+
+def active_protected(state, globs):
+    """Original paths of active logs: never deletion candidates (by recorded snapshot or by current glob)."""
+    prot = set()
+    logp = os.path.join(state, "active_snapshots.jsonl")
+    if os.path.exists(logp):
+        for ln in open(logp):
+            if ln.strip():
+                prot.add(json.loads(ln)["original_path"])
+    return prot
+
+
 def load_rules(path):
     """Per-directory deletion rules (see docs/research_lab/data_catalogue/RETENTION.md). None = legacy: one
     --older-than-days for everything scanned."""
@@ -173,9 +329,20 @@ def delete_verified(a, state, ledger):
     now = time.time()
     rules = load_rules(getattr(a, "retention", None))
     dlog = os.path.join(state, "deletions.jsonl")
+    globs = [g for x in (getattr(a, "include_active", None) or []) for g in x.split(",") if g]
+    protected = active_protected(state, globs)
     n_del = n_keep = n_rule_kept = freed = 0
     for e in ledger:
-        live = [p for p in e["files"] if os.path.exists(os.path.join(a.root, p))]
+        if e.get("active_snapshot"):
+            continue  # point-in-time copies of live logs: never a basis for deleting anything
+        live = [
+            p
+            for p in e["files"]
+            if not p.startswith(ACTIVE_PREFIX)
+            and p not in protected
+            and not any(fnmatch.fnmatch(p, g) for g in globs)
+            and os.path.exists(os.path.join(a.root, p))
+        ]
         if not live:
             continue
         chk = os.path.join(a.workdir, "recheck_" + e["tag"])
@@ -271,6 +438,14 @@ def main():
         "--tag-suffix",
         help="label added to the release tag, e.g. val for the /home/opc/arepo_val copy (use a separate --state too)",
     )
+    ap.add_argument(
+        "--include-active",
+        action="append",
+        default=[],
+        metavar="GLOB[,GLOB...]",
+        help="root-relative globs of append-only logs still being written; archive a point-in-time copy (prefix to "
+        "the last newline). These files are never deleted",
+    )
     ap.add_argument("--dry-run", action="store_true", help="with --delete: log would_delete only")
     ap.add_argument(
         "--no-archive", action="store_true", help="skip archiving; only the deletion pass"
@@ -289,6 +464,8 @@ def main():
     try:
         os.write(fd, str(os.getpid()).encode())
         archive_new(a, a.state, load_ledger(a.state))
+        if a.include_active:
+            snapshot_active(a, a.state, load_ledger(a.state))
         if a.delete:
             delete_verified(a, a.state, load_ledger(a.state))
     finally:

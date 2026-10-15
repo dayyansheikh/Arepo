@@ -138,8 +138,19 @@ def experiments_for(path):
     return list(DIR_EXPERIMENTS.get(d, [])) if d in ("_ops", "phase3_evidence_capsules") else []
 
 
+_ACTIVE = re.compile(r"^active_snapshots/(\d{8}T\d{6}Z)/(.*)$")
+
+
 def classify(path):
-    """Catalogue fields for one member path (no I/O)."""
+    """Catalogue fields for one member path (no I/O). Point-in-time copies of live logs
+    (``active_snapshots/<stamp>/<original path>``, archive_rotate.py --include-active) are classified by their
+    original path and flagged ``active_snapshot``; capture_time_utc is the copy time."""
+    am = _ACTIVE.match(path)
+    if am:
+        out = classify(am.group(2))
+        out.update({"path": path, "active_snapshot": True, "original_path": am.group(2),
+                    "capture_id": None, "capture_time_utc": _iso(am.group(1))})
+        return out
     out = {"path": path, "dir": dir_of(path), "capture_id": None, "capture_time_utc": None,
            "date_utc": None, "experiments": experiments_for(path)}
     m = _CAP.search(path)
