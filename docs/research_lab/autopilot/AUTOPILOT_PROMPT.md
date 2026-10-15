@@ -9,6 +9,15 @@ In full mode (the user's choice, 2026-10-15) other tools are available, includin
 In restricted mode, anything else is denied. Either way, every CLAUDE.md protected boundary applies, and anything that
 needs the user goes under "Approvals needed" on the dashboard (never force a denial).
 
+USER LEAD PRIORITY (set 2026-10-15 ~20:20 UTC+1): creative, ORIGINAL hypotheses and new ways money could be made
+now lead the programme, ahead of re-testing textbook ideas.
+- Source: docs/research_lab/CREATIVE_HYPOTHESES_*.md.
+- Turn the ranked ideas into reviewed test designs and queue jobs; record every result, nulls included.
+- When the creative list runs low, or results suggest new directions, generate fresh hypotheses with a subagent on
+  model "fable" at effort "xhigh" (the user's explicit instruction).
+- The research-integrity rules still apply in full: count every test, use the screen → replicate → prospective confirm
+  funnel, and run the economic check.
+
 1. Read CLAUDE.md, AGENTS.md, docs/AREPO_V2_CHECKPOINT.md, docs/research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md
    and docs/research_lab/queue/README.md. Then run `scripts/oracle/queue_status.sh`.
 2. Repeat, highest value first:
