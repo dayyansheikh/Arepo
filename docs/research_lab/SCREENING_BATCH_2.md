@@ -1219,3 +1219,29 @@ favourable tercile (it is chosen on h2 judgement rows and used only on h3).
   run's last period (fresh, not re-using these 51); (b) the J4-style sweep-mid target (P1x analogue) to separate quote
   noise. A registration (SEALED-P) needs (a) and (b) plus a design for the dependence between pairs in one event. The
   internal related-market family is **not** retired (stop rule: met).
+
+### J1 HB2 (q0008, run on `h2_main`, finished 2026-10-15 23:28Z): 6 of 13 advance; placebo null
+- **Run.** Committed spec `hb2_v1.json` (spec 23cbdd0d…, declaration 567e2e52…; signs = discovery signs). Prior
+  cumulative count 934, m_total 947. Judgement rows; one-sided in the discovery sign; Stage-1 gate p < 0.01.
+- **Placebo (whole battery on globally permuted targets):** no test advances (lowest p 0.015). 3 of 13 have p < 0.05,
+  against about 0.65 expected, which is a mild sign that the p-values run slightly anti-conservative. Recorded, not acted on.
+- **Advanced to Stage 2** (effect in price points per SD of flow per SD of moderator; event-bootstrap CI):
+
+  | ID | Meaning | Effect | CI | p | Robustness |
+  |---|---|---|---|---|---|
+  | F4 | 6h flow continues more in high-volatility markets | +0.0019 | [+0.0011, +0.0026] | 8e-8 | **BY survivor (m 947)**; same sign in all 4 months; holds without shared events and with the flow window ending 30 min early |
+  | F5 | 6h flow continues more where the spread is wide | +0.0047 | [+0.0024, +0.0071] | 3e-5 | 4/4 months positive; robust to both checks |
+  | F7 | trades large for their market carry more of the flow signal | +0.0025 | [+0.0014, +0.0042] | 1e-4 | 65% of rows have an empty big or rest group; the both-non-empty subset still +0.0020 [+0.0008, +0.0040] |
+  | L1 | 1-day price change continues more (reverses less) in liquid markets | +0.062 | [+0.028, +0.093] | 2e-4 | 4/4 months positive; holds without shared events |
+  | F3 | 6h flow continues more near resolution | −0.0027 | [−0.0048, −0.0006] | 0.004 | survives the end-date look-ahead re-run (−0.0028, p 0.005); month signs 3 of 4 |
+  | F8 | 24h flow continues more in liquid markets | +0.0024 | [+0.0007, +0.0044] | 0.008 | **disappears with `f_quiet` as a joint control** (+0.0010, p 0.18), so it is probably HB1's quiet-market effect again; Oct negative |
+
+  Not advanced: F1 (p 0.38), F2 (0.06), F6 (0.75), L2 (0.02), X1 (0.11), X2 (0.24), X3 (0.48). **All three
+  cross-market X tests are null**, so the J6/q0014-q0015 path is not triggered.
+- **Reading.** Flow continuation (HB1's main real effect) is stronger in volatile, wide-spread markets, near resolution,
+  and when it comes from trades that are large for that market. Liquidity changes the 1-day price-change effect (L1):
+  illiquid markets reverse more. That is consistent with quote/bounce noise in illiquid prices, the same caution as
+  the J4 diagnosis. Nothing here is cost-tested. Per §2, h2 economics are not reported in the favourable tercile.
+- **Next:** q0009 (h3 features) → q0010 (frozen replication on h3_power, Holm over the 6 advanced tests). Only a
+  Stage-2 pass is "development-replicated".
+

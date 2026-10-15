@@ -1146,3 +1146,11 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   −0.19). Holds on fresh periods only (34/39 positive).
 - **Limits:** increment is over R only; R + L1 < B3; target is the Gamma mid (see J4 placebo issue); not tradable as
   shown. Next: L1-beyond-B3 and sweep-mid checks on later captures before any registration.
+
+## Development screen SB2-J1 — Hypothesis battery 2 (HB2) on `h2_main` (q0008, 2026-10-15)
+- **Status:** counted (13 tests; m_total 947), development (Stage 1).
+- **Placebo (global permutation):** null (no test advances).
+- **Advanced (p < 0.01, discovery sign):** F4 (flow × volatility, BY survivor), F5 (flow × spread), F7 (large-for-market
+  trades), L1 (1d change × liquidity), F3 (flow × time to end, robust to end-date look-ahead), F8 (24h flow × liquidity;
+  vanishes with the quiet-market control). Null: F1, F2, F6, L2 and all cross-market X1-X3.
+- **Next:** frozen Stage-2 replication on `h3_power` (q0009 → q0010). No cost test yet; not tradable as shown.
