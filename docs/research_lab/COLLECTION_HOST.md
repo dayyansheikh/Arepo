@@ -32,6 +32,7 @@ Other `research_lab` directories (history, if_h2, ml_cache, etc.) stay on the Ma
 | `@reboot`, `*/5` | `scripts/oracle/supervise.sh`: keeps `run_live_trade_monitor.py` and `run_cross_venue_live.py` running | `com.arepo.live-trade-monitor`, `com.arepo.cross-venue-live` |
 | `10 2,14` | `run_live_trade_monitor.py --outcomes` | `com.arepo.live-trade-outcomes` (03:10/15:10 BST) |
 | `*/15` | `arepo_notify.py check` (ntfy) | `com.arepo.notify` |
+| `*/2` | `scripts/oracle/queue_worker.py tick`: research queue, one job at a time; never starts while the pass holds the collector lock. Log: `queue.log`. See `queue/README.md` | none (added 2026-10-15) |
 
 - **Pass guards.** The pass takes `flock /tmp/arepo_collector.lock`, so passes never overlap. It skips with a logged line if free
   disk is below 4 GB or if `data-dumps` is above `AREPO_DATA_CAP_GB` (default 12). A skip shows up in notify as "collector has not

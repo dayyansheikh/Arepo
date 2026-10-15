@@ -542,10 +542,16 @@ def swap_free_mb() -> float | None:
 
 
 def memory_free_pct() -> float | None:
-    """System-wide free memory percentage from ``memory_pressure`` (None if unavailable)."""
+    """System-wide free memory percentage from ``memory_pressure`` (macOS) or ``/proc/meminfo``
+    MemAvailable/MemTotal (Linux, e.g. the Oracle host); None if neither is available."""
     import re
     import subprocess
 
+    meminfo = Path("/proc/meminfo")
+    if meminfo.exists():
+        vals = dict(re.findall(r"^(MemTotal|MemAvailable):\s+(\d+)", meminfo.read_text(), re.M))
+        if len(vals) == 2:
+            return 100.0 * int(vals["MemAvailable"]) / int(vals["MemTotal"])
     try:
         out = subprocess.run(["memory_pressure"], capture_output=True, text=True, timeout=20).stdout
         m = re.search(r"free percentage:\s*(\d+)%", out)

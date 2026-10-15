@@ -1,0 +1,35 @@
+{
+ "id": "q0002_books_h2main",
+ "title": "Build pmxt book-feature table for h2_main (resumable, budgeted)",
+ "family": "book/liquidity",
+ "priority": 60,
+ "expected_value": "unblocks r4_book (pending step 1 in HISTORICAL_ML_DEV.md); answers Q3 'does liquidity change which signals matter'",
+ "data": [
+  "history/h1_first",
+  "history/h2_main (panel_H6h, frame)",
+  "pmxt v2 hourly archive (network, range reads)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "network": "r2v2.pmxt.dev"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_history_features.py",
+  "books",
+  "--budget-min",
+  "150"
+ ],
+ "timeout_s": 16200,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 60,
+  "until_log_regex": "\"pairs_done_total\": (\\d+), \"pairs_total\": \\1,"
+ },
+ "outputs": [
+  "data-dumps/research_lab/history_sources/book_features/{rows,progress}.jsonl"
+ ],
+ "next_action": "finalize (q0003) when pairs_done_total == pairs_total",
+ "notes": "Resumes from the Mac-built progress restored from release data-20261013-research-lab. heavy_gate pauses during collector passes."
+}

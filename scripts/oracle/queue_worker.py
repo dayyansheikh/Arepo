@@ -22,7 +22,9 @@ One job at a time (1 OCPU / ~5 GiB host; heavy-job rule). Idempotency: a job id 
 
 Spec fields (JSON): id, title, priority (int, higher first), expected_value, family, data,
 resources {mem_mb, cpu}, depends_on [ids], argv [script under backend/scripts, args...],
-timeout_s, max_retries, outputs [paths], next_action, notes.
+timeout_s, max_retries, outputs [paths], next_action, notes, and optionally
+repeat {max_runs, until_log_regex}: a resumable budgeted job exiting 0 is re-queued (not counted as a
+failed attempt) until its attempt log matches the regex or max_runs clean runs have happened.
 
 Manual control (on the host):
     queue_worker.py status | pause | resume | stop (SIGTERM running job and pause) | retry <id>
@@ -34,6 +36,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import resource
 import signal
 import subprocess
@@ -224,8 +227,17 @@ def run_job(jid: str) -> int:
     if outcome == "error" and rc in (-signal.SIGTERM, 143) and (QROOT / "PAUSE").exists():
         outcome = "stopped"
     st.update(exit_code=rc, finished_at=now(), runtime_s=round(time.time() - t0, 1))
+    rep = spec.get("repeat")
+    if outcome == "done" and rep:  # resumable budgeted job: rerun until its log shows completion
+        st["runs"] = st.get("runs", 0) + 1
+        log_text = Path(st["log"]).read_text(errors="ignore")
+        if not re.search(rep["until_log_regex"], log_text) and st["runs"] < rep["max_runs"]:
+            outcome = "partial"
     if outcome == "done":
         st["status"] = "done"
+    elif outcome == "partial":
+        st["status"] = "queued"
+        st["attempts"] = 0  # a clean budgeted run is progress, not a failed attempt
     elif outcome == "stopped":
         st["status"] = "queued"
         st["attempts"] -= 1  # manual stop is not a failed attempt
@@ -246,7 +258,7 @@ def write_status(specs: dict, note: str) -> None:
     rows = []
     for jid, spec in specs.items():
         st = load_state(jid)
-        rows.append({k: st.get(k) for k in ("id", "status", "attempts", "started_at", "finished_at",
+        rows.append({k: st.get(k) for k in ("id", "status", "attempts", "runs", "started_at", "finished_at",
                                             "runtime_s", "last_error", "not_before")}
                     | {"priority": spec.get("priority"), "title": spec.get("title"), "family": spec.get("family")})
     rows.sort(key=lambda r: (-(r["priority"] or 0), r["id"]))

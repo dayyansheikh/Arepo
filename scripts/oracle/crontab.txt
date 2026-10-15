@@ -6,4 +6,6 @@
 */5 * * * * /home/opc/arepo/scripts/oracle/supervise.sh
 10 2,14 * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/run_live_trade_monitor.py --outcomes >> /home/opc/arepo_collector/logs/live-trade-outcomes.out 2>> /home/opc/arepo_collector/logs/live-trade-outcomes.err
 */15 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/arepo_notify.py check >> /home/opc/arepo_collector/logs/notify.out 2>> /home/opc/arepo_collector/logs/notify.err
+# Research queue worker (scripts/oracle/queue_worker.py; pause: queue_worker.py pause)
+*/2 * * * * /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py tick >> /home/opc/arepo_collector/logs/queue.log 2>&1
 # --- end AREPO ---
