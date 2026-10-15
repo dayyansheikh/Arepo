@@ -1,9 +1,9 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-14 22:04 UTC+1
+**Last updated:** 2026-10-15 19:10 UTC+1
 **Current phase:** **Phase 3 closed**, with its last gap fixed this morning. **Phase 4 is in progress.**
-**Overall status:** On track. No decisions needed from you.
-**Current objective:** Build the combined-signal model (many signals, ML + Bayesian, Shapley breakdown) and collect its data; finish the 24-hour forecasting test tonight; run the pairing redesign (D120) once.
+**Overall status:** On track. New mission received (autonomous edge-discovery programme); starting in a fresh session. Collection running on the server.
+**Current objective:** Set up verified always-on research (resumes after usage limits), a research queue, and start large-scale feature screening. Open for you: server GitHub token (by ~22 Oct), Kalshi-gap choice, and the one-time usage reset (expires Wed 21 Oct).
 
 ## 1. Where we are
 AREPO asks whether information knowable *before* a prediction helps forecast Polymarket price moves better than the
