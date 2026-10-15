@@ -31,10 +31,9 @@
    - No automatic redemption is documented, and I can't see your account page.
    - Check claude.ai/settings/usage (or `/usage`). If there's a claim/redeem button, press it around Sun 18 Oct, after this week's allowance is used.
    - A phone alert was sent 19:2x UTC+1.
-3. **Server GitHub token (by about 20 Oct)**, so the server can archive old data before its 12 GB cap fills.
-   - Make the token at github.com/settings/personal-access-tokens/new: name `arepo-server-archive`, 1 year, repo `arepo-data` only, Contents read/write.
-   - Then run `ssh -t oracle 'umask 077; read -rs -p "Paste token: " t; echo; printf %s "$t" > ~/.arepo/github_token; echo saved'`.
-4. **Kalshi overnight gap:** reply "include it" (recommended) or "leave the gap".
+3. ~~Server GitHub token~~ **DONE 15 Oct**: saved and working; nightly backup of all server data to `arepo-data` is on (archive-only, 03:30 UTC; first upload running). Freeing server space still needs a fix for `snapshots/` before about 22 Oct (being handled).
+4. ~~Kalshi overnight gap~~ **DECIDED 15 Oct: fill it** (recorded in the ledger before any results, with a sensitivity check).
+   Reset reminders also scheduled on your phone: Sun 18 Oct 19:00 and Tue 20 Oct 10:00 UTC+1.
 
 ## 3. Usage plan (your schedule; reset times are your statement, not verified)
 | When | Plan |
