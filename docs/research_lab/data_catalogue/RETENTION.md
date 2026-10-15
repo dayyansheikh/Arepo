@@ -40,7 +40,7 @@ and it is older than the rule's cut-off. Directories without a rule are never de
 | `trade_samples/` | **3 days**, keep `*/manifest.json`, `*/plan.json` | 3 days of `features.csv.gz`, `trades.csv.gz` (about 0.6 GB) + manifest/plan (about 0.7 MB each) | nothing reads features after the pair is cached (about 2h after the sample) |
 | `book_sweeps/` | **GATED: no rule now** (deferred: 3 days, keep manifests) | all | queue jobs q0005/q0006a/q0006 read every sweep; restore the rule when they are done or take `--sweep-root` |
 | `live_trades/scores-*`, `live_trades/trades-*` | **10 days** | the 7-day score history the monitor reloads, plus margin | `trailing_days` = 7; `trades-` only needs today and yesterday |
-| everything else | **never deleted** | all | read by open experiments or small |
+| `cb1_extract/` and everything else | **never deleted** | all | read by open experiments or small |
 
 **Capacity consequence of the gate:** with snapshots not deletable the data grows about 0.75 GB a day from snapshots alone; deleting samples (3 d) and live_trades frees little. The 12 GB cap (about 22 October) is then NOT avoided unless the queue jobs finish or accept a root argument first. Decision needed from the user/other session before about 20 October.
 
@@ -72,7 +72,7 @@ Final analyses (E009/E010 after 2026-11-03, E011 after 2026-11-10, any re-run of
 **restore first**: `python3 backend/scripts/restore_from_archive.py --experiment E011 --dest ~/restore_e011` (see `README.md`), then
 point the reader at the restored copy. Readers with root arguments: E004/E005/E006 (`--snapshot-root`), E007 (`--sample-root`, `--snapshot-root`), `run_flow_screen.py` (`--snapshot-root`, `--trade-samples-root`), `run_leadlag_screen.py` (`--snapshot-root`, `--dev-dir`), `run_bounce_decomp.py` (`--snapshot-root`, `--sweep-root`); a missing listed rows file raises `ArchivedDataError`. The rest (E011, E009/E010 `analyze`, E003, ML scripts) use the default roots: restore with `--dest <scratch repo root>` so the files land under a repo-like `data-dumps/research_lab/`, never the live tree. The restore re-hashes every file.
 
-**Gate release:** snapshot rows and book_sweeps stay non-deletable until queue jobs q0005, q0006a and q0006 are done. After that they become deletable at 8 days (snapshots, keep manifests) and 3 days (sweeps, keep manifests) by moving the `deferred_rules` in `scripts/oracle/archive_retention.json` into `rules`, because those runners can now read a restored scratch root.
+**Gate release:** snapshot rows and book_sweeps stay non-deletable until queue jobs q0005, q0006a and q0006 are done; snapshot rows additionally until the CB1 extractor is live and its backfill over captures since 10 October has caught up. `cb1_extract/` (MB-scale per-capture extract) is never deleted (no rule). After that they become deletable at 8 days (snapshots, keep manifests) and 3 days (sweeps, keep manifests) by moving the `deferred_rules` in `scripts/oracle/archive_retention.json` into `rules`, because those runners can now read a restored scratch root.
 
 ## Before enabling `--delete` (checklist for the user)
 
