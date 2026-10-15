@@ -1190,6 +1190,28 @@ favourable tercile (it is chosen on h2 judgement rows and used only on h3).
   runs.
 - **Queue:** q0035 (J4-R counted, depends on nothing; `not_before` 2026-10-20T03:00Z), after code + freeze check.
 
+#### J4-R / J3 freeze check (science-reviewer, 2026-10-16 ~00:00Z): ACCEPT_WITH_REQUIRED_FIXES (both) — declaration amendments
+These rulings amend the J4-R draft above and J3; they bind both (applied before any run; code fixes delegated):
+- **Placebo scheme (all tests, J4-R and J3):** increments are drawn with replacement from the market's pooled valid
+  increments (all runs together; one joint draw for all level columns); each contiguous run is rebuilt from its
+  observed start level. Every draw is then i.i.d. within market, so the estimator is unbiased for increment and level
+  regressors. Within-run permutation is rejected (it builds a bridge and creates mechanical reversion in level terms).
+- **Placebo reading rule:** the 2.5-97.5% range of the 20 placebo betas must cover 0 for every test (else the family
+  is VOID), **and** a test is read only if |mean placebo β| ≤ 0.5 × its real max-SE; otherwise that test is
+  "inconclusive (placebo bias)". z_mean and β_sd are descriptive only. VOID/biased status is written into every
+  trial line and the verdicts are withheld.
+- **Window:** a period is a triple with in-range gaps contributing at least one row. 2h captures give at most ~46
+  triples in 4 days, so ≥ 48 periods cannot be met by 10-20. Declared: `--since 2026-10-16T00:00Z --until
+  2026-10-21T00:00Z` (exclusive), not before 2026-10-21T03:00Z. If fewer than 48 periods qualify, the runner exits
+  3 before any test or placebo, and the job is re-queued with `--until` moved forward by exactly one UTC day (logged).
+- **J3 amendment (own declaration):** J3 (q0011) runs with the expanding-past estimator and the pooled bootstrap placebo
+  above, on `h2_main` book triples; family, tests (B1-B4 Holm; D1/D2 Stage-1 gate) and verdict map unchanged. B2/B3
+  take their mid-level controls from the book mid (logit(bm), |bm − 0.5|), recomputed from the rebuilt bm in the
+  placebo. If R² of demeaned `e_t` on the demeaned controls exceeds 0.9, B2/B3 are "untestable (collinear)". Placebo
+  row counts per draw are reported against the real counts. Trial revision `j3_expanding_v1`.
+- **Integrity note:** no capture started on or after 2026-10-16T00:00Z has been analysed by any job before this
+  freeze (q0031/q0032 used `--until-utc 2026-10-15T21:00Z`; J5 used captures up to 2026-10-15 20:31Z).
+
 ### J5 (q0005, run `leadlag-sb2-snap2h`, finished 2026-10-15 23:05Z): SB2 rule MET for L1 (one candidate)
 - **Run.** 82.9 min; gap filter [1.5, 3] h excluded 5 periods (the 10-10 development spacing and the host outage);
   `all_periods` 51 periods, 2,394,749 pairs, 126,269 markets, 34,025 event clusters; `neg_risk_periods` 49 periods.
