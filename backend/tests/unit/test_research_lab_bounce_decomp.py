@@ -466,3 +466,327 @@ def test_no_sweep_for_snapshot_is_still_counted_not_error(tmp_path):
     (tmp_path / "sw").mkdir()
     df, counts = bd.build_snapshot_triples(tmp_path / "snap", tmp_path / "sw")
     assert len(df) and counts[0]["sweep_found"] is False
+
+
+# =============================================================================================
+# J4-R / J3: expanding-past estimator, increment-shuffle placebo, fresh-capture and h-tight filters
+# =============================================================================================
+
+
+def level_world(kind: str, n_mkt=200, T=8, seed=0, sd=0.01) -> pd.DataFrame:
+    """Triples built from per-market level series (row t = captures t, t+1, t+2, so consecutive rows
+    overlap exactly as in the real build). 'walk': iid increments; 'reversal': the observed Gamma mid is
+    the latent walk plus iid noise (negative increment autocorrelation) and the sweep B_i is observed
+    without the noise (a genuine reversal relative to the independent measurement)."""
+    rng = np.random.default_rng(seed)
+    rows = []
+    for k in range(n_mkt):
+        latent = 0.5 + np.cumsum(rng.normal(0, sd, T + 2))
+        obs = latent + (rng.normal(0, sd, T + 2) if kind == "reversal" else 0.0)
+        for t in range(T):
+            mh, mi, mj = obs[t], obs[t + 1], obs[t + 2]
+            d_bid, d_ask = rng.normal(0, 0.01, 2)
+            den = abs(d_ask) + abs(d_bid)
+            w = abs(d_ask - d_bid) / den
+            B = latent[t + 1] if kind == "reversal" else mi
+            rows.append(dict(
+                market_id=f"m{k}", cluster=f"e{k // 2}", period=t, day=f"2026-10-{16 + t // 3}",
+                spread=0.02, chg_1h=rng.normal(0, 0.01), chg_1h_missing=0.0, b_pos=rng.uniform(-1, 1),
+                d_bm=mi - mh, d_bid=d_bid, d_ask=d_ask, w=w, mid_h=mh, mid_i=mi, mid_j=mj,
+                bid_h=mh - 0.01, ask_h=mh + 0.01, bid_j=mj - 0.01, ask_j=mj + 0.01, B_i=B,
+                sweep_lag_min=5.0, volume_up=True, liquidity_i=1e4, ltp_i=mi, ltp_h=mh))
+    df = pd.DataFrame(rows)
+    df["b_pos0"], df["b_pos_missing"] = df["b_pos"], 0.0
+    df["d_bm_x_w"] = df["d_bm"] * df["w"]
+    df["dmid"] = df["mid_j"] - df["mid_i"]
+    df["y_p1x"] = df["mid_j"] - df["B_i"]
+    df["y_far_bid"], df["y_far_ask"] = df["bid_j"] - (df["mid_i"] - 0.01), df["ask_j"] - (df["mid_i"] + 0.01)
+    return df
+
+
+def _p1_beta(df, estimator):
+    return bd.snapshot_tests(df, n_boot=2, seed=1, estimator=estimator, descriptive=False)["tests"]["P1"]["beta"]
+
+
+def _fe_beta(df):
+    """Plain market fixed-effects slope of dmid on d_bm (whole-sample demeaning)."""
+    x = df["d_bm"] - df.groupby("market_id")["d_bm"].transform("mean")
+    y = df["dmid"] - df.groupby("market_id")["dmid"].transform("mean")
+    return float((x * y).sum() / (x * x).sum())
+
+
+def test_expanding_resid_causal_and_first_row_nan():
+    df = pd.DataFrame({"market_id": ["a"] * 4 + ["b"] * 2, "period": [3, 0, 1, 2, 5, 4],
+                       "x": [10.0, 1.0, 3.0, np.nan, 7.0, 5.0]})
+    out = bd.expanding_demean(df, ["x"])
+    got = out.set_index(["market_id", "period"])["x"]
+    assert np.isnan(got[("a", 0)]) and np.isnan(got[("b", 4)])  # first row of each market
+    assert got[("a", 1)] == pytest.approx(3.0 - 1.0)  # mean of strictly earlier rows only
+    assert np.isnan(got[("a", 2)])  # own value NaN
+    assert got[("a", 3)] == pytest.approx(10.0 - 2.0)  # NaN earlier row ignored
+    assert got[("b", 5)] == pytest.approx(7.0 - 5.0)
+    assert df["x"].equals(pd.Series([10.0, 1.0, 3.0, np.nan, 7.0, 5.0], name="x"))  # input untouched
+    # changing a later row never changes an earlier row's value (causality)
+    df2 = df.copy()
+    df2.loc[0, "x"] = 99.0
+    got2 = bd.expanding_demean(df2, ["x"]).set_index(["market_id", "period"])["x"]
+    assert got2[("a", 1)] == got[("a", 1)] and got2[("a", 2)] is not None
+
+
+def test_expanding_estimator_zero_bias_short_panels_fe_biased():
+    means_exp, means_fe = {}, {}
+    for T in (3, 4, 6, 10):
+        be, bf = [], []
+        for s in range(25):
+            df = level_world("walk", n_mkt=150, T=T, seed=1000 * T + s)
+            be.append(_p1_beta(df, "expanding"))
+            bf.append(_fe_beta(df))
+        means_exp[T], means_fe[T] = float(np.mean(be)), float(np.mean(bf))
+    for T, m in means_exp.items():
+        assert abs(m) < 0.02, (T, m)
+    assert means_fe[3] < -0.2 and means_fe[6] < -0.1 and means_fe[10] < -0.05, means_fe
+
+
+def test_increment_shuffle_placebo_is_consistent_and_keeps_observed_columns():
+    df = level_world("walk", n_mkt=30, T=8, seed=3)
+    pl = bd.shuffle_increments_placebo(df, 5)
+    for c in ("spread", "b_pos", "w", "chg_1h", "liquidity_i", "volume_up", "period", "market_id", "d_bid"):
+        assert df[c].equals(pl[c]), c
+    assert not np.allclose(pl["dmid"], df["dmid"])
+    for _, g in pl.sort_values(["market_id", "period"]).groupby("market_id"):
+        # overlapping rows share a capture level: row t's (i, j) is row t+1's (h, i)
+        assert np.allclose(g["mid_i"].to_numpy()[1:], g["mid_j"].to_numpy()[:-1], atol=1e-6)
+        assert np.allclose(g["mid_h"].to_numpy()[1:], g["mid_i"].to_numpy()[:-1], atol=1e-6)
+    assert np.allclose(pl["d_bm"], pl["mid_i"] - pl["mid_h"], atol=1e-6)
+    assert np.allclose(pl["dmid"], pl["mid_j"] - pl["mid_i"], atol=1e-6)
+    assert np.allclose(pl["d_bm_x_w"], pl["d_bm"] * pl["w"], atol=1e-6)
+    assert np.allclose(pl["y_p1x"], pl["mid_j"] - pl["B_i"], atol=1e-6)
+    # start level kept and increment multiset preserved per market
+    for m, g in df.sort_values("period").groupby("market_id"):
+        gp = pl[pl["market_id"] == m].sort_values("period")
+        assert gp["mid_h"].iloc[0] == pytest.approx(g["mid_h"].iloc[0], abs=1e-6)
+        inc = np.r_[g["d_bm"].to_numpy(), g["dmid"].iloc[-1]]
+        incp = np.r_[gp["d_bm"].to_numpy(), gp["dmid"].iloc[-1]]
+        assert np.allclose(sorted(inc), sorted(incp), atol=1e-6)
+
+
+def test_increment_shuffle_runs_break_at_gaps():
+    df = level_world("walk", n_mkt=6, T=9, seed=4)
+    # no rows at periods 4 and 5: the increment 5 -> 6 is observed by no row, so the runs break there
+    gap = df[~df["period"].isin([4, 5])].reset_index(drop=True)
+    pl = bd.shuffle_increments_placebo(gap, 2)
+    for m, g in gap.sort_values("period").groupby("market_id"):
+        a, b = g[g["period"] < 4], g[g["period"] > 5]
+        pa, pb = (pl[(pl["market_id"] == m) & cond].sort_values("period") for cond in
+                  (pl["period"] < 4, pl["period"] > 5))
+        # increments never move across the missing period: each side keeps its own multiset
+        assert np.allclose(sorted(np.r_[a["d_bm"], a["dmid"].iloc[-1]]),
+                           sorted(np.r_[pa["d_bm"], pa["dmid"].iloc[-1]]), atol=1e-6)
+        assert np.allclose(sorted(np.r_[b["d_bm"], b["dmid"].iloc[-1]]),
+                           sorted(np.r_[pb["d_bm"], pb["dmid"].iloc[-1]]), atol=1e-6)
+
+
+def test_placebo_reproduces_fe_bias_and_is_null_under_expanding():
+    fe, ex = [], []
+    for s in range(12):
+        df = level_world("walk", n_mkt=250, T=5, seed=70 + s)
+        pl = bd.shuffle_increments_placebo(df, s)
+        fe.append(_fe_beta(pl))
+        ex.append(_p1_beta(pl, "expanding"))
+    assert np.mean(fe) < -0.1, np.mean(fe)  # the FE estimator's mechanical bias shows up in the placebo
+    assert abs(np.mean(ex)) < 0.03, np.mean(ex)
+
+
+def test_genuine_reversal_expanding_negative_placebo_null():
+    df = level_world("reversal", n_mkt=250, T=10, seed=11)
+    r = bd.snapshot_tests(df, n_boot=50, seed=1, estimator="expanding")
+    assert r["estimator"] == "expanding"
+    assert r["tests"]["P1"]["beta"] < -0.15 and r["tests"]["P1"]["reject"]
+    fam = bd.placebo_family(df, draws=20, seed=500, estimator="expanding", n_boot=5)
+    assert fam["draws"] == 20 and fam["placebo_null"] is True
+    assert all(len(t["betas"]) == 20 for t in fam["tests"].values())
+    assert abs(fam["tests"]["P1"]["beta"]) < 0.06
+    # the same placebo is NOT null for a naive pooled-with-FE-like bias check elsewhere; here it also
+    # must not manufacture the genuine reversal
+    assert fam["tests"]["P1"]["beta"] > r["tests"]["P1"]["beta"] + 0.1
+
+
+def _toggle_captures(root, n_cap=40, n_mkt=100, sd=0.01, off=0.04, seed=0):
+    rng = np.random.default_rng(seed)
+    latent = 0.5 + np.cumsum(rng.normal(0, sd, (n_mkt, n_cap)), axis=1)
+    sign = rng.choice([-1.0, 1.0], n_mkt)
+    wide = rng.random((n_mkt, n_cap)) < 0.5
+    for c in range(n_cap):
+        t = T0 + timedelta(hours=2 * c)
+        mids = {f"m{k}": float(latent[k, c] + (sign[k] * off if wide[k, c] else 0.0)) for k in range(n_mkt)}
+        rows = make_rows(t, mids, vol=1000.0 + 10 * c)
+        rows["event_id"] = [f"e{k}" for k in range(n_mkt)]
+        rows["chg_1h"] = rng.normal(0, 0.01, n_mkt)
+        sp = np.where(wide[:, c], 0.2, 0.02)
+        rows["spread"] = sp
+        rows["best_bid"] = rows["best_bid"].to_numpy(float) + 0.01 - sp / 2
+        rows["best_ask"] = rows["best_ask"].to_numpy(float) - 0.01 + sp / 2
+        write_capture(root, f"c{c:03d}", t, rows)
+
+
+def test_regime_toggle_world_null_with_h_tight_and_biased_without(tmp_path):
+    _toggle_captures(tmp_path / "snap")
+    plain, cnt0 = bd.build_snapshot_triples(tmp_path / "snap", tmp_path / "none")
+    tight, cnt1 = bd.build_snapshot_triples(tmp_path / "snap", tmp_path / "none", h_tight=True)
+    assert len(tight) < len(plain)
+    assert sum(c.get("h_tight_excluded", 0) for c in cnt1) == len(plain) - len(tight)
+    assert cnt1[-1]["filters"]["rows_excluded_h_not_tight"] == len(plain) - len(tight)
+    assert bd.snapshot_tests(plain, n_boot=20, seed=1, descriptive=False)["tests"]["P1"]["beta"] < -0.2
+    r = bd.snapshot_tests(tight, n_boot=100, seed=1, estimator="expanding", descriptive=False)
+    p1 = r["tests"]["P1"]
+    assert abs(p1["beta"]) < 3.5 * p1["se"] and not p1["reject"], p1
+
+
+def test_since_before_and_h_tight_filters(tmp_path):
+    for n in range(6):
+        t = T0 + timedelta(hours=2 * n)
+        rows = make_rows(t, MIDS, shift=0.001 * n)
+        if n == 2:  # capture c2 is the h of triple (c2, c3, c4): m2 wide there
+            rows.loc[rows["market_id"] == "m2", ["spread", "best_bid", "best_ask"]] = [0.2, 0.4, 0.6]
+        write_capture(tmp_path / "snap", f"c{n}", t, rows)
+    full, _ = bd.build_snapshot_triples(tmp_path / "snap", tmp_path / "none")
+    assert len(full) == 11 and full["d_bm"].notna().all()  # m2 is wide at i=c2: not an origin
+    df, counts = bd.build_snapshot_triples(tmp_path / "snap", tmp_path / "none",
+                                           since_utc=iso(T0 + timedelta(hours=4)))
+    built = [c for c in counts if "capture_h" in c]
+    assert [c["capture_h"] for c in built] == ["c2", "c3"]  # h, i, j all start >= since
+    assert counts[-1]["filters"]["captures_excluded_by_time_window"] == 2 and len(df) == 6
+    b, cb = bd.build_snapshot_triples(tmp_path / "snap", tmp_path / "none",
+                                      before_utc=iso(T0 + timedelta(hours=6)))  # c0, c1, c2 only
+    assert len(b) == 3 and cb[-1]["filters"]["captures_read"] == 3
+    ht, ch = bd.build_snapshot_triples(tmp_path / "snap", tmp_path / "none", since_utc=iso(T0 + timedelta(hours=4)),
+                                       h_tight=True)
+    assert len(ht) == 5 and set(ht["market_id"][ht["period"] == 0]) == {"m1", "m3"}
+    assert [c.get("h_tight_excluded", 0) for c in ch if "capture_h" in c] == [1, 0]
+    assert ch[-1]["filters"]["rows_excluded_h_not_tight"] == 1
+    # tightness rule itself
+    ok = bd.h_tight_mask(np.array([0.48, 0.0, 0.40, 0.97, 0.005, 0.5]), np.array([0.52, 0.5, 0.60, 1.0, 0.02, 0.5]),
+                         np.array([0.04, np.nan, 0.2, 0.03, np.nan, np.nan]))
+    assert ok.tolist() == [True, False, False, False, False, False]
+
+
+def test_defaults_unchanged_by_estimator_arguments():
+    df = snap_world("noise", n_mkt=80, n_per=6)
+    a = bd.snapshot_tests(df, n_boot=30, seed=1)
+    b = bd.snapshot_tests(df, n_boot=30, seed=1, estimator="pooled")
+    assert a["tests"]["P1"]["beta"] == b["tests"]["P1"]["beta"] and a["estimator"] == "pooled"
+    with pytest.raises(ValueError):
+        bd.snapshot_tests(df, n_boot=2, seed=1, estimator="fe")
+    assert bd.snapshot_regressors()[0] == "d_bm"
+
+
+def test_snapshot_sensitivities_descriptive():
+    df = level_world("walk", n_mkt=60, T=24, seed=2)
+    s = bd.snapshot_sensitivities(df, n_boot=10, seed=1)
+    assert set(s) >= {"markets_ge_20_rows", "j_tight_rows", "pooled_all_rows", "within_between"}
+    wb = s["within_between"]["P1"]
+    assert wb["within"] < wb["pooled"] + 0.2 and wb["n_markets"] == 60
+
+
+# --- J3 ----------------------------------------------------------------------------------------
+
+
+def book_level_world(kind: str, n_mkt=500, n_per=12, seed=0, sd=0.01) -> pd.DataFrame:
+    rng = np.random.default_rng(seed)
+    rows = []
+    for k in range(n_mkt):
+        b = 0.5 + np.cumsum(rng.normal(0, sd, n_per + 2))
+        e = rng.normal(0, sd, n_per + 2) if kind == "measurement" else np.zeros(n_per + 2)
+        s = b + e
+        for g in range(1, n_per + 1):
+            w = rng.random()
+            rows.append({
+                "market_id": f"m{k}", "cluster": f"e{k // 2}", "day": f"d{g // 3}", "t_i": g * bd.H6,
+                "period": g * bd.H6, "split": "disc" if g <= n_per // 2 else "judge",
+                "bm": b[g], "bm_next": b[g + 1], "d_bm_prev": b[g] - b[g - 1], "y_bm": b[g + 1] - b[g],
+                "series_mid": s[g], "d_series_prev": s[g] - s[g - 1], "y_series": s[g + 1] - s[g],
+                "e_t": s[g] - b[g], "w": w, "d_bm_x_w": (b[g] - b[g - 1]) * w,
+                "depth5c": 1000.0, "depth5c_usdc": 1000.0 * b[g], "log_depth": np.log1p(1000.0),
+                "x6": rng.normal(), "n6": 3.0, "sn6": rng.normal() * 100,
+                "ml_logit_mid": rng.normal(0, 0.1), "ml_abs_mid_dev": rng.normal(0, 0.1)})
+    d = pd.DataFrame(rows)
+    d["log_depth"] = d["log_depth"] + np.random.default_rng(seed + 1).normal(0, 0.3, len(d))
+    d["flow_pressure"] = d["sn6"] / (d["depth5c_usdc"] + 100.0)
+    for c in bd.C0_COLS:
+        if c not in d:
+            d[c] = np.random.default_rng(seed + 2).normal(0, 0.1, len(d))
+    return d
+
+
+def test_book_placebo_consistency():
+    d = book_level_world("measurement", n_mkt=20, n_per=10, seed=1)
+    pl = bd.shuffle_book_increments_placebo(d, 3)
+    for _, g in pl.sort_values(["market_id", "t_i"]).groupby("market_id"):
+        assert np.allclose(g["y_bm"].to_numpy()[:-1], g["d_bm_prev"].to_numpy()[1:], atol=1e-5)
+        assert np.allclose(g["y_series"].to_numpy()[:-1], g["d_series_prev"].to_numpy()[1:], atol=1e-5)
+        assert np.allclose(g["bm_next"].to_numpy()[:-1], g["bm"].to_numpy()[1:], atol=1e-5)
+    assert np.allclose(pl["e_t"], pl["series_mid"] - pl["bm"], atol=1e-5)
+    assert np.allclose(pl["d_bm_x_w"], pl["d_bm_prev"] * pl["w"], atol=1e-5)
+    assert np.allclose(pl["ml_abs_mid_dev"], np.abs(pl["series_mid"] - 0.5), atol=1e-5)
+    assert not np.allclose(pl["y_bm"], d["y_bm"]) and d["x6"].equals(pl["x6"])
+
+
+def test_book_expanding_unbiased_fe_biased_and_defaults_unchanged():
+    be, bf = [], []
+    for s in range(10):
+        d = book_level_world("walk", n_mkt=300, n_per=6, seed=s)
+        d["split"] = "judge"
+        r = bd.book_tests(d, {"min_rows": 100, "min_events": 10}, n_boot=2, seed=1, estimator="expanding")
+        be.append(r["tests"]["B1"]["beta"])
+        x = d["d_bm_prev"] - d.groupby("market_id")["d_bm_prev"].transform("mean")
+        y = d["y_bm"] - d.groupby("market_id")["y_bm"].transform("mean")
+        bf.append(float((x * y).sum() / (x * x).sum()))
+    assert abs(np.mean(be)) < 0.03 and np.mean(bf) < -0.1, (np.mean(be), np.mean(bf))
+    d = book_level_world("walk", n_mkt=300, n_per=6, seed=0)
+    spec = {"min_rows": 100, "min_events": 10}
+    r0 = bd.book_tests(d, spec, n_boot=5, seed=1)
+    r1 = bd.book_tests(d, spec, n_boot=5, seed=1, estimator="pooled")
+    assert r0["tests"]["B1"]["beta"] == r1["tests"]["B1"]["beta"]
+
+
+def test_book_measurement_world_expanding_with_null_placebo():
+    d = book_level_world("measurement", n_mkt=400, n_per=12, seed=5)
+    r = bd.book_tests(d, {}, n_boot=30, seed=1, estimator="expanding")
+    assert r["tests"]["B2"]["beta"] < -0.3 and r["tests"]["B2"]["reject"]
+    fam = bd.book_placebo_family(d, draws=20, seed=300, estimator="expanding", n_boot=5, scheme="bootstrap")
+    assert fam["draws"] == 20 and set(fam["tests"]) == set(bd.J3_IDS)
+    assert fam["tests"]["B2"]["covers_zero"] and abs(fam["tests"]["B1"]["beta"]) < 0.1
+    assert fam["tests"]["B2"]["beta"] > r["tests"]["B2"]["beta"] + 0.2
+
+
+def test_permutation_placebo_is_a_bridge_for_level_regressors():
+    """Finding: permuting a run's increments fixes its total, so a LEVEL regressor (J3's e_t = series - book,
+    stationary measurement error) mean-reverts mechanically in the permutation placebo; an increment
+    regressor (J4's d_bm) does not. The with-replacement scheme removes the artefact."""
+    d = book_level_world("measurement", n_mkt=400, n_per=12, seed=5)
+    keep = lambda f: (lambda df, seed, scheme="permute": (  # noqa: E731  keep mid-level controls as observed
+        lambda o: o.assign(ml_logit_mid=df["ml_logit_mid"], ml_abs_mid_dev=df["ml_abs_mid_dev"]))(f(df, seed, scheme)))
+    orig = bd.shuffle_book_increments_placebo
+    try:
+        bd.shuffle_book_increments_placebo = keep(orig)
+        perm = bd.book_placebo_family(d, draws=6, seed=300, estimator="expanding", n_boot=5, scheme="permute")
+        boot = bd.book_placebo_family(d, draws=6, seed=300, estimator="expanding", n_boot=5, scheme="bootstrap")
+    finally:
+        bd.shuffle_book_increments_placebo = orig
+    assert perm["tests"]["B2"]["beta"] < -0.1 and not perm["tests"]["B2"]["covers_zero"]
+    assert abs(boot["tests"]["B2"]["beta"]) < 0.05 and boot["tests"]["B2"]["covers_zero"]
+    with pytest.raises(ValueError):
+        bd.shuffle_book_increments_placebo(d, 1, "nope")
+
+
+def test_log_trials_revision_label(tmp_path):
+    path = tmp_path / "trials.jsonl"
+    res = {"tests": {n: {"beta": 0.0, "p": 0.5, "reject": False} for n in bd.J4_SPEC}, "prior_tests": {"total": 1}}
+    draws = [{"tests": {n: {"testable": True, "beta": b, "se": 0.1, "mde_80": 0.3, "n": 10}
+                          for n in bd.J4_SPEC}} for b in (-0.02, 0.01, 0.03)]
+    fam = bd._summarise_placebo(draws, list(bd.J4_SPEC), "expanding", 1)
+    lines = bd.log_trials("J4", res, "x/r.json", "abc", "bounce-t", {}, placebo=fam, path=path,
+                          revision="j4r_expanding_v1")
+    assert len(lines) == 11 and {x["revision"] for x in lines} == {"j4r_expanding_v1"}
+    assert fam["placebo_null"] is True
+    assert battery2.cumulative_count(path)["total"] == 5

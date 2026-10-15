@@ -135,6 +135,8 @@ def fit_test(y, x, Z, ev, per, n_boot: int, seed: int) -> dict:
     from . import battery
 
     y, x = np.asarray(y, float), np.asarray(x, float)
+    if len(y) == 0:
+        return {"testable": False, "p": 1.0, "n": 0, "reason": "no rows"}
     Z = np.asarray(Z, float).reshape(len(y), -1) if Z is not None else np.empty((len(y), 0))
     r = battery.beta_test(y, x, Z, np.asarray(ev), np.asarray(per).astype(str), None,
                           n_boot=n_boot, seed=seed)
@@ -195,6 +197,191 @@ def _plain_ols(y, x, Z) -> dict:
 
 
 # =============================================================================================
+# Expanding-past estimator and increment-shuffle placebo (J4-R, J3)
+# =============================================================================================
+
+ESTIMATORS = ("pooled", "expanding")
+
+
+def _expanding_resid(codes: np.ndarray, order: np.ndarray, x: np.ndarray) -> np.ndarray:
+    """``x`` minus the mean of the same group's finite values at strictly earlier ``order`` positions.
+
+    NaN where the group has no earlier finite value (so the first row of each market is NaN, and is
+    dropped by the finite-row masks) or where ``x`` itself is NaN. Causal: row t uses only rows < t."""
+    x = np.asarray(x, float)
+    n = len(x)
+    if n == 0:
+        return x.copy()
+    o = np.lexsort((np.asarray(order, float), np.asarray(codes)))
+    cs, xs = np.asarray(codes)[o], x[o]
+    fin = np.isfinite(xs)
+    v = np.where(fin, xs, 0.0)
+    csum, ccnt = np.cumsum(v), np.cumsum(fin)
+    first = np.r_[True, cs[1:] != cs[:-1]]
+    gstart = np.maximum.accumulate(np.where(first, np.arange(n), 0))
+    prev_s = csum - v - (csum[gstart] - v[gstart])
+    prev_c = ccnt - fin - (ccnt[gstart] - fin[gstart])
+    mean = np.where(prev_c > 0, prev_s / np.maximum(prev_c, 1), np.nan)
+    out = np.empty(n)
+    out[o] = xs - mean
+    return out
+
+
+def expanding_demean(df: pd.DataFrame, cols, by: str = "market_id", order: str = "period") -> pd.DataFrame:
+    """Copy of ``df`` in which each column in ``cols`` is replaced by its value minus the market's
+    expanding mean over that market's strictly earlier rows (rows ordered by ``order``). The first row
+    of each market becomes NaN (rows are kept; the fit masks drop them). Never pass the target."""
+    out = df.copy()
+    codes = pd.factorize(df[by])[0]
+    ordv = df[order].to_numpy(float)
+    for c in cols:
+        out[c] = _expanding_resid(codes, ordv, df[c].to_numpy(float))
+    return out
+
+
+PLACEBO_SCHEMES = ("permute", "bootstrap")
+
+
+def _rebuild_shuffled_levels(codes: np.ndarray, p: np.ndarray, levels, seed: int,
+                             scheme: str = "permute"):
+    """Rebuild per-market level series from a within-market shuffle of their increments.
+
+    ``levels`` = three (n, K) float arrays: the level(s) at capture index ``p``, ``p + 1``, ``p + 2`` of
+    each row (a triple (h, i, j) overlaps its neighbours: row t's (i, j) is row t+1's (h, i)). An
+    increment c -> c+1 is *valid* only if some row observes both of its ends (so it is a genuine
+    consecutive-capture change with an in-range gap). Valid increments of a market form contiguous runs
+    (a missing capture or a gap breaks a run); within each run they are shuffled (one permutation for all K
+    columns) and the run is rebuilt from its first observed level, so a capture shared by two
+    overlapping rows gets one level. Returns three (n, K) arrays of rebuilt levels (NaN where the
+    original level was unobserved or lies outside every run).
+
+    ``scheme="permute"`` (declared J4-R placebo) permutes a run's increments. That fixes the run's total
+    change, so the rebuilt level is a *bridge*: a regressor that is a LEVEL (J3's e_t, bm, mid-level
+    controls) is then mechanically mean-reverting towards the run's end, which an increment regressor (J4)
+    is not. ``scheme="bootstrap"`` instead draws the increments with replacement from the same run (no
+    fixed total, no bridge); offered for level regressors, not used by default."""
+    if scheme not in PLACEBO_SCHEMES:
+        raise ValueError(f"unknown placebo scheme {scheme!r}")
+    L0, L1, L2 = (np.asarray(L, float) for L in levels)
+    n, K = L0.shape
+    codes = np.asarray(codes, np.int64)
+    p = np.asarray(p, np.int64)
+    known = [np.all(np.isfinite(L), axis=1) for L in (L0, L1, L2)]
+    a, b = known[0] & known[1], known[1] & known[2]
+    e_code = np.r_[codes[a], codes[b]]
+    e_c = np.r_[p[a], p[b] + 1]
+    e_kind = np.r_[np.zeros(a.sum(), np.int8), np.ones(b.sum(), np.int8)]
+    e_inc = np.vstack([(L1 - L0)[a], (L2 - L1)[b]])
+    e_lvl = np.vstack([L0[a], L1[b]])
+    nan = np.full((n, K), np.nan)
+    if not len(e_code):
+        return nan, nan.copy(), nan.copy()
+    o = np.lexsort((e_kind, e_c, e_code))
+    e_code, e_c, e_inc, e_lvl = e_code[o], e_c[o], e_inc[o], e_lvl[o]
+    keep = np.r_[True, (e_code[1:] != e_code[:-1]) | (e_c[1:] != e_c[:-1])]  # dedupe, 'a' first
+    e_code, e_c, e_inc, e_lvl = e_code[keep], e_c[keep], e_inc[keep], e_lvl[keep]
+    m = len(e_code)
+    begin = np.r_[True, (e_code[1:] != e_code[:-1]) | (e_c[1:] != e_c[:-1] + 1)]
+    run_id = np.cumsum(begin) - 1
+    first = np.flatnonzero(begin)[run_id]
+    rng = np.random.default_rng(seed)
+    if scheme == "permute":
+        inc_sh = e_inc[np.lexsort((rng.random(m), run_id))]
+    else:
+        rlen = np.bincount(run_id)[run_id]
+        inc_sh = e_inc[first + np.minimum((rng.random(m) * rlen).astype(np.int64), rlen - 1)]
+    cs = np.cumsum(inc_sh, axis=0)
+    base = cs[first] - inc_sh[first]
+    start = e_lvl[first]
+    before, after = start + (cs - inc_sh - base), start + (cs - base)
+    pmin = int(p.min())
+    M = int(p.max()) - pmin + 4
+    kb = e_code * M + (e_c - pmin)
+    keys = np.r_[kb, kb + 1]
+    vals = np.vstack([before, after])
+    ukeys, ui = np.unique(keys, return_index=True)
+    uvals = vals[ui]
+    res = []
+    for j, kn in enumerate(known):
+        rk = codes * M + (p + j - pmin)
+        pos = np.minimum(np.searchsorted(ukeys, rk), len(ukeys) - 1)
+        hit = (ukeys[pos] == rk) & kn
+        res.append(np.where(hit[:, None], uvals[pos], np.nan))
+    return tuple(res)
+
+
+def shuffle_increments_placebo(df: pd.DataFrame, seed: int, scheme: str = "permute") -> pd.DataFrame:
+    """J4-R placebo, matched to the expanding estimator. Per market, the Gamma-mid level series is
+    rebuilt from a within-market random shuffle of its capture-to-capture increments (start level
+    kept); shuffling happens only inside contiguous runs of observed consecutive-capture increments
+    (a capture the market skipped, or an out-of-range gap, ends a run). ``d_bm``, ``dmid``, ``mid_h/i/j``,
+    ``y_p1x`` (sweep ``B_i`` shifted by the level change of ``mid_i``), ``d_bm_x_w``, the h/j quote
+    columns (shifted by their mid's level change) and the far-touch targets are recomputed; ``spread``,
+    ``b_pos``, ``w``, ``chg_1h``, volume and liquidity stay as observed. Row t's (i, j) levels are row
+    t+1's (h, i) levels in the rebuilt series (the series is rebuilt once per market, not per row).
+    ``mid_h`` stays NaN where h was not two-sided (so ``d_bm`` keeps its missingness)."""
+    codes = pd.factorize(df["market_id"])[0]
+    p = df["period"].to_numpy(np.int64)
+    g = lambda c: df[c].to_numpy(float)  # noqa: E731
+    mh, mi, mj = g("mid_h"), g("mid_i"), g("mid_j")
+    n0, n1, n2 = (x[:, 0] for x in _rebuild_shuffled_levels(
+        codes, p, (mh[:, None], mi[:, None], mj[:, None]), seed, scheme))
+    out = df.copy()
+    sh_i, sh_j, sh_h = n1 - mi, n2 - mj, n0 - mh
+    out["mid_h"], out["mid_i"], out["mid_j"] = n0, n1, n2
+    out["d_bm"] = n1 - n0
+    out["dmid"] = n2 - n1
+    out["d_bm_x_w"] = out["d_bm"].to_numpy(float) * g("w")
+    out["B_i"] = g("B_i") + sh_i
+    out["y_p1x"] = n2 - out["B_i"].to_numpy(float)
+    for c, sh in (("bid_h", sh_h), ("ask_h", sh_h), ("bid_j", sh_j), ("ask_j", sh_j)):
+        if c in df:
+            out[c] = g(c) + sh
+    for c in ("y_far_bid", "y_far_ask"):
+        if c in df:
+            out[c] = g(c) + sh_j - sh_i
+    for c in out.columns:
+        if df[c].dtype == np.float32:
+            out[c] = out[c].astype(np.float32)
+    return out
+
+
+def _summarise_placebo(draws: list[dict], names, estimator: str, seed: int) -> dict:
+    """Per test: the betas of every placebo draw, their mean/SD, the 2.5-97.5% range, whether it covers 0
+    (``placebo_null`` = covers 0 for every test), the mean SE and MDE. ``z_mean`` is descriptive."""
+    tests: dict = {}
+    for nme in names:
+        rs = [d["tests"][nme] for d in draws if nme in d.get("tests", {}) and d["tests"][nme].get("testable")]
+        if not rs:
+            tests[nme] = {"testable": False, "covers_zero": False, "betas": [], "p": 1.0}
+            continue
+        b = np.array([r["beta"] for r in rs])
+        lo, hi = (float(v) for v in np.percentile(b, [2.5, 97.5]))
+        sd = float(b.std(ddof=1)) if len(b) > 1 else float("nan")
+        tests[nme] = {
+            "testable": True, "betas": [float(x) for x in b], "beta": float(b.mean()), "beta_sd": sd,
+            "range_2_5_97_5": [lo, hi], "ci95": [lo, hi], "covers_zero": bool(lo <= 0.0 <= hi),
+            "reject": not bool(lo <= 0.0 <= hi), "se": float(np.mean([r["se"] for r in rs])),
+            "mde_80": float(np.mean([r["mde_80"] for r in rs])), "n": int(np.mean([r["n"] for r in rs])),
+            "z_mean": float(b.mean() / (sd / np.sqrt(len(b)))) if sd and sd > 0 else None,
+            "p": None}
+    return {"estimator": estimator, "draws": len(draws), "seed": seed, "tests": tests,
+            "placebo_null": bool(all(t["covers_zero"] for t in tests.values()))}
+
+
+def placebo_family(df: pd.DataFrame, draws: int = 20, seed: int = 117, estimator: str = "expanding",
+                   n_boot: int = 20, scheme: str = "permute") -> dict:
+    """Run the J4 estimator on ``draws`` increment-shuffle placebos (seeds ``seed + k``). Reports per
+    test the betas and whether their 2.5-97.5% range covers 0; ``placebo_null`` is True only if it does
+    for every test (otherwise the family is void). Bootstrap CIs are not used (``n_boot`` is small)."""
+    out = []
+    for k in range(draws):
+        out.append(snapshot_tests(shuffle_increments_placebo(df, seed + k, scheme), n_boot, seed, estimator,
+                                  descriptive=False))
+    return {**_summarise_placebo(out, list(J4_SPEC), estimator, seed), "scheme": scheme}
+
+
+# =============================================================================================
 # J4: snapshot triples
 # =============================================================================================
 
@@ -212,13 +399,21 @@ def _read_capture(cap: dict) -> pd.DataFrame:
     return df.drop_duplicates("market_id").reset_index(drop=True)
 
 
-def iter_captures(snapshot_root: Path = SNAPSHOT_ROOT, until_utc: str | None = None
+def iter_captures(snapshot_root: Path = SNAPSHOT_ROOT, until_utc: str | None = None,
+                  since_utc: str | None = None, before_utc: str | None = None
                   ) -> Iterator[tuple[dict, pd.DataFrame]]:
-    """Complete captures in start order, one frame at a time (``until_utc``: started <= that)."""
+    """Complete captures in start order, one frame at a time (``until_utc``: started <= that;
+    ``before_utc``: started < that; ``since_utc``: started >= that)."""
     caps = forecast.list_complete_captures(snapshot_root)
     if until_utc is not None:
         cut = forecast._parse_ts(until_utc)
         caps = [c for c in caps if c["_start"] <= cut]
+    if before_utc is not None:
+        cut = forecast._parse_ts(before_utc)
+        caps = [c for c in caps if c["_start"] < cut]
+    if since_utc is not None:
+        cut = forecast._parse_ts(since_utc)
+        caps = [c for c in caps if c["_start"] >= cut]
     for cap in caps:
         yield {"capture_id": cap["capture_id"], "start_utc": cap["started_utc"],
                "start": cap["_start"], "dir": cap["dir"]}, _read_capture(cap)
@@ -253,10 +448,22 @@ def _two_sided(bid, ask) -> np.ndarray:
         return (bid > 0) & (ask > 0) & (ask <= 1) & (bid < ask)
 
 
+def h_tight_mask(bid_h, ask_h, spread_h) -> np.ndarray:
+    """The E001 tightness rule applied to the previous capture h: two-sided (bid > 0, bid < ask,
+    ask < 1), spread <= panel.SPREAD_MAX and mid in [panel.MID_LO, panel.MID_HI]."""
+    spread = np.where(np.isnan(spread_h), ask_h - bid_h, spread_h)
+    mid = (bid_h + ask_h) / 2
+    with np.errstate(invalid="ignore"):
+        return ((bid_h > 0) & (bid_h < ask_h) & (ask_h < 1) & (spread <= panel.SPREAD_MAX)
+                & (mid >= panel.MID_LO) & (mid <= panel.MID_HI))
+
+
 def build_triple(snap_h: pd.DataFrame, snap_i: pd.DataFrame, snap_j: pd.DataFrame, i_start: str,
-                 j_start: str, period: int, sweep: pd.DataFrame | None) -> tuple[pd.DataFrame, dict]:
+                 j_start: str, period: int, sweep: pd.DataFrame | None, h_tight: bool = False
+                 ) -> tuple[pd.DataFrame, dict]:
     """One triple. Eligibility/target from ``panel.build_pair(i, j)`` (E001 semantics); features
-    from capture i, the quote changes from h; capture j only supplies target columns."""
+    from capture i, the quote changes from h; capture j only supplies target columns. ``h_tight``
+    additionally drops rows whose h quote fails the E001 tightness rule (counted in the result)."""
     j_sched = panel._epoch(pd.Series([j_start]))[0]
     pairs, cnt = panel.build_pair(snap_i, snap_j, j_sched, period)
     pairs = pairs[pairs["dmid"].notna()].reset_index(drop=True)
@@ -316,9 +523,16 @@ def build_triple(snap_h: pd.DataFrame, snap_i: pd.DataFrame, snap_j: pd.DataFram
     out["y_p1x"] = out["mid_j"] - out["B_i"]
     out["y_far_bid"] = out["bid_j"] - bid_i
     out["y_far_ask"] = out["ask_j"] - ask_i
+    h_excl = 0
+    if h_tight:
+        keep = h_tight_mask(bid_h, ask_h, f(hh["spread"]))
+        h_excl = int((~keep).sum())
+        out = out[keep].reset_index(drop=True)
     for c in out.columns:
         if out[c].dtype == np.float64:
             out[c] = out[c].astype(np.float32)
+    if h_tight:
+        cnt["h_tight_excluded"] = h_excl
     cnt.update({"triple_rows": int(len(out)), "h_quote_ok": int(np.isfinite(d_bm).sum()),
                 "ltp_missing_or_nonpositive": int(np.isnan(b_pos).sum()),
                 "sweep_available": int(np.isfinite(B_i).sum()),
@@ -328,15 +542,23 @@ def build_triple(snap_h: pd.DataFrame, snap_i: pd.DataFrame, snap_j: pd.DataFram
 
 
 def build_snapshot_triples(snapshot_root: Path = SNAPSHOT_ROOT, sweep_root: Path = SWEEP_ROOT,
-                           until_utc: str | None = None, log: Callable[[str], None] | None = None
+                           until_utc: str | None = None, log: Callable[[str], None] | None = None,
+                           since_utc: str | None = None, h_tight: bool = False,
+                           before_utc: str | None = None
                            ) -> tuple[pd.DataFrame, list[dict]]:
     """All triples ``(h, i, j)`` of consecutive complete captures with gap(h,i), gap(i,j) in
-    [1.5, 3] h; three captures in memory at most, only the needed columns."""
+    [1.5, 3] h; three captures in memory at most, only the needed columns.
+
+    ``since_utc``: only captures started >= since are read, so h, i and j all start >= since
+    (fresh-capture rule); ``before_utc``: only captures started < that (exclusive end); ``h_tight``:
+    drop rows whose h quote fails the E001 tightness rule. Exclusions are counted: a trailing
+    ``{"filters": ...}`` entry carries the captures excluded by the time window and, per triple,
+    ``h_tight_excluded``. Defaults (all None / False) reproduce the original behaviour exactly."""
     window: list[tuple[dict, pd.DataFrame]] = []
     frames: list[pd.DataFrame] = []
     counts: list[dict] = []
     k = 0
-    for meta, df in iter_captures(snapshot_root, until_utc):
+    for meta, df in iter_captures(snapshot_root, until_utc, since_utc, before_utc):
         window.append((meta, df))
         if len(window) > 3:
             window.pop(0)
@@ -353,7 +575,7 @@ def build_snapshot_triples(snapshot_root: Path = SNAPSHOT_ROOT, sweep_root: Path
             k += 1
             continue
         sweep = load_sweep_mid(sweep_root, mi["capture_id"]) if Path(sweep_root).exists() else None
-        trip, cnt = build_triple(sh, si, sj, mi["start_utc"], mj["start_utc"], k, sweep)
+        trip, cnt = build_triple(sh, si, sj, mi["start_utc"], mj["start_utc"], k, sweep, h_tight)
         cnt.update(base)
         cnt["sweep_found"] = sweep is not None
         frames.append(trip)
@@ -361,6 +583,20 @@ def build_snapshot_triples(snapshot_root: Path = SNAPSHOT_ROOT, sweep_root: Path
         if log:
             log(json.dumps(_clean(cnt)))
         k += 1
+    if since_utc is not None or before_utc is not None or h_tight:
+        allc = forecast.list_complete_captures(snapshot_root)
+        if until_utc is not None:
+            cut = forecast._parse_ts(until_utc)
+            allc = [c for c in allc if c["_start"] <= cut]
+        n_all = len(allc)
+        n_used = sum(1 for c in allc
+                     if (since_utc is None or c["_start"] >= forecast._parse_ts(since_utc))
+                     and (before_utc is None or c["_start"] < forecast._parse_ts(before_utc)))
+        counts.append({"filters": {
+            "since_utc": since_utc, "before_utc": before_utc, "h_tight": h_tight,
+            "captures_complete_total": n_all, "captures_read": n_used,
+            "captures_excluded_by_time_window": n_all - n_used,
+            "rows_excluded_h_not_tight": int(sum(c.get("h_tight_excluded", 0) for c in counts))}})
     if not frames:
         return pd.DataFrame(), counts
     return pd.concat(frames, ignore_index=True), counts
@@ -414,12 +650,14 @@ def _tercile(x: np.ndarray) -> np.ndarray:
     return np.where(np.isnan(x), -1, np.digitize(x, q))
 
 
-def _rows_for(df: pd.DataFrame, name: str) -> np.ndarray:
+def _rows_for(df: pd.DataFrame, name: str, arr: dict | None = None) -> np.ndarray:
+    """Finite-row mask of test ``name``; ``arr`` (column -> array) overrides ``df`` columns (the
+    expanding-demeaned regressors)."""
     sp = J4_SPEC[name]
     cols = [sp["target"], sp["term"], *sp["controls"]]
     m = np.ones(len(df), bool)
     for c in cols:
-        m &= np.isfinite(df[c].to_numpy(float))
+        m &= np.isfinite(arr[c] if arr is not None and c in arr else df[c].to_numpy(float))
     if name == "P1x":
         lag = df["sweep_lag_min"].to_numpy(float)
         with np.errstate(invalid="ignore"):
@@ -429,26 +667,51 @@ def _rows_for(df: pd.DataFrame, name: str) -> np.ndarray:
     return m
 
 
-def snapshot_tests(df: pd.DataFrame, n_boot: int = 2000, seed: int = 116) -> dict:
-    """P1, P1x, P2, P3, P4 (Holm over the 5), LODO sign rule, descriptive extras."""
-    res: dict = {"tests": {}, "descriptive": {}}
+def snapshot_regressors() -> list[str]:
+    """Every term and control column of the five tests (never a target)."""
+    cols: list[str] = []
+    for sp in J4_SPEC.values():
+        for c in (sp["term"], *sp["controls"]):
+            if c not in cols:
+                cols.append(c)
+    return cols
+
+
+def snapshot_tests(df: pd.DataFrame, n_boot: int = 2000, seed: int = 116,
+                   estimator: str = "pooled", descriptive: bool = True) -> dict:
+    """P1, P1x, P2, P3, P4 (Holm over the 5), LODO sign rule, descriptive extras.
+
+    ``estimator="pooled"`` (default) is the original pooled OLS with an intercept. ``"expanding"`` (J4-R)
+    replaces each regressor (term and controls) by its value minus the market's expanding mean over
+    strictly earlier rows (ordered by ``period``; the first row of a market is dropped), keeps the target
+    raw and the intercept, and is otherwise identical (same rows rules, SEs, Holm, LODO, verdicts).
+    Row filters that use raw columns (volume rule, sweep lag, median half-spread) stay on the raw frame."""
+    if estimator not in ESTIMATORS:
+        raise ValueError(f"unknown estimator {estimator!r}")
+    res: dict = {"tests": {}, "descriptive": {}, "estimator": estimator}
     ev, per, day = df["cluster"].to_numpy(), df["period"].to_numpy(), df["day"].to_numpy()
+    if estimator == "expanding":
+        codes, ordv = pd.factorize(df["market_id"])[0], df["period"].to_numpy(float)
+        arr = {c: _expanding_resid(codes, ordv, df[c].to_numpy(float)) for c in snapshot_regressors()}
+    else:
+        arr = {c: df[c].to_numpy(float) for c in snapshot_regressors()}
     for name, sp in J4_SPEC.items():
-        m = _rows_for(df, name)
+        m = _rows_for(df, name, arr)
         scale = 100.0 if name == "P2" else 1.0  # P2 in cents per unit b_pos
         y = df[sp["target"]].to_numpy(float)[m] * scale
-        x = df[sp["term"]].to_numpy(float)[m]
-        Z = df[list(sp["controls"])].to_numpy(float)[m]
+        x = arr[sp["term"]][m]
+        Z = np.column_stack([arr[c][m] for c in sp["controls"]])
         r = fit_test(y, x, Z, ev[m], per[m], n_boot, seed)
         r.update(label=sp["label"], rows_used=int(m.sum()), rows_candidate=int(len(df)))
         if r["testable"]:
             r["lodo"] = lodo(y, x, Z, day[m], r["beta"])
         if name == "P2":
+            m_raw = _rows_for(df, name) if estimator == "expanding" else m
             vm = np.isfinite(df["b_pos"].to_numpy(float)) & np.isfinite(df["dmid"].to_numpy(float))
-            share = {"all": float(1 - (vm & m).sum() / max(vm.sum(), 1))}
+            share = {"all": float(1 - (vm & m_raw).sum() / max(vm.sum(), 1))}
             ter = _tercile(df["liquidity_i"].to_numpy(float))
             share["by_liquidity_tercile"] = {
-                str(t): float(1 - (vm & m & (ter == t)).sum() / max((vm & (ter == t)).sum(), 1))
+                str(t): float(1 - (vm & m_raw & (ter == t)).sum() / max((vm & (ter == t)).sum(), 1))
                 for t in (0, 1, 2)}
             r["share_dropped_volume_rule"] = share
             r["half_spread_cents_median"] = float(
@@ -461,13 +724,81 @@ def snapshot_tests(df: pd.DataFrame, n_boot: int = 2000, seed: int = 116) -> dic
     for n, t in res["tests"].items():
         t["p_holm"] = adj[n]
         t["reject"] = bool(adj[n] < ALPHA)
-    res["descriptive"] = _snapshot_descriptive(df, n_boot, seed)
+    if descriptive:
+        res["descriptive"] = _snapshot_descriptive(df, n_boot, seed)
+        if estimator == "expanding":
+            res["descriptive_note"] = "descriptive extras are pooled/raw (not demeaned)"
     res["n_triples"] = int(len(df))
     res["n_clusters"] = int(len(pd.unique(ev)))
     res["n_periods"] = int(len(pd.unique(per)))
     res["utc_days"] = sorted(str(d) for d in pd.unique(day))
     res["verdicts"] = verdicts(res)
     return _clean(res)
+
+
+def _brief(res: dict) -> dict:
+    return {n: {k: t.get(k) for k in ("beta", "se", "p", "n", "testable")}
+            for n, t in res.get("tests", {}).items()}
+
+
+def _slope(y, x, Z) -> float | None:
+    X = _design(np.asarray(x, float), np.asarray(Z, float).reshape(len(y), -1))
+    if len(y) < X.shape[1] + 2:
+        return None
+    coef, *_ = np.linalg.lstsq(X, np.asarray(y, float), rcond=None)
+    return float(coef[1])
+
+
+def within_between(df: pd.DataFrame) -> dict:
+    """Descriptive decomposition per test (raw regressors): pooled slope, within-market slope (all
+    variables demeaned by market mean over the whole sample; contains the mechanical dynamic-panel
+    bias) and between-market slope (regression of market means)."""
+    out: dict = {}
+    codes_all = pd.factorize(df["market_id"])[0]
+    for name, sp in J4_SPEC.items():
+        m = _rows_for(df, name)
+        scale = 100.0 if name == "P2" else 1.0
+        y = df[sp["target"]].to_numpy(float)[m] * scale
+        x = df[sp["term"]].to_numpy(float)[m]
+        Z = df[list(sp["controls"])].to_numpy(float)[m]
+        cm = pd.factorize(codes_all[m])[0]
+        cnt = np.bincount(cm)
+
+        def mean_by(v, cm=cm, cnt=cnt):
+            return np.bincount(cm, weights=v, minlength=len(cnt)) / cnt
+
+        my, mx = mean_by(y), mean_by(x)
+        mZ = np.column_stack([mean_by(Z[:, k]) for k in range(Z.shape[1])]) if Z.shape[1] else Z[:0]
+        out[name] = {
+            "pooled": _slope(y, x, Z),
+            "within": _slope(y - my[cm], x - mx[cm], Z - mZ[cm] if Z.shape[1] else Z),
+            "between": _slope(my, mx, mZ) if len(cnt) > 3 else None,
+            "n_rows": int(m.sum()), "n_markets": int(len(cnt))}
+    return out
+
+
+def snapshot_sensitivities(df: pd.DataFrame, n_boot: int = 200, seed: int = 116,
+                           estimator: str = "expanding", min_rows: int = 20) -> dict:
+    """Descriptive sensitivities (never counted, never part of a verdict): markets with >= ``min_rows``
+    rows; rows whose j quote is also tight (outcome-side filter, applied before demeaning); the pooled
+    estimator on all rows; and the within/between decomposition."""
+    out: dict = {"note": "descriptive only; filters are applied before the expanding demeaning"}
+    per_mkt = df.groupby("market_id")["period"].transform("size").to_numpy()
+    sel = per_mkt >= min_rows
+    out[f"markets_ge_{min_rows}_rows"] = {
+        "n_rows": int(sel.sum()), "n_markets": int(df.loc[sel, "market_id"].nunique()),
+        **(_brief(snapshot_tests(df[sel].reset_index(drop=True), n_boot, seed, estimator, False))
+           if sel.any() else {})}
+    bj, aj = df["bid_j"].to_numpy(float), df["ask_j"].to_numpy(float)
+    mj = df["mid_j"].to_numpy(float)
+    with np.errstate(invalid="ignore"):
+        jt = (aj - bj <= panel.SPREAD_MAX) & (mj >= panel.MID_LO) & (mj <= panel.MID_HI)
+    out["j_tight_rows"] = {"n_rows": int(jt.sum()),
+                           **(_brief(snapshot_tests(df[jt].reset_index(drop=True), n_boot, seed,
+                                                    estimator, False)) if jt.any() else {})}
+    out["pooled_all_rows"] = _brief(snapshot_tests(df, n_boot, seed, "pooled", False))
+    out["within_between"] = within_between(df)
+    return out
 
 
 def _snapshot_descriptive(df: pd.DataFrame, n_boot: int, seed: int) -> dict:
@@ -757,9 +1088,66 @@ def permute_book_targets(df: pd.DataFrame, seed: int) -> pd.DataFrame:
 J3_IDS = ("B1", "B2", "B3", "B4", "D1", "D2")
 
 
-def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, seed: int = 116) -> dict:
+def shuffle_book_increments_placebo(df: pd.DataFrame, seed: int, scheme: str = "permute") -> pd.DataFrame:
+    """J3 placebo matched to the expanding estimator. Per market on the 6h grid, the book-mid and the
+    panel-series-mid level series are rebuilt from ONE within-market shuffle (same permutation for both)
+    of their joint 6h increments, inside contiguous runs of consecutive grid steps (start levels kept;
+    pairing the two keeps their contemporaneous co-movement but removes temporal dependence).
+    Recomputed from the rebuilt levels: ``bm``, ``bm_next``, ``d_bm_prev``, ``y_bm``, ``series_mid``,
+    ``d_series_prev``, ``y_series``, ``e_t``, ``d_bm_x_w``, ``depth5c_usdc``, ``flow_pressure`` and the
+    two mid-level controls ``ml_logit_mid`` / ``ml_abs_mid_dev``. NOT recomputable from the 6h grid and
+    left as observed: ``c_chg_1h/1d/1w`` and ``c_dprev`` (2h/1h/1d/1w own-history momentum),
+    ``x6``, ``n6``, ``sn6``, ``w``, depth."""
+    t = df["t_i"].to_numpy(float) if "t_i" in df else df["period"].to_numpy(float) * H6
+    step = (t - np.nanmin(t)) / H6
+    if not np.allclose(step, np.rint(step), atol=1e-6):
+        raise ValueError("book rows are not on a common 6h grid")
+    p = np.rint(step).astype(np.int64) - 1  # level index of the t-6h book
+    codes = pd.factorize(df["market_id"])[0]
+    g = lambda c: df[c].to_numpy(float)  # noqa: E731
+    bm, sm = g("bm"), g("series_mid")
+    lv = (np.column_stack([bm - g("d_bm_prev"), sm - g("d_series_prev")]),
+          np.column_stack([bm, sm]),
+          np.column_stack([g("bm_next"), sm + g("y_series")]))
+    n0, n1, n2 = _rebuild_shuffled_levels(codes, p, lv, seed, scheme)
+    out = df.copy()
+    out["bm"], out["bm_next"] = n1[:, 0], n2[:, 0]
+    out["d_bm_prev"], out["y_bm"] = n1[:, 0] - n0[:, 0], n2[:, 0] - n1[:, 0]
+    out["series_mid"] = n1[:, 1]
+    out["d_series_prev"], out["y_series"] = n1[:, 1] - n0[:, 1], n2[:, 1] - n1[:, 1]
+    out["e_t"] = out["series_mid"] - out["bm"]
+    out["d_bm_x_w"] = out["d_bm_prev"] * g("w")
+    out["depth5c_usdc"] = g("depth5c") * out["bm"]
+    out["flow_pressure"] = g("sn6") / (out["depth5c_usdc"].to_numpy(float) + 100.0)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out["ml_logit_mid"] = np.log(n1[:, 1] / (1 - n1[:, 1]))
+    out["ml_abs_mid_dev"] = np.abs(n1[:, 1] - 0.5)
+    for c in out.columns:
+        if df[c].dtype == np.float32:
+            out[c] = out[c].astype(np.float32)
+    return out
+
+
+def book_placebo_family(df: pd.DataFrame, draws: int = 20, seed: int = 117, estimator: str = "expanding",
+                        n_boot: int = 20, scheme: str = "permute") -> dict:
+    """Run ``book_tests`` on ``draws`` increment-shuffle placebos; same reporting as ``placebo_family``.
+    NOTE: B2/B3 regress on e_t, a LEVEL (series minus book), so the permutation scheme's fixed run total
+    makes it a bridge that mean-reverts mechanically; see ``_rebuild_shuffled_levels``."""
+    out = [book_tests(shuffle_book_increments_placebo(df, seed + k, scheme), {}, n_boot, seed, estimator)
+           for k in range(draws)]
+    return {**_summarise_placebo(out, list(J3_IDS), estimator, seed), "scheme": scheme}
+
+
+def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, seed: int = 116,
+               estimator: str = "pooled") -> dict:
     """B1-B4 (Holm over four, judgement rows), D1/D2 (discovery sign, Stage-1 gate p < 0.01),
-    descriptive rho_s, verdict map. ``spec`` may override the minimum-size gates."""
+    descriptive rho_s, verdict map. ``spec`` may override the minimum-size gates.
+
+    ``estimator="expanding"`` (J3 adoption of J4-R): every regressor (term and control, including C0 and
+    the rho_s benchmark's regressor) is replaced by its value minus the market's expanding mean over
+    strictly earlier rows (ordered by ``period``), targets stay raw, intercept kept. Default pooled."""
+    if estimator not in ESTIMATORS:
+        raise ValueError(f"unknown estimator {estimator!r}")
     spec = spec or {}
     min_rows, min_events = spec.get("min_rows", MIN_BOOK_ROWS), spec.get("min_events", MIN_BOOK_EVENTS)
     judge = (df["split"] == "judge").to_numpy()
@@ -767,7 +1155,7 @@ def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, s
     ev = df["cluster"].to_numpy()
     n_j, n_ev = int(judge.sum()), int(len(pd.unique(ev[judge])))
     res: dict = {"n_rows": int(len(df)), "n_judge_rows": n_j, "n_judge_events": n_ev,
-                 "n_disc_rows": int(disc.sum()), "tests": {}}
+                 "n_disc_rows": int(disc.sum()), "tests": {}, "estimator": estimator}
     if n_j < min_rows or n_ev < min_events:
         res["verdicts"] = {"overall": "unavailable",
                            "reason": f"judgement rows {n_j} < {min_rows} or events {n_ev} < {min_events}"}
@@ -785,14 +1173,23 @@ def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, s
     fp = cols["flow_pressure"]
     fp_sd = float(np.nanstd(fp[disc])) if disc.any() else 1.0
     fp_s = fp / (fp_sd if fp_sd > 0 else 1.0)
-    c0 = np.column_stack([cols[c] for c in C0])
+    if estimator == "expanding":
+        codes, ordv = pd.factorize(df["market_id"])[0], df["period"].to_numpy(float)
+        ex = lambda a: _expanding_resid(codes, ordv, a)  # noqa: E731
+        R = {c: ex(cols[c]) for c in (*C0, "bm", "e_t", "d_bm_prev", "w", "d_bm_x_w", "x6",
+                                       "d_series_prev")}
+        R.update(zdepth=ex(zdepth), d1_term=ex(d1_term), fp_s=ex(fp_s))
+    else:
+        R = {c: cols[c] for c in (*C0, "bm", "e_t", "d_bm_prev", "w", "d_bm_x_w", "x6", "d_series_prev")}
+        R.update(zdepth=zdepth, d1_term=d1_term, fp_s=fp_s)
+    c0 = np.column_stack([R[c] for c in C0])
     defs = {
-        "B1": (cols["y_bm"], cols["d_bm_prev"], np.column_stack([c0, cols["bm"]]), 0),
-        "B2": (cols["y_series"], cols["e_t"], np.column_stack([c0, cols["bm"], cols["d_bm_prev"]]), 0),
-        "B3": (cols["y_bm"], cols["e_t"], np.column_stack([c0, cols["bm"], cols["d_bm_prev"]]), 0),
-        "B4": (cols["y_bm"], cols["d_bm_x_w"], np.column_stack([c0, cols["d_bm_prev"], cols["w"]]), 0),
-        "D1": (cols["y_series"], d1_term, np.column_stack([c0, cols["x6"], zdepth]), None),
-        "D2": (cols["y_bm"], fp_s, np.column_stack([c0, cols["x6"]]), 1),
+        "B1": (cols["y_bm"], R["d_bm_prev"], np.column_stack([c0, R["bm"]]), 0),
+        "B2": (cols["y_series"], R["e_t"], np.column_stack([c0, R["bm"], R["d_bm_prev"]]), 0),
+        "B3": (cols["y_bm"], R["e_t"], np.column_stack([c0, R["bm"], R["d_bm_prev"]]), 0),
+        "B4": (cols["y_bm"], R["d_bm_x_w"], np.column_stack([c0, R["d_bm_prev"], R["w"]]), 0),
+        "D1": (cols["y_series"], R["d1_term"], np.column_stack([c0, R["x6"], R["zdepth"]]), None),
+        "D2": (cols["y_bm"], R["fp_s"], np.column_stack([c0, R["x6"]]), 1),
     }
     for name, (y, x, Z, fixed_sign) in defs.items():
         ok = np.isfinite(y) & np.isfinite(x) & np.all(np.isfinite(Z), axis=1)
@@ -826,9 +1223,9 @@ def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, s
         res["tests"][k]["p_holm"] = p
         res["tests"][k]["reject"] = bool(p < ALPHA)
     # horizon-matched benchmark rho_s (descriptive, not counted)
-    ok = (np.isfinite(cols["y_series"]) & np.isfinite(cols["d_series_prev"]) & np.all(np.isfinite(c0), axis=1)
+    ok = (np.isfinite(cols["y_series"]) & np.isfinite(R["d_series_prev"]) & np.all(np.isfinite(c0), axis=1)
           & judge)
-    rho = fit_test(cols["y_series"][ok], cols["d_series_prev"][ok], c0[ok], ev[ok], per[ok], n_boot, seed)
+    rho = fit_test(cols["y_series"][ok], R["d_series_prev"][ok], c0[ok], ev[ok], per[ok], n_boot, seed)
     res["rho_s"] = {k: rho.get(k) for k in ("testable", "beta", "se", "ci95", "n")}
     res["flow_pressure_units"] = "signed 6h USDC notional / (depth5c shares x book mid + 100)"
     res["second_clustering"] = "UTC day (day_c)"
@@ -869,7 +1266,7 @@ def book_verdicts(res: dict) -> dict:
 
 def log_trials(job: str, results: dict, results_path: str, results_sha256: str, run_id: str,
                prov: dict, placebo: dict | None = None, path: Path = provenance.TRIALS_PATH,
-               dataset: str | None = None) -> list[dict]:
+               dataset: str | None = None, revision: str | None = None) -> list[dict]:
     """One trial line per test (kind bounce_decomp / book_decomp), one ml_explain count line, and
     one placebo line (count 0) per test. ``job`` is "J4" or "J3". Appends to ``path``."""
     kind = KIND_J4 if job == "J4" else KIND_J3
@@ -881,11 +1278,12 @@ def log_trials(job: str, results: dict, results_path: str, results_sha256: str, 
     def line(name: str, t: dict, role_: str, tag: str) -> None:
         written.append(provenance.append_trial({
             "status": "ok", "dataset": dataset, "preset": f"{name}{tag}", "run_id": run_id,
-            "label": LABEL, "kind": kind, "evidence_role": role_, "revision": f"sb2_{job.lower()}",
+            "label": LABEL, "kind": kind, "evidence_role": role_, "revision": revision or f"sb2_{job.lower()}",
             "result_path": results_path, "results_sha256": results_sha256,
-            "summary": _clean({k: t.get(k) for k in ("beta", "se", "p", "p_holm", "reject", "n",
-                                                     "ci95", "mde_80", "p_one_sided",
-                                                     "advance_stage1")}),
+            "summary": _clean({**{k: t.get(k) for k in ("beta", "se", "p", "p_holm", "reject", "n",
+                                                        "ci95", "mde_80", "p_one_sided",
+                                                        "advance_stage1")},
+                               **{k: t[k] for k in ("covers_zero", "betas", "beta_sd") if k in t}}),
             "provenance": prov}, path))
 
     for n in names:
@@ -896,7 +1294,7 @@ def log_trials(job: str, results: dict, results_path: str, results_sha256: str, 
             line(n, placebo["tests"][n], "placebo", ":placebo")
     written.append(provenance.append_trial({
         "dataset": dataset, "evidence_role": role, "kind": "ml_explain", "label": "EXPLORATORY",
-        "n_tests": len(names), "revision": f"sb2_{job.lower()}", "run_id": run_id,
+        "n_tests": len(names), "revision": revision or f"sb2_{job.lower()}", "run_id": run_id,
         "source": f"screening_batch_2:{job}", "results_sha256": results_sha256,
         "note": "SB2 bounce decomposition count line; the per-test bounce/book_decomp lines are "
                 "excluded in battery2.KIND_RULES to avoid double counting",

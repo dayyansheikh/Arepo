@@ -4,6 +4,12 @@
     python scripts/run_bounce_decomp.py snapshots --tag sb2-snap [--n-boot 2000] [--dry-run]
     python scripts/run_bounce_decomp.py book --run-id h2_main --tag sb2-book [--n-boot 2000]
 
+J4-R (declared re-read on fresh captures) and J3 with the expanding-past estimator:
+    python scripts/run_bounce_decomp.py snapshots --tag j4r --since 2026-10-16T00:00:00Z \
+        --until 2026-10-20T00:00:00Z --h-tight --estimator expanding --placebo-draws 20 --min-periods 48
+    python scripts/run_bounce_decomp.py book --run-id h2_main --tag j3x --estimator expanding --placebo-draws 20
+``--until`` is an EXCLUSIVE end (captures started < it); ``--until-utc`` keeps its inclusive meaning.
+
 Writes data-dumps/research_lab/bounce_decomp/bounce-<tag>/results.json (refuses to overwrite) and
 appends trials (per test + one ml_explain count line + placebo lines). ``--dry-run`` runs on
 permuted targets only, writes dryrun.json and logs NO trials. Read-only on inputs; no network.
@@ -31,6 +37,17 @@ def main() -> int:
     ap.add_argument("--n-boot", type=int, default=2000)
     ap.add_argument("--seed", type=int, default=116)
     ap.add_argument("--until-utc", default=None)
+    ap.add_argument("--since", default=None, help="only captures started >= this (h, i, j all fresh)")
+    ap.add_argument("--until", default=None, help="exclusive end: only captures started < this")
+    ap.add_argument("--h-tight", action="store_true", help="apply the E001 tightness rule at h")
+    ap.add_argument("--estimator", choices=["pooled", "expanding"], default="pooled")
+    ap.add_argument("--placebo-draws", type=int, default=0,
+                    help="> 0: matched increment-shuffle placebo family with this many draws "
+                         "(default 0: the original permuted-target placebo)")
+    ap.add_argument("--placebo-scheme", choices=["permute", "bootstrap"], default="permute",
+                    help="increment shuffle without (permute, declared) or with replacement (bootstrap)")
+    ap.add_argument("--min-periods", type=int, default=0,
+                    help="refuse to run (exit 3) if fewer qualifying 2h periods (snapshots)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--snapshot-root", type=Path, default=bd.SNAPSHOT_ROOT,
                     help="capture root to read (default: the live SNAPSHOT_ROOT)")
@@ -45,14 +62,25 @@ def main() -> int:
         print(f"refusing to overwrite {target}", file=sys.stderr)
         return 2
 
+    if a.until and a.until_utc:
+        print("--until (exclusive) and --until-utc (inclusive) are mutually exclusive", file=sys.stderr)
+        return 2
     job = "J4" if a.job == "snapshots" else "J3"
+    expanding = a.estimator == "expanding"
     if job == "J4":
-        df, counts = bd.build_snapshot_triples(a.snapshot_root, a.sweep_root, a.until_utc, log=print)
+        df, counts = bd.build_snapshot_triples(a.snapshot_root, a.sweep_root, a.until_utc, log=print,
+                                               since_utc=a.since, h_tight=a.h_tight, before_utc=a.until)
         if not len(df):
             print("no triples; nothing run")
-            return 0
-        permute, tests = bd.permute_snapshot_targets, bd.snapshot_tests
-        run_tests = lambda d: tests(d, a.n_boot, a.seed)  # noqa: E731
+            return 3 if a.min_periods else 0
+        n_periods = int(df["period"].nunique())
+        if n_periods < a.min_periods:
+            print(f"only {n_periods} qualifying periods < --min-periods {a.min_periods}; refusing to run",
+                  file=sys.stderr)
+            return 3
+        permute = bd.permute_snapshot_targets
+        run_tests = lambda d: bd.snapshot_tests(d, a.n_boot, a.seed, a.estimator)  # noqa: E731
+        run_placebo = lambda d: bd.placebo_family(d, a.placebo_draws, a.seed + 1, a.estimator, 20, a.placebo_scheme)  # noqa: E731
         dataset = "snapshots"
     else:
         hist = bd.HIST_ROOT / a.run_id
@@ -64,11 +92,12 @@ def main() -> int:
             print("no book triples; nothing run")
             return 0
         permute = bd.permute_book_targets
-        run_tests = lambda d: bd.book_tests(d, {}, a.n_boot, a.seed)  # noqa: E731
+        run_tests = lambda d: bd.book_tests(d, {}, a.n_boot, a.seed, a.estimator)  # noqa: E731
+        run_placebo = lambda d: bd.book_placebo_family(d, a.placebo_draws, a.seed + 1, a.estimator, 20, a.placebo_scheme)  # noqa: E731
         dataset = f"history:{a.run_id}"
 
-    print(f"{len(df)} rows; running {'permuted-target dry run' if a.dry_run else 'tests'}", flush=True)
-    placebo = run_tests(permute(df, a.seed + 1))
+    print(f"{len(df)} rows; running {'dry run' if a.dry_run else 'tests'}, placebo: {f'family x{a.placebo_draws} ({a.placebo_scheme})' if a.placebo_draws else 'permuted targets'}", flush=True)
+    placebo = run_placebo(df) if a.placebo_draws > 0 else run_tests(permute(df, a.seed + 1))
     out_dir.mkdir(parents=True, exist_ok=True)
     if a.dry_run:
         target.write_text(json.dumps({"job": job, "dry_run": True, "roots": roots, "counts": bd._clean(counts),
@@ -79,13 +108,22 @@ def main() -> int:
     prior = bd.prior_tests()
     res["prior_tests"] = prior
     prov = provenance.run_provenance()
+    revision = ("j4r_expanding_v1" if job == "J4" else "j3_expanding_v1") if expanding else None
+    placebo_null = placebo.get("placebo_null") if a.placebo_draws > 0 else None
+    if placebo_null is False:
+        res["family_status"] = "VOID: matched placebo not null (range does not cover 0 for every test)"
+        print("PLACEBO NOT NULL: family void; verdicts must not be read", file=sys.stderr)
+    if job == "J4" and expanding:
+        res["sensitivities"] = bd.snapshot_sensitivities(df, 200, a.seed)
     doc = {"job": job, "run_id": f"bounce-{a.tag}", "seed": a.seed, "n_boot": a.n_boot,
-           "until_utc": a.until_utc, "roots": roots, "dataset": dataset, "counts": bd._clean(counts),
+           "until_utc": a.until_utc, "since": a.since, "until_exclusive": a.until, "h_tight": a.h_tight,
+           "estimator": a.estimator, "placebo_draws": a.placebo_draws, "placebo_scheme": a.placebo_scheme, "min_periods": a.min_periods,
+           "revision": revision, "roots": roots, "dataset": dataset, "counts": bd._clean(counts),
            "results": res, "placebo": placebo, "prior_tests": prior, "provenance": prov}
     target.write_text(json.dumps(bd._clean(doc), indent=1))
     sha = provenance.sha256_file(target)
     bd.log_trials(job, res, str(target.relative_to(ROOT)), sha, f"bounce-{a.tag}", prov,
-                  placebo=placebo, dataset=dataset)
+                  placebo=placebo, dataset=dataset, revision=revision)
     print(f"results {target}")
     for k, t in res.get("tests", {}).items():
         print(k, json.dumps({x: t.get(x) for x in ("beta", "se", "p", "p_holm", "n")}))
