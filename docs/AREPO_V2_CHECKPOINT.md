@@ -142,9 +142,11 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
   - Tests:
     - Local: deps, error, timeout, invalid argv, kill -9 recovery, stop/pause/resume.
     - Host: `q0001_selftest` was killed with -9 mid-run, recorded as interrupted, and attempt 2 finished `done` under cron at 18:23Z.
-- **Claude re-invocation: built but not installed.**
-  - `scripts/autopilot/autopilot.py` runs `claude -p` on the Mac under launchd, using the claude.ai Max login with API keys stripped. It parses usage-limit resets.
-  - Auto mode's classifier blocked even a dry test ("Create Unsafe Agents"). This needs a user decision. Options are in `research_lab/autopilot/PERSISTENCE.md`.
+- **Claude autopilot: installed and verified (the user approved full power, 2026-10-15 ~20:00 UTC+1).**
+  - launchd `com.arepo.autopilot` runs `scripts/autopilot/autopilot.py tick` every 30 min. Each session runs
+    `claude -p` with a 5 h cap, `bypassPermissions` and `caffeinate -i`, and sleeps until any usage-limit reset.
+  - Verified: a real headless run; kill -9 recovery; the reset parser. Details: `research_lab/autopilot/PERSISTENCE.md`.
+  - Session prompt: `research_lab/autopilot/AUTOPILOT_PROMPT.md`. Read-only host view: `scripts/oracle/queue_status.sh`.
 - **Cloud routines:** rejected. The minimum interval is 1h and they cannot reach the host without an SSH key in the cloud.
 - **One-time reset:** no documented redemption mechanism. The user was alerted by ntfy at about 18:22Z.
 
@@ -163,15 +165,20 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions
-1. Once the restore completes, deploy so the q0002-q0004 specs reach the host. Check that q0002 starts and logs progress.
-2. Design the next screening families as queue jobs. Candidates:
-   - order-flow conditionality (mission Q2);
-   - liquidity regimes (Q3);
-   - related-market lead-lag on history (Q4);
-   - bid-ask bounce decomposition of reversal (Q5).
-   Avoid re-running completed nulls.
-3. When results land: write up in the ledger and study docs, then decide follow-ups.
+## Exact next actions (for the next session, autopilot or interactive)
+1. `q0002_books_h2main` has been running on the host since 19:02Z (repeat-until-complete). It is followed by q0003 and q0004.
+   Watch it with `scripts/oracle/queue_status.sh`. When q0004 is done, write up `r4_book` in `research_lab/HISTORICAL_ML_DEV.md`
+   and the ledger.
+2. Screening batch 2: `research_lab/SCREENING_BATCH_2.md` (draft) plus a challenger review, ACCEPT_WITH_REQUIRED_CHANGES (12 items,
+   at the end of that file).
+   - Apply all 12 and record a one-paragraph response.
+   - Then implement, in this order:
+     1. the cumulative trial counter fix and its unit test (item 1);
+     2. J5 with a gap filter and materiality floor (runs with existing code);
+     3. `battery2.py` (J1);
+     4. J4 `bounce_decomp.py`, redesigned per items 4-7.
+   - Queue as q0005+ and deploy.
+3. Keep at least 12 h of queued work on the host.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,

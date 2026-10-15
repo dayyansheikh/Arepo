@@ -1,32 +1,34 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-15 19:23 UTC+1
+**Last updated:** 2026-10-15 20:04 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
-**Programme state:** RUNNING on the server (research queue live). Claude sessions are manual for now (see Approvals).
-**Next Claude session:** when you open one. Automatic sessions are not yet approved. **Server queue:** checks every 2 minutes.
+**Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
+**Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
+running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Server (Oracle):** collection every 2h, live trade monitor, Kalshi live test and the new **research queue worker**.
-  - All healthy as of 18:23Z (measured).
-- **Research queue:** live since 15 Oct 18:19Z.
-  - Runs one job at a time.
-  - Survives Claude usage limits, session ends and server reboots.
-  - Tested by killing a job mid-run: it was detected and rerun automatically.
-- **Jobs queued** (book and liquidity family; answers "does liquidity change which signals matter?"):
-  1. Build the order-book table for the 3,200-market history set (resumable, multi-hour, network-bound).
-  2. Finalise that table.
-  3. Re-run the history model with book features (`r4_book`, a step declared earlier).
-- **Data:** history datasets are being restored from the GitHub archive onto the server (about 1.1 GB).
+- **Server (Oracle):** collection every 2h, live trade monitor, Kalshi live test and the research queue. All healthy at 19:05Z (measured).
+- **Research queue** (live since 15 Oct 18:19Z; tested with a mid-run kill):
+  - Running since 19:02Z: building the order-book table for the 3,200-market history set (multi-hour, resumable).
+  - Queued next: finalise the table, then rerun the history model with book features (`r4_book`).
+- **Data:** history datasets restored from the GitHub archive onto the server; 31,674 files, all checksums OK.
+- **Next research batch (batch 2):** 7 jobs designed for your questions:
+  - when order flow predicts;
+  - whether liquidity changes signals;
+  - delayed moves in related markets;
+  - whether reversal is just bid-ask bounce.
+
+  An independent reviewer accepted the design with **12 required fixes**, including an undercounted multiple-testing
+  total and a reversal test that can't yet separate real reversion from quote noise. The autopilot applies the fixes
+  before any code or jobs.
+- **Autopilot tests passed:** a real unattended run, and a session killed mid-run that was recovered on the next check.
 
 ## 2. Approvals needed from you
-1. **Automatic Claude sessions (decision).** I built a Mac "autopilot" that starts a bounded Claude session every 30 min.
-   - It sleeps through usage limits and uses only your Max login (never an API key).
-   - Claude Code's own safety check **blocked me from testing it**, because it would run unattended with all permissions.
-   - **Choose:**
-     - **(a)** You approve and run it yourself.
-     - **(b)** I build a restricted version (fewer powers, so it may pass the check).
-     - **(c)** Server-only: research keeps computing, and Claude resumes whenever you open a chat.
-   - Details: `research_lab/autopilot/PERSISTENCE.md`.
+1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
+   - Pause: `python3 scripts/autopilot/autopilot.py pause` (on the Mac, in the repo). Use `resume` to undo, or `stop` to
+     end the running session.
+   - It only runs while the Mac is awake. If you chat with me while it's working, pause it first, so two sessions don't
+     edit at once.
 2. **One-time usage reset (deadline Wed 21 Oct).**
    - No automatic redemption is documented, and I can't see your account page.
    - Check claude.ai/settings/usage (or `/usage`). If there's a claim/redeem button, press it around Sun 18 Oct, after this week's allowance is used.
@@ -63,6 +65,7 @@
 | Mac | No background jobs. |
 
 ## 6. Manual pause and stop
+- **Claude autopilot (Mac):** `python3 scripts/autopilot/autopilot.py pause` / `resume` / `stop` / `status`.
 - **Pause research jobs:** `ssh oracle '~/arepo/.venv/bin/python ~/arepo/scripts/oracle/queue_worker.py pause'`. Use `resume` to undo, or `stop` to also halt the running job.
 - **Status:** the same command with `status`.
 

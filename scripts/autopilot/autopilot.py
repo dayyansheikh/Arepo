@@ -38,11 +38,26 @@ HOME = Path(os.environ.get("AREPO_AUTOPILOT_HOME", Path.home() / ".arepo/autopil
 PROMPT = REPO / "docs/research_lab/autopilot/AUTOPILOT_PROMPT.md"
 CLAUDE = os.environ.get("AREPO_CLAUDE_BIN", "/Users/DayyanSheikh/.nvm/versions/node/v20.20.0/bin/claude")
 MODEL = os.environ.get("AREPO_AUTOPILOT_MODEL", "opus")
-TIMEOUT_S = int(os.environ.get("AREPO_AUTOPILOT_TIMEOUT_S", str(3 * 3600)))
-LIMIT_RE = re.compile(r"hit your (?:[\w ]+ )?limit", re.I)
-RESET_RE = re.compile(r"resets\s+([^\n\"·]+)", re.I)
+TIMEOUT_S = int(os.environ.get("AREPO_AUTOPILOT_TIMEOUT_S", str(5 * 3600)))
+# Restricted powers (no bypassPermissions): anything not listed is auto-denied in headless mode.
+# No rm, no git push, no arbitrary shell or ssh; the host is reached only through two fixed scripts.
+ALLOWED_TOOLS = [
+    "Read", "Grep", "Glob", "Edit", "Write", "Agent", "TodoWrite",
+    "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)",
+    "Bash(git add:*)", "Bash(git commit:*)",
+    "Bash(scripts/oracle/deploy.sh)", "Bash(scripts/oracle/queue_status.sh:*)",
+    "Bash(backend/.venv/bin/pytest:*)", "Bash(backend/.venv/bin/ruff check:*)",
+    "Bash(TZ=Etc/GMT-1 date:*)", "Bash(date:*)", "Bash(ls:*)", "Bash(wc:*)",
+]
+# Full power approved by the user on 2026-10-15 ("I'll hand over the keys"). Set
+# AREPO_AUTOPILOT_MODE=restricted (in the launchd plist) to fall back to the allowlist above.
+MODE = os.environ.get("AREPO_AUTOPILOT_MODE", "full")
+PERMISSION_ARGS = (["--permission-mode", "bypassPermissions"] if MODE == "full"
+                   else ["--permission-mode", "default", "--allowedTools", *ALLOWED_TOOLS])
+LIMIT_RE = re.compile(r"hit your (?:[\w ]+ )?limit", re.IGNORECASEGNORECASE)
+RESET_RE = re.compile(r"resets\s+([^\n\"·]+)", re.IGNORECASEGNORECASE)
 AUTH_RE = re.compile(r"Failed to authenticate|Login expired|Invalid bearer token|run /login|"
-                     r"Credit balance is too low|authentication_failed", re.I)
+                     r"Credit balance is too low|authentication_failed", re.IGNORECASEGNORECASE)
 
 
 def now() -> datetime:
@@ -74,8 +89,8 @@ def notify(title: str, msg: str) -> None:
         subprocess.run([str(REPO / "backend/.venv/bin/python"), "scripts/arepo_notify.py", "send",
                         "--type", "breakage", "--severity", "high", "--headline", title, "--line", msg,
                         "--dedupe-key", f"autopilot:{title}"],
-                       cwd=str(REPO / "backend"), timeout=60, capture_output=True)
-    except Exception:
+                       cwd=str(REPO / "backend"), timeout=60, capture_output=True, check=False)
+    except Exception:  # noqa: BLE001, S110 - a failed alert must never stop the autopilot
         pass
 
 
@@ -93,7 +108,7 @@ def parse_reset(text: str) -> datetime | None:
     if not m:
         return None
     raw = m.group(1).strip()
-    tm = re.search(r"(\d{1,2})(?::(\d{2}))?\s*([ap]m)", raw, re.I)
+    tm = re.search(r"(\d{1,2})(?::(\d{2}))?\s*([ap]m)", raw, re.IGNORECASEGNORECASE)
     if not tm:
         return None
     hour = int(tm.group(1)) % 12 + (12 if tm.group(3).lower() == "pm" else 0)
@@ -111,9 +126,10 @@ def parse_reset(text: str) -> datetime | None:
 
 def preflight(env: dict) -> str | None:
     try:
-        out = subprocess.run([CLAUDE, "auth", "status"], capture_output=True, text=True, timeout=60, env=env)
+        out = subprocess.run([CLAUDE, "auth", "status"], capture_output=True, text=True, timeout=60, env=env,
+                             check=False)
         info = json.loads(out.stdout)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return f"auth status failed: {type(e).__name__}: {e}"
     if not info.get("loggedIn"):
         return "not logged in"
@@ -148,8 +164,8 @@ def tick(prompt_override: str | None) -> int:
     log = HOME / "logs" / f"{ts}.json"
     t0 = time.time()
     with open(log, "w") as fh:
-        proc = subprocess.Popen([CLAUDE, "-p", prompt, "--output-format", "json", "--model", MODEL,
-                                 "--permission-mode", "bypassPermissions"],
+        proc = subprocess.Popen(["/usr/bin/caffeinate", "-i", CLAUDE, "-p", prompt, "--output-format", "json", "--model", MODEL,
+                                 *PERMISSION_ARGS],
                                 cwd=str(REPO), stdout=fh, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                 env=env, start_new_session=True)
         st.update(running_pid=proc.pid, started_at=iso(now()), log=str(log))

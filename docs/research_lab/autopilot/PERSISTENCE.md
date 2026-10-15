@@ -23,16 +23,28 @@
 - No redemption mechanism is documented anywhere in the Claude Code docs or support articles.
 - The user was alerted by ntfy on 2026-10-15 to check claude.ai/settings/usage (or run `/usage`) before **Wed 21 Oct**.
 
-## Blocked: unattended Claude sessions (needs a user decision)
-On 2026-10-15 the Claude Code safety classifier (auto mode) refused to run even a dry test of `autopilot.py`. Its reason was "Create Unsafe Agents".
-- The autopilot starts unattended Claude sessions with `--permission-mode bypassPermissions`.
-- This was not worked around.
-
-The user's options:
-1. **Approve the Mac autopilot as built.** The user installs or tests it themselves, or adds an explicit permission rule. Every session is bounded to 3 hours, never overlaps another, sleeps through usage limits and refuses API-key auth.
-   - Limitation: it runs only while the Mac is awake.
-2. **A safer variant:** headless sessions with an `--allowedTools` allowlist instead of bypass. This means no `ssh` deploys, no pushes, and analysis plus queue specs only. That needs a new design pass.
-3. **Server-only (current state):** the queue keeps computing unattended, and Claude work resumes when the user opens a session ("continue from checkpoint").
-
-## Current state
-Option 3 is live. The queue worker has been verified on the host, including a kill -9 interruption and recovery.
+## Decision and installed state (2026-10-15 ~19:05Z)
+- **History.** The auto-mode classifier first refused to test the full-power autopilot ("Create Unsafe Agents"). It was not
+  worked around.
+- **User decision, 2026-10-15 ~20:00 UTC+1:** "I'll hand over the keys. I approve the full power autopilot ... You can just
+  do that. Set it up."
+- **Installed:** launchd `com.arepo.autopilot` (`scripts/autopilot/install.sh`; remove with `--uninstall`).
+  - It ticks every 30 min, at login and after wake.
+  - A session starts only when none is running, the queue is not paused, and no usage-limit reset is pending.
+  - Each session lasts up to 5 h, runs under `caffeinate -i` so the Mac does not idle-sleep mid-session, and uses
+    `--permission-mode bypassPermissions`. The mode is `AREPO_AUTOPILOT_MODE=full`; `restricted` switches to an allowlist
+    with no push, no rm and the host reached only via `scripts/oracle/{deploy,queue_status}.sh`.
+- **Verified** (test home `~/.arepo/autopilot_test`):
+  1. A harmless real headless run returned `AUTOPILOT_OK`, rc 0, 5 s, on the claude.ai Max login.
+  2. A controlled interruption: the session was killed with -9 mid-run, the next tick recorded `interrupted` and the
+     following run was `ok`.
+  3. The usage-limit parser read "resets 3:45pm" as the next 15:45 local + 2 min, "resets Mon 12:00am" as the next Monday
+     00:00 local + 2 min, and with no time it falls back to retrying in 30 min.
+  - A real usage-limit hit has not yet been observed. The first one will be checked in `runs.jsonl`.
+- **Limits:**
+  - It runs only while the Mac is awake. Lid-closed sleep stops it; launchd catches up after wake.
+  - When the user chats interactively while an autopilot session is running, two sessions share the repo. Pause the
+    autopilot first (below), or accept that both may commit, each committing only its own files.
+- **Control:**
+  - `/usr/bin/python3 scripts/autopilot/autopilot.py status|pause|resume|stop`;
+  - logs and state in `~/.arepo/autopilot/` (`runs.jsonl`, `logs/`).
