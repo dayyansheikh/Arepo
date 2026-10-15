@@ -195,6 +195,11 @@ def run_job(jid: str) -> int:
         os.nice(19)
         if sys.platform != "darwin":
             resource.setrlimit(resource.RLIMIT_AS, (mem * 1024 * 1024 * 2, mem * 1024 * 1024 * 2))
+            try:  # under memory pressure the kernel kills research jobs before the collector/monitors
+                with open("/proc/self/oom_score_adj", "w") as f:
+                    f.write("1000")
+            except OSError:
+                pass
 
     t0 = time.time()
     with open(st["log"], "ab") as fh:

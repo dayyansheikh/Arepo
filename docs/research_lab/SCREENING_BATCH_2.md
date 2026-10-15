@@ -683,7 +683,7 @@ commit exist.
  "data": ["research_lab/snapshots (complete captures up to run time; dev_snapshots_v2 absent on host)"],
  "resources": {"mem_mb": 2600, "cpu": 1},
  "depends_on": [],
- "argv": ["scripts/run_leadlag_screen.py", "--tag", "sb2-snap2h", "--n-boot", "1000", "--seed", "116"],
+ "argv": ["scripts/run_leadlag_screen.py", "--tag", "sb2-snap2h", "--n-boot", "1000", "--seed", "116", "--gap-h", "1.5,3"],
  "timeout_s": 21600,
  "max_retries": 1,
  "outputs": ["data-dumps/research_lab/leadlag_screen/leadlag-sb2-snap2h/results.json", "docs/research_lab/trials.jsonl (8 leadlag_screen lines)"],
