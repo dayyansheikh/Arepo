@@ -107,7 +107,8 @@ def summarize(tag, repo, files, rows, info, ver, meta, sizes):
     return {
         "tag": tag,
         "repo": repo,
-        "created_utc": meta["createdAt"],
+        # GitHub's createdAt is the target commit's date (identical for every release); use the archive's own clock
+        "created_utc": (info or {}).get("created_utc") or meta.get("publishedAt") or meta["createdAt"],
         "source": src,
         "source_root": (info or {}).get("base"),
         "source_host": (info or {}).get("host"),
