@@ -1158,6 +1158,38 @@ favourable tercile (it is chosen on h2 judgement rows and used only on h3).
      counts as a valid target at j, a placebo matched to the estimator, a within- vs between-market breakdown, and any
      bias correction for demeaning.
 
+#### J4-R: declared re-read of J4 on fresh captures (DRAFT declaration, 2026-10-15 ~23:55Z; freeze before data exist)
+- **Why:** the J4 counted run is void (placebo failure); the same-data re-read is rejected (challenger, above).
+- **Data:** complete captures in `research_lab/snapshots` with h, i, j all started in [2026-10-16T00:00Z,
+  T_end), T_end = the first capture start ≥ 2026-10-20T00:00Z (≥ 48 periods, 4 complete UTC days 16-19 Oct). Gap
+  rule as J4 ([1.5, 3] h). If fewer than 48 periods qualify by T_end, T_end moves forward in whole UTC days until they do
+  (rule fixed now; no outcome look).
+- **Eligibility:** E001 eligibility at i (as J4) **and the same tightness rule at h** (spread ≤ 0.10, mid in [0.02,
+  0.98], two-sided). At j: E001 target validity only (two-sided, not closed), as J4.
+- **Estimator (primary):** within each market, rows in time order; each regressor (term and controls) is replaced by
+  its value minus the market's expanding mean over that market's *earlier* rows (first row of each market dropped);
+  the target is the raw forward change (not demeaned); OLS with intercept. Under independent increments this has
+  zero bias exactly (the target is independent of the current and all earlier regressors); demeaning the target too
+  would add a −σ²/(t−1)² term, so it is not done.
+- **Placebo (matched to the estimator):** per market, the series of Gamma-mid levels is rebuilt from a within-market
+  random shuffle of its capture-to-capture increments (start level kept); `d_bm`, `dmid`, P1x's target (sweep B_i
+  shifted by the same level change), and every derived quantity are recomputed from the rebuilt series; same estimator.
+  Quantities not derived from the mid (spread, `b_pos`, `w`, `chg_1h`) are left as observed. 20 placebo draws; the
+  placebo is "null" if the 95% range of the 20 placebo betas covers 0 for every test; otherwise the family is void
+  again and reported as such.
+- **Tests, family, SEs, verdict map, LODO rule:** exactly J4's P1, P1x, P2, P3, P4 (Holm over 5; event-clustered and
+  two-way event × period, p = max; leave-one-day-out sign rule; same verdict map). New kind count: 5 tests.
+- **Sensitivities (reported, not tested):** markets with ≥ 20 rows; j-tight rows only; pooled (no demeaning);
+  within/between decomposition of each slope.
+- **Code needed:** `bounce_decomp.py`: `build_snapshot_triples(..., since_utc, h_tight=True)`,
+  `expanding_demean(df, cols, by="market_id", order="period")`, `shuffle_increments_placebo(df, seed)`,
+  `snapshot_tests(..., estimator="expanding")`; runner flags `--since`, `--until`, `--estimator expanding`,
+  `--placebo-draws 20`; tests: zero-bias of the estimator on a synthetic random walk with short panels (T = 3..10),
+  the placebo reproduces the estimator's mechanical bias on a FE estimator (sanity), h-tight filter, fresh-only
+  capture selection. J3 (q0011) adopts the same estimator and placebo for its book triples (B1-B4, D1, D2) before it
+  runs.
+- **Queue:** q0035 (J4-R counted, depends on nothing; `not_before` 2026-10-20T03:00Z), after code + freeze check.
+
 ### J5 (q0005, run `leadlag-sb2-snap2h`, finished 2026-10-15 23:05Z): SB2 rule MET for L1 (one candidate)
 - **Run.** 82.9 min; gap filter [1.5, 3] h excluded 5 periods (the 10-10 development spacing and the host outage);
   `all_periods` 51 periods, 2,394,749 pairs, 126,269 markets, 34,025 event clusters; `neg_risk_periods` 49 periods.
