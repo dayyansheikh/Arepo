@@ -1,0 +1,33 @@
+{
+ "id": "q0023_cb1_ladders_B",
+ "title": "CB1-B: frozen B1/B2 on h5_cb1_ladders (enter Stage-2 Holm directly)",
+ "family": "creative_batch_1",
+ "priority": 50,
+ "expected_value": "near-rung NO carry on IF-H2-disjoint ladders",
+ "data": [
+  "history/h5_cb1_ladders (sealed)"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0018_h5_cb1_seal"
+ ],
+ "argv": [
+  "scripts/run_cb1_structural.py",
+  "ladders",
+  "--run-id",
+  "h5_cb1_ladders",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "creative_batch1 OUT_ROOT/B_r1/results_B.json",
+  "trials.jsonl"
+ ],
+ "next_action": "Claude session: hold p-values for the batch Holm",
+ "notes": "verify-seal; access log; declaration-hash guard; seal copy h5_cb1_ladders_SEAL.json must be committed first"
+}
