@@ -1,0 +1,16 @@
+{
+ "id": "q0034_h2_coverage_count",
+ "title": "CB1 freeze fix 1 disclosure: count h2_main units whose price coverage misses [created, end+1d], by status (read-only)",
+ "family": "history_data",
+ "priority": 65,
+ "expected_value": "discloses the h2 coverage gap (active markets, close-anchored windows) the CB1 reviewer found; no refetch",
+ "data": ["history/h2_main (local files only)"],
+ "resources": {"mem_mb": 400, "cpu": 1},
+ "depends_on": [],
+ "argv": ["scripts/cb1_h5.py", "count-h2-coverage", "--run-id", "h2_main"],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": ["job log (JSON counts by status)"],
+ "next_action": "record counts in CREATIVE_BATCH_1.md freeze-check section and HISTORICAL data limitations",
+ "notes": "read-only; no network"
+}
