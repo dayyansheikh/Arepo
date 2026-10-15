@@ -55,8 +55,10 @@ def main() -> int:
     ap.add_argument("--tag")
     ap.add_argument("--n-boot", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=116)
+    ap.add_argument("--snapshot-root", type=Path, default=fs.SNAPSHOT_ROOT)
+    ap.add_argument("--trade-samples-root", type=Path, default=fs.SAMPLE_ROOT)
     a = ap.parse_args()
-    pairs, counts = fs.build_all()
+    pairs, counts = fs.build_all(a.trade_samples_root, a.snapshot_root)
     for c in counts:
         print(json.dumps(fs.clean(c)))
     ok = len(pairs) >= fs.MIN_PAIRS and len(set(fs.event_keys(pairs))) >= fs.MIN_EVENTS if len(
@@ -73,6 +75,10 @@ def main() -> int:
     res = fs.run_screen(pairs, a.n_boot, a.seed)
     res.update(run_id=run_id, pairing_counts=counts, seed=a.seed, n_boot=a.n_boot,
                provenance=provenance.run_provenance())
+    if (a.snapshot_root, a.trade_samples_root) != (fs.SNAPSHOT_ROOT, fs.SAMPLE_ROOT):
+        # recorded only for non-default roots so default output stays byte-identical
+        res["roots"] = {"snapshot_root": str(a.snapshot_root.resolve()),
+                        "trade_samples_root": str(a.trade_samples_root.resolve())}
     out_dir.mkdir(parents=True, exist_ok=False)
     path = out_dir / "results.json"
     path.write_text(json.dumps(fs.clean(res), indent=1))

@@ -271,7 +271,7 @@ def _iter_dev(dev_dir: Path) -> Iterator[tuple[dict, pd.DataFrame]]:
 
 def _iter_snapshots(root: Path) -> Iterator[tuple[dict, pd.DataFrame]]:
     for cap in forecast.list_complete_captures(root):
-        path = Path(cap["dir"]) / "rows.csv.gz"
+        path = forecast.require_local(Path(cap["dir"]) / "rows.csv.gz")
         header = pd.read_csv(path, nrows=0).columns
         use = [c for c in USECOLS if c in header]
         df = pd.read_csv(path, usecols=use, dtype=ID_DTYPES)

@@ -32,7 +32,13 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=116)
     ap.add_argument("--until-utc", default=None)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--snapshot-root", type=Path, default=bd.SNAPSHOT_ROOT,
+                    help="capture root to read (default: the live SNAPSHOT_ROOT)")
+    ap.add_argument("--sweep-root", type=Path, default=bd.SWEEP_ROOT,
+                    help="book-sweep root to read (default: the live SWEEP_ROOT)")
     a = ap.parse_args()
+    roots = {"snapshot_root": str(a.snapshot_root.resolve()),
+             "sweep_root": str(a.sweep_root.resolve())}
     out_dir = bd.OUT_ROOT / f"bounce-{a.tag}"
     target = out_dir / ("dryrun.json" if a.dry_run else "results.json")
     if target.exists():
@@ -41,7 +47,7 @@ def main() -> int:
 
     job = "J4" if a.job == "snapshots" else "J3"
     if job == "J4":
-        df, counts = bd.build_snapshot_triples(bd.SNAPSHOT_ROOT, bd.SWEEP_ROOT, a.until_utc, log=print)
+        df, counts = bd.build_snapshot_triples(a.snapshot_root, a.sweep_root, a.until_utc, log=print)
         if not len(df):
             print("no triples; nothing run")
             return 0
@@ -65,7 +71,7 @@ def main() -> int:
     placebo = run_tests(permute(df, a.seed + 1))
     out_dir.mkdir(parents=True, exist_ok=True)
     if a.dry_run:
-        target.write_text(json.dumps({"job": job, "dry_run": True, "counts": bd._clean(counts),
+        target.write_text(json.dumps({"job": job, "dry_run": True, "roots": roots, "counts": bd._clean(counts),
                                       "placebo": placebo}, indent=1))
         print(f"dry run {target}")
         return 0
@@ -74,7 +80,7 @@ def main() -> int:
     res["prior_tests"] = prior
     prov = provenance.run_provenance()
     doc = {"job": job, "run_id": f"bounce-{a.tag}", "seed": a.seed, "n_boot": a.n_boot,
-           "until_utc": a.until_utc, "dataset": dataset, "counts": bd._clean(counts),
+           "until_utc": a.until_utc, "roots": roots, "dataset": dataset, "counts": bd._clean(counts),
            "results": res, "placebo": placebo, "prior_tests": prior, "provenance": prov}
     target.write_text(json.dumps(bd._clean(doc), indent=1))
     sha = provenance.sha256_file(target)

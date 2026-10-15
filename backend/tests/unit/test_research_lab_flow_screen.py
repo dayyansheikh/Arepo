@@ -235,3 +235,20 @@ def test_cache_not_used_while_raw_present(world, monkeypatch):
     monkeypatch.setattr(fs, "_compute_sample_pairs", spy)
     fs.build_all(samples, snaps)
     assert calls == [1]  # raw files present -> recomputed from raw exactly as before
+
+
+def test_script_threads_roots_and_fails_loud_on_missing_rows(world, tmp_path):
+    import subprocess
+    import sys
+    snaps, samples = world
+    script = Path(__file__).resolve().parents[2] / "scripts" / "run_flow_screen.py"
+    cmd = [sys.executable, str(script), "--snapshot-root", str(snaps),
+           "--trade-samples-root", str(samples), "--n-boot", "5"]
+    (snaps / "c1" / "rows.csv.gz").unlink()
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    assert r.returncode != 0 and "ArchivedDataError" in r.stderr
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    r = subprocess.run([*cmd[:3], str(empty), "--trade-samples-root", str(empty)],
+                       capture_output=True, text=True)
+    assert r.returncode == 0 and "no pairable samples" in r.stdout

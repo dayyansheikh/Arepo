@@ -62,8 +62,12 @@ def main() -> int:
     ap.add_argument("--n-boot", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=116)
     ap.add_argument("--gap-h", type=parse_gap, default=None, metavar="LO,HI")
+    ap.add_argument("--snapshot-root", type=Path, default=ls.SNAPSHOT_ROOT,
+                    help="capture root to read (default: the live SNAPSHOT_ROOT)")
+    ap.add_argument("--dev-dir", type=Path, default=ls.DEV_DIR,
+                    help="development snapshots dir (default: the live DEV_DIR)")
     a = ap.parse_args()
-    pairs, counts = ls.build_all(log=print, gap_h=a.gap_h)
+    pairs, counts = ls.build_all(a.snapshot_root, a.dev_dir, log=print, gap_h=a.gap_h)
     if not len(pairs):
         print("no pairs; nothing run")
         return 0
@@ -85,6 +89,8 @@ def main() -> int:
     prov = provenance.run_provenance()
     doc = {"run_id": run_id, "seed": a.seed, "n_boot": a.n_boot,
            "gap_filter_h": list(a.gap_h) if a.gap_h else None,
+           "roots": {"snapshot_root": str(a.snapshot_root.resolve()),
+                     "dev_dir": str(a.dev_dir.resolve())},
            "excluded_periods": [c for c in counts if c.get("excluded")],
            "pairing_counts": counts,
            "configs": results, "provenance": prov}

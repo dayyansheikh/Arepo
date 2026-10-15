@@ -184,3 +184,39 @@ def test_sb2_rule_requires_materiality():
     assert ls.meets_rule(block)
     assert d["diff_r2"] < ls.SB2_MIN_DELTA_R2
     assert ls.SB2_MIN_DELTA_R2 == 0.001
+
+
+# --- fail-loud on archived (missing) files and root routing -----------------------------------
+
+
+def _write_cap(root, cid, start, rows):
+    import json
+    d = root / cid
+    d.mkdir(parents=True)
+    snap(rows).to_csv(d / "rows.csv.gz", index=False)
+    (d / "manifest.json").write_text(json.dumps(
+        {"capture_id": cid, "state": "complete", "started_utc": start}))
+    return d
+
+
+def test_iter_captures_reads_given_root_and_fails_loud_on_missing_rows(tmp_path):
+    import pytest
+
+    from astrolabe.research_lab import forecast
+    rows = [{"market_id": "a"}, {"market_id": "b"}]
+    _write_cap(tmp_path, "c1", "2026-10-10T00:00:00Z", rows)
+    d2 = _write_cap(tmp_path, "c2", "2026-10-10T02:00:00Z", rows)
+    assert [m["capture_id"] for m, _ in ls.iter_captures(tmp_path, None)] == ["c1", "c2"]
+    (d2 / "rows.csv.gz").unlink()
+    with pytest.raises(forecast.ArchivedDataError, match="restore_from_archive"):
+        list(ls.iter_captures(tmp_path, None))
+
+
+def test_incomplete_capture_without_rows_is_still_skipped(tmp_path):
+    import json
+    _write_cap(tmp_path, "c1", "2026-10-10T00:00:00Z", [{"market_id": "a"}])
+    d = tmp_path / "c2"
+    d.mkdir()
+    (d / "manifest.json").write_text(json.dumps(
+        {"capture_id": "c2", "state": "incomplete", "started_utc": "2026-10-10T02:00:00Z"}))
+    assert [m["capture_id"] for m, _ in ls.iter_captures(tmp_path, None)] == ["c1"]

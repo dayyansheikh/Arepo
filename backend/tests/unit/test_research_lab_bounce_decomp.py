@@ -433,3 +433,36 @@ def test_build_book_triples_joins_and_counts(tmp_path):
                   "sw_best_bid": [0.5], "sw_best_ask": [0.52]}).to_csv(tmp_path / "b2.csv.gz", index=False)
     d2, c2 = bd.build_book_triples(tmp_path / "f.parquet", tmp_path / "b2.csv.gz", tmp_path / "p.csv.gz")
     assert len(d2) == 0 and c2["rows_target_book_unavailable"] == 1
+
+
+# --- fail-loud on archived (missing) files and root routing -------------------------------------
+
+
+def test_missing_capture_rows_raises_archived(tmp_path):
+    from astrolabe.research_lab import forecast
+    for n, h in enumerate([0, 2, 4]):
+        t = T0 + timedelta(hours=h)
+        write_capture(tmp_path / "snap", f"c{n}", t, make_rows(t, MIDS))
+    (tmp_path / "snap" / "c1" / "rows.csv.gz").unlink()
+    with pytest.raises(forecast.ArchivedDataError, match="restore_from_archive"):
+        bd.build_snapshot_triples(tmp_path / "snap", tmp_path / "sw")
+
+
+def test_sweep_manifest_without_rows_raises_archived(tmp_path):
+    from astrolabe.research_lab import forecast
+    for n, h in enumerate([0, 2, 4]):
+        t = T0 + timedelta(hours=h)
+        write_capture(tmp_path / "snap", f"c{n}", t, make_rows(t, MIDS))
+    write_sweep(tmp_path / "sw", "s1", "c1", T0 + timedelta(hours=2, minutes=5), MIDS)
+    (tmp_path / "sw" / "s1" / "rows.csv.gz").unlink()
+    with pytest.raises(forecast.ArchivedDataError):
+        bd.build_snapshot_triples(tmp_path / "snap", tmp_path / "sw")
+
+
+def test_no_sweep_for_snapshot_is_still_counted_not_error(tmp_path):
+    for n, h in enumerate([0, 2, 4]):
+        t = T0 + timedelta(hours=h)
+        write_capture(tmp_path / "snap", f"c{n}", t, make_rows(t, MIDS))
+    (tmp_path / "sw").mkdir()
+    df, counts = bd.build_snapshot_triples(tmp_path / "snap", tmp_path / "sw")
+    assert len(df) and counts[0]["sweep_found"] is False

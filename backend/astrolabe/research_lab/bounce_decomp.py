@@ -200,7 +200,7 @@ def _plain_ols(y, x, Z) -> dict:
 
 
 def _read_capture(cap: dict) -> pd.DataFrame:
-    path = Path(cap["dir"]) / "rows.csv.gz"
+    path = forecast.require_local(Path(cap["dir"]) / "rows.csv.gz")
     header = pd.read_csv(path, nrows=0).columns
     use = [c for c in SNAP_USECOLS if c in header]
     df = pd.read_csv(path, usecols=use, dtype={"market_id": str, "event_id": str})
@@ -237,7 +237,7 @@ def load_sweep_mid(sweep_root: Path, snapshot_id: str) -> pd.DataFrame | None:
             best = (key, m.parent)
     if best is None:
         return None
-    df = pd.read_csv(best[1] / "rows.csv.gz",
+    df = pd.read_csv(forecast.require_local(best[1] / "rows.csv.gz"),
                      usecols=["market_id", "batch_receipt_utc", "best_bid", "best_ask", "state"],
                      dtype={"market_id": str})
     bid, ask = df["best_bid"].to_numpy(float), df["best_ask"].to_numpy(float)
