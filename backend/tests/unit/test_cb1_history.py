@@ -44,7 +44,7 @@ def price_series(start: float, stop: float, p: float, overrides: dict[float, flo
 def write_run(root: Path, name: str, markets: list[dict], t_fetch: float, sample_extra: bool = True) -> Path:
     run = root / name
     run.mkdir(parents=True, exist_ok=True)
-    (run / "manifest.json").write_text(json.dumps({"run_id": name, "request_clock_now": iso(t_fetch)}))
+    (run / "manifest.json").write_text(json.dumps({"run_id": name, "request_clock_now": iso(t_fetch), "lookback_days": 450}))
     rows, prog = [], []
     for m in markets:
         mid = m["id"]
@@ -780,24 +780,60 @@ def _hist_rep(tests, stage=2):
     return {"stage": stage, "revision": cb.REVISION_R, "tests": tests}
 
 
+def _hist_screen(advanced):
+    return {"stage": 1, "revision": cb.REVISION, "tests": {t: {"p": 0.01, "advance": True} for t in advanced}}
+
+
 def test_batch_holm_over_both_modules_and_refusals():
+    s1 = [("hs", _hist_screen(["A1", "E1"])), ("dd", {"window": "dev", "tests": {"D2": {"p": 0.1, "advance": True},
+                                                                              "D1": {"p": 0.5, "advance": False}}})]
     docs = [
         ("h", _hist_rep({"A1": {"p": 0.001, "advance": True}, "E1": {"p": 0.03, "advance": True}})),
         ("d", {"window": "rep", "tests": {"D2": {"p": 0.01, "advance": True}}}),
         ("b", {"stage": "stage2_pre_holm", "tests": {"B1": {"p": 0.2, "advance": False}, "B2": {"p": 1.0, "advance": False}}}),
     ]
-    r = cb.batch_holm(docs)
+    r = cb.batch_holm(docs, stage1_docs=s1)
     assert r["m"] == 5 and r["replicated"] == ["A1", "D2"]  # E1: 0.03 > 0.05/3
+    assert r["missing_stage2_counted_p1"] == [] and r["expected_family"] == ["A1", "B1", "B2", "D2", "E1"]
     assert r["tests"]["E1"]["replicated"] is False and r["tests"]["A1"]["p_holm"] == pytest.approx(0.005)
     # reject only counts if the test's own Stage-2 gate passed
     docs2 = [("h", _hist_rep({"A1": {"p": 0.001, "advance": False}}))]
-    assert cb.batch_holm(docs2)["replicated"] == []
+    assert cb.batch_holm(docs2, stage1_docs=s1)["replicated"] == []
     for bad in ({"window": "dev", "tests": {"D1": {"p": 0.1}}}, _hist_rep({"A1": {"p": 0.1}}, stage=1),
                 {"tests": {"B3": {"p": 0.1}}}):
         with pytest.raises(cb.Refused):
-            cb.batch_holm([("x", bad)])
+            cb.batch_holm([("x", bad)], stage1_docs=s1)
     with pytest.raises(cb.Refused, match="both"):
-        cb.batch_holm([("h", _hist_rep({"A1": {"p": 0.1}})), ("h2", _hist_rep({"A1": {"p": 0.1}}))])
+        cb.batch_holm([("h", _hist_rep({"A1": {"p": 0.1}})), ("h2", _hist_rep({"A1": {"p": 0.1}}))], stage1_docs=s1)
+
+
+def test_batch_holm_family_missing_stage2_counts_p1_and_unexpected_refused():
+    s1 = [("hs", _hist_screen(["A1", "E1"]))]
+    # E1 advanced at Stage 1 but has no Stage-2 result; B2 is always in the family: both p = 1 and listed
+    r = cb.batch_holm([("h", _hist_rep({"A1": {"p": 0.001, "advance": True}})),
+                       ("b", {"stage": "stage2_pre_holm", "tests": {"B1": {"p": 0.0001, "advance": True}}})], stage1_docs=s1)
+    assert r["m"] == 4 and r["missing_stage2_counted_p1"] == ["B2", "E1"]
+    assert r["tests"]["E1"]["p"] == 1.0 and r["tests"]["E1"]["replicated"] is False
+    # Holm over m = 4 (not 2): B1 is rank 1, A1 rank 2 => p_holm = 3 * 0.001
+    assert r["tests"]["A1"]["p_holm"] == pytest.approx(0.003) and r["replicated"] == ["A1", "B1"]
+    # a Stage-2 test that did not advance at Stage 1 is refused (C1 not in the expected list)
+    with pytest.raises(cb.Refused, match="not in the expected family"):
+        cb.batch_holm([("h", _hist_rep({"C1": {"p": 0.001, "advance": True}}))], stage1_docs=s1)
+    # a Stage-2 file as Stage-1 input is refused
+    with pytest.raises(cb.Refused, match="Stage-1"):
+        cb.batch_holm([], stage1_docs=[("x", _hist_rep({"A1": {"p": 0.1}}))])
+    assert "batch_holm_family" in cb.declaration_blob() and "h2_completeness" in cb.declaration_blob()
+
+
+def test_h2_make_ctx_requires_manifest_lookback_days(tmp_path):
+    run = tmp_path / "h2_main"
+    run.mkdir()
+    for manifest in ({}, {"lookback_days": None}, {"lookback_days": "x"}, {"lookback_days": -3}):
+        (run / "manifest.json").write_text(json.dumps({**manifest, "request_clock_now": iso(END)}))
+        with pytest.raises(cb.Refused, match="lookback_days"):
+            cb.make_ctx(run)
+    (run / "manifest.json").write_text(json.dumps({"lookback_days": 700, "request_clock_now": iso(END)}))
+    assert cb.make_ctx(run).lookback_d == 700.0
 
 
 def _runner():
@@ -840,10 +876,14 @@ def test_runner_batch_holm_writes_outside_and_never_overwrites(tmp_path, capsys)
     r = _runner()
     f = tmp_path / "rep.json"
     f.write_text(json.dumps(_hist_rep({"A1": {"p": 0.001, "advance": True}})))
+    d = tmp_path / "dev.json"
+    d.write_text(json.dumps(_hist_screen(["A1"])))
     out = tmp_path / "bh.json"
-    assert r.main(["batch-holm", "--results", str(f), "--out", str(out)]) == 0
-    assert json.loads(out.read_text())["replicated"] == ["A1"]
-    assert r.main(["batch-holm", "--results", str(f), "--out", str(out)]) == 2  # never overwritten
+    assert r.main(["batch-holm", "--results", str(f), "--out", str(out)]) == 2  # --stage1 is required
+    assert r.main(["batch-holm", "--stage1", str(d), "--results", str(f), "--out", str(out)]) == 0
+    doc = json.loads(out.read_text())
+    assert doc["replicated"] == ["A1"] and doc["missing_stage2_counted_p1"] == ["B1", "B2"]
+    assert r.main(["batch-holm", "--stage1", str(d), "--results", str(f), "--out", str(out)]) == 2  # never overwritten
 
 
 def test_seal_copy_accepts_only_the_one_file_per_run_format(tmp_path):

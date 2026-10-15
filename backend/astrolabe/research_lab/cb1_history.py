@@ -199,6 +199,11 @@ INTERPRETATIONS = [
 ]
 
 
+H2_COMPLETENESS_RULE = (
+    "Non-h5 runs (h2_main) apply the completeness rule with the run manifest's lookback_days; make_ctx refuses when the "
+    "manifest has no lookback_days (no fallback to 450). h5 runs use the declared 450 days.")
+
+
 def declaration_table() -> list[dict]:
     out = []
     for hid, h in HYPOTHESES_CB1.items():
@@ -230,6 +235,8 @@ def declaration_blob() -> dict:
             "kill_min_markets": KILL_MIN_MARKETS, "px1_z": {str(k): v for k, v in PX1_Z.items()}, "seed": SEED,
             "max_age_s": MAX_AGE, "point_lag_s": float(hb.POINT_LAG_S),
         },
+        "h2_completeness": H2_COMPLETENESS_RULE,
+        "batch_holm_family": BATCH_HOLM_FAMILY_RULE,
         "e3_text_rule": {"name_re": NAME_RE, "name_flags": NAME_FLAGS, "verb_re": VERB_RE, "verb_flags": VERB_FLAGS},
         "interpretations": INTERPRETATIONS,
     }
@@ -1508,22 +1515,65 @@ def stage2_tests_from_results(doc: dict, name: str = "?") -> dict[str, dict]:
     return out
 
 
-def batch_holm(results_docs: list[tuple[str, dict]], alpha: float = ALPHA_STAGE2) -> dict:
-    """Batch-wide Holm (alpha, one-sided p-values) over ALL CB1 Stage-2 tests across the history (A/C/E) and structural
-    (D rep, B1, B2) results files. A test is ``replicated`` only if its own Stage-2 gate passed (``advance``: same sign,
-    floors, tail gate, binding robustness) AND the batch Holm rejects. A test id may appear once."""
+ALWAYS_IN_FAMILY = ("B1", "B2")  # no Stage 1 (the effect was already seen in IF-H2): always in the Stage-2 family
+BATCH_HOLM_FAMILY_RULE = (
+    "The batch Holm family is every test that advanced at Stage 1 in any CB1 module (history A/C/E Stage-1 screens, D "
+    "dev) plus B1 and B2, which have no Stage 1 and are always in the family. A Stage-2 test missing from the supplied "
+    "Stage-2 files counts as p = 1 and is listed. The batch-holm command takes the Stage-1 (dev) results files and the "
+    "Stage-2 files, derives the expected test list from the dev files plus the always-included tests, and refuses if "
+    "any Stage-2 file contains a test outside that expected list.")
+
+
+def stage1_advanced_from_results(doc: dict, name: str = "?") -> set[str]:
+    """Tests that advanced at Stage 1 in one dev results file: a history screen (``stage == 1``, revision cb1_history)
+    or the D dev window (``window == 'dev'``). Anything else is refused."""
+    tests = doc.get("tests")
+    if not isinstance(tests, dict):
+        raise Refused(f"{name}: no tests table")
+    is_hist = doc.get("stage") == 1 and doc.get("revision") == REVISION
+    is_d_dev = doc.get("window") == "dev" and set(tests) <= {"D1", "D2"}
+    if not (is_hist or is_d_dev):
+        raise Refused(f"{name}: not a CB1 Stage-1 results file (history screen or D dev window)")
+    out = set()
+    for tid, r in tests.items():
+        if tid not in STAGE2_TEST_IDS:
+            raise Refused(f"{name}: unknown test id {tid!r}")
+        if r.get("advance"):
+            out.add(tid)
+    return out
+
+
+def batch_holm(results_docs: list[tuple[str, dict]], alpha: float = ALPHA_STAGE2, *,
+               stage1_docs: list[tuple[str, dict]]) -> dict:
+    """Batch-wide Holm (alpha, one-sided p-values) over the declared family (``BATCH_HOLM_FAMILY_RULE``): every test that
+    advanced at Stage 1 in any CB1 module (``stage1_docs``) plus B1/B2. Stage-2 files (history rep, D rep, B R1) may
+    contain only expected tests (else refused); an expected test with no Stage-2 result counts as p = 1 and is listed. A
+    test is ``replicated`` only if its own Stage-2 gate passed (``advance``) AND the batch Holm rejects. A test id may
+    appear once."""
+    adv1: dict[str, str] = {}
+    for name, doc in stage1_docs:
+        for tid in stage1_advanced_from_results(doc, name):
+            if tid in adv1:
+                raise Refused(f"Stage-1 test {tid} appears in both {adv1[tid]} and {name}")
+            adv1[tid] = name
+    expected = set(adv1) | set(ALWAYS_IN_FAMILY)
     pv: dict[str, dict] = {}
     for name, doc in results_docs:
         for tid, rec in stage2_tests_from_results(doc, name).items():
+            if tid not in expected:
+                raise Refused(f"{name}: test {tid} is not in the expected family (advanced at Stage 1: {sorted(adv1)}; "
+                              f"always: {list(ALWAYS_IN_FAMILY)})")
             if tid in pv:
                 raise Refused(f"test {tid} appears in both {pv[tid]['source']} and {name}")
             pv[tid] = rec
-    if not pv:
-        return {"m": 0, "alpha": alpha, "tests": {}, "replicated": []}
+    missing = sorted(expected - set(pv))
+    for tid in missing:
+        pv[tid] = {"p": 1.0, "advance": False, "source": "missing_stage2_p=1"}
     hm = holm({t: r["p"] for t, r in pv.items()}, alpha)
     tests = {t: {**pv[t], **hm[t], "replicated": bool(pv[t]["advance"] and hm[t]["reject"])} for t in sorted(pv)}
     return {"m": len(pv), "alpha": alpha, "tests": tests, "replicated": sorted(t for t, r in tests.items() if r["replicated"]),
-            "note": "batch Holm over the Stage-2 set present in the given files; a missing file means a smaller family (check m)"}
+            "expected_family": sorted(expected), "missing_stage2_counted_p1": missing,
+            "stage1_inputs": [n for n, _ in stage1_docs], "family_rule": BATCH_HOLM_FAMILY_RULE}
 
 
 def log_trials(out: dict, path: Path, *, replication: bool = False, family: str, dataset: str,
@@ -1808,10 +1858,14 @@ def make_ctx(run_dir: Path) -> Ctx:
     is_h5 = Path(run_dir).name.startswith("h5")
     lb = LOOKBACK_D
     if not is_h5:  # the run's own frame lookback (a longer rule would be vacuous, a shorter one is the frame's limit)
+        raw = load_manifest(run_dir).get("lookback_days")
         try:
-            lb = float(load_manifest(run_dir).get("lookback_days") or LOOKBACK_D)
+            lb = float(raw)
         except (TypeError, ValueError):
-            lb = LOOKBACK_D
+            raise Refused(f"{run_dir}: manifest has no usable lookback_days ({raw!r}); h2 completeness needs it "
+                          "(no fallback to 450)") from None
+        if not math.isfinite(lb) or lb <= 0:
+            raise Refused(f"{run_dir}: manifest lookback_days {raw!r} is not a positive number")
     return Ctx(run_id=Path(run_dir).name, t_fetch=t, t_censor=t, is_h5=is_h5, lookback_d=lb)
 
 

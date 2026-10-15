@@ -807,6 +807,46 @@ def test_event_members_are_read_as_of_the_capture(tmp_path):
     assert cs.negrisk_event_captures(g, cs.members_asof_loader(tmp_path))[1]["ineligible_reasons"] == {"no_member_count": 1}
 
 
+def test_member_count_asof_else_first_fetch_with_lag_and_sensitivity(tmp_path):
+    caps, members = many_events(2, 2)
+    make_extract(tmp_path, caps, members)  # G0/G1 fetched 2026-01-01 (as-of for every capture)
+    late = pd.DataFrame({"neg_risk_market_id": ["Gnew", "Gnew", "Gnone"], "member_count": [3, 3, 3],
+                         "fetched_utc": [iso(T0 + 5 * 3600), iso(T0 + 9 * 3600), iso(T0 + 9 * 3600)]})
+    base = pd.read_csv(tmp_path / "event_members.csv.gz", compression="gzip")
+    pd.concat([base, late]).to_csv(tmp_path / "event_members.csv.gz", index=False)
+    ff = cs.load_first_fetch(tmp_path)
+    assert ff["Gnew"] == (3, cs._ep(iso(T0 + 5 * 3600))) and ff["G0"][0] == 3  # first row, not the later refresh
+    g = pd.DataFrame(_event_rows("c00", T0, "Gnew", [0.3, 0.3, 0.3])).assign(cs=T0, capture_id="c00")
+    g2 = pd.DataFrame(_event_rows("c00", T0, "G0", [0.3, 0.3, 0.3])).assign(cs=T0, capture_id="c00")
+    g3 = pd.DataFrame(_event_rows("c00", T0, "Gnone2", [0.3, 0.3, 0.3])).assign(cs=T0, capture_id="c00")
+    df = pd.concat([g, g2, g3], ignore_index=True)
+    ec, cnt = cs.negrisk_event_captures(df, cs.members_asof_loader(tmp_path), first_fetch=ff)
+    by = ec.set_index("gid")
+    assert by.loc["Gnew", "member_count_source"] == "first_fetch" and by.loc["Gnew", "member_count_lag_h"] == pytest.approx(5.0)
+    assert by.loc["G0", "member_count_source"] == "asof" and math.isnan(by.loc["G0", "member_count_lag_h"])
+    assert cnt["member_count_source_all_groups"] == {"asof": 1, "first_fetch": 1, "none": 1}
+    assert cnt["member_count_source_eligible"] == {"asof": 1, "first_fetch": 1}
+    assert cnt["member_count_lag_h_first_fetch"]["max"] == pytest.approx(5.0)
+    assert cnt["ineligible_reasons"]["no_member_count"] == 1
+    # sensitivity: as-of only drops the first_fetch event-capture
+    ec2, cnt2 = cs.negrisk_event_captures(df, cs.members_asof_loader(tmp_path), first_fetch=ff, asof_only=True)
+    assert list(ec2["gid"]) == ["G0"] and cnt2["member_count_source_all_groups"] == {"asof": 1, "first_fetch": 0, "none": 2}
+    # build/census carry the source counts; run_negrisk reports the as-of-only sensitivity
+    c8, m8 = many_events(8, 4)
+    make_extract(tmp_path / "x", c8, m8)
+    cl = cs.load_capture_list(tmp_path / "x" / "capture_lists" / "dev.json", window="dev")
+    b = cs.build_negrisk(tmp_path / "x", cl, "dev")
+    assert b["counts"]["event_captures"]["member_count_source_eligible"]["asof"] == len(b["ec"])
+    res = cs.run_negrisk(tmp_path / "x", cl, "dev", n_boot=50, dev=True, alpha=0.01, placebo_draws=5)
+    assert set(res["sensitivity_asof_only"]["tests"]) == {"D1", "D2"}
+
+
+def test_d_declaration_carries_member_count_and_family_rules():
+    d = cs.declaration()
+    assert "first-fetched" in d["D"]["member_count_rule"] and "sensitivity_asof_only" in d["D"]["member_count_rule"]
+    assert "p = 1" in d["batch_holm_family"] and "B1 and B2" in d["batch_holm_family"]
+
+
 # ---------------------------------------------------------------------------------------------
 # runner
 # ---------------------------------------------------------------------------------------------

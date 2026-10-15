@@ -16,7 +16,7 @@ Subcommands (cwd = backend; paths default to <repo>/data-dumps/research_lab):
     replicate    --run-id h5_cb1       Stage-2 frozen replication of the tests that advanced (q0024 / q0026). Exits 0
                                        'nothing advanced' without reading h5. Verifies the seal, logs every h5 read.
     verify-seal  --run-id h5_cb1       seal check only.
-    batch-holm   --results a.json b.json ...  binding batch Holm over all CB1 Stage-2 tests (history rep files, D rep,
+    batch-holm   --stage1 dev.json ... --results a.json b.json ...  binding batch Holm over all CB1 Stage-2 tests (history rep files, D rep,
                                        B R1 from run_cb1_structural). `replicate` only reports replicated_provisional_per_run.
 
 Results are written OUTSIDE the run directories (default <root>/../creative_batch1/history/<run_id>/): an h5 run is sealed.
@@ -154,8 +154,12 @@ def cmd_replicate(a) -> int:
 def cmd_batch_holm(a) -> int:
     if not a.results:
         raise cb.Refused("batch-holm needs --results <json> [<json> ...]")
+    if a.stage1 is None:
+        raise cb.Refused("batch-holm needs --stage1 <dev json> [<dev json> ...] (history screens and the D dev file; the "
+                         "family is the Stage-1 advanced tests plus B1/B2)")
     docs = [(str(Path(f)), json.loads(Path(f).read_text())) for f in a.results]
-    res = cb.batch_holm(docs)
+    s1 = [(str(Path(f)), json.loads(Path(f).read_text())) for f in a.stage1]
+    res = cb.batch_holm(docs, stage1_docs=s1)
     res["inputs"] = [n for n, _ in docs]
     path = Path(a.out) if a.out else (Path(a.out_root) if a.out_root else Path(a.root).parent / "creative_batch1" / "history") / "batch_holm.json"
     cb.write_new(path, dump(res))
@@ -184,6 +188,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--root", default=str(HIST))
     ap.add_argument("--out-root", default=None, help="results directory root (default <root>/../creative_batch1/history); never inside a run dir")
     ap.add_argument("--results", nargs="+", default=None, help="batch-holm: Stage-2 results files (history rep, D rep, B R1)")
+    ap.add_argument("--stage1", nargs="+", default=None, help="batch-holm: Stage-1 (dev) results files (history screens, D dev)")
     ap.add_argument("--out", default=None, help="batch-holm: output path")
     ap.add_argument("--books", default=None, help="pmxt book table (CB1-C); default per run")
     ap.add_argument("--with-books", action="store_true", help="census: include the C1/C2 order counts")

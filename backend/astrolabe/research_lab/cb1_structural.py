@@ -134,6 +134,26 @@ def _utc(now: datetime | None) -> datetime:
 # =============================================================================================
 
 
+MEMBER_COUNT_SOURCES = ("asof", "first_fetch")
+MEMBER_COUNT_RULE = (
+    "Event member count per D event-capture: the count of the latest event_members row fetched at or before the capture "
+    "time (member_count_source='asof') where one exists; otherwise the first-fetched count for that neg_risk_market_id "
+    "(member_count_source='first_fetch'), with member_count_lag_h = fetch time minus capture time recorded per "
+    "event-capture. No count at all => ineligible (no_member_count). Justification: eligible events are non-augmented "
+    "neg-risk events, which have fixed member sets (augmented and neg_risk_other events are excluded by the eligibility "
+    "rules), so a count fetched shortly after a capture describes the same member set; the lag is disclosed, never "
+    "hidden. The primary analysis uses both sources. A declared sensitivity re-runs D1/D2 restricted to as-of counts "
+    "only (results key sensitivity_asof_only). The census and results report the number of event-captures by source "
+    "(asof, first_fetch, none).")
+BATCH_HOLM_FAMILY_RULE = (
+    "The batch Holm family is every test that advanced at Stage 1 in any CB1 module (history A/C/E Stage-1 screens, D "
+    "dev) plus B1 and B2, which have no Stage 1 and are always in the family. A Stage-2 test that is missing from the "
+    "supplied Stage-2 files counts as p = 1 and is listed. The batch-holm command takes the Stage-1 (dev) results files "
+    "and the Stage-2 files, derives the expected test list from the dev files plus the always-included tests, and "
+    "refuses if any Stage-2 file contains a test outside that expected list.")
+
+
+
 def declaration() -> dict:
     return {
         "version": VERSION,
@@ -152,6 +172,7 @@ def declaration() -> dict:
                               "unresolved members open+active+accepting", "closed member needs final outcome",
                               "member resolved YES => ineligible", "0<bid<ask<1", "volume_num>0"],
               "fee_policy": "conservative sidecar schedule, docs table fallback, unknown 0.07",
+              "member_count_rule": MEMBER_COUNT_RULE,
               "tests": {"D1": "mean(U-O) per eligible event-capture, >0",
                         "D2": "mean net=1-C_exec per trigger at next capture, >0"},
               "hold": "latest member end_date"},
@@ -163,6 +184,7 @@ def declaration() -> dict:
               "ask": "min(n1+max(h(n1),1c),0.999) (R1); 1-best_bid (R2)",
               "tests": {"B1": "mean NO net per near rung", "B2": "paired near-far NO net",
                         "B3": "prospective mean NO net at recorded ask"}},
+        "batch_holm_family": BATCH_HOLM_FAMILY_RULE,
         "kinds": [KIND_TEST, KIND_REP, KIND_PROSP],
         "rules": ["unknown flag/field => ineligible (fail closed)",
                   "closed member classified only from final outcome; open members never use outcomes",
@@ -358,6 +380,23 @@ def load_event_members(extract_root: Path, asof_utc: str | None = None) -> dict[
     return {str(k): int(v) for k, v in zip(d["neg_risk_market_id"], d[col], strict=True)}
 
 
+def load_first_fetch(extract_root: Path) -> dict[str, tuple[int, float]]:
+    """neg_risk_market_id -> (member count, fetch epoch) of the FIRST fetched row (earliest ``fetched_utc``). Used only
+    when no row was fetched at or before a capture (``MEMBER_COUNT_RULE``); the fetch time is kept for the lag."""
+    from . import creative_batch1
+
+    root = Path(extract_root)
+    forecast.require_local(root / "event_members.csv.gz")
+    d = creative_batch1._read_event_members(root)
+    col = next((c for c in ("member_count", "n_members", "members") if c in d), None)
+    if col is None:
+        raise Cb1Error(f"{root / 'event_members.csv.gz'}: no member_count column")
+    d = d[(d[col].astype(str).str.strip() != "") & (d["fetched_utc"].astype(str).str.strip() != "")]
+    d = d.assign(**{col: pd.to_numeric(d[col], errors="coerce")}).dropna(subset=["neg_risk_market_id", col])
+    d = d.sort_values(["neg_risk_market_id", "fetched_utc"], kind="stable").drop_duplicates("neg_risk_market_id", keep="first")
+    return {str(k): (int(v), _ep(f)) for k, v, f in zip(d["neg_risk_market_id"], d[col], d["fetched_utc"], strict=True)}
+
+
 def members_asof_loader(extract_root: Path) -> Callable[[float], dict[str, int]]:
     """capture start epoch -> member-count table valid at that time (cached per capture time)."""
     cache: dict[float, dict[str, int]] = {}
@@ -534,15 +573,24 @@ def _group_eligible(g: pd.DataFrame, n_members: int | None, outcomes: dict[str, 
             "event_id": str(g["event_id"].iloc[0]) if "event_id" in g else ""}, "ok"
 
 
-def negrisk_event_captures(df: pd.DataFrame, members: dict[str, int] | Callable[[float], dict[str, int]], outcomes: dict[str, float] | None = None
+def negrisk_event_captures(df: pd.DataFrame, members: dict[str, int] | Callable[[float], dict[str, int]], outcomes: dict[str, float] | None = None,
+                           *, first_fetch: dict[str, tuple[int, float]] | None = None, asof_only: bool = False
                            ) -> tuple[pd.DataFrame, dict]:
-    """Eligible event-captures (one row each) plus counts of ineligibility reasons."""
+    """Eligible event-captures (one row each) plus counts of ineligibility reasons. Member count per event-capture
+    follows ``MEMBER_COUNT_RULE``: as-of the capture, else (unless ``asof_only``) the first-fetched count with its lag."""
     reasons: dict[str, int] = {}
+    srcs = {"asof": 0, "first_fetch": 0, "none": 0}
     rows = []
     if len(df):
         for (cid, gid), g in df.groupby(["capture_id", "neg_risk_market_id"], sort=False):
-            mem = members(float(g["cs"].iloc[0])) if callable(members) else members
-            res, why = _group_eligible(g, mem.get(str(gid)), outcomes)
+            cs0 = float(g["cs"].iloc[0])
+            mem = members(cs0) if callable(members) else members
+            n_mem, src, lag = mem.get(str(gid)), "asof", math.nan
+            if n_mem is None and not asof_only and first_fetch and str(gid) in first_fetch:
+                n_mem, fe = first_fetch[str(gid)]
+                src, lag = "first_fetch", (fe - cs0) / 3600.0
+            srcs[src if n_mem is not None else "none"] += 1
+            res, why = _group_eligible(g, n_mem, outcomes)
             reasons[why] = reasons.get(why, 0) + 1
             if res is None:
                 continue
@@ -550,11 +598,18 @@ def negrisk_event_captures(df: pd.DataFrame, members: dict[str, int] | Callable[
             rows.append({"capture_id": cid, "cs": float(g["cs"].iloc[0]), "gid": str(gid),
                          "event_id": res["event_id"], "n_open": len(res["legs"]), "S_ask": S,
                          "S_bid": res["S_bid"], "U": float(S <= -D_UQ), "O": float(res["S_bid"] >= D_UQ),
-                         "C": res["C"], "end_epoch": res["end_epoch"], "legs": res["legs"]})
+                         "C": res["C"], "end_epoch": res["end_epoch"], "legs": res["legs"],
+                         "member_count_source": src, "member_count_lag_h": lag})
     ec = pd.DataFrame(rows, columns=["capture_id", "cs", "gid", "event_id", "n_open", "S_ask", "S_bid", "U",
-                                     "O", "C", "end_epoch", "legs"])
+                                     "O", "C", "end_epoch", "legs", "member_count_source", "member_count_lag_h"])
     ec["day"] = pd.to_datetime(ec["cs"], unit="s", utc=True).dt.strftime("%Y-%m-%d") if len(ec) else []
-    return ec, {"eligible": len(ec), "ineligible_reasons": reasons}
+    elig_src = ec["member_count_source"].value_counts().to_dict() if len(ec) else {}
+    lags = ec.loc[ec["member_count_source"] == "first_fetch", "member_count_lag_h"] if len(ec) else []
+    return ec, {"eligible": len(ec), "ineligible_reasons": reasons,
+                "member_count_source_all_groups": srcs,
+                "member_count_source_eligible": {k: int(elig_src.get(k, 0)) for k in MEMBER_COUNT_SOURCES},
+                "member_count_lag_h_first_fetch": ({"min": float(np.min(lags)), "median": float(np.median(lags)),
+                                                    "max": float(np.max(lags))} if len(lags) else None)}
 
 
 def next_capture_pairs(cs_by_id: dict[str, float], gap_h: tuple[float, float] = D_GAP_H
@@ -781,11 +836,12 @@ def d2_placebo(ec: pd.DataFrame, trig: pd.DataFrame, *, draws: int = PLACEBO_DRA
 
 
 def build_negrisk(extract_root: Path, cl: dict, window: str, *, t_rep_start: str | None = None,
-                  outcomes: dict[str, float] | None = None) -> dict:
+                  outcomes: dict[str, float] | None = None, asof_only: bool = False) -> dict:
     """Load a frozen window and build event-captures and triggers (no test statistic computed here)."""
     members = members_asof_loader(extract_root)
     df, cs_by, load_cnt = load_window_captures(extract_root, cl, window, "negrisk", t_rep_start)
-    ec, ecnt = negrisk_event_captures(df, members, outcomes)
+    ec, ecnt = negrisk_event_captures(df, members, outcomes, asof_only=asof_only,
+                                      first_fetch=None if asof_only else load_first_fetch(extract_root))
     nxt, pcnt = next_capture_pairs(cs_by)
     fin = {**final_yes_map(df), **(outcomes or {})}
     trig, tcnt = d2_triggers(ec, nxt, fin)
@@ -818,8 +874,13 @@ def run_negrisk(extract_root: Path, cl: dict, window: str, *, n_boot: int, dev: 
         if not placebo["D2"]["calibrated"]:
             out_tests["D2"]["advance"] = False
             out_tests["D2"]["placebo_miscalibrated"] = True
+    # declared sensitivity: the same tests on as-of member counts only (no placebo; never gates anything)
+    sb = build_negrisk(extract_root, cl, window, t_rep_start=t_rep_start, outcomes=outcomes, asof_only=True)
+    sens = negrisk_tests(sb["ec"], sb["trig"], n_boot=n_boot, dev=dev, alpha=alpha, seed=seed)
     return {"window": window, "capture_list_sha256": cl["sha256"], "missing_listed_captures": cl["missing_ids"],
-            **built["counts"], "tests": out_tests, "placebo": placebo}
+            **built["counts"], "tests": out_tests, "placebo": placebo,
+            "sensitivity_asof_only": {"counts": sb["counts"], "tests": {k: v for k, v in sens.items() if k in tests},
+                                      "note": "declared sensitivity (MEMBER_COUNT_RULE); descriptive, does not gate"}}
 
 
 def window_market_ids(extract_root: Path, cl: dict, window: str, t_rep_start: str | None = None) -> list[str]:
