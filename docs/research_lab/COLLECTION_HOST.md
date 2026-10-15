@@ -83,6 +83,12 @@ token (arepo-data only, Contents RW, no expiry) stored at `~/.arepo/github_token
 status runs, so freeing space needs readers that restore from the archive first (or a reviewed rule) before the 12 GB cap
 (about 22 Oct). `/home/opc/arepo_val` is now E009/E010 evidence for the outage window (ledger, 2026-10-15): never delete it.
 
+Catalogue, restore and retention (2026-10-15): `docs/research_lab/data_catalogue/` lists every archived file with its experiment
+labels (`archive_catalogue.py` regenerates it); `backend/scripts/restore_from_archive.py` brings selected files back byte for byte
+(round-trip proven on 23 files, README there); `RETENTION.md` and `scripts/oracle/archive_retention.json` are the per-directory deletion
+proposal (`archive_rotate.py --retention`; deletion still OFF). The validation copy `/home/opc/arepo_val` has its own release
+(`data-20261015-dsheikh-val`, separate `--state`/`--tag-suffix val`).
+
 What one run does:
 1. It selects the files under `--scan` dirs whose mtime is older than `--older-than-days` and skips `*.lock`, `*.pid`, `*.tmp`,
    `*.partial` and `*state*.json`.

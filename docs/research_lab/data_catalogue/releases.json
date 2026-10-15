@@ -374,5 +374,50 @@
   "source_root": "/home/opc/arepo",
   "tag": "data-20261015-dsheikh",
   "verify": "PASS 2026-10-15T18:56:45Z (1201/1201 members)"
+ },
+ {
+  "bytes": 298945834,
+  "capture_time_first": "2026-10-12T21:32:08Z",
+  "capture_time_last": "2026-10-13T23:32:49Z",
+  "compressed_bytes": 115643610,
+  "created_utc": "2026-10-15T19:33:43.221246Z",
+  "date_first": "2026-10-12",
+  "date_last": "2026-10-14",
+  "dirs": {
+   "book_sweeps": 4,
+   "cross_venue_live": 13,
+   "e002": 1,
+   "forecasts": 2,
+   "live_trades": 10,
+   "snapshots": 4,
+   "surprise_live": 3,
+   "trade_samples": 6
+  },
+  "experiments": [
+   "D118",
+   "D120",
+   "E002",
+   "E003",
+   "E004",
+   "E005",
+   "E006",
+   "E007",
+   "E009",
+   "E010",
+   "E011",
+   "EXEC-COSTS",
+   "FLOW-SCREEN",
+   "L1",
+   "LIVE-TRADE-MONITOR"
+  ],
+  "granularity": "file",
+  "n_files": 43,
+  "repo": "dayyansheikh/arepo-data",
+  "restore": "python3 backend/scripts/restore_from_archive.py --tag data-20261015-dsheikh-val --dest <empty dir> [--dir D] [--experiment E] [--since T] [--until T] [--path-glob G]",
+  "source": "host",
+  "source_host": "dsheikh",
+  "source_root": "/home/opc/arepo_val",
+  "tag": "data-20261015-dsheikh-val",
+  "verify": "PASS 2026-10-15T19:34:42Z (43/43 members)"
  }
 ]
