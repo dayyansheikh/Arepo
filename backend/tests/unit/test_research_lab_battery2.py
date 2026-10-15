@@ -478,15 +478,19 @@ def test_cli_fitspec_records_hashes_and_run_refuses_on_change(tmp_path, monkeypa
     d = _frame(seed=1)
     fd = tmp_path / "h2_main" / "battery1"
     fd.mkdir(parents=True)
-    d.to_parquet(fd / "features.parquet", index=False)
+    d.drop(columns=["x_big6", "x_rest6"]).to_parquet(fd / "features.parquet", index=False)
+    od2 = tmp_path / "h2_main" / "battery2"
+    od2.mkdir(parents=True)
+    f2 = d[["market_id", "t_i", "x_big6", "x_rest6"]].assign(n_classified_6h=5.0)
+    f2.to_parquet(od2 / "features2.parquet", index=False)
     out = tmp_path / "hb2_v1.json"
     assert cli.cmd_fitspec(type("A", (), {"out": str(out)})()) == 0
     spec = B2.load_spec(out)  # spec_sha256 still self-consistent with the added key
     assert spec["feature_sha256"]["battery1_features"] == B2.file_sha256(fd / "features.parquet")
-    assert spec["feature_sha256"]["features2"] is None
+    assert spec["feature_sha256"]["features2"] == B2.file_sha256(od2 / "features2.parquet")
+    assert spec["feature_sha256"]["features2_shift30"] is None
     monkeypatch.setattr(B2, "require_frozen_spec", lambda *a, **k: spec)
-    (tmp_path / "h2_main" / "battery2").mkdir()
-    (tmp_path / "h2_main" / "battery2" / "features2.parquet").write_bytes(b"rebuilt")
+    (od2 / "features2.parquet").write_bytes(b"rebuilt")
     with pytest.raises(SystemExit):
         cli.cmd_run(type("A", (), {"n_boot": 10, "threads": 1})())
 
