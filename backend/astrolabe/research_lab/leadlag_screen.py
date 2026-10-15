@@ -345,9 +345,10 @@ def build_all(snapshot_root: Path = SNAPSHOT_ROOT, dev_dir: Path | None = DEV_DI
     """All consecutive complete-capture couples; two snapshots in memory at a time.
 
     ``gap_h=(lo, hi)`` keeps a period only if its median pair horizon lies in [lo, hi] hours;
-    excluded periods stay in the counts list with ``excluded: "gap"``. ``prev_nr`` is always the
-    neg-risk table of the immediately preceding capture (also across an excluded period), so the
-    lagged L3 feature is never taken from a non-adjacent capture. Default None = unchanged.
+    excluded periods stay in the counts list with ``excluded: "gap"``. ``prev_nr`` is the neg-risk
+    table of the immediately preceding capture; when the gap filter excluded that preceding period,
+    ``prev_nr`` is None so the lagged L3 feature never spans an out-of-range gap. Default None =
+    unchanged.
     """
     it = iter_captures(snapshot_root, dev_dir)
     frames, counts = [], []
@@ -366,6 +367,7 @@ def build_all(snapshot_root: Path = SNAPSHOT_ROOT, dev_dir: Path | None = DEV_DI
         g = cnt["gap_h"]
         if gap_h is not None and (g is None or not (gap_h[0] <= g <= gap_h[1])):
             cnt["excluded"] = "gap"
+            prev_nr = None  # the next period's L3 lag would span this out-of-range gap
         else:
             frames.append(pairs[pairs["dmid"].notna()].reset_index(drop=True))
         counts.append(cnt)
