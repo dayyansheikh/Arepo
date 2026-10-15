@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -114,10 +115,14 @@ def log(msg: str) -> None:
 # ---------------------------------------------------------------------------------------------
 
 
-def pick_markets(path: Path, max_rows: int, seed: int) -> tuple[set[str], int]:
+def pick_markets(path: Path, max_rows: int, seed: int,
+                 exclude: set[str] | None = None) -> tuple[set[str], int]:
     """Seeded market subset whose total row count stays below ``max_rows`` (memory-light: only the
-    market_id column is read). Subsampling markets keeps the 2h period axis intact."""
+    market_id column is read). Subsampling markets keeps the 2h period axis intact.
+    ``exclude`` (default None = unchanged) removes the listed markets BEFORE sampling."""
     ids = pd.read_csv(path, usecols=["market_id"], dtype=str)["market_id"]
+    if exclude:
+        ids = ids[~ids.isin(exclude)]
     counts = ids.value_counts()
     order = np.random.default_rng(seed).permutation(len(counts))
     chosen, total = set(), 0
@@ -128,6 +133,65 @@ def pick_markets(path: Path, max_rows: int, seed: int) -> tuple[set[str], int]:
         chosen.add(counts.index[i])
         total += c
     return chosen, total
+
+
+SEED_SPEC = re.compile(r"^seed:(\d+):(\d+)$")
+
+
+def load_market_list(spec: str, first_panel: Path) -> tuple[set[str], str]:
+    """Market ids for ``--exclude-markets-from``. Accepted: a ``.json`` list (or an object with
+    ``market_ids``/``markets``/``market_subset.market_ids``), a ``.csv`` with a ``market_id``
+    column, or a text file with one id per line; or ``seed:<seed>:<max_rows>``, which regenerates
+    the deterministic ``pick_markets`` subset of ``first_panel`` (how the seed-7 ``h3_replication``
+    run sampled; that run did not write its list to disk)."""
+    m = SEED_SPEC.match(spec)
+    if m:
+        ids, _ = pick_markets(first_panel, int(m.group(2)), int(m.group(1)))
+        return ids, f"regenerated pick_markets(seed={m.group(1)}, max_rows={m.group(2)})"
+    path = Path(spec)
+    if path.suffix == ".json":
+        obj = json.loads(path.read_text())
+        if isinstance(obj, dict):
+            obj = obj.get("market_ids") or obj.get("markets") or (
+                obj.get("market_subset") or {}).get("market_ids")
+        if not isinstance(obj, list):
+            raise ValueError(f"{path}: no market id list found")
+        return {str(x) for x in obj}, str(path)
+    if path.suffix in (".csv", ".gz"):
+        df = pd.read_csv(path, dtype=str)
+        if "market_id" in df.columns:
+            return set(df["market_id"].dropna()), str(path)
+    lines = [ln.strip() for ln in path.read_text().splitlines()]
+    return {ln for ln in lines if ln and ln != "market_id"}, str(path)
+
+
+def load_prior_tests(trials_path: Path) -> dict:
+    """``battery2.cumulative_count`` (total, per-kind table, rule version) at run start; its
+    ``total`` is the ``prior_tests`` passed to every J7/J8 test."""
+    from astrolabe.research_lab import battery2
+
+    return battery2.cumulative_count(trials_path)
+
+
+def parse_cells(spec: str | None) -> dict[int, list[str]] | None:
+    """``direction:1,updown:3`` -> {1: [direction], 3: [updown]} (target kind : horizon steps)."""
+    if not spec:
+        return None
+    out: dict[int, list[str]] = {}
+    for tok in spec.split(","):
+        kind, k = tok.strip().split(":")
+        if kind not in KINDS or int(k) not in HORIZON_FILES:
+            raise ValueError(f"bad cell {tok!r}")
+        out.setdefault(int(k), [])
+        if kind not in out[int(k)]:
+            out[int(k)].append(kind)
+    return out
+
+
+def kinds_for(args, k: int) -> list[str]:
+    """Target kinds run at horizon ``k``: all ``--targets`` unless ``--cells`` restricts them."""
+    cells = getattr(args, "cells_map", None)
+    return args.kinds if cells is None else cells.get(k, [])
 
 
 def load_panel(path: Path, markets: set[str]) -> pd.DataFrame:
@@ -179,6 +243,19 @@ def join_external(df: pd.DataFrame, book_path: Path | None, wage_path: Path | No
                               "rows_with_value": int(df[cols].notna().any(axis=1).sum())
                               if cols else 0}
     return df.drop(columns=["_ts"]).reset_index(drop=True), info
+
+
+def lookahead_markets(run_dir: Path) -> set[str] | None:
+    """Markets whose ``closed_time`` is more than 24h before ``end_at`` (end-date look-ahead
+    sensitivity for the time_to_resolution contrast), from the run's frame; None if unavailable."""
+    path = run_dir / "frame.csv.gz"
+    if not path.exists():
+        return None
+    fr = pd.read_csv(path, usecols=["market_id", "end_epoch", "close_epoch"],
+                     dtype={"market_id": str})
+    bad = fr["close_epoch"].notna() & fr["end_epoch"].notna() & (
+        fr["close_epoch"] < fr["end_epoch"] - 24 * 3600)
+    return set(fr.loc[bad, "market_id"])
 
 
 def placeholder_report(df: pd.DataFrame) -> dict:
@@ -270,7 +347,7 @@ def score_target_generic(target, lab, results, clusters, n_boot, sink, manifest)
 
 
 def ablate(lab: pd.DataFrame, ycol: str, folds, base_cols, families: dict[str, list[str]],
-           clusters, n_boot: int, n_classes: int, eval_mask=None) -> dict:
+           clusters, n_boot: int, n_classes: int, eval_mask=None, keep_oof: bool = False) -> dict:
     cols = list(dict.fromkeys([*base_cols, *sum(families.values(), [])]))
     X = lab[cols].reset_index(drop=True)
     y = lab[ycol].to_numpy(float).astype(int)
@@ -278,8 +355,9 @@ def ablate(lab: pd.DataFrame, ycol: str, folds, base_cols, families: dict[str, l
         X, y, folds, families, base_cols, clusters, n_boot=n_boot, eval_mask=eval_mask,
         prior_tests=ml_explain.prior_ml_explain_tests(),
     )
-    rep.pop("_full_oof", None)
-    rep.pop("_baseline_oof", None)
+    if not keep_oof:  # only the regime/interaction analysis (J7) needs the out-of-fold fits
+        rep.pop("_full_oof", None)
+        rep.pop("_baseline_oof", None)
     return rep
 
 
@@ -493,6 +571,8 @@ def apply_gate(cell: dict, gate_modes: list[str]) -> None:
 def run_kind(kind, lab, manifest, k, hours, args, sink, placebo_sink, run_dir, ext, parts) -> dict:
     ycol, ncls, target = KINDS[kind]
     state_ext, flow, wallet, extra_cols, book = parts
+    if getattr(args, "frozen", None) is not None:
+        return run_frozen_kind(kind, lab, manifest, k, args, parts)
     clusters = ml_models.cluster_vectors(lab, dependence_groups=lab["dep_group"].to_numpy())
     clusters_x = {"event": ml_models._event_or_market(lab).to_numpy(),
                   "dep_group": lab["dep_group"].to_numpy()}
@@ -534,12 +614,19 @@ def run_kind(kind, lab, manifest, k, hours, args, sink, placebo_sink, run_dir, e
            "horizon_hours": hours, "n_rows": int(len(lab)), "baseline": "M0v",
            "manifest_sha256": manifest["manifest_sha256"], "dataset": f"history:{run_dir.name}"}
     t0 = time.perf_counter()
-    rep = ablate(lab, ycol, folds, base_cols, fams, clusters_x, args.n_boot_abl, ncls, eval_mask)
+    ix_on = bool(getattr(args, "regimes", False) or getattr(args, "interactions", 0))
+    rep = ablate(lab, ycol, folds, base_cols, fams, clusters_x, args.n_boot_abl, ncls, eval_mask,
+                 keep_oof=ix_on)
+    full_oof, base_oof = rep.pop("_full_oof", None), rep.pop("_baseline_oof", None)
     log(f"      ablation vs M0v {time.perf_counter() - t0:.0f}s: "
         + ", ".join(f"{r['unit']}={r['delta_ll']:.5f}({r['label']})" for r in rep["ranking"]))
     cell["ablation"] = compact_ablation(rep)
     ablation_trial(rep, hdr, ROLE, args.trials_path,
                    {"data_provenance": hb.PROVENANCE, "revision": args.revision})
+    if ix_on:
+        cell["regime_ix"] = run_regime_ix(kind, lab, ycol, folds, full_oof, base_oof, clusters_x,
+                                          flow, args, hdr)
+        del full_oof, base_oof
     if args.placebo:
         cell["placebo"] = {}
         modes = ["global"] + (["period", "market"] if (args.placebo_diag_all or k == 1) else [])
@@ -572,6 +659,79 @@ def run_kind(kind, lab, manifest, k, hours, args, sink, placebo_sink, run_dir, e
                                           "revision": args.revision})
         apply_gate(cell, args.gate_modes)
     return cell
+
+
+def regime_inputs(lab: pd.DataFrame, flow) -> tuple[list[str], np.ndarray | None]:
+    ix_cols = [c for c in dict.fromkeys([*M0V, *flow]) if c in lab.columns
+               and lab[c].notna().any()]
+    w = lab["sample_weight"].to_numpy(float) if "sample_weight" in lab.columns else None
+    return ix_cols, w
+
+
+def run_regime_ix(kind, lab, ycol, folds, full_oof, base_oof, clusters_x, flow, args, hdr) -> dict:
+    """J7 cell: counted regime contrasts + Friedman-H2 pairs validated constrained vs free."""
+    ix_cols, w = regime_inputs(lab, flow)
+    exclude = None
+    flagged = getattr(args, "lookahead_markets", None)
+    if flagged:
+        exclude = lab["market_id"].isin(flagged).to_numpy()
+    n_cells = max(1, getattr(args, "n_cells", 1))
+    n_ix = int(args.interactions)
+    family = ((4 if args.regimes else 0) + n_ix) * n_cells
+    t0 = time.perf_counter()
+    out = ml_explain.regime_ix_discover(
+        lab, lab, lab[ycol].to_numpy(float).astype(int), folds, full_oof, base_oof, ix_cols,
+        clusters_x, regimes=bool(args.regimes), n_interactions=n_ix,
+        discover_frac=args.discover_frac, prior_tests=args.prior_tests["total"],
+        family_tests=family, n_boot=args.n_boot_abl, weights=w, exclude=exclude)
+    out["prior_tests_detail"] = args.prior_tests
+    if args.regimes and flagged is None:
+        out["tte_lookahead_sensitivity"] = {
+            "unavailable": "frame.csv.gz (closed_time/end_at epochs) not found: not run"}
+    pair_res = out.get("interactions", {}).get("validation", {}).get("pairs", {})
+    n_tests = (len(out.get("contrasts", {})) if args.regimes else 0) + len(pair_res)
+    provenance.append_trial({
+        "kind": "ml_explain", "label": ml_explain.LABEL, "evidence_role": ROLE,
+        "source": "screening_batch_2:J7", "n_tests": int(n_tests),
+        "tests": {**{f"contrast:{k}": {"p_two_sided": v["value"]["p_two_sided"],
+                                       "advance": v.get("advance")}
+                     for k, v in out.get("contrasts", {}).items() if "value" in v},
+                  **{f"pair:{k}": {"p_pos": v["value"]["p_pos"], "advance": v.get("advance")}
+                     for k, v in pair_res.items()}},
+        "declaration_hash": out["declaration_hash"], "prior_tests": args.prior_tests["total"],
+        "provenance": provenance.run_provenance([Path(ml_explain.__file__)]),
+        "data_provenance": hb.PROVENANCE, "revision": args.revision, **hdr,
+    }, args.trials_path)
+    log(f"      regime_ix {kind} in {time.perf_counter() - t0:.0f}s: advanced="
+        f"{out['advanced']}")
+    return out
+
+
+def run_frozen_kind(kind, lab, manifest, k, args, parts) -> dict:
+    """J8 cell: replicate only what advanced in the frozen J7 cell. No discovery, no placebo, no
+    re-estimation of cuts or pairs."""
+    ycol, _ncls, _target = KINDS[kind]
+    _state, flow, _wallet, _extra, _book = parts
+    fz = (args.frozen.get(str(k), {}).get(kind) or {}).get("regime_ix")
+    if not fz or not (fz["advanced"]["contrasts"] or fz["advanced"]["pairs"]):
+        return {"skipped": "nothing advanced in the frozen cell"}
+    if fz.get("declaration_hash") != ml_explain.history_declaration_hash():
+        return {"error": "regime declaration hash differs from the frozen J7 results"}
+    miss = [c for c in fz["full_cols"] if c not in lab.columns]
+    if miss:
+        return {"error": f"frozen columns missing from the panel: {miss}"}
+    clusters = {"event": ml_models._event_or_market(lab).to_numpy(),
+                "dep_group": lab["dep_group"].to_numpy()}
+    folds = ml_explain.folds_from_manifest(lab, manifest)
+    y = lab[ycol].to_numpy(float).astype(int)
+    full = ml_explain.fit_oof(lab, y, folds, fz["full_cols"])
+    base = ml_explain.fit_oof(lab, y, folds, fz["base_cols"])
+    w = lab["sample_weight"].to_numpy(float) if "sample_weight" in lab.columns else None
+    out = ml_explain.regime_ix_frozen(lab, lab, y, folds, full, base, clusters, fz,
+                                      n_boot=args.n_boot_abl, weights=w,
+                                      prior_tests=args.prior_tests["total"])
+    out["n_rows"], out["n_folds"] = int(len(lab)), len(folds)
+    return out
 
 
 def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: dict, run_dir: Path):
@@ -616,7 +776,7 @@ def run_horizon(k: int, args, markets: set[str], sink, placebo_sink, results: di
     sink.extra.update(horizon_snapshots_k=k, horizon_hours=hours, baseline="M0v",
                       primary_excludes_untraded=not args.include_untraded)
     placebo_sink.extra.update(horizon_snapshots_k=k, horizon_hours=hours, baseline="M0v")
-    for kind in args.kinds:
+    for kind in kinds_for(args, k):
         log(f"  kind {kind}")
         if kind == "updown":
             moved = lab[lab["y_class"] != ml_panel.CLASS_FLAT].reset_index(drop=True).copy()
@@ -680,20 +840,65 @@ def main(argv=None) -> int:
     ap.add_argument("--revision", default="r0_no_external",
                     help="separate governance revision label stamped on every trial line")
     ap.add_argument("--trials-path", type=Path, default=provenance.TRIALS_PATH)
+    # Screening Batch 2 (J7/J8): every flag defaults off; existing combinations are unchanged.
+    ap.add_argument("--cells", default=None,
+                    help="restrict to target:horizon_steps cells, e.g. direction:1,updown:3")
+    ap.add_argument("--regimes", action="store_true",
+                    help="J7: counted regime contrasts (ml_explain.HISTORY_REGIMES)")
+    ap.add_argument("--interactions", type=int, default=0,
+                    help="J7: top-N Friedman-H2 pairs per cell, validated constrained vs free")
+    ap.add_argument("--discover-frac", type=float, default=0.5,
+                    help="share of test blocks (chronological) used for discovery; rest judge")
+    ap.add_argument("--frozen-from", type=Path, default=None,
+                    help="J8: frozen replication of the advanced set in this J7 results file")
+    ap.add_argument("--exclude-markets-from", default=None,
+                    help="market list (csv/json/txt) or seed:<seed>:<max_rows>; excluded before "
+                    "sampling")
     a = ap.parse_args(argv)
     a.kinds = [t for t in a.targets.split(",") if t]
     a.gate_modes = [m for m in a.gate_modes.split(",") if m]
     a.n_boot_abl = a.n_boot_ablation or a.n_boot
     run_dir = a.root / a.run_id
+    a.cells_map = parse_cells(a.cells)
+    a.frozen, a.prior_tests, a.lookahead_markets = None, None, None
+    if a.frozen_from is not None:
+        a.frozen = json.loads(Path(a.frozen_from).read_text())
+        adv = {k: [kd for kd, c in v.items() if isinstance(c, dict)
+                   and (c.get("regime_ix") or {}).get("advanced", {}).get("contrasts")
+                   or isinstance(c, dict)
+                   and (c.get("regime_ix") or {}).get("advanced", {}).get("pairs")]
+               for k, v in a.frozen.items() if k.isdigit()}
+        adv = {int(k): v for k, v in adv.items() if v}
+        if a.cells_map is not None:
+            adv = {k: [x for x in v if x in a.cells_map.get(k, [])] for k, v in adv.items()}
+            adv = {k: v for k, v in adv.items() if v}
+        if not adv:
+            out = run_dir / f"ml_history_results_{a.revision}.json"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps({"nothing_to_replicate": True,
+                                       "frozen_from": str(a.frozen_from)}, indent=1))
+            log("nothing to replicate: no contrast or pair advanced in the frozen results")
+            return 0
+        a.cells_map = adv
+    if a.regimes or a.interactions or a.frozen is not None:
+        a.prior_tests = load_prior_tests(a.trials_path)  # same total for every test
+    a.n_cells = sum(len(v) for v in a.cells_map.values()) if a.cells_map else len(a.kinds)
     ml_models.LGB_GRID = ml_models.LGB_GRID[: a.lgb_configs]
     ml_panel.register_tier_a()
     ml_panel.register_extended()
     first = run_dir / f"panel_H{HORIZON_FILES[1]}h.csv.gz"
-    markets, rows = pick_markets(first, a.max_rows, a.seed)
+    excluded = None
+    if a.exclude_markets_from:
+        excluded, src = load_market_list(a.exclude_markets_from, first)
+        log(f"excluding {len(excluded)} markets ({src})")
+    markets, rows = pick_markets(first, a.max_rows, a.seed, excluded)
     for tab in (a.book_table,):  # sparse table: use its markets (wallet_age covers every origin)
         if tab is not None and Path(tab).exists():
             ids = set(pd.read_csv(tab, usecols=["market_id"], dtype=str)["market_id"])
             markets = markets | ids if a.keep_subset else ids
+    if excluded:
+        markets = markets - excluded
+        assert not (markets & excluded)
     log(f"market subset: {len(markets)} markets, {rows} origin rows (cap {a.max_rows})")
     hist = json.loads((run_dir / "manifest.json").read_text())
     results: dict = {
@@ -707,6 +912,26 @@ def main(argv=None) -> int:
         "features": {"m0v": list(M0V), "state": list(STATE_COLS), "flow": list(FLOW_COLS),
                      "wallet": list(WALLET_COLS)},
     }
+    if excluded is not None:
+        results["excluded_markets"] = {"source": a.exclude_markets_from,
+                                       "n_excluded": len(excluded)}
+    if a.regimes or a.interactions or a.frozen is not None:
+        results["regime_ix"] = {
+            "declaration_hash": ml_explain.history_declaration_hash(),
+            "regimes": [[s.name, s.column, s.kind, list(s.edges), list(s.labels)]
+                        for s in ml_explain.HISTORY_REGIMES],
+            "contrasts": [[c.name, c.regime, list(c.plus), list(c.minus)]
+                          for c in ml_explain.HISTORY_CONTRASTS],
+            "prior_tests": a.prior_tests, "discover_frac": a.discover_frac,
+            "interactions": a.interactions, "frozen_from": str(a.frozen_from),
+            "frozen_declaration_hash": (a.frozen or {}).get("regime_ix", {}).get(
+                "declaration_hash"),
+            "h3_read_note": "frozen replication, no discovery" if a.frozen is not None else None,
+        }
+    if a.regimes:
+        a.lookahead_markets = lookahead_markets(run_dir)
+        results["regime_ix"]["lookahead_markets_flagged"] = (
+            None if a.lookahead_markets is None else len(a.lookahead_markets))
     sink = ml_models.TrialSink(dataset=f"history:{a.run_id}", path=a.trials_path,
                                evidence_role=ROLE,
                                extra={"data_provenance": hb.PROVENANCE, "revision": a.revision})
@@ -715,8 +940,24 @@ def main(argv=None) -> int:
         extra={"data_provenance": hb.PROVENANCE, "source_evidence_role": ROLE,
                "placebo": "shuffled_labels_within_period", "revision": a.revision})
     for k in [int(x) for x in a.horizons.split(",")]:
+        if a.cells_map is not None and k not in a.cells_map:
+            continue
         with heavy_lock():
             run_horizon(k, a, markets, sink, placebo_sink, results, run_dir)
+    if a.frozen is not None:
+        cells = {f"{k}/{kd}": c for k, v in results.items() if k.isdigit()
+                 for kd, c in v.items() if isinstance(c, dict) and "items" in c}
+        results["frozen_replication"] = ml_explain.holm_replication(cells)
+        n_items = sum(len(c["items"]) for c in cells.values())
+        provenance.append_trial({
+            "kind": "ml_explain", "label": ml_explain.LABEL, "evidence_role": ROLE,
+            "source": "screening_batch_2:J8", "n_tests": int(n_items),
+            "replicated": results["frozen_replication"]["replicated"],
+            "declaration_hash": ml_explain.history_declaration_hash(),
+            "prior_tests": a.prior_tests["total"],
+            "provenance": provenance.run_provenance([Path(ml_explain.__file__)]),
+            "data_provenance": hb.PROVENANCE, "revision": a.revision,
+            "dataset": f"history:{a.run_id}"}, a.trials_path)
     (run_dir / f"ml_history_results_{a.revision}.json").write_text(
         json.dumps(results, indent=1, default=float))
     log("done")

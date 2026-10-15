@@ -109,10 +109,20 @@ def score_from_proba(p: np.ndarray) -> np.ndarray:
     return p[:, 2] - p[:, 0] if p.shape[1] == 3 else p[:, -1]
 
 
-def cluster_boot(d: np.ndarray, cluster: np.ndarray, n_boot: int = 1000, seed: int = SEED) -> dict:
-    """Cluster bootstrap of the mean of per-row values ``d`` (e.g. loss differences)."""
+def cluster_boot(
+    d: np.ndarray,
+    cluster: np.ndarray,
+    n_boot: int = 1000,
+    seed: int = SEED,
+    weights: np.ndarray | None = None,
+) -> dict:
+    """Cluster bootstrap of the mean of per-row values ``d`` (e.g. loss differences).
+
+    ``weights`` (optional, default None = unweighted, unchanged behaviour) gives the weighted mean
+    sum(w d) / sum(w), used only for the declared sample-weight secondary analyses."""
     d = np.asarray(d, float)
     ok = np.isfinite(d)
+    w = None if weights is None else np.asarray(weights, float)[ok]
     d, cl = d[ok], np.asarray(cluster)[ok]
     if len(d) == 0:
         return {
@@ -125,8 +135,12 @@ def cluster_boot(d: np.ndarray, cluster: np.ndarray, n_boot: int = 1000, seed: i
         }
     codes, uniq = pd.factorize(cl)
     k = len(uniq)
-    s = np.bincount(codes, weights=d, minlength=k)
-    n = np.bincount(codes, minlength=k).astype(float)
+    if w is None:
+        s = np.bincount(codes, weights=d, minlength=k)
+        n = np.bincount(codes, minlength=k).astype(float)
+    else:
+        s = np.bincount(codes, weights=d * w, minlength=k)
+        n = np.bincount(codes, weights=w, minlength=k).astype(float)
     rng = np.random.default_rng(seed)
     means = np.empty(n_boot)
     for i in range(n_boot):
@@ -136,7 +150,7 @@ def cluster_boot(d: np.ndarray, cluster: np.ndarray, n_boot: int = 1000, seed: i
     p = 2.0 * min((means <= 0).mean(), (means >= 0).mean())
     p = float(min(1.0, max(p, 1.0 / (n_boot + 1))))
     return {
-        "mean": float(d.mean()),
+        "mean": float(d.mean()) if w is None else float((d * w).sum() / w.sum()),
         "ci": [float(lo), float(hi)],
         "p_two_sided": p,
         "p_pos": float(max((means <= 0).mean(), 1.0 / (n_boot + 1))),  # one-sided, mean > 0
@@ -825,13 +839,18 @@ def regime_declaration_hash(specs: Sequence[RegimeSpec] = DECLARED_REGIMES) -> s
     return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
 
-def assign_regime(spec: RegimeSpec, values: pd.Series) -> pd.Series:
-    """Label rows. Edge bins are right-open at the upper edge: [lo, hi). Missing -> 'missing'."""
+def assign_regime(
+    spec: RegimeSpec, values: pd.Series, cuts: Sequence[float] | None = None
+) -> pd.Series:
+    """Label rows. Edge bins are right-open at the upper edge: [lo, hi). Missing -> 'missing'.
+
+    ``cuts`` (quantile specs only) are precomputed cut values, e.g. from discovery rows; default
+    None keeps the in-sample ``nanquantile`` of ``values``."""
     if spec.kind == "categorical":
         return values.astype("object").where(values.notna(), "missing").astype(str)
     v = values.astype(float)
     if spec.kind == "quantile":
-        cuts = np.nanquantile(v, spec.edges)
+        cuts = np.nanquantile(v, spec.edges) if cuts is None else np.asarray(cuts, float)
     else:
         cuts = np.asarray(spec.edges, float)
     # (-inf, c0): 0 ; [c0, c1): 1 ; ...
@@ -857,6 +876,7 @@ def regime_study(
     n_boot: int = 1000,
     seed: int = SEED,
     with_shap: bool = True,
+    cuts: dict[str, Sequence[float]] | None = None,
 ) -> dict:
     """Value of the full model over baseline by pre-declared regime: discover early, judge late.
 
@@ -897,7 +917,9 @@ def regime_study(
         if spec.column not in frame.columns:
             out["regimes"][spec.name] = {"unavailable": f"column {spec.column!r} not in frame"}
             continue
-        lab = assign_regime(spec, frame[spec.column]).to_numpy()
+        lab = assign_regime(
+            spec, frame[spec.column], None if cuts is None else cuts.get(spec.name)
+        ).to_numpy()
         cells = {}
         for level in pd.unique(lab):
             sel = (lab == level) & judge
@@ -944,6 +966,473 @@ def regime_study(
         "when the full model beats the baseline on later blocks with the early sign agreeing."
     )
     return out
+
+
+# ---------------------------------------------------------------------------------------------
+# 5b. History regimes and regime CONTRASTS (Screening Batch 2, J7/J8)
+# ---------------------------------------------------------------------------------------------
+
+# History panels carry no Gamma liquidity (``ml_log1p_liq`` is NaN), so the history set uses the
+# trailing 24h traded notional as the liquidity proxy. Terciles are cut on DISCOVERY rows only
+# (``discovery_cuts``) and stored; J8 re-applies the stored cuts unchanged. ``trade_active`` is
+# ``ml_tf_n_2h > 0`` (the single edge is the smallest positive float: [edge, inf) == "> 0").
+HISTORY_REGIMES: tuple[RegimeSpec, ...] = (
+    RegimeSpec(
+        "liquidity_hist",
+        "ml_tf_log_notional_24h",
+        "quantile",
+        (1 / 3, 2 / 3),
+        ("low", "mid", "high"),
+    ),
+    RegimeSpec(
+        "time_to_resolution",
+        "ml_log_hours_to_end",
+        "edges",
+        (float(np.log1p(24.0)), float(np.log1p(168.0)), float(np.log1p(720.0))),
+        ("<24h", "24h-7d", "7d-30d", ">30d"),
+    ),
+    RegimeSpec(
+        "trade_active",
+        "ml_tf_n_2h",
+        "edges",
+        (float(np.nextafter(0.0, 1.0)),),
+        ("inactive", "active"),
+    ),
+    RegimeSpec("price_extremity", "mid_i", "edges", (0.1, 0.9), ("<0.1", "0.1-0.9", ">0.9")),
+)
+
+
+@dataclass(frozen=True)
+class RegimeContrast:
+    """Counted test: g(plus levels) - g(minus levels), g = mean per-row (LL_baseline - LL_full)."""
+
+    name: str
+    regime: str
+    plus: tuple[str, ...]
+    minus: tuple[str, ...]
+
+
+HISTORY_CONTRASTS: tuple[RegimeContrast, ...] = (
+    RegimeContrast("C-LIQ", "liquidity_hist", ("high",), ("low",)),
+    RegimeContrast("C-TTE", "time_to_resolution", ("<24h",), (">30d",)),
+    RegimeContrast("C-ACT", "trade_active", ("active",), ("inactive",)),
+    RegimeContrast("C-EXT", "price_extremity", ("<0.1", ">0.9"), ("0.1-0.9",)),
+)
+STAGE1_ADVANCE_P = 0.01
+HOLM_ALPHA = 0.05
+
+
+def history_declaration_hash(
+    specs: Sequence[RegimeSpec] = HISTORY_REGIMES,
+    contrasts: Sequence[RegimeContrast] = HISTORY_CONTRASTS,
+) -> str:
+    """Declaration hash of the history regime set AND its counted contrasts (distinct from
+    ``regime_declaration_hash(DECLARED_REGIMES)``)."""
+    blob = json.dumps(
+        {
+            "regimes": [[s.name, s.column, s.kind, list(s.edges), list(s.labels)] for s in specs],
+            "contrasts": [[c.name, c.regime, list(c.plus), list(c.minus)] for c in contrasts],
+            "stage1_advance_p": STAGE1_ADVANCE_P,
+        }
+    )
+    return hashlib.sha256(blob.encode()).hexdigest()[:16]
+
+
+def discovery_cuts(
+    frame: pd.DataFrame,
+    discovery_mask: np.ndarray,
+    specs: Sequence[RegimeSpec] = HISTORY_REGIMES,
+) -> dict[str, list[float]]:
+    """Quantile cuts per quantile spec computed on DISCOVERY rows only."""
+    out: dict[str, list[float]] = {}
+    for s in specs:
+        if s.kind != "quantile" or s.column not in frame.columns:
+            continue
+        v = frame[s.column].astype(float).to_numpy()[np.asarray(discovery_mask, bool)]
+        if np.isfinite(v).any():
+            out[s.name] = [float(c) for c in np.nanquantile(v, s.edges)]
+    return out
+
+
+def _contrast_boot(
+    d: np.ndarray,
+    cluster: np.ndarray,
+    plus: np.ndarray,
+    minus: np.ndarray,
+    n_boot: int,
+    seed: int,
+    weights: np.ndarray | None = None,
+) -> dict:
+    """Cluster bootstrap of g(plus) - g(minus). Whole clusters are resampled and BOTH regime means
+    are recomputed from the resampled clusters (clusters span regimes)."""
+    d = np.asarray(d, float)
+    keep = np.isfinite(d) & (plus | minus)
+    empty = {"mean": None, "ci": [None, None], "p_two_sided": None, "p_pos": None,
+             "p_neg": None, "n_clusters": 0}
+    if not (keep & plus).any() or not (keep & minus).any():
+        return empty
+    d, pl, mi = d[keep], plus[keep], minus[keep]
+    w = np.ones(len(d)) if weights is None else np.asarray(weights, float)[keep]
+    codes, uniq = pd.factorize(np.asarray(cluster)[keep])
+    k = len(uniq)
+    sa = np.bincount(codes, weights=w * d * pl, minlength=k)
+    na = np.bincount(codes, weights=w * pl, minlength=k)
+    sb = np.bincount(codes, weights=w * d * mi, minlength=k)
+    nb = np.bincount(codes, weights=w * mi, minlength=k)
+    point = sa.sum() / na.sum() - sb.sum() / nb.sum()
+    rng = np.random.default_rng(seed)
+    means = np.full(n_boot, np.nan)
+    for i in range(n_boot):
+        idx = rng.integers(0, k, size=k)
+        a, b = na[idx].sum(), nb[idx].sum()
+        if a > 0 and b > 0:
+            means[i] = sa[idx].sum() / a - sb[idx].sum() / b
+    means = means[np.isfinite(means)]
+    if len(means) == 0:
+        return empty
+    lo, hi = np.percentile(means, [2.5, 97.5])
+    floor = 1.0 / (len(means) + 1)
+    le, ge = (means <= 0).mean(), (means >= 0).mean()
+    return {
+        "mean": float(point),
+        "ci": [float(lo), float(hi)],
+        "p_two_sided": float(min(1.0, max(2.0 * min(le, ge), floor))),
+        "p_pos": float(max(le, floor)),  # one-sided, contrast > 0
+        "p_neg": float(max(ge, floor)),  # one-sided, contrast < 0
+        "n_clusters": int(k),
+    }
+
+
+def _combine_contrast(boots: dict[str, dict]) -> dict:
+    keep = _co_primary(list(boots))
+    items = [boots[n] for n in keep if boots[n]["mean"] is not None]
+    if not items:
+        return {"mean": None, "ci": [None, None], "p_two_sided": None, "p_pos": None,
+                "p_neg": None, "n_clusters": 0}
+    return {
+        "mean": items[0]["mean"],
+        "ci": [min(v["ci"][0] for v in items), max(v["ci"][1] for v in items)],
+        "p_two_sided": max(v["p_two_sided"] for v in items),
+        "p_pos": max(v["p_pos"] for v in items),
+        "p_neg": max(v["p_neg"] for v in items),
+        "n_clusters": min(v["n_clusters"] for v in items),
+        "definition": "hull of CIs, max p over event and dep_group clusterings",
+    }
+
+
+def regime_contrasts(
+    frame: pd.DataFrame,
+    delta: np.ndarray,
+    clusters: dict[str, np.ndarray],
+    *,
+    cuts: dict[str, Sequence[float]],
+    judge_mask: np.ndarray,
+    discovery_mask: np.ndarray | None = None,
+    specs: Sequence[RegimeSpec] = HISTORY_REGIMES,
+    contrasts: Sequence[RegimeContrast] = HISTORY_CONTRASTS,
+    only: Sequence[str] | None = None,
+    prior_tests: int = 0,
+    family_tests: int | None = None,
+    n_boot: int = 1000,
+    seed: int = SEED,
+    weights: np.ndarray | None = None,
+    exclude: np.ndarray | None = None,
+) -> dict:
+    """The counted regime-difference tests. ``delta`` = per-row LL_baseline - LL_full (NaN outside
+    any test block). Each contrast is mean(delta | plus regimes) - mean(delta | minus regimes) on
+    ``judge_mask`` rows, with a cluster bootstrap that resamples whole clusters (event and
+    dep_group, conservative combination). Two-sided p for Stage 1; ``p_pos``/``p_neg`` are the
+    one-sided p-values used by the frozen replication. ``discovery_mask`` gives the early
+    contrast for the sign check. ``exclude`` drops rows (the end-date look-ahead sensitivity).
+    ``only`` restricts to named contrasts (J8). ``family_tests`` is the number of counted tests in
+    the whole J7 family (BY denominator = family_tests + prior_tests)."""
+    delta = np.asarray(delta, float)
+    judge = np.asarray(judge_mask, bool) & np.isfinite(delta)
+    early = (
+        np.zeros(len(delta), bool)
+        if discovery_mask is None
+        else np.asarray(discovery_mask, bool) & np.isfinite(delta)
+    )
+    if exclude is not None:
+        judge &= ~np.asarray(exclude, bool)
+        early &= ~np.asarray(exclude, bool)
+    spec_by = {s.name: s for s in specs}
+    labels: dict[str, np.ndarray] = {}
+    out: dict = {}
+    for c in contrasts:
+        if only is not None and c.name not in only:
+            continue
+        s = spec_by[c.regime]
+        if s.column not in frame.columns:
+            out[c.name] = {"unavailable": f"column {s.column!r} not in frame"}
+            continue
+        if c.regime not in labels:
+            labels[c.regime] = assign_regime(s, frame[s.column], cuts.get(c.regime)).to_numpy()
+        lab = labels[c.regime]
+        pl, mi = np.isin(lab, c.plus), np.isin(lab, c.minus)
+        boots = {
+            n: _contrast_boot(np.where(judge, delta, np.nan), cl, pl, mi, n_boot, seed)
+            for n, cl in clusters.items()
+        }
+        cons = _combine_contrast(boots)
+        ncl = {
+            n: [int(pd.Series(np.asarray(cl)[judge & m]).nunique()) for m in (pl, mi)]
+            for n, cl in clusters.items()
+        }
+        def g(m: np.ndarray, base: np.ndarray) -> float | None:
+            sel = base & m
+            return float(delta[sel].mean()) if sel.any() else None
+
+        gp, gm = g(pl, judge), g(mi, judge)
+        ep, em = g(pl, early), g(mi, early)
+        early_c = None if None in (ep, em) else float(ep - em)
+        e = {
+            "regime": c.regime, "plus": list(c.plus), "minus": list(c.minus),
+            "n_rows": [int((judge & pl).sum()), int((judge & mi).sum())],
+            "n_clusters_plus_minus": ncl,
+            "informative": bool(min(min(v) for v in ncl.values()) >= MIN_CLUSTERS),
+            "g_plus": gp, "g_minus": gm,
+            "by_cluster": boots, "value": cons,
+            "early_contrast": early_c,
+            "sign_agrees_discovery": bool(
+                early_c is not None and cons["mean"] is not None
+                and np.sign(early_c) == np.sign(cons["mean"]) and early_c != 0
+            ),
+        }
+        if weights is not None:
+            wb = {
+                n: _contrast_boot(np.where(judge, delta, np.nan), cl, pl, mi, n_boot, seed, weights)
+                for n, cl in clusters.items()
+            }
+            e["weighted"] = _combine_contrast(wb)
+        out[c.name] = e
+    live = {k: v for k, v in out.items() if "value" in v and v["value"]["p_two_sided"] is not None}
+    m_family = len(live) if family_tests is None else max(family_tests, len(live))
+    by = benjamini_yekutieli(
+        {k: v["value"]["p_two_sided"] for k, v in live.items()}, m_family + prior_tests
+    )
+    for k, v in live.items():
+        v["p_by"], v["pass_by"] = by[k]["p_by"], by[k]["pass_by"]
+        v["advance"] = bool(
+            v["informative"]
+            and v["value"]["p_two_sided"] < STAGE1_ADVANCE_P
+            and v["sign_agrees_discovery"]
+        )
+        v["label"] = "screen_positive_L1" if v["pass_by"] and v["advance"] else (
+            "advances_stage1" if v["advance"] else "descriptive_only"
+        )
+    return {
+        "declaration_hash": history_declaration_hash(specs, contrasts),
+        "contrasts": out,
+        "prior_tests": prior_tests,
+        "m_family": m_family,
+        "stage1_rule": f"two-sided p < {STAGE1_ADVANCE_P} (conservative over event and dep_group) "
+        "and same sign on discovery blocks",
+    }
+
+
+def _fold_mask(folds: Sequence[Fold], ids: Sequence[str], n: int) -> np.ndarray:
+    m = np.zeros(n, bool)
+    for f in folds:
+        if f.fold_id in ids:
+            m[f.test_pos] = True
+    return m
+
+
+def split_folds(folds: Sequence[Fold], discover_frac: float) -> tuple[list[str], list[str]]:
+    """First ``round(frac * n)`` blocks (chronological fold order) are discovery, the rest judge."""
+    n_d = int(round(discover_frac * len(folds)))
+    n_d = min(max(n_d, 1), len(folds) - 1)
+    ids = [f.fold_id for f in folds]
+    return ids[:n_d], ids[n_d:]
+
+
+def _compact_regime_study(rs: dict) -> dict:
+    out = {}
+    for name, cells in rs["regimes"].items():
+        if "unavailable" in cells:
+            out[name] = cells
+            continue
+        out[name] = {
+            lvl: {"n_rows": c["n_rows"], "mean": c["value"]["mean"], "ci": c["value"]["ci"],
+                  "early_mean": c["early_mean"], "informative": c["informative"]}
+            for lvl, c in cells.items()
+        }
+    return out
+
+
+def regime_ix_discover(
+    frame: pd.DataFrame,
+    X: pd.DataFrame,
+    y: np.ndarray,
+    folds: Sequence[Fold],
+    full: OOF,
+    base: OOF,
+    ix_cols: Sequence[str],
+    clusters: dict[str, np.ndarray],
+    *,
+    regimes: bool = True,
+    n_interactions: int = 0,
+    discover_frac: float = 0.5,
+    prior_tests: int = 0,
+    family_tests: int | None = None,
+    n_boot: int = 1000,
+    seed: int = SEED,
+    weights: np.ndarray | None = None,
+    exclude: np.ndarray | None = None,
+    h2_background: int = 60,
+) -> dict:
+    """One cell of J7: discovery blocks (first half) fix the cuts and the top Friedman-H^2 pairs;
+    judgement blocks (later half) decide. Within-regime gains are descriptive and never counted."""
+    y = np.asarray(y)
+    disc_ids, judge_ids = split_folds(folds, discover_frac)
+    ok = later_blocks_ok(folds, disc_ids, judge_ids)
+    n = len(y)
+    disc_m = _fold_mask(folds, disc_ids, n) & full.mask
+    judge_m = _fold_mask(folds, judge_ids, n) & full.mask
+    delta = np.where(full.mask, base.loss(y) - full.loss(y), np.nan)
+    res: dict = {
+        "discover_frac": discover_frac, "discovery_fold_ids": disc_ids,
+        "judge_fold_ids": judge_ids, "later_blocks_ok": bool(ok),
+        "declaration_hash": history_declaration_hash(),
+        "full_cols": list(full.cols), "base_cols": list(base.cols), "ix_cols": list(ix_cols),
+    }
+    adv: dict = {"contrasts": [], "pairs": []}
+    if regimes:
+        cuts = discovery_cuts(frame, disc_m)
+        res["cuts"] = cuts
+        rc = regime_contrasts(
+            frame, delta, clusters, cuts=cuts, judge_mask=judge_m, discovery_mask=disc_m,
+            prior_tests=prior_tests, family_tests=family_tests, n_boot=n_boot, seed=seed,
+            weights=weights,
+        )
+        res.update({"contrasts": rc["contrasts"], "m_family": rc["m_family"],
+                    "prior_tests": prior_tests, "stage1_rule": rc["stage1_rule"]})
+        if exclude is not None and exclude.any():
+            sens = regime_contrasts(
+                frame, delta, clusters, cuts=cuts, judge_mask=judge_m, discovery_mask=disc_m,
+                only=("C-TTE",), prior_tests=prior_tests, family_tests=family_tests,
+                n_boot=n_boot, seed=seed, exclude=exclude,
+            )["contrasts"].get("C-TTE")
+            main = rc["contrasts"].get("C-TTE")
+            if sens and main and sens.get("value") and main.get("value"):
+                m0, m1 = main["value"]["mean"], sens["value"]["mean"]
+                res["tte_lookahead_sensitivity"] = {
+                    "rule": "drop markets with closed_time > 24h before end_at",
+                    "rows_excluded": int((np.asarray(exclude, bool) & judge_m).sum()),
+                    "contrast_main": m0, "contrast_excluding": m1,
+                    "ci_excluding": sens["value"]["ci"],
+                    "sign_flips": bool(m0 is not None and m1 is not None and m0 * m1 < 0),
+                    "halves": bool(m0 and m1 is not None and abs(m1) < 0.5 * abs(m0)),
+                }
+        adv["contrasts"] = [k for k, v in rc["contrasts"].items() if v.get("advance")]
+        rs = regime_study(
+            frame, y, full, base, clusters, {}, X, specs=HISTORY_REGIMES,
+            discovery_mask=disc_m, judge_mask=judge_m, later_ok=ok, prior_tests=prior_tests,
+            n_boot=min(n_boot, 500), seed=seed, with_shap=False, cuts=cuts,
+        )
+        res["within_regime_descriptive"] = {
+            "note": "descriptive only: full vs baseline inside a regime; not counted, drives no "
+            "decision", "regimes": _compact_regime_study(rs)}
+    if n_interactions > 0:
+        ixc = list(ix_cols)
+        free = fit_oof(X, y, folds, ixc, keep_models=True)
+        st = interaction_study(
+            X, free, ixc, m=h2_background, top_pairs=n_interactions, fold_ids=disc_ids
+        )
+        pairs = [p["pair"] for p in st["top_pairs"]]
+        iv = interaction_validation(
+            X, y, folds, ixc, pairs, clusters, discovery_fold_ids=disc_ids,
+            judge_fold_ids=judge_ids,
+            prior_tests=prior_tests + max(0, (family_tests or 0) - len(pairs)),
+            n_boot=n_boot, seed=seed, cache={tuple(ixc): free}, early_fold_ids=disc_ids,
+            weights=weights,
+        )
+        for name, e in iv["pairs"].items():
+            e["h2_mean_discovery"] = next(
+                p["h2_mean"] for p in st["top_pairs"] if p["pair"] == e["pair"]
+            )
+            em = e.get("early_mean")
+            e["advance"] = bool(
+                e["label"] == "demonstrated"
+                or (e["value"]["p_pos"] is not None and e["value"]["p_pos"] < STAGE1_ADVANCE_P
+                    and em is not None and em > 0)
+            )
+            if e["advance"]:
+                adv["pairs"].append(name)
+        res["interactions"] = {"discovery": st, "validation": iv}
+    res["advanced"] = adv
+    return res
+
+
+def regime_ix_frozen(
+    frame: pd.DataFrame,
+    X: pd.DataFrame,
+    y: np.ndarray,
+    folds: Sequence[Fold],
+    full: OOF,
+    base: OOF,
+    clusters: dict[str, np.ndarray],
+    frozen: dict,
+    *,
+    n_boot: int = 1000,
+    seed: int = SEED,
+    weights: np.ndarray | None = None,
+    prior_tests: int = 0,
+) -> dict:
+    """One cell of J8: replicate ONLY what advanced in the frozen J7 cell. Cuts, regimes,
+    contrasts and pairs are read from ``frozen``; no discovery of any kind. Every fold is a
+    judgement block. Reports one-sided p in the frozen (h2) direction for Holm at the caller."""
+    y = np.asarray(y)
+    all_ids = [f.fold_id for f in folds]
+    delta = np.where(full.mask, base.loss(y) - full.loss(y), np.nan)
+    judge_m = full.mask.copy()
+    items: dict = {}
+    names = list(frozen["advanced"]["contrasts"])
+    if names:
+        rc = regime_contrasts(
+            frame, delta, clusters, cuts=frozen["cuts"], judge_mask=judge_m, only=names,
+            prior_tests=prior_tests, n_boot=n_boot, seed=seed, weights=weights,
+        )["contrasts"]
+        for nm in names:
+            e = rc[nm]
+            h2 = frozen["contrasts"][nm]["value"]["mean"]
+            sgn = 1.0 if h2 > 0 else -1.0
+            key = "p_pos" if sgn > 0 else "p_neg"
+            e["h2_sign"], e["h2_estimate"] = sgn, h2
+            e["p_directional"] = e["value"][key]
+            if "weighted" in e:
+                e["weighted_p_directional"] = e["weighted"][key]
+            items[f"contrast:{nm}"] = e
+    pair_names = list(frozen["advanced"]["pairs"])
+    if pair_names:
+        pairs = [frozen["interactions"]["validation"]["pairs"][p]["pair"] for p in pair_names]
+        ixc = list(frozen["ix_cols"])
+        iv = interaction_validation(
+            X, y, folds, ixc, pairs, clusters, discovery_fold_ids=[], judge_fold_ids=all_ids,
+            prior_tests=prior_tests, n_boot=n_boot, seed=seed, weights=weights,
+        )
+        for nm, e in iv["pairs"].items():
+            e["h2_sign"], e["p_directional"] = 1.0, e["value"]["p_pos"]
+            items[f"pair:{nm}"] = e
+    return {"items": items, "n_judge_rows": int(judge_m.sum()), "judge_fold_ids": all_ids,
+            "declaration_hash": history_declaration_hash(),
+            "frozen_declaration_hash": frozen.get("declaration_hash")}
+
+
+def holm_replication(cells: dict[str, dict], alpha: float = HOLM_ALPHA) -> dict:
+    """Holm over the whole advanced set (all cells). ``cells``: cell key -> regime_ix_frozen
+    output. Replicated = Holm reject at ``alpha`` (the test is one-sided in the h2 direction)."""
+    ps = {f"{ck}|{ik}": it["p_directional"] for ck, c in cells.items()
+          for ik, it in c["items"].items() if it.get("p_directional") is not None}
+    h = holm(ps)
+    for ck, c in cells.items():
+        for ik, it in c["items"].items():
+            r = h.get(f"{ck}|{ik}")
+            if r:
+                it["p_holm"], it["replicated"] = r["p_holm"], bool(r["p_holm"] < alpha)
+    return {"alpha": alpha, "n_tested": len(ps), "holm": h,
+            "replicated": sorted(k for k, v in h.items() if v["p_holm"] < alpha)}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1139,6 +1628,8 @@ def interaction_validation(
     n_boot: int = 1000,
     seed: int = SEED,
     cache: dict | None = None,
+    early_fold_ids: Sequence[str] | None = None,
+    weights: np.ndarray | None = None,
 ) -> dict:
     """Judge pairs found on early blocks by later-block out-of-sample value.
 
@@ -1147,6 +1638,10 @@ def interaction_validation(
     constrained minus free log loss on judging rows: positive means allowing the interaction
     helps. A pair is demonstrated only if the conservative CI excludes 0, BY passes over the
     cumulative set, and the judging blocks are later than the discovery blocks.
+
+    Optional additions (default None = output unchanged): ``early_fold_ids`` adds ``early_mean``
+    (constrained minus free loss on those blocks, the discovery-sign check) and ``weights`` adds a
+    sample-weighted secondary ``weighted`` (conservative over the clusterings).
     """
     y = np.asarray(y)
     cache = {} if cache is None else cache
@@ -1174,6 +1669,18 @@ def interaction_validation(
             "later_blocks_ok": ok,
             "test": "constrained GBM (pair forbidden) vs free GBM, later blocks",
         }
+        if early_fold_ids is not None:
+            em = np.zeros(len(y), bool)
+            for f in folds:
+                if f.fold_id in early_fold_ids:
+                    em[f.test_pos] = True
+            em &= free.mask
+            entries[f"{a}x{b}"]["early_mean"] = (
+                float(np.mean((con.loss(y) - lf)[em])) if em.any() else None
+            )
+        if weights is not None:
+            wb = {n: cluster_boot(d, c, n_boot, seed, weights=weights) for n, c in clusters.items()}
+            entries[f"{a}x{b}"]["weighted"] = conservative(wb)
     mt = finalize_demonstration(entries, prior_tests=prior_tests)
     return {
         "pairs": entries,
