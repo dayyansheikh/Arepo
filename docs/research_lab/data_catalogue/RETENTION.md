@@ -70,7 +70,9 @@ sweep rules free about 1 GB immediately.
 
 Final analyses (E009/E010 after 2026-11-03, E011 after 2026-11-10, any re-run of E003-E007, ML development on old snapshots)
 **restore first**: `python3 backend/scripts/restore_from_archive.py --experiment E011 --dest ~/restore_e011` (see `README.md`), then
-point the reader at the restored copy. Only E004/E005/E006 (`--snapshot-root`) and E007 (`--sample-root`, `--snapshot-root`) take root arguments. All others (`run_bounce_decomp.py`, `run_leadlag_screen.py`, E011, E009/E010 `analyze`, E003, ML scripts) use the default roots must be run on a machine where the restored files are placed under a repo-like `data-dumps/research_lab/` (restore with `--dest <repo root>` on a scratch checkout, never the live tree). The restore re-hashes every file.
+point the reader at the restored copy. Readers with root arguments: E004/E005/E006 (`--snapshot-root`), E007 (`--sample-root`, `--snapshot-root`), `run_flow_screen.py` (`--snapshot-root`, `--trade-samples-root`), `run_leadlag_screen.py` (`--snapshot-root`, `--dev-dir`), `run_bounce_decomp.py` (`--snapshot-root`, `--sweep-root`); a missing listed rows file raises `ArchivedDataError`. The rest (E011, E009/E010 `analyze`, E003, ML scripts) use the default roots: restore with `--dest <scratch repo root>` so the files land under a repo-like `data-dumps/research_lab/`, never the live tree. The restore re-hashes every file.
+
+**Gate release:** snapshot rows and book_sweeps stay non-deletable until queue jobs q0005, q0006a and q0006 are done. After that they become deletable at 8 days (snapshots, keep manifests) and 3 days (sweeps, keep manifests) by moving the `deferred_rules` in `scripts/oracle/archive_retention.json` into `rules`, because those runners can now read a restored scratch root.
 
 ## Before enabling `--delete` (checklist for the user)
 
