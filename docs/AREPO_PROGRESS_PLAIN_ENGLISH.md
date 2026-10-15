@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-15 20:04 UTC+1
+**Last updated:** 2026-10-15 20:18 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -12,15 +12,13 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   - Running since 19:02Z: building the order-book table for the 3,200-market history set (multi-hour, resumable).
   - Queued next: finalise the table, then rerun the history model with book features (`r4_book`).
 - **Data:** history datasets restored from the GitHub archive onto the server; 31,674 files, all checksums OK.
-- **Next research batch (batch 2):** 7 jobs designed for your questions:
-  - when order flow predicts;
-  - whether liquidity changes signals;
-  - delayed moves in related markets;
-  - whether reversal is just bid-ask bounce.
-
-  An independent reviewer accepted the design with **12 required fixes**, including an undercounted multiple-testing
-  total and a reversal test that can't yet separate real reversion from quote noise. The autopilot applies the fixes
-  before any code or jobs.
+- **Next research batch (batch 2):** 8 jobs for your questions (when order flow predicts; whether liquidity changes
+  signals; delayed moves in related markets; whether reversal is just bid-ask bounce).
+  - All **12 reviewer fixes applied** (20:15 UTC+1). The corrected multiple-testing total is **906** tests so far
+    (it was undercounted at 598).
+  - **Queued on the server:** the related-markets lead-lag re-screen (J5). It runs between chunks of the book build.
+  - **Being coded now (4 parallel workers):** the bounce test, the flow/liquidity battery and the model regime test.
+    Each gets a permuted-data dry run and a reviewer check before it is frozen and queued.
 - **Autopilot tests passed:** a real unattended run, and a session killed mid-run that was recovered on the next check.
 
 ## 2. Approvals needed from you

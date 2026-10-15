@@ -132,7 +132,7 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
 - **Ops:** the live monitor crashed at 22:23Z on 10-12 (KeyError). Fixed in 1 commit; launchd now restarts it on any failure; the 11h gap stays missing.
 - **Disk:** about 6.3 GB free. A restart would reclaim swap.
 
-## Autonomous programme: live state (2026-10-15 ~18:30Z)
+## Autonomous programme: live state (2026-10-15 ~19:18Z)
 Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 
 ### Persistence
@@ -165,19 +165,19 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive)
-1. `q0002_books_h2main` has been running on the host since 19:02Z (repeat-until-complete). It is followed by q0003 and q0004.
-   Watch it with `scripts/oracle/queue_status.sh`. When q0004 is done, write up `r4_book` in `research_lab/HISTORICAL_ML_DEV.md`
-   and the ledger.
-2. Screening batch 2: `research_lab/SCREENING_BATCH_2.md` (draft) plus a challenger review, ACCEPT_WITH_REQUIRED_CHANGES (12 items,
-   at the end of that file).
-   - Apply all 12 and record a one-paragraph response.
-   - Then implement, in this order:
-     1. the cumulative trial counter fix and its unit test (item 1);
-     2. J5 with a gap filter and materiality floor (runs with existing code);
-     3. `battery2.py` (J1);
-     4. J4 `bounce_decomp.py`, redesigned per items 4-7.
-   - Queue as q0005+ and deploy.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 19:18Z
+1. `q0002_books_h2main` running on the host since 19:02Z (repeat-until-complete), then q0003, q0004. When q0004 is done,
+   write up `r4_book` in `research_lab/HISTORICAL_ML_DEV.md` and the ledger.
+2. **Screening batch 2** (`research_lab/SCREENING_BATCH_2.md`): all 12 challenger changes applied + response (c084a61).
+   - Counter fixed: `battery2.cumulative_count()` (991f04e), local total 906.
+   - **q0005 (J5 lead-lag, `--gap-h 1.5,3`, materiality ΔR² ≥ 0.001) queued and deployed** (98710d0). On completion:
+     apply `meets_sb2_rule`, realised MDE, fresh-periods summary, ledger; retire/park per J5 stop rule.
+   - Queue jobs now run with `oom_score_adj 1000` (collector protected).
+   - Code in progress (autopilot session 2026-10-15 ~19:10Z, 3 workers): `bounce_decomp.py` + runner (J4/J3),
+     `battery2.py` HB2 battery + runner (J1/J2/J6), `run_ml_history.py`/`ml_explain.py` regime contrasts and flags
+     (J7/J8). If uncommitted when you read this, check `git log` for "SB2-J4/J3", "SB2-J1/J2/J6", "SB2-J7/J8".
+   - Freeze sequence per family: code → host dry run on permuted targets (queue job, no counted trials) → one
+     `science-reviewer` check of code vs the doc → commit declaration hash/spec → queue real jobs (q0006-q0015).
 3. Keep at least 12 h of queued work on the host.
 
 ## Learned surprise-move detector (2026-10-12 evening)
