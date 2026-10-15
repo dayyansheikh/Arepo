@@ -132,19 +132,17 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
 - **Ops:** the live monitor crashed at 22:23Z on 10-12 (KeyError). Fixed in 1 commit; launchd now restarts it on any failure; the 11h gap stays missing.
 - **Disk:** about 6.3 GB free. A restart would reclaim swap.
 
-## Pending user decisions (dashboard section 6)
-1. Infra deploy (branch `fix/infra-2026-10-11`, bed00bb, reviewed SAFE).
-2. Supabase lockdown SQL.
-3. DB size: archive or Pro.
-4. Resend access.
-5. Optional on-chain API key.
-6. Installing the live monitor permanently.
+## Pending user decisions (2026-10-15)
+1. Server GitHub token for archive rotation (needed by ~22 Oct; disk cap).
+2. E009/E010 overnight gap: include server validation copy (recommended) or leave gap.
+3. Resend audit (deferred).
+4. One-time usage reset expires Wed 21 Oct: verify whether manual redemption is needed, alert user.
 
-## Exact next actions
-1. When pass 8 completes: run the loop steps above.
-2. Placebos in run_ml_dev, then a science review of the runner, fixture-day grouping and placebos.
-3. A future trigger-vs-control effect study needs repeated D120-style runs (D121).
-4. At 12 qualifying snapshots, score E004/E005/E006 (tonight).
+## Exact next actions (handover 2026-10-15 18:10Z)
+New standing mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`. Full handover: `HANDOVER_NEXT_SESSION.md`.
+1. Choose + verify persistence (headless Claude on subscription vs cloud routines vs server-only runner).
+2. Durable research queue + server worker (lock, idempotent, timeouts, retries); test with interruption.
+3. Queue first screening families; dashboard to mission section 9.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,

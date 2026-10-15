@@ -49,6 +49,29 @@ Main session: Opus at medium effort as orchestrator (direction, delegation, asse
 useful, give clear scope and success criteria, avoid concurrent edits to the same files. Ultracode off by default.
 `/compact` only after state is written to the repo. No recurring or background continuation chains.
 
+## Context hygiene (sweet spot: stay under about 60% of the window; at most 2 compactions per session)
+Auto-compaction fires at 600k tokens (`autoCompactWindow` in `~/.claude/settings.json`). You cannot see your own usage, so
+do not guess a percentage. Count compactions instead:
+- **Counter.** Every compaction summary must begin with the line `Compactions this session: N` (N = previous N + 1; a
+  fresh session has none, which means 0). If you see no such line, assume 0.
+- **Compactions 1 and 2 are fine.** Before each one (when you can choose the moment), write state to the repo first.
+- **After the 2nd compaction, switch to handover.** Do not continue into a 3rd. At the next task boundary, or at once if
+  the user says context is high, do the handover below. A compaction is lossy; a clean session reading the checkpoint is
+  better than a third summary of a summary.
+- **Handover.** (1) Rewrite `docs/AREPO_V2_CHECKPOINT.md` live section and `docs/AREPO_PROGRESS_PLAIN_ENGLISH.md`.
+  (2) Rewrite `docs/HANDOVER_NEXT_SESSION.md` (rewrite, never append) with: objective, state, decisions made, files
+  changed, running or scheduled jobs, open user decisions, and the exact next action. (3) Commit. (4) Tell the user in
+  plain English: "Context is high; recommend a new chat", and print this ready-to-paste prompt:
+  `Read CLAUDE.md, AGENTS.md, docs/AREPO_V2_CHECKPOINT.md and docs/HANDOVER_NEXT_SESSION.md. State the task and acceptance
+  criteria from the handover, then continue from its exact next action. Do not redo finished work.`
+- **Task boundaries.** When a task finishes and the next one is unrelated, recommend `/clear` or a new session (use the
+  handover if work remains). Do not start an unrelated large task in a session that has already finished several.
+- **Keep bulk output out of the chat:** `| tail`/`| head`, bounded greps, never whole logs or evidence JSONs; delegate wide
+  reading to `repo-scout` and report only conclusions.
+- **Compaction focus:** keep the current phase and objective, protected boundaries, active experiment IDs and verdicts,
+  pending user decisions, files changed this session, the compaction counter and the exact next action. Drop tool output,
+  logs and dead ends.
+
 ## Progress reporting
 Keep `docs/AREPO_PROGRESS_PLAIN_ENGLISH.md` (the user's one-page dashboard; complements, never contradicts, the
 technical checkpoint) current after milestones, experiments, consequential failures, phase transitions, new decisions
