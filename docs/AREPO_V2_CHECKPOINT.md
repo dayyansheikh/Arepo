@@ -18,7 +18,7 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
 - Website wording, physical backup and compression are parked.
 - Bypass permissions mode is persisted in `.claude/settings.local.json`. The `git push` ask rule has been removed. Branch-delete and worktree-remove asks remain; do not use them.
 
-## State (2026-10-11 ~13:45Z)
+## State (2026-10-11 ~13:45Z; historical, see the autonomous programme section for live state)
 - **Branch:** `chore/arepo-claude-setup`, pushed. Production is untouched. Another session also commits here, so commit only your own files.
 - **Backup:** private repo `dayyansheikh/arepo-data`, release `data-20261011`, verified. The local archive parts were deleted 13:4xZ with user approval after a hash re-check; the local manifest and index files remain.
 - **Disk:** about 16.3 GB free. D120 launch needs 15,382,085,632 B.
@@ -132,17 +132,46 @@ Cancelled by the user at about 18:30 UTC+1 on 2026-10-11 (cron `dbea28e0` delete
 - **Ops:** the live monitor crashed at 22:23Z on 10-12 (KeyError). Fixed in 1 commit; launchd now restarts it on any failure; the 11h gap stays missing.
 - **Disk:** about 6.3 GB free. A restart would reclaim swap.
 
-## Pending user decisions (2026-10-15)
-1. Server GitHub token for archive rotation (needed by ~22 Oct; disk cap).
-2. E009/E010 overnight gap: include server validation copy (recommended) or leave gap.
-3. Resend audit (deferred).
-4. One-time usage reset expires Wed 21 Oct: verify whether manual redemption is needed, alert user.
+## Autonomous programme: live state (2026-10-15 ~18:30Z)
+Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 
-## Exact next actions (handover 2026-10-15 18:10Z)
-New standing mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`. Full handover: `HANDOVER_NEXT_SESSION.md`.
-1. Choose + verify persistence (headless Claude on subscription vs cloud routines vs server-only runner).
-2. Durable research queue + server worker (lock, idempotent, timeouts, retries); test with interruption.
-3. Queue first screening families; dashboard to mission section 9.
+### Persistence
+- **Server research queue: live and verified.**
+  - Worker: `scripts/oracle/queue_worker.py` (cron `*/2`).
+  - Specs: `research_lab/queue/jobs/`. Runtime state on the host: `~/arepo/run/queue/`.
+  - Tests:
+    - Local: deps, error, timeout, invalid argv, kill -9 recovery, stop/pause/resume.
+    - Host: `q0001_selftest` was killed with -9 mid-run, recorded as interrupted, and attempt 2 finished `done` under cron at 18:23Z.
+- **Claude re-invocation: built but not installed.**
+  - `scripts/autopilot/autopilot.py` runs `claude -p` on the Mac under launchd, using the claude.ai Max login with API keys stripped. It parses usage-limit resets.
+  - Auto mode's classifier blocked even a dry test ("Create Unsafe Agents"). This needs a user decision. Options are in `research_lab/autopilot/PERSISTENCE.md`.
+- **Cloud routines:** rejected. The minimum interval is 1h and they cannot reach the host without an SSH key in the cloud.
+- **One-time reset:** no documented redemption mechanism. The user was alerted by ntfy at about 18:22Z.
+
+### Jobs
+- **Queued** (book family; pending step 1 of `research_lab/HISTORICAL_ML_DEV.md`):
+  - `q0002_books_h2main`: pmxt book features. Resumable, with repeat-until-complete.
+  - `q0003_books_finalize`.
+  - `q0004_ml_r4_book`: `run_ml_history.py --revision r4_book --book-table`.
+- **Data:** `history/`, `history_sources/` and `ml_cache/` are being restored from release `data-20261013-research-lab` to the host's `~/arepo/data-dumps/research_lab/`, hash-verified per file, using a scratchpad script on the Mac.
+- **Code change:** `history_sources.memory_free_pct` now falls back to `/proc/meminfo` on Linux.
+
+## Pending user decisions (2026-10-15)
+1. Autopilot: approve as built, ask for a restricted variant, or stay server-only (`research_lab/autopilot/PERSISTENCE.md`).
+2. Server GitHub token for archive rotation (needed by ~20-22 Oct; disk cap).
+3. E009/E010 overnight gap: include the server validation copy (recommended) or leave the gap.
+4. Resend audit (deferred).
+5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
+
+## Exact next actions
+1. Once the restore completes, deploy so the q0002-q0004 specs reach the host. Check that q0002 starts and logs progress.
+2. Design the next screening families as queue jobs. Candidates:
+   - order-flow conditionality (mission Q2);
+   - liquidity regimes (Q3);
+   - related-market lead-lag on history (Q4);
+   - bid-ask bounce decomposition of reversal (Q5).
+   Avoid re-running completed nulls.
+3. When results land: write up in the ledger and study docs, then decide follow-ups.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
