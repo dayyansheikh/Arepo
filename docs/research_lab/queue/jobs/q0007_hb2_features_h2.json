@@ -1,0 +1,30 @@
+{
+ "id": "q0007_hb2_features_h2",
+ "title": "SB2-J1a: HB2 extension features on h2_main (relative-size flow, shift30)",
+ "family": "flow",
+ "priority": 68,
+ "expected_value": "input for the HB2 screen (Q2/Q3/Q4); reads no targets",
+ "data": [
+  "history/h2_main (trades, prices, panel)",
+  "history/h2_main/battery1/features.parquet"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_hypothesis_battery2.py",
+  "features",
+  "--run-id",
+  "h2_main"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/history/h2_main/battery2/features2.parquet",
+  "data-dumps/research_lab/history/h2_main/battery2/features2_shift30.parquet"
+ ],
+ "next_action": "q0007b dry run, q0007c fitspec",
+ "notes": "no targets read"
+}

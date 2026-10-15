@@ -1,0 +1,35 @@
+{
+ "id": "q0007b_hb2_dryrun_h2",
+ "title": "SB2-J1 dry run: HB2 on 50 h2 markets with globally permuted targets (code check, no trials)",
+ "family": "flow",
+ "priority": 68,
+ "expected_value": "freeze prerequisite for J1: code runs end to end on real data; p-values roughly uniform on permuted targets",
+ "data": [
+  "history/h2_main/battery1/features.parquet",
+  "history/h2_main/battery2/features2*.parquet"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0007_hb2_features_h2"
+ ],
+ "argv": [
+  "scripts/run_hypothesis_battery2.py",
+  "dryrun",
+  "--run-id",
+  "h2_main",
+  "--n-boot",
+  "200",
+  "--threads",
+  "1"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h2_main/battery2/dryrun_results.json"
+ ],
+ "next_action": "Claude session: check testability and p-value spread",
+ "notes": "logs NO trials"
+}
