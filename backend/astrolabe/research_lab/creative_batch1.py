@@ -66,6 +66,12 @@ POSTEND_COLUMNS = [
     "fav_token", "best_bid", "best_ask", "touch", "last_trade_price", "end_date", "closed", "active",
     "accepting_orders", "volume_num", "fees_enabled", "fee_schedule", "fee_category",
 ]
+RUNG_COLUMNS = [
+    "capture_id", "capture_start_utc", "received_utc", "market_id", "event_id", "clob_token_id_0",
+    "best_bid", "best_ask", "spread", "last_trade_price", "closed", "active", "accepting_orders", "end_date",
+]
+RUNG_LIST_NAME = "rung_list.json"  # B3 rung list (q0029 output) copied into the extract root
+RUNG_SEAL = forecast.ROOT / "docs" / "research_lab" / "seals" / "cb1_b3_rung_list.json"
 EVENT_COLUMNS = ["neg_risk_market_id", "event_id", "member_count", "n_open", "n_closed",
                  "fetched_utc", "http_status"]
 
@@ -255,7 +261,77 @@ def join_sweeps(neg: pd.DataFrame, sweeps: dict[int, Path] | None) -> tuple[pd.D
     return neg, status
 
 
-def extract_capture(cap: dict, sweeps: dict[int, Path] | None, extract_root: Path) -> dict:
+def rung_gate(extract_root: Path, seal_path: Path = RUNG_SEAL) -> dict:
+    """Fail-closed gate for the B3 ``rungs/`` tables. Open only if the rung list is in ``extract_root``,
+    the committed seal exists and its sha256 equals the list file's sha256. Never raises.
+    Returns ``{open, reason, sha256, as_of_utc, ids}``."""
+    g: dict[str, Any] = {"open": False, "reason": None, "sha256": None, "as_of_utc": None, "ids": set()}
+    lp = Path(extract_root) / RUNG_LIST_NAME
+    try:
+        if not lp.exists():
+            g["reason"] = "no_rung_list"
+            return g
+        sp = Path(seal_path)
+        if not sp.exists():
+            g["reason"] = "no_committed_seal"
+            return g
+        want = str(json.loads(sp.read_text()).get("sha256", "")).strip().lower()
+        got = sha256_stream(lp)
+        g["sha256"] = got
+        if not want or want != got:
+            g["reason"] = "sha_mismatch"
+            g["error"] = True
+            return g
+        doc = json.loads(lp.read_text())
+        g["as_of_utc"] = str(doc["as_of_utc"])
+        g["ids"] = {str(r["market_id"]) for L in doc["ladders"] for r in L["rungs"]}
+        _ts(g["as_of_utc"])
+        g["open"] = True
+        g["reason"] = "ok"
+    except Exception as exc:  # fail closed, never fail the pass
+        g.update(open=False, reason=f"gate_error:{type(exc).__name__}", error=True, ids=set())
+    return g
+
+
+def extract_rungs(cap: dict, gate: dict, extract_root: Path) -> dict | None:
+    """Write ``rungs/<capture_id>.csv.gz`` for one capture if the gate is open and the capture starts at
+    or after the list's as-of time; returns the manifest ``rungs`` entry, else None (nothing written)."""
+    if not gate.get("open") or _ts(cap["started_utc"]) < _ts(gate["as_of_utc"]):
+        return None
+    cdir = Path(cap["dir"])
+    cid, start = cap["capture_id"], cap["started_utc"]
+    ids = gate["ids"]
+    rows_p = forecast.require_local(cdir / "rows.csv.gz")
+    parts = []
+    for ch in _chunks(rows_p, ["market_id", "received_utc", "event_id", "clob_token_id_0", "closed", "active",
+                               "end_date"], ["best_bid", "best_ask", "spread", "last_trade_price"]):
+        sub = ch[ch["market_id"].isin(ids)]
+        if len(sub):
+            parts.append(sub)
+    df = (pd.concat(parts, ignore_index=True).drop_duplicates("market_id") if parts
+          else pd.DataFrame(columns=RUNG_COLUMNS))
+    ext_p = cdir / "rows_ext.csv.gz"
+    df["accepting_orders"] = np.nan
+    if len(df) and ext_p.exists():
+        ext = read_sidecar(ext_p, set(df["market_id"]))
+        if len(ext):
+            df["accepting_orders"] = df["market_id"].map(ext.set_index("market_id")["accepting_orders"])
+    df["capture_id"], df["capture_start_utc"] = cid, start
+    write_csv_gz(extract_root / "rungs" / f"{cid}.csv.gz", df, RUNG_COLUMNS)
+    found = set(df["market_id"])
+    return {"status": "written", "list_sha256": gate["sha256"], "n_listed": len(ids),
+            "n_found": len(found), "missing": sorted(ids - found), "extracted_utc": utc_now()}
+
+
+def _note_gate(manifest: dict, gate: dict) -> None:
+    """Record the gate state in the manifest (rewritten only when it changes)."""
+    note = {"reason": gate["reason"], "error": bool(gate.get("error")), "sha256": gate.get("sha256")}
+    if manifest.get("rungs_gate") != note:
+        manifest["rungs_gate"] = note
+
+
+def extract_capture(cap: dict, sweeps: dict[int, Path] | None, extract_root: Path,
+                    gate: dict | None = None) -> dict:
     """Extract one complete capture into ``negrisk/`` and ``postend/``. Raises ArchivedDataError if
     the rows file (or a listed sidecar) is not on this host. Returns the manifest entry."""
     cdir = Path(cap["dir"])
@@ -287,7 +363,9 @@ def extract_capture(cap: dict, sweeps: dict[int, Path] | None, extract_root: Pat
         post = pd.DataFrame(columns=POSTEND_COLUMNS)
     write_csv_gz(extract_root / "negrisk" / f"{cid}.csv.gz", neg, NEGRISK_COLUMNS)
     write_csv_gz(extract_root / "postend" / f"{cid}.csv.gz", post, POSTEND_COLUMNS)
+    rungs = extract_rungs(cap, gate, extract_root) if gate else None
     return {
+        **({"rungs": rungs} if rungs else {}),
         "status": "extracted", "started_utc": start, "rows_sha256": sha256_stream(rows_p),
         "rows_ext_sha256": sha256_stream(ext_p) if ext_status == "ok" else None,
         "ext_status": ext_status, "n_rows": n_rows, "n_negrisk": int(len(neg)),
@@ -346,6 +424,7 @@ def extract(
     sleep: Callable[[float], None] = time.sleep,
     now: Callable[[], str] = utc_now,
     write_dev_list: bool = False,
+    rung_seal: Path = RUNG_SEAL,
 ) -> dict:
     """Extract every complete capture not yet extracted (idempotent by ``capture_id``).
 
@@ -363,6 +442,10 @@ def extract(
                                "missing": 0, "stopped": None}
     with _lock(extract_root):
         manifest = _load_manifest(extract_root)
+        man0 = json.dumps(manifest, sort_keys=True)
+        gate = rung_gate(extract_root, rung_seal)
+        _note_gate(manifest, gate)
+        summary["rungs_gate"] = gate["reason"]
         todo = candidates(snapshot_root, manifest, since=since, mode=mode)
         sidx = sweep_index(sweep_root) if todo else {}
         slowest = 0.0
@@ -374,7 +457,7 @@ def extract(
             c0 = clock()
             cid = cap["capture_id"]
             try:
-                entry = extract_capture(cap, sidx.get(cid), extract_root)
+                entry = extract_capture(cap, sidx.get(cid), extract_root, gate)
             except forecast.ArchivedDataError:
                 if mode == "backfill":
                     raise
@@ -388,6 +471,25 @@ def extract(
             manifest["extractor_version"] = EXTRACTOR_VERSION
             _atomic_write_json(extract_root / "manifest.json", manifest)  # manifest last
             slowest = max(slowest, clock() - c0)
+        if mode == "backfill" and gate["open"]:  # (re)extract rungs for already-extracted captures
+            n_r = 0
+            for cap in forecast.list_complete_captures(snapshot_root):
+                ent = manifest["captures"].get(cap["capture_id"], {})
+                if (ent.get("status") != "extracted" or ent.get("rungs", {}).get("status") == "written"
+                        or cap["_start"] < _ts(gate["as_of_utc"]) or cap["_start"] < _ts(since)):
+                    continue
+                if clock() - t0 + 1.3 * slowest > budget_s:
+                    summary["stopped"] = "budget"
+                    break
+                c0 = clock()
+                ent["rungs"] = extract_rungs(cap, gate, extract_root)
+                n_r += 1
+                manifest["captures"][cap["capture_id"]] = ent
+                _atomic_write_json(extract_root / "manifest.json", manifest)
+                slowest = max(slowest, clock() - c0)
+            summary["rungs_backfilled"] = n_r
+        if json.dumps(manifest, sort_keys=True) != man0:
+            _atomic_write_json(extract_root / "manifest.json", manifest)
         summary["remaining"] = len(candidates(snapshot_root, manifest, since=since, mode=mode)) \
             - summary["missing"]
         summary["remaining"] = max(summary["remaining"], 0)

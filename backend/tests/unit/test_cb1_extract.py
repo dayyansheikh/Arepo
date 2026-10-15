@@ -328,3 +328,86 @@ def test_event_members_append_only_with_asof_reader(world):
     assert cb.event_members_asof(ex, "2026-10-12T00:00:00Z").empty  # not yet known: stays missing
     _run(world, transport=tr4, now=lambda: "2026-10-20T06:00:00Z")  # idempotent
     assert len(pd.read_csv(ex / "event_members.csv.gz", dtype=str)) == 2
+
+
+# --- B3 rungs/ tables ---------------------------------------------------------------------------
+
+AS_OF = "2026-10-12T00:00:00Z"
+
+
+def _rung_list(ids, as_of=AS_OF):
+    return {"as_of_utc": as_of, "ladders": [{"ladder_id": "L", "event_id": "E", "rungs": [{"market_id": m} for m in ids]}]}
+
+
+def _install_list(ex, seal, ids, *, seal_sha="auto", as_of=AS_OF):
+    ex.mkdir(parents=True, exist_ok=True)
+    lp = ex / cb.RUNG_LIST_NAME
+    lp.write_text(json.dumps(_rung_list(ids, as_of), sort_keys=True))
+    if seal_sha is not None:
+        seal.write_text(json.dumps({"sha256": cb.sha256_stream(lp) if seal_sha == "auto" else seal_sha}))
+
+
+def _manifest(ex):
+    return json.loads((ex / "manifest.json").read_text())
+
+
+def test_rungs_no_list_no_rungs(world, tmp_path):
+    out = _run(world, rung_seal=tmp_path / "seal.json")
+    assert out["rungs_gate"] == "no_rung_list"
+    assert not (world[2] / "rungs").exists()
+    assert "rungs" not in _manifest(world[2])["captures"]["cap_a"]
+
+
+def test_rungs_list_without_seal_no_rungs(world, tmp_path):
+    _install_list(world[2], tmp_path / "seal.json", ["1"], seal_sha=None)
+    out = _run(world, rung_seal=tmp_path / "seal.json")
+    assert out["rungs_gate"] == "no_committed_seal" and not (world[2] / "rungs").exists()
+
+
+def test_rungs_sha_mismatch_flags_and_writes_nothing(world, tmp_path):
+    _install_list(world[2], tmp_path / "seal.json", ["1"], seal_sha="0" * 64)
+    out = _run(world, rung_seal=tmp_path / "seal.json")
+    assert out["extracted"] == 1  # the pass itself is unaffected
+    m = _manifest(world[2])
+    assert m["rungs_gate"]["reason"] == "sha_mismatch" and m["rungs_gate"]["error"] is True
+    assert not (world[2] / "rungs").exists()
+
+
+def test_rungs_capture_before_as_of_no_rungs(world, tmp_path):
+    _install_list(world[2], tmp_path / "seal.json", ["1"], as_of="2026-10-12T00:00:01Z")
+    _run(world, rung_seal=tmp_path / "seal.json")
+    assert not (world[2] / "rungs").exists()
+
+
+def test_rungs_written_exact_columns_missing_recorded_and_idempotent(world, tmp_path):
+    seal = tmp_path / "seal.json"
+    _install_list(world[2], seal, ["1", "3", "99"])  # 99 absent from the capture
+    _run(world, rung_seal=seal)
+    ex = world[2]
+    r = pd.read_csv(ex / "rungs" / "cap_a.csv.gz", dtype=str)
+    assert list(r.columns) == cb.RUNG_COLUMNS
+    assert sorted(r["market_id"]) == ["1", "3"]  # exactly the listed rungs found, no fill for 99
+    r1 = r[r.market_id == "1"].iloc[0]
+    assert r1.event_id == "E1" and r1.clob_token_id_0 == "tok1" and r1.capture_start_utc == "2026-10-12T00:00:00Z"
+    assert r1.accepting_orders == "1.0" and float(r1.best_ask) == 0.45 and r1.closed == "False"
+    ent = _manifest(ex)["captures"]["cap_a"]["rungs"]
+    assert ent["status"] == "written" and ent["missing"] == ["99"] and ent["n_listed"] == 3 and ent["n_found"] == 2
+    before = {p: p.read_bytes() for p in ex.rglob("*.csv.gz")}
+    mtime = (ex / "manifest.json").stat().st_mtime_ns
+    out = _run(world, rung_seal=seal)
+    assert out["extracted"] == 0
+    assert {p: p.read_bytes() for p in ex.rglob("*.csv.gz")} == before
+    assert (ex / "manifest.json").stat().st_mtime_ns == mtime
+
+
+def test_rungs_backfill_adds_to_already_extracted_captures(world, tmp_path):
+    seal = tmp_path / "seal.json"
+    _run(world, rung_seal=seal)  # extracted without rungs (no list yet)
+    assert not (world[2] / "rungs").exists()
+    _install_list(world[2], seal, ["1"])
+    out = _run(world, mode="backfill", backfill_from=cb.CB1_START, rung_seal=seal)
+    assert out["rungs_backfilled"] == 1
+    assert list(pd.read_csv(world[2] / "rungs" / "cap_a.csv.gz", dtype=str)["market_id"]) == ["1"]
+    assert _manifest(world[2])["captures"]["cap_a"]["rungs"]["status"] == "written"
+    out = _run(world, mode="backfill", backfill_from=cb.CB1_START, rung_seal=seal)
+    assert out["rungs_backfilled"] == 0
