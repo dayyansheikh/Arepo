@@ -1,0 +1,130 @@
+{
+ "declaration": {
+  "B": {
+   "ask": "min(n1+max(h(n1),1c),0.999) (R1); 1-best_bid (R2)",
+   "censor_margin_d": 60,
+   "grid_s": 21600,
+   "grouper": "ladder-grouper-v1",
+   "half_spread_bands": [
+    [
+     0.05,
+     0.0205
+    ],
+    [
+     0.2,
+     0.015
+    ],
+    [
+     0.8,
+     0.011
+    ],
+    [
+     0.95,
+     0.015
+    ]
+   ],
+   "max_censored_share": 0.1,
+   "min_left_s": 172800,
+   "mono_tol": 0.01,
+   "survivor_missing": 0.1,
+   "survivor_yes_diff": 0.05,
+   "tests": {
+    "B1": "mean NO net per near rung",
+    "B2": "paired near-far NO net",
+    "B3": "prospective mean NO net at recorded ask"
+   },
+   "v1_range": [
+    0.05,
+    0.6
+   ],
+   "v2_range": [
+    0.02,
+    0.97
+   ]
+  },
+  "D": {
+   "depth_min_clusters": 30,
+   "depth_min_size": 5.0,
+   "eligibility": [
+    "not augmented",
+    "no neg_risk_other",
+    "visible members == event member_count",
+    "unresolved members open+active+accepting",
+    "closed member needs final outcome",
+    "member resolved YES => ineligible",
+    "0<bid<ask<1",
+    "volume_num>0"
+   ],
+   "fee_policy": "conservative sidecar schedule, docs table fallback, unknown 0.07",
+   "gap_h": [
+    1.5,
+    3.0
+   ],
+   "hold": "latest member end_date",
+   "max_non_single_winner": 0.02,
+   "member_count_rule": "Event member count per D event-capture: the count of the latest event_members row fetched at or before the capture time (member_count_source='asof') where one exists; otherwise the first-fetched count for that neg_risk_market_id (member_count_source='first_fetch'), with member_count_lag_h = fetch time minus capture time recorded per event-capture. No count at all => ineligible (no_member_count). Justification: eligible events are non-augmented neg-risk events, which have fixed member sets (augmented and neg_risk_other events are excluded by the eligibility rules), so a count fetched shortly after a capture describes the same member set; the lag is disclosed, never hidden. The primary analysis uses both sources. A declared sensitivity re-runs D1/D2 restricted to as-of counts only (results key sensitivity_asof_only). The census and results report the number of event-captures by source (asof, first_fetch, none).",
+   "min_resolved": 30,
+   "open_members": [
+    2,
+    25
+   ],
+   "tests": {
+    "D1": "mean(U-O) per eligible event-capture, >0",
+    "D2": "mean net=1-C_exec per trigger at next capture, >0"
+   },
+   "trigger_c": 0.995,
+   "uq": 0.02
+  },
+  "batch_holm_family": "The batch Holm family is every test that advanced at Stage 1 in any CB1 module (history A/C/E Stage-1 screens, D dev) plus B1 and B2, which have no Stage 1 and are always in the family. A Stage-2 test that is missing from the supplied Stage-2 files counts as p = 1 and is listed. The batch-holm command takes the Stage-1 (dev) results files and the Stage-2 files, derives the expected test list from the dev files plus the always-included tests, and refuses if any Stage-2 file contains a test outside that expected list.",
+  "dates": {
+   "T_censor_B3": "2027-01-31T00:00:00Z",
+   "T_dev_end": "2026-10-17T00:00:00Z",
+   "T_dev_start": "2026-10-11T12:00:00Z",
+   "T_rep_end": "2026-11-09T00:00:00Z",
+   "T_rep_start_floor": "2026-10-19T00:00:00Z",
+   "T_rung_out": "2027-01-07T00:00:00Z",
+   "deadline_max": "2026-12-31",
+   "ifh2_start_range": [
+    "2025-06-01",
+    "2026-10-10"
+   ]
+  },
+  "floors": {
+   "B1": 0.01,
+   "B2": 0.01,
+   "B3": 0.01,
+   "D1": 0.01,
+   "D2": 0.005
+  },
+  "kinds": [
+   "cb1_structural",
+   "cb1_structural_replication",
+   "cb1_structural_prospective"
+  ],
+  "rules": [
+   "unknown flag/field => ineligible (fail closed)",
+   "closed member classified only from final outcome; open members never use outcomes",
+   "ladder clustering = ladder event x ISO week of near-rung deadline; D = event x capture day",
+   "snapshots/ladders are unweighted (weight 1): weighted == unweighted by construction",
+   "break-even placebo at the test's own stage alpha, advance rate <= 1.5% binding",
+   "R1 trade truncation: stored trade => known true; truncated+none stored => unavailable => excluded",
+   "R1 rung fee_category is not stored in the ladder file => docs fee for unknown category (0.07)",
+   "capture lists: final, sha256 committed, missing_ids counted, listed-but-absent table raises"
+  ],
+  "stage": {
+   "alpha1": 0.01,
+   "alpha2": 0.05,
+   "cost_sens": 0.0075,
+   "min_clusters": 30,
+   "min_units": 100,
+   "placebo_draws": 200,
+   "placebo_max_advance_rate": 0.015,
+   "rann_min": 0.1,
+   "seed": 116,
+   "top_events_dropped": 5
+  },
+  "version": "cb1-structural-v1"
+ },
+ "declaration_sha256": "c9a2ec8d9d182125c7794a9189f8cbb52f6e458cab0afe6627659f3187c717c6",
+ "version": "cb1-structural-v1"
+}
