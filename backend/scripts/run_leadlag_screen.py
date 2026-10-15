@@ -48,7 +48,8 @@ def print_table(ls, name: str, res: dict) -> None:
         mde = v.get("mde")
         print(f"{n}: dR2 vs R {d['diff_r2']:+.5f} [{d['ci_lo']:+.5f},{d['ci_hi']:+.5f}] "
               f"MDE={'n/a' if mde is None else f'{mde:.5f}'} pos {v['n_positive_periods']}/"
-              f"{v['n_periods']} rule={v['meets_drafting_rule']} sb2={v['meets_sb2_rule']}\n    per-period {per}")
+              f"{v['n_periods']} rule={v['meets_drafting_rule']} "
+              f"sb2={v['meets_sb2_rule']}\n    per-period {per}")
     print("recommendation:", json.dumps(res["recommendation"]))
 
 
