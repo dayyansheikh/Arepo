@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-15 20:18 UTC+1
+**Last updated:** 2026-10-15 20:30 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -16,9 +16,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   signals; delayed moves in related markets; whether reversal is just bid-ask bounce).
   - All **12 reviewer fixes applied** (20:15 UTC+1). The corrected multiple-testing total is **906** tests so far
     (it was undercounted at 598).
-  - **Queued on the server:** the related-markets lead-lag re-screen (J5). It runs between chunks of the book build.
-  - **Being coded now (4 parallel workers):** the bounce test, the flow/liquidity battery and the model regime test.
-    Each gets a permuted-data dry run and a reviewer check before it is frozen and queued.
+  - **Code for all batch-2 tests is written and unit-tested** (20:27 UTC+1). An independent reviewer is checking it
+    against the design before any counted run.
+  - **Queued on the server:** the related-markets lead-lag re-screen, plus dry runs on shuffled data (these count
+    nothing; they check the code works on real data and how long it takes).
 - **Autopilot tests passed:** a real unattended run, and a session killed mid-run that was recovered on the next check.
 
 ## 2. Approvals needed from you
@@ -31,7 +32,12 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
    - No automatic redemption is documented, and I can't see your account page.
    - Check claude.ai/settings/usage (or `/usage`). If there's a claim/redeem button, press it around Sun 18 Oct, after this week's allowance is used.
    - A phone alert was sent 19:2x UTC+1.
-3. ~~Server GitHub token~~ **DONE 15 Oct**: saved and working; nightly backup of all server data to `arepo-data` is on (archive-only, 03:30 UTC; first upload running). Freeing server space still needs a fix for `snapshots/` before about 22 Oct (being handled).
+3. **Server disk (decide by about 17-18 Oct).** Backups to `arepo-data` run nightly and are verified. Freeing space
+   needs you to switch on deletion of old server copies under the rules in
+   `docs/research_lab/data_catalogue/RETENTION.md` (only files already verified in a backup; open experiments keep what
+   they read). Without it the 12 GB data cap is reached about 22 Oct and collection would stop.
+   - Also ready but not switched on: a weekly backup of the live evidence logs (Kalshi test, surprise test, live trade
+     alerts) that the nightly backup skips because they are always being written. Recommend switching it on.
 4. ~~Kalshi overnight gap~~ **DECIDED 15 Oct: fill it** (recorded in the ledger before any results, with a sensitivity check).
    Reset reminders also scheduled on your phone: Sun 18 Oct 19:00 and Tue 20 Oct 10:00 UTC+1.
 

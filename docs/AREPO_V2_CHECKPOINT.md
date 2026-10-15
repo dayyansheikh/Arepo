@@ -165,20 +165,24 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 19:18Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 19:30Z
 1. `q0002_books_h2main` running on the host since 19:02Z (repeat-until-complete), then q0003, q0004. When q0004 is done,
    write up `r4_book` in `research_lab/HISTORICAL_ML_DEV.md` and the ledger.
-2. **Screening batch 2** (`research_lab/SCREENING_BATCH_2.md`): all 12 challenger changes applied + response (c084a61).
-   - Counter fixed: `battery2.cumulative_count()` (991f04e), local total 906.
-   - **q0005 (J5 lead-lag, `--gap-h 1.5,3`, materiality ΔR² ≥ 0.001) queued and deployed** (98710d0). On completion:
-     apply `meets_sb2_rule`, realised MDE, fresh-periods summary, ledger; retire/park per J5 stop rule.
-   - Queue jobs now run with `oom_score_adj 1000` (collector protected).
-   - Code in progress (autopilot session 2026-10-15 ~19:10Z, 3 workers): `bounce_decomp.py` + runner (J4/J3),
-     `battery2.py` HB2 battery + runner (J1/J2/J6), `run_ml_history.py`/`ml_explain.py` regime contrasts and flags
-     (J7/J8). If uncommitted when you read this, check `git log` for "SB2-J4/J3", "SB2-J1/J2/J6", "SB2-J7/J8".
-   - Freeze sequence per family: code → host dry run on permuted targets (queue job, no counted trials) → one
-     `science-reviewer` check of code vs the doc → commit declaration hash/spec → queue real jobs (q0006-q0015).
-3. Keep at least 12 h of queued work on the host.
+2. **Screening batch 2** (`research_lab/SCREENING_BATCH_2.md`): 12 challenger changes applied (c084a61); counter
+   `battery2.cumulative_count()` (991f04e, local 906); ledger methods note M3.
+   - **Code done, not yet run on real data:** J5 (eea5600), J4/J3 `bounce_decomp.py` (64c49d8, LODO amendment 7d83ecf),
+     J1/J2/J6 HB2 `battery2.py` + `run_hypothesis_battery2.py` (4d69803, declaration sha 567e2e52…), J7/J8 regime
+     contrasts + flags in `ml_explain.py`/`run_ml_history.py` (47b74e3, regime hash c5c143c6974d226a; NOT yet deployed,
+     deploy after the freeze review confirms q0004's path is unchanged).
+   - **Queued + deployed:** q0005 (J5 counted run), q0006a (J4 dry run), q0007 (HB2 features), q0007b (HB2 dry run),
+     q0007c (fitspec → host copy of `model_specs/hb2_v1.json`; copy it to the repo, review, commit).
+   - **Freeze review running** (science-reviewer, code vs design, all families). After it: apply required fixes, then
+     queue q0006 (J4 counted), q0008 (after hb2_v1.json committed), q0012 (J7), and conditional q0009-q0015 per §4.
+   - q0013 argv uses `--exclude-markets-from seed:7:250000` (no stored subset list exists).
+3. **User lead priority (bdc2eb0):** creative original hypotheses from `research_lab/CREATIVE_HYPOTHESES_*.md` (none
+   existed at 19:30Z; generate with a Fable xhigh subagent if still absent once SB2 is queued).
+4. Keep at least 12 h of queued work on the host. `--include-active` evidence-log backup is built (a69dd0e) but its cron
+   line is commented out pending the user.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
