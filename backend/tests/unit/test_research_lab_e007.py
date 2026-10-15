@@ -230,3 +230,15 @@ def test_unavailable_when_nonzero_total_below_2000(roots, monkeypatch):
     (out / "dev_fit.json").write_text(json.dumps(FIT))
     res = e007.score(samples, snaps, out, REG, REG + timedelta(days=1), 20)
     assert res["verdict"].startswith("Unavailable") and res["nonzero_total"] == 2 * N
+
+
+def test_sample_meta_identical_after_features_archived(roots):
+    samples, _ = roots
+    _write_sample(samples, "s1", "c1", _h(0), _h(0.2), sent_offset_s=61.123456)
+    before = e007.list_metas(samples)
+    (samples / "s1" / "features.csv.gz").unlink()  # removed after archiving
+    assert e007.list_metas(samples) == before  # request-time span comes from the stored copy
+    # without the stored copy there is no silent fallback to sealing times
+    (samples.parent / "pair_cache" / "s1__sent_span.json").unlink()
+    with pytest.raises(forecast.ArchivedDataError):
+        e007.list_metas(samples)

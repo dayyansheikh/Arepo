@@ -146,10 +146,31 @@ def archive_new(a, state, ledger):
     return entry
 
 
+def load_rules(path):
+    """Per-directory deletion rules (see docs/research_lab/data_catalogue/RETENTION.md). None = legacy: one
+    --older-than-days for everything scanned."""
+    if not path:
+        return None
+    doc = json.load(open(path))
+    rules = doc["rules"]
+    for r in rules:
+        if r.get("older_than_days") is not None and r["older_than_days"] < 2:
+            raise SystemExit("retention rule %s: older_than_days must be >= 2" % r["prefix"])
+    return sorted(rules, key=lambda r: -len(r["prefix"]))
+
+
+def rule_for(rules, rel):
+    for r in rules:
+        if rel.startswith(r["prefix"]):
+            return r
+    return None
+
+
 def delete_verified(a, state, ledger):
-    cutoff = time.time() - a.older_than_days * 86400
+    now = time.time()
+    rules = load_rules(getattr(a, "retention", None))
     dlog = os.path.join(state, "deletions.jsonl")
-    n_del = n_keep = freed = 0
+    n_del = n_keep = n_rule_kept = freed = 0
     for e in ledger:
         live = [p for p in e["files"] if os.path.exists(os.path.join(a.root, p))]
         if not live:
@@ -172,6 +193,19 @@ def delete_verified(a, state, ledger):
         for rel in live:
             p = os.path.join(a.root, rel)
             st = os.stat(p)
+            rule = None if rules is None else rule_for(rules, rel)
+            if rules is None:
+                days, why_keep = a.older_than_days, None
+            elif rule is None or rule.get("older_than_days") is None:
+                days, why_keep = None, "retention: no deletion rule for this directory"
+            elif any(fnmatch.fnmatch(rel, g) for g in rule.get("keep", [])):
+                days, why_keep = None, "retention: kept locally by rule (stub/manifest)"
+            else:
+                days, why_keep = rule["older_than_days"], None
+            if why_keep:  # rule decision, no hashing; counted, not logged per file (it repeats nightly)
+                n_rule_kept += 1
+                continue
+            cutoff = now - days * 86400
             h = ar.sha256_file(p)
             rec = {"ts": now_iso(), "path": rel, "sha256": h, "bytes": st.st_size, "tag": e["tag"]}
             if h != files[rel] or st.st_mtime >= cutoff or os.path.islink(p):
@@ -195,6 +229,7 @@ def delete_verified(a, state, ledger):
                 "ts": now_iso(),
                 "deleted": n_del,
                 "kept": n_keep,
+                "kept_by_rule": n_rule_kept,
                 "freed_bytes": freed,
                 "dry_run": a.dry_run,
             }
@@ -223,6 +258,11 @@ def main():
     ap.add_argument("--threads", type=int, default=2)
     ap.add_argument(
         "--delete", action="store_true", help="delete local copies of verified-archived files"
+    )
+    ap.add_argument(
+        "--retention",
+        help="JSON with per-directory deletion rules (prefix, older_than_days, keep globs); "
+        "with it, directories without a rule are never deleted",
     )
     ap.add_argument("--dry-run", action="store_true", help="with --delete: log would_delete only")
     ap.add_argument(

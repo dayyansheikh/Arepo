@@ -37,7 +37,10 @@ Bonferroni correction over the family size.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import pickle
 import zlib
 from pathlib import Path
 
@@ -147,10 +150,88 @@ def flow_columns(f: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+PAIR_CACHE_VERSION = 1
+
+
+def _file_sha(p: Path) -> str:
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+def pair_cache_path(sample_dir: Path, captures: list[dict]) -> Path | None:
+    """Cache file for one sample's pairs, named by a hash of the inputs that stay on the host after
+    rotation (manifests, plan); None if the sample has no target snapshot yet."""
+    sample_dir = Path(sample_dir)
+    man = json.loads((sample_dir / "manifest.json").read_text())
+    nxt = next_complete_capture(captures, man["snapshot_id"])
+    src = next((c for c in captures if c["capture_id"] == man["snapshot_id"]), None)
+    if nxt is None or src is None:
+        return None
+    key = "|".join([
+        str(PAIR_CACHE_VERSION), man["sample_id"], _file_sha(sample_dir / "manifest.json"),
+        _file_sha(sample_dir / "plan.json"), src["capture_id"],
+        _file_sha(Path(src["dir"]) / "manifest.json"), nxt["capture_id"],
+        _file_sha(Path(nxt["dir"]) / "manifest.json"),
+    ])
+    h = hashlib.sha256(key.encode()).hexdigest()[:16]
+    return sample_dir.parent.parent / "pair_cache" / f"{man['sample_id']}__{h}.pkl"
+
+
 def build_sample_pairs(
     sample_dir: Path, captures: list[dict], period: int
 ) -> tuple[pd.DataFrame | None, dict]:
-    """Pairs (market, source snapshot -> next complete snapshot) for one trade sample."""
+    """Pairs (market, source snapshot -> next complete snapshot) for one trade sample.
+
+    While the raw inputs are on disk this computes exactly as before and also stores the result in
+    ``pair_cache/`` (write-only side effect). If the nightly rotation removed the raw files after
+    archiving them, the stored frame is returned instead (pickle, ``period`` re-stamped); with no
+    cache it raises ``forecast.ArchivedDataError`` rather than silently skipping the sample."""
+    sample_dir = Path(sample_dir)
+    cp = pair_cache_path(sample_dir, captures)
+    if cp is None:
+        return _compute_sample_pairs(sample_dir, captures, period)
+    man = json.loads((sample_dir / "manifest.json").read_text())
+    src = next(c for c in captures if c["capture_id"] == man["snapshot_id"])
+    nxt = next_complete_capture(captures, man["snapshot_id"])
+    inputs = [Path(src["dir"]) / "rows.csv.gz", Path(nxt["dir"]) / "rows.csv.gz",
+              sample_dir / "features.csv.gz"]
+    if all(p.exists() for p in inputs):
+        pairs, cnt = _compute_sample_pairs(sample_dir, captures, period)
+        if pairs is not None and not cp.exists():
+            try:
+                cp.parent.mkdir(parents=True, exist_ok=True)
+                tmp = cp.with_suffix(f".tmp{os.getpid()}")
+                with open(tmp, "wb") as fh:
+                    pickle.dump((pairs, cnt), fh, protocol=4)
+                tmp.replace(cp)
+            except OSError:
+                pass  # optimisation for archived data; never fail a scoring pass over it
+        return pairs, cnt
+    if not cp.exists():
+        forecast.require_local(next(p for p in inputs if not p.exists()))
+    with open(cp, "rb") as fh:
+        pairs, cnt = pickle.load(fh)
+    pairs = pairs.copy()
+    pairs["period"] = period
+    cnt = dict(cnt)
+    cnt["period"] = period
+    return pairs, cnt
+
+
+def pair_cache_status(sample_root: Path = SAMPLE_ROOT, snapshot_root: Path = SNAPSHOT_ROOT) -> dict:
+    """Samples with a target snapshot vs cache files (all must be cached before raw files go)."""
+    captures = forecast.list_complete_captures(snapshot_root)
+    need = have = 0
+    for sd in list_samples(sample_root):
+        cp = pair_cache_path(sd, captures)
+        if cp is not None:
+            need += 1
+            have += int(cp.exists())
+    return {"samples_with_target": need, "cached": have, "complete": need == have}
+
+
+def _compute_sample_pairs(
+    sample_dir: Path, captures: list[dict], period: int
+) -> tuple[pd.DataFrame | None, dict]:
     sample_dir = Path(sample_dir)
     man = json.loads((sample_dir / "manifest.json").read_text())
     plan = json.loads((sample_dir / "plan.json").read_text())

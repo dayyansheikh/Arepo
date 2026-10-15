@@ -1,0 +1,33 @@
+{
+  "comment": "Per-directory deletion rules for archive_rotate.py --retention (see docs/research_lab/data_catalogue/RETENTION.md). A server file is only ever removed if it is in a verified release with an identical sha256; these rules only say how old it must be and which small files stay. Directories without a rule are never deleted.",
+  "rules": [
+    {
+      "prefix": "data-dumps/research_lab/snapshots/",
+      "older_than_days": 8,
+      "keep": ["*/manifest.json", "*/ext_manifest.json"],
+      "why": "E011 re-reads captures up to SERIES_KEEP_S = 7.5 days old; manifests are what forecast.list_complete_captures lists (E004-E007 status, sample pairing, provenance hashes)"
+    },
+    {
+      "prefix": "data-dumps/research_lab/trade_samples/",
+      "older_than_days": 3,
+      "keep": ["*/manifest.json", "*/plan.json"],
+      "why": "FLOW-SCREEN and E007 status read sample pairs from pair_cache/ once cached; manifest and plan form the cache key and the sample list"
+    },
+    {
+      "prefix": "data-dumps/research_lab/book_sweeps/",
+      "older_than_days": 3,
+      "keep": ["*/manifest.json"],
+      "why": "no scheduled reader (E003 is complete); manifests stay for the sweep listing"
+    },
+    {
+      "prefix": "data-dumps/research_lab/live_trades/scores-",
+      "older_than_days": 10,
+      "why": "live_trade_monitor reloads score history for trailing_days = 7 only"
+    },
+    {
+      "prefix": "data-dumps/research_lab/live_trades/trades-",
+      "older_than_days": 10,
+      "why": "live_trade_monitor reloads only today's and yesterday's trades file"
+    }
+  ]
+}

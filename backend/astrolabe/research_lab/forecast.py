@@ -61,12 +61,30 @@ def _parse_ts(s: str) -> datetime:
     return datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(UTC)
 
 
+class ArchivedDataError(FileNotFoundError):
+    """A raw data file is gone from this host: archived, then removed by the nightly rotation
+    (docs/research_lab/data_catalogue/RETENTION.md). The bytes are intact in the private data
+    release; restore them with backend/scripts/restore_from_archive.py. Not raised if it exists."""
+
+
+def require_local(path: Path) -> Path:
+    path = Path(path)
+    if not path.exists():
+        raise ArchivedDataError(
+            f"{path} is not on this host. If it was archived, restore it first: python3 "
+            "backend/scripts/restore_from_archive.py --path-glob "
+            f"'*{'/'.join(path.parts[-2:])}' --dest <empty dir> "
+            "(catalogue: docs/research_lab/data_catalogue/README.md)"
+        )
+    return path
+
+
 def load_snapshot(snapshot_dir: Path) -> tuple[pd.DataFrame, dict]:
     snapshot_dir = Path(snapshot_dir)
     manifest = json.loads((snapshot_dir / "manifest.json").read_text())
     if manifest.get("state") != "complete":
         raise ValueError(f"snapshot {snapshot_dir.name} is not complete: {manifest.get('state')}")
-    rows = pd.read_csv(snapshot_dir / "rows.csv.gz", dtype=ID_DTYPES)
+    rows = pd.read_csv(require_local(snapshot_dir / "rows.csv.gz"), dtype=ID_DTYPES)
     return rows, manifest
 
 

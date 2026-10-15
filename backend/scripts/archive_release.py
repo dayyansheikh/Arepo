@@ -276,7 +276,10 @@ def build(a):
                 z=info["zstd"],
             )
         )
-    for n in ("files.sha256", "MANIFEST.sha256", "ARCHIVE_INFO.json", "README.md"):
+    # per-file sizes for the data catalogue (not part of MANIFEST: the hashes in files.sha256 are the evidence)
+    with open(os.path.join(meta, "files.bytes.json"), "w") as o:
+        json.dump({rel: files[rel][1] for rel in sorted(files)}, o)
+    for n in ("files.sha256", "MANIFEST.sha256", "ARCHIVE_INFO.json", "README.md", "files.bytes.json"):
         upload(a.repo, a.tag, os.path.join(meta, n))
     log(
         "built %s: %d files, %.2f GB -> %.2f GB in %d parts; changed=%d missing=%d"

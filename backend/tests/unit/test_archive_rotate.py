@@ -86,3 +86,51 @@ def test_dry_run_deletes_nothing(tmp_path, monkeypatch):
         a, str(state), [{"tag": "t", "repo": "r", "manifest_sha256": mh, "files": files}]
     )
     assert (root / "data-dumps" / "research_lab" / "x" / "a.csv").exists()
+
+
+def test_retention_rules_per_directory(tmp_path, monkeypatch):
+    files = {}
+    root = tmp_path / "root"
+    layout = {
+        "data-dumps/research_lab/snapshots/c1/rows.csv.gz": (b"rows", 20),  # past its 8 days
+        "data-dumps/research_lab/snapshots/c1/manifest.json": (b"man", 20),  # stub kept by glob
+        "data-dumps/research_lab/snapshots/c2/rows.csv.gz": (b"new", 3),  # inside its 8 days
+        "data-dumps/research_lab/history/h/x.csv": (b"hist", 90),  # directory without a rule
+    }
+    for rel, (body, age) in layout.items():
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(body)
+        t = time.time() - age * 86400
+        os.utime(p, (t, t))
+        files[rel] = _h(body)
+    rules = {
+        "rules": [
+            {
+                "prefix": "data-dumps/research_lab/snapshots/",
+                "older_than_days": 8,
+                "keep": ["*/manifest.json"],
+            }
+        ]
+    }
+    (tmp_path / "ret.json").write_text(json.dumps(rules))
+    a, _, state, mh = _setup(tmp_path / "s", monkeypatch, files)
+    a.root, a.retention = str(root), str(tmp_path / "ret.json")
+    ledger = [{"tag": "t", "repo": "r", "manifest_sha256": mh, "files": files}]
+    rot.delete_verified(a, str(state), ledger)
+    snaps = root / "data-dumps/research_lab/snapshots"
+    assert not (snaps / "c1/rows.csv.gz").exists()
+    assert (snaps / "c1/manifest.json").exists()
+    assert (snaps / "c2/rows.csv.gz").exists()
+    assert (root / "data-dumps/research_lab/history/h/x.csv").exists()
+    log = [json.loads(x) for x in open(state / "deletions.jsonl")]
+    assert [r["path"] for r in log if r["action"] == "deleted"] == [
+        "data-dumps/research_lab/snapshots/c1/rows.csv.gz"
+    ]
+
+
+def test_retention_rule_minimum_two_days(tmp_path):
+    p = tmp_path / "r.json"
+    p.write_text(json.dumps({"rules": [{"prefix": "x/", "older_than_days": 1}]}))
+    with pytest.raises(SystemExit):
+        rot.load_rules(str(p))

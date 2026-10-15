@@ -173,3 +173,57 @@ def test_signal_detected_when_planted():
     p["dmid"] = p["dmid"] + 0.02 * p["signed_share"]
     r = fs.run_screen(p, n_boot=100, seed=116)["variants"]["F1_signed_share"]
     assert r["vs_ridge"]["unweighted"]["ci_lo"] > 0
+
+
+# --- archive-aware pair cache (raw files removed after archiving) -----------------------------
+
+
+def _drop_raw(snaps: Path, samples: Path, *, keep_cache: bool = True) -> None:
+    for p in list(snaps.glob("*/rows.csv.gz")) + list(samples.glob("*/features.csv.gz")):
+        p.unlink()
+    for p in samples.glob("*/trades.csv.gz"):
+        p.unlink()
+
+
+def test_pair_cache_replays_identical_frame_after_raw_removal(world):
+    snaps, samples = world
+    before, counts_before = fs.build_all(samples, snaps)
+    st = fs.pair_cache_status(samples, snaps)
+    assert st == {"samples_with_target": 1, "cached": 1, "complete": True}
+    _drop_raw(snaps, samples)
+    after, counts_after = fs.build_all(samples, snaps)
+    pd.testing.assert_frame_equal(before, after)
+    assert counts_before == counts_after
+
+
+def test_pair_cache_restamps_period(world):
+    snaps, samples = world
+    caps = fs.forecast.list_complete_captures(snaps)
+    first, _ = fs.build_sample_pairs(samples / "s1", caps, 0)
+    _drop_raw(snaps, samples)
+    again, cnt = fs.build_sample_pairs(samples / "s1", caps, 5)
+    assert (again["period"] == 5).all() and cnt["period"] == 5
+    assert (first["period"] == 0).all()
+    pd.testing.assert_frame_equal(first.drop(columns="period"), again.drop(columns="period"))
+
+
+def test_missing_raw_without_cache_raises_clear_error(world):
+    snaps, samples = world
+    _drop_raw(snaps, samples)
+    with pytest.raises(fs.forecast.ArchivedDataError, match="restore_from_archive"):
+        fs.build_all(samples, snaps)
+
+
+def test_cache_not_used_while_raw_present(world, monkeypatch):
+    snaps, samples = world
+    fs.build_all(samples, snaps)
+    calls = []
+    orig = fs._compute_sample_pairs
+
+    def spy(*a, **k):
+        calls.append(1)
+        return orig(*a, **k)
+
+    monkeypatch.setattr(fs, "_compute_sample_pairs", spy)
+    fs.build_all(samples, snaps)
+    assert calls == [1]  # raw files present -> recomputed from raw exactly as before

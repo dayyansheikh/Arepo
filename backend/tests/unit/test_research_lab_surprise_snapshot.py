@@ -217,3 +217,16 @@ def test_analyze_handles_empty_and_simple_cases(tmp_path):
 def test_role_by_registration_window(t, role, tmp_path):
     sc = ss.Scorer(FakeLim(), root=tmp_path / "live", key=KEY)
     assert sc.role(t) == role
+
+
+def test_archived_extension_sidecar_is_not_read_as_unknown(tmp_path):
+    from astrolabe.research_lab import forecast
+
+    d = capture(tmp_path, NOW, np.linspace(0.1, 0.9, 40))
+    (d / "ext_manifest.json").write_text("{}")
+    (d / "rows_ext.csv.gz").unlink()  # archived and removed by the rotation
+    with pytest.raises(forecast.ArchivedDataError):
+        ss.load_capture(d)
+    (d / "ext_manifest.json").unlink()  # a capture that never had a sidecar still loads as before
+    rows, _ = ss.load_capture(d)
+    assert (rows["fee_category"] == "unknown").all()

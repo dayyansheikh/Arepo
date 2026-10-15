@@ -171,6 +171,8 @@ def load_capture(cap_dir: Path) -> tuple[pd.DataFrame, dict]:
                           dtype={"market_id": str})
         rows = rows.merge(ext.drop_duplicates("market_id"), on="market_id", how="left")
     else:
+        if (cap_dir / "ext_manifest.json").exists():  # sidecar existed: archived, not "unknown"
+            forecast.require_local(ext_p)
         rows["fee_category"], rows["created_at"] = "unknown", None
     rows["t"] = float(_epoch(man["started_utc"]))  # capture grid time (rolling series key)
     rows["t_row"] = rows["received_utc"].map(_epoch).astype(float)  # per-row receipt = origin
