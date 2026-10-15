@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-16 00:05 UTC+1
+**Last updated:** 2026-10-16 00:07 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -9,8 +9,12 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 1. Right now
 - **Server (Oracle):** collection every 2h, live trade monitor, Kalshi live test and the research queue: healthy at
   22:51Z (measured; 1.5 GB RAM free, 13 GB disk free).
-- **Research queue:** running the sibling lead-lag re-screen (J5). Next: a short check of the bounce test (see below), the
-  creative-batch data jobs, the batch-2 hypothesis features, and the order-book table (part done, resumes).
+- **Research queue:** running the bounce-test diagnostic. Next: the creative-batch data jobs, the batch-2 hypothesis
+  features, and the order-book table (part done, resumes).
+- **Batch 2, related markets (J5): one candidate.** When the other markets of the same event moved in the last hour,
+  this market's price tends to drift back the other way over the next 2 hours. The signal is stable (34 of 39 fresh
+  periods). But it only beats a simple baseline, not our best model; it may be quote noise; and it is not shown to be
+  tradable. Next comes a check on newer data. No registration yet.
 - **Batch 2 first result: bounce test (J4) ran, but its built-in sanity check failed.** The shuffled-data control
   showed the same "reversal" as the real data, so none of its conclusions can be trusted yet. Nothing is claimed from it.
   A diagnostic job is queued to find out why. The 5 tests stay counted.
