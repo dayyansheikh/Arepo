@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-16 00:29 UTC+1
+**Last updated:** 2026-10-16 00:35 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -19,10 +19,15 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   any market's own history. The reviewer agreed, but rejected re-using the same data to measure the "real" effect,
   because a statistical bias could fake it. A clean re-test on fresh data from 16 Oct onward is designed (about 4 days of
   data needed; it runs around 20 Oct).
-- **Batch 2, hypothesis battery (HB2):** its settings are frozen and checked; the counted run is queued next on the server.
-- **Your creative priority:** all 13 reviewer fixes are in and live on the server. The fresh 7,000-market download
-  can start once a short self-check passes. A final check of the fixes is running, then the five creative tests get
-  frozen (locked before any results exist). A second creative batch is being designed. Nothing creative has been tested yet.
+- **Batch 2, hypothesis battery (HB2): 6 of 13 ideas pass the first screen** (the shuffled-data check is clean).
+  Order-flow momentum is stronger in volatile and wide-spread markets, near resolution, and when it comes from
+  trades that are large for that market. One result (volatility) passes the strict all-tests-so-far bar (947 tests).
+  Now re-testing on 5,000 different markets (queued); only that counts as "replicated". Not yet tested against costs.
+- **Your creative priority:** all 13 reviewer fixes are verified. The fresh 7,000-market download is now allowed to
+  start. Two last rules are being added, then the five creative tests get frozen (locked before any results exist).
+  **Creative batch 2 drafted** (weather-market favourites; "impossible" price orderings in deadline ladders); its
+  review is running. **A new round of original ideas** is being generated (Fable, as you asked), steered by this
+  week's findings. Nothing creative has been tested yet.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
