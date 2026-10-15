@@ -1108,6 +1108,42 @@ favourable tercile (it is chosen on h2 judgement rows and used only on h3).
   (Δltp, Δmid) R² 0.28, coefficient on Δmid 0.49, Δltp ≈ 0 (so `oneHourPriceChange` tracks the mid more than the last
   trade); far-touch bid after an ask move −0.004, ask after a bid move −0.074.
 
+#### J4 placebo diagnosis (q0031 + q0032, 2026-10-15 23:08Z / 23:19Z; engineering checks, no trials, point estimates only)
+- **q0031:** 122,636 markets, median 11 triples per market (only 0.3% of rows in one-triple markets; 5.4% of rows
+  left in place by the permutation). Market-demeaned placebo P1 −0.003; real P1 with market fixed effects (FE)
+  −0.011 vs pooled −0.207. Across markets, mean target and −mean `d_bm` correlate 0.55. **The pooled slope is almost
+  entirely between-market, which is why a within-market permutation reproduces it.**
+- **Mechanism (q0032, confirmed on a synthetic world first).** Eligibility is checked only at origin `i` (spread ≤
+  0.10, mid in [0.02, 0.98]); `h` and `j` need only a two-sided quote. 9.6% of rows have `h` or `j` in a wide-spread
+  state, where `|d_bm|` averages 0.107 vs 0.003 for tight `h`. A market that toggles between a tight and a wide
+  state with different mids gives `d_bm` and `dmid` opposite signs whenever it toggles, regardless of timing. These
+  9.6% of rows dominate pooled OLS.
+- **Point estimates by specification (real / placebo):**
+
+  | Test | pooled, all rows | FE, all rows | pooled, h,i,j tight | FE, h,i,j tight |
+  |---|---|---|---|---|
+  | P1 | −0.207 / −0.202 | −0.010 / −0.003 | −0.082 / +0.028 | **−0.127 / −0.011** |
+  | P1x | −0.041 / −0.056 | +0.013 / −0.006 | −0.053 / +0.024 | **−0.098 / −0.014** |
+  | P2 (c/unit) | +0.117 / +0.040 | +0.057 / +0.015 | +0.061 / +0.039 | **+0.054 / −0.004** |
+  | P3 | −0.165 / −0.297 | +0.148 / +0.003 | −0.172 / −0.018 | **−0.143 / +0.016** |
+  | P4 | −0.166 / −0.127 | −0.048 / −0.000 | −0.009 / −0.174 | **−0.012 / +0.004** |
+
+- **Provisional reading (exploratory, post hoc, not a verdict).** Only the regime-stable FE column has a null
+  placebo on every test. There, the Gamma mid reverses about 13% of the previous 2h change within a market, and about
+  three quarters of that also shows against the independent sweep mid. That pattern would mean mostly genuine short-term
+  reversion, not Gamma quote noise. The last trade's position carries a small positive signal, one-sided moves revert more, and
+  `chg_1h` adds nothing once the 2h mid change and bounce position are controlled. Note: FE on panels with a median
+  of 11 periods carries a small negative (Nickell-type) bias, which the FE placebo does not fully measure.
+- **Consequences.**
+  1. The counted q0006 J4 verdicts are void as specified (placebo failure). They stay counted.
+  2. Any re-read is a new 5-test family under a new specification (h,i,j tight + market FE + FE placebo, SEs as declared).
+     It needs the challenger first (sent 2026-10-15 ~23:30Z).
+  3. J3's within-market placebo (`permute_book_targets`) has the same exposure, so it must be fixed before q0011.
+  4. J5's L1 event-level reversal and HB1's reversal moderators were estimated pooled. Their sizes may partly be this
+     regime-toggle channel, and they need a regime-stable re-check before any registration.
+  5. E004 (registered, prospectively confirmed) keeps its recorded outcome; this diagnosis is not a re-interpretation
+     of it.
+
 ### J5 (q0005, run `leadlag-sb2-snap2h`, finished 2026-10-15 23:05Z): SB2 rule MET for L1 (one candidate)
 - **Run.** 82.9 min; gap filter [1.5, 3] h excluded 5 periods (the 10-10 development spacing and the host outage);
   `all_periods` 51 periods, 2,394,749 pairs, 126,269 markets, 34,025 event clusters; `neg_risk_periods` 49 periods.
