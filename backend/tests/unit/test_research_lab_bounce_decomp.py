@@ -549,7 +549,7 @@ def test_expanding_estimator_zero_bias_short_panels_fe_biased():
 
 def test_increment_shuffle_placebo_is_consistent_and_keeps_observed_columns():
     df = level_world("walk", n_mkt=30, T=8, seed=3)
-    pl = bd.shuffle_increments_placebo(df, 5)
+    pl = bd.shuffle_increments_placebo(df, 5, scheme="permute")
     for c in ("spread", "b_pos", "w", "chg_1h", "liquidity_i", "volume_up", "period", "market_id", "d_bid"):
         assert df[c].equals(pl[c]), c
     assert not np.allclose(pl["dmid"], df["dmid"])
@@ -574,7 +574,7 @@ def test_increment_shuffle_runs_break_at_gaps():
     df = level_world("walk", n_mkt=6, T=9, seed=4)
     # no rows at periods 4 and 5: the increment 5 -> 6 is observed by no row, so the runs break there
     gap = df[~df["period"].isin([4, 5])].reset_index(drop=True)
-    pl = bd.shuffle_increments_placebo(gap, 2)
+    pl = bd.shuffle_increments_placebo(gap, 2, scheme="permute")
     for m, g in gap.sort_values("period").groupby("market_id"):
         a, b = g[g["period"] < 4], g[g["period"] > 5]
         pa, pb = (pl[(pl["market_id"] == m) & cond].sort_values("period") for cond in
@@ -764,8 +764,8 @@ def test_permutation_placebo_is_a_bridge_for_level_regressors():
     stationary measurement error) mean-reverts mechanically in the permutation placebo; an increment
     regressor (J4's d_bm) does not. The with-replacement scheme removes the artefact."""
     d = book_level_world("measurement", n_mkt=400, n_per=12, seed=5)
-    keep = lambda f: (lambda df, seed, scheme="permute": (  # noqa: E731  keep mid-level controls as observed
-        lambda o: o.assign(ml_logit_mid=df["ml_logit_mid"], ml_abs_mid_dev=df["ml_abs_mid_dev"]))(f(df, seed, scheme)))
+    keep = lambda f: (lambda df, seed, scheme="permute", diag=None: (  # noqa: E731  keep mid-level controls as observed
+        lambda o: o.assign(ml_logit_mid=df["ml_logit_mid"], ml_abs_mid_dev=df["ml_abs_mid_dev"]))(f(df, seed, scheme, diag)))
     orig = bd.shuffle_book_increments_placebo
     try:
         bd.shuffle_book_increments_placebo = keep(orig)
@@ -790,3 +790,182 @@ def test_log_trials_revision_label(tmp_path):
     assert len(lines) == 11 and {x["revision"] for x in lines} == {"j4r_expanding_v1"}
     assert fam["placebo_null"] is True
     assert battery2.cumulative_count(path)["total"] == 5
+
+
+# =============================================================================================
+# Freeze fixes: market-pooled bootstrap placebo, bias rule, bm controls, void status, refusals
+# =============================================================================================
+
+
+def test_default_placebo_scheme_is_market_pooled_bootstrap():
+    assert bd.DEFAULT_PLACEBO_SCHEME == "bootstrap"
+    # one market, two runs: captures 0..4 (big steps) and 7..11 (tiny steps); captures 5, 6 missing
+    lv = np.array([0.0, 0.1, 0.2, 0.3, 0.4, np.nan, np.nan, 0.5, 0.501, 0.502, 0.503, 0.504])
+    p = np.array([0, 1, 2, 7, 8, 9])
+    L = lambda k: lv[p + k][:, None]  # noqa: E731
+    codes = np.zeros(len(p), np.int64)
+    big_in_small_run = {"bootstrap": 0, "permute": 0}
+    for sc in big_in_small_run:
+        for seed in range(30):
+            _, n1, n2 = bd._rebuild_shuffled_levels(codes, p, (L(0), L(1), L(2)), seed, sc)
+            # rows 3..5 are the small run; the increment of its rows is n2 - n1
+            big_in_small_run[sc] += int((np.abs((n2 - n1)[3:, 0]) > 0.05).sum())
+    assert big_in_small_run["bootstrap"] > 0  # draws come from the market's POOL (both runs together)
+    assert big_in_small_run["permute"] == 0  # old scheme never leaves its own run
+    with pytest.raises(ValueError):
+        bd._rebuild_shuffled_levels(codes, p, (L(0), L(1), L(2)), 1, "nope")
+
+
+def test_bootstrap_joint_draw_and_start_levels_and_default_changes_placebo():
+    df = level_world("walk", n_mkt=30, T=8, seed=3)
+    pl = bd.shuffle_increments_placebo(df, 5)
+    ps = bd.shuffle_increments_placebo(df, 5, scheme="permute")
+    assert not np.allclose(pl["dmid"], ps["dmid"])
+    for m, g in df.sort_values("period").groupby("market_id"):
+        gp = pl[pl["market_id"] == m].sort_values("period")
+        assert gp["mid_h"].iloc[0] == pytest.approx(g["mid_h"].iloc[0], abs=1e-6)
+        pool = np.r_[g["d_bm"].to_numpy(), g["dmid"].iloc[-1]]
+        got = np.r_[gp["d_bm"].to_numpy(), gp["dmid"].iloc[-1]]
+        assert all(np.isclose(pool, x, atol=1e-5).any() for x in got)  # every draw is an observed increment
+    for _, g in pl.sort_values(["market_id", "period"]).groupby("market_id"):
+        assert np.allclose(g["mid_i"].to_numpy()[1:], g["mid_j"].to_numpy()[:-1], atol=1e-6)
+
+
+def _pl(beta, covers=True, n=(100, 100), testable=True):
+    return {"testable": testable, "covers_zero": covers, "beta": beta, "n_per_draw": list(n),
+            "draws_testable": len(n)}
+
+
+def test_placebo_reading_bias_void_and_untestable():
+    res = {"tests": {"A": {"testable": True, "se": 0.10, "n": 100}, "B": {"testable": True, "se": 0.10, "n": 100},
+                     "C": {"testable": False, "n": 50}}, "verdicts": {"x": "present"}}
+    ok = bd.placebo_reading({"tests": {"A": _pl(0.04), "B": _pl(-0.05), "C": _pl(9.9, covers=False)}}, res)
+    assert ok["family_status"] == "OK" and ok["tests"]["C"]["status"].startswith("not read")
+    assert ok["tests"]["A"]["placebo_n_ratio_min_max"] == [1.0, 1.0]
+    biased = bd.placebo_reading({"tests": {"A": _pl(0.0501), "B": _pl(0.0)}}, res)  # 0.0501 > 0.5 * 0.10
+    assert biased["tests"]["A"]["status"] == "inconclusive (placebo bias)" and biased["tests"]["B"]["status"] == "read"
+    assert biased["family_status"].startswith("PLACEBO BIAS")
+    void = bd.placebo_reading({"tests": {"A": _pl(0.0), "B": _pl(0.3, covers=False)}}, res)
+    assert void["family_status"].startswith("VOID") and void["tests"]["B"]["status"].startswith("VOID")
+    r2 = {**res, "verdicts": {"x": "present"}}
+    bd.apply_placebo_reading(r2, {"tests": {"A": _pl(0.0), "B": _pl(0.3, covers=False)}})
+    assert r2["verdicts"]["overall"] == "withheld" and r2["verdicts_unread"] == {"x": "present"}
+    assert r2["tests"]["B"]["placebo_status"].startswith("VOID")
+    r3 = {**res, "verdicts": {"x": "present"}}
+    bd.apply_placebo_reading(r3, {"tests": {"A": _pl(0.0), "B": _pl(0.0)}})
+    assert r3["family_status"] == "OK" and r3["verdicts"] == {"x": "present"}
+
+
+def test_family_status_written_into_every_trial_line(tmp_path):
+    path = tmp_path / "trials.jsonl"
+    res = {"tests": {n: {"beta": 0.0, "p": 0.5, "reject": False, "placebo_status": "VOID (x)"} for n in bd.J4_SPEC},
+           "prior_tests": {"total": 1}, "family_status": "VOID: placebo range does not cover 0 for P1"}
+    fam = bd._summarise_placebo([{"tests": {n: {"testable": True, "beta": 0.0, "se": 0.1, "mde_80": 0.3, "n": 10}
+                                              for n in bd.J4_SPEC}}], list(bd.J4_SPEC), "expanding", 1)
+    lines = bd.log_trials("J4", res, "x/r.json", "abc", "bounce-t", {}, placebo=fam, path=path)
+    assert len(lines) == 11 and all(x["family_status"].startswith("VOID") for x in lines)
+    assert lines[0]["summary"]["placebo_status"] == "VOID (x)"
+
+
+def test_j3_bm_level_controls_collinearity_and_placebo_rows():
+    d = book_level_world("measurement", n_mkt=400, n_per=12, seed=5)
+    base = bd.book_tests(d, {}, n_boot=5, seed=1, estimator="expanding")
+    assert base["tests"]["B2"]["collinear_r2"] < 0.9 and base["tests"]["B2"]["testable"]
+    # B2/B3 level controls come from the book mid: scrambling the series-mid controls leaves them unchanged
+    d2 = d.assign(ml_logit_mid=np.random.default_rng(9).normal(0, 1, len(d)),
+                  ml_abs_mid_dev=np.random.default_rng(10).normal(0, 1, len(d)))
+    alt = bd.book_tests(d2, {}, n_boot=5, seed=1, estimator="expanding")
+    for k in ("B2", "B3"):
+        assert alt["tests"][k]["beta"] == pytest.approx(base["tests"][k]["beta"], abs=1e-9)
+    assert alt["tests"]["B1"]["beta"] != pytest.approx(base["tests"]["B1"]["beta"], abs=1e-9)
+    # e_t an exact function of bm: R^2 > 0.9 -> untestable (collinear), not fitted
+    dc = d.assign(e_t=3.0 * d["bm"])
+    col = bd.book_tests(dc, {}, n_boot=5, seed=1, estimator="expanding")
+    for k in ("B2", "B3"):
+        t = col["tests"][k]
+        assert t["testable"] is False and t["reason"] == "untestable (collinear)" and t["collinear_r2"] > 0.99
+    assert col["tests"]["B1"]["testable"]
+    # pooled (legacy) is untouched: no R^2 gate, no new keys
+    assert "collinear_r2" not in bd.book_tests(d, {}, n_boot=5, seed=1)["tests"]["B2"]
+    # placebo: default scheme, row counts per draw reported against the real count
+    fam = bd.book_placebo_family(d, draws=4, seed=300, estimator="expanding", n_boot=5)
+    assert fam["scheme"] == "bootstrap" and len(fam["tests"]["B2"]["n_per_draw"]) == 4
+    rd = bd.placebo_reading(fam, base)
+    assert rd["tests"]["B2"]["real_n"] == base["tests"]["B2"]["n"]
+    assert len(rd["tests"]["B2"]["placebo_n_per_draw"]) == 4
+
+
+def test_dedup_level_mismatch_counts_j4_and_j3():
+    df = level_world("walk", n_mkt=10, T=6, seed=1)
+    dg: dict = {}
+    bd.shuffle_increments_placebo(df, 1, diag=dg)
+    assert dg["level_mismatch_gt_tol"] == 0 and dg["increment_mismatch_gt_tol"] == 0 and dg["edges_deduplicated"] > 0
+    bad = df.copy()
+    k = bad.index[(bad["market_id"] == "m3") & (bad["period"] == 3)][0]
+    bad.loc[k, "mid_h"] += 0.01  # disagrees with row period 2's mid_i at the shared capture
+    dg2: dict = {}
+    bd.shuffle_increments_placebo(bad, 1, diag=dg2)
+    assert dg2["level_mismatch_gt_tol"] == 1 and dg2["increment_mismatch_gt_tol"] >= 1
+    b = book_level_world("measurement", n_mkt=10, n_per=8, seed=2)
+    c = bd.book_level_consistency(b)
+    assert c["adjacent_row_pairs"] == 70 and c["series_mid_mismatch_gt_tol"] == 0 and c["bm_next_mismatch_gt_tol"] == 0
+    bb = b.copy()
+    bb.loc[bb.index[(bb["market_id"] == "m1") & (bb["t_i"] == 3 * bd.H6)][0], "bm_next"] += 0.01
+    bb.loc[bb.index[(bb["market_id"] == "m2") & (bb["t_i"] == 4 * bd.H6)][0], "y_series"] += 0.01
+    c2 = bd.book_level_consistency(bb)
+    assert c2["bm_next_mismatch_gt_tol"] == 1 and c2["series_mid_mismatch_gt_tol"] == 1
+    dg3: dict = {}
+    bd.shuffle_book_increments_placebo(bb, 1, diag=dg3)
+    assert dg3["bm_next_mismatch_gt_tol"] == 1 and "level_mismatch_gt_tol" in dg3
+
+
+def test_qualifying_periods_counts_triples_with_rows():
+    df = pd.DataFrame({"period": [0, 0, 3, 3, 3]})
+    assert bd.qualifying_periods(df) == 2 and bd.qualifying_periods(df.iloc[:0]) == 0
+
+
+# --- runner refusals ----------------------------------------------------------------------------
+
+
+def _run_main(monkeypatch, tmp_path, argv):
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "run_bounce_decomp_t", Path(bd.__file__).resolve().parents[2] / "scripts" / "run_bounce_decomp.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    monkeypatch.setattr(bd, "OUT_ROOT", tmp_path / "out")
+    monkeypatch.setattr(sys, "argv", ["run_bounce_decomp.py", *argv])
+    return mod.main()
+
+
+def _small_snap(tmp_path, n=6):
+    for k in range(n):
+        t = T0 + timedelta(hours=2 * k)
+        write_capture(tmp_path / "snap", f"c{k}", t, make_rows(t, MIDS, shift=0.001 * k))
+    return ["--snapshot-root", str(tmp_path / "snap"), "--sweep-root", str(tmp_path / "none")]
+
+
+def test_runner_refuses_new_flags_with_pooled(monkeypatch, tmp_path, capsys):
+    roots = _small_snap(tmp_path)
+    for flag in (["--since", "2026-10-12T00:00:00Z"], ["--h-tight"], ["--placebo-draws", "5"], ["--min-periods", "2"]):
+        assert _run_main(monkeypatch, tmp_path, ["snapshots", "--tag", "t", *roots, *flag]) == 2
+    assert "pooled" in capsys.readouterr().err
+
+
+def test_runner_exit3_when_window_not_covered_or_too_few_periods(monkeypatch, tmp_path, capsys):
+    roots = _small_snap(tmp_path)  # captures at 0..10h, newest starts T0 + 10h
+    boom = lambda *a, **k: (_ for _ in ()).throw(AssertionError("test/placebo must not run"))  # noqa: E731
+    monkeypatch.setattr(bd, "snapshot_tests", boom)
+    monkeypatch.setattr(bd, "placebo_family", boom)
+    # window ends 24h in: newest capture (10h) is earlier than until - 2h
+    until = iso(T0 + timedelta(hours=24))
+    assert _run_main(monkeypatch, tmp_path, ["snapshots", "--tag", "t", *roots, "--estimator", "expanding",
+                                             "--until", until]) == 3
+    # covered window, but only 4 periods < 48
+    until = iso(T0 + timedelta(hours=12))
+    assert _run_main(monkeypatch, tmp_path, ["snapshots", "--tag", "t2", *roots, "--estimator", "expanding",
+                                             "--until", until, "--min-periods", "48"]) == 3
+    assert "refusing" in capsys.readouterr().err

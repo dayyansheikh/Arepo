@@ -1,0 +1,41 @@
+{
+ "id": "q0035_j4r_snapshots",
+ "title": "SB2-J4-R: expanding-past bounce decomposition on fresh snapshots 2026-10-16..21 (counted)",
+ "family": "microstructure",
+ "priority": 70,
+ "expected_value": "Q5 supporting evidence: J4 re-read with the expanding-past estimator, h-tight filter and the matched market-pooled bootstrap placebo on fresh captures",
+ "data": [
+  "research_lab/snapshots (complete captures started 2026-10-16T00:00Z to 2026-10-21T00:00Z, exclusive)",
+  "research_lab/book_sweeps"
+ ],
+ "resources": {
+  "mem_mb": 3000,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_bounce_decomp.py",
+  "snapshots",
+  "--tag",
+  "j4r",
+  "--since",
+  "2026-10-16T00:00:00Z",
+  "--until",
+  "2026-10-21T00:00:00Z",
+  "--h-tight",
+  "--estimator",
+  "expanding",
+  "--placebo-draws",
+  "20",
+  "--min-periods",
+  "48"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 0,
+ "outputs": [
+  "data-dumps/research_lab/bounce_decomp/bounce-j4r/results.json",
+  "docs/research_lab/trials.jsonl (5 bounce_decomp lines + 1 ml_explain count line + placebo lines, each with family_status)"
+ ],
+ "next_action": "Claude session: read family_status first (OK / VOID / PLACEBO BIAS; verdicts are withheld unless OK); then apply the declared J4 verdict map; ledger entry; J4-R never closes Q5",
+ "notes": "Do not run before 2026-10-21T03:00Z. The runner also exits 3 if the newest complete capture started earlier than --until minus 2h. If it exits 3 for too few periods (< 48), the coordinator re-queues with --until moved forward one UTC day (logged). Placebo: increments drawn with replacement from the market's pooled valid increments."
+}

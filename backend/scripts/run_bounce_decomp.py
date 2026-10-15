@@ -6,9 +6,13 @@
 
 J4-R (declared re-read on fresh captures) and J3 with the expanding-past estimator:
     python scripts/run_bounce_decomp.py snapshots --tag j4r --since 2026-10-16T00:00:00Z \
-        --until 2026-10-20T00:00:00Z --h-tight --estimator expanding --placebo-draws 20 --min-periods 48
+        --until 2026-10-21T00:00:00Z --h-tight --estimator expanding --placebo-draws 20 --min-periods 48
     python scripts/run_bounce_decomp.py book --run-id h2_main --tag j3x --estimator expanding --placebo-draws 20
 ``--until`` is an EXCLUSIVE end (captures started < it); ``--until-utc`` keeps its inclusive meaning.
+A "period" is a triple with in-range gaps that contributes >= 1 row; < --min-periods periods exits 3 before
+any test or placebo. With --until the run also exits 3 if the newest complete capture started earlier than
+--until minus 2 h (the window is not yet covered). The new flags (--since, --h-tight, --placebo-draws,
+--min-periods) are refused (exit 2) with --estimator pooled. Default placebo: market-pooled bootstrap.
 
 Writes data-dumps/research_lab/bounce_decomp/bounce-<tag>/results.json (refuses to overwrite) and
 appends trials (per test + one ml_explain count line + placebo lines). ``--dry-run`` runs on
@@ -44,8 +48,9 @@ def main() -> int:
     ap.add_argument("--placebo-draws", type=int, default=0,
                     help="> 0: matched increment-shuffle placebo family with this many draws "
                          "(default 0: the original permuted-target placebo)")
-    ap.add_argument("--placebo-scheme", choices=["permute", "bootstrap"], default="permute",
-                    help="increment shuffle without (permute, declared) or with replacement (bootstrap)")
+    ap.add_argument("--placebo-scheme", choices=["bootstrap", "permute"], default="bootstrap",
+                    help="increments drawn with replacement from the market's pooled increments "
+                         "(bootstrap, default) or permuted within runs (permute, explicit only)")
     ap.add_argument("--min-periods", type=int, default=0,
                     help="refuse to run (exit 3) if fewer qualifying 2h periods (snapshots)")
     ap.add_argument("--dry-run", action="store_true")
@@ -67,13 +72,31 @@ def main() -> int:
         return 2
     job = "J4" if a.job == "snapshots" else "J3"
     expanding = a.estimator == "expanding"
+    new_flags = [f for f, on in (("--since", a.since), ("--h-tight", a.h_tight),
+                                 ("--placebo-draws", a.placebo_draws > 0),
+                                 ("--min-periods", a.min_periods > 0)) if on]
+    if new_flags and not expanding:
+        print(f"refusing {new_flags} with --estimator pooled (legacy estimator; use --estimator expanding)",
+              file=sys.stderr)
+        return 2
+    if job == "J3" and (a.since or a.h_tight or a.min_periods or a.until):
+        print("--since/--until/--h-tight/--min-periods apply to the snapshots job only", file=sys.stderr)
+        return 2
     if job == "J4":
+        if a.until:
+            from datetime import timedelta
+            newest = bd.newest_capture_start(a.snapshot_root)
+            need = bd.forecast._parse_ts(a.until) - timedelta(hours=2)
+            if newest is None or newest < need:
+                print(f"newest complete capture starts {newest} < --until minus 2h ({need}); window not "
+                      "yet covered; refusing to run", file=sys.stderr)
+                return 3
         df, counts = bd.build_snapshot_triples(a.snapshot_root, a.sweep_root, a.until_utc, log=print,
                                                since_utc=a.since, h_tight=a.h_tight, before_utc=a.until)
         if not len(df):
             print("no triples; nothing run")
             return 3 if a.min_periods else 0
-        n_periods = int(df["period"].nunique())
+        n_periods = bd.qualifying_periods(df)
         if n_periods < a.min_periods:
             print(f"only {n_periods} qualifying periods < --min-periods {a.min_periods}; refusing to run",
                   file=sys.stderr)
@@ -109,21 +132,22 @@ def main() -> int:
     res["prior_tests"] = prior
     prov = provenance.run_provenance()
     revision = ("j4r_expanding_v1" if job == "J4" else "j3_expanding_v1") if expanding else None
-    placebo_null = placebo.get("placebo_null") if a.placebo_draws > 0 else None
-    if placebo_null is False:
-        res["family_status"] = "VOID: matched placebo not null (range does not cover 0 for every test)"
-        print("PLACEBO NOT NULL: family void; verdicts must not be read", file=sys.stderr)
+    if a.placebo_draws > 0:
+        bd.apply_placebo_reading(res, placebo)
+        if res["family_status"] != "OK":
+            print(f"{res['family_status']}; verdicts withheld", file=sys.stderr)
     if job == "J4" and expanding:
         res["sensitivities"] = bd.snapshot_sensitivities(df, 200, a.seed)
     doc = {"job": job, "run_id": f"bounce-{a.tag}", "seed": a.seed, "n_boot": a.n_boot,
            "until_utc": a.until_utc, "since": a.since, "until_exclusive": a.until, "h_tight": a.h_tight,
            "estimator": a.estimator, "placebo_draws": a.placebo_draws, "placebo_scheme": a.placebo_scheme, "min_periods": a.min_periods,
+           "n_periods": bd.qualifying_periods(df) if job == "J4" else None,
            "revision": revision, "roots": roots, "dataset": dataset, "counts": bd._clean(counts),
            "results": res, "placebo": placebo, "prior_tests": prior, "provenance": prov}
     target.write_text(json.dumps(bd._clean(doc), indent=1))
     sha = provenance.sha256_file(target)
     bd.log_trials(job, res, str(target.relative_to(ROOT)), sha, f"bounce-{a.tag}", prov,
-                  placebo=placebo, dataset=dataset, revision=revision)
+                  placebo=placebo, dataset=dataset, revision=revision, family_status=res.get("family_status"))
     print(f"results {target}")
     for k, t in res.get("tests", {}).items():
         print(k, json.dumps({x: t.get(x) for x in ("beta", "se", "p", "p_holm", "n")}))

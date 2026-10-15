@@ -7,7 +7,9 @@ target capture as a feature: every feature column comes from the origin capture 
 previous capture ``h`` for the J4 quote changes); capture ``j`` supplies target columns only.
 
 J4 triples ``(h, i, j)`` are consecutive complete captures with gap(h,i) and gap(i,j) in
-[1.5, 3] h (by manifest start time). At most three captures are in memory at once.
+[1.5, 3] h (by manifest start time). At most three captures are in memory at once. A "period" is one
+such triple (in-range gaps) that contributes at least one row (``--min-periods`` counts these; e.g. 48
+two-hourly periods = 4 UTC days of back-to-back captures, 2 + 48 = 50 captures).
 
 Conventions / readings of the spec (also listed in the run report):
 * "rejects" = Holm-adjusted two-sided p < 0.05 with p = max(event-clustered, two-way event x
@@ -187,6 +189,15 @@ def lodo(y, x, Z, day, full_beta: float) -> dict:
             "min": min(betas.values()), "max": max(betas.values())}
 
 
+def _r2(x, Z) -> float:
+    """R^2 of ``x`` on ``Z`` with an intercept (= demeaned x on demeaned Z)."""
+    x = np.asarray(x, float)
+    X = np.column_stack([np.ones(len(x)), np.asarray(Z, float).reshape(len(x), -1)])
+    coef, *_ = np.linalg.lstsq(X, x, rcond=None)
+    tss = float(((x - x.mean()) ** 2).sum())
+    return float(1 - ((x - X @ coef) ** 2).sum() / tss) if tss > 0 else 1.0
+
+
 def _plain_ols(y, x, Z) -> dict:
     X = _design(np.asarray(x, float), np.asarray(Z, float).reshape(len(y), -1))
     coef, *_ = np.linalg.lstsq(X, np.asarray(y, float), rcond=None)
@@ -239,27 +250,34 @@ def expanding_demean(df: pd.DataFrame, cols, by: str = "market_id", order: str =
     return out
 
 
-PLACEBO_SCHEMES = ("permute", "bootstrap")
+PLACEBO_SCHEMES = ("bootstrap", "permute")
+DEFAULT_PLACEBO_SCHEME = "bootstrap"
+LEVEL_TOL = 1e-6
+BIAS_FRAC = 0.5  # a test is read only if |mean placebo beta| <= BIAS_FRAC * the real test's max-SE
+COLLINEAR_R2 = 0.9
 
 
 def _rebuild_shuffled_levels(codes: np.ndarray, p: np.ndarray, levels, seed: int,
-                             scheme: str = "permute"):
-    """Rebuild per-market level series from a within-market shuffle of their increments.
+                             scheme: str = DEFAULT_PLACEBO_SCHEME, diag: dict | None = None):
+    """Rebuild per-market level series from a within-market resampling of their increments.
 
     ``levels`` = three (n, K) float arrays: the level(s) at capture index ``p``, ``p + 1``, ``p + 2`` of
     each row (a triple (h, i, j) overlaps its neighbours: row t's (i, j) is row t+1's (h, i)). An
     increment c -> c+1 is *valid* only if some row observes both of its ends (so it is a genuine
     consecutive-capture change with an in-range gap). Valid increments of a market form contiguous runs
-    (a missing capture or a gap breaks a run); within each run they are shuffled (one permutation for all K
-    columns) and the run is rebuilt from its first observed level, so a capture shared by two
-    overlapping rows gets one level. Returns three (n, K) arrays of rebuilt levels (NaN where the
-    original level was unobserved or lies outside every run).
+    (a missing capture or a gap breaks a run); each run is rebuilt from its first observed level, so a
+    capture shared by two overlapping rows gets one level. Returns three (n, K) arrays of rebuilt
+    levels (NaN where the original level was unobserved or lies outside every run).
 
-    ``scheme="permute"`` (declared J4-R placebo) permutes a run's increments. That fixes the run's total
-    change, so the rebuilt level is a *bridge*: a regressor that is a LEVEL (J3's e_t, bm, mid-level
-    controls) is then mechanically mean-reverting towards the run's end, which an increment regressor (J4)
-    is not. ``scheme="bootstrap"`` instead draws the increments with replacement from the same run (no
-    fixed total, no bridge); offered for level regressors, not used by default."""
+    ``scheme="bootstrap"`` (default, declared): each increment slot of a run is filled by a draw WITH
+    replacement from the market's POOLED valid increments (all of the market's runs together; one joint
+    draw for all K level columns). No fixed run total, so no bridge: a LEVEL regressor (J3's e_t, bm,
+    mid-level controls) is not made mean-reverting by construction. ``scheme="permute"`` (explicit,
+    non-default) permutes a run's own increments, which fixes the run total and makes the rebuilt level a
+    bridge.
+
+    ``diag`` (optional dict) receives ``edges_deduplicated`` and the number of shared-capture edges whose
+    start level / increment disagree by more than ``LEVEL_TOL`` between the two rows that observe them."""
     if scheme not in PLACEBO_SCHEMES:
         raise ValueError(f"unknown placebo scheme {scheme!r}")
     L0, L1, L2 = (np.asarray(L, float) for L in levels)
@@ -274,11 +292,18 @@ def _rebuild_shuffled_levels(codes: np.ndarray, p: np.ndarray, levels, seed: int
     e_inc = np.vstack([(L1 - L0)[a], (L2 - L1)[b]])
     e_lvl = np.vstack([L0[a], L1[b]])
     nan = np.full((n, K), np.nan)
+    if diag is not None:
+        diag.update(edges_deduplicated=0, level_mismatch_gt_tol=0, increment_mismatch_gt_tol=0, tol=LEVEL_TOL)
     if not len(e_code):
         return nan, nan.copy(), nan.copy()
     o = np.lexsort((e_kind, e_c, e_code))
     e_code, e_c, e_inc, e_lvl = e_code[o], e_c[o], e_inc[o], e_lvl[o]
-    keep = np.r_[True, (e_code[1:] != e_code[:-1]) | (e_c[1:] != e_c[:-1])]  # dedupe, 'a' first
+    dup = (e_code[1:] == e_code[:-1]) & (e_c[1:] == e_c[:-1])
+    if diag is not None and dup.any():
+        diag["edges_deduplicated"] = int(dup.sum())
+        diag["level_mismatch_gt_tol"] = int((np.abs(e_lvl[1:] - e_lvl[:-1]).max(axis=1)[dup] > LEVEL_TOL).sum())
+        diag["increment_mismatch_gt_tol"] = int((np.abs(e_inc[1:] - e_inc[:-1]).max(axis=1)[dup] > LEVEL_TOL).sum())
+    keep = np.r_[True, ~dup]  # 'a' first
     e_code, e_c, e_inc, e_lvl = e_code[keep], e_c[keep], e_inc[keep], e_lvl[keep]
     m = len(e_code)
     begin = np.r_[True, (e_code[1:] != e_code[:-1]) | (e_c[1:] != e_c[:-1] + 1)]
@@ -288,8 +313,11 @@ def _rebuild_shuffled_levels(codes: np.ndarray, p: np.ndarray, levels, seed: int
     if scheme == "permute":
         inc_sh = e_inc[np.lexsort((rng.random(m), run_id))]
     else:
-        rlen = np.bincount(run_id)[run_id]
-        inc_sh = e_inc[first + np.minimum((rng.random(m) * rlen).astype(np.int64), rlen - 1)]
+        mbegin = np.r_[True, e_code[1:] != e_code[:-1]]
+        mgrp = np.cumsum(mbegin) - 1
+        mfirst = np.flatnonzero(mbegin)[mgrp]
+        mlen = np.bincount(mgrp)[mgrp]
+        inc_sh = e_inc[mfirst + np.minimum((rng.random(m) * mlen).astype(np.int64), mlen - 1)]
     cs = np.cumsum(inc_sh, axis=0)
     base = cs[first] - inc_sh[first]
     start = e_lvl[first]
@@ -310,11 +338,12 @@ def _rebuild_shuffled_levels(codes: np.ndarray, p: np.ndarray, levels, seed: int
     return tuple(res)
 
 
-def shuffle_increments_placebo(df: pd.DataFrame, seed: int, scheme: str = "permute") -> pd.DataFrame:
+def shuffle_increments_placebo(df: pd.DataFrame, seed: int, scheme: str = DEFAULT_PLACEBO_SCHEME,
+                               diag: dict | None = None) -> pd.DataFrame:
     """J4-R placebo, matched to the expanding estimator. Per market, the Gamma-mid level series is
-    rebuilt from a within-market random shuffle of its capture-to-capture increments (start level
-    kept); shuffling happens only inside contiguous runs of observed consecutive-capture increments
-    (a capture the market skipped, or an out-of-range gap, ends a run). ``d_bm``, ``dmid``, ``mid_h/i/j``,
+    rebuilt from the market's increments resampled WITH replacement from its pooled valid
+    capture-to-capture increments (default scheme; start level of each contiguous run kept; a capture the
+    market skipped, or an out-of-range gap, ends a run). ``d_bm``, ``dmid``, ``mid_h/i/j``,
     ``y_p1x`` (sweep ``B_i`` shifted by the level change of ``mid_i``), ``d_bm_x_w``, the h/j quote
     columns (shifted by their mid's level change) and the far-touch targets are recomputed; ``spread``,
     ``b_pos``, ``w``, ``chg_1h``, volume and liquidity stay as observed. Row t's (i, j) levels are row
@@ -325,7 +354,7 @@ def shuffle_increments_placebo(df: pd.DataFrame, seed: int, scheme: str = "permu
     g = lambda c: df[c].to_numpy(float)  # noqa: E731
     mh, mi, mj = g("mid_h"), g("mid_i"), g("mid_j")
     n0, n1, n2 = (x[:, 0] for x in _rebuild_shuffled_levels(
-        codes, p, (mh[:, None], mi[:, None], mj[:, None]), seed, scheme))
+        codes, p, (mh[:, None], mi[:, None], mj[:, None]), seed, scheme, diag))
     out = df.copy()
     sh_i, sh_j, sh_h = n1 - mi, n2 - mj, n0 - mh
     out["mid_h"], out["mid_i"], out["mid_j"] = n0, n1, n2
@@ -348,12 +377,14 @@ def shuffle_increments_placebo(df: pd.DataFrame, seed: int, scheme: str = "permu
 
 def _summarise_placebo(draws: list[dict], names, estimator: str, seed: int) -> dict:
     """Per test: the betas of every placebo draw, their mean/SD, the 2.5-97.5% range, whether it covers 0
-    (``placebo_null`` = covers 0 for every test), the mean SE and MDE. ``z_mean`` is descriptive."""
+    (``placebo_null`` = covers 0 for every test), the mean SE and MDE, and the per-draw row counts.
+    ``z_mean`` is descriptive only."""
     tests: dict = {}
     for nme in names:
         rs = [d["tests"][nme] for d in draws if nme in d.get("tests", {}) and d["tests"][nme].get("testable")]
         if not rs:
-            tests[nme] = {"testable": False, "covers_zero": False, "betas": [], "p": 1.0}
+            tests[nme] = {"testable": False, "covers_zero": False, "betas": [], "p": 1.0, "n_per_draw": [],
+                          "draws_testable": 0}
             continue
         b = np.array([r["beta"] for r in rs])
         lo, hi = (float(v) for v in np.percentile(b, [2.5, 97.5]))
@@ -363,22 +394,80 @@ def _summarise_placebo(draws: list[dict], names, estimator: str, seed: int) -> d
             "range_2_5_97_5": [lo, hi], "ci95": [lo, hi], "covers_zero": bool(lo <= 0.0 <= hi),
             "reject": not bool(lo <= 0.0 <= hi), "se": float(np.mean([r["se"] for r in rs])),
             "mde_80": float(np.mean([r["mde_80"] for r in rs])), "n": int(np.mean([r["n"] for r in rs])),
+            "n_per_draw": [int(r["n"]) for r in rs], "draws_testable": len(rs),
             "z_mean": float(b.mean() / (sd / np.sqrt(len(b)))) if sd and sd > 0 else None,
             "p": None}
     return {"estimator": estimator, "draws": len(draws), "seed": seed, "tests": tests,
             "placebo_null": bool(all(t["covers_zero"] for t in tests.values()))}
 
 
+def placebo_reading(placebo: dict, res: dict) -> dict:
+    """Apply the reading rule to a real result ``res`` (tests with ``se``) and its placebo family.
+
+    A test the real run could not test is not read (and cannot void the family). For every other test:
+    the placebo 2.5-97.5% range must cover 0 (else the family is VOID) and |mean placebo beta| must be
+    <= ``BIAS_FRAC`` x the real max-SE (else that test is "inconclusive (placebo bias)"). ``z_mean`` and
+    ``beta_sd`` stay descriptive. Also reports placebo rows per draw against the real row count.
+    Returns {"family_status", "tests": {name: reading}}; ``family_status`` is "OK", "VOID: ..." or
+    "PLACEBO BIAS: ..." (verdicts are withheld unless "OK")."""
+    out: dict = {}
+    void, biased = [], []
+    for nme, rt in res.get("tests", {}).items():
+        pt = placebo.get("tests", {}).get(nme)
+        if not rt.get("testable") or pt is None:
+            out[nme] = {"status": "not read (real test untestable)",
+                        "real_n": rt.get("n", rt.get("rows_used")), "placebo_n_per_draw": (pt or {}).get("n_per_draw")}
+            continue
+        r = {"real_se": rt["se"], "real_n": rt.get("n"), "placebo_n_per_draw": pt.get("n_per_draw"),
+             "placebo_draws_testable": pt.get("draws_testable", 0)}
+        if pt.get("n_per_draw") and rt.get("n"):
+            r["placebo_n_ratio_min_max"] = [min(pt["n_per_draw"]) / rt["n"], max(pt["n_per_draw"]) / rt["n"]]
+        if not pt.get("testable") or not pt.get("covers_zero"):
+            r["status"] = "VOID (placebo range does not cover 0)"
+            void.append(nme)
+        else:
+            r["mean_placebo_beta"] = pt["beta"]
+            r["bias_ratio"] = abs(pt["beta"]) / rt["se"] if rt["se"] else None
+            if rt["se"] and abs(pt["beta"]) > BIAS_FRAC * rt["se"]:
+                r["status"] = "inconclusive (placebo bias)"
+                biased.append(nme)
+            else:
+                r["status"] = "read"
+        out[nme] = r
+    status = ("VOID: placebo range does not cover 0 for " + ", ".join(void) if void
+              else "PLACEBO BIAS: |mean placebo beta| > 0.5 x real max-SE for " + ", ".join(biased) if biased
+              else "OK")
+    return {"family_status": status, "tests": out, "bias_frac": BIAS_FRAC}
+
+
+def apply_placebo_reading(res: dict, placebo: dict) -> dict:
+    """Attach ``placebo_reading`` / ``family_status`` to ``res`` and withhold the verdicts unless the
+    family is "OK" (the unread verdicts are kept under ``verdicts_unread`` for audit only)."""
+    rd = placebo_reading(placebo, res)
+    res["placebo_reading"] = rd
+    res["family_status"] = rd["family_status"]
+    for nme, r in rd["tests"].items():
+        if nme in res.get("tests", {}):
+            res["tests"][nme]["placebo_status"] = r["status"]
+    if rd["family_status"] != "OK":
+        res["verdicts_unread"] = res.get("verdicts")
+        res["verdicts"] = {"overall": "withheld", "reason": rd["family_status"]}
+    return res
+
+
 def placebo_family(df: pd.DataFrame, draws: int = 20, seed: int = 117, estimator: str = "expanding",
-                   n_boot: int = 20, scheme: str = "permute") -> dict:
-    """Run the J4 estimator on ``draws`` increment-shuffle placebos (seeds ``seed + k``). Reports per
+                   n_boot: int = 20, scheme: str = DEFAULT_PLACEBO_SCHEME) -> dict:
+    """Run the J4 estimator on ``draws`` increment-resampling placebos (seeds ``seed + k``). Reports per
     test the betas and whether their 2.5-97.5% range covers 0; ``placebo_null`` is True only if it does
-    for every test (otherwise the family is void). Bootstrap CIs are not used (``n_boot`` is small)."""
+    for every test (otherwise the family is void). Bootstrap CIs are not used (``n_boot`` is small).
+    ``level_consistency`` reports the shared-capture level mismatches found while rebuilding."""
     out = []
+    diag: dict = {}
     for k in range(draws):
-        out.append(snapshot_tests(shuffle_increments_placebo(df, seed + k, scheme), n_boot, seed, estimator,
-                                  descriptive=False))
-    return {**_summarise_placebo(out, list(J4_SPEC), estimator, seed), "scheme": scheme}
+        out.append(snapshot_tests(shuffle_increments_placebo(df, seed + k, scheme, diag if k == 0 else None),
+                                  n_boot, seed, estimator, descriptive=False))
+    return {**_summarise_placebo(out, list(J4_SPEC), estimator, seed), "scheme": scheme,
+            "level_consistency": diag}
 
 
 # =============================================================================================
@@ -539,6 +628,17 @@ def build_triple(snap_h: pd.DataFrame, snap_i: pd.DataFrame, snap_j: pd.DataFram
                 "sweep_lag_gt_20min": int((lag > SWEEP_MAX_LAG_MIN).sum()),
                 "sweep_lag_negative": int((lag < 0).sum())})
     return out, cnt
+
+
+def qualifying_periods(df: pd.DataFrame) -> int:
+    """Number of periods = triples with in-range gaps that contribute at least one row."""
+    return int(df["period"].nunique()) if len(df) else 0
+
+
+def newest_capture_start(snapshot_root: Path = SNAPSHOT_ROOT):
+    """Start time (datetime) of the newest complete capture, or None."""
+    caps = forecast.list_complete_captures(snapshot_root)
+    return caps[-1]["_start"] if caps else None
 
 
 def build_snapshot_triples(snapshot_root: Path = SNAPSHOT_ROOT, sweep_root: Path = SWEEP_ROOT,
@@ -1088,11 +1188,28 @@ def permute_book_targets(df: pd.DataFrame, seed: int) -> pd.DataFrame:
 J3_IDS = ("B1", "B2", "B3", "B4", "D1", "D2")
 
 
-def shuffle_book_increments_placebo(df: pd.DataFrame, seed: int, scheme: str = "permute") -> pd.DataFrame:
+def book_level_consistency(df: pd.DataFrame) -> dict:
+    """Between consecutive 6h rows of a market (t_i differing by exactly 6h): count the cases where
+    ``series_mid + y_series`` differs from the next row's ``series_mid``, and ``bm_next`` from the next
+    row's ``bm``, by more than ``LEVEL_TOL`` (the overlap the placebo's deduplication relies on)."""
+    d = df.assign(_c=pd.factorize(df["market_id"])[0], _t=df["t_i"].to_numpy(float)).sort_values(["_c", "_t"])
+    c, t = d["_c"].to_numpy(), d["_t"].to_numpy()
+    adj = (c[1:] == c[:-1]) & np.isclose(t[1:] - t[:-1], H6, atol=1.0)
+    sm, ys, bn, sm1, bm1 = (d[k].to_numpy(float) for k in ("series_mid", "y_series", "bm_next", "series_mid", "bm"))
+    with np.errstate(invalid="ignore"):
+        ms = adj & (np.abs(sm[:-1] + ys[:-1] - sm1[1:]) > LEVEL_TOL)
+        mb = adj & (np.abs(bn[:-1] - bm1[1:]) > LEVEL_TOL)
+    return {"adjacent_row_pairs": int(adj.sum()), "series_mid_mismatch_gt_tol": int(ms.sum()),
+            "bm_next_mismatch_gt_tol": int(mb.sum()), "tol": LEVEL_TOL}
+
+
+def shuffle_book_increments_placebo(df: pd.DataFrame, seed: int, scheme: str = DEFAULT_PLACEBO_SCHEME,
+                                    diag: dict | None = None) -> pd.DataFrame:
     """J3 placebo matched to the expanding estimator. Per market on the 6h grid, the book-mid and the
-    panel-series-mid level series are rebuilt from ONE within-market shuffle (same permutation for both)
-    of their joint 6h increments, inside contiguous runs of consecutive grid steps (start levels kept;
-    pairing the two keeps their contemporaneous co-movement but removes temporal dependence).
+    panel-series-mid level series are rebuilt from ONE joint draw (same indices for both) of the market's
+    pooled 6h increments (default scheme; ``permute`` shuffles within runs instead), inside contiguous
+    runs of consecutive grid steps (start levels kept; pairing the two keeps their contemporaneous
+    co-movement but removes temporal dependence).
     Recomputed from the rebuilt levels: ``bm``, ``bm_next``, ``d_bm_prev``, ``y_bm``, ``series_mid``,
     ``d_series_prev``, ``y_series``, ``e_t``, ``d_bm_x_w``, ``depth5c_usdc``, ``flow_pressure`` and the
     two mid-level controls ``ml_logit_mid`` / ``ml_abs_mid_dev``. NOT recomputable from the 6h grid and
@@ -1109,7 +1226,9 @@ def shuffle_book_increments_placebo(df: pd.DataFrame, seed: int, scheme: str = "
     lv = (np.column_stack([bm - g("d_bm_prev"), sm - g("d_series_prev")]),
           np.column_stack([bm, sm]),
           np.column_stack([g("bm_next"), sm + g("y_series")]))
-    n0, n1, n2 = _rebuild_shuffled_levels(codes, p, lv, seed, scheme)
+    n0, n1, n2 = _rebuild_shuffled_levels(codes, p, lv, seed, scheme, diag)
+    if diag is not None:
+        diag.update(book_level_consistency(df))
     out = df.copy()
     out["bm"], out["bm_next"] = n1[:, 0], n2[:, 0]
     out["d_bm_prev"], out["y_bm"] = n1[:, 0] - n0[:, 0], n2[:, 0] - n1[:, 0]
@@ -1129,13 +1248,18 @@ def shuffle_book_increments_placebo(df: pd.DataFrame, seed: int, scheme: str = "
 
 
 def book_placebo_family(df: pd.DataFrame, draws: int = 20, seed: int = 117, estimator: str = "expanding",
-                        n_boot: int = 20, scheme: str = "permute") -> dict:
-    """Run ``book_tests`` on ``draws`` increment-shuffle placebos; same reporting as ``placebo_family``.
-    NOTE: B2/B3 regress on e_t, a LEVEL (series minus book), so the permutation scheme's fixed run total
-    makes it a bridge that mean-reverts mechanically; see ``_rebuild_shuffled_levels``."""
-    out = [book_tests(shuffle_book_increments_placebo(df, seed + k, scheme), {}, n_boot, seed, estimator)
-           for k in range(draws)]
-    return {**_summarise_placebo(out, list(J3_IDS), estimator, seed), "scheme": scheme}
+                        n_boot: int = 20, scheme: str = DEFAULT_PLACEBO_SCHEME) -> dict:
+    """Run ``book_tests`` on ``draws`` increment-resampling placebos; same reporting as ``placebo_family``.
+    NOTE: B2/B3 regress on e_t, a LEVEL (series minus book), so the ``permute`` scheme's fixed run total
+    makes it a bridge that mean-reverts mechanically (hence the market-pooled bootstrap default); see
+    ``_rebuild_shuffled_levels``."""
+    out = []
+    diag: dict = {}
+    for k in range(draws):
+        out.append(book_tests(shuffle_book_increments_placebo(df, seed + k, scheme, diag if k == 0 else None),
+                              {}, n_boot, seed, estimator))
+    return {**_summarise_placebo(out, list(J3_IDS), estimator, seed), "scheme": scheme,
+            "level_consistency": diag}
 
 
 def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, seed: int = 116,
@@ -1183,10 +1307,21 @@ def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, s
         R = {c: cols[c] for c in (*C0, "bm", "e_t", "d_bm_prev", "w", "d_bm_x_w", "x6", "d_series_prev")}
         R.update(zdepth=zdepth, d1_term=d1_term, fp_s=fp_s)
     c0 = np.column_stack([R[c] for c in C0])
+    if estimator == "expanding":
+        # B2/B3 level controls come from the BOOK mid (recomputed from the rebuilt bm in the placebo), not
+        # from the series mid (which e_t = series - bm nearly spans): logit(bm) and |bm - 0.5|
+        with np.errstate(divide="ignore", invalid="ignore"):
+            lb = np.log(cols["bm"] / (1 - cols["bm"]))
+        ab = np.abs(cols["bm"] - 0.5)
+        R.update(lb=ex(lb), ab=ex(ab))
+        c0_lvl = np.column_stack([R[c] for c in C0 if c not in ("ml_logit_mid", "ml_abs_mid_dev")]
+                                 + [R["lb"], R["ab"]])
+    else:
+        c0_lvl = c0
     defs = {
         "B1": (cols["y_bm"], R["d_bm_prev"], np.column_stack([c0, R["bm"]]), 0),
-        "B2": (cols["y_series"], R["e_t"], np.column_stack([c0, R["bm"], R["d_bm_prev"]]), 0),
-        "B3": (cols["y_bm"], R["e_t"], np.column_stack([c0, R["bm"], R["d_bm_prev"]]), 0),
+        "B2": (cols["y_series"], R["e_t"], np.column_stack([c0_lvl, R["bm"], R["d_bm_prev"]]), 0),
+        "B3": (cols["y_bm"], R["e_t"], np.column_stack([c0_lvl, R["bm"], R["d_bm_prev"]]), 0),
         "B4": (cols["y_bm"], R["d_bm_x_w"], np.column_stack([c0, R["d_bm_prev"], R["w"]]), 0),
         "D1": (cols["y_series"], R["d1_term"], np.column_stack([c0, R["x6"], R["zdepth"]]), None),
         "D2": (cols["y_bm"], R["fp_s"], np.column_stack([c0, R["x6"]]), 1),
@@ -1199,6 +1334,13 @@ def book_tests(df: pd.DataFrame, spec: dict | None = None, n_boot: int = 2000, s
             r.update(testable=False, p=1.0, reason="fewer than 30 complete judgement rows")
             res["tests"][name] = r
             continue
+        if name in ("B2", "B3") and estimator == "expanding":
+            r["collinear_r2"] = _r2(x[mj], Z[mj])
+            if r["collinear_r2"] > COLLINEAR_R2:
+                r.update(testable=False, p=1.0, reason="untestable (collinear)",
+                         status="untestable (collinear)")
+                res["tests"][name] = r
+                continue
         sign = fixed_sign
         if name == "D1":
             sign = None
@@ -1266,9 +1408,12 @@ def book_verdicts(res: dict) -> dict:
 
 def log_trials(job: str, results: dict, results_path: str, results_sha256: str, run_id: str,
                prov: dict, placebo: dict | None = None, path: Path = provenance.TRIALS_PATH,
-               dataset: str | None = None, revision: str | None = None) -> list[dict]:
+               dataset: str | None = None, revision: str | None = None,
+               family_status: str | None = None) -> list[dict]:
     """One trial line per test (kind bounce_decomp / book_decomp), one ml_explain count line, and
-    one placebo line (count 0) per test. ``job`` is "J4" or "J3". Appends to ``path``."""
+    one placebo line (count 0) per test. ``job`` is "J4" or "J3". Appends to ``path``. ``family_status``
+    (default: ``results["family_status"]``) is written into every trial line when set."""
+    family_status = family_status or results.get("family_status")
     kind = KIND_J4 if job == "J4" else KIND_J3
     role = "exploratory_dev" if job == "J4" else "exploratory_historical"
     dataset = dataset or ("snapshots" if job == "J4" else "history:h2_main")
@@ -1276,14 +1421,16 @@ def log_trials(job: str, results: dict, results_path: str, results_sha256: str, 
     written = []
 
     def line(name: str, t: dict, role_: str, tag: str) -> None:
+        fs = {"family_status": family_status} if family_status else {}
         written.append(provenance.append_trial({
-            "status": "ok", "dataset": dataset, "preset": f"{name}{tag}", "run_id": run_id,
+            **fs, "status": "ok", "dataset": dataset, "preset": f"{name}{tag}", "run_id": run_id,
             "label": LABEL, "kind": kind, "evidence_role": role_, "revision": revision or f"sb2_{job.lower()}",
             "result_path": results_path, "results_sha256": results_sha256,
             "summary": _clean({**{k: t.get(k) for k in ("beta", "se", "p", "p_holm", "reject", "n",
                                                         "ci95", "mde_80", "p_one_sided",
                                                         "advance_stage1")},
-                               **{k: t[k] for k in ("covers_zero", "betas", "beta_sd") if k in t}}),
+                               **{k: t[k] for k in ("covers_zero", "betas", "beta_sd", "placebo_status",
+                                                    "collinear_r2") if k in t}}),
             "provenance": prov}, path))
 
     for n in names:
@@ -1293,6 +1440,7 @@ def log_trials(job: str, results: dict, results_path: str, results_sha256: str, 
         if placebo and n in placebo.get("tests", {}):
             line(n, placebo["tests"][n], "placebo", ":placebo")
     written.append(provenance.append_trial({
+        **({"family_status": family_status} if family_status else {}),
         "dataset": dataset, "evidence_role": role, "kind": "ml_explain", "label": "EXPLORATORY",
         "n_tests": len(names), "revision": revision or f"sb2_{job.lower()}", "run_id": run_id,
         "source": f"screening_batch_2:{job}", "results_sha256": results_sha256,
