@@ -1138,3 +1138,11 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   all LODO-sign-stable. Details and descriptives: `SCREENING_BATCH_2.md` "Results / J4".
 - **Next:** diagnostic q0031 (no trials). A corrected null and any re-read go to the challenger before anything is
   stated. J4 never closes Q5 alone (supporting evidence for J3).
+
+## Development screen SB2-J5 — sibling lead-lag re-screen on the 2h snapshot cadence (q0005, 2026-10-15)
+- **Status:** counted (8 `leadlag_screen` lines), development, not evidence.
+- **Result:** SB2 rule (drafting rule + ΔR² ≥ 0.001) met by L1 (+0.0142, CI [+0.0060, +0.0217], 42/50 periods), L2
+  (duplicate of L1) and L4 (+0.0114); L3 not met (+0.0008). Candidate: L1, an event-level *reversal* (corr(L1, dmid)
+  −0.19). Holds on fresh periods only (34/39 positive).
+- **Limits:** increment is over R only; R + L1 < B3; target is the Gamma mid (see J4 placebo issue); not tradable as
+  shown. Next: L1-beyond-B3 and sweep-mid checks on later captures before any registration.

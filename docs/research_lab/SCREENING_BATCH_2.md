@@ -1107,3 +1107,33 @@ favourable tercile (it is chosen on h2 judgement rows and used only on h3).
 - **Descriptive (not tested):** `chg_1h` attenuation 0.34 (−0.251 alone → −0.166 with controls); `chg_1h` on
   (Δltp, Δmid) R² 0.28, coefficient on Δmid 0.49, Δltp ≈ 0 (so `oneHourPriceChange` tracks the mid more than the last
   trade); far-touch bid after an ask move −0.004, ask after a bid move −0.074.
+
+### J5 (q0005, run `leadlag-sb2-snap2h`, finished 2026-10-15 23:05Z): SB2 rule MET for L1 (one candidate)
+- **Run.** 82.9 min; gap filter [1.5, 3] h excluded 5 periods (the 10-10 development spacing and the host outage);
+  `all_periods` 51 periods, 2,394,749 pairs, 126,269 markets, 34,025 event clusters; `neg_risk_periods` 49 periods.
+  8 `leadlag_screen` lines appended on the host (family unchanged: 4 variants × 2 configurations).
+- **Verdict (from `meets_sb2_rule` only, as declared):**
+
+  | Variant | ΔR² vs R (CI) | realised MDE | positive periods | SB2 rule |
+  |---|---|---|---|---|
+  | L1 sibling move | +0.0142 [+0.0060, +0.0217] | 0.0134 | 42/50 | **met** |
+  | L2 divergence (duplicate of L1 by construction) | +0.0134 [+0.0056, +0.0206] | 0.0128 | 42/50 | met (not independent) |
+  | L3 neg-risk sum change | +0.0008 [+0.0005, +0.0011] | 0.0005 | 44/50 | not met (below the 0.001 floor) |
+  | L4 sibling count/activity | +0.0114 [+0.0068, +0.0158] | 0.0076 | 42/50 | met |
+
+  `neg_risk_periods` agrees (L1 +0.0155, L4 +0.0122). Fresh periods only (capture_i ≥ 2026-10-12, descriptive):
+  L1 mean +0.0140, 34/39 positive, so the result does not rest on the periods shared with `leadlag-62d593a402`.
+  Declared candidate: **L1**.
+- **Reading.** corr(L1, dmid) = −0.19 with corr(L1, chg_1h) = 0.32: when the other markets of the event moved up in the
+  last hour, this market's Gamma mid tends to fall over the next 2h. It is a reversal signal at the event level, not a
+  lead.
+- **Caveats (binding on any next step).**
+  1. The increment is over R (ridge on `chg_1h`). R + L1 still loses to the full B3 model (ΔR² −0.017, CI
+     [−0.021, −0.012]), and whether L1 adds anything beyond B3 has not been tested. Mission §4B requires that.
+  2. The target is the Gamma mid, and the J4 placebo (above) shows a non-temporal channel in Gamma-mid changes that is
+     not understood yet. An event-level reversal is what correlated Gamma quote noise across siblings would produce.
+  3. E004 showed the own-market Gamma-mid reversal is not tradable at taker costs. No economic claim is made.
+- **Next (not run):** after q0031, a small design addendum: (a) L1 added to B3, development, on captures after this
+  run's last period (fresh, not re-using these 51); (b) the J4-style sweep-mid target (P1x analogue) to separate quote
+  noise. A registration (SEALED-P) needs (a) and (b) plus a design for the dependence between pairs in one event. The
+  internal related-market family is **not** retired (stop rule: met).
