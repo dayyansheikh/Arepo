@@ -7,27 +7,26 @@
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Server (Oracle):** collection every 2h, live trade monitor, Kalshi live test and the research queue: healthy at
-  22:51Z (measured; 1.5 GB RAM free, 13 GB disk free).
-- **Research queue:** running the bounce-test diagnostic. Next: the creative-batch data jobs, the batch-2 hypothesis
-  features, and the order-book table (part done, resumes).
-- **Batch 2, related markets (J5): one candidate.** When the other markets of the same event moved in the last hour,
-  this market's price tends to drift back the other way over the next 2 hours. The signal is stable (34 of 39 fresh
-  periods). But it only beats a simple baseline, not our best model; it may be quote noise; and it is not shown to be
-  tradable. Next comes a check on newer data. No registration yet.
-- **Bounce test (J4):** the failed sanity check came from comparing *different* markets with each other, not from
-  any market's own history. The reviewer agreed, but rejected re-using the same data to measure the "real" effect,
-  because a statistical bias could fake it. A clean re-test on fresh data from 16 Oct onward is designed (about 4 days of
-  data needed; it runs around 20 Oct).
-- **Batch 2, hypothesis battery (HB2): 6 of 13 ideas pass the first screen** (the shuffled-data check is clean).
-  Order-flow momentum is stronger in volatile and wide-spread markets, near resolution, and when it comes from
-  trades that are large for that market. One result (volatility) passes the strict all-tests-so-far bar (947 tests).
-  Now re-testing on 5,000 different markets (queued); only that counts as "replicated". Not yet tested against costs.
-- **Your creative priority: creative batch 1 is FROZEN** (00:37 UTC+1): all five tests are locked before any results
-  exist. The fresh 7,000-market download is running or next on the server. The first screens run as soon as that
-  data is sealed (a few days). **Creative batch 2** (weather favourites; impossible orderings in deadline ladders):
-  the reviewer asked for 11 changes, which are being applied. **A new round of original ideas** is being generated
-  (Fable, as you asked).
+- **Server (Oracle):** collection every 2h, live trade monitor, Kalshi live test and the research queue are all healthy
+  at 23:56Z (measured: 3.0 GB RAM free, 12 GB disk free). Running now: the order-book table and the creative-batch
+  data extractor. The fresh 7,000-market download is next.
+- **Related markets (J5): one candidate.** When the other markets of an event moved in the last hour, this market's price
+  tends to drift back over the next 2 hours. It is stable on fresh periods, but it only beats a simple baseline, may
+  be quote noise, and is not shown to be tradable. A check on newer data is planned. No registration yet.
+- **Bounce test (J4):** its failed sanity check came from comparing *different* markets, not from any market's own
+  history. A clean re-test is now **frozen**. It runs on fresh data from 16-20 Oct, on about 21 Oct.
+- **Hypothesis battery (HB2): 6 of 13 ideas pass the first screen** (the shuffled-data check is clean). Order-flow
+  momentum is stronger in volatile and wide-spread markets, near resolution, and when it comes from trades that are
+  large for that market. One result (volatility) passes the strict bar that counts every test so far (947). It is now
+  being re-tested on 5,000 different markets; only that counts as "replicated". Costs are not tested yet.
+- **Your creative priority:**
+  - **Batch 1 is FROZEN** (5 tests, locked before any results exist). Screens start once the fresh data is sealed (a few days).
+  - **Batch 2** (weather favourites; impossible ladder orderings) passed review with changes. Its code is being
+    written now.
+  - **25 new original ideas** arrived (Fable). The theme: profit by being the patient side (the maker) at the right
+    moments, rather than by predicting prices. The best are being designed into **batch 3**: quoting only when it is
+    safe, and what happens when one side of the order book suddenly disappears.
+  - Nothing creative has been tested yet.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
