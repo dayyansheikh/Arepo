@@ -76,8 +76,12 @@ A healthy host shows `pass end` within the last 2 h with `state=complete`, both 
 4. Record the move back in `EXPERIMENT_LEDGER.md`.
 
 ## Nightly archive rotation (`backend/scripts/archive_rotate.py`)
-Status: written and unit-tested on the Mac (`tests/unit/test_archive_rotate.py`); **not installed** on the host. Added 2026-10-13
-by the archive session; see `DATA_ARCHIVE_2026-10-13.md`.
+Status (2026-10-15): **installed ARCHIVE-ONLY** (no `--delete`) at 03:30 UTC nightly, `--scan data-dumps/research_lab
+--older-than-days 1`, niced. `zstd` (dnf) and `gh` 2.62.0 (`~/.local/bin`) installed; `gh` logged in with a user-made fine-grained
+token (arepo-data only, Contents RW, no expiry) stored at `~/.arepo/github_token` (600). First run started 18:29Z (release
+`data-20261015-dsheikh`). Deletion is still OFF: `snapshots/` (3.1 GB, about 0.9 GB/day) is read by open E011/E004-E006
+status runs, so freeing space needs readers that restore from the archive first (or a reviewed rule) before the 12 GB cap
+(about 22 Oct). `/home/opc/arepo_val` is now E009/E010 evidence for the outage window (ledger, 2026-10-15): never delete it.
 
 What one run does:
 1. It selects the files under `--scan` dirs whose mtime is older than `--older-than-days` and skips `*.lock`, `*.pid`, `*.tmp`,
