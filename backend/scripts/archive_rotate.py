@@ -106,7 +106,10 @@ def archive_new(a, state, ledger):
     if not todo or a.no_archive:
         return None
     host = socket.gethostname().split(".")[0]
-    tag = free_tag(a.repo, "data-{}-{}".format(datetime.datetime.utcnow().strftime("%Y%m%d"), host))
+    base_tag = "data-{}-{}".format(datetime.datetime.utcnow().strftime("%Y%m%d"), host)
+    if getattr(a, "tag_suffix", None):
+        base_tag += "-" + a.tag_suffix
+    tag = free_tag(a.repo, base_tag)
     listf = os.path.join(state, f"list_{tag}.txt")
     with open(listf, "w") as o:
         o.write("\n".join(todo) + "\n")
@@ -263,6 +266,10 @@ def main():
         "--retention",
         help="JSON with per-directory deletion rules (prefix, older_than_days, keep globs); "
         "with it, directories without a rule are never deleted",
+    )
+    ap.add_argument(
+        "--tag-suffix",
+        help="label added to the release tag, e.g. val for the /home/opc/arepo_val copy (use a separate --state too)",
     )
     ap.add_argument("--dry-run", action="store_true", help="with --delete: log would_delete only")
     ap.add_argument(
