@@ -1,7 +1,8 @@
 # Screening batch 2 (SB2): conditional flow, liquidity regimes, related markets, bounce, interactions
 
 `evidence_role: exploratory_historical` (history jobs) / `exploratory_dev` (prospective-snapshot jobs) | status: **DRAFT
-design, not frozen**. Last updated 2026-10-15 19:54 UTC+1.
+design, not frozen; challenger round 1 required changes applied (response at the end)**. Last updated 2026-10-15
+20:45 UTC+1.
 
 This file is the design for the next batch of development screens. It answers mission §10 questions Q2-Q6
 (`AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`).
@@ -28,8 +29,9 @@ differ: the runnable-now job goes first while the code for the others is written
 | 8 | **J6** Stale-follower sibling diffusion: h3 sibling fetch and frozen replication (conditional) | Q4 | `h3_power` + public Gamma/CLOB | q0014, q0015 | needs code (small) | 2.5 (mostly network) | 0.8 GB |
 
 **Why this order.**
-- J4 is cheap and settles a mechanism question outright (is the E002/E004 reversal last-trade bounce, one-sided quote
-  refill, or genuine mean reversion of the book mid?).
+- J4 is cheap and informs a mechanism question (is the E002/E004 reversal last-trade bounce, Gamma quote noise,
+  one-sided quote refill, or genuine mean reversion?). After the challenger review it is supporting evidence only; J3
+  (true book-mid targets) is the primary Q5 test.
 - J1 and J2 are the core of Q2 and Q3. J1 is only a screen on worn data, so it is worth little without J2.
 - J5 needs no code and powers up an inconclusive result (L1 MDE about 0.012), but its prior is weak (E005 not
   supported, XM3-XM6 null).
@@ -67,8 +69,9 @@ differ: the runnable-now job goes first while the code for the others is written
   - It is to be built no earlier than **2026-11-16** with
     `backfill_history.py run --run-id h4_seal --seed arepo-h4-seal --exclude-runs h1_first,h2_main,h3_power --lookback-days 35`,
     then `panel`.
-  - Analyses on it may use only origins `t >= T_seal`, where `T_seal` is the commit time of this file's freeze. Every
-    origin therefore postdates every SB2 declaration.
+  - Analyses on it may use only origins `t >= T_seal`, with **`T_seal` fixed at 2026-10-22T00:00Z** (challenger item
+    12: one date, not per-family freeze times). Any SB2 family not frozen by then may not use SEALED-H4 at all; it
+    would need its own later seal. Every usable origin therefore postdates every SB2 declaration that may use it.
   - Read rules: no SB2 job may read it. At most one read per registered candidate family, and at most three reads
     programme-wide (FDP §3).
   - Its manifest records the seal and a sha256 of the panels before any read.
@@ -112,12 +115,17 @@ Any candidate's confirmation must come from SEALED-P (registration) or SEALED-H4
   - Each run also writes one `ml_explain` count line (`source: "screening_batch_2:<job>"`, `n_tests`) so both existing
     counters see it.
   - Placebo lines carry `evidence_role: "placebo"` and count 0.
-- **Count defect to fix in J1's code.** `battery.prior_test_count()` skips the `ml_explain` line with
-  `source == "hypothesis_battery_1"`. HB1's 72 tests are therefore missing from later recounts. The local recount gives
-  598, the corrected value is 670, and the host has more automatic `flow_screen` lines.
-  - SB2 uses a new `battery2.cumulative_count()`: every non-placebo `ml_explain` `n_tests` (all sources) plus one per
-    non-placebo line of `battery.PRIOR_KIND_ONE` kinds.
-  - The value at run time is recorded in each results file.
+- **Count defect (fixed, commit 991f04e, challenger item 1).** `battery.prior_test_count()` skips the `ml_explain` line
+  with `source == "hypothesis_battery_1"`, and both old counters omit several non-placebo kinds. Old counters are left
+  unchanged (frozen past runs used them).
+  - SB2 uses `battery2.cumulative_count()` (rule version `battery2-count-v1`). `KIND_RULES` lists **every** kind in
+    `trials.jsonl` with its rule (one per line, `n_tests`/`m_tests`, or excluded with a written reason, e.g.
+    `history_battery` lines are the 72 tests already carried by the HB1 `ml_explain` line). Unknown kinds raise.
+    Placebo lines count 0. A unit test runs it against the real `trials.jsonl`.
+  - Local value at 2026-10-15 ~19:30Z: **906** (old counter 598; +72 HB1, +95 economics, +82 cross-venue, +46
+    surprise detector, +12 case lines, +1 IF-H2). The host value is higher (automatic `flow_screen` lines).
+  - The value at run time, with the per-kind table, is recorded in each results file. The **same total** is passed as
+    `prior_tests` into `regime_study`, `interaction_validation` and the J7 contrasts.
 - **Placebos.**
   - Each history family is run once more on globally permuted targets (HB1's calibration placebo: expect about 5% of
     p < 0.05 and no advance).
@@ -156,10 +164,19 @@ Any candidate's confirmation must come from SEALED-P (registration) or SEALED-H4
 **Why this is not a re-run.**
 - HB1 established flow continuation (FL1-FL10) and three moderators: quiet (IX3), longshot (PX6) and near-end (IX4,
   binary 72h, null p 0.017). HB1-R replicated FL2/FL3/FL6/IX3/PX6.
-- None of the moderators below was tested, except F3 and F6, which are partial re-tests:
+- **Overlaps with earlier tests (disclosed, challenger item 8).** Several terms are partial re-tests, not new:
+  - **F1 and F8 overlap IX3** (`battery.py:2220-2231`: `f_imb_6h × f_quiet`, population `n6h_quiet`). Quiet is a
+    low-activity dummy and is strongly correlated with low `L`; F1/F8 are its continuous, notional-based versions.
+    IX3 replicated on h3, so an F1/F8 advance is expected and adds little unless it survives with `f_quiet` (and
+    `f_quiet × x6`) added as controls. That joint fit is a declared robustness check on any advanced F1/F8.
+  - **F2 overlaps IX3** for the same reason (trade count vs quiet).
+  - **L1 duplicates E001 B3 `chg1d_x_logliq`** (`panel.py:93`: `chg_1d × log_liq`) in a different frame
+    (history series, 24h target, notional liquidity instead of Gamma `liquidity`). It is a re-test of a
+    prospective-model feature, not a new idea.
   - **F3** replaces IX4's 72h dummy (about 4% of flow rows) with a continuous time-to-end moderator over the full range.
   - **F6** drops IX2's top-1 wallet factor, which WA4 showed is redundant with total imbalance, and tests price
     absorption alone.
+  - Genuinely new: F4, F5, F7, L2 and X1-X3 (conditioning on own-market staleness).
 - X1-X3 condition the null sibling averages (XM3-XM6, E005, L1) on a stale own market, which is where diffusion
   theory predicts the effect would concentrate.
 
@@ -202,6 +219,16 @@ Any candidate's confirmation must come from SEALED-P (registration) or SEALED-H4
 New feature for F7, computed causally per market from `trades/<market>.csv.gz` with `battery.Trades` semantics:
 - `q80(trade)` = 80th percentile of USDC notional over the market's trades in the 30 days strictly before the trade.
   It needs at least 20 prior trades, otherwise the trade is unclassified.
+- **Full lookback coverage (challenger item 12).** A trade is classified only if the stored trade history is
+  untruncated over `[t_trade − 30d, t_trade)`: the stored history starts at or before `t_trade − 30d`, or it starts at
+  the market's first trade. `x_big6` and `x_rest6` are NaN when more than 10% of the window's notional is
+  unclassified.
+
+**Look-ahead sensitivity for F3 (challenger item 9).** `ml_log_hours_to_end` uses the Gamma `endDate` listed at fetch
+time. A market that resolved early (or whose end date was moved) leaks its true end into TTE. Declared sensitivity for
+any advanced F3, and for the J7 `time_to_resolution` contrast: re-run excluding markets whose frame `closed_time` is
+more than 24h before `end_at` (`history_backfill.py:299-304, 341`). If the sign flips or the estimate halves, the F3
+result is reported as "not robust to end-date look-ahead".
 - `x_big6` = sum(sgn·n) / sum(n) over price-aligned 6h trades with n >= q80. `x_rest6` is the same for the others.
 - The 30-minute-shifted variant is built too.
 
@@ -209,8 +236,9 @@ New feature for F7, computed causally per market from `trades/<market>.csv.gz` w
 - One family of **13** tests: one `history_battery2` line each, plus one `ml_explain` count line (n_tests = 13).
 - The global-permutation placebo is logged as placebo.
 - MDE: HB1's FL2 judgement SE is about 0.06c per SD and FL3's about 0.07c. An interaction with a unit-SD moderator has an
-  SE of about 0.07-0.09c. At the Stage-1 gate (one-sided p < 0.01) the 80%-power MDE is therefore about **0.22-0.28c per
-  SD per SD**, roughly 2/3 of the main flow effect per SD of moderator. Smaller moderation cannot be detected here.
+  SE of about 0.07-0.09c. At the Stage-1 gate (one-sided p < 0.01, z 2.33 + 0.84 = 3.17) the 80%-power MDE is therefore
+  about **0.22-0.29c per SD per SD**, about **70-90% of FL2's main effect** (+0.318c per SD) per SD of moderator.
+  Smaller moderation cannot be detected here.
   X-family power is low (HB1 XM3: 201 judgement events).
 
 **Compute.**
@@ -249,13 +277,23 @@ New feature for F7, computed causally per market from `trades/<market>.csv.gz` w
 
 **Stop rule.**
 - If no F or L test advances, the h3 runs for those families are skipped and the conclusion is "flow continuation is not
-  materially moderated by these variables at MDE about 2/3 of the main effect". No further historical flow-moderator
+  materially moderated by these variables at MDE about 70-90% of the main effect". No further historical flow-moderator
   batteries; flow work continues prospectively only (E007 family).
 - If no X test advances, J6 auto-skips.
 
 ### J2: HB2-R, frozen replication on `h3_power` (q0009 features, q0010 replicate)
 
 **Question:** do the J1 tests that advanced replicate on independent markets?
+
+**Read count on h3 (challenger item 10).** h3_power has been read three times (h3_replication ML on a seeded
+2,138-market subset, HB1-R, the surprise-detector replication). FDP §3's "≤ 3 reads per source programme-wide" governs
+**sealed historical holdouts**; h3_power was built as development replication data and was never sealed, so it is not
+formally bound. It is nevertheless worn, so SB2 treats it as follows:
+- J2, J6 and J8 are its reads 4, 5 and 6, each frozen-definition only (no discovery, no re-estimation), disclosed in
+  every results file and ledger line.
+- J8 uses only the h3 markets **outside** the seed-7 h3_replication subset (about 2,974 markets never read by ML).
+- The evidence ceiling from h3 is "development-replicated" (L2-dev). Nothing read on h3 confirms.
+- **After SB2, h3_power is retired from replication use.** Any later replication needs SEALED-H4 or new markets.
 
 **Treatment of h3 (4th read):**
 - Definitions, signs, scalings, z-parameters and cuts come from `hb2_v1.json` (h2 discovery) unchanged.
@@ -268,8 +306,14 @@ New feature for F7, computed causally per market from `trades/<market>.csv.gz` w
 **Counting:** one `history_battery2_replication` line per test plus a count line. The non-advanced tests are **not**
 run on h3; this saves budget and avoids an undeclared second discovery.
 
-**Power:** h3's flow tests use 2,100 events against h2's 425, but the slope SE is similar (FL2 h3 about 0.07c). With
-Holm over k ≤ 5, the MDE is about 0.22-0.25c per SD per SD.
+**Power (challenger item 12):** h3's flow tests use 2,100 events against h2's 425, but the slope SE is similar (FL2 h3
+about 0.07c, interactions about 0.07-0.09c). k is the number of advanced F/L tests (at most 10). For the hypothesis
+Holm tests first, one-sided α/k: k = 1 gives z 1.645 + 0.84 → MDE about 0.17-0.22c; k = 10 gives z 2.576 + 0.84 →
+MDE about 0.24-0.31c per SD per SD.
+
+**Economics (challenger item 12):** the "favourable moderator tercile" for the paper cost check is fixed from **h2**
+(the tercile with the largest h2 judgement continuation slope, cut on h2 discovery rows) and written into the J1
+results before J2 runs. It is never re-chosen on h3.
 
 **Compute:**
 - q0009 `size_features` on 5,112 markets: about 1 h, 2 GB.
@@ -318,8 +362,11 @@ Holm over k ≤ 5, the MDE is about 0.22-0.25c per SD per SD.
 - Six tests, kind `book_decomp`, plus a count line.
 
 **Verdict map (declared):**
-- **Measurement/bounce:** B2 rejects with B1 not rejecting, and the B1 CI excludes E004-scale reversal (a slope of
-  about -0.2).
+- **Horizon-matched benchmark (challenger item 12; E004's −0.2 was a 1h-change/2h-target slope and is not used).**
+  On the same J3 rows, regress the 6h series change on the previous 6h series change (C0 controls). Its slope `ρ_s` is
+  a descriptive benchmark, not a counted test.
+- **Measurement/bounce:** B2 rejects with B1 not rejecting, and the B1 95% CI lies entirely above `ρ_s / 2` (the
+  book mid reverses less than half as much as the series).
 - **Quote refill:** B1 rejects with B4 rejecting.
 - **Book-mid mean reversion:** B1 rejects with B4 not rejecting.
 - Otherwise inconclusive, with the MDE stated.
@@ -334,8 +381,13 @@ Holm over k ≤ 5, the MDE is about 0.22-0.25c per SD per SD.
 **Code:** `bounce_decomp.build_book_triples(features_path, book_table, panel_6h)` and `book_tests(...)`, in the same
 module as J4; see J4 for tests.
 
-**Stop rule:** J3 and J4 together close Q5. No further bounce screens. A maker-side (passive) capture study would need
-its own design.
+**Stop rule:** J3 is the primary Q5 test (true book-mid targets); J4 is supporting evidence only (challenger item 4).
+Q5 closes for history only if J3 reaches a verdict other than "unavailable" or "inconclusive". No further bounce
+screens either way. A maker-side (passive) capture study would need its own design.
+
+**Overlap (challenger item 8).** B1/B2 overlap HB1 MI2/MI6 and candidate C3 (`HYPOTHESIS_BATTERY_1.md:564-571`: the
+2h series reversal is moderated by trade confirmation, c = −0.27, e = +0.34). J3 differs by using the pmxt book mid
+as a separate measurement, at 6h.
 
 ### J4: Bounce decomposition of the 2h reversal on prospective snapshots (q0006)
 
@@ -347,6 +399,15 @@ its own design.
 - Nobody has decomposed the reversal by where the last trade sat in the spread, or by which side of the quote moved.
 - `chg_1h` is Gamma's `oneHourPriceChange`, whose price basis is not documented.
 
+**Overlaps (challenger item 8):** HB1 C3 (MI2/MI6 moderated by trade confirmation, `HYPOTHESIS_BATTERY_1.md:564-571`),
+E006 H1, and the E001 B3 feature `ltp_minus_mid` (P2's `b_pos` is a spread-scaled, clipped version of it).
+
+**Limit (challenger item 4).** A transient error in Gamma's mid at `i` enters both `mid_i − mid_h` and
+`mid_j − mid_i`, so P1 < 0 arises from genuine reversion **or** from Gamma quote noise. P1 is therefore labelled
+"Gamma-mid reversal" and is not read as genuine reversion. P1x uses an independent measurement of the mid at `i`
+(the CLOB book sweep of the same pass) to separate the two. P3 inherits the same limitation. **J4 does not close Q5;**
+it is supporting evidence for J3.
+
 **Data:**
 - Complete captures in `research_lab/snapshots` up to run time: 59 capture directories on the host at 2026-10-15
   18:52Z, about 57 consecutive pairs.
@@ -356,25 +417,52 @@ its own design.
   - `chg_1h`, spread;
   - `b_pos` = clip((`last_trade_price` − mid) / (spread/2), −1, 1) (where the last trade sat; NaN if spread ≤ 0 or no
     LTP);
-  - `liquidity`.
+  - `liquidity`, `volume24hr`.
 - From `h`: `Δbm_prev` = mid_i − mid_h; `Δbid`, `Δask`; `w` as in J3.
+- From the CLOB book sweep of the pass that wrote capture `i` (`book_sweeps/`, E001-eligible binary markets, outcome-0
+  token, taken minutes after the Gamma capture): `B_i` = (best bid + best ask)/2 from a two-sided, non-crossed book.
+  The lag between the Gamma receipt and the sweep's `batch_receipt_utc` is recorded per row; rows with lag > 20 min
+  are excluded from P1x.
+- **`b_pos` freshness (challenger item 7).** Gamma's `last_trade_price` has no timestamp. P2 uses only rows with
+  `volume24hr_i > volume24hr_h` (a rolling-24h volume can only rise if new trades arrived in `(h, i]`, so the last trade
+  is at most about 2h old). The share of rows dropped is reported, overall and by liquidity tercile.
 
-| ID | Tested term (target `dmid`, next capture) | Controls | Prior | Reading |
-|---|---|---|---|---|
-| P1 | `Δbm_prev` | spread, `b_pos` | - | the book mid itself reverses over ~2h |
-| P2 | `b_pos` | `Δbm_prev`, `chg_1h`, spread | two-sided | last-trade position predicts the mid (+: flow/inventory; 0: pure bounce) |
-| P3 | `Δbm_prev · w` | `Δbm_prev`, `w` | - | one-sided quote moves revert more (refill) |
-| P4 | `chg_1h` | `Δbm_prev`, `b_pos`, spread | - | the E004 reversal survives once book-mid change and bounce position are controlled |
+| ID | Tested term | Target | Controls | Prior | Reading |
+|---|---|---|---|---|---|
+| P1 | `Δbm_prev` | Gamma `mid_j − mid_i` | spread, `b_pos` | - | Gamma-mid reversal (genuine reversion and Gamma quote noise not separable) |
+| P1x | `Δbm_prev` | Gamma `mid_j` − sweep `B_i` | spread | - | the mid reverses after an independent measurement at `i` (genuine reversion) |
+| P2 | `b_pos` | Gamma `mid_j − mid_i` | `Δbm_prev`, `chg_1h`, spread | two-sided | last-trade position predicts the mid (+: flow/inventory; 0: pure bounce) |
+| P3 | `Δbm_prev · w` | Gamma `mid_j − mid_i` | `Δbm_prev`, `w` | - | one-sided quote moves revert more (refill) |
+| P4 | `chg_1h` | Gamma `mid_j − mid_i` | `Δbm_prev`, `b_pos`, spread | - | the E004 reversal survives once mid change and bounce position are controlled |
+
+Under pure Gamma quote noise, P1 < 0 and P1x ≈ 0. Under genuine reversion, both are < 0. P1x's own error source is
+genuine movement during the Gamma→sweep lag, which biases P1x toward 0 (conservative for "genuine reversion").
+
+**Verdict map (declared, challenger item 5).** Units: cents of mid per cent of `Δbm_prev` (slopes) and cents per unit
+`b_pos`. `hs` = median half-spread (cents) on the P2 rows. Holm-adjusted rejections at 0.05; "equivalent to 0" means
+the 90% CI lies inside the stated band (TOST at 0.05).
+- **Gamma-mid reversal present:** P1 rejects.
+- **Genuine reversion:** P1 and P1x both reject, with P1x's estimate at least half of P1's. **Quote noise:** P1
+  rejects, P1x is equivalent to 0 within ±0.05, or P1x's 95% CI lies above P1/2.
+- **Pure bounce (no information in the last trade):** P2 equivalent to 0 within ±0.1·`hs`. **Informed last trade:**
+  P2 rejects positive. A negative P2 is reported as "anomalous" without a mechanism claim.
+- **Quote refill (supporting only):** P3 rejects, and the genuine-reversion label holds.
+- **E004 reversal explained:** P4 does not reject and its 95% CI lies above −0.05 (residual reversal under about 22%
+  of E004's −0.226). **Not explained:** P4 rejects. Otherwise inconclusive.
+- Any other combination: "inconclusive", with each test's MDE stated.
+- **Leave-one-day-out (binding, challenger item 6):** a test's verdict stands only if its point estimate has the same
+  sign as the full-sample estimate in every leave-one-calendar-day-out fit (every UTC day in the window). Otherwise its
+  verdict is "inconclusive (day-unstable)", whatever its p-value.
 
 Also reported (descriptive, not tested):
 - Attenuation 1 − γ_full / γ_alone of the `chg_1h` coefficient.
 - Regression of `chg_1h` on (ltp_i − ltp_h) and (mid_i − mid_h), which reveals `oneHourPriceChange`'s basis.
 - The far-touch version of P1 (target: bid change after a past ask-led fall), to tie it to E004's touch-to-touch loss.
 
-**Family:** Holm at 0.05 over P1-P4. Kind `bounce_decomp`, plus a count line (n_tests = 4).
+**Family:** Holm at 0.05 over P1, P1x, P2, P3, P4. Kind `bounce_decomp`, plus a count line (n_tests = 5).
 
-**Uncertainty:** event-clustered and two-way event × period, with p = max. The leave-one-day-out range (5 days) is
-reported.
+**Uncertainty:** event-clustered and two-way event × period, with p = max. The leave-one-day-out estimates are reported
+and are binding for signs (verdict map).
 
 **Placebo:** targets permuted across captures within market (time link broken).
 
@@ -386,7 +474,8 @@ memory at a time. About 30 min to build plus 20 min of tests, about 1.5 GB.
 
 **Code:**
 - `backend/astrolabe/research_lab/bounce_decomp.py`:
-  - `build_snapshot_triples(snapshot_root, until_utc=None, log=None) -> (DataFrame, counts)`;
+  - `build_snapshot_triples(snapshot_root, sweep_root, until_utc=None, log=None) -> (DataFrame, counts)` (joins the
+    pass's book sweep for `B_i` and its lag);
   - `build_book_triples(...)` (J3);
   - `snapshot_tests(df, n_boot, seed)`;
   - `book_tests(df, spec, n_boot, seed)`;
@@ -401,9 +490,12 @@ memory at a time. About 30 min to build plus 20 min of tests, about 1.5 GB.
   - Synthetic pure-measurement world: the series reverts, the book mid does not → B2 negative, B1 about 0.
   - Synthetic one-sided-withdrawal-and-refill world → P3/B4 negative.
   - Synthetic random walk → all about 0.
+  - Synthetic Gamma-noise world (transient error on the Gamma mid only) → P1 < 0, P1x ≈ 0.
+  - P2 rows require `volume24hr_i > volume24hr_h`; sweep rows with lag > 20 min are excluded from P1x.
+  - The leave-one-day-out sign rule downgrades a verdict to "inconclusive (day-unstable)".
   - Holm ordering.
 
-**Stop rule:** as J3 (Q5 closes after J3 and J4).
+**Stop rule:** see J3. J4 alone never closes Q5.
 
 ### J5: Sibling lead-lag re-screen on the 2h snapshot cadence (q0005, runnable now)
 
@@ -420,10 +512,19 @@ change (L3) predict a market's next-snapshot move beyond the reversal ridge?
 **Disclosed overlap:** about 10 of the 57 periods (2026-10-10/11) were in the earlier run. A fresh-periods-only summary
 is reported descriptively from `per_period_vs_R`.
 
-**Family:** 4 variants × 2 configurations = 8 `leadlag_screen` lines (counted 1 each by the declared rule). The decision
-uses the module's declared drafting rule (pooled ΔR² CI above 0 **and** at least 75% positive periods).
+**Gap filter (challenger item 11).** `build_all` pairs every consecutive complete capture without a gap check, so
+the 10h host outage and the 0.1-3.4h development periods of 10-10/11 would enter. J5 runs with a new `--gap-h 1.5,3`
+flag: a period enters only if its median pair horizon lies in [1.5, 3] h. Default behaviour (no flag) is unchanged,
+so the earlier run stays reproducible. Excluded periods are listed in the results.
 
-**MDE:** if per-period variance dominates, as before, about 0.012 × sqrt(14/57) ≈ 0.006.
+**Family:** 4 variants × 2 configurations = 8 `leadlag_screen` lines (counted 1 each by the declared rule). The decision
+uses the module's declared drafting rule (pooled ΔR² CI above 0 **and** at least 75% positive periods) **plus a
+materiality floor declared here before the run (challenger item 11): pooled ΔR² ≥ 0.001** (an incremental partial
+correlation of about 0.03). L3 met the old rule with ΔR² ≈ 0.0002, which is immaterial. The results file records both
+`meets_drafting_rule` and `meets_sb2_rule`; only the latter is used.
+
+**MDE:** sqrt(14/57) × 0.012 ≈ 0.006 assumes independent periods. Periods within a UTC day share shocks, so the
+realised MDE is reported from the run's own cluster-bootstrap SE and the J5 verdict uses that value, not 0.006.
 
 **Compute:**
 - Pairs for 57 periods: about 2.5M rows. One ridge walk-forward and 1,000 event-cluster bootstraps per variant and
@@ -433,8 +534,10 @@ uses the module's declared drafting rule (pooled ΔR² CI above 0 **and** at lea
   flag, which needs code.
 
 **Stop rule:**
-- Drafting rule not met at MDE ≤ 0.006, together with no X test advancing in J1: retire the Polymarket-internal
+- SB2 rule not met with realised MDE ≤ 0.006, together with no X test advancing in J1: retire the Polymarket-internal
   related-market family (E005, L1, XM, X). Cross-venue (E009/E010) continues.
+- SB2 rule not met with realised MDE > 0.006: "not detected at MDE x (underpowered)"; the family is parked, with no
+  further internal related-market screens until the snapshot archive holds at least 3x the periods.
 - Met: one candidate. A registration needs fresh captures (SEALED-P) and a design for the dependence between pairs in
   the same event.
 
@@ -476,8 +579,11 @@ Holm over the advanced X tests. Kind `history_battery2_replication`.
   run on history.
 - `DECLARED_REGIMES` uses `ml_log1p_liq` (Gamma liquidity), which is NaN on history, so a history regime set is needed.
 
-**Cells:** the two cells that replicated on h3 in `h3_replication`: **direction 2h** and **up-vs-down 6h**. The other
-cells are skipped to save budget and avoid fishing.
+**Cells (challenger item 2: chosen from h2 results only).** The draft picked the two cells that replicated on h3, then
+proposed to "replicate" on the same h3 subset. Revised rule, using h2 only: every cell where the flow family was
+`demonstrated_incremental_value` against M0v in r1 on h2 (`HISTORICAL_ML_DEV.md:186-187`): **direction 2h,
+up-vs-down 2h, up-vs-down 6h**. |move| 2h is excluded because r1's placebo gate blocked it. Which of these replicated
+on h3 played no role in the choice.
 
 **Design:**
 - Existing r1 folds, M0v, families, global-shuffle gate and leak control.
@@ -488,15 +594,28 @@ cells are skipped to save budget and avoid fishing.
   - `time_to_resolution`: `ml_log_hours_to_end` edges at 24h, 7d, 30d;
   - `trade_active`: `ml_tf_n_2h > 0`;
   - `price_extremity`: `mid_i` edges 0.1, 0.9.
-- Interactions: the top 10 pairs by Friedman H² on discovery out-of-fold rows (features of M0v + flow), validated on
-  judgement blocks by constrained versus free GBM.
+- **Tested quantity: differences between regimes, not within-regime gains (challenger item 3).** `regime_study` tests
+  the full model against the baseline inside each regime, so a cell can pass by construction wherever the pooled gain
+  exists; that does not answer Q3. The counted tests are four declared contrasts per cell. With `g_r` = mean per-row
+  (LL_baseline − LL_full) on judgement rows of regime `r`:
+  - C-LIQ: `g_high` − `g_low` (top minus bottom liquidity tercile);
+  - C-TTE: `g_<24h` − `g_>30d`;
+  - C-ACT: `g_active` − `g_inactive`;
+  - C-EXT: `g_extreme` − `g_middle` (extreme = `mid_i` < 0.1 or > 0.9).
 
-**Family and counting:** `regime_study` cells (12 × 2 = 24) and `interaction_validation` pairs (10 × 2 = 20), with BY
-over the cumulative count as `ml_explain` does. That is 44 tests, logged by the existing `ablation_trial` /
-`provenance.append_trial` path with `revision: r5_regime_ix`.
+  The CI comes from a cluster bootstrap over the conservative cluster (event and `dep_group`), resampling clusters and
+  recomputing both regime means. Two-sided. Within-regime gains from `regime_study` are reported as descriptive
+  estimates with CIs; they are not counted and drive no decision.
+- Interactions: the top **5** pairs per cell by Friedman H² on discovery out-of-fold rows (features of M0v + flow),
+  validated on judgement blocks by constrained versus free GBM.
+- The C-TTE contrast inherits the end-date look-ahead and carries the declared sensitivity (F3 note in J1).
 
-**Stage-1 advance:** a cell or pair "demonstrated" on judgement blocks, or with one-sided p < 0.01 and the early sign
-agreeing.
+**Family and counting:** regime contrasts (4 × 3 cells = 12) and `interaction_validation` pairs (5 × 3 = 15): **27
+tests**, BY labels over `battery2.cumulative_count()` passed as `prior_tests`. Logged by the existing
+`ablation_trial` / `provenance.append_trial` path with `revision: r5_regime_ix`, plus one `ml_explain` count line.
+
+**Stage-1 advance:** a contrast with two-sided p < 0.01 and the same sign on discovery blocks; a pair "demonstrated"
+on judgement blocks, or with one-sided p < 0.01 and the early sign agreeing.
 
 **Compute** (LightGBM single-thread, about 100k rows, 18 folds):
 - Ablation plus placebos as r1 for 2 cells: about 1.5 h.
@@ -515,12 +634,15 @@ agreeing.
 - Add `HISTORY_REGIMES` (in `ml_explain` next to `DECLARED_REGIMES`, with its own `regime_declaration_hash`).
   Discovery-only quantile cuts are stored in the results.
 - Tests in `backend/tests/test_research_lab_ml_explain.py` style:
-  - A planted interaction that acts only in the high-liquidity tercile is demonstrated in that cell on judgement
-    blocks.
+  - A planted signal that acts only in the high-liquidity tercile gives a positive C-LIQ contrast; a signal that
+    acts uniformly gives a C-LIQ contrast near 0 (the pass-by-construction failure mode is excluded).
+  - The contrast bootstrap resamples whole clusters that span regimes.
   - No planted effect gives no demonstration.
   - Tercile cuts depend on discovery rows only.
   - `--cells` runs only the declared cells.
   - `--frozen-from` reads pairs and cells exactly and does no discovery.
+  - `--exclude-markets-from` removes every listed market before sampling.
+  - `prior_tests` equals `battery2.cumulative_count()["total"]`.
 
 **Stop rule:** nothing advances → J8 exits 0 ("nothing to replicate"), and Q6 is closed for historical data ("no
 regime or pairwise interaction beyond what M2F already uses").
@@ -528,11 +650,13 @@ regime or pairwise interaction beyond what M2F already uses").
 ### J8: Frozen replication of J7 on `h3_power` (q0013)
 
 **Design:**
-- `--frozen-from` the J7 results: the same 2 cells, the same regime definitions, and h2 discovery cuts applied
-  unchanged.
+- `--frozen-from` the J7 results: the same 3 cells, the same regime definitions and contrasts, and h2 discovery cuts
+  applied unchanged.
 - Advanced interaction pairs are judged on **all** h3 folds (no discovery on h3).
 - Holm at 0.05 over the advanced set; weighted secondary (`sample_weight`).
-- Uses the h3_replication subset (seed 7, 250k rows, the same 2,138 markets: a re-read, disclosed).
+- **Uses only h3 markets outside the seed-7 h3_replication subset** (about 2,974 markets never read by ML;
+  challenger items 2 and 10). New flag `--exclude-markets-from <h3_replication sample file>`. Up to 250k rows.
+  These markets were read by HB1-R and the surprise replication (battery features, not ML), which is disclosed.
 - Revision `h3_r5_rep`.
 
 **Compute:** about 3-4 h, 2.5 GB.
@@ -688,14 +812,14 @@ commit exist.
 ```json
 {
  "id": "q0012_ml_r5_regime_ix_h2",
- "title": "SB2-J7: ML regime study and interaction validation (r5_regime_ix) on h2_main, 2 cells",
+ "title": "SB2-J7: ML regime contrasts and interaction validation (r5_regime_ix) on h2_main, 3 cells",
  "family": "modelling",
  "priority": 56,
  "expected_value": "Q3/Q6 at model level: regimes where flow-augmented GBM beats M0v features; interactions beyond free-tree learning",
  "data": ["history/h2_main panel_H2h, panel_H6h"],
  "resources": {"mem_mb": 2000, "cpu": 1},
  "depends_on": [],
- "argv": ["scripts/run_ml_history.py", "--run-id", "h2_main", "--max-rows", "150000", "--horizons", "1,3", "--cells", "direction:1,updown:3", "--n-boot-ablation", "10000", "--regimes", "--interactions", "10", "--discover-frac", "0.5", "--revision", "r5_regime_ix"],
+ "argv": ["scripts/run_ml_history.py", "--run-id", "h2_main", "--max-rows", "150000", "--horizons", "1,3", "--cells", "direction:1,updown:1,updown:3", "--n-boot-ablation", "10000", "--regimes", "--interactions", "5", "--discover-frac", "0.5", "--revision", "r5_regime_ix"],
  "timeout_s": 43200,
  "max_retries": 1,
  "outputs": ["data-dumps/research_lab/history/h2_main/ml_history_results_r5_regime_ix.json", "docs/research_lab/trials.jsonl (ml_fit/ml_score/ml_explain lines, revision r5_regime_ix)"],
@@ -713,12 +837,12 @@ commit exist.
  "data": ["history/h3_power panel_H2h, panel_H6h", "history/h2_main/ml_history_results_r5_regime_ix.json"],
  "resources": {"mem_mb": 2500, "cpu": 1},
  "depends_on": ["q0012_ml_r5_regime_ix_h2"],
- "argv": ["scripts/run_ml_history.py", "--run-id", "h3_power", "--max-rows", "250000", "--horizons", "1,3", "--cells", "direction:1,updown:3", "--n-boot-ablation", "10000", "--frozen-from", "../data-dumps/research_lab/history/h2_main/ml_history_results_r5_regime_ix.json", "--revision", "h3_r5_rep"],
+ "argv": ["scripts/run_ml_history.py", "--run-id", "h3_power", "--max-rows", "250000", "--horizons", "1,3", "--cells", "direction:1,updown:1,updown:3", "--n-boot-ablation", "10000", "--exclude-markets-from", "../data-dumps/research_lab/history/h3_power/h3_replication/sample_markets.csv", "--frozen-from", "../data-dumps/research_lab/history/h2_main/ml_history_results_r5_regime_ix.json", "--revision", "h3_r5_rep"],
  "timeout_s": 43200,
  "max_retries": 1,
  "outputs": ["data-dumps/research_lab/history/h3_power/ml_history_results_h3_r5_rep.json", "docs/research_lab/trials.jsonl"],
  "next_action": "Claude session: Holm verdicts; challenger pass before any registration draft",
- "notes": "no discovery on h3; re-read of the h3_replication subset (seed 7), disclosed"
+ "notes": "no discovery on h3; only markets outside the seed-7 h3_replication subset (path of the subset list to be confirmed at implementation)"
 }
 ```
 
@@ -765,17 +889,17 @@ commit exist.
 | Job | Tests counted | Kind(s) |
 |---|---|---|
 | J5 | 8 | `leadlag_screen` |
-| J4 | 4 | `bounce_decomp` + count line |
+| J4 | 5 | `bounce_decomp` + count line |
 | J1 | 13 | `history_battery2` + count line |
 | J2 | ≤ 10 (advanced F/L only) | `history_battery2_replication` + count line |
 | J3 | 6 | `book_decomp` + count line |
-| J7 | 44 | `ml_explain` (regime cells, pairs) |
-| J8 | ≤ 44 (advanced only) | `ml_explain` |
+| J7 | 27 | `ml_explain` (12 regime contrasts, 15 pairs) |
+| J8 | ≤ 27 (advanced only) | `ml_explain` |
 | J6 | ≤ 3 | `history_battery2_replication` |
-| **Total** | **about 80-130** | |
+| **Total** | **59 fixed + up to 40 conditional (59-99)** | |
 
-The cumulative count is about 670 now (corrected local recount; the host is higher because of automatic `flow_screen`
-lines). After this batch it will be about 750-800. The automatic `flow_screen` lines, about 50 per day, inflate the BY
+The cumulative count is **906** locally (`battery2.cumulative_count()`, rule `battery2-count-v1`, 2026-10-15; the host is
+higher because of automatic `flow_screen` lines). After this batch it will be about 965-1,005 plus new `flow_screen` lines. The automatic `flow_screen` lines, about 50 per day, inflate the BY
 denominator for every later screen. That is a governance question for the coordinator; this batch only records it.
 
 ## 6. Main scientific risks
@@ -792,7 +916,7 @@ denominator for every later screen. That is a governance question for the coordi
 3. **Collinear moderators.** Liquidity, trade count, the spread proxy and volatility are strongly correlated (F1, F2,
    F4, F5, F8). Several may advance for one underlying reason. Interpret them jointly; do not register more than one per
    mechanism.
-4. **Power.** The MDE is about 2/3 of the main flow effect per SD of moderator, so modest moderation is invisible. X
+4. **Power.** The MDE is about 70-90% of the main flow effect (FL2) per SD of moderator, so modest moderation is invisible. X
    (neg-risk siblings), D (pmxt rows) and J3 may be underpowered, and a null there is not absence.
 5. **Look-ahead and coverage.**
    - `hours_to_end` uses the end date listed at fetch time (F3, `time_to_resolution` regime).
@@ -808,8 +932,8 @@ denominator for every later screen. That is a governance question for the coordi
    - Tercile cuts and discovery blocks are single choices.
    - Interaction "value" against a constrained GBM can reflect the constraint's cost rather than a real interaction.
      J8's frozen replication is the guard.
-8. **Counting.** The HB1 undercount in `battery.prior_test_count()` must be fixed in the new counter, or the BY labels
-   of this batch are anti-conservative.
+8. **Counting.** Fixed: `battery2.cumulative_count()` (991f04e) covers every kind, fails closed on unknown kinds and
+   is used for every SB2 BY label.
 
 ## 7. Next actions
 
@@ -883,3 +1007,38 @@ Do not start an endless review loop.
 - The host `trials.jsonl` count.
 - Whether `MemAvailable` reaches 3.8 GB for q0005.
 - The CPU-hour estimates.
+
+---
+
+## Response to challenger round 1 (coordinator, 2026-10-15 ~19:45Z)
+
+All 12 required changes are applied; this is the single response round (mission §6). Decision: **proceed**, family by
+family, each freeze after code, a permuted-target dry run and an accepting `science-reviewer` check of that family's
+code against this text.
+
+1. Counter: done in code (`battery2.cumulative_count`, 991f04e, explicit `KIND_RULES` for all 28 kinds, fail-closed,
+   test on the real file). Local total 906. The same total feeds every SB2 BY label and J7 `prior_tests` (§2).
+   Judgement calls (conservative): cross-venue, surprise-detector and case lines count one per line; `ml_fit` /
+   `ml_score` are estimation lines, excluded with reasons.
+2. J7 cells now come from h2 r1 only (direction 2h, up-vs-down 2h and 6h); J8 uses only h3 markets outside the seed-7
+   subset.
+3. J7 counts four declared regime **contrasts** per cell (C-LIQ, C-TTE, C-ACT, C-EXT); within-regime gains are
+   descriptive only. Pairs cut to 5 per cell; 27 tests.
+4. J4: P1 relabelled "Gamma-mid reversal"; new P1x uses the same pass's CLOB sweep mid as an independent measurement
+   at `i`. J4 no longer closes Q5; J3 is primary.
+5. J4 verdict map declared, with TOST equivalence bands (±0.05 slope, ±0.1 half-spread for `b_pos`).
+6. Leave-one-day-out sign agreement on every UTC day is binding for J4 verdicts.
+7. `b_pos` restricted to rows with `volume24hr_i > volume24hr_h`; the dropped share is reported by liquidity.
+8. Overlaps disclosed (F1/F2/F8 vs IX3 with a joint-control robustness check, L1 vs E001 B3, J3/J4 vs HB1 C3, E006
+   H1 and `ltp_minus_mid`); the false "none tested" sentence is replaced.
+9. F3 and C-TTE carry a declared end-date look-ahead sensitivity (drop markets closed > 24h before `end_at`).
+10. h3 reads reconciled: FDP's ≤3-reads rule binds sealed holdouts, which h3 is not; reads 4-6 are disclosed,
+    frozen-definition only, J8 moved to the ML-unread complement, and h3 is retired from replication use after SB2.
+11. J5: `--gap-h 1.5,3` filter (new flag, default unchanged), realised MDE from the run's own SE, and a materiality
+    floor ΔR² ≥ 0.001 in `meets_sb2_rule`.
+12. Small fixes: J2 MDE stated for k = 1 and k = 10; MDE wording 70-90% of FL2; J3 uses a horizon-matched in-sample
+    benchmark `ρ_s / 2`; `T_seal` fixed at 2026-10-22T00:00Z; favourable tercile fixed on h2; F7 needs full 30-day
+    lookback coverage.
+
+Optional items: the ledger methods note for the two-stage rule is added with the first SB2 ledger entry; J3 reports
+target-unavailable counts by liquidity tercile.
