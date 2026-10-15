@@ -1,0 +1,158 @@
+{
+ "evidence_role_of_fit_data": "exploratory_historical",
+ "experiment": "E010",
+ "feature_definitions": "identical to cross_venue_live_v1.json (cross_venue_live.features)",
+ "features": [
+  "r1",
+  "r6",
+  "lvl",
+  "lvl2",
+  "gap",
+  "dk1",
+  "dk6"
+ ],
+ "fit": {
+  "alignment": "cross_venue.align_pair with pm_lag_s=0 (as E009)",
+  "method": "unpenalised OLS with intercept, raw units, all usable non-overlapping historical origins per horizon (cross_venue._design stride); one fit, never refitted",
+  "pair_set": "revision r1 C1: the study analysis set minus results_r1.json audit.rule"
+ },
+ "frozen_utc": "2026-10-12T23:25:18Z",
+ "historical_walk_forward_C1": {
+  "gap_36": {
+   "ci": [
+    0.012023166206440759,
+    0.11221171635359957
+   ],
+   "n_clusters": 163,
+   "n_obs": 7791,
+   "rel_mse_gain": 0.07529916177246011
+  },
+  "gap_6": {
+   "ci": [
+    0.04077720168234371,
+    0.06235329441306137
+   ],
+   "n_clusters": 158,
+   "n_obs": 49411,
+   "rel_mse_gain": 0.051410459612303845
+  },
+  "gapk_36": {
+   "ci": [
+    0.023084857303750553,
+    0.09822422671938194
+   ],
+   "n_clusters": 163,
+   "n_obs": 7791,
+   "rel_mse_gain": 0.06917573673879251
+  },
+  "gapk_6": {
+   "ci": [
+    0.0324937694936223,
+    0.1272965989077818
+   ],
+   "n_clusters": 158,
+   "n_obs": 49411,
+   "rel_mse_gain": 0.07008784638015683
+  }
+ },
+ "models": {
+  "360": {
+   "in_sample_rel_mse_gain_m1": 0.08138078686036865,
+   "in_sample_rel_mse_gain_mgap": 0.07656218874098542,
+   "m0": {
+    "intercept": -2.163463908973566e-05,
+    "lvl": -0.004418964119497322,
+    "lvl2": -0.0017028177288148075,
+    "r1": -0.28878277711071626,
+    "r6": -0.20484657068711914
+   },
+   "m1": {
+    "dk1": 0.4266674822809705,
+    "dk6": 0.013751260893406303,
+    "gap": 0.26340581957236425,
+    "intercept": -0.0012282870778855912,
+    "lvl": -0.0011499414850398239,
+    "lvl2": 0.002788951511446171,
+    "r1": -0.25747362735298607,
+    "r6": -0.12725344287537643
+   },
+   "mgap": {
+    "gap": 0.2725179120318211,
+    "intercept": -0.0013236602057414258,
+    "lvl": -0.001096826174894856,
+    "lvl2": 0.003305514919181775,
+    "r1": -0.24982524787335536,
+    "r6": -0.1179523357939927
+   },
+   "n_obs": 10402,
+   "target_sd": 0.03905356274385273
+  },
+  "60": {
+   "in_sample_rel_mse_gain_m1": 0.06489239976076555,
+   "in_sample_rel_mse_gain_mgap": 0.0367063548271388,
+   "m0": {
+    "intercept": -0.000403900237886221,
+    "lvl": -0.0013958128378444735,
+    "lvl2": 0.0017030528585929244,
+    "r1": -0.2885758463566601,
+    "r6": -0.07777857837491449
+   },
+   "m1": {
+    "dk1": 0.20456346226303287,
+    "dk6": 0.19681115187447543,
+    "gap": 0.08853397269510165,
+    "intercept": -0.0007966690232390615,
+    "lvl": -0.0003841954610934637,
+    "lvl2": 0.003051404123974237,
+    "r1": -0.26314388642375136,
+    "r6": -0.1155662422998835
+   },
+   "mgap": {
+    "gap": 0.10971628525587526,
+    "intercept": -0.0009020226549165946,
+    "lvl": -9.850247139080249e-05,
+    "lvl2": 0.003563227910495835,
+    "r1": -0.26139628346472044,
+    "r6": -0.053000974409688366
+   },
+   "n_obs": 65942,
+   "target_sd": 0.022879613640724824
+  }
+ },
+ "provenance": {
+  "code_commit": "86a41c2004b353c770ad6c2fc9969ac1b951230c",
+  "dropped_tickers": [
+   "KXCLAUDE-OPUS-26JUL24",
+   "KXCLAUDE-OPUS-26JUL31",
+   "KXPERFORMSUPERBOWLB-26-BIL",
+   "KXPERFORMSUPERBOWLB-26-DRA",
+   "KXPERFORMSUPERBOWLB-26-DUA",
+   "KXPERFORMSUPERBOWLB-26-JAY",
+   "KXPERFORMSUPERBOWLB-26-JBA",
+   "KXPERFORMSUPERBOWLB-26-KAR",
+   "KXPERFORMSUPERBOWLB-26-LAD",
+   "KXPERFORMSUPERBOWLB-26-MET",
+   "KXPERFORMSUPERBOWLB-26-MIL",
+   "KXPERFORMSUPERBOWLB-26-MOR",
+   "KXPERFORMSUPERBOWLB-26-RAU",
+   "KXPERFORMSUPERBOWLB-26-RIC",
+   "KXPERFORMSUPERBOWLB-26-SAB",
+   "KXPERFORMSUPERBOWLB-26-TAI",
+   "KXPERFORMSUPERBOWLB-26-TAY",
+   "KXPERFORMSUPERBOWLB-26-TRA",
+   "KXSPOTIFYALBUMRELEASE-25-DRA",
+   "KXTRUMPCHINA-26-MAY15",
+   "KXTRUMPCHINA-26MAY09-MAY13",
+   "KXWCAWARDCOMBO-26KMBAPP10-YES",
+   "KXWCAWARDCOMBO-26LMESSI10-YES",
+   "KXWCROUND-26QUAR-CPV",
+   "KXWCSTAGEOFELIM-26BIH-R16"
+  ],
+  "matches_json_sha256": "f21457665518e6a8a7d2afe7337c730fac3ebb889fa3476ff51bc1ae16d0e945",
+  "n_clusters": 183,
+  "n_pairs": 316,
+  "results_r1_json_sha256": "b1879f439930df6ae64d1a5063c794cb7c3f3a681b9fb0ed074cb8714cf20566",
+  "source_study": "docs/research_lab/CROSS_VENUE_STUDY.md section 10 (revision r1, C1)"
+ },
+ "spec_id": "cross_venue_live_e010_v1"
+}

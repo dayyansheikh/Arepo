@@ -1,0 +1,41 @@
+{
+  "comment": "Per-directory deletion rules for archive_rotate.py --retention (see docs/research_lab/data_catalogue/RETENTION.md). A server file is only ever removed if it is in a verified release with an identical sha256; these rules only say how old it must be and which small files stay. Directories without a rule are never deleted. GATE: snapshots/ and book_sweeps/ have NO rule until queue jobs q0005, q0006a, q0006 (leadlag_screen, bounce_decomp: read ALL captures and sweeps with hardcoded roots) are done or accept --snapshot-root/--sweep-root; add the rules back from RETENTION.md afterwards. cb1_extract/ is never deleted (no rule). The snapshot-rows gate additionally requires the CB1 extractor to be live and its backfill caught up.",
+  "rules": [
+    {
+      "prefix": "data-dumps/research_lab/trade_samples/",
+      "older_than_days": 3,
+      "keep": [
+        "*/manifest.json",
+        "*/plan.json"
+      ],
+      "why": "FLOW-SCREEN and E007 status read sample pairs from pair_cache/ once cached; manifest and plan form the cache key and the sample list"
+    },
+    {
+      "prefix": "data-dumps/research_lab/live_trades/scores-",
+      "older_than_days": 10,
+      "why": "live_trade_monitor reloads score history for trailing_days = 7 only"
+    },
+    {
+      "prefix": "data-dumps/research_lab/live_trades/trades-",
+      "older_than_days": 10,
+      "why": "live_trade_monitor reloads only today's and yesterday's trades file"
+    }
+  ],
+  "deferred_rules": [
+    {
+      "prefix": "data-dumps/research_lab/snapshots/",
+      "older_than_days": 8,
+      "keep": [
+        "*/manifest.json",
+        "*/ext_manifest.json"
+      ]
+    },
+    {
+      "prefix": "data-dumps/research_lab/book_sweeps/",
+      "older_than_days": 3,
+      "keep": [
+        "*/manifest.json"
+      ]
+    }
+  ]
+}

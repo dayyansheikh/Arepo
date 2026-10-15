@@ -1,0 +1,182 @@
+{
+  "purpose": "Phase3 contract sufficiency review under October10 user scope; no old pilot relabelled",
+  "runs": [
+    {
+      "decision": "D082",
+      "evidence": "PHASE_03_OWNED_PILOT_EVIDENCE.json",
+      "evidence_sha256": "93a9ce4f5915ee1f2ba6c44105b138f138f18f947658ee8b83910ca5f5dae170",
+      "original_code": "c881288d80dbeddfc195c6eacceeb63b78f58e20",
+      "verified_artifact_count": 371,
+      "observed_origins": 8,
+      "causal_origins": [
+        "1284226",
+        "4096507",
+        "3852826",
+        "4254700",
+        "4753365",
+        "4819378",
+        "4817070",
+        "4817759"
+      ],
+      "eligible_history_markets": [],
+      "matched_pairs": [
+        {
+          "control_market_id": "1284226",
+          "trigger_id": "28f1fa22607db6eff10b97cb441bcd3a17951daac5541788977b14a4aad2d408",
+          "trigger_market_id": "4096507"
+        },
+        {
+          "control_market_id": "4254700",
+          "trigger_id": "eba2f8b1391cce92abe2e999da3b25c4d45f8e47a23626e821dc0c2a6f12b008",
+          "trigger_market_id": "3852826"
+        }
+      ],
+      "paired_histories": [],
+      "valid_targets": 8,
+      "unchanged_original_gates": {
+        "four_fifths_targets": true,
+        "observed_matched_pair": true,
+        "original_audit": true,
+        "reporting_complete": true,
+        "six_of_eight_observed": true
+      },
+      "unchanged_accepted_panel": false,
+      "roots": {
+        "activation": "data-dumps/fs2_activation_owned_pilot_20261003_1",
+        "panel": "data-dumps/fs2_panel_owned_pilot_20261003_1",
+        "runtime": "data-dumps/fs2_runtime_owned_pilot_20261003_1",
+        "selection": "data-dumps/fs2_selection_panel_owned_pilot_20261003_1",
+        "worker": "data-dumps/fs2_screening_worker_owned_pilot_20261003_1"
+      },
+      "limitations": [
+        "Pilot execution only; not a model dataset, predictive-edge result or economic-value claim.",
+        "Source event membership and economic independence remain unresolved.",
+        "Role overlap does not increase independent sample count.",
+        "Incomplete flow, persistent book windows, related-market signals and selected external relevance remain unavailable.",
+        "No redraw, retrospective threshold change or label substitution."
+      ]
+    },
+    {
+      "decision": "D094",
+      "evidence": "PHASE_03_OBSERVATION_PILOT_EVIDENCE.json",
+      "evidence_sha256": "98c2ef6e892cc1882fa809c7ee658245511e793cac81bafe038c916bbc746a5b",
+      "original_code": "53c19a43d9784e7f98a41e22131799f5a63b7e1f",
+      "verified_artifact_count": 498,
+      "observed_origins": 5,
+      "causal_origins": [
+        "5009049",
+        "3764571",
+        "5419059",
+        "5231891",
+        "5015047"
+      ],
+      "eligible_history_markets": [
+        "5009049",
+        "3764571",
+        "5419059",
+        "5231891",
+        "5015047"
+      ],
+      "matched_pairs": [
+        {
+          "control_market_id": "5009049",
+          "trigger_id": "a8179b1454b60f8d4d2ebb7383d5dd36476edf03f240291b1d6fc65f44d78033",
+          "trigger_market_id": "5015047"
+        }
+      ],
+      "paired_histories": [
+        {
+          "control_market_id": "5009049",
+          "trigger_id": "a8179b1454b60f8d4d2ebb7383d5dd36476edf03f240291b1d6fc65f44d78033",
+          "trigger_market_id": "5015047"
+        }
+      ],
+      "valid_targets": 5,
+      "unchanged_original_gates": {
+        "four_fifths_targets": true,
+        "observation_attempt_accounting": true,
+        "observed_matched_pair": true,
+        "origin_clock_bounds": true,
+        "original_audit": true,
+        "reporting_complete": true,
+        "six_of_eight_completed_windows_and_history": false,
+        "six_of_eight_observed": false
+      },
+      "unchanged_accepted_panel": false,
+      "roots": {
+        "activation": "data-dumps/fs2_activation_observation_pilot_20261008_1",
+        "panel": "data-dumps/fs2_panel_observation_pilot_20261008_1",
+        "runtime": "data-dumps/fs2_runtime_observation_pilot_20261008_1",
+        "selection": "data-dumps/fs2_selection_panel_observation_pilot_20261008_1",
+        "worker": "data-dumps/fs2_screening_worker_observation_pilot_20261008_1"
+      },
+      "limitations": [
+        "Pilot execution only; not a model dataset, predictive-edge result or economic-value claim.",
+        "Source event membership and economic independence remain unresolved.",
+        "Role overlap does not increase independent sample count.",
+        "Incomplete flow, persistent book windows, related-market signals and selected external relevance remain unavailable.",
+        "No redraw, retrospective threshold change or label substitution."
+      ]
+    },
+    {
+      "decision": "D097",
+      "evidence": "PHASE_03_TEMPORAL_PILOT_EVIDENCE.json",
+      "evidence_sha256": "094d4a8253e130b93ab2f7436769472c7c7b0333fcedad99a687d869ee14fba3",
+      "original_code": "8bb82c4488c83cc0fdac6707cc27a9af079562d9",
+      "verified_artifact_count": 649,
+      "observed_origins": 6,
+      "causal_origins": [
+        "1282872",
+        "1284832",
+        "5322651",
+        "5208013",
+        "4963025",
+        "5338149"
+      ],
+      "eligible_history_markets": [
+        "1282872",
+        "1284832",
+        "5322651",
+        "5208013",
+        "4963025",
+        "5338149"
+      ],
+      "matched_pairs": [],
+      "paired_histories": [],
+      "valid_targets": 6,
+      "unchanged_original_gates": {
+        "four_fifths_targets": true,
+        "observation_attempt_accounting": true,
+        "observed_matched_pair": false,
+        "origin_clock_bounds": true,
+        "original_audit": true,
+        "reporting_complete": true,
+        "six_of_eight_completed_windows_and_history": true,
+        "six_of_eight_observed": true,
+        "temporal_population_audit": true
+      },
+      "unchanged_accepted_panel": false,
+      "roots": {
+        "activation": "data-dumps/fs2_activation_temporal_pilot_20261008_1",
+        "panel": "data-dumps/fs2_panel_temporal_pilot_20261008_1",
+        "runtime": "data-dumps/fs2_runtime_temporal_pilot_20261008_1",
+        "selection": "data-dumps/fs2_selection_panel_temporal_pilot_20261008_1",
+        "worker": "data-dumps/fs2_screening_worker_temporal_pilot_20261008_1"
+      },
+      "limitations": [
+        "Pilot execution only; not a model dataset, predictive-edge result or economic-value claim.",
+        "Source event membership and economic independence remain unresolved.",
+        "Role overlap does not increase independent sample count.",
+        "Incomplete flow, persistent book windows, related-market signals and selected external relevance remain unavailable.",
+        "No redraw, retrospective threshold change or label substitution.",
+        "Sampling probabilities apply only to the declared future-or-unknown stated-end population; exclusions have zero inclusion, and endDate does not prove trading activity."
+      ]
+    }
+  ],
+  "observed_contract_checks_pass": true,
+  "phase3_final_acceptance_pending_tested_budget_repair_and_handover": true,
+  "not_pooled_training_or_confirmation_data": true,
+  "no_new_source_requests": true,
+  "no_old_status_changes": true,
+  "script_sha256": "e95e4a1172da85200ab4bd9349e7c7e93fd3c91efa75e235da9fd6ceb7ea25bb"
+}

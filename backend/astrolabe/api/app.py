@@ -21,6 +21,7 @@ from .routes import health as health_routes
 from .routes import historical as historical_routes
 from .routes import markets, meta, opportunity, overview, replay, signals
 from .routes import research as research_routes
+from .routes import research_lab as research_lab_routes
 from .routes import signals_scan as signals_scan_routes
 
 logger = get_logger("astrolabe.api")
@@ -108,6 +109,7 @@ def create_app() -> FastAPI:
     app.include_router(cohort_routes.router)
     app.include_router(historical_routes.router)
     app.include_router(research_routes.router)
+    app.include_router(research_lab_routes.router)
     app.include_router(signals_scan_routes.router)
     app.include_router(opportunity.router)
 

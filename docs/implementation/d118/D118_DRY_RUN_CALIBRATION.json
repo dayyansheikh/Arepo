@@ -1,0 +1,122 @@
+{
+  "status": "CALIBRATION ONLY \u2014 not an acceptance criterion; the predeclared 40 s / 240 s abort criteria and the D118 4 x 3 choice are unchanged by this record",
+  "provenance": "synthetic loopback dry run (mock HTTP transport, loopback websocket) compared with the retained D116 live evaluation timeline; engineering evidence only, never evidence about live data",
+  "purpose": "independent-review item 3: check whether the synthetic window-age method (0.9 s per HTTP response) over- or under-states live window ages, by running it once in D116's own shape and comparing with D116's live timeline",
+  "method": {
+    "command": "cd backend && python scripts/d118_window_dry_run.py --work-dir <scratch>/d118_calib_4x2_b --strata 4 --per-stratum 2 --runtime-concurrency 4 (default --latency 0.9)",
+    "shape": "D116 shape: 4 strata x 2 members (8/8 slots), runtime concurrency 4, liquidity population (D118 selection code), D116 windows/trigger/freshness, 0.9 s per response",
+    "difference_from_d116_live": "population policy (liquidity vs temporal) and synthetic quotes (every member two-sided and observed); timing path otherwise the same"
+  },
+  "run_count": "one measured run",
+  "attempt_disclosure": "a first attempt (started 2026-10-11 09:06:28 UTC) aborted at runtime start with 'panel measurement build changed on disk' because the operator removed the unused WRAPPER_PREFIX constant from d118_evaluator.py while it ran (build-identity guard working as designed); it produced no measurement and was rerun once unchanged with no edits during the run",
+  "started_utc": "2026-10-11 09:08:41 UTC",
+  "finished_utc": "2026-10-11 09:10:42 UTC",
+  "returncode": 0,
+  "peak_memory_footprint_bytes": 69027968,
+  "code_commit_at_run": "82831617c2d4bafbc622069df4aa33d8b12dbe48",
+  "code_note": "working tree at run time = that commit plus removal of the unused WRAPPER_PREFIX line in d118_evaluator.py (committed with this record); hashes below are of the files as run",
+  "file_sha256": {
+    "backend/scripts/d118_window_dry_run.py": "0479c860ee7539c57998a717fc4272b68c6b00031b1aa03cd015eeae8d8a6083",
+    "backend/astrolabe/research_panel/concurrent_runtime.py": "277794b4da938d4153ff7f12f5708bb7a14d77e9c484fbcc2699d684dedf9b15",
+    "backend/astrolabe/research_panel/d116_evaluator.py": "772b984a83f7d984f9d127401d3fe38cd68fcb339bb828f88438176a29893ab9",
+    "backend/astrolabe/research_panel/d118_evaluator.py": "1647a743b11f6b9f206374faac44a11ab6be8588175d75b579b7e55fc1795b7b",
+    "backend/astrolabe/research_panel/panel_declaration.py": "9ab71ae0c0411d5941c99ec1270067bd608dc63a76ceffc956908055fc75ba4a",
+    "backend/astrolabe/research_panel/panel_selection.py": "ecd2ddd5af58d893f3d123a2715161cd693298e93990a0100558175d2fbd9f3b",
+    "backend/astrolabe/research_panel/screening_worker.py": "dec77b51760872c37248f5143a1464dffea2883bb76e734a0ef941faaaf0a84f"
+  },
+  "synthetic": {
+    "max_window_age_at_freeze_s": 21.18742,
+    "window_ages_at_freeze_s": [
+      11.819,
+      11.822,
+      12.303,
+      16.471,
+      16.475,
+      16.939,
+      20.627,
+      21.187
+    ],
+    "audit_verification_s": 3.850569,
+    "elapsed_s": 119.038,
+    "pairs_both_complete": 2,
+    "dry_run_summary": {
+      "provenance": "synthetic loopback dry run; never evidence about live data",
+      "strata": 4,
+      "per_stratum": 2,
+      "members": 8,
+      "latency_s_per_request": 0.9,
+      "runtime_concurrency": 4,
+      "worker_state": "pilot_collected_unaccepted",
+      "elapsed_s": 119.038,
+      "max_window_age_at_freeze_s": 21.18742,
+      "window_ages_at_freeze_s": [
+        11.819,
+        11.822,
+        12.303,
+        16.471,
+        16.475,
+        16.939,
+        20.627,
+        21.187
+      ],
+      "max_assessment_window_age_at_activation_s": 18.521741,
+      "audit_verification_s": 3.850569,
+      "recovery_after_runtime_s": 8.044641,
+      "evaluator_outcome": "PASS",
+      "evaluator_reasons": [
+        "non_authoritative_logic_only",
+        "observed matched pair with both members' complete chains"
+      ],
+      "pairs_both_complete": 2,
+      "role_capacity": {
+        "scheduled": 8,
+        "triggered": 4,
+        "control": 2
+      },
+      "abort_criteria": {
+        "max_window_age_at_freeze_s": 40,
+        "max_audit_s": 240
+      },
+      "abort": false
+    }
+  },
+  "d116_live": {
+    "source": "data-dumps/fs2_d116_integrated_1_evaluation.json timeline.margins.window_age_at_freeze (read only)",
+    "window_ages_at_freeze_s": [
+      11.424068,
+      12.319481,
+      12.355422,
+      14.405245,
+      15.091511,
+      15.300536,
+      16.33385,
+      16.739955
+    ],
+    "min_s": 11.424068,
+    "max_s": 16.739955,
+    "observed_origins": "4/8",
+    "outcome": "PASS_WITH_LIMITATION:no_eligible_untriggered"
+  },
+  "comparison": {
+    "max_synthetic_minus_live_s": 4.447,
+    "min_synthetic_minus_live_s": 0.395,
+    "live_over_synthetic_max_ratio": 0.7901,
+    "synthetic_is_conservative": true,
+    "reading": "same shape: the synthetic maximum (21.19 s) exceeds the live maximum (16.74 s) by 4.45 s, and the first-wave ages agree within 0.4 s (11.82 vs 11.42 s); later synthetic waves are slower than live, so the method overstates the tail on this one comparison"
+  },
+  "implied_d118_margin": {
+    "d118_4x3_synthetic_max_s": 36.255695,
+    "code_limit_s": 60,
+    "criterion_s": 40,
+    "synthetic_margin_to_60s_s": 23.744,
+    "synthetic_margin_to_40s_s": 3.744,
+    "scaled_live_estimate_max_s": 28.65,
+    "scaled_effective_margin_to_60s_s": 31.35,
+    "caveats": [
+      "one calibration run against one live run (n = 1 each); no variance estimate",
+      "D116 live observed only 4/8 origins; origins that end unobserved may freeze sooner than complete ones, which could make live ages look shorter than a fully observed live run",
+      "D118 runs runtime concurrency 8 and 12 members; the ratio is from concurrency 4 and 8 members and is only an extrapolation",
+      "live latency on the launch day may differ from D116's; a live breach of 60 s is ENGINEERING (FAIL), never relabelled"
+    ]
+  }
+}

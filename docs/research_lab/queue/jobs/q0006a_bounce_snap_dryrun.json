@@ -1,0 +1,32 @@
+{
+ "id": "q0006a_bounce_snap_dryrun",
+ "title": "SB2-J4 dry run: bounce decomposition on permuted targets (code check, no trials)",
+ "family": "microstructure",
+ "priority": 72,
+ "expected_value": "freeze prerequisite for J4: verifies triple build, sweep join, memory and runtime on real captures; placebo-only output",
+ "data": [
+  "research_lab/snapshots",
+  "research_lab/book_sweeps"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_bounce_decomp.py",
+  "snapshots",
+  "--tag",
+  "sb2-snap",
+  "--n-boot",
+  "200",
+  "--dry-run"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/bounce_decomp/bounce-sb2-snap/dryrun.json"
+ ],
+ "next_action": "Claude session: check counts (triples, P2 rows kept by volume24hr rule, P1x rows, sweep lags), runtime/memory; then science-reviewer freeze check; then queue q0006",
+ "notes": "permuted targets only; logs NO trials; SCREENING_BATCH_2.md J4"
+}

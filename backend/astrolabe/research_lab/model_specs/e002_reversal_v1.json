@@ -1,0 +1,8 @@
+{
+ "model_id": "e002_reversal_v1",
+ "feature": "chg_1h",
+ "coef": -0.331610,
+ "missing": 0,
+ "registered_commit": "58a13a6",
+ "fitted_on": "E001 all 197,341 pairs"
+}

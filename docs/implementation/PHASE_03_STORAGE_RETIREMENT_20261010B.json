@@ -1,0 +1,75 @@
+{
+ "policy": "docs/implementation/PHASE_03_BOUNDED_RETENTION.md",
+ "authority": "User message 2026-10-10 (explicit retirement authorisation; independent review required)",
+ "script": "data-dumps/_ops/retire_batch1.py (git-ignored; copy inside each capsule)",
+ "records": [
+  {
+   "run": "D106_panel",
+   "capsule_path": "data-dumps/phase3_evidence_capsules/20261010B_D106_panel/capsule.json",
+   "capsule_sha256": "27e1bdd0cd0cc060eeb1bf908ef5cf8d53dc6b3bd87de7ef1bdad70cbad6fee1",
+   "manifest_sha256": "dfd9c4a159e92dc8313064562ad0206ca60b7f4f11c6354906a6bed1fe2d4d55",
+   "operation_sha256": "feed437fb0101e14c672c2659f618a62d6f6701cb83185fb9d60105de7dca21b",
+   "review_marker_sha256": "9bd0cfe7a1d7f010677c0afec46102bb316c64d0b6bf0e31e8f0e135b4d15580",
+   "retained_page_units": 35,
+   "deleted_page_units": 2727,
+   "deleted_files": 5454,
+   "deleted_logical_bytes": 899077327,
+   "allocated_bytes_reclaimed": 915103744,
+   "observed_free_delta_bytes": 911712256,
+   "retained_hashes_verified": true,
+   "old_status_changed": false,
+   "lost_replay": "Projections can be regenerated only for the raw pages the parent capsule kept (their projections are retained here); all others cannot be regenerated because the source frame bulk is retired. Retained subset is for format regression only, never a population."
+  },
+  {
+   "run": "D110_panel",
+   "capsule_path": "data-dumps/phase3_evidence_capsules/20261010B_D110_panel/capsule.json",
+   "capsule_sha256": "cfe955afe451f8baabb292eb0be31a76e32354775d69ea9ed276d88a58071ff8",
+   "manifest_sha256": "0b21e0c0cf23711c50fed1321e2adfbc9cccda70de4bbdecc595ff89b0bd363d",
+   "operation_sha256": "feed437fb0101e14c672c2659f618a62d6f6701cb83185fb9d60105de7dca21b",
+   "review_marker_sha256": "ff23d6923534b016ddd018c591a2454083ddce0831e205a48f87ade0699ef57f",
+   "retained_page_units": 5,
+   "deleted_page_units": 2796,
+   "deleted_files": 5592,
+   "deleted_logical_bytes": 922387478,
+   "allocated_bytes_reclaimed": 938848256,
+   "observed_free_delta_bytes": 1850621952,
+   "retained_hashes_verified": true,
+   "old_status_changed": false,
+   "lost_replay": "Projections can be regenerated only for the raw pages the parent capsule kept (their projections are retained here); all others cannot be regenerated because the source frame bulk is retired. Retained subset is for format regression only, never a population."
+  }
+ ],
+ "total_deleted_logical_bytes": 1821464805,
+ "total_allocated_bytes_reclaimed": 1853952000,
+ "considered_and_kept": [
+  {
+   "run": "D088",
+   "path": "data-dumps/fs2_capture_0da49550169349f9adc9947dcaecc76f",
+   "reason": "Independent review: KEEP. PHASE_03_FRESH_WINDOW_PILOT_PROTOCOL.md says 'Retain it'; its evidence JSON says retained as complete historical evidence; the retention policy was written for failed frames. Needs an explicit user decision naming it. User decision 2026-10-10: KEEP D088 (an accepted historical complete frame); do not retire it to recover storage."
+  }
+ ],
+ "not_assessed": "Older-era captures (enumeration attempts, D078/D085/D089 panels, screening-measurement) were not assessed in this pass.",
+ "protected_unchanged": [
+  "D082",
+  "D094",
+  "D097",
+  "D114",
+  "fs2_capture_3a4f80db",
+  "fs2_capture_c63c72a0",
+  "phase3_evidence_capsules"
+ ],
+ "older_era_captures_not_retired": {
+  "status": "Documented as NOT safe to retire without a deeper dependency review; none were deleted.",
+  "candidates": [
+   "fs2_capture_eaec9cd7* (enumeration attempt 5, basis of the first local selection)",
+   "fs2_capture_95cbb8cd*, fs2_capture_8e6a8d4a*, fs2_capture_ff7f05b0* (earlier enumeration attempts)",
+   "fs2_selection_56ff541c*",
+   "D078/D085/D089 selection panels and fs2_capture_a7850bc9*",
+   "screening-measurement panel"
+  ],
+  "reasons": [
+   "Earlier protocols state preserve-every-prior-result/raw-discovery-row; the retention policy targets failed frames and does not clearly cover accepted or foundational runs.",
+   "Some feed original-code recovery or are cited as capacity/measurement inputs (e.g. fs2_capture_3a4f80db is protected).",
+   "Each would need its own capsule, dependency search and independent review; not done in this housekeeping pass."
+  ]
+ }
+}

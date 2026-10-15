@@ -1,0 +1,46 @@
+{
+ "conditions": [
+  {
+   "feature": "n_s",
+   "op": "ge",
+   "value": 3
+  },
+  {
+   "feature": "p_acq",
+   "op": "le",
+   "value": 0.2
+  }
+ ],
+ "description": "Convex longshot pressure: one-sided flow acquiring an outcome priced at or below 0.20, with an unusually large print and concentrated participation.",
+ "direction_feature": "imb_s",
+ "min_terms_present": 3,
+ "rule_id": "uf_convex_longshot_v1",
+ "terms": [
+  {
+   "cap": 4.0,
+   "center": 0.4,
+   "feature": "imb_s",
+   "scale": 0.3,
+   "transform": "abs",
+   "weight": 1.0
+  },
+  {
+   "cap": 4.0,
+   "center": 1.3862943611198906,
+   "feature": "large_trade_rel",
+   "scale": 0.7,
+   "transform": "log1p",
+   "weight": 1.0
+  },
+  {
+   "cap": 4.0,
+   "center": 0.35,
+   "feature": "top1_share_l",
+   "scale": 0.2,
+   "transform": "raw",
+   "weight": 1.0
+  }
+ ],
+ "theory_ref": "INFORMED_FLOW_SIGNAL_THEORY:s3.1 ifx_convex_stake, s4 IFC1 hand-off (a)",
+ "version": "1"
+}

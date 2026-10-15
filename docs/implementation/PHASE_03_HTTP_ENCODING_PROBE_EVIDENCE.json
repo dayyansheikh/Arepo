@@ -1,0 +1,283 @@
+{
+  "decision": "D111",
+  "policy": {
+    "admitted": false,
+    "encodings": [
+      "identity",
+      "gzip",
+      "gzip",
+      "identity"
+    ],
+    "endpoint": "https://gamma-api.polymarket.com/markets/keyset",
+    "implementation_commit": "0be8fcb983d309f9cef35f5f49f900b682319e07",
+    "max_decoded_bytes_each": 4194304,
+    "max_wire_bytes_each": 4194304,
+    "params": {
+      "closed": "false",
+      "limit": 100
+    },
+    "request_deadline_seconds": 20,
+    "schema": "arepo-http-encoding-diagnostic-v1",
+    "scope": "First page only, repeated fixed diagnostic; not complete frame, research sample or origins. Keep all failures; no retries.",
+    "script_sha256": "8c6c73cb3da5d75168f25fab913d3c68e924018b14c046f7b31bcd09de493ec3",
+    "source_id": "gamma.markets.keyset",
+    "started": {
+      "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+      "monotonic_ns": "2503786372449625",
+      "utc": "2026-10-10T02:38:02.257065Z"
+    },
+    "total_deadline_seconds": 90
+  },
+  "report": {
+    "admitted": false,
+    "completed": {
+      "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+      "monotonic_ns": "2503786813418500",
+      "utc": "2026-10-10T02:38:02.698055Z"
+    },
+    "results": [
+      {
+        "decoded_bytes": 548290,
+        "decoded_sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4",
+        "elapsed_ns": 157991250,
+        "error": null,
+        "first_byte": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786542083500",
+          "utc": "2026-10-10T02:38:02.426707Z"
+        },
+        "headers": {
+          "age": "249",
+          "cf-cache-status": "HIT",
+          "content-type": "application/json",
+          "date": "Sat, 10 Oct 2026 02:38:01 GMT",
+          "vary": "Accept-Encoding,Origin"
+        },
+        "market_rows": 100,
+        "ordinal": 0,
+        "received": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786614917166",
+          "utc": "2026-10-10T02:38:02.499538Z"
+        },
+        "requested_encoding": "identity",
+        "started": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786456925916",
+          "utc": "2026-10-10T02:38:02.341536Z"
+        },
+        "status": 200,
+        "strict_json_valid": true,
+        "wire_bytes": 548290,
+        "wire_sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4"
+      },
+      {
+        "decoded_bytes": 548290,
+        "decoded_sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4",
+        "elapsed_ns": 31727000,
+        "error": null,
+        "first_byte": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786655390333",
+          "utc": "2026-10-10T02:38:02.540020Z"
+        },
+        "headers": {
+          "age": "250",
+          "cf-cache-status": "HIT",
+          "content-encoding": "gzip",
+          "content-type": "application/json",
+          "date": "Sat, 10 Oct 2026 02:38:01 GMT",
+          "vary": "Accept-Encoding,Origin"
+        },
+        "market_rows": 100,
+        "ordinal": 1,
+        "received": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786655993416",
+          "utc": "2026-10-10T02:38:02.540625Z"
+        },
+        "requested_encoding": "gzip",
+        "started": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786624266416",
+          "utc": "2026-10-10T02:38:02.508900Z"
+        },
+        "status": 200,
+        "strict_json_valid": true,
+        "wire_bytes": 47252,
+        "wire_sha256": "4e3bfe3f628a85b0d6d032599315990f77f35e2ed6152b92a5b37b641b21053e"
+      },
+      {
+        "decoded_bytes": 548290,
+        "decoded_sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4",
+        "elapsed_ns": 34864916,
+        "error": null,
+        "first_byte": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786697167500",
+          "utc": "2026-10-10T02:38:02.581799Z"
+        },
+        "headers": {
+          "age": "250",
+          "cf-cache-status": "HIT",
+          "content-encoding": "gzip",
+          "content-type": "application/json",
+          "date": "Sat, 10 Oct 2026 02:38:01 GMT",
+          "vary": "Accept-Encoding,Origin"
+        },
+        "market_rows": 100,
+        "ordinal": 2,
+        "received": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786698755666",
+          "utc": "2026-10-10T02:38:02.583390Z"
+        },
+        "requested_encoding": "gzip",
+        "started": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786663890750",
+          "utc": "2026-10-10T02:38:02.548526Z"
+        },
+        "status": 200,
+        "strict_json_valid": true,
+        "wire_bytes": 47252,
+        "wire_sha256": "4e3bfe3f628a85b0d6d032599315990f77f35e2ed6152b92a5b37b641b21053e"
+      },
+      {
+        "decoded_bytes": 548290,
+        "decoded_sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4",
+        "elapsed_ns": 99701208,
+        "error": null,
+        "first_byte": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786739712500",
+          "utc": "2026-10-10T02:38:02.624345Z"
+        },
+        "headers": {
+          "age": "250",
+          "cf-cache-status": "HIT",
+          "content-type": "application/json",
+          "date": "Sat, 10 Oct 2026 02:38:01 GMT",
+          "vary": "Accept-Encoding,Origin"
+        },
+        "market_rows": 100,
+        "ordinal": 3,
+        "received": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786805243791",
+          "utc": "2026-10-10T02:38:02.689872Z"
+        },
+        "requested_encoding": "identity",
+        "started": {
+          "clock_session_id": "ab722174-7342-429d-8f4c-f36db4a945c3",
+          "monotonic_ns": "2503786705542583",
+          "utc": "2026-10-10T02:38:02.590178Z"
+        },
+        "status": 200,
+        "strict_json_valid": true,
+        "wire_bytes": 548290,
+        "wire_sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4"
+      }
+    ],
+    "synthetic_decoder_checks_passed": 4
+  },
+  "all_decoded_bytes_identical": true,
+  "artifacts": [
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/0/decoded.bin",
+      "bytes": 548290,
+      "sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/0/receipt.json",
+      "bytes": 922,
+      "sha256": "3b7858b7cf608f3c3409bb9c588eee3b8209a563155dcd11bd86d0482f8c4fe9"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/0/receipt_ack.json",
+      "bytes": 229,
+      "sha256": "3c0d139243ec6dec0060ef2d658f627fd36188024acf135f31781a6b704cbb3f"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/0/wire.bin",
+      "bytes": 548290,
+      "sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/1/decoded.bin",
+      "bytes": 548290,
+      "sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/1/receipt.json",
+      "bytes": 942,
+      "sha256": "606688e2bcecbff32c716649277dfbdcd2b8bcdabea6226061b81428ee1180e6"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/1/receipt_ack.json",
+      "bytes": 229,
+      "sha256": "d39bb275464b325749b9a95bf48a06d743d14e9dfa4281f27a675ea9ce7c79c9"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/1/wire.bin",
+      "bytes": 47252,
+      "sha256": "4e3bfe3f628a85b0d6d032599315990f77f35e2ed6152b92a5b37b641b21053e"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/2/decoded.bin",
+      "bytes": 548290,
+      "sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/2/receipt.json",
+      "bytes": 942,
+      "sha256": "82c9fdcbc0e4c0420af16ee28b4dcad883bdf6599b3432bcdbf77f0166570653"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/2/receipt_ack.json",
+      "bytes": 229,
+      "sha256": "b333facc2d52d91a18fbfbc6bd001ce4919721873d5bc77dae121d1b9c59c285"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/2/wire.bin",
+      "bytes": 47252,
+      "sha256": "4e3bfe3f628a85b0d6d032599315990f77f35e2ed6152b92a5b37b641b21053e"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/3/decoded.bin",
+      "bytes": 548290,
+      "sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/3/receipt.json",
+      "bytes": 921,
+      "sha256": "2a1d489121f35c4d2966cb48492f5556a5fbb550c267806cdbaadbc24ba9a367"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/3/receipt_ack.json",
+      "bytes": 229,
+      "sha256": "08e8afbe154aefbef1cbc71369d68b2d32fdacf90428ed5ee2594f87128f600f"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/3/wire.bin",
+      "bytes": 548290,
+      "sha256": "71d057d29d5ad2fdd249cfd2820d5641ffb0f4be18b02301ae5b3f8bd8b72ca4"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/policy.json",
+      "bytes": 793,
+      "sha256": "66f2af2b39508282f84ea42d81f7e1ebc3b511f33de359bcabd97357e85986a7"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/report.json",
+      "bytes": 3939,
+      "sha256": "18bb38650393aab9bc09c978beeb3349118c18435c9d0987274937498ee011fd"
+    },
+    {
+      "path": "data-dumps/fs2_http_encoding_probe_20261010_1/script.py",
+      "bytes": 4724,
+      "sha256": "8c6c73cb3da5d75168f25fab913d3c68e924018b14c046f7b31bcd09de493ec3"
+    }
+  ],
+  "interpretation": "Gzip support and exact decoded equality observed for this four-request cached first-page diagnostic. Gzip47252 versus identity548290wire bytes. No full-universe latency guarantee, sampling, admission or origins. All four were cache HIT; connection warmth and server conditions confound latency."
+}
