@@ -1250,6 +1250,8 @@ def benjamini_yekutieli(pvals: dict[str, float], m_total: int, q: float = BY_Q) 
     return ml_explain.benjamini_yekutieli(pvals, m_total, q)
 
 
+# NOTE (SB2 item 1): undercounts (skips source=hypothesis_battery_1 and several test-bearing kinds);
+# kept unchanged for frozen past runs. Use battery2.cumulative_count() for SB2 and later.
 def prior_test_count(path: Path = provenance.TRIALS_PATH) -> dict:
     """Declared cumulative-count rule: non-placebo ``ml_explain`` lines contribute ``n_tests`` (or
     ``multiple_testing.m_tests``); each non-placebo line of ``PRIOR_KIND_ONE`` contributes 1;
