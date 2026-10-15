@@ -491,9 +491,16 @@ def _stable(*ts: dict) -> bool:
     return all(t.get("testable") and t.get("lodo", {}).get("sign_stable") for t in ts)
 
 
+def _lodo_within(t: dict, lo: float, hi: float) -> bool:
+    """Equivalence/bound verdicts (pre-freeze amendment): every leave-one-day-out estimate in (lo, hi)."""
+    b = t.get("lodo", {}).get("betas") or {}
+    return bool(t.get("testable") and b and all(lo < x < hi for x in b.values()))
+
+
 def verdicts(res: dict) -> dict:
     """The declared J4 verdict map (SCREENING_BATCH_2 J4), TOST bands as written, then the binding
-    leave-one-day-out rule: a verdict whose tests are not sign-stable on every day is downgraded."""
+    leave-one-day-out rule (sign stability for directional verdicts; every day's estimate inside the
+    band for equivalence/bound verdicts, per the pre-freeze amendment)."""
     T = res["tests"]
     p1, p1x, p2, p3, p4 = (T[k] for k in ("P1", "P1x", "P2", "P3", "P4"))
     mde = {k: t.get("mde_80") for k, t in T.items()}
@@ -523,11 +530,23 @@ def verdicts(res: dict) -> dict:
         v["e004_reversal"] = "not explained"
     else:
         v["e004_reversal"] = "inconclusive"
-    involved = {"gamma_mid_reversal": (p1,), "reversion_nature": (p1, p1x), "last_trade": (p2,),
-                "quote_refill": (p3, p1, p1x), "e004_reversal": (p4,)}
+    # binding leave-one-day-out rule: directional verdicts need sign stability on every day;
+    # equivalence/bound verdicts need every day's estimate inside the band (pre-freeze amendment)
+    band_bpos = TOST_BPOS_HS_FRAC * hs if hs else 0.0
+    stable = {
+        "gamma_mid_reversal": lambda: _stable(p1),
+        "reversion_nature": lambda: (_stable(p1, p1x) if genuine else _stable(p1) and (
+            _lodo_within(p1x, -TOST_SLOPE_BAND, TOST_SLOPE_BAND)
+            or _lodo_within(p1x, p1["beta"] / 2, np.inf))),
+        "last_trade": lambda: (_lodo_within(p2, -band_bpos, band_bpos)
+                               if v["last_trade"].startswith("pure bounce") else _stable(p2)),
+        "quote_refill": lambda: _stable(p3, p1, p1x),
+        "e004_reversal": lambda: (_lodo_within(p4, -0.05, np.inf)
+                                  if v["e004_reversal"] == "explained" else _stable(p4)),
+    }
     out = {}
     for k, label in v.items():
-        if label != "inconclusive" and not _stable(*involved[k]):
+        if label != "inconclusive" and not stable[k]():
             label = "inconclusive (day-unstable)"
         out[k] = label
     out["mde_80_by_test"] = mde

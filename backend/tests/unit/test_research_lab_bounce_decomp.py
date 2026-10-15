@@ -219,8 +219,10 @@ def test_lodo_sign_rule_and_verdict_downgrade():
                      "ci90": [-0.48, -0.32], "lodo": {"sign_stable": True}, **k}
     res = {"tests": {"P1": t(), "P1x": t(beta=-0.3, ci95=[-0.4, -0.2], ci90=[-0.38, -0.22]),
                      "P2": t(reject=False, beta=0.0, ci95=[-1, 1], ci90=[-0.01, 0.01],
-                             half_spread_cents_median=1.0),
-                     "P3": t(), "P4": t(reject=False, beta=-0.01, ci95=[-0.02, 0.0])}}
+                             half_spread_cents_median=1.0,
+                             lodo={"sign_stable": False, "betas": {"d1": -0.02, "d2": 0.03}}),
+                     "P3": t(), "P4": t(reject=False, beta=-0.01, ci95=[-0.02, 0.0],
+                                        lodo={"sign_stable": False, "betas": {"d1": -0.03, "d2": 0.01}})}}
     v = bd.verdicts(res)
     assert v["gamma_mid_reversal"] == "present" and v["reversion_nature"] == "genuine reversion"
     assert v["last_trade"].startswith("pure bounce") and v["e004_reversal"] == "explained"
@@ -229,6 +231,12 @@ def test_lodo_sign_rule_and_verdict_downgrade():
     v2 = bd.verdicts(res)
     assert v2["reversion_nature"] == "inconclusive (day-unstable)"
     assert v2["gamma_mid_reversal"] == "present"
+    # equivalence/bound verdicts: sign flips inside the band are fine (above); a day outside is not
+    res["tests"]["P2"]["lodo"] = {"sign_stable": False, "betas": {"d1": -0.02, "d2": 0.2}}
+    res["tests"]["P4"]["lodo"] = {"sign_stable": True, "betas": {"d1": -0.08, "d2": -0.01}}
+    v3 = bd.verdicts(res)
+    assert v3["last_trade"] == "inconclusive (day-unstable)"
+    assert v3["e004_reversal"] == "inconclusive (day-unstable)"
 
 
 def test_placebo_permutation_breaks_time_link_within_market():

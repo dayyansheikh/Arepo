@@ -453,6 +453,10 @@ the 90% CI lies inside the stated band (TOST at 0.05).
 - **Leave-one-day-out (binding, challenger item 6):** a test's verdict stands only if its point estimate has the same
   sign as the full-sample estimate in every leave-one-calendar-day-out fit (every UTC day in the window). Otherwise its
   verdict is "inconclusive (day-unstable)", whatever its p-value.
+  **Pre-freeze amendment (2026-10-15 ~19:45Z, coordinator):** for an *equivalence* verdict ("equivalent to 0") the
+  sign of a near-zero estimate is noise, so the sign rule would make that verdict unreachable by construction. For
+  equivalence verdicts the binding rule is instead: every leave-one-day-out point estimate lies inside the
+  equivalence band. Directional verdicts keep the sign rule.
 
 Also reported (descriptive, not tested):
 - Attenuation 1 − γ_full / γ_alone of the `chg_1h` coefficient.
