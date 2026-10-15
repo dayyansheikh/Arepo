@@ -538,6 +538,33 @@ def spec_sha256(spec: dict) -> str:
     return hashlib.sha256(json.dumps(B._clean(body), sort_keys=True).encode()).hexdigest()
 
 
+def file_sha256(path: Path) -> str | None:
+    """sha256 of a file's bytes (streamed), or None when it does not exist."""
+    p = Path(path)
+    if not p.exists():
+        return None
+    h = hashlib.sha256()
+    with p.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def feature_hashes(paths: dict[str, Path]) -> dict[str, str | None]:
+    return {k: file_sha256(p) for k, p in sorted(paths.items())}
+
+
+def check_feature_hashes(spec: dict, paths: dict[str, Path]) -> None:
+    """Refuse unless every feature file hashes to what ``fitspec`` recorded (absent stays absent)."""
+    rec = spec.get("feature_sha256")
+    if not isinstance(rec, dict) or not rec:
+        raise SystemExit("refusing: spec has no feature_sha256 (re-run fitspec)")
+    now = feature_hashes(paths)
+    bad = sorted(k for k in set(rec) | set(now) if rec.get(k) != now.get(k))
+    if bad:
+        raise SystemExit(f"refusing: feature files changed since fitspec: {bad}")
+
+
 def _needed_cols() -> list[str]:
     cols = set(INPUT_COLS) | set(C0) | {
         "market_id", "t_i", "mid_i", "event_c", "day_c", "split", "traded", "month", "fee_cat",
@@ -777,11 +804,26 @@ def _by_subsets(d: pd.DataFrame, h: B.Hyp, rows: np.ndarray) -> dict:
     return out
 
 
-def robustness2(d: pd.DataFrame, h: B.Hyp, res: dict, spec: dict, d_shift: pd.DataFrame | None, n_boot: int) -> dict:
+def robustness2(d: pd.DataFrame, h: B.Hyp, res: dict, spec: dict, d_shift: pd.DataFrame | None, n_boot: int,
+                shared_events: set[str] | None = None) -> dict:
     """Declared robustness on an advanced test (h2): sign by month and fee category, flow windows ending
     30 min earlier, F3 end-date look-ahead, F1/F2/F8 joint control with f_quiet, favourable tercile."""
     judge = (d["split"] == "judge").to_numpy()
     out: dict = _by_subsets(d, h, judge)
+    shared = d["event_c"].isin(shared_events or set()).to_numpy()
+    out["excl_shared_events"] = B._subset_beta(d, h, pop_mask2(h.pop, d), judge & ~shared)
+    out["n_shared_events_in_judge"] = int(d.loc[judge & shared, "event_c"].nunique())
+    if h.hid == "F7":
+        xb, xr = d["x_big6"].to_numpy(float), d["x_rest6"].to_numpy(float)
+        fin = np.isfinite(xb) & np.isfinite(xr)
+        pm = pop_mask2(h.pop, d).to_numpy() & judge & fin
+        out["f7_empty_groups"] = {
+            "rows": int(pm.sum()),
+            "share_empty_big": float(np.mean(xb[pm] == 0)) if pm.any() else None,
+            "share_empty_rest": float(np.mean(xr[pm] == 0)) if pm.any() else None,
+            "share_either_empty": float(np.mean((xb[pm] == 0) | (xr[pm] == 0))) if pm.any() else None,
+        }
+        out["f7_both_groups_nonempty"] = B._subset_beta(d, h, pop_mask2(h.pop, d), judge & fin & (xb != 0) & (xr != 0))
     if d_shift is not None:
         out["flow_window_end_minus_30min"] = B._subset_beta(
             d_shift, h, pop_mask2(h.pop, d_shift), (d_shift["split"] == "judge").to_numpy())
@@ -804,7 +846,8 @@ def _load_cols(path: Path, columns: list[str]) -> pd.DataFrame:
 
 
 def run_main2(
-    d: pd.DataFrame, spec: dict, d_shift: pd.DataFrame | None, n_boot: int, threads: int, out_dir: Path, log=print
+    d: pd.DataFrame, spec: dict, d_shift: pd.DataFrame | None, n_boot: int, threads: int, out_dir: Path, log=print,
+    shared_events: set[str] | None = None,
 ) -> int:
     path = Path(out_dir) / "results_hb2.json"
     if path.exists():
@@ -821,7 +864,7 @@ def run_main2(
     extra = {}
     for hid in adv:
         log(f"  robustness for {hid}")
-        extra[hid] = robustness2(d, HMAP2[hid], res[hid], spec, d_shift, n_boot)
+        extra[hid] = robustness2(d, HMAP2[hid], res[hid], spec, d_shift, n_boot, shared_events)
     log("calibration placebo: whole battery on globally permuted targets")
     plc = run_all2(d, spec, 200, threads, y_perm_seed=B.SEED + 1, log=log)
     plc_p = {k: float(v.get("p", 1.0)) for k, v in plc.items()}

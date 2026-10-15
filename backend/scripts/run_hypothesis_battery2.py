@@ -99,6 +99,16 @@ def cmd_features(a) -> int:
     return 0
 
 
+def feature_paths() -> dict[str, Path]:
+    od = out_dir("h2_main")
+    return {
+        "battery1_features": feat_path("h2_main", "features.parquet"),
+        "battery1_features_shift30": feat_path("h2_main", "features_shift30.parquet"),
+        "features2": od / "features2.parquet",
+        "features2_shift30": od / "features2_shift30.parquet",
+    }
+
+
 def cmd_fitspec(a) -> int:
     out = Path(a.out) if a.out else B2.SPEC_PATH
     if out.exists():
@@ -106,6 +116,8 @@ def cmd_fitspec(a) -> int:
         return 1
     d = load_table("h2_main")
     spec = B2.fit_spec(d)
+    spec["feature_sha256"] = B2.feature_hashes(feature_paths())
+    spec["spec_sha256"] = B2.spec_sha256(spec)
     out.write_text(json.dumps(B._clean(spec), indent=1, sort_keys=True) + "\n")
     log(f"declaration_sha256 {B2.declaration_sha256()}")
     log(f"spec_sha256        {spec['spec_sha256']}")
@@ -135,12 +147,13 @@ def cmd_dryrun(a) -> int:
 
 def cmd_run(a) -> int:
     spec = B2.require_frozen_spec()
+    B2.check_feature_hashes(spec, feature_paths())
     od = out_dir("h2_main")
     od.mkdir(parents=True, exist_ok=True)
     d = load_table("h2_main")
     sp = feat_path("h2_main", "features_shift30.parquet")
     ds = load_table("h2_main", shift=True) if sp.exists() else None
-    return B2.run_main2(d, spec, ds, a.n_boot, a.threads, od, log)
+    return B2.run_main2(d, spec, ds, a.n_boot, a.threads, od, log, shared_events())
 
 
 def shared_events() -> set[str]:

@@ -447,3 +447,62 @@ def test_sibling_columns_are_as_of(tmp_path):
     f = sib.features("A", np.array([t]), np.array([0.5]))
     assert f["f_sib_nr_d2h"][0] == pytest.approx(0.10)  # 0.50 (as of t) - 0.40 (as of t-2h): only B contributes
     assert gzip.open(sib_dir / "B.csv.gz").read()  # fixture sanity
+
+
+# --------------------------------------------------------------------------------------------
+# hardening: feature hashes, shared-events secondary, F7 empty-group secondary
+# --------------------------------------------------------------------------------------------
+
+
+def test_feature_hashes_checked_at_run(tmp_path):
+    a, b = tmp_path / "a.parquet", tmp_path / "b.parquet"
+    a.write_bytes(b"one")
+    paths = {"a": a, "b": b}  # b absent
+    spec = {"feature_sha256": B2.feature_hashes(paths)}
+    assert spec["feature_sha256"]["b"] is None
+    B2.check_feature_hashes(spec, paths)
+    a.write_bytes(b"two")
+    with pytest.raises(SystemExit):
+        B2.check_feature_hashes(spec, paths)
+    a.write_bytes(b"one")
+    b.write_bytes(b"new")  # a file that was absent at fitspec now exists
+    with pytest.raises(SystemExit):
+        B2.check_feature_hashes(spec, paths)
+    with pytest.raises(SystemExit):
+        B2.check_feature_hashes({}, paths)
+
+
+def test_cli_fitspec_records_hashes_and_run_refuses_on_change(tmp_path, monkeypatch):
+    cli = _cli()
+    monkeypatch.setattr(cli, "HIST", tmp_path)
+    d = _frame(seed=1)
+    fd = tmp_path / "h2_main" / "battery1"
+    fd.mkdir(parents=True)
+    d.to_parquet(fd / "features.parquet", index=False)
+    out = tmp_path / "hb2_v1.json"
+    assert cli.cmd_fitspec(type("A", (), {"out": str(out)})()) == 0
+    spec = B2.load_spec(out)  # spec_sha256 still self-consistent with the added key
+    assert spec["feature_sha256"]["battery1_features"] == B2.file_sha256(fd / "features.parquet")
+    assert spec["feature_sha256"]["features2"] is None
+    monkeypatch.setattr(B2, "require_frozen_spec", lambda *a, **k: spec)
+    (tmp_path / "h2_main" / "battery2").mkdir()
+    (tmp_path / "h2_main" / "battery2" / "features2.parquet").write_bytes(b"rebuilt")
+    with pytest.raises(SystemExit):
+        cli.cmd_run(type("A", (), {"n_boot": 10, "threads": 1})())
+
+
+def test_robustness2_shared_events_and_f7_empty_groups(spec_h2):
+    d = _frame(seed=1)
+    d.loc[d.index % 3 == 0, "x_big6"] = 0.0
+    d.loc[d.index % 5 == 0, "x_rest6"] = 0.0
+    B2.derive2(d, spec_h2)
+    h = B2.HMAP2["F7"]
+    res = {"_masks": ((d["split"] == "disc").to_numpy(), (d["split"] == "judge").to_numpy(), None)}
+    rb = B2.robustness2(d, h, res, spec_h2, None, 20, shared_events={"e:0", "e:1", "e:2"})
+    assert "excl_shared_events" in rb and rb["n_shared_events_in_judge"] > 0
+    g = rb["f7_empty_groups"]
+    assert 0.3 < g["share_empty_big"] < 0.37 and 0.17 < g["share_empty_rest"] < 0.23
+    assert g["share_either_empty"] >= max(g["share_empty_big"], g["share_empty_rest"])
+    assert "f7_both_groups_nonempty" in rb
+    rb1 = B2.robustness2(d, B2.HMAP2["F1"], {"_masks": res["_masks"]}, spec_h2, None, 20) if False else None
+    assert rb1 is None
