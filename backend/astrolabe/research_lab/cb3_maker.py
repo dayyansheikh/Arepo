@@ -115,22 +115,26 @@ def visible_prints(pr: dict[str, np.ndarray], t: float, n: int = VISIBLE) -> dic
     return _take(pr, sel)
 
 
+def _dedupe_keys(pr: dict[str, np.ndarray]) -> list[tuple]:
+    return [(str(sd), float(o), round(float(p), 8), round(float(z), 8), float(ts), str(w)) for sd, o, p, z, ts, w in
+            zip(pr["side_raw"], pr["outcome"], pr["p0"], pr["size"], pr["ts"], pr["wallet"], strict=True)]
+
+
 def prints_union(pre: dict[str, np.ndarray], post: dict[str, np.ndarray], t: float) -> dict[str, np.ndarray]:
-    """pre/ filtered to ``ts < t``, post/ to ``ts > t``, de-duplicated (a print in both counts once), time-sorted (item 5).
-    Dedup key: ``trade_key`` / tx hash if stored, else the (side, outcome, price, size, ts) tuple."""
+    """pre/ filtered to ``ts < t``, post/ to ``ts > t``, then de-duplicated ACROSS the two sources (a print present in both
+    counts once; identical prints inside one source are kept, they can be genuine split fills), time-sorted (item 5).
+    The key is (side, outcome, price, size, ts, wallet hash): the stored sources do not share a transaction id."""
     a = _take(pre, pre["ts"] < t) if len(pre["ts"]) else pre
     b = _take(post, post["ts"] > t) if len(post["ts"]) else post
+    if len(b["ts"]) and len(a["ts"]):
+        seen = set(_dedupe_keys(a))
+        keep = np.array([k not in seen for k in _dedupe_keys(b)], bool)
+        b = _take(b, keep)
     cat = {k: np.concatenate([a[k], b[k]]) for k in a}
     if not len(cat["ts"]):
         return cat
-    key = np.array([f"{k}|{s}|{o}|{p:.8f}|{z:.8f}|{ts:.3f}" for k, s, o, p, z, ts in
-                    zip(cat["key"], cat["side_raw"], cat["outcome"], cat["p0"], cat["size"], cat["ts"], strict=True)], object)
-    _u, first = np.unique(key, return_index=True)
-    keep = np.zeros(len(key), bool)
-    keep[first] = True
-    out = _take(cat, keep)
-    o = np.argsort(out["ts"], kind="stable")
-    return {k: v[o] for k, v in out.items()}
+    o = np.argsort(cat["ts"], kind="stable")
+    return {k: v[o] for k, v in cat.items()}
 
 
 def taker_orders(pr: dict[str, np.ndarray]) -> pd.DataFrame:
@@ -935,7 +939,9 @@ class FollowupReader:
         return json.loads(p.read_text()) if p.exists() else {}
 
     def trades(self, pass_id: str, part: str, market_id: str) -> dict[str, np.ndarray]:
-        p = self.root / pass_id / part / "trades.csv.gz"
+        """``pass_id`` = the capture id of the follow-up pass (i + 1) for opportunities of pass i. ``pre`` reads the copied
+        ``wallets.csv.gz`` (hashed wallets, same rows as the trade sample), ``post`` / ``vacuum`` their ``trades.csv.gz``."""
+        p = self.root / pass_id / part / ("wallets.csv.gz" if part == "pre" else "trades.csv.gz")
         if not p.exists():
             return prints_arrays(None)
         df = pd.read_csv(p, dtype={"market_id": str, "wallet_hash": str, "trade_key": str})

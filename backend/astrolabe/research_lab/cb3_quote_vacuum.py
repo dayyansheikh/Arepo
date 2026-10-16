@@ -81,7 +81,7 @@ def panel_from_frames(frames: list[tuple[str, float, pd.DataFrame, set[str] | No
     mat = {k: np.full((n, c), np.nan) for k in [*_NUM, "closed", "active", "accepting_orders", "s1_recv", "s2_recv"]}
     present = np.zeros((n, c), bool)
     in_capture = np.zeros((n, c), bool)
-    meta = pd.DataFrame({"market_id": markets, "event_id": "", "neg_risk_id": "", "parent_event_ids": "", "fee_category": "", "fee_schedule": "", "created_at": "", "end_date": ""})
+    meta = pd.DataFrame({"market_id": markets, "condition_id": "", "event_id": "", "neg_risk_id": "", "parent_event_ids": "", "fee_category": "", "fee_schedule": "", "created_at": "", "end_date": ""})
     meta_idx = meta.set_index("market_id")
     for j, (_cid, _st, df, ids) in enumerate(frames):
         df = df.drop_duplicates("market_id")
@@ -96,7 +96,7 @@ def panel_from_frames(frames: list[tuple[str, float, pd.DataFrame, set[str] | No
         for k, src in (("s1_recv", "s1_batch_receipt_utc"), ("s2_recv", "s2_batch_receipt_utc")):
             if src in df:
                 mat[k][idx, j] = _epoch_col(df[src])
-        for k in ("event_id", "neg_risk_id", "parent_event_ids", "fee_category", "fee_schedule", "created_at", "end_date"):
+        for k in ("condition_id", "event_id", "neg_risk_id", "parent_event_ids", "fee_category", "fee_schedule", "created_at", "end_date"):
             if k in df:
                 vals = df[k].astype(str).to_numpy()
                 nz = vals != ""
