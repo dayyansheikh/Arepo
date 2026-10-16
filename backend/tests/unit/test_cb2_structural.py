@@ -611,6 +611,9 @@ def test_runner_rep_snapshots_refused_before_rep_end(tmp_path, monkeypatch, caps
 
 def test_runner_weather_hooks_exit_2_when_module_missing(monkeypatch, capsys):
     monkeypatch.setitem(sys.modules, "astrolabe.research_lab.cb2_weather", None)  # ImportError on import
+    import astrolabe.research_lab as rl_pkg
+
+    monkeypatch.delattr(rl_pkg, "cb2_weather", raising=False)  # already imported by other tests in the session
     for argv in (["weather-fetch"], ["seal"], ["verify-seal"], ["stagep", "--family", "W"], ["screen", "--family", "W"],
                  ["replicate", "--family", "W"]):
         assert run_main(argv) == 2, argv
