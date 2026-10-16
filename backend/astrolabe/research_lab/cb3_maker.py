@@ -761,9 +761,8 @@ def worst_case_rows(opps_pop: pd.DataFrame, fills_kept: pd.DataFrame, tid: str, 
         st = o[f"{rule}_{side}_status"].to_numpy()
         wc = o.get(f"{rule}_{side}_wc_mo", pd.Series(np.nan, index=o.index)).to_numpy(float)
         o[f"_u_{side}"] = np.where((st == -1) & keep, wc, np.nan)
-    both = np.nanmin(np.column_stack([o["_u_bid"].to_numpy(float), o["_u_ask"].to_numpy(float)]), axis=1) if len(o) else np.empty(0)
-    with np.errstate(all="ignore"):
-        add.extend([x for x in both if np.isfinite(x)])
+    both = np.fmin(o["_u_bid"].to_numpy(float), o["_u_ask"].to_numpy(float)) if len(o) else np.empty(0)
+    add.extend([x for x in both if np.isfinite(x)])
     mu = fills_kept[fills_kept["mark_unavailable"]]
     add.extend(list(mu["wc_mo"].to_numpy(float)))
     return np.asarray([x for x in add if np.isfinite(x)], float)
