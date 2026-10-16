@@ -1362,3 +1362,61 @@ threshold, formula or gate.
     dicts were added; `ALLOWED_RUN_IDS` now includes them (h5 and h6 behaviour unchanged, tests green).
 12. **Disk guards.** Fetches refuse above 10 GB in `data-dumps` (exit 2); the closewin backfill refuses above 10.5 GB with a non-zero exit. The analysis
     subcommands are hooks into `astrolabe.research_lab.cb4_analysis.cmd_<name>` and exit 2 if absent.
+
+## Freeze check (science-reviewer, 2026-10-16 05:20Z): CB4 data code against the design
+(The reviewer is read-only; the coordinator pasted this text, lightly condensed.)
+Code: e78daee, 6e729ca, queue change 68c0bfe. `test_cb4_data.py`: 51 pass, 1 fails (`:1036` still expects priority 58 after
+68c0bfe set q0081/q0082 to 61). h5 seal tests pass (11).
+
+**Verdicts:** closewin + q0080 REVISE (fixes 1-4 URGENT); era fetch q0081 REVISE (5, 8-11); series fetch, rules file and q0082
+REVISE (5-7, 9, 11; do not commit `cb4_series_rules.json` before 6 and 7); seal/split q0083 ACCEPT_WITH_REQUIRED_FIXES (11;
+`split_h7s` follows §1.3 and reads only `t0` and ids); h5_seal generalisation ACCEPT (only constants and allowlist ids added;
+h5/h6 seal output unchanged); outcome guard ACCEPT (outcome columns only in `outcomes_guarded.csv.gz`; price/trade file names
+reveal the predecessor's winner, disclosed in implementation note 9).
+
+**Required fixes**
+1. **URGENT.** The sidecar writes `accepting_orders` as 1/0 (`ext_sidecar.py:96`, `extract.py:97-103`) but `cb4_data.py:142`
+   tests for `"false"`, so on real data the accepting-orders branch never fires and flips are silently left out. Fixtures use
+   `"True"/"False"`. Use `_flag`; build fixtures with `ext_row`.
+2. **URGENT (deadlock).** q0080 exits non-zero above 10.5 GB and with `max_retries` 2 ends `failed`, while deletion waits for
+   q0080 (`RETENTION.md:75`) and q0080 sits behind q0016 (63). At about 1.1 GB/day from 7.6 GB (03:56Z), 10.5 GB comes around
+   10-18/19. Refuse only on real headroom (output ≤ 0.4 GB + 0.2 GB scratch under the 12 GB cap).
+3. **URGENT (verify on host).** Captures are listed only from host manifests (`forecast.py:154-161`); 10-11 to 10-14 captures
+   that exist only in releases would be absent, not counted as missing. Cross-check the catalogue; record `no_host_manifest`.
+4. **URGENT.** One transient restore failure marks a capture missing for good (`:415-420`) and breaks the next capture's
+   departures; a hash mismatch is mislabelled `archived_no_release_copy`; the sidecar join blanks rows with no sidecar entry
+   (`:134-136`). Retry transient failures, record the true reason, add `ext_present` per row and the sidecar version per capture.
+5. q0081/q0082 depend only on q0018; their refusals exit 2 and burn `max_retries` 3, then `failed` (CB2 fix 12 again). Gate them.
+6. The rules hash covers only six functions (`:758`). Add `slim_event`, `assemble_units`, `_modal`, `_price_pair`, `_parse_ts`,
+   `TEMP_RE`/`is_weather_text`, `pairing.fee_category`, `hb.allocate`/`_rank`, the `PSEUDO_GAP_H`/`PRICE_*` constants, and a
+   readable rule text (CB2 fix 1 standard).
+7. Two binding checks are not computable from what the series fetch stores: the `t0` publicity check needs predecessor prices and
+   trades (never fetched, `:1691-1709`); the window `[t0'−3h, V_end+2h]` ignores `t0_alt = endDate+1h` (missed when
+   `closedTime < endDate−1h` or resolution lags > 21h daily / 57h weekly). Use the union window, fetch the winning predecessor
+   token around `t0` plus one trade page, assert coverage (§2.2).
+8. CB4-E group S = `fee_category=="sports"` from `feeType`, often absent in P0 (`LIVE_TRADE_MONITOR.md:86`), so P0 sports may fall
+   into O and S|P0 is selected on having `feeType`; the sample is drawn in the same call (`:1329-1338`). Stop after the frame,
+   report category counts per period, get any amendment reviewed before sampling. Same issue for the series sports flag.
+9. Failed requests hidden: `fetch_prices` ignores non-200 (`history_backfill.py:899-905`) so a failure writes an empty price file
+   marked done; trade failures become "truncated"; the era walk counts failed windows as "capped" and writes the frame (CB2 fixes
+   6 and 19 again; the series walk is correct).
+10. A missing exclusion sample raises `FileNotFoundError` (an `OSError`), reported as `disk_budget` with exit 0 (`:1341`); repeat
+    runs then end "done" with no data. Make it a refusal.
+11. "Not run, recorded" can be skipped: if q0081/q0082 fail or never start, q0083 never runs; `cmd_fetch` applies refusals before
+    the `T_seal` guard (`:2002-2032`). Add a dependency-free deadline recorder at `T_seal`.
+12. Fix the stale test; record the priority/lane changes against §2.8.
+13. The `RETENTION.md` gate omits §2.10(b); the all-new pass step is not wired (`run_cb4.py:12`). Wire it before the gate releases.
+14. Minor: event-level weather exclusion ignores `fee_category` (`:1620`); `h5_cb1_ladders` ids not excluded; units sharing events
+    across series not counted.
+
+**T_seal feasibility.** After the h5 seal copy is committed the net lane must run the rest of a q0002 chunk (≤ 4.5 h), q0043
+(70-86k requests, 6-9 h), q0081 (2-3 h), q0082 (3.5-5 h, +1 h with fix 7): about 12-23 h plus the 02:45-05:30 blackout.
+q0081/q0082 tie q0043 at 61 and lose on id order. Commit the seal copy by about 10-20T00Z (10-21T00Z hard latest). Bigger risks:
+the 10 GB guard and burnt retries (2, 5). Moving q0081 to the cpu lane (as §2.8 said) runs it beside q0043 at twice the API rate:
+coordinator's call.
+
+**Not verified:** host capture coverage, data-dumps size, q0016/q0017 progress, `zstd --long=31` within the 2 GB address cap,
+`feeType` presence on P0 markets.
+
+**Coordinator action (05:28Z):** q0080 held behind gate q0080a, q0081/q0082 behind q0081a (d6f5a50), deployed before the
+05:30Z blackout end.
