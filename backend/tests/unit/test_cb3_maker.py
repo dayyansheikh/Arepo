@@ -529,7 +529,7 @@ def test_spec_immutability_cuts_hash_census_check_and_j4r_pin(tmp_path):
         D.j4r_window(pin)
     cuts = {"rt_top_decile_cut": 0.2, "activity_tercile_cuts": [1.0, 2.0]}
     census = tmp_path / "census.json"
-    census.write_text(json.dumps({"B": {"frozen_cuts_proposal": cuts}}))
+    census.write_text(json.dumps({"declaration_sha256": D.declaration_sha256(), "B": {"frozen_cuts_proposal": cuts}}))
     spec = tmp_path / "spec.json"
     D.write_spec(spec, cuts, provenance.sha256_file(census))
     D.verify_cuts_against_census(spec, census)
@@ -543,9 +543,16 @@ def test_spec_immutability_cuts_hash_census_check_and_j4r_pin(tmp_path):
     spec.write_text(json.dumps(d))
     with pytest.raises(D.DeclarationError, match="differs from the census proposal"):
         D.verify_cuts_against_census(spec, census)
-    census.write_text(json.dumps({"B": {"frozen_cuts_proposal": d["frozen_cuts"]}}))
+    census.write_text(json.dumps({"declaration_sha256": D.declaration_sha256(), "B": {"frozen_cuts_proposal": d["frozen_cuts"]}}))
     with pytest.raises(D.DeclarationError, match="census_sha256"):
         D.verify_cuts_against_census(spec, census)  # the census was changed after the freeze
+    # a census made under another declaration (or without one) is refused even when its sha and cuts match the spec
+    for bad in ({"B": {"frozen_cuts_proposal": d["frozen_cuts"]}}, {"declaration_sha256": "0" * 64, "B": {"frozen_cuts_proposal": d["frozen_cuts"]}}):
+        census.write_text(json.dumps(bad))
+        d["census_sha256"] = provenance.sha256_file(census)
+        spec.write_text(json.dumps(d))
+        with pytest.raises(D.DeclarationError, match="declaration_sha256"):
+            D.verify_cuts_against_census(spec, census)
     # dev window: T3_dev_end moves forward by whole days when < 3 full days lie in the window
     t = D.epoch
     assert D.dev_window_end(t("2026-10-18T00:00:00Z"), t("2026-10-21T00:00:00Z")) == t("2026-10-25T00:00:00Z")
@@ -862,6 +869,29 @@ def test_reading_with_unavailable_se_is_inconclusive():
     ps = C.placebo_summary([0.0, 0.01, -0.01, 0.005])
     for se in (math.nan, None, 0.0):
         assert C.reading(ps, se)["status"].startswith("inconclusive")
+
+
+def test_reading_void_check_precedes_unavailable_se():
+    ps = C.placebo_summary([0.5, 0.6, 0.7, 0.55])  # range excludes 0
+    assert not ps["covers_zero"]
+    for se in (math.nan, None, 0.0):
+        r = C.reading(ps, se)
+        assert r["family_void"] is True and r["status"].startswith("VOID")
+
+
+def test_declaration_hash_covers_runner_quote_state_and_helpers():
+    h = D.source_hashes()
+    assert "scripts/run_cb3.py" in h and h["scripts/run_cb3.py"] == provenance.sha256_file(D.RUNNER_PATH)
+    for k in ("cb1_history.load_sample", "cb1_history.drop_outcome_columns", "cb1_history.load_books", "history_backfill.load_prices"):
+        assert k in h
+    assert any(k.startswith("cb3_quote_state.") for k in h)
+
+
+def test_history_depth_touch_fallback_is_counted_and_reported(tmp_path):
+    run, bpath = _history_run(tmp_path)  # the fixture books carry no sw_depth_*_1c: every kept row uses the touch size
+    u = M.history_units(run, bpath, with_marks=False)
+    assert u["diag"]["kept"] > 0 and u["diag"]["depth_touch_fallback"] == u["diag"]["kept"]
+    assert M.census_history(run, bpath)["depth_touch_fallback_share"] == 1.0
 
 
 def test_stage2_expected_refuses_a_missing_stage1_file():

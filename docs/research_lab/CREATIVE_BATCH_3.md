@@ -1014,8 +1014,8 @@ manifest (sizes, missing captures) and q0064's census.
 ## Implementation notes (CB3)
 
 Written by the implementing session, 2026-10-16, after the DRAFT-REVISED text (a767ab8). The code is NOT frozen: no
-`model_specs/cb3_v1.json` exists, so every counted run is refused. The declaration hash of this code state is
-`24f33c360214410878accf4d68075b38a84c9ca0610d8c64b5a424c78803222f` (`cb3_declaration.declaration_sha256()`); it changes with any rule, band, floor, date, placebo or estimator in
+`model_specs/cb3_v1.json` exists, so every counted run is refused. The declaration hash of the first code state was
+`24f33c360214410878accf4d68075b38a84c9ca0610d8c64b5a424c78803222f` (superseded; current hash in the freeze-check fix status below) (`cb3_declaration.declaration_sha256()`); it changes with any rule, band, floor, date, placebo or estimator in
 `cb3_declaration.py`. Each item below is an ambiguity resolved with the most conservative reading for research integrity.
 A reviewer should confirm or overturn each at the code-against-design freeze check.
 
@@ -1178,3 +1178,15 @@ capture, `fees_enabled` in `quote_state` schema v2; income rebate = minimum of s
   `frozen_cuts_proposal` and the census sha, `single_commit` refuses a spec with more than one commit, and every result and trial line records the cuts hash;
   the declaration hash now also covers `cb3_declaration` source. Bypass flags are removed (fix 4).
 Needs a science-reviewer re-check before q0061a: fixes 3, 5-9, 11-12 and the centred A2 check (the declaration hash changed, so `24f33c36...` is superseded).
+
+### Freeze-check re-check HOLD fixes (implementer, 2026-10-16)
+Science-reviewer ruled HOLD on census q0061 until these; all coded in the commit named below.
+- (a) `source_hashes` now also covers `cb3_quote_state`, a file sha256 of `backend/scripts/run_cb3.py` (stage windows, `origin_before`, Holm k, census clamps) and
+  the helpers `cb1_history.load_sample` / `drop_outcome_columns` / `load_books` and `history_backfill.load_prices`.
+- (b) `verify_cuts_against_census` refuses unless `census["declaration_sha256"] == spec["declaration_sha256"]`; the census output records the declaration hash,
+  `git_head` and `git_dirty`.
+- (c) Unit tests for the `A2_centred` gate in `gate_a`; `reading()` now checks the placebo covers-zero VOID before the NaN-SE "inconclusive" return.
+- Fix 11 (partial): history depth falls back to touch size when `sw_depth_*_1c` is absent (kept); `depth_touch_fallback` is counted in `exclusions` and
+  `depth_touch_fallback_share` is reported in the history census.
+- No threshold, floor or formula changed. **Current declaration hash:** `eb6a143c5f78cab4aaa98dfa8387d14833b5e780b04118e0a025c8108cc76ffe`
+  (`24f33c36...` and `db87350d...` are superseded). Any later edit to a hashed function or `run_cb3.py` changes it; recompute before the freeze.

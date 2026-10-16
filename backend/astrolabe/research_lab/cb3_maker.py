@@ -882,7 +882,7 @@ def history_market_units(rec: dict, books_m: pd.DataFrame, ts_p: np.ndarray | No
     eligible book. Returns (opp rows, fill rows, large times, (first, last) print ts, diag). ``with_marks`` False (census)
     builds no marks and reads no price series: every mark-dependent field stays NaN."""
     pr = prints_arrays(tr)
-    diag = {"origins": 0, "not_eligible_book": 0, "not_open": 0, "end_too_close": 0, "trade_state_unavailable": 0, "no_prior_trade": 0, "kept": 0}
+    diag = {"origins": 0, "not_eligible_book": 0, "not_open": 0, "end_too_close": 0, "trade_state_unavailable": 0, "no_prior_trade": 0, "kept": 0, "depth_touch_fallback": 0}
     rows, frows, larges = [], [], set()
     marks = HistoryMarks(ts_p, vals_p) if (with_marks and ts_p is not None) else None
     cat = category_key(rec.get("fee_category"))
@@ -918,6 +918,7 @@ def history_market_units(rec: dict, books_m: pd.DataFrame, ts_p: np.ndarray | No
             chg = abs(float(pp[0] - pp[1])) if np.isfinite(pp).all() else math.nan
         bs, as_ = float(getattr(b, "sw_bid_size_1", math.nan)), float(getattr(b, "sw_ask_size_1", math.nan))
         db, da = float(getattr(b, "sw_depth_bid_1c", math.nan)), float(getattr(b, "sw_depth_ask_1c", math.nan))  # 1c depth (pmxt); touch size if absent
+        diag["depth_touch_fallback"] += int(not (math.isfinite(db) and math.isfinite(da)))  # rows whose depth is the touch size, not the 1c depth
         d_both = (db + da) if (math.isfinite(db) and math.isfinite(da)) else ((bs if math.isfinite(bs) else 0.0) + (as_ if math.isfinite(as_) else 0.0))
         o = Opp(opp_id=f"{rec['market_id']}@{int(t)}", market_id=rec["market_id"], event=rec["event_id"], dep=dep or rec["event_id"], cat=cat, t=t,
                 bid=bid, ask=ask, bid_size=bs, ask_size=as_, created=rec["created_epoch"], end=rec["end_epoch"], abs_chg_24h=chg,
@@ -1117,6 +1118,7 @@ def census_history(run_dir: Path, books_path: Path, *, max_markets: int | None =
         "B3": _expanding_counts(fa[fa["lf"].notna()]) if len(fa) else None,
         "B5": _expanding_counts(o_ns[o_ns["rt"].notna()]) if len(o_ns) else None}
     cnt["clusters"] = {"event": int(o_ns["event"].nunique()), "dep": int(o_ns["dep"].nunique()), "day": int(o_ns["day"].nunique())}
+    cnt["depth_touch_fallback_share"] = float(u["diag"].get("depth_touch_fallback", 0) / max(u["diag"].get("kept", 0), 1))  # mixed 1c-depth / touch-size depth
     cnt["dep_fallback_share"] = float((o_ns["dep"] == o_ns["event"]).mean()) if len(o_ns) else None  # share on the event-id fallback (no panel dep_group)
     cnt["population_sizes"] = {"B2": int(population(o_ns, "B2").sum()), "B4": int(population(o_ns, "B4").sum()), "B6": int(population(o_ns, "B6").sum())}
     return cnt

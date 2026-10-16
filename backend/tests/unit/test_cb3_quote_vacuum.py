@@ -432,3 +432,14 @@ def test_runner_census_refuses_a_root_that_reaches_into_t_j4r(tmp_path, runner):
     assert rc == 0
     c = json.loads((tmp_path / "o" / "census.json").read_text())["A"]
     assert c["n_captures"] <= 1
+
+
+def test_gate_a_a2_is_gated_by_the_centred_placebo_check():
+    res = {t: {"testable": True, "p": 0.001, "effect": 1.0, "se": 0.1} for t in ("A1", "A2")}
+    plc = {"family_void": False, "family_status": "read", "placebo_units_ok": True, "A1": {"status": "read"}, "A2": {"status": "uncentred construction check"},
+           "A2_centred": {"status": "read"}}
+    assert V.gate_a(res, {}, plc, 0.05)["A2"]["advance"] is True
+    plc["A2_centred"] = {"status": "inconclusive (placebo bias)"}
+    g = V.gate_a(res, {}, plc, 0.05)
+    assert g["A2"]["advance"] is False and g["A2"]["fail"] == ["placebo_centred:inconclusive (placebo bias)"]
+    assert g["A1"]["advance"] is True  # A1 is gated by its own placebo status, not the centred one

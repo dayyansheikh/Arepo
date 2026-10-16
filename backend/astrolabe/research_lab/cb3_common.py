@@ -205,10 +205,10 @@ def reading(placebo: dict, real_se: float, *, void_applies: bool = True) -> dict
     |mean placebo| > 0.5 x the real max-SE; else read."""
     if not placebo.get("testable"):
         return {"status": "VOID (placebo untestable)", "family_void": True}
-    if real_se is None or not np.isfinite(real_se) or real_se <= 0:
-        return {"status": "inconclusive (real SE unavailable)", "family_void": False}
     if void_applies and not placebo["covers_zero"]:
         return {"status": "VOID (placebo range does not cover 0)", "family_void": True}
+    if real_se is None or not np.isfinite(real_se) or real_se <= 0:
+        return {"status": "inconclusive (real SE unavailable)", "family_void": False}
     if void_applies and abs(placebo["mean"]) > D.PLACEBO_BIAS_FRAC * real_se:
         return {"status": "inconclusive (placebo bias)", "family_void": False, "bias_ratio": abs(placebo["mean"]) / real_se}
     return {"status": "read", "family_void": False}

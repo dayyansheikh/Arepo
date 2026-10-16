@@ -136,8 +136,11 @@ def main(argv: list[str] | None = None, *, _ctx: Ctx | None = None) -> int:
 
 
 def _census(a, P, fams, D, C, M, V, j4r, trials) -> int:
+    from astrolabe.research_lab import provenance
+
     out: dict = {"label": D.LABEL, "version": D.VERSION, "job": "census", "declaration_sha256": D.declaration_sha256(),
-                 "note": "counts only; " + D.CENSUS_NEVER_READS, "run_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}
+                 "note": "counts only; " + D.CENSUS_NEVER_READS, "run_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                 **provenance.git_state()}  # git_head + git_dirty (reviewer low defect 3)
     if "P" in fams:
         reader = M.FollowupReader(P["fu"])
         mans = sorted((p.parent.name, json.loads(p.read_text())) for p in P["fu"].glob("*/manifest.json"))
@@ -164,8 +167,6 @@ def _census(a, P, fams, D, C, M, V, j4r, trials) -> int:
             out["B"] = M.census_history(P["hist"] / a.run_id, P["books"], max_markets=a.max_markets)
         path = P["out"] / "census.json"
     sha = C.write_new(path, out)
-    from astrolabe.research_lab import provenance
-
     provenance.append_trial({"status": "ok", "dataset": a.run_id, "preset": "census", "label": D.LABEL, "kind": D.KIND_DESCRIPTIVE, "evidence_role": "exploratory_dev",
                              "revision": D.VERSION, "result_path": str(path), "results_sha256": sha, "declaration_sha256": D.declaration_sha256(), "summary": {"families": fams}}, trials)
     _emit({"cb3": D.VERSION, "cmd": "census", "families": fams, "results": str(path), "sha256": sha})

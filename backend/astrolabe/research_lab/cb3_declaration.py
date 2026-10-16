@@ -237,8 +237,11 @@ IMPORTED_RULE_FUNCTIONS = (
     ("bounce_decomp", "h_tight_mask"), ("bounce_decomp", "expanding_demean"), ("bounce_decomp", "_expanding_resid"), ("bounce_decomp", "_two_sided"),
     ("cb2_weather", "small_g_pvalue"), ("cb2_weather", "_cluster_sums"), ("economics", "fee_spec"), ("economics", "resolve_rate"),
     ("economics", "parse_fee_schedule"), ("economics", "boot_ratio"), ("battery", "_cr_var_of_sum"), ("wallet_sidecar", "hash_wallet"),
+    # helpers called by hashed functions (re-check HOLD fix a)
+    ("cb1_history", "load_sample"), ("cb1_history", "drop_outcome_columns"), ("cb1_history", "load_books"), ("history_backfill", "load_prices"),
 )
-CB3_RULE_MODULES = ("cb3_declaration", "cb3_common", "cb3_quote_vacuum", "cb3_maker", "cb3_followup")
+CB3_RULE_MODULES = ("cb3_declaration", "cb3_common", "cb3_quote_vacuum", "cb3_maker", "cb3_followup", "cb3_quote_state")
+RUNNER_PATH = provenance.REPO_ROOT / "backend" / "scripts" / "run_cb3.py"  # stage windows, origin_before, Holm k, census clamps: hashed as a file
 
 
 def source_hashes() -> dict[str, str]:
@@ -256,6 +259,7 @@ def source_hashes() -> dict[str, str]:
     for mod, name in IMPORTED_RULE_FUNCTIONS:
         m = importlib.import_module(f"{__package__}.{mod}")
         out[f"{mod}.{name}"] = hashlib.sha256(inspect.getsource(getattr(m, name)).encode()).hexdigest()
+    out["scripts/run_cb3.py"] = provenance.sha256_file(RUNNER_PATH)
     return out
 
 
@@ -390,7 +394,10 @@ def verify_cuts_against_census(spec_path: Path, census_path: Path) -> None:
         raise DeclarationError(f"{census_path} not found: the frozen cuts cannot be checked against the census")
     if provenance.sha256_file(census_path) != spec.get("census_sha256"):
         raise DeclarationError("census.json sha256 differs from the spec's census_sha256")
-    prop = (json.loads(census_path.read_text()).get("B") or {}).get("frozen_cuts_proposal") or {}
+    census = json.loads(census_path.read_text())
+    if not census.get("declaration_sha256") or census.get("declaration_sha256") != spec.get("declaration_sha256"):
+        raise DeclarationError("census.json declaration_sha256 differs from the spec's declaration_sha256 (census made under another declaration)")
+    prop = (census.get("B") or {}).get("frozen_cuts_proposal") or {}
     cuts = load_frozen_cuts(spec_path)
     for k in ("rt_top_decile_cut", "activity_tercile_cuts"):
         if prop.get(k) != cuts.get(k):
