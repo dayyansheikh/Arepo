@@ -252,7 +252,7 @@ def declaration_sha256() -> str:
 def spec_payload(census_pins: dict | None = None, census_sha256: str | None = None) -> dict:
     """The freeze file: declaration hash and, after the census, the pinned census quantities (H, rho, extended UMA statuses) with the
     census.json sha256. Floors are never part of the pins."""
-    out = {"version": VERSION, "declaration_sha256": declaration_sha256()}
+    out: dict = {"version": VERSION, "declaration_sha256": declaration_sha256()}
     if census_pins is not None:
         bad = sorted(k for k in census_pins if k not in ALLOWED_PINS)
         if bad:
