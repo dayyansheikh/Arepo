@@ -1,0 +1,42 @@
+{
+ "id": "q0022_cb1_snap_dev_D",
+ "title": "CB1-D: neg-risk asymmetry dev screen on the frozen dev capture list (D1, D2; placebo; leave-one-day-out)",
+ "family": "creative_batch_1",
+ "priority": 55,
+ "expected_value": "mechanism + 2h-latency set carry; decides whether a rep spec (q0027) is committed",
+ "data": [
+  "research_lab/cb1_extract (frozen dev list)",
+  "../data-dumps/research_lab/creative_batch1/D_dev/outcomes_dev.csv"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0022a_cb1_fetch_outcomes_D_dev"
+ ],
+ "argv": [
+  "scripts/run_cb1_structural.py",
+  "snapshots",
+  "--family",
+  "D",
+  "--window",
+  "dev",
+  "--extract-root",
+  "../data-dumps/research_lab/cb1_extract",
+  "--list-sha256",
+  "967a0cb0887656f416adb419bef61667915b0d78933fc176aadc0541d618623e",
+  "--outcomes",
+  "../data-dumps/research_lab/creative_batch1/D_dev/outcomes_dev.csv",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "creative_batch1 D_dev results.json",
+  "trials.jsonl"
+ ],
+ "next_action": "Claude session: record D1/D2 with gates; stop rule if both fail; else commit q0027 rep spec after T_rep_end",
+ "notes": "Supersedes the stale draft argv in CREATIVE_BATCH_1.md (scripts/run_creative_batch1.py does not exist; the D runner is run_cb1_structural.py). E011 untouched; declaration-hash guard."
+}

@@ -1395,3 +1395,11 @@ Accepted deviations:
 - B, A, C and E results stored outside the sealed directories.
 - D events with a closed member ineligible.
 - B3 stays blocked until a `rungs/` extractor is live, which must be before T_rep_start or the B3 data are lost.
+
+### CB1-D dev freeze (coordinator, 2026-10-16 23:07Z)
+- Dev capture list frozen on the host after `T_dev_end` (`run_cb1_extract.py --freeze-list dev --until 2026-10-17T00:00Z`): **60 captures**
+  from 2026-10-11T12:00Z, 0 missing from the extract, `final: true`, sha256 `967a0cb0887656f416adb419bef61667915b0d78933fc176aadc0541d618623e`.
+  The doc's ≈ 66 assumed no outage; the passes lost in the 10-14 Mac outage are absent (operational deviation already in the ledger).
+- Committed copy: `docs/research_lab/seals/cb1_dev_capture_list.json`.
+- Queue: `q0022a_cb1_fetch_outcomes_D_dev` (net lane; the analysis date for the realised-payout gate is this fetch, fixed before any D outcome
+  was read), then `q0022_cb1_snap_dev_D` (the §5 draft argv named a non-existent `run_creative_batch1.py`; the runner is `run_cb1_structural.py`).
