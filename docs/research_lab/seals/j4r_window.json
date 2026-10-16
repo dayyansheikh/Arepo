@@ -1,0 +1,8 @@
+{
+ "t_j4r_start": "2026-10-16T00:00:00Z",
+ "t_j4r_end": "2026-10-21T00:00:00Z",
+ "declared_end": "2026-10-21T00:00:00Z",
+ "final": false,
+ "source": "SB2-J4-R frozen declaration (queue job q0035 --since/--until as first committed); the pin is a separate committed file so a later edit of the queue spec cannot move CB3's refusal window",
+ "rule": "While final is false CB3 refuses every capture at or after t_j4r_start. When J4-R has run, the coordinator commits the actual final --until here with final true; the end can only move forward."
+}
