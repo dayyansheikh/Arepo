@@ -204,7 +204,8 @@ def _truncated_unit(rec: dict, ts, vals, oldest_ts, L: float, t1: float, t3: flo
     if sd is None or not all(math.isfinite(x) for x in (p_t1, p_e, p_t3)):
         return None
     return {"market_id": str(rec["market_id"]), "event": str(rec.get("event_id") or rec["market_id"]), "listing_date": listing_date(L),
-            "d": p_t1 - sd["sigma"], "y": p_t3 - p_e, "informative": not is_template_seed(sd["sigma"]), "p_t1": p_t1, "sigma": sd["sigma"]}
+            "d": p_t1 - sd["sigma"], "y": p_t3 - p_e, "informative": not is_template_seed(sd["sigma"]), "p_t1": p_t1, "p_t3": p_t3, "sigma": sd["sigma"],
+            "created": L, "fee_category": rec.get("fee_category", ""), "hist_ts": np.asarray(ts, float), "hist_vals": np.asarray(vals, float)}
 
 
 def units_frame(units: list[dict]) -> pd.DataFrame:
@@ -554,3 +555,29 @@ def g56_gate(df: pd.DataFrame, n_both_windows: int | None = None) -> dict:
     ok = bool(n >= GATE_MIN_UNITS and ev >= GATE_MIN_EVENTS and dt >= GATE_MIN_DATES)
     return {"n_units": n, "n_events": ev, "n_dates": dt, "ok": ok,
             "n_abs_d_ge_3c": int((inf["d"].abs() >= D_G2_MIN).sum()) if len(inf) else 0, "n_template": int(df["template"].sum()) if len(df) else 0}
+
+
+def truncation_worst_case_g2(orders: pd.DataFrame, truncated: list[dict], *, regime=cost_regimes.cost_regime) -> dict:
+    """Truncated markets with ``|d_H| >= 3c`` (history-price feature) are added back; the fill is decided on history prices crossing
+    ``q`` in ``(t1, t1+24h]`` (a point strictly beyond q on the order side) and the exit at the history price at t3. The mean net
+    of the combined orders must stay positive (the declared side)."""
+    nets = [float(x) for x in orders["net"].dropna()] if len(orders) and "net" in orders else []
+    added = 0
+    for t in truncated:
+        if not t or not t.get("informative") or abs(t["d"]) < D_G2_MIN or not math.isfinite(t.get("p_t1", math.nan)) or not math.isfinite(t.get("p_t3", math.nan)):
+            continue
+        t1 = t["created"] + T1_H * H
+        ask = t["d"] > 0
+        rg = regime(datetime.fromtimestamp(t1, UTC).date(), t.get("fee_category", ""), t["p_t1"])
+        q = min(t["p_t1"] + h_gen(t["p_t1"], rg) + G2_QUOTE_STEP, 0.99) if ask else max(t["p_t1"] - h_gen(t["p_t1"], rg) - G2_QUOTE_STEP, 0.01)
+        hts, hv = t["hist_ts"], t["hist_vals"]
+        m = (hts > t1) & (hts <= t1 + T1_H * H)
+        hit = (hv[m] > q).any() if ask else (hv[m] < q).any()
+        if not hit:
+            continue
+        hx = h_gen(t["p_t3"], rg)
+        x = min(t["p_t3"] + hx, 0.999) if ask else max(t["p_t3"] - hx, 0.001)
+        nets.append((q - x - _fee_ps(rg["fee_rate"], x) - rg["a_as_cents"] / 100.0) if ask else (x - q - _fee_ps(rg["fee_rate"], x) - rg["a_as_cents"] / 100.0))
+        added += 1
+    mean = float(np.mean(nets)) if nets else math.nan
+    return {"n_added": added, "mean": mean, "ok": bool(not nets or (math.isfinite(mean) and mean > 0)) if added else True}

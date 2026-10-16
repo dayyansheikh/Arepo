@@ -27,6 +27,7 @@ LABEL = "EXPLORATORY CB5 seed-anchor reversion, ladder-vs-bucket CDF consistency
 SPEC_PATH = Path(__file__).resolve().parent / "model_specs" / "cb5_v1.json"
 REP_PIN_PATH = provenance.REPO_ROOT / "docs" / "research_lab" / "seals" / "cb5_t_rep_start.json"
 CB1D_STOP_PATH = provenance.REPO_ROOT / "docs" / "research_lab" / "seals" / "cb1_d_stopped.json"
+GROUPER_SEAL_PATH = provenance.REPO_ROOT / "docs" / "research_lab" / "seals" / "cb5_grouper_hash.json"
 
 KIND_TEST, KIND_REP, KIND_MEASURE, KIND_DESCRIPTIVE = "cb5_test", "cb5_replication", "cb5_measurement", "cb5_descriptive"
 TRIAL_KINDS = (KIND_TEST, KIND_REP, KIND_MEASURE, KIND_DESCRIPTIVE)
@@ -197,15 +198,54 @@ def absent_modules() -> list[str]:
     return sorted(k for k, v in source_hashes().items() if v == ABSENT)
 
 
+def _plain(v):
+    """A JSON-able copy of a simple module constant, or ``_SKIP`` (paths, regexes, zone objects, callables are not constants)."""
+    if isinstance(v, bool | int | float | str) or v is None:
+        return v
+    if isinstance(v, tuple | list):
+        out = [_plain(x) for x in v]
+        return _SKIP if any(x is _SKIP for x in out) else out
+    if isinstance(v, frozenset | set):
+        out = [_plain(x) for x in sorted(v, key=str)]
+        return _SKIP if any(x is _SKIP for x in out) else out
+    if isinstance(v, dict):
+        out = {str(k): _plain(x) for k, x in v.items()}
+        return _SKIP if any(x is _SKIP for x in out.values()) else out
+    return _SKIP
+
+
+_SKIP = object()
+
+
+def module_constants() -> dict[str, dict]:
+    """Every UPPER_CASE simple module constant of the CB5 rule modules (except this one), read at call time: a changed threshold,
+    window, seed or word list changes the hash even where no function source changed."""
+    import re
+
+    out: dict[str, dict] = {}
+    for mod in CB5_RULE_MODULES:
+        if mod == "cb5_declaration":
+            continue
+        m = importlib.import_module(f"{__package__}.{mod}")
+        c = {}
+        for name, v in sorted(vars(m).items()):
+            if re.fullmatch(r"[A-Z][A-Z0-9_]*", name):
+                pv = _plain(v)
+                if pv is not _SKIP:
+                    c[name] = pv
+        out[mod] = c
+    return out
+
+
 def declaration_blob() -> dict:
     return {
-        "sources": source_hashes(), "version": VERSION, "dates": DATES, "seeds": {"boot": SEED_BOOT},
+        "sources": source_hashes(), "module_constants": module_constants(), "version": VERSION, "dates": DATES, "seeds": {"boot": SEED_BOOT},
         "draws": {"n_boot": N_BOOT, "placebo": PLACEBO_DRAWS, "wild": WILD_DRAWS},
         "stage": {"alpha1_route": ALPHA_STAGE1_ROUTE, "alpha2": ALPHA_STAGE2, "alpha_K": ALPHA_K, "by_q": BY_Q, "min_units": MIN_UNITS, "min_clusters": MIN_CLUSTERS,
                   "g_normal": G_NORMAL, "g_min": G_MIN, "placebo_max_advance_rate": PLACEBO_MAX_ADVANCE_RATE, "r_ann_min": R_ANN_MIN, "cost_sens": COST_SENS_C,
                   "top_clusters_dropped": TOP_CLUSTERS_DROPPED, "route_stage2_k_max": ROUTE_STAGE2_K_MAX},
         "floors": FLOORS, "floor_units": FLOOR_UNITS, "tests": {k: list(v) for k, v in TESTS.items()}, "stage2_route_tests": list(STAGE2_ROUTE_TESTS), "directions": DIRECTIONS,
-        "G": G, "L": L, "K": K, "extract": EXTRACT, "hypotheses": {k: HYPOTHESES_CB5[k] for k in sorted(HYPOTHESES_CB5)},
+        "G": G, "L": {**L, "grouper": cb5_cdf.grouper_declaration()}, "K": K, "extract": EXTRACT, "hypotheses": {k: HYPOTHESES_CB5[k] for k in sorted(HYPOTHESES_CB5)},
         "refused_run_ids": list(REFUSED_RUN_IDS), "refused_roots": list(REFUSED_ROOTS), "census_forbidden_columns": list(CENSUS_FORBIDDEN_COLUMNS),
         "census_counts": CENSUS_COUNTS, "kinds": list(TRIAL_KINDS), "count_sources": list(COUNT_SOURCES),
     }
@@ -389,3 +429,38 @@ def check_outcome_allowed(family: str, now: datetime | None = None, pin_path: Pa
     need = d["L_out"] if family == "L" else d["G_read"] + 30 * 86400.0
     if now.timestamp() < need:
         raise TooEarly(f"outcomes for {family} are refused before {iso(need)}")
+
+
+# ---- grouper hash (must be committed before q0104 reads any title) ----------------------------------------------------
+
+
+def grouper_sha256() -> str:
+    """sha256 of the CDF grouper: its declared rule text and the source of every function defined in ``cb5_cdf``."""
+    src = {}
+    for name, obj in sorted(vars(cb5_cdf).items()):
+        if (inspect.isfunction(obj) or inspect.isclass(obj)) and getattr(obj, "__module__", None) == cb5_cdf.__name__:
+            src[name] = hashlib.sha256(inspect.getsource(obj).encode()).hexdigest()
+    return hashlib.sha256(json.dumps({"declaration": cb5_cdf.grouper_declaration(), "sources": src}, sort_keys=True, default=str).encode()).hexdigest()
+
+
+def write_grouper_seal(path: Path | None = None) -> dict:
+    p = Path(path) if path is not None else GROUPER_SEAL_PATH
+    if p.exists():
+        raise FileExistsError(f"{p} exists; the grouper hash is sealed once (a revision after a failed audit is a new seal file)")
+    doc = {"version": VERSION, "grouper": cb5_cdf.GROUPER_VERSION, "grouper_sha256": grouper_sha256()}
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
+    return doc
+
+
+def check_grouper_committed(path: Path | None = None, *, require_committed: bool = True) -> str:
+    """``cdf-frame`` refuses until the committed seal equals this code's grouper hash."""
+    p = Path(path) if path is not None else GROUPER_SEAL_PATH
+    if not p.exists():
+        raise DeclarationError(f"no grouper seal at {p}: cdf-frame is refused until the grouper hash is committed")
+    if require_committed and not _c3.spec_committed(p):
+        raise DeclarationError(f"{p} is not committed (or differs from HEAD)")
+    want, got = json.loads(p.read_text()).get("grouper_sha256"), grouper_sha256()
+    if want != got:
+        raise DeclarationError(f"grouper hash mismatch: sealed {want} != code {got}")
+    return got

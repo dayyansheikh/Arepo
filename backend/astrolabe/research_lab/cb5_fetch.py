@@ -19,6 +19,7 @@ import gzip
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any
@@ -243,3 +244,26 @@ def load_cohort_market(out_dir: Path, mid: str) -> tuple[Any, Any, pd.DataFrame]
     ts, vals = hb.load_prices(Path(out_dir) / "prices" / f"{mid}.csv.gz")
     tr = hb.load_trades(Path(out_dir) / "trades" / f"{mid}.csv.gz")
     return ts, vals, tr
+
+
+# ---- guarded outcome reads (q0107 historical, T5_L_out, G hold-to-resolution) ----------------------------------------
+
+
+def fetch_yes_payouts(lim: hb.Limiter, market_ids: list[str], batch: int = 40) -> dict[str, float]:
+    """YES (token 0) final payout (1.0 / 0.0, NaN if not closed or not decisive) for ``market_ids`` from Gamma ``/markets``. Only the
+    callers that are allowed to read outcomes (runner guards) call this; nothing else in CB5 touches ``outcomePrices``."""
+    from . import cb1_history
+
+    out: dict[str, float] = {}
+    ids = [str(i) for i in market_ids]
+    for a in range(0, len(ids), batch):
+        chunk = ids[a:a + batch]
+        status, data = lim.get(hb.GAMMA_MARKETS, [("id", i) for i in chunk] + [("limit", len(chunk))])  # type: ignore[arg-type]
+        got = {}
+        if status == 200 and isinstance(data, list):
+            for m in data:
+                v = cb1_history.parse_outcome0(m.get("outcomePrices")) if m.get("closed") else None
+                got[str(m.get("id"))] = math.nan if v is None or v not in (0.0, 1.0) else float(v)
+        for i in chunk:
+            out[i] = got.get(i, math.nan)
+    return out
