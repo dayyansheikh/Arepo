@@ -1,38 +1,34 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-16 06:11 UTC+1
+**Last updated:** 2026-10-16 06:46 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Server (Oracle):** healthy at 03:56Z (measured: 3.3 GB RAM free, 12 GB disk free, data 7.6 GB of the 12 GB cap).
-  The order-book table job is running. New jobs wait until 05:30Z (the nightly quiet window).
-- **Two overnight failures fixed and re-queued:**
-  - The fresh 7,000-market download ran out of memory when it resumed. It now streams its checkpoint file.
-  - The battery-2 replication crashed on blank values in one robustness check. The main tests were not affected.
-- **ML regime test (J7) finished.** The full model's gain over the price-only model is concentrated where trades
-  happened in the last 2 hours. That is largely expected, because the order-flow inputs are empty otherwise. For
-  2-hour direction the gain is also larger in the last day before the end date.
-  - No learned interaction between two inputs adds anything (0 of 15).
-  - The liquidity comparison could not be measured: a design flaw left its "low" group empty. This is recorded, not
-    patched.
-  - The 4 passing comparisons now go to a frozen re-test on different markets.
+- **Server (Oracle):** healthy at 05:44Z (3.2 GB RAM free). Running: the order-book table, and the batch-2 ladder list
+  (the first batch-2 job).
+  - Next on the server: the fresh 7,000-market download. It ran out of memory twice. It is now fixed, but the fix is
+    untested on the real data.
+- **Battery-2 re-test on 5,000 different markets (HB2-R): 3 of 6 ideas replicate.**
+  - The 3: order-flow momentum is stronger in volatile markets and in wide-spread markets; 1-day drift depends on
+    liquidity.
+  - 3 do not replicate: near-resolution flow, large-for-market trades, and 24h flow × liquidity.
+  - None pays: the move is about 1c per trade against about 3.5c of spread and fees.
+- **ML regime test (J7):** the full model's gain sits where trades just happened (largely expected). No learned
+  pairwise interaction adds anything. The liquidity comparison was unmeasurable because of a design flaw, which is
+  recorded.
 - **Your creative priority:**
-  - **Batch 1 is FROZEN.** Screens start once the fresh 7,000-market download is sealed. That download is now first in
-    line, because batches 2 and 4 also wait for it before the 22 Oct deadline.
-  - **Batch 2** (weather favourites; impossible ladder orderings):
-    - Code done, plus the 20 fixes from the independent check (all landed).
-    - The ladder list job is released. The weather download waits for the batch-1 seal.
-  - **Batch 3** (quote only when it is safe; when one side of the book vanishes):
-    - Design revised after review.
-    - Its pre-deletion data save is built and queued. The analysis code is being written.
-  - **Batch 4** (selling before order books close; series roll-overs; two fee/rebate rule changes, used to measure true
-    costs):
-    - Design revised after review.
-    - Its data jobs are built and queued: a pre-deletion save, and two new disjoint market samples due before 22 Oct.
-  - Raw capture files will not be deleted until every batch has saved what it needs (rule updated).
+  - **Batch 1 is FROZEN.** Screens start once the fresh download is sealed.
+  - **Batch 2:** code done, independently checked, and all 20 fixes landed. The ladder list is running now.
+  - **Batch 3** (safe quoting; one side of the book vanishing):
+    - Code written. The independent check asked for 18 fixes, including 3 silent biases in the maker test.
+    - The data save (fixed) is released. The analysis fixes are in progress.
+  - **Batch 4** (selling before order books close; series roll-overs; fee/rebate rule changes as cost measurements):
+    - The data code is checked and fixed, and its data save is released.
+    - The analysis code is being written. Its two new market samples are due by 22 Oct.
+  - I also caught and fixed a scheduling bug before it ran: a job that would have blocked the server's job slot.
   - Nothing creative has been tested yet.
 
 ## 2. Approvals needed from you

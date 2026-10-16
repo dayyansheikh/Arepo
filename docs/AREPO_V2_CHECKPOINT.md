@@ -165,30 +165,38 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-16 06:11 UTC+1
-0. **Autopilot session from 03:56Z (state at 05:10Z):**
-   - Fixed and re-queued: q0016 (cc42de1, streamed frame_partial) and q0010 (c269ff4, finite-control mask, F8 secondary only).
-   - Written up: J7/q0012 (b28cca8; 4/12 contrasts advance, 0/15 interactions, C-LIQ uninformative). q0034 counts in CB1.
-   - **CB2 code is complete** and **all 20 freeze-check fixes have landed**: 779a63d, ad52d5e, addd273, c649a62; new grouper
-     seal e745f87b; weather declaration 4684d420…. Gate q0039 is created (q0040 released).
-   - q0043 is held behind gate **q0043a**, created once `seals/h5_cb1_SEAL.json` is committed.
-   - **CB3**: revised after challenger round 1 (a767ab8). q0060 quote_state backfill is built and queued (1d3ab59, 6186dfa).
-     Analysis code agent RUNNING (cb3_quote_vacuum/cb3_maker/cb3_declaration/cb3_followup/run_cb3, census specs
-     q0061/q0064).
-   - **CB4**: revised (1823b68). Data code is built and queued: q0080 closewin backfill (e78daee); q0081/q0082 h7 fetches and
-     q0083 seal (6e729ca). q0082 also needs `seals/cb4_series_rules.json`, to be committed only after a CB4 code freeze check.
-   - Queue priorities (68c0bfe): q0016 at 63 is the critical path to the h5 seal and T_seal 2026-10-22. q0043/q0081/q0082 at
-     61 beat q0002 (60) on the net lane.
-   - Retention gate (7ec25c7): it also waits for q0041/q0060/q0080.
-1. When the CB3 agent finishes: tests, deploy. Then **science-reviewer code freeze checks** for CB3 (all) and CB4 data
-   (q0080-q0083, series rules). Paste the reviews (the reviewer is read-only), apply fixes, then commit the series rules file.
-2. CB4 analysis code (cb4_analysis.py, cost_regime with the R0 test) after the CB4 freeze check of the data part.
-3. Watch on the host: q0016 resume past `fetch_frame`; q0010 (L1 runs); q0040, q0041, q0060, q0080.
-   When q0018 seals h5: commit the seal copies, create gate q0043a, and check that q0081/q0082 can finish before T_seal.
-4. **After 2026-10-21T03:00Z:** create gate job q0036 to release q0035 (J4-R).
-5. **CB1-D dev:** after 2026-10-17T00:00Z, freeze the dev capture list (`run_cb1_extract.py --freeze-list dev --until
-   2026-10-17T00:00Z`) and commit it, then fetch-outcomes-D and q0022. **B3 at 10-19:** q0029 rung list.
-6. Write up q0010, q0013, q0019, q0002/3/4. Keep ≥ 12 h queued. Archive rotation must be live by ~20 Oct (CB3 §8).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-16 06:46 UTC+1
+0. **Autopilot session from 03:56Z (state at 05:50Z):**
+   - **Written up:** J7/q0012 (b28cca8), q0034 counts (51003e5), **J2 HB2-R/q0010** (37be2c8): F4, F5 and L1 replicate under Holm;
+     F3, F7 and F8 do not; none covers costs.
+   - **q0016:** frame read streamed (cc42de1), then frame/sample write streamed (fae1922, mem_mb 1200). Re-queued at priority 63;
+     the fix is untested on real data, so watch the next run.
+   - **CB2:** code plus all 20 freeze-check fixes. Gate q0039 is done; **q0040 RUNNING since 05:36Z**. q0041 queued. q0043 is held
+     behind gate **q0043a** (create once `seals/h5_cb1_SEAL.json` is committed).
+   - **CB3:** code (1d3ab59..6c828eb). **Freeze check REVISE** (a6f30d6, 18 fixes).
+     - Fixes 1, 2, 5 and 6 in quote_state are done (0dc00e4); gate q0060a created, so **q0060 is released**.
+     - The analysis-fix agent is RUNNING (fixes 3-18 plus the ruling conditions). q0061 is held behind gate **q0061a**
+       (create after fixes 3-4 and a short re-check). q0064 is held behind **q0064a** (create after 10-25 plus ≥ 3 days of
+       deployed follow-up).
+   - **CB4:** data code (e78daee, 6e729ca). **Freeze check REVISE** (2f2f627); all 14 fixes landed (748234d, e64d9cd, ea62f7f).
+     - Gate q0080a created, so **q0080 is released**.
+     - q0081/q0082 need, in addition: gate **q0081a** (after the h5 seal copy is committed); gate
+       **q0081g_h7_group_s_amendment_gate** (after a reviewed group-S amendment based on the q0081f/q0082f frame reports);
+       and a committed `seals/cb4_series_rules.json` (`run_cb4.py series-rules`, after a short reviewer re-check of fixes 6-7).
+     - q0083b deadline recorder is in `queue/drafts/`: create it as a **one-shot on or after 2026-10-22T00:00Z** (a polling
+       repeat would starve the cpu lane).
+     - The analysis-code agent is RUNNING (cb4_analysis/cb4_declaration/cost_regimes, census q0086).
+   - **Retention gate** (RETENTION.md): it now also waits for q0041, q0060 and q0080, and opens on manifest completeness,
+     not job status.
+1. When the CB3 and CB4 analysis agents finish: tests, deploy, then a science-reviewer re-check (CB3 fixes 3-4 → gate q0061a;
+   CB4 analysis freeze check).
+2. Watch q0016 (it must write the frame), q0040 (ladder list v1 → commit nothing; the list lives on the host), q0041,
+   q0060 and q0080. When q0018 seals h5: commit the seal copies, then create gates q0043a and q0081a, and check T_seal
+   feasibility (commit the seal copy by ~10-20T00Z).
+3. **After 2026-10-21T03:00Z:** gate job q0036 to release q0035 (J4-R). **On or after 10-22T00Z:** q0083b one-shot.
+4. **CB1-D dev:** after 2026-10-17T00:00Z, freeze the dev capture list (`run_cb1_extract.py --freeze-list dev --until
+   2026-10-17T00:00Z`), commit it, then fetch-outcomes-D and q0022. **B3 at 10-19:** q0029 rung list.
+5. Write up q0013, q0019, q0002/3/4 when they finish. Keep ≥ 12 h queued. Archive rotation must be live by ~20 Oct.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
