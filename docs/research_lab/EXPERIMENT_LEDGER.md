@@ -1245,3 +1245,11 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Next:** none for A, C, E, B1, B2: no h5 replication is run and `h5_cb1`/`h5_cb1_ladders` stay sealed and unread.
   Open: CB1-D dev (after 2026-10-17T00:00Z), B3 rung list at T_rep_start (>= 2026-10-19). E on h5 would need a
   reviewed design change.
+
+## J8 C-TTE descriptive diagnostics (q0100), 2026-10-16 23:09Z
+- Role: exploratory_historical, **descriptive, not counted** (no Holm, no trials line). h3_power, direction 2h, frozen r5 configs.
+- C-TTE (<24h − >30d ΔLL): as replicated +0.0188 [0.0094, 0.0292]; look-ahead excluded +0.0178 [0.0084, 0.0280]; pre-end
+  origins only +0.0166 [0.0073, 0.0261]; post-end only +0.0255 [0.0058, 0.0656]; near-end markets excluded +0.0183 [0.0088, 0.0293].
+- Verdict: the challenger's three artefact routes (look-ahead endDate, post-end clip, near-end markets) do not explain the gain.
+  Still forecasting-only and built on an after-the-fact endDate; no cost check; nothing registered. Next: as-of hours-to-end in
+  the live MC1 dev run. Details: `HISTORICAL_ML_DEV.md` (J8 C-TTE descriptive diagnostics).

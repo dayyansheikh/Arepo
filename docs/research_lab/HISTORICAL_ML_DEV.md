@@ -352,6 +352,26 @@ All four replicate as declared. The weighted secondary agrees for three; for C-A
 carried. Forecasting only; no cost check; nothing is registered. Next: challenger pass before any registration draft
 (`SCREENING_BATCH_2.md` Results / J8).
 
+### J8 C-TTE descriptive diagnostics (q0100, 2026-10-16 23:09Z; not counted, nothing appended to trials)
+Same frozen configs, folds and exclusion as q0013 (h3_power, direction 2h, 89,769 rows, 1,371 markets). Hull of event and
+dep_group cluster CIs (991 event clusters); the UTC-day CI agrees in every row.
+
+| C-TTE variant (<24h − >30d, ΔLL nats) | rows (<24h, >30d) | mean | 95% CI | p (two-sided) |
+|---|---|---|---|---|
+| as replicated (reproduces q0013) | 8,350 / 40,054 | +0.0188 | [0.0094, 0.0292] | 0.0001 |
+| look-ahead markets excluded (closedTime > 24h before endDate; 158 markets) | 8,350 / 34,519 | +0.0178 | [0.0084, 0.0280] | 0.0002 |
+| <24h bin = pre-end origins only | 6,308 / 40,054 | +0.0166 | [0.0073, 0.0261] | 0.0012 |
+| <24h bin = post-end origins only | 2,042 / 40,054 | +0.0255 | [0.0058, 0.0656] | 0.0088 |
+| near-end markets excluded (\|endDate − closedTime\| ≤ 1h; 116 markets) | 7,915 / 39,950 | +0.0183 | [0.0088, 0.0293] | 0.0001 |
+
+Reading: the C-TTE gain is not produced by the three artefacts the challenger named. It survives the look-ahead exclusion, the
+pre-end-only split (post-end origins carry a larger but much noisier share) and the near-end exclusion. 0 rows have an
+end_epoch/feature mismatch; the baseline columns equal M0V (17 columns, both include `ml_log_hours_to_end`). It remains a
+forecasting contrast on an after-the-fact `endDate`, with no cost check. **Next (per the challenger's fork):** an as-of
+hours-to-end live feature is the honest route, because `endDate` as first sighted is available in the live captures; a near-end
+conditional rule with a cost check would need the same as-of field. Recorded as an input for the MC1 live dev run (q0110/q0111),
+not as a new historical test.
+
 ## Revision r4_book (q0004, 2026-10-16): pmxt book-family ablation on `h2_main`
 
 Question: does adding the pmxt book family (12 columns from the 6h-grid table) improve out-of-sample log loss over the
