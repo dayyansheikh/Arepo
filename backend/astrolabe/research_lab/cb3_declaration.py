@@ -225,8 +225,43 @@ def iso(t: float) -> str:
 # ---- hash --------------------------------------------------------------------------------------------------------
 
 
+FOLLOWUP_CONSTANTS = {"frac": 0.5, "limit": 1000, "max_pages": 5, "vacuum_max": 300, "rps": 4.0, "budget_s": 540.0, "max_429": 50,
+                      "backoff": [1.0, 30.0], "r429_window_s": 600.0, "r429_halve_frac": 0.01, "subsample": "sha256(seed|market_id)/2^256 < frac",
+                      "order": "seeded permutation", "window": "(previous capture start, request time], start/end inclusive seconds"}
+
+# (module, name) of imported rule-applying functions whose source is part of the declaration (freeze-check fix 3)
+IMPORTED_RULE_FUNCTIONS = (
+    ("cb1_history", "queue_fill"), ("cb1_history", "asof_quote"), ("cb1_history", "trade_condition_state"), ("cb1_history", "buys_longshot"),
+    ("cb1_history", "open_at"), ("cb1_history", "oldest_or_inf"), ("cb1_history", "is_sports"), ("cb1_history", "iso_week"),
+    ("bounce_decomp", "h_tight_mask"), ("bounce_decomp", "expanding_demean"), ("bounce_decomp", "_expanding_resid"), ("bounce_decomp", "_two_sided"),
+    ("cb2_weather", "small_g_pvalue"), ("cb2_weather", "_cluster_sums"), ("economics", "fee_spec"), ("economics", "resolve_rate"),
+    ("economics", "parse_fee_schedule"), ("economics", "boot_ratio"), ("battery", "_cr_var_of_sum"), ("wallet_sidecar", "hash_wallet"),
+)
+CB3_RULE_MODULES = ("cb3_common", "cb3_quote_vacuum", "cb3_maker", "cb3_followup")
+
+
+def source_hashes() -> dict[str, str]:
+    """sha256 of the source of every rule-applying function: all functions and classes defined in the cb3 analysis modules plus the
+    imported ones in IMPORTED_RULE_FUNCTIONS (and the module-level constants they use are covered by the constants in the blob)."""
+    import importlib
+    import inspect
+
+    out: dict[str, str] = {}
+    for mod in CB3_RULE_MODULES:
+        m = importlib.import_module(f"{__package__}.{mod}")
+        for name, obj in sorted(vars(m).items()):
+            if (inspect.isfunction(obj) or inspect.isclass(obj)) and getattr(obj, "__module__", None) == m.__name__:
+                out[f"{mod}.{name}"] = hashlib.sha256(inspect.getsource(obj).encode()).hexdigest()
+    for mod, name in IMPORTED_RULE_FUNCTIONS:
+        m = importlib.import_module(f"{__package__}.{mod}")
+        out[f"{mod}.{name}"] = hashlib.sha256(inspect.getsource(getattr(m, name)).encode()).hexdigest()
+    return out
+
+
 def declaration_blob() -> dict:
     return {
+        "sources": source_hashes(),
+        "followup_constants": FOLLOWUP_CONSTANTS,
         "version": VERSION,
         "seeds": {"boot": SEED_BOOT, "placebo": SEED_PLACEBO, "random_filter": SEED_RANDOM_FILTER},
         "draws": {"n_boot": N_BOOT, "placebo": PLACEBO_DRAWS, "random_filter": RANDOM_FILTER_DRAWS},

@@ -502,7 +502,9 @@ def gate_a(res: dict, rob: dict, plc: dict | None, alpha: float) -> dict:
             for k, v in rob.items():
                 if k.startswith(tid) and not v["ok"]:
                     fail.append(f"robust:{k}")
-            if plc is not None:
+            if plc is None:
+                fail.append("placebo:missing")
+            else:
                 if plc["family_void"]:
                     fail.append(f"placebo:{plc['family_status']}")
                 elif tid == "A1" and plc["A1"]["status"] != "read":

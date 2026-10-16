@@ -439,6 +439,23 @@ def test_u_baseline_reports_fill_rate_and_ev_per_quote():
 # --- declaration, guards, counting ---------------------------------------------------------------------------
 
 
+def test_declaration_hash_covers_rule_function_sources_and_followup_constants(monkeypatch):
+    blob = D.declaration_blob()
+    for k in ("cb1_history.queue_fill", "cb1_history.asof_quote", "cb1_history.trade_condition_state", "bounce_decomp.h_tight_mask", "bounce_decomp.expanding_demean",
+              "cb2_weather.small_g_pvalue", "economics.fee_spec", "economics.resolve_rate", "cb3_maker.quote_fills", "cb3_quote_vacuum.detect_onsets", "cb3_common.slope_test"):
+        assert k in blob["sources"], k
+    assert blob["followup_constants"]["frac"] == 0.5 and blob["followup_constants"]["limit"] == 1000 and blob["followup_constants"]["max_pages"] == 5
+    from astrolabe.research_lab import cb3_followup as F
+
+    assert (F.DEFAULT_FRAC, F.LIMIT, F.MAX_PAGES) == (0.5, 1000, 5)
+    h0 = D.declaration_sha256()
+    orig = M.quote_fills
+    src = orig.__code__
+    monkeypatch.setattr(M, "quote_fills", lambda *a, **k: orig(*a, **k))  # a different function object with different source
+    assert D.declaration_sha256() != h0
+    _ = src
+
+
 def test_declaration_hash_covers_every_rule_and_changes_with_a_floor(monkeypatch):
     h0 = D.declaration_sha256()
     assert h0 == D.declaration_sha256() and len(h0) == 64
@@ -592,25 +609,30 @@ def test_runner_B_screen_needs_frozen_cuts_and_logs_six_tests(tmp_path):
     run, bpath = _history_run(tmp_path)
     spec = tmp_path / "cb3_v1.json"
     spec.write_text(json.dumps({"declaration_sha256": D.declaration_sha256()}))
-    args = ["screen", "--family", "B", "--history-root", str(run.parent), "--books", str(bpath), "--out-root", str(tmp_path / "out"), "--trials", str(tmp_path / "t.jsonl"),
-            "--spec", str(spec), "--n-boot", "0", "--placebo-draws", "2", "--random-filter-draws", "5"]
-    assert run_cb3.main(args) == run_cb3.REFUSED_EXIT  # the committed spec carries no frozen cuts
+    args = ["screen", "--family", "B", "--history-root", str(run.parent), "--books", str(bpath), "--out-root", str(tmp_path / "out")]
+    ctx = run_cb3.Ctx(D, spec=spec, require_committed=False, trials=tmp_path / "t.jsonl", n_boot=0, placebo_draws=2, random_draws=5)
+
+    def go(a):
+        return run_cb3.main(a, _ctx=ctx)
+
+    assert go(args) == run_cb3.REFUSED_EXIT  # the committed spec carries no frozen cuts
     spec.write_text(json.dumps({"declaration_sha256": D.declaration_sha256(), "frozen_cuts": {"rt_top_decile_cut": 0.2, "activity_tercile_cuts": [20.0, 60.0]}}))
-    assert run_cb3.main(args) == 0
+    assert go(args) == 0
     recs = [json.loads(line) for line in (tmp_path / "t.jsonl").read_text().splitlines()]
     assert sorted(r["preset"] for r in recs if r["kind"] == "cb3_test" and r["evidence_role"] != "placebo") == ["B1", "B2", "B3", "B4", "B5", "B6"]
     assert [r["n_tests"] for r in recs if r["kind"] == "ml_explain"] == [6]
-    assert run_cb3.main(args) == run_cb3.REFUSED_EXIT  # never overwritten
+    assert go(args) == run_cb3.REFUSED_EXIT  # never overwritten
 
 
 def test_runner_census_B_writes_counts_and_refuses_reserved_runs(tmp_path):
     import run_cb3
 
     run, bpath = _history_run(tmp_path)
-    args = ["census", "--family", "B", "--history-root", str(run.parent), "--books", str(bpath), "--out-root", str(tmp_path / "out"), "--trials", str(tmp_path / "t.jsonl")]
-    assert run_cb3.main(args) == 0
+    args = ["census", "--family", "B", "--history-root", str(run.parent), "--books", str(bpath), "--out-root", str(tmp_path / "out")]
+    ctx = run_cb3.Ctx(D, trials=tmp_path / "t.jsonl", require_committed=False)
+    assert run_cb3.main(args, _ctx=ctx) == 0
     assert json.loads((tmp_path / "out" / "census.json").read_text())["B"]["n_quote_opportunities_all"] > 100
-    assert run_cb3.main([*args, "--run-id", "h3_power"]) == run_cb3.REFUSED_EXIT
+    assert run_cb3.main([*args, "--run-id", "h3_power"], _ctx=ctx) == run_cb3.REFUSED_EXIT
 
 
 def test_batch_holm_over_the_stage2_family_and_expected_family():

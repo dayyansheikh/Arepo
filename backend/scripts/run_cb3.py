@@ -69,43 +69,51 @@ def _log(C, D, job, res, path, sha, decl, *, kind, role, dataset, trials_path):
                         cumulative=res.get("cumulative_count_at_run"), placebo=placebo, descriptive=desc, trials_path=trials_path)
 
 
-def main(argv: list[str] | None = None) -> int:
+class Ctx:
+    """Declared run values. The CLI has no flag for any of them (freeze-check fix 4); tests build a Ctx through ``main(_ctx=...)``,
+    which is never reachable from the command line."""
+
+    def __init__(self, D, spec=None, require_committed=True, trials=None, now=None, n_boot=None, placebo_draws=None, random_draws=None, max_markets=None):
+        from astrolabe.research_lab import provenance
+
+        self.spec = Path(spec) if spec else D.SPEC_PATH
+        self.require_committed = require_committed
+        self.trials = Path(trials) if trials else provenance.TRIALS_PATH
+        self.now = now
+        self.n_boot = n_boot if n_boot is not None else D.N_BOOT
+        self.placebo_draws = placebo_draws if placebo_draws is not None else D.PLACEBO_DRAWS
+        self.random_draws = random_draws if random_draws is not None else D.RANDOM_FILTER_DRAWS
+        self.max_markets = max_markets
+
+
+def main(argv: list[str] | None = None, *, _ctx: Ctx | None = None) -> int:
     from astrolabe.research_lab import cb3_common as C
     from astrolabe.research_lab import cb3_declaration as D
     from astrolabe.research_lab import cb3_maker as M
     from astrolabe.research_lab import cb3_quote_vacuum as V
-    from astrolabe.research_lab import provenance
-
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("cmd", choices=["census", "screen", "replicate", "stagep", "resolution"])
     ap.add_argument("--family", default="A,B")
     ap.add_argument("--run-id", default="h2_main")
     ap.add_argument("--before", default=None)
-    ap.add_argument("--n-boot", type=int, default=D.N_BOOT)
-    ap.add_argument("--placebo-draws", type=int, default=D.PLACEBO_DRAWS)
-    ap.add_argument("--random-filter-draws", type=int, default=D.RANDOM_FILTER_DRAWS)
-    ap.add_argument("--rps", type=float, default=4.0)
-    ap.add_argument("--max-markets", type=int, default=None, help="test hook: limit the history markets read")
     ap.add_argument("--out-root", default=None)
     ap.add_argument("--quote-root", default=None)
     ap.add_argument("--followup-root", default=None)
     ap.add_argument("--history-root", default=None)
     ap.add_argument("--books", default=None)
-    ap.add_argument("--spec", default=None, help="declaration spec path (default model_specs/cb3_v1.json)")
-    ap.add_argument("--trials", default=None, help="trials.jsonl path (default docs/research_lab/trials.jsonl)")
-    ap.add_argument("--now", default=None, help="test hook: ISO time used by the stage-time guards")
     a = ap.parse_args(argv)
     P = _paths(a)
-    trials = Path(a.trials) if a.trials else provenance.TRIALS_PATH
-    spec = Path(a.spec) if a.spec else D.SPEC_PATH
+    ctx = _ctx or Ctx(D)
+    a.n_boot, a.placebo_draws, a.random_filter_draws, a.max_markets, a.rps = ctx.n_boot, ctx.placebo_draws, ctx.random_draws, ctx.max_markets, 4.0
+    trials, spec = ctx.trials, ctx.spec
     fams = [f.strip().upper() for f in a.family.split(",") if f.strip()]
-    now = datetime.fromisoformat(a.now.replace("Z", "+00:00")) if a.now else None
+    now = datetime.fromisoformat(ctx.now.replace("Z", "+00:00")) if ctx.now else None
     try:
         D.refuse_run_id(a.run_id)
         j4r = D.j4r_window()
         if a.cmd == "census":
             return _census(a, P, fams, D, C, M, V, j4r, trials)
-        decl = D.require_declaration(spec, require_committed=a.spec is None)
+        decl = D.require_declaration(spec, require_committed=ctx.require_committed)
         if a.cmd == "screen":
             return _screen(a, P, fams, D, C, M, V, j4r, decl, spec, trials)
         if a.cmd in ("replicate", "stagep", "resolution"):
