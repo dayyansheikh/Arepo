@@ -1180,7 +1180,7 @@ capture, `fees_enabled` in `quote_state` schema v2; income rebate = minimum of s
 Needs a science-reviewer re-check before q0061a: fixes 3, 5-9, 11-12 and the centred A2 check (the declaration hash changed, so `24f33c36...` is superseded).
 
 ### Freeze-check re-check HOLD fixes (implementer, 2026-10-16)
-Science-reviewer ruled HOLD on census q0061 until these; all coded in the commit named below.
+Science-reviewer ruled HOLD on census q0061 until these; all coded in 13c6ac8.
 - (a) `source_hashes` now also covers `cb3_quote_state`, a file sha256 of `backend/scripts/run_cb3.py` (stage windows, `origin_before`, Holm k, census clamps) and
   the helpers `cb1_history.load_sample` / `drop_outcome_columns` / `load_books` and `history_backfill.load_prices`.
 - (b) `verify_cuts_against_census` refuses unless `census["declaration_sha256"] == spec["declaration_sha256"]`; the census output records the declaration hash,
