@@ -1,35 +1,28 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-16 06:46 UTC+1
+**Last updated:** 2026-10-17 00:09 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Server (Oracle):** healthy at 05:44Z (3.2 GB RAM free). Running: the order-book table, and the batch-2 ladder list
-  (the first batch-2 job).
-  - Next on the server: the fresh 7,000-market download. It ran out of memory twice. It is now fixed, but the fix is
-    untested on the real data.
-- **Battery-2 re-test on 5,000 different markets (HB2-R): 3 of 6 ideas replicate.**
-  - The 3: order-flow momentum is stronger in volatile markets and in wide-spread markets; 1-day drift depends on
-    liquidity.
-  - 3 do not replicate: near-resolution flow, large-for-market trades, and 24h flow × liquidity.
-  - None pays: the move is about 1c per trade against about 3.5c of spread and fees.
-- **ML regime test (J7):** the full model's gain sits where trades just happened (largely expected). No learned
-  pairwise interaction adds anything. The liquidity comparison was unmeasurable because of a design flaw, which is
-  recorded.
-- **Your creative priority:**
-  - **Batch 1 is FROZEN.** Screens start once the fresh download is sealed.
-  - **Batch 2:** code done, independently checked, and all 20 fixes landed. The ladder list is running now.
-  - **Batch 3** (safe quoting; one side of the book vanishing):
-    - Code written. The independent check asked for 18 fixes, including 3 silent biases in the maker test.
-    - The data save (fixed) is released. The analysis fixes are in progress.
-  - **Batch 4** (selling before order books close; series roll-overs; fee/rebate rule changes as cost measurements):
-    - The data code is checked and fixed, and its data save is released.
-    - The analysis code is being written. Its two new market samples are due by 22 Oct.
-  - I also caught and fixed a scheduling bug before it ran: a job that would have blocked the server's job slot.
-  - Nothing creative has been tested yet.
+- **Autopilot:** the sessions between about 21:45 and 23:30 UTC+1 failed at once with a network (DNS) error, so nothing ran
+  for about 2 hours. It recovered at 23:57 UTC+1; nothing was lost.
+- **Creative batch 1, first results: nothing advanced.**
+  - Carry ideas A1, A2 and C1 were all negative after costs. C1 loses overall because of a few catastrophic events; without its 5 worst events it
+    looks positive, but the declared test fails, and that is not a result.
+  - E (new-market text) could not be tested: 2,886 of 3,200 markets have no question text stored. That is a data gap, not a negative result.
+  - B (ladders) could not be tested: only 52 usable ladders against 300 needed.
+  - So the sealed fresh sample (h5) stays unopened for these ideas. 9 more tests counted.
+- **Batch 1-D (neg-risk sets):** its development window closed at 01:00 UTC+1. The capture list is frozen (60 captures) and the screen is queued.
+- **Batch 3 (safe quoting):** the independent re-check passed, so its counting job (no outcomes) is released.
+- **Batch 5 (seed reversion, ladder-vs-bucket consistency, Kalshi lead by hour):** the challenger asked for changes. One test's placebo
+  could never fail by construction, so it is being redesigned. The revision is in progress.
+- **Batch 4:** a session died mid-way leaving its analysis code unfinished; an agent is finishing and testing it.
+- **Server:** the weather download (batch 2) ran out of memory at its first page walk; a fix is being written. The ML diagnostic job
+  (J8) is running now.
+- **New ideas:** the creative list was nearly used up, so a fresh round (Fable, high effort) is being written.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
@@ -74,7 +67,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 5. Infrastructure
 | Item | State |
 |---|---|
-| Server disk | 12 GB free; data 7.6 GB of a 12 GB cap (measured 03:56Z). Nightly deletion of backed-up copies is in its trial run. |
+| Server disk | 8.9 GB free; data 9.7 GB of the 12 GB cap (measured 22:57Z 10-16). The archive rotation (deleting backed-up copies) must be live by about 20 Oct. |
 | Server size | 1 CPU and about 5.6 GB RAM, so one heavy job at a time. It can't be enlarged without Oracle console access. |
 | Mac | No background jobs. |
 
