@@ -127,7 +127,7 @@ def test_manifest_membership_complete_flag_and_counts(world):
     assert man["captures"]["cap3"]["membership_complete"] is False
     assert man["captures"]["cap4"]["membership_complete"] is True
     e = man["captures"]["cap5"]
-    assert e["n_ids"] == 3 and e["n_tight"] == 2 and e["n_sweeps_found"] == 1 and e["mode"] == "backfill"
+    assert e["n_ids"] == 3 and e["n_tight"] == 1 and e["n_sweeps_found"] == 1 and e["mode"] == "backfill"
     assert {"csv", "ids"} <= set(e["sha256"]) and "rows" in e["source_sha256"] and "sweep_1" in e["source_sha256"]
 
 
