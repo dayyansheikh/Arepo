@@ -1,0 +1,22 @@
+{
+ "id": "q0060a_cb3_freezecheck_gate",
+ "title": "Gate: CB3 freeze-check fixes 1-2 + as-of schema (5, 6) landed \u2014 releases q0060",
+ "family": "gate",
+ "priority": 63,
+ "expected_value": "releases q0060 only after its URGENT freeze-check fixes",
+ "data": [],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "selfcheck"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [],
+ "next_action": "q0060 runs",
+ "notes": "Coordinator gate, 2026-10-16. Fixes in 0dc00e4; tests green locally. Same trivial argv as q0033/q0039."
+}
