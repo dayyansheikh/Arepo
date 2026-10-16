@@ -6,6 +6,11 @@ and delete them." The user also approved the weekly backup of the live evidence 
   `scripts/oracle/archive_retention.json`. This includes the deferred `snapshots/` and `book_sweeps/` rules once their gate
   clears (queue jobs q0005, q0006a and q0006 are done or take root arguments).
 - **Never deleted:** frozen or prospective evidence, active or append-only logs, and `/home/opc/arepo_val`.
+- **2026-10-17 ~00:58 UTC+1 (coordinator): `--dry-run` REMOVED for the CURRENT rules only** (host crontab backed up to
+  `/tmp/crontab.bak.*`, then edited; `crontab.txt` updated). Checklist 1/2/3/5 all PASS, so this is within the user's approval. The
+  first real run (10-17 03:30Z) deletes only verified-archived `trade_samples/` (> 3 days) and old `live_trades/` daily files,
+  about 0.61 GB. `snapshots/` and `book_sweeps/` stay in `deferred_rules` until the gate below passes (CB4 manifest) and the
+  sweep conditions are met.
 - **State (checked 2026-10-16 23:10-23:55Z, recorded 2026-10-17 00:55 UTC+1): deletion NOT enabled; the gate FAILS on CB4.**
   - Checklist 1 PASS: `data-20261016-dsheikh` (31,758 files, 2.00 GB) verify PASS 03:52:08Z, published 03:52:12Z (not a
     draft; README.md, VERIFY.json, files.sha256, MANIFEST.sha256 and the part are on GitHub), in `verified_releases.jsonl`
