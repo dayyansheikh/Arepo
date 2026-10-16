@@ -17,7 +17,8 @@
   "lane": "net"
  },
  "depends_on": [
-  "q0018_h5_cb1_seal"
+  "q0018_h5_cb1_seal",
+  "q0043a_h5_seal_copy_gate"
  ],
  "argv": [
   "scripts/run_cb2.py",
@@ -59,5 +60,5 @@
   "data-dumps/research_lab/history/h6_weather/{events.jsonl.gz,prices/,trades/,outcomes_guarded.csv.gz,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"
  ],
  "next_action": "q0044",
- "notes": "about 70-86k requests (CREATIVE_BATCH_2.md 2.8); commit only after the h5 seal copy (q0018) and cb2_weather_text_rules.json are committed (refuses otherwise); refuses while data-dumps > 10 GB and at or after T_seal 2026-10-22T00:00Z; rows capped at min(T_fetch6, T_seal) with dropped counts; 429 back-off (rps halved above 1%, chunk ends after 50) and collector-health pause (newest complete capture > 2h45m old or incomplete manifest; transient, exit 0); end_at also < T_fetch6 - 3d; outcomes go only to outcomes_guarded.csv.gz and no job reads them before the CB2 freeze; resumable"
+ "notes": "about 70-86k requests (CREATIVE_BATCH_2.md 2.8); commit only after the h5 seal copy (q0018) and cb2_weather_text_rules.json are committed (refuses otherwise); refuses while data-dumps > 10 GB and at or after T_seal 2026-10-22T00:00Z; rows capped at min(T_fetch6, T_seal) with dropped counts; 429 back-off (rps halved above 1%, chunk ends after 50) and collector-health pause (newest complete capture > 2h45m old or incomplete manifest; transient, exit 0); end_at also < T_fetch6 - 3d; outcomes go only to outcomes_guarded.csv.gz and no job reads them before the CB2 freeze; resumable | Held behind gate q0043a (created once seals/h5_cb1_SEAL.json is committed and freeze-check fixes 6-12 have landed)."
 }

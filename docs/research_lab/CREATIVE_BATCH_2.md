@@ -962,3 +962,61 @@ Code: `backend/astrolabe/research_lab/cb2_weather.py`, `backend/tests/unit/test_
 - **Stage 2** uses Bonferroni `0.05 / max(k_stage2, number advanced)` with `k_stage2` defaulting to the declared 5; the W-only Holm is reported beside it. The Stage-2 gate also reruns the placebo, R_ann and the binding robustness. Stage P uses `0.05 / (number replicated)`, evidence role `prospective_confirmation`, and reads `seals/cb2_t_rep_start.json`.
 - **Census** (`census_W.json`, a timestamped sibling if it exists) opens only the SCREEN prices, trades and progress (logged); the outcome file is never parsed; the recorded half-spread descriptive reads the CB1 extract `negrisk/` tables when `--cb1-extract-root` is given.
 - Queue specs q0043 and q0044 depend on `q0018_h5_cb1_seal` (q0044 also on q0043); q0043 sets `lane: net`.
+
+## Freeze check (science-reviewer, 2026-10-16 ~04:35Z): code against the design
+(The reviewer is read-only; the coordinator pasted this text verbatim.)
+Code: c9b2d51, f291b41, 0408d4e, 12ba7be, 5e0b317, fe67692, 7ff3aa8, 9012f89. 129 scoped tests pass. Committed grouper and
+text-rule hashes match the code (`c51144…`, `817cc6…`/`630290…`).
+
+**Verdicts:** extractor v2 + q0041 ACCEPT_WITH_REQUIRED_FIXES; grouper/list + q0040 ACCEPT_WITH_REQUIRED_FIXES; L/X/P
+analysis ACCEPT_WITH_REQUIRED_FIXES; h6 fetch/split/seal + q0043/q0044 ACCEPT_WITH_REQUIRED_FIXES; W analysis/stage P
+ACCEPT_WITH_REQUIRED_FIXES; h5 seal generalisation + KIND_RULES ACCEPT.
+
+**Required fixes**
+1. **URGENT (before q0040).** `GROUPER_RULES` hashes rule text and regexes, not the code that applies them
+   (`parse_direction`, `mask_description`, `ladder_grouper_v2`, `_dedupe_deadline`, `if_h2.stem`, `if_h2.parse_deadline`).
+   Add their source hashes and recommit the seal; once text has been read this binding can no longer be shown.
+2. **URGENT if q0041 has not finished before the first raw-capture deletion (~10-17/18) or before data-dumps nears
+   10.5 GB.** The over-cap refusal exits 0, so each refusal uses one of the 3 repeat runs and after 3 the job is `done`
+   with nothing written (`queue_worker.py:256-262`). Backfill also stops at the first archived capture (re-raises
+   `ArchivedDataError`) although the spec says missing captures are counted. Record and continue; make the refusal
+   non-zero.
+3. A grouper revision cannot run: v1 is immutable and `load_ladder_list` rejects a list built under another hash
+   (`cb2_structural.py:452`). Rebuild v1 from `ladder_text_cache.jsonl` in a separate lineage per hash, or amend the
+   design through review. Before q0042.
+4. The L census reports `touch_violations` per type (`cb2_structural.py:1120`), i.e. the unstratified X2 estimate before
+   the freeze. Remove it. Before q0042.
+5. Pin the dev ladder-list version: `--ladder-list-sha256` mandatory (the code loads the latest). Write a spec for the
+   weekly v≥2 refresh before `T2_rep_start`.
+6. The walk treats a non-200 page as the end of its window and the window as complete (`cb2_weather.py:489`). Count
+   failed windows; refuse to write the frame if any. Before q0043.
+7. Events fetched in event-id order (≈ time order), so a fetch cut by `T_seal` loses mostly HOLDOUT events. Fetch in
+   seeded-rank order and declare now what happens if incomplete at `T_seal` (as coded the seal refuses and h6 is lost).
+   Before q0043.
+8. Walk `closed=false` before `closed=true` (an event closing between the walks is missed by both). Before q0043.
+9. `weather_fetch` must refuse when `SEAL.json` exists (a rerun rewrites `manifest.json` and breaks the seal).
+10. Remove test-only CLI flags `--allow-uncommitted`, `--now`, `--t-rep-start`, `--k-stage2` (they bypass commit checks,
+    the `T2_W_out` gate and the pinned rep start, CB1 fix 9). Derive k from the committed Stage-1 results. Before q0043.
+11. Hash the source of `city_slug`, `parse_title`, `parse_title_date` into the text rules. Before q0043.
+12. q0043: if it runs after q0018 but before the h5 seal copy is committed it refuses and burns retries. Gate it as q0040
+    is held behind q0039.
+13. A HOLDOUT re-read after a crash is not refused (only `results.json` existence is checked). Check `ACCESS_LOG.jsonl`
+    first.
+14. The payoff gate counts per trigger, not per pair (`cb2_structural.py:772-791`); count per unique pair (as CB1 fix 10).
+15. The L/X rep run fetches outcomes after `T2_rep_end` without enforcing `T2_L_out`.
+16. The structural `require_declaration` does not check that the declaration is git-committed.
+17. A batch-wide Holm script over all CB2 Stage-2 tests; stage P uses it.
+18. `fee_vec` re-implements `economics.taker_fee`; add an equivalence test.
+19. Count failed-fetch events separately from genuine missing-price exclusions.
+20. Rep trial lines carry role `exploratory_dev`; use the declared prospective role.
+
+**Accepted deviations:** L/X two-way clustering (ladder, day) instead of ladder × day (more conservative, hashed); stage P
+Bonferroni instead of Holm; P gate excludes events with a closed member (lower-bound counts); X2 placebo stratified z
+only; universe = first capture at or after 12:00Z each day; the +0.75c cost check also applies to unexecuted triggers.
+
+**Not verified:** host q0041 progress, data-dumps size, retention start; whether Gamma `/markets?id=` returns closed
+markets; whether 0.30 GB suffices for trades; whether the live CB2 step (up to 70% of the pass budget) starves the CB1
+`event_members` fetch; `h5_cb1_SEAL.json` format; the q0039 gate (no spec yet).
+
+**Order:** before q0040: fix 1. Before q0043: 6-12. Before census/analysis: 3, 4, 5, 13-20. Fix 2 before q0041 finishes
+if deletions or the 10.5 GB guard come near.
