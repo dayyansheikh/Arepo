@@ -143,6 +143,26 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "CB4 descriptive lines (S1, band map, balanced-wallet share, gates, census, pilot, strata, "
         "sports strata); no inference, not a test.",
     ),
+    "cb5_test": (
+        EXCLUDE,
+        "CB5 Stage-1 route per-test lines (G1, G2, L1); the tests are the n_tests of the "
+        "'creative_batch_5:G' / 'creative_batch_5:L' ml_explain lines, counted there. Placebo lines count 0.",
+    ),
+    "cb5_replication": (
+        EXCLUDE,
+        "CB5 Stage-2 route per-test lines; counted by the n_tests of the matching 'creative_batch_5:*' "
+        "ml_explain line. Placebo lines count 0.",
+    ),
+    "cb5_measurement": (
+        EXCLUDE,
+        "CB5 family-K per-test line (K1; two-sided, k=1) and the optional K1-R; the test is the n_tests of the "
+        "'creative_batch_5:K' ml_explain line, counted there. Placebo lines count 0.",
+    ),
+    "cb5_descriptive": (
+        EXCLUDE,
+        "CB5 descriptive lines (census, seed strata, incidence and persistence curves, r_inc, sports strata, "
+        "J4 wide-state counts, K activity controls, gates and reported variants); no inference, not a test.",
+    ),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "
