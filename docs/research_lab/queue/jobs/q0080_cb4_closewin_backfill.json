@@ -25,7 +25,7 @@
   "--disk-cap-gb",
   "0.40",
   "--data-dumps-max-gb",
-  "10.5"
+  "12"
  ],
  "timeout_s": 10800,
  "max_retries": 2,
@@ -37,5 +37,5 @@
   "data-dumps/research_lab/cb4_extract/{closewin/,departures/,manifest.json}"
  ],
  "next_action": "pass step continues (all-new mode, wired by a later change; not part of this spec)",
- "notes": "CREATIVE_BATCH_4.md 2.10/4.3/5. Own script scripts/run_cb4.py (the doc's argv named run_cb1_extract.py; moved so CB1/CB2 stay untouched, as q0060). Priority 62 (challenger ruling 6). Idempotent by capture_id + extractor version; CB1/CB2/CB3 tables untouched; processes oldest first so departures can use the previous capture's closewin. A capture gone from the host is restored from the verified release copy (restore_from_archive.py, sha256 re-checked against the catalogue) into <root>/_scratch with a 0.2 GB peak cap, scratch deleted before the next batch and at exit; no usable copy -> recorded missing (never reconstructed) and the run continues. A restore reads the whole release stream (about 20 min on the host), so one call restores as many captures as fit under 0.2 GB. Refuses with a non-zero exit while data-dumps > 10.5 GB; stops at 0.40 GB of written tables; repeat regex matches only the true backfill_complete flag (missing captures count as handled). | Held behind q0080a_cb4_freezecheck_gate: CB4 data freeze check fixes 1-4 (URGENT) must land first."
+ "notes": "CREATIVE_BATCH_4.md 2.10/4.3/5. Own script scripts/run_cb4.py (the doc's argv named run_cb1_extract.py; moved so CB1/CB2 stay untouched, as q0060). Priority 62 (challenger ruling 6). Idempotent by capture_id + extractor version; CB1/CB2/CB3 tables untouched; processes oldest first so departures can use the previous capture's closewin. A capture gone from the host is restored from the verified release copy (restore_from_archive.py, sha256 re-checked against the catalogue) into <root>/_scratch with a 0.2 GB peak cap, scratch deleted before the next batch and at exit; no usable copy -> recorded missing (never reconstructed) and the run continues. A restore reads the whole release stream (about 20 min on the host), so one call restores as many captures as fit under 0.2 GB. Refuses (non-zero exit) only on real headroom: data-dumps + remaining output allowance (0.4 GB) + 0.2 GB scratch > 12 GB (freeze-check fix 2; the 10.5 GB rule would have deadlocked the deletion gate). accepting_orders is read as 1/0 (fix 1). Captures present only in a release (no host manifest) are added from the catalogue (fix 3). A transient restore failure is retried 3 times and then stops the run with the capture still pending (fix 4); genuine reasons (no_release_copy, release_hash_mismatch, no_host_manifest, ...) are recorded per capture. stops at 0.40 GB of written tables; repeat regex matches only the true backfill_complete flag (missing captures count as handled). | Held behind q0080a_cb4_freezecheck_gate: CB4 data freeze check fixes 1-4 (URGENT) must land first."
 }

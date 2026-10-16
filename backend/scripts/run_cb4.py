@@ -9,7 +9,7 @@ DATA subcommands (this file; module ``astrolabe.research_lab.cb4_data``):
     python scripts/run_cb4.py verify-seal --run-ids h7_cb4_era,h7_cb4_series
     python scripts/run_cb4.py series-rules                       # writes docs/research_lab/seals/cb4_series_rules.json (commit it before q0082)
     python scripts/run_cb4.py closewin --backfill-from 2026-10-11T12:00Z --release-stream --budget-min 150 --disk-cap-gb 0.40   # q0080
-    python scripts/run_cb4.py closewin --all-new --data-dumps-max-gb 11            # later pass step (NOT wired)
+    python scripts/run_cb4.py closewin --all-new --data-dumps-max-gb 12            # later pass step (NOT wired)
 
 ANALYSIS hooks (pilot, flip-trades, census, measure-N, measure-E, measure-commit, fetch-outcomes, screen, replicate)
 call ``astrolabe.research_lab.cb4_analysis.cmd_<name>(args)`` (name with '-' as '_'); if the module or the function
@@ -68,15 +68,14 @@ def cmd_closewin(a) -> int:
 
     backfill = a.backfill_from is not None
     budget_min = a.budget_min if a.budget_min is not None else (150.0 if backfill else 7.0)
-    release = None
-    if a.release_stream:
-        release = d.ReleaseCopies(Path(a.root) / "_scratch", catalogue=d.Catalogue(Path(a.catalogue_dir)))
+    cat = d.Catalogue(Path(a.catalogue_dir))
+    release = d.ReleaseCopies(Path(a.root) / "_scratch", catalogue=cat) if a.release_stream else None
     try:
         summ = d.run_closewin(
             Path(a.snapshot_root), Path(a.sweep_root), Path(a.root), mode="backfill" if backfill else "all-new",
             since=_iso(a.backfill_from) if backfill else d.T4_DEV_START, budget_s=budget_min * 60.0,
             disk_cap_gb=a.disk_cap_gb, data_dumps=Path(a.data_dumps), data_dumps_max_gb=a.data_dumps_max_gb,
-            retry_missing=a.retry_missing, release=release)
+            retry_missing=a.retry_missing, release=release, catalogue=cat)
     except d.ExtractLocked:
         _emit({"cb4_closewin": d.CLOSEWIN_VERSION, "skipped": "another extractor holds the lock"})
         return 0
@@ -106,7 +105,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--budget-min", type=float, default=None, help="wall-clock self-limit (default 7 all-new, 150 backfill)")
     p.add_argument("--disk-cap-gb", type=float, default=0.40, help="stop when the written tables exceed this size")
     p.add_argument("--data-dumps", default=str(d.DATA_DUMPS))
-    p.add_argument("--data-dumps-max-gb", type=float, default=10.5, help="refuse (exit 1) while data-dumps is larger")
+    p.add_argument("--data-dumps-max-gb", type=float, default=12.0,
+                   help="data-dumps cap; refuse (exit 1) only when size + remaining output allowance + scratch would pass it")
     p.add_argument("--retry-missing", action="store_true", help="re-attempt captures recorded as missing")
     p.add_argument("--snapshot-root", default=str(d.SNAPSHOT_ROOT))
     p.add_argument("--sweep-root", default=str(d.SWEEP_ROOT))

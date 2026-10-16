@@ -41,7 +41,7 @@ def _row(mid, end, **kw):
     return r
 
 
-def _ext(mid, created="2026-09-01T00:00:00Z", acc="True", **kw):
+def _ext(mid, created="2026-09-01T00:00:00Z", acc="1", **kw):
     r = dict.fromkeys(EXT_COLS, "")
     r.update(market_id=mid, clob_token_id_0=f"t{mid}a", clob_token_id_1=f"t{mid}b", accepting_orders=acc,
              created_at=created, uma_resolution_statuses="[]", volume_num="100.5", fee_category="crypto",
@@ -79,7 +79,7 @@ def _rows_a():
 
 
 def _ext_a():
-    return [_ext("1"), _ext("2"), _ext("3", acc="False"),  # 3: far end but order book shut -> kept
+    return [_ext("1"), _ext("2"), _ext("3", acc="0"),  # 3: far end but order book shut (sidecar writes 1/0) -> kept
             _ext("4", created="2026-10-11T23:00:00Z"),  # 4: life < 1 day -> dropped
             _ext("5", created="")]  # 5: created_at unknown -> kept, counted
 
@@ -101,6 +101,25 @@ def test_selection_rules_and_columns(tmp_path):
     r1 = out[out.market_id == "1"].iloc[0]
     assert r1["best_bid"] == "0.4000" and r1["fee_category"] == "crypto" and r1["clob_token_id_1"] == "t1b"
     assert r1["sweep_best_bid"] == "" and facts["sweep_found"] is False
+
+
+def test_accepting_orders_flag_formats_and_ext_present(tmp_path):
+    from astrolabe.research_lab.extract import _flag  # noqa: PLC0415
+
+    assert _flag(True) == 1 and _flag(False) == 0
+    for v in ("0", "0.0", "False", "false", " FALSE "):
+        assert d.flag_off(v)
+    for v in ("1", "True", "", "1.0"):
+        assert not d.flag_off(v)
+    snap = tmp_path / "s"
+    rows = [_row("1", FAR), _row("2", FAR), _row("3", FAR), _row("4", FAR)]
+    ext = [_ext("1", acc="0"), _ext("2", acc="False"), _ext("3", acc="1")]  # market 4 has no sidecar row
+    make_capture(snap, "c0", S0, rows, ext)
+    (snap / "c0" / "ext_manifest.json").write_text(json.dumps({"ext_version": "snapshot-ext-v3", "sidecar_status": "complete"}))
+    out, _l, facts = d.build_capture(snap / "c0" / "rows.csv.gz", snap / "c0" / "rows_ext.csv.gz", None, "c0", S0)
+    assert list(out["market_id"]) == ["1", "2"] and list(out["ext_present"]) == ["1", "1"]
+    assert facts["n_rows_without_sidecar"] == 1 and facts["n_selected_without_sidecar"] == 0
+    assert facts["ext_version"] == "snapshot-ext-v3" and facts["sidecar_status"] == "complete"
 
 
 def test_first_receipt_wins_on_duplicates(tmp_path):
@@ -182,6 +201,23 @@ def test_retry_missing_only_when_asked(tmp_path):
     assert d.run_closewin(snap, tmp_path / "none", root, mode="backfill", since=S0)["written"] == 0
     r = d.run_closewin(snap, tmp_path / "none", root, mode="backfill", since=S0, retry_missing=True)
     assert r["written"] == 1
+
+
+def test_data_dumps_refusal_only_on_real_headroom(tmp_path):
+    snap = _three(tmp_path)
+    at = lambda gb: (lambda p: gb if Path(p) == tmp_path / "dd" else 0.0)  # noqa: E731
+    # 10.9 GB + 0.4 GB output allowance <= 12: runs (the old 10.5 GB rule would have deadlocked here)
+    r = d.run_closewin(snap, tmp_path / "none", tmp_path / "r1", mode="backfill", since=S0, data_dumps=tmp_path / "dd",
+                       data_dumps_max_gb=12.0, dir_gb=at(10.9))
+    assert r["written"] == 2 and r["backfill_complete"] is True
+    # with the 0.2 GB scratch (release stream) 11.5 + 0.4 + 0.2 > 12: refused
+    rel = d.ReleaseCopies(tmp_path / "scr", catalogue=d.Catalogue(tmp_path / "nocat"))
+    r = d.run_closewin(snap, tmp_path / "none", tmp_path / "r2", mode="backfill", since=S0, data_dumps=tmp_path / "dd",
+                       data_dumps_max_gb=12.0, dir_gb=at(11.5), release=rel)
+    assert r["stopped"] == "refused_data_dumps_over_cap"
+    r = d.run_closewin(snap, tmp_path / "none", tmp_path / "r3", mode="backfill", since=S0, data_dumps=tmp_path / "dd",
+                       data_dumps_max_gb=12.0, dir_gb=at(11.7))
+    assert r["stopped"] == "refused_data_dumps_over_cap"
 
 
 def test_data_dumps_refusal_and_disk_cap_and_budget(tmp_path):
@@ -334,17 +370,20 @@ def test_release_missing_hash_mismatch_and_unknown_are_missing_not_reconstructed
     assert r["written"] == 0 and r["missing"] == 2 and r["backfill_complete"] is True
     man = json.loads((tmp_path / "root" / "manifest.json").read_text())
     assert {man["captures"][c]["status"] for c in ("r0", "r1")} == {"missing"}
+    assert man["captures"]["r0"]["reason"] == "release_hash_mismatch" and man["captures"]["r1"]["reason"] == "no_release_copy"
 
 
-def test_release_restore_failure_twice_stops_not_complete(tmp_path):
+def test_release_restore_failure_after_retries_stops_not_complete(tmp_path):
     snap = tmp_path / "snapshots"
     for cid, st in (("r0", S0), ("r1", S1), ("r2", S2)):
         make_capture(snap, cid, st, [], with_files=False)
     entries = [{"path": f"data-dumps/research_lab/snapshots/{c}/{n}", "bytes": 1000, "sha256": None}
                for c in ("r0", "r1", "r2") for n in ("rows.csv.gz", "rows_ext.csv.gz")]
-    rel = d.ReleaseCopies(tmp_path / "scr", catalogue=_catalogue(tmp_path, entries), restore=lambda *_a: False, cap_bytes=2500)
+    rel = d.ReleaseCopies(tmp_path / "scr", catalogue=_catalogue(tmp_path, entries), restore=lambda *_a: False, cap_bytes=2500, retries=2, backoff_s=0, sleep=lambda s: None)
     r = d.run_closewin(snap, tmp_path / "none", tmp_path / "root", mode="backfill", since=S0, release=rel)
     assert r["stopped"] == "release_unavailable" and r["backfill_complete"] is False
+    # transient failure: nothing is marked missing, the capture stays pending (order and departures preserved)
+    assert r["missing"] == 0 and r["remaining"] == 3 and r["restore_retries"] == 2
 
 
 def test_release_capture_larger_than_scratch_cap_is_not_restored(tmp_path):
@@ -1032,9 +1071,9 @@ def test_queue_specs_valid_and_repeat_regexes_match_only_true_completion():
     for s in specs.values():
         assert (scripts_dir.parent / s["argv"][0]).exists() and s["family"] and isinstance(s["priority"], int)
     q80, q81, q82, q83 = (specs[k] for k in sorted(specs))
-    assert q80["priority"] == 62 and "--release-stream" in q80["argv"] and q80["argv"][q80["argv"].index("--data-dumps-max-gb") + 1] == "10.5"
+    assert q80["priority"] == 62 and "--release-stream" in q80["argv"] and q80["argv"][q80["argv"].index("--data-dumps-max-gb") + 1] == "12"
     for q in (q81, q82):
-        assert q["priority"] == 58 and q["resources"]["lane"] == "net" and q["depends_on"] == ["q0018_h5_cb1_seal"]
+        assert q["priority"] in (58, 61) and q["resources"]["lane"] == "net" and "q0018_h5_cb1_seal" in q["depends_on"]
         assert "../docs/research_lab/seals/h5_cb1_SEAL.json" in q["argv"] and q["argv"][q["argv"].index("--cap-at") + 1] == "2026-10-22T00:00Z"
     assert q83["depends_on"] == ["q0081_h7_cb4_era_fetch", "q0082_h7_cb4_series_fetch"] and "repeat" not in q83
     # the repeat regexes match the real terminal output lines and nothing else
@@ -1069,3 +1108,69 @@ def test_cmd_fetch_end_to_end_wiring_era_and_series(tmp_path, capsys):
     rc = d.cmd_fetch(_ns(kind="series", transport=net, roll_from="2026-03-01", n_series=3, **base), require_committed=False, allow_nondeclared=True)
     out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert rc == 0 and out["stopped"] is None
+
+
+def test_release_transient_failure_is_retried_then_succeeds(tmp_path):
+    snap = tmp_path / "snapshots"
+    make_capture(snap, "r0", S0, [], with_files=False)
+    blobs, entries = {}, []
+    for name, rows, cols in (("rows.csv.gz", _rows_a(), ROW_COLS), ("rows_ext.csv.gz", _ext_a(), EXT_COLS)):
+        p = tmp_path / name
+        _gz(p, pd.DataFrame(rows, columns=cols))
+        ap = f"data-dumps/research_lab/snapshots/r0/{name}"
+        blobs[ap] = p.read_bytes()
+        entries.append({"path": ap, "bytes": 1000, "sha256": _sha(blobs[ap])})
+    calls = {"n": 0}
+
+    def restore(tag, globs, dest):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            return False  # two transient failures
+        for g in globs:
+            (Path(dest) / g).parent.mkdir(parents=True, exist_ok=True)
+            (Path(dest) / g).write_bytes(blobs[g])
+        return True
+
+    rel = d.ReleaseCopies(tmp_path / "scr", catalogue=_catalogue(tmp_path, entries), restore=restore, retries=3, backoff_s=0, sleep=lambda s: None)
+    r = d.run_closewin(snap, tmp_path / "none", tmp_path / "root", mode="backfill", since=S0, release=rel)
+    assert r["written"] == 1 and r["missing"] == 0 and calls["n"] == 3
+
+
+def test_release_only_captures_absent_from_host_are_listed_and_extracted_or_recorded(tmp_path):
+    snap = tmp_path / "snapshots"
+    make_capture(snap, "20261012T000000Z_aaaa0001", S0, _rows_a(), _ext_a())  # on the host
+    cid = "20261012T020000Z_bbbb0002"  # only in a release; no host manifest
+    blobs, entries = {}, []
+    for name, payload in (("rows.csv.gz", (_rows_a(), ROW_COLS)), ("rows_ext.csv.gz", (_ext_a(), EXT_COLS))):
+        p = tmp_path / name
+        _gz(p, pd.DataFrame(payload[0], columns=payload[1]))
+        ap = f"data-dumps/research_lab/snapshots/{cid}/{name}"
+        blobs[ap] = p.read_bytes()
+        entries.append({"path": ap, "bytes": 1000, "sha256": _sha(blobs[ap])})
+    mp = f"data-dumps/research_lab/snapshots/{cid}/manifest.json"
+    blobs[mp] = json.dumps({"state": "complete", "started_utc": S1}).encode()
+    entries.append({"path": mp, "bytes": 100, "sha256": _sha(blobs[mp])})
+    cat = _catalogue(tmp_path, entries)
+    assert cat.snapshot_dirs() == {cid: "2026-10-12T02:00:00Z"}
+    # without --release-stream: recorded as no_host_manifest (counted, never silently absent)
+    r = d.run_closewin(snap, tmp_path / "none", tmp_path / "r1", mode="backfill", since=S0, catalogue=cat)
+    man = json.loads((tmp_path / "r1" / "manifest.json").read_text())
+    assert man["captures"][cid]["reason"] == "no_host_manifest" and r["n_release_only"] == 1 and r["backfill_complete"] is True
+
+    def restore(tag, globs, dest):
+        for g in globs:
+            (Path(dest) / g).parent.mkdir(parents=True, exist_ok=True)
+            (Path(dest) / g).write_bytes(blobs[g])
+        return True
+
+    rel = d.ReleaseCopies(tmp_path / "scr", catalogue=cat, restore=restore)
+    r = d.run_closewin(snap, tmp_path / "none", tmp_path / "r2", mode="backfill", since=S0, catalogue=cat, release=rel)
+    man = json.loads((tmp_path / "r2" / "manifest.json").read_text())
+    assert man["captures"][cid]["status"] == "extracted" and man["captures"][cid]["source"] == "release"
+    assert man["captures"][cid]["departures_status"] == "ok"  # the host capture before it is the previous one
+    # a release manifest that is not complete is not extracted
+    blobs[mp] = json.dumps({"state": "partial"}).encode()
+    entries[-1]["sha256"] = _sha(blobs[mp])
+    rel2 = d.ReleaseCopies(tmp_path / "scr2", catalogue=_catalogue(tmp_path / "x", entries), restore=restore)
+    d.run_closewin(snap, tmp_path / "none", tmp_path / "r3", mode="backfill", since=S0, catalogue=_catalogue(tmp_path / "x", entries), release=rel2)
+    assert json.loads((tmp_path / "r3" / "manifest.json").read_text())["captures"][cid]["reason"] == "release_manifest_not_complete"

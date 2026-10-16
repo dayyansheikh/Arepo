@@ -55,7 +55,7 @@ from .creative_batch1 import (  # noqa: PLC2701 - private helpers reused on purp
 # Part 1: closewin / departures extractor (q0080)
 # =====================================================================================================
 
-CLOSEWIN_VERSION = "cb4-closewin-v1"
+CLOSEWIN_VERSION = "cb4-closewin-v2"  # v2 = freeze-check fixes 1-4 (1/0 flags, ext_present, sidecar version)
 SNAPSHOT_ROOT = forecast.SNAPSHOT_ROOT
 SWEEP_ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "book_sweeps"
 DATA_DUMPS = forecast.ROOT / "data-dumps"
@@ -76,7 +76,7 @@ CLOSEWIN_COLUMNS = [
     "clob_token_id_0", "clob_token_id_1", "best_bid", "best_ask", "spread", "last_trade_price", "closed",
     "active", "accepting_orders", "end_date", "created_at", "uma_resolution_statuses", "volume_num",
     "fee_schedule", "fee_category", "neg_risk_market_id", "series_slugs",
-    "sweep_best_bid", "sweep_best_ask", "sweep_bid_size_1", "sweep_ask_size_1",
+    "sweep_best_bid", "sweep_best_ask", "sweep_bid_size_1", "sweep_ask_size_1", "ext_present",
 ]
 DEPARTURE_COLUMNS = ["market_id", "last_seen_capture_id"]
 _ROWS_WANT = ["received_utc", "market_id", "condition_id", "event_id", "best_bid", "best_ask", "spread",
@@ -113,6 +113,13 @@ def _read_str(path: Path, want: list[str]) -> pd.DataFrame:
     return df
 
 
+def flag_off(v: Any) -> bool:
+    """True when a sidecar boolean is false. The sidecar writes ``accepting_orders`` as 1/0 (``extract._flag``);
+    'false'/'False'/'0'/'0.0' are all false; blank, 1/true/anything else is not (freeze-check fix 1)."""
+    t = str(v).strip().lower()
+    return t in ("0", "0.0", "false", "f", "no")
+
+
 def _dt(s: pd.Series) -> pd.Series:
     return pd.to_datetime(s.replace("", np.nan), utc=True, errors="coerce", format="ISO8601")
 
@@ -132,14 +139,16 @@ def build_capture(rows_path: Path, ext_path: Path, sweep_path: Path | None, capt
     ext = _read_str(Path(ext_path), _EXT_WANT).drop_duplicates("market_id").set_index("market_id")
     listing = set(rows["market_id"])
     df = rows.join(ext, on="market_id")
+    ext_present = df["market_id"].isin(ext.index).to_numpy()
     for c in _EXT_WANT[1:]:
         df[c] = df[c].fillna("")
+    df["ext_present"] = np.where(ext_present, "1", "0")
     start = _ts(capture_start)
     end = _dt(df["end_date"])
     created = _dt(df["created_at"])
     lo, hi = pd.Timestamp(start - timedelta(hours=WINDOW_BEFORE_H)), pd.Timestamp(start + timedelta(hours=WINDOW_AFTER_H))
     in_win = ((end >= lo) & (end <= hi)).to_numpy()
-    acc_false = (df["accepting_orders"].str.strip().str.lower() == "false").to_numpy()
+    acc_false = df["accepting_orders"].map(flag_off).to_numpy(dtype=bool) & ext_present
     unknown_life = (end.isna() | created.isna()).to_numpy()
     life_ok = ((created <= end - pd.Timedelta(hours=MIN_LIFE_H)).to_numpy()) | unknown_life
     keep = (in_win | acc_false) & life_ok
@@ -161,9 +170,21 @@ def build_capture(rows_path: Path, ext_path: Path, sweep_path: Path | None, capt
         "n_accepting_false": int((acc_false & keep).sum()),
         "n_life_unknown_kept": int((unknown_life & keep).sum()),
         "n_dropped_life_lt_1d": int(((in_win | acc_false) & ~life_ok).sum()),
-        "sweep_found": sweep_found,
+        "sweep_found": sweep_found, "n_rows_without_sidecar": int((~ext_present).sum()),
+        "n_selected_without_sidecar": int((~ext_present & keep).sum()),
     }
+    facts.update(_sidecar_facts(Path(ext_path)))
     return out, listing, facts
+
+
+def _sidecar_facts(ext_path: Path) -> dict:
+    """``ext_version`` / ``sidecar_status`` of the capture's ``ext_manifest.json`` (beside rows_ext.csv.gz), if present."""
+    mp = Path(ext_path).with_name("ext_manifest.json")
+    try:
+        m = json.loads(mp.read_text())
+    except (OSError, ValueError):
+        return {"ext_version": None, "sidecar_status": None}
+    return {"ext_version": m.get("ext_version"), "sidecar_status": m.get("sidecar_status")}
 
 
 # ---- release copies (streamed, one capture's worth of scratch at a time) ---------------------------------
@@ -189,6 +210,18 @@ class Catalogue:
                     self.groups.append((str(r.get("path_prefix", "")), tag))
                 elif r.get("path"):
                     self.files[r["path"]] = (tag, r.get("bytes"), r.get("sha256"))
+
+    def snapshot_dirs(self) -> dict[str, str]:
+        """{capture dir name: start ISO} of every snapshot capture dir the catalogue knows (time parsed from the
+        dir name ``YYYYmmddTHHMMSSZ_hash``)."""
+        rx = re.compile(r"data-dumps/research_lab/snapshots/(\d{8}T\d{6}Z_[0-9a-f]+)/")
+        out: dict[str, str] = {}
+        for path in [*self.files, *(pre for pre, _t in self.groups)]:
+            m = rx.search(path)
+            if m and m.group(1) not in out:
+                t = datetime.strptime(m.group(1)[:16], "%Y%m%dT%H%M%SZ")
+                out[m.group(1)] = t.strftime("%Y-%m-%dT%H:%M:%SZ")
+        return out
 
     def find(self, path: str) -> tuple[str, int | None, str | None] | None:
         if path in self.files:
@@ -219,34 +252,46 @@ class ReleaseCopies:
     ``ensure`` restores a batch (the requested capture plus the following ones that fit under
     ``cap_bytes`` by catalogue size, at least the requested one) with ONE call per release tag, because the
     release is a single stream and a call reads all of it; extraction still happens one capture at a time.
-    The previous batch is deleted before a new one is restored, and everything is deleted by ``cleanup``."""
+    The previous batch is deleted before a new one is restored, and everything is deleted by ``cleanup``.
+    A restore call is retried (``retries`` attempts, ``backoff_s`` * attempt apart) before ``ReleaseUnavailable``
+    is raised; the caller then stops the run and leaves the capture pending (it is never marked missing for a
+    transient failure). A genuine problem is returned as a reason: ``no_release_copy``, ``release_copy_too_large``,
+    ``release_hash_mismatch``, ``release_file_missing_after_restore``."""
 
     def __init__(self, scratch: Path, *, catalogue: Catalogue | None = None, cap_bytes: int = SCRATCH_CAP_BYTES,
-                 restore: Callable[[str, list[str], Path], bool] | None = None):
+                 restore: Callable[[str, list[str], Path], bool] | None = None, retries: int = 3,
+                 backoff_s: float = 60.0, sleep: Callable[[float], None] = time.sleep):
         self.scratch = Path(scratch)
         self.cat = catalogue if catalogue is not None else Catalogue()
         self.cap_bytes = int(cap_bytes)
         self.restore = restore if restore is not None else _restore_with_script
-        self.batch: dict[str, dict] = {}  # cid -> {'rows','ext','sweep'}
-        self.failures = 0
+        self.retries, self.backoff_s, self.sleep = max(1, int(retries)), backoff_s, sleep
+        self.batch: dict[str, dict] = {}  # cid -> {'rows','ext','sweep'[,'manifest']}
+        self.reasons: dict[str, str] = {}  # cid -> reason of a batch member that did not verify
         self.restores = 0
+        self.restore_retries = 0
 
     @staticmethod
-    def archive_paths(cap_dir_name: str, sweep_dir_name: str | None) -> dict[str, str]:
+    def archive_paths(cap_dir_name: str, sweep_dir_name: str | None, with_manifest: bool = False) -> dict[str, str]:
         base = f"data-dumps/research_lab/snapshots/{cap_dir_name}"
         p = {"rows": f"{base}/rows.csv.gz", "ext": f"{base}/rows_ext.csv.gz"}
+        if with_manifest:
+            p["manifest"] = f"{base}/manifest.json"
         if sweep_dir_name:
             p["sweep"] = f"data-dumps/research_lab/book_sweeps/{sweep_dir_name}/rows.csv.gz"
         return p
 
     def _plan(self, cap: dict, sweep_dir: Path | None) -> tuple[dict[str, str], int] | None:
-        paths = self.archive_paths(Path(cap["dir"]).name, Path(sweep_dir).name if sweep_dir else None)
+        paths = self.archive_paths(Path(cap["dir"]).name, Path(sweep_dir).name if sweep_dir else None,
+                                   bool(cap.get("release_only")))
         size = 0
-        for key in ("rows", "ext"):
+        for key in ("rows", "ext", "manifest"):
+            if key not in paths:
+                continue
             hit = self.cat.find(paths[key])
             if hit is None:
                 return None  # no release copy known for a required file
-            size += hit[1] or UNKNOWN_CAPTURE_BYTES // 2
+            size += hit[1] or (UNKNOWN_CAPTURE_BYTES // 2 if key != "manifest" else 0)
         if "sweep" in paths:
             hit = self.cat.find(paths["sweep"])
             if hit is None:
@@ -258,19 +303,33 @@ class ReleaseCopies:
     def cleanup(self) -> None:
         shutil.rmtree(self.scratch, ignore_errors=True)
         self.batch = {}
+        self.reasons = {}
 
-    def ensure(self, cap: dict, sweep_dir: Path | None, upcoming: list[tuple[dict, Path | None]]) -> dict | None:
-        """Local scratch paths for ``cap`` (rows, ext, optional sweep), or None when there is no verified
-        release copy. ``upcoming`` = the following captures, in processing order, that are also gone from
-        the host (candidates for the same restore call)."""
+    def _restore_retry(self, tag: str, globs: list[str]) -> bool:
+        for attempt in range(1, self.retries + 1):
+            self.restores += 1
+            if self.restore(tag, globs, self.scratch):
+                return True
+            self.restore_retries += 1
+            if attempt < self.retries:
+                self.sleep(self.backoff_s * attempt)
+        return False
+
+    def ensure(self, cap: dict, sweep_dir: Path | None, upcoming: list[tuple[dict, Path | None]]
+               ) -> tuple[dict | None, str | None]:
+        """(local scratch paths, None) for ``cap``, or (None, reason). Raises ``ReleaseUnavailable`` when the
+        restore keeps failing. ``upcoming`` = the following captures, in processing order, that are also gone
+        from the host (candidates for the same restore call)."""
         cid = cap["capture_id"]
         if cid in self.batch:
-            return self.batch[cid]
+            return self.batch[cid], None
+        if cid in self.reasons:
+            return None, self.reasons[cid]
         plan = self._plan(cap, sweep_dir)
         if plan is None:
-            return None
+            return None, "no_release_copy"
         if plan[1] > self.cap_bytes:
-            return None  # a single capture larger than the scratch cap is never restored
+            return None, "release_copy_too_large"  # a single capture larger than the scratch cap is never restored
         self.cleanup()
         wanted: list[tuple[dict, dict[str, str]]] = [(cap, plan[0])]
         total = plan[1]
@@ -281,33 +340,34 @@ class ReleaseCopies:
             wanted.append((c2, p2[0]))
             total += p2[1]
         by_tag: dict[str, list[str]] = {}
-        expect: dict[str, tuple[str, str, str | None]] = {}
+        expect: dict[str, str | None] = {}
         for _c, paths in wanted:
-            for key, ap in paths.items():
+            for ap in paths.values():
                 tag, _b, sha = self.cat.find(ap)  # type: ignore[misc]
                 by_tag.setdefault(tag, []).append(ap)
-                expect[ap] = (tag, key, sha)
+                expect[ap] = sha
         self.scratch.mkdir(parents=True, exist_ok=True)
         for tag, globs in by_tag.items():
-            self.restores += 1
-            if not self.restore(tag, sorted(set(globs)), self.scratch):
-                self.failures += 1
+            if not self._restore_retry(tag, sorted(set(globs))):
                 self.cleanup()
-                raise ReleaseUnavailable(f"restore of {tag} failed")
-        self.failures = 0
+                raise ReleaseUnavailable(f"restore of {tag} failed after {self.retries} attempts")
         for c2, paths in wanted:
             files: dict[str, Path] = {}
-            ok = True
+            reason = None
             for key, ap in paths.items():
                 local = self.scratch / ap
-                tag, _k, sha = expect[ap]
-                if not local.is_file() or (sha and sha256_stream(local) != sha):
-                    ok = False
+                if not local.is_file():
+                    reason = "release_file_missing_after_restore"
+                    break
+                if expect[ap] and sha256_stream(local) != expect[ap]:
+                    reason = "release_hash_mismatch"
                     break
                 files[key] = local
-            if ok:
+            if reason:
+                self.reasons[c2["capture_id"]] = reason
+            else:
                 self.batch[c2["capture_id"]] = files
-        return self.batch.get(cid)
+        return self.batch.get(cid), self.reasons.get(cid)
 
 
 # ---- driver --------------------------------------------------------------------------------------------
@@ -338,16 +398,21 @@ def run_closewin(
     clock: Callable[[], float] = time.monotonic, now: Callable[[], str] = utc_now,
     disk_cap_gb: float | None = None, data_dumps: Path | None = None, data_dumps_max_gb: float | None = None,
     retry_missing: bool = False, dir_gb: Callable[[Path], float] = _dir_gb, git_commit: str | None = None,
-    release: ReleaseCopies | None = None,
+    release: ReleaseCopies | None = None, catalogue: Catalogue | None = None,
+    scratch_gb: float = SCRATCH_CAP_BYTES / 1e9,
 ) -> dict:
     """Extract ``closewin/`` and ``departures/`` for every complete capture in ``[since, before)`` not yet
     extracted, oldest first (so the previous capture's ``closewin`` exists when ``departures`` is built).
 
     backfill: reports ``backfill_complete``; all-new: the live pass step (not wired yet). Stops at the budget,
-    at ``disk_cap_gb`` of the written tables, and refuses (``stopped='refused_data_dumps_over_cap'``) while
-    ``data_dumps`` exceeds ``data_dumps_max_gb``; that check is repeated between captures. Idempotent by
-    capture_id. A capture whose raw files are gone and that has no verified release copy is recorded as
-    ``missing`` and the run continues. ``release`` (backfill with ``--release-stream``) restores missing
+    at ``disk_cap_gb`` of the written tables, and refuses (``stopped='refused_data_dumps_over_cap'``) only on
+    real headroom: ``data_dumps`` size + the output still allowed (``disk_cap_gb`` minus what is written, 0.4
+    by default) + the scratch (0.2 with ``release``) above ``data_dumps_max_gb`` (the 12 GB cap); repeated
+    between captures. Idempotent by capture_id. Captures that exist only in the release catalogue (no host
+    manifest) are added to the list (``release_only``); without ``release`` they are recorded
+    ``no_host_manifest``. A capture whose raw files are gone and that has no verified release copy is recorded
+    as ``missing`` with the true reason and the run continues; a transient restore failure (after retries)
+    stops the run and leaves the capture pending. ``release`` (backfill with ``--release-stream``) restores missing
     captures from the release copies into a scratch directory that never exceeds its cap."""
     if mode not in MODES:
         raise ValueError(mode)
@@ -355,8 +420,13 @@ def run_closewin(
     res: dict[str, Any] = {"cb4_closewin": CLOSEWIN_VERSION, "mode": mode, "written": 0, "missing": 0,
                            "from_release": 0, "stopped": None}
 
-    def over_dumps() -> bool:
-        return data_dumps_max_gb is not None and data_dumps is not None and dir_gb(Path(data_dumps)) > data_dumps_max_gb
+    out_allow = disk_cap_gb if disk_cap_gb is not None else 0.40
+
+    def over_dumps(written_gb: float = 0.0) -> bool:
+        if data_dumps_max_gb is None or data_dumps is None:
+            return False
+        need = dir_gb(Path(data_dumps)) + max(0.0, out_allow - written_gb) + (scratch_gb if release is not None else 0.0)
+        return need > data_dumps_max_gb
 
     if over_dumps():
         res.update(stopped="refused_data_dumps_over_cap", remaining=None, backfill_complete=False)
@@ -365,6 +435,13 @@ def run_closewin(
     with _lock(root):
         man = _load_manifest(root)
         caps = forecast.list_complete_captures(snapshot_root)
+        if catalogue is not None:  # captures that exist only in a release (no host manifest)
+            have = {c["capture_id"] for c in caps} | {Path(c["dir"]).name for c in caps}
+            for name, st in catalogue.snapshot_dirs().items():
+                if name not in have:
+                    caps.append({"capture_id": name, "started_utc": st, "_start": _ts(st), "dir": str(snapshot_root / name),
+                                 "release_only": True, "state": "complete"})
+            caps.sort(key=lambda c: c["_start"])
         lo = _ts(since) if since else None
         hi = _ts(before) if before else None
         window = [(i, c) for i, c in enumerate(caps)
@@ -396,7 +473,7 @@ def run_closewin(
                 if disk_cap_gb is not None and used >= disk_cap_gb:
                     res["stopped"] = "disk_cap"
                     break
-                if over_dumps():
+                if over_dumps(used):
                     res["stopped"] = "data_dumps_over_cap"
                     break
                 c0 = clock()
@@ -411,15 +488,20 @@ def run_closewin(
                     if release is not None:
                         upcoming = [(c2, first_sweep(c2["capture_id"])) for _j, c2 in todo[n + 1:] if not _is_local(c2)]
                         try:
-                            files = release.ensure(cap, sw_dir, upcoming)
+                            files, reason = release.ensure(cap, sw_dir, upcoming)
                         except ReleaseUnavailable:
-                            if release.failures >= 2:
-                                res["stopped"] = "release_unavailable"
-                                break
-                            files = None
-                            reason = "release_restore_failed"
+                            res["stopped"] = "release_unavailable"  # transient: the capture stays pending, order is kept
+                            res["restore_retries"] = release.restore_retries
+                            break
+                        if files is not None and cap.get("release_only"):
+                            try:
+                                mstate = json.loads(Path(files["manifest"]).read_text()).get("state")
+                            except (OSError, ValueError):
+                                mstate = None
+                            if mstate != "complete":
+                                files, reason = None, "release_manifest_not_complete"
                     if files is None:
-                        reason = reason or "archived_no_release_copy"
+                        reason = reason or ("no_host_manifest" if cap.get("release_only") else "archived_no_release_copy")
                     else:
                         rows_p, ext_p, sw_p = files["rows"], files["ext"], files.get("sweep")
                         source = "release"
@@ -432,7 +514,7 @@ def run_closewin(
                         src_hash["sweep_1"] = sha256_stream(sw_p)
                 except forecast.ArchivedDataError:
                     man["captures"][cid] = {"capture_id": cid, "capture_start_utc": start, "status": "missing",
-                                            "reason": reason or "archived_no_release_copy",
+                                            "reason": reason or "archived_no_release_copy", "release_only": bool(cap.get("release_only")),
                                             "extractor_version": CLOSEWIN_VERSION, "written_utc": now(), "mode": mode}
                     res["missing"] += 1
                 else:
@@ -472,6 +554,7 @@ def run_closewin(
             if release is not None:
                 release.cleanup()
         res["remaining"] = len([1 for _i, c in window if man["captures"].get(c["capture_id"]) is None])
+        res["n_release_only"] = sum(1 for _i, c in window if c.get("release_only"))
         res["n_missing_total"] = sum(1 for e in man["captures"].values() if e.get("status") == "missing")
         res["max_capture_s"] = round(slowest, 2)
         res["backfill_complete"] = bool(mode == "backfill" and res["remaining"] == 0 and res["stopped"] is None)
