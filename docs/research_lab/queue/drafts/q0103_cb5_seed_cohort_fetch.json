@@ -1,0 +1,50 @@
+{
+ "id": "q0103_cb5_seed_cohort_fetch",
+ "title": "CB5-G: census-cohort prices and trades up to first trade + 1h (listings created 2026-10-11T12:00Z .. T5_dev_end-1d), seeded sample of at most 3,000",
+ "family": "creative_batch_5",
+ "priority": 41,
+ "expected_value": "the seed-vs-book agreement check (gate G-v) before the freeze",
+ "data": [
+  "cb5_extract/listings (< T5_dev_end)",
+  "public CLOB prices-history",
+  "public Data API trades"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "clob, data-api"
+ },
+ "depends_on": [
+  "q0101_cb5_listings_backfill"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "cohort-fetch",
+  "--window",
+  "census",
+  "--max-markets",
+  "3000",
+  "--seed",
+  "arepo-cb5-census",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.03",
+  "--data-dumps-max-gb",
+  "10",
+  "--budget-min",
+  "80"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 2,
+ "repeat": {
+  "max_runs": 3,
+  "until_log_regex": "cohort_fetch_complete"
+ },
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/census_cohort/{prices/,trades/,progress.jsonl,manifest.json}"
+ ],
+ "next_action": "q0106",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Refuses before 2026-10-27T00:00Z. The parse guard stores nothing after min(first trade + 1h, L + 24h) and blanks the wallet-hash column; never used for G1/G2. Refuses (exit 1) when data-dumps size + the output allowance + scratch would pass 10 GB; the coordinator records the section 2.8 headroom precondition in the release commit. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it."
+}

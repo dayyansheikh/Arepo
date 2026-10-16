@@ -1,0 +1,37 @@
+{
+ "id": "q0112_cb5_rep_G",
+ "title": "CB5-G: Stage-2 replication on the post-freeze listing cohort (G-v recheck first; advanced/carried G tests; Holm over the CB5 route Stage-2 set)",
+ "family": "creative_batch_5",
+ "priority": 38,
+ "expected_value": "development replication (L2-dev) of seed-anchor reversion",
+ "data": [
+  "creative_batch5/rep_cohort",
+  "cb5_extract/listings",
+  "creative_batch5/G_screen/results.json",
+  "model_specs/cb5_v1.json"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0111_cb5_rep_G_fetch"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "replicate",
+  "--family",
+  "G",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/G_rep/results.json",
+  "trials.jsonl (cb5_replication + count line)"
+ ],
+ "next_action": "batch Holm with L rep; ledger; Stage P-G registration if passed",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Refuses before T5_G_read (= T5_rep_start + 25 d + 2 h); exits 0 'nothing advanced'. The Holm family is final only once L Stage-2 results exist (a missing L test counts p = 1 until then)."
+}

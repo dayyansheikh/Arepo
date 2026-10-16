@@ -12,7 +12,7 @@ Data jobs (no statistic; headroom guard, resumable):
     python scripts/run_cb5.py rep-fetch --family G                                                                                             # q0111
 Uncounted (counts and gates only; outcome-guarded):
     python scripts/run_cb5.py census --family G,L,K                                                                                            # q0106
-    python scripts/run_cb5.py rinc                                                                                                             # q0107 (guarded historical outcome read)
+    python scripts/run_cb5.py rinc                                                                                                             # q0107 (guarded historical outcome read; needs the frozen family list)
 Counted (refused unless the committed model_specs/cb5_v1.json carries this code's declaration hash; results never overwritten):
     python scripts/run_cb5.py screen --family G|L ; measure-K ; replicate --family G|L ; fetch-outcomes --family G|L
 Freeze helpers: write-grouper-seal, write-spec, pin-rep-start.
@@ -103,6 +103,14 @@ def _census(a) -> dict | None:
     return _load_json(_paths(a)["out"] / "census.json")
 
 
+def _bound(a) -> None:
+    """After the declaration guard: census.json (and rinc.json when bound) must be the files the committed spec hashes."""
+    from astrolabe.research_lab import cb5_declaration as D
+
+    out = _paths(a)["out"]
+    D.verify_inputs_bound(out / "census.json", out / "rinc.json")
+
+
 # ---- data jobs ------------------------------------------------------------------------------------------------------
 
 
@@ -115,10 +123,19 @@ def cmd_extract(a) -> int:
     budget_min = a.budget_min if a.budget_min is not None else (150.0 if backfill else 7.0)
     cat = d.Catalogue(Path(a.catalogue_dir)) if backfill else None
     release = d.ReleaseCopies(Path(a.root) / "_scratch", catalogue=cat) if a.release_stream else None
+    fl = a.family_list
+    if fl == "auto":  # the highest frozen family-list version under creative_batch5/cdf_frame
+        from astrolabe.research_lab import cb5_run as R
+
+        found = [R.OUT_ROOT / "cdf_frame" / f"families_v{v}.json" for v in (2, 1) if (R.OUT_ROOT / "cdf_frame" / f"families_v{v}.json").exists()]
+        if not found and "cdf" in tables:
+            _emit({"cb5_extract": x.EXTRACTOR_VERSION, "skipped": "cdf: no frozen family list yet"})
+            return 0
+        fl = str(found[0]) if found else None
     try:
         summ = x.run_tables(
             Path(a.snapshot_root), Path(a.sweep_root), Path(a.root), tables=tables, mode="backfill" if backfill else "all-new",
-            since=_iso(a.backfill_from) if backfill else x.T5_DEV_START, family_list=Path(a.family_list) if a.family_list else None,
+            since=_iso(a.backfill_from) if backfill else x.T5_DEV_START, family_list=Path(fl) if fl else None,
             budget_s=budget_min * 60.0, disk_cap_gb=a.disk_cap_gb, data_dumps=Path(a.data_dumps),
             data_dumps_max_gb=a.data_dumps_max_gb, retry_missing=a.retry_missing, release=release, catalogue=cat)
     except x.ExtractLocked:
@@ -328,8 +345,7 @@ def cmd_rinc(a) -> int:
     from astrolabe.research_lab import cb5_run as R
     from astrolabe.research_lab.cb3_common import write_new
 
-    decl = _decl()
-    fdoc = _frozen_family_doc(a)
+    fdoc = _frozen_family_doc(a)  # pre-freeze job: needs the frozen family list, not the declaration (the freeze binds rinc.json by hash)
     p = _paths(a)
     fdir = p["out"] / "cdf_frame"
     man = next((_load_json(fdir / f"manifest_v{v}.json") for v in (2, 1) if (fdir / f"manifest_v{v}.json").exists()), None)
@@ -340,7 +356,7 @@ def cmd_rinc(a) -> int:
         raise FileExistsError(str(out_path))
     outcomes = F.fetch_yes_payouts(_limiter(a.rps), ids)
     res = R.rinc_run(fdoc, outcomes, historical_ids=hist)
-    doc = {**R.header("rinc", decl), **res, "n_historical_families": len(hist), "n_markets_read": len(ids), "family_list_sha256": fdoc["sha256"]}
+    doc = {**R.header("rinc", None), **res, "n_historical_families": len(hist), "n_markets_read": len(ids), "family_list_sha256": fdoc["sha256"]}
     sha = write_new(out_path, doc)
     R.log_descriptive({"L_r_inc": {k: res[k] for k in ("status", "n_resolved_families", "r_inc", "r_inc_plus")}}, role="exploratory_historical", dataset="cb5_rinc", results_path=str(out_path), results_sha256=sha)
     _emit({"rinc": res["status"], "n_resolved_families": res["n_resolved_families"], "sha256": sha})
@@ -361,6 +377,7 @@ def cmd_screen(a) -> int:
         D.refuse_path(run_dir)
         D.check_G_screen_allowed(Path(a.register) if a.register else None)
         decl = _decl()
+        _bound(a)
         out = Path(a.out) if a.out else p["out"] / "G_screen" / "results.json"
         doc = R.screen_g(run_dir, run_dir / "cb5" / "head_prices", census=_census(a), out_path=out, decl_sha=decl, n_boot=a.n_boot, era_register=Path(a.register) if a.register else None)
         _emit({"job": "G_screen", "tests": {k: {x: v.get(x) for x in ("p", "advance", "testable")} for k, v in doc["tests"].items()}, "results": str(out)})
@@ -368,6 +385,7 @@ def cmd_screen(a) -> int:
     if a.family == "L":
         D.check_L_screen_allowed()
         decl = _decl()
+        _bound(a)
         fdoc = _frozen_family_doc(a)
         caps, meta = R.load_cdf_captures(p["ext"], start=D.DATES["T5_dev_start"], end=D.DATES["T5_dev_end"])
         rinc = _load_json(p["out"] / "rinc.json")
@@ -386,6 +404,7 @@ def cmd_measure_k(a) -> int:
         cb5_hours.refuse_path(cb5_hours.CV_ROOT.parent / cb5_hours.LIVE_ROOT_NAME)
         raise NotImplementedError("K1-R needs the receipt-timed 2-minute grid mapping and the E009/E010 owner sign-off; it is declared in CB5-K and not implemented here")
     decl = _decl()
+    _bound(a)
     p = _paths(a)
     out = Path(a.out) if a.out else p["out"] / "K" / "results.json"
     pairs = cb5_hours.c1_pairs()
@@ -401,6 +420,7 @@ def cmd_replicate(a) -> int:
     p = _paths(a)
     D.check_rep_allowed(a.family)
     decl = _decl()
+    _bound(a)
     dates = D.rep_dates()
     g1 = _load_json(p["out"] / "G_screen" / "results.json")
     l1 = _load_json(p["out"] / "L_dev" / "results.json")
@@ -462,7 +482,8 @@ def cmd_write_spec(a) -> int:
     census = _paths(a)["out"] / "census.json"
     if not census.exists():
         raise D.TooEarly("census.json is required before the freeze")
-    _emit(D.write_spec(census_sha256=provenance.sha256_file(census)))
+    rinc = _paths(a)["out"] / "rinc.json"
+    _emit(D.write_spec(census_sha256=provenance.sha256_file(census), rinc_sha256=provenance.sha256_file(rinc) if rinc.exists() else None))
     return 0
 
 
@@ -500,7 +521,7 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--all-new", action="store_true")
     g.add_argument("--backfill-from")
     p.add_argument("--tables", default="listings")
-    p.add_argument("--family-list", default=None, help="frozen CDF family list (cdf table only)")
+    p.add_argument("--family-list", default=None, help="frozen CDF family list (cdf table only); 'auto' = highest frozen version")
     p.add_argument("--release-stream", action="store_true")
     p.add_argument("--budget-min", type=float, default=None)
     p.add_argument("--disk-cap-gb", type=float, default=None)

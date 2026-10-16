@@ -1152,3 +1152,49 @@ Open questions 2-4 and 6-9 of §8 were not raised as must-fix or should-fix item
 the Stage-1 screen with the L1 ceiling; G-v thresholds unchanged; the G2 carry rule unchanged; the grouper audit and
 historical-only outcome read unchanged; K buckets, non-sports primary and the K1-R conditions unchanged). Question 5 is
 answered by item 5.
+
+## 10. Implementation notes (2026-10-17; code committed, not frozen; awaiting the science-reviewer freeze check)
+
+**What exists** (all under `backend/`; tests `backend/tests/unit/test_cb5_*.py`, 85 tests, all green together with the CB1/CB2/battery2 tests):
+
+| File | Content |
+|---|---|
+| `astrolabe/research_lab/cb5_extract.py` | `listings/` and `cdf/` extractor tables, own root `data-dumps/research_lab/cb5_extract/`, own manifest, lock and version `cb5-extract-v1`; release-stream via `cb4_data.ReleaseCopies`; headroom refusal; `_chain/prev_ids.csv.gz` carries the previous capture's listing so a first sighting is certain (`first_seen_certain` 0 when the chain is broken); `cdf` rows only for families whose `listed_utc` precedes the capture |
+| `astrolabe/research_lab/cb5_seed.py` | G: seed, units, G1 (raw, `beta^LC`, stratum-adjusted), seed-permutation placebo, 0.50-stratum rule, G2 orders, break-even placebo, carry rule, era rule, truncation worst cases, census functions (`trim_census`, `window_count`, G-ii..G-vii) |
+| `astrolabe/research_lab/cb5_cdf.py` | L: parse guard, period table, tiling, rungs, bucket events, matching, pairs, audit, family list, pair state, triggers, execution, coherence placebo, `r_inc`, gates, credit status |
+| `astrolabe/research_lab/cb5_hours.py` | K: buckets, per-step sufficient statistics, K1 bootstraps, pseudo-split calibration, activity matching, within-pair contrast, J4, census, refusal of `cross_venue_live/` |
+| `astrolabe/research_lab/cb5_fetch.py` | head-price refetch, census/replication cohort fetch (parse guard, wallet hashes blanked), guarded YES-payout fetch |
+| `astrolabe/research_lab/cb5_run.py` | orchestration: census, screens, replications, measurement, frame, audit, `r_inc`, trials logging |
+| `astrolabe/research_lab/cb5_declaration.py` | the declaration hash, spec, grouper seal, windows and guards |
+| `scripts/run_cb5.py` | CLI: `extract, head-fetch, cohort-fetch, rep-fetch, cdf-frame, cdf-audit-apply, census, rinc, screen, measure-K, replicate, fetch-outcomes, write-grouper-seal, write-spec, pin-rep-start` |
+| `astrolabe/research_lab/battery2.py` | `KIND_RULES`: `cb5_test`, `cb5_replication`, `cb5_measurement`, `cb5_descriptive` (EXCLUDE; the count lines carry the tests; the counter runs on the real `trials.jsonl`, 1,104 unchanged) |
+| `docs/research_lab/queue/drafts/q0101..q0114_*.json` | the 14 drafts (not in `jobs/`) |
+
+**Deviations from sections 4.1-4.3 (all stricter or neutral; the coordinator should accept them at the freeze check).**
+- The extractor is a separate module and version (`cb5-extract-v1`), not `creative_batch1.py` `cb1-extract-v4`. `creative_batch1.py`, its version (`cb1-extract-v2`) and every CB1-CB4 table are untouched (a test asserts it). The pass step is `run_cb5.py extract`.
+- Declaration (`cb5_declaration.py`): the hash covers the source of every function and class of the five CB5 modules, the imported rule functions (cost model, cluster statistics, `if_h2` deadline and stem, `cross_venue` tokenizer, CB4 release reader) **and every UPPER_CASE module constant read at call time**, so a changed threshold, seed, word list or window changes the hash even where no function changed. The grouper hash is sealed separately (`write-grouper-seal` -> `docs/research_lab/seals/cb5_grouper_hash.json`); `cdf-frame` refuses until it is committed and equal to the code's.
+- `rinc` (q0107) is a pre-freeze job: no declaration guard (a guard would be circular, the freeze needs its result). It refuses until the family list is frozen. `write-spec` binds `census.json` and `rinc.json` by sha256 into `model_specs/cb5_v1.json`, and every counted run re-verifies both (`verify_inputs_bound`).
+- A trigger at the last capture of a window has no c' (the sample ends); it is censored, not counted as a net-0 trade. A gap outside [1.5, 3] h or an ineligible c' stays net 0, kept.
+- h2 has no neg-risk member count, so every h2 neg-risk market is excluded from G (conservative; the replication cohort uses the first-sighting member count).
+- The G-iv determinism overlap is restricted to the census window (stamps up to `min(first trade + 1h, L + 24h)`), so the census never compares target-window price values.
+- Source rule (d): both sides name sources -> must intersect; neither names one -> pass and flag `source_unknown` (IF-H2 records carry no descriptions, so historical families are all `source_unknown`); one side only -> exclude.
+
+**Declaration hash (code at the commit that introduces this section; recomputed by `cb5_declaration.declaration_sha256()`):**
+`9f1c6e9da25f161cffe63108b7ba38833a11f278714e830f890715a5d0ef2339`. Grouper hash: `09a7c44fcefebcba894d99e3eb01e434b994e364eedbeb646fb1aa7542b23c91`. Any further code change moves both; re-read them at the freeze commit.
+
+**Pass-step line (do not edit `scripts/oracle/arepo_pass.sh` from this branch; the owner adds it after the line for CB4, line 32):**
+```
+  timeout 600 nice -n 10 $PY scripts/run_cb5.py extract --all-new --tables listings --data-dumps-max-gb 12 2>&1 | tail -1 || true   # CB5 listings (CREATIVE_BATCH_5.md §4.3)
+```
+After the family list is frozen and q0105 has run, extend it to `--tables listings,cdf --family-list auto` (the `cdf` table is skipped with a note while no list is frozen). The run is idempotent by (capture_id, table), writes only under `cb5_extract/`, and exits 1 only on a headroom refusal (the `|| true` keeps the pass alive).
+
+**Queue notes.** Lanes follow the coordinator instruction: network-bound jobs (q0102, q0103, q0104, q0107, q0111) use lane `net`. Section 2.8 said `cpu` because q0002 holds `net`; if q0002 still holds it at release, change those five specs to `cpu`. Data jobs pass `--data-dumps-max-gb 10` (stricter than the 12 GB cap: size + allowance + scratch must stay under 10 GB). `mem_mb`: 400-1,500 (q0104 and q0106 at 1,500, the streamed frame parse and the census).
+
+**Open items for the freeze check (not implemented or unverified; none changes a declared threshold).**
+1. K1-R (q0114): the live-pair loader and the receipt-timed 2-minute grid mapping are not implemented (the runner refuses first, then exits 3).
+2. Reported-only variants not implemented: G sign by month/category, +1c cost, hold-to-resolution (G2), design-weighted slope, the fidelity-1 seed variant (stored, not analysed); L tier sensitivity, maker-leg and conversion-adjusted capital variants; K market-hours split, K by Kalshi-volume tercile, K with the 4 hand-dropped pairs re-added, the Polymarket flat-step share by bucket (K-ii). The binding items are implemented.
+3. `fetch_yes_payouts` batches Gamma `/markets?id=...` (repeated `id` parameter, 40 per call); not exercised against the live API. A wrong batch format would read as "unresolved" (NaN), which can only make `r_inc` unknown, never easier.
+4. The IF-H2 `events.jsonl.gz` has no `negRiskAugmented`, `conditionId` or descriptions: historical bucket events are treated as not augmented (unflagged) and `source_unknown`. The audit gate (L-ii) is the guard.
+5. Queue lane for the five network jobs (see above), and the `rinc` pre-freeze status (item "rinc" in the deviations) should be confirmed by the reviewer.
+6. The K1 pseudo-split calibration at the declared 4,000 bootstrap draws takes minutes per bucket on C1-sized data; the queue spec allows 3,600 s. If it does not finish, lower neither draws nor threshold: raise `timeout_s`.
+7. No CB5 quantity has been computed on real data; all numbers in the tests come from synthetic fixtures.

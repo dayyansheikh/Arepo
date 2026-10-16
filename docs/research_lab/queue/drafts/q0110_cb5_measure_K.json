@@ -1,0 +1,34 @@
+{
+ "id": "q0110_cb5_measure_K",
+ "title": "CB5-K: hour-of-day moderation of the Kalshi lead on the C1 pairs (K1; pseudo-split calibration; activity matching; within-pair contrast; J4 label)",
+ "family": "creative_batch_5",
+ "priority": 39,
+ "expected_value": "a conditioning fact for Kalshi-anchored designs (unreplicated measurement)",
+ "data": [
+  "cross_venue/series/*.npz + matches.json (C1: 316 pairs, 183 events asserted)",
+  "creative_batch5/census.json",
+  "model_specs/cb5_v1.json"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0106_cb5_census"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "measure-K",
+  "--n-boot",
+  "4000"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/K/results.json",
+  "trials.jsonl (1 cb5_measurement + count line + placebo + descriptive)"
+ ],
+ "next_action": "ledger; adoption note for the next Kalshi-anchored registration",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Commit after the freeze. Refuses cross_venue_live/ (sealed until 2026-11-03; K1-R needs the E009/E010 owner sign-off). Labelled 'unreplicated measurement'; MDE about 0.27."
+}

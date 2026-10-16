@@ -268,14 +268,16 @@ def _default(o):
 # ---- spec (freeze file) ----------------------------------------------------------------------------------------------
 
 
-def spec_payload(census_sha256: str | None = None) -> dict:
+def spec_payload(census_sha256: str | None = None, rinc_sha256: str | None = None) -> dict:
     out: dict = {"version": VERSION, "declaration_sha256": declaration_sha256()}
     if census_sha256 is not None:
         out["census_sha256"] = census_sha256
+    if rinc_sha256 is not None:
+        out["rinc_sha256"] = rinc_sha256
     return out
 
 
-def write_spec(path: Path = SPEC_PATH, census_sha256: str | None = None) -> dict:
+def write_spec(path: Path = SPEC_PATH, census_sha256: str | None = None, rinc_sha256: str | None = None) -> dict:
     """Write the CB5 freeze file. Refuses to overwrite and refuses while a rule module is absent."""
     path = Path(path)
     if path.exists():
@@ -284,7 +286,7 @@ def write_spec(path: Path = SPEC_PATH, census_sha256: str | None = None) -> dict
     if miss:
         raise DeclarationError(f"cannot freeze: rule modules not written yet: {miss}")
     path.parent.mkdir(parents=True, exist_ok=True)
-    p = spec_payload(census_sha256)
+    p = spec_payload(census_sha256, rinc_sha256)
     path.write_text(json.dumps(p, indent=1, sort_keys=True) + "\n")
     return p
 
@@ -310,6 +312,20 @@ def require_declaration(path: Path | None = None, *, require_committed: bool = T
     if require_committed and not spec.get("census_sha256"):
         raise DeclarationError("the committed spec lacks census_sha256")
     return cur
+
+
+def verify_inputs_bound(census_path: Path, rinc_path: Path | None = None, spec_path: Path | None = None) -> None:
+    """The census (and, when the spec binds one, ``rinc.json``) read by a counted run must be the files whose hashes the committed
+    spec carries: a re-run or edited census can not change a frozen test."""
+    spec = json.loads(Path(spec_path if spec_path is not None else SPEC_PATH).read_text())
+    census_path = Path(census_path)
+    if not census_path.exists():
+        raise DeclarationError(f"{census_path} is missing: counted CB5 runs need the census the freeze was based on")
+    if provenance.sha256_file(census_path) != spec.get("census_sha256"):
+        raise DeclarationError("census.json differs from the spec's census_sha256")
+    if spec.get("rinc_sha256") is not None:
+        if rinc_path is None or not Path(rinc_path).exists() or provenance.sha256_file(Path(rinc_path)) != spec["rinc_sha256"]:
+            raise DeclarationError("rinc.json is missing or differs from the spec's rinc_sha256")
 
 
 # ---- dates and guards ------------------------------------------------------------------------------------------------

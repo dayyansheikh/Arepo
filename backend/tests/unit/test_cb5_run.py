@@ -404,3 +404,28 @@ def test_replicate_g_nothing_advanced_writes_a_note_and_no_trial(tmp_path):
     doc = R.replicate_g(pd.DataFrame(), tmp_path, {"tests": {"G1": {"advance": False}, "G2": {"advance": False}}}, out_path=tmp_path / "rep.json", decl_sha="d")
     assert doc["advanced"] == [] and doc["note"] == "nothing advanced" and (tmp_path / "rep.json").exists()
     assert battery2.cumulative_count()["total"] == tp_before
+
+
+def test_spec_binds_census_and_rinc_by_hash(tmp_path):
+    from astrolabe.research_lab import provenance
+
+    census, rinc, spec = tmp_path / "census.json", tmp_path / "rinc.json", tmp_path / "cb5_v1.json"
+    census.write_text('{"a": 1}')
+    rinc.write_text('{"status": "known"}')
+    D.write_spec(spec, census_sha256=provenance.sha256_file(census), rinc_sha256=provenance.sha256_file(rinc))
+    D.verify_inputs_bound(census, rinc, spec)
+    rinc.write_text('{"status": "known", "edited": true}')
+    with pytest.raises(D.DeclarationError):
+        D.verify_inputs_bound(census, rinc, spec)
+    rinc.write_text('{"status": "known"}')
+    census.write_text('{"a": 2}')
+    with pytest.raises(D.DeclarationError):
+        D.verify_inputs_bound(census, rinc, spec)
+    with pytest.raises(D.DeclarationError):
+        D.verify_inputs_bound(tmp_path / "missing.json", rinc, spec)
+
+
+def test_rinc_cli_is_pre_freeze_but_needs_a_frozen_family_list(tmp_path):
+    import run_cb5 as cli
+
+    assert cli.main(["rinc", "--out-root", str(tmp_path / "out")]) == 2  # no frozen family list: refused (not a declaration refusal)
