@@ -1,0 +1,63 @@
+{
+ "id": "q0043_h6_weather_fetch",
+ "title": "CB2-F: h6_weather backfill (5,000 temperature events, all buckets, prices + top-2 trades)",
+ "family": "history_data",
+ "priority": 59,
+ "expected_value": "fresh whole-event weather history for the W screen and holdout",
+ "data": [
+  "public Gamma events/CLOB/Data API",
+  "h1/h2/h3 sample market ids (exclusion only)",
+  "docs/research_lab/seals/h5_cb1_SEAL.json file table (h5 market ids only)",
+  "docs/research_lab/seals/cb2_weather_text_rules.json (TEMP_RE and timezone-table hashes)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "network": "gamma-api, clob, data-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0018_h5_cb1_seal"
+ ],
+ "argv": [
+  "scripts/run_cb2.py",
+  "weather-fetch",
+  "--run-id",
+  "h6_weather",
+  "--seed",
+  "arepo-h6-weather",
+  "--n-events",
+  "5000",
+  "--end-from",
+  "2025-06-01",
+  "--end-before",
+  "2026-10-22T00:00Z",
+  "--exclude-end",
+  "2026-10-08T00:00Z,2026-10-12T00:00Z",
+  "--exclude-runs",
+  "h1_first,h2_main,h3_power",
+  "--exclude-seal-ids",
+  "../docs/research_lab/seals/h5_cb1_SEAL.json",
+  "--walk-closed",
+  "true,false",
+  "--cap-at",
+  "2026-10-22T00:00Z",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.30",
+  "--budget-min",
+  "150"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 6,
+  "until_log_regex": "weather_fetch_complete"
+ },
+ "outputs": [
+  "data-dumps/research_lab/history/h6_weather/{events.jsonl.gz,prices/,trades/,outcomes_guarded.csv.gz,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"
+ ],
+ "next_action": "q0044",
+ "notes": "about 70-86k requests (CREATIVE_BATCH_2.md 2.8); commit only after the h5 seal copy (q0018) and cb2_weather_text_rules.json are committed (refuses otherwise); refuses while data-dumps > 10 GB and at or after T_seal 2026-10-22T00:00Z; rows capped at min(T_fetch6, T_seal) with dropped counts; 429 back-off (rps halved above 1%, chunk ends after 50) and collector-health pause (newest complete capture > 2h45m old or incomplete manifest; transient, exit 0); end_at also < T_fetch6 - 3d; outcomes go only to outcomes_guarded.csv.gz and no job reads them before the CB2 freeze; resumable"
+}

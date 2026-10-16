@@ -43,22 +43,25 @@ DECLARATION = {
 }
 
 
-# Run ids the seal CLIs accept. ``seal_run`` itself is id-agnostic (tests seal scratch ids); the CLIs call
-# :func:`check_run_id`. h6_weather (CB2-F) is sealed by ``scripts/run_cb2.py seal`` because its seal
-# also records the time-ordered split (``D_split``) computed from ``end_at``, city and title date.
+# Run ids the seal CLIs accept. ``seal_run`` itself is id-agnostic (tests seal scratch ids); the
+# CLIs call :func:`check_run_id`. h6_weather (CB2-F) is sealed by ``scripts/run_cb2.py seal``
+# because its seal also records the time-ordered split (``D_split``) computed from ``end_at``,
+# city and title date.
 H5_RUN_IDS = ("h5_cb1", "h5_cb1_ladders")
 H6_RUN_IDS = ("h6_weather",)
 ALLOWED_RUN_IDS = H5_RUN_IDS + H6_RUN_IDS
 DECLARATION_H6 = {
-    "dataset_role": "CB2-W weather screen (SCREEN block) and development holdout (HOLDOUT block); not "
-    "prospective, not an edge claim",
-    "read_rules": "verify listing hash first; append every read to ACCESS_LOG.jsonl; SCREEN reads refuse "
-    "HOLDOUT and embargo ids; HOLDOUT is read once, after the CB2 freeze, only for W tests that advanced; "
-    "no outcome column is opened before the CB2 freeze commit; results are written outside this directory",
+    "dataset_role": "CB2-W weather screen (SCREEN block) and development holdout (HOLDOUT block); "
+    "not prospective, not an edge claim",
+    "read_rules": "verify listing hash first; append every read to ACCESS_LOG.jsonl; SCREEN reads "
+    "refuse HOLDOUT and embargo ids; HOLDOUT is read once, after the CB2 freeze, only for W tests "
+    "that advanced; no outcome column is opened before the CB2 freeze commit; results are written "
+    "outside this directory",
     "information_end": "manifest request_clock_now (T_fetch6); every price and trade row capped at "
     "min(T_fetch6, T_seal 2026-10-22T00:00Z)",
-    "split": "time-ordered by end date; group key = earliest end_at UTC date of the city-day; D_split = "
-    "smallest date leaving <= 40% of sampled events in the HOLDOUT; 2-day embargo dropped from both",
+    "split": "time-ordered by end date; group key = earliest end_at UTC date of the city-day; "
+    "D_split = smallest date leaving <= 40% of sampled events in the HOLDOUT; 2-day embargo "
+    "dropped from both",
 }
 
 
@@ -136,9 +139,9 @@ def seal_run(run_dir: Path, *, trials_path: Path | None = None, allow_incomplete
              source: str = "creative_batch_1:cb1_f_seal") -> dict:
     """Write ``SEAL.json`` and an empty ``ACCESS_LOG.jsonl``; append one trial line.
 
-    ``declaration_base`` (default :data:`DECLARATION`), ``extra`` (additional top-level seal keys, e.g.
-    the h6 ``split`` record) and ``source`` are the CB2 generalisation; with the defaults the seal bytes
-    and the trial line are exactly those of the h5 seal."""
+    ``declaration_base`` (default :data:`DECLARATION`), ``extra`` (additional top-level seal keys,
+    e.g. the h6 ``split`` record) and ``source`` are the CB2 generalisation; with the defaults the
+    seal bytes and the trial line are exactly those of the h5 seal."""
     run_dir = Path(run_dir)
     seal_path = run_dir / SEAL_NAME
     if seal_path.exists():

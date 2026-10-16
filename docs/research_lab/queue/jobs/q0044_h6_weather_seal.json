@@ -1,0 +1,33 @@
+{
+ "id": "q0044_h6_weather_seal",
+ "title": "CB2-F: time-ordered split (D_split rule, 2-day embargo) + seal h6_weather (SCREEN/HOLDOUT listing hashes, D_split, trial line, access log)",
+ "family": "history_data",
+ "priority": 59,
+ "expected_value": "fixes h6 before any W result exists",
+ "data": [
+  "history/h6_weather"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0043_h6_weather_fetch",
+  "q0018_h5_cb1_seal"
+ ],
+ "argv": [
+  "scripts/run_cb2.py",
+  "seal",
+  "--run-id",
+  "h6_weather"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "history/h6_weather/{SEAL.json,ACCESS_LOG.jsonl}",
+  "docs/research_lab/seals/h6_weather_SEAL.json (byte copy of SEAL.json, includes D_split)",
+  "trials.jsonl (1 history_seal_declaration)"
+ ],
+ "next_action": "Claude session: commit docs/research_lab/seals/h6_weather_SEAL.json (with D_split)",
+ "notes": "split uses end_at, city and title date only (events.jsonl.gz); the outcome file is not opened; refuses an unfinished run and never rewrites a seal; verify later with scripts/run_cb2.py verify-seal --run-id h6_weather"
+}
