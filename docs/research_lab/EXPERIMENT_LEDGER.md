@@ -1229,3 +1229,19 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   both sides of the split (`battery.py` SPLIT_TS/EMBARGO_S; `bounce_decomp` reads `split`). Derived from code and the
   three-valued split; the results file does not store an embargo count.
 - **r4_book:** record corrected above (judgement was book-only; labels and the 36 tests stand).
+
+## Development screen CB1 — Creative Batch 1 carry screens on `h2_main` (q0019-q0023, 2026-10-16)
+- **Status:** counted (9 tests: A1, A2, E1, E2, E3, C1, C2, B1, B2; `ml_explain` lines `creative_batch_1:A|E|C|B`),
+  development (exploratory_historical, L1; h2 worn beyond its revision budget). B ran on the `h5_cb1_ladders` probe,
+  not h2. Census (q0019): A1 57 units / 51 clusters, A2 348 / 281, E 0 units (2,886 of 3,200 markets have no text).
+  Declared in `CREATIVE_BATCH_1.md` (declaration sha256 `58e203bb...`); thresholds unchanged.
+- **Result: nothing advanced.** A2 net -1.05c (event CI [-2.96c, +0.64c], p 0.912, `R_ann` -32.7%; fails p, floor, tail
+  gate, robustness). C1 net -3.84c per filled share (62 events, p 0.907; fails all gates; PX1 not clean). A1 (57 units)
+  and C2 (11 clusters) are below the testability floors; E1-E3 have no text units; B1 and B2 are not testable (52 usable
+  ladders < 300, stop rule). All "not testable" tests are counted with p = 1. The break-even placebo was not run
+  because no test met the gate. Plain reading: not detected at the screen MDE, not shown absent; E is a data failure
+  (missing text), not a negative result.
+- **Economics:** none beyond the in-test cost nets (A2 and C1 are negative after costs); no cost check was triggered.
+- **Next:** none for A, C, E, B1, B2: no h5 replication is run and `h5_cb1`/`h5_cb1_ladders` stay sealed and unread.
+  Open: CB1-D dev (after 2026-10-17T00:00Z), B3 rung list at T_rep_start (>= 2026-10-19). E on h5 would need a
+  reviewed design change.

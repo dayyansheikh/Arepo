@@ -1223,6 +1223,61 @@ Paths follow `queue/README.md`: `argv[0]` is under `backend/scripts/`, and `cwd`
 5. Results: ledger entries, the batch Holm once all Stage-2 inputs exist, verdicts against the maps in §3, and the
    dashboard. Commit q0027 after 2026-11-09 (with the rep capture list) and q0028 after 2027-01-31.
 
+## Results: h2_main development screen (2026-10-16)
+
+Runs q0019 (census), q0020 (A, E), q0021 (C) on `h2_main` and q0023 (B, ladder probe on `h5_cb1_ladders`) on the
+Oracle host. All are EXPLORATORY_HISTORICAL, L1 at most (h2 is worn beyond its revision budget, §6 risk 8). Declared
+thresholds, floors and gates (§2.4, §2.5, §2.8) are unchanged and were applied as written. Declaration sha256 of the
+screens: `58e203bb...` (B: `c9a2ec8d...`). Results files are on the host under
+`data-dumps/research_lab/creative_batch1/` (`history/h2_main/results_cb1_AE.json`, `results_cb1_C.json`,
+`census.json`; `B_r1/results_B.json`).
+
+**Census (q0019, counts only):** A1 57 units / 51 event clusters; A2 348 / 281; E1-E3 0 units, because 2,886 of 3,200
+h2 markets have no question text (A: 0 missing).
+
+| Test | n / clusters | Estimate (net per share) | p (one-sided) | Placebo | Gate | Why |
+|---|---|---|---|---|---|---|
+| A1 | 57 / 51 | -4.00c (descriptive) | 1.0 | none | not testable | below the 100-unit floor (§2.3); counted, p = 1 |
+| A2 | 348 / 281 | -1.05c, event-boot 95% CI [-2.96c, +0.64c]; `R_ann` -32.7% | 0.912 | skipped (gate not met) | no advance | fails p, floor (0.30c), `R_ann`, tail gate (11 losing clusters, bound 6.2% vs pi* 2.1%) and robustness (cost +0.75c: -1.66c; without top-5 events mean +0.35c but p 0.31) |
+| E1 | 0 / 0 | n/a | 1.0 | none | not testable | no text units |
+| E2 | 0 / 0 | n/a | 1.0 | none | not testable | no text units |
+| E3 | 0 / 0 | n/a | 1.0 | none | not testable | no text units |
+| C1 | 224 orders / 62 events | -3.84c per filled share, event-boot CI [-12.0c, +3.4c] | 0.907 | skipped (gate not met) | no advance | fails p, floor (0.50c), `R_ann` (-55.7%), tail gate (7 losing clusters, exact bound 26.8%) and robustness; PX1 not clean; capped "adverse selection not excluded" |
+| C2 | 126 orders / 11 events | -2.54c (descriptive) | 1.0 | none | not testable | fewer than 30 event clusters (§2.3); counted, p = 1 |
+| B1 | 52 usable ladders | none | 1.0 | none | not testable | stop rule (§CB1-B): fewer than 300 usable ladders |
+| B2 | 52 usable ladders | none | 1.0 | none | not testable | same |
+
+Notes that do not change any gate:
+- A2: the h2 frame omits early-resolved markets with a future `endDate` (§6 risk 4), so its bias is plausibly positive,
+  yet the point estimate is negative. The three truncated winners (`excluded_by_outcome` win 3) do not flip the sign.
+  Reported subgroups (category, month, price band) are not binding; none was used for selection.
+- A1 sports (n = 12, mean +1.4c) is descriptive only (`end_at` is game time).
+- C1: fill rate 6.8% of attempted orders (210 filled of 3,150); decomposition captured half-spread +0.91c, resolution
+  excess -4.75c. The without-top-5-events sensitivity is positive (+4.6c) but the declared tail and p conditions still
+  fail, and it is a robustness check, not a result. The p-condition uses the exact event-level bound (fewer than 10
+  losing clusters).
+- E: a 6h-offset secondary has n = 3 (+22.3c); that is not evidence.
+- The break-even placebo (§2.8) was not run for any test because no test met the gate (`placebo.n_draws = 0`, "skipped:
+  gate not met (cannot advance)"). Only a test that reaches the gate gets its placebo, so no miscalibration finding exists
+  for A2 or C1 in either direction.
+
+**Decision:** no A, C or E test advanced (`advanced: []` in both result files); B1 and B2 are not testable. Therefore
+no h5 replication run (q0024 for A/E, q0025/q0026 for C) is spent for these tests, and `h5_cb1` (listing sha
+`a510e1c5...`) and `h5_cb1_ladders` (`d11064...`) stay sealed and unread by any outcome analysis. The seal copies are in
+`docs/research_lab/seals/`. All nulls here read "not detected at the screen's MDE" (§6 risk 1), not "absent". E is
+untestable on h2 because of missing text, not because of a negative result; E1-E3 cannot be tested without a new
+declared text source or on h5 (a design change that needs its own review; nothing was run).
+
+**Test count (M3):** 9 tests counted (A 2, E 3, C 2, B 2; `ml_explain` lines `creative_batch_1:A|E|C|B`; kinds
+`cb1_history` x7 and `cb1_structural_replication` x2, plus one `cb1_history_descriptive` census line that counts 0). The
+BY triage count at run time was 1,085-1,092. The "12 fixed" budget (§5) therefore stands at 9 used, with D1, D2 and B3
+(3) still to come. Stage-2 Holm family: B1 and B2 only (§2.4), both p = 1.
+
+**Still open in CB1:**
+- CB1-D: dev freeze/screen (q0022) after `T_dev_end` 2026-10-17T00:00Z; replication (q0027) after 2026-11-09.
+- B3 rung list (q0029) at `T_rep_start` (not before 2026-10-19T00:00Z); B3 results q0028 after 2027-01-31.
+- Stage-2 batch Holm only has B1 and B2 (not testable); no A/C/E Stage-2 inputs exist.
+
 ## Open questions (draft round; resolved by challenger round 1)
 
 1. B3 declared before its data and run in parallel with B1/B2: **kept**, with a rung list frozen and hashed at
