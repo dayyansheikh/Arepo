@@ -1,28 +1,26 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 00:09 UTC+1
+**Last updated:** 2026-10-17 00:45 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** the sessions between about 21:45 and 23:30 UTC+1 failed at once with a network (DNS) error, so nothing ran
-  for about 2 hours. It recovered at 23:57 UTC+1; nothing was lost.
-- **Creative batch 1, first results: nothing advanced.**
-  - Carry ideas A1, A2 and C1 were all negative after costs. C1 loses overall because of a few catastrophic events; without its 5 worst events it
-    looks positive, but the declared test fails, and that is not a result.
-  - E (new-market text) could not be tested: 2,886 of 3,200 markets have no question text stored. That is a data gap, not a negative result.
-  - B (ladders) could not be tested: only 52 usable ladders against 300 needed.
-  - So the sealed fresh sample (h5) stays unopened for these ideas. 9 more tests counted.
-- **Batch 1-D (neg-risk sets):** its development window closed at 01:00 UTC+1. The capture list is frozen (60 captures) and the screen is queued.
-- **Batch 3 (safe quoting):** the independent re-check passed, so its counting job (no outcomes) is released.
-- **Batch 5 (seed reversion, ladder-vs-bucket consistency, Kalshi lead by hour):** the challenger asked for changes. One test's placebo
-  could never fail by construction, so it is being redesigned. The revision is in progress.
-- **Batch 4:** a session died mid-way leaving its analysis code unfinished; an agent is finishing and testing it.
-- **Server:** the weather download (batch 2) ran out of memory at its first page walk; a fix is being written. The ML diagnostic job
-  (J8) is running now.
-- **New ideas:** the creative list was nearly used up, so a fresh round (Fable, high effort) is being written.
+- **Autopilot:** sessions between about 21:45 and 23:30 UTC+1 failed at once on a network (DNS) error. It recovered at 23:57; nothing was lost.
+- **Creative batch 1, first results: nothing advanced.** Carry ideas A1, A2 and C1 were negative after costs. E could not be tested
+  (2,886 of 3,200 markets have no stored question text; a data gap, not a negative result). B could not be tested (52 usable ladders
+  against 300 needed). The sealed fresh sample stays unopened for these. 9 tests counted.
+- **Batch 1-D (neg-risk sets):** the capture list is frozen (60 captures). The screen ran out of memory once; it's fixed and re-queued.
+- **ML near-resolution effect (J8):** the extra model skill in a market's last 24 hours survives all three checks the challenger asked
+  for (look-ahead, after-end, near-end). It is still forecasting only, with no cost check. Next it goes into the live ML run.
+- **Live multi-signal ML run (MC1):** never run so far; it needs 40 unbroken 2-hourly captures, which we'll have at about 20:00 UTC+1
+  today. A dry run is on the server now.
+- **Batch 3:** independent re-check passed; its counting job is queued.
+- **Batch 5:** challenged (one placebo could never fail; fixed), revised, and its code is being written.
+- **Batch 6 (new):** a fresh Fable round produced 19 new ideas, for example neg-risk conversion dumps, a "reward-shadow" price band at
+  0.90-0.96, and predicting the catastrophic losses that sank batch 1's longshot idea. Batch 6 is being designed now.
+- **Server:** the weather download (batch 2) is running after a memory fix.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
@@ -67,7 +65,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 5. Infrastructure
 | Item | State |
 |---|---|
-| Server disk | 8.9 GB free; data 9.7 GB of the 12 GB cap (measured 22:57Z 10-16). The archive rotation (deleting backed-up copies) must be live by about 20 Oct. |
+| Server disk | Data 9.7 GB of the 12 GB cap (22:57Z). Deletion of backed-up copies is now ON for trade samples (first run 04:30 UTC+1, frees ~0.6 GB). Snapshots stay protected until batch 4's backfill is complete (a fix is in progress). Without that, the cap is reached about 20 Oct. |
 | Server size | 1 CPU and about 5.6 GB RAM, so one heavy job at a time. It can't be enlarged without Oracle console access. |
 | Mac | No background jobs. |
 

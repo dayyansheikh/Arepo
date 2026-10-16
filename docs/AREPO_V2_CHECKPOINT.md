@@ -165,23 +165,25 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 00:09 UTC+1
-0. **Autopilot session from 22:57Z 10-16** (earlier sessions 20:44Z-22:27Z died at once on DNS errors; the last real work was at 19:51 UTC+1):
-   - **Done:** h5_cb1 seal copies committed (d3d6c94) and gate q0043a; CB1 h2 screen write-up (ba93c65): A/C/E no advance, B not testable,
-     9 tests counted; CB3 HOLD-fix re-check RELEASE (gate q0061a, 0133a79); **CB1-D dev list frozen** (60 captures, sha `967a0cb0…`,
-     `seals/cb1_dev_capture_list.json`), q0022a (outcomes, cpu lane) and q0022 (dev screen) queued (83087e8, e832791).
-   - **CB5 challenger round 1 done:** F/G/K ACCEPT_WITH_CHANGES, L REVISE (placebo cannot fail; r_inc gate; K calibration; ids → q0101+).
-     A revision agent is applying it to CREATIVE_BATCH_5.md.
-   - **Running agents:** CB4 analysis completion (the uncommitted cb4_rules/measure/analysis left by a dead session; 2 failing tests; drafts
-     q0084/q0085/q0086a go to `queue/drafts/`); q0043 MemoryError fix (`cb2_weather.walk_weather_events` keeps all raw events in memory;
-     spool to disk); Fable xhigh round-3 hypotheses → `CREATIVE_HYPOTHESES_2026-10-17.md`.
-1. When the q0043 fix lands: tests, deploy, then `queue_worker.py retry q0043_h6_weather_fetch` on the host.
-2. When CB4 lands: science-reviewer freeze check of the analysis code; then series-rules (re-check items a, 6), gate q0081a, drafts → jobs.
-3. When CB5 revision lands: implementer for CB5-F data code (ids q0101+), then freeze check.
-4. When round 3 lands: pick the top runnable ideas → CB6 design → challenger.
-5. Write up q0061 (CB3 census counts → CB3 freeze), q0022 (CB1-D dev: D1/D2 with gates; stop rule), q0100 (J8 C-TTE diag).
-6. Standing: **after 2026-10-21T03:00Z** gate q0036 → q0035 (J4-R); **on/after 10-22T00Z** q0083b one-shot; **B3 at 10-19**: q0029 rung list;
-   archive rotation live by ~20 Oct (data 9.7 GB of 12 GB cap at 22:57Z). Keep ≥ 12 h queued.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 00:45 UTC+1
+0. **Autopilot session from 22:57Z 10-16** (sessions 20:44Z-22:27Z died on DNS errors):
+   - **Done:** h5 seal copies + gate q0043a; CB1 h2 write-up (ba93c65, all null/not testable, 9 tests); CB3 re-check RELEASE + gate q0061a;
+     CB1-D dev list frozen (60, sha `967a0cb0…`), q0022a/q0022 queued, loader OOM fixed (91ab251) and q0022a retried; q0043 OOM fixed
+     (a542d93, streaming; commit message says "spool" but it streams) and retried; CB5 challenger + revision (018bd6d); CB5 code in progress
+     (b955aa2, ea7247e); J8 q0100 written up (gain survives all three artefact checks; descriptive); round-3 hypotheses CH60-CH78 (1e1febf);
+     q0110 MC1 dry run queued; **retention:** gate script + CB4 closewin pass step (b712978), `--dry-run` removed for current rules only
+     (1ad2e9b; host crontab edited, backup `/tmp/crontab.bak.*`).
+   - **Running agents:** CB4 analysis completion (+ asked: fix closewin stall on release-only capture `20261013T231958Z_80e78ef1` so the
+     CB4 manifest completes; fix a hanging test_cb4_data test); CB5 implementer; CB6 design (q0120-q0139) from CH66/CH71/CH60/CH77.
+1. CB4 lands → deploy; after 1-2 passes run `scripts/retention_gate_check.py` on the host; when PASS move only `snapshots/` into `rules`
+   (sweeps stay deferred: q0035 and MC1 read raw sweeps) **before 10-19 03:30Z**; cap otherwise hit ~10-20. Then CB4 freeze check.
+2. CB5 code lands → science-reviewer freeze check → promote drafts q0101-q0114; wire its pass-step line (doc) into arepo_pass.sh.
+3. CB6 draft lands → challenger; any fetch needed before T_seal 2026-10-22 first.
+4. **MC1:** read q0110 dry-run (peak RSS/time); create q0111 real run + gate q0111a after the 40th consecutive capture (~10-17T19Z);
+   cache the panel before 10-23 03:30Z. Add as-of hours-to-end (J8) as an MC1 input only via a declared exploratory family.
+5. Write up q0061 (CB3 census → CB3 freeze), q0022 (CB1-D: D1/D2 gates; stop rule), q0043 → q0044 seal.
+6. Standing: CB3 live `quote_state` pass step not wired (deadline 10-24 03:30Z); after 10-21T03Z gate q0036 → q0035; on/after 10-22T00Z
+   q0083b one-shot; B3 at 10-19 (q0029). Temp worktree `/tmp/arepo_wt_rgc` left by an agent (`git worktree remove` is an ask rule).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
