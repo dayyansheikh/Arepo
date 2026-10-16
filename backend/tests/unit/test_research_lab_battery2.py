@@ -510,3 +510,24 @@ def test_robustness2_shared_events_and_f7_empty_groups(spec_h2):
     assert "f7_both_groups_nonempty" in rb
     rb1 = B2.robustness2(d, B2.HMAP2["F1"], {"_masks": res["_masks"]}, spec_h2, None, 20) if False else None
     assert rb1 is None
+
+
+def test_beta_frozen2_drops_nonfinite_extra_controls_and_counts():
+    """joint_control_f_quiet regression (q0010): q_x6 NaN on rows where x24 is finite must be dropped, not crash lstsq."""
+    rng = np.random.default_rng(3)
+    n = 1200
+    d = pd.DataFrame({
+        "xx": rng.normal(size=n), "c1": rng.normal(size=n), "q": rng.normal(size=n),
+        "d_6": rng.normal(size=n), "ok_6": True,
+        "event_c": "e" + (np.arange(n) % 80).astype(str), "day_c": "d" + (np.arange(n) % 40).astype(str),
+        "sample_weight": 1.0,
+    })
+    d["d_6"] = 0.3 * d["xx"] + d["d_6"]
+    d.loc[::2, "q"] = np.nan
+    h = B.Hyp("T", "F", "beta", "d", 6, ("xx",), "all", 1, controls=("c1",), scale="raw")
+    rows = np.ones(n, bool)
+    r = B2.beta_frozen2(d, h, 1, rows, False, 50, controls=("c1", "q"))
+    assert r["n_dropped_nonfinite_controls"] == n // 2
+    assert r["n_rows"] == n // 2 and r.get("testable")
+    r0 = B2.beta_frozen2(d, h, 1, rows, False, 50)
+    assert r0["n_dropped_nonfinite_controls"] == 0 and r0["n_rows"] == n

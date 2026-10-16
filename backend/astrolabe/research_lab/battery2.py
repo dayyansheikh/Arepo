@@ -937,8 +937,13 @@ def beta_frozen2(
     ctl = list(controls if controls is not None else h.controls)
     Z = d[ctl].to_numpy(float)
     ev, day = d["event_c"].to_numpy(), d["day_c"].to_numpy()
+    # Same finite-control convention as battery.run_beta (zok): rows with a non-finite control are dropped
+    # and counted. For the default frozen controls ``rows`` is already finite, so this drops nothing.
+    fin = np.all(np.isfinite(Z), axis=1) if Z.size else np.ones(len(d), bool)
+    n_drop = int((rows & ~fin).sum())
+    rows = rows & fin
     nz = rows & (x != 0)
-    out = {"n_rows": int(rows.sum()), "n_nonzero": int(nz.sum()), "n_nonzero_events": int(len(pd.unique(ev[nz])))}
+    out = {"n_dropped_nonfinite_controls": n_drop, "n_rows": int(rows.sum()), "n_nonzero": int(nz.sum()), "n_nonzero_events": int(len(pd.unique(ev[nz])))}
     if (rows.sum() < B.MIN_JUDGE_ROWS or len(pd.unique(ev[rows])) < B.MIN_JUDGE_CLUSTERS
             or out["n_nonzero"] < B.MIN_NONZERO_ROWS or out["n_nonzero_events"] < B.MIN_NONZERO_CLUSTERS):
         return {**out, "testable": False, "p": 1.0, "reason": "too few rows/clusters/nonzero"}
