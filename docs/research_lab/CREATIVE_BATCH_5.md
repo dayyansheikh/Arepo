@@ -1196,5 +1196,5 @@ After the family list is frozen and q0105 has run, extend it to `--tables listin
 3. `fetch_yes_payouts` batches Gamma `/markets?id=...` (repeated `id` parameter, 40 per call); not exercised against the live API. A wrong batch format would read as "unresolved" (NaN), which can only make `r_inc` unknown, never easier.
 4. The IF-H2 `events.jsonl.gz` has no `negRiskAugmented`, `conditionId` or descriptions: historical bucket events are treated as not augmented (unflagged) and `source_unknown`. The audit gate (L-ii) is the guard.
 5. Queue lane for the five network jobs (see above), and the `rinc` pre-freeze status (item "rinc" in the deviations) should be confirmed by the reviewer.
-6. The K1 pseudo-split calibration at the declared 4,000 bootstrap draws takes minutes per bucket on C1-sized data; the queue spec allows 3,600 s. If it does not finish, lower neither draws nor threshold: raise `timeout_s`.
+6. Timing (synthetic C1-sized table, 510k steps, 170 pairs): step table 5 s, K1 with 4,000 draws 1.2 s, 400 pseudo-split tests about 3 minutes, within-pair 1 s; q0110's 3,600 s limit is ample.
 7. No CB5 quantity has been computed on real data; all numbers in the tests come from synthetic fixtures.
