@@ -9,7 +9,7 @@
   "history/h1_first, h2_main, h3_power sample.csv.gz (exclusion ids only)"
  ],
  "resources": {
-  "mem_mb": 800,
+  "mem_mb": 1200,
   "cpu": 1,
   "network": "gamma-api, clob, data-api"
  },

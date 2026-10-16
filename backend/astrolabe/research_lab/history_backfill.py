@@ -304,6 +304,29 @@ class DiskBudget:
         tmp.write_bytes(data)
         os.replace(tmp, path)
 
+    def write_gz_csv(self, path: Path, header: list[str], rows: Iterable[list]) -> None:
+        """Memory-bounded equivalent of ``write(path, _gz_csv_bytes(header, rows))``: streams the
+        gzip CSV to a temp file, then applies the cap on its size before the atomic rename."""
+        import io
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        try:
+            with tmp.open("wb") as raw:
+                with gzip.GzipFile(filename="", fileobj=raw, mode="wb", compresslevel=6,
+                                   mtime=0) as gz:
+                    txt = io.TextIOWrapper(gz, encoding="utf-8", newline="")
+                    w = csv.writer(txt)
+                    w.writerow(header)
+                    w.writerows(rows)
+                    txt.flush()
+                    txt.detach()
+            self.charge(tmp.stat().st_size)
+        except BaseException:
+            tmp.unlink(missing_ok=True)
+            raise
+        os.replace(tmp, path)
+
     def write_append(self, path: Path, text: str) -> None:
         """Append a text line (cap-checked); used for small hash-only caches."""
         data = text.encode()
@@ -1093,8 +1116,8 @@ def run(
                 return {"stopped": f"frame fetch paused ({why}); resumable",
                         "counts": {"markets_done": 0}, "requests": lim.requests}
             try:
-                budget.write(frame_path, _gz_csv_bytes(
-                    frame_cols, ([r[c] for c in frame_cols] for r in frame)))
+                budget.write_gz_csv(
+                    frame_path, frame_cols, ([r[c] for c in frame_cols] for r in frame))
             except OSError as exc:
                 return {"stopped": f"disk_budget: {exc}", "counts": {"markets_done": 0}}
         if power or cb1:
@@ -1121,8 +1144,8 @@ def run(
         header = [*frame_cols, "stratum"] + (
             ["inclusion_prob", "sample_weight"] if (power or cb1) else [])
         try:
-            budget.write(sample_path, _gz_csv_bytes(
-                header, ([r[c] for c in header] for r in sample)))
+            budget.write_gz_csv(
+                sample_path, header, ([r[c] for c in header] for r in sample))
         except OSError as exc:
             return {"stopped": f"disk_budget: {exc}", "counts": {"markets_done": 0}}
 

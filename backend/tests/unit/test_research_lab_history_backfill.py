@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 
 import numpy as np
@@ -453,3 +454,17 @@ def test_iter_partial_streams_records_and_skips_blank_lines(tmp_path):
     p = tmp_path / "frame_partial.jsonl"
     p.write_text('{"day": "a"}\n\n{"day": "b"}\n')
     assert [r["day"] for r in hb._iter_partial(p)] == ["a", "b"]
+
+
+def test_write_gz_csv_matches_in_memory_bytes_and_respects_cap(tmp_path):
+    header = ["a", "b", "c"]
+    rows = [[i, f'q "{i}", x\ny', float("nan") if i % 3 else 1.5] for i in range(500)]
+    b = hb.DiskBudget(tmp_path / "r", 10**9)
+    b.write_gz_csv(tmp_path / "r" / "f.csv.gz", header, iter(rows))
+    ref = hb._gz_csv_bytes(header, rows)
+    assert gzip.decompress((tmp_path / "r" / "f.csv.gz").read_bytes()) == gzip.decompress(ref)
+    assert not (tmp_path / "r" / "f.csv.gz.tmp").exists()
+    small = hb.DiskBudget(tmp_path / "s", 50)
+    with pytest.raises(OSError):
+        small.write_gz_csv(tmp_path / "s" / "f.csv.gz", header, rows)
+    assert not list((tmp_path / "s").iterdir())
