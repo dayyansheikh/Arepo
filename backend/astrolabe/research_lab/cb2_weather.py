@@ -2415,10 +2415,6 @@ def cmd_stagep(args, *, require_committed: bool = True, t_rep_start: float | Non
         alpha = ALPHA_STAGEP / k
         res = stagep_family(u24, u6, tests=tuple(rep), alpha=alpha, n_boot=int(args.n_boot),
                             n_wild=int(args.n_wild), placebo_draws=int(args.placebo_draws))
-        # TODO(batch_holm, freeze-check fix 17): stage P must use the batch-wide Holm that the structural side adds
-        # (cb2_structural.batch_holm / run_cb2.py). Until it exists the local W-only Holm below is reported and
-        # the Bonferroni alpha above stays binding. Replace `batch_holm_w` with the shared call once available.
-        batch_holm_w = _holm({t: res["tests"][t]["p"] for t in res["tests"]}, ALPHA_STAGEP)
         doc = {"cb2_weather": VERSION, "stage": "P", "label": LABEL, "declaration_sha256_weather": decl,
                "t_rep_start": _iso(t0), "T2_W_out": _iso(t_out), "alpha": alpha, "k_stage_p": k,
                "replicated_at_holdout": rep, "counts": cnt, "censoring": {"origin24": cens24, "origin6": cens6},
@@ -2426,17 +2422,23 @@ def cmd_stagep(args, *, require_committed: bool = True, t_rep_start: float | Non
                "evidence_role": "prospective_confirmation", "cumulative_count": c1.cumulative_total(),
                "execution_rate": {t: res["sensitivity"][t]["execution_rate"] for t in res["tests"]},
                "mde_note": "stage-P MDEs are divided by the execution rate",
-               "batch_holm_TODO": "shared batch_holm not yet available; local W-only Holm reported",
-               "holm_w_only": batch_holm_w, **res}
+               "batch_holm": "see batch_holm.json beside this file (cb2_structural.batch_holm, family stageP)",
+               **res}
         assert_outside_run_dir(path, root / RUN_ID)
+        assert path.parent.name == "W_stageP"  # the directory name batch_holm accepts for stage P
         sha = write_results(path, doc)
-    except (Cb2Error, h5_seal.SealError, FileNotFoundError, KeyError) as exc:
+        import astrolabe.research_lab.cb2_structural as cb2_structural  # shared batch Holm (fix 17)
+
+        bh = cb2_structural.batch_holm([path], stage1_paths=[hp], alpha=ALPHA_STAGEP, family="stageP")
+        write_results(path.parent / "batch_holm.json", bh)
+    except (Cb2Error, h5_seal.SealError, FileNotFoundError, KeyError, RuntimeError) as exc:
         _print({"cb2_weather": VERSION, "refused": str(exc)[:400]})
         return 2
     log_trials_w(res["tests"], kind=KIND_PROSP, role="prospective_confirmation", family="W_stageP",
                  dataset="cb1_extract:negrisk:stageP", results_path=str(path), results_sha256=sha,
                  run_id="cb2_W_stageP", decl_sha=decl, placebo=res["placebo"], **_trials_kw(args))
     _print({"cb2_weather": VERSION, "results": str(path), "results_sha256": sha,
+            "batch_holm_replicated": bh["replicated"],
             "tests": {t: {"p": v.get("p"), "mean": v.get("mean"), "replicated": v["replicated"],
                           "fail": v.get("fail")} for t, v in res["tests"].items()}})
     return 0

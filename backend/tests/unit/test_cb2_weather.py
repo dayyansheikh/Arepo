@@ -1137,7 +1137,7 @@ def test_stagep_cmd_refuses_before_t2_w_out_and_when_nothing_replicated(tmp_path
 
     assert go(t_out - 3600) == 2
     assert go(t_out) == 0 and "nothing replicated" in capsys.readouterr().out
-    (hold / "results.json").write_text(json.dumps({"tests": {"W2": {"replicated": True}, "W3": {"replicated": False}}}))
+    (hold / "results.json").write_text(json.dumps({"tests": {"W2": {"replicated": True, "advance": True}, "W3": {"replicated": False, "advance": False}}}))
 
     def transport(url, params):
         evs = [{"id": "E1", "markets": [{"id": f"m{j}", "outcomePrices": json.dumps(["1", "0"] if j == 2 else ["0", "1"]),
@@ -1151,6 +1151,8 @@ def test_stagep_cmd_refuses_before_t2_w_out_and_when_nothing_replicated(tmp_path
     assert res["stage"] == "P" and res["evidence_role"] == "prospective_confirmation" and res["k_stage_p"] == 1
     assert res["tests"]["W2"]["testable"] is False  # one event: not testable, never claimed
     assert res["alpha"] == pytest.approx(0.05)
+    bh = json.loads((tmp_path / "cb2out" / "W_stageP" / "batch_holm.json").read_text())  # shared batch Holm, stage P
+    assert bh["family"] == "stageP" and bh["m"] == 1 and bh["expected_family"] == ["W2"] and bh["replicated"] == []
     assert go(t_out + 1, transport=transport) == 2  # never overwritten
     lines = [json.loads(x) for x in (tmp_path / "t.jsonl").read_text().splitlines()]
     assert any(x["kind"] == "cb2_prospective" for x in lines)
@@ -1304,3 +1306,18 @@ def test_fetch_failed_events_are_counted_separately_from_missing_prices():
     assert dict(zip(u["event_id"], u["pre"], strict=True)) == {"a": "eligible", "b": "excl_fetch_failed"}
     u2 = w.build_units([e1, _event("c")], ser, tr, 24.0)  # "c" has no fetched series: genuine missing prices
     assert set(u2["pre"]) == {"eligible", "excl_multi_missing"}
+
+
+def test_w_results_files_are_accepted_by_the_shared_batch_holm(tmp_path):
+    from astrolabe.research_lab import cb2_structural as cs
+
+    root = _sealed(tmp_path, 0.85)
+    assert screen_cmd(_run_args(tmp_path)) == 0
+    assert replicate_cmd(_run_args(tmp_path)) == 0
+    s1 = tmp_path / "cb2out" / "W_screen" / "results.json"
+    s2 = tmp_path / "cb2out" / "W_holdout" / "results.json"
+    bh = cs.batch_holm([s2], stage1_paths=[s1], alpha=0.05, family="stage2")
+    assert bh["m"] == 2 and sorted(bh["replicated"]) == ["W2", "W3"] and not bh["missing_counted_p1"]
+    with pytest.raises(cs.Cb2Error):  # a screen file is refused as a Stage-2 file
+        cs.batch_holm([s1], family="stage2")
+    assert root.exists()
