@@ -1315,6 +1315,11 @@ Required fixes:
    market closed (the long-wait, tail-risk markets). Fix: union of the `min`, head and post-end windows, plus an
    invariance test. The same flaw affects h2 active markets, so the claim at the h2 coverage line in §CB1-F is false for
    them. The affected h2 units are counted and disclosed (`cb1_h5.py count-h2-coverage`), not refetched.
+   **Counted (q0034, 2026-10-16T00:26Z, request clock 2026-10-11T23:00:33Z):** h2_main units whose price coverage misses
+   [created, end + 1d]: **active 367 of 414** (miss the end anchor 367; 2 without an end date) and **closed 755 of 2,786**
+   (miss the full interval; 730 miss the end anchor). The h2 screens q0020/q0021 read only the coverage that exists; origins
+   outside it are counted as missing, never filled. The h2 A1/A2 cohort therefore under-represents long-wait markets
+   (most active units and about a quarter of closed units); h5 (fix 1) does not have this flaw.
 2. Trades not capped at T_fetch. Cap them and count the dropped rows; refuse new h5 chunks after T_seal.
 3. `replicate` wrote into the sealed h5 directory, which would break `verify_seal`. Write outside it.
 4. The completeness rule `created_at ≥ T_fetch − lookback` was not implemented.
