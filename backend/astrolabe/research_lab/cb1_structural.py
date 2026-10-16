@@ -358,9 +358,29 @@ _STR_COLS = {"capture_id": str, "neg_risk_market_id": str, "event_id": str, "mar
              "clob_token_id_0": str}
 
 
-def read_capture_table(extract_root: Path, sub: str, capture_id: str) -> pd.DataFrame:
+def read_capture_table(extract_root: Path, sub: str, capture_id: str, columns=None) -> pd.DataFrame:
+    """``columns`` (optional): read only those that are present in the file (absent ones stay absent, as the
+    consumers test ``col in df``). Same dtypes/values as the full read for the columns kept."""
     p = forecast.require_local(Path(extract_root) / sub / f"{capture_id}.csv.gz")  # fail loudly if missing
-    return pd.read_csv(p, dtype=_STR_COLS)
+    if columns is None:
+        return pd.read_csv(p, dtype=_STR_COLS)
+    keep = set(columns)
+    return pd.read_csv(p, dtype=_STR_COLS, usecols=lambda c: c in keep)
+
+
+# Columns the D (neg-risk) pipeline reads from the negrisk table (_group_eligible, negrisk_event_captures,
+# final_yes_map, window_market_ids); pruning to these is a memory measure only.
+D_NEGRISK_COLS = ("neg_risk_market_id", "event_id", "market_id", "closed", "final_yes", "event_neg_risk_augmented",
+                  "neg_risk_other", "active", "accepting_orders", "best_bid", "best_ask", "volume_num",
+                  "fee_schedule", "fee_category", "end_date", "sw1_best_ask", "sw1_ask_size_1")
+
+
+def _intern_strings(d: pd.DataFrame, pool: dict) -> None:
+    """Make equal strings in object columns share one object (values unchanged; memory only)."""
+    for c in d.columns:
+        if d[c].dtype == object:
+            d[c] = pd.Series([pool.setdefault(v, v) if isinstance(v, str) else v for v in d[c].to_numpy(object)],
+                             index=d.index, dtype=object)
 
 
 def load_event_members(extract_root: Path, asof_utc: str | None = None) -> dict[str, int]:
@@ -418,7 +438,8 @@ def load_manifest_starts(extract_root: Path) -> dict[str, float]:
 
 
 def load_window_captures(extract_root: Path, cl: dict, window: str, sub: str = "negrisk",
-                         t_rep_start: str | None = None) -> tuple[pd.DataFrame, dict[str, float], dict]:
+                         t_rep_start: str | None = None, columns=None
+                         ) -> tuple[pd.DataFrame, dict[str, float], dict]:
     """All listed captures. Every listed id must have a manifest start inside the window (fail loudly);
     ``missing_ids`` of the list (never extracted) are counted and skipped; any other listed capture without
     a table raises ``ArchivedDataError``. Returns (rows with ``cs``, capture starts, counts)."""
@@ -434,15 +455,19 @@ def load_window_captures(extract_root: Path, cl: dict, window: str, sub: str = "
     assert_captures_in_window(cs_by, window, t_rep_start)
     parts = []
     empty = 0
+    pool: dict = {}
     for cid in cs_by:
-        d = read_capture_table(extract_root, sub, cid)  # raises if the listed file is missing
+        d = read_capture_table(extract_root, sub, cid, columns)  # raises if the listed file is missing
         if not len(d):
             empty += 1
             continue
         d["cs"] = cs_by[cid]
         d["capture_id"] = cid
+        if columns is not None:
+            _intern_strings(d, pool)
         parts.append(d)
     df = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    del parts
     return df, cs_by, {"listed": len(cl["ids"]), "missing_listed": len(skip), "loaded": len(cs_by),
                        "empty_tables": empty}
 
@@ -839,7 +864,8 @@ def build_negrisk(extract_root: Path, cl: dict, window: str, *, t_rep_start: str
                   outcomes: dict[str, float] | None = None, asof_only: bool = False) -> dict:
     """Load a frozen window and build event-captures and triggers (no test statistic computed here)."""
     members = members_asof_loader(extract_root)
-    df, cs_by, load_cnt = load_window_captures(extract_root, cl, window, "negrisk", t_rep_start)
+    df, cs_by, load_cnt = load_window_captures(extract_root, cl, window, "negrisk", t_rep_start,
+                                               columns=D_NEGRISK_COLS)
     ec, ecnt = negrisk_event_captures(df, members, outcomes, asof_only=asof_only,
                                       first_fetch=None if asof_only else load_first_fetch(extract_root))
     nxt, pcnt = next_capture_pairs(cs_by)
@@ -884,9 +910,24 @@ def run_negrisk(extract_root: Path, cl: dict, window: str, *, n_boot: int, dev: 
 
 
 def window_market_ids(extract_root: Path, cl: dict, window: str, t_rep_start: str | None = None) -> list[str]:
-    """Sorted unique member market ids of the window's neg-risk event-captures (outcome-fetch targets)."""
-    df, _cs, _cnt = load_window_captures(extract_root, cl, window, "negrisk", t_rep_start)
-    return sorted(set(df["market_id"].astype(str))) if len(df) else []
+    """Sorted unique member market ids of the window's neg-risk event-captures (outcome-fetch targets).
+    Streams one capture at a time (same validation as ``load_window_captures``), market_id column only."""
+    starts = load_manifest_starts(extract_root)
+    skip = set(cl.get("missing_ids", []))
+    cs_by: dict[str, float] = {}
+    for cid in cl["ids"]:
+        if cid in skip:
+            continue
+        if cid not in starts:
+            raise CaptureListError(f"capture {cid} is listed but has no manifest start")
+        cs_by[cid] = starts[cid]
+    assert_captures_in_window(cs_by, window, t_rep_start)
+    ids: set[str] = set()
+    for cid in cs_by:
+        d = read_capture_table(extract_root, "negrisk", cid, ("market_id",))
+        if len(d):
+            ids.update(d["market_id"].astype(str))
+    return sorted(ids)
 
 
 def write_outcomes_csv(path: Path, outcomes: dict[str, dict], ids: list[str]) -> str:

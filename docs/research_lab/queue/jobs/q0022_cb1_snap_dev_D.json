@@ -9,7 +9,7 @@
   "../data-dumps/research_lab/creative_batch1/D_dev/outcomes_dev.csv"
  ],
  "resources": {
-  "mem_mb": 1000,
+  "mem_mb": 1500,
   "cpu": 1
  },
  "depends_on": [
@@ -38,5 +38,5 @@
   "trials.jsonl"
  ],
  "next_action": "Claude session: record D1/D2 with gates; stop rule if both fail; else commit q0027 rep spec after T_rep_end",
- "notes": "Supersedes the stale draft argv in CREATIVE_BATCH_1.md (scripts/run_creative_batch1.py does not exist; the D runner is run_cb1_structural.py). E011 untouched; declaration-hash guard."
+ "notes": "mem_mb 1500: build_negrisk loader prunes to the D columns and interns strings; measured peak RSS ~1.4 GB for build_negrisk on a synthetic 60x96k table (loader alone 1.2 GB; run_negrisk builds twice sequentially, each frame freed). Supersedes the stale draft argv in CREATIVE_BATCH_1.md (scripts/run_creative_batch1.py does not exist; the D runner is run_cb1_structural.py). E011 untouched; declaration-hash guard."
 }

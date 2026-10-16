@@ -910,3 +910,68 @@ def test_runner_pin_rep_start_and_rung_list_and_fetch_outcomes_guards(tmp_path, 
     monkeypatch.setattr(cs, "fetch_outcomes", _no_network)
     assert r.main(["fetch-outcomes-D", "--window", "dev", "--extract-root", str(tmp_path), "--out", str(tmp_path / "o.csv")]) == 3
     assert json.loads(capsys.readouterr().out.strip().splitlines()[-1])["refused"] == "DeclarationError"
+
+
+# ---------------------------------------------------------------------------------------------
+# streaming / pruned window loader (q0022a OOM): identical results, declaration unchanged
+# ---------------------------------------------------------------------------------------------
+
+
+def _full_load(monkeypatch):
+    """Reference path: the pre-fix loader (all columns, no interning)."""
+    orig = cs.load_window_captures
+    monkeypatch.setattr(cs, "load_window_captures",
+                        lambda *a, columns=None, **k: orig(*a, **k))
+
+
+def _loader_world(tmp_path):
+    caps, members = many_events(30, 6, persistent_cheap)
+    # a closed (resolved) member with a final outcome and an event with an open-member NaN quote
+    caps[1][2][0].update({"closed": "True", "final_yes": 0.0})
+    caps[2][2][3].update({"best_ask": np.nan})
+    make_extract(tmp_path, caps, members)
+    return cs.load_capture_list(tmp_path / "capture_lists" / "dev.json", window="dev")
+
+
+def test_pruned_loader_frames_equal_on_used_columns(tmp_path):
+    cl = _loader_world(tmp_path)
+    full, cs1, c1 = cs.load_window_captures(tmp_path, cl, "dev")
+    pr, cs2, c2 = cs.load_window_captures(tmp_path, cl, "dev", columns=cs.D_NEGRISK_COLS)
+    assert cs1 == cs2 and c1 == c2
+    assert set(pr.columns) == set(cs.D_NEGRISK_COLS) | {"cs", "capture_id"}
+    pd.testing.assert_frame_equal(full[pr.columns].reset_index(drop=True), pr.reset_index(drop=True))
+
+
+def test_window_market_ids_streaming_equals_full_load(tmp_path):
+    cl = _loader_world(tmp_path)
+    full, _, _ = cs.load_window_captures(tmp_path, cl, "dev")
+    assert cs.window_market_ids(tmp_path, cl, "dev") == sorted(set(full["market_id"].astype(str)))
+
+
+def test_window_market_ids_streaming_still_validates(tmp_path):
+    cl = _loader_world(tmp_path)
+    (tmp_path / "negrisk" / "c02.csv.gz").unlink()
+    with pytest.raises(cs.forecast.ArchivedDataError):
+        cs.window_market_ids(tmp_path, cl, "dev")
+
+
+def test_build_and_run_negrisk_identical_with_pruned_loader(tmp_path, monkeypatch):
+    cl = _loader_world(tmp_path)
+    outcomes = {"G0m1": 0.0}
+    new_b = cs.build_negrisk(tmp_path, cl, "dev", outcomes=outcomes)
+    new_r = cs.run_negrisk(tmp_path, cl, "dev", n_boot=50, dev=True, alpha=0.01, placebo_draws=10,
+                           outcomes=outcomes)
+    _full_load(monkeypatch)
+    old_b = cs.build_negrisk(tmp_path, cl, "dev", outcomes=outcomes)
+    old_r = cs.run_negrisk(tmp_path, cl, "dev", n_boot=50, dev=True, alpha=0.01, placebo_draws=10,
+                           outcomes=outcomes)
+    assert cs.census_negrisk(new_b) == cs.census_negrisk(old_b)
+    pd.testing.assert_frame_equal(new_b["ec"], old_b["ec"])
+    pd.testing.assert_frame_equal(new_b["trig"], old_b["trig"])
+    assert json.dumps(cs._clean(new_r), sort_keys=True) == json.dumps(cs._clean(old_r), sort_keys=True)
+
+
+def test_declaration_hash_matches_committed_record():
+    rec = json.loads((Path(__file__).resolve().parents[3] / "docs/research_lab/seals/cb1_structural_DECLARATION.json")
+                     .read_text())
+    assert cs.declaration_sha256() == rec["declaration_sha256"]
