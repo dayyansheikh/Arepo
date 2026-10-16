@@ -287,6 +287,46 @@ nothing at 2h or 6h and a small amount at 24h (direction 0.54% [0.23, 0.83] over
 |move| and up-vs-down unchanged). By the declared criterion it does not help; the 24h direction hint is
 undeclared and small, to be re-examined only in a prospective sample.
 
+## Revision r5_regime_ix (SB2-J7, q0012, 2026-10-16): regime contrasts and pairwise interactions on `h2_main`
+
+Design: `SCREENING_BATCH_2.md` J7 (frozen at 6ad5dff, regime declaration hash `c5c143c6974d226a`). Three cells chosen
+from h2 r1 only (direction 2h, up-vs-down 2h, up-vs-down 6h); discovery = first half of the test blocks, judgement =
+later half; 27 counted `ml_explain` tests (prior cumulative count 952). Results file
+`history/h2_main/ml_history_results_r5_regime_ix.json` (host). Runtime 87 min. Global placebo gate passed in all three
+cells; leak positive control detected.
+
+Contrast = (mean per-row LL gain of the full model over M0v in regime A) − (same in regime B), judgement rows,
+cluster bootstrap over event and `dep_group` (conservative of the two). Stage-1 advance: two-sided p < 0.01 and the
+same sign on discovery blocks.
+
+| cell | C-LIQ (high − low liquidity) | C-TTE (<24h − >30d) | C-ACT (active − inactive 2h) | C-EXT (extreme − middle price) |
+|---|---|---|---|---|
+| direction 2h (98k rows) | not informative (0 low rows) | **+0.012 [0.004, 0.047], advances** | **+0.059 [0.045, 0.074], advances** | −0.007 [−0.011, −0.003], p 0.0006, discovery sign +0.004, does not advance |
+| up-vs-down 2h (20k) | not informative | +0.007 [−0.028, 0.040] | **+0.063 [0.044, 0.083], advances** | +0.009 [−0.008, 0.026] |
+| up-vs-down 6h (28k) | not informative | −0.013 [−0.035, 0.009] | **+0.043 [0.030, 0.057], advances** | +0.002 [−0.007, 0.011] |
+
+Interactions: no pair advances in any cell (0 of 15). The Friedman H² leaders are degenerate pairs of
+missing-history indicators (`ml_chg_1h/1d/1w_missing`, H² = 1 on folds where they co-vary perfectly), whose
+constrained-versus-free validation gain is exactly 0; the price pairs (`logit_mid × dist_01`, `logit_mid × rv_1d`,
+`own_vol × rv_7d`, `tf_n_2h × tf_last_age_h`) do not validate either.
+
+Reading:
+- **C-ACT is close to mechanical.** The full model's extra families (flow, state, wallet) are mostly zero or missing
+  when no trade printed in the last 2h, so the gain over M0v has to sit in active rows. It says where the
+  flow value is (about 0.06 nats per active row against 0.005-0.014 per inactive row), not that activity creates a new
+  conditional signal. It goes to J8 as declared, with this caveat attached.
+- **C-TTE (direction 2h only):** the gain is larger in the last 24h before the end date. Robust to the end-date
+  look-ahead sensitivity (dropping 1,550 rows from markets closed > 24h early: +0.0118 [0.005, 0.047], no sign flip).
+- **C-LIQ is untestable as declared (defect, disclosed).** The tercile cut for `ml_tf_log_notional_24h` is computed
+  on discovery rows, where more than a third of rows have zero 24h notional, so the lower cut is 0.0 and, with
+  `<` assignment, the "low" regime is empty in every cell. The three C-LIQ tests stay counted as run and are
+  recorded as `not informative`. Changing the cut after seeing this would be a post-hoc redefinition. J8 applies the
+  same frozen cuts and will also be uninformative for C-LIQ. Any future liquidity contrast needs a new declaration
+  (for example, zero-notional as its own level), on data not yet read by ML.
+- **Q6 (historical, h2 stage 1):** no pairwise interaction adds out-of-sample value beyond what M2F already uses.
+  J8 (q0013) now replicates the 4 advanced contrasts (C-TTE direction; C-ACT × 3) on h3 markets never read by ML,
+  Holm at 0.05.
+
 ## Caveats
 
 * Historical and exploratory. Panels are reconstructed after the fact from prices-history, not point-in-time

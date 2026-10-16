@@ -1154,3 +1154,14 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   trades), L1 (1d change × liquidity), F3 (flow × time to end, robust to end-date look-ahead), F8 (24h flow × liquidity;
   vanishes with the quiet-market control). Null: F1, F2, F6, L2 and all cross-market X1-X3.
 - **Next:** frozen Stage-2 replication on `h3_power` (q0009 → q0010). No cost test yet; not tradable as shown.
+
+## Development screen SB2-J7 — ML regime contrasts and interactions, r5_regime_ix on `h2_main` (q0012, 2026-10-16)
+- **Status:** counted (27 `ml_explain` tests; prior cumulative 952), development (Stage 1), global placebo gate passed.
+- **Advanced (4 of 12 contrasts):** C-ACT in all three cells (full-model gain over M0v is 0.04-0.06 nats larger in
+  rows with a trade in the last 2h; close to mechanical, because flow features are empty without trades); C-TTE in
+  direction 2h (larger gain < 24h before end; robust to the end-date look-ahead sensitivity).
+- **Not advanced:** C-EXT (direction 2h p 0.0006 but the discovery sign disagrees), all other C-TTE/C-EXT; **0 of 15
+  interaction pairs** (H² leaders are degenerate missingness indicators).
+- **Defect:** C-LIQ not informative in all cells (empty low tercile: lower cut 0.0 with a mass at zero notional).
+  Counted, not re-defined. Details: `HISTORICAL_ML_DEV.md` r5 section.
+- **Next:** J8 frozen replication on h3 (q0013, queued). Q6 is closed for h2 interactions.
