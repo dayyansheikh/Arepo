@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-16 05:03 UTC+1
+**Last updated:** 2026-10-16 05:36 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -21,11 +21,16 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   - The 4 passing comparisons now go to a frozen re-test on different markets.
 - **Your creative priority:**
   - **Batch 1 is FROZEN.** Screens start once the fresh data is sealed (after the download above finishes).
-  - **Batch 2** (weather favourites; impossible ladder orderings): the data extractor is finished and deployed. Its
-    one-off backfill is queued, to save inputs before the raw files can be deleted. Two agents are writing the analysis
-    code now.
-  - **Batch 3** (quote only when it is safe; what happens when one side of the book vanishes): being drafted, then
-    a challenger review.
+  - **Batch 2** (weather favourites; impossible ladder orderings): all code is written (155 tests pass).
+    - An independent check of the code against the design asked for 20 fixes. One is urgent: the ladder list must be
+      locked to the exact code that builds it.
+    - Fixes are being made now. The ladder and weather downloads are held until they land.
+  - **Batch 3** (quote only when it is safe; when one side of the book vanishes): drafted and reviewed (13 required
+    changes). The revision is in progress.
+  - **Batch 4** (new; rule mechanics and natural experiments):
+    - The ideas are: selling before order books close; what happens when one market in a series resolves; and two
+      fee/rebate rule changes, used to measure true costs.
+    - Status: drafted and reviewed (13 required changes). The revision is in progress.
   - Nothing creative has been tested yet.
 
 ## 2. Approvals needed from you

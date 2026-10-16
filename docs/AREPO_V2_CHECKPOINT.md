@@ -174,10 +174,14 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
    - **J7 (q0012) written up** (b28cca8): 4/12 contrasts advance (C-ACT ×3, near-mechanical; C-TTE direction 2h); 0/15
      interactions; C-LIQ uninformative (empty low tercile, disclosed, not redefined). q0013 (J8) is queued.
    - q0034 counts recorded in CB1 (51003e5).
-   - Running agents: CB2 structural (cb2_structural.py + run_cb2.py + q0040 spec + grouper seal), CB2 weather
-     (cb2_weather.py + seal generalisation + KIND_RULES + q0043/q0044 specs), CB3 draft (CREATIVE_BATCH_3.md).
-1. When the CB2 agents finish: run tests, deploy, confirm q0040 runs; then a science-reviewer freeze check of the CB2 code.
-   The freeze (`cb2_v1.json`) waits for T2_dev_end and the q0042 census (§8 of CREATIVE_BATCH_2.md).
+   - CB2 code complete (0408d4e, 12ba7be, f291b41, 5e0b317, 7ff3aa8, fe67692, 9012f89; 155 tests). **Freeze check
+     (74fd225): 20 required fixes**, fix 1 URGENT before q0040. q0040 is held behind gate **q0039** (not yet created) and
+     q0043 behind gate **q0043a** (create once `seals/h5_cb1_SEAL.json` is committed and fixes 6-12 have landed).
+     Fix agents are running: structural (1-5, 14-17, 20) and weather (6-13, 18, 19, stage-P part of 17).
+   - CB3 drafted (98e06c3) and CB4 drafted (f409384). Challenger round 1 for both: ACCEPT_WITH_REQUIRED_CHANGES (CB3
+     3249600, CB4 2d17819). Drafters are applying the response. CB3 q0060 may be built before the response (item 12).
+1. When the CB2 fix agents finish: run tests, deploy, then a short reviewer re-check of fix 1. Create gate q0039 (a trivial
+   selfcheck spec) to release q0040. The freeze (`cb2_v1.json`) waits for T2_dev_end and the q0042 census (§8 of CREATIVE_BATCH_2.md).
 2. CB3 draft → science-reviewer challenger round 1 → response → implementation.
 3. Watch q0016 (it must get past `fetch_frame` on resume), q0010 (L1 runs on retry), q0041.
 4. **After 2026-10-21T03:00Z:** create gate job q0036 to release q0035 (J4-R). On exit 3, move `--until` forward by one UTC day.
