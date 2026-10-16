@@ -186,7 +186,8 @@ MECHANISM_TESTS = ("A1", "A2", "B1", "B3", "B5")
 ECONOMIC_TESTS = ("A3", "B2", "B4", "B6")
 
 REFUSED_RUN_IDS = ("h1_first", "h3_power", "h4_seal", "h5_cb1", "h5_cb1_ladders", "h6_weather")
-CENSUS_FORBIDDEN_COLUMNS = ("outcome_prices", "uma_status", "mark_6h", "mark_2h", "m_T", "mid_T", "mid_after", "net", "mo")
+CENSUS_FORBIDDEN_COLUMNS = ("outcome_prices", "uma_status", "mark_6h", "mark_2h", "m_T", "mid_T", "mid_after", "net", "mo", "mark6", "mo6", "mo2", "net6", "net2",
+                            "net6_half", "wc_mo", "mark_pmxt", "net_pmxt", "num", "g", "T_k")
 CENSUS_NEVER_READS = "6h/2h marks, T-capture mids of A onsets, any price after a fill; outcome columns dropped before population code"
 
 

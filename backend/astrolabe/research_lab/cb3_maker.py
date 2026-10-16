@@ -11,6 +11,7 @@ helpers (imported, not copied), the prospective loader reads ``quote_state/`` an
 
 from __future__ import annotations
 
+import json
 import math
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -852,20 +853,25 @@ def econ_test(opps: pd.DataFrame, fills: pd.DataFrame, tid: str, *, cuts: dict |
 # =============================================================================================
 
 
-def history_market_units(rec: dict, books_m: pd.DataFrame, ts_p: np.ndarray, vals_p: np.ndarray, tr: pd.DataFrame | None,
-                         truncated: bool, oldest_ts, ctx: c1.Ctx, cuts: dict | None, dep: str | None = None,
-                         chg: dict[float, float] | None = None) -> tuple[list[dict], list[dict], set[float], tuple[float, float] | None, dict]:
+def history_market_units(rec: dict, books_m: pd.DataFrame, ts_p: np.ndarray | None, vals_p: np.ndarray | None, tr: pd.DataFrame | None,
+                         truncated: bool, oldest_ts, ctx: c1.Ctx, cuts: dict | None, dep: str | None = None, weight: float = 1.0,
+                         with_marks: bool = True) -> tuple[list[dict], list[dict], set[float], tuple[float, float] | None, dict]:
     """Quote opportunities, fills and large-order times of one history market at its pmxt 6h-grid books (both book clocks <= t).
     Population: binary, open, traded before t (unavailable if unknown: leaves the population, counted), end_at > t + 8h,
-    eligible book, category in scope (sports reported as a stratum by the caller). Returns (opp rows, fill rows, large times,
-    (first, last) print ts, diag)."""
+    eligible book. Returns (opp rows, fill rows, large times, (first, last) print ts, diag). ``with_marks`` False (census)
+    builds no marks and reads no price series: every mark-dependent field stays NaN."""
     pr = prints_arrays(tr)
     diag = {"origins": 0, "not_eligible_book": 0, "not_open": 0, "end_too_close": 0, "trade_state_unavailable": 0, "no_prior_trade": 0, "kept": 0}
     rows, frows, larges = [], [], set()
-    marks = HistoryMarks(ts_p, vals_p)
+    marks = HistoryMarks(ts_p, vals_p) if (with_marks and ts_p is not None) else None
     cat = category_key(rec.get("fee_category"))
     old = c1.oldest_or_inf(oldest_ts) if truncated else None
-    for b in books_m.itertuples():
+    closed_early = bool(math.isfinite(rec["close_epoch"]) and math.isfinite(rec["end_epoch"]) and rec["close_epoch"] < rec["end_epoch"] - DAY)
+    bk = books_m[(books_m["state"] == "two_sided")].sort_values("origin_ts")
+    bt = bk["origin_ts"].to_numpy(float)
+    bmid = ((bk["sw_best_bid"] + bk["sw_best_ask"]) / 2.0).to_numpy(float)
+    bsp = (bk["sw_best_ask"] - bk["sw_best_bid"]).to_numpy(float)
+    for b in bk.itertuples():
         diag["origins"] += 1
         t = float(b.origin_ts)
         bid, ask = float(b.sw_best_bid), float(b.sw_best_ask)
@@ -885,12 +891,27 @@ def history_market_units(rec: dict, books_m: pd.DataFrame, ts_p: np.ndarray, val
         if st == 0:
             diag["no_prior_trade"] += 1
             continue
+        chg = math.nan
+        if with_marks and ts_p is not None and len(ts_p):
+            pp = c1.asof_quote(ts_p, vals_p, np.array([t, t - DAY]))
+            chg = abs(float(pp[0] - pp[1])) if np.isfinite(pp).all() else math.nan
+        bs, as_ = float(getattr(b, "sw_bid_size_1", math.nan)), float(getattr(b, "sw_ask_size_1", math.nan))
         o = Opp(opp_id=f"{rec['market_id']}@{int(t)}", market_id=rec["market_id"], event=rec["event_id"], dep=dep or rec["event_id"], cat=cat, t=t,
-                bid=bid, ask=ask, bid_size=float(getattr(b, "sw_bid_size_1", math.nan)), ask_size=float(getattr(b, "sw_ask_size_1", math.nan)),
-                created=rec["created_epoch"], end=rec["end_epoch"], abs_chg_24h=abs(chg.get(t, math.nan)) if chg else math.nan,
-                depth_1c_own=float(getattr(b, "sw_bid_size_1", math.nan)), depth_1c_both=float(getattr(b, "sw_bid_size_1", 0) or 0) + float(getattr(b, "sw_ask_size_1", 0) or 0),
-                truncated=truncated, oldest_ts=old)
+                bid=bid, ask=ask, bid_size=bs, ask_size=as_, created=rec["created_epoch"], end=rec["end_epoch"], abs_chg_24h=chg,
+                depth_1c_own=bs, depth_1c_both=(bs if math.isfinite(bs) else 0.0) + (as_ if math.isfinite(as_) else 0.0), truncated=truncated, oldest_ts=old)
         row, fl, lg = evaluate_opportunity(o, pr, pr, marks, prospective=False, cuts=cuts)
+        row.update(w=weight, closed_early=closed_early, book_age_s=float(getattr(b, "sw_book_age_s", math.nan)))
+        for f in fl:
+            f.update(w=weight, closed_early=closed_early)
+            # pmxt book-mid mark check (ruling 4): first two-sided spread <= 0.10 grid origin >= t_fill + 4h
+            j = int(np.searchsorted(bt, f["t_fill"] + float(D.MAKER["history_pmxt_mark_check_s"]), side="left"))
+            while j < len(bt) and not bsp[j] <= D.MAKER["spread_max"] + 1e-12:
+                j += 1
+            if with_marks and j < len(bt):
+                f["mark_pmxt"] = float(bmid[j])
+                f["net_pmxt"] = mark_out(f["side"], f["price"], float(bmid[j])) + f["rebate"]
+            else:
+                f["mark_pmxt"], f["net_pmxt"] = math.nan, math.nan
         rows.append(row)
         frows.extend(fl)
         larges |= lg
@@ -933,8 +954,6 @@ class FollowupReader:
         self.root = Path(root)
 
     def meta(self, pass_id: str) -> dict:
-        import json
-
         p = self.root / pass_id / "meta.json"
         return json.loads(p.read_text()) if p.exists() else {}
 
@@ -946,3 +965,434 @@ class FollowupReader:
             return prints_arrays(None)
         df = pd.read_csv(p, dtype={"market_id": str, "wallet_hash": str, "trade_key": str})
         return prints_arrays(df[df["market_id"].astype(str) == str(market_id)])
+
+
+# =============================================================================================
+# 10. History pipeline (h2_main trades + pmxt book table): census and Stage 1 screen
+# =============================================================================================
+
+MARK_COLS = ("mark6", "mo6", "mo2", "net6", "net2", "net6_half", "wc_mo", "mark_pmxt", "net_pmxt")
+
+
+def assert_no_marks(df: pd.DataFrame) -> None:
+    """Census guard: no mark, mark-out, net or T-capture column may be reachable from a census frame."""
+    bad = [c for c in df.columns if c in D.CENSUS_FORBIDDEN_COLUMNS or c in MARK_COLS or "_wc_mo" in c]
+    if bad:
+        raise D.Cb3Error(f"census frame carries forbidden columns {bad}")
+
+
+def _iter_history(run_dir: Path, frame: pd.DataFrame, ids: set[str], need_prices: bool):
+    from . import history_backfill as hb
+
+    run_dir = Path(run_dir)
+    prog = hb._read_progress(run_dir / "progress.jsonl")
+    for r in frame.to_dict("records"):
+        mid = str(r["market_id"])
+        if mid not in ids:
+            continue
+        p = prog.get(mid)
+        if not p or p.get("status") != "done":
+            continue
+        tp = run_dir / "trades" / f"{mid}.csv.gz"
+        pp = run_dir / "prices" / f"{mid}.csv.gz"
+        if not tp.exists() or (need_prices and not pp.exists()):
+            continue
+        ts, vals = hb.load_prices(pp) if need_prices else (None, None)
+        yield c1.norm_rec(r), ts, vals, hb.load_trades(tp), bool(p.get("trades_truncated")), p.get("trades_oldest_ts")
+
+
+def history_units(run_dir: Path, books_path: Path, *, cuts: dict | None = None, with_marks: bool = True, max_markets: int | None = None) -> dict:
+    """Build the opportunity and fill tables of the h2 history screen. Refuses the reserved run ids. The census calls this with
+    ``with_marks=False`` (no price series is even read)."""
+    run_dir = Path(run_dir)
+    D.refuse_run_id(run_dir.name)
+    c1.forbid_run(run_dir.name)
+    ctx = c1.make_ctx(run_dir)
+    frame = c1.load_sample(run_dir, census=True)
+    wmap = dict(zip(frame["market_id"].astype(str), frame["sample_weight"].astype(float), strict=True)) if "sample_weight" in frame else {}
+    books = c1.load_books(books_path)
+    books = books[books["state"] == "two_sided"]
+    depmap: dict[str, str] = {}
+    pan = run_dir / "panel_H2h.csv.gz"
+    if pan.exists():
+        pdf = pd.read_csv(pan, usecols=["market_id", "dep_group"], dtype={"market_id": str}).dropna()
+        depmap = pdf.drop_duplicates("market_id").set_index("market_id")["dep_group"].astype(str).to_dict()
+    ids = set(books["market_id"].astype(str))
+    rows, frows, larges, spans = [], [], {}, {}
+    diag: dict[str, int] = {}
+    n = 0
+    for rec, ts_p, vals_p, tr, trunc, oldest in _iter_history(run_dir, frame, ids, need_prices=with_marks):
+        bm = books[books["market_id"].astype(str) == rec["market_id"]]
+        r, f, lg, span, d = history_market_units(rec, bm, ts_p, vals_p, tr, trunc, oldest, ctx, cuts, dep=depmap.get(rec["market_id"]),
+                                                 weight=wmap.get(rec["market_id"], 1.0), with_marks=with_marks)
+        rows += r
+        frows += f
+        for k, v in d.items():
+            diag[k] = diag.get(k, 0) + v
+        if lg:
+            larges[rec["market_id"]] = np.array(sorted(lg))
+        if span is not None:
+            spans[rec["market_id"]] = span
+        n += 1
+        if max_markets and n >= max_markets:
+            break
+    opps, fills = pd.DataFrame(rows), pd.DataFrame(frows)
+    return {"opps": opps, "fills": fills, "large_times": larges, "spans": spans, "diag": diag, "n_markets": n, "ctx": ctx}
+
+
+def scope_split(opps: pd.DataFrame, fills: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """CATEGORY_SCOPE 'non_sports': counted tests use non-sports units; sports units are a cb3_descriptive stratum."""
+    sp_o = opps["cat"].map(c1.is_sports) if len(opps) else pd.Series(dtype=bool)
+    ids = set(opps.loc[sp_o, "opp_id"]) if len(opps) else set()
+    sp_f = fills["opp_id"].isin(ids) if len(fills) else pd.Series(dtype=bool)
+    return opps[~sp_o], fills[~sp_f], opps[sp_o], fills[sp_f]
+
+
+def _lf_dist(fills: pd.DataFrame) -> dict:
+    v = fills["lf"].dropna().to_numpy(float)
+    return {"n": int(len(v)), "deciles": [float(x) for x in np.percentile(v, np.arange(0, 101, 10))] if len(v) else None}
+
+
+def _expanding_counts(df: pd.DataFrame) -> dict:
+    g = df.groupby("market_id").size()
+    return {"rows": int(len(df)), "markets": int(len(g)), "markets_ge2": int((g >= 2).sum()), "rows_usable": int(g[g >= 2].sum() - (g >= 2).sum())}
+
+
+def census_history(run_dir: Path, books_path: Path, *, max_markets: int | None = None) -> dict:
+    """q0061 history part: counts only. No mark, mark-out, net, EV or any price after a fill is computed or reachable."""
+    u = history_units(run_dir, books_path, with_marks=False, max_markets=max_markets)
+    opps, fills = u["opps"], u["fills"]
+    if len(opps):
+        opps = opps.drop(columns=[c for c in opps.columns if c.endswith("_wc_mo")])
+    if len(fills):
+        fills = fills.drop(columns=[c for c in MARK_COLS if c in fills.columns])
+    assert_no_marks(opps)
+    assert_no_marks(fills)
+    cnt = {"n_markets_read": u["n_markets"], "exclusions": u["diag"], "n_quote_opportunities_all": int(len(opps))}
+    if not len(opps):
+        return {**cnt, "note": "no opportunities"}
+    o_ns, f_ns, o_sp, _f_sp = scope_split(opps, fills)
+    cnt["n_quote_opportunities_non_sports"], cnt["n_quote_opportunities_sports_stratum"] = int(len(o_ns)), int(len(o_sp))
+    cnt["fills"] = {f"{r}_{s}": {"filled": int(((fills["rule"] == r) & (fills["side"] == s)).sum()),
+                                 "unavailable_quotes": int((opps[f"{r}_{s}_status"] == -1).sum())} for r in RULES for s in SIDES}
+    cnt["classifiable_share"] = float(o_ns["classifiable"].mean()) if len(o_ns) else None
+    q = f_ns[f_ns["rule"] == "queue"]
+    cnt["fills_queue_non_sports"] = int(len(q))
+    cnt["fills_with_large_order_prior_30min"] = int(q["post"].sum()) if len(q) else 0
+    cnt["fills_classifiable"] = int(q["classifiable_fill"].sum()) if len(q) else 0
+    cnt["life_fraction_of_fills"] = _lf_dist(q)
+    rt = o_ns["rt"].dropna().to_numpy(float)
+    act = o_ns["activity"].to_numpy(float)
+    cnt["rt_defined_opportunities"] = int(len(rt))
+    cnt["frozen_cuts_proposal"] = {"rt_top_decile_cut": float(np.quantile(rt, D.B["rt_top_quantile"])) if len(rt) else None,
+                                   "activity_tercile_cuts": [float(x) for x in np.percentile(act, [100 / 3, 200 / 3])] if len(act) else None,
+                                   "basis": "all non-sports quote opportunities of the history census; pin in the committed spec before any screen"}
+    fa = attach_fill_features(q, o_ns)
+    cnt["expanding_estimator_counts"] = {
+        "B1": _expanding_counts(fa[fa["classifiable"].astype(bool)]) if len(fa) else None,
+        "B3": _expanding_counts(fa[fa["lf"].notna()]) if len(fa) else None,
+        "B5": _expanding_counts(o_ns[o_ns["rt"].notna()]) if len(o_ns) else None}
+    cnt["clusters"] = {"event": int(o_ns["event"].nunique()), "dep": int(o_ns["dep"].nunique()), "day": int(o_ns["day"].nunique())}
+    cnt["population_sizes"] = {"B2": int(population(o_ns, "B2").sum()), "B4": int(population(o_ns, "B4").sum()), "B6": int(population(o_ns, "B6").sum())}
+    return cnt
+
+
+def _robust_slope(df: pd.DataFrame, regressor: str, tid: str, *, target: str, ways: list[str], week_fe: bool, b5: bool = False, order: str = "t_fill") -> float | None:
+    r = mech_test(df, regressor, tid=tid, target=target, order=order, ways=ways, week_fe=week_fe, b5=b5, n_boot=0, placebo_fn=None)
+    return r.get("beta") if r.get("testable") else None
+
+
+def _top5_drop(df: pd.DataFrame, regressor: str, target: str, way: str, order: str) -> pd.DataFrame:
+    d = df.reset_index(drop=True)
+    dm = bd.expanding_demean(d[["market_id", order, regressor]].assign(_y=d[target]), [regressor], by="market_id", order=order)
+    contrib = (dm[regressor].fillna(0.0) * (d[target] - d[target].mean())).to_numpy(float)
+    return d[C.top_clusters_mask(contrib, d[way].to_numpy())]
+
+
+def mech_stage(df: pd.DataFrame, tid: str, regressor: str, *, ways: list[str], small_g: tuple[str, ...], stage: int, history: bool, n_boot: int, draws: int,
+               placebo_fn, week_fe: bool = False, b5: bool = False, order: str = "t_fill", target: str = "net6", extra_robust: dict[str, pd.DataFrame] | None = None) -> dict:
+    """One mechanism test with its binding robustness and advance decision."""
+    alpha = D.ALPHA_STAGE1 if stage == 1 else D.ALPHA_STAGE2
+    res = mech_test(df, regressor, tid=tid, target=target, order=order, ways=ways, placebo_fn=placebo_fn, draws=draws, week_fe=week_fe, b5=b5,
+                    small_g=small_g, n_boot=n_boot, weights="w" if "w" in df and stage == 1 else None)
+    robust: dict[str, float | None] = {}
+    if res.get("testable"):
+        for way in [w for w in ways if w != "day"]:
+            robust[f"top5_{way}"] = _robust_slope(_top5_drop(df, regressor, target, way, order), regressor, tid, target=target, ways=ways, week_fe=week_fe, b5=b5, order=order)
+        if history and "net_pmxt" in df and tid in ("B1", "B3"):
+            sub = df[df["net_pmxt"].notna()]
+            robust["pmxt_mark"] = _robust_slope(sub, regressor, tid, target="net_pmxt", ways=ways, week_fe=week_fe, b5=b5, order=order)
+        if not history and "net_wc" in df:
+            robust["worst_case_mark"] = _robust_slope(df, regressor, tid, target="net_wc", ways=ways, week_fe=week_fe, b5=b5, order=order)
+        if not history and "life_truncated" in df:
+            robust["untruncated_life"] = _robust_slope(df[~df["life_truncated"].astype(bool)], regressor, tid, target=target, ways=ways, week_fe=week_fe, b5=b5, order=order)
+        if history and tid == "B3" and "closed_early" in df:
+            robust["lookahead_drop"] = _robust_slope(df[~df["closed_early"].astype(bool)], regressor, tid, target=target, ways=ways, week_fe=week_fe, b5=b5, order=order)
+        for k, sub in (extra_robust or {}).items():
+            robust[k] = _robust_slope(sub, regressor, tid, target=target, ways=ways, week_fe=week_fe, b5=b5, order=order)
+        wb = res.get("weighted_beta")
+        if wb is not None and not C.sign_agree(wb, res["beta"]):
+            robust["weighted_sign"] = None
+    adv = mech_advance(res, tid, alpha, robust) if res.get("testable") else {"advance": False, "fail": ["not_testable"]}
+    res.update(robust=robust, advance=adv["advance"], fail=adv["fail"])
+    res["entry_exception_stage2"] = bool(not res.get("testable") and stage == 1)
+    return res
+
+
+def screen_history(run_dir: Path, books_path: Path, cuts: dict, *, n_boot: int = D.N_BOOT, placebo_draws: int = D.PLACEBO_DRAWS,
+                   random_draws: int = D.RANDOM_FILTER_DRAWS, max_markets: int | None = None, stage: int = 1) -> dict:
+    """Stage 1 on h2_main + the pmxt book table: B1-B6 against the unfiltered maker U (reported). Seeded by HB2 F3/F7 on the same trades
+    (L1, a stop rule). Returns the results document (no files written)."""
+    u = history_units(run_dir, books_path, cuts=cuts, with_marks=True, max_markets=max_markets)
+    opps, fills = u["opps"], u["fills"]
+    out: dict = {"stage": stage, "dataset": Path(run_dir).name, "n_markets": u["n_markets"], "exclusions": u["diag"], "tests": {}, "placebo": {}, "descriptive": {}}
+    if not len(opps):
+        out["note"] = "no quote opportunities"
+        return out
+    o_ns, f_ns, o_sp, f_sp = scope_split(opps, fills)
+    out["descriptive"]["U_non_sports"] = u_baseline(o_ns, f_ns)
+    out["descriptive"]["U_sports_stratum"] = u_baseline(o_sp, f_sp) if len(o_sp) else {"n_quotes": 0}
+    out["descriptive"]["capacity"] = capacity(f_ns[f_ns["rule"] == "queue"], o_ns)
+    out["descriptive"]["book_age_sensitivity"] = _book_age(o_ns, f_ns)
+    ways = ["event", "dep"]
+    q = attach_fill_features(f_ns[(f_ns["rule"] == "queue")], o_ns)
+    qm = q[np.isfinite(q["net6"])].copy()
+    qm["net_wc"] = qm["net6"]
+    # B1
+    b1 = qm[qm["classifiable"].astype(bool)]
+    out["tests"]["B1"] = mech_stage(b1, "B1", "post", ways=ways, small_g=(), stage=stage, history=True, n_boot=n_boot, draws=placebo_draws,
+                                    placebo_fn=lambda d, s: placebo_circular_shift(d, u["large_times"], u["spans"], s))
+    out["tests"]["B1"]["w_sensitivity_min_reported"] = {w: _robust_slope(b1.assign(post=b1[f"post{w}"]), "post", "B1", target="net6", ways=ways, week_fe=False)
+                                                       for w in D.B["w_sensitivity_min"]} if len(b1) else {}
+    # B3
+    b3 = qm[qm["lf"].notna()]
+    out["tests"]["B3"] = mech_stage(b3, "B3", "lf", ways=ways, small_g=(), stage=stage, history=True, n_boot=n_boot, draws=placebo_draws,
+                                    placebo_fn=lambda d, s: placebo_permute_within_market(d, "lf", s), week_fe=True)
+    # B5
+    b5 = opp_level_frame(o_ns, f_ns)
+    b5["w"] = o_ns.set_index("opp_id")["w"].reindex(b5["opp_id"]).to_numpy()
+    out["tests"]["B5"] = mech_stage(b5, "B5", "rt", ways=ways, small_g=(), stage=stage, history=True, n_boot=n_boot, draws=placebo_draws, b5=True,
+                                    placebo_fn=lambda d, s: placebo_permute_within_market(d, "rt", s), order="t_fill", target="ev_quote")
+    for tid in ("B2", "B4", "B6"):
+        out["tests"][tid] = econ_test(o_ns, f_ns[f_ns["rule"].isin(RULES)], tid, cuts=cuts, stage=stage, weights="w", draws=random_draws, n_boot=n_boot, ways=ways)
+        out["tests"][tid]["entry_exception_stage2"] = bool(not out["tests"][tid].get("testable") and stage == 1)
+    u_mean = out["descriptive"]["U_non_sports"].get("mean_net")
+    adv_any = any(t.get("advance") for t in out["tests"].values())
+    out["family_verdict_flag"] = ("U mean net below -1.5c with no filter advancing: dominated by adverse selection in every identifiable state"
+                                 if (u_mean is not None and u_mean < -0.015 and not adv_any) else None)
+    for tid, t in out["tests"].items():
+        if "placebo" in t:
+            out["placebo"][tid] = t["placebo"]
+    return out
+
+
+def _book_age(opps: pd.DataFrame, fills: pd.DataFrame) -> dict:
+    if "book_age_s" not in opps or not opps["book_age_s"].notna().any():
+        return {"available": False}
+    ok = set(opps.loc[~(opps["book_age_s"] > 3600.0), "opp_id"])
+    f = fills[(fills["rule"] == "queue") & fills["opp_id"].isin(ok) & np.isfinite(fills["net6"])]
+    return {"available": True, "n_quotes_kept": len(ok), "n_fills": int(len(f)), "mean_net": float(f["net6"].mean()) if len(f) else None}
+
+
+# =============================================================================================
+# 11. Prospective pipeline (quote_state/ sweeps + cb3_followup/ prints): census and Stage 2 / P
+# =============================================================================================
+
+
+def _traded_before(P, j: int, m: int) -> bool:
+    ltp, vol = P.mat["last_trade_price"][m, j], P.mat["volume_num"][m, j]
+    return bool(np.isfinite(ltp) and not (np.isfinite(vol) and vol <= 0))
+
+
+def build_prospective(P, reader: FollowupReader, *, with_marks: bool = True, pass_range: tuple[int, int] | None = None, cuts: dict | None = None,
+                      extra_cap_ids: set[str] | None = None) -> dict:
+    """Quote opportunities and fills of the follow-up subsample. For pass j (capture j) the origin is the market's FIRST sweep of
+    that capture (t = its batch receipt); the pre-origin prints are the pass-j trade-sample rows copied into
+    ``cb3_followup/<j+1>/pre`` filtered to ts < t; the post-origin prints are the windowed fetch in ``post``. A market enters only if it
+    is in the seeded subsample of that pass and its first sweep is an eligible book. Life is truncated at the request time
+    when that is earlier than t + 2h (flagged); a page-capped window makes older fills unavailable. Marks use later first sweeps."""
+    rows, frows = [], []
+    diag: dict[str, int] = {"passes": 0, "passes_missing_followup": 0, "sample_markets": 0, "no_eligible_book": 0, "not_open": 0, "end_too_close": 0,
+                            "no_prior_trade": 0, "kept": 0, "life_truncated": 0, "page_cap_markets": 0}
+    lo, hi = pass_range if pass_range else (0, P.n_caps - 1)
+    for j in range(max(lo, 0), min(hi, P.n_caps - 1)):
+        diag["passes"] += 1
+        nxt = P.cap_ids[j + 1]
+        d = reader.root / nxt
+        if not (d / "manifest.json").exists() or not (d / "pre" / "wallets.csv.gz").exists():
+            diag["passes_missing_followup"] += 1
+            continue
+        meta = reader.meta(nxt)
+        plan = json.loads((d / "plan.json").read_text()) if (d / "plan.json").exists() else {}
+        incl = plan.get("inclusion_float", {})
+        frac = float(plan.get("frac", 0.5))
+        wl = pd.read_csv(d / "pre" / "wallets.csv.gz", usecols=["market_id"], dtype=str)
+        sampled = set(wl["market_id"].astype(str))
+        diag["sample_markets"] += len(set(plan.get("inclusion_float", {})) | sampled)
+        idx = {str(x): i for i, x in enumerate(P.markets)}
+        for mid in sorted(sampled | set(incl)):
+            m = idx.get(mid)
+            if m is None:
+                continue
+            t = P.mat["s1_recv"][m, j]
+            bid, ask = P.mat["s1_best_bid"][m, j], P.mat["s1_best_ask"][m, j]
+            if not (np.isfinite(t) and eligible_quote(float(bid), float(ask))):
+                diag["no_eligible_book"] += 1
+                continue
+            row = P.meta.iloc[m]
+            clos, acc = P.mat["closed"][m, j], P.mat["accepting_orders"][m, j]
+            end = D.epoch(row["end_date"]) if row["end_date"] else math.nan
+            if clos == 1.0 or acc == 0.0:
+                diag["not_open"] += 1
+                continue
+            if not (math.isfinite(end) and end > t + D.MAKER["end_at_margin_s"]):
+                diag["end_too_close"] += 1
+                continue
+            if not _traded_before(P, j, m):
+                diag["no_prior_trade"] += 1
+                continue
+            mm = meta.get("markets", {}).get(f"post:{mid}", {})
+            req = mm.get("request_epoch")
+            life, ltr = LIFE, False
+            if req is not None and req < t + LIFE:
+                life, ltr = max(float(req) - float(t), 0.0), True
+                diag["life_truncated"] += 1
+            cap = bool(mm.get("page_cap"))
+            diag["page_cap_markets"] += int(cap)
+            created = D.epoch(row["created_at"]) if row["created_at"] else math.nan
+            bs, as_ = P.mat["s1_bid_size_1"][m, j], P.mat["s1_ask_size_1"][m, j]
+            o = Opp(opp_id=f"{mid}@{int(t)}", market_id=mid, event=str(row["event_id"]), dep=str(dep_label(row)), cat=category_key(row["fee_category"]), t=float(t),
+                    bid=float(bid), ask=float(ask), bid_size=float(bs), ask_size=float(as_), created=created, end=end,
+                    abs_chg_24h=math.nan, depth_1c_own=float(bs), depth_1c_both=float(np.nan_to_num(bs) + np.nan_to_num(as_)), fee_schedule=row["fee_schedule"] or None,
+                    truncated=cap, oldest_ts=mm.get("oldest_ts"), life=life, life_truncated=ltr)
+            later = np.arange(j + 1, P.n_caps)
+            marks = SweepMarks(P.mat["s1_recv"][m, later], P.mat["s1_best_bid"][m, later], P.mat["s1_best_ask"][m, later]) if with_marks else None
+            pre, post = reader.trades(nxt, "pre", mid), reader.trades(nxt, "post", mid)
+            r, f, _lg = evaluate_opportunity(o, pre, post, marks, prospective=True, cuts=cuts)
+            w = 1.0 / (float(incl.get(mid) or 1.0) * frac)
+            r.update(w=w, closed_early=False, cap_id=P.cap_ids[j])
+            for x in f:
+                x.update(w=w, closed_early=False, cap_id=P.cap_ids[j])
+                x["net_wc"] = x["net6"] if math.isfinite(x["net6"]) else x["wc_mo"]  # unavailable mark: the worst-case mark-out, no rebate
+            rows.append(r)
+            frows.extend(f)
+            diag["kept"] += 1
+    return {"opps": pd.DataFrame(rows), "fills": pd.DataFrame(frows), "diag": diag}
+
+
+def dep_label(row) -> str:
+    nr = str(row.get("neg_risk_id", "") or "")
+    par = str(row.get("parent_event_ids", "") or "").strip("[]\"' ").split(",")[0].strip("\"' ")
+    return f"nr:{nr}" if nr else (f"pe:{par}" if par else f"ev:{row.get('event_id', '')}")
+
+
+def screen_prospective(P, reader: FollowupReader, cuts: dict, tests: list[str], *, stage: int, pass_range: tuple[int, int] | None = None,
+                       n_boot: int = D.N_BOOT, placebo_draws: int = D.PLACEBO_DRAWS, random_draws: int = D.RANDOM_FILTER_DRAWS) -> dict:
+    """Stage 2 (``stage=2``) / Stage P (``stage=3``, the economic tests only) of the B tests in ``tests`` on the follow-up sample at recorded
+    books and prints. UTC-day way with the CB2 small-G rule. Mechanism placebos need the large-order streams, which the prospective
+    builder does not retain: B1's circular-shift placebo is rebuilt from the fills' own large-order times, B3/B5 permute within market."""
+    u = build_prospective(P, reader, pass_range=pass_range, cuts=cuts)
+    opps, fills = u["opps"], u["fills"]
+    out: dict = {"stage": stage, "exclusions": u["diag"], "tests": {}, "placebo": {}, "descriptive": {}}
+    if not len(opps):
+        out["note"] = "no quote opportunities"
+        return out
+    o_ns, f_ns, o_sp, f_sp = scope_split(opps, fills)
+    out["descriptive"]["U_non_sports"] = u_baseline(o_ns, f_ns)
+    out["descriptive"]["U_sports_stratum"] = u_baseline(o_sp, f_sp) if len(o_sp) else {"n_quotes": 0}
+    out["descriptive"]["capacity"] = capacity(f_ns[f_ns["rule"] == "queue"], o_ns)
+    ways, sg = ["event", "dep", "day"], ("day",)
+    alpha_stage = 2
+    q = attach_fill_features(f_ns[f_ns["rule"] == "queue"], o_ns)
+    qm = q[np.isfinite(q["net6"])].copy()
+    large_times: dict[str, np.ndarray] = {}
+    spans: dict[str, tuple[float, float]] = {}
+    for mid, g in qm.groupby("market_id"):
+        spans[mid] = (float(g["t"].min()) - 3 * DAY, float(g["t_fill"].max()) + 3 * DAY)
+        large_times[mid] = np.sort(g.loc[g["post"] == 1.0, "t_fill"].to_numpy(float) - 60.0)
+    for tid in tests:
+        if tid == "B1":
+            out["tests"][tid] = mech_stage(qm[qm["classifiable"].astype(bool)], "B1", "post", ways=ways, small_g=sg, stage=alpha_stage, history=False, n_boot=n_boot, draws=placebo_draws,
+                                           placebo_fn=lambda d, s: placebo_circular_shift(d, large_times, spans, s))
+        elif tid == "B3":
+            out["tests"][tid] = mech_stage(qm[qm["lf"].notna()], "B3", "lf", ways=ways, small_g=sg, stage=alpha_stage, history=False, n_boot=n_boot, draws=placebo_draws,
+                                           placebo_fn=lambda d, s: placebo_permute_within_market(d, "lf", s), week_fe=True)
+        elif tid == "B5":
+            b5 = opp_level_frame(o_ns, f_ns)
+            out["tests"][tid] = mech_stage(b5, "B5", "rt", ways=ways, small_g=sg, stage=alpha_stage, history=False, n_boot=n_boot, draws=placebo_draws, b5=True,
+                                           placebo_fn=lambda d, s: placebo_permute_within_market(d, "rt", s), order="t_fill", target="ev_quote")
+        elif tid in ("B2", "B4", "B6"):
+            out["tests"][tid] = econ_test(o_ns, f_ns, tid, cuts=cuts, stage=2, weights="w", draws=random_draws, n_boot=n_boot, small_g=sg, ways=ways)
+        else:
+            raise ValueError(tid)
+        if "placebo" in out["tests"][tid]:
+            out["placebo"][tid] = out["tests"][tid]["placebo"]
+    if stage == 3:
+        out["tests"] = {k: v for k, v in out["tests"].items() if k in D.STAGEP_TESTS}
+    return out
+
+
+def stage2_mde(counts: dict) -> dict:
+    """Stage-2 MDE (80% power, one-sided 5%: 2.8 x SE) from census COUNTS. The outcome SDs are the design's stated assumptions (net per
+    fill SD 6c; SD of LF 0.28; SD of RT 0.15; share of post-large fills 0.15), NOT estimated from any outcome: q0064 computes no
+    outcome. Overlapping 6h marks of one market and the day way enter through a repeated-market design effect estimated from the
+    row counts per market (1 + (mean rows per market - 1) x 0.25, an assumed within-market correlation) and a 5% small-G inflation."""
+    n_f, n_m = counts.get("fills_queue", 0), max(counts.get("fill_markets", 1), 1)
+    n_o = counts.get("rt_defined_opportunities", 0)
+    if n_f < 2:
+        return {"note": "too few fills"}
+    deff = 1.0 + (n_f / n_m - 1.0) * 0.25
+    infl = 1.05
+    sd = 0.06
+    se_mean = sd * math.sqrt(deff / n_f) * infl
+    out = {"assumptions": {"sd_net_per_fill": sd, "sd_lf": 0.28, "sd_rt": 0.15, "p_post": 0.15, "rho_within_market": 0.25, "small_g_inflation": infl},
+           "design_effect": deff, "B2_B4_mde": 2.8 * se_mean, "B6_mde": 2.8 * sd * math.sqrt(deff / max(n_f * 0.1, 1.0)) * infl,
+           "B1_mde_slope": 2.8 * se_mean / math.sqrt(0.15 * 0.85),
+           "B3_mde_per_unit_lf": 2.8 * se_mean / 0.28}
+    out["B5_mde_per_unit_rt"] = 2.8 * (sd / 2.0) * math.sqrt(deff / max(n_o, 1)) * infl / 0.15
+    return out
+
+
+def census_prospective(P, reader: FollowupReader, *, followup_root: Path, qs_root: Path, pass_range: tuple[int, int] | None = None) -> dict:
+    """q0064: counts only for the prospective dev window (the caller loads ``P`` from ``max(T3_fu_start, T_J4R_end)``). Follow-up
+    coverage, opportunities and fills per pass (no marks built), vacuum-stratum sizes, bytes per pass, created_at coverage, page-cap hits
+    and the Stage-2 MDEs from counts."""
+    u = build_prospective(P, reader, with_marks=False, pass_range=pass_range)
+    opps, fills = u["opps"], u["fills"]
+    if len(opps):
+        opps = opps.drop(columns=[c for c in opps.columns if c.endswith("_wc_mo")])
+    if len(fills):
+        fills = fills.drop(columns=[c for c in MARK_COLS + ("net_wc",) if c in fills.columns])
+    assert_no_marks(opps)
+    assert_no_marks(fills)
+    metas = [reader.meta(c) for c in P.cap_ids]
+    reqs = sum(m.get("requests", 0) for m in metas)
+    n429 = sum(m.get("n_429", 0) for m in metas)
+    vac = []
+    for c in P.cap_ids:
+        pth = Path(followup_root) / c / "vacuum_plan.json"
+        if pth.exists():
+            vp = json.loads(pth.read_text())
+            vac.append({"n_onsets": vp.get("n_onsets", 0), "n_drawn": vp.get("n_drawn", 0)})
+    def _bytes(p: Path) -> int:
+        return sum(f.stat().st_size for f in Path(p).rglob("*") if f.is_file()) if Path(p).exists() else 0
+    out = {"n_passes_window": P.n_caps, "followup_requests": int(reqs), "followup_429": int(n429),
+           "passes_missing_followup": u["diag"]["passes_missing_followup"], "page_cap_markets": u["diag"]["page_cap_markets"],
+           "life_truncated_quotes": u["diag"]["life_truncated"], "exclusions": u["diag"], "n_quote_opportunities": int(len(opps)),
+           "vacuum_stratum": {"passes_with_plan": len(vac), "n_onsets_total": int(sum(v["n_onsets"] for v in vac)), "n_drawn_total": int(sum(v["n_drawn"] for v in vac))},
+           "followup_bytes": {c: _bytes(Path(followup_root) / c) for c in P.cap_ids}, "quote_state_bytes": _bytes(Path(qs_root) / "quote_state"),
+           "created_at_coverage": float((P.meta["created_at"].astype(str) != "").mean()) if len(P.meta) else None}
+    if len(opps):
+        o_ns, f_ns, o_sp, _f = scope_split(opps, fills)
+        q = f_ns[f_ns["rule"] == "queue"] if len(f_ns) else f_ns
+        out["n_quote_opportunities_non_sports"] = int(len(o_ns))
+        out["fills_by_rule_side"] = {f"{r}_{s}": int(((fills["rule"] == r) & (fills["side"] == s)).sum()) for r in RULES for s in SIDES}
+        out["unavailable_quotes"] = {f"{r}_{s}": int((opps[f"{r}_{s}_status"] == -1).sum()) for r in RULES for s in SIDES}
+        out["rt_defined_opportunities"] = int(o_ns["rt"].notna().sum())
+        out["lf_defined_opportunities"] = int(o_ns["lf_t"].notna().sum())
+        out["classifiable_share"] = float(o_ns["classifiable"].mean()) if len(o_ns) else None
+        out["clusters"] = {"event": int(o_ns["event"].nunique()), "dep": int(o_ns["dep"].nunique()), "day": int(o_ns["day"].nunique())}
+        out["rows_per_market"] = {"opportunities": float(o_ns.groupby("market_id").size().mean()) if len(o_ns) else None}
+        out["stage2_mde"] = stage2_mde({"fills_queue": int(len(q)), "fill_markets": int(q["market_id"].nunique()) if len(q) else 1,
+                                        "rt_defined_opportunities": out["rt_defined_opportunities"]})
+    return out

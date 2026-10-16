@@ -1010,3 +1010,82 @@ modification, stated). This is the single response round; the next review is the
 Test count unchanged: 8 fixed + up to 13 conditional (A2 relabelled, still counted). The "not verified" items (HB2-R
 status, host disk use, release copies for 9-15 October captures, actual `quote_state/` size) are carried into q0060's
 manifest (sizes, missing captures) and q0064's census.
+
+## Implementation notes (CB3)
+
+Written by the implementing session, 2026-10-16, after the DRAFT-REVISED text (a767ab8). The code is NOT frozen: no
+`model_specs/cb3_v1.json` exists, so every counted run is refused. The declaration hash of this code state is
+`24f33c360214410878accf4d68075b38a84c9ca0610d8c64b5a424c78803222f` (`cb3_declaration.declaration_sha256()`); it changes with any rule, band, floor, date, placebo or estimator in
+`cb3_declaration.py`. Each item below is an ambiguity resolved with the most conservative reading for research integrity.
+A reviewer should confirm or overturn each at the code-against-design freeze check.
+
+**Files.** `cb3_declaration.py` (HYPOTHESES_CB3, constants, hash, guards, pin), `cb3_common.py` (multi-way CR1 mean / ratio / slope
+tests, CB2 small-G rule via `cb2_weather.small_g_pvalue`, placebo reading, trial logging, batch Holm), `cb3_quote_vacuum.py` (A),
+`cb3_maker.py` (B and the shared paper maker), `cb3_followup.py` + `scripts/sample_trades_followup.py` (post-window step, NOT wired into
+`arepo_pass.sh`), `scripts/run_cb3.py`. `economics.REBATE_SHARE` (new; `econ_conditions_maker.REBATE` now aliases it, identical
+values) and four additive `battery2.KIND_RULES` entries (`cb3_test`, `cb3_replication`, `cb3_prospective`, `cb3_descriptive`, all
+EXCLUDE). Two files beyond the requested list (`cb3_common.py`, `cb3_followup.py`) because the logic is shared or must be importable by tests.
+
+**Units and floors.** Everything is in price units (1c = 0.01); the declared floors are stored as 0.60 (R), 0.005 (A2, A3 net),
+0.0025 (B economic), -0.005 / -0.010 / +0.010 (B1 / B3 / B5 slopes).
+
+**Family A.**
+1. *Placebo reading for A2.* The literal rule voids a test whose placebo range excludes 0, but the declared A placebo makes
+   `G_placebo ~ mean(hs - |D|)`, which is negative by construction, so applying it to A2 would void A2 always. The void and bias checks
+   are applied to A1 (R); A2's placebo G is reported as a construction check and A2 inherits the family status of A1 (void or bias on A1
+   blocks both). Placebo units below 1,000 or capture clusters below 30 in any draw block the advance.
+2. *dep_group in A.* `quote_state/` carries `neg_risk_id` and `parent_event_ids`, not the fixture-day link fields `ml_panel.dependence_group_ids`
+   needs. `dep_group := neg_risk_id, else the first parent event id, else the event id` (the event fallback share is reported in the census).
+3. *Closed markets.* The dev screen reads no outcome and has no payouts, so every market closed before T is coded unrecovered
+   (`closed_no_payout`, `m_T := m_(i+1)`). `recovery_mark` accepts a payouts mapping (`closed_payout`, `m_T := Y`) for Stage 2; the Gamma
+   fetch of payouts is not wired into the runner (q0065 would need it).
+4. *Window end.* A unit whose window runs past the last loaded capture before T is excluded and counted (`window_end`), like a gap break.
+5. *Persistent / sweep-confirmed.* A side missing in a sweep (one-sided book) counts as not persistent and not sweep-confirmed
+   (conservative). Swept at i+1 = spread at the capture <= 0.10 and both sweeps present.
+6. *Top-5 robustness (A).* Clusters are ranked by the absolute sum of `0.5|D| - s(m_T - m_i)` (A1) or of `g` (A2); the estimate must keep
+   the floor (R >= 0.60, G >= 0.5c) without them, in each of the three ways.
+7. *Loader and J4-R.* `load_quote_panel` takes an explicit window and refuses ANY selected capture in T_J4R (the live extractor writes them
+   into the same root); `T_J4R_end` is read from the `--until` of the committed q0035 spec and fails closed. The follow-up step reads
+   `quote_state/` with the guard disabled because it only copies data.
+8. *A3 fills.* The re-quote is posted at the second sweep's receipt and the windowed vacuum prints are read from `cb3_followup/<i+2>/vacuum`;
+   a window that was not reached, failed or hit the page cap is passed as truncated, so an empty file never reads as "not filled".
+
+**Family B and the maker.**
+9. *Unavailable fills.* The status is -1 whenever a truncated market's oldest stored print is later than the quote's posting time, even if
+   the stored prints already complete the queue (the true fill time would be earlier and unknown). Residual unavailable quotes and
+   mark-unavailable fills enter the worst-case bracket: for a quote, only the side with the lower far-touch mark-out fills; no rebate.
+10. *History far touch.* History has no book at the mark time; the far touch is the mark -/+ the entry half-spread. A market with no price
+    point at all is a total loss (buy value 0, sell value 1).
+11. *Populations.* B2: classifiable markets; B4: opportunities with a defined life fraction (LF needs both scheduled anchors; undefined LF
+    cannot be filtered, so it leaves the population, a pre-t rule); B6: RT-defined. EV per quote is the sum of kept net over 2 (5 shares
+    each over 10 quoted share-sides) over the fixed population size.
+12. *B2 cancel rule.* A fill at or before the first large order after posting counts (a maker cannot react to the order that fills it).
+13. *B1 circular-shift placebo.* The large-order stream of a market is the union of large orders flagged in any of its fill streams; its
+    span is the first to last stored print (history) or the fills' range padded by 3 days (prospective, where the builder keeps no raw
+    stream). Markets with a span under 2 days use an offset of half the span.
+14. *Slope robustness.* The top-5 clusters are ranked by the absolute sum of `x~ (y - ybar)` with `x~` the expanding-demeaned regressor. The
+    small-G form for the UTC-day way of a slope tests the mean of `x~ y~` (score-mean form of the CB2 rule); ways at Stage 1 are event and
+    dep_group only.
+15. *Weighted sign.* Mechanism tests compare the design-weighted expanding slope (`sample_weight`, Stage 1 only) in sign; economic tests the
+    weighted mean net. Prospective weights are `1 / (pi x frac)` from the follow-up `plan.json`.
+16. *Union key.* `pre/` and `post/` share no transaction id (the trade sample's wallets file has none), so the cross-source key is
+    (side, outcome, price, size, ts, wallet hash); identical prints inside one source are kept.
+17. *Frozen cuts.* The RT top-decile cut and the activity tercile cuts are not part of the hash (they exist only after q0061); they live in the
+    committed spec's `frozen_cuts` and `screen` refuses without them. The census emits a `frozen_cuts_proposal`.
+18. *Prospective builder.* The origin is a market's first sweep of pass j; only markets in the seeded subsample (`pre/wallets.csv.gz`)
+    enter; prospective 24h price change is not available, so `abs_chg_24h` is NaN there (rows drop from the regression, disclosed; Gamma
+    `chg_1d` is in `quote_state/` and can replace it only by a declaration change).
+
+**Follow-up step layout (assumed, to be reconciled with the deploy).** `cb3_followup/<c>/{plan.json, pre/{trades,wallets}.csv.gz,
+post/trades.csv.gz, vacuum/trades.csv.gz, vacuum_plan.json, meta.json, manifest.json}` for capture `c` = pass i+1; `pre` is read from
+`wallets.csv.gz` (hashed wallets, same rows as the trade sample); trades carry hashed wallets and no `trade_key` (the project key embeds the
+raw wallet). The subsample is a hash-based Bernoulli draw (`sha256(seed|market_id)`), reproducible from `plan.json`.
+
+**Census.** `census_history` builds no marks and reads no price series; its frames are asserted free of `CENSUS_FORBIDDEN_COLUMNS` and
+mark columns (unit-tested with the mark methods patched to raise). `census_prospective` states the Stage-2 MDEs from counts with the design's
+outcome SDs as stated assumptions and an assumed within-market correlation of 0.25 for the repeated-market design effect.
+
+**Not done.** The reported-only items: reward scenarios and break-even subsidy, the taker-exit variant, sign by month / week and by category,
+the 2h-mark and resolution mark-outs in the results (the 2h mark-out is computed per fill, not summarised), and the `resolution` subcommand
+(guarded, exits 2). Analysis queue specs q0062, q0063, q0065-q0068 are not created (the freeze comes first); only the census specs q0061 and
+q0064 are committed. `arepo_pass.sh` is untouched.

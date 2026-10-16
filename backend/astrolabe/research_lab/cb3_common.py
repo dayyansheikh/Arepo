@@ -273,3 +273,53 @@ def log_trials(job: str, tests: dict[str, dict], *, kind: str, role: str, datase
         "revision": D.VERSION, "source": f"creative_batch_3:{job}", "results_sha256": results_sha256, "declaration_sha256": decl_sha,
         "note": "CB3 count line; per-test cb3_* lines are EXCLUDEd in battery2.KIND_RULES"}, trials_path))
     return written
+
+
+# ---- Stage-2 family and batch Holm ---------------------------------------------------------------------------------
+
+
+def holm(pvals: dict[str, float], alpha: float) -> dict:
+    items = sorted(pvals.items(), key=lambda kv: kv[1])
+    m = len(items)
+    out: dict[str, dict] = {}
+    running, rejecting = 0.0, True
+    for i, (k, p) in enumerate(items):
+        running = max(running, min(1.0, (m - i) * p))
+        rejecting = rejecting and (p <= alpha / (m - i))
+        out[k] = {"p": p, "p_holm": running, "reject": bool(rejecting)}
+    return out
+
+
+def stage2_expected(s1_a: dict | None, s1_b: dict | None) -> list[str]:
+    """Tests that reach Stage 2: A1 / A2 if they advanced, A3 iff A1 advanced; every B test that advanced or entered by the
+    entry exception (not testable on h2 by counts)."""
+    out: list[str] = []
+    if s1_a:
+        t = s1_a.get("tests", {})
+        out += [k for k in ("A1", "A2") if t.get(k, {}).get("advance")]
+        if t.get("A1", {}).get("advance"):
+            out.append("A3")
+    if s1_b:
+        t = s1_b.get("tests", {})
+        out += [k for k in D.FAMILY_TESTS["B"] if t.get(k, {}).get("advance") or t.get(k, {}).get("entry_exception_stage2")]
+    return out
+
+
+def batch_holm(stage2_docs: list[tuple[str, dict]], expected: list[str], alpha: float = D.ALPHA_STAGE2) -> dict:
+    """Holm over every CB3 test that reached Stage 2 (k <= 9). A test with no Stage-2 result counts as p = 1. A test is
+    ``replicated`` only if its own Stage-2 gate passed (``advance``) AND the batch Holm rejects. A test id may appear once."""
+    pv: dict[str, dict] = {}
+    for name, doc in stage2_docs:
+        for tid, t in doc.get("tests", {}).items():
+            if tid not in expected:
+                raise D.Cb3Error(f"{name}: test {tid} is not in the Stage-2 family {sorted(expected)}")
+            if tid in pv:
+                raise D.Cb3Error(f"test {tid} appears in both {pv[tid]['source']} and {name}")
+            pv[tid] = {"p": float(t.get("p", 1.0)), "advance": bool(t.get("advance")), "source": name}
+    missing = sorted(set(expected) - set(pv))
+    for tid in missing:
+        pv[tid] = {"p": 1.0, "advance": False, "source": "missing_stage2_p=1"}
+    hm = holm({k: v["p"] for k, v in pv.items()}, alpha) if pv else {}
+    tests = {k: {**pv[k], **hm[k], "replicated": bool(pv[k]["advance"] and hm[k]["reject"])} for k in sorted(pv)}
+    return {"m": len(pv), "alpha": alpha, "tests": tests, "replicated": sorted(k for k, v in tests.items() if v["replicated"]),
+            "expected_family": sorted(expected), "missing_stage2_counted_p1": missing}

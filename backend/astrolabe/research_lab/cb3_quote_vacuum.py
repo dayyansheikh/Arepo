@@ -513,9 +513,13 @@ def gate_a(res: dict, rob: dict, plc: dict | None, alpha: float) -> dict:
     return out
 
 
-def screen_a(P: Panel, *, n_boot: int = D.N_BOOT, draws: int = D.PLACEBO_DRAWS, payouts: dict[str, float] | None = None, stage: int = 1) -> dict:
-    """Stage 1 on the dev panel (or Stage 2 on the rep panel with ``stage=2``): onsets, recovery mark, A1/A2, placebo, gates."""
+def screen_a(P: Panel, *, n_boot: int = D.N_BOOT, draws: int = D.PLACEBO_DRAWS, payouts: dict[str, float] | None = None, stage: int = 1,
+             onset_before: float | None = None) -> dict:
+    """Stage 1 on the dev panel (or Stage 2 on the rep panel with ``stage=2``): onsets, recovery mark, A1/A2, placebo, gates.
+    ``onset_before``: keep only onsets whose capture started before it (the later captures i+1..i+4 are still read for T)."""
     raw, excl = detect_onsets(P)
+    if onset_before is not None and len(raw):
+        raw = raw[raw["cap_start"] < onset_before].reset_index(drop=True)
     marked = recovery_mark(P, raw, payouts)
     units = finalize_units(marked)
     alpha = D.ALPHA_STAGE1 if stage == 1 else D.ALPHA_STAGE2
@@ -645,3 +649,61 @@ def a3_test(a3: pd.DataFrame, n_eligible: int, *, stage: int, n_boot: int = D.N_
         fail.append("robust:truncated_life_sign")
     out.update(brackets=br, advance=not fail, fail=fail)
     return out
+
+
+# =============================================================================================
+# 7. Census (counts only) and the follow-up A3 loader
+# =============================================================================================
+
+
+def census_a(P: Panel) -> dict:
+    """q0061 A part: onset counts only. Reads no recovery mark, no T-capture mid, no price after i+1; the onset frame is reduced to
+    counts before it is returned."""
+    raw, excl = detect_onsets(P)
+    out: dict = {"n_captures": P.n_caps, "n_markets": int(len(P.markets)), "gap_breaks": int((~P.gap_ok).sum()), "exclusions": dict(excl), "n_onsets": int(len(raw))}
+    if not len(raw):
+        return out
+    lab = raw.assign(side=np.where(raw["s"] > 0, "ask", "bid"))
+    out["by_side"] = lab["side"].value_counts().to_dict()
+    out["by_displacement_band_c"] = {str(A["displacement_bands_c"][int(k)]): int(v) for k, v in lab["disp_band"].value_counts().items() if 0 <= int(k) < len(A["displacement_bands_c"])}
+    out["by_price_band"] = {str(int(k)): int(v) for k, v in lab["price_band"].value_counts().items()}
+    out["onsets_per_capture"] = {"min": int(lab.groupby("cap_id").size().min()), "median": float(lab.groupby("cap_id").size().median()), "max": int(lab.groupby("cap_id").size().max())}
+    out["clusters"] = {"event": int(raw["event"].nunique()), "dep": int(raw["dep"].nunique()), "onset_capture": int(raw["cap_id"].nunique())}
+    out["swept_at_i1_share"] = float(raw["swept_i1"].mean())
+    out["sweep_confirmed_share"] = float(raw["sweep_confirmed"].mean())
+    out["persistent_share"] = float(raw["persistent"].mean())
+    out["dep_fallback_share"] = float(np.mean([str(x).startswith("ev:") for x in raw["dep"]]))
+    out["testable_at_dev_rule"] = bool(len(raw) >= D.A_MIN_ONSETS and raw["cap_id"].nunique() >= D.A_MIN_CAPTURE_CLUSTERS)
+    return out
+
+
+def a3_from_followup(P: Panel, u: pd.DataFrame, reader: M.FollowupReader) -> tuple[pd.DataFrame, dict]:
+    """A3 inputs from ``cb3_followup``: only onsets in the vacuum stratum drawn at their own capture (``vacuum_plan.json`` of the
+    onset capture i+1), windows fetched at the next pass (``vacuum/trades.csv.gz`` under capture i+2)."""
+    plans: dict[str, dict] = {}
+    keep = []
+    for k, r in u.iterrows():
+        onset_cap = P.cap_ids[int(r["cap_i"]) + 1]
+        if onset_cap not in plans:
+            pth = reader.root / onset_cap / "vacuum_plan.json"
+            plans[onset_cap] = json.loads(pth.read_text()) if pth.exists() else {"onsets": []}
+        if any(o["market_id"] == r["market_id"] for o in plans[onset_cap].get("onsets", [])):
+            keep.append(k)
+    uu = u.loc[keep]
+
+    def trades_for(row):
+        nxt = P.cap_ids[int(row["cap_i"]) + 2] if int(row["cap_i"]) + 2 < P.n_caps else None
+        if nxt is None:
+            return M.prints_arrays(None), True
+        meta = reader.meta(nxt).get("markets", {}).get(f"vacuum:{row['market_id']}", {})
+        return reader.trades(nxt, "vacuum", row["market_id"]), bool(meta.get("page_cap", False)) or meta.get("status") in (None, "not_reached", "failed")
+
+    def pi(row):
+        pl = plans.get(P.cap_ids[int(row["cap_i"]) + 1], {})
+        return float(pl.get("inclusion_prob") or 1.0)
+
+    def req(row):
+        nxt = P.cap_ids[int(row["cap_i"]) + 2] if int(row["cap_i"]) + 2 < P.n_caps else None
+        return reader.meta(nxt).get("markets", {}).get(f"vacuum:{row['market_id']}", {}).get("request_epoch") if nxt else None
+
+    return a3_units(P, uu, trades_for, inclusion_prob=pi, request_time=req)

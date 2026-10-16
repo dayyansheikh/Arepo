@@ -338,3 +338,86 @@ def test_j4r_window_is_read_from_the_committed_q0035_spec():
     lo, hi = D.j4r_window()
     assert lo == D.epoch("2026-10-16T00:00:00Z") and hi >= D.epoch("2026-10-21T00:00:00Z")
     assert D.in_j4r(lo + 1) and not D.in_j4r(hi + 1)
+
+
+# --- runner (A) ---------------------------------------------------------------------------------------------
+
+
+def _write_world_root(tmp_path, caps, t0):
+    root = tmp_path / "cb3_extract"
+    (root / "quote_state").mkdir(parents=True)
+    man = {"extractor_version": "x", "captures": {}}
+    for c, rows in enumerate(caps):
+        cid, st = f"c{c:03d}", t0 + c * 2 * H
+        df = pd.DataFrame(rows)
+        for name, d in ((f"{cid}.csv.gz", df), (f"{cid}.ids.csv.gz", df[["market_id"]])):
+            with gzip.open(root / "quote_state" / name, "wt", newline="") as fh:
+                d.to_csv(fh, index=False)
+        man["captures"][cid] = {"capture_id": cid, "capture_start_utc": iso(st), "status": "extracted"}
+    (root / "manifest.json").write_text(json.dumps(man))
+    return root
+
+
+@pytest.fixture(scope="module")
+def runner():
+    import run_cb3
+
+    return run_cb3
+
+
+def _spec(tmp_path, sha=None):
+    p = tmp_path / "cb3_v1.json"
+    p.write_text(json.dumps({"declaration_sha256": sha or D.declaration_sha256()}))
+    return p
+
+
+def test_runner_screen_A_logs_trials_never_overwrites_and_guards(tmp_path, runner):
+    root = _write_world_root(tmp_path, world("noise"), D.epoch("2026-10-10T00:00:00Z"))
+    out, trials = tmp_path / "out", tmp_path / "trials.jsonl"
+    common = ["--quote-root", str(root), "--out-root", str(out), "--trials", str(trials), "--spec", str(_spec(tmp_path))]
+    assert runner.main(["screen", "--family", "A", "--n-boot", "0", "--placebo-draws", "3", *common]) == 0
+    res = json.loads((out / "S1_A" / "results.json").read_text())
+    assert res["declaration_sha256"] == D.declaration_sha256() and res["tests"]["A1"]["effect"] > 0.9
+    recs = [json.loads(line) for line in trials.read_text().splitlines()]
+    assert [r["preset"] for r in recs if r["kind"] == "cb3_test" and r["evidence_role"] != "placebo"] == ["A1", "A2"]
+    assert any(r["kind"] == "ml_explain" and r["source"] == "creative_batch_3:A" and r["n_tests"] == 2 for r in recs)
+    assert sum(1 for r in recs if r.get("evidence_role") == "placebo") == 2  # one summary placebo line per test
+    # results are never overwritten
+    assert runner.main(["screen", "--family", "A", "--n-boot", "0", "--placebo-draws", "3", *common]) == runner.REFUSED_EXIT
+    assert len(trials.read_text().splitlines()) == len(recs)
+
+
+def test_runner_refuses_without_matching_declaration_and_forbidden_runs_and_early_stages(tmp_path, runner):
+    root = _write_world_root(tmp_path, world("noise", n_mkt=8, n_cap=10), D.epoch("2026-10-10T00:00:00Z"))
+    base = ["--quote-root", str(root), "--out-root", str(tmp_path / "o"), "--trials", str(tmp_path / "t.jsonl")]
+    assert runner.main(["screen", "--family", "A", *base, "--spec", str(tmp_path / "missing.json")]) == runner.REFUSED_EXIT
+    assert runner.main(["screen", "--family", "A", *base, "--spec", str(_spec(tmp_path, "0" * 64))]) == runner.REFUSED_EXIT
+    for rid in ("h3_power", "h4_seal", "h5_cb1", "h6_weather", "h1_first"):
+        assert runner.main(["census", "--family", "B", "--run-id", rid, *base]) == runner.REFUSED_EXIT
+    spec = _spec(tmp_path)
+    assert runner.main(["replicate", "--family", "A", *base, "--spec", str(spec)]) == runner.REFUSED_EXIT  # no pinned T3_rep_start
+    assert runner.main(["stagep", *base, "--spec", str(spec)]) == runner.REFUSED_EXIT
+    assert not (tmp_path / "t.jsonl").exists()  # nothing counted
+
+
+def test_runner_census_A_is_counts_only(tmp_path, runner):
+    root = _write_world_root(tmp_path, world("noise"), D.epoch("2026-10-10T00:00:00Z"))
+    out = tmp_path / "out"
+    assert runner.main(["census", "--family", "A", "--quote-root", str(root), "--out-root", str(out), "--trials", str(tmp_path / "t.jsonl")]) == 0
+    c = json.loads((out / "census.json").read_text())["A"]
+    assert c["n_onsets"] >= 1000 and "exclusions" in c
+    text = json.dumps(c)
+    for forbidden in ("m_T", "recovered", "num", "R_hat", "mean_g"):
+        assert forbidden not in text
+    recs = [json.loads(line) for line in (tmp_path / "t.jsonl").read_text().splitlines()]
+    assert [r["kind"] for r in recs] == ["cb3_descriptive"]
+
+
+def test_runner_census_refuses_a_root_that_reaches_into_t_j4r(tmp_path, runner):
+    caps = world("noise", n_mkt=8, n_cap=12)
+    root = _write_world_root(tmp_path, caps, D.epoch("2026-10-15T20:00:00Z"))  # captures run into 2026-10-16
+    rc = runner.main(["census", "--family", "A", "--quote-root", str(root), "--out-root", str(tmp_path / "o"), "--before", "2026-10-17T00:00:00Z", "--trials", str(tmp_path / "t.jsonl")])
+    # --before is clipped to T3_A_dev_end (21:00Z): only the first capture(s) before it are read, never the J4-R ones
+    assert rc == 0
+    c = json.loads((tmp_path / "o" / "census.json").read_text())["A"]
+    assert c["n_captures"] <= 1

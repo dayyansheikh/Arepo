@@ -273,6 +273,7 @@ def run(*, snapshot_root: Path | None = None, current_dir: Path | None = None, s
     # Seal: plan (seed, sampled markets, request order) is durable before the first request.
     _atomic_json(out / "plan.json", {"version": VERSION, "capture_id": cid, "seed": seed, "frac": frac, "previous_capture_id": prev["capture_id"] if prev else None,
                                      "sample_dir": sample_dir.name if sample_dir else None, "n_sample_markets": len(b_markets),
+                                     "inclusion_float": {str(m["market_id"]): m.get("inclusion_float") for m in b_markets},
                                      "request_order": [(t["kind"], t["market_id"]) for t in tasks], "vacuum_max": vacuum_max, "planned_utc": _fmt(now())})
     if pre_tr is not None:
         _atomic_csv_gz(out / "pre" / "trades.csv.gz", pre_tr)

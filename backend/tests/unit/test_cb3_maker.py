@@ -512,3 +512,192 @@ def test_slope_and_mean_tests_gate_on_cluster_counts_and_small_g_day_way():
     assert few["testable"] is False and few["p"] == 1.0
     strict = C.mean_test(v, ways, n_boot=0)
     assert strict["testable"] is False  # without the small-G rule the day way would need 30
+
+
+# --- history pipeline and runner (B) --------------------------------------------------------------------------
+
+
+def _history_run(tmp_path, n_mkt=60, seed=4):
+    import gzip as gz
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+    rng = np.random.default_rng(seed)
+    run = tmp_path / "history" / "h2_main"
+    (run / "prices").mkdir(parents=True)
+    (run / "trades").mkdir(parents=True)
+    base = 1_760_000_000.0
+    (run / "manifest.json").write_text(json.dumps({"request_clock_now": "2026-10-15T00:00:00Z", "lookback_days": 400}))
+    frame, prog, books = [], [], []
+    for m in range(n_mkt):
+        mid = f"m{m}"
+        frame.append({"market_id": mid, "token0": f"a{m}", "token1": f"b{m}", "event_id": f"e{m % 40}", "created_at": "2025-06-01T00:00:00Z", "start_epoch": base - 90 * 86400,
+                      "end_epoch": base + 60 * 86400.0, "close_epoch": "", "closed": 0, "fee_category": "politics" if m % 3 else "crypto"})
+        prog.append(json.dumps({"market_id": mid, "status": "done", "trades_truncated": False}))
+        ts = np.arange(base - 40 * H, base + 3 * 86400.0, 600.0)
+        rows = []
+        for i, t in enumerate(ts):
+            buy = rng.random() < 0.5
+            rows.append({"ts": t, "side": "BUY" if buy else "SELL", "size": float(rng.integers(2, 30)), "price": 0.52 if buy else 0.48, "outcome_index": 0,
+                         "wallet_hash": f"w{rng.integers(0, 12)}", "trade_key": f"{m}-{i}"})
+        pd.DataFrame(rows).to_csv(run / "trades" / f"{mid}.csv.gz", index=False, compression="gzip")
+        pd.DataFrame({"t": np.arange(base - 3 * 86400.0, base + 4 * 86400.0, 600.0), "p": 0.5 + rng.normal(0, 0.003, 1008)}).to_csv(run / "prices" / f"{mid}.csv.gz", index=False, compression="gzip")
+        for k in range(6):
+            books.append({"market_id": mid, "origin_ts": base + k * 6 * H, "state": "two_sided", "sw_best_bid": 0.48, "sw_best_ask": 0.52, "sw_bid_size_1": 5.0, "sw_ask_size_1": 5.0,
+                          "sw_book_age_s": 100.0})
+    with gz.open(run / "sample.csv.gz", "wt", newline="") as fh:
+        pd.DataFrame(frame).to_csv(fh, index=False)
+    (run / "progress.jsonl").write_text("\n".join(prog) + "\n")
+    bpath = tmp_path / "book_features.csv.gz"
+    pd.DataFrame(books).to_csv(bpath, index=False, compression="gzip")
+    return run, bpath
+
+
+def test_history_census_is_counts_only_and_never_touches_marks(tmp_path, monkeypatch):
+    run, bpath = _history_run(tmp_path)
+
+    def boom(*a, **k):
+        raise AssertionError("the census must not build or read marks")
+
+    monkeypatch.setattr(M.HistoryMarks, "mark", boom)
+    monkeypatch.setattr(M.HistoryMarks, "last_before", boom)
+    c = M.census_history(run, bpath)
+    assert c["n_quote_opportunities_all"] > 100 and c["fills"]["queue_bid"]["filled"] > 0
+    assert c["frozen_cuts_proposal"]["activity_tercile_cuts"] is not None
+    text = json.dumps(c)
+    for bad in ("net6", "mo6", "mark6", "ev_per_quote", "mean_net"):
+        assert bad not in text
+    with pytest.raises(D.Cb3Error):
+        M.assert_no_marks(pd.DataFrame({"mark6": [1.0]}))
+    with pytest.raises(D.Cb3Error):
+        M.assert_no_marks(pd.DataFrame({"m_T": [1.0]}))
+
+
+def test_history_screen_runs_end_to_end_and_reports_all_six_tests(tmp_path):
+    run, bpath = _history_run(tmp_path)
+    cuts = {"rt_top_decile_cut": 0.2, "activity_tercile_cuts": [20.0, 60.0]}
+    res = M.screen_history(run, bpath, cuts, n_boot=0, placebo_draws=3, random_draws=10)
+    assert set(res["tests"]) == {"B1", "B2", "B3", "B4", "B5", "B6"}
+    assert res["descriptive"]["U_non_sports"]["n_quotes"] > 100
+    for tid in ("B1", "B3", "B5"):
+        t = res["tests"][tid]
+        assert "advance" in t and ("placebo" in t or not t.get("testable"))
+    assert all(isinstance(t.get("advance"), bool) for t in res["tests"].values())
+
+
+def test_runner_B_screen_needs_frozen_cuts_and_logs_six_tests(tmp_path):
+    import run_cb3
+
+    run, bpath = _history_run(tmp_path)
+    spec = tmp_path / "cb3_v1.json"
+    spec.write_text(json.dumps({"declaration_sha256": D.declaration_sha256()}))
+    args = ["screen", "--family", "B", "--history-root", str(run.parent), "--books", str(bpath), "--out-root", str(tmp_path / "out"), "--trials", str(tmp_path / "t.jsonl"),
+            "--spec", str(spec), "--n-boot", "0", "--placebo-draws", "2", "--random-filter-draws", "5"]
+    assert run_cb3.main(args) == run_cb3.REFUSED_EXIT  # the committed spec carries no frozen cuts
+    spec.write_text(json.dumps({"declaration_sha256": D.declaration_sha256(), "frozen_cuts": {"rt_top_decile_cut": 0.2, "activity_tercile_cuts": [20.0, 60.0]}}))
+    assert run_cb3.main(args) == 0
+    recs = [json.loads(line) for line in (tmp_path / "t.jsonl").read_text().splitlines()]
+    assert sorted(r["preset"] for r in recs if r["kind"] == "cb3_test" and r["evidence_role"] != "placebo") == ["B1", "B2", "B3", "B4", "B5", "B6"]
+    assert [r["n_tests"] for r in recs if r["kind"] == "ml_explain"] == [6]
+    assert run_cb3.main(args) == run_cb3.REFUSED_EXIT  # never overwritten
+
+
+def test_runner_census_B_writes_counts_and_refuses_reserved_runs(tmp_path):
+    import run_cb3
+
+    run, bpath = _history_run(tmp_path)
+    args = ["census", "--family", "B", "--history-root", str(run.parent), "--books", str(bpath), "--out-root", str(tmp_path / "out"), "--trials", str(tmp_path / "t.jsonl")]
+    assert run_cb3.main(args) == 0
+    assert json.loads((tmp_path / "out" / "census.json").read_text())["B"]["n_quote_opportunities_all"] > 100
+    assert run_cb3.main([*args, "--run-id", "h3_power"]) == run_cb3.REFUSED_EXIT
+
+
+def test_batch_holm_over_the_stage2_family_and_expected_family():
+    s1a = {"tests": {"A1": {"advance": True}, "A2": {"advance": False}}}
+    s1b = {"tests": {"B1": {"advance": False, "entry_exception_stage2": True}, "B2": {"advance": True}, "B3": {"advance": False}}}
+    exp = C.stage2_expected(s1a, s1b)
+    assert exp == ["A1", "A3", "B1", "B2"]
+    docs = [("S2_A", {"tests": {"A1": {"p": 0.001, "advance": True}}}), ("S2_B", {"tests": {"B1": {"p": 0.2, "advance": True}, "B2": {"p": 0.004, "advance": True}}})]
+    bh = C.batch_holm(docs, exp)
+    assert bh["m"] == 4 and bh["missing_stage2_counted_p1"] == ["A3"] and bh["replicated"] == ["A1", "B2"]
+    with pytest.raises(D.Cb3Error):
+        C.batch_holm([("x", {"tests": {"B6": {"p": 0.1}}})], exp)
+
+
+# --- prospective pipeline -----------------------------------------------------------------------------------
+
+
+def _prospective_world(tmp_path, n_mkt=4, n_cap=8):
+    import gzip as gz
+
+    from astrolabe.research_lab import cb3_quote_vacuum as V
+
+    t0 = D.epoch("2026-10-27T00:00:00Z")
+    frames = []
+    for c in range(n_cap):
+        st = t0 + c * 2 * H
+        rows = []
+        for m in range(n_mkt):
+            rows.append({"market_id": f"m{m}", "condition_id": f"c{m}", "event_id": f"e{m}", "best_bid": "0.48", "best_ask": "0.52", "spread": "0.04", "last_trade_price": "0.5",
+                         "volume_num": "100", "closed": "False", "accepting_orders": "True", "end_date": "2026-12-31T00:00:00Z", "created_at": "2026-09-01T00:00:00Z",
+                         "fee_category": "politics", "fee_schedule": "",
+                         "s1_batch_receipt_utc": D.iso(st + 600), "s1_best_bid": "0.48", "s1_best_ask": "0.52", "s1_bid_size_1": "5", "s1_ask_size_1": "5"})
+        frames.append((f"c{c:03d}", st, pd.DataFrame(rows), None))
+    P = V.panel_from_frames(frames)
+    fu = tmp_path / "fu"
+    rng = np.random.default_rng(1)
+    for c in range(1, n_cap):
+        d = fu / f"c{c:03d}"
+        prev_t = t0 + (c - 1) * 2 * H + 600
+        pre, post = [], []
+        for m in range(n_mkt):
+            for i in range(80):
+                pre.append({"market_id": f"m{m}", "condition_id": f"c{m}", "ts": prev_t - 30 * 60 - i * 300, "side": "BUY" if rng.random() < 0.5 else "SELL", "outcome_index": 0,
+                            "asset": "a", "size": 5.0, "price": 0.5, "wallet_hash": f"w{i % 7}"})
+            for i in range(40):
+                buy = rng.random() < 0.5
+                post.append({"market_id": f"m{m}", "condition_id": f"c{m}", "ts": prev_t + 60 + i * 150, "side": "BUY" if buy else "SELL", "price": 0.52 if buy else 0.48, "size": 6.0,
+                             "outcome_index": 0, "asset": "a", "tx_hash": f"0x{i}", "wallet_hash": f"w{i % 7}"})
+        (d / "pre").mkdir(parents=True)
+        (d / "post").mkdir(parents=True)
+        pd.DataFrame(pre).to_csv(d / "pre" / "wallets.csv.gz", index=False, compression="gzip")
+        pd.DataFrame(post).to_csv(d / "post" / "trades.csv.gz", index=False, compression="gzip")
+        req = prev_t + 10 * H
+        (d / "plan.json").write_text(json.dumps({"frac": 0.5, "inclusion_float": {f"m{m}": 0.25 for m in range(n_mkt)}}))
+        (d / "manifest.json").write_text(json.dumps({"state": "complete"}))
+        (d / "meta.json").write_text(json.dumps({"requests": 8, "n_429": 0, "markets": {f"post:m{m}": {"status": "ok", "request_epoch": req, "page_cap": False, "oldest_ts": None} for m in range(n_mkt)}}))
+    _ = gz
+    return P, M.FollowupReader(fu), fu
+
+
+def test_build_prospective_uses_first_sweep_origin_pre_before_t_post_after_and_later_sweeps_for_marks(tmp_path):
+    P, reader, _fu = _prospective_world(tmp_path)
+    u = M.build_prospective(P, reader)
+    opps, fills = u["opps"], u["fills"]
+    assert len(opps) == 7 * 4 and u["diag"]["kept"] == 28
+    assert (opps["t"] == P.mat["s1_recv"][0, :7].repeat(4).reshape(7, 4)[:, 0].repeat(4)).all() or opps["t"].nunique() == 7  # t = the first-sweep receipt of each pass
+    assert opps["classifiable"].all() and opps["w"].iloc[0] == pytest.approx(1.0 / (0.25 * 0.5))
+    q = fills[(fills["rule"] == "queue") & fills["mark6"].notna()]
+    assert len(q) > 0
+    assert (q["mark6"] == 0.5).all()  # later first sweeps are tight 0.48/0.52
+    assert ((q["t_fill"] - q["t"]) > 0).all()
+    # nothing from the future pass leaks into the pre-origin features: a pre print at or after t is dropped
+    assert (opps["activity"] > 0).all()
+
+
+def test_prospective_census_is_counts_only_and_states_stage2_mde(tmp_path):
+    P, reader, fu = _prospective_world(tmp_path)
+    c = M.census_prospective(P, reader, followup_root=fu, qs_root=tmp_path / "qs")
+    assert c["n_quote_opportunities"] == 28 and c["followup_requests"] == 7 * 8 and c["passes_missing_followup"] == 0
+    assert c["stage2_mde"]["B2_B4_mde"] > 0 and c["stage2_mde"]["design_effect"] >= 1.0
+    for bad in ("net6", "mo6", "mark6", "mean_net"):
+        assert bad not in json.dumps(c)
+
+
+def test_screen_prospective_returns_stage2_structure_with_small_g_day_way(tmp_path):
+    P, reader, _fu = _prospective_world(tmp_path)
+    cuts = {"rt_top_decile_cut": 0.2, "activity_tercile_cuts": [10.0, 40.0]}
+    res = M.screen_prospective(P, reader, cuts, ["B1", "B2", "B3", "B4", "B5", "B6"], stage=2, n_boot=0, placebo_draws=2, random_draws=5)
+    assert set(res["tests"]) == {"B1", "B2", "B3", "B4", "B5", "B6"} and res["stage"] == 2
+    assert all(t.get("advance") is False for t in res["tests"].values())  # 28 quotes: far below the testability floors
