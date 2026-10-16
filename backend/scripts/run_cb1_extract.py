@@ -5,6 +5,7 @@ sweeps; writes only under --extract-root. Not a trial kind (no trials logged). A
 
     python scripts/run_cb1_extract.py --all-new --rps 2 --max-requests 300
     python scripts/run_cb1_extract.py --backfill-from 2026-10-11T12:00Z --budget-min 90
+    python scripts/run_cb1_extract.py --backfill-from 2026-10-11T12:00Z --tables ladder_candidates --budget-min 150 --disk-cap-gb 0.25   # CB2 tables only (q0041)
     python scripts/run_cb1_extract.py --freeze-list dev --until 2026-10-17T00:00Z
     python scripts/run_cb1_extract.py --freeze-list rep --from 2026-10-19T00:00Z --until 2026-11-09T00:00Z
 """
@@ -30,6 +31,29 @@ def _iso(s: str) -> str:
     return t.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _cb2_only(a, cb, cb2_root) -> int:
+    """CB2 tables only (q0041 backfill, or a manual all-new run). Backfill fails loudly on an archived file."""
+    import time
+
+    tables = tuple(t.strip() for t in a.tables.split(",") if t.strip())
+    backfill = a.backfill_from is not None
+    budget_min = a.budget_min if a.budget_min is not None else (90.0 if backfill else 7.0)
+    since = _iso(a.backfill_from) if backfill else cb.T2_DEV_START
+    try:
+        summ = cb.run_cb2_tables(
+            a.snapshot_root, a.sweep_root, cb2_root, tables=tables, mode="backfill" if backfill else "all-new",
+            since=since, deadline=time.monotonic() + budget_min * 60.0, disk_cap_gb=a.disk_cap_gb,
+            data_dumps=a.data_dumps, data_dumps_max_gb=a.data_dumps_max_gb)
+    except cb.ExtractLocked:
+        print(json.dumps({"cb2_extract": cb.EXTRACTOR_VERSION, "skipped": "another extractor holds the lock"}))
+        return 0
+    except Exception as exc:
+        print(json.dumps({"cb2_extract": cb.EXTRACTOR_VERSION, "error": f"{type(exc).__name__}: {exc}"[:300]}))
+        return 1 if backfill else 0
+    print(json.dumps({"cb2_extract": cb.EXTRACTOR_VERSION, **summ}))
+    return 0
+
+
 def main() -> int:
     from astrolabe.research_lab import creative_batch1 as cb
 
@@ -47,6 +71,16 @@ def main() -> int:
     ap.add_argument("--snapshot-root", type=Path, default=cb.SNAPSHOT_ROOT)
     ap.add_argument("--sweep-root", type=Path, default=cb.SWEEP_ROOT)
     ap.add_argument("--extract-root", type=Path, default=cb.EXTRACT_ROOT)
+    ap.add_argument("--cb2-root", type=Path, default=None,
+                    help="CB2 extract root (default: cb2_extract beside --extract-root); the pass step writes the "
+                         "CB2 tables there")
+    ap.add_argument("--tables", default=None,
+                    help="comma list of CB2 tables (ladder_candidates,ladders,rewards): run ONLY those, "
+                         "CB1 tables untouched")
+    ap.add_argument("--disk-cap-gb", type=float, default=None, help="--tables: stop at this cb2_root size")
+    ap.add_argument("--data-dumps", type=Path, default=cb.DATA_DUMPS)
+    ap.add_argument("--data-dumps-max-gb", type=float, default=None,
+                    help="--tables: refuse while data-dumps is larger (q0041 uses 10.5)")
     a = ap.parse_args()
 
     if a.freeze_list:
@@ -58,10 +92,16 @@ def main() -> int:
                          | {"n_missing": len(out["missing_ids"])}))
         return 0
 
+    cb2_root = a.cb2_root or (a.extract_root.parent / "cb2_extract" if a.extract_root != cb.EXTRACT_ROOT
+                              else cb.CB2_EXTRACT_ROOT)
+    if a.tables:
+        return _cb2_only(a, cb, cb2_root)
+
     backfill = a.backfill_from is not None
     budget_min = a.budget_min if a.budget_min is not None else (90.0 if backfill else 7.0)
     kw = dict(snapshot_root=a.snapshot_root, sweep_root=a.sweep_root, extract_root=a.extract_root,
-              rps=a.rps, max_requests=a.max_requests, budget_s=budget_min * 60.0)
+              rps=a.rps, max_requests=a.max_requests, budget_s=budget_min * 60.0,
+              cb2_root=None if backfill else cb2_root)
     try:
         if backfill:
             summ = cb.extract(mode="backfill", backfill_from=_iso(a.backfill_from),

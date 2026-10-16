@@ -39,10 +39,14 @@ from . import history_backfill as hb
 
 # --- 1. constants and helpers ------------------------------------------------------------------
 
-EXTRACTOR_VERSION = "cb1-extract-v1"
+EXTRACTOR_VERSION = "cb1-extract-v2"  # v2 = CB2 additions (cb2_extract tables, event_text); CB1 tables unchanged
 SNAPSHOT_ROOT = forecast.SNAPSHOT_ROOT
 SWEEP_ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "book_sweeps"
 EXTRACT_ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "cb1_extract"
+CB2_EXTRACT_ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "cb2_extract"
+DATA_DUMPS = forecast.ROOT / "data-dumps"
+T2_DEV_START = "2026-10-11T12:00:00Z"
+T2_DEV_END = "2026-10-24T00:00:00Z"
 
 CB1_START = "2026-10-11T12:00:00Z"  # first sidecar capture; floor of every CB1 snapshot read
 T_DEV_END = "2026-10-17T00:00:00Z"
@@ -74,6 +78,24 @@ RUNG_LIST_NAME = "rung_list.json"  # B3 rung list (q0029 output) copied into the
 RUNG_SEAL = forecast.ROOT / "docs" / "research_lab" / "seals" / "cb1_b3_rung_list.json"
 EVENT_COLUMNS = ["neg_risk_market_id", "event_id", "member_count", "n_open", "n_closed",
                  "fetched_utc", "http_status"]
+# CB2 (CREATIVE_BATCH_2.md section 4.3). event_text lives beside event_members in the CB1 root.
+EVENT_TEXT_COLUMNS = ["neg_risk_market_id", "event_id", "fetched_utc", "title", "slug",
+                      "member_market_ids", "group_item_titles"]
+CB2_SWEEP_COLUMNS = ["sw1_best_bid", "sw1_best_ask", "sw1_bid_size_1", "sw1_ask_size_1"]
+LADDER_COLUMNS = [  # shared by ladder_candidates/ (text-free) and ladders/
+    "capture_id", "capture_start_utc", "received_utc", "market_id", "event_id", "best_bid", "best_ask",
+    "last_trade_price", "closed", "active", "accepting_orders", "end_date", "volume_num", "fee_schedule",
+    "fee_category", *CB2_SWEEP_COLUMNS,
+]
+REWARD_COLUMNS = [
+    "capture_id", "capture_start_utc", "received_utc", "market_id", "event_id", "clob_rewards",
+    "rewards_daily_rate", "rewards_start", "rewards_end", "rewards_max_spread", "rewards_min_size",
+    "competitive", "best_bid", "best_ask", "spread", "last_trade_price", "volume_num", "fee_category",
+    "accepting_orders", *CB2_SWEEP_COLUMNS,
+]
+CB2_TABLES = ("ladder_candidates", "ladders", "rewards")
+CB2_EXCLUDED_CATEGORIES = frozenset({"sports", "weather"})
+LADDER_LIST_NAME = "ladder_list.json"
 
 _ROW_STR = ["capture_id", "capture_start_utc", "received_utc", "market_id", "event_id",
             "clob_token_id_0", "neg_risk_market_id", "closed", "active", "end_date"]
@@ -425,6 +447,8 @@ def extract(
     now: Callable[[], str] = utc_now,
     write_dev_list: bool = False,
     rung_seal: Path = RUNG_SEAL,
+    cb2_root: Path | None = None,
+    cb2_tables: tuple[str, ...] = ("ladder_candidates", "ladders", "rewards"),
 ) -> dict:
     """Extract every complete capture not yet extracted (idempotent by ``capture_id``).
 
@@ -494,12 +518,20 @@ def extract(
             - summary["missing"]
         summary["remaining"] = max(summary["remaining"], 0)
         summary["max_capture_s"] = round(slowest, 2)
+        if cb2_root is not None and mode == "all-new":  # CB2 tables (v2): never fails the pass
+            try:
+                summary["cb2"] = run_cb2_tables(
+                    snapshot_root, sweep_root, Path(cb2_root), tables=cb2_tables, mode="all-new",
+                    since=T2_DEV_START, deadline=t0 + 0.7 * budget_s, clock=clock, now=now)
+            except Exception as exc:
+                summary["cb2"] = {"error": f"{type(exc).__name__}: {exc}"[:200]}
         # event member counts: after the captures, within the same wall-clock budget
         scan = None if mode == "backfill" else 6
         try:
             summary["events"] = fetch_event_members(
                 extract_root, rps=rps, max_requests=max_requests, deadline=t0 + budget_s,
-                transport=transport, clock=clock, sleep=sleep, now=now, scan_last=scan)
+                transport=transport, clock=clock, sleep=sleep, now=now, scan_last=scan,
+                write_text=bool(cb2_root is not None and mode == "all-new"))
         except Exception as exc:  # never fail the pass for the metadata fetch
             summary["events"] = {"error": f"{type(exc).__name__}: {exc}"[:200]}
         summary["backfill_complete"] = bool(mode == "backfill" and summary["remaining"] == 0
@@ -551,7 +583,7 @@ def _targets(extract_root: Path, scan_last: int | None) -> dict[str, str]:
 def fetch_event_members(
     extract_root: Path, *, rps: float, max_requests: int, deadline: float,
     transport: hb.Transport | None, clock: Callable[[], float], sleep: Callable[[float], None],
-    now: Callable[[], str], scan_last: int | None,
+    now: Callable[[], str], scan_last: int | None, write_text: bool = False,
 ) -> dict:
     """Fetch Gamma ``/events/{id}`` once per new ``neg_risk_market_id`` (stale after 7 days;
     new ids first) within ``max_requests`` and the wall-clock ``deadline``. Metadata only."""
@@ -567,6 +599,7 @@ def fetch_event_members(
         return res
     lim = hb.Limiter(transport or hb.httpx_transport(), rps=rps, sleep=sleep, clock=clock)
     fresh: dict[str, dict] = {}
+    texts: list[dict] = []
     fails = 0
     for nrm in todo:
         if res["requests"] >= max_requests or clock() + 1.0 / rps + 5.0 > deadline:
@@ -590,6 +623,12 @@ def fetch_event_members(
             row.update(member_count=str(len(ms)),
                        n_closed=str(sum(1 for m in ms if m.get("closed") is True)),
                        n_open=str(sum(1 for m in ms if m.get("closed") is not True)))
+            if write_text:  # same response, no extra request (CB2 4.3); text as first seen, disclosed
+                texts.append({
+                    "neg_risk_market_id": nrm, "event_id": ev, "fetched_utc": row["fetched_utc"],
+                    "title": str(data.get("title") or ""), "slug": str(data.get("slug") or ""),
+                    "member_market_ids": json.dumps([str(m.get("id", "")) for m in ms]),
+                    "group_item_titles": json.dumps([str(m.get("groupItemTitle") or "") for m in ms])})
         fresh[nrm] = row
         res["fetched"] += 1
     if fresh:
@@ -599,6 +638,13 @@ def fetch_event_members(
         write_csv_gz(extract_root / "event_members.csv.gz",
                      merged.sort_values(["neg_risk_market_id", "fetched_utc"], kind="stable"),
                      EVENT_COLUMNS)
+    if texts:  # append-only, like event_members; never rewrites an earlier row
+        p = extract_root / "event_text.csv.gz"
+        old = (pd.read_csv(p, dtype=str, keep_default_na=False) if p.exists()
+               else pd.DataFrame(columns=EVENT_TEXT_COLUMNS))
+        write_csv_gz(p, pd.concat([old, pd.DataFrame(texts)], ignore_index=True)
+                     .sort_values(["neg_risk_market_id", "fetched_utc"], kind="stable"), EVENT_TEXT_COLUMNS)
+        res["event_text_rows"] = len(texts)
     return res
 
 
@@ -670,4 +716,270 @@ def read_extract_table(extract_root: Path, table: str, capture_id: str) -> pd.Da
                                  "clob_token_id_0": str, "capture_id": str})
 
 
-__all__ = ["extract", "freeze_list", "load_capture_list", "read_extract_table"]
+def ladder_gate(cb2_root: Path) -> dict:
+    """Gate for ``ladders/`` (step 2)."""
+    return {"open": False, "reason": "not_implemented", "visible": {}, "as_of_utc": None}
+
+
+# --- 6. CB2 extractor v2 tables (docs/research_lab/CREATIVE_BATCH_2.md section 4.3) -----------------
+#
+# Own root (``cb2_extract``) and manifest; CB1 tables are never touched. ``ladder_candidates/`` is
+# text-free (no question, slug or description) and needs no ladder list: every non-sports,
+# non-weather, non-neg-risk market of captures with start < T2_DEV_END. ``rewards/<date>`` is data
+# only (CH16 preservation). Everything is idempotent by capture_id and table.
+
+
+def _dir_gb(path: Path) -> float:
+    path = Path(path)
+    if not path.exists():
+        return 0.0
+    return sum(f.stat().st_size for f in path.rglob("*") if f.is_file()) / 1e9
+
+
+def _load_cb2_manifest(cb2_root: Path) -> dict:
+    p = Path(cb2_root) / "manifest.json"
+    if p.exists():
+        return json.loads(p.read_text())
+    return {"extractor_version": EXTRACTOR_VERSION, "captures": {}}
+
+
+def rewards_capture_ids(caps: list[dict]) -> set[str]:
+    """First complete capture at or after 12:00Z of each UTC day (caps sorted by start)."""
+    first: dict[str, str] = {}
+    for c in caps:
+        st = c["_start"]
+        if st.hour >= 12:
+            first.setdefault(st.strftime("%Y-%m-%d"), c["capture_id"])
+    return set(first.values())
+
+
+def _parse_rewards(txt: Any) -> tuple[float, str, str]:
+    """(sum of rewardsDailyRate, earliest startDate, latest endDate) from the raw ``clobRewards`` JSON;
+    NaN / blank when absent or unparseable. The raw text is kept beside these in the table."""
+    try:
+        arr = json.loads(str(txt))
+        if isinstance(arr, dict):
+            arr = [arr]
+        rates = [float(a["rewardsDailyRate"]) for a in arr if a.get("rewardsDailyRate") not in (None, "")]
+        starts = sorted(str(a["startDate"]) for a in arr if a.get("startDate"))
+        ends = sorted(str(a["endDate"]) for a in arr if a.get("endDate"))
+        return (sum(rates) if rates else float("nan"), starts[0] if starts else "",
+                ends[-1] if ends else "")
+    except Exception:
+        return float("nan"), "", ""
+
+
+def read_sweep_book(sweep_dir: Path, market_ids: set[str]) -> pd.DataFrame | None:
+    """First-sweep touch and size-1 fields for ``market_ids`` (index market_id); None if rotated."""
+    p = Path(sweep_dir) / "rows.csv.gz"
+    if not p.exists():
+        return None
+    want = ["best_bid", "best_ask", "bid_size_1", "ask_size_1"]
+    parts = []
+    for ch in _chunks(p, ["market_id"], want):
+        sub = ch[ch["market_id"].isin(market_ids)]
+        if len(sub):
+            parts.append(sub)
+    if not parts:
+        return pd.DataFrame(columns=["market_id", *want]).set_index("market_id")
+    return pd.concat(parts, ignore_index=True).drop_duplicates("market_id").set_index("market_id")
+
+
+def _read_ext_cols(path: Path, want_str: list[str], want_num: list[str]) -> pd.DataFrame:
+    parts = [ch[[*want_str, *want_num]] for ch in _chunks(path, want_str, want_num)]
+    if not parts:
+        return pd.DataFrame(columns=[*want_str, *want_num]).set_index("market_id")
+    return pd.concat(parts, ignore_index=True).drop_duplicates("market_id").set_index("market_id")
+
+
+def extract_cb2_capture(cap: dict, sweeps: dict[int, Path] | None, cb2_root: Path, need: set[str],
+                        *, ladder_visible: dict[str, Any] | None = None) -> dict:
+    """Write the requested CB2 tables for one capture. Raises ArchivedDataError if the rows file (or an
+    existing sidecar) is not on this host. Returns ``{table: manifest entry}`` plus shared fields."""
+    cdir = Path(cap["dir"])
+    cid, start = cap["capture_id"], cap["started_utc"]
+    rows_p = forecast.require_local(cdir / "rows.csv.gz")
+    ext_p = cdir / "rows_ext.csv.gz"
+    if ext_p.exists():
+        ext_status = "ok"
+    elif (cdir / "ext_manifest.json").exists():
+        forecast.require_local(ext_p)
+        ext_status = "ok"
+    else:
+        ext_status = "none"
+    e_str = ["market_id", "fee_schedule", "fee_category"]
+    e_num = ["accepting_orders", "volume_num"]
+    if "rewards" in need:
+        e_str += ["clob_rewards"]
+        e_num += ["rewards_max_spread", "rewards_min_size", "competitive"]
+    ext = _read_ext_cols(ext_p, e_str, e_num) if ext_status == "ok" else pd.DataFrame(columns=e_str[1:] + e_num)
+    if ext.index.name != "market_id" and len(ext) == 0:
+        ext.index.name = "market_id"
+    cat = ext["fee_category"].astype(str).str.strip().str.lower() if len(ext) else pd.Series(dtype=str)
+    reward_ids: set[str] = set()
+    if "rewards" in need and len(ext):
+        cr = ext["clob_rewards"].fillna("").astype(str).str.strip()
+        reward_ids = set(cr.index[~cr.isin(["", "[]", "null", "{}", "nan"])])
+    lad_ids = set(ladder_visible) if (ladder_visible is not None and "ladders" in need) else set()
+    kept: list[pd.DataFrame] = []
+    n_rows = 0
+    for ch in _chunks(rows_p, _ROW_STR, _ROW_NUM):
+        n_rows += len(ch)
+        mid = ch["market_id"]
+        flags = pd.DataFrame(index=ch.index)
+        nrm = ch["neg_risk_market_id"].fillna("").astype(str).str.strip()
+        c = mid.map(cat).fillna("") if len(cat) else pd.Series("", index=ch.index)
+        flags["_cand"] = ((nrm == "") & ~c.isin(CB2_EXCLUDED_CATEGORIES)) if "ladder_candidates" in need else False
+        flags["_lad"] = mid.isin(lad_ids) if lad_ids else False
+        flags["_rew"] = mid.isin(reward_ids) if reward_ids else False
+        k = flags.any(axis=1).to_numpy()
+        if k.any():
+            kept.append(pd.concat([ch[k], flags[k]], axis=1))
+    df = (pd.concat(kept, ignore_index=True).drop_duplicates("market_id") if kept
+          else pd.DataFrame(columns=[*_ROW_STR, *_ROW_NUM, "_cand", "_lad", "_rew"]))
+    for col in ("fee_schedule", "fee_category", "accepting_orders", "volume_num", "clob_rewards",
+                "rewards_max_spread", "rewards_min_size", "competitive"):
+        df[col] = df["market_id"].map(ext[col]) if (len(df) and len(ext) and col in ext.columns) else np.nan
+    for c4 in CB2_SWEEP_COLUMNS:
+        df[c4] = np.nan
+    sw_status = "absent"
+    d0 = (sweeps or {}).get(0)
+    if d0 is not None and len(df):
+        sw = read_sweep_book(d0, set(df["market_id"]))
+        if sw is None:
+            sw_status = "file_missing"
+        else:
+            sw_status = Path(d0).name
+            for src in ("best_bid", "best_ask", "bid_size_1", "ask_size_1"):
+                if len(sw):
+                    df[f"sw1_{src}"] = df["market_id"].map(sw[src])
+    df["capture_id"], df["capture_start_utc"] = cid, start
+    sha = sha256_stream(rows_p)
+    common = {"status": "written", "rows_sha256": sha, "n_rows": n_rows, "ext_status": ext_status,
+              "sweep1": sw_status, "extractor_version": EXTRACTOR_VERSION, "extracted_utc": utc_now()}
+    out: dict[str, dict] = {}
+    if "ladder_candidates" in need:
+        sub = df[df["_cand"].astype(bool)]
+        write_csv_gz(Path(cb2_root) / "ladder_candidates" / f"{cid}.csv.gz", sub, LADDER_COLUMNS)
+        out["ladder_candidates"] = {**common, "n_out": int(len(sub))}
+    if "rewards" in need:
+        sub = df[df["_rew"].astype(bool)].copy()
+        parsed = [_parse_rewards(t) for t in sub["clob_rewards"]]
+        sub["rewards_daily_rate"] = [p[0] for p in parsed]
+        sub["rewards_start"] = [p[1] for p in parsed]
+        sub["rewards_end"] = [p[2] for p in parsed]
+        day = _ts(start).strftime("%Y-%m-%d")
+        write_csv_gz(Path(cb2_root) / "rewards" / f"{day}.csv.gz", sub, REWARD_COLUMNS)
+        out["rewards"] = {**common, "n_out": int(len(sub)), "date": day}
+    if "ladders" in need:
+        st = _ts(start)
+        sub = df[df["_lad"].astype(bool)]
+        vis = ladder_visible or {}
+        sub = sub[[vis.get(m) is None or st > vis[m] for m in sub["market_id"]]]
+        write_csv_gz(Path(cb2_root) / "ladders" / f"{cid}.csv.gz", sub, LADDER_COLUMNS)
+        out["ladders"] = {**common, "n_out": int(len(sub)), "n_listed": len(lad_ids),
+                          "missing": sorted(lad_ids - set(sub["market_id"]))}
+    return out
+
+
+def _cb2_needs(cap: dict, ent: dict, tables: tuple[str, ...], rew_ids: set[str],
+               gate: dict | None) -> set[str]:
+    need: set[str] = set()
+    st = cap["_start"]
+    if ("ladder_candidates" in tables and _ts(T2_DEV_START) <= st < _ts(T2_DEV_END)
+            and ent.get("ladder_candidates", {}).get("status") != "written"):
+        need.add("ladder_candidates")
+    if "rewards" in tables and cap["capture_id"] in rew_ids and ent.get("rewards", {}).get("status") != "written":
+        need.add("rewards")
+    if ("ladders" in tables and gate and gate.get("open") and st >= _ts(gate["as_of_utc"])
+            and ent.get("ladders", {}).get("status") != "written"):
+        need.add("ladders")
+    return need
+
+
+def run_cb2_tables(
+    snapshot_root: Path, sweep_root: Path, cb2_root: Path, *, tables: tuple[str, ...], mode: str,
+    since: str, deadline: float, clock: Callable[[], float] = time.monotonic,
+    now: Callable[[], str] = utc_now, disk_cap_gb: float | None = None,
+    data_dumps: Path | None = None, data_dumps_max_gb: float | None = None, _locked_by_caller: bool = False,
+) -> dict:
+    """Extract the CB2 tables for every complete capture that still needs them (idempotent). Stops
+    cleanly at ``deadline`` (a ``clock()`` value), at ``disk_cap_gb`` of ``cb2_root``, and refuses to start
+    while ``data_dumps`` exceeds ``data_dumps_max_gb``. all-new: newest first, a missing rows file is
+    recorded and the run continues; backfill: oldest first, ``ArchivedDataError`` is raised."""
+    bad = [t for t in tables if t not in CB2_TABLES]
+    if bad or mode not in ("all-new", "backfill"):
+        raise ValueError((bad, mode))
+    snapshot_root, sweep_root, cb2_root = Path(snapshot_root), Path(sweep_root), Path(cb2_root)
+    res: dict[str, Any] = {"tables": list(tables), "mode": mode, "written": 0, "missing": 0, "stopped": None}
+    if data_dumps_max_gb is not None and data_dumps is not None and _dir_gb(data_dumps) > data_dumps_max_gb:
+        res["stopped"] = "refused_data_dumps_over_cap"
+        res["remaining"] = None
+        return res
+    with _lock(cb2_root):
+        man = _load_cb2_manifest(cb2_root)
+        man0 = json.dumps(man, sort_keys=True)
+        gate = ladder_gate(cb2_root) if "ladders" in tables else None
+        if gate is not None:
+            res["ladders_gate"] = gate["reason"]
+            if gate.get("error") and man.get("ladders_gate") != gate["reason"]:
+                man["ladders_gate"] = gate["reason"]
+        vis = gate["visible"] if gate and gate.get("open") else None
+        lo = _ts(since)
+        caps = forecast.list_complete_captures(snapshot_root)
+        rew = rewards_capture_ids(caps) if "rewards" in tables else set()
+
+        def todo_now() -> list[tuple[dict, set[str]]]:
+            out = []
+            for c in caps:
+                if c["_start"] < lo:
+                    continue
+                nd = _cb2_needs(c, man["captures"].get(c["capture_id"], {}), tables, rew, gate)
+                if nd:
+                    out.append((c, nd))
+            return out[::-1] if mode == "all-new" else out
+
+        todo = todo_now()
+        sidx = sweep_index(sweep_root) if todo else {}
+        used = _dir_gb(cb2_root) if disk_cap_gb is not None else 0.0
+        slowest = 0.0
+        t0 = clock()
+        for cap, nd in todo:
+            if clock() + 1.3 * slowest > deadline:
+                res["stopped"] = "budget"
+                break
+            if disk_cap_gb is not None and used >= disk_cap_gb:
+                res["stopped"] = "disk_cap"
+                break
+            c0 = clock()
+            cid = cap["capture_id"]
+            ent = dict(man["captures"].get(cid, {}))
+            try:
+                got = extract_cb2_capture(cap, sidx.get(cid), cb2_root, nd, ladder_visible=vis)
+            except forecast.ArchivedDataError:
+                if mode == "backfill":
+                    raise
+                ent.update(started_utc=cap["started_utc"], status="missing", extracted_utc=now())
+                res["missing"] += 1
+            else:
+                ent.update(got)
+                ent["started_utc"] = cap["started_utc"]
+                if ent.get("status") == "missing":
+                    ent.pop("status")
+                res["written"] += 1
+                if disk_cap_gb is not None:
+                    used = _dir_gb(cb2_root)
+            man["captures"][cid] = ent
+            man["extractor_version"] = EXTRACTOR_VERSION
+            _atomic_write_json(cb2_root / "manifest.json", man)  # manifest last
+            slowest = max(slowest, clock() - c0)
+        if json.dumps(man, sort_keys=True) != man0:
+            _atomic_write_json(cb2_root / "manifest.json", man)
+        res["remaining"] = max(len(todo_now()) - res["missing"], 0)
+        res["max_capture_s"] = round(slowest, 2)
+        res["backfill_complete"] = bool(mode == "backfill" and res["remaining"] == 0 and res["stopped"] is None)
+        res["elapsed_s"] = round(clock() - t0, 2)
+    return res
+
+
+__all__ = ["extract", "freeze_list", "load_capture_list", "read_extract_table", "run_cb2_tables"]
