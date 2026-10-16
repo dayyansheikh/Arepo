@@ -447,3 +447,9 @@ def test_power_mode_wallet_lookup_hashes_only(tmp_path):
     assert m["wallet_first_trade"]["cap_reached"] and m["params"]["oversample"] == 3.0
     sample = pd.read_csv(tmp_path / "p1" / "sample.csv.gz")
     assert {"topic", "sample_weight", "inclusion_prob"} <= set(sample.columns)
+
+
+def test_iter_partial_streams_records_and_skips_blank_lines(tmp_path):
+    p = tmp_path / "frame_partial.jsonl"
+    p.write_text('{"day": "a"}\n\n{"day": "b"}\n')
+    assert [r["day"] for r in hb._iter_partial(p)] == ["a", "b"]

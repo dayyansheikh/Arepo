@@ -416,6 +416,14 @@ class FrameInterrupted(RuntimeError):
     """Frame fetch stopped between days (collection window); partial days are kept on disk."""
 
 
+def _iter_partial(path: Path):
+    """Yield the records of a frame_partial.jsonl one line at a time (skips blank lines)."""
+    with path.open() as fh:
+        for line in fh:
+            if line.strip():
+                yield json.loads(line)
+
+
 def fetch_frame(
     lim: Limiter, now: float, lookback_days: int = 270, min_volume: float = 0.0,
     include_active: bool = True, windows_per_day: int = 6, window_minutes: int = 15,
@@ -493,8 +501,8 @@ def fetch_frame(
     slots = 1440 // window_minutes
     done_days: set[str] = set()
     if partial_path is not None and Path(partial_path).exists():  # resume: whole days only
-        for line in Path(partial_path).read_text().splitlines():
-            rec = json.loads(line)
+        # stream line by line: read_text().splitlines() held ~2 copies of a 400 MB file
+        for rec in _iter_partial(Path(partial_path)):
             done_days.add(rec["day"])
             for r in rec["rows"]:
                 rows[r["market_id"]] = r
