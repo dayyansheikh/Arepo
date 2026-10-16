@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -621,3 +622,541 @@ def test_kind_rules_cb2_and_counter_on_real_trials():
 
 def test_np_import_sanity():
     assert np.isfinite(0.0)
+
+
+# =============================================================================================
+# Part 2: units, execution, truncation, small-G, gates, screen / replicate / stage P
+# =============================================================================================
+import pandas as pd  # noqa: E402
+
+T0 = ep("2026-09-10T12:00:00Z")  # a fixed end_at
+
+
+def _event(eid="e1", end=T0, city="nyc", direction="Highest", n=5, title_date="September 10"):
+    return {"event_id": eid, "city": city, "direction": direction, "end_epoch": end, "title_date": title_date,
+            "title_date_iso": "2026-09-10", "markets": [{"market_id": f"{eid}m{j}", "condition_id": f"c{j}",
+                                                         "token_yes": f"t{j}", "bucket": str(j)} for j in range(n)]}
+
+
+def _ser(points):
+    ts = np.array([p[0] for p in points], float)
+    return ts, np.array([p[1] for p in points], float)
+
+
+def _flat(level, start, stop, step=600):
+    return _ser([(t, level) for t in range(int(start), int(stop), step)])
+
+
+def _book(e, levels, start=None, stop=None):
+    start = start if start is not None else e["end_epoch"] - 72 * 3600
+    stop = stop if stop is not None else e["end_epoch"] + 6 * 3600
+    return {m["market_id"]: _flat(lv, start, stop) for m, lv in zip(e["markets"], levels, strict=True)}
+
+
+def _with(pair, t_new, p_new):
+    ts = np.append(pair[0], t_new)
+    vs = np.append(pair[1], p_new)
+    o = np.argsort(ts, kind="stable")
+    return ts[o], vs[o]
+
+
+def _trades(e, mids, ts=None, truncated=False):
+    ts = ts if ts is not None else [e["end_epoch"] - 80 * 3600]
+    return {m["market_id"]: ({"n": len(ts), "truncated": truncated, "oldest_ts": ts[0],
+                              "ts": np.array(ts, float), "dropped_post_cap": 0} if m["market_id"] in mids else None)
+            for m in e["markets"]}
+
+
+def test_favourite_uses_only_points_usable_at_t_and_lag_and_ties():
+    e = _event()
+    t = e["end_epoch"] - 24 * 3600
+    ser = _book(e, [0.1, 0.5, 0.2, 0.1, 0.1])
+    tr = _trades(e, {"e1m1"})
+    u = w.build_units([e], ser, tr, 24.0)
+    assert u.loc[0, "fav_id"] == "e1m1" and u.loc[0, "pre"] == "eligible"
+    # planted post-t spike on another bucket does not change the favourite or the price used at t
+    spike = dict(ser)
+    spike["e1m3"] = _with(spike["e1m3"], t + 60, 0.99)
+    u2 = w.build_units([e], spike, tr, 24.0)
+    assert u2.loc[0, "fav_id"] == "e1m1" and u2.loc[0, "p_fav_t"] == 0.5
+    # the 600 s lag: a point stamped t-300 is not usable at t, one stamped t-601 is
+    late = dict(ser)
+    late["e1m3"] = _with(late["e1m3"], t - 300, 0.9)
+    assert w.build_units([e], late, tr, 24.0).loc[0, "fav_id"] == "e1m1"
+    ok = dict(ser)
+    ok["e1m3"] = _with(ok["e1m3"], t - 601, 0.9)
+    assert w.build_units([e], ok, _trades(e, {"e1m3"}), 24.0).loc[0, "fav_id"] == "e1m3"
+    # tie -> lower market id
+    tie = _book(e, [0.1, 0.5, 0.5, 0.1, 0.1])
+    assert w.build_units([e], tie, _trades(e, {"e1m1", "e1m2"}), 24.0).loc[0, "fav_id"] == "e1m1"
+    # more than one bucket without a usable point excludes the event; exactly one does not
+    one = {k: v for k, v in ser.items() if k != "e1m4"}
+    assert w.build_units([e], one, tr, 24.0).loc[0, "pre"] == "eligible"
+    two = {k: v for k, v in one.items() if k != "e1m3"}
+    r = w.build_units([e], two, tr, 24.0).loc[0]
+    assert r["pre"] == "excl_multi_missing" and r["n_missing"] == 2
+    # stale points (> 2h old) are not usable
+    stale = {k: _flat(v[1][0], e["end_epoch"] - 72 * 3600, t - 3 * 3600) for k, v in ser.items()}
+    assert w.build_units([e], stale, tr, 24.0).loc[0, "pre"] == "excl_multi_missing"
+
+
+def test_band_and_trade_condition_and_truncation_unavailable():
+    e = _event()
+    t = e["end_epoch"] - 24 * 3600
+    for lv, pre in ((0.29, "excl_band"), (0.30, "eligible"), (0.9499, "eligible"), (0.95, "excl_band")):
+        u = w.build_units([e], _book(e, [lv, 0.1, 0.1, 0.1, 0.1]), _trades(e, {"e1m0"}), 24.0)
+        assert u.loc[0, "pre"] == pre, lv
+    ser = _book(e, [0.5, 0.1, 0.1, 0.1, 0.1])
+    # no trade before t in a complete fetch: false (excluded)
+    assert w.build_units([e], ser, _trades(e, {"e1m0"}, ts=[t + 100]), 24.0).loc[0, "pre"] == "excl_no_trade"
+    # truncated with the oldest stored trade at or after t: unavailable (not false)
+    r = w.build_units([e], ser, _trades(e, {"e1m0"}, ts=[t + 100], truncated=True), 24.0).loc[0]
+    assert r["pre"] == "unavailable" and r["trade_cond"] == "unavailable"
+    # truncated but a stored trade before t: known true
+    assert w.build_units([e], ser, _trades(e, {"e1m0"}, ts=[t - 100, t + 100], truncated=True), 24.0).loc[0, "pre"] == "eligible"
+    # no trade record at all: unavailable, never 0
+    assert w.build_units([e], ser, {m["market_id"]: None for m in e["markets"]}, 24.0).loc[0, "pre"] == "unavailable"
+
+
+def test_execution_at_t_plus_2h_and_missing_point_keeps_unit_with_net_zero():
+    e = _event()
+    t = e["end_epoch"] - 6 * 3600
+    base = _book(e, [0.5, 0.1, 0.1, 0.1, 0.1])
+    ts, vs = base["e1m0"]
+    # price at t+2h is 0.6; a planted price after t+2h must not change it
+    series = dict(base)
+    pts = [(x, 0.5) for x in range(int(t - 70 * 3600), int(t + 2 * 3600 - 700), 600)] + [(int(t + 2 * 3600 - 700), 0.6)]
+    series["e1m0"] = _ser(pts + [(int(t + 2 * 3600 + 5), 0.99)])
+    u = w.build_units([e], series, _trades(e, {"e1m0"}), 6.0).loc[0]
+    assert u["executed"] and u["p_exec"] == 0.6
+    a, f = w.weather_ask(0.6)
+    assert u["a"] == a and u["f"] == f and u["K"] == a + f
+    # no usable point at t+2h (series stops at t): the unit is kept, not executed, net 0
+    u2 = w.build_units([e], {**base, "e1m0": _flat(0.5, t - 70 * 3600, t - 900)}, _trades(e, {"e1m0"}), 6.0)
+    assert u2.loc[0, "pre"] == "eligible" and not u2.loc[0, "executed"]
+    d = w.attach_outcomes(u2, {"e1": {"yes": {"e1m0": 1.0}, "status": "resolved", "closed_time": t + 3600}})
+    assert d.loc[0, "net"] == 0.0 and d.loc[0, "w3"] == 0.0
+    assert len(w.primary_frame(d)) == 1  # kept in the denominator
+
+
+def test_weather_cost_h_w_floor_and_fee_rate():
+    assert w.H_W_FLOOR == 0.02 and w.WEATHER_FEE_RATE == 0.05 and w.COST_SENS == 0.0075
+    for p in (0.3, 0.5, 0.7, 0.9):
+        assert w.h_w(p) >= 0.02
+    assert w.h_w(0.5) == 0.02  # the 1.10c CB1 band is floored at 2.0c
+    a, f = w.weather_ask(0.5)
+    assert abs(a - 0.52) < 1e-12 and abs(f - 0.05 * a * (1 - a)) < 1e-12
+    assert w.weather_ask(0.99)[0] == 0.999
+
+
+def test_outcome_status_and_worst_case_extra():
+    df = pd.DataFrame([
+        {"market_id": "a", "event_id": "1", "outcome_prices": '["1","0"]', "closed": "True", "closed_time": "2026-09-10T13:00:00Z"},
+        {"market_id": "b", "event_id": "1", "outcome_prices": '["0","1"]', "closed": "True", "closed_time": "2026-09-10T13:00:00Z"},
+        {"market_id": "c", "event_id": "2", "outcome_prices": '["0.5","0.5"]', "closed": "True", "closed_time": ""},
+        {"market_id": "d", "event_id": "2", "outcome_prices": '["0.5","0.5"]', "closed": "True", "closed_time": ""},
+        {"market_id": "e", "event_id": "3", "outcome_prices": '["0","1"]', "closed": "False", "closed_time": ""}])
+    o = w.parse_event_outcomes(df)
+    assert o["1"]["status"] == "resolved" and o["2"]["status"] == "anomalous" and o["3"]["status"] == "open"
+
+
+def _synthetic_units(n_ev, win, seed=1, n_city=22, n_days=40):
+    """Primary-ready units for the gate tests (no files)."""
+    rng = np.random.default_rng(seed)
+    cities = list(w.TZ_TABLE)[:n_city]
+    rows = []
+    for i in range(n_ev):
+        d = i % n_days
+        end = ep("2026-08-01T12:00:00Z") + d * 86400
+        y = float(rng.random() < win)
+        a, f = w.weather_ask(0.5)
+        rows.append({"event_id": str(i), "city": cities[i % n_city], "day": datetime.fromtimestamp(end, UTC).strftime("%Y-%m-%d"),
+                     "week": w.week_label(end), "executed": True, "K": a + f, "a": a, "f": f, "p_exec": 0.5, "Y": y,
+                     "net": y - a - f, "w3": y - 0.5, "d": 0.3, "local_class": "pre", "pre": "eligible", "ostatus": "resolved",
+                     "band": "0.45-0.60", "direction": "Highest"})
+    return pd.DataFrame(rows)
+
+
+def test_small_g_rule_branches():
+    rng = np.random.default_rng(3)
+    v = rng.normal(0.05, 0.4, 400)
+    cl30 = np.arange(400) % 40
+    cl20 = np.arange(400) % 20
+    cl14 = np.arange(400) % 14
+    r30 = w.small_g_pvalue(v, cl30, n_wild=499)
+    assert r30["method"] == "cr1_normal" and r30["G"] == 40
+    r20 = w.small_g_pvalue(v, cl20, n_wild=999)
+    assert r20["method"] == "cr2_t_and_wild" and r20["G"] == 20
+    assert r20["p"] == max(r20["p_cr2_t"], r20["p_wild"]) and 0 < r20["p_wild"] <= 1
+    # CR2 + t(19) is more conservative than CR1 + normal
+    from scipy.stats import t as tdist
+
+    assert abs(r20["p_cr2_t"] - float(tdist.sf(r20["t_cr2"], 19))) < 1e-12
+    r14 = w.small_g_pvalue(v, cl14)
+    assert r14["p"] == 1.0 and r14["method"] == "not_testable" and not r14["testable"]
+    # the placebo shortcut skips the wild bootstrap when CR2 already fails alpha
+    sk = w.small_g_pvalue(-v, cl20, alpha=0.01, n_wild=999)
+    assert sk["p_wild"] is None and sk["p"] == sk["p_cr2_t"]
+    # a way with G < 15 makes the whole test not testable (p = 1)
+    day = np.arange(400) % 40
+    city = np.arange(400) % 14
+    ct = w.cluster_test_w(v, day, city, day // 7, n_boot=50, n_wild=99)
+    assert not ct["testable"] and ct["p"] == 1.0 and ct["G_city"] == 14
+    ct2 = w.cluster_test_w(v, day, np.arange(400) % 20, day // 7, n_boot=50, n_wild=99)
+    assert ct2["testable"] and ct2["p"] == max(ct2["p_day"], ct2["p_city"]) and len(ct2["ci95_week_boot"]) == 2
+
+
+def test_gate_advances_on_strong_effect_and_blocks_on_each_condition():
+    u = _synthetic_units(600, 0.85)
+    spec = w.HYPOTHESES_CB2_W["W2"]
+    g = w.w_gate(u, spec, np.array([]), alpha=0.01, n_boot=100, n_wild=499, col="net")
+    assert g["advance_core"] and g["mean"] > 0.2 and g["r_ann"] > 0.1
+    # null effect fails p and floor
+    z = _synthetic_units(600, 0.5200 + 0.0)
+    gz = w.w_gate(z, spec, np.array([]), alpha=0.01, n_boot=50, n_wild=99, col="net")
+    assert not gz["advance_core"] and "p" in gz["fail"]
+    # too few units: not testable
+    gs = w.w_gate(u.head(60), spec, np.array([]), alpha=0.01, n_boot=50, n_wild=99, col="net")
+    assert not gs["testable"] and gs["fail"] == ["not_testable"]
+    # +0.75c: a mean just above the floor but below the cost sensitivity is blocked by the cost check
+    low = u.copy()
+    low["net"] = low["net"] - low["net"].mean() + 0.0102 + 0.0 * low["net"]
+    gl = w.w_gate(low, spec, np.array([]), alpha=0.5, n_boot=20, n_wild=99, col="net")
+    assert gl["robustness"]["cost_0.75c_positive"] is True  # 1.02c > 0.75c
+    low["net"] = low["net"] - 0.0035
+    gl2 = w.w_gate(low, spec, np.array([]), alpha=0.5, n_boot=20, n_wild=99, col="net")
+    assert "floor" in gl2["fail"] and gl2["robustness"]["cost_0.75c_positive"] is False or "cost_0.75c" in gl2["fail"]
+
+
+def test_truncation_worst_case_flips_sign_and_blocks_the_advance():
+    u = _synthetic_units(600, 0.62)  # modest positive edge
+    spec = w.HYPOTHESES_CB2_W["W2"]
+    ok = w.w_gate(u, spec, np.array([]), alpha=0.05, n_boot=20, n_wild=99, col="net")
+    assert ok["advance_core"] and ok["robustness"]["worst_case_mean"] > 0
+    a, f = w.weather_ask(0.5)
+    wc = np.full(400, -(a + f))  # 400 unavailable favourites added back as losers
+    bad = w.w_gate(u, spec, wc, alpha=0.05, n_boot=20, n_wild=99, col="net")
+    assert bad["robustness"]["worst_case_mean"] < 0 and "worst_case" in bad["fail"] and not bad["advance_core"]
+    # worst_case_extra builds exactly those rows from unavailable / anomalous units
+    d = u.head(6).copy()
+    d["pre"] = ["eligible", "eligible", "unavailable", "unavailable", "excl_band", "eligible"]
+    d["ostatus"] = ["resolved", "anomalous", "resolved", "resolved", "resolved", "open"]
+    d["executed"] = [True, True, True, False, True, True]
+    assert len(w.worst_case_extra(d, "net")) == 4
+    wcx = w.worst_case_extra(d, "net")
+    assert wcx[0] == -d["K"].iloc[1] and wcx[1] == -d["K"].iloc[2] and wcx[2] == 0.0 and wcx[3] == -d["K"].iloc[5]
+    # reported by Y
+    d["Y"] = [1.0, np.nan, 1.0, 0.0, 1.0, np.nan]
+    assert w.truncation_report(d)["by_Y"] == {"Y1": 1, "Y0": 1, "Y_unknown": 0}
+
+
+def test_breakeven_placebo_is_calibrated_and_detects_real_edge_rarely():
+    u = _synthetic_units(500, 0.5)
+    spec = w.HYPOTHESES_CB2_W["W2"]
+    pl = w.breakeven_placebo_w(u, spec, np.array([]), alpha=0.01, test="W2", draws=40, n_wild=99)
+    assert pl["draws"] == 40 and pl["advance_rate"] <= 0.05  # random Bernoulli at break-even advances ~never
+    pl3 = w.breakeven_placebo_w(u, w.HYPOTHESES_CB2_W["W3"], np.array([]), alpha=0.01, test="W3", draws=40, n_wild=99)
+    assert pl3["advance_rate"] <= 0.05
+
+
+def test_credit_rule_pre_extreme_subset():
+    u = _synthetic_units(200, 0.8)
+    u["local_class"] = ["pre", "post"] * 100
+    full = float(u["net"].mean())
+    c = w.credit_rule(u, "net", full)
+    assert c["credits_ch27"] and "CH27" in c["label_if_pass"]
+    u2 = u.copy()
+    u2.loc[u2["local_class"] == "pre", "net"] = -0.1
+    c2 = w.credit_rule(u2, "net", float(u2["net"].mean()))
+    assert not c2["credits_ch27"] and "not CH27" in c2["label_if_pass"]
+    u3 = u.copy()
+    u3.loc[u3["local_class"] == "pre", "net"] = 0.01  # positive but < half the full estimate
+    c3 = w.credit_rule(u3, "net", float(u3["net"].mean()))
+    assert c3["pre_mean"] == pytest.approx(0.01) and c3["full_mean"] > 0.02 and not c3["credits_ch27"]
+
+
+# ------------------------------------------------------------------------------- end-to-end on a synthetic sealed run
+def make_run(root: Path, win_prob: float, seed: int = 5, n_city: int = 22, n_days: int = 60) -> Path:
+    """A finished, unsealed h6 run directory built from fixtures: the favourite (bucket 2) sits at 0.5 for the
+    whole window and wins with probability ``win_prob``."""
+    rng = np.random.default_rng(seed)
+    rdir = root / "h6_weather"
+    (rdir / "prices").mkdir(parents=True)
+    (rdir / "trades").mkdir()
+    cities = list(w.TZ_TABLE)[:n_city]
+    d0 = ep("2026-08-01T12:00:00Z")
+    events, outs, prog = [], [], []
+    for d in range(n_days):
+        for ci, city in enumerate(cities):
+            eid = f"{d * 100 + ci}"
+            end = d0 + d * 86400
+            day = datetime.fromtimestamp(end, UTC)
+            ev = {"event_id": eid, "title": f"Highest temperature in {city} on {day:%B} {day.day}?", "direction": "Highest",
+                  "city": city, "title_date": f"{day:%B} {day.day}", "title_date_iso": day.date().isoformat(),
+                  "end_at": w._iso(end), "end_epoch": end, "n_members": 4,
+                  "markets": [{"market_id": f"{eid}{j}", "condition_id": f"c{eid}{j}", "token_yes": f"t{eid}{j}",
+                               "bucket": str(j)} for j in range(4)]}
+            events.append(ev)
+            win = rng.random() < win_prob
+            rec = {"event_id": eid, "status": "done", "markets": {}}
+            for j, m in enumerate(ev["markets"]):
+                lv = 0.5 if j == 2 else 0.1
+                pts = [(t, lv) for t in range(int(end - 72 * 3600), int(end + 6 * 3600), 1800)]
+                (rdir / "prices" / f"{m['market_id']}.csv.gz").write_bytes(
+                    hb._gz_csv_bytes(["t", "p"], ([t, p] for t, p in pts)))
+                rec["markets"][m["market_id"]] = {"price_points": len(pts), "dropped_price_rows_post_cap": 0, "trades": None}
+                yes = 1.0 if j == (2 if win else 3) else 0.0
+                outs.append([m["market_id"], eid, json.dumps([str(yes), str(1 - yes)]), "True", w._iso(end + 3600), "True"])
+            if True:
+                m2 = ev["markets"][2]["market_id"]
+                (rdir / "trades" / f"{m2}.csv.gz").write_bytes(
+                    hb._gz_csv_bytes(hb.TRADE_COLUMNS, [[int(end - 90 * 3600), "BUY", 1, 0.5, 0, "w", "k"]]))
+                rec["markets"][m2]["trades"] = {"n": 1, "truncated": False, "oldest_ts": int(end - 90 * 3600),
+                                                "dropped_post_cap": 0}
+            prog.append(rec)
+    (rdir / "events.jsonl.gz").write_bytes(w._gz_jsonl_bytes(events))
+    (rdir / "progress.jsonl").write_text("".join(json.dumps(r) + "\n" for r in prog))
+    hb_ = hb._gz_csv_bytes(["market_id", "event_id", "outcome_prices", "closed", "closed_time", "event_closed"], outs)
+    (rdir / w.OUTCOME_FILE).write_bytes(hb_)
+    (rdir / "manifest.json").write_text(json.dumps({"run_id": "h6_weather", "complete": True, "stopped": None,
+                                                     "request_clock_now": "2026-10-16T12:00:00Z", "frame_report": {}}))
+    return rdir
+
+
+def _spec(tmp_path) -> Path:
+    p = tmp_path / "cb2_v1.json"
+    p.write_text(json.dumps({"weather_sha256": w.declaration_sha256_weather()}))
+    return p
+
+
+def _run_args(tmp_path, **kw):
+    base = dict(run_id="h6_weather", root=str(tmp_path / "hist"), seals_dir=str(tmp_path / "seals"),
+                out_root=str(tmp_path / "cb2out"), spec_path=str(_spec(tmp_path)), trials_path=str(tmp_path / "t.jsonl"),
+                n_boot=100, n_wild=499, placebo_draws=20, allow_uncommitted=True, k_stage2=5)
+    base.update(kw)
+    return _ns(**base)
+
+
+def _sealed(tmp_path, win_prob):
+    root = tmp_path / "hist"
+    make_run(root, win_prob)
+    assert w.cmd_seal(_ns(run_id="h6_weather", root=str(root), seals_dir=str(tmp_path / "seals"),
+                          trials_path=str(tmp_path / "t.jsonl"))) == 0
+    return root
+
+
+def test_census_reads_no_outcomes_and_reports_g(tmp_path, monkeypatch, capsys):
+    root = _sealed(tmp_path, 0.8)
+    touched = []
+    real = pd.read_csv
+
+    def spy(f, *a, **k):
+        touched.append(str(f))
+        return real(f, *a, **k)
+
+    monkeypatch.setattr(pd, "read_csv", spy)
+    rc = w.cmd_census_w(_run_args(tmp_path))
+    monkeypatch.undo()
+    assert rc == 0 and not any(w.OUTCOME_FILE in t for t in touched)
+    cen = json.loads(next((tmp_path / "cb2out").glob("census_W*.json")).read_text())
+    assert cen["counts_only"] and cen["reads_outcomes"] is False
+    o24 = cen["origins"]["24"]
+    assert o24["G_city"] == 22 and o24["n_eligible"] > 100 and o24["city_method"] == "cr2_t_and_wild"
+    assert "Y" not in json.dumps(cen)
+    with pytest.raises(ValueError):
+        w.assert_no_outcomes(pd.DataFrame({"net": [1.0]}))
+    # census touches the SCREEN block only and logs the read
+    log = [json.loads(x) for x in (root / "h6_weather" / "ACCESS_LOG.jsonl").read_text().splitlines()]
+    assert log and all(r["job"].startswith("q0042_census:screen") for r in log)
+    capsys.readouterr()
+
+
+def test_screen_requires_declaration_and_writes_outside_sealed_dir(tmp_path, capsys):
+    root = _sealed(tmp_path, 0.85)
+    assert w.cmd_screen_w(_run_args(tmp_path, spec_path=str(tmp_path / "missing.json"))) == 2
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps({"weather_sha256": "0" * 64}))
+    assert w.cmd_screen_w(_run_args(tmp_path, spec_path=str(bad))) == 2
+    assert w.cmd_screen_w(_run_args(tmp_path, allow_uncommitted=False)) == 2  # spec not committed
+    assert not (tmp_path / "t.jsonl").read_text().count("cb2_test")
+    assert w.cmd_screen_w(_run_args(tmp_path)) == 0
+    res_path = tmp_path / "cb2out" / "W_screen" / "results.json"
+    res = json.loads(res_path.read_text())
+    assert not str(res_path).startswith(str(root / "h6_weather"))
+    assert res["tests"]["W2"]["advance"] and res["tests"]["W3"]["advance"]
+    assert res["tests"]["W2"]["n"] >= 100 and res["tests"]["W2"]["G_city"] == 22 and res["tests"]["W2"]["method_city"] == "cr2_t_and_wild"
+    assert res["descriptive"]["W1"]["n_units"] > 0 and res["half"] == "screen"
+    w.verify_h6(root / "h6_weather", tmp_path / "seals")  # seal still valid after the screen
+    # never overwritten
+    assert w.cmd_screen_w(_run_args(tmp_path)) == 2
+    # trial lines: 2 cb2_test + descriptive + placebo lines + one count line with n_tests = 2
+    lines = [json.loads(x) for x in (tmp_path / "t.jsonl").read_text().splitlines()]
+    kinds = [x["kind"] for x in lines if x.get("evidence_role") != "placebo"]
+    assert kinds.count("cb2_test") == 2 and kinds.count("cb2_descriptive") == 1
+    cnt = [x for x in lines if x["kind"] == "ml_explain"]
+    assert len(cnt) == 1 and cnt[0]["n_tests"] == 2 and cnt[0]["source"] == "creative_batch_2:W"
+    assert sum(1 for x in lines if x.get("evidence_role") == "placebo") == 2
+    # the screen never opened the holdout or embargo outcome rows
+    log = [json.loads(x) for x in (root / "h6_weather" / "ACCESS_LOG.jsonl").read_text().splitlines()]
+    assert all(":holdout" not in r["job"] for r in log)
+    capsys.readouterr()
+
+
+def test_replicate_nothing_advanced_never_opens_holdout(tmp_path, capsys):
+    root = _sealed(tmp_path, 0.5)  # fair coin: no edge
+    assert w.cmd_screen_w(_run_args(tmp_path)) == 0
+    scr = json.loads((tmp_path / "cb2out" / "W_screen" / "results.json").read_text())
+    assert not any(v["advance"] for v in scr["tests"].values())
+    capsys.readouterr()
+    assert w.cmd_replicate_w(_run_args(tmp_path)) == 0
+    assert "nothing advanced" in capsys.readouterr().out
+    log = [json.loads(x) for x in (root / "h6_weather" / "ACCESS_LOG.jsonl").read_text().splitlines()]
+    assert all(":holdout" not in r["job"] for r in log) and not (tmp_path / "cb2out" / "W_holdout").exists()
+
+
+def test_replicate_reads_holdout_once_logs_it_and_keeps_seal_valid(tmp_path, capsys):
+    root = _sealed(tmp_path, 0.85)
+    assert w.cmd_screen_w(_run_args(tmp_path)) == 0
+    assert w.cmd_replicate_w(_run_args(tmp_path, spec_path=str(tmp_path / "missing.json"))) == 2
+    assert w.cmd_replicate_w(_run_args(tmp_path)) == 0
+    hold = json.loads((tmp_path / "cb2out" / "W_holdout" / "results.json").read_text())
+    assert hold["half"] == "holdout" and hold["alpha_bonferroni"] == pytest.approx(0.05 / 5)
+    assert set(hold["tests"]) == {"W2", "W3"} and all(t["replicated"] for t in hold["tests"].values())
+    log = [json.loads(x) for x in (root / "h6_weather" / "ACCESS_LOG.jsonl").read_text().splitlines()]
+    assert sum(1 for r in log if r["job"].startswith("q0047_cb2_holdout_W:holdout")) >= 2
+    w.verify_h6(root / "h6_weather", tmp_path / "seals")
+    lines = [json.loads(x) for x in (tmp_path / "t.jsonl").read_text().splitlines()]
+    assert sum(1 for x in lines if x["kind"] == "cb2_replication" and x.get("evidence_role") != "placebo") == 2
+    assert w.cmd_replicate_w(_run_args(tmp_path)) == 2  # the holdout is read once: results are never overwritten
+    capsys.readouterr()
+
+
+def test_runner_hook_names_and_extra_flags():
+    for n in ("cmd_weather_fetch", "cmd_seal", "cmd_verify_seal", "cmd_stagep", "cmd_census_w", "cmd_screen_w",
+              "cmd_replicate_w", "cmd_census", "cmd_screen", "cmd_replicate"):
+        assert callable(getattr(w, n))
+    a = _ns(extra=["--seed", "abc", "--n-events", "7", "--disk-cap-gb", "0.1", "--unknown-flag", "1"], run_id=None)
+    w.prep_args(a)
+    assert a.seed == "abc" and a.n_events == 7 and a.disk_cap_gb == 0.1 and a.run_id == "h6_weather" and a.n_boot == 2000
+    b = _ns(seed="keep", extra=["--seed", "other"])
+    w.prep_args(b)
+    assert b.seed == "keep"  # attributes already set are never overwritten
+    spec = w.HYPOTHESES_CB2_W
+    assert spec["W1"]["counted"] is False and spec["W2"]["kind"] == "economic" and spec["W3"]["kind"] == "mechanism"
+    assert spec["W2"]["floor"] == 0.010 and spec["W3"]["floor"] == 0.010 and spec["W2"]["rann_floor"] == 0.10
+    d = w.declaration_weather()
+    assert d["dates"]["census_ex"] == list(w.T_CENSUS_EX) and d["split"]["holdout_frac"] == 0.40
+    assert d["uncertainty"]["small_g"]["wild_draws"] == 9999
+
+
+# ------------------------------------------------------------------------------- stage P
+def make_extract(root: Path, rep_start: float, *, incomplete_event=False, closed_member=False):
+    """One weather event G1 (4 members) on live captures every 2 h; favourite m2 at mid 0.5, ask 0.52."""
+    (root / "negrisk").mkdir(parents=True)
+    end = rep_start + 3 * 86400 + 12 * 3600
+    caps = {}
+    cid_i = 0
+    t = rep_start - 3 * 3600
+    cols = ["capture_id", "capture_start_utc", "received_utc", "neg_risk_market_id", "event_id", "market_id",
+            "clob_token_id_0", "best_bid", "best_ask", "spread", "last_trade_price", "closed", "active",
+            "accepting_orders", "neg_risk_other", "event_neg_risk_augmented", "volume_num", "fee_schedule",
+            "fee_category", "end_date", "fees_enabled", "sw1_best_ask", "sw1_ask_size_1", "sw2_best_ask", "sw2_ask_size_1"]
+    while t < end + 6 * 3600:
+        cid = f"cap{cid_i:04d}"
+        cid_i += 1
+        rows = []
+        for j in range(4 if not incomplete_event else 3):
+            bid, ask = (0.48, 0.52) if j == 2 else (0.08, 0.12)
+            rows.append({"capture_id": cid, "capture_start_utc": w._iso(t), "received_utc": w._iso(t), "neg_risk_market_id": "G1",
+                         "event_id": "E1", "market_id": f"m{j}", "clob_token_id_0": f"tok{j}", "best_bid": bid, "best_ask": ask,
+                         "spread": ask - bid, "last_trade_price": 0.5, "closed": closed_member and j == 0, "active": True,
+                         "accepting_orders": True, "neg_risk_other": False, "event_neg_risk_augmented": False,
+                         "volume_num": 100.0, "fee_schedule": "", "fee_category": "weather", "end_date": w._iso(end),
+                         "fees_enabled": True, "sw1_best_ask": ask, "sw1_ask_size_1": 10.0, "sw2_best_ask": ask,
+                         "sw2_ask_size_1": 10.0})
+        pd.DataFrame(rows, columns=cols).to_csv(root / "negrisk" / f"{cid}.csv.gz", index=False)
+        caps[cid] = {"started_utc": w._iso(t), "status": "written"}
+        t += 2 * 3600
+    (root / "manifest.json").write_text(json.dumps({"captures": caps}))
+    pd.DataFrame([{"neg_risk_market_id": "G1", "event_id": "E1", "member_count": 4, "n_open": 4, "n_closed": 0,
+                   "fetched_utc": w._iso(rep_start - 4 * 3600), "http_status": 200}]).to_csv(
+        root / "event_members.csv.gz", index=False)
+    pd.DataFrame([{"neg_risk_market_id": "G1", "event_id": "E1", "fetched_utc": w._iso(rep_start - 4 * 3600),
+                   "title": "Highest temperature in NYC on September 10?", "slug": "x",
+                   "member_market_ids": json.dumps(["m0", "m1", "m2", "m3"]), "group_item_titles": "[]"}]).to_csv(
+        root / "event_text.csv.gz", index=False)
+    return end
+
+
+def test_stagep_units_recorded_ask_at_next_capture(tmp_path):
+    rep = ep("2026-10-26T00:00:00Z")
+    end = make_extract(tmp_path / "x", rep)
+    u, cnt = w.stagep_units(tmp_path / "x", rep)
+    assert cnt["eligible"] == 1 and set(u["origin_h"]) == {24.0, 6.0}
+    r6 = u[u["origin_h"] == 6.0].iloc[0]
+    assert r6["fav_id"] == "m2" and r6["pre"] == "eligible" and r6["p_fav_t"] == pytest.approx(0.5)
+    assert r6["executed"] and r6["a"] == pytest.approx(0.52) and r6["p_exec"] == pytest.approx(0.5)
+    assert r6["f"] == pytest.approx(0.05 * 0.52 * 0.48) and r6["depth_ok"]
+    assert r6["t"] == end - 6 * 3600 and r6["local_class"] in ("pre", "during", "post")
+    # an event with fewer visible members than the as-of count is not member-complete
+    make_extract(tmp_path / "y", rep, incomplete_event=True)
+    uy, cy = w.stagep_units(tmp_path / "y", rep)
+    assert cy["eligible"] == 0 and (uy["pre"] == "excl_not_member_complete").all()
+    # a closed member excludes the event
+    make_extract(tmp_path / "z", rep, closed_member=True)
+    uz, cz = w.stagep_units(tmp_path / "z", rep)
+    assert cz["eligible"] == 0 and (uz["pre"] == "excl_not_open_accepting").all()
+    # origin before T2_rep_start: out of the window
+    assert len(w.stagep_units(tmp_path / "x", rep + 3 * 86400)[0]) == 0
+
+
+def test_stagep_cmd_refuses_before_t2_w_out_and_when_nothing_replicated(tmp_path, capsys):
+    rep = ep("2026-10-26T00:00:00Z")
+    make_extract(tmp_path / "x", rep)
+    hold = tmp_path / "cb2out" / "W_holdout"
+    hold.mkdir(parents=True)
+    (hold / "results.json").write_text(json.dumps({"tests": {"W2": {"replicated": False}}}))
+    t_out = rep + 63 * 86400
+
+    def go(now, **kw):
+        return w.cmd_stagep(_run_args(tmp_path, extract_root=str(tmp_path / "x"), t_rep_start="2026-10-26T00:00Z",
+                                      now=w._iso(now), **kw))
+
+    assert go(t_out - 3600) == 2
+    assert go(t_out) == 0 and "nothing replicated" in capsys.readouterr().out
+    (hold / "results.json").write_text(json.dumps({"tests": {"W2": {"replicated": True}, "W3": {"replicated": False}}}))
+
+    def transport(url, params):
+        evs = [{"id": "E1", "markets": [{"id": f"m{j}", "outcomePrices": json.dumps(["1", "0"] if j == 2 else ["0", "1"]),
+                                          "closed": True, "closedTime": w._iso(rep + 4 * 86400)} for j in range(4)]}]
+        return 200, json.dumps(evs).encode(), {}
+
+    rc = go(t_out + 1, transport=transport, sleep=lambda s: None, live_check=lambda: False, rps=1000.0,
+            health_check=lambda t: (True, "ok"))
+    assert rc == 0
+    res = json.loads((tmp_path / "cb2out" / "W_stageP" / "results.json").read_text())
+    assert res["stage"] == "P" and res["evidence_role"] == "prospective_confirmation" and res["k_stage_p"] == 1
+    assert res["tests"]["W2"]["testable"] is False  # one event: not testable, never claimed
+    assert res["alpha"] == pytest.approx(0.05)
+    assert go(t_out + 1, transport=transport) == 2  # never overwritten
+    lines = [json.loads(x) for x in (tmp_path / "t.jsonl").read_text().splitlines()]
+    assert any(x["kind"] == "cb2_prospective" for x in lines)
+    # stage P paused (transient) when the collector is unhealthy
+    (tmp_path / "cb2out" / "W_stageP" / "results.json").unlink()
+    assert go(t_out + 1, transport=transport, health_check=lambda t: (False, "stale")) == 0
+    assert "paused_collector_health" in capsys.readouterr().out
+
+
+def test_stagep_outcome_censoring_and_anomaly():
+    rep = ep("2026-10-26T00:00:00Z")
+    u = pd.DataFrame([
+        {"event_id": "A", "fav_id": "m2", "last_bid": 0.7, "executed": True, "K": 0.55, "p_exec": 0.5, "pre": "eligible", "exec_start": rep, "depth_ok": True},
+        {"event_id": "B", "fav_id": "m2", "last_bid": 0.7, "executed": True, "K": 0.55, "p_exec": 0.5, "pre": "eligible", "exec_start": rep, "depth_ok": True},
+        {"event_id": "C", "fav_id": "m2", "last_bid": 0.7, "executed": True, "K": 0.55, "p_exec": 0.5, "pre": "eligible", "exec_start": rep, "depth_ok": True}])
+    outs = {"A": {"yes": {"m2": 1.0}, "status": "resolved", "closed_time": rep + 86400.0},
+            "B": {"yes": {"m2": 0.5}, "status": "anomalous", "closed_time": math.nan}}
+    out, share = w.attach_stagep_outcomes(u, outs)
+    assert list(out["ostatus"]) == ["resolved", "anomalous", "censored"]
+    assert out.loc[2, "Y"] == 0.7 and share["censored"] == 1 and share["resolution_lag_sensitive"] is True
+    prim = w.stagep_primary(out)
+    assert set(prim["event_id"]) == {"A", "C"}  # anomalous excluded from the primary; censored flagged, valued at last bid
