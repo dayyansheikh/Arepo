@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -22,7 +23,7 @@ VERSION = "cb3-v1"
 LABEL = "EXPLORATORY CB3 quote-vacuum recovery and selective maker"
 SPEC_PATH = Path(__file__).resolve().parent / "model_specs" / "cb3_v1.json"
 REP_PIN_PATH = provenance.REPO_ROOT / "docs" / "research_lab" / "seals" / "cb3_t_rep_start.json"
-J4R_SPEC_PATH = provenance.REPO_ROOT / "docs" / "research_lab" / "queue" / "jobs" / "q0035_j4r_snapshots.json"
+J4R_PIN_PATH = provenance.REPO_ROOT / "docs" / "research_lab" / "seals" / "j4r_window.json"
 
 KIND_TEST, KIND_REP, KIND_PROSPECTIVE, KIND_DESCRIPTIVE = "cb3_test", "cb3_replication", "cb3_prospective", "cb3_descriptive"
 TRIAL_KINDS = (KIND_TEST, KIND_REP, KIND_PROSPECTIVE, KIND_DESCRIPTIVE)
@@ -106,7 +107,7 @@ MAKER = {
     "maker_fee": 0.0,
     "rebate_share": dict(economics.REBATE_SHARE),
     "rebate_unknown_category": 0.0,
-    "rebate_fee_policy_prospective": "conservative",
+    "rebate_fee_policy_prospective": "income: minimum of the as-of schedule rate and the docs rate; unknown schedule, unknown category or fees disabled = 0",
     "rebate_formula": "rho_cat * r_cat * P * (1 - P) per filled share, pro rata",
     "rebate_halved_binding": True,
     "worst_case_unavailable": "only the side with the lower mark-out fills, far touch at mark time, no rebate; history far touch = mark -/+ entry half-spread",
@@ -237,7 +238,7 @@ IMPORTED_RULE_FUNCTIONS = (
     ("cb2_weather", "small_g_pvalue"), ("cb2_weather", "_cluster_sums"), ("economics", "fee_spec"), ("economics", "resolve_rate"),
     ("economics", "parse_fee_schedule"), ("economics", "boot_ratio"), ("battery", "_cr_var_of_sum"), ("wallet_sidecar", "hash_wallet"),
 )
-CB3_RULE_MODULES = ("cb3_common", "cb3_quote_vacuum", "cb3_maker", "cb3_followup")
+CB3_RULE_MODULES = ("cb3_declaration", "cb3_common", "cb3_quote_vacuum", "cb3_maker", "cb3_followup")
 
 
 def source_hashes() -> dict[str, str]:
@@ -288,48 +289,79 @@ def declaration_sha256() -> str:
     return hashlib.sha256(json.dumps(declaration_blob(), sort_keys=True, default=float).encode()).hexdigest()
 
 
-def spec_payload(frozen_cuts: dict | None = None) -> dict:
+def canonical_sha256(obj) -> str:
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, default=float).encode()).hexdigest()
+
+
+def spec_payload(frozen_cuts: dict | None = None, census_sha256: str | None = None) -> dict:
     out = {"version": VERSION, "declaration_sha256": declaration_sha256()}
     if frozen_cuts is not None:
         out["frozen_cuts"] = frozen_cuts
+        out["frozen_cuts_sha256"] = canonical_sha256(frozen_cuts)
+    if census_sha256 is not None:
+        out["census_sha256"] = census_sha256
     return out
 
 
-def write_spec(path: Path = SPEC_PATH, frozen_cuts: dict | None = None) -> dict:
-    """Write the CB3 freeze file. Refuses to overwrite."""
+def write_spec(path: Path = SPEC_PATH, frozen_cuts: dict | None = None, census_sha256: str | None = None) -> dict:
+    """Write the CB3 freeze file (declaration hash, frozen cuts, their sha256 and the census.json sha256). Refuses to overwrite."""
     path = Path(path)
     if path.exists():
         raise FileExistsError(f"{path} exists; a frozen declaration is never overwritten")
     path.parent.mkdir(parents=True, exist_ok=True)
-    p = spec_payload(frozen_cuts)
+    p = spec_payload(frozen_cuts, census_sha256)
     path.write_text(json.dumps(p, indent=1, sort_keys=True) + "\n")
     return p
 
 
-def spec_committed(path: Path) -> bool:
-    """True if the spec file is tracked by git and identical to HEAD."""
-    path = Path(path)
-    cwd = provenance.REPO_ROOT
+def _rel(path: Path) -> str | None:
     try:
-        rel = str(path.resolve().relative_to(cwd.resolve()))
+        return str(Path(path).resolve().relative_to(provenance.REPO_ROOT.resolve()))
     except ValueError:
+        return None
+
+
+def spec_committed(path: Path) -> bool:
+    """True if the file is tracked by git and identical to HEAD."""
+    rel = _rel(path)
+    if rel is None:
         return False
+    cwd = provenance.REPO_ROOT
     if provenance._git(["ls-files", "--error-unmatch", rel], cwd) is None:
         return False
     return provenance._git(["diff", "--quiet", "HEAD", "--", rel], cwd) is not None
 
 
+def single_commit(path: Path) -> bool:
+    """The blob has exactly one commit in its history: a frozen spec can never change after its first commit."""
+    rel = _rel(path)
+    if rel is None:
+        return False
+    out = provenance._git(["log", "--format=%H", "--follow", "--", rel], provenance.REPO_ROOT)
+    return bool(out) and len([x for x in str(out).split() if x]) == 1
+
+
 def require_declaration(path: Path | None = None, *, require_committed: bool = True) -> str:
-    """Refuse unless the committed spec's hash equals this code's declaration hash."""
+    """Refuse unless the committed spec's hash equals this code's declaration hash. When committed it must also carry the cuts and
+    census hashes and have exactly one commit in its history (immutable after its first commit)."""
     path = Path(path) if path is not None else SPEC_PATH
     if not path.exists():
         raise DeclarationError(f"no committed declaration at {path}; counted CB3 runs are refused (CB3 freeze not committed)")
-    if require_committed and not spec_committed(path):
-        raise DeclarationError(f"declaration {path} is not committed (or differs from HEAD)")
+    if require_committed:
+        if not spec_committed(path):
+            raise DeclarationError(f"declaration {path} is not committed (or differs from HEAD)")
+        if not single_commit(path):
+            raise DeclarationError(f"declaration {path} has more than one commit: a frozen spec never changes after its first commit")
     spec = json.loads(path.read_text())
     cur = declaration_sha256()
     if spec.get("declaration_sha256") != cur:
         raise DeclarationError(f"declaration hash mismatch: committed {spec.get('declaration_sha256')} != code {cur}")
+    if require_committed:
+        for k in ("frozen_cuts", "frozen_cuts_sha256", "census_sha256"):
+            if not spec.get(k):
+                raise DeclarationError(f"the committed spec lacks {k}")
+    if spec.get("frozen_cuts") is not None and spec.get("frozen_cuts_sha256") != canonical_sha256(spec["frozen_cuts"]):
+        raise DeclarationError("frozen_cuts_sha256 does not match frozen_cuts")
     return cur
 
 
@@ -339,7 +371,40 @@ def load_frozen_cuts(path: Path | None = None) -> dict:
     cuts = spec.get("frozen_cuts")
     if not cuts:
         raise DeclarationError("the committed spec carries no frozen_cuts (RT top-decile cut, activity terciles); pin them at the freeze")
+    if spec.get("frozen_cuts_sha256") != canonical_sha256(cuts):
+        raise DeclarationError("frozen_cuts_sha256 does not match frozen_cuts")
     return cuts
+
+
+def cuts_sha256(path: Path | None = None) -> str | None:
+    spec = json.loads(Path(path if path is not None else SPEC_PATH).read_text())
+    return spec.get("frozen_cuts_sha256")
+
+
+def verify_cuts_against_census(spec_path: Path, census_path: Path) -> None:
+    """The spec's census_sha256 must equal the sha256 of census.json, and the pinned cuts must equal that census's
+    ``frozen_cuts_proposal`` (rt_top_decile_cut, activity_tercile_cuts)."""
+    spec = json.loads(Path(spec_path).read_text())
+    census_path = Path(census_path)
+    if not census_path.exists():
+        raise DeclarationError(f"{census_path} not found: the frozen cuts cannot be checked against the census")
+    if provenance.sha256_file(census_path) != spec.get("census_sha256"):
+        raise DeclarationError("census.json sha256 differs from the spec's census_sha256")
+    prop = (json.loads(census_path.read_text()).get("B") or {}).get("frozen_cuts_proposal") or {}
+    cuts = load_frozen_cuts(spec_path)
+    for k in ("rt_top_decile_cut", "activity_tercile_cuts"):
+        if prop.get(k) != cuts.get(k):
+            raise DeclarationError(f"frozen cut {k} differs from the census proposal")
+
+
+def dev_window_end(fu_start: float, j4r_end: float) -> float:
+    """Prospective dev window end: T3_dev_end moved forward by whole UTC days until at least 3 full days lie in
+    [max(fu_start, j4r_end), end)."""
+    end = epoch(DATES["T3_dev_end"])
+    start = max(fu_start, j4r_end)
+    while end - start < 3 * 86400.0:
+        end += 86400.0
+    return end
 
 
 # ---- guards ------------------------------------------------------------------------------------------------------
@@ -352,17 +417,23 @@ def refuse_run_id(run_id: str | None) -> None:
         raise RefusedRun(f"CB3 refuses run id {run_id!r} (sealed, reserved or retired data)")
 
 
-def j4r_window(spec_path: Path | None = None) -> tuple[float, float]:
-    """[T_J4R start, T_J4R_end): the frozen J4-R window. The end is the ``--until`` of the committed q0035 spec (moved by
-    the coordinator if its exit-3 rule fires). Fails closed: an unreadable record is a refusal."""
-    p = Path(spec_path) if spec_path is not None else J4R_SPEC_PATH
+def j4r_window(pin_path: Path | None = None) -> tuple[float, float]:
+    """[T_J4R start, T_J4R_end) from the COMMITTED pin ``seals/j4r_window.json`` (derived from J4-R's frozen declaration, not from the
+    mutable q0035 queue spec). While the pin is not ``final`` (J4-R has not run, its exit-3 rule may still move the end) the end is
+    +inf: CB3 refuses every capture at or after the J4-R start. Fails closed: an unreadable or uncommitted pin is a refusal."""
+    p = Path(pin_path) if pin_path is not None else J4R_PIN_PATH
     try:
-        argv = json.loads(p.read_text())["argv"]
-        lo = epoch(argv[argv.index("--since") + 1])
-        hi = epoch(argv[argv.index("--until") + 1])
-    except (OSError, ValueError, KeyError, IndexError) as exc:
-        raise WindowError(f"cannot read the J4-R window from {p}: {exc}") from exc
-    return lo, hi
+        doc = json.loads(p.read_text())
+        lo = epoch(doc["t_j4r_start"])
+        hi = epoch(doc["t_j4r_end"])
+        final = bool(doc.get("final", False))
+    except (OSError, ValueError, KeyError) as exc:
+        raise WindowError(f"cannot read the J4-R window pin {p}: {exc}") from exc
+    if pin_path is None and not spec_committed(p):
+        raise WindowError(f"{p} is not committed (or differs from HEAD); the J4-R window pin must be committed")
+    if hi < epoch(doc.get("declared_end", doc["t_j4r_end"])):
+        raise WindowError("pinned T_J4R_end is before the declared end")
+    return lo, (hi if final else math.inf)
 
 
 def in_j4r(start_epoch: float, window: tuple[float, float] | None = None) -> bool:
@@ -379,9 +450,12 @@ def check_capture_allowed(start_epoch: float, *, purpose: str, window: tuple[flo
 
 
 def load_rep_pin(path: Path | None = None) -> dict:
+    """The pinned T3_rep_start. The default pin must be committed and identical to HEAD."""
     p = Path(path) if path is not None else REP_PIN_PATH
     if not p.exists():
         raise WindowError(f"no pinned T3_rep_start at {p}")
+    if path is None and not spec_committed(p):
+        raise WindowError(f"{p} is not committed (or differs from HEAD)")
     doc = json.loads(p.read_text())
     if epoch(doc["t3_rep_start"]) < epoch(DATES["T3_rep_start_floor"]):
         raise WindowError("pinned T3_rep_start is before the declared floor")
@@ -418,18 +492,28 @@ def check_stage_allowed(stage: str, now: datetime | None = None, pin_path: Path 
         raise TooEarly(f"{stage} is refused before {iso(need)}")
 
 
-def pin_rep_start(freeze_commit: str, t3_rep_start: str, path: Path | None = None) -> dict:
-    """Write the T3_rep_start pin once (computed by the coordinator from the §1.2 max rule; floor enforced here)."""
+def pin_rep_start(freeze_commit: str, freeze_commit_time: str, first_capture_after: str, rotation_verified_day: str, t3_rep_start: str,
+                  path: Path | None = None, *, verify_git: bool = True) -> dict:
+    """Write the T3_rep_start pin once. Checks the max rule of section 1.2: max(floor, first complete capture >= freeze commit time + 2h,
+    T3_dev_end + 2 d, first UTC day with verified rotation) and that the freeze commit exists and holds the spec."""
     path = Path(path) if path is not None else REP_PIN_PATH
     if path.exists():
         raise WindowError(f"{path} exists; T3_rep_start is pinned once")
     sha = str(freeze_commit).strip().lower()
     if not (7 <= len(sha) <= 64) or any(c not in "0123456789abcdef" for c in sha):
         raise WindowError(f"not a commit sha: {freeze_commit!r}")
-    if epoch(t3_rep_start) < epoch(DATES["T3_rep_start_floor"]):
-        raise WindowError("T3_rep_start is before the declared floor")
-    doc = {"version": VERSION, "freeze_commit": sha, "t3_rep_start": iso(epoch(t3_rep_start)),
-           "t3_rep_end": iso(epoch(t3_rep_start) + DATES["T3_rep_len_d"] * 86400.0),
+    if epoch(first_capture_after) < epoch(freeze_commit_time) + 7200.0:
+        raise WindowError("the first capture must be at least 2h after the freeze commit")
+    expected = max(epoch(DATES["T3_rep_start_floor"]), epoch(first_capture_after), epoch(DATES["T3_dev_end"]) + DATES["T3_rep_start_min_dev_gap_d"] * 86400.0,
+                   epoch(rotation_verified_day))
+    if abs(epoch(t3_rep_start) - expected) > 1.0:
+        raise WindowError(f"T3_rep_start {t3_rep_start} is not the max rule value {iso(expected)}")
+    if verify_git:
+        rel = _rel(SPEC_PATH)
+        if provenance._git(["cat-file", "-e", f"{sha}^{{commit}}"], provenance.REPO_ROOT) is None or provenance._git(["show", f"{sha}:{rel}"], provenance.REPO_ROOT) is None:
+            raise WindowError("the freeze commit does not exist or does not contain the committed spec")
+    doc = {"version": VERSION, "freeze_commit": sha, "freeze_commit_time": freeze_commit_time, "first_capture_after": first_capture_after,
+           "rotation_verified_day": rotation_verified_day, "t3_rep_start": iso(expected), "t3_rep_end": iso(expected + DATES["T3_rep_len_d"] * 86400.0),
            "rule": "max(floor, first complete capture >= freeze commit + 2h, T3_dev_end + 2d, first UTC day with verified rotation)"}
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "x", encoding="utf-8") as fh:

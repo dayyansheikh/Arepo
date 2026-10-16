@@ -29,7 +29,8 @@ A = D.A
 GAP_LO, GAP_HI = (x * 3600.0 for x in A["gap_h"])
 HORIZON = tuple(A["recovery_horizon_captures"])  # (2, 3, 4)
 
-_NUM = ["best_bid", "best_ask", "spread", "last_trade_price", "volume_num", "s1_best_bid", "s1_best_ask", "s2_best_bid", "s2_best_ask",
+ASOF_FIELDS = ("asof_end_date", "asof_created_at", "asof_fee_schedule", "asof_fee_category", "fees_enabled")
+_NUM = ["best_bid", "best_ask", "spread", "last_trade_price", "volume_num", "chg_1d", "s1_depth_bid_1c", "s1_depth_ask_1c", "s1_best_bid", "s1_best_ask", "s2_best_bid", "s2_best_ask",
         "s1_bid_size_1", "s1_ask_size_1", "s2_bid_size_1", "s2_ask_size_1"]
 _TRUTHY = {"1", "true", "True", "TRUE", "1.0"}
 _FALSY = {"0", "false", "False", "FALSE", "0.0"}
@@ -59,8 +60,10 @@ class Panel:
     """Market x capture matrices of the quote state (NaN = no row / blank)."""
 
     def __init__(self, cap_ids: list[str], starts: np.ndarray, markets: np.ndarray, mat: dict[str, np.ndarray], present: np.ndarray,
-                 in_capture: np.ndarray, meta: pd.DataFrame) -> None:
+                 in_capture: np.ndarray, meta: pd.DataFrame, asof: dict[str, np.ndarray] | None = None, asof_cols: np.ndarray | None = None) -> None:
         self.cap_ids, self.starts, self.markets, self.mat, self.present, self.in_capture, self.meta = cap_ids, np.asarray(starts, float), markets, mat, present, in_capture, meta
+        # as-of fields of each capture (look-ahead free, freeze-check fix 5); asof_cols[c] False = the capture lacks the columns
+        self.asof, self.asof_cols = asof, asof_cols
         d = np.diff(self.starts)
         self.gap_ok = (d >= GAP_LO - 1e-6) & (d <= GAP_HI + 1e-6)
         b, a, s = mat["best_bid"], mat["best_ask"], mat["spread"]
@@ -69,8 +72,10 @@ class Panel:
         self.n_caps = len(cap_ids)
 
 
-def panel_from_frames(frames: list[tuple[str, float, pd.DataFrame, set[str] | None]]) -> Panel:
-    """Build a panel from ``(capture_id, start_epoch, rows_frame_raw_strings, ids_or_None)`` in start order."""
+def panel_from_frames(frames: list[tuple[str, float, pd.DataFrame, set[str] | None]], *, asof: bool = False) -> Panel:
+    """Build a panel from ``(capture_id, start_epoch, rows_frame_raw_strings, ids_or_None)`` in start order. ``asof`` keeps the
+    per-capture as-of end_date / created_at / fee fields (``asof_*``, ``fees_enabled``); a capture lacking any of those columns
+    gets ``asof_cols[c] = False`` and its rows are ineligible for the prospective builders (counted there)."""
     frames = sorted(frames, key=lambda f: f[1])
     universe: dict[str, int] = {}
     for _cid, _st, df, _ids in frames:
@@ -81,7 +86,9 @@ def panel_from_frames(frames: list[tuple[str, float, pd.DataFrame, set[str] | No
     mat = {k: np.full((n, c), np.nan) for k in [*_NUM, "closed", "active", "accepting_orders", "s1_recv", "s2_recv"]}
     present = np.zeros((n, c), bool)
     in_capture = np.zeros((n, c), bool)
-    meta = pd.DataFrame({"market_id": markets, "condition_id": "", "event_id": "", "neg_risk_id": "", "parent_event_ids": "", "fee_category": "", "fee_schedule": "", "created_at": "", "end_date": ""})
+    meta = pd.DataFrame({"market_id": markets, "condition_id": "", "event_id": "", "neg_risk_id": "", "parent_event_ids": ""})
+    asof_m = {k: np.full((n, c), "", object) for k in ASOF_FIELDS} if asof else None
+    asof_cols = np.zeros(c, bool)
     meta_idx = meta.set_index("market_id")
     for j, (_cid, _st, df, ids) in enumerate(frames):
         df = df.drop_duplicates("market_id")
@@ -96,7 +103,12 @@ def panel_from_frames(frames: list[tuple[str, float, pd.DataFrame, set[str] | No
         for k, src in (("s1_recv", "s1_batch_receipt_utc"), ("s2_recv", "s2_batch_receipt_utc")):
             if src in df:
                 mat[k][idx, j] = _epoch_col(df[src])
-        for k in ("condition_id", "event_id", "neg_risk_id", "parent_event_ids", "fee_category", "fee_schedule", "created_at", "end_date"):
+        if asof:
+            asof_cols[j] = all(k in df for k in ASOF_FIELDS)
+            for k in ASOF_FIELDS:
+                if k in df:
+                    asof_m[k][idx, j] = df[k].astype(str).to_numpy()
+        for k in ("condition_id", "event_id", "neg_risk_id", "parent_event_ids"):
             if k in df:
                 vals = df[k].astype(str).to_numpy()
                 nz = vals != ""
@@ -106,11 +118,11 @@ def panel_from_frames(frames: list[tuple[str, float, pd.DataFrame, set[str] | No
         else:
             in_capture[:, j] = np.isin(markets, list(ids))
             in_capture[idx, j] = True
-    return Panel([f[0] for f in frames], np.array([f[1] for f in frames]), markets, mat, present, in_capture, meta_idx.reset_index())
+    return Panel([f[0] for f in frames], np.array([f[1] for f in frames]), markets, mat, present, in_capture, meta_idx.reset_index(), asof_m, asof_cols)
 
 
 def load_quote_panel(root: Path, *, since: float | None, before: float | None, purpose: str, j4r: tuple[float, float] | None = None,
-                     capture_ids: list[str] | None = None) -> Panel:
+                     capture_ids: list[str] | None = None, asof: bool = False) -> Panel:
     """Load ``quote_state/`` captures with ``since <= start < before`` (epoch seconds). A request that selects ANY capture in
     T_J4R is refused (analysis and census never read it); the A screen also refuses captures at/after T3_A_dev_end. The
     manifest decides which captures exist; ``missing`` captures are skipped and break the gap rule downstream."""
@@ -132,7 +144,7 @@ def load_quote_panel(root: Path, *, since: float | None, before: float | None, p
     frames = []
     for cid, st in sel:
         frames.append((cid, st, qs.read_quote_state(root, cid), set(qs.read_quote_state(root, cid, ids=True)["market_id"])))
-    return panel_from_frames(frames)
+    return panel_from_frames(frames, asof=asof)
 
 
 # =============================================================================================
@@ -213,8 +225,12 @@ def _annotate(P: Panel, u: pd.DataFrame) -> pd.DataFrame:
     u["dep"] = dep_labels(P)[m]
     u["cap_id"] = [P.cap_ids[x] for x in i]
     u["cap_start"] = P.starts[i]
-    u["cat"] = P.meta["fee_category"].to_numpy()[m]
-    u["fee_schedule"] = P.meta["fee_schedule"].to_numpy()[m]
+    if P.asof is not None:  # as-of values at the onset capture i+1 (look-ahead free); absent -> unknown -> no rebate
+        u["cat"] = P.asof["asof_fee_category"][m, i + 1]
+        u["fee_schedule"] = P.asof["asof_fee_schedule"][m, i + 1]
+        u["fees_enabled"] = P.asof["fees_enabled"][m, i + 1]
+    else:
+        u["cat"], u["fee_schedule"], u["fees_enabled"] = "", "", ""
     disp = np.abs(u["D"].to_numpy(float)) * 100.0
     lo = [x[0] for x in A["displacement_bands_c"]]
     u["disp_band"] = np.searchsorted(np.asarray(lo, float), disp, side="right") - 1
@@ -465,8 +481,10 @@ def martingale_placebo(P: Panel, units: pd.DataFrame, seed: int) -> dict:
     v["den"] = v["D"].abs()
     v["g"] = v["s"] * (v["q"] - v["m_T"])
     v = v[np.isfinite(v["num"]) & (v["den"] > 0)]
+    # centred A2 quantity: G_placebo - mean s (q - m_(i+1)) = - mean s (m_T' - m_(i+1)), zero in expectation under the martingale
+    gc = float((v["g"] - v["s"] * (v["q"] - v["m1"])).mean()) if len(v) else math.nan
     return {"n_units": int(len(v)), "n_capture_clusters": int(v["cap_id"].nunique()), "R": r_hat(v) if len(v) else math.nan,
-            "G": float(v["g"].mean()) if len(v) else math.nan, "reaching_tight_T": int(reached[keep].sum()), "dropped": int(dropped.sum())}
+            "G": float(v["g"].mean()) if len(v) else math.nan, "G_centred": gc, "reaching_tight_T": int(reached[keep].sum()), "dropped": int(dropped.sum())}
 
 
 def placebo_a(P: Panel, units_prefinal: pd.DataFrame, real_units: pd.DataFrame, real: dict, draws: int = D.PLACEBO_DRAWS) -> dict:
@@ -477,12 +495,15 @@ def placebo_a(P: Panel, units_prefinal: pd.DataFrame, real_units: pd.DataFrame, 
     ds = [martingale_placebo(P, base, D.SEED_PLACEBO + k) for k in range(draws)]
     r_s = C.placebo_summary([d.get("R", math.nan) for d in ds])
     g_s = C.placebo_summary([d.get("G", math.nan) for d in ds])
+    gc_s = C.placebo_summary([d.get("G_centred", math.nan) for d in ds])
     rd = C.reading(r_s, real["A1"].get("se") or math.nan)
     r_s["status"] = rd["status"]
-    g_s["status"] = "construction check (expected negative); family status " + rd["status"]
+    rdc = C.reading(gc_s, real["A2"].get("se") or math.nan)  # binding centred A2 bias check (freeze-check ruling)
+    gc_s["status"] = rdc["status"]
+    g_s["status"] = "uncentred G is a construction check (expected negative); centred check " + rdc["status"] + "; family status " + rd["status"]
     per = [{"n_units": d.get("n_units"), "capture_clusters": d.get("n_capture_clusters"), "reaching_tight_T": d.get("reaching_tight_T")} for d in ds]
     ok_units = all((d.get("n_units") or 0) >= D.A_MIN_ONSETS and (d.get("n_capture_clusters") or 0) >= D.A_MIN_CAPTURE_CLUSTERS for d in ds)
-    return {"A1": r_s, "A2": g_s, "per_draw": per, "family_void": bool(rd["family_void"]), "family_status": rd["status"], "placebo_units_ok": bool(ok_units)}
+    return {"A1": r_s, "A2": g_s, "A2_centred": gc_s, "per_draw": per, "family_void": bool(rd["family_void"]), "family_status": rd["status"], "placebo_units_ok": bool(ok_units)}
 
 
 def gate_a(res: dict, rob: dict, plc: dict | None, alpha: float) -> dict:
@@ -509,6 +530,8 @@ def gate_a(res: dict, rob: dict, plc: dict | None, alpha: float) -> dict:
                     fail.append(f"placebo:{plc['family_status']}")
                 elif tid == "A1" and plc["A1"]["status"] != "read":
                     fail.append(f"placebo:{plc['A1']['status']}")
+                elif tid == "A2" and plc["A2_centred"]["status"] != "read":
+                    fail.append(f"placebo_centred:{plc['A2_centred']['status']}")
                 if not plc["placebo_units_ok"]:
                     fail.append("placebo:too_few_units_or_clusters")
         out[tid] = {"advance": not fail, "fail": fail}
@@ -538,7 +561,7 @@ def screen_a(P: Panel, *, n_boot: int = D.N_BOOT, draws: int = D.PLACEBO_DRAWS, 
     for t in ("A1", "A2"):
         res[t]["advance"] = out["gates"][t]["advance"]
         res[t]["fail"] = out["gates"][t]["fail"]
-        res[t]["placebo_status"] = (out.get("placebo") or {}).get(t, {}).get("status")
+        res[t]["placebo_status"] = (out.get("placebo") or {}).get("A2_centred" if t == "A2" else t, {}).get("status")
     return out
 
 
@@ -588,8 +611,8 @@ def a3_units(P: Panel, u: pd.DataFrame, trades_for: Callable[[pd.Series], tuple[
                 rows.append({**base, "t_fill": math.nan, "wc_mo": M.worst_case_mo(side, float(row["q"]), *marks.last_before(s2 + life, 0.0, s2))})
                 continue
             m6, _b, _a = marks.mark(tf, M.MARK_S)
-            reb = M.rebate_per_share(float(row["q"]), row["cat"], fee_schedule=row["fee_schedule"], prospective=True)
-            rebh = M.rebate_per_share(float(row["q"]), row["cat"], fee_schedule=row["fee_schedule"], prospective=True, halved=True)
+            reb = M.rebate_per_share(float(row["q"]), row["cat"], fee_schedule=row["fee_schedule"], fees_enabled=row["fees_enabled"], prospective=True)
+            rebh = M.rebate_per_share(float(row["q"]), row["cat"], fee_schedule=row["fee_schedule"], fees_enabled=row["fees_enabled"], prospective=True, halved=True)
             mo = M.mark_out(side, float(row["q"]), m6) if np.isfinite(m6) else math.nan
             fb, fa = marks.last_before(tf + M.MARK_S, 0.0, tf)
             rows.append({**base, "t_fill": tf, "mark6": m6, "mo6": mo, "rebate": reb, "net6": mo + reb, "net6_half": mo + rebh, "mark_unavailable": not np.isfinite(m6),
@@ -679,13 +702,32 @@ def census_a(P: Panel) -> dict:
     return out
 
 
+def _pass_ok(reader: M.FollowupReader, pass_cap: str, previous_cap: str) -> bool:
+    """The follow-up dir of ``pass_cap`` exists, is a recorded pass (complete/incomplete) and was built for ``previous_cap``."""
+    d = reader.root / pass_cap
+    try:
+        man = json.loads((d / "manifest.json").read_text())
+        plan = json.loads((d / "plan.json").read_text())
+    except (OSError, ValueError):
+        return False
+    return man.get("state") in ("complete", "incomplete") and plan.get("previous_capture_id") == previous_cap
+
+
 def a3_from_followup(P: Panel, u: pd.DataFrame, reader: M.FollowupReader) -> tuple[pd.DataFrame, dict]:
     """A3 inputs from ``cb3_followup``: only onsets in the vacuum stratum drawn at their own capture (``vacuum_plan.json`` of the
-    onset capture i+1), windows fetched at the next pass (``vacuum/trades.csv.gz`` under capture i+2)."""
+    onset capture i+1), windows fetched at the next pass (``vacuum/trades.csv.gz`` under capture i+2, whose plan must name the onset
+    capture as its previous capture). Misaligned or missing passes drop the unit (counted); a window that was not reached, failed or
+    hit the page cap is passed as truncated, so an empty file never reads as 'not filled'."""
     plans: dict[str, dict] = {}
-    keep = []
+    keep, n_misaligned = [], 0
     for k, r in u.iterrows():
-        onset_cap = P.cap_ids[int(r["cap_i"]) + 1]
+        i = int(r["cap_i"])
+        if i + 2 >= P.n_caps:
+            continue
+        onset_cap, nxt = P.cap_ids[i + 1], P.cap_ids[i + 2]
+        if not _pass_ok(reader, nxt, onset_cap):
+            n_misaligned += 1
+            continue
         if onset_cap not in plans:
             pth = reader.root / onset_cap / "vacuum_plan.json"
             plans[onset_cap] = json.loads(pth.read_text()) if pth.exists() else {"onsets": []}
@@ -694,18 +736,18 @@ def a3_from_followup(P: Panel, u: pd.DataFrame, reader: M.FollowupReader) -> tup
     uu = u.loc[keep]
 
     def trades_for(row):
-        nxt = P.cap_ids[int(row["cap_i"]) + 2] if int(row["cap_i"]) + 2 < P.n_caps else None
-        if nxt is None:
-            return M.prints_arrays(None), True
+        nxt = P.cap_ids[int(row["cap_i"]) + 2]
         meta = reader.meta(nxt).get("markets", {}).get(f"vacuum:{row['market_id']}", {})
-        return reader.trades(nxt, "vacuum", row["market_id"]), bool(meta.get("page_cap", False)) or meta.get("status") in (None, "not_reached", "failed")
+        return reader.trades(nxt, "vacuum", row["market_id"]), bool(meta.get("page_cap", False)) or meta.get("status") != "ok"
 
     def pi(row):
         pl = plans.get(P.cap_ids[int(row["cap_i"]) + 1], {})
         return float(pl.get("inclusion_prob") or 1.0)
 
     def req(row):
-        nxt = P.cap_ids[int(row["cap_i"]) + 2] if int(row["cap_i"]) + 2 < P.n_caps else None
-        return reader.meta(nxt).get("markets", {}).get(f"vacuum:{row['market_id']}", {}).get("request_epoch") if nxt else None
+        nxt = P.cap_ids[int(row["cap_i"]) + 2]
+        return reader.meta(nxt).get("markets", {}).get(f"vacuum:{row['market_id']}", {}).get("request_epoch")
 
-    return a3_units(P, uu, trades_for, inclusion_prob=pi, request_time=req)
+    a3, info = a3_units(P, uu, trades_for, inclusion_prob=pi, request_time=req)
+    info["n_misaligned_or_missing_pass"] = n_misaligned
+    return a3, info

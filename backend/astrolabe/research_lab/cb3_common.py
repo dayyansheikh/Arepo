@@ -205,9 +205,11 @@ def reading(placebo: dict, real_se: float, *, void_applies: bool = True) -> dict
     |mean placebo| > 0.5 x the real max-SE; else read."""
     if not placebo.get("testable"):
         return {"status": "VOID (placebo untestable)", "family_void": True}
+    if real_se is None or not np.isfinite(real_se) or real_se <= 0:
+        return {"status": "inconclusive (real SE unavailable)", "family_void": False}
     if void_applies and not placebo["covers_zero"]:
         return {"status": "VOID (placebo range does not cover 0)", "family_void": True}
-    if void_applies and real_se and abs(placebo["mean"]) > D.PLACEBO_BIAS_FRAC * real_se:
+    if void_applies and abs(placebo["mean"]) > D.PLACEBO_BIAS_FRAC * real_se:
         return {"status": "inconclusive (placebo bias)", "family_void": False, "bias_ratio": abs(placebo["mean"]) / real_se}
     return {"status": "read", "family_void": False}
 
@@ -243,7 +245,7 @@ def write_new(path: Path, obj) -> str:
 
 def log_trials(job: str, tests: dict[str, dict], *, kind: str, role: str, dataset: str, results_path: str, results_sha256: str,
                decl_sha: str, cumulative: dict | None = None, placebo: dict[str, dict] | None = None,
-               descriptive: dict[str, dict] | None = None, trials_path: Path = provenance.TRIALS_PATH) -> list[dict]:
+               descriptive: dict[str, dict] | None = None, trials_path: Path = provenance.TRIALS_PATH, cuts_sha256: str | None = None) -> list[dict]:
     """One line per counted test (``cb3_test`` / ``cb3_replication`` / ``cb3_prospective``), one summary placebo line per
     test (count 0), one ``cb3_descriptive`` line per descriptive item, and one ``ml_explain`` count line
     (``creative_batch_3:<job>``, ``n_tests``)."""
@@ -254,23 +256,23 @@ def log_trials(job: str, tests: dict[str, dict], *, kind: str, role: str, datase
     for name, t in tests.items():
         written.append(provenance.append_trial({
             "status": "ok", "dataset": dataset, "preset": name, "label": D.LABEL, "kind": kind, "evidence_role": role,
-            "revision": D.VERSION, "result_path": results_path, "results_sha256": results_sha256, "declaration_sha256": decl_sha,
+            "revision": D.VERSION, "result_path": results_path, "results_sha256": results_sha256, "declaration_sha256": decl_sha, "frozen_cuts_sha256": cuts_sha256,
             "cumulative_count_at_run": cumulative,
             "summary": {k: t.get(k) for k in ("effect", "p", "n", "advance", "testable", "placebo_status", "replicated", "family_status")},
             "provenance": prov}, trials_path))
     for name, p in (placebo or {}).items():
         written.append(provenance.append_trial({
             "status": "ok", "dataset": dataset, "preset": f"{name}:placebo", "label": D.LABEL, "kind": kind, "evidence_role": "placebo",
-            "revision": D.VERSION, "result_path": results_path, "results_sha256": results_sha256, "declaration_sha256": decl_sha,
+            "revision": D.VERSION, "result_path": results_path, "results_sha256": results_sha256, "declaration_sha256": decl_sha, "frozen_cuts_sha256": cuts_sha256,
             "summary": {k: p.get(k) for k in ("n_draws", "mean", "sd", "range_2_5_97_5", "covers_zero", "status")}}, trials_path))
     for name, d in (descriptive or {}).items():
         written.append(provenance.append_trial({
             "status": "ok", "dataset": dataset, "preset": name, "label": D.LABEL, "kind": D.KIND_DESCRIPTIVE, "evidence_role": role,
-            "revision": D.VERSION, "result_path": results_path, "results_sha256": results_sha256, "declaration_sha256": decl_sha,
+            "revision": D.VERSION, "result_path": results_path, "results_sha256": results_sha256, "declaration_sha256": decl_sha, "frozen_cuts_sha256": cuts_sha256,
             "summary": d}, trials_path))
     written.append(provenance.append_trial({
         "dataset": dataset, "evidence_role": role, "kind": "ml_explain", "label": "EXPLORATORY", "n_tests": len(tests),
-        "revision": D.VERSION, "source": f"creative_batch_3:{job}", "results_sha256": results_sha256, "declaration_sha256": decl_sha,
+        "revision": D.VERSION, "source": f"creative_batch_3:{job}", "results_sha256": results_sha256, "declaration_sha256": decl_sha, "frozen_cuts_sha256": cuts_sha256,
         "note": "CB3 count line; per-test cb3_* lines are EXCLUDEd in battery2.KIND_RULES"}, trials_path))
     return written
 
@@ -293,6 +295,8 @@ def holm(pvals: dict[str, float], alpha: float) -> dict:
 def stage2_expected(s1_a: dict | None, s1_b: dict | None) -> list[str]:
     """Tests that reach Stage 2: A1 / A2 if they advanced, A3 iff A1 advanced; every B test that advanced or entered by the
     entry exception (not testable on h2 by counts)."""
+    if s1_a is None or s1_b is None:
+        raise D.Cb3Error("both Stage-1 result files (S1_A and S1_B) are required: a missing file would silently lower k")
     out: list[str] = []
     if s1_a:
         t = s1_a.get("tests", {})

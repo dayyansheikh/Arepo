@@ -1158,3 +1158,23 @@ release-only captures; Data API page order; real `quote_state` size; whether q00
 
 **Coordinator action (2026-10-16 ~05:45Z):** q0060 held behind gate q0060a, q0061 behind q0061a, q0064 behind q0064a (4a40d67,
 deployed). RETENTION.md now opens the gate on manifest completeness, not job status.
+
+### Freeze-check fix status (implementer, 2026-10-16)
+Done and committed: 1, 2 (0dc00e4, with 8aea370 for the operational cap); 3, 4 (728395e); 5, 6 (0dc00e4: as-of end_date, created_at and fee fields per
+capture, `fees_enabled` in `quote_state` schema v2; income rebate = minimum of schedule and docs rate, unknown = 0); 15 (e9c97d3, `seals/j4r_window.json`);
+16 (4a40d67, gate q0064a). Coded in the commit that carries this section ("CB3 freeze-check fixes 7-14, 17, 18 and ruling conditions"):
+- 7: not-reached, failed and partial windows are passed as truncated or unavailable (never as "unfilled"); `retries_exhausted` is its own status.
+- 8: the trade sample's `features.csv.gz` (per-market fetch status, n_returned, 500-print cap) is copied to `pre/`.
+- 9: a pass is used only if `plan.previous_capture_id` names the onset capture (misaligned counted); no wallet key = pass recorded `missing_no_wallet_key`.
+- 10: Stage 2 and Stage P origins restricted to `< r1` and `< p1` (`origin_before`), `pass_range` removed.
+- 11: Gamma `chg_1d` is loaded; the depth control and B6 depth decile use the 1c depth (`s1_depth_*_1c` / pmxt).
+- 12: the B1 prospective placebo keeps the real large-order stream. 13: the weighted-sign check applies at every stage.
+- 14: `stage2_expected` refuses a missing S1 file; census P `--before` is bounded by `dev_window_end` (T3_dev_end moved by whole days to give >= 3 days);
+  census P refuses while the J4-R pin is not final.
+- 17: `pin_rep_start` verifies the section 1.2 max rule and that the freeze commit holds the spec.
+- 18: SweepMarks mid band [0.02, 0.98], pmxt mark search bounded to one 6h grid step, NaN or non-positive real SE is "inconclusive", history far touch
+  respects `after`, `dep` fallback share reported.
+- Ruling conditions: binding centred A2 placebo check (`A2_centred`); spec carries `frozen_cuts_sha256` and `census_sha256`, the runner checks the cuts against
+  `frozen_cuts_proposal` and the census sha, `single_commit` refuses a spec with more than one commit, and every result and trial line records the cuts hash;
+  the declaration hash now also covers `cb3_declaration` source. Bypass flags are removed (fix 4).
+Needs a science-reviewer re-check before q0061a: fixes 3, 5-9, 11-12 and the centred A2 check (the declaration hash changed, so `24f33c36...` is superseded).

@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend"))
 
 REFUSED_EXIT, NOT_IMPLEMENTED_EXIT = 3, 2
+_STATE: dict = {}  # frozen_cuts_sha256 of the committed spec, recorded on every result and trial line
 
 
 def _emit(obj: dict) -> None:
@@ -46,7 +47,7 @@ def _paths(a):
 def _header(D, job: str, decl: str | None, **kw) -> dict:
     from astrolabe.research_lab import battery2, provenance
 
-    return {"label": D.LABEL, "version": D.VERSION, "job": job, "declaration_sha256": decl, "run_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    return {"label": D.LABEL, "version": D.VERSION, "job": job, "declaration_sha256": decl, "frozen_cuts_sha256": _STATE.get("cuts_sha"), "run_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "cumulative_count_at_run": battery2.cumulative_count()["total"], "provenance": provenance.run_provenance(), **kw}
 
 
@@ -66,7 +67,7 @@ def _log(C, D, job, res, path, sha, decl, *, kind, role, dataset, trials_path):
     if res.get("reported"):
         desc["A_reported"] = res["reported"]
     return C.log_trials(job, tests, kind=kind, role=role, dataset=dataset, results_path=str(path), results_sha256=sha, decl_sha=decl,
-                        cumulative=res.get("cumulative_count_at_run"), placebo=placebo, descriptive=desc, trials_path=trials_path)
+                        cumulative=res.get("cumulative_count_at_run"), placebo=placebo, descriptive=desc, trials_path=trials_path, cuts_sha256=_STATE.get("cuts_sha"))
 
 
 class Ctx:
@@ -114,6 +115,8 @@ def main(argv: list[str] | None = None, *, _ctx: Ctx | None = None) -> int:
         if a.cmd == "census":
             return _census(a, P, fams, D, C, M, V, j4r, trials)
         decl = D.require_declaration(spec, require_committed=ctx.require_committed)
+        _STATE["cuts_sha"] = D.cuts_sha256(spec)
+        _STATE["spec"], _STATE["census"] = spec, P["out"] / "census.json"
         if a.cmd == "screen":
             return _screen(a, P, fams, D, C, M, V, j4r, decl, spec, trials)
         if a.cmd in ("replicate", "stagep", "resolution"):
@@ -140,13 +143,17 @@ def _census(a, P, fams, D, C, M, V, j4r, trials) -> int:
         mans = sorted((p.parent.name, json.loads(p.read_text())) for p in P["fu"].glob("*/manifest.json"))
         if not mans:
             raise D.WindowError("no cb3_followup passes found")
+        if not j4r[1] < float("inf"):
+            raise D.WindowError("the J4-R window pin is not final: the prospective census cannot start after T_J4R_end yet")
         qm = json.loads((P["qs"] / "manifest.json").read_text())["captures"]
         t_fu = min(D.epoch(qm[c]["capture_start_utc"]) for c, _m in mans if c in qm)
         since = max(t_fu, j4r[1])
-        before = D.epoch(a.before) if a.before else D.epoch(D.DATES["T3_dev_end"])
-        Pn = V.load_quote_panel(P["qs"], since=since, before=before, purpose="census_P", j4r=j4r)
-        out["prospective"] = M.census_prospective(Pn, reader, followup_root=P["fu"], qs_root=P["qs"])
-        out["window"] = {"since": D.iso(since), "before": D.iso(before), "T_J4R_end": D.iso(j4r[1])}
+        before = D.dev_window_end(t_fu, j4r[1])  # T3_dev_end, moved forward by whole days if < 3 full days lie in the window
+        if a.before and D.epoch(a.before) > before:
+            raise D.WindowError("--before is later than the declared prospective dev window end")
+        Pn = V.load_quote_panel(P["qs"], since=since, before=before, purpose="census_P", j4r=j4r, asof=True)
+        out["prospective"] = M.census_prospective(Pn, reader, followup_root=P["fu"], qs_root=P["qs"], origin_before=before)
+        out["window"] = {"since": D.iso(since), "before": D.iso(before), "T_J4R_end": D.iso(j4r[1]), "T3_fu_start": D.iso(t_fu)}
         path = P["out"] / "census_prospective.json"
     else:
         if "A" in fams:
@@ -175,7 +182,7 @@ def _screen(a, P, fams, D, C, M, V, j4r, decl, spec, trials) -> int:
         res = V.screen_a(Pn, n_boot=a.n_boot, draws=a.placebo_draws, stage=1)
         role, dataset = "exploratory_dev", "cb3_extract/quote_state<T3_A_dev_end"
     else:
-        cuts = D.load_frozen_cuts(spec)
+        cuts = _cuts(D, spec, P)
         res = M.screen_history(P["hist"] / a.run_id, P["books"], cuts, n_boot=a.n_boot, placebo_draws=a.placebo_draws, random_draws=a.random_filter_draws,
                                max_markets=a.max_markets, stage=1)
         res.setdefault("seed_disclosure", "B1/B3 are seeded by HB2 F3/F7 on the same h2 trades (L1, a stop rule, not independent)")
@@ -187,6 +194,12 @@ def _screen(a, P, fams, D, C, M, V, j4r, decl, spec, trials) -> int:
     _emit({"cb3": D.VERSION, "cmd": "screen", "family": fam, "results": str(path), "sha256": sha,
            "advance": sorted(k for k, v in res["tests"].items() if v.get("advance")), "entry_exception": sorted(k for k, v in res["tests"].items() if v.get("entry_exception_stage2"))})
     return 0
+
+
+def _cuts(D, spec, P) -> dict:
+    """Frozen cuts, checked against the census they came from (sha of census.json and equality with its frozen_cuts_proposal)."""
+    D.verify_cuts_against_census(spec, P["out"] / "census.json")
+    return D.load_frozen_cuts(spec)
 
 
 def _stage1(P):
@@ -208,7 +221,7 @@ def _replicate(a, P, fams, D, C, M, V, j4r, decl, spec, trials) -> int:
         C.write_new(path, doc)
         _emit({"cb3": D.VERSION, "cmd": "replicate", "family": fam, "status": "nothing advanced"})
         return 0
-    Pn = V.load_quote_panel(P["qs"], since=r0, before=r1 + lag, purpose="rep", j4r=j4r)
+    Pn = V.load_quote_panel(P["qs"], since=r0, before=r1 + lag, purpose="rep", j4r=j4r, asof=True)
     reader = M.FollowupReader(P["fu"])
     if fam == "A":
         res = V.screen_a(Pn, n_boot=a.n_boot, draws=a.placebo_draws, stage=2, onset_before=r1)
@@ -223,8 +236,8 @@ def _replicate(a, P, fams, D, C, M, V, j4r, decl, spec, trials) -> int:
         role = "prospective"
         dataset = "cb3_extract/quote_state+cb3_followup:rep"
     else:
-        cuts = D.load_frozen_cuts(spec)
-        res = M.screen_prospective(Pn, reader, cuts, mine, stage=2, pass_range=None, n_boot=a.n_boot, placebo_draws=a.placebo_draws, random_draws=a.random_filter_draws)
+        cuts = _cuts(D, spec, P)
+        res = M.screen_prospective(Pn, reader, cuts, mine, stage=2, origin_before=r1, n_boot=a.n_boot, placebo_draws=a.placebo_draws, random_draws=a.random_filter_draws)
         role, dataset = "prospective", "cb3_followup:rep"
     k = max(len(expected), 1)
     for t in res["tests"].values():
@@ -253,7 +266,7 @@ def _stagep(a, P, D, C, M, V, j4r, decl, spec, trials) -> int:
         return 0
     p0, p1 = D.window_bounds("P")
     lag = D.DATES["T3_mark_lag_h"] * 3600.0
-    Pn = V.load_quote_panel(P["qs"], since=p0, before=p1 + lag, purpose="P", j4r=j4r)
+    Pn = V.load_quote_panel(P["qs"], since=p0, before=p1 + lag, purpose="P", j4r=j4r, asof=True)
     reader = M.FollowupReader(P["fu"])
     tests: dict = {}
     if "A3" in passed:
@@ -266,7 +279,7 @@ def _stagep(a, P, D, C, M, V, j4r, decl, spec, trials) -> int:
     bt = [t for t in passed if t != "A3"]
     resb: dict = {}
     if bt:
-        resb = M.screen_prospective(Pn, reader, D.load_frozen_cuts(spec), bt, stage=3, n_boot=a.n_boot, placebo_draws=a.placebo_draws, random_draws=a.random_filter_draws)
+        resb = M.screen_prospective(Pn, reader, _cuts(D, spec, P), bt, stage=3, origin_before=p1, n_boot=a.n_boot, placebo_draws=a.placebo_draws, random_draws=a.random_filter_draws)
         tests.update(resb["tests"])
     hm = C.holm({k: float(v.get("p", 1.0)) for k, v in tests.items()}, D.ALPHA_STAGE2)
     for k, v in tests.items():

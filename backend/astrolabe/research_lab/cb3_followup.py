@@ -102,6 +102,8 @@ def window_trades(transport: Transport, condition_id: str, start: float, end: fl
                                             "limit": LIMIT, "offset": off}, sleep)
         if code is None:
             return {"rows": rows, "pages": pages, "page_cap": False, "oldest_ts": min((r["ts"] for r in rows), default=None), "status": budget.stop_reason or "failed"}
+        if code == -1:
+            return {"rows": rows, "pages": pages, "page_cap": False, "oldest_ts": min((r["ts"] for r in rows), default=None), "status": "retries_exhausted"}
         if code != 200:
             return {"rows": rows, "pages": pages, "page_cap": False, "oldest_ts": min((r["ts"] for r in rows), default=None), "status": f"http_{code}"}
         try:
@@ -181,7 +183,7 @@ class Budget:
                 sleep(min(delay, BACKOFF_CAP))
                 continue
             return code, body
-        return 429, b""
+        return -1, b""  # retries exhausted (recorded as such, not as an http status)
 
 
 def _atomic_csv_gz(path: Path, df: pd.DataFrame) -> None:
@@ -247,11 +249,14 @@ def run(*, snapshot_root: Path | None = None, current_dir: Path | None = None, s
     if key is None:
         try:
             key = load_or_create_key()
-        except Exception:  # without a wallet key no wallet field can be written; hashed wallets are None
+        except Exception:  # without a wallet key no wallet field can be written: the pass is recorded as missing, nothing else is written
             key = None
+    if key is None:
+        _atomic_json(out / "manifest.json", {"version": VERSION, "capture_id": cid, "state": "missing_no_wallet_key"})
+        return {**res, "stopped": "missing_no_wallet_key"}
     sample_dir = find_previous_sample(prev["capture_id"], sample_root) if prev else None
     b_markets: list[dict] = []
-    pre_tr = pre_w = None
+    pre_tr = pre_w = pre_f = None
     if sample_dir is not None:
         plan_s = json.loads((sample_dir / "plan.json").read_text())
         smap = {str(m["market_id"]): m for m in plan_s["sample"]}
@@ -260,6 +265,8 @@ def run(*, snapshot_root: Path | None = None, current_dir: Path | None = None, s
         tr, wl = _read_csv(sample_dir / "trades.csv.gz"), _read_csv(sample_dir / "wallets.csv.gz")
         pre_tr = tr[tr["market_id"].isin(chosen)] if tr is not None else None
         pre_w = wl[wl["market_id"].isin(chosen)] if wl is not None else None
+        ft = _read_csv(sample_dir / "features.csv.gz")
+        pre_f = ft[ft["market_id"].isin(chosen)] if ft is not None else None
     prev_vac = None
     if prev is not None:
         pv = Path(out_root) / prev["capture_id"] / "vacuum_plan.json"
@@ -279,6 +286,8 @@ def run(*, snapshot_root: Path | None = None, current_dir: Path | None = None, s
         _atomic_csv_gz(out / "pre" / "trades.csv.gz", pre_tr)
     if pre_w is not None:
         _atomic_csv_gz(out / "pre" / "wallets.csv.gz", pre_w)
+    if pre_f is not None:  # per-market fetch status and n_returned of the trade sample (its 500-print cap), unchanged
+        _atomic_csv_gz(out / "pre" / "features.csv.gz", pre_f)
     bud = Budget(rps, budget_s, clock)
     got: dict[str, list[dict]] = {"post": [], "vacuum": []}
     meta: dict = {}

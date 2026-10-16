@@ -229,7 +229,12 @@ def test_rebate_by_category_unknown_zero_geopolitics_zero_and_halved():
     assert M.rebate_per_share(p, None) == 0.0 and M.rebate_per_share(p, "zzz") == 0.0 and M.rebate_per_share(p, float("nan")) == 0.0
     assert M.rebate_per_share(p, "crypto", halved=True) == pytest.approx(0.5 * M.rebate_per_share(p, "crypto"))
     assert economics.REBATE_SHARE["geopolitics"] == 0.0 and D.MAKER["maker_fee"] == 0.0
-    assert M.rebate_per_share(p, "crypto", fee_schedule='{"rate": 0.09, "exponent": 1}', prospective=True) == pytest.approx(0.20 * 0.09 * 0.25)
+    # prospective income uses the MINIMUM of the as-of schedule and the docs rate; unknown schedule or fees disabled = 0 (fix 6)
+    assert M.rebate_per_share(p, "crypto", fee_schedule='{"rate": 0.09, "exponent": 1}', prospective=True) == pytest.approx(0.20 * 0.07 * 0.25)
+    assert M.rebate_per_share(p, "crypto", fee_schedule='{"rate": 0.03, "exponent": 1}', prospective=True) == pytest.approx(0.20 * 0.03 * 0.25)
+    assert M.rebate_per_share(p, "crypto", fee_schedule=None, prospective=True) == 0.0
+    assert M.rebate_per_share(p, "crypto", fee_schedule='{"rate": 0.07, "exponent": 1}', fees_enabled="0", prospective=True) == 0.0
+    assert M.rebate_per_share(p, "crypto", fee_schedule='{"rate": 0.07, "exponent": 1}', fees_enabled="1", prospective=True) > 0.0
 
 
 def test_rewards_never_enter_net_and_net_is_mo_plus_rebate():
@@ -479,13 +484,25 @@ def test_require_declaration_refuses_missing_or_mismatching_spec(tmp_path):
         D.require_declaration(p, require_committed=True)
 
 
-def test_rep_pin_floor_and_stage_time_gates(tmp_path):
+def test_rep_pin_max_rule_floor_and_stage_time_gates(tmp_path):
     pin = tmp_path / "pin.json"
+    kw = dict(freeze_commit="abcdef1", freeze_commit_time="2026-10-26T00:00:00Z", first_capture_after="2026-10-26T04:00:00Z", rotation_verified_day="2026-10-27T00:00:00Z", path=pin,
+              verify_git=False)
+    with pytest.raises(D.WindowError, match="max rule"):
+        D.pin_rep_start(t3_rep_start="2026-10-26T04:00:00Z", **kw)  # below the floor / not the max rule value
+    with pytest.raises(D.WindowError, match="max rule"):
+        D.pin_rep_start(t3_rep_start="2026-10-29T00:00:00Z", **kw)  # later than the rule value
+    with pytest.raises(D.WindowError, match="2h"):
+        D.pin_rep_start(**{**kw, "first_capture_after": "2026-10-26T01:00:00Z"}, t3_rep_start="2026-10-27T00:00:00Z")
+    D.pin_rep_start(t3_rep_start="2026-10-27T00:00:00Z", **kw)
     with pytest.raises(D.WindowError):
-        D.pin_rep_start("abcdef1", "2026-10-26T00:00:00Z", pin)
-    D.pin_rep_start("abcdef1", "2026-10-27T00:00:00Z", pin)
+        D.pin_rep_start(t3_rep_start="2026-10-27T00:00:00Z", **kw)  # pinned once
+    # rotation not yet verified pushes the start: the rule value is the max
+    pin2 = tmp_path / "pin2.json"
+    doc = D.pin_rep_start("abcdef1", "2026-10-26T00:00:00Z", "2026-10-26T04:00:00Z", "2026-10-30T00:00:00Z", "2026-10-30T00:00:00Z", pin2, verify_git=False)
+    assert doc["t3_rep_start"] == "2026-10-30T00:00:00Z"
     with pytest.raises(D.WindowError):
-        D.pin_rep_start("abcdef1", "2026-10-28T00:00:00Z", pin)  # pinned once
+        D.pin_rep_start("zzzz", "2026-10-26T00:00:00Z", "2026-10-26T04:00:00Z", "2026-10-27T00:00:00Z", "2026-10-27T00:00:00Z", tmp_path / "p3.json", verify_git=False)
     from datetime import UTC, datetime
 
     with pytest.raises(D.TooEarly):
@@ -493,6 +510,46 @@ def test_rep_pin_floor_and_stage_time_gates(tmp_path):
     D.check_stage_allowed("replicate", datetime(2026, 11, 24, 13, tzinfo=UTC), pin)
     with pytest.raises(D.TooEarly):
         D.check_stage_allowed("stagep", datetime(2026, 12, 22, 6, tzinfo=UTC), pin)
+    # the default pin must be committed: a stray pin file in the repo tree would be refused
+    with pytest.raises(D.WindowError):
+        D.load_rep_pin()
+
+
+def test_spec_immutability_cuts_hash_census_check_and_j4r_pin(tmp_path):
+    assert D.single_commit(D.J4R_PIN_PATH) is True
+    assert D.single_commit(provenance.REPO_ROOT / "docs" / "research_lab" / "CREATIVE_BATCH_3.md") is False  # many commits
+    lo, hi = D.j4r_window()
+    assert lo == D.epoch("2026-10-16T00:00:00Z") and hi == math.inf  # not final: every capture at/after the J4-R start is refused
+    assert D.in_j4r(D.epoch("2026-12-01T00:00:00Z")) and not D.in_j4r(D.epoch("2026-10-15T00:00:00Z"))
+    pin = tmp_path / "j.json"
+    pin.write_text(json.dumps({"t_j4r_start": "2026-10-16T00:00:00Z", "t_j4r_end": "2026-10-21T00:00:00Z", "final": True}))
+    assert D.j4r_window(pin) == (D.epoch("2026-10-16T00:00:00Z"), D.epoch("2026-10-21T00:00:00Z"))
+    pin.write_text(json.dumps({"t_j4r_start": "2026-10-16T00:00:00Z", "t_j4r_end": "2026-10-20T00:00:00Z", "declared_end": "2026-10-21T00:00:00Z", "final": True}))
+    with pytest.raises(D.WindowError):
+        D.j4r_window(pin)
+    cuts = {"rt_top_decile_cut": 0.2, "activity_tercile_cuts": [1.0, 2.0]}
+    census = tmp_path / "census.json"
+    census.write_text(json.dumps({"B": {"frozen_cuts_proposal": cuts}}))
+    spec = tmp_path / "spec.json"
+    D.write_spec(spec, cuts, provenance.sha256_file(census))
+    D.verify_cuts_against_census(spec, census)
+    assert D.require_declaration(spec, require_committed=False) == D.declaration_sha256()
+    d = json.loads(spec.read_text())
+    d["frozen_cuts"]["rt_top_decile_cut"] = 0.3
+    spec.write_text(json.dumps(d))
+    with pytest.raises(D.DeclarationError, match="frozen_cuts_sha256"):
+        D.load_frozen_cuts(spec)
+    d["frozen_cuts_sha256"] = D.canonical_sha256(d["frozen_cuts"])
+    spec.write_text(json.dumps(d))
+    with pytest.raises(D.DeclarationError, match="differs from the census proposal"):
+        D.verify_cuts_against_census(spec, census)
+    census.write_text(json.dumps({"B": {"frozen_cuts_proposal": d["frozen_cuts"]}}))
+    with pytest.raises(D.DeclarationError, match="census_sha256"):
+        D.verify_cuts_against_census(spec, census)  # the census was changed after the freeze
+    # dev window: T3_dev_end moves forward by whole days when < 3 full days lie in the window
+    t = D.epoch
+    assert D.dev_window_end(t("2026-10-18T00:00:00Z"), t("2026-10-21T00:00:00Z")) == t("2026-10-25T00:00:00Z")
+    assert D.dev_window_end(t("2026-10-18T00:00:00Z"), t("2026-10-23T00:00:00Z")) == t("2026-10-26T00:00:00Z")
 
 
 def test_kind_rules_contain_cb3_kinds_and_counter_runs_on_the_real_trials_file(tmp_path):
@@ -603,24 +660,35 @@ def test_history_screen_runs_end_to_end_and_reports_all_six_tests(tmp_path):
     assert all(isinstance(t.get("advance"), bool) for t in res["tests"].values())
 
 
-def test_runner_B_screen_needs_frozen_cuts_and_logs_six_tests(tmp_path):
+def test_runner_B_screen_needs_frozen_cuts_checked_against_census_and_logs_six_tests(tmp_path):
     import run_cb3
 
     run, bpath = _history_run(tmp_path)
+    out = tmp_path / "out"
     spec = tmp_path / "cb3_v1.json"
     spec.write_text(json.dumps({"declaration_sha256": D.declaration_sha256()}))
-    args = ["screen", "--family", "B", "--history-root", str(run.parent), "--books", str(bpath), "--out-root", str(tmp_path / "out")]
+    args = ["screen", "--family", "B", "--history-root", str(run.parent), "--books", str(bpath), "--out-root", str(out)]
     ctx = run_cb3.Ctx(D, spec=spec, require_committed=False, trials=tmp_path / "t.jsonl", n_boot=0, placebo_draws=2, random_draws=5)
 
     def go(a):
         return run_cb3.main(a, _ctx=ctx)
 
-    assert go(args) == run_cb3.REFUSED_EXIT  # the committed spec carries no frozen cuts
-    spec.write_text(json.dumps({"declaration_sha256": D.declaration_sha256(), "frozen_cuts": {"rt_top_decile_cut": 0.2, "activity_tercile_cuts": [20.0, 60.0]}}))
+    assert go(args) == run_cb3.REFUSED_EXIT  # no census / no frozen cuts in the spec
+    assert run_cb3.main(["census", "--family", "B", "--history-root", str(run.parent), "--books", str(bpath), "--out-root", str(out)], _ctx=ctx) == 0
+    prop = json.loads((out / "census.json").read_text())["B"]["frozen_cuts_proposal"]
+    cuts = {"rt_top_decile_cut": prop["rt_top_decile_cut"] if prop["rt_top_decile_cut"] is not None else 0.2, "activity_tercile_cuts": prop["activity_tercile_cuts"]}
+    D.write_spec(tmp_path / "s2.json", {"rt_top_decile_cut": 0.99, "activity_tercile_cuts": [1.0, 2.0]}, provenance.sha256_file(out / "census.json"))
+    ctx.spec = tmp_path / "s2.json"
+    assert go(args) == run_cb3.REFUSED_EXIT  # the cuts differ from the census proposal
+    (tmp_path / "s3.json").write_text(json.dumps(D.spec_payload(cuts, provenance.sha256_file(out / "census.json"))))
+    ctx.spec = tmp_path / "s3.json"
     assert go(args) == 0
     recs = [json.loads(line) for line in (tmp_path / "t.jsonl").read_text().splitlines()]
     assert sorted(r["preset"] for r in recs if r["kind"] == "cb3_test" and r["evidence_role"] != "placebo") == ["B1", "B2", "B3", "B4", "B5", "B6"]
     assert [r["n_tests"] for r in recs if r["kind"] == "ml_explain"] == [6]
+    sha = D.canonical_sha256(cuts)
+    assert all(r.get("frozen_cuts_sha256") == sha for r in recs if r["kind"] != "cb3_descriptive" or r["preset"] != "census")
+    assert json.loads((out / "S1_B" / "results.json").read_text())["frozen_cuts_sha256"] == sha
     assert go(args) == run_cb3.REFUSED_EXIT  # never overwritten
 
 
@@ -650,7 +718,7 @@ def test_batch_holm_over_the_stage2_family_and_expected_family():
 # --- prospective pipeline -----------------------------------------------------------------------------------
 
 
-def _prospective_world(tmp_path, n_mkt=4, n_cap=8):
+def _prospective_world(tmp_path, n_mkt=4, n_cap=8, statuses=None, drop_asof_capture=None, misalign=None):
     import gzip as gz
 
     from astrolabe.research_lab import cb3_quote_vacuum as V
@@ -662,11 +730,16 @@ def _prospective_world(tmp_path, n_mkt=4, n_cap=8):
         rows = []
         for m in range(n_mkt):
             rows.append({"market_id": f"m{m}", "condition_id": f"c{m}", "event_id": f"e{m}", "best_bid": "0.48", "best_ask": "0.52", "spread": "0.04", "last_trade_price": "0.5",
-                         "volume_num": "100", "closed": "False", "accepting_orders": "True", "end_date": "2026-12-31T00:00:00Z", "created_at": "2026-09-01T00:00:00Z",
-                         "fee_category": "politics", "fee_schedule": "",
-                         "s1_batch_receipt_utc": D.iso(st + 600), "s1_best_bid": "0.48", "s1_best_ask": "0.52", "s1_bid_size_1": "5", "s1_ask_size_1": "5"})
+                         "volume_num": "100", "closed": "False", "accepting_orders": "True", "chg_1d": "0.01",
+                         "asof_end_date": "2026-12-31T00:00:00Z", "asof_created_at": "2026-09-01T00:00:00Z", "asof_fee_schedule": '{"rate": 0.04, "exponent": 1}',
+                         "asof_fee_category": "politics", "fees_enabled": "1",
+                         "s1_batch_receipt_utc": D.iso(st + 600), "s1_best_bid": "0.48", "s1_best_ask": "0.52", "s1_bid_size_1": "5", "s1_ask_size_1": "5",
+                         "s1_depth_bid_1c": "50", "s1_depth_ask_1c": "60"})
+            if drop_asof_capture == c:
+                for k in ("asof_end_date", "asof_created_at", "asof_fee_schedule", "asof_fee_category", "fees_enabled"):
+                    rows[-1].pop(k)
         frames.append((f"c{c:03d}", st, pd.DataFrame(rows), None))
-    P = V.panel_from_frames(frames)
+    P = V.panel_from_frames(frames, asof=True)
     fu = tmp_path / "fu"
     rng = np.random.default_rng(1)
     for c in range(1, n_cap):
@@ -686,16 +759,20 @@ def _prospective_world(tmp_path, n_mkt=4, n_cap=8):
         pd.DataFrame(pre).to_csv(d / "pre" / "wallets.csv.gz", index=False, compression="gzip")
         pd.DataFrame(post).to_csv(d / "post" / "trades.csv.gz", index=False, compression="gzip")
         req = prev_t + 10 * H
-        (d / "plan.json").write_text(json.dumps({"frac": 0.5, "inclusion_float": {f"m{m}": 0.25 for m in range(n_mkt)}}))
+        prev = f"c{c - 1:03d}" if misalign != c else "zzz"
+        (d / "plan.json").write_text(json.dumps({"frac": 0.5, "previous_capture_id": prev, "inclusion_float": {f"m{m}": 0.25 for m in range(n_mkt)}}))
         (d / "manifest.json").write_text(json.dumps({"state": "complete"}))
-        (d / "meta.json").write_text(json.dumps({"requests": 8, "n_429": 0, "markets": {f"post:m{m}": {"status": "ok", "request_epoch": req, "page_cap": False, "oldest_ts": None} for m in range(n_mkt)}}))
+        pd.DataFrame([{"market_id": f"m{m}", "status": "ok", "n_returned": 80, "trades_truncated": "False"} for m in range(n_mkt)]).to_csv(d / "pre" / "features.csv.gz", index=False, compression="gzip")
+        st = statuses or {}
+        (d / "meta.json").write_text(json.dumps({"requests": 8, "n_429": 0, "markets": {f"post:m{m}": {"status": st.get(m, "ok"), "request_epoch": req, "page_cap": False, "oldest_ts": None}
+                                                                                 for m in range(n_mkt) if st.get(m) != "absent"}}))
     _ = gz
     return P, M.FollowupReader(fu), fu
 
 
 def test_build_prospective_uses_first_sweep_origin_pre_before_t_post_after_and_later_sweeps_for_marks(tmp_path):
     P, reader, _fu = _prospective_world(tmp_path)
-    u = M.build_prospective(P, reader)
+    u = M.build_prospective(P, reader, origin_before=P.starts[-1] + 1)
     opps, fills = u["opps"], u["fills"]
     assert len(opps) == 7 * 4 and u["diag"]["kept"] == 28
     assert (opps["t"] == P.mat["s1_recv"][0, :7].repeat(4).reshape(7, 4)[:, 0].repeat(4)).all() or opps["t"].nunique() == 7  # t = the first-sweep receipt of each pass
@@ -720,6 +797,75 @@ def test_prospective_census_is_counts_only_and_states_stage2_mde(tmp_path):
 def test_screen_prospective_returns_stage2_structure_with_small_g_day_way(tmp_path):
     P, reader, _fu = _prospective_world(tmp_path)
     cuts = {"rt_top_decile_cut": 0.2, "activity_tercile_cuts": [10.0, 40.0]}
-    res = M.screen_prospective(P, reader, cuts, ["B1", "B2", "B3", "B4", "B5", "B6"], stage=2, n_boot=0, placebo_draws=2, random_draws=5)
+    res = M.screen_prospective(P, reader, cuts, ["B1", "B2", "B3", "B4", "B5", "B6"], stage=2, origin_before=P.starts[-1] + 1, n_boot=0, placebo_draws=2, random_draws=5)
     assert set(res["tests"]) == {"B1", "B2", "B3", "B4", "B5", "B6"} and res["stage"] == 2
     assert all(t.get("advance") is False for t in res["tests"].values())  # 28 quotes: far below the testability floors
+
+
+def test_prospective_asof_fields_failed_requests_alignment_and_origin_cut(tmp_path):
+    # capture 2 lacks the as-of columns: its rows are ineligible and counted (fix 5)
+    P, reader, _ = _prospective_world(tmp_path / "a", drop_asof_capture=2)
+    u = M.build_prospective(P, reader, origin_before=P.starts[-1] + 1)
+    assert u["diag"]["no_asof_columns"] == 4 and u["diag"]["kept"] == 24
+    # a not-reached market is excluded (counted); a failed window is kept but every fill status is unavailable (fix 7)
+    P, reader, _ = _prospective_world(tmp_path / "b", statuses={0: "not_reached", 1: "http_500", 2: "retries_exhausted", 3: "absent"})
+    u = M.build_prospective(P, reader, origin_before=P.starts[-1] + 1)
+    d = u["diag"]
+    assert d["post_not_reached"] == 14 and d["post_failed_unavailable"] == 14 and d["kept"] == 14
+    assert u["fills"].empty or not (u["fills"]["market_id"].isin(["m1", "m2"])).any()
+    o = u["opps"]
+    assert (o[o["market_id"].isin(["m1", "m2"])]["queue_bid_status"] == -1).all()
+    assert d["post_status_counts"]["http_500"] == 7
+    # a follow-up dir built for a different previous capture is not used (fix 9)
+    P, reader, _ = _prospective_world(tmp_path / "c", misalign=3)
+    u = M.build_prospective(P, reader, origin_before=P.starts[-1] + 1)
+    assert u["diag"]["passes_misaligned"] == 1 and u["diag"]["kept"] == 24
+    # origins at or after origin_before are never built (fix 10)
+    P, reader, _ = _prospective_world(tmp_path / "d")
+    u = M.build_prospective(P, reader, origin_before=P.starts[3])
+    assert u["diag"]["passes"] == 3 and u["opps"]["t"].max() < P.starts[3] + 600 and u["diag"]["kept"] == 12
+
+
+def test_prospective_uses_asof_fees_chg_1d_1c_depth_pre_cap_and_real_large_order_streams(tmp_path):
+    P, reader, _ = _prospective_world(tmp_path)
+    u = M.build_prospective(P, reader, origin_before=P.starts[-1] + 1)
+    o, f = u["opps"], u["fills"]
+    assert o["depth_bid_1c"].eq(50).all() and o["depth_ask_1c"].eq(60).all() and o["depth_both"].eq(110).all()  # 1c depth, not the touch size
+    assert o["abs_chg_24h"].eq(0.01).all()  # Gamma chg_1d (fix 11)
+    q = f[(f["rule"] == "queue") & f["mark6"].notna()]
+    assert np.allclose(q["rebate"], 0.25 * 0.04 * q["price"] * (1 - q["price"]))  # min(schedule 0.04, docs 0.04) x politics share
+    assert set(u["large_times"]) <= {f"m{m}" for m in range(4)} and all(isinstance(v, np.ndarray) for v in u["large_times"].values())
+    assert u["spans"] and all(lo <= hi for lo, hi in u["spans"].values())  # the real streams are kept (fix 12)
+
+
+def test_pre_page_cap_flags_round_trip_coverage(tmp_path):
+    P, reader, fu = _prospective_world(tmp_path)
+    d = fu / "c001"
+    pd.DataFrame([{"market_id": f"m{m}", "status": "ok", "n_returned": 500, "trades_truncated": "True"} for m in range(4)]).to_csv(d / "pre" / "features.csv.gz", index=False, compression="gzip")
+    u = M.build_prospective(P, reader, origin_before=P.starts[1] + 1)
+    first = u["opps"][u["opps"]["t"] < P.starts[1]]
+    assert u["diag"]["pre_capped"] == 4 and len(first) == 4 and first["rt"].isna().all()  # the 500-print page does not reach back 24h
+    pd.DataFrame([{"market_id": f"m{m}", "status": "failed", "n_returned": "", "trades_truncated": ""} for m in range(4)]).to_csv(d / "pre" / "features.csv.gz", index=False, compression="gzip")
+    u = M.build_prospective(P, reader, origin_before=P.starts[1] + 1)
+    assert u["diag"]["pre_fetch_failed"] == 4 and u["diag"]["kept"] == 4  # pass 0 dropped, pass 1 kept
+
+
+def test_history_depth_pmxt_bound_far_touch_after_and_sweep_mid_band():
+    hm = M.HistoryMarks(np.array([T, T + 600]), np.array([0.4, 0.5]))
+    assert math.isnan(hm.last_before(T + 700, 0.01, after=T + 600)[0])  # the last point is not after the fill
+    assert hm.last_before(T + 700, 0.01, after=T)[0] == pytest.approx(0.49)
+    sm = M.SweepMarks(np.array([T + 6 * H + 60]), np.array([0.005]), np.array([0.03]))  # tight spread but mid 0.0175 < 0.02
+    assert math.isnan(sm.mark(T, 6 * H)[0])
+
+
+def test_reading_with_unavailable_se_is_inconclusive():
+    ps = C.placebo_summary([0.0, 0.01, -0.01, 0.005])
+    for se in (math.nan, None, 0.0):
+        assert C.reading(ps, se)["status"].startswith("inconclusive")
+
+
+def test_stage2_expected_refuses_a_missing_stage1_file():
+    with pytest.raises(D.Cb3Error):
+        C.stage2_expected({"tests": {}}, None)
+    with pytest.raises(D.Cb3Error):
+        C.stage2_expected(None, {"tests": {}})

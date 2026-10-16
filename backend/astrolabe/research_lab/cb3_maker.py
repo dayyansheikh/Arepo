@@ -52,22 +52,36 @@ def rebate_share(cat) -> float:
     return float(economics.REBATE_SHARE.get(category_key(cat), D.MAKER["rebate_unknown_category"]))
 
 
-def fee_rate(cat, fee_schedule=None, *, prospective: bool = False) -> float:
-    """History: the docs table by category. Prospective: sidecar ``fee_schedule``, policy 'conservative'."""
+def _fees_flag(v) -> bool | None:
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return None
+    t = str(v).strip().lower()
+    if t in ("1", "1.0", "true"):
+        return True
+    if t in ("0", "0.0", "false"):
+        return False
+    return None
+
+
+def fee_rate(cat, fee_schedule=None, *, fees_enabled=None, prospective: bool = False) -> float:
+    """Rate used for INCOME (the rebate): the docs table by category in history (unknown category -> 0); prospectively the minimum of
+    the as-of ``fee_schedule`` rate and the docs rate, 0 when the schedule is unknown or fees are disabled (freeze-check fix 6)."""
     key = category_key(cat)
-    if prospective:
-        spec = economics.fee_spec(fee_schedule, None, key or None)
-        r = economics.resolve_rate(spec, D.MAKER["rebate_fee_policy_prospective"])
-        return float(r) if math.isfinite(r) else float(economics.MAX_DOCS_RATE)
-    return float(economics.DOCS_CATEGORY_RATE.get(key, economics.MAX_DOCS_RATE))
+    docs = economics.DOCS_CATEGORY_RATE.get(key)
+    if not prospective:
+        return float(docs) if docs is not None else 0.0
+    spec = economics.fee_spec(fee_schedule if fee_schedule not in ("", None) else None, _fees_flag(fees_enabled), key or None)
+    if not spec.known:
+        return 0.0
+    return float(min(spec.rate, docs)) if docs is not None else float(spec.rate)
 
 
-def rebate_per_share(price: float, cat, *, fee_schedule=None, prospective: bool = False, halved: bool = False) -> float:
-    """``rho_cat * r_cat * P (1 - P)`` per filled share (maker fee 0). Unknown/null category: rho = 0."""
+def rebate_per_share(price: float, cat, *, fee_schedule=None, fees_enabled=None, prospective: bool = False, halved: bool = False) -> float:
+    """``rho_cat * r_cat * P (1 - P)`` per filled share (maker fee 0). Unknown/null category: rho = 0; unknown fee schedule: 0."""
     rho = rebate_share(cat)
     if rho == 0.0:
         return 0.0
-    out = rho * fee_rate(cat, fee_schedule, prospective=prospective) * float(price) * (1.0 - float(price))
+    out = rho * fee_rate(cat, fee_schedule, fees_enabled=fees_enabled, prospective=prospective) * float(price) * (1.0 - float(price))
     return out * (0.5 if halved else 1.0)
 
 
@@ -260,7 +274,7 @@ class HistoryMarks:
         if not len(self.ts):
             return math.nan, math.nan
         i = int(np.searchsorted(self.ts, t_limit, side="right")) - 1
-        if i < 0:
+        if i < 0 or self.ts[i] <= after:  # only points stamped after the fill count
             return math.nan, math.nan
         return float(self.vals[i]) - hs, float(self.vals[i]) + hs
 
@@ -277,7 +291,9 @@ class SweepMarks:
         self.recv, self.bid, self.ask = np.asarray(recv, float)[o], np.asarray(bid, float)[o], np.asarray(ask, float)[o]
 
     def _tight(self) -> np.ndarray:
-        return np.isfinite(self.bid) & np.isfinite(self.ask) & (self.bid < self.ask) & (self.ask < 1) & ((self.ask - self.bid) <= D.MAKER["spread_max"] + 1e-12)
+        mid = (self.bid + self.ask) / 2.0
+        return (np.isfinite(self.bid) & np.isfinite(self.ask) & (self.bid < self.ask) & (self.ask < 1) & ((self.ask - self.bid) <= D.MAKER["spread_max"] + 1e-12)
+                & (mid >= D.A["tight_mid_band"][0]) & (mid <= D.A["tight_mid_band"][1]))
 
     def mark(self, t_fill: float, h: float, hs: float = 0.0) -> tuple[float, float, float]:
         t0 = t_fill + h
@@ -331,9 +347,13 @@ class Opp:
     created: float = math.nan
     end: float = math.nan
     abs_chg_24h: float = math.nan
-    depth_1c_own: float = math.nan
+    depth_1c_own: float = math.nan  # bid-side 1c depth
+    depth_1c_ask: float = math.nan
     depth_1c_both: float = math.nan
     fee_schedule: object = None
+    fees_enabled: object = None
+    pre_truncated: bool | None = None  # the pre-origin page (trade sample, 500-print cap) reached its cap / failed; None = same as ``truncated``
+    pre_oldest: float | None = None
     truncated: bool = False
     oldest_ts: float | None = None
     life: float = LIFE
@@ -373,7 +393,8 @@ def evaluate_opportunity(o: Opp, pre: dict[str, np.ndarray], post: dict[str, np.
     t_cancel = float(after[after < life_end][0]) if (after < life_end).any() else math.inf
     vo = orders[(orders["ts"] >= t - D.B["activity_window_s"]) & (orders["ts"] < t)]
     activity = int(len(vo))
-    rt = round_trip_share(vis, t, truncated=o.truncated, oldest_ts=o.oldest_ts)
+    rt = round_trip_share(vis, t, truncated=o.truncated if o.pre_truncated is None else o.pre_truncated,
+                          oldest_ts=o.oldest_ts if o.pre_truncated is None else o.pre_oldest)
     spread = o.ask - o.bid
     mid = (o.ask + o.bid) / 2.0
     lf_t = life_fraction(t, o.created, o.end)
@@ -382,7 +403,7 @@ def evaluate_opportunity(o: Opp, pre: dict[str, np.ndarray], post: dict[str, np.
         "week": c1.iso_week(t), "day": pd.Timestamp(t, unit="s", tz="UTC").strftime("%Y-%m-%d"),
         "bid": o.bid, "ask": o.ask, "spread": spread, "mid": mid, "bid_size": o.bid_size, "ask_size": o.ask_size,
         "lf_t": lf_t, "classifiable": bool(classifiable), "t_cancel": t_cancel, "cancel_offset": t_cancel - t if math.isfinite(t_cancel) else math.nan,
-        "activity": activity, "rt": rt, "abs_chg_24h": o.abs_chg_24h, "depth_own_bid": o.depth_1c_own, "depth_both": o.depth_1c_both,
+        "activity": activity, "rt": rt, "abs_chg_24h": o.abs_chg_24h, "depth_bid_1c": o.depth_1c_own, "depth_ask_1c": o.depth_1c_ask, "depth_both": o.depth_1c_both,
         "taker_notional_24h": float(vo["notional"].sum()) if len(vo) else 0.0, "life_truncated": bool(o.life_truncated),
         "spread_band": _grid_band(spread, D.B["spread_bands"]), "price_band": _grid_band(mid, D.B["price_bands"]),
         "activity_tercile": (_grid_band(activity, cuts["activity_tercile_cuts"]) if cuts and cuts.get("activity_tercile_cuts") else -1),
@@ -413,8 +434,8 @@ def _wc_for(marks, side: str, price: float, t_limit: float, hs: float, after: fl
 def _fill_row(o: Opp, side: str, price: float, rule: str, tf: float, marks, hs: float, ots, flags, larges, prospective: bool, post_w) -> dict:
     m6, _b6, _a6 = marks.mark(tf, MARK_S, hs) if marks is not None else (math.nan, math.nan, math.nan)
     m2, _b2, _a2 = marks.mark(tf, MARK2_S, hs) if marks is not None else (math.nan, math.nan, math.nan)
-    reb = rebate_per_share(price, o.cat, fee_schedule=o.fee_schedule, prospective=prospective)
-    reb_h = rebate_per_share(price, o.cat, fee_schedule=o.fee_schedule, prospective=prospective, halved=True)
+    reb = rebate_per_share(price, o.cat, fee_schedule=o.fee_schedule, fees_enabled=o.fees_enabled, prospective=prospective)
+    reb_h = rebate_per_share(price, o.cat, fee_schedule=o.fee_schedule, fees_enabled=o.fees_enabled, prospective=prospective, halved=True)
     mo6 = mark_out(side, price, m6) if math.isfinite(m6) else math.nan
     mo2 = mark_out(side, price, m2) if math.isfinite(m2) else math.nan
     post_flags = {}
@@ -896,18 +917,21 @@ def history_market_units(rec: dict, books_m: pd.DataFrame, ts_p: np.ndarray | No
             pp = c1.asof_quote(ts_p, vals_p, np.array([t, t - DAY]))
             chg = abs(float(pp[0] - pp[1])) if np.isfinite(pp).all() else math.nan
         bs, as_ = float(getattr(b, "sw_bid_size_1", math.nan)), float(getattr(b, "sw_ask_size_1", math.nan))
+        db, da = float(getattr(b, "sw_depth_bid_1c", math.nan)), float(getattr(b, "sw_depth_ask_1c", math.nan))  # 1c depth (pmxt); touch size if absent
+        d_both = (db + da) if (math.isfinite(db) and math.isfinite(da)) else ((bs if math.isfinite(bs) else 0.0) + (as_ if math.isfinite(as_) else 0.0))
         o = Opp(opp_id=f"{rec['market_id']}@{int(t)}", market_id=rec["market_id"], event=rec["event_id"], dep=dep or rec["event_id"], cat=cat, t=t,
                 bid=bid, ask=ask, bid_size=bs, ask_size=as_, created=rec["created_epoch"], end=rec["end_epoch"], abs_chg_24h=chg,
-                depth_1c_own=bs, depth_1c_both=(bs if math.isfinite(bs) else 0.0) + (as_ if math.isfinite(as_) else 0.0), truncated=truncated, oldest_ts=old)
+                depth_1c_own=db if math.isfinite(db) else bs, depth_1c_ask=da if math.isfinite(da) else as_, depth_1c_both=d_both, truncated=truncated, oldest_ts=old)
         row, fl, lg = evaluate_opportunity(o, pr, pr, marks, prospective=False, cuts=cuts)
         row.update(w=weight, closed_early=closed_early, book_age_s=float(getattr(b, "sw_book_age_s", math.nan)))
         for f in fl:
             f.update(w=weight, closed_early=closed_early)
             # pmxt book-mid mark check (ruling 4): first two-sided spread <= 0.10 grid origin >= t_fill + 4h
             j = int(np.searchsorted(bt, f["t_fill"] + float(D.MAKER["history_pmxt_mark_check_s"]), side="left"))
-            while j < len(bt) and not bsp[j] <= D.MAKER["spread_max"] + 1e-12:
+            lim = f["t_fill"] + float(D.MAKER["history_pmxt_mark_check_s"]) + 6 * HOUR  # one 6h grid step: the search is bounded
+            while j < len(bt) and bt[j] <= lim and not bsp[j] <= D.MAKER["spread_max"] + 1e-12:
                 j += 1
-            if with_marks and j < len(bt):
+            if with_marks and j < len(bt) and bt[j] <= lim and bsp[j] <= D.MAKER["spread_max"] + 1e-12:
                 f["mark_pmxt"] = float(bmid[j])
                 f["net_pmxt"] = mark_out(f["side"], f["price"], float(bmid[j])) + f["rebate"]
             else:
@@ -925,8 +949,8 @@ def attach_fill_features(fills: pd.DataFrame, opps: pd.DataFrame) -> pd.DataFram
     if not len(fills):
         return fills
     o = opps.set_index("opp_id")
-    f = fills.join(o[["spread", "mid", "abs_chg_24h", "price_band", "spread_band", "depth_both", "taker_notional_24h", "bid_size", "ask_size", "classifiable", "lf_t", "rt", "t_cancel"]], on="opp_id")
-    f["depth_own"] = np.where(f["side"] == "bid", f["bid_size"], f["ask_size"])
+    f = fills.join(o[["spread", "mid", "abs_chg_24h", "price_band", "spread_band", "depth_both", "taker_notional_24h", "bid_size", "ask_size", "depth_bid_1c", "depth_ask_1c", "classifiable", "lf_t", "rt", "t_cancel"]], on="opp_id")
+    f["depth_own"] = np.where(f["side"] == "bid", f["depth_bid_1c"], f["depth_ask_1c"])  # own side, 1c depth
     return f
 
 
@@ -935,7 +959,7 @@ def opp_level_frame(opps: pd.DataFrame, fills: pd.DataFrame, rule: str = "queue"
     f = fills[(fills["rule"] == rule) & np.isfinite(fills["net6"])].groupby("opp_id")["net6"].sum()
     o = opps[opps["rt"].notna()].copy()
     o["ev_quote"] = o["opp_id"].map(f).fillna(0.0) / 2.0
-    o["depth_own"] = o["bid_size"]
+    o["depth_own"] = o["depth_bid_1c"]
     o["t_fill"] = o["t"]
     return o
 
@@ -1093,6 +1117,7 @@ def census_history(run_dir: Path, books_path: Path, *, max_markets: int | None =
         "B3": _expanding_counts(fa[fa["lf"].notna()]) if len(fa) else None,
         "B5": _expanding_counts(o_ns[o_ns["rt"].notna()]) if len(o_ns) else None}
     cnt["clusters"] = {"event": int(o_ns["event"].nunique()), "dep": int(o_ns["dep"].nunique()), "day": int(o_ns["day"].nunique())}
+    cnt["dep_fallback_share"] = float((o_ns["dep"] == o_ns["event"]).mean()) if len(o_ns) else None  # share on the event-id fallback (no panel dep_group)
     cnt["population_sizes"] = {"B2": int(population(o_ns, "B2").sum()), "B4": int(population(o_ns, "B4").sum()), "B6": int(population(o_ns, "B6").sum())}
     return cnt
 
@@ -1114,7 +1139,7 @@ def mech_stage(df: pd.DataFrame, tid: str, regressor: str, *, ways: list[str], s
     """One mechanism test with its binding robustness and advance decision."""
     alpha = D.ALPHA_STAGE1 if stage == 1 else D.ALPHA_STAGE2
     res = mech_test(df, regressor, tid=tid, target=target, order=order, ways=ways, placebo_fn=placebo_fn, draws=draws, week_fe=week_fe, b5=b5,
-                    small_g=small_g, n_boot=n_boot, weights="w" if "w" in df and stage == 1 else None)
+                    small_g=small_g, n_boot=n_boot, weights="w" if "w" in df else None)
     robust: dict[str, float | None] = {}
     if res.get("testable"):
         for way in [w for w in ways if w != "day"]:
@@ -1204,33 +1229,59 @@ def _traded_before(P, j: int, m: int) -> bool:
     return bool(np.isfinite(ltp) and not (np.isfinite(vol) and vol <= 0))
 
 
-def build_prospective(P, reader: FollowupReader, *, with_marks: bool = True, pass_range: tuple[int, int] | None = None, cuts: dict | None = None,
-                      extra_cap_ids: set[str] | None = None) -> dict:
+def _pass_aligned(d: Path, previous_cap: str) -> tuple[bool, str]:
+    """The follow-up dir of pass j+1 must be a recorded pass (manifest complete / incomplete) built for capture j."""
+    try:
+        man = json.loads((d / "manifest.json").read_text())
+        plan = json.loads((d / "plan.json").read_text())
+    except (OSError, ValueError):
+        return False, "missing"
+    if man.get("state") not in ("complete", "incomplete"):
+        return False, f"state_{man.get('state')}"
+    if plan.get("previous_capture_id") != previous_cap:
+        return False, "misaligned"
+    if not (d / "pre" / "wallets.csv.gz").exists():
+        return False, "no_pre"
+    return True, "ok"
+
+
+def build_prospective(P, reader: FollowupReader, *, with_marks: bool = True, origin_before: float | None = None, cuts: dict | None = None) -> dict:
     """Quote opportunities and fills of the follow-up subsample. For pass j (capture j) the origin is the market's FIRST sweep of
     that capture (t = its batch receipt); the pre-origin prints are the pass-j trade-sample rows copied into
-    ``cb3_followup/<j+1>/pre`` filtered to ts < t; the post-origin prints are the windowed fetch in ``post``. A market enters only if it
-    is in the seeded subsample of that pass and its first sweep is an eligible book. Life is truncated at the request time
-    when that is earlier than t + 2h (flagged); a page-capped window makes older fills unavailable. Marks use later first sweeps."""
+    ``cb3_followup/<j+1>/pre`` (whose plan must name capture j as its previous capture) filtered to ts < t; the post-origin prints
+    are the windowed fetch in ``post``. Only origins before ``origin_before`` are built. Eligibility, life fraction and fees use the
+    AS-OF columns of capture j (a capture without them is ineligible, counted). Markets whose post window was not reached are
+    excluded (counted); a failed or partial window makes the fill status unavailable, never 'not filled'; the pre page's own status
+    and 500-print cap decide the pre-origin visibility. Marks use later first sweeps."""
+    if P.asof is None:
+        raise D.Cb3Error("the prospective builder needs a panel loaded with asof=True")
     rows, frows = [], []
-    diag: dict[str, int] = {"passes": 0, "passes_missing_followup": 0, "sample_markets": 0, "no_eligible_book": 0, "not_open": 0, "end_too_close": 0,
-                            "no_prior_trade": 0, "kept": 0, "life_truncated": 0, "page_cap_markets": 0}
-    lo, hi = pass_range if pass_range else (0, P.n_caps - 1)
-    for j in range(max(lo, 0), min(hi, P.n_caps - 1)):
+    larges: dict[str, set[float]] = {}
+    spans: dict[str, list[float]] = {}
+    status_counts: dict[str, int] = {}
+    diag: dict[str, int] = {"passes": 0, "passes_missing_followup": 0, "passes_misaligned": 0, "sample_markets": 0, "no_eligible_book": 0, "not_open": 0,
+                            "end_too_close": 0, "no_prior_trade": 0, "kept": 0, "life_truncated": 0, "page_cap_markets": 0, "no_asof_columns": 0,
+                            "post_not_reached": 0, "post_failed_unavailable": 0, "pre_fetch_failed": 0, "pre_capped": 0}
+    idx = {str(x): i for i, x in enumerate(P.markets)}
+    for j in range(0, P.n_caps - 1):
+        if origin_before is not None and P.starts[j] >= origin_before:
+            break
         diag["passes"] += 1
         nxt = P.cap_ids[j + 1]
         d = reader.root / nxt
-        if not (d / "manifest.json").exists() or not (d / "pre" / "wallets.csv.gz").exists():
-            diag["passes_missing_followup"] += 1
+        ok, why = _pass_aligned(d, P.cap_ids[j])
+        if not ok:
+            diag["passes_misaligned" if why == "misaligned" else "passes_missing_followup"] += 1
             continue
         meta = reader.meta(nxt)
-        plan = json.loads((d / "plan.json").read_text()) if (d / "plan.json").exists() else {}
+        plan = json.loads((d / "plan.json").read_text())
         incl = plan.get("inclusion_float", {})
         frac = float(plan.get("frac", 0.5))
         wl = pd.read_csv(d / "pre" / "wallets.csv.gz", usecols=["market_id"], dtype=str)
-        sampled = set(wl["market_id"].astype(str))
-        diag["sample_markets"] += len(set(plan.get("inclusion_float", {})) | sampled)
-        idx = {str(x): i for i, x in enumerate(P.markets)}
-        for mid in sorted(sampled | set(incl)):
+        sampled = set(wl["market_id"].astype(str)) | set(incl)
+        feats = _read_pre_features(d)
+        diag["sample_markets"] += len(sampled)
+        for mid in sorted(sampled):
             m = idx.get(mid)
             if m is None:
                 continue
@@ -1239,9 +1290,11 @@ def build_prospective(P, reader: FollowupReader, *, with_marks: bool = True, pas
             if not (np.isfinite(t) and eligible_quote(float(bid), float(ask))):
                 diag["no_eligible_book"] += 1
                 continue
-            row = P.meta.iloc[m]
+            if not P.asof_cols[j]:
+                diag["no_asof_columns"] += 1
+                continue
             clos, acc = P.mat["closed"][m, j], P.mat["accepting_orders"][m, j]
-            end = D.epoch(row["end_date"]) if row["end_date"] else math.nan
+            end = D.epoch(P.asof["asof_end_date"][m, j]) if P.asof["asof_end_date"][m, j] else math.nan
             if clos == 1.0 or acc == 0.0:
                 diag["not_open"] += 1
                 continue
@@ -1251,33 +1304,70 @@ def build_prospective(P, reader: FollowupReader, *, with_marks: bool = True, pas
             if not _traded_before(P, j, m):
                 diag["no_prior_trade"] += 1
                 continue
-            mm = meta.get("markets", {}).get(f"post:{mid}", {})
+            mm = meta.get("markets", {}).get(f"post:{mid}")
+            pstat = (mm or {}).get("status", "not_reached")
+            status_counts[pstat] = status_counts.get(pstat, 0) + 1
+            if mm is None or pstat == "not_reached":
+                diag["post_not_reached"] += 1
+                continue
+            ft = feats.get(mid)
+            if ft is None or ft.get("status") != "ok":  # no recorded fetch status = unavailable pre page
+                diag["pre_fetch_failed"] += 1
+                continue
+            pre = reader.trades(nxt, "pre", mid)
+            n_ret = int(float(ft["n_returned"])) if ft and str(ft.get("n_returned", "")) not in ("", "nan") else None
+            pre_cap = bool(n_ret is not None and n_ret >= VISIBLE)
+            diag["pre_capped"] += int(pre_cap)
             req = mm.get("request_epoch")
             life, ltr = LIFE, False
             if req is not None and req < t + LIFE:
                 life, ltr = max(float(req) - float(t), 0.0), True
                 diag["life_truncated"] += 1
-            cap = bool(mm.get("page_cap"))
-            diag["page_cap_markets"] += int(cap)
-            created = D.epoch(row["created_at"]) if row["created_at"] else math.nan
+            partial = pstat != "ok"
+            diag["post_failed_unavailable"] += int(partial)
+            cap = bool(mm.get("page_cap")) or partial  # a failed / partial window: every fill status is unavailable
+            diag["page_cap_markets"] += int(bool(mm.get("page_cap")))
+            created = D.epoch(P.asof["asof_created_at"][m, j]) if P.asof["asof_created_at"][m, j] else math.nan
             bs, as_ = P.mat["s1_bid_size_1"][m, j], P.mat["s1_ask_size_1"][m, j]
-            o = Opp(opp_id=f"{mid}@{int(t)}", market_id=mid, event=str(row["event_id"]), dep=str(dep_label(row)), cat=category_key(row["fee_category"]), t=float(t),
+            db, da = P.mat["s1_depth_bid_1c"][m, j], P.mat["s1_depth_ask_1c"][m, j]
+            chg = P.mat["chg_1d"][m, j]
+            row = P.meta.iloc[m]
+            o = Opp(opp_id=f"{mid}@{int(t)}", market_id=mid, event=str(row["event_id"]), dep=str(dep_label(row)), cat=category_key(P.asof["asof_fee_category"][m, j]), t=float(t),
                     bid=float(bid), ask=float(ask), bid_size=float(bs), ask_size=float(as_), created=created, end=end,
-                    abs_chg_24h=math.nan, depth_1c_own=float(bs), depth_1c_both=float(np.nan_to_num(bs) + np.nan_to_num(as_)), fee_schedule=row["fee_schedule"] or None,
-                    truncated=cap, oldest_ts=mm.get("oldest_ts"), life=life, life_truncated=ltr)
+                    abs_chg_24h=abs(float(chg)) if np.isfinite(chg) else math.nan, depth_1c_own=float(db), depth_1c_ask=float(da),
+                    depth_1c_both=float(db + da) if (np.isfinite(db) and np.isfinite(da)) else math.nan,
+                    fee_schedule=P.asof["asof_fee_schedule"][m, j] or None, fees_enabled=P.asof["fees_enabled"][m, j] or None,
+                    truncated=cap, oldest_ts=mm.get("oldest_ts") if not partial else None, life=life, life_truncated=ltr,
+                    pre_truncated=pre_cap, pre_oldest=float(pre["ts"].min()) if len(pre["ts"]) else None)
             later = np.arange(j + 1, P.n_caps)
             marks = SweepMarks(P.mat["s1_recv"][m, later], P.mat["s1_best_bid"][m, later], P.mat["s1_best_ask"][m, later]) if with_marks else None
-            pre, post = reader.trades(nxt, "pre", mid), reader.trades(nxt, "post", mid)
-            r, f, _lg = evaluate_opportunity(o, pre, post, marks, prospective=True, cuts=cuts)
+            post = reader.trades(nxt, "post", mid)
+            r, f, lg = evaluate_opportunity(o, pre, post, marks, prospective=True, cuts=cuts)
             w = 1.0 / (float(incl.get(mid) or 1.0) * frac)
             r.update(w=w, closed_early=False, cap_id=P.cap_ids[j])
             for x in f:
                 x.update(w=w, closed_early=False, cap_id=P.cap_ids[j])
                 x["net_wc"] = x["net6"] if math.isfinite(x["net6"]) else x["wc_mo"]  # unavailable mark: the worst-case mark-out, no rebate
+            larges.setdefault(mid, set()).update(lg)
+            tsall = np.r_[pre["ts"], post["ts"]]
+            if len(tsall):
+                sp = spans.setdefault(mid, [float(tsall.min()), float(tsall.max())])
+                sp[0], sp[1] = min(sp[0], float(tsall.min())), max(sp[1], float(tsall.max()))
             rows.append(r)
             frows.extend(f)
             diag["kept"] += 1
-    return {"opps": pd.DataFrame(rows), "fills": pd.DataFrame(frows), "diag": diag}
+    diag["post_status_counts"] = status_counts  # type: ignore[assignment]
+    return {"opps": pd.DataFrame(rows), "fills": pd.DataFrame(frows), "diag": diag,
+            "large_times": {k: np.array(sorted(v)) for k, v in larges.items()}, "spans": {k: (v[0], v[1]) for k, v in spans.items()}}
+
+
+def _read_pre_features(d: Path) -> dict[str, dict]:
+    """Per-market status of the trade-sample fetch (copied unchanged into ``pre/features.csv.gz`` by the follow-up step)."""
+    p = d / "pre" / "features.csv.gz"
+    if not p.exists():
+        return {}
+    df = pd.read_csv(p, dtype=str, keep_default_na=False)
+    return {r["market_id"]: r for r in df.to_dict("records")}
 
 
 def dep_label(row) -> str:
@@ -1286,12 +1376,11 @@ def dep_label(row) -> str:
     return f"nr:{nr}" if nr else (f"pe:{par}" if par else f"ev:{row.get('event_id', '')}")
 
 
-def screen_prospective(P, reader: FollowupReader, cuts: dict, tests: list[str], *, stage: int, pass_range: tuple[int, int] | None = None,
+def screen_prospective(P, reader: FollowupReader, cuts: dict, tests: list[str], *, stage: int, origin_before: float,
                        n_boot: int = D.N_BOOT, placebo_draws: int = D.PLACEBO_DRAWS, random_draws: int = D.RANDOM_FILTER_DRAWS) -> dict:
     """Stage 2 (``stage=2``) / Stage P (``stage=3``, the economic tests only) of the B tests in ``tests`` on the follow-up sample at recorded
-    books and prints. UTC-day way with the CB2 small-G rule. Mechanism placebos need the large-order streams, which the prospective
-    builder does not retain: B1's circular-shift placebo is rebuilt from the fills' own large-order times, B3/B5 permute within market."""
-    u = build_prospective(P, reader, pass_range=pass_range, cuts=cuts)
+    books and prints. UTC-day way with the CB2 small-G rule. B1's circular-shift placebo uses the real large-order streams the builder keeps; B3/B5 permute within market."""
+    u = build_prospective(P, reader, origin_before=origin_before, cuts=cuts)
     opps, fills = u["opps"], u["fills"]
     out: dict = {"stage": stage, "exclusions": u["diag"], "tests": {}, "placebo": {}, "descriptive": {}}
     if not len(opps):
@@ -1305,11 +1394,7 @@ def screen_prospective(P, reader: FollowupReader, cuts: dict, tests: list[str], 
     alpha_stage = 2
     q = attach_fill_features(f_ns[f_ns["rule"] == "queue"], o_ns)
     qm = q[np.isfinite(q["net6"])].copy()
-    large_times: dict[str, np.ndarray] = {}
-    spans: dict[str, tuple[float, float]] = {}
-    for mid, g in qm.groupby("market_id"):
-        spans[mid] = (float(g["t"].min()) - 3 * DAY, float(g["t_fill"].max()) + 3 * DAY)
-        large_times[mid] = np.sort(g.loc[g["post"] == 1.0, "t_fill"].to_numpy(float) - 60.0)
+    large_times, spans = u["large_times"], u["spans"]  # the real large-order streams of the follow-up data (freeze-check fix 12)
     for tid in tests:
         if tid == "B1":
             out["tests"][tid] = mech_stage(qm[qm["classifiable"].astype(bool)], "B1", "post", ways=ways, small_g=sg, stage=alpha_stage, history=False, n_boot=n_boot, draws=placebo_draws,
@@ -1353,11 +1438,11 @@ def stage2_mde(counts: dict) -> dict:
     return out
 
 
-def census_prospective(P, reader: FollowupReader, *, followup_root: Path, qs_root: Path, pass_range: tuple[int, int] | None = None) -> dict:
+def census_prospective(P, reader: FollowupReader, *, followup_root: Path, qs_root: Path, origin_before: float | None = None) -> dict:
     """q0064: counts only for the prospective dev window (the caller loads ``P`` from ``max(T3_fu_start, T_J4R_end)``). Follow-up
     coverage, opportunities and fills per pass (no marks built), vacuum-stratum sizes, bytes per pass, created_at coverage, page-cap hits
     and the Stage-2 MDEs from counts."""
-    u = build_prospective(P, reader, with_marks=False, pass_range=pass_range)
+    u = build_prospective(P, reader, with_marks=False, origin_before=origin_before)
     opps, fills = u["opps"], u["fills"]
     if len(opps):
         opps = opps.drop(columns=[c for c in opps.columns if c.endswith("_wc_mo")])
@@ -1377,11 +1462,13 @@ def census_prospective(P, reader: FollowupReader, *, followup_root: Path, qs_roo
     def _bytes(p: Path) -> int:
         return sum(f.stat().st_size for f in Path(p).rglob("*") if f.is_file()) if Path(p).exists() else 0
     out = {"n_passes_window": P.n_caps, "followup_requests": int(reqs), "followup_429": int(n429),
-           "passes_missing_followup": u["diag"]["passes_missing_followup"], "page_cap_markets": u["diag"]["page_cap_markets"],
+           "passes_missing_followup": u["diag"]["passes_missing_followup"], "passes_misaligned": u["diag"]["passes_misaligned"],
+           "post_status_counts": u["diag"]["post_status_counts"], "page_cap_markets": u["diag"]["page_cap_markets"],
            "life_truncated_quotes": u["diag"]["life_truncated"], "exclusions": u["diag"], "n_quote_opportunities": int(len(opps)),
            "vacuum_stratum": {"passes_with_plan": len(vac), "n_onsets_total": int(sum(v["n_onsets"] for v in vac)), "n_drawn_total": int(sum(v["n_drawn"] for v in vac))},
            "followup_bytes": {c: _bytes(Path(followup_root) / c) for c in P.cap_ids}, "quote_state_bytes": _bytes(Path(qs_root) / "quote_state"),
-           "created_at_coverage": float((P.meta["created_at"].astype(str) != "").mean()) if len(P.meta) else None}
+           "created_at_coverage": float((P.asof["asof_created_at"][P.present] != "").mean()) if P.present.any() else None,
+           "captures_without_asof_columns": int((~P.asof_cols).sum())}
     if len(opps):
         o_ns, f_ns, o_sp, _f = scope_split(opps, fills)
         q = f_ns[f_ns["rule"] == "queue"] if len(f_ns) else f_ns
