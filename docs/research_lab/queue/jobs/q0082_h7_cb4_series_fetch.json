@@ -16,7 +16,8 @@
   "lane": "net"
  },
  "depends_on": [
-  "q0018_h5_cb1_seal"
+  "q0018_h5_cb1_seal",
+  "q0081a_h7_release_gate"
  ],
  "argv": [
   "scripts/run_cb4.py",
@@ -60,5 +61,5 @@
   "data-dumps/research_lab/history/h7_cb4_series/{series.jsonl.gz,units.jsonl.gz,prices/,trades/,outcomes_guarded.csv.gz,probe.json,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"
  ],
  "next_action": "q0083",
- "notes": "CREATIVE_BATCH_4.md CB4-S/4.2. About 30-35k requests plus the event walk, 3.5-5 h wall. Same stop, refusal, cap, guard and terminal-state rules as q0081 (status series_fetch_complete or not_run_deadline). Additionally refuses until the committed docs/research_lab/seals/cb4_series_rules.json equals this code's cadence/matching rule hashes (create it with scripts/run_cb4.py series-rules and commit it before this job can run). Independent of q0081 (era overlap is dropped by id at the seal). Series are found from event listings (series on events, closed=false then true, end dates 2025-09-24 .. R_to + 2 d, capped windows halved down to 1 h, then dropped and counted); the /series probe only records endpoint facts. t0 and the rolled-into side come from the predecessor outcome record and are stored only in outcomes_guarded.csv.gz. Resumable per walk window and per unit. Net lane: see q0081 note. | 2026-10-16 priority 58->61: net lane: must beat q0002 (60) at run boundaries to finish before T_seal."
+ "notes": "CREATIVE_BATCH_4.md CB4-S/4.2. About 30-35k requests plus the event walk, 3.5-5 h wall. Same stop, refusal, cap, guard and terminal-state rules as q0081 (status series_fetch_complete or not_run_deadline). Additionally refuses until the committed docs/research_lab/seals/cb4_series_rules.json equals this code's cadence/matching rule hashes (create it with scripts/run_cb4.py series-rules and commit it before this job can run). Independent of q0081 (era overlap is dropped by id at the seal). Series are found from event listings (series on events, closed=false then true, end dates 2025-09-24 .. R_to + 2 d, capped windows halved down to 1 h, then dropped and counted); the /series probe only records endpoint facts. t0 and the rolled-into side come from the predecessor outcome record and are stored only in outcomes_guarded.csv.gz. Resumable per walk window and per unit. Net lane: see q0081 note. | 2026-10-16 priority 58->61: net lane: must beat q0002 (60) at run boundaries to finish before T_seal. | Held behind q0081a_h7_release_gate: freeze-check fix 5: as q0081; also needs fixes 6-7 and the committed series rules."
 }
