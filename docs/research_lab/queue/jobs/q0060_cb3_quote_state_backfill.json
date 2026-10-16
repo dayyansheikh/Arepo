@@ -1,0 +1,38 @@
+{
+ "id": "q0060_cb3_quote_state_backfill",
+ "title": "CB3-F: one-off quote_state/ extract from complete captures started before 2026-10-15T21:00Z (A dev window; no analysis)",
+ "family": "creative_batch_3",
+ "priority": 57,
+ "expected_value": "preserves the CH35 dev inputs before raw captures become deletable",
+ "data": [
+  "research_lab/snapshots + book_sweeps on host (else release copies via restore_from_archive.py)"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb3_quote_state.py",
+  "--backfill-before",
+  "2026-10-15T21:00Z",
+  "--budget-min",
+  "150",
+  "--disk-cap-gb",
+  "0.30",
+  "--data-dumps-max-gb",
+  "10.5"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 2,
+ "repeat": {
+  "max_runs": 2,
+  "until_log_regex": "\"backfill_complete\": true"
+ },
+ "outputs": [
+  "data-dumps/research_lab/cb3_extract/quote_state/",
+  "data-dumps/research_lab/cb3_extract/manifest.json"
+ ],
+ "next_action": "q0061 census",
+ "notes": "CREATIVE_BATCH_3.md 4.3.1/5. Own script scripts/run_cb3_quote_state.py (the doc's argv named run_cb1_extract.py; moved so CB1/CB2 stay untouched, challenger item 10). Membership = E001-tight at c or any of the 4 previous complete captures, plus <capture_id>.ids.csv.gz. Idempotent by capture_id + extractor_version; never reads T_J4R captures (bound is exclusive, window error if later); missing captures recorded and the run continues; refuses with a non-zero exit while data-dumps > 10.5 GB; repeat regex matches only a true backfill_complete."
+}
