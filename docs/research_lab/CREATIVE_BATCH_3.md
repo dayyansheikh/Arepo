@@ -753,3 +753,69 @@ one Holm family (α = 0.05, k ≤ 4).
 
 **User decisions.** None required to proceed with the draft. Two may arise: (a) disk, if q0064 projects more than
 1.5 GB per 28 days; (b) sports, which stay a reported stratum unless the user includes them.
+
+---
+
+## Challenger review, round 1 (science-reviewer, 2026-10-16T04:31Z): ACCEPT_WITH_REQUIRED_CHANGES
+
+(The reviewer is read-only; the coordinator pasted this text verbatim.)
+
+Checked: count 993 (ml_explain 431, flow_screen 275, econ_conditions_taker 95; local run); J4 figures; part B fill
+rates 6-19%; the F3 look-ahead rule; maker rebate share (REBATE) and the queue rule (`queue_fill`).
+
+**REQUIRED**
+1. **Mechanism estimator (Q6).** `T = β − mean β_placebo` only gives the within-market slope shrunk by the
+   within-market share of the regressor's variance, so the floors mean nothing for B5. Primary: J4-R's expanding-past
+   within-market slope, its matched placebo and its reading rule. Report T and the within/between split (SB2
+   consequence 5). Add calendar-week fixed effects to B3 (within a market, life fraction moves one-for-one with time).
+2. **A placebo has no power.** In the rebuilt world an onset needs the mid change to equal the half-spread change to
+   within 1c, so placebo onsets are rare and the void check toothless. Primary: keep the real onsets, rebuild the mid
+   from i+1 as a bootstrapped martingale and re-apply the T rule. Report placebo onset counts, with a minimum.
+3. **A3 mark can precede the fill.** Capture i+2 starts before s2+2h. Use the B rule: first tight sweep at or after
+   t_fill + 6h.
+4. **Truncation.** "Counted, reported" breaks CB1 §2.2 (CREATIVE_BATCH_1.md:139-151), which requires a binding worst
+   case. Fetch the post window with windowed `/trades?start&end` paging (large_trade_census.py:384-391); any residual
+   unavailable quote gets a binding worst case.
+5. **pre/ is not "before t".** The trade sample runs after the sweeps and stores trades up to request time
+   (trade_sample.py:296-299 filters only inside features). Filter `ts < t` explicitly; dedupe the pre/ ∪ post/ union.
+6. **Rebate ≥ floor.** ρ·r·¼ ≈ 0.25-0.35c per filled share at mid matches or beats the 0.25c B floor, and the allocation
+   is undocumented. Floors must hold with the rebate halved (binding). Unknown category → ρ = 0
+   (econ_conditions_maker.py:23).
+7. **Improvement-rule denominators.** Random filters must act in the filter's own units (B4 removes opportunities; B2
+   cancels quotes at random times). EV per quote over a fixed U denominator and the same population (B2: classifiable
+   markets; B6: markets where RT is defined). Add an activity stratum.
+8. **Fill bracketing.** Ignoring cancellations is conservative for fill counts only, not toxicity. For economic passes
+   the touch rule must agree in sign (binding).
+9. **Testability.** State that the 28-day UTC-day way uses only the small-G rule, not the ≥ 30 cluster rule.
+10. **Host limits.** `timeout 720` breaks the 10-min / 500 MB pass limit (CREATIVE_BATCH_1.md:321). Write
+    `quote_state/` after the CB1/CB2 tables or as its own step, so the CB1/CB2 600 s budget is untouched.
+11. **J4-R.** q0064's window holds vacuum strata built from T_J4R captures. Start it at J4-R's actual end.
+12. **`quote_state/` membership too narrow.** A market wide at i+1 and i+2 has no row at i+2, and the placebo needs full
+    paths. Store every binary market tight at any of the last 4 captures, plus a per-capture list of market ids.
+13. **User decision.** Disk fills around 22 Oct without archive rotation (AREPO_V2_CHECKPOINT.md:49,163); every CB3
+    window depends on it. Name it; "None required" is wrong.
+
+**Optional:** book-age sensitivity (`sw_book_age_s`); relabel A2 as a mechanism test; report A1/A2 on the A3-eligible
+stratum; code closed markets with no payout as unrecovered; one summary placebo line per test instead of about
+1,200; restate Stage-2 MDEs allowing for overlapping 6h marks and the day way.
+
+**Rulings**
+1. Accept the within-market round-trip share, labelled CH41-narrow; use the prospective 500-print visibility in
+   history too.
+2. Accept the follow-up step and `quote_state/` with items 4, 10 and 12. Reject the unit-row recorder (no placebo panel).
+3. Accept the entry exception; state the Stage-2 MDE from q0064 before the freeze.
+4. Keep the price series at Stage 1, but the pmxt-mark check keeps both sign and floor (the 0.75c source gap exceeds the
+   floor).
+5. Accept the coding; report the i+4 mid and the recovered-only result.
+6. See item 1.
+7. Accept; B2 on classifiable markets only.
+8. Not required.
+
+**q0060** may be built and run before the response round, but only with item 12's wider membership. It is data-only,
+uses captures before T3_A_dev_end and never T_J4R, and can be rerun from release copies.
+
+**Not verified:** HB2-R (q0010) status, host disk use, release copies for 9-15 Oct captures, actual `quote_state/` size.
+
+## Response to challenger round 1
+
+Pending.
