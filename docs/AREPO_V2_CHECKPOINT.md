@@ -165,30 +165,30 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-16 04:03Z
-0. **Autopilot session 03:56Z-:**
-   - CB2 STEP 1 committed and deployed (c9b2d51): extractor v2 (ladder_candidates/ladders/rewards/event_text) and
-     **q0041 queued** (text-free backfill, priority 62).
-   - q0016 fixed (cc42de1: streamed `frame_partial.jsonl`, 394 MB; mem_mb 1000) and re-queued. q0010 fixed (c269ff4:
-     finite-control mask in `beta_frozen2`, only F8 `joint_control_f_quiet` affected, no primary) and re-queued.
-   - **J7 (q0012) written up** (b28cca8): 4/12 contrasts advance (C-ACT ×3, near-mechanical; C-TTE direction 2h); 0/15
-     interactions; C-LIQ uninformative (empty low tercile, disclosed, not redefined). q0013 (J8) is queued.
-   - q0034 counts recorded in CB1 (51003e5).
-   - CB2 code complete (0408d4e, 12ba7be, f291b41, 5e0b317, 7ff3aa8, fe67692, 9012f89; 155 tests). **Freeze check
-     (74fd225): 20 required fixes**, fix 1 URGENT before q0040. q0040 is held behind gate **q0039** (not yet created) and
-     q0043 behind gate **q0043a** (create once `seals/h5_cb1_SEAL.json` is committed and fixes 6-12 have landed).
-     Fix agents are running: structural (1-5, 14-17, 20) and weather (6-13, 18, 19, stage-P part of 17).
-   - CB3 drafted (98e06c3) and CB4 drafted (f409384). Challenger round 1 for both: ACCEPT_WITH_REQUIRED_CHANGES (CB3
-     3249600, CB4 2d17819). Drafters are applying the response. CB3 q0060 may be built before the response (item 12).
-1. When the CB2 fix agents finish: run tests, deploy, then a short reviewer re-check of fix 1. Create gate q0039 (a trivial
-   selfcheck spec) to release q0040. The freeze (`cb2_v1.json`) waits for T2_dev_end and the q0042 census (§8 of CREATIVE_BATCH_2.md).
-2. CB3 draft → science-reviewer challenger round 1 → response → implementation.
-3. Watch q0016 (it must get past `fetch_frame` on resume), q0010 (L1 runs on retry), q0041.
-4. **After 2026-10-21T03:00Z:** create gate job q0036 to release q0035 (J4-R). On exit 3, move `--until` forward by one UTC day.
-5. **CB1-D dev:** after 2026-10-17T00:00Z, freeze the dev capture list on the host (`run_cb1_extract.py --freeze-list dev
-   --until 2026-10-17T00:00Z`) and commit it, then fetch-outcomes-D and q0022. **B3 at 10-19:** q0029 rung-list.
-6. When q0018 seals h5: commit the seal copies; then q0020/q0023 run. Write up q0019, q0010, q0013, q0002/3/4.
-7. Keep ≥ 12 h queued. Retention needs the user by ~17-18 Oct.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-16 06:11 UTC+1
+0. **Autopilot session from 03:56Z (state at 05:10Z):**
+   - Fixed and re-queued: q0016 (cc42de1, streamed frame_partial) and q0010 (c269ff4, finite-control mask, F8 secondary only).
+   - Written up: J7/q0012 (b28cca8; 4/12 contrasts advance, 0/15 interactions, C-LIQ uninformative). q0034 counts in CB1.
+   - **CB2 code is complete** and **all 20 freeze-check fixes have landed**: 779a63d, ad52d5e, addd273, c649a62; new grouper
+     seal e745f87b; weather declaration 4684d420…. Gate q0039 is created (q0040 released).
+   - q0043 is held behind gate **q0043a**, created once `seals/h5_cb1_SEAL.json` is committed.
+   - **CB3**: revised after challenger round 1 (a767ab8). q0060 quote_state backfill is built and queued (1d3ab59, 6186dfa).
+     Analysis code agent RUNNING (cb3_quote_vacuum/cb3_maker/cb3_declaration/cb3_followup/run_cb3, census specs
+     q0061/q0064).
+   - **CB4**: revised (1823b68). Data code is built and queued: q0080 closewin backfill (e78daee); q0081/q0082 h7 fetches and
+     q0083 seal (6e729ca). q0082 also needs `seals/cb4_series_rules.json`, to be committed only after a CB4 code freeze check.
+   - Queue priorities (68c0bfe): q0016 at 63 is the critical path to the h5 seal and T_seal 2026-10-22. q0043/q0081/q0082 at
+     61 beat q0002 (60) on the net lane.
+   - Retention gate (7ec25c7): it also waits for q0041/q0060/q0080.
+1. When the CB3 agent finishes: tests, deploy. Then **science-reviewer code freeze checks** for CB3 (all) and CB4 data
+   (q0080-q0083, series rules). Paste the reviews (the reviewer is read-only), apply fixes, then commit the series rules file.
+2. CB4 analysis code (cb4_analysis.py, cost_regime with the R0 test) after the CB4 freeze check of the data part.
+3. Watch on the host: q0016 resume past `fetch_frame`; q0010 (L1 runs); q0040, q0041, q0060, q0080.
+   When q0018 seals h5: commit the seal copies, create gate q0043a, and check that q0081/q0082 can finish before T_seal.
+4. **After 2026-10-21T03:00Z:** create gate job q0036 to release q0035 (J4-R).
+5. **CB1-D dev:** after 2026-10-17T00:00Z, freeze the dev capture list (`run_cb1_extract.py --freeze-list dev --until
+   2026-10-17T00:00Z`) and commit it, then fetch-outcomes-D and q0022. **B3 at 10-19:** q0029 rung list.
+6. Write up q0010, q0013, q0019, q0002/3/4. Keep ≥ 12 h queued. Archive rotation must be live by ~20 Oct (CB3 §8).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,

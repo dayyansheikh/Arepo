@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-16 05:36 UTC+1
+**Last updated:** 2026-10-16 06:11 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -20,17 +20,19 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
     patched.
   - The 4 passing comparisons now go to a frozen re-test on different markets.
 - **Your creative priority:**
-  - **Batch 1 is FROZEN.** Screens start once the fresh data is sealed (after the download above finishes).
-  - **Batch 2** (weather favourites; impossible ladder orderings): all code is written (155 tests pass).
-    - An independent check of the code against the design asked for 20 fixes. One is urgent: the ladder list must be
-      locked to the exact code that builds it.
-    - Fixes are being made now. The ladder and weather downloads are held until they land.
-  - **Batch 3** (quote only when it is safe; when one side of the book vanishes): drafted and reviewed (13 required
-    changes). The revision is in progress.
-  - **Batch 4** (new; rule mechanics and natural experiments):
-    - The ideas are: selling before order books close; what happens when one market in a series resolves; and two
-      fee/rebate rule changes, used to measure true costs.
-    - Status: drafted and reviewed (13 required changes). The revision is in progress.
+  - **Batch 1 is FROZEN.** Screens start once the fresh 7,000-market download is sealed. That download is now first in
+    line, because batches 2 and 4 also wait for it before the 22 Oct deadline.
+  - **Batch 2** (weather favourites; impossible ladder orderings):
+    - Code done, plus the 20 fixes from the independent check (all landed).
+    - The ladder list job is released. The weather download waits for the batch-1 seal.
+  - **Batch 3** (quote only when it is safe; when one side of the book vanishes):
+    - Design revised after review.
+    - Its pre-deletion data save is built and queued. The analysis code is being written.
+  - **Batch 4** (selling before order books close; series roll-overs; two fee/rebate rule changes, used to measure true
+    costs):
+    - Design revised after review.
+    - Its data jobs are built and queued: a pre-deletion save, and two new disjoint market samples due before 22 Oct.
+  - Raw capture files will not be deleted until every batch has saved what it needs (rule updated).
   - Nothing creative has been tested yet.
 
 ## 2. Approvals needed from you
@@ -48,6 +50,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
    live evidence logs is set up too. Handled by the ops session.
 4. ~~Kalshi overnight gap~~ **DECIDED 15 Oct: fill it** (recorded in the ledger before any results, with a sensitivity check).
    Reset reminders also scheduled on your phone: Sun 18 Oct 19:00 and Tue 20 Oct 10:00 UTC+1.
+
+5. **Archive rotation by ~20 Oct (needed by batch 3).** The nightly deletion of backed-up server copies must move from
+   trial to real by about 20 Oct. If not, batch 3's live stages wait, and missed data stays missing. Handled by the ops
+   session; flagging the dependency only.
 
 ## 3. Usage plan (your schedule; reset times are your statement, not verified)
 | When | Plan |
