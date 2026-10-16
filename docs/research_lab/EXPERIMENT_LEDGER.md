@@ -1165,3 +1165,12 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Defect:** C-LIQ not informative in all cells (empty low tercile: lower cut 0.0 with a mass at zero notional).
   Counted, not re-defined. Details: `HISTORICAL_ML_DEV.md` r5 section.
 - **Next:** J8 frozen replication on h3 (q0013, queued). Q6 is closed for h2 interactions.
+
+## Development replication SB2-J2 — HB2-R on `h3_power` (q0010, 2026-10-16)
+- **Status:** counted (6 `history_battery2` replication tests, Holm family of 6), development-replicated ceiling (h3 read 4).
+- **Replicated (Holm 0.05, frozen sign):** F4 flow × volatility (ratio to h2 1.59), F5 flow × spread (1.27), L1 1d change
+  × liquidity (1.22); also under the weighted and excluding-shared-events secondaries. **Not replicated:** F3, F7, F8.
+- **Economics:** F4/F5 gross about 1c per trade in the favourable tercile versus about 3.5c spread + fee; net taker about
+  −2.5c, and still negative at half-spread without fees. Not tradable as a taker.
+- **Engineering:** first two attempts crashed on NaN controls in F8's secondary (fixed c269ff4; disclosed). Details:
+  `SCREENING_BATCH_2.md` Results / J2.

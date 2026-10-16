@@ -1267,3 +1267,28 @@ These rulings amend the J4-R draft above and J3; they bind both (applied before 
 - **Next:** q0009 (h3 features) → q0010 (frozen replication on h3_power, Holm over the 6 advanced tests). Only a
   Stage-2 pass is "development-replicated".
 
+
+### J2 HB2-R (q0010, frozen replication on `h3_power`, finished 2026-10-16 05:30Z): 3 of 6 REPLICATE (development-replicated)
+- Run: `run_hypothesis_battery2.py replicate --run-id h3_power --from h2_main --family F,L --n-boot 2000`, attempt after the
+  `beta_frozen2` finite-control fix (c269ff4: only F8's `joint_control_f_quiet` secondary was affected; 24,264 of 52,167 rows
+  dropped there for a NaN `q_x6`; no primary changed). h3 read 4 (J2) under frozen definitions; ceiling "development-replicated".
+- Holm 0.05 over the 6 advanced tests, same sign as frozen:
+
+| test | h3 β (primary) | p | Holm | ratio to h2 | pre / post split β | excl. 66 shared events | weighted Holm |
+|---|---|---|---|---|---|---|---|
+| F4 flow × volatility | +0.00299 | 2.7e-08 | **replicates** | 1.59 | +0.0042 / +0.0016 | +0.0032 | replicates |
+| F5 flow × spread | +0.00601 | 9.1e-13 | **replicates** | 1.27 | +0.0070 / +0.0038 | +0.0062 | replicates |
+| L1 1d change × liquidity | +0.0751 | 2.3e-09 | **replicates** | 1.22 | +0.071 / +0.079 | +0.074 | replicates |
+| F3 flow × time to end (sign −) | −0.00129 | 0.086 | no | 0.47 | −0.0018 / −0.0004 | −0.0014 | no |
+| F7 large-for-market trades | +0.00102 | 0.082 | no | 0.40 | −0.0000 / +0.0026 | +0.0014 | no |
+| F8 24h flow × liquidity | +0.00092 | 0.134 | no | 0.39 | +0.0006 / +0.0017 | +0.0008 | no |
+
+- F8 quiet-market joint control (secondary): +0.00045 (n 27,903), consistent with h2, where F8 vanished under this control.
+- **Economics (favourable h2 tercile, frozen, paper, mid-to-mid gross):** F4 gross +0.94c [0.65, 1.24] per trade against a
+  mean spread of 2.68c and fee of 0.84c: net taker −2.59c, net at half-spread without fee −0.40c. F5 gross +1.03c [0.77, 1.31]:
+  net taker −2.46c, half-spread −0.33c. L1 has no flow-following paper rule. **No replicated test covers costs.**
+- Decay: F4 and F5 are weaker in the post-split half (about 40-55% of pre); L1 is stable.
+- Not available: the shifted-flow secondary (`features_shift30` never built on h3; skipped and disclosed).
+- Reading: the conditioning of flow continuation on volatility and spread, and the liquidity moderation of 1d drift,
+  replicate on independent markets. They are forecasting facts, not routes: the gross move is about a third of the
+  round-trip cost. Prospective registration would only make sense for a maker-side use (CB3 family B) or as features.
