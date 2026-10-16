@@ -1,0 +1,1159 @@
+# Creative batch 6 (CB6): ex-ante longshot tail classifier, neg-risk conversion dumps, reward-shadow discontinuity at 0.90, fill-probability measurement
+
+`evidence_role: exploratory_historical` (CH60 screen and holdout on the fresh `h8_tail` fetch) / `exploratory_dev` (CH66,
+CH71, CH77 dev windows on live-period data) / `prospective` (CH66 and CH71 replications, CH77 evaluation; data after the
+freeze) | status: **DRAFT, not reviewed, not frozen.** Last updated 2026-10-17 00:37 UTC+1 (2026-10-16T23:37Z).
+
+This file turns CH60, CH66, CH71 and CH77 from `CREATIVE_HYPOTHESES_2026-10-17.md` into declared, falsifiable tests. It
+follows `CREATIVE_BATCH_1.md` (CB1), `CREATIVE_BATCH_4.md` (CB4) and the **revised** `CREATIVE_BATCH_5.md` (CB5) in
+structure and rules, and it is written to avoid, up front, every failure mode CB5's challenger found (§9):
+- Nothing here is prospective confirmation, an edge claim, a calibration claim or a profitability claim. AREPO never
+  trades. Every P&L is a paper rule at modelled or recorded prices.
+- CB6 has **two kinds of work, counted separately** (§2.5):
+  - **Routes** (CH60 `T`, CH66 `N`, CH71 `R`): screen (Stage 1), frozen replication (Stage 2), then a separate
+    prospective registration (Stage P) and an economic check at recorded prices.
+  - **Measurement** (CH77 `C`): a capacity fact for every maker envelope. No money route; never read as edge.
+- Test tables bind only once the CB6 declaration hash is committed (`model_specs/cb6_v1.json`, the CB6 freeze). The one
+  exception is the `h8_tail` fetch and its rules file (§1.4), which are fixed by this document so that the fetch can run
+  before `T_seal`, before any CB6 analysis code exists.
+- Queue specs (§5) are drafts. None is committed to `queue/jobs/` by this document.
+- **Where CB6 says "as CB1 §x", "as CB3 §x", "as CB4 §x" or "as CB5 §x"**, that rule applies unchanged, including its
+  challenger-round and freeze-check fixes.
+- **Queue numbering.** CB6 uses **q0120-q0134, one id per job, no letter suffixes** (§0.1); q0135-q0139 are reserved for
+  CB6 renumbering in a challenger round and are never used for anything else. q0101-q0114 are CB5's; q0110 and q0111
+  are also taken by MC1 (`q0110_mc1_dev_dryrun` is committed). No CB6 id shares a numeric prefix with any committed or
+  drafted spec (checked against `queue/jobs/` and `queue/drafts/` at drafting).
+
+## 0. Summary, selection and ranking
+
+| Rank | Job | Hypothesis | Tests (counted) | Screen / dev data | Replication data | Queue ids | CPU-h | Peak RAM |
+|---|---|---|---|---|---|---|---|---|
+| 1 | **CB6-F** data | `h8_tail` fetch + seal (**before `T_seal`**); extractor v5 tables `band/`, `printflag/`; conversion probe and fetches; `cb6_followup/` pass step (Stage 2 only) | none | n/a | n/a | q0120, q0121, q0122, q0123, q0124, q0131 | 2 + about 3.5 h network wall before `T_seal` | 1.2 GB |
+| 2 | **CB6-T** ex-ante tail classifier (CH60) | longshots in an ex-ante flagged class (discrete-decision rule text, or a week of upward drift, or a large buy by a young wallet) resolve YES more often than priced, relative to unflagged longshots (T1); a paper longshot ask in the unflagged class, held to resolution, pays (T2) | T1 (mechanism), T2 (economic) | `h8_tail` SCREEN block | `h8_tail` HOLDOUT block (sealed, never read before Stage 1 is final) | q0126, q0130 | 1.0 | 1.2 GB |
+| 3 | **CB6-N** neg-risk conversion dumps (CH66) | a converter's sells of unwanted YES tokens revert more than ordinary large sells on the same member (N1); a paper bid one tick above the dump, exited by a taker 2h later, pays (N2) | N1 (mechanism), N2 (economic) | conversions (Polygon logs) and Data API prints in the dev window | the same in `[T6_rep_start, T6_rep_start + 21 d)` | q0123, q0124, q0127, q0131, q0132 | 0.8 | 1.0 GB |
+| 4 | **CB6-R** reward-shadow discontinuity (CH71) | the quoted spread jumps at the folded mid 0.90 in rewarded markets (R1, two-sided at Stage 1); a touch maker in the folded band [0.90, 0.96) is net-positive (R2, Stage 2 only, follow-up fills) | R1 (mechanism); R2 (economic, Stage 2 directly) | `cb6_extract/band/` dev captures | `band/` + `cb6_followup/` in `[T6_rep_start, T6_rep_start + 21 d)` | q0122, q0128, q0133 | 0.8 | 1.5 GB |
+| 5 | **CB6-C** where the fills are (CH77), measurement | public capture fields beyond volume and liquidity improve the out-of-sample prediction of "≥ 1 print in the next 2h" (M1) | M1 (measurement) | `cb6_extract/printflag/` dev passes (fit only, no test) | frozen model evaluated on `[T6_rep_start, T6_rep_start + 14 d)` | q0122, q0129, q0134 | 0.5 | 1.5 GB |
+
+The pre-freeze census q0125 is shared by T, N, R and C.
+
+**Why this order.**
+- **`h8_tail` is the only CB6 job with a hard calendar deadline.** As CB4 §1.3: every historical row is capped at
+  `min(T_fetch8, T_seal)` and the fetch must be **complete before `T_seal` = 2026-10-22T00:00Z**, otherwise it is
+  `not_run_deadline` (no seal, no analysis, no refetch, the cap is not moved; T1 and T2 recorded "not run (deadline)",
+  p = 1, counted). Its spec (q0120) has no dependency on any CB6 analysis code or on the CB6 freeze. It can be committed
+  as soon as (a) the fetcher code passes a `science-reviewer` freeze check, (b) `seals/cb6_tail_rules.json` (§1.4) is
+  committed, and (c) the §2.8 headroom precondition holds. It goes on the `net` lane at priority 61 in **90-minute
+  chunks**, so the T_seal-bound jobs already queued at 61 with lower ids (q0043 h6, q0081/q0082 h7) win the lane at
+  every chunk boundary (the worker breaks priority ties by ascending id, `queue_worker.py:326`).
+- The extractor v5 tables come next. `printflag/` is calendar-bound: raw trade samples are deleted after 3 days
+  (`data_catalogue/RETENTION.md`), so the pass step should be live soon; older passes come from verified release copies
+  where they exist (missing stays missing). `band/` reads captures, which are not yet deletable (snapshot rule gated);
+  release streaming covers any later loss (CB4 §2.10 machinery). CB6 places **no new gate on retention**.
+- CB6-N and CB6-C need nothing before `T_seal`: Polygon logs and Data API prints are permanent public records, and
+  trade-sample print flags are extracted per pass. Their dev data are fetched after `T6_dev_end`.
+
+### 0.1 Queue id mapping (one id per job)
+
+| Id | Job | Family | Earliest commit |
+|---|---|---|---|
+| q0120 | `h8_tail_fetch` (fresh historical fetch, `T_seal`-bound) | F (for T) | after the fetcher freeze check and `seals/cb6_tail_rules.json` |
+| q0121 | `h8_tail_seal` (listing hash, h7-overlap drop list, SCREEN/HOLDOUT split) | F (for T) | after q0120 completes |
+| q0122 | `cb6_extract_backfill` (extractor v5: `band/`, `printflag/`) | F (for R, C) | after the extractor freeze check |
+| q0123 | `cb6_conv_probe` (chain-source probe, 20 conversions, no prints analysed) | F (for N) | after the probe code exists |
+| q0124 | `cb6_conv_dev_fetch` (dev-window conversions + member prints) | F (for N) | after `T6_dev_end` + 3 h and q0123 PASS |
+| q0125 | `cb6_census` (T on SCREEN only; N, R, C dev; counts and gates) | shared | after q0121, q0122, q0124 |
+| q0126 | `cb6_screen_T` (Stage 1, SCREEN block) | T | after the CB6 freeze |
+| q0127 | `cb6_screen_N` (Stage 1, dev) | N | after the CB6 freeze |
+| q0128 | `cb6_screen_R` (Stage 1, R1 on dev captures) | R | after the CB6 freeze |
+| q0129 | `cb6_fit_C` (fit the declared model on dev passes; writes the frozen coefficients) | C | after the CB6 freeze, before `T6_rep_start` |
+| q0130 | `cb6_holdout_T` (Stage 2 on the HOLDOUT block) | T | only if T1 advanced or T2 was carried |
+| q0131 | `cb6_conv_rep_fetch` (rolling, replication window) | F (for N) | only if N1 or N2 advanced or was carried |
+| q0132 | `cb6_rep_N` (Stage 2) | N | after `T6_N_rep_end` + 3 h |
+| q0133 | `cb6_rep_R` (Stage 2: R1 replication + R2) | R | only if R1 advanced; after `T6_R_rep_end` + 12 h |
+| q0134 | `cb6_eval_C` (M1 on the evaluation window) | C | after `T6_C_eval_end` + 3 h |
+
+### 0.2 Selection and scope
+
+No census was run for this draft. **No CB6 quantity has been computed, and the drafting session read no price, book,
+trade, outcome, chain log or rule text.** It read committed documents and code only, ran
+`battery2.cumulative_count()` (§2.5), and fetched one public documentation page (Polymarket liquidity rewards, §0.3).
+Every count below comes from a committed document or is stated as an assumption that the census replaces.
+
+| Idea | Decision | Reason |
+|---|---|---|
+| **CH60** tail classifier | **include (T)** | The CB1 C1 screen (224 filled orders, 62 events, -3.84c, 7 losing clusters) shows a tail-loss structure. The question is whether the tail is identifiable *ex ante*. h2 is worn, h5 is CB1's sealed set and C1's five worst events are known, so the test needs a fresh market-disjoint fetch, capped at `T_seal`. Features are fixed now (§CB6-T), before any fetch |
+| **CH66** conversion dumps | **include (N)** | Novelty 5. Conversion is atomic and public on chain (`PositionsConverted` on the neg-risk adapter, to be verified by probe q0123), so the episode list does not depend on AREPO's 2,000-market trade sample (which almost never holds 3 members of one event at once). Data API `/trades?market=<comma-separated condition ids>&start&end` returns all members of an event in one windowed request (`large_trade_census.py:40`) |
+| **CH71** reward shadow | **include (R), mechanism corrected (§0.3)** | The idea text reads the rewards rule backwards. The documented rule still changes exactly at 0.90 (single-sided quotes stop scoring), so a regression discontinuity is identified. Non-rewarded markets at the same cutoff give a placebo that can fail. Kept rather than swapped (below) |
+| **CH77** fill probability | **include (C), measurement** | It reprices every maker envelope (C1 fill rate 6.8%). It uses capture fields and per-pass trade samples, with a very large n. The informative question is *incremental* predictability beyond volume and liquidity, because "volume predicts prints" cannot fail |
+| CH67 sibling-resolution unwind | not in CB6 (concrete reason) | Its primary (sum of member asks after a `closed` flip, from captures) is a near-copy of CB1-D's sealed neg-risk sum statistic inside CB1-D's replication window (to 2026-11-09). As with CB5-L (round-1 item 11), it would have to be held until CB1-D's read, so it gains nothing by being in CB6 now |
+| CH73 Kalshi-skewed maker | not in CB6 | It runs on the C1 cross-venue set, already analysed by v1, r1 and CB5-K. Its only clean check is E009's stream after 2026-11-03 with owner sign-off. Better as a follow-up to CB5-K |
+| CH63 specificity discount | not in CB6 | It needs a second fresh pre-`T_seal` fetch (`h8_text`, about 6,000 markets), competing with `h8_tail` and the h7 jobs for the congested `net` lane and the last 0.3 GB of disk headroom (§2.8). `h8_tail` is reserved for CB6-T and cannot be reused for CH63 |
+| CH61, CH62, CH64, CH65, CH68-CH70, CH72, CH74-CH76, CH78 | not in CB6 | ranks below 8, or each needs its own source join or fetch; CH61/CH62 depend on CH60's classifier existing first |
+
+**Sports and weather.** Category scope is the user's decision (`CB6_SPORTS_IN_PRIMARY = false`). Sports is a reported,
+uncounted stratum in every CB6 test. Weather (`fee_category == "weather"` or CB2's `TEMP_RE`) is excluded from every CB6
+population and from the `h8_tail` sample, so CB6 never touches CB2-W's live stage or `h6_weather`.
+
+### 0.3 CH71's mechanism, checked against the venue documentation
+
+`CREATIVE_HYPOTHESES_2026-10-17.md` CH71 says rewards "require two-sided quotes inside [0.10, 0.90]" and that reward
+quoters disappear above 0.90. The liquidity-rewards page (https://docs.polymarket.com/developers/market-makers/liquidity-rewards,
+fetched 2026-10-16T23:3xZ) says the reverse:
+- midpoint in [0.10, 0.90]: "single-sided liquidity can score", `Q_min = max(min(Q_one, Q_two), max(Q_one/c, Q_two/c))`,
+  with c = 3.0 on all markets;
+- midpoint in [0, 0.10) or (0.90, 1.0]: "liquidity must be double-sided to score", `Q_min = min(Q_one, Q_two)`;
+- each incentivised market sets a max spread `v` and a minimum size.
+
+**So rewards do not stop at 0.90. Single-sided scoring stops there.** A quoter who rests on one side only is paid at
+1/3 rate below 0.90 and nothing above it. A two-sided quoter is paid on both sides of the cutoff. The quoted spread can
+therefore jump in either direction at 0.90: wider if one-sided reward quoters leave, narrower if they switch to two-sided
+quotes. The discontinuity is identified by a venue constant; **its sign is not predicted.** CB6-R therefore tests R1
+two-sided at Stage 1 and replicates in the Stage-1 direction. The money route (a maker above 0.90 faces less reward
+competition) survives only if R1's sign is "wider above". The route test R2 is registered for Stage 2 only in that case
+(§CB6-R). The cutoff belongs to the inside region: x = 0.90 exactly is "below" (one-sided scoring allowed).
+
+## 1. Data policy
+
+### 1.1 Roles of each dataset
+
+| Dataset | Prior use | Role in CB6 | Evidence ceiling |
+|---|---|---|---|
+| `history/h8_tail` (**new**, q0120; seeded sample of about 4,500 binary markets created 2025-09-01..2026-07-31, disjoint by id from h1/h2/h3/h5/h5_ladders, weather excluded; Gamma frame **with `description`**; hourly prices around ≤ 3 declared origins per market; windowed taker prints; first-trade times of large buyers (hashed); outcomes only in `outcomes_guarded.csv.gz`) | none | **CB6-T only.** Split once at seal (q0121) by event-hash into SCREEN (Stage 1) and HOLDOUT (Stage 2, sealed) | L1 (SCREEN) / L2-dev (HOLDOUT, same calendar) |
+| Polygon logs of the neg-risk adapter's conversion event (**new**, q0123/q0124/q0131; keyless public RPC) | none | **CB6-N episode list** (block time, hashed stakeholder, neg-risk market id, index set, amount) | as below |
+| Data API windowed taker prints for converted events' members (**new**, q0124/q0131) | none | **CB6-N targets, controls and fills.** One window `[t_conv − 96 h, t_conv + 3 h]` per episode, all members in one comma-separated `market=` list (paged) | L1 (dev) / L2-dev (rep) |
+| Gamma market metadata for converted events (q0124/q0131) | none | member list, `negRiskMarketID`, `fee_category`, tick size, `outcomes` labels. **No outcome fields** (parse guard drops `outcomePrices`, `umaResolutionStatus`) | - |
+| `cb6_extract/band/` (**new**, extractor v5, §4.3) | none | **CB6-R.** Per complete capture, binary rows with folded mid in [0.55, 0.99]: touch, rewards fields from the sidecar, first-sweep sizes and 1c/5c depth, ids for clustering | L1 (dev) / L2-dev (rep) |
+| `cb6_extract/printflag/` (**new**, extractor v5, §4.3) | none | **CB6-C.** Per pass i and per market in the pass-i trade sample: inclusion probability, the print indicator over `[r_{i−1}, r_{i−1} + 2 h)` and its availability, plus the capture-(i−1) feature row | fit (dev) / measurement (eval) |
+| `cb6_followup/` (**new**, pass step, Stage 2 only, §4.4) | none | **CB6-R2 fills.** At pass i+1, windowed taker prints `(t, t + 2 h]` for a seeded sample of ≤ 200 band markets swept at pass i | L2-dev |
+| Raw complete captures, `rows_ext` sidecar, book sweeps, trade samples (host; verified release copies) | E-series, SB2, CB1-CB5 | read only by the extractor (`band`, `printflag`) and the follow-up step | - |
+| `h2_main`, `h3_power` | many; h2 worn beyond budget, h3 retired from replication (Ledger M3) | **not read** (runner refuses) | - |
+| `h4_seal`, `h5_cb1`, `h5_cb1_ladders`, `h6_weather`, `h7_cb4_era`, `h7_cb4_series` | SB2, CB1, CB2-W, CB4 | **not read** (runner refuses the run ids). Only committed seal copies under `docs/research_lab/seals/` (h5, h5_ladders, and h7 once committed) are read, for **market ids only** (exclusion and the drop list) | - |
+| `cb1_extract/` .. `cb5_extract/`, `cb3_followup/` | CB1-CB5 inputs | **not read by any CB6 code path** | - |
+| `cross_venue_live/` (E009/E010), `surprise_live/` (E011), live trade monitor alerts | registered experiments | **not read** | - |
+
+### 1.2 Dates (declared; UTC)
+
+| Name | Value | Meaning |
+|---|---|---|
+| `T6_draft` | 2026-10-16T23:37Z | First draft. No CB6 quantity computed |
+| `T_seal` | 2026-10-22T00:00Z | SB2's h4 seal boundary (CB1 §1.3, CB4 §1.2). `h8_tail` rows are capped at `min(T_fetch8, T_seal)` and **the fetch must be complete before `T_seal`** (no new chunk at or after it); otherwise `not_run_deadline` |
+| `T_fetch8` | request clock of the `h8_tail` frame fetch, pinned in its manifest (expected 2026-10-17..21) | h8 data end; administrative censoring `T_censor8 = T_fetch8` |
+| `T6_dev_start` | 2026-10-11T12:00Z | First sidecar capture (as CB1-CB5). Start of the N, R and C dev windows |
+| `J4-R window` | `[t_j4r_start, t_j4r_end)` from the committed `seals/j4r_window.json` (2026-10-16T00:00Z to 2026-10-21T00:00Z, end can only move forward) | **No CB6 analysis or census uses a capture, sweep, trade-sample pass, conversion or print timed inside it** (as CB3 §1.2). The extractor still writes rows for it (data copying only) |
+| `T6_dev_end` | **2026-10-28T00:00Z** | N, R and C dev windows: `[T6_dev_start, t_j4r_start) ∪ [t_j4r_end, T6_dev_end)` (about 4.5 + 7 days, about 138 complete captures) |
+| `T6_rep_start` | **max(2026-10-30T00:00Z, first complete capture ≥ CB6 freeze commit + 2 h, first pass ≥ 48 h after the `cb6_followup/` step is deployed)**, pinned in a committed file (CB1 freeze-fix 9) | Start of the N and R replication windows and of the C evaluation window |
+| `T6_R_rep_end`, `T6_N_rep_end` | `T6_rep_start` + 21 d | End of the R and N replication windows |
+| `T6_C_eval_end` | `T6_rep_start` + 14 d | End of the C evaluation window |
+| `T6_mark_lag` | 12 h | No R or N window is analysed until its last origin + 12 h |
+
+### 1.3 Sealed and untouched data (named)
+
+- **Refused run ids and roots.** `run_cb6.py` refuses `h2_main`, `h3_power`, `h4_seal`, `h5_cb1`, `h5_cb1_ladders`,
+  `h6_weather`, `h7_cb4_era`, `h7_cb4_series`, every path under `cb1_extract/` to `cb5_extract/`, `cb3_followup/`,
+  `cross_venue_live/` and `surprise_live/`.
+- **SEALED-H8 (CB6-T).**
+  - `h8_tail` is fetched and sealed (manifest, per-file sha256, listing sha256) **before any CB6-T analysis**. The seal
+    copy `docs/research_lab/seals/h8_tail_SEAL.json` is committed before q0125 is committed.
+  - **SCREEN/HOLDOUT split at seal.** Every market gets `block = SCREEN` if `sha256("arepo-cb6-tail-split|" +
+    event_key)` is even in its first byte, else `HOLDOUT`, where `event_key` is the Gamma event id (market id if none),
+    merged across `negRiskMarketID` (all members of one neg-risk event share a block). The split file (ids only) is
+    hashed into the seal. The runner refuses to open any HOLDOUT file until Stage 1 of CB6-T is final and committed
+    and T1 advanced or T2 was carried. Every h8 reader verifies the listing hash and appends to
+    `history/h8_tail/ACCESS_LOG.jsonl` (as CB1 SEALED-H5).
+  - **Why an event-hash split, not a time split.** CB4-S split its series store by roll date. Here the features are
+    fixed before any fetch, so nothing is tuned on SCREEN that a time split would protect against. A creation-date split
+    would put most censored (still unresolved) markets in the later block and make the blocks unequal in their censoring.
+    The cost is stated: **HOLDOUT is market-disjoint but shares the calendar**, so a Stage-2 pass is "development-
+    replicated, same calendar (L2-dev)". Out-of-time evidence comes only from Stage P (§2.10).
+  - **h7 overlap.** The h8 and h7 fetches are independent (as CB4's two h7 fetches). At seal (q0121) any h8 market whose
+    id appears in a committed h7 seal copy is dropped from both blocks, never read and counted. If an h7 run ended
+    `not_run_deadline`, there is nothing to drop. q0121 waits until both h7 runs are terminal (sealed or
+    `not_run_deadline`); the h8 *fetch* does not wait for h7.
+  - **h4_seal unchanged.** h8 holds no information after `T_fetch8 < T_seal`; SEALED-H4 analyses use origins ≥ `T_seal`.
+    No frozen SB2 parameter changes.
+- **Live-period windows (N, R, C).** Their dev and replication windows lie partly after `T_seal`. They use CB6's own
+  extract tables and post-hoc API and chain reads of CB6-selected markets, never h4 data (as CB4-C and CB5, disclosed).
+- **SEALED-P overlaps (disclosed).** The N/R/C windows overlap CB1-D's replication window (to 2026-11-09), CB3's
+  prospective windows (from `T3_rep_start` ≥ 2026-10-27), CB4-C's and CB5-L's live windows, and E011's window (to
+  2026-11-10). The calendar is shared; populations, statistics and output tables differ, and **no CB6 job reads their
+  extract tables, follow-up files or outputs**. CB6-N reads prints of neg-risk event members; it never computes a member
+  ask or bid sum (CB1-D's statistic). CB6-R's comparison band [0.84, 0.90) overlaps CB3-B's population ([0.10, 0.90]) in
+  calendar time; CB6's follow-up sample is seeded independently of CB3's.
+- **Overlap with registered experiments.** E009/E010 (cross-venue) and E011 (surprise detector) inputs and outputs are
+  never opened. CB6 statistics (tail-class resolution excess on h8, conversion reversal, spread discontinuity, print
+  probability) cannot be computed from, or reveal, E009-E011 outcomes. CB6 results on captures inside E011's window are
+  aggregates and contain no per-market E011 alert information.
+- **CB1-C overlap (CH60).** CB1-C's C1 used h2 and its five worst events are known to the programme. CB6-T never opens
+  CB1-C's unit lists or event ids, and h8 is disjoint by market id from h2 and h5. The feature list was fixed in
+  `CREATIVE_HYPOTHESES_2026-10-17.md` before this draft and is frozen here without change of substance (operational
+  thresholds are added in §CB6-T and hashed in §1.4).
+- **Results outside data directories.** Every CB6 result goes to `research_lab/creative_batch6/`. Nothing is written
+  inside `history/h8_tail/` after the seal except `ACCESS_LOG.jsonl`.
+
+### 1.4 The `h8_tail` rules file (committed before q0120)
+
+`docs/research_lab/seals/cb6_tail_rules.json` holds, with a top-level `rules_sha256`, everything the fetch or the
+CB6-T analysis needs that could otherwise be chosen after seeing data:
+- the frame windows, sampling seed (`arepo-h8-tail`), strata and weights, exclusion run ids and seal copies (§CB6-F);
+- the origin rule and its seed (`arepo-h8-tail-origins`);
+- the class regexes, the clarification-marker list and the tie rules (feature (i));
+- the drift, large-buy and wallet-age thresholds (features (ii)-(iv));
+- the split seed (`arepo-cb6-tail-split`).
+The fetcher refuses to start unless the committed file's hash equals the code's. **No regex or threshold is computed
+from, or revised after, any h8 read.**
+
+## 2. Common rules (deltas from CB1 §2, CB3 §2, CB4 §2 and CB5 §2)
+
+### 2.1 Costs
+
+As CB5 §2.1, read through **`cost_regimes.cost_regime(date, fee_category, price)`** (version `cost-regimes-v1`): taker
+`fee_rate` per leg as `r·a·(1 − a)` never below the CB1 conservative rate; `half_spread` from the CB1 band table
+(`cb1_history.HALF_SPREAD`: 2.05c below 0.05, 1.5c in [0.05, 0.20), 1.1c in [0.20, 0.80), 1.5c in [0.80, 0.95),
+1.25c above), never lower; `a_as_cents` (R2) on maker fills before the category's rollout date. Category rates follow
+`economics.DOCS_CATEGORY_RATE` (crypto 0.07; sports, economics, culture, other 0.05; finance, politics, mentions, tech
+0.04; geopolitics 0).
+
+| Item | Rule |
+|---|---|
+| Maker fee | 0 everywhere |
+| Maker rebate | per filled share `ρ_cat · r_cat · P(1 − P)` with `economics.REBATE_SHARE` (crypto 0.20, sports 0.15, geopolitics 0, all others 0.25); unknown category → 0. **Every economic floor and sign must also hold with the rebate halved (binding, as CB3 §2.1 item 6).** Liquidity rewards never enter `net` |
+| T2 (paper ask, held to resolution) | modelled ask `a_c = min(m_c + half_spread(m_c), 0.999)` on the longshot side; `net = a_c − Y_c − a_AS` per filled share; no fee (maker); rebate as above (tiny at these prices). **CB6-T's T2 refuses to run until `model_specs/cost_regimes_v1.json` is committed** (as CB5-G), because most h8 origins predate the 2026-03-30 rollout and the absent-register default sets `a_AS = 0` |
+| N2 (maker bid, taker exit) | entry bid `q` (§CB6-N); exit by a taker sell at the exit-window bid-side VWAP `x`; `net = x − q − f(x) + rebate(q)`, `f(x) = r·x·(1 − x)` with `r = cost_regime(exit date, fee_category).fee_rate` |
+| R2 (touch maker) | `net = mark-out + rebate(q)`; no exit fee (mark-to-mid, as CB3-B) |
+| Binding cost robustness | +0.75c on every bought or exit leg (T2: on `a_c`, i.e. the ask lowered by 0.75c; N2: on `x`; R2: on the mark) keeps net > 0 |
+| Measurement (C) | no P&L |
+
+### 2.2 Clocks
+
+As CB1 §2.2 and CB5 §2.2. In particular:
+- A history price point stamped `s` is usable at `t` iff `s + 600 ≤ t` and it is at most 2h old (h8 points are hourly,
+  so "at most 2h old" means one of the two latest points).
+- Prints use the Data API venue `ts`. A condition at `t` uses prints with `ts < t`. Truncation rule as CB1 §2.2: a print
+  condition is known true, unavailable or false. Unavailable units are excluded and counted, and enter the declared
+  worst case.
+- Capture rows use the row's own `received_utc` as their time (as E011), never the capture start.
+- Chain events use the block timestamp. Conversions are joined to prints by time only; a Data API print and a chain
+  event in the same second are ordered by the chain event first (a dump cannot precede its conversion).
+- `closed_time` and Gamma `closedTime` are never a population condition or a window anchor. "Open at t" means the
+  market has a usable price point at t and no resolution before t on the market's own price path is detectable.
+
+### 2.3 Uncertainty and decision rule
+
+As CB5 §2.3, unchanged:
+- Unweighted estimates are primary. One-sided p (routes; R1 two-sided at Stage 1) = the max over the declared cluster
+  ways of CR1 (normal z). CI by a 2,000-draw cluster bootstrap (seed 616).
+- **Small-G rule** (CB2 §2.3): G ≥ 30 CR1 normal; 15 ≤ G < 30 CR2 with t(G − 1) and a Webb wild-cluster bootstrap (9,999
+  draws), larger p; G < 15 in any way → "not testable", p = 1, counted.
+- Testability otherwise: ≥ 100 units and ≥ 30 clusters in each declared way, else "not testable" (p = 1, counted).
+- **Routes.**
+  - **Stage 1:** advance iff p < 0.01 (one-sided; R1 two-sided), the §2.4 floor is met, `R_ann` ≥ 10% where defined,
+    the calibration placebo holds (§2.6), the binding robustness holds, and every binding gate is **met** (an
+    "unknown", "unverified" or "inconclusive" gate never counts as met). A BY label (q = 0.10 over
+    `battery2.cumulative_count()`) is attached as triage only.
+  - **Carry rule for economic tests (as CB5 §2.3, declared now).** If the mechanism test of a family advances and its
+    economic test is "not testable" at Stage 1 **for size only** (filled units < 100 or fill clusters < 30) with a point
+    estimate ≥ 0, the economic test enters Stage 2 as "carried, untested at Stage 1" and is counted in the Stage-2 Holm
+    k. A testable economic test that failed is not carried. (Applies to T2 and N2. R2 has no Stage 1, §CB6-R.)
+  - **Stage 2:** Holm at α = 0.05 one-sided over **all CB6 route tests reaching Stage 2** (T1, T2, N1, N2, R1, R2;
+    k ≤ 6), each in its Stage-1 direction (R1: the sign found at Stage 1). Early finishers are reported against α/k with
+    k fixed when the last Stage 1 ends; the batch Holm can only add passes. A pass is "development-replicated
+    (L2-dev)", never confirmation (§2.10).
+- **Measurement (M1).** Family **C** = {M1}, single stage on the evaluation window, one-sided α = 0.05 (k = 1).
+  Reported as "unreplicated measurement".
+
+### 2.4 Materiality floors (declared before any run)
+
+| Test | Type | Floor on the point estimate |
+|---|---|---|
+| T1 | mechanism | `Δ ≥ +2.0c` (flagged minus unflagged resolution excess; at a 5c mean price this is a 40% relative difference in the YES rate) |
+| T2 | economic | net ≥ +0.5c per filled share (C1's floor), `R_ann ≥ 10%`, the CB1 tail gate (§CB6-T) |
+| N1 | mechanism | `Δ_N ≥ +0.3c` (dump recovery minus matched-sell recovery) |
+| N2 | economic | net ≥ +0.25c per filled share (CB3-B floor) and EV per posted opportunity > 0 |
+| R1 | mechanism | `|τ| ≥ 0.3c` (spread discontinuity) |
+| R2 | economic | net ≥ +0.25c per filled share and EV per quote > 0 |
+| M1 | measurement | `ΔLL ≥ 0.005` nats per unit (baseline minus full log loss) |
+
+`R_ann` for T2 uses the hold from fill to resolution (censored units excluded, §CB6-T); for N2 and R2 the hold is 2h
+and `R_ann` is reported, not gating (a 2h maker hold is capital-light by construction).
+
+### 2.5 Counting (M3 rule)
+
+- Every counted test writes one `trials.jsonl` line via `provenance.append_trial`.
+  - Routes: kinds `cb6_test` (Stage 1) and `cb6_replication` (Stage 2), with count lines `creative_batch_6:T`,
+    `creative_batch_6:N`, `creative_batch_6:R` (`ml_explain` kind, `n_tests`).
+  - Measurement: kind `cb6_measurement`, count line `creative_batch_6:C`, counted in the cumulative M3 total, its own
+    family, never in the route Holm.
+  - `cb6_descriptive` (EXCLUDE, no inference): census, gates, per-component logistic odds ratios, flag prevalences,
+    episode counts, density tests, fake-cutoff tables, decile tables, sports strata, every reported variant.
+- New `battery2.KIND_RULES` entries: `cb6_test`, `cb6_replication`, `cb6_measurement` EXCLUDE ("counted by the matching
+  `creative_batch_6:*` count line"); `cb6_descriptive` EXCLUDE. Unknown kinds still raise. A unit test runs the counter on
+  the real `trials.jsonl`.
+- Placebo lines: `evidence_role: "placebo"`, count 0.
+- **Cumulative count at drafting.** `battery2.cumulative_count()` on the working-tree `trials.jsonl` (rule
+  `battery2-count-v1`) returned **1,104** at 2026-10-16T23:3xZ (325 automatic `flow_screen` lines, 492 `ml_explain`; no
+  `cb1_test`-type kinds counted separately). The value at run time is recorded in every CB6 results file.
+- **CB6 adds 6 fixed tests (T1, T2, N1, N2, R1, M1) and up to 6 conditional ones (T1, T2, N1, N2, R1 at Stage 2; R2 at
+  Stage 2): 6-12 tests, taking the denominator to 1,110-1,116.** At that denominator BY at q = 0.10 needs z ≈ 4.1, which is
+  why the Stage-1 gate plus Stage-2 Holm, not BY, is the decision rule (Ledger M3).
+- Tests behind a failed or unknown gate (GT, GN, GR, GC, the N probe, the h8 deadline, a missing register for T2) are
+  "not testable" or "not run" (p = 1) and **still counted**.
+
+### 2.6 Placebos and robustness
+
+**Design rule (from CB5 round 1, item 1).** Every binding placebo below is checked against one question: *is there a
+plausible alternative under which it advances?* The alternative each one guards against is named. A placebo that would
+pass whatever the data are is not used as a gate.
+
+- **T1 calibrated-null placebo (calibration; binding).** Outcomes are replaced by `Y' = 1{U_k < m_c(t)}` with one
+  uniform `U_k` per market k (comonotone across a market's origins: every unit is calibrated to its own price, and the
+  within-market dependence of outcomes is kept). T1 is recomputed with the full Stage-1 gate on 200 draws (seed 6161).
+  **Advance rate ≤ 1.5%.** *Alternative it guards against:* the cluster-robust p is anti-conservative for a rare binary
+  outcome repeated across a market's origins and an event's members. If the clustering is too fine or G too small, the
+  placebo advances far more than 1.5% and T1 cannot advance.
+- **T1 class-shuffle attribution (binding for crediting the rule-text component only).** Feature (i) is reassigned by
+  permuting markets within `fee_category` × creation month (features (ii)-(iv) kept). T1 is recomputed on 200 draws (seed
+  6162). The text component is credited only if the real T1 exceeds the 98.5th percentile of the shuffled T1.
+  *Alternative:* the class regex only tags categories in which longshots are underpriced (category, not rule class).
+  If it fails, a T1 advance stands, but the verdict reads "tail predicted by price path / flow and category, not by rule
+  class".
+- **T2 break-even placebo (calibration; binding, as CB1).** Fill prices are kept; outcomes are replaced by
+  `Y' = 1{U_k < a_c}` (comonotone per market), so expected net is 0. The full T2 gate, including the tail gate, runs on
+  200 draws (seed 6163). **Advance rate ≤ 1.5%.** *Alternative:* the rare-event tail gate and the exact event-level
+  bound are miscalibrated at the realised number of winning clusters.
+- **N1 pseudo-episode placebo (calibration; binding; replaces the idea's increment-shuffle placebo).** For each real
+  episode, a pseudo-conversion time `t*` is drawn uniformly in `[t_conv − 72 h, t_conv − 30 h]` (inside the fetched
+  window, at least 30h before the real conversion). On every hit member, the pseudo-"dump" is the largest
+  non-converter sell burst (definition below) in `[t*, t* + 30 min)`. Controls come from `[t* − 24 h, t* − 6 h]` by the
+  same matching rule. N1 is recomputed with the full gate on 200 draws (seed 6164). **Advance rate ≤ 1.5%.**
+  *Alternative:* "the largest sell burst in a 30-minute window reverts more than notional-matched ordinary bursts" is a
+  generic selection effect (regression after an extreme burst, depth refill after a deep sweep). The pseudo-episodes
+  copy that selection exactly, so if the effect is generic the placebo advances and N1 cannot. The increment-shuffle
+  placebo in the idea text was not adopted: it breaks the timing link and the bid-ask structure together, so it would
+  pass whenever any sell reverts at all.
+- **N2 break-even placebo (binding).** Entry prices and fills are kept; the exit `x` is replaced by `q + δ` with δ drawn
+  from the member's own demeaned 2h bid-side VWAP changes in `[t_conv − 96 h, t_conv − 6 h]` (expected net 0 before
+  fees). 200 draws (seed 6165), advance rate ≤ 1.5%.
+- **R1 fake-cutoff placebo (calibration; binding).** The R1 estimator (same bandwidth, kernel, population, clustering)
+  runs at the 24 fake cutoffs 0.60, 0.61, ..., 0.83 (every window lies inside [0.57, 0.86], disjoint from the real
+  window [0.87, 0.93]). **R1 may advance only if (a) the real |t| exceeds every fake |t| and (b) at most 1 of the 24
+  fake cutoffs reaches two-sided p < 0.01.** *Alternative:* price heaping at whole cents (mids at exactly 0.85, 0.90)
+  and curvature of the spread in price produce "discontinuities" at many round cutoffs; the fake cutoffs share that
+  heaping, so the placebo fails if heaping drives R1. The expected number of fake rejections under a calibrated test is
+  0.24; (b) allows one.
+- **R1 reward attribution (binding for crediting the reward rule).** The same RD in markets **without** rewards
+  (`clob_rewards` empty or 0 at the capture). The difference-in-discontinuities `τ_DD = τ_rewarded − τ_unrewarded` must
+  have τ's sign and at least half its magnitude. If the unrewarded population fails gate GR's size rule, attribution is
+  "unverified" and R1 **cannot be credited** to the reward rule at that stage (a Stage-1 advance stands only as "a
+  discontinuity at 0.90, cause unverified", and R2 is then **not** registered). *Alternative:* something else changes at
+  0.90 for all markets (a UI band, a bot convention). Less data can never make crediting easier.
+- **R2 break-even placebo (binding).** Fills kept; the mark replaced by entry mid plus a demeaned 2h mid change drawn
+  from the same market's previous 3 days of tight captures. 200 draws (seed 6166), advance rate ≤ 1.5%.
+- **M1 permutation calibration (binding).** The added feature block (§CB6-C) is permuted across units within
+  (capture × baseline-score decile) cells in both the fit and evaluation windows; the model is refitted and M1
+  re-evaluated with the full gate on 200 draws (seed 6167). **Advance rate ≤ 1.5%.** *Alternative:* the clustered ΔLL
+  inference is anti-conservative (for example, the same market's repeated captures dominate a cluster way).
+
+**Binding robustness for any advance or pass:**
+- (i) routes: the +0.75c cost robustness (§2.1) keeps net > 0;
+- (ii) the test still meets its p threshold and floor without the top 5 clusters by absolute contribution, in each way;
+- (iii) unweighted and cluster-equal-weighted estimates agree in sign;
+- (iv) the rebate-halved economic estimate keeps net above the floor (T2, N2, R2);
+- (v) the declared worst case for unavailable units (per test) keeps the estimate on the declared side;
+- (vi) the era rule (CB5 §CB5-G) for T2 when the register says `post_rollout_or_interaction`;
+- (vii) T1: the logistic version (`logit P(Y = 1) = α + β·F + γ·logit(m_c) + band FE`) has β on Δ's side; the
+  design-weighted Δ (h8 `sample_weight`) has Δ's sign;
+- (viii) N1/N2: the result holds with the converter-wallet cluster way (G ≥ 15) as well as event × day;
+- (ix) R1: the donut estimate (excluding x ∈ [0.895, 0.905]) has τ's sign and ≥ half its magnitude, and the estimate
+  stratified by tick size (`order_price_min_tick_size` 0.01 vs 0.001) agrees in sign in every stratum with ≥ 30 clusters;
+- (x) M1: the market-disjoint evaluation (evaluation units whose market never appears in the fit window) has M1's sign
+  and ≥ half its magnitude.
+
+Reported, not binding: sign by month and fee category, the sports strata, +1c cost, hold-to-resolution variants
+(N2, R2), per-component T1 contributions, McCrary density at 0.90 (R1), decile print-rate tables (M1).
+
+### 2.7 Pre-freeze census (q0125; counts only)
+
+An outcome guard drops outcome columns before population code runs (CB1 §2.9). **No target, coefficient, net,
+mark-out, spread-at-cutoff or log loss is computed.** Each family's census receives its inputs through an accessor that
+returns only the fields listed; a unit test asserts that no census path receives a target field.
+
+**T (SCREEN block only; HOLDOUT is never opened by the census):**
+- T-i: frame and sample counts by stratum; dropped h7 overlaps; capped-window exclusions; markets with a clarification
+  marker (share, by category).
+- T-ii: eligible units (origin rule, §CB6-T) and markets; censored share (market not closed at `T_fetch8`, a status, not
+  an outcome); truncation counts for features (iii)/(iv); wallet-lookup failures.
+- T-iii: prevalence of each feature and of F, by category and price band. **Expected YES count** `Σ m_c` per F stratum
+  (a price, not an outcome).
+- T-iv: **gate GT:** ≥ 1,000 eligible SCREEN units, ≥ 300 units and ≥ 100 market clusters in each F stratum, and
+  `Σ m_c ≥ 40` in each stratum. Fail → T1/T2 "not testable" (counted); CH60 then needs a new declaration on a new fetch.
+- T-v: the Stage-1 MDE recomputed from these counts (never used to change a threshold).
+
+**N (dev window, excluding the J4-R window):**
+- N-i: probe result (q0123): conversions found, share whose stakeholder hash has ≥ 1 print in the event within ±1 day,
+  share matched by the same conversion in the stakeholder's Data API `/activity` (type `CONVERSION`, if the type
+  exists).
+- N-ii: conversions per day; episodes (≥ 1 converter sell within 30 min); hit members; distinct converter hashes.
+- N-iii: units with a non-empty exit window and ≥ 1 matched control (**counts only**, via a count-only accessor);
+  event × day clusters.
+- N-iv: **gate GN:** ≥ 100 available units, ≥ 30 event × day clusters, ≥ 15 converter hashes. Fail → N1/N2 "not testable"
+  (counted).
+
+**R (dev window):**
+- R-i: market-captures with folded mid x in [0.87, 0.93] by side of 0.90, rewarded and unrewarded, non-sports; fixture-
+  day clusters by side; tick-size mix. The accessor returns `x`, ids and reward fields, never bid, ask or spread
+  separately.
+- R-ii: McCrary density estimate of x at 0.90 (x only), reported.
+- R-iii: **gate GR:** in rewarded non-sports markets, ≥ 2,000 market-captures and ≥ 100 fixture-day clusters on each side
+  within the bandwidth. Fail → R1 "not testable". The same thresholds on unrewarded markets decide whether attribution
+  (§2.6) is checkable.
+
+**C (dev passes):**
+- C-i: units per pass, pass coverage by day (host raw vs release copy vs missing), frame type in `plan.json`, inclusion
+  probabilities, availability of the target window, feature missingness.
+- C-ii: **gate GC:** ≥ 50,000 available dev units over ≥ 5 dev days. Fail → the fit runs anyway on what exists, and M1
+  carries "fit on short dev window" (a label; M1's own test is on the evaluation window).
+
+Floors are never revised from the census.
+
+### 2.8 Compute, network, disk and stop rules
+
+- Host: 1 OCPU, about 5.6 GiB RAM shared with the collector. Queue worker as CB5 §2.8 (one job per lane, nice 19,
+  `MemAvailable ≥ mem_mb + 1200`, address cap 2 × `mem_mb`, 02:45-05:30 UTC start blackout for `mem_mb ≥ 500`). Never two
+  multi-GB jobs at once.
+- **Lanes.** q0120 (`h8_tail`) is on `net` at priority 61, `--budget-min 90`, repeat-until-complete. It yields the lane at
+  every chunk boundary to the T_seal-bound jobs with lower ids (q0043, q0081, q0082) and beats q0002 (60). Every other
+  CB6 fetch (q0123, q0124, q0131) is light and runs on `cpu` at `--rps 2` (half the shared limiter's 4 rps, so two
+  concurrent processes stay ≤ 6 rps in total), as CB4/CB5's API fetches do while q0002 holds `net`.
+- **Priorities.** q0120 61; q0121 58; extractor backfill q0122 56 (below CB5's q0101 at 57); probe and dev fetch 44;
+  census 40; measurement 39; screens and replications 38.
+- **`h8_tail` deadline mechanics.** As CB4 §1.3: the fetcher refuses to start a new chunk at or after `T_seal`; a run
+  still incomplete at `T_seal` writes `NOT_RUN_DEADLINE.json` and exits 0 with `not_run_deadline`. Request budget about
+  **39k** (frame about 6k; per market about 3 price windows, about 3 windowed print requests, about 1 wallet lookup) at
+  ≤ 4 rps: about 2.7 h of request time, about **3.5 h wall** with collector yields, i.e. 3 chunks. **Latest safe start on
+  the host: 2026-10-21T12:00Z.** If q0120 has not started on the host by **2026-10-20T12:00Z** (lane held by h6/h7 or the
+  disk precondition unmet), the coordinator runs the identical command, with the same committed rules file and seeds,
+  from a Claude session on the Mac (`~/arepo_scratch/h8_tail/`, the `scripts/` entry point with an explicit
+  `--root`), seals it there, uploads it to an `arepo-data` release by the existing process, and copies it to the host
+  when headroom allows. The run location is recorded in the manifest. This is a fallback, not a design change: same
+  frame, sample, cap and deadline.
+- **Disk guard and headroom precondition (as CB5 §2.8 item 15).** Host `data-dumps` was 9.7 GB at 2026-10-16T22:57Z
+  against the 12 GB cap, growing about 0.75 GB a day while snapshot deletion is gated. Every CB6 data job refuses to
+  start above 10 GB. Output caps: `h8_tail` **0.12 GB** (parse guards keep only the origin windows: hourly points in
+  `[t − 8 d, t + 2 d]` and prints in `[t − 30 d, t + 6 h]` per origin), `band/` 0.15 GB, `printflag/` 0.03 GB,
+  conversions and member prints 0.06 GB (dev) + 0.08 GB (rep), `cb6_followup/` 0.05 GB. Before any CB6 data job is
+  committed, the coordinator records in the commit message either (a) that snapshot deletion is active on the host, or
+  (b) that current size + 0.75 GB × (days to the job's last scheduled run) + its cap ≤ 10 GB with ≥ 3 GB free. If
+  neither holds, the job is held (q0120: the Mac fallback above applies). The precondition never changes retention.
+  **Disclosed:** at 9.7 GB on 10-16 and +0.75 GB/day, (b) already fails for q0120 on the host; q0120 runs on the host only
+  if retention activates (archive rotation, pending user decision 2 of 2026-10-15) or another session frees space. The h7
+  fetches are in the same position (they refuse above 10 GB too).
+- 10 CPU-hour cap per family. A job failing twice for the same non-transient reason stops and is recorded.
+- A null is "not detected at MDE x", never "absent". No re-screen of a failed CB6 test with altered windows, horizons,
+  thresholds, regexes, cutoffs, bandwidths, feature sets or populations, on any data.
+- **Network etiquette:** shared `Limiter`, yield to the live collector, 429 and `Retry-After` back-off, stop on repeated
+  429, collector-health stop (as CB2/CB4 §2.8). Polygon RPC: ≤ 2 rps, block range per `eth_getLogs` call set by the probe
+  (≤ 2,000 blocks if the endpoint caps lower ranges), fallback endpoint list pinned in the declaration.
+
+### 2.9 Snapshot inputs and the retention gate
+
+`RETENTION.md` is owned by another session. CB6 states its rule here; the coordinator adds it to the reader list.
+- CB6 readers of raw captures, sweeps and trade samples: only `run_cb1_extract.py --tables band,printflag` (pass step
+  and backfill q0122) and the `cb6_followup/` step (reads the current pass's sweep only).
+- **CB6 places no requirement on retention.** Inputs deleted before the backfill reaches them are streamed from verified
+  release copies one at a time (CB4 §2.10). A pass whose release copy is missing or fails verification is counted as
+  missing, never reconstructed.
+- `cb6_extract/` and `cb6_followup/` are never deleted (no rule).
+
+### 2.10 Funnel and what a prospective registration would look like
+
+As CB5 §2.10: screen (Stage 1) → selection by gate, placebo, attribution and robustness → frozen replication (Stage 2,
+L2-dev) → separate prospective confirmation (Stage P, recorded prices) → economic validation at recorded prices.
+
+- **T survivor (Stage P-T).** A `description`-at-first-sighting column added to the live `listings`-type extractor (CB5's
+  table, or its own), the class flag computed on the stored first-sighting text (removing the current-text risk), drift
+  from captures, and large buys plus wallet ages from the live trade monitor's pipeline (which already computes
+  `wallet_age_h` causally). Population: open non-sports, non-weather binary markets with a longshot side in [0.02, 0.10]
+  at a weekly capture. Paper asks at the recorded touch, queue fills from a targeted trade stratum, held to resolution
+  (weeks to months). Acceptance: T1 one-sided p < 0.05 after Holm, floor, tail gate. The economic read waits for
+  resolutions, so Stage P-T takes months.
+- **N survivor (Stage P-N).** A conversion watcher (Polygon logs every 2-5 minutes, keyless) plus targeted windowed
+  prints and a targeted sweep of the hit members within minutes of the conversion. Execution at the recorded book.
+- **R survivor (Stage P-R).** The follow-up stratum continued with a queue-position rule from recorded prints and
+  recorded depth, rebate halved, hold-to-resolution tail reported.
+- **C (measurement).** No Stage P. An adopted M1 supplies the fill-probability model that every later maker
+  registration must state (its expected fills per quote, and which decile it quotes in). It can never lower a cost or
+  relax a gate of a frozen test (one-directional use, as CB4 R0).
+
+---
+
+## 3. Jobs
+
+### CB6-T: Ex-ante tail classifier for longshot sellers (CH60)
+
+**Question.** Among binary longshots priced 0.02-0.10, do those in a class flagged by public, ex-ante features resolve YES
+more often than their price says, relative to unflagged longshots (T1)? Does a paper longshot ask in the unflagged class,
+held to resolution, pay after costs (T2)?
+
+**Why new / overlap.** CB1-C (C1) tested unconditional longshot ask-selling on h2 and failed (-3.84c; resolution excess
+-4.75c). CB6-T asks whether the loss is concentrated in an identifiable class. Disjoint data (h8), features fixed before
+any fetch, C1's unit list never opened (§1.3).
+
+**Data: the `h8_tail` fetch (q0120; spec in §CB6-F).** Seeded, market-disjoint sample of about 4,500 binary markets with
+Gamma `description`, hourly price windows around ≤ 3 declared origins, windowed prints, buyer first-trade times, guarded
+outcomes, rows capped at `min(T_fetch8, T_seal)`.
+
+**Population (frozen frame).**
+- Binary (two outcomes), `fee_category` not weather (excluded) and not sports (reported stratum). Crypto "Up or Down"
+  questions excluded (scheduled life < 14 d anyway). Created in `[2025-09-01, 2026-07-31]`, `end_at ≤ T_fetch8 + 400 d`
+  (h5 completeness rule), scheduled life `end_at − created_at ≥ 14 d`.
+- **Clarification rule.** Markets whose stored `description` matches a clarification marker (`clarif`, `update:`,
+  `updated`, `additional context`, `edit:`, `note:` followed by a date, case-insensitive; the list in the rules file)
+  are excluded from the primary and counted. Reason: the description is the *current* text and a post-event clarification
+  could encode the outcome. Likely direction of the resulting bias: against the hypothesis (clarifications follow
+  surprises). T1 including them is reported.
+- **Origins (declared; seed `arepo-h8-tail-origins`).** The weekly grid of Mondays 00:00 UTC inside the market's scheduled
+  life `[created_at + 7 d, end_at − 24 h]` and `≤ T_fetch8 − 60 d`. Up to **3 origins per market** are drawn uniformly
+  without replacement from that grid, seeded by market id. The draw uses only `created_at` and `end_at` (as of the frame),
+  never prices or outcomes. **Disclosed look-ahead:** `end_at` is read at `T_fetch8`, not at listing; Gamma may have
+  moved it. It enters only the origin grid, never a feature.
+- **Unit eligibility at origin t** (all as of t):
+  - market open at t (§2.2);
+  - longshot side c = token 0 if `p0(t) ≤ 0.5`, else token 1; `m_c(t)` ∈ [0.02, 0.10] from the usable hourly point;
+  - ≥ 1 print in `[t − 7 d, t)` (truncation rule: unavailable is excluded and counted);
+  - a usable point at `t − 7 d` (for feature (ii)).
+- Unit = (market, origin). Outcome `Y_c` = 1 if side c resolved YES (guarded file; 50-50 resolutions coded 0.5 and
+  reported separately). Censored (not resolved at `T_fetch8`): excluded and counted; worst cases in the gates below.
+
+**Features (fixed now; hashed in the rules file before any fetch).**
+- **(i) Discrete-decision class.** Over the question text (lowercased): `D` matches any of `\bannounc\w*`, `\bcourt\w*`,
+  `\border\w*`, `\baward\w*`, `\bnominat\w*`, `\bstrike\w*`; `C` matches any of `\bprice\w*`, `\btemperature\w*`,
+  `\bscore\w*`, `\bpoll\w*`. Class D iff the question matches D and not C. If the question matches neither, the same rule
+  is applied to the first 500 characters of the description. Otherwise not D. (These are exactly CH60's word lists with
+  inflections; no word was added.)
+- **(ii) Upward drift.** `m_c(t) − m_c(t − 7 d) ≥ +0.01`.
+- **(iii) Large longshot buy.** A print buying side c (BUY of c, or SELL of the other token at `1 − price`) in
+  `[t − 24 h, t)` with notional (size × price of c) ≥ 5 × the median print notional of the market over `[t − 30 d, t)`
+  (median over ≥ 10 prints; fewer → unavailable).
+- **(iv) Young buyer.** For a (iii) print, the buyer's first trade (Data API `/activity`, earliest TRADE at or before the
+  print, `event_study.first_trade_lookups`; raw address only in memory, hash stored) is later than the print `ts − 30 d`.
+- **Flag `F` = (i) OR (ii) OR [(iii) AND (iv)].** Disjunction, because the money route excludes any unit in any risky
+  class.
+- Truncation: if the market's stored prints do not cover `[t − 30 d, t)` (window paging hit its cap), (iii) and (iv) are
+  unavailable; such a unit takes `F` = 1 if (i) or (ii) is true, otherwise it is **unavailable** (excluded, counted, and
+  in the worst case below).
+
+**T1 statistic.** Resolution excess `e = Y_c − m_c(t)`. Price bands b ∈ {[0.02, 0.04), [0.04, 0.07), [0.07, 0.10]}.
+`Δ = Σ_b w_b · [mean(e | F = 1, b) − mean(e | F = 0, b)]`, with `w_b` the pooled band share of units. Test Δ > 0.
+
+**T2 (economic).** Units with F = 0 only. A 5-share paper ask at `a_c = min(m_c + half_spread(m_c), 0.999)` resting over
+`[t, t + 6 h)`, **filled on a trade-through only** (a print buying c at a price strictly above `a_c`; queue sizes are not
+available historically). `net = a_c − Y_c − a_AS` per filled share; capital `1 − a_c`; held to resolution. The touch rule
+(any buy of c at ≥ `a_c`) is a bracket that must agree in sign (binding).
+
+| ID | Kind | Unit | Statistic | Direction |
+|---|---|---|---|---|
+| **T1** | mechanism | eligible (market, origin), resolved | band-weighted flagged-minus-unflagged resolution excess Δ | > 0 |
+| **T2** | economic | filled paper ask, F = 0 | mean net per filled share | > 0 |
+
+**Clustering.** Event × resolution ISO week (CB1 carries; neg-risk members merged into one event) and market. One-sided
+p = the max over the two ways (small-G rule). T1 additionally requires **≥ 10 YES-event clusters in each F stratum**;
+fewer → "not testable" (p = 1, counted; fewer YES events can never make T1 easier).
+
+**Binding gates.**
+- **Tail gate on T2 (as CB1 §2.3 / C1).** `π` = share of filled orders whose longshot wins; `π* = mean(a_c)`. The
+  one-sided upper bound (Wilson on `n/deff`, or the exact event-level bound below 10 winning clusters; 99% at Stage 1,
+  95% at Stage 2) must be `< π* − 0.005`.
+- **Adverse selection (as CB1 C1 "PX1", decided by an upper bound).** `Δ_drift` = mean 24h post-fill drift of filled
+  orders minus that of unfilled orders (hourly points). Its upper bound (hull of the bootstrap 95% limit and
+  `Δ̂ + z·max SE`) must be below the mean captured half-spread `mean(a_c − m_c)` of filled orders; otherwise T2 is capped
+  "inconclusive: adverse selection not excluded" even if it passes.
+- **Censoring worst case.** T1: Δ recomputed with every censored unit set to YES if F = 0 and to NO if F = 1 (the
+  direction that shrinks Δ) is reported; T2: censored fills counted as filled losers (`net = a_c − 1`) must keep T2 > 0
+  (binding).
+- **Truncation worst case (binding for T1).** Unavailable units added back with F chosen against the hypothesis (F = 0
+  if `Y_c = 1`, F = 1 if `Y_c = 0`); Δ must stay > 0.
+- **Era rule** (§2.6 (vi)) for T2; `a_AS` on pre-rollout fills.
+
+**MDE (assumptions; the census replaces them).** About 4,500 markets × 3 origins × about 35% eligible ≈ 4,700 units,
+about 2,350 per block in about 1,300 markets. Base rate ≈ mean price ≈ 5%, `Var(e) ≈ 0.048`; F prevalence about 50%;
+outcomes are identical across a market's origins, so the design effect is about the origins per market (≈ 1.8).
+SE(Δ) ≈ √(0.048 · 2 / 1,175) · 1.34 ≈ 1.2c. **Stage-1 MDE ≈ 3.8c** (z 2.33 + 0.84); **Stage-2 MDE ≈ 3.4-3.9c** (Holm
+z between 1.96 at the last step and 2.39 at the first step with k = 6, plus 0.84). The 2.0c floor is below the MDE:
+**T1 can detect only a strong class effect** (for example flagged excess +2c vs unflagged −2c). T2: at a trade-through
+fill rate near C1's 6.8%, about 80-120 fills per block; per-fill SD ≈ 22c gives SE ≈ 2.5c and MDE ≈ 8c. **T2 is expected
+to be "not testable for size" in both blocks**; if T1 advances, the carry rule applies, and the economic answer then rests
+on Stage P-T.
+
+**What would kill CH60.** GT fails; T1 not detected at MDE; the calibrated-null placebo advances (inference not
+trustworthy); the truncation worst case flips Δ; T1 holds only with clarification-marked markets; T2 ≤ 0 or fails the
+tail gate at the binding cost; adverse selection not excluded.
+
+**Verdict map.**
+- T1 replicated on HOLDOUT (and T2 passed or carried and passed) → "ex-ante tail class development-replicated on
+  same-calendar data (L2-dev)" → Stage P-T.
+- T1 replicated, T2 not → "the tail is predictable, but the unflagged carry is not shown to pay after costs".
+- T1 not detected → "longshot tail not predictable from these four features at MDE x"; CH61 and CH62 lose their
+  classifier premise.
+- Class-shuffle attribution fails → the verdict names price path / flow and category, not rule class.
+
+**Stop rule.** No T1 advance and no carried T2 → q0130 is not committed and HOLDOUT is never opened (it stays sealed and
+unread, available to a future declaration only with that history disclosed).
+
+### CB6-N: Neg-risk conversion dumps (CH66)
+
+**Question.** When a holder converts NO positions on members of a neg-risk event, receives YES on the other members and
+sells some of them within minutes, do the hit members' bid-side prices recover more than after an ordinary large sell on
+the same member (N1)? Does a paper bid one tick above the first dump print, exited 2h later by a taker, pay (N2)?
+
+**Why new / overlap.** No AREPO study uses conversions. J5's sibling reversal used captures; CB1-D tests neg-risk ask sums
+(not read here, §1.3); CB4-S is series rolls. The episode list comes from the chain, not from the trade sample.
+
+**Data.**
+- **Probe (q0123, before the census).** Read the neg-risk adapter and its conversion event signature from Polymarket's
+  contracts documentation (the address and topic are pinned in the declaration at probe time, not from memory); pull one
+  day of logs; take 20 conversions at random (seed `arepo-cb6-probe`); for each, fetch the event's member prints in
+  `[t_conv − 1 d, t_conv + 1 d]` and check (a) that the stakeholder hash has ≥ 1 print in the event (the stakeholder is
+  the proxy wallet that trades), (b) that the index set decodes to members that exist in Gamma's member list. **PASS iff
+  ≥ 16 of 20 satisfy both.** FAIL → CB6-N "not testable (source)" (N1, N2 counted, p = 1); a trade-signature variant would
+  need a new declaration. The probe reads no price for analysis; it prints counts only.
+- **Dev fetch (q0124, after `T6_dev_end` + 3 h).** All conversion logs in the dev window; for every conversion whose event
+  has ≤ 40 members and at least one member outside the converted index set: Gamma member metadata (guarded) and one
+  windowed print fetch `[t_conv − 96 h, t_conv + 3 h]` over the comma-separated member list (paged, ≤ 10 pages). Raw
+  addresses (stakeholder, `proxyWallet`) are hashed in memory with the HMAC key; only hashes are written.
+- **Replication fetch (q0131, rolling):** the same for `[T6_rep_start, T6_N_rep_end)`, each conversion fetched at
+  `t_conv + 3 h + 30 min`.
+
+**Definitions.**
+- **Received members** of a conversion: members not in the converted index set (the converter now holds their YES).
+- **Converter dump on member j:** the converter's (hash-matched) SELL prints of YES_j (or BUY of NO_j, mapped) in
+  `[t_conv, t_conv + 30 min)`. `t_d` = last such print; `p_d` = their VWAP; notional `V_d`.
+- **Episode** = a conversion with a dump on ≥ 1 received member. **Unit** = (episode, hit member j). Members with
+  `order_price_min_tick_size` unknown are excluded and counted.
+- **Bid-side print series** on member j, non-converter wallets only: taker SELL of YES_j and taker BUY of NO_j (mapped to
+  YES terms). `P_B[a, b)` = their VWAP, unavailable if empty.
+- **Recovery** `y = P_B[t_d + 30 min, t_d + 2 h) − p_d` (cents). Same-side prints, so bid-ask bounce cannot create it.
+- **Sell burst** (for controls and placebos): all bid-side prints on member j by one non-converter wallet within 30
+  minutes, aggregated (VWAP, notional, last print time).
+- **Matched controls:** sell bursts on the same member j in `[t_conv − 24 h, t_conv − 6 h]`, by wallets that made no
+  conversion on the event in the fetched window, with notional in `[0.5 V_d, 2 V_d]`; up to 5 nearest in notional
+  (ties by time). Their recovery `y_c` uses the same windows relative to each burst's last print. `ȳ_c` = mean.
+  No control → unit unavailable (counted).
+- **N1 statistic:** `Δ_N = mean_u (y_u − ȳ_c,u)`, test > 0.
+- **N2 (economic).** Latency 60 s: a 5-share paper bid is posted at `t_post = t_conv + 60 s` on each hit member whose first
+  converter sell occurs at or after `t_post`, at `q = p_first + tick` (`p_first` = price of the converter's first sell on j
+  at or after `t_post`; tick from the member's `order_price_min_tick_size`), resting `[t_post, t_post + 30 min)`. **Fill
+  on a trade-through:** a bid-side print strictly below q. Touch bracket (any bid-side print at ≤ q) must agree in sign
+  (binding). Exit: taker sell at `x = P_B[t_fill + 1.5 h, t_fill + 2.5 h)`; `net = x − q − f(x) + rebate(q)`. EV per posted
+  opportunity = Σ net over fills / posted bids.
+- **Worst case for unavailable exits (binding, §2.6 (v)):** exit at the lowest print price on member j (any side) in
+  `[t_fill, t_fill + 2.5 h]`, or at `q − 0.02` floored at 0.001 if there is none.
+
+| ID | Kind | Unit | Statistic | Direction |
+|---|---|---|---|---|
+| **N1** | mechanism | (episode, hit member) with target and ≥ 1 control | `Δ_N` = dump recovery − matched ordinary-sell recovery (cents) | > 0 |
+| **N2** | economic | filled paper bid | mean net per filled share | > 0 |
+
+**Clustering.** Event × UTC day of the conversion, and converter hash; one-sided p = the max over the two ways
+(small-G rule; the converter way needs G ≥ 15, else "not testable").
+
+**Reported, not counted.** Recovery share `y / (b0 − p_d)` with `b0` the bid-side VWAP in `[t_conv − 2 h, t_conv)`;
+behaviour of received members the converter did *not* sell (held YES), as a context check for news-driven
+conversions; N1 by member price band and by event size; the sports stratum.
+
+**MDE (assumptions; census replaces).** Conversion frequency is unknown. If about 30 qualifying episodes a day with
+about 2 hit members each, about 11.5 usable dev days, and about 50% availability: about 350 units in about 200 event-day
+clusters. Per-unit SD of `y − ȳ_c` ≈ 1.5c, design effect 2: SE ≈ 0.11c, **Stage-1 MDE ≈ 0.36c**, just above the 0.3c
+floor. N2: fill rate on a trade-through one tick above the dump, unknown; at 20% of units, about 70 fills → likely "not
+testable for size" at Stage 1 (carry rule).
+
+**What would kill CH66.** Probe FAIL; GN fails; N1 not detected; the pseudo-episode placebo advances (generic
+selected-burst reversal); the converter cluster way loses significance; N2 ≤ 0 after the exit fee, the binding cost or the
+worst case.
+
+**Verdict map.** N1 and N2 replicated → "conversion dumps revert beyond ordinary large sells, and a 60-s maker bid pays
+(L2-dev)" → Stage P-N. N1 only → "dumps are uninformed flow, not capturable at 60 s latency after a taker exit".
+N1 not detected → CH66 closed at MDE.
+
+**Stop rule.** No N advance and no carried N2 → q0131/q0132 are not committed.
+
+### CB6-R: Reward-shadow discontinuity at the folded mid 0.90 (CH71)
+
+**Question.** Does the quoted spread change discontinuously at the folded mid 0.90, where single-sided reward scoring ends
+(R1)? If it is wider above, is a touch maker in [0.90, 0.96) net-positive (R2)?
+
+**Why new / overlap.** No AREPO test uses the reward cutoff. CB3-B's maker population is mid ∈ [0.10, 0.90] (disjoint from
+the shadow band); CB1-A's decided carry is [0.95, 0.99] on h2/h5 (not read). CB6 reads no CB3 or CB1 table.
+
+**Data.** `cb6_extract/band/` (§4.3) for dev and replication captures; `cb6_followup/` fills (R2, Stage 2 only).
+
+**Population (R1).** Binary, two-sided, non-crossed, `accepting_orders`, not weather, not sports (stratum), **rewarded**
+(`clob_rewards` non-empty with a positive daily rate in the sidecar at that capture), `end_date > received_utc + 8 h`.
+Running variable `x = max(mid0, 1 − mid0)`, `mid0` the token-0 touch mid. Window `x ∈ [0.87, 0.93]`. "Above" = `x > 0.90`.
+
+**R1 estimator.** Local linear regression of the quoted spread `s = ask − bid` (cents) on `x − 0.90` separately on each
+side, triangular kernel, fixed bandwidth h = 0.03 (declared; no data-driven bandwidth). `τ = lim_{x↓0.90} E[s|x] −
+lim_{x↑0.90} E[s|x]`. Stage 1: two-sided test of τ ≠ 0. Units are market-captures. Every capture of a market is used; the
+cluster ways absorb the repetition.
+
+**Clustering.** Fixture-day group (`category_aware`: `ml_panel.dep_group`, event ∪ parentEventId ∪ negRisk ∪ series ×
+UTC day ∪ underlying, per `DEPENDENCE_CLUSTERING_ANALYSIS.md` §5) and capture UTC date; p = the max over the two ways.
+Season-level grouping (S1) reported.
+
+**R2 (economic; Stage 2 only, registered only if R1 advances with τ > 0 and reward attribution credited).** At the first
+sweep of each replication pass, the `cb6_followup/` stratum (seeded sample of ≤ 200 rewarded, non-sports, non-weather
+binary markets with folded x in [0.84, 0.96), two-sided, spread ≤ 0.10, swept, open, `end_date > t + 8 h`; about 60% from
+[0.90, 0.96) and 40% from [0.84, 0.90)). One 5-share bid and one 5-share ask at the touch, life 2h. **Queue fill** (as CB3
+§2.1: cumulative opposite-aggressor volume at or through the price reaches the displayed size at entry + 5) from the
+follow-up windowed prints `(t, t + 2 h]`; touch rule bracket binding. Mark: the mid of the first **tight** observation
+(two-sided, spread ≤ 0.05) of the market at or after `t_fill + 2 h` (next pass sweep or capture; up to `t_fill + 6 h`),
+unavailable otherwise. `net = mark-out + rebate(q)`. Statistic: mean net per filled share in [0.90, 0.96), test > 0.
+**Band attribution (binding):** the same net in [0.84, 0.90) must be lower (sign of the difference only; no significance
+needed). **Worst case (binding):** unavailable marks → only the side with the lower mark-out fills, marked at the far
+touch at the next observation, no rebate (as CB3 §2.1). Hold-to-resolution net reported.
+
+| ID | Kind | Unit | Statistic | Direction |
+|---|---|---|---|---|
+| **R1** | mechanism | rewarded market-capture, x ∈ [0.87, 0.93] | spread discontinuity τ at x = 0.90 | Stage 1 two-sided; Stage 2 in the Stage-1 sign |
+| **R2** | economic (Stage 2 only) | filled paper touch quote, x ∈ [0.90, 0.96) | mean net per filled share | > 0 |
+
+**Binding gates.** GR (§2.7); fake-cutoff placebo and reward attribution (§2.6); donut and tick-stratified robustness
+(§2.6 (ix)). **If R1 advances with τ < 0** ("narrower above": one-sided quoters convert to two-sided), R1 still goes to
+Stage 2 as a mechanism replication, but R2 is **not** registered: the route premise (less competition above 0.90) is then
+contradicted, and CH71's route is closed.
+
+**MDE (assumptions; census replaces).** About 18,800 rewarded markets per capture (CB1 §0.1), about 60% non-sports, perhaps
+4% within the window: about 450 market-captures per capture, about 62,000 over about 138 dev captures, heavily repeated
+within markets. With an effective cluster-adjusted n of about 2,000 per side and spread SD ≈ 2c, SE(τ) ≈ 0.09c and the
+**two-sided Stage-1 MDE ≈ 0.3c** (z 2.58 + 0.84), equal to the floor. R2 (Stage 2): about 120 shadow-band markets per pass
+× 2 quotes × 8% queue fills × 12 passes × 21 days ≈ 4,800 fills; per-fill SD ≈ 1.5c, design effect 3: SE ≈ 0.04c,
+**MDE ≈ 0.14c**, below the 0.25c floor, which binds.
+
+**What would kill CH71.** GR fails; R1 not detected; the fake-cutoff placebo fails (heaping or curvature); unrewarded
+markets jump as much (not the reward rule); donut or tick strata disagree; τ < 0 (route premise contradicted); R2 ≤ 0
+after the halved rebate or the worst case; R2 not better than the comparison band.
+
+**Verdict map.** R1 (τ > 0, credited) and R2 replicated → "reward-shadow band: wider spreads above 0.90 and a net-positive
+modelled touch maker (L2-dev)" → Stage P-R. R1 replicated only → "the 0.90 reward cutoff moves spreads (sign s), no
+maker route shown". R1 not detected → "no spread discontinuity at 0.90 at MDE x".
+
+**Stop rule.** No R1 advance → q0133 is not committed and the `cb6_followup/` step is not deployed.
+
+### CB6-C: Where the fills are (CH77), measurement
+
+**Question.** Do public capture fields beyond volume and liquidity improve the out-of-sample prediction of whether a
+market prints at least once in the next 2 hours?
+
+**Why new / overlap.** HB2 and MC1 model price moves; D1 counted non-trading markets descriptively. No AREPO model targets
+print occurrence. The measurement is a fill-capacity input, not a signal; it is never read as edge. The trade samples are
+also read by `flow_screen` and E007 (their own outputs); CB6 reads only its own `printflag/` table.
+
+**Unit.** (market j in the pass-i trade sample, features from capture i−1). Target `z = 1` iff ≥ 1 taker print on either
+token in `[r_{i−1}, r_{i−1} + 2 h)`, `r_{i−1}` = j's `received_utc` in capture i−1. Available iff the pass-i sample's
+request time is ≥ `r_{i−1} + 2 h` and either the newest stored print is older than the window start, or the window
+contains a print, or the 500 stored prints reach back before the window start (otherwise unavailable, counted). The
+sample is a probability sample of capture i's frame with recorded inclusion probabilities (`trade_sample.py`).
+
+**Features (all as of capture i−1; sidecar from 2026-10-11T12:00Z).**
+- **Baseline B0:** `log(1 + volume24hr)`, `log(1 + liquidity)`, spread, `|mid − 0.5|` band, `fee_category`.
+- **Added block A:** `volume24hr` rank within the capture (UI list position), age `r − created_at` (days, log), hours to
+  scheduled `end_date` (log, capped at 365 d), `|oneHourPriceChange|`, event size (markets sharing the event or
+  neg-risk id in the capture), series membership (`series_slugs` non-empty), `competitive`, rewards flag.
+- **Model (declared):** logistic regression; continuous features enter as natural cubic splines with 4 knots at dev-window
+  quintiles (knots frozen with the coefficients); `fee_category` as fixed effects; L2 penalty λ = 1e-4 (fixed, no tuning).
+  B0 and B0 + A are fitted on the same dev units (q0129); coefficients, knots and the code hash are written to
+  `model_specs/cb6_C_frozen.json` and committed **before `T6_rep_start`** (if later, the evaluation window starts at the
+  first pass ≥ that commit + 2h, and ends 14 days later).
+
+**M1 statistic.** On the evaluation window, `ΔLL = mean_u [ℓ_B0(u) − ℓ_B0+A(u)]` (log loss in nats per unit, unweighted),
+test > 0. Clustering: fixture-day group and capture UTC date (max p). The design-weighted ΔLL (1 / inclusion
+probability) must have the same sign (binding robustness, added to §2.6 (iii)).
+
+| ID | Kind | Unit | Statistic | Direction |
+|---|---|---|---|---|
+| **M1** | measurement | sampled market-capture, evaluation window | ΔLL of B0 + A over B0, frozen models | > 0 |
+
+**Reported.** Print rate by decile of the B0 + A score vs the B0 score; the share of all evaluation prints that fall in
+each model's top decile; calibration curve; fill-rate translation (expected queue fills per quote by decile, using the
+CB3/CB6 fill rules where follow-up data exist). Per-feature ablations are descriptive (`cb6_descriptive`).
+
+**MDE.** About 2,000 units per pass × 12 passes × 14 days ≈ 336,000 evaluation units; with a per-unit ΔLL SD of about 0.1
+nats and a few thousand clusters, SE ≈ 0.001 or less. **The 0.005-nat floor binds, not the SE.** The binding robustness
+and the calibration placebo carry the falsification.
+
+**What would kill CH77 as a capacity tool.** M1 below the floor; the market-disjoint check loses sign (the gain is
+memorised market identity, which does not transfer to new listings); the permutation calibration advances.
+
+**Verdict map.** Adopted → every later maker registration states its fill model (§2.10). Not adopted → "public UI fields
+add no fill predictability beyond volume and liquidity at floor 0.005 nats".
+
+### CB6-F: Data jobs
+
+**`h8_tail` fetch (q0120; the urgent job).** Entry point `scripts/run_cb6.py tail-fetch`, built on
+`history_backfill` primitives (`fetch_frame`, the CB1 weighted sampler, `fetch_prices`, windowed prints as
+`large_trade_census.anchor_trades`, `event_study.first_trade_lookups`). Parameters (all fixed here and in the rules file):
+- **Frame** (`frame-v2-random-windows`, 1 random 15-minute window per day per walk): closed markets by `end_date` over
+  `[2025-09-01, T_fetch8]` **and** `(T_fetch8, T_fetch8 + 400 d]` (early-resolved markets keep a future `endDate`;
+  without the forward walk the early YES resolutions, the very events CH60 studies, would be missing), active markets by
+  `start_date` over `[2025-09-01, T_fetch8]`. Capped windows (2,000-row offset cap) are excluded entirely and counted
+  (h5 rule). `frame_row(..., with_text=True, with_outcomes=True)` plus a new `description` column (first 4,000
+  characters). `outcomePrices`, `umaResolutionStatus` go only to `outcomes_guarded.csv.gz`.
+- **Completeness:** `created_at ∈ [2025-09-01, 2026-07-31]`, `end_at ≤ T_fetch8 + 400 d`, binary, not weather (fee
+  category or `TEMP_RE`), not crypto "Up or Down", scheduled life ≥ 14 d.
+- **Exclusions (by id):** h1_first, h2_main, h3_power `sample.csv.gz`; `seals/h5_cb1_SEAL.json` and
+  `seals/h5_cb1_ladders_SEAL.json` file tables. h7 overlaps are dropped at seal (§1.3).
+- **Sample:** 4,500 markets, strata status × `cb1_topic` × creation month, weights other non-sports 1.0, sports 0.5,
+  seed `arepo-h8-tail`; `inclusion_prob` and `sample_weight` stored. **No price-, volume- or outcome-based selection.**
+- **Origins:** drawn at fetch time from `created_at`/`end_at` only (§CB6-T), ≤ 3 per market, stored in `origins.csv.gz`
+  before any price request.
+- **Prices:** per origin one CLOB `prices-history` request at fidelity 60 over `[t − 8 d, t + 2 d]` (inside the 14-day
+  window limit); stored as hourly points.
+- **Prints:** per origin a windowed `/trades?market=<cid>&start&end&takerOnly=true` request over `[t − 30 d, t + 6 h]`,
+  limit 1,000, ≤ 3 pages; `window_truncated` recorded. Wallets hashed in memory.
+- **Wallet ages:** the fetcher applies the frozen rule (iii) to the stored prints (no outcome involved) and looks up the
+  first trade of each distinct qualifying buyer (one `/activity` request each, cached); raw addresses never written.
+- **Cap:** every stored point and print `ts ≤ min(T_fetch8, T_seal)`; dropped counts per market. No chunk starts at or
+  after `T_seal`; incomplete at `T_seal` → `not_run_deadline`.
+- **Size:** ≈ 39k requests (≈ 6k frame, ≈ 13.5k price, ≈ 14k print, ≈ 5k wallet), ≈ 3.5 h wall in 90-minute chunks;
+  disk ≤ 0.12 GB; RAM ≤ 0.8 GB.
+
+**`h8_tail` seal (q0121).** `run_cb6.py tail-seal`: per-file sha256, listing sha256, request clocks, capped-window and
+cap-drop counts, the h7 drop list (ids from committed h7 seal copies), the SCREEN/HOLDOUT split file and its hash, git
+commit, seal time. Appends one `history_seal_declaration` trial line, creates `ACCESS_LOG.jsonl`. The coordinator commits
+the copy `docs/research_lab/seals/h8_tail_SEAL.json` before q0125.
+
+**Extractor v5 backfill (q0122)** for `band/` and `printflag/` from `T6_dev_start` (host raw, else release copies
+streamed one at a time); pass step afterwards.
+
+**Conversion probe (q0123)** and **dev fetch (q0124)**: §CB6-N. Dev fetch size: unknown conversion count; at about 30
+qualifying conversions a day, about 500 conversions × about 3 paged requests + about 400 RPC log requests ≈ 2k requests,
+under 30 min at 2 rps.
+
+**`cb6_followup/` pass step (Stage 2, R2 only):** deployed only if R1 advances with τ > 0 and credited; ≤ 200 markets ×
+≤ 3 pages per pass, budget 3 minutes, failure never affects the pass.
+
+---
+
+## 4. Code needed
+
+### 4.1 Modules
+
+- `backend/astrolabe/research_lab/cb6_tail.py` (CH60)
+  - `RULES` (loaded from and hashed against `seals/cb6_tail_rules.json`), `class_d(question, description)`,
+    `has_clarification(description)`.
+  - `draw_origins(market_id, created_at, end_at, t_fetch, seed)` (Monday grid, ≤ 3, no price input).
+  - `unit_eligibility(points, prints, t)` (open, longshot side, band, 7-day print rule with truncation states, point at
+    `t − 7 d`); `features(points, prints, wallet_first, t)` → (i)-(iv), F, availability.
+  - `delta_t1(units, bands)`, `t1_logit(...)`, `t1_test(units, ways)` (YES-cluster minimum, small-G), `calibrated_null(...)`
+    (comonotone per market), `class_shuffle(...)`.
+  - `t2_orders(units, prints, cost_regime)` (modelled ask, trade-through and touch fills, `a_AS`, +0.75c, rebate halved),
+    `tail_gate(...)` (reuse CB1 `tail_bound`), `px1_bound(...)` (reuse CB1), `breakeven_t2(...)`, `censor_worst_case(...)`,
+    `truncation_worst_case(...)`, `carry_rule(t1, t2)`.
+  - Fetch side: `tail_fetch(...)` (frame with `description`, sampler, origins file, prices, windowed prints, wallet
+    lookups, cap, deadline, resumable chunks), `tail_seal(...)` (split file, h7 drop list).
+- `backend/astrolabe/research_lab/cb6_conv.py` (CH66)
+  - `rpc_logs(start_block, end_block, address, topic, endpoints)`, `decode_conversion(log)` → (ts, stakeholder hash,
+    neg-risk id, index set, amount), `probe(...)`.
+  - `member_prints(event, window, limiter)` (comma-separated `market=` paging), `dumps(conv, prints)`,
+    `sell_bursts(prints, member)`, `match_controls(...)`, `recovery(...)`, `n1_test(units, ways)`, `pseudo_episodes(...)`.
+  - `n2_bids(...)` (60-s latency, tick from metadata, trade-through and touch fills, exit window, fee, rebate, worst case),
+    `breakeven_n2(...)`.
+- `backend/astrolabe/research_lab/cb6_band.py` (CH71)
+  - `folded_x(bid, ask)`, `rd_local_linear(df, cutoff, h, kernel="triangular")`, `r1_test(...)` (two ways, small-G),
+    `fake_cutoffs(...)`, `diff_in_disc(...)`, `donut(...)`, `tick_strata(...)`, `mccrary(...)` (reported).
+  - `followup_stratum(sweep_rows, seed, n_max)`, `r2_quotes(...)` (queue and touch fills, tight mark, worst case, rebate
+    halved, band attribution), `breakeven_r2(...)`.
+- `backend/astrolabe/research_lab/cb6_fills.py` (CH77)
+  - `printflag_units(extract)` (availability rule), `features_b0(...)`, `features_a(...)`, `fit_frozen(...)` (splines,
+    fixed λ, writes `cb6_C_frozen.json`), `delta_ll(...)`, `m1_test(...)`, `permutation_calibration(...)`,
+    `market_disjoint(...)`, `deciles(...)`.
+- `backend/astrolabe/research_lab/cb6_declaration.py`: `HYPOTHESES_CB6`, `declaration_sha256()` covering every population,
+  window, rule, regex, threshold, floor, gate, cutoff, bandwidth, seed, date, the carry rule and the Polygon endpoint list.
+- Shared statistics are **imported, not copied**: CB1/CB2/CB4/CB5 cluster gate, bootstrap, small-G p, tail bound, PX1
+  bound, `queue_fill`, break-even placebo frame, `log_trials`, census guard, CB4's release-stream reader,
+  `cost_regimes.cost_regime`, `economics.REBATE_SHARE`, `ml_panel.dep_group`.
+
+### 4.2 Runner
+
+`backend/scripts/run_cb6.py {tail-fetch,tail-seal,conv-probe,conv-fetch,census,screen,fit-C,holdout,rep-fetch,replicate,
+eval-C} --family T|N|R|C`.
+- Refuses the run ids and roots of §1.3; writes only under `research_lab/creative_batch6/` and `history/h8_tail/`
+  (fetch and seal only).
+- `tail-fetch` refuses unless the committed rules-file hash matches, the h5 seal copies exist, data-dumps ≤ 10 GB, and the
+  clock is before `T_seal`; marks `not_run_deadline` at `T_seal`.
+- Declaration-hash guard (committed `model_specs/cb6_v1.json` must equal the code's hash) on `census`, `screen`, `fit-C`,
+  `holdout`, `replicate`, `eval-C`.
+- `census --family T` and `screen --family T` read SCREEN only; `holdout` refuses until the Stage-1 T results file is
+  committed with T1 advanced or T2 carried. `screen --family T --tests T2` refuses until `cost_regimes_v1.json` is
+  committed.
+- Every analysis loader drops rows timed in the pinned J4-R window. `T6_rep_start` is read from its pinned committed
+  file. `eval-C` refuses unless `cb6_C_frozen.json` was committed before the evaluation window's first pass.
+- `replicate --family R` refuses before `T6_R_rep_end + 12 h`; `replicate --family N` before `T6_N_rep_end + 3 h`.
+- Results are never overwritten.
+
+### 4.3 Extractor addition (`creative_batch1.py`, version `cb1-extract-v5`; no change to `arepo_pass.sh`)
+
+- Own root `research_lab/cb6_extract/` and manifest. CB1-CB5 tables stay byte-identical (test). If CB5's v4 has not landed
+  first, CB6's tables go into the next version in one change.
+- `band/<capture_id>.csv.gz`: binary rows with folded x in [0.55, 0.99]: `capture_id, received_utc, market_id,
+  condition_id, event_id, neg_risk_market_id, parent_event_id, series_slugs, fee_category, best_bid, best_ask,
+  volume24hr, liquidity, accepting_orders, end_date, order_price_min_tick_size, clob_rewards, rewards_max_spread,
+  rewards_min_size` plus first-sweep `best_bid, best_ask, bid_size_1, ask_size_1, depth_1c, depth_5c` (blank if not swept).
+- `printflag/<pass_id>.csv.gz`: per market in the pass-i trade sample: `pass_id, condition_id, market_id, inclusion_prob,
+  stratum, request_ts, r_prev, n_prints_window, newest_ts, oldest_ts, n_stored, available`, plus the capture-(i−1)
+  feature columns of §CB6-C. No wallet field.
+- Backfills use `--release-stream`. The 10-minute and 500 MB pass limits hold.
+
+### 4.4 Follow-up step (`cb6_followup.py`, pass hook; deployed only for R2)
+
+Writes `cb6_followup/<pass_id>/{stratum.csv.gz,trades.csv.gz,manifest.json}`; the stratum is drawn from the pass's first
+sweep with seed `arepo-cb6-fu|<pass_id>`; trades for the previous pass's stratum by windowed taker-only paging; hashed
+wallets only; budget and failure isolation as CB3's follow-up step.
+
+### 4.5 Tests (`backend/tests/unit/test_cb6_tail.py`, `test_cb6_conv.py`, `test_cb6_band.py`, `test_cb6_fills.py`)
+
+- **Tail.** The class regex reproduces CH60's lists exactly (fixtures: "court rules" → D; "price above" → not D; "strike
+  price" → not D; neither in question → description used). Clarification markers exclude. Origins depend only on
+  `created_at`/`end_at` (a planted price or outcome change leaves them unchanged) and are ≤ 3 Mondays inside the scheduled
+  life. A point stamped 9 minutes before t is not usable; 10 minutes is. Feature (iii) uses prints strictly before t; a
+  truncated window yields unavailable, never false. Wallet age uses the first trade at or before the print. F is a
+  disjunction; an unavailable (iii)/(iv) with (i) true gives F = 1. Δ is band-weighted. The calibrated-null placebo is
+  comonotone per market and gives about 1% advances on a no-effect fixture with heavy within-market repetition, and far
+  more when clustering is (wrongly) set to the unit. T2 fills only on trade-through; the touch bracket; `a_AS` only before
+  the rollout; censored fills as losers. The fetcher refuses after `T_seal`, writes `not_run_deadline`, caps rows, never
+  writes raw addresses, and stores outcomes only in the guarded file. The split keeps neg-risk members together and the
+  runner refuses HOLDOUT before the Stage-1 file exists.
+- **Conv.** Log decoding on a recorded fixture; stakeholder matching by hash; index-set → received members. A dump print
+  before the conversion's block time is impossible (ordering rule). Recovery uses bid-side non-converter prints only.
+  Controls come from `[t_conv − 24 h, t_conv − 6 h]` with notional in [0.5, 2]×. Pseudo-episodes stay inside the fetched
+  window and copy the largest-burst selection; on a fixture where every largest burst reverts by construction (selection
+  effect only), the pseudo-episode placebo advances (it can fail) and N1 is blocked. N2's 60-s latency, tick, trade-through
+  fill, fee and worst case.
+- **Band.** Folded x; x = 0.90 is "below". Local linear RD recovers a planted jump and gives none on a smooth fixture.
+  Fake cutoffs are 0.60..0.83 and never overlap [0.87, 0.93]; on a fixture with heaping at whole cents and no reward
+  effect, the fake-cutoff placebo fails. Diff-in-disc; donut; tick strata. Census accessor returns no spread. Queue and
+  touch fills; tight mark; worst case; band attribution sign.
+- **Fills.** Target availability (500-print visibility cases). Features as of capture i−1 only (a planted change in
+  capture i leaves them unchanged). Splines and λ fixed; frozen file hashed; evaluation refuses a model committed after
+  the window start. Market-disjoint subset excludes every market seen in the fit window. Permutation within (capture ×
+  decile) cells.
+- **Runner.** Refusals (run ids, roots, J4-R rows, before freeze, before register, before Stage-1 file, before window ends);
+  `KIND_RULES` has the CB6 kinds and the counter runs on the real `trials.jsonl`.
+
+---
+
+## 5. Draft queue specs
+
+Paths follow `queue/README.md` (`argv[0]` under `backend/scripts/`, `cwd` `backend`). No spec is committed before its
+code and tests exist; analysis jobs also need the reviewed CB6 freeze commit. q0120 needs only the fetcher freeze check,
+the committed rules file and the headroom precondition (or runs on the Mac fallback, §2.8).
+
+```json
+{"id": "q0120_h8_tail_fetch", "title": "CB6-T: h8_tail backfill (4,500 binary markets created 2025-09..2026-07, disjoint from h1/h2/h3/h5; description, hourly prices and windowed prints around <= 3 declared origins, large-buyer first-trade times; capped at T_seal)",
+ "family": "history_data", "priority": 61, "expected_value": "fresh market-disjoint data for the CH60 ex-ante tail classifier; must complete before T_seal",
+ "data": ["public Gamma/CLOB/Data API", "history/h1_first, h2_main, h3_power sample.csv.gz (exclusion ids only)", "docs/research_lab/seals/h5_cb1_SEAL.json and h5_cb1_ladders_SEAL.json file tables (ids only)", "docs/research_lab/seals/cb6_tail_rules.json (hash-checked)"],
+ "resources": {"mem_mb": 800, "cpu": 1, "network": "gamma-api, clob, data-api", "lane": "net"},
+ "depends_on": ["q0018_h5_cb1_seal"],
+ "argv": ["scripts/run_cb6.py", "tail-fetch", "--run-id", "h8_tail", "--seed", "arepo-h8-tail", "--n-markets", "4500", "--created-from", "2025-09-01", "--created-to", "2026-07-31", "--closed-future-days", "400", "--windows-per-day", "1", "--max-origins", "3", "--price-fidelity", "60", "--print-pages", "3", "--exclude-runs", "h1_first,h2_main,h3_power", "--exclude-seal-ids", "../docs/research_lab/seals/h5_cb1_SEAL.json,../docs/research_lab/seals/h5_cb1_ladders_SEAL.json", "--exclude-categories", "weather", "--rules", "../docs/research_lab/seals/cb6_tail_rules.json", "--cap-at", "2026-10-22T00:00Z", "--rps", "4", "--disk-cap-gb", "0.12", "--budget-min", "90"],
+ "timeout_s": 6600, "max_retries": 3, "repeat": {"max_runs": 8, "until_log_regex": "\"status\": \"(tail_fetch_complete|not_run_deadline)\""},
+ "outputs": ["data-dumps/research_lab/history/h8_tail/{frame.csv.gz,sample.csv.gz,origins.csv.gz,prices/,trades/,wallet_first.csv.gz,outcomes_guarded.csv.gz,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"],
+ "next_action": "q0121 after both h7 runs are terminal",
+ "notes": "CREATIVE_BATCH_6.md CB6-F. About 39k requests, about 3.5 h wall in 90-min chunks so the T_seal-bound q0043/q0081/q0082 (also priority 61, lower ids) win the net lane at every boundary. Terminal states: tail_fetch_complete, or not_run_deadline if incomplete at T_seal 2026-10-22T00:00Z (NOT_RUN_DEADLINE.json; no seal, no analysis, no refetch, cap unchanged). Refuses (exit 2) on a rules-file hash mismatch, missing h5 seal copies, data-dumps > 10 GB, run ids h3_power/h4_seal/h5_cb1/h5_cb1_ladders/h6_weather/h7_*. Origins drawn from created_at/end_at only and written before any price request. Outcome fields only in outcomes_guarded.csv.gz. Raw wallet addresses never written. Commit message must record the section 2.8 headroom check; if q0120 has not started on the host by 2026-10-20T12:00Z, run the identical command on the Mac (section 2.8 fallback) and cancel this spec."}
+```
+```json
+{"id": "q0121_h8_tail_seal", "title": "CB6-T: h8_tail seal (listing hash, h7 overlap drop list, SCREEN/HOLDOUT event-hash split)",
+ "family": "history_data", "priority": 58, "expected_value": "sealed, split h8_tail before any CB6-T read",
+ "data": ["history/h8_tail", "docs/research_lab/seals/h7_cb4_era_SEAL.json, h7_cb4_series_SEAL.json (ids only, if committed)"],
+ "resources": {"mem_mb": 500, "cpu": 1, "lane": "cpu"},
+ "depends_on": ["q0120_h8_tail_fetch"], "argv": ["scripts/run_cb6.py", "tail-seal", "--run-id", "h8_tail", "--split-seed", "arepo-cb6-tail-split", "--h7-seals", "../docs/research_lab/seals"],
+ "timeout_s": 1800, "max_retries": 1, "outputs": ["data-dumps/research_lab/history/h8_tail/{SEAL.json,split.csv.gz,h7_drop.csv.gz,ACCESS_LOG.jsonl}", "trials.jsonl (history_seal_declaration)"],
+ "next_action": "coordinator commits docs/research_lab/seals/h8_tail_SEAL.json", "notes": "refuses until both h7 runs are terminal (sealed or not_run_deadline); never runs on a not_run_deadline h8"}
+```
+```json
+{"id": "q0122_cb6_extract_backfill", "title": "CB6-F: extractor v5 band/ and printflag/ from captures, sweeps and trade samples since 2026-10-11T12:00Z (host raw, else release copies)",
+ "family": "creative_batch_6", "priority": 56, "expected_value": "R and C inputs preserved without a retention gate",
+ "data": ["research_lab/snapshots rows + rows_ext, book_sweeps, trade_samples (host, else verified release copies)"], "resources": {"mem_mb": 900, "cpu": 1, "lane": "cpu"},
+ "depends_on": [], "argv": ["scripts/run_cb1_extract.py", "--backfill-from", "2026-10-11T12:00Z", "--tables", "band,printflag", "--release-stream", "--budget-min", "150", "--disk-cap-gb", "0.18"],
+ "timeout_s": 10800, "max_retries": 2, "repeat": {"max_runs": 6, "until_log_regex": "backfill_complete"},
+ "outputs": ["data-dumps/research_lab/cb6_extract/{band/,printflag/,manifest.json}"], "next_action": "pass step continues (extractor v5)",
+ "notes": "idempotent by capture/pass id; CB1-CB5 tables untouched; printflag is calendar-bound (trade-sample raw kept 3 days): deploy the pass step first; passes with no raw and no verified release copy are counted missing"}
+```
+```json
+{"id": "q0123_cb6_conv_probe", "title": "CB6-N: chain-source probe (neg-risk conversion logs, 20 random conversions, stakeholder-hash and index-set checks; counts only)",
+ "family": "creative_batch_6", "priority": 44, "expected_value": "whether conversion episodes can be identified from public logs",
+ "data": ["Polygon public JSON-RPC (keyless)", "public Gamma, Data API"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "cpu", "network": "polygon-rpc, gamma-api, data-api"},
+ "depends_on": [], "argv": ["scripts/run_cb6.py", "conv-probe", "--day", "2026-10-12", "--n", "20", "--seed", "arepo-cb6-probe", "--rps", "2"],
+ "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch6/conv_probe.json", "trials.jsonl (cb6_descriptive)"],
+ "next_action": "PASS (>= 16/20): q0124 after T6_dev_end; FAIL: N1/N2 not testable (source)", "notes": "adapter address and event topic pinned from the Polymarket contracts page at probe time; prints counts only; hashes only"}
+```
+```json
+{"id": "q0124_cb6_conv_dev_fetch", "title": "CB6-N: dev-window conversions and member prints [t_conv-96h, t_conv+3h] (excluding the J4-R window)",
+ "family": "creative_batch_6", "priority": 44, "expected_value": "episodes, targets, controls and pseudo-episode windows for the CH66 screen",
+ "data": ["Polygon public JSON-RPC", "public Gamma (guarded)", "public Data API windowed trades"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu", "network": "polygon-rpc, gamma-api, data-api"},
+ "depends_on": ["q0123_cb6_conv_probe"], "argv": ["scripts/run_cb6.py", "conv-fetch", "--window", "dev", "--max-members", "40", "--rps", "2", "--disk-cap-gb", "0.06"],
+ "timeout_s": 5400, "max_retries": 2, "outputs": ["research_lab/creative_batch6/conv_dev/{conversions.csv.gz,members.csv.gz,prints/,manifest.json}"],
+ "next_action": "q0125", "notes": "commit after 2026-10-28T03:00Z and probe PASS; raw addresses hashed in memory; outcome fields dropped at parse"}
+```
+```json
+{"id": "q0125_cb6_census", "title": "CB6: pre-freeze census (T on SCREEN only: eligibility, flags, expected YES, GT; N: episodes, availability, GN; R: counts by side, density, GR; C: units, coverage, GC)",
+ "family": "creative_batch_6", "priority": 40, "expected_value": "gates and MDEs before the freeze; no target, net, mark-out, spread-at-cutoff or log loss",
+ "data": ["history/h8_tail SCREEN block (verified seal)", "creative_batch6/conv_dev", "cb6_extract/{band,printflag} (dev window, J4-R excluded)"], "resources": {"mem_mb": 1500, "cpu": 1, "lane": "cpu"},
+ "depends_on": ["q0121_h8_tail_seal", "q0122_cb6_extract_backfill", "q0124_cb6_conv_dev_fetch"], "argv": ["scripts/run_cb6.py", "census", "--family", "T,N,R,C"],
+ "timeout_s": 5400, "max_retries": 1, "outputs": ["research_lab/creative_batch6/census.json", "trials.jsonl (cb6_descriptive)"],
+ "next_action": "Claude session: insert counts and gates here; science-reviewer; freeze (model_specs/cb6_v1.json); pin T6_rep_start", "notes": "outcome guard; HOLDOUT never opened; floors never revised from the census; if h8 is not_run_deadline the T part records that and the rest proceeds"}
+```
+```json
+{"id": "q0126_cb6_screen_T", "title": "CB6-T: Stage-1 screen on h8_tail SCREEN (T1 flag excess; T2 unflagged paper ask; calibrated-null, class-shuffle and break-even placebos; tail gate; worst cases)",
+ "family": "creative_batch_6", "priority": 38, "expected_value": "whether CH60 advances to the sealed HOLDOUT block",
+ "data": ["history/h8_tail SCREEN", "model_specs/cb6_v1.json", "model_specs/cost_regimes_v1.json (T2 only)"], "resources": {"mem_mb": 1200, "cpu": 1, "lane": "cpu"},
+ "depends_on": ["q0125_cb6_census"], "argv": ["scripts/run_cb6.py", "screen", "--family", "T", "--block", "SCREEN", "--n-boot", "2000"],
+ "timeout_s": 5400, "max_retries": 1, "outputs": ["research_lab/creative_batch6/T_screen/results.json", "trials.jsonl (2 cb6_test + count line + placebos + descriptive)"],
+ "next_action": "if T1 advanced or T2 carried: commit q0130", "notes": "commit after the freeze; T2 runs only when cost_regimes_v1.json is committed (else T2 pending, T1 reported); exits 0 'not testable' if GT failed or h8 not_run_deadline"}
+```
+```json
+{"id": "q0127_cb6_screen_N", "title": "CB6-N: Stage-1 dev screen (N1 dump vs matched-sell recovery; N2 60-s maker bid; pseudo-episode and break-even placebos; worst case)",
+ "family": "creative_batch_6", "priority": 38, "expected_value": "whether CH66 advances to the replication window",
+ "data": ["creative_batch6/conv_dev", "model_specs/cb6_v1.json"], "resources": {"mem_mb": 1000, "cpu": 1, "lane": "cpu"},
+ "depends_on": ["q0125_cb6_census"], "argv": ["scripts/run_cb6.py", "screen", "--family", "N", "--window", "dev", "--n-boot", "2000"],
+ "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch6/N_dev/results.json", "trials.jsonl (2 cb6_test + count line + placebos + descriptive)"],
+ "next_action": "if advanced or carried: commit q0131/q0132", "notes": "commit after the freeze; exits 0 'not testable' on probe FAIL or GN"}
+```
+```json
+{"id": "q0128_cb6_screen_R", "title": "CB6-R: Stage-1 R1 on dev captures (RD at folded mid 0.90, rewarded; fake cutoffs 0.60-0.83; unrewarded diff-in-disc; donut; tick strata)",
+ "family": "creative_batch_6", "priority": 38, "expected_value": "whether the reward cutoff moves spreads, and in which direction",
+ "data": ["cb6_extract/band (dev window, J4-R excluded)", "model_specs/cb6_v1.json"], "resources": {"mem_mb": 1500, "cpu": 1, "lane": "cpu"},
+ "depends_on": ["q0125_cb6_census"], "argv": ["scripts/run_cb6.py", "screen", "--family", "R", "--window", "dev", "--n-boot", "2000"],
+ "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch6/R_dev/results.json", "trials.jsonl (1 cb6_test + count line + placebos + descriptive)"],
+ "next_action": "if R1 advanced: deploy cb6_followup (only if tau > 0 and credited), commit q0133", "notes": "commit after the freeze; exits 0 'not testable' if GR failed"}
+```
+```json
+{"id": "q0129_cb6_fit_C", "title": "CB6-C: fit the declared B0 and B0+A logistic models on dev printflag units; write model_specs/cb6_C_frozen.json (no test)",
+ "family": "creative_batch_6", "priority": 39, "expected_value": "frozen fill-probability models before the evaluation window",
+ "data": ["cb6_extract/printflag (dev window, J4-R excluded)", "model_specs/cb6_v1.json"], "resources": {"mem_mb": 1500, "cpu": 1, "lane": "cpu"},
+ "depends_on": ["q0125_cb6_census"], "argv": ["scripts/run_cb6.py", "fit-C", "--window", "dev"],
+ "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch6/C_fit/{cb6_C_frozen.json,fit_report.json}", "trials.jsonl (cb6_descriptive)"],
+ "next_action": "coordinator commits model_specs/cb6_C_frozen.json before T6_rep_start", "notes": "commit after the freeze; descriptive only; no evaluation-window row exists when it runs"}
+```
+```json
+{"id": "q0130_cb6_holdout_T", "title": "CB6-T: Stage-2 replication on the sealed h8_tail HOLDOUT block (advanced/carried T tests; Holm over the CB6 route Stage-2 set)",
+ "family": "creative_batch_6", "priority": 38, "expected_value": "development replication (L2-dev, same calendar) of the ex-ante tail class",
+ "data": ["history/h8_tail HOLDOUT (first read)", "creative_batch6/T_screen/results.json", "model_specs/cb6_v1.json", "model_specs/cost_regimes_v1.json"], "resources": {"mem_mb": 1200, "cpu": 1, "lane": "cpu"},
+ "depends_on": ["q0126_cb6_screen_T"], "argv": ["scripts/run_cb6.py", "holdout", "--family", "T", "--n-boot", "2000"],
+ "timeout_s": 5400, "max_retries": 1, "outputs": ["research_lab/creative_batch6/T_holdout/results.json", "trials.jsonl (cb6_replication + count line)"],
+ "next_action": "batch Holm; ledger; Stage P-T registration if passed", "notes": "commit only if T1 advanced or T2 carried; access logged; exits 0 'nothing advanced'"}
+```
+```json
+{"id": "q0131_cb6_conv_rep_fetch", "title": "CB6-N: replication-window conversions and member prints (rolling; each at t_conv + 3h30m)",
+ "family": "creative_batch_6", "priority": 41, "expected_value": "post-freeze episodes for the CH66 replication",
+ "data": ["Polygon public JSON-RPC", "public Gamma (guarded)", "public Data API windowed trades"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu", "network": "polygon-rpc, gamma-api, data-api"},
+ "depends_on": ["q0127_cb6_screen_N"], "argv": ["scripts/run_cb6.py", "rep-fetch", "--family", "N", "--max-members", "40", "--rps", "2", "--disk-cap-gb", "0.08"],
+ "timeout_s": 3600, "max_retries": 3, "repeat": {"max_runs": 90, "until_log_regex": "rep_fetch_complete"},
+ "outputs": ["research_lab/creative_batch6/conv_rep/{conversions.csv.gz,members.csv.gz,prints/,manifest.json}"], "next_action": "q0132 after T6_N_rep_end + 3h",
+ "notes": "commit only if N1 or N2 advanced or N2 was carried; rolling every 6h; no target computed by the fetcher"}
+```
+```json
+{"id": "q0132_cb6_rep_N", "title": "CB6-N: Stage-2 replication (advanced/carried N tests; Holm over the CB6 route Stage-2 set)",
+ "family": "creative_batch_6", "priority": 38, "expected_value": "development replication (L2-dev) of conversion-dump reversion",
+ "data": ["creative_batch6/conv_rep", "creative_batch6/N_dev/results.json", "model_specs/cb6_v1.json"], "resources": {"mem_mb": 1000, "cpu": 1, "lane": "cpu"},
+ "depends_on": ["q0131_cb6_conv_rep_fetch"], "argv": ["scripts/run_cb6.py", "replicate", "--family", "N", "--n-boot", "2000"],
+ "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch6/N_rep/results.json", "trials.jsonl (cb6_replication + count line)"],
+ "next_action": "batch Holm; ledger; Stage P-N if passed", "notes": "refuses before T6_N_rep_end + 3h"}
+```
+```json
+{"id": "q0133_cb6_rep_R", "title": "CB6-R: Stage-2 (R1 replication in the Stage-1 sign on replication captures; R2 touch maker in [0.90, 0.96) with cb6_followup fills, if registered)",
+ "family": "creative_batch_6", "priority": 38, "expected_value": "development replication (L2-dev) of the reward-shadow discontinuity and, if registered, its maker route",
+ "data": ["cb6_extract/band (replication window)", "cb6_followup/", "book_sweeps (marks)", "creative_batch6/R_dev/results.json", "model_specs/cb6_v1.json"], "resources": {"mem_mb": 1500, "cpu": 1, "lane": "cpu"},
+ "depends_on": ["q0128_cb6_screen_R"], "argv": ["scripts/run_cb6.py", "replicate", "--family", "R", "--n-boot", "2000"],
+ "timeout_s": 5400, "max_retries": 1, "outputs": ["research_lab/creative_batch6/R_rep/results.json", "trials.jsonl (cb6_replication + count line)"],
+ "next_action": "batch Holm; ledger; Stage P-R if passed", "notes": "commit only if R1 advanced; R2 only if tau > 0 and reward attribution credited; refuses before T6_R_rep_end + 12h"}
+```
+```json
+{"id": "q0134_cb6_eval_C", "title": "CB6-C: M1 on the evaluation window (frozen models; permutation calibration; market-disjoint and design-weighted checks)",
+ "family": "creative_batch_6", "priority": 39, "expected_value": "a fill-capacity measurement for maker envelopes",
+ "data": ["cb6_extract/printflag (evaluation window)", "model_specs/cb6_C_frozen.json", "model_specs/cb6_v1.json"], "resources": {"mem_mb": 1500, "cpu": 1, "lane": "cpu"},
+ "depends_on": ["q0129_cb6_fit_C"], "argv": ["scripts/run_cb6.py", "eval-C", "--n-perm", "200"],
+ "timeout_s": 5400, "max_retries": 1, "outputs": ["research_lab/creative_batch6/C_eval/results.json", "trials.jsonl (1 cb6_measurement + count line + placebo + descriptive)"],
+ "next_action": "ledger; adoption note for later maker registrations", "notes": "refuses before T6_C_eval_end + 3h or if cb6_C_frozen.json was committed after the window start; labelled 'unreplicated measurement'"}
+```
+
+## 6. Test budget and compute
+
+| Job | Tests counted | Kind(s) | Family |
+|---|---|---|---|
+| Routes, Stage 1: T1, T2 (h8 SCREEN), N1, N2 (dev), R1 (dev) | 5 | `cb6_test` + count lines `creative_batch_6:T` (`n_tests` 2), `:N` (2), `:R` (1) | each gated alone at p < 0.01 (R1 two-sided); BY triage |
+| Routes, Stage 2 (advanced or carried; R2 enters directly) | ≤ 6 | `cb6_replication` + count lines | one Holm, one-sided α = 0.05, k ≤ 6 |
+| Measurement M1 | 1 | `cb6_measurement` + count line `creative_batch_6:C` | **C**: one-sided α = 0.05, k = 1 |
+| Census, flags, episodes, density, fake-cutoff tables, deciles, strata, gates | 0 | `cb6_descriptive` | - |
+| **Total** | **6 fixed + up to 6 conditional = 6-12** | | cumulative 1,104 at drafting → 1,110-1,116 |
+
+**Host compute.** About 4-5 CPU-hours at nice 19 in total (extractor backfill largest). Peak memory 1.5 GB (census, R,
+C). No two multi-GB jobs at once. **Network:** `h8_tail` ≈ 39k requests (≈ 3.5 h wall, `net`, before `T_seal`); probe and
+dev conversions ≈ 2k; replication conversions ≈ 3k over three weeks; follow-up ≤ 600 requests per pass (Stage 2 only).
+**Disk:** ≤ 0.55 GB in total across all CB6 outputs (caps in §2.8).
+
+## 7. Main scientific risks
+
+1. **`h8_tail` may not run (T).** The `net` lane is held by q0043 (h6, about 6-9 h from 2026-10-16T23Z), then the h7
+   fetches; the host is at 9.7 GB against a 10 GB job guard. Without retention activation or the Mac fallback, CB6-T is
+   "not run (deadline)" and counted. This is the main calendar risk of the batch.
+2. **Power (T).** Stage-1 MDE ≈ 3.8c on Δ, above the 2c floor; T2 is expected to be not testable for size. CB6-T can find
+   only a strong class effect, and its economic answer will usually wait for Stage P.
+3. **Current text and the end-date look-ahead (T).** Descriptions are current; clarifications are excluded and the bias
+   is likely conservative. `end_at` read at `T_fetch8` enters only the origin grid.
+4. **Same-calendar holdout (T).** HOLDOUT is market-disjoint, not time-disjoint; a regime effect in 2025-09..2026-07
+   would replicate. Stage P is the out-of-time check.
+5. **Source and frequency (N).** The chain probe may fail (stakeholder ≠ trading proxy), and conversions with dumps may be
+   rarer than 30 a day; GN then stops CB6-N.
+6. **Selection effects (N).** The largest sell after a conversion may revert for generic reasons; the pseudo-episode
+   placebo is designed to catch this and may leave "reversion exists, not specific to conversions".
+7. **Direction and attribution (R).** The idea's mechanism was backwards (§0.3); the sign of τ is open. Heaping at whole
+   cents and tick regimes can create apparent jumps; the fake-cutoff, donut and tick-strata checks guard this. A τ < 0
+   closes the route.
+8. **Fill model realism (R2, N2, T2).** Trade-through and queue rules from public prints ignore cancellations and hidden
+   priority; brackets (touch rule) and worst cases bound but do not remove this.
+9. **The measurement may be trivially small or trivially large (C).** The floor and the market-disjoint check decide;
+   the result is never a signal.
+10. **Shared calendar with sealed windows (N, R, C).** CB1-D, CB3, CB4-C, CB5-L and E011 share the calendar. CB6 never
+    opens their tables; the disclosures in §1.3 stand.
+
+## 8. Next actions
+
+1. **Today (urgent, T_seal-bound):** delegate to `implementer` the `h8_tail` fetcher (`run_cb6.py tail-fetch` /
+   `tail-seal`, `cb6_tail.py` fetch side, tests) and write `seals/cb6_tail_rules.json` from §CB6-T and §1.4. Then a
+   `science-reviewer` freeze check of the fetcher and rules file only. Commit the rules file, then q0120 (recording the
+   §2.8 headroom check), and deploy. If the host cannot start it by 2026-10-20T12:00Z, run the Mac fallback.
+2. **Challenger review of this draft** (`science-reviewer`), one response round; the fetch spec is not blocked by it unless
+   the reviewer finds a defect in the fetch parameters or the rules file.
+3. Extractor v5 (`band/`, `printflag/`) with the pass step; then q0122. Probe code; q0123 any time.
+4. After `T6_dev_end` (2026-10-28): q0124, then q0125 census once the h8 seal copy is committed. Insert counts and gates
+   here; freeze (`model_specs/cb6_v1.json`); pin `T6_rep_start`.
+5. After the freeze: q0126 (T1 at once; T2 when the CB4 cost register is committed), q0127, q0128, q0129 (commit
+   `cb6_C_frozen.json` before `T6_rep_start`). Commit q0130-q0133 only for advanced or carried tests; deploy
+   `cb6_followup/` only if R1 advanced with τ > 0 and credited. q0134 after the evaluation window.
+
+## 9. CB5 challenger failure modes, avoided up front
+
+| CB5 round-1 item | Failure mode | How CB6 avoids it | Where |
+|---|---|---|---|
+| 1 | a placebo that cannot fail (L1 coin-flip direction: `net_A + net_B < 0` always) | every binding placebo names the alternative under which it advances: calibrated-null (anti-conservative clustering), pseudo-episodes (generic selected-burst reversion), fake cutoffs (heaping, curvature), unrewarded diff-in-disc (non-reward cause), class shuffle (category not text), permutation calibration (anti-conservative ΔLL); CH66's increment-shuffle placebo was rejected because it would pass whenever any sell reverts | §2.6, §CB6-N |
+| 2 | a gate where less data is easier (`r_inc` unknown handed over to a weaker gate) | every "unknown / unverified / inconclusive" gate blocks: T1 needs ≥ 10 YES clusters per stratum; truncation and censoring worst cases are chosen against the hypothesis; unrewarded markets too few → R1 cannot be credited and R2 is not registered; N needs ≥ 15 converter clusters; unavailable exits/marks enter binding worst cases | §2.3, §2.6, §CB6-T, §CB6-R |
+| 3 | an impossible calibration scheme (200 circular shifts on a 144-step grid) | every placebo is feasible as specified: 200 outcome or exit redraws; pseudo-episode times inside the fetched 96-h window; 24 fake cutoffs whose windows lie in [0.57, 0.86]; permutations within capture × decile cells that exist by construction | §2.6 |
+| 4 | queue id clash | q0120-q0134 one id per job, no suffixes; q0135-q0139 reserved for CB6 only; checked against `queue/jobs/` and `queue/drafts/` (q0110 is MC1's committed job) | header, §0.1, §5 |
+| 5 | a falsifier that rejects the true effect when a nuisance coexists | T1 is a band-stratified *difference* between strata, so a general favourite-longshot bias cancels; the class shuffle is attribution-only and does not block a T1 advance; R's attribution is a difference-in-discontinuities, not "no jump anywhere else" | §CB6-T, §2.6 |
+| 6-7 | post-listing information in sampling or population | h8 sampling uses creation-known strata only; origins use `created_at`/`end_at` only, drawn before any price request (the `end_at` look-ahead is disclosed and enters no feature); clarification exclusion disclosed with its likely direction | §CB6-T, §CB6-F |
+| 8 | census reads contradicting the guard | each census uses a field-restricted accessor (R: no spread; N: count-only availability; T: SCREEN only, expected YES from prices) with a unit test | §2.7, §4.5 |
+| 10 | "executable" claims without sizes | T2 trade-through fills on modelled asks are labelled modelled; R2 uses recorded sweep sizes for the queue; N2 uses trade-through plus touch bracket | §CB6-T, §CB6-R, §CB6-N |
+| 11 | reading a near-copy of a sealed statistic | CH67 excluded for exactly this reason; CB6-N never computes member ask/bid sums; no CB1-CB5 extract or E009-E011 file is read | §0.2, §1.3 |
+| 12 | MDE from the wrong data | every MDE is stated as an assumption with its inputs and is recomputed by the census from actual counts | §CB6-T/N/R/C, §2.7 |
+| 15 | disk guard close | release-time headroom precondition per data job; the h8 problem is disclosed with a same-parameter Mac fallback | §2.8 |
+| 16 | stale test count | `battery2.cumulative_count()` recomputed for this draft: 1,104 | §2.5 |
+
+**Open questions for the challenger.**
+1. The event-hash SCREEN/HOLDOUT split (same calendar) versus a creation-date split (unequal censoring): acceptable?
+2. F as a disjunction of four components (one test) rather than four counted coefficients: acceptable, given that
+   per-component odds ratios are reported only?
+3. The Mac fallback for `h8_tail` if the host lane or disk blocks it before 2026-10-20T12:00Z: acceptable as an
+   operational fallback with identical parameters?
+4. R1 tested two-sided at Stage 1 and replicated in the found sign, with R2 registered only for τ > 0: acceptable?
+5. N1's pseudo-episode placebo: strong enough against depth-refill and news-driven conversions?
+6. M1's added block includes `volume24hr` rank (a monotone transform of a baseline variable within a capture). Should it
+   move to the baseline?
