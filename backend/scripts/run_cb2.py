@@ -87,11 +87,21 @@ def cmd_ladder_list(cs, a) -> int:
     from astrolabe.research_lab import forecast
     from astrolabe.research_lab import history_backfill as hb
 
-    sealed = cs.require_grouper_seal()  # before ANY question text is read
+    sealed = cs.require_grouper_seal(require_committed=True)  # before ANY question text is read
+    if a.not_before and datetime.now(UTC).timestamp() < cs._ep(_iso(a.not_before)):
+        raise cs.Cb2Error(f"--not-before {a.not_before}: refresh refused before that time")
     root = Path(a.extract_root)
+    existing = cs.lineage_versions(root)  # one lineage per grouper hash (fix 3); a revised grouper starts its own v1
+    prev = cs.load_ladder_list(existing[-1]) if existing else None
+    if prev is not None and not a.refresh:
+        raise cs.Cb2Error(f"lineage {cs.lineage_id()} already has v{prev['version']}; a v>=2 refresh needs --refresh")
+    if prev is None and a.refresh:
+        raise cs.Cb2Error(f"--refresh needs an existing v1 in lineage {cs.lineage_id()}")
     root.mkdir(parents=True, exist_ok=True)
     since = _iso(a.from_utc)
     caps = cs.universe_captures(Path(a.snapshot_root), since)
+    if a.refresh and caps:
+        caps = caps[-1:]  # v>=2: the latest capture only (prospective additions)
     if not caps:
         raise SystemExit("no complete captures at or after --from")
     uni, urep = cs.read_universe(caps)
@@ -106,8 +116,6 @@ def cmd_ladder_list(cs, a) -> int:
     markets = [{"market_id": m, "event_id": ev[m], "question": t.get("question"), "description": t.get("description"),
                 "created_at": t.get("created_at")} for m, t in texts.items() if m in ev and not t.get("missing")]
     grouped = cs.ladder_grouper_v2(markets)
-    existing = sorted((root / "ladder_lists").glob("ladder_list_v*.json")) if (root / "ladder_lists").exists() else []
-    prev = cs.load_ladder_list(existing[-1]) if existing else None
     version = (prev["version"] + 1) if prev else 1
     listed = cb.utc_now()
     universe = {"captures": [c["capture_id"] for c in caps], "from_utc": since, **urep, "text": trep,
@@ -153,7 +161,7 @@ def cmd_census(cs, a) -> int:
             return rc
     if "L" in fams:
         root = Path(a.extract_root)
-        doc = _latest_list(cs, root)
+        doc = cs.find_ladder_list(root, a.ladder_list_sha256) if a.ladder_list_sha256 else _latest_list(cs, root)
         cl, miss = _adhoc_dev_list(cs, root)
         out["L"] = {**cs.census_lx(root, cl, doc), "ladder_list_sha256": doc["sha256"], "captures_without_table": len(miss)}
     if "P" in fams:
@@ -185,6 +193,16 @@ def cmd_declare(cs, a) -> int:
     return 0
 
 
+def cmd_batch_holm(cs, a) -> int:
+    """Uncounted: batch-wide Holm over the CB2 Stage-2 results files (or, with --family P, the stage-P files)."""
+    if not a.results:
+        raise SystemExit("--results <files> required")
+    fam = "stageP" if str(a.family).upper() == "P" else "stage2"
+    out = cs.batch_holm(a.results, stage1_paths=a.stage1, family=fam)
+    _emit({"cb2_structural": cs.VERSION, "batch_holm": out})
+    return 0
+
+
 def cmd_pin_rep_start(cs, a) -> int:
     import subprocess
 
@@ -210,9 +228,13 @@ def cmd_snapshots_l(cs, a) -> int:
     decl = cs.require_declaration()
     if not a.list_sha256:
         raise SystemExit("counted snapshot runs need --list-sha256 (the committed capture-list hash)")
+    if not a.ladder_list_sha256:
+        raise cs.Cb2Error("counted snapshot runs need --ladder-list-sha256 (the committed ladder-list version; never 'latest')")
+    if a.window == "rep":
+        cs.check_l_out_reached()  # outcomes of triggered rungs are first read at T2_L_out (freeze-check fix 15)
     root = Path(a.extract_root)
     cl = cs.load_cb2_list(root, a.window, a.list_sha256)
-    doc = cs.load_ladder_list(root / "ladder_list.json", a.ladder_list_sha256)
+    doc = cs.find_ladder_list(root, a.ladder_list_sha256)
     dev = a.window == "dev"
     tests = ("L1", "X1", "X2")
     if not dev:
@@ -238,7 +260,8 @@ def cmd_snapshots_l(cs, a) -> int:
     header = _results_header(cs, decl, f"run_cb2:L:{a.window}", extract_root=str(root), list_sha256=cl["sha256"],
                              ladder_list_sha256=doc["sha256"], missing_captures=len(cl.get("missing_ids", [])))
     sha = cs.write_json(out_path, {**header, **res})
-    cs.log_trials("L", res["tests"], kind=cs.KIND_TEST if dev else cs.KIND_REP, role="exploratory_dev",
+    cs.log_trials("L", res["tests"], kind=cs.KIND_TEST if dev else cs.KIND_REP,
+                  role="exploratory_dev" if dev else "prospective_confirmation",
                   dataset=f"cb2_extract:{a.window}", results_path=str(out_path), results_sha256=sha, run_id=f"cb2_L_{a.window}",
                   prov=provenance.run_provenance(), decl_sha=decl, placebo=res.get("placebo"))
     _emit({"cb2_structural": cs.VERSION, "results": str(out_path), "results_sha256": sha,
@@ -266,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
 
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter, allow_abbrev=False)
     ap.add_argument("cmd", choices=["ladder-list", "census", "weather-fetch", "seal", "verify-seal", "screen", "replicate",
-                                    "snapshots", "stagep", "freeze-list", "declare", "pin-rep-start"])
+                                    "snapshots", "stagep", "freeze-list", "declare", "pin-rep-start", "batch-holm"])
     ap.add_argument("--family", default="L", help="W | L | P (census: comma list)")
     ap.add_argument("--window", choices=["dev", "rep"], default="dev")
     ap.add_argument("--run-id", default=None)
@@ -274,6 +297,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--cb1-extract-root", type=Path, default=cb.EXTRACT_ROOT)
     ap.add_argument("--snapshot-root", type=Path, default=forecast.SNAPSHOT_ROOT)
     ap.add_argument("--from", dest="from_utc", default=cs.T2_DEV_START)
+    ap.add_argument("--refresh", action="store_true", help="ladder-list: write the next additive prospective version")
+    ap.add_argument("--not-before", default=None, help="ladder-list: refuse before this UTC time (weekly refresh gate)")
+    ap.add_argument("--stage1", nargs="*", default=None, help="batch-holm: Stage-1 results files (expected family)")
+    ap.add_argument("--results", nargs="*", default=None, help="batch-holm: Stage-2 / stage-P results files")
     ap.add_argument("--list-sha256", default=None)
     ap.add_argument("--ladder-list-sha256", default=None)
     ap.add_argument("--dev-results", default=None)
@@ -294,6 +321,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_ladder_list(cs, a)
         if a.cmd == "census":
             return cmd_census(cs, a)
+        if a.cmd == "batch-holm":
+            return cmd_batch_holm(cs, a)
         if a.cmd == "freeze-list":
             return cmd_freeze_list(cs, a)
         if a.cmd == "declare":

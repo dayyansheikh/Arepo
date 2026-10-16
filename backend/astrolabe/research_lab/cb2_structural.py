@@ -28,7 +28,7 @@ import pandas as pd
 
 from . import cb1_structural as c1
 from . import creative_batch1 as cb
-from . import forecast, if_h2, provenance
+from . import economics, forecast, if_h2, provenance
 from . import history_backfill as hb
 
 VERSION = "cb2-structural-v1"
@@ -189,9 +189,18 @@ def grouper_rule_sha256() -> str:
     return hashlib.sha256(json.dumps({"rules": GROUPER_RULES, "code": grouper_code_sha256()}, sort_keys=True).encode()).hexdigest()
 
 
-def require_grouper_seal(path: Path | None = None) -> str:
-    """``ladder-list`` refuses unless the committed rule hash equals the code's (hashed before any text is read)."""
+def _git_committed(path: Path) -> bool:
+    from .cb1_history import spec_committed  # noqa: PLC0415
+
+    return spec_committed(path)
+
+
+def require_grouper_seal(path: Path | None = None, *, require_committed: bool = False) -> str:
+    """``ladder-list`` refuses unless the committed rule hash equals the code's (hashed before any text is read).
+    The runner passes ``require_committed=True`` (tracked by git and identical to HEAD)."""
     path = Path(path) if path is not None else GROUPER_SEAL_FILE
+    if require_committed and path.exists() and not _git_committed(path):
+        raise GrouperRuleError(f"grouper seal {path} is not committed (or differs from HEAD)")
     if not path.exists():
         raise GrouperRuleError(f"no committed grouper-rule seal at {path}; question text is not read")
     rec = json.loads(path.read_text())
@@ -261,12 +270,14 @@ def declaration_sha256_structural() -> str:
     return hashlib.sha256(json.dumps(declaration_structural(), sort_keys=True).encode()).hexdigest()
 
 
-def require_declaration(path: Path | None = None) -> str:
+def require_declaration(path: Path | None = None, *, require_committed: bool = True) -> str:
     """Committed ``model_specs/cb2_v1.json`` must carry ``structural_sha256`` equal to this code's hash. If it also
     carries ``weather_sha256`` and ``cb2_weather`` exposes ``declaration_sha256_weather`` they must match too."""
     path = Path(path) if path is not None else MODEL_SPEC_FILE
     if not path.exists():
         raise DeclarationError(f"no committed declaration at {path}; counted CB2 runs are refused")
+    if require_committed and not _git_committed(path):
+        raise DeclarationError(f"declaration {path} is not committed (or differs from HEAD)")
     rec = json.loads(path.read_text())
     cur = declaration_sha256_structural()
     if rec.get("structural_sha256") != cur:
@@ -449,10 +460,39 @@ def ladder_list(grouped: dict, *, version: int, listed_utc: str, prev: dict | No
     return doc
 
 
-def write_ladder_list(doc: dict, root: Path) -> str:
-    """Immutable ``ladder_lists/ladder_list_v<n>.json`` plus the ``ladder_list.json`` (+ ``.sha256``) the extractor reads."""
+def lineage_id() -> str:
+    """One lineage per grouper-rule hash (freeze-check fix 3): a grouper revision starts a new v1 in its own directory,
+    rebuilt from ``ladder_text_cache.jsonl``; the old lineage stays untouched."""
+    return grouper_rule_sha256()[:12]
+
+
+def lineage_dir(root: Path, lineage: str | None = None) -> Path:
+    return Path(root) / "ladder_lists" / (lineage or lineage_id())
+
+
+def lineage_versions(root: Path, lineage: str | None = None) -> list[Path]:
+    d = lineage_dir(root, lineage)
+    return sorted(d.glob("ladder_list_v*.json"), key=lambda p: int(p.stem.rsplit("_v", 1)[1])) if d.exists() else []
+
+
+def find_ladder_list(root: Path, sha256: str) -> dict:
+    """Load the list with this content hash from any lineage (the dev run is pinned to one version, not the head)."""
     root = Path(root)
-    vp = root / "ladder_lists" / f"ladder_list_v{doc['version']}.json"
+    for p in [root / cb.LADDER_LIST_NAME, *sorted((root / "ladder_lists").glob("*/ladder_list_v*.json"))]:
+        if p.exists():
+            try:
+                if json.loads(p.read_text()).get("sha256") == sha256:
+                    return load_ladder_list(p, sha256)
+            except ValueError:
+                continue
+    raise LadderListError(f"no ladder list with sha256 {sha256} under {root}")
+
+
+def write_ladder_list(doc: dict, root: Path) -> str:
+    """Immutable ``ladder_lists/<lineage>/ladder_list_v<n>.json`` plus the ``ladder_list.json`` head (+ ``.sha256``) the
+    extractor reads."""
+    root = Path(root)
+    vp = lineage_dir(root, doc["grouper_rule_sha256"][:12]) / f"ladder_list_v{doc['version']}.json"
     if vp.exists():
         raise LadderListError(f"refusing to overwrite {vp}")
     vp.parent.mkdir(parents=True, exist_ok=True)
@@ -650,9 +690,11 @@ def _fee_params(sched: pd.Series, cat: pd.Series) -> tuple[np.ndarray, np.ndarra
 
 
 def fee_vec(price, rate, exp) -> np.ndarray:
-    """Vector form of ``economics.taker_fee(1, p, rate, exp)`` (5 dp)."""
+    """Vector form of ``economics.taker_fee(1, p, rate, exp)``: same formula and the same Python ``round(., 5)`` (numpy's
+    ``np.round`` differs from it on ties), equivalence-tested against ``economics.taker_fee``."""
     p = np.clip(np.asarray(price, float), 0.0, 1.0)
-    return np.round(rate * (p * (1.0 - p)) ** exp, 5)
+    raw = np.broadcast_to(rate * (p * (1.0 - p)) ** exp, p.shape)
+    return np.array([round(float(x), economics.FEE_DECIMALS) for x in raw.ravel()], float).reshape(p.shape)
 
 
 def _eligible(d: pd.DataFrame, sfx: str) -> np.ndarray:
@@ -794,8 +836,8 @@ def depth_gate(trig: pd.DataFrame) -> dict:
 
 
 def payoff_gate(trig: pd.DataFrame, final_yes: dict[str, float]) -> dict:
-    """Realised payoff gate (rep): share of determined triggered pairs with payoff < 1 must be <= 2%."""
-    sub = trig[trig["executed"]] if len(trig) else trig
+    """Realised payoff gate (rep): share of determined, unique triggered pairs with payoff < 1 must be <= 2%."""
+    sub = trig[trig["executed"]].drop_duplicates("pair_id") if len(trig) else trig  # per unique pair (CB1 fix 10)
     n_det = n_bad = 0
     nets = []
     for r in sub.itertuples(index=False):
@@ -1102,7 +1144,7 @@ def run_lx(root: Path, cl: dict, doc: dict, window: str, *, n_boot: int, tests: 
     alpha = ALPHA_STAGE1 if dev else ALPHA_STAGE2
     b = build_lx(root, cl, doc, window)
     ps, trig = b["ps"], b["trig"]
-    out: dict = {"counts": b["counts"], "tests": {}, "placebo": {}, "gates": {}}
+    out: dict = {"window": window, "stage": 1 if dev else 2, "counts": b["counts"], "tests": {}, "placebo": {}, "gates": {}}
     for name, typ in (("L1", "L"), ("X1", "X")):
         if name not in tests:
             continue
@@ -1141,7 +1183,7 @@ def census_lx(root: Path, cl: dict, doc: dict) -> dict:
         tr = trig[trig["ltype"] == t] if len(trig) else trig
         types[t] = {"ladders_in_list": sum(1 for L in doc["ladders"] if L["type"] == t),
                     "ladders_with_pair_capture": int(s["ladder_id"].nunique()) if len(s) else 0,
-                    "eligible_pair_captures": int(len(s)), "touch_violations": int(s["viol"].sum()) if len(s) else 0,
+                    "eligible_pair_captures": int(len(s)),
                     "triggers": int(len(tr)), "trigger_ladders": int(tr["ladder_id"].nunique()) if len(tr) else 0,
                     "executed": int(tr["executed"].sum()) if len(tr) else 0}
     return {"counts_only": True, **b["counts"], "types": types,
@@ -1295,3 +1337,79 @@ def utc_stamp(t: datetime | None = None) -> str:
 
 def l_out_epoch(pin_path: Path | None = None) -> float:
     return window_bounds("rep", pin_path)[1] + timedelta(days=T2_L_OUT_DAYS).total_seconds()
+
+
+# =============================================================================================
+# Batch-wide Holm over the CB2 Stage-2 family (freeze-check fix 17); also used by the weather stage P
+# =============================================================================================
+
+STAGE2_IDS = ("W2", "W3", "L1", "X1", "X2")
+STAGEP_IDS = ("W2", "W3")
+STAGE2_PARENTS = ("W_holdout", "L_rep")
+STAGEP_PARENTS = ("W_stageP",)
+BATCH_ALPHA = ALPHA_STAGE2
+
+
+def _stage_of(path: Path, doc: dict) -> str | None:
+    parent = Path(path).parent.name
+    st = doc.get("stage")
+    if parent in STAGE2_PARENTS or st in (2, "2", "stage2") or doc.get("window") == "rep" and "W" not in parent:
+        return "stage2"
+    if parent in STAGEP_PARENTS or st in ("P", "stageP"):
+        return "stageP"
+    return None
+
+
+def batch_holm(results_paths, *, stage1_paths=None, alpha: float = BATCH_ALPHA, family: str = "stage2") -> dict:
+    """Holm over the CB2 Stage-2 tests (``family="stage2"``: W2, W3, L1, X1, X2 from ``W_holdout``/``L_rep`` results) or
+    the stage-P tests (``family="stageP"``: W2, W3 from ``W_stageP``), one-sided p-values, no test id twice. Anything
+    else (a screen, a dev window) is refused. With ``stage1_paths`` the expected family is the set of tests that
+    advanced there; a Stage-2 file may not contain a test outside it, and an expected test with no Stage-2 result counts
+    as p = 1 and is listed. Without it the family is exactly the tests found. ``replicated`` needs the test's own gate
+    (``replicated`` if the file carries it, else ``advance``) AND the Holm rejection."""
+    from .cb1_history import holm  # noqa: PLC0415
+
+    if family not in ("stage2", "stageP"):
+        raise Cb2Error(f"unknown family {family!r}")
+    allowed = STAGE2_IDS if family == "stage2" else STAGEP_IDS
+    pv: dict[str, dict] = {}
+    for p in results_paths:
+        doc = json.loads(Path(p).read_text())
+        if _stage_of(Path(p), doc) != family:
+            raise Cb2Error(f"{p}: not a CB2 {family} results file")
+        tests = doc.get("tests")
+        if not isinstance(tests, dict) or not tests:
+            raise Cb2Error(f"{p}: no tests table")
+        for tid, r in tests.items():
+            if tid not in allowed:
+                raise Cb2Error(f"{p}: test {tid!r} is not in the {family} family {list(allowed)}")
+            if tid in pv:
+                raise Cb2Error(f"test {tid} appears in both {pv[tid]['source']} and {p}")
+            own = r.get("replicated") if r.get("replicated") is not None else r.get("advance")
+            pv[tid] = {"p": float(r.get("p", 1.0)) if r.get("p") is not None else 1.0, "own_gate": bool(own), "source": str(p)}
+    expected = set(pv)
+    if stage1_paths is not None:
+        expected = set()
+        for p in stage1_paths:
+            doc = json.loads(Path(p).read_text())
+            expected |= {t for t, r in (doc.get("tests") or {}).items() if r.get("advance")}
+        extra = sorted(set(pv) - expected)
+        if extra:
+            raise Cb2Error(f"Stage-2 tests {extra} did not advance at Stage 1 (expected family {sorted(expected)})")
+    missing = sorted(expected - set(pv))
+    for t in missing:
+        pv[t] = {"p": 1.0, "own_gate": False, "source": "missing_stage2_p=1"}
+    if not pv:
+        return {"m": 0, "alpha": alpha, "family": family, "tests": {}, "replicated": [], "missing_counted_p1": []}
+    hm = holm({t: r["p"] for t, r in pv.items()}, alpha)
+    tests = {t: {**pv[t], **hm[t], "replicated": bool(pv[t]["own_gate"] and hm[t]["reject"])} for t in sorted(pv)}
+    return {"m": len(pv), "alpha": alpha, "family": family, "tests": tests,
+            "replicated": sorted(t for t, r in tests.items() if r["replicated"]),
+            "expected_family": sorted(expected), "missing_counted_p1": missing}
+
+
+def check_l_out_reached(now: datetime | None = None, pin_path: Path | None = None) -> None:
+    """The counted L/X replication reads outcomes of triggered rungs, first allowed at T2_L_out = T2_rep_end + 30 d."""
+    t = l_out_epoch(pin_path)
+    if (now or datetime.now(UTC)).timestamp() < t:
+        raise TooEarlyError(f"rep outcome read refused before T2_L_out {_iso_z(t)}")

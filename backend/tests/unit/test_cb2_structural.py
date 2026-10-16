@@ -142,12 +142,12 @@ def test_grouper_hash_covers_the_regexes(monkeypatch):
 def test_declaration_guard(tmp_path):
     spec = tmp_path / "cb2_v1.json"
     with pytest.raises(cs.DeclarationError):
-        cs.require_declaration(spec)
+        cs.require_declaration(spec, require_committed=False)
     spec.write_text(json.dumps({"structural_sha256": "x"}))
     with pytest.raises(cs.DeclarationError):
-        cs.require_declaration(spec)
+        cs.require_declaration(spec, require_committed=False)
     spec.write_text(json.dumps({"structural_sha256": cs.declaration_sha256_structural()}))
-    assert cs.require_declaration(spec) == cs.declaration_sha256_structural()
+    assert cs.require_declaration(spec, require_committed=False) == cs.declaration_sha256_structural()
 
 
 def _grouped(ladders):
@@ -601,6 +601,38 @@ def test_runner_refuses_sealed_run_ids(rid, capsys):
     assert "refused" in capsys.readouterr().out
 
 
+def _sealed_ok(monkeypatch, tmp_path):
+    ok = tmp_path / "seal_ok.json"
+    ok.write_text(json.dumps({"sha256": cs.grouper_rule_sha256()}))
+    monkeypatch.setattr(cs, "GROUPER_SEAL_FILE", ok)
+    monkeypatch.setattr(cs, "_git_committed", lambda p: True)
+
+
+def test_ladder_list_lineage_per_grouper_hash_and_refresh_gates(tmp_path, monkeypatch, capsys):
+    _sealed_ok(monkeypatch, tmp_path)
+    root = tmp_path / "x"
+    base = ["ladder-list", "--extract-root", str(root), "--snapshot-root", str(tmp_path / "s")]
+    # --refresh needs an existing v1 in the CURRENT lineage; --not-before gates by time
+    assert run_main([*base, "--refresh"]) == 3
+    assert "--refresh needs an existing v1" in capsys.readouterr().out
+    assert run_main([*base, "--refresh", "--not-before", "2999-01-01T00:00Z"]) == 3
+    assert "refused before" in capsys.readouterr().out
+    # a v1 in this lineage: a plain rerun refuses
+    v1 = cs.ladder_list(_grouped([_ladder("L:E:a", "L", "INC", [("1", "E", DL1), ("2", "E", DL2)])]), version=1, listed_utc="2026-10-16T01:00:00Z")
+    cs.write_ladder_list(v1, root)
+    assert cs.lineage_dir(root) == root / "ladder_lists" / cs.lineage_id() and len(cs.lineage_versions(root)) == 1
+    assert run_main(base) == 3 and "already has v1" in capsys.readouterr().out
+    # another grouper hash is another lineage: v1 is not shared and the old lineage is untouched
+    monkeypatch.setitem(cs.GROUPER_RULES, "pairs", "revised rule")
+    assert cs.lineage_id() != v1["grouper_rule_sha256"][:12] and cs.lineage_versions(root) == []
+    assert (root / "ladder_lists" / v1["grouper_rule_sha256"][:12] / "ladder_list_v1.json").exists()
+    # pinned load by sha works for the old version; the head must match the current rule
+    monkeypatch.undo()
+    assert cs.find_ladder_list(root, v1["sha256"])["sha256"] == v1["sha256"]
+    with pytest.raises(cs.LadderListError):
+        cs.find_ladder_list(root, "0" * 64)
+
+
 def test_runner_ladder_list_refuses_without_committed_grouper_hash(tmp_path, monkeypatch, capsys):
     bad = tmp_path / "seal.json"
     bad.write_text(json.dumps({"sha256": "1" * 64}))
@@ -660,3 +692,86 @@ def test_universe_excludes_negrisk_sports_weather_and_closed_and_picks_daily_cap
     assert [c["capture_id"] for c in caps] == ["a", "c", "d"]
     uni, rep = cs.read_universe(caps)
     assert sorted(uni["market_id"]) == ["1"] and rep["captures"] == 3
+
+
+def test_runner_analysis_needs_pinned_ladder_list_sha(tmp_path, monkeypatch, capsys):
+    spec = tmp_path / "spec.json"
+    spec.write_text(json.dumps({"structural_sha256": cs.declaration_sha256_structural()}))
+    monkeypatch.setattr(cs, "MODEL_SPEC_FILE", spec)
+    monkeypatch.setattr(cs, "_git_committed", lambda p: True)
+    assert run_main(["snapshots", "--family", "L", "--window", "dev", "--list-sha256", "x", "--extract-root", str(tmp_path)]) == 3
+    assert "ladder-list-sha256" in capsys.readouterr().out
+
+
+def test_declaration_must_be_git_committed(tmp_path, monkeypatch):
+    spec = tmp_path / "s.json"
+    spec.write_text(json.dumps({"structural_sha256": cs.declaration_sha256_structural()}))
+    assert not cs._git_committed(spec)  # outside the repo
+    with pytest.raises(cs.DeclarationError, match="not committed"):
+        cs.require_declaration(spec)
+    assert cs.require_declaration(spec, require_committed=False)
+
+
+def test_rep_outcome_read_refused_before_l_out(tmp_path):
+    pin = tmp_path / "pin.json"
+    cs.pin_rep_start("abcdef1", "2026-10-25T12:00:00+00:00", pin)  # rep 10-26 .. 11-23; L_out 12-23
+    with pytest.raises(cs.TooEarlyError):
+        cs.check_l_out_reached(datetime(2026, 12, 22, tzinfo=UTC), pin)
+    cs.check_l_out_reached(datetime(2026, 12, 24, tzinfo=UTC), pin)
+
+
+def test_payoff_gate_counts_per_unique_pair():
+    rows = [{"pair_id": "p1", "executed": True, "direction": "INC", "yes_m": "b", "no_m": "a", "K": 0.9}] * 40 + \
+           [{"pair_id": f"q{i}", "executed": True, "direction": "INC", "yes_m": f"b{i}", "no_m": f"a{i}", "K": 0.9} for i in range(29)]
+    trig = pd.DataFrame(rows)
+    fy = {"a": 1.0, "b": 0.0}  # inconsistent resolution for the repeated pair
+    fy.update({f"a{i}": 0.0 for i in range(29)} | {f"b{i}": 1.0 for i in range(29)})
+    g = cs.payoff_gate(trig, fy)
+    assert g["n_determined"] == 30 and g["n_below1"] == 1  # 40 repeated triggers count once
+    assert g["status"] == "fail"  # 1/30 > 2%
+
+
+def test_fee_vec_equals_economics_taker_fee():
+    from astrolabe.research_lab import economics
+
+    ps = np.linspace(0.0, 1.0, 101)
+    for rate, exp in ((0.0, 1.0), (0.04, 1.0), (0.07, 1.0), (0.05, 2.0)):
+        got = cs.fee_vec(ps, rate, exp)
+        want = np.array([economics.taker_fee(1.0, float(p), rate, exp) for p in ps])
+        assert np.allclose(got, want, atol=0, rtol=0)
+
+
+def _write_res(path, tests, **kw):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"tests": tests, **kw}))
+    return path
+
+
+def test_batch_holm_over_stage2_and_stagep(tmp_path):
+    w = _write_res(tmp_path / "W_holdout" / "results.json", {"W2": {"p": 0.004, "advance": True}, "W3": {"p": 0.2, "advance": False}}, stage=2)
+    ll = _write_res(tmp_path / "L_rep" / "results.json", {"L1": {"p": 0.015, "advance": True, "replicated": True},
+                                                          "X2": {"p": 0.011, "advance": True, "replicated": False}}, stage=2, window="rep")
+    s1 = _write_res(tmp_path / "L_dev" / "results.json", {"L1": {"advance": True}, "X1": {"advance": True}, "X2": {"advance": True}}, window="dev")
+    s1w = _write_res(tmp_path / "W_screen" / "results.json", {"W2": {"advance": True}, "W3": {"advance": True}})
+    out = cs.batch_holm([w, ll], stage1_paths=[s1, s1w])
+    assert out["m"] == 5 and out["missing_counted_p1"] == ["X1"]
+    t = out["tests"]
+    assert t["W2"]["reject"] and t["W2"]["replicated"]          # 0.004 <= 0.05/5
+    assert t["X1"]["p"] == 1.0 and not t["X1"]["replicated"]
+    # Holm step-down: sorted p 0.004, 0.011, 0.015, 0.2, 1.0 against 0.05/5, /4, /3, ...
+    assert t["X2"]["reject"] and not t["X2"]["replicated"]       # rejects, but its own gate failed
+    assert t["L1"]["reject"] and t["L1"]["replicated"]           # 0.015 <= 0.05/3
+    # files of another stage, or tests outside the family, are refused
+    dev = _write_res(tmp_path / "L_dev" / "res2.json", {"L1": {"p": 0.1}}, window="dev")
+    with pytest.raises(cs.Cb2Error):
+        cs.batch_holm([dev])
+    bad = _write_res(tmp_path / "L_rep2" / "r.json", {"L1": {"p": 0.1}, "D1": {"p": 0.1}}, stage=2)
+    with pytest.raises(cs.Cb2Error):
+        cs.batch_holm([bad])
+    with pytest.raises(cs.Cb2Error):  # a test that did not advance at Stage 1 may not appear
+        cs.batch_holm([w], stage1_paths=[_write_res(tmp_path / "W_screen" / "r3.json", {"W2": {"advance": True}, "W3": {"advance": False}})])
+    sp = _write_res(tmp_path / "W_stageP" / "results.json", {"W2": {"p": 0.03, "advance": True}}, stage="P")
+    outp = cs.batch_holm([sp], family="stageP")
+    assert outp["m"] == 1 and outp["tests"]["W2"]["replicated"]
+    with pytest.raises(cs.Cb2Error):
+        cs.batch_holm([sp])  # a stage-P file is not a Stage-2 file
