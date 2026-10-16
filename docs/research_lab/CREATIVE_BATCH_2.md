@@ -1020,3 +1020,17 @@ markets; whether 0.30 GB suffices for trades; whether the live CB2 step (up to 7
 
 **Order:** before q0040: fix 1. Before q0043: 6-12. Before census/analysis: 3, 4, 5, 13-20. Fix 2 before q0041 finishes
 if deletions or the 10.5 GB guard come near.
+
+## Implementation notes (weather), freeze-check fixes
+
+Fixes 6-11, 13, 19 and the weather part of 17 are in `cb2_weather.py`; the text-rule file now carries a third hash.
+- **6.** A non-200 page makes its window *failed* (counted in `windows_failed`, listed); if any window failed, `weather_fetch` writes no frame and stops as transient `walk_failed_windows`, so a partial frame is never sampled.
+- **7.** Events are fetched in seeded-rank order (`sha256(seed|event_id)`, the sampling rank), not event-id order. **If the fetch is incomplete at `T_seal`** (the job refuses new chunks then), `seal` seals the completed prefix of that order with `allow_incomplete`: the analysis universe is the longest prefix of events with a terminal record (done, or failed 3 times), the split (`D_split`, embargo, halves) is computed on that prefix only, and `SEAL.json` `split.universe` records `n_total_sample`, `n_universe`, `complete=false` and the prefix id hash (`verify-seal` recomputes it). A prefix of a seeded order is a random subset spread over all end dates, so it is unbiased in time and h6 stays usable at lower power. An unfinished run that `T_seal` has *not* cut is still refused. MDEs scale with the universe size and are reported in the census.
+- **8.** The walk runs `closed=false` before `closed=true`.
+- **9.** `weather_fetch` raises `Refused` if `SEAL.json` exists.
+- **10.** `--allow-uncommitted`, `--now`, `--t-rep-start` and `--k-stage2` are gone. Tests use the keyword parameters `require_committed`, `allow_nondeclared`, `t_rep_start` and `now`. The Stage-2 k is `stage2_k`: W tests advanced plus L/X tests advanced in `<out_root>/L_dev/results.json`; if that file is missing k assumes 3 for L/X (conservative). I did not require the Stage-1 results files to be git-committed (they live under `data-dumps`); k and its source are recorded in the holdout results.
+- **11.** `text_funcs_sha256` hashes the source of `city_slug`, `parse_title` and `parse_title_date`; it is in the text-rule file and the declaration.
+- **13.** `open_half("holdout")` refuses if `ACCESS_LOG.jsonl` already holds a holdout read.
+- **19.** Events whose fetch failed (3 attempts) get `pre = excl_fetch_failed`, counted apart from `excl_multi_missing`.
+- **17 (weather).** Stage P has a marked `TODO(batch_holm)` call site; until the shared batch Holm exists it reports a local W-only Holm and keeps the Bonferroni alpha binding.
+- **18 and 20** concern `cb2_structural.py` (`fee_vec`, rep role) and are not done here.

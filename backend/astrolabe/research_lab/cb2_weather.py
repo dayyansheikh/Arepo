@@ -190,6 +190,7 @@ def declaration_weather() -> dict:
         "version": VERSION,
         "temp_re": {"pattern": TEMP_RE, "flags": TEMP_RE_FLAGS, "sha256": TEMP_RE_SHA256},
         "tz_table": {"table": TZ_TABLE, "sha256": TZ_TABLE_SHA256},
+        "text_funcs_sha256": text_funcs_sha256(),
         "city_slug": "lowercase, spaces to hyphens",
         "population": {"neg_risk": True, "members": list(MEMBER_RANGE), "band": list(BAND),
                        "one_unit_per": "event and origin", "favourite": "highest as-of price, ties to "
@@ -248,8 +249,18 @@ class Refused(Cb2Error):
     """A guard refused to run."""
 
 
+def text_funcs_sha256() -> str:
+    """Hash of the SOURCE of the functions that turn question text into city / direction / date (freeze-check
+    fix 11): changing how a title is parsed changes this hash and so the committed text rules."""
+    import inspect
+
+    src = "\n".join(inspect.getsource(f) for f in (city_slug, parse_title, parse_title_date))
+    return hashlib.sha256(src.encode()).hexdigest()
+
+
 def text_rules_doc() -> dict:
-    return {"temp_re_sha256": TEMP_RE_SHA256, "tz_table_sha256": TZ_TABLE_SHA256}
+    return {"temp_re_sha256": TEMP_RE_SHA256, "tz_table_sha256": TZ_TABLE_SHA256,
+            "text_funcs_sha256": text_funcs_sha256()}
 
 
 def require_text_rules(path: Path = TEXT_RULES_FILE, *, require_committed: bool = True) -> None:
@@ -469,8 +480,11 @@ def walk_weather_events(lim, start: datetime, end: datetime, *, modes=(True, Fal
     events: dict[str, dict] = {}
     rep = {"requests": 0, "windows": 0, "split": 0, "windows_dropped_capped": 0,
            "rows_in_dropped_windows": 0, "dropped_capped_by_day": {}, "closed_false_events": 0,
-           "closed_true_events": 0, "modes": [bool(m) for m in modes]}
-    for mode in modes:
+           "closed_true_events": 0, "windows_failed": 0, "failed_windows": [],
+           "modes": [bool(m) for m in sorted(set(modes), key=bool)]}
+    # closed=false is walked BEFORE closed=true: an event that closes between the two walks is then seen by
+    # the second one (walking true first could miss it in both).
+    for mode in sorted(set(modes), key=bool):
         stack = []
         t = start
         while t < end:
@@ -478,7 +492,7 @@ def walk_weather_events(lim, start: datetime, end: datetime, *, modes=(True, Fal
             t += timedelta(days=step_days)
         while stack:
             a, b = stack.pop(0)
-            rows, capped, off = [], False, 0
+            rows, capped, off, failed = [], False, 0, False
             while True:
                 params = [("tag_slug", "weather"), ("closed", "true" if mode else "false"),
                           ("end_date_min", a.strftime("%Y-%m-%dT%H:%M:%SZ")),
@@ -487,6 +501,7 @@ def walk_weather_events(lim, start: datetime, end: datetime, *, modes=(True, Fal
                 status, data = lim.get(GAMMA_EVENTS, params)
                 rep["requests"] += 1
                 if status != 200 or not isinstance(data, list):
+                    failed = True  # a failed page is NOT the end of the window
                     break
                 rows.extend(data)
                 if len(data) < 100:
@@ -495,6 +510,11 @@ def walk_weather_events(lim, start: datetime, end: datetime, *, modes=(True, Fal
                 if off >= hb.GAMMA_OFFSET_CAP:
                     capped = True
                     break
+            if failed:
+                rep["windows_failed"] += 1
+                rep["failed_windows"].append([bool(mode), a.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                              b.strftime("%Y-%m-%dT%H:%M:%SZ")])
+                continue
             if capped and (b - a) > timedelta(days=1):
                 half = max(1, ((b - a).days) // 2)
                 mid = a + timedelta(days=half)
@@ -596,6 +616,12 @@ def draw_sample(events: list[dict], n: int, seed: str) -> list[dict]:
     """Seeded sample: rank by sha256(seed|event_id), first ``n``. Deterministic and order-independent."""
     ranked = sorted(events, key=lambda e: hashlib.sha256(f"{seed}|{e['event_id']}".encode()).hexdigest())
     return sorted(ranked[:n], key=lambda e: e["event_id"])
+
+
+def rank_order(events: list[dict], seed: str) -> list[dict]:
+    """Fetch order: ascending ``sha256(seed|event_id)``, the sampling rank. Independent of end date and of any
+    outcome, so an incomplete fetch is a random subset in time, not the latest (HOLDOUT) block."""
+    return sorted(events, key=lambda e: hashlib.sha256(f"{seed}|{e['event_id']}".encode()).hexdigest())
 
 
 def seal_ids_from_copy(path: Path) -> set[str]:
@@ -828,6 +854,8 @@ def weather_fetch(
     Outcomes (Gamma ``outcomePrices``, closed flags) go only to ``outcomes_guarded.csv.gz``."""
     root = Path(root)
     refuse_run_id(run_id)
+    if (root / run_id / h5_seal.SEAL_NAME).exists():  # a rerun would rewrite manifest.json and break the seal
+        raise Refused(f"{run_id} is sealed; weather-fetch never touches a sealed run")
     if wall_clock() >= t_seal_epoch:
         return {"stopped": "t_seal_passed", "counts": {}, "requests": 0}
     rdir = root / run_id
@@ -903,6 +931,9 @@ def weather_fetch(
             raw, walk_rep = walk_weather_events(
                 lim, datetime.fromtimestamp(parse_when(end_from), UTC),
                 datetime.fromtimestamp(end_cap, UTC), modes=walk_closed, log=log)
+            if walk_rep["windows_failed"]:  # an incomplete frame is never written (and so never sampled)
+                return manifest(f"walk_failed_windows: {walk_rep['windows_failed']}",
+                                {"transient": True, "walk_report": walk_rep})
             kept, outs, fcounts = apply_frame_rules(
                 raw, end_from=parse_when(end_from), end_cap=end_cap,
                 census_ex=(parse_when(census_ex[0]), parse_when(census_ex[1])), history_ids=hist, h5_ids=h5)
@@ -950,7 +981,7 @@ def weather_fetch(
                     c["trades_truncated_buckets"] += int(mm["trades"]["truncated"])
     stopped = None
     since = 0
-    for ev in events:
+    for ev in rank_order(events, seed):  # seeded-rank order: a cut at T_seal leaves a random prefix
         eid = ev["event_id"]
         prev = done.get(eid)
         if prev and (prev["status"] == "done" or prev.get("attempts", 0) >= MAX_EVENT_ATTEMPTS):
@@ -1082,9 +1113,16 @@ def open_half(run_dir: Path, half: str, job: str, seals_dir: Path | None = None)
         raise Refused(f"half must be screen or holdout, not {half!r}")
     run_dir = Path(run_dir)
     seal = verify_h6(run_dir, seals_dir)
-    events, _ = _events_for_split(run_dir)
+    if half == "holdout":  # one read: a crash after the first open must not allow a second look
+        log = run_dir / h5_seal.ACCESS_LOG_NAME
+        if log.exists() and any(":holdout" in json.loads(x).get("job", "")
+                                for x in log.read_text().splitlines() if x.strip()):
+            raise Refused("the HOLDOUT was already opened (ACCESS_LOG.jsonl); it is read once")
+    u = load_universe(run_dir)
+    events = u["events"]
     sp = split_h6(events)
     view = HalfView(run_dir, half, job, seal, sp, events, seal["declaration_sha256"])
+    view.failed_ids = set(u["failed_ids"]) & set(view.event_ids)
     view._log([f"events.jsonl.gz[{half}]"])
     return view
 
@@ -1102,12 +1140,13 @@ def _print(obj) -> None:
     print(json.dumps(obj, sort_keys=True, default=float))
 
 
-def cmd_weather_fetch(args) -> int:
+def cmd_weather_fetch(args, *, require_committed: bool = True, allow_nondeclared: bool = False) -> int:
     """``run_cb2.py weather-fetch``. Reads: ``run_id`` (h6_weather), ``seed``, ``n_events``, ``end_from``,
     ``end_before``, ``exclude_end`` ("a,b"), ``exclude_runs`` (csv), ``exclude_seal_ids`` (csv of committed
     seal copies), ``walk_closed`` ("true,false"), ``cap_at``, ``rps``, ``disk_cap_gb``, ``budget_min``,
     ``root``, ``data_dumps`` and ``data_dumps_cap_gb`` (10), ``snapshot_root``, ``text_rules_file``,
-    ``max_trades``. Optional (tests): ``allow_uncommitted``, ``allow_nondeclared``, ``transport``, ``now``,
+    ``max_trades``. Function parameters (tests only, not CLI flags): ``require_committed``,
+    ``allow_nondeclared``. Optional namespace hooks (tests): ``transport``, ``now``,
     ``wall_clock``, ``sleep``, ``live_check``, ``health_check``, ``key``.
 
     Refuses (exit 2) unless: the run id is allowed; the committed text-rule file matches TEMP_RE and the
@@ -1116,7 +1155,7 @@ def cmd_weather_fetch(args) -> int:
     and the wall clock is before ``T_seal``. Prints one JSON line (``weather_fetch_complete`` token when
     done); a budget or transient stop exits 0 and a re-run resumes."""
     prep_args(args)
-    committed = not getattr(args, "allow_uncommitted", False)
+    committed = require_committed
     try:
         rid = refuse_run_id(args.run_id)
         if rid != RUN_ID:
@@ -1137,7 +1176,7 @@ def cmd_weather_fetch(args) -> int:
         ex = _csv(args.exclude_end)
         if len(ex) != 2:
             raise Refused("--exclude-end needs 'start,end'")
-        if not getattr(args, "allow_nondeclared", False):
+        if not allow_nondeclared:
             bad = []
             if args.seed != SAMPLE_SEED:
                 bad.append("seed")
@@ -1182,10 +1221,53 @@ def cmd_weather_fetch(args) -> int:
     return 0
 
 
+def load_universe(rdir: Path) -> dict:
+    """The analysis universe of a finished (or T_seal-cut) fetch: the longest prefix, in seeded-rank order, of
+    events with a terminal progress record (done, or failed 3 times). Events beyond the first unfinished one are
+    outside the universe (the fetch is sequential in rank order, so this is a random subset of the sample,
+    not a time block). Reads ``events.jsonl.gz``, ``progress.jsonl`` and ``manifest.json`` only."""
+    rdir = Path(rdir)
+    events = load_jsonl_gz(rdir / "events.jsonl.gz")
+    man = json.loads((rdir / "manifest.json").read_text()) if (rdir / "manifest.json").exists() else {}
+    seed = (man.get("params") or {}).get("seed", SAMPLE_SEED)
+    term: dict[str, str] = {}
+    fails: dict[str, int] = {}
+    prog = rdir / "progress.jsonl"
+    if prog.exists():
+        for line in prog.read_text().splitlines():
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            if r.get("status") == "done":
+                term[r["event_id"]] = "done"
+            else:
+                fails[r["event_id"]] = fails.get(r["event_id"], 0) + 1
+                if fails[r["event_id"]] >= MAX_EVENT_ATTEMPTS and term.get(r["event_id"]) != "done":
+                    term[r["event_id"]] = "failed"
+    prefix = []
+    for e in rank_order(events, seed):
+        if e["event_id"] not in term:
+            break
+        prefix.append(e)
+    ids = {e["event_id"] for e in prefix}
+    return {"events": sorted(prefix, key=lambda e: e["event_id"]), "n_total": len(events),
+            "n_prefix": len(prefix), "complete": len(prefix) == len(events),
+            "failed_ids": sorted(i for i in ids if term[i] == "failed"), "prefix_ids_sha256": ids_sha256(ids),
+            "stopped": man.get("stopped"), "manifest_complete": man.get("complete"),
+            "events_sha256": h5_seal.sha256_file(rdir / "events.jsonl.gz")}
+
+
 def _events_for_split(rdir: Path) -> tuple[list[dict], str]:
-    """events.jsonl.gz only (never the outcome file)."""
-    p = Path(rdir) / "events.jsonl.gz"
-    return load_jsonl_gz(p), h5_seal.sha256_file(p)
+    """The prefix universe's events (never the outcome file) and the events-file hash."""
+    u = load_universe(rdir)
+    return u["events"], u["events_sha256"]
+
+
+def _prefix_record(u: dict) -> dict:
+    return {"n_total_sample": u["n_total"], "n_universe": u["n_prefix"], "complete": u["complete"],
+            "universe_ids_sha256": u["prefix_ids_sha256"], "n_fetch_failed": len(u["failed_ids"]),
+            "rule": "seeded-rank prefix of terminal events; an incomplete fetch is sealed only when cut by "
+            "T_seal"}
 
 
 def cmd_seal(args) -> int:
@@ -1198,14 +1280,18 @@ def cmd_seal(args) -> int:
     try:
         rid = h5_seal.check_run_id(refuse_run_id(args.run_id), h5_seal.H6_RUN_IDS)
         rdir = Path(getattr(args, "root", None) or HIST_ROOT) / rid
-        events, esha = _events_for_split(rdir)
-        sp = split_h6(events)
-        rec = split_record(sp, esha)
+        u = load_universe(rdir)
+        incomplete_ok = (not u["complete"]) and str(u["stopped"] or "").startswith("t_seal_passed")
+        if not u["complete"] and not incomplete_ok:
+            raise h5_seal.SealError("refusing to seal an unfinished run that T_seal has not cut "
+                                    f"({u['n_prefix']}/{u['n_total']} events done, stopped={u['stopped']!r})")
+        sp = split_h6(u["events"])
+        rec = {**split_record(sp, u["events_sha256"]), "universe": _prefix_record(u)}
         kw = {}
         if getattr(args, "trials_path", None):
             kw["trials_path"] = Path(args.trials_path)
         seal = h5_seal.seal_run(rdir, declaration_base=h5_seal.DECLARATION_H6, extra={"split": rec},
-                                source="creative_batch_2:cb2_f_seal", **kw)
+                                source="creative_batch_2:cb2_f_seal", allow_incomplete=incomplete_ok, **kw)
         copy = h5_seal.write_committed_copy(rdir, Path(args.seals_dir) if getattr(args, "seals_dir", None) else None)
     except (h5_seal.SealError, Cb2Error, FileNotFoundError) as exc:
         _print({"run_id": args.run_id, "error": str(exc)})
@@ -1221,9 +1307,11 @@ def verify_h6(rdir: Path, seals_dir: Path | None = None) -> dict:
     rdir = Path(rdir)
     copy = h5_seal.committed_seal_path(rdir.name, seals_dir)
     seal = h5_seal.require_sealed(rdir, copy)
-    events, esha = _events_for_split(rdir)
-    rec = split_record(split_h6(events), esha)
+    u = load_universe(rdir)
+    rec = {**split_record(split_h6(u["events"]), u["events_sha256"]), "universe": _prefix_record(u)}
     got = seal.get("split") or {}
+    if (got.get("universe") or {}).get("universe_ids_sha256") != rec["universe"]["universe_ids_sha256"]:
+        raise h5_seal.SealError(f"{rdir.name}: recorded universe differs from the recomputed prefix")
     for k in ("d_split", "screen_ids_sha256", "holdout_ids_sha256", "embargo_ids_sha256", "events_file_sha256"):
         if got.get(k) != rec[k]:
             raise h5_seal.SealError(f"{rdir.name}: recorded split differs from the recomputed split at {k}")
@@ -1284,7 +1372,8 @@ def band_of(p: float) -> str:
 
 
 def build_units(events: list[dict], series: dict[str, tuple[np.ndarray, np.ndarray]],
-                trades: dict[str, dict | None], origin_h: float) -> pd.DataFrame:
+                trades: dict[str, dict | None], origin_h: float,
+                failed_ids: frozenset | set = frozenset()) -> pd.DataFrame:
     """One row per event at the origin ``t = end_at - origin_h``. The favourite is chosen from prices usable
     at ``t`` only (stamp + 600 s < t, at most 2h old; ties to the lower market id; more than one bucket
     without a usable point excludes the event). Execution uses the favourite's as-of price at ``t + 2h``.
@@ -1306,6 +1395,9 @@ def build_units(events: list[dict], series: dict[str, tuple[np.ndarray, np.ndarr
                 "executed": False, "a": math.nan, "f": math.nan, "K": math.nan, "pre": "",
                 "trade_cond": "", "band": "",
                 "local_class": local_class(e["city"], e["direction"], e.get("title_date_iso"), te)}
+        if str(e["event_id"]) in failed_ids:  # the fetch failed: not a genuine missing-price exclusion
+            rows.append({**base, "pre": "excl_fetch_failed"})
+            continue
         if len(mids) - len(ranked) > 1 or not ranked:
             rows.append({**base, "pre": "excl_multi_missing"})
             continue
@@ -1741,10 +1833,10 @@ def _weather_parser():
             ("--n-wild", int, N_WILD), ("--placebo-draws", int, PLACEBO_DRAWS), ("--spec-path", str, None),
             ("--trials-path", str, None), ("--max-trades", int, MAX_TRADES), ("--data-dumps", str, None),
             ("--data-dumps-cap-gb", float, 10.0), ("--text-rules-file", str, None),
-            ("--k-stage2", int, K_STAGE2_DECLARED), ("--screen-results", str, None),
-            ("--holdout-results", str, None), ("--t-rep-start", str, None), ("--now", str, None)):
+            ("--screen-results", str, None), ("--holdout-results", str, None)):
         ap.add_argument(name, type=typ, default=default)
-    ap.add_argument("--allow-uncommitted", action="store_true")
+    # No bypass flags exist on the command line: commit checks, the T2_W_out gate and the pinned rep
+    # start can only be overridden by the keyword parameters of the functions below (tests).
     return ap
 
 
@@ -1774,15 +1866,16 @@ def _trials_kw(args) -> dict:
     return {"path": Path(args.trials_path)} if getattr(args, "trials_path", None) else {}
 
 
-def _require_decl(args) -> str:
+def _require_decl(args, require_committed: bool = True) -> str:
     spec = Path(args.spec_path) if getattr(args, "spec_path", None) else SPEC_PATH
-    return require_declaration_weather(spec, require_committed=not getattr(args, "allow_uncommitted", False))
+    return require_declaration_weather(spec, require_committed=require_committed)
 
 
 def _half_frames(view: HalfView) -> tuple[pd.DataFrame, pd.DataFrame, dict, dict]:
     series, trades = view.read_series()
-    u24 = build_units(view.events, series, trades, ORIGIN_H["W3"])
-    u6 = build_units(view.events, series, trades, ORIGIN_H["W2"])
+    failed = getattr(view, "failed_ids", set())
+    u24 = build_units(view.events, series, trades, ORIGIN_H["W3"], failed)
+    u6 = build_units(view.events, series, trades, ORIGIN_H["W2"], failed)
     return u24, u6, series, trades
 
 
@@ -1905,10 +1998,11 @@ def _header(view: HalfView, stage: str, decl: str, args) -> dict:
             "note": "development evidence only; not prospective, not an edge claim"}
 
 
-def _evaluate_half(args, half: str, job: str, tests, alpha, stage: str, out_name: str) -> tuple[int, dict | None]:
+def _evaluate_half(args, half: str, job: str, tests, alpha, stage: str, out_name: str,
+                   require_committed: bool = True) -> tuple[int, dict | None]:
     root, seals, out = _paths(args)
     rid = refuse_run_id(args.run_id)
-    decl = _require_decl(args)
+    decl = _require_decl(args, require_committed)
     path = out / out_name / "results.json"
     assert_outside_run_dir(path, root / rid)
     if path.exists():
@@ -1925,17 +2019,17 @@ def _evaluate_half(args, half: str, job: str, tests, alpha, stage: str, out_name
     return 0, {"doc": doc, "path": path, "decl": decl, "res": res, "view": view}
 
 
-def cmd_screen_w(args) -> int:
+def cmd_screen_w(args, *, require_committed: bool = True) -> int:
     """``run_cb2.py screen --family W`` (q0045). Reads: ``run_id``, ``root``, ``seals_dir``, ``out_root``,
     ``n_boot``, ``n_wild``, ``placebo_draws``, ``spec_path`` (committed ``cb2_v1.json`` with
-    ``weather_sha256``), ``trials_path`` (optional), ``allow_uncommitted`` (tests). Refuses without the
+    ``weather_sha256``), ``trials_path`` (optional); ``require_committed`` is a test-only function parameter. Refuses without the
     committed declaration. Opens the sealed SCREEN block only (HOLDOUT and embargo ids are refused, every
     read logged), tests W2 and W3 at Stage 1 (alpha 0.01, floors, R_ann, placebos, binding robustness),
     records W1 as descriptive, and writes ``<out_root>/W_screen/results.json`` (outside the sealed run)."""
     prep_args(args)
     try:
         _, st = _evaluate_half(args, "screen", "q0045_cb2_screen_W", ("W2", "W3"), ALPHA_STAGE1,
-                               "screen", "W_screen")
+                               "screen", "W_screen", require_committed)
     except (Cb2Error, h5_seal.SealError, FileNotFoundError) as exc:
         _print({"cb2_weather": VERSION, "refused": str(exc)[:400]})
         return 2
@@ -1952,10 +2046,22 @@ def cmd_screen_w(args) -> int:
     return 0
 
 
-def cmd_replicate_w(args) -> int:
+def stage2_k(out_root: Path, adv_w: list[str]) -> dict:
+    """Stage-2 family size k, fixed when Stage 1 ends: the W tests that advanced plus the L/X tests that
+    advanced in ``<out_root>/L_dev/results.json``. If the L/X Stage-1 results do not exist yet, k assumes the
+    declared maximum for them (L1, X1, X2 = 3), the conservative choice. Never taken from a command-line flag."""
+    lp = Path(out_root) / "L_dev" / "results.json"
+    if lp.exists():
+        adv_l = [k for k, v in json.loads(lp.read_text()).get("tests", {}).items() if v.get("advance")]
+        return {"k": len(adv_w) + len(adv_l), "source": str(lp), "adv_w": adv_w, "adv_lx": adv_l}
+    return {"k": len(adv_w) + 3, "source": "L/X Stage 1 not yet available: declared maximum 3 assumed",
+            "adv_w": adv_w, "adv_lx": None}
+
+
+def cmd_replicate_w(args, *, require_committed: bool = True) -> int:
     """``run_cb2.py replicate --family W`` (q0047). Reads, besides the screen flags: ``screen_results``
-    (default ``<out_root>/W_screen/results.json``) and ``k_stage2`` (Stage-2 family size, default 5, the
-    declared upper bound). Exits 0 'nothing advanced' WITHOUT opening the HOLDOUT when no W test advanced.
+    (default ``<out_root>/W_screen/results.json``). The Stage-2 family size k comes from the Stage-1
+    results (:func:`stage2_k`), never from a flag. Exits 0 'nothing advanced' WITHOUT opening the HOLDOUT when no W test advanced.
     Otherwise opens the sealed HOLDOUT block once (logged), tests only the advanced tests at
     alpha = 0.05 / k (Bonferroni; the batch Holm can only add passes), writes
     ``<out_root>/W_holdout/results.json`` and logs ``cb2_replication`` lines."""
@@ -1963,7 +2069,7 @@ def cmd_replicate_w(args) -> int:
     root, seals, out = _paths(args)
     try:
         refuse_run_id(args.run_id)
-        decl = _require_decl(args)
+        decl = _require_decl(args, require_committed)
         sp = Path(args.screen_results) if getattr(args, "screen_results", None) else out / "W_screen" / "results.json"
         if not sp.exists():
             raise Refused(f"no screen results at {sp}; run the screen first")
@@ -1974,10 +2080,11 @@ def cmd_replicate_w(args) -> int:
         if not adv:
             _print({"cb2_weather": VERSION, "status": "nothing advanced", "holdout_opened": False})
             return 0
-        k = max(int(args.k_stage2), len(adv))
+        kinfo = stage2_k(out, adv)
+        k = max(kinfo["k"], len(adv))
         alpha = ALPHA_STAGE2 / k
         _, st = _evaluate_half(args, "holdout", "q0047_cb2_holdout_W", tuple(adv), alpha, "holdout",
-                               "W_holdout")
+                               "W_holdout", require_committed)
     except (Cb2Error, h5_seal.SealError, FileNotFoundError) as exc:
         _print({"cb2_weather": VERSION, "refused": str(exc)[:400]})
         return 2
@@ -1985,7 +2092,7 @@ def cmd_replicate_w(args) -> int:
     for tid, t in res["tests"].items():
         t["replicated"] = bool(t["advance"])
         res["credit"][tid] = res["credit"].get(tid)
-    doc.update(advanced_at_stage1=adv, k_stage2=k, alpha_bonferroni=alpha, evidence_role="exploratory_historical",
+    doc.update(advanced_at_stage1=adv, k_stage2=k, k_source=kinfo, alpha_bonferroni=alpha, evidence_role="exploratory_historical",
                holm_w_only=_holm({t: res["tests"][t]["p"] for t in adv}, ALPHA_STAGE2),
                ceiling="development-replicated (L2-dev); out-of-time, not out-of-season; stage P confirms")
     sha = write_results(path, doc)
@@ -2253,22 +2360,23 @@ def stagep_family(u24: pd.DataFrame, u6: pd.DataFrame, *, tests, alpha: float, n
     return res
 
 
-def cmd_stagep(args) -> int:
+def cmd_stagep(args, *, require_committed: bool = True, t_rep_start: float | None = None,
+               now: float | None = None) -> int:
     """``run_cb2.py stagep --family W`` (q0049). Reads: ``extract_root`` (the CB1 extract with
     ``negrisk/``, ``event_members.csv.gz`` and ``event_text.csv.gz``), ``out_root``, ``rps``, ``n_boot``,
-    ``n_wild``, ``placebo_draws``, ``spec_path``, ``t_rep_start`` (ISO; default the pinned
-    ``seals/cb2_t_rep_start.json``), ``holdout_results``, ``snapshot_root``, ``now`` (ISO, tests),
-    ``trials_path``; optional test hooks ``transport``, ``wall_clock``, ``sleep``, ``live_check``,
+    ``n_wild``, ``placebo_draws``, ``spec_path``, ``holdout_results``, ``snapshot_root``,
+    ``trials_path``; the rep start is always the pinned ``seals/cb2_t_rep_start.json`` and the clock is the
+    wall clock (``t_rep_start``/``now`` are test-only function parameters, not flags); optional test hooks ``transport``, ``wall_clock``, ``sleep``, ``live_check``,
     ``health_check``. Refuses before ``T2_W_out`` (= T2_rep_start + 56 d + 7 d) and without the committed
     declaration; exits 0 'nothing replicated' when the HOLDOUT replicated no W test."""
     prep_args(args)
     root, _, out = _paths(args)
     try:
         refuse_run_id(args.run_id)
-        decl = _require_decl(args)
-        t0 = parse_when(args.t_rep_start) if getattr(args, "t_rep_start", None) else pinned_rep_start()
+        decl = _require_decl(args, require_committed)
+        t0 = t_rep_start if t_rep_start is not None else pinned_rep_start()
         t_out = t0 + (T2_W_END_DAYS + T2_W_OUT_DAYS) * DAY
-        now = parse_when(args.now) if getattr(args, "now", None) else time.time()
+        now = now if now is not None else time.time()
         if now < t_out:
             raise Refused(f"stage P is read at T2_W_out ({_iso(t_out)}); now is {_iso(now)}")
         hp = Path(args.holdout_results) if getattr(args, "holdout_results", None) \
@@ -2307,13 +2415,19 @@ def cmd_stagep(args) -> int:
         alpha = ALPHA_STAGEP / k
         res = stagep_family(u24, u6, tests=tuple(rep), alpha=alpha, n_boot=int(args.n_boot),
                             n_wild=int(args.n_wild), placebo_draws=int(args.placebo_draws))
+        # TODO(batch_holm, freeze-check fix 17): stage P must use the batch-wide Holm that the structural side adds
+        # (cb2_structural.batch_holm / run_cb2.py). Until it exists the local W-only Holm below is reported and
+        # the Bonferroni alpha above stays binding. Replace `batch_holm_w` with the shared call once available.
+        batch_holm_w = _holm({t: res["tests"][t]["p"] for t in res["tests"]}, ALPHA_STAGEP)
         doc = {"cb2_weather": VERSION, "stage": "P", "label": LABEL, "declaration_sha256_weather": decl,
                "t_rep_start": _iso(t0), "T2_W_out": _iso(t_out), "alpha": alpha, "k_stage_p": k,
                "replicated_at_holdout": rep, "counts": cnt, "censoring": {"origin24": cens24, "origin6": cens6},
                "requests": {"total": lim.requests, "http_429": pol.n429}, "run_utc": _stamp(),
                "evidence_role": "prospective_confirmation", "cumulative_count": c1.cumulative_total(),
                "execution_rate": {t: res["sensitivity"][t]["execution_rate"] for t in res["tests"]},
-               "mde_note": "stage-P MDEs are divided by the execution rate", **res}
+               "mde_note": "stage-P MDEs are divided by the execution rate",
+               "batch_holm_TODO": "shared batch_holm not yet available; local W-only Holm reported",
+               "holm_w_only": batch_holm_w, **res}
         assert_outside_run_dir(path, root / RUN_ID)
         sha = write_results(path, doc)
     except (Cb2Error, h5_seal.SealError, FileNotFoundError, KeyError) as exc:

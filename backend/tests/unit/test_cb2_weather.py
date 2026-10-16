@@ -20,6 +20,18 @@ NOW = datetime(2026, 10, 16, 12, 0, tzinfo=UTC).timestamp()
 KEY = b"k" * 32
 
 
+def fetch_cmd(a, **kw):
+    return w.cmd_weather_fetch(a, require_committed=False, **kw)
+
+
+def screen_cmd(a, **kw):
+    return w.cmd_screen_w(a, require_committed=False, **kw)
+
+
+def replicate_cmd(a, **kw):
+    return w.cmd_replicate_w(a, require_committed=False, **kw)
+
+
 def ep(s: str) -> float:
     return w.parse_when(s)
 
@@ -38,7 +50,8 @@ def test_temp_re_fixtures():
 
 def test_text_rules_file_matches_code_and_is_in_declaration():
     doc = json.loads(w.TEXT_RULES_FILE.read_text())
-    assert doc == {"temp_re_sha256": w.TEMP_RE_SHA256, "tz_table_sha256": w.TZ_TABLE_SHA256}
+    assert doc == {"temp_re_sha256": w.TEMP_RE_SHA256, "tz_table_sha256": w.TZ_TABLE_SHA256,
+                   "text_funcs_sha256": w.text_funcs_sha256()}
     d = w.declaration_weather()
     assert d["temp_re"]["pattern"] == w.TEMP_RE and d["temp_re"]["sha256"] == w.TEMP_RE_SHA256
     assert d["tz_table"]["table"] == w.TZ_TABLE and d["tz_table"]["sha256"] == w.TZ_TABLE_SHA256
@@ -553,7 +566,7 @@ def _fetch_args(tmp_path, **kw):
                 exclude_runs="", exclude_seal_ids=str(h5), walk_closed="true,false", cap_at="2026-10-22T00:00Z",
                 rps=4, disk_cap_gb=0.3, budget_min=None, root=str(tmp_path / "hist"), data_dumps=str(tmp_path / "dd"),
                 data_dumps_cap_gb=10.0, snapshot_root=str(tmp_path / "snap"), text_rules_file=str(rules),
-                allow_uncommitted=True, transport=FakeNet([]), now=NOW, wall_clock=lambda: NOW,
+                transport=FakeNet([]), now=NOW, wall_clock=lambda: NOW,
                 sleep=lambda s: None, live_check=lambda: False, key=KEY, health_check=lambda t: (True, "ok"))
     base.update(kw)
     return _ns(**base)
@@ -561,24 +574,24 @@ def _fetch_args(tmp_path, **kw):
 
 def test_cmd_weather_fetch_refusals(tmp_path, capsys):
     (tmp_path / "dd").mkdir()
-    assert w.cmd_weather_fetch(_fetch_args(tmp_path)) == 0
+    assert fetch_cmd(_fetch_args(tmp_path)) == 0
     for bad in (dict(run_id="h5_cb1"), dict(run_id="h3_power"), dict(seed="other"), dict(n_events=10),
                 dict(exclude_end="2026-10-08T00:00Z,2026-10-11T00:00Z"), dict(end_from="2025-07-01"),
                 dict(cap_at="2026-10-23T00:00Z"), dict(exclude_seal_ids=str(tmp_path / "none" / "h5_cb1_SEAL.json")),
                 dict(exclude_seal_ids=""), dict(text_rules_file=str(tmp_path / "missing.json"))):
-        assert w.cmd_weather_fetch(_fetch_args(tmp_path, **bad)) == 2, bad
+        assert fetch_cmd(_fetch_args(tmp_path, **bad)) == 2, bad
     # changed text rule hash refuses
     rules = tmp_path / "seals" / "bad.json"
     rules.write_text(json.dumps({"temp_re_sha256": "0", "tz_table_sha256": "1"}))
-    assert w.cmd_weather_fetch(_fetch_args(tmp_path, text_rules_file=str(rules))) == 2
+    assert fetch_cmd(_fetch_args(tmp_path, text_rules_file=str(rules))) == 2
     # uncommitted seal copy / rules refused when commits are required
-    assert w.cmd_weather_fetch(_fetch_args(tmp_path, allow_uncommitted=False)) == 2
+    assert w.cmd_weather_fetch(_fetch_args(tmp_path)) == 2
     # disk guard
     big = tmp_path / "dd" / "x"
     big.write_bytes(b"0" * 2048)
-    assert w.cmd_weather_fetch(_fetch_args(tmp_path, data_dumps_cap_gb=1e-6)) == 2
+    assert fetch_cmd(_fetch_args(tmp_path, data_dumps_cap_gb=1e-6)) == 2
     # at or after T_seal
-    assert w.cmd_weather_fetch(_fetch_args(tmp_path, wall_clock=lambda: w.T_SEAL_EPOCH)) == 0
+    assert fetch_cmd(_fetch_args(tmp_path, wall_clock=lambda: w.T_SEAL_EPOCH)) == 0
     out = capsys.readouterr().out
     assert "t_seal_passed" in out
 
@@ -932,7 +945,7 @@ def _spec(tmp_path) -> Path:
 def _run_args(tmp_path, **kw):
     base = dict(run_id="h6_weather", root=str(tmp_path / "hist"), seals_dir=str(tmp_path / "seals"),
                 out_root=str(tmp_path / "cb2out"), spec_path=str(_spec(tmp_path)), trials_path=str(tmp_path / "t.jsonl"),
-                n_boot=100, n_wild=499, placebo_draws=20, allow_uncommitted=True, k_stage2=5)
+                n_boot=100, n_wild=499, placebo_draws=20)
     base.update(kw)
     return _ns(**base)
 
@@ -973,13 +986,13 @@ def test_census_reads_no_outcomes_and_reports_g(tmp_path, monkeypatch, capsys):
 
 def test_screen_requires_declaration_and_writes_outside_sealed_dir(tmp_path, capsys):
     root = _sealed(tmp_path, 0.85)
-    assert w.cmd_screen_w(_run_args(tmp_path, spec_path=str(tmp_path / "missing.json"))) == 2
+    assert screen_cmd(_run_args(tmp_path, spec_path=str(tmp_path / "missing.json"))) == 2
     bad = tmp_path / "bad.json"
     bad.write_text(json.dumps({"weather_sha256": "0" * 64}))
-    assert w.cmd_screen_w(_run_args(tmp_path, spec_path=str(bad))) == 2
-    assert w.cmd_screen_w(_run_args(tmp_path, allow_uncommitted=False)) == 2  # spec not committed
+    assert screen_cmd(_run_args(tmp_path, spec_path=str(bad))) == 2
+    assert w.cmd_screen_w(_run_args(tmp_path)) == 2  # spec not committed
     assert not (tmp_path / "t.jsonl").read_text().count("cb2_test")
-    assert w.cmd_screen_w(_run_args(tmp_path)) == 0
+    assert screen_cmd(_run_args(tmp_path)) == 0
     res_path = tmp_path / "cb2out" / "W_screen" / "results.json"
     res = json.loads(res_path.read_text())
     assert not str(res_path).startswith(str(root / "h6_weather"))
@@ -988,7 +1001,7 @@ def test_screen_requires_declaration_and_writes_outside_sealed_dir(tmp_path, cap
     assert res["descriptive"]["W1"]["n_units"] > 0 and res["half"] == "screen"
     w.verify_h6(root / "h6_weather", tmp_path / "seals")  # seal still valid after the screen
     # never overwritten
-    assert w.cmd_screen_w(_run_args(tmp_path)) == 2
+    assert screen_cmd(_run_args(tmp_path)) == 2
     # trial lines: 2 cb2_test + descriptive + placebo lines + one count line with n_tests = 2
     lines = [json.loads(x) for x in (tmp_path / "t.jsonl").read_text().splitlines()]
     kinds = [x["kind"] for x in lines if x.get("evidence_role") != "placebo"]
@@ -1004,11 +1017,11 @@ def test_screen_requires_declaration_and_writes_outside_sealed_dir(tmp_path, cap
 
 def test_replicate_nothing_advanced_never_opens_holdout(tmp_path, capsys):
     root = _sealed(tmp_path, 0.5)  # fair coin: no edge
-    assert w.cmd_screen_w(_run_args(tmp_path)) == 0
+    assert screen_cmd(_run_args(tmp_path)) == 0
     scr = json.loads((tmp_path / "cb2out" / "W_screen" / "results.json").read_text())
     assert not any(v["advance"] for v in scr["tests"].values())
     capsys.readouterr()
-    assert w.cmd_replicate_w(_run_args(tmp_path)) == 0
+    assert replicate_cmd(_run_args(tmp_path)) == 0
     assert "nothing advanced" in capsys.readouterr().out
     log = [json.loads(x) for x in (root / "h6_weather" / "ACCESS_LOG.jsonl").read_text().splitlines()]
     assert all(":holdout" not in r["job"] for r in log) and not (tmp_path / "cb2out" / "W_holdout").exists()
@@ -1016,9 +1029,9 @@ def test_replicate_nothing_advanced_never_opens_holdout(tmp_path, capsys):
 
 def test_replicate_reads_holdout_once_logs_it_and_keeps_seal_valid(tmp_path, capsys):
     root = _sealed(tmp_path, 0.85)
-    assert w.cmd_screen_w(_run_args(tmp_path)) == 0
-    assert w.cmd_replicate_w(_run_args(tmp_path, spec_path=str(tmp_path / "missing.json"))) == 2
-    assert w.cmd_replicate_w(_run_args(tmp_path)) == 0
+    assert screen_cmd(_run_args(tmp_path)) == 0
+    assert replicate_cmd(_run_args(tmp_path, spec_path=str(tmp_path / "missing.json"))) == 2
+    assert replicate_cmd(_run_args(tmp_path)) == 0
     hold = json.loads((tmp_path / "cb2out" / "W_holdout" / "results.json").read_text())
     assert hold["half"] == "holdout" and hold["alpha_bonferroni"] == pytest.approx(0.05 / 5)
     assert set(hold["tests"]) == {"W2", "W3"} and all(t["replicated"] for t in hold["tests"].values())
@@ -1027,7 +1040,7 @@ def test_replicate_reads_holdout_once_logs_it_and_keeps_seal_valid(tmp_path, cap
     w.verify_h6(root / "h6_weather", tmp_path / "seals")
     lines = [json.loads(x) for x in (tmp_path / "t.jsonl").read_text().splitlines()]
     assert sum(1 for x in lines if x["kind"] == "cb2_replication" and x.get("evidence_role") != "placebo") == 2
-    assert w.cmd_replicate_w(_run_args(tmp_path)) == 2  # the holdout is read once: results are never overwritten
+    assert replicate_cmd(_run_args(tmp_path)) == 2  # the holdout is read once: results are never overwritten
     capsys.readouterr()
 
 
@@ -1119,8 +1132,8 @@ def test_stagep_cmd_refuses_before_t2_w_out_and_when_nothing_replicated(tmp_path
     t_out = rep + 63 * 86400
 
     def go(now, **kw):
-        return w.cmd_stagep(_run_args(tmp_path, extract_root=str(tmp_path / "x"), t_rep_start="2026-10-26T00:00Z",
-                                      now=w._iso(now), **kw))
+        return w.cmd_stagep(_run_args(tmp_path, extract_root=str(tmp_path / "x"), **kw), require_committed=False,
+                            t_rep_start=rep, now=now)
 
     assert go(t_out - 3600) == 2
     assert go(t_out) == 0 and "nothing replicated" in capsys.readouterr().out
@@ -1160,3 +1173,134 @@ def test_stagep_outcome_censoring_and_anomaly():
     assert out.loc[2, "Y"] == 0.7 and share["censored"] == 1 and share["resolution_lag_sensitive"] is True
     prim = w.stagep_primary(out)
     assert set(prim["event_id"]) == {"A", "C"}  # anomalous excluded from the primary; censored flagged, valued at last bid
+
+
+# =============================================================================================
+# Freeze-check fixes (6-11, 13, 19)
+# =============================================================================================
+def test_walk_counts_failed_windows_and_frame_is_not_written(tmp_path):
+    def bad(url, params):
+        return 400, b"[]", {}
+
+    m = fetch_kw(tmp_path, bad)
+    assert m["stopped"].startswith("walk_failed_windows") and m["transient"] is True
+    assert not (tmp_path / "h6_weather" / "events.jsonl.gz").exists()
+    assert m["walk_report"]["windows_failed"] > 0 and m["walk_report"]["failed_windows"]
+    lim = hb.Limiter(bad, rps=1000.0, sleep=lambda s: None, live_check=None)
+    _, rep = w.walk_weather_events(lim, datetime(2026, 9, 7, tzinfo=UTC), datetime(2026, 9, 14, tzinfo=UTC))
+    assert rep["windows"] == 0 and rep["windows_failed"] == 2  # one 7-day window per mode, none "complete"
+
+
+def test_walk_closed_false_before_closed_true():
+    net = FakeNet([gev(1, "2026-09-10")])
+    lim = hb.Limiter(net, rps=1000.0, sleep=lambda s: None, live_check=None)
+    w.walk_weather_events(lim, datetime(2026, 9, 7, tzinfo=UTC), datetime(2026, 9, 14, tzinfo=UTC), modes=(True, False))
+    modes = [dict(c[1])["closed"] for c in net.calls if c[0] == w.GAMMA_EVENTS]
+    assert modes[0] == "false" and modes[-1] == "true" and modes.index("true") > modes.index("false")
+
+
+def test_weather_fetch_refuses_a_sealed_run(tmp_path):
+    net = FakeNet(scenario())
+    m = fetch_kw(tmp_path, net)
+    assert m.get("token") == w.COMPLETE_TOKEN
+    assert w.cmd_seal(_ns(run_id="h6_weather", root=str(tmp_path), seals_dir=str(tmp_path / "s"), trials_path=str(tmp_path / "t.jsonl"))) == 0
+    before = (tmp_path / "h6_weather" / "manifest.json").read_bytes()
+    with pytest.raises(w.Refused, match="sealed"):
+        fetch_kw(tmp_path, net)
+    assert (tmp_path / "h6_weather" / "manifest.json").read_bytes() == before
+
+
+def _cut_clock(tmp_path, n_done):
+    pf = tmp_path / "h6_weather" / "progress.jsonl"
+
+    def clock():
+        if pf.exists() and len(pf.read_text().splitlines()) >= n_done:
+            return w.T_SEAL_EPOCH
+        return NOW
+    return clock
+
+
+def test_fetch_in_seeded_rank_order_and_cut_at_t_seal_seals_the_completed_prefix(tmp_path):
+    evs = [gev(i * 10, f"2026-09-{1 + i % 25:02d}", city=c) for i, c in enumerate(["NYC", "London", "Tokyo"] * 12)]
+    net = FakeNet(evs)
+    m = fetch_kw(tmp_path, net, end_from="2026-08-30", wall_clock=_cut_clock(tmp_path, 12), n_events=500)
+    assert m["stopped"] == "t_seal_passed" and m["counts"]["events_done"] == 12
+    rdir = tmp_path / "h6_weather"
+    sample = w.load_jsonl_gz(rdir / "events.jsonl.gz")
+    order = [e["event_id"] for e in w.rank_order(sample, "s")]
+    done = [json.loads(x)["event_id"] for x in (rdir / "progress.jsonl").read_text().splitlines()]
+    assert done == order[:12]  # seeded-rank order, not event-id / time order
+    assert done != sorted(done, key=int)  # not event-id (time) order
+    seals = tmp_path / "s"
+    rc = w.cmd_seal(_ns(run_id="h6_weather", root=str(tmp_path), seals_dir=str(seals), trials_path=str(tmp_path / "t.jsonl")))
+    assert rc == 0
+    seal = json.loads((rdir / "SEAL.json").read_text())
+    uni = seal["split"]["universe"]
+    assert seal["sealed_incomplete"] is True and uni["complete"] is False
+    assert uni["n_universe"] == 12 and uni["n_total_sample"] == len(sample)
+    assert seal["split"]["n_sample"] == 12  # the split is computed on the completed prefix only
+    w.verify_h6(rdir, seals)
+    view = w.open_half(rdir, "screen", "t", seals)
+    assert set(view.event_ids) <= set(done)
+
+
+def test_unfinished_run_not_cut_by_t_seal_is_refused(tmp_path):
+    net = FakeNet(scenario())
+    fetch_kw(tmp_path, net, should_stop=lambda: (tmp_path / "h6_weather" / "progress.jsonl").exists())
+    assert w.cmd_seal(_ns(run_id="h6_weather", root=str(tmp_path), seals_dir=str(tmp_path / "s"))) == 1
+    assert not (tmp_path / "h6_weather" / "SEAL.json").exists()
+
+
+def test_holdout_reread_after_a_crash_is_refused(tmp_path):
+    root = _sealed(tmp_path, 0.85)
+    rdir = root / "h6_weather"
+    view = w.open_half(rdir, "holdout", "q0047_cb2_holdout_W", tmp_path / "seals")  # first open (then "crash")
+    assert view.half == "holdout"
+    with pytest.raises(w.Refused, match="already opened"):
+        w.open_half(rdir, "holdout", "q0047_cb2_holdout_W", tmp_path / "seals")
+    w.open_half(rdir, "screen", "x", tmp_path / "seals")  # the screen is unaffected
+
+
+def test_stage2_k_comes_from_stage1_results(tmp_path):
+    assert w.stage2_k(tmp_path, ["W2"])["k"] == 1 + 3  # L/X Stage 1 not yet available: declared maximum
+    (tmp_path / "L_dev").mkdir()
+    (tmp_path / "L_dev" / "results.json").write_text(json.dumps({"tests": {"L1": {"advance": True}, "X1": {"advance": False}, "X2": {"advance": True}}}))
+    info = w.stage2_k(tmp_path, ["W2", "W3"])
+    assert info["k"] == 4 and info["adv_lx"] == ["L1", "X2"]
+
+
+def test_no_test_only_cli_flags_and_function_parameters_instead():
+    ns, unknown = w._weather_parser().parse_known_args(["--allow-uncommitted", "--now", "x", "--t-rep-start", "y", "--k-stage2", "9"])
+    assert not any(hasattr(ns, k) for k in ("allow_uncommitted", "now", "t_rep_start", "k_stage2"))
+    assert "--now" in unknown
+    a = _ns(extra=["--now", "2030-01-01T00:00Z", "--t-rep-start", "2020-01-01", "--k-stage2", "1"], run_id=None)
+    w.prep_args(a)
+    assert not any(hasattr(a, k) for k in ("now", "t_rep_start", "k_stage2", "allow_uncommitted"))
+    import inspect
+
+    assert "require_committed" in inspect.signature(w.cmd_screen_w).parameters
+    assert {"require_committed", "t_rep_start", "now"} <= set(inspect.signature(w.cmd_stagep).parameters)
+    # stage P cannot be pulled forward by a flag: with the real pinned rep start it refuses (before T2_W_out)
+    rc = w.cmd_stagep(_ns(extra=[], run_id=None, extract_root="x", out_root="/nonexistent"), require_committed=False)
+    assert rc == 2
+
+
+def test_text_rules_hash_covers_parsing_function_source(monkeypatch):
+    base = w.text_funcs_sha256()
+    assert w.text_rules_doc()["text_funcs_sha256"] == base
+
+    def parse_title(title):  # a different implementation
+        return None
+
+    monkeypatch.setattr(w, "parse_title", parse_title)
+    assert w.text_funcs_sha256() != base
+
+
+def test_fetch_failed_events_are_counted_separately_from_missing_prices():
+    e1, e2 = _event("a"), _event("b")
+    ser = {**_book(e1, [0.5, 0.1, 0.1, 0.1, 0.1]), **_book(e2, [0.5, 0.1, 0.1, 0.1, 0.1])}
+    tr = {**_trades(e1, {"am0"}), **_trades(e2, {"bm0"})}
+    u = w.build_units([e1, e2], ser, tr, 24.0, failed_ids={"b"})
+    assert dict(zip(u["event_id"], u["pre"], strict=True)) == {"a": "eligible", "b": "excl_fetch_failed"}
+    u2 = w.build_units([e1, _event("c")], ser, tr, 24.0)  # "c" has no fetched series: genuine missing prices
+    assert set(u2["pre"]) == {"eligible", "excl_multi_missing"}

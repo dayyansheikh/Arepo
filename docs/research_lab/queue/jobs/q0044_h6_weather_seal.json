@@ -29,5 +29,5 @@
   "trials.jsonl (1 history_seal_declaration)"
  ],
  "next_action": "Claude session: commit docs/research_lab/seals/h6_weather_SEAL.json (with D_split)",
- "notes": "split uses end_at, city and title date only (events.jsonl.gz); the outcome file is not opened; refuses an unfinished run and never rewrites a seal; verify later with scripts/run_cb2.py verify-seal --run-id h6_weather"
+ "notes": "split uses end_at, city and title date only (events.jsonl.gz); the outcome file is not opened; refuses an unfinished run and never rewrites a seal; verify later with scripts/run_cb2.py verify-seal --run-id h6_weather; if the fetch was cut by T_seal the completed seeded-rank prefix is sealed (universe recorded in SEAL.json split.universe, sealed_incomplete true); an unfinished run not cut by T_seal is refused"
 }
