@@ -14,7 +14,7 @@
  },
  "depends_on": [
   "q0016_h5_cb1_fetch",
-  "q0017_h5_cb1_ladders_fetch"
+  "q0017b_h5_cb1_ladders_fetch"
  ],
  "argv": [
   "scripts/cb1_h5.py",

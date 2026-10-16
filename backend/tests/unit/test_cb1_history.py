@@ -836,6 +836,21 @@ def test_h2_make_ctx_requires_manifest_lookback_days(tmp_path):
     assert cb.make_ctx(run).lookback_d == 700.0
 
 
+def test_h2_make_ctx_reads_lookback_days_from_manifest_params(tmp_path):
+    run = tmp_path / "h2_main"
+    run.mkdir()
+    base = {"request_clock_now": iso(END)}
+    (run / "manifest.json").write_text(json.dumps({**base, "params": {"lookback_days": 270}}))
+    assert cb.make_ctx(run).lookback_d == 270.0
+    # top-level wins when both are present
+    (run / "manifest.json").write_text(json.dumps({**base, "lookback_days": 100, "params": {"lookback_days": 270}}))
+    assert cb.make_ctx(run).lookback_d == 100.0
+    for params in ({}, {"lookback_days": None}, {"lookback_days": "x"}, {"lookback_days": 0}):
+        (run / "manifest.json").write_text(json.dumps({**base, "params": params}))
+        with pytest.raises(cb.Refused, match="lookback_days"):
+            cb.make_ctx(run)
+
+
 def _runner():
     import importlib.util
 

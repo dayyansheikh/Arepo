@@ -679,3 +679,25 @@ def test_ladders_probe_failure_stops_and_is_recorded(tmp_path):
     assert not (tmp_path / "lad" / "prices").exists()
     assert math.isclose(m["probe"]["share"], 0.0)
     assert h5_seal.seal_run(tmp_path / "lad", trials_path=tmp_path / "t.jsonl")["n_files"] > 0
+
+
+def test_ladders_missing_ifh2_file_fails_loudly_not_disk_budget(tmp_path):
+    _prior_run(tmp_path, "old", ["9999"])
+    fake = LadderFake([_event(1, "alpha", [("June 30", 0), ("July 31", 0)])])
+    with pytest.raises(FileNotFoundError, match="IF-H2 ladder file missing"):
+        h5_ladders.ladders_fetch(
+            tmp_path, "lad", fake, start=datetime(2024, 1, 1, tzinfo=UTC), end=datetime(2024, 1, 15, tzinfo=UTC),
+            exclude_runs=["old"], ifh2_ladder_file=tmp_path / "nope" / "ladders.jsonl.gz",
+            key=KEY, now=1_730_000_000.0, sleep=lambda s: None, live_check=None)
+
+
+def test_ladders_missing_excluded_run_sample_fails_loudly(tmp_path):
+    fake = LadderFake([_event(1, "alpha", [("June 30", 0), ("July 31", 0)])])
+    with pytest.raises(FileNotFoundError, match="excluded run"):
+        _lf(tmp_path, fake)  # run "old" was never created
+
+
+def test_history_default_root_is_absolute_repo_root():
+    assert hb.DEFAULT_ROOT.is_absolute()
+    assert hb.DEFAULT_ROOT.parts[-3:] == ("data-dumps", "research_lab", "history")
+    assert (hb.DEFAULT_ROOT.parents[2] / "backend" / "astrolabe").is_dir()

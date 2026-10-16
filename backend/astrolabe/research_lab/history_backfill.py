@@ -74,7 +74,8 @@ POINT_LAG_S = 600  # a point stamped t' is usable only if t' + lag < t (interval
 MAX_QUOTE_AGE_S = 7200  # series point older than this at the origin: no quote, row dropped
 MID_RANGE = (0.02, 0.98)  # exploratory eligibility on the origin price
 KEY_PATH = Path.home() / ".arepo" / "wallet_hash_key"
-DEFAULT_ROOT = Path("data-dumps/research_lab/history")
+# absolute (repo root), so a job with cwd=backend/ does not write under backend/data-dumps
+DEFAULT_ROOT = Path(__file__).resolve().parents[3] / "data-dumps" / "research_lab" / "history"
 
 PROBE_FINDINGS = {
     "date": "2026-10-11",

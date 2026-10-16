@@ -1858,7 +1858,10 @@ def make_ctx(run_dir: Path) -> Ctx:
     is_h5 = Path(run_dir).name.startswith("h5")
     lb = LOOKBACK_D
     if not is_h5:  # the run's own frame lookback (a longer rule would be vacuous, a shorter one is the frame's limit)
-        raw = load_manifest(run_dir).get("lookback_days")
+        man = load_manifest(run_dir)
+        raw = man.get("lookback_days")
+        if raw is None and isinstance(man.get("params"), dict):
+            raw = man["params"].get("lookback_days")  # history manifests store it under params
         try:
             lb = float(raw)
         except (TypeError, ValueError):

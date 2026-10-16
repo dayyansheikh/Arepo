@@ -156,6 +156,8 @@ def ladders_fetch(
             guard_rep.update({"ifh2_event_ids": len(ev_ids), "ifh2_rung_ids": len(rg_ids),
                               "history_sample_ids": len(samp)})
             _save(budget, lpath, ladders)
+        except FileNotFoundError:
+            raise  # a missing input is a loud failure, never a disk-budget stop
         except OSError as exc:
             return {"stopped": f"disk_budget: {exc}"}
     else:
