@@ -181,6 +181,7 @@ def main(argv: list[str] | None = None) -> int:
     for rid in runs:
         try:
             if a.cmd == "seal":
+                h5_seal.check_run_id(rid, h5_seal.H5_RUN_IDS)  # h6_weather: scripts/run_cb2.py seal
                 seal = h5_seal.seal_run(root / rid)
                 copy = h5_seal.write_committed_copy(
                     root / rid, Path(a.seals_dir) if a.seals_dir else None)
@@ -188,6 +189,7 @@ def main(argv: list[str] | None = None) -> int:
                                   "listing_sha256": seal["listing_sha256"],
                                   "n_files": seal["n_files"], "total_bytes": seal["total_bytes"]}))
             else:
+                h5_seal.check_run_id(rid)
                 seal = h5_seal.verify_seal(root / rid)
                 print(json.dumps({"run_id": rid, "verified": True,
                                   "listing_sha256": seal["listing_sha256"]}))

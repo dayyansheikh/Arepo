@@ -84,6 +84,25 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "Placebo lines count 0.",
     ),
     "cb1_history_descriptive": (EXCLUDE, "CB1 A1 sports descriptive line; not a test"),
+    "cb2_test": (
+        EXCLUDE,
+        "CB2 Stage-1 per-test lines (W2, W3, L1, X1, X2); the tests are the n_tests of the "
+        "'creative_batch_2:<job>' ml_explain line, counted there. Placebo lines count 0.",
+    ),
+    "cb2_replication": (
+        EXCLUDE,
+        "CB2 Stage-2 per-test lines (W holdout, L/X replication); counted by the n_tests of the matching "
+        "'creative_batch_2:<job>' ml_explain line. Placebo lines count 0.",
+    ),
+    "cb2_prospective": (
+        EXCLUDE,
+        "CB2 W stage-P per-test lines; counted by the n_tests of the matching 'creative_batch_2:*' "
+        "ml_explain line. Placebo lines count 0.",
+    ),
+    "cb2_descriptive": (
+        EXCLUDE,
+        "CB2 descriptive lines (W1, census, P gate, comparators); no inference, not a test.",
+    ),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "

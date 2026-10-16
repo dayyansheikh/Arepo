@@ -43,6 +43,32 @@ DECLARATION = {
 }
 
 
+# Run ids the seal CLIs accept. ``seal_run`` itself is id-agnostic (tests seal scratch ids); the CLIs call
+# :func:`check_run_id`. h6_weather (CB2-F) is sealed by ``scripts/run_cb2.py seal`` because its seal
+# also records the time-ordered split (``D_split``) computed from ``end_at``, city and title date.
+H5_RUN_IDS = ("h5_cb1", "h5_cb1_ladders")
+H6_RUN_IDS = ("h6_weather",)
+ALLOWED_RUN_IDS = H5_RUN_IDS + H6_RUN_IDS
+DECLARATION_H6 = {
+    "dataset_role": "CB2-W weather screen (SCREEN block) and development holdout (HOLDOUT block); not "
+    "prospective, not an edge claim",
+    "read_rules": "verify listing hash first; append every read to ACCESS_LOG.jsonl; SCREEN reads refuse "
+    "HOLDOUT and embargo ids; HOLDOUT is read once, after the CB2 freeze, only for W tests that advanced; "
+    "no outcome column is opened before the CB2 freeze commit; results are written outside this directory",
+    "information_end": "manifest request_clock_now (T_fetch6); every price and trade row capped at "
+    "min(T_fetch6, T_seal 2026-10-22T00:00Z)",
+    "split": "time-ordered by end date; group key = earliest end_at UTC date of the city-day; D_split = "
+    "smallest date leaving <= 40% of sampled events in the HOLDOUT; 2-day embargo dropped from both",
+}
+
+
+def check_run_id(run_id: str, allowed: tuple[str, ...] = ALLOWED_RUN_IDS) -> str:
+    """Refuse a run id outside the allowlist (CLI guard)."""
+    if run_id not in allowed:
+        raise SealError(f"run id {run_id!r} is not sealable here (allowed: {', '.join(allowed)})")
+    return run_id
+
+
 SEALS_DIR = Path(__file__).resolve().parents[3] / "docs" / "research_lab" / "seals"
 
 
@@ -105,9 +131,14 @@ def _incomplete_reason(manifest: dict) -> str | None:
     return None
 
 
-def seal_run(run_dir: Path, *, trials_path: Path | None = None, allow_incomplete: bool = False
-             ) -> dict:
-    """Write ``SEAL.json`` and an empty ``ACCESS_LOG.jsonl``; append one trial line."""
+def seal_run(run_dir: Path, *, trials_path: Path | None = None, allow_incomplete: bool = False,
+             declaration_base: dict | None = None, extra: dict | None = None,
+             source: str = "creative_batch_1:cb1_f_seal") -> dict:
+    """Write ``SEAL.json`` and an empty ``ACCESS_LOG.jsonl``; append one trial line.
+
+    ``declaration_base`` (default :data:`DECLARATION`), ``extra`` (additional top-level seal keys, e.g.
+    the h6 ``split`` record) and ``source`` are the CB2 generalisation; with the defaults the seal bytes
+    and the trial line are exactly those of the h5 seal."""
     run_dir = Path(run_dir)
     seal_path = run_dir / SEAL_NAME
     if seal_path.exists():
@@ -122,7 +153,8 @@ def seal_run(run_dir: Path, *, trials_path: Path | None = None, allow_incomplete
     files = list_files(run_dir)
     total = sum((run_dir / r).stat().st_size for r in files)
     frame_rep = manifest.get("frame_report") or {}
-    declaration = {**DECLARATION, "run_id": manifest.get("run_id", run_dir.name)}
+    base = DECLARATION if declaration_base is None else declaration_base
+    declaration = {**base, "run_id": manifest.get("run_id", run_dir.name)}
     seal = {
         "seal_version": SEAL_VERSION, "run_id": manifest.get("run_id", run_dir.name),
         "sealed_utc": _utc(), "git_commit": _git_commit(),
@@ -138,17 +170,25 @@ def seal_run(run_dir: Path, *, trials_path: Path | None = None, allow_incomplete
         "sealed_incomplete": bool(why),
         "declaration": declaration, "declaration_sha256": declaration_sha256(declaration),
     }
+    if extra:
+        clash = set(extra) & set(seal)
+        if clash:
+            raise SealError(f"extra seal keys clash with core keys: {sorted(clash)}")
+        seal.update(extra)
     seal_path.write_text(json.dumps(seal, indent=1, sort_keys=True))
     (run_dir / ACCESS_LOG_NAME).touch()
     from . import provenance
 
     kw = {} if trials_path is None else {"path": trials_path}
+    trial_extra = {}
+    if extra and isinstance(extra.get("split"), dict):
+        trial_extra = {"d_split": extra["split"].get("d_split")}
     provenance.append_trial({
         "kind": TRIAL_KIND, "evidence_role": "exploratory_historical",
-        "source": "creative_batch_1:cb1_f_seal", "run_id": seal["run_id"],
+        "source": source, "run_id": seal["run_id"],
         "listing_sha256": seal["listing_sha256"], "n_files": seal["n_files"],
         "total_bytes": seal["total_bytes"], "declaration_sha256": seal["declaration_sha256"],
-        "request_clock_now": seal["request_clock_now"], "n_tests": 0,
+        "request_clock_now": seal["request_clock_now"], "n_tests": 0, **trial_extra,
     }, **kw)
     return seal
 
