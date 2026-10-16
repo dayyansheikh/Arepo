@@ -1089,3 +1089,72 @@ outcome SDs as stated assumptions and an assumed within-market correlation of 0.
 the 2h-mark and resolution mark-outs in the results (the 2h mark-out is computed per fill, not summarised), and the `resolution` subcommand
 (guarded, exits 2). Analysis queue specs q0062, q0063, q0065-q0068 are not created (the freeze comes first); only the census specs q0061 and
 q0064 are committed. `arepo_pass.sh` is untouched.
+
+## Freeze check (science-reviewer, 2026-10-16T05:39Z): CB3 code against the design
+(The reviewer is read-only; the coordinator pasted this text, lightly condensed.)
+Code: 1d3ab59, 6186dfa, d125465, a0e7518, b431e88, 6c828eb. 95 scoped tests pass; declaration hash reproduces as `24f33c36…`;
+no `cb3_v1.json`, no rep pin.
+
+**Verdicts:** q0060 extractor/spec REVISE (1-2 URGENT); declaration/hash/runner REVISE (3 before q0061, 4 before any spec);
+family A ACCEPT_WITH_REQUIRED_FIXES; family B/maker REVISE; follow-up step REVISE (before deploy); `REBATE_SHARE` swap ACCEPT
+(identical values; geopolitics 0 = old default); KIND_RULES ACCEPT; q0061/q0064 specs REVISE.
+
+**Rulings on the implementation notes:** A2 void check on A1 only (note 1) accepted (under the placebo G − mean s(q − m_{i+1})
+= −mean s(m_T′ − m_{i+1}), A1's R quantity up to weighting); add a binding *centred* A2 bias check on that difference.
+Unavailable-fill rule (note 9) accepted (conservative, CB1 §2.2). `cb3_followup/` layout accepted with fixes 7-9. Frozen cuts
+outside the hash (note 17) acceptable only if the spec carries `frozen_cuts_sha256` and the `census.json` sha, the runner checks
+the cuts equal `frozen_cuts_proposal`, the spec blob can never change after its first commit (`spec_committed` only compares
+with HEAD, `cb3_declaration.py:274-284`), and every result and trial line records the cuts hash. Notes 2-8 and 10-16 accepted;
+note 18 rejected (fix 11).
+
+**Required fixes**
+1. **URGENT (deadlock).** Over 10.5 GB the job exits 1 (`run_cb3_quote_state.py:69`); with `max_retries` 2 it ends `failed`
+   after about 35 min while snapshot deletion waits for q0060. Refuse only on real headroom (output ≤ 0.3 GB under 12 GB).
+2. **URGENT (silent incompleteness).** Budget, `disk_cap` and lock stops exit 0 (`cb3_quote_state.py:266-271`); with
+   `repeat.max_runs` 2 the job becomes `done` with `backfill_complete` false, and the retention gate opens on job status. Make
+   `disk_cap` non-zero; release retention only when the manifest shows every complete capture before 10-15T21Z extracted or
+   missing with a reason; reconcile release-only captures (`:245`) and the §4.3.1 restore step before release.
+3. **Before q0061 (gate it).** The hash covers only constants and text (`cb3_declaration.py:228-249`). Add source hashes of every
+   rule-applying function (cb3_*, `cb1_history.queue_fill/asof_quote/trade_condition_state`,
+   `bounce_decomp.h_tight_mask/expanding_demean`, `small_g_pvalue`, `fee_spec/resolve_rate`) and the follow-up sampling
+   constants (frac 0.5, LIMIT, MAX_PAGES). CB2 fix 1 again.
+4. **Bypass flags.** `--spec` disables the commit check (`run_cb3.py:108`); `--now` skips the stage clock; `--n-boot`,
+   `--placebo-draws`, `--random-filter-draws`, `--max-markets` override declared values (`test_cb3_quote_vacuum.py:377` runs a
+   counted screen with an uncommitted spec, 0 bootstrap and 3 placebo draws; `--placebo-draws 0` removes the placebo gate,
+   `cb3_quote_vacuum.py:530`). Remove them (CB2 fix 10 again).
+5. **Look-ahead in B.** `panel_from_frames` keeps the latest non-empty `end_date`, `created_at`, fee fields
+   (`cb3_quote_vacuum.py:99-103`), so eligibility and LF use future values (`cb3_maker.py:1244,1262`); §2.2 needs as-of values.
+   Store them per capture.
+6. **Rebate inflated.** "Conservative" = max(schedule, docs); unknown schedule gets `MAX_DOCS_RATE` (`cb3_maker.py:59-61`,
+   `economics.py:121-131`); `fees_enabled` never passed, so fee-free markets get the maximum rebate. For income use the minimum,
+   unknown = 0; add `fees_enabled` to `quote_state`.
+7. **Failed requests hidden.** `build_prospective` ignores `not_reached`/`failed`/`http_*` (`cb3_maker.py:1254-1267`), so those
+   quotes count as unfilled. Exclude not-reached markets (counted), failed/partial windows unavailable, counts by status in q0064.
+8. **Pre-origin visibility.** RT and visibility use the post page-cap flag (`:376`, `:1267`); the trade sample's 500-print cap
+   (`trade_sample.py:314`) and per-market fetch status are not carried. Add both to `pre/`.
+9. **Pass alignment.** `P.cap_ids[j+1]` assumed to be pass j's follow-up (`cb3_maker.py:1220`; `cb3_quote_vacuum.py:686,695`):
+   check `plan.previous_capture_id`. Without a wallet key wallets are blank (`cb3_followup.py:247-251`): record such passes as
+   missing. Exhausted retries are recorded as http_429 (`:184`).
+10. **Stage 2 B reads Stage P origins** (`[r0, r1+12h)`, `pass_range=None`, `run_cb3.py:203,219`; same for stagep `:248,261`).
+    Restrict origins to `< r1` and `< p1`.
+11. **Note 18.** The design names Gamma `chg_1d`; coded as all-NaN, the control column is silently dropped (`control_frame :458`).
+    Load `chg_1d`. Use 1c depth (`s{k}_depth_*_1c` / pmxt) for the depth control and the B6 depth decile (`:929`, `:665`).
+12. **B1 prospective placebo** shifts the fills' own `t_fill − 60` (`:1312`), not the market's large-order stream (discarded at
+    `:1271`). Keep the real stream.
+13. **Weighted sign check** applied only at Stage 1 for mechanism tests (`:1117`); §2.6(ii) applies it at every stage.
+14. `stage2_expected` silently lowers k when an S1 file is missing (`cb3_common.py:293`): refuse. Census P `--before` not clamped
+    to `T3_dev_end` (`run_cb3.py:138`). The `T3_dev_end` three-day extension is not coded.
+15. **Fails open.** `T_J4R_end` read from the mutable q0035 spec (`cb3_declaration.py:25,320`). Pin it from J4-R's actual run.
+16. **q0064** depends only on q0061; its "no passes" refusal exits 3 and burns retries (`run_cb3.py:134`). Gate it until 10-25
+    plus ≥ 3 days of deployed follow-up.
+17. `pin_rep_start` checks only the floor; verify the max rule and that the pin is committed.
+18. Minor: `SweepMarks` lacks the [0.02, 0.98] mid band (`:280`); pmxt mark search unbounded (`:908`); a NaN SE passes the bias
+    rule (`cb3_common.py:210`); history far-touch mark ignores `after` (`:262`); `dep` fallback share unreported in history.
+
+**Not verified:** host data-dumps size and q0060 queue position; complete captures before 10-15T21Z on host vs the 0.30 GB cap;
+release-only captures; Data API page order; real `quote_state` size; whether q0061/q0064 are deployed.
+
+**Order:** 1-2 before q0060 (or hold it); 3 before q0061; 7-9 before deploying the follow-up; 4-6 and 10-17 before the freeze.
+
+**Coordinator action (2026-10-16 ~05:45Z):** q0060 held behind gate q0060a, q0061 behind q0061a, q0064 behind q0064a (4a40d67,
+deployed). RETENTION.md now opens the gate on manifest completeness, not job status.
