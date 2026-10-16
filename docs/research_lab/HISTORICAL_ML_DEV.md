@@ -327,6 +327,49 @@ Reading:
   J8 (q0013) now replicates the 4 advanced contrasts (C-TTE direction; C-ACT × 3) on h3 markets never read by ML,
   Holm at 0.05.
 
+## Revision h3_r5_rep (SB2-J8, q0013, 2026-10-16): frozen replication of the r5 contrasts on `h3_power`
+
+Frozen definitions and h2 discovery cuts from the r5_regime_ix results, no discovery on h3; markets of the recorded
+seed-7 h3_replication subset excluded (2,138, hash match), so the markets were never read by ML. 1,371 traded-panel
+markets, 89,785 rows, 20 folds. Four counted tests (prior cumulative 1,009), Holm 0.05, 10,000 bootstrap draws
+(p floor 1e-4). Results file `history/h3_power/ml_history_results_h3_r5_rep.json` (host).
+
+| contrast | h3 effect (nats) [95% CI] | h2 effect | Holm p | verdict |
+|---|---|---|---|---|
+| C-TTE, direction 2h | +0.0188 [0.0094, 0.0292] | +0.012 | 0.0004 | replicates |
+| C-ACT, direction 2h | +0.0427 [0.0346, 0.0509] | +0.059 | 0.0004 | replicates |
+| C-ACT, up-vs-down 2h | +0.0331 [0.0229, 0.0433] | +0.063 | 0.0004 | replicates |
+| C-ACT, up-vs-down 6h | +0.0115 [0.0015, 0.0222] | +0.043 | 0.0121 | replicates |
+
+All four replicate as declared. The weighted secondary agrees for three; for C-ACT 6h it does not (+0.0085, CI
+[-0.0023, 0.0200]). C-ACT is close to mechanical (see r5) and decays to 27-72% of the h2 effect; C-TTE in direction 2h
+(<24h to end versus >30d, 917 and 90 events) is the contrast with content. C-LIQ was not informative in J7 and was not
+carried. Forecasting only; no cost check; nothing is registered. Next: challenger pass before any registration draft
+(`SCREENING_BATCH_2.md` Results / J8).
+
+## Revision r4_book (q0004, 2026-10-16): pmxt book-family ablation on `h2_main`
+
+Question: does adding the pmxt book family (12 columns from the 6h-grid table) improve out-of-sample log loss over the
+baseline and flow models? Origins restricted to the pmxt window (131,684 rows), traded rows kept (94,435; 637 markets), 3
+time folds, horizons 2h/6h/24h, targets direction, absmove, up-vs-down. Only 16,750 in-window rows (12.7%) have a book;
+all others are NaN, and the ablation drops the family on all rows (the "judge on rows with a book" restriction in the
+plan was not applied). Run-internal BY: 4 tests per cell, m_total 277 (273 prior in the ML-only count); ledger count 36.
+
+Book-family ablation delta (log loss with the family minus without; positive = book helps), 95% cluster-bootstrap CI:
+
+| horizon | direction | absmove | updown |
+|---|---|---|---|
+| 2h | -0.0042 [-0.0072, -0.0013] | -0.0025 [-0.0046, -0.0004] | -0.0092 [-0.0183, -0.0001] |
+| 6h | +0.0030 [-0.0009, 0.0067] | +0.0015 [-0.0013, 0.0042] | +0.0071 [0.0004, 0.0138] |
+| 24h | -0.0027 [-0.0105, 0.0048] | -0.0158 [-0.0222, -0.0098] (placebo gate failed) | +0.0068 [0.0002, 0.0137] |
+
+Every book cell is labelled `descriptive_only` (BY p = 1.0); none is `demonstrated_incremental_value`. Flow is the only
+family with a stable positive delta (2h direction +0.0149, p_by 0.17). At 2h the book columns hurt (more parameters
+on 87% missing values). The two positive updown deltas (6h, 24h) have lower CIs near 0 and do not survive the cumulative
+BY correction. Global placebo gates passed in 8 of 9 cells; the 24h absmove gate failed (M2F>M2v on shuffled labels), so
+that cell is not interpretable. Leak positive control detected. Conclusion: no demonstrated book-family value at this
+coverage; a null at low power (3 folds, 12.7% coverage), not evidence that books carry no information. No cost check.
+
 ## Caveats
 
 * Historical and exploratory. Panels are reconstructed after the fact from prices-history, not point-in-time
@@ -350,7 +393,7 @@ Reading:
 
 1. `book` family: `--book-table` (analysis restricted to pmxt-window origins; judged on rows with a book).
    `wallet_age` is done (r2). The `h2_main` book table is still being built (the `h1_first` table has 11.6%
-   coverage); run `--revision r4_book` when it lands.
+   coverage); run `--revision r4_book` when it lands. **Done 2026-10-16 (q0004; see the r4_book section).**
 2. Done: conditional direction with the M0v baseline (r1).
 3. Capture neg-risk and parent event ids in the frame so the second cluster is distinct from the event.
 4. Scale to all 1,759 panel markets once the per-fold cost is acceptable.

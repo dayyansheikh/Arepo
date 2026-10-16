@@ -1292,3 +1292,58 @@ These rulings amend the J4-R draft above and J3; they bind both (applied before 
 - Reading: the conditioning of flow continuation on volatility and spread, and the liquidity moderation of 1d drift,
   replicate on independent markets. They are forecasting facts, not routes: the gross move is about a third of the
   round-trip cost. Prospective registration would only make sense for a maker-side use (CB3 family B) or as features.
+
+### J8 (q0013, frozen replication of J7 on `h3_power`, finished 2026-10-16 07:44Z): 4 of 4 advanced contrasts REPLICATE (development-replicated)
+- **Hypothesis.** The four J7 contrasts that advanced on h2 (C-TTE in direction 2h; C-ACT in direction 2h, up-vs-down 2h,
+  up-vs-down 6h) are contrasts in how much the full ML model beats M0v out of sample, between regimes. Do they hold on
+  markets that no ML run has read?
+- **Run.** `run_ml_history.py --run-id h3_power --revision h3_r5_rep --frozen-from .../ml_history_results_r5_regime_ix.json
+  --exclude-markets-from seed:7:250000`, frozen regime definitions and h2 discovery cuts, no discovery on h3. The exclusion
+  reproduced the recorded h3_replication subset (2,138 markets, 250,000 rows; sha256 match). Remaining subset 2,184 markets
+  (250,000-row cap); traded-before-t panel 89,785 rows, 1,371 markets, 20 folds (up-vs-down 6h: 17 folds). Prior cumulative
+  count 1,009; 4 counted tests (`ml_explain`, revision `h3_r5_rep`).
+- **Results** (contrast = mean per-row log-loss gain of the full model over M0v in regime A minus regime B, judgement rows,
+  event/dep_group cluster bootstrap with 10,000 draws; p floor 1e-4; Holm p is one-sided in the frozen positive sign):
+
+| contrast | judge rows (A / B) | clusters (events A / B) | h3 effect [95% CI] | h2 effect | Holm p | weighted (CI) |
+|---|---|---|---|---|---|---|
+| C-TTE, direction 2h (<24h minus >30d) | 8,350 / 40,054 | 917 / 90 | +0.0188 [0.0094, 0.0292] | +0.012 | 0.0004, **replicates** | +0.0198 [0.0092, 0.0314] |
+| C-ACT, direction 2h | 12,922 / 66,570 | 1,160 / 887 | +0.0427 [0.0346, 0.0509] | +0.059 | 0.0004, **replicates** | +0.0438 [0.0351, 0.0529] |
+| C-ACT, up-vs-down 2h | 5,646 / 15,555 | 1,047 / 757 | +0.0331 [0.0229, 0.0433] | +0.063 | 0.0004, **replicates** | +0.0333 [0.0214, 0.0454] |
+| C-ACT, up-vs-down 6h | 7,231 / 22,143 | 871 / 791 | +0.0115 [0.0015, 0.0222] | +0.043 | 0.0121, **replicates** | +0.0085 [-0.0023, 0.0200], one-sided p 0.064 (not replicated under the weighted secondary) |
+
+  Declared verdict (Holm 0.05 over 4): all four replicate (`replicated` list in the output). C-ACT shrinks to 72%, 53% and
+  27% of the h2 effect in the three cells (the 6h cell has an h3 CI that excludes the h2 point estimate); C-TTE is
+  1.6 times the h2 point estimate (the h2 CI was wide).
+- **Reading.** The full model's extra gain over M0v is larger in the last 24h before the end date (direction 2h) and in
+  rows with a trade in the last 2h. C-ACT is close to mechanical (flow/state features are empty without trades), as already
+  disclosed for J7, so it says where the flow value sits, not that activity creates a new conditional effect. C-TTE is the
+  only non-mechanical replicated contrast. C-LIQ was not informative in J7 and is not replicated (not advanced).
+- **Economics.** Forecasting only, no cost check. The quantity is a log-loss gain (nats) of a model over a baseline;
+  it does not map to a tradable return.
+- **Limitations.** Development ceiling (h3, frozen definitions); h3 markets were read by HB1-R and the surprise
+  replication (battery features, not ML), disclosed; contrasts are about model gain, not about a trade rule; the 6h cell
+  rests on a weak-to-moderate effect that fails the weighted secondary; C-TTE rests on 90 events in the >30d regime.
+- **Next (per the stop rule).** At least one contrast replicated, so Q6 is not closed: a challenger (`science-reviewer`)
+  pass is required before any prospective MC1-style registration draft. The pass should weigh the mechanical-C-ACT caveat
+  (C-TTE direction 2h is the candidate with content), the C-ACT decay, and whether a model-gain contrast needs an
+  economic design before it is registered. No registration or sealing has been done.
+
+### J3 (q0011, run `bounce-j3x`, finished 2026-10-16 13:02Z): verdict UNAVAILABLE (judgement rows below the declared floor)
+- **Hypothesis.** Q5: is the series reversal bounce/measurement or a reversal of the pmxt book mid itself (B1-B4, Holm over 4);
+  Q3: is flow continuation stronger relative to book depth (D1, D2, Stage-1 gate)?
+- **Run.** Expanding-past estimator and pooled bootstrap placebo (`j3_expanding_v1`, J3 amendment), seed 116, 2,000
+  bootstrap draws, 20 placebo draws; `family_status` OK; level and increment consistency checks passed (1,030 edges,
+  0 mismatches). Prior cumulative count 1,028; 6 counted tests (`book_decomp`, count line `ml_explain`).
+- **Data.** `h2_main` panel 420,937 rows; 8,701 with a book at t; 3,597 with books at t and t-6h; 3,576 with a valid series
+  target; 1,431 lose the book-mid target at t+6h (521, 468 and 442 in liquidity terciles 0, 1 and 2);
+  **2,145 complete rows**, split 1,053 discovery and **751 judgement rows in 113 events**.
+- **Verdict.** The declared floor is 2,000 judgement rows and 100 events; 751 rows fail it (events pass), so the output is
+  `overall: unavailable`. No B1-B4, D1 or D2 estimate was computed (`tests` is empty), the placebo is `testable: false`
+  for all six, and the horizon-matched benchmark `rho_s` is not reported. This is a data-availability outcome, not a null
+  effect and not evidence of absence. Power was well below the 10-20k rows the design anticipated.
+- **Economics.** None (forecasting/measurement only, no cost check). Evidence ceiling L1 (h2 only, no replication).
+- **Next (per the stop rule).** Q5 closes for history only on a verdict other than unavailable or inconclusive, so it
+  stays open. No re-run is possible on the existing table (the h2 pmxt coverage is fixed; changing the floor, the
+  window or the estimator would be a design change needing written justification and review). A passive/maker-side
+  capture study needs its own design, as already declared.

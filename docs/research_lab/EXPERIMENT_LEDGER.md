@@ -1174,3 +1174,39 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   −2.5c, and still negative at half-spread without fees. Not tradable as a taker.
 - **Engineering:** first two attempts crashed on NaN controls in F8's secondary (fixed c269ff4; disclosed). Details:
   `SCREENING_BATCH_2.md` Results / J2.
+
+## Development replication SB2-J8 — frozen replication of the r5 regime contrasts on `h3_power` (q0013, 2026-10-16)
+- **Status:** counted (4 `ml_explain` tests, Holm family of 4; prior cumulative 1,009), development-replicated ceiling
+  (J8 is the frozen-definition h3 read on the ML-unread complement; 2,138 recorded replication markets excluded, sha match).
+- **Replicated (Holm 0.05, frozen sign):** C-TTE direction 2h (+0.0188 nats, CI [0.0094, 0.0292]); C-ACT direction 2h
+  (+0.0427 [0.0346, 0.0509]); C-ACT up-vs-down 2h (+0.0331 [0.0229, 0.0433]); C-ACT up-vs-down 6h (+0.0115 [0.0015, 0.0222],
+  Holm p 0.0121). **Not replicated:** none of the four. The 6h cell fails the weighted secondary (one-sided p 0.064).
+  C-ACT decays to 27-72% of the h2 effect and is close to mechanical (flow features empty without trades).
+- **Economics:** forecasting only, no cost check (log-loss gain over a baseline model, not a return).
+- **Next:** stop rule met (at least one replicated). Challenger pass (`science-reviewer`) before any MC1-style registration
+  draft; C-TTE direction 2h is the candidate with content. Details: `SCREENING_BATCH_2.md` Results / J8,
+  `HISTORICAL_ML_DEV.md` J8 section.
+
+## Development screen SB2-J3 — book-mid bounce decomposition, `j3_expanding_v1` on `h2_main` pmxt rows (q0011, 2026-10-16)
+- **Status:** counted (6 tests, `book_decomp` plus count line; prior cumulative 1,028), development, ceiling L1 (h2 only).
+  `family_status` OK, so the unavailability is not a family failure.
+- **Result: UNAVAILABLE, not a null.** 751 judgement rows in 113 events (declared floor 2,000 rows and 100 events);
+  2,145 complete rows of 420,937 panel rows. No B1-B4, D1 or D2 estimate and no `rho_s` benchmark was produced; the
+  placebo was untestable. Q5 and the depth-conditional flow question (Q3, book part) stay open for history.
+- **Economics:** none (no cost check). No re-run is possible on this table without a reviewed design change.
+- **Next:** none for J3 itself. A maker-side capture study needs its own design (SCREENING_BATCH_2.md J3 stop rule).
+
+## Development ablation ML-r4_book — pmxt book family on `h2_main` (q0004, 2026-10-16)
+- **Status:** counted (36 `ml_explain` ablation tests: 9 cells of 3 horizons x 3 targets, 4 units each; run-internal BY
+  m_total 277), development (exploratory_historical), 3 time folds, 637 markets, 94,435 rows (updown 20,854 at 2h;
+  29,325 at 6h; 42,082 at 24h). Only 16,750 of 131,684 in-window origins have a book (12.7%); the rest are NaN.
+- **Result: book family is `descriptive_only` in all 9 cells; none is `demonstrated_incremental_value`.** Book
+  ablation delta log loss (positive = book helps): 2h direction -0.0042 [-0.0072, -0.0013], absmove -0.0025, updown
+  -0.0092 (book hurts); 6h direction +0.0030 [-0.0009, 0.0067], updown +0.0071 [0.0004, 0.0138]; 24h updown +0.0068
+  [0.0002, 0.0137]. All BY p = 1.0. Flow remained the only family with a stable positive delta (2h direction +0.0149,
+  p_by 0.17). Plain reading: book levels add no demonstrated out-of-sample value over the baseline/flow models here;
+  the two nominally positive updown deltas are borderline, not corrected-significant, and sit on 12.7% coverage.
+- **Defects disclosed:** 24h absmove placebo gate failed (M2F>M2v on shuffled labels), so that cell is not interpretable;
+  the output note still says "Book features absent" (boilerplate).
+- **Economics:** none (no cost check). **Next:** none; the book family is closed as descriptive at this coverage. A
+  higher-coverage book table would be a new design.
