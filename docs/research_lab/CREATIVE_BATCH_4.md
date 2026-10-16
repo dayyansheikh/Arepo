@@ -1023,9 +1023,63 @@ code and tests exist; analysis jobs also need the reviewed CB4 freeze commit.
 
 ---
 
-## Challenger review, round 1
+## Challenger review, round 1 (science-reviewer, 2026-10-16 04:30Z): ACCEPT_WITH_REQUIRED_CHANGES
 
-Pending (`science-reviewer`).
+(The reviewer is read-only; the coordinator pasted this text verbatim.)
+
+**REQUIRED**
+1. **CH46 C2 future-informed selection.** Classes E/P and "still listed at `c_{k+1}`" depend on post-`τ0` events. Fix
+   the C2 population at `τ0` (accepting, `end_date ∈ (τ0, τ0+2h]`, scheduled life ≥ 1 d); flip classes become strata.
+2. **CH46 C1 contrast.** Compute Δ per (market, token) with same-token prints in both windows; otherwise Δ mostly
+   measures token composition, not `Y`. Class N (instant closes) is a different population: match within
+   `fee_category` × end-time cell, report S−N with CI, cluster N by end timestamp.
+3. **CH52 lo-band control is not clean.** Top-tier harvesting moves mid states into lo, and a gap-distribution shift
+   changes adjacent band shares non-uniformly. Report hi/mid/lo/none shares and the pre/post `G−F0` distribution; add a
+   binding equal-width pseudo-band check.
+4. **CH52 `closedTime ≤ h+1h` is a population condition** (violates the draft's own §2.2). Use scheduled `endDate`;
+   mid-hour closures just make minutes ineligible.
+5. **CH52 ingress under-estimated about 2×.** Measured about 540 MB per origin for 50 markets
+   (`HISTORICAL_SOURCES.md:87-88`); with 90 markets plus minute-0 lookback expect about 85-170 GB at H=168 and 170-340 GB
+   at H=336. Declare an ingress cap and an H rule under it; disclose that q0002 (priority 60, 60 runs) holds the `net`
+   lane.
+6. **CH53 time-to-end confound.** Periods of 79/40/29 days put in-period origins at different times-to-end, and S/O
+   lifetimes differ (HB2 F3: slope depends on nearness to resolution). Fix origins at `[endDate−L, endDate)` inside the
+   period; exclude 7 days after each treatment date.
+7. **CH53 E1 mechanical sign.** `f_imb_6h = S/N` (`battery.py:473`): removing balanced wash raises |imb| with no new
+   information, lowering the slope mechanically. Use signed notional or declare the sign uninterpretable. E2: report the
+   spread and drift components separately.
+8. **CH50 `t0`.** `closedTime` semantics are unverified (risk 7). Before the freeze, check (no outcome fields) that the
+   outcome is public at `t0`; make sign agreement with the `endDate+1h` origin binding.
+9. **Side audits too narrow.** CH46 audit two-sided (BUY and SELL, per token). Add a CH50 audit on SCREEN trades
+   against the as-of history price (the live audit does not cover h7).
+10. **CH50 pseudo-roll.** Attribution on units with both origins; report S2 on that subset; count units with a missing
+    pseudo-origin (daily successors created close to `t0`).
+11. **`T_seal` not handled.** h7 fetches must finish before 2026-10-22T00:00Z, need the committed
+    `seals/h5_cb1_SEAL.json` (not yet committed), and their priority (46-47) sits below q0043 and q0016-18. Add
+    `depends_on` q0018, set a feasible priority or sample size, and declare "not run, recorded" as the outcome if the
+    deadline is missed (no change to the cap).
+12. **q0080.** Priority 62. Add CB4 to the `RETENTION.md` gate-release rule (sweeps deletable at 3 days,
+    `RETENTION.md:75`). Stream release copies one capture at a time (peak ≤ 0.2 GB), not a 5-6 GB transient.
+13. **Enforce R0 in code.** Unit test that `cost_regime()` never goes below the CB1 §2.1 defaults; the band map must not
+    choose categories or bands for any later test on April-July pmxt data.
+
+**Optional:** a 50-share VWAP descriptive; report δ_S and δ_O as co-equal; check ρ against the venue page.
+
+**Rulings on the open questions**
+1. Single stage accepted under R0 plus #13, labelled "unreplicated measurement".
+2. Do not double the CH53 sample (deadline; #6/#7 matter more).
+3. lo band alone insufficient (#3); ρ = 0.50 accepted as a labelled assumption with 0.25 reported; 10 shares acceptable.
+4. Class N not fair as drafted (#2).
+5. `P_A` acceptable as primary with sign agreement binding (the martingale argument holds for history prices, not
+   one-sided prints); exact matching and cadence horizons accepted.
+6. q0080 → priority 62.
+7. Sports acceptable as a measurement control only; no sports finding drawn; April reward pools noted.
+
+**Verified:** fee dates (`CREATIVE_HYPOTHESES_2026-10-16.md:27,768,781`); regime dates (`HISTORICAL_SOURCES.md:22-24`);
+h2 counts (CB1:1319); 952+27 (`EXPERIMENT_LEDGER.md:1159`); `cost_regime` absent, `sweep_fill` at `economics.py:205`;
+sidecar fields `ext_sidecar.py:35-44`; host 1 OCPU / 5.6 GiB; 12 GB cap. **Unverified:** current 7.6 GB use (the
+coordinator measured 7.6 GB at 03:56Z), 70 MB per capture, tier percentages, `closedTime` semantics, Data API side
+convention.
 
 ## Response to challenger round 1
 
