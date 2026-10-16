@@ -1441,3 +1441,21 @@ Response to the "Freeze check (science-reviewer, 2026-10-16 05:20Z)". Commits 74
   `  timeout 600 nice -n 10 $PY scripts/run_cb4.py closewin --all-new --data-dumps-max-gb 12 2>&1 | tail -1 || true   # CB4 closewin/departures (CREATIVE_BATCH_4.md §2.10)`
   It oldest-first extracts the captures not yet done, skips the catalogue scan, and its refusal exit is swallowed by `|| true`. Add CB4 §2.10(b) to the `RETENTION.md` gate-release rule when the line is live.
 - **14.** The event-level weather exclusion also uses `fee_category == weather`; `h5_cb1_ladders_SEAL.json` (sibling of the h5 copy) is required and its ids are excluded; `events_shared_across_series` and `units_in_shared_events` are counted in `units_report.json`.
+
+## Re-check of CB4 data fixes (science-reviewer, 2026-10-16T05:50Z)
+(Read-only reviewer; pasted by the coordinator, condensed.) Commits 748234d, e64d9cd, ea62f7f, 7b98dad; 67 tests pass.
+- RESOLVED: 1, 2, 4, 7, 8, 9 (the era frame is still written with failed days counted), 10, 12, 14.
+- PARTIAL: **3** (release-only captures tagged `no_host_manifest`; host comparison still to do); **5**
+  (`require_data_dumps_room` 10 GB refusal, exit 2, still burns `max_retries` 3; likely from about 10-18); **6** (not yet hashed:
+  `walk_series_events`, the `r_to` arithmetic and walk end inside `series_fetch`, `_history_ids`, `_h5_ids`,
+  `with_ladders_copy`; `RULE_TEXT` never defines R_to); **11** (see c).
+- NOT RESOLVED: **13** (no `run_cb4` pass step in `arepo_pass.sh`; RETENTION.md lacks §2.10(b)).
+- (a) Do not commit `cb4_series_rules.json` yet: hash the event walk, roll-range helper and exclusion helpers, add R_to to
+  `RULE_TEXT`, generate from a clean tree, and commit it **before** creating q0081a (`require_series_rules` also runs for the
+  frame stage, so q0082f would burn its retries).
+- (b) q0080 is safe to run scientifically. Residue: the host coverage check; `zstd -d --long=31` under a 1.95 GiB address cap
+  (fine for releases built with the default window; unverified per release); "done" after 8 clean runs ≠ complete, so retention
+  must keep relying on manifest completeness.
+- (c) "Not run, recorded" is not guaranteed: q0083 waits for a manual q0083b; creating q0083b early makes it exit 0 → done and
+  q0083 then fails permanently. Recommend `record-deadline` exits non-zero before T_seal, q0083 `max_retries` ≥ 2, or a worker
+  `not_before` field. Minor: `run_state` may seal a run completed after T_seal; compare completion time with T_seal.
