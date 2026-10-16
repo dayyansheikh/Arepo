@@ -620,3 +620,25 @@ def test_runner_weather_hooks_exit_2_when_module_missing(monkeypatch, capsys):
 def test_runner_p_family_has_no_screen(capsys):
     assert run_main(["screen", "--family", "P"]) == 0
     assert "counts-only" in capsys.readouterr().out
+
+
+def test_universe_excludes_negrisk_sports_weather_and_closed_and_picks_daily_captures(tmp_path):
+    def cap(name, started):
+        d = tmp_path / name
+        d.mkdir()
+        (d / "manifest.json").write_text(json.dumps({"state": "complete", "started_utc": started, "capture_id": name}))
+        rows = pd.DataFrame({"market_id": ["1", "2", "3", "4", "5"], "event_id": ["e1", "e2", "e3", "e4", "e5"],
+                             "neg_risk_market_id": ["", "nr", "", "", ""], "closed": ["False", "False", "False", "False", "True"],
+                             "best_bid": 0.4, "best_ask": 0.5})
+        rows.to_csv(d / "rows.csv.gz", index=False)
+        pd.DataFrame({"market_id": ["1", "2", "3", "4", "5"], "fee_category": ["politics", "politics", "sports", "weather", "politics"]}
+                     ).to_csv(d / "rows_ext.csv.gz", index=False)
+
+    cap("a", "2026-10-11T12:31:00Z")
+    cap("b", "2026-10-11T18:31:00Z")  # same day, later: not the daily capture, not the latest
+    cap("c", "2026-10-12T12:31:00Z")
+    cap("d", "2026-10-12T14:31:00Z")  # the latest capture is added
+    caps = cs.universe_captures(tmp_path, cs.T2_DEV_START)
+    assert [c["capture_id"] for c in caps] == ["a", "c", "d"]
+    uni, rep = cs.read_universe(caps)
+    assert sorted(uni["market_id"]) == ["1"] and rep["captures"] == 3
