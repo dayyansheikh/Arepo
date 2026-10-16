@@ -14,8 +14,9 @@
   "cpu": 1
  },
  "depends_on": [
+  "q0003_books_finalize",
   "q0060_cb3_quote_state_backfill",
-  "q0003_books_finalize"
+  "q0061a_cb3_hash_gate"
  ],
  "argv": [
   "scripts/run_cb3.py",
@@ -30,5 +31,5 @@
   "docs/research_lab/trials.jsonl (1 cb3_descriptive)"
  ],
  "next_action": "Claude session: insert counts and the frozen_cuts proposal into CREATIVE_BATCH_3.md; freeze after q0064",
- "notes": "Counts only: no mark, mark-out, recovery mark, T-capture mid or price after a fill is built or reachable (census guard, unit-tested); outcome columns dropped; reserved run ids and T_J4R captures refused. Definitions are hashed into the declaration before this runs; floors are never revised from the census. Needs the quote_state backfill (q0060) and the finalised pmxt book table (q0003) on the host."
+ "notes": "Counts only: no mark, mark-out, recovery mark, T-capture mid or price after a fill is built or reachable (census guard, unit-tested); outcome columns dropped; reserved run ids and T_J4R captures refused. Definitions are hashed into the declaration before this runs; floors are never revised from the census. Needs the quote_state backfill (q0060) and the finalised pmxt book table (q0003) on the host. | Held behind q0061a_cb3_hash_gate: CB3 freeze-check fix 3 (declaration hash binds applying code) and fix 4 first."
 }

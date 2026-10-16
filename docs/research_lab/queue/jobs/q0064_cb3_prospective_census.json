@@ -13,7 +13,8 @@
   "cpu": 1
  },
  "depends_on": [
-  "q0061_cb3_census"
+  "q0061_cb3_census",
+  "q0064a_cb3_prospective_gate"
  ],
  "argv": [
   "scripts/run_cb3.py",
@@ -30,5 +31,5 @@
   "docs/research_lab/trials.jsonl (1 cb3_descriptive)"
  ],
  "next_action": "Claude session: counts and the stated Stage-2 MDEs into CREATIVE_BATCH_3.md; challenger freeze check; CB3 freeze; pin T3_rep_start",
- "notes": "Commit/queue only after 2026-10-25T00:00Z and after the follow-up step has been deployed and has run for >= 3 full days. Reads only rows whose capture, onset capture and origin pass are at or after max(T3_fu_start, T_J4R_end) (T_J4R_end is read from the q0035 spec); no marks are built (the outcome SDs in the MDE are the design's stated assumptions). Disk projection > 1.5 GB per 28 d -> ask the user before T3_rep_start."
+ "notes": "Commit/queue only after 2026-10-25T00:00Z and after the follow-up step has been deployed and has run for >= 3 full days. Reads only rows whose capture, onset capture and origin pass are at or after max(T3_fu_start, T_J4R_end) (T_J4R_end is read from the q0035 spec); no marks are built (the outcome SDs in the MDE are the design's stated assumptions). Disk projection > 1.5 GB per 28 d -> ask the user before T3_rep_start. | Held behind q0064a_cb3_prospective_gate: CB3 freeze-check fix 16: not before 2026-10-25 plus >= 3 days of deployed follow-up."
 }

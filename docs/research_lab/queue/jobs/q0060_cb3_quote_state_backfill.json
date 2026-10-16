@@ -11,7 +11,9 @@
   "mem_mb": 1000,
   "cpu": 1
  },
- "depends_on": [],
+ "depends_on": [
+  "q0060a_cb3_freezecheck_gate"
+ ],
  "argv": [
   "scripts/run_cb3_quote_state.py",
   "--backfill-before",
@@ -34,5 +36,5 @@
   "data-dumps/research_lab/cb3_extract/manifest.json"
  ],
  "next_action": "q0061 census",
- "notes": "CREATIVE_BATCH_3.md 4.3.1/5. Own script scripts/run_cb3_quote_state.py (the doc's argv named run_cb1_extract.py; moved so CB1/CB2 stay untouched, challenger item 10). Membership = E001-tight at c or any of the 4 previous complete captures, plus <capture_id>.ids.csv.gz. Idempotent by capture_id + extractor_version; never reads T_J4R captures (bound is exclusive, window error if later); missing captures recorded and the run continues; refuses with a non-zero exit while data-dumps > 10.5 GB; repeat regex matches only a true backfill_complete."
+ "notes": "CREATIVE_BATCH_3.md 4.3.1/5. Own script scripts/run_cb3_quote_state.py (the doc's argv named run_cb1_extract.py; moved so CB1/CB2 stay untouched, challenger item 10). Membership = E001-tight at c or any of the 4 previous complete captures, plus <capture_id>.ids.csv.gz. Idempotent by capture_id + extractor_version; never reads T_J4R captures (bound is exclusive, window error if later); missing captures recorded and the run continues; refuses with a non-zero exit while data-dumps > 10.5 GB; repeat regex matches only a true backfill_complete. | Held behind q0060a_cb3_freezecheck_gate: CB3 freeze-check fixes 1-2 (URGENT) and the as-of schema additions (5, 6) first."
 }
