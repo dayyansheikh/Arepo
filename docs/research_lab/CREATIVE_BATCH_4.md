@@ -1459,3 +1459,13 @@ Response to the "Freeze check (science-reviewer, 2026-10-16 05:20Z)". Commits 74
 - (c) "Not run, recorded" is not guaranteed: q0083 waits for a manual q0083b; creating q0083b early makes it exit 0 → done and
   q0083 then fails permanently. Recommend `record-deadline` exits non-zero before T_seal, q0083 `max_retries` ≥ 2, or a worker
   `not_before` field. Minor: `run_state` may seal a run completed after T_seal; compare completion time with T_seal.
+
+## Implementation notes (CB4 analysis, partial; 2026-10-16)
+Present: `cost_regimes.py` (register reader/writer, R0 clamp, `planning_band_map` refusals; tests `test_cost_regimes.py`), `cb4_declaration.py`
+(constants for C, S, N, E, floors, gates, dates, register rules; hash covers constants plus the source of every function in the rule modules and the
+imported cost/statistics helpers; `ALLOWED_PINS` = H, rho, extra UMA statuses only; T4_rep_start pin with the max rule; outcome-date and S-screen
+register gates; tests `test_cb4_declaration.py`), `battery2.KIND_RULES` entries for the four CB4 kinds, spec `q0086_cb4_census`.
+**The declaration refuses to freeze while `cb4_rules`, `cb4_measure` or `cb4_analysis` are absent** (they are recorded `ABSENT` in the hash and
+`require_declaration` / `write_spec` raise). Not written: those three modules, the `economics.cost_regime` accessor named in section 4.1 (the logic lives in
+`cost_regimes.cost_regime` instead; to be wired or the text amended), the analysis subcommands behind `run_cb4.py` (`cb4_analysis.cmd_*`), and the specs
+q0084, q0085, q0086a (gate), q0087-q0093. q0086 depends on the not-yet-committed q0084, q0085 and q0086a, so it cannot run.

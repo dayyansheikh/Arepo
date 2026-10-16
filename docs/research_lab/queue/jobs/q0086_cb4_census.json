@@ -1,0 +1,37 @@
+{
+ "id": "q0086_cb4_census",
+ "title": "CB4: pre-freeze census (C flip classes + G46 + two-sided side audit; S units + G per way + G50 + t0 publicity + h7 side audit; E rows/clusters per cell + MDEs; N eligible events/hours + H; counts only, no outcomes)",
+ "family": "creative_batch_4",
+ "priority": 44,
+ "expected_value": "testability, MDEs, gates and the hour count H before the CB4 freeze",
+ "data": [
+  "cb4_extract (< T4_dev_end)",
+  "cb4/flip_trades/dev",
+  "history/h7_cb4_era and h7_cb4_series (SCREEN units only; outcome files never opened)",
+  "N pilot (q0084 minute states)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0083_h7_cb4_seal",
+  "q0084_cb4_pmxt_pilot",
+  "q0085_cb4_flip_trades_dev",
+  "q0086a_cb4_analysis_gate"
+ ],
+ "argv": [
+  "scripts/run_cb4.py",
+  "census",
+  "--family",
+  "C,S,E,N"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch4/census.json",
+  "docs/research_lab/trials.jsonl (cb4_descriptive census lines)"
+ ],
+ "next_action": "Claude session: insert counts, gates G46/G50, the side audits, the t0 publicity check and H into CREATIVE_BATCH_4.md; challenger freeze check; CB4 freeze; pin T4_rep_start",
+ "notes": "Counts only. Outcome columns are dropped by guard before population code runs (cb4_declaration.CENSUS_FORBIDDEN_COLUMNS, unit-tested); no book state, coefficient, mark-out or price change is computed beyond the declared audits (side audit, t0 publicity, converged-price share, which read prices and report shares only). Floors are never revised from the census; only H, rho (if the venue page differs) and extra UMA status strings may be pinned (cb4_declaration.ALLOWED_PINS). Runs after T4_dev_end (2026-10-25) and after the seal q0083 (T_seal 2026-10-22). Held behind q0086a_cb4_analysis_gate: the census code (cb4_analysis.cmd_census, cb4_rules, cb4_measure) must exist, be tested and pass the CB4 analysis freeze check first; q0084 and q0085 specs are not yet committed. depends_on as the CREATIVE_BATCH_4.md section 5 draft, plus the gate."
+}

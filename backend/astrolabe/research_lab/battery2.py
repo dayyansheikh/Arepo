@@ -123,6 +123,26 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "CB3 descriptive lines (census, U baseline, sports stratum, reward scenarios, resolution marks); "
         "no inference, not a test.",
     ),
+    "cb4_test": (
+        EXCLUDE,
+        "CB4 Stage-1 route per-test lines (C1, C2, S2, S3); the tests are the n_tests of the "
+        "'creative_batch_4:C' / 'creative_batch_4:S' ml_explain lines, counted there. Placebo lines count 0.",
+    ),
+    "cb4_replication": (
+        EXCLUDE,
+        "CB4 Stage-2 route per-test lines; counted by the n_tests of the matching 'creative_batch_4:*' "
+        "ml_explain line. Placebo lines count 0.",
+    ),
+    "cb4_measurement": (
+        EXCLUDE,
+        "CB4 family-M per-test lines (N1, N2, E1, E2; own Holm, k=4); the tests are the n_tests of the "
+        "'creative_batch_4:M' ml_explain line, counted there. Placebo lines count 0.",
+    ),
+    "cb4_descriptive": (
+        EXCLUDE,
+        "CB4 descriptive lines (S1, band map, balanced-wallet share, gates, census, pilot, strata, "
+        "sports strata); no inference, not a test.",
+    ),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "
