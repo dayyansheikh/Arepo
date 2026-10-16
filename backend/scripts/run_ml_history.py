@@ -43,6 +43,7 @@ from astrolabe.research_lab import (  # noqa: E402
     ml_models,
     ml_panel,
     provenance,
+    tte_diag,
 )
 
 HIST_ROOT = ROOT / "data-dumps" / "research_lab" / "history"
@@ -291,6 +292,13 @@ def join_external(df: pd.DataFrame, book_path: Path | None, wage_path: Path | No
                               "rows_with_value": int(df[cols].notna().any(axis=1).sum())
                               if cols else 0}
     return df.drop(columns=["_ts"]).reset_index(drop=True), info
+
+
+def run_note(book_present: bool) -> str:
+    """Results-file note; the 'Book features absent' sentence only when no book table is joined."""
+    return ("EXPLORATORY historical development run. No edge, calibration or profitability "
+            "claim. " + ("" if book_present else "Book features absent. ")
+            + "Frame is sampled and survivorship-affected.")
 
 
 def lookahead_markets(run_dir: Path) -> set[str] | None:
@@ -775,10 +783,30 @@ def run_frozen_kind(kind, lab, manifest, k, args, parts) -> dict:
     full = ml_explain.fit_oof(lab, y, folds, fz["full_cols"])
     base = ml_explain.fit_oof(lab, y, folds, fz["base_cols"])
     w = lab["sample_weight"].to_numpy(float) if "sample_weight" in lab.columns else None
+    if getattr(args, "tte_diag", False):
+        return run_tte_diag(lab, y, full, base, clusters, fz, args, len(folds))
     out = ml_explain.regime_ix_frozen(lab, lab, y, folds, full, base, clusters, fz,
                                       n_boot=args.n_boot_abl, weights=w,
                                       prior_tests=args.prior_tests["total"])
     out["n_rows"], out["n_folds"] = int(len(lab)), len(folds)
+    return out
+
+
+def run_tte_diag(lab, y, full, base, clusters, fz, args, n_folds) -> dict:
+    """q0100: descriptive C-TTE diagnostics on the frozen J8 fits. Not counted; nothing is logged
+    to trials.jsonl and no Holm/verdict is produced."""
+    if "C-TTE" not in fz["advanced"]["contrasts"]:
+        return {"skipped": "C-TTE did not advance in the frozen cell"}
+    path = Path(args.frame_path)
+    if not path.exists():
+        return {"error": f"frame not found: {path}"}
+    frame = pd.read_csv(path, usecols=["market_id", "end_epoch", "close_epoch"],
+                        dtype={"market_id": str})
+    delta = np.where(full.mask, base.loss(y) - full.loss(y), np.nan)
+    out = tte_diag.tte_diagnostics(lab, delta, clusters, frame, fz["cuts"],
+                                   n_boot=args.n_boot_abl)
+    out["baseline_check"] = tte_diag.check_base_cols(fz, M0V)
+    out["n_rows"], out["n_folds"] = int(len(lab)), int(n_folds)
     return out
 
 
@@ -899,6 +927,9 @@ def main(argv=None) -> int:
                     help="share of test blocks (chronological) used for discovery; rest judge")
     ap.add_argument("--frozen-from", type=Path, default=None,
                     help="J8: frozen replication of the advanced set in this J7 results file")
+    ap.add_argument("--tte-diag", action="store_true",
+                    help="q0100: with --frozen-from, replace the J8 replication by DESCRIPTIVE "
+                    "C-TTE diagnostics (not counted; no Holm, nothing logged to trials)")
     ap.add_argument("--exclude-markets-from", default=None,
                     help="market list (csv/json/txt) or seed:<seed>:<max_rows>; excluded before "
                     "sampling")
@@ -918,6 +949,10 @@ def main(argv=None) -> int:
             log(f"refusing: {existing} already exists; use a new --revision")
             return 2
     a.frozen, a.prior_tests, a.lookahead_markets = None, None, None
+    a.frame_path = run_dir / "frame.csv.gz"
+    if a.tte_diag and a.frozen_from is None:
+        log("--tte-diag requires --frozen-from")
+        return 2
     if a.frozen_from is not None:
         a.frozen = json.loads(Path(a.frozen_from).read_text())
         adv = {k: [kd for kd, c in v.items() if isinstance(c, dict)
@@ -963,8 +998,7 @@ def main(argv=None) -> int:
     hist = json.loads((run_dir / "manifest.json").read_text())
     results: dict = {
         "evidence_role": ROLE, "provenance": hb.PROVENANCE,
-        "note": "EXPLORATORY historical development run. No edge, calibration or profitability "
-        "claim. Book features absent. Frame is sampled and survivorship-affected.",
+        "note": run_note(a.book_table is not None and Path(a.book_table).exists()),
         "args": {k: str(v) for k, v in vars(a).items()}, "lgb_configs_used": a.lgb_configs,
         "market_subset": {"n_markets": len(markets), "n_rows": rows, "seed": a.seed},
         "history_manifest": {k: hist.get(k) for k in ("run_id", "stratification", "frame_report",
@@ -1008,7 +1042,10 @@ def main(argv=None) -> int:
             continue
         with heavy_lock():
             run_horizon(k, a, markets, sink, placebo_sink, results, run_dir)
-    if a.frozen is not None:
+    if a.frozen is not None and a.tte_diag:
+        results["tte_diag_mode"] = {"label": tte_diag.LABEL,
+                                    "note": "descriptive; no Holm, no trial line appended"}
+    elif a.frozen is not None:
         cells = {f"{k}/{kd}": c for k, v in results.items() if k.isdigit()
                  for kd, c in v.items() if isinstance(c, dict) and "items" in c}
         results["frozen_replication"] = ml_explain.holm_replication(cells)

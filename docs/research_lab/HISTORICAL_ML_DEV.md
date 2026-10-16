@@ -56,8 +56,13 @@ worth carrying into the prospective collection. All numbers below come from
 
 * Price features use series points with stamp + 600 s < t; trade features use trades with venue timestamp < t.
   Targets use the last point usable before t + H (no interpolation, no imputation, no extrapolation).
-* No Gamma end-of-life metadata (liquidity, volume, tags, end date) is used as a feature; those columns, and
-  all book-based columns, are NaN. Only market age from `createdAt` is used.
+* No Gamma end-of-life metadata for liquidity, volume or tags is used as a feature; those columns, and
+  all book-based columns, are NaN (book columns only when the pmxt table is joined, r4_book). **Exception: the Gamma
+  `endDate`, fetched after the fact, IS used.** `ml_log_hours_to_end` = log1p(max(0, endDate - t_i) in hours) is in the
+  M0V baseline, in the state set and in the C-TTE regime variable. It is not an as-of quantity (the endDate may have
+  been revised, or set to the true resolution time, before it was read), and the clip at 0 puts post-end,
+  pre-resolution origins in the "<24h" bin. Descriptive diagnostics: q0100 (`tte_diag.py`). Market age from
+  `createdAt` is also used.
 * Wallet "new to sample" uses a causal first-seen index built inside the history data (earliest trade over all
   fetched markets). It is left-censored at the sample start and by truncation, so it is NaN during a 14-day
   burn-in. Cluster key is the Gamma event id (an identifier, not a feature); neg-risk and parent ids were not
@@ -352,8 +357,12 @@ carried. Forecasting only; no cost check; nothing is registered. Next: challenge
 Question: does adding the pmxt book family (12 columns from the 6h-grid table) improve out-of-sample log loss over the
 baseline and flow models? Origins restricted to the pmxt window (131,684 rows), traded rows kept (94,435; 637 markets), 3
 time folds, horizons 2h/6h/24h, targets direction, absmove, up-vs-down. Only 16,750 in-window rows (12.7%) have a book;
-all others are NaN, and the ablation drops the family on all rows (the "judge on rows with a book" restriction in the
-plan was not applied). Run-internal BY: 4 tests per cell, m_total 277 (273 prior in the ML-only count); ledger count 36.
+all others are NaN. **Correction (challenger 2026-10-16):** the judgement was already restricted to rows with a
+book. Since 22b361a `run_kind` sets `eval_mask` to book-present rows (the real ablation, the placebo ablations and the
+leak control all receive it) and `ablation_study` judges `eval_mask & full.mask`; only the model FITTING used all rows
+(book columns NaN on ~87%). The earlier statement that the plan's restriction was not applied was wrong. The results
+file does not record the judged-row count, and the 62,068/61,881/60,763-style `n_rows` in its score blocks are the
+arm scores over all out-of-fold rows, a different object. The 36 tests and all labels stand; only this explanation changes. Run-internal BY: 4 tests per cell, m_total 277 (273 prior in the ML-only count); ledger count 36.
 
 Book-family ablation delta (log loss with the family minus without; positive = book helps), 95% cluster-bootstrap CI:
 
@@ -364,10 +373,12 @@ Book-family ablation delta (log loss with the family minus without; positive = b
 | 24h | -0.0027 [-0.0105, 0.0048] | -0.0158 [-0.0222, -0.0098] (placebo gate failed) | +0.0068 [0.0002, 0.0137] |
 
 Every book cell is labelled `descriptive_only` (BY p = 1.0); none is `demonstrated_incremental_value`. Flow is the only
-family with a stable positive delta (2h direction +0.0149, p_by 0.17). At 2h the book columns hurt (more parameters
-on 87% missing values). The two positive updown deltas (6h, 24h) have lower CIs near 0 and do not survive the cumulative
+family with a stable positive delta (2h direction +0.0149, p_by 0.17). At 2h the book columns hurt on the judged
+book-present rows (the models are fitted with the book columns NaN on ~87% of rows). The two positive updown deltas (6h, 24h) have lower CIs near 0 and do not survive the cumulative
 BY correction. Global placebo gates passed in 8 of 9 cells; the 24h absmove gate failed (M2F>M2v on shuffled labels), so
-that cell is not interpretable. Leak positive control detected. Conclusion: no demonstrated book-family value at this
+that cell is not interpretable. Size of the 24h absmove placebo excess (global shuffle, 60,763 scored rows): log loss
+M0v 0.689986, M2v 0.690798, M2F 0.690548, so M2F beats M2v by 0.00025 nats (0.036%) on shuffled labels, both
+clusterings flagged; the gate is binary and was not relaxed. Leak positive control detected. Conclusion: no demonstrated book-family value at this
 coverage; a null at low power (3 folds, 12.7% coverage), not evidence that books carry no information. No cost check.
 
 ## Caveats

@@ -1200,13 +1200,32 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Status:** counted (36 `ml_explain` ablation tests: 9 cells of 3 horizons x 3 targets, 4 units each; run-internal BY
   m_total 277), development (exploratory_historical), 3 time folds, 637 markets, 94,435 rows (updown 20,854 at 2h;
   29,325 at 6h; 42,082 at 24h). Only 16,750 of 131,684 in-window origins have a book (12.7%); the rest are NaN.
+  **Correction (challenger 2026-10-16):** judgement was book-only (`run_ml_history.py` sets `eval_mask` to book-present
+  rows since 22b361a; `ablation_study` judges `eval_mask & full.mask`); only the fitting used all rows. The earlier
+  wording that the run judged all rows was wrong. Tests and labels unchanged; the judged-row count is not stored in the file.
 - **Result: book family is `descriptive_only` in all 9 cells; none is `demonstrated_incremental_value`.** Book
   ablation delta log loss (positive = book helps): 2h direction -0.0042 [-0.0072, -0.0013], absmove -0.0025, updown
   -0.0092 (book hurts); 6h direction +0.0030 [-0.0009, 0.0067], updown +0.0071 [0.0004, 0.0138]; 24h updown +0.0068
   [0.0002, 0.0137]. All BY p = 1.0. Flow remained the only family with a stable positive delta (2h direction +0.0149,
   p_by 0.17). Plain reading: book levels add no demonstrated out-of-sample value over the baseline/flow models here;
   the two nominally positive updown deltas are borderline, not corrected-significant, and sit on 12.7% coverage.
-- **Defects disclosed:** 24h absmove placebo gate failed (M2F>M2v on shuffled labels), so that cell is not interpretable;
-  the output note still says "Book features absent" (boilerplate).
+- **Defects disclosed:** 24h absmove placebo gate failed (M2F>M2v on shuffled labels; M2F beats M2v by 0.00025 nats, 0.036%,
+  on 60,763 shuffled rows), so that cell is not interpretable; the output note said "Book features absent" (stale
+  boilerplate; now emitted only when no book table is joined, tested).
 - **Economics:** none (no cost check). **Next:** none; the book family is closed as descriptive at this coverage. A
   higher-coverage book table would be a new design.
+
+## Challenger verdicts on the 2026-10-16 write-ups (SB2-J8, r4_book, J3)
+- **C-TTE (J8): revise.** No forecasting-only registration. The contrast rests on the Gamma `endDate` read after the fact
+  (`ml_log_hours_to_end` is in the M0V baseline as well as the regime variable), the look-ahead sensitivity was never run
+  on h3 (frozen path), and the clip at 0 puts post-end origins in "<24h". Descriptive diagnostics queued as q0100
+  (`--tte-diag`, not counted, nothing appended to trials): look-ahead exclusion, pre-end vs post-end split of "<24h",
+  exclusion of markets with |endDate - closedTime| <= 1h (declared in code), UTC-day clustered CI beside the event CI.
+  Next: near-end conditional rule with a cost check, or an as-of hours-to-end live feature.
+- **C-ACT: rejected as a candidate**; kept as a descriptive replication only (close to mechanical: flow features are
+  empty without trades).
+- **J3: accepted as unavailable.** The 341 complete rows in neither split (2,145 vs 1,053 discovery + 751 judgement) are
+  the embargo rows: `split` is disc (`t_i + 24h <= 2026-07-01`), judge (`t_i >= 2026-07-01 + 24h`) or embargo, applied on
+  both sides of the split (`battery.py` SPLIT_TS/EMBARGO_S; `bounce_decomp` reads `split`). Derived from code and the
+  three-valued split; the results file does not store an embargo count.
+- **r4_book:** record corrected above (judgement was book-only; labels and the 36 tests stand).
