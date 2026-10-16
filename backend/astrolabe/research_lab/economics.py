@@ -42,6 +42,12 @@ DOCS_CATEGORY_RATE: dict[str, float] = {
 }
 MAX_DOCS_RATE = max(DOCS_CATEGORY_RATE.values())
 
+# Maker rebate share of taker fees by category (docs.polymarket.com/trading/fees, fetched 2026-10-12). Moved here from
+# scripts/econ_conditions_maker.py (which imports it); a category absent from the table (or unknown) has share 0.
+REBATE_SHARE: dict[str, float] = {"crypto": 0.20, "sports": 0.15, "finance": 0.25, "politics": 0.25, "economics": 0.25,
+                                  "culture": 0.25, "weather": 0.25, "other": 0.25, "mentions": 0.25, "tech": 0.25,
+                                  "geopolitics": 0.0}
+
 
 # --- 1. fee table -----------------------------------------------------------------------------
 

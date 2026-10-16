@@ -20,8 +20,7 @@ from astrolabe.research_lab import economics, forecast  # noqa: E402
 H = forecast.ROOT / "data-dumps/research_lab/history/h2_main"
 BF = forecast.ROOT / "data-dumps/research_lab/history_sources/book_features/rows.jsonl"
 # Maker rebate share of taker fees by category (docs.polymarket.com/trading/fees, fetched 2026-10-12)
-REBATE = {"crypto": 0.20, "sports": 0.15, "finance": 0.25, "politics": 0.25, "economics": 0.25,
-          "culture": 0.25, "weather": 0.25, "other": 0.25, "mentions": 0.25, "tech": 0.25}
+REBATE = economics.REBATE_SHARE
 OWN = 5.0  # own order size (shares) for the queue variant
 
 
