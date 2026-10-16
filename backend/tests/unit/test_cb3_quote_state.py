@@ -86,6 +86,7 @@ def _run(world, **kw):
     kw.setdefault("mode", "backfill")
     kw.setdefault("before", "2026-10-15T21:00:00Z")
     kw.setdefault("git_commit", "abc")
+    kw.setdefault("catalogue", {})  # never the real data catalogue
     return q.run(snap, sw, out, **kw)
 
 
@@ -171,31 +172,41 @@ def test_version_mismatch_refuses(world):
     assert _cli(world) == 1
 
 
-def test_data_dumps_cap_refuses_and_exits_nonzero(world, tmp_path, capsys):
+def test_no_fixed_trigger_runs_when_headroom_exists(world, tmp_path):
+    # 10.6 GB used (> the old fixed 10.5 trigger) but the 12 GB cap leaves room for the projected output
+    r = _run(world, data_dumps=tmp_path, data_dumps_cap_gb=12.0, dir_gb=lambda p: 10.6 if p == tmp_path else 0.0)
+    assert r["stopped"] is None and r["written"] == 7 and r["backfill_complete"] is True
+
+
+def test_refuses_when_projected_output_does_not_fit_and_exits_nonzero(world, tmp_path, capsys):
+    r = _run(world, data_dumps=tmp_path, data_dumps_cap_gb=12.0, scratch_gb=0.3, disk_cap_gb=0.3,
+             dir_gb=lambda p: 11.9 if p == tmp_path else 0.0)  # 11.9 + min(0.3, 7 x 0.005) + 0.3 > 12
+    assert r["stopped"] == "refused_no_headroom" and r["written"] == 0 and r["backfill_complete"] is False
+    assert not (world[2] / "manifest.json").exists()
     dumps = tmp_path / "dd"
     dumps.mkdir()
     (dumps / "f").write_bytes(b"x" * 2_000_000)
-    r = _run(world, data_dumps=dumps, data_dumps_max_gb=0.001)
-    assert r["stopped"] == "refused_data_dumps_over_cap" and r["written"] == 0 and r["backfill_complete"] is False
-    assert not (world[2] / "manifest.json").exists()
-    rc = _cli(world, "--data-dumps", str(dumps), "--data-dumps-max-gb", "0.001")
-    assert rc == 1 and "refused_data_dumps_over_cap" in capsys.readouterr().out
+    rc = _cli(world, "--data-dumps", str(dumps), "--data-dumps-cap-gb", "0.001")
+    assert rc == 1 and "refused_no_headroom" in capsys.readouterr().out
 
 
-def test_data_dumps_exceeded_between_captures_stops(world, tmp_path):
+def test_headroom_lost_between_captures_stops(world, tmp_path):
     calls = {"n": 0}
 
-    def gb(_p):
+    def gb(p):
+        if p != tmp_path:
+            return 0.0
         calls["n"] += 1
         return 0.0 if calls["n"] <= 3 else 99.0
 
-    r = _run(world, data_dumps=tmp_path, data_dumps_max_gb=10.5, dir_gb=gb)
-    assert r["stopped"] == "data_dumps_over_cap" and 0 < r["written"] < 7
+    r = _run(world, data_dumps=tmp_path, data_dumps_cap_gb=12.0, dir_gb=gb)
+    assert r["stopped"] == "no_headroom" and 0 < r["written"] < 7 and r["backfill_complete"] is False
 
 
 def test_own_disk_cap_stops(world):
     r = _run(world, disk_cap_gb=0.0)
-    assert r["stopped"] == "disk_cap" and r["written"] == 0
+    assert r["stopped"] == "disk_cap" and r["written"] == 0 and r["backfill_complete"] is False
+    assert _cli(world, "--disk-cap-gb", "0.0") == 1  # incomplete: non-zero
 
 
 def test_backfill_before_excludes_bound_and_rejects_later_bound(world):
@@ -260,3 +271,80 @@ def test_other_roots_untouched(world):
 def test_script_summary_json_has_completion_flag(world, capsys):
     assert _cli(world) == 0
     assert '"backfill_complete": true' in capsys.readouterr().out
+
+
+def test_schema_v2_asof_and_fee_columns(world):
+    assert q.SCHEMA_VERSION == 2 and q.EXTRACTOR_VERSION.endswith("v2")
+    for c in ("asof_end_date", "asof_created_at", "asof_fee_schedule", "asof_fee_category", "fees_enabled"):
+        assert c in q.ALL_COLUMNS
+    for c in ("end_date", "created_at", "fee_schedule", "fee_category"):
+        assert c not in q.ALL_COLUMNS
+    snap = world[0]
+    ext = pd.read_csv(snap / "cap5" / "rows_ext.csv.gz", dtype=str, keep_default_na=False)
+    ext["fees_enabled"] = "1"
+    ext["fee_schedule"] = '{"rate":0.04}'
+    ext["created_at"] = "2026-09-01T00:00:00Z"
+    ext["fee_type"] = "x"
+    _gz(snap / "cap5" / "rows_ext.csv.gz", ext)
+    _run(world)
+    r5 = _rows(world[2], 5).set_index("market_id").loc["B"]
+    assert r5["asof_end_date"] == "2027-01-01T00:00:00Z" and r5["fees_enabled"] == "1"
+    assert r5["asof_created_at"] == "2026-09-01T00:00:00Z" and r5["asof_fee_schedule"] == '{"rate":0.04}'
+    assert r5["asof_fee_category"] == "politics" and r5["asof_fee_type"] == "x"
+    r6 = _rows(world[2], 6).set_index("market_id").loc["B"]
+    assert r6["asof_created_at"] == "" and r6["fees_enabled"] == ""  # not back-filled from another capture
+    r2 = _rows(world[2], 2).set_index("market_id").loc["B"]
+    assert r2["fees_enabled"] == "" and r2["asof_fee_schedule"] == ""  # blank before the sidecar
+
+
+CATALOGUE = {"cap0": CAPS[0], "relonly": "2026-10-11T00:00:00Z", "cap1": CAPS[1]}
+
+
+def test_release_only_capture_recorded_missing_and_report(world):
+    r = _run(world, catalogue=CATALOGUE)
+    man = json.loads((world[2] / "manifest.json").read_text())
+    assert man["captures"]["relonly"]["status"] == "missing" and man["captures"]["relonly"]["reason"] == "no_host_manifest"
+    c = r["completeness"]
+    assert c["complete"] and c["n_extracted"] == 7 and c["n_missing"] == 1 and c["missing_by_reason"] == {"no_host_manifest": 1}
+    assert r["backfill_complete"] is True and man["completeness"]["complete"] is True
+    # cap0 follows the placeholder: its first predecessor is unavailable ('?'), the other three do not exist
+    assert _rows(world[2], 0).set_index("market_id").loc["B"]["tight_mask_prev4"] == "????"
+    assert _rows(world[2], 0).set_index("market_id").loc["B"]["tight_mask_prev4"] != ""
+
+
+def test_host_archived_rows_recorded_with_reason(world):
+    (world[0] / "cap2" / "rows.csv.gz").rename(world[0] / "cap2" / "moved_away")
+    _run(world)
+    man = json.loads((world[2] / "manifest.json").read_text())
+    assert man["captures"]["cap2"]["reason"] == "rows_archived"
+
+
+def test_unaccounted_capture_blocks_completion(world):
+    _run(world)
+    mp = world[2] / "manifest.json"
+    man = json.loads(mp.read_text())
+    man["captures"]["cap1"] = {"capture_id": "cap1", "status": "missing"}  # no reason: not accounted for
+    mp.write_text(json.dumps(man))
+    r = _run(world)
+    assert r["completeness"]["n_unaccounted"] == 1 and r["backfill_complete"] is False
+
+
+def test_restore_hook_one_at_a_time_and_cleanup(world, tmp_path):
+    restored = []
+    scratch_roots = []
+
+    def restore(cap):
+        restored.append(cap["capture_id"])
+        if cap["capture_id"] != "relonly":
+            return None
+        root = tmp_path / "scratch_relonly"
+        make_capture(root, "relonly", cap["started_utc"], [_row("relonly", cap["started_utc"], "B")])
+        scratch_roots.append(root)
+        return root / "relonly", root
+
+    r = _run(world, catalogue=CATALOGUE, restore=restore)
+    assert "relonly" in restored and r["restored"] == 1
+    man = json.loads((world[2] / "manifest.json").read_text())
+    assert man["captures"]["relonly"]["status"] == "extracted" and man["captures"]["relonly"]["restored"] is True
+    assert not scratch_roots[0].exists()  # scratch removed after the capture
+    assert (world[2] / "quote_state" / "relonly.csv.gz").exists()

@@ -22,8 +22,8 @@
   "150",
   "--disk-cap-gb",
   "0.30",
-  "--data-dumps-max-gb",
-  "10.5"
+  "--data-dumps-cap-gb",
+  "12"
  ],
  "timeout_s": 10800,
  "max_retries": 2,
@@ -36,5 +36,5 @@
   "data-dumps/research_lab/cb3_extract/manifest.json"
  ],
  "next_action": "q0061 census",
- "notes": "CREATIVE_BATCH_3.md 4.3.1/5. Own script scripts/run_cb3_quote_state.py (the doc's argv named run_cb1_extract.py; moved so CB1/CB2 stay untouched, challenger item 10). Membership = E001-tight at c or any of the 4 previous complete captures, plus <capture_id>.ids.csv.gz. Idempotent by capture_id + extractor_version; never reads T_J4R captures (bound is exclusive, window error if later); missing captures recorded and the run continues; refuses with a non-zero exit while data-dumps > 10.5 GB; repeat regex matches only a true backfill_complete. | Held behind q0060a_cb3_freezecheck_gate: CB3 freeze-check fixes 1-2 (URGENT) and the as-of schema additions (5, 6) first."
+ "notes": "CREATIVE_BATCH_3.md 4.3.1/5. Own script scripts/run_cb3_quote_state.py (the doc's argv named run_cb1_extract.py; moved so CB1/CB2 stay untouched, challenger item 10). Membership = E001-tight at c or any of the 4 previous complete captures, plus <capture_id>.ids.csv.gz. Idempotent by capture_id + extractor_version; never reads T_J4R captures (bound is exclusive, window error if later); missing captures recorded and the run continues; refuses with a non-zero exit only when data-dumps + projected output + restore scratch would exceed 12 GB (freeze-check fix 1); disk_cap stop exits non-zero; backfill_complete is true only when every complete capture before 2026-10-15T21Z (host manifests + release-only catalogue captures) is extracted or missing-with-reason (fix 2); restores release-only/archived captures one at a time; schema v2 adds asof_end_date, asof_created_at, asof_fee_*, fees_enabled; repeat regex matches only a true backfill_complete. | Held behind q0060a_cb3_freezecheck_gate: CB3 freeze-check fixes 1-2 (URGENT) and the as-of schema additions (5, 6) first.; --restore (one-at-a-time release restore, downloads whole release streams) is available but not in this argv: release-only captures are recorded missing/no_host_manifest"
 }
