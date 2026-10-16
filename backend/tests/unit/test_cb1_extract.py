@@ -510,14 +510,29 @@ def test_cb2_rewards_table_first_capture_after_noon(tmp_path):
     assert sorted(p.name for p in (c2 / "rewards").glob("*")) == ["2026-10-12.csv.gz"]
 
 
-def test_cb2_backfill_raises_on_archived_and_all_new_records_missing(tmp_path):
+def test_cb2_all_new_and_backfill_record_missing_and_continue(tmp_path):
     snap, sw, ex, c2 = _cb2_world(tmp_path)
     (snap / "cap_c" / "rows.csv.gz").unlink()
     out = _cb2(snap, sw, c2)
     assert out["missing"] == 1 and out["remaining"] == 0
     assert json.loads((c2 / "manifest.json").read_text())["captures"]["cap_c"]["status"] == "missing"
-    with pytest.raises(forecast.ArchivedDataError):
-        _cb2(snap, sw, c2, mode="backfill")
+    # backfill no longer raises: the missing capture is counted and not retried, others are still processed
+    out = _cb2(snap, sw, c2, mode="backfill", tables=("ladder_candidates",))
+    assert out["remaining"] == 0 and out["backfill_complete"] is True
+    out = _cb2(snap, sw, c2, mode="backfill", tables=("ladder_candidates",))
+    assert out["written"] == 0 and out["missing"] == 0
+
+
+def test_cb2_backfill_script_exits_nonzero_when_over_cap(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    dd = tmp_path / "dd"
+    dd.mkdir()
+    (dd / "big").write_bytes(b"x" * 2_000_000)
+    base = [sys.executable, str(BACKEND / "scripts" / "run_cb1_extract.py"), "--snapshot-root", str(snap), "--sweep-root", str(sw),
+            "--extract-root", str(ex), "--cb2-root", str(c2), "--tables", "ladder_candidates", "--data-dumps", str(dd),
+            "--data-dumps-max-gb", "0.001"]
+    r = subprocess.run([*base, "--backfill-from", "2026-10-11T12:00Z"], capture_output=True, text=True)
+    assert r.returncode == 1 and "refused" in r.stdout
 
 
 def test_cb2_disk_cap_and_data_dumps_guard_and_backfill_complete(tmp_path):

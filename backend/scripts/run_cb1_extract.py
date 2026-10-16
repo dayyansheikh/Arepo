@@ -51,6 +51,8 @@ def _cb2_only(a, cb, cb2_root) -> int:
         print(json.dumps({"cb2_extract": cb.EXTRACTOR_VERSION, "error": f"{type(exc).__name__}: {exc}"[:300]}))
         return 1 if backfill else 0
     print(json.dumps({"cb2_extract": cb.EXTRACTOR_VERSION, **summ}))
+    if backfill and summ.get("stopped") == "refused_data_dumps_over_cap":
+        return 1  # non-zero: a refusal must not count as a successful repeat run (freeze-check fix 2)
     return 0
 
 

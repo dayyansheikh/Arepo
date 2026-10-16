@@ -164,11 +164,29 @@ GROUPER_RULES = {
 }
 
 
+# Functions whose SOURCE is bound into the grouper hash (freeze-check fix 1): the rule text alone does not bind the code
+# that applies it. Names resolve at call time (module globals, or ``if_h2`` for the ``if_h2.`` prefix).
+GROUPER_CODE = ("parse_direction", "mask_description", "ladder_grouper_v2", "_dedupe_deadline", "_idkey", "_rung",
+                "if_h2.stem", "if_h2.parse_deadline", "if_h2._deadline_epoch")
+
+
+def _norm_source(fn) -> str:
+    """Normalised source: trailing whitespace stripped, blank lines dropped (indentation kept)."""
+    import inspect
+
+    return "\n".join(ln.rstrip() for ln in inspect.getsource(fn).splitlines() if ln.strip())
+
+
+def grouper_code_sha256() -> dict[str, str]:
+    out = {}
+    for name in GROUPER_CODE:
+        fn = getattr(if_h2, name[6:]) if name.startswith("if_h2.") else globals()[name]
+        out[name] = hashlib.sha256(_norm_source(fn).encode()).hexdigest()
+    return out
+
+
 def grouper_rule_sha256() -> str:
-    return hashlib.sha256(json.dumps(GROUPER_RULES, sort_keys=True).encode()).hexdigest()
-
-
-GROUPER_RULE_SHA256 = grouper_rule_sha256()
+    return hashlib.sha256(json.dumps({"rules": GROUPER_RULES, "code": grouper_code_sha256()}, sort_keys=True).encode()).hexdigest()
 
 
 def require_grouper_seal(path: Path | None = None) -> str:
@@ -197,6 +215,12 @@ def write_grouper_seal(path: Path | None = None) -> dict:
 # =============================================================================================
 
 
+def __getattr__(name: str):  # GROUPER_RULE_SHA256 is derived on access (it binds function source)
+    if name == "GROUPER_RULE_SHA256":
+        return grouper_rule_sha256()
+    raise AttributeError(name)
+
+
 def declaration_structural() -> dict:
     return {
         "version": VERSION,
@@ -220,7 +244,7 @@ def declaration_structural() -> dict:
               "clusters": "ladder; capture day (two-way via battery.mean_test)",
               "audit": {"per_type": AUDIT_PER_TYPE, "gap_pairs": AUDIT_GAP, "max_not_genuine": AUDIT_MAX_NOT_GENUINE,
                         "seed": AUDIT_SEED}},
-        "grouper": {"version": GROUPER_VERSION, "rule_sha256": GROUPER_RULE_SHA256,
+        "grouper": {"version": GROUPER_VERSION, "rule_sha256": grouper_rule_sha256(),
                     "cross_min_stem_tokens": CROSS_MIN_STEM_TOKENS},
         "P": P_GATE,
         "refused_run_ids": list(REFUSED_RUN_IDS),
@@ -416,7 +440,7 @@ def ladder_list(grouped: dict, *, version: int, listed_utc: str, prev: dict | No
     for L in ladders:
         L["rungs"].sort(key=lambda r: (r["deadline"], _idkey(r["market_id"])))
     doc = {"kind": "cb2_ladder_list", "version": version, "listed_utc": listed_utc, "grouper": GROUPER_VERSION,
-           "grouper_rule_sha256": GROUPER_RULE_SHA256, "versions": versions, "universe": universe or {},
+           "grouper_rule_sha256": grouper_rule_sha256(), "versions": versions, "universe": universe or {},
            "counts": grouped["counts"], "n_ladders": len(ladders),
            "n_rungs": sum(len(L["rungs"]) for L in ladders), "ladders": ladders,
            "rungs": [{"market_id": r["market_id"], "visible_from_utc": r["visible_from_utc"], "strict": r["strict"]}
@@ -449,7 +473,7 @@ def load_ladder_list(path: Path, expected_sha256: str | None = None) -> dict:
         raise LadderListError(f"{path}: sha256 field does not match its content")
     if expected_sha256 is not None and expected_sha256 != doc["sha256"]:
         raise LadderListError(f"{path}: sha256 {doc['sha256']} != committed {expected_sha256}")
-    if doc.get("grouper_rule_sha256") != GROUPER_RULE_SHA256:
+    if doc.get("grouper_rule_sha256") != grouper_rule_sha256():
         raise LadderListError(f"{path}: built under another grouper rule hash")
     return doc
 

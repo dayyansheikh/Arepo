@@ -962,7 +962,10 @@ def run_cb2_tables(
             for c in caps:
                 if c["_start"] < lo:
                     continue
-                nd = _cb2_needs(c, man["captures"].get(c["capture_id"], {}), tables, rew, gate)
+                ent0 = man["captures"].get(c["capture_id"], {})
+                if mode == "backfill" and ent0.get("status") == "missing":
+                    continue  # archived/missing: recorded and counted, not retried (freeze-check fix 2)
+                nd = _cb2_needs(c, ent0, tables, rew, gate)
                 if nd:
                     out.append((c, nd))
             return out[::-1] if mode == "all-new" else out
@@ -985,8 +988,6 @@ def run_cb2_tables(
             try:
                 got = extract_cb2_capture(cap, sidx.get(cid), cb2_root, nd, ladder_visible=vis)
             except forecast.ArchivedDataError:
-                if mode == "backfill":
-                    raise
                 ent.update(started_utc=cap["started_utc"], status="missing", extracted_utc=now())
                 res["missing"] += 1
             else:
@@ -1003,7 +1004,7 @@ def run_cb2_tables(
             slowest = max(slowest, clock() - c0)
         if json.dumps(man, sort_keys=True) != man0:
             _atomic_write_json(cb2_root / "manifest.json", man)
-        res["remaining"] = max(len(todo_now()) - res["missing"], 0)
+        res["remaining"] = max(len(todo_now()) - (res["missing"] if mode == "all-new" else 0), 0)
         res["max_capture_s"] = round(slowest, 2)
         res["backfill_complete"] = bool(mode == "backfill" and res["remaining"] == 0 and res["stopped"] is None)
         res["elapsed_s"] = round(clock() - t0, 2)

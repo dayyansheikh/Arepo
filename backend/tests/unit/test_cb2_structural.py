@@ -118,6 +118,21 @@ def test_grouper_hash_matches_committed_file_and_is_enforced(tmp_path):
         cs.require_grouper_seal(tmp_path / "absent.json")
 
 
+@pytest.mark.parametrize("name", cs.GROUPER_CODE)
+def test_grouper_hash_binds_function_source(name, monkeypatch):
+    h0 = cs.grouper_rule_sha256()
+    assert cs.GROUPER_RULE_SHA256 == h0
+
+    def changed(*a, **k):
+        return 42  # different source
+
+    if name.startswith("if_h2."):
+        monkeypatch.setattr(cs.if_h2, name[6:], changed)
+    else:
+        monkeypatch.setitem(cs.__dict__, name, changed)
+    assert cs.grouper_rule_sha256() != h0
+
+
 def test_grouper_hash_covers_the_regexes(monkeypatch):
     h0 = cs.grouper_rule_sha256()
     monkeypatch.setitem(cs.GROUPER_RULES["words"], "inc", ["by"])
