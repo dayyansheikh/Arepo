@@ -13,8 +13,7 @@
   "cpu": 1
  },
  "depends_on": [
-  "q0081_h7_cb4_era_fetch",
-  "q0082_h7_cb4_series_fetch"
+  "q0083b_h7_deadline_recorder"
  ],
  "argv": [
   "scripts/run_cb4.py",
@@ -30,5 +29,5 @@
   "trials.jsonl (history_seal_declaration per sealed run)"
  ],
  "next_action": "Claude session: commit docs/research_lab/seals/h7_cb4_era_SEAL.json and h7_cb4_series_SEAL.json (or the NOT_RUN records)",
- "notes": "Era is sealed first (its sample ids are the overlap exclusion for the series). The split uses t0 dates and market ids only; no price, trade or outcome file is opened. Drops series units with an h7_cb4_era member by id (counted in SEAL.json split). Refuses to seal an unfinished run that T_seal has not cut; a not_run_deadline run is recorded (NOT_RUN record, never sealed) and the other run is still sealed (exit 0). Idempotent: an existing seal is verified and reported, never rewritten. Verify later with scripts/run_cb4.py verify-seal."
+ "notes": "Era is sealed first (its sample ids are the overlap exclusion for the series). The split uses t0 dates and market ids only; no price, trade or outcome file is opened. Drops series units with an h7_cb4_era member by id (counted in SEAL.json split). Refuses to seal an unfinished run that T_seal has not cut; a not_run_deadline run is recorded (NOT_RUN record, never sealed) and the other run is still sealed (exit 0). Idempotent: an existing seal is verified and reported, never rewritten. Verify later with scripts/run_cb4.py verify-seal. | Freeze-check fix 11: depends on the deadline recorder (q0083b) instead of q0081/q0082, so a failed or never-started fetch cannot block the seal of the other run; it therefore runs at or after T_seal (the fetches are terminal by then, or recorded not run)."
 }

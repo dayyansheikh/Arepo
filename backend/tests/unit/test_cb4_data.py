@@ -455,6 +455,9 @@ class FakeNet:
         self.trade_calls: list[str] = []
         self.requests = 0
         self.trades_after = list(trades_after)
+        self.fail_price_tokens: set[str] = set()
+        self.fail_trades = False
+        self.fail_markets = False
 
     @staticmethod
     def _in(win_lo, win_hi, end):
@@ -463,6 +466,8 @@ class FakeNet:
     def __call__(self, url, params):
         self.requests += 1
         if url.endswith("/markets"):
+            if self.fail_markets:
+                return 404, b"{}", {}
             lo, hi = ep(params["end_date_min"]), ep(params["end_date_max"])
             want = params["closed"] == "true"
             rows = [m for m in self.markets if bool(m["closed"]) == want and lo <= d._parse_ts(m["endDate"]) < hi]
@@ -478,10 +483,14 @@ class FakeNet:
             return 404, b"{}", {}
         if url.endswith("/prices-history"):
             self.price_calls.append(params["market"])
+            if params["market"] in self.fail_price_tokens:
+                return 404, b"{}", {}
             a, b = params["startTs"], params["endTs"]
             return 200, json.dumps({"history": [{"t": a + 600 * k, "p": 0.5} for k in range(1, 4) if a + 600 * k < b]}).encode(), {}
         if url.endswith("/trades"):
             self.trade_calls.append(params["market"])
+            if self.fail_trades:
+                return 404, b"{}", {}
             if params["offset"] > 0:
                 return 200, b"[]", {}
             base = int(ep("2026-03-02"))
@@ -508,6 +517,7 @@ def _h5_copy(tmp_path, ids=("999",)):
     p = tmp_path / "seals" / "h5_cb1_SEAL.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps({"run_id": "h5_cb1", "files": {f"prices/{i}.csv.gz": "x" for i in ids}}))
+    (p.parent / "h5_cb1_ladders_SEAL.json").write_text(json.dumps({"run_id": "h5_cb1_ladders", "files": {"prices/L777.csv.gz": "x"}}))
     return p
 
 
@@ -598,7 +608,7 @@ def test_apply_era_rules_each_counted():
             mk("short", "2026-03-08T00:00:00Z", created_at="2026-03-06T00:00:00Z"),
             mk("nocr", "2026-03-08T00:00:00Z", created_at=""), mk("early", "2026-03-02T00:00:00Z"),
             {**mk("noend", "2026-03-08T00:00:00Z"), "end_epoch": float("nan")}]
-    kept, c = d.apply_era_rules(rows, ps, history_ids={"h"}, h5_ids={"h5"})
+    kept, c = d.apply_era_rules(rows, ps, history_ids={"h"}, h5_ids={"h5"}, sports_cats=("sports",))
     assert {r["market_id"] for r in kept} == {"ok", "sp"} and {r["group"] for r in kept} == {"O", "S"}
     assert c["weather"] == 2 and c["history_sample_overlap"] == 1 and c["h5_overlap"] == 1 and c["outside_periods"] == 1
     assert c["life_lt_min"] == 1 and c["life_unknown"] == 1 and c["origin_window_outside_period"] == 1 and c["no_end_date"] == 1
@@ -645,15 +655,30 @@ def era_net(trades_after=()):
     return FakeNet(markets=ms, trades_after=trades_after)
 
 
+def _amend(tmp_path, kind, cats=("sports",), decision="as_declared"):
+    rdir = tmp_path / "hist" / ("h7_cb4_era" if kind == "era" else "h7_cb4_series")
+    f = tmp_path / "amend.json"
+    doc = json.loads(f.read_text()) if f.exists() else {"decision": decision, "sports_fee_categories": list(cats)}
+    doc[f"{kind}_frame_report_sha256"] = h5_seal.sha256_file(rdir / "frame_report.json")
+    f.write_text(json.dumps(doc))
+    return f
+
+
 def era_kw(tmp_path, net, **kw):
     hist = tmp_path / "hist"
     (hist / "h2_main").mkdir(parents=True, exist_ok=True)
     pd.DataFrame({"market_id": ["302"]}).to_csv(hist / "h2_main" / "sample.csv.gz", index=False)
     base = dict(seed="s", per_cell=3, periods=[("P0", ep("2026-03-01"), ep("2026-03-05"))], exclude_runs=["h2_main"],
                 h5_seal_copies=[_h5_copy(tmp_path, ("100",))], key=KEY, now=NOW, wall_clock=_wall(), sleep=lambda s: None,
-                live_check=None, windows_per_day=96, window_minutes=15, disk_cap=10**8)
+                live_check=None, windows_per_day=96, window_minutes=15, disk_cap=10**8, require_committed=False)
+    stage = kw.pop("stage", "all")
+    rdir = hist / "h7_cb4_era"
+    if stage == "all" and kw.pop("auto_frame", True) and not (rdir / "frame_report.json").exists():
+        d.era_fetch(hist, "h7_cb4_era", net, **{**base, "stage": "frame"})
+    if stage == "all" and (rdir / "frame_report.json").exists():
+        base["amendment_file"] = _amend(tmp_path, "era")
     base.update(kw)
-    return d.era_fetch(hist, "h7_cb4_era", net, **base)
+    return d.era_fetch(hist, "h7_cb4_era", net, stage=stage, **base)
 
 
 def test_era_fetch_complete_guard_and_cap(tmp_path):
@@ -717,13 +742,15 @@ def test_era_fetch_budget_chunks_resume(tmp_path):
 def test_era_t_seal_refuses_new_chunk_and_marks_not_run(tmp_path):
     net = era_net()
     late = _wall(d.T_SEAL_EPOCH + 5)
-    m = era_kw(tmp_path, net, wall_clock=late)
-    assert m["status"] == "not_run_deadline" and net.requests == 0
+    era_kw(tmp_path, net, stage="frame")
+    n_before = net.requests
+    m = era_kw(tmp_path, net, wall_clock=late, auto_frame=False)
+    assert m["status"] == "not_run_deadline" and net.requests == n_before
     rdir = tmp_path / "hist" / "h7_cb4_era"
     assert (rdir / d.NOT_RUN_FILE).exists() and json.loads((rdir / "manifest.json").read_text())["stopped"] == "not_run_deadline"
     # a later call (even before the clock moves back) never refetches or rewrites the cap
     m2 = era_kw(tmp_path, net)
-    assert m2["status"] == "not_run_deadline" and net.requests == 0
+    assert m2["status"] == "not_run_deadline" and net.requests == n_before
 
 
 def test_era_t_seal_after_complete_is_still_complete(tmp_path):
@@ -734,7 +761,7 @@ def test_era_t_seal_after_complete_is_still_complete(tmp_path):
 
 def test_era_collector_health_pause_and_429_limit(tmp_path):
     net = era_net()
-    m = era_kw(tmp_path, net, health_check=lambda t: (False, "stale"))
+    m = era_kw(tmp_path, net, health_check=lambda t: (False, "stale"), auto_frame=False)
     assert m["stopped"].startswith("paused_collector_health") and m["transient"] is True and net.requests == 0
 
 
@@ -840,9 +867,15 @@ def series_kw(tmp_path, net, **kw):
     pd.DataFrame({"market_id": ["Mev5"]}).to_csv(hist / "h2_main" / "sample.csv.gz", index=False)
     base = dict(seed="s", n_series=5, n_sports=2, members=31, roll_from="2026-03-01", walk_from="2026-03-01",
                 exclude_runs=["h2_main"], h5_seal_copies=[_h5_copy(tmp_path, ("Mev9",))], key=KEY, now=NOW, wall_clock=_wall(),
-                sleep=lambda s: None, live_check=None, disk_cap=10**8, walk_base_days=7, min_width_s=3600)
+                sleep=lambda s: None, live_check=None, disk_cap=10**8, walk_base_days=7, min_width_s=3600, require_committed=False)
+    stage = kw.pop("stage", "all")
+    rdir = hist / "h7_cb4_series"
+    if stage == "all" and kw.pop("auto_frame", True) and not (rdir / "frame_report.json").exists():
+        d.series_fetch(hist, "h7_cb4_series", net, **{**base, "stage": "frame"})
+    if stage == "all" and (rdir / "frame_report.json").exists():
+        base["amendment_file"] = _amend(tmp_path, "series")
     base.update(kw)
-    return d.series_fetch(hist, "h7_cb4_series", net, **base)
+    return d.series_fetch(hist, "h7_cb4_series", net, stage=stage, **base)
 
 
 def test_series_fetch_units_exclusions_and_files(tmp_path):
@@ -851,8 +884,11 @@ def test_series_fetch_units_exclusions_and_files(tmp_path):
     assert m["status"] == "series_fetch_complete" and m["complete"] is True
     rdir = tmp_path / "hist" / "h7_cb4_series"
     fr = json.loads((rdir / "frame_report.json").read_text())
+    ur = json.loads((rdir / "units_report.json").read_text())
+    assert fr["walk"]["events_no_series"] == 1 and fr["series_ge_2_members"] == 2 and "daily|crypto" in fr["series_by_cadence_category"]
+    fr = ur
     assert fr["series_weather_excluded"] == 1 and fr["series_lt_2_members"] == 1  # the 1-member series
-    assert fr["walk"]["events_no_series"] == 1 and fr["series_sampled_non_sports"] == 1
+    assert fr["series_sampled_non_sports"] == 1
     # r_to = min(NOW - 3d, T_seal) - 2d = 03-15: preds ev0..ev11 are all <= 03-12, 11 candidates (last has no successor)
     assert fr["units_candidate"] == 11
     # excluded events: history overlap Mev5 drops units (ev4->ev5) and (ev5->ev6); h5 overlap Mev9 drops (ev8->ev9) and (ev9->ev10)
@@ -889,12 +925,12 @@ def test_series_fetch_resumes_walk_and_fetch(tmp_path):
         n["c"] += 1
         return n["c"] == 2  # one base window recorded, then pause
 
-    m1 = series_kw(tmp_path, net, should_stop=stop, walk_base_days=3)
+    m1 = series_kw(tmp_path, net, should_stop=stop, walk_base_days=3, stage="frame")
     assert m1["complete"] is False and m1["stopped"] == "should_stop"
     assert (tmp_path / "hist" / "h7_cb4_series" / "walk_partial.jsonl").exists()
     m2 = series_kw(tmp_path, net, walk_base_days=3)
     assert m2["status"] == "series_fetch_complete"
-    assert len(net.price_calls) == len(set(net.price_calls)) == m2["counts"]["items_done"]
+    assert len(net.price_calls) == 2 * m2["counts"]["items_done"]  # successor + winning predecessor per unit, once each
     n_req = net.requests
     assert series_kw(tmp_path, net, walk_base_days=3)["status"] == "series_fetch_complete" and net.requests == n_req
 
@@ -1075,7 +1111,19 @@ def test_queue_specs_valid_and_repeat_regexes_match_only_true_completion():
     for q in (q81, q82):
         assert q["priority"] in (58, 61) and q["resources"]["lane"] == "net" and "q0018_h5_cb1_seal" in q["depends_on"]
         assert "../docs/research_lab/seals/h5_cb1_SEAL.json" in q["argv"] and q["argv"][q["argv"].index("--cap-at") + 1] == "2026-10-22T00:00Z"
-    assert q83["depends_on"] == ["q0081_h7_cb4_era_fetch", "q0082_h7_cb4_series_fetch"] and "repeat" not in q83
+    assert q83["depends_on"] == ["q0083b_h7_deadline_recorder"] and "repeat" not in q83
+    f81 = json.loads((jobs / "q0081f_h7_cb4_era_frame.json").read_text())
+    f82 = json.loads((jobs / "q0082f_h7_cb4_series_frame.json").read_text())
+    rec = json.loads((jobs / "q0083b_h7_deadline_recorder.json").read_text())
+    assert f81["argv"][1] == "era-frame" and f82["argv"][1] == "series-frame" and rec["depends_on"] == [] and rec["argv"][1] == "record-deadline"
+    assert "q0081f_h7_cb4_era_frame" in q81["depends_on"] and "q0082f_h7_cb4_series_frame" in q82["depends_on"]
+    assert "q0081a_h7_release_gate" in q81["depends_on"] and "q0081a_h7_release_gate" in q82["depends_on"]  # coordinator gate kept
+    assert "q0080a_cb4_freezecheck_gate" in q80["depends_on"]
+    assert (scripts_dir.parent / rec["argv"][0]).exists() and "--group-s-amendment" in q81["argv"] and "--group-s-amendment" in q82["argv"]
+    rxr = re.compile(rec["repeat"]["until_log_regex"])
+    assert rxr.search(json.dumps({"deadline_recorded": True, "states": {}})) and not rxr.search(json.dumps({"deadline_recorded": False, "not_yet": "x"}))
+    rxf = re.compile(f81["repeat"]["until_log_regex"])
+    assert rxf.search(json.dumps({"status": "era_frame_complete"})) and not rxf.search(json.dumps({"status": None, "stopped": "frame_paused"}))
     # the repeat regexes match the real terminal output lines and nothing else
     rx80 = re.compile(q80["repeat"]["until_log_regex"])
     assert rx80.search(json.dumps({"backfill_complete": True, "written": 3}, sort_keys=True))
@@ -1102,10 +1150,27 @@ def test_cmd_fetch_end_to_end_wiring_era_and_series(tmp_path, capsys):
     ev = [gevent(f"ev{k}", iso(ep("2026-03-01T12:00:00Z") + k * 86400)) for k in range(6)]
     net = FakeNet(markets=[gmarket(1, "2026-03-04T10:07:00Z")], events=ev)
     capsys.readouterr()
-    rc = d.cmd_fetch(_ns(kind="era", transport=net, periods="2026-03-01/2026-03-05", **base), require_committed=False, allow_nondeclared=True)
+    am = tmp_path / "amend.json"
+    kwe = dict(kind="era", transport=net, periods="2026-03-01/2026-03-05", group_s_amendment=str(am), **base)
+    # the amendment does not exist yet: the frame stage runs and stops, the full run refuses
+    rc = d.cmd_fetch(_ns(stage="frame", **kwe), require_committed=False, allow_nondeclared=True)
     out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
-    assert rc == 0 and out["status"] in ("era_fetch_complete", None) and out["stopped"] is None
-    rc = d.cmd_fetch(_ns(kind="series", transport=net, roll_from="2026-03-01", n_series=3, **base), require_committed=False, allow_nondeclared=True)
+    assert rc == 0 and out["status"] == "era_frame_complete"
+    rc = d.cmd_fetch(_ns(stage="all", **kwe), require_committed=False, allow_nondeclared=True)
+    assert rc == 2 and "amendment" in capsys.readouterr().out
+    am.write_text(json.dumps({"decision": "as_declared", "sports_fee_categories": ["sports"],
+                              "era_frame_report_sha256": h5_seal.sha256_file(hist / "h7_cb4_era" / "frame_report.json"),
+                              "series_frame_report_sha256": "x"}))
+    rc = d.cmd_fetch(_ns(stage="all", **kwe), require_committed=False, allow_nondeclared=True)
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert rc == 0 and out["status"] == "era_fetch_complete" and out["stopped"] is None
+    kws = dict(kind="series", transport=net, roll_from="2026-03-01", n_series=3, group_s_amendment=str(am), **base)
+    assert d.cmd_fetch(_ns(stage="frame", **kws), require_committed=False, allow_nondeclared=True) == 0
+    assert json.loads(capsys.readouterr().out.strip().splitlines()[-1])["status"] == "series_frame_complete"
+    doc = json.loads(am.read_text())
+    doc["series_frame_report_sha256"] = h5_seal.sha256_file(hist / "h7_cb4_series" / "frame_report.json")
+    am.write_text(json.dumps(doc))
+    rc = d.cmd_fetch(_ns(stage="all", **kws), require_committed=False, allow_nondeclared=True)
     out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert rc == 0 and out["stopped"] is None
 
@@ -1174,3 +1239,217 @@ def test_release_only_captures_absent_from_host_are_listed_and_extracted_or_reco
     rel2 = d.ReleaseCopies(tmp_path / "scr2", catalogue=_catalogue(tmp_path / "xx", entries), restore=restore)
     d.run_closewin(snap, tmp_path / "none", tmp_path / "r3", mode="backfill", since=S0, catalogue=_catalogue(tmp_path / "xx", entries), release=rel2)
     assert json.loads((tmp_path / "r3" / "manifest.json").read_text())["captures"][cid]["reason"] == "release_manifest_not_complete"
+
+
+
+# ---- freeze-check fixes 6-11, 14 ---------------------------------------------------------------------------------
+
+
+def test_rules_doc_covers_functions_constants_and_readable_text(tmp_path):
+    doc = d.series_rules_doc()
+    assert {"constants", "funcs_sha256", "rule_text", "rule_text_sha256", "cadence_bounds_sha256", "horizons_sha256"} <= set(doc)
+    assert doc["constants"]["PSEUDO_GAP_H"] == 6.0 and doc["constants"]["TEMP_RE"].startswith("^(Highest|Lowest)")
+    assert "union over origins" in doc["rule_text"]
+    p = tmp_path / "r.json"
+    d.write_series_rules(p)
+    p.write_text(json.dumps({**doc, "rule_text": doc["rule_text"] + " x"}))
+    with pytest.raises(d.Refused):
+        d.require_series_rules(p, require_committed=False)
+
+
+def test_union_window_covers_both_origins_and_lagged_resolution():
+    t0 = ep("2026-03-02T12:00:00Z")
+    alt = t0 - 3 * 86400  # closedTime far after endDate + 1h (resolution lag)
+    a, b, spans = d.union_window(t0, alt, 12.0)
+    assert a == int(min(s_[0] for s_ in spans)) and b == int(max(s_[1] for s_ in spans))
+    assert a <= alt - 21 * 3600 and b >= t0 + 14 * 3600  # both origins' windows are inside the union
+
+
+def test_series_fetch_stores_coverage_predecessor_and_union(tmp_path):
+    net = series_net()
+    m = series_kw(tmp_path, net)
+    assert m["status"] == "series_fetch_complete"
+    rdir = tmp_path / "hist" / "h7_cb4_series"
+    prog = [json.loads(line) for line in (rdir / "progress.jsonl").read_text().splitlines()]
+    assert prog and all(p["covers_t0"] and p["covers_alt"] for p in prog)
+    assert all(p["pred"]["price_points"] >= 0 and p["pred"]["trades"] >= 1 for p in prog)
+    p0 = prog[0]
+    assert (rdir / "pred_prices" / f"{p0['pred_file']}.csv.gz").exists() and (rdir / "pred_trades" / f"{p0['pred_file']}.csv.gz").exists()
+    og = pd.read_csv(rdir / "outcomes_guarded.csv.gz", dtype=str, keep_default_na=False)
+    assert {"pred_market_id", "pred_token_index"} <= set(og.columns) and (og.pred_market_id != "").all()
+    u = d._load_jsonl_gz(rdir / "units.jsonl.gz")[0]
+    assert u["pred_markets"] and "pred_token_index" not in u
+    # a window cut by the cap is reported, not silently accepted
+    net2 = series_net()
+    tmp2 = tmp_path / "cap"
+    tmp2.mkdir()
+    series_kw(tmp2, net2, cap_at="2026-03-05")
+    prog2 = [json.loads(line) for line in (tmp2 / "hist" / "h7_cb4_series" / "progress.jsonl").read_text().splitlines()]
+    assert any(not p["covers_t0"] for p in prog2)
+
+
+def test_group_s_amendment_required_matches_frame_and_decides_groups(tmp_path):
+    net = era_net()
+    m = era_kw(tmp_path, net, stage="frame")
+    assert m["status"] == "era_frame_complete" and m["complete"] is False
+    rdir = tmp_path / "hist" / "h7_cb4_era"
+    fr = json.loads((rdir / "frame_report.json").read_text())
+    assert "P0|sports" in fr["rules"]["kept_by_period_category"] and "P0|crypto" in fr["rules"]["kept_by_period_category"]
+    assert not (rdir / "sample.csv.gz").exists() and fr["rules"]["kept_by_cell"] == {}
+    am = tmp_path / "am.json"
+    kw = dict(auto_frame=False, amendment_file=am)
+
+    def run(**k):
+        return era_kw(tmp_path, net, **{**kw, **k})
+
+    # base helper overrides amendment_file when a frame exists; call era_fetch directly for refusal cases
+    def direct(path):
+        base = dict(seed="s", per_cell=3, periods=[("P0", ep("2026-03-01"), ep("2026-03-05"))], exclude_runs=["h2_main"],
+                    h5_seal_copies=[_h5_copy(tmp_path, ("100",))], key=KEY, now=NOW, wall_clock=_wall(), sleep=lambda s: None,
+                    live_check=None, windows_per_day=96, window_minutes=15, disk_cap=10**8, require_committed=False,
+                    amendment_file=path)
+        return d.era_fetch(tmp_path / "hist", "h7_cb4_era", net, **base)
+
+    with pytest.raises(d.Refused, match="not found"):
+        direct(am)
+    sha = h5_seal.sha256_file(rdir / "frame_report.json")
+    for doc, msg in (({"decision": "maybe", "sports_fee_categories": ["sports"], "era_frame_report_sha256": sha}, "decision"),
+                     ({"decision": "as_declared", "sports_fee_categories": ["sports", "x"], "era_frame_report_sha256": sha}, "as_declared"),
+                     ({"decision": "as_declared", "sports_fee_categories": ["sports"], "era_frame_report_sha256": "0"}, "does not match")):
+        am.write_text(json.dumps(doc))
+        with pytest.raises(d.Refused, match=msg):
+            direct(am)
+    assert not (rdir / "sample.csv.gz").exists()
+    # an amended decision that adds a category to S changes the groups
+    am.write_text(json.dumps({"decision": "amended", "sports_fee_categories": ["sports", "crypto"], "era_frame_report_sha256": sha}))
+    m = direct(am)
+    assert m["status"] == "era_fetch_complete"
+    sample = pd.read_csv(rdir / "sample.csv.gz", dtype=str, keep_default_na=False)
+    assert set(sample.group) == {"S"} and json.loads((rdir / "sample_report.json").read_text())["cells"]["S|P0"]["eligible"] == 9
+
+
+def test_failed_requests_fail_the_item_not_an_empty_file(tmp_path):
+    net = era_net()
+    era_kw(tmp_path, net, stage="frame")
+    net.fail_trades = True
+    m = era_kw(tmp_path, net)
+    rdir = tmp_path / "hist" / "h7_cb4_era"
+    prog = [json.loads(line) for line in (rdir / "progress.jsonl").read_text().splitlines()]
+    assert prog and all(p["status"] == "failed" and "trades status 404" in p["error"] for p in prog)
+    assert m["counts"]["items_failed"] == 6 and m["counts"].get("items_done", 0) == 0
+    assert not list((rdir / "prices").glob("*.csv.gz")) and not list((rdir / "trades").glob("*.csv.gz"))
+    # a failed price request likewise fails the market (no empty price file marked done)
+    net2 = era_net()
+    tmp2 = tmp_path / "b"
+    tmp2.mkdir()
+    era_kw(tmp2, net2, stage="frame")
+    net2.fail_price_tokens = {f"t{200 + i}a" for i in range(5)} | {f"t{100 + i}a" for i in range(4)}
+    era_kw(tmp2, net2)
+    prog2 = [json.loads(line) for line in (tmp2 / "hist" / "h7_cb4_era" / "progress.jsonl").read_text().splitlines()]
+    failed2 = [p for p in prog2 if p["status"] == "failed"]
+    assert failed2 and all("prices-history status 404" in p["error"] for p in failed2)
+    assert not any((tmp2 / "hist" / "h7_cb4_era" / "prices" / f"{p['market_id']}.csv.gz").exists() for p in failed2)
+
+
+def test_strict_price_and_trade_helpers_raise_on_non_200():
+    net = FakeNet()
+    net.fail_price_tokens = {"tok"}
+    net.fail_trades = True
+    lim = hb_mod().Limiter(net, rps=4.0, sleep=lambda s: None)
+    with pytest.raises(d.ApiError):
+        d.fetch_prices_strict(lim, "tok", 0, 1000)
+    with pytest.raises(d.ApiError):
+        d.fetch_trades_strict(lim, "c", KEY, 100)
+    ok = d.fetch_prices_strict(lim, "other", 0, 10_000)
+    assert len(ok) == 3
+
+
+def test_failed_frame_window_is_counted_and_retried_not_capped(tmp_path):
+    net = era_net()
+    net.fail_markets = True
+    m = era_kw(tmp_path, net, stage="frame")
+    assert m["stopped"].startswith("walk_failed") and m["transient"] is True
+    net.fail_markets = False
+    m = era_kw(tmp_path, net, stage="frame")  # the failed day is retried and the frame completes
+    assert m["status"] == "era_frame_complete"
+    rep = json.loads((tmp_path / "hist" / "h7_cb4_era" / "frame_report.json").read_text())
+    assert rep["windows_failed"] == 0 and rep["windows_dropped_capped"] == {"closed": 0, "active": 0}
+    # persistent failure: after MAX_DAY_ATTEMPTS the day is recorded with failed windows COUNTED (visible), not as capped
+    net3 = era_net()
+    net3.fail_markets = True
+    tmp3 = tmp_path / "c"
+    tmp3.mkdir()
+    res = [era_kw(tmp3, net3, stage="frame") for _ in range(12)]
+    fin = next(r for r in res if r.get("status") == "era_frame_complete")
+    rep3 = json.loads((tmp3 / "hist" / "h7_cb4_era" / "frame_report.json").read_text())
+    assert rep3["windows_failed"] > 0 and rep3["windows_dropped_capped"] == {"closed": 0, "active": 0} and fin
+
+
+def test_missing_exclusion_sample_is_a_refusal_not_a_disk_error(tmp_path, capsys):
+    net = era_net()
+    with pytest.raises(d.Refused, match="no .*sample.csv.gz"):
+        d.era_fetch(tmp_path / "hist", "h7_cb4_era", net, exclude_runs=["h1_first"], key=KEY, now=NOW, wall_clock=_wall(), live_check=None)
+    seal = _h5_copy(tmp_path)
+    (tmp_path / "dd").mkdir()
+    rc = d.cmd_fetch(_ns(transport=net, root=str(tmp_path / "hist"), exclude_seal_ids=str(seal), data_dumps=str(tmp_path / "dd"),
+                         exclude_runs="h1_first", wall_clock=_wall(), now=NOW), require_committed=False, allow_nondeclared=True)
+    assert rc == 2 and "h1_first" in capsys.readouterr().out
+    # the ladders seal copy is required too
+    (seal.parent / "h5_cb1_ladders_SEAL.json").unlink()
+    rc = d.cmd_fetch(_ns(transport=net, root=str(tmp_path / "hist"), exclude_seal_ids=str(seal), data_dumps=str(tmp_path / "dd"),
+                         wall_clock=_wall(), now=NOW), require_committed=False, allow_nondeclared=True)
+    assert rc == 2 and "ladders" in capsys.readouterr().out
+
+
+def test_h5_ladders_ids_are_excluded(tmp_path):
+    ids = d._h5_ids(d.with_ladders_copy([_h5_copy(tmp_path, ("100",))]))
+    assert ids == {"100", "L777"}
+
+
+def test_record_deadline_before_and_after_t_seal(tmp_path, capsys):
+    root = tmp_path / "hist"
+    ns = types.SimpleNamespace(root=str(root), seals_dir=str(tmp_path / "s"), wall_clock=_wall())
+    assert d.cmd_record_deadline(ns) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["deadline_recorded"] is False and "not_yet" in out and not root.exists()
+    # an incomplete era run, a complete series run (left for q0083) and nothing else
+    era_kw(tmp_path, era_net(), should_stop=lambda: True)
+    series_kw(tmp_path, series_net())
+    ns.wall_clock = _wall(d.T_SEAL_EPOCH + 1)
+    assert d.cmd_record_deadline(ns) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["deadline_recorded"] is True and out["states"] == {"h7_cb4_era": "not_run", "h7_cb4_series": "complete"}
+    assert (tmp_path / "s" / "h7_cb4_era_NOT_RUN.json").exists() and not (tmp_path / "s" / "h7_cb4_series_NOT_RUN.json").exists()
+    assert d.cmd_record_deadline(ns) == 0  # idempotent
+
+
+def test_event_weather_by_fee_category_and_shared_events_counted():
+    def ev(eid, sid, fee="crypto", end=0, mkt=None):
+        return {"event_id": eid, "end_epoch": 1.7e9 + end * 86400, "created_epoch": 1.7e9 + end * 86400 - 86400 * 2, "weather_title": 0,
+                "series": [{"id": sid, "slug": sid}], "n_markets": 1, "closed_mode": True,
+                "markets": [{"market_id": mkt or f"M{eid}", "condition_id": "c", "token0": "a", "token1": "b", "group_title": None,
+                             "outcomes": ["Up", "Down"], "created_epoch": 1.7e9, "fee_category": fee, "neg_risk": 0}]}
+
+    def g(eid, end):
+        return {"event_id": eid, "event_closed": True, "markets": [{"market_id": f"M{eid}", "outcome_prices": '["1","0"]', "closed": True,
+                                                                     "closed_time": iso(1.7e9 + end * 86400 + 3600)}]}
+
+    evs = {}
+    gs = {}
+    for k in range(6):  # series A daily, event 'a2' also belongs to series B
+        e = ev(f"a{k}", "A", end=k)
+        evs[e["event_id"]] = e
+        gs[e["event_id"]] = g(e["event_id"], k)
+    evs["a2"]["series"].append({"id": "B", "slug": "B"})
+    for k in range(6):
+        if k != 2:
+            e = ev(f"b{k}", "B", end=k)
+            evs[e["event_id"]] = e
+            gs[e["event_id"]] = g(e["event_id"], k)
+    # a weather event by fee category (title does not match TEMP_RE)
+    evs["a4"]["markets"][0]["fee_category"] = "weather"
+    asm = d.assemble_units(evs, gs, seed="s", n_series=10, n_sports=0, members=31, r_from=1.7e9 - 1, r_to=1.7e9 + 20 * 86400,
+                           history_ids=set(), h5_ids=set())
+    rep = asm["report"]
+    assert rep["unit_drops"].get("excluded_event_weather", 0) >= 1
+    assert rep["events_shared_across_series"] >= 1 and rep["units_in_shared_events"] >= 1

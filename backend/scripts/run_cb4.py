@@ -5,6 +5,8 @@ EXPLORATORY: no edge, calibration or profitability claim; paper rules only.
 DATA subcommands (this file; module ``astrolabe.research_lab.cb4_data``):
     python scripts/run_cb4.py fetch --kind era --run-id h7_cb4_era --seed arepo-h7-era --per-cell 800 ... --cap-at 2026-10-22T00:00Z   # q0081 (alias era-fetch)
     python scripts/run_cb4.py fetch --kind series --run-id h7_cb4_series --seed arepo-h7-series --n-series 400 ...                    # q0082 (alias series-fetch)
+    python scripts/run_cb4.py era-frame / series-frame ...   # stop after the frame; writes frame_report.json (category counts)
+    python scripts/run_cb4.py record-deadline                # q0083b: records 'not run' for unsealed incomplete h7 runs at T_seal
     python scripts/run_cb4.py seal --run-ids h7_cb4_era,h7_cb4_series                                                                 # q0083
     python scripts/run_cb4.py verify-seal --run-ids h7_cb4_era,h7_cb4_series
     python scripts/run_cb4.py series-rules                       # writes docs/research_lab/seals/cb4_series_rules.json (commit it before q0082)
@@ -68,7 +70,7 @@ def cmd_closewin(a) -> int:
 
     backfill = a.backfill_from is not None
     budget_min = a.budget_min if a.budget_min is not None else (150.0 if backfill else 7.0)
-    cat = d.Catalogue(Path(a.catalogue_dir))
+    cat = d.Catalogue(Path(a.catalogue_dir)) if backfill else None  # all-new: no catalogue scan in the pass step
     release = d.ReleaseCopies(Path(a.root) / "_scratch", catalogue=cat) if a.release_stream else None
     try:
         summ = d.run_closewin(
@@ -140,14 +142,21 @@ def build_parser() -> argparse.ArgumentParser:
         q.add_argument("--data-dumps-cap-gb", type=float, default=_d.DATA_DUMPS_FETCH_CAP_GB)
         q.add_argument("--snapshot-root", default=None)
         q.add_argument("--series-rules-file", default=None)
+        q.add_argument("--group-s-amendment", default=None, help="committed decision file for group S (sampling waits for it)")
+        q.add_argument("--stage", choices=["frame", "all"], default="all", help="frame = stop after the frame and its report")
 
     p = sub.add_parser("fetch", help="h7 fetch (q0081 era / q0082 series)")
     p.add_argument("--kind", choices=["era", "series"], required=True)
     add_fetch_args(p)
-    for alias, kind in (("era-fetch", "era"), ("series-fetch", "series")):
-        p = sub.add_parser(alias, help=f"alias of: fetch --kind {kind}")
+    for alias, kind, stg in (("era-fetch", "era", "all"), ("series-fetch", "series", "all"),
+                             ("era-frame", "era", "frame"), ("series-frame", "series", "frame")):
+        p = sub.add_parser(alias, help=f"alias of: fetch --kind {kind} --stage {stg}")
         p.set_defaults(kind=kind)
         add_fetch_args(p)
+        p.set_defaults(stage=stg)
+    p = sub.add_parser("record-deadline", help="record 'not run' for unsealed, incomplete h7 runs at T_seal (dependency-free)")
+    p.add_argument("--root", default=None)
+    p.add_argument("--seals-dir", default=None)
     for name in ("seal", "verify-seal"):
         p = sub.add_parser(name, help="seal / verify h7_cb4_era and h7_cb4_series (q0083)")
         p.add_argument("--run-ids", default=",".join(_d.H7_RUN_IDS))
@@ -175,12 +184,14 @@ def main(argv: list[str] | None = None) -> int:
 def cmd_data_dispatch(a) -> int:
     from astrolabe.research_lab import cb4_data as d  # noqa: PLC0415
 
-    if a.cmd in ("fetch", "era-fetch", "series-fetch"):
+    if a.cmd in ("fetch", "era-fetch", "series-fetch", "era-frame", "series-frame"):
         return d.cmd_fetch(a)
     if a.cmd == "seal":
         return d.cmd_seal(a)
     if a.cmd == "verify-seal":
         return d.cmd_verify_seal(a)
+    if a.cmd == "record-deadline":
+        return d.cmd_record_deadline(a)
     if a.cmd == "series-rules":
         return d.cmd_series_rules(a)
     print(f"unknown command {a.cmd}", file=sys.stderr)

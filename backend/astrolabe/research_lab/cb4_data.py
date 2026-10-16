@@ -629,12 +629,14 @@ SUCC_CREATED_LAG_H = 1.0
 PRICE_PRE_H = 3.0  # successor prices [t0' - 3h, V_end + 2h]
 PRICE_POST_H = 2.0
 PSEUDO_GAP_H = 6.0
+PRED_PRICE_H = 3.0  # winning predecessor token prices [t0 - 3h, t0 + 3h] (publicity check)
+PRED_TRADES = 1000  # one trade page of the winning predecessor market
 WIN_PRICE = 0.99
 SPLIT_HOLDOUT_FRAC = 0.40
 SPLIT_EMBARGO_D = 3
 
 SERIES_OUTCOME_COLUMNS = ["unit_id", "pred_event_id", "pred_winner_key", "pred_closed_time", "pred_outcome_prices",
-                          "side_market_id", "side_token_index"]
+                          "side_market_id", "side_token_index", "pred_market_id", "pred_token_index"]
 
 
 class Cb4Error(RuntimeError):
@@ -835,13 +837,54 @@ def match_side(succ: dict, pred: dict, key: str) -> tuple[str, int] | None:
     return None
 
 
+def winner_market(pred: dict, guarded: dict) -> tuple[str, int] | None:
+    """(market_id, token index) of the predecessor's WINNING token: binary-member event -> its single market and the
+    winning outcome index; multi-member event -> the winning member's Yes token (index 0). None as ``winner_of``."""
+    w = winner_of(pred, guarded)
+    if w is None:
+        return None
+    ms = pred["markets"]
+    if len(ms) == 1:
+        labels = [norm_label(x) for x in (ms[0].get("outcomes") or [])]
+        return (ms[0]["market_id"], labels.index(w[0])) if w[0] in labels else None
+    hits = [m for m in ms if norm_label(m.get("group_title")) == w[0]]
+    return (hits[0]["market_id"], 0) if len(hits) == 1 else None
+
+
+RULE_TEXT = (
+    "CB4-S series rules (CREATIVE_BATCH_4.md CB4-S). Series are found from event listings (series on events, "
+    "closed=false then true, end dates from the walk start to R_to + 2 d). Cadence from the median gap of member "
+    "endDates only: daily [20h,28h], weekly [6d,8d], monthly [27d,32d], else excluded. Weather = fee_category weather "
+    "or CB2 TEMP_RE on a title. Sports series = modal fee_category in the committed group-S decision. Series sample: "
+    "square-root allocation over cadence x modal fee_category (hb.allocate), rank sha256(seed|series). Block: up to "
+    "members-1 consecutive predecessors with endDate in [R_from, R_to], start sha256(seed|series|block) mod range. "
+    "t0 = closedTime of the single winning market (price >= 0.99, others <= 0.01). Successor = smallest later "
+    "endDate with createdAt <= t0 - 1h. Side: binary-member events by normalised outcome label; multi-member events "
+    "by normalised groupItemTitle (exact), else the unit is excluded. Horizons: daily M=3h V_end=12h; weekly and "
+    "monthly M=6h V_end=48h. Fetch window = union over origins t0 and t0_alt = endDate(pred)+1h of "
+    "[o' - 3h, o + V_end + 2h] with o' = o - V_end - 6h, plus the winning predecessor token and one trade page "
+    "around t0 for the publicity check.")
+
+
 def series_rules_doc() -> dict:
-    """Hash of the cadence bounds, horizons and the SOURCE of the matching/cadence functions (the rules are
-    committed before any event text is read, CREATIVE_BATCH_4.md section 2.7)."""
-    src = "\n".join(inspect.getsource(f) for f in (cadence_class, horizon_for, pick_successor, winner_of, match_side, norm_label))
+    """Hash of the cadence bounds, horizons, constants and the SOURCE of every function that turns event text and
+    outcome records into series, units, sides and windows (the rules are committed before any event text is read,
+    CREATIVE_BATCH_4.md section 2.7; CB2 fix 1 standard) plus the readable rule text."""
+    from astrolabe.research_panel import pairing  # noqa: PLC0415
+
+    w = _cb2w()
+    funcs = (cadence_class, horizon_for, pick_successor, winner_of, winner_market, match_side, norm_label, slim_event,
+             assemble_units, _modal, _price_pair, _parse_ts, is_weather_text, is_weather_market, fetch_unit_series,
+             union_window, pairing.fee_category, hb.allocate, hb._rank, _json_list)
+    src = "\n".join(inspect.getsource(f) for f in funcs)
+    consts = {"SUCC_CREATED_LAG_H": SUCC_CREATED_LAG_H, "PRICE_PRE_H": PRICE_PRE_H, "PRICE_POST_H": PRICE_POST_H,
+              "PSEUDO_GAP_H": PSEUDO_GAP_H, "WIN_PRICE": WIN_PRICE, "SERIES_WINDOW_MIN_S": SERIES_WINDOW_MIN_S,
+              "SERIES_WALK_BASE_DAYS": SERIES_WALK_BASE_DAYS, "SERIES_WALK_FROM": SERIES_WALK_FROM,
+              "SERIES_ROLL_TO_MARGIN_D": SERIES_ROLL_TO_MARGIN_D, "SERIES_WALK_AFTER_D": SERIES_WALK_AFTER_D,
+              "PRED_PRICE_H": PRED_PRICE_H, "PRED_TRADES": PRED_TRADES, "TEMP_RE": w.TEMP_RE, "TEMP_RE_FLAGS": w.TEMP_RE_FLAGS}
     return {"cadence_bounds_sha256": _sha(CADENCE_BOUNDS), "horizons_sha256": _sha(HORIZONS),
-            "funcs_sha256": hashlib.sha256(src.encode()).hexdigest(), "succ_created_lag_h": SUCC_CREATED_LAG_H,
-            "win_price": WIN_PRICE}
+            "constants": consts, "funcs_sha256": hashlib.sha256(src.encode()).hexdigest(),
+            "rule_text": RULE_TEXT, "rule_text_sha256": hashlib.sha256(RULE_TEXT.encode()).hexdigest()}
 
 
 def require_series_rules(path: Path = SERIES_RULES_FILE, *, require_committed: bool = True) -> None:
@@ -861,6 +904,43 @@ def require_series_rules(path: Path = SERIES_RULES_FILE, *, require_committed: b
         raise Refused(f"series-rule hash mismatch: file {doc} != code {series_rules_doc()}")
 
 
+AMENDMENT_FILE = SEALS_DIR / "h7_cb4_group_s_amendment.json"
+ERA_FRAME_TOKEN = "era_frame_complete"
+SERIES_FRAME_TOKEN = "series_frame_complete"
+
+
+def require_group_s_amendment(path: Path, kind: str, frame_report_path: Path, *, require_committed: bool = True
+                              ) -> tuple[str, ...]:
+    """The committed decision that defines group S (era) / the sports series stratum (series), made after the frame
+    stage reported the fee-category counts per period (fix 8). Sampling refuses until the file exists, is committed,
+    has ``decision`` in {as_declared, amended}, a non-empty ``sports_fee_categories`` list (``["sports"]`` exactly
+    for ``as_declared``) and carries ``<kind>_frame_report_sha256`` equal to this run's ``frame_report.json`` hash.
+    This session creates no amendment. Returns the sports fee categories."""
+    path = Path(path)
+    if not path.exists():
+        raise Refused(f"group-S amendment {path} not found; sampling waits for a reviewed, committed decision "
+                      f"(review {Path(frame_report_path).name} first)")
+    if require_committed:
+        from . import cb1_history  # noqa: PLC0415
+
+        if not cb1_history.spec_committed(path):
+            raise Refused(f"group-S amendment {path} is not committed (or differs from HEAD)")
+    try:
+        doc = json.loads(path.read_text())
+    except ValueError as exc:
+        raise Refused(f"group-S amendment {path} unreadable") from exc
+    cats = doc.get("sports_fee_categories")
+    if doc.get("decision") not in ("as_declared", "amended") or not isinstance(cats, list) or not cats \
+            or not all(isinstance(c, str) and c for c in cats):
+        raise Refused("group-S amendment needs decision as_declared|amended and a non-empty sports_fee_categories list")
+    if doc["decision"] == "as_declared" and cats != ["sports"]:
+        raise Refused("decision as_declared requires sports_fee_categories == ['sports']")
+    want = h5_seal.sha256_file(Path(frame_report_path))
+    if doc.get(f"{kind}_frame_report_sha256") != want:
+        raise Refused(f"group-S amendment does not match this {kind} frame report ({kind}_frame_report_sha256 != {want})")
+    return tuple(cats)
+
+
 def write_series_rules(path: Path = SERIES_RULES_FILE) -> Path:
     """Write the rule hashes (a Claude session commits the file before q0082 can run). Never overwrites a
     different file."""
@@ -876,11 +956,24 @@ def write_series_rules(path: Path = SERIES_RULES_FILE) -> Path:
 # ---- shared guards ---------------------------------------------------------------------------------------------
 
 
+H5_LADDERS_SEAL_COPY = "h5_cb1_ladders_SEAL.json"
+
+
+def with_ladders_copy(paths: list[Path]) -> list[Path]:
+    """The h5 copy plus its sibling ``h5_cb1_ladders_SEAL.json`` (both are exclusion sets; fix 14)."""
+    out = [Path(p) for p in paths]
+    for p in list(out):
+        if p.name == H5_SEAL_COPY and (p.with_name(H5_LADDERS_SEAL_COPY) not in out):
+            out.append(p.with_name(H5_LADDERS_SEAL_COPY))
+    return out
+
+
 def require_h5_seal_copy(paths: list[Path], *, require_committed: bool = True) -> None:
-    """Both fetches refuse until the committed ``seals/h5_cb1_SEAL.json`` exists (challenger item 11)."""
+    """Both fetches refuse until the committed ``seals/h5_cb1_SEAL.json`` and ``h5_cb1_ladders_SEAL.json`` exist
+    (challenger item 11, fix 14)."""
     if not any(Path(p).name == H5_SEAL_COPY for p in paths):
         raise Refused(f"--exclude-seal-ids must include the committed {H5_SEAL_COPY}")
-    for p in paths:
+    for p in with_ladders_copy(paths):
         if not Path(p).exists():
             raise Refused(f"committed seal copy {p} is missing; run q0018 and commit it first")
         if require_committed:
@@ -1092,8 +1185,60 @@ def _guard_start(root: Path, run_id: str, wall_clock: Callable[[], float], t_sea
     return None
 
 
+class ApiError(RuntimeError):
+    """A request that did not return 200 (a failed request is a failed item, never an empty result; fix 9)."""
+
+
+def fetch_prices_strict(lim: hb.Limiter, token: str, start: int, end: int) -> list[tuple[int, float]]:
+    """Like ``hb.fetch_prices`` but a non-200 reply raises :class:`ApiError` (``hb.fetch_prices`` ignores it and
+    would write an empty price file for a failed request). ``hb`` is not changed (h5 behaviour untouched)."""
+    pts: dict[int, float] = {}
+    a, step = start, hb.WINDOW_DAYS * 86400
+    while a < end:
+        b = min(a + step, end)
+        status, data = lim.get(hb.CLOB_PRICES, {"market": token, "startTs": a, "endTs": b, "fidelity": hb.FIDELITY_MIN})
+        if status != 200 or not isinstance(data, dict):
+            raise ApiError(f"prices-history status {status}")
+        for h in data.get("history") or []:
+            pts[int(h["t"])] = float(h["p"])
+        a = b
+    return sorted(pts.items())
+
+
+def fetch_trades_strict(lim: hb.Limiter, condition_id: str, key: bytes, max_trades: int, ts_cap: float | None = None
+                        ) -> tuple[list[list], dict]:
+    """Newest-first pages like ``hb.fetch_trades`` (wallets keyed-hashed, rows after ``ts_cap`` dropped and counted)
+    but a non-200 page raises :class:`ApiError`; ``truncated`` means only that our own or the API's offset cap was hit."""
+    rows: dict[str, list] = {}
+    dropped, off, pages, truncated = 0, 0, 0, False
+    cap = min(max_trades, hb.TRADE_OFFSET_CAP + hb.TRADE_PAGE)
+    while off < cap:
+        status, data = lim.get(hb.DATA_TRADES, {"market": condition_id, "limit": hb.TRADE_PAGE, "offset": off})
+        pages += 1
+        if status != 200 or not isinstance(data, list):
+            raise ApiError(f"trades status {status} at offset {off}")
+        for t in data:
+            try:
+                if ts_cap is not None and int(t["timestamp"]) > ts_cap:
+                    dropped += 1
+                    continue
+                tk = hb.trade_key(t)
+                rows[tk] = [int(t["timestamp"]), str(t["side"]), float(t["size"]), float(t["price"]), int(t["outcomeIndex"]),
+                            hb.wallet_hash(key, str(t.get("proxyWallet", ""))), tk]
+            except (KeyError, TypeError, ValueError):
+                continue
+        if len(data) < hb.TRADE_PAGE:
+            break
+        off += hb.TRADE_PAGE
+    else:
+        truncated = True
+    out = sorted(rows.values(), key=lambda x: (x[0], x[6]))
+    return out, {"pages": pages, "n": len(out), "truncated": truncated, "oldest_ts": out[0][0] if out else None,
+                 "dropped_post_cap": dropped if ts_cap is not None else None}
+
+
 def _fetch_prices_capped(lim: hb.Limiter, token: str, a: int, b: int, cap_epoch: float) -> tuple[list[tuple[int, float]], int]:
-    pts, _n = hb.fetch_prices(lim, token, a, b)
+    pts = fetch_prices_strict(lim, token, a, b)
     keep = [(t, p) for t, p in pts if t < cap_epoch]
     return keep, len(pts) - len(keep)
 
@@ -1132,6 +1277,29 @@ def _outcome_row(r: dict) -> dict:
     return {"market_id": r["market_id"], **{c: r.get(c, "") for c in OUTCOME_FIELDS}}
 
 
+def _paged_strict(lim: hb.Limiter, params: dict, max_rows: int) -> tuple[list[dict], bool, bool]:
+    """(rows, capped, failed) of one /markets window by offset. A failed request is ``failed`` and is never read as
+    "capped" (``hb._paged(error_is_capped=True)`` conflates them; fix 9)."""
+    out: list[dict] = []
+    off = 0
+    while True:
+        try:
+            status, data = lim.get(hb.GAMMA_MARKETS, {**params, "limit": hb.GAMMA_PAGE, "offset": off})
+        except RuntimeError:
+            return out, False, True
+        if status != 200 or not isinstance(data, list):
+            return out, False, True
+        out.extend(data)
+        if len(data) < hb.GAMMA_PAGE:
+            return out, False, False
+        off += hb.GAMMA_PAGE
+        if off >= max_rows:
+            return out, True, False
+
+
+MAX_DAY_ATTEMPTS = 3
+
+
 def walk_era_frame(lim: hb.Limiter, days: list[date], seed: str, modes: tuple[bool, ...], *, rdir: Path,
                    should_stop: Callable[[], bool] | None = None, windows_per_day: int = FRAME_WINDOWS_PER_DAY,
                    window_minutes: int = FRAME_WINDOW_MINUTES, pages_per_window: int = FRAME_PAGES_PER_WINDOW,
@@ -1139,17 +1307,26 @@ def walk_era_frame(lim: hb.Limiter, days: list[date], seed: str, modes: tuple[bo
     """The h2 frame method (``frame-v2-random-windows``) restricted to the period days: per day, ``windows_per_day``
     seeded ``window_minutes`` windows on ``end_date``, each walked with ``closed=false`` first, then ``closed=true``
     (a market that closes between the two walks is seen by the second), ``pages_per_window`` pages; a window still
-    capped is dropped whole and counted. Resumable per day through ``frame_partial.jsonl`` (non-outcome columns) and
-    ``frame_partial_guarded.jsonl`` (outcome columns). Returns (rows, outcomes, report, stopped)."""
+    capped is dropped whole and counted as capped. A window with a FAILED request is counted separately
+    (``windows_failed``); the day is not recorded and is retried by the next chunk, and only after
+    ``MAX_DAY_ATTEMPTS`` failed attempts is it recorded with its failed windows counted. Resumable per day through
+    ``frame_partial.jsonl`` (non-outcome columns) and ``frame_partial_guarded.jsonl`` (outcome columns).
+    Returns (rows, outcomes, report, stopped)."""
     rows: dict[str, dict] = {}
     outs: dict[str, dict] = {}
     rep: dict = {"frame_version": hb.FRAME_VERSION, "windows_per_day": windows_per_day, "window_minutes": window_minutes,
                  "pages_per_window": pages_per_window, "modes": [bool(m) for m in modes], "days": len(days),
                  "windows": {"closed": 0, "active": 0}, "windows_dropped_capped": {"closed": 0, "active": 0},
-                 "rows_in_dropped_windows": 0, "dropped_capped_by_day": {}, "raw": 0, "non_binary_or_invalid": 0,
-                 "duplicates": 0}
-    pp, pg = rdir / "frame_partial.jsonl", rdir / "frame_partial_guarded.jsonl"
+                 "windows_failed": 0, "days_with_failed_windows": [], "rows_in_dropped_windows": 0,
+                 "dropped_capped_by_day": {}, "raw": 0, "non_binary_or_invalid": 0, "duplicates": 0}
+    pp, pg, pf = rdir / "frame_partial.jsonl", rdir / "frame_partial_guarded.jsonl", rdir / "frame_fail.jsonl"
     done_days: set[str] = set()
+    fails: dict[str, int] = {}
+    if pf.exists():
+        for line in pf.read_text().splitlines():
+            if line.strip():
+                k = json.loads(line)["day"]
+                fails[k] = fails.get(k, 0) + 1
     if pp.exists():
         guarded_by_day: dict[str, list] = {}
         if pg.exists():
@@ -1174,6 +1351,9 @@ def walk_era_frame(lim: hb.Limiter, days: list[date], seed: str, modes: tuple[bo
             rep["rows_in_dropped_windows"] += rec["dropped_rows"]
             if any(rec["dropped"].values()):
                 rep["dropped_capped_by_day"][rec["day"]] = rec["dropped"]
+            if rec.get("failed_windows"):
+                rep["windows_failed"] += rec["failed_windows"]
+                rep["days_with_failed_windows"].append(rec["day"])
             rep["raw"] += rec["raw"]
             rep["non_binary_or_invalid"] += rec["invalid"]
             rep["duplicates"] += rec["dups"]
@@ -1193,7 +1373,7 @@ def walk_era_frame(lim: hb.Limiter, days: list[date], seed: str, modes: tuple[bo
         seen_day: set[str] = set()
         win = {"closed": 0, "active": 0}
         dropped = {"closed": 0, "active": 0}
-        dropped_rows = raw = invalid = dups = 0
+        dropped_rows = raw = invalid = dups = failed_windows = 0
         for mode in sorted(set(modes), key=bool):  # closed=false first
             kind = "closed" if mode else "active"
             for k in picks:
@@ -1201,7 +1381,10 @@ def walk_era_frame(lim: hb.Limiter, days: list[date], seed: str, modes: tuple[bo
                 b = a + timedelta(minutes=window_minutes)
                 p = {"order": "id", "ascending": "true", "closed": "true" if mode else "false",
                      "end_date_min": a.strftime(f), "end_date_max": b.strftime(f)}
-                batch, capped = hb._paged(lim, p, max_rows=pages_per_window * hb.GAMMA_PAGE, error_is_capped=True)
+                batch, capped, failed = _paged_strict(lim, p, pages_per_window * hb.GAMMA_PAGE)
+                if failed:
+                    failed_windows += 1
+                    continue
                 win[kind] += 1
                 if capped:
                     dropped[kind] += 1
@@ -1218,13 +1401,17 @@ def walk_era_frame(lim: hb.Limiter, days: list[date], seed: str, modes: tuple[bo
                         seen_day.add(r["market_id"])
                         new_rows.append(_main_row(r))
                         new_outs.append(_outcome_row(r))
+        if failed_windows and fails.get(dkey, 0) + 1 < MAX_DAY_ATTEMPTS:
+            with pf.open("a") as fh:
+                fh.write(json.dumps({"day": dkey, "failed_windows": failed_windows}) + "\n")
+            return list(rows.values()), outs, rep, f"walk_failed_window: {dkey}"
         # outcomes first, rows last: a day counts as done only when both lines exist
         with pg.open("a") as fh:
             fh.write(json.dumps({"day": dkey, "outs": new_outs}, default=float) + "\n")
         with pp.open("a") as fh:
             fh.write(json.dumps({"day": dkey, "rows": new_rows, "windows": win, "dropped": dropped,
-                                 "dropped_rows": dropped_rows, "raw": raw, "invalid": invalid, "dups": dups},
-                                default=float) + "\n")
+                                 "dropped_rows": dropped_rows, "raw": raw, "invalid": invalid, "dups": dups,
+                                 "failed_windows": failed_windows}, default=float) + "\n")
         for r in new_rows:
             rows[r["market_id"]] = r
         for o in new_outs:
@@ -1235,6 +1422,9 @@ def walk_era_frame(lim: hb.Limiter, days: list[date], seed: str, modes: tuple[bo
         rep["rows_in_dropped_windows"] += dropped_rows
         if any(dropped.values()):
             rep["dropped_capped_by_day"][dkey] = dropped
+        if failed_windows:
+            rep["windows_failed"] += failed_windows
+            rep["days_with_failed_windows"].append(dkey)
         rep["raw"] += raw
         rep["non_binary_or_invalid"] += invalid
         rep["duplicates"] += dups
@@ -1249,14 +1439,17 @@ def era_period_of(end_epoch: float, periods: list[tuple[str, float, float]]) -> 
 
 
 def apply_era_rules(rows: list[dict], periods: list[tuple[str, float, float]], *, history_ids: set[str], h5_ids: set[str],
-                    origin_h: float = ERA_ORIGIN_H, min_life_d: float = ERA_MIN_LIFE_D) -> tuple[list[dict], dict]:
+                    origin_h: float = ERA_ORIGIN_H, min_life_d: float = ERA_MIN_LIFE_D,
+                    sports_cats: tuple[str, ...] | None = None) -> tuple[list[dict], dict]:
     """Frame rules (CB4-E), each counted, first rule that fires: ``no_end_date``, ``weather``,
     ``history_sample_overlap`` (h1/h2/h3), ``h5_overlap``, ``outside_periods``, ``life_unknown``,
     ``life_lt_min`` (``created_at <= endDate - 4d`` fails), ``origin_window_outside_period``
-    (``[end - 72h, end)`` not entirely inside the period). Adds ``group`` (S sports / O other) and ``period``."""
+    (``[end - 72h, end)`` not entirely inside the period). Adds ``period``; ``group`` (S / O) only when
+    ``sports_cats`` is given (the frame stage leaves it blank: the S definition is decided after the category counts
+    per period are reviewed, fix 8). ``kept_by_period_category`` is the table that review reads."""
     counts = {"frame_in": len(rows), "no_end_date": 0, "weather": 0, "history_sample_overlap": 0, "h5_overlap": 0,
               "outside_periods": 0, "life_unknown": 0, "life_lt_min": 0, "origin_window_outside_period": 0, "kept": 0,
-              "kept_by_cell": {}}
+              "kept_by_cell": {}, "kept_by_period_category": {}}
     kept = []
     bounds = {n: (a, b) for n, a, b in periods}
     for r in sorted(rows, key=lambda x: x["market_id"]):
@@ -1288,10 +1481,13 @@ def apply_era_rules(rows: list[dict], periods: list[tuple[str, float, float]], *
         if end - origin_h * HOUR < bounds[p][0]:
             counts["origin_window_outside_period"] += 1
             continue
-        g = "S" if (r.get("fee_category") or "") == "sports" else "O"
+        g = "" if sports_cats is None else ("S" if (r.get("fee_category") or "") in sports_cats else "O")
         kept.append({**r, "group": g, "period": p})
         counts["kept"] += 1
-        counts["kept_by_cell"][f"{g}|{p}"] = counts["kept_by_cell"].get(f"{g}|{p}", 0) + 1
+        pc = f"{p}|{r.get('fee_category') or ''}"
+        counts["kept_by_period_category"][pc] = counts["kept_by_period_category"].get(pc, 0) + 1
+        if g:
+            counts["kept_by_cell"][f"{g}|{p}"] = counts["kept_by_cell"].get(f"{g}|{p}", 0) + 1
     return kept, counts
 
 
@@ -1330,7 +1526,7 @@ def fetch_era_market(lim: hb.Limiter, r: dict, key: bytes, rdir: Path, budget: h
     b = int(min(end + ERA_PRICE_LEAD_D * DAY, cap_epoch))
     mid = r["market_id"]
     pts, dropped = _fetch_prices_capped(lim, r["token0"], a, b, cap_epoch) if b > a else ([], 0)
-    trades, tst = hb.fetch_trades(lim, r["condition_id"], key, max_trades, ts_cap=cap_epoch - 1)
+    trades, tst = fetch_trades_strict(lim, r["condition_id"], key, max_trades, ts_cap=cap_epoch - 1)
     budget.write(Path(rdir) / "prices" / f"{mid}.csv.gz", hb._gz_csv_bytes(["t", "p"], ([t, p] for t, p in pts)))
     budget.write(Path(rdir) / "trades" / f"{mid}.csv.gz", hb._gz_csv_bytes(hb.TRADE_COLUMNS, trades))
     return {"market_id": mid, "status": "done", "price_points": len(pts), "dropped_price_rows_post_cap": dropped,
@@ -1353,6 +1549,15 @@ def _tally_era(counts: dict[str, int]) -> Callable[[dict], None]:
     return tally
 
 
+def _read_era_frame(path: Path) -> list[dict]:
+    df = pd.read_csv(path, dtype={"market_id": str, "token0": str, "token1": str, "event_id": str}, keep_default_na=False)
+    rows = df.to_dict("records")
+    for r in rows:
+        r["end_epoch"] = float(r["end_epoch"])
+        r["weather_title"] = int(r["weather_title"] or 0)
+    return rows
+
+
 def era_fetch(
     root: Path, run_id: str, transport: hb.Transport, *, seed: str = ERA_SEED, per_cell: int = ERA_PER_CELL,
     periods: list[tuple[str, float, float]] | None = None, exclude_runs: list[str] | None = None,
@@ -1364,22 +1569,27 @@ def era_fetch(
     t_seal_epoch: float = T_SEAL_EPOCH, snapshot_root: Path | None = None, health_every_s: float = 600.0,
     health_check: Callable[[float], tuple[bool, str]] | None = None, pages_per_window: int = FRAME_PAGES_PER_WINDOW,
     windows_per_day: int = FRAME_WINDOWS_PER_DAY, window_minutes: int = FRAME_WINDOW_MINUTES,
+    stage: str = "all", amendment_file: Path = AMENDMENT_FILE, require_committed: bool = True,
 ) -> dict:
-    """Frame (period days, seeded 15-minute windows) -> rules -> seeded sample (written once) -> per-market prices and
-    trades. Refuses new chunks at or after ``t_seal_epoch`` (an incomplete run is then marked ``not_run_deadline``).
-    Every price and trade row at or after ``min(T_fetch7, T_seal)`` is dropped and counted. Outcome columns go only to
-    ``outcomes_guarded.csv.gz``. Ends a chunk as transient on collector health or after 50 HTTP 429s."""
+    """Stage ``frame``: period days (seeded 15-minute windows) -> rules -> ``frame.csv.gz`` + ``frame_report.json``
+    (fee-category counts per period) and STOP (status ``era_frame_complete``). Stage ``all``: the frame (if absent),
+    then, once the committed group-S amendment matches the frame report (fix 8), the seeded sample (written once) and the
+    per-market prices and trades. Refuses new chunks at or after ``t_seal_epoch`` (an incomplete run is then marked
+    ``not_run_deadline``). Every price and trade row at or after ``min(T_fetch7, T_seal)`` is dropped and counted; a
+    failed request fails the market (never an empty file). Outcome columns go only to ``outcomes_guarded.csv.gz``.
+    Ends a chunk as transient on collector health or after 50 HTTP 429s."""
     root = Path(root)
     refuse_run_id(run_id, (ERA_RUN_ID,))
     early = _guard_start(root, run_id, wall_clock, t_seal_epoch, ERA_COMPLETE_TOKEN)
     if early is not None:
         return early
     periods = periods or parse_periods(ERA_PERIODS)
+    hist = _history_ids(root, exclude_runs or [])  # a missing exclusion sample is a refusal, not a disk error
     fr = FetchRun(root, run_id, transport, kind="era", params={
         "seed": seed, "per_cell": per_cell, "periods": [[n, _iso(a), _iso(b)] for n, a, b in periods],
         "origin_window_h": ERA_ORIGIN_H, "min_life_d": ERA_MIN_LIFE_D, "exclude_runs": exclude_runs or [],
         "walk_closed": list(walk_closed), "max_trades": max_trades, "pages_per_window": pages_per_window,
-        "windows_per_day": windows_per_day, "window_minutes": window_minutes},
+        "windows_per_day": windows_per_day, "window_minutes": window_minutes, "stage": stage},
         rps=rps, disk_cap=disk_cap, budget_min=budget_min, now=now, sleep=sleep, live_check=live_check,
         wall_clock=wall_clock, t_seal_epoch=t_seal_epoch, snapshot_root=snapshot_root, health_every_s=health_every_s,
         health_check=health_check, cap_at=cap_at, key=key)
@@ -1387,14 +1597,10 @@ def era_fetch(
     if why:
         return fr.manifest(why, {"transient": True})
     rdir = fr.rdir
-    spath = rdir / "sample.csv.gz"
-    frame_rep = fr.prior.get("frame_report")
+    fpath, frpath, spath = rdir / "frame.csv.gz", rdir / "frame_report.json", rdir / "sample.csv.gz"
     try:
-        if not spath.exists():
-            hist = _cb2w().history_sample_ids(root, exclude_runs or [])
-            h5 = set()
-            for p in h5_seal_copies or []:
-                h5 |= _cb2w().seal_ids_from_copy(Path(p))
+        if not frpath.exists():
+            h5 = _h5_ids(h5_seal_copies)
             why_stop: list[str] = []
 
             def walk_stop() -> bool:
@@ -1407,30 +1613,42 @@ def era_fetch(
                 fr.lim, era_days(periods), seed, walk_closed, rdir=rdir, pages_per_window=pages_per_window,
                 windows_per_day=windows_per_day, window_minutes=window_minutes, should_stop=walk_stop)
             if stopped:
-                return fr.manifest(why_stop[-1] if why_stop else stopped,
-                                   {"transient": bool(why_stop and why_stop[-1].startswith("paused")), "walk_report": walk_rep})
+                transient = bool(why_stop and why_stop[-1].startswith("paused")) or stopped.startswith("walk_failed")
+                return fr.manifest(why_stop[-1] if why_stop else stopped, {"transient": transient, "walk_report": walk_rep})
             eligible, rule_counts = apply_era_rules(rows, periods, history_ids=hist, h5_ids=h5)
-            sample, samp_rep = draw_era_sample(eligible, per_cell, seed)
-            frame_rep = {**walk_rep, "rules": rule_counts, "history_ids": len(hist), "h5_ids": len(h5), "sample": samp_rep,
-                         "n_sample": len(sample), "fee_category_counts_eligible": _count_by(eligible, "fee_category")}
+            frame_rep = {**walk_rep, "rules": rule_counts, "history_ids": len(hist), "h5_ids": len(h5),
+                         "n_eligible": len(eligible), "fee_category_counts_eligible": _count_by(eligible, "fee_category")}
             ids = {r["market_id"] for r in eligible}
             fr.budget.write(rdir / OUTCOME_FILE, _frame_csv_bytes(ERA_OUTCOME_COLUMNS, [outs[m] for m in sorted(ids) if m in outs]))
-            fr.budget.write(rdir / "frame.csv.gz", _frame_csv_bytes(FRAME_MAIN_COLUMNS, eligible))
-            fr.budget.write(rdir / "frame_report.json", json.dumps(frame_rep, indent=1, sort_keys=True, default=float).encode())
-            hdr = [*FRAME_MAIN_COLUMNS, "stratum", "stratum_size", "stratum_alloc", "inclusion_prob"]
-            fr.budget.write(spath, _frame_csv_bytes(hdr, sample))  # sample last: its presence marks the frame as complete
-            for tmp in (rdir / "frame_partial.jsonl", rdir / "frame_partial_guarded.jsonl"):
+            fr.budget.write(fpath, _frame_csv_bytes(FRAME_MAIN_COLUMNS, eligible))
+            fr.budget.write(frpath, json.dumps(frame_rep, indent=1, sort_keys=True, default=float).encode())  # last: marks the frame
+            for tmp in (rdir / "frame_partial.jsonl", rdir / "frame_partial_guarded.jsonl", rdir / "frame_fail.jsonl"):
                 tmp.unlink(missing_ok=True)
+        frame_rep = json.loads(frpath.read_text())
+        if stage == "frame":
+            m = fr.manifest("frame_complete", {"frame_report": frame_rep, "frame_complete": True})
+            m["status"] = ERA_FRAME_TOKEN
+            return m
+        if not spath.exists():
+            cats = require_group_s_amendment(amendment_file, "era", frpath, require_committed=require_committed)
+            frame = _read_era_frame(fpath)
+            for r in frame:
+                r["group"] = "S" if (r.get("fee_category") or "") in cats else "O"
+            sample, samp_rep = draw_era_sample(frame, per_cell, seed)
+            frame_rep = {**frame_rep, "sports_fee_categories": list(cats), "sample": samp_rep, "n_sample": len(sample)}
+            fr.budget.write(rdir / "sample_report.json", json.dumps(frame_rep["sample"], indent=1, sort_keys=True, default=float).encode())
+            hdr = [*FRAME_MAIN_COLUMNS, "stratum", "stratum_size", "stratum_alloc", "inclusion_prob"]
+            fr.budget.write(spath, _frame_csv_bytes(hdr, sample))  # sample last: its presence marks the sample as drawn
+    except Refused:
+        raise
+    except FileNotFoundError as exc:
+        raise Refused(str(exc)) from exc
     except OSError as exc:
         return {"stopped": f"disk_budget: {exc}"}
     except RuntimeError as exc:  # a persistent API failure while walking: transient, the partial days are kept
         return fr.manifest(f"walk_failed: {exc}"[:200], {"transient": True})
-    if frame_rep is None and (rdir / "frame_report.json").exists():
-        frame_rep = json.loads((rdir / "frame_report.json").read_text())
-    sample_rows = pd.read_csv(spath, dtype={"market_id": str, "token0": str, "token1": str, "event_id": str},
-                              keep_default_na=False).to_dict("records")
-    for r in sample_rows:
-        r["end_epoch"] = float(r["end_epoch"])
+    frame_rep = {**json.loads(frpath.read_text()), "sample": json.loads((rdir / "sample_report.json").read_text())}
+    sample_rows = _read_era_frame(spath)
     extra = {"frame_report": frame_rep, "n_sample": len(sample_rows)}
     items = sorted(sample_rows, key=lambda r: hb._rank(seed, r["market_id"]))  # seeded-rank order
     stopped, pending = _fetch_items(
@@ -1442,6 +1660,22 @@ def era_fetch(
         m["status"] = ERA_COMPLETE_TOKEN
         return m
     return fr.manifest(stopped or "pending", {**extra, "transient": bool(stopped and stopped.startswith("paused"))})
+
+
+def _history_ids(root: Path, runs: list[str]) -> set[str]:
+    """Market ids of the excluded runs' samples. A missing sample is a REFUSAL (never a disk error; fix 10)."""
+    for r in runs:
+        sp = Path(root) / r / "sample.csv.gz"
+        if not sp.exists():
+            raise Refused(f"excluded run {r!r} has no {sp}; refusing (disjointness must never silently degrade)")
+    return _cb2w().history_sample_ids(root, runs)
+
+
+def _h5_ids(copies: list[Path] | None) -> set[str]:
+    ids: set[str] = set()
+    for p in copies or []:
+        ids |= _cb2w().seal_ids_from_copy(Path(p))
+    return ids
 
 
 def _count_by(rows: list[dict], key: str) -> dict[str, int]:
@@ -1653,7 +1887,8 @@ def _modal(vals: list[str]) -> str:
 
 
 def assemble_units(events: dict[str, dict], guarded: dict[str, dict], *, seed: str, n_series: int, n_sports: int,
-                   members: int, r_from: float, r_to: float, history_ids: set[str], h5_ids: set[str]) -> dict:
+                   members: int, r_from: float, r_to: float, history_ids: set[str], h5_ids: set[str],
+                   sports_cats: tuple[str, ...] = ("sports",)) -> dict:
     """Series table, seeded series sample, 31-member blocks and roll units (CB4-S population), every exclusion counted.
     Selection of series and blocks uses end dates, fee categories and series ids only (no outcome). ``t0`` and the
     rolled-into side come from the predecessor's outcome record and are returned in ``outcome_rows`` (guarded)."""
@@ -1685,7 +1920,7 @@ def assemble_units(events: dict[str, dict], guarded: dict[str, dict], *, seed: s
             rep["series_cadence_excluded"] += 1
             continue
         table[sid] = {"series_id": sid, "slug": sinfo[sid]["slug"], "cadence": cad, "modal_fee_category": modal,
-                      "sports": modal == "sports", "n_members": len(ms), "members": ms}
+                      "sports": modal in sports_cats, "n_members": len(ms), "members": ms}
     rep["series_eligible"] = len(table)
     non_sports = {k: v for k, v in table.items() if not v["sports"]}
     sports = {k: v for k, v in table.items() if v["sports"]}
@@ -1701,7 +1936,7 @@ def assemble_units(events: dict[str, dict], guarded: dict[str, dict], *, seed: s
     rep["series_strata"] = {k: {"size": len(v), "alloc": alloc[k]} for k, v in sorted(strata.items())}
 
     def excluded(ev: dict) -> str | None:
-        if ev["weather_title"]:
+        if ev["weather_title"] or any(m["fee_category"] == "weather" for m in ev["markets"]):
             return "weather"
         mids = {m["market_id"] for m in ev["markets"]}
         if mids & history_ids:
@@ -1752,6 +1987,10 @@ def assemble_units(events: dict[str, dict], guarded: dict[str, dict], *, seed: s
             if side is None:
                 drop("no_side_match")
                 continue
+            wm = winner_market(pred, guarded[pred["event_id"]])
+            if wm is None:
+                drop("no_winner_market")
+                continue
             uid = f"{sid}:{pred['event_id']}:{succ['event_id']}"
             units.append({
                 "unit_id": uid, "series_id": sid, "series_slug": v["slug"], "cadence": v["cadence"],
@@ -1760,36 +1999,89 @@ def assemble_units(events: dict[str, dict], guarded: dict[str, dict], *, seed: s
                 "t0_epoch": t0, "t0_date": datetime.fromtimestamp(t0, UTC).date().isoformat(),
                 "succ_created_epoch": succ["created_epoch"], "succ_skipped": skipped, "M_h": m_h, "V_end_h": v_h,
                 "pred_market_ids": [m["market_id"] for m in pred["markets"]],
+                "pred_markets": [{k: m[k] for k in ("market_id", "condition_id", "token0", "token1")} for m in pred["markets"]],
                 "succ_markets": [{k: m[k] for k in ("market_id", "condition_id", "token0", "token1")} for m in succ["markets"]]})
             outcome_rows.append({
                 "unit_id": uid, "pred_event_id": pred["event_id"], "pred_winner_key": key,
                 "pred_closed_time": next((g["closed_time"] for g in guarded[pred["event_id"]]["markets"] if g["closed_time"]), ""),
                 "pred_outcome_prices": json.dumps([g["outcome_prices"] for g in guarded[pred["event_id"]]["markets"]]),
-                "side_market_id": side[0], "side_token_index": side[1]})
+                "side_market_id": side[0], "side_token_index": side[1],
+                "pred_market_id": wm[0], "pred_token_index": wm[1]})
             rep["units"] += 1
             rep["units_succ_skipped"] += int(skipped)
+    # events shared by units of more than one series are counted (dependence between series)
+    users: dict[str, set[str]] = {}
+    for u in units:
+        for ev in (u["pred_event_id"], u["succ_event_id"]):
+            users.setdefault(ev, set()).add(u["series_id"])
+    rep["events_shared_across_series"] = sum(1 for v in users.values() if len(v) > 1)
+    rep["units_in_shared_events"] = sum(1 for u in units if len(users[u["pred_event_id"]]) > 1 or len(users[u["succ_event_id"]]) > 1)
     return {"series": series_rows, "units": units, "outcomes": outcome_rows, "report": rep}
+
+
+def union_window(t0: float, t0_alt: float, v_end_h: float) -> tuple[int, int, list[tuple[float, float]]]:
+    """Union of the required price windows ``[o' - 3h, o + V_end + 2h]`` (``o' = o - V_end - 6h``, the pseudo-roll
+    origin) over the two origins ``t0`` and ``t0_alt = endDate(pred) + 1h`` (section 2.2 coverage invariance)."""
+    spans = []
+    for o in (t0, t0_alt):
+        v = o + v_end_h * HOUR
+        spans.append((o - (v - o) - PSEUDO_GAP_H * HOUR - PRICE_PRE_H * HOUR, v + PRICE_POST_H * HOUR))
+    return int(min(a for a, _ in spans)), int(max(b for _, b in spans)), spans
 
 
 def fetch_unit_series(lim: hb.Limiter, unit: dict, side: dict, key: bytes, rdir: Path, budget: hb.DiskBudget, *,
                       cap_epoch: float, max_trades: int = ERA_MAX_TRADES) -> dict:
-    """Prices of the rolled-into token over ``[t0' - 3h, V_end + 2h]`` (``t0' = t0 - (V_end - t0) - 6h``, the
-    pseudo-roll origin) and the side market's trades newest first (<= ``max_trades``), capped at ``cap_epoch``."""
+    """Successor prices of the rolled-into token over the union window of both origins and the side market's trades
+    (newest first, <= ``max_trades``), plus the winning predecessor token's prices ``[t0 - 3h, t0 + 3h]`` and one
+    trade page of the predecessor market (for the pre-freeze ``t0`` publicity check). Rows at or after ``cap_epoch``
+    are dropped and counted; ``covers_t0`` / ``covers_alt`` assert that each origin's required window is inside
+    what was fetched (a window cut by the cap is reported, never silently accepted)."""
     t0 = float(unit["t0_epoch"])
-    v_end = t0 + float(unit["V_end_h"]) * HOUR
-    t0p = t0 - (v_end - t0) - PSEUDO_GAP_H * HOUR
-    a, b = int(t0p - PRICE_PRE_H * HOUR), int(min(v_end + PRICE_POST_H * HOUR, cap_epoch))
+    t0_alt = float(unit["pred_end_epoch"]) + HOUR
+    a, b0, spans = union_window(t0, t0_alt, float(unit["V_end_h"]))
+    b = int(min(b0, cap_epoch))
     mk = next(m for m in unit["succ_markets"] if m["market_id"] == str(side["side_market_id"]))
     token = mk["token1"] if int(side["side_token_index"]) == 1 else mk["token0"]
     name = f"{mk['market_id']}__{unit['pred_event_id']}"
     pts, dropped = _fetch_prices_capped(lim, token, a, b, cap_epoch) if b > a else ([], 0)
-    trades, tst = hb.fetch_trades(lim, mk["condition_id"], key, max_trades, ts_cap=cap_epoch - 1)
+    trades, tst = fetch_trades_strict(lim, mk["condition_id"], key, max_trades, ts_cap=cap_epoch - 1)
     budget.write(Path(rdir) / "prices" / f"{name}.csv.gz", hb._gz_csv_bytes(["t", "p"], ([t, p] for t, p in pts)))
     budget.write(Path(rdir) / "trades" / f"{name}.csv.gz", hb._gz_csv_bytes(hb.TRADE_COLUMNS, trades))
-    return {"unit_id": unit["unit_id"], "status": "done", "file": name, "window": [a, b], "price_points": len(pts),
-            "dropped_price_rows_post_cap": dropped, "trades": tst["n"], "trades_truncated": bool(tst["truncated"]),
-            "trades_oldest_ts": tst["oldest_ts"], "dropped_trades_post_cap": tst["dropped_post_cap"] or 0,
-            "cadence": unit["cadence"]}
+    pm = next(m for m in unit["pred_markets"] if m["market_id"] == str(side["pred_market_id"]))
+    ptoken = pm["token1"] if int(side["pred_token_index"]) == 1 else pm["token0"]
+    pa, pb = int(t0 - PRED_PRICE_H * HOUR), int(min(t0 + PRED_PRICE_H * HOUR, cap_epoch))
+    ppts, pdropped = _fetch_prices_capped(lim, ptoken, pa, pb, cap_epoch) if pb > pa else ([], 0)
+    ptr, ptst = fetch_trades_strict(lim, pm["condition_id"], key, PRED_TRADES, ts_cap=cap_epoch - 1)
+    pname = f"{pm['market_id']}__{unit['pred_event_id']}"
+    budget.write(Path(rdir) / "pred_prices" / f"{pname}.csv.gz", hb._gz_csv_bytes(["t", "p"], ([t, p] for t, p in ppts)))
+    budget.write(Path(rdir) / "pred_trades" / f"{pname}.csv.gz", hb._gz_csv_bytes(hb.TRADE_COLUMNS, ptr))
+    return {"unit_id": unit["unit_id"], "status": "done", "file": name, "pred_file": pname, "window": [a, b],
+            "required_spans": [[int(x), int(y)] for x, y in spans],
+            "covers_t0": bool(a <= spans[0][0] and b >= spans[0][1]), "covers_alt": bool(a <= spans[1][0] and b >= spans[1][1]),
+            "price_points": len(pts), "dropped_price_rows_post_cap": dropped, "trades": tst["n"],
+            "trades_truncated": bool(tst["truncated"]), "trades_oldest_ts": tst["oldest_ts"],
+            "dropped_trades_post_cap": tst["dropped_post_cap"] or 0, "cadence": unit["cadence"],
+            "pred": {"price_points": len(ppts), "dropped_price_rows_post_cap": pdropped, "trades": ptst["n"],
+                     "trades_truncated": bool(ptst["truncated"]), "window": [pa, pb]}}
+
+
+def series_frame_counts(events: dict[str, dict]) -> dict:
+    """Series by cadence x modal fee_category (end dates and fee categories only), read by the group-S review."""
+    by: dict[str, list[dict]] = {}
+    for ev in events.values():
+        for sr in ev["series"]:
+            by.setdefault(sr["id"], []).append(ev)
+    cells: dict[str, int] = {}
+    n = 0
+    for evs in by.values():
+        ms = sorted({e["event_id"]: e for e in evs}.values(), key=lambda e: (e["end_epoch"], e["event_id"]))
+        if len(ms) < 2:
+            continue
+        cad = cadence_class([e["end_epoch"] for e in ms]) or "other"
+        modal = _modal([m["fee_category"] for e in ms for m in e["markets"]])
+        cells[f"{cad}|{modal}"] = cells.get(f"{cad}|{modal}", 0) + 1
+        n += 1
+    return {"series_ge_2_members": n, "series_by_cadence_category": dict(sorted(cells.items()))}
 
 
 def series_fetch(
@@ -1803,18 +2095,24 @@ def series_fetch(
     wall_clock: Callable[[], float] = time.time, t_seal_epoch: float = T_SEAL_EPOCH, snapshot_root: Path | None = None,
     health_every_s: float = 600.0, health_check: Callable[[float], tuple[bool, str]] | None = None,
     walk_base_days: int = SERIES_WALK_BASE_DAYS, min_width_s: int = SERIES_WINDOW_MIN_S,
+    stage: str = "all", amendment_file: Path = AMENDMENT_FILE, require_committed: bool = True,
 ) -> dict:
-    """Probe -> event walk (series events only) -> series table, seeded sample, blocks and roll units (written once) ->
-    per-unit successor prices and trades. Same stop rules, cap and outcome guard as :func:`era_fetch`."""
+    """Stage ``frame``: probe -> event walk (series events only) -> ``walk_events.jsonl.gz`` + ``frame_report.json``
+    (series by cadence x modal fee category) and STOP (``series_frame_complete``). Stage ``all``: the frame (if absent),
+    then, once the committed group-S amendment matches the frame report, the series table, seeded sample, blocks and
+    roll units (written once), then per-unit successor prices and trades (union window of both origins) plus the
+    winning predecessor's prices and one trade page. Same stop rules, cap, failed-request and outcome-guard rules as
+    :func:`era_fetch`."""
     root = Path(root)
     refuse_run_id(run_id, (SERIES_RUN_ID,))
     early = _guard_start(root, run_id, wall_clock, t_seal_epoch, SERIES_COMPLETE_TOKEN)
     if early is not None:
         return early
+    hist = _history_ids(root, exclude_runs or [])
     fr = FetchRun(root, run_id, transport, kind="series", params={
         "seed": seed, "n_series": n_series, "n_sports": n_sports, "members": members, "roll_from": roll_from,
         "walk_from": walk_from, "exclude_runs": exclude_runs or [], "walk_closed": list(walk_closed),
-        "max_trades": max_trades, "series_rules": series_rules_doc()},
+        "max_trades": max_trades, "series_rules": series_rules_doc(), "stage": stage},
         rps=rps, disk_cap=disk_cap, budget_min=budget_min, now=now, sleep=sleep, live_check=live_check,
         wall_clock=wall_clock, t_seal_epoch=t_seal_epoch, snapshot_root=snapshot_root, health_every_s=health_every_s,
         health_check=health_check, cap_at=cap_at, key=key)
@@ -1822,18 +2120,14 @@ def series_fetch(
     if why:
         return fr.manifest(why, {"transient": True})
     rdir = fr.rdir
-    upath = rdir / "units.jsonl.gz"
+    upath, frpath = rdir / "units.jsonl.gz", rdir / "frame_report.json"
+    wpath, wgpath = rdir / "walk_events.jsonl.gz", rdir / "walk_guarded.jsonl.gz"
     r_from = _ep(roll_from)
     r_to = min(fr.now - SERIES_ROLL_TO_MARGIN_D * DAY, t_seal_epoch) - 2 * DAY
-    frame_rep = fr.prior.get("frame_report")
     try:
-        if not upath.exists():
+        if not frpath.exists():
             if not (rdir / "probe.json").exists():
                 fr.budget.write(rdir / "probe.json", json.dumps(probe_series_endpoint(fr.lim), indent=1, sort_keys=True).encode())
-            hist = _cb2w().history_sample_ids(root, exclude_runs or [])
-            h5 = set()
-            for p in h5_seal_copies or []:
-                h5 |= _cb2w().seal_ids_from_copy(Path(p))
             why_stop: list[str] = []
 
             def walk_stop() -> bool:
@@ -1851,21 +2145,38 @@ def series_fetch(
                                     "walk_report": walk_rep})
             if walk_rep["base_windows_failed"]:  # an incomplete frame is never written (and so never sampled)
                 return fr.manifest(f"walk_failed_windows: {walk_rep['base_windows_failed']}", {"transient": False, "walk_report": walk_rep})
-            asm = assemble_units(events, guarded, seed=seed, n_series=n_series, n_sports=n_sports, members=members,
-                                 r_from=r_from, r_to=r_to, history_ids=hist, h5_ids=h5)
-            frame_rep = {"walk": walk_rep, **asm["report"], "history_ids": len(hist), "h5_ids": len(h5),
-                         "r_from": _iso(r_from), "r_to": _iso(r_to), "walk_to": _iso(r_to + SERIES_WALK_AFTER_D * DAY)}
-            # outcomes first, units last: the units file marks the frame as complete
-            fr.budget.write(rdir / OUTCOME_FILE, _frame_csv_bytes(SERIES_OUTCOME_COLUMNS, asm["outcomes"]))
-            fr.budget.write(rdir / "series.jsonl.gz", _gz_jsonl_bytes(asm["series"]))
-            fr.budget.write(rdir / "frame_report.json", json.dumps(frame_rep, indent=1, sort_keys=True, default=float).encode())
-            fr.budget.write(upath, _gz_jsonl_bytes(asm["units"]))
+            frame_rep = {"walk": walk_rep, **series_frame_counts(events), "r_from": _iso(r_from), "r_to": _iso(r_to),
+                         "walk_to": _iso(r_to + SERIES_WALK_AFTER_D * DAY)}
+            fr.budget.write(wgpath, _gz_jsonl_bytes([guarded[k] for k in sorted(guarded)]))
+            fr.budget.write(wpath, _gz_jsonl_bytes([events[k] for k in sorted(events)]))
+            fr.budget.write(frpath, json.dumps(frame_rep, indent=1, sort_keys=True, default=float).encode())  # last: marks the frame
             for tmp in (rdir / "walk_partial.jsonl", rdir / "walk_partial_guarded.jsonl"):
                 tmp.unlink(missing_ok=True)
+        frame_rep = json.loads(frpath.read_text())
+        if stage == "frame":
+            m = fr.manifest("frame_complete", {"frame_report": frame_rep, "frame_complete": True})
+            m["status"] = SERIES_FRAME_TOKEN
+            return m
+        if not upath.exists():
+            cats = require_group_s_amendment(amendment_file, "series", frpath, require_committed=require_committed)
+            h5 = _h5_ids(h5_seal_copies)
+            events = {e["event_id"]: e for e in _load_jsonl_gz(wpath)}
+            guarded = {g["event_id"]: g for g in _load_jsonl_gz(wgpath)}
+            asm = assemble_units(events, guarded, seed=seed, n_series=n_series, n_sports=n_sports, members=members,
+                                 r_from=r_from, r_to=r_to, history_ids=hist, h5_ids=h5, sports_cats=cats)
+            urep = {**asm["report"], "history_ids": len(hist), "h5_ids": len(h5), "sports_fee_categories": list(cats)}
+            # outcomes first, units last: the units file marks the unit frame as complete
+            fr.budget.write(rdir / OUTCOME_FILE, _frame_csv_bytes(SERIES_OUTCOME_COLUMNS, asm["outcomes"]))
+            fr.budget.write(rdir / "series.jsonl.gz", _gz_jsonl_bytes(asm["series"]))
+            fr.budget.write(rdir / "units_report.json", json.dumps(urep, indent=1, sort_keys=True, default=float).encode())
+            fr.budget.write(upath, _gz_jsonl_bytes(asm["units"]))
+    except Refused:
+        raise
+    except FileNotFoundError as exc:
+        raise Refused(str(exc)) from exc
     except OSError as exc:
         return {"stopped": f"disk_budget: {exc}"}
-    if frame_rep is None and (rdir / "frame_report.json").exists():
-        frame_rep = json.loads((rdir / "frame_report.json").read_text())
+    frame_rep = {**json.loads(frpath.read_text()), "units": json.loads((rdir / "units_report.json").read_text())}
     units = _load_jsonl_gz(upath)
     side_by = {r["unit_id"]: r for r in pd.read_csv(rdir / OUTCOME_FILE, dtype=str, keep_default_na=False).to_dict("records")}
     extra = {"frame_report": frame_rep, "n_units": len(units)}
@@ -2083,6 +2394,13 @@ def cmd_fetch(args, *, require_committed: bool = True, allow_nondeclared: bool =
         root = refuse_path(Path(g("root", HIST_ROOT)))
         seal_copies = [Path(p) for p in _csv_list(g("exclude_seal_ids", ""))]
         require_h5_seal_copy(seal_copies, require_committed=require_committed)
+        seal_copies = with_ladders_copy(seal_copies)
+        stage = g("stage", "all")
+        if stage not in ("frame", "all"):
+            raise Refused(f"unknown stage {stage!r}")
+        for r in _csv_list(g("exclude_runs", "")):  # fix 10: a missing exclusion sample is a refusal
+            if not (root / r / "sample.csv.gz").exists():
+                raise Refused(f"excluded run {r!r} has no {root / r / 'sample.csv.gz'}; refusing")
         if kind == "series":
             require_series_rules(Path(g("series_rules_file", SERIES_RULES_FILE)), require_committed=require_committed)
         if not allow_nondeclared:
@@ -2126,17 +2444,24 @@ def cmd_fetch(args, *, require_committed: bool = True, allow_nondeclared: bool =
     if getattr(args, "health_check", None) is not None:
         kw["health_check"] = args.health_check
     transport = g("transport") or hb.httpx_transport()
+    stage_kw = dict(stage=stage, amendment_file=Path(g("group_s_amendment", AMENDMENT_FILE)), require_committed=require_committed)
     common = dict(exclude_runs=_csv_list(g("exclude_runs", "")), h5_seal_copies=seal_copies,
                   walk_closed=tuple(x.lower() == "true" for x in _csv_list(g("walk_closed", "true,false"))),
                   cap_at=g("cap_at", T_SEAL), rps=float(g("rps", 4.0)), budget_min=g("budget_min"),
                   max_trades=int(g("max_trades", ERA_MAX_TRADES)), snapshot_root=Path(g("snapshot_root", SNAPSHOT_ROOT)), **kw)
-    if kind == "era":
-        m = era_fetch(root, rid, transport, seed=g("seed", ERA_SEED), per_cell=int(g("per_cell", ERA_PER_CELL)),
-                      periods=parse_periods(g("periods", ERA_PERIODS)), disk_cap=int(float(g("disk_cap_gb", 0.20)) * 1024**3), **common)
-    else:
-        m = series_fetch(root, rid, transport, seed=g("seed", SERIES_SEED), n_series=int(g("n_series", SERIES_N)),
-                         n_sports=int(g("n_sports_series", SERIES_N_SPORTS)), members=int(g("members_per_series", SERIES_MEMBERS)),
-                         roll_from=g("roll_from", SERIES_ROLL_FROM), disk_cap=int(float(g("disk_cap_gb", 0.40)) * 1024**3), **common)
+    try:
+        if kind == "era":
+            m = era_fetch(root, rid, transport, seed=g("seed", ERA_SEED), per_cell=int(g("per_cell", ERA_PER_CELL)),
+                          periods=parse_periods(g("periods", ERA_PERIODS)), disk_cap=int(float(g("disk_cap_gb", 0.20)) * 1024**3),
+                          **stage_kw, **common)
+        else:
+            m = series_fetch(root, rid, transport, seed=g("seed", SERIES_SEED), n_series=int(g("n_series", SERIES_N)),
+                             n_sports=int(g("n_sports_series", SERIES_N_SPORTS)), members=int(g("members_per_series", SERIES_MEMBERS)),
+                             roll_from=g("roll_from", SERIES_ROLL_FROM), disk_cap=int(float(g("disk_cap_gb", 0.40)) * 1024**3),
+                             **stage_kw, **common)
+    except Refused as exc:
+        _print({"refused": str(exc)})
+        return 2
     _print(_fetch_summary(m))
     return 0
 
@@ -2187,6 +2512,32 @@ def cmd_series_rules(args) -> int:
         _print({"refused": str(exc)})
         return 2
     _print({"written": str(path), **series_rules_doc()})
+    return 0
+
+
+def cmd_record_deadline(args) -> int:
+    """``run_cb4.py record-deadline``: dependency-free recorder for the T_seal rule (fix 11). Before T_seal it prints
+    ``{"deadline_recorded": false, "not_yet": ...}`` and exits 0 (no retry is burned; the queue repeat re-runs it).
+    At or after T_seal, every h7 run that is neither sealed nor complete is marked ``not_run_deadline`` (marker file,
+    manifest, ``seals/<run>_NOT_RUN.json``); runs already sealed or complete (q0083 seals them) are left alone. Prints
+    ``"deadline_recorded": true`` and exits 0."""
+    wall = getattr(args, "wall_clock", None) or time.time
+    if wall() < T_SEAL_EPOCH:
+        _print({"deadline_recorded": False, "not_yet": f"before T_seal {T_SEAL}", "now": _iso(wall())})
+        return 0
+    root = Path(getattr(args, "root", None) or HIST_ROOT)
+    seals = Path(args.seals_dir) if getattr(args, "seals_dir", None) else None
+    states = {}
+    for rid in H7_RUN_IDS:
+        rdir = root / rid
+        if (rdir / h5_seal.SEAL_NAME).exists():
+            states[rid] = "sealed"
+            continue
+        st = run_state(rdir, wall, T_SEAL_EPOCH)
+        if st == "not_run":
+            write_not_run_record(rdir, seals)
+        states[rid] = st
+    _print({"deadline_recorded": True, "states": states})
     return 0
 
 
