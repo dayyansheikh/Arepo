@@ -274,7 +274,7 @@ def test_cb1_cb2_tables_untouched_and_only_own_root_written(tmp_path):
 
 def _catalogue(tmp_path, entries):
     cdir = tmp_path / "cat"
-    cdir.mkdir(exist_ok=True)
+    cdir.mkdir(parents=True, exist_ok=True)
     with open(cdir / "data-test.jsonl", "w") as fh:
         for e in entries:
             fh.write(json.dumps({"release": "data-test", **e}) + "\n")
@@ -1171,6 +1171,6 @@ def test_release_only_captures_absent_from_host_are_listed_and_extracted_or_reco
     # a release manifest that is not complete is not extracted
     blobs[mp] = json.dumps({"state": "partial"}).encode()
     entries[-1]["sha256"] = _sha(blobs[mp])
-    rel2 = d.ReleaseCopies(tmp_path / "scr2", catalogue=_catalogue(tmp_path / "x", entries), restore=restore)
-    d.run_closewin(snap, tmp_path / "none", tmp_path / "r3", mode="backfill", since=S0, catalogue=_catalogue(tmp_path / "x", entries), release=rel2)
+    rel2 = d.ReleaseCopies(tmp_path / "scr2", catalogue=_catalogue(tmp_path / "xx", entries), restore=restore)
+    d.run_closewin(snap, tmp_path / "none", tmp_path / "r3", mode="backfill", since=S0, catalogue=_catalogue(tmp_path / "xx", entries), release=rel2)
     assert json.loads((tmp_path / "r3" / "manifest.json").read_text())["captures"][cid]["reason"] == "release_manifest_not_complete"
