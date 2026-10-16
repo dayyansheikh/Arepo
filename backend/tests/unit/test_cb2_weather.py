@@ -606,7 +606,7 @@ def test_queue_specs_h6():
     assert q43["argv"][:2] == ["scripts/run_cb2.py", "weather-fetch"] and q44["argv"][:2] == ["scripts/run_cb2.py", "seal"]
     i = q43["argv"].index("--exclude-end")
     assert q43["argv"][i + 1] == "2026-10-08T00:00Z,2026-10-12T00:00Z"
-    assert q43["priority"] == q44["priority"] == 59 and q43["repeat"]["until_log_regex"] == w.COMPLETE_TOKEN
+    assert q43["priority"] == 61 and q44["priority"] == 59 and q43["repeat"]["until_log_regex"] == w.COMPLETE_TOKEN
     assert not list(root.glob("q004[5-9]*"))  # no analysis-job specs here
 
 

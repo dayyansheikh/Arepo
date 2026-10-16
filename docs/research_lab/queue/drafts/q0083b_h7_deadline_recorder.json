@@ -1,0 +1,28 @@
+{
+ "id": "q0083b_h7_deadline_recorder",
+ "title": "CB4-F: record 'not run (deadline)' for unsealed, incomplete h7 runs at T_seal 2026-10-22T00:00Z (dependency-free)",
+ "family": "history_data",
+ "priority": 70,
+ "expected_value": "the T_seal rule is recorded even if q0081/q0082 fail or never start",
+ "data": [
+  "history/h7_cb4_era",
+  "history/h7_cb4_series (manifests only)"
+ ],
+ "resources": {
+  "mem_mb": 150,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb4.py",
+  "record-deadline"
+ ],
+ "timeout_s": 300,
+ "max_retries": 1,
+ "outputs": [
+  "history/h7_cb4_*/{NOT_RUN_DEADLINE.json,manifest.json}",
+  "docs/research_lab/seals/h7_cb4_<run>_NOT_RUN.json"
+ ],
+ "next_action": "q0083 (depends on this); Claude session commits any NOT_RUN records",
+ "notes": "COORDINATOR 2026-10-16: moved to drafts. The polling repeat would take the single per-tick start whenever the cpu lane is free (priority 70, every tick), starving every other cpu job, and 1,200 runs x 2 min end before T_seal. Create it in jobs/ as a ONE-SHOT (no repeat) on or after 2026-10-22T00:00Z. | Freeze-check fix 11. Before T_seal it prints {deadline_recorded: false, not_yet: ...} and exits 0 (a clean repeat run: no retry is burned; the worker re-queues it on the next tick, so it polls about every 2 minutes, mem 150 MB is exempt from the start blackout). At or after T_seal: every h7 run that is neither sealed nor complete is marked not_run_deadline (marker, manifest, seals/<run>_NOT_RUN.json); sealed or complete runs are left to q0083. Prints deadline_recorded true and ends. It takes a cpu-lane slot only for a second per tick. The worker has no not_before spec field (only retry backoff), hence the polling repeat."
+}
