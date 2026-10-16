@@ -1,0 +1,64 @@
+{
+ "id": "q0082_h7_cb4_series_fetch",
+ "title": "CB4-S: h7_cb4_series backfill (series probe + event walk, <= 400 non-sports and <= 60 sports series, <= 31 consecutive members each; successor prices/trades anchored at t0)",
+ "family": "history_data",
+ "priority": 58,
+ "expected_value": "series-complete sample for the series-roll test (CH50)",
+ "data": [
+  "public Gamma/CLOB/Data API",
+  "h1/h2/h3 ids, h5 seal listing ids (exclusion)",
+  "docs/research_lab/seals/cb4_series_rules.json (cadence and matching rule hashes)"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "network": "gamma-api, clob, data-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0018_h5_cb1_seal"
+ ],
+ "argv": [
+  "scripts/run_cb4.py",
+  "series-fetch",
+  "--run-id",
+  "h7_cb4_series",
+  "--seed",
+  "arepo-h7-series",
+  "--n-series",
+  "400",
+  "--n-sports-series",
+  "60",
+  "--members-per-series",
+  "31",
+  "--roll-from",
+  "2025-10-01",
+  "--exclude-runs",
+  "h1_first,h2_main,h3_power",
+  "--exclude-seal-ids",
+  "../docs/research_lab/seals/h5_cb1_SEAL.json",
+  "--exclude-categories",
+  "weather",
+  "--walk-closed",
+  "true,false",
+  "--cap-at",
+  "2026-10-22T00:00Z",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.40",
+  "--budget-min",
+  "150"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 8,
+  "until_log_regex": "\"status\": \"(series_fetch_complete|not_run_deadline)\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/history/h7_cb4_series/{series.jsonl.gz,units.jsonl.gz,prices/,trades/,outcomes_guarded.csv.gz,probe.json,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"
+ ],
+ "next_action": "q0083",
+ "notes": "CREATIVE_BATCH_4.md CB4-S/4.2. About 30-35k requests plus the event walk, 3.5-5 h wall. Same stop, refusal, cap, guard and terminal-state rules as q0081 (status series_fetch_complete or not_run_deadline). Additionally refuses until the committed docs/research_lab/seals/cb4_series_rules.json equals this code's cadence/matching rule hashes (create it with scripts/run_cb4.py series-rules and commit it before this job can run). Independent of q0081 (era overlap is dropped by id at the seal). Series are found from event listings (series on events, closed=false then true, end dates 2025-09-24 .. R_to + 2 d, capped windows halved down to 1 h, then dropped and counted); the /series probe only records endpoint facts. t0 and the rolled-into side come from the predecessor outcome record and are stored only in outcomes_guarded.csv.gz. Resumable per walk window and per unit. Net lane: see q0081 note."
+}

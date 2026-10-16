@@ -49,7 +49,10 @@ DECLARATION = {
 # city and title date.
 H5_RUN_IDS = ("h5_cb1", "h5_cb1_ladders")
 H6_RUN_IDS = ("h6_weather",)
-ALLOWED_RUN_IDS = H5_RUN_IDS + H6_RUN_IDS
+# h7_cb4_era / h7_cb4_series (CB4-F) are sealed by ``scripts/run_cb4.py seal`` (the series seal also
+# records the time-ordered split ``D_split4`` computed from roll dates only).
+H7_RUN_IDS = ("h7_cb4_era", "h7_cb4_series")
+ALLOWED_RUN_IDS = H5_RUN_IDS + H6_RUN_IDS + H7_RUN_IDS
 DECLARATION_H6 = {
     "dataset_role": "CB2-W weather screen (SCREEN block) and development holdout (HOLDOUT block); "
     "not prospective, not an edge claim",
@@ -62,6 +65,27 @@ DECLARATION_H6 = {
     "split": "time-ordered by end date; group key = earliest end_at UTC date of the city-day; "
     "D_split = smallest date leaving <= 40% of sampled events in the HOLDOUT; 2-day embargo "
     "dropped from both",
+}
+DECLARATION_H7_ERA = {
+    "dataset_role": "CB4-E fee-rollout measurement (CH53): single stage, no holdout; an "
+    "unreplicated measurement, not prospective, not an edge claim",
+    "read_rules": "verify listing hash first; append every read to ACCESS_LOG.jsonl; no outcome "
+    "column is opened before the CB4 freeze commit; results are written outside this directory",
+    "information_end": "manifest request_clock_now (T_fetch7); every price and trade row capped "
+    "at min(T_fetch7, T_seal 2026-10-22T00:00Z)",
+}
+DECLARATION_H7_SERIES = {
+    "dataset_role": "CB4-S series roll flow (CH50): SCREEN block (earlier roll dates) and "
+    "HOLDOUT block (latest roll dates); not prospective, not an edge claim",
+    "read_rules": "verify listing hash first; append every read to ACCESS_LOG.jsonl; SCREEN "
+    "reads refuse HOLDOUT and embargo units; HOLDOUT is read once, after the CB4 freeze, only "
+    "for S tests that advanced; no outcome column is opened before the CB4 freeze commit; "
+    "results are written outside this directory",
+    "information_end": "manifest request_clock_now (T_fetch7); every price and trade row capped "
+    "at min(T_fetch7, T_seal 2026-10-22T00:00Z)",
+    "split": "time-ordered by roll date t0; D_split4 = smallest UTC date leaving <= 40% of roll "
+    "units (after frame exclusions and removal of units with an h7_cb4_era member) at or after "
+    "it; 3-day embargo dropped from both halves",
 }
 
 

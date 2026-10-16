@@ -3,6 +3,11 @@
 EXPLORATORY: no edge, calibration or profitability claim; paper rules only.
 
 DATA subcommands (this file; module ``astrolabe.research_lab.cb4_data``):
+    python scripts/run_cb4.py fetch --kind era --run-id h7_cb4_era --seed arepo-h7-era --per-cell 800 ... --cap-at 2026-10-22T00:00Z   # q0081 (alias era-fetch)
+    python scripts/run_cb4.py fetch --kind series --run-id h7_cb4_series --seed arepo-h7-series --n-series 400 ...                    # q0082 (alias series-fetch)
+    python scripts/run_cb4.py seal --run-ids h7_cb4_era,h7_cb4_series                                                                 # q0083
+    python scripts/run_cb4.py verify-seal --run-ids h7_cb4_era,h7_cb4_series
+    python scripts/run_cb4.py series-rules                       # writes docs/research_lab/seals/cb4_series_rules.json (commit it before q0082)
     python scripts/run_cb4.py closewin --backfill-from 2026-10-11T12:00Z --release-stream --budget-min 150 --disk-cap-gb 0.40   # q0080
     python scripts/run_cb4.py closewin --all-new --data-dumps-max-gb 11            # later pass step (NOT wired)
 
@@ -11,7 +16,8 @@ call ``astrolabe.research_lab.cb4_analysis.cmd_<name>(args)`` (name with '-' as 
 is missing the command exits 2. Other sessions own that module.
 
 Exit codes: 0 ok / lock held / transient pause; 1 error or backfill refusal (data-dumps over cap, version mismatch);
-2 refusal of a guard or a missing analysis hook.
+2 refusal of a guard or a missing analysis hook. A fetch at/after T_seal 2026-10-22T00:00Z starts no chunk (exit 0,
+status ``not_run_deadline`` for an incomplete run).
 """
 
 from __future__ import annotations
@@ -107,6 +113,50 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--root", default=str(d.CB4_ROOT))
     p.add_argument("--catalogue-dir", default=str(d.CATALOGUE_DIR))
 
+    from astrolabe.research_lab import cb4_data as _d  # noqa: PLC0415
+
+    def add_fetch_args(q: argparse.ArgumentParser) -> None:
+        q.add_argument("--run-id", default=None)
+        q.add_argument("--seed", default=None)
+        q.add_argument("--per-cell", type=int, default=None, help="era: markets per group x period cell (800)")
+        q.add_argument("--periods", default=None, help="era: a/b,a/b,... (P0,P1,P2)")
+        q.add_argument("--origin-window-h", type=float, default=None)
+        q.add_argument("--min-life-d", type=float, default=None)
+        q.add_argument("--n-series", type=int, default=None)
+        q.add_argument("--n-sports-series", type=int, default=None)
+        q.add_argument("--members-per-series", type=int, default=None)
+        q.add_argument("--roll-from", default=None)
+        q.add_argument("--exclude-runs", default="")
+        q.add_argument("--exclude-seal-ids", default="")
+        q.add_argument("--exclude-categories", default="weather")
+        q.add_argument("--walk-closed", default="true,false")
+        q.add_argument("--cap-at", default=_d.T_SEAL)
+        q.add_argument("--rps", type=float, default=4.0)
+        q.add_argument("--disk-cap-gb", type=float, default=None)
+        q.add_argument("--budget-min", type=float, default=None)
+        q.add_argument("--max-trades", type=int, default=None)
+        q.add_argument("--root", default=None)
+        q.add_argument("--data-dumps", default=None)
+        q.add_argument("--data-dumps-cap-gb", type=float, default=_d.DATA_DUMPS_FETCH_CAP_GB)
+        q.add_argument("--snapshot-root", default=None)
+        q.add_argument("--series-rules-file", default=None)
+
+    p = sub.add_parser("fetch", help="h7 fetch (q0081 era / q0082 series)")
+    p.add_argument("--kind", choices=["era", "series"], required=True)
+    add_fetch_args(p)
+    for alias, kind in (("era-fetch", "era"), ("series-fetch", "series")):
+        p = sub.add_parser(alias, help=f"alias of: fetch --kind {kind}")
+        p.set_defaults(kind=kind)
+        add_fetch_args(p)
+    for name in ("seal", "verify-seal"):
+        p = sub.add_parser(name, help="seal / verify h7_cb4_era and h7_cb4_series (q0083)")
+        p.add_argument("--run-ids", default=",".join(_d.H7_RUN_IDS))
+        p.add_argument("--root", default=None)
+        p.add_argument("--seals-dir", default=None)
+        p.add_argument("--trials-path", default=None)
+    p = sub.add_parser("series-rules", help="write the committed cadence/matching rule hash file")
+    p.add_argument("--path", default=None)
+
     for name in ANALYSIS_COMMANDS:
         q = sub.add_parser(name, help=f"analysis hook (cb4_analysis.cmd_{name.replace('-', '_')})")
         q.add_argument("extra", nargs=argparse.REMAINDER)
@@ -122,7 +172,17 @@ def main(argv: list[str] | None = None) -> int:
     return cmd_data_dispatch(a)
 
 
-def cmd_data_dispatch(a) -> int:  # replaced below by the fetch/seal subcommands
+def cmd_data_dispatch(a) -> int:
+    from astrolabe.research_lab import cb4_data as d  # noqa: PLC0415
+
+    if a.cmd in ("fetch", "era-fetch", "series-fetch"):
+        return d.cmd_fetch(a)
+    if a.cmd == "seal":
+        return d.cmd_seal(a)
+    if a.cmd == "verify-seal":
+        return d.cmd_verify_seal(a)
+    if a.cmd == "series-rules":
+        return d.cmd_series_rules(a)
     print(f"unknown command {a.cmd}", file=sys.stderr)
     return HOOK_EXIT
 

@@ -1309,3 +1309,56 @@ round. The next review is the code-against-design freeze check.
 **Not adopted:** none.
 
 **Test count unchanged:** 4 measurements (family M) + 4 route Stage-1 tests + up to 4 Stage-2 = 8-12.
+
+## Implementation notes (CB4 data)
+
+Written by the data-implementation session (2026-10-16) for `cb4_data.py`, `scripts/run_cb4.py` (closewin, fetch/era-fetch/series-fetch,
+seal, verify-seal, series-rules) and q0080-q0083. Each item is an ambiguity resolved by the conservative reading; none changes a
+threshold, formula or gate.
+
+1. **Script and argv.** The draft specs named `run_cb1_extract.py` (q0080) and `era-fetch`/`series-fetch`. q0080 moved to
+   `run_cb4.py closewin` (CB1/CB2 files stay untouched, as q0060). `fetch --kind era|series` exists with the two draft names as aliases;
+   the specs use the aliases. `--data-dumps-max-gb 10.5` was added to q0080's argv (the draft had it only in the notes).
+2. **closewin selection.** Rows are kept when (`end_date` in `[start - 72h, start + 30h]` or `accepting_orders` false) and scheduled life
+   >= 1 day. A row whose `end_date` or `created_at` cannot be parsed cannot be tested against the life rule: it is **kept and counted**
+   (`n_life_unknown_kept`); the analysis re-applies the rule. The extract is not restricted to binary markets. First receipt per
+   `market_id`. "First sweep" = the sweep with the smallest `series_index`; its columns are `sweep_best_bid/ask/bid_size_1/ask_size_1`.
+3. **departures.** Built oldest first, against the previous complete capture's `closewin` ids and this capture's complete listing. If the
+   previous capture is missing or not yet extracted, `departures_status = previous_closewin_unavailable` is recorded and no file is
+   written; it is not recomputed later (that would need the raw capture again). The all-new mode therefore also runs oldest first (not
+   newest first as CB1), so a small backlog still yields departures.
+4. **Release stream.** `restore_from_archive.py` reads the whole release stream per call (about 20 min on the host), so one call per
+   release restores a *batch* of captures that fits under the 0.2 GB scratch cap (catalogue sizes; 70 MB assumed when the catalogue row
+   has no byte count). Extraction is still one capture at a time and the scratch is deleted before the next batch and at exit. A capture
+   whose planned size exceeds the cap, has no catalogue row, or fails the sha256 check against the catalogue is recorded missing. Two
+   consecutive restore failures stop the run (`release_unavailable`, not complete). If most captures are archived the backfill is slow
+   (q0080 `max_runs` 8, 150 min each); that is a cost, not a correctness issue.
+5. **Lanes.** q0080 stays on the default lane (local work). q0081 and q0082 use `lane: net` as instructed, but section 2.8 said the API
+   fetches use the default lane and q0002 (priority 60) may hold `net` for days. **Both h7 fetches must finish before `T_seal`, so the
+   coordinator should confirm the `net` lane is free (or move them to the default lane) before releasing q0081/q0082.**
+6. **Era frame.** `fetch_frame` cannot skip days, so `walk_era_frame` applies the same method (seeded 15-minute windows, seed|day, `closed=false`
+   then `closed=true`, 20 pages, capped windows dropped whole and counted) to the period days only. No question or title text is stored; the
+   weather flag (CB2 `TEMP_RE`, or `fee_category == weather`) is computed while parsing. All outcome-like columns (closed, closedTime, UMA status,
+   outcomePrices, final volume and liquidity) go to `outcomes_guarded.csv.gz` (covering the eligible frame), never to `frame.csv.gz` or `sample.csv.gz`.
+7. **S vs O.** Group S is `fee_category == "sports"` exactly as declared. Markets of P0 (no fees) may carry no `feeType` and would then be in O; the
+   per-category counts of the eligible frame and the cell shortfalls are in `frame_report.json` so the census can see it. Nothing was changed.
+8. **Series discovery.** Series are found from event listings only (`series` on events, `closed=false` then `true`, end dates 2025-09-24 to `R_to + 2 d`,
+   7-day base windows, a capped window is halved down to 1 hour and then dropped and counted). The `/series` probe only records endpoint facts. The
+   committed rule file `seals/cb4_series_rules.json` (cadence bounds, horizons and the source hash of the cadence/winner/successor/matching functions) is
+   created by `run_cb4.py series-rules` and **must be committed before q0082 can run**; this session did not commit it.
+9. **Series units.** The event-level exclusion (weather, h1-h3, h5 ids) is applied to a roll unit when its predecessor or successor event is excluded, so
+   consecutive chains are never silently re-linked across a dropped event; the draft's "event excluded" rule is thereby counted per unit. `t0` is the
+   closedTime of the predecessor's single winning market (price >= 0.99, others <= 0.01); no single winner, not closed or no time drops the unit
+   (counted). The successor rule is read literally (smallest later end date with `createdAt <= t0 - 1h`); `succ_skipped` counts successors that are not the
+   immediate next member. Series and block selection use end dates, fee categories and ids only; the block start is seeded by `sha256(seed|series|block)`.
+   Only the rolled-into token's prices are fetched; the side (`side_market_id`, `side_token_index`) and the predecessor outcome are stored only in
+   `outcomes_guarded.csv.gz`. For a multi-member successor the file name of the fetched market reveals the matched member (the predecessor's outcome is public at `t0`).
+10. **Deadline.** At or after `T_seal` no chunk starts; an incomplete run gets `NOT_RUN_DEADLINE.json` and `stopped = not_run_deadline`, and later calls
+    return that state without any request. Both terminal states (`*_fetch_complete`, `not_run_deadline`) end the queue repeat. The seal records a not-run
+    run in `seals/<run>_NOT_RUN.json` (no seal, no trial line) and still seals the other run (exit 0). There is no partial-run fallback (unlike h6).
+11. **Seal.** Era is sealed first; the series seal drops units with a market in the era `sample.csv.gz` by id and records the count and id hashes. `D_split4` is
+    computed from `t0` dates only (the seal and `verify-seal` never open price, trade or outcome files; tested). The record also carries `d_split` as an alias
+    for the shared trial-line writer. A repeat of `seal` verifies and reports an existing seal and never rewrites it. `h5_seal.H7_RUN_IDS` and two declaration
+    dicts were added; `ALLOWED_RUN_IDS` now includes them (h5 and h6 behaviour unchanged, tests green).
+12. **Disk guards.** Fetches refuse above 10 GB in `data-dumps` (exit 2); the closewin backfill refuses above 10.5 GB with a non-zero exit. The analysis
+    subcommands are hooks into `astrolabe.research_lab.cb4_analysis.cmd_<name>` and exit 2 if absent.

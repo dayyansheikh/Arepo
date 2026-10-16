@@ -1,0 +1,34 @@
+{
+ "id": "q0083_h7_cb4_seal",
+ "title": "CB4-F: seal h7_cb4_era and h7_cb4_series (listing hashes; D_split4 time-ordered split with 3-day embargo; trial lines; access logs)",
+ "family": "history_data",
+ "priority": 58,
+ "expected_value": "fixes both h7 datasets before any CB4 result exists",
+ "data": [
+  "history/h7_cb4_era",
+  "history/h7_cb4_series"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0081_h7_cb4_era_fetch",
+  "q0082_h7_cb4_series_fetch"
+ ],
+ "argv": [
+  "scripts/run_cb4.py",
+  "seal",
+  "--run-ids",
+  "h7_cb4_era,h7_cb4_series"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "history/h7_cb4_*/{SEAL.json,ACCESS_LOG.jsonl}",
+  "docs/research_lab/seals/h7_cb4_{era,series}_SEAL.json (byte copies, series includes D_split4) or h7_cb4_<run>_NOT_RUN.json",
+  "trials.jsonl (history_seal_declaration per sealed run)"
+ ],
+ "next_action": "Claude session: commit docs/research_lab/seals/h7_cb4_era_SEAL.json and h7_cb4_series_SEAL.json (or the NOT_RUN records)",
+ "notes": "Era is sealed first (its sample ids are the overlap exclusion for the series). The split uses t0 dates and market ids only; no price, trade or outcome file is opened. Drops series units with an h7_cb4_era member by id (counted in SEAL.json split). Refuses to seal an unfinished run that T_seal has not cut; a not_run_deadline run is recorded (NOT_RUN record, never sealed) and the other run is still sealed (exit 0). Idempotent: an existing seal is verified and reported, never rewritten. Verify later with scripts/run_cb4.py verify-seal."
+}

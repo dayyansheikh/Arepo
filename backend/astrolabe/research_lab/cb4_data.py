@@ -1,7 +1,8 @@
 # ruff: noqa: E501
 """CB4 data jobs (docs/research_lab/CREATIVE_BATCH_4.md CB4-F, sections 1.3, 2.8, 2.10, 4.2, 4.3, 5).
 
-Part 1 (this commit): the ``closewin/`` + ``departures/`` extract from complete live captures (q0080).
+Part 1: the ``closewin/`` + ``departures/`` extract from complete live captures (q0080).
+Part 2: the ``h7_cb4_era`` and ``h7_cb4_series`` fetches (q0081, q0082) and their seals (q0083).
 Data-only: copies fields exactly as stored, computes no statistic. Read-only on snapshots and sweeps;
 writes only under its own root ``data-dumps/research_lab/cb4_extract/`` (own manifest, own lock). A capture
 whose raw files are gone from the host is read from the verified release copy, one capture at a time
@@ -14,20 +15,30 @@ edited) and ``forecast.list_complete_captures``.
 
 from __future__ import annotations
 
+import bisect
+import gzip
+import hashlib
+import inspect
+import io
 import json
+import math
+import random
+import re
 import shutil
+import statistics
 import subprocess
 import sys
 import time
 from collections.abc import Callable
-from datetime import timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from . import forecast
+from . import forecast, h5_seal
+from . import history_backfill as hb
 from .creative_batch1 import (  # noqa: PLC2701 - private helpers reused on purpose (do not edit that file)
     ExtractLocked,
     _atomic_write_json,
@@ -472,6 +483,1628 @@ def read_closewin(root: Path, capture_id: str, *, departures: bool = False) -> p
     """Raw-string frame of one capture's closewin (or departures) file."""
     p = Path(root) / ("departures" if departures else "closewin") / f"{capture_id}.csv.gz"
     return pd.read_csv(p, dtype=str, keep_default_na=False)
+
+
+# =====================================================================================================
+# Part 2: h7_cb4_era / h7_cb4_series fetches (q0081, q0082) and seals (q0083)
+# =====================================================================================================
+
+FETCH_VERSION = "h7-cb4-fetch-v1"
+ERA_RUN_ID = "h7_cb4_era"
+SERIES_RUN_ID = "h7_cb4_series"
+H7_RUN_IDS = h5_seal.H7_RUN_IDS
+REFUSED_RUN_IDS = ("h3_power", "h4_seal", "h5_cb1", "h5_cb1_ladders", "h6_weather")
+REFUSED_ROOTS = ("cb1_extract", "cb2_extract")
+T_SEAL = "2026-10-22T00:00:00Z"
+T_SEAL_EPOCH = hb.T_SEAL_EPOCH
+DAY = 86400.0
+HOUR = 3600.0
+HIST_ROOT = forecast.ROOT / "data-dumps" / "research_lab" / "history"
+SEALS_DIR = h5_seal.SEALS_DIR
+SERIES_RULES_FILE = SEALS_DIR / "cb4_series_rules.json"
+H5_SEAL_COPY = "h5_cb1_SEAL.json"
+OUTCOME_FILE = "outcomes_guarded.csv.gz"
+NOT_RUN_FILE = "NOT_RUN_DEADLINE.json"
+ERA_COMPLETE_TOKEN = "era_fetch_complete"
+SERIES_COMPLETE_TOKEN = "series_fetch_complete"
+NOT_RUN_TOKEN = "not_run_deadline"
+MAX_ITEM_ATTEMPTS = 3
+DATA_DUMPS_FETCH_CAP_GB = 10.0  # every h7 fetch refuses to start while data-dumps exceeds this (cap 12 GB)
+
+# ---- CH53 (era) declaration ----------------------------------------------------------------------------
+ERA_SEED = "arepo-h7-era"
+ERA_PER_CELL = 800
+ERA_PERIODS = (("P0", "2025-12-01", "2026-02-18"), ("P1", "2026-02-25", "2026-03-30"), ("P2", "2026-04-06", "2026-04-28"))
+ERA_ORIGIN_H = 72
+ERA_MIN_LIFE_D = 4
+ERA_PRICE_LOOKBACK_D = 8  # prices [end - 72h - 8d, end + 1d]
+ERA_PRICE_LEAD_D = 1
+ERA_MAX_TRADES = 10000
+FRAME_WINDOWS_PER_DAY = 6
+FRAME_WINDOW_MINUTES = 15
+FRAME_PAGES_PER_WINDOW = 20
+FRAME_MAIN_COLUMNS = ["market_id", "condition_id", "token0", "token1", "event_id", "fee_category", "created_at",
+                      "start_at", "end_at", "start_epoch", "end_epoch", "neg_risk", "weather_title", "group", "period"]
+OUTCOME_FIELDS = ["status", "closed", "closed_time", "close_epoch", "uma_status", "outcome_prices", "liquidity", "volume"]
+ERA_OUTCOME_COLUMNS = ["market_id", *OUTCOME_FIELDS]
+
+# ---- CH50 (series) declaration -----------------------------------------------------------------------
+SERIES_SEED = "arepo-h7-series"
+SERIES_N = 400
+SERIES_N_SPORTS = 60
+SERIES_MEMBERS = 31
+SERIES_ROLL_FROM = "2025-10-01"
+SERIES_WALK_FROM = "2025-09-24"
+SERIES_ROLL_TO_MARGIN_D = 3
+SERIES_WALK_AFTER_D = 2
+SERIES_WINDOW_MIN_S = 3600  # a capped walk window is halved down to this width, then dropped and counted
+SERIES_WALK_BASE_DAYS = 7
+CADENCE_BOUNDS = {"daily": (20 * HOUR, 28 * HOUR), "weekly": (6 * DAY, 8 * DAY), "monthly": (27 * DAY, 32 * DAY)}
+HORIZONS = {"daily": {"M_h": 3.0, "V_end_h": 12.0}, "weekly": {"M_h": 6.0, "V_end_h": 48.0},
+            "monthly": {"M_h": 6.0, "V_end_h": 48.0}}
+SUCC_CREATED_LAG_H = 1.0
+PRICE_PRE_H = 3.0  # successor prices [t0' - 3h, V_end + 2h]
+PRICE_POST_H = 2.0
+PSEUDO_GAP_H = 6.0
+WIN_PRICE = 0.99
+SPLIT_HOLDOUT_FRAC = 0.40
+SPLIT_EMBARGO_D = 3
+
+SERIES_OUTCOME_COLUMNS = ["unit_id", "pred_event_id", "pred_winner_key", "pred_closed_time", "pred_outcome_prices",
+                          "side_market_id", "side_token_index"]
+
+
+class Cb4Error(RuntimeError):
+    """Base class for refusals."""
+
+
+class Refused(Cb4Error):
+    """A guard refused to run."""
+
+
+def _ep(s: str) -> float:
+    """UTC epoch from ``YYYY-MM-DD``, ``YYYY-MM-DDTHH:MMZ`` or ``YYYY-MM-DDTHH:MM:SSZ``."""
+    s = str(s).strip()
+    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%MZ", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(s, fmt).replace(tzinfo=UTC).timestamp()
+        except ValueError:
+            pass
+    raise ValueError(f"unparseable time {s!r}")
+
+
+def _iso(ts: float) -> str:
+    return datetime.fromtimestamp(ts, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _parse_ts(v: Any) -> float | None:
+    """Epoch of an ISO-ish timestamp string (Gamma uses ``2026-01-01T00:00:00Z``, ``2026-01-01 00:00:00+00`` ...)."""
+    if v in (None, ""):
+        return None
+    try:
+        s = str(v).strip().replace(" ", "T").replace("Z", "+00:00")
+        if re.search(r"[+-]\d\d$", s):
+            s += ":00"
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return dt.timestamp()
+    except ValueError:
+        return None
+
+
+def refuse_run_id(run_id: str, allowed: tuple[str, ...] | None = None) -> str:
+    if run_id in REFUSED_RUN_IDS:
+        raise Refused(f"run id {run_id!r} is sealed or belongs to another batch; CB4 refuses it")
+    if allowed is not None and run_id not in allowed:
+        raise Refused(f"this command writes only {allowed}, not {run_id!r}")
+    return run_id
+
+
+def refuse_path(path: Path) -> Path:
+    """CB4 never opens ``cb1_extract/`` or ``cb2_extract/`` (section 1.3)."""
+    if any(part in REFUSED_ROOTS for part in Path(path).parts):
+        raise Refused(f"path {path} is under a CB1/CB2 extract root; CB4 refuses it")
+    return Path(path)
+
+
+def _csv_list(v) -> list[str]:
+    return [x.strip() for x in str(v or "").split(",") if x.strip()]
+
+
+def _sha(obj) -> str:
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, default=str).encode()).hexdigest()
+
+
+def declaration_h7() -> dict:
+    """Everything the two fetches declare (hashed into the manifests)."""
+    return {
+        "version": FETCH_VERSION, "t_seal": T_SEAL,
+        "era": {"seed": ERA_SEED, "per_cell": ERA_PER_CELL, "periods": [list(p) for p in ERA_PERIODS],
+                "origin_window_h": ERA_ORIGIN_H, "min_life_d": ERA_MIN_LIFE_D,
+                "price_window": [ERA_PRICE_LOOKBACK_D, ERA_PRICE_LEAD_D], "max_trades": ERA_MAX_TRADES,
+                "frame": [FRAME_WINDOWS_PER_DAY, FRAME_WINDOW_MINUTES, FRAME_PAGES_PER_WINDOW]},
+        "series": {"seed": SERIES_SEED, "n": SERIES_N, "n_sports": SERIES_N_SPORTS, "members": SERIES_MEMBERS,
+                   "roll_from": SERIES_ROLL_FROM, "walk_from": SERIES_WALK_FROM,
+                   "cadence_bounds_s": CADENCE_BOUNDS, "horizons": HORIZONS, "succ_created_lag_h": SUCC_CREATED_LAG_H,
+                   "price_h": [PRICE_PRE_H, PRICE_POST_H, PSEUDO_GAP_H], "split": [SPLIT_HOLDOUT_FRAC, SPLIT_EMBARGO_D]},
+    }
+
+
+def declaration_sha256_h7() -> str:
+    return _sha(declaration_h7())
+
+
+# ---- text rules (weather exclusion reuses CB2's TEMP_RE; imported lazily, cb2_weather is not edited) -------------
+
+
+def _cb2w():
+    from . import cb2_weather  # noqa: PLC0415 - heavy (scipy); only the fetch/seal commands need it
+
+    return cb2_weather
+
+
+def is_weather_text(*texts: str | None) -> bool:
+    w = _cb2w()
+    rx = re.compile(w.TEMP_RE, w.TEMP_RE_FLAGS)
+    return any(t and rx.match(str(t)) for t in texts)
+
+
+def is_weather_market(fee_cat: str | None, *texts: str | None) -> bool:
+    """Section 1.3: ``fee_category == 'weather'`` or a title matching CB2's ``TEMP_RE``."""
+    return (fee_cat or "") == "weather" or is_weather_text(*texts)
+
+
+def norm_label(s: Any) -> str:
+    """Normalised label: lowercase, whitespace and punctuation collapsed to single spaces."""
+    return re.sub(r"[^0-9a-z]+", " ", str(s or "").lower()).strip()
+
+
+# ---- series rules (hashed and committed before q0082 reads any event title or groupItemTitle) --------------------
+
+
+def cadence_class(end_epochs: list[float]) -> str | None:
+    """Cadence from the median gap between consecutive member end dates only: daily [20h, 28h], weekly [6d, 8d],
+    monthly [27d, 32d]; anything else (sub-daily, irregular, fewer than two members) is None."""
+    xs = sorted(end_epochs)
+    if len(xs) < 2:
+        return None
+    med = statistics.median([b - a for a, b in zip(xs, xs[1:], strict=False)])
+    for name, (lo, hi) in CADENCE_BOUNDS.items():
+        if lo <= med <= hi:
+            return name
+    return None
+
+
+def horizon_for(cadence: str) -> tuple[float, float]:
+    """(move window M hours, V_end hours) after t0."""
+    h = HORIZONS[cadence]
+    return h["M_h"], h["V_end_h"]
+
+
+def pick_successor(members: list[dict], pred_idx: int, t0: float) -> tuple[int | None, bool]:
+    """Successor of ``members[pred_idx]`` (members sorted by end): the member with the smallest end date greater
+    than the predecessor's with ``created_epoch <= t0 - 1h``. Returns (index, skipped) where ``skipped`` is true
+    when it is not the immediate next member."""
+    pred_end = members[pred_idx]["end_epoch"]
+    for j in range(pred_idx + 1, len(members)):
+        m = members[j]
+        if m["end_epoch"] > pred_end and m["created_epoch"] is not None and m["created_epoch"] <= t0 - SUCC_CREATED_LAG_H * HOUR:
+            return j, j != pred_idx + 1
+    return None, False
+
+
+def _price_pair(prices: Any) -> list[float] | None:
+    try:
+        v = json.loads(prices) if isinstance(prices, str) else prices
+        return [float(x) for x in v] if isinstance(v, list) and v else None
+    except (ValueError, TypeError):
+        return None
+
+
+def winner_of(pred: dict, guarded: dict) -> tuple[str, float, str | None] | None:
+    """(winner key, t0 epoch, winning outcome label or None) of a resolved predecessor event, or None.
+
+    Single-market event: the outcome label whose price is >= 0.99 while the others are <= 0.01 (the key is the
+    normalised label). Multi-market event: exactly one member whose first (Yes) price is >= 0.99 and no other
+    above 0.01 (the key is the normalised ``groupItemTitle``). ``t0`` is that market's ``closedTime``. Anything
+    else (50-50, void, not closed, no closed time) returns None."""
+    gmk = {g["market_id"]: g for g in guarded.get("markets", [])}
+    ms = pred["markets"]
+    if len(ms) == 1:
+        g = gmk.get(ms[0]["market_id"])
+        pr = _price_pair(g.get("outcome_prices")) if g else None
+        labels = ms[0].get("outcomes") or []
+        if not g or not pr or len(pr) != len(labels) or not g.get("closed"):
+            return None
+        win = [i for i, p in enumerate(pr) if p >= WIN_PRICE]
+        if len(win) != 1 or any(p > 1 - WIN_PRICE for i, p in enumerate(pr) if i != win[0]):
+            return None
+        t0 = _parse_ts(g.get("closed_time"))
+        return (norm_label(labels[win[0]]), t0, labels[win[0]]) if t0 is not None else None
+    wins = []
+    for m in ms:
+        g = gmk.get(m["market_id"])
+        pr = _price_pair(g.get("outcome_prices")) if g else None
+        if not g or not pr or not g.get("closed"):
+            return None
+        if pr[0] >= WIN_PRICE:
+            wins.append((m, g))
+        elif pr[0] > 1 - WIN_PRICE:
+            return None
+    if len(wins) != 1:
+        return None
+    t0 = _parse_ts(wins[0][1].get("closed_time"))
+    return (norm_label(wins[0][0].get("group_title")), t0, None) if t0 is not None else None
+
+
+def match_side(succ: dict, pred: dict, key: str) -> tuple[str, int] | None:
+    """(market_id, token index) of the successor token that was rolled into, or None (unit excluded, counted).
+    Binary-member events: the token with the same outcome label as the predecessor's winner. Multi-member events:
+    token 0 (Yes) of the successor member whose normalised ``groupItemTitle`` equals the predecessor winner's."""
+    if len(succ["markets"]) == 1 and len(pred["markets"]) == 1:
+        m = succ["markets"][0]
+        labs = [norm_label(x) for x in (m.get("outcomes") or [])]
+        return (m["market_id"], labs.index(key)) if key in labs and len(labs) == 2 else None
+    if len(succ["markets"]) > 1 and len(pred["markets"]) > 1:
+        hits = [m for m in succ["markets"] if norm_label(m.get("group_title")) == key and key]
+        return (hits[0]["market_id"], 0) if len(hits) == 1 else None
+    return None
+
+
+def series_rules_doc() -> dict:
+    """Hash of the cadence bounds, horizons and the SOURCE of the matching/cadence functions (the rules are
+    committed before any event text is read, CREATIVE_BATCH_4.md section 2.7)."""
+    src = "\n".join(inspect.getsource(f) for f in (cadence_class, horizon_for, pick_successor, winner_of, match_side, norm_label))
+    return {"cadence_bounds_sha256": _sha(CADENCE_BOUNDS), "horizons_sha256": _sha(HORIZONS),
+            "funcs_sha256": hashlib.sha256(src.encode()).hexdigest(), "succ_created_lag_h": SUCC_CREATED_LAG_H,
+            "win_price": WIN_PRICE}
+
+
+def require_series_rules(path: Path = SERIES_RULES_FILE, *, require_committed: bool = True) -> None:
+    path = Path(path)
+    if not path.exists():
+        raise Refused(f"series-rule file {path} not found; refusing to read series event text")
+    if require_committed:
+        from . import cb1_history  # noqa: PLC0415
+
+        if not cb1_history.spec_committed(path):
+            raise Refused(f"series-rule file {path} is not committed (or differs from HEAD)")
+    try:
+        doc = json.loads(path.read_text())
+    except ValueError as exc:
+        raise Refused(f"series-rule file {path} unreadable") from exc
+    if doc != series_rules_doc():
+        raise Refused(f"series-rule hash mismatch: file {doc} != code {series_rules_doc()}")
+
+
+def write_series_rules(path: Path = SERIES_RULES_FILE) -> Path:
+    """Write the rule hashes (a Claude session commits the file before q0082 can run). Never overwrites a
+    different file."""
+    path = Path(path)
+    data = json.dumps(series_rules_doc(), indent=1, sort_keys=True) + "\n"
+    if path.exists() and json.loads(path.read_text()) != series_rules_doc():
+        raise Refused(f"{path} exists with different content; a rule file is never rewritten")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(data)
+    return path
+
+
+# ---- shared guards ---------------------------------------------------------------------------------------------
+
+
+def require_h5_seal_copy(paths: list[Path], *, require_committed: bool = True) -> None:
+    """Both fetches refuse until the committed ``seals/h5_cb1_SEAL.json`` exists (challenger item 11)."""
+    if not any(Path(p).name == H5_SEAL_COPY for p in paths):
+        raise Refused(f"--exclude-seal-ids must include the committed {H5_SEAL_COPY}")
+    for p in paths:
+        if not Path(p).exists():
+            raise Refused(f"committed seal copy {p} is missing; run q0018 and commit it first")
+        if require_committed:
+            from . import cb1_history  # noqa: PLC0415
+
+            if not cb1_history.spec_committed(Path(p)):
+                raise Refused(f"seal copy {p} is not committed (or differs from HEAD)")
+
+
+def require_data_dumps_room(data_dumps: Path, cap_gb: float = DATA_DUMPS_FETCH_CAP_GB) -> None:
+    used = _cb2w().dir_size(Path(data_dumps)) / 1024**3
+    if used > cap_gb:
+        raise Refused(f"data-dumps is {used:.2f} GB (> {cap_gb} GB); refusing to start")
+
+
+def _gz_jsonl_bytes(rows: list[dict]) -> bytes:
+    buf = io.BytesIO()
+    with gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as gz:
+        for r in rows:
+            gz.write((json.dumps(r, sort_keys=True, default=float) + "\n").encode())
+    return buf.getvalue()
+
+
+def _load_jsonl_gz(path: Path) -> list[dict]:
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        return [json.loads(line) for line in fh if line.strip()]
+
+
+def _frame_csv_bytes(header: list[str], rows: list[dict]) -> bytes:
+    return hb._gz_csv_bytes(header, ([r.get(c, "") for c in header] for r in rows))
+
+
+# ---- the resumable fetch session ---------------------------------------------------------------------------
+
+
+class FetchRun:
+    """One chunk of a resumable h7 fetch: limiter with 429 back-off and collector-health pause, disk budget,
+    pinned request clock ``T_fetch7``, manifest writer, progress log and the stop checks (budget, T_seal,
+    429 chunk limit, collector health). Mirrors ``cb2_weather.weather_fetch`` (imports its policy classes)."""
+
+    def __init__(self, root: Path, run_id: str, transport: hb.Transport, *, kind: str, params: dict, rps: float,
+                 disk_cap: int, budget_min: float | None, now: float | None, sleep: Callable[[float], None],
+                 live_check: Callable[[], bool] | None, wall_clock: Callable[[], float], t_seal_epoch: float,
+                 snapshot_root: Path | None, health_every_s: float, health_check: Callable[[float], tuple[bool, str]] | None,
+                 cap_at: str, key: bytes | None):
+        w = _cb2w()
+        self.root, self.run_id, self.kind, self.params = Path(root), run_id, kind, params
+        self.rdir = self.root / run_id
+        self.wall_clock, self.t_seal_epoch = wall_clock, t_seal_epoch
+        self.rdir.mkdir(parents=True, exist_ok=True)
+        t = time.time() if now is None else now
+        self.now = hb.pin_request_clock(self.rdir, t)  # one T_fetch7 across resumed chunks
+        self.cap_epoch = min(self.now, _ep(cap_at), t_seal_epoch)
+        self.t_start = time.time()
+        self.budget_s = None if not budget_min else budget_min * 60.0
+        self.budget = hb.DiskBudget(self.rdir, disk_cap)
+        self.disk_cap = disk_cap
+        self.pol = w.RatePolicy(transport, clock=wall_clock)
+        self.lim = hb.Limiter(self.pol, rps=min(rps, 4.0), sleep=sleep, live_check=live_check)
+        self.pol.limiter = self.lim
+        self.rps = min(rps, 4.0)
+        self.key = key if key is not None else hb.load_or_create_key()
+        self.snapshot_root, self.health_every_s, self.health_check = snapshot_root, health_every_s, health_check
+        self.last_health = -1e18
+        self.mpath = self.rdir / "manifest.json"
+        self.prior = json.loads(self.mpath.read_text()) if self.mpath.exists() else {}
+        self.counts: dict[str, int] = {}
+        self.budget_min = budget_min
+
+    # -- stop checks
+    def out_of_budget(self) -> bool:
+        return self.budget_s is not None and time.time() - self.t_start >= self.budget_s
+
+    def unhealthy(self) -> str | None:
+        if self.health_check is None and self.snapshot_root is None:
+            return None
+        if self.wall_clock() - self.last_health < self.health_every_s:
+            return None
+        self.last_health = self.wall_clock()
+        w = _cb2w()
+        ok, why = self.health_check(self.wall_clock()) if self.health_check else w.collector_healthy(
+            Path(self.snapshot_root), self.wall_clock())  # type: ignore[arg-type]
+        return None if ok else f"paused_collector_health: {why}"
+
+    def stop_reason(self, should_stop: Callable[[], bool] | None = None) -> str | None:
+        if should_stop is not None and should_stop():
+            return "should_stop"
+        if self.out_of_budget():
+            return "budget reached"
+        if self.wall_clock() >= self.t_seal_epoch:
+            return "t_seal_passed"
+        if self.pol.over_limit:
+            return "paused_429_chunk_limit"
+        return self.unhealthy()
+
+    # -- manifest
+    def manifest(self, stopped: str | None, extra: dict | None = None) -> dict:
+        m = {
+            "provenance": hb.PROVENANCE, "evidence_role": hb.EVIDENCE_ROLE, "version": FETCH_VERSION,
+            "run_id": self.run_id, "kind": self.kind,
+            "purpose": "CB4 data (exploratory_historical); never prospective, not an edge claim",
+            "git_commit": hb._git_commit(), "declaration_sha256": declaration_sha256_h7(),
+            "params": {**self.params, "cap_utc": _iso(self.cap_epoch), "max_rps": self.rps,
+                       "disk_cap_bytes": self.disk_cap, "budget_min": self.budget_min},
+            "started_utc": self.prior.get("started_utc", _iso(self.t_start)), "updated_utc": _iso(time.time()),
+            "request_clock_now": self.prior.get("request_clock_now", _iso(self.now)),
+            "requests": {"total_this_session": self.lim.requests, "retries": self.lim.retries,
+                         "http_429": self.pol.n429, "yielded_to_live_s": self.lim.yielded_s,
+                         "rps_halved": self.pol.halved},
+            "stopped": stopped, "disk_bytes": self.budget.scan(),
+            "elapsed_s_this_session": round(time.time() - self.t_start, 1), "counts": dict(self.counts),
+            **(extra or {}),
+        }
+        m.setdefault("complete", False)
+        self.budget.cap += 10**7  # manifest bookkeeping must stay writable at the cap
+        self.budget.write(self.mpath, json.dumps(m, indent=1, sort_keys=True, default=float).encode())
+        return m
+
+    # -- progress
+    def read_progress(self, key_name: str) -> dict[str, dict]:
+        done: dict[str, dict] = {}
+        p = self.rdir / "progress.jsonl"
+        if p.exists():
+            for line in p.read_text().splitlines():
+                if line.strip():
+                    rec = json.loads(line)
+                    prev = done.get(rec[key_name])
+                    if prev is not None and prev["status"] == "done":
+                        continue
+                    rec["attempts"] = (prev or {}).get("attempts", 0) + (rec["status"] != "done")
+                    done[rec[key_name]] = rec
+        return done
+
+    def append_progress(self, rec: dict) -> None:
+        with (self.rdir / "progress.jsonl").open("a") as fh:
+            fh.write(json.dumps(rec, sort_keys=True, default=float) + "\n")
+
+
+def mark_not_run(rdir: Path, run_id: str, reason: str, now: float | None = None) -> dict:
+    """Record a run that was incomplete at T_seal: a marker file and ``stopped = not_run_deadline`` in the manifest.
+    The run is never sealed, analysed or refetched; the cap is not moved."""
+    rdir = Path(rdir)
+    rdir.mkdir(parents=True, exist_ok=True)
+    mp = rdir / "manifest.json"
+    man = json.loads(mp.read_text()) if mp.exists() else {"run_id": run_id}
+    man.update(stopped=NOT_RUN_TOKEN, complete=False, not_run_reason=reason, not_run_utc=_iso(time.time() if now is None else now))
+    mp.write_text(json.dumps(man, indent=1, sort_keys=True, default=float))
+    (rdir / NOT_RUN_FILE).write_text(json.dumps(
+        {"run_id": run_id, "status": NOT_RUN_TOKEN, "reason": reason, "utc": man["not_run_utc"],
+         "rule": "CREATIVE_BATCH_4.md 1.3: incomplete at T_seal -> not run, recorded; no seal, no analysis, no refetch; "
+                 "dependent tests are recorded 'not run (deadline)' with p = 1"}, indent=1, sort_keys=True))
+    return man
+
+
+def _fetch_items(fr: FetchRun, items: list[dict], key_name: str, fetch_one: Callable[[dict], dict],
+                 tally: Callable[[dict], None], should_stop: Callable[[], bool] | None, extra: dict,
+                 *, checkpoint_every: int = 200) -> tuple[str | None, int]:
+    """Fetch ``items`` in the given order, skipping finished ones; appends ``progress.jsonl``. Returns
+    (stopped reason or None, number still pending)."""
+    done = fr.read_progress(key_name)
+    for rec in done.values():
+        if rec["status"] == "done":
+            tally(rec)
+    stopped, since = None, 0
+    for it in items:
+        k = it[key_name]
+        prev = done.get(k)
+        if prev and (prev["status"] == "done" or prev.get("attempts", 0) >= MAX_ITEM_ATTEMPTS):
+            continue
+        why = fr.stop_reason(should_stop)
+        if why:
+            stopped = why
+            break
+        try:
+            rec = fetch_one(it)
+            rec["fetched_utc"] = _iso(time.time())
+            tally(rec)
+        except OSError as exc:
+            stopped = f"disk_budget: {exc}"
+            break
+        except (RuntimeError, KeyError, TypeError, ValueError) as exc:
+            rec = {key_name: k, "status": "failed", "error": str(exc)[:200], "fetched_utc": _iso(time.time())}
+        fr.append_progress(rec)
+        done[k] = {**rec, "attempts": (prev or {}).get("attempts", 0) + (rec["status"] != "done")}
+        since += 1
+        if since >= checkpoint_every:
+            since = 0
+            fr.manifest("in_progress", extra)
+    pending = [it for it in items if not (done.get(it[key_name]) and (
+        done[it[key_name]]["status"] == "done" or done[it[key_name]].get("attempts", 0) >= MAX_ITEM_ATTEMPTS))]
+    fr.counts["items_failed"] = sum(1 for r in done.values() if r["status"] != "done")
+    return stopped, len(pending)
+
+
+def _guard_start(root: Path, run_id: str, wall_clock: Callable[[], float], t_seal_epoch: float, token: str) -> dict | None:
+    """Common start gate. Returns a result dict when the call must not fetch, else None."""
+    rdir = Path(root) / run_id
+    if (rdir / h5_seal.SEAL_NAME).exists():
+        raise Refused(f"{run_id} is sealed; the fetch never touches a sealed run")
+    mp = rdir / "manifest.json"
+    prior = json.loads(mp.read_text()) if mp.exists() else {}
+    if (rdir / NOT_RUN_FILE).exists() or prior.get("stopped") == NOT_RUN_TOKEN:
+        return {"stopped": NOT_RUN_TOKEN, "status": NOT_RUN_TOKEN, "complete": False}
+    if prior.get("complete") is True and prior.get("stopped") is None:
+        return {"stopped": None, "status": token, "complete": True, "counts": prior.get("counts")}
+    if wall_clock() >= t_seal_epoch:
+        mark_not_run(rdir, run_id, "incomplete at T_seal (no new chunk at or after 2026-10-22T00:00Z)")
+        return {"stopped": NOT_RUN_TOKEN, "status": NOT_RUN_TOKEN, "complete": False}
+    return None
+
+
+def _fetch_prices_capped(lim: hb.Limiter, token: str, a: int, b: int, cap_epoch: float) -> tuple[list[tuple[int, float]], int]:
+    pts, _n = hb.fetch_prices(lim, token, a, b)
+    keep = [(t, p) for t, p in pts if t < cap_epoch]
+    return keep, len(pts) - len(keep)
+
+
+# ---- CH53 era fetch (q0081) ------------------------------------------------------------------------------------
+
+
+def parse_periods(spec: str | list | tuple) -> list[tuple[str, float, float]]:
+    """``"2025-12-01/2026-02-18,..."`` -> ``[("P0", a_epoch, b_epoch), ...]`` (half-open, UTC)."""
+    parts = _csv_list(spec) if isinstance(spec, str) else [f"{a}/{b}" for _n, a, b in spec]
+    out = []
+    for i, p in enumerate(parts):
+        a, b = p.split("/")
+        out.append((f"P{i}", _ep(a), _ep(b)))
+    return out
+
+
+def era_days(periods: list[tuple[str, float, float]]) -> list[date]:
+    days: list[date] = []
+    for _n, a, b in periods:
+        t = a
+        while t < b:
+            days.append(datetime.fromtimestamp(t, UTC).date())
+            t += DAY
+    return days
+
+
+def _main_row(r: dict) -> dict:
+    """The non-outcome columns of a ``frame_row`` plus a text-derived weather flag (no text is stored)."""
+    out = {c: r.get(c, "") for c in FRAME_MAIN_COLUMNS if c not in ("group", "period", "weather_title")}
+    out["weather_title"] = int(is_weather_text(r.get("question"), r.get("event_title")))
+    return out
+
+
+def _outcome_row(r: dict) -> dict:
+    return {"market_id": r["market_id"], **{c: r.get(c, "") for c in OUTCOME_FIELDS}}
+
+
+def walk_era_frame(lim: hb.Limiter, days: list[date], seed: str, modes: tuple[bool, ...], *, rdir: Path,
+                   should_stop: Callable[[], bool] | None = None, windows_per_day: int = FRAME_WINDOWS_PER_DAY,
+                   window_minutes: int = FRAME_WINDOW_MINUTES, pages_per_window: int = FRAME_PAGES_PER_WINDOW,
+                   ) -> tuple[list[dict], dict[str, dict], dict, str | None]:
+    """The h2 frame method (``frame-v2-random-windows``) restricted to the period days: per day, ``windows_per_day``
+    seeded ``window_minutes`` windows on ``end_date``, each walked with ``closed=false`` first, then ``closed=true``
+    (a market that closes between the two walks is seen by the second), ``pages_per_window`` pages; a window still
+    capped is dropped whole and counted. Resumable per day through ``frame_partial.jsonl`` (non-outcome columns) and
+    ``frame_partial_guarded.jsonl`` (outcome columns). Returns (rows, outcomes, report, stopped)."""
+    rows: dict[str, dict] = {}
+    outs: dict[str, dict] = {}
+    rep: dict = {"frame_version": hb.FRAME_VERSION, "windows_per_day": windows_per_day, "window_minutes": window_minutes,
+                 "pages_per_window": pages_per_window, "modes": [bool(m) for m in modes], "days": len(days),
+                 "windows": {"closed": 0, "active": 0}, "windows_dropped_capped": {"closed": 0, "active": 0},
+                 "rows_in_dropped_windows": 0, "dropped_capped_by_day": {}, "raw": 0, "non_binary_or_invalid": 0,
+                 "duplicates": 0}
+    pp, pg = rdir / "frame_partial.jsonl", rdir / "frame_partial_guarded.jsonl"
+    done_days: set[str] = set()
+    if pp.exists():
+        guarded_by_day: dict[str, list] = {}
+        if pg.exists():
+            for line in pg.read_text().splitlines():
+                if line.strip():
+                    g = json.loads(line)
+                    guarded_by_day[g["day"]] = g["outs"]
+        for line in pp.read_text().splitlines():
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            if rec["day"] not in guarded_by_day:  # a day is complete only when both files hold it
+                continue
+            done_days.add(rec["day"])
+            for r in rec["rows"]:
+                rows[r["market_id"]] = r
+            for o in guarded_by_day[rec["day"]]:
+                outs[o["market_id"]] = o
+            for k in ("closed", "active"):
+                rep["windows"][k] += rec["windows"][k]
+                rep["windows_dropped_capped"][k] += rec["dropped"][k]
+            rep["rows_in_dropped_windows"] += rec["dropped_rows"]
+            if any(rec["dropped"].values()):
+                rep["dropped_capped_by_day"][rec["day"]] = rec["dropped"]
+            rep["raw"] += rec["raw"]
+            rep["non_binary_or_invalid"] += rec["invalid"]
+            rep["duplicates"] += rec["dups"]
+    slots = 1440 // window_minutes
+    f = "%Y-%m-%dT%H:%M:%SZ"
+    for day in days:
+        dkey = f"{day:%Y-%m-%d}"
+        if dkey in done_days:
+            continue
+        if should_stop is not None and should_stop():
+            return list(rows.values()), outs, rep, "frame_paused"
+        rng = random.Random(f"{seed}|{dkey}")
+        picks = sorted(rng.sample(range(slots), min(windows_per_day, slots)))
+        d0 = datetime(day.year, day.month, day.day, tzinfo=UTC)
+        new_rows: list[dict] = []
+        new_outs: list[dict] = []
+        seen_day: set[str] = set()
+        win = {"closed": 0, "active": 0}
+        dropped = {"closed": 0, "active": 0}
+        dropped_rows = raw = invalid = dups = 0
+        for mode in sorted(set(modes), key=bool):  # closed=false first
+            kind = "closed" if mode else "active"
+            for k in picks:
+                a = d0 + timedelta(minutes=k * window_minutes)
+                b = a + timedelta(minutes=window_minutes)
+                p = {"order": "id", "ascending": "true", "closed": "true" if mode else "false",
+                     "end_date_min": a.strftime(f), "end_date_max": b.strftime(f)}
+                batch, capped = hb._paged(lim, p, max_rows=pages_per_window * hb.GAMMA_PAGE, error_is_capped=True)
+                win[kind] += 1
+                if capped:
+                    dropped[kind] += 1
+                    dropped_rows += len(batch)
+                    continue
+                for m in batch:
+                    raw += 1
+                    r = hb.frame_row(m, with_text=True)
+                    if r is None:
+                        invalid += 1
+                    elif r["market_id"] in rows or r["market_id"] in seen_day:
+                        dups += 1
+                    else:
+                        seen_day.add(r["market_id"])
+                        new_rows.append(_main_row(r))
+                        new_outs.append(_outcome_row(r))
+        # outcomes first, rows last: a day counts as done only when both lines exist
+        with pg.open("a") as fh:
+            fh.write(json.dumps({"day": dkey, "outs": new_outs}, default=float) + "\n")
+        with pp.open("a") as fh:
+            fh.write(json.dumps({"day": dkey, "rows": new_rows, "windows": win, "dropped": dropped,
+                                 "dropped_rows": dropped_rows, "raw": raw, "invalid": invalid, "dups": dups},
+                                default=float) + "\n")
+        for r in new_rows:
+            rows[r["market_id"]] = r
+        for o in new_outs:
+            outs[o["market_id"]] = o
+        for k2 in ("closed", "active"):
+            rep["windows"][k2] += win[k2]
+            rep["windows_dropped_capped"][k2] += dropped[k2]
+        rep["rows_in_dropped_windows"] += dropped_rows
+        if any(dropped.values()):
+            rep["dropped_capped_by_day"][dkey] = dropped
+        rep["raw"] += raw
+        rep["non_binary_or_invalid"] += invalid
+        rep["duplicates"] += dups
+    return list(rows.values()), outs, rep, None
+
+
+def era_period_of(end_epoch: float, periods: list[tuple[str, float, float]]) -> str | None:
+    for n, a, b in periods:
+        if a <= end_epoch < b:
+            return n
+    return None
+
+
+def apply_era_rules(rows: list[dict], periods: list[tuple[str, float, float]], *, history_ids: set[str], h5_ids: set[str],
+                    origin_h: float = ERA_ORIGIN_H, min_life_d: float = ERA_MIN_LIFE_D) -> tuple[list[dict], dict]:
+    """Frame rules (CB4-E), each counted, first rule that fires: ``no_end_date``, ``weather``,
+    ``history_sample_overlap`` (h1/h2/h3), ``h5_overlap``, ``outside_periods``, ``life_unknown``,
+    ``life_lt_min`` (``created_at <= endDate - 4d`` fails), ``origin_window_outside_period``
+    (``[end - 72h, end)`` not entirely inside the period). Adds ``group`` (S sports / O other) and ``period``."""
+    counts = {"frame_in": len(rows), "no_end_date": 0, "weather": 0, "history_sample_overlap": 0, "h5_overlap": 0,
+              "outside_periods": 0, "life_unknown": 0, "life_lt_min": 0, "origin_window_outside_period": 0, "kept": 0,
+              "kept_by_cell": {}}
+    kept = []
+    bounds = {n: (a, b) for n, a, b in periods}
+    for r in sorted(rows, key=lambda x: x["market_id"]):
+        end = r.get("end_epoch")
+        if end in (None, "") or (isinstance(end, float) and math.isnan(end)):
+            counts["no_end_date"] += 1
+            continue
+        end = float(end)
+        if int(r.get("weather_title") or 0) or (r.get("fee_category") or "") == "weather":
+            counts["weather"] += 1
+            continue
+        if r["market_id"] in history_ids:
+            counts["history_sample_overlap"] += 1
+            continue
+        if r["market_id"] in h5_ids:
+            counts["h5_overlap"] += 1
+            continue
+        p = era_period_of(end, periods)
+        if p is None:
+            counts["outside_periods"] += 1
+            continue
+        created = _parse_ts(r.get("created_at"))
+        if created is None:
+            counts["life_unknown"] += 1
+            continue
+        if created > end - min_life_d * DAY:
+            counts["life_lt_min"] += 1
+            continue
+        if end - origin_h * HOUR < bounds[p][0]:
+            counts["origin_window_outside_period"] += 1
+            continue
+        g = "S" if (r.get("fee_category") or "") == "sports" else "O"
+        kept.append({**r, "group": g, "period": p})
+        counts["kept"] += 1
+        counts["kept_by_cell"][f"{g}|{p}"] = counts["kept_by_cell"].get(f"{g}|{p}", 0) + 1
+    return kept, counts
+
+
+def draw_era_sample(frame: list[dict], per_cell: int, seed: str) -> tuple[list[dict], dict]:
+    """Seeded square-root allocation over ``fee_category x creation month`` inside each group x period cell;
+    ``per_cell`` markets per cell (all of a smaller cell). Within a stratum the order is sha256(seed|market_id)."""
+    cells: dict[str, list[dict]] = {}
+    for r in frame:
+        cells.setdefault(f"{r['group']}|{r['period']}", []).append(r)
+    out: list[dict] = []
+    rep: dict = {"seed": seed, "per_cell": per_cell, "cells": {}}
+    for cell in sorted(cells):
+        strata: dict[str, list[dict]] = {}
+        for r in cells[cell]:
+            strata.setdefault(f"{r.get('fee_category') or 'unknown'}|{str(r.get('created_at') or '')[:7] or 'unknown'}", []).append(r)
+        sizes = {k: len(v) for k, v in strata.items()}
+        alloc = hb.allocate(sizes, per_cell)
+        n = 0
+        for k in sorted(strata):
+            pick = sorted(strata[k], key=lambda r: hb._rank(seed, r["market_id"]))[: alloc[k]]
+            for r in pick:
+                out.append({**r, "stratum": f"{cell}|{k}", "stratum_size": sizes[k], "stratum_alloc": alloc[k],
+                            "inclusion_prob": alloc[k] / sizes[k]})
+            n += len(pick)
+        rep["cells"][cell] = {"eligible": len(cells[cell]), "sampled": n, "shortfall": max(0, per_cell - n)}
+    return out, rep
+
+
+def fetch_era_market(lim: hb.Limiter, r: dict, key: bytes, rdir: Path, budget: hb.DiskBudget, *, cap_epoch: float,
+                     max_trades: int = ERA_MAX_TRADES) -> dict:
+    """Prices of the YES token over ``[end - 72h - 8d, end + 1d]`` (anchored on the scheduled ``endDate`` only, so
+    coverage does not depend on how late the market closed) and trades newest first (<= ``max_trades``). Rows at or
+    after ``cap_epoch`` are dropped and counted."""
+    end = float(r["end_epoch"])
+    a = int(end - ERA_ORIGIN_H * HOUR - ERA_PRICE_LOOKBACK_D * DAY)
+    b = int(min(end + ERA_PRICE_LEAD_D * DAY, cap_epoch))
+    mid = r["market_id"]
+    pts, dropped = _fetch_prices_capped(lim, r["token0"], a, b, cap_epoch) if b > a else ([], 0)
+    trades, tst = hb.fetch_trades(lim, r["condition_id"], key, max_trades, ts_cap=cap_epoch - 1)
+    budget.write(Path(rdir) / "prices" / f"{mid}.csv.gz", hb._gz_csv_bytes(["t", "p"], ([t, p] for t, p in pts)))
+    budget.write(Path(rdir) / "trades" / f"{mid}.csv.gz", hb._gz_csv_bytes(hb.TRADE_COLUMNS, trades))
+    return {"market_id": mid, "status": "done", "price_points": len(pts), "dropped_price_rows_post_cap": dropped,
+            "window": [a, b], "trades": tst["n"], "trades_truncated": bool(tst["truncated"]),
+            "trades_oldest_ts": tst["oldest_ts"], "dropped_trades_post_cap": tst["dropped_post_cap"] or 0,
+            "group": r["group"], "period": r["period"]}
+
+
+def _tally_era(counts: dict[str, int]) -> Callable[[dict], None]:
+    def tally(rec: dict) -> None:
+        if rec["status"] != "done":
+            return
+        counts["items_done"] = counts.get("items_done", 0) + 1
+        counts["price_rows"] = counts.get("price_rows", 0) + rec["price_points"]
+        counts["price_rows_dropped_post_cap"] = counts.get("price_rows_dropped_post_cap", 0) + rec["dropped_price_rows_post_cap"]
+        counts["trade_rows"] = counts.get("trade_rows", 0) + rec["trades"]
+        counts["trade_rows_dropped_post_cap"] = counts.get("trade_rows_dropped_post_cap", 0) + rec["dropped_trades_post_cap"]
+        counts["trades_truncated_markets"] = counts.get("trades_truncated_markets", 0) + int(rec["trades_truncated"])
+
+    return tally
+
+
+def era_fetch(
+    root: Path, run_id: str, transport: hb.Transport, *, seed: str = ERA_SEED, per_cell: int = ERA_PER_CELL,
+    periods: list[tuple[str, float, float]] | None = None, exclude_runs: list[str] | None = None,
+    h5_seal_copies: list[Path] | None = None, walk_closed: tuple[bool, ...] = (True, False),
+    cap_at: str = T_SEAL, rps: float = 4.0, disk_cap: int = int(0.20 * 1024**3), budget_min: float | None = None,
+    max_trades: int = ERA_MAX_TRADES, key: bytes | None = None, now: float | None = None,
+    sleep: Callable[[float], None] = time.sleep, live_check: Callable[[], bool] | None = hb.live_pass_or_lock,
+    should_stop: Callable[[], bool] | None = None, wall_clock: Callable[[], float] = time.time,
+    t_seal_epoch: float = T_SEAL_EPOCH, snapshot_root: Path | None = None, health_every_s: float = 600.0,
+    health_check: Callable[[float], tuple[bool, str]] | None = None, pages_per_window: int = FRAME_PAGES_PER_WINDOW,
+    windows_per_day: int = FRAME_WINDOWS_PER_DAY, window_minutes: int = FRAME_WINDOW_MINUTES,
+) -> dict:
+    """Frame (period days, seeded 15-minute windows) -> rules -> seeded sample (written once) -> per-market prices and
+    trades. Refuses new chunks at or after ``t_seal_epoch`` (an incomplete run is then marked ``not_run_deadline``).
+    Every price and trade row at or after ``min(T_fetch7, T_seal)`` is dropped and counted. Outcome columns go only to
+    ``outcomes_guarded.csv.gz``. Ends a chunk as transient on collector health or after 50 HTTP 429s."""
+    root = Path(root)
+    refuse_run_id(run_id, (ERA_RUN_ID,))
+    early = _guard_start(root, run_id, wall_clock, t_seal_epoch, ERA_COMPLETE_TOKEN)
+    if early is not None:
+        return early
+    periods = periods or parse_periods(ERA_PERIODS)
+    fr = FetchRun(root, run_id, transport, kind="era", params={
+        "seed": seed, "per_cell": per_cell, "periods": [[n, _iso(a), _iso(b)] for n, a, b in periods],
+        "origin_window_h": ERA_ORIGIN_H, "min_life_d": ERA_MIN_LIFE_D, "exclude_runs": exclude_runs or [],
+        "walk_closed": list(walk_closed), "max_trades": max_trades, "pages_per_window": pages_per_window,
+        "windows_per_day": windows_per_day, "window_minutes": window_minutes},
+        rps=rps, disk_cap=disk_cap, budget_min=budget_min, now=now, sleep=sleep, live_check=live_check,
+        wall_clock=wall_clock, t_seal_epoch=t_seal_epoch, snapshot_root=snapshot_root, health_every_s=health_every_s,
+        health_check=health_check, cap_at=cap_at, key=key)
+    why = fr.unhealthy()
+    if why:
+        return fr.manifest(why, {"transient": True})
+    rdir = fr.rdir
+    spath = rdir / "sample.csv.gz"
+    frame_rep = fr.prior.get("frame_report")
+    try:
+        if not spath.exists():
+            hist = _cb2w().history_sample_ids(root, exclude_runs or [])
+            h5 = set()
+            for p in h5_seal_copies or []:
+                h5 |= _cb2w().seal_ids_from_copy(Path(p))
+            why_stop: list[str] = []
+
+            def walk_stop() -> bool:
+                r = fr.stop_reason(should_stop)
+                if r:
+                    why_stop.append(r)
+                return bool(r)
+
+            rows, outs, walk_rep, stopped = walk_era_frame(
+                fr.lim, era_days(periods), seed, walk_closed, rdir=rdir, pages_per_window=pages_per_window,
+                windows_per_day=windows_per_day, window_minutes=window_minutes, should_stop=walk_stop)
+            if stopped:
+                return fr.manifest(why_stop[-1] if why_stop else stopped,
+                                   {"transient": bool(why_stop and why_stop[-1].startswith("paused")), "walk_report": walk_rep})
+            eligible, rule_counts = apply_era_rules(rows, periods, history_ids=hist, h5_ids=h5)
+            sample, samp_rep = draw_era_sample(eligible, per_cell, seed)
+            frame_rep = {**walk_rep, "rules": rule_counts, "history_ids": len(hist), "h5_ids": len(h5), "sample": samp_rep,
+                         "n_sample": len(sample), "fee_category_counts_eligible": _count_by(eligible, "fee_category")}
+            ids = {r["market_id"] for r in eligible}
+            fr.budget.write(rdir / OUTCOME_FILE, _frame_csv_bytes(ERA_OUTCOME_COLUMNS, [outs[m] for m in sorted(ids) if m in outs]))
+            fr.budget.write(rdir / "frame.csv.gz", _frame_csv_bytes(FRAME_MAIN_COLUMNS, eligible))
+            fr.budget.write(rdir / "frame_report.json", json.dumps(frame_rep, indent=1, sort_keys=True, default=float).encode())
+            hdr = [*FRAME_MAIN_COLUMNS, "stratum", "stratum_size", "stratum_alloc", "inclusion_prob"]
+            fr.budget.write(spath, _frame_csv_bytes(hdr, sample))  # sample last: its presence marks the frame as complete
+            for tmp in (rdir / "frame_partial.jsonl", rdir / "frame_partial_guarded.jsonl"):
+                tmp.unlink(missing_ok=True)
+    except OSError as exc:
+        return {"stopped": f"disk_budget: {exc}"}
+    except RuntimeError as exc:  # a persistent API failure while walking: transient, the partial days are kept
+        return fr.manifest(f"walk_failed: {exc}"[:200], {"transient": True})
+    if frame_rep is None and (rdir / "frame_report.json").exists():
+        frame_rep = json.loads((rdir / "frame_report.json").read_text())
+    sample_rows = pd.read_csv(spath, dtype={"market_id": str, "token0": str, "token1": str, "event_id": str},
+                              keep_default_na=False).to_dict("records")
+    for r in sample_rows:
+        r["end_epoch"] = float(r["end_epoch"])
+    extra = {"frame_report": frame_rep, "n_sample": len(sample_rows)}
+    items = sorted(sample_rows, key=lambda r: hb._rank(seed, r["market_id"]))  # seeded-rank order
+    stopped, pending = _fetch_items(
+        fr, items, "market_id", lambda r: fetch_era_market(fr.lim, r, fr.key, rdir, fr.budget, cap_epoch=fr.cap_epoch,
+                                                           max_trades=max_trades), _tally_era(fr.counts), should_stop, extra)
+    if stopped is None and pending == 0:
+        extra["complete"] = True
+        m = fr.manifest(None, extra)
+        m["status"] = ERA_COMPLETE_TOKEN
+        return m
+    return fr.manifest(stopped or "pending", {**extra, "transient": bool(stopped and stopped.startswith("paused"))})
+
+
+def _count_by(rows: list[dict], key: str) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for r in rows:
+        out[str(r.get(key) or "")] = out.get(str(r.get(key) or ""), 0) + 1
+    return dict(sorted(out.items()))
+
+
+# ---- CH50 series fetch (q0082) -----------------------------------------------------------------------------------
+
+GAMMA_EVENTS = "https://gamma-api.polymarket.com/events"
+GAMMA_SERIES = "https://gamma-api.polymarket.com/series"
+PROBE_DROP_KEYS = ("outcomePrices", "outcomes", "closed", "closedTime", "umaResolutionStatus", "umaResolutionStatuses",
+                   "resolved", "winner", "resolvedBy", "resolutionSource")
+
+
+def _json_list(v: Any) -> list:
+    if isinstance(v, list):
+        return v
+    try:
+        x = json.loads(v) if isinstance(v, str) else None
+        return x if isinstance(x, list) else []
+    except ValueError:
+        return []
+
+
+def slim_event(e: dict, mode: bool) -> tuple[dict, dict] | None:
+    """(slim non-outcome event record, guarded outcome record) of a Gamma event, or None without an end date.
+    The slim record keeps ids, end/creation times, series membership, per-market tokens, outcome LABELS,
+    ``groupItemTitle`` and ``fee_category``; no text is stored (the weather flag is computed from it)."""
+    end = _parse_ts(e.get("endDate"))
+    ms = [m for m in (e.get("markets") or []) if isinstance(m, dict)]
+    if end is None or not ms:
+        return None
+    markets, gmarkets = [], []
+    for m in ms:
+        toks = _json_list(m.get("clobTokenIds"))
+        markets.append({
+            "market_id": str(m.get("id")), "condition_id": m.get("conditionId"),
+            "token0": str(toks[0]) if len(toks) > 0 else None, "token1": str(toks[1]) if len(toks) > 1 else None,
+            "group_title": m.get("groupItemTitle"), "outcomes": [str(x) for x in _json_list(m.get("outcomes"))],
+            "created_epoch": _parse_ts(m.get("createdAt")), "fee_category": hb.fee_category(m.get("feeType")),
+            "neg_risk": int(bool(m.get("negRisk")))})
+        gmarkets.append({"market_id": str(m.get("id")), "outcome_prices": m.get("outcomePrices"),
+                         "closed": bool(m.get("closed")), "closed_time": m.get("closedTime") or ""})
+    created = _parse_ts(e.get("createdAt"))
+    if created is None:
+        cs = [x["created_epoch"] for x in markets if x["created_epoch"] is not None]
+        created = min(cs) if cs else None
+    series = [{"id": str(s.get("id")), "slug": s.get("slug")} for s in (e.get("series") or []) if isinstance(s, dict) and s.get("id") is not None]
+    slim = {"event_id": str(e.get("id")), "end_epoch": end, "created_epoch": created, "series": series,
+            "weather_title": int(is_weather_text(e.get("title"), *[m.get("question") for m in ms])),
+            "n_markets": len(markets), "markets": markets, "closed_mode": bool(mode)}
+    return slim, {"event_id": slim["event_id"], "event_closed": bool(e.get("closed")), "markets": gmarkets}
+
+
+def walk_series_events(lim: hb.Limiter, start: float, end: float, modes: tuple[bool, ...], *, rdir: Path,
+                       should_stop: Callable[[], bool] | None = None, base_days: int = SERIES_WALK_BASE_DAYS,
+                       min_width_s: int = SERIES_WINDOW_MIN_S) -> tuple[dict[str, dict], dict[str, dict], dict, str | None]:
+    """Walk Gamma ``/events`` over ``end_date`` windows for each ``closed`` mode (false first), keep only events that
+    belong to a series. A window that reaches the offset cap is halved (down to ``min_width_s``); one still capped
+    at that width is dropped and counted. Resumable per base window of ``base_days`` days through
+    ``walk_partial.jsonl`` (slim non-outcome records) and ``walk_partial_guarded.jsonl`` (outcome records); a base
+    window with a failed request is not recorded and is retried by the next chunk (recorded as failed after 3)."""
+    events: dict[str, dict] = {}
+    guarded: dict[str, dict] = {}
+    rep: dict = {"modes": [bool(m) for m in modes], "base_windows": 0, "requests": 0, "splits": 0, "windows_dropped_capped": 0,
+                 "rows_in_dropped_windows": 0, "events_seen": 0, "events_no_series": 0, "events_no_end_or_markets": 0,
+                 "events_kept": 0, "base_windows_failed": 0, "failed_windows": []}
+    pp, pg = rdir / "walk_partial.jsonl", rdir / "walk_partial_guarded.jsonl"
+    done: set[tuple[bool, str]] = set()
+    fails: dict[tuple[bool, str], int] = {}
+    gby: dict[tuple[bool, str], list] = {}
+    if pg.exists():
+        for line in pg.read_text().splitlines():
+            if line.strip():
+                g = json.loads(line)
+                gby[(g["mode"], g["a"])] = g["guarded"]
+    if pp.exists():
+        for line in pp.read_text().splitlines():
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            k = (rec["mode"], rec["a"])
+            if rec.get("fail"):
+                fails[k] = fails.get(k, 0) + 1
+                continue
+            if k not in gby:
+                continue
+            done.add(k)
+            for ev in rec["events"]:
+                events.setdefault(ev["event_id"], ev)
+            for g in gby[k]:
+                guarded.setdefault(g["event_id"], g)
+            for f in ("requests", "splits", "windows_dropped_capped", "rows_in_dropped_windows", "events_seen",
+                      "events_no_series", "events_no_end_or_markets"):
+                rep[f] += rec["rep"].get(f, 0)
+            rep["base_windows"] += 1
+    for mode in sorted(set(modes), key=bool):  # closed=false BEFORE closed=true
+        t = start
+        while t < end:
+            a, b = t, min(t + base_days * DAY, end)
+            t += base_days * DAY
+            k = (bool(mode), _iso(a))
+            if k in done:
+                continue
+            if fails.get(k, 0) >= 3:
+                rep["base_windows_failed"] += 1
+                rep["failed_windows"].append([bool(mode), _iso(a), _iso(b)])
+                done.add(k)
+                continue
+            if should_stop is not None and should_stop():
+                return events, guarded, rep, "walk_paused"
+            wrep = {"requests": 0, "splits": 0, "windows_dropped_capped": 0, "rows_in_dropped_windows": 0, "events_seen": 0,
+                    "events_no_series": 0, "events_no_end_or_markets": 0}
+            new_slim: list[dict] = []
+            new_g: list[dict] = []
+            stack = [(a, b)]
+            failed = False
+            while stack:
+                x, y = stack.pop(0)
+                rows: list[dict] = []
+                capped, off = False, 0
+                while True:
+                    try:
+                        status, data = lim.get(GAMMA_EVENTS, {"closed": "true" if mode else "false", "end_date_min": _iso(x),
+                                                               "end_date_max": _iso(y), "limit": 100, "offset": off})
+                    except RuntimeError:
+                        status, data = 599, None
+                    wrep["requests"] += 1
+                    if status != 200 or not isinstance(data, list):
+                        failed = True
+                        break
+                    rows.extend(data)
+                    if len(data) < 100:
+                        break
+                    off += 100
+                    if off >= hb.GAMMA_OFFSET_CAP:
+                        capped = True
+                        break
+                if failed:
+                    break
+                if capped and (y - x) > min_width_s:
+                    mid = x + math.floor((y - x) / 2)
+                    stack[:0] = [(x, mid), (mid, y)]
+                    wrep["splits"] += 1
+                    continue
+                if capped:
+                    wrep["windows_dropped_capped"] += 1
+                    wrep["rows_in_dropped_windows"] += len(rows)
+                    continue
+                for e in rows:
+                    wrep["events_seen"] += 1
+                    if not e.get("series"):
+                        wrep["events_no_series"] += 1
+                        continue
+                    sg = slim_event(e, mode)
+                    if sg is None:
+                        wrep["events_no_end_or_markets"] += 1
+                        continue
+                    new_slim.append(sg[0])
+                    new_g.append(sg[1])
+            if failed:
+                with pp.open("a") as fh:
+                    fh.write(json.dumps({"mode": bool(mode), "a": _iso(a), "fail": True}) + "\n")
+                rep["requests"] += wrep["requests"]
+                return events, guarded, rep, f"walk_failed_window: closed={mode} {_iso(a)}"
+            # dedupe within the window, then record guarded first and slim last (slim marks the window done)
+            seen_e: set[str] = set()
+            uslim = [s for s in new_slim if not (s["event_id"] in seen_e or seen_e.add(s["event_id"]))]
+            ug = [g for g in new_g if g["event_id"] in seen_e]
+            with pg.open("a") as fh:
+                fh.write(json.dumps({"mode": bool(mode), "a": _iso(a), "guarded": ug}, default=float) + "\n")
+            with pp.open("a") as fh:
+                fh.write(json.dumps({"mode": bool(mode), "a": _iso(a), "events": uslim, "rep": wrep}, default=float) + "\n")
+            for s in uslim:
+                events.setdefault(s["event_id"], s)
+            for g in ug:
+                guarded.setdefault(g["event_id"], g)
+            for f in wrep:
+                rep[f] += wrep[f]
+            rep["base_windows"] += 1
+            done.add(k)
+    rep["events_kept"] = len(events)
+    return events, guarded, rep, None
+
+
+def probe_series_endpoint(lim: hb.Limiter) -> dict:
+    """Facts about ``GET /series`` (usable or not). Outcome-like fields are dropped by guard at parse time and never
+    written. The walk itself always goes through the event listings, so the probe changes no data."""
+    try:
+        status, data = lim.get(GAMMA_SERIES, {"limit": 3})
+    except RuntimeError as exc:
+        return {"endpoint": GAMMA_SERIES, "error": str(exc)[:200], "usable": False}
+    keys: list[str] = []
+    if isinstance(data, list) and data and isinstance(data[0], dict):
+        keys = sorted(k for k in data[0] if k not in PROBE_DROP_KEYS)
+    return {"endpoint": GAMMA_SERIES, "status": status, "is_list": isinstance(data, list),
+            "n": len(data) if isinstance(data, list) else None, "item_keys_without_outcome_fields": keys,
+            "dropped_by_guard": list(PROBE_DROP_KEYS), "usable": bool(status == 200 and isinstance(data, list) and data and "id" in keys)}
+
+
+def _modal(vals: list[str]) -> str:
+    c: dict[str, int] = {}
+    for v in vals:
+        c[v] = c.get(v, 0) + 1
+    return sorted(c.items(), key=lambda kv: (-kv[1], kv[0]))[0][0] if c else "unknown"
+
+
+def assemble_units(events: dict[str, dict], guarded: dict[str, dict], *, seed: str, n_series: int, n_sports: int,
+                   members: int, r_from: float, r_to: float, history_ids: set[str], h5_ids: set[str]) -> dict:
+    """Series table, seeded series sample, 31-member blocks and roll units (CB4-S population), every exclusion counted.
+    Selection of series and blocks uses end dates, fee categories and series ids only (no outcome). ``t0`` and the
+    rolled-into side come from the predecessor's outcome record and are returned in ``outcome_rows`` (guarded)."""
+    by_series: dict[str, list[dict]] = {}
+    sinfo: dict[str, dict] = {}
+    for ev in events.values():
+        for s in ev["series"]:
+            by_series.setdefault(s["id"], []).append(ev)
+            sinfo.setdefault(s["id"], {"slug": s.get("slug")})
+    rep: dict = {"series_total": len(by_series), "series_cadence_excluded": 0, "series_weather_excluded": 0,
+                 "series_lt_2_members": 0, "series_eligible": 0, "series_sampled_non_sports": 0, "series_sampled_sports": 0,
+                 "units_candidate": 0, "unit_drops": {}, "units": 0, "units_succ_skipped": 0}
+
+    def drop(reason: str) -> None:
+        rep["unit_drops"][reason] = rep["unit_drops"].get(reason, 0) + 1
+
+    table: dict[str, dict] = {}
+    for sid, evs in by_series.items():
+        ms = sorted({e["event_id"]: e for e in evs}.values(), key=lambda e: (e["end_epoch"], e["event_id"]))
+        modal = _modal([m["fee_category"] for e in ms for m in e["markets"]])
+        if len(ms) < 2:
+            rep["series_lt_2_members"] += 1
+            continue
+        if modal == "weather" or any(e["weather_title"] for e in ms):
+            rep["series_weather_excluded"] += 1
+            continue
+        cad = cadence_class([e["end_epoch"] for e in ms])
+        if cad is None:
+            rep["series_cadence_excluded"] += 1
+            continue
+        table[sid] = {"series_id": sid, "slug": sinfo[sid]["slug"], "cadence": cad, "modal_fee_category": modal,
+                      "sports": modal == "sports", "n_members": len(ms), "members": ms}
+    rep["series_eligible"] = len(table)
+    non_sports = {k: v for k, v in table.items() if not v["sports"]}
+    sports = {k: v for k, v in table.items() if v["sports"]}
+    strata: dict[str, list[str]] = {}
+    for sid, v in non_sports.items():
+        strata.setdefault(f"{v['cadence']}|{v['modal_fee_category']}", []).append(sid)
+    alloc = hb.allocate({k: len(v) for k, v in strata.items()}, n_series)
+    chosen: list[str] = []
+    for k in sorted(strata):
+        chosen += sorted(strata[k], key=lambda s: hb._rank(seed, s))[: alloc[k]]
+    sports_chosen = sorted(sports, key=lambda s: hb._rank(seed, s))[:n_sports]
+    rep["series_sampled_non_sports"], rep["series_sampled_sports"] = len(chosen), len(sports_chosen)
+    rep["series_strata"] = {k: {"size": len(v), "alloc": alloc[k]} for k, v in sorted(strata.items())}
+
+    def excluded(ev: dict) -> str | None:
+        if ev["weather_title"]:
+            return "weather"
+        mids = {m["market_id"] for m in ev["markets"]}
+        if mids & history_ids:
+            return "history_sample_overlap"
+        if mids & h5_ids:
+            return "h5_overlap"
+        return None
+
+    series_rows, units, outcome_rows = [], [], []
+    for sid in sorted(chosen + sports_chosen):
+        v = table[sid]
+        ms = v["members"]
+        cand = [i for i in range(len(ms) - 1) if r_from <= ms[i]["end_epoch"] <= r_to]
+        if len(cand) > members - 1:
+            start = int(hashlib.sha256(f"{seed}|{sid}|block".encode()).hexdigest(), 16) % (len(cand) - (members - 1) + 1)
+            cand = cand[start: start + members - 1]
+        series_rows.append({k: v[k] for k in ("series_id", "slug", "cadence", "modal_fee_category", "sports", "n_members")}
+                           | {"n_pred_candidates": len(cand), "stratum": f"{v['cadence']}|{v['modal_fee_category']}"})
+        for i in cand:
+            pred = ms[i]
+            rep["units_candidate"] += 1
+            ex = excluded(pred)
+            if ex:
+                drop(f"excluded_event_{ex}")
+                continue
+            w = winner_of(pred, guarded.get(pred["event_id"], {}))
+            if w is None:
+                drop("no_single_winner_or_t0")
+                continue
+            key, t0, _label = w
+            if not (r_from <= t0 <= r_to):
+                drop("t0_outside_range")
+                continue
+            j, skipped = pick_successor(ms, i, t0)
+            if j is None:
+                drop("no_successor")
+                continue
+            succ = ms[j]
+            ex = excluded(succ)
+            if ex:
+                drop(f"excluded_event_{ex}")
+                continue
+            m_h, v_h = horizon_for(v["cadence"])
+            if succ["end_epoch"] < t0 + v_h * HOUR + 2 * HOUR:
+                drop("succ_short_life")
+                continue
+            side = match_side(succ, pred, key)
+            if side is None:
+                drop("no_side_match")
+                continue
+            uid = f"{sid}:{pred['event_id']}:{succ['event_id']}"
+            units.append({
+                "unit_id": uid, "series_id": sid, "series_slug": v["slug"], "cadence": v["cadence"],
+                "modal_fee_category": v["modal_fee_category"], "sports": v["sports"], "pred_event_id": pred["event_id"],
+                "succ_event_id": succ["event_id"], "pred_end_epoch": pred["end_epoch"], "succ_end_epoch": succ["end_epoch"],
+                "t0_epoch": t0, "t0_date": datetime.fromtimestamp(t0, UTC).date().isoformat(),
+                "succ_created_epoch": succ["created_epoch"], "succ_skipped": skipped, "M_h": m_h, "V_end_h": v_h,
+                "pred_market_ids": [m["market_id"] for m in pred["markets"]],
+                "succ_markets": [{k: m[k] for k in ("market_id", "condition_id", "token0", "token1")} for m in succ["markets"]]})
+            outcome_rows.append({
+                "unit_id": uid, "pred_event_id": pred["event_id"], "pred_winner_key": key,
+                "pred_closed_time": next((g["closed_time"] for g in guarded[pred["event_id"]]["markets"] if g["closed_time"]), ""),
+                "pred_outcome_prices": json.dumps([g["outcome_prices"] for g in guarded[pred["event_id"]]["markets"]]),
+                "side_market_id": side[0], "side_token_index": side[1]})
+            rep["units"] += 1
+            rep["units_succ_skipped"] += int(skipped)
+    return {"series": series_rows, "units": units, "outcomes": outcome_rows, "report": rep}
+
+
+def fetch_unit_series(lim: hb.Limiter, unit: dict, side: dict, key: bytes, rdir: Path, budget: hb.DiskBudget, *,
+                      cap_epoch: float, max_trades: int = ERA_MAX_TRADES) -> dict:
+    """Prices of the rolled-into token over ``[t0' - 3h, V_end + 2h]`` (``t0' = t0 - (V_end - t0) - 6h``, the
+    pseudo-roll origin) and the side market's trades newest first (<= ``max_trades``), capped at ``cap_epoch``."""
+    t0 = float(unit["t0_epoch"])
+    v_end = t0 + float(unit["V_end_h"]) * HOUR
+    t0p = t0 - (v_end - t0) - PSEUDO_GAP_H * HOUR
+    a, b = int(t0p - PRICE_PRE_H * HOUR), int(min(v_end + PRICE_POST_H * HOUR, cap_epoch))
+    mk = next(m for m in unit["succ_markets"] if m["market_id"] == str(side["side_market_id"]))
+    token = mk["token1"] if int(side["side_token_index"]) == 1 else mk["token0"]
+    name = f"{mk['market_id']}__{unit['pred_event_id']}"
+    pts, dropped = _fetch_prices_capped(lim, token, a, b, cap_epoch) if b > a else ([], 0)
+    trades, tst = hb.fetch_trades(lim, mk["condition_id"], key, max_trades, ts_cap=cap_epoch - 1)
+    budget.write(Path(rdir) / "prices" / f"{name}.csv.gz", hb._gz_csv_bytes(["t", "p"], ([t, p] for t, p in pts)))
+    budget.write(Path(rdir) / "trades" / f"{name}.csv.gz", hb._gz_csv_bytes(hb.TRADE_COLUMNS, trades))
+    return {"unit_id": unit["unit_id"], "status": "done", "file": name, "window": [a, b], "price_points": len(pts),
+            "dropped_price_rows_post_cap": dropped, "trades": tst["n"], "trades_truncated": bool(tst["truncated"]),
+            "trades_oldest_ts": tst["oldest_ts"], "dropped_trades_post_cap": tst["dropped_post_cap"] or 0,
+            "cadence": unit["cadence"]}
+
+
+def series_fetch(
+    root: Path, run_id: str, transport: hb.Transport, *, seed: str = SERIES_SEED, n_series: int = SERIES_N,
+    n_sports: int = SERIES_N_SPORTS, members: int = SERIES_MEMBERS, roll_from: str = SERIES_ROLL_FROM,
+    walk_from: str = SERIES_WALK_FROM, exclude_runs: list[str] | None = None, h5_seal_copies: list[Path] | None = None,
+    walk_closed: tuple[bool, ...] = (True, False), cap_at: str = T_SEAL, rps: float = 4.0,
+    disk_cap: int = int(0.40 * 1024**3), budget_min: float | None = None, max_trades: int = ERA_MAX_TRADES,
+    key: bytes | None = None, now: float | None = None, sleep: Callable[[float], None] = time.sleep,
+    live_check: Callable[[], bool] | None = hb.live_pass_or_lock, should_stop: Callable[[], bool] | None = None,
+    wall_clock: Callable[[], float] = time.time, t_seal_epoch: float = T_SEAL_EPOCH, snapshot_root: Path | None = None,
+    health_every_s: float = 600.0, health_check: Callable[[float], tuple[bool, str]] | None = None,
+    walk_base_days: int = SERIES_WALK_BASE_DAYS, min_width_s: int = SERIES_WINDOW_MIN_S,
+) -> dict:
+    """Probe -> event walk (series events only) -> series table, seeded sample, blocks and roll units (written once) ->
+    per-unit successor prices and trades. Same stop rules, cap and outcome guard as :func:`era_fetch`."""
+    root = Path(root)
+    refuse_run_id(run_id, (SERIES_RUN_ID,))
+    early = _guard_start(root, run_id, wall_clock, t_seal_epoch, SERIES_COMPLETE_TOKEN)
+    if early is not None:
+        return early
+    fr = FetchRun(root, run_id, transport, kind="series", params={
+        "seed": seed, "n_series": n_series, "n_sports": n_sports, "members": members, "roll_from": roll_from,
+        "walk_from": walk_from, "exclude_runs": exclude_runs or [], "walk_closed": list(walk_closed),
+        "max_trades": max_trades, "series_rules": series_rules_doc()},
+        rps=rps, disk_cap=disk_cap, budget_min=budget_min, now=now, sleep=sleep, live_check=live_check,
+        wall_clock=wall_clock, t_seal_epoch=t_seal_epoch, snapshot_root=snapshot_root, health_every_s=health_every_s,
+        health_check=health_check, cap_at=cap_at, key=key)
+    why = fr.unhealthy()
+    if why:
+        return fr.manifest(why, {"transient": True})
+    rdir = fr.rdir
+    upath = rdir / "units.jsonl.gz"
+    r_from = _ep(roll_from)
+    r_to = min(fr.now - SERIES_ROLL_TO_MARGIN_D * DAY, t_seal_epoch) - 2 * DAY
+    frame_rep = fr.prior.get("frame_report")
+    try:
+        if not upath.exists():
+            if not (rdir / "probe.json").exists():
+                fr.budget.write(rdir / "probe.json", json.dumps(probe_series_endpoint(fr.lim), indent=1, sort_keys=True).encode())
+            hist = _cb2w().history_sample_ids(root, exclude_runs or [])
+            h5 = set()
+            for p in h5_seal_copies or []:
+                h5 |= _cb2w().seal_ids_from_copy(Path(p))
+            why_stop: list[str] = []
+
+            def walk_stop() -> bool:
+                r = fr.stop_reason(should_stop)
+                if r:
+                    why_stop.append(r)
+                return bool(r)
+
+            events, guarded, walk_rep, stopped = walk_series_events(
+                fr.lim, _ep(walk_from), r_to + SERIES_WALK_AFTER_D * DAY, walk_closed, rdir=rdir,
+                should_stop=walk_stop, base_days=walk_base_days, min_width_s=min_width_s)
+            if stopped:
+                return fr.manifest(why_stop[-1] if why_stop else stopped,
+                                   {"transient": bool(why_stop and why_stop[-1].startswith("paused")) or stopped.startswith("walk_failed"),
+                                    "walk_report": walk_rep})
+            if walk_rep["base_windows_failed"]:  # an incomplete frame is never written (and so never sampled)
+                return fr.manifest(f"walk_failed_windows: {walk_rep['base_windows_failed']}", {"transient": False, "walk_report": walk_rep})
+            asm = assemble_units(events, guarded, seed=seed, n_series=n_series, n_sports=n_sports, members=members,
+                                 r_from=r_from, r_to=r_to, history_ids=hist, h5_ids=h5)
+            frame_rep = {"walk": walk_rep, **asm["report"], "history_ids": len(hist), "h5_ids": len(h5),
+                         "r_from": _iso(r_from), "r_to": _iso(r_to), "walk_to": _iso(r_to + SERIES_WALK_AFTER_D * DAY)}
+            # outcomes first, units last: the units file marks the frame as complete
+            fr.budget.write(rdir / OUTCOME_FILE, _frame_csv_bytes(SERIES_OUTCOME_COLUMNS, asm["outcomes"]))
+            fr.budget.write(rdir / "series.jsonl.gz", _gz_jsonl_bytes(asm["series"]))
+            fr.budget.write(rdir / "frame_report.json", json.dumps(frame_rep, indent=1, sort_keys=True, default=float).encode())
+            fr.budget.write(upath, _gz_jsonl_bytes(asm["units"]))
+            for tmp in (rdir / "walk_partial.jsonl", rdir / "walk_partial_guarded.jsonl"):
+                tmp.unlink(missing_ok=True)
+    except OSError as exc:
+        return {"stopped": f"disk_budget: {exc}"}
+    if frame_rep is None and (rdir / "frame_report.json").exists():
+        frame_rep = json.loads((rdir / "frame_report.json").read_text())
+    units = _load_jsonl_gz(upath)
+    side_by = {r["unit_id"]: r for r in pd.read_csv(rdir / OUTCOME_FILE, dtype=str, keep_default_na=False).to_dict("records")}
+    extra = {"frame_report": frame_rep, "n_units": len(units)}
+    items = sorted(units, key=lambda u: hb._rank(seed, u["unit_id"]))
+    stopped, pending = _fetch_items(
+        fr, items, "unit_id", lambda u: fetch_unit_series(fr.lim, u, side_by[u["unit_id"]], fr.key, rdir, fr.budget,
+                                                         cap_epoch=fr.cap_epoch, max_trades=max_trades),
+        _tally_era(fr.counts), should_stop, extra)
+    if stopped is None and pending == 0:
+        extra["complete"] = True
+        m = fr.manifest(None, extra)
+        m["status"] = SERIES_COMPLETE_TOKEN
+        return m
+    return fr.manifest(stopped or "pending", {**extra, "transient": bool(stopped and stopped.startswith("paused"))})
+
+
+# ---- seals (q0083) -----------------------------------------------------------------------------------------------
+
+
+def split_h7s(units: list[dict]) -> dict:
+    """SEALED-H7S (CB4 section 1.3). ``D_split4`` = the smallest UTC date d such that |{r : date(t0) >= d}| <= 0.40 |U|;
+    HOLDOUT = date(t0) >= D_split4; embargo = D_split4 - 3d <= date(t0) < D_split4 (dropped from both halves);
+    SCREEN = the rest. Reads only ``unit_id`` and ``t0_epoch``/``t0_date`` (no price, trade or outcome file)."""
+    n = len(units)
+    if n == 0:
+        return {"d_split4": None, "screen": [], "holdout": [], "embargo": [], "n": 0}
+    dates = {u["unit_id"]: datetime.fromtimestamp(float(u["t0_epoch"]), UTC).date() for u in units}
+    ds = sorted(dates.values())
+    lo, hi = ds[0], ds[-1] + timedelta(days=1)
+    d_split, d = hi, lo
+    while d <= hi:
+        if len(ds) - bisect.bisect_left(ds, d) <= SPLIT_HOLDOUT_FRAC * n + 1e-9:
+            d_split = d
+            break
+        d += timedelta(days=1)
+    emb_lo = d_split - timedelta(days=SPLIT_EMBARGO_D)
+    screen, holdout, embargo = [], [], []
+    for u in units:
+        k = dates[u["unit_id"]]
+        (holdout if k >= d_split else embargo if k >= emb_lo else screen).append(u["unit_id"])
+    return {"d_split4": d_split.isoformat(), "screen": sorted(screen), "holdout": sorted(holdout),
+            "embargo": sorted(embargo), "n": n}
+
+
+def drop_era_overlap(units: list[dict], era_market_ids: set[str]) -> tuple[list[dict], list[str]]:
+    """Units with any predecessor or successor market in the ``h7_cb4_era`` listing are dropped, by id (counted)."""
+    kept: list[dict] = []
+    dropped: list[str] = []
+    for u in units:
+        mids = set(u["pred_market_ids"]) | {m["market_id"] for m in u["succ_markets"]}
+        if mids & era_market_ids:
+            dropped.append(u["unit_id"])
+        else:
+            kept.append(u)
+    return kept, sorted(dropped)
+
+
+def ids_sha256(ids) -> str:
+    return hashlib.sha256("\n".join(sorted(str(i) for i in ids)).encode()).hexdigest()
+
+
+def split_record(sp: dict, *, n_before: int, dropped: list[str], units_sha: str, era_listing_sha: str | None) -> dict:
+    return {
+        "rule": "time-ordered by roll date t0 (section 1.3); 3-day embargo dropped from both halves",
+        "d_split": sp["d_split4"], "d_split4": sp["d_split4"], "embargo_days": SPLIT_EMBARGO_D,
+        "holdout_frac_max": SPLIT_HOLDOUT_FRAC, "n_units_before_overlap_drop": n_before,
+        "n_dropped_era_overlap": len(dropped), "dropped_era_overlap_ids_sha256": ids_sha256(dropped),
+        "n_universe": sp["n"], "n_screen": len(sp["screen"]), "n_holdout": len(sp["holdout"]),
+        "n_embargo": len(sp["embargo"]), "screen_ids_sha256": ids_sha256(sp["screen"]),
+        "holdout_ids_sha256": ids_sha256(sp["holdout"]), "embargo_ids_sha256": ids_sha256(sp["embargo"]),
+        "units_file_sha256": units_sha, "era_listing_sha256": era_listing_sha,
+        "inputs": "t0 dates and market ids (units.jsonl.gz, era sample.csv.gz ids); no price, trade or outcome file was opened",
+        "declaration_sha256": declaration_sha256_h7()}
+
+
+def _era_market_ids(era_dir: Path) -> set[str] | None:
+    sp = Path(era_dir) / "sample.csv.gz"
+    if not sp.exists() or (Path(era_dir) / NOT_RUN_FILE).exists():
+        return None
+    return set(pd.read_csv(sp, usecols=["market_id"], dtype=str).market_id)
+
+
+def run_state(rdir: Path, wall_clock: Callable[[], float] = time.time, t_seal_epoch: float = T_SEAL_EPOCH) -> str:
+    """``complete`` | ``not_run`` | ``unfinished`` (an unfinished run at or after T_seal is marked ``not_run`` here)."""
+    rdir = Path(rdir)
+    mp = rdir / "manifest.json"
+    if (rdir / NOT_RUN_FILE).exists():
+        return "not_run"
+    if not mp.exists():
+        if wall_clock() >= t_seal_epoch:
+            mark_not_run(rdir, rdir.name, "never started; T_seal passed")
+            return "not_run"
+        return "unfinished"
+    man = json.loads(mp.read_text())
+    if man.get("stopped") == NOT_RUN_TOKEN:
+        return "not_run"
+    if man.get("complete") is True and not man.get("stopped"):
+        return "complete"
+    if wall_clock() >= t_seal_epoch:
+        mark_not_run(rdir, rdir.name, "incomplete at T_seal")
+        return "not_run"
+    return "unfinished"
+
+
+def write_not_run_record(rdir: Path, seals_dir: Path | None = None) -> Path:
+    """``docs/research_lab/seals/<run_id>_NOT_RUN.json`` (a Claude session commits it). Never rewritten."""
+    rdir = Path(rdir)
+    marker = json.loads((rdir / NOT_RUN_FILE).read_text())
+    man = json.loads((rdir / "manifest.json").read_text()) if (rdir / "manifest.json").exists() else {}
+    dest = Path(SEALS_DIR if seals_dir is None else seals_dir) / f"{rdir.name}_NOT_RUN.json"
+    if not dest.exists():
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(json.dumps({**marker, "counts_at_deadline": man.get("counts"), "dependent_tests":
+                                    "recorded 'not run (deadline)' with p = 1 and still counted (CB4 section 1.3)"},
+                                   indent=1, sort_keys=True))
+    return dest
+
+
+def seal_h7_run(root: Path, run_id: str, *, seals_dir: Path | None = None, trials_path: Path | None = None,
+                wall_clock: Callable[[], float] = time.time, t_seal_epoch: float = T_SEAL_EPOCH) -> dict:
+    """Seal one finished h7 run. Returns a result dict: ``sealed`` (with the committed copy path), ``already_sealed``
+    or ``not_run`` (recorded, never sealed). Raises ``SealError`` for an unfinished run T_seal has not cut."""
+    h5_seal.check_run_id(refuse_run_id(run_id), H7_RUN_IDS)
+    rdir = Path(root) / run_id
+    if not rdir.exists() and wall_clock() < t_seal_epoch:
+        raise h5_seal.SealError(f"{run_id}: no run directory")
+    if (rdir / h5_seal.SEAL_NAME).exists():
+        seal = verify_h7(root, run_id, seals_dir=seals_dir)
+        return {"run_id": run_id, "already_sealed": True, "listing_sha256": seal["listing_sha256"]}
+    st = run_state(rdir, wall_clock, t_seal_epoch)
+    if st == "not_run":
+        rec = write_not_run_record(rdir, seals_dir)
+        return {"run_id": run_id, "not_run": True, "status": NOT_RUN_TOKEN, "record": str(rec)}
+    if st != "complete":
+        raise h5_seal.SealError(f"{run_id}: refusing to seal an unfinished run that T_seal has not cut")
+    kw = {"trials_path": Path(trials_path)} if trials_path else {}
+    if run_id == ERA_RUN_ID:
+        man = json.loads((rdir / "manifest.json").read_text())
+        rules = (man.get("frame_report") or {}).get("rules") or {}
+        extra = {"universe": {"n_markets": man.get("n_sample"), "frame_rules": rules,
+                              "cells": ((man.get("frame_report") or {}).get("sample") or {}).get("cells")}}
+        seal = h5_seal.seal_run(rdir, declaration_base=h5_seal.DECLARATION_H7_ERA, extra=extra,
+                                source="creative_batch_4:cb4_f_seal", **kw)
+        rec = None
+    else:
+        units = _load_jsonl_gz(rdir / "units.jsonl.gz")
+        era_dir = Path(root) / ERA_RUN_ID
+        era_ids = _era_market_ids(era_dir)
+        era_seal = json.loads((era_dir / h5_seal.SEAL_NAME).read_text()) if (era_dir / h5_seal.SEAL_NAME).exists() else {}
+        kept, dropped = drop_era_overlap(units, era_ids or set())
+        sp = split_h7s(kept)
+        if sp["n"] == 0:
+            raise h5_seal.SealError(f"{run_id}: no roll units after exclusions; nothing to seal")
+        rec = split_record(sp, n_before=len(units), dropped=dropped, units_sha=h5_seal.sha256_file(rdir / "units.jsonl.gz"),
+                           era_listing_sha=era_seal.get("listing_sha256"))
+        rec["era_listing"] = "present" if era_ids is not None else "absent"
+        seal = h5_seal.seal_run(rdir, declaration_base=h5_seal.DECLARATION_H7_SERIES, extra={"split": rec},
+                                source="creative_batch_4:cb4_f_seal", **kw)
+    copy = h5_seal.write_committed_copy(rdir, Path(seals_dir) if seals_dir else None)
+    out = {"run_id": run_id, "sealed": True, "committed_copy": str(copy), "listing_sha256": seal["listing_sha256"],
+           "n_files": seal["n_files"]}
+    if rec:
+        out.update(d_split4=rec["d_split4"], n_universe=rec["n_universe"], n_screen=rec["n_screen"],
+                   n_holdout=rec["n_holdout"], n_embargo=rec["n_embargo"], n_dropped_era_overlap=rec["n_dropped_era_overlap"])
+    return out
+
+
+def verify_h7(root: Path, run_id: str, seals_dir: Path | None = None) -> dict:
+    """The seal verifies, the committed copy matches, and (series) the recorded split recomputes from ``units.jsonl.gz``
+    and the era listing ids."""
+    h5_seal.check_run_id(refuse_run_id(run_id), H7_RUN_IDS)
+    rdir = Path(root) / run_id
+    seal = h5_seal.require_sealed(rdir, h5_seal.committed_seal_path(run_id, seals_dir))
+    if run_id == SERIES_RUN_ID:
+        units = _load_jsonl_gz(rdir / "units.jsonl.gz")
+        era_ids = _era_market_ids(Path(root) / ERA_RUN_ID)
+        kept, dropped = drop_era_overlap(units, era_ids or set())
+        sp = split_h7s(kept)
+        got = seal.get("split") or {}
+        for k, v in (("d_split4", sp["d_split4"]), ("n_universe", sp["n"]), ("screen_ids_sha256", ids_sha256(sp["screen"])),
+                     ("holdout_ids_sha256", ids_sha256(sp["holdout"])), ("embargo_ids_sha256", ids_sha256(sp["embargo"])),
+                     ("dropped_era_overlap_ids_sha256", ids_sha256(dropped))):
+            if got.get(k) != v:
+                raise h5_seal.SealError(f"{run_id}: recorded split differs from the recomputed split at {k}")
+    return seal
+
+
+# ---- commands (argparse-free: take a namespace; scripts/run_cb4.py parses) ------------------------------------------
+
+
+def _print(obj: dict) -> None:
+    print(json.dumps(obj, default=str, sort_keys=True))
+
+
+def _fetch_summary(m: dict) -> dict:
+    out = {k: m.get(k) for k in ("counts", "requests", "disk_bytes", "stopped", "complete", "transient", "n_sample", "n_units",
+                                 "elapsed_s_this_session", "status")}
+    out["frame_report"] = m.get("frame_report")
+    return out
+
+
+def cmd_fetch(args, *, require_committed: bool = True, allow_nondeclared: bool = False) -> int:
+    """``run_cb4.py fetch --kind era|series`` (aliases ``era-fetch``, ``series-fetch``). Refuses (exit 2) unless: the run
+    id is the kind's own and not a refused one; the committed ``h5_cb1_SEAL.json`` exists; (series) the committed
+    series-rule file matches this code; the declared arguments are unchanged; ``data-dumps`` is under 10 GB; the
+    ``--root`` is not under a CB1/CB2 extract root. At or after T_seal a new chunk is refused and an incomplete run is
+    marked ``not_run_deadline`` (exit 0, status printed). Prints one JSON line; ``status`` is ``era_fetch_complete`` /
+    ``series_fetch_complete`` / ``not_run_deadline`` when terminal. A budget or transient stop exits 0 and a re-run resumes."""
+    g = lambda name, default=None: getattr(args, name, None) if getattr(args, name, None) is not None else default  # noqa: E731
+    kind = args.kind
+    try:
+        if kind not in ("era", "series"):
+            raise Refused(f"unknown kind {kind!r}")
+        rid = refuse_run_id(g("run_id", ERA_RUN_ID if kind == "era" else SERIES_RUN_ID), (ERA_RUN_ID if kind == "era" else SERIES_RUN_ID,))
+        root = refuse_path(Path(g("root", HIST_ROOT)))
+        seal_copies = [Path(p) for p in _csv_list(g("exclude_seal_ids", ""))]
+        require_h5_seal_copy(seal_copies, require_committed=require_committed)
+        if kind == "series":
+            require_series_rules(Path(g("series_rules_file", SERIES_RULES_FILE)), require_committed=require_committed)
+        if not allow_nondeclared:
+            bad = []
+            if g("seed", ERA_SEED if kind == "era" else SERIES_SEED) != (ERA_SEED if kind == "era" else SERIES_SEED):
+                bad.append("seed")
+            if _ep(g("cap_at", T_SEAL)) != T_SEAL_EPOCH:
+                bad.append("cap_at")
+            if set(_csv_list(g("exclude_categories", "weather"))) != {"weather"}:
+                bad.append("exclude_categories")
+            if tuple(x.lower() == "true" for x in _csv_list(g("walk_closed", "true,false"))) != (True, False):
+                bad.append("walk_closed")
+            if kind == "era":
+                if int(g("per_cell", ERA_PER_CELL)) != ERA_PER_CELL:
+                    bad.append("per_cell")
+                if parse_periods(g("periods", ERA_PERIODS)) != parse_periods(ERA_PERIODS):
+                    bad.append("periods")
+                if float(g("origin_window_h", ERA_ORIGIN_H)) != ERA_ORIGIN_H or float(g("min_life_d", ERA_MIN_LIFE_D)) != ERA_MIN_LIFE_D:
+                    bad.append("origin_window_h/min_life_d")
+            else:
+                if (int(g("n_series", SERIES_N)), int(g("n_sports_series", SERIES_N_SPORTS)), int(g("members_per_series", SERIES_MEMBERS))) != (
+                        SERIES_N, SERIES_N_SPORTS, SERIES_MEMBERS):
+                    bad.append("n_series/n_sports_series/members_per_series")
+                if _ep(g("roll_from", SERIES_ROLL_FROM)) != _ep(SERIES_ROLL_FROM):
+                    bad.append("roll_from")
+            if bad:
+                raise Refused(f"arguments differ from the declaration: {bad}")
+        wall_clock = g("wall_clock", time.time)
+        # a terminal state needs no room check; a new chunk does
+        early = _guard_start(root, rid, wall_clock, T_SEAL_EPOCH, ERA_COMPLETE_TOKEN if kind == "era" else SERIES_COMPLETE_TOKEN)
+        if early is not None:
+            _print(early)
+            return 0
+        require_data_dumps_room(Path(g("data_dumps", HIST_ROOT.parent.parent)), float(g("data_dumps_cap_gb", DATA_DUMPS_FETCH_CAP_GB)))
+    except (Refused, FileNotFoundError) as exc:
+        _print({"refused": str(exc)})
+        return 2
+    kw = {k: getattr(args, k) for k in ("now", "sleep", "wall_clock", "key") if getattr(args, k, None) is not None}
+    if getattr(args, "live_check", None) is not None:
+        kw["live_check"] = args.live_check
+    if getattr(args, "health_check", None) is not None:
+        kw["health_check"] = args.health_check
+    transport = g("transport") or hb.httpx_transport()
+    common = dict(exclude_runs=_csv_list(g("exclude_runs", "")), h5_seal_copies=seal_copies,
+                  walk_closed=tuple(x.lower() == "true" for x in _csv_list(g("walk_closed", "true,false"))),
+                  cap_at=g("cap_at", T_SEAL), rps=float(g("rps", 4.0)), budget_min=g("budget_min"),
+                  max_trades=int(g("max_trades", ERA_MAX_TRADES)), snapshot_root=Path(g("snapshot_root", SNAPSHOT_ROOT)), **kw)
+    if kind == "era":
+        m = era_fetch(root, rid, transport, seed=g("seed", ERA_SEED), per_cell=int(g("per_cell", ERA_PER_CELL)),
+                      periods=parse_periods(g("periods", ERA_PERIODS)), disk_cap=int(float(g("disk_cap_gb", 0.20)) * 1024**3), **common)
+    else:
+        m = series_fetch(root, rid, transport, seed=g("seed", SERIES_SEED), n_series=int(g("n_series", SERIES_N)),
+                         n_sports=int(g("n_sports_series", SERIES_N_SPORTS)), members=int(g("members_per_series", SERIES_MEMBERS)),
+                         roll_from=g("roll_from", SERIES_ROLL_FROM), disk_cap=int(float(g("disk_cap_gb", 0.40)) * 1024**3), **common)
+    _print(_fetch_summary(m))
+    return 0
+
+
+def cmd_seal(args) -> int:
+    """``run_cb4.py seal --run-ids h7_cb4_era,h7_cb4_series``: era first, then series (era ids are the overlap
+    exclusion). A ``not_run_deadline`` run is recorded (never sealed) and the other run is still sealed (exit 0)."""
+    rc = 0
+    root = Path(getattr(args, "root", None) or HIST_ROOT)
+    seals = Path(args.seals_dir) if getattr(args, "seals_dir", None) else None
+    trials = getattr(args, "trials_path", None)
+    ids = _csv_list(getattr(args, "run_ids", None) or ",".join(H7_RUN_IDS))
+    ids = sorted(ids, key=lambda r: (r != ERA_RUN_ID, r))  # era before series
+    for rid in ids:
+        try:
+            _print(seal_h7_run(root, rid, seals_dir=seals, trials_path=Path(trials) if trials else None,
+                               wall_clock=getattr(args, "wall_clock", None) or time.time))
+        except (h5_seal.SealError, Cb4Error, FileNotFoundError) as exc:
+            _print({"run_id": rid, "error": str(exc)})
+            rc = 1
+    return rc
+
+
+def cmd_verify_seal(args) -> int:
+    rc = 0
+    root = Path(getattr(args, "root", None) or HIST_ROOT)
+    seals = Path(args.seals_dir) if getattr(args, "seals_dir", None) else None
+    for rid in _csv_list(getattr(args, "run_ids", None) or ",".join(H7_RUN_IDS)):
+        try:
+            if (root / rid / NOT_RUN_FILE).exists():
+                _print({"run_id": rid, "verified": True, "status": NOT_RUN_TOKEN})
+                continue
+            seal = verify_h7(root, rid, seals)
+            _print({"run_id": rid, "verified": True, "listing_sha256": seal["listing_sha256"],
+                    "d_split4": (seal.get("split") or {}).get("d_split4")})
+        except (h5_seal.SealError, Cb4Error, FileNotFoundError) as exc:
+            _print({"run_id": rid, "error": str(exc)})
+            rc = 1
+    return rc
+
+
+def cmd_series_rules(args) -> int:
+    """``run_cb4.py series-rules``: write ``docs/research_lab/seals/cb4_series_rules.json`` (the cadence and matching rule
+    hashes). A Claude session commits it before q0082 can run."""
+    try:
+        path = write_series_rules(Path(getattr(args, "path", None) or SERIES_RULES_FILE))
+    except Refused as exc:
+        _print({"refused": str(exc)})
+        return 2
+    _print({"written": str(path), **series_rules_doc()})
+    return 0
 
 
 __all__ = ["CB4_ROOT", "CLOSEWIN_COLUMNS", "CLOSEWIN_VERSION", "Catalogue", "ExtractLocked", "ReleaseCopies",
