@@ -1191,7 +1191,7 @@ Science-reviewer ruled HOLD on census q0061 until these; all coded in 13c6ac8.
 - No threshold, floor or formula changed. **Current declaration hash:** `eb6a143c5f78cab4aaa98dfa8387d14833b5e780b04118e0a025c8108cc76ffe`
   (`24f33c36...` and `db87350d...` are superseded). Any later edit to a hashed function or `run_cb3.py` changes it; recompute before the freeze.
 
-### Re-check of the HOLD fixes (science-reviewer, 2026-10-17 ~23:30Z)
+### Re-check of the HOLD fixes (science-reviewer, 2026-10-16 ~23:25Z)
 Verdict **RELEASE_Q0061**. Fixes 3, 5-9, 11-12, the centred A2 check and HOLD (a)-(c) verified in code at 13c6ac8; the census reads no outcome
 columns (`load_sample(census=True)`, `history_units(with_marks=False)` + `assert_no_marks`); 113 cb3 tests pass; declaration hash still `eb6a143c…`.
 Non-blocking: on the host `git_dirty` always reads True (the host appends to tracked `trials.jsonl`), so ignore `trials.jsonl` in `git_state` later;
