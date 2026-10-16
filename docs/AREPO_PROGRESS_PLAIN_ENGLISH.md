@@ -1,31 +1,31 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-16 00:56 UTC+1
+**Last updated:** 2026-10-16 05:03 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Server (Oracle):** collection every 2h, live trade monitor, Kalshi live test and the research queue are all healthy
-  at 23:56Z (measured: 3.0 GB RAM free, 12 GB disk free). Running now: the order-book table and the creative-batch
-  data extractor. The fresh 7,000-market download is next.
-- **Related markets (J5): one candidate.** When the other markets of an event moved in the last hour, this market's price
-  tends to drift back over the next 2 hours. It is stable on fresh periods, but it only beats a simple baseline, may
-  be quote noise, and is not shown to be tradable. A check on newer data is planned. No registration yet.
-- **Bounce test (J4):** its failed sanity check came from comparing *different* markets, not from any market's own
-  history. A clean re-test is now **frozen**. It runs on fresh data from 16-20 Oct, on about 21 Oct.
-- **Hypothesis battery (HB2): 6 of 13 ideas pass the first screen** (the shuffled-data check is clean). Order-flow
-  momentum is stronger in volatile and wide-spread markets, near resolution, and when it comes from trades that are
-  large for that market. One result (volatility) passes the strict bar that counts every test so far (947). It is now
-  being re-tested on 5,000 different markets; only that counts as "replicated". Costs are not tested yet.
+- **Server (Oracle):** healthy at 03:56Z (measured: 3.3 GB RAM free, 12 GB disk free, data 7.6 GB of the 12 GB cap).
+  The order-book table job is running. New jobs wait until 05:30Z (the nightly quiet window).
+- **Two overnight failures fixed and re-queued:**
+  - The fresh 7,000-market download ran out of memory when it resumed. It now streams its checkpoint file.
+  - The battery-2 replication crashed on blank values in one robustness check. The main tests were not affected.
+- **ML regime test (J7) finished.** The full model's gain over the price-only model is concentrated where trades
+  happened in the last 2 hours. That is largely expected, because the order-flow inputs are empty otherwise. For
+  2-hour direction the gain is also larger in the last day before the end date.
+  - No learned interaction between two inputs adds anything (0 of 15).
+  - The liquidity comparison could not be measured: a design flaw left its "low" group empty. This is recorded, not
+    patched.
+  - The 4 passing comparisons now go to a frozen re-test on different markets.
 - **Your creative priority:**
-  - **Batch 1 is FROZEN** (5 tests, locked before any results exist). Screens start once the fresh data is sealed (a few days).
-  - **Batch 2** (weather favourites; impossible ladder orderings) passed review with changes. Its code is being
-    written now.
-  - **25 new original ideas** arrived (Fable). The theme: profit by being the patient side (the maker) at the right
-    moments, rather than by predicting prices. The best are being designed into **batch 3**: quoting only when it is
-    safe, and what happens when one side of the order book suddenly disappears.
+  - **Batch 1 is FROZEN.** Screens start once the fresh data is sealed (after the download above finishes).
+  - **Batch 2** (weather favourites; impossible ladder orderings): the data extractor is finished and deployed. Its
+    one-off backfill is queued, to save inputs before the raw files can be deleted. Two agents are writing the analysis
+    code now.
+  - **Batch 3** (quote only when it is safe; what happens when one side of the book vanishes): being drafted, then
+    a challenger review.
   - Nothing creative has been tested yet.
 
 ## 2. Approvals needed from you
@@ -67,7 +67,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 5. Infrastructure
 | Item | State |
 |---|---|
-| Server disk | 15 GB free; data 5.2 GB of a 12 GB cap. It fills around 22 Oct without the token above. |
+| Server disk | 12 GB free; data 7.6 GB of a 12 GB cap (measured 03:56Z). Nightly deletion of backed-up copies is in its trial run. |
 | Server size | 1 CPU and about 5.6 GB RAM, so one heavy job at a time. It can't be enlarged without Oracle console access. |
 | Mac | No background jobs. |
 

@@ -165,28 +165,26 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-15 23:58Z
-0. **This session (22:50Z-):**
-   - **CB1 FROZEN** at 2fc0562; T_rep_start is 2026-10-19T00:00Z. Queued: q0019 census, q0020/q0023 (after the q0018
-     seal), q0021 (after q0003). The h5 fetch q0016/q0017 is released.
-   - **J4-R FROZEN** at d583905 (code 35cb33f). q0035 is held behind gate q0036, and q0011 (J3, expanding) waits on q0003.
-   - HB2: 6 of 13 advance; q0009/q0010 replication queued. J5 is written up.
-   - **CB2:** revised after challenger round 1 (eb30cd0). Code is being written by two implementer agents:
-     (A) cb2_weather + run_cb2 + h6 seal + KIND_RULES; (B) the extractor v2 (ladder_candidates, event_text, rewards)
-     + q0041 backfill, then cb2_structural.
-   - Round-2 hypotheses committed (CH35-CH59). **A CB3 draft agent is running** (selective maker CH39/CH40/CH41 +
-     CH35 mechanism) → `CREATIVE_BATCH_3.md`.
-1. **When B's STEP 1 commits:** test, deploy, and confirm q0041 runs (urgent before raw-capture deletion). When A and
-   B finish: tests, then a science-reviewer freeze check of the CB2 code. The freeze itself (`cb2_v1.json`) waits until
-   after T2_dev_end and the q0042 census (§8 of CREATIVE_BATCH_2.md).
-2. **After 2026-10-21T03:00Z:** create gate job q0036 (trivial) to release q0035 (J4-R). On exit 3, move `--until` forward by
-   one UTC day, log it, and re-queue.
-3. **CB1-D dev:** after 2026-10-17T00:00Z, freeze the dev capture list on the host (`run_cb1_extract.py --freeze-list
-   dev --until 2026-10-17T00:00Z`) and commit it, then run fetch-outcomes-D and q0022. **B3 at 10-19:** q0029
-   rung-list → `<extract_root>/rung_list.json` + commit `seals/cb1_b3_rung_list.json` {"sha256"}.
-4. **When q0018 seals h5:** commit the seal copies, after which q0020/q0023 run. Write up q0034, q0019, q0010, and
-   q0002/3/4 (r4_book).
-5. CB3 draft → challenger. J5 follow-up design. Keep ≥ 12 h queued. Retention needs the user by ~17-18 Oct.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-16 04:03Z
+0. **Autopilot session 03:56Z-:**
+   - CB2 STEP 1 committed and deployed (c9b2d51): extractor v2 (ladder_candidates/ladders/rewards/event_text) and
+     **q0041 queued** (text-free backfill, priority 62).
+   - q0016 fixed (cc42de1: streamed `frame_partial.jsonl`, 394 MB; mem_mb 1000) and re-queued. q0010 fixed (c269ff4:
+     finite-control mask in `beta_frozen2`, only F8 `joint_control_f_quiet` affected, no primary) and re-queued.
+   - **J7 (q0012) written up** (b28cca8): 4/12 contrasts advance (C-ACT ×3, near-mechanical; C-TTE direction 2h); 0/15
+     interactions; C-LIQ uninformative (empty low tercile, disclosed, not redefined). q0013 (J8) is queued.
+   - q0034 counts recorded in CB1 (51003e5).
+   - Running agents: CB2 structural (cb2_structural.py + run_cb2.py + q0040 spec + grouper seal), CB2 weather
+     (cb2_weather.py + seal generalisation + KIND_RULES + q0043/q0044 specs), CB3 draft (CREATIVE_BATCH_3.md).
+1. When the CB2 agents finish: run tests, deploy, confirm q0040 runs; then a science-reviewer freeze check of the CB2 code.
+   The freeze (`cb2_v1.json`) waits for T2_dev_end and the q0042 census (§8 of CREATIVE_BATCH_2.md).
+2. CB3 draft → science-reviewer challenger round 1 → response → implementation.
+3. Watch q0016 (it must get past `fetch_frame` on resume), q0010 (L1 runs on retry), q0041.
+4. **After 2026-10-21T03:00Z:** create gate job q0036 to release q0035 (J4-R). On exit 3, move `--until` forward by one UTC day.
+5. **CB1-D dev:** after 2026-10-17T00:00Z, freeze the dev capture list on the host (`run_cb1_extract.py --freeze-list dev
+   --until 2026-10-17T00:00Z`) and commit it, then fetch-outcomes-D and q0022. **B3 at 10-19:** q0029 rung-list.
+6. When q0018 seals h5: commit the seal copies; then q0020/q0023 run. Write up q0019, q0010, q0013, q0002/3/4.
+7. Keep ≥ 12 h queued. Retention needs the user by ~17-18 Oct.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
