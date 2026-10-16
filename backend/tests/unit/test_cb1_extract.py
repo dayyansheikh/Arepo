@@ -595,3 +595,71 @@ def test_cb2_script_tables_flag(tmp_path):
     r = subprocess.run(cmd, capture_output=True, text=True)
     assert r.returncode == 0 and '"backfill_complete": true' in r.stdout
     assert (c2 / "ladder_candidates" / "cap_c.csv.gz").exists() and not ex.exists()
+
+
+# --- CB2 ladders/ table (ladder_gate opened by cb2_structural's versioned ladder list) -------------------
+
+def _lad_doc(rungs_by_version):
+    from astrolabe.research_lab import cb2_structural as cs
+    dl = 1_790_000_000.0
+    doc = None
+    for i, (listed, ids) in enumerate(rungs_by_version, start=1):
+        rungs = [{"market_id": m, "event_id": "E", "deadline": dl + k * 86400, "question": f"q{m}"} for k, m in enumerate(ids)]
+        g = {"ladders": [{"ladder_id": "L:E:a", "type": "L", "direction": "INC", "stem": "s", "event_ids": ["E"],
+                          "rungs": rungs}], "counts": {}}
+        doc = cs.ladder_list(g, version=i, listed_utc=listed, prev=doc)
+    return cs, doc
+
+
+def _lad_run(snap, sw, c2):
+    return _cb2(snap, sw, c2, tables=("ladders",))
+
+
+def test_cb2_ladders_gate_closed_without_list(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    assert cb.ladder_gate(c2)["open"] is False
+    out = _lad_run(snap, sw, c2)
+    assert out["written"] == 0 and out["ladders_gate"] == "no_ladder_list" and not (c2 / "ladders").exists()
+
+
+def test_cb2_ladders_open_writes_only_listed_rungs(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    cs, doc = _lad_doc([("2026-10-16T01:00:00Z", ["2", "99"])])  # 99 is listed but absent from the capture
+    cs.write_ladder_list(doc, c2)
+    out = _lad_run(snap, sw, c2)
+    assert out["written"] == 1 and out["ladders_gate"] == "ladder_list_v1"
+    lad = pd.read_csv(c2 / "ladders" / "cap_c.csv.gz", dtype=str)
+    assert list(lad.columns) == cb.LADDER_COLUMNS and list(lad.market_id) == ["2"]
+    m = json.loads((c2 / "manifest.json").read_text())["captures"]["cap_c"]["ladders"]
+    assert m["status"] == "written" and m["n_out"] == 1 and m["missing"] == ["99"]
+    before = (c2 / "ladders" / "cap_c.csv.gz").read_bytes()
+    mt = (c2 / "manifest.json").stat().st_mtime_ns
+    assert _lad_run(snap, sw, c2)["written"] == 0  # idempotent
+    assert (c2 / "ladders" / "cap_c.csv.gz").read_bytes() == before and (c2 / "manifest.json").stat().st_mtime_ns == mt
+
+
+def test_cb2_ladders_v2_rung_absent_before_its_listed_utc(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)  # capture at 2026-10-12T13:00Z
+    cs, doc = _lad_doc([("2026-10-16T01:00:00Z", ["2"]), ("2026-10-23T01:00:00Z", ["2", "5"])])
+    cs.write_ladder_list(doc, c2)
+    g = cb.ladder_gate(c2)
+    assert g["open"] and g["reason"] == "ladder_list_v2"
+    _lad_run(snap, sw, c2)
+    lad = pd.read_csv(c2 / "ladders" / "cap_c.csv.gz", dtype=str)
+    assert list(lad.market_id) == ["2"]  # 5 was added by v2 -> invisible to a pre-listed_utc capture
+
+
+def test_cb2_ladders_sha_mismatch_or_malformed_closes_with_reason(tmp_path):
+    snap, sw, ex, c2 = _cb2_world(tmp_path)
+    cs, doc = _lad_doc([("2026-10-16T01:00:00Z", ["2"])])
+    cs.write_ladder_list(doc, c2)
+    (c2 / "ladder_list.json.sha256").write_text("0" * 64 + "\n")
+    g = cb.ladder_gate(c2)
+    assert g["open"] is False and g["error"] and "LadderListError" in g["reason"]
+    out = _lad_run(snap, sw, c2)
+    assert out["written"] == 0 and not (c2 / "ladders").exists()
+    assert "ladder_list_error" in json.loads((c2 / "manifest.json").read_text())["ladders_gate"]
+    (c2 / "ladder_list.json").write_text("{not json")
+    g = cb.ladder_gate(c2)
+    assert g["open"] is False and g["error"]
+    assert _lad_run(snap, sw, c2)["written"] == 0

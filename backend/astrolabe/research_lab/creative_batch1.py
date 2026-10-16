@@ -717,8 +717,28 @@ def read_extract_table(extract_root: Path, table: str, capture_id: str) -> pd.Da
 
 
 def ladder_gate(cb2_root: Path) -> dict:
-    """Gate for ``ladders/`` (step 2)."""
-    return {"open": False, "reason": "not_implemented", "visible": {}, "as_of_utc": None}
+    """Gate for ``ladders/``. Opens iff ``<cb2_root>/ladder_list.json`` loads and its sha256 matches its
+    ``.sha256`` file. ``visible`` maps market_id -> (visible_from epoch, strict) from the list's own version rule
+    (v1: captures >= T2_DEV_START; a rung added by v>=2: captures strictly after that version's listed_utc).
+    Any failure keeps the gate closed with ``error`` set (the pass never crashes)."""
+    closed = {"open": False, "visible": {}, "as_of_utc": None}
+    p = Path(cb2_root) / LADDER_LIST_NAME
+    if not p.exists():
+        return {**closed, "reason": "no_ladder_list"}
+    try:
+        from . import cb2_structural as cs  # lazy: cb2_structural imports this module
+        shap = p.with_name(LADDER_LIST_NAME + ".sha256")
+        if not shap.exists():
+            raise cs.LadderListError(f"{shap.name} missing")
+        doc = cs.load_ladder_list(p, expected_sha256=shap.read_text().strip())
+        vis: dict[str, tuple[float, bool]] = {}
+        for r in doc["rungs"]:
+            v = (cs._ep(r["visible_from_utc"]), bool(r["strict"]))
+            vis[str(r["market_id"])] = min(vis.get(str(r["market_id"]), v), v)
+        return {"open": True, "reason": f"ladder_list_v{doc['version']}", "visible": vis,
+                "as_of_utc": T2_DEV_START, "sha256": doc["sha256"]}
+    except Exception as e:  # noqa: BLE001 - malformed/mismatched list must close the gate, not crash
+        return {**closed, "reason": f"ladder_list_error: {type(e).__name__}: {e}", "error": True}
 
 
 # --- 6. CB2 extractor v2 tables (docs/research_lab/CREATIVE_BATCH_2.md section 4.3) -----------------
@@ -875,7 +895,15 @@ def extract_cb2_capture(cap: dict, sweeps: dict[int, Path] | None, cb2_root: Pat
         st = _ts(start)
         sub = df[df["_lad"].astype(bool)]
         vis = ladder_visible or {}
-        sub = sub[[vis.get(m) is None or st > vis[m] for m in sub["market_id"]]]
+        st_e = st.timestamp()
+
+        def _seen(m: str) -> bool:
+            v = vis.get(m)
+            if v is None:
+                return True
+            return st_e > v[0] if v[1] else st_e >= v[0]
+
+        sub = sub[[_seen(m) for m in sub["market_id"]]]
         write_csv_gz(Path(cb2_root) / "ladders" / f"{cid}.csv.gz", sub, LADDER_COLUMNS)
         out["ladders"] = {**common, "n_out": int(len(sub)), "n_listed": len(lad_ids),
                           "missing": sorted(lad_ids - set(sub["market_id"]))}
