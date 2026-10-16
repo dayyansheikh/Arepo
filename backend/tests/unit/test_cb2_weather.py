@@ -1321,3 +1321,32 @@ def test_w_results_files_are_accepted_by_the_shared_batch_holm(tmp_path):
     with pytest.raises(cs.Cb2Error):  # a screen file is refused as a Stage-2 file
         cs.batch_holm([s1], family="stage2")
     assert root.exists()
+
+
+def test_streaming_walk_equals_in_memory_frame_and_keeps_precedence_without_retention():
+    # same event id appears in both modes: closed=false is walked first and wins (as before)
+    evs = [gev(1, "2026-09-10"), gev(2, "2026-09-10", closed=False), gev(3, "2026-09-11")]
+    start, end = datetime(2026, 9, 7, tzinfo=UTC), datetime(2026, 9, 14, tzinfo=UTC)
+
+    def lim():
+        return hb.Limiter(FakeNet(evs), rps=1000.0, sleep=lambda s: None, live_check=None)
+
+    raw, rep_a = w.walk_weather_events(lim(), start, end)
+    kw = dict(end_from=ep("2026-09-01T00:00:00Z"), end_cap=ep("2026-10-01T00:00:00Z"),
+              census_ex=(0.0, 0.0), history_ids=set(), h5_ids=set())
+    kept_a, outs_a, cnt_a = w.apply_frame_rules(raw, **kw)
+
+    counts, kept, outs, modes = w._new_frame_counts(), [], {}, {}
+    seen_payloads = []
+
+    def sink(eid, e, mode):
+        seen_payloads.append(eid)
+        modes[eid] = mode
+        w.frame_one(eid, e, mode, counts, kept, outs, **kw)
+
+    ret, rep_b = w.walk_weather_events(lim(), start, end, sink=sink)
+    kept.sort(key=lambda e: e["event_id"])
+    assert kept == kept_a and outs == outs_a and counts == cnt_a and rep_a == rep_b
+    assert all(isinstance(v, bool) for v in ret.values())  # only id -> mode retained, no raw payloads
+    assert modes == {k: v["closed_mode"] for k, v in raw.items()} and modes["2"] is False
+    assert sorted(seen_payloads) == sorted(raw) and len(seen_payloads) == len(set(seen_payloads))

@@ -471,13 +471,18 @@ GAMMA_EVENTS = "https://gamma-api.polymarket.com/events"
 
 
 def walk_weather_events(lim, start: datetime, end: datetime, *, modes=(True, False), step_days: int = 7,
-                        log: Callable[..., None] = lambda *_: None) -> tuple[dict[str, dict], dict]:
+                        log: Callable[..., None] = lambda *_: None,
+                        sink: Callable[[str, dict, bool], None] | None = None) -> tuple[dict[str, dict], dict]:
     """Walk Gamma ``/events?tag_slug=weather`` over ``end_date`` windows of ``step_days`` days, for each
     ``closed`` mode (true and false), splitting a window that reaches the offset cap (whole days) down to
     1 day. A window still capped at 1 day is dropped for that mode and counted. Returns
     ``({event_id: raw event with 'closed_mode'}, report)``. Raw events keep their market payload (outcome
-    fields included); callers write those to the guarded file only."""
-    events: dict[str, dict] = {}
+    fields included); callers write those to the guarded file only.
+
+    With ``sink`` the walk is streaming: each first-seen event (closed=false mode first, so the same
+    precedence) is passed to ``sink(event_id, raw_event, closed_mode)`` and NOT retained; only the
+    id -> closed_mode map is kept (returned in place of the raw dict) so peak memory stays small."""
+    events: dict = {}
     rep = {"requests": 0, "windows": 0, "split": 0, "windows_dropped_capped": 0,
            "rows_in_dropped_windows": 0, "dropped_capped_by_day": {}, "closed_false_events": 0,
            "closed_true_events": 0, "windows_failed": 0, "failed_windows": [],
@@ -531,9 +536,14 @@ def walk_weather_events(lim, start: datetime, end: datetime, *, modes=(True, Fal
             for e in rows:
                 eid = str(e.get("id"))
                 if eid not in events:
-                    events[eid] = {**e, "closed_mode": bool(mode)}
+                    if sink is None:
+                        events[eid] = {**e, "closed_mode": bool(mode)}
+                    else:
+                        events[eid] = bool(mode)
+                        sink(eid, e, bool(mode))
             log(f"  closed={mode} {a:%Y-%m-%d} .. {b:%Y-%m-%d}: {len(rows)} events")
-    rep["closed_false_events"] = sum(1 for e in events.values() if not e["closed_mode"])
+    rep["closed_false_events"] = sum(
+        1 for e in events.values() if not (e if sink is not None else e["closed_mode"]))
     rep["closed_true_events"] = len(events) - rep["closed_false_events"]
     return events, rep
 
@@ -548,6 +558,66 @@ def _json_list(v) -> list:
         return []
 
 
+def _new_frame_counts() -> dict:
+    return {"frame_in": 0, "no_end_date": 0, "outside_end_window": 0, "census_ex": 0,
+            "not_temperature_title": 0, "member_count": 0, "not_neg_risk": 0,
+            "history_sample_overlap": 0, "h5_overlap": 0, "kept": 0, "kept_closed_false": 0}
+
+
+def frame_one(eid: str, e: dict, closed_mode: bool, counts: dict, kept: list[dict],
+              outcomes: dict[str, list[dict]], *, end_from: float, end_cap: float,
+              census_ex: tuple[float, float], history_ids: set[str], h5_ids: set[str]) -> None:
+    """The frame rules for ONE raw event (first rule that fires is counted); a kept event is appended to
+    ``kept`` (slim) and ``outcomes``. Pure per event, so applying it as events arrive equals applying it to
+    the whole walk afterwards."""
+    counts["frame_in"] += 1
+    end_ep = _parse_end(e.get("endDate"))
+    if end_ep is None:
+        counts["no_end_date"] += 1
+        return
+    if not (end_from <= end_ep < end_cap):
+        counts["outside_end_window"] += 1
+        return
+    if census_ex[0] <= end_ep < census_ex[1]:
+        counts["census_ex"] += 1
+        return
+    parsed = parse_title(e.get("title"))
+    if parsed is None:
+        counts["not_temperature_title"] += 1
+        return
+    ms = e.get("markets") or []
+    if not (MEMBER_RANGE[0] <= len(ms) <= MEMBER_RANGE[1]):
+        counts["member_count"] += 1
+        return
+    if not (e.get("negRisk") or all(m.get("negRisk") for m in ms)):
+        counts["not_neg_risk"] += 1
+        return
+    mids = {str(m.get("id")) for m in ms}
+    if mids & history_ids:
+        counts["history_sample_overlap"] += 1
+        return
+    if mids & h5_ids:
+        counts["h5_overlap"] += 1
+        return
+    markets = []
+    for m in ms:
+        toks = _json_list(m.get("clobTokenIds"))
+        markets.append({"market_id": str(m.get("id")), "condition_id": m.get("conditionId"),
+                        "token_yes": str(toks[0]) if toks else None,
+                        "bucket": m.get("groupItemTitle")})
+    kept.append({"event_id": str(eid), "title": e.get("title"), "direction": parsed["direction"],
+                 "city": parsed["city"], "title_date": parsed["title_date"],
+                 "title_date_iso": parse_title_date(parsed["title_date"], end_ep),
+                 "end_at": _iso(end_ep), "end_epoch": end_ep, "n_members": len(ms),
+                 "markets": markets})
+    outcomes[str(eid)] = [{"market_id": str(m.get("id")), "event_id": str(eid),
+                           "outcome_prices": m.get("outcomePrices"), "closed": m.get("closed"),
+                           "closed_time": m.get("closedTime") or "",
+                           "event_closed": e.get("closed")} for m in ms]
+    counts["kept"] += 1
+    counts["kept_closed_false"] += int(not closed_mode)
+
+
 def apply_frame_rules(raw: dict[str, dict], *, end_from: float, end_cap: float,
                       census_ex: tuple[float, float], history_ids: set[str], h5_ids: set[str]
                       ) -> tuple[list[dict], dict[str, list[dict]], dict]:
@@ -557,58 +627,12 @@ def apply_frame_rules(raw: dict[str, dict], *, end_from: float, end_cap: float,
     (any member in the h1/h2/h3 samples), ``h5_overlap`` (any member id in the h5 seal-copy file table).
     Returns (slim kept events sorted by id, {event_id: outcome records}, counts). Closed=false events are
     kept (censored). No outcome field is read by any rule."""
-    counts = {"frame_in": len(raw), "no_end_date": 0, "outside_end_window": 0, "census_ex": 0,
-              "not_temperature_title": 0, "member_count": 0, "not_neg_risk": 0,
-              "history_sample_overlap": 0, "h5_overlap": 0, "kept": 0, "kept_closed_false": 0}
+    counts = _new_frame_counts()
     kept: list[dict] = []
     outcomes: dict[str, list[dict]] = {}
     for eid in sorted(raw):
-        e = raw[eid]
-        end_ep = _parse_end(e.get("endDate"))
-        if end_ep is None:
-            counts["no_end_date"] += 1
-            continue
-        if not (end_from <= end_ep < end_cap):
-            counts["outside_end_window"] += 1
-            continue
-        if census_ex[0] <= end_ep < census_ex[1]:
-            counts["census_ex"] += 1
-            continue
-        parsed = parse_title(e.get("title"))
-        if parsed is None:
-            counts["not_temperature_title"] += 1
-            continue
-        ms = e.get("markets") or []
-        if not (MEMBER_RANGE[0] <= len(ms) <= MEMBER_RANGE[1]):
-            counts["member_count"] += 1
-            continue
-        if not (e.get("negRisk") or all(m.get("negRisk") for m in ms)):
-            counts["not_neg_risk"] += 1
-            continue
-        mids = {str(m.get("id")) for m in ms}
-        if mids & history_ids:
-            counts["history_sample_overlap"] += 1
-            continue
-        if mids & h5_ids:
-            counts["h5_overlap"] += 1
-            continue
-        markets = []
-        for m in ms:
-            toks = _json_list(m.get("clobTokenIds"))
-            markets.append({"market_id": str(m.get("id")), "condition_id": m.get("conditionId"),
-                            "token_yes": str(toks[0]) if toks else None,
-                            "bucket": m.get("groupItemTitle")})
-        kept.append({"event_id": str(eid), "title": e.get("title"), "direction": parsed["direction"],
-                     "city": parsed["city"], "title_date": parsed["title_date"],
-                     "title_date_iso": parse_title_date(parsed["title_date"], end_ep),
-                     "end_at": _iso(end_ep), "end_epoch": end_ep, "n_members": len(ms),
-                     "markets": markets})
-        outcomes[str(eid)] = [{"market_id": str(m.get("id")), "event_id": str(eid),
-                               "outcome_prices": m.get("outcomePrices"), "closed": m.get("closed"),
-                               "closed_time": m.get("closedTime") or "",
-                               "event_closed": e.get("closed")} for m in ms]
-        counts["kept"] += 1
-        counts["kept_closed_false"] += int(not e["closed_mode"])
+        frame_one(eid, raw[eid], bool(raw[eid]["closed_mode"]), counts, kept, outcomes, end_from=end_from,
+                  end_cap=end_cap, census_ex=census_ex, history_ids=history_ids, h5_ids=h5_ids)
     return kept, outcomes, counts
 
 
@@ -928,19 +952,32 @@ def weather_fetch(
             h5 = set()
             for p in h5_seal_copies or []:
                 h5 |= seal_ids_from_copy(Path(p))
-            raw, walk_rep = walk_weather_events(
+            # Streaming walk: each raw event is framed as it arrives and then dropped (the raw payload is
+            # never an output; only slim kept events + outcome rows are), so memory does not hold the walk.
+            fcounts = _new_frame_counts()
+            kept: list[dict] = []
+            outs: dict[str, list[dict]] = {}
+            kept_mode: dict[str, bool] = {}
+            f_end_from, f_census = parse_when(end_from), (parse_when(census_ex[0]), parse_when(census_ex[1]))
+
+            def _sink(eid: str, e: dict, mode: bool) -> None:
+                n0 = len(kept)
+                frame_one(eid, e, mode, fcounts, kept, outs, end_from=f_end_from, end_cap=end_cap,
+                          census_ex=f_census, history_ids=hist, h5_ids=h5)
+                if len(kept) > n0:
+                    kept_mode[eid] = mode
+
+            _, walk_rep = walk_weather_events(
                 lim, datetime.fromtimestamp(parse_when(end_from), UTC),
-                datetime.fromtimestamp(end_cap, UTC), modes=walk_closed, log=log)
+                datetime.fromtimestamp(end_cap, UTC), modes=walk_closed, log=log, sink=_sink)
             if walk_rep["windows_failed"]:  # an incomplete frame is never written (and so never sampled)
                 return manifest(f"walk_failed_windows: {walk_rep['windows_failed']}",
                                 {"transient": True, "walk_report": walk_rep})
-            kept, outs, fcounts = apply_frame_rules(
-                raw, end_from=parse_when(end_from), end_cap=end_cap,
-                census_ex=(parse_when(census_ex[0]), parse_when(census_ex[1])), history_ids=hist, h5_ids=h5)
+            kept.sort(key=lambda e: e["event_id"])  # apply_frame_rules order (sorted by id)
             sample = draw_sample(kept, n_events, seed)
             frame_rep = {**walk_rep, **fcounts, "history_ids": len(hist), "h5_ids": len(h5),
                          "sample_n": len(sample), "sampled_closed_false": sum(
-                             1 for e in sample if not raw[e["event_id"]]["closed_mode"])}
+                             1 for e in sample if not kept_mode[e["event_id"]])}
             rows = [[r["market_id"], r["event_id"], r["outcome_prices"], r["closed"],
                      r["closed_time"], r["event_closed"]]
                     for e in sample for r in outs[e["event_id"]]]
