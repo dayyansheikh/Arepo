@@ -593,6 +593,23 @@ def design_effect_from_clusters(values, clusters) -> float:
     return 1.0 + (n / k - 1.0) * icc
 
 
+def e_predicted_mde(rows_by_cell: dict[str, int], events_by_cell: dict[str, int], *, halves: bool = False) -> dict:
+    """Predicted MDEs of the E tests from census counts under the declared scaling (CREATIVE_BATCH_4.md section CB4-E): E1 cell SE = 0.057c per SD of the
+    scaled flow on 33,042 rows (HB1 FL2), scaled by sqrt(33,042 / rows); E2 cell SE = 4c print SD / sqrt(event clusters). ``delta`` combines the six cells with
+    coefficients (S0 -1/2, S1 1, S2 -1/2, O0 1/2, O1 -1, O2 1/2); ``halves`` gives the 2x2 parallel-trends placebo (all coefficients 1). MDE = (z(0.0125/2)
+    + z(0.8)) x SE (two-sided Holm first step, 80% power). No price change or mark-out is computed."""
+    z = norm.isf(0.0125 / 2) + norm.isf(0.2)
+    coef = {"S0": 1.0, "S1": 1.0, "O0": 1.0, "O1": 1.0} if halves else {"SP0": 0.5, "SP1": 1.0, "SP2": 0.5, "OP0": 0.5, "OP1": 1.0, "OP2": 0.5}
+    out: dict = {}
+    for name, per in (("E1_cents_per_sd", lambda c: 0.057 * math.sqrt(33042.0 / max(rows_by_cell.get(c, 0), 1))), ("E2_cents_per_print", lambda c: 4.0 / math.sqrt(max(events_by_cell.get(c, 0), 1)))):
+        if any(rows_by_cell.get(c, 0) <= 0 for c in coef):
+            out[name] = None
+            continue
+        se = math.sqrt(sum((k * per(c)) ** 2 for c, k in coef.items()))
+        out[name] = {"se": se, "mde": z * se}
+    return out
+
+
 def pilot_power(g_bytes_per_hour: float, sd_i: float, n_event_hours_per_hour: float, deff: float, *, cap_bytes: float = D.N["ingress_cap_gb"]["measure"] * 1e9) -> dict:
     """Frozen H rule: ``H_cap`` = largest H in {84,168,252,336} with 1.2 H g <= cap; ``H_mde`` = smallest H whose predicted N1 MDE (two-sided Holm first
     step alpha 0.0125, power 0.8, deff >= 1.5) is <= 1.0 pp (336 if none); ``H = min(H_mde, H_cap)``; ``H_cap < 84`` = not testable."""

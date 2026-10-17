@@ -39,6 +39,15 @@ class Refusal(RuntimeError):
     """A guard refused the command."""
 
 
+class NotYet(RuntimeError):
+    """A not-before guard: the data is not complete yet. Exit 75 (EX_TEMPFAIL): the queue waits and retries, no attempt is burned."""
+
+
+TEMPFAIL_EXIT = 75
+# q0085 reads the dev window's flip trades: the window is complete only after T4_dev_end (2026-10-25T00:00Z) plus the last capture (2 h of margin)
+FLIP_TRADES_NOT_BEFORE = "2026-10-25T02:00:00Z"
+
+
 @dataclass
 class Ctx:
     """Run values. The CLI has no flag for any declared quantity; tests build a Ctx directly (never reachable from the command line)."""
@@ -73,6 +82,7 @@ def _parser(cmd: str) -> argparse.ArgumentParser:
     ap.add_argument("--ingress-cap-gb", type=float, default=None)
     ap.add_argument("--budget-min", type=float, default=None)
     ap.add_argument("--hours-from-census", action="store_true")
+    ap.add_argument("--head-checks", action="store_true")
     return ap
 
 
@@ -219,7 +229,7 @@ def load_era(rdir: Path) -> tuple[pd.DataFrame, dict[str, dict]]:
 def era_frames(rdir: Path, max_markets: int | None = None) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """E1 panel and E2 mark-outs over the sealed era run (no outcome file opened)."""
     sample, prog = load_era(rdir)
-    panels, marks, diag = [], [], {"markets": 0, "no_files": 0}
+    panels, marks, diag = [], [], {"markets": 0, "no_files": 0, "_market_table": []}
     for _, r in sample.iterrows():
         mid = str(r["market_id"])
         pf, tf = Path(rdir) / "prices" / f"{mid}.csv.gz", Path(rdir) / "trades" / f"{mid}.csv.gz"
@@ -233,6 +243,7 @@ def era_frames(rdir: Path, max_markets: int | None = None) -> tuple[pd.DataFrame
         tr = hb.load_trades(tf)
         rec = {"market_id": mid, "event_id": str(r["event_id"]) if str(r["event_id"]) not in ("nan", "") else None, "end_epoch": float(r["end_epoch"]), "group": r["group"], "period": r["period"]}
         pr = prog[mid]
+        diag["_market_table"].append({"market_id": mid, "group": r["group"], "period": r["period"], "end_epoch": float(r["end_epoch"]), "truncated": bool(pr.get("trades_truncated"))})
         pan = M.era_panel(rec, ts, vals, tr, bool(pr.get("trades_truncated")), pr.get("trades_oldest_ts"))
         if len(pan):
             pan["end_epoch"] = rec["end_epoch"]
@@ -368,6 +379,9 @@ def _wrap(name: str, a, fn, ctx: Ctx | None):
     ctx = ctx or Ctx()
     try:
         return fn(_args(name, a), ctx)
+    except NotYet as exc:
+        print(f"not yet: {exc}", file=sys.stderr)
+        return TEMPFAIL_EXIT
     except (Refusal, D.DeclarationError, D.RefusedRun, D.WindowError, D.TooEarly, cb4_data.Cb4Error, FileExistsError, cost_regimes.CostRegimeError) as exc:
         print(f"refused: {type(exc).__name__}: {exc}", file=sys.stderr)
         return REFUSED_EXIT
@@ -380,6 +394,9 @@ def cmd_flip_trades(a, ctx: Ctx | None = None) -> int:
 def _flip_trades(args, ctx: Ctx) -> int:
     _gate(ctx, args, counted=False)
     window = args.window or "dev"
+    now = ctx.now or datetime.now(UTC)
+    if window == "dev" and now < datetime.fromisoformat(FLIP_TRADES_NOT_BEFORE.replace("Z", "+00:00")):
+        raise NotYet(f"the dev window is complete only after {FLIP_TRADES_NOT_BEFORE}; flip-trades (q0085) refuses before it")
     inp = c_inputs(ctx, window, Path(args.extract_root) if args.extract_root else None)
     ids: dict[str, str] = {}
     cw = inp["cw"]
@@ -542,7 +559,7 @@ def _measure_e(args, ctx: Ctx) -> int:
     panel, marks, diag = era_frames(rdir)
     if not len(panel) or not len(marks):
         tests = {t: {"testable": False, "p": 1.0, "estimate": math.nan, "reason": ["no rows"]} for t in ("E1", "E2")}
-        doc = {**_header("E", decl), "tests": tests, "diag": {k: v for k, v in diag.items()}}
+        doc = {**_header("E", decl), "tests": tests, "diag": {k: v for k, v in diag.items() if not k.startswith("_")}}
     else:
         pan, sc = M.scale_flow(panel)
         ctl = [c for c in pan.columns if c.startswith("c_")]
@@ -557,7 +574,7 @@ def _measure_e(args, ctx: Ctx) -> int:
                         "cluster_equal_sign": r.get("cluster_equal_sign"), "label": cost_regimes.LABEL}
         desc = {"scaling": sc, "rows_per_cell": e1.get("rows_per_cell"), "balanced_wallet": "not computed in this run (needs wallet-level trades per cell)",
                 "E2_components": {"spread_mean": float(marks["spread"].mean()), "drift_mean": float(marks["drift"].mean())}}
-        doc = {**_header("E", decl), "tests": tests, "descriptive": desc, "diag": {k: v for k, v in diag.items()}}
+        doc = {**_header("E", decl), "tests": tests, "descriptive": desc, "diag": {k: v for k, v in diag.items() if not k.startswith("_")}}
     p, sha = _write(ctx, "E/results.json", doc)
     log_trials("E", doc["tests"], kind=D.KIND_MEASURE, role="exploratory_historical", dataset=rid, results_path=str(p), sha=sha, decl=decl, cumulative=doc["cumulative_count_at_run"], placebo=None,
                descriptive=None, trials_path=ctx.trials, count_source="creative_batch_4:M")
@@ -718,12 +735,16 @@ def _census(args, ctx: Ctx) -> int:
         inp = c_inputs(ctx, "dev", Path(args.extract_root) if args.extract_root else None)
         trades = load_trades_dir(inp["tdir"])
         strata = inp["strata"]
-        s_ = strata[strata["stratum"] == "S"] if len(strata) else strata
-        n_ = strata[strata["stratum"] == "N"] if len(strata) else strata
+        if len(strata):  # the same population as c_run: weather out, sports a reported stratum only (never in G46 or cluster counts)
+            strata = strata[~strata["fee_category"].map(R._is_weather)]
+        s_ = strata[(strata["stratum"] == "S") & ~strata["fee_category"].map(H1.is_sports)] if len(strata) else strata
+        n_ = strata[(strata["stratum"] == "N") & ~strata["fee_category"].map(H1.is_sports)] if len(strata) else strata
         c1, r1 = R.c1_units(s_, trades) if len(s_) else (pd.DataFrame(), {})
         cn, _ = R.c1_units(n_, trades) if len(n_) else (pd.DataFrame(), {})
         cells = sorted(set(c1["cell"]) & set(cn["cell"])) if len(c1) and len(cn) else []
         c2 = inp["c2"]
+        c2p = c2[~c2["sports"]] if len(c2) else c2
+        c2_unavail = int(sum(1 for _, u in c2p.iterrows() if (trades.get(u["market_id"]) is None) or not trades[u["market_id"]].window_available(float(u["tau0"])))) if len(c2p) else 0
         sa = {}
         if len(inp["cw"]) and trades:
             pr = pd.concat([t.df.assign(market_id=m) for m, t in trades.items() if len(t.df)], ignore_index=True) if any(len(t.df) for t in trades.values()) else pd.DataFrame()
@@ -733,13 +754,17 @@ def _census(args, ctx: Ctx) -> int:
             for s in inp["cw"]["uma_set"]:
                 for t in s:
                     uma[t] = uma.get(t, 0) + 1
-        out["C"] = {"c2_units": int(len(c2)), "c2_population": inp["rep_c2"], "flip_strata": inp["rep_strata"], "c1_units": int(len(c1)), "c1_report": r1, "n_class_units": int(len(cn)),
-                    "matched_cells": len(cells), "uma_statuses_observed": uma, "side_audit_two_sided": sa,
-                    "g46": R.g46_gate(c1, c2, (inp["window"][1] - inp["window"][0]) / DAY), "clusters": {"events": int(c1["event_id"].nunique()) if len(c1) else 0, "iso_weeks": int(c1["week_e"].nunique()) if len(c1) else 0}}
-        out["C"]["note_week_way"] = "the ISO-week cluster way needs >= 15 weeks under the literal small-G rule; the dev window holds 2-3 (see INTERPRETATIONS)"
+        out["C"] = {"c2_units": int(len(c2p)), "c2_units_sports_reported": int(len(c2) - len(c2p)), "c2_population": inp["rep_c2"], "flip_strata": inp["rep_strata"], "c1_units": int(len(c1)),
+                    "c1_report": r1, "n_class_units": int(len(cn)), "matched_cells": len(cells), "uma_statuses_observed": uma, "side_audit_two_sided": sa,
+                    "g46": R.g46_gate(c1, c2p, (inp["window"][1] - inp["window"][0]) / DAY),
+                    "truncation": {"c1_baseline_unavailable": (r1 or {}).get("baseline_unavailable"), "c1_final_unavailable": (r1 or {}).get("final_unavailable"), "c2_window_unavailable": c2_unavail},
+                    "clusters": {"events": int(c1["event_id"].nunique()) if len(c1) else 0, "iso_weeks": int(c1["week_e"].nunique()) if len(c1) else 0,
+                                 "class_N_end_timestamps": int(cn["e"].nunique()) if len(cn) and "e" in cn.columns else 0}}
+        out["C"]["note_week_way"] = "the ISO-week cluster way needs >= 15 weeks under the literal small-G rule; the dev window holds 2-3 (see INTERPRETATIONS and the proposed amendment A-C1)"
     if "S" in fams:
         rdir = _series_dir(ctx, args.run_id)
-        units, diag = load_series(rdir, "screen", job="census_S", decl=None, log_access=False)
+        # Reading the sealed SCREEN half (units, prices, trades, and the guarded side columns needed to map prints to the rolled-into token) is logged.
+        units, diag = load_series(rdir, "screen", job="census_S", decl=D.declaration_sha256(), log_access=True)
         pred = {}
         for u in units:
             pf = rdir / "pred_prices" / f"{u.extra['pred_file']}.csv.gz"
@@ -749,21 +774,68 @@ def _census(args, ctx: Ctx) -> int:
                 pred[u.unit_id] = (p, hb.load_trades(tf)["ts"].to_numpy(float))
         pub = R.t0_publicity_check({k: v[1] for k, v in pred.items()}, {k: v[0] for k, v in pred.items()}, {u.unit_id: u.t0 for u in units if u.unit_id in pred})
         sa = R.side_audit_history(units, diag["raw_trades"], {u.unit_id: u.extra["k"] for u in units})
-        df = R.s_values(units)
-        out["S"] = {"load": {k: v for k, v in diag.items() if k != "raw_trades"}, "g50": R.g50_gate(units), "t0_publicity": pub, "h7_side_audit": sa, "drops": df["drops"],
-                    "n_units_eligible": int(len(df["df"])), "p_a_available": int(np.isfinite(df["df"]["neg_v"]).sum()),
-                    "series": int(df["df"]["series"].nunique()) if len(df["df"]) else 0, "series_x_week": int((df["df"]["series"] + "|" + df["df"]["week"]).nunique()) if len(df["df"]) else 0}
+        rep = _jload(rdir / "units_report.json") or {}
+        drops = rep.get("unit_drops", {})
+        matched, nomatch = int(rep.get("units", 0)), int(drops.get("no_side_match", 0))
+        out["S"] = {"load": {k: v for k, v in diag.items() if k != "raw_trades"}, "g50": R.g50_gate(units), "t0_publicity": pub, "h7_side_audit": sa, "counts": R.s_census_counts(units),
+                    "member_match": {"units_matched": matched, "no_side_match": nomatch, "match_rate": matched / (matched + nomatch) if matched + nomatch else None,
+                                     "note": "from units_report.json at fetch time; counts only, not split by side, all event types"},
+                    "no_value_computed": "no S1, S2 or S3 value and no C1 delta is computed (section 2.7)"}
     if "E" in fams:
         rdir = ctx.hist_root / cb4_data.ERA_RUN_ID
         panel, marks, diag = era_frames(rdir)
-        cells = {}
+        mt = pd.DataFrame(diag.pop("_market_table", []))
+        split = D.epoch(D.DATES["D_pl_E"])
+        cells, rows_c, ev_c, ev_m = {}, {}, {}, {}
+
+        def halves(df: pd.DataFrame) -> pd.Series:
+            h = np.where(df["end_epoch"] >= split, "b", "a")
+            return df["group"].astype(str) + df["period"].astype(str) + np.where(df["period"] == "P0", h, "")
+
         if len(panel):
-            for (g, p), d in panel.groupby(["group", "period"]):
-                cells[f"{g}{p}"] = {"judgement_rows": int(len(d)), "markets": int(d["market_id"].nunique()), "events": int(d["event_id"].nunique()), "days": int((d["t"] // DAY).nunique())}
-        out["E"] = {"cells": cells, "prints": int(len(marks)), "diag": diag}
+            lab = halves(panel)
+            for c, d in panel.groupby(lab):
+                cells[c] = {"judgement_rows": int(len(d)), "markets": int(d["market_id"].nunique()), "events": int(d["event_id"].nunique()), "days": int((d["t"] // DAY).nunique())}
+            for (g, p_), d in panel.groupby(["group", "period"]):
+                rows_c[f"{g}{p_}"], ev_c[f"{g}{p_}"] = int(len(d)), int(d["event_id"].nunique())
+        prints_c = {}
+        if len(marks):
+            lab = halves(marks)
+            for c, d in marks.groupby(lab):
+                prints_c[c] = {"prints": int(len(d)), "events": int(d["event_id"].nunique()), "days": int((d["t"] // DAY).nunique())}
+            for (g, p_), d in marks.groupby(["group", "period"]):
+                ev_m[f"{g}{p_}"] = int(d["event_id"].nunique())
+        trunc = {}
+        if len(mt):
+            lab = halves(mt)
+            for c, d in mt.groupby(lab):
+                trunc[c] = {"markets": int(len(d)), "truncated": int(d["truncated"].sum())}
+        half_rows = {f"{g}{h}": int(len(d)) for (g, h), d in (panel.assign(h=np.where(panel["end_epoch"] >= split, "1", "0")).query("period == 'P0'").groupby(["group", "h"]) if len(panel) else [])}
+        half_ev = {f"{g}{h}": int(d["event_id"].nunique()) for (g, h), d in (marks.assign(h=np.where(marks["end_epoch"] >= split, "1", "0")).query("period == 'P0'").groupby(["group", "h"]) if len(marks) else [])}
+        out["E"] = {"cells": cells, "prints_by_cell": prints_c, "prints": int(len(marks)), "truncation_by_cell": trunc,
+                    "predicted_mde": {"delta": M.e_predicted_mde(rows_c, {k: ev_m.get(k, 0) for k in rows_c}), "parallel_trends_placebo_P0_halves": M.e_predicted_mde(half_rows, half_ev, halves=True)},
+                    "diag": diag}
     if "N" in fams:
         pil = _jload(ctx.out_root / "N_pilot" / "pilot.json")
-        out["N"] = {"pilot": pil and {k: pil.get(k) for k in ("eligible_events_per_hour", "hours_done", "hours_missing", "ingress_gb_per_hour", "power", "stop")}, "venue_rho_check": "manual: docs.polymarket.com/trading/taker-rebates"}
+        heads = None
+        if pil and int((pil.get("power") or {}).get("H", 0)) >= D.N["H_grid"][0] and (ctx.pmxt_size is not None or getattr(args, "head_checks", False)):
+            from . import history_sources as hs
+
+            size_fn = ctx.pmxt_size or hs.httpx_size
+            seed = D.N["seed"]
+            hrs = M.hour_order(seed, M.sample_hours(seed, M.analysis_days(), int(pil["power"]["H"]) / 56.0))
+            heads = {"checked": 0, "missing": 0, "corrupt_or_error": 0}
+            for h in hrs:
+                heads["checked"] += 1
+                try:
+                    if int(size_fn(hs.pmxt_url(h["hour"]))) <= 0:
+                        heads["corrupt_or_error"] += 1
+                except FileNotFoundError:
+                    heads["missing"] += 1
+                except _NET_DATA_ERRORS:
+                    heads["corrupt_or_error"] += 1
+        out["N"] = {"pilot": pil and {k: pil.get(k) for k in ("eligible_events_per_hour", "hours_done", "hours_missing", "ingress_gb_per_hour", "power", "stop", "design_effect_used")},
+                    "head_checks": heads if heads is not None else "not run (needs the pilot's H and --head-checks)", "venue_rho_check": "manual: docs.polymarket.com/trading/taker-rebates"}
         if pil:
             pins["H"] = int(pil["power"].get("H", 0))
     pins.setdefault("rho", D.N["rho"])

@@ -144,3 +144,31 @@ def test_pmxt_window_overlap_and_series_screen_needs_register(tmp_path):
     f.write_text("{}")
     with pytest.raises(D.DeclarationError):  # present but not committed
         D.check_series_screen_allowed(f)
+
+
+def test_hash_is_an_explicit_rule_list_not_every_function():
+    src = D.source_hashes()
+    assert "cb4_data.run_closewin" not in src and "cb4_data.ReleaseCopies" not in src and "cb4_analysis._census" not in src and "cb4_analysis.fetch_flip_trades" not in src
+    for k in ("cb4_data.walk_series_events", "cb4_data.series_roll_to", "cb4_analysis.c_run", "cb4_analysis.stage2_expected", "cb1_history.oldest_or_inf", "cb1_history.taker_fee_ps",
+              "cb1_history.parse_outcome0", "history_backfill._asof", "history_sources.rebuild_book", "cb4_rules.s_census_counts"):
+        assert k in src and len(src[k]) == 64
+
+
+def test_every_explicit_rule_function_exists():
+    import importlib
+
+    for mod, names in D.EXPLICIT_RULE_FUNCTIONS.items():
+        m = importlib.import_module(f"astrolabe.research_lab.{mod}")
+        assert all(hasattr(m, n) for n in names), mod
+
+
+@pytest.mark.parametrize("key", ["MAX_QUOTE_AGE_S", "GRID_S", "ERA_BUFFER_D"])
+def test_rule_constants_are_in_the_hash(key, monkeypatch):
+    from astrolabe.research_lab import cost_regimes
+    from astrolabe.research_lab import history_backfill as hb
+
+    h = D.declaration_sha256()
+    assert {"C_SMALL_G", "S_SMALL_G", "INTERPRETATIONS", "FEE_ERAS"} <= set(D.rule_constants())
+    target = {"MAX_QUOTE_AGE_S": (hb, 1), "GRID_S": (hb, 1), "ERA_BUFFER_D": (cost_regimes, 1)}[key][0]
+    monkeypatch.setattr(target, key, getattr(target, key) + 1)
+    assert D.declaration_sha256() != h

@@ -1482,7 +1482,7 @@ Rewritten after the analysis modules were finished and tested (supersedes the 20
   until the coordinator releases the drafts after a science-reviewer freeze check. q0087-q0089 are in section 5 and release at the CB4 freeze.
   **q0090-q0093 are not drafted**: their numbers clash with CB5; renumber from the section 5 text at release.
 
-**Declaration hash (after the closewin fix 55a5a13, 2026-10-17; cb4_data is a rule module, so it moved from 66e48fae...):** `a8285463ad8e1aa4a74787b944245076eb9b037faa78113708fa5ca2b75726a8`
+**Declaration hash (2026-10-17, after the hash-coverage change below; previously a8285463... after 55a5a13):** `1d17074139c098763f2a6bd4e6a70aef23060f2bc9a82837ccce1d53b74932d9`
 (`cb4_declaration.declaration_sha256()`). Any edit to a rule module or to an imported rule function changes it. `model_specs/cb4_v1.json`
 is not written or committed here: the freeze (`write_spec` with the census pins) is the coordinator's, after the review.
 
@@ -1500,3 +1500,5 @@ is not written or committed here: the freeze (`write_spec` with the census pins)
 4. Freeze-check item 13 and the host coverage check are still open (pass-step line in `arepo_pass.sh`, RETENTION.md 2.10(b); host capture coverage vs release-only captures).
 
 - 2026-10-17: `run_closewin` no longer stops on an unavailable release copy (the q0080 stall on `20261013T231958Z_80e78ef1`, which lives only in the val ledger release): the capture is recorded `missing` / `release_unavailable` (counted; retried by `--retry-missing` and every all-new pass) and the walk continues; five consecutive such failures still stop the run as an outage guard.
+
+- 2026-10-17 (freeze-check fix 6 completion and census helpers; no threshold or formula changed): the declaration hash now covers the cb4_data and cb4_analysis rule functions by an explicit list (run_closewin, I/O and command wrappers excluded), the imported `oldest_or_inf`, `taker_fee_ps`, `parse_outcome0`, `_asof`, `rebuild_book`, and the rule constants (`MAX_QUOTE_AGE_S`, `GRID_S`, small-G lists, interpretations, `FEE_ERAS`, `ERA_BUFFER_D`). Added counts-only helpers (`print_available`, `s2_computable`, `s_census_counts`, `e_predicted_mde`); `g50_gate` now counts P_A availability without computing S2. `flip-trades` (q0085) refuses before 2026-10-25T02:00Z with exit 75 (tempfail, no retry burned). Hung/network-dependent `test_cmd_fetch_refusals` case now points at an absent rules file. New declaration hash: `1d17074139c0...932d9`.

@@ -191,13 +191,47 @@ IMPORTED_RULE_FUNCTIONS = (
     ("cb3_common", "mean_test"), ("cb3_common", "testable"), ("cb3_common", "boot_ci_mean"), ("cb3_common", "top_clusters_mask"), ("cb3_common", "sign_agree"),
     ("cb3_common", "holm"), ("cb3_common", "batch_holm"), ("cb3_common", "write_new"), ("cost_regimes", "cost_regime"),
     ("cb3_declaration", "spec_committed"), ("cb3_declaration", "single_commit"), ("cb3_declaration", "canonical_sha256"),
+    ("cb1_history", "oldest_or_inf"), ("cb1_history", "taker_fee_ps"), ("cb1_history", "parse_outcome0"),
+    ("history_backfill", "_asof"), ("history_sources", "rebuild_book"),
 )
+# modules hashed whole (every function and class: pure rule or statistic code)
+WHOLE_MODULE_HASH = ("cb4_declaration", "cost_regimes", "cb4_rules", "cb4_measure")
+# modules hashed by an explicit list of rule functions: run_closewin, the release/restore I/O, the fetch plumbing, the census, the pilot and the
+# command wrappers are not rule code and may change without invalidating the frozen declaration
+EXPLICIT_RULE_FUNCTIONS = {
+    "cb4_data": (
+        "_ep", "_parse_ts", "refuse_run_id", "refuse_path", "declaration_h7", "is_weather_text", "is_weather_market", "norm_label", "cadence_class",
+        "horizon_for", "pick_successor", "_price_pair", "winner_of", "match_side", "winner_market", "series_roll_to", "series_rules_doc", "with_ladders_copy",
+        "require_series_rules", "require_group_s_amendment", "require_h5_seal_copy", "_history_ids", "_h5_ids", "_json_list", "slim_event", "walk_series_events",
+        "_modal", "assemble_units", "union_window", "fetch_unit_series", "series_frame_counts", "split_h7s", "drop_era_overlap", "ids_sha256", "split_record",
+        "_era_market_ids", "parse_periods", "era_days", "era_period_of", "apply_era_rules", "draw_era_sample", "walk_era_frame", "_main_row", "_outcome_row",
+        "build_capture", "_sidecar_facts", "flag_off", "seal_h7_run", "verify_h7", "Refused",
+    ),
+    "cb4_analysis": (
+        "load_captures", "load_trades_dir", "fetch_market_outcomes", "load_era", "era_frames", "load_series", "c_inputs", "c_run", "_read_hours", "_rates",
+        "_events_meta", "_pins", "_measure_n", "_measure_e", "_measure_commit", "_fetch_outcomes", "_screen", "_replicate", "stage2_expected", "_series_dir",
+        "_guard_s_register", "_gate",
+    ),
+}
+
+
+def rule_constants() -> dict:
+    """Module constants that are rules (hashed with the declaration; a function's source does not cover a constant it reads)."""
+    from . import cb4_measure, cb4_rules  # noqa: PLC0415
+    from . import history_backfill as hb  # noqa: PLC0415
+
+    return {"MAX_QUOTE_AGE_S": hb.MAX_QUOTE_AGE_S, "GRID_S": hb.GRID_S, "C_SMALL_G": list(cb4_rules.C_SMALL_G), "S_SMALL_G": list(cb4_rules.S_SMALL_G),
+            "INTERPRETATIONS": {"cb4_rules": list(cb4_rules.INTERPRETATIONS), "cb4_measure": list(cb4_measure.INTERPRETATIONS)},
+            "FEE_ERAS": dict(cost_regimes.FEE_ERAS), "ERA_BUFFER_D": cost_regimes.ERA_BUFFER_D}
+
+
 CB4_RULE_MODULES = ("cb4_declaration", "cost_regimes", "cb4_data", "cb4_rules", "cb4_measure", "cb4_analysis")
 ABSENT = "ABSENT"
 
 
 def source_hashes() -> dict[str, str]:
-    """sha256 of every function and class defined in the CB4 rule modules plus the imported rule functions. A module that is not
+    """sha256 of every function and class in the whole-hashed rule modules (``WHOLE_MODULE_HASH``), the explicit rule functions of ``cb4_data`` and
+    ``cb4_analysis`` (``EXPLICIT_RULE_FUNCTIONS``) and the imported rule functions. A module that is not
     importable (not written yet) contributes ``<module>: ABSENT`` and blocks :func:`require_declaration`."""
     out: dict[str, str] = {}
     for mod in CB4_RULE_MODULES:
@@ -207,6 +241,11 @@ def source_hashes() -> dict[str, str]:
             if exc.name != f"{__package__}.{mod}":
                 raise
             out[mod] = ABSENT
+            continue
+        if mod in EXPLICIT_RULE_FUNCTIONS:
+            for name in EXPLICIT_RULE_FUNCTIONS[mod]:
+                obj = getattr(m, name)  # a renamed or removed rule function is an error, never a silent omission
+                out[f"{mod}.{name}"] = hashlib.sha256(inspect.getsource(obj).encode()).hexdigest()
             continue
         for name, obj in sorted(vars(m).items()):
             if (inspect.isfunction(obj) or inspect.isclass(obj)) and getattr(obj, "__module__", None) == m.__name__:
@@ -235,7 +274,7 @@ def declaration_blob() -> dict:
         "hypotheses": {k: HYPOTHESES_CB4[k] for k in sorted(HYPOTHESES_CB4)},
         "refused_run_ids": list(REFUSED_RUN_IDS), "refused_roots": list(REFUSED_ROOTS), "census_forbidden_columns": list(CENSUS_FORBIDDEN_COLUMNS),
         "census_counts": CENSUS_COUNTS, "fee_table": {"docs_rate": economics.DOCS_CATEGORY_RATE, "version": economics.FEE_TABLE_VERSION},
-        "series_rules_doc": cb4_data.series_rules_doc(), "h7": cb4_data.declaration_h7(),
+        "series_rules_doc": cb4_data.series_rules_doc(), "h7": cb4_data.declaration_h7(), "rule_constants": rule_constants(),
         "kinds": list(TRIAL_KINDS), "count_sources": list(COUNT_SOURCES),
     }
 

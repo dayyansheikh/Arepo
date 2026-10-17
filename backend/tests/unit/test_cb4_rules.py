@@ -475,3 +475,26 @@ def test_censored_fill_without_last_bid_is_unavailable_not_silent_nan():
     assert res["censored_unavailable"] == 1 and res["testable"] is False
     ok = R.attach_c2_outcomes(bids, {}, {("m0", 0): 0.3}, censor_mark=9 * DAY)
     assert not ok["unavailable_censored"].any()
+
+
+def test_s_census_counts_no_values_and_pseudo_by_cadence(monkeypatch):
+    units = units_world(n_series=5, per=2) + [make_unit(99, "sT", T0, truncated=True, oldest=T0)]
+    # the census must never call the value functions
+    for name in ("s2_value", "s_values", "s3_at_origin", "print_price"):
+        monkeypatch.setattr(R, name, lambda *a, _n=name, **k: (_ for _ in ()).throw(AssertionError(_n)))
+    c = R.s_census_counts(units)
+    daily = c["by_cadence"]["daily"]
+    assert daily["units"] == 11 and daily["truncated"] == 1 and daily["pa_both"] <= daily["eligible"]
+    assert daily["pseudo_origin_available"] + daily["pseudo_origin_missing"] == daily["pa_both"]
+    assert c["G_series"] <= 5 and "G_series_x_week" in c
+    assert set(R.g50_gate(units)) == {"series", "units", "ok"}
+
+
+def test_e_predicted_mde_uses_declared_scaling():
+    rows = {k: 8000 for k in ("SP0", "SP1", "SP2", "OP0", "OP1", "OP2")}
+    ev = {k: 2000 for k in rows}
+    from astrolabe.research_lab import cb4_measure as M
+
+    m = M.e_predicted_mde(rows, ev)
+    assert 0.5 < m["E1_cents_per_sd"]["mde"] < 0.9 and 0.4 < m["E2_cents_per_print"]["mde"] < 0.8  # doc: about 0.6-0.8c per SD, about 0.6c per print
+    assert M.e_predicted_mde({"SP0": 0}, {}, halves=False)["E1_cents_per_sd"] is None

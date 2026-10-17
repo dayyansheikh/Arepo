@@ -830,7 +830,7 @@ def test_cmd_fetch_refusals(tmp_path, capsys):
     assert rc == 2 and "extract root" in out
     rc, out = run(data_dumps_cap_gb=-1.0)
     assert rc == 75 and "refusing to start" in out
-    rc, out = run(kind="series")  # series rule file absent
+    rc, out = run(kind="series", series_rules_file=str(tmp_path / "absent_rules.json"))  # series rule file absent
     assert rc == 2 and "series-rule" in out
     # declared arguments are enforced unless the test escape hatch is on
     capsys.readouterr()

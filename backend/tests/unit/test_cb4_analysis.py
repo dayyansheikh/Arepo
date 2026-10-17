@@ -164,3 +164,30 @@ def test_replicate_never_derives_k_from_its_own_family():
     src = inspect.getsource(A._replicate)
     assert "else mine" not in src and "stage2_expected(c_dev, s_scr)" in src
     assert src.index("stage2_expected(c_dev, s_scr)") < src.index("if not mine:")
+
+
+def test_census_e_cells_include_p0_halves_truncation_and_mde(tmp_path, monkeypatch):
+    split = D.epoch(D.DATES["D_pl_E"])
+    rows, prints, mt = [], [], []
+    for g in ("S", "O"):
+        for per, e0 in (("P0", split - 5 * 86400), ("P0", split + 5 * 86400), ("P1", split + 100 * 86400), ("P2", split + 200 * 86400)):
+            for i in range(3):
+                mid = f"{g}{per}{e0}{i}"
+                mt.append({"market_id": mid, "group": g, "period": per, "end_epoch": e0, "truncated": i == 0})
+                for k in range(2):
+                    rows.append({"market_id": mid, "event_id": f"ev{mid}", "group": g, "period": per, "t": e0 - k * 3600.0, "end_epoch": e0})
+                    prints.append({"market_id": mid, "event_id": f"ev{mid}", "group": g, "period": per, "t": e0 - k * 3600.0, "end_epoch": e0})
+    monkeypatch.setattr(A, "era_frames", lambda rdir: (pd.DataFrame(rows), pd.DataFrame(prints), {"markets": len(mt), "no_files": 0, "_market_table": mt}))
+    ctx = _ctx(tmp_path)
+    assert A.cmd_census(_ns("--family", "E"), ctx) == 0
+    doc = json.loads((ctx.out_root / "census.json").read_text())["E"]
+    assert {"SP0a", "SP0b", "OP0a", "OP0b", "SP1", "SP2"} <= set(doc["cells"]) and doc["truncation_by_cell"]["SP0a"]["truncated"] == 1
+    assert "delta" in doc["predicted_mde"] and "parallel_trends_placebo_P0_halves" in doc["predicted_mde"] and "_market_table" not in doc["diag"]
+
+
+def test_flip_trades_not_before_guard_exits_75(tmp_path):
+    from datetime import UTC, datetime
+
+    ctx = _ctx(tmp_path, now=datetime(2026, 10, 25, 1, 59, tzinfo=UTC))
+    assert A.cmd_flip_trades(_ns("--window", "dev"), ctx) == A.TEMPFAIL_EXIT == 75
+    assert not (tmp_path / "out").exists()

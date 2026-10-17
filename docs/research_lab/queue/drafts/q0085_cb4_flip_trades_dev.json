@@ -35,5 +35,5 @@
   "data-dumps/research_lab/creative_batch4/flip_trades/dev/manifest.json"
  ],
  "next_action": "q0086",
- "notes": "DRAFT (the coordinator releases it after the science-reviewer CB4 analysis freeze check). Uncounted; no outcome fields. Resumable: markets already in the manifest are skipped; a failed page fails the market (never recorded as truncated) and the next run retries it. The dev window is complete only after T4_dev_end (2026-10-25): release it then. Public Data API at 4 rps, network bound: net lane. Held behind q0086a_cb4_analysis_gate."
+ "notes": "DRAFT (the coordinator releases it after the science-reviewer CB4 analysis freeze check). Uncounted; no outcome fields. Resumable: markets already in the manifest are skipped; a failed page fails the market (never recorded as truncated) and the next run retries it. The dev window is complete only after T4_dev_end (2026-10-25): release it then. The command itself refuses before 2026-10-25T02:00Z with exit 75 (queue tempfail: wait and retry, no attempt burned). Public Data API at 4 rps, network bound: net lane. Held behind q0086a_cb4_analysis_gate."
 }

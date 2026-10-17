@@ -810,11 +810,62 @@ def side_audit_history(units: list[SuccData], raw_trades: dict[str, pd.DataFrame
     return {"shares": shares, "n": ns, "min_share": D.S["h7_side_audit_min_share"], "ok": bool(ok)}
 
 
+def print_available(sd: SuccData, tau: float, buy: bool = True) -> bool:
+    """Census availability: at least one taker-buy (or sell) print on the rolled-into token in ``[tau - 60 min, tau)`` and the unit's prints are not
+    truncated away. A count helper: no price is computed."""
+    a = tau - 60 * 60.0
+    if not sd.prints_available or (sd.truncated and a < H1.oldest_or_inf(sd.oldest_ts)):
+        return False
+    return bool(((sd.tr_ts >= a) & (sd.tr_ts < tau) & (sd.tr_buy == buy)).any())
+
+
+def s2_computable(sd: SuccData, origin: float) -> bool:
+    """P_A exists at both declared times of an origin (``origin + |M|`` and ``origin + V_end``), i.e. S2 would be defined; counts only."""
+    return print_available(sd, origin + sd.M) and print_available(sd, origin + sd.V)
+
+
 def g50_gate(units: list[SuccData]) -> dict:
-    """Gate G50 (census): >= 30 non-sports series and >= 300 SCREEN units with P_A at both times (t0 + |M| and V_end)."""
-    ok_units = [u for u in units if not u.sports and np.isfinite(s2_value(u, u.t0)["neg_v"]) and unit_eligible(u, u.t0)[0]]
+    """Gate G50 (census): >= 30 non-sports series and >= 300 SCREEN units with P_A at both times (t0 + |M| and V_end). Counts only."""
+    ok_units = [u for u in units if not u.sports and unit_eligible(u, u.t0)[0] and s2_computable(u, u.t0)]
     ns = len({u.series_id for u in ok_units})
     return {"series": ns, "units": len(ok_units), "ok": bool(ns >= D.S["g50_series"] and len(ok_units) >= D.S["g50_units"])}
+
+
+def s_census_counts(units: list[SuccData]) -> dict:
+    """Pre-freeze census counts for family S (section 2.7): series by cadence and category, roll units, availability of P_A at each declared time (t0,
+    t0 + |M|, V_end), units with and without a pseudo-roll origin by cadence, G per way (series, series x ISO week), truncated units, ineligibility
+    drops. No S1/S2/S3 value is computed."""
+    by_cad: dict[str, dict] = {}
+    series_cat: dict[str, set] = {}
+    drops: dict[str, int] = {}
+    g_series, g_sw = set(), set()
+    for sd in units:
+        c = by_cad.setdefault(sd.cadence, {"units": 0, "non_sports_units": 0, "eligible": 0, "pa_at_t0": 0, "pa_at_M": 0, "pa_at_V": 0, "pa_both": 0,
+                                           "pseudo_origin_available": 0, "pseudo_origin_missing": 0, "truncated": 0})
+        series_cat.setdefault(f"{sd.cadence}|{sd.category}", set()).add(sd.series_id)
+        c["units"] += 1
+        c["non_sports_units"] += int(not sd.sports)
+        c["truncated"] += int(not sd.prints_available)
+        ok, why = unit_eligible(sd, sd.t0)
+        if not ok:
+            drops[why] = drops.get(why, 0) + 1
+            continue
+        c["eligible"] += 1
+        c["pa_at_t0"] += int(print_available(sd, sd.t0))
+        c["pa_at_M"] += int(print_available(sd, sd.t0 + sd.M))
+        c["pa_at_V"] += int(print_available(sd, sd.t0 + sd.V))
+        if s2_computable(sd, sd.t0):
+            c["pa_both"] += 1
+            if not sd.sports:
+                g_series.add(sd.series_id)
+                g_sw.add(f"{sd.series_id}|{_week_t0(sd)}")
+            o2 = pseudo_origin(sd.t0, sd.V)
+            if unit_eligible(sd, o2)[0] and s2_computable(sd, o2):
+                c["pseudo_origin_available"] += 1
+            else:
+                c["pseudo_origin_missing"] += 1
+    return {"by_cadence": by_cad, "series_by_cadence_category": {k: len(v) for k, v in sorted(series_cat.items())}, "ineligible_by_reason": drops,
+            "G_series": len(g_series), "G_series_x_week": len(g_sw), "units": len(units)}
 
 
 # ---- CB4-S: tests ----------------------------------------------------------------------------------------------------------
