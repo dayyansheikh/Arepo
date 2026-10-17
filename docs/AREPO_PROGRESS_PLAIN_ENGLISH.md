@@ -1,26 +1,25 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 00:45 UTC+1
+**Last updated:** 2026-10-17 05:46 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** sessions between about 21:45 and 23:30 UTC+1 failed at once on a network (DNS) error. It recovered at 23:57; nothing was lost.
-- **Creative batch 1, first results: nothing advanced.** Carry ideas A1, A2 and C1 were negative after costs. E could not be tested
-  (2,886 of 3,200 markets have no stored question text; a data gap, not a negative result). B could not be tested (52 usable ladders
-  against 300 needed). The sealed fresh sample stays unopened for these. 9 tests counted.
-- **Batch 1-D (neg-risk sets):** the capture list is frozen (60 captures). The screen ran out of memory once; it's fixed and re-queued.
-- **ML near-resolution effect (J8):** the extra model skill in a market's last 24 hours survives all three checks the challenger asked
-  for (look-ahead, after-end, near-end). It is still forecasting only, with no cost check. Next it goes into the live ML run.
-- **Live multi-signal ML run (MC1):** never run so far; it needs 40 unbroken 2-hourly captures, which we'll have at about 20:00 UTC+1
-  today. A dry run is on the server now.
-- **Batch 3:** independent re-check passed; its counting job is queued.
-- **Batch 5:** challenged (one placebo could never fail; fixed), revised, and its code is being written.
-- **Batch 6 (new):** a fresh Fable round produced 19 new ideas, for example neg-risk conversion dumps, a "reward-shadow" price band at
-  0.90-0.96, and predicting the catastrophic losses that sank batch 1's longshot idea. Batch 6 is being designed now.
-- **Server:** the weather download (batch 2) is running after a memory fix.
+- **Autopilot:** a session started at 05:38 UTC+1 and is working.
+- **Server disk:** deleting old copies of the 2-hourly market snapshots (once they are 8 days old and safely backed up) is now
+  switched on. The safety check that all four creative batches had saved what they need passed first. Snapshot deletion starts on 19 Oct.
+  Until it catches up, I raised the server's data limit from 12 to 13 GB, so collection does not pause around 19-20 Oct. Disk space
+  is still fine.
+- **Batch 1-D (neg-risk sets): nothing advanced.** D1 was +0.78 points (p 0.016), which fails the pre-set bar (p < 0.01, at least
+  1 point, and surviving removal of the top 5 events; it fell to +0.15). D2 had too few cases to test. The sealed sample stays unopened.
+  Total tests counted so far: 1,106.
+- **Jobs that ran out of memory** are being fixed: batch 3's counting job and the multi-signal ML dry run.
+- **Deadline 22 Oct:** several fresh downloads (batches 4, 6 and the new batch 7) must finish before the seal date. Independent checks
+  that release them are running now.
+- **Batch 7 (new):** being designed from the next ideas on the list: a "specificity discount" in market rules, geopolitics longshots,
+  stepping aside as a maker after Kalshi moves, and price unwinds after a sibling market resolves.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
@@ -65,7 +64,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 5. Infrastructure
 | Item | State |
 |---|---|
-| Server disk | Data 9.7 GB of the 12 GB cap (22:57Z). Deletion of backed-up copies is now ON for trade samples (first run 04:30 UTC+1, frees ~0.6 GB). Snapshots stay protected until batch 4's backfill is complete (a fix is in progress). Without that, the cap is reached about 20 Oct. |
+| Server disk | Data 9.9 GB (05:39 UTC+1); cap raised 12 -> 13 GB today. Backed-up trade samples deleted at 3 days (freed 0.6 GB last night); snapshots now deleted at 8 days (from 19 Oct). Expected to level off at about 11-12 GB. 8.6 GB of disk free. |
 | Server size | 1 CPU and about 5.6 GB RAM, so one heavy job at a time. It can't be enlarged without Oracle console access. |
 | Mac | No background jobs. |
 

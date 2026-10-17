@@ -165,25 +165,26 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 00:45 UTC+1
-0. **Autopilot session from 22:57Z 10-16** (sessions 20:44Z-22:27Z died on DNS errors):
-   - **Done:** h5 seal copies + gate q0043a; CB1 h2 write-up (ba93c65, all null/not testable, 9 tests); CB3 re-check RELEASE + gate q0061a;
-     CB1-D dev list frozen (60, sha `967a0cb0…`), q0022a/q0022 queued, loader OOM fixed (91ab251) and q0022a retried; q0043 OOM fixed
-     (a542d93, streaming; commit message says "spool" but it streams) and retried; CB5 challenger + revision (018bd6d); CB5 code in progress
-     (b955aa2, ea7247e); J8 q0100 written up (gain survives all three artefact checks; descriptive); round-3 hypotheses CH60-CH78 (1e1febf);
-     q0110 MC1 dry run queued; **retention:** gate script + CB4 closewin pass step (b712978), `--dry-run` removed for current rules only
-     (1ad2e9b; host crontab edited, backup `/tmp/crontab.bak.*`).
-   - **Running agents:** CB4 analysis completion (+ asked: fix closewin stall on release-only capture `20261013T231958Z_80e78ef1` so the
-     CB4 manifest completes; fix a hanging test_cb4_data test); CB5 implementer; CB6 design (q0120-q0139) from CH66/CH71/CH60/CH77.
-1. CB4 lands → deploy; after 1-2 passes run `scripts/retention_gate_check.py` on the host; when PASS move only `snapshots/` into `rules`
-   (sweeps stay deferred: q0035 and MC1 read raw sweeps) **before 10-19 03:30Z**; cap otherwise hit ~10-20. Then CB4 freeze check.
-2. CB5 code lands → science-reviewer freeze check → promote drafts q0101-q0114; wire its pass-step line (doc) into arepo_pass.sh.
-3. CB6 draft lands → challenger; any fetch needed before T_seal 2026-10-22 first.
-4. **MC1:** read q0110 dry-run (peak RSS/time); create q0111 real run + gate q0111a after the 40th consecutive capture (~10-17T19Z);
-   cache the panel before 10-23 03:30Z. Add as-of hours-to-end (J8) as an MC1 input only via a declared exploratory family.
-5. Write up q0061 (CB3 census → CB3 freeze), q0022 (CB1-D: D1/D2 gates; stop rule), q0043 → q0044 seal.
-6. Standing: CB3 live `quote_state` pass step not wired (deadline 10-24 03:30Z); after 10-21T03Z gate q0036 → q0035; on/after 10-22T00Z
-   q0083b one-shot; B3 at 10-19 (q0029). Temp worktree `/tmp/arepo_wt_rgc` left by an agent (`git worktree remove` is an ask rule).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 05:50 UTC+1
+0. **Autopilot session from 04:38Z 10-17.**
+   - **Done:** retention gate PASS on host (04:39Z) -> `snapshots/` 8-day rule active; collector cap 12->13 GB; CB4 closewin
+     headroom 13, CB5 listings headroom 10->12 (pass step + q0101, which had tempfailed at 9.9 GB) (f4cf8c2); CB4 dead-agent diff
+     finished (9cda78b, fix-6 hash coverage, new declaration hash `1d170741…`, q0085 refuses before 10-25T02Z); CB1-D dev screen
+     written up (1f13d4a): D1 +0.78 pp p 0.016 fails alpha 0.01/floor/top-5 robustness, D2 untestable (33 triggers) -> stop rule,
+     cumulative tests 1,106.
+   - **Running agents:** MC1 OOM fix (dead agent's ml_panel_cache work; new spec q0115_mc1_dev_dryrun2; sidecar ArchivedDataError);
+     CB3 census OOM fix (q0061b) + CB3 live quote_state pass step; CB5 freeze re-check (reviewer); CB6 q0120 fetcher freeze check
+     (reviewer); CB4 h7 release re-check (reviewer: create gate q0081a? promote q0083b?); CB7 design (CH63 h8_text, CH61 h8_geo,
+     CH73, CH67; drafts q0140-q0159).
+   - Deploy of a9e8aad was waiting for the 04:31Z pass lock.
+1. **T_seal 2026-10-22T00Z critical path (net lane):** q0043 weather (3,778/5,000 events, run 3) -> h7: gate q0081a -> frames
+   q0081f/q0082f -> group-S amendment `seals/h7_cb4_group_s_amendment.json` -> gate q0081g -> q0081/q0082 (6-9 h) -> q0083 seal;
+   q0083b deadline recorder; CB6 q0120a smoke -> q0120 (3.5 h) -> q0120s; CB5 q0102/q0103; CB7 h8_text/h8_geo if designed in time.
+2. MC1: q0115 dry run -> real run + gate after the 40th consecutive capture (~10-17T19Z); cache the panel before 10-23 03:30Z.
+3. CB3: q0061b census -> CB3 freeze; quote_state pass step before 10-24 03:30Z. CB5: freeze verdict -> promote q0102-q0109.
+   CB4 analysis: science-reviewer freeze check of cb4_rules/measure/analysis (hash `1d170741…`), then q0086 census.
+4. Standing: after 10-21T03Z gate q0036 -> q0035; B3 at 10-19 (q0029). `book_sweeps/` rule stays deferred until q0035 done and MC1
+   panel cached. Temp worktree `/tmp/arepo_wt_rgc` (worktree remove is an ask rule).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
