@@ -23,7 +23,8 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
   volumes or backups, 100 of 200 GB used. The host was grown online with the rescan plus `oci-growfs`.
 - **Result:** root is 89 GB with 61 GB free. Collection and the monitors were uninterrupted.
 - **Collector cap:** 16 -> 45 GiB (`arepo_pass.sh`, deployed 0122e3e). The 4 GB free-disk guard is kept.
-- **Per-job guards:** per-job `--data-dumps-cap-gb` / headroom guards (13-14) can now be raised by the owning batch session.
+- **Per-job guards:** raised to **40 GiB** in every pending job and draft by the autopilot (36d908f, deployed 15:35Z;
+  q0120b was running and stays at 14). New convention: `--data-dumps-cap-gb 40`.
 - **Relocation:** the /var/oled relocation is not needed and was not done. Symlinked dirs could hide files from recursive
   globs.
 
