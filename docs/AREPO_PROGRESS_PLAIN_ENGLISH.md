@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 16:00 UTC+1
+**Last updated:** 2026-10-17 16:11 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -14,11 +14,11 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   than 4 GB of disk is free) is unchanged, and at about 1.1 GB a day it is reached around 20 Oct. Deletion of
   backed-up 8-day-old snapshots starts freeing space about 21 Oct, so there is a risk of losing about a day of collection.
   **Your approval would remove this risk** (see section 2, item 6).
-- **Building batch 9 now** (from idea round 4): a check of whether the public trade feed labels buys and sells correctly,
-  market-making in daily stock markets settled by a public price feed, a "flow-aware" market maker, and how the displayed
-  mid price is formed. The challenger's fixes are applied. Two programmers are writing the code in parallel; an
-  independent check of code against design comes next. Its downloads wait until after 22 Oct (the data deadline of
-  earlier batches).
+- **Batch 9's code is written and tested** (94 tests). An independent check that the code matches the design is
+  running; its small download test can then run before 22 Oct, and its real downloads after.
+- **Batch 5's family-listing job ran out of memory again.** Cause found: this morning's fix had been written but never
+  connected to the program. Now connected (same output, checked by a test) and sent to the server; one retry is left.
+- **Batch 6's top-up download started** at 16:08 UTC+1.
 - **Batch 4's series download kept running out of memory** (4 attempts). Fixed without changing any output (it now
   streams the file instead of loading it whole) and sent to the server; it runs after batch 6's top-up download.
 - **Batch 8's analysis code for "Binance terminal minutes"** (buying the near-certain side of daily crypto Up/Down
@@ -27,7 +27,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   predict Polymarket's daily Bitcoin/Ether price-ladder outcomes beyond Polymarket's own price; (2) do prices bounce back
   after breaking round levels like 0.50. Four other ideas were dropped with reasons (e.g. parlay prices are not public).
   The challenger found 15 required fixes, including a hidden bias that would have made the options test look better
-  than it is; the author is applying them.
+  than it is. The author applied all 15; the options test now runs only if a power check (made without looking at
+  outcomes) shows it can detect a useful effect. Its code is being written.
 - **Batch 7's two main downloads finished** (text markets and geography markets). Batch 6's top-up download had been
   refusing to start because of the disk limit; it can start now.
 - **Batch 4's small test** found the behaviour it looks for almost never happens, so that part (N1/N2) is recorded as
