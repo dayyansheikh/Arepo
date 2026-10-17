@@ -1498,3 +1498,5 @@ is not written or committed here: the freeze (`write_spec` with the census pins)
 3. Not exercised end to end: `measure-N`/`pilot` against live pmxt range reads, `measure-E` on a real sealed `h7_cb4_era`, C and S `screen`/`replicate`
    on real data (unit tests cover rules, guards and the not-testable paths only).
 4. Freeze-check item 13 and the host coverage check are still open (pass-step line in `arepo_pass.sh`, RETENTION.md 2.10(b); host capture coverage vs release-only captures).
+
+- 2026-10-17: `run_closewin` no longer stops on an unavailable release copy (the q0080 stall on `20261013T231958Z_80e78ef1`, which lives only in the val ledger release): the capture is recorded `missing` / `release_unavailable` (counted; retried by `--retry-missing` and every all-new pass) and the walk continues; five consecutive such failures still stop the run as an outage guard.

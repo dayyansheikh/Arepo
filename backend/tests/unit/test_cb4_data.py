@@ -373,7 +373,7 @@ def test_release_missing_hash_mismatch_and_unknown_are_missing_not_reconstructed
     assert man["captures"]["r0"]["reason"] == "release_hash_mismatch" and man["captures"]["r1"]["reason"] == "no_release_copy"
 
 
-def test_release_restore_failure_after_retries_stops_not_complete(tmp_path):
+def test_release_unavailable_is_recorded_missing_and_walk_continues(tmp_path):
     snap = tmp_path / "snapshots"
     for cid, st in (("r0", S0), ("r1", S1), ("r2", S2)):
         make_capture(snap, cid, st, [], with_files=False)
@@ -381,9 +381,22 @@ def test_release_restore_failure_after_retries_stops_not_complete(tmp_path):
                for c in ("r0", "r1", "r2") for n in ("rows.csv.gz", "rows_ext.csv.gz")]
     rel = d.ReleaseCopies(tmp_path / "scr", catalogue=_catalogue(tmp_path, entries), restore=lambda *_a: False, cap_bytes=2500, retries=2, backoff_s=0, sleep=lambda s: None)
     r = d.run_closewin(snap, tmp_path / "none", tmp_path / "root", mode="backfill", since=S0, release=rel)
-    assert r["stopped"] == "release_unavailable" and r["backfill_complete"] is False
-    # transient failure: nothing is marked missing, the capture stays pending (order and departures preserved)
-    assert r["missing"] == 0 and r["remaining"] == 3 and r["restore_retries"] == 2
+    # all three recorded as missing/release_unavailable (fewer than the outage threshold), none left pending, the walk reached the end
+    assert r["missing"] == 3 and r["remaining"] == 0 and r["stopped"] is None and r["backfill_complete"] is True
+    man = json.loads((tmp_path / "root" / "manifest.json").read_text())
+    assert {man["captures"][c]["reason"] for c in ("r0", "r1", "r2")} == {"release_unavailable"}
+
+
+def test_release_unavailable_outage_guard_stops_after_consecutive_failures(tmp_path, monkeypatch):
+    monkeypatch.setattr(d, "RELEASE_UNAVAILABLE_STOP", 2)
+    snap = tmp_path / "snapshots"
+    for cid, st in (("r0", S0), ("r1", S1), ("r2", S2)):
+        make_capture(snap, cid, st, [], with_files=False)
+    entries = [{"path": f"data-dumps/research_lab/snapshots/{c}/{n}", "bytes": 1000, "sha256": None}
+               for c in ("r0", "r1", "r2") for n in ("rows.csv.gz", "rows_ext.csv.gz")]
+    rel = d.ReleaseCopies(tmp_path / "scr", catalogue=_catalogue(tmp_path, entries), restore=lambda *_a: False, cap_bytes=2500, retries=2, backoff_s=0, sleep=lambda s: None)
+    r = d.run_closewin(snap, tmp_path / "none", tmp_path / "root", mode="backfill", since=S0, release=rel)
+    assert r["stopped"] == "release_unavailable" and r["backfill_complete"] is False and r["remaining"] == 1 and r["restore_retries"] >= 2
 
 
 def test_release_capture_larger_than_scratch_cap_is_not_restored(tmp_path):

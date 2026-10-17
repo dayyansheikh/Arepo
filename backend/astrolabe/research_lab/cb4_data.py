@@ -392,6 +392,9 @@ def _is_local(cap: dict) -> bool:
     return (d / "rows.csv.gz").exists() and (d / "rows_ext.csv.gz").exists()
 
 
+RELEASE_UNAVAILABLE_STOP = 5  # consecutive unavailable release copies that end a run (outage guard)
+
+
 def run_closewin(
     snapshot_root: Path = SNAPSHOT_ROOT, sweep_root: Path = SWEEP_ROOT, root: Path = CB4_ROOT, *,
     mode: str, since: str | None = T4_DEV_START, before: str | None = None, budget_s: float = DEFAULT_BUDGET_S,
@@ -411,8 +414,8 @@ def run_closewin(
     between captures. Idempotent by capture_id. Captures that exist only in the release catalogue (no host
     manifest) are added to the list (``release_only``); without ``release`` they are recorded
     ``no_host_manifest``. A capture whose raw files are gone and that has no verified release copy is recorded
-    as ``missing`` with the true reason and the run continues; a transient restore failure (after retries)
-    stops the run and leaves the capture pending. ``release`` (backfill with ``--release-stream``) restores missing
+    as ``missing`` with the true reason and the run continues; a restore failure (after retries) is recorded
+    ``missing`` / ``release_unavailable`` and the run continues, stopping only after RELEASE_UNAVAILABLE_STOP in a row. ``release`` (backfill with ``--release-stream``) restores missing
     captures from the release copies into a scratch directory that never exceeds its cap."""
     if mode not in MODES:
         raise ValueError(mode)
@@ -459,6 +462,7 @@ def run_closewin(
         sidx = sweep_index(sweep_root) if todo else {}
         used = _used_gb(root, dir_gb) if disk_cap_gb is not None else 0.0
         slowest, t0 = 0.0, clock()
+        consec_unavail = 0
         deadline = t0 + budget_s
 
         def first_sweep(cid: str) -> Path | None:
@@ -490,9 +494,22 @@ def run_closewin(
                         try:
                             files, reason = release.ensure(cap, sw_dir, upcoming)
                         except ReleaseUnavailable:
-                            res["stopped"] = "release_unavailable"  # transient: the capture stays pending, order is kept
+                            # Recorded as missing (counted; retried by --retry-missing and by every all-new pass) and the walk continues, so one
+                            # unreachable release (e.g. a capture only in the separate val ledger) cannot stall every later capture. A run of
+                            # RELEASE_UNAVAILABLE_STOP consecutive failures is a real outage: stop, so a network fault never relabels the backlog.
                             res["restore_retries"] = release.restore_retries
-                            break
+                            consec_unavail += 1
+                            files, reason = None, "release_unavailable"
+                            if consec_unavail >= RELEASE_UNAVAILABLE_STOP:
+                                man["captures"][cid] = {"capture_id": cid, "capture_start_utc": start, "status": "missing", "reason": reason,
+                                                        "release_only": bool(cap.get("release_only")), "extractor_version": CLOSEWIN_VERSION,
+                                                        "written_utc": now(), "mode": mode}
+                                res["missing"] += 1
+                                _atomic_write_json(root / "manifest.json", man)
+                                res["stopped"] = "release_unavailable"
+                                break
+                        else:
+                            consec_unavail = 0
                         if files is not None and cap.get("release_only"):
                             try:
                                 mstate = json.loads(Path(files["manifest"]).read_text()).get("state")
