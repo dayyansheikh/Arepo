@@ -1,0 +1,41 @@
+{
+ "id": "q0160c_cb8_holders_smoke_v3",
+ "title": "CB8-H smoke v3 (H-v4/H-v5/H-v6): market OI from the Data API /oi for EVERY base-frame market (batches of 60; a batch with an empty reply or a failure is split into batches of <= 15 at once; frame time t_f per batch, strictly before the first /holders request), 20 live markets from the OI >= 1,000 frame: /holders HTTP, token grouping, outcomeIndex, numeric amount, proxyWallet present and hashed in memory, rows per token <= 20, response time; /oi value, single-market event OI and sum-top-20 ratios (OI units); criterion h: share of base-frame markets in oi_lookup_failed + oi_nonnumeric + absent_contradicted (absent with single-market event OI >= 1,000 in the capture) <= 2 %, oi_absent otherwise counted as OI 0; criterion i: /holders of the 20 absent markets with the highest capture volume24hr, none with top-20 holdings >= 1,000; split counts disclosed; strict-key fingerprint; deep-offset paging probe; realised frame and stratum sizes vs 1,500 + 300; counts only",
+ "family": "creative_batch_8",
+ "priority": 55,
+ "expected_value": "source check before the prospective CH70 collection (smoke v2 FAILed h only: 82 % of base markets are absent from /oi = no OI listed; H-v4 amendment)",
+ "data": [
+  "latest complete capture (frame fields + sidecar event_open_interest)",
+  "public Data API /oi (about 4,600 requests of 60 condition ids)",
+  "public Data API /holders (20 smoke picks + 20 absent-market probes) and /trades (2 paging probes)",
+  "docs/research_lab/seals/cb8_holders_rules_v6.json (hash-checked; rules_sha256 e7e72f4c...)"
+ ],
+ "resources": {
+  "mem_mb": 700,
+  "cpu": 1,
+  "network": "data-api",
+  "lane": "net"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb8.py",
+  "holders-smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb8_holders_rules_v6.json",
+  "--seed",
+  "arepo-cb8-hsmoke-v3",
+  "--n",
+  "20",
+  "--rps",
+  "2",
+  "--oi-rps",
+  "4"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/holders_smoke_v3.json (WRITE-ONCE; holders_smoke.json (v1) and holders_smoke_v2.json (FAIL h) are never overwritten)"
+ ],
+ "next_action": "PASS (a, b, f, h, i): collector freeze check, then promote q0162/q0163 (they pin the v6 rules hash and this v3 PASS). FAIL of a, b, f, h or i: H is \"not run (source)\", counted; no smoke v4",
+ "notes": "DRAFT; needs a science-reviewer pass before queue/jobs/. CREATIVE_BATCH_8.md \"CB8-H amendment H-v4 (oi_absent)\". q0160b FAILed criterion h only (228,318 of 278,705 base markets absent from /oi); verification showed absent = no OI listed = no holders (40 of 40). Changes vs q0160b: oi_absent is OI 0 (excluded by the unchanged OI >= 1,000 rule); the 2 % rule counts oi_lookup_failed + oi_nonnumeric only; smoke version cb8-holders-smoke-v3, seed arepo-cb8-hsmoke-v3 (the CLI default output is holders_smoke_v3.json, so no --out is passed), rules v6 (rules_sha256 e7e72f4c75693cfaf30a91c11939eb16b756b7cae879868e0e7a11f9a2af2bb6, code commit d922ffc (H-v6)). Same cost and timeout as q0160b (about 4,650 /oi requests of 60 ids, 20 /holders, 2 paging requests); a timeout or exit 75 writes nothing and may be re-queued under a new id. Exit 2 if holders_smoke_v3.json exists or on a rules-hash or key mismatch. Timing: must finish and the collector freeze check pass before H1 earliest start 2026-10-21T06:00Z (T_seal 2026-10-22T00Z). H-v5 (reviewer ACCEPT_WITH_REQUIRED_CHANGES): absent markets with single-market event OI >= 1,000 in the capture count as absent_contradicted inside the 2 % rule; criterion i = seeded /holders probe of the 20 absent markets with the highest capture volume24hr (any with top-20 holdings >= 1,000 fails the smoke; >= 19 of 20 replies HTTP 200), 20 extra /holders requests; /oi batches of more than 15 ids that return an empty list or fail (403) are split into batches of <= 15. Output holders_smoke_v3.json now carries criterion_i_absent_probe and absent_probe (counts only). H-v6 (reviewer GO_WITH_CONDITIONS): splits are auditable (split, n_split_requests, n_empty_small persisted per batch and counted in oi.n_split_batches / n_split_requests / n_empty_replies_le15 / split_reasons). A 60-batch is requested without client retries and split at the first failure, so a 403 no longer burns about 63 s of backoff per batch. Timeout: the v2 run (0 failures) took well under 5,400 s; worst case if every one of ~4,650 batches split is ~4,650 x (1 + 4) = ~23,300 requests, ~3.9 h at ~0.6 s per reply, so timeout_s is raised from 5,400 to 14,400 (ops only; not a hashed field). A timeout writes nothing and is not a FAIL. | PROMOTED 2026-10-17 ~21:00Z by the autopilot: re-check GO_WITH_CONDITIONS on v5; both conditions met in v6 (split records persisted, next_action/title fixed; d922ffc, d278c89); holders rules v6 e7e72f4c..., 205 cb8 tests pass."
+}
