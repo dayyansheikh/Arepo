@@ -18,5 +18,5 @@
  "max_retries": 1,
  "outputs": [],
  "next_action": "q0084 and q0085 run, then q0086",
- "notes": "DRAFT coordinator gate (same trivial argv as q0033/q0039/q0080a). Copy to queue/jobs/ only after a science-reviewer pass on the CB4 analysis commit. q0087-q0089 depend on the CB4 freeze, not on this gate. q0090-q0093 are intentionally not drafted: their numbers clash with CB5 (their text is in CREATIVE_BATCH_4.md section 5; renumber at release)."
+ "notes": "DRAFT coordinator gate (same trivial argv as q0033/q0039/q0080a). Copy to queue/jobs/ only after a science-reviewer pass on the CB4 analysis commit. q0087-q0089 depend on the CB4 freeze, not on this gate. q0090-q0093 are intentionally not drafted: their numbers clash with CB5 (their text is in CREATIVE_BATCH_4.md section 5; renumber at release). Created 2026-10-17 after the CB4 analysis freeze check (GO_WITH_CONDITIONS): q0084 may run now; q0086 additionally waits for q0086b."
 }
