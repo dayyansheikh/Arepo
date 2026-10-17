@@ -47,6 +47,7 @@ import os
 import resource
 import sys
 import time
+import warnings
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -283,6 +284,61 @@ def period_salt(delta: float, link_digest: str | None) -> str:
     return hashlib.sha256(blob.encode()).hexdigest()
 
 
+def read_panel_compact(pq_path: Path, columns: list[str] | None = None) -> pd.DataFrame:
+    """Value- and dtype-identical to ``pd.read_parquet(pq_path, columns=columns)`` with a far
+    smaller peak: numeric columns convert column-by-column (no consolidated multi-GB block) while
+    the Arrow buffers are released as they convert, and string columns become object arrays that
+    share one Python str per distinct value (nulls stay ``None``)."""
+    import numpy as np
+    import pyarrow as pa
+    import pyarrow.parquet as papq
+
+    table = papq.read_table(pq_path, columns=columns)
+    names = list(table.column_names)
+    strs = {}
+    for n in names:
+        t = table.schema.field(n).type
+        if pa.types.is_string(t) or pa.types.is_large_string(t):
+            enc = table.column(n).combine_chunks().dictionary_encode()
+            uniq = np.empty(len(enc.dictionary) + 1, dtype=object)
+            uniq[: len(enc.dictionary)] = enc.dictionary.to_pylist()
+            uniq[-1] = None
+            strs[n] = uniq[enc.indices.fill_null(len(enc.dictionary)).to_numpy()]
+            del enc
+    table = table.drop_columns(list(strs))
+    df = table.to_pandas(split_blocks=True, self_destruct=True)
+    del table
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
+        for i, n in enumerate(names):
+            if n in strs:
+                df.insert(i, n, strs.pop(n))
+    return df
+
+
+def slim_panel_summary(df: pd.DataFrame) -> dict:
+    """``panel_summary(df)`` without copying the whole frame: in-frame NaN rates, then the summary
+    on the (small) DRY_COLUMNS subset it actually reads."""
+    from astrolabe.research_lab import ml_panel
+
+    rates = ({c: float(df[c].isna().mean()) for c in ml_panel.EXTENDED_NAMES if c in df.columns}
+             if len(df) else {})
+    return panel_summary(df[[c for c in DRY_COLUMNS if c in df.columns]].copy(), rates)
+
+
+def labelled_consuming(df: pd.DataFrame) -> pd.DataFrame:
+    """Equal to ``ml_panel.labelled(df)`` but drops each column of ``df`` as soon as it is copied
+    (``df`` is left empty), so the full and the labelled frame never coexist."""
+    mask = df["target_available"].to_numpy(dtype=bool)
+    cols = {}
+    for c in list(df.columns):
+        cols[c] = df[c].to_numpy()[mask]
+        del df[c]
+    out = pd.DataFrame(cols)
+    out.attrs.update(df.attrs)
+    return out
+
+
 def get_panel(caps, sweeps, policy, delta, cache_root: Path, rebuild: bool = False,
               with_leak: bool = False, link_frame: Path | None = None,
               columns: list[str] | tuple[str, ...] | None = None):
@@ -314,7 +370,7 @@ def get_panel(caps, sweeps, policy, delta, cache_root: Path, rebuild: bool = Fal
 
         have = set(papq.read_schema(pq).names)
         columns = [c for c in columns if c in have]
-    df = pd.read_parquet(pq, columns=None if columns is None else list(columns))
+    df = read_panel_compact(pq, None if columns is None else list(columns))
     df.attrs["category_info"] = info
     return df, counts, h, cdir, cached
 
@@ -733,7 +789,10 @@ def real_run(args, caps, gate, policy) -> dict:
     # the manifest is written (and hashed) before any fit
     (out_dir / f"{stem}_fold_manifest.json").write_text(
         json.dumps(_clean(man), indent=1, default=_jsonable))
-    lab = ml_panel.labelled(df)
+    # pure summary of the full panel, computed now so the full frame can be freed before the fits
+    panel_sum = slim_panel_summary(df)
+    lab = labelled_consuming(df)
+    del df
     trials_path = Path(args.trials_path)
     before = _count_lines(trials_path)
     overridden = bool(gate.get("gate_overridden"))
@@ -773,7 +832,7 @@ def real_run(args, caps, gate, policy) -> dict:
         "capture_ids": [c["capture_id"] for c in run_caps], "sweeps": sweep_report,
         "manifest_sha256": man["manifest_sha256"], "n_folds": len(man["folds"]),
         "category_policy": man["category_policy"], "code_sha": man["code_sha"],
-        "panel": panel_summary(df), "score": score, "shap": shap,
+        "panel": panel_sum, "score": score, "shap": shap,
         "sweep_gap": diag, "sweep_gap_diagnostic_mandatory": True,
         "arms_use_sweep_features": True,
         "arm_fold_diagnostics": {a: r.folds for a, r in {**results, **probe_results}.items()},
