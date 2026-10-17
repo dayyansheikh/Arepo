@@ -961,3 +961,47 @@ batch-Holm k1 = 5. MDEs: P1 about 10-15c (was 7-10c), P2 about 2-4c, K1 about 1c
 post-`T_seal` `net` lane.
 
 This is the single response round; the next review is the code-against-design freeze check.
+
+## 11. Implementation notes (2026-10-17; appended, design text above unchanged)
+
+**Commits.** `e07d867` (`cb9_common.py`, `battery2.KIND_RULES` cb9 kinds), `388862e` (`cb9_sign.py`, `cb9_pyth.py`, `scripts/run_cb9.py`, tests
+`test_cb9_sign.py`, `test_cb9_pyth.py`, `test_run_cb9.py`), `f7ee838` (rules files). K/D: `cb9_kd.py` + `test_cb9_kd.py` (`7402a81`, `59e7432`).
+Draft spec: `queue/drafts/q0180_cb9_smoke.json` (nothing in `queue/jobs/`).
+
+**Rules files (written from code at `388862e`; wallet_key_fingerprint `80ce5e81a539a570`, the CB8 key).**
+
+| File | file sha256 | rules_sha256 |
+|---|---|---|
+| `seals/cb9_sign_rules.json` (`cb9-sign-rules-v1`) | `69f98882fe1a0c4d41e912ee16715a784ac8e7f718d5c12ec25679ca238a21cf` | `2372d7cf0ca68b0d6502910712d58ffea9254db32caa62c654b536a76c6e816a` |
+| `seals/cb9_rules.json` (`cb9-rules-v1`: P, q0182 keys, census gates) | `c3b4e3c93967eadc6998e89e6429ce35f482f72ad7fa7b452d549fda66f142ad` | `d88d5272a44e89e7454779015147dc5861132e41d4bdbba09db78b456ffff4e1` |
+| `seals/cb9_kd_rules.json` (`cb9-kd-rules-v1`) | `e1fa5d6472640421e5c7df90ba58977d51c8c2e200269d281e932a3de881f4e4` | `d10ed7317ac0611d749b6dbcafe5dfef277fbc95da782ee37039b4f2e11f6f0f` |
+
+The local Keccak-256 reproduces all four full topic pins of §CB9-S and the `FeeCharged` prefix; the sign rules file records every computed topic.
+
+**Deviations and open items for the code-against-design freeze check.**
+1. Rules files: K/D rules are a separate file (`cb9_kd_rules.json`), not part of `cb9_rules.json` (§1.4); the Yahoo bar clock and smoke
+   functions are hashed into both the sign and the P rules files.
+2. Contract addresses: v1 exchanges, neg-risk adapter and CTF pinned from memory of Polymarket's published list; v2 exchanges from probe 2-3.
+   v2 `Side` enum pinned BUY = 0, SELL = 1; v2 indexed layout = the leading `len(topics) - 1` parameters; v2 share amount = taker amount on BUY,
+   maker amount on SELL. None was re-verified against the published list / v2 source in this session (no network). The q0180 smoke
+   (T1 = T2 on >= 18 of 20 receipts per era) fails rather than misreads if any is wrong; a wrong pin needs a v2 rules file.
+3. P rule-text flags were written from the probe-5 summary and the committed Pyth monthly text, not from the full 2026-09-15 Up/Down text.
+   `CREATIVE_HYPOTHESES_2026-10-18` says "exactly equal resolves Down" while probe 5 says "equal -> 50-50"; the design freezes the 50-50
+   equality clause, so a Down-on-equal text leaves the frame (counted). Verify the flags before q0183.
+4. Design-silent choices (conservative): S0 markets with a capped print window are unavailable, no replacement market; sampled markets with < 4
+   prints contribute what they have; liquidity tercile = Gamma volume terciles over the stratum's sample; price bands <0.10 / 0.10-0.30 /
+   0.30-0.70 / 0.70-0.90 / >=0.90; S0c drops by the CB7 key file plus seal-copy ids (no key lookup for seal ids); `q_wc` and the GS match rate count
+   receipt-unavailable prints as unmatched; the source gate compares side and token; S0 rows store `notional` (size x price) for the round-1
+   notional-weighted agreement although §CB9-S lists no price field.
+5. S0b draws only from SCREEN pre-origin prints (`*.prints_pre.csv.gz`; the guarded post-origin files are not opened). The pmxt `last_trade_price`
+   files cover hour 14Z (13Z lookback), so the feed-side column will be mostly blank. Reading post-origin prints (column-restricted) would fill it;
+   that needs a reviewer decision.
+6. P choices: sigma uses the six one-hour returns of bars 09:30-14:30 (the 30-minute last bar is never read); the stale anchor at 10:32 is the prior
+   session's 14:30 bar; q0184 reads the previous pmxt hour for tokens without a book snapshot by the checkpoint (as CB8-B); the P2 queue depth is the
+   resting size at the quote's own level; the trade-through rule needs >= 20 shares strictly through; P2 size weights are filled shares; GP's P2
+   fill condition is >= 100 fills for EACH quote type; NYSE 2026 holidays and half sessions are a pinned list.
+7. q0181/q0182/q0183/q0184 refuse (exit 2) before `T_seal`; q0180 is not `T_seal`-bound. `--data-dumps-cap-gb` defaults to 12.5 (the specs pass 13).
+8. P-rep trial lines carry `evidence_role` `exploratory_historical` with `data_role` `prospective_post_freeze`; the provenance role list has no
+   non-confirmation prospective role.
+9. q0197 (`rep --family KD` -> `rep-kd`) needs `--stage2-k`, which the §4 draft argv lacks. `screen --family KD` dispatches to `screen-kd`.
+10. Batch-Holm is a separate `stage1-label` subcommand over P1, P2, K1, D1, S1 (k1 = 5; not run / not testable -> p = 1).
