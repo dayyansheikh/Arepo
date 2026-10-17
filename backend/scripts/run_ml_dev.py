@@ -28,8 +28,11 @@ Evidence role: every trial line written here carries ``evidence_role`` (``explor
 Gate (design section 6): at least 40 *consecutive* complete snapshots with the sidecar present,
 consecutive meaning every start-to-start gap lies in [1.5, 3.0] h (the ``ml_panel`` pairing rule).
 Snapshots are only read, never modified. The panel is built period by period by
-``ml_panel.build_panel`` (two snapshots and one sweep in memory at once) and cached as parquet
-under ``data-dumps/research_lab/ml_cache/<panel hash>/``.
+``ml_panel_cache.build_panel_to_parquet`` (two snapshots and one sweep in memory at once; every
+period frame is spilled to ``ml_cache/periods/<period key>.parquet`` and reused by any later panel
+that gives the period the same inputs) and written as parquet under
+``data-dumps/research_lab/ml_cache/<panel hash>/``. It is the same panel ``ml_panel.build_panel``
+returns (after the parquet round trip every cached run already used).
 """
 
 from __future__ import annotations
@@ -64,7 +67,11 @@ MIN_SNAPSHOTS = 40
 # Test code only: lowers the gate. Any use is stamped gate_overridden=true everywhere.
 TEST_GATE_ENV = "AREPO_ML_DEV_TEST_ONLY_MIN_SNAPSHOTS"
 CADENCE_H = 2.0
-HASHED_MODULES = ("ml_panel", "panel", "features", "features_dev", "evaluate")
+HASHED_MODULES = ("ml_panel", "ml_panel_cache", "panel", "features", "features_dev", "evaluate")
+# columns the dry run reads back (panel_summary + fold plan); feature NaN rates are streamed
+DRY_COLUMNS = ("period", "capture_i", "target_available", "y_class", "dmid", "t_i", "t0", "t_j",
+               "event_id", "market_id", "dep_group", "dep_group_season", "dep_group_econ",
+               "dep_group_category_driver", "dep_group_no_parent", "rep_sw_gap")
 CORE_FAMILY = "market_state"
 EVIDENCE_ROLE = "exploratory_dev"  # this runner never produces prospective_confirmation
 
@@ -95,8 +102,12 @@ MIN_EXT_VERSION = 3  # parent links (parentEventId) enter dep_group only from si
 
 def sidecar_version(snapshot_dir: Path) -> int | None:
     """Sidecar ``ext_version`` number (``snapshot-ext-v3`` -> 3) when the sidecar is complete."""
+    from astrolabe.research_lab import forecast
+
     d = Path(snapshot_dir)
     mp = d / "ext_manifest.json"
+    if mp.exists():
+        forecast.require_local(d / "rows_ext.csv.gz")  # manifest kept, sidecar archived: loud
     if not (d / "rows_ext.csv.gz").exists() or not mp.exists():
         return None
     try:
@@ -259,29 +270,62 @@ def _clean(o):
     return o
 
 
+def period_salt(delta: float, link_digest: str | None) -> str:
+    """Everything a period frame depends on besides its captures and sweeps (period cache key)."""
+    from astrolabe.research_lab import ml_panel, provenance
+
+    here = Path(ml_panel.__file__).parent
+    body = {"delta": delta, "link_digest": link_digest,
+            "features": ml_panel.extended_feature_versions(),
+            "modules": {m: provenance.sha256_file(here / f"{m}.py") for m in HASHED_MODULES},
+            "dep_underlying_date": ml_panel.DEP_GROUP_UNDERLYING}
+    blob = json.dumps(body, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(blob.encode()).hexdigest()
+
+
 def get_panel(caps, sweeps, policy, delta, cache_root: Path, rebuild: bool = False,
-              with_leak: bool = False, link_frame: Path | None = None):
-    """Returns (panel, counts, hash, cache_dir, from_cache). Snapshots are only read."""
-    from astrolabe.research_lab import ml_panel
+              with_leak: bool = False, link_frame: Path | None = None,
+              columns: list[str] | tuple[str, ...] | None = None):
+    """Returns (panel, counts, hash, cache_dir, from_cache). Snapshots are only read.
+
+    The panel is always returned as read back from ``panel.parquet`` (``columns`` restricts the
+    read; ``None`` = every column). ``rebuild`` also ignores the period cache."""
+    from astrolabe.research_lab import ml_panel_cache
 
     link_fields, link_digest = load_link_fields(link_frame)
     h = panel_hash(caps, sweeps, policy, delta, with_leak, link_digest)
     cdir = Path(cache_root) / h
     pq, meta = cdir / "panel.parquet", cdir / "meta.json"
-    if pq.exists() and meta.exists() and not rebuild:
-        df = pd.read_parquet(pq)
+    cached = pq.exists() and meta.exists() and not rebuild
+    if cached:
         m = json.loads(meta.read_text())
-        df.attrs["category_info"] = m["category_info"]
-        return df, m["counts"], h, cdir, True
-    df, counts = ml_panel.build_panel(caps, sweep_receipts=sweeps, delta=delta, policy=policy,
-                                       with_leak=with_leak, link_fields=link_fields)
-    cdir.mkdir(parents=True, exist_ok=True)
-    tmp = cdir / "panel.parquet.tmp"
-    df.to_parquet(tmp, index=False)
-    tmp.replace(pq)
-    meta.write_text(json.dumps(_clean({"counts": counts, "category_info": df.attrs["category_info"],
-                                       "n_rows": len(df)}), default=_jsonable))
-    return df, counts, h, cdir, False
+        counts, info = m["counts"], m["category_info"]
+    else:
+        cdir.mkdir(parents=True, exist_ok=True)
+        counts, info, n = ml_panel_cache.build_panel_to_parquet(
+            caps, pq, Path(cache_root) / "periods", period_salt(delta, link_digest),
+            sweep_receipts=sweeps, delta=delta, policy=policy, with_leak=with_leak,
+            link_fields=link_fields, rebuild=rebuild,
+            log=lambda msg: print(f"[panel] {msg} (peak RSS {peak_rss_mb():.0f} MB)", flush=True))
+        meta.write_text(json.dumps(_clean({"counts": counts, "category_info": info,
+                                           "n_rows": n}), default=_jsonable))
+    if columns is not None:
+        import pyarrow.parquet as papq
+
+        have = set(papq.read_schema(pq).names)
+        columns = [c for c in columns if c in have]
+    df = pd.read_parquet(pq, columns=None if columns is None else list(columns))
+    df.attrs["category_info"] = info
+    return df, counts, h, cdir, cached
+
+
+def feature_nan_rates(pq_path: Path, names) -> dict:
+    """``panel_summary`` NaN rates read one column at a time (a full panel never loads)."""
+    import pyarrow.parquet as papq
+
+    have = set(papq.read_schema(pq_path).names)
+    return {c: float(pd.read_parquet(pq_path, columns=[c])[c].isna().mean())
+            for c in names if c in have}
 
 
 def code_sha() -> str:
@@ -323,7 +367,9 @@ def plan(df: pd.DataFrame, horizon: int = 1,
 # ---------------------------------------------------------------------------------------------
 
 
-def panel_summary(df: pd.DataFrame) -> dict:
+def panel_summary(df: pd.DataFrame, nan_rates: dict | None = None) -> dict:
+    """``nan_rates`` (from ``feature_nan_rates``) replaces the in-frame NaN rates when the frame
+    was read without its feature columns."""
     from astrolabe.research_lab import ml_panel
 
     lab = ml_panel.labelled(df)
@@ -334,7 +380,8 @@ def panel_summary(df: pd.DataFrame) -> dict:
                     "n_labelled": int(len(gl)),
                     "class_shares": ml_panel.class_shares(gl["y_class"]) if len(gl) else None})
     feats = [c for c in ml_panel.EXTENDED_NAMES if c in df.columns]
-    nan_rates = {c: float(df[c].isna().mean()) for c in feats} if len(df) else {}
+    if nan_rates is None:
+        nan_rates = {c: float(df[c].isna().mean()) for c in feats} if len(df) else {}
     ev = lab["event_id"].where(lab["event_id"].notna(), "mkt:" + lab["market_id"].astype(str))
     series = {"event": ev, "dep_group": lab["dep_group"],
               **{c: lab[c] for c in ("dep_group_season", "dep_group_econ",
@@ -376,13 +423,17 @@ def peak_rss_mb() -> float:
 # ---------------------------------------------------------------------------------------------
 
 
-def family_coverage(df: pd.DataFrame, extra: list[str], sample_root: Path) -> tuple[
-        pd.DataFrame, dict]:
+def family_coverage(df: pd.DataFrame, extra: list[str], sample_root: Path,
+                    nan_rates: dict | None = None) -> tuple[pd.DataFrame, dict]:
     """Per-family coverage. ``market_state`` = MC1 columns; flow/wallet join the trade samples."""
     from astrolabe.research_lab import ml_panel
 
-    mc1 = [c for c in ml_panel.EXTENDED_NAMES if c in df.columns]
-    rates = [float(df[c].isna().mean()) for c in mc1] if len(df) else []
+    if nan_rates is not None:
+        mc1 = [c for c in ml_panel.EXTENDED_NAMES if c in nan_rates]
+        rates = [nan_rates[c] for c in mc1] if len(df) else []
+    else:
+        mc1 = [c for c in ml_panel.EXTENDED_NAMES if c in df.columns]
+        rates = [float(df[c].isna().mean()) for c in mc1] if len(df) else []
     cov: dict = {CORE_FAMILY: {
         "n_features": len(mc1), "exploratory_family": False,
         "mean_nan_rate": float(np.mean(rates)) if rates else None}}
@@ -406,9 +457,16 @@ def dry_run(snapshot_root: Path, sweep_root: Path, cache_root: Path, policy: dic
     if len(caps) < 2:
         return {"mode": "dry-run", "gate": gate_pub, "error": "fewer than 2 complete snapshots"}
     sweeps, sweep_report = usable_sweeps(sweep_root, caps)
+    # without flow/wallet families only the summary columns are read back; the feature NaN
+    # rates are streamed column by column (the full panel never sits in memory)
+    slim = not families
     df, counts, h, cdir, cached = get_panel(caps, sweeps, policy, delta, cache_root, rebuild,
-                                            link_frame=link_frame)
-    df, fam_cov = family_coverage(df, families or [], sample_root)
+                                            link_frame=link_frame,
+                                            columns=DRY_COLUMNS if slim else None)
+    from astrolabe.research_lab import ml_panel
+
+    rates = feature_nan_rates(cdir / "panel.parquet", ml_panel.EXTENDED_NAMES) if slim else None
+    df, fam_cov = family_coverage(df, families or [], sample_root, rates)
     extra_names = tuple(n for f in (families or [])
                         for n in ml_panel_family_names(f))
     man, why = plan(df, 1, extra_names)
@@ -418,7 +476,7 @@ def dry_run(snapshot_root: Path, sweep_root: Path, cache_root: Path, policy: dic
         "gate": gate_pub, "panel_hash": h, "cache_dir": str(cdir), "from_cache": cached,
         "n_snapshots_used": len(caps), "sweeps": sweep_report,
         "periods_skipped": [c for c in counts if c.get("skipped")],
-        "panel": panel_summary(df),
+        "panel": panel_summary(df, rates),
         "folds": {"n_folds": len(man["folds"]) if man else 0, "reason": why,
                   "manifest_sha256": man["manifest_sha256"] if man else None,
                   "periods": len(man["periods"]) if man else 0},

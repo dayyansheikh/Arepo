@@ -139,6 +139,20 @@ def test_old_sidecar_versions_do_not_count_toward_gate(tmp_path):
     assert rmd.sidecar_version(snaps / "cap000") == 2
 
 
+def test_archived_sidecar_raises_not_silently_dropped(tmp_path):
+    from astrolabe.research_lab import forecast
+
+    snaps, _ = _write_world(tmp_path, 3)
+    assert rmd.sidecar_version(snaps / "cap000") == 3
+    (snaps / "cap000" / "rows_ext.csv.gz").unlink()  # retention deleted it, manifest remains
+    with pytest.raises(forecast.ArchivedDataError):
+        rmd.sidecar_version(snaps / "cap000")
+    with pytest.raises(forecast.ArchivedDataError):
+        rmd.discover_captures(snaps)
+    (snaps / "cap000" / "ext_manifest.json").unlink()  # never had a sidecar: still "none"
+    assert rmd.sidecar_version(snaps / "cap000") is None
+
+
 def test_min_snapshots_flag_is_gone_and_env_override_is_stamped(tmp_path, monkeypatch, capsys):
     _write_world(tmp_path, 10)
     with pytest.raises(SystemExit):

@@ -738,6 +738,12 @@ def category_group_columns(
     return pd.DataFrame(cols), missing
 
 
+# every snapshot column read by ``group_facts`` and ``category_group_columns``
+GROUP_INPUT_COLS = ("market_id", "ext_present", "fee_category", "end_date", "event_id",
+                    "neg_risk_market_id", "event_ids", "series_slugs", "parent_event_ids",
+                    "event_title", "resolution_source")
+
+
 def dependence_group_ids(
     rows_i: pd.DataFrame, market_ids: np.ndarray, underlying_date: bool = DEP_GROUP_UNDERLYING,
     link_fields: dict | None = None,
@@ -756,7 +762,11 @@ def dependence_group_ids(
     ``dep_group_fixture_day``. ``dep_group_econ`` (S4, + economic driver) and
     ``dep_group_category_driver`` (S5, + politics end time, crypto window, finance end time) are
     sensitivities next to ``dep_group_season``. ``dep_group_links_missing`` = 1.0 where neither
-    event title nor resolution source is known (no category link possible)."""
+    event title nor resolution source is known (no category link possible).
+
+    Only ``GROUP_INPUT_COLS`` are read, so the full snapshot is narrowed to them first (the
+    deduplicating copies then never touch the ~80 other snapshot columns; same output)."""
+    rows_i = rows_i[[c for c in GROUP_INPUT_COLS if c in rows_i.columns]]
     mids = [str(m) for m in market_ids]
     out: dict = {}
     for col, mode in (("dep_group", "fixture_day"), ("dep_group_season", "season")):
@@ -1055,13 +1065,30 @@ def _ext_columns() -> list[str]:
     return [c for c in COLUMNS if c not in KEYS]
 
 
-def load_snapshot_rows(snapshot_dir: Path, with_ext: bool = True) -> pd.DataFrame:
+# snapshot / sidecar columns that no panel code reads (no feature, eligibility, history, group or
+# label path): ``ml_panel_cache`` loads snapshots without them, which leaves every panel value
+# unchanged (tests/unit/test_research_lab_ml_panel_cache.py) and cuts a held snapshot by ~35%.
+# Not listed although unused by features: fee_type (pairing), neg_risk_other and
+# event_neg_risk_augmented (e005 neg-risk groups read them).
+PANEL_UNUSED_COLS = (
+    "capture_start_utc", "condition_id", "dup_count", "clob_token_id_0", "page_index",
+    "competitive", "rewards_min_size", "rewards_max_spread", "open_interest", "start_date",
+    "clob_rewards", "event_comment_count", "event_volume", "event_liquidity", "event_created_at",
+    "fee_schedule",
+)
+
+
+def load_snapshot_rows(snapshot_dir: Path, with_ext: bool = True,
+                       exclude: Iterable[str] = ()) -> pd.DataFrame:
     """One complete snapshot's rows, plus sidecar columns when a complete sidecar exists.
 
     Older snapshots have no sidecar: the sidecar columns are then all-NaN, never 0.
+    ``exclude`` columns are neither read nor added (``PANEL_UNUSED_COLS`` for the panel build).
     """
     d = Path(snapshot_dir)
-    rows = pd.read_csv(forecast.require_local(d / "rows.csv.gz"), dtype=ID_DTYPES)
+    skip = frozenset(exclude)
+    rows = pd.read_csv(forecast.require_local(d / "rows.csv.gz"), dtype=ID_DTYPES,
+                       usecols=lambda c: c not in skip)
     ext_cols = _ext_columns()
     got = False
     if with_ext and (d / "ext_manifest.json").exists() and not (d / "rows_ext.csv.gz").exists():
@@ -1069,14 +1096,16 @@ def load_snapshot_rows(snapshot_dir: Path, with_ext: bool = True) -> pd.DataFram
     if with_ext and (d / "rows_ext.csv.gz").exists() and (d / "ext_manifest.json").exists():
         man = json.loads((d / "ext_manifest.json").read_text())
         if man.get("sidecar_status") == "complete":
-            ext = pd.read_csv(d / "rows_ext.csv.gz", dtype={"market_id": str, "event_id": str})
+            ext = pd.read_csv(d / "rows_ext.csv.gz", dtype={"market_id": str, "event_id": str},
+                              usecols=lambda c: c not in skip)
             keep = ["market_id", "received_utc"] + [
                 c for c in ext_cols if c in ext.columns and c not in rows.columns
             ]
             ext = ext[keep].drop_duplicates(["market_id", "received_utc"])
             rows = rows.merge(ext, on=["market_id", "received_utc"], how="left")
             got = True
-    return _ensure_ext_columns(rows, got)
+    rows = _ensure_ext_columns(rows, got)
+    return rows.drop(columns=[c for c in skip if c in rows.columns]) if skip else rows
 
 
 def _ensure_ext_columns(rows: pd.DataFrame, has_ext: bool = False) -> pd.DataFrame:
