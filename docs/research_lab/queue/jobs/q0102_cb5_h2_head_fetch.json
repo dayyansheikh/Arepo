@@ -27,7 +27,7 @@
   "--disk-cap-gb",
   "0.05",
   "--data-dumps-max-gb",
-  "12",
+  "13",
   "--budget-min",
   "100"
  ],
@@ -41,5 +41,5 @@
   "data-dumps/research_lab/history/h2_main/cb5/head_prices/{<market_id>.csv.gz,fid1/,progress.jsonl,manifest.json}"
  ],
  "next_action": "q0106 census",
- "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. About 6.4k requests (30-45 min). Windows anchored on created_at (coverage invariance) and end before T_h2_clock; refuses h3/h4/h5/h6/h7 run ids; yields to the collector via the shared Limiter; resumable (progress.jsonl). Refuses (exit 75, EX_TEMPFAIL: the queue waits and retries) when data-dumps size + the output allowance + scratch would pass 12 GB; the coordinator records the section 2.8 headroom precondition in the release commit. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it."
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. About 6.4k requests (30-45 min). Windows anchored on created_at (coverage invariance) and end before T_h2_clock; refuses h3/h4/h5/h6/h7 run ids; yields to the collector via the shared Limiter; resumable (progress.jsonl). Refuses (exit 75, EX_TEMPFAIL: the queue waits and retries) when data-dumps size + the output allowance + scratch would pass 12 GB; the coordinator records the section 2.8 headroom precondition in the release commit. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it. 2026-10-17 09:30Z (autopilot): data-dumps reached 12.5 GB (MC1 panel cache + h7 frames), so every attempt tempfailed at the 12 GB refusal; refusal 12 -> 13 GB with the collector cap raised 13 -> 14 GiB and ~3 GB of host package cache cleared (9.3 GB disk free; 4 GB free-disk guard unchanged). Operational only: outputs do not depend on this value."
 }

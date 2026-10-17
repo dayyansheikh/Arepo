@@ -8,7 +8,7 @@
 # -> E011 score -> E004 / E007 status. See docs/research_lab/COLLECTION_HOST.md.
 export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 AREPO_HOME=${AREPO_HOME:-/home/opc/arepo}
-CAP_GB=${AREPO_DATA_CAP_GB:-13}   # 12 -> 13 on 2026-10-17 (autopilot): bridges the ~10-19..10-20 gap until 8-day snapshot deletion matches growth; the 4 GB free-disk guard is unchanged
+CAP_GB=${AREPO_DATA_CAP_GB:-14}   # 12 -> 13 -> 14 GiB on 2026-10-17 (autopilot; 14 at 09:30Z after ~3 GB of host package cache was cleared, 9.3 GB disk free): bridges the ~10-19..10-20 gap until 8-day snapshot deletion matches growth; the 4 GB free-disk guard is unchanged
 exec 9>/tmp/arepo_collector.lock
 flock -n 9 || { echo "$(date -u +%FT%TZ) skipped: another pass holds the lock"; exit 0; }
 free=$(df -Pk / | tail -1 | awk '{print $4}')
