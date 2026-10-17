@@ -1186,7 +1186,7 @@ The rules below supersede the corresponding statements in §10. **New hashes** (
 Code: `cb8_updown.py` (rules, smoke, exclusion keys, frame, Binance archive, tail gate), `cb8_books.py` (pmxt reader, book states, coverage audit, prints,
 HOLDOUT seal), `scripts/run_cb8.py` subcommands `rules --which updown`, `smoke`, `exclusion-keys`, `updown-frame`, `updown-books`. Tests:
 `tests/unit/test_cb8_updown.py` (34) and `test_cb8_books.py` (23), mocked HTTP and in-memory parquet only; the 58 existing CB8 H/W tests pass and their
-rules hashes are unchanged. **`seals/cb8_rules.json` `rules_sha256` = `36fd278325e5b15b4fd028c8dd48951f0f7e8a01022c44cd3c0db6ae84b3d752`** (code-derived:
+rules hashes are unchanged. **`seals/cb8_rules.json` `rules_sha256` = `36fd278325e5b15b4fd028c8dd48951f0f7e8a01022c44cd3c0db6ae84b3d752`** **[superseded by B rules v2 below; the v1 file is kept untouched and is refused by the B jobs]** (code-derived:
 declared constants including the week table, plus the source hash of every rule function; verified with `verify_rules(require_committed=True)`).
 All four jobs refuse (exit 2) on a rules-hash mismatch, a changed `--days` / cap / audit argument, a refused run id or root, or a missing smoke / frame /
 exclusion file; exit 75 on data-dumps headroom or a network failure in the smoke (nothing written).
@@ -1223,6 +1223,22 @@ run `updown_books_source_unavailable`; per-market "source_unavailable" and per-d
   `history_sources` and the existing loaders (a missing `fee_rate_bps` column yields `fee_bps = None`, hence the docs 0.07 rate). The smoke checks HEAD / checksums only,
   so the first q0166 chunk is the real test of the reader.
 - Wall time of q0166 (about 113 days x 15Z hour with range reads) and memory 1.5 GB are the design's estimates, untested.
+
+---
+
+## B freeze-check must-fixes (2026-10-17)
+
+Source: science-reviewer freeze check of the CB8-B data side, GO_WITH_CONDITIONS. No B job has run and no B data exists. No threshold, formula, gate or cap changed (Erratum E1 below is documentation only).
+
+1. **HOLDOUT kline data sealed.** `klines_pre.csv.gz` and `strikes.csv.gz` of the frame run now hold SCREEN days only; HOLDOUT days are written to `updown_frame/holdout/{klines_pre,strikes}.csv.gz` (hashed in the frame manifest). The q0166 HOLDOUT seal lists them as `frame_holdout/...` next to `holdout/...` (one listing sha256) and re-hashes the frame run against its manifest at seal time.
+2. **pmxt clock-unit guard.** Any event clock (venue or receipt) of a requested token more than 1 h outside the file's hour makes the hour `HourCorrupt` (day lost, counted), so a seconds / microseconds / nanoseconds column cannot be read as plausible milliseconds.
+3. **`book_unavailable`.** A token with events but no `book` snapshot gets `book_status = book_unavailable` per state row (`has_book = 0`, `halted = 0`); a market with such a token is `book_unavailable` in `markets.csv.gz` (`book_unavailable_sides`) and counted in `days.csv.gz` (`n_book_unavailable`), apart from `source_unavailable` and from "no trade".
+4. **Guarded outcome order.** `outcomes_guarded.csv.gz` stores `outcome_labels` (e.g. `Up|Down`) beside `outcome_prices`; the walk partial that holds the prices is `frame_partial_guarded.jsonl.gz`.
+5. **Required exclusion pins.** q0164 refuses (exit 2) without `--extra-pin c1_legs:...` and `--extra-pin cb5_listings:...` and their `.meta.json` sidecars. `run_cb8.py derive-exclusion-ids --kind c1_legs|cb5_listings` derives the ids CSV (ids only; source sha256, file count and ids sha256 in the sidecar and in the exclusion report). Expected host sources: `/home/opc/arepo/data-dumps/research_lab/cross_venue/matches.json` (`p_market_id`; the whole selection, a superset of the 316-pair C1 set) and `/home/opc/arepo/data-dumps/research_lab/cb5_extract/listings/*.csv.gz` (`market_id`). The q0164 draft carries the pins with `TODO-COORDINATOR` placeholders (refused until replaced by the 64-hex sha256).
+6. **Rule dependencies hashed.** `hb.frame_row`, `c6.key_fields`, `c6.lookup_keys`, `c6.exclusion_stage`, `c7.smoke_pool`, `c7.load_exclusion_keys`, `flow.seal_copy_ids`, `cm.verify_manifest_files`, `hs.pmxt_url`, `hs.RangeFile` (plus the new helpers) are in the B rules. **New file `seals/cb8_rules_v2.json`** (`cb8-updown-rules-v2`), committed separately after the code commit; `seals/cb8_rules.json` (v1, `36fd2783...`) is untouched and superseded. **v2 `rules_sha256` = `33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d`.** The holders v2 (`30e7f7f0...`) and flow (`9dc74a91...`) hashes are unchanged (tested). **The future B analysis code (q0169 / q0170 / q0174) goes in a separate rules file, so this data rules hash never changes after the first B read.**
+7. **Seal-copy ids audited.** `flow.seal_copy_ids` is untouched (it is hashed by the flow rules). B uses the new `cb8_books.seal_copy_ids_audited`: only seal copies identical to HEAD count, and every skipped copy (`not_committed`, `unparseable:<type>`, `no_market_ids`) is recorded with its reason in `HOLDOUT_SEAL.json` (`drops.seal_copies_skipped`), with the sha256 of each used copy.
+8. **Ingress.** pmxt bytes are metered in a `finally` (`meter` callback), so failed or corrupt hours count against the 90 GB cap and the audit.
+Minors: frame-request-failed days (`split.json` `frame_request_failed_days`) are counted apart from `days_without_market`; a 50-50 day is declared a losing day.
 
 ---
 
