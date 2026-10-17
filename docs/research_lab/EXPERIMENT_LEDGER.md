@@ -1344,3 +1344,10 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   stored. MDEs: D1 about 0.85-1.25 in slope (floor 0.30), B1 about 0.6-0.7c (floor 0.5c), B2 about 0.9-1.1c (floor 1.0c).
   No pmxt; about 9,200 `net`-lane requests after `T_seal`; outputs ≤ 0.12 GB. Count 0 now; cumulative 1,141 (Mac working
   tree, lower bound). Next: `science-reviewer` challenger round 1.
+
+## CB9 code-against-design freeze check, 2026-10-17 (science-reviewer): not counted
+- q0180 smoke GO_WITH_CONDITIONS; data side (q0181-q0188) NO_GO; analysis side (q0189-q0198) NO_GO, pending 12 must-fixes
+  (per-exchange smoke counts, unavailable vs failed smoke, a same-sentence tie regex, non-stalling dependency chain,
+  data-dumps headroom 14, open long-dated K/D markets, 13Z ingress decision, the missing P Stage-2 outcome fetch, one
+  Stage-2 rule with code-derived k, write-once results, the P small-G cluster rule). Rules v1 re-derive exactly; fixes go
+  into v2 rules files, and v1 stays untouched. Tie rule checked on a live Pyth daily (2026-10-16 NVDA): an exact tie resolves 50-50.
