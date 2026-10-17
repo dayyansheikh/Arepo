@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -74,7 +75,7 @@ def _guarded(fn):
     return wrapper
 
 
-def _result(m: dict, cm, extra_keys=("day", "idle")) -> tuple[int, dict]:
+def _result(m: dict, cm, extra_keys=("day", "idle", "idle_kind")) -> tuple[int, dict]:
     if m.get("status") == cm.DISK_BUDGET_TOKEN:
         return DISK_BUDGET, {"status": cm.DISK_BUDGET_TOKEN, "stopped": m.get("stopped"), "counts": m.get("counts")}
     return 0, {"status": m.get("status") or ("in_progress" if m.get("stopped") else None), "stopped": m.get("stopped"), "complete": m.get("complete"),
@@ -160,6 +161,9 @@ def _holders_run(a, cm, which: str):
     smoke = _data_path(a.smoke, h.SMOKE_DEFAULT, None)
     sha, fp, key = _setup(a, cm, "holders")
     common = dict(key=key, fp=fp, rules_sha=sha, smoke_path=smoke, snapshot_root=Path(a.snapshot_root) if a.snapshot_root else None, **kw)
+    declared_cap = h.SNAP_OUTPUT_CAP_GB if which == "snap" else h.PRINTS_OUTPUT_CAP_GB
+    if abs(a.disk_cap_gb - declared_cap) > 1e-9:
+        raise cm.Refused(f"arguments differ from the declaration: ['disk_cap_gb={a.disk_cap_gb!r} (declared {declared_cap!r})']")
     if which == "snap":
         bad = _bad({"n_main": (a.n_main, h.N_MAIN), "n_sports": (a.n_sports, h.N_SPORTS)})
         if bad:
@@ -188,7 +192,7 @@ def cmd_pin_h2(a, cm):
     from astrolabe.research_lab import cb8_holders as h  # noqa: PLC0415
 
     t = datetime.strptime(a.start_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC).timestamp()
-    return 0, h.pin_h2(Path(a.root) if a.root else h.HOLDERS_DIR, t)
+    return 0, h.pin_h2(Path(a.root) if a.root else h.HOLDERS_DIR, t, now=time.time())
 
 
 @_guarded
@@ -197,7 +201,8 @@ def cmd_flow_fetch(a, cm):
     from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
 
     kw, data_dumps = _hist_common(a, cm)
-    bad = _bad({"n_main": (a.n_main, f.N_MAIN), "n_sports": (a.n_sports, f.N_SPORTS), "window_h": (a.window_h, f.WINDOW_H), "day_pages": (a.day_pages, f.DAY_PAGES)})
+    bad = _bad({"n_main": (a.n_main, f.N_MAIN), "n_sports": (a.n_sports, f.N_SPORTS), "window_h": (a.window_h, f.WINDOW_H), "day_pages": (a.day_pages, f.DAY_PAGES),
+                "disk_cap_gb": (a.disk_cap_gb, f.OUTPUT_CAP_GB)})
     if cm.c4._ep(a.cap_at) != cm.ep(f.HIST_END):
         bad.append(f"cap_at={a.cap_at!r}")
     if bad:

@@ -47,6 +47,8 @@ class Api:
         self.fail_holders: set[str] = set()
         self.fail_trades: set[str] = set()
         self.fail_all = False
+        self.max_offset: int | None = None  # the venue's offset cap: a larger offset answers 400
+        self.deep_status: int | None = None  # forced status for offset >= 4000
         self.calls: list[tuple[str, dict]] = []
 
     def __call__(self, url: str, params: dict):
@@ -62,6 +64,11 @@ class Api:
             cid = params["market"]
             if cid in self.fail_trades:
                 return 500, b"", {}
+            off = int(params.get("offset", 0))
+            if self.max_offset is not None and off > self.max_offset:
+                return 400, b"", {}
+            if self.deep_status is not None and off >= 4000:
+                return self.deep_status, b"", {}
             rows = sorted((r for r in self.trades.get(cid, []) if params["start"] <= r["timestamp"] <= params["end"]), key=lambda r: -r["timestamp"])
             o, n = int(params.get("offset", 0)), int(params["limit"])
             return 200, json.dumps(rows[o:o + n]).encode(), {}
@@ -113,11 +120,11 @@ def capture(d: Path, start: float, finish: float, rows: list[dict], cid: str | N
     return {"capture_id": cid or d.name, "dir": str(d), "start": start, "finish": finish}
 
 
-def write_smoke(path: Path, rules_sha: str, fp: str, ok: bool = True) -> None:
+def write_smoke(path: Path, rules_sha: str, fp: str, ok: bool = True, paging: bool = True) -> None:
     from astrolabe.research_lab import cb8_holders as h
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"smoke_version": h.SMOKE_VERSION, "rules_sha256": rules_sha, "wallet_key_fingerprint": fp, "pass": ok}))
+    path.write_text(json.dumps({"smoke_version": h.SMOKE_VERSION, "rules_sha256": rules_sha, "wallet_key_fingerprint": fp, "pass": ok, "criterion_g_paging": paging}))
 
 
 def fingerprint_and_sha(kind: str, key: bytes) -> tuple[str, str]:

@@ -350,11 +350,11 @@ def test_snap_window_pins_completion_and_freeze_slip(env):
     env.snap()
     start = h.cm.ep("2026-10-21T14:30:00Z")
     with pytest.raises(cm.Refused, match="before T8_H1_end"):
-        h.pin_h2(env.root, start + 10 * 86400)
-    doc = h.pin_h2(env.root, start + 21 * 86400)
+        h.pin_h2(env.root, start + 10 * 86400, now=env.clock.t)
+    doc = h.pin_h2(env.root, start + 21 * 86400, now=env.clock.t)
     assert doc["freeze_slip"] is False and doc["t8_h2_end_utc"] == "2026-12-02T14:30:00Z"
     with pytest.raises(cm.Refused, match="write-once|exists"):
-        h.pin_h2(env.root, start + 22 * 86400)
+        h.pin_h2(env.root, start + 22 * 86400, now=env.clock.t)
     end = h.collection_end(env.root)
     assert end == start + 42 * 86400 + 30 * HOUR
     env.clock.t = end + 60
@@ -370,7 +370,7 @@ def test_freeze_slip_never_extends_collection(env, tmp_path):
     env.add_capture("cap", env.clock.t - 1800, env.clock.t - 1200)
     env.snap()
     start = h.cm.ep("2026-10-21T14:30:00Z")
-    doc = h.pin_h2(env.root, start + 50 * 86400)
+    doc = h.pin_h2(env.root, start + 50 * 86400, now=env.clock.t)
     assert doc["freeze_slip"] is True
     assert h.collection_end(env.root) == min(start + 63 * 86400, start + 71 * 86400 + 30 * HOUR) == start + 63 * 86400
 
@@ -451,7 +451,7 @@ def test_prints_complete_when_snapshot_is_complete_and_all_days_done(env, monkey
     env.clock.t = hh + 31 * HOUR
     assert env.prints(day_pages=2)["status"] == "day_done"
     start = h.cm.ep("2026-10-21T14:30:00Z")
-    h.pin_h2(env.root, start + 21 * 86400)
+    h.pin_h2(env.root, start + 21 * 86400, now=env.clock.t)
     env.clock.t = h.collection_end(env.root) + 60
     assert env.snap()["status"] == h.SNAP_COMPLETE
     m = env.prints(day_pages=2)
@@ -495,3 +495,129 @@ def test_cli_rules_fingerprint_and_refusals(env, tmp_path, capsys):
 
 def test_cli_pin_h2_refuses_without_window_one(tmp_path):
     assert script.main(["holders-pin-h2", "--root", str(tmp_path), "--start-utc", "2026-11-20T00:00:00Z"]) == 2
+
+
+# ---- review conditions (2026-10-17) -------------------------------------------------------------------------------------------------------------
+
+
+def first_day(env):
+    env.clock.t = T0
+    env.snap()
+    env.clock.t = T0 + 3 * HOUR
+    env.add_capture("cap", env.clock.t - 1800, env.clock.t - 1200)
+    assert env.snap()["status"] == "day_done"
+
+
+def test_window_two_pin_refuses_early_starts_and_records_the_pin_time(env):
+    first_day(env)
+    start = h.cm.ep("2026-10-21T14:30:00Z")
+    h1_end = start + 21 * 86400
+    now = h1_end + 5 * HOUR  # window 1 is over; days after it were collected
+    with pytest.raises(cm.Refused, match="pin time"):
+        h.pin_h2(env.root, now + 1.9 * HOUR, now=now)  # inside pin time + 2 h: onto days already collected
+    with pytest.raises(cm.Refused, match="pin time"):
+        h.pin_h2(env.root, h1_end, now=now)
+    doc = h.pin_h2(env.root, now + 2 * HOUR, now=now)
+    assert doc["pinned_epoch"] == now and doc["pinned_utc"] == cm.iso(now) and doc["h2_start_epoch"] == now + 2 * HOUR
+
+
+def test_unfinished_plan_is_closed_as_incomplete_at_day_end(env):
+    env.clock.t = T0
+    env.snap()
+    env.clock.t = T0 + 3 * HOUR
+    env.add_capture("cap", env.clock.t - 1800, env.clock.t - 1200)
+    env.snap(budget_min=1e-9)  # plan written, nothing requested
+    env.api.fail_holders.update({f"c{i}" for i in range(6, 12)})
+    env.snap()  # a partial day: some markets done, some failing (attempts left)
+    rdir = env.root / "snap"
+    assert (rdir / "2026-10-21.plan.json.gz").exists() and (rdir / "2026-10-21.partial.jsonl.gz").exists()
+    env.clock.t = T0 + 24 * HOUR + 3 * HOUR
+    env.add_capture("cap2", env.clock.t - 1800, env.clock.t - 1200)
+    m = env.snap()
+    marker = json.loads((rdir / "2026-10-21.INCOMPLETE.json").read_text())
+    assert marker["reason"] == "incomplete at day end" and marker["n_planned"] == 11 and 0 < marker["n_done"] < 11
+    assert (rdir / "2026-10-21.markets.csv.gz").exists() and not (rdir / "2026-10-21.partial.jsonl.gz").exists() and not (rdir / "2026-10-21.fail.jsonl").exists()
+    assert len(read_csv(rdir / "2026-10-21.markets.csv.gz")) == marker["n_done"]
+    assert m["counts"]["days_incomplete"] == 1 and m["day"] == "2026-10-22"
+
+
+def test_marks_record_the_expected_window_and_the_earliest_available_capture(env, monkeypatch):
+    hh, _ = collect_day(env, monkeypatch)
+    env.clock.t = hh + 31 * HOUR
+    env.caps[:] = [c for c in env.caps if c["capture_id"] != "cap"]  # the capture of the snapshot itself was removed by retention
+    env.add_capture("late_only", hh + 12 * HOUR)
+    assert env.prints(day_pages=2)["status"] == "day_done"
+    w = json.loads((env.root / "prints" / "marks" / "2026-10-21.window.json").read_text())
+    assert w["earliest_capture_available_utc"] == cm.iso(hh + 12 * HOUR) and w["captures_before_earliest_available"] is True
+    assert w["window_start_covered"] is False and w["expected_window_utc"] == [cm.iso(hh), cm.iso(hh + 30 * HOUR)] and w["captures_in_window"] == 1
+    man = json.loads((env.root / "prints" / "manifest.json").read_text())
+    assert "marks/2026-10-21.window.json" in man["file_sha256"]
+
+
+def test_deep_offset_400_is_capped_but_a_failure_is_not(env, tmp_path):
+    api = Api()
+    api.max_offset = 10
+    base = int(T0)
+    api.trades["c1"] = [print_row("c1", base + i) for i in range(40)]
+    from astrolabe.research_lab import cb8_common as cmod
+
+    lim = hb.Limiter(api, rps=1000.0, sleep=nosleep)
+    rows, info = cmod.windowed_prints(lim, "c1", base, base + 100, 5, env.key, limit=10)
+    assert info["capped"] is True and info["offset_cap_status"] == 400 and len(rows) == 20
+    api.max_offset = -1  # a 400 on the very first page is a failed request, never "capped"
+    with pytest.raises(cmod.ApiError):
+        cmod.windowed_prints(lim, "c1", base, base + 100, 5, env.key, limit=10)
+
+
+def test_smoke_paging_probe_and_q0163_gate(env):
+    frame, cap = smoke_env(env)
+    lim = hb.Limiter(env.api, rps=1000.0, sleep=nosleep)
+    res = h.holders_smoke(lim, env.key, frame, env.sha, env.fp, cap["capture_id"])
+    assert res["criterion_g_paging"] is True and res["paging"]["deep_offset"] == "ok"
+    env.api.deep_status = 400
+    res = h.holders_smoke(lim, env.key, frame, env.sha, env.fp, cap["capture_id"])
+    assert res["paging"]["deep_offset"] == "offset_capped" and res["criterion_g_paging"] is True and res["pass"]
+    env.api.deep_status = 404
+    res = h.holders_smoke(lim, env.key, frame, env.sha, env.fp, cap["capture_id"])
+    assert res["paging"]["deep_offset"] == "unexpected" and res["criterion_g_paging"] is False and res["pass"]  # snapshot may run; prints may not
+    env.api.deep_status = 500  # a failure is not a capped window: the smoke is not a result at all
+    with pytest.raises(cm.NotNow):
+        h.holders_smoke(lim, env.key, frame, env.sha, env.fp, cap["capture_id"])
+
+
+def test_q0163_refuses_without_the_paging_criterion(env, tmp_path):
+    write_smoke(env.smoke, env.sha, env.fp, paging=False)
+    assert h.smoke_ok(env.smoke, env.sha, env.fp)["pass"]
+    with pytest.raises(cm.Refused, match="paging"):
+        env.prints()
+
+
+def test_long_waits_return_distinct_heartbeats_instead_of_tempfails(env):
+    env.clock.t = T0
+    env.snap()
+    env.clock.t = T0 + 11 * HOUR
+    env.add_capture("old", env.clock.t - 6 * HOUR, env.clock.t - 5.9 * HOUR)
+    first = env.snap()
+    assert first["status"] == "idle_heartbeat" and first["idle_kind"] == "no_fresh_capture" and first["complete"] is False
+    with pytest.raises(cm.NotNow):
+        env.snap()
+    env.clock.t += cm.HEARTBEAT_S
+    env.add_capture("old2", env.clock.t - 6 * HOUR, env.clock.t - 5.9 * HOUR)
+    assert env.snap()["idle_kind"] == "no_fresh_capture"
+    env.clock.t += cm.HEARTBEAT_S
+    full = env.snap(data_dumps=env.tmp, data_dumps_cap_gb=0.0)  # no headroom
+    assert full["status"] == "idle_heartbeat" and full["idle_kind"] == "headroom"
+    assert json.loads((env.root / "snap" / "heartbeat.json").read_text())["idle_kind"] == "headroom"
+    pr = env.prints(data_dumps=env.tmp, data_dumps_cap_gb=0.0)
+    assert pr["idle_kind"] == "headroom"
+
+
+def test_cli_disk_caps_must_match_the_declaration(env, tmp_path):
+    kp = str(env.key_path)
+    out = tmp_path / "r.json"
+    assert script.main(["rules", "--which", "holders", "--path", str(out), "--wallet-key-path", kp]) == 0
+    base = ["--rules", str(out), "--allow-uncommitted-rules", "--root", str(env.root), "--data-dumps", str(tmp_path), "--standalone", "--wallet-key-path", kp]
+    assert (h.SNAP_OUTPUT_CAP_GB, h.PRINTS_OUTPUT_CAP_GB) == (0.15, 0.12)
+    # a cap other than the declared one is refused before anything else (exit 2); the declared one passes that check (and then stops at the missing smoke, exit 2 too)
+    assert script.main(["holders-snap", *base, "--disk-cap-gb", "0.10"]) == 2
+    assert script.main(["holders-prints", *base, "--disk-cap-gb", "0.15"]) == 2

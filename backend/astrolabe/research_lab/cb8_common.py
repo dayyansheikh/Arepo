@@ -224,7 +224,7 @@ def require_room(data_dumps: Path | None, cap_gb: float, allowance_bytes: int) -
         c6.require_data_dumps_room(Path(data_dumps), cap_gb, allowance_bytes / 1024**3)
 
 
-def idle(rdir: Path, why: str, now: float, heartbeat_s: float = HEARTBEAT_S) -> dict:
+def idle(rdir: Path, why: str, now: float, heartbeat_s: float = HEARTBEAT_S, kind: str = "waiting") -> dict:
     """A rolling job with nothing to do now. Normally ``NotNow`` (exit 75: the queue waits 30 minutes). At least every
     ``heartbeat_s`` it instead returns a clean result (exit 0, ``status: idle_heartbeat``) so the queue's count of consecutive
     tempfails (limit 48, about 24 h) resets and the job is never marked failed while it waits."""
@@ -233,9 +233,19 @@ def idle(rdir: Path, why: str, now: float, heartbeat_s: float = HEARTBEAT_S) -> 
     hp = rdir / "heartbeat.json"
     last = json.loads(hp.read_text()).get("epoch", 0.0) if hp.exists() else 0.0
     if now - last >= heartbeat_s:
-        write_json_atomic(hp, {"epoch": now, "utc": iso(now), "idle": why})
-        return {"status": "idle_heartbeat", "idle": why, "complete": False, "stopped": None}
+        write_json_atomic(hp, {"epoch": now, "utc": iso(now), "idle": why, "idle_kind": kind})
+        return {"status": "idle_heartbeat", "idle": why, "idle_kind": kind, "complete": False, "stopped": None}
     raise NotNow(why)
+
+
+def room_or_idle(rdir: Path, data_dumps: Path | None, cap_gb: float, allowance_bytes: int, now: float) -> dict | None:
+    """Headroom check for a rolling job: ``None`` if there is room, else the idle result (``idle_kind`` = ``headroom``, a heartbeat at
+    least every 10 h) so a long shortage never exhausts the queue's 48-tempfail limit."""
+    try:
+        require_room(data_dumps, cap_gb, allowance_bytes)
+    except NotNow as exc:
+        return idle(rdir, str(exc), now, kind="headroom")
+    return None
 
 
 # ---- paged print fetch -----------------------------------------------------------------------------------------------------------
@@ -270,6 +280,10 @@ def windowed_prints(lim: hb.Limiter, cid: str, start: int, end: int, max_pages: 
     for page in range(max_pages):
         status, data = lim.get(hb.DATA_TRADES, {"market": cid, "start": int(start), "end": int(end), "takerOnly": "true",
                                                 "limit": limit, "offset": page * limit})
+        if status == 400 and page > 0:  # the API refuses a deep offset: the window is capped (unavailable), not a failed request
+            info["capped"] = True
+            info["offset_cap_status"] = 400
+            return rows, info
         if status != 200 or not isinstance(data, list):
             raise ApiError(f"trades status {status}")
         info["pages"] += 1

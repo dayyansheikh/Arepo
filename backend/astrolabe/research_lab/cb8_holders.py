@@ -54,8 +54,10 @@ SNAP_COMPLETE = "holders_collection_complete"
 PRINTS_COMPLETE = "holders_prints_complete"
 SMOKE_DEFAULT = cm.CB8_DIR / "holders_smoke.json"
 HOLDERS_DIR = cm.CB8_DIR / "holders"
-SNAP_OUTPUT_CAP_GB = 0.10
-PRINTS_OUTPUT_CAP_GB = 0.10
+SNAP_OUTPUT_CAP_GB = 0.15  # about 1.9 MB a day over 63 days + plans (reviewed cost amendment, CREATIVE_BATCH_8.md section 10)
+PRINTS_OUTPUT_CAP_GB = 0.12  # about 0.9 MB a day over 63 days, doubled for the estimate error (section 10)
+PAGING_OFFSET = 4000
+PIN_DELAY_S = 2 * 3600
 ROW_COLS = ["market_id", "condition_id", "event_id", "binary", "closed", "best_bid", "best_ask", "received_utc"]
 EXT_COLS = ["accepting_orders", "open_interest", "fee_category", "series_slugs"]
 HOLDER_COLUMNS = ["market_id", "token_idx", "rank", "wallet_hash", "amount"]
@@ -93,6 +95,9 @@ def declared() -> dict:
                               "c: <= 20 rows per token; d: response time; e: OI units label; f: strict key fingerprint == pin. pass = a and b and f",
                   "output": "counts and ratios only, write-once"},
         "disk": {"snap_cap_gb": SNAP_OUTPUT_CAP_GB, "prints_cap_gb": PRINTS_OUTPUT_CAP_GB},
+        "paging": {"offset": PAGING_OFFSET, "rule": "a 400 at offset > 0 is a capped window (unavailable), any other non-200 is a failed request; the smoke probes offsets 0 and 4000"},
+        "window2_pin": {"min_delay_s": PIN_DELAY_S, "rule": "T8_H2_start >= max(T8_H1_end, pin time + 2 h); the pin time is recorded"},
+        "incomplete_day": "a plan still in progress after UTC midnight is consolidated with what was done and marked <day>.INCOMPLETE.json (n_planned, n_done)",
         "idle": {"heartbeat_s": cm.HEARTBEAT_S, "idle_exit": cm.TEMPFAIL_EXIT},
     }
 
@@ -272,6 +277,21 @@ def smoke_pick(frame: list[dict], n: int = N_SMOKE, seed: str = SEED_SMOKE) -> l
     return sorted(frame, key=lambda r: hb._rank(seed, r["market_id"]))[:n]
 
 
+def paging_probe(lim: hb.Limiter, cid: str, clock: Callable[[], float] = time.time) -> dict:
+    """Deep-offset probe of the Data API trades paging that q0163 relies on (offset up to 4,000 at limit 1,000): offset 0 must be 200; offset 4,000 is
+    200 (ok) or 400 (the venue's offset cap: a capped window, not a failed request). Anything else is unexpected. Counts only."""
+    now = int(clock())
+    out = {}
+    for off in (0, PAGING_OFFSET):
+        try:
+            st, data = lim.get(hb.DATA_TRADES, {"market": cid, "start": now - 30 * 86400, "end": now, "takerOnly": "true", "limit": PRINT_LIMIT, "offset": off})
+        except RuntimeError:
+            raise cm.NotNow("holders smoke: paging probe failed after retries (network); nothing written, retry later") from None
+        out[off] = st
+    deep = "ok" if out[PAGING_OFFSET] == 200 else ("offset_capped" if out[PAGING_OFFSET] == 400 else "unexpected")
+    return {"offset0_status": out[0], "offset4000_status": out[PAGING_OFFSET], "deep_offset": deep, "pass": bool(out[0] == 200 and deep != "unexpected")}
+
+
 def holders_smoke(lim: hb.Limiter, key: bytes, frame: list[dict], rules_sha: str, fp: str, capture_id: str, *, clock: Callable[[], float] = time.time) -> dict:
     """q0160. 20 markets from the frame (seed ``arepo-cb8-hsmoke``): one /holders and one Gamma lookup each. Counts and ratios only:
     no market id, no wallet (hashed in memory, dropped), no amount list. A network failure raises :class:`cm.NotNow` (nothing is
@@ -316,17 +336,18 @@ def holders_smoke(lim: hb.Limiter, key: bytes, frame: list[dict], rules_sha: str
                        "sum_top20_over_gamma_oi": (top / g_oi if g_oi and g_oi > 0 else None),
                        "gamma_oi_over_capture_oi": (g_oi / oi_cap if oi_cap > 0 and g_oi == g_oi else None)})
     v = smoke_verdict(n_ok, len(pick), shape_ok, n_nonempty, max_rows, True, n_over, n_known)
+    paging = paging_probe(lim, pick[0]["condition_id"], clock) if pick else {"pass": False, "deep_offset": "no_market"}
     return {"smoke_version": SMOKE_VERSION, "rules_sha256": rules_sha, "wallet_key_fingerprint": fp, "capture_id": capture_id,
             "git_commit": hb._git_commit(), "run_utc": cm.iso(clock()), "counts_only": True,
             "criterion_a_http_ok": v["a"], "criterion_b_shape": v["b"], "criterion_c_rows_per_token_le_20": v["c"],
-            "criterion_e_oi_units_label": v["e_label"], "criterion_f_key_fingerprint": v["f"], "pass": v["pass"],
+            "criterion_e_oi_units_label": v["e_label"], "criterion_f_key_fingerprint": v["f"], "criterion_g_paging": paging["pass"], "paging": paging, "pass": v["pass"],
             "n_requested": len(pick), "n_http_ok": n_ok, "n_http_not_ok": n_status_bad, "n_nonempty": n_nonempty,
             "max_rows_per_token": max_rows, "n_gamma_lookup_failed": n_gamma_failed, "n_oi_over_1_05": n_over, "n_oi_known": n_known,
             "response_time_s": {"median": sorted(times)[len(times) // 2] if times else None, "max": max(times) if times else None},
             "oi_ratios": ratios, "frame_size": len(frame)}
 
 
-def smoke_ok(path: Path, rules_sha: str, fp: str) -> dict:
+def smoke_ok(path: Path, rules_sha: str, fp: str, *, require_paging: bool = False) -> dict:
     p = Path(path)
     if not p.exists():
         raise cm.Refused(f"holders smoke result {p} not found; run holders-smoke first")
@@ -338,6 +359,8 @@ def smoke_ok(path: Path, rules_sha: str, fp: str) -> dict:
         raise cm.Refused(f"holders smoke result {p} was made under another version, rules hash or key fingerprint")
     if d.get("pass") is not True:
         raise cm.Refused(f"holders smoke result {p} is a FAIL; H is 'not run (source)'")
+    if require_paging and d.get("criterion_g_paging") is not True:
+        raise cm.Refused(f"holders smoke result {p}: the paging criterion (g) is not met; q0163 is not run")
     return d
 
 
@@ -417,17 +440,20 @@ def read_pins(root: Path) -> dict:
     return json.loads(p.read_text()) if p.exists() else {}
 
 
-def pin_h2(root: Path, h2_start_epoch: float) -> dict:
+def pin_h2(root: Path, h2_start_epoch: float, now: float | None = None) -> dict:
     """Write-once pin of window 2 (``<root>/h2_pin.json``): ``T8_H2_start`` >= ``T8_H1_end``; ``T8_H2_end`` = start + 21 d. A window 2
     that would end after ``T8_H_collect_max`` is recorded as ``freeze_slip`` (H1-rep 'not run (freeze slip)', counted); collection is
-    never extended."""
+    never extended. The start may not lie earlier than the pin time + 2 h (no pinning onto days already collected); the pin time is recorded."""
+    now = time.time() if now is None else now
     pins = read_pins(root)
     if not pins:
         raise cm.Refused("window 1 is not pinned yet (no snapshot has run)")
     if h2_start_epoch < pins["h1_end_epoch"]:
         raise cm.Refused("T8_H2_start is before T8_H1_end")
+    if h2_start_epoch < now + PIN_DELAY_S:
+        raise cm.Refused("T8_H2_start is earlier than the pin time + 2 h; window 2 is never pinned onto days already collected")
     end = h2_start_epoch + H1_DAYS * cm.DAY
-    doc = {"t8_h2_start_utc": cm.iso(h2_start_epoch), "t8_h2_end_utc": cm.iso(end), "h2_start_epoch": h2_start_epoch, "h2_end_epoch": end,
+    doc = {"pinned_utc": cm.iso(now), "pinned_epoch": now, "t8_h2_start_utc": cm.iso(h2_start_epoch), "t8_h2_end_utc": cm.iso(end), "h2_start_epoch": h2_start_epoch, "h2_end_epoch": end,
            "freeze_slip": bool(end > pins["collect_max_epoch"]), "collect_max_utc": pins["collect_max_utc"]}
     cm.write_once_json(Path(root) / "h2_pin.json", doc)
     return doc
@@ -443,6 +469,27 @@ def collection_end(root: Path) -> float | None:
     if p.exists():
         end = min(end, json.loads(p.read_text())["h2_end_epoch"] + MARK_WINDOW_H * cm.HOUR)
     return end
+
+
+def close_incomplete_days(fr: cm.Cb8Run, rdir: Path, today: str) -> list[str]:
+    """A day whose plan is still unfinished after its UTC day ended is consolidated with the markets done so far and marked
+    ``<day>.INCOMPLETE.json`` (planned / done counts), so no plan or partial file silently keeps consuming the cap."""
+    closed = []
+    for plan_p in sorted(rdir.glob("*.plan.json.gz")):
+        day = plan_p.name[:10]
+        if day >= today or (rdir / f"{day}.markets.csv.gz").exists() or (rdir / f"{day}.MISSED.json").exists():
+            continue
+        plan = _read_plan(plan_p)
+        part = rdir / f"{day}.partial.jsonl.gz"
+        recs = list(c6.iter_partial(part))
+        out = _consolidate_snap(fr, rdir, day, plan, part)
+        marker = {"day": day, "reason": "incomplete at day end", "n_planned": len(plan["markets"]), "n_done": len(recs),
+                  "n_failed": sum(1 for r in recs if r["status"] == "failed"), "n_empty": sum(1 for r in recs if r["status"] == "empty")}
+        fr.budget.write(rdir / f"{day}.INCOMPLETE.json", json.dumps(marker, sort_keys=True).encode())
+        fr.counts["days_incomplete"] = fr.counts.get("days_incomplete", 0) + 1
+        closed.append(day)
+        del out
+    return closed
 
 
 def missed_days(rdir: Path, start_day: str, today: str) -> list[str]:
@@ -477,8 +524,10 @@ def holders_snap(root: Path, transport, *, key: bytes, fp: str, rules_sha: str, 
     first request) -> requests -> consolidation. Idempotent per UTC day."""
     root = Path(root)
     smoke_ok(smoke_path, rules_sha, fp)
-    cm.require_room(data_dumps, data_dumps_cap_gb, disk_cap)
     rdir = root / SNAP_RUN
+    wait = cm.room_or_idle(rdir, data_dumps, data_dumps_cap_gb, disk_cap, wall_clock())
+    if wait is not None:
+        return wait
     term = cm.prior_terminal(rdir)
     if term:
         return term
@@ -500,6 +549,10 @@ def holders_snap(root: Path, transport, *, key: bytes, fp: str, rules_sha: str, 
         m["status"] = SNAP_COMPLETE
         return m
     day = _day_of(now)
+    try:
+        close_incomplete_days(fr, rdir, day)
+    except OSError as exc:
+        return cm.disk_budget_end(fr, exc)
     if pins:
         for d in missed_days(rdir, pins["t8_h1_start_utc"][:10], day):
             fr.budget.write(rdir / f"{d}.MISSED.json", json.dumps({"day": d, "reason": "no snapshot was taken that UTC day"}).encode())
@@ -517,7 +570,7 @@ def holders_snap(root: Path, transport, *, key: bytes, fp: str, rules_sha: str, 
                 if (now + 1800) // cm.DAY != now // cm.DAY and pins:  # last half hour of the UTC day: this day is missed
                     fr.budget.write(rdir / f"{day}.MISSED.json", json.dumps({"day": day, "reason": "no complete capture <= 2.5 h old"}).encode())
                     return fr.manifest("day_missed", {"status": "day_missed"})
-                raise cm.NotNow("no complete capture <= 2.5 h old; retry later")
+                return cm.idle(rdir, "no complete capture <= 2.5 h old; retry later", now, kind="no_fresh_capture")
             if not pins and cap["start"] < not_before:
                 return cm.idle(rdir, "waiting for the first complete capture after the declared start", now)
             frame, frame_counts = holders_frame(read_capture_fn(cap["dir"]))
@@ -612,10 +665,15 @@ def capture_marks(captures: list[dict], market_h: dict[str, int], window_s: floa
     """YES best bid / ask of each market at every complete capture whose start lies in ``[h, h + window]`` of that market. Streams each
     capture once. An unreadable capture is counted, never fabricated."""
     out: list[list] = []
-    stats = {"captures_used": 0, "captures_unreadable": 0}
+    stats = {"captures_used": 0, "captures_unreadable": 0, "captures_available": len(captures),
+             "earliest_capture_available_utc": cm.iso(min(c["start"] for c in captures)) if captures else None}
     if not market_h:
         return out, stats
     lo, hi = min(market_h.values()), max(market_h.values()) + window_s
+    in_window = [c for c in captures if lo <= c["start"] <= hi]
+    stats.update(expected_window_utc=[cm.iso(lo), cm.iso(hi)], captures_in_window=len(in_window),
+                 window_start_covered=bool(captures and min(c["start"] for c in captures) <= lo),
+                 captures_before_earliest_available=bool(captures and min(c["start"] for c in captures) > lo))
     read = read_rows_fn or (lambda d: _read_gz_csv(Path(d) / "rows.csv.gz"))
     for cap in captures:
         if not (lo <= cap["start"] <= hi):
@@ -639,10 +697,12 @@ def holders_prints(root: Path, transport, *, key: bytes, fp: str, rules_sha: str
     """One resumable chunk of q0163: for the oldest snapshot day whose markets are all at least ``lag_h`` hours old, fetch the windowed
     prints ``[h, h + 26 h]`` per market (capped -> unavailable, counted), store them by the storage rule, then the capture marks."""
     root = Path(root)
-    smoke_ok(smoke_path, rules_sha, fp)
-    cm.require_room(data_dumps, data_dumps_cap_gb, disk_cap)
+    smoke_ok(smoke_path, rules_sha, fp, require_paging=True)
     snap = root / SNAP_RUN
     rdir = root / PRINTS_RUN
+    wait = cm.room_or_idle(rdir, data_dumps, data_dumps_cap_gb, disk_cap, wall_clock())
+    if wait is not None:
+        return wait
     term = cm.prior_terminal(rdir)
     if term:
         return term
@@ -760,6 +820,9 @@ def _consolidate_prints(fr: cm.Cb8Run, rdir: Path, day: str, mkts: list[dict], p
     marks, mstats = capture_marks(captures_fn(), market_h)
     marks.sort()
     fr.budget.write_gz_csv(kp, MARK_COLUMNS, marks)
+    wp = rdir / "marks" / f"{day}.window.json"  # expected capture window and the earliest capture still available (retention gaps are counted)
+    fr.budget.write(wp, json.dumps({"day": day, **mstats}, indent=1, sort_keys=True).encode())
+    fr.record_file(wp)
     fr.budget.write_gz_csv(sp, PRINT_MARKET_COLUMNS, summary)  # last: marks the day done
     for p in (pp, kp, sp):
         fr.record_file(p)
