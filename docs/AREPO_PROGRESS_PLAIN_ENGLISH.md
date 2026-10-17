@@ -1,14 +1,15 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 21:07 UTC+1
+**Last updated:** 2026-10-17 21:13 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** this session started at about 20:32 UTC+1 and found the server with **no job ready to run**. It is
-  busy again: batch 4's series download is running, and six more jobs are queued behind it.
+- **Autopilot:** this session started at about 20:32 UTC+1 and found the server with **no job ready to run**.
+  Since then, 3 jobs have finished. The ML run is parked at your request. Batch 6's top-up download is next on the server.
+  Batch 11's code is being written so that its first test can run before 22 Oct.
 - **Fixed and sent to the server:**
   - The ML development run's out-of-memory crash. Same numbers, checked by tests.
   - Batch 4's series download had stopped on its own 1 GB size limit. The limit is now 4 GB and it is resuming.
@@ -17,10 +18,11 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **New results (all "plumbing" checks, no edge claims):**
   - **Batch 5, "consistency of bucketed date markets": almost certainly a null.** The family finder, whose rules were
     fixed in advance, found 0 usable families. Most had an "Other" or "No ..." bucket, which the rules exclude.
-  - **Batch 9's small download test failed on a technicality.** Every blockchain receipt it read checked out. It just
-    sampled too few (8 and 18, where it needed 20). A corrected test that keeps sampling until it has 20 is being written.
-  - **Batch 8's holder-data test failed one check.** About 80% of markets have no open-interest number. We are checking
-    whether that simply means "zero"; only if it does will a reviewed rule change be proposed.
+  - **Batch 9's and batch 10's small download tests both PASSED.** Batch 9's first try had sampled too few
+    blockchain receipts. The corrected test read 20 of 20 in both eras, all correct. Their real downloads start after 22 Oct.
+  - **Batch 8's holder-data test failed one check.** About 80% of markets have no open-interest number. A check confirmed
+    that those markets have no holders at all (40 of 40), so "missing" means "zero". A reviewer accepted the rule fix,
+    on condition of extra safety checks. These are being added, then the test is re-run.
 - **Batch 10** (crypto options vs Polymarket price ladders; bounces at round prices like 0.50): the independent check
   found a hidden look-ahead that would have flattered the round-price test. It is fixed and recorded as a design
   amendment. Its small download test is queued.
