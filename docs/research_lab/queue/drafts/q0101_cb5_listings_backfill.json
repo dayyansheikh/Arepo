@@ -21,6 +21,7 @@
   "--tables",
   "listings",
   "--release-stream",
+  "--retry-missing",
   "--budget-min",
   "150",
   "--disk-cap-gb",
@@ -37,6 +38,6 @@
  "outputs": [
   "data-dumps/research_lab/cb5_extract/{listings/,_chain/,manifest.json}"
  ],
- "next_action": "pass step continues (scripts/run_cb5.py extract --all-new)",
+ "next_action": "pass step continues (scripts/run_cb5.py extract --all-new); Done only when the log shows \"backfill_complete\": true (the repeat regex); a headroom refusal exits 75 and is retried after 30 min without burning an attempt.",
  "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Idempotent by (capture_id, table); CB1-CB4 extract roots and tables are not touched; release copies are streamed through cb4_data.ReleaseCopies one capture at a time (scratch <= 0.2 GB). Priority 57 sits below the T_seal-bound h7 jobs (58). First sighting = absent from the previous complete capture; a broken chain is recorded (first_seen_certain 0), never repaired. Refuses (exit 1) when data-dumps size + the output allowance + scratch would pass 10 GB; the coordinator records the section 2.8 headroom precondition in the release commit."
 }

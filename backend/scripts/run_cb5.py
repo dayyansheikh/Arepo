@@ -16,8 +16,8 @@ Uncounted (counts and gates only; outcome-guarded):
 Counted (refused unless the committed model_specs/cb5_v1.json carries this code's declaration hash; results never overwritten):
     python scripts/run_cb5.py screen --family G|L ; measure-K ; replicate --family G|L ; fetch-outcomes --family G|L
 Freeze helpers: write-grouper-seal, write-spec, pin-rep-start.
-Exit codes: 0 ok / nothing advanced, 1 failure or a headroom refusal (must not count as a successful repeat run), 2 refused by a guard,
-3 not implemented.
+Exit codes: 0 ok / nothing advanced, 1 failure, 2 refused by a guard, 3 not implemented, 75 (EX_TEMPFAIL) a headroom refusal: the queue
+worker waits 30 min and retries without counting an attempt (and it is never a successful repeat run).
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend"))
 
-REFUSED, NOT_IMPLEMENTED = 2, 3
+REFUSED, NOT_IMPLEMENTED, TEMPFAIL = 2, 3, 75
 
 
 def _iso(s: str) -> str:
@@ -148,13 +148,13 @@ def cmd_extract(a) -> int:
         _emit({"cb5_extract": x.EXTRACTOR_VERSION, "error": f"{type(exc).__name__}: {exc}"[:300]})
         return 1 if backfill else 0  # in-pass: never fail the pass; backfill: fail loudly
     _emit(summ)
-    return 1 if summ.get("stopped") in ("refused_data_dumps_over_cap", "data_dumps_over_cap") else 0
+    return TEMPFAIL if summ.get("stopped") in ("refused_data_dumps_over_cap", "data_dumps_over_cap") else 0
 
 
 def _data_guard(a, allowance: float) -> int | None:
     if _headroom_refusal(Path(a.data_dumps), a.data_dumps_max_gb, allowance):
         _emit({"stopped": "refused_data_dumps_over_cap"})
-        return 1
+        return TEMPFAIL
     return None
 
 

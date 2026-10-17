@@ -26,6 +26,7 @@
   "--family-list",
   "auto",
   "--release-stream",
+  "--retry-missing",
   "--budget-min",
   "150",
   "--disk-cap-gb",
@@ -42,6 +43,6 @@
  "outputs": [
   "data-dumps/research_lab/cb5_extract/{cdf/,manifest.json}"
  ],
- "next_action": "pass step continues (add --tables cdf --family-list auto); q0106",
+ "next_action": "pass step continues (add --tables cdf --family-list auto); q0106; Done only when the log shows \"backfill_complete\": true; a headroom refusal exits 75 and is retried after 30 min without burning an attempt.",
  "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Commit only after the audited family list is frozen and committed. Up to about 13 GB release ingress if every dev capture was deleted (streamed one capture at a time, peak <= 0.2 GB). Prospective versioning: a family listed after a capture is absent from that capture's rows. Refuses (exit 1) when data-dumps size + the output allowance + scratch would pass 10 GB; the coordinator records the section 2.8 headroom precondition in the release commit."
 }

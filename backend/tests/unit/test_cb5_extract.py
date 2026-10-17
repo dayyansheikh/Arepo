@@ -105,7 +105,35 @@ def test_headroom_refusal_and_missing_capture(tmp_path):
     assert res["missing"] == 1 and res["written"] == 3
     man = json.loads((tmp_path / "cb5" / "manifest.json").read_text())
     assert man["captures"]["c3"]["tables"]["listings"]["status"] == "missing"
-    assert man["chain"] is None
+    assert man["chain"] is not None and man["chain"]["capture_id"] == "c2"  # a missing capture never resets the chain
+
+
+def test_missing_capture_retries_do_not_break_later_chain(tmp_path):
+    snap = _caps(tmp_path)
+    make_capture(snap, "c3", "2026-10-12T06:00:00Z", [], with_files=False)
+    make_capture(snap, "c4", "2026-10-12T08:00:00Z", [_row("1", FAR), _row("5", FAR)], [_ext("1", OLD), _ext("5", "2026-10-12T07:30:00Z")])
+    kw = dict(tables=("listings",), mode="all-new", since=S0, git_commit="t")
+    x.run_tables(snap, tmp_path / "sweeps", tmp_path / "cb5", **kw)
+    make_capture(snap, "c5", "2026-10-12T10:00:00Z", [_row("1", FAR), _row("5", FAR), _row("6", FAR)],
+                 [_ext("1", OLD), _ext("5", "2026-10-12T07:30:00Z"), _ext("6", "2026-10-12T09:30:00Z")])
+    res = x.run_tables(snap, tmp_path / "sweeps", tmp_path / "cb5", **kw)  # c3 stays missing and is retried first
+    assert res["missing"] == 1
+    c5 = x.read_table(tmp_path / "cb5", "listings", "c5")
+    assert list(c5["market_id"]) == ["6"] and c5["first_seen_certain"].iloc[0] == "1"
+    c4 = x.read_table(tmp_path / "cb5", "listings", "c4")
+    assert c4["first_seen_certain"].iloc[0] == "0"  # predecessor c3 is missing: uncertain by adjacency
+
+
+def test_neg_risk_members_counted_at_sighting_over_full_capture(tmp_path):
+    snap = tmp_path / "snap"
+    make_capture(snap, "c0", S0, [_row("1", FAR), _row("2", FAR)],
+                 [_ext("1", OLD, neg_risk_market_id="G"), _ext("2", OLD, neg_risk_market_id="G")])
+    make_capture(snap, "c1", S1, [_row("1", FAR), _row("2", FAR),
+                                  _row("3", FAR)], [_ext("1", OLD, neg_risk_market_id="G"), _ext("2", OLD, neg_risk_market_id="G"), _ext("3", NEW1, neg_risk_market_id="G")])
+    _run(tmp_path, snap, tables=("listings",))
+    c1 = x.read_table(tmp_path / "cb5", "listings", "c1")
+    assert list(c1["neg_risk_n_members_at_sighting"]) == ["3"]  # earlier-listed members counted, none later
+    assert "sweep_batch_receipt_utc" in c1.columns
 
 
 def test_sweep_touch_joined(tmp_path):

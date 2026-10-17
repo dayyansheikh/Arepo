@@ -26,6 +26,8 @@ resources {mem_mb, cpu, lane}, depends_on [ids], argv [script under backend/scri
 timeout_s, max_retries, outputs [paths], next_action, notes, and optionally
 repeat {max_runs, until_log_regex}: a resumable budgeted job exiting 0 is re-queued (not counted as a
 failed attempt) until its attempt log matches the regex or max_runs clean runs have happened.
+A job exiting 75 (EX_TEMPFAIL) is a precondition refusal: status retry_wait with not_before = now + 30 min, the attempt is not
+counted, attempts.jsonl records outcome `tempfail`; after 48 consecutive tempfails the job is marked failed.
 
 Manual control (on the host):
     queue_worker.py status | pause | resume | stop (SIGTERM running job and pause) | retry <id>
@@ -56,6 +58,9 @@ MEM_RESERVE_MB = int(os.environ.get("AREPO_QUEUE_MEM_RESERVE_MB", "1200"))
 # collector pass are not squeezed. Jobs with mem_mb < BLACKOUT_EXEMPT_MB may still start.
 BLACKOUT_UTC_MIN = (2 * 60 + 45, 5 * 60 + 30)
 BLACKOUT_EXEMPT_MB = 500
+TEMPFAIL_RC = 75  # EX_TEMPFAIL: "not now" (headroom refusal); wait and retry, not counted as an attempt
+TEMPFAIL_WAIT_S = 30 * 60
+TEMPFAIL_CAP = 48  # consecutive tempfails (about a day) before the job is marked failed
 
 
 def in_blackout(at: datetime | None = None) -> bool:
@@ -205,6 +210,34 @@ def start(spec: dict, st: dict) -> None:
     save_state(st)
 
 
+def apply_outcome(st: dict, spec: dict, outcome: str) -> None:
+    """State transition after one attempt (pure on ``st``; ``attempts`` already counts this attempt)."""
+    if outcome == "done":
+        st["status"] = "done"
+    elif outcome == "partial":
+        st["status"] = "queued"
+        st["attempts"] = 0  # a clean budgeted run is progress, not a failed attempt
+    elif outcome == "stopped":
+        st["status"] = "queued"
+        st["attempts"] -= 1  # manual stop is not a failed attempt
+    elif outcome == "tempfail":  # exit 75 (EX_TEMPFAIL): a precondition (e.g. disk headroom) is not met; wait, retry later
+        st["attempts"] -= 1  # not a failed attempt
+        st["tempfails"] = st.get("tempfails", 0) + 1
+        if st["tempfails"] > TEMPFAIL_CAP:
+            st["status"] = "failed"
+        else:
+            st["status"] = "retry_wait"
+            st["not_before"] = datetime.fromtimestamp(time.time() + TEMPFAIL_WAIT_S, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    elif st["attempts"] > spec["max_retries"]:
+        st["status"] = "failed"
+    else:
+        st["status"] = "retry_wait"
+        wait = BACKOFF_S[min(st["attempts"] - 1, len(BACKOFF_S) - 1)]
+        st["not_before"] = datetime.fromtimestamp(time.time() + wait, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if outcome in ("done", "partial", "error", "timeout"):
+        st["tempfails"] = 0  # the cap counts consecutive tempfails only
+
+
 def run_job(jid: str) -> int:
     """Detached runner: execute one attempt with timeout + memory cap, record the outcome."""
     spec = load_specs()[jid]
@@ -239,7 +272,7 @@ def run_job(jid: str) -> int:
         signal.signal(signal.SIGTERM, _term)
         try:
             rc = proc.wait(timeout=spec["timeout_s"])
-            outcome = "done" if rc == 0 else "error"
+            outcome = "done" if rc == 0 else ("tempfail" if rc == TEMPFAIL_RC else "error")
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGTERM)
             try:
@@ -258,20 +291,7 @@ def run_job(jid: str) -> int:
         log_text = Path(st["log"]).read_text(errors="ignore")
         if not re.search(rep["until_log_regex"], log_text) and st["runs"] < rep["max_runs"]:
             outcome = "partial"
-    if outcome == "done":
-        st["status"] = "done"
-    elif outcome == "partial":
-        st["status"] = "queued"
-        st["attempts"] = 0  # a clean budgeted run is progress, not a failed attempt
-    elif outcome == "stopped":
-        st["status"] = "queued"
-        st["attempts"] -= 1  # manual stop is not a failed attempt
-    elif st["attempts"] > spec["max_retries"]:
-        st["status"] = "failed"
-    else:
-        st["status"] = "retry_wait"
-        wait = BACKOFF_S[min(st["attempts"] - 1, len(BACKOFF_S) - 1)]
-        st["not_before"] = datetime.fromtimestamp(time.time() + wait, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    apply_outcome(st, spec, outcome)
     st["last_error"] = None if outcome == "done" else f"{outcome} rc={rc}"
     save_state(st)
     _append({"id": jid, "attempt": st["attempts"], "outcome": outcome, "rc": rc, "at": now(),
@@ -363,7 +383,7 @@ def main(argv: list[str]) -> int:
     elif cmd == "retry":
         st = load_state(argv[2])
         if st["status"] in ("failed", "interrupted", "retry_wait", "cancelled"):
-            st.update(status="queued", not_before=None, attempts=0)
+            st.update(status="queued", not_before=None, attempts=0, tempfails=0)
             save_state(st)
     elif cmd == "cancel":
         st = load_state(argv[2])

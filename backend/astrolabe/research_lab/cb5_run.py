@@ -640,7 +640,8 @@ def rec_from_listing(row: dict, members: int, y0: float = math.nan) -> dict:
 
 def iter_rep_cohort(listings: pd.DataFrame, cohort_dir: Path):
     first = listings.drop_duplicates("market_id").set_index("market_id", drop=False)
-    members = listings[listings["neg_risk_market_id"].astype(str) != ""].drop_duplicates("market_id").groupby("neg_risk_market_id")["market_id"].count().to_dict()
+    # members of the group at the market's first sighting (stored by the extractor over the full capture; no look-ahead)
+    mem_col = first["neg_risk_n_members_at_sighting"] if "neg_risk_n_members_at_sighting" in first.columns else None
     prog = hb._read_progress(Path(cohort_dir) / "progress.jsonl")
     for mid, p in prog.items():
         if p.get("status") != "done" or mid not in first.index:
@@ -649,7 +650,7 @@ def iter_rep_cohort(listings: pd.DataFrame, cohort_dir: Path):
         nr = str(row.get("neg_risk_market_id") or "")
         ts, vals = hb.load_prices(Path(cohort_dir) / "prices" / f"{mid}.csv.gz")
         tr = hb.load_trades(Path(cohort_dir) / "trades" / f"{mid}.csv.gz")
-        yield (rec_from_listing(row, int(members.get(nr, 1)) if nr else 0), ts, vals, tr, bool(p.get("trades_truncated")), p.get("trades_oldest_ts"))
+        yield (rec_from_listing(row, max(1, int(float(mem_col.loc[mid]))) if (nr and mem_col is not None) else (1 if nr else 0)), ts, vals, tr, bool(p.get("trades_truncated")), p.get("trades_oldest_ts"))
 
 
 def holm_family(docs: list[tuple[str, dict]], expected: list[str]) -> dict:

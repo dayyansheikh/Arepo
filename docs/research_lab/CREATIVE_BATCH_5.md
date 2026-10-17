@@ -494,7 +494,8 @@ one day after the first price and exclude untraded rows (T5-DEV placeholder rule
   the exit price (CB1-E convention). Inclusion never depends on early resolution.
 - **As-of time of `end_at` and the neg-risk member count (round-1 item 7).** In the replication cohort both are taken
   from the market's first sighting in `listings/` (the member count = markets sharing its `neg_risk_market_id` in that
-  capture). In h2 they are only available as of `T_h2_clock`, after the listing: end dates can be moved and members
+  capture, counted over the full capture by the extractor and stored as `neg_risk_n_members_at_sighting`; the first sweep's
+  `batch_receipt_utc` is stored as `sweep_batch_receipt_utc`, the as-of time of the sweep sizes). In h2 they are only available as of `T_h2_clock`, after the listing: end dates can be moved and members
   added later. This is a disclosed look-ahead in the h2 population (one more reason for the L1 ceiling). It cannot
   enter the replication.
 - h2 only: `L + 4d + 1h ≤ T_h2_clock`.
@@ -1184,11 +1185,11 @@ answered by item 5.
 
 **Pass-step line (do not edit `scripts/oracle/arepo_pass.sh` from this branch; the owner adds it after the line for CB4, line 32):**
 ```
-  timeout 600 nice -n 10 $PY scripts/run_cb5.py extract --all-new --tables listings --data-dumps-max-gb 12 2>&1 | tail -1 || true   # CB5 listings (CREATIVE_BATCH_5.md §4.3)
+  timeout 600 nice -n 10 $PY scripts/run_cb5.py extract --all-new --tables listings --data-dumps-max-gb 10 2>&1 | tail -1 || true   # CB5 listings (CREATIVE_BATCH_5.md §4.3)
 ```
-After the family list is frozen and q0105 has run, extend it to `--tables listings,cdf --family-list auto` (the `cdf` table is skipped with a note while no list is frozen). The run is idempotent by (capture_id, table), writes only under `cb5_extract/`, and exits 1 only on a headroom refusal (the `|| true` keeps the pass alive).
+After the family list is frozen and q0105 has run, extend it to `--tables listings,cdf --family-list auto` (the `cdf` table is skipped with a note while no list is frozen). The run is idempotent by (capture_id, table), writes only under `cb5_extract/`, and exits 75 (EX_TEMPFAIL) only on a headroom refusal (the `|| true` keeps the pass alive). A capture whose raw files are gone is recorded `missing` and retried on every all-new pass (a missing capture never resets the listings chain; the next capture's `first_seen_certain` is 0 only because its predecessor is the missing one). q0101 and q0105 pass `--retry-missing` so host captures marked missing by a pass are retried from release copies.
 
-**Queue notes.** Lanes follow the coordinator instruction: network-bound jobs (q0102, q0103, q0104, q0107, q0111) use lane `net`. Section 2.8 said `cpu` because q0002 holds `net`; if q0002 still holds it at release, change those five specs to `cpu`. Data jobs pass `--data-dumps-max-gb 10` (stricter than the 12 GB cap: size + allowance + scratch must stay under 10 GB). `mem_mb`: 400-1,500 (q0104 and q0106 at 1,500, the streamed frame parse and the census).
+**Queue notes.** Lanes follow the coordinator instruction: network-bound jobs (q0102, q0103, q0104, q0107, q0111) use lane `net`. Section 2.8 said `cpu` because q0002 holds `net`; if q0002 still holds it at release, change those five specs to `cpu`. Data jobs and the pass step pass `--data-dumps-max-gb 10` (stricter than the 12 GB cap: size + allowance + scratch must stay under 10 GB); a refusal exits 75, which the queue worker treats as wait-30-min-and-retry (not an attempt; at most 48 in a row). `done` for q0101/q0105 requires `backfill_complete` in the log. `mem_mb`: 400-1,500 (q0104 and q0106 at 1,500, the streamed frame parse and the census).
 
 **Open items for the freeze check (not implemented or unverified; none changes a declared threshold).**
 1. K1-R (q0114): the live-pair loader and the receipt-timed 2-minute grid mapping are not implemented (the runner refuses first, then exits 3).

@@ -70,20 +70,21 @@ LISTINGS_COLUMNS = [
     "capture_id", "capture_start_utc", "received_utc", "market_id", "condition_id", "event_id", "clob_token_id_0",
     "clob_token_id_1", "created_at", "start_date", "end_date", "fee_category", "neg_risk", "neg_risk_market_id",
     "event_neg_risk_augmented", *TOUCH, "order_price_min_tick_size", "first_seen_certain",
-    "sweep_best_bid", "sweep_best_ask", "sweep_bid_size_1", "sweep_ask_size_1",
+    "sweep_best_bid", "sweep_best_ask", "sweep_bid_size_1", "sweep_ask_size_1", "sweep_batch_receipt_utc",
+    "neg_risk_n_members_at_sighting",
 ]
 CDF_COLUMNS = [
     "capture_id", "capture_start_utc", "received_utc", "market_id", "condition_id", "event_id", "clob_token_id_0",
     "clob_token_id_1", "end_date", "fee_category", "neg_risk", "neg_risk_market_id", "event_neg_risk_augmented",
     "closed", "active", *TOUCH, "family_ids",
-    "sweep_best_bid", "sweep_best_ask", "sweep_bid_size_1", "sweep_ask_size_1",
+    "sweep_best_bid", "sweep_best_ask", "sweep_bid_size_1", "sweep_ask_size_1", "sweep_batch_receipt_utc",
 ]
 _ROWS_WANT = ["received_utc", "market_id", "condition_id", "event_id", "best_bid", "best_ask", "spread",
               "last_trade_price", "neg_risk", "neg_risk_market_id", "event_neg_risk_augmented", "clob_token_id_0",
               "closed", "active", "end_date"]
 _EXT_WANT = ["market_id", "clob_token_id_0", "clob_token_id_1", "accepting_orders", "created_at", "start_date",
              "volume_num", "fee_category", "neg_risk_market_id", "order_price_min_tick_size", "neg_risk"]
-_SWEEP_FIELDS = ["best_bid", "best_ask", "bid_size_1", "ask_size_1"]
+_SWEEP_FIELDS = ["best_bid", "best_ask", "bid_size_1", "ask_size_1", "batch_receipt_utc"]
 _OUTCOME_LIKE = ("outcome", "winner", "resolved", "payout")  # a stored column may never carry these
 
 
@@ -174,6 +175,11 @@ def build_listings(df: pd.DataFrame, prev_ids: set[str] | None, capture_id: str,
     out = df[recent & new].copy()
     out["capture_id"], out["capture_start_utc"] = capture_id, capture_start
     out["first_seen_certain"] = "1" if prev_ids is not None else "0"
+    # members of the neg-risk group listed in THIS capture (the sighting), counted over the full capture, not the new rows
+    nr = df["neg_risk_market_id"].astype(str)
+    cnt = nr[nr != ""].value_counts()
+    nrs = out["neg_risk_market_id"].astype(str)
+    out["neg_risk_n_members_at_sighting"] = nrs.map(cnt).where(nrs != "", 0).fillna(0).astype(int).astype(str).to_numpy()
     swept = _join_sweep(out, sweep_path)
     out = out.sort_values("market_id").reset_index(drop=True)
     facts = {"n_listing": int(len(df)), "n_new": int(len(out)), "prev_chain": "ok" if prev_ids is not None else "broken",
@@ -340,8 +346,6 @@ def run_tables(
                     for t in nd:
                         ent_tables[t] = {"status": "missing", "reason": reason or "archived_no_release_copy"}
                     res["missing"] += 1
-                    if "listings" in nd:
-                        man["chain"] = None  # the chain is broken at a missing capture
                 else:
                     if "listings" in nd:
                         prev = caps[i - 1] if i > 0 else None
