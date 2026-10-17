@@ -302,6 +302,9 @@ def walk_negrisk_events(lim, start: float, end: float, *, modes=(False, True), m
 # ---- CH52: pmxt hour reading and minute replay -------------------------------------------------------------------------------------
 
 
+READ_BATCH_ROWS = 4096  # rows per streamed record batch in read_hour_events (memory bound; no effect on the returned events)
+
+
 def read_hour_events(hour: datetime, tokens: dict[str, str], *, fetch, size_fn, meter: IngressMeter | None = None, lookback_hours: int = 1) -> dict[str, list[dict]]:
     """Book events of ``tokens`` (token -> condition id) in the pmxt hour file containing ``hour`` and, for tokens with no ``book`` event yet, up to
     ``lookback_hours`` earlier files (the minute-0 lookback). Row groups are pruned on the ``market`` statistics. The bytes fetched are added to ``meter``."""
@@ -328,17 +331,22 @@ def read_hour_events(hour: datetime, tokens: dict[str, str], *, fetch, size_fn, 
         pf = pq.ParquetFile(rf)
         midx = pf.schema_arrow.get_field_index("market")
         want = {tokens[t].lower() for t in pending}
+        value_set = pa.array(sorted(pending))
         for rg in range(pf.num_row_groups):
             ms = pf.metadata.row_group(rg).column(midx).statistics
             if ms is not None and ms.has_min_max and not any(hs._b(ms.min) <= c <= hs._b(ms.max) for c in want):
                 continue
-            tbl = pf.read_row_group(rg, columns=cols)
-            keep = pc.and_(pc.is_in(tbl["asset_id"], value_set=pa.array(sorted(pending))), pc.less_equal(tbl["timestamp_received"], end_ts))
-            for r in tbl.filter(keep).to_pylist():
-                e = {**r, "receipt_ms": int(r["timestamp_received"].timestamp() * 1000), "venue_ms": int(r["timestamp"].timestamp() * 1000)}
-                ev[r["asset_id"]].append(e)
-                if r["event_type"] == "book":
-                    has_book.add(r["asset_id"])
+            # Stream the row group in small record batches (a row group's bids/asks are large) and materialise only matching rows.
+            for batch in pf.iter_batches(batch_size=READ_BATCH_ROWS, row_groups=[rg], columns=cols, use_threads=False):
+                keep = pc.and_(pc.is_in(batch.column("asset_id"), value_set=value_set), pc.less_equal(batch.column("timestamp_received"), end_ts))
+                if not pc.any(keep).as_py():
+                    continue
+                for r in batch.filter(keep).to_pylist():
+                    e = {**r, "receipt_ms": int(r["timestamp_received"].timestamp() * 1000), "venue_ms": int(r["timestamp"].timestamp() * 1000)}
+                    ev[r["asset_id"]].append(e)
+                    if r["event_type"] == "book":
+                        has_book.add(r["asset_id"])
+                del keep, batch
         if meter is not None:
             meter.add(rf.bytes_fetched)
     for t in ev:

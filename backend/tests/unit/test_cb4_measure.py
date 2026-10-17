@@ -173,3 +173,119 @@ def test_in_time_placebo_day_way_uses_g_min_and_untestable_blocks_adoption():
     unv = {**allok, "N1": _res(1e-6, big["N1"], placebo_p=None)}
     a = M.adoption(unv)["N1"]
     assert not a["adopted"] and a["placebo_status"] == "unverified"
+
+
+# ---- read_hour_events: streamed (bounded-memory) reader equals the whole-row-group reader -----------------------------------------------
+
+
+def _ref_read_hour_events(hour, tokens, *, fetch, size_fn, meter=None, lookback_hours=1):
+    """The pre-fix implementation (whole row group read, then filter), kept verbatim as the equivalence reference."""
+    from datetime import timedelta
+
+    import pyarrow as pa
+    import pyarrow.compute as pc
+    import pyarrow.parquet as pq
+
+    from astrolabe.research_lab import history_sources as hs
+
+    cols = ["timestamp_received", "timestamp", "market", "event_type", "asset_id", "bids", "asks", "price", "size", "side", "new_tick_size"]
+    end_ts = pa.scalar(int((hour + timedelta(hours=1)).timestamp() * 1000), pa.timestamp("ms", "UTC"))
+    ev = {t: [] for t in tokens}
+    has_book = set()
+    for back in range(lookback_hours + 1):
+        pending = [t for t in tokens if t not in has_book]
+        if not pending:
+            break
+        h = hour - timedelta(hours=back)
+        url = hs.pmxt_url(h)
+        try:
+            rf = hs.RangeFile(url, size_fn(url), fetch)
+        except FileNotFoundError:
+            continue
+        pf = pq.ParquetFile(rf)
+        midx = pf.schema_arrow.get_field_index("market")
+        want = {tokens[t].lower() for t in pending}
+        for rg in range(pf.num_row_groups):
+            ms = pf.metadata.row_group(rg).column(midx).statistics
+            if ms is not None and ms.has_min_max and not any(hs._b(ms.min) <= c <= hs._b(ms.max) for c in want):
+                continue
+            tbl = pf.read_row_group(rg, columns=cols)
+            keep = pc.and_(pc.is_in(tbl["asset_id"], value_set=pa.array(sorted(pending))), pc.less_equal(tbl["timestamp_received"], end_ts))
+            for r in tbl.filter(keep).to_pylist():
+                e = {**r, "receipt_ms": int(r["timestamp_received"].timestamp() * 1000), "venue_ms": int(r["timestamp"].timestamp() * 1000)}
+                ev[r["asset_id"]].append(e)
+                if r["event_type"] == "book":
+                    has_book.add(r["asset_id"])
+        if meter is not None:
+            meter.add(rf.bytes_fetched)
+    for t in ev:
+        ev[t].sort(key=lambda e: (e["venue_ms"], e["receipt_ms"]))
+    return ev
+
+
+def _pmxt_files(tmp_path):
+    import json as _json
+    from datetime import timedelta
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from astrolabe.research_lab import history_sources as hs
+
+    hour = datetime(2026, 7, 14, 10, tzinfo=UTC)
+    blobs = {}
+    for back, with_book_for_a in ((0, False), (1, True)):
+        h = hour - timedelta(hours=back)
+        base = int(h.timestamp() * 1000)
+        rows = []
+        for i in range(300):
+            mk = f"0xm{i % 6}"
+            tok = f"tok{i % 6}"
+            et = "book" if (i % 7 == 0 and (with_book_for_a or tok != "tok0")) else "price_change"
+            t_recv = base + i * 13000  # some rows land after the hour end (end_ts filter) in the first file
+            rows.append({"timestamp_received": t_recv, "timestamp": t_recv - 5, "market": mk, "event_type": et, "asset_id": tok,
+                         "bids": _json.dumps([[0.4 + i / 1e4, 10 + i]]) if et == "book" else None,
+                         "asks": _json.dumps([[0.6, 5]]) if et == "book" else None,
+                         "price": None if et == "book" else 0.5, "size": None if et == "book" else float(i), "side": "BUY" if i % 2 else "SELL",
+                         "new_tick_size": None})
+        rows.sort(key=lambda r: r["market"])  # market stats prune row groups
+        ts = pa.timestamp("ms", "UTC")
+        tbl = pa.table({
+            "timestamp_received": pa.array([r["timestamp_received"] for r in rows], ts), "timestamp": pa.array([r["timestamp"] for r in rows], ts),
+            "market": [r["market"] for r in rows], "event_type": [r["event_type"] for r in rows], "asset_id": [r["asset_id"] for r in rows],
+            "bids": pa.array([r["bids"] for r in rows], pa.string()), "asks": pa.array([r["asks"] for r in rows], pa.string()),
+            "price": pa.array([r["price"] for r in rows], pa.float64()), "size": pa.array([r["size"] for r in rows], pa.float64()),
+            "side": [r["side"] for r in rows], "new_tick_size": pa.array([r["new_tick_size"] for r in rows], pa.float64())})
+        p = tmp_path / f"f{back}.parquet"
+        pq.write_table(tbl, p, row_group_size=40)
+        blobs[hs.pmxt_url(h)] = p.read_bytes()
+    return hour, blobs
+
+
+def test_read_hour_events_streamed_equals_whole_row_group(tmp_path, monkeypatch):
+    hour, blobs = _pmxt_files(tmp_path)
+
+    def fetch(url, a, b):
+        return blobs[url][a: b + 1]
+
+    def size_fn(url):
+        if url not in blobs:
+            raise FileNotFoundError(url)
+        return len(blobs[url])
+
+    cases = [({"tok0": "0xm0", "tok3": "0xm3"}, 1), ({"tok0": "0xm0", "tok1": "0xm1", "tok5": "0xm5", "nope": "0xzz"}, 1),
+             ({"tok0": "0xm0"}, 0), ({"tok2": "0xm2"}, 2)]
+    for batch_rows in (3, 7, 4096):
+        monkeypatch.setattr(M, "READ_BATCH_ROWS", batch_rows)
+        for tokens, lb in cases:
+            m_ref, m_new = M.IngressMeter(10**12), M.IngressMeter(10**12)
+            ref = _ref_read_hour_events(hour, tokens, fetch=fetch, size_fn=size_fn, meter=m_ref, lookback_hours=lb)
+            new = M.read_hour_events(hour, tokens, fetch=fetch, size_fn=size_fn, meter=m_new, lookback_hours=lb)
+            assert new == ref
+            assert m_new.used == m_ref.used
+    assert any(len(v) for v in new.values())
+    # the lookback file really contributed and the end_ts filter really dropped rows
+    monkeypatch.setattr(M, "READ_BATCH_ROWS", 5)
+    full = M.read_hour_events(hour, {"tok0": "0xm0"}, fetch=fetch, size_fn=size_fn, lookback_hours=1)
+    assert any(e["receipt_ms"] < int(hour.timestamp() * 1000) for e in full["tok0"])
+    assert all(e["receipt_ms"] <= int(hour.timestamp() * 1000) + 3600_000 for e in full["tok0"])

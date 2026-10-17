@@ -2177,7 +2177,10 @@ def series_fetch(
                     why_stop.append(r)
                 return bool(r)
 
-            events, guarded, walk_rep, stopped = walk_series_events(
+            # memory-bounded walk (cb4_walk_lean): same rules/partial format/result as the pinned walk_series_events
+            from .cb4_walk_lean import walk_series_events_lean  # noqa: PLC0415
+
+            store, walk_rep, stopped = walk_series_events_lean(
                 fr.lim, _ep(walk_from), r_to + SERIES_WALK_AFTER_D * DAY, walk_closed, rdir=rdir,
                 should_stop=walk_stop, base_days=walk_base_days, min_width_s=min_width_s)
             if stopped:
@@ -2186,11 +2189,12 @@ def series_fetch(
                                     "walk_report": walk_rep})
             if walk_rep["base_windows_failed"]:  # an incomplete frame is never written (and so never sampled)
                 return fr.manifest(f"walk_failed_windows: {walk_rep['base_windows_failed']}", {"transient": False, "walk_report": walk_rep})
-            frame_rep = {"walk": walk_rep, **series_frame_counts(events), "r_from": _iso(r_from), "r_to": _iso(r_to),
+            frame_rep = {"walk": walk_rep, **store.frame_counts(), "r_from": _iso(r_from), "r_to": _iso(r_to),
                          "walk_to": _iso(r_to + SERIES_WALK_AFTER_D * DAY)}
-            fr.budget.write(wgpath, _gz_jsonl_bytes([guarded[k] for k in sorted(guarded)]))
-            fr.budget.write(wpath, _gz_jsonl_bytes([events[k] for k in sorted(events)]))
+            store.write_guarded(fr.budget, wgpath)
+            store.write_events(fr.budget, wpath)
             fr.budget.write(frpath, json.dumps(frame_rep, indent=1, sort_keys=True, default=float).encode())  # last: marks the frame
+            del store
             for tmp in (rdir / "walk_partial.jsonl", rdir / "walk_partial_guarded.jsonl"):
                 tmp.unlink(missing_ok=True)
         frame_rep = json.loads(frpath.read_text())
