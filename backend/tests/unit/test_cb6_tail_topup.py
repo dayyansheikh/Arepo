@@ -192,7 +192,7 @@ def test_topup_every_non_complete_ending_drops_it_and_h8_tail_seals_alone(topup_
         t.seal_tail(w.root, t.RUN_ID, **kw)
     assert run_b(w, wall_clock=lambda: t.T_SEAL_EPOCH + 1)["status"] == t.NOT_RUN_TOKEN  # a chunk at or after T_seal: not run
     res = t.seal_tail(w.root, t.RUN_ID, **kw)
-    assert res["sealed"] and res["topup"] == {"run_id": "h8_tail_b", "status": "dropped", "reason": t.NOT_RUN_TOKEN}
+    assert res["sealed"] and res["topup"] == {"run_id": "h8_tail_b", "status": "dropped", "reason": t.NOT_RUN_TOKEN, "refusal_reason": "none"}
     seal = json.loads((w.rdir / "SEAL.json").read_text())
     assert seal["topup"]["status"] == "dropped" and "files" not in seal["topup"]
     assert t.verify_tail(w.root, t.RUN_ID, w.seals)["listing_sha256"] == seal["listing_sha256"]
@@ -381,3 +381,46 @@ def test_cap_flag_reaches_the_headroom_guard(topup_world, tmp_path):
     with pytest.raises(t.NotNow):
         run_b(w, data_dumps=tmp_path / "dd", data_dumps_cap_gb=0.001)
     assert run_b(w, data_dumps=tmp_path / "dd", data_dumps_cap_gb=13)["status"] == t.COMPLETE_TOKEN
+
+
+def test_seal_alone_never_drops_a_pending_top_up_before_t_seal(topup_world):
+    w, _ = topup_world
+    _h7_done(w)
+    kw = dict(seals_dir=w.seals, sleep=lambda s: None, trials_path=w.tmp / "tr.jsonl", wall_clock=lambda: NOW)
+    with pytest.raises(t.NotNow, match="pending"):  # not started
+        t.seal_tail(w.root, t.RUN_ID, **kw)
+    run_b(w, should_stop=lambda: len([1 for k, _ in w.api.log if k == "prices"]) >= 3)
+    with pytest.raises(t.NotNow, match="in progress"):  # manifest in progress
+        t.seal_tail(w.root, t.RUN_ID, **kw)
+    assert not (w.rdir / "SEAL.json").exists() and not (w.root / t.RUN_ID_B / t.NOT_RUN_FILE).exists()
+
+
+def test_seal_alone_after_t_seal_records_the_real_reason_and_a_separate_refusal_reason(topup_world):
+    w, _ = topup_world
+    _h7_done(w)
+    late = lambda: t.T_SEAL_EPOCH + 1  # noqa: E731
+    kw = dict(seals_dir=w.seals, sleep=lambda s: None, trials_path=w.tmp / "tr.jsonl", wall_clock=late)
+    res = t.seal_tail(w.root, t.RUN_ID, **kw)  # never started: no manifest
+    assert res["topup"] == {"run_id": "h8_tail_b", "status": "dropped", "reason": "never_started_by_T_seal",
+                            "refusal_reason": "no_run_left_fetch_refused_or_never_started"}
+    seal = json.loads((w.rdir / "SEAL.json").read_text())
+    assert seal["declaration"]["topup"]["refusal_reason"] == "no_run_left_fetch_refused_or_never_started"
+    assert "topup_frame_disclosure" not in seal["declaration"]
+
+
+def test_seal_alone_after_t_seal_incomplete_b_is_not_run_deadline_with_no_refusal(tmp_path):
+    w = World(tmp_path)
+    assert w.run()["status"] == t.COMPLETE_TOKEN
+    run_b(w, should_stop=lambda: len([1 for k, _ in w.api.log if k == "prices"]) >= 3)
+    _h7_done(w)
+    res = t.seal_tail(w.root, t.RUN_ID, seals_dir=w.seals, sleep=lambda s: None, trials_path=tmp_path / "tr.jsonl",
+                      wall_clock=lambda: t.T_SEAL_EPOCH + 1)
+    assert res["topup"] == {"run_id": "h8_tail_b", "status": "dropped", "reason": t.NOT_RUN_TOKEN, "refusal_reason": "none"}
+
+
+def test_union_seal_declares_the_frame_state_after_t_fetch8(topup_world, tmp_path):
+    w, _ = topup_world
+    kw = _union_ready(w, tmp_path)
+    t.seal_tail(w.root, t.RUN_ID, topup_run_id=t.RUN_ID_B, **kw)
+    decl = json.loads((w.rdir / "SEAL.json").read_text())["declaration"]
+    assert "after T_fetch8" in decl["topup_frame_disclosure"] and "end dates" in decl["topup_frame_disclosure"]

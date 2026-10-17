@@ -1570,6 +1570,15 @@ def topup_state(root: Path, topup_id: str, *, wall_clock: Callable[[], float] = 
     return "pending", "not started" if man is None else f"in progress ({man.get('stopped')})"
 
 
+def topup_refusal_reason(bdir: Path, reason: str) -> str:
+    """Why a dropped top-up left no usable run, kept apart from ``not_run_deadline``: ``none`` when the run ended on its own
+    record (deadline, disk budget, disjointness), ``no_run_left_fetch_refused_or_never_started`` when no manifest exists (a
+    refusal, e.g. rules hash / exclusion pin / smoke / parent guard, or never started: the log is not part of the seal)."""
+    if reason == "never_started_by_T_seal" or not (Path(bdir) / "manifest.json").exists():
+        return "no_run_left_fetch_refused_or_never_started"
+    return "none"
+
+
 def seal_tail(root: Path, run_id: str, *, transport: hb.Transport | None = None, seals_dir: Path | None = None,
               h7_seals_dir: Path | None = None, trials_path: Path | None = None, rps: float = 2.0,
               recheck_keys: bool = True, sleep: Callable[[float], None] = time.sleep, location: dict | None = None,
@@ -1583,7 +1592,8 @@ def seal_tail(root: Path, run_id: str, *, transport: hb.Transport | None = None,
     SEAL.json and ACCESS_LOG.jsonl, one ``history_seal_declaration`` trial line) and writes the committed copy
     ``seals/h8_tail_SEAL.json``.
 
-    Amendment A-T1: ``topup_run_id='h8_tail_b'`` seals the two runs together. ``pending`` top-up -> ``NotNow``; a top-up that
+    Amendment A-T1: ``topup_run_id='h8_tail_b'`` seals the two runs together. ``pending`` top-up -> ``NotNow`` (also without
+    ``topup_run_id`` while h8_tail_b is unfinished or not started before ``t_seal_epoch``); a top-up that
     ended in any way but complete is dropped entirely (recorded in the seal; h8_tail is sealed alone); a complete top-up must
     have all manifest file hashes verified, the same ``T_fetch8`` as h8_tail and no market id in common with it. Then the
     h7 drops, the key re-check and the event-hash split run over the union rows (one ``split.csv.gz`` with a ``run``
@@ -1608,11 +1618,19 @@ def seal_tail(root: Path, run_id: str, *, transport: hb.Transport | None = None,
             raise NotNow(f"{topup_run_id} not terminal yet: {why}")
         topup = {"run_id": topup_run_id, "status": state, **({"reason": why} if why else {})}
     else:
+        # No --topup-run: h8_tail_b must not be dropped silently. Complete -> refused (the union is used); pending
+        # (unfinished or not started) before T_seal -> NotNow; after T_seal it is dropped with its real reason recorded.
         alone, why = topup_state(root, RUN_ID_B, wall_clock=lambda: 0.0, t_seal_epoch=T_SEAL_EPOCH)
         if alone == "complete":
             raise Refused(f"{RUN_ID_B} is {COMPLETE_TOKEN}: the union is used whenever it completes; seal with topup_run_id")
-        if (Path(root) / RUN_ID_B / "manifest.json").exists():
-            topup = {"run_id": RUN_ID_B, "status": "dropped", "reason": why or "not complete"}
+        if alone == "pending":
+            if wall_clock() < t_seal_epoch:
+                raise NotNow(f"{RUN_ID_B} is pending ({why}) before T_seal: sealing {run_id} alone would drop it silently; "
+                             f"seal with topup_run_id, or wait until T_seal")
+            alone, why = topup_state(root, RUN_ID_B, wall_clock=wall_clock, t_seal_epoch=t_seal_epoch)
+        topup = {"run_id": RUN_ID_B, "status": "dropped", "reason": why or "not complete"}
+    if topup.get("status") == "dropped":
+        topup["refusal_reason"] = topup_refusal_reason(Path(root) / topup["run_id"], topup.get("reason", ""))
     h7dir = Path(h7_seals_dir or seals_dir or SEALS_DIR)
     states = {h: h7_state(h, h7dir) for h in H7_RUN_IDS}
     pending = [h for h, (s, _) in states.items() if s == "pending"]
@@ -1706,7 +1724,13 @@ def seal_tail(root: Path, run_id: str, *, transport: hb.Transport | None = None,
                           "Stage 1 of CB6-T is final and committed; outcomes only from outcomes_guarded.csv.gz; DROPPED_* blocks "
                           "are never read",
             "information_end": "manifest request_clock_now (T_fetch8) < T_seal of h4_seal",
-            "topup": {k: v for k, v in topup.items() if k in ("run_id", "status", "reason", "listing_sha256", "union_listing_sha256")}}
+            "topup": {k: v for k, v in topup.items() if k in ("run_id", "status", "reason", "refusal_reason", "listing_sha256",
+                                                              "union_listing_sha256")}}
+    if topup["status"] == "complete":
+        decl["topup_frame_disclosure"] = (
+            "the h8_tail_b frame reflects Gamma market state after T_fetch8 (status, edited end dates), because it was listed "
+            "after h8_tail; it is limited by outcome censoring (end_at <= T_fetch8 - 7 d) and the price/print cap "
+            "min(T_fetch8, T_seal); h8_tail's frame reflects state at T_fetch8")
     extra = {"split": {"seed": SPLIT_SEED, "rule": SPLIT_RULE, "counts": n, "split_sha256": split_sha},
              "read_location": location or read_location(Path(root)), "key_recheck": recheck, "topup": topup,
              "rules_sha256": man.get("rules_sha256"), "t_fetch8": man.get("request_clock_now")}

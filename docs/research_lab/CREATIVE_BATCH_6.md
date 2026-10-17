@@ -1651,3 +1651,21 @@ The proposal above is accepted with these binding changes, which supersede its "
    runs. 8. **Data-dumps guard:** `--data-dumps-cap-gb` (default 12.5) lets the job pass 13 (collector cap 14 GiB).
 9. **Queue:** drafts `q0120b_h8_tail_b_fetch.json` and an updated `q0121_h8_tail_seal.json` (depends on q0120b terminal: complete
    or dropped). Nothing is in `queue/jobs/`. Latest safe start stays 2026-10-21T12:00Z minus the 2-2.5 h run.
+
+## A-T1 freeze-check conditions (2026-10-17)
+Applied after the A-T1 freeze check (GO_WITH_CONDITIONS). q0120b and `seals/cb6_tail_rules_v3.json` (ad7f5baa...) are unchanged;
+no function hashed by the rules (`RULE_FUNCS`) was touched: `seal_tail`, `topup_state` and the new `topup_refusal_reason` are
+not in `RULE_FUNCS`, so the v3 rules do not cover the seal path.
+- **Must-fix 1 (code, `seal_tail`).** Sealing h8_tail without `--topup-run` while h8_tail_b is pending (manifest in progress, or
+  not started) before T_seal (2026-10-22T00:00Z) raises `NotNow` (exit 75); a complete h8_tail_b is still refused. At or after
+  T_seal a pending/incomplete h8_tail_b is dropped with its real reason (`not_run_deadline`, or `never_started_by_T_seal`).
+  The q0121 draft keeps `--topup-run h8_tail_b` and no longer invites an empty value.
+- **Ruling 2.** If `union_pool_exceeds_n_markets` is true (`frame_report.json` `sample`), CB6-T stops for review before any
+  read, uses the recorded `sample_weight`, and discloses n. Not expected: 362 x 9 ~ 3,258 < 4,500. No rules change.
+- **Ruling 3.** A dropped top-up records `topup.refusal_reason` in the seal, manifest-level `recheck` and declaration, separate
+  from `reason`: `no_run_left_fetch_refused_or_never_started` when h8_tail_b left no manifest (a fetch refusal or never
+  started), else `none`. The states stay distinct from `not_run_deadline`.
+- **Ruling 4.** When the union is sealed, the declaration carries `topup_frame_disclosure`: the h8_tail_b frame reflects Gamma
+  state after T_fetch8 (status, edited end dates), limited by outcome censoring (`end_at <= T_fetch8 - 7 d`) and the price cap.
+- **Ruling 5 (ops note).** The q0120b headroom guard needs data-dumps <= 12.75 GB (cap flag 13 less the 0.25 GB output cap)
+  at start; check `du` on the host before promoting. q0120b itself is not edited.

@@ -722,7 +722,7 @@ def test_seal_split_h7_drop_recheck_and_committed_copy(tmp_path):
     mf["file_sha256"]["exclusion_keys.csv.gz"] = hashlib.sha256((w.rdir / "exclusion_keys.csv.gz").read_bytes()).hexdigest()
     (w.rdir / "manifest.json").write_text(json.dumps(mf))
     trials = tmp_path / "trials.jsonl"
-    res = t.seal_tail(w.root, t.RUN_ID, transport=api, seals_dir=w.seals, trials_path=trials, sleep=lambda s: None)
+    res = t.seal_tail(w.root, t.RUN_ID, transport=api, seals_dir=w.seals, trials_path=trials, sleep=lambda s: None, wall_clock=lambda: t.T_SEAL_EPOCH + 1)
     assert res["sealed"] and res["residual_key_matches"] >= 1 and res["h7_dropped"] >= 2
     split = {r["market_id"]: r for r in read_csv_gz(w.rdir / "split.csv.gz")}
     assert split[victim]["block"] == "DROPPED_H7" and split[sibling]["block"] == "DROPPED_H7" and split[resid]["block"] == "DROPPED_KEY"
@@ -742,7 +742,7 @@ def test_seal_split_h7_drop_recheck_and_committed_copy(tmp_path):
     with pytest.raises(t.Refused):  # sealed runs are never fetched into again
         w.run()
     with pytest.raises(t.SealError):
-        t.seal_tail(w.root, t.RUN_ID, transport=api, seals_dir=w.seals, trials_path=trials, sleep=lambda s: None)
+        t.seal_tail(w.root, t.RUN_ID, transport=api, seals_dir=w.seals, trials_path=trials, sleep=lambda s: None, wall_clock=lambda: t.T_SEAL_EPOCH + 1)
     (w.rdir / "sample.csv.gz").write_bytes(b"tampered")
     with pytest.raises(t.SealError):
         t.verify_tail(w.root, t.RUN_ID, w.seals)
@@ -795,7 +795,7 @@ def test_seal_refuses_a_file_changed_or_missing_since_the_fetch(tmp_path):
         t.seal_tail(w.root, t.RUN_ID, seals_dir=w.seals)
     f.write_bytes(good)
     assert t.seal_tail(w.root, t.RUN_ID, transport=FakeApi([]), seals_dir=w.seals, trials_path=tmp_path / "tr.jsonl",
-                       sleep=lambda s: None)["sealed"]
+                       sleep=lambda s: None, wall_clock=lambda: t.T_SEAL_EPOCH + 1)["sealed"]
 
 
 def test_outcomes_resolved_after_the_run_clock_are_censored_and_counted(tmp_path):
