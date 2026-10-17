@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 07:03 UTC+1
+**Last updated:** 2026-10-17 07:29 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -27,7 +27,9 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Batch 7 (3-6 tests):** designed, challenged, code built and checked; its download test is running now. It tests a "specificity discount" (do markets whose rules have more
   conditions overprice YES?), geopolitics longshots, and stepping aside as a maker after Kalshi moves. The sibling-unwind idea was
   dropped: our 2-hourly data can't time it, and batch 1 already screened something similar.
-- **Batch 8 (new, 3-6 tests), challenged and revised; code being written:** (1) in the last 5 minutes before daily crypto Up/Down markets settle, does
+- **Batch 8 (3-6 tests):** challenged and revised; the holder and order-flow code passed its check (with fixes), and its first
+  test download is queued; the Binance part is being written. **New idea round 4** is being generated (Fable) because the round-3
+  list is now used up. (1) in the last 5 minutes before daily crypto Up/Down markets settle, does
   buying the side that Binance has already made near-certain still pay? (2) Does a maker gain by stepping aside after a wallet starts
   "working" a large order in pieces? (3) Do sells by a market's biggest holders move prices more than same-size sells by others?
   The challenger showed that test (1) needs a large margin (about 8 cents a share) to pass at our sample size, because one bad
