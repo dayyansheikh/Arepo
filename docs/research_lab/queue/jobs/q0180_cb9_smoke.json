@@ -11,7 +11,7 @@
   "pmxt HEAD"
  ],
  "resources": {
-  "mem_mb": 200,
+  "mem_mb": 700,
   "cpu": 1,
   "lane": "cpu",
   "network": "polygon-rpc, data-api, gamma-api, yahoo, r2v2.pmxt.dev"
@@ -32,5 +32,5 @@
   "trials.jsonl (cb9_descriptive)"
  ],
  "next_action": "PASS: q0181 after T_seal (net lane). FAIL receipts_v2: S0a/S0b not run (source); FAIL receipts_v1: S0c not run (source); FAIL yahoo_clock or gamma_paging: P not testable (source); counted",
- "notes": "CREATIVE_BATCH_9.md CB9-F. May run before T_seal (cpu lane, <= 1 rps, about 80 requests: Gamma 2 + Data API <= 20 + receipts <= 40 x up to 6 endpoint attempts + Yahoo 2 + Gamma paging 4-8 + 3 pmxt HEADs). Rules file seals/cb9_sign_rules_v3.json (rules_sha256 b938aeae...; v1/v2 superseded: freeze-check fixes M1-M3, then the cap default 40; wallet_key_fingerprint 80ce5e81a539a570). WRITE-ONCE result. Counts only: no Data API side is compared with any truth side. IMPLEMENTED 2026-10-17 (run_cb9.py smoke: cb9_sign.smoke_receipts, cb9_pyth.smoke_yahoo_check / smoke_gamma_paging / smoke_pmxt_heads). Network failure or > 2 unavailable receipts in an era: nothing written, exit 75 (M2). Records per-exchange counts (M1) and Gamma parse reasons + equality-clause excerpts (M3). | PROMOTED 2026-10-17 19:55Z by the autopilot: freeze check verdict q0180 GO_WITH_CONDITIONS (M1-M3 first); M1-M3 fixed in 7375a86, rules v3 (737cbc0) sha256 6b6327fc... verified, 94 cb9 tests pass at the promoting commit."
+ "notes": "CREATIVE_BATCH_9.md CB9-F. May run before T_seal (cpu lane, <= 1 rps, about 80 requests: Gamma 2 + Data API <= 20 + receipts <= 40 x up to 6 endpoint attempts + Yahoo 2 + Gamma paging 4-8 + 3 pmxt HEADs). Rules file seals/cb9_sign_rules_v3.json (rules_sha256 b938aeae...; v1/v2 superseded: freeze-check fixes M1-M3, then the cap default 40; wallet_key_fingerprint 80ce5e81a539a570). WRITE-ONCE result. Counts only: no Data API side is compared with any truth side. IMPLEMENTED 2026-10-17 (run_cb9.py smoke: cb9_sign.smoke_receipts, cb9_pyth.smoke_yahoo_check / smoke_gamma_paging / smoke_pmxt_heads). Network failure or > 2 unavailable receipts in an era: nothing written, exit 75 (M2). Records per-exchange counts (M1) and Gamma parse reasons + equality-clause excerpts (M3). | PROMOTED 2026-10-17 19:55Z by the autopilot: freeze check verdict q0180 GO_WITH_CONDITIONS (M1-M3 first); M1-M3 fixed in 7375a86, rules v3 (737cbc0) sha256 6b6327fc... verified, 94 cb9 tests pass at the promoting commit. | 2026-10-17 19:55Z autopilot: attempt 1 died with MemoryError while importing (address-space cap 2 x 200 MB is below the import footprint of run_cb9.py -> cb8_books); mem_mb 200 -> 700 (ops only); nothing was written."
 }
