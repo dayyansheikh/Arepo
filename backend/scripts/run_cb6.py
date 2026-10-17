@@ -2,9 +2,9 @@
 """CB6 runner, data side (docs/research_lab/CREATIVE_BATCH_6.md CB6-F and 10.3). Run from cwd=backend (queue worker).
 EXPLORATORY: no edge, calibration or profitability claim.
 
-    python scripts/run_cb6.py rules                 # write docs/research_lab/seals/cb6_tail_rules.json (commit it before q0120)
+    python scripts/run_cb6.py rules                 # write docs/research_lab/seals/cb6_tail_rules_v2.json (commit it before q0136/q0120)
     python scripts/run_cb6.py exclusion-keys ...    # stop after the exclusion keys (Gamma lookup of the excluded ids)
-    python scripts/run_cb6.py tail-smoke ...        # q0135: 20-market fidelity-60 smoke test, counts only
+    python scripts/run_cb6.py tail-smoke ...        # q0136 (smoke v2; q0135 v1 FAILED): 20-market fidelity-60 smoke test, counts only
     python scripts/run_cb6.py tail-fetch ...        # q0120 (alias fetch): one resumable chunk of the h8_tail fetch
     python scripts/run_cb6.py tail-seal ...         # q0121 (alias seal): seal h8_tail
     python scripts/run_cb6.py verify-seal           # verify the seal against the committed copy
@@ -139,6 +139,9 @@ def cmd_smoke(a) -> int:
     out = _data_path(a.out, data_dumps) if a.out else t.SMOKE_DEFAULT
     if out.exists():  # write-once: a FAIL can never be replaced by a later PASS
         _emit({"refused": f"smoke result {out} already exists; it is write-once"})
+        return REFUSED
+    if out.name == t.SMOKE_V1_PATH.name:  # the v1 (q0135, FAIL) result name is never reused, on any machine
+        _emit({"refused": f"{out.name} is the smoke v1 result name; smoke v2 writes a new path"})
         return REFUSED
     try:
         seals_dir = Path(a.seals_dir) if a.seals_dir else t.SEALS_DIR

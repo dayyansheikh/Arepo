@@ -121,15 +121,17 @@ def make_trades(mid, created, end):
     return out
 
 
-def write_sample(path: Path, ids, end_epoch=None, closed=1):
+def write_sample(path: Path, ids, end_epoch=None, closed=1, life_days=60.0, close_minus_end_days=0.0, created=True):
     path.parent.mkdir(parents=True, exist_ok=True)
     import csv
 
     with gzip.open(path, "wt", newline="") as fh:
         w = csv.writer(fh)
-        w.writerow(["market_id", "token0", "end_epoch", "closed"])
+        w.writerow(["market_id", "token0", "end_epoch", "closed", "created_at", "close_epoch"])
         for i in ids:
-            w.writerow([i, f"tok{i}a", end_epoch if end_epoch is not None else ep("2025-06-15T00:00:00Z"), closed])
+            end = end_epoch if end_epoch is not None else ep("2025-06-15T00:00:00Z")
+            w.writerow([i, f"tok{i}a", end, closed, iso(end - life_days * 86400) if created else "",
+                        end + close_minus_end_days * 86400])
 
 
 def write_seal_copy(path: Path, ids):
@@ -256,7 +258,10 @@ def test_rules_file_roundtrip_and_refusals(tmp_path):
     t.write_rules(p)
     doc = json.loads(p.read_text())
     assert t.verify_rules(p, require_committed=False) == doc["rules_sha256"]
-    assert doc["seeds"] == {"sample": "arepo-h8-tail", "origins": "arepo-h8-tail-origins", "smoke": "arepo-h8-smoke", "split": "arepo-cb6-tail-split"}
+    assert doc["seeds"] == {"sample": "arepo-h8-tail", "origins": "arepo-h8-tail-origins", "smoke": "arepo-h8-smoke2", "split": "arepo-cb6-tail-split"}
+    assert doc["rules_version"] == "cb6-tail-rules-v2" and doc["smoke"]["version"] == "h8-tail-smoke-v2"
+    assert doc["smoke"]["min_pass"] == 18 and doc["smoke"]["min_fraction_of_expected_points"] == 0.8
+    assert doc["smoke"]["median_spacing_s"] == [3600.0, 300.0] and doc["smoke"]["superseded"]["result"] == "FAIL"
     assert len(doc["exclusion"]["files"]) == 5 and all(len(f["sha256"]) == 64 for f in doc["exclusion"]["files"])
     assert doc["exclusion"]["max_unverified_key_share"] == 0.02 and doc["dates"]["end_before_fetch_days"] == 7
     bad = {**doc, "features": {**doc["features"], "drift_min": 0.02}}
@@ -817,6 +822,73 @@ def test_full_disk_budget_is_a_declared_end_state_with_exit_4(tmp_path):
     on_disk = json.loads((w.rdir / "manifest.json").read_text())
     assert on_disk["status"] == t.DISK_BUDGET_TOKEN and on_disk["complete"] is False
     assert script.DISK_BUDGET == 4 and script.DISK_BUDGET not in (script.TEMPFAIL, script.REFUSED)
+
+
+def _pins_for(w):
+    return [{**p, "sha256": hashlib.sha256((w.root / p["path"]).read_bytes()).hexdigest()} if p["kind"] == "sample" else p
+            for p in w.pins]
+
+
+def test_smoke_v2_pool_keeps_only_windows_inside_the_market_life(tmp_path):
+    w = World(tmp_path)
+    end = ep("2025-06-15T00:00:00Z")
+    write_sample(w.root / "h1_first" / "sample.csv.gz", ["a1", "a2"])  # life 60 d, closes at end: kept
+    write_sample(w.root / "h2_main" / "sample.csv.gz", ["b1", "b2", "b3"], life_days=6.5)  # v1 failure mode: dropped
+    write_sample(w.root / "h3_power" / "sample.csv.gz", ["c1"], close_minus_end_days=-3.0)  # early close: dropped
+    pins = _pins_for(w)
+    files = t.verify_exclusion_files(pins, history_root=w.root, seals_dir=w.seals)
+    pool, counts = t.smoke_pool(files, pins)
+    assert {r["market_id"] for r in pool} == {"a1", "a2"}
+    assert counts == {"n_closed_end_2025": 6, "drop_no_created": 0, "drop_life_lt_14d": 3, "drop_no_close": 0,
+                      "drop_closed_before_window_end": 1, "n_pool": 2}
+    # exactly 14 d of life is kept; close exactly at end - 2 d is kept (window end inclusive)
+    write_sample(w.root / "h2_main" / "sample.csv.gz", ["d1"], life_days=14.0)
+    write_sample(w.root / "h3_power" / "sample.csv.gz", ["e1"], close_minus_end_days=-2.0)
+    write_sample(w.root / "h1_first" / "sample.csv.gz", ["f1"], created=False)
+    pins = _pins_for(w)
+    files = t.verify_exclusion_files(pins, history_root=w.root, seals_dir=w.seals)
+    pool, counts = t.smoke_pool(files, pins)
+    assert {r["market_id"] for r in pool} == {"d1", "e1"} and counts["drop_no_created"] == 1
+    assert all(r["end_epoch"] == end for r in pool) and set(pool[0]) == {"market_id", "token0", "end_epoch"}
+
+
+def test_smoke_v2_result_carries_version_and_pool_counts(tmp_path):
+    w, files, lim = _smoke_world(tmp_path, 20)
+    res = t.run_smoke(lim, files, w.pins, "abc")
+    assert res["smoke_version"] == "h8-tail-smoke-v2" and res["pool_counts"]["n_pool"] == res["n_candidates_available"]
+    assert res["supersedes"] == t.SMOKE_V1_RECORD["copy_sha256"]
+
+
+def test_smoke_ok_refuses_a_v1_result_even_if_pass(tmp_path):
+    p = tmp_path / "s.json"
+    p.write_text(json.dumps({"pass": True, "rules_sha256": "abc", "smoke_version": "h8-tail-smoke-v1"}))
+    with pytest.raises(t.Refused):
+        t.smoke_ok(p, "abc")
+    p.write_text(json.dumps({"pass": True, "rules_sha256": "abc", "smoke_version": "h8-tail-smoke-v2"}))
+    assert t.smoke_ok(p, "abc")["pass"] is True
+
+
+def test_smoke_v2_refuses_the_v1_result_name(tmp_path, capsys):
+    out = tmp_path / "tail_smoke.json"
+    assert script.main(["tail-smoke", "--out", str(out), "--root", str(tmp_path / "r")]) == 2
+    assert not out.exists() and "smoke v1 result name" in capsys.readouterr().out
+    assert t.SMOKE_DEFAULT.name == "tail_smoke2.json"
+
+
+def test_smoke_v1_fail_copy_is_recorded_byte_identical():
+    copy = Path(__file__).resolve().parents[3] / t.SMOKE_V1_RECORD["copy"]
+    if not copy.exists():
+        pytest.skip("FAIL copy not present")
+    assert hashlib.sha256(copy.read_bytes()).hexdigest() == t.SMOKE_V1_RECORD["copy_sha256"]
+    d = json.loads(copy.read_text())
+    assert d["pass"] is False and d["n_pass"] == 4 and d["rules_sha256"] == t.SMOKE_V1_RECORD["rules_sha256"]
+
+
+def test_v1_rules_file_is_kept_and_differs_from_v2():
+    if not t.RULES_FILE_V1.exists():
+        pytest.skip("v1 rules file not present")
+    assert json.loads(t.RULES_FILE_V1.read_text())["rules_sha256"] == t.SMOKE_V1_RECORD["rules_sha256"]
+    assert t.RULES_FILE != t.RULES_FILE_V1
 
 
 def test_smoke_result_is_write_once(tmp_path, capsys):

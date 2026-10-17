@@ -37,7 +37,7 @@ from . import event_study, h5_seal
 from . import history_backfill as hb
 
 FETCH_VERSION = "h8-cb6-fetch-v1"
-RULES_VERSION = "cb6-tail-rules-v1"
+RULES_VERSION = "cb6-tail-rules-v2"  # v2: smoke v2 pool (q0135 smoke v1 FAIL, CREATIVE_BATCH_6.md "Smoke test result")
 RUN_ID = "h8_tail"
 T_SEAL = c4.T_SEAL
 T_SEAL_EPOCH = hb.T_SEAL_EPOCH
@@ -45,8 +45,17 @@ DAY = 86400.0
 HOUR = 3600.0
 HIST_ROOT = c4.HIST_ROOT
 SEALS_DIR = h5_seal.SEALS_DIR
-RULES_FILE = SEALS_DIR / "cb6_tail_rules.json"
-SMOKE_DEFAULT = c4.DATA_DUMPS / "research_lab" / "creative_batch6" / "tail_smoke.json"
+RULES_FILE = SEALS_DIR / "cb6_tail_rules_v2.json"
+RULES_FILE_V1 = SEALS_DIR / "cb6_tail_rules.json"  # consumed by the q0135 smoke v1 (FAIL); never rewritten
+SMOKE_DEFAULT = c4.DATA_DUMPS / "research_lab" / "creative_batch6" / "tail_smoke2.json"
+SMOKE_V1_PATH = c4.DATA_DUMPS / "research_lab" / "creative_batch6" / "tail_smoke.json"  # q0135 FAIL, write-once
+SMOKE_VERSION = "h8-tail-smoke-v2"
+SMOKE_V1_RECORD = {"version": "h8-tail-smoke-v1", "job": "q0135_h8_tail_smoke", "result": "FAIL", "n_pass": 4, "n_requested": 20,
+                   "rules_sha256": "57a265d0620c45ea2c82e606e1194846aed6012e2848753a81cfdbb90aa2f3df",
+                   "copy": "docs/research_lab/seals/cb6_tail_smoke_FAIL_20261017.json",
+                   "copy_sha256": "ae21aefec15c0122310682fab70a640a21f68b8486ae18f4b9f3490be65e28be",
+                   "cause": "pool lacked the h8 frame's life >= 14 d rule: for 16 of 20 drawn markets the window "
+                            "[end - 12 d, end - 2 d] began before the market was created (scheduled life 0.1-6.5 d)"}
 COMPLETE_TOKEN = "tail_fetch_complete"
 NOT_RUN_TOKEN = "not_run_deadline"
 UNVERIFIED_TOKEN = "disjointness_unverified"
@@ -66,7 +75,8 @@ H7_RUN_IDS = ("h7_cb4_era", "h7_cb4_series")
 # ---- declared parameters (all of them are in the rules file) -----------------------------------------------------
 SEED = "arepo-h8-tail"
 ORIGIN_SEED = "arepo-h8-tail-origins"
-SMOKE_SEED = "arepo-h8-smoke"
+SMOKE_SEED_V1 = "arepo-h8-smoke"  # q0135 (FAIL); kept for the record
+SMOKE_SEED = "arepo-h8-smoke2"
 SPLIT_SEED = "arepo-cb6-tail-split"
 N_MARKETS = 4500
 CREATED_FROM = "2025-09-01"
@@ -402,10 +412,13 @@ def rules_doc(pins: tuple[dict, ...] | list[dict] | None = None) -> dict:
         "exclusion": {"files": pins, "key_types": list(KEY_TYPES), "max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE,
                       "ids_per_request": GAMMA_IDS_PER_REQUEST, "retry_missing_with_closed_true": True,
                       "series_ids_from": "all events of the market"},
-        "smoke": {"n": SMOKE_N, "min_pass": SMOKE_MIN_PASS, "min_fraction_of_expected_points": SMOKE_MIN_FRACTION,
+        "smoke": {"version": SMOKE_VERSION, "n": SMOKE_N, "min_pass": SMOKE_MIN_PASS,
+                  "min_fraction_of_expected_points": SMOKE_MIN_FRACTION,
                   "median_spacing_s": list(SMOKE_SPACING), "window_before_end_days": list(SMOKE_BEFORE_END_DAYS),
-                  "pool": "closed markets with end_at in 2025 from the h1/h2/h3 exclusion samples",
-                  "output": "counts only"},
+                  "pool": "closed markets with end_at in 2025 from the h1/h2/h3 exclusion samples, scheduled life "
+                          "end_at - created_at >= min_life_days (the h8 frame rule) and close_epoch >= end_at - 2 d, so "
+                          "the whole window lies inside [created_at, close]; drop counts by reason",
+                  "seed": SMOKE_SEED, "output": "counts only", "superseded": SMOKE_V1_RECORD},
         "features": {"class_d": list(CLASS_D_PATTERNS), "class_c": list(CLASS_C_PATTERNS),
                      "description_fallback_chars": CLASS_DESCRIPTION_FALLBACK_CHARS,
                      "clarification_markers": list(CLARIFICATION_MARKERS), "note_date_pattern": NOTE_DATE_PATTERN,
@@ -1203,8 +1216,12 @@ def tail_fetch(
 # ---- smoke test -----------------------------------------------------------------------------------------------------------
 
 
-def smoke_candidates(files: dict[str, Path], pins) -> list[dict]:
-    out = []
+def smoke_pool(files: dict[str, Path], pins) -> tuple[list[dict], dict]:
+    """Smoke v2 pool (CREATIVE_BATCH_6.md "Smoke test result"): closed h1/h2/h3 sample markets with ``end_at`` in 2025
+    whose window ``[end - 12 d, end - 2 d]`` lies inside the market's life: scheduled life ``>= MIN_LIFE_DAYS`` (the h8
+    frame rule; then ``created < end - 12 d``) and ``close_epoch >= end - 2 d``. Reads ids, token0, created_at, end_epoch,
+    close_epoch and closed only (no outcome column). Returns (candidates in seeded order, drop counts by reason)."""
+    rows: dict[str, dict] = {}
     for pin in pins:
         if pin["kind"] != "sample":
             continue
@@ -1214,15 +1231,41 @@ def smoke_candidates(files: dict[str, Path], pins) -> list[dict]:
             except (KeyError, TypeError, ValueError):
                 continue
             if str(row.get("closed")) in ("1", "True", "true") and c4._ep("2025-01-01") <= end < c4._ep("2026-01-01"):
-                out.append({"market_id": str(row["market_id"]), "token0": row["token0"], "end_epoch": end})
-    return sorted({r["market_id"]: r for r in out}.values(), key=lambda r: hb._rank(SMOKE_SEED, r["market_id"]))
+                rows[str(row["market_id"])] = {"market_id": str(row["market_id"]), "token0": row["token0"], "end_epoch": end,
+                                               "created": _parse_ts(row.get("created_at")), "close": row.get("close_epoch")}
+    counts = {"n_closed_end_2025": len(rows), "drop_no_created": 0, "drop_life_lt_14d": 0, "drop_no_close": 0,
+              "drop_closed_before_window_end": 0}
+    out = []
+    for r in rows.values():
+        if r["created"] is None:
+            counts["drop_no_created"] += 1
+            continue
+        if r["end_epoch"] - r["created"] < MIN_LIFE_DAYS * DAY:
+            counts["drop_life_lt_14d"] += 1
+            continue
+        try:
+            close = float(r["close"])
+        except (TypeError, ValueError):
+            counts["drop_no_close"] += 1
+            continue
+        if close < r["end_epoch"] - SMOKE_BEFORE_END_DAYS[1] * DAY:
+            counts["drop_closed_before_window_end"] += 1
+            continue
+        out.append({"market_id": r["market_id"], "token0": r["token0"], "end_epoch": r["end_epoch"]})
+    counts["n_pool"] = len(out)
+    return sorted(out, key=lambda r: hb._rank(SMOKE_SEED, r["market_id"])), counts
+
+
+def smoke_candidates(files: dict[str, Path], pins) -> list[dict]:
+    return smoke_pool(files, pins)[0]
 
 
 def run_smoke(lim: hb.Limiter, files: dict[str, Path], pins, rules_sha: str) -> dict:
-    """20 seeded worn 2025 markets, one fidelity-60 request each over ``[end - 12 d, end - 2 d]``. PASS iff at least 18
-    return at least 80% of the expected hourly points with median spacing 3,600 +/- 300 s. Counts only: no id, price or
-    timestamp is kept."""
-    cands = smoke_candidates(files, pins)[:SMOKE_N]
+    """Smoke v2: 20 seeded worn 2025 markets from :func:`smoke_pool`, one fidelity-60 request each over
+    ``[end - 12 d, end - 2 d]``. PASS iff at least 18 return at least 80% of the expected hourly points with median spacing
+    3,600 +/- 300 s (thresholds unchanged from v1). Counts only: no id, price or timestamp is kept."""
+    pool, pool_counts = smoke_pool(files, pins)
+    cands = pool[:SMOKE_N]
     n_ok_points = n_ok_spacing = n_pass = n_failed_requests = 0
     fractions = []
     for r in cands:
@@ -1246,11 +1289,12 @@ def run_smoke(lim: hb.Limiter, files: dict[str, Path], pins, rules_sha: str) -> 
     verdict = len(cands) == SMOKE_N and n_pass >= SMOKE_MIN_PASS
     bins = {"lt_0.5": sum(f < 0.5 for f in fractions), "0.5_to_0.8": sum(0.5 <= f < 0.8 for f in fractions),
             "0.8_to_1.1": sum(0.8 <= f < 1.1 for f in fractions), "ge_1.1": sum(f >= 1.1 for f in fractions)}
-    return {"smoke_version": "h8-tail-smoke-v1", "rules_sha256": rules_sha, "git_commit": hb._git_commit(),
-            "run_utc": _iso(time.time()), "n_candidates_available": len(smoke_candidates(files, pins)),
+    return {"smoke_version": SMOKE_VERSION, "rules_sha256": rules_sha, "git_commit": hb._git_commit(),
+            "run_utc": _iso(time.time()), "n_candidates_available": len(pool), "pool_counts": pool_counts,
             "n_requested": len(cands), "n_failed_requests": n_failed_requests, "n_ge_80pct_points": n_ok_points,
             "n_spacing_ok": n_ok_spacing, "n_pass": n_pass, "pass_threshold": SMOKE_MIN_PASS,
-            "fraction_of_expected_points_histogram": bins, "pass": bool(verdict), "counts_only": True}
+            "fraction_of_expected_points_histogram": bins, "pass": bool(verdict), "counts_only": True,
+            "supersedes": SMOKE_V1_RECORD["copy_sha256"]}
 
 
 def smoke_ok(path: Path, rules_sha: str) -> dict:
@@ -1263,6 +1307,8 @@ def smoke_ok(path: Path, rules_sha: str) -> dict:
         raise Refused(f"smoke result {p} unreadable") from exc
     if d.get("pass") is not True:
         raise Refused(f"smoke result {p} is not a PASS")
+    if d.get("smoke_version") != SMOKE_VERSION:
+        raise Refused(f"smoke result {p} is {d.get('smoke_version')}, not {SMOKE_VERSION}")
     if d.get("rules_sha256") != rules_sha:
         raise Refused(f"smoke result {p} was made under another rules hash")
     return d
@@ -1311,7 +1357,7 @@ def event_key_split(rows: list[dict], seed: str = SPLIT_SEED) -> dict[str, tuple
 # hashed into the rules file (fetch rules and the split); defined after the functions it names
 RULE_FUNCS = (class_d, has_clarification, monday_grid, draw_origins, frame_filter_reason, key_types_matched,
               sample_weight_of, usable_point, qualifying_buyers, hb._rank, hb.allocate_weighted, event_key_split,
-              hb.cb1_topic, _is_weather, tail_row)
+              hb.cb1_topic, _is_weather, tail_row, smoke_pool, run_smoke)
 
 
 def read_location(data_root: Path) -> dict:

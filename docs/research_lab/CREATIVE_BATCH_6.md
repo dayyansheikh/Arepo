@@ -1519,3 +1519,68 @@ The write-once smoke job `q0135_h8_tail_smoke` ran on the host at 2026-10-17T05:
 
 Consequence, as declared in CB6-F: **q0120 is not committed**. A different fidelity or source is a design change that
 needs review, and `T_seal` (2026-10-22T00:00Z) is not moved. The diagnosis follows below.
+
+### Diagnosis (2026-10-17; counts-only probes, no outcome column read)
+
+Two request probes and three zero-request counts ran from the host venv with the code's own seeded selection
+(`smoke_candidates`, seed `arepo-h8-smoke`, the same 20 markets as q0135; the smoke result was not touched): 300 public
+requests in all at 2 rps, 0 retries, 0 throttled. Only
+counts and timestamp offsets were printed; nothing was stored. Columns read from the sample files: `market_id`, `token0`,
+`condition_id`, `created_at`, `start_epoch`, `end_epoch`, `close_epoch`, `closed`, `fee_category` (never
+`outcome_prices`, `uma_status`, volume or liquidity). Probe scripts were deleted from the host afterwards.
+
+| Question | Evidence (counts) | Verdict |
+|---|---|---|
+| (d) window / denominator mis-specified | **16 of 20** smoke markets had scheduled life `end − created` of 0.1-6.5 days, so the window `[end − 12 d, end − 2 d]` began 5.5-11.9 days *before the market was created*; these are exactly the 16 in the `lt_0.5` bin. The 3 extra `n_spacing_ok` markets are partial series starting at creation (first point 0.0-0.1 d after `created_at`; 43-103 points). The 4 markets whose life covered the window (13.6-27.4 d) returned 239-240 hourly points, median gap 3,600 s: **4 of 4 pass**. Of the 573 closed 2025-end exclusion-sample markets, 539 (94%) have life < 14 d | **Cause.** The smoke pool omitted the h8 frame's own `life ≥ 14 d` rule, so the expected-points denominator counted hours before the market existed. The code implements the declared spec literally; the error is in the spec |
+| (a) no trading in the window | In-window taker prints: 0 for 14 of the 16 failing markets (the window predates them; the other 2 traded only after creation, late in the window); whole-life prints exist for 13 of the 16 (3 never traded) | Not an independent cause: no trades because no market yet |
+| (b) API downsamples old history | 2025 markets with a covered window: 239-240 hourly points at fidelity 60 and 1,440-1,441 at fidelity 10 | **No** |
+| (c) wrong request parameters | Same `market=<token0>&startTs&endTs&fidelity=60` request returns full hourly series where the market is live; `interval=max` returns [] for 20 of the 20 smoke markets (known, already avoided) | **No code bug** |
+
+**Representativeness (20 worn h8-like markets: created 2025-09-01..2026-07-31, closed, end ≤ 2026-10-10, life ≥ 14 d,
+not weather, ranked by the v1 seed; the frozen h8 origin rule `draw_origins` applied; one fidelity-60 request over
+`[t − 8 d, t + 2 d]` per origin).** 50 origins: 36 meet the smoke criterion (≥ 80% of 240 points, median gap
+3,600 ± 300 s). Of the 14 that do not, **8 lie after the market's actual close** (early closure before the scheduled
+end; points stop at `close_epoch`, e.g. 42 and 103 points where the close fell 6.3 and 3.7 d before t); 23% (225 of
+976) of the h8-like pool closed > 2 d before its scheduled end. Of the **42 pre-close origins, 36 (86%) pass**; the 6
+others are genuinely sparse or empty mid-life windows (0, 53, 98, 123, 143, 151 points; one with a 3-hour median gap).
+A usable point at t (CB6-T rule) exists for 37 of 50 origins (37 of 42 pre-close).
+
+### Smoke v2 (design change; science-reviewer acceptance required before q0136 is promoted)
+
+**Change (pool only).** Smoke v2 draws from closed 2025-end h1/h2/h3 exclusion-sample markets with scheduled life
+`≥ 14 d` (the h8 frame rule, already declared) **and** `close_epoch ≥ end − 2 d`, so the whole window lies inside
+`[created_at, close]`; new seed `arepo-h8-smoke2`; drop counts by reason are written. **Unchanged:** n = 20, PASS iff
+≥ 18 of 20, ≥ 80% of 240 expected points, median spacing 3,600 ± 300 s, window `[end − 12 d, end − 2 d]`, fidelity 60,
+request form, counts only, write-once. Pool size on the host: 573 → 33 (539 life < 14 d, 1 closed before the window
+end; zero-request count). Fetch, origin rule, frame and every CB6-T rule are unchanged.
+
+**Justification.** The smoke exists to test the *source* (risk 1: "fidelity-60 history unavailable for closed
+markets"). Its denominator presumes the market exists and trades through the window. v1 violated that for 16 of 20
+draws, so its FAIL measured the pool's short-lived markets, not the source. v2 restores the presumption with two
+rules fixed from metadata only: the h8 frame's declared life rule and the market's close time. Neither involves a
+price, a print count or an outcome.
+
+**Disclosure.** The v2 rule was written after the probes above. They are counts only on worn markets. Two of the 33 v2
+pool markets were among the 20 probed v1 draws (239 and 240 points), and one of those two is among the
+first 20 v2 draws (checked by a zero-request count). None of the 20 h8-like probe markets is in the v2 pool. The v2 seed is new and was not used in any probe. The
+thresholds were not changed. On the probe's pre-close rate of 86%, P(≥ 18 of 20) ≈ 0.45. The 2025 near-end windows
+were 4 of 4. So v2 can still FAIL. A v2 FAIL is final: no smoke v3, q0120 not committed, and CB6-T recorded as "not run
+(smoke FAIL)" and counted.
+
+**Code and files.** `cb6_tail.py` `smoke_pool` / `run_smoke` (v2), `smoke_ok` requires `smoke_version` =
+`h8-tail-smoke-v2`; runner refuses the v1 output name. New rules file `seals/cb6_tail_rules_v2.json`, `rules_sha256`
+**bf05c8ee7c3a1e55dafaa4b4344d9ba0be35afe545c372e7e6b288c08eceee16** (`rules_version` `cb6-tail-rules-v2`; `smoke_pool`
+and `run_smoke` added to the hashed `RULE_FUNCS`; the smoke block records the superseded v1 FAIL). The v1 file
+`seals/cb6_tail_rules.json` (57a265d0…) is kept unchanged as the record of q0135. Drafts: `queue/drafts/q0136_h8_tail_smoke2.json`
+(new output `creative_batch6/tail_smoke2.json`; **not promoted**). `q0120_h8_tail_fetch.json` is repointed to rules v2,
+`--require-smoke tail_smoke2.json` and `depends_on` q0136.
+
+**Consequences for CB6-T power.** The frozen eligibility rules (market open at t; usable point at t and at t − 7 d)
+already exclude post-close and empty-window origins, so no CB6-T rule changes. If the MDE's 35% eligibility assumption
+did not already absorb them, the probe's 74% usable-at-t rate lowers it to about 26% (about 3,500 units). Stage-1 MDE
+then rises from about 3.8c to about 4.4c (×√(35/26)). The 2c floor is unchanged, and T1 can still detect only a strong
+class effect. The census replaces these assumptions.
+
+**Clock.** q0136 takes about 20 requests (under 2 min). q0120 needs about 3.5 h and must finish before `T_seal`
+2026-10-22T00:00Z. The latest host start stays 2026-10-20T12:00Z, with the Mac fallback after it. The deadline is not
+moved. If review does not accept v2 in time, CB6-T is "not run (smoke FAIL)" and counted.
