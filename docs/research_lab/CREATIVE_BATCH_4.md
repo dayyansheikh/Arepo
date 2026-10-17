@@ -1502,3 +1502,17 @@ is not written or committed here: the freeze (`write_spec` with the census pins)
 - 2026-10-17: `run_closewin` no longer stops on an unavailable release copy (the q0080 stall on `20261013T231958Z_80e78ef1`, which lives only in the val ledger release): the capture is recorded `missing` / `release_unavailable` (counted; retried by `--retry-missing` and every all-new pass) and the walk continues; five consecutive such failures still stop the run as an outage guard.
 
 - 2026-10-17 (freeze-check fix 6 completion and census helpers; no threshold or formula changed): the declaration hash now covers the cb4_data and cb4_analysis rule functions by an explicit list (run_closewin, I/O and command wrappers excluded), the imported `oldest_or_inf`, `taker_fee_ps`, `parse_outcome0`, `_asof`, `rebuild_book`, and the rule constants (`MAX_QUOTE_AGE_S`, `GRID_S`, small-G lists, interpretations, `FEE_ERAS`, `ERA_BUFFER_D`). Added counts-only helpers (`print_available`, `s2_computable`, `s_census_counts`, `e_predicted_mde`); `g50_gate` now counts P_A availability without computing S2. `flip-trades` (q0085) refuses before 2026-10-25T02:00Z with exit 75 (tempfail, no retry burned). Hung/network-dependent `test_cmd_fetch_refusals` case now points at an absent rules file. New declaration hash: `1d17074139c0...932d9`.
+
+## h7 release re-check (science-reviewer, 2026-10-17 ~05:05Z) and coordinator action
+- RESOLVED: condition (a) and item 6 (committed `seals/cb4_series_rules.json` equals `series_rules_doc()` in-process; funcs
+  `05ae3471…`, rule text `77611e50…`; walk/history/h5/ladder/roll helpers hashed; R_from/R_to in `RULE_TEXT`); item 5 (data-dumps
+  refusal exits 75, a wait, not an attempt). `test_cb4_data.py` 72 passed, no hang.
+- Must-fix 1 (applied, 8fc32d6): `DATA_DUMPS_FETCH_CAP_GB = 10` would make q0081f/q0082f/q0081/q0082 tempfail until failed (data-dumps
+  ~9.9 GB); the four argvs now pass `--data-dumps-cap-gb 12.5` (operational headroom; collector cap 13 GB; outputs unaffected).
+- Must-fix 2 (applied as a rule): q0083b is NOT promoted before T_seal. Before T_seal `record-deadline` exits 0, so q0083b would be
+  `done` and q0083 (max_retries 1) would fail on unfinished runs. Create q0083b on/after 2026-10-22T00:00Z.
+- Minor, disclosed: the walk end `r_to + SERIES_WALK_AFTER_D*DAY` is computed in the unhashed `series_fetch` (`cb4_data.py:2167,2181`)
+  and `r_to` is recomputed per session clock, so a resumed frame walk may use a later end; `run_state` does not compare completion
+  time with T_seal (bounded by the T_seal stop at `:1107`).
+- Gate q0081a created (8fc32d6): releases the frames. Next: read `frame_report.json` of both frames, commit
+  `seals/h7_cb4_group_s_amendment.json` (decision + hashes), create gate q0081g.
