@@ -34,18 +34,21 @@ from . import cb6_tail as c6
 from . import h5_seal
 from . import history_backfill as hb
 
-RULES_VERSION = "cb7-text-geo-rules-v1"
+RULES_VERSION = "cb7-text-geo-rules-v2"  # v2: smoke v2 (q0140b; q0140 smoke v1 FAIL = pool spec, CREATIVE_BATCH_7.md "Smoke v2")
 FETCH_VERSION = "h8-cb7-fetch-v1"
-SMOKE_VERSION = "cb7-smoke-v1"
+SMOKE_VERSION = "cb7-smoke-v2"
+SMOKE_V1_VERSION = "cb7-smoke-v1"
 T_SEAL = c4.T_SEAL
 T_SEAL_EPOCH = hb.T_SEAL_EPOCH
 DAY = 86400.0
 HOUR = 3600.0
 HIST_ROOT = c4.HIST_ROOT
 SEALS_DIR = h5_seal.SEALS_DIR
-RULES_FILE = SEALS_DIR / "cb7_text_geo_rules.json"
+RULES_FILE_V1 = SEALS_DIR / "cb7_text_geo_rules.json"  # consumed by the q0140 smoke v1 (FAIL); never rewritten
+RULES_FILE = SEALS_DIR / "cb7_text_geo_rules_v2.json"
 CB7_DIR = c4.DATA_DUMPS / "research_lab" / "creative_batch7"
-SMOKE_DEFAULT = CB7_DIR / "smoke.json"
+SMOKE_V1_PATH = CB7_DIR / "smoke.json"  # q0140 FAIL, write-once, never overwritten
+SMOKE_DEFAULT = CB7_DIR / "smoke_v2.json"
 EXCLUSION_KEYS_DEFAULT = CB7_DIR / "exclusion_keys.csv.gz"
 EXCLUSION_REPORT_NAME = "exclusion_report.json"
 KEYS_RUN_ID = "creative_batch7"  # exclusion keys live in <data-dumps>/research_lab/creative_batch7/
@@ -74,7 +77,8 @@ SealError = h5_seal.SealError
 # ---- declared parameters (all of them are in the rules file) ------------------------------------------------------
 TEXT_SEED = "arepo-h8-text"
 GEO_SEED = "arepo-h8-geo"
-SMOKE_SEED = "arepo-cb7-smoke"
+SMOKE_SEED = "arepo-cb7-smoke"  # v1 (q0140, FAIL); ``smoke_pool`` keeps using it
+SMOKE_SEED_V2 = "arepo-cb7-smoke-v2"
 AUDIT_SEED = "arepo-cb7-uma-audit"
 GEO_TAG_SLUG = "geopolitics"
 GEO_TAG_ID = "100265"
@@ -117,6 +121,9 @@ SMOKE_MIN_VOLUME = 10000.0
 SMOKE_MIN_NONEMPTY = 10
 SMOKE_MIN_COVERAGE = 14
 SMOKE_WINDOW_DAYS = (14, 7)
+SMOKE_MIN_LIFE_DAYS = 14
+SMOKE_V1_RECORD = {"version": SMOKE_V1_VERSION, "job": "q0140_cb7_smoke", "result": "FAIL", "n_in_pool": 2, "n_requested": 2,
+                   "n_nonempty": 0, "criterion_a": True, "cause": "pool spec: 200 candidates drawn before the 2025/volume filter"}
 CLARIFICATION_MARKERS = ("clarif", "update:", "updated", "additional context", "edit:")
 NOTE_DATE_PATTERN = (r"note:\s*(?:\d{4}-\d{2}-\d{2}|\d{1,2}[/.\-]\d{1,2}(?:[/.\-]\d{2,4})?|"
                      r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}|"
@@ -426,7 +433,7 @@ def rule_funcs() -> tuple:
             draw_geo_cap, hb._rank, hb.allocate_weighted, hb.cb1_topic,
             cb7_text.markers, cb7_text.condition_count, cb7_text.text_features, cb7_text.cut_points, cb7_text.text_filter_reason,
             cb7_text.text_row, cb7_geo.geo_filter_reason, cb7_geo.geo_origins, cb7_geo.theme_of, cb7_geo.split_window,
-            smoke_pool, smoke_verdict)
+            smoke_pool, smoke_verdict, smoke_pool_v2, run_smoke)
 
 
 def rules_doc(pins=None) -> dict:
@@ -439,7 +446,7 @@ def rules_doc(pins=None) -> dict:
     w = c4._cb2w()
     return {
         "rules_version": RULES_VERSION,
-        "seeds": {"text_sample": TEXT_SEED, "geo": GEO_SEED, "geo_cap_prefix": GEO_CAP_PREFIX, "smoke": SMOKE_SEED,
+        "seeds": {"text_sample": TEXT_SEED, "geo": GEO_SEED, "geo_cap_prefix": GEO_CAP_PREFIX, "smoke": SMOKE_SEED_V2,
                   "uma_audit": AUDIT_SEED, "placebos": [7171, 7172, 7173, 7174, 7175, 7176], "bootstrap": 717},
         "dates": {"t_seal": T_SEAL, "end_before_fetch_days": END_BEFORE_FETCH_DAYS, "text_end_from": TEXT_END_FROM,
                   "geo_end_from": GEO_END_FROM, "cap": "min(T_fetch, T_seal)",
@@ -482,13 +489,23 @@ def rules_doc(pins=None) -> dict:
                    "lookback_days": PRINT_LOOKBACK_DAYS,
                    "price": "size-weighted VWAP in [t-24h, t) in YES terms, else latest print (size-weighted at the latest ts)",
                    "wallets_kept": False, "clob_history_used": False, "cap": "ts <= min(T_fetch, T_seal)"},
-        "smoke": {"version": SMOKE_VERSION, "seed": SMOKE_SEED, "candidates": SMOKE_CANDIDATES, "n": SMOKE_N,
+        "smoke": {"version": SMOKE_VERSION, "seed": SMOKE_SEED_V2, "n": SMOKE_N,
                   "min_volume": SMOKE_MIN_VOLUME, "min_nonempty": SMOKE_MIN_NONEMPTY, "min_coverage": SMOKE_MIN_COVERAGE,
                   "window_before_end_days": list(SMOKE_WINDOW_DAYS), "tag_slug": GEO_TAG_SLUG, "tag_id": GEO_TAG_ID,
+                  "pool": {"source": "h1_first/h2_main/h3_power sample.csv.gz ids", "order": "sha256(seed|market_id)",
+                           "recorded_fields": ["end_epoch in 2025", f"end_epoch - start_epoch >= {SMOKE_MIN_LIFE_DAYS} d",
+                                               f"close_epoch >= end_epoch - {SMOKE_WINDOW_DAYS[1]} d (missing close_epoch fails)",
+                                               "fee_category != weather", "not crypto Up/Down (CB1_UPDOWN_RE on recorded text)"],
+                           "recorded_volume_filter": False,
+                           "gamma_step": ["lookup by id, parse guard", "endDate in 2025", f"volumeNum >= {SMOKE_MIN_VOLUME:g}",
+                                          "condition id", "labels exactly Yes/No", "not Up/Down on question/slug/event title"],
+                           "take": "first n survivors in seed order; fewer than n -> FAIL (no widening)"},
                   "criteria": {"a": "slug resolves to the pinned tag id", "b": "every returned row inside [start, end], newest "
                                                                              "first, over >= min_nonempty non-empty responses",
                                "c": ">= min_coverage of n markets return >= 1 print"},
-                  "needs": {"text_fetch": ["b", "c"], "geo_fetch": ["a", "b", "c"]}, "output": "counts only, write-once"},
+                  "needs": {"text_fetch": ["b", "c"], "geo_fetch": ["a", "b", "c"]}, "output": "counts only, write-once",
+                  "result_file": "creative_batch7/smoke_v2.json", "superseded": SMOKE_V1_RECORD,
+                  "final": "a v2 FAIL is final: no smoke v3; S1/G1 are 'not run (smoke FAIL)' and counted; T_seal unchanged"},
         "disk": {"output_cap_gb": {"h8_text": TEXT_OUTPUT_CAP_GB, "h8_geo": GEO_OUTPUT_CAP_GB, "keys": KEYS_OUTPUT_CAP_GB},
                  "data_dumps_fetch_cap_gb": DATA_DUMPS_FETCH_CAP_GB, "headroom_exit": TEMPFAIL_EXIT,
                  "disk_budget_exit": DISK_BUDGET_EXIT},
@@ -555,20 +572,40 @@ def smoke_verdict(a: bool, b_bounds_ok: bool, b_order_ok: bool, n_nonempty: int,
     return {"a": bool(a), "b": b, "c": c, "pass": bool(a and b and c)}
 
 
-def run_smoke(lim: hb.Limiter, files: dict[str, Path], pins, rules_sha: str) -> dict:
-    """q0140. Counts only: no id, price, timestamp, question or text is kept."""
-    a_ok, tag_error = False, False
-    try:
-        status, data = lim.get(TAG_SLUG_URL + GEO_TAG_SLUG, {})
-        a_ok = status == 200 and isinstance(data, dict) and str(data.get("id")) == GEO_TAG_ID
-    except RuntimeError:
-        tag_error = True
-        raise NotNow("smoke: tag request failed after retries (network); nothing written, retry later") from None
-    cands = smoke_pool(files, pins)
+def smoke_pool_v2(files: dict[str, Path], pins, seed: str = SMOKE_SEED_V2, stats: dict | None = None) -> list[str]:
+    """Smoke v2 pool: exclusion-sample ids whose RECORDED fields give end in 2025, scheduled life >= 14 d, the whole print
+    window ``[end - 14 d, end - 7 d)`` inside the life (``close_epoch >= end - 7 d``; a missing close fails), not weather
+    (``fee_category``) and not crypto Up/Down (recorded text, where the sample has it), ranked by sha256(seed|id). The recorded
+    volume is never used (the volume filter stays on Gamma). ``stats`` (optional) receives counts only."""
+    lo, hi = _ep("2025-01-01"), _ep("2026-01-01")
+    out: dict[str, None] = {}
+    n_rows = n_vol = 0
+    for pin in pins:
+        if pin["kind"] != "sample":
+            continue
+        for r in read_csv_gz(files[pin["name"]]):
+            end, start, close = (_num(r.get(k)) for k in ("end_epoch", "start_epoch", "close_epoch"))
+            n_rows += 1
+            if not (lo <= end < hi and end - start >= SMOKE_MIN_LIFE_DAYS * DAY and close >= end - SMOKE_WINDOW_DAYS[1] * DAY):
+                continue
+            if (r.get("fee_category") or "") == "weather":
+                continue
+            if hb.CB1_UPDOWN_RE.search(f"{r.get('question', '')} {r.get('event_title', '')} {r.get('slug', '')}"):
+                continue
+            mid = str(r["market_id"])
+            if mid not in out:
+                out[mid] = None
+                n_vol += int(_num(r.get("volume")) >= SMOKE_MIN_VOLUME)
+    if stats is not None:
+        stats.update(n_sample_rows=n_rows, n_recorded_pass=len(out), n_recorded_pass_volume_ge_min=n_vol)
+    return sorted(out, key=lambda x: hb._rank(seed, x))
+
+
+def _gamma_lookup(lim: hb.Limiter, ids: list[str]) -> dict[str, dict]:
+    """Gamma by id (closed first, then the rest); parse guard keeps end, volume, condition id, label and Up/Down flags only."""
     found: dict[str, dict] = {}
-    n_gamma_failed = 0
-    for i in range(0, len(cands), GAMMA_IDS_PER_REQUEST):  # parse guard keeps end_at, volumeNum and the condition id only
-        batch = cands[i:i + GAMMA_IDS_PER_REQUEST]
+    for i in range(0, len(ids), GAMMA_IDS_PER_REQUEST):
+        batch = ids[i:i + GAMMA_IDS_PER_REQUEST]
         for closed in (True, False):
             todo = [x for x in batch if x not in found]
             if not todo:
@@ -584,11 +621,53 @@ def run_smoke(lim: hb.Limiter, files: dict[str, Path], pins, rules_sha: str) -> 
                 raise NotNow(f"smoke: Gamma lookup status {status}; nothing written, retry later")
             for m in rows:
                 if isinstance(m, dict) and str(m.get("id")) in todo:
+                    ev = m.get("events") if isinstance(m.get("events"), list) else []
+                    et = str(ev[0].get("title") or "") if ev and isinstance(ev[0], dict) else ""
                     found[str(m["id"])] = {"end": _parse_ts(m.get("endDate")), "vol": _num(m.get("volumeNum")),
-                                           "cid": m.get("conditionId")}
+                                           "cid": m.get("conditionId"), "yn": binary_yes_no(m.get("outcomes")),
+                                           "updown": bool(hb.CB1_UPDOWN_RE.search(f"{m.get('question') or ''} {et} {m.get('slug') or ''}"))}
+    return found
+
+
+def _smoke_prior_overlap(files: dict[str, Path], pins, found: dict[str, dict], chosen: list[str]) -> dict:
+    """Counts only: how many of the v2 draws were also probed by the CB7 smoke v1 (re-derived: first <= 20 survivors of the v1
+    pool and filter) or by the CB6 smokes (v1 draw: seed ``arepo-h8-smoke`` over closed 2025-end sample ids; v2 draw via
+    ``cb6_tail.smoke_pool``). No id is kept."""
+    y25 = (_ep("2025-01-01"), _ep("2026-01-01"))
+    v1 = [x for x in smoke_pool(files, pins) if x in found and found[x]["end"] is not None and y25[0] <= found[x]["end"] < y25[1]
+          and found[x]["vol"] >= SMOKE_MIN_VOLUME and found[x]["cid"]][:SMOKE_N]
+    ch = set(chosen)
+    seen: set[str] = set()
+    for pin in pins:
+        if pin["kind"] != "sample":
+            continue
+        for r in read_csv_gz(files[pin["name"]]):
+            end = _num(r.get("end_epoch"))
+            if str(r.get("closed")) in ("1", "True", "true") and y25[0] <= end < y25[1]:
+                seen.add(str(r["market_id"]))
+    cb6v1_ids = sorted(seen, key=lambda x: hb._rank("arepo-h8-smoke", x))[:20]
+    cb6v2_ids = [r["market_id"] for r in c6.smoke_pool(files, pins)[0][:20]]
+    return {"cb7_smoke_v1_probed_in_v2_draws": len(ch & set(v1)), "cb7_smoke_v1_probed_total": len(v1),
+            "cb6_smoke_v1_probed_in_v2_draws": len(ch & set(cb6v1_ids)), "cb6_smoke_v2_probed_in_v2_draws": len(ch & set(cb6v2_ids))}
+
+
+def run_smoke(lim: hb.Limiter, files: dict[str, Path], pins, rules_sha: str) -> dict:
+    """q0140b (smoke v2). Counts only: no id, price, timestamp, question or text is kept."""
+    a_ok, tag_error = False, False
+    try:
+        status, data = lim.get(TAG_SLUG_URL + GEO_TAG_SLUG, {})
+        a_ok = status == 200 and isinstance(data, dict) and str(data.get("id")) == GEO_TAG_ID
+    except RuntimeError:
+        tag_error = True
+        raise NotNow("smoke: tag request failed after retries (network); nothing written, retry later") from None
+    rec_stats: dict = {}
+    cands = smoke_pool_v2(files, pins, stats=rec_stats)
+    v1_cands = smoke_pool(files, pins)  # only to re-derive the v1 overlap count (disclosure)
+    found = _gamma_lookup(lim, list(dict.fromkeys([*cands, *v1_cands])))
+    n_gamma_failed = 0
     y25 = (_ep("2025-01-01"), _ep("2026-01-01"))
     pool = [x for x in cands if x in found and found[x]["end"] is not None and y25[0] <= found[x]["end"] < y25[1]
-            and found[x]["vol"] >= SMOKE_MIN_VOLUME and found[x]["cid"]]
+            and found[x]["vol"] >= SMOKE_MIN_VOLUME and found[x]["cid"] and found[x]["yn"] and not found[x]["updown"]]
     chosen = pool[:SMOKE_N]
     n_nonempty = n_covered = n_failed = 0
     bounds_ok = order_ok = True
@@ -616,11 +695,14 @@ def run_smoke(lim: hb.Limiter, files: dict[str, Path], pins, rules_sha: str) -> 
     return {"smoke_version": SMOKE_VERSION, "rules_sha256": rules_sha, "git_commit": hb._git_commit(), "run_utc": _iso(time.time()),
             "criterion_a_slug_resolves_to_pinned_id": v["a"], "criterion_b_bounds_and_order": v["b"],
             "criterion_c_coverage": v["c"], "pass": v["pass"], "counts_only": True,
-            "n_candidates_drawn": len(cands), "n_candidates_found_on_gamma": len(found), "n_in_pool": len(pool),
+            "n_recorded_pass": rec_stats["n_recorded_pass"], "n_recorded_pass_volume_ge_min": rec_stats["n_recorded_pass_volume_ge_min"],
+            "n_candidates_drawn": len(cands), "n_candidates_found_on_gamma": sum(x in found for x in cands), "n_in_pool": len(pool),
             "n_requested": len(chosen), "n_nonempty": n_nonempty, "n_covered": n_covered, "n_failed_requests": n_failed,
             "n_gamma_failed_requests": n_gamma_failed, "tag_request_failed": tag_error, "bounds_ok": bounds_ok,
             "newest_first_ok": order_ok, "pass_thresholds": {"min_nonempty": SMOKE_MIN_NONEMPTY, "min_coverage": SMOKE_MIN_COVERAGE,
-                                                              "n": SMOKE_N}}
+                                                              "n": SMOKE_N},
+            "disclosure": {"supersedes": SMOKE_V1_RECORD, "prior_probe_overlap_counts": _smoke_prior_overlap(files, pins, found, chosen),
+                           "final_note": "a v2 FAIL is final; T_seal unchanged; S1/G1 then 'not run (smoke FAIL)' and counted"}}
 
 
 def _num(v: Any) -> float:

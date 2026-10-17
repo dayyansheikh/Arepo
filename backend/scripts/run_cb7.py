@@ -2,8 +2,8 @@
 """CB7 runner, fetch side (docs/research_lab/CREATIVE_BATCH_7.md CB7-F and 5.2). Run from cwd=backend (queue worker).
 EXPLORATORY: no edge, calibration or profitability claim. Fetch side only: no analysis or screen code.
 
-    python scripts/run_cb7.py rules                  # write docs/research_lab/seals/cb7_text_geo_rules.json (commit it before q0140-q0143)
-    python scripts/run_cb7.py smoke ...              # q0140: slug -> pinned tag id; Data API print bounds/order/coverage; counts only, WRITE-ONCE
+    python scripts/run_cb7.py rules                  # write docs/research_lab/seals/cb7_text_geo_rules_v2.json (commit it before q0140b-q0143)
+    python scripts/run_cb7.py smoke ...              # q0140b (smoke v2; v1 q0140 FAILed): slug -> pinned tag id; Data API print bounds/order/coverage; counts only, WRITE-ONCE
     python scripts/run_cb7.py exclusion-keys ...     # q0141: event / neg-risk / series keys of the h1/h2/h3/h5/h5_ladders ids
     python scripts/run_cb7.py text-fetch ...         # q0142: one resumable chunk of the h8_text fetch (T_seal-bound)
     python scripts/run_cb7.py geo-fetch ...          # q0143: one resumable chunk of the h8_geo fetch (T_seal-bound)
@@ -108,10 +108,13 @@ def cmd_smoke(a) -> int:
 
     data_dumps, root = _paths(a, cm)
     out = _data_path(a.out, data_dumps) if a.out else cm.SMOKE_DEFAULT
+    if out.resolve() == cm.SMOKE_V1_PATH.resolve():  # the v1 FAIL is never overwritten
+        _emit({"refused": "smoke v2 never writes the v1 result file (smoke.json)"})
+        return REFUSED
     if out.exists():  # write-once: a FAIL can never be replaced by a later PASS
         _emit({"refused": f"smoke result {out} already exists; it is write-once"})
         return REFUSED
-    declared = _bad({"seed": (a.seed, cm.SMOKE_SEED), "candidates": (a.candidates, cm.SMOKE_CANDIDATES), "n": (a.n, cm.SMOKE_N),
+    declared = _bad({"seed": (a.seed, cm.SMOKE_SEED_V2), "n": (a.n, cm.SMOKE_N),
                      "min_volume": (a.min_volume, cm.SMOKE_MIN_VOLUME), "min_nonempty": (a.min_nonempty, cm.SMOKE_MIN_NONEMPTY),
                      "min_coverage": (a.min_coverage, cm.SMOKE_MIN_COVERAGE)})
     if declared:
@@ -304,7 +307,7 @@ def build_parser() -> argparse.ArgumentParser:
         q.add_argument("--min-life-days", type=int, default=9)
         q.add_argument("--print-limit", type=int, default=50)
         q.add_argument("--exclusion-keys", default="research_lab/creative_batch7/exclusion_keys.csv.gz")
-        q.add_argument("--require-smoke", default="research_lab/creative_batch7/smoke.json")
+        q.add_argument("--require-smoke", default="research_lab/creative_batch7/smoke_v2.json")
         q.add_argument("--cap-at", default="2026-10-22T00:00Z")
         q.add_argument("--disk-cap-gb", type=float, required=True)
         q.add_argument("--data-dumps-cap-gb", type=float, default=12.5)
@@ -316,8 +319,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     q = sub.add_parser("smoke")
     common(q, None)
-    q.add_argument("--seed", default="arepo-cb7-smoke")
-    q.add_argument("--candidates", type=int, default=200)
+    q.add_argument("--seed", default="arepo-cb7-smoke-v2")
     q.add_argument("--n", type=int, default=20)
     q.add_argument("--min-volume", type=float, default=10000.0)
     q.add_argument("--min-nonempty", type=int, default=10)

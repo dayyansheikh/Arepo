@@ -119,9 +119,10 @@ def write_sample(path: Path, ids):
     path.parent.mkdir(parents=True, exist_ok=True)
     with gzip.open(path, "wt", newline="") as fh:
         w = csv.writer(fh)
-        w.writerow(["market_id", "token0", "end_epoch", "closed", "created_at", "close_epoch"])
+        w.writerow(["market_id", "token0", "end_epoch", "closed", "created_at", "close_epoch", "start_epoch", "fee_category", "volume"])
         for i in ids:
-            w.writerow([i, f"tok{i}a", ep("2025-06-15T00:00:00Z"), 1, "2025-05-01T00:00:00Z", ep("2025-06-15T00:00:00Z")])
+            w.writerow([i, f"tok{i}a", ep("2025-06-15T00:00:00Z"), 1, "2025-05-01T00:00:00Z", ep("2025-06-15T00:00:00Z"),
+                        ep("2025-05-01T00:00:00Z"), "", 20000.0])
 
 
 def write_seal_copy(path: Path, ids):
@@ -334,7 +335,7 @@ def test_rules_file_roundtrip_content_and_refusals(tmp_path):
     cm.write_rules(p)
     doc = json.loads(p.read_text())
     assert cm.verify_rules(p, require_committed=False) == doc["rules_sha256"]
-    assert doc["seeds"]["text_sample"] == "arepo-h8-text" and doc["seeds"]["geo"] == "arepo-h8-geo" and doc["seeds"]["smoke"] == "arepo-cb7-smoke"
+    assert doc["seeds"]["text_sample"] == "arepo-h8-text" and doc["seeds"]["geo"] == "arepo-h8-geo" and doc["seeds"]["smoke"] == "arepo-cb7-smoke-v2"
     assert doc["geo"]["tag_id"] == "100265" and doc["geo"]["max_per_event"] == 8 and doc["geo"]["band"] == [0.02, 0.10]
     assert [m["name"][:2] for m in doc["text"]["markers"]] == ["M1", "M2", "M3", "M4", "M5", "M6", "M7"]
     assert doc["text"]["markers"][3]["text"] == "question" and doc["text"]["markers"][5]["case_insensitive"] is False
@@ -1108,3 +1109,94 @@ def test_seal_rerun_after_crash_tolerates_leftover_drops_files(tmp_path):
     (w.gdir / "drops_report.json").write_text("{}")
     res = cs.seal_cb7(w.root, cm.GEO_RUN_ID, seals_dir=w.seals, trials_path=tmp_path / "t.jsonl")
     assert res["sealed"]
+
+
+# ---- smoke v2 (q0140b) ------------------------------------------------------------------------------------------------------------
+
+
+def _sample_rows(path: Path, rows: list[dict]):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    cols = ["market_id", "token0", "end_epoch", "closed", "created_at", "close_epoch", "start_epoch", "fee_category", "volume", "question"]
+    with gzip.open(path, "wt", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=cols)
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+
+
+def test_smoke_pool_v2_recorded_field_rules(tmp_path):
+    end = ep("2025-06-15T00:00:00Z")
+    base = {"token0": "t", "closed": 1, "created_at": "", "end_epoch": end, "start_epoch": end - 30 * DAY, "close_epoch": end,
+            "fee_category": "", "volume": 5.0, "question": "Will x happen?"}  # recorded volume 5 must NOT exclude
+    rows = [dict(base, market_id="ok"),
+            dict(base, market_id="short", start_epoch=end - 13 * DAY),
+            dict(base, market_id="early_close", close_epoch=end - 8 * DAY),
+            dict(base, market_id="no_close", close_epoch=""),
+            dict(base, market_id="weather", fee_category="weather"),
+            dict(base, market_id="updown", question="Bitcoin Up or Down - 5 PM"),
+            dict(base, market_id="y2024", end_epoch=ep("2024-12-31T00:00:00Z"), start_epoch=ep("2024-11-01T00:00:00Z"), close_epoch=ep("2024-12-31T00:00:00Z")),
+            dict(base, market_id="edge", close_epoch=end - 7 * DAY)]
+    _sample_rows(tmp_path / "s.csv.gz", rows)
+    pins = [{"name": "s", "kind": "sample"}]
+    st: dict = {}
+    ids = cm.smoke_pool_v2({"s": tmp_path / "s.csv.gz"}, pins, stats=st)
+    assert sorted(ids) == ["edge", "ok"] and ids == sorted(ids, key=lambda x: hb._rank(cm.SMOKE_SEED_V2, x))
+    assert st == {"n_sample_rows": 8, "n_recorded_pass": 2, "n_recorded_pass_volume_ge_min": 0}
+    assert cm.SMOKE_SEED_V2 != cm.SMOKE_SEED
+
+
+def test_run_smoke_v2_gamma_filters_and_fail_when_fewer_than_20(tmp_path):
+    w = World(tmp_path)
+    files = c6.verify_exclusion_files(w.pins, history_root=w.root, seals_dir=w.seals)
+    end = ep("2025-06-15T00:00:00Z")
+    w.api.trades.update({f"c{m}": [{"timestamp": int(end - 10 * DAY + i), "side": "BUY", "size": 1.0, "price": 0.4, "outcomeIndex": 0,
+                                    "proxyWallet": "0xw", "transactionHash": f"t{m}{i}", "asset": "a"} for i in range(3)] for m in w.excl_ids})
+    res = cm.run_smoke(lim_for(w.api), files, w.pins, w.rules_sha)
+    assert res["smoke_version"] == "cb7-smoke-v2" and res["pass"] is True and res["n_requested"] == 20
+    assert res["n_recorded_pass"] == 30 and res["n_recorded_pass_volume_ge_min"] == 30  # h1+h2+h3 sample ids only
+    d = res["disclosure"]
+    assert d["supersedes"]["result"] == "FAIL" and set(d["prior_probe_overlap_counts"]) >= {"cb7_smoke_v1_probed_in_v2_draws"}
+    assert "tok" not in json.dumps(res)
+    # 11 of the 30 recorded-pass ids fail at the Gamma step (labels / volume / Up-Down) -> 19 survive -> FAIL, no widening
+    pool = [f"9{i:03d}" for i in range(30)]
+    for x in pool[:4]:
+        w.api.markets[x]["outcomes"] = '["Up","Down"]'
+    for x in pool[4:8]:
+        w.api.markets[x]["volumeNum"] = 9999.0
+    for x in pool[8:11]:
+        w.api.markets[x]["question"] = "Ethereum Up or Down - 3 PM"
+    bad = cm.run_smoke(lim_for(w.api), files, w.pins, w.rules_sha)
+    assert bad["n_in_pool"] == 19 and bad["n_requested"] == 19 and bad["pass"] is False
+    assert bad["criterion_b_bounds_and_order"] is False and bad["criterion_c_coverage"] is False
+
+
+def test_smoke_v2_gate_requires_v2_version_and_rules(tmp_path):
+    p = tmp_path / "s.json"
+    base = {"rules_sha256": "r", "criterion_a_slug_resolves_to_pinned_id": True, "criterion_b_bounds_and_order": True, "criterion_c_coverage": True}
+    p.write_text(json.dumps({**base, "smoke_version": cm.SMOKE_V1_VERSION}))
+    with pytest.raises(cm.Refused):  # a v1 result never satisfies the gate
+        cm.smoke_ok(p, "r", ("b", "c"))
+    p.write_text(json.dumps({**base, "smoke_version": "cb7-smoke-v2"}))
+    assert cm.smoke_ok(p, "r", ("b", "c"))["smoke_version"] == "cb7-smoke-v2"
+    assert cm.SMOKE_DEFAULT.name == "smoke_v2.json" and cm.RULES_FILE.name == "cb7_text_geo_rules_v2.json"
+    assert cm.SMOKE_V1_PATH.name == "smoke.json" and cm.RULES_FILE_V1.name == "cb7_text_geo_rules.json"
+
+
+def test_smoke_v2_cli_never_writes_v1_file(capsys):
+    rc = script.main(["smoke", "--out", str(cm.SMOKE_V1_PATH), "--standalone"])
+    assert rc == 2 and "v1" in capsys.readouterr().out
+
+
+def test_rules_v2_differs_from_v1_only_in_smoke_block():
+    if not cm.RULES_FILE_V1.exists():
+        pytest.skip("v1 rules file not present")
+    v1 = json.loads(cm.RULES_FILE_V1.read_text())
+    v2 = cm.rules_file_doc()
+    hashes = {"rules_sha256", "funcs_sha256", "func_sources_sha256"}
+    assert {k for k in v1 if k not in hashes and v1[k] != v2.get(k)} == {"rules_version", "seeds", "smoke"}
+    assert {k for k in v1["seeds"] if v1["seeds"][k] != v2["seeds"][k]} == {"smoke"}
+    # every v1 hashed function is byte-identical in v2; v2 adds only the new pool function and run_smoke
+    f1, f2 = v1["func_sources_sha256"], v2["func_sources_sha256"]
+    assert all(f2[k] == f1[k] for k in f1)
+    assert set(f2) - set(f1) == {"smoke_pool_v2", "run_smoke"}
+    assert v1["rules_sha256"] != v2["rules_sha256"]
