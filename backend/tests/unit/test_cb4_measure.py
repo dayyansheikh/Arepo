@@ -58,7 +58,7 @@ def test_period_of_boundaries():
 
 
 def _res(p, est, **kw):
-    return {"estimate": est, "p": p, "ci95": [est - 0.01, est + 0.01], "placebo_p": 0.5, "top5_ok": True, "pseudo_band_ok": True, "sign_agree": True, **kw}
+    return {"estimate": est, "p": p, "ci95": [est - 0.01, est + 0.01], "placebo_p": 0.5, "top5_ok": True, "cluster_equal_sign": {"event": True, "day": True}, "pseudo_band_ok": True, "sign_agree": True, **kw}
 
 
 def test_adoption_requires_holm_floor_placebo_and_robustness():
@@ -100,3 +100,41 @@ def test_design_effect_from_event_clustering():
     low = M.pilot_power(1e8, 0.1, 10.0, 1.0)["mde_by_H"]["168"]
     hi = M.pilot_power(1e8, 0.1, 10.0, 6.0)["mde_by_H"]["168"]
     assert hi > low
+
+
+def test_ols_contrast_robust_reports_top5_and_cluster_equal_sign_per_way():
+    import numpy as np
+
+    rng = np.random.default_rng(1)
+    n_ev = 60
+    ev = np.repeat(np.arange(n_ev), 20)
+    day = np.tile(np.arange(20), n_ev)
+    post = (day >= 10).astype(float)
+    y = 0.5 * post + rng.normal(size=len(ev))
+    X = np.column_stack([np.ones(len(ev)), post])
+    r = M.ols_contrast(y, X, [0.0, 1.0], {"event": ev, "day": day}, min_units=100, min_clusters=20, robust=True)
+    assert r["testable"] and set(r["top5_dropped"]) == {"event", "day"} and set(r["cluster_equal_sign"]) == {"event", "day"}
+    assert all(r["cluster_equal_sign"].values()) and r["top5_dropped"]["event"]["testable"]
+    # one dominant cluster drives the effect: dropping the top 5 event clusters kills it
+    y2 = rng.normal(size=len(ev)) + np.where(ev < 3, 40.0 * post, 0.0)
+    r2 = M.ols_contrast(y2, X, [0.0, 1.0], {"event": ev, "day": day}, min_units=100, min_clusters=20, robust=True)
+    assert r2["top5_dropped"]["event"]["p"] > 0.05
+    res = {t: _res(1e-6, D.FLOORS[t] * 3) for t in D.TESTS["M"]}
+    res["N1"] = {**res["N1"], "top5_dropped": {"event": {"testable": True, "p": 0.4, "estimate": D.FLOORS["N1"] * 3}, "day": {"testable": True, "p": 1e-6, "estimate": D.FLOORS["N1"] * 3}}}
+    assert not M.adoption(res)["N1"]["adopted"] and M.adoption(res)["N2"]["adopted"]
+    res["E1"] = {k: v for k, v in res["E1"].items() if k != "cluster_equal_sign"}
+    assert not M.adoption(res)["E1"]["adopted"]  # a missing cluster-equal check blocks
+
+
+def test_era_panel_d6h_is_in_cents():
+    import numpy as np
+    import pandas as pd
+
+    end = D.epoch("2026-03-10T00:00Z")
+    ts = np.arange(end - 10 * 86400, end + 2 * 86400, 600.0)
+    vals = np.full(len(ts), 0.50)
+    vals[ts >= end - 60 * 3600] = 0.52
+    tr = pd.DataFrame({"ts": [end - 71.5 * 3600.0], "price": [0.5], "size": [10.0], "side": ["BUY"], "outcome_index": [0]})
+    rec = {"market_id": "m1", "event_id": "e1", "end_epoch": end, "group": "O", "period": "P1", "fee_category": "x"}
+    p = M.era_panel(rec, ts, vals, tr, False, None)
+    assert len(p) and p["d6h"].abs().max() > 1.0 and p["d6h"].abs().max() <= 2.5  # 0.02 -> 2 cents, not 0.02

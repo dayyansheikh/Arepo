@@ -515,7 +515,7 @@ def _measure_n(args, ctx: Ctx) -> int:
         r = res[t]
         placebo_p = min((pbo[k][t].get("p", 1.0) for k in pbo), default=1.0)
         tests[t] = {**{k: r.get(k) for k in ("estimate", "ci95", "p", "n", "testable", "clusters")}, "placebo_p": placebo_p, "pseudo_band_ok": pb[t]["ok"], "pseudo_band": pb[t],
-                    "top5_ok": bool(r.get("testable")), "label": cost_regimes.LABEL}
+                    "top5_dropped": r.get("top5_dropped"), "cluster_equal_sign": r.get("cluster_equal_sign"), "label": cost_regimes.LABEL}
     doc = {**_header("N", decl, H=H, hours=len(hours), hours_done=info["hours_done"], hours_missing=info["hours_missing"], ingress_gb=info["bytes"] / 1e9, walk=wrep), "tests": tests,
            "descriptive": {"shares_and_distribution": M.band_shares_and_distribution(mins) if len(mins) else {}}, "band_map": M.band_map(mins) if len(mins) else None, "placebos": pbo}
     p, sha = _write(ctx, "N/results.json", doc)
@@ -553,7 +553,8 @@ def _measure_e(args, ctx: Ctx) -> int:
         tests = {}
         for t, r, pl in (("E1", e1, pl1), ("E2", e2, pl2)):
             tests[t] = {"estimate": r.get("estimate", math.nan), "ci95": (r.get("delta") or {}).get("ci95"), "p": r.get("p", 1.0), "testable": r.get("testable", False), "delta_S": r.get("delta_S"),
-                        "delta_O": r.get("delta_O"), "sign_agree": bool(r.get("delta_S_O_sign_agree")), "placebo_p": pl.get("p", 1.0), "top5_ok": bool(r.get("testable")), "label": cost_regimes.LABEL}
+                        "delta_O": r.get("delta_O"), "sign_agree": bool(r.get("delta_S_O_sign_agree")), "placebo_p": pl.get("p", 1.0), "top5_dropped": r.get("top5_dropped"),
+                        "cluster_equal_sign": r.get("cluster_equal_sign"), "label": cost_regimes.LABEL}
         desc = {"scaling": sc, "rows_per_cell": e1.get("rows_per_cell"), "balanced_wallet": "not computed in this run (needs wallet-level trades per cell)",
                 "E2_components": {"spread_mean": float(marks["spread"].mean()), "drift_mean": float(marks["drift"].mean())}}
         doc = {**_header("E", decl), "tests": tests, "descriptive": desc, "diag": {k: v for k, v in diag.items()}}

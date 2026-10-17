@@ -45,9 +45,11 @@ def _codes(cl) -> tuple[np.ndarray, int]:
 
 
 def ols_contrast(y, X, contrast, ways: dict[str, np.ndarray], *, n_boot: int = 0, seed: int = D.SEED_BOOT, min_units: int = D.MIN_UNITS,
-                 min_clusters: int = D.MIN_CLUSTERS) -> dict:
+                 min_clusters: int = D.MIN_CLUSTERS, robust: bool = False) -> dict:
     """OLS of y on X; the linear combination ``contrast' beta`` with CR1 sandwich SEs for each cluster way and the two-sided normal p = max over ways.
-    Not testable (p = 1) with fewer than ``min_units`` rows or ``min_clusters`` clusters in any way. CI: percentile bootstrap resampling the first way."""
+    Not testable (p = 1) with fewer than ``min_units`` rows or ``min_clusters`` clusters in any way. CI: percentile bootstrap resampling the first way.
+    ``robust=True`` adds the section 2.6 checks per way: ``top5_dropped`` (refit without the 5 clusters of that way with the largest absolute contribution
+    to the estimate) and ``cluster_equal_sign`` (the estimate with every cluster of that way weighted equally has the sign of the unweighted one)."""
     y = np.asarray(y, float)
     X = np.asarray(X, float)
     c = np.asarray(contrast, float)
@@ -91,6 +93,22 @@ def ols_contrast(y, X, contrast, ways: dict[str, np.ndarray], *, n_boot: int = 0
             w = np.bincount(rng.integers(0, g, g), minlength=g).astype(float)
             bs[i] = float(c @ (np.linalg.pinv(np.tensordot(w, A, 1)) @ (w @ b)))
         out["ci95"] = [float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))]
+    if robust:
+        top5, ceq = {}, {}
+        for w, cl in ways.items():
+            cs = np.asarray(cl).astype(str)
+            contrib = pd.Series((X @ (XtXi @ c)) * y).groupby(cs).sum()  # sum over a cluster of (c' (X'X)^-1 x_i) y_i; sums to the estimate
+            drop = set(contrib.abs().sort_values(ascending=False).index[:D.TOP_CLUSTERS_DROPPED])
+            keep = ~np.isin(cs, list(drop))
+            r = ols_contrast(y[keep], X[keep], c, {a: np.asarray(b)[keep] for a, b in ways.items()}, min_units=min_units, min_clusters=min_clusters)
+            top5[w] = {"testable": bool(r.get("testable")), "p": float(r.get("p", 1.0)), "estimate": float(r.get("estimate", math.nan))}
+            size = pd.Series(cs).map(pd.Series(cs).value_counts()).to_numpy(float)
+            wt = 1.0 / size
+            Xw = X * wt[:, None]
+            bw = np.linalg.pinv(X.T @ Xw) @ (Xw.T @ y)
+            e_w = float(c @ bw)
+            ceq[w] = bool(np.isfinite(e_w) and e_w != 0 and np.sign(e_w) == np.sign(est))
+        out["top5_dropped"], out["cluster_equal_sign"] = top5, ceq
     return out
 
 
@@ -487,12 +505,12 @@ def n_tests(units: pd.DataFrame, *, n_boot: int = D.N_BOOT, seed: int = D.SEED_B
     out = {}
     s1 = _stack(units, "I_mid", "I_lo")
     X, c = did_design(s1["post"], s1["treated"])
-    out["N1"] = ols_contrast(s1["val"], X, c, {"event": s1["event_id"].to_numpy(), "day": s1["day"].to_numpy()}, n_boot=n_boot, seed=seed)
+    out["N1"] = ols_contrast(s1["val"], X, c, {"event": s1["event_id"].to_numpy(), "day": s1["day"].to_numpy()}, n_boot=n_boot, seed=seed, robust=True)
     a = units[(units["n_on_mh"] > 0)]
     b = units[(units["n_on_lo"] > 0)]
     r = pd.concat([a.assign(treated=1.0, val=a["P5_mh"]), b.assign(treated=0.0, val=b["P5_lo"])], ignore_index=True)
     X, c = did_design(r["post"], r["treated"])
-    out["N2"] = ols_contrast(r["val"], X, c, {"event": r["event_id"].to_numpy() if len(r) else np.array([]), "day": r["day"].to_numpy() if len(r) else np.array([])}, n_boot=n_boot, seed=seed + 1)
+    out["N2"] = ols_contrast(r["val"], X, c, {"event": r["event_id"].to_numpy() if len(r) else np.array([]), "day": r["day"].to_numpy() if len(r) else np.array([])}, n_boot=n_boot, seed=seed + 1, robust=True)
     return out
 
 
@@ -626,7 +644,7 @@ def _yes_terms(tr: pd.DataFrame) -> tuple[np.ndarray, ...]:
 
 def era_panel(rec: dict, ts: np.ndarray, vals: np.ndarray, trades: pd.DataFrame | None, truncated: bool, oldest_ts) -> pd.DataFrame:
     """E1 panel rows of one market at its origins: target ``d6h``, HB1 C0 controls (logit mid, |mid - 0.5|, 1h/1d/1w changes with missing flags, previous
-    2h change), ``f_net_6h`` (signed notional, YES terms) and ``f_imb_6h`` (reported only). Judgement-row filter applied. ``rec``: market_id, event_id, end_epoch,
+    2h change), ``f_net_6h`` (signed notional, YES terms; ``d6h`` in cents) and ``f_imb_6h`` (reported only). Judgement-row filter applied. ``rec``: market_id, event_id, end_epoch,
     group, period, fee_category."""
     o = era_origins(float(rec["end_epoch"]))
     if not len(o) or len(ts) < 2:
@@ -634,7 +652,7 @@ def era_panel(rec: dict, ts: np.ndarray, vals: np.ndarray, trades: pd.DataFrame 
     t = o["t"].to_numpy(float)
     asof = lambda x: hb._asof(ts, vals, x, hb.MAX_QUOTE_AGE_S)[0]  # noqa: E731
     mid = asof(t)
-    d6 = asof(t + 6 * HOUR) - mid
+    d6 = 100.0 * (asof(t + 6 * HOUR) - mid)  # cents, as markouts (the E1 floor 0.10 is in cents per unit of scaled flow)
     d6 = np.where(t + 6 * HOUR <= ts[-1] + hb.MAX_QUOTE_AGE_S, d6, np.nan)
     f = {"c_chg_1h": mid - asof(t - HOUR), "c_chg_1d": mid - asof(t - DAY), "c_chg_1w": mid - asof(t - 7 * DAY), "c_dprev": mid - asof(t - hb.GRID_S)}
     out = pd.DataFrame({"market_id": rec["market_id"], "event_id": rec.get("event_id") or "m:" + str(rec["market_id"]), "group": rec["group"], "period": rec["period"], "bucket": o["bucket"], "t": t,
@@ -737,10 +755,11 @@ def two_cohort_did(df: pd.DataFrame, y: str, *, slope: bool, controls: list[str]
     for name, c6 in two_cohort_contrasts().items():
         c = np.zeros(X.shape[1])
         c[off:off + 6] = c6
-        out[name] = ols_contrast(d[y].to_numpy(float), X, c, ways, n_boot=n_boot if name == "delta" else 0, seed=seed)
+        out[name] = ols_contrast(d[y].to_numpy(float), X, c, ways, n_boot=n_boot if name == "delta" else 0, seed=seed, robust=(name == "delta"))
     out["delta_S_O_sign_agree"] = bool(np.sign(out["delta_S"].get("estimate", 0.0)) == np.sign(out["delta_O"].get("estimate", 0.0)) != 0)
     out["p"] = out["delta"]["p"]
     out["estimate"] = out["delta"].get("estimate", math.nan)
+    out["top5_dropped"], out["cluster_equal_sign"] = out["delta"].get("top5_dropped"), out["delta"].get("cluster_equal_sign")
     return out
 
 
@@ -786,10 +805,32 @@ def balanced_wallet_share(trades: pd.DataFrame, cell: str) -> dict:
 # ---- family M: adoption and the cost register ----------------------------------------------------------------------------------
 
 
+def _top5_ok(t: str, r: dict, ps: dict[str, float]) -> bool:
+    """Section 2.6 (ii) per declared way: with the way's top-5 clusters dropped, the test is testable, keeps its sign, meets its floor and still rejects under
+    Holm (its p replaced by the dropped-sample p, the other tests' p unchanged). Without ``top5_dropped`` only an explicit ``top5_ok`` counts."""
+    d = r.get("top5_dropped")
+    if not d:
+        return bool(r.get("top5_ok"))
+    est = r.get("estimate", math.nan)
+    for x in d.values():
+        e = x.get("estimate", math.nan)
+        if not (x.get("testable") and np.isfinite(e) and np.isfinite(est) and np.sign(e) == np.sign(est) and abs(e) >= D.FLOORS[t]):
+            return False
+        if not CCholm({**ps, t: float(x["p"])})[t]["reject"]:
+            return False
+    return True
+
+
+def _cluster_equal_ok(r: dict) -> bool:
+    """Section 2.6 (iii) per declared way; a missing value blocks."""
+    c = r.get("cluster_equal_sign")
+    return bool(c) and all(bool(v) for v in (c.values() if isinstance(c, dict) else [c]))
+
+
 def adoption(results: dict) -> dict:
-    """Family M decision. ``results[test]``: estimate, ci95, p (two-sided), placebo_p, top5_ok, plus pseudo_band_ok (N1/N2) or sign_agree (E1/E2). Holm at
-    alpha 0.05 over the four two-sided p. Adopted iff Holm rejects, the floor is met, the in-time/parallel placebo does not reject (p >= 0.05) and the binding
-    robustness holds."""
+    """Family M decision. ``results[test]``: estimate, ci95, p (two-sided), placebo_p, ``top5_dropped`` (per way) and ``cluster_equal_sign`` (per way) from
+    ``ols_contrast(robust=True)``, plus pseudo_band_ok (N1/N2) or sign_agree (E1/E2). Holm at alpha 0.05 over the four two-sided p. Adopted iff Holm
+    rejects, the floor is met, the in-time/parallel placebo does not reject (p >= 0.05) and the binding robustness (i)-(vi) holds."""
     ids = list(D.TESTS["M"])
     ps = {t: float(results.get(t, {}).get("p", 1.0)) for t in ids}
     hm = CCholm(ps)
@@ -799,10 +840,11 @@ def adoption(results: dict) -> dict:
         est = r.get("estimate", math.nan)
         floor_met = bool(np.isfinite(est) and abs(est) >= D.FLOORS[t])
         placebo_ok = bool(r.get("placebo_p", 0.0) >= D.PLACEBO_PSEUDO_P_MIN)
-        robust = bool(r.get("top5_ok")) and bool(r.get("pseudo_band_ok") if t in ("N1", "N2") else r.get("sign_agree"))
+        top5, ceq = _top5_ok(t, r, ps), _cluster_equal_ok(r)
+        robust = bool(top5 and ceq and bool(r.get("pseudo_band_ok") if t in ("N1", "N2") else r.get("sign_agree")))
         reject = bool(hm[t]["reject"])
         out[t] = {"estimate": est, "ci95": r.get("ci95"), "p": ps[t], "p_holm": hm[t]["p_holm"], "holm_reject": reject, "floor": D.FLOORS[t], "floor_met": floor_met,
-                  "placebo_p": r.get("placebo_p"), "placebo_ok": placebo_ok, "robust": robust,
+                  "placebo_p": r.get("placebo_p"), "placebo_ok": placebo_ok, "robust": robust, "top5_ok": top5, "cluster_equal_ok": ceq,
                   "adopted": bool(reject and floor_met and placebo_ok and robust), "label": cost_regimes.LABEL}
     return out
 
