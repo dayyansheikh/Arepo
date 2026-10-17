@@ -49,7 +49,9 @@
   "--disk-cap-gb",
   "0.40",
   "--budget-min",
-  "150"
+  "150",
+  "--data-dumps-cap-gb",
+  "12.5"
  ],
  "timeout_s": 10800,
  "max_retries": 3,
@@ -61,5 +63,5 @@
   "data-dumps/research_lab/history/h7_cb4_series/{walk_events.jsonl.gz,walk_guarded.jsonl.gz,probe.json,frame_report.json,request_clock.json,manifest.json}"
  ],
  "next_action": "Claude session: read frame_report.json (series_by_cadence_category), decide the sports stratum in the same committed amendment as q0081f, then gate q0081g",
- "notes": "Freeze-check fix 8. Stops after the walk: no sample, no units, no prices. Requires the committed series rule file like q0082 (fix 6 hash). Same refusals and terminal states as q0082."
+ "notes": "Freeze-check fix 8. Stops after the walk: no sample, no units, no prices. Requires the committed series rule file like q0082 (fix 6 hash). Same refusals and terminal states as q0082. 2026-10-17 (autopilot, h7 release re-check must-fix 1): --data-dumps-cap-gb 12.5 added (code default 10) because data-dumps is ~9.9 GB and growing ~0.95 GB/day; with the default every start would exit 75 until the job failed, missing T_seal. Operational headroom only (collector cap now 13 GB; job writes <= 0.4 GB); outputs do not depend on it."
 }
