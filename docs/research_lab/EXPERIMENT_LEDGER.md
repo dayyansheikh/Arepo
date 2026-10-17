@@ -1291,3 +1291,19 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Memory failures:** q0084 (CB4 pmxt pilot) MemoryError twice in pyarrow reads; q0082f (h7 series frame) MemoryError on
   resume (322 MB partial walk file). Fixes in progress; not outcome-related.
 - **Ops:** host package caches cleared (~3 GB); collector data cap 13 -> 14 GiB; CB5 fetch refusal 12 -> 13 GB (15ea7e2).
+
+## Design change CB6-T A-T1: h8_tail_b top-up (2026-10-17; no test run, count 0)
+- **Why:** the frozen h8_tail frame (q0120, one random 15-minute window per day) yielded 362 markets / 670 origins instead of
+  about 4,500 markets. At the planned eligibility that is about 235 units and a T1 MDE of about 17c.
+- **What was seen when deciding (counts only, no value):** `frame_report.json` (sha256 `b2e41922...`): 65,584 raw frame rows;
+  dropped created outside the window 33,305, life < 14 d 22,725, crypto Up/Down 7,417, weather 692; 15 exclusion ids; 1,068
+  exclusion-key drops; 362 markets kept and all taken (21 strata); 670 origins; 145,430 price rows and 49,262 print rows;
+  3,668 requests. **No outcome, price value, print value or wallet was read by any analysis.**
+- **Decision (science-reviewer ACCEPT_WITH_CHANGES):** run `h8_tail_b` with the same seed, 9 windows per day, walking only the 8
+  windows h8_tail did not walk (nested draw; union = frozen 9-window frame), clock pinned to h8_tail's `T_fetch8`, h8_tail
+  excluded by market id only, same rules otherwise (rules v3 `ad7f5baa...` adds the top-up section; all v2 rule functions
+  byte-identical). Sealed together with h8_tail (one listing, one event-hash split). Any non-complete ending drops it; no
+  third run.
+- **Power restated:** union about 1,140-1,530 units, Stage-1 MDE about 6.7-7.7c (was 3.8c at 4,700 units); T1 detects only
+  strong effects; the 2.0c floor and the >= 10 YES-cluster rule are unchanged. No threshold, formula or gate changed.
+- **Trial line:** `design_change`, `n_tests` 0, id `44cb83a8-efd4-45df-8e5b-d30ddf96d10a`. Drafts q0120b / q0121 in `queue/drafts/`.

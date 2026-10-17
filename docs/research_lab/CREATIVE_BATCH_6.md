@@ -705,6 +705,13 @@ fill rate near C1's 6.8%, about 80-120 fills per block; per-fill SD ≈ 22c give
 to be "not testable for size" in both blocks**; if T1 advances, the carry rule applies, and the economic answer then rests
 on Stage P-T.
 
+**MDE restated 2026-10-17 (amendment A-T1, last section; supersedes the figures above before the seal).** The h8_tail frame
+yielded 362 markets / 670 origins (1.85 origins per market, not 1.8). With the h8_tail_b top-up the union is about
+1,860-3,260 markets and about **1,140-1,530 units** at the 26-35% eligibility range, not 4,700. MDE = 3.8c × √(4,700 / units)
+≈ **6.7-7.7c** (Stage 1; Stage 2 scales the same way). **T1 detects only strong effects**; without the top-up (h8_tail alone,
+about 235 units) the MDE is about 17c. The ≥ 10 YES-cluster rule and every floor are unchanged. The census replaces these
+assumptions; the MDE is never used to change a threshold.
+
 **What would kill CH60.** GT fails; event-level disjointness unverified; T1 not detected at MDE; the calibrated-null
 placebo advances (inference not trustworthy); the truncation or censoring worst case flips Δ; T1 holds only with clarification-marked markets; T2 ≤ 0 or fails the
 tail gate at the binding cost; adverse selection not excluded.
@@ -1614,3 +1621,33 @@ the frame yield per window (≈ 81 rows per 15-min window, and filters + series 
   frame reports are kept.
 - Alternative (if the reviewer rejects A-T1): CB6-T runs on h8_tail as frozen and is expected "not testable for size" or
   "not detected at MDE ≈ 17c", counted.
+
+## Amendment A-T1: reviewer verdict ACCEPT_WITH_CHANGES and the implemented design (2026-10-17)
+The proposal above is accepted with these binding changes, which supersede its "Proposal A-T1" bullets where they differ
+(the new seed `arepo-h8-tail-b`, 8 windows per day and key exclusion of h8_tail are **not** used):
+1. **Same seed, nested windows.** `h8_tail_b` uses the seed `arepo-h8-tail` with 9 windows per day and walks only the 8 windows
+   h8_tail did not walk. The draw is `random.Random(f"{seed}|{day}").sample(valid, k)`; its first element is `randbelow(len(valid))`
+   for any k, so h8_tail's single window (k = 1) is always among the k = 9 picks. The union therefore equals the frozen frame rule
+   at 9 windows per day with one selection probability. Verified by a test over 405 days × 8 slot counts; the walk refuses if the
+   nesting ever failed. Sampling: all eligible taken as before; the rule holds over the union. If the union pool exceeded 4,500 the
+   frozen sampler runs over the union pool (h8_tail's rows join the strata) and h8_tail_b keeps its chosen rows (flagged in
+   `frame_report.json` `sample.union_pool_exceeds_n_markets`; not expected, the pool is about 1,900-3,300).
+2. **Clock pinned to h8_tail's `T_fetch8`** (`request_clock.json`, cross-checked with the manifest) for the frame cutoff, days and
+   slots, the origin limit ≤ `T_fetch8 − 60 d`, outcome censoring and the price / print cap `min(T_fetch8, T_seal)` (the rules'
+   cap; it cannot bind because origins are at least 58 days before `T_fetch8`). Recorded in h8_tail_b `manifest.params.topup`.
+3. **h8_tail excluded by market id only** (`sample.csv.gz` pinned by the parent manifest `file_sha256`; the read is appended to
+   the parent's `ACCESS_LOG.jsonl`). Key exclusions stay against h1/h2/h3/h5 as frozen; the parent's event / series keys are not
+   excluded, and the event-hash split runs over the union rows.
+4. **Every non-complete ending drops h8_tail_b entirely** (`not_run_deadline`, `disk_budget`, `disjointness_unverified`, any
+   refusal): no third run. The union is used whenever h8_tail_b completes, whatever its yield. h8_tail alone still seals.
+5. **MDE restated** before the seal (above). 6. **Ledger and trials** record the design change (`trials.jsonl` kind
+   `design_change`, not a test; `EXPERIMENT_LEDGER.md`). 7. **Code** (commit `30e0356`): `refuse_run_id`, declared arguments
+   (`--run-id h8_tail_b --topup-of h8_tail --windows-per-day 9`), rules v3 `seals/cb6_tail_rules_v3.json` (rules_sha256
+   `ad7f5baa5d6e63a27f913b37b5b263f18579750a6c085ebafc5c5cb5bbdf35fb`, own commit; v2 kept; every v2 rule function is byte-identical,
+   tested), explicit pinned smoke carry-over (the smoke v2 PASS file, sha256 `d1f7a4ef…0bf4`, made under the v2 hash `bf05c8ee…`,
+   is accepted under v3 only through `smoke.carry_over` in the hashed rules; tested), union seal (`tail-seal --topup-run h8_tail_b`:
+   both manifests complete with file hashes verified, equal clocks, cross-run id disjointness, h7 drops and the event-hash split over
+   the union, one listing `union_listing_sha256`, one trial line, one seal copy), `verify_tail` / `read_tail_sealed` check both
+   runs. 8. **Data-dumps guard:** `--data-dumps-cap-gb` (default 12.5) lets the job pass 13 (collector cap 14 GiB).
+9. **Queue:** drafts `q0120b_h8_tail_b_fetch.json` and an updated `q0121_h8_tail_seal.json` (depends on q0120b terminal: complete
+   or dropped). Nothing is in `queue/jobs/`. Latest safe start stays 2026-10-21T12:00Z minus the 2-2.5 h run.
