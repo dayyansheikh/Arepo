@@ -1180,3 +1180,46 @@ The rules below supersede the corresponding statements in §10. **New hashes** (
    `idle_kind` (`waiting`, `no_fresh_capture`, `headroom`) recorded in `heartbeat.json`.
 
 **Accepted deviations:** print lag 30 h; 32-hex stored hashes; the smoke refuses (exit 2, nothing written) on a missing key or fingerprint mismatch.
+
+## 10.2 B implementation notes (q0161, q0164-q0166, 2026-10-17)
+
+Code: `cb8_updown.py` (rules, smoke, exclusion keys, frame, Binance archive, tail gate), `cb8_books.py` (pmxt reader, book states, coverage audit, prints,
+HOLDOUT seal), `scripts/run_cb8.py` subcommands `rules --which updown`, `smoke`, `exclusion-keys`, `updown-frame`, `updown-books`. Tests:
+`tests/unit/test_cb8_updown.py` (34) and `test_cb8_books.py` (23), mocked HTTP and in-memory parquet only; the 58 existing CB8 H/W tests pass and their
+rules hashes are unchanged. **`seals/cb8_rules.json` `rules_sha256` = `36fd278325e5b15b4fd028c8dd48951f0f7e8a01022c44cd3c0db6ae84b3d752`** (code-derived:
+declared constants including the week table, plus the source hash of every rule function; verified with `verify_rules(require_committed=True)`).
+All four jobs refuse (exit 2) on a rules-hash mismatch, a changed `--days` / cap / audit argument, a refused run id or root, or a missing smoke / frame /
+exclusion file; exit 75 on data-dumps headroom or a network failure in the smoke (nothing written).
+
+Implemented as designed: question / flag / `UP_RE` / `DOWN_RE` strike clause (mirrored groups, strike date = d - 1, settlement date = d), `resolutionSource`
+parser (HYPE futures), exact `endDate` = 16:00:00Z, key and id drops before the split, ISO-week pair split, Binance monthly archives with `.CHECKSUM`,
+outcome prices and settlement candles only in `outcomes_guarded.csv.gz` / `klines_settle_guarded.csv.gz`, pmxt reads with both clocks <= t, freshness 120 s,
+crossed never repaired, states at t_end - {600, 300, 120, 60} s and +10 s (best 10 ask levels, for the `max(a_t, a_{t+10 s})` latency fill with >= 5 shares),
+fee `max(recorded, 0.07)`, the day-unit tail gate with the 99% Clopper-Pearson bound, the count-only coverage audit as the first stage of q0166 (FAIL ends the
+run `updown_books_source_unavailable`; per-market "source_unavailable" and per-day `hour_missing` / `hour_corrupt` / `ingress_cap` labels are kept apart from
+"no trade"), the 90 GB ingress cap (audit included), HOLDOUT files in `updown/holdout/` with a listing sha256 and seal-time drops by id and key
+(`DROPPED_*` blocks, sealed files untouched).
+
+**Deviations (all disclosed; no alpha, floor, cap or threshold changed).**
+1. **Tail-gate arithmetic.** With `W = sum(1 - c)`, `L = sum(c)`, `c = a + f`, the gate `W(1 - q_U) - L q_U >= 0` reduces to `1 - c >= q_U`, i.e. the required mean margin is
+   `q_U` itself: **7.9c / 11.3c / 14.2c** at 56 days with 0 / 1 / 2 losing days (the code and tests reproduce this). The design's 8.4 / 12.5 / 16c are
+   `0.985 q_U / (1 - q_U)`, which is not the gate's algebra. The gate formula, the bound and the 99% level are as written; only the census-side illustration
+   (`required_margin`) differs, and it is slightly less demanding than the quoted figures.
+2. **Run directories.** The frame run is `creative_batch8/updown_frame/`, the books run `creative_batch8/updown/` (separate manifests; the books run re-hashes every
+   frame file first). Caps 0.02 GB each (total 0.04 GB, the declared updown cap; the draft's 0.03 for q0165 became 0.02). `--disk-cap-gb` must equal the declared cap.
+3. **No wallet fingerprint in `cb8_rules.json`.** B stores no wallet; prints are parsed with a throwaway key and the hash is dropped.
+4. **14Z lookback is per token**: read only for tokens without a `book` event by t_end - 600 s (design: "only when needed").
+5. **Ingress cap** is decimal GB and checked before each day (a day can overshoot by about one hour file); later days are labelled `ingress_cap` and counted.
+6. `cb8_common.verify_manifest_files` also skips the mutable `ACCESS_LOG.jsonl`; q0164 requires the smoke file to exist under the same rules hash (queue order
+   only; q0161 exits 0 even when a criterion fails, and the consumers check their own criteria: q0165/q0166 need b and c, q0167 needs a).
+7. The smoke's criterion (a) also includes the deep-offset probe at offset 4000 (400 = venue cap, accepted; 200 = ok; anything else fails the criterion).
+
+**Open items.**
+- **Analysis side is not written**: the B part of the census (`b_units`, eligible / traded counts, GB, MDE), `b1_net`, `source_check` (> 2% disagreement), the
+  break-even and certainty placebos, `screen` / `replicate` and the B entries of the CB8 declaration. q0169 / q0170 / q0174 cannot run until they exist.
+- **CB5 sample listings and the C1 Polymarket legs** (design §1.3) are not in `cb7_common.EXCLUSION_PINS`. q0164 accepts them as `--extra-pin NAME:ABSOLUTE_PATH:SHA256`
+  (ids CSV with a `market_id` column); their host paths and hashes are unknown here. Until supplied, the exclusion is h1/h2/h3/h5/h5_ladders plus every committed seal copy.
+- **No real-network run**: the pmxt column set (`fee_rate_bps`, `new_tick_size`), the JSON shape of `bids` / `asks` and the Binance 2026 timestamp unit follow
+  `history_sources` and the existing loaders (a missing `fee_rate_bps` column yields `fee_bps = None`, hence the docs 0.07 rate). The smoke checks HEAD / checksums only,
+  so the first q0166 chunk is the real test of the reader.
+- Wall time of q0166 (about 113 days x 15Z hour with range reads) and memory 1.5 GB are the design's estimates, untested.
