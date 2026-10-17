@@ -312,6 +312,29 @@ onsets, or any price after a fill**. It produces:
   and the onset rule are hashed into the declaration before q0061 runs; the census only fills in counts and the frozen
   decile cuts.
 
+#### 2.7.1 History census result (q0061b, run 2026-10-17T07:14Z; counts only)
+Host file `creative_batch3/census.json`, sha256 `d3441636…6157`, declaration `5233cdb6…105b`, code 21e9bdc (host tree
+reported `git_dirty`: the deploy-unioned `trials.jsonl` only). q0061 (first attempt) failed on memory and stays failed;
+q0061b is the same census after the memory fix. No mark, mid after onset, price after a fill or outcome was read.
+- **A (57 dev captures, 139,302 markets):** 13,510 onsets (ask side 10,603, bid 2,907); displacement 5-10c 3,845,
+  10-20c 2,019, ≥ 20c 1,293 (bands as declared); onsets per capture median 278 (211-358). Exclusions from 2,473,918
+  candidates: no onset 994,098; no trade before i 1,191,588; gap-rule break 263,890 (5 capture gaps); not tight at i−1
+  190,587; one-sided at i+1 6,873; absent at i+1 3,959. Clusters: 1,611 dependence groups, 2,767 events, 49 onset
+  captures (dependence fallback share 0.1 %). Swept at i+1 17.8 %, sweep-confirmed 15.9 %, persistent 13.4 %.
+  `testable_at_dev_rule`: true.
+- **B (h2/pmxt, 667 markets read):** 15,795 origins → 4,639 quote opportunities kept (not eligible book 10,551; no prior
+  trade 485; end too close 118; trade state unavailable 2); 4,096 non-sports, 543 sports stratum. Fills: touch bid 554,
+  touch ask 501, queue bid 209, queue ask 195; unavailable quotes 0. Large-order classification coverage 75.9 %
+  (333 classifiable queue fills of 377 non-sports); 55 fills with a large order in the prior 30 min. RT-defined
+  opportunities (≥ 20 prints in 6h) 174. Population sizes B2 3,109, B4 4,096, B6 174. Expanding-past estimator usable
+  rows: B1 254 (51 markets with ≥ 2 rows), B3 276 (60), B5 128 (24). Clusters: 146 dependence groups / 146 events /
+  111 days.
+- **Frozen cuts (to be pinned in the committed spec at the freeze, unchanged from these values):** activity tercile
+  cuts [1.0, 5.0]; round-trip top-decile cut 0.16523 (basis: all non-sports quote opportunities of this census).
+- **Reading for the freeze (not a result):** A is well populated. B is small in clusters (146) and B5/B6 especially
+  (128 usable rows, 24 markets; 174 RT-defined opportunities), so B5/B6 Stage-1 power will be low; q0064's stated MDEs
+  decide which B tests are run as "not detected at MDE x" rather than dropped. Floors are not revised from these counts.
+
 ### 2.8 Compute and stop rules
 
 - Queue worker, one job per lane, nice 19, `MemAvailable ≥ mem_mb + 1200`, address cap 2 × `mem_mb`; never two

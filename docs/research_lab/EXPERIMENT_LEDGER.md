@@ -1267,3 +1267,19 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Economics:** none beyond the structural per-trigger net, which was not estimable (D2 not testable).
 - **Next:** none for D. Stop rule: no rep run (q0027 not spent, rep captures stay unfrozen and unread). The maker
   route would need a collector extension and a new declaration. Open in CB1: B3 rung list at T_rep_start (>= 2026-10-19).
+
+## Data and smoke events, 2026-10-17 (autopilot ~09:55Z; none counted as tests)
+- **CB7 smoke q0140: FAIL (engineering, pool specification).** (a) PASS; (b), (c) FAIL with only 2 of 200 drawn
+  candidates eligible (205 of 13,700 exclusion ids end in 2025 with >= $10k volume). Source not tested. v1 file stays on
+  record; diagnosis and v2 proposal in `SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md` (under review). q0142/q0143 not promoted.
+- **CB8-H holders smoke q0160: FAIL (engineering, empty frame).** Sidecar market `open_interest` is blank in all 280,175
+  rows (Gamma markets carry no OI); `/holders` was never called. Data API `/oi` (60 ids per request) supplies market OI.
+  v2 proposal in the same file (under review). q0162/q0163 not promoted.
+- **CB3 history census q0061b: done** (counts in `CREATIVE_BATCH_3.md` §2.7.1; sha256 `d3441636...`). The freeze waits for
+  q0064 (after 2026-10-25), as declared.
+- **h6_weather sealed (q0044):** 2,965 screen / 1,987 holdout markets, 48 embargo, d_split 2026-08-05, listing sha256
+  `e6e3e250...`. **h8_tail fetch complete (q0120):** 362 items, 670 origins, 145,430 price rows, 49,262 trade rows, 0 failed;
+  seal q0121 after `T_seal`. **CB7 exclusion keys complete (q0141):** 20,913 ids, 1 missing (share 0.00005 < 0.02).
+- **Memory failures:** q0084 (CB4 pmxt pilot) MemoryError twice in pyarrow reads; q0082f (h7 series frame) MemoryError on
+  resume (322 MB partial walk file). Fixes in progress; not outcome-related.
+- **Ops:** host package caches cleared (~3 GB); collector data cap 13 -> 14 GiB; CB5 fetch refusal 12 -> 13 GB (15ea7e2).
