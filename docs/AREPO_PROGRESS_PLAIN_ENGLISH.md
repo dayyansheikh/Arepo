@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 06:01 UTC+1
+**Last updated:** 2026-10-17 06:18 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -15,15 +15,17 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Batch 1-D (neg-risk sets): nothing advanced.** D1 was +0.78 points (p 0.016), which fails the pre-set bar (p < 0.01, at least
   1 point, and surviving removal of the top 5 events; it fell to +0.15). D2 had too few cases to test. The sealed sample stays unopened.
   Total tests counted so far: 1,106.
-- **Jobs that ran out of memory:** the multi-signal ML dry run is fixed (now about a quarter of the memory) and queued again;
-  batch 3's counting job is being fixed.
-- **Deadline 22 Oct:** fresh downloads for batches 4 and 6 must finish before the seal date. Independent checks passed (with fixes
-  applied), and their first jobs are queued: batch 4's sampling frames, and batch 6's 20-market test download. Batch 5's downloads
-  and counting job are queued too. The server has well over 12 hours of work lined up.
-- **Batch 4 analysis code:** the independent check found 6 things to fix before any counted test. One is a design flaw: a
-  week-level check could never have had enough weeks to run. These are being fixed without looking at any outcome data.
-- **Batch 7 (new):** being designed from the next ideas on the list: a "specificity discount" in market rules, geopolitics longshots,
-  stepping aside as a maker after Kalshi moves, and price unwinds after a sibling market resolves.
+- **Jobs that ran out of memory:** both are fixed and queued again (multi-signal ML dry run; batch 3's counting job). Batch 3's
+  live data step is now part of every collection pass.
+- **Batch 6 setback:** its fresh download was gated on a 20-market test that price history comes back hourly. It failed: only 4 of
+  20 passed (18 needed). By the batch's own rules the download does not run as designed. I'm finding out why (a code bug, or the
+  price service thinning old history). Any fix is a design change and must pass an independent review before the 22 Oct deadline.
+- **Batch 4:** the analysis code passed its independent check after two rounds of fixes, without looking at any outcome data. Its
+  first (uncounted) pilot is queued. Its sampling frames for the fresh download start this morning.
+- **Batch 5:** fixes applied after its check; its downloads and counting job are queued.
+- **Batch 7 (new, 3-6 tests):** designed and challenged. It tests a "specificity discount" (do markets whose rules have more
+  conditions overprice YES?), geopolitics longshots, and stepping aside as a maker after Kalshi moves. The sibling-unwind idea was
+  dropped: our 2-hourly data can't time it, and batch 1 already screened something similar. Fixes are being applied before the code is built.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
