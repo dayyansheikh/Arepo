@@ -8,6 +8,16 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
+## URGENT (2026-10-17 14:30Z, interactive session): host data cap
+- **Measured:** `data-dumps` is 13,765,816 KiB (13.1 GiB) against the collector cap of 14 GiB (`arepo_pass.sh CAP_GB:-14`),
+  growing about 1.1 GB a day. Root disk has 6.0 GB free against the 4 GB guard.
+- **Risk:** the collector pass skips from about 18 Oct, which leaves a gap in E009/E010/E011 inputs and snapshots.
+- **Why deletion doesn't help yet:** the 8-day snapshot rule frees nothing on the host until about 21 Oct, because the host's
+  captures start 2026-10-13/14.
+- **First task for the next session:** free or relocate space within the approved retention policy (verified-archived only;
+  `history/` 3.4 GB and `ml_cache/` 1.4 GB are in releases). Restore-on-demand is better than raising caps. Never touch
+  frozen or prospective evidence. Record what was done here.
+
 ## Standing user decisions
 - Work autonomously. Use parallel agents where there is real cause.
 - Specialists: Opus max, or Fable 5.1 used sparingly. Extra credits are off.
