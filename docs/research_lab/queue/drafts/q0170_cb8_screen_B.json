@@ -1,6 +1,6 @@
 {
  "id": "q0170_cb8_screen_B",
- "title": "CB8-B: B1 Stage 1 on SCREEN weeks (recorded-ask net, day-unit tail gate (needs a mean margin of about >= 8.4c at about 56 days), disagreement units kept with the Gamma outcome, break-even placebo, certainty attribution, binding robustness)",
+ "title": "CB8-B: B1 Stage 1 on SCREEN weeks (recorded-ask net, day-unit tail gate (required mean margin = q_U: about 7.4c at 60 traded days with no losing day, Erratum E1), disagreement units kept with the Gamma outcome, break-even placebo, certainty attribution, binding robustness)",
  "family": "creative_batch_8",
  "priority": 38,
  "expected_value": "CH76 screen",
@@ -19,14 +19,17 @@
   "scripts/run_cb8.py",
   "screen",
   "--family",
-  "B"
+  "B",
+  "--data-dumps-cap-gb",
+  "14"
  ],
  "timeout_s": 3600,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/creative_batch8/results_B1.json",
-  "trials.jsonl (cb8_test + creative_batch_8:B)"
+  "data-dumps/research_lab/creative_batch8/results_B1.json (write-once)",
+  "docs/research_lab/seals/cb8_b1_stage1.json (byte copy; commit it)",
+  "trials.jsonl (cb8_test + placebo + cb8_descriptive + ml_explain creative_batch_8:B)"
  ],
- "next_action": "commit results; q0174 only if B1 advanced",
- "notes": "CREATIVE_BATCH_8.md CB8-B. DRAFT. Commit after the CB8 freeze. Declaration-hash guard; GB fail -> not testable, counted."
+ "next_action": "commit results_B1 copy (seals/cb8_b1_stage1.json); q0174 only if B1 advanced",
+ "notes": "CREATIVE_BATCH_8.md CB8-B and 'B analysis implementation notes (2026-10-17)'. DRAFT. Commit after the CB8 freeze: refuses (exit 2) without a committed backend/astrolabe/research_lab/model_specs/cb8_v1.json carrying b_analysis_rules_sha256 and b_data_rules_sha256, without census_B.json, or if results exist. GB / audit / disjointness / source-check fail -> not testable, p = 1, counted. Exit 75 on headroom (cap 14)."
 }

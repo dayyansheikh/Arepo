@@ -21,14 +21,16 @@
   "scripts/run_cb8.py",
   "census",
   "--family",
-  "B,W"
+  "B,W",
+  "--data-dumps-cap-gb",
+  "14"
  ],
  "timeout_s": 3600,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/creative_batch8/census_BW.json",
+  "data-dumps/research_lab/creative_batch8/census_B.json (write-once; W part: census_W.json once the W census exists)",
   "trials.jsonl (cb8_descriptive)"
  ],
  "next_action": "Claude session inserts counts and gates into CREATIVE_BATCH_8.md; science-reviewer freeze check; freeze (model_specs/cb8_v1.json)",
- "notes": "CREATIVE_BATCH_8.md section 2.7. DRAFT. Commit after both seal copies are committed. Outcome guard and field-restricted accessors; floors and thresholds are never revised from the census."
+ "notes": "CREATIVE_BATCH_8.md section 2.7 and 'B analysis implementation notes (2026-10-17)'. DRAFT. Commit after both seal copies are committed. B part implemented (cb8_b_analysis.census_b; needs the committed seals/cb8_b_analysis_rules.json and seals/cb8_updown_holdout_SEAL.json): counts only on SCREEN units, HOLDOUT file/day counts from the seal listing, guarded files never opened. The W census is NOT implemented: '--family B,W' refuses (exit 2, nothing run) until it exists; running the B part alone needs argv '--family B' (coordinator decision). Exit 75 on data-dumps headroom (cap 14). Floors and thresholds are never revised from the census."
 }

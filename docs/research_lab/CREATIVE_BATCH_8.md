@@ -1320,3 +1320,41 @@ smoke design, which is unchanged) and binds to the v3 rules hash through `smoke_
    `unfinished_at_day_end`, instead of one undifferentiated reason.
 4. **Drop granularity, disclosed.** A failed or integrity-violating `/oi` reply drops its whole sorted batch of up to 60 condition ids at once (`oi_lookup_failed`), so missing markets arrive in batches of 60, not singly;
    the 2 % rule counts markets (one lost batch is 60 markets, about 0.02 % of a 273k-market base frame; about 91 lost batches reach 2 %).
+
+---
+
+## B analysis implementation notes (2026-10-17)
+
+Status: **analysis code written; no B data exists and nothing has run.** Code `abeb140`: `backend/astrolabe/research_lab/cb8_b_analysis.py`, `battery2.KIND_RULES` entries
+`cb8_test` / `cb8_replication` / `cb8_descriptive` (EXCLUDE; the counted tests are the `ml_explain` `creative_batch_8:B` count lines), `run_cb8.py` subcommands `rules --which b-analysis`,
+`census --family B[,W]` (q0169 B part), `screen --family B` (q0170), `replicate --family B` (q0174); tests `backend/tests/unit/test_cb8_b_analysis.py` (22, offline fixtures).
+**Rules file `seals/cb8_b_analysis_rules.json` (`cb8-b-analysis-rules-v1`), committed separately (`229b860`) from the committed code: `rules_sha256` =
+`82cd4807732e0ae42ed823353d2d61ebe9dbbd3856db44b82456acf549b80d9d`.** It hashes the source of every analysis function plus the data-rule and statistics helpers it calls and pins
+`data_rules_sha256` = `33decb52...` (B data rules v2, unchanged). No threshold, floor, gate, alpha or cap was changed.
+
+**Access rules as built.** The census reads SCREEN feature files only through a field-restricted view that refuses every `*guarded*` file and every HOLDOUT path; HOLDOUT is
+counted from the committed seal copy's listing (names only). Guarded files open only for the purposes `screen` / `replicate`. `replicate` refuses unless the committed
+`seals/cb8_b1_stage1.json` equals `results_B1.json` and shows an advance (stop rule), then requires the committed HOLDOUT seal copy to equal the run's seal and the recomputed
+HOLDOUT listing (books `holdout/` + frame `holdout/` as `frame_holdout/`) to match, before any HOLDOUT read; guarded and HOLDOUT reads are appended to `updown/ACCESS_LOG.jsonl`.
+Outputs are write-once (`census_B.json`, `results_B1.json` + its seals copy, `results_B1_rep.json`); exit 2 refusals, exit 75 on data-dumps headroom (drafts pass `--data-dumps-cap-gb 14`).
+
+**Deviations and readings where the design is silent (all conservative; listed in `INTERPRETATIONS` in every output).**
+1. Coverage for the GB "no opportunity" reading counts only market-days with states status `ok`; `book_unavailable` market-days count as unavailable.
+2. A traded unit without a decisive Gamma outcome (not 1/0, 0/1 or 0.5/0.5) is dropped from the primary estimate and added back as a total loss in the binding worst case (2.6 v).
+3. Source check denominator: every kept split market-day with a decisive Gamma outcome, a strike and a settlement candle; market-days without a Binance outcome are counted, not
+   disagreement; nothing comparable is a fail. The traded-market-day disagreement count is reported.
+4. Cost robustness subtracts the larger of `f(a)` and `f(a + 0.75c)`; the traded set is unchanged.
+5. Sign by month with no month of >= 30 traded units is unverified and blocks an advance. B1_low without units leaves the attribution unverified (never credited; it does not block).
+6. Latency fee rate = max(recorded at t, at t + 10 s, docs 0.07). Sigma-30 robustness rebuilds the units (the traded set may differ).
+7. Stage 2 uses `p < 0.05 / k_used` wherever Stage 1 uses 0.01 (core, placebo, robustness); `k_used` = 1 + the other CB8 tests that advanced or have no final Stage-1 file yet.
+   GB, the audit, disjointness and the source check are applied again on HOLDOUT units.
+8. BY triage uses the strictest rank, `q / (m H_m)`; the Stage-1 batch-Holm label enters W1 / H1 without a final file as p = 1.
+9. Seal-time `DROPPED_*` markets are removed by id from every count and estimate.
+
+**Open items for the freeze check.**
+- The CB8 declaration (`cb8_declaration.py`, `model_specs/cb8_v1.json`) is not written. `screen` / `replicate` require a committed
+  `backend/astrolabe/research_lab/model_specs/cb8_v1.json` carrying `b_analysis_rules_sha256` and `b_data_rules_sha256` equal to the code's; the W / H entries are for their authors.
+- The W census is not implemented: q0169 (`--family B,W`) refuses until it exists. Running the B part alone needs the draft argv `--family B` (coordinator decision).
+- The host `trials.jsonl` union step (`scripts/oracle/union_jsonl.py`) is an operator step before each counting job; the code records `cumulative_count()` on the file it appends to.
+- `updown/drops.csv.gz` is not hashed in the books manifest or the seal (as written by q0166); the analysis reads only its ids.
+- No real-data run: the fixture layout follows `cb8_updown` / `cb8_books` writers; the first q0169 run is the real test of the readers.

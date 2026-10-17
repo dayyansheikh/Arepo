@@ -19,7 +19,9 @@
   "scripts/run_cb8.py",
   "replicate",
   "--family",
-  "B"
+  "B",
+  "--data-dumps-cap-gb",
+  "14"
  ],
  "timeout_s": 3600,
  "max_retries": 1,
@@ -28,5 +30,5 @@
   "trials.jsonl (cb8_replication)"
  ],
  "next_action": "Stage P-B registration only if B1-rep passes the Holm step",
- "notes": "CREATIVE_BATCH_8.md CB8-B Stage 2. DRAFT. Commit only if B1 advanced; refuses without the committed Stage-1 file."
+ "notes": "CREATIVE_BATCH_8.md CB8-B Stage 2 and 'B analysis implementation notes (2026-10-17)'. DRAFT. Commit only if B1 advanced (stop rule): refuses (exit 2) unless the committed seals/cb8_b1_stage1.json equals results_B1.json and shows advance, the committed HOLDOUT seal copy equals the run's seal and the recomputed HOLDOUT listing sha256 matches, all before any HOLDOUT read. Judged at alpha 0.05 / k_used (k_used = 1 + other CB8 tests advanced or not yet final). Exit 75 on headroom (cap 14)."
 }
