@@ -1302,3 +1302,21 @@ stay at most 2 rps. Targets are unchanged (`T8_H1_start` not before 2026-10-21T0
 
 **Not verified offline.** That the real `/oi` accepts a comma-joined `market` parameter as sent by `httpx` (probed once for 60 ids on 2026-10-17), the real reply shape beyond `[{"market","value"}]`,
 and the units of `/oi` (the smoke records them). No H statistic or outcome is read.
+
+### H v2 freeze-check must-fixes (2026-10-17) and rules v3
+
+No CB8 job had run under the v2 rules, so the must-fixes below changed hashed code and the rules file was superseded: `seals/cb8_holders_rules_v2.json` (`30e7f7f0...`) is kept untouched
+and never used; **`seals/cb8_holders_rules_v3.json` (`rules_version` `cb8-holders-rules-v3`) is the binding file, `rules_sha256` = `b6ac7f7fd773c1656ad96a2b00abb260cfe693a8ee06a0a48798d8d6f3211f57`**
+(fingerprint `80ce5e81a539a570` unchanged), written from code in its own commit after the code commit. The smoke keeps the name/version `cb8-holders-smoke-v2` (no smoke result exists yet; the version names the
+smoke design, which is unchanged) and binds to the v3 rules hash through `smoke_ok`; the snapshot and prints jobs require that PASS under v3. Flow rules (`9dc74a91...`) and B rules v2 (`33decb52...`) are unchanged (tested).
+
+1. **q0160b timeout.** The smoke cannot resume. The limiter enforces a minimum gap between request starts but does not offset reply time, and it yields to the live collector, so about 4,550 `/oi`
+   requests at about 0.6 s per reply take about 45 min before any yielding. `timeout_s` is raised from 3,600 to **5,400**. **A timeout or an exit 75 writes nothing and is not a v2 FAIL**; the job may be
+   re-queued under a new id. This does not create a "smoke v3": only a written FAIL of criterion a, b or h makes H "not run (source)".
+2. **Snapshot day label.** `day` is fixed at chunk start. If the UTC day differs from `day` when the `/oi` frame is complete (before the plan is written), the day is refused: `<day>.MISSED.json`, kind `oi_source`,
+   `sub_reason` `day_rolled`, nothing written for that day. Before each `/holders` request the same check stops the chunk (`day_rolled`); the next chunk closes the written plan as `<day>.INCOMPLETE.json`.
+   No plan or `/holders` row is labelled day D after UTC midnight.
+3. **Sub-reasons.** An `oi_source` miss at day end now carries `sub_reason` `oi_capture_gone` (the pinned capture vanished; recorded in `<day>.oi.capture_gone.json` while the day is pending) or
+   `unfinished_at_day_end`, instead of one undifferentiated reason.
+4. **Drop granularity, disclosed.** A failed or integrity-violating `/oi` reply drops its whole sorted batch of up to 60 condition ids at once (`oi_lookup_failed`), so missing markets arrive in batches of 60, not singly;
+   the 2 % rule counts markets (one lost batch is 60 markets, about 0.02 % of a 273k-market base frame; about 91 lost batches reach 2 %).
