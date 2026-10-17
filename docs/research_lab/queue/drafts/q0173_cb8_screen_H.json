@@ -19,14 +19,17 @@
   "scripts/run_cb8.py",
   "screen",
   "--family",
-  "H"
+  "H",
+  "--data-dumps-cap-gb",
+  "14"
  ],
  "timeout_s": 3600,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/creative_batch8/results_H1.json",
-  "trials.jsonl (cb8_test + creative_batch_8:H)"
+  "data-dumps/research_lab/creative_batch8/results_H1.json (write-once)",
+  "docs/research_lab/seals/cb8_h1_stage1.json (byte copy; commit it)",
+  "trials.jsonl (cb8_test + placebo + cb8_descriptive + ml_explain creative_batch_8:H)"
  ],
- "next_action": "commit results; q0176 only if H1 advanced",
- "notes": "CREATIVE_BATCH_8.md CB8-H. DRAFT. Commit after the CB8 freeze and the committed GH result. Declaration-hash guard."
+ "next_action": "commit results_H1 copy (seals/cb8_h1_stage1.json); pin window 2 (holders-pin-h2) right after the freeze if not done; q0176 only if H1 advanced",
+ "notes": "CREATIVE_BATCH_8.md CB8-H and 'W and H analysis implementation notes (2026-10-17)'. DRAFT. Commit after the CB8 freeze and the committed GH result: refuses (exit 2) without a committed model_specs/cb8_v1.json carrying h_analysis_rules_sha256 and h_data_rules_sha256, without census_H.json under the same H rules, or if results exist. Even a pass supports only a presence filter, not a route. Exit 75 on headroom (cap 14)."
 }

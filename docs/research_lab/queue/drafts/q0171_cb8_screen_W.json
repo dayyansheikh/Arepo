@@ -5,7 +5,7 @@
  "priority": 38,
  "expected_value": "CH69 screen",
  "data": [
-  "history/h9_flow/screen (verified seal)"
+  "history/h9_flow/screen (verified seal copy seals/h9_flow_SEAL.json; SCREEN files re-hashed)"
  ],
  "resources": {
   "mem_mb": 1500,
@@ -19,14 +19,17 @@
   "scripts/run_cb8.py",
   "screen",
   "--family",
-  "W"
+  "W",
+  "--data-dumps-cap-gb",
+  "14"
  ],
  "timeout_s": 5400,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/creative_batch8/results_W1.json",
-  "trials.jsonl (cb8_test + creative_batch_8:W)"
+  "data-dumps/research_lab/creative_batch8/results_W1.json (write-once)",
+  "docs/research_lab/seals/cb8_w1_stage1.json (byte copy; commit it)",
+  "trials.jsonl (cb8_test + placebo + cb8_descriptive + ml_explain creative_batch_8:W)"
  ],
- "next_action": "commit results; q0175 only if W1 advanced",
- "notes": "CREATIVE_BATCH_8.md CB8-W. DRAFT. Commit after the CB8 freeze. Declaration-hash guard; GW fail -> not testable, counted."
+ "next_action": "commit results_W1 copy (seals/cb8_w1_stage1.json); q0175 only if W1 advanced",
+ "notes": "CREATIVE_BATCH_8.md CB8-W and 'W and H analysis implementation notes (2026-10-17)'. DRAFT. Commit after the CB8 freeze: refuses (exit 2) without a committed backend/astrolabe/research_lab/model_specs/cb8_v1.json carrying w_analysis_rules_sha256 and w_data_rules_sha256, without census_W.json under the same W rules, or if results exist. GW / disjointness fail -> not testable, p = 1, counted. Time-shift placebo 200 draws (the main wall-time cost). Exit 75 on headroom (cap 14)."
 }

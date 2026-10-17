@@ -28,9 +28,10 @@
  "timeout_s": 3600,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/creative_batch8/census_B.json (write-once; W part: census_W.json once the W census exists)",
-  "trials.jsonl (cb8_descriptive)"
+  "data-dumps/research_lab/creative_batch8/census_B.json (write-once)",
+  "data-dumps/research_lab/creative_batch8/census_W.json (write-once)",
+  "trials.jsonl (cb8_descriptive x 2)"
  ],
  "next_action": "Claude session inserts counts and gates into CREATIVE_BATCH_8.md; science-reviewer freeze check; freeze (model_specs/cb8_v1.json)",
- "notes": "CREATIVE_BATCH_8.md section 2.7 and 'B analysis implementation notes (2026-10-17)'. DRAFT. Commit after both seal copies are committed. B part implemented (cb8_b_analysis.census_b; needs the committed seals/cb8_b_analysis_rules.json and seals/cb8_updown_holdout_SEAL.json): counts only on SCREEN units, HOLDOUT file/day counts from the seal listing, guarded files never opened. The W census is NOT implemented: '--family B,W' refuses (exit 2, nothing run) until it exists; running the B part alone needs argv '--family B' (coordinator decision). Exit 75 on data-dumps headroom (cap 14). Floors and thresholds are never revised from the census."
+ "notes": "CREATIVE_BATCH_8.md section 2.7, 'B analysis implementation notes (2026-10-17)' and 'W and H analysis implementation notes (2026-10-17)'. DRAFT. Commit after both seal copies (seals/cb8_updown_holdout_SEAL.json, seals/h9_flow_SEAL.json) are committed. Needs the committed seals/cb8_b_analysis_rules.json and seals/cb8_w_analysis_rules.json. Every family's guards run before anything is written; a census file that already exists is reported and not rerun (write-once), so a retry never fails on the finished part. B (cb8_b_analysis.census_b): counts only on SCREEN units, HOLDOUT file/day counts from the seal listing, guarded files never opened. W (cb8_w_analysis.census_w): seal copy verified, SCREEN files re-hashed against the seal, triggers / merged skip windows / S, S', N / mark AVAILABILITY at +2 h (MarkIndex census mode holds counts only and refuses values) / clusters / GW / MDE; HOLDOUT file counts from the seal listing and HOLDOUT events from sample ids; no HOLDOUT print is opened. A run that ended disjointness_unverified gives GW 'not testable'. Exit 75 on data-dumps headroom (cap 14). Floors and thresholds are never revised from the census."
 }

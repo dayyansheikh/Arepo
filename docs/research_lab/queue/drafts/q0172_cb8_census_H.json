@@ -19,14 +19,16 @@
   "scripts/run_cb8.py",
   "census",
   "--family",
-  "H"
+  "H",
+  "--data-dumps-cap-gb",
+  "14"
  ],
  "timeout_s": 1800,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/creative_batch8/census_H.json",
+  "data-dumps/research_lab/creative_batch8/census_H.json (write-once)",
   "trials.jsonl (cb8_descriptive)"
  ],
  "next_action": "insert counts into CREATIVE_BATCH_8.md; q0173 after the CB8 freeze",
- "notes": "CREATIVE_BATCH_8.md section 2.7. DRAFT. Refuses before T8_H1_end + 30 h. No mark-out or contrast computed. If no rank-1 hash ever joins a print wallet: H not testable (source), counted."
+ "notes": "CREATIVE_BATCH_8.md section 2.7 and 'W and H analysis implementation notes (2026-10-17)'. DRAFT. Needs the committed seals/cb8_h_analysis_rules.json; snapshot and prints manifests must carry the holders rules v3 hash (b6ac7f7f...) and the pinned fingerprint; every file read is re-hashed. Exit 75 before T8_H1_end + 30 h (from snap/t8_h1_start.json) and while a window-1 snapshot day has no prints day and the prints run is not terminal. Marks are read as availability only (MarkBook census mode refuses mids): no mark-out or contrast. GH fail or no rank-1 hash joining a print wallet -> H1 not testable (source / GH), counted at q0173. Exit 75 on headroom (cap 14)."
 }

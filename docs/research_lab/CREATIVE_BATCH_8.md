@@ -1358,3 +1358,74 @@ Outputs are write-once (`census_B.json`, `results_B1.json` + its seals copy, `re
 - The host `trials.jsonl` union step (`scripts/oracle/union_jsonl.py`) is an operator step before each counting job; the code records `cumulative_count()` on the file it appends to.
 - `updown/drops.csv.gz` is not hashed in the books manifest or the seal (as written by q0166); the analysis reads only its ids.
 - No real-data run: the fixture layout follows `cb8_updown` / `cb8_books` writers; the first q0169 run is the real test of the readers.
+
+---
+
+## W and H analysis implementation notes (2026-10-17)
+
+Status: **analysis code written; no W or H data exists and nothing has run.** Code `32c9e7a`: `backend/astrolabe/research_lab/cb8_w_analysis.py` (W census = q0169 W part,
+`screen --family W` = q0171, `replicate --family W` = q0175), `cb8_h_analysis.py` (`census --family H` = q0172, q0173, q0176), shared helpers `cb8_wh_common.py`, the freeze-file
+generator `cb8_declaration.py` and `run_cb8.py` (`rules --which w-analysis|h-analysis`, `census --family B,W|H`, `screen|replicate --family B|W|H`, `write-spec [--dry-run]`).
+Tests `backend/tests/unit/test_cb8_w_analysis.py` (22) and `test_cb8_h_analysis.py` (14), offline constructed fixtures; the B runner test was adjusted (the `B,W` census no longer refuses as
+"not implemented"). Trial lines use the existing `battery2.KIND_RULES` kinds `cb8_test` / `cb8_replication` / `cb8_descriptive` (EXCLUDE; the counted tests are the `ml_explain`
+`creative_batch_8:W` / `:H` count lines); `battery2.cumulative_count()` runs on the real `trials.jsonl` in the tests. **No threshold, floor, gate, alpha or cap was changed.**
+
+**Rules files (code-derived, committed separately in `2ddc25b`):**
+- `seals/cb8_w_analysis_rules.json` (`cb8-w-analysis-rules-v1`) `rules_sha256` = **`31a0f20c06a201680c967f133becd674a7f7fe425fa6236c52df8b97dd91b77d`**; pins `data_rules_sha256` = flow rules `9dc74a91...` (unchanged).
+- `seals/cb8_h_analysis_rules.json` (`cb8-h-analysis-rules-v1`) `rules_sha256` = **`81631fe41866ae1346f21e7b46457c0b631f0a6e2ea6ca6e764e82504c4c0795`**; pins `data_rules_sha256` = holders rules v3 `b6ac7f7f...` (unchanged).
+- B analysis (`82cd4807...`) and B data v2 (`33decb52...`) hashes are unchanged (no B file edited).
+
+**CB8 declaration (`model_specs/cb8_v1.json`).** As in CB1 and CB5, the declaration is the freeze file, so it is **not written now**. `cb8_declaration.write_spec` (CLI `run_cb8.py write-spec`)
+writes it exactly once at the freeze, refusing to overwrite and refusing unless all six rules files are committed and equal the code. It carries `b_/w_/h_analysis_rules_sha256`,
+`b_/w_/h_data_rules_sha256`, the hypothesis table, the counting summary and `declaration_sha256` (with the current code: `b0a27672392c1c46f63343cd5cd83af4b29874d50f391e9f2fbb5c3703901b7b`;
+`write-spec --dry-run` prints the would-be content). Every `screen` / `replicate` refuses until the committed file carries its family's two hashes.
+
+**Access rules as built.**
+- **W:** every stage verifies that the committed `seals/h9_flow_SEAL.json` is byte-equal to the run's `SEAL.json`, that its file table and declaration hashes hold, and that its
+  fingerprint and flow rules hash are the pins. It then re-hashes every sealed file it may read, never `holdout/` before `replicate`. The census counts mark availability only:
+  `MarkIndex` in census mode holds positive-size print counts and refuses `values`. The census counts HOLDOUT files from the seal listing and HOLDOUT events from
+  `sample.csv.gz` ids. `replicate` refuses unless the committed `seals/cb8_w1_stage1.json` equals `results_W1.json` and shows an advance. It then recomputes the HOLDOUT
+  listing (files and `drops.holdout_listing_sha256`) before any HOLDOUT read, and logs reads to `h9_flow/ACCESS_LOG.jsonl`.
+- **H:** the snapshot and prints manifests must carry the holders v3 hash and the pinned fingerprint (mixed fingerprints are refused), and every file read is re-hashed against
+  its manifest. Only the stage's window is read. The census reads marks as availability only (`MarkBook` census mode refuses mids). The census exits 75 before `T8_H1_end` + 30 h
+  and while a window-1 snapshot day has no prints day (unless the prints run is terminal). `replicate` refuses without an advanced, committed `seals/cb8_h1_stage1.json`,
+  exits 75 before `T8_H2_end` + 30 h, refuses a window 2 that starts less than 2 h after the first commit of the freeze spec, and writes "not run (freeze slip)" (p = 1, counted)
+  when the pin says so.
+- Results files go to the `creative_batch8` root (`census_W.json`, `census_H.json`, `results_W1.json`, `results_H1.json`, `*_rep.json`), so each test's Stage-2 `k` sees the others'
+  Stage-1 files. All results are write-once.
+
+**Readings where the design is silent (all conservative; listed in `INTERPRETATIONS` in every output). Each needs freeze-check confirmation.**
+1. **W clip time** is the clip's last print, which is when the clip and its size are known. **Notional** is Σ size × token price (the dollars traded). Prints without a wallet
+   hash never form clips.
+2. **One trigger per qualifying c2.** A run of clips therefore yields several windows, which merge. **Merged windows carry the union of their trigger wallets.** The wallet cluster
+   way unites wallets that share a merged window (union-find over the stage), so it has fewer and larger clusters.
+3. **W availability (capped/failed/missing days and window edges).** A print at `s` is a unit only if `[s − reach, s]` is observable, with reach = 1,800 + 600 + lag + 3,600 s
+   (6,060 s; 6,300 s at the 300-s latency). This makes the S / S′ / N classification exact. A trigger whose look-back is unobservable can only cover unavailable units. Cost: about
+   the first 1.7 h of each 72-h window, plus 1.7 h after each unavailable day, is not used for units. Marks also need `[u − 900, u + 900]` observable.
+4. **W units** are restricted to the declared 72-h window `[w0, w0 + 72 h)`; the extra 2.5 h of the fetch serve marks only. The mark uses all prints (any price).
+5. **W route gate** carries no rebate (conservative; the with-rebate version is reported). **W worst case (2.6 v):** mark-unavailable S units enter with mark-out
+   `max(0, kept-fill mean)` plus their forgone rebate. The design names no value; this is a null-side fill, not an extreme bound.
+6. **W alternative mark** needs both marks (`s + 3,600` and `s + 10,800`). The time-shift placebo shifts each trigger window (keeping its length and wallets) and wraps at
+   `w0 + 72 h`. Pseudo-pairs apply only the gap, size and notional rules (no run-start or opposite rule, as the text). Their marks exclude both wallets.
+7. **W MDE** scales the design's SE (about 0.15c at about 500 events) by `sqrt(500 / G_event)`.
+8. **H exits** that qualify under two consecutive snapshots (overlapping 26-h print windows) count once, under the earliest snapshot. **Controls** come from the exit's own
+   market-day prints (stored in full because `c_j ≥ 0.5`). They obey the exit's price rule, need a wallet hash, and exclude the top 5 holders of either token at `h`. Ties go to the
+   earlier time. Matching is without replacement per market.
+9. **H mark:** the first capture with `received_utc ∈ [u, u + 2.5 h]`. If its spread exceeds 5c, the mark is unavailable; there is no search for a later tight capture.
+   **Next-but-one** (robustness i) is the second capture with `received_utc ≥ u`, with no extra time limit and the same spread rule.
+10. **H worst case:** unavailable pairs enter with contrast 0. **H sign by month** is reported, not binding (the text). **GH is applied at both stages.** "No rank-1 hash of a concentrated
+    token ever joins a stored print wallet" makes H not testable (source), and the census reports this.
+11. **H1_low** can use only market-days stored in full (the other token had `c ≥ 0.5`), because q0163 stores only top-5 prints otherwise. It may have no units, which is unverified,
+    never credited, and does not block (as B1_low). **H with-rebate** and **pre-close dump size** cannot be computed: the H data store no fee category and no end date. They are
+    reported as unavailable.
+12. **Stage 2 (W, H)** uses `p < 0.05 / k_used` wherever Stage 1 uses 0.01, as B.
+13. **Census, multiple families:** all guards run before anything is written. A census file that already exists is reported and not rerun, so a retried q0169 never fails on the
+    finished part.
+
+**Open items for the freeze check.**
+- Confirm readings 3, 5, 9 and 11, which change power or availability most. The W reach rule costs about 2.3% of each window. H1_low may be empty by construction of the collection.
+- Real-scale cost: the W time-shift placebo (200 draws over about 750 SCREEN markets) dominates q0171 / q0175 wall time. With about 4 M prints, the estimated memory is
+  about 0.5-0.8 GB (q0171 declares 1.5 GB). Neither has been measured on real data.
+- W "not run (source)" (smoke criterion a FAIL, so no `h9_flow`) has no runner path that writes the counted p = 1 line. It is a coordinator ledger entry, as for B.
+- The H snapshot `INCOMPLETE` / `MISSED` markers are counted from file names; they are not in the manifests' hash tables.
+- No real-data run: the fixture layouts follow the `cb8_flow` / `cb8_holders` writers, so the first q0169 W part and the first q0172 are the real reader tests.

@@ -5,7 +5,7 @@
  "priority": 38,
  "expected_value": "CH69 held-out replication",
  "data": [
-  "history/h9_flow/holdout (verified seal)"
+  "history/h9_flow/holdout (opened only after the Stage-1 copy shows W1 advanced and the HOLDOUT listing sha256 equals the seal)"
  ],
  "resources": {
   "mem_mb": 1500,
@@ -19,14 +19,16 @@
   "scripts/run_cb8.py",
   "replicate",
   "--family",
-  "W"
+  "W",
+  "--data-dumps-cap-gb",
+  "14"
  ],
  "timeout_s": 5400,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/creative_batch8/results_W1_rep.json",
-  "trials.jsonl (cb8_replication)"
+  "data-dumps/research_lab/creative_batch8/results_W1_rep.json (write-once)",
+  "trials.jsonl (cb8_replication + placebo + cb8_descriptive + ml_explain creative_batch_8:W)"
  ],
  "next_action": "Stage P-W registration only if W1-rep passes the Holm step",
- "notes": "CREATIVE_BATCH_8.md CB8-W Stage 2. DRAFT. Commit only if W1 advanced; refuses without the committed Stage-1 file."
+ "notes": "CREATIVE_BATCH_8.md CB8-W and 'W and H analysis implementation notes (2026-10-17)'. DRAFT. Commit only if W1 advanced (stop rule): refuses (exit 2) unless the committed seals/cb8_w1_stage1.json equals results_W1.json and shows advance, the committed seal copy equals the run's seal and the recomputed HOLDOUT listing (files and drops.holdout_listing_sha256) matches, all before any HOLDOUT read (logged in h9_flow/ACCESS_LOG.jsonl). Judged at alpha 0.05 / k_used. Exit 75 on headroom (cap 14)."
 }

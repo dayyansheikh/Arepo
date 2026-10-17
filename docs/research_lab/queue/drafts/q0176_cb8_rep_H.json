@@ -19,14 +19,16 @@
   "scripts/run_cb8.py",
   "replicate",
   "--family",
-  "H"
+  "H",
+  "--data-dumps-cap-gb",
+  "14"
  ],
  "timeout_s": 3600,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/creative_batch8/results_H1_rep.json",
-  "trials.jsonl (cb8_replication)"
+  "data-dumps/research_lab/creative_batch8/results_H1_rep.json (write-once)",
+  "trials.jsonl (cb8_replication + placebo + cb8_descriptive + ml_explain creative_batch_8:H)"
  ],
  "next_action": "Stage P-H registration only if H1-rep passes the Holm step",
- "notes": "CREATIVE_BATCH_8.md CB8-H Stage 2. DRAFT. Commit only if H1 advanced; refuses before T8_H2_end + 30 h or without the committed Stage-1 file."
+ "notes": "CREATIVE_BATCH_8.md CB8-H Stage 2 and 'W and H analysis implementation notes (2026-10-17)'. DRAFT. Commit only if H1 advanced: refuses (exit 2) unless the committed seals/cb8_h1_stage1.json equals results_H1.json and shows advance, and unless window 2 (h2_pin.json) starts >= the first commit of model_specs/cb8_v1.json + 2 h; exit 75 before T8_H2_end + 30 h. A freeze-slip pin writes 'not run (freeze slip)', p = 1, counted. Judged at alpha 0.05 / k_used. Exit 75 on headroom (cap 14)."
 }
