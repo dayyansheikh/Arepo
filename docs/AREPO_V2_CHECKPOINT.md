@@ -165,33 +165,35 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 10:58 UTC+1
-0. **Autopilot session from 09:19Z 10-17.** Last deploy aeefc92 (~09:57Z).
-   - **Done this session:** disk headroom (package caches cleared, collector cap 14 GiB; 15ea7e2). Smoke FAILs diagnosed and
-     reviewed (`SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md`; ledger cb29339). CB3 census counts (9e08d2c). CB5 grouper seal
-     (f647065), IF-H2 member restored to host `~/arepo/scratch/cb5/`, q0104 promoted (a97fd40) -> attempt 1 MemoryError ->
-     runner reorder (aeefc92; last attempt pending). Memory fixes: q0084 streaming pmxt (23dcd70), q0082f lean walk
-     (23dcd70), q0082 stage-all lean (2332d81; q0082 mem 900 / disk 0.40 fine). CB7 smoke v2 code c09dea9, rules v2
-     `05bf365c…` (3675aad), freeze check GO_WITH_CONDITIONS applied, **q0140b promoted** (e98b960). CB8-B data code
-     2311e59, rules `36fd2783…` (16957a7), notes 362bdb2 (B analysis side NOT written). Round 4 hypotheses CH79-CH98
-     (d33d6178). CB6 h8_tail shortfall (362 markets, ~8 % of plan) -> top-up A-T1 ACCEPT_WITH_CHANGES (5335bdd).
-   - **Running agents (check `git log` if this session ended):** CB8-H v2 implementer (rules `cb8_holders_rules_v2.json`,
-     draft q0160b); CB6 A-T1 implementer (h8_tail_b, rules v3, union seal, draft q0120b); CB9 design author (Opus) ->
-     `CREATIVE_BATCH_9.md` from round 4; CB8-B data freeze check (incl. the B1 tail-gate algebra 7.9/11.3/14.2c vs the
-     design's 8.4/12.5/16c).
-1. **CB7:** read q0140b `smoke_v2.json`; PASS -> promote q0142/q0143 (drafts already cap 13, depend on q0140b + q0141);
-   FAIL is final (S1/G1 "not run (smoke FAIL)", counted). Never retry q0141 (v1 rules; would refuse).
-2. **CB6:** after the A-T1 implementer commits, short freeze check, promote q0120b (must finish before T_seal 10-22T00Z);
-   q0121 union seal after T_seal and both h7 SEAL/NOT_RUN records.
-3. **CB8-H v2:** after commit, freeze check, promote q0160b; q0162/q0163 target 10-21T04:00Z. **CB8-B:** apply the freeze
-   check; q0161/q0164 after T_seal; analysis side (q0169/q0170/q0174) still to write.
-4. **CB9:** challenger review of the draft, response, then code.
-5. **T_seal 2026-10-22T00Z:** h7: after q0081f/q0082f read both `frame_report.json`, commit
-   `seals/h7_cb4_group_s_amendment.json`, create gate q0081g. Create q0083b only on/after 2026-10-22T00:00Z. When q0081/q0082
-   are released, raise their `--data-dumps-cap-gb` 12.5 -> 13.
-6. CB4: promote q0085 no earlier than ~10-24T12Z. CB5: q0104 -> label audit sample -> cdf-audit-apply -> q0105 -> q0106 ->
-   write-spec freeze; q0103 refuses before 10-27. MC1: q0116 starts itself ~10-17T18:31Z; cache the panel before 10-23 03:30Z.
-   CB3: freeze after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035; B3 at 10-19 (q0029).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 11:40 UTC+1
+0. **Autopilot session from 09:19Z 10-17.** Last deploy 8e6f008 (~10:30Z). Counter total **1,131** (e5cfb3a fixed the
+   `design_change` KeyError that made `battery2.cumulative_count` fail closed).
+   - **Done:** disk headroom (15ea7e2); smoke FAIL diagnoses (`SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md`); **CB7 smoke v2
+     PASS** (q0140b, 15/20) -> q0142/q0143 promoted (4e55ee5); CB6 h8_tail shortfall -> top-up A-T1 (rules v3 `ad7f5baa…`),
+     **q0120b promoted** (ae3000b), q0121 seal conditions fixed (2ca0bc9); CB8-H v2 code (rules v2 `30e7f7f0…`), freeze
+     check GO_WITH_CONDITIONS (fixes running); CB8-B data code + must-fixes (rules v2 `33decb52…`, 946e94a); CB5 grouper
+     seal, IF-H2 restore, q0104 failed twice on memory -> **q0104b promoted** (output-identical reduction 67350d7);
+     memory fixes q0084/q0082f/q0082 (23dcd70, 2332d81); **q0084 pilot done** (H = 84, degenerate zero variance; open for
+     the CB4 freeze check, 58db5de); CB3 census counts; round 4 CH79-CH98 (d33d6178); CB9 draft (00dd145) -> challenger
+     ACCEPT_WITH_REQUIRED_CHANGES (all families).
+   - **Running agents (check `git log` if this session ended):** CB9 author response (Opus); CB8-H v2 must-fixes (q0160b
+     timeout 5,400 s + day-roll refusal; may write `cb8_holders_rules_v3.json`).
+1. **CB8-H:** after the fix commit, promote q0160b (confirm `q0160` is done on the host first; never re-run it). q0162/
+   q0163 after the v2 PASS, target 10-21T04:00Z.
+2. **CB9:** after the response commit, delegate code (implementer brief in the response), then code-against-design
+   freeze check. CB9 stays off the net lane before 10-22.
+3. **CB7/CB6 before T_seal 2026-10-22T00Z:** q0142, q0143, q0120b run on the net lane (watch data-dumps <= 12.75 GB for
+   q0120b's guard). Seals q0144/q0145/q0121 only after T_seal. Never retry q0141.
+4. **CB8-B:** q0161/q0164 after T_seal. Before promoting q0164, on the host run the two `derive-exclusion-ids` commands in
+   the q0164 draft notes (as late as possible, once), and replace both TODO-COORDINATOR sha256 tokens; also raise its
+   `--data-dumps-cap-gb` to 13. B analysis side (q0169/q0170/q0174) not written yet (separate rules file).
+5. **h7 (T_seal):** after q0081f/q0082f read both `frame_report.json`, commit `seals/h7_cb4_group_s_amendment.json`,
+   create gate q0081g; raise q0081/q0082 `--data-dumps-cap-gb` 12.5 -> 13 when released. Create q0083b only on/after
+   2026-10-22T00:00Z.
+6. CB4: freeze check must rule on the degenerate pilot (N1/N2 testability); q0085 no earlier than ~10-24T12Z. CB5: q0104b
+   -> label audit sample (Claude session + science-reviewer) -> cdf-audit-apply -> q0105 -> q0106 -> write-spec freeze;
+   q0103 refuses before 10-27. MC1: q0116 starts itself ~10-17T18:31Z; cache the panel before 10-23 03:30Z. CB3: freeze
+   after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035; B3 at 10-19 (q0029).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,

@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 10:58 UTC+1
+**Last updated:** 2026-10-17 11:40 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -31,9 +31,19 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Batch 6 got far fewer markets than planned** (362 instead of about 4,500), because the sampling rule plus the
   exclusion of earlier samples' series removed most candidates. Nothing about outcomes was seen. A reviewed top-up
   download (same rules, more sampling windows) is being built so the test has a fair chance; it must finish before 22 Oct.
-- **Batch 7's corrected download test is queued** (it passed its code check).
+- **Batch 7's corrected download test PASSED** (15 of 20 markets returned trades; 14 needed), so its two main
+  downloads are running on the server now, well before the 22 Oct deadline.
+- **Batch 6's top-up download is queued** (reviewed twice; same rules, more sampling windows).
+- **Batch 4's small pilot finished**, but it saw almost nothing to measure (about 1 eligible event per hour instead of
+  the 15 assumed, and the behaviour it looks for never appeared). That will probably make that part "not testable"; the
+  independent check will decide before any real data is read.
+- **Batch 9 (from the new ideas) is designed and challenged:** a check of whether the public trade feed labels buys and
+  sells correctly; market-making in daily stock markets settled by a public price feed; a "flow-aware" market maker;
+  and a check of how the displayed mid price is formed. The challenger asked for 7 fixes (e.g. pinning exactly when
+  each hourly stock price is known, so no future data can slip in); the author is applying them.
+- **A counting bug was caught and fixed:** a new type of log line had made the test counter stop working. Total tests
+  counted: **1,131** (the extra 25 since this morning are the routine flow screens run with every data pass).
 - **Multi-signal ML:** the real development run starts by itself once 40 unbroken 2-hourly captures exist (about 19:30 UTC+1 today).
-- **Tests counted so far: 1,106** (unchanged today; smoke tests and counts are not outcome tests).
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
