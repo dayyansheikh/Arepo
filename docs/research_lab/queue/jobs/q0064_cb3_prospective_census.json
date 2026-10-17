@@ -13,7 +13,7 @@
   "cpu": 1
  },
  "depends_on": [
-  "q0061_cb3_census",
+  "q0061b_cb3_census",
   "q0064a_cb3_prospective_gate"
  ],
  "argv": [
