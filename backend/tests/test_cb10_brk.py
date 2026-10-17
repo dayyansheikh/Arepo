@@ -395,3 +395,21 @@ def test_frame_filters_declared_exclusions():
     assert br.frame_reason({**ok, "exclusion_class": "weather"}) == "weather"
     assert br.frame_reason({**ok, "start_epoch": c10._epoch("2026-05-30T00:00:00Z")}) == "overlap_below_min"
     assert (br.N_SAMPLE, br.MAX_PER_EVENT, br.MIN_VOLUME, br.SEED_SAMPLE, br.SEED_SPLIT) == (1400, 3, 10000.0, "arepo-cb10-brk-sample", "arepo-cb10-brk-split")
+
+
+def test_mutual_exclusion_is_backward_looking_keeps_continuing_real_break():
+    # freeze-check fix 1: a real 0.75 break (down) that continues to a pseudo 0.72 crossing 30 minutes later keeps the real episode; only the LATER
+    # (pseudo) one is dropped. The old look-ahead rule dropped both, selecting against continuation of the real arm.
+    pts = [*_prior(level_side=0.76, n=8), (30 * H, 0.74, 3.0), (30.5 * H, 0.71, 3.0)]
+    eps, cnt = br.detect_episodes(_tx(*pts), SPAN)
+    arms = {(e["level"], e["arm"]) for e in eps}
+    assert (0.75, "real") in arms and (0.72, "pseudo") not in arms
+    real = next(e for e in eps if e["arm"] == "real" and e["level"] == 0.75)
+    t_pseudo = T_START + 30.5 * H
+    assert abs(real["t_b"] - t_pseudo) <= br.MUTEX_S  # the old rule's drop condition holds, yet the real episode stays
+    assert cnt["mutual_exclusion"] == 1
+    # a pseudo crossing BEFORE the real one drops the later real episode (symmetric, backward-looking)
+    pts2 = [*_prior(level_side=0.44, n=8), (30 * H, 0.48, 3.0), (30.5 * H, 0.51, 3.0)]
+    eps2, _ = br.detect_episodes(_tx(*pts2), SPAN)
+    arms2 = {(e["level"], e["arm"]) for e in eps2}
+    assert (0.47, "pseudo") in arms2 and (0.5, "real") not in arms2

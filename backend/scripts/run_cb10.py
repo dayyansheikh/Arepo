@@ -2,7 +2,7 @@
 """CB10 runner (docs/research_lab/CREATIVE_BATCH_10.md section 4, q0200-q0212). Run from cwd=backend (queue worker). EXPLORATORY / METHODS DATA
 ONLY: no edge, calibration or profitability claim.
 
-    python scripts/run_cb10.py rules                          # write docs/research_lab/seals/cb10_rules.json (commit before q0200)
+    python scripts/run_cb10.py rules                          # write docs/research_lab/seals/cb10_rules_v2.json (commit before q0200)
     python scripts/run_cb10.py smoke ...                      # q0200: Deribit paging + iv range, ladder frame / flags / regex, live flags, Data API paging,
                                                               #        tx aggregation fixture, Gamma whitelist; counts only, WRITE-ONCE (may run before T_seal)
     python scripts/run_cb10.py exclusion-keys ...             # q0201: CB9 q0182 keys + CB9 P and K/D frame ids + seal copies since q0182
@@ -24,6 +24,7 @@ upstream job not finished: "pending", no trials line.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -170,10 +171,14 @@ def cmd_smoke(a):
             der = {"pass": False, "error": str(exc)[:100]}
         try:
             lad = dl.smoke_ladders(lim)
+        except dl.TransientApiError as exc:
+            raise cm.NotNow(f"smoke: ladder request gave up ({str(exc)[:80]}); nothing written") from None
         except cm.ApiError as exc:
             lad = {"pass": False, "whitelist_pass": False, "data_api_cids": [], "error": str(exc)[:100]}
         try:
             live = dl.smoke_live_flags(lim, time.time())
+        except dl.TransientApiError as exc:
+            raise cm.NotNow(f"smoke: live-flags request gave up ({str(exc)[:80]}); nothing written") from None
         except cm.ApiError as exc:
             live = {"pass": False, "error": str(exc)[:100]}
         try:
@@ -328,7 +333,9 @@ def census_b_block(hroot: Path) -> dict:
     if not (pdir / br.SEAL_NAME).exists():
         raise c10.NotNow("B census waits for the seal (q0206)")
     eps, markets = br.load_episodes(pdir, fdir, br.SCREEN, job="census", census=True)
-    doc = br.census_b(eps, markets, br.holdout_counts(pdir))
+    topic = {r["market_id"]: r.get("topic") for r in br.read_sample(fdir)}
+    sports = {sp: sum(1 for m in markets if m["split"] == sp and topic.get(m["market_id"]) == "sports") for sp in (br.SCREEN, br.HOLDOUT)}
+    doc = br.census_b(eps, markets, br.holdout_counts(pdir), sports={"markets_by_split": sports})
     seal = json.loads((pdir / br.SEAL_NAME).read_text())
     if (seal.get("drops") or {}).get("disjointness") == c10.UNVERIFIED:
         doc["label_B1"] = doc["label_B2"] = "not testable (disjointness unverified)"
@@ -464,10 +471,12 @@ def _stage2_window(a, root: Path, res: dict) -> tuple[str, list[str]]:
     if t_freeze is None:
         raise c10.Refused("CB10 freeze commit time unknown")
     t_res = float(res.get("written_epoch") or 0)
-    if a.d1_result_commit_epoch is not None:
-        if a.d1_result_commit_epoch < t_res:
-            raise c10.Refused("--d1-result-commit-epoch precedes the D1 results file")
-        t_res = a.d1_result_commit_epoch
+    # No fallback to the results file's written_epoch: the D1 result's COMMIT epoch is required (freeze-check fix 5).
+    if a.d1_result_commit_epoch is None:
+        raise c10.Refused("--d1-result-commit-epoch is required (the commit time of the D1 results; no written_epoch fallback)")
+    if a.d1_result_commit_epoch < t_res:
+        raise c10.Refused("--d1-result-commit-epoch precedes the D1 results file")
+    t_res = a.d1_result_commit_epoch
     start = dl.t10_d2_start(max(t_freeze, t_res))
     return start, dl.stage2_dates(start)
 
@@ -591,6 +600,11 @@ def cmd_rep(a):
         adv = [t for t in ("B1", "B2") if (resb.get(t) or {}).get("advance") is True]
         if not adv:
             raise c10.Refused("neither B1 nor B2 advanced: there is no B Stage 2")
+        # The advance result must be the committed one: a pinned sha256 of results_B.json is required before the HOLDOUT is opened.
+        if not a.b_results_sha256:
+            raise c10.Refused("--b-results-sha256 is required for the B replication (pin the committed Stage-1 results_B.json before the HOLDOUT is opened)")
+        if hashlib.sha256((root / "results_B.json").read_bytes()).hexdigest() != a.b_results_sha256.lower():
+            raise c10.Refused("results_B.json sha256 differs from --b-results-sha256: the HOLDOUT stays closed")
         hroot = _hist(a, c10.H10_BRK)
         br.verify_holdout_seal(hroot / br.PRINTS_RUN, Path(a.seals_dir) if a.seals_dir else None)
         census = json.loads((root / "census.json").read_text())
@@ -692,7 +706,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--origin", default="auto")
     q.add_argument("--exclusion-keys", default=None)
     q.add_argument("--freeze-spec", default=None)
-    q.add_argument("--d1-result-commit-epoch", type=float, default=None)
+    q.add_argument("--d1-result-commit-epoch", type=float, required=True)
     q.set_defaults(fn=cmd_dlad_live)
 
     q = sub.add_parser("rep", help="q0211 (D) / q0212 (B)")
@@ -702,6 +716,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--freeze-spec", default=None)
     q.add_argument("--seals-dir", default=None)
     q.add_argument("--stage2-k", type=int, default=None)
+    q.add_argument("--b-results-sha256", default=None, help="B family: pinned sha256 of the committed Stage-1 results_B.json (required)")
     q.add_argument("--d1-result-commit-epoch", type=float, default=None)
     q.set_defaults(fn=cmd_rep)
     return ap

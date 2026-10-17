@@ -544,3 +544,24 @@ def test_rv_sigma_causal_bars_only():
     partial = bars + [(int(T0 * 1000 - 1_800_000), 100.0, 1e6)]
     assert dl.rv_sigma(partial, t) == s
     assert math.isnan(dl.rv_sigma(bars[:100], t))  # fewer than 150 returns
+
+
+def test_d1_untestable_independent_price_placebo_cannot_advance():
+    # freeze-check fix 3: an untestable p_alt subsample is "unknown", never "met" (design 2.3): the placebo does not hold and D1 does not advance
+    units, ys = _synth_units(n_dates=240, alt="noise")
+    for u in units[5:]:
+        u["p_alt"] = math.nan
+    res = dl.d1_stat(units, _y_of(ys), n_draws=4)
+    ind = res["independent_price_placebo"]
+    assert res["p"] < 0.01 and ind["testable"] is False and ind["holds"] is False and res["advance"] is False
+
+
+def test_d2_cost_robustness_applies_to_same_trade_without_reselection():
+    rate = dl.fee_rate(0.03)
+    books = {"yes": {"best_ask": 0.40, "ask_size": 10.0, "crossed": False}, "no": {"best_ask": 0.65, "ask_size": 10.0, "crossed": False}}
+    q = 0.40 + 0.04 + dl.taker_fee(0.40, rate) + 0.001  # a marginal trade: edge 4.1c, below 4c once 0.5c is added
+    tr = dl.d2_trade(q, books, rate)
+    assert tr is not None and tr["token"] == "yes"
+    assert dl.d2_trade(q, books, rate, cost_add=dl.COST_ROBUST) is None  # the old robustness re-selection would drop this trade
+    same = dl.d2_trade_same(books, rate, tr["token"], cost_add=dl.COST_ROBUST)
+    assert same["token"] == "yes" and same["a"] == pytest.approx(0.405) and same["fee"] == pytest.approx(dl.taker_fee(0.405, rate))

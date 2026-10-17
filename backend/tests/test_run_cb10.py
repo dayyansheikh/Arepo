@@ -42,7 +42,7 @@ def test_parser_has_every_subcommand_and_parses_each():
     assert set(JOBS) <= set(sub.choices)
     p = run_cb10.build_parser()
     argvs = {"rules": [], "smoke": [], "exclusion-keys": ["--cb9-keys-sha256", "0" * 64], "dlad-frame": [], "deribit-trades": [], "brk-frame": [], "brk-prints": [], "brk-seal": [],
-             "census": [], "screen": ["--family", "D"], "stage1-label": [], "dlad-live": ["--origin", "auto"], "rep": ["--family", "B"]}
+             "census": [], "screen": ["--family", "D"], "stage1-label": [], "dlad-live": ["--origin", "auto", "--d1-result-commit-epoch", "1800000000"], "rep": ["--family", "B"]}
     for j in JOBS:
         a = p.parse_args([j, *argvs[j]])
         assert callable(a.fn)
@@ -152,10 +152,10 @@ def test_net_jobs_refuse_before_t_seal_and_smoke_is_allowed(monkeypatch, capsys,
 
 def test_declared_arguments_refused(capsys, tmp_path):
     for argv, key in ((["dlad-frame", "--disk-cap-gb", "0.5"], "disk_cap_gb"), (["brk-prints", "--rps", "3"], "rps"), (["smoke", "--rps", "2"], "rps"),
-                      (["deribit-trades", "--disk-cap-gb", "0.01"], "disk_cap_gb"), (["dlad-live", "--origin", "auto", "--rps", "2"], "rps")):
+                      (["deribit-trades", "--disk-cap-gb", "0.01"], "disk_cap_gb"), (["dlad-live", "--origin", "auto", "--d1-result-commit-epoch", "1800000000", "--rps", "2"], "rps")):
         code, out = _run([*argv, "--root", str(tmp_path / "cb10")], capsys)
         assert code == 2 and key in out["refused"], argv
-    code, out = _run(["dlad-live", "--origin", "09:00", "--root", str(tmp_path / "cb10")], capsys)
+    code, out = _run(["dlad-live", "--origin", "09:00", "--d1-result-commit-epoch", "1800000000", "--root", str(tmp_path / "cb10")], capsys)
     assert code == 2 and "auto" in out["refused"]
 
 
@@ -243,7 +243,7 @@ def test_analysis_jobs_refuse_before_freeze_and_triggers_refuse(capsys, tmp_path
     spec.write_text("{}")
     rules = c10.write_rules(tmp_path / "r.json")
     base = ["--freeze-spec", str(spec), "--allow-uncommitted-rules", "--rules", str(rules), "--root", str(tmp_path)]
-    code, out = _run(["dlad-live", "--origin", "auto", *base], capsys)
+    code, out = _run(["dlad-live", "--origin", "auto", "--d1-result-commit-epoch", "1800000000", *base], capsys)
     assert code == 2 and "did not advance" in out["refused"]
     code, out = _run(["rep", "--family", "D", *base], capsys)
     assert code == 75 and "pending" in out["science"]  # Stage-2 k needs both Stage-1 results final
@@ -263,7 +263,7 @@ def test_stage2_k_is_derived_and_fixed(tmp_path):
         c10.stage2_k(tmp_path)  # both Stage-1 files are needed
     (tmp_path / "results_B.json").write_text(json.dumps({"B1": {"advance": True}, "B2": {"advance": False}}))
     k = c10.stage2_k(tmp_path)
-    assert k["k"] == 2 and k["advanced"] == ["D1", "B1"] and k["alpha_each"] == pytest.approx(0.025)
+    assert k["k"] == 3 and k["advanced"] == ["D1", "B1"] and k["alpha_each"] == pytest.approx(0.05 / 3)
 
 
 def test_dlad_live_exits_zero_after_t10_d2_end(monkeypatch, capsys, tmp_path):
@@ -275,7 +275,7 @@ def test_dlad_live_exits_zero_after_t10_d2_end(monkeypatch, capsys, tmp_path):
     rules = c10.write_rules(tmp_path / "r.json")
     monkeypatch.setattr(run_cb10, "_commit_epoch", lambda p: 1_800_000_000.0)
     monkeypatch.setattr(run_cb10.time, "time", lambda: 1_800_000_000.0 + 200 * 86400)
-    code, out = _run(["dlad-live", "--origin", "auto", "--root", str(root), "--freeze-spec", str(spec), "--allow-uncommitted-rules", "--rules", str(rules), "--standalone"], capsys)
+    code, out = _run(["dlad-live", "--origin", "auto", "--d1-result-commit-epoch", "1800000000", "--root", str(root), "--freeze-spec", str(spec), "--allow-uncommitted-rules", "--rules", str(rules), "--standalone"], capsys)
     assert code == 0 and out["status"] == "stage2_over" and out["requests"] == 0
 
 
@@ -478,3 +478,76 @@ def test_dlad_frame_end_to_end_writes_no_forbidden_field_and_guards_outcomes(tmp
     assert all(u == hb.GAMMA_MARKETS or u == hb.DATA_TRADES for u, _ in calls)
     again = dl.dlad_frame(root, tr, rules_sha="r" * 64, smoke_path=smoke, exclusion_keys_path=keys, now=PAST_SEAL, window=(d, c10.day_add(d, 1)), data_dumps=None)
     assert again["complete"] is True  # idempotent re-run
+
+
+def test_stage2_k_d1_advance_counts_two_tests(tmp_path):
+    (tmp_path / "results_D.json").write_text(json.dumps({"D1": {"advance": True}}))
+    (tmp_path / "results_B.json").write_text(json.dumps({"B1": {"advance": False}, "B2": {"advance": False}}))
+    k = c10.stage2_k(tmp_path)
+    assert k["k"] == 2 and k["alpha_each"] == pytest.approx(0.025)  # D1-rep and D2
+    (tmp_path / "results_D.json").write_text(json.dumps({"D1": {"advance": False}}))
+    (tmp_path / "results_B.json").write_text(json.dumps({"B1": {"advance": True}, "B2": {"advance": True}}))
+    assert c10.stage2_k(tmp_path)["k"] == 2
+
+
+def test_d1_result_commit_epoch_is_required_no_written_epoch_fallback(capsys, tmp_path):
+    with pytest.raises(SystemExit):
+        run_cb10.build_parser().parse_args(["dlad-live", "--origin", "auto"])
+    import argparse
+
+    a = argparse.Namespace(freeze_spec=None, d1_result_commit_epoch=None)
+    run_cb10._commit_epoch = lambda p: 1_800_000_000.0
+    with pytest.raises(c10.Refused, match="required"):
+        run_cb10._stage2_window(a, tmp_path, {"written_epoch": 1_800_000_000.0})
+
+
+def test_rep_b_requires_pinned_results_sha(capsys, monkeypatch, tmp_path):
+    root = tmp_path / "cb10"
+    root.mkdir()
+    (root / "results_D.json").write_text(json.dumps({"D1": {"advance": False}}))
+    (root / "results_B.json").write_text(json.dumps({"B1": {"advance": True}, "B2": {"advance": False}}))
+    spec = tmp_path / "cb10_v1.json"
+    spec.write_text("{}")
+    rules = c10.write_rules(tmp_path / "r.json")
+    base = ["rep", "--family", "B", "--root", str(root), "--freeze-spec", str(spec), "--allow-uncommitted-rules", "--rules", str(rules)]
+    code, out = _run(base, capsys)
+    assert code == 2 and "--b-results-sha256" in out["refused"]
+    code, out = _run([*base, "--b-results-sha256", "0" * 64], capsys)
+    assert code == 2 and "differs" in out["refused"]
+
+
+def test_smoke_network_give_up_is_exit_75_and_writes_nothing(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr(dl, "smoke_deribit", lambda lim: {"pass": True})
+    monkeypatch.setattr(dl, "smoke_ladders", lambda lim: (_ for _ in ()).throw(dl.TransientApiError("Gamma ladder frame x: failed")))
+    out_path = tmp_path / "smoke.json"
+    rules = c10.write_rules(tmp_path / "r.json")
+    code, out = _run(["smoke", "--out", str(out_path), "--rules", str(rules), "--allow-uncommitted-rules", "--standalone"], capsys)
+    assert code == 75 and "tempfail" in out and not out_path.exists()
+
+
+def test_dlad_frame_per_date_failure_cap_marks_unavailable(monkeypatch, tmp_path):
+    smoke = tmp_path / "smoke.json"
+    smoke.write_text(json.dumps({"smoke_version": dl.SMOKE_VERSION, "criteria": {k: True for k in ("ladder_frame", "live_flags", "data_api_paging", "tx_aggregation", "whitelist")}}))
+    keys_dir = tmp_path / "keys"
+    keys = keys_dir / "exclusion_keys.csv.gz"
+    _write(keys, ["market_id", "found", "event_ids", "neg_risk_market_id", "series_ids"], [["1", "1", "9", "", ""]])
+    from astrolabe.research_lab import h5_seal
+
+    (keys_dir / c10.EXCLUSION_REPORT_NAME).write_text(json.dumps({"keys_sha256": h5_seal.sha256_file(keys), "disjointness": "verified"}))
+    calls = []
+
+    def boom(lim, d):
+        calls.append(d)
+        raise cm.ApiError("down")
+
+    monkeypatch.setattr(dl, "frame_day", boom)
+    monkeypatch.setattr(dl, "series_date_lookup", lambda lim, cand: ({}, 0))
+    monkeypatch.setattr(dl, "window_dates", lambda window=dl.D_WINDOW: ["2026-03-10"])
+    dd = tmp_path / "dd"
+    dd.mkdir()
+    kw = {"rules_sha": "x", "smoke_path": smoke, "exclusion_keys_path": keys, "now": PAST_SEAL, "data_dumps": dd, "free_fn": lambda p: int(50e9), "sleep": lambda s: None}
+    for i in range(2):
+        m = dl.dlad_frame(tmp_path / "h", None, **kw)
+        assert m["status"] == "in_progress", (i, m)
+    m = dl.dlad_frame(tmp_path / "h", None, **kw)
+    assert m["status"] != "in_progress" and len(calls) == 3

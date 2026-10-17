@@ -6,7 +6,7 @@ Frame (whitelisted Gamma fields; no outcome field at all; ``vol_ok`` and the cat
 seeded 1,400-market sample (sports a reported stratum <= 15%), event split SCREEN / HOLDOUT before any print read; newest-first Data API prints
 aggregated to transactions at fetch (YES-terms VWAP, size, time; no side, wallet or hash stored), kept only inside ``[2026-04-01, 2026-10-01)``, with
 the covered span; HOLDOUT written to ``holdout/`` and sealed. Episodes: first print-confirmed crossings in 24 h of the real levels and their
-``L +- 0.03`` pseudo-levels (side-free: transaction price, size and time only), 2-h same-arm spacing, 60-minute real/pseudo mutual exclusion,
+``L +- 0.03`` pseudo-levels (side-free: transaction price, size and time only), 2-h same-arm spacing, 60-minute real/pseudo mutual exclusion (later episode dropped),
 ``VWAP10``, the 2-h mark, ``R_e``; B1 per-pair contrast with census-frozen weights; B2 paper maker (not-posted rule, size-capped trade-through fills,
 exit cost). Marks and fill P&L are attached only by the screen / rep jobs; the census receives counts. EXPLORATORY; no edge or profitability claim.
 """
@@ -575,7 +575,7 @@ def detect_episodes(tx: dict[str, np.ndarray], span: tuple[float, float]) -> tup
     <= L and ``p_j > L`` (equality at the level is not a crossing). Eligible iff no earlier crossing of ``L`` (either direction) at a time in
     ``[t_j - 24 h, t_j]`` (earlier transactions at the same second count as earlier), >= 3 transactions in ``[t_j - 24 h, t_j)``, ``[t_j - 24 h, t_j
     + 2 h]`` inside the covered span, and no earlier eligible episode of the same arm (real / pseudo, any level) in the market at ``t_j - 2 h`` or
-    later. Then the 60-minute mutual exclusion drops both members of every real/pseudo pair within 60 minutes. Returns episodes WITHOUT any value
+    later. Then the 60-minute mutual exclusion drops the LATER member of every real/pseudo pair within 60 minutes (backward-looking, section 12.1). Returns episodes WITHOUT any value
     after the break (marks and fills are attached by ``attach_*``)."""
     ts, pr = tx["ts"], tx["price"]
     n = len(ts)
@@ -622,9 +622,16 @@ def detect_episodes(tx: dict[str, np.ndarray], span: tuple[float, float]) -> tup
     drop = set()
     for i, r in enumerate(real):
         for k, q in enumerate(pseu):
+            # Backward-looking only (freeze-check fix 1, design section 12.1): drop the LATER episode of a
+            # conflicting pair; the earlier one stays, so a real break that continues is never removed by a later pseudo crossing.
             if abs(r["t_b"] - q["t_b"]) <= MUTEX_S:
-                drop.add(("r", i))
-                drop.add(("q", k))
+                if r["t_b"] < q["t_b"]:
+                    drop.add(("q", k))
+                elif q["t_b"] < r["t_b"]:
+                    drop.add(("r", i))
+                else:
+                    drop.add(("r", i))
+                    drop.add(("q", k))
     out = [e for i, e in enumerate(real) if ("r", i) not in drop] + [e for k, e in enumerate(pseu) if ("q", k) not in drop]
     cnt["mutual_exclusion"] = len(drop)
     out.sort(key=lambda e: (e["t_b"], e["level"]))
@@ -732,7 +739,7 @@ def attach_marks(tx: dict[str, np.ndarray], e: dict, fee_rate_b: float) -> dict:
 # =====================================================================================================================================
 
 
-def census_b(eps: list[dict], markets: list[dict], holdout: dict) -> dict:
+def census_b(eps: list[dict], markets: list[dict], holdout: dict, sports: dict | None = None) -> dict:
     """Counts only (no mark, reversal or fill P&L): SCREEN episodes by arm and pair, follow-through, mark availability, B2 posted / filled / filled
     shares, the frozen B1 weights ``w_L = n_L / sum n`` (n_L = eligible real episodes with follow-through; a pair with < 30 real or < 30 pseudo
     episodes gets w_L = 0, counted; no renormalisation), gates GB, GB2 and the coverage audit (>= 90%)."""
@@ -778,6 +785,7 @@ def census_b(eps: list[dict], markets: list[dict], holdout: dict) -> dict:
             "weights_frozen": {str(k): v for k, v in w.items()}, "pairs_zeroed": zeroed, "gate_GB": gb, "gate_GB_pass": gb_ok,
             "b2": {"eligible": len(real_follow), "not_posted": len(real_follow) - posted, "posted": posted, "filled_episodes": len(filled),
                    "filled_shares": float(sum(e["filled_shares"] for e in filled))}, "gate_GB2_pass": gb2_ok, "coverage_audit": audit, "holdout": holdout,
+            "sports_stratum": {"in_primary": SPORTS_IN_PRIMARY, "note": "descriptive counts only, excluded from every primary test", **(sports or {})},
             "label_B1": lab(gb_ok), "label_B2": lab(gb_ok and gb2_ok)}
 
 

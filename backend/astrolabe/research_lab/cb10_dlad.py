@@ -199,6 +199,11 @@ def parse_ladder_market(m: dict, d: str) -> tuple[dict | None, str, dict | None]
     return {c: row.get(c, "") for c in FRAME_COLUMNS}, "ok", {**c10.guarded_outcome_prices(m), "d": d}
 
 
+class TransientApiError(cm.ApiError):
+    """A request that gave up (network / non-200), as opposed to a definitive source outcome (e.g. capped). The smoke maps it to NotNow (exit 75, nothing
+    written) so a flaky network never writes a permanent write-once FAIL (freeze-check fix 8)."""
+
+
 def frame_day(lim: hb.Limiter, d: str) -> tuple[list[dict], list[dict], dict, list[dict]]:
     """Gamma closed markets with endDate in the day's 12:00 ET window (paged; a capped window is split; a failed request raises). Returns (frame rows,
     guarded outcome rows, reason counts, whitelisted raw rows for the smoke)."""
@@ -207,7 +212,7 @@ def frame_day(lim: hb.Limiter, d: str) -> tuple[list[dict], list[dict], dict, li
     a, b = gamma_end_window(d)
     rows, capped, failed = c4._paged_strict(lim, {"closed": "true", "end_date_min": a, "end_date_max": b, "order": "id", "ascending": "true"}, hb.GAMMA_OFFSET_CAP)
     if failed or capped:
-        raise cm.ApiError(f"Gamma ladder frame {d}: {'failed' if failed else 'capped'}")
+        raise (TransientApiError if failed else cm.ApiError)(f"Gamma ladder frame {d}: {'failed' if failed else 'capped'}")
     out, outc, why, wl = [], [], {}, []
     for m in rows:
         if not isinstance(m, dict):
@@ -762,7 +767,11 @@ def dlad_frame(root: Path, transport, *, rules_sha: str, smoke_path: Path, exclu
             try:
                 rows, outc, reasons, _ = frame_day(fr.lim, d)
             except (cm.ApiError, RuntimeError) as exc:
-                return _in_progress(fr, f"frame_day_failed {d}: {exc}"[:200])
+                fails = fr.extra_state.setdefault("fails", {})
+                fails[d] = fails.get(d, 0) + 1
+                if fails[d] < cm.MAX_ITEM_ATTEMPTS:
+                    return _in_progress(fr, f"frame_day_failed {d}: {exc}"[:200])
+                rows, outc, reasons = [], [], {"unavailable_source": 1}  # capped failure: the date is unavailable (source), never retried (fix 6)
             from . import cb7_common as c7  # noqa: PLC0415
 
             c7.append_member(fr, pf, {"d": d, "rows": rows, "outcomes": outc, "reasons": reasons})
@@ -775,7 +784,11 @@ def dlad_frame(root: Path, transport, *, rules_sha: str, smoke_path: Path, exclu
             try:
                 found, n_missing = series_date_lookup(fr.lim, cand)
             except (cm.ApiError, RuntimeError) as exc:
-                return _in_progress(fr, f"series_date_lookup_failed: {exc}"[:200])
+                fails = fr.extra_state.setdefault("fails", {})
+                fails["series_date_lookup"] = fails.get("series_date_lookup", 0) + 1
+                if fails["series_date_lookup"] < cm.MAX_ITEM_ATTEMPTS:
+                    return _in_progress(fr, f"series_date_lookup_failed: {exc}"[:200])
+                found, n_missing = {}, len(cand)  # capped failure: every lookup unavailable (source) -> disjointness unverified (stall label)
             sd: dict[str, list[str]] = {}
             for v in found.values():
                 for s in str(v["series_ids"]).split(";"):
@@ -799,14 +812,19 @@ def dlad_frame(root: Path, transport, *, rules_sha: str, smoke_path: Path, exclu
             try:
                 prints, info = fetch_market_prints(fr.lim, r["condition_id"])
             except (cm.ApiError, RuntimeError) as exc:
-                return _in_progress(fr, f"prints_failed {r['market_id']}: {exc}"[:200])
-            tx = aggregate_transactions(prints, int(r["yes_idx"]))
-            del prints
+                fails = fr.extra_state.setdefault("fails", {})
+                fails[r["market_id"]] = fails.get(r["market_id"], 0) + 1
+                if fails[r["market_id"]] < cm.MAX_ITEM_ATTEMPTS:
+                    return _in_progress(fr, f"prints_failed {r['market_id']}: {exc}"[:200])
+                prints, info = None, {"oldest_ts": math.nan, "truncated": True, "pages": 0, "n_nohash": 0, "n_prints": 0, "unavailable_source": True}
             orows = []
-            for lag, t in origins_of(r["d"]):
-                o = origin_row(tx, t, oldest_ts=info["oldest_ts"], truncated=info["truncated"])
-                o.update(market_id=r["market_id"], asset=r["asset"], d=r["d"], lag=lag, t=t, strike=r["strike"])
-                orows.append([o[c] for c in ORIGIN_COLUMNS])
+            if prints is not None:  # capped failure: no origin rows, the market is unavailable (source) (fix 6)
+                tx = aggregate_transactions(prints, int(r["yes_idx"]))
+                del prints
+                for lag, t in origins_of(r["d"]):
+                    o = origin_row(tx, t, oldest_ts=info["oldest_ts"], truncated=info["truncated"])
+                    o.update(market_id=r["market_id"], asset=r["asset"], d=r["d"], lag=lag, t=t, strike=r["strike"])
+                    orows.append([o[c] for c in ORIGIN_COLUMNS])
             from . import cb7_common as c7  # noqa: PLC0415
 
             c7.append_member(fr, op, {"market_id": r["market_id"], "rows": orows, "info": {k: info[k] for k in ("pages", "truncated", "n_nohash", "n_prints")}})
@@ -1143,6 +1161,18 @@ def census_d(units: list[dict], frame_info: dict) -> dict:
     audit_den = n_el + len(undet)
     audit_share = (n_el - src_missing) / audit_den if audit_den else 0.0
     audit_pass = bool(audit_den) and audit_share >= AUDIT_PASS
+    # Truncation label depends on post-t trading (capped at 10% by the 90% coverage audit): reported by moneyness tercile of the strike (freeze-check disclosure).
+    mk_all = np.array([u.get("m_K", math.nan) for u in elig])
+    trunc_by_money: dict[str, dict[str, int]] = {}
+    if np.isfinite(mk_all).sum() >= 9:
+        cuts = np.nanquantile(mk_all, [1 / 3, 2 / 3])
+        for u in elig:
+            m_k = u.get("m_K", math.nan)
+            key = f"tercile={int(np.digitize(m_k, cuts))}" if math.isfinite(m_k) else "m_K_unknown"
+            trunc_by_money.setdefault(key, {}).setdefault("n", 0)
+            trunc_by_money[key]["n"] += 1
+            if u["label"] == LABEL_TRUNC:
+                trunc_by_money[key]["truncated"] = trunc_by_money[key].get("truncated", 0) + 1
     rule60 = {"share": avail_share, "pass": avail_share >= AVAILABLE_MIN,
               "label": None if avail_share >= AVAILABLE_MIN else ("not testable (source unavailable)" if src_missing >= inactive else "not testable (inactivity)")}
     near = [u for u in av if math.isfinite(u.get("expiry_dist_s", math.nan)) and u["expiry_dist_s"] <= EXPIRY_MAX_S]
@@ -1166,7 +1196,7 @@ def census_d(units: list[dict], frame_info: dict) -> dict:
     elif not gdp["pass"]:
         label_d1 = f"not run (power): MDE {gdp['mde']:.3f} > {GDP['max_mde']}"
     return {"frame": frame_info, "n_units": len(units), "status_counts": {s: sum(1 for u in units if u["status"] == s) for s in (ST_ELIGIBLE, ST_BAND, ST_NEVER, ST_UNDET)},
-            "labels": lab, "labels_by": by, "availability_rule_60": rule60,
+            "labels": lab, "labels_by": by, "truncation_by_moneyness": trunc_by_money, "availability_rule_60": rule60,
             "coverage_audit": {"eligible": n_el, "undeterminable_truncation": len(undet), "source_missing": src_missing, "share": audit_share, "pass": audit_pass,
                                "threshold": AUDIT_PASS},
             "gate_GD": gd, "gate_GD_pass": gd_ok, "gate_GDP": gdp,
@@ -1256,9 +1286,11 @@ def d1_stat(units: list[dict], y_of: Callable[[dict], float | None], *, cor_iden
         b_sub = c10.ols_slope(y[ia], x[ia])
         diff = min(b - ta["beta"], b_sub - ta["beta"]) if math.isfinite(ta["beta"]) else -math.inf
         indep = {"n": len(ia), "n_dropped": len(us) - len(ia), "beta_alt": ta["beta"], "p_alt": ta["p"], "beta_q_subset": b_sub, "min_diff": diff,
-                 "holds": bool(ta["p"] >= c10.GATE_P and diff >= D1_FLOOR)}
+                 "testable": bool(ta["testable"]),
+                 # unknown never counts as met (design 2.3, freeze-check fix 3): an untestable p_alt subsample cannot pass the placebo
+                 "holds": bool(ta["testable"] and ta["p"] >= c10.GATE_P and diff >= D1_FLOOR)}
     else:
-        indep = {"n": len(ia), "holds": False, "note": "too few units with p_alt"}
+        indep = {"n": len(ia), "testable": False, "holds": False, "note": "too few units with p_alt"}
     # spot staleness q'
     js = [i for i, u in enumerate(us) if math.isfinite(u.get("q_prime", math.nan))]
     bs = c10.ols_slope(y[js], np.array([us[i]["q_prime"] - us[i]["p_reg"] for i in js])) if len(js) >= 3 else math.nan
@@ -1575,6 +1607,15 @@ def d2_trade(q: float, books: dict[str, dict], rate: float, *, cost_add: float =
     return best
 
 
+def d2_trade_same(books: dict[str, dict], rate: float, token: str, *, cost_add: float) -> dict | None:
+    """The +0.5c robustness applies to the SAME trade (same token, same recorded ask) with no re-selection and no edge filter (freeze-check fix 4)."""
+    a = (books.get(token) or {}).get("best_ask")
+    if a is None:
+        return None
+    a = float(a) + cost_add
+    return {"token": token, "a": a, "fee": taker_fee(a, rate)}
+
+
 def d2_stat(units: list[dict], y_of: Callable[[dict], float | None]) -> dict:
     """D2 (Stage 2): mean ``Y_tok - a - f(a)`` (cents per share) over traded market-origins; date and asset-date ways, week leave-one-out sign rule;
     floor +1.0c; binding +0.5c on ``a`` keeps net > 0."""
@@ -1673,7 +1714,7 @@ def live_units(ldir: Path, origin_days: list[str]) -> tuple[list[dict], dict[str
                 rate = fee_rate(_f(m.get("fee_rate")))
                 bk = books.get(o["market_id"], {})
                 u["d2"] = d2_trade(q, bk, rate)
-                u["d2_cost"] = d2_trade(q, bk, rate, cost_add=COST_ROBUST) if u["d2"] else None
+                u["d2_cost"] = d2_trade_same(bk, rate, u["d2"]["token"], cost_add=COST_ROBUST) if u["d2"] else None
             units.append(u)
     return units, statuses
 
@@ -1698,6 +1739,8 @@ def rep_d_doc(units: list[dict], statuses: dict[str, str], origin_days: list[str
         r = slope_test(y, x, us)
         thr = c10.STAGE2_ALPHA / k if k else 0.0
         out["D1_rep"] = {**r, "advance": bool(r["testable"] and r["p"] <= thr and r["beta"] > 0), "verdict": "replicated" if (r["testable"] and r["p"] <= thr and r["beta"] > 0) else "not replicated"}
+        if not r.get("week_rule_holds", True):
+            out["D1_rep"]["verdict"] = "not replicated (leave-one-week-out sign rule failed)"
     else:
         out["D1_rep"] = {"testable": False, "p": 1.0, "advance": False, "verdict": "not testable"}
     d2 = d2_stat(units, y_of)
@@ -1786,7 +1829,7 @@ def smoke_live_flags(lim: hb.Limiter, now: float) -> dict:
         a, b = gamma_end_window(d)
         rows, capped, failed = c4._paged_strict(lim, {"closed": "false", "end_date_min": a, "end_date_max": b, "order": "id", "ascending": "true"}, hb.GAMMA_OFFSET_CAP)
         if failed or capped:
-            raise cm.ApiError(f"live flags {d}: {'failed' if failed else 'capped'}")
+            raise (TransientApiError if failed else cm.ApiError)(f"live flags {d}: {'failed' if failed else 'capped'}")
         why: dict[str, int] = {}
         ok_by = dict.fromkeys(ASSETS, 0)
         for m in rows:

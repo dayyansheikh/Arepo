@@ -36,9 +36,9 @@ Refused = cm.Refused
 NotNow = cm.NotNow
 ApiError = cm.ApiError
 
-RULES_VERSION = "cb10-rules-v1"
+RULES_VERSION = "cb10-rules-v2"
 SEALS_DIR = cm.SEALS_DIR
-RULES_FILE = SEALS_DIR / "cb10_rules.json"
+RULES_FILE = SEALS_DIR / "cb10_rules_v2.json"  # v1 (cb10_rules.json) is superseded by the 2026-10-17 freeze-check fixes (design section 12)
 DATA_DUMPS = cm.DATA_DUMPS
 CB10_DIR = DATA_DUMPS / "research_lab" / "creative_batch10"
 HIST_ROOT = cm.HIST_ROOT
@@ -55,7 +55,7 @@ T10_HIST_END = "2026-10-01T00:00:00Z"
 J4R_WINDOW = ("2026-10-16", "2026-10-21")
 ET = ZoneInfo("America/New_York")
 
-# Disk (section 2.8): data-dumps + the job's cap <= 14 GiB AND root free disk - the job's cap >= 4.5 GB (4 GB collector guard + 0.5 GB margin).
+# Disk (section 2.8): data-dumps + the job's cap <= 40 GiB (design text says 14; ops convention 40, section 12) AND root free disk - the job's cap >= 4.5 GB (4 GB collector guard + 0.5 GB margin).
 DATA_DUMPS_CAP_GB = 40.0  # 2026-10-17 ops convention after the host disk was enlarged (the design text says 14; open item)
 FREE_DISK_MIN_GB = 4.5
 TOTAL_OUTPUT_CAP_GB = 0.12
@@ -92,6 +92,7 @@ STALL_NOT_RUN_SOURCE = c9.STALL_NOT_RUN_SOURCE
 STALL_DISJOINTNESS = c9.STALL_DISJOINTNESS
 STALL_UPSTREAM = c9.STALL_UPSTREAM
 STALL_STATUSES = c9.STALL_STATUSES
+STAGE2_TESTS_PER_ADVANCE = {"D1": 2, "B1": 1, "B2": 1}
 STAGE1_RESULTS = {"results_D.json": ("D1",), "results_B.json": ("B1", "B2")}
 
 # Inputs CB10 never reads and outputs it never writes under (design 1.1 last three rows, 1.3).
@@ -333,7 +334,8 @@ def stage2_k(results_dir: Path) -> dict:
             raise NotNow(f"{name} not final: the Stage-2 k is fixed when the last Stage-1 result is final")
         d = json.loads(p.read_text())
         adv += [t for t in tests if isinstance(d.get(t), dict) and d[t].get("advance") is True]
-    k = len(adv)
+    # A D1 advance triggers TWO Stage-2 tests (D1-rep and D2), so it adds 2 to k (freeze-check fix 2).
+    k = sum(STAGE2_TESTS_PER_ADVANCE.get(t, 1) for t in adv)
     return {"k": k, "advanced": adv, "alpha_each": STAGE2_ALPHA / k if k else None}
 
 
@@ -367,7 +369,7 @@ def common_declared() -> dict:
             "gamma_whitelist": {"keep": list(GAMMA_KEEP), "forbidden": list(GAMMA_FORBIDDEN), "output_columns": list(WHITELIST_OUTPUT),
                                 "outcome_prices": "routed by guarded_outcome_prices() to D's outcomes_guarded.csv.gz only"},
             "stall": {"statuses": list(STALL_STATUSES), "exit": 0, "census": "copies the label", "screens": "p = 1, testable false", "results": "write-once"},
-            "stage2_k": {"results": {k: list(v) for k, v in STAGE1_RESULTS.items()}, "rule": "k = number of Stage-1 advances, derived from both results files"},
+            "stage2_k": {"results": {k: list(v) for k, v in STAGE1_RESULTS.items()}, "rule": "k = number of Stage-2 tests triggered by the Stage-1 advances (a D1 advance triggers D1-rep and D2 so adds 2; B1 and B2 add 1 each), derived from both results files"},
             "disk": {"data_dumps_cap_gb": DATA_DUMPS_CAP_GB, "free_disk_min_gb": FREE_DISK_MIN_GB, "total_output_cap_gb": TOTAL_OUTPUT_CAP_GB,
                      "exit_75": "pending (never 'not run'); the queue's 48-tempfail failure is re-queued under a new id"}}
 
