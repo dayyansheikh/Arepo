@@ -16,6 +16,9 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
   stops itself and sends a phone alert once `arepo-research` exists.
   - Log: `~/arepo_collector/logs/oci-retry.log`. Stop: `touch ~/.arepo/oci_retry/DONE`.
 - **First runs (15:12Z):** "Out of host capacity" in both ADs. One AD-2 call returned a transient 401, and the next run was fine.
+- **q0116b (MC1 dev run): PARKED on 2026-10-17 by the user's instruction, as a backup, not dropped.** Both attempts died in
+  about 16 s at the 2 x 3200 MB address-space cap (`_ArrayMemoryError`). The new queue status `parked` never starts until
+  `queue_worker.py retry <id>`. Revive it on the second instance, or with a measured cap. Do not create a q0116c on this host meanwhile.
 - **Next, once created:** set up the instance (OL9, Python 3.11 venv, repo, ssh alias), then move queue `cpu`-lane jobs there.
 
 ## Host disk: RESOLVED (2026-10-17 ~15:05Z, interactive session)
