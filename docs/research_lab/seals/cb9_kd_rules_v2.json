@@ -1,0 +1,493 @@
+{
+ "common": {
+  "counting": {
+   "count_line": "ml_explain, source creative_batch_9:<family>, n_tests = 1 per test",
+   "kinds": [
+    "cb9_test",
+    "cb9_replication",
+    "cb9_descriptive"
+   ],
+   "not_testable": "counted with p = 1"
+  },
+  "exclusion": {
+   "max_unverified_key_share": 0.02,
+   "own_seal_copies": [
+    "cb9_kd_holdout_SEAL.json"
+   ]
+  },
+  "placebos": {
+   "draws": 200,
+   "max_advance_rate": 0.015,
+   "seeds": {
+    "D1_shuffle": 9194,
+    "K1_skew_sign": 9193,
+    "P1_breakeven": 9191,
+    "P2_label_swap": 9192,
+    "spare_5": 9195,
+    "spare_6": 9196,
+    "spare_7": 9197
+   }
+  },
+  "read_allowed_names": [
+   "exclusion_keys.csv.gz",
+   "exclusion_report.json"
+  ],
+  "refused_roots": [
+   "cb1_extract",
+   "cb2_extract",
+   "cb3_extract",
+   "cb4_extract",
+   "cb5_extract",
+   "cb6_extract",
+   "cb7_extract",
+   "cb3_followup",
+   "cb6_followup",
+   "cross_venue",
+   "cross_venue_live",
+   "surprise_live",
+   "live_trades",
+   "trade_samples",
+   "cb8_extract",
+   "creative_batch8",
+   "creative_batch7",
+   "creative_batch6",
+   "creative_batch5",
+   "creative_batch4",
+   "h1_first",
+   "h2_main",
+   "h3_power",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail",
+   "h8_text",
+   "h8_geo",
+   "h9_flow"
+  ],
+  "refused_run_ids": [
+   "h1_first",
+   "h2_main",
+   "h3_power",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail",
+   "h8_text",
+   "h8_geo",
+   "h9_flow",
+   "updown",
+   "updown_frame",
+   "exclusion_run",
+   "holders"
+  ],
+  "results": "write-once: a screen / rep refuses to overwrite its results file and logs no second count line",
+  "stage1": {
+   "batch_holm_alpha": 0.01,
+   "batch_holm_k1": 5,
+   "by_family": "battery2.cumulative_count() at the run (triage only)",
+   "by_q": 0.1,
+   "gate_p": 0.01,
+   "holm_family": [
+    "P1",
+    "P2",
+    "K1",
+    "D1",
+    "S1"
+   ]
+  },
+  "stage2": {
+   "alpha": 0.05,
+   "k": "derived in code (stage2_k) from results_P.json and results_KD.json",
+   "rule": "k = number of Stage-1 advances among P1, P2, K1, D1, fixed when results_P.json and results_KD.json are both final; each Stage-2 test is judged when it finishes at the threshold alpha/k (one-sided alpha 0.05; strict p < alpha/k), in its Stage-1 direction, AND with the section 2.4 floor on the point estimate, every binding placebo (advance rate <= 1.5% at the same threshold) and every binding robustness check (section 2.6 'any advance or pass'; their p thresholds at alpha/k); the Holm step-down over the final Stage-2 p values is reported as a label only"
+  },
+  "stall": {
+   "exit": 0,
+   "labels": {
+    "disjointness_unverified": "not testable (disjointness unverified)",
+    "not_run_source": "not testable (source)"
+   },
+   "screens": "p = 1, testable false",
+   "statuses": [
+    "not_run_source",
+    "disjointness_unverified",
+    "upstream_not_testable"
+   ]
+  },
+  "t_seal": "2026-10-22T00:00:00Z",
+  "uncertainty": {
+   "min_clusters": 30,
+   "min_units": 100,
+   "n_boot": 2000,
+   "n_wild": 9999,
+   "seed_boot": 919,
+   "small_g": "cb2_weather.small_g_pvalue per way; p = max over declared ways",
+   "top_drop": 5
+  }
+ },
+ "declared": {
+  "audit": {
+   "available_min": 0.8,
+   "labels": [
+    "source unavailable",
+    "no fresh book",
+    "no opportunity (gate fail with audit pass and >= 80% of SCREEN units source-available)"
+   ],
+   "pass": 0.9,
+   "rule": "(market, day) with >= 1 Data API print in [14:00Z, 15:00Z): pmxt shows any event of the condition id in the span"
+  },
+  "d": {
+   "P": "size-weighted VWAP of all of that transaction's prints on the token; last fill (newest in API order) reported; side never used",
+   "clusters": [
+    "market_day",
+    "day"
+   ],
+   "dust": "best bid or best ask size < the market's recorded orderMinSize (missing field: unavailable, counted)",
+   "dust_variant": "share-or-$1: size < orderMinSize or size x price < 1 (reported only)",
+   "floor_c": 0.5,
+   "gate_gd": {
+    "dust_share": 0.05,
+    "market_days": 100,
+    "units": 1000
+   },
+   "gd_counted_on": "two-sided fresh market-minutes; units entering D1 (m_c available, next transaction found)",
+   "m_c": "mid of the best bid and best ask among levels with size >= orderMinSize (unavailable if either side has none)",
+   "m_d": "(best bid + best ask) / 2",
+   "next_tx": "first transaction hash among outcome-0 prints with ts in [u + 1 s, u + 600 s] (ties: earliest ts, then oldest in API order)",
+   "placebo_seed": 9194,
+   "robustness": {
+    "months": ">= 500 units",
+    "top5": true,
+    "weighting": "next-transaction size"
+   },
+   "statistic": "mean |P - m_d| - |P - m_c| in cents",
+   "unit": "market-minute u in [14:01Z, 15:00Z] on the outcome-0 token's book (two-sided, fresh, not crossed); at most one unit per dust episode per 5 minutes (the first)"
+  },
+  "days": {
+   "market_day": "start_epoch <= t and end_epoch >= t + 7 h (scheduled life)",
+   "order": "days by sha256(seed|day); an ingress cap truncates evenly",
+   "order_seed": "arepo-cb9-kd-order",
+   "origin": "t = d 14:00Z",
+   "pmxt_gap": [
+    "2026-06-12",
+    "2026-06-18"
+   ],
+   "window": [
+    "2026-04-13",
+    "2026-08-10"
+   ]
+  },
+  "decisions": [
+   "RV on [t - 6 h, t) (freeze-check ruling d: keep the 6 h analogue of the design's 1-day RV; the declared print fetch is [t - 6 h, t + 7 h])",
+   "ingress cap 180 GB (freeze check M8): origin t = 14:00:00Z is the first instant of hour 14Z, so nearly every token needs the 13Z lookback (about 2x ingress per day)",
+   "open (long-dated) markets kept in the frame (freeze check M7)",
+   "D uses the outcome-0 token's book and prints (one unit per market-minute); both tokens' minute states are stored",
+   "Book events are kept as derived per-minute D states plus raw last_trade_price events of 14Z and of the 13Z lookback (ruling c); raw book JSON is not stored (0.15 GB output cap)"
+  ],
+  "exclusion": {
+   "keys": "creative_batch9/exclusion_keys.csv.gz + exclusion_report.json (q0182); report disjointness_unverified -> K1, D1 not testable (counted)",
+   "order": "filters -> id / key drops -> <= 3 per event -> seeded sample -> event split"
+  },
+  "frame": {
+   "keeps": "binary with token ids; scheduled life [startDate, endDate) overlapping [2026-04-13, 2026-08-10) by >= 3 d; volume >= 10000 (end-of-life field, disclosed look-ahead in selection); not negRiskAugmented; not weather (fee_category or CB2-W text); not crypto Up/Down (CB1_UPDOWN_RE); not Pyth (resolutionSource host *pythdata.app)",
+   "open_markets": "kept (freeze check M7): long-dated markets still open are in the population; only data <= t enters a feature and no outcome is read",
+   "outcome_fields_stored": false,
+   "query": "Gamma /markets closed=true and closed=false (both; deduplicated by id), volume_num_min=10000, start_date_max=2026-08-07T00:00:00Z, end_date per UTC day in [2026-04-16T00:00:00Z, 2026-10-01T00:00:00Z) plus one window [2026-10-01T00:00:00Z, 2100-01-01T00:00:00Z), order id; a capped window is halved down to one hour (a still-capped hour is excluded, counted)",
+   "stored_fields": [
+    "market_id",
+    "condition_id",
+    "token0",
+    "token1",
+    "event_id",
+    "event_ids",
+    "neg_risk_market_id",
+    "series_ids",
+    "fee_category",
+    "topic",
+    "status",
+    "start_at",
+    "end_at",
+    "start_epoch",
+    "end_epoch",
+    "volume",
+    "liquidity",
+    "order_min_size",
+    "tick_size",
+    "neg_risk",
+    "neg_risk_augmented",
+    "resolution_host",
+    "question",
+    "event_title"
+   ]
+  },
+  "k": {
+   "cell": "RV >= SCREEN quantile 0.666667 of RV or SPR >= SCREEN quantile 0.666667 of SPR (numpy linear; feature values of eligible SCREEN origins only; frozen in the census)",
+   "clusters": [
+    "event",
+    "day"
+   ],
+   "fills": "cb3_maker.quote_fills queue rule, depth = displayed size at the quote price (0 inside the spread), own = 50; YES-terms prints (complementary prints converted)",
+   "fills_through": "binding bracket: cumulative strictly-through opposite volume in (t, t + life) >= 50",
+   "floor_c": 0.5,
+   "gate_gk": {
+    "cell_origins": 2000,
+    "days": 30,
+    "events": 60,
+    "filled_origins_per_type": 300
+   },
+   "gk_counted_on": "the units that enter K1 (cell, after the skew cut, prints available, mark available)",
+   "kill2": "unskewed alone >= 0.5c with p < 0.01 -> 'CB3-B's maker result; skew not needed' (no advance)",
+   "mark": "mid of the last taker-BUY and last taker-SELL YES prices in [t + 18000 s, t + 25200 s]; both required, else the origin's fills are unavailable",
+   "placebo_seed": 9193,
+   "quotes": "life [t, t + 7200 s], 50 shares each side; unskewed = touch; s = +1: bid + 1 tick if < best ask else bid, ask + 1 tick (if <= 1 - tick); s = -1 mirrored",
+   "rebate": "reported only: economics.REBATE_SHARE x recorded fee rate x p(1 - p)",
+   "robustness": {
+    "cost": "trade-through fills keep the sign and >= half",
+    "latency": "fills only from t + 60 s keep the sign and >= half",
+    "months": "sign in >= 2/3 of months with >= 300 fills (none: unknown, not met)",
+    "top5": "p and floor without the top 5 clusters of each way",
+    "weighting": "pooled per filled share agrees in sign",
+    "worst_case": "unavailable marks scored at -1 tick per filled share keep the sign and p"
+   },
+   "route_gate": "skewed mean per filled share > 0 AND skewed mean net per origin (P&L / 100 posted shares, unfilled = 0) > 0",
+   "rv": "log(rms of consecutive 600 s grid differences of the last-print YES price over [t - 21600 s, t) + 0.0001); >= 3 differences",
+   "skew_cut": "|x6| >= SCREEN quantile 0.5 of |x6| over eligible SCREEN cell origins; else no skew (excluded from K1, counted)",
+   "spr": "best ask - best bid of the outcome-0 token at t",
+   "state": "outcome-0 token at t; fresh = latest event >= t - 3600 s; crossed or one-sided ineligible",
+   "statistic": "per origin, mean mark-out per filled share by quote type; K1 = mean over origins with a skewed fill - mean over origins with an unskewed fill (cents); unit value = delta-method linearisation (origins equally weighted)",
+   "tick": "latest pmxt tick_size_change with both clocks <= t, else Gamma orderPriceMinTickSize, else 0.01",
+   "x6": "HB2 f_imb_6h on prints in [t - 6 h, t): sum(yes_side * size * price) / sum(size * price); clip [-1, 1] / 0.8578247852488129"
+  },
+  "mde_assumptions": {
+   "d_deff": 2.0,
+   "d_sd_c": 1.5,
+   "k_deff": 1.5,
+   "k_markout_sd_c": 4.0,
+   "use": "reported only; never changes a floor",
+   "z": 3.168
+  },
+  "outputs": {
+   "books": "kd/{screen,holdout}/<day>{.origins.csv.gz,.minutes.csv.gz,.ltp.csv.gz,.prints_pre.csv.gz,.prints_post_guarded.csv.gz} + <split>/markets.csv.gz",
+   "caps_gb": {
+    "books": 0.15,
+    "frame": 0.01
+   },
+   "data_dumps_cap_gb_default": 40.0,
+   "frame": "kd_frame/{frame.csv.gz,sample.csv.gz,split.json,manifest.json}"
+  },
+  "pmxt": {
+   "clock_rule": "an event is used at x iff timestamp <= x and timestamp_received <= x",
+   "columns": [
+    "timestamp_received",
+    "timestamp",
+    "market",
+    "event_type",
+    "asset_id",
+    "bids",
+    "asks",
+    "price",
+    "size",
+    "side",
+    "new_tick_size",
+    "fee_rate_bps",
+    "transaction_hash"
+   ],
+   "fresh_s": 3600,
+   "hour": 14,
+   "ingress_cap_gb": 180.0,
+   "kept": "origin states (both tokens), per-minute D states (both tokens), last_trade_price events of hour 14Z and of the 13Z lookback hour when read (with transaction_hash)",
+   "lookback": "per token, only when the token has no `book` event with both clocks <= t in hour 14Z",
+   "lookback_hour": 13,
+   "reader": "row groups pruned on market statistics, light columns first, heavy columns only for row groups with a matching row; never materialised",
+   "top_levels": 10
+  },
+  "prints": {
+   "capped": "unavailable (counted)",
+   "limit": 1000,
+   "pages": 10,
+   "post": "ts >= t (guarded)",
+   "pre": "ts < t (features)",
+   "wallet": "HMAC hash only (strict loader, pinned fingerprint)",
+   "window": "[t - 6 h, t + 7 h] venue time, takerOnly"
+  },
+  "results": "write-once: screen-kd / rep-kd refuse an existing results file or an existing count line for the same hypothesis, before any computation",
+  "sample": {
+   "cap_order": "sha256(arepo-cb9-kd-sample|cap|market_id)",
+   "max_per_event": 3,
+   "n": 1000,
+   "seed": "arepo-cb9-kd-sample",
+   "sports": "topic == 'sports' sampled into its own reported stratum, n_sports = min(pool, floor(0.15 n), round(n * pool share))",
+   "strata": "group x fee_category, proportional (cb8_flow.flow_sample)"
+  },
+  "seal": {
+   "copy": "cb9_kd_holdout_SEAL.json",
+   "drops": "seal-time drops by id and key against every committed seal copy except CB9's own; sealed files never edited",
+   "read_rule": "holdout/ is opened only by rep-kd after K1 or D1 advanced and its Stage-1 result is recorded (trials line with the results sha256)"
+  },
+  "split": {
+   "rule": "int(sha256(seed|event), 16) % 2: 0 SCREEN, 1 HOLDOUT",
+   "seed": "arepo-cb9-kd-split",
+   "unit": "Gamma event (first event id; market id if none)",
+   "written_before_first_pmxt_or_print_read": true
+  },
+  "stage2": {
+   "rule": "cb9_common.STAGE2_RULE (k derived by cb9_common.stage2_k; --stage2-k optional and must equal it)"
+  },
+  "stall": {
+   "exit": 0,
+   "flow": "kd-seal passes a books stall on (nothing sealed); the census copies the label; screen-kd logs K1, D1 with p = 1 (counted)",
+   "labels": "cb9_common.STALL_LABELS; upstream stalls copy the upstream label",
+   "statuses": {
+    "kd-frame stalled (kd-books)": "upstream_not_testable",
+    "q0182 report disjointness_unverified (kd-frame, before any request)": "upstream_not_testable",
+    "smoke pmxt_heads not met (kd-books)": "not_run_source"
+   }
+  }
+ },
+ "disk": {
+  "data_dumps_cap_gb_default": 40.0,
+  "disk_budget_exit": 4,
+  "headroom_exit": 75,
+  "refusal_exit": 2
+ },
+ "func_sources_sha256": {
+  "cb3_maker.quote_fills": "c065b6d26e7790c6b91da1c93e53f2a14774b96f8d6a34371356f2efffe4b825",
+  "cb7_common.is_weather": "98950df75071c0f1885b7b6dfc90fffc08860e135c70f59cffbc8afc2ff891d2",
+  "cb7_common.key_types_matched": "28fbd54f1bdaed2d468aef956c964b1f6daece450c95baad647f3944f66511dd",
+  "cb8_books._check_clock": "2155e9ff78b77054ad2ffd7e7ec40c72d7f657c82ed62fc5b0897babef6c939b",
+  "cb8_books._levels": "7c7dc235e1d3e0f59b413e8b3539c1805d379c360ef985f30ddbb6673ed6c9a2",
+  "cb8_books._ms": "f1fa393dd17f143ae8c05a33a97c5ea71ebd970c6254876e1f16e099342a912b",
+  "cb8_books.ingress_add": "7ce3766387d5df40dbb17d5ec58cf6c5ce4469d8058e1aaf5848285a24618ed9",
+  "cb8_books.ingress_used": "c4f87ac92b7e365685506c29e65792ae39591f7a92a2b80f4f118929682c466a",
+  "cb8_books.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
+  "cb8_common._parse_print": "a1df96ca5f44670591f0188534b55157ff030d89ff70ee442240606fd3260a74",
+  "cb8_common.hash_wallet": "de1003c768c24a7fe41bd93b2ada2ae245ab60d4c217df365cb14e1efc156338",
+  "cb8_common.key_fingerprint": "2dc81a0d992c306cbea5156b49df455044b4efe3b6f921c29bf696d9ee64e568",
+  "cb8_common.load_wallet_key_strict": "8c3e91817c91c8d6699889a1e24f9e05225c80357d6ac6fa0c36ec5f1f5a2af0",
+  "cb8_common.windowed_prints": "1df52768b1a5bd0d177f124a4d16a02e67fec4b183150d80d10f0e902633f757",
+  "cb8_flow.event_key": "a48040b86c3d4f8e7152673c8fda591498cca71b8befb6f93ce9b48ec6b3adc6",
+  "cb8_flow.event_split": "0ecb84c8c20e98825b7260d49bbc3a4c1835c3cd6f3fd8a73c1e905fc532b114",
+  "cb8_flow.flow_sample": "463786b9a9afe5bc0c9b03eab3467372cd8c7c6598233568a5f105d99108e4b1",
+  "cb8_flow.per_event_cap": "219a82bd3e1328e09ed1efb6a1b05180be70fd2b7687414d9d81360dcd012b3b",
+  "cb9_common.batch_holm_label": "e3ec2afd7046c24d9eec169caf4474b60f222c3a2fde8ad690bf59fc016cab2b",
+  "cb9_common.check_stage2_k": "730c65cc56ceed75083c8e5357b40d5eb4c49b9d8ef2d60559f6d7e3aa49efe2",
+  "cb9_common.cluster_bootstrap_means": "40f9457f421736bc49b6399ccc4bc208b9fac8a674c72c567dc5b2eae1dfe2f9",
+  "cb9_common.cluster_p": "532ef114f37a643e11fe31208bfc6f8cd203ca2b782881ba8a5b4363c43d7561",
+  "cb9_common.common_declared": "8a022cf635587bf639204bccec55016413367af94db1655356aa607a931c9a95",
+  "cb9_common.exclusion_keys": "fa3a3d72873e5d471fd9c1b68a6bfc57efc9cfc4c41493f84c2570a1d6b987dc",
+  "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
+  "cb9_common.load_exclusion_keys": "2c13a3c2a200b121b7da49223ed5202d626c55bf0432a6fb7d518e34485aaed3",
+  "cb9_common.placebo_advance_rate": "7e1f27beb4ff605960b8fd50b333d618105d07c4e951978df65966de2db61c81",
+  "cb9_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+  "cb9_common.read_csv_gz_restricted": "a6cfdb3c916eb25f73a926e6305f3478af52491bbc2f86c07032578d8f94fcd6",
+  "cb9_common.refuse_path": "c5cd8ffd054f083b675d8b0f3d6114f671b78e94d4045a4b3cdf81be463cd37f",
+  "cb9_common.refuse_read": "b1c2c29b1989c535ee446ae802547ee16233d4b795cdba006c39144197513935",
+  "cb9_common.refuse_run_id": "7205c058266bdae9021aee0b2ed09f55a6ecb4ffd788b03bf612f1313e1d1461",
+  "cb9_common.require_after_t_seal": "43368ba9aad66ec6a441952ef0cea90c1bde2e5955ec38ddde2a28f18b45e65f",
+  "cb9_common.stage2_gate": "7191e9ee50bcaaba9aa981528fdb8208388408ab465400cb635a8e16c2ac1932",
+  "cb9_common.stage2_k": "64c27038cade07a1694b376438ab054f143d1fb1e5e5996c27dcad50aaad42ad",
+  "cb9_common.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+  "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+  "cb9_common.wilson_lower": "4471a3b1d2f5c188e7edd0f77f1441fb37d8f71ff4994775f7b1140c75a98728",
+  "cb9_common.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+  "cb9_common.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+  "cb9_kd.CountOnlyPosts": "7253018e58ae30681c327e026a925c8db3b801b41bc4fa2aa8ee65f9c5e652d2",
+  "cb9_kd._d_rows": "82687706981742391878904feb56677275f1ab6eb16bc8211673d294215fa2e4",
+  "cb9_kd._d_values": "d9fe55484f537770f19598cd5cff57d7be6f1895acb4953dbf464821705e450e",
+  "cb9_kd._fee": "055e0014ba3f222c53d312db1af242e59b173774c7615adc3e40b7440a61bd64",
+  "cb9_kd._fill": "d9e856b57392232912b0e952bfd1a3cd95b6f4eb2b552cc4e2ee8449def5635b",
+  "cb9_kd._guard_post": "fb74aa944480716a50d3fe1a90c668c61a71eb6c1449aff9e680b6c7c47122ec",
+  "cb9_kd._guard_split": "e7bf284e526c6eb15407d7d49dcc20b4670391cebe458c2dd70e1146769f1b6e",
+  "cb9_kd._k_arrays": "853ed2b01b8aaaba348340a11ad83c3048fbb4b311f82081ec052585a3ddac0d",
+  "cb9_kd._k_rows": "f5966100ca8c0722214e5d0f6c4c8891973bdc6e90656fd074a3ef24e01a984f",
+  "cb9_kd._num": "6b4596007b2cc215fb4781442818614947691d756483ec1044d9d885cd089c78",
+  "cb9_kd._origin_book": "6d3ee0c37fb48923ef61498a56a339d072313224d84db50703e228b8acfceba2",
+  "cb9_kd._pr": "b77527e68ec0c24cfa38acd1595676f8c4fdb79e2c757b8aa673316f62a8ff96",
+  "cb9_kd._print_arrays": "8b610f0e75c490eb7d83a4ca57ef0294711d6150abbfdc87fad57a52aedc90e1",
+  "cb9_kd._quote_result": "5c4dcc643525d4e0c729d9ad3a3734b9efa6441f23a7e2a6b085ef361b1614b9",
+  "cb9_kd._require_frame": "d2571f0fb0e7c420ca9efc68c93ff480858fc597c346c8d8930f6fbcd21862a6",
+  "cb9_kd._single": "2f289a423c54384ff30b1c077482fa9f61cf9a43e89a6c11ff2cfa47f14af186",
+  "cb9_kd._tick_of": "a1a05c51a4a8366c85f85e218e9e4edb38459aa3f5c505911b25fda857a80ce2",
+  "cb9_kd._walk_window": "7fdf6507bad521e91043444b573ddcafe5c8843f36336ed970489e848fe6a4d0",
+  "cb9_kd.assemble_kd": "8daa79a211c90821166e1c73aadfbb8784813410d21c277bd2f9484f9f198527",
+  "cb9_kd.census_cuts": "7c8917c591d3ef29e06f9cc913c42f7872e3ff84f742d3c78805c73de705a9b1",
+  "cb9_kd.contrast": "80b5e3f1cf8c2bc363014cef60e508f45af4997611d97e85c2ed4148dd82462f",
+  "cb9_kd.coverage_audit_kd": "892b65b371751b664642546a591daec1756a4d1ca5989075b1364d58b174b33d",
+  "cb9_kd.d1_analysis": "38465676b90145a9d4122c63f580b5486edf263bc4f848343dc307e079999f49",
+  "cb9_kd.d1_stat": "18c2e8d3b717335fd489a89ab4bb3971c9bd53d063dbe9b0cc1a405f25659aa3",
+  "cb9_kd.d_census_counts": "64a815e774da5d47bcb9caf2357ec0e51547c984dce381762d97497a0a0caf46",
+  "cb9_kd.day_books": "b6a18cfa06148bcdf0565d8ea8f15e2321c7bc9e1d4445439336341577fa21be",
+  "cb9_kd.day_order": "4a90d513ee759eb3a4a2fceb92c5636cb7609d05ca9576d19ba9fe086ae593c8",
+  "cb9_kd.declared": "dc8cb77ebd23f5315a67e5bd1522caf099092e948377045707455104e340d5c2",
+  "cb9_kd.dropped_ids": "5bf52e41e696f2e13fa15761d390f16e4d13d1c6a7c32e76b605af65c66b9887",
+  "cb9_kd.dust_units": "bd3c21088f861451976cd25c274a33c7349860a27af78df721a4d6e46b666145",
+  "cb9_kd.finalize_books": "39a7564e3f35c9c3554c1e4117ec5fe79fcb168055793a47db92d0710de6ec4b",
+  "cb9_kd.frame_reason": "f4607bfed2f90f1132c7064a64eca62d8be37078590b654476e1aaa3215a4fc3",
+  "cb9_kd.frame_walk_days": "d207c7a51ca727e37d2cab53495a14eeaaa0df9eec012d011dad4edfba8a1efc",
+  "cb9_kd.frame_walk_units": "83bf2dc16417833d5739f1f8f47336e4972ca67acb37a14bc5618ed5cf91147a",
+  "cb9_kd.gate_label": "2e0ba0ec17d85d5a887c40b09d2205bea1d42b012889a992368e37b37bb0dbf2",
+  "cb9_kd.in_cell": "14a676d835db6b4c4160de1266b0a7e772ba3b46ef6c6f0f5943341d76753611",
+  "cb9_kd.is_dust": "4afb46f8fd81c92e35e592f8153b803670472fd369ef577b4af683d9e3830aba",
+  "cb9_kd.k1_analysis": "8a473d9124eba058ab80584c75bda5cde948cd1b4228495dd07e39d01a6af86f",
+  "cb9_kd.k1_stat": "8567ca1515fcf424987a373836d52d6b4a0f1fdc4d2de768cf47880ccb97e2fc",
+  "cb9_kd.k_census_counts": "529ed34bbfb42943d4e3d84e3c4076a1a6796ac7a2b4d546519fe82758580c89",
+  "cb9_kd.k_cuts": "7203e9a880fd1fb8a184348fcfbc2c4ca0f560fd8434e96b526aa3e66d7060af",
+  "cb9_kd.k_features": "ca770def4573dda914a679a8b404320081775701c5ddcac17b2aa90bfc23a37c",
+  "cb9_kd.kd_books": "ee7e3d59a588556f0f47b3c39a477bc626b94b608d5613236b497ba81fe3e6f3",
+  "cb9_kd.kd_census_doc": "2a78620c59424ea44cd110dbaa976c21ef58e016e938502278da3121725e9b67",
+  "cb9_kd.kd_frame": "781113d1006ed48e3a8fb0f11d5079d096b047449deee2799490e4eee23a664f",
+  "cb9_kd.kd_row": "ce7966ba441b8b590046b22668a70d556e9765b11f5f15582492774047fc4b3a",
+  "cb9_kd.kd_sample": "7cbfdeb8ee48fd5d04d5872ac43812da821013a4c0ecc11d8edadab820291dc7",
+  "cb9_kd.kd_seal": "e6f40099af97392b5cd87814f17be11e4dd7aed6df3225cd9336259b7b75ce42",
+  "cb9_kd.kd_state": "6aa326e1c8613eee05cfd91eb21817d6cdbc461b35624cbff144ba94b7bd4304",
+  "cb9_kd.level_depth": "7063ccf822726009988f811f1ecee15a56851880786d0cfedb41193f1b4430eb",
+  "cb9_kd.load_units": "677277c011b4020975e7cf0fa63d0a9b1401e6be0051888f0353c8b6574c5866",
+  "cb9_kd.mark_value": "ab9a17b80190596ff451f48524888ce86401f5fa7a3cbb291aede56c6349ba94",
+  "cb9_kd.market_day_prints": "0000d9c2ff4445d339fb89e07857b8512f1a853d9b94bee7a75709fee1d4181b",
+  "cb9_kd.market_days": "7701907a4e0c85d8f95efd457e654ba2f3fcc0506783829f10360f8f52ead45d",
+  "cb9_kd.minute_ok": "7886918e08a7532ac56787d7abf2179c53455841363387fb91d4157d088d8a63",
+  "cb9_kd.next_tx": "ba2982cad601d91baa1a084693f576b682a5383282f5ac506b7d62246911c8ab",
+  "cb9_kd.origin_epoch": "bfa2f1bbe727bb46615fe3dc50c206514079058a39c9d609ce85c1123ef0b34e",
+  "cb9_kd.overlap_days": "e3ba720be9d50aed8c3b3d01c0765ba44b11f8675401f0903a1c6a7cf5322744",
+  "cb9_kd.quote_prices": "7eb66d8d0ccf8c875e63436f2d919447b9cd1998e1df7c0694c20169eeb99cdb",
+  "cb9_kd.quote_result": "870bcaca50a90eaec5b07f1a9966250868991d165fb9f942bd7ea331db94c4cb",
+  "cb9_kd.read_events_kd": "663dbd58a6c766c4ca1065d33c7d543e30ed28635aff5bf1bd4f6cb46dcacf74",
+  "cb9_kd.read_sample": "d30d1cb18a77b5d4a15a6c23ce2fc841a7e70af9ab93c4a197b1722c1b2faead",
+  "cb9_kd.refuse_second_count": "1845e4c2d545b3c780558c5d16acf5dadb550eda3ad84ee7368eea00fddaffc9",
+  "cb9_kd.rep_kd_doc": "dc86f736ac79814e2e945e797a04a02b8d31733d7e69ca1f471a0b4e1dbd3f2c",
+  "cb9_kd.route_gate": "1a8b8ba74aab7539b44bcc8ae02de1c83ddf560af6eb04d53af81fa98d90cb03",
+  "cb9_kd.rv_feature": "1523c03ad9e455121ce19e294c9a2a13983f384263fb2f2ef9509e0986802a1f",
+  "cb9_kd.screen_kd_doc": "d75ee33c4864ba979620cb7e0984122be5304b70f753d66fd57259ad1863ee29",
+  "cb9_kd.skew_dir": "d8a272e579ce14de2b21476c176668e731fed8856d809002f1cfb497a21d6482",
+  "cb9_kd.smoke_state": "1bc75d967f2cb87dc399e5d20ac81df0c1bdbdeb238b4a1db7ae3784d26421de",
+  "cb9_kd.stage1_recorded": "e9c183ed9a7f12b4b7353f638e326e53fa7c18dad8b140899e69b750602cc84c",
+  "cb9_kd.terminal_census": "f0de02db6856025a222db703c67c5c082708d465084384983254046c8f13d561",
+  "cb9_kd.terminal_state": "f2ad5306ce2439302804910da993a8d45615a5bd76c18b52625776e049eed287",
+  "cb9_kd.two_sided_fresh": "bd9aa25f798b37c97f2e0c96a8821d82cb6c85babdb19a3c96cdf0f830b63c06",
+  "cb9_kd.verify_holdout_seal": "6b15d0a4f2f0862044011bfa19b99b087f4948104fb52b0f2c6bcddc31d784d1",
+  "cb9_kd.walk_frame": "0887cdc462dbb3db31710ec06643cfad3443aded77a45bc58f30544d0527eeb5",
+  "cb9_kd.window_days": "0a8673db835dd1431a3b179cfdf97559dbb87d629b4589dd4a03d6b4a62449f3",
+  "cb9_kd.write_and_log": "258473e320f1a58af69c0454b6c491c623b4e8f41eb73f786b311f00658d3b72",
+  "cb9_kd.write_terminal": "ea2734794f996dd9044c00168865167bc928cb048f8cc6d7cd1d68598881369b",
+  "cb9_kd.x6_feature": "08c3b7a5f37039ba1000569b52d1cda9529612a1b73f5a54959c199304ab2ebd",
+  "h5_seal.list_files": "aff14ad39ccba420c941db36293ca741807d5e2da999647bed4e8c2b06a315ad",
+  "h5_seal.listing_sha256": "ee48bf45af2fbada416a38de2b78739d783b6741891015d52ffab6f32ebb4c5a",
+  "history_backfill._rank": "b003f6a3f3ab5751ac4f774522f7dce34511583bda3cd70b817750b957d9dc3f",
+  "history_backfill.allocate_weighted": "459fe070ca62da621f70aaf6f44f0a2e7d3171244c726d16d4d098edab871cb9"
+ },
+ "funcs_sha256": "2f89aa24c90b093ec92685223736695fa7970c8f67deffbdedbef6c177a5c58e",
+ "rules_sha256": "8ee7bf366a013a87eae5a061fba788ebbbacc5945940df5de1e57510256886a1",
+ "rules_version": "cb9-kd-rules-v2",
+ "wallet": {
+  "fingerprint": "first 16 hex of HMAC-SHA256(key, 'arepo-cb8-wallet-key-fingerprint-v1')",
+  "hash": "HMAC-SHA256(key, lower-cased proxyWallet), first 32 hex characters",
+  "key_file": "~/.arepo/wallet_hash_key (or AREPO_WALLET_HASH_KEY_PATH), mode 600, never created by CB9",
+  "raw_addresses_stored": false
+ },
+ "wallet_key_fingerprint": "80ce5e81a539a570"
+}
