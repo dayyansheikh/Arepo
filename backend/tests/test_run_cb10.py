@@ -551,3 +551,30 @@ def test_dlad_frame_per_date_failure_cap_marks_unavailable(monkeypatch, tmp_path
         assert m["status"] == "in_progress", (i, m)
     m = dl.dlad_frame(tmp_path / "h", None, **kw)
     assert m["status"] != "in_progress" and len(calls) == 3
+
+
+def test_smoke_transient_status_from_deribit_or_data_api_is_exit_75(monkeypatch, capsys, tmp_path):
+    for src, msg in (("smoke_deribit", "deribit history status 503"), ("smoke_data_api", "trades status 429")):
+        mp = pytest.MonkeyPatch()
+        mp.setattr(dl, "smoke_deribit", lambda lim: {"pass": True})
+        mp.setattr(dl, "smoke_ladders", lambda lim: {"pass": True, "whitelist_pass": True, "data_api_cids": []})
+        mp.setattr(dl, "smoke_live_flags", lambda lim, now: {"pass": True})
+        mp.setattr(dl, "smoke_data_api", lambda lim, cids: {"pass": True})
+        mp.setattr(dl, src, lambda *a, _m=msg: (_ for _ in ()).throw(cm.ApiError(_m)))
+        rules = c10.write_rules(tmp_path / f"r_{src}.json")
+        out_path = tmp_path / f"smoke_{src}.json"
+        code, out = _run(["smoke", "--out", str(out_path), "--rules", str(rules), "--allow-uncommitted-rules", "--standalone"], capsys)
+        mp.undo()
+        assert code == 75 and "tempfail" in out and not out_path.exists(), (src, code, out)
+
+
+def test_smoke_definitive_status_still_records_a_fail(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr(dl, "smoke_deribit", lambda lim: (_ for _ in ()).throw(cm.ApiError("deribit history status 400")))
+    monkeypatch.setattr(dl, "smoke_ladders", lambda lim: {"pass": True, "whitelist_pass": True, "data_api_cids": []})
+    monkeypatch.setattr(dl, "smoke_live_flags", lambda lim, now: {"pass": True})
+    monkeypatch.setattr(dl, "smoke_data_api", lambda lim, cids: {"pass": True})
+    rules = c10.write_rules(tmp_path / "r.json")
+    out_path = tmp_path / "smoke.json"
+    code, out = _run(["smoke", "--out", str(out_path), "--rules", str(rules), "--allow-uncommitted-rules", "--standalone"], capsys)
+    assert code != 75 and out_path.exists()
+    assert json.loads(out_path.read_text())["criteria"]["deribit"] is False

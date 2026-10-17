@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import time
@@ -151,6 +152,17 @@ def cmd_rules(a) -> int:
 # ---- q0200 smoke ------------------------------------------------------------------------------------------------------------------------------
 
 
+_TRANSIENT_STATUS = re.compile(r"status (None|0|408|429|5\d\d)\b")
+
+
+def _not_now_if_transient(source: str, exc: Exception) -> None:
+    """A rate-limit, timeout or server-side status from a smoke source is a 'not now' (exit 75, nothing written), never a write-once FAIL."""
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    if _TRANSIENT_STATUS.search(str(exc)):
+        raise cm.NotNow(f"smoke: {source} returned a transient status ({str(exc)[:80]}); nothing written") from None
+
+
 @_guarded
 def cmd_smoke(a):
     from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
@@ -168,6 +180,7 @@ def cmd_smoke(a):
         try:
             der = dl.smoke_deribit(lim)
         except cm.ApiError as exc:
+            _not_now_if_transient("deribit", exc)
             der = {"pass": False, "error": str(exc)[:100]}
         try:
             lad = dl.smoke_ladders(lim)
@@ -184,6 +197,7 @@ def cmd_smoke(a):
         try:
             dapi = dl.smoke_data_api(lim, lad.get("data_api_cids") or [])
         except cm.ApiError as exc:
+            _not_now_if_transient("data-api", exc)
             dapi = {"pass": False, "error": str(exc)[:100]}
     except RuntimeError:
         raise cm.NotNow("smoke: a request failed (network); nothing written") from None
