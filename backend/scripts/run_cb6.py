@@ -2,11 +2,12 @@
 """CB6 runner, data side (docs/research_lab/CREATIVE_BATCH_6.md CB6-F and 10.3). Run from cwd=backend (queue worker).
 EXPLORATORY: no edge, calibration or profitability claim.
 
-    python scripts/run_cb6.py rules                 # write docs/research_lab/seals/cb6_tail_rules_v2.json (commit it before q0136/q0120)
+    python scripts/run_cb6.py rules                 # write docs/research_lab/seals/cb6_tail_rules_v3.json (commit it before q0120b)
     python scripts/run_cb6.py exclusion-keys ...    # stop after the exclusion keys (Gamma lookup of the excluded ids)
     python scripts/run_cb6.py tail-smoke ...        # q0136 (smoke v2; q0135 v1 FAILED): 20-market fidelity-60 smoke test, counts only
     python scripts/run_cb6.py tail-fetch ...        # q0120 (alias fetch): one resumable chunk of the h8_tail fetch
-    python scripts/run_cb6.py tail-seal ...         # q0121 (alias seal): seal h8_tail
+                                                    # q0120b: --run-id h8_tail_b --topup-of h8_tail --windows-per-day 9 (amendment A-T1)
+    python scripts/run_cb6.py tail-seal ...         # q0121 (alias seal): seal h8_tail (--topup-run h8_tail_b: union seal)
     python scripts/run_cb6.py verify-seal           # verify the seal against the committed copy
 
 Exit codes: 0 ok / transient pause / terminal state (tail_fetch_complete, not_run_deadline, disjointness_unverified);
@@ -45,10 +46,14 @@ def _data_path(p: str, data_dumps: Path) -> Path:
 
 def _declared_mismatches(a, t) -> list[str]:
     bad = []
+    top = a.run_id == t.RUN_ID_B  # amendment A-T1: the top-up run declares 9 windows per day and its parent
+    wpd = t.TOPUP_WINDOWS_PER_DAY if top else t.WINDOWS_PER_DAY
+    if (getattr(a, "topup_of", "") or "") != (t.RUN_ID if top else ""):
+        bad.append(f"topup_of={getattr(a, 'topup_of', '')!r} (declared {t.RUN_ID if top else ''!r})")
     checks = {
         "seed": (a.seed, t.SEED), "n_markets": (a.n_markets, t.N_MARKETS), "created_from": (a.created_from, t.CREATED_FROM),
         "created_to": (a.created_to, t.CREATED_TO), "end_before_fetch_days": (a.end_before_fetch_days, t.END_BEFORE_FETCH_DAYS),
-        "windows_per_day": (a.windows_per_day, t.WINDOWS_PER_DAY), "max_origins": (a.max_origins, t.MAX_ORIGINS),
+        "windows_per_day": (a.windows_per_day, wpd), "max_origins": (a.max_origins, t.MAX_ORIGINS),
         "price_fidelity": (a.price_fidelity, t.PRICE_FIDELITY), "print_pages": (a.print_pages, t.PRINT_PAGES),
         "max_unverified_key_share": (a.max_unverified_key_share, t.MAX_UNVERIFIED_KEY_SHARE),
     }
@@ -109,7 +114,8 @@ def cmd_fetch(a) -> int:
             seal_paths=_seal_paths(a, seals_dir), rules_path=Path(a.rules) if a.rules else t.RULES_FILE,
             smoke_path=_data_path(a.require_smoke, data_dumps), cap_at=a.cap_at, rps=min(a.rps, 4.0),
             disk_cap=int(a.disk_cap_gb * 1024**3), budget_min=a.budget_min, data_dumps=data_dumps,
-            data_dumps_cap_gb=a.data_dumps_cap_gb, stage=a.stage,
+            data_dumps_cap_gb=a.data_dumps_cap_gb, stage=a.stage, topup_of=(a.topup_of or None),
+            seed=a.seed, n_markets=a.n_markets, windows_per_day=a.windows_per_day,
             live_check=None if standalone else hb.live_pass_or_lock,
             snapshot_root=None if standalone else Path(a.snapshot_root or t.c4.SNAPSHOT_ROOT))
         m = t.tail_fetch(root, a.run_id, hb.httpx_transport(), **kw)
@@ -176,7 +182,8 @@ def cmd_seal(a) -> int:
         res = t.seal_tail(root, a.run_id, transport=hb.httpx_transport(), seals_dir=Path(a.seals_dir) if a.seals_dir else None,
                           h7_seals_dir=Path(a.h7_seals) if a.h7_seals else None,
                           trials_path=Path(a.trials_path) if a.trials_path else None, rps=min(a.rps, 2.0),
-                          recheck_keys=a.recheck_keys, live_check=None if a.standalone else hb.live_pass_or_lock)
+                          recheck_keys=a.recheck_keys, live_check=None if a.standalone else hb.live_pass_or_lock,
+                          topup_run_id=(a.topup_run if a.topup_run not in ("", "none") else None))
     except t.NotNow as exc:
         _emit({"tempfail": str(exc)})
         return TEMPFAIL
@@ -199,7 +206,8 @@ def cmd_verify(a) -> int:
         _emit({"run_id": a.run_id, "error": str(exc)})
         return 1
     _emit({"run_id": a.run_id, "verified": True, "listing_sha256": seal["listing_sha256"],
-           "read_location": seal.get("read_location"), "split_counts": (seal.get("split") or {}).get("counts")})
+           "read_location": seal.get("read_location"), "split_counts": (seal.get("split") or {}).get("counts"),
+           "topup": {k: v for k, v in (seal.get("topup") or {}).items() if k != "files"}})
     return 0
 
 
@@ -245,6 +253,7 @@ def build_parser() -> argparse.ArgumentParser:
         q.add_argument("--budget-min", type=float, default=None)
         q.add_argument("--data-dumps-cap-gb", type=float, default=t.DATA_DUMPS_FETCH_CAP_GB)
         q.add_argument("--snapshot-root", default=None)
+        q.add_argument("--topup-of", default="", help="amendment A-T1: parent run of the h8_tail_b top-up (h8_tail)")
 
     for name in ("tail-fetch", "fetch"):
         p = sub.add_parser(name, help="one resumable chunk of the h8_tail fetch (q0120)")
@@ -264,6 +273,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--split-seed", default=t.SPLIT_SEED)
         p.add_argument("--h7-seals", default=None)
         p.add_argument("--recheck-keys", action="store_true")
+        p.add_argument("--topup-run", default="", help="amendment A-T1: seal h8_tail together with this top-up run (h8_tail_b)")
         p.add_argument("--trials-path", default=None)
     p = sub.add_parser("verify-seal", help="verify the seal and its committed copy")
     common(p)

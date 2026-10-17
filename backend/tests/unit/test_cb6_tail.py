@@ -259,7 +259,8 @@ def test_rules_file_roundtrip_and_refusals(tmp_path):
     doc = json.loads(p.read_text())
     assert t.verify_rules(p, require_committed=False) == doc["rules_sha256"]
     assert doc["seeds"] == {"sample": "arepo-h8-tail", "origins": "arepo-h8-tail-origins", "smoke": "arepo-h8-smoke2", "split": "arepo-cb6-tail-split"}
-    assert doc["rules_version"] == "cb6-tail-rules-v2" and doc["smoke"]["version"] == "h8-tail-smoke-v2"
+    assert doc["rules_version"] == "cb6-tail-rules-v3" and doc["smoke"]["version"] == "h8-tail-smoke-v2"
+    assert doc["topup"]["windows_per_day"] == 9 and doc["topup"]["parent"] == "h8_tail" and doc["smoke"]["carry_over"]["from_rules_sha256"]
     assert doc["smoke"]["min_pass"] == 18 and doc["smoke"]["min_fraction_of_expected_points"] == 0.8
     assert doc["smoke"]["median_spacing_s"] == [3600.0, 300.0] and doc["smoke"]["superseded"]["result"] == "FAIL"
     assert len(doc["exclusion"]["files"]) == 5 and all(len(f["sha256"]) == 64 for f in doc["exclusion"]["files"])

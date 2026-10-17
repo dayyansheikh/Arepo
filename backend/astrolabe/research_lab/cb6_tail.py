@@ -37,19 +37,30 @@ from . import event_study, h5_seal
 from . import history_backfill as hb
 
 FETCH_VERSION = "h8-cb6-fetch-v1"
-RULES_VERSION = "cb6-tail-rules-v2"  # v2: smoke v2 pool (q0135 smoke v1 FAIL, CREATIVE_BATCH_6.md "Smoke test result")
+RULES_VERSION = "cb6-tail-rules-v3"  # v3: amendment A-T1 (h8_tail_b top-up); v2: smoke v2 pool (q0135 smoke v1 FAIL)
 RUN_ID = "h8_tail"
+RUN_ID_B = "h8_tail_b"  # amendment A-T1: top-up run walking the 8 windows per day that h8_tail did not walk
 T_SEAL = c4.T_SEAL
 T_SEAL_EPOCH = hb.T_SEAL_EPOCH
 DAY = 86400.0
 HOUR = 3600.0
 HIST_ROOT = c4.HIST_ROOT
 SEALS_DIR = h5_seal.SEALS_DIR
-RULES_FILE = SEALS_DIR / "cb6_tail_rules_v2.json"
+RULES_FILE = SEALS_DIR / "cb6_tail_rules_v3.json"
+RULES_FILE_V2 = SEALS_DIR / "cb6_tail_rules_v2.json"  # consumed by q0136/q0120 (h8_tail); never rewritten
 RULES_FILE_V1 = SEALS_DIR / "cb6_tail_rules.json"  # consumed by the q0135 smoke v1 (FAIL); never rewritten
 SMOKE_DEFAULT = c4.DATA_DUMPS / "research_lab" / "creative_batch6" / "tail_smoke2.json"
 SMOKE_V1_PATH = c4.DATA_DUMPS / "research_lab" / "creative_batch6" / "tail_smoke.json"  # q0135 FAIL, write-once
 SMOKE_VERSION = "h8-tail-smoke-v2"
+# Explicit carry-over of the smoke v2 PASS (q0136, made under the v2 rules hash) to the v3 rules: v3 changes none of the
+# smoke or fetch rule functions (the top-up section is added); the PASS file is pinned by its own sha256, so it is neither
+# silently re-used under another hash nor replaceable. Part of the hashed rules document.
+SMOKE_CARRY_OVER = {
+    "from_rules_sha256": "bf05c8ee7c3a1e55dafaa4b4344d9ba0be35afe545c372e7e6b288c08eceee16",
+    "smoke_file": "docs/research_lab/seals/cb6_tail_smoke2_PASS_20261017.json",
+    "smoke_file_sha256": "d1f7a4ef693e494e18320bac45fde8918d5a961565f24a5b24ae3e5589ab0bf4",
+    "reason": "amendment A-T1 adds the h8_tail_b top-up section; no smoke, fetch, filter or feature rule function changed",
+}
 SMOKE_V1_RECORD = {"version": "h8-tail-smoke-v1", "job": "q0135_h8_tail_smoke", "result": "FAIL", "n_pass": 4, "n_requested": 20,
                    "rules_sha256": "57a265d0620c45ea2c82e606e1194846aed6012e2848753a81cfdbb90aa2f3df",
                    "copy": "docs/research_lab/seals/cb6_tail_smoke_FAIL_20261017.json",
@@ -63,7 +74,7 @@ TERMINAL_TOKENS = (COMPLETE_TOKEN, NOT_RUN_TOKEN, UNVERIFIED_TOKEN)
 NOT_RUN_FILE = "NOT_RUN_DEADLINE.json"
 UNVERIFIED_FILE = "DISJOINTNESS_UNVERIFIED.json"
 OUTCOME_FILE = "outcomes_guarded.csv.gz"
-DATA_DUMPS_FETCH_CAP_GB = 12.5  # host data-dumps cap 13 GB (retention live); size + the 0.25 GB output cap must stay below it
+DATA_DUMPS_FETCH_CAP_GB = 12.5  # default; a CLI flag (--data-dumps-cap-gb) lets a job pass 13 (collector cap is 14 GiB)
 TEMPFAIL = 75
 DISK_BUDGET_TOKEN = "disk_budget"
 
@@ -71,6 +82,8 @@ REFUSED_RUN_IDS = ("h2_main", "h3_power", "h4_seal", "h5_cb1", "h5_cb1_ladders",
 REFUSED_ROOTS = ("cb1_extract", "cb2_extract", "cb3_extract", "cb4_extract", "cb5_extract", "cb3_followup",
                  "cross_venue_live", "surprise_live")
 H7_RUN_IDS = ("h7_cb4_era", "h7_cb4_series")
+FETCH_RUN_IDS = (RUN_ID, RUN_ID_B)
+TOPUP_WINDOWS_PER_DAY = 9  # k of the h8_tail_b draw; the parent's single window (k = 1) is always among the 9 picks
 
 # ---- declared parameters (all of them are in the rules file) -----------------------------------------------------
 SEED = "arepo-h8-tail"
@@ -213,11 +226,11 @@ def iter_partial(path: Path) -> Iterator[dict]:
                 yield json.loads(line)
 
 
-def refuse_run_id(run_id: str) -> str:
+def refuse_run_id(run_id: str, allowed: tuple[str, ...] = FETCH_RUN_IDS) -> str:
     if run_id in REFUSED_RUN_IDS:
         raise Refused(f"run id {run_id!r} is sealed or belongs to another batch; CB6 refuses it")
-    if run_id != RUN_ID:
-        raise Refused(f"this command writes only {RUN_ID!r}, not {run_id!r}")
+    if run_id not in allowed:
+        raise Refused(f"this command writes only {' / '.join(allowed)}, not {run_id!r}")
     return run_id
 
 
@@ -418,7 +431,27 @@ def rules_doc(pins: tuple[dict, ...] | list[dict] | None = None) -> dict:
                   "pool": "closed markets with end_at in 2025 from the h1/h2/h3 exclusion samples, scheduled life "
                           "end_at - created_at >= min_life_days (the h8 frame rule) and close_epoch >= end_at - 2 d, so "
                           "the whole window lies inside [created_at, close]; drop counts by reason",
-                  "seed": SMOKE_SEED, "output": "counts only", "superseded": SMOKE_V1_RECORD},
+                  "seed": SMOKE_SEED, "output": "counts only", "superseded": SMOKE_V1_RECORD,
+                  "carry_over": SMOKE_CARRY_OVER},
+        "topup": {
+            "amendment": "A-T1 (CREATIVE_BATCH_6.md 'h8_tail fetch result and sample shortfall'; decided from frame counts only)",
+            "run_id": RUN_ID_B, "parent": RUN_ID, "seed": SEED, "windows_per_day": TOPUP_WINDOWS_PER_DAY,
+            "parent_windows_per_day": WINDOWS_PER_DAY,
+            "windows": "the picks of random.Random(seed|day).sample(valid, 9) other than the parent's k = 1 pick (nested; "
+                       "refuse if not), so the union equals the frozen frame rule at 9 windows per day, one selection probability",
+            "clock": "pinned to the parent's T_fetch8 (parent request_clock.json, cross-checked with its manifest): frame "
+                     "cutoff, days and slots, origin limit <= T_fetch8 - 60 d, outcome censoring and the price / print cap "
+                     "min(T_fetch8, T_seal); recorded in the manifest params",
+            "exclusion": "parent excluded by market id only (parent sample.csv.gz pinned by its manifest file_sha256; the read "
+                         "is logged in the parent ACCESS_LOG.jsonl); keys of h1/h2/h3/h5 excluded as frozen; the parent's "
+                         "event / neg-risk / series keys are NOT excluded (the event-hash split runs over the union rows)",
+            "sampling": "all eligible taken when the union pool (parent sample + this run's eligible) is at most n_markets; "
+                        "otherwise the frozen sampler (draw_tail_sample) over the union pool, keeping this run's chosen rows",
+            "endings": "complete -> the union is used whatever the yield; any other ending (not_run_deadline, disk_budget, "
+                       "disjointness_unverified, refusal) drops the run entirely; no third run",
+            "union_seal": "tail-seal over both runs: both manifests complete with file hashes verified, equal clocks, cross-run "
+                          "market-id disjointness, h7 drops and the event-hash split over the union rows, one listing "
+                          "(union_listing_sha256), one trial line, one seal copy; verify_tail checks both runs"},
         "features": {"class_d": list(CLASS_D_PATTERNS), "class_c": list(CLASS_C_PATTERNS),
                      "description_fallback_chars": CLASS_DESCRIPTION_FALLBACK_CHARS,
                      "clarification_markers": list(CLARIFICATION_MARKERS), "note_date_pattern": NOTE_DATE_PATTERN,
@@ -719,14 +752,36 @@ def frame_days(end_from: float, cutoff: float) -> list[date]:
     return [d0 + timedelta(days=i) for i in range((d1 - d0).days + 1)]
 
 
+def window_picks(seed: str, dkey: str, valid: list[int], k: int) -> list[int]:
+    """The day's ``k`` seeded window slots: ``random.Random(f"{seed}|{dkey}").sample(valid, k)`` (sorted). The first element
+    drawn by ``sample`` is ``randbelow(len(valid))`` whatever ``k``, so the k = 1 pick is always among the k = 9 picks."""
+    if not valid:
+        return []
+    return sorted(random.Random(f"{seed}|{dkey}").sample(valid, min(k, len(valid))))
+
+
+def topup_window_picks(seed: str, dkey: str, valid: list[int], k: int, parent_k: int = WINDOWS_PER_DAY) -> list[int]:
+    """Amendment A-T1: the ``k`` picks minus the ``parent_k`` picks of the h8_tail draw (same seed, same day, same valid
+    slots). The parent's picks must nest in the k picks (they always do); if not, the union would not equal the frozen
+    ``k``-window frame, so the walk refuses instead of walking a different set."""
+    allp = window_picks(seed, dkey, valid, k)
+    par = window_picks(seed, dkey, valid, parent_k)
+    if not set(par) <= set(allp):
+        raise Refused(f"window draw does not nest on {dkey}: parent picks {par} not in {allp}")
+    return [x for x in allp if x not in set(par)]
+
+
 def walk_tail_frame(lim: hb.Limiter, days: list[date], seed: str, *, rdir: Path, cutoff_epoch: float,
                     should_stop: Callable[[], bool] | None = None, windows_per_day: int = WINDOWS_PER_DAY,
-                    window_minutes: int = WINDOW_MINUTES, pages_per_window: int = PAGES_PER_WINDOW) -> str | None:
+                    window_minutes: int = WINDOW_MINUTES, pages_per_window: int = PAGES_PER_WINDOW,
+                    skip_parent_windows: int = 0) -> str | None:
     """Per day: ``windows_per_day`` seeded ``window_minutes`` windows on ``end_date`` (only windows ending at or before
     ``cutoff_epoch``: no forward walk), each walked ``closed=false`` then ``closed=true``; a window still capped after
     ``pages_per_window`` pages is dropped whole and counted. One gzip member per day in ``frame_partial.jsonl.gz``
     (rows, outcomes, counts): nothing is kept in memory. A window with a failed request keeps the day open (retried by
-    the next chunk, at most ``MAX_DAY_ATTEMPTS`` times). Returns a stop reason or ``None`` when every day is done."""
+    the next chunk, at most ``MAX_DAY_ATTEMPTS`` times). ``skip_parent_windows = j > 0`` (h8_tail_b) walks only the picks
+    of the ``windows_per_day`` draw that the ``j``-window parent draw did not pick. Returns a stop reason or ``None`` when
+    every day is done."""
     pp, pf = Path(rdir) / "frame_partial.jsonl.gz", Path(rdir) / "frame_fail.jsonl"
     done_days: set[str] = set()
     seen: set[str] = set()
@@ -749,8 +804,8 @@ def walk_tail_frame(lim: hb.Limiter, days: list[date], seed: str, *, rdir: Path,
             return "frame_paused"
         d0 = datetime(day.year, day.month, day.day, tzinfo=UTC)
         valid = [k for k in range(slots_per_day) if (d0 + timedelta(minutes=(k + 1) * window_minutes)).timestamp() <= cutoff_epoch]
-        rng = random.Random(f"{seed}|{dkey}")
-        picks = sorted(rng.sample(valid, min(windows_per_day, len(valid)))) if valid else []
+        picks = (topup_window_picks(seed, dkey, valid, windows_per_day, skip_parent_windows) if skip_parent_windows
+                 else window_picks(seed, dkey, valid, windows_per_day))
         rows: list[dict] = []
         outs: list[dict] = []
         win = {"closed": 0, "active": 0}
@@ -827,17 +882,23 @@ def _outcome_after_cap(o: dict, t_fetch: float) -> bool:
 
 def build_frame_outputs(fr: TailRun, *, cutoff_epoch: float, excl_ids: set[str], excl_keys: dict[str, set[str]],
                         n_markets: int, seed: str, t_fetch: float, max_origins: int = MAX_ORIGINS,
-                        created_from: str = CREATED_FROM, created_to: str = CREATED_TO) -> dict:
+                        created_from: str = CREATED_FROM, created_to: str = CREATED_TO,
+                        windows_per_day: int = WINDOWS_PER_DAY, parent: dict | None = None) -> dict:
     """Stream ``frame_partial.jsonl.gz`` twice: pass 1 writes ``frame.csv.gz`` (every walked row) and applies the filters,
     the exclusion id test and the key-based drop (counted by reason / key type) keeping only ids per stratum; the sample
     is drawn; pass 2 gathers the sampled rows. ``origins.csv.gz`` is written BEFORE ``sample.csv.gz`` (and long before any
-    price request); outcome columns go only to ``outcomes_guarded.csv.gz``. ``frame_report.json`` is written last."""
+    price request); outcome columns go only to ``outcomes_guarded.csv.gz``. ``frame_report.json`` is written last.
+    ``parent`` (h8_tail_b) is the loaded h8_tail: its market ids are also excluded by id (never by key) and its sample rows
+    join the strata, so the frozen sampler runs over the union pool (all taken when the union pool is at most ``n_markets``)."""
     rdir = fr.rdir
+    parent_ids: set[str] = set(parent["ids"]) if parent else set()
     pp = rdir / "frame_partial.jsonl.gz"
     lo = c4._ep(created_from)
     hi = c4._ep(created_to) + DAY
     counts = {"frame_rows": 0, "filter_dropped": {}, "exclusion_id_dropped": 0, "exclusion_key_dropped": 0,
               "kept_by_key_stage": 0}
+    if parent:
+        counts["parent_id_dropped"] = 0
     key_drops = {"by_type_any_match": dict.fromkeys(KEY_TYPES, 0), "by_type_combo": {}, "rows": 0}
     strata: dict[str, list[str]] = {}
     walk = {"windows": {"closed": 0, "active": 0}, "windows_dropped_capped": {"closed": 0, "active": 0},
@@ -869,6 +930,9 @@ def build_frame_outputs(fr: TailRun, *, cutoff_epoch: float, excl_ids: set[str],
                 if r["market_id"] in excl_ids:
                     counts["exclusion_id_dropped"] += 1
                     continue
+                if r["market_id"] in parent_ids:  # parent excluded by id only: its keys are not excluded
+                    counts["parent_id_dropped"] += 1
+                    continue
                 kt = key_types_matched(r, excl_keys)
                 if kt:
                     counts["exclusion_key_dropped"] += 1
@@ -883,7 +947,16 @@ def build_frame_outputs(fr: TailRun, *, cutoff_epoch: float, excl_ids: set[str],
                 strata.setdefault("|".join([str(r["status"]), hb.cb1_topic(r), month]), []).append(r["market_id"])
 
     fr.budget.write_gz_csv(rdir / "frame.csv.gz", MAIN_COLUMNS, rows_pass1())
+    own_pool = sum(len(v) for v in strata.values())
+    if parent:  # union pool: the parent's sample rows join the strata (their ids are never in this run's rows)
+        for pr in parent["rows"]:
+            strata.setdefault("|".join([str(pr["status"]), hb.cb1_topic(pr), str(pr.get("created_at") or "")[:7] or "unknown"]),
+                              []).append(pr["market_id"])
     chosen, srep = draw_tail_sample(strata, n_markets, seed)
+    if parent:
+        chosen = {m: v for m, v in chosen.items() if m not in parent_ids}
+        srep = {**srep, "n": len(chosen), "own_pool": own_pool, "parent_in_pool": len(parent["rows"]),
+                "union_pool_exceeds_n_markets": srep["pool"] > n_markets}
     strata.clear()
     picked: dict[str, tuple[dict, dict]] = {}
     for rec in iter_partial(pp):
@@ -919,7 +992,8 @@ def build_frame_outputs(fr: TailRun, *, cutoff_epoch: float, excl_ids: set[str],
     kd = {"exclusion_key_types": list(KEY_TYPES), **key_drops}
     fr.budget.write(rdir / "key_drops.json", json.dumps(kd, indent=1, sort_keys=True).encode())
     report = {"frame_version": hb.FRAME_VERSION, "t_fetch8": _iso(t_fetch), "end_cutoff": _iso(cutoff_epoch),
-              "windows_per_day": WINDOWS_PER_DAY, "window_minutes": WINDOW_MINUTES, "pages_per_window": PAGES_PER_WINDOW,
+              "windows_per_day": windows_per_day, "window_minutes": WINDOW_MINUTES, "pages_per_window": PAGES_PER_WINDOW,
+              **({"topup": parent["meta"]} if parent else {}),
               **walk, **counts, "sample": srep, "n_sample": len(ids), "n_sample_without_origin": no_origin,
               "n_origins": len(origins), "key_drops": kd, "outcomes_censored_post_cap": censored_post_cap}
     fr.budget.write(rdir / "frame_report.json", json.dumps(report, indent=1, sort_keys=True, default=float).encode())
@@ -1083,6 +1157,47 @@ def file_hashes(rdir: Path, exclude: tuple[str, ...] = ("manifest.json",)) -> di
     return {k: v for k, v in h5_seal.list_files(rdir).items() if k not in exclude}
 
 
+def load_topup_parent(root: Path, parent_id: str = RUN_ID, *, job: str = "cb6_tail:h8_tail_b_exclusion") -> dict:
+    """Amendment A-T1 parent (h8_tail) for the top-up run: must be ``tail_fetch_complete`` and not sealed; its ``T_fetch8`` is
+    read from ``request_clock.json`` and cross-checked with the manifest; its ``sample.csv.gz`` must equal the sha256 pinned
+    in its manifest ``file_sha256`` (a missing or changed file is a refusal). Only market ids and the sampling facts of the
+    sample rows are used (ids for the id exclusion, status / topic / month for the union strata); no outcome, price or print
+    is read. The read is appended to the parent's ``ACCESS_LOG.jsonl`` (unlisted, so the parent listing is unchanged)."""
+    pdir = Path(root) / parent_id
+    if (pdir / h5_seal.SEAL_NAME).exists():
+        raise Refused(f"{parent_id} is already sealed; the top-up window is closed")
+    mp = pdir / "manifest.json"
+    if not mp.exists():
+        raise Refused(f"{parent_id} has no manifest; the top-up needs a completed {parent_id}")
+    man = json.loads(mp.read_text())
+    if not (man.get("complete") is True and not man.get("stopped") and man.get("status") == COMPLETE_TOKEN):
+        raise Refused(f"{parent_id} is not {COMPLETE_TOKEN}; the top-up refuses")
+    cp = pdir / "request_clock.json"
+    if not cp.exists():
+        raise Refused(f"{parent_id} has no request_clock.json")
+    clock = json.loads(cp.read_text())
+    epoch = float(clock["request_clock_epoch"])
+    if man.get("request_clock_now") != _iso(epoch):
+        raise Refused(f"{parent_id} request clock {_iso(epoch)} differs from its manifest {man.get('request_clock_now')}")
+    want = (man.get("file_sha256") or {}).get("sample.csv.gz")
+    sp = pdir / "sample.csv.gz"
+    if not want or not sp.is_file():
+        raise Refused(f"{parent_id} sample.csv.gz or its manifest sha256 is missing")
+    got = h5_seal.sha256_file(sp)
+    if got != want:
+        raise Refused(f"{parent_id} sample.csv.gz sha256 {got} differs from its manifest {want}")
+    pparams = man.get("params") or {}
+    if pparams.get("windows_per_day") != WINDOWS_PER_DAY or pparams.get("seed") != SEED:
+        raise Refused(f"{parent_id} was not drawn with seed {SEED!r} and {WINDOWS_PER_DAY} window per day; windows would not nest")
+    rows = list(_read_csv_gz(sp))
+    h5_seal.log_access(pdir, job, ["sample.csv.gz"], declaration_sha=None)
+    meta = {"parent": parent_id, "request_clock_epoch": epoch, "request_clock_utc": _iso(epoch),
+            "parent_sample_sha256": got, "parent_manifest_sha256": h5_seal.sha256_file(mp),
+            "parent_rules_sha256": man.get("rules_sha256"), "parent_n_sample": len(rows),
+            "parent_windows_per_day": (man.get("params") or {}).get("windows_per_day")}
+    return {"epoch": epoch, "ids": {str(r["market_id"]) for r in rows}, "rows": rows, "meta": meta}
+
+
 def tail_fetch(
     root: Path, run_id: str, transport: hb.Transport, *, history_root: Path | None = None, seals_dir: Path | None = None,
     seal_paths: dict[str, Path] | None = None, rules_path: Path = RULES_FILE, smoke_path: Path = SMOKE_DEFAULT,
@@ -1095,17 +1210,26 @@ def tail_fetch(
     wall_clock: Callable[[], float] = time.time, t_seal_epoch: float = T_SEAL_EPOCH, snapshot_root: Path | None = None,
     health_every_s: float = 600.0, health_check: Callable[[float], tuple[bool, str]] | None = None,
     require_committed: bool = True, require_smoke: bool = True, data_dumps: Path | None = None,
-    data_dumps_cap_gb: float = DATA_DUMPS_FETCH_CAP_GB, stage: str = "all",
+    data_dumps_cap_gb: float = DATA_DUMPS_FETCH_CAP_GB, stage: str = "all", topup_of: str | None = None,
 ) -> dict:
     """One resumable chunk of the ``h8_tail`` fetch. Order (each stage idempotent, finished stages are skipped):
     refusals (rules hash, every exclusion file and its pin, smoke PASS, run id, root) -> terminal / deadline guard ->
     headroom (exit 75) -> exclusion keys (``> 2%`` ids without metadata: ``disjointness_unverified``, stop) -> frame walk
     -> filters, key drop, sample, origins, guarded outcomes -> per-market prices / prints / wallets -> tables and manifest.
     A chunk starts nothing at or after ``t_seal_epoch``; an incomplete run at T_seal is ``not_run_deadline``.
-    ``stage='keys'`` stops after the exclusion keys."""
+    ``stage='keys'`` stops after the exclusion keys.
+
+    ``run_id='h8_tail_b'`` (amendment A-T1, ``topup_of='h8_tail'``, ``windows_per_day=9``): walks only the window slots h8_tail
+    did not walk, with the request clock pinned to h8_tail's ``T_fetch8`` (``now`` is ignored), excludes h8_tail by market id and
+    samples over the union pool (see :func:`load_topup_parent`)."""
     root = Path(root)
     refuse_run_id(run_id)
     refuse_path(root)
+    is_b = run_id == RUN_ID_B
+    if is_b and (topup_of != RUN_ID or windows_per_day != TOPUP_WINDOWS_PER_DAY or seed != SEED):
+        raise Refused(f"{RUN_ID_B} needs topup_of={RUN_ID!r}, windows_per_day={TOPUP_WINDOWS_PER_DAY} and seed {SEED!r}")
+    if not is_b and topup_of:
+        raise Refused(f"{run_id} is not a top-up run; topup_of must be empty")
     history_root = Path(history_root or root)
     seals_dir = Path(seals_dir or SEALS_DIR)
     pins = list(EXCLUSION_PINS if pins is None else pins)
@@ -1116,6 +1240,13 @@ def tail_fetch(
     early = _guard_start(root, run_id, wall_clock, t_seal_epoch)
     if early is not None:
         return early
+    parent = None
+    if is_b:
+        parent = load_topup_parent(root, RUN_ID)
+        pinned = Path(root) / run_id / "request_clock.json"
+        if pinned.exists() and float(json.loads(pinned.read_text())["request_clock_epoch"]) != parent["epoch"]:
+            raise Refused(f"{run_id} request clock differs from {RUN_ID} T_fetch8; it is pinned to the parent's")
+        now = parent["epoch"]
     if data_dumps is not None:
         require_data_dumps_room(Path(data_dumps), data_dumps_cap_gb, disk_cap / 1024**3)
     ids = exclusion_ids(files, pins)
@@ -1123,7 +1254,9 @@ def tail_fetch(
         "seed": seed, "n_markets": n_markets, "created_from": created_from, "created_to": created_to, "end_from": end_from,
         "end_before_fetch_days": end_before_fetch_days, "windows_per_day": windows_per_day, "window_minutes": window_minutes,
         "pages_per_window": pages_per_window, "max_origins": max_origins, "price_fidelity": PRICE_FIDELITY,
-        "print_pages": PRINT_PAGES, "stage": stage}, rps=rps, disk_cap=disk_cap, budget_min=budget_min, now=now, sleep=sleep,
+        "print_pages": PRINT_PAGES, "stage": stage,
+        **({"topup": {**parent["meta"], "clock_pinned_to": f"{RUN_ID} T_fetch8", "skip_parent_windows": WINDOWS_PER_DAY}}
+           if parent else {})}, rps=rps, disk_cap=disk_cap, budget_min=budget_min, now=now, sleep=sleep,
         live_check=live_check, wall_clock=wall_clock, t_seal_epoch=t_seal_epoch, snapshot_root=snapshot_root,
         health_every_s=health_every_s, health_check=health_check, cap_at=cap_at, key=key)
     fr.rules_sha256 = rules_sha
@@ -1168,12 +1301,14 @@ def tail_fetch(
 
             stopped = walk_tail_frame(fr.lim, frame_days(c4._ep(end_from), cutoff), seed, rdir=rdir, cutoff_epoch=cutoff,
                                       should_stop=walk_stop, windows_per_day=windows_per_day, window_minutes=window_minutes,
-                                      pages_per_window=pages_per_window)
+                                      pages_per_window=pages_per_window,
+                                      skip_parent_windows=WINDOWS_PER_DAY if is_b else 0)
             if stopped:
                 return transient(why_stop[-1] if why_stop else stopped)
             build_frame_outputs(fr, cutoff_epoch=cutoff, excl_ids=ids, excl_keys=load_key_sets(rdir / "exclusion_keys.csv.gz"),
                                 n_markets=n_markets, seed=seed, t_fetch=t_fetch, max_origins=max_origins,
-                                created_from=created_from, created_to=created_to)
+                                created_from=created_from, created_to=created_to, windows_per_day=windows_per_day,
+                                parent=parent)
     except Refused:
         raise
     except OSError as exc:
@@ -1297,7 +1432,9 @@ def run_smoke(lim: hb.Limiter, files: dict[str, Path], pins, rules_sha: str) -> 
             "supersedes": SMOKE_V1_RECORD["copy_sha256"]}
 
 
-def smoke_ok(path: Path, rules_sha: str) -> dict:
+def smoke_ok(path: Path, rules_sha: str, carry_over: dict | None = SMOKE_CARRY_OVER) -> dict:
+    """A smoke PASS made under ``rules_sha``, or (explicit carry-over declared in the rules file) the pinned smoke v2 PASS
+    made under the rules hash ``carry_over['from_rules_sha256']``: the file's own sha256 must equal the pinned one."""
     p = Path(path)
     if not p.exists():
         raise Refused(f"smoke result {p} not found; run tail-smoke first")
@@ -1310,7 +1447,11 @@ def smoke_ok(path: Path, rules_sha: str) -> dict:
     if d.get("smoke_version") != SMOKE_VERSION:
         raise Refused(f"smoke result {p} is {d.get('smoke_version')}, not {SMOKE_VERSION}")
     if d.get("rules_sha256") != rules_sha:
-        raise Refused(f"smoke result {p} was made under another rules hash")
+        co = carry_over or {}
+        if not (co and d.get("rules_sha256") == co.get("from_rules_sha256")
+                and h5_seal.sha256_file(p) == co.get("smoke_file_sha256")):
+            raise Refused(f"smoke result {p} was made under another rules hash (and is not the pinned carry-over PASS)")
+        return {**d, "carried_over_to_rules_sha256": rules_sha}
     return d
 
 
@@ -1355,7 +1496,7 @@ def event_key_split(rows: list[dict], seed: str = SPLIT_SEED) -> dict[str, tuple
 
 
 # hashed into the rules file (fetch rules and the split); defined after the functions it names
-RULE_FUNCS = (class_d, has_clarification, monday_grid, draw_origins, frame_filter_reason, key_types_matched,
+RULE_FUNCS = (window_picks, topup_window_picks, class_d, has_clarification, monday_grid, draw_origins, frame_filter_reason, key_types_matched,
               sample_weight_of, usable_point, qualifying_buyers, hb._rank, hb.allocate_weighted, event_key_split,
               hb.cb1_topic, _is_weather, tail_row, smoke_pool, run_smoke)
 
@@ -1390,19 +1531,65 @@ def h7_ids_from_copy(path: Path) -> set[str]:
     return ids
 
 
+def _check_fetched_files(rdir: Path, man: dict, run_id: str) -> None:
+    want_hashes = man.get("file_sha256")
+    if not isinstance(want_hashes, dict) or not want_hashes:
+        raise Refused(f"{run_id} manifest has no file_sha256; refusing to seal")
+    for rel, want in sorted(want_hashes.items()):
+        fp = rdir / rel
+        if not fp.is_file():
+            raise Refused(f"fetched file missing at seal: {run_id}/{rel}")
+        if h5_seal.sha256_file(fp) != want:
+            raise Refused(f"fetched file sha256 differs from the fetch manifest: {run_id}/{rel}")
+
+
+def topup_state(root: Path, topup_id: str, *, wall_clock: Callable[[], float] = time.time,
+                t_seal_epoch: float = T_SEAL_EPOCH) -> tuple[str, str]:
+    """State of the A-T1 top-up run: ``('complete', '')``, ``('dropped', reason)`` or ``('pending', reason)``. Every
+    non-complete ending drops the run entirely (``not_run_deadline``, ``disk_budget``, ``disjointness_unverified``, a
+    refusal that left no run, or an incomplete run once ``T_seal`` has passed: then it is marked not run). Before ``T_seal``
+    a run that is merely unfinished or not started is ``pending``."""
+    bdir = Path(root) / topup_id
+    if (bdir / NOT_RUN_FILE).exists():
+        return "dropped", NOT_RUN_TOKEN
+    if (bdir / UNVERIFIED_FILE).exists():
+        return "dropped", UNVERIFIED_TOKEN
+    mp = bdir / "manifest.json"
+    man = json.loads(mp.read_text()) if mp.exists() else None
+    if man is not None:
+        if man.get("complete") is True and not man.get("stopped") and man.get("status") == COMPLETE_TOKEN:
+            return "complete", ""
+        st = str(man.get("status") or "")
+        if st in (NOT_RUN_TOKEN, UNVERIFIED_TOKEN, DISK_BUDGET_TOKEN) or str(man.get("stopped") or "").startswith("disk_budget"):
+            return "dropped", st or DISK_BUDGET_TOKEN
+    if wall_clock() >= t_seal_epoch:
+        if man is None:
+            return "dropped", "never_started_by_T_seal"
+        mark_not_run(bdir, "incomplete at seal time after T_seal")
+        return "dropped", NOT_RUN_TOKEN
+    return "pending", "not started" if man is None else f"in progress ({man.get('stopped')})"
+
+
 def seal_tail(root: Path, run_id: str, *, transport: hb.Transport | None = None, seals_dir: Path | None = None,
               h7_seals_dir: Path | None = None, trials_path: Path | None = None, rps: float = 2.0,
               recheck_keys: bool = True, sleep: Callable[[float], None] = time.sleep, location: dict | None = None,
               live_check: Callable[[], bool] | None = None, wall_clock: Callable[[], float] = time.time,
-              t_seal_epoch: float = T_SEAL_EPOCH) -> dict:
+              t_seal_epoch: float = T_SEAL_EPOCH, topup_run_id: str | None = None) -> dict:
     """q0121. Only a ``tail_fetch_complete`` run is sealed. Re-checks every sampled market against
     ``exclusion_keys.csv.gz`` (residual drops, expected 0); waits for both h7 runs to be terminal (``NotNow`` otherwise)
     and drops any h8 market whose id is in an h7 seal copy or that shares an event id, ``negRiskMarketID`` or series id with
     such a market (Gamma lookup by id, ``rps`` 2); writes ``split.csv.gz`` (market_id, event_key, block with SCREEN,
     HOLDOUT, DROPPED_KEY, DROPPED_H7), ``h7_drop.csv.gz``, ``key_recheck.json``; seals (listing hash over every file but
     SEAL.json and ACCESS_LOG.jsonl, one ``history_seal_declaration`` trial line) and writes the committed copy
-    ``seals/h8_tail_SEAL.json``."""
-    refuse_run_id(run_id)
+    ``seals/h8_tail_SEAL.json``.
+
+    Amendment A-T1: ``topup_run_id='h8_tail_b'`` seals the two runs together. ``pending`` top-up -> ``NotNow``; a top-up that
+    ended in any way but complete is dropped entirely (recorded in the seal; h8_tail is sealed alone); a complete top-up must
+    have all manifest file hashes verified, the same ``T_fetch8`` as h8_tail and no market id in common with it. Then the
+    h7 drops, the key re-check and the event-hash split run over the union rows (one ``split.csv.gz`` with a ``run``
+    column, one listing ``union_listing_sha256`` over both runs' file tables, one trial line, one seal copy). Without
+    ``topup_run_id`` a completed ``h8_tail_b`` next to the run is refused: the union is used whenever it completes."""
+    refuse_run_id(run_id, (RUN_ID,))
     rdir = Path(root) / run_id
     mp = rdir / "manifest.json"
     if (rdir / NOT_RUN_FILE).exists() or (rdir / UNVERIFIED_FILE).exists():
@@ -1410,23 +1597,56 @@ def seal_tail(root: Path, run_id: str, *, transport: hb.Transport | None = None,
     man = json.loads(mp.read_text()) if mp.exists() else {}
     if not (man.get("complete") is True and not man.get("stopped") and man.get("status") == COMPLETE_TOKEN):
         raise Refused(f"{run_id} is not {COMPLETE_TOKEN}; refusing to seal")
-    want_hashes = man.get("file_sha256")
-    if not isinstance(want_hashes, dict) or not want_hashes:
-        raise Refused(f"{run_id} manifest has no file_sha256; refusing to seal")
-    for rel, want in sorted(want_hashes.items()):
-        fp = rdir / rel
-        if not fp.is_file():
-            raise Refused(f"fetched file missing at seal: {rel}")
-        if h5_seal.sha256_file(fp) != want:
-            raise Refused(f"fetched file sha256 differs from the fetch manifest: {rel}")
+    _check_fetched_files(rdir, man, run_id)
+    topup: dict = {"status": "none"}
+    bdir = None
+    if topup_run_id:
+        refuse_run_id(topup_run_id, (RUN_ID_B,))
+        bdir = Path(root) / topup_run_id
+        state, why = topup_state(root, topup_run_id, wall_clock=wall_clock, t_seal_epoch=t_seal_epoch)
+        if state == "pending":
+            raise NotNow(f"{topup_run_id} not terminal yet: {why}")
+        topup = {"run_id": topup_run_id, "status": state, **({"reason": why} if why else {})}
+    else:
+        alone, why = topup_state(root, RUN_ID_B, wall_clock=lambda: 0.0, t_seal_epoch=T_SEAL_EPOCH)
+        if alone == "complete":
+            raise Refused(f"{RUN_ID_B} is {COMPLETE_TOKEN}: the union is used whenever it completes; seal with topup_run_id")
+        if (Path(root) / RUN_ID_B / "manifest.json").exists():
+            topup = {"run_id": RUN_ID_B, "status": "dropped", "reason": why or "not complete"}
     h7dir = Path(h7_seals_dir or seals_dir or SEALS_DIR)
     states = {h: h7_state(h, h7dir) for h in H7_RUN_IDS}
     pending = [h for h, (s, _) in states.items() if s == "pending"]
     if pending:
         raise NotNow(f"h7 runs not terminal yet: {pending}")
-    sample = list(_read_csv_gz(rdir / "sample.csv.gz"))
-    sample_ids = {r["market_id"] for r in sample}
+    sample = [{**r, "_run": run_id} for r in _read_csv_gz(rdir / "sample.csv.gz")]
     excl = load_key_sets(rdir / "exclusion_keys.csv.gz")
+    union_listing = None
+    if topup["status"] == "complete":
+        assert bdir is not None
+        bman = json.loads((bdir / "manifest.json").read_text())
+        if (bdir / h5_seal.SEAL_NAME).exists():
+            raise Refused(f"{topup_run_id} is sealed on its own; the union seal refuses it")
+        _check_fetched_files(bdir, bman, topup_run_id)
+        if bman.get("request_clock_now") != man.get("request_clock_now"):
+            raise Refused(f"{topup_run_id} request clock {bman.get('request_clock_now')} != {run_id} {man.get('request_clock_now')}")
+        pin = ((bman.get("params") or {}).get("topup") or {}).get("parent_sample_sha256")
+        if pin != man["file_sha256"].get("sample.csv.gz"):
+            raise Refused(f"{topup_run_id} was drawn against another {run_id} sample.csv.gz than the one sealed")
+        bsample = [{**r, "_run": topup_run_id} for r in _read_csv_gz(bdir / "sample.csv.gz")]
+        common = {r["market_id"] for r in sample} & {r["market_id"] for r in bsample}
+        if common:
+            raise Refused(f"{run_id} and {topup_run_id} share {len(common)} market ids; the union seal refuses")
+        bkeys = load_key_sets(bdir / "exclusion_keys.csv.gz")
+        for k in excl:
+            excl[k] |= bkeys[k]
+        sample += bsample
+        files_b = h5_seal.list_files(bdir)
+        topup.update(files=files_b, listing_sha256=h5_seal.listing_sha256(files_b), n_sample=len(bsample),
+                     rules_sha256=bman.get("rules_sha256"), request_clock_now=bman.get("request_clock_now"),
+                     manifest_sha256=files_b.get("manifest.json"))
+        union_listing = "pending"  # computed after the last h8_tail file is written (a listed file must not contain it)
+    sample_ids = {r["market_id"] for r in sample}
+    run_of = {r["market_id"]: r["_run"] for r in sample}
     drop_key: dict[str, list[str]] = {}
     if recheck_keys:
         for r in sample:
@@ -1465,35 +1685,77 @@ def seal_tail(root: Path, run_id: str, *, transport: hb.Transport | None = None,
         elif mid in drop_h7:
             blk = "DROPPED_H7"
         n[blk] += 1
-        rows.append([mid, ek, blk])
+        rows.append([mid, ek, blk] + ([run_of[mid]] if union_listing else []))
     gz = lambda path, header, body: path.write_bytes(hb._gz_csv_bytes(header, body))  # noqa: E731
-    gz(rdir / "split.csv.gz", ["market_id", "event_key", "block"], rows)
+    gz(rdir / "split.csv.gz", ["market_id", "event_key", "block"] + (["run"] if union_listing else []), rows)
     gz(rdir / "h7_drop.csv.gz", ["market_id", "reason"], [[m, "+".join(w)] for m, w in sorted(drop_h7.items())])
     recheck = {"n_sample": len(sample_ids), "residual_key_matches": len(drop_key),
                "by_type": {t: sum(t in v for v in drop_key.values()) for t in KEY_TYPES}, "expected": 0,
                "h7": {h: s for h, (s, _) in states.items()}, "h7_ids": len(h7_ids), "h7_ids_without_metadata": h7_missing,
-               "h7_dropped": len(drop_h7), "recheck_keys": recheck_keys}
+               "h7_dropped": len(drop_h7), "recheck_keys": recheck_keys,
+               "topup": {k: v for k, v in topup.items() if k not in ("files", "union_listing_sha256")}}
     (rdir / "key_recheck.json").write_text(json.dumps(recheck, indent=1, sort_keys=True))
     split_sha = h5_seal.sha256_file(rdir / "split.csv.gz")
+    if union_listing:
+        topup["union_listing_sha256"] = h5_seal.listing_sha256(
+            {**{f"{run_id}/{k}": v for k, v in h5_seal.list_files(rdir).items()},
+             **{f"{topup_run_id}/{k}": v for k, v in topup["files"].items()}})
     decl = {"dataset_role": "CB6-T h8_tail: SCREEN (Stage 1) and HOLDOUT (Stage 2, sealed) event-hash split; exploratory_historical, "
                             "not prospective, not an edge claim",
             "read_rules": "verify the listing hash first; append every read to ACCESS_LOG.jsonl; the runner refuses HOLDOUT until "
                           "Stage 1 of CB6-T is final and committed; outcomes only from outcomes_guarded.csv.gz; DROPPED_* blocks "
                           "are never read",
-            "information_end": "manifest request_clock_now (T_fetch8) < T_seal of h4_seal"}
+            "information_end": "manifest request_clock_now (T_fetch8) < T_seal of h4_seal",
+            "topup": {k: v for k, v in topup.items() if k in ("run_id", "status", "reason", "listing_sha256", "union_listing_sha256")}}
     extra = {"split": {"seed": SPLIT_SEED, "rule": SPLIT_RULE, "counts": n, "split_sha256": split_sha},
-             "read_location": location or read_location(Path(root)), "key_recheck": recheck,
+             "read_location": location or read_location(Path(root)), "key_recheck": recheck, "topup": topup,
              "rules_sha256": man.get("rules_sha256"), "t_fetch8": man.get("request_clock_now")}
     seal = h5_seal.seal_run(rdir, trials_path=trials_path, declaration_base=decl, extra=extra, source="creative_batch_6:cb6_f_seal")
     copy = h5_seal.write_committed_copy(rdir, seals_dir)
     return {"run_id": run_id, "sealed": True, "listing_sha256": seal["listing_sha256"], "committed_copy": str(copy),
-            "split_counts": n, "residual_key_matches": len(drop_key), "h7_dropped": len(drop_h7)}
+            "split_counts": n, "residual_key_matches": len(drop_key), "h7_dropped": len(drop_h7),
+            "topup": {k: v for k, v in topup.items() if k != "files"}}
 
 
 def verify_tail(root: Path, run_id: str, seals_dir: Path | None = None) -> dict:
+    """The CB6-T read guard: the h8_tail seal verifies against the committed copy and, when the seal records a complete
+    top-up, the h8_tail_b file table is re-verified (no modified, missing or extra file) and the union listing recomputed."""
     rdir = Path(root) / run_id
-    return h5_seal.require_sealed(rdir, h5_seal.committed_seal_path(run_id, seals_dir))
+    seal = h5_seal.require_sealed(rdir, h5_seal.committed_seal_path(run_id, seals_dir))
+    tp = seal.get("topup") or {}
+    if tp.get("status") == "complete":
+        bid = tp["run_id"]
+        bdir = Path(root) / bid
+        sealed = dict(tp.get("files") or {})
+        if h5_seal.listing_sha256(sealed) != tp.get("listing_sha256"):
+            raise SealError(f"{bid}: sealed file table does not match its listing hash")
+        now = h5_seal.list_files(bdir) if bdir.is_dir() else {}
+        if now != sealed:
+            bad = sorted(r for r in sealed if r in now and now[r] != sealed[r])
+            missing = sorted(set(sealed) - set(now))
+            extra = sorted(set(now) - set(sealed))
+            raise SealError(f"{bid}: top-up verification failed: modified={bad[:5]} missing={missing[:5]} extra={extra[:5]}")
+        union = h5_seal.listing_sha256({**{f"{run_id}/{k}": v for k, v in seal["files"].items()},
+                                        **{f"{bid}/{k}": v for k, v in sealed.items()}})
+        if union != tp.get("union_listing_sha256") or union != (seal.get("declaration", {}).get("topup") or {}).get("union_listing_sha256"):
+            raise SealError(f"{run_id}: union listing hash does not match the seal")
+    return seal
+
+
+def read_tail_sealed(root: Path, run_id: str, job: str, globs: list[str], seals_dir: Path | None = None) -> list[Path]:
+    """CB6-T reader: :func:`verify_tail` (both runs), then the matching files of h8_tail and (when sealed with it) h8_tail_b;
+    one record per read in h8_tail's ``ACCESS_LOG.jsonl``. Nothing matching is an error."""
+    seal = verify_tail(root, run_id, seals_dir)
+    dirs = [Path(root) / run_id]
+    tp = seal.get("topup") or {}
+    if tp.get("status") == "complete":
+        dirs.append(Path(root) / tp["run_id"])
+    paths = sorted({p for d in dirs for g in globs for p in d.glob(g) if p.is_file()})
+    if not paths:
+        raise SealError(f"{run_id}: no file matches {globs}")
+    h5_seal.log_access(dirs[0], job, globs, declaration_sha=seal["declaration_sha256"])
+    return paths
 
 
 __all__ = ["RUN_ID", "Refused", "NotNow", "tail_fetch", "seal_tail", "verify_tail", "run_smoke", "write_rules", "verify_rules",
-           "rules_file_doc", "exclusion_stage", "walk_tail_frame", "build_frame_outputs", "draw_origins", "qualifying_buyers"]
+           "rules_file_doc", "read_tail_sealed", "exclusion_stage", "walk_tail_frame", "build_frame_outputs", "draw_origins", "qualifying_buyers"]
