@@ -1,6 +1,6 @@
 # ruff: noqa: E501
 """CB8 runner, collection and fetch side (docs/research_lab/CREATIVE_BATCH_8.md CB8-H "Collection", CB8-W "Data", CB8-F). Run from
-cwd=backend (queue worker). EXPLORATORY / PROSPECTIVE DATA ONLY: no edge, calibration or profitability claim; no analysis code here.
+cwd=backend (queue worker). EXPLORATORY / PROSPECTIVE DATA ONLY: no edge, calibration or profitability claim. The B analysis lives in cb8_b_analysis.
 
     python scripts/run_cb8.py rules --which holders|flow    # write docs/research_lab/seals/cb8_holders_rules_v3.json | cb8_flow_rules.json (commit first)
     python scripts/run_cb8.py key-fingerprint               # print the strict-loaded key's fingerprint (never the key)
@@ -16,6 +16,10 @@ cwd=backend (queue worker). EXPLORATORY / PROSPECTIVE DATA ONLY: no edge, calibr
     python scripts/run_cb8.py exclusion-keys ...            # q0164: ids and event / neg-risk / series keys of every prior sample and seal copy
     python scripts/run_cb8.py updown-frame ...              # q0165: Gamma frame, rule-text checks, week split, Binance 1m archive (outcome guard)
     python scripts/run_cb8.py updown-books ...              # q0166: pmxt coverage audit, book states at the checkpoints, last-15-minute prints, HOLDOUT seal
+    python scripts/run_cb8.py rules --which b-analysis      # write docs/research_lab/seals/cb8_b_analysis_rules.json (B analysis rules; commit first)
+    python scripts/run_cb8.py census --family B[,W]         # q0169 (B part): counts only on SCREEN units + HOLDOUT file/day counts; GB, MDE; WRITE-ONCE
+    python scripts/run_cb8.py screen --family B             # q0170: B1 Stage 1 (after the CB8 freeze); results + seals/cb8_b1_stage1.json copy, WRITE-ONCE
+    python scripts/run_cb8.py replicate --family B          # q0174: B1-rep on HOLDOUT (only if B1 advanced; seal listing verified first)
 
 Exit codes: 0 ok / transient pause / idle heartbeat / terminal state (holders_collection_complete, holders_prints_complete,
 flow_fetch_complete, disjointness_unverified); 1 error; 2 refusal of a guard (rules hash, key missing / mode-unsafe / fingerprint
@@ -117,6 +121,13 @@ def cmd_rules(a) -> int:
             out = u.write_rules(Path(a.path) if a.path else u.RULES_FILE)
             doc = u.rules_file_doc()
             _emit({"written": str(out), "rules_sha256": doc["rules_sha256"], "funcs_sha256": doc["funcs_sha256"]})
+            return 0
+        if kind == "b-analysis":  # B analysis rules (q0169 B part / q0170 / q0174): a separate file, so the B data rules hash never changes
+            from astrolabe.research_lab import cb8_b_analysis as ba  # noqa: PLC0415
+
+            out = ba.write_rules(Path(a.path) if a.path else ba.RULES_FILE)
+            doc = ba.rules_file_doc()
+            _emit({"written": str(out), "rules_sha256": doc["rules_sha256"], "funcs_sha256": doc["funcs_sha256"], "b_data_rules_sha256": doc["data_rules_sha256"]})
             return 0
         path = Path(a.path) if a.path else (cm.HOLDERS_RULES_FILE if kind == "holders" else cm.FLOW_RULES_FILE)
         fp = a.key_fingerprint or cm.key_fingerprint(cm.load_wallet_key_strict(Path(a.wallet_key_path) if a.wallet_key_path else None))
@@ -373,6 +384,65 @@ def cmd_updown_books(a, cm):
     return _result(m, cm)
 
 
+# ---- B analysis (q0169 B part, q0170, q0174) -------------------------------------------------------------------------------------------------------------
+
+
+def _families(a, cm) -> list[str]:
+    fams = [f.strip().upper() for f in str(a.family).split(",") if f.strip()]
+    if not fams:
+        raise cm.Refused("--family is empty")
+    missing = [f for f in fams if f != "B"]
+    if missing:  # refuse before anything is read or written: only the B analysis exists
+        raise cm.Refused(f"{a.cmd} --family {','.join(missing)}: not implemented yet (only B); nothing was run")
+    return fams
+
+
+def _ba_setup(a, cm) -> dict:
+    """Guards shared by the B analysis commands: the B data rules and the B analysis rules (both committed and equal to the code), the root, and data-dumps
+    headroom (exit 75)."""
+    from astrolabe.research_lab import cb1_history  # noqa: PLC0415
+    from astrolabe.research_lab import cb8_b_analysis as ba  # noqa: PLC0415
+
+    commit = not a.allow_uncommitted_rules
+    data_sha = _b_rules(a)
+    ana_sha = ba.verify_analysis_rules(Path(a.analysis_rules) if a.analysis_rules else None, require_committed=commit)
+    root = _b_root(a, cm)
+    cm.require_room(Path(a.data_dumps) if a.data_dumps else cm.DATA_DUMPS, a.data_dumps_cap_gb, int(ba.OUTPUT_CAP_GB * 1024**3))
+    from astrolabe.research_lab import provenance  # noqa: PLC0415
+
+    return {"ba": ba, "data_sha": data_sha, "ana_sha": ana_sha, "root": root, "seals_dir": Path(a.seals_dir) if a.seals_dir else cm.SEALS_DIR,
+            "is_committed": cb1_history.spec_committed if commit else None, "trials": Path(a.trials_path) if a.trials_path else provenance.TRIALS_PATH, "commit": commit}
+
+
+@_guarded
+def cmd_census(a, cm):
+    _families(a, cm)
+    s = _ba_setup(a, cm)
+    res = s["ba"].run_census(s["root"], data_rules_sha=s["data_sha"], analysis_rules_sha=s["ana_sha"], seals_dir=s["seals_dir"], is_committed=s["is_committed"],
+                             trials_path=s["trials"])
+    return 0, res
+
+
+@_guarded
+def cmd_screen(a, cm):
+    _families(a, cm)
+    s = _ba_setup(a, cm)
+    freeze = s["ba"].require_freeze(Path(a.freeze_spec) if a.freeze_spec else None, s["ana_sha"], s["data_sha"], require_committed=s["commit"])
+    res = s["ba"].screen_b(s["root"], data_rules_sha=s["data_sha"], analysis_rules_sha=s["ana_sha"], freeze_sha=freeze, seals_dir=s["seals_dir"],
+                           is_committed=s["is_committed"], trials_path=s["trials"])
+    return 0, res
+
+
+@_guarded
+def cmd_replicate(a, cm):
+    _families(a, cm)
+    s = _ba_setup(a, cm)
+    freeze = s["ba"].require_freeze(Path(a.freeze_spec) if a.freeze_spec else None, s["ana_sha"], s["data_sha"], require_committed=s["commit"])
+    res = s["ba"].replicate_b(s["root"], data_rules_sha=s["data_sha"], analysis_rules_sha=s["ana_sha"], freeze_sha=freeze, seals_dir=s["seals_dir"],
+                              is_committed=s["is_committed"], trials_path=s["trials"])
+    return 0, res
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -396,7 +466,7 @@ def build_parser() -> argparse.ArgumentParser:
         q.add_argument("--budget-min", type=float, default=None)
 
     q = sub.add_parser("rules")
-    q.add_argument("--which", choices=("holders", "flow", "updown"), default="holders")
+    q.add_argument("--which", choices=("holders", "flow", "updown", "b-analysis"), default="holders")
     q.add_argument("--path", default=None)
     q.add_argument("--key-fingerprint", default=None, help="16 hex characters; default: computed from the strict-loaded key")
     q.add_argument("--wallet-key-path", default=None)
@@ -501,6 +571,31 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--audit-days", type=int, default=20)
     q.add_argument("--disk-cap-gb", type=float, required=True)
     q.set_defaults(fn=cmd_updown_books)
+
+    def acommon(q: argparse.ArgumentParser, *, freeze: bool) -> None:
+        q.add_argument("--family", required=True, help="B (W and H analysis not implemented yet; refused)")
+        q.add_argument("--root", default=None, help="creative_batch8 root (default data-dumps/research_lab/creative_batch8)")
+        q.add_argument("--rules", default=None, help="B data rules (default docs/research_lab/seals/cb8_rules_v2.json)")
+        q.add_argument("--analysis-rules", default=None, help="B analysis rules (default docs/research_lab/seals/cb8_b_analysis_rules.json)")
+        q.add_argument("--seals-dir", default=None)
+        q.add_argument("--data-dumps", default=None)
+        q.add_argument("--data-dumps-cap-gb", type=float, default=12.5)
+        q.add_argument("--trials-path", default=None)
+        q.add_argument("--allow-uncommitted-rules", action="store_true", help="tests / off-host only: skip every committed-file check")
+        if freeze:
+            q.add_argument("--freeze-spec", default=None, help="default backend/astrolabe/research_lab/model_specs/cb8_v1.json")
+
+    q = sub.add_parser("census")
+    acommon(q, freeze=False)
+    q.set_defaults(fn=cmd_census)
+
+    q = sub.add_parser("screen")
+    acommon(q, freeze=True)
+    q.set_defaults(fn=cmd_screen)
+
+    q = sub.add_parser("replicate")
+    acommon(q, freeze=True)
+    q.set_defaults(fn=cmd_replicate)
     return ap
 
 

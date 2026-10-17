@@ -163,6 +163,20 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "CB5 descriptive lines (census, seed strata, incidence and persistence curves, r_inc, sports strata, "
         "J4 wide-state counts, K activity controls, gates and reported variants); no inference, not a test.",
     ),
+    "cb8_test": (
+        EXCLUDE,
+        "CB8 Stage-1 per-test lines (B1, W1, H1); counted by the matching 'creative_batch_8:*' ml_explain count line "
+        "(n_tests). Placebo lines count 0.",
+    ),
+    "cb8_replication": (
+        EXCLUDE,
+        "CB8 Stage-2 per-test lines (B1-rep, W1-rep, H1-rep); counted by the matching 'creative_batch_8:*' ml_explain "
+        "count line (n_tests). Placebo lines count 0.",
+    ),
+    "cb8_descriptive": (
+        EXCLUDE,
+        "CB8 descriptive lines (census, gates, strata, reported variants, attribution labels); no inference, not a test.",
+    ),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "
