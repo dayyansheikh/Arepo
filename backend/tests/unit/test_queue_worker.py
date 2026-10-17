@@ -46,3 +46,9 @@ def test_existing_transitions_unchanged():
 
 def test_exit_75_constant():
     assert qw.TEMPFAIL_RC == 75
+
+
+def test_parked_job_never_starts_until_retry():
+    spec = {"max_retries": 1, "depends_on": []}
+    assert not qw.ready(spec, {"status": "parked", "attempts": 0})
+    assert qw.ready(spec, {"status": "queued", "attempts": 0})

@@ -30,7 +30,8 @@ A job exiting 75 (EX_TEMPFAIL) is a precondition refusal: status retry_wait with
 counted, attempts.jsonl records outcome `tempfail`; after 48 consecutive tempfails the job is marked failed.
 
 Manual control (on the host):
-    queue_worker.py status | pause | resume | stop (SIGTERM running job and pause) | retry <id>
+    queue_worker.py status | pause | resume | stop (SIGTERM running job and pause) | retry <id> | cancel <id>
+    | park <id> (kept as a backup: never started until `retry <id>`)
 """
 
 from __future__ import annotations
@@ -188,7 +189,7 @@ def reconcile(specs: dict) -> None:
 
 
 def ready(spec: dict, st: dict) -> bool:
-    if st["status"] in ("done", "failed", "invalid", "running", "cancelled"):
+    if st["status"] in ("done", "failed", "invalid", "running", "cancelled", "parked"):
         return False
     if st["attempts"] > spec["max_retries"]:
         return False
@@ -382,8 +383,13 @@ def main(argv: list[str]) -> int:
                 print(f"SIGTERM -> {jid}")
     elif cmd == "retry":
         st = load_state(argv[2])
-        if st["status"] in ("failed", "interrupted", "retry_wait", "cancelled"):
+        if st["status"] in ("failed", "interrupted", "retry_wait", "cancelled", "parked"):
             st.update(status="queued", not_before=None, attempts=0, tempfails=0)
+            save_state(st)
+    elif cmd == "park":  # backup: e.g. a job that needs more memory than this host has; `retry <id>` revives it
+        st = load_state(argv[2])
+        if st["status"] != "running":
+            st["status"] = "parked"
             save_state(st)
     elif cmd == "cancel":
         st = load_state(argv[2])

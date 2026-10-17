@@ -49,6 +49,7 @@ and session ends; nothing here calls Claude or any paid API.
 - `failed` (retries exhausted)
 - `invalid` (bad spec)
 - `cancelled`
+- `parked` (kept as a backup, never started until `retry <id>`; e.g. needs more memory than this host)
 
 ## Manual control (on the host)
 ```bash
@@ -60,6 +61,7 @@ $Q resume
 $Q stop              # pause + SIGTERM the running job (re-queued, not counted as a failure)
 $Q retry <id>        # re-queue a failed/interrupted job with a fresh retry budget
 $Q cancel <id>
+$Q park <id>         # keep as a backup; `retry <id>` revives it
 ```
 To remove the worker completely, delete its two lines from `crontab -e`.
 
