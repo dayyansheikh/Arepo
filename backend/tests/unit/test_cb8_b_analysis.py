@@ -448,7 +448,7 @@ def test_freeze_spec_guard(tmp_path):
 def test_runner_exit_codes_refusal_headroom_and_freeze(tmp_path, capsys):
     rules = ba.write_rules(tmp_path / "ar.json")
     base = ["--allow-uncommitted-rules", "--analysis-rules", str(rules), "--root", str(tmp_path / "cb8"), "--trials-path", str(tmp_path / "t.jsonl")]
-    assert script.main(["census", "--family", "B,W", *base]) == 2  # W is not implemented: refused before anything runs
+    assert script.main(["census", "--family", "B,W", *base]) == 2  # refused (no W input / no B run here): nothing is written
     dd = tmp_path / "dd"
     dd.mkdir()
     (dd / "big").write_bytes(b"x" * 4096)
@@ -456,4 +456,5 @@ def test_runner_exit_codes_refusal_headroom_and_freeze(tmp_path, capsys):
     assert script.main(["screen", "--family", "B", *base, "--data-dumps", str(dd), "--data-dumps-cap-gb", "14", "--freeze-spec", str(tmp_path / "none.json")]) == 2
     assert script.main(["replicate", "--family", "H", *base]) == 2
     out = capsys.readouterr().out
-    assert "not implemented" in out and "headroom" in out and "freeze" in out
+    assert "refused" in out and "headroom" in out and "freeze" in out
+    assert not (tmp_path / "cb8" / ba.CENSUS_NAME).exists()
