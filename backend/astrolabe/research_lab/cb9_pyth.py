@@ -578,6 +578,9 @@ def pyth_frame(root: Path, transport, *, rules_sha: str, smoke_path: Path, exclu
 
     c9.require_after_t_seal(now, "pyth-frame")
     root = c9.refuse_path(Path(root))
+    own = c9.stall_of(root / "pyth_frame")
+    if own:  # stalls are sticky (re-check fix c): a re-run never overwrites a stall manifest with pyth_frame_complete
+        return own
     bad = [k for k in ("yahoo_clock", "gamma_paging") if not sg.smoke_criterion(smoke_path, k)]
     if bad:  # M5: terminal stall, exit 0, labelled
         return c9.write_stall(root / "pyth_frame", c9.STALL_NOT_RUN_SOURCE, f"smoke criteria {bad} failed")

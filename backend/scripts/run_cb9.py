@@ -246,7 +246,8 @@ def cmd_sign_audit(a):
         m = sg.sign_audit(root / "sign", s, hb.httpx_transport(), sg.httpx_post(), key=key, fp=fp, rules_sha=sha, now=time.time(),
                           smoke_path=Path(a.smoke) if a.smoke else c9.SMOKE_DEFAULT, cb7_keys_path=Path(a.cb7_keys) if a.cb7_keys else None,
                           seals_dir=Path(a.seals_dir) if a.seals_dir else None, is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed,
-                          disk_cap=int(a.disk_cap_gb * 1024**3), s0b_input=(lambda: sg.kd_s0b_input(root)) if s == "b" else None, **kw)
+                          disk_cap=int(a.disk_cap_gb * 1024**3), s0b_input=(lambda: sg.kd_s0b_input(root)) if s == "b" else None,
+                          s0b_stall=(lambda: sg.kd_upstream_stall(root)) if s == "b" else None, **kw)
         code, payload = _result(m)
         out[s] = {**payload, "label": m.get("label")}
         if code or m.get("status") not in ("sign_audit_complete", *c9.STALL_STATUSES):
@@ -610,6 +611,39 @@ def _p_advanced(root: Path) -> bool:
     return bool((d.get("P1") or {}).get("advance") or (d.get("P2") or {}).get("advance"))
 
 
+LIVE_COMPLETE, LIVE_COMPLETE_FILE = "pyth_live_complete", "COMPLETE.json"  # status printed by the CLI (q0195 repeat regex) and the marker rep-P requires
+LIVE_LOOKAHEAD_S = 35 * 60  # queue re-run gap: 30 min exit-75 wait + 2 min cron tick; a step due within this look-ahead is waited for inside the run
+REP_P_WAIT_AFTER_END_S = 2 * 86400  # rep-P waits until the last session's end + 2 d (settlement and outcomes)
+
+
+def live_due_times(ldir: Path, day: str) -> list[float]:
+    """Epochs of the not-yet-done q0195 steps of one session (pre-open fetch, the three checkpoints, the post-close step)."""
+    py = _py()
+    sp = Path(ldir) / day / "state.json"
+    steps = json.loads(sp.read_text()).get("steps", {}) if sp.exists() else {}
+    out = [] if "pre" in steps else [py.et_epoch(day, 8, 0)]
+    out += [t for ci, _e, t in py.checkpoints(day) if f"ckpt{ci}" not in steps]
+    if "post" not in steps:
+        out.append(py.et_epoch(day, *py.close_et(day)) + 1800)
+    return out
+
+
+def wait_until_due(ldir: Path, sessions: list[str], now: float, sleep, lookahead_s: float = LIVE_LOOKAHEAD_S) -> float | None:
+    """Sleep until the earliest pending step due within ``lookahead_s`` (+ 2 s); returns the epoch waited for, or None when nothing is due soon."""
+    py = _py()
+    due = [t for d in sessions if d in (py.et_day(now), py.et_day(now + lookahead_s)) for t in live_due_times(ldir, d) if now < t <= now + lookahead_s]
+    if not due:
+        return None
+    sleep(min(due) - now + 2.0)
+    return min(due)
+
+
+def _py():
+    from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
+
+    return py
+
+
 @_guarded
 def cmd_pyth_live(a):
     from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
@@ -628,12 +662,16 @@ def cmd_pyth_live(a):
     if t_freeze is None:
         raise c9.Refused("CB9 freeze commit time unknown")
     _rules(a, "pyth")
+    start_day = py.t9_p2_start(t_freeze)
+    ldir = root / "pyth_live"
+    now0 = time.time()
+    if now0 < py.et_epoch(start_day, 8, 0) - LIVE_LOOKAHEAD_S:  # re-check fix 3: before the window the job exits 75 at once (idle heartbeat every 10 h)
+        return 0, cm.idle(ldir, f"Stage-2 window starts {start_day} 08:00 ET", now0)
     cm.require_room(Path(a.data_dumps) if a.data_dumps else cm.DATA_DUMPS, a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
     ids, keys, _rep, _ = c9.load_exclusion_keys(Path(a.exclusion_keys) if a.exclusion_keys else c9.EXCLUSION_KEYS_DEFAULT)
     live = None if a.standalone else hb.live_pass_or_lock
     lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 1.0), live_check=live)
     ylim = hb.Limiter(py.yahoo_transport(), rps=min(a.rps, py.YAHOO_RPS), live_check=live)
-    ldir = root / "pyth_live"
     cache: dict[str, list[dict]] = {}
 
     def frame_markets(day: str) -> list[dict]:
@@ -670,14 +708,19 @@ def cmd_pyth_live(a):
             raise cm.ApiError(f"gamma outcome status {st}")
         return rows
 
-    res = py.pyth_live_tick(ldir, now=time.time(), start_day=py.t9_p2_start(t_freeze), frame_markets=frame_markets, yahoo_get=yahoo_get, book_get=book_get,
+    # A queue re-run comes about every 30 minutes (exit-75 wait), the checkpoint window is 10 minutes: when a step falls due within the look-ahead the run
+    # sleeps until it (re-check fix 3), so no checkpoint is missed by queue granularity.
+    wait_until_due(ldir, py.stage2_sessions(start_day), time.time(), time.sleep)
+    res = py.pyth_live_tick(ldir, now=time.time(), start_day=start_day, frame_markets=frame_markets, yahoo_get=yahoo_get, book_get=book_get,
                             prints_get=prints_get, outcome_get=outcome_get)
     if res["status"] == "idle":
         return 0, cm.idle(ldir, "no Stage-2 step due", time.time())
+    if res["status"] == LIVE_COMPLETE:  # marker read by rep-P (re-check fix 4)
+        cm.write_json_atomic(ldir / LIVE_COMPLETE_FILE, {"status": LIVE_COMPLETE, "utc": cm.iso(time.time())})
     return 0, res
 
 
-def rep_p_doc(root: Path) -> dict:
+def rep_p_doc(root: Path, now: float | None = None) -> dict:
     """P1-rep / P2-rep under the shared Stage-2 rule (M10): k derived from the Stage-1 results, early-finisher threshold alpha/k, and the floor,
     binding placebo and robustness checks evaluated at that threshold."""
     from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
@@ -690,6 +733,18 @@ def rep_p_doc(root: Path) -> dict:
         raise c9.Refused("CB9 freeze commit time unknown")
     sessions = py.stage2_sessions(py.t9_p2_start(t_freeze))
     ldir = root / "pyth_live"
+    # re-check fix 4: nothing is scored (and no trial line is written) before pyth-live is complete, T9_P2_end + 2 d has passed and every outcome is final;
+    # a pending session must never be scored "unavailable (source)".
+    t_now = time.time() if now is None else now
+    t_end = py.et_epoch(sessions[-1], 23, 59)
+    if not (ldir / LIVE_COMPLETE_FILE).exists():
+        raise c9.NotNow("rep-P: pyth-live (q0195) is not complete yet")
+    if t_now < t_end + REP_P_WAIT_AFTER_END_S:
+        raise c9.NotNow(f"rep-P: waits until T9_P2_end + 2 d ({sessions[-1]})")
+    pending = [d for d in sessions if (ldir / d / "state.json").exists()
+               and not ((json.loads((ldir / d / "state.json").read_text()).get("steps") or {}).get("outcomes") or {}).get("final")]
+    if pending:
+        raise c9.NotNow(f"rep-P: outcomes not final for {len(pending)} session(s), e.g. {pending[0]}")
     frames = {d: json.loads((ldir / d / "frame.json").read_text()) for d in sessions if (ldir / d / "frame.json").exists()}
     outcomes = {}
     for d in sessions:
@@ -738,6 +793,51 @@ def cmd_rep(a):
     return 0, {"status": "rep_P_complete", "tests": [k for k in ("P1_rep", "P2_rep") if k in doc]}
 
 
+HALFDAY_COMPLETE, HALFDAY_DAY_DONE = "halfday_complete", "halfday_day_done"
+HALFDAY_DONE_FILE = "DONE.json"
+
+
+def halfday_next(hdir: Path, days: list[str]) -> str | None:
+    """The first declared half day without a ``DONE.json`` (the CLI prints ``halfday_complete`` when there is none)."""
+    for d in sorted(days):
+        if not (Path(hdir) / d / HALFDAY_DONE_FILE).exists():
+            return d
+    return None
+
+
+def halfday_session(hdir: Path, day: str, *, now_fn, sleep, frame_markets, book_get, yahoo_get) -> dict:
+    """One half session inside one run: wait for 13:05 ET (the caller checked it is within the look-ahead), poll every minute until 16:00 ET (``py.halfday_tick``
+    is idempotent per minute), then fetch the Yahoo 1-minute bars of the day once per ticker (a failure is recorded, never retried: descriptive, uncounted)
+    and write ``DONE.json``. A half day whose window passed unseen is recorded ``missed_window`` (never back-filled)."""
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    py = _py()
+    hdir = Path(hdir)
+    t0, t1 = py.et_epoch(day, *py.HALFDAY_POLL_ET[0]), py.et_epoch(day, *py.HALFDAY_POLL_ET[1])
+    if now_fn() > t1 and not list((hdir / day).glob("m*.json")):
+        cm.write_json_atomic(hdir / day / HALFDAY_DONE_FILE, {"status": "missed_window", "utc": cm.iso(now_fn())})
+        return {"status": HALFDAY_DAY_DONE, "day": day, "result": "missed_window"}
+    if now_fn() < t0:
+        sleep(t0 - now_fn() + 1.0)
+    ticks = 0
+    while now_fn() <= t1:
+        r = py.halfday_tick(hdir, now=now_fn(), days=[day], frame_markets=frame_markets, book_get=book_get)
+        ticks += int(r["status"] == "collected")
+        nxt = t0 + (int((now_fn() - t0) // 60) + 1) * 60
+        sleep(max(1.0, min(nxt, t1 + 1.0) - now_fn()))
+    tickers = sorted({m["ticker"] for m in frame_markets(day)})
+    yahoo: dict = {}
+    for tk in tickers:
+        try:
+            doc = yahoo_get(tk, py.et_epoch(day, 9, 30), py.et_epoch(day, 16, 0))
+            (hdir / day / f"yahoo_1m_{tk}.json").write_text(json.dumps(doc, default=float))
+            yahoo[tk] = "ok"
+        except Exception as exc:
+            yahoo[tk] = f"failed: {type(exc).__name__}"[:60]
+    cm.write_json_atomic(hdir / day / HALFDAY_DONE_FILE, {"status": "polled", "minutes_collected": ticks, "yahoo_1m": yahoo, "utc": cm.iso(now_fn())})
+    return {"status": HALFDAY_DAY_DONE, "day": day, "minutes_collected": ticks, "yahoo_1m": yahoo}
+
+
 @_guarded
 def cmd_halfday(a):
     from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
@@ -751,10 +851,18 @@ def cmd_halfday(a):
         raise c9.Refused(f"arguments differ from the declaration: days={a.days!r} (declared {HALFDAY_DAYS})")
     _rules(a, "pyth")
     root = _cb9_root(a)
+    hdir = root / "halfday"
+    now0 = time.time()
+    nxt = halfday_next(hdir, days)
+    if nxt is None:
+        return 0, {"status": HALFDAY_COMPLETE}
+    if now0 < py.et_epoch(nxt, *py.HALFDAY_POLL_ET[0]) - LIVE_LOOKAHEAD_S:  # re-check SHOULD-FIX a: exit 75 (idle heartbeat) until the next half day is near
+        return 0, cm.idle(hdir, f"next half session {nxt}", now0)
     cm.require_room(Path(a.data_dumps) if a.data_dumps else cm.DATA_DUMPS, a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
     ids, keys, _rep, _ = c9.load_exclusion_keys(Path(a.exclusion_keys) if a.exclusion_keys else c9.EXCLUSION_KEYS_DEFAULT)
-    lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 1.0), live_check=None if a.standalone else hb.live_pass_or_lock)
-    hdir = root / "halfday"
+    live = None if a.standalone else hb.live_pass_or_lock
+    lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 1.0), live_check=live)
+    ylim = hb.Limiter(py.yahoo_transport(), rps=min(a.rps, py.YAHOO_RPS), live_check=live)
     cache: dict[str, list[dict]] = {}
 
     def frame_markets(day: str) -> list[dict]:
@@ -768,10 +876,10 @@ def cmd_halfday(a):
             raise cm.ApiError(f"book status {st}")
         return doc, time.time()
 
-    res = py.halfday_tick(hdir, now=time.time(), days=days, frame_markets=frame_markets, book_get=book_get)
-    if res["status"] == "idle":
-        return 0, cm.idle(hdir, "no half-day poll due", time.time())
-    return 0, res
+    def yahoo_get(sym: str, p1: float, p2: float):
+        return py.yahoo_chart(ylim, sym, "1m", p1, p2)
+
+    return 0, halfday_session(hdir, nxt, now_fn=time.time, sleep=time.sleep, frame_markets=frame_markets, book_get=book_get, yahoo_get=yahoo_get)
 
 
 # ---- parser -------------------------------------------------------------------------------------------------------------------------------------

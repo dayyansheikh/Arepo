@@ -503,3 +503,81 @@ def test_s0b_feed_label_ruling_c():
     assert sg.feed_label({"ts": t13, "tx": "0xa", "asset": 1}, feed) == "SELL"
     assert sg.feed_label({"ts": t13, "tx": "0xb", "asset": 1}, feed) == "unmatched"
     assert sg.feed_label({"ts": t11, "tx": "0xa", "asset": 1}, feed) == "not_measured"
+
+
+# ---- focused re-check (2026-10-17): upstream K/D stall, feed label for unread lookback hours -----------------------------------------------
+
+
+def _smoke_ok(tmp_path):
+    smoke = tmp_path / "smoke.json"
+    smoke.write_text(json.dumps({"smoke_version": sg.SMOKE_VERSION, "criteria": {"receipts_v1": True, "receipts_v2": True}}))
+    return smoke
+
+
+@pytest.mark.parametrize("stalled_run", ["kd_frame", "kd"])
+def test_s0b_upstream_stall_is_a_stall_not_a_refusal(tmp_path, stalled_run):
+    root = tmp_path / "cb9"
+    c9.write_stall(root / stalled_run, c9.STALL_DISJOINTNESS if stalled_run == "kd_frame" else c9.STALL_UPSTREAM, "x", label="not testable (disjointness unverified)")
+    # no sample file exists anywhere: before the fix this was a FileNotFoundError / refusal (exit 2)
+    with pytest.raises(sg.UpstreamStall):
+        sg.kd_s0b_input(root)
+    m = sg.sign_audit(root / "sign", "b", None, None, key=KEY, fp="0" * 16, rules_sha="x", smoke_path=_smoke_ok(tmp_path), now=c9.T_SEAL_EPOCH + 1,
+                      s0b_input=lambda: sg.kd_s0b_input(root), s0b_stall=lambda: sg.kd_upstream_stall(root))
+    assert m["status"] == c9.STALL_UPSTREAM and m["label"] == "not testable (disjointness unverified)" and m["complete"]
+    assert c9.stall_of(root / "sign" / "s0b")["status"] == c9.STALL_UPSTREAM
+    again = sg.sign_audit(root / "sign", "b", None, None, key=KEY, fp="0" * 16, rules_sha="x", smoke_path=tmp_path / "gone.json", now=c9.T_SEAL_EPOCH + 1,
+                          s0b_input=lambda: sg.kd_s0b_input(root), s0b_stall=lambda: sg.kd_upstream_stall(root))
+    assert again["status"] == c9.STALL_UPSTREAM  # sticky: no smoke / input read on a re-run
+
+
+def test_s0b_upstream_stall_caught_from_input_callable_too(tmp_path):
+    root = tmp_path / "cb9"
+    c9.write_stall(root / "kd", c9.STALL_NOT_RUN_SOURCE, "pmxt heads")
+    m = sg.sign_audit(root / "sign", "b", None, None, key=KEY, fp="0" * 16, rules_sha="x", smoke_path=_smoke_ok(tmp_path), now=c9.T_SEAL_EPOCH + 1,
+                      s0b_input=lambda: sg.kd_s0b_input(root))  # no s0b_stall given: the input callable raises UpstreamStall (open_run is bypassed by the stall check order)
+    assert m["status"] == c9.STALL_UPSTREAM and m["label"] == "not testable (source)"
+
+
+def test_feed_label_unread_lookback_is_not_measured():
+    from datetime import UTC, datetime
+
+    t13 = int(datetime(2026, 5, 4, 13, 20, tzinfo=UTC).timestamp())
+    feed = {("0xa", "1"): "SELL"}
+    read = {("m1", "2026-05-04", 1)}
+    base = {"ts": t13, "tx": "0xb", "asset": 1, "market_id": "m1", "day": "2026-05-04", "idx": 1}
+    assert sg.feed_label(base, feed, read) == "unmatched"  # hour read, no event: unmatched
+    assert sg.feed_label({**base, "idx": 0, "asset": 0}, feed, read) == "not_measured"  # this token's 13Z hour was never read
+    assert sg.feed_label({**base, "day": "2026-05-05"}, feed, read) == "not_measured"
+    assert sg.feed_label({**base, "tx": "0xa"}, feed, read) == "SELL"
+
+
+def test_kd_s0b_input_labels_feed_by_origin_lookback(tmp_path):
+    import csv
+    import gzip
+    from datetime import UTC, datetime
+
+    from astrolabe.research_lab import cb9_kd as kd
+
+    def gz(p, cols, rows):
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(p, "wt", newline="") as fh:
+            w = csv.writer(fh)
+            w.writerow(cols)
+            w.writerows(rows)
+
+    root = tmp_path / "cb9"
+    gz(root / kd.FRAME_RUN / kd.SAMPLE_FILE, ["market_id", "event_id", "split", "token0", "token1", "volume", "fee_category", "topic"],
+       [["m1", "e1", "SCREEN", "100", "101", "20000", "", "politics"]])
+    gz(root / kd.BOOKS_RUN / kd.DROPS_FILE, ["market_id", "block"], [])
+    sdir = root / kd.BOOKS_RUN / kd.SCREEN
+    t13 = int(datetime(2026, 5, 4, 13, 20, tzinfo=UTC).timestamp())
+    tx = lambda c: "0x" + c * 64  # noqa: E731
+    gz(sdir / f"2026-05-04{kd.PRINTS_PRE_SUFFIX}", kd.PRINT_COLUMNS,
+       [["m1", "2026-05-04", t13, 0, "100", "BUY", 0.5, 10, 0.5, 1, "", tx("a"), 0],  # token 0: lookback read, event exists
+        ["m1", "2026-05-04", t13 + 1, 1, "101", "SELL", 0.4, 12, 0.6, -1, "", tx("b"), 1]])  # token 1: lookback never read
+    gz(sdir / f"2026-05-04{kd.LTP_SUFFIX}", kd.LTP_COLUMNS, [["m1", "2026-05-04", 0, "100", 1, 1, 0.5, 10, "BUY", tx("a")]])
+    gz(sdir / f"2026-05-04{kd.ORIGINS_SUFFIX}", kd.ORIGIN_COLUMNS,
+       [["m1", "2026-05-04", 0, 0, 1, 1, 0, 0.5, 1, 0.52, 1, "", "", 0.01, "", 0, 0, 0, "ok", "read", 5],
+        ["m1", "2026-05-04", 1, 0, 1, 1, 0, 0.4, 1, 0.42, 1, "", "", 0.01, "", 0, 0, 0, "ok", "unavailable", 5]])
+    out = {p["asset"]: p["feed_side"] for p in sg.kd_s0b_input(root)}
+    assert out == {100: "BUY", 101: "not_measured"}

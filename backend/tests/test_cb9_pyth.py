@@ -367,3 +367,14 @@ def test_p_stats_use_the_given_gate():
     r2 = py.p1_stat(units, lambda u, t: ys[u["market_id"]], n_draws=5, gate_p=1e-9)
     assert r2["advance"] is False and r2["robustness"]["ii_top5"]["holds"] is False
     assert r1["placebo_breakeven"]["n_draws"] == 5
+
+
+def test_pyth_frame_rerun_after_disjointness_stall_stays_stalled(tmp_path):
+    root = tmp_path / "cb9"
+    c9.write_stall(root / "pyth_frame", c9.STALL_DISJOINTNESS, "q0182 unverified")
+    (root / "pyth_frame" / "frame.csv.gz").write_bytes(b"x")  # as left by the stalled first run
+    smoke = tmp_path / "smoke.json"
+    smoke.write_text(json.dumps({"smoke_version": "cb9-smoke-v1", "criteria": {"yahoo_clock": True, "gamma_paging": True}}))
+    m = py.pyth_frame(root, None, rules_sha="x", smoke_path=smoke, exclusion_keys_path=tmp_path / "k.csv.gz", now=c9.T_SEAL_EPOCH + 1)
+    assert m["status"] == c9.STALL_DISJOINTNESS and m["status"] != "pyth_frame_complete"
+    assert c9.stall_of(root / "pyth_frame")["status"] == c9.STALL_DISJOINTNESS  # the manifest on disk is untouched

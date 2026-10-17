@@ -749,7 +749,8 @@ def sign_audit(root: Path, stratum: str, transport, post: Post, *, key: bytes, f
                disk_cap: int = int(0.01 * 1024**3), budget_min: float | None = None, sleep=time.sleep, live_check=None,
                should_stop: Callable[[], bool] | None = None, wall_clock: Callable[[], float] = time.time, snapshot_root: Path | None = None,
                health_check=None, data_dumps: Path | None = None, data_dumps_cap_gb: float = c9.DATA_DUMPS_CAP_GB,
-               t_seal_epoch: float = c9.T_SEAL_EPOCH, s0b_input: Callable[[], list[dict]] | None = None) -> dict:
+               t_seal_epoch: float = c9.T_SEAL_EPOCH, s0b_input: Callable[[], list[dict]] | None = None,
+               s0b_stall: Callable[[], dict | None] | None = None) -> dict:
     """q0181 (strata a, c) / q0188 (stratum b). Refuses before T_seal; needs the smoke's receipt criterion for the stratum's era; resumable by
     market (``progress.jsonl``). Writes ``prints_classes.csv.gz`` (no agreement computed) and the manifest. ``s0b_input`` (stratum b) returns the
     drawn K/D SCREEN prints (``kd_s0b_input``): ``market_id, event_id, tx, asset, side, idx, size, price, wallet, token0, token1, feed_side, liq_tercile``."""
@@ -757,6 +758,12 @@ def sign_audit(root: Path, stratum: str, transport, post: Post, *, key: bytes, f
         raise Refused(f"unknown S0 stratum {stratum!r}")
     c9.require_after_t_seal(now, f"sign-audit {stratum}", t_seal_epoch)
     root = c9.refuse_path(Path(root))
+    own = c9.stall_of(root / f"s0{stratum}")
+    if own:  # sticky: a declared end state is never re-run or overwritten
+        return own
+    up = s0b_stall() if (stratum == "b" and s0b_stall is not None) else None
+    if up:  # M5 (re-check fix 2): an upstream K/D stall is checked BEFORE any input is read; the label is copied, exit 0
+        return c9.write_stall(root / f"s0{stratum}", c9.STALL_UPSTREAM, f"K/D input ended {up['status']}: {up.get('reason')}", label=up.get("label"))
     if not smoke_criterion(smoke_path, ERA_CRITERION[stratum]):  # M5: terminal, exit 0, labelled; never a refusal
         return c9.write_stall(root / f"s0{stratum}", c9.STALL_NOT_RUN_SOURCE, f"smoke criterion {ERA_CRITERION[stratum]} failed")
     tps = require_topic_pins()
@@ -780,7 +787,11 @@ def sign_audit(root: Path, stratum: str, transport, post: Post, *, key: bytes, f
         if sp.exists():
             todo = json.loads(sp.read_text())
         else:
-            todo = s0b_input()
+            try:
+                todo = s0b_input()
+            except UpstreamStall as exc:  # defensive: a stall that appeared after the first check
+                return c9.write_stall(root / f"s0{stratum}", c9.STALL_UPSTREAM, f"K/D input ended {exc.stall['status']}: {exc.stall.get('reason')}",
+                                      label=exc.stall.get("label"))
             fr.budget.write(sp, json.dumps(todo, sort_keys=True, default=float).encode())
             fr.record_file(sp)
         order: list[str] = []
@@ -901,6 +912,22 @@ def _side_str(v) -> str:
         return ""
 
 
+class UpstreamStall(Exception):
+    """The K/D layout ended in a declared stall (kd-frame or kd-books): S0b has no input to draw; the caller records ``upstream_not_testable``."""
+
+    def __init__(self, stall: dict):
+        super().__init__(f"K/D upstream stall {stall.get('status')}")
+        self.stall = stall
+
+
+def kd_upstream_stall(cb9_root: Path) -> dict | None:
+    """The K/D frame or books run's terminal stall manifest (kd-frame first, then kd-books), or None. Checked before any K/D file is opened."""
+    from . import cb9_kd as kd  # noqa: PLC0415
+
+    root = Path(cb9_root)
+    return c9.stall_of(root / kd.FRAME_RUN) or c9.stall_of(root / kd.BOOKS_RUN)
+
+
 def kd_s0b_input(cb9_root: Path) -> list[dict]:
     """S0b input from the K/D layout (``cb9_kd``): SCREEN pre-origin prints only (``<day>.prints_pre.csv.gz``; the guarded post-origin files are never
     opened here), markets of the SCREEN sample minus the seal-time drops; seeded draw; then the pmxt ``last_trade_price`` feed side by (tx, asset) from
@@ -911,6 +938,9 @@ def kd_s0b_input(cb9_root: Path) -> list[dict]:
     from . import cb9_kd as kd  # noqa: PLC0415
 
     root = Path(cb9_root)
+    up = kd_upstream_stall(root)
+    if up:
+        raise UpstreamStall(up)
     sample = {r["market_id"]: r for r in kd.read_sample(root / kd.FRAME_RUN) if str(r.get("split")).lower() == kd.SCREEN}
     drop = kd.dropped_ids(root / kd.BOOKS_RUN)
     sdir = root / kd.BOOKS_RUN / kd.SCREEN
@@ -923,12 +953,17 @@ def kd_s0b_input(cb9_root: Path) -> list[dict]:
                     continue
                 m = sample[mid]
                 yield {"market_id": mid, "event_id": m.get("event_id", ""), "tx": str(r["tx"]).lower(), "asset": int(r["asset"]), "side": _side_str(r["side"]),
-                       "idx": int(r["idx"]), "size": float(r["size"]), "price": float(r["price"]), "wallet": r.get("wallet_hash") or "", "ts": int(float(r["ts"])),
+                       "day": str(r.get("day") or ""), "idx": int(r["idx"]), "size": float(r["size"]), "price": float(r["price"]), "wallet": r.get("wallet_hash") or "", "ts": int(float(r["ts"])),
                        "token0": m["token0"], "token1": m["token1"], "split": "SCREEN", "volume": float(m.get("volume") or math.nan),
                        "sports": int(c1.is_sports(m.get("fee_category")) or m.get("topic") == "sports")}
 
     drawn = [p for p in s0b_sample(stream()) if p["side"] in ("BUY", "SELL")]
     need = {(p["tx"], str(p["asset"])) for p in drawn}
+    read_lb: set[tuple[str, str, int]] = set()  # (market_id, day, idx) whose 13Z lookback hour was actually read (origin ``lookback`` == read)
+    for f in sorted(sdir.glob("*" + kd.ORIGINS_SUFFIX)):
+        for r in c7.read_csv_gz(f):
+            if str(r.get("lookback")) == "read":
+                read_lb.add((str(r["market_id"]), str(r["day"]), int(r["idx"])))
     feed: dict[tuple[str, str], str] = {}
     for f in sorted(sdir.glob(kd.SCREEN_LTP_GLOB)):
         for r in c7.read_csv_gz(f):
@@ -937,17 +972,20 @@ def kd_s0b_input(cb9_root: Path) -> list[dict]:
                 sd = _side_str(r.get("side"))
                 feed[k] = sd if feed.get(k, sd) == sd else ""
     cuts = terciles(list({p["market_id"]: p["volume"] for p in drawn}.values()))
-    return [{**p, "feed_side": feed_label(p, feed), "liq_tercile": tercile_of(p["volume"], cuts)} for p in drawn]
+    return [{**p, "feed_side": feed_label(p, feed, read_lb), "liq_tercile": tercile_of(p["volume"], cuts)} for p in drawn]
 
 
 FEED_HOUR_Z = 13  # ruling (c): kd_books stores the 13Z-lookback last_trade_price events it already read; [13Z, 14Z) is the measured span
 
 
-def feed_label(p: dict, feed: dict[tuple[str, str], str]) -> str:
+def feed_label(p: dict, feed: dict[tuple[str, str], str], read_lookback: set[tuple[str, str, int]] | None = None) -> str:
     """Feed side of an S0b print: BUY / SELL from the matched pmxt last_trade_price event; ``unmatched`` for a print in [13Z, 14Z) without an event
-    (or with conflicting sides); ``not_measured`` outside that span (the guarded post-origin prints are never opened, ruling (c))."""
+    (or with conflicting sides); ``not_measured`` outside that span (the guarded post-origin prints are never opened, ruling (c)) and, when
+    ``read_lookback`` is given (re-check fix b), for a token whose 13Z hour was never read (origin ``lookback`` != read): no event could exist there."""
     hz = datetime.fromtimestamp(int(p["ts"]), UTC).hour
     if hz != FEED_HOUR_Z:
+        return "not_measured"
+    if read_lookback is not None and (str(p["market_id"]), str(p.get("day", "")), int(p["idx"])) not in read_lookback:
         return "not_measured"
     return feed.get((p["tx"], str(p["asset"])), "") or "unmatched"
 
@@ -1412,7 +1450,7 @@ def rule_funcs() -> tuple:
     return (declared, _keccak_f, keccak256, topic, topics, topic_pins_ok, require_topic_pins, httpx_post, RpcClient.__init__, RpcClient._pace, RpcClient.receipt,
             _words, _val, decode_static, decode_transfer_batch, _side_token_v1, _side_token_v2, decode_receipt, match_print, t1_of, t2_of, fill_type, yes_sign,
             price_band, classify_print, parse_print_s, windowed_prints_s, market_row, frame_windows, walk_frame, sample_markets, draw_prints, terciles, tercile_of,
-            _hasher, seal_copy_ids, s0_frame_and_sample, sign_audit, _print_rank_key, s0b_sample, _side_str, kd_s0b_input, feed_label, smoke_receipts, smoke_criterion,
+            _hasher, seal_copy_ids, s0_frame_and_sample, sign_audit, _print_rank_key, s0b_sample, _side_str, kd_upstream_stall, kd_s0b_input, feed_label, smoke_receipts, smoke_criterion,
             smoke_ok, census_s, read_census_rows, s0_stratum, s0_screen,
             s1_units, _slope, s1_ratio, h10_exclusions, h10_window, sign_fetch_h10, hb._paged, hb.frame_row, c9.drop_by_keys,
             *py.smoke_rule_funcs())

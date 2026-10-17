@@ -268,3 +268,114 @@ def test_screen_p_stall_logs_p1_and_results_write_once(capsys, tmp_path):
     n = len(lines)
     code, out = _run(argv, capsys)
     assert code == 2 and "write-once" in out["refused"] and len(tp.read_text().splitlines()) == n
+
+
+# ---- focused re-check (2026-10-17) fixes ---------------------------------------------------------------------------------------------------
+
+
+def _stage1(root: Path) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "results_P.json").write_text(json.dumps({"P1": {"advance": True}, "P2": {"advance": False}}))
+    (root / "results_KD.json").write_text(json.dumps({"K1": {"advance": False}, "D1": {"advance": False}}))
+
+
+def test_rep_p_waits_for_live_complete_end_plus_2d_and_final_outcomes(monkeypatch, capsys, tmp_path):
+    from datetime import UTC, datetime
+
+    root = tmp_path / "creative_batch9"
+    _stage1(root)
+    monkeypatch.setattr(run_cb9, "_commit_epoch", lambda p: datetime(2026, 10, 25, tzinfo=UTC).timestamp())
+    sessions = py.stage2_sessions(py.t9_p2_start(datetime(2026, 10, 25, tzinfo=UTC).timestamp()))
+    t_end = py.et_epoch(sessions[-1], 23, 59)
+    ldir = root / "pyth_live"
+    with pytest.raises(c9.NotNow, match="not complete"):  # 1. no pyth-live completion marker
+        run_cb9.rep_p_doc(root, now=t_end + 10 * 86400)
+    ldir.mkdir()
+    (ldir / run_cb9.LIVE_COMPLETE_FILE).write_text("{}")
+    with pytest.raises(c9.NotNow, match=r"T9_P2_end \+ 2 d"):  # 2. too early (even though marked complete)
+        run_cb9.rep_p_doc(root, now=t_end + 86400)
+    (ldir / sessions[0]).mkdir()
+    (ldir / sessions[0] / "state.json").write_text(json.dumps({"steps": {"post": {"t": 1}, "outcomes": {"final": False}}}))
+    with pytest.raises(c9.NotNow, match="outcomes not final"):  # 3. a pending session is never scored 'unavailable (source)'
+        run_cb9.rep_p_doc(root, now=t_end + 3 * 86400)
+    # CLI: exit 75, nothing written, no trial line
+    spec = tmp_path / "cb9_v1.json"
+    spec.write_text("{}")
+    rules = c9.write_rules("pyth", tmp_path / "r.json")
+    tp = tmp_path / "t.jsonl"
+    code, out = _run(["rep", "--family", "P", "--root", str(root), "--freeze-spec", str(spec), "--allow-uncommitted-rules", "--rules", str(rules), "--trials-path", str(tp)], capsys)
+    assert code == 75 and "tempfail" in out and not (root / "results_P_rep.json").exists() and not tp.exists()
+
+
+def test_pyth_live_before_window_exits_75_and_prints_completion_status(monkeypatch, capsys, tmp_path):
+    from datetime import UTC, datetime
+
+    root = tmp_path / "creative_batch9"
+    _stage1(root)
+    spec = tmp_path / "cb9_v1.json"
+    spec.write_text("{}")
+    rules = c9.write_rules("pyth", tmp_path / "r.json")
+    monkeypatch.setattr(run_cb9, "_commit_epoch", lambda p: datetime(2099, 1, 1, tzinfo=UTC).timestamp())  # window far in the future
+    monkeypatch.setattr(run_cb9.time, "time", lambda: datetime(2026, 10, 25, tzinfo=UTC).timestamp())
+    argv = ["pyth-live", "--root", str(root), "--freeze-spec", str(spec), "--allow-uncommitted-rules", "--rules", str(rules), "--standalone"]
+    code, out = _run(argv, capsys)
+    assert code == 0 and out["status"] == "idle_heartbeat"  # the first idle run is the heartbeat (resets the queue's tempfail count); the rest exit 75
+    code, out = _run(argv, capsys)
+    assert code == 75 and "Stage-2 window starts" in out["tempfail"]  # nothing fetched, nothing written but the heartbeat
+    assert run_cb9.LIVE_COMPLETE == "pyth_live_complete" == "pyth_live_complete" and py.pyth_live_tick(
+        root / "pyth_live", now=py.et_epoch("2027-03-01", 12, 0), start_day="2026-11-16", frame_markets=lambda d: [], yahoo_get=None, book_get=None, prints_get=None)["status"] == run_cb9.LIVE_COMPLETE
+
+
+def test_wait_until_due_sleeps_to_next_step_only_within_lookahead(tmp_path):
+    day = "2026-11-17"
+    ck = py.checkpoints(day)
+    slept = []
+    t = ck[0][2] - 600
+    assert run_cb9.wait_until_due(tmp_path, [day], t, slept.append) == ck[0][2] and slept == [pytest.approx(602.0)]
+    assert run_cb9.wait_until_due(tmp_path, [day], ck[0][2] - 4 * 3600, slept.append) is None  # nothing due within 35 min
+    (tmp_path / day).mkdir()
+    (tmp_path / day / "state.json").write_text(json.dumps({"steps": {"ckpt0": {"t": 1}}}))  # done steps are not waited for
+    assert run_cb9.wait_until_due(tmp_path, [day], t, slept.append) is None
+
+
+def test_halfday_session_polls_each_minute_then_yahoo_and_done(tmp_path):
+    day = "2026-11-27"
+    clock = {"t": py.et_epoch(day, 13, 0)}
+    books, yahoo_calls = [], []
+
+    def sleep(s):
+        clock["t"] += s
+
+    def book_get(tok):
+        books.append(clock["t"])
+        return {"bids": [{"price": "0.5", "size": "10"}], "asks": [{"price": "0.52", "size": "10"}]}, clock["t"]
+
+    def yahoo_get(sym, p1, p2):
+        yahoo_calls.append((sym, p1, p2))
+        if sym == "BAD":
+            raise RuntimeError("x")
+        return {"chart": {}}
+
+    mk = [{"market_id": "1", "ticker": "NVDA", "token_up": "u", "token_down": "d"}, {"market_id": "2", "ticker": "BAD", "token_up": "u2", "token_down": "d2"}]
+    res = run_cb9.halfday_session(tmp_path, day, now_fn=lambda: clock["t"], sleep=sleep, frame_markets=lambda d: mk, book_get=book_get, yahoo_get=yahoo_get)
+    assert res["status"] == run_cb9.HALFDAY_DAY_DONE and 170 <= res["minutes_collected"] <= 176
+    assert res["yahoo_1m"]["NVDA"] == "ok" and res["yahoo_1m"]["BAD"].startswith("failed") and (tmp_path / day / "yahoo_1m_NVDA.json").exists()
+    assert run_cb9.halfday_next(tmp_path, [day, "2026-12-24"]) == "2026-12-24"
+    assert run_cb9.halfday_next(tmp_path, [day]) is None
+
+
+def test_halfday_missed_window_is_recorded_not_backfilled(tmp_path):
+    day = "2026-11-27"
+    res = run_cb9.halfday_session(tmp_path, day, now_fn=lambda: py.et_epoch(day, 20, 0), sleep=lambda s: None, frame_markets=lambda d: [], book_get=None, yahoo_get=None)
+    assert res["result"] == "missed_window" and run_cb9.halfday_next(tmp_path, [day]) is None
+
+
+def test_halfday_before_window_idles(monkeypatch, capsys, tmp_path):
+    from datetime import UTC, datetime
+
+    monkeypatch.setattr(run_cb9.time, "time", lambda: datetime(2026, 10, 25, tzinfo=UTC).timestamp())
+    rules = c9.write_rules("pyth", tmp_path / "r.json")
+    argv = ["halfday-poll", "--root", str(tmp_path / "cb9"), "--rules", str(rules), "--allow-uncommitted-rules", "--standalone"]
+    assert _run(argv, capsys)[1]["status"] == "idle_heartbeat"
+    code, out = _run(argv, capsys)
+    assert code == 75 and "half session 2026-11-27" in out["tempfail"]
