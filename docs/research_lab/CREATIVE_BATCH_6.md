@@ -278,6 +278,10 @@ As CB1 §2.2 and CB5 §2.2. In particular:
   event in the same second are ordered by the chain event first (a dump cannot precede its conversion).
 - `closed_time` and Gamma `closedTime` are never a population condition or a window anchor. "Open at t" means the
   market has a usable price point at t and no resolution before t on the market's own price path is detectable.
+- **Scoped exception (smoke v2 only; science-reviewer, 2026-10-17).** The smoke v2 pool (q0136) alone uses the worn
+  exclusion-sample column `close_epoch`, as the condition `close_epoch ≥ end − 2 d`, so that the smoke window lies
+  inside the market's life. It is never used in the h8 frame, the sample, the origins or any CB6-T analysis. It dropped
+  **1** market from the smoke pool (573 → 33; the other 539 were dropped by the life ≥ 14 d rule).
 
 ### 2.3 Uncertainty and decision rule
 
@@ -530,30 +534,11 @@ Floors are never revised from the census.
   still incomplete at `T_seal` writes `NOT_RUN_DEADLINE.json` and exits 0 with `not_run_deadline`. Request budget about
   **39k** (frame about 6k; per market about 3 price windows, about 3 windowed print requests, about 1 wallet lookup) at
   ≤ 4 rps: about 2.7 h of request time, about **3.5 h wall** with collector yields, i.e. 3 chunks. **Latest safe start on
-  the host: 2026-10-21T12:00Z.** If q0120 has not started on the host by **2026-10-20T12:00Z** (lane held by h6/h7 or the
-  disk precondition unmet), the coordinator runs the identical command, with the same committed rules file and seeds,
-  from a Claude session on the Mac (`~/arepo_scratch/h8_tail/`, the `scripts/` entry point with an explicit
-  `--root`). This is a fallback, not a design change: same frame rule, sample rule, cap and deadline. Round 1 fixes its
-  mechanics:
-  - **Rate limiting.** The shared `Limiter` and the collector yield cannot span hosts. The Mac run uses its own limiter
-    at `--rps 3` (no collector-health signal is available off-host, so it runs below the host's 4), with the same 429 /
-    `Retry-After` back-off and stop on repeated 429. About 39k requests at 3 rps is about 3.6 h of request time; the
-    latest safe Mac start is therefore 2026-10-21T16:00Z.
-  - **Exclusion files.** The h1/h2/h3 `sample.csv.gz` files are pulled read-only from the host (`rsync -a`) or from
-    their verified release copies, and must match the pinned sha256 (§1.4), else the fetcher refuses.
-  - **No merging of partial runs.** If the host started q0120 and did not finish, its partial directory is renamed
-    `h8_tail_host_partial_abandoned/`, marked by an `ABANDONED.json`, never read by any CB6 code path and never merged;
-    the Mac run starts from scratch with its own `T_fetch8`. (The rename is not a deletion; its retirement follows
-    the normal capsule policy.)
-  - **One canonical copy and one read location.** The Mac run seals (q0121's `tail-seal`, same code) where it fetched
-    and uploads the sealed directory to an `arepo-data` release. **That release asset, hash-checked against the
-    seal, is the canonical copy** (this is what makes a Mac run fit the data-location rule; the Mac scratch copy is a
-    working copy, never treated as canonical, and any removal of it follows the normal retention policy). The read location for the whole life of h8 is chosen once, at seal, and
-    recorded in the committed seal copy: the host if its §2.8 headroom check passes at seal time (a verified mirror
-    of the release), otherwise the Mac (a verified download into `~/arepo_scratch/h8_tail/`). q0121 (if not already
-    run with the fetch), q0125's T part, q0126 and q0130 run only at that location, with the same runner refusals;
-    `ACCESS_LOG.jsonl` exists only there. A change of read location needs a committed note, carries the access log
-    across verbatim, and is disclosed in the results.
+  the host: 2026-10-21T12:00Z.** **No Mac fallback (removed 2026-10-17, coordinator).** The Mac data-dumps were
+  retired and the Mac runs no background jobs, so the earlier same-parameter Mac fallback (round 1) is withdrawn.
+  q0120 runs on the host only. If it cannot complete on the host before `T_seal`, it is recorded `not_run_deadline`
+  and counted. h8 is fetched, sealed and read on the host; the read location recorded at seal is the host, and
+  `ACCESS_LOG.jsonl` exists only there.
 - **Disk guard and headroom precondition (as CB5 §2.8 item 15).** Host `data-dumps` was 9.7 GB at 2026-10-16T22:57Z
   against the 12 GB cap, growing **about 0.9-1 GB a day** while snapshot deletion is gated (`data_catalogue/RETENTION.md`;
   the draft's 0.75 GB was too low, so the precondition below uses 1.0 GB a day). Every CB6 data job refuses to
@@ -562,7 +547,7 @@ Floors are never revised from the census.
   conversions and member prints 0.06 GB (dev) + 0.08 GB (rep), `cb6_followup/` 0.05 GB. Before any CB6 data job is
   committed, the coordinator records in the commit message either (a) that snapshot deletion is active on the host, or
   (b) that current size + 1.0 GB × (days to the job's last scheduled run) + its cap ≤ 10 GB with ≥ 3 GB free. If
-  neither holds, the job is held (q0120: the Mac fallback above applies). The precondition never changes retention.
+  neither holds, the job is held (q0120: no Mac fallback; incomplete at `T_seal` → `not_run_deadline`). The precondition never changes retention.
   **Disclosed:** at 9.7 GB on 10-16 and +0.9-1 GB/day, (b) already fails for q0120 on the host; q0120 runs on the host only
   if retention activates (archive rotation, pending user decision 2 of 2026-10-15) or another session frees space. The h7
   fetches are in the same position (they refuse above 10 GB too).
@@ -1163,7 +1148,7 @@ wallets only; budget and failure isolation as CB3's follow-up step.
 Paths follow `queue/README.md` (`argv[0]` under `backend/scripts/`, `cwd` `backend`). No spec is committed before its
 code and tests exist; analysis jobs also need the reviewed CB6 freeze commit. q0120 needs only the fetcher freeze check,
 the committed rules file (every threshold and the exclusion-file sha256 pins in it), a smoke-test PASS and the headroom
-precondition (or runs on the Mac fallback, §2.8); it may be queued before the CB6 freeze.
+precondition (no Mac fallback, §2.8); it may be queued before the CB6 freeze.
 
 ```json
 {"id": "q0120_h8_tail_fetch", "title": "CB6-T: h8_tail backfill (4,500 binary markets created 2025-09..2026-07, scheduled end <= T_fetch8 - 7 d, disjoint from h1/h2/h3/h5 by market id and by event / negRiskMarketID / series key; description, hourly prices and windowed prints around <= 3 declared origins, large-buyer first-trade times; capped at T_seal)",
@@ -1175,7 +1160,7 @@ precondition (or runs on the Mac fallback, §2.8); it may be queued before the C
  "timeout_s": 6600, "max_retries": 3, "repeat": {"max_runs": 8, "until_log_regex": "\"status\": \"(tail_fetch_complete|not_run_deadline|disjointness_unverified)\""},
  "outputs": ["data-dumps/research_lab/history/h8_tail/{frame.csv.gz,exclusion_keys.csv.gz,key_drops.json,sample.csv.gz,origins.csv.gz,prices/,trades/,wallet_first.csv.gz,outcomes_guarded.csv.gz,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"],
  "next_action": "q0121 after both h7 runs are terminal",
- "notes": "CREATIVE_BATCH_6.md CB6-F (revised after challenger round 1). May be committed before the CB6 freeze once the fetcher freeze check passes, the rules file (all thresholds, exclusion-file sha256 pins) is committed and tail-smoke PASSed. About 39k requests, about 3.5 h wall in 90-min chunks so the T_seal-bound q0043/q0081/q0082 (also priority 61, lower ids) win the net lane at every boundary. Terminal states: tail_fetch_complete; not_run_deadline if incomplete at T_seal 2026-10-22T00:00Z (NOT_RUN_DEADLINE.json; no seal, no analysis, no refetch, cap unchanged); disjointness_unverified if > 2% of exclusion ids lack Gamma metadata (T1/T2 not testable, counted). Refuses (exit 2) on a rules-file hash mismatch, ANY missing or sha256-mismatched exclusion file, missing smoke PASS, data-dumps > 10 GB, run ids h3_power/h4_seal/h5_cb1/h5_cb1_ladders/h6_weather/h7_*. Event-level exclusion applied to the frame before sampling. Origins drawn from created_at/end_at only and written before any price request. Outcome fields only in outcomes_guarded.csv.gz. Raw wallet addresses never written. Commit message must record the section 2.8 headroom check (1.0 GB/day); if q0120 has not started on the host by 2026-10-20T12:00Z, run the identical command on the Mac at --rps 3 (section 2.8 fallback), discard any host partial run unmerged, and cancel this spec."}
+ "notes": "CREATIVE_BATCH_6.md CB6-F (revised after challenger round 1). May be committed before the CB6 freeze once the fetcher freeze check passes, the rules file (all thresholds, exclusion-file sha256 pins) is committed and tail-smoke PASSed. About 39k requests, about 3.5 h wall in 90-min chunks so the T_seal-bound q0043/q0081/q0082 (also priority 61, lower ids) win the net lane at every boundary. Terminal states: tail_fetch_complete; not_run_deadline if incomplete at T_seal 2026-10-22T00:00Z (NOT_RUN_DEADLINE.json; no seal, no analysis, no refetch, cap unchanged); disjointness_unverified if > 2% of exclusion ids lack Gamma metadata (T1/T2 not testable, counted). Refuses (exit 2) on a rules-file hash mismatch, ANY missing or sha256-mismatched exclusion file, missing smoke PASS, data-dumps > 10 GB, run ids h3_power/h4_seal/h5_cb1/h5_cb1_ladders/h6_weather/h7_*. Event-level exclusion applied to the frame before sampling. Origins drawn from created_at/end_at only and written before any price request. Outcome fields only in outcomes_guarded.csv.gz. Raw wallet addresses never written. Commit message must record the section 2.8 headroom check (1.0 GB/day); host only (the Mac fallback was removed 2026-10-17, section 2.8): if q0120 cannot complete on the host before T_seal it is recorded not_run_deadline."}
 ```
 ```json
 {"id": "q0121_h8_tail_seal", "title": "CB6-T: h8_tail seal (listing hash, event-level disjointness re-check, h7 id and key overlap drop list, SCREEN/HOLDOUT event-hash split, read location)",
@@ -1312,7 +1297,7 @@ dev conversions ≈ 2k; replication conversions ≈ 3k over three weeks; follow-
 
 1. **`h8_tail` may not run (T).** The `net` lane is held by q0043 (h6, about 6-9 h from 2026-10-16T23Z), then the h7
    fetches; the host is at 9.7 GB against a 10 GB job guard and grows about 0.9-1 GB a day. Without retention activation
-   or the Mac fallback, CB6-T is "not run (deadline)" and counted. A smoke-test FAIL (fidelity-60 history unavailable
+   on the host (there is no Mac fallback, §2.8), CB6-T is "not run (deadline)" and counted. A smoke-test FAIL (fidelity-60 history unavailable
    for closed markets) would also stop it. This is the main calendar risk of the batch.
 2. **Power (T).** Stage-1 MDE ≈ 3.8c on Δ, above the 2c floor; T2 is expected to be not testable for size. CB6-T can find
    only a strong class effect, and its economic answer will usually wait for Stage P.
@@ -1346,8 +1331,8 @@ dev conversions ≈ 2k; replication conversions ≈ 3k over three weeks; follow-
    `tail-fetch` / `tail-seal`, `cb6_tail.py` fetch side, tests) per the round-1 spec (§10, q0120 implementer spec) and
    write `seals/cb6_tail_rules.json` from §CB6-T, §CB6-F and §1.4 (including the exclusion-file sha256 pins). Run
    `tail-smoke`. Then a `science-reviewer` freeze check of the fetcher and rules file only. Commit the rules file, then
-   q0120 (recording the §2.8 headroom check at 1.0 GB/day), and deploy. If the host cannot start it by
-   2026-10-20T12:00Z, run the Mac fallback (§2.8).
+   q0120 (recording the §2.8 headroom check at 1.0 GB/day), and deploy. If it cannot complete on the
+   host before `T_seal`, it is recorded `not_run_deadline` (no Mac fallback, §2.8).
 2. **Challenger round 1 is done** (§10; one challenge, one response, then proceed). No second round.
 3. Extractor v5 (`band/`, `printflag/`) with the pass step; then q0122. Probe code; q0123 any time.
 4. After `T6_dev_end` (2026-10-28): q0124, then q0125 census once the h8 seal copy is committed. Insert counts and gates
@@ -1370,7 +1355,7 @@ dev conversions ≈ 2k; replication conversions ≈ 3k over three weeks; follow-
 | 10 | "executable" claims without sizes | T2 trade-through fills on modelled asks are labelled modelled; R2 uses recorded sweep sizes for the queue; N2 uses trade-through plus touch bracket | §CB6-T, §CB6-R, §CB6-N |
 | 11 | reading a near-copy of a sealed statistic | CH67 excluded for exactly this reason; CB6-N never computes member ask/bid sums; no CB1-CB5 extract or E009-E011 file is read | §0.2, §1.3 |
 | 12 | MDE from the wrong data | every MDE is stated as an assumption with its inputs and is recomputed by the census from actual counts | §CB6-T/N/R/C, §2.7 |
-| 15 | disk guard close | release-time headroom precondition per data job; the h8 problem is disclosed with a same-parameter Mac fallback | §2.8 |
+| 15 | disk guard close | release-time headroom precondition per data job; the h8 problem is disclosed with a same-parameter Mac fallback (superseded 2026-10-17: Mac fallback removed, §2.8) | §2.8 |
 | 16 | stale test count | `battery2.cumulative_count()` recomputed for this draft: 1,104 | §2.5 |
 
 **Open questions for the challenger.**
@@ -1378,7 +1363,7 @@ dev conversions ≈ 2k; replication conversions ≈ 3k over three weeks; follow-
 2. F as a disjunction of four components (one test) rather than four counted coefficients: acceptable, given that
    per-component odds ratios are reported only?
 3. The Mac fallback for `h8_tail` if the host lane or disk blocks it before 2026-10-20T12:00Z: acceptable as an
-   operational fallback with identical parameters?
+   operational fallback with identical parameters? (Superseded 2026-10-17: the Mac fallback is removed, §2.8.)
 4. R1 tested two-sided at Stage 1 and replicated in the found sign, with R2 registered only for τ > 0: acceptable?
 5. N1's pseudo-episode placebo: strong enough against depth-refill and news-driven conversions?
 6. M1's added block includes `volume24hr` rank (a monotone transform of a baseline variable within a capture). Should it
@@ -1417,7 +1402,7 @@ Each row gives the change and a one-line scientific justification.
 | 1,104 count is the Mac working tree | Disclosed as a lower bound; union with the host `trials.jsonl` (`deploy.sh` / `union_jsonl.py`) before any count; post-union value recorded | `COLLECTION_HOST.md` requires the merge before counting |
 | T2 "pending" open-ended | `T6_T2_register_deadline` 2026-11-21T00:00Z, then "not run (register missing)", p = 1, counted | An open-ended pending state could keep k unfixed |
 | 50-50 resolutions unstated | Enter the primary at Y = 0.5; non-wins in π and in the YES-cluster rule; exclusion reported | The primary must be computable without a later choice |
-| Mac fallback mechanics | Own limiter at 3 rps (no cross-host limiter or collector yield); host partial runs discarded, never merged; release asset is the canonical hash-checked copy; one read location fixed at seal with one access log; q0121/q0125-T/q0126/q0130 run there | One canonical copy and one access log keep the seal auditable |
+| Mac fallback mechanics (superseded 2026-10-17: removed, §2.8) | Own limiter at 3 rps (no cross-host limiter or collector yield); host partial runs discarded, never merged; release asset is the canonical hash-checked copy; one read location fixed at seal with one access log; q0121/q0125-T/q0126/q0130 run there | One canonical copy and one access log keep the seal auditable |
 | q0120 conditions | May be queued before the CB6 freeze after its own freeze check; frame keeps `event_ids`, `neg_risk_market_id`, `series_ids`; all thresholds in the rules file before commit; 20-market fidelity-60 smoke test (PASS ≥ 18/20) | The fetch must not run with an unverified price source or unpinned thresholds |
 
 **Declined or partly declined.** (a) Half-cent-mid indicator for R1: declined (conditions on outcome parity); the donut
@@ -1457,7 +1442,7 @@ Nothing else was declined.
    <cid>&takerOnly=true` over `[t − 30 d, t + 6 h]`, limit 1,000, ≤ 3 pages, `window_truncated` flag; rule (iii) applied to
    stored prints, one cached `/activity` first-trade lookup per qualifying buyer; HMAC-hash wallets in memory, never write
    raw addresses. Cap every stored row at `ts ≤ min(T_fetch8, T_seal)`, count drops.
-10. **Run control.** `--rps 4` shared limiter + collector yield on the host (`--rps 3`, own limiter, on the Mac); 429
+10. **Run control.** `--rps 4` shared limiter + collector yield on the host (the Mac `--rps 3` variant was removed 2026-10-17); 429
     back-off; resumable 90-min chunks; no chunk starts at or after `T_seal` → `NOT_RUN_DEADLINE.json`, status
     `not_run_deadline`; refuse above 10 GB data-dumps on the host; output ≤ 0.12 GB; terminal statuses
     `tail_fetch_complete | not_run_deadline | disjointness_unverified`; manifest with per-file sha256 and run location.
@@ -1527,7 +1512,9 @@ Two request probes and three zero-request counts ran from the host venv with the
 requests in all at 2 rps, 0 retries, 0 throttled. Only
 counts and timestamp offsets were printed; nothing was stored. Columns read from the sample files: `market_id`, `token0`,
 `condition_id`, `created_at`, `start_epoch`, `end_epoch`, `close_epoch`, `closed`, `fee_category` (never
-`outcome_prices`, `uma_status`, volume or liquidity). Probe scripts were deleted from the host afterwards.
+`outcome_prices`, `uma_status`, volume or liquidity). **The probe scripts were deleted from the host afterwards and were
+not committed** (working copies survive only in the Mac's volatile `/tmp`), so the diagnosis counts below cannot be
+reproduced from the repository. Future diagnostic probes must keep their scripts in the repository.
 
 | Question | Evidence (counts) | Verdict |
 |---|---|---|
@@ -1537,7 +1524,9 @@ counts and timestamp offsets were printed; nothing was stored. Columns read from
 | (c) wrong request parameters | Same `market=<token0>&startTs&endTs&fidelity=60` request returns full hourly series where the market is live; `interval=max` returns [] for 20 of the 20 smoke markets (known, already avoided) | **No code bug** |
 
 **Representativeness (20 worn h8-like markets: created 2025-09-01..2026-07-31, closed, end ≤ 2026-10-10, life ≥ 14 d,
-not weather, ranked by the v1 seed; the frozen h8 origin rule `draw_origins` applied; one fidelity-60 request over
+not weather, ranked by the v1 seed; drawn only from the h1/h2/h3 exclusion `sample.csv.gz` files, so every one is an
+exclusion id that the h8 frame drops by id before sampling (and its event / neg-risk / series siblings by key): the
+fetch cannot sample them, and no price of an h8-samplable market was seen; the frozen h8 origin rule `draw_origins` applied; one fidelity-60 request over
 `[t − 8 d, t + 2 d]` per origin).** 50 origins: 36 meet the smoke criterion (≥ 80% of 240 points, median gap
 3,600 ± 300 s). Of the 14 that do not, **8 lie after the market's actual close** (early closure before the scheduled
 end; points stop at `close_epoch`, e.g. 42 and 103 points where the close fell 6.3 and 3.7 d before t); 23% (225 of
@@ -1546,6 +1535,12 @@ others are genuinely sparse or empty mid-life windows (0, 53, 98, 123, 143, 151 
 A usable point at t (CB6-T rule) exists for 37 of 50 origins (37 of 42 pre-close).
 
 ### Smoke v2 (design change; science-reviewer acceptance required before q0136 is promoted)
+
+**Review outcome (2026-10-17): ACCEPT_V2_WITH_CHANGES.** The 18-of-20 threshold is kept. A v2 FAIL is final. The
+already-probed market among the 20 draws is accepted with disclosure. The required doc changes 1-4 are applied: the
+§2.2 scoped `close_epoch` exception, the provenance of the h8-like probe markets, the pass-chance wording below, and
+the record of the deleted probe scripts. The coordinator also removed the Mac fallback (§2.8). No code, pool or
+rules-hash change was made. `q0136_h8_tail_smoke2` is promoted to `queue/jobs/`.
 
 **Change (pool only).** Smoke v2 draws from closed 2025-end h1/h2/h3 exclusion-sample markets with scheduled life
 `≥ 14 d` (the h8 frame rule, already declared) **and** `close_epoch ≥ end − 2 d`, so the whole window lies inside
@@ -1563,8 +1558,11 @@ price, a print count or an outcome.
 **Disclosure.** The v2 rule was written after the probes above. They are counts only on worn markets. Two of the 33 v2
 pool markets were among the 20 probed v1 draws (239 and 240 points), and one of those two is among the
 first 20 v2 draws (checked by a zero-request count). None of the 20 h8-like probe markets is in the v2 pool. The v2 seed is new and was not used in any probe. The
-thresholds were not changed. On the probe's pre-close rate of 86%, P(≥ 18 of 20) ≈ 0.45. The 2025 near-end windows
-were 4 of 4. So v2 can still FAIL. A v2 FAIL is final: no smoke v3, q0120 not committed, and CB6-T recorded as "not run
+thresholds were not changed. The pass chance is only a rough figure from a different window population: the
+86% pre-close rate comes from mid-life origin windows `[t − 8 d, t + 2 d]` of h8-like markets, not from near-end
+windows `[end − 12 d, end − 2 d]`. At p = 0.86, P(≥ 18 of 20) ≈ 0.45; given that one of the 20 v2 draws is the already
+probed market (239-240 points; accepted with this disclosure), P(≥ 17 of the other 19) ≈ 0.49. **The 18-of-20
+threshold was kept in spite of this estimate.** So v2 can still FAIL. A v2 FAIL is final: no smoke v3, q0120 not committed, and CB6-T recorded as "not run
 (smoke FAIL)" and counted.
 
 **Code and files.** `cb6_tail.py` `smoke_pool` / `run_smoke` (v2), `smoke_ok` requires `smoke_version` =
@@ -1582,5 +1580,5 @@ then rises from about 3.8c to about 4.4c (×√(35/26)). The 2c floor is unchang
 class effect. The census replaces these assumptions.
 
 **Clock.** q0136 takes about 20 requests (under 2 min). q0120 needs about 3.5 h and must finish before `T_seal`
-2026-10-22T00:00Z. The latest host start stays 2026-10-20T12:00Z, with the Mac fallback after it. The deadline is not
+2026-10-22T00:00Z. The latest safe host start stays 2026-10-21T12:00Z; there is no Mac fallback (§2.8). The deadline is not
 moved. If review does not accept v2 in time, CB6-T is "not run (smoke FAIL)" and counted.
