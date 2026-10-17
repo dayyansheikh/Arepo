@@ -32,7 +32,7 @@
   "--disk-cap-gb",
   "0.03",
   "--data-dumps-max-gb",
-  "10",
+  "12",
   "--budget-min",
   "80"
  ],
@@ -46,5 +46,5 @@
   "data-dumps/research_lab/creative_batch5/census_cohort/{prices/,trades/,progress.jsonl,manifest.json}"
  ],
  "next_action": "q0106",
- "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Refuses before 2026-10-27T00:00Z. The parse guard stores nothing after min(first trade + 1h, L + 24h) and blanks the wallet-hash column; never used for G1/G2. Refuses (exit 1) when data-dumps size + the output allowance + scratch would pass 10 GB; the coordinator records the section 2.8 headroom precondition in the release commit. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it."
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Refuses before 2026-10-27T00:00Z. The parse guard stores nothing after min(first trade + 1h, L + 24h) and blanks the wallet-hash column; never used for G1/G2. Refuses (exit 75, EX_TEMPFAIL: the queue waits and retries) when data-dumps size + the output allowance + scratch would pass 12 GB; the coordinator records the section 2.8 headroom precondition in the release commit. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it."
 }

@@ -548,6 +548,12 @@ def census_l(families_doc: dict, caps: list[dict]) -> dict:
             [float(x) for x in np.percentile(list(el["per_family"].values()), [10, 50, 90])] if el["per_family"] else None, "g59": cb5_cdf.g59_gate(el["n_families"])}
 
 
+def rinc_market_ids(families_doc: dict, historical_ids) -> list[str]:
+    """q0107: the market ids whose outcomes are read: every leg of the historical families only."""
+    hist = set(historical_ids)
+    return sorted({m for e in families_doc["families"] if e["role"] == "family" and e["family_id"] in hist for m in e["market_ids"]})
+
+
 def rinc_run(families_doc: dict, outcomes: dict[str, float], *, historical_ids: set[str]) -> dict:
     """q0107: family-level r_inc over historical families (all legs closed before T5_dev_start; the caller fetched outcomes only for
     them)."""

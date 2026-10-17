@@ -510,3 +510,38 @@ def test_historical_family_needs_every_leg_closed_with_known_time_before_dev_sta
     assert build("2026-09-01T00:00:00Z", "2026-09-02T00:00:00Z")["counts"]["n_historical"] == 1
     assert build("2026-09-01T00:00:00Z", "")["counts"]["n_historical"] == 0  # a bucket member with no known close time
     assert build("2026-09-01T00:00:00Z", "2026-10-20T00:00:00Z")["counts"]["n_historical"] == 0  # a bucket closed after the dev start
+
+
+# ---- freeze re-check must-fixes 1-3, 4b -----------------------------------------------------------------------------------
+
+
+def test_hash_covers_imported_gaps_and_excludes_operational_constants():
+    from astrolabe.research_lab import cb5_declaration as D
+
+    src = D.source_hashes()
+    for k in ("cross_venue.boot_stat", "cb1_history.load_sample", "cb1_history.norm_rec", "creative_batch1.sweep_index",
+              "forecast.list_complete_captures", "script:run_cross_venue.load_pair_series"):
+        assert k in src
+    ic = D.imported_constants()
+    for k in ("cross_venue.POINT_LAG_S", "if_h2.DATE_RE", "if_h2.EXCLUDE_TAGS", "cost_regimes.FEE_ERAS", "cost_regimes.ERA_BUFFER_D", "cost_regimes.ERA_RULE_POST"):
+        assert k in ic
+    mc = D.module_constants()["cb5_extract"]
+    for k in ("JOB_REFUSE_GB", "DATA_DUMPS_MAX_GB", "DEFAULT_BUDGET_S", "SCRATCH_CAP_GB"):
+        assert k not in mc
+    assert "cb5_reported" not in D.CB5_RULE_MODULES
+
+
+def test_operational_headroom_change_does_not_move_hash(monkeypatch):
+    from astrolabe.research_lab import cb5_declaration as D
+    from astrolabe.research_lab import cb5_extract as x
+
+    h = D.declaration_sha256()
+    monkeypatch.setattr(x, "JOB_REFUSE_GB", 9.0)
+    assert D.declaration_sha256() == h
+    assert x.JOB_REFUSE_GB == 9.0
+
+
+def test_rinc_sealed_set_covers_fetch_and_id_selection():
+    from astrolabe.research_lab import cb5_declaration as D
+
+    assert ("cb5_fetch", "fetch_yes_payouts") in D.RINC_SEALED_FUNCTIONS and ("cb5_run", "rinc_market_ids") in D.RINC_SEALED_FUNCTIONS

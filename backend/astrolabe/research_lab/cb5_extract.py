@@ -60,8 +60,10 @@ T5_DEV_START = "2026-10-11T12:00:00Z"
 DEFAULT_BUDGET_S = 420.0
 TABLES = ("listings", "cdf")
 NEW_LISTING_LOOKBACK_H = 6
-DATA_DUMPS_MAX_GB = 12.0  # hard cap; the CB5 data jobs refuse above 10 (headroom precondition, section 2.8)
-JOB_REFUSE_GB = 10.0
+# Operational (outside the declaration hash, section 10): the CB5 data jobs refuse above JOB_REFUSE_GB of data-dumps (headroom
+# precondition, section 2.8; the collector cap is 13 GB and snapshot 8-day deletion is active); DATA_DUMPS_MAX_GB is the hard ceiling.
+DATA_DUMPS_MAX_GB = 14.0
+JOB_REFUSE_GB = 12.0
 TABLE_CAP_GB = {"listings": 0.05, "cdf": 0.05}
 SCRATCH_CAP_GB = 0.2
 

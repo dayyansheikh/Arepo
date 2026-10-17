@@ -136,7 +136,7 @@ K = {
 }
 
 EXTRACT = {"version": cb5_extract.EXTRACTOR_VERSION, "listings_columns": cb5_extract.LISTINGS_COLUMNS, "cdf_columns": cb5_extract.CDF_COLUMNS,
-           "lookback_h": cb5_extract.NEW_LISTING_LOOKBACK_H, "refuse_gb": cb5_extract.JOB_REFUSE_GB, "cap_gb": cb5_extract.DATA_DUMPS_MAX_GB}
+           "lookback_h": cb5_extract.NEW_LISTING_LOOKBACK_H}
 
 REFUSED_RUN_IDS = ("h3_power", "h4_seal", "h5_cb1", "h5_cb1_ladders", "h6_weather", "h7_cb4_era", "h7_cb4_series")
 REFUSED_ROOTS = ("cb1_extract", "cb2_extract", "cb3_extract", "cb4_extract", "creative_batch1", "creative_batch2", "creative_batch3", "creative_batch4")
@@ -169,7 +169,18 @@ IMPORTED_RULE_FUNCTIONS = (
     ("cross_venue", "tokenize"), ("cross_venue", "usable"), ("cross_venue", "lagged_diff"), ("cross_venue", "p_two_sided"), ("cross_venue", "p_one_sided"),
     ("cb4_data", "ReleaseCopies"), ("cb4_data", "Catalogue"),
     ("history_backfill", "load_prices"), ("history_backfill", "load_trades"), ("history_backfill", "_epoch"),
+    ("cross_venue", "boot_stat"), ("cb1_history", "load_sample"), ("cb1_history", "norm_rec"),
+    ("creative_batch1", "sweep_index"), ("forecast", "list_complete_captures"),
 )
+# Script functions executed by cb5_hours.c1_pairs (the audited C1 set): (script path attribute of cb5_hours, function name)
+IMPORTED_SCRIPT_FUNCTIONS = (("run_cross_venue", "load_pair_series"), ("run_cross_venue", "audit_sets"))
+# Imported module-level rule constants (module, name) whose values are part of the declaration
+IMPORTED_RULE_CONSTANTS = (
+    ("cross_venue", "POINT_LAG_S"), ("if_h2", "DATE_RE"), ("if_h2", "EXCLUDE_TAGS"),
+    ("cost_regimes", "FEE_ERAS"), ("cost_regimes", "ERA_BUFFER_D"), ("cost_regimes", "ERA_RULE_POST"),
+)
+# Operational constants of the CB5 modules: tuned at run time (headroom, time budget, scratch), excluded from the hash (section 10)
+OPERATIONAL_CONSTANTS = {"cb5_extract": ("JOB_REFUSE_GB", "DATA_DUMPS_MAX_GB", "DEFAULT_BUDGET_S", "SCRATCH_CAP_GB")}
 # Operational extractor constants (time budget, caps, scratch) are module-level values, not functions, so they stay out of the hash.
 CB5_RULE_MODULES = ("cb5_declaration", "cb5_extract", "cb5_seed", "cb5_cdf", "cb5_hours", "cb5_run", "cb5_fetch")
 ABSENT = "ABSENT"
@@ -193,6 +204,28 @@ def source_hashes() -> dict[str, str]:
     for mod, name in IMPORTED_RULE_FUNCTIONS:
         m = importlib.import_module(f"{__package__}.{mod}")
         out[f"{mod}.{name}"] = hashlib.sha256(inspect.getsource(getattr(m, name)).encode()).hexdigest()
+    sm = _script_module()
+    for mod, name in IMPORTED_SCRIPT_FUNCTIONS:
+        out[f"script:{mod}.{name}"] = hashlib.sha256(inspect.getsource(getattr(sm, name)).encode()).hexdigest()
+    return out
+
+
+def _script_module():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("run_cross_venue_cb5_decl", cb5_hours.CV_SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    return mod
+
+
+def imported_constants() -> dict[str, object]:
+    out: dict[str, object] = {}
+    for mod, name in IMPORTED_RULE_CONSTANTS:
+        v = getattr(importlib.import_module(f"{__package__}.{mod}"), name)
+        if hasattr(v, "pattern") and hasattr(v, "flags"):
+            v = {"regex": v.pattern, "flags": int(v.flags)}
+        out[f"{mod}.{name}"] = _plain(v) if not isinstance(v, dict) or "regex" not in v else v
     return out
 
 
@@ -231,6 +264,8 @@ def module_constants() -> dict[str, dict]:
         m = importlib.import_module(f"{__package__}.{mod}")
         c = {}
         for name, v in sorted(vars(m).items()):
+            if name in OPERATIONAL_CONSTANTS.get(mod, ()):
+                continue
             if re.fullmatch(r"[A-Z][A-Z0-9_]*", name):
                 pv = _plain(v)
                 if pv is not _SKIP:
@@ -241,7 +276,7 @@ def module_constants() -> dict[str, dict]:
 
 def declaration_blob() -> dict:
     return {
-        "sources": source_hashes(), "module_constants": module_constants(), "version": VERSION, "dates": DATES, "seeds": {"boot": SEED_BOOT},
+        "sources": source_hashes(), "module_constants": module_constants(), "imported_constants": imported_constants(), "version": VERSION, "dates": DATES, "seeds": {"boot": SEED_BOOT},
         "draws": {"n_boot": N_BOOT, "placebo": PLACEBO_DRAWS, "wild": WILD_DRAWS},
         "stage": {"alpha1_route": ALPHA_STAGE1_ROUTE, "alpha2": ALPHA_STAGE2, "alpha_K": ALPHA_K, "by_q": BY_Q, "min_units": MIN_UNITS, "min_clusters": MIN_CLUSTERS,
                   "g_normal": G_NORMAL, "g_min": G_MIN, "placebo_max_advance_rate": PLACEBO_MAX_ADVANCE_RATE, "r_ann_min": R_ANN_MIN, "cost_sens": COST_SENS_C,
@@ -464,12 +499,12 @@ def grouper_sha256() -> str:
 
 
 RINC_SEALED_FUNCTIONS = (("cb5_cdf", "r_inc"), ("cb5_cdf", "wilson_upper"), ("cb5_cdf", "divergence_gate"), ("cb5_cdf", "credit_status"),
-                         ("cb5_run", "rinc_run"))
+                         ("cb5_run", "rinc_run"), ("cb5_run", "rinc_market_ids"), ("cb5_fetch", "fetch_yes_payouts"))
 
 
 def rinc_functions_sha256() -> str:
     """sha256 of the sources of the r_inc rule functions and ``RINC_MIN_FAMILIES``: sealed (with the grouper) before q0107 reads any outcome."""
-    out = {"RINC_MIN_FAMILIES": cb5_cdf.RINC_MIN_FAMILIES}
+    out = {"RINC_MIN_FAMILIES": cb5_cdf.RINC_MIN_FAMILIES, "OUTCOME_FAILED": cb5_cdf.OUTCOME_FAILED}
     for mod, name in RINC_SEALED_FUNCTIONS:
         m = importlib.import_module(f"{__package__}.{mod}")
         out[f"{mod}.{name}"] = hashlib.sha256(inspect.getsource(getattr(m, name)).encode()).hexdigest()

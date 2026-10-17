@@ -121,7 +121,7 @@ def walk_events(start: datetime, end: datetime, lim, step_days: int = 7, closed_
     """Walk Gamma ``/events`` by event start-date windows (both ``closed`` states), splitting a window that reaches the
     offset cap. Every record passes :func:`slim_event` immediately."""
     events: dict[str, dict] = {}
-    report = {"windows": 0, "split": 0, "capped": 0, "requests": 0}
+    report = {"windows": 0, "split": 0, "capped": 0, "requests": 0, "failed": 0, "failed_windows": []}
     stack = []
     t = start
     while t < end:
@@ -130,6 +130,7 @@ def walk_events(start: datetime, end: datetime, lim, step_days: int = 7, closed_
     while stack:
         a, b = stack.pop(0)
         capped = False
+        failed = False
         got: list[dict] = []
         for closed in closed_values:
             off = 0
@@ -140,6 +141,7 @@ def walk_events(start: datetime, end: datetime, lim, step_days: int = 7, closed_
                 status, data = lim.get(if_h2.GAMMA_EVENTS, params)
                 report["requests"] += 1
                 if status != 200 or not isinstance(data, list):
+                    failed = True  # any non-200 (incl. 400/404/422) or non-list body: this window is not complete
                     break
                 got.extend(data)
                 if len(data) < page:
@@ -153,7 +155,11 @@ def walk_events(start: datetime, end: datetime, lim, step_days: int = 7, closed_
             stack[:0] = [(a, mid), (mid, b)]
             report["split"] += 1
             continue
-        report["windows"] += 1
+        if failed:
+            report["failed"] += 1
+            report["failed_windows"].append([a.strftime("%Y-%m-%dT%H:%M:%SZ"), b.strftime("%Y-%m-%dT%H:%M:%SZ")])
+        else:
+            report["windows"] += 1
         report["capped"] += int(capped)
         for e in got:
             events[str(e.get("id"))] = slim_event(e)
@@ -767,16 +773,21 @@ def wilson_upper(k: int, n: int, z: float = Z95) -> float:
     return float(min(1.0, (centre + half) / (1 + z * z / n)))
 
 
+OUTCOME_FAILED = -1.0  # fetch sentinel: the outcome request failed (distinct from NaN = not closed / not decisive)
+
+
 def r_inc(families: list[dict], outcomes: dict[str, float]) -> dict:
     """Family-level inconsistent-resolution rate. ``families`` = ``{"family_id", "pairs": [{"rung", "B": [...]}]}``;
     ``outcomes`` = YES payout (0/1, NaN unresolved) per market id. A pair is inconsistent when the rung outcome differs
     from the OR of the bucket outcomes over B_D. A family counts only when every leg of every pair is resolved. Fewer than
     30 resolved families: ``unknown`` (blocks any L1 advance)."""
-    n_res = n_bad = pairs_n = pairs_bad = 0
+    n_res = n_bad = pairs_n = pairs_bad = n_failed = 0
     for f in families:
         ok, bad = True, False
         for p in f["pairs"]:
             legs = [outcomes.get(p["rung"], math.nan), *[outcomes.get(b, math.nan) for b in p["B"]]]
+            if any(x == OUTCOME_FAILED for x in legs):
+                n_failed += 1
             if not all(x in (0.0, 1.0) for x in legs):
                 ok = False
                 break
@@ -788,6 +799,8 @@ def r_inc(families: list[dict], outcomes: dict[str, float]) -> dict:
             n_res += 1
             n_bad += int(bad)
     out = {"n_resolved_families": n_res, "n_inconsistent_families": n_bad, "pair_level": {"n": pairs_n, "n_inconsistent": pairs_bad}}
+    if n_failed:
+        return {**out, "status": "blocked_fetch_failed", "n_failed_pairs": n_failed, "r_inc": None, "r_inc_plus": None}
     if n_res < RINC_MIN_FAMILIES:
         return {**out, "status": "unknown", "r_inc": None, "r_inc_plus": None}
     return {**out, "status": "known", "r_inc": n_bad / n_res, "r_inc_plus": wilson_upper(n_bad, n_res)}

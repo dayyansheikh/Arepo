@@ -377,3 +377,55 @@ def test_coherence_placebo_never_drops_a_pair_inside_a_draw(monkeypatch):
     res = c.coherence_placebo(cp, pairs, pool, n_draws=20, regime=ZERO_FEE)
     assert res["n_pairs_excluded_no_mismatch"] >= 1
     assert res["n_pairs_used"] + res["n_pairs_excluded_no_mismatch"] == len({(p["family_id"], p["D"]) for p in pairs})
+
+
+# ---- freeze re-check must-fixes 4a, 6 -----------------------------------------------------------------------------------
+
+
+def test_walk_events_counts_non_200_as_failed_windows():
+    from datetime import UTC, datetime
+
+    from astrolabe.research_lab import cb5_cdf as c
+
+    class Lim:
+        def get(self, url, params):
+            return 422, {"error": "offset"}
+
+    ev, rep = c.walk_events(datetime(2026, 10, 1, tzinfo=UTC), datetime(2026, 10, 8, tzinfo=UTC), Lim())
+    assert ev == [] and rep["failed"] == 1 and rep["windows"] == 0 and rep["failed_windows"]
+
+
+def test_fetch_yes_payouts_batch_format_and_failures():
+    import math
+
+    from astrolabe.research_lab import cb5_cdf as c
+    from astrolabe.research_lab import cb5_fetch as f
+
+    calls = []
+
+    class Lim:
+        def get(self, url, params):
+            calls.append(params)
+            ids = [v for k, v in params if k == "id"]
+            if "m50" in ids:
+                return 500, None
+            if "m90" in ids:
+                raise RuntimeError("transport")
+            return 200, [{"id": ids[0], "closed": True, "outcomePrices": '["1","0"]'}]
+
+    ids = [f"m{i}" for i in range(100)]
+    out = f.fetch_yes_payouts(Lim(), ids, batch=40)
+    assert [sum(1 for k, _ in p if k == "id") for p in calls] == [40, 40, 20]  # repeated id params, 40 per call
+    assert all(("limit", len(p) - 1) in p for p in calls)
+    assert out["m0"] == 1.0 and math.isnan(out["m1"])  # unresolved stays NaN
+    assert out["m50"] == c.OUTCOME_FAILED == out["m79"]  # HTTP failure
+    assert out["m90"] == c.OUTCOME_FAILED  # transport failure
+
+
+def test_r_inc_failed_fetch_blocks():
+    from astrolabe.research_lab import cb5_cdf as c
+
+    fams = [{"family_id": "f", "pairs": [{"rung": "r", "B": ["b"]}]}]
+    res = c.r_inc(fams, {"r": 1.0, "b": c.OUTCOME_FAILED})
+    assert res["status"] == "blocked_fetch_failed" and res["r_inc"] is None
+    assert c.r_inc(fams, {"r": 1.0, "b": float("nan")})["status"] == "unknown"

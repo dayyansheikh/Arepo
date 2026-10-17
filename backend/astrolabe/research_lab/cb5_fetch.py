@@ -27,6 +27,7 @@ from typing import Any
 import pandas as pd
 
 from . import history_backfill as hb
+from .cb5_cdf import OUTCOME_FAILED
 
 HEAD_VERSION = "cb5-head-v1"
 COHORT_VERSION = "cb5-cohort-v1"
@@ -250,7 +251,8 @@ def load_cohort_market(out_dir: Path, mid: str) -> tuple[Any, Any, pd.DataFrame]
 
 
 def fetch_yes_payouts(lim: hb.Limiter, market_ids: list[str], batch: int = 40) -> dict[str, float]:
-    """YES (token 0) final payout (1.0 / 0.0, NaN if not closed or not decisive) for ``market_ids`` from Gamma ``/markets``. Only the
+    """YES (token 0) final payout (1.0 / 0.0, NaN if not closed or not decisive, ``OUTCOME_FAILED`` (-1.0) when the request failed:
+    non-200 or transport error) for ``market_ids`` from Gamma ``/markets`` (repeated ``id`` params, ``batch`` per call). Only the
     callers that are allowed to read outcomes (runner guards) call this; nothing else in CB5 touches ``outcomePrices``."""
     from . import cb1_history
 
@@ -258,12 +260,18 @@ def fetch_yes_payouts(lim: hb.Limiter, market_ids: list[str], batch: int = 40) -
     ids = [str(i) for i in market_ids]
     for a in range(0, len(ids), batch):
         chunk = ids[a:a + batch]
-        status, data = lim.get(hb.GAMMA_MARKETS, [("id", i) for i in chunk] + [("limit", len(chunk))])  # type: ignore[arg-type]
+        try:
+            status, data = lim.get(hb.GAMMA_MARKETS, [("id", i) for i in chunk] + [("limit", len(chunk))])  # type: ignore[arg-type]
+        except Exception:  # transport failure: recorded as failed, never as unresolved
+            status, data = None, None
+        if status != 200 or not isinstance(data, list):
+            for i in chunk:
+                out[i] = OUTCOME_FAILED
+            continue
         got = {}
-        if status == 200 and isinstance(data, list):
-            for m in data:
-                v = cb1_history.parse_outcome0(m.get("outcomePrices")) if m.get("closed") else None
-                got[str(m.get("id"))] = math.nan if v is None or v not in (0.0, 1.0) else float(v)
+        for m in data:
+            v = cb1_history.parse_outcome0(m.get("outcomePrices")) if m.get("closed") else None
+            got[str(m.get("id"))] = math.nan if v is None or v not in (0.0, 1.0) else float(v)
         for i in chunk:
             out[i] = got.get(i, math.nan)
     return out

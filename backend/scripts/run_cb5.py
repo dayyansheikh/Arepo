@@ -242,6 +242,8 @@ def cmd_cdf_frame(a) -> int:
     lim = _limiter(a.rps)
     start = datetime.fromisoformat(a.walk_from).replace(tzinfo=UTC)
     fresh, rep = C.walk_events(start, datetime.now(UTC), lim)
+    if rep.get("failed"):
+        raise D.RefusedRun(f"the Gamma frame walk has {rep['failed']} failed window(s) (non-200 response); the family list is not frozen while any window is incomplete: {rep['failed_windows'][:5]}")
     by = {e["id"]: e for e in events}
     by.update({e["id"]: e for e in fresh})
     fr = R.cdf_frame(list(by.values()), dev_start=D.DATES["T5_dev_start"], seed=a.seed, audit_n=a.audit_n)
@@ -352,12 +354,15 @@ def cmd_rinc(a) -> int:
     fdir = p["out"] / "cdf_frame"
     man = next((_load_json(fdir / f"manifest_v{v}.json") for v in (2, 1) if (fdir / f"manifest_v{v}.json").exists()), None)
     hist = set((man or {}).get("historical_ids", []))
-    ids = sorted({m for e in fdoc["families"] if e["role"] == "family" and e["family_id"] in hist for m in e["market_ids"]})  # historical families only
+    ids = R.rinc_market_ids(fdoc, hist)  # historical families only
     out_path = p["out"] / "rinc.json"
     if out_path.exists():
         raise FileExistsError(str(out_path))
     outcomes = F.fetch_yes_payouts(_limiter(a.rps), ids)
     res = R.rinc_run(fdoc, outcomes, historical_ids=hist)
+    if res["status"] == "blocked_fetch_failed":  # nothing is written: a failed run must not block the single-shot rerun
+        _emit({"rinc": res["status"], "n_failed_pairs": res["n_failed_pairs"], "written": False})
+        return 3
     doc = {**R.header("rinc", None), **res, "n_historical_families": len(hist), "n_markets_read": len(ids), "family_list_sha256": fdoc["sha256"]}
     sha = write_new(out_path, doc)
     R.log_descriptive({"L_r_inc": {k: res[k] for k in ("status", "n_resolved_families", "r_inc", "r_inc_plus")}}, role="exploratory_historical", dataset="cb5_rinc", results_path=str(out_path), results_sha256=sha)
@@ -389,8 +394,12 @@ def cmd_screen(a) -> int:
         decl = _decl()
         _bound(a, need_rinc=True)
         fdoc = _frozen_family_doc(a)
-        caps, meta = R.load_cdf_captures(p["ext"], start=D.DATES["T5_dev_start"], end=D.DATES["T5_dev_end"])
         rinc = _load_json(p["out"] / "rinc.json")
+        census = _census(a) or {}
+        want = fdoc["sha256"]
+        if (census.get("L") or {}).get("family_list_sha256") != want or (rinc or {}).get("family_list_sha256") != want:
+            raise D.RefusedRun("the frozen family list sha256 does not equal census['L']['family_list_sha256'] and rinc['family_list_sha256']; L screen refused")
+        caps, meta = R.load_cdf_captures(p["ext"], start=D.DATES["T5_dev_start"], end=D.DATES["T5_dev_end"])
         out = Path(a.out) if a.out else p["out"] / "L_dev" / "results.json"
         doc = R.screen_l(caps, fdoc, rinc, out_path=out, decl_sha=decl, cap_meta=meta, n_boot=a.n_boot)
         _emit({"job": "L_dev", "tests": {k: {x: v.get(x) for x in ("p", "advance", "testable")} for k, v in doc["tests"].items()}, "results": str(out)})
@@ -403,8 +412,9 @@ def cmd_measure_k(a) -> int:
     from astrolabe.research_lab import cb5_run as R
 
     if a.live_replication:
-        cb5_hours.refuse_path(cb5_hours.CV_ROOT.parent / cb5_hours.LIVE_ROOT_NAME)
-        raise NotImplementedError("K1-R needs the receipt-timed 2-minute grid mapping and the E009/E010 owner sign-off; it is declared in CB5-K and not implemented here")
+        from astrolabe.research_lab import cb5_reported
+
+        cb5_reported.run_k1r()
     decl = _decl()
     _bound(a)
     p = _paths(a)
@@ -443,6 +453,7 @@ def cmd_replicate(a) -> int:
 
 
 def cmd_fetch_outcomes(a) -> int:
+    from astrolabe.research_lab import cb5_cdf as C
     from astrolabe.research_lab import cb5_declaration as D
     from astrolabe.research_lab import cb5_fetch as F
     from astrolabe.research_lab import cb5_run as R
@@ -462,6 +473,10 @@ def cmd_fetch_outcomes(a) -> int:
     if out_path.exists():
         raise FileExistsError(str(out_path))
     res = F.fetch_yes_payouts(_limiter(a.rps), ids)
+    n_failed = sum(1 for v in res.values() if v == C.OUTCOME_FAILED)
+    if n_failed:
+        _emit({"outcomes": "blocked_fetch_failed", "n_failed": n_failed, "written": False})
+        return 3
     sha = write_new(out_path, res)
     _emit({"outcomes": str(out_path), "n": len(res), "sha256": sha})
     return 0

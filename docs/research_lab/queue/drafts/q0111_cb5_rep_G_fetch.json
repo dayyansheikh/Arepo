@@ -32,7 +32,7 @@
   "--disk-cap-gb",
   "0.10",
   "--data-dumps-max-gb",
-  "10",
+  "12",
   "--budget-min",
   "50"
  ],
@@ -46,5 +46,5 @@
   "data-dumps/research_lab/creative_batch5/rep_cohort/{prices/,trades/,progress.jsonl,manifest.json}"
  ],
  "next_action": "q0112 after T5_G_read",
- "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Commit only if G advanced or G2 was carried (the runner exits 0 'nothing advanced' otherwise); needs the pinned docs/research_lab/seals/cb5_t_rep_start.json. Rolling: one run per 6h (the queue repeat with a not-before cadence is set by the coordinator at release); each market is fetched only once now >= L + 4d + 2h; no target is computed by the fetcher. Refuses (exit 1) when data-dumps size + the output allowance + scratch would pass 10 GB; the coordinator records the section 2.8 headroom precondition in the release commit. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it."
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Commit only if G advanced or G2 was carried (the runner exits 0 'nothing advanced' otherwise); needs the pinned docs/research_lab/seals/cb5_t_rep_start.json. Rolling: one run per 6h (the queue repeat with a not-before cadence is set by the coordinator at release); each market is fetched only once now >= L + 4d + 2h; no target is computed by the fetcher. Refuses (exit 75, EX_TEMPFAIL: the queue waits and retries) when data-dumps size + the output allowance + scratch would pass 12 GB; the coordinator records the section 2.8 headroom precondition in the release commit. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it."
 }
