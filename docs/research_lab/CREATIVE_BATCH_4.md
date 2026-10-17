@@ -1668,9 +1668,30 @@ neg-risk members. **Eligible events per hour 1.29** (the prior arithmetic assume
 gives `H_mde` = 84 (predicted MDE 0 at every H) and **H = min(84, 252) = 84**, `testable: true`; the design effect could
 not be estimated (null; 1.5 used).
 
-**Reading (for the census and the freeze check; no threshold changed):** the predicted MDE of 0 is an artefact of a zero
-SD, not real power. With 1.29 eligible events per hour, H = 84 gives about 108 event-hours, and the pilot saw no
-mid-band minute at all. The freeze check must decide, before the census, whether N1/N2 are declared "not testable
-(degenerate pilot: zero variance in 31 event-hours)" or run at H = 84 with their MDE stated from a non-degenerate bound
-(e.g. a rule-of-three upper bound on the band share, ≤ 3/31 ≈ 10 % of event-hours). It must also check that a zero band
-share is not a measurement defect (e.g. the band classifier never firing) by a code-level unit check on a synthetic hour.
+**Stop rule fired (correction, 2026-10-17).** `pilot.json` carries `"stop": true`: 1.2917 eligible events per hour is below the frozen
+5 (`stop_eligible_events_per_hour`); hours missing 0. The paragraph above stated `testable: true` and omitted `stop`; that came from
+`pilot_power`, which checked only `H_cap` (see "CB4-N defects" below). Under the frozen stop rule (§CB4-N) **N1 and N2 are "not testable"
+(p = 1, counted)** and only the band map **from the pilot data alone** is published. No rule-of-three MDE is computed or used, no
+threshold is changed, and no analysis-window pmxt hour is read. The pilot's `H = 84` and zero-SD "MDE 0" are descriptive artefacts of the
+degenerate pilot (31 event-hours, `I_none` = 1.0, no mid-band minute) and decide nothing. The pilot file is unchanged (sha256 above); the
+census derives the pins from it (`stop` = true, `H` = 0).
+
+## CB4-N defects found by the science-reviewer and fixed (2026-10-17, code commit 3988b1d; before the CB4 freeze, so hashed code could change)
+
+1. **Stop rule not enforced.** `_pilot` computed `stop` but `pilot_power().testable` checked only `H_cap >= 84`, `_measure_n` never read `stop`,
+   and `ALLOWED_PINS` carried no `stop`. Fix: `pilot_power(..., stop=)` makes `testable` false under stop (and reports `stop`); `stop` is a new census
+   pin (`ALLOWED_PINS`, `check_pins`: bool or "unavailable"; `pilot_stop`); `pilot_h` pins `H` = 0 when the pilot stopped; the census skips the pmxt head
+   checks under stop; `measure-N` writes, for N1 and N2, `testable` false, `p` = 1, reason "not testable (stop rule: X < 5 eligible events per hour)",
+   with the two counted `cb4_measurement` trial lines (`KIND_MEASURE`, same writer as the H_cap < 84 path), without any network call or pmxt/Gamma read;
+   the band map source is "pilot data only". New flag `measure-N --not-testable-only` (refuses unless the pin says stop or H < 84).
+2. **YES token unverified.** `token0` = `clobTokenIds[0]` was assumed to be YES. `keep_negrisk_event` now rejects any event with a member whose
+   `outcomes[0]` is not "Yes" (or has no outcomes) and counts it as `yes_token_unverified` in the walk report.
+3. **Synthetic-hour check (requested by the reviewer).** A synthetic pmxt hour (real column names; bids/asks as JSON strings of price/size string pairs;
+   SELL `price_change` rows) through `read_hour_events` -> `replay_minutes` -> `event_minute_states` -> `event_hour_unit`: 3 members, Σ asks 0.90 / 0.9699 / 0.99 /
+   1.0101 on minutes 0 / 15 / 30 / 45, gives `I_hi` = `I_mid` = `I_lo` = `I_none` = 0.25, no "mid or hi" onset, one lo onset with P5 = 1. **Passed at the
+   first run: the band classifier and the replay chain are not defective**, so the pilot's zero mid share is a data property (sparse eligible events), not a
+   measurement bug. The YES-token check and this test pass (`pytest -k "cb4 or h7"`: 226 passed).
+
+**Queue wiring.** The not-testable record is written by `measure-N`, a counted job that needs the committed CB4 freeze (the counted gate), so it cannot run
+at the census. `docs/research_lab/queue/drafts/q0087n_cb4_N_not_testable.json` (cpu lane, 400 MB, no network, `depends_on` q0086_cb4_census) is released
+instead of q0087 once the freeze is committed with pin `stop` = true; q0087 itself writes the same record if released with that pin.
