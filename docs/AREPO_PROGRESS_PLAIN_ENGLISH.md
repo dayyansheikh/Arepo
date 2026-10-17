@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 15:37 UTC+1
+**Last updated:** 2026-10-17 16:00 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -19,8 +19,15 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   mid price is formed. The challenger's fixes are applied. Two programmers are writing the code in parallel; an
   independent check of code against design comes next. Its downloads wait until after 22 Oct (the data deadline of
   earlier batches).
-- **Batch 4's series download keeps running out of memory** (4 attempts, about 1.7 h each before failing). A fix that
-  does not change any output is being written.
+- **Batch 4's series download kept running out of memory** (4 attempts). Fixed without changing any output (it now
+  streams the file instead of loading it whole) and sent to the server; it runs after batch 6's top-up download.
+- **Batch 8's analysis code for "Binance terminal minutes"** (buying the near-certain side of daily crypto Up/Down
+  markets in the last minutes) is written and tested; the other two batch-8 analyses are being written now.
+- **Batch 10 drafted** from the remaining round-4 ideas: (1) do crypto options prices (Deribit, a professional market)
+  predict Polymarket's daily Bitcoin/Ether price-ladder outcomes beyond Polymarket's own price; (2) do prices bounce back
+  after breaking round levels like 0.50. Four other ideas were dropped with reasons (e.g. parlay prices are not public).
+  The challenger found 15 required fixes, including a hidden bias that would have made the options test look better
+  than it is; the author is applying them.
 - **Batch 7's two main downloads finished** (text markets and geography markets). Batch 6's top-up download had been
   refusing to start because of the disk limit; it can start now.
 - **Batch 4's small test** found the behaviour it looks for almost never happens, so that part (N1/N2) is recorded as
