@@ -1507,3 +1507,15 @@ The science-reviewer freeze check of the `h8_tail` fetcher returned GO_WITH_COND
 7. **h7 wait.** The smoke and the fetch do not depend on h7. The seal's exit-75 wait is bounded by the queue at 48 tempfails (about 24 h) while h7 may run to 2026-10-22, so the coordinator promotes q0121 only after q0120 is complete and both h7 SEAL/NOT_RUN records are committed; the wait is a safety net only.
 
 Promoted to `queue/jobs/`: q0135 only (q0120 waits for a committed smoke PASS; q0121 for q0120 complete and the h7 records).
+
+## Smoke test result (2026-10-17): FAIL
+
+The write-once smoke job `q0135_h8_tail_smoke` ran on the host at 2026-10-17T05:04:13Z (code `06ce95d`, rules
+`57a265d0…`) and returned **FAIL**: `n_pass` 4 of 20 (threshold 18), `n_ge_80pct_points` 4, `n_spacing_ok` 7,
+`n_failed_requests` 0, `n_candidates_available` 573; fraction of expected hourly points: `lt_0.5` 16, `0.5_to_0.8` 0,
+`0.8_to_1.1` 4, `ge_1.1` 0. The host file is unchanged (write-once). Its byte-identical copy is
+`docs/research_lab/seals/cb6_tail_smoke_FAIL_20261017.json`, sha256
+`ae21aefec15c0122310682fab70a640a21f68b8486ae18f4b9f3490be65e28be` (same hash on the host).
+
+Consequence, as declared in CB6-F: **q0120 is not committed**. A different fidelity or source is a design change that
+needs review, and `T_seal` (2026-10-22T00:00Z) is not moved. The diagnosis follows below.
