@@ -1320,3 +1320,8 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   SD 0). Frozen rule gives H = 84 with a degenerate predicted MDE of 0. Open for the CB4 freeze check: "not testable" vs
   run at H = 84 with a non-degenerate MDE, plus a check that the band classifier is not defective
   (`CREATIVE_BATCH_4.md`, power pilot result). q0085 (flip trades) still not before ~10-24T12Z.
+- **CB4-N ruling (science-reviewer, 2026-10-17 ~11:00Z):** the frozen stop rule fires (1.29 < 5 eligible events per
+  hour), so **N1 and N2 are "not testable (stop rule)", p = 1, counted (2 tests)**; the earlier `testable: true` was a
+  defect (stop not enforced in `measure-N`), fixed in 3988b1d with a YES-token check and a synthetic-hour classifier test
+  (passed: the zero mid-band share is a data property). The 2 counted lines are written by q0087n (`measure-N
+  --not-testable-only`) after the CB4 freeze, not now; q0087 for N is not run. Band map = pilot data only.
