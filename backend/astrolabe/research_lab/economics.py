@@ -490,3 +490,24 @@ def regime_summary(t: pd.DataFrame, by: str) -> pd.DataFrame:
                      "impact_med": ok["impact_ps"].median(),
                      "be_ll_med": ok["delta_logloss"].median() if len(ok) else math.nan})
     return pd.DataFrame(rows)
+
+
+# --- 5. CB4 cost-regime accessors (thin; logic and R0 clamps live in cost_regimes) -----
+
+
+def cost_regime(on, fee_category, price: float = 0.5, register_path=None) -> dict:
+    """Cost terms for a date and fee category (CB4 section 2.9). Never below the CB1 defaults.
+
+    Delegates to ``cost_regimes.cost_regime``; imported lazily because that module imports
+    ``cb1_history``, which imports this one. No band map is exposed here.
+    """
+    from . import cost_regimes
+
+    return cost_regimes.cost_regime(on, fee_category, price, register_path)
+
+
+def planning_band_map(consumer_declaration: dict, register_path=None) -> dict:
+    """The CH52 band map for power planning only (refused when the data window overlaps pmxt)."""
+    from . import cost_regimes
+
+    return cost_regimes.planning_band_map(consumer_declaration, register_path)

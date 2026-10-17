@@ -1460,12 +1460,41 @@ Response to the "Freeze check (science-reviewer, 2026-10-16 05:20Z)". Commits 74
   q0083 then fails permanently. Recommend `record-deadline` exits non-zero before T_seal, q0083 `max_retries` ≥ 2, or a worker
   `not_before` field. Minor: `run_state` may seal a run completed after T_seal; compare completion time with T_seal.
 
-## Implementation notes (CB4 analysis, partial; 2026-10-16)
-Present: `cost_regimes.py` (register reader/writer, R0 clamp, `planning_band_map` refusals; tests `test_cost_regimes.py`), `cb4_declaration.py`
-(constants for C, S, N, E, floors, gates, dates, register rules; hash covers constants plus the source of every function in the rule modules and the
-imported cost/statistics helpers; `ALLOWED_PINS` = H, rho, extra UMA statuses only; T4_rep_start pin with the max rule; outcome-date and S-screen
-register gates; tests `test_cb4_declaration.py`), `battery2.KIND_RULES` entries for the four CB4 kinds, spec `q0086_cb4_census`.
-**The declaration refuses to freeze while `cb4_rules`, `cb4_measure` or `cb4_analysis` are absent** (they are recorded `ABSENT` in the hash and
-`require_declaration` / `write_spec` raise). Not written: those three modules, the `economics.cost_regime` accessor named in section 4.1 (the logic lives in
-`cost_regimes.cost_regime` instead; to be wired or the text amended), the analysis subcommands behind `run_cb4.py` (`cb4_analysis.cmd_*`), and the specs
-q0084, q0085, q0086a (gate), q0087-q0093. q0086 depends on the not-yet-committed q0084, q0085 and q0086a, so it cannot run.
+## Implementation notes (CB4 analysis; 2026-10-17)
+Rewritten after the analysis modules were finished and tested (supersedes the 2026-10-16 "partial" note).
+
+**Present.**
+- `cb4_rules.py` (C1/C2 and S2/S3 rules, gates G46/G50, binding checks, placebos, LODO, decide), `cb4_measure.py` (CH52 pmxt hour sampling, ingress
+  meter, band classification, H rule, CH53 era panel and DiD, family-M adoption and `commit_register`), `cb4_analysis.py` (`cmd_pilot`,
+  `cmd_flip_trades`, `cmd_census`, `cmd_measure_N`, `cmd_measure_E`, `cmd_measure_commit`, `cmd_fetch_outcomes`, `cmd_screen`, `cmd_replicate`).
+  Counted commands refuse (exit 3) unless the committed single-commit `model_specs/cb4_v1.json` carries the code's declaration hash; pilot,
+  flip-trades and census are uncounted and never open an outcome file; results are written once (`FileExistsError` is exit 3); `--n-boot`
+  and the ingress cap cannot exceed the declared values.
+- `scripts/run_cb4.py` dispatches the nine analysis commands to `cb4_analysis.cmd_<name>`. Defect fixed in this pass: the analysis
+  subparsers used `argparse.REMAINDER`, which rejects a leading `--flag`, so `census --family C,S,E,N` (q0086) exited 2; `main` now uses
+  `parse_known_args` and hands the rest to `cb4_analysis`.
+- `economics.cost_regime` and `economics.planning_band_map` are thin delegating accessors to `cost_regimes` (lazy import, no logic, no band
+  map in the accessor), so section 4.1's name resolves; the declaration hash covers `cost_regimes.cost_regime`.
+- Tests: `test_cb4_rules.py`, `test_cb4_measure.py`, `test_cb4_analysis.py` (guards, outcome-free uncounted commands, no overwrite, exit codes
+  0/3, runner wiring, queue-spec argv parsing), plus `test_cb4_declaration.py`, `test_cb4_data.py`, `test_cost_regimes.py`.
+- Draft specs in `queue/drafts/` (not released): `q0084_cb4_pmxt_pilot` (net lane, 1500 MB), `q0085_cb4_flip_trades_dev` (net lane, 600 MB; release
+  after T4_dev_end), gate `q0086a_cb4_analysis_gate`. `q0086_cb4_census` (in `jobs/`) already depends on q0084, q0085 and q0086a, so it stays held
+  until the coordinator releases the drafts after a science-reviewer freeze check. q0087-q0089 are in section 5 and release at the CB4 freeze.
+  **q0090-q0093 are not drafted**: their numbers clash with CB5; renumber from the section 5 text at release.
+
+**Declaration hash (current code, 2026-10-17):** `66e48faea8b338778d808fc000558e4627a11cd594109707e80b1404b7d1c117`
+(`cb4_declaration.declaration_sha256()`). Any edit to a rule module or to an imported rule function changes it. `model_specs/cb4_v1.json`
+is not written or committed here: the freeze (`write_spec` with the census pins) is the coordinator's, after the review.
+
+**Rule decisions in the tests (not gate changes).**
+- C2's `+0.75c` check is dominated by its 1.0c floor (a mean at or above 1.0c always clears 0.75c), so the "thin edge" test now uses a mean
+  below the floor (0.74c) and asserts both non-advance and a failed cost check; the earlier 1.08c case correctly advanced.
+- C1's top-5-clusters check drops five ISO weeks and still needs the declared 100 units; the C1 fixture was too small (120 units left 90) and
+  now has 240. The declared minimum is unchanged.
+
+**Remaining before a freeze check.**
+1. Science-reviewer pass over the analysis commit (rules, measure, analysis), then copy the drafts to `jobs/`.
+2. Run the census after q0083/q0084/q0085 and pin H, rho and extra UMA statuses; write and commit `model_specs/cb4_v1.json` once.
+3. Not exercised end to end: `measure-N`/`pilot` against live pmxt range reads, `measure-E` on a real sealed `h7_cb4_era`, C and S `screen`/`replicate`
+   on real data (unit tests cover rules, guards and the not-testable paths only).
+4. Freeze-check item 13 and the host coverage check are still open (pass-step line in `arepo_pass.sh`, RETENTION.md 2.10(b); host capture coverage vs release-only captures).

@@ -15,7 +15,7 @@ DATA subcommands (this file; module ``astrolabe.research_lab.cb4_data``):
 
 ANALYSIS hooks (pilot, flip-trades, census, measure-N, measure-E, measure-commit, fetch-outcomes, screen, replicate)
 call ``astrolabe.research_lab.cb4_analysis.cmd_<name>(args)`` (name with '-' as '_'); if the module or the function
-is missing the command exits 2. Other sessions own that module.
+is missing the command exits 2. Their own options (--family, --window, ...) are parsed by cb4_analysis; a guard refusal there exits 3.
 
 Exit codes: 0 ok / lock held / transient pause; 1 error or backfill refusal (data-dumps over cap, version mismatch);
 2 refusal of a guard or a missing analysis hook. A fetch at/after T_seal 2026-10-22T00:00Z starts no chunk (exit 0,
@@ -173,7 +173,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    a = build_parser().parse_args(argv)
+    # analysis subparsers take their options verbatim (parsed in cb4_analysis); argparse.REMAINDER alone rejects a leading ``--flag``.
+    a, rest = build_parser().parse_known_args(argv)
+    if rest:
+        if a.cmd not in ANALYSIS_COMMANDS:
+            build_parser().error(f"unrecognized arguments: {' '.join(rest)}")
+        a.extra = [*rest, *(a.extra or [])]
     if a.cmd == "closewin":
         return cmd_closewin(a)
     if a.cmd in ANALYSIS_COMMANDS:

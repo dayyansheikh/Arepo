@@ -1,0 +1,22 @@
+{
+ "id": "q0086a_cb4_analysis_gate",
+ "title": "Gate: CB4 analysis code (cb4_rules, cb4_measure, cb4_analysis, run_cb4 subcommands) committed, tested and freeze-checked: releases q0084, q0085, q0086",
+ "family": "gate",
+ "priority": 63,
+ "expected_value": "releases the pilot, flip trades and census only after the analysis freeze check",
+ "data": [],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "selfcheck"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [],
+ "next_action": "q0084 and q0085 run, then q0086",
+ "notes": "DRAFT coordinator gate (same trivial argv as q0033/q0039/q0080a). Copy to queue/jobs/ only after a science-reviewer pass on the CB4 analysis commit. q0087-q0089 depend on the CB4 freeze, not on this gate. q0090-q0093 are intentionally not drafted: their numbers clash with CB5 (their text is in CREATIVE_BATCH_4.md section 5; renumber at release)."
+}

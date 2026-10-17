@@ -188,6 +188,8 @@ IMPORTED_RULE_FUNCTIONS = (
     ("cb1_history", "iso_week"), ("cb1_history", "fee_rate"), ("cb1_history", "half_spread"),
     ("cb2_weather", "small_g_pvalue"), ("cb2_weather", "_cluster_sums"), ("economics", "fee_spec"), ("economics", "resolve_rate"),
     ("economics", "sweep_fill"), ("economics", "boot_ratio"), ("battery", "_cr_var_of_sum"), ("wallet_sidecar", "hash_wallet"),
+    ("cb3_common", "mean_test"), ("cb3_common", "testable"), ("cb3_common", "boot_ci_mean"), ("cb3_common", "top_clusters_mask"), ("cb3_common", "sign_agree"),
+    ("cb3_common", "holm"), ("cb3_common", "batch_holm"), ("cb3_common", "write_new"), ("cost_regimes", "cost_regime"),
     ("cb3_declaration", "spec_committed"), ("cb3_declaration", "single_commit"), ("cb3_declaration", "canonical_sha256"),
 )
 CB4_RULE_MODULES = ("cb4_declaration", "cost_regimes", "cb4_data", "cb4_rules", "cb4_measure", "cb4_analysis")

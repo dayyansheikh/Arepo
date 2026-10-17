@@ -412,7 +412,16 @@ def test_script_closewin_exit_codes_and_complete_flag(tmp_path, capsys):
     assert '"backfill_complete": true' not in out and "refused_data_dumps_over_cap" in out
 
 
-def test_script_analysis_hook_exits_2_when_module_absent():
+def _hide_analysis(monkeypatch):
+    """Simulate cb4_analysis being absent (it exists now; a real census/pilot would read data or use the network)."""
+    import astrolabe.research_lab as rl  # noqa: PLC0415
+
+    monkeypatch.delattr(rl, "cb4_analysis", raising=False)
+    monkeypatch.setitem(sys.modules, "astrolabe.research_lab.cb4_analysis", None)
+
+
+def test_script_analysis_hook_exits_2_when_module_absent(monkeypatch):
+    _hide_analysis(monkeypatch)
     assert script.main(["census"]) == 2
 
 
@@ -1076,7 +1085,7 @@ def test_h5_seal_allowlist_extended_not_broken():
         h5_seal.check_run_id("h2_main")
 
 
-def test_script_fetch_seal_and_rules_subcommands(tmp_path, capsys):
+def test_script_fetch_seal_and_rules_subcommands(tmp_path, capsys, monkeypatch):
     assert script.main(["series-rules", "--path", str(tmp_path / "r.json")]) == 0
     assert json.loads((tmp_path / "r.json").read_text()) == d.series_rules_doc()
     # real argparse path: refuses without the h5 seal copy; alias subcommands parse
@@ -1086,7 +1095,9 @@ def test_script_fetch_seal_and_rules_subcommands(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "h5_cb1_SEAL.json" in out and "refuses" in out
     assert script.main(["seal", "--run-ids", "h5_cb1", "--root", str(tmp_path / "h")]) == 1
-    assert script.main(["pilot"]) == 2  # analysis hook absent -> exit 2
+    # the analysis module now exists (and a real pilot would use the network); simulate it being absent -> exit 2
+    _hide_analysis(monkeypatch)
+    assert script.main(["pilot"]) == 2
 
 
 def test_datetime_utc_helpers():

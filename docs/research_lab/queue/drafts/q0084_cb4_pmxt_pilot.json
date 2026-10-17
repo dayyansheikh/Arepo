@@ -1,0 +1,43 @@
+{
+ "id": "q0084_cb4_pmxt_pilot",
+ "title": "CB4-N: power pilot on 24 seeded pmxt hours in 2026-07-12..08-10 (outside the analysis window): base rates, SDs, read cost, H rule",
+ "family": "creative_batch_4",
+ "priority": 45,
+ "expected_value": "sets H for the CH52 measurement without looking at its windows",
+ "data": [
+  "pmxt v2 hourly archive (range reads)",
+  "Gamma neg-risk event metadata"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "network": "r2v2.pmxt.dev, gamma-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0086a_cb4_analysis_gate"
+ ],
+ "argv": [
+  "scripts/run_cb4.py",
+  "pilot",
+  "--family",
+  "N",
+  "--from",
+  "2026-07-12T00:00Z",
+  "--to",
+  "2026-08-10T00:00Z",
+  "--hours",
+  "24",
+  "--seed",
+  "arepo-cb4-pmxt-pilot",
+  "--ingress-cap-gb",
+  "15"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch4/N_pilot/pilot.json (incl. measured GB per hour)"
+ ],
+ "next_action": "q0086 census reads H",
+ "notes": "DRAFT (the coordinator releases it after the science-reviewer CB4 analysis freeze check). Uncounted: no declaration needed, outcome columns never read, no trial line. Reads only the declared pilot window 2026-07-12..2026-08-10, never W_pre_N or W_post_N; streams and stores minute states only. Network bound (about 25% CPU), so net lane (q0002 holds it at priority 60: this waits for a free slot); mem_mb 1500 fits the 5.6 GB host beside the collector (start rule MemAvailable >= mem_mb + 1200). Held behind q0086a_cb4_analysis_gate."
+}
