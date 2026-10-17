@@ -1416,3 +1416,11 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Count 0 now; cumulative **1,141** as stated in the latest ledger entry that states one (CB10 draft); 1,156 from
   `battery2.cumulative_count()` on the Mac working tree at drafting (lower bound). Next: `science-reviewer` challenger
   round 1.
+
+## CB9 smoke q0180 (v1, rules sign v3), 2026-10-17T19:58Z: FAIL on receipt count only; counted as descriptive (trial line written by the job)
+- gamma_paging, pmxt_heads, topic_pins, yahoo_clock PASS. **receipts_v1 FAIL (8 receipts < 20), receipts_v2 FAIL
+  (18 < 20)**, but every receipt decoded: v1 8/8 matched with T1 = T2 (both v1 exchanges exercised), v2 18/18 (both v2
+  exchanges), 0 unavailable, RPC 26 requests 0 failures. Cause: the smoke draws a fixed 10 markets x 2 prints, so it can
+  reach 20 receipts only if every draw yields a distinct receipt (a sampling defect, not a source property). Result kept
+  (write-once). Smoke v2 (draw markets in seeded order until 20 receipts, cap 40; pass rule unchanged; new seed,
+  `smoke_v2.json`, sign rules v5) being implemented; q0181 waits on it.
