@@ -206,14 +206,23 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 ## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 ~20:10Z
 0. **Autopilot session from 19:32Z 10-17.** At start the host queue was IDLE. Since then (all deployed; host tip 8b376d7):
    - q0120b guard 14 -> 40; q0103 cancelled (refuses before 10-27) -> draft q0103b, q0106 depends on q0103b.
-   - q0116 ArrowMemoryError fixed value-identically (9a99c75) -> **q0116b** queued (mem 3200; panel already cached).
-   - q0082f had stopped on its ops disk cap (frame incomplete) -> **q0082g** (cap 4.0) RUNNING since 19:40Z; q0082 depends on it.
+   - q0116 ArrowMemoryError fixed value-identically (9a99c75) -> q0116b died twice at the 2 x 3200 MB cap -> **PARKED by the
+     user** (backup; revive on the second instance; no q0116c on this host).
+   - q0082f had stopped on its ops disk cap -> **q0082g DONE 19:47Z (series_frame_complete)**; h7 group-S amendment + gate
+     q0081g being prepared by an agent.
    - **q0104b CB5 cdf frame: 0 families** under the frozen grouper (correct, not a bug) -> CH59 expected to close at q0106's
      G59; q0105/q0107 drafts held (ledger a1dad42).
    - **q0160b CB8-H smoke FAIL (criterion h, /oi absent 82%)**: an agent is verifying absent == zero OI; if verified it drafts
      amendment H-v4 + rules v4 + q0160c (needs a science-reviewer pass before promotion); if not, CB8-H stays FAIL.
-   - **q0180 CB9 smoke v1 FAIL** on receipt count only (8/20, 18/20; every receipt decoded with T1 = T2). Smoke v2 (draw
-     until 20 receipts, cap 40, sign rules v5, `smoke_v2.json`, draft q0180b) being implemented by an agent.
+   - **q0180 CB9 smoke v1 FAIL** on receipt count only (8/20, 18/20) -> **q0180b smoke v2 PASS** (20/20 both eras, sign rules
+     v5). **q0200 CB10 smoke PASS.**
+   - q0120b refused once at 19:48Z (rules file "not committed": a deploy was rewriting files at that moment; re-checked
+     on the host, it verifies) -> retries by itself. Avoid deploying at :x8/:x0 job-start ticks when possible.
+   - **CB8-H H-v4:** verified (absent markets have no holders, 40/40) -> reviewer ACCEPT_WITH_REQUIRED_CHANGES (binding
+     absence check, empty-reply = failure, 403 split, full disclosure, evidence copy) -> being applied (rules v5 / H
+     analysis v3); then promote q0160c.
+   - **CB11** challenger round 1 answered (5eb1ff5, all 11 adopted) -> **code being written** (W first; W screen can run
+     before 10-22) -> then code-against-design freeze check.
    - CB9 re-check fixes done (146d6b9..c158b3c; sign/P rules v4; q0195/q0196 repeat + rep-P NotNow guard).
    - **CB10:** freeze check (smoke/data GO_WITH_CONDITIONS, analysis NO_GO) -> all must-fixes applied (ac24e68, rules v2
      `d422cc70…`, amendment §12.1 backward-only exclusion) + runner transient-status NotNow (dd9026f) -> **q0200 smoke queued**.
