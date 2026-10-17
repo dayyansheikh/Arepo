@@ -165,8 +165,8 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 06:51 UTC+1
-0. **Autopilot session from 04:38Z 10-17.** Last deploy 6680e49 (~06:00Z).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 07:03 UTC+1
+0. **Autopilot session from 04:38Z 10-17.** Last deploy a304416 (~06:05Z).
    - **Done:** retention gate PASS -> snapshots 8-day rule; collector cap 13 GB (f4cf8c2). CB4 dead-agent diff (9cda78b). CB1-D null
      (1f13d4a; cumulative tests 1,106). h7 release re-check -> gate q0081a + `--data-dumps-cap-gb 12.5` (8fc32d6). MC1 low-memory
      panel + q0115 (4fc9cb9). CB6 h8_tail fixes, q0135 smoke promoted (ba09feb) -> **smoke FAIL 4/20** (bf4223c; q0120 not committed).
@@ -174,8 +174,11 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      q0086b, q0084 (cpu lane) in jobs. CB5 must-fixes 1-6 (06ce95d, declaration `42bde44f…`), q0102/q0103/q0106 promoted. CB3 census
      memory fix + quote_state pass step live (6e41476) + q0061b (7a28b60). CB7 draft (09b2bfc) -> challenger ACCEPT_WITH_REQUIRED_CHANGES.
    - **Running agents (check `git log` if this session ended):** CB7 author response (changes 1-7, Mac fallback removed);
-     CB8 challenger round 1 (design acd39f2: B1 CH76 Binance terminal minutes, W1 CH69 worked orders, H1 CH70 holders; k 3-6;
-     drafts q0160-q0176).
+     CB8 implementer: H holders collection (q0160/q0162/q0163) + W flow fetch (q0167/q0168), rules `seals/cb8_holders_rules.json`.
+   - **CB8:** design acd39f2 -> challenger ACCEPT_WITH_REQUIRED_CHANGES -> response 2644dfc (B1 tail gate on daily P&L: B1 can pass
+     only with ~8.4c/share margin at ~56 days; disagreement units kept at official outcome; pmxt coverage audit; latency max(a_t,
+     a_t+10s); strike regex; pinned HMAC key fingerprint). B family code (q0161/q0164-q0166) still to build after the H/W code.
+   - **MC1:** run_ml_dev gate refusal now exits 75; q0116 real dev run queued after q0115 (dry run started 05:54Z).
    - **CB7:** fetch side built (5601eb1, rules `28347c13…` d363cdb), freeze check GO_WITH_CONDITIONS, fixes 6680e49; q0140 smoke +
      q0141 exclusion keys in jobs. Host data-dumps 9.88 GiB at promotion (cap flag 12.5).
    - **CB6:** smoke v2 PASS 20/20 (c15223d, seal copy `d1f7a4ef…`); q0120 h8_tail fetch promoted.
