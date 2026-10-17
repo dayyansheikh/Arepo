@@ -10,6 +10,11 @@ cwd=backend (queue worker). EXPLORATORY / PROSPECTIVE DATA ONLY: no edge, calibr
     python scripts/run_cb8.py holders-pin-h2 --start-utc T  # write-once pin of window 2 (after the CB8 freeze commit + 2 h)
     python scripts/run_cb8.py flow-fetch ...                # q0167: one resumable chunk of the h9_flow fetch
     python scripts/run_cb8.py flow-seal                     # q0168: seal h9_flow (seal-time drops, committed copy)
+    python scripts/run_cb8.py rules --which updown          # write docs/research_lab/seals/cb8_rules.json (B rules; commit first)
+    python scripts/run_cb8.py smoke ...                     # q0161: Data API paging, Binance checksums, pmxt HEADs; counts only, WRITE-ONCE
+    python scripts/run_cb8.py exclusion-keys ...            # q0164: ids and event / neg-risk / series keys of every prior sample and seal copy
+    python scripts/run_cb8.py updown-frame ...              # q0165: Gamma frame, rule-text checks, week split, Binance 1m archive (outcome guard)
+    python scripts/run_cb8.py updown-books ...              # q0166: pmxt coverage audit, book states at the checkpoints, last-15-minute prints, HOLDOUT seal
 
 Exit codes: 0 ok / transient pause / idle heartbeat / terminal state (holders_collection_complete, holders_prints_complete,
 flow_fetch_complete, disjointness_unverified); 1 error; 2 refusal of a guard (rules hash, key missing / mode-unsafe / fingerprint
@@ -105,6 +110,13 @@ def cmd_rules(a) -> int:
 
     try:
         kind = a.which
+        if kind == "updown":  # B rules: no wallet is hashed, so no key is read and no fingerprint is pinned
+            from astrolabe.research_lab import cb8_updown as u  # noqa: PLC0415
+
+            out = u.write_rules(Path(a.path) if a.path else u.RULES_FILE)
+            doc = u.rules_file_doc()
+            _emit({"written": str(out), "rules_sha256": doc["rules_sha256"], "funcs_sha256": doc["funcs_sha256"]})
+            return 0
         path = Path(a.path) if a.path else (cm.HOLDERS_RULES_FILE if kind == "holders" else cm.FLOW_RULES_FILE)
         fp = a.key_fingerprint or cm.key_fingerprint(cm.load_wallet_key_strict(Path(a.wallet_key_path) if a.wallet_key_path else None))
         out = cm.write_rules(kind, path, fp)
@@ -229,6 +241,121 @@ def cmd_flow_seal(a, cm):
     return 0, res
 
 
+def _b_rules(a) -> str:
+    from astrolabe.research_lab import cb8_updown as u  # noqa: PLC0415
+
+    return u.verify_rules(Path(a.rules) if a.rules else u.RULES_FILE, require_committed=not a.allow_uncommitted_rules)
+
+
+def _b_net(a, cm) -> dict:
+    """Common keyword arguments of the B network jobs (no wallets): data-dumps guard, collector yield and health check."""
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    standalone = bool(a.standalone)
+    return dict(rps=min(a.rps, 4.0), data_dumps=Path(a.data_dumps) if a.data_dumps else cm.DATA_DUMPS, data_dumps_cap_gb=a.data_dumps_cap_gb,
+                live_check=None if standalone else hb.live_pass_or_lock, snapshot_root=None if standalone else Path(a.snapshot_root or cm.c4.SNAPSHOT_ROOT))
+
+
+def _b_root(a, cm) -> Path:
+    root = Path(a.root) if a.root else cm.CB8_DIR
+    cm.refuse_path(root)
+    return root
+
+
+def _extra_pins(values: list[str] | None) -> list[dict]:
+    out = []
+    for v in values or []:
+        parts = str(v).split(":")
+        if len(parts) != 3 or len(parts[2]) != 64:
+            raise ValueError(f"--extra-pin must be NAME:PATH:SHA256, got {v!r}")
+        out.append({"name": parts[0], "kind": "ids", "path": parts[1], "sha256": parts[2]})
+    return out
+
+
+@_guarded
+def cmd_smoke(a, cm):
+    from astrolabe.research_lab import cb7_common as c7  # noqa: PLC0415
+    from astrolabe.research_lab import cb8_updown as u  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+    from astrolabe.research_lab import history_sources as hs  # noqa: PLC0415
+
+    out = _data_path(a.out, u.SMOKE_DEFAULT, None)
+    if out.exists():  # write-once: a FAIL can never be replaced by a later PASS
+        raise cm.Refused(f"smoke result {out} already exists; it is write-once")
+    declared = _bad({"n": (a.n, u.SMOKE_N), "seed": (a.seed, u.SMOKE_SEED_POOL), "candidates": (a.candidates, u.SMOKE_CANDIDATES)})
+    if declared:
+        raise cm.Refused(f"arguments differ from the declaration: {declared}")
+    sha = _b_rules(a)
+    files = cm.c6.verify_exclusion_files(c7.EXCLUSION_PINS, history_root=Path(a.history_root) if a.history_root else cm.HIST_ROOT,
+                                         seals_dir=Path(a.seals_dir) if a.seals_dir else cm.SEALS_DIR)
+    lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 4.0), live_check=None if a.standalone else hb.live_pass_or_lock)
+    res = u.run_smoke(lim, files, c7.EXCLUSION_PINS, sha, blob_get=u.httpx_blob_get(), size_fn=hs.httpx_size)
+    cm.write_once_json(out, res)
+    return 0, {"smoke": res["pass"], "a": res["criterion_a_data_api_paging"], "b": res["criterion_b_binance_checksum"], "c": res["criterion_c_pmxt_heads"],
+               "n_requested": res["n_requested"], "n_nonempty": res["n_nonempty"], "written": str(out)}
+
+
+@_guarded
+def cmd_exclusion_keys(a, cm):
+    from astrolabe.research_lab import cb8_updown as u  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    if abs(a.disk_cap_gb - u.KEYS_OUTPUT_CAP_GB) > 1e-9:
+        raise cm.Refused(f"arguments differ from the declaration: ['disk_cap_gb={a.disk_cap_gb!r} (declared {u.KEYS_OUTPUT_CAP_GB!r})']")
+    sha = _b_rules(a)
+    root = _b_root(a, cm)
+    kw = _b_net(a, cm)
+    u.smoke_ok(_data_path(a.require_smoke, u.SMOKE_DEFAULT, None), sha, ())  # the smoke must exist under this rules hash (queue order); criteria are checked by the consumers
+    try:
+        extra = _extra_pins(a.extra_pin)
+    except ValueError as exc:
+        raise cm.Refused(str(exc)) from None
+    res = u.exclusion_keys(root, hb.httpx_transport(), rules_sha=sha, history_root=Path(a.history_root) if a.history_root else cm.HIST_ROOT,
+                           seals_dir=Path(a.seals_dir) if a.seals_dir else None, extra_pins=extra, disk_cap=int(a.disk_cap_gb * 1024**3), dest_dir=root, **kw)
+    if res.get("status") == cm.DISK_BUDGET_TOKEN:
+        return DISK_BUDGET, {"status": cm.DISK_BUDGET_TOKEN, "stopped": res.get("stopped")}
+    rep = res.get("exclusion_report") or {}
+    return 0, {"status": res.get("status"), "stopped": res.get("stopped"), "complete": res.get("complete"), "n_ids": rep.get("n_ids"), "n_missing": rep.get("n_missing"),
+               "missing_share": rep.get("missing_share"), "keys": rep.get("keys"), "transient": res.get("transient")}
+
+
+@_guarded
+def cmd_updown_frame(a, cm):
+    from astrolabe.research_lab import cb8_updown as u  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    bad = _bad({"days": (a.days, f"{u.B_FIRST}:{u.B_END}"), "disk_cap_gb": (a.disk_cap_gb, u.FRAME_OUTPUT_CAP_GB)})
+    if bad:
+        raise cm.Refused(f"arguments differ from the declaration: {bad}")
+    sha = _b_rules(a)
+    root = _b_root(a, cm)
+    kw = _b_net(a, cm)
+    m = u.updown_frame(root, hb.httpx_transport(), rules_sha=sha, blob_get=u.httpx_blob_get(), smoke_path=_data_path(a.require_smoke, u.SMOKE_DEFAULT, None),
+                       exclusion_keys_path=_data_path(a.exclusion_keys, u.EXCLUSION_KEYS_DEFAULT, None), disk_cap=int(a.disk_cap_gb * 1024**3),
+                       budget_min=a.budget_min, **kw)
+    return _result(m, cm)
+
+
+@_guarded
+def cmd_updown_books(a, cm):
+    from astrolabe.research_lab import cb8_books as bk  # noqa: PLC0415
+    from astrolabe.research_lab import cb8_updown as u  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+    from astrolabe.research_lab import history_sources as hs  # noqa: PLC0415
+
+    bad = _bad({"ingress_cap_gb": (a.ingress_cap_gb, bk.INGRESS_CAP_GB), "audit_hour": (a.audit_hour, bk.AUDIT_HOUR), "audit_days": (a.audit_days, bk.AUDIT_DAYS),
+                "disk_cap_gb": (a.disk_cap_gb, bk.OUTPUT_CAP_GB)})
+    if bad:
+        raise cm.Refused(f"arguments differ from the declaration: {bad}")
+    sha = _b_rules(a)
+    root = _b_root(a, cm)
+    kw = _b_net(a, cm)
+    m = bk.books_fetch(root, hb.httpx_transport(), rules_sha=sha, fetch=hs.httpx_range_fetch(), size_fn=hs.httpx_size, smoke_path=_data_path(a.require_smoke, u.SMOKE_DEFAULT, None),
+                       ingress_cap_gb=a.ingress_cap_gb, audit_hour=a.audit_hour, audit_days=a.audit_days, disk_cap=int(a.disk_cap_gb * 1024**3), budget_min=a.budget_min,
+                       seals_dir=Path(a.seals_dir) if a.seals_dir else None, **kw)
+    return _result(m, cm)
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -251,7 +378,7 @@ def build_parser() -> argparse.ArgumentParser:
         q.add_argument("--budget-min", type=float, default=None)
 
     q = sub.add_parser("rules")
-    q.add_argument("--which", choices=("holders", "flow"), default="holders")
+    q.add_argument("--which", choices=("holders", "flow", "updown"), default="holders")
     q.add_argument("--path", default=None)
     q.add_argument("--key-fingerprint", default=None, help="16 hex characters; default: computed from the strict-loaded key")
     q.add_argument("--wallet-key-path", default=None)
@@ -306,6 +433,49 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--seals-dir", default=None)
     q.add_argument("--trials-path", default=None)
     q.set_defaults(fn=cmd_flow_seal)
+
+    def bcommon(q: argparse.ArgumentParser) -> None:
+        q.add_argument("--root", default=None, help="creative_batch8 root (default data-dumps/research_lab/creative_batch8)")
+        q.add_argument("--rules", default=None, help="default docs/research_lab/seals/cb8_rules.json")
+        q.add_argument("--data-dumps", default=None)
+        q.add_argument("--rps", type=float, default=2.0)
+        q.add_argument("--standalone", action="store_true", help="no collector yield / health check (tests, off-host)")
+        q.add_argument("--snapshot-root", default=None)
+        q.add_argument("--allow-uncommitted-rules", action="store_true")
+        q.add_argument("--history-root", default=None)
+        q.add_argument("--seals-dir", default=None)
+        q.add_argument("--require-smoke", default=None, help="default creative_batch8/smoke.json")
+        q.add_argument("--data-dumps-cap-gb", type=float, default=12.5)
+        q.add_argument("--budget-min", type=float, default=None)
+
+    q = sub.add_parser("smoke")
+    bcommon(q)
+    q.add_argument("--n", type=int, default=20)
+    q.add_argument("--candidates", type=int, default=200)
+    q.add_argument("--seed", default="arepo-cb8-smoke-pool")
+    q.add_argument("--out", default=None)
+    q.set_defaults(fn=cmd_smoke)
+
+    q = sub.add_parser("exclusion-keys")
+    bcommon(q)
+    q.add_argument("--disk-cap-gb", type=float, default=0.01)
+    q.add_argument("--extra-pin", action="append", default=None, help="NAME:PATH:SHA256 of an ids CSV (market_id column), e.g. a CB5 listing or the C1 legs; repeatable")
+    q.set_defaults(fn=cmd_exclusion_keys)
+
+    q = sub.add_parser("updown-frame")
+    bcommon(q)
+    q.add_argument("--days", default="2026-04-13:2026-08-10")
+    q.add_argument("--exclusion-keys", default=None, help="default creative_batch8/exclusion_keys.csv.gz")
+    q.add_argument("--disk-cap-gb", type=float, required=True)
+    q.set_defaults(fn=cmd_updown_frame)
+
+    q = sub.add_parser("updown-books")
+    bcommon(q)
+    q.add_argument("--ingress-cap-gb", type=float, default=90.0)
+    q.add_argument("--audit-hour", type=int, default=13)
+    q.add_argument("--audit-days", type=int, default=20)
+    q.add_argument("--disk-cap-gb", type=float, required=True)
+    q.set_defaults(fn=cmd_updown_books)
     return ap
 
 

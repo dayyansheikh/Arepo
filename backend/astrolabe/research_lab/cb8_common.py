@@ -397,7 +397,7 @@ def verify_manifest_files(rdir: Path, manifest: dict) -> int:
             raise Refused(f"file missing at verification: {rel}")
         if h5_seal.sha256_file(fp) != sha:
             raise Refused(f"file sha256 differs from the manifest: {rel}")
-    skip = {"manifest.json", "request_clock.json", "progress.jsonl", "heartbeat.json"}
+    skip = {"manifest.json", "request_clock.json", "progress.jsonl", "heartbeat.json", "ACCESS_LOG.jsonl"}
     extra = sorted(f for f in set(h5_seal.list_files(Path(rdir))) - set(want) - skip if not f.startswith("drops"))
     if extra:
         raise Refused(f"files not in the manifest: {extra[:5]}")

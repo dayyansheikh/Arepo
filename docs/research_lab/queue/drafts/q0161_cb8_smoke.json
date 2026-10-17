@@ -22,7 +22,9 @@
   "scripts/run_cb8.py",
   "smoke",
   "--rps",
-  "2"
+  "2",
+  "--data-dumps-cap-gb",
+  "12.5"
  ],
  "timeout_s": 900,
  "max_retries": 1,
@@ -30,5 +32,5 @@
   "data-dumps/research_lab/creative_batch8/smoke.json"
  ],
  "next_action": "PASS: commit q0164, q0165-q0168. FAIL (a): W not run (source); FAIL (b)/(c): B not run (source); counted",
- "notes": "CREATIVE_BATCH_8.md CB8-F. DRAFT. Commit after T_seal (keeps the net lane free). Pool: closed, end_at 2026-05..09, volume >= $50k, life >= 10 d (the W frame's own rules; CB6 smoke lesson). PASS (a) iff rows in bounds, newest-first, no duplicate fingerprint across pages, >= 14/20 non-empty, <= 2/20 at the 10-page cap. No candle inside the B window is read."
+ "notes": "CREATIVE_BATCH_8.md CB8-F. DRAFT. Commit after T_seal (keeps the net lane free). Pool: closed, end_at 2026-05..09, volume >= $50k, life >= 10 d (the W frame's own rules; CB6 smoke lesson). PASS (a) iff rows in bounds, newest-first, no duplicate fingerprint across pages, >= 14/20 non-empty, <= 2/20 at the 10-page cap. No candle inside the B window is read. IMPLEMENTED 2026-10-17 (cb8_updown.run_smoke; runner subcommand 'smoke'). Needs the committed seals/cb8_rules.json (hash-checked) and the sha-pinned h1/h2/h3/h5/h5_ladders exclusion files on the host (exit 2 otherwise). WRITE-ONCE result creative_batch8/smoke.json with keys criterion_a_data_api_paging / criterion_b_binance_checksum / criterion_c_pmxt_heads (q0167 reads a; q0164-q0166 read b and c). Also probes trades paging at offset 4000 on the first pool market (400 = venue cap, accepted; 200 = deep paging works; other = criterion a fails). A network failure writes nothing and exits 75."
 }

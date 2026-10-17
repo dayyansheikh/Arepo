@@ -21,7 +21,11 @@
   "scripts/run_cb8.py",
   "exclusion-keys",
   "--rps",
-  "2"
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "12.5"
  ],
  "timeout_s": 1800,
  "max_retries": 2,
@@ -29,5 +33,5 @@
   "data-dumps/research_lab/creative_batch8/{exclusion_keys.csv.gz,exclusion_report.json}"
  ],
  "next_action": "q0165, q0167; seal-time drops in q0166 (final stage) and q0168 re-read seal copies committed later (no re-run of q0164: ids are terminal once done)",
- "notes": "CREATIVE_BATCH_8.md section 1.3. DRAFT. Commit after T_seal. Absent seal copies recorded as 'absent at q0164'. > 2% exclusion ids without metadata -> disjointness unverified (B1, W1 not testable, counted)."
+ "notes": "CREATIVE_BATCH_8.md section 1.3. DRAFT. Commit after T_seal. Absent seal copies recorded as 'absent at q0164'. > 2% exclusion ids without metadata -> disjointness unverified (B1, W1 not testable, counted). IMPLEMENTED 2026-10-17 (cb8_updown.exclusion_keys; subcommand 'exclusion-keys'). Refuses (exit 2) unless seals/cb8_rules.json matches and creative_batch8/smoke.json exists under the same rules hash. The pinned set is cb7_common.EXCLUSION_PINS (h1/h2/h3 samples, h5_cb1, h5_cb1_ladders) plus every other committed *_SEAL.json in seals/ (absent known seals are recorded as 'absent at q0164'). OPEN: CB5 sample listings and the C1 cross_venue matches are not in that pin set; supply them as ids CSVs (market_id column) with '--extra-pin NAME:ABSOLUTE_PATH:SHA256' (repeatable) before promoting, or record the omission in the freeze check."
 }
