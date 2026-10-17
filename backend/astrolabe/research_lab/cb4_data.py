@@ -407,7 +407,8 @@ def run_closewin(
     """Extract ``closewin/`` and ``departures/`` for every complete capture in ``[since, before)`` not yet
     extracted, oldest first (so the previous capture's ``closewin`` exists when ``departures`` is built).
 
-    backfill: reports ``backfill_complete``; all-new: the live pass step (not wired yet). Stops at the budget,
+    backfill: reports ``backfill_complete`` (plus ``n_release_unavailable`` and the recovery command); all-new: the live
+    pass step (wired after CB4 closewin in the collection pass; retries ``missing`` captures). Stops at the budget,
     at ``disk_cap_gb`` of the written tables, and refuses (``stopped='refused_data_dumps_over_cap'``) only on
     real headroom: ``data_dumps`` size + the output still allowed (``disk_cap_gb`` minus what is written, 0.4
     by default) + the scratch (0.2 with ``release``) above ``data_dumps_max_gb`` (the 12 GB cap); repeated
@@ -518,6 +519,9 @@ def run_closewin(
                             if mstate != "complete":
                                 files, reason = None, "release_manifest_not_complete"
                     if files is None:
+                        prior = (man["captures"].get(cid) or {}).get("reason")
+                        if release is None and prior == "release_unavailable":
+                            reason = reason or "release_unavailable"  # no release stream this pass: never relabel the earlier outage (fix 11)
                         reason = reason or ("no_host_manifest" if cap.get("release_only") else "archived_no_release_copy")
                     else:
                         rows_p, ext_p, sw_p = files["rows"], files["ext"], files.get("sweep")
@@ -575,6 +579,10 @@ def run_closewin(
         res["n_missing_total"] = sum(1 for e in man["captures"].values() if e.get("status") == "missing")
         res["max_capture_s"] = round(slowest, 2)
         res["backfill_complete"] = bool(mode == "backfill" and res["remaining"] == 0 and res["stopped"] is None)
+        res["n_release_unavailable"] = sum(1 for e in man["captures"].values()
+                                           if e.get("status") == "missing" and e.get("reason") == "release_unavailable")
+        if res["n_release_unavailable"]:
+            res["recovery_command"] = "run_cb4.py closewin --backfill-from <since> --retry-missing --release-stream"
         res["elapsed_s"] = round(clock() - t0, 2)
     return res
 
@@ -660,8 +668,15 @@ class Cb4Error(RuntimeError):
     """Base class for refusals."""
 
 
+EXIT_TEMPFAIL = 75  # EX_TEMPFAIL: "not now"; scripts/oracle/queue_worker.py waits and retries (not an attempt)
+
+
 class Refused(Cb4Error):
-    """A guard refused to run."""
+    """A guard refused to run. ``code`` is the process exit status (2, or 75 for a transient precondition)."""
+
+    def __init__(self, msg: str = "", *, code: int = 2) -> None:
+        super().__init__(msg)
+        self.code = code
 
 
 def _ep(s: str) -> float:
@@ -880,7 +895,14 @@ RULE_TEXT = (
     "by normalised groupItemTitle (exact), else the unit is excluded. Horizons: daily M=3h V_end=12h; weekly and "
     "monthly M=6h V_end=48h. Fetch window = union over origins t0 and t0_alt = endDate(pred)+1h of "
     "[o' - 3h, o + V_end + 2h] with o' = o - V_end - 6h, plus the winning predecessor token and one trade page "
-    "around t0 for the publicity check.")
+    "around t0 for the publicity check. R_from = 2025-10-01 (earliest allowed roll time t0). R_to = "
+    "min(T_fetch7 - 3 d, T_seal) - 2 d (latest allowed roll time t0; T_fetch7 = the series fetch's own clock, "
+    "T_seal = the sealing time), so the event walk ends at R_to + 2 d.")
+
+
+def series_roll_to(now_epoch: float, t_seal_epoch: float) -> float:
+    """CREATIVE_BATCH_4.md R_to = min(T_fetch7 - 3 d, T_seal) - 2 d (epoch seconds); hashed in ``series_rules_doc``."""
+    return min(now_epoch - SERIES_ROLL_TO_MARGIN_D * DAY, t_seal_epoch) - 2 * DAY
 
 
 def series_rules_doc() -> dict:
@@ -892,11 +914,13 @@ def series_rules_doc() -> dict:
     w = _cb2w()
     funcs = (cadence_class, horizon_for, pick_successor, winner_of, winner_market, match_side, norm_label, slim_event,
              assemble_units, _modal, _price_pair, _parse_ts, is_weather_text, is_weather_market, fetch_unit_series,
-             union_window, pairing.fee_category, hb.allocate, hb._rank, _json_list)
+             union_window, pairing.fee_category, hb.allocate, hb._rank, _json_list, walk_series_events, _history_ids,
+             _h5_ids, with_ladders_copy, series_roll_to)
     src = "\n".join(inspect.getsource(f) for f in funcs)
     consts = {"SUCC_CREATED_LAG_H": SUCC_CREATED_LAG_H, "PRICE_PRE_H": PRICE_PRE_H, "PRICE_POST_H": PRICE_POST_H,
               "PSEUDO_GAP_H": PSEUDO_GAP_H, "WIN_PRICE": WIN_PRICE, "SERIES_WINDOW_MIN_S": SERIES_WINDOW_MIN_S,
-              "SERIES_WALK_BASE_DAYS": SERIES_WALK_BASE_DAYS, "SERIES_WALK_FROM": SERIES_WALK_FROM,
+              "SERIES_WALK_BASE_DAYS": SERIES_WALK_BASE_DAYS, "SERIES_ROLL_FROM": SERIES_ROLL_FROM,
+              "DAY": DAY, "SERIES_WALK_FROM": SERIES_WALK_FROM,
               "SERIES_ROLL_TO_MARGIN_D": SERIES_ROLL_TO_MARGIN_D, "SERIES_WALK_AFTER_D": SERIES_WALK_AFTER_D,
               "PRED_PRICE_H": PRED_PRICE_H, "PRED_TRADES": PRED_TRADES, "TEMP_RE": w.TEMP_RE, "TEMP_RE_FLAGS": w.TEMP_RE_FLAGS}
     return {"cadence_bounds_sha256": _sha(CADENCE_BOUNDS), "horizons_sha256": _sha(HORIZONS),
@@ -1003,7 +1027,7 @@ def require_h5_seal_copy(paths: list[Path], *, require_committed: bool = True) -
 def require_data_dumps_room(data_dumps: Path, cap_gb: float = DATA_DUMPS_FETCH_CAP_GB) -> None:
     used = _cb2w().dir_size(Path(data_dumps)) / 1024**3
     if used > cap_gb:
-        raise Refused(f"data-dumps is {used:.2f} GB (> {cap_gb} GB); refusing to start")
+        raise Refused(f"data-dumps is {used:.2f} GB (> {cap_gb} GB); refusing to start", code=EXIT_TEMPFAIL)
 
 
 def _gz_jsonl_bytes(rows: list[dict]) -> bytes:
@@ -2140,7 +2164,7 @@ def series_fetch(
     upath, frpath = rdir / "units.jsonl.gz", rdir / "frame_report.json"
     wpath, wgpath = rdir / "walk_events.jsonl.gz", rdir / "walk_guarded.jsonl.gz"
     r_from = _ep(roll_from)
-    r_to = min(fr.now - SERIES_ROLL_TO_MARGIN_D * DAY, t_seal_epoch) - 2 * DAY
+    r_to = series_roll_to(fr.now, t_seal_epoch)
     try:
         if not frpath.exists():
             if not (rdir / "probe.json").exists():
@@ -2454,7 +2478,7 @@ def cmd_fetch(args, *, require_committed: bool = True, allow_nondeclared: bool =
         require_data_dumps_room(Path(g("data_dumps", HIST_ROOT.parent.parent)), float(g("data_dumps_cap_gb", DATA_DUMPS_FETCH_CAP_GB)))
     except (Refused, FileNotFoundError) as exc:
         _print({"refused": str(exc)})
-        return 2
+        return getattr(exc, "code", 2)
     kw = {k: getattr(args, k) for k in ("now", "sleep", "wall_clock", "key") if getattr(args, k, None) is not None}
     if getattr(args, "live_check", None) is not None:
         kw["live_check"] = args.live_check
@@ -2478,7 +2502,7 @@ def cmd_fetch(args, *, require_committed: bool = True, allow_nondeclared: bool =
                              **stage_kw, **common)
     except Refused as exc:
         _print({"refused": str(exc)})
-        return 2
+        return exc.code
     _print(_fetch_summary(m))
     return 0
 

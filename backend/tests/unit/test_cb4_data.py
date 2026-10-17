@@ -829,7 +829,7 @@ def test_cmd_fetch_refusals(tmp_path, capsys):
     rc, out = run(root=str(tmp_path / "cb1_extract" / "x"))
     assert rc == 2 and "extract root" in out
     rc, out = run(data_dumps_cap_gb=-1.0)
-    assert rc == 2 and "refusing to start" in out
+    assert rc == 75 and "refusing to start" in out
     rc, out = run(kind="series")  # series rule file absent
     assert rc == 2 and "series-rule" in out
     # declared arguments are enforced unless the test escape hatch is on
@@ -1476,3 +1476,40 @@ def test_event_weather_by_fee_category_and_shared_events_counted():
     rep = asm["report"]
     assert rep["unit_drops"].get("excluded_event_weather", 0) >= 1
     assert rep["events_shared_across_series"] >= 1 and rep["units_in_shared_events"] >= 1
+
+
+def test_series_rules_hash_covers_walk_exclusion_and_roll_helpers(monkeypatch):
+    seen = []
+    real = d.inspect.getsource
+    monkeypatch.setattr(d.inspect, "getsource", lambda f: (seen.append(f.__name__), real(f))[1])
+    doc = d.series_rules_doc()
+    assert {"walk_series_events", "_history_ids", "_h5_ids", "with_ladders_copy", "series_roll_to"} <= set(seen)
+    assert "R_to" in doc["rule_text"] and "R_from" in doc["rule_text"] and doc["constants"]["SERIES_ROLL_FROM"] == "2025-10-01"
+
+
+def test_series_roll_to_matches_the_doc_formula():
+    now, seal = ep("2026-10-20"), ep("2026-10-22")
+    assert d.series_roll_to(now, seal) == now - 3 * 86400 - 2 * 86400  # T_fetch7 - 3d binds
+    assert d.series_roll_to(ep("2026-11-30"), seal) == seal - 2 * 86400  # T_seal binds
+
+
+def test_data_dumps_room_refusal_is_tempfail_75(tmp_path):
+    (tmp_path / "x.bin").write_bytes(b"0" * 2048)
+    with pytest.raises(d.Refused) as ei:
+        d.require_data_dumps_room(tmp_path, cap_gb=1e-9)
+    assert ei.value.code == 75 and d.Refused("x").code == 2
+
+
+def test_all_new_without_release_keeps_release_unavailable_reason_and_backfill_reports_count(tmp_path):
+    snap = tmp_path / "snapshots"
+    for cid, st in (("r0", S0), ("r1", S1)):
+        make_capture(snap, cid, st, [], with_files=False)
+    entries = [{"path": f"data-dumps/research_lab/snapshots/{c}/{n}", "bytes": 1000, "sha256": None}
+               for c in ("r0", "r1") for n in ("rows.csv.gz", "rows_ext.csv.gz")]
+    rel = d.ReleaseCopies(tmp_path / "scr", catalogue=_catalogue(tmp_path, entries), restore=lambda *_a: False, cap_bytes=2500,
+                          retries=2, backoff_s=0, sleep=lambda s: None)
+    r = d.run_closewin(snap, tmp_path / "none", tmp_path / "root", mode="backfill", since=S0, release=rel)
+    assert r["n_release_unavailable"] == 2 and "--retry-missing --release-stream" in r["recovery_command"]
+    r2 = d.run_closewin(snap, tmp_path / "none", tmp_path / "root", mode="all-new", since=S0)
+    man = json.loads((tmp_path / "root" / "manifest.json").read_text())
+    assert {man["captures"][c]["reason"] for c in ("r0", "r1")} == {"release_unavailable"} and r2["missing"] == 2

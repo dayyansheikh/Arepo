@@ -11,7 +11,7 @@ DATA subcommands (this file; module ``astrolabe.research_lab.cb4_data``):
     python scripts/run_cb4.py verify-seal --run-ids h7_cb4_era,h7_cb4_series
     python scripts/run_cb4.py series-rules                       # writes docs/research_lab/seals/cb4_series_rules.json (commit it before q0082)
     python scripts/run_cb4.py closewin --backfill-from 2026-10-11T12:00Z --release-stream --budget-min 150 --disk-cap-gb 0.40   # q0080
-    python scripts/run_cb4.py closewin --all-new --data-dumps-max-gb 12            # later pass step (NOT wired)
+    python scripts/run_cb4.py closewin --all-new --data-dumps-max-gb 12            # pass step (after the CB4 closewin step)
 
 ANALYSIS hooks (pilot, flip-trades, census, measure-N, measure-E, measure-commit, fetch-outcomes, screen, replicate)
 call ``astrolabe.research_lab.cb4_analysis.cmd_<name>(args)`` (name with '-' as '_'); if the module or the function
