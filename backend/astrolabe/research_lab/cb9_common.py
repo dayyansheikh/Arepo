@@ -35,14 +35,14 @@ from . import provenance
 Refused = cm.Refused
 NotNow = cm.NotNow
 
-RULES_VERSION_SIGN = "cb9-sign-rules-v2"  # v2: freeze-check M1-M5 (smoke per-exchange counts, unavailable != failed, paging reasons, stall statuses); v1 file kept
-RULES_VERSION_PYTH = "cb9-rules-v2"  # v2: M3-M6, M9-M11 (same-sentence equality flag, stall statuses, cap 14, Stage-2 outcomes and rule); v1 file kept
+RULES_VERSION_SIGN = "cb9-sign-rules-v3"  # v3: data-dumps cap default 14 -> 40 (host disk enlarged); v2 file kept. v2: freeze-check M1-M5 (smoke per-exchange counts, unavailable != failed, paging reasons, stall statuses); v1 file kept
+RULES_VERSION_PYTH = "cb9-rules-v3"  # v3: data-dumps cap default 14 -> 40; v2 file kept. v2: M3-M6, M9-M11 (same-sentence equality flag, stall statuses, cap 14, Stage-2 outcomes and rule); v1 file kept
 RULES_VERSION_KD = "cb9-kd-rules-v2"  # v2: the shared cb9_common changes (and B's M7/M8) change the hashed functions; v1 file kept
 SEALS_DIR = cm.SEALS_DIR
-SIGN_RULES_FILE = SEALS_DIR / "cb9_sign_rules_v2.json"
-PYTH_RULES_FILE = SEALS_DIR / "cb9_rules_v2.json"
+SIGN_RULES_FILE = SEALS_DIR / "cb9_sign_rules_v3.json"
+PYTH_RULES_FILE = SEALS_DIR / "cb9_rules_v3.json"
 KD_RULES_FILE = SEALS_DIR / "cb9_kd_rules_v2.json"
-V1_RULES_FILES = (SEALS_DIR / "cb9_sign_rules.json", SEALS_DIR / "cb9_rules.json", SEALS_DIR / "cb9_kd_rules.json")  # superseded, never rewritten
+SUPERSEDED_RULES_FILES = tuple(SEALS_DIR / n for n in ("cb9_sign_rules.json", "cb9_rules.json", "cb9_kd_rules.json", "cb9_sign_rules_v2.json", "cb9_rules_v2.json"))  # never rewritten
 DATA_DUMPS = cm.DATA_DUMPS
 CB9_DIR = cm.DATA_DUMPS / "research_lab" / "creative_batch9"
 HIST_ROOT = cm.HIST_ROOT
@@ -55,9 +55,9 @@ CB7_KEYS_DEFAULT = cm.DATA_DUMPS / "research_lab" / "creative_batch7" / "exclusi
 FREEZE_SPEC = Path(__file__).resolve().parent / "model_specs" / "cb9_v1.json"
 T_SEAL = "2026-10-22T00:00:00Z"
 T_SEAL_EPOCH = datetime(2026, 10, 22, tzinfo=UTC).timestamp()
-# Default of --data-dumps-cap-gb (freeze check M6, 2026-10-17): host data-dumps about 13.1 GiB, collector cap 16 GiB, 4 GB free-disk guard;
-# every CB9 draft passes 14 explicitly (section 2.8).
-DATA_DUMPS_CAP_GB = 14.0
+# Default of --data-dumps-cap-gb (2026-10-17 convention after the host boot volume grew to 100 GB: root 89 GB, about 60 GB free; collector
+# cap 45 GiB; the 4 GB free-disk guards unchanged). Every CB9 draft passes 40 explicitly (section 2.8). Was 14 (freeze check M6).
+DATA_DUMPS_CAP_GB = 40.0
 STAGE1_HOLM_FAMILY = ("P1", "P2", "K1", "D1", "S1")  # S0 is a measurement, not in the Holm family; S1 keeps its slot when not run
 BATCH_HOLM_K1 = len(STAGE1_HOLM_FAMILY)  # = 5, fixed whatever S0 says (round 1)
 BATCH_HOLM_ALPHA1 = 0.01

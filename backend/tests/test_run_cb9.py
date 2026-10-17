@@ -49,7 +49,7 @@ def test_kd_dispatch():
 
 def test_defaults():
     a = run_cb9.build_parser().parse_args(["pyth-frame"])
-    assert a.data_dumps_cap_gb == 14.0 == c9.DATA_DUMPS_CAP_GB
+    assert a.data_dumps_cap_gb == 40.0 == c9.DATA_DUMPS_CAP_GB
     assert c9.BATCH_HOLM_K1 == 5 and c9.STAGE1_HOLM_FAMILY == ("P1", "P2", "K1", "D1", "S1")
 
 
