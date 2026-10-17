@@ -1431,3 +1431,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   `smoke.json` kept). CB9 data jobs q0181+ remain gated on T_seal 2026-10-22T00Z.
 - **q0200 CB10 smoke** (rules v2): deribit, ladder_frame, live_flags, data_api_paging, tx_aggregation, whitelist all
   PASS (29 requests). Next CB10 job q0201 (exclusion keys) needs the CB9 frame pins (q0182/q0183/q0185) after T_seal.
+
+## CB11 challenger round 1 response (2026-10-17 21:04 UTC+1; design only, not counted)
+- `science-reviewer` round 1: ACCEPT_WITH_REQUIRED_CHANGES (W, P, A); 11 required items all adopted, none rejected;
+  status DRAFT-REVISED, code and code-against-design freeze check next. Changes: P activity now a causal
+  `prices-history` proxy (Data API reach only a variant); `uma_status` guarded, W keeps every closed row, new censoring
+  gate GWC (q0224, upper 95% bound > 2% → not testable); P end-date hindsight flags + "L1, hindsight end date" label;
+  week-factor copula, max-of-ways MDE and a 2024-election exclusion check; C1/T5 exclusion mandatory ("possibly touched"
+  label if absent); W2 entry at the next transaction ≥ τ + 60 s and a capacity-capped pool gate (excess over 4.5% ≥ 10%);
+  W1 must beat both B0 (≥ 0.20) and the rolling B1 (≥ 0.10); W1 placebo = permutation within category x month; A
+  pageview rules (median ≥ 50, 9 days present, 30-day history), 3-day-block cluster way, non-`vol_ok` stratum for a
+  causal-volume check; budget recomputed (≤ about 74,000 requests; incomplete fetch = pending). Optional items adopted
+  (risk-free excess, unclean outcomes counted and scored, liquidity stratum, frame-source mix, CB1-A1 prior). Census
+  split per family (q0231 W, q0239 P/A) so W can still screen before `T_seal`.
+- Budget unchanged: 6 fixed + ≤ 6 conditional. Count 0 now; cumulative **1,156** from the committed host-unioned
+  `trials.jsonl` at `e721331`.
