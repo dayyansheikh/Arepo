@@ -192,6 +192,21 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "CB9 descriptive lines (smoke, census, gates, strata, S0 feed-side column, P strike stratum, half-day "
         "poll, reported variants); no inference, not a test.",
     ),
+    "cb10_test": (
+        EXCLUDE,
+        "CB10 Stage-1 per-test lines (D1, B1, B2); the tests are the n_tests of the 'creative_batch_10:D|B' ml_explain "
+        "count lines, counted there. Placebo lines count 0.",
+    ),
+    "cb10_replication": (
+        EXCLUDE,
+        "CB10 Stage-2 per-test lines (D1-rep, D2, B1-rep, B2-rep); counted by the n_tests of the matching "
+        "'creative_batch_10:*' ml_explain line. Placebo lines count 0.",
+    ),
+    "cb10_descriptive": (
+        EXCLUDE,
+        "CB10 descriptive lines (smoke, census, gates GD/GDP/GB/GB2, coverage audits, strata, DVOL / flat-smile / "
+        "haircut variants, cascade descriptive); no inference, not a test.",
+    ),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "
