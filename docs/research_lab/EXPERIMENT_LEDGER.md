@@ -1268,13 +1268,21 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Next:** none for D. Stop rule: no rep run (q0027 not spent, rep captures stay unfrozen and unread). The maker
   route would need a collector extension and a new declaration. Open in CB1: B3 rung list at T_rep_start (>= 2026-10-19).
 
-## Data and smoke events, 2026-10-17 (autopilot ~09:55Z; none counted as tests)
+## Data and smoke events, 2026-10-17 (autopilot ~09:55Z; no outcome test run; smoke consequences suspended pending v2)
 - **CB7 smoke q0140: FAIL (engineering, pool specification).** (a) PASS; (b), (c) FAIL with only 2 of 200 drawn
   candidates eligible (205 of 13,700 exclusion ids end in 2025 with >= $10k volume). Source not tested. v1 file stays on
-  record; diagnosis and v2 proposal in `SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md` (under review). q0142/q0143 not promoted.
+  record; diagnosis and v2 in `SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md`. **Consequence suspended pending the reviewed
+  v2** (science-reviewer ACCEPT_WITH_CHANGES, 2026-10-17): v2 pool = sample ids ending in 2025 with life >= 14 d and
+  close >= end - 7 d (33 ids by a zero-request count), Gamma volume >= 10k as v1, seed `arepo-cb7-smoke-v2`, new rules
+  file `cb7_text_geo_rules_v2.json`. **A v2 FAIL is final:** S1 and G1 become "not run (smoke FAIL)", counted; `T_seal`
+  unchanged. q0142/q0143 not promoted.
 - **CB8-H holders smoke q0160: FAIL (engineering, empty frame).** Sidecar market `open_interest` is blank in all 280,175
   rows (Gamma markets carry no OI); `/holders` was never called. Data API `/oi` (60 ids per request) supplies market OI.
-  v2 proposal in the same file (under review). q0162/q0163 not promoted.
+  v2 in the same file. **Consequence suspended pending the reviewed v2** (ACCEPT_WITH_CHANGES; the design's rule
+  "FAIL of (a)/(b) -> H not run (source)" is overridden by this recorded design change because `/holders` was never
+  called): option A (`/oi` for every base-frame market at frame-build time `t_f`, strictly before the first `/holders`
+  request), distinct `oi_lookup_failed` / `oi_absent` / `oi_nonnumeric` states, new `cb8_holders_rules_v2.json`. **A v2 FAIL
+  of (a) or (b) makes H "not run (source)", counted.** q0162/q0163 not promoted.
 - **CB3 history census q0061b: done** (counts in `CREATIVE_BATCH_3.md` §2.7.1; sha256 `d3441636...`). The freeze waits for
   q0064 (after 2026-10-25), as declared.
 - **h6_weather sealed (q0044):** 2,965 screen / 1,987 holdout markets, 48 embargo, d_split 2026-08-05, listing sha256
