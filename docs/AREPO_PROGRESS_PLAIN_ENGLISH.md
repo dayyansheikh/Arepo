@@ -1,37 +1,30 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 16:12 UTC+1
+**Last updated:** 2026-10-17 20:38 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session started at about 15:30 UTC+1 and is working.
-- **Server disk: solved.** You enlarged the disk to 100 GB (still free). There is now 61 GB free, and the collection limit is 45 GB.
-- **Second free server: waiting for Oracle.** London is out of free servers right now. The server now asks Oracle again
-  every 10 minutes and creates `arepo-research` (1 CPU, 6 GB, 100 GB, free) the moment one is available. Then it
-  stops and alerts your phone. It cannot go over the free limits. Some experiments move there after that.
-- **Batch 9's code is written and tested** (94 tests). An independent check that the code matches the design is
-  running; its small download test can then run before 22 Oct, and its real downloads after.
-- **Batch 5's family-listing job ran out of memory again.** Cause found: this morning's fix had been written but never
-  connected to the program. Now connected (same output, checked by a test) and sent to the server; one retry is left.
-- **Batch 6's top-up download started** at 16:08 UTC+1.
-- **Batch 4's series download kept running out of memory** (4 attempts). Fixed without changing any output (it now
-  streams the file instead of loading it whole) and sent to the server; it runs after batch 6's top-up download.
-- **Batch 8's analysis code for "Binance terminal minutes"** (buying the near-certain side of daily crypto Up/Down
-  markets in the last minutes) is written and tested; the other two batch-8 analyses are being written now.
-- **Batch 10 drafted** from the remaining round-4 ideas: (1) do crypto options prices (Deribit, a professional market)
-  predict Polymarket's daily Bitcoin/Ether price-ladder outcomes beyond Polymarket's own price; (2) do prices bounce back
-  after breaking round levels like 0.50. Four other ideas were dropped with reasons (e.g. parlay prices are not public).
-  The challenger found 15 required fixes, including a hidden bias that would have made the options test look better
-  than it is. The author applied all 15; the options test now runs only if a power check (made without looking at
-  outcomes) shows it can detect a useful effect. Its code is being written.
-- **Batch 7's two main downloads finished** (text markets and geography markets). Batch 6's top-up download had been
-  refusing to start because of the disk limit; it can start now.
-- **Batch 4's small test** found the behaviour it looks for almost never happens, so that part (N1/N2) is recorded as
-  "not testable", as its pre-set stop rule says.
-- **Multi-signal ML:** the real development run should start by itself at about 19:30 UTC+1 today.
+- **Autopilot:** a new session started at about 20:32 UTC+1. When it started, the server had **no job ready to run**:
+  several jobs had failed or were blocked. They are being fixed now.
+- **Fixed and sent to the server:**
+  - Batch 6's top-up download was blocked by an old 14 GB disk limit. Its limit is now 40 GB, like every other job.
+  - Batch 9's small download test is queued and runs next.
+  - The ML development run ran out of memory while re-reading its 2-million-row table. The table was already built and
+    saved. The program now reads it more economically (same numbers, checked by tests) and will retry.
+  - A batch-5 download had been queued 10 days too early. It was removed and will be re-queued on 27 Oct.
+- **Batch 5, "consistency of bucketed date markets" (CH59): almost certainly a null.** The family finder, whose rules
+  were fixed in advance, found 0 usable market families. Most candidates had an "Other" or "No ..." bucket, which the
+  rules exclude. The rules will not be loosened. The formal verdict comes with batch 5's census.
+- **Being checked:**
+  - Batch 4's series download stopped on its own 1 GB size limit before finishing.
+  - Batch 8's holder-data test failed one of its checks ("h").
+- **Being built:** batch 10's code is getting tests, and batch 9's remaining fixes are under independent review.
+- **Batch 11 being designed** from the last round-4 ideas. The aim is tests that can run on data already on the server
+  before 22 Oct, because most designed tests must wait for 22 Oct (the date their test data is sealed).
+- **Second free server:** still waiting for Oracle capacity. The server re-requests it every 10 min.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
@@ -78,7 +71,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 5. Infrastructure
 | Item | State |
 |---|---|
-| Server disk | 100 GB disk, 61 GB free (17 Oct 16:05 UTC+1); collection cap 45 GB, 4 GB free-disk stop unchanged. |
+| Server disk | 100 GB disk, 58 GB free (17 Oct 20:32 UTC+1); collection cap 45 GB, 4 GB free-disk stop unchanged. |
 | Server size | 1 CPU, about 5.6 GB RAM. A second free server (1 CPU, 6 GB, 100 GB) is being requested automatically every 10 min until Oracle has capacity. |
 | Mac | No background jobs. |
 
