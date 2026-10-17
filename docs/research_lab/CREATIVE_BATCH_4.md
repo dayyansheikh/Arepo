@@ -1482,7 +1482,7 @@ Rewritten after the analysis modules were finished and tested (supersedes the 20
   until the coordinator releases the drafts after a science-reviewer freeze check. q0087-q0089 are in section 5 and release at the CB4 freeze.
   **q0090-q0093 are not drafted**: their numbers clash with CB5; renumber from the section 5 text at release.
 
-**Declaration hash (current code, 2026-10-17):** `66e48faea8b338778d808fc000558e4627a11cd594109707e80b1404b7d1c117`
+**Declaration hash (after the closewin fix 55a5a13, 2026-10-17; cb4_data is a rule module, so it moved from 66e48fae...):** `a8285463ad8e1aa4a74787b944245076eb9b037faa78113708fa5ca2b75726a8`
 (`cb4_declaration.declaration_sha256()`). Any edit to a rule module or to an imported rule function changes it. `model_specs/cb4_v1.json`
 is not written or committed here: the freeze (`write_spec` with the census pins) is the coordinator's, after the review.
 
