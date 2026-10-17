@@ -1,0 +1,47 @@
+{
+ "id": "q0146_cb7_xv_prints_fetch",
+ "title": "CB7-X: taker prints of the 316 C1 cross-venue Polymarket legs over each pair's study window (daily pages <= 10; capped day unavailable; no wallet stored)",
+ "family": "creative_batch_7",
+ "priority": 45,
+ "expected_value": "Polymarket fills for the CH73 Kalshi-skewed maker screen",
+ "data": [
+  "cross_venue/matches.json + series/*.npz (C1 rule set, read-only, pair windows only)",
+  "public Data API trades"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "network": "data-api",
+  "lane": "net"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb7.py",
+  "xv-prints",
+  "--set",
+  "C1",
+  "--day-pages",
+  "10",
+  "--cap-at",
+  "2026-10-22T00:00Z",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.25",
+  "--data-dumps-cap-gb",
+  "12.5",
+  "--budget-min",
+  "60"
+ ],
+ "timeout_s": 4200,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"xv_prints_complete\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/xv_prints/{prints/,days.csv.gz,progress.jsonl,manifest.json}"
+ ],
+ "next_action": "q0147",
+ "notes": "CREATIVE_BATCH_7.md CB7-X. DRAFT. Commit after T_seal (rows all predate 2026-09, so it is not T_seal-bound; waiting keeps the net lane free for the T_seal-bound fetches). About 8k requests, about 40 min at 4 rps. Stored columns: pair key, ts, side mapped to YES terms (+1 ask-side, -1 bid-side), YES price, size; no wallet. Never opens cross_venue_live/. No target is computed by the fetcher."
+}

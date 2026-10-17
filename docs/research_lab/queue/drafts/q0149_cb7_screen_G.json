@@ -1,0 +1,36 @@
+{
+ "id": "q0149_cb7_screen_G",
+ "title": "CB7-G: G1 on the sealed h8_geo census (YES longshot net at the modelled ask; inverted tail gate; break-even placebo; theme clustering; worst cases; end-date sensitivity)",
+ "family": "creative_batch_7",
+ "priority": 38,
+ "expected_value": "whether CH61 is carried to a Stage P registration",
+ "data": [
+  "history/h8_geo (verified seal)",
+  "model_specs/cb7_v1.json",
+  "model_specs/cost_regimes_v1.json (if committed; fee = max with the CB1 conservative rate)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0147_cb7_census"
+ ],
+ "argv": [
+  "scripts/run_cb7.py",
+  "screen",
+  "--family",
+  "G",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/G_screen/results.json",
+  "trials.jsonl (1 cb7_test + count line + placebo + descriptive)"
+ ],
+ "next_action": "if G1 met the Stage-1 batch Holm and every gate: draft the Stage P-G registration",
+ "notes": "CREATIVE_BATCH_7.md CB7-G. DRAFT. Commit after the CB7 freeze. Single historical stage (L1). Exits 0 'not testable' if GG failed, < 10 YES event clusters, G_theme < 15, disjointness unverified or h8_geo not_run_deadline (counted, p = 1). The batch Holm uses the S1 and X1 Stage-1 p values; if those are not final, G1 is reported pending the batch Holm (its own result file is final)."
+}

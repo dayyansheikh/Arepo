@@ -1,0 +1,42 @@
+{
+ "id": "q0140_cb7_smoke",
+ "title": "CB7-F: smoke probe (geopolitics slug -> pinned tag id 100265; Data API windowed-print bounds and ordering on 20 worn markets; fidelity-60 history on the same 20); counts only",
+ "family": "history_data",
+ "priority": 62,
+ "expected_value": "verifies the two public sources the T_seal-bound h8_text and h8_geo fetches rely on, before they are committed",
+ "data": [
+  "public Gamma (tags, markets by id)",
+  "public Data API trades",
+  "public CLOB prices-history",
+  "history/h1_first, h2_main, h3_power sample.csv.gz (ids only; sha256 pinned in the rules file)",
+  "docs/research_lab/seals/cb7_text_geo_rules.json (hash-checked)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "network": "gamma-api, clob, data-api",
+  "lane": "net"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb7.py",
+  "smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb7_text_geo_rules.json",
+  "--seed",
+  "arepo-cb7-smoke",
+  "--n",
+  "20",
+  "--min-pass",
+  "18",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/smoke.json"
+ ],
+ "next_action": "PASS: commit q0141-q0143 (after the fetcher freeze check); FAIL (a) or (b): the affected fetch is not committed and a source change goes to review; the T_seal deadline is not moved",
+ "notes": "CREATIVE_BATCH_7.md CB7-F smoke. DRAFT. About 60 requests. Prints counts only (no price, print or outcome value is stored or analysed). PASS iff (a) slug 'geopolitics' resolves to the pinned id 100265, (b) in >= 18 of 20 worn markets every returned print has start <= ts <= end and rows are newest-first, (c) >= 18 of 20 return >= 80% of expected hourly points with median spacing 3600 +/- 300 s. Written under the rules hash; the fetches refuse a smoke made under another hash. mem_mb 300 keeps it outside the 02:45-05:30 start blackout."
+}
