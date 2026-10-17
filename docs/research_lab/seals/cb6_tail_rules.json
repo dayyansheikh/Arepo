@@ -167,7 +167,7 @@
   "window_minutes": 15,
   "windows_per_day": 1
  },
- "funcs_sha256": "b7cfae31f596a07f27c33dafd19fb1254cf70d9a70a7b5561b8aa76580d26ae2",
+ "funcs_sha256": "98c7de5dd8aee0127fe9f5827cea91f30ee9c7d7d90c872746173b4a5f9d8fff",
  "origins": {
   "draw": "random.Random(seed|market_id).sample(sorted grid, k)",
   "end_offset_hours": 24,
@@ -175,7 +175,7 @@
   "max_origins": 3,
   "start_offset_days": 7
  },
- "rules_sha256": "74969607ef02736cddcfbde93fbe30e27349f25b703de4ba2be9a8e3cc8d6c77",
+ "rules_sha256": "57a265d0620c45ea2c82e606e1194846aed6012e2848753a81cfdbb90aa2f3df",
  "rules_version": "cb6-tail-rules-v1",
  "sample": {
   "allocator": "hb.allocate_weighted",

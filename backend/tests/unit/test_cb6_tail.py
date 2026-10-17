@@ -221,7 +221,7 @@ class World:
     def run(self, *, api=None, **kw):
         base = dict(history_root=self.root, seals_dir=self.seals, rules_path=self.rules, pins=self.pins, n_markets=self.n_markets,
                     end_from=END_FROM, rps=4.0, key=KEY, now=NOW, sleep=lambda s: None, live_check=None, require_committed=False,
-                    require_smoke=False, wall_clock=lambda: NOW + 3600, disk_cap=int(0.12 * 1024**3))
+                    require_smoke=False, wall_clock=lambda: NOW + 3600, disk_cap=int(0.25 * 1024**3))
         base.update(kw)
         return t.tail_fetch(self.root, t.RUN_ID, api or self.api, **base)
 
@@ -712,6 +712,9 @@ def test_seal_split_h7_drop_recheck_and_committed_copy(tmp_path):
     wr.writeheader()
     wr.writerows(keys)
     (w.rdir / "exclusion_keys.csv.gz").write_bytes(gzip.compress(buf.getvalue().encode()))
+    mf = json.loads((w.rdir / "manifest.json").read_text())  # the planted file is re-pinned: the seal checks fetch hashes
+    mf["file_sha256"]["exclusion_keys.csv.gz"] = hashlib.sha256((w.rdir / "exclusion_keys.csv.gz").read_bytes()).hexdigest()
+    (w.rdir / "manifest.json").write_text(json.dumps(mf))
     trials = tmp_path / "trials.jsonl"
     res = t.seal_tail(w.root, t.RUN_ID, transport=api, seals_dir=w.seals, trials_path=trials, sleep=lambda s: None)
     assert res["sealed"] and res["residual_key_matches"] >= 1 and res["h7_dropped"] >= 2
@@ -766,3 +769,64 @@ def test_runner_refuses_changed_declaration_and_writes_rules(tmp_path, capsys):
     parser = script.build_parser()
     for sub in ("tail-smoke", "tail-fetch", "tail-seal", "fetch", "seal", "exclusion-keys", "verify-seal", "rules"):
         assert parser.parse_args([sub]).cmd == sub
+
+
+# ---- freeze-check fixes (2026-10-17) -----------------------------------------------------------------------------------------------------------------
+
+
+def test_seal_refuses_a_file_changed_or_missing_since_the_fetch(tmp_path):
+    w = World(tmp_path)
+    assert w.run()["status"] == t.COMPLETE_TOKEN
+    write_seal_copy(w.seals / "h7_cb4_era_SEAL.json", [])
+    (w.seals / "h7_cb4_series_NOT_RUN.json").write_text("{}")
+    f = w.rdir / "origins.csv.gz"
+    good = f.read_bytes()
+    f.write_bytes(good + b"x")
+    with pytest.raises(t.Refused, match="sha256"):
+        t.seal_tail(w.root, t.RUN_ID, seals_dir=w.seals)
+    f.unlink()
+    with pytest.raises(t.Refused, match="missing"):
+        t.seal_tail(w.root, t.RUN_ID, seals_dir=w.seals)
+    f.write_bytes(good)
+    assert t.seal_tail(w.root, t.RUN_ID, transport=FakeApi([]), seals_dir=w.seals, trials_path=tmp_path / "tr.jsonl",
+                       sleep=lambda s: None)["sealed"]
+
+
+def test_outcomes_resolved_after_the_run_clock_are_censored_and_counted(tmp_path):
+    w = World(tmp_path)
+    for m in w.frame_markets:
+        late = int(m["id"]) % 2 == 0
+        m["closed"] = True
+        m["closedTime"] = iso(NOW + 3600) if late else iso(ep(m["endDate"]) + 3600)
+        m["outcomePrices"] = '["0.04","0.96"]'
+        m["umaResolutionStatus"] = "resolved"
+    assert w.run()["status"] == t.COMPLETE_TOKEN
+    rep = json.loads((w.rdir / "frame_report.json").read_text())
+    g = read_csv_gz(w.rdir / t.OUTCOME_FILE)
+    blank = [r for r in g if r["close_epoch"] == ""]
+    kept = [r for r in g if r["close_epoch"] != ""]
+    assert blank and kept and rep["outcomes_censored_post_cap"] == len(blank)
+    assert all(int(r["market_id"]) % 2 == 0 and not r["outcome_prices"] and not r["uma_status"] and not r["closed_time"] for r in blank)
+    assert all(int(r["market_id"]) % 2 == 1 and r["outcome_prices"] and float(r["close_epoch"]) <= NOW for r in kept)
+
+
+def test_full_disk_budget_is_a_declared_end_state_with_exit_4(tmp_path):
+    w = World(tmp_path)
+    m = w.run(disk_cap=60_000)
+    assert m["status"] == t.DISK_BUDGET_TOKEN and str(m["stopped"]).startswith("disk_budget")
+    on_disk = json.loads((w.rdir / "manifest.json").read_text())
+    assert on_disk["status"] == t.DISK_BUDGET_TOKEN and on_disk["complete"] is False
+    assert script.DISK_BUDGET == 4 and script.DISK_BUDGET not in (script.TEMPFAIL, script.REFUSED)
+
+
+def test_smoke_result_is_write_once(tmp_path, capsys):
+    out = tmp_path / "smoke.json"
+    out.write_text(json.dumps({"pass": False}))
+    assert script.main(["tail-smoke", "--out", str(out), "--root", str(tmp_path / "r")]) == 2
+    assert json.loads(out.read_text()) == {"pass": False}
+    assert "write-once" in capsys.readouterr().out
+
+
+def test_rule_funcs_cover_split_topic_weather_and_row_builder():
+    names = {f.__name__ for f in t.RULE_FUNCS}
+    assert {"event_key_split", "cb1_topic", "_is_weather", "tail_row"} <= names

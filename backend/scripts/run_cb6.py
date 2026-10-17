@@ -4,9 +4,9 @@ EXPLORATORY: no edge, calibration or profitability claim.
 
     python scripts/run_cb6.py rules                 # write docs/research_lab/seals/cb6_tail_rules.json (commit it before q0120)
     python scripts/run_cb6.py exclusion-keys ...    # stop after the exclusion keys (Gamma lookup of the excluded ids)
-    python scripts/run_cb6.py tail-smoke ...        # q0120a: 20-market fidelity-60 smoke test, counts only
+    python scripts/run_cb6.py tail-smoke ...        # q0135: 20-market fidelity-60 smoke test, counts only
     python scripts/run_cb6.py tail-fetch ...        # q0120 (alias fetch): one resumable chunk of the h8_tail fetch
-    python scripts/run_cb6.py tail-seal ...         # q0120s / q0121 (alias seal): seal h8_tail
+    python scripts/run_cb6.py tail-seal ...         # q0121 (alias seal): seal h8_tail
     python scripts/run_cb6.py verify-seal           # verify the seal against the committed copy
 
 Exit codes: 0 ok / transient pause / terminal state (tail_fetch_complete, not_run_deadline, disjointness_unverified);
@@ -25,7 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend"))
 
-REFUSED, TEMPFAIL = 2, 75
+REFUSED, TEMPFAIL, DISK_BUDGET = 2, 75, 4  # 4: output cap full, a declared end state (never retried)
 
 
 def _emit(obj: dict) -> None:
@@ -122,6 +122,9 @@ def cmd_fetch(a) -> int:
     except Exception as exc:
         _emit({"error": f"{type(exc).__name__}: {exc}"[:300]})
         return 1
+    if m.get("status") == t.DISK_BUDGET_TOKEN:
+        _emit({"status": t.DISK_BUDGET_TOKEN, "stopped": m.get("stopped"), "counts": m.get("counts")})
+        return DISK_BUDGET
     _emit({"status": m.get("status") or ("in_progress" if m.get("stopped") else None), "stopped": m.get("stopped"),
            "complete": m.get("complete"), "counts": m.get("counts"), "transient": m.get("transient"),
            "requests": m.get("requests")})
@@ -133,6 +136,10 @@ def cmd_smoke(a) -> int:
 
     root = Path(a.root) if a.root else t.HIST_ROOT
     data_dumps = Path(a.data_dumps) if a.data_dumps else t.c4.DATA_DUMPS
+    out = _data_path(a.out, data_dumps) if a.out else t.SMOKE_DEFAULT
+    if out.exists():  # write-once: a FAIL can never be replaced by a later PASS
+        _emit({"refused": f"smoke result {out} already exists; it is write-once"})
+        return REFUSED
     try:
         seals_dir = Path(a.seals_dir) if a.seals_dir else t.SEALS_DIR
         rules_sha = t.verify_rules(Path(a.rules) if a.rules else t.RULES_FILE, require_committed=not a.allow_uncommitted_rules)
@@ -145,9 +152,13 @@ def cmd_smoke(a) -> int:
     except Exception as exc:
         _emit({"error": f"{type(exc).__name__}: {exc}"[:300]})
         return 1
-    out = _data_path(a.out, data_dumps) if a.out else t.SMOKE_DEFAULT
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(res, indent=1, sort_keys=True))
+    try:
+        with out.open("x") as fh:  # exclusive create: also closes the race between the check above and the write
+            fh.write(json.dumps(res, indent=1, sort_keys=True))
+    except FileExistsError:
+        _emit({"refused": f"smoke result {out} already exists; it is write-once"})
+        return REFUSED
     _emit({"smoke": res["pass"], **{k: res[k] for k in ("n_requested", "n_pass", "n_failed_requests")}, "written": str(out)})
     return 0
 
@@ -245,7 +256,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", default=None)
     p.add_argument("--allow-uncommitted-rules", action="store_true", help="smoke runs before the rules file is committed")
     for name in ("tail-seal", "seal"):
-        p = sub.add_parser(name, help="seal h8_tail (q0120s / q0121)")
+        p = sub.add_parser(name, help="seal h8_tail (q0121)")
         common(p)
         p.add_argument("--split-seed", default=t.SPLIT_SEED)
         p.add_argument("--h7-seals", default=None)

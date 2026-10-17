@@ -54,8 +54,9 @@ TERMINAL_TOKENS = (COMPLETE_TOKEN, NOT_RUN_TOKEN, UNVERIFIED_TOKEN)
 NOT_RUN_FILE = "NOT_RUN_DEADLINE.json"
 UNVERIFIED_FILE = "DISJOINTNESS_UNVERIFIED.json"
 OUTCOME_FILE = "outcomes_guarded.csv.gz"
-DATA_DUMPS_FETCH_CAP_GB = 10.0
+DATA_DUMPS_FETCH_CAP_GB = 12.5  # host data-dumps cap 13 GB (retention live); size + the 0.25 GB output cap must stay below it
 TEMPFAIL = 75
+DISK_BUDGET_TOKEN = "disk_budget"
 
 REFUSED_RUN_IDS = ("h2_main", "h3_power", "h4_seal", "h5_cb1", "h5_cb1_ladders", "h6_weather", "h7_cb4_era", "h7_cb4_series")
 REFUSED_ROOTS = ("cb1_extract", "cb2_extract", "cb3_extract", "cb4_extract", "cb5_extract", "cb3_followup",
@@ -95,7 +96,7 @@ MAX_UNVERIFIED_KEY_SHARE = 0.02
 KEY_TYPES = ("event", "neg_risk_market", "series")
 MAX_ITEM_ATTEMPTS = c4.MAX_ITEM_ATTEMPTS
 MAX_DAY_ATTEMPTS = c4.MAX_DAY_ATTEMPTS
-OUTPUT_CAP_GB = 0.12
+OUTPUT_CAP_GB = 0.25  # frame.csv.gz (4000-char descriptions) + frame_partial.jsonl.gz coexist; 0.12 was tight (freeze check 2026-10-17)
 SMOKE_N = 20
 SMOKE_MIN_PASS = 18
 SMOKE_MIN_FRACTION = 0.8
@@ -362,10 +363,6 @@ def qualifying_buyers(prints: list[list], t: float, c: int, truncated: bool) -> 
         if n >= thr and (wh not in out or ts >= out[wh][0]):
             out[wh] = (float(ts), tk)
     return "ok", out
-
-
-RULE_FUNCS = (class_d, has_clarification, monday_grid, draw_origins, frame_filter_reason, key_types_matched,
-              sample_weight_of, usable_point, qualifying_buyers, hb._rank, hb.allocate_weighted)
 
 
 def rules_doc(pins: tuple[dict, ...] | list[dict] | None = None) -> dict:
@@ -806,6 +803,15 @@ def draw_tail_sample(strata: dict[str, list[str]], n_total: int, seed: str) -> t
                     "taken_all": sum(sizes.values()) <= n_total}
 
 
+def _outcome_after_cap(o: dict, t_fetch: float) -> bool:
+    """True when the market's close_epoch is after the run clock ``T_fetch8`` (an outcome not yet knowable at the fixed
+    information end, e.g. a market walked in a later chunk). Unparseable close_epoch is not censored here."""
+    try:
+        return float(o.get("close_epoch")) > float(t_fetch)
+    except (TypeError, ValueError):
+        return False
+
+
 def build_frame_outputs(fr: TailRun, *, cutoff_epoch: float, excl_ids: set[str], excl_keys: dict[str, set[str]],
                         n_markets: int, seed: str, t_fetch: float, max_origins: int = MAX_ORIGINS,
                         created_from: str = CREATED_FROM, created_to: str = CREATED_TO) -> dict:
@@ -882,7 +888,19 @@ def build_frame_outputs(fr: TailRun, *, cutoff_epoch: float, excl_ids: set[str],
             no_origin += 1
         origins.extend([mid, t, _iso(t), k] for k, t in enumerate(os_))
     fr.budget.write_gz_csv(rdir / "origins.csv.gz", ORIGIN_COLUMNS, origins)  # before sample.csv.gz and any price request
-    fr.budget.write_gz_csv(rdir / OUTCOME_FILE, GUARDED_COLUMNS, ([picked[m][1].get(c, "") for c in GUARDED_COLUMNS] for m in ids))
+    censored_post_cap = 0
+
+    def outcome_rows() -> Iterator[list]:
+        nonlocal censored_post_cap
+        for m in ids:
+            o = picked[m][1]
+            if _outcome_after_cap(o, t_fetch):  # resolved after the fixed run clock: stored as censored, no outcome
+                censored_post_cap += 1
+                yield [m] + [""] * (len(GUARDED_COLUMNS) - 1)
+            else:
+                yield [o.get(c, "") for c in GUARDED_COLUMNS]
+
+    fr.budget.write_gz_csv(rdir / OUTCOME_FILE, GUARDED_COLUMNS, outcome_rows())
     fr.budget.write_gz_csv(rdir / "sample.csv.gz", [*MAIN_COLUMNS, *SAMPLE_EXTRA],
                            ([picked[m][0].get(c, "") for c in MAIN_COLUMNS] + [chosen[m][c] for c in SAMPLE_EXTRA] for m in ids))
     kd = {"exclusion_key_types": list(KEY_TYPES), **key_drops}
@@ -890,7 +908,7 @@ def build_frame_outputs(fr: TailRun, *, cutoff_epoch: float, excl_ids: set[str],
     report = {"frame_version": hb.FRAME_VERSION, "t_fetch8": _iso(t_fetch), "end_cutoff": _iso(cutoff_epoch),
               "windows_per_day": WINDOWS_PER_DAY, "window_minutes": WINDOW_MINUTES, "pages_per_window": PAGES_PER_WINDOW,
               **walk, **counts, "sample": srep, "n_sample": len(ids), "n_sample_without_origin": no_origin,
-              "n_origins": len(origins), "key_drops": kd}
+              "n_origins": len(origins), "key_drops": kd, "outcomes_censored_post_cap": censored_post_cap}
     fr.budget.write(rdir / "frame_report.json", json.dumps(report, indent=1, sort_keys=True, default=float).encode())
     for tmp in (pp, rdir / "frame_fail.jsonl"):
         tmp.unlink(missing_ok=True)
@@ -1146,7 +1164,9 @@ def tail_fetch(
     except Refused:
         raise
     except OSError as exc:
-        return {"stopped": f"disk_budget: {exc}", "status": "disk_budget"}
+        m = fr.manifest(f"disk_budget: {exc}"[:200], {"status": DISK_BUDGET_TOKEN})
+        m["status"] = DISK_BUDGET_TOKEN
+        return m
     except RuntimeError as exc:  # persistent API failure in a lookup or walk: transient, partial results are kept
         return fr.manifest(f"stage_failed: {exc}"[:200], {"transient": True})
     frame_rep = json.loads((rdir / "frame_report.json").read_text())
@@ -1171,6 +1191,10 @@ def tail_fetch(
         return m
     if stopped == "t_seal_passed":
         return transient("t_seal_passed")
+    if stopped and stopped.startswith("disk_budget"):  # a full output cap is a declared end state, not a transient pause
+        m = fr.manifest(stopped[:200], {**extra, "status": DISK_BUDGET_TOKEN})
+        m["status"] = DISK_BUDGET_TOKEN
+        return m
     m = fr.manifest(stopped or "pending", {**extra, "transient": bool(stopped and stopped.startswith("paused"))})
     m["status"] = "in_progress"
     return m
@@ -1284,6 +1308,12 @@ def event_key_split(rows: list[dict], seed: str = SPLIT_SEED) -> dict[str, tuple
     return out
 
 
+# hashed into the rules file (fetch rules and the split); defined after the functions it names
+RULE_FUNCS = (class_d, has_clarification, monday_grid, draw_origins, frame_filter_reason, key_types_matched,
+              sample_weight_of, usable_point, qualifying_buyers, hb._rank, hb.allocate_weighted, event_key_split,
+              hb.cb1_topic, _is_weather, tail_row)
+
+
 def read_location(data_root: Path) -> dict:
     used = c4._cb2w().dir_size(Path(data_root)) / 1024**3
     return {"host": socket.gethostname(), "platform": sys.platform,
@@ -1334,6 +1364,15 @@ def seal_tail(root: Path, run_id: str, *, transport: hb.Transport | None = None,
     man = json.loads(mp.read_text()) if mp.exists() else {}
     if not (man.get("complete") is True and not man.get("stopped") and man.get("status") == COMPLETE_TOKEN):
         raise Refused(f"{run_id} is not {COMPLETE_TOKEN}; refusing to seal")
+    want_hashes = man.get("file_sha256")
+    if not isinstance(want_hashes, dict) or not want_hashes:
+        raise Refused(f"{run_id} manifest has no file_sha256; refusing to seal")
+    for rel, want in sorted(want_hashes.items()):
+        fp = rdir / rel
+        if not fp.is_file():
+            raise Refused(f"fetched file missing at seal: {rel}")
+        if h5_seal.sha256_file(fp) != want:
+            raise Refused(f"fetched file sha256 differs from the fetch manifest: {rel}")
     h7dir = Path(h7_seals_dir or seals_dir or SEALS_DIR)
     states = {h: h7_state(h, h7dir) for h in H7_RUN_IDS}
     pending = [h for h, (s, _) in states.items() if s == "pending"]

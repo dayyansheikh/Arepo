@@ -179,7 +179,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
    - Deploy of a9e8aad was waiting for the 04:31Z pass lock.
 1. **T_seal 2026-10-22T00Z critical path (net lane):** q0043 weather (3,778/5,000 events, run 3) -> h7: gate q0081a -> frames
    q0081f/q0082f -> group-S amendment `seals/h7_cb4_group_s_amendment.json` -> gate q0081g -> q0081/q0082 (6-9 h) -> q0083 seal;
-   q0083b deadline recorder; CB6 q0120a smoke -> q0120 (3.5 h) -> q0120s; CB5 q0102/q0103; CB7 h8_text/h8_geo if designed in time.
+   q0083b deadline recorder; CB6 q0135 smoke -> q0120 (3.5 h) -> q0121; CB5 q0102/q0103; CB7 h8_text/h8_geo if designed in time.
 2. MC1: q0115 dry run -> real run + gate after the 40th consecutive capture (~10-17T19Z); cache the panel before 10-23 03:30Z.
 3. CB3: q0061b census -> CB3 freeze; quote_state pass step before 10-24 03:30Z. CB5: freeze verdict -> promote q0102-q0109.
    CB4 analysis: science-reviewer freeze check of cb4_rules/measure/analysis (hash `1d170741…`), then q0086 census.

@@ -1470,8 +1470,7 @@ Nothing else was declined.
 
 Code: `backend/astrolabe/research_lab/cb6_tail.py`, runner `backend/scripts/run_cb6.py` (`rules`, `exclusion-keys`, `tail-smoke`,
 `tail-fetch` / `fetch`, `tail-seal` / `seal`, `verify-seal`), tests `backend/tests/unit/test_cb6_tail.py`, queue drafts
-`queue/drafts/q0120a_h8_tail_smoke.json`, `q0120_h8_tail_fetch.json`, `q0120s_h8_tail_seal.json` (the seal is the section 5 q0121 under the
-id q0120s). Rules file `seals/cb6_tail_rules.json` (`rules_sha256` 74969607ef02736cddcfbde93fbe30e27349f25b703de4ba2be9a8e3cc8d6c77), generated
+`queue/drafts/q0135_h8_tail_smoke.json` (promoted), `q0120_h8_tail_fetch.json`, `q0121_h8_tail_seal.json` (ids renamed at the freeze check, see below). Rules file `seals/cb6_tail_rules.json` (`rules_sha256` 57a265d0620c45ea2c82e606e1194846aed6012e2848753a81cfdbb90aa2f3df after the freeze-check fixes; the first draft hash 74969607... is superseded), generated
 by `run_cb6.py rules`; it carries the five exclusion-file sha256 pins and the hash of the source of every rule function. Choices the spec left open
 (for the freeze check; none relaxes a threshold):
 - **Frame stored in full, outcomes guarded.** `frame.csv.gz` holds every walked row with `description`, `event_ids` (all events), `neg_risk_market_id`
@@ -1494,3 +1493,17 @@ by `run_cb6.py rules`; it carries the five exclusion-file sha256 pins and the ha
   seal copies' `prices|trades/<id>[__event]` names (the series store lists only successor market ids there); the h7 key lookup catches siblings.
 - A live probe on 2026-10-17 (three recent closed markets; not the smoke test) confirmed that `id=` lookups return closed markets only with
   `closed=true`, that fidelity 60 returns hourly points (239 of 240) and that windowed taker prints and series ids parse.
+
+### Freeze-check fixes (2026-10-17)
+
+The science-reviewer freeze check of the `h8_tail` fetcher returned GO_WITH_CONDITIONS. Applied, with tests in `test_cb6_tail.py`; no declared threshold or selection rule changed.
+
+1. **Smoke result write-once.** `tail-smoke` exits 2 if the result file exists (checked before any request, and again by exclusive create), so a FAIL cannot be replaced by a later PASS.
+2. **Outcomes capped at T_fetch8.** A sampled market with `close_epoch > T_fetch8` is stored in `outcomes_guarded.csv.gz` with every outcome field blank (censored) and counted as `outcomes_censored_post_cap` in `frame_report.json`.
+3. **Full disk budget is a declared end state.** Manifest `status: disk_budget`, exit 4 (not the retried 75); the status is in the q0120 repeat regex so it does not loop. Estimate: `frame.csv.gz` (4000-char descriptions) and `frame_partial.jsonl.gz` coexist while the frame outputs are built, so 0.12 GB was tight; the output cap is now **0.25 GB** (`--disk-cap-gb 0.25`) and the dump headroom guard 12.5 GB (host cap 13 GB), as in q0081/q0082.
+4. **Seal verifies fetched files.** `tail-seal` recomputes sha256 of every file in the fetch manifest `file_sha256` and exits 2 on any mismatch or missing file.
+5. **Ids.** Seal is `q0121_h8_tail_seal`; the smoke is `q0135_h8_tail_smoke` (reserved id); q0120 `depends_on` q0135, q0121 on q0120. No letter suffixes remain.
+6. **Rules file.** `event_key_split`, `hb.cb1_topic`, `_is_weather` and `tail_row` are now in `RULE_FUNCS`; the (never consumed) rules file was regenerated: new `rules_sha256` **57a265d0620c45ea2c82e606e1194846aed6012e2848753a81cfdbb90aa2f3df**.
+7. **h7 wait.** The smoke and the fetch do not depend on h7. The seal's exit-75 wait is bounded by the queue at 48 tempfails (about 24 h) while h7 may run to 2026-10-22, so the coordinator promotes q0121 only after q0120 is complete and both h7 SEAL/NOT_RUN records are committed; the wait is a safety net only.
+
+Promoted to `queue/jobs/`: q0135 only (q0120 waits for a committed smoke PASS; q0121 for q0120 complete and the h7 records).

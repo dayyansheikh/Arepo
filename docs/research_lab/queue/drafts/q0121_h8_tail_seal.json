@@ -1,0 +1,42 @@
+{
+ "id": "q0121_h8_tail_seal",
+ "title": "CB6-T: h8_tail seal (listing hash, event-level disjointness re-check, h7 id and key overlap drop list, SCREEN/HOLDOUT event-hash split, read location)",
+ "family": "history_data",
+ "priority": 58,
+ "expected_value": "sealed, split h8_tail before any CB6-T read",
+ "data": [
+  "history/h8_tail",
+  "docs/research_lab/seals/h7_cb4_era_SEAL.json, h7_cb4_series_SEAL.json (ids only) or the *_NOT_RUN.json records"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0120_h8_tail_fetch"
+ ],
+ "argv": [
+  "scripts/run_cb6.py",
+  "tail-seal",
+  "--run-id",
+  "h8_tail",
+  "--split-seed",
+  "arepo-cb6-tail-split",
+  "--h7-seals",
+  "../docs/research_lab/seals",
+  "--recheck-keys",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h8_tail/{SEAL.json,split.csv.gz,h7_drop.csv.gz,key_recheck.json,ACCESS_LOG.jsonl}",
+  "docs/research_lab/seals/h8_tail_SEAL.json (committed copy; the coordinator commits it before q0125)",
+  "trials.jsonl (history_seal_declaration)"
+ ],
+ "next_action": "coordinator commits docs/research_lab/seals/h8_tail_SEAL.json; promote this spec only after q0120 is complete AND both h7 seal/NOT_RUN records are committed",
+ "notes": "CREATIVE_BATCH_6.md CB6-F and 10.3. Code: backend/astrolabe/research_lab/cb6_tail.py (seal_tail), backend/scripts/run_cb6.py tail-seal. DRAFT. Id q0121 as named in CREATIVE_BATCH_6.md section 5. Exit 75 while an h7 run is not terminal (committed *_SEAL.json or *_NOT_RUN.json in seals/). The queue allows 48 consecutive tempfails (about 24 h) and h7 may run until 2026-10-22, so the coordinator promotes this spec ONLY after both h7 records are committed; the exit-75 wait is a safety net, not the plan. Seal also recomputes sha256 of every fetched file against the fetch manifest file_sha256 (exit 2 on any mismatch or missing file). Refuses (exit 2) a run that is not tail_fetch_complete (not_run_deadline and disjointness_unverified runs are never sealed). h7 key lookup by market id at 2 rps (parse guard: ids and keys only). Drops are recorded as DROPPED_KEY / DROPPED_H7 blocks in split.csv.gz (sealed files are never edited). Records the read location (host or Mac)."
+}
