@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 06:29 UTC+1
+**Last updated:** 2026-10-17 06:51 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -19,14 +19,17 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   live data step is now part of every collection pass.
 - **Batch 6 setback, explained:** its 20-market test of hourly price history failed (4 of 20; 18 needed). The cause was the test,
   not the data: 16 of the 20 markets didn't exist yet at the start of the 10-day test window. The price service is fine. A corrected
-  test (markets that lived at least 14 days, same pass bar of 18/20) was independently reviewed and accepted, and it runs once. The
-  first failure stays on record, and if the second test fails, the download is off for good.
+  test (markets that lived at least 14 days, same pass bar of 18/20) was independently reviewed and accepted. It **passed 20 of 20**,
+  so the download is queued. The first failure stays on record.
 - **Batch 4:** the analysis code passed its independent check after two rounds of fixes, without looking at any outcome data. Its
   first (uncounted) pilot is queued. Its sampling frames for the fresh download start this morning.
 - **Batch 5:** fixes applied after its check; its downloads and counting job are queued.
-- **Batch 7 (new, 3-6 tests):** designed and challenged. It tests a "specificity discount" (do markets whose rules have more
+- **Batch 7 (3-6 tests):** designed, challenged, code built and checked; its download test is running now. It tests a "specificity discount" (do markets whose rules have more
   conditions overprice YES?), geopolitics longshots, and stepping aside as a maker after Kalshi moves. The sibling-unwind idea was
-  dropped: our 2-hourly data can't time it, and batch 1 already screened something similar. Fixes are being applied before the code is built.
+  dropped: our 2-hourly data can't time it, and batch 1 already screened something similar.
+- **Batch 8 (new, 3-6 tests), now being challenged:** (1) in the last 5 minutes before daily crypto Up/Down markets settle, does
+  buying the side that Binance has already made near-certain still pay? (2) Does a maker gain by stepping aside after a wallet starts
+  "working" a large order in pieces? (3) Do sells by a market's biggest holders move prices more than same-size sells by others?
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
