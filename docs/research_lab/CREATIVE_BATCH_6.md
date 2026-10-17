@@ -1465,3 +1465,32 @@ Nothing else was declined.
     Gamma lookup, 2 rps) after both h7 runs are terminal; event-hash SCREEN/HOLDOUT split merged across
     `neg_risk_market_id`; listing sha256; read location; create `ACCESS_LOG.jsonl`; append one
     `history_seal_declaration` trial line.
+
+## Implementation notes (q0120 fetcher)
+
+Code: `backend/astrolabe/research_lab/cb6_tail.py`, runner `backend/scripts/run_cb6.py` (`rules`, `exclusion-keys`, `tail-smoke`,
+`tail-fetch` / `fetch`, `tail-seal` / `seal`, `verify-seal`), tests `backend/tests/unit/test_cb6_tail.py`, queue drafts
+`queue/drafts/q0120a_h8_tail_smoke.json`, `q0120_h8_tail_fetch.json`, `q0120s_h8_tail_seal.json` (the seal is the section 5 q0121 under the
+id q0120s). Rules file `seals/cb6_tail_rules.json` (`rules_sha256` 74969607ef02736cddcfbde93fbe30e27349f25b703de4ba2be9a8e3cc8d6c77), generated
+by `run_cb6.py rules`; it carries the five exclusion-file sha256 pins and the hash of the source of every rule function. Choices the spec left open
+(for the freeze check; none relaxes a threshold):
+- **Frame stored in full, outcomes guarded.** `frame.csv.gz` holds every walked row with `description`, `event_ids` (all events), `neg_risk_market_id`
+  and `series_ids` (series of all events, a superset of `events[0].series`, so the key drop is stricter). `status` and `closed` stay in the frame
+  (strata, censoring); `outcomePrices`, `umaResolutionStatus`, volume, liquidity, `closedTime` go only to `outcomes_guarded.csv.gz` (sampled markets).
+- **Streaming.** The walk appends one gzip member per day to `frame_partial.jsonl.gz`; filters, key drop and sampling read it record by record and
+  keep only market ids per stratum (a test bounds the peak at under 6 MB for 12 MB of descriptions). The partial file is deleted when
+  `frame_report.json` (the stage marker) is written.
+- **Origins** need only `created_at` and `end_at`; a sampled market with no Monday in its life stays in the sample with no origin and is counted
+  (`n_sample_without_origin`); the sample is not pre-restricted to markets with origins.
+- **Wallet lookups** run only for origins whose usable longshot price (last hourly point stamped at least 600 s before t, not older than 7,200 s)
+  lies in [0.02, 0.10], for buyers qualifying under rule (iii) on the stored prints; truncated print windows make (iii) unavailable.
+  Raw addresses stay in memory; `wallet_first.csv.gz` holds hashes only.
+- **Prints** are stored once per market (deduplicated union over its origins); `origin_windows.csv.gz` keeps each origin's window, page count,
+  `window_truncated`, oldest print and cap-drop counts.
+- **Clarification markers**: the five literal markers plus `note:` followed by an ISO, numeric or month-name date (pattern in the rules file).
+- **Headroom** is exit 75 (data-dumps size + the 0.12 GB cap above 10 GB); at 9.7 GB on 10-16 it holds on the host (section 2.8).
+- **Chunk length.** `--budget-min 85` with `timeout_s 5400` (the section 5 draft said 90 and 6600).
+- **Seal** records drops as `DROPPED_KEY` / `DROPPED_H7` blocks in `split.csv.gz` (sealed files are never edited). h7 ids come from the committed
+  seal copies' `prices|trades/<id>[__event]` names (the series store lists only successor market ids there); the h7 key lookup catches siblings.
+- A live probe on 2026-10-17 (three recent closed markets; not the smoke test) confirmed that `id=` lookups return closed markets only with
+  `closed=true`, that fidelity 60 returns hourly points (239 of 240) and that windowed taker prints and series ids parse.

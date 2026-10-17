@@ -1,0 +1,247 @@
+{
+ "dates": {
+  "created_from": "2025-09-01",
+  "created_to_inclusive": "2026-07-31",
+  "end_before_fetch_days": 7,
+  "end_from": "2025-09-01",
+  "origin_latest_before_fetch_days": 60,
+  "t_seal": "2026-10-22T00:00:00Z"
+ },
+ "exclusion": {
+  "files": [
+   {
+    "kind": "sample",
+    "name": "h1_first",
+    "path": "history/h1_first/sample.csv.gz",
+    "sha256": "24bbda60714852679f8203f399c8852a6a97d99b01cebb2b19c7c8f8f2b53cf8"
+   },
+   {
+    "kind": "sample",
+    "name": "h2_main",
+    "path": "history/h2_main/sample.csv.gz",
+    "sha256": "77a15bd96bcd17c923e90e3e214874cad8df9ed4cd66eb6145cc8922c28954ec"
+   },
+   {
+    "kind": "sample",
+    "name": "h3_power",
+    "path": "history/h3_power/sample.csv.gz",
+    "sha256": "f8e1a7bbd16d57206fcd45c502263d2b7ceb40b22108e248c613d5148476004d"
+   },
+   {
+    "kind": "seal",
+    "name": "h5_cb1",
+    "path": "docs/research_lab/seals/h5_cb1_SEAL.json",
+    "sha256": "fbac4c8d2898447555a6e68de0d31fbc9b4efa5aec1fa58d62ce2373685fae85"
+   },
+   {
+    "kind": "seal",
+    "name": "h5_cb1_ladders",
+    "path": "docs/research_lab/seals/h5_cb1_ladders_SEAL.json",
+    "sha256": "d3e7b335c15ac5917d270f5a0cbb6ded84363408dcc6a54d47f20ba6aed28104"
+   }
+  ],
+  "ids_per_request": 50,
+  "key_types": [
+   "event",
+   "neg_risk_market",
+   "series"
+  ],
+  "max_unverified_key_share": 0.02,
+  "retry_missing_with_closed_true": true,
+  "series_ids_from": "all events of the market"
+ },
+ "features": {
+  "clarification_markers": [
+   "clarif",
+   "update:",
+   "updated",
+   "additional context",
+   "edit:"
+  ],
+  "class_c": [
+   "\\bprice\\w*",
+   "\\btemperature\\w*",
+   "\\bscore\\w*",
+   "\\bpoll\\w*"
+  ],
+  "class_d": [
+   "\\bannounc\\w*",
+   "\\bcourt\\w*",
+   "\\border\\w*",
+   "\\baward\\w*",
+   "\\bnominat\\w*",
+   "\\bstrike\\w*"
+  ],
+  "description_fallback_chars": 500,
+  "drift_days": 7,
+  "drift_min": 0.01,
+  "large_buy": {
+   "median_days": 30,
+   "median_min_prints": 10,
+   "multiple": 5.0,
+   "window_hours": 24
+  },
+  "note_date_pattern": "note:\\s*(?:\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[/.\\-]\\d{1,2}(?:[/.\\-]\\d{2,4})?|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?\\s+\\d{1,2}|\\d{1,2}\\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*)",
+  "young_wallet_days": 30
+ },
+ "fetch": {
+  "cap": "ts <= min(T_fetch8, T_seal)",
+  "price_fidelity_min": 60,
+  "price_window_days": [
+   8,
+   2
+  ],
+  "print_window": {
+   "after_hours": 6,
+   "before_days": 30,
+   "limit": 1000,
+   "max_pages": 3,
+   "taker_only": true
+  },
+  "wallet_lookup": {
+   "raw_addresses_written": false,
+   "scope": "origins whose usable longshot price m_c is inside longshot_band; buyers qualifying under rule (iii) only; one cached /activity first-trade lookup each"
+  }
+ },
+ "frame": {
+  "binary_only": true,
+  "capped_windows": "dropped whole and counted",
+  "description_chars": 4000,
+  "exclude_crypto_updown": "\\bup or down\\b|\\bupdown\\b|\\bup-or-down\\b",
+  "exclude_weather": {
+   "fee_category": "weather",
+   "temp_re": "^(Highest|Lowest) temperature in (.+?) on (.+?)\\?$",
+   "temp_re_flags": 0
+  },
+  "filter_order": [
+   "no_created_or_end",
+   "created_outside_window",
+   "end_after_cutoff",
+   "weather",
+   "crypto_updown",
+   "life_lt_14d",
+   "exclusion_id",
+   "exclusion_key"
+  ],
+  "forward_walk": false,
+  "frame_version": "frame-v2-random-windows",
+  "main_columns": [
+   "market_id",
+   "condition_id",
+   "token0",
+   "token1",
+   "event_id",
+   "event_ids",
+   "neg_risk_market_id",
+   "series_ids",
+   "fee_category",
+   "status",
+   "closed",
+   "created_at",
+   "start_at",
+   "end_at",
+   "start_epoch",
+   "end_epoch",
+   "neg_risk",
+   "question",
+   "event_title",
+   "slug",
+   "topic",
+   "outcomes",
+   "description"
+  ],
+  "min_life_days": 14,
+  "outcome_columns_guarded": [
+   "outcome_prices",
+   "uma_status",
+   "liquidity",
+   "volume",
+   "closed_time",
+   "close_epoch"
+  ],
+  "pages_per_window": 20,
+  "walk_order": [
+   "closed=false",
+   "closed=true"
+  ],
+  "window_minutes": 15,
+  "windows_per_day": 1
+ },
+ "funcs_sha256": "b7cfae31f596a07f27c33dafd19fb1254cf70d9a70a7b5561b8aa76580d26ae2",
+ "origins": {
+  "draw": "random.Random(seed|market_id).sample(sorted grid, k)",
+  "end_offset_hours": 24,
+  "grid": "Monday 00:00 UTC",
+  "max_origins": 3,
+  "start_offset_days": 7
+ },
+ "rules_sha256": "74969607ef02736cddcfbde93fbe30e27349f25b703de4ba2be9a8e3cc8d6c77",
+ "rules_version": "cb6-tail-rules-v1",
+ "sample": {
+  "allocator": "hb.allocate_weighted",
+  "n_markets": 4500,
+  "order_within_stratum": "sha256(seed|market_id)",
+  "stored": [
+   "inclusion_prob",
+   "sample_weight"
+  ],
+  "strata": [
+   "status",
+   "cb1_topic",
+   "created_month"
+  ],
+  "weights": {
+   "other": 1.0,
+   "sports": 0.5
+  }
+ },
+ "seeds": {
+  "origins": "arepo-h8-tail-origins",
+  "sample": "arepo-h8-tail",
+  "smoke": "arepo-h8-smoke",
+  "split": "arepo-cb6-tail-split"
+ },
+ "smoke": {
+  "median_spacing_s": [
+   3600.0,
+   300.0
+  ],
+  "min_fraction_of_expected_points": 0.8,
+  "min_pass": 18,
+  "n": 20,
+  "output": "counts only",
+  "pool": "closed markets with end_at in 2025 from the h1/h2/h3 exclusion samples",
+  "window_before_end_days": [
+   12,
+   2
+  ]
+ },
+ "split": {
+  "rule": "sha256(SPLIT_SEED + '|' + event_key), first byte even -> SCREEN else HOLDOUT; event_key = Gamma event id (market id if none), merged across negRiskMarketID (component minimum)",
+  "seed": "arepo-cb6-tail-split"
+ },
+ "units": {
+  "longshot_band": [
+   0.02,
+   0.1
+  ],
+  "max_point_age_s": 7200,
+  "min_prints_before_origin": 1,
+  "price_bands": [
+   [
+    0.02,
+    0.04
+   ],
+   [
+    0.04,
+    0.07
+   ],
+   [
+    0.07,
+    0.1
+   ]
+  ],
+  "print_lookback_days": 7,
+  "usable_point_lag_s": 600
+ }
+}

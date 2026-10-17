@@ -1,0 +1,50 @@
+{
+ "id": "q0120_h8_tail_fetch",
+ "title": "CB6-T: h8_tail backfill (4,500 binary markets created 2025-09..2026-07, scheduled end <= T_fetch8 - 7 d, disjoint from h1/h2/h3/h5 by market id and by event / negRiskMarketID / series key; description, hourly prices and windowed prints around <= 3 declared origins, large-buyer first-trade times; capped at T_seal)",
+ "family": "history_data",
+ "priority": 61,
+ "expected_value": "fresh market- and event-disjoint data for the CH60 ex-ante tail classifier; must complete before T_seal 2026-10-22T00:00Z",
+ "data": [
+  "public Gamma/CLOB/Data API",
+  "history/h1_first, h2_main, h3_power sample.csv.gz (exclusion ids only; sha256 pinned in the rules file)",
+  "docs/research_lab/seals/h5_cb1_SEAL.json and h5_cb1_ladders_SEAL.json file tables (ids only; sha256 pinned)",
+  "docs/research_lab/seals/cb6_tail_rules.json (hash-checked)",
+  "research_lab/creative_batch6/tail_smoke.json (PASS under the same rules hash required)"
+ ],
+ "resources": {"mem_mb": 800, "cpu": 1, "network": "gamma-api, clob, data-api", "lane": "net"},
+ "depends_on": ["q0018_h5_cb1_seal", "q0120a_h8_tail_smoke"],
+ "argv": [
+  "scripts/run_cb6.py",
+  "tail-fetch",
+  "--run-id", "h8_tail",
+  "--seed", "arepo-h8-tail",
+  "--n-markets", "4500",
+  "--created-from", "2025-09-01",
+  "--created-to", "2026-07-31",
+  "--end-before-fetch-days", "7",
+  "--windows-per-day", "1",
+  "--max-origins", "3",
+  "--price-fidelity", "60",
+  "--print-pages", "3",
+  "--exclude-runs", "h1_first,h2_main,h3_power",
+  "--exclude-seal-ids", "../docs/research_lab/seals/h5_cb1_SEAL.json,../docs/research_lab/seals/h5_cb1_ladders_SEAL.json",
+  "--exclude-event-keys", "event,neg_risk_market,series",
+  "--max-unverified-key-share", "0.02",
+  "--exclude-categories", "weather",
+  "--rules", "../docs/research_lab/seals/cb6_tail_rules.json",
+  "--require-smoke", "research_lab/creative_batch6/tail_smoke.json",
+  "--cap-at", "2026-10-22T00:00Z",
+  "--rps", "4",
+  "--disk-cap-gb", "0.12",
+  "--data-dumps-cap-gb", "10",
+  "--budget-min", "85"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 3,
+ "repeat": {"max_runs": 8, "until_log_regex": "\"status\": \"(tail_fetch_complete|not_run_deadline|disjointness_unverified)\""},
+ "outputs": [
+  "data-dumps/research_lab/history/h8_tail/{frame.csv.gz,exclusion_keys.csv.gz,exclusion_report.json,key_drops.json,sample.csv.gz,origins.csv.gz,prices/,trades/,origin_windows.csv.gz,wallet_first.csv.gz,outcomes_guarded.csv.gz,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"
+ ],
+ "next_action": "q0120s (seal) after both h7 runs are terminal",
+ "notes": "CREATIVE_BATCH_6.md CB6-F and 10.3 (q0120 implementer spec). Code: backend/astrolabe/research_lab/cb6_tail.py, backend/scripts/run_cb6.py. DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer freeze check of the fetcher, the committed rules file and a smoke PASS. Exit 75 (headroom: data-dumps size + the 0.12 GB output cap would pass 10 GB) means not now (30-minute wait, not counted); exit 2 refuses on a rules-hash mismatch, ANY missing or sha256-mismatched exclusion file, a missing or non-PASS smoke result (or one made under another rules hash), changed declared arguments, run ids h2_main/h3_power/h4_seal/h5_*/h6_weather/h7_*. Chunks stop at --budget-min 85 (below timeout_s 5400 so a chunk ends gracefully and is never killed mid-market; the doc says 90-minute chunks and timeout 6600, the coordinator's 5400 was applied); resumable by exclusion batch, frame day and market; one T_fetch8 is pinned in request_clock.json. Stage order: exclusion keys (about 850 requests including the closed=true retry), frame walk (about 1-2.5k requests), filters + key drop + sample + origins (origins.csv.gz written before any price request), then per market about 3 price requests, about 3-9 print requests and cached wallet lookups: about 30-45k requests in all, about 3-3.5 h wall at 4 rps in about 3 chunks. Terminal statuses: tail_fetch_complete; not_run_deadline (no chunk starts at or after T_seal; NOT_RUN_DEADLINE.json); disjointness_unverified (> 2% of exclusion ids without Gamma metadata; no sample, no prices). Commit message must record the section 2.8 headroom check (1.0 GB/day). Latest safe start on the host 2026-10-21T12:00Z; if not started by 2026-10-20T12:00Z run the identical command on the Mac with --standalone --rps 3 --root ~/arepo_scratch/h8_tail --history-root <pinned copies> --data-dumps ~/arepo_scratch (section 2.8 fallback), set the host partial directory aside unmerged, and cancel this spec."
+}

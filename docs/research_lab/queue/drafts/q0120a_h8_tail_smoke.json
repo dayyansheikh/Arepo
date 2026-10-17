@@ -1,0 +1,34 @@
+{
+ "id": "q0120a_h8_tail_smoke",
+ "title": "CB6-T: h8_tail smoke test (20 worn 2025 markets, one fidelity-60 prices-history request each; counts only)",
+ "family": "history_data",
+ "priority": 62,
+ "expected_value": "proves the hourly price source before the q0120 fetch commits about 14k price requests; PASS = at least 18 of 20 markets return at least 80% of the expected hourly points with median spacing 3,600 +/- 300 s",
+ "data": [
+  "history/h1_first, h2_main, h3_power sample.csv.gz (ids, token0, end_epoch only; sha256 pinned in the rules file)",
+  "docs/research_lab/seals/h5_cb1_SEAL.json and h5_cb1_ladders_SEAL.json (pins verified)",
+  "docs/research_lab/seals/cb6_tail_rules.json (hash-checked)",
+  "public CLOB prices-history"
+ ],
+ "resources": {"mem_mb": 300, "cpu": 1, "network": "clob", "lane": "net"},
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb6.py",
+  "tail-smoke",
+  "--run-id",
+  "h8_tail",
+  "--exclude-seal-ids",
+  "../docs/research_lab/seals/h5_cb1_SEAL.json,../docs/research_lab/seals/h5_cb1_ladders_SEAL.json",
+  "--rules",
+  "../docs/research_lab/seals/cb6_tail_rules.json",
+  "--out",
+  "research_lab/creative_batch6/tail_smoke.json",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 900,
+ "max_retries": 2,
+ "outputs": ["data-dumps/research_lab/creative_batch6/tail_smoke.json"],
+ "next_action": "if pass is true the coordinator commits q0120; if false q0120 is not committed (a different fidelity or source is a design change needing review; the deadline is not moved)",
+ "notes": "CREATIVE_BATCH_6.md CB6-F and 10.3 (q0120 implementer spec). Code: backend/astrolabe/research_lab/cb6_tail.py, backend/scripts/run_cb6.py. DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer freeze check of the fetcher. About 20 requests (under 2 minutes). Verifies the rules hash and every exclusion file pin first (exit 2 on any missing or mismatching file). Stores counts only: no market id, price or timestamp. Needs the host copies of the h1/h2/h3 sample files (they are not on the Mac). Probed once on the live API on 2026-10-17 (a recent closed market, 239 of 240 hourly points, median spacing 3,600 s); that probe is not the smoke test."
+}
