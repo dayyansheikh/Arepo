@@ -1332,3 +1332,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   (rough G1 MDE about 7-8c). 0 failed items or windows; outcomes guarded and unread. Details: `CREATIVE_BATCH_7.md`,
   last section. Seals q0144/q0145 after `T_seal`.
 
+
+## CB10 drafted, not counted, k = 3 fixed + up to 4 conditional (2026-10-17 15:48 UTC+1; design only)
+- `CREATIVE_BATCH_10.md` (status DRAFT, not challenged, not frozen; queue ids q0200-q0219, specs in the document only).
+  Families: **CB10-D** (CH89, Deribit option-implied digital vs BTC/ETH daily strike ladders; D1 slope Stage 1 on resolution
+  dates `[2025-10-01, 2026-04-13) ∪ [2026-08-11, 2026-10-01)`, avoiding CB8-B's crypto calendar; D1-rep and D2 economic at
+  recorded asks on 56 post-freeze dates) and **CB10-B** (CH93, side-free round-level vs pseudo-level break reversal B1 and
+  trade-through maker B2; fresh `h10_brk`, SCREEN/HOLDOUT by event). Dropped with reasons: CH82 (probe: the public Combos
+  catalogue lists leg markets, not combos; no combo price or volume is public), CH87 (CB7-S not reported; report clause is a
+  fallback inside official-source rules in 53 of 54 probed texts), CH90, CH91. 33 counts-only probe requests, nothing
+  stored. MDEs: D1 about 0.85-1.25 in slope (floor 0.30), B1 about 0.6-0.7c (floor 0.5c), B2 about 0.9-1.1c (floor 1.0c).
+  No pmxt; about 9,200 `net`-lane requests after `T_seal`; outputs ≤ 0.12 GB. Count 0 now; cumulative 1,141 (Mac working
+  tree, lower bound). Next: `science-reviewer` challenger round 1.
