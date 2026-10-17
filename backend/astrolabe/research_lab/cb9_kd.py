@@ -47,6 +47,10 @@ RULES_VERSION = c9.RULES_VERSION_KD
 FRAME_RUN, BOOKS_RUN = "kd_frame", "kd"
 FRAME_COMPLETE, BOOKS_COMPLETE, INGRESS_CAP_STATUS = "kd_frame_complete", "kd_books_complete", "ingress_cap_reached"
 SEAL_STATUS = "kd_sealed"
+# Terminal not-testable (stall) states, freeze check M5, in cb9_common's shared vocabulary: exit 0 with the status and label in the run manifest, carried
+# into the census and the screens (p = 1, testable false, counted). Never exit 2: q0189 depends on q0186 / q0187 and must still run.
+NT_SOURCE = c9.STALL_NOT_RUN_SOURCE  # the q0180 smoke's pmxt HEAD criterion failed
+SMOKE_NEED = ("pmxt_heads",)
 UNVERIFIED = c9.UNVERIFIED
 SCREEN, HOLDOUT = "screen", "holdout"
 
@@ -54,7 +58,10 @@ WINDOW_START, WINDOW_END = "2026-04-13", "2026-08-10"  # K/D days d in [start, e
 PMXT_GAP = ("2026-06-12", "2026-06-18")  # ... minus the pmxt gap [06-12, 06-18)
 MIN_OVERLAP_DAYS = 3.0
 FRAME_END_FROM = "2026-04-16T00:00:00Z"  # a 3-day overlap needs end >= window start + 3 d
-FRAME_END_BEFORE = "2026-10-01T00:00:00Z"  # T9_hist_end (design silent on the frame's end-date bound: conservative, closed markets only)
+FRAME_DAILY_END_BEFORE = "2026-10-01T00:00:00Z"  # end dates in [FRAME_END_FROM, this) are walked per UTC day ...
+FRAME_TAIL_END_BEFORE = "2100-01-01T00:00:00Z"  # ... later end dates (long-dated, often still open) in one window halved while capped (freeze check M7)
+FRAME_START_MAX = "2026-08-07T00:00:00Z"  # a 3-day overlap needs start <= window end - 3 d (query pruning; frame_reason re-checks)
+FRAME_CLOSED_FLAGS = ("true", "false")  # closed AND open markets (freeze check M7: open markets are kept; only data <= t is used)
 MIN_VOLUME = 10000.0
 MAX_PER_EVENT = 3
 N_SAMPLE = 1000
@@ -72,7 +79,7 @@ PRINT_PRE_S = 6 * 3600
 PRINT_POST_S = 7 * 3600
 PRINT_PAGES = 10
 PRINT_LIMIT = 1000
-INGRESS_CAP_GB = 90.0
+INGRESS_CAP_GB = 180.0  # freeze check M8: 90 -> 180 GB because the 13Z lookback roughly doubles ingress per day (no gate, floor or output cap changed)
 FRAME_OUTPUT_CAP_GB = 0.01
 BOOKS_OUTPUT_CAP_GB = 0.15
 DATA_DUMPS_CAP_GB = c9.DATA_DUMPS_CAP_GB
@@ -116,7 +123,7 @@ D_SD_C, D_DEFF = 1.5, 2.0
 
 LABEL_SOURCE_UNAVAILABLE, LABEL_NO_FRESH_BOOK, LABEL_AVAILABLE, LABEL_NOT_PROCESSED = "source unavailable", "no fresh book", "available", "not processed"
 
-FRAME_COLUMNS = ["market_id", "condition_id", "token0", "token1", "event_id", "event_ids", "neg_risk_market_id", "series_ids", "fee_category", "topic",
+FRAME_COLUMNS = ["market_id", "condition_id", "token0", "token1", "event_id", "event_ids", "neg_risk_market_id", "series_ids", "fee_category", "topic", "status",
                  "start_at", "end_at", "start_epoch", "end_epoch", "volume", "liquidity", "order_min_size", "tick_size", "neg_risk", "neg_risk_augmented",
                  "resolution_host", "question", "event_title"]
 SAMPLE_COLUMNS = [*FRAME_COLUMNS, "group", "stratum", "stratum_size", "stratum_alloc", "sample_weight", "split", "event_key", "n_days", "days"]
@@ -134,7 +141,8 @@ EVENT_COLS_KD = [*bk.EVENT_COLS, "transaction_hash"]
 # file layout (A's q0188 sign audit B reads the SCREEN print files through these constants)
 ORIGINS_SUFFIX = ".origins.csv.gz"
 MINUTES_SUFFIX = ".minutes.csv.gz"
-LTP_SUFFIX = ".ltp.csv.gz"
+LTP_SUFFIX = ".ltp.csv.gz"  # last_trade_price events of hour 14Z (venue time in [14Z, 15Z)) and, ruling (c), of the 13Z lookback hour ([13Z, 14Z), both
+# clocks <= 14Z; only tokens whose lookback was read); the hour is v_ms
 PRINTS_PRE_SUFFIX = ".prints_pre.csv.gz"  # prints with ts < t (features)
 PRINTS_POST_SUFFIX = ".prints_post_guarded.csv.gz"  # prints with ts >= t (fills, marks, next transactions): guarded
 MARKETS_FILE = "markets.csv.gz"
@@ -149,6 +157,7 @@ BOOKS_DIR = c9.CB9_DIR / BOOKS_RUN
 SCREEN_PRINT_DIR = BOOKS_DIR / SCREEN
 SCREEN_PRINT_GLOBS = ("*" + PRINTS_PRE_SUFFIX, "*" + PRINTS_POST_SUFFIX)
 SCREEN_LTP_GLOB = "*" + LTP_SUFFIX
+SCREEN_LTP_GLOBS = ("*" + LTP_SUFFIX,)  # LTP_COLUMNS; v_ms / r_ms are the pmxt venue / receipt clocks (ms); 13Z rows have v_ms < 14Z
 SCREEN_PRINT_FORMAT = {"columns": PRINT_COLUMNS, "ts": "venue timestamp (s)", "side": "+1 BUY / -1 SELL (Data API, token terms)", "idx": "outcomeIndex",
                        "asset": "token id of idx (from the frame)", "wallet_hash": "HMAC-SHA256(key, lower-cased proxyWallet), first 32 hex (cb8_common.hash_wallet)",
                        "tx": "full transactionHash", "api_rank": "position in the Data API reply order within the market-day window (0 = newest)",
@@ -157,7 +166,10 @@ SCREEN_PRINT_FORMAT = {"columns": PRINT_COLUMNS, "ts": "venue timestamp (s)", "s
 
 def declared() -> dict:
     return {
-        "frame": {"query": f"Gamma /markets closed=true, volume_num_min={MIN_VOLUME:g}, end_date per UTC day in [{FRAME_END_FROM}, {FRAME_END_BEFORE}), order id; a capped window is halved down to one hour (a still-capped hour is excluded, counted)",
+        "frame": {"query": f"Gamma /markets closed=true and closed=false (both; deduplicated by id), volume_num_min={MIN_VOLUME:g}, start_date_max={FRAME_START_MAX}, end_date per UTC day in "
+                           f"[{FRAME_END_FROM}, {FRAME_DAILY_END_BEFORE}) plus one window [{FRAME_DAILY_END_BEFORE}, {FRAME_TAIL_END_BEFORE}), order id; a capped window is halved down to one hour "
+                           "(a still-capped hour is excluded, counted)",
+                  "open_markets": "kept (freeze check M7): long-dated markets still open are in the population; only data <= t enters a feature and no outcome is read",
                   "keeps": f"binary with token ids; scheduled life [startDate, endDate) overlapping [{WINDOW_START}, {WINDOW_END}) by >= {MIN_OVERLAP_DAYS:g} d; volume >= {MIN_VOLUME:g} (end-of-life field, disclosed look-ahead in selection); "
                            f"not negRiskAugmented; not weather (fee_category or CB2-W text); not crypto Up/Down (CB1_UPDOWN_RE); not Pyth (resolutionSource host *{PYTH_HOST})",
                   "stored_fields": FRAME_COLUMNS, "outcome_fields_stored": False},
@@ -173,7 +185,7 @@ def declared() -> dict:
         "pmxt": {"hour": ORIGIN_HOUR, "lookback_hour": LOOKBACK_HOUR, "lookback": "per token, only when the token has no `book` event with both clocks <= t in hour 14Z",
                  "clock_rule": "an event is used at x iff timestamp <= x and timestamp_received <= x", "fresh_s": FRESH_S, "top_levels": TOP_LEVELS,
                  "reader": "row groups pruned on market statistics, light columns first, heavy columns only for row groups with a matching row; never materialised",
-                 "columns": EVENT_COLS_KD, "ingress_cap_gb": INGRESS_CAP_GB, "kept": "origin states (both tokens), per-minute D states (both tokens), last_trade_price events of the hour (with transaction_hash)"},
+                 "columns": EVENT_COLS_KD, "ingress_cap_gb": INGRESS_CAP_GB, "kept": "origin states (both tokens), per-minute D states (both tokens), last_trade_price events of hour 14Z and of the 13Z lookback hour when read (with transaction_hash)"},
         "prints": {"window": f"[t - {PRINT_PRE_S // 3600} h, t + {PRINT_POST_S // 3600} h] venue time, takerOnly", "pages": PRINT_PAGES, "limit": PRINT_LIMIT,
                    "capped": "unavailable (counted)", "pre": "ts < t (features)", "post": "ts >= t (guarded)", "wallet": "HMAC hash only (strict loader, pinned fingerprint)"},
         "k": {"state": "outcome-0 token at t; fresh = latest event >= t - 3600 s; crossed or one-sided ineligible",
@@ -212,11 +224,17 @@ def declared() -> dict:
                  "read_rule": "holdout/ is opened only by rep-kd after K1 or D1 advanced and its Stage-1 result is recorded (trials line with the results sha256)"},
         "outputs": {"frame": f"{FRAME_RUN}/{{{FRAME_FILE},{SAMPLE_FILE},{SPLIT_FILE},manifest.json}}", "books": f"{BOOKS_RUN}/{{screen,holdout}}/<day>{{{ORIGINS_SUFFIX},{MINUTES_SUFFIX},{LTP_SUFFIX},{PRINTS_PRE_SUFFIX},{PRINTS_POST_SUFFIX}}} + <split>/{MARKETS_FILE}",
                     "caps_gb": {"frame": FRAME_OUTPUT_CAP_GB, "books": BOOKS_OUTPUT_CAP_GB}, "data_dumps_cap_gb_default": DATA_DUMPS_CAP_GB},
-        "open_items": [
-            "RV: the design says the 1-day realised volatility of print prices, but the declared print fetch is [t - 6 h, t + 7 h]; RV is computed on [t - 6 h, t) (RV_WINDOW_S) until the freeze check decides (widen the fetch to t - 24 h, or keep the 6 h analogue)",
-            "Origin t = 14:00:00Z is the first instant of hour 14Z, so nearly every token needs the 13Z lookback (about 2x ingress per day; the 90 GB cap may truncate days, counted)",
+        "stall": {"statuses": {"q0182 report disjointness_unverified (kd-frame, before any request)": c9.STALL_UPSTREAM, "kd-frame stalled (kd-books)": c9.STALL_UPSTREAM,
+                               "smoke pmxt_heads not met (kd-books)": NT_SOURCE}, "labels": "cb9_common.STALL_LABELS; upstream stalls copy the upstream label",
+                  "exit": 0, "flow": "kd-seal passes a books stall on (nothing sealed); the census copies the label; screen-kd logs K1, D1 with p = 1 (counted)"},
+        "stage2": {"rule": "cb9_common.STAGE2_RULE (k derived by cb9_common.stage2_k; --stage2-k optional and must equal it)"},
+        "results": "write-once: screen-kd / rep-kd refuse an existing results file or an existing count line for the same hypothesis, before any computation",
+        "decisions": [
+            "RV on [t - 6 h, t) (freeze-check ruling d: keep the 6 h analogue of the design's 1-day RV; the declared print fetch is [t - 6 h, t + 7 h])",
+            f"ingress cap {INGRESS_CAP_GB:g} GB (freeze check M8): origin t = 14:00:00Z is the first instant of hour 14Z, so nearly every token needs the 13Z lookback (about 2x ingress per day)",
+            "open (long-dated) markets kept in the frame (freeze check M7)",
             "D uses the outcome-0 token's book and prints (one unit per market-minute); both tokens' minute states are stored",
-            "Book events are kept as derived per-minute D states plus raw last_trade_price events (raw book JSON is not stored: 0.15 GB output cap)",
+            "Book events are kept as derived per-minute D states plus raw last_trade_price events of 14Z and of the 13Z lookback (ruling c); raw book JSON is not stored (0.15 GB output cap)",
         ],
     }
 
@@ -305,13 +323,24 @@ def market_days(r: dict) -> list[str]:
 
 def frame_walk_days() -> list[str]:
     d0 = datetime.fromtimestamp(cm.ep(FRAME_END_FROM), UTC).date()
-    d1 = datetime.fromtimestamp(cm.ep(FRAME_END_BEFORE) - 1, UTC).date()
+    d1 = datetime.fromtimestamp(cm.ep(FRAME_DAILY_END_BEFORE) - 1, UTC).date()
     return [(d0 + timedelta(days=i)).isoformat() for i in range((d1 - d0).days + 1)]
 
 
-def _walk_window(lim: hb.Limiter, a: int, b: int, acc: dict) -> None:
+def frame_walk_units() -> list[tuple[str, int, int, str]]:
+    """(key, end_date_min, end_date_max, closed flag) of every frame query unit: each UTC end-date day, then the long-dated tail, each for closed and open."""
+    out = []
+    for flag in FRAME_CLOSED_FLAGS:
+        for d in frame_walk_days():
+            a = int(datetime.strptime(d, "%Y-%m-%d").replace(tzinfo=UTC).timestamp())
+            out.append((f"{d}|closed={flag}", a, a + int(cm.DAY), flag))
+        out.append((f"tail|closed={flag}", int(cm.ep(FRAME_DAILY_END_BEFORE)), int(cm.ep(FRAME_TAIL_END_BEFORE)), flag))
+    return out
+
+
+def _walk_window(lim: hb.Limiter, a: int, b: int, acc: dict, closed: str = "true") -> None:
     f = "%Y-%m-%dT%H:%M:%SZ"
-    p = {"closed": "true", "volume_num_min": int(MIN_VOLUME), "order": "id", "ascending": "true",
+    p = {"closed": closed, "volume_num_min": int(MIN_VOLUME), "order": "id", "ascending": "true", "start_date_max": FRAME_START_MAX,
          "end_date_min": datetime.fromtimestamp(a, UTC).strftime(f), "end_date_max": datetime.fromtimestamp(b, UTC).strftime(f)}
     batch, capped, failed = c4._paged_strict(lim, p, hb.GAMMA_OFFSET_CAP)
     if failed:
@@ -320,8 +349,8 @@ def _walk_window(lim: hb.Limiter, a: int, b: int, acc: dict) -> None:
     if capped and b - a > 3600:
         acc["splits"] += 1
         mid = a + (b - a) // 2
-        _walk_window(lim, a, mid, acc)
-        _walk_window(lim, mid, b, acc)
+        _walk_window(lim, a, mid, acc, closed)
+        _walk_window(lim, mid, b, acc, closed)
         return
     acc["windows"] += 1
     if capped:
@@ -330,21 +359,21 @@ def _walk_window(lim: hb.Limiter, a: int, b: int, acc: dict) -> None:
     acc["batches"].extend(batch)
 
 
-def walk_frame(fr: cm.Cb8Run, days: list[str], should_stop: Callable[[], bool] | None = None) -> str | None:
-    """One gzip member per UTC end-date day in ``frame_partial.jsonl.gz`` (rows already reduced to the frame fields). A day with a failed request is
-    retried by a later chunk (at most 3 attempts; then counted as failed). Returns a stop reason or ``None`` when every day is done."""
+def walk_frame(fr: cm.Cb8Run, units: list[tuple[str, int, int, str]], should_stop: Callable[[], bool] | None = None) -> str | None:
+    """One gzip member per query unit (``frame_walk_units``) in ``frame_partial.jsonl.gz`` (rows already reduced to the frame fields). A unit with a failed
+    request is retried by a later chunk (at most 3 attempts; then counted as failed). Returns a stop reason or ``None`` when every unit is done."""
     pp, pf = fr.rdir / "frame_partial.jsonl.gz", fr.rdir / "frame_fail.jsonl"
     done = {rec["day"] for rec in c6.iter_partial(pp)}
     fails = c7.walk_failed_days(pf)
-    for d in days:
+    days = [u[0] for u in units]
+    for d, a, b, flag in units:
         if d in done or fails.get(d, 0) >= cm.MAX_ITEM_ATTEMPTS:
             continue
         why = fr.stop_reason(should_stop)
         if why:
             return why
-        a = int(datetime.strptime(d, "%Y-%m-%d").replace(tzinfo=UTC).timestamp())
         acc = {"batches": [], "splits": 0, "windows": 0, "failed_windows": 0, "excluded_capped_window": 0}
-        _walk_window(fr.lim, a, a + int(cm.DAY), acc)
+        _walk_window(fr.lim, a, b, acc, flag)
         if acc["failed_windows"]:
             with pf.open("a") as fh:
                 fh.write(json.dumps({"day": d}) + "\n")
@@ -441,8 +470,11 @@ def kd_frame(root: Path, transport, *, rules_sha: str, exclusion_keys_path: Path
     done = _manifest_done(rdir, (FRAME_COMPLETE,))
     if done:
         return {"stopped": None, "status": FRAME_COMPLETE, "complete": True, "counts": done.get("counts")}
-    if (rdir / "DISJOINTNESS_UNVERIFIED.json").exists():
-        return {"stopped": UNVERIFIED, "status": UNVERIFIED, "complete": True}
+    term = terminal_state(rdir)
+    if term:
+        return term
+    if krep.get("disjointness") == UNVERIFIED:  # q0182 ended disjointness_unverified: stall before any Gamma request (freeze check M5)
+        return write_terminal(rdir, c9.STALL_UPSTREAM, "q0182 exclusion report: disjointness_unverified; no frame walked", label=c9.STALL_LABELS[c9.STALL_DISJOINTNESS])
     term = cm.prior_terminal(rdir)
     if term:
         return term
@@ -458,22 +490,22 @@ def kd_frame(root: Path, transport, *, rules_sha: str, exclusion_keys_path: Path
         m["status"] = "in_progress"
         return m
     try:
-        stopped = walk_frame(fr, frame_walk_days(), should_stop)
+        stopped = walk_frame(fr, frame_walk_units(), should_stop)
         if stopped:
             m = fr.manifest(stopped, {"transient": True})
             m["status"] = "in_progress"
             return m
-        if krep.get("disjointness") == UNVERIFIED:
-            (rdir / "DISJOINTNESS_UNVERIFIED.json").write_text(json.dumps({"run_id": run_id, "exclusion_report_disjointness": UNVERIFIED,
-                                                                            "rule": "design 1.3: > 2% of exclusion ids without metadata -> K1, D1 not testable (p = 1, counted)"}, indent=1, sort_keys=True))
-            m = fr.manifest(None, {"complete": True, "status": UNVERIFIED})
-            m["status"] = UNVERIFIED
-            return m
         recs = list(c6.iter_partial(rdir / "frame_partial.jsonl.gz"))
-        frame = [r for rec in recs for r in rec["rows"]]
+        seen: set[str] = set()
+        frame = []
+        for rec in recs:  # a market can appear in both the closed and the open walk (status changed between requests): first row kept
+            for r in rec["rows"]:
+                if r["market_id"] not in seen:
+                    seen.add(r["market_id"])
+                    frame.append(r)
         failed_days = sorted(d for d, k in c7.walk_failed_days(rdir / "frame_fail.jsonl").items() if k >= cm.MAX_ITEM_ATTEMPTS)
         sample, rep = assemble_kd(frame, ids, ksets, n)
-        rep["frame_walk"] = {"days": len(frame_walk_days()), "frame_rows": len(frame), "n_raw": sum(r.get("n_raw", 0) for r in recs),
+        rep["frame_walk"] = {"units": len(frame_walk_units()), "frame_rows": len(frame), "n_open": sum(1 for r in frame if r.get("status") == "active"), "n_raw": sum(r.get("n_raw", 0) for r in recs),
                              "n_not_binary": sum(r.get("n_not_binary", 0) for r in recs), "excluded_capped_window": sum(r.get("excluded_capped_window", 0) for r in recs),
                              "failed_days": failed_days}
         fr.budget.write_gz_csv(rdir / FRAME_FILE, FRAME_COLUMNS, ([r.get(c, "") for c in FRAME_COLUMNS] for r in frame))
@@ -642,10 +674,10 @@ def _tick_of(state_tick, frame_tick) -> tuple[float, str]:
 
 
 def day_books(day: str, markets: list[dict], *, fetch, size_fn, gate: Callable[[], None] | None = None,
-              meter: Callable[[int], None] | None = None) -> tuple[list[list], list[list], list[list], dict[str, dict], dict]:
+              meter: Callable[[int], None] | None = None) -> tuple[list[list], list[list], list[list], list[list], dict[str, dict], dict]:
     """Origin rows (both tokens at t = d 14:00Z), minute rows (both tokens at u = 14:01..15:00Z) and the hour's ``last_trade_price`` rows of every
     market of ``day``, from the pmxt hour 14Z (cut at 15:00Z) and, only for tokens without a ``book`` event with both clocks <= t there, the 13Z
-    lookback (cut at t). A market without any event on either token is ``source_unavailable`` (never "no trade"); one whose outcome-0 token has
+    lookback (cut at t; its ``last_trade_price`` events in [13Z, 14Z) are returned too, ruling (c)). A market without any event on either token is ``source_unavailable`` (never "no trade"); one whose outcome-0 token has
     events but no snapshot is ``book_unavailable``. A missing or corrupt 14Z hour raises (the day is unavailable for all its markets)."""
     t0 = int(origin_epoch(day) * 1000)
     end = t0 + 3600 * 1000
@@ -665,7 +697,7 @@ def day_books(day: str, markets: list[dict], *, fetch, size_fn, gate: Callable[[
             hinfo["lookback_status"] = "read"
         except (bk.HourMissing, bk.HourCorrupt):
             hinfo["lookback_status"] = "hour_unavailable"
-    origins, minutes, ltp = [], [], []
+    origins, minutes, ltp, ltp13 = [], [], [], []
     minfo: dict[str, dict] = {}
     for m in markets:
         mid = m["market_id"]
@@ -697,11 +729,14 @@ def day_books(day: str, markets: list[dict], *, fetch, size_fn, gate: Callable[[
             for e in ev14[tok]:
                 if e["et"] == "last_trade_price" and t0 <= e["v"] < end:
                     ltp.append([mid, day, idx, tok, e["v"], e["r"], e.get("price"), e.get("size"), e.get("side"), e.get("tx") or ""])
+            for e in ev13.get(tok, []):  # ruling (c): the lookback hour is already read; its ltp events (both clocks <= t) are kept for S0b's feed side
+                if e["et"] == "last_trade_price" and t0 - 3600 * 1000 <= e["v"] < t0:
+                    ltp13.append([mid, day, idx, tok, e["v"], e["r"], e.get("price"), e.get("size"), e.get("side"), e.get("tx") or ""])
         if n_tok[0] + n_tok[1] == 0:
             status = "source_unavailable"
         minfo[mid] = {"books_status": status, "n_events_span": span, "n_events_tok0": n_tok[0], "n_events_tok1": n_tok[1],
                       "lookback": "read" if (m["token0"] in need and hinfo["lookback_status"] == "read") else ("unavailable" if m["token0"] in need else "not_needed")}
-    return origins, minutes, ltp, minfo, hinfo
+    return origins, minutes, ltp, ltp13, minfo, hinfo
 
 
 def market_day_prints(lim: hb.Limiter, m: dict, day: str, key: bytes, max_pages: int = PRINT_PAGES) -> tuple[list[list], list[list], dict]:
@@ -728,6 +763,36 @@ def _fail_counts(pf: Path) -> dict[tuple[str, str], int]:
     return bk._fail_counts(pf)
 
 
+def write_terminal(rdir: Path, status: str, reason: str, label: str | None = None) -> dict:
+    """Record a terminal stall (exit 0) through ``cb9_common.write_stall``. Sticky: later chunks return it."""
+    Path(rdir).mkdir(parents=True, exist_ok=True)
+    m = c9.write_stall(Path(rdir), status, reason, label)
+    return {k: m.get(k) for k in ("status", "label", "complete", "stopped", "reason")}
+
+
+def terminal_state(rdir: Path) -> dict | None:
+    m = c9.stall_of(Path(rdir))
+    return {k: m.get(k) for k in ("status", "label", "complete", "stopped", "reason")} if m else None
+
+
+def smoke_state(path: Path, need: tuple[str, ...] = SMOKE_NEED) -> str:
+    """``ok`` or ``failed`` (a criterion in ``need`` is not met: a terminal not-testable state, never exit 2). A missing smoke result is 'not yet' (exit 75);
+    an unreadable one or another smoke version is a refusal."""
+    from . import cb9_sign as sg  # noqa: PLC0415
+
+    p = Path(path)
+    if not p.exists():
+        raise c9.NotNow(f"smoke result {p} not found yet (q0180)")
+    try:
+        d = json.loads(p.read_text())
+    except ValueError as exc:
+        raise c9.Refused(f"smoke result {p} unreadable") from exc
+    if d.get("smoke_version") != sg.SMOKE_VERSION:
+        raise c9.Refused(f"smoke result {p} is {d.get('smoke_version')}, not {sg.SMOKE_VERSION}")
+    crit = d.get("criteria") or {}
+    return "ok" if all(crit.get(k) is True for k in need) else "failed"
+
+
 def _require_frame(frame_dir: Path) -> dict:
     fman_p = Path(frame_dir) / "manifest.json"
     if not fman_p.exists():
@@ -743,8 +808,8 @@ def kd_books(root: Path, transport, *, rules_sha: str, key: bytes, fp: str, fetc
              disk_cap: int = int(BOOKS_OUTPUT_CAP_GB * 1024**3), budget_min: float | None = None, data_dumps: Path | None = None,
              data_dumps_cap_gb: float = DATA_DUMPS_CAP_GB, wall_clock: Callable[[], float] = time.time, sleep=time.sleep, live_check=None, health_check=None,
              snapshot_root: Path | None = None, should_stop: Callable[[], bool] | None = None, now: float | None = None, run_id: str = BOOKS_RUN,
-             frame_run: str = FRAME_RUN, t_seal_epoch: float = c9.T_SEAL_EPOCH) -> dict:
-    """q0186, one resumable chunk. Refusals (run id, root, T_seal, the finished frame run and its file hashes, a sealed run) -> sticky end states ->
+             frame_run: str = FRAME_RUN, t_seal_epoch: float = c9.T_SEAL_EPOCH, smoke_path: Path | None = None, require_smoke: bool = True) -> dict:
+    """q0186, one resumable chunk. A disjointness-unverified frame or a failed smoke pmxt criterion is a terminal not-testable state (exit 0, recorded). Refusals (run id, root, T_seal, the finished frame run and its file hashes, a sealed run) -> sticky end states ->
     headroom (exit 75) -> per day in seeded order: pmxt states (ingress metered and capped; remaining days unavailable, counted), then prints of every
     market-day; SCREEN and HOLDOUT rows are written to their own directories. Finally ``<split>/markets.csv.gz``, ``days.csv.gz`` and the hashes."""
     root = Path(root)
@@ -752,8 +817,16 @@ def kd_books(root: Path, transport, *, rules_sha: str, key: bytes, fp: str, fetc
     c9.refuse_path(root)
     c9.require_after_t_seal(time.time() if now is None else now, "kd-books", t_seal_epoch)
     fdir = root / frame_run
-    fman = _require_frame(fdir)
     rdir = root / run_id
+    term = terminal_state(rdir)
+    if term:
+        return term
+    up = c9.stall_of(fdir)
+    if up:  # kd-frame ended in a stall: copy its label, read nothing
+        return write_terminal(rdir, c9.STALL_UPSTREAM, f"kd-frame ended {up['status']}: {up.get('reason')}", label=up.get("label"))
+    if require_smoke and smoke_state(Path(smoke_path or c9.SMOKE_DEFAULT)) == "failed":
+        return write_terminal(rdir, NT_SOURCE, f"q0180 smoke criteria {list(SMOKE_NEED)} not met; no pmxt or print read")
+    fman = _require_frame(fdir)
     if (rdir / SEAL_NAME).exists():
         raise c9.Refused(f"{run_id} is sealed; kd-books never touches a sealed run")
     done_m = _manifest_done(rdir, (BOOKS_COMPLETE, INGRESS_CAP_STATUS))
@@ -805,12 +878,12 @@ def kd_books(root: Path, transport, *, rules_sha: str, key: bytes, fp: str, fetc
                     continue
                 try:
                     if stage == "books":
-                        o, mi, lt, minfo, hinfo = day_books(d, mkts, fetch=fetch, size_fn=size_fn, meter=lambda n, d=d: bk.ingress_add(rdir, n, f"books:{d}"))
+                        o, mi, lt, lt13, minfo, hinfo = day_books(d, mkts, fetch=fetch, size_fn=size_fn, meter=lambda n, d=d: bk.ingress_add(rdir, n, f"books:{d}"))
                         split_of = {r["market_id"]: r["split"] for r in mkts}
                         for sp in (SCREEN, HOLDOUT):
                             fr.budget.write_gz_csv(rdir / sp / f"{d}{ORIGINS_SUFFIX}", ORIGIN_COLUMNS, [x for x in o if split_of[x[0]] == sp])
                             fr.budget.write_gz_csv(rdir / sp / f"{d}{MINUTES_SUFFIX}", MINUTE_COLUMNS, [x for x in mi if split_of[x[0]] == sp])
-                            fr.budget.write_gz_csv(rdir / sp / f"{d}{LTP_SUFFIX}", LTP_COLUMNS, [x for x in lt if split_of[x[0]] == sp])
+                            fr.budget.write_gz_csv(rdir / sp / f"{d}{LTP_SUFFIX}", LTP_COLUMNS, sorted((x for x in lt13 + lt if split_of[x[0]] == sp), key=lambda x: (x[0], x[2], x[4], x[5])))
                         rec = {"day": d, "stage": stage, "status": "ok", "markets": minfo, "bytes": hinfo["bytes"], "lookback_status": hinfo["lookback_status"]}
                     else:
                         pre, post, minfo = [], [], {}
@@ -899,6 +972,9 @@ def kd_seal(root: Path, *, rules_sha: str, transport=None, seals_dir: Path | Non
     if seal_p.exists():
         doc = json.loads(seal_p.read_text())
         return {"status": SEAL_STATUS, "listing_sha256": doc["listing_sha256"], "already_sealed": True}
+    term = terminal_state(rdir)
+    if term:  # nothing was fetched: nothing to seal; the not-testable state flows to the census
+        return {**term, "sealed": False}
     man = json.loads((rdir / "manifest.json").read_text()) if (rdir / "manifest.json").exists() else {}
     if not (man.get("complete") is True and not man.get("stopped") and man.get("status") in (BOOKS_COMPLETE, INGRESS_CAP_STATUS)):
         raise c9.NotNow(f"{run_id} is not finished yet (status {man.get('status')})")
@@ -1726,6 +1802,9 @@ def kd_census_doc(root: Path, *, frame_run: str = FRAME_RUN, run_id: str = BOOKS
     """Counts only (SCREEN; HOLDOUT file and event counts from the seal and the split). No net, contrast, mark-out or next-transaction price."""
     root = Path(root)
     rdir = root / run_id
+    term = terminal_state(rdir)
+    if term:
+        return terminal_census(term)
     seal_p = rdir / SEAL_NAME
     if not seal_p.exists():
         raise c9.Refused(f"{seal_p} not found: the census needs the sealed HOLDOUT (kd-seal) first")
@@ -1746,6 +1825,13 @@ def kd_census_doc(root: Path, *, frame_run: str = FRAME_RUN, run_id: str = BOOKS
             "k": {**k, "cuts": {"rv_top_tercile": cuts["rv"], "spr_top_tercile": cuts["spr"], "x6_abs_median": cuts["x6_abs"], "n_rv": cuts["n_rv"], "n_spr": cuts["n_spr"],
                                 "n_x6": cuts["n_x6"]}},
             "d": d}
+
+
+def terminal_census(term: dict) -> dict:
+    """The K/D census block of a terminal not-testable state: no data were fetched; K1 and D1 carry the label and are logged with p = 1 (counted)."""
+    blk = {"label": term["label"], "mde_c": None}
+    return {"version": "cb9-kd-census-v1", "counts_only": True, "terminal_status": term["status"], "reason": term.get("reason"),
+            "k": {**blk, "gate_gk": {"pass": False}, "cuts": None}, "d": {**blk, "gate_gd": {"pass": False}}}
 
 
 def kd_census(args) -> dict:
@@ -1776,6 +1862,11 @@ def _labels(census: dict, s0b_label: str | None) -> dict:
 def screen_kd_doc(root: Path, census: dict, *, s0b_label: str | None = None, frame_run: str = FRAME_RUN, run_id: str = BOOKS_RUN, n_draws: int = c9.PLACEBO_DRAWS) -> dict:
     """K1 and D1 Stage 1 on SCREEN events (never opens holdout/). The census's frozen cut points are used and must equal the recomputed ones."""
     root = Path(root)
+    kdc = census.get("kd", census)
+    if kdc.get("terminal_status"):
+        nt = {"testable": False, "p": 1.0, "advance": False, "verdict": kdc["k"]["label"], "n_units": 0, "s0b_label": s0b_label}
+        return {"version": "cb9-kd-screen-v1", "stage": 1, "split": SCREEN, "terminal_status": kdc["terminal_status"], "K1": {"test": "K1", **nt},
+                "D1": {"test": "D1", **nt, "verdict": kdc["d"]["label"]}}
     seal = json.loads((root / run_id / SEAL_NAME).read_text()) if (root / run_id / SEAL_NAME).exists() else None
     if seal is None:
         raise c9.Refused("kd-seal has not run")
@@ -1819,22 +1910,24 @@ def stage1_recorded(results_path: Path, trials_path: Path) -> dict:
     return adv
 
 
-def rep_kd_doc(root: Path, census: dict, advanced: dict, *, stage2_k: int, seals_dir: Path | None = None, s0b_label: str | None = None, frame_run: str = FRAME_RUN,
-               run_id: str = BOOKS_RUN, n_draws: int = c9.PLACEBO_DRAWS) -> dict:
-    """K1-rep / D1-rep on the sealed HOLDOUT events with the SCREEN cut points, only for advanced tests; judged at one-sided alpha 0.05 / k (Holm's first
-    step: early finishers), in the Stage-1 direction, with the same floors and binding checks."""
-    if not isinstance(stage2_k, int) or stage2_k < 1:
-        raise c9.Refused("--stage2-k (the number of CB9 tests reaching Stage 2) is required")
+def rep_kd_doc(root: Path, census: dict, advanced: dict, *, stage2_k: int | None = None, seals_dir: Path | None = None, s0b_label: str | None = None,
+               frame_run: str = FRAME_RUN, run_id: str = BOOKS_RUN, n_draws: int = c9.PLACEBO_DRAWS) -> dict:
+    """K1-rep / D1-rep on the sealed HOLDOUT events with the SCREEN cut points, only for advanced tests. The Stage-2 rule is cb9_common's (shared with P):
+    k derived from results_P.json and results_KD.json (``stage2_k``; a supplied ``stage2_k`` must equal it), each test judged at strict p < alpha / k in its
+    Stage-1 direction with the same floor, binding placebo (advance rate at the same threshold) and binding robustness (p thresholds at alpha / k)."""
     root = Path(root)
+    derived = c9.stage2_k(root)
+    k = c9.check_stage2_k(stage2_k, derived)
+    alpha = c9.stage2_gate(derived)
+    advanced = {t: bool(advanced.get(t)) and t in derived["advanced"] for t in ("K1", "D1")}
     seal = verify_holdout_seal(root / run_id, seals_dir)
-    alpha = c9.STAGE2_ALPHA / stage2_k
     cuts = census_cuts(census)
     units = _with_feats(load_units(root, HOLDOUT, job="rep", frame_run=frame_run, run_id=run_id))
     labels = _labels(census, s0b_label)
     audit = coverage_audit_kd(units)
     disj = seal["drops"]["disjointness"]
-    out = {"version": "cb9-kd-rep-v1", "stage": 2, "split": HOLDOUT, "alpha": alpha, "stage2_k": stage2_k, "cuts_from": "SCREEN (census)", "audit": audit,
-           "holdout_listing_sha256": seal["listing_sha256"]}
+    out = {"version": "cb9-kd-rep-v1", "stage": 2, "split": HOLDOUT, "alpha": alpha, "stage2_k": k, "stage2_advanced": derived["advanced"], "stage2_rule": c9.STAGE2_RULE,
+           "cuts_from": "SCREEN (census)", "audit": audit, "holdout_listing_sha256": seal["listing_sha256"]}
     # Stage 2 testability: disjointness and the coverage audit on HOLDOUT, then >= 100 units and >= 30 clusters per way (cluster_p). The SCREEN census gates
     # GK / GD are not re-imposed on HOLDOUT (the design declares them for SCREEN only); their HOLDOUT counts are reported.
     if advanced.get("K1"):
@@ -1892,7 +1985,7 @@ def _result(m: dict) -> tuple[int, dict]:
     if m.get("status") == cm.DISK_BUDGET_TOKEN:
         return DISK_BUDGET_EXIT, {"status": cm.DISK_BUDGET_TOKEN, "stopped": m.get("stopped"), "counts": m.get("counts")}
     return 0, {"status": m.get("status") or ("in_progress" if m.get("stopped") else None), "stopped": m.get("stopped"), "complete": m.get("complete"),
-               "counts": m.get("counts"), "transient": m.get("transient"), "requests": m.get("requests")}
+               "counts": m.get("counts"), "transient": m.get("transient"), "requests": m.get("requests"), "label": m.get("label")}
 
 
 def _declared_args(a, checks: dict) -> None:
@@ -1935,7 +2028,7 @@ def cmd_kd_books(a):
         raise c9.Refused("the kd rules file pins no wallet_key_fingerprint (design 1.4: q0186 hashes proxyWallet through the strict loader)")
     key = cm.load_wallet_key_strict(Path(a.wallet_key_path) if a.wallet_key_path else None, fp)
     m = kd_books(_root(a), hb.httpx_transport(), rules_sha=sha, key=key, fp=fp, fetch=hs.httpx_range_fetch(), size_fn=hs.httpx_size, ingress_cap_gb=a.ingress_cap_gb,
-                 rps=min(a.rps, MAX_RPS_BOOKS), disk_cap=int(a.disk_cap_gb * 1024**3), **_net(a))
+                 rps=min(a.rps, MAX_RPS_BOOKS), disk_cap=int(a.disk_cap_gb * 1024**3), smoke_path=Path(a.smoke) if a.smoke else None, **_net(a))
     return _result(m)
 
 
@@ -1962,9 +2055,34 @@ def _s0b_label(path: str | None) -> str | None:
     return f"S0b: {v}" if v else None
 
 
-def _write_results(path: Path, doc: dict) -> str:
-    sha = cm.sha_obj(doc)
-    cm.write_json_atomic(path, {**doc, "results_sha256": sha})
+def refuse_second_count(out: Path, trials_path: Path | None, hypotheses: list[str], replication: bool) -> None:
+    """Write-once (freeze check M11): refuse when the results file exists or the trials file already holds a CB9 test line for one of ``hypotheses``
+    (a second count line is never logged)."""
+    from . import provenance  # noqa: PLC0415
+
+    if Path(out).exists():
+        raise c9.Refused(f"{out} exists; a results file is written once")
+    tp = Path(trials_path) if trials_path else provenance.TRIALS_PATH
+    kind = "cb9_replication" if replication else "cb9_test"
+    if tp.exists():
+        for line in tp.read_text().splitlines():
+            try:
+                j = json.loads(line)
+            except ValueError:
+                continue
+            if j.get("kind") == kind and j.get("dataset") == "creative_batch_9" and j.get("hypothesis") in hypotheses:
+                raise c9.Refused(f"trials already record {kind} {j.get('hypothesis')}; a second count line is never logged")
+
+
+def write_and_log(out: Path, doc: dict, tests: list[tuple[str, str, str]], *, trials_path: Path | None, replication: bool) -> str:
+    """Refuse a second write / count, write the results file exclusively (with its sha256), then one trial block per test ``(family, hypothesis, doc key)``."""
+    refuse_second_count(out, trials_path, [t for _, t, _ in tests], replication)
+    sha = c9.write_results_once(Path(out), doc)
+    for fam, tid, key in tests:
+        r = doc[key]
+        c9.log_test(fam, tid, {"p": r.get("p", 1.0), "advance": r.get("advance"), "testable": r.get("testable"), "effect": r.get("effect"), "n": r.get("n_units"),
+                               "verdict": r.get("verdict")}, replication=replication, trials_path=trials_path, results_sha256=sha,
+                    placebo={"note": r["placebo"]["note"], "advance_rate": r["placebo"]["advance_rate"], "n_draws": r["placebo"]["n_draws"]} if r.get("placebo") else None)
     return sha
 
 
@@ -1973,17 +2091,13 @@ def cmd_screen_kd(a):
     c9.require_freeze(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
     sha, _fp = _rules(a)
     root = _root(a)
+    out = Path(a.out) if a.out else root / RESULTS_NAME
+    tp = Path(a.trials_path) if a.trials_path else None
+    refuse_second_count(out, tp, ["K1", "D1"], False)  # before any computation
     census = json.loads(Path(a.census or (root / "census.json")).read_text())
     doc = screen_kd_doc(root, census, s0b_label=_s0b_label(a.s0_results))
     doc["rules_sha256"] = sha
-    out = Path(a.out) if a.out else root / RESULTS_NAME
-    rsha = _write_results(out, doc)
-    tp = Path(a.trials_path) if a.trials_path else None
-    for fam, t in (("K", "K1"), ("D", "D1")):
-        r = doc[t]
-        c9.log_test(fam, t, {"p": r.get("p", 1.0), "advance": r.get("advance"), "testable": r.get("testable"), "effect": r.get("effect"), "n": r.get("n_units"),
-                             "verdict": r.get("verdict")}, trials_path=tp, results_sha256=rsha,
-                    placebo={"note": r["placebo"]["note"], "advance_rate": r["placebo"]["advance_rate"], "n_draws": r["placebo"]["n_draws"]} if r.get("placebo") else None)
+    rsha = write_and_log(out, doc, [("K", "K1", "K1"), ("D", "D1", "D1")], trials_path=tp, replication=False)
     return 0, {"status": "screen_kd_complete", "results": str(out), "results_sha256": rsha, "K1": {k: doc["K1"].get(k) for k in ("p", "advance", "verdict")},
                "D1": {k: doc["D1"].get(k) for k in ("p", "advance", "verdict")}}
 
@@ -1996,18 +2110,13 @@ def cmd_rep_kd(a):
     sha, _fp = _rules(a)
     root = _root(a)
     tp = Path(a.trials_path) if a.trials_path else provenance.TRIALS_PATH
+    out = Path(a.out) if a.out else root / REP_RESULTS_NAME
+    refuse_second_count(out, tp, ["K1-rep", "D1-rep"], True)  # before opening HOLDOUT
     adv = stage1_recorded(Path(a.stage1_results) if a.stage1_results else root / RESULTS_NAME, tp)
     census = json.loads(Path(a.census or (root / "census.json")).read_text())
     doc = rep_kd_doc(root, census, adv, stage2_k=a.stage2_k, seals_dir=Path(a.seals_dir) if a.seals_dir else None, s0b_label=_s0b_label(a.s0_results))
     doc["rules_sha256"] = sha
-    out = Path(a.out) if a.out else root / REP_RESULTS_NAME
-    rsha = _write_results(out, doc)
-    for fam, t, key in (("K", "K1", "K1_rep"), ("D", "D1", "D1_rep")):
-        if key in doc:
-            r = doc[key]
-            c9.log_test(fam, f"{t}-rep", {"p": r.get("p", 1.0), "advance": r.get("advance"), "testable": r.get("testable"), "effect": r.get("effect"),
-                                          "n": r.get("n_units"), "verdict": r.get("verdict")}, replication=True, trials_path=tp, results_sha256=rsha,
-                        placebo={"note": r["placebo"]["note"], "advance_rate": r["placebo"]["advance_rate"], "n_draws": r["placebo"]["n_draws"]} if r.get("placebo") else None)
+    rsha = write_and_log(out, doc, [(f, f"{t}-rep", key) for f, t, key in (("K", "K1", "K1_rep"), ("D", "D1", "D1_rep")) if key in doc], trials_path=tp, replication=True)
     return 0, {"status": "rep_kd_complete", "results": str(out), "results_sha256": rsha, "tests": [k for k in ("K1_rep", "D1_rep") if k in doc]}
 
 
@@ -2041,6 +2150,7 @@ def add_subparsers(subparsers) -> None:
     net(q, disk_cap=BOOKS_OUTPUT_CAP_GB)
     q.add_argument("--wallet-key-path", default=None, help="default ~/.arepo/wallet_hash_key (or AREPO_WALLET_HASH_KEY_PATH); never created")
     q.add_argument("--ingress-cap-gb", type=float, default=INGRESS_CAP_GB)
+    q.add_argument("--smoke", default=None, help="q0180 smoke result (default creative_batch9/smoke.json); pmxt_heads not met -> terminal not testable (source), exit 0")
     q.set_defaults(fn=cmd_kd_books)
 
     q = subparsers.add_parser("kd-seal", help="q0187: HOLDOUT listing sha256, seal-time drops, seal copy")
@@ -2057,19 +2167,19 @@ def add_subparsers(subparsers) -> None:
         q.add_argument("--freeze-spec", default=None)
         q.add_argument("--s0-results", default=None, help="results_S0.json for the S0b label (default <CB9>/results_S0.json if present)")
         if name == "rep-kd":
-            q.add_argument("--stage2-k", type=int, required=True, help="number of CB9 tests reaching Stage 2 (Holm k)")
+            q.add_argument("--stage2-k", type=int, default=None, help="optional check: must equal the k derived from results_P.json and results_KD.json")
             q.add_argument("--stage1-results", default=None)
             q.add_argument("--seals-dir", default=None)
         q.set_defaults(fn=fn)
 
 
 def rule_funcs() -> tuple:
-    return (declared, window_days, origin_epoch, _num, kd_row, overlap_days, frame_reason, market_days, frame_walk_days, _walk_window, walk_frame, kd_sample,
-            assemble_kd, read_sample, kd_frame, read_events_kd, _fee, kd_state, _tick_of, day_books, market_day_prints, day_order, _require_frame, kd_books,
+    return (declared, window_days, origin_epoch, _num, kd_row, overlap_days, frame_reason, market_days, frame_walk_days, frame_walk_units, _walk_window, walk_frame, kd_sample,
+            assemble_kd, read_sample, kd_frame, read_events_kd, _fee, kd_state, _tick_of, day_books, market_day_prints, day_order, write_terminal, terminal_state, smoke_state, _require_frame, kd_books,
             finalize_books, kd_seal, verify_holdout_seal, _guard_split, _guard_post, dropped_ids, _print_arrays, CountOnlyPosts, load_units, two_sided_fresh,
             x6_feature, rv_feature, k_features, k_cuts, in_cell, skew_dir, quote_prices, level_depth, _pr, _fill, mark_value, _origin_book, quote_result, _quote_result,
             k_census_counts, _single, contrast, route_gate, _k_rows, _k_arrays, k1_stat, k1_analysis, next_tx, minute_ok, is_dust, dust_units, d_census_counts, _d_rows,
-            _d_values, d1_stat, d1_analysis, coverage_audit_kd, gate_label, kd_census_doc, census_cuts, screen_kd_doc, stage1_recorded, rep_kd_doc,
+            _d_values, d1_stat, d1_analysis, coverage_audit_kd, gate_label, kd_census_doc, terminal_census, census_cuts, screen_kd_doc, stage1_recorded, rep_kd_doc, refuse_second_count, write_and_log,
             fl.flow_sample, fl.per_event_cap, fl.event_split, fl.event_key, bk._levels, bk._ms, bk._check_clock, bk.seal_copy_ids_audited, bk.ingress_used,
             bk.ingress_add, cm.windowed_prints, cm._parse_print, mk.quote_fills, c7.is_weather, c7.key_types_matched, hb._rank, hb.allocate_weighted,
             h5_seal.listing_sha256, h5_seal.list_files)

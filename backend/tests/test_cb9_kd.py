@@ -89,6 +89,7 @@ def book_events(mid: int, day: str) -> tuple[list[dict], list[dict]]:
     """(13Z events, 14Z events) of one market-day: the 13Z snapshot carries a dust ask (3 shares < orderMinSize 5); 14Z removes it, prints a trade, re-adds dust."""
     c, a, b = f"0xc{mid}", f"t{mid}a", f"t{mid}b"
     e13 = [pev(c, a, "book", ms(day, 13, 30), bids=[["0.40", "100"], ["0.39", "50"]], asks=[["0.45", "3"], ["0.46", "80"]]),
+           pev(c, a, "last_trade_price", ms(day, 13, 40), price=0.45, size=4.0, side="BUY", tx=f"0xltp13_{mid}"),
            pev(c, b, "book", ms(day, 13, 30), bids=[["0.54", "80"], ["0.55", "3"]], asks=[["0.60", "100"], ["0.61", "50"]])]
     e14 = [pev(c, a, "price_change", ms(day, 14, 10), price=0.45, size=0.0, side="SELL"),
            pev(c, a, "last_trade_price", ms(day, 14, 15), price=0.46, size=10.0, side="BUY", tx=f"0xltp{mid}"),
@@ -114,7 +115,7 @@ def prints_for(mid: int, day: str) -> list[dict]:
 def test_x6_scaling_pinned_to_hb2_and_rules_doc_builds():
     assert kd.X6_SD == battery2.X6_SD and kd.X6_CLIP == battery2.X6_CLIP
     d = c9.rules_doc("kd")
-    assert d["rules_version"] == "cb9-kd-rules-v1" and d["declared"]["split"]["seed"] == "arepo-cb9-kd-split"
+    assert d["rules_version"] == c9.RULES_VERSION_KD == kd.RULES_VERSION and d["declared"]["split"]["seed"] == "arepo-cb9-kd-split"
     assert "kd_state" in " ".join(d["func_sources_sha256"]) and "cb8_common.hash_wallet" not in d["declared"]["frame"]["stored_fields"]
     assert "outcome_prices" not in kd.FRAME_COLUMNS and "outcomePrices" not in kd.FRAME_COLUMNS
 
@@ -210,7 +211,7 @@ def test_day_books_lookback_states_minutes_ltp_and_source_unavailable():
     pm.files[f"{day}T14"] = parquet_kd(e14)
     mk1 = {**kd.kd_row(gm(1)), "market_id": "1"}
     mk2 = {**kd.kd_row(gm(2)), "market_id": "2"}  # no event in either hour: source unavailable
-    o, mi, lt, minfo, hinfo = kd.day_books(day, [mk1, mk2], fetch=pm.fetch, size_fn=pm.size_fn)
+    o, mi, lt, lt13, minfo, hinfo = kd.day_books(day, [mk1, mk2], fetch=pm.fetch, size_fn=pm.size_fn)
     assert hinfo["lookback_status"] == "read" and hinfo["lookback_tokens"] == 4
     o1 = {r[2]: r for r in o if r[0] == "1"}
     col = {c: i for i, c in enumerate(kd.ORIGIN_COLUMNS)}
@@ -221,7 +222,8 @@ def test_day_books_lookback_states_minutes_ltp_and_source_unavailable():
     assert m0[15][mc["best_ask"]] == 0.46  # the dust level was removed at 14:10
     assert m0[31][mc["best_ask"]] == 0.44 and m0[31][mc["ask_size"]] == 2.0 and m0[31][mc["cut_ask"]] == 0.46
     assert lt == [["1", day, 0, "t1a", ms(day, 14, 15), ms(day, 14, 15) + 5, 0.46, 10.0, "BUY", "0xltp1"]]
-    assert minfo["1"]["books_status"] == "ok" and minfo["1"]["n_events_span"] == 4 and minfo["2"]["books_status"] == "source_unavailable"
+    assert lt13 == [["1", day, 0, "t1a", ms(day, 13, 40), ms(day, 13, 40) + 5, 0.45, 4.0, "BUY", "0xltp13_1"]]  # ruling (c): the lookback hour's ltp events
+    assert minfo["1"]["books_status"] == "ok" and minfo["1"]["n_events_span"] == 4  # 14Z events only and minfo["2"]["books_status"] == "source_unavailable"
 
 
 # ---- K pieces -----------------------------------------------------------------------------------------------------------------------------------
@@ -407,13 +409,22 @@ def run(tmp_path):
             api.trades.setdefault(f"0xc{i}", []).extend(prints_for(i, d))
         pm.files[f"{d}T13"] = parquet_kd(e13, row_group_size=4)
         pm.files[f"{d}T14"] = parquet_kd(e14, row_group_size=4)
-    return {"api": api, "keys": keys, "root": root, "pm": pm, "seals": tmp_path / "seals", "days": days, "mids": mids}
+    smoke = write_smoke(tmp_path / "smoke.json", True)
+    return {"api": api, "keys": keys, "root": root, "pm": pm, "seals": tmp_path / "seals", "days": days, "mids": mids, "smoke": smoke, "tmp": tmp_path}
+
+
+def write_smoke(p: Path, pmxt_ok: bool) -> Path:
+    from astrolabe.research_lab import cb9_sign as sg
+
+    p.write_text(json.dumps({"smoke_version": sg.SMOKE_VERSION, "criteria": {"pmxt_heads": pmxt_ok, "receipts_v1": True}}))
+    return p
 
 
 def _frame_books_seal(run):
     m = kd.kd_frame(run["root"], run["api"], rules_sha="r" * 64, exclusion_keys_path=run["keys"], now=NOW, sleep=nosleep)
     assert m["status"] == kd.FRAME_COMPLETE, m
-    b = kd.kd_books(run["root"], run["api"], rules_sha="r" * 64, key=KEY, fp=FP, fetch=run["pm"].fetch, size_fn=run["pm"].size_fn, now=NOW, sleep=nosleep)
+    b = kd.kd_books(run["root"], run["api"], rules_sha="r" * 64, key=KEY, fp=FP, fetch=run["pm"].fetch, size_fn=run["pm"].size_fn, now=NOW, sleep=nosleep,
+                    smoke_path=run["smoke"])
     assert b["status"] == kd.BOOKS_COMPLETE, b
     s = kd.kd_seal(run["root"], rules_sha="r" * 64, seals_dir=run["seals"])
     assert s["status"] == kd.SEAL_STATUS
@@ -426,7 +437,11 @@ def test_refuses_before_t_seal_and_on_refused_root(run, tmp_path):
     with pytest.raises(c9.Refused):
         kd.kd_frame(tmp_path / "creative_batch8", run["api"], rules_sha="r", exclusion_keys_path=run["keys"], now=NOW, sleep=nosleep)
     with pytest.raises(c9.Refused):
-        kd.kd_books(run["root"], run["api"], rules_sha="r", key=KEY, fp=FP, fetch=run["pm"].fetch, size_fn=run["pm"].size_fn, now=NOW, sleep=nosleep)  # no frame yet
+        kd.kd_books(run["root"], run["api"], rules_sha="r", key=KEY, fp=FP, fetch=run["pm"].fetch, size_fn=run["pm"].size_fn, now=NOW, sleep=nosleep,
+                    smoke_path=run["smoke"])  # no frame yet
+    with pytest.raises(c9.NotNow):  # the smoke result not there yet: wait (exit 75), never a failure
+        kd.kd_books(run["root"], run["api"], rules_sha="r", key=KEY, fp=FP, fetch=run["pm"].fetch, size_fn=run["pm"].size_fn, now=NOW, sleep=nosleep,
+                    smoke_path=tmp_path / "none.json")
 
 
 def test_end_to_end_frame_books_seal_census_screen(run, monkeypatch):
@@ -443,6 +458,9 @@ def test_end_to_end_frame_books_seal_census_screen(run, monkeypatch):
         assert all(int(r["ts"]) < kd.origin_epoch("2026-05-01") for r in rows) and all(len(r["wallet_hash"]) == 32 and "RAW" not in r["wallet_hash"] for r in rows)
         post = list(csv.DictReader(io.TextIOWrapper(gzip.open(rdir / sp / f"2026-05-01{kd.PRINTS_POST_SUFFIX}"), encoding="utf-8")))
         assert post and all(int(r["ts"]) >= kd.origin_epoch("2026-05-01") for r in post) and not any(float(r["price"]) == 0.99 for r in post)
+    ltp = list(csv.DictReader(io.TextIOWrapper(gzip.open(rdir / "screen" / f"2026-05-01{kd.LTP_SUFFIX}"), encoding="utf-8")))
+    assert any(r["tx"].startswith("0xltp13_") for r in ltp) and any(r["tx"] in {f"0xltp{i}" for i in range(1, 9)} for r in ltp)
+    assert any(int(r["v_ms"]) < ms("2026-05-01", 14) for r in ltp) and any(int(r["v_ms"]) >= ms("2026-05-01", 14) for r in ltp)  # 13Z rows in the same file
     seal = json.loads((rdir / kd.SEAL_NAME).read_text())
     assert (run["seals"] / kd.SEAL_COPY_NAME).read_bytes() == (rdir / kd.SEAL_NAME).read_bytes()
     assert all(k.startswith("holdout/") for k in seal["files"]) and seal["drops"]["disjointness"] == "verified"
@@ -479,23 +497,27 @@ def test_rep_opens_holdout_only_with_a_verified_seal(run):
     _frame_books_seal(run)
     root = run["root"]
     census = kd.kd_census_doc(root)
-    with pytest.raises(c9.Refused, match="stage2-k"):
-        kd.rep_kd_doc(root, {"kd": census}, {"K1": True}, stage2_k=0, seals_dir=run["seals"])
-    out = kd.rep_kd_doc(root, {"kd": census}, {"D1": True}, stage2_k=2, seals_dir=run["seals"], n_draws=2)
-    assert out["alpha"] == pytest.approx(0.025) and "D1_rep" in out and "K1_rep" not in out
+    with pytest.raises(c9.NotNow):  # k is fixed only when both Stage-1 results are final
+        kd.rep_kd_doc(root, {"kd": census}, {"D1": True}, seals_dir=run["seals"])
+    (root / "results_P.json").write_text(json.dumps({"P1": {"advance": False}, "P2": {"advance": True}}))
+    (root / "results_KD.json").write_text(json.dumps({"K1": {"advance": False}, "D1": {"advance": True}}))
+    with pytest.raises(c9.Refused, match="differs"):
+        kd.rep_kd_doc(root, {"kd": census}, {"D1": True}, stage2_k=3, seals_dir=run["seals"])
+    out = kd.rep_kd_doc(root, {"kd": census}, {"K1": True, "D1": True}, seals_dir=run["seals"], n_draws=2)  # k derived: P2 + D1 = 2
+    assert out["alpha"] == pytest.approx(0.025) and out["stage2_k"] == 2 and "D1_rep" in out and "K1_rep" not in out  # K1 did not advance
     log = (root / kd.BOOKS_RUN / kd.ACCESS_LOG).read_text().strip().splitlines()
     assert log and json.loads(log[-1])["job"] == "rep"
     # a changed HOLDOUT file breaks the seal
     f = next((root / kd.BOOKS_RUN / "holdout").glob("*.ltp.csv.gz"))
     f.write_bytes(f.read_bytes() + b"x")
     with pytest.raises(c9.Refused, match="listing"):
-        kd.rep_kd_doc(root, {"kd": census}, {"D1": True}, stage2_k=1, seals_dir=run["seals"])
+        kd.rep_kd_doc(root, {"kd": census}, {"D1": True}, seals_dir=run["seals"])
 
 
 def test_books_ingress_cap_truncates_days_and_is_counted(run):
     kd.kd_frame(run["root"], run["api"], rules_sha="r", exclusion_keys_path=run["keys"], now=NOW, sleep=nosleep)
     b = kd.kd_books(run["root"], run["api"], rules_sha="r", key=KEY, fp=FP, fetch=run["pm"].fetch, size_fn=run["pm"].size_fn, now=NOW, sleep=nosleep,
-                    ingress_cap_gb=1e-12)
+                    ingress_cap_gb=1e-12, smoke_path=run["smoke"])
     assert b["status"] == kd.INGRESS_CAP_STATUS and b["complete"] is True
     rows = list(csv.DictReader(io.TextIOWrapper(gzip.open(run["root"] / kd.BOOKS_RUN / "days.csv.gz"), encoding="utf-8")))
     assert sum(r["books_status"] == "ingress_cap" for r in rows) == 2 and sum(r["books_status"] == "ok" for r in rows) == 1  # the first day read, then the cap
@@ -509,9 +531,9 @@ def test_runner_registers_subcommands():
     for cmd in ("kd-frame", "kd-books", "kd-seal", "screen-kd"):
         ns = ap.parse_args([cmd])
         assert callable(ns.fn)
-    ns = ap.parse_args(["rep-kd", "--stage2-k", "2"])
-    assert ns.stage2_k == 2 and ns.data_dumps_cap_gb if hasattr(ns, "data_dumps_cap_gb") else True
-    assert ap.parse_args(["kd-books"]).data_dumps_cap_gb == 12.5 and ap.parse_args(["kd-books"]).ingress_cap_gb == 90.0
+    assert ap.parse_args(["rep-kd", "--stage2-k", "2"]).stage2_k == 2 and ap.parse_args(["rep-kd"]).stage2_k is None  # optional (M10)
+    nb = ap.parse_args(["kd-books"])
+    assert nb.data_dumps_cap_gb == c9.DATA_DUMPS_CAP_GB and nb.ingress_cap_gb == 180.0 and kd.BOOKS_OUTPUT_CAP_GB == 0.15
 
 
 def test_handlers_map_refusals_to_exit_2(tmp_path, capsys):
@@ -523,3 +545,83 @@ def test_handlers_map_refusals_to_exit_2(tmp_path, capsys):
     assert ns.fn(ns) == 2 and "declaration" in capsys.readouterr().out
     ns = ap.parse_args(["screen-kd", "--root", str(tmp_path / "creative_batch9"), "--freeze-spec", str(tmp_path / "nope.json")])
     assert ns.fn(ns) == 2
+
+
+# ---- freeze-check fixes: M5 stalls, M7 open markets, M11 write-once ----------------------------------------------------------------------------------
+
+
+def test_m5_unverified_frame_is_a_terminal_exit0_stall_carried_to_census_and_screen(run, tmp_path):
+    keys = write_keys(tmp_path / "keys_u", ["53"], [""], disjointness="disjointness_unverified")
+    f = kd.kd_frame(run["root"], run["api"], rules_sha="r", exclusion_keys_path=keys, now=NOW, sleep=nosleep)
+    assert f["status"] == c9.STALL_UPSTREAM and f["label"] == "not testable (disjointness unverified)" and f["complete"] is True
+    assert not [c for c in run["api"].calls if c[0].endswith("/markets")]  # stalled before any Gamma request
+    b = kd.kd_books(run["root"], run["api"], rules_sha="r", key=KEY, fp=FP, fetch=run["pm"].fetch, size_fn=run["pm"].size_fn, now=NOW, sleep=nosleep,
+                    smoke_path=run["smoke"])
+    assert b["status"] == c9.STALL_UPSTREAM and b["label"] == "not testable (disjointness unverified)" and run["pm"].served == 0
+    assert kd._result(b)[0] == 0  # exit 0, never 2
+    s = kd.kd_seal(run["root"], rules_sha="r", seals_dir=run["seals"])
+    assert s["status"] == c9.STALL_UPSTREAM and s["sealed"] is False and not (run["seals"] / kd.SEAL_COPY_NAME).exists()
+    census = kd.kd_census_doc(run["root"])
+    assert census["terminal_status"] == c9.STALL_UPSTREAM and census["k"]["label"] == census["d"]["label"] == "not testable (disjointness unverified)"
+    doc = kd.screen_kd_doc(run["root"], {"kd": census})
+    assert doc["K1"]["p"] == 1.0 and doc["K1"]["testable"] is False and doc["D1"]["verdict"] == "not testable (disjointness unverified)"
+    tp = tmp_path / "trials.jsonl"
+    kd.write_and_log(tmp_path / "res.json", doc, [("K", "K1", "K1"), ("D", "D1", "D1")], trials_path=tp, replication=False)
+    lines = [json.loads(x) for x in tp.read_text().splitlines()]
+    assert sum(1 for x in lines if x.get("kind") == "ml_explain" and x.get("n_tests") == 1) == 2  # both tests counted, p = 1
+    assert all(x["p"] == 1.0 for x in lines if x.get("kind") == "cb9_test")
+
+
+def test_m5_smoke_pmxt_failure_is_a_terminal_source_stall(run, tmp_path):
+    kd.kd_frame(run["root"], run["api"], rules_sha="r", exclusion_keys_path=run["keys"], now=NOW, sleep=nosleep)
+    bad = write_smoke(tmp_path / "smoke_bad.json", False)
+    b = kd.kd_books(run["root"], run["api"], rules_sha="r", key=KEY, fp=FP, fetch=run["pm"].fetch, size_fn=run["pm"].size_fn, now=NOW, sleep=nosleep, smoke_path=bad)
+    assert b["status"] == c9.STALL_NOT_RUN_SOURCE and b["label"] == c9.STALL_LABELS[c9.STALL_NOT_RUN_SOURCE] and run["pm"].served == 0
+    again = kd.kd_books(run["root"], run["api"], rules_sha="r", key=KEY, fp=FP, fetch=run["pm"].fetch, size_fn=run["pm"].size_fn, now=NOW, sleep=nosleep,
+                        smoke_path=run["smoke"])
+    assert again["status"] == c9.STALL_NOT_RUN_SOURCE  # sticky
+    assert kd.kd_census_doc(run["root"])["k"]["label"] == c9.STALL_LABELS[c9.STALL_NOT_RUN_SOURCE]
+
+
+class OpenAwareApi(Api):
+    """The CB8 fake, but /markets honours ``closed`` and returns open markets too."""
+
+    def __call__(self, url, params):
+        if url.endswith("/markets") and "id" not in params:
+            self.calls.append((url, dict(params)))
+            lo = ep(params["end_date_min"])
+            hi = ep(params["end_date_max"])
+            want = params.get("closed") == "true"
+            rows = [m for m in self.gamma.values() if lo <= ep(m["endDate"]) < hi and bool(m.get("closed")) == want]
+            o, n = int(params.get("offset", 0)), int(params.get("limit", 100))
+            return 200, json.dumps(rows[o:o + n]).encode(), {}
+        return super().__call__(url, params)
+
+
+def test_m7_open_long_dated_markets_are_in_the_frame(tmp_path):
+    api = OpenAwareApi()
+    api.gamma["1"] = gm(1)
+    api.gamma["2"] = {**gm(2, start="2026-03-01T00:00:00Z", end="2027-06-30T00:00:00Z"), "closed": False}  # long-dated, still open
+    api.gamma["3"] = {**gm(3, start="2026-08-09T00:00:00Z", end="2027-06-30T00:00:00Z"), "closed": False}  # overlap < 3 d
+    keys = write_keys(tmp_path / "keys", ["99"], [""])
+    m = kd.kd_frame(tmp_path / "creative_batch9", api, rules_sha="r", exclusion_keys_path=keys, now=NOW, sleep=nosleep)
+    assert m["status"] == kd.FRAME_COMPLETE
+    sample = {r["market_id"]: r for r in kd.read_sample(tmp_path / "creative_batch9" / kd.FRAME_RUN)}
+    assert set(sample) == {"1", "2"} and sample["2"]["status"] == "active" and len(sample["2"]["days"]) == len(kd.window_days())
+    flags = {c[1]["closed"] for c in api.calls if c[0].endswith("/markets")}
+    assert flags == {"true", "false"} and any(c[1]["end_date_max"].startswith("2100") for c in api.calls if c[0].endswith("/markets"))
+    assert len(kd.frame_walk_units()) == 2 * (len(kd.frame_walk_days()) + 1)
+
+
+def test_m11_results_write_once_and_no_second_count_line(tmp_path):
+    doc = {"K1": {"p": 1.0, "testable": False, "advance": False, "verdict": "x", "n_units": 0}, "D1": {"p": 1.0, "testable": False, "advance": False, "verdict": "x"}}
+    tp = tmp_path / "trials.jsonl"
+    out = tmp_path / "results_KD.json"
+    kd.write_and_log(out, doc, [("K", "K1", "K1"), ("D", "D1", "D1")], trials_path=tp, replication=False)
+    n = len(tp.read_text().splitlines())
+    with pytest.raises(c9.Refused, match="written once"):
+        kd.write_and_log(out, doc, [("K", "K1", "K1"), ("D", "D1", "D1")], trials_path=tp, replication=False)
+    out.unlink()  # even with the results file gone, the trials line blocks a second count
+    with pytest.raises(c9.Refused, match="second count line"):
+        kd.write_and_log(out, doc, [("K", "K1", "K1"), ("D", "D1", "D1")], trials_path=tp, replication=False)
+    assert len(tp.read_text().splitlines()) == n and not out.exists()
