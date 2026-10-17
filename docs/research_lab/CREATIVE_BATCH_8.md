@@ -1429,3 +1429,51 @@ writes it exactly once at the freeze, refusing to overwrite and refusing unless 
 - W "not run (source)" (smoke criterion a FAIL, so no `h9_flow`) has no runner path that writes the counted p = 1 line. It is a coordinator ledger entry, as for B.
 - The H snapshot `INCOMPLETE` / `MISSED` markers are counted from file names; they are not in the manifests' hash tables.
 - No real-data run: the fixture layouts follow the `cb8_flow` / `cb8_holders` writers, so the first q0169 W part and the first q0172 are the real reader tests.
+
+---
+
+## CB8-H amendment H-v4 (oi_absent), 2026-10-17
+
+**Status:** written after the q0160b FAIL (criterion h only) and before any smoke v3, snapshot or prints job. Draft until a `science-reviewer` pass. No threshold, formula or gate other than the one stated below changes.
+
+**What happened.** q0160b (smoke v2, rules v3 `b6ac7f7f...`) passed a, b, c, e, f and g and failed h: of 278,705 base-frame markets, 50,387 were `ok`, **228,318 (81.9 %) `oi_absent`**, 0 `oi_lookup_failed`, 0 `oi_nonnumeric`,
+0 integrity violations, 4,646 batches; the OI >= 1,000 frame was 8,564 markets. The v3 rule counted `oi_absent` as an unavailable source (2 % rule), so h failed. The result file `holders_smoke_v2.json` is write-once and stays as the record.
+
+**Hypothesis (tested, not assumed).** The Data API `/oi` lists only markets with positive open interest; an id missing from the reply means "no OI listed" (OI 0, no holders). If so, absent markets are excluded by the
+existing OI >= 1,000 eligibility rule anyway, and treating absence as a source failure confuses "nothing to list" with "could not read".
+
+**Verification (2026-10-17, public keyless endpoints, 107 requests, counts only).** A seeded random sample of 600 condition ids from the base frame of the capture behind q0160b (random seed 20261017) was queried on `/oi`:
+
+| check | result |
+|---|---|
+| 600 sampled: listed / absent | 110 listed, 490 absent (81.7 %, matching the smoke's 81.9 %) |
+| listed with value < 1,000 / equal to 0 | 90 / 0 (smallest listed values 0.14, 0.98, 1.39, 1.51, ...: `/oi` does list small positive OI and lists no zero) |
+| 40 absent markets, `/holders?market=<cid>&limit=20` | **40 of 40 returned `null` (no holders at all)** |
+| 15 of those 40, single-market `/oi?market=<cid>` | 15 of 15 returned `[]` |
+| 10 smallest listed markets (OI 0.14-3.56), `/holders` | 10 of 10 had holders with positive amounts (2-21 rows) |
+
+So absent == no OI == no holders in every sampled case (40 of 40), and `/oi` lists small positive OI (10 of 10 controls), which a "lists only large OI" explanation would contradict. Interpretation caveat, disclosed: the verification is a sample (it
+cannot prove every absent market has OI 0), and an absent market that did have OI >= 1,000 would be wrongly excluded; the sample shows 0 of 40 with any holder, which bounds that share at about 7 % at 95 % confidence
+(rule of three: 3 / 40). Disclosure of a transport note: batches of 30 or 60 ids from this sample returned HTTP 403 (Cloudflare) from both the collection host and a laptop, while batches of at most 15 ids and all single-id
+requests returned 200; the smoke itself made 4,646 successful batches of 60 with 0 failures. The verification therefore used batches of 15 (a failed batch is split); this does not affect the amendment, but a 403 is an
+`oi_lookup_failed` and stays inside the 2 % rule.
+
+**Amendment.**
+
+1. `oi_absent` is classified as **"no OI listed"** and treated as OI 0. It is excluded by the unchanged OI >= 1,000 rule, counted per state in the smoke output and in every manifest, and **never imputed as a value for an eligible market**.
+2. The 2 % rule (`OI_MAX_MISSING_SHARE` = 0.02, unchanged) now applies to the share of base-frame markets in `oi_lookup_failed` (including integrity violations) plus `oi_nonnumeric`. `oi_absent` is not part of it. The summary adds
+   `n_unavailable` and `unavailable_share`; `n_missing` and `missing_share` (all three missing states) are kept for the record.
+3. A new smoke is allowed: `cb8-holders-smoke-v3`, seed `arepo-cb8-hsmoke-v3`, output `holders_smoke_v3.json` (write-once, v1 and v2 results are never overwritten and are recorded in the smoke output as `v1_record` and
+   `v2_record`). This **supersedes the sentence in "H v2 freeze-check must-fixes" that only a written FAIL of a, b or h would count and that no smoke v3 would be run**: that sentence assumed the FAIL reflected the source; the
+   verification above shows it reflected a mis-specified classification. The v2 FAIL stays on record (it is not relabelled as a PASS); H proceeds only if v3 passes under the amended rule, and a v3 FAIL of a, b, f or h makes H "not run (source)", counted, with no v4 smoke.
+4. Unchanged: OI >= 1,000, the terciles, the 1,500 + 300 sample, all other smoke criteria (a, b, c, e, f, g), the t_f ordering, the per-batch assertions, the base frame, windows, H1 earliest start (2026-10-21T06:00Z) and T_seal (2026-10-22T00Z).
+
+**Scientific justification.** (a) The classification error was in the source model, not in a threshold: a venue that lists only markets with OI cannot also be asked to list every market. (b) The rule being relaxed is applied to a state the evidence shows
+is a property of the market (no positions), not of the source; the states that are a source property (failed, integrity, nonnumeric) keep the 2 % tolerance. (c) It cannot manufacture eligibility: absent markets can only be excluded, never added.
+(d) The H population is unchanged by the amendment: the 8,564-market OI >= 1,000 frame of q0160b was built without absent markets already. The OI >= 1,000 eligible frame is therefore a subset restriction that was in force before and after.
+
+**Files.** Code commit `e721331` (`cb8_holders.py`, `cb8_common.py`, `cb8_h_analysis.py`, `run_cb8.py`, tests). Rules written from that commit: `seals/cb8_holders_rules_v4.json` (`rules_version` `cb8-holders-rules-v4`), `rules_sha256`
+**`2aca9bdcc94490e218fb0fd162cf322e3c1b19ba0ee2b71d3af71f628d14a72f`**, `funcs_sha256` `91821c9279d8e5a82e5cf2d528690b3353f116babbe1504083fe1b5a815a2104`, fingerprint `80ce5e81a539a570` unchanged. The H analysis rules embed the holders data rules hash, so they moved:
+`seals/cb8_h_analysis_rules_v2.json` (`cb8-h-analysis-rules-v2`), `rules_sha256` **`ef435a74a12b02d9917a50da5f688a558e12632766d502b603d12754c5964e56`** (`data_rules_sha256` = the v4 hash above, `funcs_sha256` `cd8ed8bdf62807ece4b816e3bbf9e922e64e2fde8a2960534e08f57b03503358`).
+`cb8_holders_rules_v3.json` and `cb8_h_analysis_rules.json` (v1) are superseded, never used and never rewritten. Flow rules, B rules and the W analysis rules are unchanged. Drafts: `q0160c_cb8_holders_smoke_v3` (new); `q0162` and `q0163` now pin
+the v4 rules and depend on q0160c; `q0172` needs `cb8_h_analysis_rules_v2.json` and the v4 hash in the snapshot and prints manifests. Nothing is in `queue/jobs/` pending a reviewer pass.

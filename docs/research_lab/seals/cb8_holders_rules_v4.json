@@ -1,0 +1,208 @@
+{
+ "declared": {
+  "concentration": "c_j = amount_rank1(j) / max(OI_tf, sum top-20 amounts of j), bounded by 1; OI_tf = the market's /oi value at t_f (the day's frame time), not the OI at the snapshot time h",
+  "dates": {
+   "collect_max": "t8_h1_start + 63 d; nothing is collected after it",
+   "collect_max_days": 63,
+   "deploy_delay_s": 7200,
+   "h1_days": 21,
+   "h1_earliest": "2026-10-21T06:00:00Z",
+   "h1_start": "first complete capture >= max(h1_earliest, first run + 2 h), pinned in snap/t8_h1_start.json",
+   "h2": "pinned by holders-pin-h2 (write-once)"
+  },
+  "disk": {
+   "prints_cap_gb": 0.12,
+   "snap_cap_gb": 0.15
+  },
+  "frame": {
+   "base_filters": [
+    "binary",
+    "closed false (capture time)",
+    "accepting_orders true (capture time)",
+    "condition id present",
+    "not weather (fee_category)",
+    "not crypto Up/Down (hb.CB1_UPDOWN_RE on series_slugs)"
+   ],
+   "max_capture_age_s": 9000.0,
+   "oi_source": {
+    "batch": 60,
+    "drop_granularity": "a failed or integrity-violating /oi reply drops its WHOLE batch of up to 60 sorted condition ids at once (oi_lookup_failed), so missing markets come in batches, not singly",
+    "filter": "market OI at t_f >= 1000 (threshold unchanged from v1; its units are unverified unless /oi and single-market event OI agree, smoke criterion e)",
+    "frame_time_t_f": "reply-received time of each batch, stored per batch (plan.oi.t_f_batches) and per market (oi_t_f_epoch); max t_f must be strictly before every /holders request (asserted at each request)",
+    "missing_states": {
+     "oi_absent": "H-v4: requested id missing from an otherwise valid reply = no OI listed (the venue lists only markets with positive OI; smoke v2 check: 0 of 40 sampled absent markets had any holder, all 10 listed small-OI controls did): treated as OI 0, excluded by the OI >= 1000 rule, counted, never imputed as a value for an eligible market and not part of the 2 % rule",
+     "oi_lookup_failed": "request failed after retries (3 attempts per batch across chunks) or non-200 reply or reply that fails the per-batch count/identity assertion",
+     "oi_nonnumeric": "value present but not a finite number >= 0 (strings, null, bool, negative)"
+    },
+    "mixed_clocks": "accepting_orders / closed / event OI are capture-time values; the OI is the /oi value at t_f (hours later); c uses OI at t_f, not OI at the snapshot time h",
+    "mode": "EVERY base-frame market, condition ids comma-separated, batches of 60 (repeated market= parameters return one)",
+    "network": "a network failure after retries writes nothing (smoke) / leaves the resumable partial (snapshot) and exits 75",
+    "never": "imputed, zero-filled or carried over from another time",
+    "oi_rps": 4.0,
+    "per_batch_assert": "reply is a list; every returned market was sent (identity, case-insensitive); no duplicate; count <= ids sent",
+    "stop_rule": "more than 2% of base-frame markets in the oi_lookup_failed or oi_nonnumeric states (oi_absent excluded, H-v4): the smoke FAILs and the day's snapshot stops, recorded 'missed (oi_source)' apart from 'missed (stale capture)'",
+    "stop_rule_reason": "the same tolerance as the CB6/CB7 exclusion-key rule (--max-unverified-key-share 0.02): unavailable OI cannot reshape a 1,800-market daily sample by more than about 36 markets, and a handful of transient misses does not stop a day",
+    "sub_reasons": {
+     "day_rolled": "the UTC day changed between chunk start and the plan write (or a /holders request): refused, the day is 'missed (oi_source)' (before the plan) or closes INCOMPLETE (after it)",
+     "oi_capture_gone": "the capture pinned for a pending /oi frame vanished and the day ended",
+     "unfinished_at_day_end": "the /oi frame build ran out of day"
+    },
+    "url": "https://data-api.polymarket.com/oi"
+   },
+   "source": "latest complete capture (rows.csv.gz + rows_ext.csv.gz), finished <= 2.5 h before the frame build starts",
+   "sports": "fee_category == 'sports'"
+  },
+  "holders": {
+   "limit": 20,
+   "rank": "descending amount within token",
+   "snapshot_time": "request-sent time h",
+   "url": "https://data-api.polymarket.com/holders"
+  },
+  "idle": {
+   "heartbeat_s": 36000.0,
+   "idle_exit": 75
+  },
+  "incomplete_day": "a plan still in progress after UTC midnight is consolidated with what was done and marked <day>.INCOMPLETE.json (n_planned, n_done)",
+  "marks": {
+   "fields": [
+    "market_id",
+    "capture_id",
+    "capture_start_utc",
+    "received_utc",
+    "best_bid",
+    "best_ask"
+   ],
+   "rule": "YES best bid / ask of each stored market at every complete capture in [h, h + 30 h]",
+   "window_h": 30
+  },
+  "paging": {
+   "offset": 4000,
+   "rule": "a 400 at offset > 0 is a capped window (unavailable), any other non-200 is a failed request; the smoke probes offsets 0 and 4000"
+  },
+  "prints": {
+   "capped": "market-day unavailable (counted), prints not stored",
+   "lag_h": 30,
+   "limit": 1000,
+   "pages": 5,
+   "stored": "all prints of market-days with c >= 0.5 on either token; else prints by top-5 holders of either token",
+   "taker_only": true,
+   "window_h": 26
+  },
+  "sample": {
+   "allocation": "proportional (hb.allocate_weighted)",
+   "n_main": 1500,
+   "n_sports": 300,
+   "order_within_stratum": "sha256(seed|market_id)",
+   "plan_written_before_first_request": true,
+   "seed_prefix": "arepo-cb8-holders-",
+   "seed_smoke": "arepo-cb8-hsmoke-v3",
+   "strata": "group x market-OI tercile (cut points from that day's /oi frame, OI at t_f)"
+  },
+  "smoke": {
+   "agree_band": 0.25,
+   "criteria": "a: HTTP 200 >= 19/20; b: grouped by token, outcomeIndex in {0,1}, numeric amount >= 0, proxyWallet present, >= 1 non-empty; c: <= 20 rows per token; d: response time; e: OI units label (records the /oi value at t_f, the event OI of single-market events and the sum-top-20 ratios; 'units unverified' unless /oi and single-market event OI agree within the band, or if sum top-20 > 1.05 x OI for more than half of the markets); f: strict key fingerprint == pin; g: paging probe; h: /oi source (lookup_failed + nonnumeric share <= 2% of base-frame markets; oi_absent is OI 0, H-v4). pass = a and b and f and h",
+   "discloses": "realised frame and stratum sizes against the 1,500 + 300 sample",
+   "min_ok": 19,
+   "n": 20,
+   "oi_units_ratio": 1.05,
+   "output": "counts and ratios only, write-once, holders_smoke_v3.json",
+   "t_f_before_first_holders_request": true,
+   "v1": {
+    "cause": "empty frame: the sidecar open_interest (Gamma market openInterest) is blank in all rows",
+    "criteria_failed": [
+     "a",
+     "b",
+     "g"
+    ],
+    "frame_size": 0,
+    "job": "q0160_cb8_holders_smoke",
+    "n_requested": 0,
+    "result": "FAIL",
+    "version": "cb8-holders-smoke-v1"
+   },
+   "v2": {
+    "cause": "82 % of base-frame markets are absent from /oi (no OI listed); the v3 rule counted absence as unavailable",
+    "criteria_failed": [
+     "h"
+    ],
+    "frame_size": 8564,
+    "job": "q0160b_cb8_holders_smoke_v2",
+    "n_base": 278705,
+    "oi_states": {
+     "oi_absent": 228318,
+     "oi_lookup_failed": 0,
+     "oi_nonnumeric": 0,
+     "ok": 50387
+    },
+    "result": "FAIL",
+    "rules_sha256": "b6ac7f7fd773c1656ad96a2b00abb260cfe693a8ee06a0a48798d8d6f3211f57",
+    "version": "cb8-holders-smoke-v2"
+   },
+   "version": "cb8-holders-smoke-v3"
+  },
+  "wallet_hash_hex": 32,
+  "window2_pin": {
+   "min_delay_s": 7200,
+   "rule": "T8_H2_start >= max(T8_H1_end, pin time + 2 h); the pin time is recorded"
+  }
+ },
+ "disk": {
+  "data_dumps_fetch_cap_gb": 12.5,
+  "disk_budget_exit": 4,
+  "headroom_exit": 75
+ },
+ "func_sources_sha256": {
+  "_consolidate_prints": "9c8b10a204d81c2a8be58f4303b80ad1dfc8d994d0a73add10e9e55d93884866",
+  "_consolidate_snap": "aebcfe2ec62d8c024f2cbbea045f5f2a504d2d8575f675be3067c015a511d2a3",
+  "_oi_fails": "8232d5cefc4148848f68a9deaf582f97bc251caabc414fdbac70f399cd7fe039",
+  "_oi_number": "0b00ef8c21da0d559a8ddd9b32c9dac44950e5879f00d61e347f0c148cf104d0",
+  "_paced": "c722f42f0d9585237eef947c8d5156d57d9e486d2e433d2afb222827f6c8c672",
+  "_parse_print": "a1df96ca5f44670591f0188534b55157ff030d89ff70ee442240606fd3260a74",
+  "_rank": "b003f6a3f3ab5751ac4f774522f7dce34511583bda3cd70b817750b957d9dc3f",
+  "allocate_weighted": "459fe070ca62da621f70aaf6f44f0a2e7d3171244c726d16d4d098edab871cb9",
+  "apply_oi": "ba6b2314837b20581900fe61b0c7e77c88fdccbe5fa821f5d90cf1ed2b067a0d",
+  "assert_tf_before": "5698374a8ab1377376c4bb4b9d94bd69f89cef1124cf3931a5b3c8bb13999912",
+  "capture_marks": "bc316d087036d0da1a3e459cac2f4ed753601c5d053806cb0616a35e49ee09e4",
+  "close_oi_days": "3386bda59ba695c7cd43fd3a6824d07180b46620a61a6376975d614b7b0b422a",
+  "collection_end": "6831b156fcc2d66932edb61d1efaea3c0f963a25eb913fee20cda910a1d4b842",
+  "concentration": "9b636a3d9297992eec041d913f70ef607f2c77d485329e715ea3d18131232375",
+  "declared": "1666555543f5f439eeb996a4fe377a134041ffb27114200224a37414c6bf7abb",
+  "fetch_holders": "cec45d5aa722e0c0d234b439e00ae12e39caf3af15369bb021c0111b9ce41919",
+  "fetch_oi_batch": "7b340e6ec031f0dfb46d1ce7b21de1477b917d82dbf3e32ddf37ed8dbcc20868",
+  "hash_wallet": "de1003c768c24a7fe41bd93b2ada2ae245ab60d4c217df365cb14e1efc156338",
+  "holders_frame": "93277490182b4b0fcb3090e2cfe2b7d1f4874ac9701615ac5437ea8590c14e07",
+  "holders_prints": "b920da7fd83b1d42a2c9971b8f9cf427c740e748f727e04fe44e07183abf0f1b",
+  "holders_sample": "767bb15b00fb8b3e107acaf4343ff5c1ccf4221432e185df367897b706e92c0c",
+  "holders_smoke": "636d84169a7dae0393325a08f191e31e1512375b66aec07a445f7a31151d0cf0",
+  "holders_snap": "9a9deb2a60276c0ea735527ba87d0250133ce22721b358ce2ca93103afad9f34",
+  "is_updown": "828c196b44e9d1eeceb281ede6b52fcf78530ca25268f137e351d09da1572511",
+  "key_fingerprint": "2dc81a0d992c306cbea5156b49df455044b4efe3b6f921c29bf696d9ee64e568",
+  "list_captures": "4f07ab402ceb8ef86f99aa9acbb2e311b9e359028c8f3506f29c2a1f74086282",
+  "load_wallet_key_strict": "8c3e91817c91c8d6699889a1e24f9e05225c80357d6ac6fa0c36ec5f1f5a2af0",
+  "missed_days": "9e5b0015de220825b585b06ee83dbfe3eb971e28cff8faacbdef4d42d28ed57b",
+  "oi_batches": "ee6135ce39c54b5feaeb3f179752378e3bb3aa8033fe04613ce8c9b6fc91344c",
+  "oi_source_ok": "e60e55595c94a092e909ec0cd7b82ec7e9df37e874e2a557a2f9f307e2829868",
+  "oi_states": "cc5947f19cdd288f107f7256123dcbc7cda75c93fb16663a3bdb7b7e8d4ae9b1",
+  "oi_summary": "d7adf05902a15e81efcf02307d2a2d81ff583acde226423c706311eee99fd712",
+  "parse_holders": "b721ad2da627bb14d4380889667a5ae8c7c215b444bb78b3d123088128cca169",
+  "parse_oi_reply": "c94214b329a8bd3269559e87069b0d9f40acf888626ea4f299bd0f86a2d95cf6",
+  "pin_h2": "e6629c9b41b81603eab9b45863d2a73de44001e080fc3eede2b1bbd0fe6f5bea",
+  "read_capture": "cfe59b54b8e99b5d0db5ec1dd3374ae7737bb7bacbde6c267fb15357afb1ba09",
+  "run_oi_batches": "cd188b2c6c87a13a14b127f22edcc546c046edf04ad0628819ef1f12832c51ca",
+  "smoke_ok": "1eae5c4a635a849ac0896ec4375529b9e5071d8a213fa9e406a02ebbdeb933a9",
+  "smoke_pick": "6cbf47500beb2644a208e01dcb4d215876a53ac2622d3102b2036a088e052a40",
+  "smoke_verdict": "cc2525f0d7cb61d324edbe4d2ee2166535ab44850e9c00794e5590c28e7c4091",
+  "start_gate": "f7e647a552ef4a668aed0727081dc8a801781c876afe057f032dadabfc63fb2e",
+  "windowed_prints": "1df52768b1a5bd0d177f124a4d16a02e67fec4b183150d80d10f0e902633f757"
+ },
+ "funcs_sha256": "91821c9279d8e5a82e5cf2d528690b3353f116babbe1504083fe1b5a815a2104",
+ "rules_sha256": "2aca9bdcc94490e218fb0fd162cf322e3c1b19ba0ee2b71d3af71f628d14a72f",
+ "rules_version": "cb8-holders-rules-v4",
+ "wallet": {
+  "fingerprint": "first 16 hex of HMAC-SHA256(key, 'arepo-cb8-wallet-key-fingerprint-v1')",
+  "hash": "HMAC-SHA256(key, lower-cased proxyWallet), first 32 hex characters",
+  "key_file": "~/.arepo/wallet_hash_key (or AREPO_WALLET_HASH_KEY_PATH), mode 600, never created by CB8",
+  "raw_addresses_stored": false
+ },
+ "wallet_key_fingerprint": "80ce5e81a539a570"
+}

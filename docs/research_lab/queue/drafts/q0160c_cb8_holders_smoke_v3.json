@@ -1,0 +1,41 @@
+{
+ "id": "q0160c_cb8_holders_smoke_v3",
+ "title": "CB8-H smoke v3 (H-v4: oi_absent = OI 0): market OI from the Data API /oi for EVERY base-frame market (batches of 60, frame time t_f per batch, strictly before the first /holders request), 20 live markets from the OI >= 1,000 frame: /holders HTTP, token grouping, outcomeIndex, numeric amount, proxyWallet present and hashed in memory, rows per token <= 20, response time; /oi value, single-market event OI and sum-top-20 ratios (OI units); /oi lookup_failed + nonnumeric share <= 2 % (oi_absent counted, not part of the rule); strict-key fingerprint; deep-offset paging probe; realised frame and stratum sizes vs 1,500 + 300; counts only",
+ "family": "creative_batch_8",
+ "priority": 55,
+ "expected_value": "source check before the prospective CH70 collection (smoke v2 FAILed h only: 82 % of base markets are absent from /oi = no OI listed; H-v4 amendment)",
+ "data": [
+  "latest complete capture (frame fields + sidecar event_open_interest)",
+  "public Data API /oi (about 4,600 requests of 60 condition ids)",
+  "public Data API /holders (20 requests) and /trades (2 paging probes)",
+  "docs/research_lab/seals/cb8_holders_rules_v4.json (hash-checked; rules_sha256 2aca9bdc...)"
+ ],
+ "resources": {
+  "mem_mb": 700,
+  "cpu": 1,
+  "network": "data-api",
+  "lane": "net"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb8.py",
+  "holders-smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb8_holders_rules_v4.json",
+  "--seed",
+  "arepo-cb8-hsmoke-v3",
+  "--n",
+  "20",
+  "--rps",
+  "2",
+  "--oi-rps",
+  "4"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/holders_smoke_v3.json (WRITE-ONCE; holders_smoke.json (v1) and holders_smoke_v2.json (FAIL h) are never overwritten)"
+ ],
+ "next_action": "PASS (a, b, f, h): collector freeze check, then promote q0162/q0163 (they pin the v4 rules hash and this v3 PASS). FAIL of a, b, f or h: H is \"not run (source)\", counted; no smoke v4",
+ "notes": "DRAFT; needs a science-reviewer pass before queue/jobs/. CREATIVE_BATCH_8.md \"CB8-H amendment H-v4 (oi_absent)\". q0160b FAILed criterion h only (228,318 of 278,705 base markets absent from /oi); verification showed absent = no OI listed = no holders (40 of 40). Changes vs q0160b: oi_absent is OI 0 (excluded by the unchanged OI >= 1,000 rule); the 2 % rule counts oi_lookup_failed + oi_nonnumeric only; smoke version cb8-holders-smoke-v3, seed arepo-cb8-hsmoke-v3 (the CLI default output is holders_smoke_v3.json, so no --out is passed), rules v4 (rules_sha256 2aca9bdcc94490e218fb0fd162cf322e3c1b19ba0ee2b71d3af71f628d14a72f, code commit e721331). Same cost and timeout as q0160b (about 4,650 /oi requests of 60 ids, 20 /holders, 2 paging requests); a timeout or exit 75 writes nothing and may be re-queued under a new id. Exit 2 if holders_smoke_v3.json exists or on a rules-hash or key mismatch. Timing: must finish and the collector freeze check pass before H1 earliest start 2026-10-21T06:00Z (T_seal 2026-10-22T00Z)."
+}
