@@ -1,0 +1,41 @@
+{
+ "id": "q0165_cb8_updown_frame",
+ "title": "CB8-B: Gamma frame of daily crypto Up/Down markets ending 16:00Z on 2026-04-13..08-09 (rule-text flags, resolutionSource parse, key drops, seeded ISO-week SCREEN/HOLDOUT split) + Binance 1m monthly archives 2026-04..08 (6 spot symbols, HYPEUSDT USD-M futures; CHECKSUM verified; settlement candles to the guarded file)",
+ "family": "creative_batch_8",
+ "priority": 48,
+ "expected_value": "population, split and Binance features for CH76",
+ "data": [
+  "public Gamma markets (closed, endDate windows)",
+  "data-dumps/research_lab/creative_batch8/exclusion_keys.csv.gz",
+  "data.binance.vision spot and futures/um monthly 1m klines"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "network": "gamma-api, data.binance.vision",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0161_cb8_smoke",
+  "q0164_cb8_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "updown-frame",
+  "--days",
+  "2026-04-13:2026-08-10",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.03",
+  "--data-dumps-cap-gb",
+  "12.5"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/updown/{frame.csv.gz,split.json,klines_pre.csv.gz,klines_settle_guarded.csv.gz,outcomes_guarded.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0166",
+ "notes": "CREATIVE_BATCH_8.md CB8-B. DRAFT. Not T_seal-bound (rows end 2026-08-10); commit after the q0161 PASS. Split written before any pmxt or kline read (seed arepo-cb8-updown-split). No code path compares consecutive strikes. About 1,300 Gamma requests and 35 archive files (about 80 MB)."
+}

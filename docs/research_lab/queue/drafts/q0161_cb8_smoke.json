@@ -1,0 +1,34 @@
+{
+ "id": "q0161_cb8_smoke",
+ "title": "CB8: smoke (a) Data API daily paging on 20 worn 2026 markets drawn under the W frame rules; (b) Binance archive CHECKSUM for BTCUSDT spot and HYPEUSDT futures 2026-03 (outside the B window); (c) pmxt HEAD of 3 seeded B-window 15Z hours; counts only",
+ "family": "creative_batch_8",
+ "priority": 50,
+ "expected_value": "source checks for B and W",
+ "data": [
+  "h1/h2/h3 sample.csv.gz id lists (ids only)",
+  "public Gamma by id",
+  "public Data API trades",
+  "data.binance.vision",
+  "r2v2.pmxt.dev (HEAD only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "network": "gamma-api, data-api, data.binance.vision, r2v2.pmxt.dev",
+  "lane": "net"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb8.py",
+  "smoke",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/smoke.json"
+ ],
+ "next_action": "PASS: commit q0164, q0165-q0168. FAIL (a): W not run (source); FAIL (b)/(c): B not run (source); counted",
+ "notes": "CREATIVE_BATCH_8.md CB8-F. DRAFT. Commit after T_seal (keeps the net lane free). Pool: closed, end_at 2026-05..09, volume >= $50k, life >= 10 d (the W frame's own rules; CB6 smoke lesson). PASS (a) iff rows in bounds, newest-first, no duplicate fingerprint across pages, >= 14/20 non-empty, <= 2/20 at the 10-page cap. No candle inside the B window is read."
+}

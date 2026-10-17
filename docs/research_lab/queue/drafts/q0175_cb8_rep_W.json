@@ -1,0 +1,32 @@
+{
+ "id": "q0175_cb8_rep_W",
+ "title": "CB8-W: W1-rep on the sealed HOLDOUT events (identical definitions, gates, ways, placebos)",
+ "family": "creative_batch_8",
+ "priority": 38,
+ "expected_value": "CH69 held-out replication",
+ "data": [
+  "history/h9_flow/holdout (verified seal)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0171_cb8_screen_W"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "replicate",
+  "--family",
+  "W"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/results_W1_rep.json",
+  "trials.jsonl (cb8_replication)"
+ ],
+ "next_action": "Stage P-W registration only if W1-rep passes the Holm step",
+ "notes": "CREATIVE_BATCH_8.md CB8-W Stage 2. DRAFT. Commit only if W1 advanced; refuses without the committed Stage-1 file."
+}

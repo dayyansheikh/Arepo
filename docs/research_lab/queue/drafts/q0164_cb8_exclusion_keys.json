@@ -1,0 +1,33 @@
+{
+ "id": "q0164_cb8_exclusion_keys",
+ "title": "CB8: exclusion ids and event / negRiskMarketID / series keys of h1/h2/h3 samples, every committed seal copy (h5, h5_ladders, h6, h7, h8_tail, h8_text, h8_geo), CB5 sample listings and the C1 Polymarket legs (ids only; parse guard)",
+ "family": "creative_batch_8",
+ "priority": 49,
+ "expected_value": "event-level disjointness of the B frame and h9_flow",
+ "data": [
+  "sha256-pinned id lists and committed seal copies (ids only)",
+  "public Gamma by id"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "network": "gamma-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0161_cb8_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "exclusion-keys",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/{exclusion_keys.csv.gz,exclusion_report.json}"
+ ],
+ "next_action": "q0165, q0167; seal-time drops in q0166 (final stage) and q0168 re-read seal copies committed later (no re-run of q0164: ids are terminal once done)",
+ "notes": "CREATIVE_BATCH_8.md section 1.3. DRAFT. Commit after T_seal. Absent seal copies recorded as 'absent at q0164'. > 2% exclusion ids without metadata -> disjointness unverified (B1, W1 not testable, counted)."
+}

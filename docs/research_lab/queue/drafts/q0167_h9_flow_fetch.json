@@ -1,0 +1,55 @@
+{
+ "id": "q0167_h9_flow_fetch",
+ "title": "CB8-W: h9_flow fresh sample (closed, volume >= $50k, end 2026-05-08..09-30, binary, life >= 10 d, not weather or crypto Up/Down, <= 2 per event; 1,500 non-sports + 300 sports), one seeded 72-h window each in [2026-05-01, 2026-10-01), all taker prints with HMAC wallet hashes; event-level SCREEN/HOLDOUT split before print requests",
+ "family": "creative_batch_8",
+ "priority": 47,
+ "expected_value": "fresh prints with wallet hashes for the CH69 screen and sealed holdout",
+ "data": [
+  "public Gamma markets (closed walk)",
+  "data-dumps/research_lab/creative_batch8/exclusion_keys.csv.gz",
+  "public Data API trades"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "network": "gamma-api, data-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0161_cb8_smoke",
+  "q0164_cb8_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "flow-fetch",
+  "--n-main",
+  "1500",
+  "--n-sports",
+  "300",
+  "--window-h",
+  "72",
+  "--day-pages",
+  "10",
+  "--cap-at",
+  "2026-10-01T00:00Z",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.15",
+  "--data-dumps-cap-gb",
+  "12.5",
+  "--budget-min",
+  "85"
+ ],
+ "timeout_s": 5700,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"flow_fetch_complete\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/history/h9_flow/{frame.csv.gz,sample.csv.gz,split.json,screen/,holdout/,days.csv.gz,progress.jsonl,manifest.json}"
+ ],
+ "next_action": "q0168",
+ "notes": "CREATIVE_BATCH_8.md CB8-W. DRAFT. Not T_seal-bound (rows < 2026-10-01); commit after the q0161 PASS. About 700 frame + 10k print requests, about 50 min at 4 rps. Seeds arepo-h9-window, arepo-h9-sample, arepo-h9-split. Capped day -> unavailable. Raw wallets only in memory. No outcome fetched."
+}

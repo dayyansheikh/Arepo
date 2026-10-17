@@ -1,0 +1,34 @@
+{
+ "id": "q0169_cb8_census_BW",
+ "title": "CB8: pre-freeze census B (SCREEN units: eligible, fresh, crossed, halted, traded, depth, days; HOLDOUT file/day counts only; GB) and W (SCREEN: triggers, windows, S/S'/N, mark availability, clusters; HOLDOUT file/event counts only; GW); counts only",
+ "family": "creative_batch_8",
+ "priority": 40,
+ "expected_value": "gates and MDEs before the CB8 freeze; no net, mark-out or outcome",
+ "data": [
+  "data-dumps/research_lab/creative_batch8/updown (screen; features; guarded files never opened)",
+  "history/h9_flow (verified seal; screen)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0166_cb8_updown_books",
+  "q0168_h9_flow_seal"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "census",
+  "--family",
+  "B,W"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/census_BW.json",
+  "trials.jsonl (cb8_descriptive)"
+ ],
+ "next_action": "Claude session inserts counts and gates into CREATIVE_BATCH_8.md; science-reviewer freeze check; freeze (model_specs/cb8_v1.json)",
+ "notes": "CREATIVE_BATCH_8.md section 2.7. DRAFT. Commit after both seal copies are committed. Outcome guard and field-restricted accessors; floors and thresholds are never revised from the census."
+}

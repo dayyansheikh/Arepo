@@ -1,0 +1,33 @@
+{
+ "id": "q0160_cb8_holders_smoke",
+ "title": "CB8-H: /holders smoke on 20 live markets from the latest complete capture (HTTP, token grouping, outcomeIndex, numeric amount, proxyWallet present and hashed in memory, rows per token <= 20, response time); counts only",
+ "family": "creative_batch_8",
+ "priority": 55,
+ "expected_value": "source check before the prospective CH70 collection",
+ "data": [
+  "latest complete capture (frame fields only)",
+  "public Data API /holders"
+ ],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1,
+  "network": "data-api",
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb8.py",
+  "holders-smoke",
+  "--n",
+  "20",
+  "--rps",
+  "1"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/holders_smoke.json"
+ ],
+ "next_action": "PASS: collector freeze check, then commit q0162/q0163. FAIL (a) or (b): H not run (source), counted",
+ "notes": "CREATIVE_BATCH_8.md CB8-F. DRAFT. Seed arepo-cb8-hsmoke. Criteria fixed in seals/cb8_holders_rules.json before the run. May run before T_seal (cpu lane, about 20 requests). No wallet stored."
+}

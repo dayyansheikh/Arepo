@@ -1,0 +1,32 @@
+{
+ "id": "q0174_cb8_rep_B",
+ "title": "CB8-B: B1-rep on the sealed HOLDOUT weeks (identical rule, gates, ways, placebos)",
+ "family": "creative_batch_8",
+ "priority": 38,
+ "expected_value": "CH76 held-out replication",
+ "data": [
+  "data-dumps/research_lab/creative_batch8/updown/holdout (verified seal) + guarded files"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0170_cb8_screen_B"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "replicate",
+  "--family",
+  "B"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/results_B1_rep.json",
+  "trials.jsonl (cb8_replication)"
+ ],
+ "next_action": "Stage P-B registration only if B1-rep passes the Holm step",
+ "notes": "CREATIVE_BATCH_8.md CB8-B Stage 2. DRAFT. Commit only if B1 advanced; refuses without the committed Stage-1 file."
+}

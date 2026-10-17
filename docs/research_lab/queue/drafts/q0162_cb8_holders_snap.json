@@ -1,0 +1,47 @@
+{
+ "id": "q0162_cb8_holders_snap",
+ "title": "CB8-H: daily /holders snapshot (prospective) of 1,500 non-sports + 300 sports markets from the latest complete capture (binary, accepting orders, OI >= 1,000, not weather or crypto Up/Down), top-20 per token, wallets HMAC-hashed in memory",
+ "family": "creative_batch_8",
+ "priority": 52,
+ "expected_value": "prospective holder-concentration data for CH70 (windows 1 and 2)",
+ "data": [
+  "latest complete capture + sidecar (frame, OI, touch)",
+  "public Data API /holders"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "network": "data-api",
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0160_cb8_holders_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "holders-snap",
+  "--n-main",
+  "1500",
+  "--n-sports",
+  "300",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.08",
+  "--data-dumps-cap-gb",
+  "12.5",
+  "--budget-min",
+  "25"
+ ],
+ "timeout_s": 2100,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 260,
+  "until_log_regex": "\"status\": \"holders_collection_complete\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/holders/snap/{<date>.csv.gz,progress.jsonl,manifest.json}"
+ ],
+ "next_action": "q0163 processes each snapshot day at >= h + 28 h; q0172 after T8_H1_end + 30 h",
+ "notes": "CREATIVE_BATCH_8.md CB8-H Collection. DRAFT. Commit after the q0160 PASS and a collector freeze check; first snapshot at the first complete capture >= max(2026-10-21T06:00Z, deployment + 2 h) (pins T8_H1_start). Rolling about every 6 h; idempotent per UTC day; a day without a capture <= 2.5 h old is 'missed' (counted). Seed per day arepo-cb8-holders-<date>, written before the first request. Completes (status holders_collection_complete) after T8_H2_end. Collection only; no analysis."
+}

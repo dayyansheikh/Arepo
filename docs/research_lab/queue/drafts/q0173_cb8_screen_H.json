@@ -1,0 +1,32 @@
+{
+ "id": "q0173_cb8_screen_H",
+ "title": "CB8-H: H1 Stage 1 on window 1 (exit vs matched-control mark-out contrast, route gate, label-shuffle placebo, concentration attribution, binding robustness)",
+ "family": "creative_batch_8",
+ "priority": 38,
+ "expected_value": "CH70 screen",
+ "data": [
+  "data-dumps/research_lab/creative_batch8/holders (window 1)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0172_cb8_census_H"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "screen",
+  "--family",
+  "H"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/results_H1.json",
+  "trials.jsonl (cb8_test + creative_batch_8:H)"
+ ],
+ "next_action": "commit results; q0176 only if H1 advanced",
+ "notes": "CREATIVE_BATCH_8.md CB8-H. DRAFT. Commit after the CB8 freeze and the committed GH result. Declaration-hash guard."
+}

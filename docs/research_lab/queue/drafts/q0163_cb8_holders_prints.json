@@ -1,0 +1,48 @@
+{
+ "id": "q0163_cb8_holders_prints",
+ "title": "CB8-H: rolling windowed taker prints [h, h + 26 h] for snapshot market-days >= 28 h old (<= 5 pages; capped day unavailable; wallets hashed; full prints for c >= 0.5 market-days, top-5-holder prints elsewhere) and capture marks [h, h + 30 h]",
+ "family": "creative_batch_8",
+ "priority": 51,
+ "expected_value": "exits, controls and marks for CH70",
+ "data": [
+  "research_lab/creative_batch8/holders/snap",
+  "public Data API trades",
+  "complete captures on the host (touch of stored markets only, read within retention)"
+ ],
+ "resources": {
+  "mem_mb": 450,
+  "cpu": 1,
+  "network": "data-api",
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0160_cb8_holders_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "holders-prints",
+  "--lag-h",
+  "28",
+  "--day-pages",
+  "5",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.12",
+  "--data-dumps-cap-gb",
+  "12.5",
+  "--budget-min",
+  "30"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 260,
+  "until_log_regex": "\"status\": \"holders_prints_complete\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/holders/{prints/,marks/,progress.jsonl,manifest.json}"
+ ],
+ "next_action": "q0172 census after T8_H1_end + 30 h",
+ "notes": "CREATIVE_BATCH_8.md CB8-H Collection. DRAFT. Commit with q0162. Must process each day before its captures pass the 8-day snapshot retention. Completes (status holders_prints_complete) once every snapshot day < T8_H2_end is processed. No target computed by the fetcher; no raw wallet stored."
+}

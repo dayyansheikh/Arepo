@@ -1,0 +1,32 @@
+{
+ "id": "q0172_cb8_census_H",
+ "title": "CB8-H: census of window 1 (snapshots, concentrated market-days, rank-1 exits, matched exits with marks, events, days, holders, OI inconsistency, hash-join rate; GH); counts only",
+ "family": "creative_batch_8",
+ "priority": 40,
+ "expected_value": "GH and the H1 MDE",
+ "data": [
+  "data-dumps/research_lab/creative_batch8/holders (window 1)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0163_cb8_holders_prints"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "census",
+  "--family",
+  "H"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/census_H.json",
+  "trials.jsonl (cb8_descriptive)"
+ ],
+ "next_action": "insert counts into CREATIVE_BATCH_8.md; q0173 after the CB8 freeze",
+ "notes": "CREATIVE_BATCH_8.md section 2.7. DRAFT. Refuses before T8_H1_end + 30 h. No mark-out or contrast computed. If no rank-1 hash ever joins a print wallet: H not testable (source), counted."
+}

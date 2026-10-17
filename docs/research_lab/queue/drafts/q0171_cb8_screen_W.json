@@ -1,0 +1,32 @@
+{
+ "id": "q0171_cb8_screen_W",
+ "title": "CB8-W: W1 Stage 1 on SCREEN events (skipped-fill maker mark-out, route gate, time-shift placebo, wallet attribution, binding robustness)",
+ "family": "creative_batch_8",
+ "priority": 38,
+ "expected_value": "CH69 screen",
+ "data": [
+  "history/h9_flow/screen (verified seal)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0169_cb8_census_BW"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "screen",
+  "--family",
+  "W"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/results_W1.json",
+  "trials.jsonl (cb8_test + creative_batch_8:W)"
+ ],
+ "next_action": "commit results; q0175 only if W1 advanced",
+ "notes": "CREATIVE_BATCH_8.md CB8-W. DRAFT. Commit after the CB8 freeze. Declaration-hash guard; GW fail -> not testable, counted."
+}

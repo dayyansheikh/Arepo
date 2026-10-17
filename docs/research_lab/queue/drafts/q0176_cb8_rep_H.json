@@ -1,0 +1,32 @@
+{
+ "id": "q0176_cb8_rep_H",
+ "title": "CB8-H: H1-rep on window 2 (post-freeze; identical definitions, gates, ways, placebos)",
+ "family": "creative_batch_8",
+ "priority": 38,
+ "expected_value": "CH70 out-of-time replication",
+ "data": [
+  "data-dumps/research_lab/creative_batch8/holders (window 2)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0173_cb8_screen_H"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "replicate",
+  "--family",
+  "H"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/results_H1_rep.json",
+  "trials.jsonl (cb8_replication)"
+ ],
+ "next_action": "Stage P-H registration only if H1-rep passes the Holm step",
+ "notes": "CREATIVE_BATCH_8.md CB8-H Stage 2. DRAFT. Commit only if H1 advanced; refuses before T8_H2_end + 30 h or without the committed Stage-1 file."
+}

@@ -1,0 +1,30 @@
+{
+ "id": "q0168_h9_flow_seal",
+ "title": "CB8-W: seal h9_flow (seal-time drops by id and key against every seal copy committed by then; manifest, per-file sha256, HOLDOUT listing sha256, request clocks, DROPPED_* blocks)",
+ "family": "creative_batch_8",
+ "priority": 45,
+ "expected_value": "sealed W holdout",
+ "data": [
+  "data-dumps/research_lab/history/h9_flow"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0167_h9_flow_fetch"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "flow-seal"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h9_flow/{SEAL.json,ACCESS_LOG.jsonl}",
+  "trials.jsonl (history_seal_declaration)"
+ ],
+ "next_action": "coordinator commits seals/h9_flow_SEAL.json and seals/cb8_updown_holdout_SEAL.json; then q0169",
+ "notes": "CREATIVE_BATCH_8.md section 1.3. DRAFT. Sealed files are never edited; drops recorded as DROPPED_* blocks."
+}

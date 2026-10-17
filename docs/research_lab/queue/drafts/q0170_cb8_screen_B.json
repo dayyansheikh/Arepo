@@ -1,0 +1,32 @@
+{
+ "id": "q0170_cb8_screen_B",
+ "title": "CB8-B: B1 Stage 1 on SCREEN weeks (recorded-ask net, tail gate, break-even placebo, certainty attribution, binding robustness)",
+ "family": "creative_batch_8",
+ "priority": 38,
+ "expected_value": "CH76 screen",
+ "data": [
+  "data-dumps/research_lab/creative_batch8/updown/screen + guarded outcomes and settlement candles (after the freeze)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0169_cb8_census_BW"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "screen",
+  "--family",
+  "B"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/results_B1.json",
+  "trials.jsonl (cb8_test + creative_batch_8:B)"
+ ],
+ "next_action": "commit results; q0174 only if B1 advanced",
+ "notes": "CREATIVE_BATCH_8.md CB8-B. DRAFT. Commit after the CB8 freeze. Declaration-hash guard; GB fail -> not testable, counted."
+}
