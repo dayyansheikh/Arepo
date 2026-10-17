@@ -165,8 +165,8 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 06:18 UTC+1
-0. **Autopilot session from 04:38Z 10-17.** Last deploy 7a28b60 (~05:35Z).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 06:29 UTC+1
+0. **Autopilot session from 04:38Z 10-17.** Last deploy c302271 (~05:50Z).
    - **Done:** retention gate PASS -> snapshots 8-day rule; collector cap 13 GB (f4cf8c2). CB4 dead-agent diff (9cda78b). CB1-D null
      (1f13d4a; cumulative tests 1,106). h7 release re-check -> gate q0081a + `--data-dumps-cap-gb 12.5` (8fc32d6). MC1 low-memory
      panel + q0115 (4fc9cb9). CB6 h8_tail fixes, q0135 smoke promoted (ba09feb) -> **smoke FAIL 4/20** (bf4223c; q0120 not committed).
@@ -174,10 +174,12 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      q0086b, q0084 (cpu lane) in jobs. CB5 must-fixes 1-6 (06ce95d, declaration `42bde44f…`), q0102/q0103/q0106 promoted. CB3 census
      memory fix + quote_state pass step live (6e41476) + q0061b (7a28b60). CB7 draft (09b2bfc) -> challenger ACCEPT_WITH_REQUIRED_CHANGES.
    - **Running agents (check `git log` if this session ended):** CB7 author response (changes 1-7, Mac fallback removed);
-     CB6 smoke-FAIL diagnosis/redesign (draft q0136 smoke2, NOT promoted until a science-reviewer accepts the design change).
-1. **T_seal 2026-10-22T00Z (net lane):** CB6: review the smoke diagnosis; if a redesign is accepted, promote q0136 smoke2 -> on PASS
-   commit result and promote q0120 -> q0121 after q0120 complete + both h7 SEAL/NOT_RUN records. Else record CB6-T "not run (smoke
-   FAIL)", counted. h7: after q0081f/q0082f read both `frame_report.json`, commit `seals/h7_cb4_group_s_amendment.json`, create
+     CB7 fetch-side implementer (q0140-q0143 + rules file); CB8 design (q0160-q0179 drafts).
+   - **CB6 smoke:** FAIL diagnosed as a mis-specified smoke pool (16/20 markets younger than the 10-day window); v2 (life >= 14 d, new
+     seed, thresholds unchanged) ACCEPT_V2_WITH_CHANGES; doc changes + q0136 promoted (f3b9feb), probe scripts committed (c302271).
+1. **T_seal 2026-10-22T00Z (net lane):** CB6: read q0136 (`creative_batch6/tail_smoke2.json`, write-once); PASS -> copy to seals,
+   commit, promote q0120 (must start by ~10-20T12Z) -> q0121 after q0120 complete + both h7 SEAL/NOT_RUN records; FAIL is final ->
+   record CB6-T "not run (smoke FAIL)", counted. No Mac fallback. h7: after q0081f/q0082f read both `frame_report.json`, commit `seals/h7_cb4_group_s_amendment.json`, create
    gate q0081g. **Create q0083b only on/after 2026-10-22T00:00Z.** q0043 weather -> q0044 seal. CB7: implementer builds q0140-q0143
    fetchers -> freeze check -> promote (must be complete before T_seal).
 2. CB4: promote q0085 no earlier than ~2026-10-24T12Z (refuses before 10-25T02Z with exit 75; 48 tempfails = failed).

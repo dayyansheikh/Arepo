@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 06:18 UTC+1
+**Last updated:** 2026-10-17 06:29 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -17,9 +17,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   Total tests counted so far: 1,106.
 - **Jobs that ran out of memory:** both are fixed and queued again (multi-signal ML dry run; batch 3's counting job). Batch 3's
   live data step is now part of every collection pass.
-- **Batch 6 setback:** its fresh download was gated on a 20-market test that price history comes back hourly. It failed: only 4 of
-  20 passed (18 needed). By the batch's own rules the download does not run as designed. I'm finding out why (a code bug, or the
-  price service thinning old history). Any fix is a design change and must pass an independent review before the 22 Oct deadline.
+- **Batch 6 setback, explained:** its 20-market test of hourly price history failed (4 of 20; 18 needed). The cause was the test,
+  not the data: 16 of the 20 markets didn't exist yet at the start of the 10-day test window. The price service is fine. A corrected
+  test (markets that lived at least 14 days, same pass bar of 18/20) was independently reviewed and accepted, and it runs once. The
+  first failure stays on record, and if the second test fails, the download is off for good.
 - **Batch 4:** the analysis code passed its independent check after two rounds of fixes, without looking at any outcome data. Its
   first (uncounted) pilot is queued. Its sampling frames for the fresh download start this morning.
 - **Batch 5:** fixes applied after its check; its downloads and counting job are queued.
