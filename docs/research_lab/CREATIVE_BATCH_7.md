@@ -1061,3 +1061,38 @@ passes. Editing any hashed function after this point invalidates the file (a rul
 - Minor 4: only the FIRST event's title is stored (`event_title`); tag ids are stored for all events (`event_tag_ids`), so challenger change 2 is met for tags and the first event's title only.
 - Minor 5: the seal's extra-file check ignores `drops*`, so a seal re-run after a crash does not refuse.
 - Live check: `GET https://gamma-api.polymarket.com/tags/slug/geopolitics` returned `{"id":"100265","label":"Geopolitics","slug":"geopolitics",...}` at 2026-10-17 ~05:50Z, matching criterion (a)'s parse.
+
+### Smoke v2 (2026-10-17)
+
+**Why.** The q0140 smoke v1 FAILed on a pool specification error, not on the source: 200 candidates were drawn from the
+13,700 exclusion ids and only then filtered to `end_at` in 2025 and volume >= $10,000, so 2 markets were smoked
+(`n_in_pool` 2, `n_nonempty` 0, 0 of 2 responses non-empty, criterion (a) PASS, 0 failed requests). Details:
+`SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md` §1. The v1 result (`creative_batch7/smoke.json`) stays on record and is never
+overwritten.
+
+**What changed (pool only; reviewer verdict ACCEPT_WITH_CHANGES, items 1-4 applied).**
+1. Pool = h1_first/h2_main/h3_power exclusion ids whose *recorded* sample fields give: `end_epoch` in 2025; life
+   (`end_epoch - start_epoch`) >= 14 d; `close_epoch >= end_epoch - 7 d` (the whole `[end - 14 d, end - 7 d)` print window
+   lies inside the market's life; a missing `close_epoch` fails); not weather (`fee_category`); not crypto Up/Down. Recorded
+   volume is **not** used. Ranked by sha256(`arepo-cb7-smoke-v2`|id); looked up on Gamma by id (same parse guard); kept if
+   Gamma `endDate` in 2025, `volumeNum` >= 10,000, a condition id exists, labels are exactly Yes/No and the question is not
+   Up/Down (labels are only known from Gamma, so that rule is applied there); the first 20 in seed order are smoked. Fewer
+   than 20 survivors: FAIL, no widening. A zero-request host count (2026-10-17) found 33 ids passing the recorded-field
+   rules, 26 of them with recorded volume >= 10k.
+2. Criteria (a)-(c) and every threshold are unchanged (n 20, min_nonempty 10, min_coverage 14, window `[end - 14 d,
+   end - 7 d - 1]`, limit 50, takerOnly).
+3. New rules file `seals/cb7_text_geo_rules_v2.json`, `rules_sha256`
+   **05bf365cbb885d0183f31da1b032b2337830afaf262c90bfa1f0e9f9061221e9**
+   (`rules_version` `cb7-text-geo-rules-v2`; `smoke_pool_v2` and `run_smoke` added to the hashed functions; every v1 hashed
+   function is byte-identical, and a test checks the v2 doc differs from v1 only in the smoke block, `seeds.smoke`,
+   `rules_version` and the function hashes). The v1 file `seals/cb7_text_geo_rules.json` (28347c13...) is unchanged. Smoke
+   version `cb7-smoke-v2`, output `creative_batch7/smoke_v2.json` (write-once). `smoke_ok`, `--require-smoke` and the two
+   fetchers (text-fetch, geo-fetch) require a v2 PASS under the v2 rules hash; a v1 result never satisfies the gate.
+4. Disclosure, recorded in the smoke output (counts only, no ids): the v1 result (0 of 2 responses non-empty) and the
+   number of the first-20 v2 draws that were also probed by the CB7 smoke v1 (re-derived from the v1 pool and filter) or by
+   the CB6 smokes (v1 seed `arepo-h8-smoke` and v2 pool draws). The CB6 h8-like probe markets of the diagnosis are not
+   reproducible from the repository and are not counted. **A v2 FAIL is final**: no smoke v3, `T_seal` (2026-10-22T00:00Z)
+   unchanged, and S1/G1 are then "not run (smoke FAIL)", counted.
+
+**Queue.** Draft `queue/drafts/q0140b_cb7_smoke_v2.json` (net lane, priority 62); drafts q0142/q0143 now pin the v2 rules
+file, require `smoke_v2.json` and depend on q0140b and q0141. q0144/q0145 do not pin the rules file. `queue/jobs/` untouched.
