@@ -1096,3 +1096,12 @@ overwritten.
 
 **Queue.** Draft `queue/drafts/q0140b_cb7_smoke_v2.json` (net lane, priority 62); drafts q0142/q0143 now pin the v2 rules
 file, require `smoke_v2.json` and depend on q0140b and q0141. q0144/q0145 do not pin the rules file. `queue/jobs/` untouched.
+
+**Freeze check of smoke v2 (science-reviewer, 2026-10-17): GO_WITH_CONDITIONS.** Conditions applied: (1) q0141 is done
+and terminal (`exclusion_keys_complete`, 20,913 ids, 1 missing); its keys were built under v1 rules `28347c13…` and are
+accepted by the fetchers by key-file sha only (`load_exclusion_keys`), which is sound because the exclusion pins and
+`key_types_matched` are identical in v1 and v2; a retry of q0141 would now refuse (rules mismatch) and must not be made.
+(2) q0140b notes corrected (up to 10 Gamma lookups, ~233 ids). (3) q0142/q0143 notes say q0140b. Disclosed minors: the
+print window uses Gamma `endDate` while the inside-life check used the recorded `end_epoch` (a disagreement can move the
+window outside the life); `n_gamma_failed` is always 0; the v1 overlap is re-derived against today's Gamma data.
+q0142/q0143 are promoted only after a q0140b PASS; a v2 FAIL is final.
