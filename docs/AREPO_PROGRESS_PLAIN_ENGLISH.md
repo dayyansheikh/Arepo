@@ -71,7 +71,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 5. Infrastructure
 | Item | State |
 |---|---|
-| Server disk | Data 12.5 GB (10:20 UTC+1, measured); 9.3 GB of disk free after clearing package caches; collection cap raised 13 -> 14 GB today. Backed-up trade samples deleted at 3 days (freed 0.6 GB last night); snapshots now deleted at 8 days (from 19 Oct). Expected to level off at about 11-12 GB. 8.6 GB of disk free. |
+| Server disk | Data 12.5 GB (10:20 UTC+1, measured); 9.3 GB of disk free after clearing package caches; collection cap raised 13 -> 14 GB today. Backed-up trade samples deleted at 3 days (freed 0.6 GB last night); snapshots now deleted at 8 days (from 19 Oct). Expected to level off at about 12-13 GB. |
 | Server size | 1 CPU and about 5.6 GB RAM, so one heavy job at a time. It can't be enlarged without Oracle console access. |
 | Mac | No background jobs. |
 
