@@ -165,7 +165,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 11:40 UTC+1
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 11:30 UTC+1
 0. **Autopilot session from 09:19Z 10-17.** Last deploy 8e6f008 (~10:30Z). Counter total **1,131** (e5cfb3a fixed the
    `design_change` KeyError that made `battery2.cumulative_count` fail closed).
    - **Done:** disk headroom (15ea7e2); smoke FAIL diagnoses (`SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md`); **CB7 smoke v2
