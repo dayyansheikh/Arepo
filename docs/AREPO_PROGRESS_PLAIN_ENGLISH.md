@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 21:01 UTC+1
+**Last updated:** 2026-10-17 21:07 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -36,10 +36,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
      end the running session.
    - It only runs while the Mac is awake. If you chat with me while it's working, pause it first, so two sessions don't
      edit at once.
-2. **One-time usage reset (deadline Wed 21 Oct).**
-   - No automatic redemption is documented, and I can't see your account page.
-   - Check claude.ai/settings/usage (or `/usage`). If there's a claim/redeem button, press it around Sun 18 Oct, after this week's allowance is used.
-   - A phone alert was sent 19:2x UTC+1.
+2. ~~One-time usage reset~~ **HANDLED by you (17 Oct)**; no more reminders needed.
 3. ~~Server disk~~ **APPROVED 15 Oct** (deletion of server copies that are verified in a backup). The nightly job
    is in a one-night trial run (it only lists what it would delete) before real deletion. The weekly backup of the
    live evidence logs is set up too. Handled by the ops session.
