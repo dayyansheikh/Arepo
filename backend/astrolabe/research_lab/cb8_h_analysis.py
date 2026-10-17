@@ -32,10 +32,11 @@ from . import cb8_holders as H
 from . import cb8_wh_common as wc
 from . import h5_seal
 
-RULES_VERSION = "cb8-h-analysis-rules-v2"  # v2: embeds the holders data rules v4 hash (H-v4); the v1 file (embeds v3 b6ac7f7f) is superseded, never rewritten
+RULES_VERSION = "cb8-h-analysis-rules-v3"  # v3: embeds the holders data rules v5 hash (H-v5); v2 (embeds v4) and v1 (embeds v3 b6ac7f7f) are superseded, never rewritten
 RULES_FILE_V1 = cm.SEALS_DIR / "cb8_h_analysis_rules.json"
-RULES_FILE = cm.SEALS_DIR / "cb8_h_analysis_rules_v2.json"
-WALLET_KEY_FP = "80ce5e81a539a570"  # pinned in seals/cb8_holders_rules_v4.json (and v3, and every CB8 manifest) (and every CB8 manifest)
+RULES_FILE_V2 = cm.SEALS_DIR / "cb8_h_analysis_rules_v2.json"
+RULES_FILE = cm.SEALS_DIR / "cb8_h_analysis_rules_v3.json"
+WALLET_KEY_FP = "80ce5e81a539a570"  # pinned in seals/cb8_holders_rules_v5.json (and every CB8 manifest)
 TEST = "H1"
 FAMILY = "H"
 RULES_KEY = "h_analysis_rules_sha256"

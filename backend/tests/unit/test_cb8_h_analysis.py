@@ -283,10 +283,10 @@ def test_freeze_slip_is_not_run_and_counted(tmp_path):
 # ---- rules, freeze, declaration, runner --------------------------------------------------------------------------------------------------------------------
 
 
-def test_h_rules_are_separate_and_leave_the_holders_rules_v4_as_generated(tmp_path):
+def test_h_rules_are_separate_and_leave_the_holders_rules_v5_as_generated(tmp_path):
     assert cm.verify_rules("holders", cm.HOLDERS_RULES_FILE, require_committed=False)[0] == "2aca9bdcc94490e218fb0fd162cf322e3c1b19ba0ee2b71d3af71f628d14a72f"
     doc = ha.rules_file_doc()
-    assert doc["rules_version"] == "cb8-h-analysis-rules-v2" and doc["data_rules_sha256"].startswith("2aca9bdc")
+    assert doc["rules_version"] == "cb8-h-analysis-rules-v3" and doc["data_rules_sha256"].startswith("HASHV5")
     p = ha.write_rules(tmp_path / "h.json")
     assert ha.verify_analysis_rules(p, require_committed=False) == doc["rules_sha256"]
     with pytest.raises(cm.Refused, match="never rewritten"):

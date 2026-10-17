@@ -2,7 +2,7 @@
 """CB8 runner, collection and fetch side (docs/research_lab/CREATIVE_BATCH_8.md CB8-H "Collection", CB8-W "Data", CB8-F). Run from
 cwd=backend (queue worker). EXPLORATORY / PROSPECTIVE DATA ONLY: no edge, calibration or profitability claim. The analysis lives in cb8_b_analysis, cb8_w_analysis and cb8_h_analysis (shared helpers cb8_wh_common; the freeze file cb8_declaration).
 
-    python scripts/run_cb8.py rules --which holders|flow    # write docs/research_lab/seals/cb8_holders_rules_v4.json | cb8_flow_rules.json (commit first)
+    python scripts/run_cb8.py rules --which holders|flow    # write docs/research_lab/seals/cb8_holders_rules_v5.json | cb8_flow_rules.json (commit first)
     python scripts/run_cb8.py key-fingerprint               # print the strict-loaded key's fingerprint (never the key)
     python scripts/run_cb8.py holders-smoke ...             # q0160b (smoke v2): /oi frame of every base market + 20 live markets, counts and ratios only, WRITE-ONCE
     python scripts/run_cb8.py holders-snap ...              # q0162: daily /holders snapshot (prospective; rolling)
@@ -18,7 +18,7 @@ cwd=backend (queue worker). EXPLORATORY / PROSPECTIVE DATA ONLY: no edge, calibr
     python scripts/run_cb8.py updown-books ...              # q0166: pmxt coverage audit, book states at the checkpoints, last-15-minute prints, HOLDOUT seal
     python scripts/run_cb8.py rules --which b-analysis      # write docs/research_lab/seals/cb8_b_analysis_rules.json (B analysis rules; commit first)
     python scripts/run_cb8.py rules --which w-analysis      # write docs/research_lab/seals/cb8_w_analysis_rules.json (W analysis rules; commit first)
-    python scripts/run_cb8.py rules --which h-analysis      # write docs/research_lab/seals/cb8_h_analysis_rules_v2.json (H analysis rules; commit first)
+    python scripts/run_cb8.py rules --which h-analysis      # write docs/research_lab/seals/cb8_h_analysis_rules_v3.json (H analysis rules; commit first)
     python scripts/run_cb8.py census --family B,W           # q0169: counts only (B: SCREEN units + HOLDOUT file/day counts, GB; W: SCREEN units + HOLDOUT file/event counts, GW); WRITE-ONCE
     python scripts/run_cb8.py census --family H             # q0172: window-1 counts only (GH); refuses (exit 75) before T8_H1_end + 30 h; WRITE-ONCE
     python scripts/run_cb8.py screen --family B|W|H         # q0170 / q0171 / q0173: Stage 1 (after the CB8 freeze); results + seals/cb8_<t>1_stage1.json copy, WRITE-ONCE
@@ -673,8 +673,8 @@ def build_parser() -> argparse.ArgumentParser:
         q.add_argument("--analysis-rules", default=None, help="B analysis rules (default docs/research_lab/seals/cb8_b_analysis_rules.json)")
         q.add_argument("--flow-rules", default=None, help="W data rules (default docs/research_lab/seals/cb8_flow_rules.json)")
         q.add_argument("--w-analysis-rules", default=None, help="W analysis rules (default docs/research_lab/seals/cb8_w_analysis_rules.json)")
-        q.add_argument("--holders-rules", default=None, help="H data rules (default docs/research_lab/seals/cb8_holders_rules_v4.json)")
-        q.add_argument("--h-analysis-rules", default=None, help="H analysis rules (default docs/research_lab/seals/cb8_h_analysis_rules_v2.json)")
+        q.add_argument("--holders-rules", default=None, help="H data rules (default docs/research_lab/seals/cb8_holders_rules_v5.json)")
+        q.add_argument("--h-analysis-rules", default=None, help="H analysis rules (default docs/research_lab/seals/cb8_h_analysis_rules_v3.json)")
         q.add_argument("--hist-root", default=None, help="W: history root holding h9_flow (default data-dumps/research_lab/history)")
         q.add_argument("--holders-dir", default=None, help="H: holders directory (default data-dumps/research_lab/creative_batch8/holders)")
         q.add_argument("--seals-dir", default=None)

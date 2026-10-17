@@ -222,6 +222,99 @@ def test_smoke_network_failure_is_not_a_result(env):
         run_smoke(env, base, cap)
 
 
+def test_absent_contradicted_counts_inside_the_two_percent_rule(env):
+    base, cap = smoke_env(env, n=100, single=100)  # every market is a single-market event whose event OI (5000+) is in the capture
+    cids = [r["condition_id"] for r in env.rows]
+    env.api.oi_absent = set(cids[:2])  # 2 % absent although the capture says event OI >= 1,000: exactly 2 %, not more
+    res = run_smoke(env, base, cap)
+    assert res["oi"]["n_absent_contradicted"] == 2 and res["oi"]["unavailable_share"] == pytest.approx(0.02) and res["criterion_h_oi_source"]
+    env.api.oi_absent = set(cids[:3])
+    res = run_smoke(env, base, cap)
+    assert res["oi"]["n_absent_contradicted"] == 3 and not res["criterion_h_oi_source"] and not res["pass"] and "unavailable share" in res["oi_source_verdict"]
+    # absent markets of multi-market events (event OI blank or event_n > 1) are not contradicted
+    base2, cap2 = smoke_env(env, n=100, single=0)
+    env.api.oi_absent = set(cids[:60])
+    res = run_smoke(env, base2, cap2)
+    assert res["oi"]["n_absent_contradicted"] == 0 and res["criterion_h_oi_source"]
+
+
+def test_snap_day_stops_on_absent_contradicted(env):
+    rows = [cap_row(i) for i in range(100)]
+    for r in rows:
+        r["event_id"], r["event_open_interest"] = f"solo{r['market_id']}", r["open_interest"]
+        env.api.holders[r["condition_id"]] = holder_groups(r["condition_id"])
+        env.api.oi[r["condition_id"]] = float(r["open_interest"])
+    env.rows = rows
+    env.api.oi_absent = {r["condition_id"] for r in rows[:3]}
+    env.clock.t = T0
+    env.snap()
+    env.clock.t = T0 + 3 * HOUR
+    env.add_capture("cap", env.clock.t - 1800, env.clock.t - 1200)
+    m = env.snap()
+    assert m["status"] == "day_missed" and m["missed_kind"] == "oi_source"
+    marker = json.loads((env.root / "snap" / "2026-10-21.MISSED.json").read_text())
+    assert marker["n_absent_contradicted"] == 3 and marker["states"]["oi_absent"] == 3 and marker["unavailable_share"] == pytest.approx(0.03)
+
+
+def test_absent_probe_picks_highest_volume_and_fails_on_holdings_at_least_min_oi(env):
+    base, cap = smoke_env(env, n=100, single=0)
+    for r in env.rows:
+        r["volume24hr"] = str(int(r["market_id"][1:]))  # m99 has the highest volume
+    cap = env.add_capture("c2", T0 + 1)
+    base, _ = h.holders_frame(h.read_capture(cap["dir"]))
+    cids = {r["market_id"]: r["condition_id"] for r in env.rows}
+    absent = [f"m{i}" for i in range(30, 100)]  # 70 absent markets: m80..m99 are the 20 highest-volume ones
+    env.api.oi_absent = {cids[m] for m in absent}
+    for m in absent:
+        env.api.holders[cids[m]] = []
+    res = run_smoke(env, base, cap)
+    pr = res["absent_probe"]
+    assert pr["n_probed"] == 20 and pr["n_absent_in_base"] == 70 and pr["n_no_holders"] == 20 and pr["n_top20_ge_min_oi"] == 0
+    assert pr["min_volume24hr_probed"] == 80.0 and res["criterion_i_absent_probe"] and res["pass"]
+    probed = {c[1]["market"] for c in env.api.calls if c[0].endswith("/holders") and c[1]["market"] in {cids[m] for m in absent}}
+    assert probed == {cids[f"m{i}"] for i in range(80, 100)}
+    env.api.holders[cids["m95"]] = holder_groups(cids["m95"], top=2000.0)  # top-20 holdings >= 1,000 on an "absent" market
+    res = run_smoke(env, base, cap)
+    assert res["absent_probe"]["n_top20_ge_min_oi"] == 1 and res["absent_probe"]["max_top20_sum"] >= 1000 and not res["criterion_i_absent_probe"] and not res["pass"]
+    env.api.holders[cids["m95"]] = []
+    env.api.holders[cids["m50"]] = holder_groups(cids["m50"], top=2000.0)  # outside the 20 highest-volume absent markets: not probed
+    assert run_smoke(env, base, cap)["criterion_i_absent_probe"]
+
+
+def test_empty_reply_to_a_large_batch_is_split_and_retried(env):
+    lim = hb.Limiter(env.api, rps=1000.0, sleep=nosleep)
+    ids = [f"z{i}" for i in range(60)]
+    states, info = h.fetch_oi_batch(lim, ids)  # nothing listed: an empty 200 for 60 ids (probability about 6e-6 if honest)
+    assert [len(x) for x in env.api.oi_requests] == [60, 15, 15, 15, 15] and info["split"] == "empty_reply" and info["n_split_requests"] == 4
+    assert all(v == (h.OI_ABSENT, None) for v in states.values()) and len(states) == 60 and not info["integrity_violation"]
+    env.api.oi_requests.clear()
+    env.api.oi = {"z3": 7.0, "z40": 9.0}  # listed markets: no split
+    states, info = h.fetch_oi_batch(lim, ids)
+    assert [len(x) for x in env.api.oi_requests] == [60] and "split" not in info and states["z3"] == (h.OI_OK, 7.0)
+    env.api.oi_requests.clear()
+    env.api.oi = {}
+    states, info = h.fetch_oi_batch(lim, ids[:15])  # an empty reply to 15 ids is an honest all-absent batch
+    assert [len(x) for x in env.api.oi_requests] == [15] and len(states) == 15 and "split" not in info
+
+
+def test_403_batch_is_split_into_15s_before_failing(env):
+    lim = hb.Limiter(env.api, rps=1000.0, sleep=nosleep)
+    ids = [f"z{i}" for i in range(60)]
+    env.api.oi = {c: 100.0 + i for i, c in enumerate(ids)}
+    env.api.oi_max_ids = 15
+    states, info = h.fetch_oi_batch(lim, ids)
+    assert info["split"] == "request_failed" and info["n_split_requests"] == 4 and info["http_status"] == 200
+    assert all(states[c] == (h.OI_OK, 100.0 + i) for i, c in enumerate(ids))
+    assert [len(x) for x in env.api.oi_requests][-4:] == [15, 15, 15, 15] and max(len(x) for x in env.api.oi_requests[:-4]) == 60
+    env.api.oi_max_ids = 0  # every request 403s, even single chunks: still a RuntimeError for the caller (network handling)
+    with pytest.raises(RuntimeError):
+        h.fetch_oi_batch(lim, ids)
+    env.api.oi = {}
+    base, cap = smoke_env(env, n=100, single=0)  # in the smoke the split is transparent
+    env.api.oi_max_ids = 15
+    assert run_smoke(env, base, cap)["pass"]
+
+
 def test_smoke_oi_absent_is_oi_zero_and_the_two_percent_rule_counts_unavailable_only(env):
     base, cap = smoke_env(env, n=100, single=0)
     cids = [r["condition_id"] for r in env.rows]
