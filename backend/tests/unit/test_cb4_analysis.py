@@ -350,7 +350,7 @@ def test_fetch_outcomes_with_a_failed_batch_writes_no_guarded_file(tmp_path, mon
     monkeypatch.setattr(A.R, "c2_paper_bids", lambda c2, trades: bids)
     monkeypatch.setattr(A, "fetch_market_outcomes", lambda lim, ids: ({"m1": {"y0": 1.0, "closed_time": 0.0, "status": "resolved"}}, ["m2"]))
     monkeypatch.setattr(A, "_limiter", lambda ctx, rps: None)
-    _freeze(ctx)
+    _freeze(ctx, census=_census_c())
     assert A.cmd_fetch_outcomes(_ns("--window", "dev"), ctx) == 3
     assert not (ctx.out_root / "C_dev" / "outcomes_guarded.json").exists()
     rec = [json.loads(x) for x in (ctx.out_root / "C_dev" / "outcomes_fetch_failures.jsonl").read_text().splitlines()]
@@ -359,10 +359,10 @@ def test_fetch_outcomes_with_a_failed_batch_writes_no_guarded_file(tmp_path, mon
     monkeypatch.setattr(A, "fetch_market_outcomes", ok_fetch)
     ctx.spec.unlink()
     (ctx.out_root / "census.json").unlink()
-    _freeze(ctx)
+    _freeze(ctx, census=_census_c())
     assert A.cmd_fetch_outcomes(_ns("--window", "dev"), ctx) == 0
     doc = json.loads((ctx.out_root / "C_dev" / "outcomes_guarded.json").read_text())
-    assert doc["complete"] and doc["failed"] == [] and doc["status_counts"] == {"resolved": 0, "unresolved": 2}
+    assert doc["complete"] and doc["failed"] == [] and doc["status_counts"] == {"resolved": 0, "unresolved": 2, "closed_not_decisive": 0}
     assert A.cmd_fetch_outcomes(_ns("--window", "dev"), ctx) == 3  # read once
 
 
@@ -379,3 +379,47 @@ def test_pilot_ingress_cap_is_bounded(tmp_path):
     assert A.cmd_pilot(_ns("--ingress-cap-gb", "16"), ctx) == 3
     assert A.cmd_pilot(_ns("--ingress-cap-gb", "0"), ctx) == 3
     assert not (ctx.out_root / "N_pilot").exists()
+
+
+# ---- re-check response M1-M3 (2026-10-17) -------------------------------------------------------------------------------------------
+
+
+def test_m1_pilot_h_unavailable_is_distinct_from_h_cap_below_84():
+    good = {"power": {"H": 0, "testable": False}, "hours_done": 24, "ingress_gb_per_hour": 2.0}
+    assert A.pilot_h(good) == 0 and A.pilot_h({**good, "power": {"H": 168}}) == 168
+    for bad in (None, {}, {"power": {}}, {**good, "hours_done": 0}, {**good, "ingress_gb_per_hour": None}, {**good, "power": {"H": "x"}}):
+        assert A.pilot_h(bad) == A.H_UNAVAILABLE
+
+
+def test_m1_census_without_pilot_pins_h_unavailable_and_measure_n_refuses(tmp_path):
+    ctx = _ctx(tmp_path)
+    assert A.cmd_census(_ns("--family", "C"), ctx) == 0  # no family N
+    assert json.loads((ctx.out_root / "census.json").read_text())["pin_proposal"]["H"] == "unavailable"
+    ctx2 = _ctx(tmp_path / "b")
+    assert A.cmd_census(_ns("--family", "N"), ctx2) == 0  # family N but no pilot.json
+    assert json.loads((ctx2.out_root / "census.json").read_text())["pin_proposal"]["H"] == "unavailable"
+    ctx3 = _ctx(tmp_path / "c", require_committed=False)
+    _freeze(ctx3, pins={**PINS, "H": "unavailable"})
+    assert A.cmd_measure_N(_ns(), ctx3) == 3
+    assert not (ctx3.out_root / "N" / "results.json").exists() and not ctx3.trials.exists()
+
+
+def test_m2_closed_without_parseable_prices_is_failed_and_not_decisive_is_distinct():
+    rows = [{"id": "a", "closed": True, "outcomePrices": None}, {"id": "b", "closed": True, "outcomePrices": "garbage"},
+            {"id": "c", "closed": True, "outcomePrices": '["0.6", "0.4"]'}, {"id": "d", "closed": True, "outcomePrices": '["0.5", "0.5"]'},
+            {"id": "e", "closed": False, "outcomePrices": '["0.6", "0.4"]'}]
+    outs, failed = A.fetch_market_outcomes(_Lim([(200, rows)]), ["a", "b", "c", "d", "e"])
+    assert failed == ["a", "b"]
+    assert outs["c"]["status"] == "closed_not_decisive" and outs["c"]["y0"] is None
+    assert outs["d"]["status"] == "resolved" and outs["d"]["y0"] == 0.5 and outs["e"]["status"] == "unresolved"
+
+
+def test_fetch_outcomes_reads_nothing_after_a_failed_census_gate(tmp_path, monkeypatch):
+    from datetime import UTC, datetime
+
+    ctx = _ctx(tmp_path, require_committed=False, now=datetime(2026, 11, 9, tzinfo=UTC))
+    called = []
+    monkeypatch.setattr(A, "fetch_market_outcomes", lambda lim, ids: called.append(ids) or ({}, []))
+    _freeze(ctx, census=_census_c(ok_g46=False))
+    assert A.cmd_fetch_outcomes(_ns("--window", "dev"), ctx) == 0
+    assert not called and not (ctx.out_root / "C_dev").exists()

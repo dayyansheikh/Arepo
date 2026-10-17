@@ -36,6 +36,9 @@ INTERPRETATIONS = (
     "S2 truncation worst case adds back only units whose prints were truncated away (prints unavailable at an S2 time) and that have a history-price v; units with no print in a window but complete trade history are not added (they are not unavailable).",
     "The successor-resolution hold-to-resolution variant of S3 is not computed: the series fetch stores only predecessor outcomes.",
     "A unit with a missing check input (alt origin, publicity, side audit) has that check None, which blocks an advance (unverified is not a pass).",
+    "Re-check M2: a C2 fill whose market is closed but carries a non-decisive payout is 'closed_not_decisive' (neither resolved nor censored): dropped from "
+    "the estimate and added back as a filled loser in the binding truncation worst case; a closed market with missing/unparseable outcomePrices is a failed read.",
+    "Re-check M3: wherever LODO binds for C2 it is applied by the closing day (the cluster clock) and by the day of e (the decision clock); both must hold.",
 )
 
 # ---- statistics ---------------------------------------------------------------------------------------------------------------
@@ -60,15 +63,21 @@ def cluster_equal_mean(v, cl) -> float:
     return float(pd.Series(v).groupby(np.asarray(cl).astype(str)).mean().mean())
 
 
-def top_clusters_dropped(v, ways: dict[str, np.ndarray], *, floor: float, alpha: float, small_g_ways: tuple[str, ...], sign: int = 1, pways=None) -> dict[str, bool]:
+def top_clusters_dropped(v, ways: dict[str, np.ndarray], *, floor: float, alpha: float, small_g_ways: tuple[str, ...], sign: int = 1, pways=None,
+                         lodo_days: list | None = None) -> dict[str, bool]:
     """Section 2.6 (ii): for each declared way, the test still meets its p threshold and floor without the 5 clusters of that way with the
-    largest absolute contribution. ``pways`` (A-C1) maps the remaining declared ways to the ways that enter the p max."""
+    largest absolute contribution. ``pways`` (A-C1) maps the remaining declared ways to the ways that enter the p max; when the day way does not enter in
+    a branch (e.g. 15-19 days minus the top 5), the leave-one-day-out sign rule over every array in ``lodo_days`` must also hold there (re-check)."""
     v = np.asarray(v, float)
     out: dict[str, bool] = {}
     for k, cl in ways.items():
         keep = CC.top_clusters_mask(v, cl, D.TOP_CLUSTERS_DROPPED)
         sub = {a: np.asarray(b)[keep] for a, b in ways.items()}
-        out[k] = bool(mean_gate(v[keep], pways(sub) if pways else sub, floor=floor, alpha=alpha, small_g_ways=small_g_ways, sign=sign)["pass_core"])
+        pw = pways(sub) if pways else sub
+        ok = bool(mean_gate(v[keep], pw, floor=floor, alpha=alpha, small_g_ways=small_g_ways, sign=sign)["pass_core"])
+        if ok and lodo_days and C_TIME_WAY in sub and C_TIME_WAY not in pw:
+            ok = all(lodo_sign(v[keep], np.asarray(d)[keep], sign)["ok"] for d in lodo_days)
+        out[k] = ok
     return out
 
 
@@ -478,15 +487,21 @@ def c2_paper_bids(units: pd.DataFrame, trades: dict[str, Trades], *, optimistic:
 
 
 def attach_c2_outcomes(bids: pd.DataFrame, outcomes: dict[str, dict], last_bid: dict[tuple[str, int], float], censor_mark: float) -> pd.DataFrame:
-    """Filled bids with ``Y_j`` (50-50 pays 0.5). ``outcomes[market_id] = {"y0": float|None, "closed_time": epoch|nan}``. Unresolved or undecided:
-    censored, valued at the last recorded bid of the side held (``last_bid``), flagged. ``net = Y_j - q`` per filled share, ``K = q``, hold to closed_time
+    """Filled bids with ``Y_j`` (50-50 pays 0.5). ``outcomes[market_id] = {"y0": float|None, "closed_time": epoch|nan}``. Unresolved (status
+    'unresolved' or no status): censored, valued at the last recorded bid of the side held (``last_bid``), flagged. ``net = Y_j - q`` per filled share, ``K = q``, hold to closed_time
     (or the censoring mark); ``week`` is the ISO week (reported) and ``close_day`` the UTC date (A-C1 cluster way) of closed_time or the mark."""
     f = bids[bids["fill_state"] == 1].copy()
-    ys, cens, ct = [], [], []
+    ys, cens, ct, nd = [], [], [], []
     for _, r in f.iterrows():
         o = outcomes.get(r["market_id"]) or {}
         y0 = o.get("y0")
-        if y0 is None or not np.isfinite(y0 if y0 is not None else math.nan):
+        nd.append(o.get("status") == "closed_not_decisive")
+        if nd[-1]:  # re-check M2: closed but not a decisive payout -> its own status, valued as unavailable (dropped; a filled loser in the worst case)
+            ys.append(math.nan)
+            cens.append(False)
+            c = o.get("closed_time", math.nan)
+            ct.append(float(c) if c is not None and np.isfinite(c) else censor_mark)
+        elif y0 is None or not np.isfinite(y0 if y0 is not None else math.nan):
             ys.append(last_bid.get((r["market_id"], int(r["token"])), math.nan))
             cens.append(True)
             ct.append(censor_mark)
@@ -495,10 +510,10 @@ def attach_c2_outcomes(bids: pd.DataFrame, outcomes: dict[str, dict], last_bid: 
             cens.append(False)
             c = o.get("closed_time", math.nan)
             ct.append(float(c) if c is not None and np.isfinite(c) else censor_mark)
-    f["Y"], f["censored"], f["close_t"] = ys, cens, ct
+    f["Y"], f["censored"], f["close_t"], f["closed_not_decisive"] = ys, cens, ct, nd
     # a censored fill with no recorded bid of the side held cannot be valued: it is counted unavailable (c2_test drops it from the estimate and adds
-    # it back as a filled loser in the truncation worst case), never carried as a silent NaN
-    f["unavailable_censored"] = f["censored"] & ~np.isfinite(f["Y"].astype(float))
+    # it back as a filled loser in the truncation worst case), never carried as a silent NaN; a closed-not-decisive fill takes the same path
+    f["unavailable_censored"] = (f["censored"] & ~np.isfinite(f["Y"].astype(float))) | f["closed_not_decisive"].astype(bool)
     f["net"] = f["Y"] - f["q"]
     f["K"] = f["q"]
     f["d"] = np.maximum((f["close_t"] - f["t_fill"]) / DAY, 0.0)
@@ -547,6 +562,14 @@ def c_pways(ways: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
     return dict(ways) if g >= D.G_MIN else {k: x for k, x in ways.items() if k != C_TIME_WAY}
 
 
+def daily_lag1_autocorr(v, day) -> float | None:
+    """Reported only (re-check): lag-1 autocorrelation of the daily means over the observed days in date order; None with fewer than 3 days."""
+    s = pd.Series(np.asarray(v, float)).groupby(np.asarray(day).astype(str)).mean().sort_index().to_numpy(float)
+    if len(s) < 3 or np.std(s[:-1]) == 0 or np.std(s[1:]) == 0:
+        return None
+    return float(np.corrcoef(s[:-1], s[1:])[0, 1])
+
+
 def sign_by_week(v, week) -> dict[str, int]:
     """Reported only (A-C1): sign of the mean per ISO week."""
     s = pd.Series(np.asarray(v, float)).groupby(np.asarray(week).astype(str)).mean()
@@ -571,7 +594,7 @@ def c1_test(c1: pd.DataFrame, n_units: pd.DataFrame, *, stage: int, n_boot: int,
     core = mean_gate(v, pw, floor=D.FLOORS["C1"], alpha=alpha, small_g_ways=C_SMALL_G, n_boot=n_boot, seed=seed)
     sn = matched_sn_contrast(c1, n_units, n_boot=n_boot or 200, seed=seed + 1) if len(n_units) else matched_sn_contrast(c1.iloc[:0], n_units, n_boot=1)
     checks: dict[str, bool | None] = {}
-    tc = top_clusters_dropped(v, ways, floor=D.FLOORS["C1"], alpha=alpha, small_g_ways=C_SMALL_G, pways=c_pways)
+    tc = top_clusters_dropped(v, ways, floor=D.FLOORS["C1"], alpha=alpha, small_g_ways=C_SMALL_G, pways=c_pways, lodo_days=[ways[C_TIME_WAY]])
     checks.update({f"top5_dropped_{k}": x for k, x in tc.items()})
     checks["cluster_equal_sign"] = CC.sign_agree(core["effect"], cluster_equal_mean(v, ways["event"]))
     checks["size_weighted_sign"] = CC.sign_agree(core["effect"], float(c1["delta_w"].mean()))
@@ -589,7 +612,8 @@ def c1_test(c1: pd.DataFrame, n_units: pd.DataFrame, *, stage: int, n_boot: int,
         buy = float(c1_buy["delta"].mean())
     return {**{k: core.get(k) for k in ("p", "n", "testable", "effect", "ci95", "p_by_way", "clusters", "reason")}, **dec, "floor": D.FLOORS["C1"], "alpha": alpha, "stage": stage,
             "matched_sn": sn, "placebo": pl, "placebo_status": "calibrated" if pl.get("calibrated") else "miscalibrated", "reported": {"buy_print_delta": buy,
-            "token_balanced_mean": (lambda t: float(t["delta"].mean()) if len(t) else None)(token_balanced(c1)), "sign_by_iso_week": sign_by_week(v, c1["week_e"])},
+            "token_balanced_mean": (lambda t: float(t["delta"].mean()) if len(t) else None)(token_balanced(c1)), "sign_by_iso_week": sign_by_week(v, c1["week_e"]),
+            "daily_lag1_autocorr": daily_lag1_autocorr(v, c1["e_day"])},
             "time_way": "utc_day_small_g" if day_in else "lodo_binding (G_day < 15)", "g_day": CC.n_clusters({"d": ways[C_TIME_WAY]})["d"],
             "label": "late-life seller discount, not the order stop" if (core["pass_core"] and not checks["attribution_S_minus_N"]) else None}
 
@@ -599,6 +623,7 @@ def c2_test(filled: pd.DataFrame, all_bids: pd.DataFrame, *, stage: int, n_boot:
     when G_day >= 15. Binding: floor 1.0c and R_ann >= 10%, +0.75c on q, top-5 clusters, cluster-equal and size-weighted sign, truncation worst case, break-even placebo Y ~ Bern(q), LODO."""
     alpha = D.ALPHA_STAGE1_ROUTE if stage == 1 else D.ALPHA_STAGE2
     n_unavail_cens = 0
+    n_nd = int(filled["closed_not_decisive"].sum()) if len(filled) and "closed_not_decisive" in filled.columns else 0
     if len(filled) and "unavailable_censored" in filled.columns and filled["unavailable_censored"].any():
         bad = filled[filled["unavailable_censored"]]
         n_unavail_cens = int(len(bad))
@@ -609,7 +634,7 @@ def c2_test(filled: pd.DataFrame, all_bids: pd.DataFrame, *, stage: int, n_boot:
         filled = filled[~filled["unavailable_censored"]]
     if not len(filled):
         return {"testable": False, "p": 1.0, "n": 0, "advance": False, "effect": math.nan, "reason": ["no filled bids"], "fill_rate": 0.0,
-                "censored_unavailable": n_unavail_cens}
+                "censored_unavailable": n_unavail_cens, "closed_not_decisive": n_nd}
     ways = {"event": filled["event_id"].to_numpy(str), "day": filled["close_day"].to_numpy(str)}
     pw = c_pways(ways)
     v = filled["net"].to_numpy(float)
@@ -617,16 +642,17 @@ def c2_test(filled: pd.DataFrame, all_bids: pd.DataFrame, *, stage: int, n_boot:
     ra = r_ann(v, filled["K"], filled["d"])
     checks: dict[str, bool | None] = {"r_ann_min": bool(np.isfinite(ra) and ra >= D.R_ANN_MIN)}
     checks["cost_plus_0.75c"] = bool((v - D.COST_SENS_C).mean() > 0)
-    tc = top_clusters_dropped(v, ways, floor=D.FLOORS["C2"], alpha=alpha, small_g_ways=C_SMALL_G, pways=c_pways)
+    e_day = pd.to_datetime(filled["e"], unit="s", utc=True).dt.strftime("%Y-%m-%d").to_numpy(str)
+    tc = top_clusters_dropped(v, ways, floor=D.FLOORS["C2"], alpha=alpha, small_g_ways=C_SMALL_G, pways=c_pways, lodo_days=[ways[C_TIME_WAY], e_day])
     checks.update({f"top5_dropped_{k}": x for k, x in tc.items()})
     checks["cluster_equal_sign"] = CC.sign_agree(core["effect"], cluster_equal_mean(v, ways["event"]))
     checks["size_weighted_sign"] = CC.sign_agree(core["effect"], _wmean(v, filled["w_size"].to_numpy(float)))
     wc = truncation_worst_case_c(pd.DataFrame(), 0, filled, all_bids)
     checks["truncation_worst_case"] = bool(wc.get("C2", {}).get("ok"))
     day_in = C_TIME_WAY in pw
-    if (stage == 1 and lodo) or not day_in:
-        e_day = pd.to_datetime(filled["e"], unit="s", utc=True).dt.strftime("%Y-%m-%d").to_numpy(str)
-        checks["lodo_sign"] = lodo_sign(v, e_day)["ok"]
+    if (stage == 1 and lodo) or not day_in:  # re-check M3: both clocks bind (the cluster clock, closing day, and the decision clock, day of e)
+        checks["lodo_sign_close_day"] = lodo_sign(v, ways[C_TIME_WAY])["ok"]
+        checks["lodo_sign_e_day"] = lodo_sign(v, e_day)["ok"]
     q = filled["q"].to_numpy(float)
     pl = placebo_advance_rate(lambda rng: (rng.random(len(q)) < q).astype(float) - q, pw, floor=D.FLOORS["C2"], alpha=alpha, small_g_ways=C_SMALL_G, draws=D.PLACEBO_DRAWS, seed=seed + 3) if placebo_draws else {"calibrated": False, "n_draws": 0}
     checks["placebo_calibrated"] = bool(pl["calibrated"]) if pl.get("n_draws") else None
@@ -636,7 +662,8 @@ def c2_test(filled: pd.DataFrame, all_bids: pd.DataFrame, *, stage: int, n_boot:
             "r_ann": ra, "fill_rate": float(len(filled) / n_all) if n_all else math.nan, "placebo": pl, "placebo_status": "calibrated" if pl.get("calibrated") else "miscalibrated",
             "truncation_worst_case": wc.get("C2"), "censoring": censored_sensitivity(filled), "censored_unavailable": n_unavail_cens,
             "time_way": "utc_day_small_g" if day_in else "lodo_binding (G_day < 15)", "g_day": CC.n_clusters({"d": ways[C_TIME_WAY]})["d"],
-            "reported": {"sign_by_iso_week": sign_by_week(v, filled["week"]) if "week" in filled.columns else {}}}
+            "closed_not_decisive": n_nd,
+            "reported": {"sign_by_iso_week": sign_by_week(v, filled["week"]) if "week" in filled.columns else {}, "daily_lag1_autocorr": daily_lag1_autocorr(v, ways[C_TIME_WAY])}}
 
 
 # ---- CB4-S: wrappers for the data-module rules --------------------------------------------------------------------------------

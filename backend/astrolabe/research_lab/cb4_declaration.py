@@ -109,7 +109,7 @@ C = {
     "clusters": {"C1": ["event", "utc_day_of_e"], "C2": ["event", "utc_day_of_closed_time_or_censoring_mark"]}, "dev_lodo": True,
     "amendment_A_C1": ("time way = UTC day (was ISO week, never testable: 2-5 weeks < 15); it enters the p max under the section 2.3 small-G rule iff "
                        "G_day >= 15, else the leave-one-day-out sign rule is binding at that stage; top-5 robustness drops 5 events and 5 days; "
-                       "sign by ISO week reported only; alphas, floors, k and Holm unchanged"),
+                       "sign by ISO week reported only; alphas, floors, k and Holm unchanged; re-check M3: wherever LODO binds, C2 needs it by the closing day AND by the day of e; a top-5-dropped branch whose remaining days fall below 15 needs LODO too; lag-1 autocorrelation of daily means reported"),
     "outcomes_read": {"dev": "T4_dev_out", "rep": "T4_rep_out"}, "weather_excluded": True, "sports": "reported stratum",
 }
 
@@ -218,7 +218,7 @@ EXPLICIT_RULE_FUNCTIONS = {
         "load_captures", "load_trades_dir", "fetch_market_outcomes", "load_era", "era_frames", "load_series", "c_inputs", "c_run", "_read_hours", "_rates",
         "_events_meta", "_pins", "_measure_n", "_measure_e", "_measure_commit", "_fetch_outcomes", "_screen", "_replicate", "stage2_expected", "_series_dir",
         "_guard_s_register", "_gate", "_census_path", "census_gates", "gate_failed_tests", "_census_gates", "load_guarded_outcomes", "_uma_extra",
-        "census_frame", "census_forbidden_keys",
+        "census_frame", "census_forbidden_keys", "pilot_h", "outcome_status",
     ),
 }
 
@@ -230,7 +230,7 @@ def rule_constants() -> dict:
     from . import history_backfill as hb  # noqa: PLC0415
 
     return {"MAX_QUOTE_AGE_S": hb.MAX_QUOTE_AGE_S, "GRID_S": hb.GRID_S, "C_SMALL_G": list(cb4_rules.C_SMALL_G), "S_SMALL_G": list(cb4_rules.S_SMALL_G),
-            "C_TIME_WAY": cb4_rules.C_TIME_WAY, "PLACEBO_MIN_CLUSTERS": dict(cb4_measure.PLACEBO_MIN_CLUSTERS),
+            "C_TIME_WAY": cb4_rules.C_TIME_WAY, "H_UNAVAILABLE": cb4_analysis.H_UNAVAILABLE, "PLACEBO_MIN_CLUSTERS": dict(cb4_measure.PLACEBO_MIN_CLUSTERS),
             "CENSUS_KEEP": {k: list(v) for k, v in cb4_analysis.CENSUS_KEEP.items()},
             "INTERPRETATIONS": {"cb4_rules": list(cb4_rules.INTERPRETATIONS), "cb4_measure": list(cb4_measure.INTERPRETATIONS)},
             "FEE_ERAS": dict(cost_regimes.FEE_ERAS), "ERA_BUFFER_D": cost_regimes.ERA_BUFFER_D,
@@ -371,7 +371,7 @@ def require_declaration(path: Path | None = None, *, require_committed: bool = T
 
 
 def check_pins(pins: dict) -> None:
-    """Freeze-check fix 3: the pins must all be present and well formed. ``H`` an integer >= 0; ``rho`` in (0, 1] (the venue's top-tier rebate share);
+    """Freeze-check fix 3: the pins must all be present and well formed. ``H`` an integer >= 0, or ``"unavailable"`` when the pilot failed or is missing (re-check M1); ``rho`` in (0, 1] (the venue's top-tier rebate share);
     ``uma_extra_statuses`` a list of lower-case status tokens (the once-only extension of the UMA block set, status strings only)."""
     import re  # noqa: PLC0415
 
@@ -379,8 +379,8 @@ def check_pins(pins: dict) -> None:
     if miss:
         raise DeclarationError(f"census pins lack {miss}")
     h = pins["H"]
-    if isinstance(h, bool) or not isinstance(h, int) or h < 0:
-        raise DeclarationError(f"pin H must be an integer >= 0, got {h!r}")
+    if h != "unavailable" and (isinstance(h, bool) or not isinstance(h, int) or h < 0):
+        raise DeclarationError(f"pin H must be an integer >= 0 or 'unavailable' (pilot failed or missing), got {h!r}")
     r = pins["rho"]
     if isinstance(r, bool) or not isinstance(r, int | float) or not (0.0 < float(r) <= 1.0):
         raise DeclarationError(f"pin rho must be in (0, 1], got {r!r}")

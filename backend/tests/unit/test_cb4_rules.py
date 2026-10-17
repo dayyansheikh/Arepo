@@ -537,3 +537,50 @@ def test_s2_worst_case_adds_back_only_truncated_units():
     assert list(df["prints_truncated"]) == [True, False] and not np.isfinite(df["neg_v"]).any()
     wc = R._s2_worst_case([trunc, gap], df)
     assert wc["added"] == 1
+
+
+def _c2_frame(n=240, days=30, net=0.15, seed=5):
+    rng = np.random.default_rng(seed)
+    return pd.DataFrame({"event_id": [f"e{i}" for i in range(n)], "week": [f"w{i % 20}" for i in range(n)], "close_day": [f"2026-11-{1 + i % days:02d}" for i in range(n)],
+                         "net": net + rng.normal(0, 0.2, n), "K": 0.4, "d": 3.0, "q": 0.4, "w_size": 10.0, "e": T0 + (np.arange(n) % 30) * DAY, "fill_state": 1,
+                         "censored": False, "market_id": [f"m{i}" for i in range(n)], "token": 0})
+
+
+def test_m3_c2_lodo_binds_by_closing_day_and_by_day_of_e():
+    f = _c2_frame(days=10)  # closing days < 15: the day way does not enter, LODO binds at Stage 2 on both clocks
+    r = R.c2_test(f, f, stage=2, n_boot=0, placebo_draws=0)
+    assert r["time_way"].startswith("lodo_binding") and {"lodo_sign_close_day", "lodo_sign_e_day"} <= set(r["checks"]) and "lodo_sign" not in r["checks"]
+    assert r["checks"]["lodo_sign_close_day"] and r["checks"]["lodo_sign_e_day"]
+    # an effect carried by one closing day fails the closing-day LODO even though the day-of-e LODO holds
+    g = f.assign(net=np.where(f["close_day"] == "2026-11-01", 3.0, -0.05))
+    rg = R.c2_test(g, g, stage=2, n_boot=0, placebo_draws=0)
+    assert rg["checks"]["lodo_sign_close_day"] is False and not rg["advance"]
+    assert isinstance(r["reported"]["daily_lag1_autocorr"], float)
+
+
+def test_top5_day_branch_below_15_days_needs_lodo():
+    # 17 days: five large negative days (the top 5 by |contribution|), one positive day B that carries the rest, eleven slightly negative days.
+    # Dropping the top 5 days leaves 12 < 15 days: the day way cannot enter, so the branch must also pass LODO, which fails because B carries it.
+    vals, day = [], []
+    for d in range(5):
+        vals += [-2.0] * 10
+        day += [f"A{d}"] * 10
+    vals += [1.5] * 10
+    day += ["B"] * 10
+    for d in range(11):
+        vals += [-0.05] * 10
+        day += [f"C{d:02d}"] * 10
+    v, day = np.array(vals), np.array(day)
+    ways = {"event": np.array([f"e{i}" for i in range(len(v))]), "day": day}
+    plain = R.top_clusters_dropped(v, ways, floor=0.0, alpha=0.5, small_g_ways=R.C_SMALL_G, pways=R.c_pways)
+    with_lodo = R.top_clusters_dropped(v, ways, floor=0.0, alpha=0.5, small_g_ways=R.C_SMALL_G, pways=R.c_pways, lodo_days=[day])
+    assert plain["day"] is True and with_lodo["day"] is False
+
+
+def test_m2_closed_not_decisive_fill_is_unavailable_not_censored():
+    bids = pd.DataFrame({"market_id": ["m1", "m2"], "token": [0, 0], "fill_state": [1, 1], "q": [0.4, 0.4], "t_fill": [T0, T0], "fill_size": [5.0, 5.0],
+                         "event_id": ["e1", "e2"], "e": [T0 + H, T0 + H]})
+    outs = {"m1": {"y0": None, "closed_time": T0 + DAY, "status": "closed_not_decisive"}, "m2": {"y0": None, "closed_time": None, "status": "unresolved"}}
+    f = R.attach_c2_outcomes(bids, outs, {("m1", 0): 0.5, ("m2", 0): 0.5}, T0 + 30 * DAY)
+    assert list(f["closed_not_decisive"]) == [True, False] and list(f["censored"]) == [False, True]
+    assert list(f["unavailable_censored"]) == [True, False] and f["Y"].iloc[1] == 0.5

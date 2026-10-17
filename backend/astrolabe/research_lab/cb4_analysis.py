@@ -249,10 +249,29 @@ def fetch_market_outcomes(lim, ids: list[str], batch: int = 20) -> tuple[dict[st
                 continue
             got.add(mid)
             ct = cb4_data._parse_ts(m.get("closedTime")) if m.get("closedTime") else None
-            y0 = H1.parse_outcome0(m.get("outcomePrices")) if m.get("closed") else None
-            out[mid] = {"y0": y0, "closed_time": ct if ct is not None else math.nan, "status": "resolved" if y0 is not None else "unresolved"}
+            st, y0 = outcome_status(m)
+            if st == "failed":
+                got.discard(mid)
+                continue
+            out[mid] = {"y0": y0, "closed_time": ct if ct is not None else math.nan, "status": st}
         failed += [x for x in chunk if x not in got]
     return out, sorted(set(failed))
+
+
+def outcome_status(m: dict) -> tuple[str, float | None]:
+    """Re-check M2. Not closed: ``unresolved`` (censored downstream). Closed with missing or unparseable ``outcomePrices``: ``failed`` (blocks the counted run).
+    Closed with parseable prices that are not a decisive payout (1/0, 0/1, 0.5/0.5): ``closed_not_decisive`` (its own status, valued as unavailable, never as
+    censored). Otherwise ``resolved`` with the payout of token 0."""
+    if not m.get("closed"):
+        return "unresolved", None
+    raw = m.get("outcomePrices")
+    try:
+        v = json.loads(raw) if isinstance(raw, str) else list(raw)
+        float(v[0]), float(v[1])
+    except (TypeError, ValueError, IndexError, KeyError, json.JSONDecodeError):
+        return "failed", None
+    y0 = H1.parse_outcome0(raw)
+    return ("resolved", y0) if y0 is not None else ("closed_not_decisive", None)
 
 
 def load_guarded_outcomes(path: Path, *, window: str, decl: str, need: set[str]) -> dict[str, dict]:
@@ -567,6 +586,20 @@ def _pilot(args, ctx: Ctx) -> int:
     return 0
 
 
+H_UNAVAILABLE = "unavailable"
+
+
+def pilot_h(pil: dict | None) -> int | str:
+    """Re-check M1: the H pin comes only from a pilot that ran (hours read, measured ingress) and carries ``power.H`` (the frozen H rule, which gives 0 when
+    H_cap < 84). A missing or failed pilot gives ``"unavailable"``, kept distinct from H_cap < 84."""
+    if not isinstance(pil, dict) or not isinstance(pil.get("power"), dict):
+        return H_UNAVAILABLE
+    h = pil["power"].get("H")
+    if isinstance(h, bool) or not isinstance(h, int) or h < 0 or not (pil.get("hours_done") or 0) > 0 or pil.get("ingress_gb_per_hour") is None:
+        return H_UNAVAILABLE
+    return h
+
+
 def _pins(ctx: Ctx) -> dict:
     return D.load_pins(ctx.spec)
 
@@ -578,6 +611,8 @@ def cmd_measure_N(a, ctx: Ctx | None = None) -> int:
 def _measure_n(args, ctx: Ctx) -> int:
     decl = _gate(ctx, args, counted=True)
     pins = _pins(ctx)
+    if pins["H"] == H_UNAVAILABLE:
+        raise Refusal("H is unavailable (the pmxt pilot failed or did not run): measure-N is not run; this is not 'H_cap < 84'")
     H = int(pins["H"])
     if H < D.N["H_grid"][0]:
         doc = {**_header("N", decl), "tests": {t: {"testable": False, "p": 1.0, "estimate": math.nan, "reason": ["H_cap < 84: not testable"]} for t in ("N1", "N2")}}
@@ -679,6 +714,10 @@ def _fetch_outcomes(args, ctx: Ctx) -> int:
         raise Refusal("fetch-outcomes is for family C")
     window = args.window or "dev"
     D.check_outcome_allowed(window, ctx.now, ctx.rep_pin)
+    gates = _census_gates(ctx, "C")
+    if not gates["ok"]:  # the counted C tests are 'not testable' after a failed census gate: no outcome is read at all
+        _emit({"cb4": D.VERSION, "cmd": "fetch-outcomes", "window": window, "status": "census gate failed; no outcome read", "failed_gates": gates["failed"]})
+        return 0
     gp = ctx.out_root / f"C_{window}" / "outcomes_guarded.json"
     if gp.exists():
         raise FileExistsError(f"{gp} exists: outcomes are read once")
@@ -697,7 +736,7 @@ def _fetch_outcomes(args, ctx: Ctx) -> int:
             fh.write(json.dumps({"run_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"), "window": window, "requested": len(ids), "failed": len(failed), "failed_ids": failed}) + "\n")
         raise Refusal(f"outcome read failed for {len(failed)} of {len(ids)} markets (recorded in {fp.name}); the guarded file is not written")
     doc = {"label": LABEL, "declaration_sha256": decl, "window": window, "requested": ids, "complete": True, "failed": [], "outcomes": outs,
-           "status_counts": {k: sum(1 for v in outs.values() if v["status"] == k) for k in ("resolved", "unresolved")}}
+           "status_counts": {k: sum(1 for v in outs.values() if v["status"] == k) for k in ("resolved", "unresolved", "closed_not_decisive")}}
     p, sha = _write(ctx, f"C_{window}/outcomes_guarded.json", doc)
     _emit({"cb4": D.VERSION, "cmd": "fetch-outcomes", "window": window, "n": len(outs), "results": str(p), "sha256": sha})
     return 0
@@ -968,9 +1007,8 @@ def _census(args, ctx: Ctx) -> int:
                     heads["corrupt_or_error"] += 1
         out["N"] = {"pilot": pil and {k: pil.get(k) for k in ("eligible_events_per_hour", "hours_done", "hours_missing", "ingress_gb_per_hour", "power", "stop", "design_effect_used")},
                     "head_checks": heads if heads is not None else "not run (needs the pilot's H and --head-checks)", "venue_rho_check": "manual: docs.polymarket.com/trading/taker-rebates"}
-        if pil:
-            pins["H"] = int(pil["power"].get("H", 0))
-    pins.setdefault("H", 0)  # no pilot H: N1/N2 'not testable (H_cap < 84)', counted (check_pins requires all three pins)
+        pins["H"] = pilot_h(pil)
+    pins.setdefault("H", H_UNAVAILABLE)  # census run without family N: H unavailable, never a silent 0 (re-check M1)
     pins.setdefault("rho", D.N["rho"])
     pins.setdefault("uma_extra_statuses", [])
     out["pin_proposal"] = pins

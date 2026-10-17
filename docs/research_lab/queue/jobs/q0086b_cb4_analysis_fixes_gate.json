@@ -18,5 +18,5 @@
  "max_retries": 1,
  "outputs": [],
  "next_action": "q0086 census runs once q0083, q0084, q0085 and q0086a are done",
- "notes": "DRAFT coordinator gate (same trivial argv as q0086a). create in jobs/ only after a science-reviewer re-check of fixes 1-6 (CREATIVE_BATCH_4.md, 'Analysis freeze-check fixes (2026-10-17)' and amendment A-C1)."
+ "notes": "Coordinator gate (same trivial argv as q0086a). Created in jobs/ 2026-10-17 after the science-reviewer re-check of e69d8b6 (A-C1 accepted, fixes 2-6 verified, no regressions; final round) and the re-check response commit 'CB4 analysis re-check response M1-M3' (M1-M3 and should-fixes applied; declaration 311b309c...91d70). Releases q0086 (census) once q0083, q0084, q0085 and q0086a are done."
 }

@@ -1538,10 +1538,13 @@ document contained; this section is that amendment.
    t(G − 1) and the Webb wild bootstrap, larger p, at 15-29).
 3. If G_day < 15, the day way does not enter the max (no valid cluster-robust p exists there) and the
    **leave-one-day-out sign rule (CB1 §2.3) is binding at that stage** as the time-dependence check. It was already
-   binding at Stage 1; under A-C1 it is also binding at Stage 2 whenever the day way does not enter.
+   binding at Stage 1; under A-C1 it is also binding at Stage 2 whenever the day way does not enter. For C2 it binds
+   on both clocks wherever it binds: by the closing day (the cluster clock) and by the day of `e` (the decision
+   clock) (re-check M3).
 4. §2.6 (ii) top-5 robustness drops the 5 largest events and, separately, the 5 largest days (the day check is
-   applied even when G_day < 15; after a drop the same inclusion rule is re-applied).
-5. Sign of the mean by ISO week is reported, not binding.
+   applied even when G_day < 15; after a drop the same inclusion rule is re-applied, and a branch whose remaining days
+   fall below 15 must also pass the leave-one-day-out rule, on both clocks for C2).
+5. Sign of the mean by ISO week and the lag-1 autocorrelation of daily means are reported, not binding.
 
 **Statistical justification.** Cluster-robust inference with 2-5 clusters has no valid reference distribution: CR1
 over-rejects badly and CR2/wild-cluster corrections are unreliable below about 10-15 clusters (Cameron and Miller
@@ -1560,10 +1563,10 @@ at 14 days.
 **Effect on k / Holm.** None. C1 and C2 stay in the route Stage-2 family (k ≤ 4, Holm α = 0.05 one-sided, Bonferroni
 α/k for early finishers); Stage-1 α = 0.01; floors 1.0c (C1, C2); `R_ann` ≥ 10% (C2). The trial count is unchanged.
 
-**Effect on the MDE.** The §CB4-C MDEs used event-level SEs with normal critical values. Dev (G_day < 15): unchanged,
-about 3.8c at 100 units/week (5.4c at the G46 floor). If dev reaches G_day = 15 the t(14) reference at α = 0.01
-raises it by about 9% (about 4.2c) at equal SE. Rep (G_day ≈ 28, CR2 t(27)): about +2% (k = 1, about 2.15c) to +4.5%
-(k = 4, about 2.7c) at equal SE; more if day-level correlation exceeds event-level correlation (the larger of the
+**Effect on the MDE** (figures as corrected by the re-check). The §CB4-C MDEs used event-level SEs with normal
+critical values. Dev (G_day < 15): unchanged, about 3.8c at 100 units/week (5.4c at the G46 floor). If dev reaches
+G_day = 15 the t(14) reference at α = 0.01 raises it by about 10.2% (about 4.2c) at equal SE. Rep (G_day ≈ 28, CR2
+t(27)): about +2.9% (k = 1, about 2.16c) to +4.7% (k = 4, about 2.72c) at equal SE; more if day-level correlation exceeds event-level correlation (the larger of the
 CR2-t and wild p is used). These are planning numbers; the census replaces them.
 
 **Code.** `cb4_rules.C_SMALL_G = ("day",)`, `C_TIME_WAY`, `c_pways`, `sign_by_week`, `c1_test`/`c2_test` (`time_way`
@@ -1624,7 +1627,34 @@ census gates in counted runs, failed outcome batches, guarded file, census frame
 `test_cb4_declaration.py` (fix-6 hash coverage). `pytest tests/unit/test_cb4_*.py`: 203 passed; ruff clean.
 
 **Declaration hash (2026-10-17, after these fixes; supersedes `1d17074139c0...932d9`):**
-`ec466f73e845ce87ff998e99100a33b6406a9357fd3a8cfd27e85d337b157ce1`.
+`ec466f73e845ce87ff998e99100a33b6406a9357fd3a8cfd27e85d337b157ce1` (superseded by the re-check response below).
 
 **Next.** Science-reviewer re-check of fixes 1-6 and A-C1; then create `q0086b_cb4_analysis_fixes_gate` in `jobs/`
 from `queue/drafts/` (the census q0086 already depends on it).
+
+## Re-check response (2026-10-17)
+
+The science-reviewer re-check of e69d8b6 accepted A-C1, verified fixes 2-6 (no regressions) and asked for M1-M3 and
+three should-fixes before releasing q0086b. Final round; all applied, each equal or stricter, data-blind.
+- **M1.** The census no longer sets H = 0 by default. `pilot_h` pins H only from a pilot that ran (hours read,
+  measured ingress) and carries `power.H` (the frozen H rule, 0 when H_cap < 84). A missing or failed pilot, or a
+  census without family N, pins `H = "unavailable"`; `check_pins` accepts that value and `measure-N` then refuses
+  (exit 3, nothing written, no trial line), kept distinct from "not testable (H_cap < 84)".
+- **M2.** `outcome_status`: not closed → unresolved (censored); closed with missing or unparseable `outcomePrices` →
+  failed (the guarded file is not written; the counted run stays blocked); closed with a non-decisive payout →
+  `closed_not_decisive`, its own status, neither resolved nor censored: the fill is dropped from the estimate and
+  added back as a filled loser in the binding truncation worst case, and counted in the results.
+- **M3.** Wherever LODO binds for C2 (Stage 1, or any stage where the day way does not enter) it binds by the
+  closing day and by the day of `e`; both must hold (`lodo_sign_close_day`, `lodo_sign_e_day`). Recorded in A-C1.
+- **Should-fixes.** (a) a top-5-dropped branch whose remaining days fall below 15 must also pass LODO (both clocks for
+  C2); (b) lag-1 autocorrelation of daily means reported for C1 and C2 (not binding); (c) `fetch-outcomes` checks the
+  census C gates first and reads no outcome after a failed gate (exit 0, nothing written); (d) the A-C1 MDE figures
+  corrected to +2.9% (k = 1), +4.7% (k = 4) and +10.2% (dev at t(14)).
+- **Tests.** `test_m1_*`, `test_m2_*`, `test_m3_*`, `test_top5_day_branch_below_15_days_needs_lodo`,
+  `test_fetch_outcomes_reads_nothing_after_a_failed_census_gate`; `pytest tests/unit/test_cb4_*.py` 210 passed; ruff clean.
+
+**Declaration hash (2026-10-17, after the re-check response; supersedes `ec466f73...57ce1`):**
+`311b309c7879d67d83e00c8dd0e62836025372081b55c52d8c70a574cc791d70`.
+
+q0086b moved from `queue/drafts/` to `queue/jobs/` in the response commit, as the coordinator instructed for the case
+where all tests pass.
