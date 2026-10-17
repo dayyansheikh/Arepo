@@ -84,3 +84,19 @@ def test_commit_register_refuses_incomplete_and_never_overwrites(tmp_path):
     M.commit_register(full, None, tmp_path / "reg.json")
     with pytest.raises(Exception):  # noqa: B017 - any refusal to overwrite
         M.commit_register(full, None, tmp_path / "reg.json")
+
+
+def test_design_effect_from_event_clustering():
+    import numpy as np
+
+    rng = np.random.default_rng(0)
+    ev = np.repeat(np.arange(40), 10)
+    iid = rng.normal(size=400)
+    clustered = np.repeat(rng.normal(size=40), 10) + 0.1 * rng.normal(size=400)
+    assert M.design_effect_from_clusters(iid, ev) < 1.6
+    assert M.design_effect_from_clusters(clustered, ev) > 8.0  # ICC near 1 -> deff near the cluster size 10
+    assert math.isnan(M.design_effect_from_clusters([1.0, 2.0], [1, 2]))
+    # the pilot power uses the estimate, with the declared floor 1.5
+    low = M.pilot_power(1e8, 0.1, 10.0, 1.0)["mde_by_H"]["168"]
+    hi = M.pilot_power(1e8, 0.1, 10.0, 6.0)["mde_by_H"]["168"]
+    assert hi > low

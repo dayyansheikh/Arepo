@@ -556,6 +556,25 @@ def band_map(minutes: pd.DataFrame) -> dict:
     return out
 
 
+def design_effect_from_clusters(values, clusters) -> float:
+    """Design effect 1 + (mean cluster size - 1) * ICC from the pilot's event clustering (CREATIVE_BATCH_4.md section CB4-N; one-way ANOVA ICC,
+    clipped to [0, 1]). Fewer than two clusters or no repeated cluster -> NaN (the caller then uses the declared floor)."""
+    df = pd.DataFrame({"v": pd.to_numeric(pd.Series(list(values)), errors="coerce"), "c": list(clusters)}).dropna()
+    k, n = df["c"].nunique(), len(df)
+    if k < 2 or n <= k:
+        return math.nan
+    g = df.groupby("c")["v"]
+    sizes, means = g.size().to_numpy(float), g.mean().to_numpy(float)
+    grand = float(df["v"].mean())
+    ssb = float((sizes * (means - grand) ** 2).sum())
+    ssw = float(((df["v"] - g.transform("mean")) ** 2).sum())
+    msb, msw = ssb / (k - 1), ssw / (n - k)
+    n0 = (n - float((sizes**2).sum()) / n) / (k - 1)
+    denom = msb + (n0 - 1.0) * msw
+    icc = 0.0 if denom <= 0 else min(max((msb - msw) / denom, 0.0), 1.0)
+    return 1.0 + (n / k - 1.0) * icc
+
+
 def pilot_power(g_bytes_per_hour: float, sd_i: float, n_event_hours_per_hour: float, deff: float, *, cap_bytes: float = D.N["ingress_cap_gb"]["measure"] * 1e9) -> dict:
     """Frozen H rule: ``H_cap`` = largest H in {84,168,252,336} with 1.2 H g <= cap; ``H_mde`` = smallest H whose predicted N1 MDE (two-sided Holm first
     step alpha 0.0125, power 0.8, deff >= 1.5) is <= 1.0 pp (336 if none); ``H = min(H_mde, H_cap)``; ``H_cap < 84`` = not testable."""

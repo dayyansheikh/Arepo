@@ -398,6 +398,18 @@ def cmd_pilot(a, ctx: Ctx | None = None) -> int:
     return _wrap("pilot", a, _pilot, ctx)
 
 
+def _net_data_errors() -> tuple[type[BaseException], ...]:
+    import httpx  # noqa: PLC0415
+    import pyarrow as pa  # noqa: PLC0415
+
+    from . import history_sources as hs  # noqa: PLC0415
+
+    return (OSError, ValueError, KeyError, hs.SourceError, httpx.HTTPError, pa.ArrowException)
+
+
+_NET_DATA_ERRORS = _net_data_errors()
+
+
 def _read_hours(ctx: Ctx, hours: list[dict], events_meta: list[dict], seed: str, meter: M.IngressMeter, rates_for) -> tuple[list[dict], dict]:
     """Process hours in order until the cap: each hour reads the pmxt file for the sampled events, replays minutes, builds event-hour units and minutes."""
     from . import history_sources as hs
@@ -416,7 +428,7 @@ def _read_hours(ctx: Ctx, hours: list[dict], events_meta: list[dict], seed: str,
         before = meter.used
         try:
             raw = M.read_hour_events(h["hour"], tokens, fetch=fetch, size_fn=size_fn, meter=meter)
-        except Exception:
+        except _NET_DATA_ERRORS:
             missing += 1
             continue
         done += 1
@@ -456,9 +468,11 @@ def _pilot(args, ctx: Ctx) -> int:
     u = pd.DataFrame(units)
     sd = float(u["I_mid"].std()) if len(u) > 1 else 0.0
     per_hour = len(u) / max(info["hours_done"], 1)
-    power = M.pilot_power(g, sd, per_hour, 1.5) if np.isfinite(g) else {"H": 0, "testable": False}
+    deff = M.design_effect_from_clusters(u["I_mid"], u["event_id"]) if len(u) else math.nan  # pilot_power applies the declared floor 1.5
+    power = M.pilot_power(g, sd, per_hour, deff if np.isfinite(deff) else 1.5) if np.isfinite(g) else {"H": 0, "testable": False}
     doc = {"label": LABEL, "job": "pilot", "descriptive": True, "n_event_hours": len(u), "eligible_events_per_hour": per_hour, "hours_done": info["hours_done"], "hours_missing": info["hours_missing"],
            "ingress_gb_per_hour": g / 1e9 if np.isfinite(g) else None, "base_rates": {k: float(u[k].mean()) for k in ("I_hi", "I_mid", "I_lo", "I_none")} if len(u) else {}, "sd_I_mid": sd,
+           "design_effect_estimated": deff if np.isfinite(deff) else None, "design_effect_used": max(deff, 1.5) if np.isfinite(deff) else 1.5, "n_event_clusters": int(u["event_id"].nunique()) if len(u) else 0,
            "power": power, "walk": wrep, "stop": bool(per_hour < D.N["stop_eligible_events_per_hour"] or info["hours_missing"] > D.N["stop_missing_hour_share"] * max(len(hours), 1))}
     p, sha = _write(ctx, "N_pilot/pilot.json", doc)
     _emit({"cb4": D.VERSION, "cmd": "pilot", "results": str(p), "sha256": sha, "H": power.get("H")})

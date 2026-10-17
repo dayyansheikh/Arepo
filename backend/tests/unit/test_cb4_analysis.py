@@ -148,3 +148,13 @@ def test_queue_spec_argv_parses_end_to_end(name):
     assert a.cmd in run_cb4.ANALYSIS_COMMANDS
     A._args(a.cmd, SimpleNamespace(extra=[*rest, *a.extra]))  # every option is known to cb4_analysis
     assert spec["resources"]["mem_mb"] <= 1500
+
+
+def test_pilot_uses_estimated_design_effect_and_narrow_except():
+    import inspect
+
+    from astrolabe.research_lab import cb4_analysis as A
+
+    assert "design_effect_from_clusters" in inspect.getsource(A._pilot)
+    assert "except _NET_DATA_ERRORS" in inspect.getsource(A._read_hours) and "except Exception" not in inspect.getsource(A._read_hours)
+    assert OSError in A._NET_DATA_ERRORS and Exception not in A._NET_DATA_ERRORS
