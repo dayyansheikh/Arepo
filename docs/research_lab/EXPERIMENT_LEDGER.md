@@ -1363,3 +1363,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   live universe (0 families)"** when q0106's census applies G59 (design §691). The grouper is frozen; admitting placeholder
   buckets would be a design change and is not made. Drafts q0105 (cdf extract backfill) and q0107 (r_inc) are held: they
   would read an empty family list. Other CB5 parts (G, K, J4) are unaffected.
+
+## Ops: h7 series frame q0082f incomplete -> q0082g; CB8-H smoke q0160b FAIL (criterion h), 2026-10-17: not counted
+- **q0082f** ended `done` only because the repeat loop hit `max_runs 8`: every late run stopped on the ops disk cap
+  (`DiskBudget` counts the whole run dir: `walk_partial.jsonl` 2.0 GB + guarded 0.56 GB > 1.0 GB). The walk was near the
+  end of the closed pass (2026-10-14 window). The cap is not a hashed rules field. Re-issued as **q0082g** with
+  `--disk-cap-gb 4.0`, resuming from the partials (e49ca18); q0082 (fetch) now depends on q0082g, its ops cap 0.40 -> 6.0
+  (the shared run dir already holds 2.6 GB). Deadline: cap-at 2026-10-22T00Z.
+- **q0160b** (CB8-H holders smoke v2, rules v3): criteria a-g pass; **h FAILS**: `/oi` missing share 0.819 > 0.02 (base
+  278,705, `oi_absent` 228,318, 0 lookup failures, 0 nonnumeric, 0 integrity violations). Smoke = FAIL; under the design
+  q0162/q0163 do not run. Diagnosis: `/oi` returned 539/540 random active Gamma markets, while 235/300 sampled base-frame
+  markets were absent, all dormant (blank/zero `volume24hr`). Working hypothesis: absent = zero OI, which the OI ≥ 1,000 rule
+  excludes anyway. Being verified independently before any amendment (would be H-v4, new rules file, science-reviewer,
+  new smoke q0160c); if not verified, CB8-H stays FAIL under its stop rule.
