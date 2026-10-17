@@ -1,9 +1,11 @@
 # Creative batch 9 (CB9): trade-direction truth, hourly-anchored Pyth dailies, flow-skewed maker, dust midpoint
 
 `evidence_role: methods` (CB9-S, CB9-D) / `exploratory_historical` (CB9-P Stage 1, CB9-K on pmxt books 2026-04-13 to
-08-10) / `prospective` (CB9-P Stage 2, post-freeze sessions) | status: **DRAFT design, not frozen; challenger review
-required.** Drafted 2026-10-17 11:05 UTC+1 (2026-10-17T10:05Z) by the CB9 design pass. Nothing has been fetched for
-CB9 beyond the 45 counts-only feasibility requests in §0.3. No CB9 quantity has been computed.
+08-10) / `prospective` (CB9-P Stage 2, post-freeze sessions) | status: **DRAFT-REVISED after challenger round 1; not
+frozen; next: code, then code-against-design freeze check.** Drafted 2026-10-17 11:05 UTC+1 (2026-10-17T10:05Z) by the
+CB9 design pass (`00dd145`); round-1 response 2026-10-17 (§9-§10). Every round-1 change tightens or discloses; no floor,
+threshold or gate was relaxed. Nothing has been fetched for CB9 beyond the 45 counts-only feasibility requests in §0.3.
+No CB9 quantity has been computed.
 
 This file turns four round-4 ideas from `CREATIVE_HYPOTHESES_2026-10-18.md` (CH79, CH83/CH84 merged, CH92, CH80) into
 declared, falsifiable tests, and records why the other round-4 ideas are not in this batch. It follows
@@ -17,8 +19,9 @@ unchanged, including its challenger-round fixes; CB4 amendment A-C1 governs the 
   fixed by this document and hashed into `seals/cb9_sign_rules.json` before q0181 is committed. The audit *statistic*
   (agreement) is computed only after the freeze (q0190).
 - **`T_seal` congestion.** Nothing CB9 enters the `net` lane before 2026-10-22T00:00Z; CB6/CB7/h7 `T_seal`-bound fetches
-  and CB8's post-`T_seal` jobs keep priority. Before `T_seal` only q0180 (smoke, about 80 requests) and q0181 (audit
-  stage A, about 2,700 requests) may run, both on the `cpu` lane at ≤ 2 rps.
+  and CB8's post-`T_seal` jobs keep priority. Before `T_seal` only q0180 (smoke, about 80 requests, `cpu` lane, ≤ 1 rps)
+  may run. **q0181 (audit stage A, about 2,700 requests) moved to the `net` lane after `T_seal`** (round 1, should-change:
+  `history_backfill.Limiter` paces per process only, so a `cpu`-lane fetch would add to a `net`-lane job's rate; §2.8).
 - **Queue ids q0180-q0199, one id per job, no letter suffixes** (checked free in `queue/jobs/` and `queue/drafts/` at
   drafting; q0177-q0179 stay reserved for CB8). Specs are drafts **in this document only** (§4); no file is created
   under `queue/` until code, tests and the freeze check exist.
@@ -30,7 +33,7 @@ unchanged, including its challenger-round fixes; CB4 amendment A-C1 governs the 
 | 1 | **CB9-S** trade-direction truth (CH79) | the Data API `side` of a taker print disagrees with the on-chain taker side often enough (agreement `q` < 0.90) to attenuate every AREPO flow coefficient; if so, the on-chain-signed flow slope is ≥ 1.5x the feed-signed slope (S1) | S0 (measurement, fixed); S1 (conditional on S0) | fresh print samples + public Polygon receipts (Oct 2026, Feb-Apr 2026, May-Aug 2026) | none (methods; S1 is single-stage, ceiling L1) | q0180-q0182, q0188, q0190, q0193, q0194 |
 | 2 | **CB9-P** hourly-anchored Pyth equity dailies (CH83a + CH84, merged and narrowed) | in Pyth-settled equity "Up or Down" dailies, a frozen lognormal digital anchored on the last public hourly bar (a) identifies asks that pay after fees when held to settlement (P1, taker), and (b) a maker quoting around that anchor beats the same maker quoting around the book mid (P2) | P1 (economic), P2 (economic contrast) | pmxt books, all usable sessions 2026-04-13..08-10 | prospective post-freeze sessions (30) | q0183, q0184, q0191, q0195, q0196, q0198 |
 | 3 | **CB9-K** flow-skewed maker in the F4/F5 cells (CH92) | in the replicated high-volatility / wide-spread cells, a touch maker skewed one tick in the direction of the frozen 6h flow feature earns more per filled share at a 6h mark than the unskewed maker (K1) | K1 (economic contrast, with route gate) | pmxt books (14Z origins) + Data API prints, SCREEN events | the same fetch, sealed HOLDOUT events | q0185-q0187, q0189, q0192, q0197 |
-| 4 | **CB9-D** dust-anchored midpoint (CH80, route 1 only) | when a best level is dust (< 5 shares or < $1), the next print lies closer to the size-cutoff mid than to the displayed mid (D1); methods consequence for every mid-based target | D1 (methods mechanism) | the K pmxt hours (same markets, no extra ingress), SCREEN events | sealed HOLDOUT events | shares q0185-q0187, q0189, q0192, q0197 |
+| 4 | **CB9-D** dust-anchored midpoint (CH80, route 1 only) | when a best level is dust (< 5 shares, `orderMinSize`; round 1), the next transaction's VWAP lies closer to the size-cutoff mid than to the displayed mid (D1); methods consequence for every mid-based target | D1 (methods mechanism) | the K pmxt hours (same markets, no extra ingress), SCREEN events | sealed HOLDOUT events | shares q0185-q0187, q0189, q0192, q0197 |
 | - | CB9-F data | smoke, exclusion keys, frames, books, prints, receipts, seals | none | | | q0180-q0189, q0193, q0195, q0198 |
 
 **Counted: 5 fixed (S0, P1, P2, K1, D1) + up to 5 conditional (S1, P1-rep, P2-rep, K1-rep, D1-rep) = 5-10** (§2.5).
@@ -40,7 +43,7 @@ unchanged, including its challenger-round fixes; CB4 amendment A-C1 governs the 
 | Id | Job | Family | Earliest commit |
 |---|---|---|---|
 | q0180 | `cb9_smoke` (counts only: RPC endpoints and topic pins on 20 receipts per exchange era; Yahoo hourly bar shape out of window; Pyth frame paging; pmxt HEADs) | F | after smoke code and `seals/cb9_sign_rules.json` exist (cpu lane; may run before `T_seal`) |
-| q0181 | `cb9_sign_audit_A` (S0 strata a and c: fresh print samples, receipts, per-print classes; **no agreement computed**) | S | after the q0180 PASS (cpu lane; may run before `T_seal`) |
+| q0181 | `cb9_sign_audit_A` (S0 strata a and c: fresh print samples, receipts, per-print classes; **no agreement computed**) | S | after the q0180 PASS and after `T_seal` (`net` lane; round 1) |
 | q0182 | `cb9_exclusion_keys` (CB8 q0164 keys plus every seal copy committed since: h7_cb4_*, h8_*, h9_flow, CB8 updown frame and holdout listing, CB8 holders frame) | F | after `T_seal`, q0164, q0166, q0168 |
 | q0183 | `cb9_pyth_frame` (Gamma frame of Pyth equity Up/Down dailies; rule-text flags; Yahoo hourly and daily bars; outcomes to the guarded file) | P | after q0182 |
 | q0184 | `cb9_pyth_books` (pmxt states at the three checkpoints; Data API prints in the 5-minute quote windows) | P | after q0183 |
@@ -48,7 +51,7 @@ unchanged, including its challenger-round fixes; CB4 amendment A-C1 governs the 
 | q0186 | `cb9_kd_books` (pmxt hour 14Z of every window day for the K/D markets; book events kept for D; prints `[t − 6 h, t + 7 h]`; HOLDOUT written sealed) | K, D | after q0185 |
 | q0187 | `cb9_kd_seal` (HOLDOUT listing sha256, seal copy) | K, D | after q0186 |
 | q0188 | `cb9_sign_audit_B` (S0 stratum b: 1,000 SCREEN K/D prints, receipts, pmxt feed side by tx hash) | S | after q0187 |
-| q0189 | `cb9_census` (counts only, all families; MDEs; gates GP, GK, GD, S0 match counts) | all | after q0184, q0187, q0188 |
+| q0189 | `cb9_census` (counts only, all families; MDEs; gates GP, GK, GD, S0 match counts; pmxt coverage audits) | all | after q0181, q0184, q0187, q0188 |
 | q0190 | `cb9_screen_S0` (agreement and the S0 verdict) | S | after the CB9 freeze |
 | q0191 | `cb9_screen_P` (P1, P2, Stage 1) | P | after the CB9 freeze |
 | q0192 | `cb9_screen_KD` (K1, D1, Stage 1) | K, D | after the CB9 freeze |
@@ -73,11 +76,12 @@ because they change the reading of many tests at once (mission §10, questions 2
   `tx16` (16 hex characters, not enough to fetch a receipt); `history_backfill` stores `trade_key` (a sha256 of the tx
   hash and other fields), not the hash. **No stored AREPO table can be audited without a fresh print fetch.** Every
   current print fetcher uses `takerOnly=true`.
-- `battery2.cumulative_count()` on the Mac working tree (`battery2-count-v1`) = **1,131** at 2026-10-17T10:00Z. The
-  ledger's CB1-D line records 1,106 under its own prose count; the counter value is the larger and is used as the lower
-  bound here (§2.5).
+- `battery2.cumulative_count()` on the Mac working tree (`battery2-count-v1`) = **1,131** at 2026-10-17T10:00Z. This
+  is the count (§2.5). The 1,106 in the ledger is an old CB1-D note written at that time, not a competing count (round
+  1). Commit `e5cfb3a` made the `design_change` trial kind count 0 (EXCLUDE), so `cumulative_count()` no longer fails
+  closed on the CB6 A-T1 line; 1,131 is the value after that fix.
 - Host state (`scripts/oracle/queue_status.sh`, read only, 2026-10-17T09:52Z): `/` 36 GB, 8.7 GB free; data-dumps
-  **12 GB**; MemAvailable about 4.1 GB; running q0084 (CB4 pmxt pilot) and q0102 (CB5); h7 fetches q0081/q0082 queued for
+  **12.5 GB**; MemAvailable about 4.1 GB; running q0084 (CB4 pmxt pilot) and q0102 (CB5); h7 fetches q0081/q0082 queued for
   the `net` lane; collector and monitors healthy.
 
 ### 0.3 Feasibility probes (counts only, 45 requests, nothing stored)
@@ -129,10 +133,10 @@ and Pyth dailies (`resolutionSource` host `pythdata.app`) are excluded from K an
 
 | Dataset | Prior use | Role in CB9 | Evidence ceiling |
 |---|---|---|---|
-| Data API taker prints, **S0a**: 250 markets, `[2026-10-01, 2026-10-15)` (**new**, q0181) | none | S0 stratum a (current exchange era; E007's era) | methods |
-| Data API taker prints, **S0c**: 250 markets, `[2026-02-01, 2026-04-27)` (**new**, q0181; v1 exchange era; HB1/HB2 era) | none | S0 stratum c | methods |
+| Data API taker prints, **S0a**: 250 markets, `[2026-10-01, 2026-10-15)` (**new**, q0181) | none | S0 stratum a (current exchange era; informs **E007**) | methods |
+| Data API taker prints, **S0c**: 250 markets, `[2026-02-01, 2026-04-27)` (**new**, q0181; v1 exchange era) | none | S0 stratum c (informs **no existing result**; a v1-era measurement for later designs) | methods |
 | Public Polygon receipts (`eth_getTransactionReceipt`, keyless, endpoint list pinned) for S0 and S1 prints (**new**) | none (CB6-N plans logs, not receipts) | on-chain truth side | - |
-| pmxt v2 hour 14Z of every window day, range reads by the K/D condition ids (**new**, q0186) | ECONOMIC_CONDITIONS B, r4_book, J3, CB1-C, CB4-N, CB8-B (other markets) | K Stage 1 (SCREEN events) and Stage 2 (HOLDOUT, sealed); D the same; S0b's pmxt feed side | L1 / L2 (sealed holdout) |
+| pmxt v2 hour 14Z of every window day, range reads by the K/D condition ids (**new**, q0186) | ECONOMIC_CONDITIONS B, r4_book, J3, CB1-C, CB4-N, CB8-B (other markets) | K Stage 1 (SCREEN events) and Stage 2 (HOLDOUT, sealed); D the same; S0b's pmxt feed side (S0b informs **HB1, HB2 and K**) | L1 / L2 (sealed holdout) |
 | Data API prints `[t − 6 h, t + 7 h]` for K/D market-days (**new**, q0186) | none | K flow feature, fills and 6h marks; S0b sample | as above |
 | Gamma frame of Pyth equity Up/Down dailies 2026-04-13..08-10 (**new**, q0183; ids, tokens, question, `resolutionSource`, description flags and sha256, `endDate`, `startDate`; outcomes only in `outcomes_guarded.csv.gz`) | the §0.3 counts | P population | - |
 | Yahoo chart hourly bars (regular session) and daily closes for the frame tickers, 2026-02-01..08-10 (**new**, q0183) | none | P anchor `S_t`, strike proxy `K_d`, σ; source check | - |
@@ -222,8 +226,16 @@ and Pyth dailies (`resolutionSource` host `pythdata.app`) are excluded from K an
 
 - **pmxt.** As CB8 §2.2: an event is used at `t` iff both clocks are ≤ `t`; crossed states ineligible, never repaired.
 - **Data API prints.** Venue `timestamp`; a condition at `t` uses prints with `ts < t`.
-- **Yahoo bars.** An hourly bar `[o, e)` is usable at `t` iff `e + 120 s ≤ t`. Daily close of day `d − 1` usable from
-  `d 00:00Z`.
+- **Yahoo bars (pinned, round 1 item 1).** A Yahoo hourly row's `timestamp` is the **bar start** `o`. Its end is
+  `e = min(o + 60 min, 16:00 ET)` (13:00 ET on half sessions). Rows with `o < 09:30 ET` or `o ≥ 16:00 ET` are dropped, and so
+  are zero-length or closing rows (`e ≤ o`, or a row stamped at 16:00 ET). A full session has exactly **7** regular bars:
+  09:30, 10:30, ..., 14:30 (60 min each) and 15:30 (30 min). A session with any other count after the drop is
+  "bars unavailable" for that ticker-day, counted, never repaired. The probe's 8 rows were 7 bars plus such a row. A bar
+  `[o, e)` is usable at `t` iff `e + 120 s ≤ t`. So the 10:32 checkpoint uses the 09:30 bar, 12:32 uses 11:30, and 15:32 uses
+  14:30. A daily close of day `d − 1` is usable from `d 00:00Z`.
+- **Bars in Stage 2.** q0195 fetches Yahoo at each checkpoint and records the receipt time. `S_t` is the latest bar in
+  that response that is usable at the receipt time. Bars fetched after the session are **diagnostic only** (a
+  bar-revision count) and never enter a feature.
 - **Receipts.** Block timestamp is diagnostic only; S matches by transaction hash, never by time.
 - `closedTime` is never a population condition or an anchor.
 
@@ -236,8 +248,9 @@ market x day and UTC day; **S** market (S0) and Gamma event (S1).
 
 - **S0** is a measurement with a pre-stated decision rule (§CB9-S); it is counted but not in the Holm family.
 - **Stage 1 (P1, P2, K1, D1; S1 if run).** Advance iff one-sided p < 0.01, the §2.4 floor is met, and every binding
-  placebo, robustness check and gate holds. Batch-Holm label (one-sided α = 0.01, k1 = 4, or 5 with S1) reported; BY
-  label (q = 0.10 over `battery2.cumulative_count()` at the run) as triage only.
+  placebo, robustness check and gate holds. A batch-Holm label (one-sided α = 0.01, **k1 = 5 whatever S0's verdict**;
+  round 1 should-change: S1 holds its slot even when it is not run, so k1 never depends on a CB9 result) is reported.
+  A BY label (q = 0.10 over `battery2.cumulative_count()` at the run) is triage only.
 - **Stage 2 (P1-rep, P2-rep, K1-rep, D1-rep).** One Holm at one-sided α = 0.05 over all CB9 tests reaching Stage 2, each
   in its Stage-1 direction; k fixed when the last Stage-1 result is final; early finishers judged at α/k. Labels: K1-rep,
   D1-rep "sealed same-calendar holdout replication (L2)"; P1-rep, P2-rep "out-of-time replication on post-freeze sessions
@@ -249,10 +262,10 @@ market x day and UTC day; **S** market (S0) and Gamma event (S1).
 | Test | Type | Floor on the point estimate |
 |---|---|---|
 | S0 | measurement | decision bands (§CB9-S): near-truth `q̂ ≥ 0.97`; material noise `q̂ < 0.90` |
-| S1 | methods | ratio `R̂ ≥ 1.5` |
+| S1 | methods | ratio `R̂ ≥ 1.5` **and** the event-cluster bootstrap one-sided 99% lower bound of `R` > 1.5 (round 1 item 4) |
 | P1 | economic | net ≥ +1.0c per share after fee |
 | P2 | economic contrast | model-centred minus mid-centred ≥ +0.3c per posted share; route gate: model-centred net per posted share > 0 |
-| K1 | economic contrast | skewed minus unskewed ≥ +0.5c per filled share; route gate: skewed net per filled share > 0 |
+| K1 | economic contrast | skewed minus unskewed ≥ +0.5c per filled share; route gate: skewed net per filled share > 0 **and** skewed net per origin (per 100 posted shares) > 0 (round 1 item 5) |
 | D1 | methods | mean absolute-error gain ≥ +0.5c |
 
 ### 2.5 Counting (M3 rule)
@@ -287,15 +300,16 @@ placebos are judged on the p threshold alone (floors off); 200 draws; **advance 
 - **K1 cell attribution (binding for crediting F4/F5).** K1_rest: the same contrast in origins outside both cells.
   Credit "F4/F5 moderation" only if `K1 − K1_rest ≥ |K1| / 2`; a failure leaves an advance labelled "skew helps in every
   cell".
-- **D1 next-print shuffle calibration (binding).** Within each market x day, next-print prices are permuted across dust
-  units (J4-R increment-shuffle analogue). *Alternative:* within-day level drift makes either mid "closer" by chance.
+- **D1 next-print shuffle calibration (binding).** Within each market x day, next-transaction VWAPs (§CB9-D) are
+  permuted across dust units (J4-R increment-shuffle analogue). *Alternative:* within-day level drift makes either mid
+  "closer" by chance.
 
 **Binding robustness for any advance or pass:** (i) the §2.1 cost robustness keeps the sign and ≥ half the magnitude
 (P1 keeps net > 0); (ii) p threshold and floor hold without the top 5 clusters of each way; (iii) unweighted and
-size-weighted estimates agree in sign (P1 by ask depth capped at 2,000 shares; K1 by filled shares; D1 by next-print
+size-weighted estimates agree in sign (P1 by ask depth capped at 2,000 shares; K1 by filled shares; D1 by next-transaction
 size); (iv) sign by month in ≥ two thirds of months with ≥ 30 units (P), ≥ 300 fills (K), ≥ 500 units (D); (v) the
 declared worst case for unavailable units keeps the sign and p threshold (P: unavailable checkpoints scored as the
-worst observed unit of that day; K: unavailable marks scored at −1 tick per filled share; D: units without a next print
+worst observed unit of that day; K: unavailable marks scored at −1 tick per filled share; D: units without a next transaction
 excluded, counted); (vi) latency: P units and quotes start at bar end + 300 s instead of + 120 s; K fills only from
 `t + 60 s`; each keeps the sign and ≥ half the magnitude.
 
@@ -304,19 +318,38 @@ excluded, counted); (vi) latency: P units and quotes start at bar end + 300 s in
 Outcome guard first; field-restricted accessors; a unit test asserts that no census path receives a target, mark, fill
 price or truth side. **No agreement, net, contrast or mark-out is computed.**
 - **S0.** Prints sampled, receipts fetched, receipt failures by endpoint, matched-exactly-once share, T1/T2 availability
-  (not agreement), fill-type counts, era counts. **Gate GS:** match rate ≥ 90% and ≥ 300 matched prints in each
-  stratum; else that stratum is "not testable (source)".
+  (not agreement), fill-type counts, era counts, matched markets per stratum. **Gate GS (per stratum):** match rate ≥
+  90% and ≥ 300 matched prints in that stratum. A stratum failing GS is "not testable (source)", and the results it
+  informs (§CB9-S era map) stay **"unverified"**. It never takes another stratum's verdict (round 1 item 3).
 - **P.** Frame counts by ticker; rule-text failures; key drops; sessions lost to pmxt gaps or Yahoo gaps; eligible
   checkpoints; units with model edge ≥ 5c on either side (a feature-only count: model value and ask, no outcome);
-  quote-origins; print counts in quote windows. **Gate GP:** ≥ 300 P1 units, ≥ 40 session days, ≥ 15 tickers; ≥ 1,500
-  P2 quote-origins with ≥ 100 fills of either quote. Fail → the test is "not testable", counted.
+  quote-origins; print counts in quote windows; the P pmxt coverage audit (below). **Gate GP:** ≥ 300 P1 units, ≥ 40
+  session days, ≥ 15 tickers; ≥ 1,500 P2 quote-origins with ≥ 100 fills of either quote. Fail → the test is "not
+  testable", counted, labelled as for K/D below.
 - **K.** Frame, key drops, SCREEN/HOLDOUT market and event counts; origins with a two-sided fresh book; the F4/F5 cell
   cut points computed **from feature values only** on SCREEN origins (frozen in the census output); origins in the
-  cell; quote fills by rule (count only); marks available. **Gate GK:** ≥ 2,000 cell origins, ≥ 300 fills of each
-  quote type, ≥ 60 events, ≥ 30 days.
-- **D.** Two-sided market-minutes; dust-state share; dust units with a next print within 10 minutes. **Gate GD:** dust
-  share ≥ 5% of two-sided market-minutes and ≥ 1,000 dust units in ≥ 100 market-days (CH80 kill 1). Fail → D1 "not
-  testable (no dust state)", counted.
+  cell; origins passing the median-`|x6|` skew cut; quote fills by rule (count only); marks available; the K/D pmxt
+  coverage audit (below). **Gate GK, counted after the skew cut** (on the units that enter K1; round 1 item 5): ≥ 2,000
+  cell origins, ≥ 300 filled origins of each quote type, ≥ 60 events, ≥ 30 days. All SCREEN only. Disclosed: the §CB9-K
+  assumptions give about 1,650 cell origins after the cut, so **GK may fail**. The gate is not lowered; a fail is "not
+  testable", counted.
+- **D.** Two-sided market-minutes; dust-state share (share rule, §CB9-D); dust units with a next transaction within 10
+  minutes. **Gate GD:** dust share ≥ 5% of two-sided market-minutes and ≥ 1,000 dust units in ≥ 100 market-days. Fail
+  → D1 "not testable (no dust state)", counted, under the label rule below. *Disclosed (round 1):* CH80's kill 1 was
+  stated on market-**hours**; GD uses market-**minutes**, the D1 unit. The minute share is never larger than the share
+  of market-hours with any dust minute, so GD is the stricter of the two. The hour share is reported.
+- **pmxt coverage audits (round 1 should-change; CB8 §CB8-B audit adopted, counts only, no extra ingress).** For P, the
+  audit takes every (market, quote window) with ≥ 1 Data API print in the window. For K/D, it takes every (market, day)
+  with ≥ 1 Data API print in `[14:00Z, 15:00Z)`. It then counts whether pmxt shows any event for that condition id in
+  the same span. **PASS iff ≥ 90%** for each of P and K/D. Conditioning on a print (a print always makes a
+  `last_trade_price` event) keeps a quiet market from reading as missing coverage. This is a deviation from CB8's
+  separate 13Z hour; it reads no new hours. Labels, kept distinct and counted:
+  - audit FAIL → that family "not testable (source unavailable)";
+  - a unit whose span had a print but no pmxt event → **"source unavailable"**, never "no trade" and never "stale";
+  - a unit with neither a print nor a fresh book → "no fresh book";
+  - a GP, GK or GD fail reads "no opportunity" (P: "no mispricing at the hourly scale"; K: "too few cell fills"; D:
+    "dust is rare") only if the audit passed **and** ≥ 80% of SCREEN units are source-available. Otherwise it reads
+    "not testable (source unavailable)".
 - MDEs are recomputed from these counts and are never used to change a floor, window or threshold.
 
 ### 2.8 Compute, network, disk and stop rules
@@ -325,13 +358,27 @@ price or truth side. **No agreement, net, contrast or mark-out is computed.**
   `MemAvailable ≥ mem_mb + 1200`, address cap 2 x `mem_mb`, 02:45-05:30 UTC blackout for `mem_mb ≥ 500`, exit 75 on
   headroom). Never two multi-GB jobs at once. pmxt jobs read **one row group at a time with column projection** and
   never materialise an hour file (the q0084 MemoryError lesson); peak RAM ≤ 1.5 GB.
-- **Before `T_seal`.** Only q0180 (about 80 requests) and q0181 (about 2,700 requests: 500 Data API, about 100 Gamma,
-  about 2,000 receipts; about 25 min at ≤ 2 rps, mem ≤ 300 MB), both `cpu` lane. **Nothing CB9 enters the `net` lane
-  before 2026-10-22.**
+- **Before `T_seal`.** Only q0180 (about 80 requests: about 40 receipts, about 20 Data API and Gamma, 2 Yahoo, a few
+  pmxt HEADs; `cpu` lane at ≤ 1 rps, under 3 min). **Nothing CB9 enters the `net` lane before 2026-10-22.**
+- **Rate limiter (round 1 should-change, checked in code).** `history_backfill.Limiter` paces requests **within one
+  process** only (an in-memory last-request clock). It yields to the live collector through `live_pass_or_lock()`
+  (collector flock or pass command line), but it is **not shared** with other queue jobs. A `cpu`-lane fetch would
+  therefore add its rate to a `net`-lane job hitting the same host. So:
+  - **q0181** (about 2,700 requests: about 500 Data API, about 100 Gamma, about 2,000 receipts; about 25 min at ≤ 2
+    rps, mem ≤ 300 MB) moves to the **`net` lane after `T_seal`**. There it never runs concurrently with another
+    `net`-lane fetch.
+  - **q0180** stays on the `cpu` lane. It sends at most about 20 Data API/Gamma requests at ≤ 1 rps and uses the
+    collector yield, so its worst-case overlap with a `net`-lane job is that job's rate + 1 rps for under a minute
+    (disclosed).
+  - **q0195 and q0198** (prospective P, `cpu` lane) hit the Data API, Gamma and CLOB at checkpoint times and cannot wait
+    for the lane. They run at ≤ 1 rps with the collector yield, and the combined rate is disclosed in their manifests (each
+    records any `net`-lane job running during its requests).
+  - Polygon RPC (receipts) is used by no other AREPO job.
 - **After `T_seal`** (`net` lane, priorities 36-43, behind CB7 q0146, CB4 pmxt jobs and CB8 q0161-q0167):
 
   | Job | Work | Ingress / wall | Stored |
   |---|---|---|---|
+  | q0181 | S0a/S0c samples + receipts (moved from `cpu`, round 1) | about 600 Data API/Gamma + about 2,000 receipts | ≤ 0.01 GB |
   | q0182 | exclusion keys | about 400 Gamma requests | ≤ 0.01 GB |
   | q0183 | P frame + bars | about 300 Gamma + about 50 Yahoo requests | ≤ 0.01 GB |
   | q0184 | P books + prints | pmxt about 234 hours x ≤ 25 condition ids (≤ 24% of row groups) **ingress cap 40 GB**; about 4,700 print requests; about 1.5-2.5 h | ≤ 0.02 GB |
@@ -343,7 +390,7 @@ price or truth side. **No agreement, net, contrast or mark-out is computed.**
   | q0198 | half-day poll | about 3,500 requests per half day, `cpu` lane | ≤ 0.01 GB |
 
 - **Disk guard.** Every CB9 data job exits 75 when data-dumps + its output cap > **13 GB** (current convention). Data-dumps
-  is **12 GB** today, so CB9 jobs may wait on the nightly archive rotation; the precondition never changes retention.
+  is **12.5 GB** today, so CB9 jobs may wait on the nightly archive rotation; the precondition never changes retention.
   CB9 output caps total ≤ 0.3 GB.
 - **Network etiquette.** Shared `Limiter`, yield to the live collector, 429 / `Retry-After` back-off, stop on repeated
   429, collector-health stop. Polygon RPC ≤ 2 rps, pinned endpoint order (drpc, 1rpc, publicnode), a receipt is
@@ -418,35 +465,62 @@ agreement is probably near 1. That is still worth 2,700 requests: it either clos
 - Stored per print: hashed wallet, market id, tx hash, asset, Data API side and outcome index, size, price band label,
   liquidity tercile, era, T1, T2, fill type, match status, pmxt feed side (S0b). No price, mark or outcome.
 
-**Statistic and decision rule (S0, per stratum and pooled).** `q̂` = share of matched prints with `A_yes = 1`; Wilson
-99% interval; market-clustered bootstrap reported.
+**Era map (pre-stated, round 1 item 3).** Each stratum informs only the results from its own era:
 
-| Verdict | Condition | Consequence |
+| Stratum | Era | Informs |
 |---|---|---|
-| **near-truth** | `q̂ ≥ 0.97` and Wilson lower bound ≥ 0.95 in every stratum passing GS | CH79's attenuation route closed; flow results stand as measured; S1 not run (not counted) |
-| **minor noise** | otherwise, with `q̂ ≥ 0.90` and worst-case `q_wc ≥ 0.85` in every stratum | ceiling re-scaling ≤ `1/(2·0.90 − 1)` = 1.25x, too small to make a taker flow route material (it needs about 5x, CH79); methods note only; S1 not run |
-| **material noise** | `q̂ < 0.90` or `q_wc < 0.85` in any stratum passing GS | methods note M4 (ceilings re-stated by `1/(2q̂ − 1)` as an upper bound under symmetric noise, labelled as such); S1 runs for that era |
+| S0a | v2 exchange, `[2026-10-01, 10-15)` | **E007** |
+| S0b | v2 exchange, pmxt window May-Aug 2026 | **HB1, HB2 (incl. HB2-R F4/F5) and CB9-K** |
+| S0c | v1 exchange, `[2026-02-01, 04-27)` | **no existing result** (v1-era measurement for later designs) |
 
-`q_wc` scores unmatched prints as disagreements. Reported: `q̂` by liquidity tercile, price band, fill type, sports
-stratum; `A_tok`; the feed-side agreement in S0b; the share of disagreements that are mint/merge fills.
+Disclosed: the HB window starts 2026-04-13, so its first two weeks are v1-era. S0c covers that exchange era but not
+that calendar, so it is not read across to HB1/HB2.
+
+**Statistic and decision rule (S0, per stratum).** `q̂` = share of matched prints with `A_yes = 1`. **Lower bound
+`q_LB` (round 1 item 3: market-cluster, not print-level):** the 0.5th percentile of a 2,000-draw market-cluster
+bootstrap (seed 919; markets resampled with their up to 4 prints). Because a bootstrap of an all-agree sample is
+degenerate at 1, `q_LB` is the **minimum** of that percentile and a Wilson 99% lower bound computed on **markets**
+(`n` = matched markets, successes = `n·q̂`). The print-level Wilson interval is reported only. Each stratum that passes
+GS gets its own verdict. A stratum failing GS is "not testable (source)", and its mapped results are **"unverified"**.
+No stratum ever takes another stratum's verdict.
+
+| Verdict (per stratum passing GS) | Condition | Consequence for that stratum's mapped results |
+|---|---|---|
+| **near-truth** | `q̂ ≥ 0.97` and `q_LB ≥ 0.95` | CH79's attenuation route closed for that era. **Narrowed (round 1):** the Data API `side` field is accurate in that era. S0 does **not** audit AREPO's own signing code (the side-to-YES mapping in `history_backfill`/h2 and their stored rows), so this says nothing about a coding error there. S1 is not run for that era |
+| **minor noise** | otherwise, with `q̂ ≥ 0.90` and `q_wc ≥ 0.85` | ceiling re-scaling ≤ `1/(2·0.90 − 1)` = 1.25x, too small to make a taker flow route material (it needs about 5x, CH79); methods note only; S1 not run for that era. If `q̂ ≥ 0.97` but `q_LB < 0.95` only because there are few matched markets, the label is "minor noise or better (bound limited by n)" |
+| **material noise** | `q̂ < 0.90` or `q_wc < 0.85` | methods note M4 for that era's results (ceilings re-stated by `1/(2q̂ − 1)` as an upper bound under symmetric noise, labelled as such); S1 runs for that era |
+
+`q_wc` scores unmatched prints as disagreements. A pooled `q̂` over the strata passing GS is reported as a descriptive
+figure only; it carries no verdict. Also reported: `q̂` by liquidity tercile, price band, fill type and sports stratum;
+**notional-weighted agreement** (prints weighted by `size × price`, round 1 should-change); `A_tok`; the feed-side
+agreement in S0b; and the share of disagreements that are mint/merge fills.
 
 **S1 (conditional): does on-chain signing raise the flow slope?**
-- Data `h10_sign` (q0193): 1,200 markets disjoint by keys (including h9_flow), one seeded 72-h window each in the
-  material-noise era within `[2026-05-01, 2026-10-01)` (or `[02-01, 04-27)` if only S0c triggered), all taker prints;
-  receipts for every print in windows taken whole in seeded order until 20,000 prints (whole windows only).
+- Data `h10_sign` (q0193): 1,200 markets, one seeded 72-h window each in the material-noise era within `[2026-05-01,
+  2026-10-01)` (or `[02-01, 04-27)` if only S0c triggered), all taker prints. Receipts are fetched for every print in
+  windows taken whole in seeded order, until 20,000 prints (whole windows only). **Disjointness (round 1 item 4):** the
+  markets are disjoint by the q0182 keys (event, `negRiskMarketID`, series) from h9_flow and every other sealed or worn
+  run, **and from every CB9 market**: the K/D frame (SCREEN **and** HOLDOUT), the P frame (all Pyth markets), and the
+  S0a/S0b/S0c samples. The frames exist before q0193 (q0183, q0185 and q0187 precede it).
 - Units: 2h grid origins with ≥ 3 prints in `[t − 6 h, t)`. `x_api`, `x_chain` = 6h notional imbalance in YES terms,
   clipped to [−1, 1], **raw (no SD scaling)**, computed on identical prints; `d_6h` = last print price (YES terms) before
   `t + 6 h` minus last print before `t`, each within 30 minutes of its anchor, else unavailable.
-- Statistic `R = β_chain / β_api` from two OLS fits `d = α + β x` on identical units; event-clustered bootstrap of the
-  ratio. **S1 passes** iff `R̂ ≥ 1.5` and one-sided p (bootstrap share of `R ≤ 1`) < 0.01. Reported: `β_chain` in cents
-  per unit flow at 6h (an economic reading against the 1.8c liquid round trip, not a route test).
-- **MDE (assumption; census replaces).** With about 8,000 usable origins in about 900 events and `β_api` at about 4 SE
-  (HB1 FL2 scale), the paired fits correlate strongly (ρ ≥ 0.8), so a ratio of about 1.5 is resolvable from 1.
+- Statistic `R = β_chain / β_api` from two OLS fits `d = α + β x` on identical units; 2,000-draw event-clustered
+  bootstrap of the ratio (seed 919). A draw with `β_api ≤ 0` counts as `R ≤ 1.5`. **S1 passes (restored, round 1
+  item 4; the source idea's kill rule "ratio CI includes 1.5")** iff `R̂ ≥ 1.5` **and** the one-sided 99% lower bound
+  (1st percentile of the draws) is > 1.5. Equivalently, p = bootstrap share of `R ≤ 1.5` < 0.01. The share of `R ≤ 1`
+  is reported. `β_chain` is reported in cents per unit flow at 6h (an economic reading against the 1.8c liquid round
+  trip, not a route test).
+- **MDE (assumption; census replaces).** About 8,000 usable origins in about 900 events, `β_api` at about 4 SE (HB1 FL2
+  scale), and paired-fit correlation ρ about 0.8. Then `SD(log R)` is about 0.17-0.19, and the lower bound clears 1.5
+  only for **`R` about 2.4 or more**, i.e. symmetric-noise `q` ≲ 0.71. Stated plainly: S1 can pass only under strong
+  attenuation. A material-noise `q` in 0.75-0.90 triggers S1, but S1 then reads "not detected at MDE `R` ≈ 2.4".
 
 **Leakage.** None for S0 (no outcome, no price target). S1 uses prints before `t` for features, print prices only for
 targets, fresh markets only; E007, HB1 and HB2 rows are never re-read.
 
-**What kills CH79.** S0 near-truth or minor noise; or S1 `R̂ < 1.5`.
+**What kills CH79.** S0 near-truth or minor noise in every stratum passing GS (strata failing GS leave their results
+"unverified", not killed); or S1 fails its pass rule (lower bound ≤ 1.5).
 
 ### CB9-P: Hourly-anchored Pyth equity dailies (CH83a generalised + CH84 narrowed)
 
@@ -469,7 +543,8 @@ coarsest public anchor; if the book is off by ≥ 5c after a fresh hourly print,
 4. Exclusion ids and keys dropped; the ticker exists in the Yahoo bars for every window session (else the ticker is
    unavailable, counted).
 
-**Features (causal).** At checkpoint `t` (bar end + 120 s): `S_t` = close of the latest usable hourly bar; `K_d` =
+**Features (causal).** At checkpoint `t` (bar end + 120 s, bar clock pinned in §2.2): `S_t` = close of the latest
+usable hourly bar; `K_d` =
 Yahoo daily close of the prior session (proxy for the Pyth final-minute close); `σ` = SD of regular-session hourly log
 returns over the prior 20 sessions (overnight gaps excluded; ≥ 100 returns, else unavailable), per hour; `τ` = hours to
 16:00 ET; `fair_Up = Φ(ln(S_t/K_d) / (σ√τ))`, `fair_Down = 1 − fair_Up`. Model fixed now; no drift, no fitting.
@@ -501,16 +576,34 @@ Gamma outcome (what pays).
 share of model-quote losses on fills within 60 s of a ≥ 1σ(5-min) move cannot be computed (no minute path; reported as
 "latency tail not measurable"), which leaves P2 standing but labelled.
 
-**MDE (assumptions; census replaces).** About 78 sessions x 18 markets x 3 checkpoints ≈ 4,200 checkpoints; perhaps
-15-30% traded. With per-share SD about 45c and a within-day correlation of 0.15-0.3, the day-clustered SE is about
-2.2-3c: **P1 MDE about 7-10c**. P2: about 4,000 quote-origins, per-origin SD about 15c, day-clustered: **MDE about 2c
-per posted share**. Both detect only large effects (CH83's claimed 5-15c is the target); smaller real residuals are
-"not detected at MDE x".
+**MDE (assumptions; census replaces; restated in round 1, item 7).** About 78 sessions x 18 markets x 3
+checkpoints ≈ 4,200 checkpoints; perhaps 15-30% traded. The units are far from independent:
+- the three checkpoints of a market-day share one outcome `Y`, so the effective unit is the market-day;
+- equities share a market factor, so `Y` correlates across tickers within a day (assumed 0.3-0.5).
 
-**Stage 2 (registered only if P1 or P2 advanced).** q0195 records, for 30 full sessions from `T9_P2_start`, the CLOB
-`/book` of every frame-rule market at each checkpoint (receipt-timed), all prints of the quote windows (after the
-session), Yahoo hourly bars (after the session). Identical definitions, model, thresholds, widths, gates. CLOB books
-replace pmxt (receipt clock only; disclosed).
+With per-share SD about 45c, about 10-15 traded market-days per traded session and about 60-78 traded sessions, the
+day-mean SD is about 28-32c, and the day-clustered SE is about 3.3-4.5c. **P1 MDE is about 10-15c.** P2: about 4,000
+quote-origins, but the model and mid quotes of an origin, and all origins of a market-day, settle on the same `Y`.
+Clustered by day, the **P2 MDE is about 2-4c per posted share**. Both detect only large effects (CH83's claimed 5-15c
+sits at or below the P1 MDE). Smaller real residuals are "not detected at MDE x".
+
+**Stage 2 (registered only if P1 or P2 advanced).** For 30 full sessions from `T9_P2_start`, q0195 records:
+- at each checkpoint, receipt-timed: the CLOB `/book` of every frame-rule market, and **a Yahoo hourly-bar fetch** (bar
+  clock §2.2). `S_t` comes from that response;
+- before 09:30 ET each session, a receipt-timed Yahoo fetch of the prior 20 sessions' hourly bars (for σ) and of the
+  prior daily close (`K_d`);
+- after the session: all prints of the quote windows, and the session's Yahoo bars again, **diagnostic only** (a bar-revision
+  count; never a feature).
+
+Definitions, model, thresholds, widths and gates are identical. CLOB books replace pmxt (receipt clock only;
+disclosed).
+- **Yahoo failing part-way (round 1 should-change).** A checkpoint whose Yahoo fetch fails after retries, or returns no
+  usable bar by the checkpoint, is **"unavailable (source)"**, counted, and never filled. There is **no substitute
+  source** (no other vendor, no post-session bar, no CLOB-implied value). A session whose σ/`K_d` fetch fails has all
+  three checkpoints unavailable. Unavailable sessions **count toward the 30** (never replaced, collection never
+  extended beyond `T9_P2_end`). If more than 20% of Stage-2 checkpoints are unavailable, P-rep is "not testable
+  (source unavailable)", counted. The binding worst case (§2.6 (v)) scores unavailable checkpoints as the worst observed
+  unit of that day.
 
 **Half sessions (q0198, descriptive, uncounted).** On 2026-11-27 and 2026-12-24 the regular session ends 13:00 ET while
 `endDate` stays 16:00 ET (to be confirmed per market from the frozen text and `endDate`). From 13:05 to 16:00 ET, every
@@ -549,6 +642,18 @@ at `t`. Cell = `RV` ≥ its SCREEN top-tercile cut **or** `SPR` ≥ its top-terc
 in the census). Skew direction `s = sign(x6)` where `|x6|` ≥ its SCREEN median (feature-only cut), else no skew (origin
 excluded from K1, counted).
 
+**Disclosures (round 1 should-changes).**
+- **Same calendar as HB2.** K's window (2026-04-13..08-10) is HB2's calendar. Only the markets are disjoint (q0182
+  keys). A K1 result is not out-of-time evidence for F4/F5, and a common-calendar regime would affect both.
+- **RV and SPR are redefinitions, not F4/F5's variables.** F4 conditioned on h2's `ml_rv_1d` (from h2 price history)
+  and F5 on the book-feature spread on the 6h grid. K uses print-based 1-day RV and the pmxt touch spread at `t`, with
+  tercile cuts from K's own SCREEN origins. The cells are **analogues** of F4/F5. "F4/F5 moderation" credit (§2.6)
+  means moderation in these analogue cells, not a replication of the HB2-R cells.
+- **Fills and marks depend on the Data API side.** `x6`, the quote fills (taker side decides which quote a print
+  fills) and the mark `M` (last taker-BUY and taker-SELL prices) all use the Data API `side`. S0b (the same era and the
+  same markets' prints) measures that field. Under an S0b verdict of "material noise" or "unverified", K1 carries that
+  label.
+
 **Quotes (live `[t, t + 2 h]`, 50 shares each side).** Unskewed: bid at best bid, ask at best ask. Skewed (`s = +1`): bid
 at best bid + 1 tick (if still < best ask, else best bid), ask at best ask + 1 tick; mirrored for `s = −1`. Fills by
 `cb3_maker.quote_fills`, queue rule, complementary prints in YES terms. Mark `M` = midpoint of the last taker-BUY and last
@@ -559,8 +664,11 @@ Mark-out per filled share: bid `M − p`, ask `p − M`.
 |---|---|---|---|---|
 | **K1** | economic contrast | cell origin (SCREEN events; Stage 2: HOLDOUT events) | mean mark-out per filled share, skewed minus unskewed (fill-weighted within origin, origins equally weighted), cents | > 0 |
 
-**Binding route gate.** The skewed maker's mean mark-out per filled share in the cell > 0 at the point estimate; else
-"skew helps, but the maker still loses: no route". If the unskewed maker alone is ≥ +0.5c with p < 0.01, the verdict is
+**Binding route gate (tightened, round 1 item 5).** At the point estimate, the skewed maker in the cell must have
+**both** (a) mean mark-out per filled share > 0 **and** (b) mean net per origin > 0. In (b) each origin's total
+mark-out P&L is divided by its 100 posted shares, unfilled quotes count 0, and origins are equally weighted, so a
+skew that wins per fill but fills rarely cannot pass on (a) alone. Otherwise the label is "skew helps, but the maker
+still loses: no route". If the unskewed maker alone is ≥ +0.5c with p < 0.01, the verdict is
 "CB3-B's maker result; skew not needed" (CH92 kill 2), whatever K1.
 
 **Fill realism.** Hourly-resolution queue position is uncertain (ECONOMIC_CONDITIONS part B). Binding: the
@@ -568,10 +676,14 @@ trade-through rule (fills only from prints strictly through the quote) keeps the
 fill rate of each quote type is reported; a quote never filled counts 0 shares (it does not enter per-filled-share means
 but enters the per-posted-share version, reported).
 
-**MDE (assumptions).** About 800 markets x about 15 origin days ≈ 12,000 origins; about 55% in the cell; fill rate about
-15% per side → about 2,000 filled origins per quote type in about 300 SCREEN events; mark-out SD about 4c per filled
-share; contrast SE about 0.15c → **MDE about 0.5c**, at the floor. S0's verdict labels K1: under "material noise" K1 is
-reported as "measured with noisy sides" (an attenuated test).
+**MDE (assumptions; restated in round 1, item 5; SCREEN units only, after the skew cut).** About 500 SCREEN
+markets (about 150 events) x about 12 usable origin days ≈ 6,000 SCREEN origins. About 55% are in the cell (about
+3,300), and about half pass the median-`|x6|` skew cut (about 1,650). With a fill rate of about 30% of origins per
+quote type (either side), that is **about 500 filled origins per quote type**. Mark-out SD is about 4c per filled
+share, and the two quote types' fill sets overlap only partly. The event-clustered contrast SE is about 0.3-0.4c, so the
+**MDE is about 1c**, twice the 0.5c floor. K1 can detect only a contrast of about ≥ 1c. A real 0.5-1c contrast reads
+"not detected at MDE 1c". The floor is unchanged. GK is counted after the cut (§2.7) and may fail at these numbers.
+S0b's verdict labels K1: under "material noise" K1 is reported as "measured with noisy sides" (an attenuated test).
 
 **Leakage.** Features from prints before `t`; cut points feature-only; marks from print prices after `t + 5 h`; the
 skew is never re-tuned (one tick, frozen); HOLDOUT sealed. **Known decay:** F4/F5 fell to 40-55% in HB2-R's post-split
@@ -582,19 +694,31 @@ route gate fails; K1-rep fails on HOLDOUT.
 
 ### CB9-D: Dust-anchored midpoint (CH80, route 1)
 
-**Question.** When a best level is dust, is the next print closer to the size-cutoff mid than to the displayed mid, by
-how much, and how common is the state?
+**Question.** When a best level is dust, is the next transaction's price closer to the size-cutoff mid than to the
+displayed mid, by how much, and how common is the state?
 
 **Mechanism.** New orders need `orderMinSize` (5 shares) but partial fills leave smaller residuals; the displayed best
 bid/ask ignores size, so the Gamma mid, `oneHourPriceChange` and AREPO's mid targets can be set by an order no one can
 trade against. Reward scoring already uses a size-cutoff-adjusted mid (probe 8), so the reward route is closed; the
 methods route remains.
 
-**Units (K/D markets, pmxt hour 14Z, both tokens).** Market-minute ends `u ∈ [14:01Z, 15:00Z]` with a two-sided fresh
-book. Dust state: best bid or best ask level with size < 5 shares or size x price < $1. Displayed mid `m_d` = (best bid +
-best ask)/2; size-cutoff mid `m_c` = mid of the best bid and best ask among levels with size ≥ 5 shares and notional ≥
-$1 (unavailable if either side has none). Next print `P` = first pmxt `last_trade_price` of the token after `u` within 10
-minutes (else unavailable). One unit per market-minute; at most one unit per dust episode per 5 minutes (the first).
+**Units (K/D markets, pmxt hour 14Z, both tokens).** Market-minute ends `u ∈ [14:01Z, 15:00Z]` with a two-sided
+fresh book.
+- **Dust state (share rule primary, round 1 should-change).** A best bid or best ask level with size < the market's
+  recorded `orderMinSize` (5 shares in every probed market; a market without the field is unavailable, counted). The
+  draft's extra "< $1 notional" clause is **dropped from the primary**: it flagged legal 5-share orders below 0.20
+  (5 x 0.19 = 0.95), so it would have counted ordinary low-price books as dust. The share-or-$1 version is reported
+  as a variant.
+- Displayed mid `m_d` = (best bid + best ask)/2. Size-cutoff mid `m_c` = the mid of the best bid and best ask among
+  levels with size ≥ `orderMinSize` (unavailable if either side has none).
+- **Next transaction `P` (pinned, round 1 item 6).** Take the Data API taker prints of the token (already fetched,
+  `[t − 6 h, t + 7 h]`; each carries `transactionHash`). The next transaction is the first transaction hash with any
+  print at `ts ≥ u + 1 s` and `ts ≤ u + 600 s` (the one-second step keeps a print from `u`'s own second out). `P` =
+  the **size-weighted VWAP of all of that transaction's prints on the token**, aggregated by hash before any
+  comparison. So a dust fill inside a sweep enters with its share weight and cannot decide the sign by itself. The
+  transaction's last-fill price is a reported variant, never primary. No transaction in 10 minutes → unavailable,
+  counted. `P` uses price, size, time and hash only, never `side`.
+- One unit per market-minute; at most one unit per dust episode per 5 minutes (the first).
 
 | ID | Kind | Unit | Statistic | Direction |
 |---|---|---|---|---|
@@ -607,14 +731,28 @@ displayed-mid changes within the hour caused by a dust level appearing or disapp
 The statistic is partly mechanical (a market order sweeps dust); its value is the size of the methods correction and
 the state frequency, which is why D1 is labelled methods, not economic.
 
+**What AREPO changes (pre-stated, round 1 item 6).**
+- **D1 passes** (Stage 1 advance and D1-rep pass): methods note **M5**. Every later design with a mid-based target or
+  feature (J4/J5 successors, E-series mid targets, Gamma-mid panels) must declare either the size-cutoff mid or a
+  dust-state exclusion, with the M5 effect size as the reference. Existing results are **not** re-run, relabelled or
+  re-scored. A report citing a displayed-mid target from the pmxt era carries an "M5 dust caveat" with the measured
+  dust share. Stage P-D (a touch-size field in the sweep row) is proposed under a separately reviewed collector change.
+- **D1 advances but D1-rep fails, or D1 fails or is not detected:** no correction. Displayed mids stay the standard.
+  The dust share and `|m_d − m_c|` distribution are reported as descriptives, and CH80 route 1 is closed.
+- **GD fails with the coverage audit passed:** "dust is rare, no correction needed" (CH80 closed). With the audit
+  failed: "not testable (source unavailable)", and no methods consequence.
+
 **What kills CH80.** GD fails (dust < 5% of two-sided market-minutes: "dust is rare, no correction needed"); D1 below
 floor or not detected; the shuffle placebo advances.
 
 ### CB9-F: Data jobs
 
-q0180 smoke (PASS needs: ≥ 18 of 20 receipts per era decoded with the pinned topics and T1 = T2; Yahoo hourly bars for
-an out-of-window session with 7 regular-session bars; Gamma paging returns stable counts on two out-of-window days; pmxt
-HEADs 200 for three window hours). q0181/q0188 audit samples. q0182 keys. q0183-q0184 P frame, bars, books, prints.
+q0180 smoke (PASS needs: ≥ 18 of 20 receipts per era decoded with the pinned topics and T1 = T2; **Yahoo bar clock
+(round 1 item 1):** for two out-of-window full sessions of one ticker (NVDA), after the §2.2 drop exactly 7 bars remain,
+the first bar's start is 09:30 ET, the first bar's open equals Yahoo's daily open within 0.2%, the last bar's close
+equals Yahoo's daily close within 0.2%, and the dropped rows are recorded by count. Any failure → P "not testable
+(source)", counted; the bar rule is never re-fitted. Gamma paging returns stable counts on two out-of-window days;
+pmxt HEADs 200 for three window hours). q0181/q0188 audit samples. q0182 keys. q0183-q0184 P frame, bars, books, prints.
 q0185-q0187 K/D frame, books, prints, seal. q0189 census. q0193 conditional S1 fetch. q0195/q0198 prospective P
 collections. Every data job writes a manifest (file sha256, request counts, failures, fingerprint, data-dumps size and
 margin).
@@ -627,8 +765,8 @@ jobs also need the CB9 freeze. All `family` = `creative_batch_9`.
 
 | Id | Lane | Priority | Size / time | Depends on | Commit when |
 |---|---|---|---|---|---|
-| q0180 | cpu | 47 | about 80 req, < 5 min, mem 200 | - | sign rules file + smoke code reviewed |
-| q0181 | cpu | 46 | about 2,700 req, about 25 min, mem 300, ≤ 0.01 GB | q0180 | q0180 PASS |
+| q0180 | cpu | 47 | about 80 req at ≤ 1 rps, < 5 min, mem 200 | - | sign rules file + smoke code reviewed |
+| q0181 | net | 43 | about 2,700 req, about 25 min, mem 300, ≤ 0.01 GB | q0180 | q0180 PASS and after `T_seal` (round 1) |
 | q0182 | net | 43 | about 400 req | q0164, q0166, q0168 | after `T_seal` |
 | q0183 | net | 42 | about 350 req, ≤ 0.01 GB | q0182 | with q0182 |
 | q0184 | net | 40 | pmxt ≤ 40 GB, about 4,700 req, mem 1,500, ≤ 0.02 GB | q0183 | with q0183 |
@@ -639,14 +777,14 @@ jobs also need the CB9 freeze. All `family` = `creative_batch_9`.
 | q0189 | cpu | 37 | ≤ 1.2 GB | q0181, q0184, q0187, q0188 | after the seal copy is committed |
 | q0190-q0192 | cpu | 36 | ≤ 1.5 GB | q0189 | after the CB9 freeze |
 | q0193-q0194 | net / cpu | 36 | ≤ 20,000 receipts / ≤ 1 GB | q0190 | only on "material noise" |
-| q0195 | cpu | 44 | about 150 req/session, rolling | q0191 | only if P1 or P2 advanced |
+| q0195 | cpu | 44 | about 150 req/session at ≤ 1 rps, rolling | q0191 | only if P1 or P2 advanced |
 | q0196 | cpu | 36 | ≤ 0.5 GB | q0195 | after `T9_P2_end` + 2 d |
 | q0197 | cpu | 36 | ≤ 1.5 GB | q0192 | only if K1 or D1 advanced |
 | q0198 | cpu | 45 | about 3,500 req per half day | - | half-day rules hash committed before 2026-11-27 |
 
 ```json
-{"id": "q0180_cb9_smoke", "title": "CB9: smoke (20 receipts per exchange era decoded with pinned topics, T1 = T2; Yahoo hourly bar shape out of window; Pyth frame paging on 2 out-of-window days; pmxt HEADs); counts only", "family": "creative_batch_9", "priority": 47, "expected_value": "go/no-go for every CB9 source", "data": ["public Polygon JSON-RPC (keyless)", "public Data API, Gamma", "Yahoo chart (hourly, out of window)", "pmxt HEAD"], "resources": {"mem_mb": 200, "cpu": 1, "lane": "cpu", "network": "polygon-rpc, data-api, gamma-api, yahoo, r2v2.pmxt.dev"}, "depends_on": [], "argv": ["scripts/run_cb9.py", "smoke", "--rules", "../docs/research_lab/seals/cb9_sign_rules.json", "--rps", "2"], "timeout_s": 1200, "max_retries": 1, "outputs": ["research_lab/creative_batch9/smoke.json", "trials.jsonl (cb9_descriptive)"], "next_action": "PASS: q0181; FAIL of the receipt part: S0 not run (source), counted", "notes": "CREATIVE_BATCH_9.md CB9-F. DRAFT. May run before T_seal (cpu lane). Prints counts only."}
-{"id": "q0181_cb9_sign_audit_A", "title": "CB9-S: S0a [2026-10-01,10-15) and S0c [2026-02-01,04-27) print samples (250 markets x 4 prints each), receipts, T1/T2, fill type; no agreement computed", "family": "creative_batch_9", "priority": 46, "expected_value": "S0 data for the side-flag measurement", "data": ["public Gamma, Data API windowed trades", "public Polygon JSON-RPC receipts", "creative_batch7/exclusion_keys (ids only)"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "cpu", "network": "gamma-api, data-api, polygon-rpc"}, "depends_on": ["q0180_cb9_smoke"], "argv": ["scripts/run_cb9.py", "sign-audit", "--strata", "a,c", "--rules", "../docs/research_lab/seals/cb9_sign_rules.json", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "13"], "timeout_s": 3600, "max_retries": 2, "outputs": ["research_lab/creative_batch9/sign/{s0a,s0c}/{prints_classes.csv.gz,manifest.json}"], "next_action": "q0189 census (counts); agreement only in q0190 after the freeze", "notes": "DRAFT. cpu lane before T_seal; raw proxyWallet compared with takerOrderMaker in memory only; HMAC strict loader."}
+{"id": "q0180_cb9_smoke", "title": "CB9: smoke (20 receipts per exchange era decoded with pinned topics, T1 = T2; Yahoo bar clock: 7 regular bars after the drop, first open and last close vs daily open/close within 0.2%, 2 out-of-window sessions; Pyth frame paging on 2 out-of-window days; pmxt HEADs); counts only", "family": "creative_batch_9", "priority": 47, "expected_value": "go/no-go for every CB9 source", "data": ["public Polygon JSON-RPC (keyless)", "public Data API, Gamma", "Yahoo chart (hourly, out of window)", "pmxt HEAD"], "resources": {"mem_mb": 200, "cpu": 1, "lane": "cpu", "network": "polygon-rpc, data-api, gamma-api, yahoo, r2v2.pmxt.dev"}, "depends_on": [], "argv": ["scripts/run_cb9.py", "smoke", "--rules", "../docs/research_lab/seals/cb9_sign_rules.json", "--rps", "1"], "timeout_s": 1200, "max_retries": 1, "outputs": ["research_lab/creative_batch9/smoke.json", "trials.jsonl (cb9_descriptive)"], "next_action": "PASS: q0181; FAIL of the receipt part: S0 not run (source), counted", "notes": "CREATIVE_BATCH_9.md CB9-F. DRAFT. May run before T_seal (cpu lane). Prints counts only."}
+{"id": "q0181_cb9_sign_audit_A", "title": "CB9-S: S0a [2026-10-01,10-15) and S0c [2026-02-01,04-27) print samples (250 markets x 4 prints each), receipts, T1/T2, fill type; no agreement computed", "family": "creative_batch_9", "priority": 43, "expected_value": "S0 data for the side-flag measurement", "data": ["public Gamma, Data API windowed trades", "public Polygon JSON-RPC receipts", "creative_batch7/exclusion_keys (ids only)"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "net", "network": "gamma-api, data-api, polygon-rpc"}, "depends_on": ["q0180_cb9_smoke"], "argv": ["scripts/run_cb9.py", "sign-audit", "--strata", "a,c", "--rules", "../docs/research_lab/seals/cb9_sign_rules.json", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "13"], "timeout_s": 3600, "max_retries": 2, "outputs": ["research_lab/creative_batch9/sign/{s0a,s0c}/{prints_classes.csv.gz,manifest.json}"], "next_action": "q0189 census (counts); agreement only in q0190 after the freeze", "notes": "DRAFT. net lane, commit after T_seal (round 1: Limiter is per-process, not shared with net-lane jobs); raw proxyWallet compared with takerOrderMaker in memory only; HMAC strict loader."}
 {"id": "q0182_cb9_exclusion_keys", "title": "CB9: exclusion keys = CB8 q0164 keys + ids/keys of seal copies committed since (h7_cb4_*, h8_*, h9_flow, CB8 updown frame/holdout, CB8-H frame)", "family": "creative_batch_9", "priority": 43, "expected_value": "disjointness of P, K, D", "data": ["creative_batch8/exclusion_keys.csv.gz", "docs/research_lab/seals/*", "public Gamma (ids)"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "gamma-api"}, "depends_on": ["q0164_cb8_exclusion_keys", "q0166_cb8_updown_books", "q0168_h9_flow_seal"], "argv": ["scripts/run_cb9.py", "exclusion-keys", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "13"], "timeout_s": 1800, "max_retries": 2, "outputs": ["research_lab/creative_batch9/exclusion_keys.csv.gz", "manifest.json"], "next_action": "q0183, q0185", "notes": "DRAFT. After T_seal. >2% missing metadata -> disjointness unverified (P, K, D not testable, counted)."}
 {"id": "q0183_cb9_pyth_frame", "title": "CB9-P: Gamma frame of Pyth equity Up/Down dailies ending 20:00Z on full NYSE sessions 2026-04-13..08-07 (minus pmxt gap), frozen regexes and text flags, key drops; Yahoo hourly + daily bars 2026-02-01..08-10; outcomes and settlement closes to guarded files", "family": "creative_batch_9", "priority": 42, "expected_value": "P population and anchors", "data": ["public Gamma", "Yahoo chart hourly/daily", "creative_batch9/exclusion_keys.csv.gz"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "gamma-api, yahoo"}, "depends_on": ["q0182_cb9_exclusion_keys"], "argv": ["scripts/run_cb9.py", "pyth-frame", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "13"], "timeout_s": 2400, "max_retries": 2, "outputs": ["research_lab/creative_batch9/pyth_frame/{frame.csv.gz,bars_pre.csv.gz,strikes.csv.gz,closes_settle_guarded.csv.gz,outcomes_guarded.csv.gz,manifest.json}"], "next_action": "q0184", "notes": "DRAFT. No code path compares consecutive closes outside q0191."}
 {"id": "q0184_cb9_pyth_books", "title": "CB9-P: pmxt states at 14:32Z/16:32Z/19:32Z checkpoints (fresh rule) and Data API prints in [t, t+300 s] for frame markets", "family": "creative_batch_9", "priority": 40, "expected_value": "P1/P2 Stage 1 inputs", "data": ["pmxt v2 hourly files (range reads by <= 25 condition ids)", "public Data API windowed trades"], "resources": {"mem_mb": 1500, "cpu": 1, "lane": "net", "network": "r2v2.pmxt.dev, data-api"}, "depends_on": ["q0183_cb9_pyth_frame"], "argv": ["scripts/run_cb9.py", "pyth-books", "--ingress-cap-gb", "40", "--rps", "2", "--disk-cap-gb", "0.02", "--data-dumps-cap-gb", "13", "--budget-min", "85"], "timeout_s": 5400, "max_retries": 2, "outputs": ["research_lab/creative_batch9/pyth/{states.csv.gz,prints.csv.gz,manifest.json}"], "next_action": "q0189", "notes": "DRAFT. Row-group streaming, column projection. Resumable per session.", "repeat": {"max_runs": 6, "until_log_regex": "\"status\": \"(pyth_books_complete|ingress_cap_reached)\""}}
@@ -655,15 +793,15 @@ jobs also need the CB9 freeze. All `family` = `creative_batch_9`.
 {"id": "q0187_cb9_kd_seal", "title": "CB9-K/D: HOLDOUT listing sha256, seal-time drops vs seal copies committed by now, seal copy seals/cb9_kd_holdout_SEAL.json", "family": "creative_batch_9", "priority": 39, "expected_value": "sealed holdout", "data": ["creative_batch9/kd/holdout/"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "cpu", "network": "gamma-api (light)"}, "depends_on": ["q0186_cb9_kd_books"], "argv": ["scripts/run_cb9.py", "kd-seal", "--rps", "2"], "timeout_s": 1800, "max_retries": 2, "outputs": ["research_lab/creative_batch9/kd/holdout_SEAL.json"], "next_action": "commit the seal copy; q0188", "notes": "DRAFT. Sealed files never edited; drops recorded as DROPPED_* blocks."}
 {"id": "q0188_cb9_sign_audit_B", "title": "CB9-S: S0b 1,000 SCREEN K/D prints (<= 4 per market), receipts, T1/T2, fill type, pmxt last_trade_price feed side by tx hash", "family": "creative_batch_9", "priority": 38, "expected_value": "S0 pmxt-era stratum and the feed-side column", "data": ["creative_batch9/kd/screen prints", "public Polygon JSON-RPC receipts"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "net", "network": "polygon-rpc"}, "depends_on": ["q0187_cb9_kd_seal"], "argv": ["scripts/run_cb9.py", "sign-audit", "--strata", "b", "--rules", "../docs/research_lab/seals/cb9_sign_rules.json", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "13"], "timeout_s": 3000, "max_retries": 2, "outputs": ["research_lab/creative_batch9/sign/s0b/{prints_classes.csv.gz,manifest.json}"], "next_action": "q0189", "notes": "DRAFT. No HOLDOUT print is sampled."}
 {"id": "q0189_cb9_census", "title": "CB9: pre-freeze census, counts only (S0 match/availability, GP, GK, GD, cell cut points from features only, MDEs)", "family": "creative_batch_9", "priority": 37, "expected_value": "gates and MDEs before the freeze", "data": ["creative_batch9/* (SCREEN only; HOLDOUT file and event counts)"], "resources": {"mem_mb": 1200, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0181_cb9_sign_audit_A", "q0184_cb9_pyth_books", "q0187_cb9_kd_seal", "q0188_cb9_sign_audit_B"], "argv": ["scripts/run_cb9.py", "census"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch9/census.json", "trials.jsonl (cb9_descriptive)"], "next_action": "science-reviewer freeze check, then model_specs/cb9_v1.json", "notes": "DRAFT. Outcome guard; no agreement, net, contrast or mark-out computed."}
-{"id": "q0190_cb9_screen_S0", "title": "CB9-S: S0 agreement per stratum, Wilson 99%, verdict (near-truth / minor noise / material noise)", "family": "creative_batch_9", "priority": 36, "expected_value": "methods verdict for every flow result", "data": ["creative_batch9/sign/*"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0189_cb9_census"], "argv": ["scripts/run_cb9.py", "screen", "--family", "S0"], "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch9/results_S0.json", "trials.jsonl (cb9_test + creative_batch_9:S)"], "next_action": "material noise: commit q0193/q0194; else none", "notes": "DRAFT. Refuses before the CB9 freeze hash."}
+{"id": "q0190_cb9_screen_S0", "title": "CB9-S: S0 agreement per stratum, q_LB = min(market-cluster bootstrap 0.5th pct, market-level Wilson 99%), per-stratum verdict (near-truth / minor noise / material noise; GS fail -> unverified), notional-weighted agreement reported", "family": "creative_batch_9", "priority": 36, "expected_value": "methods verdict for every flow result", "data": ["creative_batch9/sign/*"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0189_cb9_census"], "argv": ["scripts/run_cb9.py", "screen", "--family", "S0"], "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch9/results_S0.json", "trials.jsonl (cb9_test + creative_batch_9:S)"], "next_action": "material noise: commit q0193/q0194; else none", "notes": "DRAFT. Refuses before the CB9 freeze hash."}
 {"id": "q0191_cb9_screen_P", "title": "CB9-P: P1 and P2 Stage 1 with placebos and binding robustness", "family": "creative_batch_9", "priority": 36, "expected_value": "P verdicts", "data": ["creative_batch9/pyth*/ (guarded files opened here only)"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0189_cb9_census"], "argv": ["scripts/run_cb9.py", "screen", "--family", "P"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch9/results_P.json", "trials.jsonl (cb9_test + creative_batch_9:P)"], "next_action": "advanced: commit q0195", "notes": "DRAFT."}
 {"id": "q0192_cb9_screen_KD", "title": "CB9-K/D: K1 and D1 Stage 1 on SCREEN events with placebos and binding robustness", "family": "creative_batch_9", "priority": 36, "expected_value": "K and D verdicts", "data": ["creative_batch9/kd/screen/"], "resources": {"mem_mb": 1500, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0189_cb9_census"], "argv": ["scripts/run_cb9.py", "screen", "--family", "KD"], "timeout_s": 5400, "max_retries": 1, "outputs": ["research_lab/creative_batch9/results_KD.json", "trials.jsonl (cb9_test + creative_batch_9:K, :D)"], "next_action": "advanced: commit q0197", "notes": "DRAFT. Refuses to open holdout/."}
-{"id": "q0193_cb9_sign_fetch_h10", "title": "CB9-S1: h10_sign fetch (1,200 markets, one seeded 72-h window each in the triggered era before 2026-10-01; all taker prints; receipts up to 20,000 prints, whole windows)", "family": "creative_batch_9", "priority": 36, "expected_value": "S1 data (conditional)", "data": ["public Gamma, Data API", "public Polygon JSON-RPC", "creative_batch9/exclusion_keys.csv.gz"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "net", "network": "gamma-api, data-api, polygon-rpc"}, "depends_on": ["q0190_cb9_screen_S0"], "argv": ["scripts/run_cb9.py", "sign-fetch", "--rps", "2", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "13", "--budget-min", "85"], "timeout_s": 5400, "max_retries": 2, "outputs": ["history/h10_sign/{sample.csv.gz,prints/,receipts_classes.csv.gz,manifest.json}"], "next_action": "q0194", "notes": "DRAFT. Commit only on the S0 'material noise' verdict.", "repeat": {"max_runs": 4, "until_log_regex": "\"status\": \"sign_fetch_complete\""}}
-{"id": "q0194_cb9_screen_S1", "title": "CB9-S1: ratio of on-chain-signed to API-signed 6h flow slope on identical units", "family": "creative_batch_9", "priority": 36, "expected_value": "re-scaled flow ceiling", "data": ["history/h10_sign/"], "resources": {"mem_mb": 1000, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0193_cb9_sign_fetch_h10"], "argv": ["scripts/run_cb9.py", "screen", "--family", "S1"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch9/results_S1.json", "trials.jsonl (cb9_test)"], "next_action": "methods note M4", "notes": "DRAFT."}
-{"id": "q0195_cb9_pyth_live", "title": "CB9-P Stage 2: 30 full sessions from T9_P2_start; CLOB /book of frame-rule markets at each checkpoint (receipt-timed); prints of quote windows and Yahoo hourly bars after each session", "family": "creative_batch_9", "priority": 44, "expected_value": "out-of-time P replication data", "data": ["public Gamma, CLOB /book, Data API, Yahoo"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "cpu", "network": "gamma-api, clob, data-api, yahoo"}, "depends_on": ["q0191_cb9_screen_P"], "argv": ["scripts/run_cb9.py", "pyth-live", "--sessions", "30", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "13"], "timeout_s": 3000, "max_retries": 3, "outputs": ["research_lab/creative_batch9/pyth_live/<session>/..."], "next_action": "q0196 after T9_P2_end + 2 d", "notes": "DRAFT. Only if P1 or P2 advanced. Checkpoints in ET (EST after 2026-11-01)."}
+{"id": "q0193_cb9_sign_fetch_h10", "title": "CB9-S1: h10_sign fetch (1,200 markets, one seeded 72-h window each in the triggered era before 2026-10-01; all taker prints; receipts up to 20,000 prints, whole windows)", "family": "creative_batch_9", "priority": 36, "expected_value": "S1 data (conditional)", "data": ["public Gamma, Data API", "public Polygon JSON-RPC", "creative_batch9/exclusion_keys.csv.gz"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "net", "network": "gamma-api, data-api, polygon-rpc"}, "depends_on": ["q0190_cb9_screen_S0"], "argv": ["scripts/run_cb9.py", "sign-fetch", "--rps", "2", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "13", "--budget-min", "85"], "timeout_s": 5400, "max_retries": 2, "outputs": ["history/h10_sign/{sample.csv.gz,prints/,receipts_classes.csv.gz,manifest.json}"], "next_action": "q0194", "notes": "DRAFT. Commit only on an S0 'material noise' verdict. Excludes by q0182 keys h9_flow, every sealed/worn run, the CB9 K/D frame (SCREEN and HOLDOUT), the P frame and the S0 samples (round 1).", "repeat": {"max_runs": 4, "until_log_regex": "\"status\": \"sign_fetch_complete\""}}
+{"id": "q0194_cb9_screen_S1", "title": "CB9-S1: ratio of on-chain-signed to API-signed 6h flow slope on identical units; pass iff R >= 1.5 and the event-cluster one-sided 99% lower bound > 1.5", "family": "creative_batch_9", "priority": 36, "expected_value": "re-scaled flow ceiling", "data": ["history/h10_sign/"], "resources": {"mem_mb": 1000, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0193_cb9_sign_fetch_h10"], "argv": ["scripts/run_cb9.py", "screen", "--family", "S1"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch9/results_S1.json", "trials.jsonl (cb9_test)"], "next_action": "methods note M4", "notes": "DRAFT."}
+{"id": "q0195_cb9_pyth_live", "title": "CB9-P Stage 2: 30 full sessions from T9_P2_start; CLOB /book of frame-rule markets at each checkpoint (receipt-timed); prints of quote windows and Yahoo hourly bars after each session", "family": "creative_batch_9", "priority": 44, "expected_value": "out-of-time P replication data", "data": ["public Gamma, CLOB /book, Data API, Yahoo"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "cpu", "network": "gamma-api, clob, data-api, yahoo"}, "depends_on": ["q0191_cb9_screen_P"], "argv": ["scripts/run_cb9.py", "pyth-live", "--sessions", "30", "--rps", "1", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "13"], "timeout_s": 3000, "max_retries": 3, "outputs": ["research_lab/creative_batch9/pyth_live/<session>/..."], "next_action": "q0196 after T9_P2_end + 2 d", "notes": "DRAFT. Only if P1 or P2 advanced. Checkpoints in ET (EST after 2026-11-01). Yahoo fetched at each checkpoint (receipt time recorded); post-session bars diagnostic only; failed checkpoints unavailable (source), no substitute, count toward the 30; > 20% unavailable -> P-rep not testable (source unavailable)."}
 {"id": "q0196_cb9_rep_P", "title": "CB9-P: P1-rep and P2-rep on post-freeze sessions", "family": "creative_batch_9", "priority": 36, "expected_value": "L2 verdict", "data": ["creative_batch9/pyth_live/"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0195_cb9_pyth_live"], "argv": ["scripts/run_cb9.py", "rep", "--family", "P"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch9/results_P_rep.json", "trials.jsonl (cb9_replication)"], "next_action": "pass: Stage P-P registration draft", "notes": "DRAFT."}
 {"id": "q0197_cb9_rep_KD", "title": "CB9-K/D: K1-rep and/or D1-rep on sealed HOLDOUT events", "family": "creative_batch_9", "priority": 36, "expected_value": "L2 verdict", "data": ["creative_batch9/kd/holdout/"], "resources": {"mem_mb": 1500, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0192_cb9_screen_KD"], "argv": ["scripts/run_cb9.py", "rep", "--family", "KD"], "timeout_s": 5400, "max_retries": 1, "outputs": ["research_lab/creative_batch9/results_KD_rep.json", "trials.jsonl (cb9_replication)"], "next_action": "pass: Stage P-K/P-D drafts", "notes": "DRAFT. Only for advanced tests; verifies the seal hash first."}
-{"id": "q0198_cb9_halfday_poll", "title": "CB9-P descriptive: 2026-11-27 and 2026-12-24 half sessions, books every minute 13:05-16:00 ET for frame-rule markets; Yahoo 1-minute bars after the close; uncounted", "family": "creative_batch_9", "priority": 45, "expected_value": "CH83c descriptive", "data": ["public Gamma, CLOB /book, Yahoo"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "cpu", "network": "gamma-api, clob, yahoo"}, "depends_on": [], "argv": ["scripts/run_cb9.py", "halfday-poll", "--days", "2026-11-27,2026-12-24", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "13"], "timeout_s": 12600, "max_retries": 1, "outputs": ["research_lab/creative_batch9/halfday/<day>/..."], "next_action": "report as cb9_descriptive", "notes": "DRAFT. Rules hash committed before 2026-11-27."}
+{"id": "q0198_cb9_halfday_poll", "title": "CB9-P descriptive: 2026-11-27 and 2026-12-24 half sessions, books every minute 13:05-16:00 ET for frame-rule markets; Yahoo 1-minute bars after the close; uncounted", "family": "creative_batch_9", "priority": 45, "expected_value": "CH83c descriptive", "data": ["public Gamma, CLOB /book, Yahoo"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "cpu", "network": "gamma-api, clob, yahoo"}, "depends_on": [], "argv": ["scripts/run_cb9.py", "halfday-poll", "--days", "2026-11-27,2026-12-24", "--rps", "1", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "13"], "timeout_s": 12600, "max_retries": 1, "outputs": ["research_lab/creative_batch9/halfday/<day>/..."], "next_action": "report as cb9_descriptive", "notes": "DRAFT. Rules hash committed before 2026-11-27."}
 ```
 
 ## 5. Code needed (not written by this document)
@@ -679,21 +817,36 @@ jobs also need the CB9 freeze. All `family` = `creative_batch_9`.
   pinned values; decoder on fixture receipts of both eras (constructed, not live); T1 = T2 on fixtures; match ambiguity;
   model value and usable-at rule; no census path receives a target; guarded-file access only in screen jobs; holdout
   refusal; HMAC strict loader; `battery2` kinds.
+- **Round-1 additions.**
+  - `cb9_pyth`: the Yahoo bar parser (start stamp, end = min(start + 60 min, 16:00 ET), drop rule, 7-bar check, half
+    session at 13:00 ET) on a fixture with an 8th closing row; the smoke open/close check; Stage-2 receipt-time `S_t`
+    with post-session bars diagnostic-only; the Yahoo partial-failure rule (no substitute, counts toward 30, > 20% →
+    not testable).
+  - `cb9_sign`: the per-stratum verdict with the era map; GS fail → "unverified", never inherited; `q_LB` = min(market
+    bootstrap, market-level Wilson) including the all-agree case; notional-weighted agreement. S1: the h10 exclusion
+    list includes the K/D SCREEN/HOLDOUT, P and S0 ids; the pass rule with lower bound > 1.5, where `β_api ≤ 0` draws
+    count as failures.
+  - `cb9_kd`: GK counted after the skew cut; the route gate on both per filled share and per origin; dust by
+    `orderMinSize` (the $1 variant reported); the next transaction by hash with VWAP (a sweep fixture with a dust fill),
+    the `u + 1 s` start and the 10-minute limit.
+  - Coverage audits (P and K/D, conditioned on prints) and the label rule ("source unavailable" / "no fresh book" / "no
+    opportunity").
+  - Runner: batch-Holm k1 = 5 fixed; q0181 refuses before `T_seal`.
 
 ## 6. Test budget and compute
 
 | Job | Tests counted | Kind(s) | Decision |
 |---|---|---|---|
 | S0 | 1 | `cb9_test` + `creative_batch_9:S` | decision bands (§CB9-S), not Holm |
-| Stage 1: P1, P2, K1, D1 | 4 | `cb9_test` + `:P` (2), `:K`, `:D` | p < 0.01 each; batch-Holm label (α 0.01, k1 4); BY triage |
-| S1 (conditional) | ≤ 1 | `cb9_test` + `:S` | `R̂ ≥ 1.5`, p < 0.01 |
+| Stage 1: P1, P2, K1, D1 | 4 | `cb9_test` + `:P` (2), `:K`, `:D` | p < 0.01 each; batch-Holm label (α 0.01, k1 = 5 fixed, S1's slot held whatever S0; round 1); BY triage |
+| S1 (conditional) | ≤ 1 | `cb9_test` + `:S` | `R̂ ≥ 1.5` and one-sided 99% lower bound > 1.5 (round 1) |
 | Stage 2: P1-rep, P2-rep, K1-rep, D1-rep | ≤ 4 | `cb9_replication` | one Holm, one-sided α 0.05 |
 | Census, gates, descriptives, feed-side, strike stratum, half days | 0 | `cb9_descriptive` | - |
 | **Total** | **5 fixed + ≤ 5 conditional = 5-10** | | cumulative ≥ 1,131 at drafting → ≥ 1,136-1,141 plus CB6-CB8 |
 
 **Host compute.** About 4-6 CPU-hours at nice 19; peak RAM 1.5 GB (pmxt readers, K/D screen).
-**Network.** Before `T_seal`: about 2,800 requests on the `cpu` lane. After: about 21,000 API requests, about 1,000-21,000
-receipts, ≤ 130 GB pmxt ingress (two capped jobs, serial). **Disk.** ≤ 0.3 GB.
+**Network.** Before `T_seal`: about 80 requests (q0180) on the `cpu` lane. After: about 21,600 API requests on the `net`
+lane (q0181 included), about 3,000-23,000 receipts, ≤ 130 GB pmxt ingress (two capped jobs, serial). **Disk.** ≤ 0.3 GB.
 
 ## 7. Main scientific risks
 
@@ -704,27 +857,107 @@ receipts, ≤ 130 GB pmxt ingress (two capped jobs, serial). **Disk.** ≤ 0.3 G
    match rate under 90% (GS fail, "not testable (source)"), which is a data answer, not a null.
 3. **P's anchor is coarse and not the settlement source.** Yahoo hourly bars and the official close stand in for Pyth's
    minute candles (the Pyth path is keyed, probe 6). Real bots use real-time feeds; an hourly anchor can only find large
-   mispricings (MDE 7-10c). The Yahoo endpoint is unofficial; a smoke or frame failure makes P "not testable (source)".
-4. **Day dependence in P.** Equity dailies share a market factor; about 78 sessions are the effective sample. The
-   comonotone break-even placebo guards p-values; a pass with few days is still fragile.
+   mispricings (P1 MDE about 10-15c after the round-1 restatement). The Yahoo endpoint is unofficial; a smoke or frame failure makes P "not testable (source)".
+4. **Day dependence in P.** Equity dailies share a market factor, and the three checkpoints of a market-day share
+   `Y`. About 78 sessions are the effective sample. The comonotone break-even placebo guards p-values; a pass with few
+   days is still fragile.
 5. **K's fill realism and decay.** One hourly-resolution origin per day, queue position uncertain (binding trade-through
    bracket), and F4/F5 decayed to 40-55% in HB2-R's post-split half. The per-filled-share contrast can be driven by fill
-   selection; the skew-sign placebo is the guard.
+   selection; the skew-sign placebo and the per-origin route gate are the guards. SCREEN-only power gives an MDE of
+   about 1c (twice the floor), and GK, counted after the skew cut, may fail. Same calendar as HB2; the cells are
+   analogues, not F4/F5's variables.
 6. **D is partly mechanical.** A market order sweeps dust by construction; D1's value is the size and frequency of the
    correction, labelled methods.
-7. **Queue and disk.** Data-dumps is 12 GB against a 13 GB guard; CB9 data jobs may wait on archive rotation. CB9's
+7. **Queue and disk.** Data-dumps is 12.5 GB against a 13 GB guard; CB9 data jobs may wait on archive rotation. CB9's
    pmxt jobs (≤ 130 GB ingress) queue behind CB4 and CB8 pmxt work; the K/D screen may slip beyond a week (no rule
    changes; dates are fixed by events, not by deadlines).
-8. **Forking across families.** S0's verdict changes how K is labelled, not how K is computed (frozen sides from the
-   Data API); no family's rule depends on another family's outcome.
+8. **Forking across families.** S0b's verdict changes how K is labelled, not how K is computed (frozen sides from the
+   Data API); no family's rule depends on another family's outcome; batch-Holm k1 = 5 is fixed whatever S0 says.
+9. **S1 power.** With the restored lower-bound rule, S1 can pass only for `R` ≳ 2.4 (`q` ≲ 0.71). Moderate material
+   noise triggers S1 but leaves it "not detected at MDE"; M4's re-stated ceilings still apply as upper bounds.
 
 ## 8. Next actions
 
-1. **Challenger review** (`science-reviewer`, one round, one response) of this draft: the S0 decision bands, the match
-   and truth rules, the Yahoo anchor substitution, K's per-filled-share primary and cells, D's mechanical component, the
-   counting.
+1. **Challenger review: done** (round 1, §9-§10; one challenge, one response, no second round).
 2. Write `seals/cb9_sign_rules.json` (pins re-verified from Polymarket's contracts list and the v2 source for the side
-   enum mapping), smoke code, `cb9_sign.py` and tests; commit q0180, then q0181 on the `cpu` lane before `T_seal`.
+   enum mapping; the §2.2 Yahoo bar clock and smoke criteria), smoke code, `cb9_sign.py` and tests. Then the
+   **code-against-design freeze check** (`science-reviewer`). Commit q0180 (`cpu` lane, may run before `T_seal`), then
+   q0181 on the `net` lane after `T_seal`.
 3. After `T_seal` and CB8's q0164/q0166/q0168: `seals/cb9_rules.json`, P/K/D code and tests, freeze check, q0182-q0188.
 4. Census q0189 → freeze `model_specs/cb9_v1.json` → q0190-q0192 → conditional jobs by the stated triggers.
 5. Ledger lines for every counted result; checkpoint and plain-English dashboard updated by the orchestrator.
+
+## 9. Challenger review, round 1 (science-reviewer, 2026-10-17)
+
+One `science-reviewer` pass on the committed draft `00dd145`. **Verdict: every family ACCEPT_WITH_REQUIRED_CHANGES;
+overall ACCEPT_WITH_REQUIRED_CHANGES.** Items, recorded in substance:
+
+**Counter.** 1,131 is right. The 1,106 in the ledger is an old CB1-D note, not a competing count, and the draft (§0.2)
+presented it as a disagreement. The `KIND_RULES` blocker (`cumulative_count()` failing closed on the `design_change`
+kind) is already fixed in `e5cfb3a` (`design_change` counts 0).
+
+**Required changes.**
+1. **P, Yahoo bar clock.** Pin it: timestamp = bar start; end = min(start + 60 min, 16:00 ET); drop closing and
+   zero-length rows. The smoke checks this on an out-of-window session against Yahoo's daily open/close (the probe saw 8
+   hourly rows where 7 regular-session bars were expected). Stage 2 must fetch Yahoo at each checkpoint and record the
+   receipt time; post-session bars are diagnostic only.
+2. **Counter blocker.** Done in `e5cfb3a`.
+3. **S0 eras and decision.** Pre-state the mapping: E007 → S0a; HB1/HB2/K → S0b; S0c informs no existing result. A
+   stratum failing gate GS leaves its result "unverified" and never takes another stratum's verdict (fix "every stratum
+   passing GS"). Decide on a market-cluster bootstrap lower bound, not a print-level Wilson bound (4 prints per market).
+   Narrow "flow results stand as measured": S0 audits the API `side` field, not the signing in `history_backfill`/h2.
+4. **S1.** `h10_sign` must also exclude the CB9 K/D SCREEN and HOLDOUT markets and the P markets, not just h9_flow.
+   Restore a pass rule with a lower bound above 1.5 (the source idea's kill rule "ratio CI includes 1.5"), or justify
+   in writing.
+5. **K.** Restate the MDE using SCREEN-only units after the median-`|x6|` skew cut (about 500 filled origins per quote
+   type, MDE about 1c against the 0.5c floor). Say whether gate GK counts before or after the cut. Also require net > 0
+   per posted share or per origin, not only per filled share.
+6. **D1.** Pin "next print": aggregate by transaction hash, with transaction VWAP or last fill pre-stated, so a dust
+   fill in a sweep cannot decide the sign mechanically. Pre-state what AREPO changes on pass and on fail.
+7. **P1 MDE.** The three checkpoints of a market-day share `Y`, and equities share a market factor. Restate the MDE
+   realistically (about 10-15c).
+
+**Should-changes.**
+- q0181 sends about 2,700 network requests on the `cpu` lane. Disclose this and confirm that the rate limiter is shared
+  across processes with `net`-lane jobs and the collector (check `history_backfill.Limiter` / `live_pass_or_lock`), or
+  move the job to `net`.
+- Fix batch-Holm k1 = 5 regardless of S0.
+- Adopt CB8's pmxt coverage audit and the "source unavailable" vs "no opportunity" labels for P and K/D.
+- K: disclose the same calendar as HB2 (disjoint markets only), the RV and SPR redefinitions vs F4/F5, and that fills
+  and marks depend on the Data API side.
+- D: justify the "< $1" dust rule (it flags legal 5-share orders below 0.20) or make the share-size rule primary.
+  Disclose that GD changed from market-hours to market-minutes.
+- P Stage 2: a rule for Yahoo failing part-way (unavailable sessions counted, no substitute source).
+- S0: report notional-weighted agreement.
+- Data-dumps is 12.5 GB, not 12.
+
+## 10. Response to challenger round 1 (2026-10-17)
+
+Every item is applied in the design text above. No floor, threshold, gate, alpha or cap was relaxed; the changes
+tighten (S0 bound, S1 pass rule, K route gate, GK counting, k1) or disclose.
+
+| Item | Change | Sections |
+|---|---|---|
+| Counter | §0.2 now states 1,131 as the count. The 1,106 is identified as an old CB1-D ledger note, not a competing count. The `e5cfb3a` fix (`design_change` counts 0) is recorded | §0.2; §2.5 |
+| R1 Yahoo clock | Bar clock pinned: start stamp; `e = min(o + 60 min, 16:00 ET)` (13:00 on half sessions); pre-open, closing and zero-length rows dropped; exactly 7 bars per full session, else "bars unavailable", counted. Checkpoints map to the 09:30/11:30/14:30 bars. The smoke checks two out-of-window NVDA sessions: 7 bars, and first open and last close within 0.2% of the daily open and close. Failure → P "not testable (source)". Stage 2 fetches Yahoo at each checkpoint with the receipt time (plus a receipt-timed pre-session σ/`K_d` fetch); post-session bars are diagnostic only | §2.2; §CB9-P features, Stage 2; §CB9-F; q0180, q0195; §5 |
+| R2 Counter blocker | Recorded as fixed in `e5cfb3a`; no CB9 change needed | §0.2 |
+| R3 S0 eras | Era map pre-stated (S0a → E007; S0b → HB1, HB2, K; S0c → no existing result; HB's v1-era first two weeks disclosed). Verdicts are per stratum. A GS fail → "not testable (source)", with mapped results "unverified", never inherited; the pooled `q̂` is descriptive only. Decision bound `q_LB` = min(market-cluster bootstrap 0.5th percentile, market-level Wilson 99%); the minimum guards the degenerate all-agree bootstrap, and the print-level Wilson is reported only. "Stand as measured" narrowed to "the API `side` field is accurate in that era; AREPO's own signing code is not audited" | §1.1; §2.7 S0; §CB9-S era map, decision table, kills; q0190 |
+| R4 S1 | `h10_sign` excludes, by q0182 keys, h9_flow, every sealed or worn run, **the K/D frame (SCREEN and HOLDOUT), the P frame and the S0 samples**. Pass rule restored: `R̂ ≥ 1.5` **and** the event-cluster one-sided 99% lower bound > 1.5 (draws with `β_api ≤ 0` count as failures). The MDE is restated honestly: a pass needs `R` ≈ 2.4 or more | §2.4; §CB9-S S1, kills; §6; §7 risk 9; q0193, q0194 |
+| R5 K | MDE restated on SCREEN units after the skew cut: about 1,650 cell origins, about 500 filled origins per quote type, **MDE about 1c** against the unchanged 0.5c floor. **GK is counted after the cut** (stricter; disclosed that it may fail at these numbers; not lowered). Route gate: the skewed maker needs net > 0 per filled share **and** per origin (per 100 posted shares, unfilled = 0) | §2.4; §2.7 K; §CB9-K route gate, MDE; §7 risk 5 |
+| R6 D1 | The next transaction is pinned to the first Data API transaction hash at `ts ∈ [u + 1 s, u + 600 s]`; `P` = **VWAP of all that transaction's prints on the token** (primary; last fill is a variant). Side is never used. Pre-stated consequences: on a pass (Stage 1 and D1-rep), methods note M5: later designs declare a size-cutoff mid or a dust exclusion, existing results are not re-run, a citation caveat is added, and Stage P-D is proposed separately. On a fail: no correction; displayed mids stay the standard; CH80 route 1 closed | §CB9-D units, consequences; §2.6; §5 |
+| R7 P1 MDE | Restated with the shared `Y` across checkpoints and the cross-ticker market factor: **P1 MDE about 10-15c**; P2 MDE about 2-4c per posted share (day-clustered, shared `Y`) | §CB9-P MDE; §7 risks 3-4 |
+| S q0181 rate | Checked in code: `history_backfill.Limiter` paces within one process only. It yields to the collector via `live_pass_or_lock()` but is not shared with other queue jobs. **q0181 moved to the `net` lane after `T_seal`** (priority 43). q0180 stays on `cpu` at ≤ 1 rps (about 20 API requests; overlap disclosed). q0195/q0198 run at ≤ 1 rps and log any concurrent `net` job | header; §0.1; §2.8; §4; q0180, q0181, q0195, q0198 |
+| S Holm k1 | k1 = 5 fixed, whatever S0's verdict | §2.3; §6 |
+| S coverage audit | CB8's audit adopted for P and K/D, conditioned on Data API prints in the same span (a deviation from CB8's separate 13Z hour: no new ingress, and quiet markets are not misread as missing). PASS ≥ 90%. Labels: "source unavailable", "no fresh book", and "no opportunity" (the last only with the audit passed and ≥ 80% of SCREEN units source-available) | §2.7 |
+| S K disclosures | Same calendar as HB2 (disjoint markets only); RV/SPR are analogues, not F4/F5's variables, so the credit is "moderation in analogue cells"; `x6`, fills and marks use the Data API side, so K1 carries S0b's label | §CB9-K disclosures; §7 risk 5 |
+| S D dust rule | Share rule primary (`size < orderMinSize`). The $1 clause is dropped from the primary, with the reason (it flags legal 5-share orders below 0.20); the share-or-$1 version is reported. The GD market-minutes vs CH80's market-hours change is disclosed (minutes is the stricter; the hour share is reported) | §CB9-D units; §2.7 D; §0 table |
+| S P Stage 2 Yahoo | Failed checkpoints are "unavailable (source)", with no substitute source. A failed σ/`K_d` fetch loses the whole session. Unavailable sessions count toward the 30 and are never replaced. More than 20% unavailable → P-rep "not testable (source unavailable)" | §CB9-P Stage 2; q0195 |
+| S S0 weighting | Notional-weighted agreement reported | §CB9-S; q0190 |
+| S data-dumps | 12.5 GB | §0.2; §2.8; §7 risk 7 |
+
+**Effect on counts and power.** k is unchanged: **5 fixed (S0, P1, P2, K1, D1) + up to 5 conditional = 5-10**;
+batch-Holm k1 = 5. MDEs: P1 about 10-15c (was 7-10c), P2 about 2-4c, K1 about 1c (was 0.5c), D1 about 0.2c
+(unchanged), S1 `R` ≈ 2.4. No floor moved. Request totals: q0181's about 2,700 move from the pre-`T_seal` `cpu` lane to the
+post-`T_seal` `net` lane.
+
+This is the single response round; the next review is the code-against-design freeze check.
