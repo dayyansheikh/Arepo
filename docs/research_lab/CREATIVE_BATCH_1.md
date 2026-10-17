@@ -1278,6 +1278,57 @@ BY triage count at run time was 1,085-1,092. The "12 fixed" budget (§5) therefo
 - B3 rung list (q0029) at `T_rep_start` (not before 2026-10-19T00:00Z); B3 results q0028 after 2027-01-31.
 - Stage-2 batch Holm only has B1 and B2 (not testable); no A/C/E Stage-2 inputs exist.
 
+## Results: CB1-D dev screen (q0022, 2026-10-17)
+
+Run `q0022_cb1_snap_dev_D` on the Oracle host (`run_cb1_structural.py snapshots --family D --window dev`, 2,000
+bootstrap draws), run_utc 2026-10-17T00:25:26Z. EXPLORATORY, L1 at most. Declared thresholds, floors and gates
+(§2.3-§2.5, §2.8, §CB1-D) are unchanged and were applied as written. Results file on the host:
+`data-dumps/research_lab/creative_batch1/D_dev/results.json`, sha256
+`d176c9df4c1e2ac475935760d259458f25a4249e207640b56aef0ea0ca23afa5` (verified against the host copy). Declaration
+sha256 `c9a2ec8d...`; capture list sha256 `967a0cb0...` (60 captures, 60 loaded, 0 missing).
+
+**Inputs.** 59 consecutive-capture pairs, 58 kept (1 gap-excluded, 1 with no next). Of all event-captures 15,883 were
+eligible (572 events, 6 days, 2026-10-11 to 2026-10-16). The dominant ineligibility reasons were no member count
+(280,506) and a member-count mismatch (82,420), so eligibility is a small share of all neg-risk groups. Of the eligible
+event-captures, 13,264 use a member count taken at first fetch (median lag 54h) and 2,619 an as-of count.
+
+| Test | n / clusters | Estimate | p (one-sided) | Gate | Why |
+|---|---|---|---|---|---|
+| D1 | 15,883 event-captures / 572 events | mean(U - O) = +0.781 pp (U 0.850%, O 0.069%); event-cluster 95% CI [+0.20 pp, +1.58 pp] | 0.0156 | no advance | fails (a) p < 0.01 and (b) floor 1.0 pp (point 0.78 pp); fails (e) robustness: without the top-5 events the mean is +0.15 pp, p 0.0195 |
+| D2 | 33 triggers / 8 events | none (mean null) | 1.0 | not testable | n = 33 < 100 and events = 8 < 30 (§CB1-D "not testable" rule); capped "inconclusive (payoff unverified)" |
+
+**Why D1 does not advance.** Stage 1 requires all of §2.4 (a)-(e). The p value 0.0156 (event-clustered; two-way SE 0.0032
+vs event SE 0.0036) is above the declared alpha 0.01, and the point estimate 0.78 pp is under the 1.0 pp materiality
+floor, so two independent conditions fail without any multiplicity adjustment; the Holm and BY labels are not reached.
+Robustness also fails: removing the five largest events leaves +0.15 pp. Sign checks pass (weighted sign agrees; every
+leave-one-day-out mean is positive, 0.72-0.85 pp), (c) and the cost check are n/a for a mechanism test. The CI excluding
+zero does not override the declared gate. Reading: U (under-priced sets) is more common than O in dev, which is the
+direction predicted, but the effect is small and concentrated in a few events. It is not shown to meet the bar.
+
+**Why D2 is not testable.** Only 33 triggers (C <= 0.995 at c, executed at the next complete capture; 2 had no next
+capture or a gap) from 8 events were found; the declared minimum is 100 triggers and 30 events. No trigger event had
+resolved by the analysis date (0 resolved events), so the realised-payout gate (same sign, <= 2% anomalies, >= 30
+resolved events) is also unmet (stage gate passed: false). Depth: 2 trigger events (12.1% of triggers) have sweep data.
+D2 has no estimate (mean null), counted with p = 1. The state is too rare in this window, which §CB1-D names as itself the
+economic answer at this sample. The break-even placebo (200 draws) was run for D2: advance rate 0.0, calibrated (mean net
+null because no draw produced a testable sample).
+
+**Declared sensitivity (as-of member counts only, descriptive, does not gate).** n = 2,619 event-captures / 371 events,
+all on one day (2026-10-16): D1 mean +0.46 pp, p 0.136, without-top-5 mean 0.0; D2 n = 1 trigger. This is the
+point-in-time-clean subset and shows no stronger effect; it is too small to separate from zero.
+
+**Decision (stop rule, §CB1-D).** D1 and D2 both fail dev, so there is no rep run: the rep spec is not committed,
+`q0027` is not spent and the rep captures (window from `T_rep_start`, about 250 captures, to 2026-11-09) are not
+frozen, listed or read by any D outcome analysis. CH09 is closed at the dev MDE (D1 about 1.3 pp, §CB1-D): "not detected
+at the screen's MDE", not "absent". The positive D1 point estimate is not carried forward as a finding. The maker route
+(resting bids on all members) needs continuous member trade capture (a collector extension) and would be a new
+declaration, not a rescue of this screen.
+
+**Test count (M3):** 2 tests counted (D1, D2; `ml_explain` line `creative_batch_1:D`; kind `cb1_structural` plus
+the count line). Cumulative count at run time 1,104 (`battery2-count-v1`, host union), so 1,106 after D. The "12 fixed"
+budget (§5) now stands at 11 used (A 2, E 3, C 2, B 2, D 2), with B3 (1) to come. Stage-2 Holm family is still B1 and B2
+only; no D test enters it.
+
 ## Open questions (draft round; resolved by challenger round 1)
 
 1. B3 declared before its data and run in parallel with B1/B2: **kept**, with a rung list frozen and hashed at

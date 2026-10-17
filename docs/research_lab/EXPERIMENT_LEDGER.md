@@ -1253,3 +1253,17 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Verdict: the challenger's three artefact routes (look-ahead endDate, post-end clip, near-end markets) do not explain the gain.
   Still forecasting-only and built on an after-the-fact endDate; no cost check; nothing registered. Next: as-of hours-to-end in
   the live MC1 dev run. Details: `HISTORICAL_ML_DEV.md` (J8 C-TTE descriptive diagnostics).
+
+## Development screen CB1-D — neg-risk asymmetry on dev captures (q0022, 2026-10-17)
+- **Status:** counted (2 tests: D1, D2; `ml_explain` line `creative_batch_1:D`; prior cumulative 1,104, now 1,106),
+  development (exploratory_historical, L1). Inputs: frozen 60-capture list (sha256 `967a0cb0...`), 15,883 eligible
+  event-captures / 572 events, 59 pairs (58 kept). Declared in `CREATIVE_BATCH_1.md` (declaration sha256
+  `c9a2ec8d...`); thresholds unchanged. Results sha256 `d176c9df...`.
+- **Result: nothing advanced.** D1 mean(U - O) +0.78 pp (U 0.85%, O 0.07%; event CI [+0.20, +1.58] pp), p 0.0156:
+  fails alpha 0.01, the 1.0 pp floor and the without-top-5 robustness check (+0.15 pp). D2 is not testable (33 triggers
+  from 8 events < 100 / 30; no resolved trigger events; mean null, p = 1; payoff and depth unverified). As-of-only
+  sensitivity (one day, n 2,619): D1 +0.46 pp, p 0.136, descriptive. Plain reading: not detected at the screen MDE
+  (about 1.3 pp), not shown absent; the positive D1 estimate is not a finding.
+- **Economics:** none beyond the structural per-trigger net, which was not estimable (D2 not testable).
+- **Next:** none for D. Stop rule: no rep run (q0027 not spent, rep captures stay unfrozen and unread). The maker
+  route would need a collector extension and a new declaration. Open in CB1: B3 rung list at T_rep_start (>= 2026-10-19).
