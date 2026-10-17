@@ -42,8 +42,12 @@
  "timeout_s": 1800,
  "max_retries": 2,
  "outputs": [
-  "data-dumps/research_lab/creative_batch7/{exclusion_keys.csv.gz,exclusion_report.json}"
+  "data-dumps/research_lab/creative_batch7/{exclusion_keys.csv.gz,exclusion_report.json,manifest.json}"
  ],
  "next_action": "q0142 and q0143 (they pin this file's sha256 in their manifests)",
- "notes": "CREATIVE_BATCH_7.md section 1.3 and CB7-F. DRAFT. About 850 requests (<= 50 ids per request, closed=true retry for missing), about 6 min. Refuses (exit 2) on a rules-hash mismatch or ANY missing or sha256-mismatched exclusion file (pins identical to seals/cb6_tail_rules.json). Writes status disjointness_unverified if > 2% of exclusion ids lack Gamma metadata (S1 and G1 then not testable, counted). Exit 75 when data-dumps + cap > 12.5 GB."
+ "notes": "CREATIVE_BATCH_7.md section 1.3 and CB7-F. DRAFT. About 850 requests (<= 50 ids per request, closed=true retry for missing), about 6 min. Refuses (exit 2) on a rules-hash mismatch or ANY missing or sha256-mismatched exclusion file (pins identical to seals/cb6_tail_rules.json). Writes status disjointness_unverified if > 2% of exclusion ids lack Gamma metadata (S1 and G1 then not testable, counted). Exit 75 when data-dumps + cap > 12.5 GB. IMPLEMENTATION 2026-10-17 (fetch side): argv matches scripts/run_cb7.py as built (declared arguments are checked; a changed one exits 2). Lane net. Resumable by batch (exclusion_keys_partial.jsonl); a collector-health pause ends the chunk with status in_progress and the repeat block re-queues it. Reuses cb6_tail.exclusion_stage; h1_first sample ids are included (pinned file read only).",
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"(exclusion_keys_complete|disjointness_unverified|not_run_deadline|disk_budget)\""
+ }
 }

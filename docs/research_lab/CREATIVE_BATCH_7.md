@@ -991,3 +991,65 @@ coordinator also reported that **CB6's `h8_tail` smoke failed on 2026-10-17** (C
 k is unchanged: **3 fixed (S1, G1, X1) + up to 3 conditional (S1-rep, S2, X1-rep) = 3-6**; the audit q0156 is
 descriptive. MDEs: S1 Stage 1 ≈ 2.5c per marker (was 1.8c), S1 Stage 2 ≈ 1.5c (was 1.0c), S2 ≈ 3.3c (new), G1 ≈ 3.5-4c
 (unchanged; prices now print-based), X1 unchanged. Pre-`T_seal` network ≈ 36k requests, ≈ 3.2 h wall (was 40k, 3.7 h).
+
+## 10. Implementation notes (fetch side, 2026-10-17)
+
+Fetch side only (§8 step 2); no analysis, screen, census or `textorig` code exists yet. Nothing was run against the network:
+all tests use a fake Gamma/Data API.
+
+**Code.** `backend/astrolabe/research_lab/cb7_common.py` (rules file, `origin_prints`, `origin_price`, smoke, exclusion keys,
+resumable chunk machinery on `cb4_data.FetchRun`), `cb7_text.py` (`text_fetch`), `cb7_geo.py` (`geo_fetch`), `cb7_seal.py`
+(`seal_cb7`, `verify_cb7`), `backend/scripts/run_cb7.py` (`rules`, `smoke`, `exclusion-keys`, `text-fetch`, `geo-fetch`,
+`text-seal`, `geo-seal`, `verify-seal`), tests `backend/tests/unit/test_cb7_fetch.py`. Queue drafts q0140-q0145 now carry the
+real argv (checked against the parser and the declaration by a test), lane `net` for q0140-q0143, repeat blocks whose regexes
+cover the complete, `not_run_deadline`, `disjointness_unverified`/`source_unverified` and `disk_budget` end states.
+
+**Rules file.** `docs/research_lab/seals/cb7_text_geo_rules.json`, `rules_sha256` =
+`28347c13c5e3f62955f9d69da7846cea7629b5877ada63dc5c357e00e55b9583` (`funcs_sha256` `eb2ec6d0...`, plus a per-function source
+hash for each of the 29 rule functions). It holds seeds, windows, strata and weights, the pins (identical to CB6's, asserted by
+a test), M1-M7 and the clarification strings, `class_c`, the status-quo list, the theme map, bands, the cut rule, the cap, the
+smoke criteria and the disk caps. Generated once, in its own commit after the code commit; `verify_rules(require_committed=True)`
+passes. Editing any hashed function after this point invalidates the file (a rules file is never rewritten).
+
+**Behaviour as built.**
+- Every fetch refuses (exit 2) before any request on: rules hash, a missing or changed pinned exclusion file (all five, including
+  `h1_first`), smoke criteria not met under the same rules hash (text needs (b) and (c); geo needs (a), (b) and (c)), a missing
+  exclusion-key file or one that does not match its report hash, a refused run id or root, a changed declared argument.
+  Exit 75 only for data-dumps headroom (`--data-dumps-cap-gb` default 12.5) or seal sources not yet terminal. A full output cap is
+  `disk_budget`, exit 4, sticky.
+- `smoke.json` is write-once (exclusive create; exit 2 if present). It holds counts only.
+- Every stored row is capped at `min(T_fetch, T_seal)`: prints after the cap are dropped and counted; a market closing after the
+  cap is stored as active with blank `closed_time`, `closed_after_cap = 1` and blank guarded outcome. No chunk starts at or after
+  `T_seal`; a chunk that reaches it writes `NOT_RUN_DEADLINE.json`.
+- Failed print requests raise, are retried with back-off (6 retries, then up to 3 chunk-level attempts) and are counted as
+  `print_request_failed`, never as `no_print`. Geo: more than 2% failed origins gives `source_unverified`.
+- Memory: the frame walk writes one gzip member per day (text) or month (geo); filters stream; only ids per stratum and the sampled
+  rows (pass 2) are held. Prints are appended to a partial member file, converted at completion.
+
+**Deviations and implementation choices (for the freeze check).**
+1. *Status-quo variant.* §CB7-G says status-quo questions are excluded and "G1 including them is reported". As built they are removed
+   at the fetch (counted in `frame_report.json`), so no prints exist for them and that report cannot be produced from `h8_geo`.
+   Decision for the reviewer: accept (report only the counts) or add a flagged status-quo stratum to the fetch before the rules file
+   is used (it would change the rules hash).
+2. *Neg-risk "Other"/placeholder rule* is not spelled out in the design. Built as: Gamma `negRiskOther` true, or a neg-risk market
+   whose `groupItemTitle` is `other` or `<person|candidate|option|team|player|party|company|country> <letter>`.
+3. *Latest print tie rule:* when no print lies in `[t - 24 h, t)`, `m` is the size-weighted price of the prints at the latest timestamp.
+   `vwap_truncated` marks a 24-h VWAP built from a full 50-row page that does not reach back 24 h.
+4. *Smoke pool:* if fewer than 20 worn markets qualify, (b) and (c) fail. Gamma id lookups use up to 8 requests (closed first, then
+   open) rather than 4; the condition id comes from Gamma, not from the sample files. The tag check calls `GET /tags/slug/geopolitics`
+   (Gamma, `id` must equal 100265); that endpoint shape has not been exercised yet, so a shape mismatch would FAIL (a) and block q0143.
+5. *Frame columns:* `frame.csv.gz` carries the features, `desc_len`, `desc_sha256`, all tag ids, event title, `fee_category` and
+   `closed_time`, but not the description text; the 4,000-character copy is in `sample.csv.gz`. M1-M7, C and the clarification flag are
+   computed on the full question and description at walk time, before truncation.
+6. *Per-event cap* uses the first event id (the market id when none); `capped.csv.gz` lists what the cap removed.
+7. *Seal:* `seal_cb7` re-hashes every fetched file against `manifest.json` (refuses on a missing, extra or changed file), then writes
+   `drops.csv.gz` with `DROPPED_SEALED_RUNS` (id or key match against the h8_tail and h7 seal copies, Gamma key lookup at <= 2 rps) and,
+   for `h8_text`, `DROPPED_GEO_FRAME` (id or key match against the full `h8_geo/frame.csv.gz`). It does not read `h8_geo` outcomes.
+
+**Open items for the freeze check.**
+- Run q0140 first; its three criteria decide which fetches may be committed. Check the tag endpoint response in the smoke log.
+- Confirm the host data-dumps headroom at commit time and record it in the q0141-q0143 commit messages (§2.8).
+- Output cap 0.15 GB for `h8_text`: `frame.csv.gz`, `frame_partial.jsonl.gz` and `sample.csv.gz` (4,000-character text) coexist while the
+  frame outputs are built; CB6's analogous cap needed raising once. `disk_budget` is the declared end state if it is too tight.
+- Item 1 and item 2 above need a reviewer decision before the rules file is relied on.
+- The `net` lane order before `T_seal` (q0043, h7, q0120) is unchanged; q0140-q0143 priorities are 62/61/61/61 as declared.
