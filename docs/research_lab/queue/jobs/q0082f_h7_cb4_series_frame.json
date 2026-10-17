@@ -10,7 +10,7 @@
   "docs/research_lab/seals/cb4_series_rules.json (cadence and matching rule hashes)"
  ],
  "resources": {
-  "mem_mb": 900,
+  "mem_mb": 1200,
   "cpu": 1,
   "network": "gamma-api, clob, data-api",
   "lane": "net"
@@ -51,7 +51,7 @@
   "--budget-min",
   "150",
   "--data-dumps-cap-gb",
-  "13"
+  "14"
  ],
  "timeout_s": 10800,
  "max_retries": 5,
@@ -63,5 +63,5 @@
   "data-dumps/research_lab/history/h7_cb4_series/{walk_events.jsonl.gz,walk_guarded.jsonl.gz,probe.json,frame_report.json,request_clock.json,manifest.json}"
  ],
  "next_action": "Claude session: read frame_report.json (series_by_cadence_category), decide the sports stratum in the same committed amendment as q0081f, then gate q0081g",
- "notes": "Freeze-check fix 8. Stops after the walk: no sample, no units, no prices. Requires the committed series rule file like q0082 (fix 6 hash). Same refusals and terminal states as q0082. 2026-10-17 (autopilot, h7 release re-check must-fix 1): --data-dumps-cap-gb 12.5 added (code default 10) because data-dumps is ~9.9 GB and growing ~0.95 GB/day; with the default every start would exit 75 until the job failed, missing T_seal. Operational headroom only (collector cap now 13 GB; job writes <= 0.4 GB); outputs do not depend on it. 2026-10-17 ~10:00Z (autopilot): attempts 1-3 MemoryError on resume (walk_series_events loads ~420 MB of partial JSON whole). series_fetch now uses cb4_walk_lean (streamed, index + compact fields; pinned functions unchanged; outputs byte-identical in tests; 23dcd70). Partials reach ~0.6 GB and DiskBudget counts them, so --disk-cap-gb 0.40 -> 1.0; --data-dumps-cap-gb 12.5 -> 13 (data-dumps at 12.5 GB; collector cap 14 GiB). Operational only. max_retries 3 -> 5 so the fixed code gets attempts."
+ "notes": "Freeze-check fix 8. Stops after the walk: no sample, no units, no prices. Requires the committed series rule file like q0082 (fix 6 hash). Same refusals and terminal states as q0082. 2026-10-17 (autopilot, h7 release re-check must-fix 1): --data-dumps-cap-gb 12.5 added (code default 10) because data-dumps is ~9.9 GB and growing ~0.95 GB/day; with the default every start would exit 75 until the job failed, missing T_seal. Operational headroom only (collector cap now 13 GB; job writes <= 0.4 GB); outputs do not depend on it. 2026-10-17 ~10:00Z (autopilot): attempts 1-3 MemoryError on resume (walk_series_events loads ~420 MB of partial JSON whole). series_fetch now uses cb4_walk_lean (streamed, index + compact fields; pinned functions unchanged; outputs byte-identical in tests; 23dcd70). Partials reach ~0.6 GB and DiskBudget counts them, so --disk-cap-gb 0.40 -> 1.0; --data-dumps-cap-gb 12.5 -> 13 (data-dumps at 12.5 GB; collector cap 14 GiB). Operational only. max_retries 3 -> 5 so the fixed code gets attempts. 2026-10-17 ~15:45 (implementer): attempt 4 MemoryError at pline json.dumps: progress lines are 40-64 MB each (~720k events, 1.0 GB), and the lean walk still json.loads whole lines on resume, built the whole new line plus its bytes copy, and kept ~900 MB of per-event dict metadata. cb4_walk_lean now streams (record-wise raw_decode on resume, disk spool + streamed append on write, packed offsets, shared compact meta, tail-fragment repair); progress file bytes and outputs unchanged (tests). mem_mb 900 -> 1200 (address cap 2400 MB), --data-dumps-cap-gb 13 -> 14 (ops headroom, collector cap 16 GiB)."
 }

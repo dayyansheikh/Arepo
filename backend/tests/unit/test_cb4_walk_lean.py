@@ -240,3 +240,114 @@ def test_series_fetch_stage_all_old_vs_lean_assembly_and_resume(tmp_path, monkey
                                      "walk_guarded.jsonl.gz", "frame_report.json")}
     assert outs["old"].keys() == outs["new"].keys() and len(outs["old"]) == 7
     assert outs["old"] == outs["new"]
+
+
+# ---- bounded memory on huge progress lines (q0082f MemoryError fix, 2026-10-17) -----------------------------------------------------------
+
+
+def _big_partial(rdir, n_events: int, mode: bool = False):
+    """One base window of ``n_events`` slim events written exactly as the pinned walk writes it (one huge line per file)."""
+    base = ep("2026-03-01T12:00:00Z")
+    uslim, ug = [], []
+    for k in range(n_events):
+        e = gevent(f"big{k}", iso(base + k * 7), series=f"S{k % 50}", slug=f"s{k % 50}", fee="crypto" if k % 2 else "sports", closed=mode)
+        e["markets"] += [gmarket(f"bx{k}_{j}", e["endDate"], fee="politics", closed=mode) for j in range(3)]
+        sg = d.slim_event(e, mode)
+        uslim.append(sg[0])
+        ug.append(sg[1])
+    a = d._iso(ep("2026-03-01"))
+    wrep = {f: 0 for f in lean._REP_FIELDS} | {"requests": 7, "events_seen": n_events}
+    (rdir / "walk_partial_guarded.jsonl").write_bytes((json.dumps({"mode": mode, "a": a, "guarded": ug}, default=float) + "\n").encode())
+    (rdir / "walk_partial.jsonl").write_bytes((json.dumps({"mode": mode, "a": a, "events": uslim, "rep": wrep}, default=float) + "\n").encode())
+    return uslim, ug
+
+
+def test_resume_of_huge_line_is_bounded_and_identical(tmp_path):
+    import tracemalloc
+
+    for sub in ("o", "n"):
+        (tmp_path / sub).mkdir()
+    _big_partial(tmp_path / "o", 6000)
+    shutil.copy(tmp_path / "o" / "walk_partial.jsonl", tmp_path / "n" / "walk_partial.jsonl")
+    shutil.copy(tmp_path / "o" / "walk_partial_guarded.jsonl", tmp_path / "n" / "walk_partial_guarded.jsonl")
+    line_bytes = (tmp_path / "n" / "walk_partial.jsonl").stat().st_size
+    s, e = ep("2026-03-01"), ep("2026-03-02")
+    tracemalloc.start()
+    ev, g, rep, st = d.walk_series_events(_lim(FakeNet(events=[])), s, e, (False,), rdir=tmp_path / "o", base_days=3, min_width_s=3600)
+    old_peak = tracemalloc.get_traced_memory()[1]
+    tracemalloc.reset_peak()
+    tracemalloc.clear_traces()
+    del ev, g
+    tracemalloc.stop()
+    tracemalloc.start()
+    store, rep2, st2 = lean.walk_series_events_lean(_lim(FakeNet(events=[])), s, e, (False,), rdir=tmp_path / "n", base_days=3, min_width_s=3600)
+    b = hb.DiskBudget(tmp_path / "n", 10**10)
+    store.write_events(b, tmp_path / "n" / "ev.gz")
+    store.write_guarded(b, tmp_path / "n" / "g.gz")
+    new_peak = tracemalloc.get_traced_memory()[1]
+    tracemalloc.stop()
+    ev, g, rep, st = d.walk_series_events(_lim(FakeNet(events=[])), s, e, (False,), rdir=tmp_path / "o", base_days=3, min_width_s=3600)
+    assert (st, rep) == (st2, rep2) and rep2["events_kept"] == 6000
+    eb, gb = _old_outputs(ev, g)
+    assert (tmp_path / "n" / "ev.gz").read_bytes() == eb and (tmp_path / "n" / "g.gz").read_bytes() == gb
+    assert store.frame_counts() == d.series_frame_counts(ev)
+    assert (tmp_path / "n" / "walk_partial.jsonl").stat().st_size == line_bytes  # nothing appended: the window was already done
+    print(f"huge-line resume: line {line_bytes} B, old peak {old_peak} B, lean peak {new_peak} B")
+    assert new_peak < old_peak * 0.6 and new_peak < 4 * line_bytes  # lean: line bytes + text copy + one 4 MB chunk of objects, not the whole line as objects
+
+
+def test_fresh_big_window_streamed_write_is_byte_identical_and_bounded(tmp_path):
+    import tracemalloc
+
+    for sub in ("o", "n"):
+        (tmp_path / sub).mkdir()
+    base = ep("2026-03-01T00:00:00Z")
+    evs = []
+    for k in range(1500):  # < 2100 rows: one request chain, no split; duplicates of ids across the window exercise first-wins
+        e = gevent(f"w{k % 1400}", iso(base + 3600 + k * 40), series=f"S{k % 30}", slug=f"s{k % 30}", fee="crypto" if k % 2 else "sports", closed=False)
+        e["markets"] += [gmarket(f"wx{k}_{j}", e["endDate"], fee="politics", closed=False) for j in range(2)]
+        evs.append(e)
+    s, e_ = base, base + 86400
+    ev, g, rep, st = d.walk_series_events(_lim(FakeNet(events=evs)), s, e_, (False,), rdir=tmp_path / "o", base_days=3, min_width_s=3600)
+    tracemalloc.start()
+    store, rep2, st2 = lean.walk_series_events_lean(_lim(FakeNet(events=evs)), s, e_, (False,), rdir=tmp_path / "n", base_days=3, min_width_s=3600)
+    tracemalloc.stop()
+    assert (st, rep) == (st2, rep2) and len(g) <= 1500
+    for name in ("walk_partial.jsonl", "walk_partial_guarded.jsonl"):
+        assert (tmp_path / "o" / name).read_bytes() == (tmp_path / "n" / name).read_bytes()
+    assert not list((tmp_path / "n").glob("*.spool"))
+    b = hb.DiskBudget(tmp_path / "n", 10**10)
+    store.write_events(b, tmp_path / "n" / "ev.gz", 5000)
+    store.write_guarded(b, tmp_path / "n" / "g.gz", 5000)
+    eb, gb = _old_outputs(ev, g)
+    assert (tmp_path / "n" / "ev.gz").read_bytes() == eb and (tmp_path / "n" / "g.gz").read_bytes() == gb
+    assert store.frame_counts() == d.series_frame_counts(ev)
+    # a second lean run resumes from the streamed files (offsets recomputed from the bytes) and gives the same outputs
+    store2, rep3, _ = lean.walk_series_events_lean(_lim(FakeNet(events=[])), s, e_, (False,), rdir=tmp_path / "n", base_days=3, min_width_s=3600)
+    assert rep3 == rep2
+    store2.write_events(b, tmp_path / "n" / "ev2.gz", 5000)
+    assert (tmp_path / "n" / "ev2.gz").read_bytes() == eb
+
+
+def test_interrupted_trailing_fragment_is_cut_on_resume(tmp_path):
+    for sub in ("o", "n"):
+        (tmp_path / sub).mkdir()
+    s, e, modes = _args()
+    n = {"c": 0}
+
+    def stop():
+        n["c"] += 1
+        return n["c"] > 4
+
+    d.walk_series_events(_lim(FakeNet(events=_events())), s, e, modes, rdir=tmp_path / "o", base_days=3, min_width_s=3600, should_stop=stop)
+    for name in ("walk_partial.jsonl", "walk_partial_guarded.jsonl"):
+        shutil.copy(tmp_path / "o" / name, tmp_path / "n" / name)
+    with (tmp_path / "n" / "walk_partial.jsonl").open("ab") as fh:
+        fh.write(b'{"mode": true, "a": "2026-03-04T00:00:00Z", "events": [{"event_id": "tr')
+    with (tmp_path / "n" / "walk_partial_guarded.jsonl").open("ab") as fh:
+        fh.write(b'{"mode": true, "a": "2026-03-04T00:00:00Z", "guar')
+    ev, g, rep, st = d.walk_series_events(_lim(FakeNet(events=_events())), s, e, modes, rdir=tmp_path / "o", base_days=3, min_width_s=3600)
+    store, rep2, st2 = lean.walk_series_events_lean(_lim(FakeNet(events=_events())), s, e, modes, rdir=tmp_path / "n", base_days=3, min_width_s=3600)
+    assert (st, rep) == (st2, rep2)
+    for name in ("walk_partial.jsonl", "walk_partial_guarded.jsonl"):
+        assert (tmp_path / "o" / name).read_bytes() == (tmp_path / "n" / name).read_bytes()
