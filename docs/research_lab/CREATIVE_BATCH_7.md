@@ -1028,7 +1028,7 @@ passes. Editing any hashed function after this point invalidates the file (a rul
 
 **Deviations and implementation choices (for the freeze check).**
 1. *Status-quo variant.* §CB7-G says status-quo questions are excluded and "G1 including them is reported". As built they are removed
-   at the fetch (counted in `frame_report.json`), so no prints exist for them and that report cannot be produced from `h8_geo`.
+   at the fetch (counted in `frame_report.json`), so no prints exist for them and that report cannot be produced from `h8_geo`. **Decision (freeze check): not produced; counts only.**
    Decision for the reviewer: accept (report only the counts) or add a flagged status-quo stratum to the fetch before the rules file
    is used (it would change the rules hash).
 2. *Neg-risk "Other"/placeholder rule* is not spelled out in the design. Built as: Gamma `negRiskOther` true, or a neg-risk market
@@ -1053,3 +1053,11 @@ passes. Editing any hashed function after this point invalidates the file (a rul
   frame outputs are built; CB6's analogous cap needed raising once. `disk_budget` is the declared end state if it is too tight.
 - Item 1 and item 2 above need a reviewer decision before the rules file is relied on.
 - The `net` lane order before `T_seal` (q0043, h7, q0120) is unchanged; q0140-q0143 priorities are 62/61/61/61 as declared.
+
+**Freeze-check fixes (2026-10-17, GO_WITH_CONDITIONS; rules hash unchanged, `verify_rules(require_committed=True)` re-checked).**
+- Fix 1: a geo failure never blocks the `h8_text` seal. q0144 no longer depends on q0143; `geo_frame_state` treats a not-run, unverified, `disk_budget` or `source_unverified` `h8_geo`, or a smoke result with criterion (a) false (q0143 refused), as terminal with no frame; the seal still exits 75 while the geo frame is genuinely pending.
+- Fix 2: a network failure in the smoke (tag, Gamma or trades request failing after retries, or a non-200 reply from Gamma or trades) writes nothing and exits 75, so the write-once `smoke.json` can only record a real answer.
+- Minor 3: `vwap_truncated` (in hashed `origin_price`) is 1 whenever a full 50-row page does not reach back 24 h of the window; it is true for any full page whose oldest print is inside the 7-day window, so analysis must recompute it from `origin_prints.csv.gz`. The hashed code is unchanged.
+- Minor 4: only the FIRST event's title is stored (`event_title`); tag ids are stored for all events (`event_tag_ids`), so challenger change 2 is met for tags and the first event's title only.
+- Minor 5: the seal's extra-file check ignores `drops*`, so a seal re-run after a crash does not refuse.
+- Live check: `GET https://gamma-api.polymarket.com/tags/slug/geopolitics` returned `{"id":"100265","label":"Geopolitics","slug":"geopolitics",...}` at 2026-10-17 ~05:50Z, matching criterion (a)'s parse.

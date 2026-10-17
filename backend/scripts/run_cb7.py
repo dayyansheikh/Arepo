@@ -127,6 +127,9 @@ def cmd_smoke(a) -> int:
     except cm.Refused as exc:
         _emit({"refused": str(exc)})
         return REFUSED
+    except cm.NotNow as exc:  # a network failure is never a permanent FAIL: nothing is written
+        _emit({"tempfail": str(exc)})
+        return TEMPFAIL
     except Exception as exc:
         _emit({"error": f"{type(exc).__name__}: {exc}"[:300]})
         return 1

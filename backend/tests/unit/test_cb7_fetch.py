@@ -1052,3 +1052,59 @@ def test_queue_drafts_argv_parse_and_match_declaration():
                 assert re.search(rx, f'{{"status": "{st}"}}'), (f.name, st)
             assert spec["repeat"]["max_runs"] >= 4
     assert {json.loads(f.read_text())["resources"]["lane"] for f in files[:4]} == {"net"}
+
+
+def test_smoke_network_failure_is_tempfail_and_writes_nothing(tmp_path, monkeypatch, capsys):
+    w = World(tmp_path)
+    files = c6.verify_exclusion_files(w.pins, history_root=w.root, seals_dir=w.seals)
+
+    class Down:
+        def __call__(self, url, params):
+            return 503, b"", {}
+
+    with pytest.raises(cm.NotNow):
+        cm.run_smoke(hb.Limiter(Down(), rps=100.0, sleep=lambda s: None), files, w.pins, w.rules_sha)
+    real = w.api
+
+    def trades_down(url, params):
+        return (500, b"", {}) if url.endswith("/trades") else real(url, params)
+
+    with pytest.raises(cm.NotNow):
+        cm.run_smoke(hb.Limiter(trades_down, rps=100.0, sleep=lambda s: None), files, w.pins, w.rules_sha)
+    out = tmp_path / "fresh_smoke.json"
+
+    def boom(*a, **k):
+        raise cm.NotNow("net")
+
+    monkeypatch.setattr(cm, "run_smoke", boom)
+    monkeypatch.setattr(cm, "verify_rules", lambda *a, **k: "x")
+    monkeypatch.setattr(cm.c6, "verify_exclusion_files", lambda *a, **k: {})
+    rc = script.main(["smoke", "--out", str(out), "--standalone"])
+    assert rc == 75 and not out.exists()
+
+
+def test_geo_frame_state_terminal_cases_never_block_text_seal(tmp_path):
+    root = tmp_path / "h"
+    (root / "h8_geo").mkdir(parents=True)
+    smoke = tmp_path / "s.json"
+    assert cs.geo_frame_state(root, smoke)[0] == "pending"
+    smoke.write_text(json.dumps({"criterion_a_slug_resolves_to_pinned_id": False}))
+    assert cs.geo_frame_state(root, smoke)[0] == "not_run"  # q0143 refused
+    smoke.write_text(json.dumps({"criterion_a_slug_resolves_to_pinned_id": True}))
+    assert cs.geo_frame_state(root, smoke)[0] == "pending"
+    (root / "h8_geo" / "manifest.json").write_text(json.dumps({"status": "disk_budget"}))
+    assert cs.geo_frame_state(root, smoke)[0] == "not_run"
+    (root / "h8_geo" / "manifest.json").write_text(json.dumps({"status": "source_unverified"}))
+    assert cs.geo_frame_state(root, smoke)[0] == "not_run"
+
+
+def test_seal_rerun_after_crash_tolerates_leftover_drops_files(tmp_path):
+    w = World(tmp_path)
+    w.keys()
+    assert w.geo()["status"] == cm.GEO_COMPLETE
+    for h in cs.DROP_RUNS:
+        (w.seals / f"{h}_NOT_RUN.json").write_text("{}")
+    (w.gdir / "drops.csv.gz").write_bytes(b"leftover")
+    (w.gdir / "drops_report.json").write_text("{}")
+    res = cs.seal_cb7(w.root, cm.GEO_RUN_ID, seals_dir=w.seals, trials_path=tmp_path / "t.jsonl")
+    assert res["sealed"]

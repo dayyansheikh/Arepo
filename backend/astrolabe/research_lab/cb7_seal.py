@@ -36,7 +36,7 @@ def verify_fetched_files(rdir: Path, manifest: dict) -> int:
             raise Refused(f"fetched file missing at seal: {rel}")
         if h5_seal.sha256_file(fp) != sha:
             raise Refused(f"fetched file sha256 differs from the fetch manifest: {rel}")
-    extra = sorted(set(h5_seal.list_files(Path(rdir))) - set(want) - {"manifest.json"})
+    extra = sorted(f for f in set(h5_seal.list_files(Path(rdir))) - set(want) - {"manifest.json"} if not f.startswith("drops"))
     if extra:
         raise Refused(f"files not in the fetch manifest at seal: {extra[:5]}")
     return len(want)
@@ -49,18 +49,30 @@ def _add_keys(into: dict[str, set[str]], k: dict) -> None:
     into["series"].update(s for s in str(k.get("series_ids", "")).split(";") if s)
 
 
-def geo_frame_state(root: Path) -> tuple[str, Path | None]:
-    """``frame`` (the full walked tag frame exists), ``not_run`` (no geo frame will exist) or ``pending``."""
+def geo_frame_state(root: Path, smoke_path: Path | None = None) -> tuple[str, Path | None]:
+    """``frame`` (the full walked tag frame exists), ``not_run`` (terminal, no geo frame will exist: not-run, unverified, disk
+    budget, or a smoke result with criterion (a) false, i.e. q0143 was refused) or ``pending``. A geo failure never blocks the
+    h8_text seal."""
     gdir = Path(root) / cm.GEO_RUN_ID
     if (gdir / "frame_report.json").exists() and (gdir / "frame.csv.gz").exists():
         return "frame", gdir / "frame.csv.gz"
-    if any((gdir / f).exists() for f in (cm.NOT_RUN_FILE, cm.UNVERIFIED_FILE)):
+    if any((gdir / f).exists() for f in (cm.NOT_RUN_FILE, cm.UNVERIFIED_FILE, cm.SOURCE_UNVERIFIED_FILE)):
         return "not_run", None
+    mp = gdir / "manifest.json"
+    if mp.exists() and json.loads(mp.read_text()).get("status") in (cm.DISK_BUDGET_TOKEN, cm.SOURCE_UNVERIFIED_TOKEN):
+        return "not_run", None
+    sp = Path(smoke_path) if smoke_path is not None else cm.SMOKE_DEFAULT
+    if sp.exists():
+        try:
+            if json.loads(sp.read_text()).get("criterion_a_slug_resolves_to_pinned_id") is False:
+                return "not_run", None
+        except ValueError:
+            pass
     return "pending", None
 
 
 def seal_cb7(root: Path, run_id: str, *, transport: hb.Transport | None = None, seals_dir: Path | None = None,
-             trials_path: Path | None = None, rps: float = 2.0, sleep: Callable[[float], None] = time.sleep,
+             trials_path: Path | None = None, smoke_path: Path | None = None, rps: float = 2.0, sleep: Callable[[float], None] = time.sleep,
              live_check: Callable[[], bool] | None = None) -> dict:
     """q0144 / q0145. See the module docstring."""
     root, seals_dir = Path(root), Path(seals_dir or cm.SEALS_DIR)
@@ -83,7 +95,7 @@ def seal_cb7(root: Path, run_id: str, *, transport: hb.Transport | None = None, 
     pending = [h for h, (s, _) in states.items() if s == "pending"]
     geo_state, geo_frame = ("n/a", None)
     if is_text:
-        geo_state, geo_frame = geo_frame_state(root)
+        geo_state, geo_frame = geo_frame_state(root, smoke_path)
         if geo_state == "pending":
             pending.append(cm.GEO_RUN_ID)
     if pending:

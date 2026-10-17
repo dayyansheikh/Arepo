@@ -563,6 +563,7 @@ def run_smoke(lim: hb.Limiter, files: dict[str, Path], pins, rules_sha: str) -> 
         a_ok = status == 200 and isinstance(data, dict) and str(data.get("id")) == GEO_TAG_ID
     except RuntimeError:
         tag_error = True
+        raise NotNow("smoke: tag request failed after retries (network); nothing written, retry later") from None
     cands = smoke_pool(files, pins)
     found: dict[str, dict] = {}
     n_gamma_failed = 0
@@ -578,11 +579,9 @@ def run_smoke(lim: hb.Limiter, files: dict[str, Path], pins, rules_sha: str) -> 
             try:
                 status, rows = lim.get(hb.GAMMA_MARKETS, params)
             except RuntimeError:
-                n_gamma_failed += 1
-                continue
+                raise NotNow("smoke: Gamma lookup failed after retries (network); nothing written, retry later") from None
             if status != 200 or not isinstance(rows, list):
-                n_gamma_failed += 1
-                continue
+                raise NotNow(f"smoke: Gamma lookup status {status}; nothing written, retry later")
             for m in rows:
                 if isinstance(m, dict) and str(m.get("id")) in todo:
                     found[str(m["id"])] = {"end": _parse_ts(m.get("endDate")), "vol": _num(m.get("volumeNum")),
@@ -599,11 +598,9 @@ def run_smoke(lim: hb.Limiter, files: dict[str, Path], pins, rules_sha: str) -> 
         try:
             status, rows = lim.get(hb.DATA_TRADES, {"market": found[x]["cid"], "start": a, "end": b, "takerOnly": "true", "limit": PRINT_LIMIT})
         except RuntimeError:
-            n_failed += 1
-            continue
+            raise NotNow("smoke: trades request failed after retries (network); nothing written, retry later") from None
         if status != 200 or not isinstance(rows, list):
-            n_failed += 1
-            continue
+            raise NotNow(f"smoke: trades status {status}; nothing written, retry later")
         ts = []
         for r in rows:
             try:
