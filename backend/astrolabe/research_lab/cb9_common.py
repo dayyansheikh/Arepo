@@ -169,6 +169,7 @@ def rules_file_doc(kind: str, fingerprint: str | None = None) -> dict:
         if not fingerprint or len(fingerprint) != cm.KEY_FP_HEX:
             raise Refused(f"rules kind {kind!r} pins a {cm.KEY_FP_HEX}-hex wallet_key_fingerprint")
         d["wallet_key_fingerprint"] = fingerprint
+    d = json.loads(json.dumps(d, sort_keys=True, default=str))  # JSON-normal form (tuples -> lists), so a written file compares equal
     return {**d, "rules_sha256": cm.sha_obj(d)}
 
 

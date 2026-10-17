@@ -1,0 +1,870 @@
+# ruff: noqa: E501
+"""CB9 runner (docs/research_lab/CREATIVE_BATCH_9.md section 4, q0180-q0198). Run from cwd=backend (queue worker). EXPLORATORY / METHODS DATA
+ONLY: no edge, calibration or profitability claim.
+
+    python scripts/run_cb9.py rules --which sign|pyth|kd           # write docs/research_lab/seals/cb9_sign_rules.json | cb9_rules.json | cb9_kd_rules.json (commit first)
+    python scripts/run_cb9.py key-fingerprint                       # the strict-loaded key's fingerprint (never the key)
+    python scripts/run_cb9.py smoke ...                             # q0180: receipts per era, Yahoo bar clock, Gamma paging, pmxt HEADs; counts only, WRITE-ONCE
+    python scripts/run_cb9.py sign-audit --strata a,c | b ...       # q0181 (S0a, S0c) / q0188 (S0b): prints, receipts, classes; no agreement
+    python scripts/run_cb9.py exclusion-keys ...                    # q0182: CB8 q0164 keys + seal copies committed since
+    python scripts/run_cb9.py pyth-frame ...                        # q0183: P frame, rule-text flags, Yahoo bars, guarded outcomes / closes
+    python scripts/run_cb9.py pyth-books ...                        # q0184: pmxt states at the checkpoints, quote-window prints
+    python scripts/run_cb9.py kd-frame | kd-books | kd-seal ...     # q0185-q0187 (cb9_kd)
+    python scripts/run_cb9.py census                                # q0189: counts only, all families
+    python scripts/run_cb9.py screen --family S0|P|S1|KD            # q0190 / q0191 / q0194 / q0192 (KD -> screen-kd); refuse before the CB9 freeze
+    python scripts/run_cb9.py stage1-label                          # batch-Holm label over the fixed Stage-1 family (k1 = 5; not run -> p = 1)
+    python scripts/run_cb9.py sign-fetch ...                        # q0193: h10_sign (only after an S0 'material noise' verdict)
+    python scripts/run_cb9.py pyth-live ...                         # q0195: Stage-2 prospective collection (only if P1 or P2 advanced)
+    python scripts/run_cb9.py rep --family P|KD                     # q0196 / q0197 (KD -> rep-kd)
+    python scripts/run_cb9.py halfday-poll --days ...               # q0198: half-session books (descriptive, uncounted)
+
+Exit codes: 0 ok / transient pause / idle heartbeat / declared end state; 1 error; 2 refusal (rules hash, key missing / unsafe / fingerprint, smoke
+not met or result exists, run id, refused root, declared argument changed, before T_seal for net-lane jobs, before the CB9 freeze for analysis jobs,
+HOLDOUT, guarded file, trigger not met); 4 disk budget (declared end state); 75 (EX_TEMPFAIL) data-dumps headroom, nothing due yet, or a network
+failure in the smoke (nothing written).
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "backend"))
+
+REFUSED, TEMPFAIL, DISK_BUDGET = 2, 75, 4
+DECLARED_DISK_CAP_GB = {"sign-audit": 0.01, "exclusion-keys": 0.01, "pyth-frame": 0.01, "pyth-books": 0.02, "sign-fetch": 0.05, "pyth-live": 0.01, "halfday-poll": 0.01}
+DECLARED_RPS_MAX = {"smoke": 1.0, "sign-audit": 2.0, "exclusion-keys": 2.0, "pyth-frame": 2.0, "pyth-books": 2.0, "sign-fetch": 2.0, "pyth-live": 1.0, "halfday-poll": 1.0}
+HALFDAY_DAYS = "2026-11-27,2026-12-24"
+
+
+def _emit(obj: dict) -> None:
+    print(json.dumps(obj, default=str, sort_keys=True))
+
+
+def _guarded(fn):
+    """Run ``fn`` and map the CB9 exceptions to exit codes; ``fn`` returns (exit code, payload dict)."""
+
+    def wrapper(a) -> int:
+        from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+        try:
+            code, payload = fn(a)
+        except cm.Refused as exc:
+            _emit({"refused": str(exc)})
+            return REFUSED
+        except cm.NotNow as exc:
+            _emit({"tempfail": str(exc)})
+            return TEMPFAIL
+        except (cm.SealError, FileNotFoundError) as exc:
+            _emit({"refused": str(exc)})
+            return REFUSED
+        except Exception as exc:
+            _emit({"error": f"{type(exc).__name__}: {exc}"[:300]})
+            return 1
+        _emit(payload)
+        return code
+
+    return wrapper
+
+
+def _c9():
+    from astrolabe.research_lab import cb9_common as c9  # noqa: PLC0415
+
+    return c9
+
+
+def _cb9_root(a) -> Path:
+    c9 = _c9()
+    return c9.refuse_path(Path(a.root) if getattr(a, "root", None) else c9.CB9_DIR)
+
+
+def _declared(a, cmd: str) -> None:
+    """Refuse (exit 2) when a declared argument differs: the output cap and the rate ceiling of each job."""
+    c9 = _c9()
+    want = DECLARED_DISK_CAP_GB.get(cmd)
+    if want is not None and abs(float(getattr(a, "disk_cap_gb", want)) - want) > 1e-9:
+        raise c9.Refused(f"arguments differ from the declaration: disk_cap_gb={a.disk_cap_gb!r} (declared {want!r})")
+    cap = DECLARED_RPS_MAX.get(cmd)
+    if cap is not None and float(getattr(a, "rps", cap)) > cap + 1e-9:
+        raise c9.Refused(f"arguments differ from the declaration: rps={a.rps!r} > declared {cap!r}")
+
+
+def _net_kw(a) -> dict:
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    standalone = bool(getattr(a, "standalone", False))
+    return dict(rps=a.rps, data_dumps=Path(a.data_dumps) if a.data_dumps else cm.DATA_DUMPS, data_dumps_cap_gb=a.data_dumps_cap_gb,
+                live_check=None if standalone else hb.live_pass_or_lock, snapshot_root=None if standalone else Path(a.snapshot_root or cm.c4.SNAPSHOT_ROOT),
+                budget_min=getattr(a, "budget_min", None))
+
+
+def _rules(a, kind: str) -> tuple[str, str]:
+    c9 = _c9()
+    path = Path(a.rules) if getattr(a, "rules", None) else c9.RULE_KINDS[kind][1]
+    return c9.verify_rules(kind, path, require_committed=not getattr(a, "allow_uncommitted_rules", False))
+
+
+def _key(a, fp: str) -> bytes:
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    return cm.load_wallet_key_strict(Path(a.wallet_key_path) if getattr(a, "wallet_key_path", None) else None, fp)
+
+
+def _result(m: dict) -> tuple[int, dict]:
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    if m.get("status") == cm.DISK_BUDGET_TOKEN:
+        return DISK_BUDGET, {"status": cm.DISK_BUDGET_TOKEN, "stopped": m.get("stopped"), "counts": m.get("counts")}
+    return 0, {"status": m.get("status"), "stopped": m.get("stopped"), "complete": m.get("complete"), "counts": m.get("counts"), "transient": m.get("transient")}
+
+
+def _commit_epoch(path: Path) -> float | None:
+    try:
+        out = subprocess.run(["git", "log", "-1", "--format=%ct", "--", str(path)], capture_output=True, text=True, cwd=ROOT, timeout=30).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return float(out) if out else None
+
+
+# ---- rules / key ---------------------------------------------------------------------------------------------------------------------------
+
+
+def cmd_rules(a) -> int:
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    c9 = _c9()
+    try:
+        kind = a.which
+        fp = None
+        if c9.RULE_KINDS[kind][3]:
+            fp = a.key_fingerprint or cm.key_fingerprint(cm.load_wallet_key_strict(Path(a.wallet_key_path) if a.wallet_key_path else None))
+        out = c9.write_rules(kind, Path(a.path) if a.path else None, fp)
+        doc = c9.rules_file_doc(kind, fp)
+    except cm.Refused as exc:
+        _emit({"refused": str(exc)})
+        return REFUSED
+    _emit({"written": str(out), "rules_sha256": doc["rules_sha256"], "funcs_sha256": doc["funcs_sha256"], "wallet_key_fingerprint": fp})
+    return 0
+
+
+def cmd_key_fp(a) -> int:
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    try:
+        _emit({"wallet_key_fingerprint": cm.key_fingerprint(cm.load_wallet_key_strict(Path(a.wallet_key_path) if a.wallet_key_path else None))})
+    except cm.Refused as exc:
+        _emit({"refused": str(exc)})
+        return REFUSED
+    return 0
+
+
+# ---- q0180 smoke -----------------------------------------------------------------------------------------------------------------------------
+
+
+@_guarded
+def cmd_smoke(a):
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+    from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
+    from astrolabe.research_lab import cb9_sign as sg  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+    from astrolabe.research_lab import history_sources as hs  # noqa: PLC0415
+
+    c9 = _c9()
+    _declared(a, "smoke")
+    out = c9.refuse_path(Path(a.out) if a.out else c9.SMOKE_DEFAULT)
+    if out.exists():  # write-once: a FAIL can never be replaced by a later PASS
+        raise c9.Refused(f"smoke result {out} already exists; it is write-once")
+    sha, fp = _rules(a, "sign")
+    key = _key(a, fp)
+    live = None if a.standalone else hb.live_pass_or_lock
+    lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 1.0), live_check=live)
+    rpc = sg.RpcClient(sg.httpx_post(), rps=min(a.rps, 1.0), live_check=live)
+    rec = sg.smoke_receipts(lim, rpc, key)
+    ylim = hb.Limiter(py.yahoo_transport(), rps=min(a.rps, py.YAHOO_RPS), live_check=live)
+    try:
+        s0, s1 = py.et_epoch(py.SMOKE_SESSIONS[0], 0, 0), py.et_epoch(py.SMOKE_SESSIONS[-1], 23, 59)
+        hdoc = py.yahoo_chart(ylim, py.SMOKE_TICKER, "1h", s0, s1)
+        ddoc = py.yahoo_chart(ylim, py.SMOKE_TICKER, "1d", s0, s1)
+        yah = py.smoke_yahoo_check(hdoc, ddoc)
+    except cm.ApiError as exc:
+        yah = {"pass": False, "error": str(exc)[:100]}
+    except RuntimeError:
+        raise cm.NotNow("smoke: Yahoo request failed (network); nothing written") from None
+    try:
+        gam = py.smoke_gamma_paging(lim)
+        heads = py.smoke_pmxt_heads(hs.httpx_size)
+    except RuntimeError:
+        raise cm.NotNow("smoke: Gamma / pmxt request failed (network); nothing written") from None
+    crit = {"receipts_v1": rec["receipts"]["v1"]["pass"], "receipts_v2": rec["receipts"]["v2"]["pass"], "yahoo_clock": yah["pass"],
+            "gamma_paging": gam["pass"], "pmxt_heads": heads["pass"], "topic_pins": rec["topic_pins"]["ok"]}
+    res = {"smoke_version": sg.SMOKE_VERSION, "rules_sha256": sha, "wallet_key_fingerprint": fp, "git_commit": hb._git_commit(), "run_utc": cm.iso(time.time()),
+           "counts_only": True, "criteria": crit, "pass": all(crit.values()), "receipts": rec, "yahoo": yah, "gamma_paging": gam, "pmxt_heads": heads,
+           "consequences": {"receipts_v1 fail": "S0c not run (source), counted", "receipts_v2 fail": "S0a/S0b not run (source), counted",
+                            "yahoo_clock or gamma_paging fail": "P not testable (source), counted; the bar rule is never re-fitted"}}
+    cm.write_once_json(out, res)
+    c9.log_descriptive("smoke", {"pass": res["pass"], "criteria": crit, "smoke_path": str(out)}, trials_path=Path(a.trials_path) if a.trials_path else None)
+    return 0, {"smoke": res["pass"], "criteria": crit, "written": str(out)}
+
+
+# ---- q0181 / q0188 sign audit ------------------------------------------------------------------------------------------------------------------
+
+
+@_guarded
+def cmd_sign_audit(a):
+    from astrolabe.research_lab import cb1_history  # noqa: PLC0415
+    from astrolabe.research_lab import cb9_sign as sg  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    c9 = _c9()
+    _declared(a, "sign-audit")
+    strata = [s.strip() for s in a.strata.split(",") if s.strip()]
+    if sorted(strata) not in (["a", "c"], ["b"]):
+        raise c9.Refused(f"--strata must be 'a,c' (q0181) or 'b' (q0188), not {a.strata!r}")
+    c9.require_after_t_seal(time.time(), "sign-audit")
+    sha, fp = _rules(a, "sign")
+    key = _key(a, fp)
+    root = _cb9_root(a)
+    kw = _net_kw(a)
+    out = {}
+    for s in strata:
+        m = sg.sign_audit(root / "sign", s, hb.httpx_transport(), sg.httpx_post(), key=key, fp=fp, rules_sha=sha, now=time.time(),
+                          smoke_path=Path(a.smoke) if a.smoke else c9.SMOKE_DEFAULT, cb7_keys_path=Path(a.cb7_keys) if a.cb7_keys else None,
+                          seals_dir=Path(a.seals_dir) if a.seals_dir else None, is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed,
+                          disk_cap=int(a.disk_cap_gb * 1024**3), s0b_input=(lambda: sg.kd_s0b_input(root)) if s == "b" else None, **kw)
+        code, payload = _result(m)
+        out[s] = payload
+        if code or m.get("status") != "sign_audit_complete":
+            return code, {"strata": out}
+    return 0, {"strata": out}
+
+
+# ---- q0182 exclusion keys -------------------------------------------------------------------------------------------------------------------
+
+
+def _extra_pins(values: list[str] | None) -> list[dict]:
+    c9 = _c9()
+    out = []
+    for v in values or []:
+        parts = str(v).split(":")
+        if len(parts) != 3 or len(parts[2]) != 64:
+            raise c9.Refused(f"--extra-pin must be NAME:PATH:SHA256, got {v!r}")
+        out.append({"name": parts[0], "kind": "ids", "path": parts[1], "sha256": parts[2]})
+    return out
+
+
+@_guarded
+def cmd_exclusion_keys(a):
+    from astrolabe.research_lab import cb1_history  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    c9 = _c9()
+    _declared(a, "exclusion-keys")
+    c9.require_after_t_seal(time.time(), "exclusion-keys")
+    sha, _ = _rules(a, "pyth")
+    root = _cb9_root(a)
+    kw = _net_kw(a)
+    m = c9.exclusion_keys(root, hb.httpx_transport(), rules_sha=sha, cb8_keys_path=Path(a.cb8_keys) if a.cb8_keys else c9.CB8_KEYS_DEFAULT,
+                          cb8_keys_sha256=a.cb8_keys_sha256, seals_dir=Path(a.seals_dir) if a.seals_dir else None, extra_pins=_extra_pins(a.extra_pin),
+                          is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed, disk_cap=int(a.disk_cap_gb * 1024**3), **kw)
+    return _result(m)
+
+
+# ---- q0183 / q0184 P data ---------------------------------------------------------------------------------------------------------------------
+
+
+@_guarded
+def cmd_pyth_frame(a):
+    from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    c9 = _c9()
+    _declared(a, "pyth-frame")
+    sha, _ = _rules(a, "pyth")
+    root = _cb9_root(a)
+    m = py.pyth_frame(root, hb.httpx_transport(), rules_sha=sha, smoke_path=Path(a.smoke) if a.smoke else c9.SMOKE_DEFAULT,
+                      exclusion_keys_path=Path(a.exclusion_keys) if a.exclusion_keys else c9.EXCLUSION_KEYS_DEFAULT, now=time.time(),
+                      disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
+    return _result(m)
+
+
+@_guarded
+def cmd_pyth_books(a):
+    from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+    from astrolabe.research_lab import history_sources as hs  # noqa: PLC0415
+
+    c9 = _c9()
+    _declared(a, "pyth-books")
+    if abs(a.ingress_cap_gb - py.INGRESS_CAP_GB) > 1e-9:
+        raise c9.Refused(f"arguments differ from the declaration: ingress_cap_gb={a.ingress_cap_gb!r} (declared {py.INGRESS_CAP_GB!r})")
+    sha, _ = _rules(a, "pyth")
+    root = _cb9_root(a)
+    m = py.pyth_books(root, hb.httpx_transport(), rules_sha=sha, smoke_path=Path(a.smoke) if a.smoke else c9.SMOKE_DEFAULT, frame_dir=root / "pyth_frame",
+                      fetch=hs.httpx_range_fetch(), size_fn=hs.httpx_size, now=time.time(), ingress_cap_gb=a.ingress_cap_gb, disk_cap=int(a.disk_cap_gb * 1024**3),
+                      **_net_kw(a))
+    return _result(m)
+
+
+# ---- q0189 census -------------------------------------------------------------------------------------------------------------------------------
+
+
+def _kd_module():
+    try:
+        from astrolabe.research_lab import cb9_kd  # noqa: PLC0415
+    except ImportError:
+        return None
+    return cb9_kd
+
+
+def census_s_block(root: Path) -> dict:
+    from astrolabe.research_lab import cb9_sign as sg  # noqa: PLC0415
+
+    rows = {}
+    for s in sg.STRATA:
+        p = root / "sign" / f"s0{s}" / "prints_classes.csv.gz"
+        rows[s] = sg.read_census_rows(p) if p.exists() else []
+    return sg.census_s(rows)
+
+
+def census_p_block(root: Path) -> dict:
+    """P census from the FEATURE files only (frame, bars_pre, strikes, states, prints); the guarded files are never opened here."""
+    from astrolabe.research_lab import cb7_common as c7  # noqa: PLC0415
+    from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
+
+    fdir, bdir = root / "pyth_frame", root / "pyth"
+    if not (fdir / "frame.csv.gz").exists() or not (bdir / "states.csv.gz").exists():
+        return {"status": "inputs missing", "label_P1": "not testable (source unavailable)", "label_P2": "not testable (source unavailable)"}
+    fman = json.loads((fdir / "manifest.json").read_text())
+    frame = [r for r in c7.read_csv_gz(fdir / "frame.csv.gz") if r.get("ticker_status") == "ok"]
+    bars = py.load_bars(fdir / "bars_pre.csv.gz")
+    strikes = {(r["ticker"], r["day"]): float(r["k_d"]) for r in c7.read_csv_gz(fdir / "strikes.csv.gz")}
+    states = list(c7.read_csv_gz(bdir / "states.csv.gz"))
+    prints = list(c7.read_csv_gz(bdir / "prints.csv.gz"))
+    units = py.build_units(frame, bars, strikes, states, prints)
+    info = {"frame_status": fman.get("status"), "reasons": fman.get("reasons"), "drops": fman.get("drops"), "tickers": fman.get("tickers"),
+            "n_frame_rows": len(frame), "n_tickers": len({r["ticker"] for r in frame})}
+    return py.census_p(units, info)
+
+
+@_guarded
+def cmd_census(a):
+    c9 = _c9()
+    root = _cb9_root(a)
+    out = Path(a.out) if a.out else root / "census.json"
+    if out.exists():
+        raise c9.Refused(f"{out} exists; the census is written once")
+    doc = {"version": "cb9-census-v1", "counts_only": True, "S": census_s_block(root), "P": census_p_block(root)}
+    kd = _kd_module()
+    doc["kd"] = kd.kd_census(a) if kd is not None and hasattr(kd, "kd_census") else {"status": "cb9_kd unavailable"}
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    cm.write_json_atomic(out, doc)
+    c9.log_descriptive("census", {"census_sha256": cm.sha_obj(doc), "path": str(out)}, trials_path=Path(a.trials_path) if a.trials_path else None)
+    return 0, {"status": "census_complete", "written": str(out), "S_gates": {s: v.get("gate_GS") for s, v in doc["S"].items()},
+               "P": {k: doc["P"].get(k) for k in ("label_P1", "label_P2")}}
+
+
+# ---- screens and labels ------------------------------------------------------------------------------------------------------------------------
+
+
+def _write_results(path: Path, doc: dict) -> str:
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+
+    sha = cm.sha_obj(doc)
+    cm.write_json_atomic(path, {**doc, "results_sha256": sha})
+    return sha
+
+
+def _p_inputs(root: Path, job: str, lag_s: int | None = None, stale: bool = False):
+    from astrolabe.research_lab import cb7_common as c7  # noqa: PLC0415
+    from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
+
+    fdir, bdir = root / "pyth_frame", root / "pyth"
+    frame = [r for r in c7.read_csv_gz(fdir / "frame.csv.gz") if r.get("ticker_status") == "ok"]
+    bars = py.load_bars(fdir / "bars_pre.csv.gz")
+    strikes = {(r["ticker"], r["day"]): float(r["k_d"]) for r in c7.read_csv_gz(fdir / "strikes.csv.gz")}
+    states = list(c7.read_csv_gz(bdir / "states.csv.gz"))
+    prints = list(c7.read_csv_gz(bdir / "prints.csv.gz"))
+    outcomes = {o["market_id"]: o for o in py.open_guarded(fdir / "outcomes_guarded.csv.gz", job)}
+    settle = py.open_guarded(fdir / "closes_settle_guarded.csv.gz", job)
+    return frame, bars, strikes, states, prints, outcomes, settle
+
+
+def screen_p_doc(root: Path, census: dict) -> dict:
+    from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
+
+    frame, bars, strikes, states, prints, outcomes, settle = _p_inputs(root, "screen-P")
+
+    def y_of(u: dict, token: str):
+        o = outcomes.get(u["market_id"])
+        return None if o is None else py.outcome_y(json.loads(o["outcome_labels"]), json.loads(o["outcome_prices"]), token)
+
+    units = py.build_units(frame, bars, strikes, states, prints)
+    stale = py.build_units(frame, bars, strikes, states, prints, stale=True)
+    lat = py.build_units(frame, bars, strikes, states, prints, lag_s=py.LATENCY_LAG_S)
+    src = py.source_check(frame, strikes, settle, outcomes)
+    pc = census.get("P") or {}
+    out = {"source_check": src}
+    for tid, fn, gate_key, lab_key in (("P1", lambda: py.p1_stat(units, y_of, stale_units=stale, latency_units=lat), "gate_GP_P1", "label_P1"),
+                                       ("P2", lambda: py.p2_stat(units, y_of, latency_units=lat), "gate_GP_P2", "label_P2")):
+        if not src["pass"]:
+            out[tid] = {"testable": False, "p": 1.0, "advance": False, "verdict": "not testable (source)"}
+        elif not pc.get(gate_key) or not (pc.get("coverage_audit") or {}).get("pass"):
+            out[tid] = {"testable": False, "p": 1.0, "advance": False, "verdict": pc.get(lab_key) or "not testable (gate GP)"}
+        else:
+            out[tid] = fn()
+    return out
+
+
+@_guarded
+def cmd_screen(a):
+    from astrolabe.research_lab import cb9_sign as sg  # noqa: PLC0415
+
+    c9 = _c9()
+    fam = a.family
+    if fam == "KD":
+        raise c9.Refused("screen --family KD is dispatched to screen-kd (cb9_kd); cb9_kd is unavailable")
+    c9.require_freeze(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
+    root = _cb9_root(a)
+    tp = Path(a.trials_path) if a.trials_path else None
+    census = json.loads(Path(a.census or (root / "census.json")).read_text())
+    if fam == "S0":
+        _rules(a, "sign")
+        rows = {s: list(_all_rows(root / "sign" / f"s0{s}" / "prints_classes.csv.gz")) for s in sg.STRATA}
+        doc = sg.s0_screen(rows)
+        rsha = _write_results(Path(a.out) if a.out else root / "results_S0.json", doc)
+        c9.log_test("S", "S0", {"p": None, "advance": False, "testable": doc["testable"], "verdict": {s: v["verdict"] for s, v in doc["strata"].items()}},
+                    trials_path=tp, results_sha256=rsha)
+        return 0, {"status": "screen_S0_complete", "verdicts": {s: v["verdict"] for s, v in doc["strata"].items()}, "s1_triggered": doc["s1_triggered_eras"]}
+    if fam == "P":
+        sha, _ = _rules(a, "pyth")
+        doc = {**screen_p_doc(root, census), "rules_sha256": sha}
+        rsha = _write_results(Path(a.out) if a.out else root / "results_P.json", doc)
+        for tid in ("P1", "P2"):
+            r = doc[tid]
+            pl = r.get("placebo_breakeven") or r.get("placebo_label_swap")
+            c9.log_test("P", tid, {"p": r.get("p", 1.0), "advance": r.get("advance"), "testable": r.get("testable"), "effect": r.get("mean_cents"), "n": r.get("n"),
+                                   "verdict": r.get("verdict")}, trials_path=tp, results_sha256=rsha,
+                        placebo={"note": f"{tid} calibration placebo", "advance_rate": pl["advance_rate"], "n_draws": pl["n_draws"]} if pl else None)
+        return 0, {"status": "screen_P_complete", "P1": {k: doc["P1"].get(k) for k in ("p", "advance", "verdict")}, "P2": {k: doc["P2"].get(k) for k in ("p", "advance", "verdict")}}
+    if fam == "S1":
+        _rules(a, "sign")
+        doc = screen_s1_doc(root, Path(a.history_root) if a.history_root else None)
+        rsha = _write_results(Path(a.out) if a.out else root / "results_S1.json", doc)
+        c9.log_test("S", "S1", {"p": doc.get("p", 1.0), "advance": doc.get("advance"), "testable": doc.get("testable"), "effect": doc.get("r_hat"), "n": doc.get("n"),
+                                "verdict": doc.get("verdict")}, trials_path=tp, results_sha256=rsha)
+        return 0, {"status": "screen_S1_complete", "verdict": doc.get("verdict"), "p": doc.get("p")}
+    raise c9.Refused(f"unknown family {fam!r}")
+
+
+def _all_rows(p: Path):
+    from astrolabe.research_lab import cb7_common as c7  # noqa: PLC0415
+
+    if not p.exists():
+        return []
+    return c7.read_csv_gz(p)
+
+
+def screen_s1_doc(root: Path, history_root: Path | None) -> dict:
+    """S1 on h10_sign: per market window the 2-h grid units on identical prints, event clusters; ratio rule."""
+    from astrolabe.research_lab import cb7_common as c7  # noqa: PLC0415
+    from astrolabe.research_lab import cb9_common as c9  # noqa: PLC0415
+    from astrolabe.research_lab import cb9_sign as sg  # noqa: PLC0415
+
+    hdir = Path(history_root or c9.HIST_ROOT) / c9.H10_RUN
+    if not (hdir / "sample.json").exists():
+        return {"testable": False, "p": 1.0, "advance": False, "verdict": "not run (h10_sign absent)"}
+    smp = json.loads((hdir / "sample.json").read_text())
+    units, events = [], []
+    for r in smp:
+        fp = hdir / "prints" / f"{r['market_id']}.csv.gz"
+        if not fp.exists():
+            continue
+        prints = [{"ts": float(x["ts"]), "idx": int(x["idx"]), "api_side": "BUY" if str(x["api_side"]) in ("1", "BUY") else "SELL", "price": float(x["price"]),
+                   "size": float(x["size"]), "t1_side": x["t1_side"], "t1_idx": int(x["t1_idx"]) if x["t1_idx"] not in ("", None) else 0}
+                  for x in c7.read_csv_gz(fp) if x["match_status"] == "matched"]
+        for u in sg.s1_units(prints, float(r["w0"]), float(r["w1"])):
+            units.append(u)
+            events.append(r.get("event_id") or r["market_id"])
+    return sg.s1_ratio(units, events)
+
+
+@_guarded
+def cmd_stage1_label(a):
+    c9 = _c9()
+    root = _cb9_root(a)
+    pv: dict[str, float | None] = dict.fromkeys(c9.STAGE1_HOLM_FAMILY)
+    for name, keys in (("results_P.json", ("P1", "P2")), ("results_KD.json", ("K1", "D1"))):
+        p = root / name
+        if p.exists():
+            d = json.loads(p.read_text())
+            for k in keys:
+                if isinstance(d.get(k), dict) and d[k].get("testable"):
+                    pv[k] = float(d[k].get("p", 1.0))
+    p = root / "results_S1.json"
+    if p.exists():
+        d = json.loads(p.read_text())
+        pv["S1"] = float(d.get("p", 1.0)) if d.get("testable") else None
+    return 0, {"batch_holm": c9.batch_holm_label(pv), "note": "label only; not run / pending / not testable enter with p = 1; k1 = 5 fixed"}
+
+
+# ---- q0193 S1 fetch -------------------------------------------------------------------------------------------------------------------------------
+
+
+def _ids_of(path: Path, col: str = "market_id") -> set[str]:
+    from astrolabe.research_lab import cb7_common as c7  # noqa: PLC0415
+
+    return {str(r[col]) for r in c7.read_csv_gz(path)}
+
+
+@_guarded
+def cmd_sign_fetch(a):
+    from astrolabe.research_lab import cb9_sign as sg  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    c9 = _c9()
+    _declared(a, "sign-fetch")
+    root = _cb9_root(a)
+    res = root / "results_S0.json"
+    if not res.exists():
+        raise c9.Refused("results_S0.json missing: q0193 runs only after an S0 'material noise' verdict")
+    trig = json.loads(res.read_text()).get("s1_triggered_eras") or []
+    if not trig:
+        raise c9.Refused("no S0 stratum gave 'material noise': S1 is not run")
+    era = "v2" if any(s in ("a", "b") for s in trig) else "v1"
+    sha, fp = _rules(a, "sign")
+    key = _key(a, fp)
+    ids, keys, _rep, _sha = c9.load_exclusion_keys(Path(a.exclusion_keys) if a.exclusion_keys else c9.EXCLUSION_KEYS_DEFAULT)
+    kd = _kd_module()
+    if kd is None:
+        raise c9.Refused("cb9_kd unavailable: the K/D frame ids are required for the h10 exclusions")
+    cb9_ids = {"kd_frame": _ids_of(root / kd.FRAME_RUN / kd.FRAME_FILE), "pyth_frame": _ids_of(root / "pyth_frame" / "frame_all.csv.gz")}
+    for s in ("a", "c"):
+        cb9_ids[f"s0{s}"] = {r["market_id"] for r in json.loads((root / "sign" / f"s0{s}" / "sample.json").read_text())["markets"]}
+    cb9_ids["s0b"] = {p["market_id"] for p in json.loads((root / "sign" / "s0b" / "s0b_drawn.json").read_text())}
+    m = sg.sign_fetch_h10(Path(a.history_root) if a.history_root else c9.HIST_ROOT, hb.httpx_transport(), sg.httpx_post(), key=key, fp=fp, rules_sha=sha, era=era,
+                          excl_ids=ids, excl_keys=keys, cb9_ids=cb9_ids, now=time.time(), disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
+    return _result(m)
+
+
+# ---- q0195 P Stage 2, q0196 rep, q0198 half days ----------------------------------------------------------------------------------------------------
+
+
+def _p_advanced(root: Path) -> bool:
+    p = root / "results_P.json"
+    if not p.exists():
+        return False
+    d = json.loads(p.read_text())
+    return bool((d.get("P1") or {}).get("advance") or (d.get("P2") or {}).get("advance"))
+
+
+@_guarded
+def cmd_pyth_live(a):
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+    from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    c9 = _c9()
+    _declared(a, "pyth-live")
+    if a.sessions != py.STAGE2_SESSIONS:
+        raise c9.Refused(f"arguments differ from the declaration: sessions={a.sessions} (declared {py.STAGE2_SESSIONS})")
+    root = _cb9_root(a)
+    if not _p_advanced(root):
+        raise c9.Refused("P1 / P2 did not advance at Stage 1: q0195 is not run")
+    c9.require_freeze(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
+    t_freeze = _commit_epoch(Path(a.freeze_spec) if a.freeze_spec else c9.FREEZE_SPEC)
+    if t_freeze is None:
+        raise c9.Refused("CB9 freeze commit time unknown")
+    _rules(a, "pyth")
+    cm.require_room(Path(a.data_dumps) if a.data_dumps else cm.DATA_DUMPS, a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
+    ids, keys, _rep, _ = c9.load_exclusion_keys(Path(a.exclusion_keys) if a.exclusion_keys else c9.EXCLUSION_KEYS_DEFAULT)
+    live = None if a.standalone else hb.live_pass_or_lock
+    lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 1.0), live_check=live)
+    ylim = hb.Limiter(py.yahoo_transport(), rps=min(a.rps, py.YAHOO_RPS), live_check=live)
+    ldir = root / "pyth_live"
+    cache: dict[str, list[dict]] = {}
+
+    def frame_markets(day: str) -> list[dict]:
+        if day not in cache:
+            fp_ = ldir / day / "frame.json"
+            if fp_.exists():
+                cache[day] = json.loads(fp_.read_text())
+            else:
+                cache[day] = py.live_frame_markets(lim, day, ids, keys)
+                fp_.parent.mkdir(parents=True, exist_ok=True)
+                fp_.write_text(json.dumps(cache[day]))
+        return cache[day]
+
+    def yahoo_get(sym: str, interval: str, p1: float, p2: float):
+        doc = py.yahoo_chart(ylim, sym, interval, p1, p2)
+        return doc, time.time()
+
+    def book_get(token: str):
+        st, doc = lim.get(py.CLOB_BOOK, {"token_id": token})
+        if st != 200:
+            raise cm.ApiError(f"book status {st}")
+        return doc, time.time()
+
+    def prints_get(cid: str, s: int, e: int):
+        try:
+            rows, info = cm.windowed_prints(lim, cid, s, e, py.PRINT_PAGES, b"cb9-no-wallets")
+        except cm.ApiError:
+            return None
+        return None if info["capped"] else [{k: p[k] for k in ("ts", "idx", "side", "price", "size")} for p in rows]
+
+    res = py.pyth_live_tick(ldir, now=time.time(), start_day=py.t9_p2_start(t_freeze), frame_markets=frame_markets, yahoo_get=yahoo_get, book_get=book_get,
+                            prints_get=prints_get)
+    if res["status"] == "idle":
+        return 0, cm.idle(ldir, "no Stage-2 step due", time.time())
+    return 0, res
+
+
+def rep_p_doc(root: Path) -> dict:
+    from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
+
+    c9 = _c9()
+    res_p, res_kd = root / "results_P.json", root / "results_KD.json"
+    if not (res_p.exists() and res_kd.exists()):
+        raise c9.NotNow("Stage-2 Holm k is fixed when the last Stage-1 result is final (results_P.json and results_KD.json)")
+    dp, dk = json.loads(res_p.read_text()), json.loads(res_kd.read_text())
+    advanced = [t for t, d in (("P1", dp), ("P2", dp), ("K1", dk), ("D1", dk)) if (d.get(t) or {}).get("advance")]
+    k = len(advanced)
+    t_freeze = _commit_epoch(c9.FREEZE_SPEC)
+    sessions = py.stage2_sessions(py.t9_p2_start(t_freeze)) if t_freeze else []
+    ldir = root / "pyth_live"
+    frames = {d: json.loads((ldir / d / "frame.json").read_text()) for d in sessions if (ldir / d / "frame.json").exists()}
+    outcomes = {o["market_id"]: o for o in py.open_guarded(ldir / "outcomes_guarded.csv.gz", "rep-P")} if (ldir / "outcomes_guarded.csv.gz").exists() else {}
+
+    def y_of(u: dict, token: str):
+        o = outcomes.get(u["market_id"])
+        return None if o is None else py.outcome_y(json.loads(o["outcome_labels"]), json.loads(o["outcome_prices"]), token)
+
+    units, status = py.live_units(ldir, sessions, frames)
+    avail = py.stage2_availability(status, sessions)
+    out = {"stage2_k": k, "advanced_stage1": advanced, "alpha_each_early": c9.STAGE2_ALPHA / k if k else None, "availability": avail,
+           "label": "out-of-time replication on post-freeze sessions (L2)", "data_role": c9.DATA_ROLE_PROSP}
+    for tid, fn in (("P1", lambda: py.p1_stat(units, y_of)), ("P2", lambda: py.p2_stat(units, y_of))):
+        if tid not in advanced:
+            continue
+        if not avail["testable"]:
+            out[f"{tid}_rep"] = {"testable": False, "p": 1.0, "advance": False, "verdict": avail["label"]}
+            continue
+        r = fn()
+        thr = c9.STAGE2_ALPHA / k if k else 0.0
+        r["stage2_pass_early_alpha_over_k"] = bool(r.get("testable") and r.get("p", 1.0) <= thr and (r.get("mean_cents") or 0) > 0)
+        out[f"{tid}_rep"] = r
+    return out
+
+
+@_guarded
+def cmd_rep(a):
+    c9 = _c9()
+    if a.family == "KD":
+        raise c9.Refused("rep --family KD is dispatched to rep-kd (cb9_kd); cb9_kd is unavailable")
+    if a.family != "P":
+        raise c9.Refused(f"unknown family {a.family!r}")
+    c9.require_freeze(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
+    sha, _ = _rules(a, "pyth")
+    root = _cb9_root(a)
+    doc = {**rep_p_doc(root), "rules_sha256": sha}
+    rsha = _write_results(Path(a.out) if a.out else root / "results_P_rep.json", doc)
+    tp = Path(a.trials_path) if a.trials_path else None
+    for tid in ("P1", "P2"):
+        r = doc.get(f"{tid}_rep")
+        if r is None:
+            continue
+        c9.log_test("P", f"{tid}-rep", {"p": r.get("p", 1.0), "advance": r.get("stage2_pass_early_alpha_over_k"), "testable": r.get("testable"),
+                                        "effect": r.get("mean_cents"), "n": r.get("n"), "verdict": r.get("verdict")}, replication=True, trials_path=tp,
+                    results_sha256=rsha, data_role=c9.DATA_ROLE_PROSP)
+    return 0, {"status": "rep_P_complete", "tests": [k for k in ("P1_rep", "P2_rep") if k in doc]}
+
+
+@_guarded
+def cmd_halfday(a):
+    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
+    from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    c9 = _c9()
+    _declared(a, "halfday-poll")
+    days = [d.strip() for d in a.days.split(",") if d.strip()]
+    if sorted(days) != sorted(HALFDAY_DAYS.split(",")):
+        raise c9.Refused(f"arguments differ from the declaration: days={a.days!r} (declared {HALFDAY_DAYS})")
+    _rules(a, "pyth")
+    root = _cb9_root(a)
+    cm.require_room(Path(a.data_dumps) if a.data_dumps else cm.DATA_DUMPS, a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
+    ids, keys, _rep, _ = c9.load_exclusion_keys(Path(a.exclusion_keys) if a.exclusion_keys else c9.EXCLUSION_KEYS_DEFAULT)
+    lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 1.0), live_check=None if a.standalone else hb.live_pass_or_lock)
+    hdir = root / "halfday"
+    cache: dict[str, list[dict]] = {}
+
+    def frame_markets(day: str) -> list[dict]:
+        if day not in cache:
+            cache[day] = py.live_frame_markets(lim, day, ids, keys)
+        return cache[day]
+
+    def book_get(token: str):
+        st, doc = lim.get(py.CLOB_BOOK, {"token_id": token})
+        if st != 200:
+            raise cm.ApiError(f"book status {st}")
+        return doc, time.time()
+
+    res = py.halfday_tick(hdir, now=time.time(), days=days, frame_markets=frame_markets, book_get=book_get)
+    if res["status"] == "idle":
+        return 0, cm.idle(hdir, "no half-day poll due", time.time())
+    return 0, res
+
+
+# ---- parser -------------------------------------------------------------------------------------------------------------------------------------
+
+
+def build_parser() -> argparse.ArgumentParser:
+    c9 = _c9()
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    def common(q: argparse.ArgumentParser, *, rps: float = 2.0) -> None:
+        q.add_argument("--root", default=None, help="creative_batch9 root (default data-dumps/research_lab/creative_batch9)")
+        q.add_argument("--rules", default=None)
+        q.add_argument("--rps", type=float, default=rps)
+        q.add_argument("--standalone", action="store_true", help="no collector yield / health check (tests, off-host)")
+        q.add_argument("--allow-uncommitted-rules", action="store_true")
+        q.add_argument("--trials-path", default=None)
+
+    def net(q: argparse.ArgumentParser, *, disk_cap: float) -> None:
+        q.add_argument("--data-dumps", default=None)
+        q.add_argument("--snapshot-root", default=None)
+        q.add_argument("--disk-cap-gb", type=float, default=disk_cap)
+        q.add_argument("--data-dumps-cap-gb", type=float, default=c9.DATA_DUMPS_CAP_GB)
+        q.add_argument("--budget-min", type=float, default=None)
+
+    q = sub.add_parser("rules")
+    q.add_argument("--which", choices=tuple(c9.RULE_KINDS), required=True)
+    q.add_argument("--path", default=None)
+    q.add_argument("--key-fingerprint", default=None, help="16 hex characters; default: computed from the strict-loaded key")
+    q.add_argument("--wallet-key-path", default=None)
+    q.set_defaults(fn=cmd_rules)
+
+    q = sub.add_parser("key-fingerprint")
+    q.add_argument("--wallet-key-path", default=None)
+    q.set_defaults(fn=cmd_key_fp)
+
+    q = sub.add_parser("smoke", help="q0180")
+    common(q, rps=1.0)
+    q.add_argument("--wallet-key-path", default=None)
+    q.add_argument("--out", default=None)
+    q.set_defaults(fn=cmd_smoke)
+
+    q = sub.add_parser("sign-audit", help="q0181 (--strata a,c) / q0188 (--strata b)")
+    common(q)
+    net(q, disk_cap=0.01)
+    q.add_argument("--strata", required=True)
+    q.add_argument("--wallet-key-path", default=None)
+    q.add_argument("--smoke", default=None)
+    q.add_argument("--cb7-keys", default=None)
+    q.add_argument("--seals-dir", default=None)
+    q.set_defaults(fn=cmd_sign_audit)
+
+    q = sub.add_parser("exclusion-keys", help="q0182")
+    common(q)
+    net(q, disk_cap=0.01)
+    q.add_argument("--cb8-keys", default=None)
+    q.add_argument("--cb8-keys-sha256", required=True, help="the pinned sha256 of CB8 q0164's exclusion_keys.csv.gz")
+    q.add_argument("--seals-dir", default=None)
+    q.add_argument("--extra-pin", action="append", default=None, help="NAME:PATH:SHA256 of an ids CSV / frame with a market_id column (ids only); repeatable")
+    q.set_defaults(fn=cmd_exclusion_keys)
+
+    q = sub.add_parser("pyth-frame", help="q0183")
+    common(q)
+    net(q, disk_cap=0.01)
+    q.add_argument("--smoke", default=None)
+    q.add_argument("--exclusion-keys", default=None)
+    q.set_defaults(fn=cmd_pyth_frame)
+
+    q = sub.add_parser("pyth-books", help="q0184")
+    common(q)
+    net(q, disk_cap=0.02)
+    q.add_argument("--smoke", default=None)
+    q.add_argument("--ingress-cap-gb", type=float, default=40.0)
+    q.set_defaults(fn=cmd_pyth_books)
+
+    q = sub.add_parser("census", help="q0189")
+    common(q)
+    q.add_argument("--out", default=None)
+    q.set_defaults(fn=cmd_census)
+
+    q = sub.add_parser("screen", help="q0190 (S0) / q0191 (P) / q0194 (S1); KD -> screen-kd")
+    common(q)
+    q.add_argument("--family", choices=("S0", "P", "S1", "KD"), required=True)
+    q.add_argument("--census", default=None)
+    q.add_argument("--out", default=None)
+    q.add_argument("--freeze-spec", default=None)
+    q.add_argument("--history-root", default=None)
+    q.set_defaults(fn=cmd_screen)
+
+    q = sub.add_parser("stage1-label", help="batch-Holm label over P1, P2, K1, D1, S1 (k1 = 5)")
+    common(q)
+    q.set_defaults(fn=cmd_stage1_label)
+
+    q = sub.add_parser("sign-fetch", help="q0193")
+    common(q)
+    net(q, disk_cap=0.05)
+    q.add_argument("--wallet-key-path", default=None)
+    q.add_argument("--exclusion-keys", default=None)
+    q.add_argument("--history-root", default=None)
+    q.set_defaults(fn=cmd_sign_fetch)
+
+    q = sub.add_parser("pyth-live", help="q0195")
+    common(q, rps=1.0)
+    net(q, disk_cap=0.01)
+    q.add_argument("--sessions", type=int, default=30)
+    q.add_argument("--exclusion-keys", default=None)
+    q.add_argument("--freeze-spec", default=None)
+    q.set_defaults(fn=cmd_pyth_live)
+
+    q = sub.add_parser("rep", help="q0196 (P) / q0197 (KD -> rep-kd)")
+    common(q)
+    q.add_argument("--family", choices=("P", "KD"), required=True)
+    q.add_argument("--out", default=None)
+    q.add_argument("--freeze-spec", default=None)
+    q.set_defaults(fn=cmd_rep)
+
+    q = sub.add_parser("halfday-poll", help="q0198")
+    common(q, rps=1.0)
+    net(q, disk_cap=0.01)
+    q.add_argument("--days", default=HALFDAY_DAYS)
+    q.add_argument("--exclusion-keys", default=None)
+    q.set_defaults(fn=cmd_halfday)
+
+    kd = _kd_module()
+    if kd is not None and hasattr(kd, "add_subparsers"):
+        kd.add_subparsers(sub)
+    return ap
+
+
+def dispatch_argv(argv: list[str]) -> list[str]:
+    """``screen --family KD`` -> ``screen-kd``; ``rep --family KD`` -> ``rep-kd`` (the cb9_kd subcommands), the other arguments unchanged."""
+    argv = list(argv)
+    if argv and argv[0] in ("screen", "rep"):
+        for i, x in enumerate(argv):
+            if x == "--family" and i + 1 < len(argv) and argv[i + 1] == "KD" and _kd_module() is not None:
+                return [f"{argv[0]}-kd"] + argv[1:i] + argv[i + 2:]
+            if x == "--family=KD" and _kd_module() is not None:
+                return [f"{argv[0]}-kd"] + argv[1:i] + argv[i + 1:]
+    return argv
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = dispatch_argv(sys.argv[1:] if argv is None else argv)
+    a = build_parser().parse_args(argv)
+    return a.fn(a)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
