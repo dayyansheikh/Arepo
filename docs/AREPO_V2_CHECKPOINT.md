@@ -200,41 +200,34 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 15:37 UTC+1
-0. **Autopilot session from ~14:30Z 10-17.** Deployed fbb7b8c at 14:59Z (collector cap 16, q0120b guard 14, q0082f
-   streaming fix d56bae4 with mem 1200 + guard 14, q0160b promotion, CB4-N stop rule). Counter about 1,146.
-   - **Done this session:** host disk eased (a8bbe68); q0082f MemoryError fix (d56bae4, byte-identical, 227 cb4 tests);
-     CB7 fetch counts recorded (68f8c82); **CB8-B analysis side** (abeb140 code, 229b860 rules
-     `cb8_b_analysis_rules.json` sha `82cd4807…`, 164879f drafts + notes; open: CB8 declaration `model_specs/cb8_v1.json`
-     missing, W census missing so q0169 `--family B,W` refuses); **CB10 draft** (19ae522: CH89 Deribit anchor D1, CH93
-     round-level fades B1/B2; CH82/CH87/CH90/CH91 dropped with reasons) -> challenger ACCEPT_WITH_REQUIRED_CHANGES
-     (15 items incl. a D1 shared-noise bias and a power gate).
-   - **Later (15:00-16:00Z):** **q0104b failed** at 15:07Z (MemoryError): 67350d7 had added `cb5_frame_load` but never
-     wired it into `run_cb5.py`; wired in 3a030f6 (runner only, byte-identical per test), deployed 3a030f6; q0104b has one
-     retry left (net lane, after q0120b). **q0120b started 15:08Z.** **CB9 code complete:** A (e07d867, 388862e, rules
-     f7ee838, notes §11 + draft q0180 d2981b9) and B (7402a81, 59e7432); rules sha `cb9_sign 2372d7cf…`, `cb9 d88d5272…`,
-     `cb9_kd d10ed731…`; 94 tests. **CB10 response** applied (987d0aa; D1 runs only if the census MDE ≤ 1.0).
-   - **Running agents (check `git log` if this session ended):** CB9 code-against-design freeze check (science-reviewer);
-     CB8-W/H analysis sides + declaration draft; CB10 implementer (`cb10_*.py`, `run_cb10.py`, rules, draft q0200).
-1. **q0082f:** fix deployed; it runs on the net lane after q0120b. If it fails again, read the log before any further attempt.
-2. **CB9:** apply the freeze-check must-fixes, then queue q0180 (cpu, may run before T_seal). Data jobs q0181+ only after
-   T_seal 2026-10-22T00Z. **CB10:** after its code, code-against-design freeze check, then q0200 smoke (about 10-19/20).
-3. **CB7/CB6 before T_seal:** q0142/q0143 DONE (11:36Z, 14:27Z); q0120b on the net lane (guard now 14). Seals
-   q0144/q0145/q0121 only after T_seal. Never retry q0141. Write up q0142/q0143 fetch reports (counts only).
-4. **CB8-H:** q0160b promoted (b486d52); after its PASS, q0162/q0163 (target 10-21T04:00Z). **CB8-B:** q0161/q0164 after
-   T_seal; before promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host (as late as
-   possible, once), replace both TODO-COORDINATOR sha256 tokens, raise its `--data-dumps-cap-gb` to 14. B analysis side
-   (q0169/q0170/q0174) not written yet.
-5. **h7 (T_seal):** after q0081f/q0082f read both `frame_report.json`, commit `seals/h7_cb4_group_s_amendment.json`,
-   create gate q0081g; raise q0081/q0082 `--data-dumps-cap-gb` 12.5 -> 14 when released. q0083b only on/after
-   2026-10-22T00:00Z.
-6. **CB4:** CB4-N stop rule fired (N1/N2 not testable, 7cc7857); q0085 no earlier than ~10-24T12Z. **CB5:** q0104b running
-   (started 14:28Z) -> label audit sample (Claude session + science-reviewer) -> cdf-audit-apply -> q0105 -> q0106 ->
-   write-spec freeze; q0103 refuses before 10-27. **MC1:** q0116 starts itself ~18:31Z (40 captures); cache the panel
-   before 10-23 03:30Z. **CB3:** freeze after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035; B3 at
-   10-19 (q0029).
-7. **Creative lead:** round-4 ideas not in CB9 (CH81, CH82, CH85-CH91, CH93-CH98) are the next design source (CB10).
-   Generate round 5 (Fable xhigh) only when that runs low or results point somewhere new.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 20:38 UTC+1
+0. **Autopilot session from 19:32Z 10-17.** At start the host queue was IDLE ("no ready jobs"): the CB10 implementer's
+   files were left uncommitted; q0116 failed twice (ArrowMemoryError, malloc 1.8 GB); q0103 refused (TooEarly before
+   10-27, rc=2); q0120b tempfailed on its old 14 GiB guard; q0082f ended `done` but each run stopped on
+   `disk_budget 2.58 GB > 1.0 GB` (frame NOT complete); q0104b ended `done` with 0 families/pairs (suspect);
+   q0160b smoke `h: false` (smoke false).
+   - **Done:** q0120b guard 14 -> 40 (14df3c2); q0103 cancelled on host, re-issued as draft q0103b (promote on/after
+     10-27), q0106 depends on q0103b; **q0180 CB9 smoke promoted** (bdc3ac2, rules v3 sha verified, 94 tests); deployed.
+   - **Running agents (check `git log` if this session ended):** q0116 memory fix -> q0116b; CB10 implementation
+     finish (tests, rules, drafts q0200+); q0104b zero-family diagnosis -> maybe q0104c; q0082f disk-cap stop
+     (-> q0082g) + q0160b check h; CB9 focused freeze re-check (science-reviewer, data q0181-q0188 / analysis
+     q0189-q0198); **CB11 design** (round-4 leftovers CH81, CH85, CH86, CH88, CH94-CH98; prefer screens runnable
+     before 10-22; drafts q0220+).
+1. **After the agents:** deploy any new jobs/ specs; write up q0160b/q0104b/q0082f outcomes in the ledger; CB10
+   code-against-design freeze check (science-reviewer) then promote q0200; CB11 challenger round 1 (one round).
+2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z and a GO from the re-check. After q0180 PASS, q0181.
+3. **CB7/CB6 before T_seal:** q0120b (net lane, guard 40) must finish by 10-21T09Z. Seals q0144/q0145/q0121 only
+   after T_seal. Never retry q0141.
+4. **CB8-H:** q0162/q0163 only after a smoke PASS (see the q0160b diagnosis). **CB8-B:** q0161/q0164 after T_seal;
+   before promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host (as late as
+   possible, once) and replace both TODO-COORDINATOR sha256 tokens.
+5. **h7 (T_seal):** after a complete series frame read both `frame_report.json`, commit
+   `seals/h7_cb4_group_s_amendment.json`, create gate q0081g. q0083b only on/after 2026-10-22T00:00Z.
+6. **CB4:** q0085 no earlier than ~10-24T12Z. **CB5:** cdf frame (q0104b/c) -> label audit sample (Claude session +
+   science-reviewer) -> cdf-audit-apply -> q0105 -> q0106 -> write-spec freeze; q0103b on/after 10-27. **MC1:**
+   q0116b; cache the panel before 10-23 03:30Z. **CB3:** freeze after q0064 (after 10-25). Standing: after 10-21T03Z
+   gate q0036 -> q0035; B3 at 10-19 (q0029).
+7. **Creative lead:** after CB11, generate round 5 (Fable xhigh) — round 4 will then be exhausted.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
