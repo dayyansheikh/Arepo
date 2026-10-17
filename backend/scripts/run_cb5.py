@@ -23,6 +23,7 @@ worker waits 30 min and retries without counting an attempt (and it is never a s
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import sys
 from datetime import UTC, datetime
@@ -238,12 +239,15 @@ def cmd_cdf_frame(a) -> int:
         raise D.RefusedRun("a third family-list version is refused")
     if (out / f"families_v{version}_candidate.json").exists():
         raise D.RefusedRun(f"families_v{version}_candidate.json exists; results are never overwritten")
-    events = list(C.guarded_events(Path(a.ifh2_events)))
+    # The fresh walk runs before the IF-H2 load so the two peaks (raw walk pages; ~1.7 GB of slimmed IF-H2 events) do not
+    # add up under the job's address-space cap (q0104 attempt 1, MemoryError). Inputs and the merge order are unchanged.
     lim = _limiter(a.rps)
     start = datetime.fromisoformat(a.walk_from).replace(tzinfo=UTC)
     fresh, rep = C.walk_events(start, datetime.now(UTC), lim)
     if rep.get("failed"):
         raise D.RefusedRun(f"the Gamma frame walk has {rep['failed']} failed window(s) (non-200 response); the family list is not frozen while any window is incomplete: {rep['failed_windows'][:5]}")
+    gc.collect()
+    events = list(C.guarded_events(Path(a.ifh2_events)))
     by = {e["id"]: e for e in events}
     by.update({e["id"]: e for e in fresh})
     fr = R.cdf_frame(list(by.values()), dev_start=D.DATES["T5_dev_start"], seed=a.seed, audit_n=a.audit_n)
