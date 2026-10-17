@@ -154,3 +154,14 @@ def test_verify_manifest_files(tmp_path):
     f.write_bytes(b"changed")
     with pytest.raises(cm.Refused, match="differs"):
         cm.verify_manifest_files(d, man)
+
+
+def test_b_and_flow_rules_hashes_are_independent_of_the_holders_v2_code():
+    """The H v2 change (cb8_holders.py, new cb8_common constants) must not move the committed B (cb8_rules.json) or flow rules hashes."""
+    from astrolabe.research_lab import cb8_updown as u
+
+    flow = json.loads(cm.FLOW_RULES_FILE.read_text())
+    assert cm.rules_file_doc("flow", flow["wallet_key_fingerprint"]) == flow
+    assert json.loads(u.RULES_FILE.read_text()) == u.rules_file_doc()
+    assert cm.HOLDERS_RULES_FILE.name == "cb8_holders_rules_v2.json" and cm.HOLDERS_RULES_FILE_V1.name == "cb8_holders_rules.json"
+    assert cm.rules_doc("holders")["rules_version"] == "cb8-holders-rules-v2"

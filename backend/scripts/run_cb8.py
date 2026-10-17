@@ -2,9 +2,9 @@
 """CB8 runner, collection and fetch side (docs/research_lab/CREATIVE_BATCH_8.md CB8-H "Collection", CB8-W "Data", CB8-F). Run from
 cwd=backend (queue worker). EXPLORATORY / PROSPECTIVE DATA ONLY: no edge, calibration or profitability claim; no analysis code here.
 
-    python scripts/run_cb8.py rules --which holders|flow    # write docs/research_lab/seals/cb8_holders_rules.json | cb8_flow_rules.json (commit first)
+    python scripts/run_cb8.py rules --which holders|flow    # write docs/research_lab/seals/cb8_holders_rules_v2.json | cb8_flow_rules.json (commit first)
     python scripts/run_cb8.py key-fingerprint               # print the strict-loaded key's fingerprint (never the key)
-    python scripts/run_cb8.py holders-smoke ...             # q0160: 20 live markets, counts and ratios only, WRITE-ONCE
+    python scripts/run_cb8.py holders-smoke ...             # q0160b (smoke v2): /oi frame of every base market + 20 live markets, counts and ratios only, WRITE-ONCE
     python scripts/run_cb8.py holders-snap ...              # q0162: daily /holders snapshot (prospective; rolling)
     python scripts/run_cb8.py holders-prints ...            # q0163: windowed prints and capture marks (rolling)
     python scripts/run_cb8.py holders-pin-h2 --start-utc T  # write-once pin of window 2 (after the CB8 freeze commit + 2 h)
@@ -155,12 +155,13 @@ def cmd_holders_smoke(a, cm):
     if not caps:
         raise cm.NotNow("no complete capture on this host")
     cap = caps[-1]
-    frame, _ = h.holders_frame(h.read_capture(cap["dir"]))
+    base, _ = h.holders_frame(h.read_capture(cap["dir"]))
     lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 2.0), live_check=None if a.standalone else hb.live_pass_or_lock)
-    res = h.holders_smoke(lim, key, frame, sha, fp, cap["capture_id"])
+    res = h.holders_smoke(lim, key, base, sha, fp, cap["capture_id"], oi_rps=a.oi_rps)
     cm.write_once_json(out, res)
     return 0, {"smoke": res["pass"], "a": res["criterion_a_http_ok"], "b": res["criterion_b_shape"], "c": res["criterion_c_rows_per_token_le_20"],
-               "e": res["criterion_e_oi_units_label"], "f": res["criterion_f_key_fingerprint"], "n_http_ok": res["n_http_ok"], "written": str(out)}
+               "e": res["criterion_e_oi_units_label"], "f": res["criterion_f_key_fingerprint"], "g": res["criterion_g_paging"],
+               "h": res["criterion_h_oi_source"], "n_http_ok": res["n_http_ok"], "frame_size": res["frame_size"], "written": str(out)}
 
 
 def _holders_run(a, cm, which: str):
@@ -173,6 +174,8 @@ def _holders_run(a, cm, which: str):
     smoke = _data_path(a.smoke, h.SMOKE_DEFAULT, None)
     sha, fp, key = _setup(a, cm, "holders")
     common = dict(key=key, fp=fp, rules_sha=sha, smoke_path=smoke, snapshot_root=Path(a.snapshot_root) if a.snapshot_root else None, **kw)
+    if which == "snap":
+        common["oi_rps"] = min(a.oi_rps, h.OI_RPS)
     declared_cap = h.SNAP_OUTPUT_CAP_GB if which == "snap" else h.PRINTS_OUTPUT_CAP_GB
     if abs(a.disk_cap_gb - declared_cap) > 1e-9:
         raise cm.Refused(f"arguments differ from the declaration: ['disk_cap_gb={a.disk_cap_gb!r} (declared {declared_cap!r})']")
@@ -372,7 +375,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     def collect(q: argparse.ArgumentParser) -> None:
         common(q)
-        q.add_argument("--smoke", default=None, help="holders smoke result (default research_lab/creative_batch8/holders_smoke.json)")
+        q.add_argument("--smoke", default=None, help="holders smoke v2 result (default research_lab/creative_batch8/holders_smoke_v2.json)")
+        q.add_argument("--oi-rps", type=float, default=4.0, help="pacing of the /oi frame build only (<= 4); /holders and /trades stay <= 2 rps")
         q.add_argument("--disk-cap-gb", type=float, required=True)
         q.add_argument("--data-dumps-cap-gb", type=float, default=12.5)
         q.add_argument("--budget-min", type=float, default=None)
@@ -391,7 +395,8 @@ def build_parser() -> argparse.ArgumentParser:
     q = sub.add_parser("holders-smoke")
     common(q)
     q.add_argument("--n", type=int, default=20)
-    q.add_argument("--seed", default="arepo-cb8-hsmoke")
+    q.add_argument("--seed", default="arepo-cb8-hsmoke-v2")
+    q.add_argument("--oi-rps", type=float, default=4.0, help="pacing of the /oi frame build only (<= 4)")
     q.add_argument("--out", default=None)
     q.set_defaults(fn=cmd_holders_smoke)
 

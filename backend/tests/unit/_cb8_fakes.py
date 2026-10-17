@@ -26,11 +26,15 @@ def make_key(tmp_path: Path, content: bytes = b"k" * 64, mode: int = 0o600) -> P
 
 
 class Clock:
-    def __init__(self, t: float) -> None:
-        self.t = t
+    """Constant unless ``tick`` is set; with a tick every call advances the clock (so t_f < the first /holders request is strict)."""
+
+    def __init__(self, t: float, tick: float = 0.0) -> None:
+        self.t, self.tick = t, tick
 
     def __call__(self) -> float:
-        return self.t
+        v = self.t
+        self.t += self.tick
+        return v
 
 
 def nosleep(_s: float) -> None:
@@ -50,11 +54,26 @@ class Api:
         self.max_offset: int | None = None  # the venue's offset cap: a larger offset answers 400
         self.deep_status: int | None = None  # forced status for offset >= 4000
         self.calls: list[tuple[str, dict]] = []
+        self.oi: dict[str, object] = {}  # condition id -> value served by /oi (a non-number is served as is)
+        self.oi_absent: set[str] = set()  # ids the /oi reply leaves out
+        self.oi_fail_cids: set[str] = set()  # a batch containing one of these answers 500
+        self.oi_status: int | None = None  # forced status for every /oi request
+        self.oi_extra: list[dict] = []  # rows appended to every /oi reply (identity / count violations)
+        self.oi_requests: list[list[str]] = []
 
     def __call__(self, url: str, params: dict):
         self.calls.append((url, dict(params)))
         if self.fail_all:
             return 500, b"", {}
+        if url.endswith("/oi"):
+            ids = params["market"].split(",")
+            self.oi_requests.append(ids)
+            if self.oi_status is not None:
+                return self.oi_status, b"", {}
+            if self.fail_all or any(c in self.oi_fail_cids for c in ids):
+                return 500, b"", {}
+            rows = [{"market": c, "value": self.oi[c]} for c in ids if c in self.oi and c not in self.oi_absent] + list(self.oi_extra)
+            return 200, json.dumps(rows).encode(), {}
         if url.endswith("/holders"):
             cid = params["market"]
             if cid in self.fail_holders:
@@ -97,16 +116,17 @@ def print_row(cid: str, ts: int, *, idx: int = 0, side: str = "SELL", price: flo
             "transactionHash": tx or f"tx{cid}{ts}{idx}{side}"}
 
 
-def cap_row(i: int, *, sports: bool = False, oi: float = 5000.0, bid: str = "0.40", ask: str = "0.44", updown: bool = False, accepting: str = "1") -> dict:
+def cap_row(i: int, *, sports: bool = False, oi: float = 5000.0, bid: str = "0.40", ask: str = "0.44", updown: bool = False, accepting: str = "1",
+            event_oi: float | None = None) -> dict:
     return {"market_id": f"m{i}", "condition_id": f"c{i}", "event_id": f"e{i // 2}", "binary": "1", "closed": "0", "best_bid": bid, "best_ask": ask,
-            "received_utc": "2026-10-21T14:00:00Z", "accepting_orders": accepting, "open_interest": str(oi + i), "fee_category": "sports" if sports else "politics",
+            "received_utc": "2026-10-21T14:00:00Z", "accepting_orders": accepting, "open_interest": str(oi + i), "event_open_interest": "" if event_oi is None else str(event_oi), "fee_category": "sports" if sports else "politics",
             "series_slugs": "btc-up-or-down-daily" if updown else "series"}
 
 
 def write_capture(d: Path, rows: list[dict]) -> Path:
     d.mkdir(parents=True, exist_ok=True)
     rc = ["market_id", "condition_id", "event_id", "binary", "closed", "best_bid", "best_ask", "received_utc"]
-    ec = ["market_id", "accepting_orders", "open_interest", "fee_category", "series_slugs"]
+    ec = ["market_id", "accepting_orders", "open_interest", "event_open_interest", "fee_category", "series_slugs"]
     for name, cols in (("rows.csv.gz", rc), ("rows_ext.csv.gz", ec)):
         with gzip.open(d / name, "wt", encoding="utf-8", newline="") as fh:
             w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
@@ -124,7 +144,7 @@ def write_smoke(path: Path, rules_sha: str, fp: str, ok: bool = True, paging: bo
     from astrolabe.research_lab import cb8_holders as h
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"smoke_version": h.SMOKE_VERSION, "rules_sha256": rules_sha, "wallet_key_fingerprint": fp, "pass": ok, "criterion_g_paging": paging}))
+    path.write_text(json.dumps({"smoke_version": h.SMOKE_VERSION, "rules_sha256": rules_sha, "wallet_key_fingerprint": fp, "pass": ok, "criterion_h_oi_source": ok, "criterion_g_paging": paging}))
 
 
 def fingerprint_and_sha(kind: str, key: bytes) -> tuple[str, str]:

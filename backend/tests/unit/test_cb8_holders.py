@@ -49,12 +49,13 @@ class Env:
         self.smoke = tmp_path / "holders_smoke.json"
         write_smoke(self.smoke, self.sha, self.fp)
         self.api = Api()
-        self.clock = Clock(T0)
+        self.clock = Clock(T0, tick=0.001)
         rows = [cap_row(i) for i in range(12)] + [cap_row(i, sports=True) for i in range(12, 18)]
         rows += [cap_row(18, updown=True), cap_row(19, accepting="0"), cap_row(20, oi=500.0)]
         self.rows = rows
         for r in rows:
             self.api.holders[r["condition_id"]] = holder_groups(r["condition_id"])
+            self.api.oi[r["condition_id"]] = float(r["open_interest"])
         self.caps: list[dict] = []
 
     def add_capture(self, name: str, start: float, finish: float | None = None) -> dict:
@@ -64,7 +65,7 @@ class Env:
 
     def snap(self, **kw):
         args = dict(key=self.key, fp=self.fp, rules_sha=self.sha, smoke_path=self.smoke, captures_fn=lambda: list(self.caps), n_main=8, n_sports=3,
-                    wall_clock=self.clock, sleep=nosleep, rps=100.0)
+                    wall_clock=self.clock, sleep=nosleep, rps=100.0, oi_rps=100.0)
         args.update(kw)
         return h.holders_snap(self.root, self.api, **args)
 
@@ -83,18 +84,33 @@ def env(tmp_path):
 # ---- frame, sample, parsing -----------------------------------------------------------------------------------------------------------------
 
 
+def build_frame(env, cap, **kw):
+    """(base, frame, summary, done) with the /oi frame fetched from the fake API."""
+    base, _ = h.holders_frame(h.read_capture(cap["dir"]))
+    lim = hb.Limiter(env.api, rps=1000.0, sleep=nosleep)
+    batches = h.oi_batches(base)
+    done: dict[int, dict] = {}
+    h.run_oi_batches(lim, batches, env.clock, done, **kw)
+    states = h.oi_states(batches, done)
+    frame, _ = h.apply_oi(base, states)
+    return base, frame, h.oi_summary(base, states, batches, done), done
+
+
 def test_frame_filters_and_counts(env):
     cap = env.add_capture("c1", T0)
-    frame, counts = h.holders_frame(h.read_capture(cap["dir"]))
-    assert counts["n_frame"] == 18
-    assert counts["dropped"] == {"crypto_updown": 1, "not_accepting_orders": 1, "open_interest_below_min": 1}
-    assert sum(1 for r in frame if r["group"] == "sports") == 6
+    base, counts = h.holders_frame(h.read_capture(cap["dir"]))
+    assert counts["n_base"] == 19 and len(base) == 19  # no OI filter in the base frame (OI comes from /oi at t_f)
+    assert counts["dropped"] == {"crypto_updown": 1, "not_accepting_orders": 1}
     assert h.holders_frame([{"market_id": "x", "accepting_orders": None}])[1]["dropped"] == {"no_sidecar_row": 1}
+    _, frame, summ, _ = build_frame(env, cap)
+    assert len(frame) == 18 and sum(1 for r in frame if r["group"] == "sports") == 6  # the OI 500 market is dropped by the >= 1,000 threshold
+    assert summ["states"] == {"ok": 19, "oi_lookup_failed": 0, "oi_absent": 0, "oi_nonnumeric": 0} and summ["n_missing"] == 0
+    assert all(r["oi_t_f"] > 0 and r["oi"] >= h.MIN_OI for r in frame)
 
 
 def test_sample_is_deterministic_stratified_and_day_seeded(env):
     cap = env.add_capture("c1", T0)
-    frame, _ = h.holders_frame(h.read_capture(cap["dir"]))
+    _, frame, _, _ = build_frame(env, cap)
     s1, rep = h.holders_sample(frame, "2026-10-21", 8, 3)
     s2, _ = h.holders_sample(frame, "2026-10-21", 8, 3)
     s3, _ = h.holders_sample(frame, "2026-10-22", 8, 3)
@@ -135,51 +151,153 @@ def test_concentration_formula_and_oi_flag():
 # ---- smoke ----------------------------------------------------------------------------------------------------------------------------------------
 
 
-def smoke_env(env, n=24):
+def smoke_env(env, n=24, single=12):
+    """``n`` base markets; the first ``single`` are single-market events whose event OI equals the /oi value."""
     rows = [cap_row(i) for i in range(n)]
+    for i, r in enumerate(rows):
+        if i < single:
+            r["event_id"], r["event_open_interest"] = f"solo{i}", r["open_interest"]
     env.rows = rows
     for r in rows:
         env.api.holders[r["condition_id"]] = holder_groups(r["condition_id"])
-        env.api.gamma[r["market_id"]] = {"id": r["market_id"], "openInterest": "5100.0"}
+        env.api.oi[r["condition_id"]] = float(r["open_interest"])
     cap = env.add_capture("c1", T0)
-    frame, _ = h.holders_frame(h.read_capture(cap["dir"]))
-    return frame, cap
+    base, _ = h.holders_frame(h.read_capture(cap["dir"]))
+    return base, cap
+
+
+def run_smoke(env, base, cap, **kw):
+    lim = hb.Limiter(env.api, rps=1000.0, sleep=nosleep)
+    return h.holders_smoke(lim, env.key, base, env.sha, env.fp, cap["capture_id"], clock=kw.pop("clock", env.clock), oi_rps=100.0, **kw)
 
 
 def test_smoke_pass_counts_and_ratios_only(env):
-    frame, cap = smoke_env(env)
-    lim = hb.Limiter(env.api, rps=1000.0, sleep=nosleep)
-    res = h.holders_smoke(lim, env.key, frame, env.sha, env.fp, cap["capture_id"])
+    base, cap = smoke_env(env)
+    res = run_smoke(env, base, cap)
+    assert res["smoke_version"] == "cb8-holders-smoke-v2" and res["v1_record"]["result"] == "FAIL"
     assert res["pass"] and res["criterion_a_http_ok"] and res["criterion_b_shape"] and res["criterion_c_rows_per_token_le_20"]
-    assert res["n_requested"] == 20 and res["n_http_ok"] == 20 and res["criterion_e_oi_units_label"] == "units consistent"
-    assert len(res["oi_ratios"]) == 20 and res["oi_ratios"][0]["gamma_oi_over_capture_oi"] == pytest.approx(5100 / 5000, rel=0.01)
+    assert res["criterion_h_oi_source"] and res["n_requested"] == 20 and res["n_http_ok"] == 20 and res["criterion_e_oi_units_label"] == "units consistent"
+    assert len(res["oi_ratios"]) == 20
+    solo = [x for x in res["oi_ratios"] if x["event_oi_single_market"] is not None]
+    assert solo and all(x["oi_tf_over_event_oi"] == pytest.approx(1.0) for x in solo)
+    assert all(x["sum_top20_over_oi_tf"] is not None for x in res["oi_ratios"]) and "n_gamma_lookup_failed" not in res
+    assert res["event_oi_comparison"]["n_agree"] == res["event_oi_comparison"]["n_single_market_events_in_frame"] == 12
+    assert res["t_f_asserted_before_first_holders_request"] and res["first_holders_request_epoch"] > res["oi"]["t_f_max_epoch"]
+    g = res["sample_disclosure"]  # realised frame and strata against the 1,500 + 300 sample
+    assert g["main"]["target"] == 1500 and g["sports"]["target"] == 300 and g["main"]["pool"] == 24 and g["main"]["shortfall"] == 1500 - 24
+    assert g["sports"]["pool"] == 0 and g["sports"]["shortfall"] == 300 and sum(g["main"]["strata"].values()) == 24
+    assert res["frame_size"] == 24 and "t_f_batches" not in res["oi"]
     text = json.dumps(res)
-    assert RAW_PREFIX not in text and "market_id" not in text and "wallet_hash" not in text
+    assert RAW_PREFIX not in text and "market_id" not in text and "wallet_hash" not in text and "c0" not in res["oi_ratios"][0]
 
 
 def test_smoke_units_unverified_and_fails(env):
-    frame, cap = smoke_env(env)
+    base, cap = smoke_env(env)
     for r in env.rows:  # holders hold far more than the open interest
         env.api.holders[r["condition_id"]] = holder_groups(r["condition_id"], top=1e6)
-    lim = hb.Limiter(env.api, rps=1000.0, sleep=nosleep)
-    res = h.holders_smoke(lim, env.key, frame, env.sha, env.fp, cap["capture_id"])
+    res = run_smoke(env, base, cap)
     assert res["criterion_e_oi_units_label"] == "units unverified" and res["pass"]  # the label does not fail the smoke
-    frame2 = frame[:10]  # fewer than 20 markets: criteria (a) and (b) fail
-    assert not h.holders_smoke(lim, env.key, frame2, env.sha, env.fp, "x")["pass"]
-    for cid in list(env.api.holders):  # an HTTP 404/422 on more than one market fails (a)
+    env2 = Env(env.tmp / "y")  # no single-market event: /oi and event OI cannot be compared -> unverified
+    base2, cap2 = smoke_env(env2, single=0)
+    assert run_smoke(env2, base2, cap2)["criterion_e_oi_units_label"] == "units unverified"
+    env3 = Env(env.tmp / "z")
+    base3, cap3 = smoke_env(env3)
+    for r in env3.rows[:12]:  # event OI in other units (x100): /oi and event OI disagree
+        env3.api.oi[r["condition_id"]] = float(r["open_interest"]) / 100.0 + 2000.0
+    assert run_smoke(env3, base3, cap3)["criterion_e_oi_units_label"] == "units unverified"
+    assert not run_smoke(env, base[:10], cap)["pass"]  # fewer than 20 markets: criteria (a) and (b) fail
+    for cid in list(env.api.holders):
         env.api.holders[cid] = [{"token": "t"}]
-    assert not h.holders_smoke(lim, env.key, frame, env.sha, env.fp, "x")["criterion_b_shape"]
+    assert not run_smoke(env, base, cap)["criterion_b_shape"]
 
 
 def test_smoke_network_failure_is_not_a_result(env):
-    frame, cap = smoke_env(env)
+    base, cap = smoke_env(env)
     env.api.fail_all = True
     with pytest.raises(cm.NotNow):
-        h.holders_smoke(hb.Limiter(env.api, rps=1000.0, sleep=nosleep), env.key, frame, env.sha, env.fp, "x")
+        run_smoke(env, base, cap)
+    env.api.fail_all = False
+    env.api.fail_holders = {r["condition_id"] for r in env.rows}  # /holders unreachable after the /oi frame
+    with pytest.raises(cm.NotNow):
+        run_smoke(env, base, cap)
+
+
+def test_smoke_oi_missing_states_and_the_two_percent_rule(env):
+    base, cap = smoke_env(env, n=100, single=0)
+    cids = [r["condition_id"] for r in env.rows]
+    env.api.oi_absent = set(cids[:2])  # exactly 2 % absent: not more than 2 %, so the source passes
+    res = run_smoke(env, base, cap)
+    assert res["oi"]["states"]["oi_absent"] == 2 and res["oi"]["missing_share"] == pytest.approx(0.02) and res["criterion_h_oi_source"] and res["pass"]
+    assert res["frame_size"] == 98  # dropped, never imputed or zero-filled
+    env.api.oi_absent = set(cids[:3])
+    res = run_smoke(env, base, cap)
+    assert not res["criterion_h_oi_source"] and not res["pass"] and "missing share" in res["oi_source_verdict"] and res["n_requested"] == 20
+    env.api.oi_absent = set()
+    env.api.oi.update({cids[0]: "12.5", cids[1]: None, cids[2]: True, cids[3]: -4.0})
+    res = run_smoke(env, base, cap)
+    assert res["oi"]["states"]["oi_nonnumeric"] == 4 and not res["pass"]
+    env.api.oi = {c: 5000.0 for c in cids}
+    env.api.oi_fail_cids = {cids[0]}  # that batch answers 500 on every attempt: the whole batch is oi_lookup_failed? (network -> NotNow in the smoke)
+    with pytest.raises(cm.NotNow):
+        run_smoke(env, base, cap)
+    env.api.oi_fail_cids = set()
+    env.api.oi_status = 400  # a server-answered error: every id of the batch is oi_lookup_failed, the smoke FAILs and is written
+    res = run_smoke(env, base, cap)
+    assert res["oi"]["states"]["oi_lookup_failed"] == 100 and not res["criterion_h_oi_source"] and res["frame_size"] == 0 and not res["pass"]
+
+
+def test_smoke_t_f_must_precede_the_first_holders_request(env):
+    base, cap = smoke_env(env)
+    with pytest.raises(cm.Refused, match="t_f ordering"):
+        run_smoke(env, base, cap, clock=Clock(T0))  # constant clock: t_f == the first request time, not strictly before
+    h.assert_tf_before(10.0, 10.001)
+    with pytest.raises(cm.Refused):
+        h.assert_tf_before(10.0, 10.0)
+    with pytest.raises(cm.Refused):
+        h.assert_tf_before(11.0, 10.0)
+
+
+def test_parse_oi_reply_states_and_batch_assertions():
+    sent = ["0xA", "0xb", "0xc", "0xd"]
+    ok = lambda rows: h.parse_oi_reply(sent, 200, rows)  # noqa: E731
+    st, info = ok([{"market": "0xa", "value": 10.0}, {"market": "0xB", "value": 0}, {"market": "0xc", "value": "7"}])
+    assert st["0xA"] == ("ok", 10.0) and st["0xb"] == ("ok", 0.0) and st["0xc"] == ("oi_nonnumeric", None) and st["0xd"] == ("oi_absent", None)
+    assert not info["integrity_violation"] and info["n_returned"] == 3
+    for bad in (None, True, float("inf"), -1, [1]):
+        assert ok([{"market": "0xa", "value": bad}])[0]["0xA"][0] == "oi_nonnumeric"
+    for rows in ([{"market": "0xz", "value": 1.0}],  # identity: a returned id that was not sent
+                 [{"market": "0xa", "value": 1.0}, {"market": "0xA", "value": 2.0}],  # duplicate
+                 [{"market": f"0x{i}", "value": 1.0} for i in range(9)],  # count: more rows than ids sent
+                 {"market": "0xa"}):  # not a list
+        st, info = ok(rows)
+        assert set(st.values()) == {("oi_lookup_failed", None)} and info["integrity_violation"] and len(st) == 4
+    st, info = h.parse_oi_reply(sent, 500, None)
+    assert set(st.values()) == {("oi_lookup_failed", None)} and not info["integrity_violation"]
+    assert h.parse_oi_reply(sent, 400, [])[0]["0xA"][0] == "oi_lookup_failed"
+
+
+def test_oi_requests_are_batches_of_60_covering_every_base_market_once(env):
+    base, cap = smoke_env(env, n=130, single=0)
+    build_frame(env, cap)
+    sizes = [len(b) for b in env.api.oi_requests]
+    assert sizes == [60, 60, 10] and h.OI_BATCH == 60
+    sent = [c for b in env.api.oi_requests for c in b]
+    assert sorted(sent) == sorted(r["condition_id"] for r in base) and len(set(sent)) == len(sent)
+    assert all(u.endswith("/oi") and list(p) == ["market"] for u, p in env.api.calls if u.endswith("/oi"))
+    assert h.oi_batches(base) == h.oi_batches(list(reversed(base)))  # deterministic: a resumed build re-forms the same batches
 
 
 def test_smoke_gate_requires_pass_rules_and_fingerprint(env, tmp_path):
     assert h.smoke_ok(env.smoke, env.sha, env.fp)["pass"]
+    v1 = json.loads(env.smoke.read_text()) | {"smoke_version": h.SMOKE_V1_VERSION}  # the v1 result (even a PASS) never opens the gate
+    (tmp_path / "v1.json").write_text(json.dumps(v1))
+    with pytest.raises(cm.Refused, match="another version"):
+        h.smoke_ok(tmp_path / "v1.json", env.sha, env.fp)
+    assert h.SMOKE_DEFAULT.name == "holders_smoke_v2.json" and h.SMOKE_V1_PATH.name == "holders_smoke.json"
+    no_h = json.loads(env.smoke.read_text()) | {"criterion_h_oi_source": False}
+    (tmp_path / "noh.json").write_text(json.dumps(no_h))
+    with pytest.raises(cm.Refused, match="FAIL"):
+        h.smoke_ok(tmp_path / "noh.json", env.sha, env.fp)
     with pytest.raises(cm.Refused):
         h.smoke_ok(env.smoke, "0" * 64, env.fp)
     with pytest.raises(cm.Refused):
@@ -240,7 +358,9 @@ def test_snap_full_day_files_pins_manifest_and_no_raw_wallet(env):
     assert pin["t8_h1_start_utc"] == "2026-10-21T14:30:00Z" and pin["h1_end_utc"] == "2026-11-11T14:30:00Z" and pin["collect_max_utc"] == "2026-12-23T14:30:00Z"
     mk = read_csv(snapdir / f"{day}.markets.csv.gz")
     assert len(mk) == 11 and {r["status"] for r in mk} == {"ok"} and all(int(r["h_epoch"]) == int(T0 + 3 * HOUR) for r in mk)
-    assert all(r["oi_capture"] and r["capture_id"] == "cap" for r in mk)
+    assert all(r["oi_tf"] and float(r["oi_t_f_epoch"]) < int(r["h_epoch"]) + 1 and r["capture_id"] == "cap" for r in mk)
+    assert all(float(r["oi_t_f_epoch"]) < plan["oi"]["t_f_max_epoch"] + 1 for r in mk) and plan["oi"]["t_f_max_epoch"] < min(int(r["h_epoch"]) for r in mk) + 1
+    assert plan["frame"]["n_base"] == 19 and plan["frame"]["n_frame"] == 18 and plan["oi"]["states"]["ok"] == 19 and len(plan["oi"]["t_f_batches"]) == 1
     hrows = read_csv(snapdir / f"{day}.holders.csv.gz")
     assert len(hrows) == 11 * 8 and all(len(r["wallet_hash"]) == 32 for r in hrows)
     man = json.loads((snapdir / "manifest.json").read_text())
@@ -260,11 +380,124 @@ def test_snap_resumes_after_a_budget_stop_and_requests_once_per_market(env):
     env.add_capture("cap", env.clock.t - 1800, env.clock.t - 1200)
     m = env.snap(budget_min=1e-9)
     assert m["status"] == "in_progress" and m["stopped"] == "budget reached" and not [c for c in env.api.calls if c[0].endswith("/holders")]
-    assert (env.root / "snap" / "2026-10-21.plan.json.gz").exists()  # the sample is fixed before the first request
+    assert not (env.root / "snap" / "2026-10-21.plan.json.gz").exists()  # the budget stopped the /oi frame build: no plan, no /holders request
     m = env.snap()
     assert m["status"] == "day_done"
+    assert (env.root / "snap" / "2026-10-21.plan.json.gz").exists()  # the sample is fixed before the first /holders request
     cids = [c[1]["market"] for c in env.api.calls if c[0].endswith("/holders")]
     assert len(cids) == len(set(cids)) == 11
+
+
+def test_snap_oi_frame_resumes_per_batch_with_t_f_per_batch_before_holders(env, monkeypatch):
+    rows = [cap_row(i) for i in range(130)]
+    env.rows = rows
+    for r in rows:
+        env.api.holders[r["condition_id"]] = holder_groups(r["condition_id"])
+        env.api.oi[r["condition_id"]] = float(r["open_interest"])
+    env.clock.t = T0
+    env.snap()
+    env.clock.t = T0 + 3 * HOUR
+    env.add_capture("cap", env.clock.t - 1800, env.clock.t - 1200)
+    calls = {"n": 0}
+
+    def stop_after_two(self, should_stop=None):
+        calls["n"] += 1
+        return "budget reached" if calls["n"] > 2 else None
+
+    monkeypatch.setattr(cm.Cb8Run, "stop_reason", stop_after_two)
+    m = env.snap(n_main=20, n_sports=0)
+    assert m["status"] == "in_progress" and m["oi_batches_done"] == 2 and m["oi_batches"] == 3
+    assert not [c for c in env.api.calls if c[0].endswith("/holders")] and not (env.root / "snap" / "2026-10-21.plan.json.gz").exists()
+    assert (env.root / "snap" / "2026-10-21.oi.partial.jsonl.gz").exists() and (env.root / "snap" / "2026-10-21.oi.hdr.json").exists()
+    monkeypatch.undo()
+    m = env.snap(n_main=20, n_sports=0)
+    assert m["status"] == "day_done"
+    sent = [c for b in env.api.oi_requests for c in b]
+    assert len(sent) == len(set(sent)) == 130  # the two finished batches are not requested again
+    plan = h._read_plan(env.root / "snap" / "2026-10-21.plan.json.gz")
+    tfs = plan["oi"]["t_f_batches"]
+    assert len(tfs) == 3 and tfs == sorted(tfs) and len(set(tfs)) == 3 and plan["oi"]["t_f_max_epoch"] == tfs[-1]
+    hs = [int(r["h_epoch"]) for r in read_csv(env.root / "snap" / "2026-10-21.markets.csv.gz")]
+    assert min(hs) + 1 > tfs[-1] and len(hs) == 20  # strictly before every /holders request (h is stored in whole seconds)
+    assert sorted(p.name for p in (env.root / "snap").glob("*.oi.*")) == []  # transient /oi files are removed
+    assert plan["markets"][0]["oi_t_f"] in tfs
+
+
+def test_snap_oi_source_over_two_percent_stops_the_day_apart_from_a_stale_capture(env):
+    rows = [cap_row(i) for i in range(100)]
+    env.rows = rows
+    for r in rows:
+        env.api.holders[r["condition_id"]] = holder_groups(r["condition_id"])
+        env.api.oi[r["condition_id"]] = float(r["open_interest"])
+    env.api.oi_absent = {r["condition_id"] for r in rows[:3]}  # 3 % absent
+    env.clock.t = T0
+    env.snap()
+    env.clock.t = T0 + 3 * HOUR
+    env.add_capture("cap", env.clock.t - 1800, env.clock.t - 1200)
+    m = env.snap()
+    assert m["status"] == "day_missed" and m["missed_kind"] == "oi_source"
+    marker = json.loads((env.root / "snap" / "2026-10-21.MISSED.json").read_text())
+    assert marker["kind"] == "oi_source" and marker["states"]["oi_absent"] == 3 and marker["missing_share"] == pytest.approx(0.03)
+    assert not [c for c in env.api.calls if c[0].endswith("/holders")] and not (env.root / "snap" / "2026-10-21.plan.json.gz").exists()
+    assert not list((env.root / "snap").glob("*.oi.*")) and m["counts"]["days_missed_oi_source"] == 1
+    with pytest.raises(cm.NotNow, match="already snapshotted"):  # the day stays missed
+        env.snap()
+    # exactly 2 % is not "more than 2 %": the next day proceeds
+    env.api.oi_absent = {r["condition_id"] for r in rows[:2]}
+    env.clock.t += 86400
+    env.add_capture("cap2", env.clock.t - 1800, env.clock.t - 1200)
+    assert env.snap(n_main=10, n_sports=0)["status"] == "day_done"
+    # a stale capture is a different marker
+    env.clock.t = datetime(2026, 10, 23, 23, 45, tzinfo=UTC).timestamp()
+    m = env.snap()
+    assert m["status"] == "day_missed" and m["missed_kind"] == "stale_capture"
+    assert json.loads((env.root / "snap" / "2026-10-23.MISSED.json").read_text())["kind"] == "stale_capture"
+
+
+def test_snap_oi_network_failure_exits_75_keeps_a_resumable_partial_then_gives_up_a_batch(env):
+    rows = [cap_row(i) for i in range(130)]
+    env.rows = rows
+    for r in rows:
+        env.api.holders[r["condition_id"]] = holder_groups(r["condition_id"])
+        env.api.oi[r["condition_id"]] = float(r["open_interest"])
+    env.clock.t = T0
+    env.snap()
+    env.clock.t = T0 + 3 * HOUR
+    env.add_capture("cap", env.clock.t - 1800, env.clock.t - 1200)
+    env.api.fail_all = True  # nothing answers: NotNow (exit 75), no manifest status written for the day, no plan
+    with pytest.raises(cm.NotNow):
+        env.snap()
+    assert not (env.root / "snap" / "2026-10-21.plan.json.gz").exists() and not (env.root / "snap" / "2026-10-21.markets.csv.gz").exists()
+    env.api.fail_all = False
+    bad = sorted(env.api.oi)[0]
+    env.api.oi_fail_cids = {bad}  # one batch keeps failing: after 3 attempts its ids are oi_lookup_failed (60 of 130 > 2 %: the day stops)
+    for _ in range(3):
+        m = env.snap()
+        if m.get("status") == "day_missed":
+            break
+    assert m["status"] == "day_missed" and m["missed_kind"] == "oi_source"
+    marker = json.loads((env.root / "snap" / "2026-10-21.MISSED.json").read_text())
+    assert marker["states"]["oi_lookup_failed"] == 60 and marker["states"]["ok"] == 70
+
+
+def test_snap_unfinished_oi_frame_at_day_end_is_missed_oi_source(env, monkeypatch):
+    rows = [cap_row(i) for i in range(130)]
+    env.rows = rows
+    for r in rows:
+        env.api.holders[r["condition_id"]] = holder_groups(r["condition_id"])
+        env.api.oi[r["condition_id"]] = float(r["open_interest"])
+    env.clock.t = T0
+    env.snap()
+    env.clock.t = T0 + 3 * HOUR
+    env.add_capture("cap", env.clock.t - 1800, env.clock.t - 1200)
+    monkeypatch.setattr(cm.Cb8Run, "stop_reason", lambda self, should_stop=None: "budget reached")
+    assert env.snap()["status"] == "in_progress"
+    monkeypatch.undo()
+    env.clock.t += 86400
+    env.add_capture("cap2", env.clock.t - 1800, env.clock.t - 1200)
+    env.snap(n_main=10, n_sports=0)
+    marker = json.loads((env.root / "snap" / "2026-10-21.MISSED.json").read_text())
+    assert marker["kind"] == "oi_source" and "unfinished" in marker["reason"] and not list((env.root / "snap").glob("2026-10-21.oi.*"))
 
 
 def test_snap_failed_requests_are_counted_apart_from_no_data(env):

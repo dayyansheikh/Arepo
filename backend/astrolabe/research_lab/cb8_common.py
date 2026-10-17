@@ -30,14 +30,15 @@ from . import h5_seal
 from . import history_backfill as hb
 from . import wallet_sidecar as ws
 
-RULES_VERSION_HOLDERS = "cb8-holders-rules-v1"
+RULES_VERSION_HOLDERS = "cb8-holders-rules-v2"  # v2: /oi frame, smoke v2 (CREATIVE_BATCH_8.md "H v2"); v1 file kept, never rewritten
 RULES_VERSION_FLOW = "cb8-flow-rules-v1"
 FETCH_VERSION = "cb8-fetch-v1"
 KEY_FP_CONSTANT = b"arepo-cb8-wallet-key-fingerprint-v1"
 KEY_FP_HEX = 16
 WALLET_HASH_HEX = 32  # stored wallet hash = first 32 hex characters (128 bits) of the sidecar HMAC; declared in both rules files
 SEALS_DIR = h5_seal.SEALS_DIR
-HOLDERS_RULES_FILE = SEALS_DIR / "cb8_holders_rules.json"
+HOLDERS_RULES_FILE_V1 = SEALS_DIR / "cb8_holders_rules.json"  # consumed by the q0160 smoke v1 (FAIL, empty frame); never rewritten
+HOLDERS_RULES_FILE = SEALS_DIR / "cb8_holders_rules_v2.json"
 FLOW_RULES_FILE = SEALS_DIR / "cb8_flow_rules.json"
 DATA_DUMPS = c4.DATA_DUMPS
 CB8_DIR = DATA_DUMPS / "research_lab" / "creative_batch8"
