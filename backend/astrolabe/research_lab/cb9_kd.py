@@ -157,7 +157,7 @@ SCREEN_PRINT_FORMAT = {"columns": PRINT_COLUMNS, "ts": "venue timestamp (s)", "s
 
 def declared() -> dict:
     return {
-        "frame": {"query": f"Gamma /markets closed=true, volume_num_min={MIN_VOLUME:g}, end_date per UTC day in [{FRAME_END_FROM}, {FRAME_END_BEFORE}), order id; halved while capped (one day minimum: excluded, counted)",
+        "frame": {"query": f"Gamma /markets closed=true, volume_num_min={MIN_VOLUME:g}, end_date per UTC day in [{FRAME_END_FROM}, {FRAME_END_BEFORE}), order id; a capped window is halved down to one hour (a still-capped hour is excluded, counted)",
                   "keeps": f"binary with token ids; scheduled life [startDate, endDate) overlapping [{WINDOW_START}, {WINDOW_END}) by >= {MIN_OVERLAP_DAYS:g} d; volume >= {MIN_VOLUME:g} (end-of-life field, disclosed look-ahead in selection); "
                            f"not negRiskAugmented; not weather (fee_category or CB2-W text); not crypto Up/Down (CB1_UPDOWN_RE); not Pyth (resolutionSource host *{PYTH_HOST})",
                   "stored_fields": FRAME_COLUMNS, "outcome_fields_stored": False},
