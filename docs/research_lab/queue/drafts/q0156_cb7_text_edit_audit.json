@@ -35,7 +35,7 @@
   "--disk-cap-gb",
   "0.01",
   "--data-dumps-cap-gb",
-  "12.5"
+  "40"
  ],
  "timeout_s": 3600,
  "max_retries": 2,
@@ -44,5 +44,5 @@
   "trials.jsonl (cb7_descriptive)"
  ],
  "next_action": "coordinator commits the audit result before q0148 runs",
- "notes": "CREATIVE_BATCH_7.md CB7-S text-stability gate and section 9.2 (declared in challenger round 1; code later). DRAFT. Commit after the CB7 freeze. Metric: share of audited units whose C (M1-M7, same regexes) differs between the decoded initialization text and the current description; gate: one-sided 95% Wilson upper bound <= 0.10; > 20% of the 200 not retrievable or decodable -> unverified -> S1 cannot advance. Descriptive, not counted. Reads no outcome, price or print."
+ "notes": "CREATIVE_BATCH_7.md CB7-S text-stability gate and section 9.2 (declared in challenger round 1; code later). DRAFT. Commit after the CB7 freeze. Metric: share of audited units whose C (M1-M7, same regexes) differs between the decoded initialization text and the current description; gate: one-sided 95% Wilson upper bound <= 0.10; > 20% of the 200 not retrievable or decodable -> unverified -> S1 cannot advance. Descriptive, not counted. Reads no outcome, price or print. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
 }

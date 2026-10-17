@@ -32,7 +32,7 @@
   "--disk-cap-gb",
   "0.05",
   "--data-dumps-max-gb",
-  "12"
+  "40"
  ],
  "timeout_s": 10800,
  "max_retries": 2,
@@ -44,5 +44,5 @@
   "data-dumps/research_lab/cb5_extract/{cdf/,manifest.json}"
  ],
  "next_action": "pass step continues (add --tables cdf --family-list auto); q0106; Done only when the log shows \"backfill_complete\": true; a headroom refusal exits 75 and is retried after 30 min without burning an attempt.",
- "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Commit only after the audited family list is frozen and committed. Up to about 13 GB release ingress if every dev capture was deleted (streamed one capture at a time, peak <= 0.2 GB). Prospective versioning: a family listed after a capture is absent from that capture's rows. Refuses (exit 75, EX_TEMPFAIL: the queue waits and retries) when data-dumps size + the output allowance + scratch would pass 12 GB; the coordinator records the section 2.8 headroom precondition in the release commit."
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Commit only after the audited family list is frozen and committed. Up to about 13 GB release ingress if every dev capture was deleted (streamed one capture at a time, peak <= 0.2 GB). Prospective versioning: a family listed after a capture is absent from that capture's rows. Refuses (exit 75, EX_TEMPFAIL: the queue waits and retries) when data-dumps size + the output allowance + scratch would pass 12 GB; the coordinator records the section 2.8 headroom precondition in the release commit. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
 }

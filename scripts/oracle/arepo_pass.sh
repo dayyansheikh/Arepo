@@ -3,12 +3,12 @@
 # Linux port of the Mac's ~/arepo_collector/arepo_pass.sh (launchd com.arepo.collector, retired
 # 2026-10-14). Same steps, order, arguments and log lines; differences: flock instead of a mkdir
 # lock (survives a reboot without a stale lock), no caffeinate, `free -m` instead of the macOS
-# swap line, and an AREPO data cap (default 16 GiB since 2026-10-17) next to the 4 GB free-disk guard.
+# swap line, and an AREPO data cap (default 45 GiB since 2026-10-17, after the boot volume grew to 100 GB) next to the 4 GB free-disk guard.
 # Snapshot (+1 retry) -> frozen forecast -> 2 book sweeps -> active trade sample -> flow screen
 # -> E011 score -> E004 / E007 status. See docs/research_lab/COLLECTION_HOST.md.
 export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 AREPO_HOME=${AREPO_HOME:-/home/opc/arepo}
-CAP_GB=${AREPO_DATA_CAP_GB:-45}   # 12 -> 13 -> 14 -> 16 GiB (2026-10-17, disk 46.6 GB) -> 45 GiB after the user-approved boot volume resize to 100 GB (Always Free; root 89 GB, 61 GB free, 2026-10-17 ~15:05Z). The 4 GB free-disk guard stays.
+CAP_GB=${AREPO_DATA_CAP_GB:-45}   # 12 -> 13 -> 14 -> 16 -> 45 GiB on 2026-10-17 (autopilot; 45 at 15:35Z after the user grew the boot volume to 100 GB: root 89 GB, 60 GB free); the 4 GB free-disk guard is unchanged
 exec 9>/tmp/arepo_collector.lock
 flock -n 9 || { echo "$(date -u +%FT%TZ) skipped: another pass holds the lock"; exit 0; }
 free=$(df -Pk / | tail -1 | awk '{print $4}')

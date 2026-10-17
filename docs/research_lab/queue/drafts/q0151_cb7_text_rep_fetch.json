@@ -26,7 +26,7 @@
   "--disk-cap-gb",
   "0.03",
   "--data-dumps-cap-gb",
-  "12.5",
+  "40",
   "--budget-min",
   "20"
  ],
@@ -40,5 +40,5 @@
   "data-dumps/research_lab/creative_batch7/text_rep/{prints/,outcomes_guarded.csv.gz,progress.jsonl,manifest.json}"
  ],
  "next_action": "q0152 after T7_S_out (only if S1 advanced)",
- "notes": "CREATIVE_BATCH_7.md CB7-S Stage 2. DRAFT. Commit at the CB7 freeze together with the textorig pass step (data collection only; the analysis refuses unless S1 advanced). Rolling about every 6 h; <= 15k print requests over about six weeks at 2 rps; outcome lookups only after T7_S_out, written to the guarded file. Completes (status text_rep_fetch_complete) once every unit with origin < T7_S_rep_end has its prints and the T7_S_out outcome read is done. No target computed by the fetcher; no wallet stored."
+ "notes": "CREATIVE_BATCH_7.md CB7-S Stage 2. DRAFT. Commit at the CB7 freeze together with the textorig pass step (data collection only; the analysis refuses unless S1 advanced). Rolling about every 6 h; <= 15k print requests over about six weeks at 2 rps; outcome lookups only after T7_S_out, written to the guarded file. Completes (status text_rep_fetch_complete) once every unit with origin < T7_S_rep_end has its prints and the T7_S_out outcome read is done. No target computed by the fetcher; no wallet stored. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
 }

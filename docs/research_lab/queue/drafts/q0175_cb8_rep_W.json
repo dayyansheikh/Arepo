@@ -21,7 +21,7 @@
   "--family",
   "W",
   "--data-dumps-cap-gb",
-  "14"
+  "40"
  ],
  "timeout_s": 5400,
  "max_retries": 1,
@@ -30,5 +30,5 @@
   "trials.jsonl (cb8_replication + placebo + cb8_descriptive + ml_explain creative_batch_8:W)"
  ],
  "next_action": "Stage P-W registration only if W1-rep passes the Holm step",
- "notes": "CREATIVE_BATCH_8.md CB8-W and 'W and H analysis implementation notes (2026-10-17)'. DRAFT. Commit only if W1 advanced (stop rule): refuses (exit 2) unless the committed seals/cb8_w1_stage1.json equals results_W1.json and shows advance, the committed seal copy equals the run's seal and the recomputed HOLDOUT listing (files and drops.holdout_listing_sha256) matches, all before any HOLDOUT read (logged in h9_flow/ACCESS_LOG.jsonl). Judged at alpha 0.05 / k_used. Exit 75 on headroom (cap 14)."
+ "notes": "CREATIVE_BATCH_8.md CB8-W and 'W and H analysis implementation notes (2026-10-17)'. DRAFT. Commit only if W1 advanced (stop rule): refuses (exit 2) unless the committed seals/cb8_w1_stage1.json equals results_W1.json and shows advance, the committed seal copy equals the run's seal and the recomputed HOLDOUT listing (files and drops.holdout_listing_sha256) matches, all before any HOLDOUT read (logged in h9_flow/ACCESS_LOG.jsonl). Judged at alpha 0.05 / k_used. Exit 75 on headroom (cap 14). | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 14 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
 }

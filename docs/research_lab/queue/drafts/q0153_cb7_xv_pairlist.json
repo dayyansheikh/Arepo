@@ -27,7 +27,7 @@
   "--disk-cap-gb",
   "0.02",
   "--data-dumps-cap-gb",
-  "12.5"
+  "40"
  ],
  "timeout_s": 7200,
  "max_retries": 2,
@@ -35,5 +35,5 @@
   "data-dumps/research_lab/creative_batch7/xv_rep/candidates.json"
  ],
  "next_action": "science-reviewer title-level audit (no prices); coordinator commits docs/research_lab/seals/cb7_xv_pairs.json with T7_X_rep_start",
- "notes": "CREATIVE_BATCH_7.md CB7-X Stage 2. DRAFT. Commit only if X1 advanced, at T7_X_list = max(2026-11-03T06:00Z, CB7 freeze + 24 h), i.e. after E009/E010's fixed end. Reuses code only (cross_venue.match_markets, audit_conflict, cross_venue_live.live_conflict, fetch_kalshi_open, fetch_poly_open); never calls load_verified and never opens any cross_venue_live/ path (runner refusal). About 6-9k requests at 2 rps."
+ "notes": "CREATIVE_BATCH_7.md CB7-X Stage 2. DRAFT. Commit only if X1 advanced, at T7_X_list = max(2026-11-03T06:00Z, CB7 freeze + 24 h), i.e. after E009/E010's fixed end. Reuses code only (cross_venue.match_markets, audit_conflict, cross_venue_live.live_conflict, fetch_kalshi_open, fetch_poly_open); never calls load_verified and never opens any cross_venue_live/ path (runner refusal). About 6-9k requests at 2 rps. | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged."
 }
