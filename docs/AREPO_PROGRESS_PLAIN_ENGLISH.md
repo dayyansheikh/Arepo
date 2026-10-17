@@ -1,41 +1,32 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 07:29 UTC+1
+**Last updated:** 2026-10-17 10:33 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a session started at 05:38 UTC+1 and is working.
-- **Server disk:** deleting old copies of the 2-hourly market snapshots (once they are 8 days old and safely backed up) is now
-  switched on. The safety check that all four creative batches had saved what they need passed first. Snapshot deletion starts on 19 Oct.
-  Until it catches up, I raised the server's data limit from 12 to 13 GB, so collection does not pause around 19-20 Oct. Disk space
-  is still fine.
-- **Batch 1-D (neg-risk sets): nothing advanced.** D1 was +0.78 points (p 0.016), which fails the pre-set bar (p < 0.01, at least
-  1 point, and surviving removal of the top 5 events; it fell to +0.15). D2 had too few cases to test. The sealed sample stays unopened.
-  Total tests counted so far: 1,106.
-- **Jobs that ran out of memory:** both are fixed and queued again (multi-signal ML dry run; batch 3's counting job). Batch 3's
-  live data step is now part of every collection pass.
-- **Batch 6 setback, explained:** its 20-market test of hourly price history failed (4 of 20; 18 needed). The cause was the test,
-  not the data: 16 of the 20 markets didn't exist yet at the start of the 10-day test window. The price service is fine. A corrected
-  test (markets that lived at least 14 days, same pass bar of 18/20) was independently reviewed and accepted. It **passed 20 of 20**,
-  so the download is queued. The first failure stays on record.
-- **Batch 4:** the analysis code passed its independent check after two rounds of fixes, without looking at any outcome data. Its
-  first (uncounted) pilot is queued. Its sampling frames for the fresh download start this morning.
-- **Batch 5:** fixes applied after its check; its downloads and counting job are queued.
-- **Batch 7 (3-6 tests):** designed, challenged, code built and checked; its download test is running now. It tests a "specificity discount" (do markets whose rules have more
-  conditions overprice YES?), geopolitics longshots, and stepping aside as a maker after Kalshi moves. The sibling-unwind idea was
-  dropped: our 2-hourly data can't time it, and batch 1 already screened something similar.
-- **Batch 8 (3-6 tests):** challenged and revised; the holder and order-flow code passed its check (with fixes), and its first
-  test download is queued; the Binance part is being written. **New idea round 4** is being generated (Fable) because the round-3
-  list is now used up. (1) in the last 5 minutes before daily crypto Up/Down markets settle, does
-  buying the side that Binance has already made near-certain still pay? (2) Does a maker gain by stepping aside after a wallet starts
-  "working" a large order in pieces? (3) Do sells by a market's biggest holders move prices more than same-size sells by others?
-  The challenger showed that test (1) needs a large margin (about 8 cents a share) to pass at our sample size, because one bad
-  day could wipe out many small wins. That is now stated up front rather than discovered later.
-- **Multi-signal ML:** its memory-fixed dry run started on the server; the real development run is queued and starts by itself
-  once 40 unbroken 2-hourly captures exist (about 20:00 UTC+1 today).
+- **Autopilot:** a session started at 10:19 UTC+1 and is working.
+- **Server disk fixed for now.** Data had grown from 9.9 to 12.5 GB in five hours (mostly the multi-signal ML panel cache,
+  which is wanted, and one batch-4 download). I cleared about 3 GB of old software-package caches on the server (they
+  rebuild themselves), so 9.3 GB of disk is free, and raised the data limit for collection from 13 to 14 GB. Collection
+  is not at risk; snapshot deletion of 8-day-old backed-up copies still starts on 19 Oct.
+- **Two download tests failed, both for set-up reasons, not because the data source is bad:**
+  - Batch 7's test picked 200 markets at random and then kept only those that ended in 2025 with real trading. Only 2
+    qualified, so the test could not pass. A corrected test (markets chosen from the 33 that qualify) was independently
+    reviewed and accepted with changes; it is being built.
+  - Batch 8's "biggest holders" test found no markets at all: Polymarket's market list never reports each market's open
+    interest (only the whole event's). Another Polymarket service does give it per market, 60 at a time. The reviewer
+    accepted the fix with changes. If either corrected test fails, that part of the batch is recorded as not run.
+- **Batch 3:** its counting job finished (13,510 quote-vacuum events; the selective-maker part is small, 146 independent
+  groups, so its power will be low). The batch freezes after its live counting job on 25 Oct, as planned.
+- **Two jobs ran out of memory** (batch 4's pilot and one of its sampling frames). The pilot is retrying with more
+  memory; proper fixes for both are being written.
+- **Batch 5:** a backup file it needs is being restored from the GitHub data backup to the server.
+- **New idea round 4** is being written (Fable, as you asked); the previous attempt was cut off and wrote nothing.
+- **Multi-signal ML:** the real development run starts by itself once 40 unbroken 2-hourly captures exist (about 19:30 UTC+1 today).
+- **Tests counted so far: 1,106** (unchanged today; smoke tests and counts are not outcome tests).
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
@@ -80,7 +71,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 5. Infrastructure
 | Item | State |
 |---|---|
-| Server disk | Data 9.9 GB (05:39 UTC+1); cap raised 12 -> 13 GB today. Backed-up trade samples deleted at 3 days (freed 0.6 GB last night); snapshots now deleted at 8 days (from 19 Oct). Expected to level off at about 11-12 GB. 8.6 GB of disk free. |
+| Server disk | Data 12.5 GB (10:20 UTC+1, measured); 9.3 GB of disk free after clearing package caches; collection cap raised 13 -> 14 GB today. Backed-up trade samples deleted at 3 days (freed 0.6 GB last night); snapshots now deleted at 8 days (from 19 Oct). Expected to level off at about 11-12 GB. 8.6 GB of disk free. |
 | Server size | 1 CPU and about 5.6 GB RAM, so one heavy job at a time. It can't be enlarged without Oracle console access. |
 | Mac | No background jobs. |
 
