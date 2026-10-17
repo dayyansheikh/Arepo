@@ -102,7 +102,7 @@ def test_gate_counts_consecutive_sidecar_snapshots_and_eta(tmp_path):
 def test_real_run_refused_below_gate_and_writes_nothing(tmp_path, capsys):
     _write_world(tmp_path, 10)
     rc = rmd.main(_args(tmp_path))
-    assert rc == 2
+    assert rc == 75
     text = capsys.readouterr().out
     assert "REFUSED" in text and "10 consecutive" in text and "ETA" in text
     assert not (tmp_path / "trials.jsonl").exists() and not (tmp_path / "out").exists()

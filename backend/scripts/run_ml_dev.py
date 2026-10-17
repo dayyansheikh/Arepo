@@ -1013,7 +1013,7 @@ def main(argv: list[str] | None = None) -> int:
               f"sidecar-complete snapshots exist ({gate['qualifying_with_sidecar']} with sidecar, "
               f"{gate['complete_snapshots']} complete); {gate['minimum']} required.")
         print(f"ETA: {gate['eta_utc']} ({gate['eta_assumption']}). Use --dry-run to inspect.")
-        return 2
+        return 75  # EX_TEMPFAIL: the queue waits 30 min and retries, not counted
     rep = real_run(args, caps, gate, policy)
     kind = ("DEVELOPMENT RUN" if args.target == "direction" and args.horizon == 1
             else f"EXPLORATORY RUN ({args.target}, h{args.horizon})")
