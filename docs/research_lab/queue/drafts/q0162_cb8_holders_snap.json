@@ -9,7 +9,7 @@
   "public Data API /holders"
  ],
  "resources": {
-  "mem_mb": 400,
+  "mem_mb": 500,
   "cpu": 1,
   "network": "data-api",
   "lane": "cpu"
@@ -27,7 +27,7 @@
   "--rps",
   "2",
   "--disk-cap-gb",
-  "0.08",
+  "0.10",
   "--data-dumps-cap-gb",
   "12.5",
   "--budget-min",
@@ -36,12 +36,13 @@
  "timeout_s": 2100,
  "max_retries": 3,
  "repeat": {
-  "max_runs": 260,
-  "until_log_regex": "\"status\": \"holders_collection_complete\""
+  "max_runs": 600,
+  "until_log_regex": "\"status\": \"(holders_collection_complete|disk_budget)\""
  },
  "outputs": [
-  "data-dumps/research_lab/creative_batch8/holders/snap/{<date>.csv.gz,progress.jsonl,manifest.json}"
+  "data-dumps/research_lab/creative_batch8/holders/snap/{<date>.plan.json.gz,<date>.holders.csv.gz,<date>.markets.csv.gz,<date>.MISSED.json,t8_h1_start.json,heartbeat.json,manifest.json}",
+  "data-dumps/research_lab/creative_batch8/holders/{deployment.json,h2_pin.json}"
  ],
- "next_action": "q0163 processes each snapshot day at >= h + 28 h; q0172 after T8_H1_end + 30 h",
- "notes": "CREATIVE_BATCH_8.md CB8-H Collection. DRAFT. Commit after the q0160 PASS and a collector freeze check; first snapshot at the first complete capture >= max(2026-10-21T06:00Z, deployment + 2 h) (pins T8_H1_start). Rolling about every 6 h; idempotent per UTC day; a day without a capture <= 2.5 h old is 'missed' (counted). Seed per day arepo-cb8-holders-<date>, written before the first request. Completes (status holders_collection_complete) after T8_H2_end. Collection only; no analysis. Round 1 should-change: never collects after T8_H_collect_max = T8_H1_start + 63 d (pinned with T8_H1_start); if window 2 cannot complete by then, H1-rep is 'not run (freeze slip)', counted. Round 1 item 6: wallet key via cb8_common.load_wallet_key_strict (never creates a key; exit 2 on missing key or fingerprint mismatch vs wallet_key_fingerprint in the rules file); fingerprint written to the manifest."
+ "next_action": "q0163 processes each snapshot day once its markets are >= h + 30 h old; coordinator runs 'run_cb8.py holders-pin-h2 --start-utc <freeze commit + 2 h>' after the CB8 freeze; q0172 after T8_H1_end + 30 h",
+ "notes": "CREATIVE_BATCH_8.md CB8-H Collection. IMPLEMENTED 2026-10-17 (cb8_holders.holders_snap), still a DRAFT until promoted. WHEN TO PROMOTE: after the q0160 PASS and a collector freeze check, ideally by 2026-10-21T04:00Z. The job records its first run in holders/deployment.json and refuses (exit 75, 30-min waits) until max(2026-10-21T06:00Z, first run + 2 h); T8_H1_start is the first complete capture at or after that time, pinned in snap/t8_h1_start.json with T8_H1_end = +21 d and T8_H_collect_max = +63 d. Promoting later only moves T8_H1_start later (first run + 2 h), it never backfills. QUEUE LIMIT: the worker marks a job failed after 48 consecutive exit-75 results (about 24 h). The job therefore returns a clean exit 0 (status idle_heartbeat) at least every 10 h while it waits (before the start, or between UTC days), which resets that count; exit 0 re-queues it at once and the next idle run exits 75 again. Daily rhythm: one snapshot per UTC day (plan with the seed arepo-cb8-holders-<date> written before the first request; one /holders request per market; 3 attempts then 'failed', counted apart from 'empty'); a day without a complete capture <= 2.5 h old is MISSED (marker, counted). Window 2 is pinned write-once by 'holders-pin-h2'; collection ends at min(T8_H_collect_max, T8_H2_end + 30 h) with status holders_collection_complete; a freeze slip is recorded, never extended. Disk: output cap 0.10 GB; a full cap is the declared sticky end state disk_budget (exit 4, never retried), H1-rep then 'not run (disk budget)'. Wallets: HMAC first 32 hex via cb8_common.load_wallet_key_strict (never creates a key; exit 2 on a missing or mode-unsafe key or a fingerprint mismatch vs wallet_key_fingerprint in seals/cb8_holders_rules.json); fingerprint in every manifest. Collection only; no analysis."
 }

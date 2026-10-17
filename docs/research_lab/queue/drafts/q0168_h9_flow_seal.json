@@ -26,5 +26,5 @@
   "trials.jsonl (history_seal_declaration)"
  ],
  "next_action": "coordinator commits seals/h9_flow_SEAL.json and seals/cb8_updown_holdout_SEAL.json; then q0169",
- "notes": "CREATIVE_BATCH_8.md section 1.3. DRAFT. Sealed files are never edited; drops recorded as DROPPED_* blocks. Refuses if the h9_flow manifest fingerprint differs from the pinned wallet_key_fingerprint."
+ "notes": "CREATIVE_BATCH_8.md section 1.3. IMPLEMENTED 2026-10-17 (cb8_flow.flow_seal), still a DRAFT until promoted. Exit 75 until the fetch is flow_fetch_complete; exit 2 if the manifest fingerprint differs from the pinned one, any file differs from its manifest sha256 or an unlisted file exists. Re-hashes every file, reads every committed seal copy under docs/research_lab/seals except h9_flow_SEAL.json and cb8_updown_holdout_SEAL.json for market ids, looks them up (light Gamma, <= 2 rps), writes DROPPED_SEAL_COPIES blocks to drops.csv.gz (sealed files are never edited), records the HOLDOUT listing sha256, seals via h5_seal.seal_run (one n_tests = 0 trial line) and writes the committed copy seals/h9_flow_SEAL.json. Needs seals/cb8_flow_rules.json committed. Coordinator commits the copy."
 }

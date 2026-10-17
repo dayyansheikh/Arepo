@@ -10,7 +10,7 @@
   "complete captures on the host (touch of stored markets only, read within retention)"
  ],
  "resources": {
-  "mem_mb": 450,
+  "mem_mb": 500,
   "cpu": 1,
   "network": "data-api",
   "lane": "cpu"
@@ -22,13 +22,13 @@
   "scripts/run_cb8.py",
   "holders-prints",
   "--lag-h",
-  "28",
+  "30",
   "--day-pages",
   "5",
   "--rps",
   "2",
   "--disk-cap-gb",
-  "0.12",
+  "0.10",
   "--data-dumps-cap-gb",
   "12.5",
   "--budget-min",
@@ -37,12 +37,12 @@
  "timeout_s": 2400,
  "max_retries": 3,
  "repeat": {
-  "max_runs": 260,
-  "until_log_regex": "\"status\": \"holders_prints_complete\""
+  "max_runs": 600,
+  "until_log_regex": "\"status\": \"(holders_prints_complete|disk_budget)\""
  },
  "outputs": [
-  "data-dumps/research_lab/creative_batch8/holders/{prints/,marks/,progress.jsonl,manifest.json}"
+  "data-dumps/research_lab/creative_batch8/holders/prints/{prints/<date>.csv.gz,marks/<date>.csv.gz,<date>.markets.csv.gz,heartbeat.json,manifest.json}"
  ],
  "next_action": "q0172 census after T8_H1_end + 30 h",
- "notes": "CREATIVE_BATCH_8.md CB8-H Collection. DRAFT. Commit with q0162. Must process each day before its captures pass the 8-day snapshot retention. Completes (status holders_prints_complete) once every snapshot day < T8_H2_end is processed. No target computed by the fetcher; no raw wallet stored. Stops at T8_H_collect_max + 30 h. Round 1 item 6: wallet key via cb8_common.load_wallet_key_strict (never creates a key; exit 2 on missing key or fingerprint mismatch vs wallet_key_fingerprint in the rules file); fingerprint written to the manifest."
+ "notes": "CREATIVE_BATCH_8.md CB8-H Collection. IMPLEMENTED 2026-10-17 (cb8_holders.holders_prints), still a DRAFT until promoted. Promote together with q0162 (same smoke gate; it simply idles until the first snapshot day is old enough). Idle rhythm as q0162: exit 75 normally, a clean exit 0 (idle_heartbeat) at least every 10 h so the queue's 48-consecutive-tempfail limit never fires. Processes the oldest snapshot day whose markets are all >= --lag-h 30 old (DEVIATION from the design's 28 h: marks need captures through h + 30 h, and an exit at h + 24 h with a +2 h mark and a 2.5-h capture window needs h + 28.5 h); prints [h, h + 26 h] per market (<= 5 pages of 1,000; a capped market-day is 'capped', unavailable, nothing stored; a failed request is retried in later chunks and after 3 attempts recorded as 'failed', counted apart from no-data); storage rule: all prints of market-days with c >= 0.5 on either token, else prints by top-5 holders of either token; then the capture marks (YES best bid/ask of stored markets at every complete capture in [h, h + 30 h] while the 8-day capture retention holds; unreadable captures counted). Completes (holders_prints_complete) when q0162 is complete and every snapshot day is processed. Output cap 0.10 GB, sticky disk_budget end state (exit 4). No target computed; no raw wallet stored; same strict key and fingerprint rules as q0162."
 }
