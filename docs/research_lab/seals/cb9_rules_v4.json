@@ -1,0 +1,489 @@
+{
+ "common": {
+  "counting": {
+   "count_line": "ml_explain, source creative_batch_9:<family>, n_tests = 1 per test",
+   "kinds": [
+    "cb9_test",
+    "cb9_replication",
+    "cb9_descriptive"
+   ],
+   "not_testable": "counted with p = 1"
+  },
+  "exclusion": {
+   "max_unverified_key_share": 0.02,
+   "own_seal_copies": [
+    "cb9_kd_holdout_SEAL.json"
+   ]
+  },
+  "placebos": {
+   "draws": 200,
+   "max_advance_rate": 0.015,
+   "seeds": {
+    "D1_shuffle": 9194,
+    "K1_skew_sign": 9193,
+    "P1_breakeven": 9191,
+    "P2_label_swap": 9192,
+    "spare_5": 9195,
+    "spare_6": 9196,
+    "spare_7": 9197
+   }
+  },
+  "read_allowed_names": [
+   "exclusion_keys.csv.gz",
+   "exclusion_report.json"
+  ],
+  "refused_roots": [
+   "cb1_extract",
+   "cb2_extract",
+   "cb3_extract",
+   "cb4_extract",
+   "cb5_extract",
+   "cb6_extract",
+   "cb7_extract",
+   "cb3_followup",
+   "cb6_followup",
+   "cross_venue",
+   "cross_venue_live",
+   "surprise_live",
+   "live_trades",
+   "trade_samples",
+   "cb8_extract",
+   "creative_batch8",
+   "creative_batch7",
+   "creative_batch6",
+   "creative_batch5",
+   "creative_batch4",
+   "h1_first",
+   "h2_main",
+   "h3_power",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail",
+   "h8_text",
+   "h8_geo",
+   "h9_flow"
+  ],
+  "refused_run_ids": [
+   "h1_first",
+   "h2_main",
+   "h3_power",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail",
+   "h8_text",
+   "h8_geo",
+   "h9_flow",
+   "updown",
+   "updown_frame",
+   "exclusion_run",
+   "holders"
+  ],
+  "results": "write-once: a screen / rep refuses to overwrite its results file and logs no second count line",
+  "stage1": {
+   "batch_holm_alpha": 0.01,
+   "batch_holm_k1": 5,
+   "by_family": "battery2.cumulative_count() at the run (triage only)",
+   "by_q": 0.1,
+   "gate_p": 0.01,
+   "holm_family": [
+    "P1",
+    "P2",
+    "K1",
+    "D1",
+    "S1"
+   ]
+  },
+  "stage2": {
+   "alpha": 0.05,
+   "k": "derived in code (stage2_k) from results_P.json and results_KD.json",
+   "rule": "k = number of Stage-1 advances among P1, P2, K1, D1, fixed when results_P.json and results_KD.json are both final; each Stage-2 test is judged when it finishes at the threshold alpha/k (one-sided alpha 0.05; strict p < alpha/k), in its Stage-1 direction, AND with the section 2.4 floor on the point estimate, every binding placebo (advance rate <= 1.5% at the same threshold) and every binding robustness check (section 2.6 'any advance or pass'; their p thresholds at alpha/k); the Holm step-down over the final Stage-2 p values is reported as a label only"
+  },
+  "stall": {
+   "exit": 0,
+   "labels": {
+    "disjointness_unverified": "not testable (disjointness unverified)",
+    "not_run_source": "not testable (source)"
+   },
+   "screens": "p = 1, testable false",
+   "statuses": [
+    "not_run_source",
+    "disjointness_unverified",
+    "upstream_not_testable"
+   ]
+  },
+  "t_seal": "2026-10-22T00:00:00Z",
+  "uncertainty": {
+   "min_clusters": 30,
+   "min_units": 100,
+   "n_boot": 2000,
+   "n_wild": 9999,
+   "seed_boot": 919,
+   "small_g": "cb2_weather.small_g_pvalue per way; p = max over declared ways",
+   "top_drop": 5
+  }
+ },
+ "declared": {
+  "book": {
+   "clock": "an event is used at t iff both clocks <= t",
+   "crossed": "ineligible, never repaired",
+   "fresh_s": 120,
+   "ingress_cap_gb": 40.0,
+   "lags_s": [
+    120,
+    300
+   ],
+   "print_pages": 3,
+   "print_window_s": [
+    120,
+    600
+   ],
+   "source": "pmxt v2 hours 14Z, 16Z, 19Z (row-group streaming); the previous hour only for tokens without a book snapshot by the checkpoint"
+  },
+  "census": {
+   "audit": "every (market, quote window) with >= 1 Data API print: share with any pmxt event for the condition in the same span",
+   "audit_pass": 0.9,
+   "available_min": 0.8,
+   "gate_GP": {
+    "min_p1_units": 300,
+    "min_p2_fills_each_quote": 100,
+    "min_p2_origins": 1500,
+    "min_sessions": 40,
+    "min_tickers": 15
+   }
+  },
+  "clock": {
+   "checkpoints_et": [
+    "10:32 (09:30 bar)",
+    "12:32 (11:30 bar)",
+    "15:32 (14:30 bar)"
+   ],
+   "daily_close": "close of day d - 1 usable from d 00:00Z",
+   "drop": "o < 09:30 ET, o >= close (closing rows), e <= o (zero length), missing open/close",
+   "end": "e = min(o + 60 min, 16:00 ET) (13:00 ET on half sessions)",
+   "full_bars": 7,
+   "half_bars": 4,
+   "half_sessions_2026": [
+    "2026-11-27",
+    "2026-12-24"
+   ],
+   "holidays_2026": [
+    "2026-01-01",
+    "2026-01-19",
+    "2026-02-16",
+    "2026-04-03",
+    "2026-05-25",
+    "2026-06-19",
+    "2026-07-03",
+    "2026-09-07",
+    "2026-11-26",
+    "2026-12-25"
+   ],
+   "other_count": "bars unavailable for that ticker-day, counted, never repaired",
+   "timestamp": "bar start o",
+   "usable": "e + 120 s <= t"
+  },
+  "family": "CB9-P (CH83a + CH84), CREATIVE_BATCH_9.md CB9-P; rules file also fixes the q0182 keys and the census gates",
+  "features": {
+   "bars_from": "2026-02-01",
+   "fair_up": "Phi(ln(S/K)/(sigma sqrt(tau)))",
+   "feature_files": "bars_pre.csv.gz holds bars 09:30..14:30 of every session; the 15:30 bar and the daily closes go to closes_settle_guarded.csv.gz",
+   "guarded": [
+    "outcomes_guarded.csv.gz",
+    "closes_settle_guarded.csv.gz"
+   ],
+   "k_d": "Yahoo daily close of the prior session",
+   "s_t": "close of the latest usable hourly bar",
+   "sigma": "per session: the six one-hour log returns ln(c0/o0), ln(c1/c0), ..., ln(c5/c4) of bars 09:30..14:30 (the 30-minute 15:30 bar is not an hourly return and is never read); overnight gaps excluded; SD (ddof 1) over the prior 20 full NYSE sessions; >= 100 returns else unavailable; per hour",
+   "sigma_min_returns": 100,
+   "sigma_sessions": 20,
+   "stale": "P1_stale: S from the bar before the latest usable bar in the ticker's bar sequence (for the 10:32 checkpoint: the prior session's 14:30 bar)",
+   "tau": "hours to 16:00 ET"
+  },
+  "halfday": {
+   "counted": false,
+   "days": [
+    "2026-11-27",
+    "2026-12-24"
+   ],
+   "every_s": 60,
+   "poll_et": [
+    "13:05",
+    "16:00"
+   ]
+  },
+  "kd_and_sign_rules": {
+   "kd": "seals/cb9_kd_rules.json (cb9_kd)",
+   "sign": "seals/cb9_sign_rules.json",
+   "sign_s0_census_columns": [
+    "stratum",
+    "market_id",
+    "era",
+    "receipt_status",
+    "endpoint",
+    "match_status",
+    "t1_available",
+    "t2_available",
+    "t2_status",
+    "fill_type",
+    "sports"
+   ]
+  },
+  "p1": {
+   "clusters": [
+    "day",
+    "ticker"
+   ],
+   "cost_robustness": 0.005,
+   "edge": 0.05,
+   "fee": "r a (1 - a), r = max(recorded fee_rate_bps/1e4 at t, 0.04)",
+   "fee_floor": 0.04,
+   "floor": 0.01,
+   "min_ask_size": 5.0,
+   "net": "Y - a - f(a), Y from the guarded Gamma outcome (0.5 on 50-50)",
+   "size_weight_cap": 2000.0,
+   "unit": "(market-day, checkpoint) with features and a fresh, uncrossed book on the traded token; both edges -> the larger"
+  },
+  "p2": {
+   "fills": "cb3_maker.quote_fills queue rule; depth = resting size at the quote's own level at t; complementary prints in Up terms",
+   "floor": 0.003,
+   "half_width": 0.01,
+   "life_s": 300,
+   "min_fill_rate": 0.02,
+   "quotes": "bid floor_tick(c - 1c), ask ceil_tick(c + 1c); capped passive (bid <= best ask - tick, ask >= best bid + tick); c = fair_Up or the book mid",
+   "rebate_share": 0.25,
+   "route_gate": "model-centred net per posted share > 0",
+   "size": 20.0,
+   "size_weight": "filled shares of the origin (model + mid)",
+   "statistic": "(model P&L - mid P&L)/40 per origin",
+   "through_rule": "robustness: cumulative size of prints strictly through the quote >= 20 shares",
+   "token": "Up"
+  },
+  "population": {
+   "days": "full NYSE sessions in [2026-04-13, 2026-08-10) minus the pmxt gap [2026-06-12, 2026-06-18)",
+   "exclude_res": {
+    "opens": "(?i)\\bopens?\\b",
+    "strike": "(?i)close (?:above|below)|above \\$|below \\$"
+   },
+   "flag_res": {
+    "close_final_minute": "(?is)\"Close\".{0,250}?final minute",
+    "equality_50_50": "(?i)\\bequal\\b[^.]{0,200}?50-50",
+    "no_trade_50_50": "(?i)(?:does not|doesn't|do not|no)\\s+trade[^.]{0,250}?50-50",
+    "prior_trading_day": "(?i)most recent prior trading day"
+   },
+   "flag_scope": "equality and no-trade flags must hold within one sentence (M4)",
+   "gamma_end_window": "endDate in [d 19:59Z, d 20:01Z] (EDT; one hour later in EST)",
+   "keys": "q0182 exclusion ids and event / neg-risk / series keys dropped; unverified disjointness -> P not testable, counted",
+   "n_days": 78,
+   "neg_risk": "excluded",
+   "old_version_res": {
+    "old_version_rounded": "(?i)\\brounded\\s+to\\b",
+    "old_version_vs_open": "(?i)\\b(?:opening|open)\\s+price\\b"
+   },
+   "outcome_labels": [
+    "Up",
+    "Down"
+   ],
+   "question_re": "^(.+) \\(([A-Z]{1,5})\\) Up or Down on [A-Z][a-z]+ \\d{1,2}\\??$",
+   "source_re": "^https?://(?:www\\.)?pythdata\\.app/explore/Equity\\.US\\.([A-Z]{1,5})(?:/|%2F|%2f)USD/?(?:\\?.*)?$",
+   "strike_markets": "excluded from the primary; counted (reported stratum)",
+   "ticker_map": "Yahoo symbol = Pyth ticker (identity); a ticker without 7 bars on every window session is unavailable (counted)"
+  },
+  "rates": {
+   "gamma_data_rps_max": 2.0,
+   "yahoo_rps": 1.0
+  },
+  "robustness": {
+   "latency": "units and quotes at bar end + 300 s; sign and >= half the magnitude",
+   "months": {
+    "min_units": 30,
+    "share": 0.6666666666666666
+   },
+   "worst_case": "unavailable checkpoints scored as the worst observed unit of that day"
+  },
+  "smoke": {
+   "bar_clock": {
+    "checkpoints_et": [
+     "10:32 (09:30 bar)",
+     "12:32 (11:30 bar)",
+     "15:32 (14:30 bar)"
+    ],
+    "daily_close": "close of day d - 1 usable from d 00:00Z",
+    "drop": "o < 09:30 ET, o >= close (closing rows), e <= o (zero length), missing open/close",
+    "end": "e = min(o + 60 min, 16:00 ET) (13:00 ET on half sessions)",
+    "full_bars": 7,
+    "half_bars": 4,
+    "half_sessions_2026": [
+     "2026-11-27",
+     "2026-12-24"
+    ],
+    "holidays_2026": [
+     "2026-01-01",
+     "2026-01-19",
+     "2026-02-16",
+     "2026-04-03",
+     "2026-05-25",
+     "2026-06-19",
+     "2026-07-03",
+     "2026-09-07",
+     "2026-11-26",
+     "2026-12-25"
+    ],
+    "other_count": "bars unavailable for that ticker-day, counted, never repaired",
+    "timestamp": "bar start o",
+    "usable": "e + 120 s <= t"
+   },
+   "check": "after the drop exactly 7 bars; first start 09:30 ET; first open vs daily open and last close vs daily close within 0.2%; dropped rows by count",
+   "failure": "P not testable (source), counted; never re-fitted",
+   "gamma_paging": "two walks per day, equal id sets, not capped; parse_market reason counts and the equality-clause sentence of primary markets recorded (M3)",
+   "gamma_paging_days": [
+    "2026-09-15",
+    "2026-09-16"
+   ],
+   "pmxt_heads": [
+    "2026-06-30T14",
+    "2026-04-28T16",
+    "2026-04-29T19"
+   ],
+   "pmxt_seed": "arepo-cb9-smoke-pmxt",
+   "sessions": [
+    "2026-09-15",
+    "2026-09-16"
+   ],
+   "ticker": "NVDA",
+   "tol": 0.002
+  },
+  "source_check": {
+   "max_disagree": 0.02,
+   "min_abs_return": 0.001
+  },
+  "stage2": {
+   "books": "CLOB /book, receipt clock only",
+   "collect_max_days": 63,
+   "outcomes": "guarded post-settlement Gamma fetch from close + 6 h, hourly, final when all resolved or after 7 d (unresolved counted); <session>/outcomes_guarded.csv.gz, opened only by rep-P (M9)",
+   "partial_failure": "no substitute source; failed checkpoint unavailable (source); failed sigma/K_d -> the whole session; counts toward the 30",
+   "rule": "Stage-2 rule: cb9_common.STAGE2_RULE (M10)",
+   "sessions": 30,
+   "start": "first full NYSE session >= CB9 freeze commit + 1 day",
+   "unavailable_max": 0.2,
+   "yahoo": "fetched at each checkpoint, receipt-timed; S_t from that response; pre-open sigma/K_d fetch; post-session bars diagnostic only"
+  }
+ },
+ "disk": {
+  "data_dumps_cap_gb_default": 40.0,
+  "disk_budget_exit": 4,
+  "headroom_exit": 75,
+  "refusal_exit": 2
+ },
+ "func_sources_sha256": {
+  "cb3_maker._side_tuple": "af4c27f67c31a06a0d8ab9a2adffe75ce6f8bc410d2a541927198abd93d19a74",
+  "cb3_maker.quote_fills": "c065b6d26e7790c6b91da1c93e53f2a14774b96f8d6a34371356f2efffe4b825",
+  "cb8_books._levels": "7c7dc235e1d3e0f59b413e8b3539c1805d379c360ef985f30ddbb6673ed6c9a2",
+  "cb8_books.read_hour_events": "d0890736de0dadfb569838947de30deaf198d04f0ba471d995556f37f2dbbf95",
+  "cb8_books.state_at": "96268de824d2819f477c3281d63daa69c7d1f259c8214d62073077b005b5d85c",
+  "cb9_common.batch_holm_label": "e3ec2afd7046c24d9eec169caf4474b60f222c3a2fde8ad690bf59fc016cab2b",
+  "cb9_common.check_stage2_k": "730c65cc56ceed75083c8e5357b40d5eb4c49b9d8ef2d60559f6d7e3aa49efe2",
+  "cb9_common.cluster_bootstrap_means": "40f9457f421736bc49b6399ccc4bc208b9fac8a674c72c567dc5b2eae1dfe2f9",
+  "cb9_common.cluster_p": "532ef114f37a643e11fe31208bfc6f8cd203ca2b782881ba8a5b4363c43d7561",
+  "cb9_common.common_declared": "8a022cf635587bf639204bccec55016413367af94db1655356aa607a931c9a95",
+  "cb9_common.drop_by_keys": "003e35843649afc05ee07261e9c478685bcdc6f02f9b7acd71c573ba62282956",
+  "cb9_common.exclusion_keys": "fa3a3d72873e5d471fd9c1b68a6bfc57efc9cfc4c41493f84c2570a1d6b987dc",
+  "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
+  "cb9_common.load_exclusion_keys": "2c13a3c2a200b121b7da49223ed5202d626c55bf0432a6fb7d518e34485aaed3",
+  "cb9_common.placebo_advance_rate": "7e1f27beb4ff605960b8fd50b333d618105d07c4e951978df65966de2db61c81",
+  "cb9_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+  "cb9_common.read_csv_gz_restricted": "a6cfdb3c916eb25f73a926e6305f3478af52491bbc2f86c07032578d8f94fcd6",
+  "cb9_common.refuse_path": "c5cd8ffd054f083b675d8b0f3d6114f671b78e94d4045a4b3cdf81be463cd37f",
+  "cb9_common.refuse_read": "b1c2c29b1989c535ee446ae802547ee16233d4b795cdba006c39144197513935",
+  "cb9_common.refuse_run_id": "7205c058266bdae9021aee0b2ed09f55a6ecb4ffd788b03bf612f1313e1d1461",
+  "cb9_common.require_after_t_seal": "43368ba9aad66ec6a441952ef0cea90c1bde2e5955ec38ddde2a28f18b45e65f",
+  "cb9_common.stage2_gate": "7191e9ee50bcaaba9aa981528fdb8208388408ab465400cb635a8e16c2ac1932",
+  "cb9_common.stage2_k": "64c27038cade07a1694b376438ab054f143d1fb1e5e5996c27dcad50aaad42ad",
+  "cb9_common.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+  "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+  "cb9_common.wilson_lower": "4471a3b1d2f5c188e7edd0f77f1441fb37d8f71ff4994775f7b1140c75a98728",
+  "cb9_common.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+  "cb9_common.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+  "cb9_pyth._cl": "1eebda440eec35b50911ef0e7e68db8a91112491b24e6e3882b0d2e99087c465",
+  "cb9_pyth._d": "373702709575aba0d37d505042db2388e476edd979e434a1c5f73460d26d2050",
+  "cb9_pyth._drop_ok": "591d54db7f5b4c605fac17791674a4a4863f32c826f46d56e0e1b95d002236c4",
+  "cb9_pyth._months_ok": "cfc045167f64e080f1e92946c9dc3a0ea01b68447a7b04be8e50fd0f07384a99",
+  "cb9_pyth._state_dict": "54996864b255a5cc2e5b10875770a31151453b72f5f66004e483e0b6dca1c458",
+  "cb9_pyth.bar_clock_declared": "2d735e019a74be2368d48c671237b4be5033ae3084165c008aeb61d79a799a5e",
+  "cb9_pyth.build_units": "30db6ddbbaf265a1e838ae90d2e8b104c8265485b77e18e16207818bf7900cb3",
+  "cb9_pyth.ceil_tick": "4f3a9309298c9696198ecf35e6bcd0d63e253b5cc8e6e9de9b5ac2409f735f9a",
+  "cb9_pyth.census_p": "bf02651378ea28cf87adbc28555806f423b9fd08cc5c489a5fccd184ae4aec7b",
+  "cb9_pyth.checkpoint_status": "7c8913dc6634209445cbc00f59344e99a914be2ac04817a4ada173448f04273d",
+  "cb9_pyth.checkpoints": "3fe22d42330676f3cb44b8dc6855a25ca1b4947fd624b4f9a3473ab119027cd5",
+  "cb9_pyth.clob_book_state": "30f299c6a001696180875e0f94d9fb0c735a3d42c33019e6ab9031404f19f250",
+  "cb9_pyth.close_et": "ed34c91c3dfc25b25b4351e98689316af572540ddb77aa7b534113e8241822c2",
+  "cb9_pyth.daily_rows": "601ea8a3a8177587854ec5da2880703117eec551029a333d4f78aed36262f698",
+  "cb9_pyth.declared": "7de9a858b86c1e827079a28d3860d17211e0c00d617543825de7e8e85ef4362a",
+  "cb9_pyth.depth_at": "76a20b2a743e0596fc7ca8bc462163e7b0121b935aed3620fdcb9c3015a031a0",
+  "cb9_pyth.equality_excerpt": "c72e74891b92ed22d756311fa2769cc56b5ebba5086a3a7159dabae27c4b7653",
+  "cb9_pyth.et_day": "0b296db46df1478cb66c279d39b8273cb4e1b2362cccb50d0766cd784f3a4a8f",
+  "cb9_pyth.et_epoch": "379d6991b4bee8dc09b0470efbe7b4bb8f15c7655954bf16cf2b8b0e1064524a",
+  "cb9_pyth.expected_bars": "14a25b2c4d1c5252ff8c2480c3a43bc74079a8ba97713eaeef1cc3a2f1301ba8",
+  "cb9_pyth.fair_up": "28352f333f93e16c21abb77b4001e0ca33f3b62ef50b3591fd8b02bf3e918d59",
+  "cb9_pyth.fee_rate": "a77bf695681a5e8d921dbb09e49fa97ea9aa4b9c8538539cf3468b8d788adba6",
+  "cb9_pyth.fetch_outcomes": "5df29ef127d354b7cbe75ce4a1ce4c107c92795075ade9803940a4a828f89361",
+  "cb9_pyth.floor_tick": "201e4fc3ca3b0f0115d94bd334518467a72223656be8e580d1f80a6ddc967995",
+  "cb9_pyth.frame_day": "44317821470ced315a7c42ca6a9a5fe846f35d9800a5f91a95e2d1bb30296a4f",
+  "cb9_pyth.full_sessions": "a81bced5996dc1dd7140ad85bf71f44a8d05d7239114bd9ee0af45f4a2096a6e",
+  "cb9_pyth.gamma_end_window": "d5d57edbee95d0bafcca4c3cd14bd9b2a248e5156dcd80a4be4376de363ed015",
+  "cb9_pyth.halfday_tick": "e05496d5024673e9b967a24c516fa5b42d28929021ac3f57c742258ddb97d3c7",
+  "cb9_pyth.hourly_returns": "ad8847fba6524e78fabefde7fee6b288c70ca15a6fd27ca94f37f462fc14dc10",
+  "cb9_pyth.is_full_session": "64df8c2abfa661ed039f4ebe54042ace369334ce6438a55e9ac37e644503082d",
+  "cb9_pyth.latest_usable": "29a781e70e2011ad8aba10f00bca55a0ea8cc1b6ed519d4efcbbf8eb817e50e3",
+  "cb9_pyth.levels_at": "b3409a7d8e1b5b4e05dea97961d9c4a61c130cb9da0c77e71ed03d2ab58995d0",
+  "cb9_pyth.live_frame_markets": "c3eef00a8503b5059b0b40a9c74e8c97beb79e0262533825bd11949d651f0208",
+  "cb9_pyth.live_s_t": "a95510465d26ca3fabc3f42ffa6dcacb65511cf1fb540f70278a6f4f655e4daa",
+  "cb9_pyth.live_units": "3205ce583b8c9378db827f703226f0ec6d47b4f634b715b1310e3ef3c0c82850",
+  "cb9_pyth.load_bars": "9b6b3511e008e6e0cc54a8ae58399e47b21d41dc9a7501e22e36246e0c4faf7e",
+  "cb9_pyth.open_guarded": "ac28ef066ea71cf85f7700430b31bdf8b155708aa91ec5429e5b44e245e78491",
+  "cb9_pyth.outcome_y": "b22392f115d74086c8c8f77351207b61d5527ad16cf6453622a13d0569e5dd24",
+  "cb9_pyth.p1_net": "af619c21aa117264fb81c2fd7c7e5e840b50f9e1a84011b9dcbbf1c5457d67e1",
+  "cb9_pyth.p1_stat": "c715effd97fb68cb8288857674d3ebcad4ba01a70e8e9136e8d7f1a6a854be50",
+  "cb9_pyth.p1_unit": "470cc3c6b5b744f0ec868ef06a4c09dd8adfdc5c8b0b4c1e5e5f91679f9f26dd",
+  "cb9_pyth.p2_quotes": "7f0540ebc29486fa31410913945b69cb3744f8da6a87383c02b3cda8325f60e8",
+  "cb9_pyth.p2_stat": "083ada22092d09a3d0976027e6a26607bd420d4f3802e99bf7cd818fe9e98850",
+  "cb9_pyth.p_days": "b0459438138cd66bdfb3f546b430c30c4c91ecfc9e9b19b03456ff3470d45910",
+  "cb9_pyth.parse_chart": "f069a1692e01cf3bfc69889f697d68299db2d527750d8e1265e59957230d4520",
+  "cb9_pyth.parse_market": "f721bb8a6f69f43508b1317247139f5b5ce7da34d3dd5c93135537ed666984c8",
+  "cb9_pyth.pyth_books": "7527381e483e6b6bb18469e3f454cb9866ef2e8c5b6119b49b01b7812a0b1021",
+  "cb9_pyth.pyth_frame": "f3911bca35660c4475a67cd63bf426ce81ba555c999be84644f9dc9c8cb30f2e",
+  "cb9_pyth.pyth_live_tick": "44414fee76c76d95b61857fcfcac633d49966dc191a21e702dcceee8abf699cd",
+  "cb9_pyth.quote_pair_pnl": "3910fc54b49d208db477adb7d4512b68116bcd230ba49255711c98d6abddad18",
+  "cb9_pyth.session_bars": "ffb48e21df2769d3f526d59f57809d677c8b00e0a11dbd06ba715cc9a09117ff",
+  "cb9_pyth.sigma_for": "0536ac3b5e4f5af482607f890eb5f36abdb688ec332c469c30c8decc7dc63456",
+  "cb9_pyth.smoke_declared": "1be8e966bb389f9b70c41b6ad44e1f82f1e8446b857710e4bce1384f75cf0621",
+  "cb9_pyth.smoke_gamma_paging": "5ea8ddc982453cf1c341a2019e8058c0500624b27112cceef2c68398e86db9ec",
+  "cb9_pyth.smoke_pmxt_heads": "c41b31598a3e881bcf2d5298b78e4d01c3a982b6da4c32a887fd954b1baf2cb2",
+  "cb9_pyth.smoke_pmxt_hours": "5499c11ce2c916f3d98d7738dac735c7b975736b2c1510da3dc33411d30390a4",
+  "cb9_pyth.smoke_yahoo_check": "bf02904a651e8d3a4e49019a8449cab5c199b753fae61dad0753431efc0bca0f",
+  "cb9_pyth.source_check": "676d3950c103110ca6d00e732c948af7e0f2fc6a2c44073828d462c69b377d29",
+  "cb9_pyth.stage2_availability": "84425b301b6bd915df50e56730217850b28cdd2df5979d44b30d91e76d8c43f1",
+  "cb9_pyth.stage2_sessions": "1a701266f23934a8500b21ae5275b178d6068527accf378ff6b389619a123732",
+  "cb9_pyth.state_row": "8691e6aef6ba505a7509cdb7f84c77b56c298d4ec99094b6f32b5fa230306f1a",
+  "cb9_pyth.t9_p2_start": "e52db0e89ec7011da866ad47345ec31c1ed3656eb6a1fcee9061ebcc3495ac46",
+  "cb9_pyth.taker_fee": "12eda4058c4ea8b8793f1c94f8892d58b2d0a2293e2714f668b8f0ef5e574e44",
+  "cb9_pyth.tau_hours": "f838d602b84546a0a418650fd40e10879bc8b39865c712670a90b1669a65e52a",
+  "cb9_pyth.through_fill": "89e71c621bc0688fc238f46ebe492351a29bf23d391b3e21e4c564e34320303d",
+  "cb9_pyth.up_prints": "b74ea5a2638b1e877f7f85f10c7d8c39469c1ed5da0ed7db9f0bb1795e40d4f0",
+  "cb9_pyth.usable": "920becfef988fe33a53d0c343abb61c83334050d9f4252b2ccd7003cd61ae385",
+  "cb9_pyth.write_rows": "772c8b87f2774cb523440ab67da21ce7e1a1fa442edfddb978ec22ff19f6a637",
+  "cb9_pyth.yahoo_chart": "74cfcf3c50c352567178088a673a2e8dffe8fe04a67897fff23e52549f4bb76a",
+  "cb9_pyth.yahoo_transport": "117dfe0fa3629d70adee5cf51c61c7ca6a5b75e876384c22821154f3bc41b704",
+  "history_backfill._paged": "4c1cb360b928f71732eedc4bdf05ee21b2a54938c3f44b9b17ce09e847e0ea08"
+ },
+ "funcs_sha256": "925c77aadaed8bff9cfbe82a0331f51a2a74119a50ef484c2257ba5d75d2ecba",
+ "rules_sha256": "e851cbfe54e6547c0449bdd42361eca1a83c2ff15d15f9c7330f1b968336e072",
+ "rules_version": "cb9-rules-v4"
+}
