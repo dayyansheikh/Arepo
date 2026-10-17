@@ -1351,3 +1351,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   data-dumps headroom 14, open long-dated K/D markets, 13Z ingress decision, the missing P Stage-2 outcome fetch, one
   Stage-2 rule with code-derived k, write-once results, the P small-G cluster rule). Rules v1 re-derive exactly; fixes go
   into v2 rules files, and v1 stays untouched. Tie rule checked on a live Pyth daily (2026-10-16 NVDA): an exact tie resolves 50-50.
+
+## CB5-L CDF frame (q0104b, done 2026-10-17T19:23Z): 0 families, G59 will fail; counts only, not counted
+- `run_cb5.py cdf-frame` on IF-H2 events + the 2026-10-01 walk: 318,808 events in, 12,016 ladder rungs in 7,405 groups,
+  **1 bucket event, 0 families, 0 live, 0 pairs**. Diagnosis (implementer, read-only re-run of the bucket filter on the raw
+  unreduced file on the host): the reduced loader (3a030f6) drops nothing (same counts). Of 303,136 IF-H2 events 109,619 are
+  neg-risk; 57 have ≥ 2 members whose `groupItemTitle` parses as a period; 51 are excluded by the frozen
+  `cdf-grouper-v1` rule against "Other"/"No X" placeholder members, 4 fail period parsing ("Before September" vs
+  "September 1-15"), 2 parse fully and 1 tiles. Walk: 19 windows, 871 requests, 0 failed.
+- Consequence: gate G59 (≥ 20 audited live families) cannot be met, so **CH59 is expected to close as "too rare in the
+  live universe (0 families)"** when q0106's census applies G59 (design §691). The grouper is frozen; admitting placeholder
+  buckets would be a design change and is not made. Drafts q0105 (cdf extract backfill) and q0107 (r_inc) are held: they
+  would read an empty family list. Other CB5 parts (G, K, J4) are unaffected.
