@@ -1424,3 +1424,10 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   reach 20 receipts only if every draw yields a distinct receipt (a sampling defect, not a source property). Result kept
   (write-once). Smoke v2 (draw markets in seeded order until 20 receipts, cap 40; pass rule unchanged; new seed,
   `smoke_v2.json`, sign rules v5) being implemented; q0181 waits on it.
+
+## Smokes PASS, 2026-10-17 ~20:10Z: CB9 smoke v2 (q0180b) and CB10 smoke (q0200); descriptive trial lines written by the jobs
+- **q0180b CB9 smoke v2** (sign rules v5): all six criteria PASS. Receipts v1 era 20/20 matched with T1 = T2 (19 markets
+  tried), v2 era 20/20 (10 markets tried); 0 duplicates, 0 unavailable. Supersedes the v1 smoke FAIL by disclosure (v1
+  `smoke.json` kept). CB9 data jobs q0181+ remain gated on T_seal 2026-10-22T00Z.
+- **q0200 CB10 smoke** (rules v2): deribit, ladder_frame, live_flags, data_api_paging, tx_aggregation, whitelist all
+  PASS (29 requests). Next CB10 job q0201 (exclusion keys) needs the CB9 frame pins (q0182/q0183/q0185) after T_seal.
