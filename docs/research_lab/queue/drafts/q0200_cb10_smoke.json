@@ -1,0 +1,34 @@
+{
+ "id": "q0200_cb10_smoke",
+ "title": "CB10: smoke (Deribit history paging + iv/index_price presence on 2 out-of-window hours; ladder frame walker, rule flags and strike regex on 2 out-of-window dates; iv percent range 1-400 on >= 99% of rows; Gamma whitelist parser on 2 live closed markets; Data API newest-first paging to the oldest print on 2 out-of-window ladder markets; transaction aggregation fixture); counts only",
+ "family": "creative_batch_10",
+ "priority": 35,
+ "expected_value": "go/no-go for every CB10 source",
+ "data": [
+  "Deribit public history",
+  "public Gamma, Data API"
+ ],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "history.deribit.com, gamma-api, data-api"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb10.py",
+  "smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb10_rules.json",
+  "--rps",
+  "1"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch10/smoke.json",
+  "trials.jsonl (cb10_descriptive)"
+ ],
+ "next_action": "PASS: q0201 after T_seal; FAIL: dependent family not testable (source), counted",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules.json (rules_sha256 2db70d9a...). --data-dumps-cap-gb 40 (ops convention; design text says 14). CREATIVE_BATCH_10.md CB10-F. DRAFT. May run before T_seal (cpu lane, <= 60 requests). Prints counts only. IMPLEMENTED 2026-10-17 (run_cb10.py smoke; cb10_dlad.smoke_*). WRITE-ONCE result (refuses if smoke.json exists). Not T_seal-bound; network failure writes nothing and exits 75."
+}

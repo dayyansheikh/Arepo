@@ -1,0 +1,32 @@
+{
+ "id": "q0212_cb10_rep_B",
+ "title": "CB10-B: B1-rep and/or B2-rep on sealed HOLDOUT events",
+ "family": "creative_batch_10",
+ "priority": 30,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "history/h10_brk/holdout/"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0209_cb10_screen_B"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "rep",
+  "--family",
+  "B"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch10/results_B_rep.json",
+  "trials.jsonl (cb10_replication)"
+ ],
+ "next_action": "pass: Stage P-B draft",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules.json (rules_sha256 2db70d9a...). --data-dumps-cap-gb 40 (ops convention; design text says 14). Only for advanced tests; verifies the seal hash first."
+}

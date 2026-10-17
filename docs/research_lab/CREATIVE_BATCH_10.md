@@ -912,3 +912,57 @@ disclose. The one design widening, D's calendar, was the reviewer's suggestion a
 14,000 `net`-lane requests after `T_seal` (was about 9,200; the longer D window); disk ≤ 0.12 GB unchanged.
 
 This is the single response round; the next review is the code-against-design freeze check.
+
+## 11. Implementation notes (2026-10-17; appended, design text above unchanged)
+
+**Commits.** `c439a1d` (`cb10_common.py`, `cb10_dlad.py`, `cb10_brk.py`, `scripts/run_cb10.py`, `battery2.KIND_RULES` cb10 kinds, tests
+`test_cb10_dlad.py` 50, `test_cb10_brk.py` 27, `test_run_cb10.py` 27: 104 offline tests plus 1 conditional skip), `997b7d0` (test lint), `77feb26`
+(rules file). Draft specs `queue/drafts/q0200_cb10_smoke.json` .. `q0212_cb10_rep_B.json` (13 files; nothing in `queue/jobs/`). The code was written
+by a previous implementer session and left uncommitted; this pass checked it against the revised design (round-1 response applied), found no formula,
+threshold or gate that departs from the design text, added the tests and committed.
+
+**Rules file (written from code at `c439a1d`).**
+
+| File | file sha256 | rules_sha256 |
+|---|---|---|
+| `seals/cb10_rules.json` (`cb10-rules-v1`: D and B declarations, common rules, hashed function sources, disk/exit constants) | `e0c181e694216c5fd95018087d66d050980b559b834a6d235fc57d7a06917e7c` | `2db70d9ad3e25fd431746478b21d96afdc8ccfe2b920418ae6e677dead5030bd` |
+
+`funcs_sha256` `d81403f5d08c9ac6665dfb7db3cb983e92175606b3b3e6241ef376bd4fbaab1a`. The runner verifies the file against the code and refuses on a mismatch
+(exit 2); `write_rules` never rewrites an existing different file. A change to any hashed function or declared constant needs a new rules file.
+
+**Deviations from the design text (code matches the design except as listed; for the freeze check).**
+1. `--data-dumps-cap-gb` defaults to 40 (the 2026-10-17 ops convention after the host disk was enlarged; §2.8 text says 14). Every draft passes 40. The
+   cap is a hashed rules field. The free-disk guard (4.5 GB after the job's cap) is unchanged.
+2. `exclusion-keys` requires `--cb9-keys-sha256` (the pinned sha256 of CB9 q0182's `exclusion_keys.csv.gz`), which the §4 draft argv omitted; the q0201 draft
+   carries `FILL_...` placeholders for it and for the two `--extra-pin` CB9 frame id lists. They must be filled when q0182/q0183/q0185 have finished.
+3. Coverage-audit denominator (design silent): an origin whose market has no transaction before `t` while the Data API cap was reached
+   ("undeterminable (Data API truncation)") is counted in the D audit denominator as source-missing (conservative); it is not an eligible unit and is
+   reported separately.
+4. Testability needs at least 100 units and at least 30 clusters in the finest declared way (the design's "≥ 30 clusters" applied to the largest cluster
+   count among the declared ways); the D week way follows §2.3's small-G rule (CR1 / CR2 + Webb / leave-one-week-out).
+5. D1's independent-price placebo takes the smaller of the two differences `β̂(q) − β̂(p_alt)` (full sample and the sub-sample having `p_alt`), i.e. the
+   stricter reading of "applied to the difference".
+6. `RV_MIN_RETURNS = 150` of the 167 hourly returns for `q_RV` (design silent); units without `q_RV` stay in D1 and drop only from the attribution.
+7. The haircut constant `h` pools both assets over `[2025-07-01, 2025-10-01)`; reported variant only.
+8. B's 30-minute robustness mark is the last transaction at or before `t_b + 30 min` with time ≥ `t_b + 22.5 min` (the 2 h rule's 75% scaled).
+9. The Stage-2 outcome sweep (`outcome_sweep`, run inside each `dlad-live` tick) and the 2-day grace after `T10_D2_end` are implementation choices for
+   getting guarded outcomes; the sweep writes only guarded files.
+10. Stage-2 `rep` trial lines carry `data_role` `prospective_post_freeze` with `evidence_role` `exploratory_historical` (as CB9 item 8).
+
+**Open items for the freeze check.** (a) Fill the q0201 placeholders. (b) `scripts/oracle/crontab.txt` is not touched here: the two cron lines for q0210 are
+added only after a D1 advance (§CB10-D Stage 2). (c) Deribit history paging, `iv` percent range and the ladder rule-text flags are verified only by q0200
+(no network was used in this pass); the flags were written from live out-of-window events at rules time (`dl.FLAG_SOURCE`). (d) GDP and the D coverage
+audit decide whether D1 runs; their thresholds are the design's and untouched. (e) Tests use synthetic fixtures; no real Polymarket, Deribit or
+Gamma payload was exercised.
+
+**Tests (what they cover).** Rules-file determinism, tamper and no-overwrite; refused roots, run ids and reads; net-lane jobs refuse before `T_seal` and
+smoke does not; declared-argument refusals; disk guard exit 75 (data-dumps cap and free-disk) including through the CLI; missing smoke / census
+inputs; freeze, trigger and write-once refusals; `dlad-live` ET clock across 2026-11-01 and exit 0 after `T10_D2_end`; the digital against a numerical
+call-spread derivative, interpolation, the 3-day rule and the ATM fallback; per-trade moneyness, percent iv, block/combo/liquidation exclusion and the
+`< t` rule; `p`, `p_reg` (separate earlier transaction, ≥ 5 min apart) and `p_alt` windows with boundaries; label order; the series-date ±1-day rule;
+transaction aggregation; the Gamma whitelist (forbidden-field fixture, end-to-end `dlad_frame` run on a fake transport: no forbidden field, wallet,
+side or hash in any written file; `outcomePrices` only in the guarded file); census no-outcome guard, 60% / 90% rules, GD, GDP on fixtures with known
+answers; D1 regressor and target prices, independent-price placebo (binding), attribution, staleness; B level tables, episode detection (first crossing,
+equality, 24 h memory, spacing, mutual exclusion, span), VWAP10 / M2h, maker not-posted / trade-through / size cap / exit cost, frozen per-pair
+weights, GB / GB2 / audit, label-swap placebo, worst-case missing marks, cascade label, B2 route gate and pseudo attribution; HOLDOUT refusal; the
+MDE > 1.0 gate writing the counted p = 1 line; batch-Holm k1 = 3; trial lines counted through `battery2`.

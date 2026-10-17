@@ -1,0 +1,45 @@
+{
+ "id": "q0202_cb10_dlad_frame",
+ "title": "CB10-D: Gamma frame of BTC/ETH daily 'above $K on date' ladders (resolution dates [2025-10-01,2026-10-01), round 1), whitelisted fields, rule flags, series-date exclusion; Data API newest-first prints -> per-origin p (last transaction in [t-30min,t)), p_reg (separate earlier transaction in [t-180min, t_p-5min)), last transaction of any age, covered span; outcomes to the guarded file",
+ "family": "creative_batch_10",
+ "priority": 33,
+ "expected_value": "D population and Polymarket prices at origins",
+ "data": [
+  "public Gamma, Data API",
+  "creative_batch10/exclusion_keys.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, data-api"
+ },
+ "depends_on": [
+  "q0201_cb10_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "dlad-frame",
+  "--rules",
+  "../docs/research_lab/seals/cb10_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "85"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 2,
+ "outputs": [
+  "history/h10_dlad/{frame.csv.gz,origins.csv.gz,outcomes_guarded.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0203",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules.json (rules_sha256 2db70d9a...). --data-dumps-cap-gb 40 (ops convention; design text says 14). No print stored beyond origin rows; no side or wallet read. Gamma whitelist (round 1 item 6). Exit 75 = pending.",
+ "repeat": {
+  "max_runs": 3,
+  "until_log_regex": "\"status\": \"dlad_frame_complete\""
+ }
+}

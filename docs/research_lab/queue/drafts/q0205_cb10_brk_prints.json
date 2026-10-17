@@ -1,0 +1,45 @@
+{
+ "id": "q0205_cb10_brk_prints",
+ "title": "CB10-B: newest-first Data API prints per market (limit 10000, offset <= 10000), aggregated by transaction hash at fetch to (time, YES-terms VWAP, size), window [2026-04-01,2026-10-01); covered span recorded; HOLDOUT written to holdout/",
+ "family": "creative_batch_10",
+ "priority": 32,
+ "expected_value": "B1/B2 inputs",
+ "data": [
+  "public Data API"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "net",
+  "network": "data-api"
+ },
+ "depends_on": [
+  "q0204_cb10_brk_frame"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "brk-prints",
+  "--rules",
+  "../docs/research_lab/seals/cb10_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.06",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "85"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 2,
+ "outputs": [
+  "history/h10_brk/{screen,holdout}/tx.csv.gz",
+  "manifest.json"
+ ],
+ "next_action": "q0206",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules.json (rules_sha256 2db70d9a...). --data-dumps-cap-gb 40 (ops convention; design text says 14). No side, wallet or hash stored. One market in memory at a time.",
+ "repeat": {
+  "max_runs": 3,
+  "until_log_regex": "\"status\": \"brk_prints_complete\""
+ }
+}

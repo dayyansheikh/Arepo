@@ -1,0 +1,39 @@
+{
+ "id": "q0204_cb10_brk_frame",
+ "title": "CB10-B: Gamma frame (whitelisted fields, no outcome field; closed binary, scheduled end [2026-04-08,2026-10-01), life overlap >= 3 d, volume >= $10k, not weather/crypto Up-Down/crypto ladders/Pyth), key drops, <= 3 per event, seeded 1,400 markets, event split SCREEN/HOLDOUT (arepo-cb10-brk-split)",
+ "family": "creative_batch_10",
+ "priority": 33,
+ "expected_value": "B population and split",
+ "data": [
+  "public Gamma",
+  "creative_batch10/exclusion_keys.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0201_cb10_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "brk-frame",
+  "--rules",
+  "../docs/research_lab/seals/cb10_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.005",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 3000,
+ "max_retries": 2,
+ "outputs": [
+  "history/h10_brk/{frame.csv.gz,split.json,manifest.json}"
+ ],
+ "next_action": "q0205",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules.json (rules_sha256 2db70d9a...). --data-dumps-cap-gb 40 (ops convention; design text says 14). Split written before any print read. Sports stratum <= 15%, reported, not primary."
+}

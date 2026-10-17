@@ -1,0 +1,32 @@
+{
+ "id": "q0211_cb10_rep_D",
+ "title": "CB10-D: D1-rep (slope) and D2 (economic at recorded asks) on post-freeze resolution dates",
+ "family": "creative_batch_10",
+ "priority": 30,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "research_lab/creative_batch10/dlad_live/"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0210_cb10_dlad_live"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "rep",
+  "--family",
+  "D"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch10/results_D_rep.json",
+  "trials.jsonl (cb10_replication)"
+ ],
+ "next_action": "pass: Stage P-D registration draft",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules.json (rules_sha256 2db70d9a...). --data-dumps-cap-gb 40 (ops convention; design text says 14). DRAFT."
+}
