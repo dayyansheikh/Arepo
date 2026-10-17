@@ -1,0 +1,41 @@
+{
+ "id": "q0104_cb5_cdf_frame",
+ "title": "CB5-L: CDF family frame (cdf-grouper-v1 over restored IF-H2 events.jsonl.gz + fresh Gamma walk from 2026-10-01; text-only audit print)",
+ "family": "creative_batch_5",
+ "priority": 46,
+ "expected_value": "matched ladder-bucket families, frozen before any price is read",
+ "data": [
+  "~/arepo/scratch/cb5/if_h2_events.jsonl.gz (restored 2026-10-17 ~09:34Z from release data-20261013-research-lab: 6 parts verified against MANIFEST.sha256, member sha256 7b54ce37... verified against files.sha256 on the Mac and on the host; Mac parts deleted)",
+  "public Gamma /events"
+ ],
+ "resources": {
+  "mem_mb": 2600,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0101_cb5_listings_backfill"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "cdf-frame",
+  "--ifh2-events",
+  "../scratch/cb5/if_h2_events.jsonl.gz",
+  "--walk-from",
+  "2026-10-01",
+  "--rps",
+  "2",
+  "--audit-n",
+  "50",
+  "--seed",
+  "arepo-cb5-cdf"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/cdf_frame/{families_vN_candidate.json,audit_sample_vN.json,manifest_vN.json}"
+ ],
+ "next_action": "Claude session + science-reviewer: label the audit sample; run scripts/run_cb5.py cdf-audit-apply --labels <file>; commit the frozen list hash",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Refuses until docs/research_lab/seals/cb5_grouper_hash.json is committed and equals the code's grouper hash (write-grouper-seal). outcomePrices/outcomes are dropped at parse (cb5_cdf.slim_event); a second failed audit raises and stops CB5-L; a third list version is refused. 1500 MB: streamed parse of 303k events plus the fresh walk. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it. 2026-10-17 (autopilot) promotion: argv path fixed (cwd is ~/arepo/backend, so ../scratch, not ../../scratch); mem_mb 1500 -> 2600 because loading the 303,136 slimmed IF-H2 events measured 1.68 GB peak RSS on the Mac (AS cap 2 x mem_mb). Headroom precondition (section 2.8): (a) 8-day snapshot deletion active on the host since 2026-10-17 04:39Z; data-dumps 12.5 GB, output cap 0.02 GB; the 0.39 GB scratch file sits outside data-dumps. Grouper seal committed f647065."
+}
