@@ -1588,3 +1588,29 @@ q0136 ran on the host at 05:30Z (rules v2 `bf05c8ee…`): **20 of 20 pass, 0 fai
 byte-identical to `seals/cb6_tail_smoke2_PASS_20261017.json` (sha256 `d1f7a4ef693e494e18320bac45fde8918d5a961565f24a5b24ae3e5589ab0bf4`).
 The v1 FAIL stays on record. q0120 (`h8_tail` fetch, `--require-smoke research_lab/creative_batch6/tail_smoke2.json`) promoted to
 `queue/jobs/`; q0121 (seal) is promoted only after q0120 is complete and both h7 SEAL/NOT_RUN records are committed.
+
+## h8_tail fetch result and sample shortfall (2026-10-17; proposal A-T1 needs review)
+
+**Result (q0120, 08:12-08:27Z, `tail_fetch_complete`):** 362 markets, 670 origins, 145,430 price rows, 49,262 print rows,
+0 failed items, 3,668 requests, 17 MB. `frame_report.json` (sha256 `b2e41922…`): 405 days × 2 walks × 1 random 15-min
+window → 65,584 raw rows; dropped created outside `[2025-09-01, 2026-07-31]` 33,305, life < 14 d 22,725, crypto Up/Down
+7,417, weather 692; exclusion ids 15; **exclusion keys 1,068** (series 1,053 any-match, 981 series-only); kept 362, all
+taken (`taken_all`, 21 strata). Outcomes were not read (guarded file only). This is what the frozen rules specify ("if the
+eligible frame holds fewer than 4,500, all are taken"), but it is **about 8 % of the planned 4,500 markets** (the §CB6-T
+MDE assumed ≈ 4,700 units). At ≈ 35 % eligible origins that is ≈ 235 units, ≈ 118 per block: near the ≥ 100-unit floor,
+and the T1 MDE scales to roughly 3.8c × √(4,700 / 235) ≈ 17c, so T1 could detect nothing plausible. The planning error was
+the frame yield per window (≈ 81 rows per 15-min window, and filters + series keys removing 99.4 % of rows), not the source.
+
+**Proposal A-T1 (top-up before `T_seal`; no outcome, price or print of h8_tail has been read by any analysis):**
+- New run `h8_tail_b` with the **same rules** (filters, exclusions by id and key, strata, weights, origin rule, price and
+  print windows, wallet rule, cap at `T_seal`) except: `--windows-per-day 8` with a new seed `arepo-h8-tail-b` for window
+  draws and sampling, h8_tail's market ids excluded by id (and its event / neg-risk / series keys, so the two runs share no
+  event or series and the event-hash split stays clean). Expected yield ≈ 8 × 362 less the extra key drops, i.e. ≈ 1,500-2,900
+  markets; ≈ 20-30k requests (≈ 2-2.5 h at 4 rps, `net` lane), ≤ 0.15 GB.
+- q0121 seals h8_tail and h8_tail_b **together** (one listing, one event-hash SCREEN/HOLDOUT split over the union); CB6-T
+  reads the union. If h8_tail_b is not complete before `T_seal`, it is dropped entirely (`not_run_deadline`) and CB6-T runs
+  on h8_tail alone, as frozen.
+- Disclosure: the top-up was decided from frame counts only (the shortfall), never from any outcome or price; both runs'
+  frame reports are kept.
+- Alternative (if the reviewer rejects A-T1): CB6-T runs on h8_tail as frozen and is expected "not testable for size" or
+  "not detected at MDE ≈ 17c", counted.
