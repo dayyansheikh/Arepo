@@ -723,11 +723,11 @@ CB8's own data.
 **Collection (fixed now; `seals/cb8_holders_rules.json`; q0162 and q0163; prospective from `T8_H1_start`).**
 - **Snapshot (q0162, once per UTC day).**
   - Frame: the latest complete capture at run time (≤ 2.5 h old, else the day is "missed", counted). Markets that are
-    binary, have `accepting_orders` true and sidecar `open_interest` ≥ 1,000, and are not weather or crypto Up/Down.
+    binary, open, have `accepting_orders` true (capture-time fields), are not weather or crypto Up/Down, and have market OI ≥ 1,000 **from the Data API `/oi` at the frame time `t_f`** (v2, see "H v2 (2026-10-17)"; v1 read a sidecar `open_interest` that is never populated).
   - Sample: 1,500 non-sports and 300 sports, seeded per day (`arepo-cb8-holders-<date>`, seed written before the first
-    request), stratified by OI tercile (cut points from that capture).
+    request), stratified by market-OI tercile (OI at `t_f`; cut points from that day's `/oi` frame).
   - Request: `GET data-api /holders?market=<conditionId>&limit=20`, at ≤ 2 rps.
-  - Stored: snapshot time `h`, market, token index, rank, HMAC wallet hash, amount, and the capture's OI and touch. The
+  - Stored: snapshot time `h`, market, token index, rank, HMAC wallet hash, amount, the market's OI at `t_f` (`oi_tf`, with `t_f`) and the capture's touch. The
     raw wallet exists only in memory.
 - **Prints and marks (q0163, for snapshot market-days at ≥ `h + 28 h`).**
   - Taker prints in `[h, h + 26 h]` via `/trades?market&start&end&takerOnly=true&limit=1000&offset`, ≤ 5 pages; a capped
@@ -736,7 +736,7 @@ CB8's own data.
     holders in the other market-days.
   - Marks: the YES best bid/ask of each stored market at every complete capture in `[h, h + 30 h]`. These are read on
     the host while the captures are retained (8 days).
-- **Concentration:** `c_j = amount_1(j) / max(OI, Σ top-20 amounts of j)`, bounded by 1 and conservative. The share of
+- **Concentration:** `c_j = amount_1(j) / max(OI_tf, Σ top-20 amounts of j)`, bounded by 1 and conservative; `OI_tf` is the market's `/oi` value at the day's frame time `t_f`, not the OI at the snapshot time `h`. The share of
   market-days where `OI < Σ top-20` is reported.
 
 **Definitions (bind at the freeze).**
@@ -808,8 +808,8 @@ honestly.
     present (hashed in memory, never stored);
   - (c) at most 20 rows per token, with the observed maximum recorded;
   - (d) the response time is recorded;
-  - (e) **OI units (round 1, should-change):** for each smoke market, the Gamma `openInterest` and the capture's
-    `open_interest` are recorded next to `Σ top-20 amounts` per token. The ratios are recorded (counts and ratios only).
+  - (e) **OI units (round 1, should-change):** for each smoke market, the `/oi` value at `t_f` (v2; v1: the Gamma `openInterest` and the capture's
+    `open_interest`) and the single-market event OI are recorded next to `Σ top-20 amounts` per token. The ratios are recorded (counts and ratios only).
     - If `Σ top-20 > 1.05 × OI` for more than half the smoke markets, OI is labelled "units unverified". `c` then
       effectively becomes the share of the top 20 through the declared `max(OI, Σ top-20)`. That formula is unchanged
       either way.
@@ -1223,3 +1223,49 @@ run `updown_books_source_unavailable`; per-market "source_unavailable" and per-d
   `history_sources` and the existing loaders (a missing `fee_rate_bps` column yields `fee_bps = None`, hence the docs 0.07 rate). The smoke checks HEAD / checksums only,
   so the first q0166 chunk is the real test of the reader.
 - Wall time of q0166 (about 113 days x 15Z hour with range reads) and memory 1.5 GB are the design's estimates, untested.
+
+---
+
+## H v2 (2026-10-17): market OI from the Data API `/oi`
+
+Status: **amendment of CB8-H before any H data exists** (the v1 smoke q0160 FAILed on an empty frame; no `/holders` request was ever made). It follows the CB6 and
+CB7 smoke-v2 precedent (a recorded design change with a written scientific justification and review, not a relabelled pass). Source: `SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md`
+sections 2 and 4 (science-reviewer ACCEPT_WITH_CHANGES, required changes 5-9).
+
+**Why.** The frame required a sidecar `open_interest` of at least 1,000. Gamma `/markets` carries no market-level `openInterest`, so the sidecar column is blank in all 280,175 rows
+of the smoke capture and the frame was empty (`open_interest_below_min` 280,068, `not_accepting_orders` 107). The Data API `GET /oi?market=<cid1>,<cid2>,...` returns
+`[{"market": cid, "value": float}]` for 60 comma-separated condition ids per request (a repeated `market=` parameter returns only one).
+
+**What changed (only the OI source; every threshold, formula and gate is unchanged).**
+1. **Option A (reviewer item 5).** Market OI is fetched from `/oi` for EVERY base-frame market (binary, open, accepting orders, not weather, not crypto Up/Down; capture-time fields), in
+   batches of 60 (about 4,550 requests, about 19 min at 4 rps, per daily frame). Option B (prefilter by event OI) is not used: it is not exact because event OI is a capture-time value and `/oi` is a `t_f` value.
+2. **Frame time `t_f` (item 6).** Each batch records its reply-received time `t_f`; `t_f` is stored per batch (`plan.oi.t_f_batches`) and per market (`oi_t_f_epoch`) and the maximum is
+   asserted strictly before every `/holders` request (a violation is a refusal). The threshold OI ≥ 1,000, the OI terciles (cut points "from that day's `/oi` frame") and the concentration denominator
+   `max(OI, Σ top-20)` all use the `t_f` value. **Mixed clocks, disclosed:** `accepting_orders`, `closed` and event OI are capture-time values, the `/oi` value is hours later; `c` uses OI at `t_f`, not OI at the
+   snapshot time `h`. Every "the capture's OI" phrase in this document, the rules text and the stored fields was rewritten accordingly (`oi_capture` became `oi_tf` + `oi_t_f_epoch`).
+3. **Missing states (item 7).** Three distinct states, never imputed, zero-filled or carried over: `oi_lookup_failed` (non-200 reply, a reply that fails the per-batch assertion, or a batch that
+   failed after retries in three counted attempts), `oi_absent` (a requested id missing from a valid reply), `oi_nonnumeric` (value not a finite number ≥ 0). Per batch it is asserted that the returned ids were
+   sent (identity, case-insensitive), are not duplicated, and are not more than the ids sent. A transient network error exits 75 (smoke: nothing written; snapshot: the resumable partial is kept and
+   a failure streak is not counted against the batches).
+4. **The 2 % stop rule (new threshold, fixed now with its reason).** If more than 2 % of base-frame markets end in any missing state, the smoke FAILs (criterion h) and a day's snapshot stops, recorded
+   `missed (oi_source)` (`<date>.MISSED.json`, kind `oi_source`), separately from `missed (stale capture)` and "no snapshot". A frame build unfinished at UTC day end is also `oi_source`. Reason: the same
+   tolerance as the CB6/CB7 exclusion-key rule (`--max-unverified-key-share 0.02`): small enough that unavailable OI cannot reshape a 1,800-market daily sample by more than about 36 markets, large enough
+   not to stop a day for a handful of transient misses.
+5. **Criterion (e) (item 8).** Records the `/oi` value at `t_f`, the event OI for single-market events (frame-wide comparison plus per pick) and the `Σ top-20` ratios. Threshold units are disclosed as
+   **"units unverified" unless `/oi` and single-market event OI agree** (more than half of the compared markets within a ratio band of 1/1.25 to 1.25; the band is fixed now, before any data, so that a
+   units mismatch of an order of magnitude is detected while hours of drift are not) and `Σ top-20 > 1.05 × OI` does not hold for more than half of the picks. The 1,000 threshold itself is unchanged.
+6. **Smoke v2 (item 9).** Version `cb8-holders-smoke-v2`, seed `arepo-cb8-hsmoke-v2`, output `creative_batch8/holders_smoke_v2.json` (write-once; the v1 `holders_smoke.json` FAIL is never overwritten and is
+   disclosed in the v2 output). Pass = a and b and f and h. The output discloses the realised frame size and the realised stratum sizes against the 1,500 + 300 sample (pool, target, realised n, shortfall per group;
+   cut points; allocation). `holders-snap` and `holders-prints` require the v2 PASS under the v2 rules hash; a v1 result is refused.
+7. **Rules.** New file `seals/cb8_holders_rules_v2.json` (`rules_version` `cb8-holders-rules-v2`), written from code in its own commit after the code commit; the v1 file is kept untouched. The B-family
+   rules (`seals/cb8_rules.json`) and the flow rules (`seals/cb8_flow_rules.json`, `9dc74a91...`) hash only their own functions and shared helpers that were not edited, and are unchanged (tested).
+   **v2 holders `rules_sha256` = `30e7f7f0bd430d74c8308ccc445d3eea9c946bf67f660e7e99f62af02aba2295`** (`wallet_key_fingerprint` `80ce5e81a539a570`, unchanged).
+
+**Queue.** New draft `q0160b_cb8_holders_smoke_v2` (net lane); `q0162` and `q0163` drafts pin the v2 rules and v2 smoke and depend on q0160b. The extra daily `/oi` frame (about 4,550 requests, about
+19 min at 4 rps) is budgeted in q0162 (timeout 2,700 s, chunked by `--budget-min 25`, resumable per batch, mem 1,000 MB). The `/oi` pacing (up to 4 rps) applies to the frame build only; `/holders` and `/trades`
+stay at most 2 rps. Targets are unchanged (`T8_H1_start` not before 2026-10-21T06:00Z).
+
+**Decision rule for the source.** A v2 FAIL of criterion (a) or (b) (or of h) makes H **"not run (source)"**, counted in the M3 denominator; there is no smoke v3.
+
+**Not verified offline.** That the real `/oi` accepts a comma-joined `market` parameter as sent by `httpx` (probed once for 60 ids on 2026-10-17), the real reply shape beyond `[{"market","value"}]`,
+and the units of `/oi` (the smoke records them). No H statistic or outcome is read.
