@@ -73,3 +73,29 @@ per frame build.
 ## 3. Count of tests
 Neither failure is an outcome test; no test count changes. Both v1 FAILs stay on record in the ledger as engineering
 failures (pool/input specification), with these probes as the diagnosis.
+
+## 4. Science-reviewer verdict (2026-10-17 ~10:05Z): both ACCEPT_WITH_CHANGES
+Diagnoses confirmed (CB7 `smoke_pool` draws before filtering; CB8 sidecar `open_interest` maps Gamma market
+`openInterest`, `ext_sidecar.py:33`, never populated). A v2 instead of "not run (source)" is justified by the CB6
+precedent, as a recorded design change.
+
+**CB7 required changes:** (1) the pool must also apply life ≥ 14 d and `close_epoch ≥ end − 7 d` (plus not weather / not
+Up/Down / Yes-No labels) so the whole `[end − 14 d, end − 7 d)` window is inside the market's life (CB6 v1 lesson); a
+zero-request count first (done: **33 ids**, 26 with recorded volume ≥ 10k); fewer than 20 → FAIL, no widening;
+(2) no recorded-volume pre-filter, volume ≥ 10k stays on Gamma as v1; (3) new `seals/cb7_text_geo_rules_v2.json`
+(v1 untouched), `run_smoke` hashed, test that v2 differs from v1 only in the smoke block, `smoke_ok`/`--require-smoke`
+on v2; (4) disclose v1's 0/2, overlap of the first 20 with v1/CB6 smoke markets; a v2 FAIL is final, `T_seal` unchanged,
+S1/G1 then "not run (smoke FAIL)", counted.
+
+**CB8-H required changes (option A, not B):** (5) option B is not exact (event OI is capture-time, `/oi` is `t_f`);
+(6) `t_f` strictly before the first `/holders` request, stored per batch and asserted; disclose the mixed clocks and
+that `c` uses OI at `t_f`; rewrite every "the capture's OI" phrase (rules text, stored fields, "cut points from that
+capture" → "from that day's `/oi` frame"); (7) separate `oi_lookup_failed` / `oi_absent` / `oi_nonnumeric`, never imputed;
+assert values returned = ids sent per batch; network errors → NotNow (write nothing); the 2 % stop rule is a new
+threshold fixed now with a written reason, a stopped day recorded "missed (oi_source)"; (8) criterion (e) also records
+`/oi` vs event OI for single-market events; threshold units disclosed as unverified unless they agree; threshold
+unchanged; (9) new `cb8_holders_rules_v2.json` (v1 kept), realised frame and stratum sizes disclosed against 1,500 + 300.
+
+**2 % reason (recorded now, before any v2 run):** the same tolerance as the CB6/CB7 exclusion-key rule
+(`--max-unverified-key-share 0.02`): small enough that unavailable OI cannot reshape a 1,800-market daily sample by more
+than ~36 markets, large enough not to stop a day for a handful of transient misses.
