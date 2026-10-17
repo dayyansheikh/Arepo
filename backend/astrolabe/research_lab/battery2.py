@@ -177,6 +177,21 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         EXCLUDE,
         "CB8 descriptive lines (census, gates, strata, reported variants, attribution labels); no inference, not a test.",
     ),
+    "cb9_test": (
+        EXCLUDE,
+        "CB9 Stage-1 per-test lines (S0, P1, P2, K1, D1, conditional S1); the tests are the n_tests of the "
+        "'creative_batch_9:S|P|K|D' ml_explain count lines, counted there. Placebo lines count 0.",
+    ),
+    "cb9_replication": (
+        EXCLUDE,
+        "CB9 Stage-2 per-test lines (P1-rep, P2-rep, K1-rep, D1-rep); counted by the n_tests of the matching "
+        "'creative_batch_9:*' ml_explain line. Placebo lines count 0.",
+    ),
+    "cb9_descriptive": (
+        EXCLUDE,
+        "CB9 descriptive lines (smoke, census, gates, strata, S0 feed-side column, P strike stratum, half-day "
+        "poll, reported variants); no inference, not a test.",
+    ),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "
