@@ -495,6 +495,9 @@ def attach_c2_outcomes(bids: pd.DataFrame, outcomes: dict[str, dict], last_bid: 
             c = o.get("closed_time", math.nan)
             ct.append(float(c) if c is not None and np.isfinite(c) else censor_mark)
     f["Y"], f["censored"], f["close_t"] = ys, cens, ct
+    # a censored fill with no recorded bid of the side held cannot be valued: it is counted unavailable (c2_test drops it from the estimate and adds
+    # it back as a filled loser in the truncation worst case), never carried as a silent NaN
+    f["unavailable_censored"] = f["censored"] & ~np.isfinite(f["Y"].astype(float))
     f["net"] = f["Y"] - f["q"]
     f["K"] = f["q"]
     f["d"] = np.maximum((f["close_t"] - f["t_fill"]) / DAY, 0.0)
@@ -574,8 +577,18 @@ def c2_test(filled: pd.DataFrame, all_bids: pd.DataFrame, *, stage: int, n_boot:
     """C2 (economic): mean ``net = Y_j - q`` per filled share > 0; p = max over event and ISO week of closed_time (or the censoring mark). Binding: floor
     1.0c and R_ann >= 10%, +0.75c on q, top-5 clusters, cluster-equal and size-weighted sign, truncation worst case, break-even placebo Y ~ Bern(q), LODO."""
     alpha = D.ALPHA_STAGE1_ROUTE if stage == 1 else D.ALPHA_STAGE2
+    n_unavail_cens = 0
+    if len(filled) and "unavailable_censored" in filled.columns and filled["unavailable_censored"].any():
+        bad = filled[filled["unavailable_censored"]]
+        n_unavail_cens = int(len(bad))
+        keys = set(zip(bad["market_id"], bad["token"].astype(int), strict=True))
+        all_bids = all_bids.copy()
+        mark = [(m, int(t)) in keys and st == 1 for m, t, st in zip(all_bids["market_id"], all_bids["token"], all_bids["fill_state"], strict=True)]
+        all_bids.loc[mark, "fill_state"] = -1
+        filled = filled[~filled["unavailable_censored"]]
     if not len(filled):
-        return {"testable": False, "p": 1.0, "n": 0, "advance": False, "effect": math.nan, "reason": ["no filled bids"], "fill_rate": 0.0}
+        return {"testable": False, "p": 1.0, "n": 0, "advance": False, "effect": math.nan, "reason": ["no filled bids"], "fill_rate": 0.0,
+                "censored_unavailable": n_unavail_cens}
     ways = {"event": filled["event_id"].to_numpy(str), "week": filled["week"].to_numpy(str)}
     v = filled["net"].to_numpy(float)
     core = mean_gate(v, ways, floor=D.FLOORS["C2"], alpha=alpha, small_g_ways=C_SMALL_G, n_boot=n_boot, seed=seed)
@@ -598,7 +611,7 @@ def c2_test(filled: pd.DataFrame, all_bids: pd.DataFrame, *, stage: int, n_boot:
     n_all = int((all_bids["fill_state"] >= 0).sum()) if len(all_bids) else 0
     return {**{k: core.get(k) for k in ("p", "n", "testable", "effect", "ci95", "p_by_way", "clusters", "reason")}, **dec, "floor": D.FLOORS["C2"], "alpha": alpha, "stage": stage,
             "r_ann": ra, "fill_rate": float(len(filled) / n_all) if n_all else math.nan, "placebo": pl, "placebo_status": "calibrated" if pl.get("calibrated") else "miscalibrated",
-            "truncation_worst_case": wc.get("C2"), "censoring": censored_sensitivity(filled)}
+            "truncation_worst_case": wc.get("C2"), "censoring": censored_sensitivity(filled), "censored_unavailable": n_unavail_cens}
 
 
 # ---- CB4-S: wrappers for the data-module rules --------------------------------------------------------------------------------
@@ -655,9 +668,14 @@ class SuccData:
     def t0_alt(self) -> float:
         return self.pred_end + HOUR
 
-    def trunc_ok(self, origin: float) -> bool:
-        """Prints are available at an origin iff the successor is not truncated or its oldest stored trade is at or before origin - 3h."""
-        return (not self.truncated) or (H1.oldest_or_inf(self.oldest_ts) <= origin - cb4_data.PRICE_PRE_H * HOUR)
+    @property
+    def prints_available(self) -> bool:
+        """CREATIVE_BATCH_4.md section CB4-S: a successor truncated with its oldest stored trade after ``t0' - 3h`` (``t0'`` = the pseudo-origin) has unavailable
+        prints for the whole unit (counted; the history-price series still exists and feeds the truncation worst case)."""
+        return (not self.truncated) or (H1.oldest_or_inf(self.oldest_ts) <= pseudo_origin(self.t0, self.V) - cb4_data.PRICE_PRE_H * HOUR)
+
+    def trunc_ok(self, origin: float) -> bool:  # noqa: ARG002 - kept for callers; the rule is unit-level
+        return self.prints_available
 
 
 def map_trades_to_token(trades: pd.DataFrame, k: int) -> tuple[np.ndarray, ...]:
@@ -679,7 +697,7 @@ def map_trades_to_token(trades: pd.DataFrame, k: int) -> tuple[np.ndarray, ...]:
 def print_price(sd: SuccData, tau: float, buy: bool = True) -> float:
     """VWAP of taker-buy (or taker-sell) prints on the rolled-into token in [tau - 60 min, tau); NaN if none or unavailable (truncation)."""
     a = tau - 60 * 60.0
-    if sd.truncated and a < H1.oldest_or_inf(sd.oldest_ts):
+    if not sd.prints_available or (sd.truncated and a < H1.oldest_or_inf(sd.oldest_ts)):
         return math.nan
     m = (sd.tr_ts >= a) & (sd.tr_ts < tau) & (sd.tr_buy == buy)
     return _wmean(sd.tr_px[m], sd.tr_size[m])
@@ -709,16 +727,14 @@ def s2_value(sd: SuccData, origin: float, kind: str = "ask") -> dict:
 
 
 def unit_eligible(sd: SuccData, origin: float, *, alt: bool = False) -> tuple[bool, str]:
-    """Horizon rule (successor endDate >= V_end + 2h), creation lag, history coverage and the truncation rule at the origin."""
+    """Horizon rule (successor endDate >= V_end + 2h), creation lag and history coverage. Truncation is not an exclusion (see ``prints_available``)."""
     if sd.succ_end < origin + sd.V + 2 * HOUR:
         return False, "succ_end_before_horizon"
     if sd.succ_created > origin - cb4_data.SUCC_CREATED_LAG_H * HOUR:
         return False, "succ_created_too_late"
     if not (sd.covers_alt if alt else sd.covers_t0):
         return False, "history_not_covering_window"
-    if not sd.trunc_ok(origin):
-        return False, "truncated_before_origin"
-    return True, "ok"
+    return True, "ok"  # truncation does not drop the unit: P_A is missing and the unit is added back in the worst case (section 2.6 (v))
 
 
 def s3_at_origin(sd: SuccData, origin: float, *, cost_add: float = 0.0) -> dict:
@@ -731,7 +747,7 @@ def s3_at_origin(sd: SuccData, origin: float, *, cost_add: float = 0.0) -> dict:
     q = min(p0 + H1.half_spread(p0) + 0.01, 0.99)
     a = origin + D.S["S3"]["post_min"] * 60.0
     b = origin + sd.M
-    if sd.truncated and a < H1.oldest_or_inf(sd.oldest_ts):
+    if not sd.prints_available or (sd.truncated and a < H1.oldest_or_inf(sd.oldest_ts)):
         return {"state": "unavailable", "q": q}
     m = (sd.tr_ts > a) & (sd.tr_ts <= b) & sd.tr_buy & (sd.tr_px > q + 1e-12)
     if not m.any():

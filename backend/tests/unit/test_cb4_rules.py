@@ -362,7 +362,15 @@ def test_unit_eligibility_rules():
     sd.succ_created = sd.t0 - 0.5 * H
     assert R.unit_eligible(sd, sd.t0)[1] == "succ_created_too_late"
     sd = make_unit(0, "s", T0, truncated=True, oldest=T0)
-    assert R.unit_eligible(sd, sd.t0)[1] == "truncated_before_origin"
+    assert R.unit_eligible(sd, sd.t0) == (True, "ok")  # truncation keeps the unit with P_A missing (fix 5)
+    assert not sd.prints_available and math.isnan(R.s2_value(sd, sd.t0, "ask")["neg_v"]) and np.isfinite(R.s2_value(sd, sd.t0, "hist")["neg_v"])
+    assert R.s3_at_origin(sd, sd.t0)["state"] == "unavailable"
+    ok = make_unit(0, "s", T0, truncated=True, oldest=R.pseudo_origin(T0, make_unit(0, "s", T0).V) - 3 * H)
+    assert ok.prints_available  # oldest stored trade at t0' - 3h is enough
+    df = R.s_values([sd])["df"]
+    assert len(df) == 1 and not np.isfinite(df["neg_v"].iloc[0])
+    wc = R._s2_worst_case([sd], df)
+    assert wc["added"] == 1 and np.isfinite(wc["mean"])  # added back on the history-price series
 
 
 def test_s_tests_advance_and_attribution_blocks_drift():
@@ -457,3 +465,13 @@ def test_random_origin_placebo_runs_and_is_bounded():
     units = units_world(n_series=35, per=3)
     res = R._s3_random_origin_placebo(units, pd.DataFrame(), alpha=0.01, draws=3, seed=1)
     assert res["n_draws"] == 3 and res["advance_rate"] <= 1.0
+
+
+def test_censored_fill_without_last_bid_is_unavailable_not_silent_nan():
+    bids = pd.DataFrame([{"market_id": "m0", "event_id": "e0", "token": 0, "q": 0.4, "fill_state": 1, "t_fill": 0.0, "fill_size": 20.0, "e": 5.0}])
+    f = R.attach_c2_outcomes(bids, {}, {}, censor_mark=9 * DAY)  # unresolved, no recorded bid
+    assert bool(f["unavailable_censored"].iloc[0]) and not np.isfinite(f["Y"].iloc[0])
+    res = R.c2_test(f, bids, stage=1, n_boot=0, placebo_draws=0)
+    assert res["censored_unavailable"] == 1 and res["testable"] is False
+    ok = R.attach_c2_outcomes(bids, {}, {("m0", 0): 0.3}, censor_mark=9 * DAY)
+    assert not ok["unavailable_censored"].any()

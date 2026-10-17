@@ -670,8 +670,7 @@ def _replicate(args, ctx: Ctx) -> int:
         rel = "S_holdout/results.json"
     else:
         raise Refusal("replicate takes --family C or S")
-    if s_scr is None and c_dev is None:
-        raise Refusal("no Stage-1 result exists")
+    expected = stage2_expected(c_dev, s_scr)  # refuses (exit 3) unless BOTH Stage-1 files exist: k is fixed when Stage 1 ends, never len(mine)
     if not mine:
         doc = {**_header(f"replicate_{fam}", decl, family=fam, stage=2), "tests": {}, "note": "nothing advanced"}
         _write(ctx, rel, doc)
@@ -688,7 +687,6 @@ def _replicate(args, ctx: Ctx) -> int:
         res["tests"] = {k: v for k, v in res["tests"].items() if k in mine}
         res["descriptive"]["load"] = {k: v for k, v in diag.items() if k != "raw_trades"}
         role, dataset = "exploratory_dev", cb4_data.SERIES_RUN_ID + ":HOLDOUT"
-    expected = stage2_expected(c_dev, s_scr) if (c_dev is not None and s_scr is not None) else mine
     k = max(len(expected), 1)
     for t in res["tests"].values():
         t["bonferroni_alpha"] = D.ALPHA_STAGE2 / k
@@ -698,7 +696,7 @@ def _replicate(args, ctx: Ctx) -> int:
     log_trials(fam, res["tests"], kind=D.KIND_REP, role=role, dataset=dataset, results_path=str(p), sha=sha, decl=decl, cumulative=doc["cumulative_count_at_run"], placebo=res.get("placebo"),
                descriptive=None, trials_path=ctx.trials, count_source=f"creative_batch_4:{fam}")
     docs = [(n, d) for n, d in (("C_rep", _jload(ctx.out_root / "C_rep" / "results.json")), ("S_holdout", _jload(ctx.out_root / "S_holdout" / "results.json"))) if d and d.get("tests")]
-    bh = CC.batch_holm(docs, expected, alpha=D.ALPHA_STAGE2) if c_dev is not None and s_scr is not None else None
+    bh = CC.batch_holm(docs, expected, alpha=D.ALPHA_STAGE2)
     _emit({"cb4": D.VERSION, "cmd": "replicate", "family": fam, "results": str(p), "sha256": sha, "batch_holm_so_far": (bh or {}).get("replicated"), "k": k})
     return 0
 

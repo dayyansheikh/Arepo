@@ -158,3 +158,9 @@ def test_pilot_uses_estimated_design_effect_and_narrow_except():
     assert "design_effect_from_clusters" in inspect.getsource(A._pilot)
     assert "except _NET_DATA_ERRORS" in inspect.getsource(A._read_hours) and "except Exception" not in inspect.getsource(A._read_hours)
     assert OSError in A._NET_DATA_ERRORS and Exception not in A._NET_DATA_ERRORS
+
+
+def test_replicate_never_derives_k_from_its_own_family():
+    src = inspect.getsource(A._replicate)
+    assert "else mine" not in src and "stage2_expected(c_dev, s_scr)" in src
+    assert src.index("stage2_expected(c_dev, s_scr)") < src.index("if not mine:")
