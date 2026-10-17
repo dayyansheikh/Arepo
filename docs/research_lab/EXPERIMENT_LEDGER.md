@@ -1385,3 +1385,13 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   completeness/time guard and could freeze pending sessions as "unavailable"). Six should-fixes (q0198 polling,
   13Z `not_measured` labels, sticky P-frame stall, q0197 also depends on q0191, M7 fetch-time volume disclosure, CB8
   failure path). Fixes being implemented (sign rules v4 after q0180 runs on v3).
+
+## CB10 code-against-design freeze check, 2026-10-17 (science-reviewer): not counted
+- Code c439a1d (104 tests), rules `cb10_rules.json` re-derives exactly (rules_sha256 `2db70d9a…`). Round-1 changes
+  verified (separate earlier-transaction `p_reg`/`p_alt`, GDP power gate, no CB8 object opened). **q0200 smoke
+  GO_WITH_CONDITIONS, data side GO_WITH_CONDITIONS, analysis side NO_GO.** Must-fixes: B mutual exclusion looked ahead
+  (dropped real breaks that continued ≥ 3c, biasing B1 up; design amendment: drop only the later episode); Stage-2 k must
+  count 2 for a D1 advance; untestable independent-price placebo passed vacuously; D2 +0.5c robustness re-selected
+  trades; D2 start epoch must be explicit; q0202 per-item failure cap; draft repeat/depends fixes; smoke network give-up
+  must be NotNow. Rulings: audit denominator, RV_MIN_RETURNS 150, stricter placebo, 30-min mark, trial roles, cap 40
+  accepted. Fixes being implemented (rules v2).
