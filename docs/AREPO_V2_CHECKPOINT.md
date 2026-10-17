@@ -181,16 +181,18 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
 ## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 15:37 UTC+1
-0. **Autopilot session from ~14:30Z 10-17.** Deploy of a8bbe68 (collector cap 16, q0120b guard 14, q0160b promotion
-   b486d52, CB4-N stop rule 3988b1d) waiting on the collector lock at 14:35Z; verify with
-   `ssh oracle 'grep -c CAP_GB:-16 ~/arepo/scripts/oracle/arepo_pass.sh'` and re-run `scripts/oracle/deploy.sh` if 0.
-   Counter total 1,131 (+ routine flow screens). Earlier today (09:19Z session + interactive): see `git log` 10-17.
-   - **Running agents (check `git log` if this session ended):** q0082f MemoryError fix (`cb4_walk_lean.py`, output
-     identical; spec mem/data-cap); CB9 implementer A (`cb9_common`, `cb9_sign`, `cb9_pyth`, `run_cb9.py`, tests, rules
-     files `seals/cb9_sign_rules.json` + `seals/cb9_rules.json`, draft q0180); CB9 implementer B (`cb9_kd.py` + tests,
-     rules `seals/cb9_kd_rules.json`). `cb9_common.py` had been left untracked by an interrupted session; A adopts it.
-1. **q0082f:** after the fix commit, deploy; it is in retry_wait (attempt 5 next). If it fails again, read the log before
-   any further attempt.
+0. **Autopilot session from ~14:30Z 10-17.** Deployed fbb7b8c at 14:59Z (collector cap 16, q0120b guard 14, q0082f
+   streaming fix d56bae4 with mem 1200 + guard 14, q0160b promotion, CB4-N stop rule). Counter about 1,146.
+   - **Done this session:** host disk eased (a8bbe68); q0082f MemoryError fix (d56bae4, byte-identical, 227 cb4 tests);
+     CB7 fetch counts recorded (68f8c82); **CB8-B analysis side** (abeb140 code, 229b860 rules
+     `cb8_b_analysis_rules.json` sha `82cd4807…`, 164879f drafts + notes; open: CB8 declaration `model_specs/cb8_v1.json`
+     missing, W census missing so q0169 `--family B,W` refuses); **CB10 draft** (19ae522: CH89 Deribit anchor D1, CH93
+     round-level fades B1/B2; CH82/CH87/CH90/CH91 dropped with reasons) -> challenger ACCEPT_WITH_REQUIRED_CHANGES
+     (15 items incl. a D1 shared-noise bias and a power gate).
+   - **Running agents (check `git log` if this session ended):** CB9 implementer A (`cb9_common/sign/pyth`, `run_cb9.py`;
+     the uncommitted `battery2.py` hunk is A's) and B (`cb9_kd.py`); CB8-W/H analysis sides (+ declaration draft);
+     CB10 author response round.
+1. **q0082f:** fix deployed; it runs on the net lane after q0120b. If it fails again, read the log before any further attempt.
 2. **CB9:** after A and B commit, run the code-against-design freeze check (science-reviewer); then queue q0180 (cpu,
    may run before T_seal). Data jobs q0181+ only after T_seal 2026-10-22T00Z.
 3. **CB7/CB6 before T_seal:** q0142/q0143 DONE (11:36Z, 14:27Z); q0120b on the net lane (guard now 14). Seals
