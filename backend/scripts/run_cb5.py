@@ -247,7 +247,10 @@ def cmd_cdf_frame(a) -> int:
     if rep.get("failed"):
         raise D.RefusedRun(f"the Gamma frame walk has {rep['failed']} failed window(s) (non-200 response); the family list is not frozen while any window is incomplete: {rep['failed_windows'][:5]}")
     gc.collect()
-    events = list(C.guarded_events(Path(a.ifh2_events)))
+    # q0104b: non-contributing IF-H2 events become id-only stubs while streaming (cb5_frame_load; outputs byte-identical,
+    # tests/unit/test_cb5_frame_load.py). 67350d7 added the loader but left this call unwired (q0104b attempt 1 MemoryError).
+    from astrolabe.research_lab.cb5_frame_load import reduced_events
+    events = list(reduced_events(C.guarded_events(Path(a.ifh2_events))))
     by = {e["id"]: e for e in events}
     by.update({e["id"]: e for e in fresh})
     fr = R.cdf_frame(list(by.values()), dev_start=D.DATES["T5_dev_start"], seed=a.seed, audit_n=a.audit_n)
