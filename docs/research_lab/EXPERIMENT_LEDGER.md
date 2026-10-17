@@ -1307,3 +1307,10 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Power restated:** union about 1,140-1,530 units, Stage-1 MDE about 6.7-7.7c (was 3.8c at 4,700 units); T1 detects only
   strong effects; the 2.0c floor and the >= 10 YES-cluster rule are unchanged. No threshold, formula or gate changed.
 - **Trial line:** `design_change`, `n_tests` 0, id `44cb83a8-efd4-45df-8e5b-d30ddf96d10a`. Drafts q0120b / q0121 in `queue/drafts/`.
+
+## CB7 smoke v2 (q0140b), 2026-10-17 10:00Z: PASS (engineering gate, not counted)
+- Rules v2 `05bf365c...`; seed `arepo-cb7-smoke-v2`; 33 recorded-field candidates, all found on Gamma, 20 smoked;
+  (a) slug resolves; (b) bounds and newest-first on 15 non-empty responses (>= 10); (c) 15 of 20 covered (>= 14).
+  Disclosure: 14 of the 20 were also probed by CB6 smoke v2, 1 by CB6 smoke v1, 0 by CB7 v1. Seal copies
+  `seals/cb7_smoke_v2_PASS_20261017.json` (sha256 `f178a3a8...`) and `cb7_smoke_FAIL_20261017.json`.
+- Consequence: q0142 (h8_text) and q0143 (h8_geo) promoted (4e55ee5); both must finish before `T_seal` 2026-10-22T00Z.
