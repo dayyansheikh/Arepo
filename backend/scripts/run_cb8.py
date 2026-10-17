@@ -2,7 +2,7 @@
 """CB8 runner, collection and fetch side (docs/research_lab/CREATIVE_BATCH_8.md CB8-H "Collection", CB8-W "Data", CB8-F). Run from
 cwd=backend (queue worker). EXPLORATORY / PROSPECTIVE DATA ONLY: no edge, calibration or profitability claim; no analysis code here.
 
-    python scripts/run_cb8.py rules --which holders|flow    # write docs/research_lab/seals/cb8_holders_rules_v2.json | cb8_flow_rules.json (commit first)
+    python scripts/run_cb8.py rules --which holders|flow    # write docs/research_lab/seals/cb8_holders_rules_v3.json | cb8_flow_rules.json (commit first)
     python scripts/run_cb8.py key-fingerprint               # print the strict-loaded key's fingerprint (never the key)
     python scripts/run_cb8.py holders-smoke ...             # q0160b (smoke v2): /oi frame of every base market + 20 live markets, counts and ratios only, WRITE-ONCE
     python scripts/run_cb8.py holders-snap ...              # q0162: daily /holders snapshot (prospective; rolling)

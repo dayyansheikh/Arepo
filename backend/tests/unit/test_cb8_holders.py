@@ -854,3 +854,69 @@ def test_cli_disk_caps_must_match_the_declaration(env, tmp_path):
     # a cap other than the declared one is refused before anything else (exit 2); the declared one passes that check (and then stops at the missing smoke, exit 2 too)
     assert script.main(["holders-snap", *base, "--disk-cap-gb", "0.10"]) == 2
     assert script.main(["holders-prints", *base, "--disk-cap-gb", "0.15"]) == 2
+
+
+def _late_env(env, n=70):
+    rows = [cap_row(i) for i in range(n)]
+    env.rows = rows
+    for r in rows:
+        env.api.holders[r["condition_id"]] = holder_groups(r["condition_id"])
+        env.api.oi[r["condition_id"]] = float(r["open_interest"])
+    env.clock.t = T0
+    env.snap()
+    env.clock.t = datetime(2026, 10, 21, 23, 20, tzinfo=UTC).timestamp()
+    env.add_capture("late", env.clock.t - 1800, env.clock.t - 1200)
+
+
+def test_snap_day_rolled_during_the_oi_frame_refuses_the_plan_with_a_sub_reason(env):
+    _late_env(env)
+    roll = lambda: env.clock() + (3600 if env.api.oi_requests else 0)  # noqa: E731  midnight passes while the /oi frame is built
+    m = env.snap(n_main=20, n_sports=0, wall_clock=roll)
+    assert m["status"] == "day_missed" and m["missed_kind"] == "oi_source" and m["sub_reason"] == "day_rolled"
+    marker = json.loads((env.root / "snap" / "2026-10-21.MISSED.json").read_text())
+    assert marker["kind"] == "oi_source" and marker["sub_reason"] == "day_rolled"
+    assert not (env.root / "snap" / "2026-10-21.plan.json.gz").exists() and not list((env.root / "snap").glob("*.oi.*"))
+    assert not [c for c in env.api.calls if c[0].endswith("/holders")]
+
+
+def test_snap_day_rolled_before_a_holders_request_stops_without_writing_that_day(env):
+    _late_env(env)
+    plan_p = env.root / "snap" / "2026-10-21.plan.json.gz"
+    roll = lambda: env.clock() + (3600 if plan_p.exists() else 0)  # noqa: E731
+    m = env.snap(n_main=20, n_sports=0, wall_clock=roll)
+    assert m["status"] == "in_progress" and m["stopped"] == "day_rolled"
+    assert not [c for c in env.api.calls if c[0].endswith("/holders")] and not (env.root / "snap" / "2026-10-21.markets.csv.gz").exists()
+
+
+def test_close_oi_days_records_oi_capture_gone_apart_from_unfinished(env):
+    _late_env(env, n=130)
+    env.caps.clear()
+    env.add_capture("late", env.clock.t - 1800, env.clock.t - 1200)
+    calls = {"n": 0}
+
+    def stop_after_one(self, should_stop=None):
+        calls["n"] += 1
+        return "budget reached" if calls["n"] > 1 else None
+
+    import astrolabe.research_lab.cb8_common as _cm
+
+    orig = _cm.Cb8Run.stop_reason
+    _cm.Cb8Run.stop_reason = stop_after_one
+    try:
+        assert env.snap(n_main=20, n_sports=0)["status"] == "in_progress"
+    finally:
+        _cm.Cb8Run.stop_reason = orig
+    env.caps.clear()  # the pinned capture vanished
+    try:  # NotNow, or a clean idle heartbeat when the heartbeat interval has passed
+        r = env.snap(n_main=20, n_sports=0)
+        assert r["idle_kind"] == "oi_capture_gone"
+    except cm.NotNow as exc:
+        assert "no longer available" in str(exc)
+    assert (env.root / "snap" / "2026-10-21.oi.capture_gone.json").exists()
+    env.clock.t += 86400
+    env.add_capture("next", env.clock.t - 1800, env.clock.t - 1200)
+    env.snap(n_main=10, n_sports=0)
+    marker = json.loads((env.root / "snap" / "2026-10-21.MISSED.json").read_text())
+    assert marker["sub_reason"] == "oi_capture_gone" and not list((env.root / "snap").glob("2026-10-21.oi.*"))
+    d = h.declared()["frame"]["oi_source"]
+    assert {"day_rolled", "oi_capture_gone"} <= set(d["sub_reasons"]) and "WHOLE batch" in d["drop_granularity"]

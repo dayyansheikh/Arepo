@@ -111,6 +111,12 @@ def declared() -> dict:
                                 "stop_rule_reason": "the same tolerance as the CB6/CB7 exclusion-key rule (--max-unverified-key-share 0.02): unavailable OI "
                                                     "cannot reshape a 1,800-market daily sample by more than about 36 markets, and a handful of transient "
                                                     "misses does not stop a day",
+                                "sub_reasons": {"day_rolled": "the UTC day changed between chunk start and the plan write (or a /holders request): refused, "
+                                                              "the day is 'missed (oi_source)' (before the plan) or closes INCOMPLETE (after it)",
+                                                "oi_capture_gone": "the capture pinned for a pending /oi frame vanished and the day ended",
+                                                "unfinished_at_day_end": "the /oi frame build ran out of day"},
+                                "drop_granularity": "a failed or integrity-violating /oi reply drops its WHOLE batch of up to 60 sorted condition ids at once "
+                                                    "(oi_lookup_failed), so missing markets come in batches, not singly",
                                 "oi_rps": OI_RPS, "batch": OI_BATCH},
                   "sports": "fee_category == 'sports'", "max_capture_age_s": MAX_CAPTURE_AGE_S},
         "sample": {"n_main": N_MAIN, "n_sports": N_SPORTS, "seed_prefix": SEED_DAY_PREFIX, "seed_smoke": SEED_SMOKE,
@@ -756,10 +762,14 @@ def close_oi_days(fr: cm.Cb8Run, rdir: Path, today: str) -> list[str]:
         day = hdr_p.name[:10]
         if day >= today:
             continue
-        leftovers = (hdr_p, rdir / f"{day}.oi.partial.jsonl.gz", rdir / f"{day}.oi.fail.jsonl")
+        gone_p = rdir / f"{day}.oi.capture_gone.json"
+        leftovers = (hdr_p, rdir / f"{day}.oi.partial.jsonl.gz", rdir / f"{day}.oi.fail.jsonl", gone_p)
         if not (rdir / f"{day}.plan.json.gz").exists() and not (rdir / f"{day}.MISSED.json").exists():
             n_done = sum(1 for _ in c6.iter_partial(rdir / f"{day}.oi.partial.jsonl.gz"))
-            marker = {"day": day, "kind": "oi_source", "reason": "oi_source: the /oi frame build was unfinished at day end", "n_batches_done": n_done}
+            sub = "oi_capture_gone" if gone_p.exists() else "unfinished_at_day_end"  # the pinned capture vanished vs. the build simply ran out of day
+            marker = {"day": day, "kind": "oi_source", "sub_reason": sub, "n_batches_done": n_done,
+                      "reason": ("oi_source: the pinned capture of the /oi frame was no longer available and the day ended" if sub == "oi_capture_gone"
+                                 else "oi_source: the /oi frame build was unfinished at day end")}
             fr.budget.write(rdir / f"{day}.MISSED.json", json.dumps(marker, sort_keys=True).encode())
             fr.counts["days_missed_oi_source"] = fr.counts.get("days_missed_oi_source", 0) + 1
             closed.append(day)
@@ -838,6 +848,9 @@ def holders_snap(root: Path, transport, *, key: bytes, fp: str, rules_sha: str, 
                 hdr = json.loads(hdr_p.read_text())
                 cap = next((c for c in caps if c["capture_id"] == hdr["capture_id"]), None)
                 if cap is None:
+                    gone_p = rdir / f"{day}.oi.capture_gone.json"  # sub-reason evidence for close_oi_days if the day ends this way
+                    if not gone_p.exists():
+                        fr.budget.write(gone_p, json.dumps({"day": day, "capture_id": hdr["capture_id"], "first_seen_utc": cm.iso(now)}, sort_keys=True).encode())
                     return cm.idle(rdir, "the capture of the pending /oi frame is no longer available; retry later", now, kind="oi_capture_gone")
             else:
                 cap = caps[-1] if caps else None
@@ -872,6 +885,14 @@ def holders_snap(root: Path, transport, *, key: bytes, fp: str, rules_sha: str, 
                 return m
             states = oi_states(batches, oi_done)
             summ = oi_summary(base, states, batches, oi_done)
+            if _day_of(wall_clock()) != day:  # the day label is fixed at chunk start: never write day D's plan after UTC midnight
+                marker = {"day": day, "kind": "oi_source", "sub_reason": "day_rolled", "reason": "oi_source: the UTC day rolled over before the plan was written",
+                          "capture_id": cap["capture_id"], "n_batches": summ["n_batches"]}
+                fr.budget.write(rdir / f"{day}.MISSED.json", json.dumps(marker, sort_keys=True).encode())
+                fr.counts["days_missed_oi_source"] = fr.counts.get("days_missed_oi_source", 0) + 1
+                for q in (hdr_p, oi_part, oi_failp, rdir / f"{day}.oi.capture_gone.json"):
+                    q.unlink(missing_ok=True)
+                return fr.manifest("day_missed", {"status": "day_missed", "missed_kind": "oi_source", "sub_reason": "day_rolled"})
             oi_ok, oi_why = oi_source_ok(summ)
             if not oi_ok:  # the day stops: recorded apart from a stale capture, nothing imputed
                 marker = {"day": day, "kind": "oi_source", "reason": f"oi_source: {oi_why}", "capture_id": cap["capture_id"], "n_base": summ["n_base"],
@@ -893,7 +914,7 @@ def holders_snap(root: Path, transport, *, key: bytes, fp: str, rules_sha: str, 
                        "rule": "first complete capture >= max(2026-10-21T06:00Z, first run + 2 h)"}
                 fr.budget.write(rdir / "t8_h1_start.json", json.dumps(pin, indent=1, sort_keys=True).encode())
             _write_plan(fr, plan_p, plan)
-            for q in (hdr_p, oi_part, oi_failp):
+            for q in (hdr_p, oi_part, oi_failp, rdir / f"{day}.oi.capture_gone.json"):
                 q.unlink(missing_ok=True)
     except OSError as exc:
         return cm.disk_budget_end(fr, exc)
@@ -909,6 +930,9 @@ def holders_snap(root: Path, transport, *, key: bytes, fp: str, rules_sha: str, 
             stopped = why
             break
         t_req = wall_clock()
+        if _day_of(t_req) != day:  # no /holders row is labelled day D after UTC midnight; the next chunk closes the day as INCOMPLETE
+            stopped = "day_rolled"
+            break
         assert_tf_before(plan["oi"]["t_f_max_epoch"], t_req)
         h = int(t_req)
         try:
