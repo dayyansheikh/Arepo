@@ -1477,3 +1477,39 @@ is a property of the market (no positions), not of the source; the states that a
 `seals/cb8_h_analysis_rules_v2.json` (`cb8-h-analysis-rules-v2`), `rules_sha256` **`ef435a74a12b02d9917a50da5f688a558e12632766d502b603d12754c5964e56`** (`data_rules_sha256` = the v4 hash above, `funcs_sha256` `cd8ed8bdf62807ece4b816e3bbf9e922e64e2fde8a2960534e08f57b03503358`).
 `cb8_holders_rules_v3.json` and `cb8_h_analysis_rules.json` (v1) are superseded, never used and never rewritten. Flow rules, B rules and the W analysis rules are unchanged. Drafts: `q0160c_cb8_holders_smoke_v3` (new); `q0162` and `q0163` now pin
 the v4 rules and depend on q0160c; `q0172` needs `cb8_h_analysis_rules_v2.json` and the v4 hash in the snapshot and prints manifests. Nothing is in `queue/jobs/` pending a reviewer pass.
+
+---
+
+## CB8-H amendment H-v5 (reviewer required changes to H-v4), 2026-10-17
+
+**Status:** written after the `science-reviewer` verdict ACCEPT_WITH_REQUIRED_CHANGES on H-v4, before any smoke v3, snapshot or prints job. The H-v4 files (`seals/cb8_holders_rules_v4.json` `2aca9bdc...`,
+`seals/cb8_h_analysis_rules_v2.json` `ef435a74...`) were never used by any job and are superseded, untouched and never rewritten. Everything in H-v4 stays except where this section changes it.
+
+**Explicit supersession of the stop sentences.** (1) The sentence at "H v2 (2026-10-17)", *Decision rule for the source*: "A v2 FAIL of criterion (a) or (b) (or of h) makes H 'not run (source)', counted in the M3 denominator;
+**there is no smoke v3**" is superseded for the q0160b FAIL of h only, by H-v4 and this section; (2) the sentence in "H v2 freeze-check must-fixes", item 1: "This does not create a 'smoke v3': only a written FAIL of criterion a, b or h makes H 'not run (source)'"
+is superseded in the same way. Written justification: the q0160b FAIL reflected a mis-specified classification of `oi_absent` (the venue lists only markets with open interest), not a failed source; the verification is in H-v4 and in
+`docs/research_lab/evidence_cb8/`. This is a design change, recorded as such in `EXPERIMENT_LEDGER.md`. The v2 FAIL stays on record (`evidence_cb8/holders_smoke_v2.json`, sha256 `8566d1f0fef570f5ac2fe6aa5d0bb8250557e6028a751e3775215269b76ae27e`,
+byte-identical to the host's write-once file; counts only, no identifier). From now on the stop rule is unchanged for v3: **a written FAIL of a, b, f, h or i of smoke v3 makes H "not run (source)", counted, and there is no smoke v4.**
+
+**Changes (all tighten the amendment; no threshold changes).**
+
+1. **Binding absence check, no network, whole population, in smoke v3 and on every snapshot day.** An `oi_absent` base-frame market whose capture says `event_n == 1` and `event_oi >= 1,000` (`MIN_OI`) is **`absent_contradicted`** (the capture says a
+   single-market event with at least 1,000 of OI, the `/oi` reply says nothing is listed). They are counted in `n_absent_contradicted` and inside the 2 % unavailable rule with `oi_lookup_failed` and `oi_nonnumeric`; the day's marker carries the count.
+   They are still never imputed. Where the capture event OI is blank (multi-market events) no check is possible from the capture; that is the population the probe below samples.
+2. **Smoke criterion i (absent probe).** The smoke also requests `/holders` for the 20 `oi_absent` base markets with the highest capture `volume24hr` (ties and missing volume by sha256(`arepo-cb8-hsmoke-v3|absent|market_id`)); these are the absent markets most likely to
+   have positions. Tolerance fixed now: **any probed market whose top-20 holdings (larger token side) sum to >= 1,000 fails criterion i**, and at least 19 of the 20 replies must be HTTP 200. Smoke v3 passes only if a, b, f, h and i hold.
+   Output: counts only (`absent_probe`).
+3. **Empty reply to a large batch.** A 200 reply of `[]` to a `/oi` batch of more than **15 ids** is not accepted as all-absent: an honest all-absent 60-batch has probability about 0.819^60 = 6e-6 (0.819 is the smoke's absent share). The batch is split into batches
+   of at most 15 ids and retried; an empty reply to a batch of 15 or fewer is a legitimate all-absent batch (probability 0.819^15 = 5 %), and the absent markets of such a batch are covered by the contradiction check above. The batch record carries `split: "empty_reply"`.
+   (Splitting replaces the reviewer's "fail, or split and retry then fail if still empty with any split > 15": no split piece exceeds 15, so a persistently wrong empty reply can only affect pieces the contradiction check still examines.)
+4. **403 fallback.** A `/oi` batch of more than 15 ids whose request fails after the client's retries (the Cloudflare 403 observed on batches of 30 or 60 ids from the verification sample, a `RuntimeError` in the limiter) is split into batches of at most 15 and
+   retried before anything is recorded as failed; a failure of a split request is handled as before (network `NotNow` in the smoke, counted attempt in the snapshot). The batch record carries `split: "request_failed"`.
+
+**Evidence added (counts only), `docs/research_lab/evidence_cb8/`.** `holders_smoke_v2.json` (above); `h_v4_absence/01_draw_sample_on_host.py` (seeded draw of 600 base-frame condition ids, seed 20261017), `02_verify_absence.py`, `output.txt` (the 600 / 490 / 40 / 15 / 10 counts, 107 requests) and
+`sample_ids.sha256` (the id file is not stored). Pre-verification diagnosis, as recorded in the ledger before any amendment: `/oi` listed **539 of 540** random active Gamma markets, while 235 of 300 sampled base-frame markets were absent, all with blank or zero `volume24hr`.
+The one active market that was absent was **not identified**: the diagnosis kept no id and re-drawing 540 Gamma markets is not cheap; it is consistent with an active market that has no positions. It also bounds the other direction: at most about 0.2 % of listed-by-Gamma active markets were absent from `/oi`. This
+is disclosed, not resolved, and the new probe (criterion i) and the contradiction check are the controls on exactly this case.
+
+**Files.** Code commit `fe86fd8`. Rules written from it: `seals/cb8_holders_rules_v5.json` (`rules_version` `cb8-holders-rules-v5`), `rules_sha256` **`5fe7f6b3ec1b971e138e3480d796e4c312066da06b133122e04220e316c157b6`**, `funcs_sha256` `dc2a75ff535bcf35ad798c770c508b581c2f6caf85582b2f848e5f46041975d3`, fingerprint `80ce5e81a539a570` unchanged;
+`seals/cb8_h_analysis_rules_v3.json` (`cb8-h-analysis-rules-v3`), `rules_sha256` **`193ab064711b68f3033d2c167343479522b2a75198e1e69a1340c2e0132616dd`** (`data_rules_sha256` = the v5 hash, `funcs_sha256` `cd8ed8bdf62807ece4b816e3bbf9e922e64e2fde8a2960534e08f57b03503358`).
+The smoke version stays `cb8-holders-smoke-v3` (no v3 result exists). Drafts `q0160c`, `q0162`, `q0163`, `q0172` are re-pinned to v5 / analysis v3. Nothing is in `queue/jobs/`.

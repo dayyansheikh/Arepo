@@ -1446,3 +1446,21 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   split per family (q0231 W, q0239 P/A) so W can still screen before `T_seal`.
 - Budget unchanged: 6 fixed + ≤ 6 conditional. Count 0 now; cumulative **1,156** from the committed host-unioned
   `trials.jsonl` at `e721331`.
+
+## CB8-H design change H-v4 / H-v5 (oi_absent = no OI listed), 2026-10-17: not counted (design change, no trial run)
+- **What:** override of the pre-registered stop rule for CB8-H ("a FAIL of criterion a, b or h makes H 'not run (source)'; there is no smoke v3", `CREATIVE_BATCH_8.md` "H v2" and its must-fixes item 1) after q0160b failed criterion h only
+  (`/oi` missing share 0.819: 228,318 of 278,705 base markets `oi_absent`; criteria a, b, c, e, f, g pass). The sentences are explicitly superseded in "CB8-H amendment H-v5".
+- **Pre-verification record:** the hypothesis (absent = zero OI, excluded anyway by OI >= 1,000) was written in the q0160b entry above ("Ops: ... CB8-H smoke q0160b FAIL") before any check, with the commitment that an unverified hypothesis leaves CB8-H a FAIL.
+- **Verification:** seeded sample of 600 base markets: 490 absent, 110 listed (90 < 1,000, none 0); `/holders` of 40 absent markets: 40 of 40 no holders; single `/oi` of 15: 15 of 15 empty; 10 smallest listed (OI 0.14-3.56): 10 of 10 have holders.
+  Evidence: `docs/research_lab/evidence_cb8/` (v2 smoke counts, sha256 `8566d1f0...ae27e`; verification scripts and output). The one active-but-absent market of the 539/540 diagnosis was not identified (disclosed).
+- **Reviewer:** science-reviewer ACCEPT_WITH_REQUIRED_CHANGES on H-v4, applied in H-v5: (1) `absent_contradicted` (absent with single-market event OI >= 1,000 in the capture) inside the 2 % rule on every day and in the smoke, plus smoke criterion i
+  (`/holders` of the 20 highest-volume absent markets, none with top-20 holdings >= 1,000); (2) empty `/oi` reply to a batch of more than 15 ids is split and retried (an honest all-absent 60-batch has probability about 6e-6); (3) 403 fallback to batches of <= 15;
+  (4) disclosure and this entry; (5) evidence committed; (6) cosmetics.
+- **What did not change:** OI >= 1,000, terciles, 1,500 + 300 sample, criteria a, b, c, e, f, g, windows, H1 earliest start 2026-10-21T06:00Z, T_seal 2026-10-22T00Z. A smoke v3 FAIL of a, b, f, h or i makes H "not run (source)", counted; no smoke v4.
+- **Files:** code `fe86fd8`; rules `cb8_holders_rules_v5.json` `5fe7f6b3...`, `cb8_h_analysis_rules_v3.json` `193ab064...`; drafts q0160c, q0162, q0163, q0172. H-v4 rules files (`2aca9bdc...`, `ef435a74...`) superseded unused.
+
+## CB4-E group-S ruling (2026-10-17): as_declared ["sports"]; CH53 E1/E2 not testable (frame counts only)
+- Era frame `03e58086…231d`: S|P0 = 6 and S|P1 = 92 against 800 targeted per cell. Stop rule fires (fewer than 30
+  clusters): **E1 and E2 not testable, p = 1, counted (2 lines when the CB4 analysis runs)**. era_rule = pooled_allowed,
+  labelled "untested". Series frame `50e51b87…6606`: sports-series leak count to be disclosed. No threshold or formula
+  changed. Seal `h7_cb4_group_s_amendment.json`; gate q0081g releases the q0081/q0082 fetches.

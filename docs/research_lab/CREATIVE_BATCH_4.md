@@ -1695,3 +1695,20 @@ census derives the pins from it (`stop` = true, `H` = 0).
 **Queue wiring.** The not-testable record is written by `measure-N`, a counted job that needs the committed CB4 freeze (the counted gate), so it cannot run
 at the census. `docs/research_lab/queue/drafts/q0087n_cb4_N_not_testable.json` (cpu lane, 400 MB, no network, `depends_on` q0086_cb4_census) is released
 instead of q0087 once the freeze is committed with pin `stop` = true; q0087 itself writes the same record if released with that pin.
+
+### Group-S ruling (fix 8), 2026-10-17 (science-reviewer; committed by the autopilot coordinator)
+Group-S ruling: **as_declared, `["sports"]`** (`seals/h7_cb4_group_s_amendment.json`). The era frame report (sha256
+`03e58086…231d`) shows `fee_category == "sports"` for 6 markets in P0 and 92 in P1, against 8,030 and 4,555 `unknown`.
+`feeType` is current Gamma state that marks whether a market was later charged fees, not a listing-time attribute. Every
+listing-time alternative (tags, series, `sportsMarketType`, text) is missing from the frozen frame (`FRAME_MAIN_COLUMNS`)
+and is also current state, which could have been added later and differently by period. Choosing one after seeing these
+counts would be a design change driven by the data. S|P0 holds at most 6 event clusters, fewer than 30, so the CB4-E
+stop rule fires on frame counts alone, with no outcome read: **E1 and E2 are "not testable" (p = 1, counted in family
+M)**. Under §2.9 this gives `era_rule = pooled_allowed`. Downstream text must say "era effect untested (CH53 not
+testable)" and must never say "no era change detected". CH46, CH50 and CH52 are unaffected. Known limitation: series
+whose most common member category is `unknown` (mostly sports series that ended before 2026-02-18) can enter CH50's
+non-sports sample. Their count is reported and not corrected. The declared `D_fee_O` = 2026-03-30 is wrong for crypto
+(6 P0 markets already carry `crypto`); recorded, not used, since CH53 is not testable. A future CH53 needs its own
+registered design with a sports rule fixed in advance, applied the same way in every period, plus crypto's January 2026
+fee start (`CREATIVE_HYPOTHESES_2026-10-18.md`:735) as a third treatment group. Series frame report sha256
+`50e51b87…6606` (298 sports series). Gate q0081g created.
