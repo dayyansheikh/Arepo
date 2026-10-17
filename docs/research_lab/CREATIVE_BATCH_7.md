@@ -1119,7 +1119,7 @@ Both fetches finished `complete` with 0 failed items and 0 failed windows, befor
 - **h8_text yield shortfall.** The design assumed 18,000 sampled markets and about 5,000 Stage-1 units; the frame pool
   after filters and key drops held only 4,108 markets (220,362 frame rows were not Yes/No, 82,438 lived < 9 days, 23,259
   were key-dropped), and 1,026 origins are eligible. Rough scaling of the §S1 Stage-1 MDE (2.5c per marker at about
-  5,000 units) gives about 5-6c per marker. The census (q0146 path) replaces this; no floor, band or window changes.
+  5,000 units) gives about 5-6c per marker. The census (q0147) replaces this; no floor, band or window changes.
 - **h8_geo.** 1,917 eligible origins against the design's assumed 3,200 × 2.3 ≈ 7,400 usable origins; rough scaling of
   the G1 MDE (3.5-4c) gives about 7-8c. The design already accepted low power for G because the fetch was cheap.
 - **Open for the coordinator/freeze check:** whether a CB6-style reviewed top-up (more windows per day, same rules) is
