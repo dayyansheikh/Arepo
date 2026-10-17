@@ -1,0 +1,30 @@
+{
+ "counts_only": true,
+ "fraction_of_expected_points_histogram": {
+  "0.5_to_0.8": 0,
+  "0.8_to_1.1": 20,
+  "ge_1.1": 0,
+  "lt_0.5": 0
+ },
+ "git_commit": "c302271dd9b78a9334d9a04bf3c03caea36329f0",
+ "n_candidates_available": 33,
+ "n_failed_requests": 0,
+ "n_ge_80pct_points": 20,
+ "n_pass": 20,
+ "n_requested": 20,
+ "n_spacing_ok": 20,
+ "pass": true,
+ "pass_threshold": 18,
+ "pool_counts": {
+  "drop_closed_before_window_end": 1,
+  "drop_life_lt_14d": 539,
+  "drop_no_close": 0,
+  "drop_no_created": 0,
+  "n_closed_end_2025": 573,
+  "n_pool": 33
+ },
+ "rules_sha256": "bf05c8ee7c3a1e55dafaa4b4344d9ba0be35afe545c372e7e6b288c08eceee16",
+ "run_utc": "2026-10-17T05:30:14Z",
+ "smoke_version": "h8-tail-smoke-v2",
+ "supersedes": "ae21aefec15c0122310682fab70a640a21f68b8486ae18f4b9f3490be65e28be"
+}

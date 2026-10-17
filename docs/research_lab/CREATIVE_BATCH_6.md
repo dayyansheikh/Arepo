@@ -1582,3 +1582,9 @@ class effect. The census replaces these assumptions.
 **Clock.** q0136 takes about 20 requests (under 2 min). q0120 needs about 3.5 h and must finish before `T_seal`
 2026-10-22T00:00Z. The latest safe host start stays 2026-10-21T12:00Z; there is no Mac fallback (§2.8). The deadline is not
 moved. If review does not accept v2 in time, CB6-T is "not run (smoke FAIL)" and counted.
+
+## Smoke v2 result (2026-10-17): PASS
+q0136 ran on the host at 05:30Z (rules v2 `bf05c8ee…`): **20 of 20 pass, 0 failed requests**. The write-once result is copied
+byte-identical to `seals/cb6_tail_smoke2_PASS_20261017.json` (sha256 `d1f7a4ef693e494e18320bac45fde8918d5a961565f24a5b24ae3e5589ab0bf4`).
+The v1 FAIL stays on record. q0120 (`h8_tail` fetch, `--require-smoke research_lab/creative_batch6/tail_smoke2.json`) promoted to
+`queue/jobs/`; q0121 (seal) is promoted only after q0120 is complete and both h7 SEAL/NOT_RUN records are committed.
