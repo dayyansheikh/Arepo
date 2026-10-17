@@ -30,6 +30,7 @@ if echo "$out" | grep -q "state=complete"; then
   $PY scripts/run_surprise_snapshot.py score --rps 4 2>&1 | tail -2   # E011 (registered 3e628ec)
   timeout 600 nice -n 10 $PY scripts/run_cb1_extract.py --all-new --rps 2 --max-requests 300 2>&1 | tail -1 || true   # CB1 extract (CREATIVE_BATCH_1.md §2.11)
   timeout 600 nice -n 10 $PY scripts/run_cb4.py closewin --all-new --data-dumps-max-gb 12 2>&1 | tail -1 || true   # CB4 closewin/departures (CREATIVE_BATCH_4.md §2.10)
+  timeout 600 nice -n 10 $PY scripts/run_cb5.py extract --all-new --tables listings --data-dumps-max-gb 10 2>&1 | tail -1 || true   # CB5 listings (CREATIVE_BATCH_5.md §4.3)
 fi
 $PY scripts/run_research_e004.py score --status 2>&1 | grep -E '"qualifying"'
 $PY scripts/run_research_e007.py score --status 2>&1 | head -1
