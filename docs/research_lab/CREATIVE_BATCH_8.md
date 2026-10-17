@@ -1513,3 +1513,18 @@ is disclosed, not resolved, and the new probe (criterion i) and the contradictio
 **Files.** Code commit `fe86fd8`. Rules written from it: `seals/cb8_holders_rules_v5.json` (`rules_version` `cb8-holders-rules-v5`), `rules_sha256` **`5fe7f6b3ec1b971e138e3480d796e4c312066da06b133122e04220e316c157b6`**, `funcs_sha256` `dc2a75ff535bcf35ad798c770c508b581c2f6caf85582b2f848e5f46041975d3`, fingerprint `80ce5e81a539a570` unchanged;
 `seals/cb8_h_analysis_rules_v3.json` (`cb8-h-analysis-rules-v3`), `rules_sha256` **`193ab064711b68f3033d2c167343479522b2a75198e1e69a1340c2e0132616dd`** (`data_rules_sha256` = the v5 hash, `funcs_sha256` `cd8ed8bdf62807ece4b816e3bbf9e922e64e2fde8a2960534e08f57b03503358`).
 The smoke version stays `cb8-holders-smoke-v3` (no v3 result exists). Drafts `q0160c`, `q0162`, `q0163`, `q0172` are re-pinned to v5 / analysis v3. Nothing is in `queue/jobs/`.
+
+---
+
+## CB8-H amendment H-v6 (auditable splits), 2026-10-17
+
+**Status:** after the science-reviewer re-check of H-v5 (GO_WITH_CONDITIONS; the "split at 15 instead of fail" deviation is accepted on condition that splits are auditable). H-v5 files (`seals/cb8_holders_rules_v5.json` `5fe7f6b3...`, `seals/cb8_h_analysis_rules_v3.json` `193ab064...`)
+were never used by a job and are superseded, untouched. Everything in H-v4 and H-v5 stays except:
+
+1. **Splits are persisted and counted.** The per-batch record now stores `split` (`empty_reply` / `request_failed` / none), `n_split_requests` and `n_empty_small` (empty replies to a batch of at most 15 ids). `oi_summary`, the smoke output (`oi`), the daily plan (`oi`) and the `oi_source` day marker carry
+   `n_split_batches`, `split_reasons`, `n_split_requests` and `n_empty_replies_le15`. Records written without these fields count as zero.
+2. **Split on the first failure.** A batch of more than 15 ids is requested without client-side retries (`Limiter.get(..., max_retries=0)`; the default of 6 retries elsewhere is unchanged); the first non-200 or empty reply splits it into batches of at most 15, each with the normal retries. Reason: with 6 retries
+   and exponential backoff a 403'd 60-batch burned about 63 s (up to several minutes with `Retry-After`) before the split. Worst case if every batch split: about 4,650 x 5 = 23,300 requests, about 3.9 h; q0160c `timeout_s` is raised to 14,400 (ops field, not hashed). The verification counts, thresholds and gates are unchanged.
+
+**Files.** Code commit `d922ffc`. Rules from it: `seals/cb8_holders_rules_v6.json` (`cb8-holders-rules-v6`), `rules_sha256` **`e7e72f4c75693cfaf30a91c11939eb16b756b7cae879868e0e7a11f9a2af2bb6`**, `funcs_sha256` `9b7cec1c211a98b6bef1cc963240d8eb37bcd1a7796d1be97b97ade5ea1ec0cc`;
+`seals/cb8_h_analysis_rules_v4.json` (`cb8-h-analysis-rules-v4`), `rules_sha256` **`dbd87ef7b6549f794ad2460f5d3123cc8a86a83b2dff32aeec44835ebe1885bb`**. Drafts q0160c, q0162, q0163, q0172 re-pinned to v6 / analysis v4. Nothing is in `queue/jobs/`.

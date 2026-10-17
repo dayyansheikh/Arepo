@@ -229,7 +229,7 @@ class Limiter:
         self.log: list[dict] = []
 
     def get(self, url: str, params: dict, max_retries: int | None = None) -> tuple[int, Any]:
-        """(status, parsed JSON) for 200/400/404/422; raises after MAX_RETRIES or ``max_retries``."""
+        """(status, parsed JSON) for 200/400/404/422; raises after MAX_RETRIES or max_retries."""
         limit = MAX_RETRIES if max_retries is None else max_retries
         for attempt in range(limit + 1):
             if self.live_check is not None and self.clock() - self._last_live >= 2.0:

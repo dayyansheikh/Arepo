@@ -1457,7 +1457,8 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   (`/holders` of the 20 highest-volume absent markets, none with top-20 holdings >= 1,000); (2) empty `/oi` reply to a batch of more than 15 ids is split and retried (an honest all-absent 60-batch has probability about 6e-6); (3) 403 fallback to batches of <= 15;
   (4) disclosure and this entry; (5) evidence committed; (6) cosmetics.
 - **What did not change:** OI >= 1,000, terciles, 1,500 + 300 sample, criteria a, b, c, e, f, g, windows, H1 earliest start 2026-10-21T06:00Z, T_seal 2026-10-22T00Z. A smoke v3 FAIL of a, b, f, h or i makes H "not run (source)", counted; no smoke v4.
-- **Files:** code `fe86fd8`; rules `cb8_holders_rules_v5.json` `5fe7f6b3...`, `cb8_h_analysis_rules_v3.json` `193ab064...`; drafts q0160c, q0162, q0163, q0172. H-v4 rules files (`2aca9bdc...`, `ef435a74...`) superseded unused.
+- **Files:** code `fe86fd8`; the H-v5 docs, evidence, seals and drafts landed in `d3278b8` (its message is misleading: a concurrent commit picked them up from the shared index; see note commit `d202c74`). Rules `cb8_holders_rules_v5.json` `5fe7f6b3...`, `cb8_h_analysis_rules_v3.json` `193ab064...`; drafts q0160c, q0162, q0163, q0172. H-v4 rules files (`2aca9bdc...`, `ef435a74...`) superseded unused.
+- **H-v6 (reviewer re-check GO_WITH_CONDITIONS):** splits made auditable (persisted per batch; `n_split_batches`, `n_split_requests`, `n_empty_replies_le15` in the smoke output, plan and day marker) and large `/oi` batches split on the first failure; v5 files superseded unused. Code `d922ffc`; rules `cb8_holders_rules_v6.json` `e7e72f4c...`, `cb8_h_analysis_rules_v4.json` `dbd87ef7...`; q0160c `timeout_s` 14,400.
 
 ## CB4-E group-S ruling (2026-10-17): as_declared ["sports"]; CH53 E1/E2 not testable (frame counts only)
 - Era frame `03e58086…231d`: S|P0 = 6 and S|P1 = 92 against 800 targeted per cell. Stop rule fires (fewer than 30
