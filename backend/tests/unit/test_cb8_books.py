@@ -294,8 +294,13 @@ def test_holdout_seal_listing_copy_and_leakage_rules(benv):
     assert copy.read_bytes() == (rdir / bk.SEAL_NAME).read_bytes()
     files = h5_seal.list_files(rdir)
     holdout = {k: v for k, v in files.items() if k.startswith("holdout/")}
+    # the frame run's HOLDOUT kline features and strikes are part of the sealed set (prefix frame_holdout/)
+    fholdout = {f"frame_{k}": v for k, v in h5_seal.list_files(benv.root / u.RUN_FRAME).items() if k.startswith("holdout/")}
+    assert set(fholdout) == {"frame_holdout/klines_pre.csv.gz", "frame_holdout/strikes.csv.gz"}
+    holdout = {**holdout, **fholdout}
     assert seal["listing_sha256"] == h5_seal.listing_sha256(holdout) and seal["n_holdout_files"] == len(holdout) and holdout
     assert set(seal["files"]) == set(holdout) and not any(k.startswith("screen/") for k in seal["files"])
+    assert seal["drops"]["seal_copies_skipped"] == [] and seal["drops"]["seal_copies_sha256"] == {}
     assert (rdir / "ACCESS_LOG.jsonl").exists() and (rdir / "ACCESS_LOG.jsonl").read_text() == ""
     assert "never read" in seal["read_rules"] or "not opened before" in seal["read_rules"]
     # the sealed copy names no market, outcome, price or ask: only file hashes and counts
@@ -308,6 +313,11 @@ def test_holdout_seal_listing_copy_and_leakage_rules(benv):
     victim = next((rdir / "holdout").glob("*.states.csv.gz"))
     victim.write_bytes(victim.read_bytes() + b"x")
     assert h5_seal.listing_sha256({k: v for k, v in h5_seal.list_files(rdir).items() if k.startswith("holdout/")}) != seal["listing_sha256"]
+    # the frame run's sealed kline features are covered too: a change there fails the seal's re-hash against the frame manifest
+    fk = benv.root / u.RUN_FRAME / "holdout" / "klines_pre.csv.gz"
+    fk.write_bytes(fk.read_bytes() + b"x")
+    with pytest.raises(cm.Refused):
+        cm.verify_manifest_files(benv.root / u.RUN_FRAME, json.loads((benv.root / u.RUN_FRAME / "manifest.json").read_text()))
 
 
 def test_no_holdout_value_reaches_screen_files_or_the_census_inputs(benv):
@@ -372,7 +382,7 @@ def test_market_without_events_is_source_unavailable_not_no_trade(benv):
     mk = {x["market_id"]: x for x in gz_rows(rdir / "markets.csv.gz")}
     assert mk[ms[0]["market_id"]]["states_status"] == "source_unavailable" and mk[ms[1]["market_id"]]["states_status"] == "ok"
     days = {x["day"]: x for x in gz_rows(rdir / "days.csv.gz")}
-    assert days[d]["n_source_unavailable"] == "1"
+    assert days[d]["n_source_unavailable"] == "1" and days[d]["n_book_unavailable"] == "0"
 
 
 def test_missing_and_corrupt_hours_lose_the_day_and_are_counted(benv):
@@ -385,6 +395,9 @@ def test_missing_and_corrupt_hours_lose_the_day_and_are_counted(benv):
     assert days[ds[0]]["states_status"] == "hour_missing" and days[ds[1]]["states_status"] == "hour_corrupt" and days[ds[2]]["states_status"] == "ok"
     mk = [x for x in gz_rows(rdir / "markets.csv.gz") if x["day"] == ds[0]]
     assert {x["states_status"] for x in mk} == {"day_hour_missing"}  # never replaced, never "no trade"
+    # the bytes read by the corrupt hour are still metered (the cap sees every byte fetched, also on a failure)
+    ing = [json.loads(x) for x in (rdir / "ingress.jsonl").read_text().splitlines()]
+    assert any(i["tag"] == f"states:{ds[1]}" and i["bytes"] > 0 for i in ing) and not any(i["tag"] == f"states:{ds[0]}" for i in ing)
 
 
 def test_ingress_cap_truncates_both_splits_evenly_and_counts_unprocessed_days(benv):
@@ -452,3 +465,116 @@ def test_books_refuse_an_unfinished_or_tampered_frame(tmp_path):
 
 def test_frame_days_have_both_splits():
     assert {u.day_split(d) for d in FRAME_DAYS if d in u.b_days()} == {"screen", "holdout"}
+
+
+# ---- freeze-check must-fixes (2026-10-17) ------------------------------------------------------------------------------------------------------------------------
+
+
+H15 = int(datetime(2026, 4, 14, 15, tzinfo=UTC).timestamp() * 1000)
+
+
+def test_pmxt_clock_unit_guard_raises_hour_corrupt_outside_one_hour_of_the_file():
+    ms = frame_markets(n=1)
+    tok, cid = ms[0]["token_up"], ms[0]["condition_id"]
+    hour = datetime(2026, 4, 14, 15, tzinfo=UTC)
+    for off in (-2 * 3600000, 3 * 3600000, 3600 * 1000 * 24 * 365):  # a wrong unit or a wrong file
+        px = PmxtFake()
+        px.files["2026-04-14T15"] = parquet_bytes([book_ev(tok, H15 + off, r=H15 + off + 5, mk=cid)])
+        seen: list[int] = []
+        with pytest.raises(bk.HourCorrupt, match="outside the file's hour"):
+            bk.read_hour_events(hour, {tok: cid}, fetch=px.fetch, size_fn=px.size_fn, cut_ms=TE, meter=seen.append)
+        assert seen and seen[0] > 0  # the bytes are metered on the failure
+    # the receipt clock alone out of range is caught as well; events of other tokens are not judged
+    px = PmxtFake()
+    px.files["2026-04-14T15"] = parquet_bytes([book_ev(tok, H15 + 1000, r=H15 + 9 * 3600000, mk=cid), book_ev("other", H15 - 99 * 3600000, mk="0xother")])
+    with pytest.raises(bk.HourCorrupt):
+        bk.read_hour_events(hour, {tok: cid}, fetch=px.fetch, size_fn=px.size_fn, cut_ms=TE)
+    # inside the slack (30 minutes before the hour, 30 minutes after it) is accepted
+    px = PmxtFake()
+    px.files["2026-04-14T15"] = parquet_bytes([book_ev(tok, H15 - 1800000, mk=cid), book_ev(tok, H15 + 5400000, mk=cid), book_ev("other", H15 - 99 * 3600000, mk="0xother")])
+    evs, _ = bk.read_hour_events(hour, {tok: cid}, fetch=px.fetch, size_fn=px.size_fn, cut_ms=H15 + 7200000)
+    assert len(evs[tok]) == 2
+    # day_states: a corrupt clock loses the day like any corrupt hour
+    px = PmxtFake()
+    px.files["2026-04-14T15"] = parquet_bytes([book_ev(tok, H15 + 7 * 3600000, mk=cid)])
+    with pytest.raises(bk.HourCorrupt):
+        bk.day_states(DAY, ms, fetch=px.fetch, size_fn=px.size_fn)
+
+
+def test_token_with_events_but_no_book_snapshot_is_book_unavailable_not_no_trade_or_halted():
+    ev_pc = elist(ev("0xc", "t", "price_change", TE - 400000, price=0.96, size=9.0, side="SELL"))
+    s = bk.state_at(ev_pc, TE - 120000, TE)
+    assert s["book_status"] == "book_unavailable" and not s["has_book"] and s["halted"] is False and s["n_events"] == 1
+    assert bk.state_at([], TE - 120000, TE)["book_status"] == "no_events"
+    assert bk.state_at(elist(book_ev("t", TE - 300000)), TE - 120000, TE)["book_status"] == "book"
+    # market level: the up token has only a price_change, the down token has a book
+    px = PmxtFake()
+    ms = frame_markets(n=2)
+    evs = [book_ev(ms[0]["token_up"], H15 + 1000, mk=ms[0]["condition_id"]), book_ev(ms[0]["token_down"], H15 + 1000, mk=ms[0]["condition_id"]),
+           ev(ms[1]["condition_id"], ms[1]["token_up"], "price_change", H15 + 2000, price=0.96, size=9.0, side="SELL"),
+           book_ev(ms[1]["token_down"], H15 + 1000, mk=ms[1]["condition_id"])]
+    px.files["2026-04-14T15"] = parquet_bytes(evs)
+    px.files["2026-04-14T14"] = parquet_bytes([ev("0xunrelated", "zz", "book", H15 - 3600000 + 1000)])
+    rows, minfo, _ = bk.day_states(DAY, ms, fetch=px.fetch, size_fn=px.size_fn)
+    assert [x["status"] for x in minfo] == ["ok", "book_unavailable"] and minfo[1]["book_unavailable_sides"] == "up" and minfo[0]["book_unavailable_sides"] == ""
+    up2 = [r for r in rows if r[0] == "2" and r[3] == "up"]
+    assert up2 and {r[-1] for r in up2} == {"book_unavailable"} and {r[8] for r in up2} == {0} and {r[18] for r in up2} == {0}  # has_book 0, halted 0
+    assert {r[-1] for r in rows if r[0] == "2" and r[3] == "down"} == {"book"} and {r[-1] for r in rows if r[0] == "1"} == {"book"}
+    assert bk.STATE_COLUMNS[-1] == "book_status" and bk.STATE_COLUMNS.index("halted") == 18 and bk.STATE_COLUMNS.index("has_book") == 8
+
+
+def test_book_unavailable_is_its_own_label_in_the_day_and_market_files(benv):
+    d = sorted(benv.by_day)[0]
+    ms = benv.by_day[d]
+    h0 = int(datetime(*datetime.strptime(d, "%Y-%m-%d").timetuple()[:3], 15, tzinfo=UTC).timestamp() * 1000)
+    bad = ms[0]  # up token: a price_change only; down token: a book
+    pc = [ev(bad["condition_id"], bad["token_up"], "price_change", h0 + 2000, price=0.96, size=9.0, side="SELL"), book_ev(bad["token_down"], h0 + 1000, mk=bad["condition_id"])]
+    evs = []
+    for m in ms[1:]:
+        for tok in (m["token_up"], m["token_down"]):
+            evs.append(book_ev(tok, h0 + 1000, mk=m["condition_id"]))
+    benv.px.files[f"{d}T15"] = parquet_bytes(evs + pc)
+    benv.books()
+    rdir = benv.root / bk.RUN_ID
+    mk = {x["market_id"]: x for x in gz_rows(rdir / "markets.csv.gz")}
+    assert mk[bad["market_id"]]["states_status"] == "book_unavailable" and mk[bad["market_id"]]["book_unavailable_sides"] == "up"
+    assert all(mk[m["market_id"]]["states_status"] == "ok" for m in ms[1:])
+    day = {x["day"]: x for x in gz_rows(rdir / "days.csv.gz")}[d]
+    assert day["n_book_unavailable"] == "1" and day["n_source_unavailable"] == "0"
+
+
+def test_audit_meters_the_bytes_of_a_corrupt_hour(tmp_path):
+    px = PmxtFake()
+    ms = frame_markets(n=2)
+    px.add_day(DAY, ms, hour=13)
+    px.corrupt.add("2026-04-14T13")
+    res = bk.coverage_audit([DAY], {DAY: ms}, {DAY: "screen"}, fetch=px.fetch, size_fn=px.size_fn, rdir=tmp_path)
+    assert res["per_day"][0]["status"] == "hour_corrupt" and bk.ingress_used(tmp_path) > 0
+
+
+def test_seal_copy_ids_audited_records_what_it_skips_and_prefers_committed_copies(tmp_path):
+    (tmp_path / "h6_weather_SEAL.json").write_text(json.dumps({"files": {"prices/1.csv.gz": "x", "trades/2.csv.gz": "y"}}))
+    (tmp_path / "h7_cb4_era_SEAL.json").write_text("{not json")
+    (tmp_path / "h8_tail_SEAL.json").write_text(json.dumps({"files": {"manifest.json": "z"}}))
+    (tmp_path / "h5_cb1_SEAL.json").write_text(json.dumps({"files": {"prices/9.csv.gz": "q"}}))
+    (tmp_path / "h9_flow_SEAL.json").write_text(json.dumps({"files": {"prices/7.csv.gz": "q"}}))  # CB8's own: never a drop source
+    ids, used, skipped, shas = bk.seal_copy_ids_audited(tmp_path, is_committed=lambda p: p.name != "h5_cb1_SEAL.json")
+    assert ids == {"1", "2"} and used == ["h6_weather_SEAL.json"] and set(shas) == {"h6_weather_SEAL.json"}
+    assert shas["h6_weather_SEAL.json"] == h5_seal.sha256_file(tmp_path / "h6_weather_SEAL.json")
+    reasons = {x["name"]: x["reason"] for x in skipped}
+    assert reasons["h5_cb1_SEAL.json"] == "not_committed" and reasons["h7_cb4_era_SEAL.json"].startswith("unparseable:") and reasons["h8_tail_SEAL.json"] == "no_market_ids"
+    assert set(reasons) == {"h5_cb1_SEAL.json", "h7_cb4_era_SEAL.json", "h8_tail_SEAL.json"}
+    ids2, used2, skipped2, _ = bk.seal_copy_ids_audited(tmp_path)
+    assert ids2 == {"1", "2", "9"} and used2 == ["h5_cb1_SEAL.json", "h6_weather_SEAL.json"] and len(skipped2) == 2
+
+
+def test_seal_doc_records_skipped_seal_copies_with_reasons(benv):
+    (benv.seals / "h6_weather_SEAL.json").write_text(json.dumps({"files": {f"prices/{benv.rows[0]['market_id']}.csv.gz": "x"}}))
+    (benv.seals / "h7_cb4_era_SEAL.json").write_text("{broken")
+    (benv.seals / "h8_geo_SEAL.json").write_text(json.dumps({"files": {"manifest.json": "m"}}))
+    (benv.seals / "h8_text_SEAL.json").write_text(json.dumps({"files": {"prices/5.csv.gz": "m"}}))
+    benv.books(is_committed=lambda p: p.name != "h8_text_SEAL.json")
+    seal = json.loads((benv.root / bk.RUN_ID / bk.SEAL_NAME).read_text())
+    sk = {x["name"]: x["reason"] for x in seal["drops"]["seal_copies_skipped"]}
+    assert sk["h8_text_SEAL.json"] == "not_committed" and sk["h7_cb4_era_SEAL.json"].startswith("unparseable:") and sk["h8_geo_SEAL.json"] == "no_market_ids"
+    assert seal["drops"]["seal_copies_read"] == ["h6_weather_SEAL.json"] and list(seal["drops"]["seal_copies_sha256"]) == ["h6_weather_SEAL.json"]

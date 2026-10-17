@@ -255,7 +255,7 @@ the print, and trigger wallet hash. **H** Gamma event, UTC day of the exit, and 
 
 | Test | Type | Floor on the point estimate |
 |---|---|---|
-| B1 | economic | net ≥ +0.5c per share bought **and** the day-unit tail gate (§CB8-B), which at about 56 traded days requires a mean margin of about ≥ 8.4c |
+| B1 | economic | net ≥ +0.5c per share bought **and** the day-unit tail gate (§CB8-B), which at about 56 traded days requires a mean margin of about ≥ 8.4c [corrected by Erratum E1 (2026-10-17): about 7.9c / 11.3c / 14.2c, see the erratum before the H v2 amendment] |
 | W1 | economic | mean mark-out of the skipped fills (plus forgone rebate) ≤ −0.5c per share; route gate on kept fills (§CB8-W) |
 | H1 | mechanism + economic gate | contrast ≥ +0.5c per share; route gate: exits' own mean mark-out ≥ +0.5c (§CB8-H) |
 
@@ -363,7 +363,7 @@ unit test asserts that no census path receives a target field. **No net, mark-ou
       scale", a descriptive answer to CH76;
     - otherwise: "source unavailable".
   - The number of traded days, and the margin the day-unit tail gate would require at that count (a function of n only,
-    no outcome).
+    no outcome; it equals `q_U` at that count, per Erratum E1).
 - **W (SCREEN; HOLDOUT file and event counts only).**
   - Frame, filter and key-drop counts; capped days; prints per market-day.
   - Triggers, skip windows, S, S′ and N print counts; two-sided mark availability at +2 h; event, day and
@@ -521,8 +521,8 @@ CB1-CB7 population contains daily Up/Down markets (CB6/CB7 exclude them explicit
   - **Consequence, stated plainly.** With about 56 traded days per stage, `q_U` = 0.079 at zero losing days, 0.113 at one
     and 0.142 at two. Because `W_d / L_d` ≈ (mean margin)/(mean `a + f`), the gate needs a **mean gross margin
     `1 − a − f(a)` of about 8.4c per share with no losing day, about 12.5c with one and about 16c with two** (at
-    `a + f ≈ 0.985`). This makes B1 a test of **gross terminal staleness only**: it can pass only if the asks recorded
-    when the outcome is near-certain sit around ≤ 0.91 on average. A real 1-3c residual cannot pass in 56 days, whatever
+    `a + f ≈ 0.985`). [corrected by Erratum E1 (2026-10-17): about 7.9c / 11.3c / 14.2c, see the erratum before the H v2 amendment ; the `a + f ≈ 0.985` assumption was an arithmetic slip] This makes B1 a test of **gross terminal staleness only**: it can pass only if the asks recorded
+    when the outcome is near-certain sit around ≤ 0.91 on average [E1: about ≤ 0.915]. A real 1-3c residual cannot pass in 56 days, whatever
     its p. Showing one needs Stage P's day count (about 300 days: about 1.5c at zero losing days). Alpha, the floor and
     the buy cap are unchanged.
 - p < 0.01 (Stage 1) with the §2.3 ways (market-day; day under A-C1).
@@ -538,7 +538,7 @@ CB1-CB7 population contains daily Up/Down markets (CB6/CB7 exclude them explicit
   α 0.01, power 0.8) is then **about 2.1c at f_tr = 1 and about 3c at f_tr = 0.5**.
 
 **Binding constraint (round 1, item 1).** The day-unit tail gate dominates the p-based MDE. At about 56 traded days, B1
-can advance only if the mean margin is **≥ about 8.4c per share** (more with any losing day). A 0.5-3c residual is
+can advance only if the mean margin is **≥ about 8.4c per share** (more with any losing day). [corrected by Erratum E1 (2026-10-17): about 7.9c / 11.3c / 14.2c, see the erratum before the H v2 amendment] A 0.5-3c residual is
 reported as "below the tail-gate requirement", not as evidence.
 
 **Costs by era.** The pmxt window includes the CLOB V2 switch (about 04-28), the tick change (07-02) and the fee step
@@ -574,7 +574,7 @@ day count), ways and placebos. It opens only after B1 advanced and its Stage-1 r
 - GB fails with source coverage met: no fresh ask ≤ 0.99 in the last 5 minutes, "no minute-scale opportunity at
   recorded books". A coverage failure is "source unavailable" instead, never "bots price it".
 - B1 not detected.
-- The tail gate fails. At about 56 days this happens whenever the mean margin is below about 8.4c, even with a
+- The tail gate fails. At about 56 days this happens whenever the mean margin is below about 8.4c [corrected by Erratum E1 (2026-10-17): about 7.9c / 11.3c / 14.2c, see the erratum before the H v2 amendment], even with a
   significant mean: the verdict is "below the tail-gate requirement".
 - The break-even placebo advances.
 - The effect needs the top five days.
@@ -942,7 +942,7 @@ updown-books,flow-fetch,flow-seal,census,screen,replicate,verify-seal} --family 
   - pmxt states use both clocks ≤ `t`; freshness 120 s; crossed is ineligible; the cap is `a ≤ 0.99` with size ≥ 5.
   - The fee uses the max of the recorded and docs rates. Ties pay 0.5.
   - The day-unit tail gate (`W_d`, `L_d` per day; the Clopper-Pearson bound on days) on fixtures with 0, 1 and 5
-    losing days. It reproduces the required margin of about 8.4c at n = 56 with k = 0. The break-even placebo advances
+    losing days. It reproduces the required margin of about 8.4c at n = 56 with k = 0 [corrected by Erratum E1 (2026-10-17): about 7.9c / 11.3c / 14.2c, see the erratum before the H v2 amendment]. The break-even placebo advances
     about 1% on a no-effect fixture with heavy within-day dependence.
   - The source check keeps disagreeing units in the P&L with the Gamma outcome, and > 2% → not testable.
   - The latency fill is `max(a_t, a_{t+10})` with ≥ 5 shares at ≤ `a*` at `t + 10 s`.
@@ -997,7 +997,7 @@ updown-books,flow-fetch,flow-seal,census,screen,replicate,verify-seal} --family 
 1. **Bots and the day count (B).** The most likely CH76 answer is "no fresh ask ≤ 0.99 with \|z\| ≥ 3": a GB fail,
    honestly reported (or "source unavailable" if the pmxt coverage audit fails). If opportunities exist, the binding
    limit is the day-unit tail gate. With about 56 independent days per stage, B1 can pass only with a mean margin of
-   about ≥ 8.4c. Smaller real residuals are reported as "below the tail-gate requirement" and need Stage P's day count.
+   about ≥ 8.4c [corrected by Erratum E1 (2026-10-17): about 7.9c / 11.3c / 14.2c, see the erratum before the H v2 amendment]. Smaller real residuals are reported as "below the tail-gate requirement" and need Stage P's day count.
 2. **pmxt reconstruction (B).**
    - Event-stream books have no sequence numbers, so crossed states occur. Illiquid tokens look stale.
    - The freshness rule (120 s) and the crossed exclusion bind. Trading may halt before `t_end`; halted units are
@@ -1080,7 +1080,7 @@ relaxed.
 
 | # | Finding | Resolution | Where |
 |---|---|---|---|
-| 1 | The tail gate mixed units: a per-day loss probability against per-unit payoffs. At about 56 traded days the 99% Clopper-Pearson bound with zero losing days is 0.079, so about 8.5c of gross margin is needed | **Kept binding and made unit-consistent**, decided data-blind. The gate is now on **day P&L**: `mean_d(W_d)(1 − q_U) − mean_d(L_d) q_U ≥ 0`, with `W_d`/`L_d` the day's total win and worst-case total loss and `q_U` the bound on losing days. **Justification:** terminal reversals come from common crypto shocks, so the day is the independent unit. Market-day units would count one shock seven times, and distribution-free bounds are looser at n ≈ 56. **Stated plainly:** B1 can pass only with a mean margin of about ≥ 8.4c per share (about 12.5c with one losing day, about 16c with two). A 1-3c residual is reported as "below the tail-gate requirement" and belongs to Stage P (about 1.5c at about 300 days) | §CB8-B gates, MDE, kill list, verdict map; §2.4; §2.7; §5.3; §7 risk 1 |
+| 1 | The tail gate mixed units: a per-day loss probability against per-unit payoffs. At about 56 traded days the 99% Clopper-Pearson bound with zero losing days is 0.079, so about 8.5c of gross margin is needed | **Kept binding and made unit-consistent**, decided data-blind. The gate is now on **day P&L**: `mean_d(W_d)(1 − q_U) − mean_d(L_d) q_U ≥ 0`, with `W_d`/`L_d` the day's total win and worst-case total loss and `q_U` the bound on losing days. **Justification:** terminal reversals come from common crypto shocks, so the day is the independent unit. Market-day units would count one shock seven times, and distribution-free bounds are looser at n ≈ 56. **Stated plainly:** B1 can pass only with a mean margin of about ≥ 8.4c per share (about 12.5c with one losing day, about 16c with two) [corrected by Erratum E1 (2026-10-17): about 7.9c / 11.3c / 14.2c, see the erratum before the H v2 amendment]. A 1-3c residual is reported as "below the tail-gate requirement" and belongs to Stage P (about 1.5c at about 300 days) | §CB8-B gates, MDE, kill list, verdict map; §2.4; §2.7; §5.3; §7 risk 1 |
 | 2 | The source check excluded Binance-versus-official disagreement units | **Disagreeing units stay in the P&L with the Gamma official outcome.** Disagreement is diagnostic only. The > 2% "not testable (source)" gate stays | §CB8-B target; §5.3 |
 | 3 | pmxt coverage is unaudited | **Count-only coverage audit**, the first stage of q0166: hour 13Z of 20 seeded days (10 SCREEN, 10 HOLDOUT), with PASS iff ≥ 90% of (market, day) pairs show an event. FAIL → "not testable (source unavailable)". Market-days without events in 14Z-15Z get their own "source unavailable" label. A GB fail reads "no opportunity" only with the audit PASS and ≥ 80% coverage. The ingress cap rises from 80 to 90 GB to pay for the audit (a cost cap, not a statistical threshold) | §CB8-B audit; §2.7; §2.8; §5.1; q0166 |
 | 4 | Latency robustness | B fills at `max(a_t, a_{t+10 s})` only if ≥ 5 shares at ≤ that price remain at `t + 10 s` (and ≤ 0.99); it must keep the sign, half the magnitude and the tail gate | §2.6 (vi); §5.3 |
@@ -1101,7 +1101,7 @@ relaxed.
 
 k is unchanged: **3 fixed (B1, W1, H1) + up to 3 conditional = 3-6.**
 - **B1:** the p-based MDE (about 2-3c) is no longer the binding limit. The day-unit tail gate requires a mean margin of
-  about ≥ 8.4c at about 56 traded days with no losing day.
+  about ≥ 8.4c at about 56 traded days with no losing day. [corrected by Erratum E1 (2026-10-17): about 7.9c / 11.3c / 14.2c, see the erratum before the H v2 amendment]
 - **W1 and H1:** MDEs unchanged (about 0.5c and about 2c).
 - **pmxt ingress cap:** 80 → 90 GB.
 
@@ -1223,6 +1223,23 @@ run `updown_books_source_unavailable`; per-market "source_unavailable" and per-d
   `history_sources` and the existing loaders (a missing `fee_rate_bps` column yields `fee_bps = None`, hence the docs 0.07 rate). The smoke checks HEAD / checksums only,
   so the first q0166 chunk is the real test of the reader.
 - Wall time of q0166 (about 113 days x 15Z hour with range reads) and memory 1.5 GB are the design's estimates, untested.
+
+---
+
+## Erratum E1 (2026-10-17): the B1 tail-gate required margin (written before any B data read)
+
+Status: **documentation erratum; no formula, level or bound changes.** Source: the CB8-B data-side freeze check (science-reviewer GO_WITH_CONDITIONS, must-fix 0). The earlier text above is
+kept as written and marked inline; this erratum governs wherever they differ (§CB8-B gates, §2.4, §2.7, §5.3, §7 risk 1 and the round-1 table).
+
+1. **Formula (unchanged).** Per day `W_d = sum(1 - a - f)`, `L_d = sum(a + f)`; losing day = any unit with `y_fav < 1` (a 50-50 resolution pays 0.5 and therefore makes its day a losing day);
+   `q_U` = one-sided 99 % Clopper-Pearson upper bound of the losing-day share; gate `mean_d(W_d)(1 - q_U) - mean_d(L_d) q_U >= 0`.
+2. **Algebra.** The gate expands to `mean(W) - q_U (mean(W) + mean(L)) >= 0`. With `c = a + f`, `W_d = n_d - sum_d(c)` and `L_d = sum_d(c)`, so `W_d + L_d = n_d` (the number of units of the day) and the
+   gate is `mean(W_d) / mean(n_d) >= q_U`: the **unit-weighted mean margin `1 - c` must be at least `q_U`**. No "equal cost" assumption is needed.
+3. **Corrected requirement.** The required mean margin is `q_U` itself: **7.9c / 11.3c / 14.2c at 56 days with 0 / 1 / 2 losing days** (`q_U` 0.0789 / 0.1127 / 0.1418). The design's 8.4 / 12.5 / 16c came from an
+   arithmetic slip (the margin was converted at `a + f` held at 0.985). Asks must average about <= 0.915 (not 0.91) at zero losing days. Stage P's requirement of about 1.5c at about 300 days is unchanged.
+4. **Day counts.** The split gives **60 SCREEN and 53 HOLDOUT days** (113 in all; fewer if a day has no market or is lost to a source failure). Each stage applies `q_U` at its own traded-day count and its own losing-day
+   count: with 0 / 1 / 2 losing days, 60 days need 7.4c / 10.6c / 13.3c and 53 days need 8.3c / 11.9c / 14.9c. "About 56 days" in the text above is only an illustration.
+5. **Code.** `cb8_updown.required_margin` already returns `q_U`; only a comment in it and the design text were wrong. No threshold, floor, level or cap changed, and no B data had been read.
 
 ---
 

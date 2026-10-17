@@ -17,10 +17,10 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
+from . import cb4_data as c4
 from . import cb6_tail as c6
 from . import cb7_common as c7
 from . import cb8_common as cm
-from . import cb8_flow as flow
 from . import cb8_updown as U
 from . import h5_seal
 from . import history_backfill as hb
@@ -46,10 +46,12 @@ SEAL_NAME = "HOLDOUT_SEAL.json"
 SEAL_COPY_NAME = "cb8_updown_holdout_SEAL.json"
 EVENT_COLS = ["timestamp_received", "timestamp", "market", "event_type", "asset_id", "bids", "asks", "price", "size", "side", "new_tick_size", "fee_rate_bps"]
 STATE_COLUMNS = ["market_id", "condition_id", "day", "side", "token_id", "off_s", "plus_s", "t_ms", "has_book", "best_bid", "best_ask", "ask_size", "ask_size_1c",
-                 "tick", "fee_bps", "last_event_ms", "fresh", "crossed", "halted", "n_events", "asks_top"]
+                 "tick", "fee_bps", "last_event_ms", "fresh", "crossed", "halted", "n_events", "asks_top", "book_status"]
 PRINT_COLUMNS = ["market_id", "ts", "idx", "side", "price", "size"]
-MARKET_COLUMNS = ["market_id", "day", "split", "asset", "states_status", "lookback", "n_events_up", "n_events_down", "prints_status", "n_prints_pre", "n_prints_post"]
-DAY_COLUMNS = ["day", "split", "n_markets", "states_status", "prints_status", "n_source_unavailable", "bytes_read"]
+MARKET_COLUMNS = ["market_id", "day", "split", "asset", "states_status", "lookback", "n_events_up", "n_events_down", "book_unavailable_sides", "prints_status", "n_prints_pre", "n_prints_post"]
+DAY_COLUMNS = ["day", "split", "n_markets", "states_status", "prints_status", "n_source_unavailable", "n_book_unavailable", "bytes_read"]
+BOOK_OK, BOOK_UNAVAILABLE, NO_EVENTS = "book", "book_unavailable", "no_events"  # per-state label: a snapshot exists / events but no `book` snapshot / no events
+CLOCK_SLACK_MS = 3600 * 1000  # a pmxt event clock more than 1 h outside the file's hour means a wrong unit or a wrong file
 
 
 class HourMissing(Exception):
@@ -93,10 +95,27 @@ def _ms(col):
     return pc.cast(pc.cast(col, pa.timestamp("ms", "UTC")), pa.int64())
 
 
-def read_hour_events(hour: datetime, tokens: dict[str, str], *, fetch, size_fn, cut_ms: int, gate: Callable[[], None] | None = None) -> tuple[dict[str, list[dict]], dict]:
+def _check_clock(url: str, hour: datetime, *cols) -> None:
+    """Raise :class:`HourCorrupt` unless every value of the ms-cast clock columns lies within one hour of the file's hour ``[hour - 1 h, hour + 2 h)``: the blind cast of
+    ``_ms`` would otherwise turn a seconds / microseconds / nanoseconds column into plausible-looking but wrong event times."""
+    import pyarrow.compute as pc  # noqa: PLC0415
+
+    lo = int(hour.timestamp() * 1000) - CLOCK_SLACK_MS
+    hi = int(hour.timestamp() * 1000) + 2 * CLOCK_SLACK_MS
+    for col in cols:
+        if len(col) == 0:
+            continue
+        mm = pc.min_max(col).as_py()
+        if mm["min"] is None or mm["min"] < lo or mm["max"] >= hi:
+            raise HourCorrupt(f"{url}: event clock outside the file's hour (unit or file mismatch)")
+
+
+def read_hour_events(hour: datetime, tokens: dict[str, str], *, fetch, size_fn, cut_ms: int, gate: Callable[[], None] | None = None,
+                     meter: Callable[[int], None] | None = None) -> tuple[dict[str, list[dict]], dict]:
     """Events of ``tokens`` (token -> condition id) in one pmxt hour file with both clocks <= ``cut_ms``, sorted by (venue, receipt) time. Row groups are pruned
     on the ``market`` statistics and the heavy columns (``bids`` / ``asks``) are read only for row groups that have a matching light row. Raises
-    :class:`HourMissing` (404) or :class:`HourCorrupt`; a network failure (``history_sources.SourceError``) propagates. ``info['bytes']`` is the ingress."""
+    :class:`HourMissing` (404) or :class:`HourCorrupt` (also when an event clock of a requested token lies more than 1 h outside the file's hour); a network failure
+    (``history_sources.SourceError``) propagates. ``info['bytes']`` is the ingress; ``meter`` (if given) receives the bytes fetched even when the read fails."""
     import pyarrow as pa  # noqa: PLC0415
     import pyarrow.compute as pc  # noqa: PLC0415
     import pyarrow.parquet as pq  # noqa: PLC0415
@@ -126,8 +145,10 @@ def read_hour_events(hour: datetime, tokens: dict[str, str], *, fetch, size_fn, 
             if gate is not None:
                 gate()
             light = pf.read_row_group(rg, columns=["timestamp_received", "timestamp", "asset_id"])
-            keep = pc.and_(pc.is_in(light["asset_id"], value_set=value_set),
-                           pc.and_(pc.less_equal(_ms(light["timestamp_received"]), cut_ms), pc.less_equal(_ms(light["timestamp"]), cut_ms)))
+            mine = pc.is_in(light["asset_id"], value_set=value_set)
+            r_ms, v_ms = _ms(light["timestamp_received"]), _ms(light["timestamp"])
+            _check_clock(url, hour, r_ms.filter(mine), v_ms.filter(mine))
+            keep = pc.and_(mine, pc.and_(pc.less_equal(r_ms, cut_ms), pc.less_equal(v_ms, cut_ms)))
             if not pc.any(keep).as_py():
                 continue
             info["row_groups_read"] += 1
@@ -145,12 +166,15 @@ def read_hour_events(hour: datetime, tokens: dict[str, str], *, fetch, size_fn, 
         raise HourCorrupt(f"{url}: {type(exc).__name__}") from None
     finally:
         info["bytes"] = rf.bytes_fetched
+        if meter is not None:
+            meter(rf.bytes_fetched)
     for lst in ev.values():
         lst.sort(key=lambda e: (e["v"], e["r"]))
     return ev, info
 
 
-def read_presence(hour: datetime, cids: list[str], *, fetch, size_fn, gate: Callable[[], None] | None = None) -> tuple[set[str], dict]:
+def read_presence(hour: datetime, cids: list[str], *, fetch, size_fn, gate: Callable[[], None] | None = None,
+                  meter: Callable[[int], None] | None = None) -> tuple[set[str], dict]:
     """Condition ids (of ``cids``) that have any event in one pmxt hour file; only the ``market`` column is read (counts only). Raises
     :class:`HourMissing` / :class:`HourCorrupt`."""
     import pyarrow as pa  # noqa: PLC0415
@@ -187,6 +211,8 @@ def read_presence(hour: datetime, cids: list[str], *, fetch, size_fn, gate: Call
         raise HourCorrupt(f"{url}: {type(exc).__name__}") from None
     finally:
         info["bytes"] = rf.bytes_fetched
+        if meter is not None:
+            meter(rf.bytes_fetched)
     return {c for c in cids if c.lower() in present}, info
 
 
@@ -207,7 +233,8 @@ def state_at(events: list[dict], t_ms: int, t_end_ms: int) -> dict:
     """The reconstructed state of one token at ``t_ms`` from events (sorted by venue, receipt time) with BOTH clocks <= ``t_ms``: the last ``book`` event, then
     later ``price_change`` events (size = new absolute level total, 0 removes). Reports best bid / ask, size at the ask and within 1c, the best 10 ask levels,
     the tick, the fee rate of the latest event with one, the venue time of the latest event of any type, ``fresh`` (that time >= t - 120 s), ``crossed`` and
-    ``halted`` (no event after t_end - 600 s and no ask). Crossed books are reported, never repaired."""
+    ``halted`` (no event after t_end - 600 s and no ask) and ``book_status``: ``book`` (a snapshot exists), ``book_unavailable`` (events but no ``book`` snapshot by
+    ``t``: not "no trade", not halted) or ``no_events``. Crossed books are reported, never repaired."""
     vs = [e["v"] for e in events]
     elig = [e for e in events[: bisect_right(vs, t_ms)] if e["r"] <= t_ms]
     last_v = max((e["v"] for e in elig), default=None)
@@ -217,8 +244,10 @@ def state_at(events: list[dict], t_ms: int, t_end_ms: int) -> dict:
     fresh = last_v is not None and last_v >= t_ms - U.FRESH_S * 1000
     base = {"t_ms": t_ms, "has_book": False, "best_bid": None, "best_ask": None, "ask_size": None, "ask_size_1c": None, "tick": tick, "fee_bps": fee,
             "last_event_ms": last_v, "fresh": bool(fresh), "crossed": False, "halted": last_v is None or last_v <= t_end_ms - OFFSETS_S[0] * 1000, "n_events": len(elig),
-            "asks_top": []}
+            "asks_top": [], "book_status": BOOK_OK if book_i is not None else (BOOK_UNAVAILABLE if elig else NO_EVENTS)}
     if book_i is None:
+        if elig:  # events without a snapshot: the state is unknown, which is neither a halt nor an empty ask side
+            base["halted"] = False
         return base
     bids, asks = _levels(elig[book_i]["bids"]), _levels(elig[book_i]["asks"])
     for e in elig[book_i + 1:]:
@@ -248,13 +277,15 @@ def token_rows(market: dict, side: str, token: str, events: list[dict], t_end_ms
             s = state_at(events, t, t_end_ms)
             out.append([market["market_id"], market["condition_id"], market["day"], side, token, off, plus, t, int(s["has_book"]), s["best_bid"], s["best_ask"], s["ask_size"],
                         s["ask_size_1c"], s["tick"], s["fee_bps"], s["last_event_ms"], int(s["fresh"]), int(s["crossed"]), int(s["halted"]), s["n_events"],
-                        json.dumps(s["asks_top"], separators=(",", ":"))])
+                        json.dumps(s["asks_top"], separators=(",", ":")), s["book_status"]])
     return out
 
 
-def day_states(day: str, markets: list[dict], *, fetch, size_fn, gate: Callable[[], None] | None = None) -> tuple[list[list], list[dict], dict]:
+def day_states(day: str, markets: list[dict], *, fetch, size_fn, gate: Callable[[], None] | None = None,
+               meter: Callable[[int], None] | None = None) -> tuple[list[list], list[dict], dict]:
     """Book-state rows of every market of ``day`` from the pmxt hour 15Z (the 14Z lookback only for tokens without a ``book`` event by the cut). A market
-    whose tokens have no event in 14Z-15Z is ``source_unavailable`` (its own label, never "no trade"). A missing or corrupt 15Z hour raises
+    whose tokens have no event in 14Z-15Z is ``source_unavailable`` (its own label, never "no trade"); a market with events on a token that never has a ``book``
+    snapshot is ``book_unavailable`` (its own label; the rows keep a per-state ``book_status``). A missing or corrupt 15Z hour raises
     :class:`HourMissing` / :class:`HourCorrupt` (the day is unavailable for all its markets). Returns (rows, per-market info, hour info)."""
     t_end_ms = int(U.t_end(day) * 1000)
     cut = t_end_ms - (U.CHECKPOINTS_S[-1] - U.LATENCY_S) * 1000  # the last state needed is t_end - 60 s + 10 s
@@ -262,7 +293,7 @@ def day_states(day: str, markets: list[dict], *, fetch, size_fn, gate: Callable[
     for m in markets:
         tokens[m["token_up"]] = m["condition_id"]
         tokens[m["token_down"]] = m["condition_id"]
-    ev15, i15 = read_hour_events(hour_dt(day, 15), tokens, fetch=fetch, size_fn=size_fn, cut_ms=cut, gate=gate)
+    ev15, i15 = read_hour_events(hour_dt(day, 15), tokens, fetch=fetch, size_fn=size_fn, cut_ms=cut, gate=gate, meter=meter)
     info = {"bytes": i15["bytes"], "row_groups_read": i15["row_groups_read"], "lookback_tokens": 0, "lookback_status": "not_needed"}
     first_t = t_end_ms - OFFSETS_S[0] * 1000  # the earliest state used (600 s, reported only): a token without a book event by then needs the 14Z lookback
     need = {t: c for t, c in tokens.items() if not any(e["et"] == "book" and e["v"] <= first_t and e["r"] <= first_t for e in ev15[t])}
@@ -270,7 +301,7 @@ def day_states(day: str, markets: list[dict], *, fetch, size_fn, gate: Callable[
     if need:
         info["lookback_tokens"] = len(need)
         try:
-            ev14, i14 = read_hour_events(hour_dt(day, 14), need, fetch=fetch, size_fn=size_fn, cut_ms=cut, gate=gate)
+            ev14, i14 = read_hour_events(hour_dt(day, 14), need, fetch=fetch, size_fn=size_fn, cut_ms=cut, gate=gate, meter=meter)
             info["bytes"] += i14["bytes"]
             info["lookback_status"] = "read"
         except (HourMissing, HourCorrupt):
@@ -285,7 +316,9 @@ def day_states(day: str, markets: list[dict], *, fetch, size_fn, gate: Callable[
             continue
         for s in ("up", "down"):
             rows += token_rows(m, s, m[f"token_{s}"], evs[s], t_end_ms)
-        minfo.append({"market_id": m["market_id"], "status": "ok", "n_events_up": n_up, "n_events_down": n_down, "lookback": "read" if m["token_up"] in need else "not_needed"})
+        no_book = [s for s in ("up", "down") if evs[s] and not any(e["et"] == "book" for e in evs[s])]
+        minfo.append({"market_id": m["market_id"], "status": BOOK_UNAVAILABLE if no_book else "ok", "n_events_up": n_up, "n_events_down": n_down,
+                      "book_unavailable_sides": "+".join(no_book), "lookback": "read" if m["token_up"] in need else "not_needed"})
     return rows, minfo, info
 
 
@@ -335,8 +368,7 @@ def coverage_audit(days: list[str], markets_by_day: dict[str, list[dict]], split
     for d in days:
         cids = [m["condition_id"] for m in markets_by_day[d]]
         try:
-            present, i = read_presence(hour_dt(d, hour), cids, fetch=fetch, size_fn=size_fn)
-            ingress_add(rdir, i["bytes"], f"audit:{d}")
+            present, _ = read_presence(hour_dt(d, hour), cids, fetch=fetch, size_fn=size_fn, meter=lambda n, d=d: ingress_add(rdir, n, f"audit:{d}"))
             status = "ok"
         except HourMissing:
             present, status = set(), "hour_missing"
@@ -380,7 +412,7 @@ def books_fetch(root: Path, transport, *, rules_sha: str, fetch, size_fn, frame_
                 disk_cap: int = int(OUTPUT_CAP_GB * 1024**3), budget_min: float | None = None, data_dumps: Path | None = None,
                 data_dumps_cap_gb: float = cm.DATA_DUMPS_FETCH_CAP_GB, wall_clock: Callable[[], float] = time.time, sleep=time.sleep, live_check=None, health_check=None,
                 snapshot_root: Path | None = None, should_stop: Callable[[], bool] | None = None, now: float | None = None, seals_dir: Path | None = None,
-                run_id: str = RUN_ID) -> dict:
+                run_id: str = RUN_ID, is_committed: Callable[[Path], bool] | None = None) -> dict:
     """One resumable chunk of q0166. Refusals first (run id, root, smoke b and c, the finished frame run and its file hashes), headroom (exit 75), sticky
     end states, then: the count-only coverage audit (first stage; FAIL ends the run ``updown_books_source_unavailable`` and no checkpoint is extracted), per day
     (seeded order alternating SCREEN and HOLDOUT) the book states and the terminal prints (HOLDOUT days into ``holdout/``), the ingress cap (remaining days are
@@ -472,8 +504,7 @@ def books_fetch(root: Path, transport, *, rules_sha: str, fetch, size_fn, frame_
                     continue
                 try:
                     if stage == "states":
-                        rows, minfo, hinfo = day_states(d, markets_by_day[d], fetch=fetch, size_fn=size_fn)
-                        ingress_add(rdir, hinfo["bytes"], f"states:{d}")
+                        rows, minfo, hinfo = day_states(d, markets_by_day[d], fetch=fetch, size_fn=size_fn, meter=lambda n, d=d: ingress_add(rdir, n, f"states:{d}"))
                         p = sdir / f"{d}.states.csv.gz"
                         fr.budget.write_gz_csv(p, STATE_COLUMNS, rows)
                         rec = {"day": d, "stage": stage, "status": "ok", "markets": minfo, "bytes": hinfo["bytes"], "lookback_status": hinfo["lookback_status"]}
@@ -509,7 +540,7 @@ def books_fetch(root: Path, transport, *, rules_sha: str, fetch, size_fn, frame_
             m["status"] = "in_progress"
             return m
         finalize_books(fr, rdir, done, markets_by_day, split_of)
-        seal = seal_holdout(fr, rdir, frame, rules_sha, seals_dir=Path(seals_dir or cm.SEALS_DIR))
+        seal = seal_holdout(fr, rdir, frame, rules_sha, seals_dir=Path(seals_dir or cm.SEALS_DIR), frame_dir=fdir, is_committed=is_committed)
         fr.record_file(rdir / SEAL_NAME)
         fr.extra_state["seal"] = seal
     except OSError as exc:
@@ -530,15 +561,16 @@ def finalize_books(fr: cm.Cb8Run, rdir: Path, done: dict, markets_by_day: dict[s
         st, pr = done[(d, "states")], done[(d, "prints")]
         ms = {m["market_id"]: m for m in st["markets"]}
         pm = {m["market_id"]: m for m in pr["markets"]}
-        n_unav = 0
+        n_unav = n_book_unav = 0
         for mk in sorted(markets_by_day[d], key=lambda x: x["market_id"]):
             s = ms.get(mk["market_id"])
             status = s["status"] if s else ("day_" + st["status"])
-            n_unav += int(status != "ok")
+            n_book_unav += int(status == BOOK_UNAVAILABLE)
+            n_unav += int(status not in ("ok", BOOK_UNAVAILABLE))
             p = pm.get(mk["market_id"])
             mrows.append([mk["market_id"], d, split_of[d], mk["asset"], status, (s or {}).get("lookback", ""), (s or {}).get("n_events_up", ""), (s or {}).get("n_events_down", ""),
-                          (p or {}).get("status", "day_" + pr["status"]), (p or {}).get("n_pre", ""), (p or {}).get("n_post", "")])
-        drows.append([d, split_of[d], len(markets_by_day[d]), st["status"], pr["status"], n_unav, st.get("bytes", "")])
+                          (s or {}).get("book_unavailable_sides", ""), (p or {}).get("status", "day_" + pr["status"]), (p or {}).get("n_pre", ""), (p or {}).get("n_post", "")])
+        drows.append([d, split_of[d], len(markets_by_day[d]), st["status"], pr["status"], n_unav, n_book_unav, st.get("bytes", "")])
     fr.budget.write_gz_csv(rdir / "days.csv.gz", DAY_COLUMNS, drows)
     fr.budget.write_gz_csv(rdir / "markets.csv.gz", MARKET_COLUMNS, mrows)
     for p in sorted(rdir.rglob("*.csv.gz")):
@@ -550,7 +582,39 @@ def finalize_books(fr: cm.Cb8Run, rdir: Path, done: dict, markets_by_day: dict[s
     (rdir / "days_fail.jsonl").unlink(missing_ok=True)
 
 
-def seal_holdout(fr: cm.Cb8Run, rdir: Path, frame: list[dict], rules_sha: str, *, seals_dir: Path) -> dict:
+def seal_copy_ids_audited(seals_dir: Path, own: tuple[str, ...] = ("h9_flow_SEAL.json", "cb8_updown_holdout_SEAL.json"), *,
+                          is_committed: Callable[[Path], bool] | None = None) -> tuple[set[str], list[str], list[dict], dict[str, str]]:
+    """Market ids named in every seal copy under ``seals_dir`` except CB8's own, like ``flow.seal_copy_ids`` but nothing is skipped silently. Returns (ids, used
+    names, skipped ``[{"name", "reason"}]``, sha256 per used copy). With ``is_committed`` a copy that is not committed (identical to HEAD) is skipped with the
+    reason ``not_committed`` (the drops cover copies committed by then); an unparseable copy is ``unparseable:<ExceptionType>`` and one without market ids
+    ``no_market_ids``."""
+    w = c4._cb2w()
+    ids: set[str] = set()
+    used: list[str] = []
+    skipped: list[dict] = []
+    shas: dict[str, str] = {}
+    for p in sorted(Path(seals_dir).glob("*_SEAL.json")):
+        if p.name in own:
+            continue
+        if is_committed is not None and not is_committed(p):
+            skipped.append({"name": p.name, "reason": "not_committed"})
+            continue
+        try:
+            found = w.seal_ids_from_copy(p)
+        except Exception as exc:
+            skipped.append({"name": p.name, "reason": f"unparseable:{type(exc).__name__}"})
+            continue
+        if not found:
+            skipped.append({"name": p.name, "reason": "no_market_ids"})
+            continue
+        ids |= found
+        used.append(p.name)
+        shas[p.name] = h5_seal.sha256_file(p)
+    return ids, used, skipped, shas
+
+
+def seal_holdout(fr: cm.Cb8Run, rdir: Path, frame: list[dict], rules_sha: str, *, seals_dir: Path, frame_dir: Path | None = None,
+                 is_committed: Callable[[Path], bool] | None = None) -> dict:
     """Final stage. Re-hash every file of the manifest (any change is a refusal), record seal-time drops by id and key against every seal copy committed by now
     (``DROPPED_*`` blocks in ``drops.csv.gz``; sealed files are never edited), hash the ``holdout/`` listing and write ``HOLDOUT_SEAL.json`` plus the committed
     copy ``cb8_updown_holdout_SEAL.json`` (never overwritten with different content). More than 2% of drop ids without metadata -> disjointness unverified."""
@@ -560,7 +624,7 @@ def seal_holdout(fr: cm.Cb8Run, rdir: Path, frame: list[dict], rules_sha: str, *
     man = json.loads((rdir / "manifest.json").read_text()) if (rdir / "manifest.json").exists() else {}
     man_files = {**(man.get("file_sha256") or {}), **fr.file_sha256}
     n_checked = cm.verify_manifest_files(rdir, {"file_sha256": man_files})
-    ids, used = flow.seal_copy_ids(seals_dir)
+    ids, used, skipped, used_shas = seal_copy_ids_audited(seals_dir, is_committed=is_committed)
     keys: dict[str, set[str]] = {"event": set(), "neg_risk_market": set(), "series": set()}
     missing_meta = 0
     if ids:
@@ -584,12 +648,17 @@ def seal_holdout(fr: cm.Cb8Run, rdir: Path, frame: list[dict], rules_sha: str, *
     (rdir / "drops.csv.gz").write_bytes(hb._gz_csv_bytes(["market_id", "block", "reason"], rows))
     files = h5_seal.list_files(rdir)
     holdout = {k: v for k, v in files.items() if k.startswith("holdout/")}
+    if frame_dir is not None:  # the frame run's HOLDOUT kline features and strikes are part of the sealed set (design 1.3), re-hashed against its manifest
+        fman = json.loads((Path(frame_dir) / "manifest.json").read_text())
+        cm.verify_manifest_files(Path(frame_dir), fman)
+        holdout.update({f"frame_{k}": v for k, v in h5_seal.list_files(Path(frame_dir)).items() if k.startswith(U.HOLDOUT_SUBDIR + "/")})
     doc = {"seal_version": "cb8-updown-holdout-seal-v1", "run_id": RUN_ID, "sealed_utc": cm.iso(time.time()), "git_commit": hb._git_commit(), "rules_sha256": rules_sha,
            "listing_sha256": h5_seal.listing_sha256(holdout), "n_holdout_files": len(holdout), "files": dict(sorted(holdout.items())),
-           "fetched_files_rehashed": n_checked, "drops": {"counts": n, "seal_copies_read": used, "drop_ids": len(ids), "drop_ids_without_metadata": missing_meta,
+           "fetched_files_rehashed": n_checked, "drops": {"counts": n, "seal_copies_read": used, "seal_copies_sha256": used_shas, "seal_copies_skipped": skipped, "drop_ids": len(ids), "drop_ids_without_metadata": missing_meta,
                                                           "disjointness": U.UNVERIFIED if unverified else "verified"},
            "audit": fr.extra_state.get("audit"), "frame_manifest_sha256": fr.params.get("frame_manifest_sha256"),
-           "read_rules": "verify the listing hash first; append every read to ACCESS_LOG.jsonl; holdout/ is not opened before B1 advanced and its Stage-1 result is committed; "
+           "read_rules": "verify the listing hash first; append every read to ACCESS_LOG.jsonl; holdout/ and the frame run's holdout/ (listed here as frame_holdout/) are not opened "
+                         "before B1 advanced and its Stage-1 result is committed; "
                          "DROPPED_* blocks of drops.csv.gz are never read; holdout outcomes live in updown_frame/outcomes_guarded.csv.gz (same rule)",
            "information_end": "every state is at t <= t_end(d) - 50 s; post-t_end prints are in *_guarded files"}
     data = json.dumps(doc, indent=1, sort_keys=True).encode()
@@ -605,4 +674,5 @@ def seal_holdout(fr: cm.Cb8Run, rdir: Path, frame: list[dict], rules_sha: str, *
 
 def rule_funcs() -> tuple:
     return (hour_dt, _ms, read_hour_events, read_presence, _levels, state_at, token_rows, day_states, terminal_prints, audit_day_list, day_order, coverage_audit,
-            _read_frame, _split_dir, _fail_counts, books_fetch, finalize_books, seal_holdout, ingress_used, ingress_add, h5_seal.listing_sha256, h5_seal.list_files)
+            _read_frame, _split_dir, _fail_counts, books_fetch, finalize_books, seal_holdout, ingress_used, ingress_add, h5_seal.listing_sha256, h5_seal.list_files,
+            _check_clock, seal_copy_ids_audited)

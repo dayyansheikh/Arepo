@@ -10,7 +10,8 @@ cwd=backend (queue worker). EXPLORATORY / PROSPECTIVE DATA ONLY: no edge, calibr
     python scripts/run_cb8.py holders-pin-h2 --start-utc T  # write-once pin of window 2 (after the CB8 freeze commit + 2 h)
     python scripts/run_cb8.py flow-fetch ...                # q0167: one resumable chunk of the h9_flow fetch
     python scripts/run_cb8.py flow-seal                     # q0168: seal h9_flow (seal-time drops, committed copy)
-    python scripts/run_cb8.py rules --which updown          # write docs/research_lab/seals/cb8_rules.json (B rules; commit first)
+    python scripts/run_cb8.py rules --which updown          # write docs/research_lab/seals/cb8_rules_v2.json (B data rules; v1 cb8_rules.json is superseded; commit first)
+    python scripts/run_cb8.py derive-exclusion-ids --kind c1_legs|cb5_listings --src PATH --out CSV   # ids CSV + .meta.json sidecar for the REQUIRED q0164 --extra-pin
     python scripts/run_cb8.py smoke ...                     # q0161: Data API paging, Binance checksums, pmxt HEADs; counts only, WRITE-ONCE
     python scripts/run_cb8.py exclusion-keys ...            # q0164: ids and event / neg-risk / series keys of every prior sample and seal copy
     python scripts/run_cb8.py updown-frame ...              # q0165: Gamma frame, rule-text checks, week split, Binance 1m archive (outcome guard)
@@ -323,6 +324,17 @@ def cmd_exclusion_keys(a, cm):
 
 
 @_guarded
+def cmd_derive_exclusion_ids(a, cm):
+    """Ids only: derive the ids CSV (+ ``.meta.json`` with the source sha256) of a REQUIRED q0164 extra pin. Offline, no network, write-once."""
+    from astrolabe.research_lab import cb8_updown as u  # noqa: PLC0415
+
+    out = Path(a.out)
+    cm.refuse_path(out)
+    meta = u.derive_exclusion_ids(a.kind, Path(a.src), out)
+    return 0, {"written": str(out), "ids_sha256": meta["ids_sha256"], "source_sha256": meta["source_sha256"], "n_ids": meta["n_ids"], "pin_argument": f"--extra-pin {a.kind}:{out}:{meta['ids_sha256']}"}
+
+
+@_guarded
 def cmd_updown_frame(a, cm):
     from astrolabe.research_lab import cb8_updown as u  # noqa: PLC0415
     from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
@@ -341,6 +353,7 @@ def cmd_updown_frame(a, cm):
 
 @_guarded
 def cmd_updown_books(a, cm):
+    from astrolabe.research_lab import cb1_history  # noqa: PLC0415
     from astrolabe.research_lab import cb8_books as bk  # noqa: PLC0415
     from astrolabe.research_lab import cb8_updown as u  # noqa: PLC0415
     from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
@@ -355,7 +368,8 @@ def cmd_updown_books(a, cm):
     kw = _b_net(a, cm)
     m = bk.books_fetch(root, hb.httpx_transport(), rules_sha=sha, fetch=hs.httpx_range_fetch(), size_fn=hs.httpx_size, smoke_path=_data_path(a.require_smoke, u.SMOKE_DEFAULT, None),
                        ingress_cap_gb=a.ingress_cap_gb, audit_hour=a.audit_hour, audit_days=a.audit_days, disk_cap=int(a.disk_cap_gb * 1024**3), budget_min=a.budget_min,
-                       seals_dir=Path(a.seals_dir) if a.seals_dir else None, **kw)
+                       seals_dir=Path(a.seals_dir) if a.seals_dir else None,
+                       is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed, **kw)
     return _result(m, cm)
 
 
@@ -441,7 +455,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     def bcommon(q: argparse.ArgumentParser) -> None:
         q.add_argument("--root", default=None, help="creative_batch8 root (default data-dumps/research_lab/creative_batch8)")
-        q.add_argument("--rules", default=None, help="default docs/research_lab/seals/cb8_rules.json")
+        q.add_argument("--rules", default=None, help="default docs/research_lab/seals/cb8_rules_v2.json")
         q.add_argument("--data-dumps", default=None)
         q.add_argument("--rps", type=float, default=2.0)
         q.add_argument("--standalone", action="store_true", help="no collector yield / health check (tests, off-host)")
@@ -464,8 +478,14 @@ def build_parser() -> argparse.ArgumentParser:
     q = sub.add_parser("exclusion-keys")
     bcommon(q)
     q.add_argument("--disk-cap-gb", type=float, default=0.01)
-    q.add_argument("--extra-pin", action="append", default=None, help="NAME:PATH:SHA256 of an ids CSV (market_id column), e.g. a CB5 listing or the C1 legs; repeatable")
+    q.add_argument("--extra-pin", action="append", default=None, help="NAME:PATH:SHA256 of an ids CSV (market_id column) with its .meta.json sidecar; REQUIRED: c1_legs and cb5_listings (see derive-exclusion-ids); repeatable")
     q.set_defaults(fn=cmd_exclusion_keys)
+
+    q = sub.add_parser("derive-exclusion-ids")
+    q.add_argument("--kind", required=True, choices=["c1_legs", "cb5_listings"])
+    q.add_argument("--src", required=True, help="c1_legs: cross_venue/matches.json; cb5_listings: the cb5_extract/listings directory")
+    q.add_argument("--out", required=True, help="e.g. data-dumps/research_lab/creative_batch8/pins/<kind>_ids.csv (a .meta.json sidecar is written beside it)")
+    q.set_defaults(fn=cmd_derive_exclusion_ids)
 
     q = sub.add_parser("updown-frame")
     bcommon(q)

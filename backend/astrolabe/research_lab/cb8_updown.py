@@ -32,17 +32,20 @@ from . import economics as econ
 from . import h5_seal
 from . import history_backfill as hb
 
-RULES_VERSION = "cb8-updown-rules-v1"
+RULES_VERSION = "cb8-updown-rules-v2"  # v2: freeze-check fixes (hashed dependencies, split HOLDOUT klines, book_unavailable, ...); v1 file kept, superseded
 SMOKE_VERSION = "cb8-smoke-v1"
 RUN_FRAME = "updown_frame"
 RUN_KEYS = "exclusion_run"
-RULES_FILE = cm.SEALS_DIR / "cb8_rules.json"
+RULES_FILE = cm.SEALS_DIR / "cb8_rules_v2.json"
+RULES_FILE_V1 = cm.SEALS_DIR / "cb8_rules.json"  # superseded before any B job ran; never rewritten
 SMOKE_DEFAULT = cm.CB8_DIR / "smoke.json"
 EXCLUSION_KEYS_DEFAULT = cm.CB8_DIR / "exclusion_keys.csv.gz"
 FRAME_COMPLETE = "updown_frame_complete"
 KEYS_COMPLETE = "exclusion_keys_complete"
+REQUIRED_EXTRA_PINS = ("c1_legs", "cb5_listings")  # design 1.3: C1 Polymarket legs and every CB5 sample listing; q0164 cannot be re-run, so it refuses without them
 UNVERIFIED = "disjointness_unverified"
 SOURCE_UNVERIFIED = "source_unverified"
+HOLDOUT_SUBDIR = "holdout"  # HOLDOUT-day kline features and strikes of the frame run; sealed by cb8_books.seal_holdout
 
 # ---- the frozen B population rules ----------------------------------------------------------------------------------------------------
 
@@ -356,16 +359,17 @@ def clopper_pearson_upper(k: int, n: int, conf: float = TAIL_CONF) -> float:
 
 def required_margin(n_days: int, k_losing: int) -> float:
     """Mean gross margin per share (``1 - a - f``) the day-unit tail gate needs at ``n_days`` traded days and ``k_losing`` losing days (a function of the
-    counts only; used by the census). With ``W = sum(1 - c)``, ``L = sum(c)`` and ``c = a + f`` the gate ``W (1 - q_U) - L q_U >= 0`` reduces to
-    ``1 - c >= q_U`` for units of equal cost, so the required margin is ``q_U`` itself: about 7.9c at 56 days with no losing day, 11.3c with one and 14.2c
-    with two (the design text's 8.4 / 12.5 / 16c figures were ``0.985 q_U / (1 - q_U)``, which is not this algebra; the gate formula itself is unchanged)."""
+    counts only; used by the census). With ``W_d = sum(1 - c)``, ``L_d = sum(c)`` and ``c = a + f`` per unit, ``W_d + L_d`` is the day's unit count, so the gate
+    ``mean(W)(1 - q_U) - mean(L) q_U >= 0`` is exactly ``mean(W) / mean(units) >= q_U``: the unit-weighted mean margin must be at least ``q_U`` (no equal-cost
+    assumption). That is about 7.9c at 56 days with no losing day, 11.3c with one and 14.2c with two (Erratum E1 in CREATIVE_BATCH_8.md: the design text's
+    8.4 / 12.5 / 16c came from an arithmetic slip; the gate formula, level and bound are unchanged)."""
     return clopper_pearson_upper(k_losing, n_days)
 
 
 def tail_gate(days: dict[str, list[tuple[float, float, float]]]) -> dict:
     """The binding day-unit tail gate. ``days`` maps a traded day to its units ``(ask, fee_per_share, y_fav)``. The day's paper book buys one share at
     each traded unit: ``W_d = sum(1 - a - f)`` (gain if nothing loses), ``L_d = sum(a + f)`` (loss if everything loses). A day is losing iff any of its
-    units does not win in full (``y_fav < 1``). ``q_U`` is the one-sided 99% Clopper-Pearson upper bound of the share of losing days. The gate holds
+    units does not win in full (``y_fav < 1``; a 50-50 resolution pays 0.5 and therefore makes its day a losing day). ``q_U`` is the one-sided 99% Clopper-Pearson upper bound of the share of losing days. The gate holds
     iff ``mean_d(W_d) (1 - q_U) - mean_d(L_d) q_U >= 0``."""
     n = len(days)
     if n == 0:
@@ -407,11 +411,11 @@ def declared() -> dict:
                   "latency_rule": "fill at max(a_t, a_{t+10 s}) only if >= 5 shares at <= that price remain at t + 10 s (stored best 10 ask levels) and a* <= 0.99"},
         "cost": {"fee": "r a (1 - a), r = max(fee_rate_bps/1e4 of the token's latest pmxt event <= t, economics.DOCS_CATEGORY_RATE['crypto'])",
                  "docs_crypto_rate": econ.DOCS_CATEGORY_RATE["crypto"], "robustness": "+0.75c on a"},
-        "gate": {"edge_floor": EDGE_FLOOR, "tail": "day units; W_d = sum(1-a-f), L_d = sum(a+f); losing day = any unit with y_fav < 1; q_U one-sided 99% Clopper-Pearson upper bound "
+        "gate": {"edge_floor": EDGE_FLOOR, "tail": "day units; W_d = sum(1-a-f), L_d = sum(a+f); losing day = any unit with y_fav < 1 (a 50-50 resolution, y_fav = 0.5, is a losing day); q_U one-sided 99% Clopper-Pearson upper bound "
                  "(bisection) of the losing-day share; mean_d(W_d)(1-q_U) - mean_d(L_d) q_U >= 0", "tail_conf": TAIL_CONF,
                  "source_disagree_max": SOURCE_DISAGREE_MAX},
         "sources": {"binance": {"base": BINANCE_BASE, "months": list(MONTHS), "rps": BINANCE_RPS, "checksum": "<zip>.CHECKSUM sha256", "stored": "pre-t_end candles, strikes, guarded settlement candles"},
-                    "pmxt": "cb8_books", "exclusion": {"max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE, "pins": "cb7_common.EXCLUSION_PINS + committed seal copies at q0164"}},
+                    "pmxt": "cb8_books", "exclusion": {"max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE, "pins": "cb7_common.EXCLUSION_PINS + committed seal copies at q0164 + REQUIRED extra id pins " + "/".join(REQUIRED_EXTRA_PINS) + " (derived ids CSV with a source-sha sidecar)"}},
         "smoke": {"version": SMOKE_VERSION, "seed_pool": SMOKE_SEED_POOL, "seed_pmxt": SMOKE_SEED_PMXT, "n": SMOKE_N, "candidates": SMOKE_CANDIDATES,
                   "pool": f"closed, end in [{SMOKE_END_FROM}, {SMOKE_END_TO}), volume >= {SMOKE_MIN_VOLUME:g}, life >= {SMOKE_MIN_LIFE_DAYS} d",
                   "criterion_a": "one paged day [end-5d, end-4d) at limit 1000 per pool market; rows in bounds, newest first, no duplicate across pages, "
@@ -429,13 +433,22 @@ def rule_funcs() -> tuple:
     return (declared, _books_declared, smoke_pool_ids, smoke_pmxt_hours, _read_exclusion, _month_items, fetch_archive, httpx_blob_get, _num, Pacer.wait, d_of, t_end, all_days, b_days, week_split, day_split, _pd, parse_updown, archive_name, archive_url, parse_checksum, verify_zip,
             kline_rows, extract_month, candle_usable, min_present, z_features, eligible_unit, traded_unit, fee_rate, taker_fee_per_share, unit_net,
             latency_fill, _binom_cdf, _ids_of_file, clopper_pearson_upper, required_margin, tail_gate, updown_row, frame_reason, walk_frame, drop_and_split, binance_fetch,
-            finalize_frame, updown_frame, run_smoke, smoke_ok, exclusion_ids_cb8, exclusion_keys, c7.key_types_matched, hb._rank)
+            finalize_frame, updown_frame, run_smoke, smoke_ok, exclusion_ids_cb8, exclusion_keys, c7.key_types_matched, hb._rank,
+            outcome_label_order, derive_exclusion_ids, _extra_pin_sources)
+
+
+def _dependency_funcs() -> list:
+    """Shared functions and classes the B data rules call (hashed so an edit anywhere in the call chain invalidates the rules file)."""
+    from . import cb8_flow as flow  # noqa: PLC0415
+    from . import history_sources as hs  # noqa: PLC0415
+
+    return [hb.frame_row, c6.key_fields, c6.lookup_keys, c6.exclusion_stage, c7.smoke_pool, c7.load_exclusion_keys, flow.seal_copy_ids, cm.verify_manifest_files, hs.pmxt_url, hs.RangeFile]
 
 
 def _all_rule_funcs() -> list:
     from . import cb8_books  # noqa: PLC0415
 
-    return list(rule_funcs()) + list(cb8_books.rule_funcs()) + [cm.windowed_prints, cm._parse_print]
+    return list(rule_funcs()) + list(cb8_books.rule_funcs()) + [cm.windowed_prints, cm._parse_print] + _dependency_funcs()
 
 
 def rules_doc() -> dict:
@@ -689,17 +702,84 @@ def exclusion_ids_cb8(files: dict[str, Path], pins) -> set[str]:
     return ids
 
 
+def derive_exclusion_ids(kind: str, src: Path, out_csv: Path) -> dict:
+    """Derive an ids CSV (``market_id`` column, sorted, unique) for a required q0164 extra pin and its sidecar ``<out>.meta.json`` (source path, the source's
+    sha256, counts, the ids file's sha256). ``c1_legs``: ``src`` = ``cross_venue/matches.json`` (ids = ``p_market_id`` of every row; the whole selection, a
+    superset of the 316-pair C1 set). ``cb5_listings``: ``src`` = the ``cb5_extract/listings`` directory (ids = ``market_id`` of every ``*.csv.gz``; the source
+    sha256 is the sha256 of the sorted ``name<TAB>sha256`` lines). Ids only are read. Write-once: an existing different output is a refusal."""
+    src, out_csv = Path(src), Path(out_csv)
+    ids: set[str] = set()
+    n_rows = 0
+    if kind == "c1_legs":
+        if not src.is_file():
+            raise cm.Refused(f"{src} is not a file")
+        doc = json.loads(src.read_text())
+        if not isinstance(doc, list) or not doc:
+            raise cm.Refused(f"{src}: expected a non-empty list of pairs")
+        for r in doc:
+            n_rows += 1
+            if isinstance(r, dict) and str(r.get("p_market_id") or "").strip():
+                ids.add(str(r["p_market_id"]).strip())
+        source_sha, n_files = h5_seal.sha256_file(src), 1
+    elif kind == "cb5_listings":
+        files = sorted(src.glob("*.csv.gz")) if src.is_dir() else []
+        if not files:
+            raise cm.Refused(f"{src} holds no *.csv.gz listing files")
+        lines = []
+        for f in files:
+            lines.append(f"{f.name}\t{h5_seal.sha256_file(f)}")
+            for r in c7.read_csv_gz(f):
+                n_rows += 1
+                if str(r.get("market_id") or "").strip():
+                    ids.add(str(r["market_id"]).strip())
+        source_sha, n_files = hashlib.sha256("\n".join(lines).encode()).hexdigest(), len(files)
+    else:
+        raise cm.Refused(f"unknown pin kind {kind!r}")
+    if not ids:
+        raise cm.Refused(f"{src}: no market ids found")
+    body = ("market_id\n" + "\n".join(sorted(ids)) + "\n").encode()
+    meta = {"kind": kind, "source_path": str(src), "source_sha256": source_sha, "n_source_files": n_files, "n_rows": n_rows, "n_ids": len(ids),
+            "ids_sha256": hashlib.sha256(body).hexdigest(), "ids_only": True}
+    metap = out_csv.with_name(out_csv.name + ".meta.json")
+    for path, data in ((out_csv, body), (metap, (json.dumps(meta, indent=1, sort_keys=True) + "\n").encode())):
+        if path.exists() and path.read_bytes() != data:
+            raise cm.Refused(f"{path} exists with different content; a derived pin is never rewritten")
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    out_csv.write_bytes(body)
+    metap.write_bytes((json.dumps(meta, indent=1, sort_keys=True) + "\n").encode())
+    return meta
+
+
+def _extra_pin_sources(extra_pins: list[dict], required: tuple[str, ...]) -> dict[str, dict]:
+    """Refuse unless every required extra pin is present with a sidecar whose ``ids_sha256`` equals the pin's sha256 and that records the source sha256."""
+    have = {p["name"]: p for p in extra_pins}
+    missing = [n for n in required if n not in have]
+    if missing:
+        raise cm.Refused(f"q0164 needs the extra id pins {missing} (design 1.3: C1 legs, CB5 listings); q0164 cannot be re-run, so it refuses without them")
+    out: dict[str, dict] = {}
+    for n in required:
+        mp = Path(have[n]["path"]).with_name(Path(have[n]["path"]).name + ".meta.json")
+        if not mp.exists():
+            raise cm.Refused(f"extra pin {n}: sidecar {mp} not found; derive the ids file with 'derive-exclusion-ids'")
+        meta = json.loads(mp.read_text())
+        if meta.get("ids_sha256") != have[n]["sha256"] or not meta.get("source_sha256"):
+            raise cm.Refused(f"extra pin {n}: sidecar does not match the pinned sha256 or records no source sha256")
+        out[n] = {k: meta.get(k) for k in ("kind", "source_path", "source_sha256", "n_source_files", "n_ids")}
+    return out
+
+
 def exclusion_keys(out_root: Path, transport, *, rules_sha: str, history_root: Path, seals_dir: Path | None = None, extra_pins: list[dict] | None = None,
                    rps: float = 4.0, disk_cap: int = int(KEYS_OUTPUT_CAP_GB * 1024**3), budget_min: float | None = None, now: float | None = None,
                    sleep=time.sleep, live_check=None, should_stop: Callable[[], bool] | None = None, wall_clock: Callable[[], float] = time.time,
                    snapshot_root: Path | None = None, health_check=None, data_dumps: Path | None = None,
-                   data_dumps_cap_gb: float = cm.DATA_DUMPS_FETCH_CAP_GB, dest_dir: Path | None = None) -> dict:
+                   data_dumps_cap_gb: float = cm.DATA_DUMPS_FETCH_CAP_GB, dest_dir: Path | None = None, required_extra: tuple[str, ...] = REQUIRED_EXTRA_PINS) -> dict:
     """q0164. Gamma lookup by id (<= 50 per request, ``closed=true`` retry, parse guard keeps ids and keys) of the ids in the sha-pinned h1/h2/h3/h5/h5_ladders
     files, every other committed ``*_SEAL.json`` under ``seals_dir`` (hash recorded at the start; the known later seals that are absent are recorded as
     "absent at q0164") and ``extra_pins`` (``{"name","kind":"ids","path","sha256"}``, a CSV with a ``market_id`` column). The finished files are copied
     byte-for-byte to ``dest_dir`` (default ``creative_batch8/``). More than 2% of ids without metadata -> ``disjointness_unverified``."""
     out_root, seals_dir = Path(out_root), Path(seals_dir or cm.SEALS_DIR)
     cm.refuse_path(out_root)
+    extra_src = _extra_pin_sources([dict(p) for p in (extra_pins or [])], required_extra)
     cm.require_room(data_dumps, data_dumps_cap_gb, disk_cap)
     pins = list(c7.EXCLUSION_PINS) + [dict(p) for p in (extra_pins or [])]
     base_names = {Path(p["path"]).name for p in c7.EXCLUSION_PINS if p["kind"] == "seal"}
@@ -717,7 +797,7 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, history_root: P
     ids = exclusion_ids_cb8(files, pins)
     fr = cm.open_run(out_root, RUN_KEYS, transport, allowed_run_id=RUN_KEYS, kind="cb8_exclusion_keys", label="CB8 exclusion keys",
                      params={"n_ids": len(ids), "pins": [{k: p[k] for k in ("name", "kind", "sha256")} for p in pins], "absent_at_q0164": absent,
-                             "key_types": list(c7.KEY_TYPES), "evidence_role": "exploratory_historical"},
+                             "extra_pin_sources": extra_src, "key_types": list(c7.KEY_TYPES), "evidence_role": "exploratory_historical"},
                      rules_sha=rules_sha, key_fp="", disk_cap=disk_cap, rps=rps, budget_min=budget_min, now=now, sleep=sleep, live_check=live_check,
                      wall_clock=wall_clock, snapshot_root=snapshot_root, health_check=health_check)
     dest = Path(dest_dir) if dest_dir is not None else cm.CB8_DIR
@@ -739,7 +819,7 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, history_root: P
         m["status"] = "in_progress"
         return m
     assert rep is not None
-    rep = {**rep, "absent_at_q0164": absent, "pins": [{k: p[k] for k in ("name", "kind", "sha256")} for p in pins]}
+    rep = {**rep, "absent_at_q0164": absent, "extra_pin_sources": extra_src, "pins": [{k: p[k] for k in ("name", "kind", "sha256")} for p in pins]}
     (fr.rdir / "exclusion_report.json").write_text(json.dumps(rep, indent=1, sort_keys=True))
     dest.mkdir(parents=True, exist_ok=True)
     for name in ("exclusion_keys.csv.gz", "exclusion_report.json"):
@@ -758,7 +838,7 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, history_root: P
 
 FRAME_COLUMNS = ["market_id", "condition_id", "token_up", "token_down", "event_id", "event_ids", "neg_risk_market_id", "series_ids", "asset", "symbol", "venue",
                  "day", "week", "split", "question", "desc_sha256", "resolution_source", "end_at", "created_at", "closed", "closed_time"]
-GUARDED_OUTCOME_COLUMNS = ["market_id", "day", "outcome_prices", "uma_status"]
+GUARDED_OUTCOME_COLUMNS = ["market_id", "day", "outcome_labels", "outcome_prices", "uma_status"]  # labels give the order of outcome_prices (Up/Down or Down/Up)
 PRE_COLUMNS = ["asset", "day", "open_ms", "close"]
 STRIKE_COLUMNS = ["asset", "day", "strike_close", "strike_open_ms"]
 SETTLE_COLUMNS = ["asset", "day", "open_ms", "close"]
@@ -795,14 +875,23 @@ def updown_row(m: dict, day: str) -> tuple[dict | None, str]:
     return row, ""
 
 
+def outcome_label_order(m: dict) -> str:
+    """The market's outcome labels in Gamma order joined by ``|`` (``Up|Down`` or ``Down|Up``): the order of ``outcomePrices`` for the guarded file."""
+    try:
+        labels = json.loads(m["outcomes"]) if isinstance(m.get("outcomes"), str) else m.get("outcomes")
+    except ValueError:
+        labels = None
+    return "|".join(str(x) for x in labels) if isinstance(labels, list) else ""
+
+
 def frame_reason(m: dict, day: str) -> str:
     return updown_row(m, day)[1]
 
 
 def walk_frame(fr: cm.Cb8Run, days: list[str], should_stop: Callable[[], bool] | None = None) -> str | None:
-    """Per day one gzip member in ``frame_partial.jsonl.gz`` (frame rows, guarded outcomes, reason counts). A failed day is retried by a later chunk (3
+    """Per day one gzip member in ``frame_partial_guarded.jsonl.gz`` (frame rows, guarded outcomes, reason counts). A failed day is retried by a later chunk (3
     attempts). Returns a stop reason or ``None`` when every day is done."""
-    pp, pf = fr.rdir / "frame_partial.jsonl.gz", fr.rdir / "frame_fail.jsonl"
+    pp, pf = fr.rdir / "frame_partial_guarded.jsonl.gz", fr.rdir / "frame_fail.jsonl"
     done = {rec["day"] for rec in c6.iter_partial(pp)}
     fails = c7.walk_failed_days(pf)
     for d in days:
@@ -827,7 +916,7 @@ def walk_frame(fr: cm.Cb8Run, days: list[str], should_stop: Callable[[], bool] |
                 reasons[reason] = reasons.get(reason, 0) + 1
                 continue
             rows.append(row)
-            guarded.append([row["market_id"], d, str(m.get("outcomePrices") or ""), str(m.get("umaResolutionStatus") or "")])
+            guarded.append([row["market_id"], d, outcome_label_order(m), str(m.get("outcomePrices") or ""), str(m.get("umaResolutionStatus") or "")])
         c7.append_member(fr, pp, {"day": d, "rows": rows, "guarded": guarded, "n_raw": len(batch), "capped": bool(capped), "reasons": reasons})
     fails = c7.walk_failed_days(pf)
     done = {rec["day"] for rec in c6.iter_partial(pp)}
@@ -929,20 +1018,27 @@ def finalize_frame(fr: cm.Cb8Run, rdir: Path, days: list[str]) -> dict:
                 missing_strike += 1
                 continue
             strikes.append([a, d, s[1], s[0]])
-    fr.budget.write_gz_csv(rdir / "klines_pre.csv.gz", PRE_COLUMNS, pre)
-    fr.budget.write_gz_csv(rdir / "strikes.csv.gz", STRIKE_COLUMNS, strikes)
+    hold = rdir / HOLDOUT_SUBDIR
+    hold.mkdir(parents=True, exist_ok=True)
+    pre_s, pre_h = [r for r in pre if day_split(r[1]) == "screen"], [r for r in pre if day_split(r[1]) == "holdout"]
+    str_s, str_h = [r for r in strikes if day_split(r[1]) == "screen"], [r for r in strikes if day_split(r[1]) == "holdout"]
+    fr.budget.write_gz_csv(rdir / "klines_pre.csv.gz", PRE_COLUMNS, pre_s)  # SCREEN days only
+    fr.budget.write_gz_csv(rdir / "strikes.csv.gz", STRIKE_COLUMNS, str_s)
+    fr.budget.write_gz_csv(hold / "klines_pre.csv.gz", PRE_COLUMNS, pre_h)  # HOLDOUT days: sealed with the book states (listed by cb8_books.seal_holdout)
+    fr.budget.write_gz_csv(hold / "strikes.csv.gz", STRIKE_COLUMNS, str_h)
     fr.budget.write_gz_csv(rdir / "klines_settle_guarded.csv.gz", SETTLE_COLUMNS, ([a, d, o, c] for (a, d), (o, c) in sorted(settle.items())))
-    guarded = [g for rec in c6.iter_partial(rdir / "frame_partial.jsonl.gz") for g in rec["guarded"]]
+    guarded = [g for rec in c6.iter_partial(rdir / "frame_partial_guarded.jsonl.gz") for g in rec["guarded"]]
     kept = {r["market_id"] for r in c7.read_csv_gz(rdir / "frame.csv.gz")}
     fr.budget.write_gz_csv(rdir / "outcomes_guarded.csv.gz", GUARDED_OUTCOME_COLUMNS, sorted(g for g in guarded if g[0] in kept))
-    for name in ("frame.csv.gz", "split.json", "klines_pre.csv.gz", "strikes.csv.gz", "klines_settle_guarded.csv.gz", "outcomes_guarded.csv.gz"):
+    for name in ("frame.csv.gz", "split.json", "klines_pre.csv.gz", "strikes.csv.gz", "klines_settle_guarded.csv.gz", "outcomes_guarded.csv.gz",
+                 f"{HOLDOUT_SUBDIR}/klines_pre.csv.gz", f"{HOLDOUT_SUBDIR}/strikes.csv.gz"):
         fr.record_file(rdir / name)
     part.unlink(missing_ok=True)
     (rdir / "klines_fail.jsonl").unlink(missing_ok=True)
-    (rdir / "frame_partial.jsonl.gz").unlink(missing_ok=True)
+    (rdir / "frame_partial_guarded.jsonl.gz").unlink(missing_ok=True)
     (rdir / "frame_fail.jsonl").unlink(missing_ok=True)
     fr.extra_state["archives"] = meta
-    return {"n_pre_rows": len(pre), "n_strikes": len(strikes), "missing_strikes": missing_strike, "n_settle": len(settle)}
+    return {"n_pre_rows": len(pre), "n_pre_rows_holdout": len(pre_h), "n_strikes": len(strikes), "n_strikes_holdout": len(str_h), "missing_strikes": missing_strike, "n_settle": len(settle)}
 
 
 def updown_frame(root: Path, transport, *, rules_sha: str, blob_get: BlobGet, smoke_path: Path = SMOKE_DEFAULT, exclusion_keys_path: Path = EXCLUSION_KEYS_DEFAULT,
@@ -994,7 +1090,7 @@ def updown_frame(root: Path, transport, *, rules_sha: str, blob_get: BlobGet, sm
                 m = fr.manifest(UNVERIFIED, {"status": UNVERIFIED})
                 m["status"] = UNVERIFIED
                 return m
-            recs = list(c6.iter_partial(rdir / "frame_partial.jsonl.gz"))
+            recs = list(c6.iter_partial(rdir / "frame_partial_guarded.jsonl.gz"))
             rows = [r for rec in recs for r in rec["rows"]]
             kept, rep = drop_and_split(rows, ids, ksets)
             rep["frame_walk"] = {"days_walked": len(recs), "n_raw": sum(rec["n_raw"] for rec in recs), "capped_days": sum(1 for rec in recs if rec["capped"]),
@@ -1002,7 +1098,11 @@ def updown_frame(root: Path, transport, *, rules_sha: str, blob_get: BlobGet, sm
             for rec in recs:
                 for k, v in rec["reasons"].items():
                     rep["frame_walk"]["rejected"][k] = rep["frame_walk"]["rejected"].get(k, 0) + v
-            days_missing = sorted(set(days) - {r["day"] for r in kept})
+            walked = {rec["day"] for rec in recs}
+            failed_days = sorted(set(days) - walked)  # the Gamma request for the day failed 3 times: a source failure, not a day without a market
+            days_missing = sorted(walked - {r["day"] for r in kept})  # walked, request succeeded, no kept market
+            rep["frame_request_failed_days"] = len(failed_days)
+            rep["frame_request_failed_day_list"] = failed_days
             rep["days_without_market"] = len(days_missing)
             fr.budget.write_gz_csv(rdir / "frame.csv.gz", FRAME_COLUMNS, ([r.get(c, "") for c in FRAME_COLUMNS] for r in sorted(kept, key=lambda x: (x["day"], x["asset"]))))
             fr.budget.write(split_p, json.dumps({"seed": SEED_SPLIT, "week_table": {str(k): v for k, v in sorted(week_split().items())}, "report": rep,

@@ -456,6 +456,7 @@ def test_frame_end_to_end_filters_drops_split_and_guard(fenv):
     split = json.loads((rdir / "split.json").read_text())
     rep = split["report"]
     assert rep["frame_walk"]["rejected"] == {"strike_dates": 1, "end_not_1600z": 1, "question_pattern": 1}
+    assert rep["frame_request_failed_days"] == 0 and rep["frame_request_failed_day_list"] == []
     assert rep["dropped_id"] == 1 and rep["dropped_keys"] == {"event": 1, "neg_risk_market": 1, "series": 1}
     assert all(r["split"] == u.day_split(r["day"]) for r in frame) and split["seed"] == u.SEED_SPLIT
     # the frame has no outcome columns; outcomes and settlement candles are only in the *_guarded files
@@ -463,23 +464,28 @@ def test_frame_end_to_end_filters_drops_split_and_guard(fenv):
         assert not any("outcome" in k or "price" in k or "uma" in k for k in r)
     assert (rdir / "outcomes_guarded.csv.gz").exists() and (rdir / "klines_settle_guarded.csv.gz").exists()
     g = gz_rows(rdir / "outcomes_guarded.csv.gz")
-    assert {x["market_id"] for x in g} == ids and g[0]["outcome_prices"].startswith("[")
+    assert {x["market_id"] for x in g} == ids and g[0]["outcome_prices"].startswith("[") and g[0]["outcome_labels"] == "Up|Down"
     settle = gz_rows(rdir / "klines_settle_guarded.csv.gz")
     assert settle and {float(x["close"]) for x in settle} == {SETTLE_MARK}
-    pre = gz_rows(rdir / "klines_pre.csv.gz")
+    pre = gz_rows(rdir / "klines_pre.csv.gz") + gz_rows(rdir / "holdout" / "klines_pre.csv.gz")
     assert pre and SETTLE_MARK not in {float(x["close"]) for x in pre}
     for x in pre:  # every feature candle opens before t_end of its day
         assert int(x["open_ms"]) < int(u.t_end(x["day"]) * 1000)
-    strikes = gz_rows(rdir / "strikes.csv.gz")
+    strikes = gz_rows(rdir / "strikes.csv.gz") + gz_rows(rdir / "holdout" / "strikes.csv.gz")
     assert {float(x["strike_close"]) for x in strikes} == {SETTLE_MARK} and len(strikes) == len(u.ASSETS) * len(u.b_days())
+    # HOLDOUT-day kline features and strikes are in holdout/ only (they are sealed with the book states); the SCREEN files hold SCREEN days only
+    for name in ("klines_pre.csv.gz", "strikes.csv.gz"):
+        assert {u.day_split(x["day"]) for x in gz_rows(rdir / name)} == {"screen"}
+        h = gz_rows(rdir / "holdout" / name)
+        assert h and {u.day_split(x["day"]) for x in h} == {"holdout"}
     # nothing in the non-guarded files reveals a settlement or an outcome
     for name in ("frame.csv.gz", "split.json", "klines_pre.csv.gz", "strikes.csv.gz"):
         raw = gzip.decompress((rdir / name).read_bytes()) if name.endswith(".gz") else (rdir / name).read_bytes()
         assert b"outcomePrices" not in raw
     man = json.loads((rdir / "manifest.json").read_text())
-    assert man["state"]["exclusion_keys_sha256"] and set(man["file_sha256"]) >= {"frame.csv.gz", "split.json", "klines_settle_guarded.csv.gz", "outcomes_guarded.csv.gz"}
+    assert man["state"]["exclusion_keys_sha256"] and set(man["file_sha256"]) >= {"frame.csv.gz", "split.json", "klines_settle_guarded.csv.gz", "outcomes_guarded.csv.gz", "holdout/klines_pre.csv.gz", "holdout/strikes.csv.gz"}
     assert cm.verify_manifest_files(rdir, man) == len(man["file_sha256"])
-    assert not (rdir / "frame_partial.jsonl.gz").exists() and not (rdir / "klines_partial.jsonl.gz").exists()
+    assert not (rdir / "frame_partial_guarded.jsonl.gz").exists() and not (rdir / "frame_partial.jsonl.gz").exists() and not (rdir / "klines_partial.jsonl.gz").exists()
     assert man["state"]["archives"]  # archive checksums are recorded
     assert fenv.frame()["status"] == u.FRAME_COMPLETE  # sticky, no new request
     n = len(fenv.api.calls)
@@ -622,7 +628,7 @@ def test_exclusion_keys_extra_pins_dynamic_seals_and_absent_records(tmp_path, mo
     seals.mkdir()
     out = tmp_path / "out"
     m = u.exclusion_keys(out, api, rules_sha="r", history_root=hist, seals_dir=seals, extra_pins=[{"name": "cb5_listing", "kind": "ids", "path": str(extra), "sha256": h5_seal.sha256_file(extra)}],
-                         rps=1000.0, sleep=nosleep, now=NOW, dest_dir=out)
+                         rps=1000.0, sleep=nosleep, now=NOW, dest_dir=out, required_extra=())
     assert m["status"] == u.KEYS_COMPLETE and m["complete"]
     rep = json.loads((out / "exclusion_report.json").read_text())
     assert rep["n_ids"] == 6 and rep["n_found"] == 6 and rep["disjointness"] == "verified" and rep["keys"] == {"event": 6, "neg_risk_market": 1, "series": 1}
@@ -635,7 +641,7 @@ def test_exclusion_keys_extra_pins_dynamic_seals_and_absent_records(tmp_path, mo
     extra.write_text("market_id\n21\n")
     with pytest.raises(cm.Refused):
         u.exclusion_keys(tmp_path / "out2", api, rules_sha="r", history_root=hist, seals_dir=seals, extra_pins=[{"name": "cb5_listing", "kind": "ids", "path": str(extra), "sha256": "0" * 64}],
-                         rps=1000.0, sleep=nosleep, now=NOW)
+                         rps=1000.0, sleep=nosleep, now=NOW, required_extra=())
 
 
 def test_exclusion_keys_unverified_when_more_than_two_percent_lack_metadata(tmp_path, monkeypatch):
@@ -647,7 +653,7 @@ def test_exclusion_keys_unverified_when_more_than_two_percent_lack_metadata(tmp_
     out = tmp_path / "out"
     seals = tmp_path / "seals"
     seals.mkdir()
-    m = u.exclusion_keys(out, api, rules_sha="r", history_root=hist, seals_dir=seals, rps=1000.0, sleep=nosleep, now=NOW, dest_dir=out)
+    m = u.exclusion_keys(out, api, rules_sha="r", history_root=hist, seals_dir=seals, rps=1000.0, sleep=nosleep, now=NOW, dest_dir=out, required_extra=())
     assert m["status"] == u.UNVERIFIED
 
 
@@ -675,3 +681,147 @@ def test_cli_rules_updown_and_declared_argument_refusals(tmp_path, capsys):
     assert script.main(["smoke", *base, "--out", str(tmp_path / "s.json")]) == 2  # write-once
     refused_root = ["--rules", str(rules), "--allow-uncommitted-rules", "--root", str(tmp_path / "cb7_extract" / "x"), "--standalone"]
     assert script.main(["updown-frame", *refused_root, "--disk-cap-gb", "0.02"]) == 2
+
+
+# ---- freeze-check must-fixes (2026-10-17) ------------------------------------------------------------------------------------------------------------------------
+
+
+def test_tail_gate_is_the_unit_weighted_mean_margin_at_least_q_u_and_a_5050_day_is_losing():
+    # equal and unequal unit counts per day: the gate holds exactly when (mean W) / (mean units) >= q_U
+    days = {f"d{i}": [(0.90, 0.0063, 1.0)] * (1 + i % 4) for i in range(56)}
+    g = u.tail_gate(days)
+    n_units = sum(len(v) for v in days.values()) / 56
+    assert (g["mean_w"] / n_units >= g["q_u"]) == g["passes"] and g["value"] == pytest.approx(g["mean_w"] - g["q_u"] * (g["mean_w"] + g["mean_l"]))
+    assert g["mean_w"] + g["mean_l"] == pytest.approx(n_units)
+    # a 50-50 resolution (y_fav = 0.5) makes its day a losing day
+    d5050 = {f"d{i}": [(0.80, 0.0063, 0.5 if i == 0 else 1.0)] for i in range(56)}
+    assert u.tail_gate(d5050)["k_losing"] == 1
+    assert "50-50" in u.declared()["gate"]["tail"]
+    assert u.required_margin(60, 0) == pytest.approx(0.0739, abs=5e-4) and u.required_margin(53, 0) == pytest.approx(0.0832, abs=5e-4)
+    from collections import Counter
+
+    assert Counter(u.day_split(d) for d in u.b_days()) == {"screen": 60, "holdout": 53}
+
+
+def test_guarded_outcomes_store_the_label_order(tmp_path):
+    env = FrameEnv(tmp_path)
+    flipped = updown_market(7001, "Bitcoin", "2026-04-13", outcomes='["Down","Up"]', outcomePrices='["0","1"]')
+    env.api.gamma["7001"] = flipped
+    row, why = u.updown_row(flipped, "2026-04-13")
+    assert row["token_up"] == "tokDown7001" and row["token_down"] == "tokUp7001" and why == ""  # token order follows the labels
+    assert u.outcome_label_order(flipped) == "Down|Up" and u.outcome_label_order({"outcomes": "oops"}) == ""
+    assert "outcome_labels" in u.GUARDED_OUTCOME_COLUMNS
+    assert env.frame()["status"] == u.FRAME_COMPLETE
+    g = {x["market_id"]: x for x in gz_rows(env.root / u.RUN_FRAME / "outcomes_guarded.csv.gz")}
+    assert g["7001"]["outcome_labels"] == "Down|Up" and g["7001"]["outcome_prices"] == '["0","1"]'
+
+
+def test_frame_request_failed_days_are_counted_apart_from_days_without_a_market(tmp_path):
+    env = FrameEnv(tmp_path)
+    fail_day = "2026-04-20"
+    real = env.api
+
+    def flaky(url, params):
+        if url.endswith("/markets") and str(params.get("end_date_min", "")).startswith(fail_day):
+            return 500, b"", {}
+        return real(url, params)
+
+    env.api = flaky
+    env.api.gamma = real.gamma  # type: ignore[attr-defined]
+    st = None
+    for _ in range(6):
+        m = env.frame()
+        st = m["status"]
+        if st == u.FRAME_COMPLETE:
+            break
+    assert st == u.FRAME_COMPLETE
+    rep = json.loads((env.root / u.RUN_FRAME / "split.json").read_text())["report"]
+    assert rep["frame_request_failed_days"] == 1 and rep["frame_request_failed_day_list"] == [fail_day]
+    walked_days_with_markets = {r["day"] for r in gz_rows(env.root / u.RUN_FRAME / "frame.csv.gz")}
+    assert fail_day not in walked_days_with_markets
+    # days without a market exclude the failed day (every other B day has no market in this fixture)
+    assert rep["days_without_market"] == len(u.b_days()) - len(walked_days_with_markets) - 1
+
+
+def write_ids_csv_gz(p: Path, ids: list[str]) -> None:
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(p, "wt", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["market_id", "x"])
+        w.writerows([[i, "a"] for i in ids])
+
+
+def test_derive_exclusion_ids_records_the_source_sha_and_is_write_once(tmp_path):
+    matches = tmp_path / "matches.json"
+    matches.write_text(json.dumps([{"p_market_id": "31", "p_event_id": "E1", "k_ticker": "K1"}, {"p_market_id": "32"}, {"p_market_id": "31"}, {"k_ticker": "no id"}]))
+    out = tmp_path / "pins" / "c1_legs_ids.csv"
+    meta = u.derive_exclusion_ids("c1_legs", matches, out)
+    assert out.read_text() == "market_id\n31\n32\n" and meta["n_ids"] == 2 and meta["n_rows"] == 4 and meta["source_sha256"] == h5_seal.sha256_file(matches)
+    assert meta["ids_sha256"] == h5_seal.sha256_file(out) and json.loads((tmp_path / "pins" / "c1_legs_ids.csv.meta.json").read_text()) == meta
+    assert u.derive_exclusion_ids("c1_legs", matches, out) == meta  # idempotent
+    matches.write_text(json.dumps([{"p_market_id": "99"}]))
+    with pytest.raises(cm.Refused):
+        u.derive_exclusion_ids("c1_legs", matches, out)  # never rewritten
+    lst = tmp_path / "listings"
+    write_ids_csv_gz(lst / "cap1.csv.gz", ["41", "42"])
+    write_ids_csv_gz(lst / "cap2.csv.gz", ["42", "43"])
+    m2 = u.derive_exclusion_ids("cb5_listings", lst, tmp_path / "pins" / "cb5_ids.csv")
+    assert (tmp_path / "pins" / "cb5_ids.csv").read_text() == "market_id\n41\n42\n43\n" and m2["n_source_files"] == 2
+    lines = "\n".join(f"{f.name}\t{h5_seal.sha256_file(f)}" for f in sorted(lst.glob("*.csv.gz")))
+    assert m2["source_sha256"] == hashlib.sha256(lines.encode()).hexdigest()
+    for bad_kind, src in (("nope", lst), ("cb5_listings", tmp_path / "empty")):
+        with pytest.raises(cm.Refused):
+            u.derive_exclusion_ids(bad_kind, src, tmp_path / "pins" / "x.csv")
+
+
+def test_exclusion_keys_require_the_c1_and_cb5_pins_with_a_source_sidecar(tmp_path, monkeypatch):
+    from astrolabe.research_lab import cb7_common as c7
+
+    hist, pins = make_pinned_files(tmp_path)
+    monkeypatch.setattr(c7, "EXCLUSION_PINS", tuple(pins))
+    matches = tmp_path / "matches.json"
+    matches.write_text(json.dumps([{"p_market_id": "21"}]))
+    lst = tmp_path / "listings"
+    write_ids_csv_gz(lst / "c.csv.gz", ["22"])
+    c1, cb5 = tmp_path / "pins" / "c1.csv", tmp_path / "pins" / "cb5.csv"
+    m1, m5 = u.derive_exclusion_ids("c1_legs", matches, c1), u.derive_exclusion_ids("cb5_listings", lst, cb5)
+    api = Api()
+    for i in ("11", "12", "13", "14", "21", "22"):
+        api.gamma[i] = updown_market(int(i), "Bitcoin", "2026-04-14", event=f"E{i}")
+    seals = tmp_path / "seals"
+    seals.mkdir()
+    common = dict(rules_sha="r", history_root=hist, seals_dir=seals, rps=1000.0, sleep=nosleep, now=NOW)
+    pin = lambda name, p, meta: {"name": name, "kind": "ids", "path": str(p), "sha256": meta["ids_sha256"]}  # noqa: E731
+    with pytest.raises(cm.Refused, match="extra id pins"):
+        u.exclusion_keys(tmp_path / "o1", api, **common)  # the default requires both
+    with pytest.raises(cm.Refused, match="cb5_listings"):
+        u.exclusion_keys(tmp_path / "o2", api, extra_pins=[pin("c1_legs", c1, m1)], **common)
+    (tmp_path / "pins" / "cb5.csv.meta.json").unlink()
+    with pytest.raises(cm.Refused, match="sidecar"):
+        u.exclusion_keys(tmp_path / "o3", api, extra_pins=[pin("c1_legs", c1, m1), pin("cb5_listings", cb5, m5)], **common)
+    u.derive_exclusion_ids("cb5_listings", lst, cb5)
+    out = tmp_path / "o4"
+    m = u.exclusion_keys(out, api, extra_pins=[pin("c1_legs", c1, m1), pin("cb5_listings", cb5, m5)], dest_dir=out, **common)
+    assert m["status"] == u.KEYS_COMPLETE
+    rep = json.loads((out / "exclusion_report.json").read_text())
+    assert rep["extra_pin_sources"]["c1_legs"]["source_sha256"] == m1["source_sha256"] and rep["extra_pin_sources"]["cb5_listings"]["source_sha256"] == m5["source_sha256"]
+    assert rep["n_ids"] == 6 and "21" in {k["market_id"] for k in gz_rows(out / "exclusion_keys.csv.gz")}
+
+
+def test_rules_v2_hashes_the_dependencies_and_v1_is_superseded():
+    doc = u.rules_file_doc()
+    assert doc["rules_version"] == "cb8-updown-rules-v2" and u.RULES_FILE.name == "cb8_rules_v2.json" and u.RULES_FILE_V1.name == "cb8_rules.json"
+    need = {"frame_row", "key_fields", "lookup_keys", "exclusion_stage", "smoke_pool", "load_exclusion_keys", "seal_copy_ids", "verify_manifest_files", "pmxt_url", "RangeFile",
+            "_check_clock", "seal_copy_ids_audited", "outcome_label_order", "derive_exclusion_ids"}
+    assert need <= set(doc["func_sources_sha256"])
+    v1 = json.loads(u.RULES_FILE_V1.read_text())
+    assert v1["rules_version"] == "cb8-updown-rules-v1" and v1["rules_sha256"].startswith("36fd2783") and v1["rules_sha256"] != doc["rules_sha256"]
+
+
+def test_cli_derive_exclusion_ids(tmp_path, capsys):
+    matches = tmp_path / "matches.json"
+    matches.write_text(json.dumps([{"p_market_id": "5"}]))
+    out = tmp_path / "pins" / "c1.csv"
+    assert script.main(["derive-exclusion-ids", "--kind", "c1_legs", "--src", str(matches), "--out", str(out)]) == 0
+    assert out.read_text() == "market_id\n5\n"
+    assert script.main(["derive-exclusion-ids", "--kind", "c1_legs", "--src", str(tmp_path / "missing.json"), "--out", str(tmp_path / "pins" / "z.csv")]) == 2
