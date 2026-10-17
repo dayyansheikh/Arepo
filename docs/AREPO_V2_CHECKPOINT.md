@@ -198,12 +198,16 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      missing, W census missing so q0169 `--family B,W` refuses); **CB10 draft** (19ae522: CH89 Deribit anchor D1, CH93
      round-level fades B1/B2; CH82/CH87/CH90/CH91 dropped with reasons) -> challenger ACCEPT_WITH_REQUIRED_CHANGES
      (15 items incl. a D1 shared-noise bias and a power gate).
-   - **Running agents (check `git log` if this session ended):** CB9 implementer A (`cb9_common/sign/pyth`, `run_cb9.py`;
-     the uncommitted `battery2.py` hunk is A's) and B (`cb9_kd.py`); CB8-W/H analysis sides (+ declaration draft);
-     CB10 author response round.
+   - **Later (15:00-16:00Z):** **q0104b failed** at 15:07Z (MemoryError): 67350d7 had added `cb5_frame_load` but never
+     wired it into `run_cb5.py`; wired in 3a030f6 (runner only, byte-identical per test), deployed 3a030f6; q0104b has one
+     retry left (net lane, after q0120b). **q0120b started 15:08Z.** **CB9 code complete:** A (e07d867, 388862e, rules
+     f7ee838, notes §11 + draft q0180 d2981b9) and B (7402a81, 59e7432); rules sha `cb9_sign 2372d7cf…`, `cb9 d88d5272…`,
+     `cb9_kd d10ed731…`; 94 tests. **CB10 response** applied (987d0aa; D1 runs only if the census MDE ≤ 1.0).
+   - **Running agents (check `git log` if this session ended):** CB9 code-against-design freeze check (science-reviewer);
+     CB8-W/H analysis sides + declaration draft; CB10 implementer (`cb10_*.py`, `run_cb10.py`, rules, draft q0200).
 1. **q0082f:** fix deployed; it runs on the net lane after q0120b. If it fails again, read the log before any further attempt.
-2. **CB9:** after A and B commit, run the code-against-design freeze check (science-reviewer); then queue q0180 (cpu,
-   may run before T_seal). Data jobs q0181+ only after T_seal 2026-10-22T00Z.
+2. **CB9:** apply the freeze-check must-fixes, then queue q0180 (cpu, may run before T_seal). Data jobs q0181+ only after
+   T_seal 2026-10-22T00Z. **CB10:** after its code, code-against-design freeze check, then q0200 smoke (about 10-19/20).
 3. **CB7/CB6 before T_seal:** q0142/q0143 DONE (11:36Z, 14:27Z); q0120b on the net lane (guard now 14). Seals
    q0144/q0145/q0121 only after T_seal. Never retry q0141. Write up q0142/q0143 fetch reports (counts only).
 4. **CB8-H:** q0160b promoted (b486d52); after its PASS, q0162/q0163 (target 10-21T04:00Z). **CB8-B:** q0161/q0164 after
