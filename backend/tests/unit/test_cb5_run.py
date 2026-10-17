@@ -280,11 +280,39 @@ def test_census_g_never_receives_target_window_prices(tmp_path):
     assert base["g56"]["n_units"] > 0 and not any(isinstance(v, float) and "beta" in k for k, v in base.items())
 
 
+COMPLETE_CENSUS = {"G": {"seed_echo": {"stop": False, "n_valid": 10}, "side_audit": {"stop": False}, "seed_book_agreement": {"status": "pass", "stop": False}}}
+
+
 def test_census_stops_and_labels():
-    assert R.census_stops({"G": {"seed_echo": {"stop": True}}}) == ["seed_is_first_trade_echo"]
-    assert "g56_failed" in R.census_stops({"G": {"g56": {"ok": False}}})
-    assert R.census_stops(None) == []
+    assert R.census_stops(COMPLETE_CENSUS) == []
+    stop_echo = {"G": {**COMPLETE_CENSUS["G"], "seed_echo": {"stop": True, "n_valid": 10}}}
+    assert R.census_stops(stop_echo) == ["seed_is_first_trade_echo"]
+    assert "g56_failed" in R.census_stops({"G": {**COMPLETE_CENSUS["G"], "g56": {"ok": False}}})
     assert "seed semantics unverified for era" in R.labels_h2(pd.DataFrame(), None)
+    assert "G-v absent: seed semantics unverified" in R.labels_h2(pd.DataFrame(), {"G": {}})
+    assert "G-v absent: seed semantics unverified" not in R.labels_h2(pd.DataFrame(), COMPLETE_CENSUS)
+
+
+def test_missing_or_unknown_census_parts_stop_as_census_incomplete():
+    assert R.census_stops(None) == ["census_incomplete"] and R.census_incomplete(None) == ["G-ii", "G-vi", "G-v"]
+    for part, name in (("seed_echo", "G-ii"), ("side_audit", "G-vi"), ("seed_book_agreement", "G-v")):
+        g = {k: v for k, v in COMPLETE_CENSUS["G"].items() if k != part}
+        assert R.census_incomplete({"G": g}) == [name] and "census_incomplete" in R.census_stops({"G": g})
+    g = {**COMPLETE_CENSUS["G"], "seed_book_agreement": {"status": "weird"}}
+    assert R.census_incomplete({"G": g}) == ["G-v"]
+    g = {**COMPLETE_CENSUS["G"], "seed_echo": {"stop": False, "n_valid": 0}}
+    assert R.census_incomplete({"G": g}) == ["G-ii"]
+    assert R.census_incomplete({"G": {**COMPLETE_CENSUS["G"], "seed_book_agreement": {"status": "unverified", "stop": False}}}) == []
+
+
+def test_census_inputs_pass_the_census_frame_guard():
+    bad = pd.DataFrame({"market_id": ["1"], "created_at": [""], "outcome_prices": ["[1,0]"]})
+    with pytest.raises(ValueError):
+        R.census_g_cohort(bad, Path("/nonexistent"))
+    with pytest.raises(ValueError):
+        R.listings_per_day(bad, dev_start="2026-10-11T12:00:00Z", end="2026-10-12T12:00:00Z")
+    with pytest.raises(ValueError):
+        R.census_l({"families": []}, [{"rows": pd.DataFrame({"y0": [1]})}])
 
 
 def test_screen_g_end_to_end_with_anchoring_then_not_testable_on_stop(tmp_path):
@@ -292,14 +320,14 @@ def test_screen_g_end_to_end_with_anchoring_then_not_testable_on_stop(tmp_path):
     tp = tmp_path / "trials.jsonl"
     reg = tmp_path / "reg.json"
     reg.write_text('{"version": "cost-regimes-v1", "era_rule": "pooled_allowed"}')
-    doc = R.screen_g(run, head, census=None, out_path=tmp_path / "G" / "results.json", decl_sha="d", n_boot=0, perm_draws=20, era_register=reg, trials_path=tp, clock=CLOCK)
+    doc = R.screen_g(run, head, census=COMPLETE_CENSUS, out_path=tmp_path / "G" / "results.json", decl_sha="d", n_boot=0, perm_draws=20, era_register=reg, trials_path=tp, clock=CLOCK)
     assert set(doc["tests"]) == {"G1", "G2"} and doc["labels"][0].startswith("beyond budget")
     assert doc["tests"]["G1"]["effect"] < -0.2 and doc["tests"]["G1"]["p"] < 0.01
     assert "seed semantics unverified for era" in doc["labels"]
     with pytest.raises(FileExistsError):  # results are never overwritten
-        R.screen_g(run, head, census=None, out_path=tmp_path / "G" / "results.json", decl_sha="d", n_boot=0, perm_draws=2, era_register=reg, trials_path=tp, clock=CLOCK)
+        R.screen_g(run, head, census=COMPLETE_CENSUS, out_path=tmp_path / "G" / "results.json", decl_sha="d", n_boot=0, perm_draws=2, era_register=reg, trials_path=tp, clock=CLOCK)
     assert battery2.cumulative_count(tp)["total"] == 2
-    stopped = R.screen_g(run, head, census={"G": {"seed_echo": {"stop": True}}}, out_path=tmp_path / "G2" / "results.json", decl_sha="d", n_boot=0, perm_draws=2, era_register=reg,
+    stopped = R.screen_g(run, head, census={"G": {**COMPLETE_CENSUS["G"], "seed_echo": {"stop": True, "n_valid": 10}}}, out_path=tmp_path / "G2" / "results.json", decl_sha="d", n_boot=0, perm_draws=2, era_register=reg,
                          trials_path=tp, clock=CLOCK)
     assert not stopped["tests"]["G1"]["testable"] and stopped["tests"]["G1"]["p"] == 1.0 and stopped["census_stops"] == ["seed_is_first_trade_echo"]
 
@@ -308,7 +336,7 @@ def test_screen_g_pure_level_reversion_is_not_credited_to_the_seed(tmp_path):
     run, head = make_h2(tmp_path / "h", n=170, anchoring=0.0, level=0.7, seed=4)
     reg = tmp_path / "reg.json"
     reg.write_text('{"version": "cost-regimes-v1", "era_rule": "pooled_allowed"}')
-    doc = R.screen_g(run, head, census=None, out_path=tmp_path / "G" / "results.json", decl_sha="d", n_boot=0, perm_draws=20, era_register=reg, trials_path=tmp_path / "t.jsonl", clock=CLOCK)
+    doc = R.screen_g(run, head, census=COMPLETE_CENSUS, out_path=tmp_path / "G" / "results.json", decl_sha="d", n_boot=0, perm_draws=20, era_register=reg, trials_path=tmp_path / "t.jsonl", clock=CLOCK)
     assert not doc["tests"]["G1"]["advance"]  # attribution fails: generic first-day reversal, not seed anchoring
     assert doc["G1_detail"]["template_stratum"]["status"] in ("generic_first_day_reversal", "unverified")
 
@@ -425,7 +453,60 @@ def test_spec_binds_census_and_rinc_by_hash(tmp_path):
         D.verify_inputs_bound(tmp_path / "missing.json", rinc, spec)
 
 
-def test_rinc_cli_is_pre_freeze_but_needs_a_frozen_family_list(tmp_path):
+def test_rinc_cli_is_pre_freeze_but_needs_a_frozen_family_list(tmp_path, monkeypatch):
     import run_cb5 as cli
 
+    assert cli.main(["rinc", "--out-root", str(tmp_path / "out")]) == 2  # no sealed r_inc functions: refused
+    monkeypatch.setattr(D, "check_rinc_sealed", lambda *a, **k: "ok")
     assert cli.main(["rinc", "--out-root", str(tmp_path / "out")]) == 2  # no frozen family list: refused (not a declaration refusal)
+
+
+def test_rinc_seal_in_grouper_seal_and_required_for_rinc(tmp_path):
+    p = tmp_path / "seal.json"
+    with pytest.raises(D.DeclarationError):
+        D.check_rinc_sealed(p)
+    D.write_grouper_seal(p)
+    assert D.check_rinc_sealed(p, require_committed=False) == D.rinc_functions_sha256()
+    doc = json.loads(p.read_text())
+    doc["rinc_functions_sha256"] = "0" * 64
+    p.write_text(json.dumps(doc))
+    with pytest.raises(D.DeclarationError):
+        D.check_rinc_sealed(p, require_committed=False)
+    del doc["rinc_functions_sha256"]
+    p.write_text(json.dumps(doc))
+    with pytest.raises(D.DeclarationError):
+        D.check_rinc_sealed(p, require_committed=False)
+
+
+def test_spec_without_rinc_refused_for_l(tmp_path):
+    from astrolabe.research_lab import provenance
+
+    census, spec = tmp_path / "census.json", tmp_path / "cb5_v1.json"
+    census.write_text("{}")
+    D.write_spec(spec, census_sha256=provenance.sha256_file(census))
+    D.verify_inputs_bound(census, None, spec)  # G / K need no r_inc
+    with pytest.raises(D.DeclarationError):
+        D.verify_inputs_bound(census, None, spec, require_rinc=True)
+
+
+def test_write_spec_cli_refuses_without_rinc(tmp_path):
+    import run_cb5 as cli
+
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "census.json").write_text("{}")
+    assert cli.main(["write-spec", "--out-root", str(out)]) == 2
+
+
+def test_historical_family_needs_every_leg_closed_with_known_time_before_dev_start():
+    def build(rung_closed, bucket_closed_time):
+        ev = [tc.bucket_event("B1"), tc.ladder_event("L1", ["June 30", "July 31"])]
+        for m in ev[1]["markets"]:
+            m["closed"], m["closedTime"] = True, rung_closed
+        for m in ev[0]["markets"]:
+            m["closed"], m["closedTime"] = True, bucket_closed_time
+        return R.cdf_frame(ev, dev_start="2026-10-11T12:00:00Z", seed="s", audit_n=5)
+
+    assert build("2026-09-01T00:00:00Z", "2026-09-02T00:00:00Z")["counts"]["n_historical"] == 1
+    assert build("2026-09-01T00:00:00Z", "")["counts"]["n_historical"] == 0  # a bucket member with no known close time
+    assert build("2026-09-01T00:00:00Z", "2026-10-20T00:00:00Z")["counts"]["n_historical"] == 0  # a bucket closed after the dev start

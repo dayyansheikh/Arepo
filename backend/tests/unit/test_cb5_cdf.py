@@ -361,3 +361,19 @@ def test_eligibility_counts_never_compute_a_gap():
     cp, pairs, pool = coherence_world(n_fam=3, n_cap=2)
     out = c.eligible_pair_captures(cp, pairs)
     assert out["n_families"] == 3 and out["n_pair_captures"] == 6 and not any("gap" in k for k in out)
+
+
+def test_coherence_placebo_never_drops_a_pair_inside_a_draw(monkeypatch):
+    """A pair whose every mismatch has no eligible series is excluded from BOTH sides up front (M_matched and every draw use the same pairs)."""
+    cp, pairs, pool = coherence_world(n_fam=30, coherent=True)
+    real = c.gap_mid_series
+
+    def fake(captures, pair, regime):
+        if pair["family_id"] == pairs[0]["family_id"] and pair["bucket_event"] != pairs[0]["bucket_event"]:
+            return []  # every mismatch of the first family has no eligible capture
+        return real(captures, pair, regime)
+
+    monkeypatch.setattr(c, "gap_mid_series", fake)
+    res = c.coherence_placebo(cp, pairs, pool, n_draws=20, regime=ZERO_FEE)
+    assert res["n_pairs_excluded_no_mismatch"] >= 1
+    assert res["n_pairs_used"] + res["n_pairs_excluded_no_mismatch"] == len({(p["family_id"], p["D"]) for p in pairs})

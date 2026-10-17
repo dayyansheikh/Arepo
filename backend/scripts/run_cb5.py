@@ -103,12 +103,12 @@ def _census(a) -> dict | None:
     return _load_json(_paths(a)["out"] / "census.json")
 
 
-def _bound(a) -> None:
+def _bound(a, need_rinc: bool = False) -> None:
     """After the declaration guard: census.json (and rinc.json when bound) must be the files the committed spec hashes."""
     from astrolabe.research_lab import cb5_declaration as D
 
     out = _paths(a)["out"]
-    D.verify_inputs_bound(out / "census.json", out / "rinc.json")
+    D.verify_inputs_bound(out / "census.json", out / "rinc.json", require_rinc=need_rinc)
 
 
 # ---- data jobs ------------------------------------------------------------------------------------------------------
@@ -341,10 +341,12 @@ def _frozen_family_doc(a) -> dict:
 
 
 def cmd_rinc(a) -> int:
+    from astrolabe.research_lab import cb5_declaration as D
     from astrolabe.research_lab import cb5_fetch as F
     from astrolabe.research_lab import cb5_run as R
     from astrolabe.research_lab.cb3_common import write_new
 
+    D.check_rinc_sealed()  # the r_inc rule functions and RINC_MIN_FAMILIES must be sealed (committed) before any outcome is read
     fdoc = _frozen_family_doc(a)  # pre-freeze job: needs the frozen family list, not the declaration (the freeze binds rinc.json by hash)
     p = _paths(a)
     fdir = p["out"] / "cdf_frame"
@@ -385,7 +387,7 @@ def cmd_screen(a) -> int:
     if a.family == "L":
         D.check_L_screen_allowed()
         decl = _decl()
-        _bound(a)
+        _bound(a, need_rinc=True)
         fdoc = _frozen_family_doc(a)
         caps, meta = R.load_cdf_captures(p["ext"], start=D.DATES["T5_dev_start"], end=D.DATES["T5_dev_end"])
         rinc = _load_json(p["out"] / "rinc.json")
@@ -420,7 +422,7 @@ def cmd_replicate(a) -> int:
     p = _paths(a)
     D.check_rep_allowed(a.family)
     decl = _decl()
-    _bound(a)
+    _bound(a, need_rinc=a.family == "L")
     dates = D.rep_dates()
     g1 = _load_json(p["out"] / "G_screen" / "results.json")
     l1 = _load_json(p["out"] / "L_dev" / "results.json")
@@ -483,7 +485,9 @@ def cmd_write_spec(a) -> int:
     if not census.exists():
         raise D.TooEarly("census.json is required before the freeze")
     rinc = _paths(a)["out"] / "rinc.json"
-    _emit(D.write_spec(census_sha256=provenance.sha256_file(census), rinc_sha256=provenance.sha256_file(rinc) if rinc.exists() else None))
+    if not rinc.exists():
+        raise D.TooEarly("rinc.json is required before the freeze (q0107 runs before it)")
+    _emit(D.write_spec(census_sha256=provenance.sha256_file(census), rinc_sha256=provenance.sha256_file(rinc)))
     return 0
 
 

@@ -168,8 +168,10 @@ IMPORTED_RULE_FUNCTIONS = (
     ("if_h2", "parse_deadline"), ("if_h2", "stem"), ("if_h2", "_tokens"),
     ("cross_venue", "tokenize"), ("cross_venue", "usable"), ("cross_venue", "lagged_diff"), ("cross_venue", "p_two_sided"), ("cross_venue", "p_one_sided"),
     ("cb4_data", "ReleaseCopies"), ("cb4_data", "Catalogue"),
+    ("history_backfill", "load_prices"), ("history_backfill", "load_trades"), ("history_backfill", "_epoch"),
 )
-CB5_RULE_MODULES = ("cb5_declaration", "cb5_extract", "cb5_seed", "cb5_cdf", "cb5_hours")
+# Operational extractor constants (time budget, caps, scratch) are module-level values, not functions, so they stay out of the hash.
+CB5_RULE_MODULES = ("cb5_declaration", "cb5_extract", "cb5_seed", "cb5_cdf", "cb5_hours", "cb5_run", "cb5_fetch")
 ABSENT = "ABSENT"
 
 
@@ -314,7 +316,7 @@ def require_declaration(path: Path | None = None, *, require_committed: bool = T
     return cur
 
 
-def verify_inputs_bound(census_path: Path, rinc_path: Path | None = None, spec_path: Path | None = None) -> None:
+def verify_inputs_bound(census_path: Path, rinc_path: Path | None = None, spec_path: Path | None = None, *, require_rinc: bool = False) -> None:
     """The census (and, when the spec binds one, ``rinc.json``) read by a counted run must be the files whose hashes the committed
     spec carries: a re-run or edited census can not change a frozen test."""
     spec = json.loads(Path(spec_path if spec_path is not None else SPEC_PATH).read_text())
@@ -323,9 +325,11 @@ def verify_inputs_bound(census_path: Path, rinc_path: Path | None = None, spec_p
         raise DeclarationError(f"{census_path} is missing: counted CB5 runs need the census the freeze was based on")
     if provenance.sha256_file(census_path) != spec.get("census_sha256"):
         raise DeclarationError("census.json differs from the spec's census_sha256")
-    if spec.get("rinc_sha256") is not None:
-        if rinc_path is None or not Path(rinc_path).exists() or provenance.sha256_file(Path(rinc_path)) != spec["rinc_sha256"]:
-            raise DeclarationError("rinc.json is missing or differs from the spec's rinc_sha256")
+    if spec.get("rinc_sha256") is None:
+        if require_rinc:
+            raise DeclarationError("the spec carries no rinc_sha256: L counted runs need the rinc.json the freeze was based on")
+    elif rinc_path is None or not Path(rinc_path).exists() or provenance.sha256_file(Path(rinc_path)) != spec["rinc_sha256"]:
+        raise DeclarationError("rinc.json is missing or differs from the spec's rinc_sha256")
 
 
 # ---- dates and guards ------------------------------------------------------------------------------------------------
@@ -459,11 +463,24 @@ def grouper_sha256() -> str:
     return hashlib.sha256(json.dumps({"declaration": cb5_cdf.grouper_declaration(), "sources": src}, sort_keys=True, default=str).encode()).hexdigest()
 
 
+RINC_SEALED_FUNCTIONS = (("cb5_cdf", "r_inc"), ("cb5_cdf", "wilson_upper"), ("cb5_cdf", "divergence_gate"), ("cb5_cdf", "credit_status"),
+                         ("cb5_run", "rinc_run"))
+
+
+def rinc_functions_sha256() -> str:
+    """sha256 of the sources of the r_inc rule functions and ``RINC_MIN_FAMILIES``: sealed (with the grouper) before q0107 reads any outcome."""
+    out = {"RINC_MIN_FAMILIES": cb5_cdf.RINC_MIN_FAMILIES}
+    for mod, name in RINC_SEALED_FUNCTIONS:
+        m = importlib.import_module(f"{__package__}.{mod}")
+        out[f"{mod}.{name}"] = hashlib.sha256(inspect.getsource(getattr(m, name)).encode()).hexdigest()
+    return hashlib.sha256(json.dumps(out, sort_keys=True).encode()).hexdigest()
+
+
 def write_grouper_seal(path: Path | None = None) -> dict:
     p = Path(path) if path is not None else GROUPER_SEAL_PATH
     if p.exists():
         raise FileExistsError(f"{p} exists; the grouper hash is sealed once (a revision after a failed audit is a new seal file)")
-    doc = {"version": VERSION, "grouper": cb5_cdf.GROUPER_VERSION, "grouper_sha256": grouper_sha256()}
+    doc = {"version": VERSION, "grouper": cb5_cdf.GROUPER_VERSION, "grouper_sha256": grouper_sha256(), "rinc_functions_sha256": rinc_functions_sha256()}
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
     return doc
@@ -479,4 +496,20 @@ def check_grouper_committed(path: Path | None = None, *, require_committed: bool
     want, got = json.loads(p.read_text()).get("grouper_sha256"), grouper_sha256()
     if want != got:
         raise DeclarationError(f"grouper hash mismatch: sealed {want} != code {got}")
+    return got
+
+
+def check_rinc_sealed(path: Path | None = None, *, require_committed: bool = True) -> str:
+    """``rinc`` (q0107) refuses unless the committed seal carries ``rinc_functions_sha256`` equal to this code's (the r_inc rule, its
+    Wilson bound, the divergence gate, the credit status and RINC_MIN_FAMILIES are fixed before any outcome is read)."""
+    p = Path(path) if path is not None else GROUPER_SEAL_PATH
+    if not p.exists():
+        raise DeclarationError(f"no seal at {p}: rinc is refused until the r_inc functions are sealed")
+    if require_committed and not _c3.spec_committed(p):
+        raise DeclarationError(f"{p} is not committed (or differs from HEAD)")
+    want, got = json.loads(p.read_text()).get("rinc_functions_sha256"), rinc_functions_sha256()
+    if want is None:
+        raise DeclarationError(f"{p} carries no rinc_functions_sha256: rinc is refused")
+    if want != got:
+        raise DeclarationError(f"r_inc functions mismatch: sealed {want} != code {got}")
     return got

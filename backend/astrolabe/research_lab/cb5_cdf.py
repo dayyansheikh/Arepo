@@ -351,7 +351,7 @@ def bucket_events(events: Iterable[dict]) -> list[dict]:
                 break
             members.append({"market_id": str(m.get("id")), "condition_id": m.get("conditionId") or "", **p,
                             "created_at": m.get("createdAt") or "", "closed": bool(m.get("closed")),
-                            "fee_type": m.get("feeType") or "", "end_date": m.get("endDate") or ""})
+                            "closed_time": m.get("closedTime") or "", "fee_type": m.get("feeType") or "", "end_date": m.get("endDate") or ""})
         if not ok or not tiles(members):
             continue
         kinds = {x["kind"] for x in members if x["kind"] in ("month", "quarter", "year")}
@@ -716,6 +716,7 @@ def coherence_placebo(captures: list[dict], pair_list: list[dict], pool: list[di
     rng = np.random.default_rng(seed)
     cand: dict[tuple[str, date], list[dict]] = {}
     matched: dict[tuple[str, date], list[float]] = {}
+    cand_series: dict[tuple[str, date], list[list[float]]] = {}
     excluded = 0
     for p in pair_list:
         key = (p["family_id"], p["D"])
@@ -725,27 +726,28 @@ def coherence_placebo(captures: list[dict], pair_list: list[dict], pool: list[di
             if bd:
                 mm.append({**p, "B": bd, "K": len(bd), "bucket_event": b["event_id"]})
         series = gap_mid_series(captures, p, regime)
-        if not mm or not series:
+        # only mismatches with an eligible (non-empty) series are candidates, so no draw ever drops a pair that M_matched keeps
+        mm_ok = []
+        for c in mm:
+            ser = gap_mid_series(captures, c, regime)
+            if ser:
+                mm_ok.append((c, ser))
+        if not mm_ok or not series:
             excluded += 1
             continue
-        cand[key] = mm
+        cand[key] = [c for c, _ in mm_ok]
+        cand_series[key] = [ser for _, ser in mm_ok]
         matched[key] = series
     fams = {k[0] for k in cand}
     base = {"n_pairs_used": len(cand), "n_families_used": len(fams), "n_pairs_excluded_no_mismatch": excluded, "n_draws": n_draws}
     if len(fams) < PLACEBO_MIN_FAMILIES:
         return {**base, "testable": False, "advance_ok": False, "reason": f"fewer than {PLACEBO_MIN_FAMILIES} families with an eligible mismatch"}
     m_match = coherence_statistic(matched)
-    cache: dict[tuple[tuple[str, date], int], list[float]] = {}
     draws = []
     for _ in range(n_draws):
         per = {}
         for key, mm in cand.items():
-            j = int(rng.integers(0, len(mm)))
-            ck = (key, j)
-            if ck not in cache:
-                cache[ck] = gap_mid_series(captures, mm[j], regime)
-            if cache[ck]:
-                per[key] = cache[ck]
+            per[key] = cand_series[key][int(rng.integers(0, len(mm)))]
         draws.append(coherence_statistic(per))
     dv = np.array([x for x in draws if np.isfinite(x)], float)
     rate = float(np.mean(dv <= m_match)) if len(dv) else 1.0

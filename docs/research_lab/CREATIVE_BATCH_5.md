@@ -397,10 +397,9 @@ the declaration before q0104 reads any title or question.**
 - Host: 1 OCPU, about 5.6 GiB RAM shared with the live collector (MemAvailable about 4.4 GiB at the 18:10Z check).
   Queue worker: one job per lane (`cpu` default, `net`), nice 19, start only if `MemAvailable ≥ mem_mb + 1200`, address
   cap 2 × `mem_mb`, start blackout 02:45-05:30 UTC for jobs with `mem_mb ≥ 500`. Never two multi-GB jobs at once.
-- **Lanes.** The API fetches (q0102, q0103, q0104, q0111) are light, rate-limited network jobs. They run on the
-  default `cpu` lane, as CB4's API fetches do, because q0002 holds `net` for days with pmxt reads (CB4 §2.8). The
-  extractor backfills (q0101, q0105) stream release copies (I/O) and also use `cpu` to avoid waiting for q0002. No
-  CB5 job uses `net`.
+- **Lanes.** The network jobs (q0102, q0103, q0104, q0107, q0111) use the `net` lane: q0002 is done and no longer holds
+  it. The extractor backfills (q0101, q0105) stream release copies and use `cpu`, as do the analysis jobs. Never two
+  multi-GB jobs at once.
 - **Priorities.** CB5 analysis stays below every CB1-CB4 job: census 40, measurement 39, screens and replications 38.
   Data jobs: the `listings` backfill q0101 at **57** (calendar-bound: dev captures become deletable from about
   2026-10-18; below the h7 jobs at 58 so it cannot delay CB4's `T_seal` deadline). The head refetch, frame, cohort fetch
@@ -845,8 +844,11 @@ replicate,fetch-outcomes} --family G|L|K`.
 - Declaration-hash guard (committed `model_specs/cb5_v1.json` must equal the code's hash) on `screen`, `measure-K`,
   `replicate`, `fetch-outcomes` and `rinc`.
 - `cdf-frame` refuses until the grouper hash is committed. `cdf-audit-apply` writes the frozen family list (sha256) and
-  refuses a third version. `rinc` refuses until the family list is frozen and reads outcomes only for families whose
-  events all closed before `T5_dev_start`.
+  refuses a third version. `rinc` refuses until the family list is frozen **and** the committed seal file carries
+  `rinc_functions_sha256` equal to the code's (sources of `r_inc`, `wilson_upper`, `divergence_gate`, `credit_status`,
+  `rinc_run` and `RINC_MIN_FAMILIES`, sealed together with the grouper hash before q0107 runs). It reads outcomes only for
+  families whose every leg (rung and bucket member) closed, with a known close time, before `T5_dev_start`.
+  `write-spec` refuses when `rinc.json` is absent, and the L counted runs refuse a spec with no `rinc_sha256`.
 - `screen --family L` refuses until CB1-D's replication results (or its recorded stop) are committed and never before
   `T_CB1D_rep`. `rinc` writes `r_inc` "unknown" below 30 resolved families.
 - `screen --family G` refuses until `cost_regimes_v1.json` is committed (era rule). `replicate --family G` refuses
@@ -1047,7 +1049,7 @@ job (§0.1); CB4's q0084-q0093 drafts are unaffected.
 
 **Host compute.**
 - About 3-5 CPU-hours at nice 19 in total (extractor backfills are the largest). Peak memory 1.5 GB (frame, census).
-  No job uses the `net` lane; no two multi-GB jobs run at once.
+  The five network jobs use the `net` lane (q0002 is done); no two multi-GB jobs run at once.
 - Network: head refetch about 6.4k requests (30-45 min); census cohort 6-10k (< 1 h); frame walk a few hundred pages;
   r_inc a few hundred metadata requests; replication cohort about 10k over three weeks. All at ≤ 4 rps with the shared
   limiter and collector yield.
@@ -1154,7 +1156,7 @@ the Stage-1 screen with the L1 ceiling; G-v thresholds unchanged; the G2 carry r
 historical-only outcome read unchanged; K buckets, non-sports primary and the K1-R conditions unchanged). Question 5 is
 answered by item 5.
 
-## 10. Implementation notes (2026-10-17; code committed, not frozen; awaiting the science-reviewer freeze check)
+## 10. Implementation notes (2026-10-17; code committed, not frozen; freeze-check fixes A1-A5 and B1-B10 applied, awaiting the re-check)
 
 **What exists** (all under `backend/`; tests `backend/tests/unit/test_cb5_*.py`, 85 tests, all green together with the CB1/CB2/battery2 tests):
 
@@ -1174,14 +1176,18 @@ answered by item 5.
 **Deviations from sections 4.1-4.3 (all stricter or neutral; the coordinator should accept them at the freeze check).**
 - The extractor is a separate module and version (`cb5-extract-v1`), not `creative_batch1.py` `cb1-extract-v4`. `creative_batch1.py`, its version (`cb1-extract-v2`) and every CB1-CB4 table are untouched (a test asserts it). The pass step is `run_cb5.py extract`.
 - Declaration (`cb5_declaration.py`): the hash covers the source of every function and class of the five CB5 modules, the imported rule functions (cost model, cluster statistics, `if_h2` deadline and stem, `cross_venue` tokenizer, CB4 release reader) **and every UPPER_CASE module constant read at call time**, so a changed threshold, seed, word list or window changes the hash even where no function changed. The grouper hash is sealed separately (`write-grouper-seal` -> `docs/research_lab/seals/cb5_grouper_hash.json`); `cdf-frame` refuses until it is committed and equal to the code's.
-- `rinc` (q0107) is a pre-freeze job: no declaration guard (a guard would be circular, the freeze needs its result). It refuses until the family list is frozen. `write-spec` binds `census.json` and `rinc.json` by sha256 into `model_specs/cb5_v1.json`, and every counted run re-verifies both (`verify_inputs_bound`).
+- `rinc` (q0107) is a pre-freeze job: no declaration guard (a guard would be circular, the freeze needs its result). It refuses until the family list is frozen and the r_inc functions are sealed (see 4.2). `write-spec` binds `census.json` and `rinc.json` by sha256 into `model_specs/cb5_v1.json`, and every counted run re-verifies both (`verify_inputs_bound`).
 - A trigger at the last capture of a window has no c' (the sample ends); it is censored, not counted as a net-0 trade. A gap outside [1.5, 3] h or an ineligible c' stays net 0, kept.
 - h2 has no neg-risk member count, so every h2 neg-risk market is excluded from G (conservative; the replication cohort uses the first-sighting member count).
 - The G-iv determinism overlap is restricted to the census window (stamps up to `min(first trade + 1h, L + 24h)`), so the census never compares target-window price values.
 - Source rule (d): both sides name sources -> must intersect; neither names one -> pass and flag `source_unknown` (IF-H2 records carry no descriptions, so historical families are all `source_unknown`); one side only -> exclude.
 
-**Declaration hash (code at the commit that introduces this section; recomputed by `cb5_declaration.declaration_sha256()`):**
-`9f1c6e9da25f161cffe63108b7ba38833a11f278714e830f890715a5d0ef2339`. Grouper hash: `09a7c44fcefebcba894d99e3eb01e434b994e364eedbeb646fb1aa7542b23c91`. Any further code change moves both; re-read them at the freeze commit.
+**Declaration hash (code at the commit that applies the freeze-check fixes; recomputed by `cb5_declaration.declaration_sha256()`):**
+`ea41707eb732b4f5d958d7b3a2efb4d992e517637c41bfcb828bcd41363272e5`. Grouper hash: `3099f3945ffcd4a60775f8438befa0120611823f2275d2ff5f4df84a308a7554`. r_inc functions hash (sealed with the grouper): `d9d0720c5d0f5a222b4835f8639d70c55f9b18276ede38065ff4eaf5d5cac4fd`. Any further code change moves them; re-read them at the freeze commit. The hash now also covers `cb5_run`, `cb5_fetch` and `history_backfill.load_prices`, `load_trades`, `_epoch`; operational extractor constants (budget, caps, scratch) are module values and stay out of it.
+
+**Freeze-check fix status.**
+- A1 done: a missing capture no longer resets the listings chain (retries each pass cannot make later captures `first_seen_certain = 0`; adjacency detects a missing predecessor). A2 done: `neg_risk_n_members_at_sighting` (counted over the full capture) and `sweep_batch_receipt_utc` are stored; the replication cohort reads the stored count (no look-ahead). A3 done: q0101 and q0105 pass `--retry-missing`. A4 done: exit 75 (`EX_TEMPFAIL`) on a headroom refusal; the queue worker waits 30 min without counting an attempt (cap 48). A5 done: pass step uses `--data-dumps-max-gb 10`.
+- B1 done (hash scope). B2 = A2. B3 done: an absent or unknown G-ii, G-vi or G-v stops as `census_incomplete`; an absent G-v adds the label "G-v absent: seed semantics unverified". B4 done: `assert_census_frame` on every census input frame (h2 sample after dropping forbidden columns, listings, cdf rows). B5 done: historical = every leg closed with a known close time before `T5_dev_start` (bucket members now carry `closed_time`). B6 done (seal, `rinc` refusal, `write-spec` and `verify_inputs_bound`). B7 done: mismatches with no eligible series are dropped up front, so `M_matched` and every draw use the same pairs. B8 done (lanes; section 2.8 amended). B9 not done (the shared CB4 test helpers stay in `test_cb4_data.py`). B10 done (no change; constants out of the hash).
 
 **Pass-step line (do not edit `scripts/oracle/arepo_pass.sh` from this branch; the owner adds it after the line for CB4, line 32):**
 ```
@@ -1189,13 +1195,13 @@ answered by item 5.
 ```
 After the family list is frozen and q0105 has run, extend it to `--tables listings,cdf --family-list auto` (the `cdf` table is skipped with a note while no list is frozen). The run is idempotent by (capture_id, table), writes only under `cb5_extract/`, and exits 75 (EX_TEMPFAIL) only on a headroom refusal (the `|| true` keeps the pass alive). A capture whose raw files are gone is recorded `missing` and retried on every all-new pass (a missing capture never resets the listings chain; the next capture's `first_seen_certain` is 0 only because its predecessor is the missing one). q0101 and q0105 pass `--retry-missing` so host captures marked missing by a pass are retried from release copies.
 
-**Queue notes.** Lanes follow the coordinator instruction: network-bound jobs (q0102, q0103, q0104, q0107, q0111) use lane `net`. Section 2.8 said `cpu` because q0002 holds `net`; if q0002 still holds it at release, change those five specs to `cpu`. Data jobs and the pass step pass `--data-dumps-max-gb 10` (stricter than the 12 GB cap: size + allowance + scratch must stay under 10 GB); a refusal exits 75, which the queue worker treats as wait-30-min-and-retry (not an attempt; at most 48 in a row). `done` for q0101/q0105 requires `backfill_complete` in the log. `mem_mb`: 400-1,500 (q0104 and q0106 at 1,500, the streamed frame parse and the census).
+**Queue notes.** Network-bound jobs (q0102, q0103, q0104, q0107, q0111) use lane `net` (q0002 is done and no longer holds it; section 2.8 amended). Data jobs and the pass step pass `--data-dumps-max-gb 10` (stricter than the 12 GB cap: size + allowance + scratch must stay under 10 GB); a refusal exits 75, which the queue worker treats as wait-30-min-and-retry (not an attempt; at most 48 in a row). `done` for q0101/q0105 requires `backfill_complete` in the log. `mem_mb`: 400-1,500 (q0104 and q0106 at 1,500, the streamed frame parse and the census).
 
 **Open items for the freeze check (not implemented or unverified; none changes a declared threshold).**
 1. K1-R (q0114): the live-pair loader and the receipt-timed 2-minute grid mapping are not implemented (the runner refuses first, then exits 3).
 2. Reported-only variants not implemented: G sign by month/category, +1c cost, hold-to-resolution (G2), design-weighted slope, the fidelity-1 seed variant (stored, not analysed); L tier sensitivity, maker-leg and conversion-adjusted capital variants; K market-hours split, K by Kalshi-volume tercile, K with the 4 hand-dropped pairs re-added, the Polymarket flat-step share by bucket (K-ii). The binding items are implemented.
 3. `fetch_yes_payouts` batches Gamma `/markets?id=...` (repeated `id` parameter, 40 per call); not exercised against the live API. A wrong batch format would read as "unresolved" (NaN), which can only make `r_inc` unknown, never easier.
 4. The IF-H2 `events.jsonl.gz` has no `negRiskAugmented`, `conditionId` or descriptions: historical bucket events are treated as not augmented (unflagged) and `source_unknown`. The audit gate (L-ii) is the guard.
-5. Queue lane for the five network jobs (see above), and the `rinc` pre-freeze status (item "rinc" in the deviations) should be confirmed by the reviewer.
+5. The `rinc` pre-freeze status (see 4.2: sealed functions, committed seal, `rinc.json` bound by hash) should be confirmed by the reviewer.
 6. Timing (synthetic C1-sized table, 510k steps, 170 pairs): step table 5 s, K1 with 4,000 draws 1.2 s, 400 pseudo-split tests about 3 minutes, within-pair 1 s; q0110's 3,600 s limit is ample.
 7. No CB5 quantity has been computed on real data; all numbers in the tests come from synthetic fixtures.

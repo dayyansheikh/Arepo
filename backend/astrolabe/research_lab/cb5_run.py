@@ -107,6 +107,9 @@ def iter_h2(run_dir: Path, head_dir: Path, *, with_outcome: bool, ids: set[str] 
     """Yield ``(rec, ts, vals, trades, truncated, oldest_ts)`` for h2 markets with head prices and trades (missing -> skipped)."""
     run_dir, head_dir = Path(run_dir), Path(head_dir)
     sample = cb1_history.load_sample(run_dir, census=not with_outcome)
+    if not with_outcome:  # census code never sees a forbidden column (closed_time, outcome labels, ...): drop, then assert
+        sample = sample.drop(columns=[c for c in sample.columns if c in D.CENSUS_FORBIDDEN_COLUMNS])
+        assert_census_frame(sample)
     prog = hb._read_progress(run_dir / "progress.jsonl")
     for row in sample.to_dict("records"):
         mid = str(row["market_id"])
@@ -220,8 +223,25 @@ def g2_assess(df: pd.DataFrame, truncated: list[dict], *, n_boot: int, regime_kw
     return out
 
 
+def census_incomplete(census: dict | None) -> list[str]:
+    """Names of the pre-freeze census parts that are absent or unknown: G-ii (seed_echo), G-vi (side_audit), G-v (seed_book_agreement)."""
+    g = (census or {}).get("G") or {}
+    out = []
+    echo = g.get("seed_echo")
+    if not isinstance(echo, dict) or "stop" not in echo or not echo.get("n_valid"):
+        out.append("G-ii")
+    side = g.get("side_audit")
+    if not isinstance(side, dict) or "stop" not in side:
+        out.append("G-vi")
+    book = g.get("seed_book_agreement")
+    if not isinstance(book, dict) or book.get("status") not in ("pass", "fail", "unverified"):
+        out.append("G-v")
+    return out
+
+
 def census_stops(census: dict | None) -> list[str]:
-    """Pre-freeze stops recorded by the census (G part): CB5-G does not run when one is set."""
+    """Pre-freeze stops recorded by the census (G part): CB5-G does not run when one is set. A missing or unknown G-ii, G-vi or G-v
+    part stops the run as ``census_incomplete`` (an absent check is never read as a pass)."""
     g = (census or {}).get("G") or {}
     stops = []
     if (g.get("seed_echo") or {}).get("stop"):
@@ -232,12 +252,17 @@ def census_stops(census: dict | None) -> list[str]:
         stops.append("side_convention_unverified")
     if g.get("g56") is not None and not g["g56"].get("ok", True):
         stops.append("g56_failed")
+    if census_incomplete(census):
+        stops.append("census_incomplete")
     return stops
 
 
 def labels_h2(df: pd.DataFrame, census: dict | None) -> list[str]:
     lab = ["beyond budget (h2 wear): L1 at most", "seed semantics unverified for era"]
-    if ((census or {}).get("G") or {}).get("seed_book_agreement", {}).get("status") == "unverified":
+    book = ((census or {}).get("G") or {}).get("seed_book_agreement")
+    if not isinstance(book, dict):
+        lab.append("G-v absent: seed semantics unverified")
+    elif book.get("status") == "unverified":
         lab.append("G-v unverified: fewer than 50 checkable markets")
     return lab
 
@@ -365,6 +390,7 @@ def _static_ok(rec: dict, clock: float | None) -> tuple[bool, str]:
 
 def census_g_cohort(listings: pd.DataFrame, cohort_dir: Path) -> dict:
     """G-v on the census cohort: seed vs the first-seen touch of the listing, for markets first sighted before their first trade."""
+    assert_census_frame(listings)
     first = listings.drop_duplicates("market_id").set_index("market_id")
     facts, agree_in = [], []
     prog = hb._read_progress(Path(cohort_dir) / "progress.jsonl")
@@ -386,6 +412,7 @@ def census_g_cohort(listings: pd.DataFrame, cohort_dir: Path) -> dict:
 def listings_per_day(listings: pd.DataFrame, *, dev_start: str, end: str) -> dict:
     """G-viii: listings per day meeting the replication population rules known at first sighting (non-sports, non-weather, binary,
     scheduled life >= 4 d); the Stage-2 MDE input."""
+    assert_census_frame(listings)
     df = listings.drop_duplicates("market_id").copy()
     df["created"] = [hb._epoch(v) for v in df["created_at"]]
     df["end"] = [hb._epoch(v) for v in df["end_date"]]
@@ -482,13 +509,14 @@ def cdf_frame(events: list[dict], *, dev_start: str, is_live_fn=None, seed: str,
     for b in buckets:
         listed[f"P:{b['event_id']}"] = iso(max(max((hb._epoch(m["created_at"]) for m in b["members"] if m["created_at"]), default=floor), floor))
     closed_all = {}
-    for f in fams:
-        mk = [r["closed"] for r in f["ladder"]["rungs"]] + [m["closed"] for m in f["bucket"]["members"]]
-        ct = [hb._epoch(r["closed_time"]) for r in f["ladder"]["rungs"] if r["closed_time"]]
-        closed_all[f["family_id"]] = (all(mk), max(ct) if ct else math.nan)
     t_dev = hb._epoch(dev_start)
+    for f in fams:
+        legs = list(f["ladder"]["rungs"]) + list(f["bucket"]["members"])
+        times = [hb._epoch(m["closed_time"]) if m.get("closed_time") else math.nan for m in legs]
+        # historical = every leg (rung AND bucket member) closed with a known close time before T5_dev_start
+        closed_all[f["family_id"]] = (all(m["closed"] for m in legs), all(math.isfinite(t) and t < t_dev for t in times))
     live = {k: (not v[0]) for k, v in closed_all.items()}
-    hist = {k: bool(v[0] and math.isfinite(v[1]) and v[1] < t_dev) for k, v in closed_all.items()}
+    hist = {k: bool(v[0] and v[1]) for k, v in closed_all.items()}
     is_live = is_live_fn or (lambda fid: live[fid])
     sample = cb5_cdf.audit_sample(fams, {k: is_live(k) for k in live}, seed, audit_n, audit_n)
     counts = {"n_rungs": len(rungs), "n_ladder_groups": len(groups), "n_bucket_events": len(buckets), "n_families": len(fams),
@@ -512,6 +540,8 @@ def audit_apply(state_path: Path, labels: list[bool]) -> dict:
 
 def census_l(families_doc: dict, caps: list[dict]) -> dict:
     """L-i, L-iii, L-iv: counts and eligibility only; no gap, net or bucket sum is computed."""
+    for c in caps:
+        assert_census_frame(c["rows"])
     pairs, fams, _pool = family_pairs(families_doc)
     el = cb5_cdf.eligible_pair_captures(caps, pairs)
     return {"n_families": len(fams), "n_pairs": len(pairs), "eligible": {k: el[k] for k in ("n_families", "n_pair_captures", "ineligible_reasons")}, "eligible_per_family_quantiles":

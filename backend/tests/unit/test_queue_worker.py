@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Queue worker state transitions (scripts/oracle/queue_worker.py), notably exit 75 (EX_TEMPFAIL)."""
 
 from __future__ import annotations
