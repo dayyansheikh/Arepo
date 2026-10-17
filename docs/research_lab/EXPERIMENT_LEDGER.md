@@ -1314,3 +1314,9 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   Disclosure: 14 of the 20 were also probed by CB6 smoke v2, 1 by CB6 smoke v1, 0 by CB7 v1. Seal copies
   `seals/cb7_smoke_v2_PASS_20261017.json` (sha256 `f178a3a8...`) and `cb7_smoke_FAIL_20261017.json`.
 - Consequence: q0142 (h8_text) and q0143 (h8_geo) promoted (4e55ee5); both must finish before `T_seal` 2026-10-22T00Z.
+
+## CB4-N power pilot (q0084), 2026-10-17 10:26Z (descriptive, outside the analysis window; not counted)
+- 24/24 hours, 1.29 eligible events/hour (prior assumed ~15), 31 event-hours; all band indicators 0 (`I_none` = 1.0,
+  SD 0). Frozen rule gives H = 84 with a degenerate predicted MDE of 0. Open for the CB4 freeze check: "not testable" vs
+  run at H = 84 with a non-degenerate MDE, plus a check that the band classifier is not defective
+  (`CREATIVE_BATCH_4.md`, power pilot result). q0085 (flip trades) still not before ~10-24T12Z.

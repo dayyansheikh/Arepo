@@ -1658,3 +1658,19 @@ three should-fixes before releasing q0086b. Final round; all applied, each equal
 
 q0086b moved from `queue/drafts/` to `queue/jobs/` in the response commit, as the coordinator instructed for the case
 where all tests pass.
+
+## Power pilot result (q0084, 2026-10-17 10:26Z; outside the analysis window; descriptive, not counted)
+`creative_batch4/N_pilot/pilot.json` sha256 `77d0d5a2…8fac`. Attempts 1-2 died with MemoryError (pyarrow row-group reads
+under the address cap); attempt 3 ran on the equivalence-tested streaming reader (23dcd70). 24 of 24 seeded hours done,
+0 missing; ingress 0.44 GB per hour read (so `H_cap` = 252 under the 150 GB cap); walk 124,918 events seen, 10,428 kept
+neg-risk members. **Eligible events per hour 1.29** (the prior arithmetic assumed about 15), giving only 31 event-hours in
+31 event clusters. **Base rates: `I_none` = 1.0, `I_lo` = `I_mid` = `I_hi` = 0.0; `sd_I_mid` = 0.** The frozen rule then
+gives `H_mde` = 84 (predicted MDE 0 at every H) and **H = min(84, 252) = 84**, `testable: true`; the design effect could
+not be estimated (null; 1.5 used).
+
+**Reading (for the census and the freeze check; no threshold changed):** the predicted MDE of 0 is an artefact of a zero
+SD, not real power. With 1.29 eligible events per hour, H = 84 gives about 108 event-hours, and the pilot saw no
+mid-band minute at all. The freeze check must decide, before the census, whether N1/N2 are declared "not testable
+(degenerate pilot: zero variance in 31 event-hours)" or run at H = 84 with their MDE stated from a non-degenerate bound
+(e.g. a rule-of-three upper bound on the band share, ≤ 3/31 ≈ 10 % of event-hours). It must also check that a zero band
+share is not a measurement defect (e.g. the band classifier never firing) by a code-level unit check on a synthetic hour.
