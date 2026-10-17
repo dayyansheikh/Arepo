@@ -1325,3 +1325,10 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   defect (stop not enforced in `measure-N`), fixed in 3988b1d with a YES-token check and a synthetic-hour classifier test
   (passed: the zero mid-band share is a data property). The 2 counted lines are written by q0087n (`measure-N
   --not-testable-only`) after the CB4 freeze, not now; q0087 for N is not run. Band map = pilot data only.
+
+## CB7 fetches complete (q0142 h8_text, q0143 h8_geo), 2026-10-17: counts only, not counted
+- h8_text: 4,108 markets (the whole filtered pool), **1,026 eligible origins** (design assumed about 5,000 units; rough
+  Stage-1 S1 MDE about 5-6c per marker, census replaces). h8_geo: 3,067 markets, 7,380 origins, **1,917 eligible**
+  (rough G1 MDE about 7-8c). 0 failed items or windows; outcomes guarded and unread. Details: `CREATIVE_BATCH_7.md`,
+  last section. Seals q0144/q0145 after `T_seal`.
+

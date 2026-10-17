@@ -1105,3 +1105,23 @@ accepted by the fetchers by key-file sha only (`load_exclusion_keys`), which is 
 print window uses Gamma `endDate` while the inside-life check used the recorded `end_epoch` (a disagreement can move the
 window outside the life); `n_gamma_failed` is always 0; the v1 overlap is re-derived against today's Gamma data.
 q0142/q0143 are promoted only after a q0140b PASS; a v2 FAIL is final.
+
+## CB7 fetch results (q0142, q0143), recorded 2026-10-17 by the autopilot (counts only; no outcome read)
+
+Both fetches finished `complete` with 0 failed items and 0 failed windows, before `T_seal`. Outcomes sit unread in
+`outcomes_guarded.csv.gz`.
+
+| Run | Job | Finished (UTC) | Frame rows | Sample (markets) | Origins tried | Eligible origins | Out of band | No print | Prints | Requests |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `h8_text` | q0142 | 10-17 11:36 | 330,668 | 4,108 (pool 4,108, taken all, 77 strata) | 4,108 | **1,026** | 1,667 | 1,415 | 52,934 | 12,440 (15 × 429) |
+| `h8_geo` | q0143 | 10-17 14:27 | 6,846 | 3,067 (727 capped out at 8/event) | 7,380 | **1,917** | 4,136 | 1,327 | 222,924 | 7,516 (40 × 429, rps halved) |
+
+- **h8_text yield shortfall.** The design assumed 18,000 sampled markets and about 5,000 Stage-1 units; the frame pool
+  after filters and key drops held only 4,108 markets (220,362 frame rows were not Yes/No, 82,438 lived < 9 days, 23,259
+  were key-dropped), and 1,026 origins are eligible. Rough scaling of the §S1 Stage-1 MDE (2.5c per marker at about
+  5,000 units) gives about 5-6c per marker. The census (q0146 path) replaces this; no floor, band or window changes.
+- **h8_geo.** 1,917 eligible origins against the design's assumed 3,200 × 2.3 ≈ 7,400 usable origins; rough scaling of
+  the G1 MDE (3.5-4c) gives about 7-8c. The design already accepted low power for G because the fetch was cheap.
+- **Open for the coordinator/freeze check:** whether a CB6-style reviewed top-up (more windows per day, same rules) is
+  worth it for `h8_text` before `T_seal` 2026-10-22T00Z. Host disk is the constraint (about 0.1 GB per run); any top-up
+  needs its own amendment and review, and is never a re-screen.
