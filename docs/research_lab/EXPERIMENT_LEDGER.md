@@ -1376,3 +1376,12 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   markets were absent, all dormant (blank/zero `volume24hr`). Working hypothesis: absent = zero OI, which the OI ≥ 1,000 rule
   excludes anyway. Being verified independently before any amendment (would be H-v4, new rules file, science-reviewer,
   new smoke q0160c); if not verified, CB8-H stays FAIL under its stop rule.
+
+## CB9 focused freeze re-check (M4-M12), 2026-10-17 (science-reviewer): not counted
+- Rules sign v3 / P v3 / kd v2 re-derive exactly from committed code; 112 cb9 tests pass; M4, M7 (no leakage), M8 (only
+  the ingress constant moved), M10, M11, M12 verified. **Data side GO_WITH_CONDITIONS** (q0182 argv lacks the required
+  `--cb8-keys-sha256`; q0188 refuses instead of stalling after an upstream K/D stall). **Analysis side GO_WITH_CONDITIONS**
+  for q0189-q0194 and q0197; **NO_GO for q0195/q0196** (pyth-live single pass without a repeat; rep-P has no
+  completeness/time guard and could freeze pending sessions as "unavailable"). Six should-fixes (q0198 polling,
+  13Z `not_measured` labels, sticky P-frame stall, q0197 also depends on q0191, M7 fetch-time volume disclosure, CB8
+  failure path). Fixes being implemented (sign rules v4 after q0180 runs on v3).
