@@ -1,0 +1,41 @@
+{
+ "id": "q0104b_cb5_cdf_frame",
+ "title": "CB5-L (memory-reduced rerun of q0104): CDF family frame (cdf-grouper-v1 over restored IF-H2 events.jsonl.gz + fresh Gamma walk from 2026-10-01; text-only audit print)",
+ "family": "creative_batch_5",
+ "priority": 46,
+ "expected_value": "matched ladder-bucket families, frozen before any price is read",
+ "data": [
+  "~/arepo/scratch/cb5/if_h2_events.jsonl.gz (restored 2026-10-17 ~09:34Z from release data-20261013-research-lab: 6 parts verified against MANIFEST.sha256, member sha256 7b54ce37... verified against files.sha256 on the Mac and on the host; Mac parts deleted)",
+  "public Gamma /events"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0101_cb5_listings_backfill"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "cdf-frame",
+  "--ifh2-events",
+  "../scratch/cb5/if_h2_events.jsonl.gz",
+  "--walk-from",
+  "2026-10-01",
+  "--rps",
+  "2",
+  "--audit-n",
+  "50",
+  "--seed",
+  "arepo-cb5-cdf"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/cdf_frame/{families_vN_candidate.json,audit_sample_vN.json,manifest_vN.json}"
+ ],
+ "next_action": "Claude session + science-reviewer: label the audit sample; run scripts/run_cb5.py cdf-audit-apply --labels <file>; commit the frozen list hash",
+ "notes": "DRAFT. q0104 attempts 1 and 2 died with MemoryError (the job's address-space cap is 2 x mem_mb): holding all 303,136 slimmed IF-H2 events took 3.8 GB RSS / 4.1 GB VmPeak on the Linux host. Fix (runner only, no hashed CB5 module edited): scripts/run_cb5.py cmd_cdf_frame streams the file through astrolabe/research_lab/cb5_frame_load.reduced_events, which keeps whole only events that yield a ladder rung or bucket event and replaces the rest by an id-only stub (same position, same id, so n_events_in and the event order are unchanged). cdf_frame reads events only through ladder_rungs/bucket_events (pure per-event maps), assert_no_outcomes and the id count, so its outputs are byte-identical: proven by tests/unit/test_cb5_frame_load.py (synthetic, with families) and by an offline old-vs-new run on the real IF-H2 file (empty fresh list; JSON of families doc incl. sha256, audit sample, counts, live/historical ids identical; 3,576 of 303,136 events retained). Measured peak RSS on macOS: old 2.33 GB, new 0.30 GB (Linux estimate about 0.7 GB). mem_mb 1500 gives a 3.0 GB address-space cap and a MemAvailable start gate of 2700 MB. Otherwise identical to q0104; the fresh walk still runs first. Same preconditions (grouper seal, headroom) as q0104."
+}
