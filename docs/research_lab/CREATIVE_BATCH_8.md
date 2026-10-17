@@ -1154,3 +1154,29 @@ design's `seals/cb8_rules.json` is not built here.
 - The holders `max_runs` (600) and idle heartbeat rhythm are untested on the real queue worker (the worker logic was read, not run).
 - No real-network run exists: the `/holders` reply shape (group by token, `holders[]` with `proxyWallet`, `amount`, `outcomeIndex`) follows the
   design text and is checked only by the q0160 smoke.
+
+### 10.1 Freeze-check resolutions (science-reviewer GO_WITH_CONDITIONS, 2026-10-17)
+
+The rules below supersede the corresponding statements in §10. **New hashes** (verified with `verify_rules(require_committed=True)`):
+`seals/cb8_holders_rules.json` `rules_sha256` = `2b225da61c8676fa932d445e923e350eac204e493cb7972e0a9130680d576c09`;
+`seals/cb8_flow_rules.json` `rules_sha256` = `9dc74a91bec18387380f9990bd7231c8d6d0cbb995c076beb634dd201abcddae`; both pin
+`wallet_key_fingerprint` `80ce5e81a539a570`. The holders file was regenerated before any smoke ran (the smoke is write-once and bound to the hash).
+
+1. **Window-2 pin.** `holders-pin-h2` refuses a `T8_H2_start` earlier than pin time + 2 h and records `pinned_utc`; no pinning onto days already collected.
+2. **Cost amendment (disk).** The cap counts the whole run directory. Snapshot: about 1.9 MB a day x 63 d = 120 MB + plans (about 4 MB) -> cap **0.15 GB**
+   (was 0.10). Prints: about 27k stored rows a day at about 28 B (0.75 MB) + marks and summaries (about 0.15 MB) = about 0.9 MB a day x 63 d = about
+   57 MB, doubled for estimate error -> cap **0.12 GB**. Holders total 0.27 GB (design text: 0.20 GB); `h9_flow` stays 0.15 GB. `--disk-cap-gb` must equal
+   the declared cap, else exit 2 (tested); drafts q0162 (0.15) and q0163 (0.12) match. Reviewed cost amendment; no threshold, formula or gate changed.
+3. **Order.** Fixes, then regenerated rules, then q0160. The flow rules are generated and committed.
+4. **Day in progress at midnight.** The plan is consolidated with what was done and marked `<day>.INCOMPLETE.json` (n_planned, n_done, n_failed,
+   n_empty); the partial and fail files are removed so nothing silently holds the cap. Counted as `days_incomplete`.
+5. **Capture window accounting.** `prints/marks/<date>.window.json` records the expected capture window, the earliest capture still available, the
+   captures in the window, `window_start_covered` and unreadable captures (hashed in the manifest).
+6. **Paging.** The q0160 smoke probes trades paging at offsets 0 and 4000 (`criterion_g_paging`; 400 at the deep offset = venue cap, not a failure;
+   other statuses = unexpected). Pass stays a, b, f; q0163 requires g (exit 2 otherwise). `windowed_prints` treats a 400 at offset > 0 as a capped
+   window (unavailable), a 400 on page 0 as a failed request.
+7. **q0163 title** now says 30 h.
+8. **Waits.** Long waits for a fresh capture and for disk headroom return the exit-0 `idle_heartbeat` (at least every 10 h) with a distinct
+   `idle_kind` (`waiting`, `no_fresh_capture`, `headroom`) recorded in `heartbeat.json`.
+
+**Accepted deviations:** print lag 30 h; 32-hex stored hashes; the smoke refuses (exit 2, nothing written) on a missing key or fingerprint mismatch.
