@@ -220,9 +220,11 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
      v5). **q0200 CB10 smoke PASS.**
    - q0120b refused once at 19:48Z (rules file "not committed": a deploy was rewriting files at that moment; re-checked
      on the host, it verifies) -> retries by itself. Avoid deploying at :x8/:x0 job-start ticks when possible.
-   - **CB8-H H-v4:** verified (absent markets have no holders, 40/40) -> reviewer ACCEPT_WITH_REQUIRED_CHANGES (binding
-     absence check, empty-reply = failure, 403 split, full disclosure, evidence copy) -> being applied (rules v5 / H
-     analysis v3); then promote q0160c.
+   - **CB8-H:** absent markets verified holder-free (40/40) -> amendment H-v4 -> reviewer changes -> v5 -> re-check
+     GO_WITH_CONDITIONS -> v6 (split records persisted; holders rules v6 `e7e72f4c…`, H analysis v4 `dbd87ef7…`; d922ffc,
+     d278c89) -> **q0160c smoke v3 queued** (net lane, timeout 4 h). PASS -> promote q0162/q0163 (H1 from 10-21T06Z).
+     A written FAIL of a/b/f/h/i = H "not run (source)", no smoke v4. Commit d3278b8 also holds the CB8 v5 docs/seals
+     (shared-index mishap, note d202c74): commit with explicit pathspecs from now on.
    - **CB11** challenger round 1 answered (5eb1ff5, all 11 adopted) -> **code being written** (W first; W screen can run
      before 10-22) -> then code-against-design freeze check.
    - CB9 re-check fixes done (146d6b9..c158b3c; sign/P rules v4; q0195/q0196 repeat + rep-P NotNow guard).
@@ -236,7 +238,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z and a smoke-v2 PASS; q0182 needs the pinned q0164 hash.
 3. **CB7/CB6 before T_seal:** q0120b (net lane, after q0082g) must finish by 10-21T09Z. Seals q0144/q0145/q0121 only
    after T_seal. Never retry q0141.
-4. **CB8-B:** q0161/q0164 after T_seal; before promoting q0164 run the two `derive-exclusion-ids` commands in its draft
+4. **CB8-H:** after q0160c PASS promote q0162/q0163 (drafts pinned to v6). **CB8-B:** q0161/q0164 after T_seal; before promoting q0164 run the two `derive-exclusion-ids` commands in its draft
    notes on the host (as late as possible, once) and replace both TODO-COORDINATOR sha256 tokens.
 5. **h7 (T_seal):** seal + q0081g done. q0083b only on/after 2026-10-22T00:00Z (promote the draft then), then q0083 seal.
 6. **CB4:** q0085 no earlier than ~10-24T12Z. **CB5:** q0103b on/after 10-27 -> q0106 census. **MC1:** q0116b.
