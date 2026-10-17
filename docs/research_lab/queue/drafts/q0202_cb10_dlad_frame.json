@@ -21,7 +21,7 @@
   "scripts/run_cb10.py",
   "dlad-frame",
   "--rules",
-  "../docs/research_lab/seals/cb10_rules.json",
+  "../docs/research_lab/seals/cb10_rules_v2.json",
   "--rps",
   "2",
   "--disk-cap-gb",
@@ -37,7 +37,7 @@
   "history/h10_dlad/{frame.csv.gz,origins.csv.gz,outcomes_guarded.csv.gz,manifest.json}"
  ],
  "next_action": "q0203",
- "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules.json (rules_sha256 2db70d9a...). --data-dumps-cap-gb 40 (ops convention; design text says 14). No print stored beyond origin rows; no side or wallet read. Gamma whitelist (round 1 item 6). Exit 75 = pending.",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). No print stored beyond origin rows; no side or wallet read. Gamma whitelist (round 1 item 6). Exit 75 = pending.",
  "repeat": {
   "max_runs": 3,
   "until_log_regex": "\"status\": \"dlad_frame_complete\""

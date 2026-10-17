@@ -966,3 +966,76 @@ answers; D1 regressor and target prices, independent-price placebo (binding), at
 equality, 24 h memory, spacing, mutual exclusion, span), VWAP10 / M2h, maker not-posted / trade-through / size cap / exit cost, frozen per-pair
 weights, GB / GB2 / audit, label-swap placebo, worst-case missing marks, cascade label, B2 route gate and pseudo attribution; HOLDOUT refusal; the
 MDE > 1.0 gate writing the counted p = 1 line; batch-Holm k1 = 3; trial lines counted through `battery2`.
+
+## 12. Freeze check (2026-10-17) and fixes
+
+Independent code-against-design check by `science-reviewer` of the CB10 implementation. Verdicts: q0200 GO_WITH_CONDITIONS, data jobs
+GO_WITH_CONDITIONS, analysis NO_GO until the fixes below. All fixes are in the code commit `ac24e68`; the rules file is regenerated as
+`seals/cb10_rules_v2.json` (v1 `cb10_rules.json` is kept unchanged and superseded). No threshold, floor or formula was changed other than as stated.
+
+### 12.1 Amendment (design change, 2026-10-17): mutual exclusion is backward-looking only
+
+**What changed.** §3 (CB10-B) says the 60-minute real/pseudo mutual exclusion drops both members of a pair. The implementation now drops only the
+LATER episode of each real/pseudo pair within 60 minutes (the earlier one is kept); simultaneous crossings (same timestamp) are still both dropped.
+
+**Written scientific justification.** The old rule looked ahead: a real break was removed when a pseudo crossing followed it within 60 minutes. A real
+break that continues by >= 3c (the pseudo level sits 3c from the round level) therefore crossed a pseudo level and was dropped, which selects
+AGAINST continuation among real episodes. The pseudo arm has no symmetric loss (a pseudo crossing followed by a real crossing is dropped only in
+the sense that real continuation is not required there), so the selection was asymmetric between arms and biased B1 (and the real arm of B2)
+upward (reversal looks larger when continuations are removed). The label-swap placebo cannot detect it because it permutes labels after selection.
+A backward-looking rule uses only information available at the episode time (is there an earlier episode of the other arm in the previous 60
+minutes?), so selection is causal and symmetric. Regression tests: `test_mutual_exclusion_is_backward_looking_keeps_continuing_real_break`
+(the continuing real break is kept; the old condition holds for it; a pseudo crossing earlier than a real one drops the later real episode).
+
+### 12.2 Other fixes
+
+| # | Fix |
+|---|---|
+| 2 | Stage-2 `k` counts tests triggered, not advances: a D1 advance triggers D1-rep and D2 and adds 2; B1 and B2 add 1 each (`STAGE2_TESTS_PER_ADVANCE`). The Stage-2 alpha is `0.05 / k`; D1 alone gives k = 2. Tests: `test_stage2_k_d1_advance_counts_two_tests`, `test_stage2_k_is_derived_and_fixed`. |
+| 3 | Independent-price placebo requires `testable` for the `p_alt` subsample (design §2.3: unknown never counts as met). An untestable placebo means D1 cannot advance (binding). Test: `test_d1_untestable_independent_price_placebo_cannot_advance`. |
+| 4 | D2 +0.5c robustness applies to the SAME trades (same token, recorded ask + 0.5c, fee recomputed; no re-selection by the 0.04 edge filter): `d2_trade_same`. Test: `test_d2_cost_robustness_applies_to_same_trade_without_reselection`. |
+| 5 | `--d1-result-commit-epoch` is required for `dlad-live` (argparse) and for the D `rep` window (`_stage2_window` refuses without it); no fallback to the results file's `written_epoch`. q0210/q0211 drafts carry the placeholder `TODO-COORDINATOR-d1-commit-epoch`. Test: `test_d1_result_commit_epoch_is_required_no_written_epoch_fallback`. |
+| 6 | q0202 per-item failure cap (`MAX_ITEM_ATTEMPTS` = 3, mirroring `brk_prints`) for the per-date Gamma frame, the series-date lookup and the per-market prints; a capped unit is labelled unavailable (source) and never retried (date: no rows, `unavailable_source` reason; lookup: all candidates missing, which stalls as disjointness unverified; prints: no origin rows, `unavailable_source`). Test: `test_dlad_frame_per_date_failure_cap_marks_unavailable`. |
+| 7 | Drafts: q0201, q0203, q0204 gained `repeat` blocks (completion or declared stall status); q0211 depends on the queue job q0208 (q0210 is a cron line) with the in-code NotNow gate (T10_D2_end + 2 d); q0212 also depends on q0208. |
+| 8 | A network give-up in the smoke (`TransientApiError`, raised for failed ladder / live-flag windows) exits 75 NotNow and writes nothing instead of a permanent write-once FAIL. A capped window remains a definitive failure. Test: `test_smoke_network_give_up_is_exit_75_and_writes_nothing`. |
+
+### 12.3 Should-fix items
+
+- **Truncation label.** The truncation label ("unavailable (source: Data API truncation)") depends on post-t trading (whether the oldest reachable print
+  is older than t - 180 min) and so is not independent of the outcome path; its share is capped at 10% by the 90% coverage audit (§2.7). The census
+  now reports eligible and truncated counts by moneyness tercile of the strike (`truncation_by_moneyness`).
+- **D1-rep and leave-one-week-out.** A D1-rep that fails the leave-one-week-out sign rule is labelled "not replicated (leave-one-week-out sign rule
+  failed)", not "not testable".
+- **Sports stratum.** The sports stratum (excluded from primary, `CB10_SPORTS_IN_PRIMARY = false`) is reported descriptively: the census gives
+  sports market counts by split (`sports_stratum`); no sports test is run.
+- **B1 weights.** B1 weights `w_L = n_L / sum n` are NOT renormalised after a pair is zeroed (< 30 real or < 30 pseudo episodes); this is
+  conservative (it shrinks the weighted statistic) and is a design statement as implemented, as already stated in the census text.
+- **B replication guard.** `rep --family B` requires `--b-results-sha256`, the sha256 of the committed Stage-1 `results_B.json`, and refuses (HOLDOUT
+  stays closed) on a mismatch. The q0212 draft carries the placeholder `TODO-COORDINATOR-sha256-of-committed-results_B.json`.
+- **Comment fix.** The `cb10_common.py` disk comment said 14 GiB; the convention is 40 GiB (ops-only per `36d908f`).
+
+### 12.4 Reviewer rulings recorded
+
+| Item | Ruling |
+|---|---|
+| Audit denominator (undeterminable truncation units count as source-unavailable) | Accepted: conservative; recorded in §2.7 |
+| `RV_MIN_RETURNS = 150` | Accepted |
+| Stricter placebo reading (unknown is not met) | Accepted, with fix 3 |
+| 30-minute mark | Accepted |
+| Stage-2 trial-line roles | Accepted |
+| Data-dumps cap 40 | Accepted as ops-only per `36d908f` (the design text's 14 is unchanged) |
+| >= 30 clusters testability | Accepted |
+
+### 12.5 Hashes (2026-10-17)
+
+- Code commit `ac24e68`; rules commit `f26cb7a`.
+- `seals/cb10_rules_v2.json`: file sha256 `5ee0ea230de279dfe11f8d1d29c520ede3a50da0bb06db2b15c9f4e19fc40c8c`; `rules_sha256`
+  `d422cc701b1494fcaa1cb1c67df3e82ed1eba8a1cde90a884aedf3438237b093`; `funcs_sha256`
+  `aff1f1c8d0c0561ee725c6476978d9bf2473ea2dffc8aad0a319e1a67b2e4ee8`. (v1 `rules_sha256` `2db70d9a...` is superseded.)
+- Source files at `ac24e68` (sha256): `cb10_common.py` `3f2fc805...c250c`, `cb10_dlad.py` `357d70f4...c0c7`, `cb10_brk.py` `0c48bef7...d53d`,
+  `scripts/run_cb10.py` `d3e0e8f7...5af`.
+- Drafts q0200..q0212 now reference `cb10_rules_v2.json`; placeholders for the coordinator: `TODO-COORDINATOR-d1-commit-epoch` (q0210, q0211),
+  `TODO-COORDINATOR-sha256-of-committed-results_B.json` (q0212), and the q0201 FILL_ pins.
+
+**Open items.** The design text still says 14 GiB (ops convention 40); §2.7 text to be amended with the audit-denominator ruling at the next
+design edit; the D-census sports and truncation reports are counts only.

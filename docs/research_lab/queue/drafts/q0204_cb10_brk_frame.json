@@ -21,7 +21,7 @@
   "scripts/run_cb10.py",
   "brk-frame",
   "--rules",
-  "../docs/research_lab/seals/cb10_rules.json",
+  "../docs/research_lab/seals/cb10_rules_v2.json",
   "--rps",
   "2",
   "--disk-cap-gb",
@@ -35,5 +35,9 @@
   "history/h10_brk/{frame.csv.gz,split.json,manifest.json}"
  ],
  "next_action": "q0205",
- "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules.json (rules_sha256 2db70d9a...). --data-dumps-cap-gb 40 (ops convention; design text says 14). Split written before any print read. Sports stratum <= 15%, reported, not primary."
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). Split written before any print read. Sports stratum <= 15%, reported, not primary. Freeze-check fix 7: can return in_progress with exit 0, so a repeat block re-runs until the completion or a declared stall status.",
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"(brk_frame_complete|not_run_source|disjointness_unverified|upstream_not_testable|disk_budget)\""
+ }
 }

@@ -13,13 +13,15 @@
   "lane": "cpu"
  },
  "depends_on": [
-  "q0210_cb10_dlad_live"
+  "q0208_cb10_screen_D"
  ],
  "argv": [
   "scripts/run_cb10.py",
   "rep",
   "--family",
-  "D"
+  "D",
+  "--d1-result-commit-epoch",
+  "TODO-COORDINATOR-d1-commit-epoch"
  ],
  "timeout_s": 3600,
  "max_retries": 1,
@@ -28,5 +30,5 @@
   "trials.jsonl (cb10_replication)"
  ],
  "next_action": "pass: Stage P-D registration draft",
- "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules.json (rules_sha256 2db70d9a...). --data-dumps-cap-gb 40 (ops convention; design text says 14). DRAFT."
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). DRAFT. Freeze-check fix 7: depends on the queue job q0208 (q0210 is a cron line, not a queue job); the in-code NotNow time gate (T10_D2_end + 2 days, exit 75) holds the job until Stage 2 ends. Also needs --d1-result-commit-epoch (placeholder TODO-COORDINATOR-d1-commit-epoch, same value as q0210)."
 }
