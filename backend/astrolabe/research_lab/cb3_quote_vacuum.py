@@ -77,31 +77,47 @@ def panel_from_frames(frames: list[tuple[str, float, pd.DataFrame, set[str] | No
     per-capture as-of end_date / created_at / fee fields (``asof_*``, ``fees_enabled``); a capture lacking any of those columns
     gets ``asof_cols[c] = False`` and its rows are ineligible for the prospective builders (counted there)."""
     frames = sorted(frames, key=lambda f: f[1])
+    return _build_panel([f[0] for f in frames], [f[1] for f in frames], lambda j: frames[j][2]["market_id"].astype(str),
+                        lambda j: frames[j][2], lambda j: frames[j][3], asof=asof)
+
+
+_PANEL_COLS = {*_NUM, "market_id", "closed", "active", "accepting_orders", "s1_batch_receipt_utc", "s2_batch_receipt_utc", *ASOF_FIELDS,
+               "condition_id", "event_id", "neg_risk_id", "parent_event_ids"}
+
+
+# matrices the A census never reads (detect_onsets + census_a): not allocated on the census path to bound memory
+CENSUS_A_DROP = ("chg_1d", "active", "s1_depth_bid_1c", "s1_depth_ask_1c", "s1_bid_size_1", "s1_ask_size_1", "s2_bid_size_1", "s2_ask_size_1", "s1_recv", "s2_recv")
+
+
+def _build_panel(cap_ids: list[str], starts: list[float], market_ids_of, frame_of, ids_of, *, asof: bool, drop_mat: tuple[str, ...] = ()) -> Panel:
+    """Core of the panel build; ``frame_of(j)`` may load capture j on demand so only one frame is alive at a time."""
+    frames = [(cap_ids[j], starts[j]) for j in range(len(cap_ids))]
     universe: dict[str, int] = {}
-    for _cid, _st, df, _ids in frames:
-        for m in df["market_id"].astype(str):
+    for j in range(len(frames)):
+        for m in market_ids_of(j):
             universe.setdefault(m, len(universe))
     n, c = len(universe), len(frames)
     markets = np.array(list(universe), object)
-    mat = {k: np.full((n, c), np.nan) for k in [*_NUM, "closed", "active", "accepting_orders", "s1_recv", "s2_recv"]}
+    mat = {k: np.full((n, c), np.nan) for k in [*_NUM, "closed", "active", "accepting_orders", "s1_recv", "s2_recv"] if k not in drop_mat}
     present = np.zeros((n, c), bool)
     in_capture = np.zeros((n, c), bool)
     meta = pd.DataFrame({"market_id": markets, "condition_id": "", "event_id": "", "neg_risk_id": "", "parent_event_ids": ""})
     asof_m = {k: np.full((n, c), "", object) for k in ASOF_FIELDS} if asof else None
     asof_cols = np.zeros(c, bool)
     meta_idx = meta.set_index("market_id")
-    for j, (_cid, _st, df, ids) in enumerate(frames):
+    for j in range(len(frames)):
+        df, ids = frame_of(j), ids_of(j)
         df = df.drop_duplicates("market_id")
         idx = np.array([universe[m] for m in df["market_id"].astype(str)], int)
         present[idx, j] = True
         for k in _NUM:
-            if k in df:
+            if k in df and k in mat:
                 mat[k][idx, j] = _num(df[k])
         for k in ("closed", "active", "accepting_orders"):
-            if k in df:
+            if k in df and k in mat:
                 mat[k][idx, j] = _flag(df[k])
         for k, src in (("s1_recv", "s1_batch_receipt_utc"), ("s2_recv", "s2_batch_receipt_utc")):
-            if src in df:
+            if src in df and k in mat:
                 mat[k][idx, j] = _epoch_col(df[src])
         if asof:
             asof_cols[j] = all(k in df for k in ASOF_FIELDS)
@@ -116,13 +132,14 @@ def panel_from_frames(frames: list[tuple[str, float, pd.DataFrame, set[str] | No
         if ids is None:
             in_capture[idx, j] = True
         else:
-            in_capture[:, j] = np.isin(markets, list(ids))
+            hit = np.fromiter((universe[m] for m in ids if m in universe), int)  # dict lookup: same set as np.isin(markets, ids), without the object-array sort
+            in_capture[hit, j] = True
             in_capture[idx, j] = True
-    return Panel([f[0] for f in frames], np.array([f[1] for f in frames]), markets, mat, present, in_capture, meta_idx.reset_index(), asof_m, asof_cols)
+    return Panel(list(cap_ids), np.array(list(starts)), markets, mat, present, in_capture, meta_idx.reset_index(), asof_m, asof_cols)
 
 
 def load_quote_panel(root: Path, *, since: float | None, before: float | None, purpose: str, j4r: tuple[float, float] | None = None,
-                     capture_ids: list[str] | None = None, asof: bool = False) -> Panel:
+                     capture_ids: list[str] | None = None, asof: bool = False, drop_mat: tuple[str, ...] = ()) -> Panel:
     """Load ``quote_state/`` captures with ``since <= start < before`` (epoch seconds). A request that selects ANY capture in
     T_J4R is refused (analysis and census never read it); the A screen also refuses captures at/after T3_A_dev_end. The
     manifest decides which captures exist; ``missing`` captures are skipped and break the gap rule downstream."""
@@ -141,10 +158,12 @@ def load_quote_panel(root: Path, *, since: float | None, before: float | None, p
             continue
         D.check_capture_allowed(st, purpose=purpose, window=j4r)
         sel.append((e["capture_id"], st))
-    frames = []
-    for cid, st in sel:
-        frames.append((cid, st, qs.read_quote_state(root, cid), set(qs.read_quote_state(root, cid, ids=True)["market_id"])))
-    return panel_from_frames(frames, asof=asof)
+    # memory-bounded: one capture's frame is alive at a time (market_id column first for the universe, then the needed columns)
+    return _build_panel([c for c, _ in sel], [st for _, st in sel],
+                        lambda j: qs.read_quote_state(root, sel[j][0], usecols=["market_id"])["market_id"].astype(str),
+                        lambda j: qs.read_quote_state(root, sel[j][0], usecols=lambda c: c in _PANEL_COLS and c not in drop_mat),
+                        lambda j: set(qs.read_quote_state(root, sel[j][0], ids=True, usecols=["market_id"])["market_id"]), asof=asof,
+                        drop_mat=drop_mat)
 
 
 # =============================================================================================

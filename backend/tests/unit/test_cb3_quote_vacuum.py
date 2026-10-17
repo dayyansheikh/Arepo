@@ -443,3 +443,60 @@ def test_gate_a_a2_is_gated_by_the_centred_placebo_check():
     g = V.gate_a(res, {}, plc, 0.05)
     assert g["A2"]["advance"] is False and g["A2"]["fail"] == ["placebo_centred:inconclusive (placebo bias)"]
     assert g["A1"]["advance"] is True  # A1 is gated by its own placebo status, not the centred one
+
+
+# --- memory-bounded loader equals the legacy whole-string path -----------------------------------------
+
+
+def _legacy_load(root, *, before):
+    """The pre-fix loader: whole file as one string, every capture's frame and ids kept, all columns."""
+    import io
+
+    man = json.loads((Path(root) / "manifest.json").read_text())
+    ents = sorted((e for e in man["captures"].values() if e.get("status") == "extracted"), key=lambda e: D.epoch(e["capture_start_utc"]))
+    frames = []
+    for e in ents:
+        st = D.epoch(e["capture_start_utc"])
+        if st >= before:
+            continue
+        cid = e["capture_id"]
+
+        def rd(ids, cid=cid):
+            with gzip.open(Path(root) / "quote_state" / f"{cid}{'.ids' if ids else ''}.csv.gz", "rt", newline="") as fh:
+                return pd.read_csv(io.StringIO(fh.read()), dtype=str, keep_default_na=False)
+
+        frames.append((e["capture_id"], st, rd(False), set(rd(True)["market_id"])))
+    return V.panel_from_frames(frames)
+
+
+def test_streamed_census_a_equals_legacy_path(tmp_path):
+    rng = np.random.default_rng(7)
+    t0 = D.epoch("2026-10-10T00:00:00Z")
+    caps = []
+    for c in range(8):
+        rows = []
+        for k in range(60):
+            if rng.random() < 0.15 and c:
+                continue  # absent from this capture
+            b = 0.30 + 0.005 * k
+            a = b + 0.04
+            if c in (2, 5) and k % 3 == 0:
+                a += 0.08  # ask-side vacuum
+            r = dict(row(f"m{k}", round(b, 3), round(a, 3)))
+            r["extra_unused_col"] = f"x{c}{k}"
+            rows.append(r)
+        caps.append(rows)
+    root = _write_world_root(tmp_path, caps, t0)
+    before = D.epoch(D.DATES["T3_A_dev_end"])
+    old = _legacy_load(root, before=before)
+    new = V.load_quote_panel(root, since=None, before=before, purpose="screen_A", j4r=J4R)
+    slim = V.load_quote_panel(root, since=None, before=before, purpose="screen_A", j4r=J4R, drop_mat=V.CENSUS_A_DROP)
+    assert list(old.markets) == list(new.markets) == list(slim.markets)
+    for k, v in old.mat.items():
+        np.testing.assert_array_equal(v, new.mat[k])
+    assert np.array_equal(old.present, new.present) and np.array_equal(old.in_capture, new.in_capture)
+    assert old.meta.equals(new.meta) and old.cap_ids == new.cap_ids
+    assert set(slim.mat) == set(old.mat) - set(V.CENSUS_A_DROP)
+    ref = json.dumps(V.census_a(old), sort_keys=True, default=str)
+    assert ref == json.dumps(V.census_a(new), sort_keys=True, default=str) == json.dumps(V.census_a(slim), sort_keys=True, default=str)
+    assert V.census_a(old)["n_onsets"] > 0

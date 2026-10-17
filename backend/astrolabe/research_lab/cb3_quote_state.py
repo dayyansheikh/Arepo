@@ -429,11 +429,12 @@ def run(
     return res
 
 
-def read_quote_state(root: Path, capture_id: str, *, ids: bool = False) -> pd.DataFrame:
-    """Raw-string frame of one capture's rows (or ids) file."""
+def read_quote_state(root: Path, capture_id: str, *, ids: bool = False, usecols=None) -> pd.DataFrame:
+    """Raw-string frame of one capture's rows (or ids) file. The gz is streamed into the parser (no whole-file string);
+    ``usecols`` (names or a predicate) restricts the columns parsed, values are unchanged."""
     p = Path(root) / "quote_state" / f"{capture_id}{'.ids' if ids else ''}.csv.gz"
     with gzip.open(p, "rt", newline="") as fh:
-        return pd.read_csv(io.StringIO(fh.read()), dtype=str, keep_default_na=False)
+        return pd.read_csv(fh, dtype=str, keep_default_na=False, usecols=usecols)
 
 
 __all__ = ["ALL_COLUMNS", "SCHEMA_VERSION", "completeness", "restore_capture_via_release", "universe", "CB3_ROOT", "EXTRACTOR_VERSION", "ExtractLocked", "T3_A_DEV_END", "VersionMismatch",

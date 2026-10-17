@@ -161,7 +161,7 @@ def _census(a, P, fams, D, C, M, V, j4r, trials) -> int:
     else:
         if "A" in fams:
             before = min(D.epoch(a.before) if a.before else D.epoch(D.DATES["T3_A_dev_end"]), D.epoch(D.DATES["T3_A_dev_end"]))
-            Pa = V.load_quote_panel(P["qs"], since=None, before=before, purpose="screen_A", j4r=j4r)
+            Pa = V.load_quote_panel(P["qs"], since=None, before=before, purpose="screen_A", j4r=j4r, drop_mat=V.CENSUS_A_DROP)
             out["A"] = V.census_a(Pa)
         if "B" in fams:
             out["B"] = M.census_history(P["hist"] / a.run_id, P["books"], max_markets=a.max_markets)
