@@ -310,7 +310,7 @@ def test_smoke_gamma_paging_records_reasons_and_excerpt():
 
 def test_pyth_frame_and_books_stall(tmp_path):
     smoke = tmp_path / "smoke.json"
-    smoke.write_text(json.dumps({"smoke_version": "cb9-smoke-v1", "criteria": {"yahoo_clock": False, "gamma_paging": True, "pmxt_heads": True}}))
+    smoke.write_text(json.dumps({"smoke_version": "cb9-smoke-v2", "criteria": {"yahoo_clock": False, "gamma_paging": True, "pmxt_heads": True}}))
     m = py.pyth_frame(tmp_path / "cb9", None, rules_sha="x", smoke_path=smoke, exclusion_keys_path=tmp_path / "k.csv.gz", now=c9.T_SEAL_EPOCH + 1)
     assert m["status"] == c9.STALL_NOT_RUN_SOURCE and m["label"] == "not testable (source)"
     b = py.pyth_books(tmp_path / "cb9", None, rules_sha="x", smoke_path=smoke, frame_dir=tmp_path / "cb9" / "pyth_frame", fetch=None, size_fn=None, now=c9.T_SEAL_EPOCH + 1)
@@ -374,7 +374,7 @@ def test_pyth_frame_rerun_after_disjointness_stall_stays_stalled(tmp_path):
     c9.write_stall(root / "pyth_frame", c9.STALL_DISJOINTNESS, "q0182 unverified")
     (root / "pyth_frame" / "frame.csv.gz").write_bytes(b"x")  # as left by the stalled first run
     smoke = tmp_path / "smoke.json"
-    smoke.write_text(json.dumps({"smoke_version": "cb9-smoke-v1", "criteria": {"yahoo_clock": True, "gamma_paging": True}}))
+    smoke.write_text(json.dumps({"smoke_version": "cb9-smoke-v2", "criteria": {"yahoo_clock": True, "gamma_paging": True}}))
     m = py.pyth_frame(root, None, rules_sha="x", smoke_path=smoke, exclusion_keys_path=tmp_path / "k.csv.gz", now=c9.T_SEAL_EPOCH + 1)
     assert m["status"] == c9.STALL_DISJOINTNESS and m["status"] != "pyth_frame_complete"
     assert c9.stall_of(root / "pyth_frame")["status"] == c9.STALL_DISJOINTNESS  # the manifest on disk is untouched

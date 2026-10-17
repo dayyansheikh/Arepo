@@ -119,14 +119,14 @@ WILSON_CONF = 0.99
 
 # ---- smoke (q0180, receipt part) ----------------------------------------------------------------------------------------------------
 
-SMOKE_VERSION = "cb9-smoke-v1"
+SMOKE_VERSION = "cb9-smoke-v2"  # v2 (2026-10-17): markets drawn in seeded order until 20 distinct receipts (cap 40 markets); pass rule unchanged. v1 FAILED on the 10-market cap (source worked) and is superseded by disclosure
 SMOKE_RECEIPTS_PER_ERA = 20
 SMOKE_MIN_DECODED = 18
 SMOKE_ERA_DAYS = {"v1": "2026-01-20", "v2": "2026-09-15"}  # Gamma: closed markets ending that UTC day; prints from the 3 days before; outside every CB9 window
-SMOKE_MARKETS_PER_ERA = 10
+SMOKE_MAX_MARKETS_PER_ERA = 40  # v2: markets are drawn one at a time until SMOKE_RECEIPTS_PER_ERA distinct receipts; v1 used a fixed 10
 SMOKE_PRINTS_PER_MARKET = 2
 SMOKE_MIN_VOLUME = 10000.0
-SMOKE_SEED = "arepo-cb9-smoke"
+SMOKE_SEED = "arepo-cb9-smoke-v2"
 SMOKE_MAX_UNAVAILABLE = 2  # M2: more unavailable receipts in an era -> NotNow (exit 75, nothing written), never a permanent FAIL
 
 # ---- S1 (conditional) -----------------------------------------------------------------------------------------------------------------
@@ -996,8 +996,8 @@ def feed_label(p: dict, feed: dict[tuple[str, str], str], read_lookback: set[tup
 
 
 def smoke_receipts(lim: hb.Limiter, rpc: RpcClient, key: bytes) -> dict:
-    """For each era: closed Gamma markets ending on the pinned out-of-window day (volume >= $10k, id order), ``SMOKE_MARKETS_PER_ERA`` of them in
-    seeded order, ``SMOKE_PRINTS_PER_MARKET`` seeded prints each from the 3 days before the end; receipts decoded with the pinned topics; PASS per era
+    """For each era: closed Gamma markets ending on the pinned out-of-window day (volume >= $10k, id order), drawn in seeded order until
+    ``SMOKE_RECEIPTS_PER_ERA`` distinct receipts (by tx hash) are collected, at most ``SMOKE_MAX_MARKETS_PER_ERA`` markets (``n_markets_tried``), ``SMOKE_PRINTS_PER_MARKET`` seeded prints each from the 3 days before the end; receipts decoded with the pinned topics; PASS per era
     iff >= 18 of 20 receipts give a matched print with T1 = T2. Counts only (no Data API side is compared). A network failure raises NotNow."""
     tps = require_topic_pins()
     hasher = _hasher(key)
@@ -1012,13 +1012,15 @@ def smoke_receipts(lim: hb.Limiter, rpc: RpcClient, key: bytes) -> dict:
         if st != 200 or not isinstance(mk, list):
             raise NotNow(f"smoke: Gamma status {st}; nothing written")
         rows = [r for r in (market_row(m) for m in mk if isinstance(m, dict)) if r is not None]
-        picks = sorted(rows, key=lambda r: c9.rank(SMOKE_SEED + era, r["market_id"]))[:SMOKE_MARKETS_PER_ERA]
-        res = {"n_gamma_markets": len(rows), "n_markets": len(picks), "n_receipts": 0, "n_receipt_unavailable": 0, "n_matched": 0, "n_t1_eq_t2": 0,
+        picks = sorted(rows, key=lambda r: c9.rank(SMOKE_SEED + era, r["market_id"]))[:SMOKE_MAX_MARKETS_PER_ERA]
+        res = {"n_gamma_markets": len(rows), "n_markets": len(picks), "n_markets_tried": 0, "n_duplicate_tx": 0, "n_receipts": 0, "n_receipt_unavailable": 0, "n_matched": 0, "n_t1_eq_t2": 0,
                "n_era_seen": {"v1": 0, "v2": 0}, "fill_types": {},
                "by_exchange": {a: {"matched": 0, "t1_eq_t2": 0} for a in (EXCHANGES_V1 + EXCHANGES_V2)}}
+        seen_tx: set = set()
         for r in picks:
             if res["n_receipts"] >= SMOKE_RECEIPTS_PER_ERA:
                 break
+            res["n_markets_tried"] += 1
             end = int(r["end_epoch"])
             try:
                 got, _info = windowed_prints_s(lim, r["condition_id"], end - 3 * 86400, end, 1, key)
@@ -1030,6 +1032,10 @@ def smoke_receipts(lim: hb.Limiter, rpc: RpcClient, key: bytes) -> dict:
             for p in draw_prints(got, SMOKE_SEED + era, r["market_id"], SMOKE_PRINTS_PER_MARKET):
                 if res["n_receipts"] >= SMOKE_RECEIPTS_PER_ERA:
                     break
+                if p["tx"] in seen_tx:  # distinct receipts only
+                    res["n_duplicate_tx"] += 1
+                    continue
+                seen_tx.add(p["tx"])
                 rc, ep = rpc.receipt(p["tx"])
                 res["n_receipts"] += 1
                 row = classify_print({**p, "stratum": "smoke", "market_id": r["market_id"]}, rc, ep, tokens, hasher, tps)
@@ -1432,7 +1438,7 @@ def declared() -> dict:
                      "q_wc": "every sampled print without a match (unmatched or receipt unavailable) scored as a disagreement", "era_map": ERA_MAP,
                      "gs_fail": "not testable (source); mapped results unverified; never inherited", "pooled": "descriptive only"},
         "smoke": {"version": SMOKE_VERSION, "receipts_per_era": SMOKE_RECEIPTS_PER_ERA, "min_decoded_t1_eq_t2": SMOKE_MIN_DECODED, "era_days": SMOKE_ERA_DAYS,
-                  "markets_per_era": SMOKE_MARKETS_PER_ERA, "prints_per_market": SMOKE_PRINTS_PER_MARKET, "min_volume": SMOKE_MIN_VOLUME, "seed": SMOKE_SEED,
+                  "max_markets_per_era": SMOKE_MAX_MARKETS_PER_ERA, "draw": "markets in seeded order until 20 distinct receipts (tx hash), cap 40 markets", "prints_per_market": SMOKE_PRINTS_PER_MARKET, "min_volume": SMOKE_MIN_VOLUME, "seed": SMOKE_SEED,
                   "max_unavailable": SMOKE_MAX_UNAVAILABLE, "unavailable_rule": "more than 2 unavailable receipts in an era -> nothing written, exit 75 (M2)",
                   "per_exchange": "matched and T1 = T2 counts per pinned exchange address, reported (M1)",
                   "yahoo": py.smoke_declared(), "network_failure": "nothing written, exit 75"},

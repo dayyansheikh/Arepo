@@ -2150,7 +2150,7 @@ def add_subparsers(subparsers) -> None:
     net(q, disk_cap=BOOKS_OUTPUT_CAP_GB)
     q.add_argument("--wallet-key-path", default=None, help="default ~/.arepo/wallet_hash_key (or AREPO_WALLET_HASH_KEY_PATH); never created")
     q.add_argument("--ingress-cap-gb", type=float, default=INGRESS_CAP_GB)
-    q.add_argument("--smoke", default=None, help="q0180 smoke result (default creative_batch9/smoke.json); pmxt_heads not met -> terminal not testable (source), exit 0")
+    q.add_argument("--smoke", default=None, help="q0180 smoke result (default creative_batch9/smoke_v2.json); pmxt_heads not met -> terminal not testable (source), exit 0")
     q.set_defaults(fn=cmd_kd_books)
 
     q = subparsers.add_parser("kd-seal", help="q0187: HOLDOUT listing sha256, seal-time drops, seal copy")

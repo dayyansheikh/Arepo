@@ -484,6 +484,65 @@ def test_smoke_receipts_unavailable_is_not_failed():
         sg.smoke_receipts(_smoke_lim(), rpc, KEY)
 
 
+def _smoke_lim_sched(n_markets, schedule, same_tx=False):
+    """Gamma returns ``n_markets`` markets per era; the k-th trades call (draw order) returns ``schedule(k)`` prints."""
+    calls = {"n": 0}
+
+    def gamma(params):
+        calls["n"] = 0  # one Gamma call per era: the draw counter restarts
+        day = params["end_date_min"][:10]
+        return [{"id": f"{day}-{i}", "conditionId": f"c{i}", "clobTokenIds": json.dumps([str(YES), str(NO)]), "endDate": f"{day}T12:00:00Z",
+                 "startDate": "2025-12-01T00:00:00Z", "volumeNum": 50000, "events": [{"id": i}]} for i in range(n_markets)]
+
+    def trades(params):
+        cid = params["market"]
+        k = calls["n"]
+        calls["n"] += 1
+        return [{"timestamp": params["end"] - 10 * j, "outcomeIndex": 0, "side": "BUY", "size": 10.0, "price": 0.52, "asset": str(YES),
+                 "transactionHash": "0x" + ("same" if same_tx else f"{cid}{j}").encode().hex().rjust(64, "0"), "proxyWallet": W}
+                for j in range(schedule(k))]
+
+    return FakeLim(gamma, trades)
+
+
+def _rpc_ok():
+    return sg.RpcClient(lambda u, p: (200, json.dumps({"result": v2_receipt_normal()}).encode()), sleep=lambda s: None)
+
+
+def test_smoke_v2_draws_until_20_receipts():
+    # per era: first 10 markets give 18 distinct receipts (8 x 2 + 2 x 1), drawing continues to 20
+    lim = _smoke_lim_sched(30, lambda k: (1 if k in (3, 7) else 2))
+    v2 = sg.smoke_receipts(lim, _rpc_ok(), KEY)["receipts"]["v2"]
+    assert v2["n_receipts"] == 20 and v2["n_markets_tried"] == 11 and v2["n_duplicate_tx"] == 0 and v2["pass"]
+
+
+def test_smoke_v2_cap_fails_with_n_markets_tried_40():
+    v2 = sg.smoke_receipts(_smoke_lim_sched(60, lambda k: 1 if k < 5 else 0), _rpc_ok(), KEY)["receipts"]["v2"]
+    assert sg.SMOKE_MAX_MARKETS_PER_ERA == 40 and v2["n_markets_tried"] == 40 and v2["n_receipts"] < 20 and not v2["pass"]
+
+
+def test_smoke_v2_fewer_eligible_markets_fails():
+    v2 = sg.smoke_receipts(_smoke_lim_sched(5, lambda k: 1), _rpc_ok(), KEY)["receipts"]["v2"]
+    assert v2["n_markets_tried"] == 5 and v2["n_receipts"] == 5 and not v2["pass"]
+
+
+def test_smoke_v2_dedupes_tx():
+    v2 = sg.smoke_receipts(_smoke_lim_sched(50, lambda k: 2, same_tx=True), _rpc_ok(), KEY)["receipts"]["v2"]
+    assert v2["n_receipts"] == 1 and v2["n_duplicate_tx"] > 0 and v2["n_markets_tried"] == 40 and not v2["pass"]
+
+
+def test_smoke_v2_downstream_default_and_version(tmp_path):
+    assert c9.SMOKE_DEFAULT.name == "smoke_v2.json" and sg.SMOKE_VERSION == "cb9-smoke-v2"
+    p = tmp_path / "smoke_v2.json"
+    p.write_text(json.dumps({"smoke_version": "cb9-smoke-v1", "criteria": {"receipts_v2": True}}))
+    with pytest.raises(c9.Refused):
+        sg.smoke_ok(p, need=("receipts_v2",))
+    with pytest.raises(c9.Refused):
+        sg.smoke_criterion(p, "receipts_v2")
+    p.write_text(json.dumps({"smoke_version": "cb9-smoke-v2", "criteria": {"receipts_v2": True}}))
+    assert sg.smoke_ok(p, need=("receipts_v2",)) and sg.smoke_criterion(p, "receipts_v2")
+
+
 def test_sign_audit_stall_on_failed_criterion(tmp_path):
     smoke = tmp_path / "smoke.json"
     smoke.write_text(json.dumps({"smoke_version": sg.SMOKE_VERSION, "criteria": {"receipts_v1": False, "receipts_v2": True}}))
