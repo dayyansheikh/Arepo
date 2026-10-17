@@ -52,7 +52,7 @@ def _complete(monkeypatch):
 def test_write_spec_never_overwrites_and_pins_are_restricted(tmp_path, monkeypatch):
     _complete(monkeypatch)
     p = tmp_path / "cb4_v1.json"
-    pins = {"H": 168, "rho": 0.5, "uma_extra_statuses": []}
+    pins = {"H": 168, "rho": 0.5, "uma_extra_statuses": [], "stop": False}
     D.write_spec(p, census_pins=pins, census_sha256="a" * 64)
     with pytest.raises(FileExistsError):
         D.write_spec(p)
@@ -88,7 +88,7 @@ def test_uncommitted_spec_refused_when_commit_required(tmp_path, monkeypatch):
 def test_pins_must_match_census(tmp_path, monkeypatch):
     _complete(monkeypatch)
     census = tmp_path / "census.json"
-    pins = {"H": 168, "rho": 0.5, "uma_extra_statuses": []}
+    pins = {"H": 168, "rho": 0.5, "uma_extra_statuses": [], "stop": False}
     census.write_text(json.dumps({"pin_proposal": pins}))
     from astrolabe.research_lab import provenance
 

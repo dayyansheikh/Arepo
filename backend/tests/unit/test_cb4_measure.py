@@ -289,3 +289,64 @@ def test_read_hour_events_streamed_equals_whole_row_group(tmp_path, monkeypatch)
     full = M.read_hour_events(hour, {"tok0": "0xm0"}, fetch=fetch, size_fn=size_fn, lookback_hours=1)
     assert any(e["receipt_ms"] < int(hour.timestamp() * 1000) for e in full["tok0"])
     assert all(e["receipt_ms"] <= int(hour.timestamp() * 1000) + 3600_000 for e in full["tok0"])
+
+
+def test_synthetic_pmxt_hour_through_reader_replay_states_and_unit(tmp_path):
+    """Reviewer item: a synthetic pmxt hour (real column names; bids/asks as JSON strings of [price, size] string pairs; price_change rows with side SELL
+    replace an ask level) driven through read_hour_events -> replay_minutes -> event_minute_states -> event_hour_unit. Three members, every YES ask holds
+    100 shares. Sum of asks 0.90 (hi) from minute 0, mid band from minute 15, lo from 30, 1.01 (none) from 45: each band holds exactly 0.25."""
+    import json as _json
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from astrolabe.research_lab import history_sources as hs
+
+    hour = datetime(2026, 7, 14, 10, tzinfo=UTC)
+    h0 = int(hour.timestamp() * 1000)
+    toks = {"yes0": "0xc0", "yes1": "0xc1", "yes2": "0xc2"}
+    rows = []
+
+    def add(tok, ms, et, **kw):
+        rows.append({"timestamp_received": ms, "timestamp": ms, "market": toks[tok], "event_type": et, "asset_id": tok,
+                     "bids": kw.get("bids"), "asks": kw.get("asks"), "price": kw.get("price"), "size": kw.get("size"), "side": kw.get("side"), "new_tick_size": None})
+
+    levels = [(0, "0.3"), (15, "0.3233"), (30, "0.33"), (45, "0.3367")]  # per-member ask: sums 0.90, 0.9699, 0.99, 1.0101
+    for tok in toks:
+        add(tok, h0 + 1000, "book", bids=_json.dumps([["0.2", "100"]]), asks=_json.dumps([[levels[0][1], "100"]]))
+        for (_, old), (m, new) in zip(levels, levels[1:], strict=False):
+            t = h0 + m * 60_000 + 1000
+            add(tok, t, "price_change", price=float(old), size=0.0, side="SELL")
+            add(tok, t + 1, "price_change", price=float(new), size=100.0, side="SELL")
+    rows.sort(key=lambda r: r["market"])
+    ts = pa.timestamp("ms", "UTC")
+    tbl = pa.table({
+        "timestamp_received": pa.array([r["timestamp_received"] for r in rows], ts), "timestamp": pa.array([r["timestamp"] for r in rows], ts),
+        "market": [r["market"] for r in rows], "event_type": [r["event_type"] for r in rows], "asset_id": [r["asset_id"] for r in rows],
+        "bids": pa.array([r["bids"] for r in rows], pa.string()), "asks": pa.array([r["asks"] for r in rows], pa.string()),
+        "price": pa.array([r["price"] for r in rows], pa.float64()), "size": pa.array([r["size"] for r in rows], pa.float64()),
+        "side": pa.array([r["side"] for r in rows], pa.string()), "new_tick_size": pa.array([r["new_tick_size"] for r in rows], pa.float64())})
+    p = tmp_path / "h.parquet"
+    pq.write_table(tbl, p, row_group_size=8)
+    blobs = {hs.pmxt_url(hour): p.read_bytes()}
+
+    def fetch(url, a, b):
+        return blobs[url][a: b + 1]
+
+    def size_fn(url):
+        if url not in blobs:
+            raise FileNotFoundError(url)
+        return len(blobs[url])
+
+    ev = M.read_hour_events(hour, toks, fetch=fetch, size_fn=size_fn)
+    assert all(len(v) == 7 for v in ev.values())
+    mb = M.replay_minutes(ev, hour)
+    st = M.event_minute_states(mb, {t: 0.05 for t in toks})
+    assert st["eligible"].all()
+    assert list(st["band"][[0, 14]]) == ["hi", "hi"] and list(st["band"][[15, 29]]) == ["mid", "mid"]
+    assert list(st["band"][[30, 44]]) == ["lo", "lo"] and list(st["band"][[45, 59]]) == ["none", "none"]
+    u = M.event_hour_unit(st)
+    assert u["n_eligible"] == 60
+    assert (u["I_hi"], u["I_mid"], u["I_lo"], u["I_none"]) == (0.25, 0.25, 0.25, 0.25)
+    # mid-or-hi is true for minutes 0..29: no onset (true already at minute 0); lo has one onset at minute 30 that persists to minute 35
+    assert u["n_on_mh"] == 0 and u["n_on_lo"] == 1 and u["P5_lo"] == 1.0

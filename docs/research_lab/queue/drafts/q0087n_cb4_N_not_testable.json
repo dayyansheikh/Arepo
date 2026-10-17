@@ -1,0 +1,31 @@
+{
+ "id": "q0087n_cb4_N_not_testable",
+ "title": "CB4-N: record N1 and N2 as not testable (frozen stop rule; p = 1, counted) - no network, no pmxt read",
+ "family": "creative_batch_4",
+ "priority": 43,
+ "expected_value": "the counted not-testable record for N1 and N2 when the pinned pilot fired the stop rule (< 5 eligible events per hour)",
+ "data": [
+  "model_specs/cb4_v1.json (census pins: stop, H)",
+  "research_lab/creative_batch4/census.json (pilot summary)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0086_cb4_census"
+ ],
+ "argv": [
+  "scripts/run_cb4.py",
+  "measure-N",
+  "--not-testable-only"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch4/N/results.json",
+  "trials.jsonl (2 cb4_measurement lines, p = 1, not testable)"
+ ],
+ "next_action": "q0089",
+ "notes": "DRAFT. Release INSTEAD of q0087 only after the CB4 freeze is committed and its census pin is stop = true (pilot q0084: 1.29 < 5 eligible events per hour). Exit 3 (refused) if the pin is not stop (use q0087 then) or if N/results.json exists. Counted, but reads no analysis-window pmxt hour and makes no network call; the band map is the pilot data only. Not releasable before the CB4 freeze file exists (the counted gate refuses without it). If q0087 is released with a stop pin it writes the same record, so only one of the two is needed."
+}

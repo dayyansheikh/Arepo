@@ -322,7 +322,7 @@ def spec_payload(census_pins: dict | None = None, census_sha256: str | None = No
     return out
 
 
-ALLOWED_PINS = ("H", "rho", "uma_extra_statuses")
+ALLOWED_PINS = ("H", "rho", "uma_extra_statuses", "stop")
 
 
 def write_spec(path: Path = SPEC_PATH, census_pins: dict | None = None, census_sha256: str | None = None) -> dict:
@@ -384,6 +384,9 @@ def check_pins(pins: dict) -> None:
     r = pins["rho"]
     if isinstance(r, bool) or not isinstance(r, int | float) or not (0.0 < float(r) <= 1.0):
         raise DeclarationError(f"pin rho must be in (0, 1], got {r!r}")
+    sp = pins["stop"]
+    if sp != "unavailable" and not isinstance(sp, bool):
+        raise DeclarationError(f"pin stop must be a bool (the pilot's frozen stop-rule verdict) or 'unavailable', got {sp!r}")
     u = pins["uma_extra_statuses"]
     if not isinstance(u, list) or any(not isinstance(x, str) or not re.fullmatch(r"[a-z_]+", x) for x in u):
         raise DeclarationError(f"pin uma_extra_statuses must be a list of lower-case status tokens, got {u!r}")
@@ -393,7 +396,7 @@ def load_pins(path: Path | None = None) -> dict:
     spec = json.loads(Path(path if path is not None else SPEC_PATH).read_text())
     pins = spec.get("census_pins")
     if not pins:
-        raise DeclarationError("the committed spec carries no census_pins (H, rho, extended UMA statuses)")
+        raise DeclarationError("the committed spec carries no census_pins (H, rho, extended UMA statuses, stop)")
     if spec.get("census_pins_sha256") != canonical_sha256(pins):
         raise DeclarationError("census_pins_sha256 does not match census_pins")
     check_pins(pins)

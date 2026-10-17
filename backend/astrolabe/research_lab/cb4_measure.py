@@ -223,7 +223,7 @@ def sample_events(hour_epoch: float, events: list[dict], seed: str, max_events: 
 
 
 def keep_negrisk_event(e: dict, rep: dict) -> bool:
-    """Population rule: negRisk, not augmented, 2 to 10 members, every member with condition id and both tokens, no 'Other' placeholder, not weather."""
+    """Population rule: negRisk, not augmented, 2 to 10 members, every member with condition id, both tokens and outcomes[0] == "Yes" (YES-token check), no 'Other' placeholder, not weather."""
     ms = [m for m in (e.get("markets") or []) if isinstance(m, dict)]
     if not e.get("negRisk"):
         rep["not_negrisk"] = rep.get("not_negrisk", 0) + 1
@@ -241,6 +241,11 @@ def keep_negrisk_event(e: dict, rep: dict) -> bool:
         toks = cb4_data._json_list(m.get("clobTokenIds"))
         if not m.get("conditionId") or len(toks) < 2:
             rep["missing_ids"] = rep.get("missing_ids", 0) + 1
+            return False
+        # the YES token is clobTokenIds[0] (slim_event ``token0``): that is only right when outcomes[0] is "Yes"; any other label, or no label, is rejected and counted
+        outs = cb4_data._json_list(m.get("outcomes"))
+        if not outs or str(outs[0]).strip().lower() != "yes":
+            rep["yes_token_unverified"] = rep.get("yes_token_unverified", 0) + 1
             return False
     if cb4_data.is_weather_text(e.get("title"), *[m.get("question") for m in ms]) or any(cb4_data.is_weather_market(hb.fee_category(m.get("feeType"))) for m in ms):
         rep["weather"] = rep.get("weather", 0) + 1
@@ -639,9 +644,12 @@ def e_predicted_mde(rows_by_cell: dict[str, int], events_by_cell: dict[str, int]
     return out
 
 
-def pilot_power(g_bytes_per_hour: float, sd_i: float, n_event_hours_per_hour: float, deff: float, *, cap_bytes: float = D.N["ingress_cap_gb"]["measure"] * 1e9) -> dict:
+def pilot_power(g_bytes_per_hour: float, sd_i: float, n_event_hours_per_hour: float, deff: float, *, cap_bytes: float = D.N["ingress_cap_gb"]["measure"] * 1e9,
+                stop: bool = False) -> dict:
     """Frozen H rule: ``H_cap`` = largest H in {84,168,252,336} with 1.2 H g <= cap; ``H_mde`` = smallest H whose predicted N1 MDE (two-sided Holm first
-    step alpha 0.0125, power 0.8, deff >= 1.5) is <= 1.0 pp (336 if none); ``H = min(H_mde, H_cap)``; ``H_cap < 84`` = not testable."""
+    step alpha 0.0125, power 0.8, deff >= 1.5) is <= 1.0 pp (336 if none); ``H = min(H_mde, H_cap)``; ``H_cap < 84`` = not testable.
+    ``stop`` is the frozen stop rule (fewer than 5 eligible events per hour, or more than 30% of hours missing): when true N1 and N2 are not testable
+    whatever H_cap is (``testable`` false); the H arithmetic is still reported, descriptively."""
     z = norm.isf(0.0125 / 2) + norm.isf(0.2)
     deff = max(deff, 1.5)
     mde = {}
@@ -652,8 +660,8 @@ def pilot_power(g_bytes_per_hour: float, sd_i: float, n_event_hours_per_hour: fl
     caps = [H for H in D.N["H_grid"] if 1.2 * H * g_bytes_per_hour <= cap_bytes]
     h_cap = max(caps) if caps else 0
     h_mde = next((H for H in D.N["H_grid"] if mde[H] <= 0.01), D.N["H_grid"][-1])
-    return {"mde_by_H": {str(k): v for k, v in mde.items()}, "H_cap": h_cap, "H_mde": h_mde, "H": min(h_mde, h_cap) if h_cap else 0, "testable": bool(h_cap >= D.N["H_grid"][0]),
-            "states_larger_mde": bool(h_cap and h_cap < h_mde)}
+    return {"mde_by_H": {str(k): v for k, v in mde.items()}, "H_cap": h_cap, "H_mde": h_mde, "H": min(h_mde, h_cap) if h_cap else 0, "testable": bool(h_cap >= D.N["H_grid"][0] and not stop),
+            "stop": bool(stop), "states_larger_mde": bool(h_cap and h_cap < h_mde)}
 
 
 # ---- CH53: periods, origins, panel -------------------------------------------------------------------------------------------

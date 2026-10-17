@@ -83,6 +83,7 @@ def _parser(cmd: str) -> argparse.ArgumentParser:
     ap.add_argument("--ingress-cap-gb", type=float, default=None)
     ap.add_argument("--budget-min", type=float, default=None)
     ap.add_argument("--hours-from-census", action="store_true")
+    ap.add_argument("--not-testable-only", action="store_true", help="measure-N: write the not-testable record (stop rule or H_cap < 84) and nothing else; refuses otherwise")
     ap.add_argument("--head-checks", action="store_true")
     return ap
 
@@ -576,11 +577,12 @@ def _pilot(args, ctx: Ctx) -> int:
     sd = float(u["I_mid"].std()) if len(u) > 1 else 0.0
     per_hour = len(u) / max(info["hours_done"], 1)
     deff = M.design_effect_from_clusters(u["I_mid"], u["event_id"]) if len(u) else math.nan  # pilot_power applies the declared floor 1.5
-    power = M.pilot_power(g, sd, per_hour, deff if np.isfinite(deff) else 1.5) if np.isfinite(g) else {"H": 0, "testable": False}
+    stop = bool(per_hour < D.N["stop_eligible_events_per_hour"] or info["hours_missing"] > D.N["stop_missing_hour_share"] * max(len(hours), 1))  # frozen stop rule
+    power = M.pilot_power(g, sd, per_hour, deff if np.isfinite(deff) else 1.5, stop=stop) if np.isfinite(g) else {"H": 0, "testable": False, "stop": stop}
     doc = {"label": LABEL, "job": "pilot", "descriptive": True, "n_event_hours": len(u), "eligible_events_per_hour": per_hour, "hours_done": info["hours_done"], "hours_missing": info["hours_missing"],
            "ingress_gb_per_hour": g / 1e9 if np.isfinite(g) else None, "base_rates": {k: float(u[k].mean()) for k in ("I_hi", "I_mid", "I_lo", "I_none")} if len(u) else {}, "sd_I_mid": sd,
            "design_effect_estimated": deff if np.isfinite(deff) else None, "design_effect_used": max(deff, 1.5) if np.isfinite(deff) else 1.5, "n_event_clusters": int(u["event_id"].nunique()) if len(u) else 0,
-           "power": power, "walk": wrep, "stop": bool(per_hour < D.N["stop_eligible_events_per_hour"] or info["hours_missing"] > D.N["stop_missing_hour_share"] * max(len(hours), 1))}
+           "power": power, "walk": wrep, "stop": stop}
     p, sha = _write(ctx, "N_pilot/pilot.json", doc)
     _emit({"cb4": D.VERSION, "cmd": "pilot", "results": str(p), "sha256": sha, "H": power.get("H")})
     return 0
@@ -597,7 +599,16 @@ def pilot_h(pil: dict | None) -> int | str:
     h = pil["power"].get("H")
     if isinstance(h, bool) or not isinstance(h, int) or h < 0 or not (pil.get("hours_done") or 0) > 0 or pil.get("ingress_gb_per_hour") is None:
         return H_UNAVAILABLE
+    if pil.get("stop") is True or pil["power"].get("stop") is True:
+        return 0  # the frozen stop rule fired: N1 and N2 are not testable, whatever H_cap is (the pilot's own H arithmetic stays descriptive)
     return h
+
+
+def pilot_stop(pil: dict | None) -> bool | str:
+    """The pilot's frozen stop-rule verdict as a census pin: the pilot's ``stop`` (a bool), or ``"unavailable"`` when the pilot did not run or does not carry it."""
+    if not isinstance(pil, dict) or not isinstance(pil.get("stop"), bool) or not (pil.get("hours_done") or 0) > 0:
+        return H_UNAVAILABLE
+    return pil["stop"]
 
 
 def _pins(ctx: Ctx) -> dict:
@@ -613,13 +624,27 @@ def _measure_n(args, ctx: Ctx) -> int:
     pins = _pins(ctx)
     if pins["H"] == H_UNAVAILABLE:
         raise Refusal("H is unavailable (the pmxt pilot failed or did not run): measure-N is not run; this is not 'H_cap < 84'")
+    stopped = pins["stop"] is True
     H = int(pins["H"])
-    if H < D.N["H_grid"][0]:
-        doc = {**_header("N", decl), "tests": {t: {"testable": False, "p": 1.0, "estimate": math.nan, "reason": ["H_cap < 84: not testable"]} for t in ("N1", "N2")}}
+    if getattr(args, "not_testable_only", False) and not (stopped or H < D.N["H_grid"][0]):
+        raise Refusal("--not-testable-only: the pinned pilot does not stop N1/N2 (stop is false and H >= 84); run the full measure-N instead")
+    if stopped or H < D.N["H_grid"][0]:
+        # no pmxt hour, Gamma page or network call is made on this path: N1 and N2 are recorded not testable, p = 1, counted
+        if stopped:
+            pil = ((_jload(_census_path(ctx)) or {}).get("N") or {}).get("pilot") or {}
+            x = pil.get("eligible_events_per_hour")
+            why = (f"not testable (stop rule: {x:.4g} < {D.N['stop_eligible_events_per_hour']} eligible events per hour)" if isinstance(x, int | float) and x < D.N["stop_eligible_events_per_hour"]
+                   else f"not testable (stop rule: pilot eligible events per hour {x} (< {D.N['stop_eligible_events_per_hour']} required) or hours missing {pil.get('hours_missing')} > {D.N['stop_missing_hour_share']:.0%} of the pilot hours)")
+            status = "not testable (stop rule)"
+        else:
+            why, status = "H_cap < 84: not testable", "not testable (H_cap < 84)"
+        doc = {**_header("N", decl), "tests": {t: {"testable": False, "p": 1.0, "estimate": math.nan, "reason": [why]} for t in ("N1", "N2")},
+               "band_map": None,
+               "band_map_source": "pilot data only (q0084, outside the analysis window); no analysis-window pmxt hour was read" if stopped else None}
         p, sha = _write(ctx, "N/results.json", doc)
         log_trials("N", doc["tests"], kind=D.KIND_MEASURE, role="exploratory_historical", dataset="pmxt_v2:N", results_path=str(p), sha=sha, decl=decl, cumulative=doc["cumulative_count_at_run"],
                    placebo=None, descriptive=None, trials_path=ctx.trials, count_source="creative_batch_4:M")
-        _emit({"cb4": D.VERSION, "cmd": "measure-N", "status": "not testable (H_cap < 84)"})
+        _emit({"cb4": D.VERSION, "cmd": "measure-N", "status": status, "measure_N_complete": True})
         return 0
     seed = D.N["seed"]
     hours = M.hour_order(seed, M.sample_hours(seed, M.analysis_days(), H / 56.0))
@@ -989,7 +1014,7 @@ def _census(args, ctx: Ctx) -> int:
     if "N" in fams:
         pil = _jload(ctx.out_root / "N_pilot" / "pilot.json")
         heads = None
-        if pil and int((pil.get("power") or {}).get("H", 0)) >= D.N["H_grid"][0] and (ctx.pmxt_size is not None or getattr(args, "head_checks", False)):
+        if pil and int((pil.get("power") or {}).get("H", 0)) >= D.N["H_grid"][0] and pil.get("stop") is not True and (ctx.pmxt_size is not None or getattr(args, "head_checks", False)):
             from . import history_sources as hs
 
             size_fn = ctx.pmxt_size or hs.httpx_size
@@ -1008,7 +1033,9 @@ def _census(args, ctx: Ctx) -> int:
         out["N"] = {"pilot": pil and {k: pil.get(k) for k in ("eligible_events_per_hour", "hours_done", "hours_missing", "ingress_gb_per_hour", "power", "stop", "design_effect_used")},
                     "head_checks": heads if heads is not None else "not run (needs the pilot's H and --head-checks)", "venue_rho_check": "manual: docs.polymarket.com/trading/taker-rebates"}
         pins["H"] = pilot_h(pil)
+        pins["stop"] = pilot_stop(pil)
     pins.setdefault("H", H_UNAVAILABLE)  # census run without family N: H unavailable, never a silent 0 (re-check M1)
+    pins.setdefault("stop", H_UNAVAILABLE)
     pins.setdefault("rho", D.N["rho"])
     pins.setdefault("uma_extra_statuses", [])
     out["pin_proposal"] = pins

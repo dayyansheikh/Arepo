@@ -27,7 +27,7 @@ def _ctx(tmp_path, **kw):
     return A.Ctx(spec=tmp_path / "cb4_v1.json", trials=tmp_path / "trials.jsonl", out_root=tmp_path / "out", hist_root=tmp_path / "hist", extract_root=tmp_path / "ext", **kw)
 
 
-PINS = {"H": 0, "rho": 0.5, "uma_extra_statuses": []}
+PINS = {"H": 0, "rho": 0.5, "uma_extra_statuses": [], "stop": False}
 
 
 def _freeze(ctx, pins=None, census=None):
@@ -223,7 +223,7 @@ def test_counted_runs_verify_pins_against_the_census(tmp_path):
     assert not (ctx.out_root / "N" / "results.json").exists()
 
 
-@pytest.mark.parametrize("bad", [{"H": 0, "rho": 0.0, "uma_extra_statuses": []}, {"H": 0, "rho": 0.5, "uma_extra_statuses": ["Bad Status"]}, {"H": -1, "rho": 0.5, "uma_extra_statuses": []},
+@pytest.mark.parametrize("bad", [{"H": 0, "rho": 0.0, "uma_extra_statuses": [], "stop": False}, {"H": 0, "rho": 0.5, "uma_extra_statuses": ["Bad Status"]}, {"H": -1, "rho": 0.5, "uma_extra_statuses": [], "stop": False},
                                  {"H": 0, "rho": 0.5}])
 def test_pin_values_are_validated(tmp_path, bad):
     ctx = _ctx(tmp_path, require_committed=False)
@@ -241,7 +241,7 @@ def test_measure_n_uses_the_pinned_rho(tmp_path, monkeypatch):
         return [], {"hours_done": 0, "hours_missing": 0, "bytes_per_hour": [], "minutes": [], "bytes": 0}
 
     monkeypatch.setattr(A, "_read_hours", fake)
-    _freeze(ctx, pins={"H": 84, "rho": 0.4, "uma_extra_statuses": []})  # after patching: hashed functions are part of the declaration
+    _freeze(ctx, pins={"H": 84, "rho": 0.4, "uma_extra_statuses": [], "stop": False})  # after patching: hashed functions are part of the declaration
     assert A.cmd_measure_N(_ns(), ctx) == 0
     assert seen["rho"] == 0.4
     assert "rho=D.N" not in inspect.getsource(A._read_hours).split('"""')[-1]
@@ -423,3 +423,70 @@ def test_fetch_outcomes_reads_nothing_after_a_failed_census_gate(tmp_path, monke
     _freeze(ctx, census=_census_c(ok_g46=False))
     assert A.cmd_fetch_outcomes(_ns("--window", "dev"), ctx) == 0
     assert not called and not (ctx.out_root / "C_dev").exists()
+
+
+# ---- reviewer defects (2026-10-17): the frozen stop rule is enforced; the YES-token check ----------------------------------------------------------
+
+
+_PILOT_STOP = {"stop": True, "eligible_events_per_hour": 1.2917, "hours_done": 24, "hours_missing": 0, "ingress_gb_per_hour": 0.44, "power": {"H": 84, "testable": True}}
+
+
+def test_stop_rule_pins_zero_h_and_stop_true_and_testable_is_false_under_stop():
+    from astrolabe.research_lab import cb4_measure as M
+
+    assert A.pilot_h(_PILOT_STOP) == 0 and A.pilot_stop(_PILOT_STOP) is True
+    assert A.pilot_h({**_PILOT_STOP, "stop": False}) == 84 and A.pilot_stop({**_PILOT_STOP, "stop": False}) is False
+    assert A.pilot_stop(None) == A.H_UNAVAILABLE and A.pilot_stop({"hours_done": 24}) == A.H_UNAVAILABLE
+    ok = M.pilot_power(0.44e9, 0.1, 15.0, 1.5)
+    assert ok["testable"] is True and ok["stop"] is False
+    st = M.pilot_power(0.44e9, 0.1, 15.0, 1.5, stop=True)
+    assert st["testable"] is False and st["stop"] is True and st["H_cap"] == 252
+    with pytest.raises(D.DeclarationError):
+        D.check_pins({"H": 0, "rho": 0.5, "uma_extra_statuses": [], "stop": "yes"})
+    with pytest.raises(D.DeclarationError):
+        D.check_pins({"H": 0, "rho": 0.5, "uma_extra_statuses": []})
+
+
+def test_census_pins_the_pilot_stop_verdict_and_skips_head_checks(tmp_path):
+    ctx = _ctx(tmp_path, pmxt_size=lambda url: pytest.fail("no pmxt HEAD request may be made once the stop rule fired"))
+    (ctx.out_root / "N_pilot").mkdir(parents=True)
+    (ctx.out_root / "N_pilot" / "pilot.json").write_text(json.dumps(_PILOT_STOP))
+    assert A.cmd_census(_ns("--family", "N"), ctx) == 0
+    pins = json.loads((ctx.out_root / "census.json").read_text())["pin_proposal"]
+    assert pins["H"] == 0 and pins["stop"] is True
+
+
+def test_measure_n_under_the_stop_rule_writes_not_testable_p1_counted_and_reads_nothing(tmp_path):
+    ctx = _ctx(tmp_path, require_committed=False)
+    census = {"N": {"pilot": {"eligible_events_per_hour": 1.2917, "hours_missing": 0}}}
+    _freeze(ctx, pins={**PINS, "H": 0, "stop": True}, census=census)
+    assert A.cmd_measure_N(_ns("--not-testable-only"), ctx) == 0  # lim, pmxt_fetch, pmxt_size are all None: any network use would fail
+    res = json.loads((ctx.out_root / "N" / "results.json").read_text())
+    for t in ("N1", "N2"):
+        assert res["tests"][t]["testable"] is False and res["tests"][t]["p"] == 1.0
+        assert res["tests"][t]["reason"] == ["not testable (stop rule: 1.292 < 5 eligible events per hour)"]
+    assert res["band_map"] is None and "pilot data only" in res["band_map_source"]
+    lines = [json.loads(x) for x in ctx.trials.read_text().splitlines()]
+    assert any(x.get("n_tests") == 2 for x in lines)
+    assert A.cmd_measure_N(_ns("--not-testable-only"), ctx) == 3  # never overwritten
+
+
+def test_not_testable_only_refuses_when_the_pilot_does_not_stop(tmp_path):
+    ctx = _ctx(tmp_path, require_committed=False)
+    _freeze(ctx, pins={**PINS, "H": 84, "stop": False})
+    assert A.cmd_measure_N(_ns("--not-testable-only"), ctx) == 3
+    assert not (ctx.out_root / "N" / "results.json").exists()
+
+
+def test_yes_token_check_rejects_events_whose_first_outcome_is_not_yes():
+    from astrolabe.research_lab import cb4_measure as M
+
+    def mk(outcomes):
+        ms = [{"conditionId": f"0xc{i}", "clobTokenIds": json.dumps([f"t{i}y", f"t{i}n"]), "groupItemTitle": f"M{i}", "question": f"q{i}", "outcomes": outcomes(i)} for i in range(3)]
+        return {"negRisk": True, "negRiskAugmented": False, "title": "Who wins", "markets": ms}
+
+    rep: dict = {}
+    assert M.keep_negrisk_event(mk(lambda i: json.dumps(["Yes", "No"])), rep) is True and "yes_token_unverified" not in rep
+    assert M.keep_negrisk_event(mk(lambda i: json.dumps(["No", "Yes"]) if i == 1 else json.dumps(["Yes", "No"])), rep) is False and rep["yes_token_unverified"] == 1
+    assert M.keep_negrisk_event(mk(lambda i: None), rep) is False and rep["yes_token_unverified"] == 2
+    assert M.keep_negrisk_event(mk(lambda i: json.dumps(["Over", "Under"])), rep) is False and rep["yes_token_unverified"] == 3
