@@ -208,8 +208,10 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
    - q0120b guard 14 -> 40; q0103 cancelled (refuses before 10-27) -> draft q0103b, q0106 depends on q0103b.
    - q0116 ArrowMemoryError fixed value-identically (9a99c75) -> q0116b died twice at the 2 x 3200 MB cap -> **PARKED by the
      user** (backup; revive on the second instance; no q0116c on this host).
-   - q0082f had stopped on its ops disk cap -> **q0082g DONE 19:47Z (series_frame_complete)**; h7 group-S amendment + gate
-     q0081g being prepared by an agent.
+   - q0082f had stopped on its ops disk cap -> **q0082g DONE 19:47Z (series_frame_complete)**. **h7 group-S ruling A
+     (as_declared; CH53 E1/E2 not testable)**: seal committed + verified on host, gate q0081g queued (d3278b8) -> releases
+     q0081/q0082 fetches (net lane, before 10-22T00Z).
+   - **Round 5** written (38393fb, CH99-CH117) -> **CB12 design** running (opus; ids q0240+).
    - **q0104b CB5 cdf frame: 0 families** under the frozen grouper (correct, not a bug) -> CH59 expected to close at q0106's
      G59; q0105/q0107 drafts held (ledger a1dad42).
    - **q0160b CB8-H smoke FAIL (criterion h, /oi absent 82%)**: an agent is verifying absent == zero OI; if verified it drafts
@@ -236,8 +238,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
    after T_seal. Never retry q0141.
 4. **CB8-B:** q0161/q0164 after T_seal; before promoting q0164 run the two `derive-exclusion-ids` commands in its draft
    notes on the host (as late as possible, once) and replace both TODO-COORDINATOR sha256 tokens.
-5. **h7 (T_seal):** after q0082g completes read both `frame_report.json`, commit `seals/h7_cb4_group_s_amendment.json`,
-   create gate q0081g. q0083b only on/after 2026-10-22T00:00Z.
+5. **h7 (T_seal):** seal + q0081g done. q0083b only on/after 2026-10-22T00:00Z (promote the draft then), then q0083 seal.
 6. **CB4:** q0085 no earlier than ~10-24T12Z. **CB5:** q0103b on/after 10-27 -> q0106 census. **MC1:** q0116b.
    **CB3:** freeze after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035; B3 at 10-19 (q0029).
 7. **Creative lead:** after round 5 lands, pick CB12 from it (prefer screens runnable on existing host data).
