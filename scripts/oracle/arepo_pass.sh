@@ -3,12 +3,12 @@
 # Linux port of the Mac's ~/arepo_collector/arepo_pass.sh (launchd com.arepo.collector, retired
 # 2026-10-14). Same steps, order, arguments and log lines; differences: flock instead of a mkdir
 # lock (survives a reboot without a stale lock), no caffeinate, `free -m` instead of the macOS
-# swap line, and an AREPO data cap (default 12 GB) next to the 4 GB free-disk guard.
+# swap line, and an AREPO data cap (default 13 GB since 2026-10-17) next to the 4 GB free-disk guard.
 # Snapshot (+1 retry) -> frozen forecast -> 2 book sweeps -> active trade sample -> flow screen
 # -> E011 score -> E004 / E007 status. See docs/research_lab/COLLECTION_HOST.md.
 export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 AREPO_HOME=${AREPO_HOME:-/home/opc/arepo}
-CAP_GB=${AREPO_DATA_CAP_GB:-12}
+CAP_GB=${AREPO_DATA_CAP_GB:-13}   # 12 -> 13 on 2026-10-17 (autopilot): bridges the ~10-19..10-20 gap until 8-day snapshot deletion matches growth; the 4 GB free-disk guard is unchanged
 exec 9>/tmp/arepo_collector.lock
 flock -n 9 || { echo "$(date -u +%FT%TZ) skipped: another pass holds the lock"; exit 0; }
 free=$(df -Pk / | tail -1 | awk '{print $4}')
@@ -29,8 +29,8 @@ if echo "$out" | grep -q "state=complete"; then
   $PY scripts/run_flow_screen.py 2>&1 | tail -1
   $PY scripts/run_surprise_snapshot.py score --rps 4 2>&1 | tail -2   # E011 (registered 3e628ec)
   timeout 600 nice -n 10 $PY scripts/run_cb1_extract.py --all-new --rps 2 --max-requests 300 2>&1 | tail -1 || true   # CB1 extract (CREATIVE_BATCH_1.md §2.11)
-  timeout 600 nice -n 10 $PY scripts/run_cb4.py closewin --all-new --data-dumps-max-gb 12 2>&1 | tail -1 || true   # CB4 closewin/departures (CREATIVE_BATCH_4.md §2.10)
-  timeout 600 nice -n 10 $PY scripts/run_cb5.py extract --all-new --tables listings --data-dumps-max-gb 10 2>&1 | tail -1 || true   # CB5 listings (CREATIVE_BATCH_5.md §4.3)
+  timeout 600 nice -n 10 $PY scripts/run_cb4.py closewin --all-new --data-dumps-max-gb 13 2>&1 | tail -1 || true   # CB4 closewin/departures (CREATIVE_BATCH_4.md §2.10)
+  timeout 600 nice -n 10 $PY scripts/run_cb5.py extract --all-new --tables listings --data-dumps-max-gb 12 2>&1 | tail -1 || true   # CB5 listings (CREATIVE_BATCH_5.md §4.3)
 fi
 $PY scripts/run_research_e004.py score --status 2>&1 | grep -E '"qualifying"'
 $PY scripts/run_research_e007.py score --status 2>&1 | head -1

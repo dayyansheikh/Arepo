@@ -1,5 +1,5 @@
 {
-  "comment": "Per-directory deletion rules for archive_rotate.py --retention (see docs/research_lab/data_catalogue/RETENTION.md). A server file is only ever removed if it is in a verified release with an identical sha256; these rules only say how old it must be and which small files stay. Directories without a rule are never deleted. GATE (2026-10-17): snapshots/ and book_sweeps/ stay in deferred_rules. snapshots/ moves to rules only when backend/scripts/retention_gate_check.py prints retention_gate PASS on the host (CB1/CB2/CB3/CB4 extract manifests complete; CB4 needed the closewin pass step). book_sweeps/ stays deferred until q0035 (J4-R) is done and the MC1 q0111 panel is cached. cb1_extract/, cb2_extract/, cb3_extract/, cb4_extract/ are never deleted (no rule).",
+  "comment": "Per-directory deletion rules for archive_rotate.py --retention (see docs/research_lab/data_catalogue/RETENTION.md). A server file is only ever removed if it is in a verified release with an identical sha256; these rules only say how old it must be and which small files stay. Directories without a rule are never deleted. GATE: snapshots/ moved to rules 2026-10-17 after backend/scripts/retention_gate_check.py printed retention_gate PASS on the host (04:39Z). book_sweeps/ stays deferred until q0035 (J4-R) is done and the MC1 q0111 panel is cached. cb1_extract/, cb2_extract/, cb3_extract/, cb4_extract/ are never deleted (no rule).",
   "rules": [
     {
       "prefix": "data-dumps/research_lab/trade_samples/",
@@ -19,17 +19,18 @@
       "prefix": "data-dumps/research_lab/live_trades/trades-",
       "older_than_days": 10,
       "why": "live_trade_monitor reloads only today's and yesterday's trades file"
-    }
-  ],
-  "deferred_rules": [
+    },
     {
       "prefix": "data-dumps/research_lab/snapshots/",
       "older_than_days": 8,
       "keep": [
         "*/manifest.json",
         "*/ext_manifest.json"
-      ]
-    },
+      ],
+      "why": "E011 reloads 7.5 days of captures; 8 days keeps them. Released 2026-10-17 04:39Z: retention_gate_check.py PASS on the host (CB1/CB2/CB3/CB4 manifests complete; at_risk empty). MC1 must cache its q0111 panel before 2026-10-23 03:30Z; CB3 live quote_state step must be wired before 2026-10-24 03:30Z."
+    }
+  ],
+  "deferred_rules": [
     {
       "prefix": "data-dumps/research_lab/book_sweeps/",
       "older_than_days": 3,

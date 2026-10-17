@@ -49,6 +49,12 @@ and delete them." The user also approved the weekly backup of the live evidence 
   - Free space without snapshot deletion: about 9.7 GB at 10-16 23Z, +0.9-1 GB a day, so the 12 GB cap is reached about
     10-19 midday; the trade-sample rule alone (remove `--dry-run`) frees 0.61 GB on the first run. Snapshot files past 8
     days (existing files): 0.17 GB at 10-19 03:30Z, 0.79 at 10-20, 1.54 at 10-21, 2.19 at 10-22, 2.74 at 10-23.
+  - **DONE 2026-10-17 04:39-04:50Z (autopilot):** `retention_gate_check.py` on the host printed `"retention_gate": "PASS"`
+    (at_risk empty for CB1/CB2/CB3/CB4; one release-only capture `20261013T231958Z_80e78ef1`). `snapshots/` moved from
+    `deferred_rules` to `rules` (8 days, keep manifests); the nightly line already ran without `--dry-run`. Because 8-day
+    deletion only frees 0.17 GB on 10-19 and 0.79 GB by 10-20 while data grows ~0.95 GB/day from 9.9 GB, the collector
+    cap in `arepo_pass.sh` went 12 -> 13 GB (4 GB free-disk guard unchanged; disk had 8.6 GB free), the CB4 closewin pass
+    step headroom 12 -> 13 and the CB5 listings headroom (pass step and q0101) 10 -> 12. `book_sweeps/` stays deferred.
   - **Exact next action (coordinator):** deploy (`scripts/oracle/deploy.sh`); after 1-2 passes rerun
     `cd ~/arepo/backend && ../.venv/bin/python scripts/retention_gate_check.py`. When it prints `"retention_gate": "PASS"`,
     move ONLY the `snapshots/` entry from `deferred_rules` to `rules` (8 days, keep manifests), remove `--dry-run` from the
