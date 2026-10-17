@@ -174,7 +174,7 @@ def run_smoke(env, base, cap, **kw):
 def test_smoke_pass_counts_and_ratios_only(env):
     base, cap = smoke_env(env)
     res = run_smoke(env, base, cap)
-    assert res["smoke_version"] == "cb8-holders-smoke-v2" and res["v1_record"]["result"] == "FAIL"
+    assert res["smoke_version"] == "cb8-holders-smoke-v3" and res["v1_record"]["result"] == "FAIL" and res["v2_record"]["criteria_failed"] == ["h"]
     assert res["pass"] and res["criterion_a_http_ok"] and res["criterion_b_shape"] and res["criterion_c_rows_per_token_le_20"]
     assert res["criterion_h_oi_source"] and res["n_requested"] == 20 and res["n_http_ok"] == 20 and res["criterion_e_oi_units_label"] == "units consistent"
     assert len(res["oi_ratios"]) == 20
@@ -222,16 +222,20 @@ def test_smoke_network_failure_is_not_a_result(env):
         run_smoke(env, base, cap)
 
 
-def test_smoke_oi_missing_states_and_the_two_percent_rule(env):
+def test_smoke_oi_absent_is_oi_zero_and_the_two_percent_rule_counts_unavailable_only(env):
     base, cap = smoke_env(env, n=100, single=0)
     cids = [r["condition_id"] for r in env.rows]
-    env.api.oi_absent = set(cids[:2])  # exactly 2 % absent: not more than 2 %, so the source passes
+    env.api.oi_absent = set(cids[:60])  # H-v4: absent = no OI listed = OI 0, excluded by OI >= 1,000, not a source failure
     res = run_smoke(env, base, cap)
-    assert res["oi"]["states"]["oi_absent"] == 2 and res["oi"]["missing_share"] == pytest.approx(0.02) and res["criterion_h_oi_source"] and res["pass"]
-    assert res["frame_size"] == 98  # dropped, never imputed or zero-filled
-    env.api.oi_absent = set(cids[:3])
+    assert res["oi"]["states"]["oi_absent"] == 60 and res["oi"]["missing_share"] == pytest.approx(0.6) and res["oi"]["unavailable_share"] == 0
+    assert res["criterion_h_oi_source"] and res["pass"] and res["frame_size"] == 40  # dropped, never imputed or zero-filled
+    env.api.oi_absent = set()
+    env.api.oi.update({cids[0]: "12.5", cids[1]: None, cids[2]: True})  # 3 % nonnumeric: more than 2 % unavailable
     res = run_smoke(env, base, cap)
-    assert not res["criterion_h_oi_source"] and not res["pass"] and "missing share" in res["oi_source_verdict"] and res["n_requested"] == 20
+    assert not res["criterion_h_oi_source"] and not res["pass"] and "unavailable share" in res["oi_source_verdict"] and res["n_requested"] == 20
+    env.api.oi.update({cids[0]: 5000.0, cids[1]: 5000.0})  # one nonnumeric left (1 %): not more than 2 %
+    res = run_smoke(env, base, cap)
+    assert res["oi"]["states"]["oi_nonnumeric"] == 1 and res["oi"]["unavailable_share"] == pytest.approx(0.01) and res["pass"]
     env.api.oi_absent = set()
     env.api.oi.update({cids[0]: "12.5", cids[1]: None, cids[2]: True, cids[3]: -4.0})
     res = run_smoke(env, base, cap)
@@ -293,7 +297,7 @@ def test_smoke_gate_requires_pass_rules_and_fingerprint(env, tmp_path):
     (tmp_path / "v1.json").write_text(json.dumps(v1))
     with pytest.raises(cm.Refused, match="another version"):
         h.smoke_ok(tmp_path / "v1.json", env.sha, env.fp)
-    assert h.SMOKE_DEFAULT.name == "holders_smoke_v2.json" and h.SMOKE_V1_PATH.name == "holders_smoke.json"
+    assert h.SMOKE_DEFAULT.name == "holders_smoke_v3.json" and h.SMOKE_V2_PATH.name == "holders_smoke_v2.json" and h.SMOKE_V1_PATH.name == "holders_smoke.json"
     no_h = json.loads(env.smoke.read_text()) | {"criterion_h_oi_source": False}
     (tmp_path / "noh.json").write_text(json.dumps(no_h))
     with pytest.raises(cm.Refused, match="FAIL"):
@@ -429,7 +433,8 @@ def test_snap_oi_source_over_two_percent_stops_the_day_apart_from_a_stale_captur
     for r in rows:
         env.api.holders[r["condition_id"]] = holder_groups(r["condition_id"])
         env.api.oi[r["condition_id"]] = float(r["open_interest"])
-    env.api.oi_absent = {r["condition_id"] for r in rows[:3]}  # 3 % absent
+    for r in rows[:3]:
+        env.api.oi[r["condition_id"]] = "n/a"  # 3 % nonnumeric (H-v4: absent is OI 0 and does not stop a day; unreadable values do)
     env.clock.t = T0
     env.snap()
     env.clock.t = T0 + 3 * HOUR
@@ -437,13 +442,15 @@ def test_snap_oi_source_over_two_percent_stops_the_day_apart_from_a_stale_captur
     m = env.snap()
     assert m["status"] == "day_missed" and m["missed_kind"] == "oi_source"
     marker = json.loads((env.root / "snap" / "2026-10-21.MISSED.json").read_text())
-    assert marker["kind"] == "oi_source" and marker["states"]["oi_absent"] == 3 and marker["missing_share"] == pytest.approx(0.03)
+    assert marker["kind"] == "oi_source" and marker["states"]["oi_nonnumeric"] == 3 and marker["unavailable_share"] == pytest.approx(0.03)
     assert not [c for c in env.api.calls if c[0].endswith("/holders")] and not (env.root / "snap" / "2026-10-21.plan.json.gz").exists()
     assert not list((env.root / "snap").glob("*.oi.*")) and m["counts"]["days_missed_oi_source"] == 1
     with pytest.raises(cm.NotNow, match="already snapshotted"):  # the day stays missed
         env.snap()
     # exactly 2 % is not "more than 2 %": the next day proceeds
-    env.api.oi_absent = {r["condition_id"] for r in rows[:2]}
+    for r in rows[:3]:
+        env.api.oi[r["condition_id"]] = float(r["open_interest"])
+    env.api.oi_absent = {r["condition_id"] for r in rows[:50]}  # 50 % absent (OI 0): the day proceeds
     env.clock.t += 86400
     env.add_capture("cap2", env.clock.t - 1800, env.clock.t - 1200)
     assert env.snap(n_main=10, n_sports=0)["status"] == "day_done"

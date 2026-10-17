@@ -163,5 +163,5 @@ def test_b_and_flow_rules_hashes_are_independent_of_the_holders_v2_code():
     flow = json.loads(cm.FLOW_RULES_FILE.read_text())
     assert cm.rules_file_doc("flow", flow["wallet_key_fingerprint"]) == flow
     assert json.loads(u.RULES_FILE.read_text()) == u.rules_file_doc()
-    assert cm.HOLDERS_RULES_FILE.name == "cb8_holders_rules_v3.json" and cm.HOLDERS_RULES_FILE_V2.name == "cb8_holders_rules_v2.json" and cm.HOLDERS_RULES_FILE_V1.name == "cb8_holders_rules.json"
-    assert cm.rules_doc("holders")["rules_version"] == "cb8-holders-rules-v3"
+    assert cm.HOLDERS_RULES_FILE.name == "cb8_holders_rules_v4.json" and cm.HOLDERS_RULES_FILE_V3.name == "cb8_holders_rules_v3.json" and cm.HOLDERS_RULES_FILE_V2.name == "cb8_holders_rules_v2.json" and cm.HOLDERS_RULES_FILE_V1.name == "cb8_holders_rules.json"
+    assert cm.rules_doc("holders")["rules_version"] == "cb8-holders-rules-v4"

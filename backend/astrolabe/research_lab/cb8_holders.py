@@ -25,13 +25,17 @@ from . import cb8_common as cm
 from . import h5_seal
 from . import history_backfill as hb
 
-SMOKE_VERSION = "cb8-holders-smoke-v2"  # v2: market OI from the Data API /oi at frame time t_f (CREATIVE_BATCH_8.md "H v2")
+SMOKE_VERSION = "cb8-holders-smoke-v3"  # v3 (H-v4): oi_absent = OI 0, 2 % rule on failed + nonnumeric. v2: market OI from /oi at t_f (CREATIVE_BATCH_8.md "H v2")
+SMOKE_V2_VERSION = "cb8-holders-smoke-v2"
+SMOKE_V2_RECORD = {"version": SMOKE_V2_VERSION, "job": "q0160b_cb8_holders_smoke_v2", "result": "FAIL", "criteria_failed": ["h"], "rules_sha256": "b6ac7f7fd773c1656ad96a2b00abb260cfe693a8ee06a0a48798d8d6f3211f57",
+                   "n_base": 278705, "oi_states": {"ok": 50387, "oi_absent": 228318, "oi_lookup_failed": 0, "oi_nonnumeric": 0}, "frame_size": 8564,
+                   "cause": "82 % of base-frame markets are absent from /oi (no OI listed); the v3 rule counted absence as unavailable"}
 SMOKE_V1_VERSION = "cb8-holders-smoke-v1"
 SMOKE_V1_RECORD = {"version": SMOKE_V1_VERSION, "job": "q0160_cb8_holders_smoke", "result": "FAIL", "frame_size": 0, "n_requested": 0,
                    "criteria_failed": ["a", "b", "g"], "cause": "empty frame: the sidecar open_interest (Gamma market openInterest) is blank in all rows"}
 HOLDERS_URL = "https://data-api.polymarket.com/holders"
 OI_URL = "https://data-api.polymarket.com/oi"
-SEED_SMOKE = "arepo-cb8-hsmoke-v2"
+SEED_SMOKE = "arepo-cb8-hsmoke-v3"
 SEED_DAY_PREFIX = "arepo-cb8-holders-"
 N_SMOKE = 20
 SMOKE_MIN_OK = 19
@@ -48,6 +52,9 @@ OI_AGREE_BAND = 0.25  # /oi and a single-market event's OI "agree" if 1/(1+band)
 OI_MAX_CONSECUTIVE_FAILS = 5
 OI_OK, OI_FAILED, OI_ABSENT, OI_NONNUMERIC = "ok", "oi_lookup_failed", "oi_absent", "oi_nonnumeric"
 OI_MISSING = (OI_FAILED, OI_ABSENT, OI_NONNUMERIC)
+# H-v4 (2026-10-17, CREATIVE_BATCH_8.md "CB8-H amendment H-v4"): oi_absent is "no OI listed" (the venue lists only markets with positive OI), i.e. OI 0,
+# which the OI >= MIN_OI rule already excludes. The 2 % rule counts the states in which the OI could not be read.
+OI_UNAVAILABLE = (OI_FAILED, OI_NONNUMERIC)
 MAX_CAPTURE_AGE_S = 2.5 * 3600
 H1_EARLIEST = "2026-10-21T06:00:00Z"
 DEPLOY_DELAY_S = 2 * 3600
@@ -66,7 +73,8 @@ SNAP_RUN, PRINTS_RUN = "snap", "prints"
 SNAP_COMPLETE = "holders_collection_complete"
 PRINTS_COMPLETE = "holders_prints_complete"
 SMOKE_V1_PATH = cm.CB8_DIR / "holders_smoke.json"  # q0160 FAIL (empty frame), write-once, never overwritten
-SMOKE_DEFAULT = cm.CB8_DIR / "holders_smoke_v2.json"
+SMOKE_V2_PATH = cm.CB8_DIR / "holders_smoke_v2.json"  # q0160b FAIL (h), write-once, never overwritten
+SMOKE_DEFAULT = cm.CB8_DIR / "holders_smoke_v3.json"
 HOLDERS_DIR = cm.CB8_DIR / "holders"
 SNAP_OUTPUT_CAP_GB = 0.15  # about 1.9 MB a day over 63 days + plans (reviewed cost amendment, CREATIVE_BATCH_8.md section 10)
 PRINTS_OUTPUT_CAP_GB = 0.12  # about 0.9 MB a day over 63 days, doubled for the estimate error (section 10)
@@ -100,13 +108,16 @@ def declared() -> dict:
                                                 "c uses OI at t_f, not OI at the snapshot time h",
                                 "missing_states": {OI_FAILED: "request failed after retries (3 attempts per batch across chunks) or non-200 reply or reply "
                                                               "that fails the per-batch count/identity assertion",
-                                                   OI_ABSENT: "requested id missing from an otherwise valid reply",
+                                                   OI_ABSENT: "H-v4: requested id missing from an otherwise valid reply = no OI listed (the venue lists only "
+                                                              "markets with positive OI; smoke v2 check: 0 of 40 sampled absent markets had any holder, "
+                                                              f"all 10 listed small-OI controls did): treated as OI 0, excluded by the OI >= {MIN_OI:g} rule, "
+                                                              "counted, never imputed as a value for an eligible market and not part of the 2 % rule",
                                                    OI_NONNUMERIC: "value present but not a finite number >= 0 (strings, null, bool, negative)"},
                                 "never": "imputed, zero-filled or carried over from another time",
                                 "per_batch_assert": "reply is a list; every returned market was sent (identity, case-insensitive); no duplicate; "
                                                     "count <= ids sent",
                                 "network": "a network failure after retries writes nothing (smoke) / leaves the resumable partial (snapshot) and exits 75",
-                                "stop_rule": f"more than {OI_MAX_MISSING_SHARE:.0%} of base-frame markets in any missing state: the smoke FAILs and the day's "
+                                "stop_rule": f"more than {OI_MAX_MISSING_SHARE:.0%} of base-frame markets in the oi_lookup_failed or oi_nonnumeric states (oi_absent excluded, H-v4): the smoke FAILs and the day's "
                                              "snapshot stops, recorded 'missed (oi_source)' apart from 'missed (stale capture)'",
                                 "stop_rule_reason": "the same tolerance as the CB6/CB7 exclusion-key rule (--max-unverified-key-share 0.02): unavailable OI "
                                                     "cannot reshape a 1,800-market daily sample by more than about 36 markets, and a handful of transient "
@@ -137,9 +148,9 @@ def declared() -> dict:
                               "c: <= 20 rows per token; d: response time; e: OI units label (records the /oi value at t_f, the event OI of single-market events "
                               "and the sum-top-20 ratios; 'units unverified' unless /oi and single-market event OI agree within the band, or if sum top-20 > "
                               f"{OI_UNITS_RATIO} x OI for more than half of the markets); f: strict key fingerprint == pin; g: paging probe; "
-                              f"h: /oi source (missing share <= {OI_MAX_MISSING_SHARE:.0%} of base-frame markets). pass = a and b and f and h",
-                  "agree_band": OI_AGREE_BAND, "t_f_before_first_holders_request": True, "v1": SMOKE_V1_RECORD,
-                  "discloses": "realised frame and stratum sizes against the 1,500 + 300 sample", "output": "counts and ratios only, write-once, holders_smoke_v2.json"},
+                              f"h: /oi source (lookup_failed + nonnumeric share <= {OI_MAX_MISSING_SHARE:.0%} of base-frame markets; oi_absent is OI 0, H-v4). pass = a and b and f and h",
+                  "agree_band": OI_AGREE_BAND, "t_f_before_first_holders_request": True, "v1": SMOKE_V1_RECORD, "v2": SMOKE_V2_RECORD,
+                  "discloses": "realised frame and stratum sizes against the 1,500 + 300 sample", "output": "counts and ratios only, write-once, holders_smoke_v3.json"},
         "disk": {"snap_cap_gb": SNAP_OUTPUT_CAP_GB, "prints_cap_gb": PRINTS_OUTPUT_CAP_GB},
         "paging": {"offset": PAGING_OFFSET, "rule": "a 400 at offset > 0 is a capped window (unavailable), any other non-200 is a failed request; the smoke probes offsets 0 and 4000"},
         "window2_pin": {"min_delay_s": PIN_DELAY_S, "rule": "T8_H2_start >= max(T8_H1_end, pin time + 2 h); the pin time is recorded"},
@@ -359,17 +370,19 @@ def oi_summary(base: list[dict], states: dict[str, tuple[str, float | None, floa
     miss = sum(counts[k] for k in OI_MISSING)
     tfs = [done[i]["t_f"] for i in range(len(batches))]
     return {"n_base": n, "n_batches": len(batches), "states": counts, "n_missing": miss, "missing_share": (miss / n if n else None),
+            "n_unavailable": sum(counts[k] for k in OI_UNAVAILABLE), "unavailable_share": (sum(counts[k] for k in OI_UNAVAILABLE) / n if n else None),
             "n_batches_integrity_violation": sum(1 for i in range(len(batches)) if done[i]["integrity"]),
             "t_f_min_epoch": min(tfs) if tfs else None, "t_f_max_epoch": max(tfs) if tfs else None, "t_f_batches": tfs}
 
 
 def oi_source_ok(summary: dict) -> tuple[bool, str]:
-    """The 2 % rule: more than ``OI_MAX_MISSING_SHARE`` of base-frame markets in any missing state (or an empty base frame) is a failed source."""
+    """The 2 % rule (H-v4): more than ``OI_MAX_MISSING_SHARE`` of base-frame markets in ``OI_UNAVAILABLE`` (lookup failed, integrity violation or
+    nonnumeric) or an empty base frame is a failed source. ``oi_absent`` (no OI listed = OI 0) is counted but not part of the rule."""
     if not summary["n_base"]:
         return False, "empty base frame"
-    share = summary["n_missing"] / summary["n_base"]
+    share = sum(summary["states"][k] for k in OI_UNAVAILABLE) / summary["n_base"]
     if share > OI_MAX_MISSING_SHARE:
-        return False, f"missing share {share:.4f} > {OI_MAX_MISSING_SHARE}"
+        return False, f"unavailable share {share:.4f} > {OI_MAX_MISSING_SHARE}"
     return True, "ok"
 
 
@@ -519,7 +532,7 @@ def paging_probe(lim: hb.Limiter, cid: str, clock: Callable[[], float] = time.ti
 def holders_smoke(lim: hb.Limiter, key: bytes, base: list[dict], rules_sha: str, fp: str, capture_id: str, *, clock: Callable[[], float] = time.time,
                   oi_rps: float = OI_RPS) -> dict:
     """q0160b (smoke v2). The /oi frame of EVERY base-frame market is built first (batches of 60, ``t_f`` per batch), then 20 markets from the OI >= 1,000
-    frame (seed ``arepo-cb8-hsmoke-v2``) get one /holders request each; ``t_f`` is asserted strictly before the first /holders request. Counts and
+    frame (seed ``arepo-cb8-hsmoke-v3``) get one /holders request each; ``t_f`` is asserted strictly before the first /holders request. Counts and
     ratios only: no market id, no wallet (hashed in memory, dropped), no amount list. A network failure raises :class:`cm.NotNow` (nothing is written)."""
     batches = oi_batches(base)
     done: dict[int, dict] = {}
@@ -584,19 +597,19 @@ def holders_smoke(lim: hb.Limiter, key: bytes, base: list[dict], rules_sha: str,
             "event_oi_comparison": {"n_single_market_events_in_frame": len(cmp_ratios), "n_agree": n_agree, "agree_band": OI_AGREE_BAND,
                                     "median_oi_tf_over_event_oi": (sorted(cmp_ratios)[len(cmp_ratios) // 2] if cmp_ratios else None)},
             "sample_disclosure": disclosure, "clocks": "accepting_orders/closed/event OI: capture time; /oi: t_f (after the capture, before any /holders request)",
-            "threshold_units": v["e_label"], "v1_record": SMOKE_V1_RECORD}
+            "threshold_units": v["e_label"], "v1_record": SMOKE_V1_RECORD, "v2_record": SMOKE_V2_RECORD}
 
 
 def smoke_ok(path: Path, rules_sha: str, fp: str, *, require_paging: bool = False) -> dict:
     p = Path(path)
     if not p.exists():
-        raise cm.Refused(f"holders smoke result {p} not found; run holders-smoke first (v2: q0160b)")
+        raise cm.Refused(f"holders smoke result {p} not found; run holders-smoke first (v3: q0160c)")
     try:
         d = json.loads(p.read_text())
     except ValueError as exc:
         raise cm.Refused(f"holders smoke result {p} unreadable") from exc
     if d.get("smoke_version") != SMOKE_VERSION or d.get("rules_sha256") != rules_sha or d.get("wallet_key_fingerprint") != fp:
-        raise cm.Refused(f"holders smoke result {p} was made under another version, rules hash or key fingerprint (the v2 PASS under the v2 rules hash is required)")
+        raise cm.Refused(f"holders smoke result {p} was made under another version, rules hash or key fingerprint (the v3 PASS under the v4 rules hash is required)")
     if d.get("pass") is not True or d.get("criterion_h_oi_source") is not True:
         raise cm.Refused(f"holders smoke result {p} is a FAIL; H is 'not run (source)'")
     if require_paging and d.get("criterion_g_paging") is not True:
@@ -896,7 +909,7 @@ def holders_snap(root: Path, transport, *, key: bytes, fp: str, rules_sha: str, 
             oi_ok, oi_why = oi_source_ok(summ)
             if not oi_ok:  # the day stops: recorded apart from a stale capture, nothing imputed
                 marker = {"day": day, "kind": "oi_source", "reason": f"oi_source: {oi_why}", "capture_id": cap["capture_id"], "n_base": summ["n_base"],
-                          "states": summ["states"], "missing_share": summ["missing_share"], "n_batches": summ["n_batches"],
+                          "states": summ["states"], "missing_share": summ["missing_share"], "unavailable_share": summ["unavailable_share"], "n_batches": summ["n_batches"],
                           "n_batches_integrity_violation": summ["n_batches_integrity_violation"], "max_missing_share": OI_MAX_MISSING_SHARE}
                 fr.budget.write(rdir / f"{day}.MISSED.json", json.dumps(marker, sort_keys=True).encode())
                 fr.counts["days_missed_oi_source"] = fr.counts.get("days_missed_oi_source", 0) + 1

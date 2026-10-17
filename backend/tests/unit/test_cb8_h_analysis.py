@@ -283,7 +283,7 @@ def test_freeze_slip_is_not_run_and_counted(tmp_path):
 # ---- rules, freeze, declaration, runner --------------------------------------------------------------------------------------------------------------------
 
 
-def test_h_rules_are_separate_and_leave_the_holders_rules_v3_unchanged(tmp_path):
+def test_h_rules_are_separate_and_leave_the_holders_rules_v4_as_generated(tmp_path):
     assert cm.verify_rules("holders", cm.HOLDERS_RULES_FILE, require_committed=False)[0] == "b6ac7f7fd773c1656ad96a2b00abb260cfe693a8ee06a0a48798d8d6f3211f57"
     doc = ha.rules_file_doc()
     assert doc["rules_version"] == "cb8-h-analysis-rules-v1" and doc["data_rules_sha256"].startswith("b6ac7f7f")
