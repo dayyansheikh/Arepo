@@ -232,3 +232,58 @@ def walk_series_events_lean(lim: hb.Limiter, start: float, end: float, modes: tu
             done.add(k)
     rep["events_kept"] = len(store.ev_loc)
     return store, rep, None
+
+
+# ---- unit assembly without holding every event (q0082 "stage all", after the frame) ------------------------------------------------------
+
+
+class _RecordingGuarded(dict):
+    """Empty guarded mapping that records which event ids ``assemble_units`` asks ``get`` for (candidate predecessors)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.asked: set[str] = set()
+
+    def get(self, key, default=None):  # noqa: ANN001
+        self.asked.add(key)
+        return default
+
+
+def _iter_jsonl_gz(path: Path):
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip():
+                yield json.loads(line)
+
+
+def assemble_units_lean(wpath: Path, wgpath: Path, **kwargs) -> dict:
+    """Same result as ``cb4_data.assemble_units(events, guarded, **kwargs)`` with ``events`` / ``guarded`` read whole from
+    ``wpath`` / ``wgpath``, but the pinned function runs on a mapping that holds a stub of every event and the FULL record
+    only for the events of the series that can produce units.
+
+    Pass A runs the pinned function on stubs (event id, end, series, weather flag, a market list carrying only fee categories)
+    with an empty recording guarded mapping: the series table, the seeded sample and the blocks depend only on those fields,
+    so the candidate predecessors it asks guarded records for (a superset of the real ones: no stub market ever matches an
+    exclusion id) identify the sampled series. Pass B re-runs it on stubs plus the full events of those series and the guarded
+    records of those predecessors, in the original insertion order, so every unit field comes from the pinned code on real data."""
+    stubs: dict[str, dict] = {}
+    series_pool: dict[tuple, dict] = {}
+    mk_pool: dict[tuple, list] = {}
+    cat_pool: dict[str, dict] = {}
+    for ev in _iter_jsonl_gz(wpath):
+        sr = [series_pool.setdefault((s["id"], s.get("slug")), s) for s in ev["series"]]
+        cats = tuple(m["fee_category"] for m in ev["markets"])
+        mk = mk_pool.setdefault(cats, [cat_pool.setdefault(c, {"fee_category": c, "market_id": ""}) for c in cats])
+        stubs[ev["event_id"]] = {"event_id": ev["event_id"], "end_epoch": ev["end_epoch"], "series": sr,
+                                 "weather_title": ev["weather_title"], "markets": mk}
+    rec = _RecordingGuarded()
+    d.assemble_units(stubs, rec, **kwargs)
+    pred_ids = rec.asked
+    chosen = {s["id"] for eid in pred_ids if eid in stubs for s in stubs[eid]["series"]}
+    del mk_pool, cat_pool, series_pool
+    events = stubs
+    for ev in _iter_jsonl_gz(wpath):
+        if any(s["id"] in chosen for s in ev["series"]):
+            events[ev["event_id"]] = ev  # same key: insertion order unchanged
+    guarded = {g["event_id"]: g for g in _iter_jsonl_gz(wgpath) if g["event_id"] in pred_ids}
+    return d.assemble_units(events, guarded, **kwargs)

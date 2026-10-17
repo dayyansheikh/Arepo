@@ -2205,9 +2205,10 @@ def series_fetch(
         if not upath.exists():
             cats = require_group_s_amendment(amendment_file, "series", frpath, require_committed=require_committed)
             h5 = _h5_ids(h5_seal_copies)
-            events = {e["event_id"]: e for e in _load_jsonl_gz(wpath)}
-            guarded = {g["event_id"]: g for g in _load_jsonl_gz(wgpath)}
-            asm = assemble_units(events, guarded, seed=seed, n_series=n_series, n_sports=n_sports, members=members,
+            # memory-bounded assembly (cb4_walk_lean): the pinned assemble_units on stubs plus the full events of the sampled series only
+            from .cb4_walk_lean import assemble_units_lean  # noqa: PLC0415
+
+            asm = assemble_units_lean(wpath, wgpath, seed=seed, n_series=n_series, n_sports=n_sports, members=members,
                                  r_from=r_from, r_to=r_to, history_ids=hist, h5_ids=h5, sports_cats=cats)
             urep = {**asm["report"], "history_ids": len(hist), "h5_ids": len(h5), "sports_fee_categories": list(cats)}
             # outcomes first, units last: the units file marks the unit frame as complete
