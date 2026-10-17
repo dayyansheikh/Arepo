@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 16:11 UTC+1
+**Last updated:** 2026-10-17 16:12 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -8,12 +8,10 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 ## 1. Right now
 - **Autopilot:** a new session started at about 15:30 UTC+1 and is working.
-- **Server disk (urgent this afternoon): eased for about 3 days.** Data had reached 13.1 of the 14 GB collection limit.
-  I cleared 1.7 GB of software-package caches and old system logs again, and stopped the package cache from rebuilding
-  itself (it had refilled within a day). I raised the collection limit to 16 GB. The real safety limit (stop when less
-  than 4 GB of disk is free) is unchanged, and at about 1.1 GB a day it is reached around 20 Oct. Deletion of
-  backed-up 8-day-old snapshots starts freeing space about 21 Oct, so there is a risk of losing about a day of collection.
-  **Your approval would remove this risk** (see section 2, item 6).
+- **Server disk: solved.** You enlarged the disk to 100 GB (still free). There is now 61 GB free, and the collection limit is 45 GB.
+- **Second free server: waiting for Oracle.** London is out of free servers right now. The server now asks Oracle again
+  every 10 minutes and creates `arepo-research` (1 CPU, 6 GB, 100 GB, free) the moment one is available. Then it
+  stops and alerts your phone. It cannot go over the free limits. Some experiments move there after that.
 - **Batch 9's code is written and tested** (94 tests). An independent check that the code matches the design is
   running; its small download test can then run before 22 Oct, and its real downloads after.
 - **Batch 5's family-listing job ran out of memory again.** Cause found: this morning's fix had been written but never
@@ -55,15 +53,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
    trial to real by about 20 Oct. If not, batch 3's live stages wait, and missed data stays missing. Handled by the ops
    session; flagging the dependency only.
 
-6. **Server disk, before about 20 Oct (recommended: option a).** The safety hook stops me moving data on the server
-   without your approval for that session. Options:
-   a. Let a session move about 3 GB of unused research data (the ML cache and finished downloads, all also in the
-      GitHub backup) onto the server's spare 10 GB volume. Nothing is deleted; the files stay reachable at the same
-      paths. To allow it, start a session with `AREPO_RETIREMENT_SESSION=1` and ask for "the /var/oled relocation in
-      the checkpoint".
-   b. Enlarge the server disk in the Oracle console (free up to 200 GB in total). This takes about 10 minutes in the
-      console, then a session grows the partition.
-   c. Do nothing. Collection may pause for about a day around 20-21 Oct, and the missed data stays missing.
+6. ~~Server disk~~ **DONE 17 Oct** (you enlarged it to 100 GB, free).
 
 ## 3. Usage plan (your schedule; reset times are your statement, not verified)
 | When | Plan |
@@ -88,8 +78,8 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 5. Infrastructure
 | Item | State |
 |---|---|
-| Server disk | Data 13.1 GB (15:30 UTC+1, measured); 7.5 GB of disk free after clearing caches again; collection cap raised to 16 GB (4 GB free-disk stop unchanged). Backed-up trade samples deleted at 3 days (freed 0.6 GB last night); snapshots now deleted at 8 days (from 19 Oct). Expected to level off at about 12-13 GB. |
-| Server size | 1 CPU and about 5.6 GB RAM, so one heavy job at a time. It can't be enlarged without Oracle console access. |
+| Server disk | 100 GB disk, 61 GB free (17 Oct 16:05 UTC+1); collection cap 45 GB, 4 GB free-disk stop unchanged. |
+| Server size | 1 CPU, about 5.6 GB RAM. A second free server (1 CPU, 6 GB, 100 GB) is being requested automatically every 10 min until Oracle has capacity. |
 | Mac | No background jobs. |
 
 ## 6. Manual pause and stop

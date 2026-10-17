@@ -8,6 +8,16 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
+## Second Always Free server: auto-retry running (2026-10-17 15:12Z, interactive session)
+- **Approval:** the user approved a second free A1 instance (1 OCPU / 6 GB / 100 GB boot; totals 2/12/200 = the tenancy's
+  free limits) to move some experiments onto. London AD-1/AD-2 were out of host capacity, so the user chose the auto-retry.
+- **How:** `scripts/oracle/oci_retry_create.py` runs on the host every 10 min (cron, flock, `~/oci_venv`, API key in
+  `~/.oci`, never leaves the host). It refuses if the result would exceed the free limits, never creates a duplicate, and
+  stops itself and sends a phone alert once `arepo-research` exists.
+  - Log: `~/arepo_collector/logs/oci-retry.log`. Stop: `touch ~/.arepo/oci_retry/DONE`.
+- **First runs (15:12Z):** "Out of host capacity" in both ADs. One AD-2 call returned a transient 401, and the next run was fine.
+- **Next, once created:** set up the instance (OL9, Python 3.11 venv, repo, ssh alias), then move queue `cpu`-lane jobs there.
+
 ## Host disk: RESOLVED (2026-10-17 ~15:05Z, interactive session)
 - **Resize:** boot volume 46.6 -> 100 GB in the OCI console, user-approved. It stays Always Free: home region, no other
   volumes or backups, 100 of 200 GB used. The host was grown online with the rescan plus `oci-growfs`.

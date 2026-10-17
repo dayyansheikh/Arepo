@@ -8,6 +8,9 @@
 */15 * * * * cd /home/opc/arepo/backend && /home/opc/arepo/.venv/bin/python scripts/arepo_notify.py check >> /home/opc/arepo_collector/logs/notify.out 2>> /home/opc/arepo_collector/logs/notify.err
 # Research queue worker (scripts/oracle/queue_worker.py; pause: queue_worker.py pause)
 */2 * * * * /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py tick >> /home/opc/arepo_collector/logs/queue.log 2>&1
+# Second Always Free A1 instance: retry until capacity (scripts/oracle/oci_retry_create.py; stops itself once created;
+# stop manually: touch ~/.arepo/oci_retry/DONE)
+*/10 * * * * flock -n /home/opc/.arepo/oci_retry/lock /home/opc/oci_venv/bin/python /home/opc/arepo/scripts/oracle/oci_retry_create.py >> /home/opc/arepo_collector/logs/oci-retry.log 2>&1
 # Nightly archive to arepo-data (verify-before-publish) + retention. --dry-run: lists would_delete only.
 # Remove --dry-run per docs/research_lab/data_catalogue/RETENTION.md checklist (deletion approved by the user 2026-10-15).
 30 3 * * * PATH=/home/opc/.local/bin:/usr/bin:/bin; cd /home/opc/arepo/backend && nice -n 15 /home/opc/arepo/.venv/bin/python scripts/archive_rotate.py --root /home/opc/arepo --scan data-dumps/research_lab --older-than-days 1 --retention /home/opc/arepo/scripts/oracle/archive_retention.json --delete >> /home/opc/arepo_collector/logs/archive-rotate.log 2>&1

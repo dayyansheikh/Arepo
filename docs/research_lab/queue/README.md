@@ -37,8 +37,8 @@ and session ends; nothing here calls Claude or any paid API.
   - `net` is for network/IO-bound jobs, such as pmxt range reads at about 25% CPU. Set it with `resources.lane`.
   - Each start still needs `MemAvailable >= mem_mb + 1200 MB`, respects the blackout window and waits for the collector.
   - The host has 1 OCPU and about 5.6 GiB RAM, shared with the collector and monitors.
-  - Oracle shows this tenancy's A1 limit as 2 cores / 12 GB. A second 1/6 instance was attempted on 2026-10-16 but no
-    AD had capacity, so retry later.
+  - Oracle shows this tenancy's A1 limit as 2 cores / 12 GB. A second 1/6 instance (`arepo-research`) is retried
+    every 10 min by `scripts/oracle/oci_retry_create.py` until London has capacity (since 2026-10-17).
 
 ## Statuses
 - `queued`
