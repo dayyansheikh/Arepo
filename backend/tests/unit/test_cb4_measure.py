@@ -138,3 +138,38 @@ def test_era_panel_d6h_is_in_cents():
     rec = {"market_id": "m1", "event_id": "e1", "end_epoch": end, "group": "O", "period": "P1", "fee_category": "x"}
     p = M.era_panel(rec, ts, vals, tr, False, None)
     assert len(p) and p["d6h"].abs().max() > 1.0 and p["d6h"].abs().max() <= 2.5  # 0.02 -> 2 cents, not 0.02
+
+
+def _placebo_units(days: int, n_ev: int = 40, seed: int = 2):
+    import numpy as np
+    import pandas as pd
+
+    rng = np.random.default_rng(seed)
+    rows = []
+    for d in range(days):
+        day = f"2026-05-{1 + d:02d}" if d < 28 else f"2026-06-{d - 27:02d}"
+        for e in range(n_ev):
+            rows.append({"event_id": f"e{e}", "day": day, "window": "pre", "post": 0.0, "I_mid": rng.uniform(0, 0.2), "I_lo": rng.uniform(0, 0.2),
+                         "n_on_mh": 1, "n_on_lo": 1, "P5_mh": rng.uniform(0, 1), "P5_lo": rng.uniform(0, 1)})
+    return pd.DataFrame(rows)
+
+
+def test_in_time_placebo_day_way_uses_g_min_and_untestable_blocks_adoption():
+    """Freeze-check fix 2: the 28-day pre half is testable on the day way with G >= 15 (CR1); with fewer days it is not testable and the placebo p is None
+    (unverified), which blocks adoption instead of passing as p = 1."""
+    u = _placebo_units(28)
+    u["window"] = "pre"
+    pbo = M.in_time_placebos(u)
+    r = pbo["2026-05-14"]["N1"]
+    assert r["testable"] and r["clusters"]["day"] == 28
+    assert M.ols_contrast([0.0] * 200, [[1.0, 0.0]] * 200, [0.0, 1.0], {"event": [str(i % 40) for i in range(200)], "day": [str(i % 20) for i in range(200)]})["testable"] is False
+    short = _placebo_units(10)
+    pb2 = M.in_time_placebos(short)
+    assert not pb2["2026-05-14"]["N1"]["testable"]
+    assert M.placebo_p([pb2[k]["N1"] for k in pb2]) is None and M.placebo_p([]) is None
+    assert M.placebo_p([{"testable": True, "p": 0.3}, {"testable": True, "p": 0.2}]) == 0.2
+    big = {t: D.FLOORS[t] * 3 for t in D.TESTS["M"]}
+    allok = {t: _res(1e-6, big[t]) for t in D.TESTS["M"]}
+    unv = {**allok, "N1": _res(1e-6, big["N1"], placebo_p=None)}
+    a = M.adoption(unv)["N1"]
+    assert not a["adopted"] and a["placebo_status"] == "unverified"

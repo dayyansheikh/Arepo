@@ -33,6 +33,10 @@ INTERPRETATIONS = (
     "f_net_6h is the sum of sign x size x YES-terms price over taker prints in [t - 6h, t), sign in YES terms (BUY of outcome 0 or SELL of outcome 1 = +1).",
     "Judgement rows: mid in (0.02, 0.98), at least one trade before t, d6h and f_net_6h defined.",
     "A false pseudo-band premise (mid band not the most negative) blocks adoption of N1/N2; the band-map is published regardless.",
+    "Freeze-check fix 2: a placebo (CH52 in-time, CH53 parallel trends) that is not testable is 'unverified' and blocks adoption; it never counts as 'does not reject'.",
+    "Freeze-check fix 2: the CH52 in-time placebo halves span 28 and 27 days, so their calendar-day way needs G >= 15 (the section 2.3 small-G testability minimum) "
+    "instead of 30 and uses CR1 with the normal reference (no CR2/t(G-1) or wild-bootstrap enlargement): for a placebo, whose rejection blocks adoption, the "
+    "smaller CR1 p is the conservative direction. The event way still needs 30 clusters.",
 )
 
 
@@ -45,7 +49,7 @@ def _codes(cl) -> tuple[np.ndarray, int]:
 
 
 def ols_contrast(y, X, contrast, ways: dict[str, np.ndarray], *, n_boot: int = 0, seed: int = D.SEED_BOOT, min_units: int = D.MIN_UNITS,
-                 min_clusters: int = D.MIN_CLUSTERS, robust: bool = False) -> dict:
+                 min_clusters: int = D.MIN_CLUSTERS, robust: bool = False, min_clusters_by_way: dict[str, int] | None = None) -> dict:
     """OLS of y on X; the linear combination ``contrast' beta`` with CR1 sandwich SEs for each cluster way and the two-sided normal p = max over ways.
     Not testable (p = 1) with fewer than ``min_units`` rows or ``min_clusters`` clusters in any way. CI: percentile bootstrap resampling the first way.
     ``robust=True`` adds the section 2.6 checks per way: ``top5_dropped`` (refit without the 5 clusters of that way with the largest absolute contribution
@@ -61,7 +65,8 @@ def ols_contrast(y, X, contrast, ways: dict[str, np.ndarray], *, n_boot: int = 0
     why = []
     if n < min_units:
         why.append(f"units {n} < {min_units}")
-    why += [f"{w} clusters {g} < {min_clusters}" for w, g in gs.items() if g < min_clusters]
+    need = {w: (min_clusters_by_way or {}).get(w, min_clusters) for w in gs}
+    why += [f"{w} clusters {g} < {need[w]}" for w, g in gs.items() if g < need[w]]
     if why:
         return {"testable": False, "p": 1.0, "n": int(n), "reason": why, "clusters": gs, "estimate": math.nan}
     XtXi = np.linalg.pinv(X.T @ X)
@@ -100,7 +105,8 @@ def ols_contrast(y, X, contrast, ways: dict[str, np.ndarray], *, n_boot: int = 0
             contrib = pd.Series((X @ (XtXi @ c)) * y).groupby(cs).sum()  # sum over a cluster of (c' (X'X)^-1 x_i) y_i; sums to the estimate
             drop = set(contrib.abs().sort_values(ascending=False).index[:D.TOP_CLUSTERS_DROPPED])
             keep = ~np.isin(cs, list(drop))
-            r = ols_contrast(y[keep], X[keep], c, {a: np.asarray(b)[keep] for a, b in ways.items()}, min_units=min_units, min_clusters=min_clusters)
+            r = ols_contrast(y[keep], X[keep], c, {a: np.asarray(b)[keep] for a, b in ways.items()}, min_units=min_units, min_clusters=min_clusters,
+                             min_clusters_by_way=min_clusters_by_way)
             top5[w] = {"testable": bool(r.get("testable")), "p": float(r.get("p", 1.0)), "estimate": float(r.get("estimate", math.nan))}
             size = pd.Series(cs).map(pd.Series(cs).value_counts()).to_numpy(float)
             wt = 1.0 / size
@@ -499,18 +505,25 @@ def _stack(units: pd.DataFrame, a: str, b: str) -> pd.DataFrame:
     return pd.concat([ra, rb], ignore_index=True)
 
 
-def n_tests(units: pd.DataFrame, *, n_boot: int = D.N_BOOT, seed: int = D.SEED_BOOT) -> dict:
+PLACEBO_MIN_CLUSTERS = {"event": D.MIN_CLUSTERS, "day": D.G_MIN}
+
+
+def n_tests(units: pd.DataFrame, *, n_boot: int = D.N_BOOT, seed: int = D.SEED_BOOT, placebo: bool = False) -> dict:
     """N1 = beta_3 of ``I = a + b1 post + b2 mid + b3 post x mid`` on stacked (mid, lo) rows per event-hour; N2 the same with ``P5_mh`` and ``P5_lo`` on
-    event-hours with >= 1 onset of the type. p = max over event and calendar day (CR1, two-sided). ``units``: event_id, day, post (0/1), I_*, P5_*, n_on_*."""
+    event-hours with >= 1 onset of the type. p = max over event and calendar day (CR1, two-sided). ``units``: event_id, day, post (0/1), I_*, P5_*, n_on_*.
+    ``placebo=True`` (in-time placebos, freeze-check fix 2): the day way needs G >= 15 (``PLACEBO_MIN_CLUSTERS``), no robustness refits."""
     out = {}
+    mc = PLACEBO_MIN_CLUSTERS if placebo else None
     s1 = _stack(units, "I_mid", "I_lo")
     X, c = did_design(s1["post"], s1["treated"])
-    out["N1"] = ols_contrast(s1["val"], X, c, {"event": s1["event_id"].to_numpy(), "day": s1["day"].to_numpy()}, n_boot=n_boot, seed=seed, robust=True)
+    out["N1"] = ols_contrast(s1["val"], X, c, {"event": s1["event_id"].to_numpy(), "day": s1["day"].to_numpy()}, n_boot=n_boot, seed=seed, robust=not placebo,
+                             min_clusters_by_way=mc)
     a = units[(units["n_on_mh"] > 0)]
     b = units[(units["n_on_lo"] > 0)]
     r = pd.concat([a.assign(treated=1.0, val=a["P5_mh"]), b.assign(treated=0.0, val=b["P5_lo"])], ignore_index=True)
     X, c = did_design(r["post"], r["treated"])
-    out["N2"] = ols_contrast(r["val"], X, c, {"event": r["event_id"].to_numpy() if len(r) else np.array([]), "day": r["day"].to_numpy() if len(r) else np.array([])}, n_boot=n_boot, seed=seed + 1, robust=True)
+    out["N2"] = ols_contrast(r["val"], X, c, {"event": r["event_id"].to_numpy() if len(r) else np.array([]), "day": r["day"].to_numpy() if len(r) else np.array([])}, n_boot=n_boot, seed=seed + 1,
+                             robust=not placebo, min_clusters_by_way=mc)
     return out
 
 
@@ -547,8 +560,16 @@ def in_time_placebos(units: pd.DataFrame, *, n_boot: int = 0) -> dict:
     for name, brk, win in (("2026-05-14", "2026-05-14", "pre"), ("2026-06-18", "2026-06-18", "post")):
         u = units[units["window"] == win].copy()
         u["post"] = (u["day"] >= brk).astype(float)
-        out[name] = n_tests(u, n_boot=n_boot) if len(u) else {"N1": {"testable": False, "p": 1.0}, "N2": {"testable": False, "p": 1.0}}
+        out[name] = n_tests(u, n_boot=n_boot, placebo=True) if len(u) else {"N1": {"testable": False, "p": 1.0}, "N2": {"testable": False, "p": 1.0}}
     return out
+
+
+def placebo_p(placebos: list[dict]) -> float | None:
+    """The placebo p used by adoption: the smallest two-sided p over the test's placebo fits, or None ('unverified', blocks adoption) if there is none
+    or any of them is not testable (freeze-check fix 2: an untestable placebo never counts as 'does not reject')."""
+    if not placebos or any(not (x or {}).get("testable") for x in placebos):
+        return None
+    return float(min(float(x["p"]) for x in placebos))
 
 
 def band_shares_and_distribution(minutes: pd.DataFrame) -> dict:
@@ -856,12 +877,13 @@ def adoption(results: dict) -> dict:
         r = results.get(t, {})
         est = r.get("estimate", math.nan)
         floor_met = bool(np.isfinite(est) and abs(est) >= D.FLOORS[t])
-        placebo_ok = bool(r.get("placebo_p", 0.0) >= D.PLACEBO_PSEUDO_P_MIN)
+        pp = r.get("placebo_p")
+        placebo_ok = bool(pp is not None and np.isfinite(pp) and pp >= D.PLACEBO_PSEUDO_P_MIN)  # None = unverified placebo: blocks
         top5, ceq = _top5_ok(t, r, ps), _cluster_equal_ok(r)
         robust = bool(top5 and ceq and bool(r.get("pseudo_band_ok") if t in ("N1", "N2") else r.get("sign_agree")))
         reject = bool(hm[t]["reject"])
         out[t] = {"estimate": est, "ci95": r.get("ci95"), "p": ps[t], "p_holm": hm[t]["p_holm"], "holm_reject": reject, "floor": D.FLOORS[t], "floor_met": floor_met,
-                  "placebo_p": r.get("placebo_p"), "placebo_ok": placebo_ok, "robust": robust, "top5_ok": top5, "cluster_equal_ok": ceq,
+                  "placebo_p": pp, "placebo_ok": placebo_ok, "placebo_status": "unverified" if pp is None else ("not rejected" if placebo_ok else "rejected"), "robust": robust, "top5_ok": top5, "cluster_equal_ok": ceq,
                   "adopted": bool(reject and floor_met and placebo_ok and robust), "label": cost_regimes.LABEL}
     return out
 

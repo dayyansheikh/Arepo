@@ -29,10 +29,11 @@ INTERPRETATIONS = (
     "A flip that is not UMA-clear at c_k+1 is stratum P before E or L is considered (a flip can match E/L and P; P takes it, so S is never contaminated).",
     "UMA 'unknown' = the capture row has no sidecar entry (ext_present = 0); empty UMA status with a sidecar entry is clear.",
     "A closed flag that is blank is unknown and never makes a flip.",
-    "C1 and C2 cluster by ISO week; with fewer than 15 weeks in the window the week way is not testable under the literal CB2 small-G rule (p = 1, counted).",
+    "Amendment A-C1 (2026-10-17, data-blind): C1 and C2 cluster by event (CR1, >= 30) and by UTC day (C1: date of e; C2: date of closed_time or the censoring mark), not ISO week. The day way enters the p max under the section 2.3 small-G rule iff G_day >= 15; with G_day < 15 it does not enter and the leave-one-day-out sign rule is binding at that stage instead. Top-5 robustness drops 5 events and 5 days. Sign by ISO week is reported only.",
     "C2 'size-weighted' check weights a filled bid by the size of the filling print, capped at the paper size.",
     "S3 posts q from the CB1 band-table half-spread (not the cost-regime one: a larger half-spread in q is not conservative for a seller); the exit uses cost_regimes.",
     "The truncation worst case is declared for S2 only; S3 has none (not declared).",
+    "S2 truncation worst case adds back only units whose prints were truncated away (prints unavailable at an S2 time) and that have a history-price v; units with no print in a window but complete trade history are not added (they are not unavailable).",
     "The successor-resolution hold-to-resolution variant of S3 is not computed: the series fetch stores only predecessor outcomes.",
     "A unit with a missing check input (alt origin, publicity, side audit) has that check None, which blocks an advance (unverified is not a pass).",
 )
@@ -59,15 +60,15 @@ def cluster_equal_mean(v, cl) -> float:
     return float(pd.Series(v).groupby(np.asarray(cl).astype(str)).mean().mean())
 
 
-def top_clusters_dropped(v, ways: dict[str, np.ndarray], *, floor: float, alpha: float, small_g_ways: tuple[str, ...], sign: int = 1) -> dict[str, bool]:
+def top_clusters_dropped(v, ways: dict[str, np.ndarray], *, floor: float, alpha: float, small_g_ways: tuple[str, ...], sign: int = 1, pways=None) -> dict[str, bool]:
     """Section 2.6 (ii): for each declared way, the test still meets its p threshold and floor without the 5 clusters of that way with the
-    largest absolute contribution."""
+    largest absolute contribution. ``pways`` (A-C1) maps the remaining declared ways to the ways that enter the p max."""
     v = np.asarray(v, float)
     out: dict[str, bool] = {}
     for k, cl in ways.items():
         keep = CC.top_clusters_mask(v, cl, D.TOP_CLUSTERS_DROPPED)
         sub = {a: np.asarray(b)[keep] for a, b in ways.items()}
-        out[k] = bool(mean_gate(v[keep], sub, floor=floor, alpha=alpha, small_g_ways=small_g_ways, sign=sign)["pass_core"])
+        out[k] = bool(mean_gate(v[keep], pways(sub) if pways else sub, floor=floor, alpha=alpha, small_g_ways=small_g_ways, sign=sign)["pass_core"])
     return out
 
 
@@ -479,7 +480,7 @@ def c2_paper_bids(units: pd.DataFrame, trades: dict[str, Trades], *, optimistic:
 def attach_c2_outcomes(bids: pd.DataFrame, outcomes: dict[str, dict], last_bid: dict[tuple[str, int], float], censor_mark: float) -> pd.DataFrame:
     """Filled bids with ``Y_j`` (50-50 pays 0.5). ``outcomes[market_id] = {"y0": float|None, "closed_time": epoch|nan}``. Unresolved or undecided:
     censored, valued at the last recorded bid of the side held (``last_bid``), flagged. ``net = Y_j - q`` per filled share, ``K = q``, hold to closed_time
-    (or the censoring mark); ``week`` is the ISO week of closed_time or the mark."""
+    (or the censoring mark); ``week`` is the ISO week (reported) and ``close_day`` the UTC date (A-C1 cluster way) of closed_time or the mark."""
     f = bids[bids["fill_state"] == 1].copy()
     ys, cens, ct = [], [], []
     for _, r in f.iterrows():
@@ -502,6 +503,7 @@ def attach_c2_outcomes(bids: pd.DataFrame, outcomes: dict[str, dict], last_bid: 
     f["K"] = f["q"]
     f["d"] = np.maximum((f["close_t"] - f["t_fill"]) / DAY, 0.0)
     f["week"] = [H1.iso_week(x) for x in f["close_t"]] if len(f) else []
+    f["close_day"] = [datetime.fromtimestamp(x, UTC).date().isoformat() for x in f["close_t"]] if len(f) else []
     f["w_size"] = np.minimum(f["fill_size"], D.C["paper_size"])
     return f
 
@@ -533,35 +535,53 @@ def truncation_worst_case_c(c1: pd.DataFrame, n_c1_baseline_unavailable: int, c2
 # ---- CB4-C: tests -----------------------------------------------------------------------------------------------------------
 
 
-C_SMALL_G = ("week",)
+C_SMALL_G = ("day",)
+C_TIME_WAY = "day"
+
+
+def c_pways(ways: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    """Amendment A-C1: the ways that enter the C1/C2 p max. The event way always; the UTC-day way under the section 2.3 small-G rule iff it has
+    >= G_MIN (15) clusters. With fewer days no cluster-robust p is valid for that way, so it does not enter and the caller makes the leave-one-day-out
+    sign rule binding instead (never 'not testable' for the whole test because of the calendar length)."""
+    g = CC.n_clusters({C_TIME_WAY: ways[C_TIME_WAY]})[C_TIME_WAY]
+    return dict(ways) if g >= D.G_MIN else {k: x for k, x in ways.items() if k != C_TIME_WAY}
+
+
+def sign_by_week(v, week) -> dict[str, int]:
+    """Reported only (A-C1): sign of the mean per ISO week."""
+    s = pd.Series(np.asarray(v, float)).groupby(np.asarray(week).astype(str)).mean()
+    return {str(k): int(np.sign(x)) for k, x in s.items()}
 
 
 def _ways_c1(u: pd.DataFrame) -> dict[str, np.ndarray]:
-    return {"event": u["event_id"].to_numpy(str), "week": u["week_e"].to_numpy(str)}
+    return {"event": u["event_id"].to_numpy(str), "day": u["e_day"].to_numpy(str)}
 
 
 def c1_test(c1: pd.DataFrame, n_units: pd.DataFrame, *, stage: int, n_boot: int, placebo_draws: int, wb_added: int, seed: int = D.SEED_BOOT,
             lodo: bool = True, c1_buy: pd.DataFrame | None = None) -> dict:
-    """C1 (mechanism): mean of ``delta`` (cents as price units) > 0; p = max over event and ISO week of e. Binding: floor 1.0c, S - N attribution,
-    top-5 clusters, cluster-equal and size-weighted sign agreement, truncation worst case, placebo (sign flip), LODO at Stage 1."""
+    """C1 (mechanism): mean of ``delta`` (cents as price units) > 0; p = max over event and (A-C1) the UTC day of e when G_day >= 15. Binding: floor 1.0c,
+    S - N attribution, top-5 clusters (events, days), cluster-equal and size-weighted sign agreement, truncation worst case, placebo (sign flip), LODO at Stage 1
+    and at any stage where the day way does not enter."""
     alpha = D.ALPHA_STAGE1_ROUTE if stage == 1 else D.ALPHA_STAGE2
     if not len(c1):
         return {"testable": False, "p": 1.0, "n": 0, "advance": False, "effect": math.nan, "reason": ["no units"]}
     ways = _ways_c1(c1)
+    pw = c_pways(ways)
     v = c1["delta"].to_numpy(float)
-    core = mean_gate(v, ways, floor=D.FLOORS["C1"], alpha=alpha, small_g_ways=C_SMALL_G, n_boot=n_boot, seed=seed)
+    core = mean_gate(v, pw, floor=D.FLOORS["C1"], alpha=alpha, small_g_ways=C_SMALL_G, n_boot=n_boot, seed=seed)
     sn = matched_sn_contrast(c1, n_units, n_boot=n_boot or 200, seed=seed + 1) if len(n_units) else matched_sn_contrast(c1.iloc[:0], n_units, n_boot=1)
     checks: dict[str, bool | None] = {}
-    tc = top_clusters_dropped(v, ways, floor=D.FLOORS["C1"], alpha=alpha, small_g_ways=C_SMALL_G)
+    tc = top_clusters_dropped(v, ways, floor=D.FLOORS["C1"], alpha=alpha, small_g_ways=C_SMALL_G, pways=c_pways)
     checks.update({f"top5_dropped_{k}": x for k, x in tc.items()})
     checks["cluster_equal_sign"] = CC.sign_agree(core["effect"], cluster_equal_mean(v, ways["event"]))
     checks["size_weighted_sign"] = CC.sign_agree(core["effect"], float(c1["delta_w"].mean()))
     wc = np.concatenate([v, np.full(int(wb_added), float(np.percentile(v, 10)))])
     checks["truncation_worst_case"] = bool(wc.mean() > 0)
     checks["attribution_S_minus_N"] = bool(sn["credit_stage1"] if stage == 1 else sn["credit_stage2"])
-    if stage == 1 and lodo:
+    day_in = C_TIME_WAY in pw
+    if (stage == 1 and lodo) or not day_in:
         checks["lodo_sign"] = lodo_sign(v, c1["e_day"].to_numpy(str))["ok"]
-    pl = placebo_advance_rate(lambda rng: v * rng.choice([-1.0, 1.0], len(v)), ways, floor=D.FLOORS["C1"], alpha=alpha, small_g_ways=C_SMALL_G, draws=D.PLACEBO_DRAWS, seed=seed + 2) if placebo_draws else {"calibrated": False, "n_draws": 0}
+    pl = placebo_advance_rate(lambda rng: v * rng.choice([-1.0, 1.0], len(v)), pw, floor=D.FLOORS["C1"], alpha=alpha, small_g_ways=C_SMALL_G, draws=D.PLACEBO_DRAWS, seed=seed + 2) if placebo_draws else {"calibrated": False, "n_draws": 0}
     checks["placebo_calibrated"] = bool(pl["calibrated"]) if pl.get("n_draws") else None
     dec = decide(core, checks)
     buy = None
@@ -569,13 +589,14 @@ def c1_test(c1: pd.DataFrame, n_units: pd.DataFrame, *, stage: int, n_boot: int,
         buy = float(c1_buy["delta"].mean())
     return {**{k: core.get(k) for k in ("p", "n", "testable", "effect", "ci95", "p_by_way", "clusters", "reason")}, **dec, "floor": D.FLOORS["C1"], "alpha": alpha, "stage": stage,
             "matched_sn": sn, "placebo": pl, "placebo_status": "calibrated" if pl.get("calibrated") else "miscalibrated", "reported": {"buy_print_delta": buy,
-            "token_balanced_mean": (lambda t: float(t["delta"].mean()) if len(t) else None)(token_balanced(c1))},
+            "token_balanced_mean": (lambda t: float(t["delta"].mean()) if len(t) else None)(token_balanced(c1)), "sign_by_iso_week": sign_by_week(v, c1["week_e"])},
+            "time_way": "utc_day_small_g" if day_in else "lodo_binding (G_day < 15)", "g_day": CC.n_clusters({"d": ways[C_TIME_WAY]})["d"],
             "label": "late-life seller discount, not the order stop" if (core["pass_core"] and not checks["attribution_S_minus_N"]) else None}
 
 
 def c2_test(filled: pd.DataFrame, all_bids: pd.DataFrame, *, stage: int, n_boot: int, placebo_draws: int, seed: int = D.SEED_BOOT, lodo: bool = True) -> dict:
-    """C2 (economic): mean ``net = Y_j - q`` per filled share > 0; p = max over event and ISO week of closed_time (or the censoring mark). Binding: floor
-    1.0c and R_ann >= 10%, +0.75c on q, top-5 clusters, cluster-equal and size-weighted sign, truncation worst case, break-even placebo Y ~ Bern(q), LODO."""
+    """C2 (economic): mean ``net = Y_j - q`` per filled share > 0; p = max over event and (A-C1) the UTC day of closed_time (or the censoring mark)
+    when G_day >= 15. Binding: floor 1.0c and R_ann >= 10%, +0.75c on q, top-5 clusters, cluster-equal and size-weighted sign, truncation worst case, break-even placebo Y ~ Bern(q), LODO."""
     alpha = D.ALPHA_STAGE1_ROUTE if stage == 1 else D.ALPHA_STAGE2
     n_unavail_cens = 0
     if len(filled) and "unavailable_censored" in filled.columns and filled["unavailable_censored"].any():
@@ -589,29 +610,33 @@ def c2_test(filled: pd.DataFrame, all_bids: pd.DataFrame, *, stage: int, n_boot:
     if not len(filled):
         return {"testable": False, "p": 1.0, "n": 0, "advance": False, "effect": math.nan, "reason": ["no filled bids"], "fill_rate": 0.0,
                 "censored_unavailable": n_unavail_cens}
-    ways = {"event": filled["event_id"].to_numpy(str), "week": filled["week"].to_numpy(str)}
+    ways = {"event": filled["event_id"].to_numpy(str), "day": filled["close_day"].to_numpy(str)}
+    pw = c_pways(ways)
     v = filled["net"].to_numpy(float)
-    core = mean_gate(v, ways, floor=D.FLOORS["C2"], alpha=alpha, small_g_ways=C_SMALL_G, n_boot=n_boot, seed=seed)
+    core = mean_gate(v, pw, floor=D.FLOORS["C2"], alpha=alpha, small_g_ways=C_SMALL_G, n_boot=n_boot, seed=seed)
     ra = r_ann(v, filled["K"], filled["d"])
     checks: dict[str, bool | None] = {"r_ann_min": bool(np.isfinite(ra) and ra >= D.R_ANN_MIN)}
     checks["cost_plus_0.75c"] = bool((v - D.COST_SENS_C).mean() > 0)
-    tc = top_clusters_dropped(v, ways, floor=D.FLOORS["C2"], alpha=alpha, small_g_ways=C_SMALL_G)
+    tc = top_clusters_dropped(v, ways, floor=D.FLOORS["C2"], alpha=alpha, small_g_ways=C_SMALL_G, pways=c_pways)
     checks.update({f"top5_dropped_{k}": x for k, x in tc.items()})
     checks["cluster_equal_sign"] = CC.sign_agree(core["effect"], cluster_equal_mean(v, ways["event"]))
     checks["size_weighted_sign"] = CC.sign_agree(core["effect"], _wmean(v, filled["w_size"].to_numpy(float)))
     wc = truncation_worst_case_c(pd.DataFrame(), 0, filled, all_bids)
     checks["truncation_worst_case"] = bool(wc.get("C2", {}).get("ok"))
-    if stage == 1 and lodo:
+    day_in = C_TIME_WAY in pw
+    if (stage == 1 and lodo) or not day_in:
         e_day = pd.to_datetime(filled["e"], unit="s", utc=True).dt.strftime("%Y-%m-%d").to_numpy(str)
         checks["lodo_sign"] = lodo_sign(v, e_day)["ok"]
     q = filled["q"].to_numpy(float)
-    pl = placebo_advance_rate(lambda rng: (rng.random(len(q)) < q).astype(float) - q, ways, floor=D.FLOORS["C2"], alpha=alpha, small_g_ways=C_SMALL_G, draws=D.PLACEBO_DRAWS, seed=seed + 3) if placebo_draws else {"calibrated": False, "n_draws": 0}
+    pl = placebo_advance_rate(lambda rng: (rng.random(len(q)) < q).astype(float) - q, pw, floor=D.FLOORS["C2"], alpha=alpha, small_g_ways=C_SMALL_G, draws=D.PLACEBO_DRAWS, seed=seed + 3) if placebo_draws else {"calibrated": False, "n_draws": 0}
     checks["placebo_calibrated"] = bool(pl["calibrated"]) if pl.get("n_draws") else None
     dec = decide(core, checks)
     n_all = int((all_bids["fill_state"] >= 0).sum()) if len(all_bids) else 0
     return {**{k: core.get(k) for k in ("p", "n", "testable", "effect", "ci95", "p_by_way", "clusters", "reason")}, **dec, "floor": D.FLOORS["C2"], "alpha": alpha, "stage": stage,
             "r_ann": ra, "fill_rate": float(len(filled) / n_all) if n_all else math.nan, "placebo": pl, "placebo_status": "calibrated" if pl.get("calibrated") else "miscalibrated",
-            "truncation_worst_case": wc.get("C2"), "censoring": censored_sensitivity(filled), "censored_unavailable": n_unavail_cens}
+            "truncation_worst_case": wc.get("C2"), "censoring": censored_sensitivity(filled), "censored_unavailable": n_unavail_cens,
+            "time_way": "utc_day_small_g" if day_in else "lodo_binding (G_day < 15)", "g_day": CC.n_clusters({"d": ways[C_TIME_WAY]})["d"],
+            "reported": {"sign_by_iso_week": sign_by_week(v, filled["week"]) if "week" in filled.columns else {}}}
 
 
 # ---- CB4-S: wrappers for the data-module rules --------------------------------------------------------------------------------
@@ -713,6 +738,14 @@ def hist_price(sd: SuccData, tau: float) -> float:
 def pseudo_origin(t0: float, V: float) -> float:
     """``t0' = t0 - (V_end - t0) - 6h``: the placebo origin whose own V window ends 6h before the roll."""
     return t0 - V - cb4_data.PSEUDO_GAP_H * HOUR
+
+
+def prints_truncated_away(sd: SuccData, origin: float) -> bool:
+    """The rolled-into prints needed by S2 at ``origin`` (windows ending at ``origin + |M|`` and ``origin + V_end``) are unavailable because the trade history
+    was truncated (unit-level rule, or a window starting before the oldest stored trade). Not the same as 'no print in the window'."""
+    if not sd.prints_available:
+        return True
+    return bool(sd.truncated and (origin + sd.M - 60 * 60.0) < H1.oldest_or_inf(sd.oldest_ts))
 
 
 def s2_value(sd: SuccData, origin: float, kind: str = "ask") -> dict:
@@ -894,14 +927,16 @@ def s_values(units: list[SuccData], origin_of=None, *, alt: bool = False, s3_onl
         s3b = s3_at_origin(sd, o, cost_add=D.COST_SENS_C) if s3.get("state") == "filled" else {}
         reg = cost_regimes.cost_regime(datetime.fromtimestamp(sd.t0, UTC).date(), sd.category)
         rows.append({"unit_id": sd.unit_id, "series": sd.series_id, "week": _week_t0(sd), "cadence": sd.cadence, "t0": sd.t0, "neg_v": a["neg_v"], "s1": a["s1"],
+                     "prints_truncated": prints_truncated_away(sd, o),
                      "neg_v_hist": h["neg_v"], "neg_v_bid": bsell["neg_v"], "s3_state": s3.get("state"), "s3_net": s3.get("net", math.nan), "s3_net_sens": s3b.get("net", math.nan),
                      "s3_K": s3.get("K", math.nan), "s3_d": s3.get("d", math.nan), "s3_t_fill": s3.get("t_fill", math.nan), "post_rollout": bool(reg["post_rollout"]),
                      "era_rule": reg["era_rule"]})
-    cols = ["unit_id", "series", "week", "cadence", "t0", "neg_v", "s1", "neg_v_hist", "neg_v_bid", "s3_state", "s3_net", "s3_net_sens", "s3_K", "s3_d", "s3_t_fill", "post_rollout", "era_rule"]
+    cols = ["unit_id", "series", "week", "cadence", "t0", "neg_v", "s1", "prints_truncated", "neg_v_hist", "neg_v_bid", "s3_state", "s3_net", "s3_net_sens", "s3_K", "s3_d", "s3_t_fill", "post_rollout", "era_rule"]
     df = pd.DataFrame(rows, columns=cols)
     for c in ("t0", "neg_v", "s1", "neg_v_hist", "neg_v_bid", "s3_net", "s3_net_sens", "s3_K", "s3_d", "s3_t_fill"):
         df[c] = pd.to_numeric(df[c])
     df["post_rollout"] = df["post_rollout"].astype(bool)
+    df["prints_truncated"] = df["prints_truncated"].astype(bool)
     return {"df": df, "drops": drops}
 
 
@@ -1006,9 +1041,10 @@ def s_tests(units: list[SuccData], *, stage: int, n_boot: int, placebo_draws: in
 
 
 def _s2_worst_case(units: list[SuccData], df: pd.DataFrame) -> dict:
-    """Units with unavailable prints are added back using the history-price series for v; the estimate must stay > 0."""
+    """Section CB4-S: units with unavailable prints (truncated away, ``prints_truncated``) are added back using the history-price series for v; the
+    estimate must stay > 0. A unit whose window simply holds no print (history complete) is not 'unavailable' and is not added (freeze-check fix 7)."""
     have = df[np.isfinite(df["neg_v"])]["neg_v"].to_numpy(float)
-    add = df[~np.isfinite(df["neg_v"]) & np.isfinite(df["neg_v_hist"])]["neg_v_hist"].to_numpy(float)
+    add = df[~np.isfinite(df["neg_v"]) & df["prints_truncated"].astype(bool) & np.isfinite(df["neg_v_hist"])]["neg_v_hist"].to_numpy(float)
     allv = np.concatenate([have, add])
     return {"mean": float(allv.mean()) if len(allv) else math.nan, "added": int(len(add)), "ok": bool(len(allv) and allv.mean() > 0)}
 

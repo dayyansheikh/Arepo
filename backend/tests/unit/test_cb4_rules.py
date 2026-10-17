@@ -246,18 +246,38 @@ def test_c1_test_advances_with_attribution_and_blocks_without():
     assert not rb["advance"] and rb["label"] == "late-life seller discount, not the order stop"
 
 
-def test_c1_week_way_needs_15_weeks():
-    s, st, n, nt = _c1_world(n_events=120)
+def test_a_c1_week_way_no_longer_makes_c1_untestable():
+    # amendment A-C1: 3 ISO weeks (a dev window) used to force p = 1 by construction; the week is now reported only
+    s, st, n, nt = _c1_world(n_events=240)
     c1, _ = R.c1_units(s, st)
-    c1 = c1.assign(week_e=[f"w{i % 3}" for i in range(len(c1))])  # only 3 weeks: literal small-G rule -> not testable
+    c1 = c1.assign(week_e=[f"w{i % 3}" for i in range(len(c1))])
     r = R.c1_test(c1, c1.iloc[:0], stage=1, n_boot=0, placebo_draws=0, wb_added=0)
-    assert not r["testable"] and r["p"] == 1.0 and not r["advance"]
+    assert r["testable"] and r["p"] < 0.01 and set(r["reported"]["sign_by_iso_week"]) == {"w0", "w1", "w2"}
+    assert "week" not in (r["p_by_way"] or {}) and R.C_SMALL_G == ("day",)
+
+
+def test_a_c1_day_way_enters_with_15_days_else_lodo_binds_at_stage_2():
+    s, st, n, nt = _c1_world(n_events=240)
+    c1, _ = R.c1_units(s, st)
+    assert c1["e_day"].nunique() >= 15
+    r = R.c1_test(c1, c1.iloc[:0], stage=2, n_boot=0, placebo_draws=0, wb_added=0)
+    assert r["time_way"] == "utc_day_small_g" and set(r["p_by_way"]) == {"event", "day"} and "lodo_sign" not in r["checks"]
+    assert {"top5_dropped_event", "top5_dropped_day"} <= set(r["checks"])
+    few = c1.assign(e_day=[f"2026-10-{11 + i % 14:02d}" for i in range(len(c1))])  # 14 days: the day way cannot enter
+    rf = R.c1_test(few, few.iloc[:0], stage=2, n_boot=0, placebo_draws=0, wb_added=0)
+    assert rf["testable"] and rf["time_way"].startswith("lodo_binding") and set(rf["p_by_way"]) == {"event"} and "lodo_sign" in rf["checks"]
+    assert R.c_pways({"event": np.array(["a"] * 3), "day": np.array(["d1", "d2", "d3"])}).keys() == {"event"}
+    # a day-concentrated effect fails the day-way top-5 check and LODO
+    bad = c1.assign(delta=np.where(c1["e_day"] == c1["e_day"].iloc[0], 2.0, -0.002))
+    rb = R.c1_test(bad, bad.iloc[:0], stage=2, n_boot=0, placebo_draws=0, wb_added=0)
+    assert not rb["advance"]
 
 
 def test_c2_test_gates():
     rng = np.random.default_rng(5)
     n = 240
-    f = pd.DataFrame({"event_id": [f"e{i}" for i in range(n)], "week": [f"w{i % 20}" for i in range(n)], "net": 0.15 + rng.normal(0, 0.2, n), "K": 0.4, "d": 3.0, "q": 0.4,
+    f = pd.DataFrame({"event_id": [f"e{i}" for i in range(n)], "week": [f"w{i % 20}" for i in range(n)], "close_day": [f"d{i % 30}" for i in range(n)],
+                      "net": 0.15 + rng.normal(0, 0.2, n), "K": 0.4, "d": 3.0, "q": 0.4,
                       "w_size": 10.0, "e": T0 + (np.arange(n) % 30) * DAY, "fill_state": 1, "censored": False})
     allb = f.assign(fill_state=1)
     r = R.c2_test(f, allb, stage=1, n_boot=0, placebo_draws=1)
@@ -273,6 +293,13 @@ def test_c2_test_gates():
     thin = f.assign(net=0.0074 + rng.normal(0, 0.001, n))
     rt = R.c2_test(thin, allb, stage=1, n_boot=0, placebo_draws=1)
     assert not rt["advance"] and rt["checks"]["cost_plus_0.75c"] is False
+    assert r["time_way"] == "utc_day_small_g" and set(r["p_by_way"]) == {"event", "day"}
+
+
+def test_attach_c2_outcomes_sets_close_day():
+    bids = pd.DataFrame({"market_id": ["m1"], "token": [0], "fill_state": [1], "q": [0.4], "t_fill": [T0], "fill_size": [5.0], "event_id": ["e"], "e": [T0 + H]})
+    f = R.attach_c2_outcomes(bids, {"m1": {"y0": 1.0, "closed_time": T0 + 2 * DAY}}, {}, T0 + 30 * DAY)
+    assert f["close_day"].iloc[0] == D.iso(T0 + 2 * DAY)[:10]
 
 
 # ---- CB4-S ------------------------------------------------------------------------------------------------------------------------
@@ -498,3 +525,15 @@ def test_e_predicted_mde_uses_declared_scaling():
     m = M.e_predicted_mde(rows, ev)
     assert 0.5 < m["E1_cents_per_sd"]["mde"] < 0.9 and 0.4 < m["E2_cents_per_print"]["mde"] < 0.8  # doc: about 0.6-0.8c per SD, about 0.6c per print
     assert M.e_predicted_mde({"SP0": 0}, {}, halves=False)["E1_cents_per_sd"] is None
+
+
+def test_s2_worst_case_adds_back_only_truncated_units():
+    """Freeze-check fix 7: a unit whose P_A window has no print but whose history is complete is not 'unavailable' and is not added back."""
+    trunc = make_unit(0, "s", T0, truncated=True, oldest=T0)
+    gap = make_unit(1, "s2", T0)
+    keep = ~((gap.tr_ts >= gap.t0 + gap.V - H) & (gap.tr_ts < gap.t0 + gap.V))  # no print in the V_end window, untruncated
+    gap.tr_ts, gap.tr_buy, gap.tr_px, gap.tr_size = gap.tr_ts[keep], gap.tr_buy[keep], gap.tr_px[keep], gap.tr_size[keep]
+    df = R.s_values([trunc, gap])["df"]
+    assert list(df["prints_truncated"]) == [True, False] and not np.isfinite(df["neg_v"]).any()
+    wc = R._s2_worst_case([trunc, gap], df)
+    assert wc["added"] == 1

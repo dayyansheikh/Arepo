@@ -52,11 +52,12 @@ def _complete(monkeypatch):
 def test_write_spec_never_overwrites_and_pins_are_restricted(tmp_path, monkeypatch):
     _complete(monkeypatch)
     p = tmp_path / "cb4_v1.json"
-    D.write_spec(p, census_pins={"H": 168, "rho": 0.5}, census_sha256="a" * 64)
+    pins = {"H": 168, "rho": 0.5, "uma_extra_statuses": []}
+    D.write_spec(p, census_pins=pins, census_sha256="a" * 64)
     with pytest.raises(FileExistsError):
         D.write_spec(p)
     assert D.require_declaration(p, require_committed=False) == D.declaration_sha256()
-    assert D.load_pins(p) == {"H": 168, "rho": 0.5}
+    assert D.load_pins(p) == pins
     with pytest.raises(D.DeclarationError):
         D.spec_payload({"floor_C1": 0.0})  # floors can never be pinned from the census
 
@@ -87,13 +88,14 @@ def test_uncommitted_spec_refused_when_commit_required(tmp_path, monkeypatch):
 def test_pins_must_match_census(tmp_path, monkeypatch):
     _complete(monkeypatch)
     census = tmp_path / "census.json"
-    census.write_text(json.dumps({"pin_proposal": {"H": 168, "rho": 0.5}}))
+    pins = {"H": 168, "rho": 0.5, "uma_extra_statuses": []}
+    census.write_text(json.dumps({"pin_proposal": pins}))
     from astrolabe.research_lab import provenance
 
     sp = tmp_path / "s.json"
-    D.write_spec(sp, census_pins={"H": 168, "rho": 0.5}, census_sha256=provenance.sha256_file(census))
+    D.write_spec(sp, census_pins=pins, census_sha256=provenance.sha256_file(census))
     D.verify_pins_against_census(sp, census)
-    census.write_text(json.dumps({"pin_proposal": {"H": 84, "rho": 0.5}}))
+    census.write_text(json.dumps({"pin_proposal": {**pins, "H": 84}}))
     with pytest.raises(D.DeclarationError):
         D.verify_pins_against_census(sp, census)
 
@@ -172,3 +174,26 @@ def test_rule_constants_are_in_the_hash(key, monkeypatch):
     target = {"MAX_QUOTE_AGE_S": (hb, 1), "GRID_S": (hb, 1), "ERA_BUFFER_D": (cost_regimes, 1)}[key][0]
     monkeypatch.setattr(target, key, getattr(target, key) + 1)
     assert D.declaration_sha256() != h
+
+
+@pytest.mark.parametrize("mod,key,val", [("cb1_history", "HALF_SPREAD", ((1.0000001, 0.5),)), ("economics", "MAX_DOCS_RATE", 0.5), ("cb2_weather", "G_MIN", 10),
+                                         ("cb2_weather", "N_WILD", 99), ("cb3_declaration", "G_MIN", 10), ("cb3_declaration", "MIN_CLUSTERS", 5),
+                                         ("cb4_measure", "PLACEBO_MIN_CLUSTERS", {"event": 30, "day": 30}), ("cb4_rules", "C_TIME_WAY", "week")])
+def test_fix6_constants_are_in_the_hash(mod, key, val, monkeypatch):
+    import importlib
+
+    h = D.declaration_sha256()
+    monkeypatch.setattr(importlib.import_module(f"astrolabe.research_lab.{mod}"), key, val)
+    assert D.declaration_sha256() != h
+
+
+def test_fix6_imported_functions_are_hashed():
+    src = D.source_hashes()
+    for k in ("cb3_common._codes", "cb3_common.n_clusters", "cb3_common._p_from_z", "history_backfill.load_trades", "history_backfill.load_prices",
+              "history_backfill.fee_category", "cb4_analysis.census_gates", "cb4_analysis.load_guarded_outcomes", "cb4_analysis.census_frame"):
+        assert k in src and len(src[k]) == 64
+
+
+def test_a_c1_recorded_in_the_declaration():
+    assert D.C["clusters"]["C1"] == ["event", "utc_day_of_e"] and "amendment_A_C1" in D.C
+    assert D.ALPHA_STAGE1_ROUTE == 0.01 and D.ALPHA_STAGE2 == 0.05 and D.FLOORS["C1"] == 0.010 and D.FLOORS["C2"] == 0.010 and D.G_MIN == 15

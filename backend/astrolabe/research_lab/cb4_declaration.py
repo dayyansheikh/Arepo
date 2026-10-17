@@ -106,7 +106,10 @@ C = {
     "g46_c1_units_per_week": 50, "g46_c1_events": 30, "g46_c2_units_per_week": 100,
     "censored_sensitive_share": 0.05, "truncation_worst_case": {"C1": "10th percentile of observed delta", "C2": "filled loser net = -q"},
     "matched_cell": "fee_category x UTC date of e x 6h block of e", "matched_ci": 0.90,
-    "clusters": {"C1": ["event", "iso_week_of_e"], "C2": ["event", "iso_week_of_closed_time"]}, "dev_lodo": True,
+    "clusters": {"C1": ["event", "utc_day_of_e"], "C2": ["event", "utc_day_of_closed_time_or_censoring_mark"]}, "dev_lodo": True,
+    "amendment_A_C1": ("time way = UTC day (was ISO week, never testable: 2-5 weeks < 15); it enters the p max under the section 2.3 small-G rule iff "
+                       "G_day >= 15, else the leave-one-day-out sign rule is binding at that stage; top-5 robustness drops 5 events and 5 days; "
+                       "sign by ISO week reported only; alphas, floors, k and Holm unchanged"),
     "outcomes_read": {"dev": "T4_dev_out", "rep": "T4_rep_out"}, "weather_excluded": True, "sports": "reported stratum",
 }
 
@@ -163,6 +166,7 @@ REFUSED_ROOTS = tuple(cb4_data.REFUSED_ROOTS)
 CENSUS_FORBIDDEN_COLUMNS = (
     "outcome", "outcome_prices", "outcomePrices", "Y", "y", "resolved", "winner", "closed_time", "closedTime", "net", "mark_out", "markout",
     "delta", "C1", "C2", "S2", "S3", "pred_winner_key", "pred_outcome_prices", "pred_closed_time",
+    "delta_w", "mark", "AS", "d6h", "f_net_6h", "neg_v", "s3_net",  # freeze-check fix 8: value columns of the shared helpers
 )
 CENSUS_COUNTS = {
     "C": ["c2_units_per_week", "flip_strata", "c1_units_class_S_N", "matched_cells", "uma_statuses_observed", "truncation_counts", "side_audit_two_sided", "g46", "clusters"],
@@ -193,6 +197,9 @@ IMPORTED_RULE_FUNCTIONS = (
     ("cb3_declaration", "spec_committed"), ("cb3_declaration", "single_commit"), ("cb3_declaration", "canonical_sha256"),
     ("cb1_history", "oldest_or_inf"), ("cb1_history", "taker_fee_ps"), ("cb1_history", "parse_outcome0"),
     ("history_backfill", "_asof"), ("history_sources", "rebuild_book"),
+    # freeze-check fix 6
+    ("cb3_common", "_codes"), ("cb3_common", "n_clusters"), ("cb3_common", "_p_from_z"),
+    ("history_backfill", "load_trades"), ("history_backfill", "load_prices"), ("history_backfill", "fee_category"),
 )
 # modules hashed whole (every function and class: pure rule or statistic code)
 WHOLE_MODULE_HASH = ("cb4_declaration", "cost_regimes", "cb4_rules", "cb4_measure")
@@ -210,19 +217,29 @@ EXPLICIT_RULE_FUNCTIONS = {
     "cb4_analysis": (
         "load_captures", "load_trades_dir", "fetch_market_outcomes", "load_era", "era_frames", "load_series", "c_inputs", "c_run", "_read_hours", "_rates",
         "_events_meta", "_pins", "_measure_n", "_measure_e", "_measure_commit", "_fetch_outcomes", "_screen", "_replicate", "stage2_expected", "_series_dir",
-        "_guard_s_register", "_gate",
+        "_guard_s_register", "_gate", "_census_path", "census_gates", "gate_failed_tests", "_census_gates", "load_guarded_outcomes", "_uma_extra",
+        "census_frame", "census_forbidden_keys",
     ),
 }
 
 
 def rule_constants() -> dict:
     """Module constants that are rules (hashed with the declaration; a function's source does not cover a constant it reads)."""
-    from . import cb4_measure, cb4_rules  # noqa: PLC0415
+    from . import cb1_history, cb2_weather, cb4_analysis, cb4_measure, cb4_rules  # noqa: PLC0415
+    from . import cb3_declaration as c3  # noqa: PLC0415
     from . import history_backfill as hb  # noqa: PLC0415
 
     return {"MAX_QUOTE_AGE_S": hb.MAX_QUOTE_AGE_S, "GRID_S": hb.GRID_S, "C_SMALL_G": list(cb4_rules.C_SMALL_G), "S_SMALL_G": list(cb4_rules.S_SMALL_G),
+            "C_TIME_WAY": cb4_rules.C_TIME_WAY, "PLACEBO_MIN_CLUSTERS": dict(cb4_measure.PLACEBO_MIN_CLUSTERS),
+            "CENSUS_KEEP": {k: list(v) for k, v in cb4_analysis.CENSUS_KEEP.items()},
             "INTERPRETATIONS": {"cb4_rules": list(cb4_rules.INTERPRETATIONS), "cb4_measure": list(cb4_measure.INTERPRETATIONS)},
-            "FEE_ERAS": dict(cost_regimes.FEE_ERAS), "ERA_BUFFER_D": cost_regimes.ERA_BUFFER_D}
+            "FEE_ERAS": dict(cost_regimes.FEE_ERAS), "ERA_BUFFER_D": cost_regimes.ERA_BUFFER_D,
+            # freeze-check fix 6: constants read by imported rule functions (a function's source does not cover them)
+            "HALF_SPREAD": [list(x) for x in cb1_history.HALF_SPREAD], "MAX_DOCS_RATE": economics.MAX_DOCS_RATE,
+            "cb2_small_g": {"G_NORMAL": cb2_weather.G_NORMAL, "G_MIN": cb2_weather.G_MIN, "N_WILD": cb2_weather.N_WILD, "SEED": cb2_weather.SEED,
+                            "WEBB": [float(x) for x in cb2_weather._WEBB]},
+            "cb3_common_defaults": {"G_NORMAL": c3.G_NORMAL, "G_MIN": c3.G_MIN, "MIN_UNITS": c3.MIN_UNITS, "MIN_CLUSTERS": c3.MIN_CLUSTERS,
+                                    "TOP_CLUSTERS_DROPPED": c3.TOP_CLUSTERS_DROPPED, "N_BOOT": c3.N_BOOT, "SEED_BOOT": c3.SEED_BOOT}}
 
 
 CB4_RULE_MODULES = ("cb4_declaration", "cost_regimes", "cb4_data", "cb4_rules", "cb4_measure", "cb4_analysis")
@@ -353,6 +370,25 @@ def require_declaration(path: Path | None = None, *, require_committed: bool = T
     return cur
 
 
+def check_pins(pins: dict) -> None:
+    """Freeze-check fix 3: the pins must all be present and well formed. ``H`` an integer >= 0; ``rho`` in (0, 1] (the venue's top-tier rebate share);
+    ``uma_extra_statuses`` a list of lower-case status tokens (the once-only extension of the UMA block set, status strings only)."""
+    import re  # noqa: PLC0415
+
+    miss = [k for k in ALLOWED_PINS if k not in pins]
+    if miss:
+        raise DeclarationError(f"census pins lack {miss}")
+    h = pins["H"]
+    if isinstance(h, bool) or not isinstance(h, int) or h < 0:
+        raise DeclarationError(f"pin H must be an integer >= 0, got {h!r}")
+    r = pins["rho"]
+    if isinstance(r, bool) or not isinstance(r, int | float) or not (0.0 < float(r) <= 1.0):
+        raise DeclarationError(f"pin rho must be in (0, 1], got {r!r}")
+    u = pins["uma_extra_statuses"]
+    if not isinstance(u, list) or any(not isinstance(x, str) or not re.fullmatch(r"[a-z_]+", x) for x in u):
+        raise DeclarationError(f"pin uma_extra_statuses must be a list of lower-case status tokens, got {u!r}")
+
+
 def load_pins(path: Path | None = None) -> dict:
     spec = json.loads(Path(path if path is not None else SPEC_PATH).read_text())
     pins = spec.get("census_pins")
@@ -360,6 +396,7 @@ def load_pins(path: Path | None = None) -> dict:
         raise DeclarationError("the committed spec carries no census_pins (H, rho, extended UMA statuses)")
     if spec.get("census_pins_sha256") != canonical_sha256(pins):
         raise DeclarationError("census_pins_sha256 does not match census_pins")
+    check_pins(pins)
     return pins
 
 

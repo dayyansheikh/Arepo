@@ -66,6 +66,7 @@ class Ctx:
     lim: object | None = None  # injectable limiter (tests); real runs build one
     pmxt_fetch: object | None = None
     pmxt_size: object | None = None
+    census: Path | None = None  # census.json bound by the spec's census_sha256 (default: <out_root>/census.json)
 
 
 def _emit(obj: dict) -> None:
@@ -97,15 +98,44 @@ def _limiter(ctx: Ctx, rps: float):
     return ctx.lim if ctx.lim is not None else hb.Limiter(hb.httpx_transport(), rps=min(rps, 4.0))
 
 
+def _census_path(ctx: Ctx) -> Path:
+    return Path(ctx.census) if ctx.census is not None else ctx.out_root / "census.json"
+
+
 def _gate(ctx: Ctx, a: argparse.Namespace, *, counted: bool) -> str | None:
-    """Declared-value and run-id guards. Counted commands also need the committed declaration (hash equals the code's)."""
+    """Declared-value and run-id guards. Counted commands also need the committed declaration (hash equals the code's), and the spec's census pins must
+    equal the ``pin_proposal`` of the census.json whose sha256 the spec carries (freeze-check fix 3)."""
     D.refuse_run_id(a.run_id)
     if a.extract_root:
         D.refuse_path(a.extract_root)
     D.refuse_path(ctx.extract_root)
     if a.n_boot is not None and a.n_boot != D.N_BOOT and ctx is not None and ctx.n_boot == D.N_BOOT:
         raise Refusal(f"--n-boot {a.n_boot} differs from the declared {D.N_BOOT}")
-    return D.require_declaration(ctx.spec, require_committed=ctx.require_committed) if counted else None
+    if not counted:
+        return None
+    decl = D.require_declaration(ctx.spec, require_committed=ctx.require_committed)
+    D.verify_pins_against_census(ctx.spec, _census_path(ctx))
+    D.load_pins(ctx.spec)  # validates the pin values (H, rho, extended UMA statuses)
+    return decl
+
+
+def census_gates(census: dict | None, fam: str) -> dict:
+    """Census gates that bind the counted runs (section 2.5, freeze-check fix 4). C: G46 and the two-sided trade-side audit; S: G50, the t0 publicity check
+    and the h7 trade-side audit. A gate that is absent from the census is unverified and fails (unverified is not a pass)."""
+    sec = (census or {}).get(fam)
+    names = {"C": ("g46", "side_audit_two_sided"), "S": ("g50", "t0_publicity", "h7_side_audit")}[fam]
+    res = {n: bool(isinstance(sec, dict) and isinstance(sec.get(n), dict) and sec[n].get("ok") is True) for n in names}
+    return {"ok": all(res.values()), "gates": res, "failed": sorted(n for n, v in res.items() if not v)}
+
+
+def gate_failed_tests(fam: str, g: dict, only: list[str] | None = None) -> dict:
+    """Tests behind a failed census gate: 'not testable', p = 1, still counted (section 2.5)."""
+    return {t: {"testable": False, "p": 1.0, "n": 0, "advance": False, "effect": math.nan, "reason": [f"census gate failed: {', '.join(g['failed'])}"]}
+            for t in D.TESTS[fam] if not only or t in only}
+
+
+def _census_gates(ctx: Ctx, fam: str) -> dict:
+    return census_gates(_jload(_census_path(ctx)), fam)
 
 
 # ---- trials -----------------------------------------------------------------------------------------------------------------------
@@ -200,17 +230,46 @@ def fetch_flip_trades(ctx: Ctx, market_ids: dict[str, str], tdir: Path, rps: flo
     return {"markets": len(man["markets"]), "failed": failed}
 
 
-def fetch_market_outcomes(lim, ids: list[str], batch: int = 20) -> dict[str, dict]:
-    """Gamma outcomes for markets (guarded: only called by commands that passed the outcome-date guard). ``y0`` = payout of token 0 (None if undecided)."""
+def fetch_market_outcomes(lim, ids: list[str], batch: int = 20) -> tuple[dict[str, dict], list[str]]:
+    """Gamma outcomes for markets (guarded: only called by commands that passed the outcome-date guard). ``y0`` = payout of token 0 (None if undecided:
+    ``status`` 'unresolved'). Returns ``(outcomes, failed_ids)``: every id of a non-200 or malformed batch, and every requested id absent from a 200 batch,
+    is FAILED (freeze-check fix 5), never unresolved or censored."""
     out: dict[str, dict] = {}
+    failed: list[str] = []
     for i in range(0, len(ids), batch):
-        status, data = lim.get(hb.GAMMA_MARKETS, [("id", x) for x in ids[i:i + batch]] + [("limit", batch)])
+        chunk = [str(x) for x in ids[i:i + batch]]
+        status, data = lim.get(hb.GAMMA_MARKETS, [("id", x) for x in chunk] + [("limit", batch)])
         if status != 200 or not isinstance(data, list):
+            failed += chunk
             continue
+        got = set()
         for m in data:
+            mid = str(m.get("id"))
+            if mid not in chunk:
+                continue
+            got.add(mid)
             ct = cb4_data._parse_ts(m.get("closedTime")) if m.get("closedTime") else None
-            out[str(m.get("id"))] = {"y0": H1.parse_outcome0(m.get("outcomePrices")) if m.get("closed") else None, "closed_time": ct if ct is not None else math.nan}
-    return out
+            y0 = H1.parse_outcome0(m.get("outcomePrices")) if m.get("closed") else None
+            out[mid] = {"y0": y0, "closed_time": ct if ct is not None else math.nan, "status": "resolved" if y0 is not None else "unresolved"}
+        failed += [x for x in chunk if x not in got]
+    return out, sorted(set(failed))
+
+
+def load_guarded_outcomes(path: Path, *, window: str, decl: str, need: set[str]) -> dict[str, dict]:
+    """The guarded outcome file written once by ``fetch-outcomes`` (freeze-check fix 5). Refuses unless it exists, carries this declaration and window,
+    is complete (no failed id) and covers every filled market."""
+    doc = _jload(path)
+    if doc is None:
+        raise Refusal(f"{path} not found: run fetch-outcomes --window {window} first (counted runs never refetch outcomes)")
+    if doc.get("declaration_sha256") != decl or doc.get("window") != window:
+        raise Refusal("the guarded outcome file belongs to another declaration or window")
+    if doc.get("failed") or doc.get("complete") is not True:
+        raise Refusal("the guarded outcome file records failed outcome reads; the counted run is blocked")
+    outs = doc.get("outcomes") or {}
+    miss = sorted(need - set(outs))
+    if miss:
+        raise Refusal(f"{len(miss)} filled markets are absent from the guarded outcome file")
+    return {k: {**v, "closed_time": math.nan if v.get("closed_time") is None else float(v["closed_time"])} for k, v in outs.items()}
 
 
 def load_era(rdir: Path) -> tuple[pd.DataFrame, dict[str, dict]]:
@@ -315,8 +374,9 @@ def load_series(rdir: Path, which: str | None, *, job: str, decl: str | None, lo
 # ---- C pipeline --------------------------------------------------------------------------------------------------------------------
 
 
-def c_inputs(ctx: Ctx, window: str, root: Path | None = None) -> dict:
-    """Dev or rep captures, C2 units at tau0, strata and the trades dir for that window (no outcomes)."""
+def c_inputs(ctx: Ctx, window: str, root: Path | None = None, uma_extra: tuple[str, ...] = ()) -> dict:
+    """Dev or rep captures, C2 units at tau0, strata and the trades dir for that window (no outcomes). ``uma_extra``: the census-pinned extension of the
+    UMA block set (counted runs; the uncounted census and flip-trades run before the pins exist and use the declared set)."""
     root = Path(root) if root else ctx.extract_root
     if window == "dev":
         t0, t1 = D.epoch(D.DATES["T4_dev_start"]), D.epoch(D.DATES["T4_dev_end"])
@@ -324,14 +384,23 @@ def c_inputs(ctx: Ctx, window: str, root: Path | None = None) -> dict:
         t0, t1 = D.rep_window(ctx.rep_pin)
     caps, deps = load_captures(root, t0, t1)
     cw = pd.concat(caps, ignore_index=True) if caps else pd.DataFrame()
-    c2, rep2 = R.c2_units_at_tau0(cw) if len(cw) else (pd.DataFrame(), {})
-    strata, reps = R.assign_strata(caps, deps)
+    c2, rep2 = R.c2_units_at_tau0(cw, uma_extra=uma_extra) if len(cw) else (pd.DataFrame(), {})
+    strata, reps = R.assign_strata(caps, deps, uma_extra=uma_extra)
     return {"caps": caps, "cw": cw, "c2": c2, "rep_c2": rep2, "strata": strata, "rep_strata": reps, "window": [t0, t1], "tdir": ctx.out_root / "flip_trades" / window}
 
 
+def _uma_extra(ctx: Ctx) -> tuple[str, ...]:
+    return tuple(_pins(ctx).get("uma_extra_statuses") or ())
+
+
 def c_run(ctx: Ctx, window: str, stage: int, decl: str, only: list[str] | None = None) -> dict:
-    """C1 and C2 for one window: dev (Stage 1) or rep (Stage 2). Outcomes are read here, so the caller has passed ``check_outcome_allowed``."""
-    inp = c_inputs(ctx, window)
+    """C1 and C2 for one window: dev (Stage 1) or rep (Stage 2). The caller has passed ``check_outcome_allowed``. A failed census gate (G46, the two-sided
+    side audit) makes the tests 'not testable', p = 1, counted, and no outcome is read. Outcomes come only from the guarded file written once by
+    ``fetch-outcomes`` (never refetched)."""
+    gates = _census_gates(ctx, "C")
+    if not gates["ok"]:
+        return {"tests": gate_failed_tests("C", gates, only), "placebo": {}, "descriptive": {"census_gates": gates}}
+    inp = c_inputs(ctx, window, uma_extra=_uma_extra(ctx))
     trades = load_trades_dir(inp["tdir"])
     strata = inp["strata"]
     if len(strata):
@@ -345,8 +414,7 @@ def c_run(ctx: Ctx, window: str, stage: int, decl: str, only: list[str] | None =
     c2p = c2[~c2["sports"]] if len(c2) else c2
     bids = R.c2_paper_bids(c2p, trades) if len(c2p) else pd.DataFrame(columns=[*c2.columns, "fill_state", "t_fill", "fill_price", "fill_size"])
     fm = bids[bids["fill_state"] == 1] if len(bids) else bids
-    lim = _limiter(ctx, 4.0)
-    outs = fetch_market_outcomes(lim, sorted(set(fm["market_id"]))) if len(fm) else {}
+    outs = load_guarded_outcomes(ctx.out_root / f"C_{window}" / "outcomes_guarded.json", window=window, decl=decl, need=set(fm["market_id"]) if len(fm) else set())
     mark = D.epoch(D.DATES["T4_dev_out"]) if window == "dev" else D.rep_out(ctx.rep_pin)
     last_bid = {}
     if len(inp["cw"]):
@@ -368,7 +436,7 @@ def c_run(ctx: Ctx, window: str, stage: int, decl: str, only: list[str] | None =
     for t, v in list(tests.items()):
         if v.get("placebo"):
             placebo[t] = v["placebo"]
-    return {"tests": tests, "placebo": placebo, "descriptive": {"g46": g, "strata": inp["rep_strata"], "c2_population": inp["rep_c2"], "c1_report": rep1},
+    return {"tests": tests, "placebo": placebo, "descriptive": {"census_gates": gates, "g46": g, "strata": inp["rep_strata"], "c2_population": inp["rep_c2"], "c1_report": rep1},
             "window": {"start": D.iso(inp["window"][0]), "end": D.iso(inp["window"][1])}}
 
 
@@ -427,8 +495,9 @@ def _net_data_errors() -> tuple[type[BaseException], ...]:
 _NET_DATA_ERRORS = _net_data_errors()
 
 
-def _read_hours(ctx: Ctx, hours: list[dict], events_meta: list[dict], seed: str, meter: M.IngressMeter, rates_for) -> tuple[list[dict], dict]:
-    """Process hours in order until the cap: each hour reads the pmxt file for the sampled events, replays minutes, builds event-hour units and minutes."""
+def _read_hours(ctx: Ctx, hours: list[dict], events_meta: list[dict], seed: str, meter: M.IngressMeter, rates_for, rho: float = D.N["rho"]) -> tuple[list[dict], dict]:
+    """Process hours in order until the cap: each hour reads the pmxt file for the sampled events, replays minutes, builds event-hour units and minutes.
+    ``rho``: the declared value for the pilot, the census-pinned value for ``measure-N`` (freeze-check fix 3)."""
     from . import history_sources as hs
 
     fetch = ctx.pmxt_fetch or hs.httpx_range_fetch()
@@ -452,7 +521,7 @@ def _read_hours(ctx: Ctx, hours: list[dict], events_meta: list[dict], seed: str,
         per_hour_bytes.append(meter.used - before)
         mb = M.replay_minutes(raw, h["hour"])
         for e in evs:
-            st = M.event_minute_states({m["token0"]: mb[m["token0"]] for m in e["markets"]}, rates_for(e), rho=D.N["rho"])
+            st = M.event_minute_states({m["token0"]: mb[m["token0"]] for m in e["markets"]}, rates_for(e), rho=rho)
             u = M.event_hour_unit(st)
             for _, r in st.iterrows():
                 minutes.append({"window": h["window"], "band": r["band"], "gap": r["gap"], "f0": r["f0"], "category": e["markets"][0].get("fee_category"), "event_id": e["event_id"]})
@@ -476,6 +545,8 @@ def _pilot(args, ctx: Ctx) -> int:
     if args.__dict__.get("from") and (D.epoch(args.__dict__["from"]) < D.epoch(a0) or D.epoch(args.__dict__["to"]) > D.epoch(b0)):
         raise Refusal("the pilot reads only the declared pilot window 2026-07-12..2026-08-10")
     seed = args.seed or D.N["seed"] + "-pilot"
+    if args.ingress_cap_gb is not None and not (0 < args.ingress_cap_gb <= D.N["ingress_cap_gb"]["pilot"]):
+        raise Refusal(f"pilot ingress cap must be in (0, {D.N['ingress_cap_gb']['pilot']}] GB (declared)")
     cap = (args.ingress_cap_gb or D.N["ingress_cap_gb"]["pilot"]) * 1e9
     days = [(d, "pre" if i % 2 == 0 else "post") for i, d in enumerate(M._day_list(a0, b0))]
     hours = M.hour_order(seed, M.sample_hours(seed, days, 1.0))[: (args.hours or D.N["pilot_hours"])]
@@ -518,10 +589,11 @@ def _measure_n(args, ctx: Ctx) -> int:
     seed = D.N["seed"]
     hours = M.hour_order(seed, M.sample_hours(seed, M.analysis_days(), H / 56.0))
     meta, wrep = _events_meta(ctx, D.DATES["W_pre_N"][0], D.DATES["W_post_N"][-1][1])
+    if args.ingress_cap_gb is not None and not (0 < args.ingress_cap_gb <= D.N["ingress_cap_gb"]["measure"]):
+        raise Refusal("ingress cap must be in (0, 150] GB (declared)")
     cap = (args.ingress_cap_gb or D.N["ingress_cap_gb"]["measure"]) * 1e9
-    if args.ingress_cap_gb and args.ingress_cap_gb > D.N["ingress_cap_gb"]["measure"]:
-        raise Refusal("ingress cap above the declared 150 GB")
-    units, info = _read_hours(ctx, hours, meta, seed, M.IngressMeter(cap), _rates)
+    rho = float(pins["rho"])
+    units, info = _read_hours(ctx, hours, meta, seed, M.IngressMeter(cap), _rates, rho=rho)
     u = pd.DataFrame(units)
     res = M.n_tests(u, n_boot=ctx.n_boot) if len(u) else {"N1": {"testable": False, "p": 1.0}, "N2": {"testable": False, "p": 1.0}}
     pbo = M.in_time_placebos(u) if len(u) else {}
@@ -530,8 +602,8 @@ def _measure_n(args, ctx: Ctx) -> int:
     tests = {}
     for t in ("N1", "N2"):
         r = res[t]
-        placebo_p = min((pbo[k][t].get("p", 1.0) for k in pbo), default=1.0)
-        tests[t] = {**{k: r.get(k) for k in ("estimate", "ci95", "p", "n", "testable", "clusters")}, "placebo_p": placebo_p, "pseudo_band_ok": pb[t]["ok"], "pseudo_band": pb[t],
+        placebo_p = M.placebo_p([pbo[k][t] for k in pbo])  # None (unverified) if a placebo is not testable: blocks adoption
+        tests[t] = {**{k: r.get(k) for k in ("estimate", "ci95", "p", "n", "testable", "clusters")}, "placebo_p": placebo_p, "rho": rho, "pseudo_band_ok": pb[t]["ok"], "pseudo_band": pb[t],
                     "top5_dropped": r.get("top5_dropped"), "cluster_equal_sign": r.get("cluster_equal_sign"), "label": cost_regimes.LABEL}
     doc = {**_header("N", decl, H=H, hours=len(hours), hours_done=info["hours_done"], hours_missing=info["hours_missing"], ingress_gb=info["bytes"] / 1e9, walk=wrep), "tests": tests,
            "descriptive": {"shares_and_distribution": M.band_shares_and_distribution(mins) if len(mins) else {}}, "band_map": M.band_map(mins) if len(mins) else None, "placebos": pbo}
@@ -570,7 +642,7 @@ def _measure_e(args, ctx: Ctx) -> int:
         tests = {}
         for t, r, pl in (("E1", e1, pl1), ("E2", e2, pl2)):
             tests[t] = {"estimate": r.get("estimate", math.nan), "ci95": (r.get("delta") or {}).get("ci95"), "p": r.get("p", 1.0), "testable": r.get("testable", False), "delta_S": r.get("delta_S"),
-                        "delta_O": r.get("delta_O"), "sign_agree": bool(r.get("delta_S_O_sign_agree")), "placebo_p": pl.get("p", 1.0), "top5_dropped": r.get("top5_dropped"),
+                        "delta_O": r.get("delta_O"), "sign_agree": bool(r.get("delta_S_O_sign_agree")), "placebo_p": M.placebo_p([pl]), "top5_dropped": r.get("top5_dropped"),
                         "cluster_equal_sign": r.get("cluster_equal_sign"), "label": cost_regimes.LABEL}
         desc = {"scaling": sc, "rows_per_cell": e1.get("rows_per_cell"), "balanced_wallet": "not computed in this run (needs wallet-level trades per cell)",
                 "E2_components": {"spread_mean": float(marks["spread"].mean()), "drift_mean": float(marks["drift"].mean())}}
@@ -607,13 +679,26 @@ def _fetch_outcomes(args, ctx: Ctx) -> int:
         raise Refusal("fetch-outcomes is for family C")
     window = args.window or "dev"
     D.check_outcome_allowed(window, ctx.now, ctx.rep_pin)
-    inp = c_inputs(ctx, window)
+    gp = ctx.out_root / f"C_{window}" / "outcomes_guarded.json"
+    if gp.exists():
+        raise FileExistsError(f"{gp} exists: outcomes are read once")
+    inp = c_inputs(ctx, window, uma_extra=_uma_extra(ctx))
     c2 = inp["c2"]
     trades = load_trades_dir(inp["tdir"])
     bids = R.c2_paper_bids(c2[~c2["sports"]], trades) if len(c2) else pd.DataFrame()
     ids = sorted(set(bids[bids["fill_state"] == 1]["market_id"])) if len(bids) else []
-    outs = fetch_market_outcomes(_limiter(ctx, args.rps), ids)
-    p, sha = _write(ctx, f"C_{window}/outcomes_guarded.json", {"label": LABEL, "declaration_sha256": decl, "window": window, "outcomes": outs})
+    outs, failed = fetch_market_outcomes(_limiter(ctx, args.rps), ids)
+    if failed:
+        # recorded as FAILED (ids and counts only, no outcome value), distinct from unresolved/censored; the guarded file is not written, so the counted
+        # run stays blocked until a complete read succeeds
+        fp = ctx.out_root / f"C_{window}" / "outcomes_fetch_failures.jsonl"
+        fp.parent.mkdir(parents=True, exist_ok=True)
+        with open(fp, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps({"run_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"), "window": window, "requested": len(ids), "failed": len(failed), "failed_ids": failed}) + "\n")
+        raise Refusal(f"outcome read failed for {len(failed)} of {len(ids)} markets (recorded in {fp.name}); the guarded file is not written")
+    doc = {"label": LABEL, "declaration_sha256": decl, "window": window, "requested": ids, "complete": True, "failed": [], "outcomes": outs,
+           "status_counts": {k: sum(1 for v in outs.values() if v["status"] == k) for k in ("resolved", "unresolved")}}
+    p, sha = _write(ctx, f"C_{window}/outcomes_guarded.json", doc)
     _emit({"cb4": D.VERSION, "cmd": "fetch-outcomes", "window": window, "n": len(outs), "results": str(p), "sha256": sha})
     return 0
 
@@ -643,10 +728,15 @@ def _screen(args, ctx: Ctx) -> int:
     elif fam == "S":
         _guard_s_register(ctx)
         rdir = _series_dir(ctx, args.run_id)
-        cb4_data.verify_h7(ctx.hist_root, cb4_data.SERIES_RUN_ID)
-        units, diag = load_series(rdir, "screen", job="screen_S", decl=decl, log_access=True)
-        res = R.s_tests(units, stage=1, n_boot=ctx.n_boot, placebo_draws=ctx.placebo_draws)
-        res["descriptive"]["load"] = {k: v for k, v in diag.items() if k != "raw_trades"}
+        gates = _census_gates(ctx, "S")
+        if gates["ok"]:
+            cb4_data.verify_h7(ctx.hist_root, cb4_data.SERIES_RUN_ID)
+            units, diag = load_series(rdir, "screen", job="screen_S", decl=decl, log_access=True)
+            res = R.s_tests(units, stage=1, n_boot=ctx.n_boot, placebo_draws=ctx.placebo_draws)
+            res["descriptive"]["load"] = {k: v for k, v in diag.items() if k != "raw_trades"}
+        else:  # G50 / t0 publicity / h7 side audit failed at the census: not testable, p = 1, counted; the sealed half is not opened
+            res = {"tests": gate_failed_tests("S", gates), "placebo": {}, "descriptive": {}}
+        res["descriptive"]["census_gates"] = gates
         kind, role, dataset, rel = D.KIND_TEST, "exploratory_historical", cb4_data.SERIES_RUN_ID + ":SCREEN", "S_screen/results.json"
     else:
         raise Refusal("screen takes --family C or S")
@@ -698,11 +788,16 @@ def _replicate(args, ctx: Ctx) -> int:
         role, dataset = "prospective", "cb4_extract:closewin:rep"
     else:
         rdir = _series_dir(ctx, args.run_id)
-        cb4_data.verify_h7(ctx.hist_root, cb4_data.SERIES_RUN_ID)
-        units, diag = load_series(rdir, "holdout", job="holdout_S", decl=decl, log_access=True)
-        res = R.s_tests(units, stage=2, n_boot=ctx.n_boot, placebo_draws=ctx.placebo_draws)
-        res["tests"] = {k: v for k, v in res["tests"].items() if k in mine}
-        res["descriptive"]["load"] = {k: v for k, v in diag.items() if k != "raw_trades"}
+        gates = _census_gates(ctx, "S")
+        if gates["ok"]:
+            cb4_data.verify_h7(ctx.hist_root, cb4_data.SERIES_RUN_ID)
+            units, diag = load_series(rdir, "holdout", job="holdout_S", decl=decl, log_access=True)
+            res = R.s_tests(units, stage=2, n_boot=ctx.n_boot, placebo_draws=ctx.placebo_draws)
+            res["tests"] = {k: v for k, v in res["tests"].items() if k in mine}
+            res["descriptive"]["load"] = {k: v for k, v in diag.items() if k != "raw_trades"}
+        else:
+            res = {"tests": gate_failed_tests("S", gates, mine), "placebo": {}, "descriptive": {}}
+        res["descriptive"]["census_gates"] = gates
         role, dataset = "exploratory_dev", cb4_data.SERIES_RUN_ID + ":HOLDOUT"
     k = max(len(expected), 1)
     for t in res["tests"].values():
@@ -725,6 +820,38 @@ def cmd_census(a, ctx: Ctx | None = None) -> int:
     return _wrap("census", a, _census, ctx)
 
 
+CENSUS_KEEP = {
+    "c1": ("market_id", "event_id", "token", "e", "fee_category", "e_day", "week_e", "cell", "n_f", "n_b"),
+    "era": ("market_id", "event_id", "group", "period", "t", "end_epoch"),
+}
+
+
+def census_frame(df: pd.DataFrame, keep: tuple[str, ...]) -> pd.DataFrame:
+    """Freeze-check fix 8: the census holds only count columns. Value columns computed in memory by shared helpers (C1 ``delta``, E mark-outs and flow) are
+    dropped at once, and a frame that still carries a ``CENSUS_FORBIDDEN_COLUMNS`` name is refused."""
+    if not len(df.columns):
+        return df
+    out = df[[c for c in keep if c in df.columns]]
+    bad = sorted(set(out.columns) & set(D.CENSUS_FORBIDDEN_COLUMNS))
+    if bad:
+        raise Refusal(f"census frame carries forbidden columns {bad}")
+    return out
+
+
+def census_forbidden_keys(obj, path: str = "") -> list[str]:
+    """Every dict key in the census output that is a ``CENSUS_FORBIDDEN_COLUMNS`` name (the census writes counts only)."""
+    bad: list[str] = []
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if str(k) in D.CENSUS_FORBIDDEN_COLUMNS:
+                bad.append(f"{path}/{k}")
+            bad += census_forbidden_keys(v, f"{path}/{k}")
+    elif isinstance(obj, list | tuple):
+        for i, v in enumerate(obj):
+            bad += census_forbidden_keys(v, f"{path}[{i}]")
+    return bad
+
+
 def _census(args, ctx: Ctx) -> int:
     _gate(ctx, args, counted=False)
     fams = [f.strip().upper() for f in (args.family or "C,S,E,N").split(",") if f.strip()]
@@ -741,6 +868,7 @@ def _census(args, ctx: Ctx) -> int:
         n_ = strata[(strata["stratum"] == "N") & ~strata["fee_category"].map(H1.is_sports)] if len(strata) else strata
         c1, r1 = R.c1_units(s_, trades) if len(s_) else (pd.DataFrame(), {})
         cn, _ = R.c1_units(n_, trades) if len(n_) else (pd.DataFrame(), {})
+        c1, cn = census_frame(c1, CENSUS_KEEP["c1"]), census_frame(cn, CENSUS_KEEP["c1"])  # the C1 delta is never kept
         cells = sorted(set(c1["cell"]) & set(cn["cell"])) if len(c1) and len(cn) else []
         c2 = inp["c2"]
         c2p = c2[~c2["sports"]] if len(c2) else c2
@@ -758,9 +886,11 @@ def _census(args, ctx: Ctx) -> int:
                     "c1_report": r1, "n_class_units": int(len(cn)), "matched_cells": len(cells), "uma_statuses_observed": uma, "side_audit_two_sided": sa,
                     "g46": R.g46_gate(c1, c2p, (inp["window"][1] - inp["window"][0]) / DAY),
                     "truncation": {"c1_baseline_unavailable": (r1 or {}).get("baseline_unavailable"), "c1_final_unavailable": (r1 or {}).get("final_unavailable"), "c2_window_unavailable": c2_unavail},
-                    "clusters": {"events": int(c1["event_id"].nunique()) if len(c1) else 0, "iso_weeks": int(c1["week_e"].nunique()) if len(c1) else 0,
+                    "clusters": {"events": int(c1["event_id"].nunique()) if len(c1) else 0, "utc_days_of_e": int(c1["e_day"].nunique()) if len(c1) else 0,
+                                 "iso_weeks_reported": int(c1["week_e"].nunique()) if len(c1) else 0,
                                  "class_N_end_timestamps": int(cn["e"].nunique()) if len(cn) and "e" in cn.columns else 0}}
-        out["C"]["note_week_way"] = "the ISO-week cluster way needs >= 15 weeks under the literal small-G rule; the dev window holds 2-3 (see INTERPRETATIONS and the proposed amendment A-C1)"
+        out["C"]["note_time_way"] = ("amendment A-C1: the C1/C2 time way is the UTC day; it enters the p max under the small-G rule iff >= 15 days, otherwise the "
+                                     "leave-one-day-out sign rule is binding (C2's day of closed_time is known only after the outcome read)")
     if "S" in fams:
         rdir = _series_dir(ctx, args.run_id)
         # Reading the sealed SCREEN half (units, prices, trades, and the guarded side columns needed to map prints to the rolled-into token) is logged.
@@ -784,6 +914,8 @@ def _census(args, ctx: Ctx) -> int:
     if "E" in fams:
         rdir = ctx.hist_root / cb4_data.ERA_RUN_ID
         panel, marks, diag = era_frames(rdir)
+        # mark-outs and flow are computed in memory by the shared era helpers; only count columns are kept (fix 8) and no value is written
+        panel, marks = census_frame(panel, CENSUS_KEEP["era"]), census_frame(marks, CENSUS_KEEP["era"])
         mt = pd.DataFrame(diag.pop("_market_table", []))
         split = D.epoch(D.DATES["D_pl_E"])
         cells, rows_c, ev_c, ev_m = {}, {}, {}, {}
@@ -813,7 +945,7 @@ def _census(args, ctx: Ctx) -> int:
         half_rows = {f"{g}{h}": int(len(d)) for (g, h), d in (panel.assign(h=np.where(panel["end_epoch"] >= split, "1", "0")).query("period == 'P0'").groupby(["group", "h"]) if len(panel) else [])}
         half_ev = {f"{g}{h}": int(d["event_id"].nunique()) for (g, h), d in (marks.assign(h=np.where(marks["end_epoch"] >= split, "1", "0")).query("period == 'P0'").groupby(["group", "h"]) if len(marks) else [])}
         out["E"] = {"cells": cells, "prints_by_cell": prints_c, "prints": int(len(marks)), "truncation_by_cell": trunc,
-                    "predicted_mde": {"delta": M.e_predicted_mde(rows_c, {k: ev_m.get(k, 0) for k in rows_c}), "parallel_trends_placebo_P0_halves": M.e_predicted_mde(half_rows, half_ev, halves=True)},
+                    "predicted_mde": {"mde_delta": M.e_predicted_mde(rows_c, {k: ev_m.get(k, 0) for k in rows_c}), "parallel_trends_placebo_P0_halves": M.e_predicted_mde(half_rows, half_ev, halves=True)},
                     "diag": diag}
     if "N" in fams:
         pil = _jload(ctx.out_root / "N_pilot" / "pilot.json")
@@ -838,9 +970,13 @@ def _census(args, ctx: Ctx) -> int:
                     "head_checks": heads if heads is not None else "not run (needs the pilot's H and --head-checks)", "venue_rho_check": "manual: docs.polymarket.com/trading/taker-rebates"}
         if pil:
             pins["H"] = int(pil["power"].get("H", 0))
+    pins.setdefault("H", 0)  # no pilot H: N1/N2 'not testable (H_cap < 84)', counted (check_pins requires all three pins)
     pins.setdefault("rho", D.N["rho"])
     pins.setdefault("uma_extra_statuses", [])
     out["pin_proposal"] = pins
+    bad = census_forbidden_keys(out)
+    if bad:
+        raise Refusal(f"census output carries forbidden keys {bad}")
     p, sha = _write(ctx, "census.json", out)
     provenance.append_trial({"status": "ok", "dataset": "cb4", "preset": "census", "label": LABEL, "kind": D.KIND_DESCRIPTIVE, "evidence_role": "exploratory_dev", "revision": D.VERSION,
                              "result_path": str(p), "results_sha256": sha, "summary": {"families": fams}}, ctx.trials)

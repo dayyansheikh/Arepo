@@ -279,7 +279,8 @@ S1 (reported only) has no floor and no gate.
 - **CH52.** In-time placebo breaks at **2026-05-14** (pre window only, halves [04-30, 05-14) vs [05-14, 05-28)) and
   **2026-06-18** (post window only, [05-30, 06-12) vs [06-18, 07-02)), same DiD statistic. CH52 suggested 05-07;
   with the window starting 04-30 (after the V2 switch) a 05-07 break leaves one week before it, so the midpoint is
-  used. Recorded as a deviation from the idea text, declared before any data.
+  used. Recorded as a deviation from the idea text, declared before any data. *(2026-10-17, freeze-check fix 2: an untestable placebo is unverified and blocks adoption;
+  the placebo day way needs G ≥ 15, CR1; see 'Analysis freeze-check fixes' below.)*
 - **CH53.** Parallel-trends placebo: the same DiD with `P0` split at `D_pl_E` = 2026-01-15 (sports vs others, no fees
   in either half).
 - **Binding robustness for any advance, pass or adoption:**
@@ -723,7 +724,7 @@ window it needs has that window **unavailable** (CB1 truncation rule): excluded 
 (CH46's own kill rule), and at least 100 C2 units per week. Fail → C1 and C2 "not testable" (p = 1, counted), CH46
 closed "a curiosity: x units per week".
 
-**Clustering.** One-sided p = the max over event and resolution week (ISO week of `closed_time` or of the censoring
+**Clustering.** *(Superseded by amendment A-C1, 2026-10-17, below: the week way is replaced by the UTC-day way.)* One-sided p = the max over event and resolution week (ISO week of `closed_time` or of the censoring
 mark; C1 needs no outcome, so it uses the ISO week of `e`). Dev also uses the leave-one-day-out sign rule over days of
 `e` (CB1 §2.3, binding at Stage 1).
 
@@ -1516,3 +1517,114 @@ is not written or committed here: the freeze (`write_spec` with the census pins)
   time with T_seal (bounded by the T_seal stop at `:1107`).
 - Gate q0081a created (8fc32d6): releases the frames. Next: read `frame_report.json` of both frames, commit
   `seals/h7_cb4_group_s_amendment.json` (decision + hashes), create gate q0081g.
+
+## Amendment A-C1 (2026-10-17): C1/C2 time cluster way (data-blind)
+
+**Status.** Written before any CB4 counted quantity, C1 delta, C2 net or outcome has been computed or read (no counted
+command can run: `model_specs/cb4_v1.json` is not written). Justified on statistical grounds only. No alpha, floor,
+gate, k or Holm rule changes.
+
+**Defect.** §CB4-C clusters C1 and C2 by event and ISO week (of `e`; of `closed_time` or the censoring mark for C2)
+and §2.3 applies the small-G rule (G < 15 in either way: "not testable", p = 1). The dev window is 13.5 days (2-3 ISO
+weeks) and the rep window 28 days (4-5 weeks), so the week way has at most 5 clusters and both tests would return
+p = 1 in every run, by construction, while §CB4-C computes MDEs that assume they are testable. The top-5 robustness
+check "in each declared way" would also drop 5 of 2-5 weeks, i.e. all data. The code cited an "amendment A-C1" that no
+document contained; this section is that amendment.
+
+**Decision.**
+1. The C1/C2 time way is the **UTC day** (C1: date of `e`; C2: date of `closed_time` or of the censoring mark, the same
+   clock the week used). The event way is unchanged (CR1, ≥ 30 clusters, ≥ 100 units).
+2. The day way enters the p max under the unchanged §2.3 small-G rule **iff G_day ≥ 15** (CR1 at ≥ 30; CR2 with
+   t(G − 1) and the Webb wild bootstrap, larger p, at 15-29).
+3. If G_day < 15, the day way does not enter the max (no valid cluster-robust p exists there) and the
+   **leave-one-day-out sign rule (CB1 §2.3) is binding at that stage** as the time-dependence check. It was already
+   binding at Stage 1; under A-C1 it is also binding at Stage 2 whenever the day way does not enter.
+4. §2.6 (ii) top-5 robustness drops the 5 largest events and, separately, the 5 largest days (the day check is
+   applied even when G_day < 15; after a drop the same inclusion rule is re-applied).
+5. Sign of the mean by ISO week is reported, not binding.
+
+**Statistical justification.** Cluster-robust inference with 2-5 clusters has no valid reference distribution: CR1
+over-rejects badly and CR2/wild-cluster corrections are unreliable below about 10-15 clusters (Cameron and Miller
+2015; MacKinnon and Webb 2017), which is why §2.3 sets G ≥ 15. A week way that can never reach 15 is therefore not a
+stricter test but an undefined one; keeping it makes C1/C2 dead by design rather than conservative. The purpose of the
+week way was protection against common time shocks. The finest calendar unit that can carry valid inference in these
+windows is the day: with G_day ≥ 15 the declared small-G rule handles it directly; with fewer days (dev C1 can have at
+most 14 dates of `e`, 10-11 to 10-24) the leave-one-day-out sign rule plus the 5-day drop check guard against an
+effect carried by one or a few days. Within-day dependence beyond events (common news) is covered by the day way when
+it enters; the S − N matched contrast for C1 already differences within fee category × date × 6h block. The rule is
+fixed from the calendar (count of dates), never from outcomes or effect sizes, and the alternatives were rejected:
+event clustering plus a reported week sign only leaves no binding time check at Stage 2; "not testable by design"
+removes C1/C2 without any statistical reason; the literal day rule (G < 15 → not testable) would again kill dev C1
+at 14 days.
+
+**Effect on k / Holm.** None. C1 and C2 stay in the route Stage-2 family (k ≤ 4, Holm α = 0.05 one-sided, Bonferroni
+α/k for early finishers); Stage-1 α = 0.01; floors 1.0c (C1, C2); `R_ann` ≥ 10% (C2). The trial count is unchanged.
+
+**Effect on the MDE.** The §CB4-C MDEs used event-level SEs with normal critical values. Dev (G_day < 15): unchanged,
+about 3.8c at 100 units/week (5.4c at the G46 floor). If dev reaches G_day = 15 the t(14) reference at α = 0.01
+raises it by about 9% (about 4.2c) at equal SE. Rep (G_day ≈ 28, CR2 t(27)): about +2% (k = 1, about 2.15c) to +4.5%
+(k = 4, about 2.7c) at equal SE; more if day-level correlation exceeds event-level correlation (the larger of the
+CR2-t and wild p is used). These are planning numbers; the census replaces them.
+
+**Code.** `cb4_rules.C_SMALL_G = ("day",)`, `C_TIME_WAY`, `c_pways`, `sign_by_week`, `c1_test`/`c2_test` (`time_way`
+and `g_day` in results), `attach_c2_outcomes` (`close_day`); `cb4_declaration.C["clusters"]`, `C["amendment_A_C1"]`;
+census C reports `utc_days_of_e`. Tests: `test_a_c1_*` in `test_cb4_rules.py`.
+
+## Analysis freeze-check fixes (2026-10-17)
+
+Response to the science-reviewer CB4 analysis freeze check (2026-10-17, GO_WITH_CONDITIONS). No alpha, floor, gate
+threshold or formula was changed to make a pass easier; every change below is equal or stricter except A-C1, whose
+justification is above.
+
+1. **Week way never testable (must-fix).** Amendment A-C1 above, implemented.
+2. **CH52 in-time placebos empty by construction (must-fix).** The pre half spans 28 days and the post half 27, so
+   the calendar-day way (≥ 30 required) made both placebos "not testable", p = 1, which `adoption` read as "does not
+   reject". Now (a) a placebo that is not testable gives `placebo_p = None` ("unverified") and **blocks adoption**
+   (`cb4_measure.placebo_p`, `adoption`; applies to the CH53 parallel-trends placebo too); (b) the in-time placebos'
+   day way needs G ≥ 15 (the §2.3 testability minimum) and uses CR1 with the normal reference, not the CR2/wild
+   enlargement: for a placebo, whose rejection blocks adoption, the smaller CR1 p is the conservative direction. The
+   event way still needs 30. A placebo with too few events or days remains unverified and N1/N2 are not adopted.
+3. **Census pins unused (must-fix).** `measure-N` passes the pinned `rho` to the band classification (the pilot keeps
+   the declared 0.50); counted C runs (`c_run`, `fetch-outcomes`) pass the pinned `uma_extra_statuses` to
+   `c2_units_at_tau0` and `assign_strata`; every counted command calls `verify_pins_against_census` (spec
+   `census_sha256` = sha256 of census.json, pins = its `pin_proposal`) and `check_pins` (all three pins present; H
+   integer ≥ 0; rho in (0, 1]; UMA extensions lower-case status tokens). Without a pilot H the census proposes
+   H = 0, so N1/N2 are recorded "not testable (H_cap < 84)", counted, rather than blocking every counted run.
+4. **Census gates not enforced in counted runs (must-fix).** `census_gates` reads G46 and the two-sided side audit
+   (C) and G50, the `t0` publicity check and the h7 side audit (S) from the verified census; a gate that is absent is
+   unverified and fails. After a failure `c_run`, `screen --family S` and `replicate --family S` write the tests as
+   "not testable", p = 1, counted (trial lines and count line), without reading outcomes or opening the sealed half.
+5. **Outcomes (must-fix).** `fetch_market_outcomes` returns failed ids: every id of a non-200 or malformed batch and
+   every requested id missing from a 200 batch is failed, never unresolved/censored. `fetch-outcomes` writes the
+   guarded file only when the read is complete (per-market status resolved/unresolved); otherwise it appends ids and
+   counts (no values) to `outcomes_fetch_failures.jsonl` and exits 3, so the counted run stays blocked. `c_run` no
+   longer fetches: it reads `C_<window>/outcomes_guarded.json` (`load_guarded_outcomes`: same declaration and window,
+   complete, covering every filled market) and refuses otherwise. `fetch-outcomes` refuses if the file exists.
+6. **Hash coverage (must-fix).** Added to the declaration: `cb1_history.HALF_SPREAD`, `economics.MAX_DOCS_RATE`,
+   the CB2 small-G constants (`G_NORMAL`, `G_MIN`, `N_WILD`, `SEED`, `_WEBB`), the `cb3_declaration` defaults read by
+   `cb3_common` (`G_NORMAL`, `G_MIN`, `MIN_UNITS`, `MIN_CLUSTERS`, `TOP_CLUSTERS_DROPPED`, `N_BOOT`, `SEED_BOOT`),
+   `cb3_common._codes`, `n_clusters`, `_p_from_z`, `history_backfill.load_trades`, `load_prices`, `fee_category`, the
+   new constants `C_TIME_WAY`, `PLACEBO_MIN_CLUSTERS`, `CENSUS_KEEP`, and the new rule functions of `cb4_analysis`.
+7. **S2 truncation worst case (should-fix).** §CB4-S defines "unavailable prints" by truncation, so only units whose
+   prints were truncated away (`prints_truncated_away`: unit-level rule or a window starting before the oldest stored
+   trade) and that have a history-price `v` are added back; a unit with complete history and simply no print in a
+   window is not added.
+8. **CENSUS_FORBIDDEN_COLUMNS applied (should-fix).** `census_frame` keeps only count columns of the C1 and era
+   frames (C1 deltas, mark-outs and flow are dropped at once) and refuses any forbidden name; `census_forbidden_keys`
+   refuses a census output carrying one (the E MDE key was renamed `mde_delta`). The list gained `delta_w`, `mark`,
+   `AS`, `d6h`, `f_net_6h`, `neg_v`, `s3_net`.
+9. **q0086 note (should-fix).** Corrected in the `notes` field only: census S opens the `outcomes_guarded` side
+   columns only; census E computes mark-outs in memory; outputs counts only.
+10. **Pilot ingress cap (should-fix).** `pilot --ingress-cap-gb` must be in (0, 15] GB (the declared pilot cap);
+    `measure-N` in (0, 150]. q0084 passes 15.
+
+**Tests.** `test_cb4_rules.py` (A-C1 ways, LODO at Stage 2, close_day, S2 worst case), `test_cb4_measure.py`
+(placebo testability and blocking), `test_cb4_analysis.py` (pin verification and validation, pinned rho and UMA,
+census gates in counted runs, failed outcome batches, guarded file, census frames/keys, pilot cap),
+`test_cb4_declaration.py` (fix-6 hash coverage). `pytest tests/unit/test_cb4_*.py`: 203 passed; ruff clean.
+
+**Declaration hash (2026-10-17, after these fixes; supersedes `1d17074139c0...932d9`):**
+`ec466f73e845ce87ff998e99100a33b6406a9357fd3a8cfd27e85d337b157ce1`.
+
+**Next.** Science-reviewer re-check of fixes 1-6 and A-C1; then create `q0086b_cb4_analysis_fixes_gate` in `jobs/`
+from `queue/drafts/` (the census q0086 already depends on it).
