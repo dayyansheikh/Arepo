@@ -1099,8 +1099,8 @@ q0189-q0194 and q0197; **NO_GO for q0195 and q0196 before the fixes below**. No 
 a market that was below $10k at the origin). Closed markets carry the end-of-life value (already disclosed). Neither enters a feature, a sizing rule or an
 outcome; the disclosure applies to every K/D and S0b result and is stated with them. Nothing was changed.
 
-**If CB8 q0164 / q0166 / q0168 fail (f).** q0182 is gated on all three by `depends_on` and the queue marks a failed dependency's dependants blocked; it
-never runs on a failed dependency. Manual action by the coordinator: (1) read the CB8 job log and manifest of the failed job; (2) a transient failure is
+**If CB8 q0164 / q0166 / q0168 fail (f).** q0182 is gated on all three by `depends_on` and the queue starts a job only when every dependency is `done`, so a failed
+dependency leaves q0182 and its dependants queued forever (they never run on it). Manual action by the coordinator: (1) read the CB8 job log and manifest of the failed job; (2) a transient failure is
 re-queued through the queue's normal retry or a new job id (same code, same inputs; never a changed rule); (3) if the CB8 output can no longer be
 produced (source gone, rules refused), record the fact in the ledger and treat the dependent CB9 jobs as `not run (source)`: P, K, D and S1 are then
 **not testable, counted**, and the S0 audit (q0181, q0188 through q0187) runs on its own because it does not depend on q0182. A q0182 over a substitute key file
