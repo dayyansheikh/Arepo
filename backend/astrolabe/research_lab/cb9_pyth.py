@@ -49,10 +49,13 @@ SOURCE_RE = r"^https?://(?:www\.)?pythdata\.app/explore/Equity\.US\.([A-Z]{1,5})
 FLAG_RES = {
     "close_final_minute": r'(?is)"Close".{0,250}?final minute',
     "prior_trading_day": r"(?i)most recent prior trading day",
-    "equality_50_50": r"(?is)\bequal\b.{0,200}?50-50",
-    "no_trade_50_50": r"(?is)(?:does not|doesn't|do not|no)\s+trade.{0,250}?50-50",
+    "equality_50_50": r"(?i)\bequal\b[^.]{0,200}?50-50",  # same sentence (M4): an "equal -> Down" sentence followed by the no-trade 50-50 sentence fails
+    "no_trade_50_50": r"(?i)(?:does not|doesn't|do not|no)\s+trade[^.]{0,250}?50-50",
 }
 EXCLUDE_RES = {"opens": r"(?i)\bopens?\b", "strike": r"(?i)close (?:above|below)|above \$|below \$"}
+# Older (2025) Up/Down text versions (official exchange close vs the open or vs the prior close, rounded to the cent): a different settlement rule,
+# excluded with their own reason (the frozen flags would usually fail as well). The current text says "used exactly as published by Pyth, without rounding".
+OLD_VERSION_RES = {"old_version_rounded": r"(?i)\brounded\s+to\b", "old_version_vs_open": r"(?i)\b(?:opening|open)\s+price\b"}
 OUTCOME_LABELS = ("Up", "Down")
 TICKER_MAP_RULE = "Yahoo symbol = Pyth ticker (identity); a ticker without 7 bars on every window session is unavailable (counted)"
 GAMMA_END_WINDOW_EDT = ("19:59:00", "20:01:00")
@@ -470,6 +473,9 @@ def parse_market(m: dict, day: str) -> tuple[dict | None, str]:
         return None, "outcomes_malformed"
     if sorted(str(x) for x in labels) != sorted(OUTCOME_LABELS) or len(toks) != 2:
         return None, "outcomes"
+    for reason, rx in OLD_VERSION_RES.items():
+        if re.search(rx, desc):
+            return None, reason
     missing = [k for k, rx in FLAG_RES.items() if not re.search(rx, desc)]
     if missing:
         return None, "flags:" + "+".join(missing)
@@ -571,9 +577,11 @@ def pyth_frame(root: Path, transport, *, rules_sha: str, smoke_path: Path, exclu
     from . import cb9_sign as sg  # noqa: PLC0415
 
     c9.require_after_t_seal(now, "pyth-frame")
-    sg.smoke_ok(smoke_path, need=("yahoo_clock", "gamma_paging"))
-    ids, keys, rep, keys_sha = c9.load_exclusion_keys(Path(exclusion_keys_path))
     root = c9.refuse_path(Path(root))
+    bad = [k for k in ("yahoo_clock", "gamma_paging") if not sg.smoke_criterion(smoke_path, k)]
+    if bad:  # M5: terminal stall, exit 0, labelled
+        return c9.write_stall(root / "pyth_frame", c9.STALL_NOT_RUN_SOURCE, f"smoke criteria {bad} failed")
+    ids, keys, rep, keys_sha = c9.load_exclusion_keys(Path(exclusion_keys_path))
     cm.require_room(data_dumps, data_dumps_cap_gb, disk_cap)
     fr = cm.open_run(root, "pyth_frame", transport, allowed_run_id="pyth_frame", kind="cb9_pyth_frame", label="CB9 P frame",
                      params={"days": list(WINDOW), "gap": list(GAP), "exclusion_keys_sha256": keys_sha, "evidence_role": c9.EVIDENCE_ROLE_HIST},
@@ -652,8 +660,9 @@ def pyth_frame(root: Path, transport, *, rules_sha: str, smoke_path: Path, exclu
     write_rows(fr, "strikes.csv.gz", STRIKE_COLUMNS, strike_rows)
     write_rows(fr, "closes_settle_guarded.csv.gz", SETTLE_COLUMNS, settle_rows)
     fr.counts.update({"frame": len(frame), "kept": len(kept), "tickers": len(tickers), "yahoo_requests": ylim.requests})
-    status = "pyth_frame_complete" if rep.get("disjointness") != c9.UNVERIFIED else c9.UNVERIFIED
-    m = fr.manifest(None, {"status": status, "complete": True, "reasons": reasons, "drops": drops, "tickers": avail})
+    status = "pyth_frame_complete" if rep.get("disjointness") != c9.UNVERIFIED else c9.STALL_DISJOINTNESS
+    extra = {"label": c9.STALL_LABELS[c9.STALL_DISJOINTNESS], "terminal": True} if status == c9.STALL_DISJOINTNESS else {}
+    m = fr.manifest(None, {"status": status, "complete": True, "reasons": reasons, "drops": drops, "tickers": avail, **extra})
     m["status"] = status
     return m
 
@@ -708,13 +717,16 @@ def pyth_books(root: Path, transport, *, rules_sha: str, smoke_path: Path, frame
     from . import cb9_sign as sg  # noqa: PLC0415
 
     c9.require_after_t_seal(now, "pyth-books")
-    sg.smoke_ok(smoke_path, need=("pmxt_heads",))
     root = c9.refuse_path(Path(root))
-    cm.require_room(data_dumps, data_dumps_cap_gb, disk_cap)
+    if not sg.smoke_criterion(smoke_path, "pmxt_heads"):  # M5
+        return c9.write_stall(root / "pyth", c9.STALL_NOT_RUN_SOURCE, "smoke criterion pmxt_heads failed")
     fman = json.loads((Path(frame_dir) / "manifest.json").read_text())
-    cm.verify_manifest_files(Path(frame_dir), fman)
+    if fman.get("status") in c9.STALL_STATUSES:  # M5: the upstream label is carried, terminal, exit 0
+        return c9.write_stall(root / "pyth", c9.STALL_UPSTREAM, f"pyth_frame ended {fman.get('status')}", label=fman.get("label") or c9.STALL_LABELS.get(fman.get("status")))
     if fman.get("status") != "pyth_frame_complete":
-        raise Refused(f"P frame status {fman.get('status')}: P is not testable (disjointness or frame incomplete)")
+        raise NotNow(f"P frame status {fman.get('status')}: not finished yet")
+    cm.require_room(data_dumps, data_dumps_cap_gb, disk_cap)
+    cm.verify_manifest_files(Path(frame_dir), fman)
     frame = [r for r in c7.read_csv_gz(Path(frame_dir) / "frame.csv.gz") if r.get("ticker_status") == "ok"]
     fr = cm.open_run(root, "pyth", transport, allowed_run_id="pyth", kind="cb9_pyth_books", label="CB9 P books",
                      params={"hours_z": list(PMXT_HOURS_Z), "lags_s": [USABLE_LAG_S, LATENCY_LAG_S], "print_window_s": list(PRINT_WINDOW_S),
@@ -939,17 +951,17 @@ def _months_ok(v: np.ndarray, months: np.ndarray, sign: float) -> dict:
     return {"months": res, "holds": bool(res) and agree >= MONTH_SHARE * len(res)}
 
 
-def _drop_ok(v: np.ndarray, cl: dict[str, np.ndarray], floor: float) -> dict:
+def _drop_ok(v: np.ndarray, cl: dict[str, np.ndarray], floor: float, gate_p: float = c9.GATE_P) -> dict:
     out = {}
     for way, c in cl.items():
         keep = c9.top_k_drop_mask(v, c)
         r = c9.cluster_p(v[keep], {k: x[keep] for k, x in cl.items()})
-        out[way] = {"p": r["p"], "mean": r["mean"], "holds": bool(r["p"] < c9.GATE_P and r["mean"] >= floor)}
+        out[way] = {"p": r["p"], "mean": r["mean"], "holds": bool(r["p"] < gate_p and r["mean"] >= floor)}
     return {"ways": out, "holds": all(x["holds"] for x in out.values())}
 
 
 def p1_stat(units: list[dict], y_of: Callable[[dict, str], float | None], *, stale_units: list[dict] | None = None, latency_units: list[dict] | None = None,
-            n_draws: int = c9.PLACEBO_DRAWS) -> dict:
+            n_draws: int = c9.PLACEBO_DRAWS, gate_p: float = c9.GATE_P) -> dict:
     """P1: mean net per share (cents) over traded checkpoints; p = max over the day and ticker ways; floor +1.0c; break-even calibration placebo
     (``Y' = 1{U_d < a + f(a)}``, one uniform per session day, 200 draws, seed 9191); anchor attribution (P1 - P1_stale >= |P1|/2, credit only);
     binding robustness (i) +0.5c on a with net > 0, (ii) top-5 drops, (iii) size-weighted by ask depth capped at 2,000, (iv) month signs, (v) worst
@@ -974,13 +986,13 @@ def p1_stat(units: list[dict], y_of: Callable[[dict, str], float | None], *, sta
     for _ in range(n_draws):
         ud = rng.random(len(days))
         yprime = (ud[dix] < cost).astype(float)
-        pl.append(c9.cluster_p(yprime - cost, cl, alpha=c9.GATE_P)["p"])
-    placebo = c9.placebo_advance_rate(pl)
+        pl.append(c9.cluster_p(yprime - cost, cl, alpha=gate_p)["p"])
+    placebo = c9.placebo_advance_rate(pl, gate_p)
     cost_r = np.array([p1_net(u["trade_cost"], y) if u.get("trade_cost") else p1_net({**u["trade"], "a": u["trade"]["a"] + COST_ROBUST,
                                                                                         "fee": taker_fee(u["trade"]["a"] + COST_ROBUST, u["trade"]["rate"])}, y)
                        for u, y in zip(tu, [ys[i] for i in keep], strict=True)])
     rob_i = bool(cost_r.mean() > 0 and np.sign(cost_r.mean()) == np.sign(mean) and abs(cost_r.mean()) >= abs(mean) / 2)
-    rob_ii = _drop_ok(net, cl, FLOOR_P1)
+    rob_ii = _drop_ok(net, cl, FLOOR_P1, gate_p)
     w = np.array([min(u["trade"]["ask_size"], SIZE_WEIGHT_CAP) for u in tu])
     wmean = float((net * w).sum() / w.sum()) if w.sum() > 0 else math.nan
     rob_iii = bool(np.sign(wmean) == np.sign(mean))
@@ -993,7 +1005,7 @@ def p1_stat(units: list[dict], y_of: Callable[[dict, str], float | None], *, sta
     v5 = np.concatenate([net, np.array([x for _, x in extra])]) if extra else net
     cl5 = {k: np.concatenate([cl[k], np.array([u[k] for u, _ in extra])]) if extra else cl[k] for k in cl}
     r5 = c9.cluster_p(v5, cl5)
-    rob_v = bool(np.sign(r5["mean"]) == np.sign(mean) and r5["p"] < c9.GATE_P)
+    rob_v = bool(np.sign(r5["mean"]) == np.sign(mean) and r5["p"] < gate_p)
     rob_vi = None
     if latency_units is not None:
         lt = [u for u in latency_units if u.get("trade") and y_of(u, u["trade"]["token"]) is not None]
@@ -1006,17 +1018,18 @@ def p1_stat(units: list[dict], y_of: Callable[[dict, str], float | None], *, sta
         attribution = {"p1_stale_cents": snet * 100 if math.isfinite(snet) else None, "n_stale": len(st),
                        "credit_public_path_anchor": bool(math.isfinite(snet) and (mean - snet) >= abs(mean) / 2)}
     robust = rob_i and rob_ii["holds"] and rob_iii and rob_iv["holds"] and rob_v and (rob_vi is not False)
-    adv = bool(base["p"] < c9.GATE_P and mean >= FLOOR_P1 and placebo["holds"] and robust)
+    adv = bool(base["p"] < gate_p and mean >= FLOOR_P1 and placebo["holds"] and robust)
     return {**res, "floor_cents": FLOOR_P1 * 100, "placebo_breakeven": placebo,
             "robustness": {"i_cost_plus_half_cent": rob_i, "i_mean_cents": float(cost_r.mean() * 100), "ii_top5": rob_ii, "iii_size_weighted_cents": wmean * 100,
                            "iii_holds": rob_iii, "iv_months": rob_iv, "v_worst_case": {"p": r5["p"], "mean_cents": r5["mean"] * 100, "holds": rob_v, "n_scored": len(extra)},
                            "vi_latency": rob_vi},
             "anchor_attribution": attribution, "advance": adv,
-            "verdict": "advance" if adv else ("not detected at MDE" if base["p"] >= c9.GATE_P else "fails floor / placebo / robustness"),
+            "verdict": "advance" if adv else ("not detected at MDE" if base["p"] >= gate_p else "fails floor / placebo / robustness"),
             "label": None if not adv or (attribution or {}).get("credit_public_path_anchor") else "a favourite/longshot pattern the anchor's timing does not explain"}
 
 
-def p2_stat(units: list[dict], y_of: Callable[[dict, str], float | None], *, latency_units: list[dict] | None = None, n_draws: int = c9.PLACEBO_DRAWS) -> dict:
+def p2_stat(units: list[dict], y_of: Callable[[dict, str], float | None], *, latency_units: list[dict] | None = None, n_draws: int = c9.PLACEBO_DRAWS,
+            gate_p: float = c9.GATE_P) -> dict:
     """P2: per quote-origin (model P&L - mid P&L) / 40 posted shares, cents; floor +0.3c; route gate model net per posted share > 0; kill if either quote's
     fill rate < 2% of origins; label-swap placebo (one draw per session day, seed 9192); binding robustness (trade-through fills, top-5 drops,
     filled-share weighting, months, worst case, latency). The latency-tail check is 'not measurable' (no minute path; labelled)."""
@@ -1054,11 +1067,11 @@ def p2_stat(units: list[dict], y_of: Callable[[dict, str], float | None], *, lat
     pl = []
     for _ in range(n_draws):
         sgn = np.where(rng.random(len(days)) < 0.5, -1.0, 1.0)
-        pl.append(c9.cluster_p(contrast * sgn[dix], cl, alpha=c9.GATE_P)["p"])
-    placebo = c9.placebo_advance_rate(pl)
+        pl.append(c9.cluster_p(contrast * sgn[dix], cl, alpha=gate_p)["p"])
+    placebo = c9.placebo_advance_rate(pl, gate_p)
     thr = np.array([(pr["model_through"][0] - pr["mid_through"][0]) / (2 * QUOTE_SIZE) for _, pr in rows])
     rob_i = bool(np.sign(thr.mean()) == np.sign(mean) and abs(thr.mean()) >= abs(mean) / 2)
-    rob_ii = _drop_ok(contrast, cl, FLOOR_P2)
+    rob_ii = _drop_ok(contrast, cl, FLOOR_P2, gate_p)
     w = np.array([pr["model_queue"][2] + pr["mid_queue"][2] for _, pr in rows], float)
     wmean = float((contrast * w).sum() / w.sum()) if w.sum() > 0 else math.nan
     rob_iii = bool(np.sign(wmean) == np.sign(mean))
@@ -1070,7 +1083,7 @@ def p2_stat(units: list[dict], y_of: Callable[[dict, str], float | None], *, lat
     v5 = np.concatenate([contrast, np.array([worst[u["day"]] for u in unav])]) if unav else contrast
     cl5 = {k: np.concatenate([cl[k], np.array([u[k] for u in unav])]) if unav else cl[k] for k in cl}
     r5 = c9.cluster_p(v5, cl5)
-    rob_v = bool(np.sign(r5["mean"]) == np.sign(mean) and r5["p"] < c9.GATE_P)
+    rob_v = bool(np.sign(r5["mean"]) == np.sign(mean) and r5["p"] < gate_p)
     rob_vi = None
     if latency_units is not None:
         lt = [u for u in latency_units if u.get("p2") and y_of(u, "up") is not None]
@@ -1086,7 +1099,7 @@ def p2_stat(units: list[dict], y_of: Callable[[dict, str], float | None], *, lat
             lc.append((vals[0] - vals[1]) / (2 * QUOTE_SIZE))
         rob_vi = bool(lc and np.sign(np.mean(lc)) == np.sign(mean) and abs(np.mean(lc)) >= abs(mean) / 2)
     robust = rob_i and rob_ii["holds"] and rob_iii and rob_iv["holds"] and rob_v and (rob_vi is not False)
-    adv = bool(base["testable"] and base["p"] < c9.GATE_P and mean >= FLOOR_P2 and route and not kill_fill and placebo["holds"] and robust)
+    adv = bool(base["testable"] and base["p"] < gate_p and mean >= FLOOR_P2 and route and not kill_fill and placebo["holds"] and robust)
     reb = np.array([(pr["model_queue"][1] - pr["mid_queue"][1]) / (2 * QUOTE_SIZE) for _, pr in rows])
     return {"n": len(rows), "mean_cents": mean * 100, "p": base["p"] if base["testable"] else 1.0, "testable": base["testable"], "ways": base.get("ways"),
             "floor_cents": FLOOR_P2 * 100, "route_gate": {"model_net_per_posted_share_cents": float(model_net.mean() * 100), "holds": route},
@@ -1197,8 +1210,42 @@ def clob_book_state(doc: Any) -> dict | None:
             "fee_bps": None, "bids": bids, "asks": asks, "n_events_window": 0}
 
 
+OUTCOME_DUE_S = 6 * 3600  # first post-settlement outcome fetch: session close + 6 h
+OUTCOME_MAX_DAYS = 7  # markets still unresolved this long after the close are recorded as unresolved (counted), never guessed
+
+
+def fetch_outcomes(sdir: Path, day: str, now: float, markets: list[dict], outcome_get: Callable[[list[str]], list[dict]]) -> dict:
+    """M9: guarded post-settlement outcome fetch for one Stage-2 session (Gamma by id, ``closed=true``). Resolved markets (Up/Down price 1/0 or
+    0.5/0.5) go ONLY to ``<session>/outcomes_guarded.csv.gz`` (rewritten whole, ids accumulate); the step is final when every market is resolved or
+    ``OUTCOME_MAX_DAYS`` passed (the rest unresolved, counted). Nothing else of the reply is kept."""
+    from . import cb7_common as c7  # noqa: PLC0415
+
+    gp = Path(sdir) / "outcomes_guarded.csv.gz"
+    have = {r["market_id"]: r for r in c7.read_csv_gz(gp)} if gp.exists() else {}
+    todo = [m["market_id"] for m in markets if m["market_id"] not in have]
+    for i in range(0, len(todo), 50):
+        for g in outcome_get(todo[i:i + 50]) or []:
+            if not isinstance(g, dict) or str(g.get("id")) not in todo or not g.get("closed"):
+                continue
+            try:
+                labels, prices = json.loads(g.get("outcomes") or "[]"), json.loads(g.get("outcomePrices") or "[]")
+            except (TypeError, ValueError):
+                continue
+            if outcome_y(labels, prices, "up") is None:
+                continue
+            have[str(g["id"])] = {"market_id": str(g["id"]), "day": day, "outcome_labels": json.dumps(labels), "outcome_prices": json.dumps(prices)}
+    if have:
+        tmp = gp.with_name(gp.name + ".tmp")
+        tmp.write_bytes(hb._gz_csv_bytes(OUTCOME_COLUMNS, [[have[k][c] for c in OUTCOME_COLUMNS] for k in sorted(have)]))
+        tmp.replace(gp)
+    missing = [m["market_id"] for m in markets if m["market_id"] not in have]
+    final = not missing or now >= et_epoch(day, *close_et(day)) + OUTCOME_MAX_DAYS * cm.DAY
+    return {"t": now, "n_resolved": len(have), "n_unresolved": len(missing), "final": final}
+
+
 def pyth_live_tick(root: Path, *, now: float, start_day: str, frame_markets: Callable[[str], list[dict]], yahoo_get: Callable[[str, str, float, float], tuple[Any, float]],
-                   book_get: Callable[[str], tuple[Any, float]], prints_get: Callable[[str, int, int], list[dict] | None], sessions: list[str] | None = None) -> dict:
+                   book_get: Callable[[str], tuple[Any, float]], prints_get: Callable[[str, int, int], list[dict] | None], sessions: list[str] | None = None,
+                   outcome_get: Callable[[list[str]], list[dict]] | None = None) -> dict:
     """One idempotent pass of the q0195 rolling collector: for the current session (ET) it performs whichever step is due and not yet done -
     pre-open sigma / K_d fetch (receipt-timed), each checkpoint (Yahoo hourly fetch + every frame-rule market's CLOB book, receipt-timed), and after
     the close the quote-window prints and the diagnostic post-session bars. Files under ``pyth_live/<session>/``. Returns what was done; the caller
@@ -1206,10 +1253,28 @@ def pyth_live_tick(root: Path, *, now: float, start_day: str, frame_markets: Cal
     root = c9.refuse_path(Path(root))
     sessions = sessions or stage2_sessions(start_day)
     today = et_day(now)
-    if now > et_epoch(sessions[-1], 23, 59) + 2 * cm.DAY or (datetime.fromtimestamp(now, UTC).date() - _d(start_day)).days > STAGE2_COLLECT_MAX_DAYS:
-        return {"status": "pyth_live_complete", "done": []}
+    done_out = []
+    if outcome_get is not None:  # M9: outcomes of every past session (guarded; never read here)
+        for day in sessions:
+            sd = root / day
+            sp = sd / "state.json"
+            if day >= today or not sp.exists():
+                continue
+            st0 = json.loads(sp.read_text())
+            o = st0["steps"].get("outcomes") or {}
+            if o.get("final") or now < et_epoch(day, *close_et(day)) + OUTCOME_DUE_S or now - float(o.get("t", 0)) < 3600:
+                continue
+            st0["steps"]["outcomes"] = fetch_outcomes(sd, day, now, frame_markets(day), outcome_get)
+            sp.write_text(json.dumps(st0, sort_keys=True))
+            done_out.append(f"outcomes:{day}")
+    past_all = now > et_epoch(sessions[-1], 23, 59) + 2 * cm.DAY or (datetime.fromtimestamp(now, UTC).date() - _d(start_day)).days > STAGE2_COLLECT_MAX_DAYS
+    if past_all:
+        pending = [d for d in sessions if (root / d / "state.json").exists() and not (json.loads((root / d / "state.json").read_text())["steps"].get("outcomes") or {}).get("final")]
+        if outcome_get is None or not pending:
+            return {"status": "pyth_live_complete", "done": done_out}
+        return {"status": "collected" if done_out else "idle", "done": done_out, "outcomes_pending": pending}
     if today not in sessions:
-        return {"status": "idle", "done": []}
+        return {"status": "collected" if done_out else "idle", "done": done_out}
     sdir = root / today
     sdir.mkdir(parents=True, exist_ok=True)
     state_p = sdir / "state.json"
@@ -1264,6 +1329,7 @@ def pyth_live_tick(root: Path, *, now: float, start_day: str, frame_markets: Cal
         st["steps"]["post"] = {"t": now}
         done.append("post")
     state_p.write_text(json.dumps(st, sort_keys=True))
+    done += done_out
     return {"status": "collected" if done else "idle", "done": done, "session": today}
 
 
@@ -1395,13 +1461,32 @@ def smoke_gamma_paging(lim: hb.Limiter, days: tuple[str, ...] = SMOKE_GAMMA_DAYS
     per = {}
     for d in days:
         a, b = gamma_end_window(d)
-        walks = []
-        for _ in range(2):
+        walks, reasons, excerpts = [], {}, set()
+        for w in range(2):
             rows, capped = hb._paged(lim, {"closed": "true", "end_date_min": a, "end_date_max": b, "order": "id", "ascending": "true"}, error_is_capped=True)
-            walks.append(({str(m.get("id")) for m in rows if isinstance(m, dict)}, capped, sum(1 for m in rows if isinstance(m, dict) and parse_market(m, d)[0])))
+            n_primary = 0
+            for m in rows:
+                if not isinstance(m, dict):
+                    continue
+                r, why = parse_market(m, d)
+                n_primary += int(r is not None)
+                if w == 0:
+                    reasons[why] = reasons.get(why, 0) + 1
+                    if r is not None:
+                        excerpts.add(equality_excerpt(str(m.get("description") or "")))
+            walks.append(({str(m.get("id")) for m in rows if isinstance(m, dict)}, capped, n_primary))
         per[d] = {"n_first": len(walks[0][0]), "n_second": len(walks[1][0]), "capped": walks[0][1] or walks[1][1], "n_primary_first": walks[0][2],
+                  "parse_reasons_first": dict(sorted(reasons.items())), "equality_excerpts_primary": sorted(excerpts)[:5],
                   "stable": walks[0][0] == walks[1][0] and not (walks[0][1] or walks[1][1])}
     return {"days": per, "pass": all(v["stable"] for v in per.values())}
+
+
+def equality_excerpt(desc: str) -> str:
+    """The sentence of a rule text that contains "equal" (M3: recorded for out-of-window primary markets; text only, no price)."""
+    for sent in re.split(r"(?<=[.!?])\s+", desc):
+        if re.search(r"(?i)\bequal\b", sent):
+            return sent.strip()[:300]
+    return ""
 
 
 def smoke_pmxt_heads(size_fn: Callable[[str], int]) -> dict:
@@ -1420,7 +1505,7 @@ def smoke_declared() -> dict:
     return {"ticker": SMOKE_TICKER, "sessions": list(SMOKE_SESSIONS), "tol": SMOKE_TOL, "bar_clock": bar_clock_declared(),
             "check": "after the drop exactly 7 bars; first start 09:30 ET; first open vs daily open and last close vs daily close within 0.2%; dropped rows by count",
             "failure": "P not testable (source), counted; never re-fitted", "gamma_paging_days": list(SMOKE_GAMMA_DAYS),
-            "gamma_paging": "two walks per day, equal id sets, not capped", "pmxt_heads": smoke_pmxt_hours(), "pmxt_seed": SMOKE_PMXT_SEED}
+            "gamma_paging": "two walks per day, equal id sets, not capped; parse_market reason counts and the equality-clause sentence of primary markets recorded (M3)", "pmxt_heads": smoke_pmxt_hours(), "pmxt_seed": SMOKE_PMXT_SEED}
 
 
 def bar_clock_declared() -> dict:
@@ -1432,7 +1517,7 @@ def bar_clock_declared() -> dict:
 
 
 def smoke_rule_funcs() -> tuple:
-    return (parse_chart, session_bars, usable, latest_usable, daily_rows, smoke_yahoo_check, smoke_gamma_paging, smoke_pmxt_heads, smoke_pmxt_hours, smoke_declared,
+    return (parse_chart, session_bars, usable, latest_usable, daily_rows, smoke_yahoo_check, smoke_gamma_paging, equality_excerpt, smoke_pmxt_heads, smoke_pmxt_hours, smoke_declared,
             bar_clock_declared, et_epoch, et_day, close_et, expected_bars, is_full_session, full_sessions, p_days, gamma_end_window, parse_market, yahoo_chart,
             yahoo_transport)
 
@@ -1449,7 +1534,8 @@ def declared() -> dict:
         "family": "CB9-P (CH83a + CH84), CREATIVE_BATCH_9.md CB9-P; rules file also fixes the q0182 keys and the census gates",
         "population": {"days": f"full NYSE sessions in [{WINDOW[0]}, {WINDOW[1]}) minus the pmxt gap [{GAP[0]}, {GAP[1]})", "n_days": len(p_days()),
                        "gamma_end_window": "endDate in [d 19:59Z, d 20:01Z] (EDT; one hour later in EST)", "question_re": QUESTION_RE, "source_re": SOURCE_RE,
-                       "flag_res": FLAG_RES, "exclude_res": EXCLUDE_RES, "outcome_labels": list(OUTCOME_LABELS), "neg_risk": "excluded",
+                       "flag_res": FLAG_RES, "exclude_res": EXCLUDE_RES, "old_version_res": OLD_VERSION_RES,
+                       "flag_scope": "equality and no-trade flags must hold within one sentence (M4)", "outcome_labels": list(OUTCOME_LABELS), "neg_risk": "excluded",
                        "strike_markets": "excluded from the primary; counted (reported stratum)", "ticker_map": TICKER_MAP_RULE,
                        "keys": "q0182 exclusion ids and event / neg-risk / series keys dropped; unverified disjointness -> P not testable, counted"},
         "clock": bar_clock_declared(),
@@ -1478,7 +1564,10 @@ def declared() -> dict:
         "stage2": {"sessions": STAGE2_SESSIONS, "collect_max_days": STAGE2_COLLECT_MAX_DAYS, "unavailable_max": STAGE2_UNAVAILABLE_MAX,
                    "yahoo": "fetched at each checkpoint, receipt-timed; S_t from that response; pre-open sigma/K_d fetch; post-session bars diagnostic only",
                    "partial_failure": "no substitute source; failed checkpoint unavailable (source); failed sigma/K_d -> the whole session; counts toward the 30",
-                   "books": "CLOB /book, receipt clock only", "start": "first full NYSE session >= CB9 freeze commit + 1 day"},
+                   "books": "CLOB /book, receipt clock only", "start": "first full NYSE session >= CB9 freeze commit + 1 day",
+                   "outcomes": f"guarded post-settlement Gamma fetch from close + {OUTCOME_DUE_S // 3600} h, hourly, final when all resolved or after {OUTCOME_MAX_DAYS} d "
+                               "(unresolved counted); <session>/outcomes_guarded.csv.gz, opened only by rep-P (M9)",
+                   "rule": "Stage-2 rule: cb9_common.STAGE2_RULE (M10)"},
         "halfday": {"days": list(HALF_SESSIONS_2026), "poll_et": ["13:05", "16:00"], "every_s": 60, "counted": False},
         "rates": {"yahoo_rps": YAHOO_RPS, "gamma_data_rps_max": 2.0},
         "smoke": smoke_declared(),
@@ -1493,7 +1582,7 @@ def rule_funcs() -> tuple:
     return (declared, _d, checkpoints, hourly_returns, sigma_for, tau_hours, fair_up, fee_rate, taker_fee, floor_tick, ceil_tick, p1_unit, p1_net, p2_quotes, up_prints,
             depth_at, through_fill, quote_pair_pnl, outcome_y, frame_day, open_guarded, write_rows, pyth_frame, levels_at, state_row, pyth_books, load_bars, build_units,
             _state_dict, census_p, _cl, _months_ok, _drop_ok, p1_stat, p2_stat, source_check, live_s_t, stage2_sessions, t9_p2_start, stage2_availability,
-            checkpoint_status, clob_book_state, pyth_live_tick, live_frame_markets, live_units, halfday_tick, c3.quote_fills, c3._side_tuple, bk.read_hour_events, bk.state_at, bk._levels,
+            checkpoint_status, clob_book_state, fetch_outcomes, pyth_live_tick, live_frame_markets, live_units, halfday_tick, c3.quote_fills, c3._side_tuple, bk.read_hour_events, bk.state_at, bk._levels,
             c9.drop_by_keys, hb._paged, *smoke_rule_funcs())
 
 

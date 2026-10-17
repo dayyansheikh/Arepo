@@ -270,3 +270,100 @@ def test_rules_doc_pyth_roundtrip(tmp_path):
     assert fp == "" and len(sha) == 64
     d = json.loads(p.read_text())["declared"]
     assert d["clock"]["full_bars"] == 7 and d["p1"]["edge"] == 0.05 and d["stage2"]["unavailable_max"] == 0.20
+
+
+# ---- freeze-check fixes (M3, M4, M5, M9, M10) --------------------------------------------------------------------------------------
+
+CURRENT = ('This market will resolve to "Up" if the Pyth "Close" value of the 1-minute candle corresponding to the final minute of regular trading hours for '
+           'NVIDIA (NVDA) is higher than the close of the most recent prior trading day. If the two specified closing prices are exactly equal, this market '
+           'will resolve 50-50. Closing prices will be used exactly as published by Pyth, without rounding. If NVIDIA (NVDA) does not trade at all during the '
+           'regular session, the market will resolve 50-50.')
+
+
+def test_flags_current_text_and_same_sentence_equality():
+    assert py.parse_market(_mkt(description=CURRENT), DAY)[1] == "ok"
+    down = CURRENT.replace("If the two specified closing prices are exactly equal, this market will resolve 50-50.",
+                           'If the two specified closing prices are exactly equal, this market will resolve to "Down".')
+    r, why = py.parse_market(_mkt(description=down), DAY)
+    assert r is None and why == "flags:equality_50_50"  # the following no-trade 50-50 sentence must not satisfy the equality flag
+
+
+def test_old_2025_versions_excluded():
+    old = CURRENT.replace("Closing prices will be used exactly as published by Pyth, without rounding.", "Prices are rounded to the nearest cent.")
+    assert py.parse_market(_mkt(description=old), DAY)[1] == "old_version_rounded"
+    vs_open = CURRENT + " The official closing price is compared with the official opening price."
+    assert py.parse_market(_mkt(description=vs_open), DAY)[1] == "old_version_vs_open"
+
+
+def test_smoke_gamma_paging_records_reasons_and_excerpt():
+    class Lim:
+        def get(self, url, params):
+            if params.get("offset", 0):
+                return 200, []
+            return 200, [_mkt(description=CURRENT), _mkt(id=10, question="Will NVIDIA (NVDA) close above $180 on September 15?")]
+
+    res = py.smoke_gamma_paging(Lim(), days=(DAY,))
+    d = res["days"][DAY]
+    assert res["pass"] and d["parse_reasons_first"] == {"ok": 1, "strike_market": 1}
+    assert d["equality_excerpts_primary"] == ["If the two specified closing prices are exactly equal, this market will resolve 50-50."]
+
+
+def test_pyth_frame_and_books_stall(tmp_path):
+    smoke = tmp_path / "smoke.json"
+    smoke.write_text(json.dumps({"smoke_version": "cb9-smoke-v1", "criteria": {"yahoo_clock": False, "gamma_paging": True, "pmxt_heads": True}}))
+    m = py.pyth_frame(tmp_path / "cb9", None, rules_sha="x", smoke_path=smoke, exclusion_keys_path=tmp_path / "k.csv.gz", now=c9.T_SEAL_EPOCH + 1)
+    assert m["status"] == c9.STALL_NOT_RUN_SOURCE and m["label"] == "not testable (source)"
+    b = py.pyth_books(tmp_path / "cb9", None, rules_sha="x", smoke_path=smoke, frame_dir=tmp_path / "cb9" / "pyth_frame", fetch=None, size_fn=None, now=c9.T_SEAL_EPOCH + 1)
+    assert b["status"] == c9.STALL_UPSTREAM and b["label"] == "not testable (source)"
+
+
+def test_fetch_outcomes_guarded_and_final(tmp_path):
+    day = "2026-11-16"
+    mk = [{"market_id": "1"}, {"market_id": "2"}]
+    rows = [{"id": "1", "closed": True, "outcomes": '["Up","Down"]', "outcomePrices": '["1","0"]'},
+            {"id": "2", "closed": True, "outcomes": '["Up","Down"]', "outcomePrices": '["0.6","0.4"]'}]  # not resolved yet
+    st = py.fetch_outcomes(tmp_path, day, py.et_epoch(day, 23, 0), mk, lambda ids: rows)
+    assert st["n_resolved"] == 1 and st["n_unresolved"] == 1 and not st["final"]
+    assert py.open_guarded(tmp_path / "outcomes_guarded.csv.gz", "rep-P")[0]["market_id"] == "1"
+    st = py.fetch_outcomes(tmp_path, day, py.et_epoch(day, 16, 0) + 8 * 86400, mk, lambda ids: [])
+    assert st["final"] and st["n_unresolved"] == 1  # unresolved after 7 days: recorded, never guessed
+
+
+def test_live_tick_fetches_outcomes_for_past_sessions(tmp_path):
+    sess = py.stage2_sessions("2026-11-16")
+    (tmp_path / sess[0]).mkdir()
+    (tmp_path / sess[0] / "state.json").write_text(json.dumps({"steps": {"post": {"t": 1}}}))
+    calls = []
+    res = py.pyth_live_tick(tmp_path, now=py.et_epoch(sess[1], 8, 0), start_day=sess[0], frame_markets=lambda d: [{"market_id": "1", "ticker": "NVDA"}],
+                            yahoo_get=None, book_get=None, prints_get=None, sessions=sess,
+                            outcome_get=lambda ids: calls.append(ids) or [{"id": "1", "closed": True, "outcomes": '["Up","Down"]', "outcomePrices": '["0","1"]'}])
+    assert f"outcomes:{sess[0]}" in res["done"] and calls == [["1"]]
+    assert json.loads((tmp_path / sess[0] / "state.json").read_text())["steps"]["outcomes"]["final"]
+
+
+def test_stage2_k_and_gate(tmp_path):
+    with pytest.raises(c9.NotNow):
+        c9.stage2_k(tmp_path)
+    (tmp_path / "results_P.json").write_text(json.dumps({"P1": {"advance": True}, "P2": {"advance": False}}))
+    (tmp_path / "results_KD.json").write_text(json.dumps({"K1": {"advance": True}, "D1": {"advance": False}}))
+    der = c9.stage2_k(tmp_path)
+    assert der["k"] == 2 and der["advanced"] == ["P1", "K1"] and c9.stage2_gate(der) == pytest.approx(0.025)
+    assert c9.check_stage2_k(None, der) == 2 and c9.check_stage2_k(2, der) == 2
+    with pytest.raises(c9.Refused):
+        c9.check_stage2_k(3, der)
+    with pytest.raises(c9.Refused):
+        c9.stage2_gate({"k": 0, "alpha_each": None})
+
+
+def test_p_stats_use_the_given_gate():
+    rng = np.random.default_rng(5)
+    units = []
+    for d in range(40):
+        for tk in range(18):
+            units.append({"market_id": f"{d}-{tk}", "day": f"2026-05-{d % 28 + 1:02d}-{d}", "ticker": f"T{tk}", "month": "2026-05", "label": "ok",
+                          "trade": {"token": "up", "a": 0.5, "fee": 0.01, "rate": 0.04, "ask_size": 100.0, "edge": 0.06}, "trade_cost": None})
+    ys = {u["market_id"]: float(rng.random() < 0.56) for u in units}
+    r1 = py.p1_stat(units, lambda u, t: ys[u["market_id"]], n_draws=5, gate_p=0.5)
+    r2 = py.p1_stat(units, lambda u, t: ys[u["market_id"]], n_draws=5, gate_p=1e-9)
+    assert r2["advance"] is False and r2["robustness"]["ii_top5"]["holds"] is False
+    assert r1["placebo_breakeven"]["n_draws"] == 5

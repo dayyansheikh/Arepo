@@ -127,6 +127,7 @@ SMOKE_MARKETS_PER_ERA = 10
 SMOKE_PRINTS_PER_MARKET = 2
 SMOKE_MIN_VOLUME = 10000.0
 SMOKE_SEED = "arepo-cb9-smoke"
+SMOKE_MAX_UNAVAILABLE = 2  # M2: more unavailable receipts in an era -> NotNow (exit 75, nothing written), never a permanent FAIL
 
 # ---- S1 (conditional) -----------------------------------------------------------------------------------------------------------------
 
@@ -531,7 +532,7 @@ def classify_print(pr: dict, receipt: dict | None, endpoint: str, tokens: tuple[
         return row
     s1, k1 = t1_of(m)
     st2, t2 = t2_of(dec, m["taker"], tokens)
-    row.update(era=m["era"], t1_available=1, t1_side=s1, t1_idx=tokens.index(k1), t2_status=st2, fill_type=fill_type(dec, m, tokens))
+    row.update(era=m["era"], t1_available=1, t1_side=s1, t1_idx=tokens.index(k1), t2_status=st2, fill_type=fill_type(dec, m, tokens), exchange=m["exchange"])
     if t2 is not None:
         row.update(t2_available=1, t2_side=t2[0], t2_idx=tokens.index(t2[1]))
     return row
@@ -607,7 +608,7 @@ def market_row(m: dict) -> dict | None:
     return {"market_id": r["market_id"], "condition_id": r["condition_id"], "token0": r["token0"], "token1": r["token1"], "event_id": r["event_id"],
             "event_ids": k["event_ids"], "neg_risk_market_id": k["neg_risk_market_id"], "series_ids": k["series_ids"], "start_epoch": r["start_epoch"],
             "end_epoch": r["end_epoch"], "volume": r["volume"], "sports": int(c1.is_sports(r["fee_category"]) or r.get("topic") == "sports"),
-            "neg_risk": r["neg_risk"]}
+            "neg_risk": r["neg_risk"], "pyth": int("pythdata.app" in str(m.get("resolutionSource") or "").lower())}
 
 
 def frame_windows(start: float, far: float, step_days: int = FRAME_SPLIT_DAYS) -> list[tuple[float, float]]:
@@ -755,9 +756,10 @@ def sign_audit(root: Path, stratum: str, transport, post: Post, *, key: bytes, f
     if stratum not in STRATA:
         raise Refused(f"unknown S0 stratum {stratum!r}")
     c9.require_after_t_seal(now, f"sign-audit {stratum}", t_seal_epoch)
-    smoke_ok(smoke_path, need=("receipts_v1",) if stratum == "c" else ("receipts_v2",))
-    tps = require_topic_pins()
     root = c9.refuse_path(Path(root))
+    if not smoke_criterion(smoke_path, ERA_CRITERION[stratum]):  # M5: terminal, exit 0, labelled; never a refusal
+        return c9.write_stall(root / f"s0{stratum}", c9.STALL_NOT_RUN_SOURCE, f"smoke criterion {ERA_CRITERION[stratum]} failed")
+    tps = require_topic_pins()
     cm.require_room(data_dumps, data_dumps_cap_gb, disk_cap)
     run_id = f"s0{stratum}"
     fr = cm.open_run(root, run_id, transport, allowed_run_id=run_id, kind="cb9_sign_audit", label=f"CB9 S0{stratum}",
@@ -903,7 +905,7 @@ def kd_s0b_input(cb9_root: Path) -> list[dict]:
     """S0b input from the K/D layout (``cb9_kd``): SCREEN pre-origin prints only (``<day>.prints_pre.csv.gz``; the guarded post-origin files are never
     opened here), markets of the SCREEN sample minus the seal-time drops; seeded draw; then the pmxt ``last_trade_price`` feed side by (tx, asset) from
     the SCREEN ``<day>.ltp.csv.gz`` files (a tx with conflicting feed sides -> blank); liquidity terciles of Gamma volume over the drawn markets.
-    OPEN ITEM: ltp events cover the 14Z hour (13Z lookback) while pre-origin prints lie in [t - 6 h, t), so most feed sides are expected blank."""
+    Ruling (c): feed sides exist for prints in [13Z, 14Z) (the stored 13Z-lookback events); the rest are ``not_measured``."""
     from . import cb1_history as c1  # noqa: PLC0415
     from . import cb7_common as c7  # noqa: PLC0415
     from . import cb9_kd as kd  # noqa: PLC0415
@@ -935,7 +937,19 @@ def kd_s0b_input(cb9_root: Path) -> list[dict]:
                 sd = _side_str(r.get("side"))
                 feed[k] = sd if feed.get(k, sd) == sd else ""
     cuts = terciles(list({p["market_id"]: p["volume"] for p in drawn}.values()))
-    return [{**p, "feed_side": feed.get((p["tx"], str(p["asset"])), ""), "liq_tercile": tercile_of(p["volume"], cuts)} for p in drawn]
+    return [{**p, "feed_side": feed_label(p, feed), "liq_tercile": tercile_of(p["volume"], cuts)} for p in drawn]
+
+
+FEED_HOUR_Z = 13  # ruling (c): kd_books stores the 13Z-lookback last_trade_price events it already read; [13Z, 14Z) is the measured span
+
+
+def feed_label(p: dict, feed: dict[tuple[str, str], str]) -> str:
+    """Feed side of an S0b print: BUY / SELL from the matched pmxt last_trade_price event; ``unmatched`` for a print in [13Z, 14Z) without an event
+    (or with conflicting sides); ``not_measured`` outside that span (the guarded post-origin prints are never opened, ruling (c))."""
+    hz = datetime.fromtimestamp(int(p["ts"]), UTC).hour
+    if hz != FEED_HOUR_Z:
+        return "not_measured"
+    return feed.get((p["tx"], str(p["asset"])), "") or "unmatched"
 
 
 # =====================================================================================================================================
@@ -962,7 +976,8 @@ def smoke_receipts(lim: hb.Limiter, rpc: RpcClient, key: bytes) -> dict:
         rows = [r for r in (market_row(m) for m in mk if isinstance(m, dict)) if r is not None]
         picks = sorted(rows, key=lambda r: c9.rank(SMOKE_SEED + era, r["market_id"]))[:SMOKE_MARKETS_PER_ERA]
         res = {"n_gamma_markets": len(rows), "n_markets": len(picks), "n_receipts": 0, "n_receipt_unavailable": 0, "n_matched": 0, "n_t1_eq_t2": 0,
-               "n_era_seen": {"v1": 0, "v2": 0}, "fill_types": {}}
+               "n_era_seen": {"v1": 0, "v2": 0}, "fill_types": {},
+               "by_exchange": {a: {"matched": 0, "t1_eq_t2": 0} for a in (EXCHANGES_V1 + EXCHANGES_V2)}}
         for r in picks:
             if res["n_receipts"] >= SMOKE_RECEIPTS_PER_ERA:
                 break
@@ -982,16 +997,40 @@ def smoke_receipts(lim: hb.Limiter, rpc: RpcClient, key: bytes) -> dict:
                 row = classify_print({**p, "stratum": "smoke", "market_id": r["market_id"]}, rc, ep, tokens, hasher, tps)
                 if row["receipt_status"] != "ok":
                     res["n_receipt_unavailable"] += 1
+                    if res["n_receipt_unavailable"] > SMOKE_MAX_UNAVAILABLE:  # M2: unavailable is not failed; nothing written, retry later
+                        raise NotNow(f"smoke: more than {SMOKE_MAX_UNAVAILABLE} receipts unavailable in era {era}; nothing written")
                     continue
                 if row["t1_available"]:
                     res["n_matched"] += 1
                     res["n_era_seen"][row["era"]] = res["n_era_seen"].get(row["era"], 0) + 1
                     res["fill_types"][row["fill_type"]] = res["fill_types"].get(row["fill_type"], 0) + 1
+                    bx = res["by_exchange"].setdefault(row["exchange"], {"matched": 0, "t1_eq_t2": 0})
+                    bx["matched"] += 1
                     if row["t2_available"] and row["t2_side"] == row["t1_side"] and row["t2_idx"] == row["t1_idx"] and row["era"] == era:
                         res["n_t1_eq_t2"] += 1
+                        bx["t1_eq_t2"] += 1
+        res["exchanges_exercised"] = {a: res["by_exchange"][a]["matched"] > 0 for a in (EXCHANGES_V1 if era == "v1" else EXCHANGES_V2)}  # reported (M1)
         res["pass"] = bool(res["n_receipts"] >= SMOKE_RECEIPTS_PER_ERA and res["n_t1_eq_t2"] >= SMOKE_MIN_DECODED)
         out[era] = res
     return {"receipts": out, "rpc": rpc.stats(), "topic_pins": topic_pins_ok()}
+
+
+def smoke_criterion(path: Path, name: str) -> bool:
+    """One smoke criterion; a missing / unreadable / other-version result is a refusal (queue order), a False criterion is returned (the caller
+    writes the M5 stall)."""
+    p = Path(path)
+    if not p.exists():
+        raise Refused(f"smoke result {p} not found; run q0180 first")
+    try:
+        d = json.loads(p.read_text())
+    except ValueError as exc:
+        raise Refused(f"smoke result {p} unreadable") from exc
+    if d.get("smoke_version") != SMOKE_VERSION:
+        raise Refused(f"smoke result {p} is {d.get('smoke_version')}, not {SMOKE_VERSION}")
+    return (d.get("criteria") or {}).get(name) is True
+
+
+ERA_CRITERION = {"a": "receipts_v2", "b": "receipts_v2", "c": "receipts_v1"}
 
 
 def smoke_ok(path: Path, need: tuple[str, ...]) -> dict:
@@ -1243,7 +1282,10 @@ def sign_fetch_h10(root: Path, transport, post: Post, *, key: bytes, fp: str, ru
         smp = json.loads(sp.read_text())
     else:
         frame, _finfo = walk_frame(fr.lim, e0, e1, S0_MIN_VOLUME)
+        n_pyth = sum(1 for r in frame if r.get("pyth"))
+        frame = [r for r in frame if not r.get("pyth")]  # every Pyth-settled market is excluded by rule (also when the P frame stalled)
         frame, drops = c9.drop_by_keys(frame, ids, excl_keys)
+        drops["pyth_rule"] = n_pyth
         smp = []
         for r in sample_markets(frame, H10_SEED, n=len(frame)):
             w = h10_window(r, (e0, e1))
@@ -1338,6 +1380,8 @@ def declared() -> dict:
                     "min_volume": S0_MIN_VOLUME, "pages": S0_PAGES, "print_limit": PRINT_LIMIT,
                     "frame": f"Gamma closed and active, endDate >= window start, startDate < window end, volumeNum >= {S0_MIN_VOLUME:g}; end-date windows of "
                              f"{FRAME_SPLIT_DAYS} d (one window beyond 400 d), bisected on the offset cap down to {FRAME_MIN_WINDOW_S:g} s",
+                    "feed_side": "S0b: pmxt last_trade_price side by (tx, asset) for prints in [13Z, 14Z); 'unmatched' there without an event; 'not_measured' elsewhere (ruling (c))",
+                    "stall": "a failed smoke criterion for the stratum's era -> terminal not_run_source, label 'not testable (source)', exit 0 (M5)",
                     "s0c_drops": "CB7 q0141 key file (ids + event / neg-risk / series keys) + ids of every committed seal copy at q0181's start",
                     "s0a_drops": "none (section 1.3)", "s0b": f"{N_PRINTS_TARGET} K/D SCREEN prints, markets in seeded order, <= {PRINTS_PER_MARKET} per market; HOLDOUT refused",
                     "capped_market": "a market whose window is still full after 5 pages is unavailable (counted); no replacement market is drawn",
@@ -1351,11 +1395,13 @@ def declared() -> dict:
                      "gs_fail": "not testable (source); mapped results unverified; never inherited", "pooled": "descriptive only"},
         "smoke": {"version": SMOKE_VERSION, "receipts_per_era": SMOKE_RECEIPTS_PER_ERA, "min_decoded_t1_eq_t2": SMOKE_MIN_DECODED, "era_days": SMOKE_ERA_DAYS,
                   "markets_per_era": SMOKE_MARKETS_PER_ERA, "prints_per_market": SMOKE_PRINTS_PER_MARKET, "min_volume": SMOKE_MIN_VOLUME, "seed": SMOKE_SEED,
+                  "max_unavailable": SMOKE_MAX_UNAVAILABLE, "unavailable_rule": "more than 2 unavailable receipts in an era -> nothing written, exit 75 (M2)",
+                  "per_exchange": "matched and T1 = T2 counts per pinned exchange address, reported (M1)",
                   "yahoo": py.smoke_declared(), "network_failure": "nothing written, exit 75"},
         "s1": {"n_markets": H10_N_MARKETS, "window_h": H10_WINDOW_H, "max_receipt_prints": H10_MAX_RECEIPT_PRINTS, "seed": H10_SEED, "eras": H10_ERA,
                "pages": H10_PAGES, "origin_step_h": S1_ORIGIN_STEP_H, "feature_h": S1_FEATURE_H, "min_prints": S1_MIN_PRINTS, "target_h": S1_TARGET_H,
                "anchor_tol_s": S1_ANCHOR_TOL_S, "ratio": S1_RATIO, "lb_percentile": S1_LB_PERCENTILE,
-               "exclusions": "q0182 ids and keys + K/D frame (SCREEN and HOLDOUT) + P frame + S0a/S0b/S0c samples",
+               "exclusions": "q0182 ids and keys + K/D frame (SCREEN and HOLDOUT) + P frame + S0a/S0b/S0c samples + every market with a pythdata.app resolution source (by rule; a stalled P frame contributes no ids)",
                "rule": "pass iff R_hat >= 1.5 and the 1st percentile of 2,000 event-clustered draws > 1.5; beta_api <= 0 draws count as R <= 1.5"},
     }
 
@@ -1366,7 +1412,8 @@ def rule_funcs() -> tuple:
     return (declared, _keccak_f, keccak256, topic, topics, topic_pins_ok, require_topic_pins, httpx_post, RpcClient.__init__, RpcClient._pace, RpcClient.receipt,
             _words, _val, decode_static, decode_transfer_batch, _side_token_v1, _side_token_v2, decode_receipt, match_print, t1_of, t2_of, fill_type, yes_sign,
             price_band, classify_print, parse_print_s, windowed_prints_s, market_row, frame_windows, walk_frame, sample_markets, draw_prints, terciles, tercile_of,
-            _hasher, seal_copy_ids, s0_frame_and_sample, sign_audit, _print_rank_key, s0b_sample, _side_str, kd_s0b_input, smoke_receipts, smoke_ok, census_s, read_census_rows, s0_stratum, s0_screen,
+            _hasher, seal_copy_ids, s0_frame_and_sample, sign_audit, _print_rank_key, s0b_sample, _side_str, kd_s0b_input, feed_label, smoke_receipts, smoke_criterion,
+            smoke_ok, census_s, read_census_rows, s0_stratum, s0_screen,
             s1_units, _slope, s1_ratio, h10_exclusions, h10_window, sign_fetch_h10, hb._paged, hb.frame_row, c9.drop_by_keys,
             *py.smoke_rule_funcs())
 

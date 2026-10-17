@@ -438,3 +438,68 @@ def test_sign_rules_pin_fingerprint_and_roundtrip(tmp_path):
     d = json.loads(p.read_text())["declared"]
     assert d["topics"]["pins_ok"] is True and d["endpoints"]["order"] == list(sg.ENDPOINTS)
     assert d["smoke"]["yahoo"]["bar_clock"]["full_bars"] == 7
+
+
+# ---- freeze-check fixes (M1, M2, M5, ruling (c)) ---------------------------------------------------------------------------------
+
+
+class FakeLim:
+    def __init__(self, gamma, trades):
+        self.gamma, self.trades = gamma, trades
+
+    def get(self, url, params):
+        from astrolabe.research_lab import history_backfill as hb
+
+        if url == hb.GAMMA_MARKETS:
+            return 200, self.gamma(params)
+        return 200, self.trades(params)
+
+
+def _smoke_lim():
+    def gamma(params):
+        day = params["end_date_min"][:10]
+        return [{"id": f"{day}-{i}", "conditionId": f"c{i}", "clobTokenIds": json.dumps([str(YES), str(NO)]), "endDate": f"{day}T12:00:00Z",
+                 "startDate": "2025-12-01T00:00:00Z", "volumeNum": 50000, "events": [{"id": i}]} for i in range(10)]
+
+    def trades(params):
+        cid = params["market"]
+        return [{"timestamp": params["end"] - 10 * j, "outcomeIndex": 0, "side": "BUY", "size": 10.0, "price": 0.52, "asset": str(YES),
+                 "transactionHash": "0x" + f"{cid}{j}".encode().hex().rjust(64, "0"), "proxyWallet": W} for j in range(3)]
+
+    return FakeLim(gamma, trades)
+
+
+def test_smoke_receipts_per_exchange_counts():
+    rpc = sg.RpcClient(lambda u, p: (200, json.dumps({"result": v2_receipt_normal()}).encode()), sleep=lambda s: None)
+    res = sg.smoke_receipts(_smoke_lim(), rpc, KEY)["receipts"]
+    v2 = res["v2"]
+    assert v2["n_receipts"] == 20 and v2["by_exchange"][EX2] == {"matched": 20, "t1_eq_t2": 20} and v2["pass"]
+    assert v2["by_exchange"][sg.EXCHANGES_V2[0]]["matched"] == 0 and v2["exchanges_exercised"] == {sg.EXCHANGES_V2[0]: False, EX2: True}
+    assert not res["v1"]["pass"]  # v2 receipts in the v1 era do not count as T1 = T2 for that era
+
+
+def test_smoke_receipts_unavailable_is_not_failed():
+    rpc = sg.RpcClient(lambda u, p: (500, b""), sleep=lambda s: None)
+    with pytest.raises(c9.NotNow):
+        sg.smoke_receipts(_smoke_lim(), rpc, KEY)
+
+
+def test_sign_audit_stall_on_failed_criterion(tmp_path):
+    smoke = tmp_path / "smoke.json"
+    smoke.write_text(json.dumps({"smoke_version": sg.SMOKE_VERSION, "criteria": {"receipts_v1": False, "receipts_v2": True}}))
+    m = sg.sign_audit(tmp_path / "sign", "c", None, None, key=KEY, fp="0" * 16, rules_sha="x", smoke_path=smoke, now=c9.T_SEAL_EPOCH + 1)
+    assert m["status"] == c9.STALL_NOT_RUN_SOURCE and m["label"] == "not testable (source)" and m["complete"]
+    assert c9.stall_of(tmp_path / "sign" / "s0c")["status"] == c9.STALL_NOT_RUN_SOURCE
+    with pytest.raises(c9.Refused):  # a missing smoke result is still a refusal
+        sg.sign_audit(tmp_path / "sign", "a", None, None, key=KEY, fp="0" * 16, rules_sha="x", smoke_path=tmp_path / "none.json", now=c9.T_SEAL_EPOCH + 1)
+
+
+def test_s0b_feed_label_ruling_c():
+    from datetime import UTC, datetime
+
+    t13 = int(datetime(2026, 5, 4, 13, 20, tzinfo=UTC).timestamp())
+    t11 = int(datetime(2026, 5, 4, 11, 20, tzinfo=UTC).timestamp())
+    feed = {("0xa", "1"): "SELL"}
+    assert sg.feed_label({"ts": t13, "tx": "0xa", "asset": 1}, feed) == "SELL"
+    assert sg.feed_label({"ts": t13, "tx": "0xb", "asset": 1}, feed) == "unmatched"
+    assert sg.feed_label({"ts": t11, "tx": "0xa", "asset": 1}, feed) == "not_measured"

@@ -35,13 +35,14 @@ from . import provenance
 Refused = cm.Refused
 NotNow = cm.NotNow
 
-RULES_VERSION_SIGN = "cb9-sign-rules-v1"
-RULES_VERSION_PYTH = "cb9-rules-v1"
-RULES_VERSION_KD = "cb9-kd-rules-v1"
+RULES_VERSION_SIGN = "cb9-sign-rules-v2"  # v2: freeze-check M1-M5 (smoke per-exchange counts, unavailable != failed, paging reasons, stall statuses); v1 file kept
+RULES_VERSION_PYTH = "cb9-rules-v2"  # v2: M3-M6, M9-M11 (same-sentence equality flag, stall statuses, cap 14, Stage-2 outcomes and rule); v1 file kept
+RULES_VERSION_KD = "cb9-kd-rules-v2"  # v2: the shared cb9_common changes (and B's M7/M8) change the hashed functions; v1 file kept
 SEALS_DIR = cm.SEALS_DIR
-SIGN_RULES_FILE = SEALS_DIR / "cb9_sign_rules.json"
-PYTH_RULES_FILE = SEALS_DIR / "cb9_rules.json"
-KD_RULES_FILE = SEALS_DIR / "cb9_kd_rules.json"
+SIGN_RULES_FILE = SEALS_DIR / "cb9_sign_rules_v2.json"
+PYTH_RULES_FILE = SEALS_DIR / "cb9_rules_v2.json"
+KD_RULES_FILE = SEALS_DIR / "cb9_kd_rules_v2.json"
+V1_RULES_FILES = (SEALS_DIR / "cb9_sign_rules.json", SEALS_DIR / "cb9_rules.json", SEALS_DIR / "cb9_kd_rules.json")  # superseded, never rewritten
 DATA_DUMPS = cm.DATA_DUMPS
 CB9_DIR = cm.DATA_DUMPS / "research_lab" / "creative_batch9"
 HIST_ROOT = cm.HIST_ROOT
@@ -54,9 +55,9 @@ CB7_KEYS_DEFAULT = cm.DATA_DUMPS / "research_lab" / "creative_batch7" / "exclusi
 FREEZE_SPEC = Path(__file__).resolve().parent / "model_specs" / "cb9_v1.json"
 T_SEAL = "2026-10-22T00:00:00Z"
 T_SEAL_EPOCH = datetime(2026, 10, 22, tzinfo=UTC).timestamp()
-# Default of --data-dumps-cap-gb (orchestrator brief, 2026-10-17). The design's draft specs pass 13 explicitly (section 2.8); the default
-# is the lower (stricter) value so a job started without the argument refuses earlier, never later.
-DATA_DUMPS_CAP_GB = 12.5
+# Default of --data-dumps-cap-gb (freeze check M6, 2026-10-17): host data-dumps about 13.1 GiB, collector cap 16 GiB, 4 GB free-disk guard;
+# every CB9 draft passes 14 explicitly (section 2.8).
+DATA_DUMPS_CAP_GB = 14.0
 STAGE1_HOLM_FAMILY = ("P1", "P2", "K1", "D1", "S1")  # S0 is a measurement, not in the Holm family; S1 keeps its slot when not run
 BATCH_HOLM_K1 = len(STAGE1_HOLM_FAMILY)  # = 5, fixed whatever S0 says (round 1)
 BATCH_HOLM_ALPHA1 = 0.01
@@ -95,6 +96,38 @@ RULE_KINDS: dict[str, tuple[str, Path, str, bool]] = {
     "pyth": ("cb9_pyth", PYTH_RULES_FILE, RULES_VERSION_PYTH, False),
     "kd": ("cb9_kd", KD_RULES_FILE, RULES_VERSION_KD, True),
 }
+
+
+# ---- dependency-stall vocabulary (freeze check M5; shared with cb9_kd) -------------------------------------------------------------
+# A job whose input dependency ended in a declared non-testable state does NOT exit 2: it writes a terminal manifest (complete, status, label,
+# reason) and exits 0, so the queue never retries it. The census copies the label; the screens log the affected tests with p = 1, testable false.
+STALL_NOT_RUN_SOURCE = "not_run_source"  # a smoke criterion / source check failed for this job's source
+STALL_DISJOINTNESS = "disjointness_unverified"  # q0182 or a seal step: > 2% of exclusion ids without metadata
+STALL_UPSTREAM = "upstream_not_testable"  # an upstream job ended in one of the above (label copied from upstream)
+STALL_LABELS = {STALL_NOT_RUN_SOURCE: "not testable (source)", STALL_DISJOINTNESS: "not testable (disjointness unverified)"}
+STALL_STATUSES = (STALL_NOT_RUN_SOURCE, STALL_DISJOINTNESS, STALL_UPSTREAM)
+
+
+def write_stall(rdir: Path, status: str, reason: str, label: str | None = None) -> dict:
+    """Terminal stall manifest (``complete`` true, never retried). ``label`` defaults to the vocabulary's label of ``status``."""
+    if status not in STALL_STATUSES:
+        raise Refused(f"unknown stall status {status!r}")
+    lab = label or STALL_LABELS.get(status)
+    if not lab:
+        raise Refused(f"stall status {status!r} needs an explicit label (copied from upstream)")
+    m = {"status": status, "label": lab, "reason": reason[:300], "complete": True, "stopped": None, "terminal": True,
+         "written_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    cm.write_json_atomic(Path(rdir) / "manifest.json", m)
+    return m
+
+
+def stall_of(rdir: Path) -> dict | None:
+    """The terminal stall manifest of a run dir, or None."""
+    mp = Path(rdir) / "manifest.json"
+    if not mp.exists():
+        return None
+    m = json.loads(mp.read_text())
+    return m if m.get("status") in STALL_STATUSES else None
 
 
 # ---- refusals ----------------------------------------------------------------------------------------------------------------
@@ -209,7 +242,9 @@ def verify_rules(kind: str, path: Path | None = None, *, require_committed: bool
 def common_declared() -> dict:
     return {"t_seal": T_SEAL, "stage1": {"gate_p": GATE_P, "holm_family": list(STAGE1_HOLM_FAMILY), "batch_holm_k1": BATCH_HOLM_K1, "batch_holm_alpha": BATCH_HOLM_ALPHA1,
                                          "by_q": BY_Q, "by_family": "battery2.cumulative_count() at the run (triage only)"},
-            "stage2": {"alpha": STAGE2_ALPHA, "rule": "one Holm over all CB9 tests reaching Stage 2, each in its Stage-1 direction; k fixed when the last Stage-1 result is final"},
+            "stage2": {"alpha": STAGE2_ALPHA, "rule": STAGE2_RULE, "k": "derived in code (stage2_k) from results_P.json and results_KD.json"},
+            "stall": {"statuses": list(STALL_STATUSES), "labels": STALL_LABELS, "exit": 0, "screens": "p = 1, testable false"},
+            "results": "write-once: a screen / rep refuses to overwrite its results file and logs no second count line",
             "uncertainty": {"n_boot": N_BOOT, "seed_boot": SEED_BOOT, "n_wild": N_WILD, "small_g": "cb2_weather.small_g_pvalue per way; p = max over declared ways",
                             "min_units": MIN_UNITS, "min_clusters": MIN_CLUSTERS, "top_drop": TOP_DROP},
             "placebos": {"seeds": PLACEBO_SEEDS, "draws": PLACEBO_DRAWS, "max_advance_rate": PLACEBO_MAX_ADVANCE},
@@ -221,7 +256,8 @@ def common_declared() -> dict:
 
 def common_rule_funcs() -> tuple:
     return (refuse_run_id, refuse_path, refuse_read, require_after_t_seal, batch_holm_label, holm, cluster_p, cluster_bootstrap_means, top_k_drop_mask,
-            wilson_lower, rank, placebo_advance_rate, read_csv_gz_restricted, exclusion_keys, load_exclusion_keys, common_declared)
+            wilson_lower, rank, placebo_advance_rate, read_csv_gz_restricted, exclusion_keys, load_exclusion_keys, common_declared, write_stall, stall_of,
+            stage2_k, check_stage2_k, stage2_gate, write_results_once)
 
 
 # ---- freeze spec (analysis jobs) ---------------------------------------------------------------------------------------------
@@ -238,6 +274,54 @@ def require_freeze(spec_path: Path | None = None, *, require_committed: bool = T
         if not cb1_history.spec_committed(p):
             raise Refused(f"CB9 freeze spec {p} is not committed (or differs from HEAD)")
     return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+# ---- Stage 2 (freeze check M10: one rule for both families) ------------------------------------------------------------------------
+
+STAGE2_RULE = ("k = number of Stage-1 advances among P1, P2, K1, D1, fixed when results_P.json and results_KD.json are both final; each Stage-2 test is "
+               "judged when it finishes at the threshold alpha/k (one-sided alpha 0.05; strict p < alpha/k), in its Stage-1 direction, AND with the "
+               "section 2.4 floor on the point estimate, every binding placebo (advance rate <= 1.5% at the same threshold) and every binding robustness "
+               "check (section 2.6 'any advance or pass'; their p thresholds at alpha/k); the Holm step-down over the final Stage-2 p values is reported as "
+               "a label only")
+STAGE1_RESULTS = {"results_P.json": ("P1", "P2"), "results_KD.json": ("K1", "D1")}
+
+
+def stage2_k(results_dir: Path) -> dict:
+    """The Stage-2 Holm k derived from the Stage-1 results files (both required: k is fixed only when the last Stage-1 result is final; otherwise
+    :class:`NotNow`). Returns {"k", "advanced", "alpha_each"}."""
+    adv = []
+    for name, tests in STAGE1_RESULTS.items():
+        p = Path(results_dir) / name
+        if not p.exists():
+            raise NotNow(f"{name} not final: the Stage-2 k is fixed when the last Stage-1 result is final")
+        d = json.loads(p.read_text())
+        adv += [t for t in tests if isinstance(d.get(t), dict) and d[t].get("advance") is True]
+    k = len(adv)
+    return {"k": k, "advanced": adv, "alpha_each": STAGE2_ALPHA / k if k else None}
+
+
+def check_stage2_k(given: int | None, derived: dict) -> int:
+    """An explicit k (e.g. rep-kd --stage2-k) must equal the derived one; refusal otherwise."""
+    if given is not None and int(given) != derived["k"]:
+        raise Refused(f"--stage2-k {given} differs from the k derived from the Stage-1 results ({derived['k']}: {derived['advanced']})")
+    return derived["k"]
+
+
+def stage2_gate(derived: dict) -> float:
+    """The p threshold of an early-finishing Stage-2 test (alpha/k); refusal if nothing advanced (no Stage 2)."""
+    if not derived["k"]:
+        raise Refused("no Stage-1 advance: there is no Stage 2")
+    return float(derived["alpha_each"])
+
+
+def write_results_once(path: Path, doc: dict) -> str:
+    """Write-once results file (freeze check M11): refuses if it exists. Returns the results sha256 (the caller logs trial lines only after this)."""
+    p = Path(path)
+    if p.exists():
+        raise Refused(f"{p} exists: results are write-once and no second count line is logged")
+    sha = cm.sha_obj(doc)
+    cm.write_once_json(p, {**doc, "results_sha256": sha})
+    return sha
 
 
 # ---- field-restricted readers ----------------------------------------------------------------------------------------------------

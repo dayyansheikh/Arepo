@@ -21,7 +21,17 @@ ONLY: no edge, calibration or profitability claim.
 Exit codes: 0 ok / transient pause / idle heartbeat / declared end state; 1 error; 2 refusal (rules hash, key missing / unsafe / fingerprint, smoke
 not met or result exists, run id, refused root, declared argument changed, before T_seal for net-lane jobs, before the CB9 freeze for analysis jobs,
 HOLDOUT, guarded file, trigger not met); 4 disk budget (declared end state); 75 (EX_TEMPFAIL) data-dumps headroom, nothing due yet, or a network
-failure in the smoke (nothing written).
+failure in the smoke or more than 2 unavailable receipts in an era (nothing written).
+
+Dependency-stall vocabulary (freeze check M5; shared with cb9_kd through cb9_common.STALL_*; forward to B):
+    status "not_run_source"          label "not testable (source)"                  a smoke criterion / source check of THIS job failed
+    status "disjointness_unverified" label "not testable (disjointness unverified)" q0182 or a seal step: > 2% exclusion ids without metadata
+    status "upstream_not_testable"   label copied from the upstream manifest         an input job ended in one of the two states above
+  A stalled job writes a terminal manifest (complete true, status, label, reason; cb9_common.write_stall / stall_of) and exits 0; it is never
+  retried. The census copies the label per stratum / family; the screens log every affected test with p = 1, testable false. A MISSING smoke
+  result or an unfinished upstream job is still a refusal (2) / not-yet (75): only a declared end state stalls.
+Results files (screen, rep) are write-once (cb9_common.write_results_once): no overwrite, no second count line (M11).
+Stage 2 (M10): one rule for both families, cb9_common.STAGE2_RULE; k derived by cb9_common.stage2_k from results_P.json + results_KD.json.
 """
 
 from __future__ import annotations
@@ -238,8 +248,8 @@ def cmd_sign_audit(a):
                           seals_dir=Path(a.seals_dir) if a.seals_dir else None, is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed,
                           disk_cap=int(a.disk_cap_gb * 1024**3), s0b_input=(lambda: sg.kd_s0b_input(root)) if s == "b" else None, **kw)
         code, payload = _result(m)
-        out[s] = payload
-        if code or m.get("status") != "sign_audit_complete":
+        out[s] = {**payload, "label": m.get("label")}
+        if code or m.get("status") not in ("sign_audit_complete", *c9.STALL_STATUSES):
             return code, {"strata": out}
     return 0, {"strata": out}
 
@@ -325,11 +335,19 @@ def _kd_module():
 def census_s_block(root: Path) -> dict:
     from astrolabe.research_lab import cb9_sign as sg  # noqa: PLC0415
 
-    rows = {}
+    c9 = _c9()
+    rows, stalls = {}, {}
     for s in sg.STRATA:
-        p = root / "sign" / f"s0{s}" / "prints_classes.csv.gz"
+        rd = root / "sign" / f"s0{s}"
+        st = c9.stall_of(rd)
+        if st:
+            stalls[s] = st
+        p = rd / "prints_classes.csv.gz"
         rows[s] = sg.read_census_rows(p) if p.exists() else []
-    return sg.census_s(rows)
+    out = sg.census_s(rows)
+    for s, st in stalls.items():
+        out[s].update(gate_GS=False, label=st["label"], stall=st["status"], stall_reason=st.get("reason"))
+    return out
 
 
 def census_p_block(root: Path) -> dict:
@@ -337,7 +355,11 @@ def census_p_block(root: Path) -> dict:
     from astrolabe.research_lab import cb7_common as c7  # noqa: PLC0415
     from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
 
+    c9 = _c9()
     fdir, bdir = root / "pyth_frame", root / "pyth"
+    st = c9.stall_of(fdir) or c9.stall_of(bdir)
+    if st:
+        return {"status": st["status"], "stall_reason": st.get("reason"), "label_P1": st["label"], "label_P2": st["label"], "gate_GP_P1": False, "gate_GP_P2": False}
     if not (fdir / "frame.csv.gz").exists() or not (bdir / "states.csv.gz").exists():
         return {"status": "inputs missing", "label_P1": "not testable (source unavailable)", "label_P2": "not testable (source unavailable)"}
     fman = json.loads((fdir / "manifest.json").read_text())
@@ -373,14 +395,6 @@ def cmd_census(a):
 # ---- screens and labels ------------------------------------------------------------------------------------------------------------------------
 
 
-def _write_results(path: Path, doc: dict) -> str:
-    from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
-
-    sha = cm.sha_obj(doc)
-    cm.write_json_atomic(path, {**doc, "results_sha256": sha})
-    return sha
-
-
 def _p_inputs(root: Path, job: str, lag_s: int | None = None, stale: bool = False):
     from astrolabe.research_lab import cb7_common as c7  # noqa: PLC0415
     from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
@@ -399,6 +413,10 @@ def _p_inputs(root: Path, job: str, lag_s: int | None = None, stale: bool = Fals
 def screen_p_doc(root: Path, census: dict) -> dict:
     from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
 
+    c9 = _c9()
+    st = c9.stall_of(root / "pyth_frame") or c9.stall_of(root / "pyth")
+    if st:  # M5: the stall label is carried, both tests counted with p = 1
+        return {t: {"testable": False, "p": 1.0, "advance": False, "verdict": st["label"], "stall": st["status"]} for t in ("P1", "P2")}
     frame, bars, strikes, states, prints, outcomes, settle = _p_inputs(root, "screen-P")
 
     def y_of(u: dict, token: str):
@@ -438,14 +456,14 @@ def cmd_screen(a):
         _rules(a, "sign")
         rows = {s: list(_all_rows(root / "sign" / f"s0{s}" / "prints_classes.csv.gz")) for s in sg.STRATA}
         doc = sg.s0_screen(rows)
-        rsha = _write_results(Path(a.out) if a.out else root / "results_S0.json", doc)
+        rsha = c9.write_results_once(Path(a.out) if a.out else root / "results_S0.json", doc)
         c9.log_test("S", "S0", {"p": None, "advance": False, "testable": doc["testable"], "verdict": {s: v["verdict"] for s, v in doc["strata"].items()}},
                     trials_path=tp, results_sha256=rsha)
         return 0, {"status": "screen_S0_complete", "verdicts": {s: v["verdict"] for s, v in doc["strata"].items()}, "s1_triggered": doc["s1_triggered_eras"]}
     if fam == "P":
         sha, _ = _rules(a, "pyth")
         doc = {**screen_p_doc(root, census), "rules_sha256": sha}
-        rsha = _write_results(Path(a.out) if a.out else root / "results_P.json", doc)
+        rsha = c9.write_results_once(Path(a.out) if a.out else root / "results_P.json", doc)
         for tid in ("P1", "P2"):
             r = doc[tid]
             pl = r.get("placebo_breakeven") or r.get("placebo_label_swap")
@@ -456,7 +474,7 @@ def cmd_screen(a):
     if fam == "S1":
         _rules(a, "sign")
         doc = screen_s1_doc(root, Path(a.history_root) if a.history_root else None)
-        rsha = _write_results(Path(a.out) if a.out else root / "results_S1.json", doc)
+        rsha = c9.write_results_once(Path(a.out) if a.out else root / "results_S1.json", doc)
         c9.log_test("S", "S1", {"p": doc.get("p", 1.0), "advance": doc.get("advance"), "testable": doc.get("testable"), "effect": doc.get("r_hat"), "n": doc.get("n"),
                                 "verdict": doc.get("verdict")}, trials_path=tp, results_sha256=rsha)
         return 0, {"status": "screen_S1_complete", "verdict": doc.get("verdict"), "p": doc.get("p")}
@@ -514,6 +532,24 @@ def cmd_stage1_label(a):
     return 0, {"batch_holm": c9.batch_holm_label(pv), "note": "label only; not run / pending / not testable enter with p = 1; k1 = 5 fixed"}
 
 
+@_guarded
+def cmd_stage2_label(a):
+    """Holm step-down (one-sided alpha 0.05) over the final Stage-2 p values; a label only (each test was judged at alpha/k when it finished)."""
+    c9 = _c9()
+    root = _cb9_root(a)
+    der = c9.stage2_k(root)
+    pv = {}
+    for name, keys in (("results_P_rep.json", ("P1_rep", "P2_rep")), ("results_KD_rep.json", ("K1_rep", "D1_rep"))):
+        p = root / name
+        if p.exists():
+            d = json.loads(p.read_text())
+            for k in keys:
+                if isinstance(d.get(k), dict):
+                    pv[k] = float(d[k].get("p", 1.0)) if d[k].get("testable") else 1.0
+    pending = [f"{t}_rep" for t in der["advanced"] if f"{t}_rep" not in pv]
+    return 0, {"stage2": der, "holm": c9.holm(pv, c9.STAGE2_ALPHA) if pv else {}, "pending": pending, "note": "label only"}
+
+
 # ---- q0193 S1 fetch -------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -544,10 +580,20 @@ def cmd_sign_fetch(a):
     kd = _kd_module()
     if kd is None:
         raise c9.Refused("cb9_kd unavailable: the K/D frame ids are required for the h10 exclusions")
-    cb9_ids = {"kd_frame": _ids_of(root / kd.FRAME_RUN / kd.FRAME_FILE), "pyth_frame": _ids_of(root / "pyth_frame" / "frame_all.csv.gz")}
-    for s in ("a", "c"):
-        cb9_ids[f"s0{s}"] = {r["market_id"] for r in json.loads((root / "sign" / f"s0{s}" / "sample.json").read_text())["markets"]}
-    cb9_ids["s0b"] = {p["market_id"] for p in json.loads((root / "sign" / "s0b" / "s0b_drawn.json").read_text())}
+    # A source that ended in a declared stall contributes no ids (recorded); Pyth markets are excluded by rule in the fetch anyway.
+    srcs = {"kd_frame": (root / kd.FRAME_RUN, root / kd.FRAME_RUN / kd.FRAME_FILE, lambda p: _ids_of(p)),
+            "pyth_frame": (root / "pyth_frame", root / "pyth_frame" / "frame_all.csv.gz", lambda p: _ids_of(p)),
+            "s0a": (root / "sign" / "s0a", root / "sign" / "s0a" / "sample.json", lambda p: {r["market_id"] for r in json.loads(p.read_text())["markets"]}),
+            "s0c": (root / "sign" / "s0c", root / "sign" / "s0c" / "sample.json", lambda p: {r["market_id"] for r in json.loads(p.read_text())["markets"]}),
+            "s0b": (root / "sign" / "s0b", root / "sign" / "s0b" / "s0b_drawn.json", lambda p: {x["market_id"] for x in json.loads(p.read_text())})}
+    cb9_ids = {}
+    for name, (rdir, path, fn) in srcs.items():
+        if path.exists():
+            cb9_ids[name] = fn(path)
+        elif c9.stall_of(rdir):
+            cb9_ids[name] = set()
+        else:
+            raise c9.Refused(f"h10 exclusion source {name} missing ({path}) and not a declared stall")
     m = sg.sign_fetch_h10(Path(a.history_root) if a.history_root else c9.HIST_ROOT, hb.httpx_transport(), sg.httpx_post(), key=key, fp=fp, rules_sha=sha, era=era,
                           excl_ids=ids, excl_keys=keys, cb9_ids=cb9_ids, now=time.time(), disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
     return _result(m)
@@ -618,28 +664,38 @@ def cmd_pyth_live(a):
             return None
         return None if info["capped"] else [{k: p[k] for k in ("ts", "idx", "side", "price", "size")} for p in rows]
 
+    def outcome_get(ids: list[str]) -> list[dict]:  # guarded: written only to <session>/outcomes_guarded.csv.gz by the collector
+        st, rows = lim.get(hb.GAMMA_MARKETS, {"id": list(ids), "closed": "true", "limit": 50})
+        if st != 200 or not isinstance(rows, list):
+            raise cm.ApiError(f"gamma outcome status {st}")
+        return rows
+
     res = py.pyth_live_tick(ldir, now=time.time(), start_day=py.t9_p2_start(t_freeze), frame_markets=frame_markets, yahoo_get=yahoo_get, book_get=book_get,
-                            prints_get=prints_get)
+                            prints_get=prints_get, outcome_get=outcome_get)
     if res["status"] == "idle":
         return 0, cm.idle(ldir, "no Stage-2 step due", time.time())
     return 0, res
 
 
 def rep_p_doc(root: Path) -> dict:
+    """P1-rep / P2-rep under the shared Stage-2 rule (M10): k derived from the Stage-1 results, early-finisher threshold alpha/k, and the floor,
+    binding placebo and robustness checks evaluated at that threshold."""
     from astrolabe.research_lab import cb9_pyth as py  # noqa: PLC0415
 
     c9 = _c9()
-    res_p, res_kd = root / "results_P.json", root / "results_KD.json"
-    if not (res_p.exists() and res_kd.exists()):
-        raise c9.NotNow("Stage-2 Holm k is fixed when the last Stage-1 result is final (results_P.json and results_KD.json)")
-    dp, dk = json.loads(res_p.read_text()), json.loads(res_kd.read_text())
-    advanced = [t for t, d in (("P1", dp), ("P2", dp), ("K1", dk), ("D1", dk)) if (d.get(t) or {}).get("advance")]
-    k = len(advanced)
+    der = c9.stage2_k(root)
+    gate = c9.stage2_gate(der)
     t_freeze = _commit_epoch(c9.FREEZE_SPEC)
-    sessions = py.stage2_sessions(py.t9_p2_start(t_freeze)) if t_freeze else []
+    if t_freeze is None:
+        raise c9.Refused("CB9 freeze commit time unknown")
+    sessions = py.stage2_sessions(py.t9_p2_start(t_freeze))
     ldir = root / "pyth_live"
     frames = {d: json.loads((ldir / d / "frame.json").read_text()) for d in sessions if (ldir / d / "frame.json").exists()}
-    outcomes = {o["market_id"]: o for o in py.open_guarded(ldir / "outcomes_guarded.csv.gz", "rep-P")} if (ldir / "outcomes_guarded.csv.gz").exists() else {}
+    outcomes = {}
+    for d in sessions:
+        gp = ldir / d / "outcomes_guarded.csv.gz"
+        if gp.exists():
+            outcomes.update({o["market_id"]: o for o in py.open_guarded(gp, "rep-P")})
 
     def y_of(u: dict, token: str):
         o = outcomes.get(u["market_id"])
@@ -647,18 +703,15 @@ def rep_p_doc(root: Path) -> dict:
 
     units, status = py.live_units(ldir, sessions, frames)
     avail = py.stage2_availability(status, sessions)
-    out = {"stage2_k": k, "advanced_stage1": advanced, "alpha_each_early": c9.STAGE2_ALPHA / k if k else None, "availability": avail,
-           "label": "out-of-time replication on post-freeze sessions (L2)", "data_role": c9.DATA_ROLE_PROSP}
-    for tid, fn in (("P1", lambda: py.p1_stat(units, y_of)), ("P2", lambda: py.p2_stat(units, y_of))):
-        if tid not in advanced:
+    out = {"stage2": {**der, "threshold": gate, "rule": c9.STAGE2_RULE}, "availability": avail, "label": "out-of-time replication on post-freeze sessions (L2)",
+           "data_role": c9.DATA_ROLE_PROSP}
+    for tid, fn in (("P1", lambda: py.p1_stat(units, y_of, gate_p=gate)), ("P2", lambda: py.p2_stat(units, y_of, gate_p=gate))):
+        if tid not in der["advanced"]:
             continue
         if not avail["testable"]:
             out[f"{tid}_rep"] = {"testable": False, "p": 1.0, "advance": False, "verdict": avail["label"]}
             continue
-        r = fn()
-        thr = c9.STAGE2_ALPHA / k if k else 0.0
-        r["stage2_pass_early_alpha_over_k"] = bool(r.get("testable") and r.get("p", 1.0) <= thr and (r.get("mean_cents") or 0) > 0)
-        out[f"{tid}_rep"] = r
+        out[f"{tid}_rep"] = {**fn(), "stage2_threshold": gate}
     return out
 
 
@@ -673,13 +726,13 @@ def cmd_rep(a):
     sha, _ = _rules(a, "pyth")
     root = _cb9_root(a)
     doc = {**rep_p_doc(root), "rules_sha256": sha}
-    rsha = _write_results(Path(a.out) if a.out else root / "results_P_rep.json", doc)
+    rsha = c9.write_results_once(Path(a.out) if a.out else root / "results_P_rep.json", doc)
     tp = Path(a.trials_path) if a.trials_path else None
     for tid in ("P1", "P2"):
         r = doc.get(f"{tid}_rep")
         if r is None:
             continue
-        c9.log_test("P", f"{tid}-rep", {"p": r.get("p", 1.0), "advance": r.get("stage2_pass_early_alpha_over_k"), "testable": r.get("testable"),
+        c9.log_test("P", f"{tid}-rep", {"p": r.get("p", 1.0), "advance": r.get("advance"), "testable": r.get("testable"),
                                         "effect": r.get("mean_cents"), "n": r.get("n"), "verdict": r.get("verdict")}, replication=True, trials_path=tp,
                     results_sha256=rsha, data_role=c9.DATA_ROLE_PROSP)
     return 0, {"status": "rep_P_complete", "tests": [k for k in ("P1_rep", "P2_rep") if k in doc]}
@@ -811,6 +864,10 @@ def build_parser() -> argparse.ArgumentParser:
     q = sub.add_parser("stage1-label", help="batch-Holm label over P1, P2, K1, D1, S1 (k1 = 5)")
     common(q)
     q.set_defaults(fn=cmd_stage1_label)
+
+    q = sub.add_parser("stage2-label", help="Holm label over the final Stage-2 p values (k derived from the Stage-1 results)")
+    common(q)
+    q.set_defaults(fn=cmd_stage2_label)
 
     q = sub.add_parser("sign-fetch", help="q0193")
     common(q)

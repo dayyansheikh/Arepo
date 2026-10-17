@@ -49,7 +49,7 @@ def test_kd_dispatch():
 
 def test_defaults():
     a = run_cb9.build_parser().parse_args(["pyth-frame"])
-    assert a.data_dumps_cap_gb == 12.5 == c9.DATA_DUMPS_CAP_GB
+    assert a.data_dumps_cap_gb == 14.0 == c9.DATA_DUMPS_CAP_GB
     assert c9.BATCH_HOLM_K1 == 5 and c9.STAGE1_HOLM_FAMILY == ("P1", "P2", "K1", "D1", "S1")
 
 
@@ -235,3 +235,36 @@ def test_real_trials_log_still_counts():
     assert battery2.cumulative_count()["total"] >= 1131
     for k in ("cb9_test", "cb9_replication", "cb9_descriptive"):
         assert battery2.KIND_RULES[k][0] == battery2.EXCLUDE
+
+
+# ---- freeze-check fixes (M5, M11) ---------------------------------------------------------------------------------------------------
+
+
+def test_census_carries_stall_labels(monkeypatch, capsys, tmp_path):
+    root = tmp_path / "creative_batch9"
+    c9.write_stall(root / "sign" / "s0c", c9.STALL_NOT_RUN_SOURCE, "smoke receipts_v1 failed")
+    c9.write_stall(root / "pyth_frame", c9.STALL_NOT_RUN_SOURCE, "smoke yahoo_clock failed")
+    monkeypatch.setattr(run_cb9, "_kd_module", lambda: None)
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "t.jsonl")], capsys)
+    assert code == 0
+    doc = json.loads((root / "census.json").read_text())
+    assert doc["S"]["c"]["label"] == "not testable (source)" and doc["S"]["c"]["stall"] == c9.STALL_NOT_RUN_SOURCE
+    assert doc["P"]["label_P1"] == "not testable (source)" and doc["P"]["gate_GP_P1"] is False
+
+
+def test_screen_p_stall_logs_p1_and_results_write_once(capsys, tmp_path):
+    root = tmp_path / "creative_batch9"
+    c9.write_stall(root / "pyth_frame", c9.STALL_NOT_RUN_SOURCE, "smoke yahoo_clock failed")
+    (root / "census.json").write_text("{}")
+    spec = tmp_path / "cb9_v1.json"
+    spec.write_text("{}")
+    rules = c9.write_rules("pyth", tmp_path / "r.json")
+    tp = tmp_path / "t.jsonl"
+    argv = ["screen", "--family", "P", "--root", str(root), "--freeze-spec", str(spec), "--allow-uncommitted-rules", "--rules", str(rules), "--trials-path", str(tp)]
+    code, out = _run(argv, capsys)
+    assert code == 0 and out["P1"]["p"] == 1.0
+    lines = [json.loads(x) for x in tp.read_text().splitlines()]
+    assert {x["hypothesis"] for x in lines if x["kind"] == "cb9_test"} == {"P1", "P2"} and all(x["p"] == 1.0 for x in lines if x["kind"] == "cb9_test")
+    n = len(lines)
+    code, out = _run(argv, capsys)
+    assert code == 2 and "write-once" in out["refused"] and len(tp.read_text().splitlines()) == n
