@@ -2,8 +2,9 @@
 
 `evidence_role: exploratory_historical` (CH63 Stage 1 on the fresh `h8_text` fetch; CH61 on the fresh `h8_geo` census;
 CH73 Stage 1 on the worn C1 cross-venue pairs plus newly fetched prints) / `prospective` (CH63 and CH73 Stage 2, on data
-collected after the CB7 freeze) | status: **DRAFT for challenger review; not frozen.** Last updated 2026-10-17 06:04
-UTC+1 (2026-10-17T05:04Z).
+collected after the CB7 freeze) | status: **REVISED after challenger round 1 (ACCEPT_WITH_REQUIRED_CHANGES); not
+frozen.** Last updated 2026-10-17 UTC+1 (round-1 response; see §9). Every round-1 change tightens or discloses; no
+threshold, floor or gate was relaxed.
 
 This file turns CH63, CH61 and CH73 from `CREATIVE_HYPOTHESES_2026-10-17.md` (round 3, ranks 5, 8 and 4) into declared,
 falsifiable tests, and records why CH67 (rank 7) is dropped. It follows `CREATIVE_BATCH_6.md` (CB6) in structure and
@@ -15,8 +16,8 @@ and freeze-check fixes.
   one exception is the pair of `T_seal`-bound fetches `h8_text` and `h8_geo` and their rules file** (§1.4), fixed by
   this document so that they can run before `T_seal` = 2026-10-22T00:00Z, before any CB7 analysis code exists.
 - Queue specs are drafts in `queue/drafts/` (§4). None is in `queue/jobs/`.
-- **Queue numbering.** CB7 uses **q0140-q0155, one id per job, no letter suffixes**; q0156-q0159 are reserved for CB7
-  renumbering in a challenger round. No CB7 id shares a numeric prefix with a committed or drafted spec (checked against
+- **Queue numbering.** CB7 uses **q0140-q0156, one id per job, no letter suffixes** (q0156, the text-edit audit, was
+  added in challenger round 1 from the reserved range); q0157-q0159 stay reserved for CB7 renumbering. No CB7 id shares a numeric prefix with a committed or drafted spec (checked against
   `queue/jobs/` and `queue/drafts/` at drafting).
 
 ## 0. Summary, selection and scope
@@ -34,7 +35,7 @@ and freeze-check fixes.
 
 | Id | Job | Family | Earliest commit |
 |---|---|---|---|
-| q0140 | `cb7_smoke` (geopolitics tag id, Data API windowed-print semantics, fidelity-60 history; counts only) | F | after the smoke code exists and `seals/cb7_text_geo_rules.json` is committed |
+| q0140 | `cb7_smoke` (geopolitics tag id; Data API windowed-print bounds, ordering and coverage; counts only; no CLOB history) | F | after the smoke code exists and `seals/cb7_text_geo_rules.json` is committed |
 | q0141 | `cb7_exclusion_keys` (event / neg-risk / series keys of the h1/h2/h3/h5/h5_ladders ids) | F | with q0140 |
 | q0142 | `h8_text_fetch` (`T_seal`-bound) | F (S) | after the fetcher freeze check, rules file, q0140 PASS, headroom record |
 | q0143 | `h8_geo_fetch` (`T_seal`-bound) | F (G) | as q0142 |
@@ -50,6 +51,7 @@ and freeze-check fixes.
 | q0153 | `cb7_xv_pairlist` (fresh pair candidates by the frozen matcher, titles only) | F (X) | only if X1 advanced; at `T7_X_list` |
 | q0154 | `cb7_xv_rep_fetch` (Kalshi candles, Polymarket history and prints for the frozen fresh pairs) | F (X) | after `T7_X_rep_end` + 2 h |
 | q0155 | `cb7_rep_X` (X1-rep, Stage 2) | X | after q0154 |
+| q0156 | `cb7_text_edit_audit` (on-chain initialization text vs current description, 200 seeded `h8_text` units; text-stability gate for S1; round 1) | S | after q0144 and the CB7 freeze; before q0148 |
 
 ### 0.2 Selection and scope
 
@@ -100,7 +102,7 @@ Crypto "Up or Down" is excluded from S (templated rules, no text variation).
 | Dataset | Prior use | Role in CB7 | Evidence ceiling |
 |---|---|---|---|
 | `history/h8_text` (**new**, q0142; seeded sample of up to 18,000 binary Yes/No markets with scheduled `end_at` in `[2025-04-01, T_fetchT − 7 d]`; Gamma frame **with `description`**, event ids, `negRiskMarketID`, series ids; one windowed taker-print request per market before its origin; outcomes only in `outcomes_guarded.csv.gz`) | none | **CB7-S Stage 1 only.** Whole sample, no split (§CB7-S explains why) | L1 |
-| `history/h8_geo` (**new**, q0143; geopolitics tag 100265, every closed or ended-unclosed market with `end_at` in `[2025-06-01, T_fetchG − 7 d]`, life ≥ 9 d, ≤ 8 markets per event; hourly prices around ≤ 3 origins; print-existence checks; guarded outcomes) | none (the 2026-10-17 count probe read metadata counts only) | **CB7-G only** | L1 |
+| `history/h8_geo` (**new**, q0143; geopolitics tag 100265, every closed or ended-unclosed market with `end_at` in `[2025-06-01, T_fetchG − 7 d]`, life ≥ 9 d, ≤ 8 markets per event after the filters; all tag ids, event title and `fee_category` stored; one windowed taker-print request per origin (price and eligibility; **no CLOB history**); guarded outcomes) | none (the 2026-10-17 count probe read metadata counts only) | **CB7-G only** | L1 |
 | `cross_venue/series/*.npz` + `matches.json` (C1: 316 pairs, 183 events, 517,616 usable steps; 149 sports) | cross-venue v1, r1 (20-test BY family twice), E009 design, CB5-K | **CB7-X Stage 1**, read-only. Worn for the lead itself; L1 ceiling | L1 |
 | `research_lab/creative_batch7/xv_prints/` (**new**, q0146; taker prints of the 316 Polymarket legs over each pair's study window; no wallet stored) | none | **CB7-X Stage 1 fills** | L1 |
 | `cb7_extract/textorig/` (**new** extractor table, pass step from `T7_S_rep_start`; §5.3) plus `creative_batch7/text_rep/` (q0151) | none | **CB7-S Stage 2**: markets whose scheduled end is 7 days after a complete capture, with recorded touch, sidecar fee schedule and `description` fetched in the same pass | L2 (out-of-time, post-freeze) |
@@ -118,8 +120,7 @@ Crypto "Up or Down" is excluded from S (templated rules, no text variation).
 | `T7_draft` | 2026-10-17T05:04Z | First draft. No CB7 quantity computed (the geo count probe is §0.2) |
 | `T_seal` | 2026-10-22T00:00Z | SB2's h4 seal boundary. `h8_text` and `h8_geo` rows are capped at `min(T_fetch, T_seal)` and each fetch **must be complete before `T_seal`** (no chunk starts at or after it); otherwise `not_run_deadline` (no seal, no analysis, no refetch, cap unchanged; the dependent test is "not run (deadline)", p = 1, counted) |
 | `T_fetchT`, `T_fetchG` | request clocks of the two frame walks, pinned in each manifest (expected 2026-10-18..20) | data end and administrative censoring of each fetch |
-| `T7_mac_fallback` | **2026-10-20T00:00Z** | If q0142 or q0143 has not started on the host by then, the identical command runs on the Mac (§2.8). Both fetches then finish by about 2026-10-20T06:00Z, about 30 h before the latest safe time |
-| `T7_latest_safe` | 2026-10-21T12:00Z | Latest start of either fetch anywhere (host or Mac); later → recorded `not_run_deadline` at `T_seal` |
+| `T7_latest_safe` | 2026-10-21T12:00Z | Latest useful host start of either fetch (about 2.4 h and 45 min of work). **No Mac fallback (round 1, item 6):** a fetch not complete at `T_seal` is recorded `not_run_deadline`, honestly, and its test is "not run (deadline)", p = 1, counted |
 | `T7_S_rep_start` | **max(2026-10-30T00:00Z, first complete capture ≥ CB7 freeze commit + 2 h, first capture ≥ 2 h after the `textorig` pass step is deployed)**, pinned in a committed file | first CB7-S Stage-2 origin |
 | `T7_S_rep_end` | `T7_S_rep_start` + 21 d | last origin (exclusive) |
 | `T7_S_out` | `T7_S_rep_end` + 7 d + 14 d | outcome read for Stage 2 (scheduled ends ≤ `T7_S_rep_end` + 7 d, plus 14 d of resolution lag; still unresolved → censored, worst case binding) |
@@ -130,9 +131,10 @@ Crypto "Up or Down" is excluded from S (templated rules, no text variation).
 
 ### 1.3 Sealed and untouched data (named)
 
-- **Refused run ids and roots.** `run_cb7.py` refuses `h2_main`, `h3_power`, `h4_seal`, `h5_cb1`, `h5_cb1_ladders`,
+- **Refused run ids and roots.** `run_cb7.py` refuses `h1_first`, `h2_main`, `h3_power`, `h4_seal`, `h5_cb1`, `h5_cb1_ladders`,
   `h6_weather`, `h7_cb4_era`, `h7_cb4_series`, `h8_tail`, every path under `cb1_extract/` to `cb6_extract/`,
-  `cb3_followup/`, `cb6_followup/`, `cross_venue_live/` and `surprise_live/`.
+  `cb3_followup/`, `cb6_followup/`, `cross_venue_live/` and `surprise_live/`. (Round 1: `h1_first` added. The only
+  files read from h1/h2/h3 are the sha256-pinned `sample.csv.gz` id lists, by q0141.)
 - **SEALED-H8T and SEALED-H8G.** `h8_text` and `h8_geo` are fetched and sealed (manifest, per-file sha256, listing
   sha256) before any CB7 analysis. Seal copies `docs/research_lab/seals/h8_text_SEAL.json` and `h8_geo_SEAL.json` are
   committed before q0147. Every reader verifies the listing hash and appends to `ACCESS_LOG.jsonl` (as CB1 SEALED-H5).
@@ -147,7 +149,9 @@ Crypto "Up or Down" is excluded from S (templated rules, no text variation).
   **and** by event / neg-risk / series key (light Gamma lookup by id, ≤ 2 rps, parse guard as above):
   - both: drop markets of `h8_tail` (ids from the committed `seals/h8_tail_SEAL.json`) and of `h7_cb4_era` /
     `h7_cb4_series` (committed seal copies). A run recorded `not_run_deadline` has nothing to drop;
-  - `h8_text` only: also drop markets sharing an id or key with the `h8_geo` frame. `h8_geo` keeps priority because it
+  - `h8_text` only: also drop markets sharing an id or key with the **full `h8_geo` tag frame as walked, before any
+    filter or cap** (`h8_geo/frame.csv.gz`; round 1, item 4), so a tagged market removed from `h8_geo` by a filter or
+    the cap still cannot enter `h8_text`. `h8_geo` keeps priority because it
     is a census, and `h8_text` already excludes geopolitics by category before sampling.
   Drops are recorded as `DROPPED_*` blocks in the sealed listing (sealed files are never edited) and counted.
   Why at event level: markets of one event share their outcome, so a market-disjoint but event-shared unit is not
@@ -197,7 +201,7 @@ on `model_specs/cost_regimes_v1.json`**:
 |---|---|
 | S1 | mechanism; no cost |
 | S2 (Stage 2 only) | buy NO at the **recorded** NO ask `a = 1 − best_bid(YES)` of the origin capture; taker fee `f(a) = r·a·(1 − a)` with `r` from the capture's sidecar `fee_schedule` under `fee_policy="conservative"` (max of schedule and docs table); `net = (1 − Y) − a − f(a)` per share; capital `a + f(a)`; held to resolution |
-| G1 | buy YES at the modelled ask `a = min(m + half_spread(m), 0.999)`; `f(a) = r·a·(1 − a)` with `r = max(CB1 conservative docs rate for the market's fee_category, the cost-register rate if a register is committed when q0149 runs)`; which applied is recorded. Geopolitics is 0 in the docs table; an unknown category takes CB1's conservative 0.07 (at a = 0.05 that is 0.33c) |
+| G1 | buy YES at the modelled ask `a = min(m + half_spread(m), 0.999)`; **one fee rule, fixed now (round 1, item 5):** `f(a) = r·a·(1 − a)` with `r = economics.DOCS_CATEGORY_RATE[fee_category]` under CB1's conservative policy (geopolitics 0.0, `economics.py:41`; unknown or `other:*` 0.07, at a = 0.05 that is 0.33c), applied to every date. No cost register is read. **Binding spread robustness:** G1 recomputed with `a = m + max(half_spread(m), h_geo)`, where `h_geo` is the median half-spread `(ask − bid)/2` of geopolitics markets (`fee_category == "geopolitics"` or `topic_of == "geopolitics"`) with YES mid in [0.02, 0.10] over the complete captures in `[2026-10-22T00:00Z, 2026-10-25T00:00Z)`, measured by the census (q0147; spreads only, no outcomes); it must keep net > 0 and G1's p threshold |
 | X1 | per filled share, the resting maker's mark-out at a recorded print price (below) **plus the rebate the skip forgoes**, `ρ_cat · r_cat · p(1 − p)` for prints on or after 2026-03-30, else 0. Adding the forgone rebate makes X1 harder to pass |
 | Binding cost robustness | +0.75c against the route on every modelled or bought leg (S2: on `a`; G1: on `a`); X1: the alternative mark (§CB7-X) instead of a cost shift |
 
@@ -210,15 +214,19 @@ As CB1 §2.2 and CB6 §2.2:
 - Kalshi candles are usable at their `end_ts`; the maker reacts at `end_ts + 120 s` (CH73's receipt-equivalent lag,
   the E009 design's 2-minute rule).
 - Capture rows use their own `received_utc`.
-- `closed_time` / Gamma `closedTime` is never a population condition or an anchor. "Open at `t`": a usable price point
-  at `t` (G) or a print in `[t − 7 d, t)` and a print-based price in the band (S); the price paths of closed markets stop
-  at resolution, so a resolved market fails these conditions without reading `closed_time`.
+- `closed_time` / Gamma `closedTime` is never a population condition or an anchor. It is **kept in the frame as a
+  status field** (round 1, item 3). "Open at `t`" (S and G): a print in `[t − 7 d, t)` and a print-based price in the
+  band. **This does not exclude every resolved market** (the draft's claim was false): a market resolved at `t − 3 d`
+  still has prints in `[t − 7 d, t)`. Its last prints usually sit near 0 or 1 and fall outside the band, but not
+  always. Hence the binding sensitivity below for S1 and G1, and the census counts units with `closed_time < t`.
 - **Scheduled-end look-ahead (disclosed).** `end_at` is Gamma `endDate` read at `T_fetch`. S and G anchor origins on it
   (`end_at − k d`). If Gamma rewrote `endDate` on early resolution, an early-YES market would get origins just before
   its event, biasing G1 **towards** the hypothesis. CB1 found that Gamma keeps the scheduled date (CB1 §6 risk 4). The
   census reports the share of frame markets with `|closed_time − end_at| < 1 h` and with `closed_time < end_at − 7 d`
-  (status counts, not outcomes); G1 carries a binding sensitivity that drops markets with `closed_time < end_at − 2 d`
-  (sign and p threshold must hold).
+  (status counts, not outcomes) and the number of eligible units with `closed_time < t` (S: `t7`; G: each `t_k`).
+  **S1 and G1 both carry a binding sensitivity** that drops markets with `closed_time < end_at − 2 d` (this removes
+  every unit resolved before its origin, since all origins are ≤ `end_at − 7 d`, and every early resolution that a
+  rewritten `endDate` could hide); the sign and the p threshold must hold.
 
 ### 2.3 Uncertainty and decision rule
 
@@ -315,8 +323,14 @@ judged on the p threshold alone (floors off; G1 keeps its inverted tail gate, a 
   threshold (per test);
 - (vi) S1: the estimate restricted to units with a print in the last 24 h before the origin has β's sign and ≥ half its
   magnitude (staleness of print-based prices);
-- (vii) G1: the end-date sensitivity of §2.2;
-- (viii) X1: latency 300 s instead of 120 s keeps the sign and ≥ half the magnitude.
+- (vii) S1 and G1: the `closed_time < end_at − 2 d` drop sensitivity of §2.2 (round 1, item 3, extended to S1);
+- (viii) X1: latency 300 s instead of 120 s keeps the sign and ≥ half the magnitude;
+- (ix) G1: the measured-spread robustness of §2.1 (round 1, item 5);
+- (x) G1: the **tag-and-topic subset** (markets carrying tag 100265 **and** with `history_topics.topic_of(question,
+  event_title, slug, fee_category) == "geopolitics"`) keeps G1's sign and p threshold (round 1, item 2). *Alternative
+  guarded:* the venue's tag sweeps in markets that are not geopolitical discrete events (sports diplomacy, elections,
+  economics), so an effect in the tagged set could belong to another category;
+- (xi) S1: the **text-stability gate** of §CB7-S (on-chain initialization-text audit) is met.
 
 Reported, not binding: the S tercile contrast, per-marker coefficients, S1 including clarification-marked markets and
 including sports, S1 at the 1-day origin (Stage 2 only, where captures give it free), G1 with status-quo questions,
@@ -332,15 +346,23 @@ loss is computed.**
 - **S (h8_text):** frame and sample counts by stratum; key drops by type, unverified share; seal drops (h8_tail, h7,
   h8_geo); clarification-marked share by topic; censored share (status at `T_fetchT`); eligible units by topic × band;
   C distribution and cut points by topic; prevalence of each marker; within-cell SD of C; `|closed_time − end_at|`
-  counts (§2.2). **Gate GS:** ≥ 3,000 eligible units, ≥ 1,000 event × resolution-week clusters, ≥ 300 series/event
+  counts and units with `closed_time < t7` (§2.2); **share of descriptions longer than the 4,000 stored characters**
+  (markers are computed on the full text, round 1, item 1); **text-only design effect** of S1 (below); the S1 MDE from
+  these counts. **Gate GS:** ≥ 3,000 eligible units, ≥ 1,000 event × resolution-week clusters, ≥ 300 series/event
   clusters, within-cell SD of C ≥ 0.5. Fail → S1 "not testable" (counted).
 - **G (h8_geo):** frame counts, per-event cap effects, exclusions by reason (continuous class, status quo, Other
   placeholder, keys, seal drops), eligible units by origin and band, event clusters, themes with ≥ 1 unit, expected YES
-  `Σ m` (a price, not an outcome). **Gate GG:** ≥ 300 eligible units, ≥ 100 event clusters, ≥ 15 theme clusters and
+  `Σ m` (a price, not an outcome); units with `closed_time < t_k`; **tag-only share** (tagged markets whose `topic_of`
+  is not geopolitics) and the eligible units in the tag-and-topic subset; `h_geo`, the measured median half-spread of §2.1
+  (captures `[2026-10-22T00:00Z, 2026-10-25T00:00Z)`, spreads only). **Gate GG:** ≥ 300 eligible units, ≥ 100 event clusters, ≥ 15 theme clusters and
   `Σ m ≥ 15`. Fail → G1 "not testable" (counted). (The ≥ 10 YES-cluster rule is applied at analysis, §CB7-G.)
 - **X (C1 + prints):** pairs and days fetched, capped days, prints per pair; Kalshi move events by sign; prints in S, S'
   and neither (**counts only**); event and date clusters with ≥ 1 S print. **Gate GX:** ≥ 2,000 S prints, ≥ 300 skip
   windows with ≥ 1 S print, ≥ 30 event clusters and ≥ 30 UTC dates with S prints (non-sports). Fail → X1 "not testable".
+- **S1 design effect, text only (round 1, should-fix).** `deff_S = 1 + (m̄ − 1)·ρ_C`, with `m̄` the mean units per
+  cluster and `ρ_C` the intraclass correlation of the cell-demeaned C within series/event clusters (the larger of the two
+  ways). This takes the outcome's within-cluster correlation as 1, an upper bound, and reads no outcome. The S1 MDE is
+  recomputed with it.
 - MDEs recomputed from these counts (never used to change a floor, window or threshold).
 
 ### 2.8 Compute, network, disk and stop rules
@@ -355,20 +377,17 @@ loss is computed.**
   - q0142 `h8_text` (61, `--budget-min 85`): about 9k frame requests (5 windows a day over about 555 days, closed and
     ended-unclosed walks) + 18k print requests (1 per sampled market) ≈ **27k requests, about 1.9 h at 4 rps, about
     2.4 h wall (2 chunks)**; output ≤ 0.15 GB; RAM ≤ 0.8 GB (streamed frame, as CB6);
-  - q0143 `h8_geo` (60, `--budget-min 85`): about 80 tag-walk requests, then per market 2 hourly-price requests and a
-    print-existence check only for origins in the band (about 1 per market) ≈ **12k requests, about 50 min, about
-    1.1 h wall (1 chunk)**; output ≤ 0.05 GB.
-  Total ≈ 40k requests, **about 3.7 h wall**. At priority 61 with higher ids, q0141/q0142 yield to every earlier
-  `T_seal`-bound job at each chunk boundary (ties broken by ascending id, `queue_worker.py`); q0143 at 60 runs after
-  q0142 completes. Expected host run 2026-10-18..19 if the code is ready; the h7/h8_tail fetches refuse above their own
-  data-dumps caps, which may free the lane earlier.
-- **Mac fallback (as CB6 §2.8, same mechanics).** If q0142 or q0143 has not **started** on the host by
-  `T7_mac_fallback` = 2026-10-20T00:00Z, the coordinator runs the identical command (same committed rules file, seeds,
-  windows and cap) on the Mac with `--standalone --rps 3 --root ~/arepo_scratch/<run>`, exclusion files pulled read-only
-  and sha256-checked; a host partial run is set aside unmerged (`*_host_partial_abandoned/`, `ABANDONED.json`); the
-  sealed directory is uploaded to an `arepo-data` release, which is the canonical copy; one read location is fixed at
-  seal. At 3 rps both fetches take about 4.5 h, so they end by about 2026-10-20T05:00Z. Latest safe start anywhere
-  2026-10-21T12:00Z.
+  - q0143 `h8_geo` (61, `--budget-min 85`): about 80 tag-walk requests, then **one windowed taker-print request per
+    origin** (about 3,300 markets × about 2.3 origins; price and eligibility from the same request, no CLOB history)
+    ≈ **8k requests, about 35 min, about 45 min wall (1 chunk)**; output ≤ 0.05 GB.
+  Total ≈ 36k requests, **about 3.2 h wall**. q0140-q0143 sit at 61-62, the top `T_seal`-bound band (round 1, item 6:
+  keep them high); with higher ids, q0141-q0143 yield at chunk boundaries to the earlier `T_seal`-bound jobs (ties
+  broken by ascending id, `queue_worker.py`), and q0143 follows q0142. Expected host run 2026-10-18..19 if the code is
+  ready; the h7/h8_tail fetches refuse above their own data-dumps caps, which may free the lane earlier.
+- **No Mac fallback (round 1, item 6).** The Mac runs no background jobs and its data-dumps were retired, so a Mac run
+  would breach the data-location and memory-heavy-job rules. If a fetch is not complete before `T_seal`, it is recorded
+  `not_run_deadline` and its test "not run (deadline)", p = 1, counted. **The real schedule risk is the code and the
+  fetcher freeze check**, so q0140-q0143 come first in §8 and the fetch code is kept to the declared minimum (§5.1).
 - **Deadline mechanics** as CB6 q0120: no chunk starts at or after `T_seal`; incomplete at `T_seal` → `NOT_RUN_DEADLINE.json`
   and status `not_run_deadline`.
 - **Disk guard.** Host data-dumps was 9.9 GB at 2026-10-17T04:45Z, growing about 0.95 GB a day; 8-day snapshot deletion
@@ -414,7 +433,8 @@ uses a six-word class regex over the question, not condition counts, on `h8_tail
 **Data (q0142; spec §4).** `h8_text`: frame `frame-v2-random-windows` with **5 random 15-minute windows per day** (seeded
 `arepo-h8-text`, drawn independently of any market attribute) over scheduled `end_at` in `[2025-04-01, T_fetchT − 7 d]`,
 closed walk and ended-unclosed walk (censored units are kept and counted), capped windows dropped and counted, frame rows
-with `description` (first 4,000 characters), `event_ids`, `neg_risk_market_id`, `series_ids`, outcome labels; outcome
+with `description` (first 4,000 characters stored, **plus the full text's character length and sha256**; round 1,
+item 1), `event_ids`, `neg_risk_market_id`, `series_ids`, outcome labels, `closed_time` as a status field; outcome
 prices only in `outcomes_guarded.csv.gz`. The window is about 18 months; its start was not chosen from any outcome.
 
 **Population (frozen frame, before sampling).** Outcome labels exactly `["Yes", "No"]`; scheduled life
@@ -436,7 +456,10 @@ smoke). From the returned prints, mapped to YES terms (BUY YES at p, or SELL NO 
   related to C unless the side mix differs by C (checked by (vi) and reported by C tercile).
 
 **Text features (fixed now; computed by the fetch from frame text only, before any print request, and stored in
-`text_features.csv.gz` whose sha256 enters the manifest).** Lowercased text unless stated; seven marker types, each
+`text_features.csv.gz` whose sha256 enters the manifest).** **Every marker and the clarification rule are evaluated on
+the FULL description as returned by Gamma, in memory, before the stored copy is truncated to 4,000 characters** (round 1,
+item 1: a marker or clarification after character 4,000 must not be missed); `text_features.csv.gz` carries the full
+length and sha256 next to M1-M7, C and the clarification flag. Lowercased text unless stated; seven marker types, each
 counted present (1) or absent (0):
 
 | Type | Text | Pattern |
@@ -478,13 +501,33 @@ none), which absorbs shared templates. p = max over the two (small-G rule).
 cell median, else 0); β must stay > 0 and keep p < 0.01. Unavailable print requests: same assignment if they would have
 been eligible by C alone (they enter with the cell-median price).
 
-**MDE (assumptions; census replaces).** 18,000 sampled × about 0.9 after seal drops × about 0.31 eligible ≈ 5,000 units;
-`sd(g | cell)` ≈ 0.39 (mean `m(1 − m)` ≈ 0.15); within-cell `sd(C)` ≈ 1.2; design effect ≈ 1.5. SE(β) ≈ 0.39 / (1.2 ×
-√5,000) × √1.5 ≈ 0.56c. **Stage-1 MDE ≈ 1.8c per marker** (z 2.33 + 0.84), about 4c across the extreme terciles. The 1.0c
-floor is below the MDE: Stage 1 detects only a strong discount, which is why it uses the whole sample (a 50/50
-SCREEN/HOLDOUT split would give about 2.5c per block and about 8% end-to-end power for a 1.4c effect). Stage 2: up to
-120 units per capture × about 250 captures, about 50% eligible, ≈ 15,000 units, SE ≈ 0.32c, **Stage-2 MDE ≈ 1.0c** (Holm z
-up to 2.39 + 0.84).
+**MDE (assumptions; the census replaces them, including a text-only design effect, §2.7).** 18,000 sampled × about 0.9
+after seal drops × about 0.31 eligible ≈ 5,000 units; `sd(g | cell)` ≈ 0.39 (mean `m(1 − m)` ≈ 0.15); within-cell
+`sd(C)` ≈ 1.2. SE(β) ≈ 0.39 / (1.2 × √5,000) × √deff. With the draft's deff 1.5 the MDE was 1.8c per marker; **round 1
+(should-fix): templated series make C strongly clustered, so the working design effect is about 3, SE ≈ 0.80c and
+the Stage-1 MDE ≈ 2.5c per marker** (z 2.33 + 0.84), about 5-6c across the extreme terciles. The census's
+`deff_S = 1 + (m̄ − 1)·ρ_C` (an upper bound that reads no outcome) replaces this figure. The 1.0c floor is far below the
+MDE: Stage 1 detects only a strong discount, which is why it uses the whole sample (a 50/50 SCREEN/HOLDOUT split would
+put each block near 3.5c and end-to-end power for a 1.4c effect under 5%). Stage 2: up to 120 units per capture × about
+250 captures, about 50% eligible, ≈ 15,000 units; with deff 3, SE ≈ 0.46c, **Stage-2 S1 MDE ≈ 1.5c** (Holm z up to 2.39
++ 0.84). **S2 MDE (round 1, item 7):** the high-C group is about one third of Stage-2 units, ≈ 5,000; per-share net of a
+NO buy at mid-range recorded asks has SD ≈ 0.42; design effect ≈ 3 (events and templates); SE ≈ 0.42 × √3 / √5,000 ≈
+1.03c; **S2 MDE ≈ 3.3c per share** at the first Holm step (z 2.39 + 0.84), about 3.0c at the last (z 1.96 + 0.84),
+against a 1.0c floor. S2 can confirm only a large absolute mispricing in the high-C group.
+
+**Text-stability gate (binding for any S1 advance; round 1, should-fix, declared now, code later).** Gamma's `description`
+is the current text. Before q0148 runs, `q0156_cb7_text_edit_audit` draws a seeded subsample (`arepo-cb7-uma-audit`) of
+200 eligible, clarification-unmarked `h8_text` units and, for each, reads the text posted on chain at market creation:
+the `ancillaryData` of the UMA CTF adapter's question-initialization event for the market's `questionID` (keyless
+Polygon RPC; adapter address and event topic pinned from Polymarket's contracts page at implementation, not from
+memory). It computes C on the decoded initialization text with the same M1-M7 (M4 on the question within it) and
+compares with C on the current description. No outcome, price or print is read.
+- **Metric:** the share of audited units whose C differs between the two texts.
+- **Gate:** the one-sided 95% Wilson upper bound of that share must be ≤ **0.10**. If more than 20% of the 200 cannot
+  be retrieved or decoded, the gate is "unverified" and S1 **cannot advance** (an unverified gate never counts as met).
+- The audit is `cb7_descriptive` (not counted) and its result is committed before q0148 runs. It does not change C,
+  the population or any threshold; a failed gate only blocks S1's advance, which is then recorded "not advanced (text
+  unstable)", still counted.
 
 **Stage 2 (registered only if S1 advanced; data collected from `T7_S_rep_start` regardless, analysis refused otherwise).**
 - `textorig` pass step (§5.3): at each complete capture with `received_utc = r`, binary Yes/No markets with
@@ -501,7 +544,8 @@ up to 2.39 + 0.84).
   origin capture, fee from the capture's sidecar, `net = (1 − Y) − a − f(a)`. Capacity reported (sweep `bid_size_1` of YES
   where swept). Depth-checked subset (sweep `bid_size_1 ≥ 5`) reported. Censored at `T7_S_out` → NO loses (binding).
 
-**What would kill CH63.** GS fails; disjointness unverified; S1 not detected at MDE; the calibrated-null placebo advances;
+**What would kill CH63.** GS fails; disjointness unverified; the text-stability gate fails or is unverified; S1 not
+detected at MDE; the calibrated-null placebo advances;
 the censoring worst case flips β; β holds only with clarification-marked markets or only in sports; the effect fails out of
 time (Stage 2); S2 ≤ 0 at recorded asks after fees or the +0.75c robustness.
 
@@ -525,29 +569,39 @@ carry, not a contrast.
 **Data (q0143).** `h8_geo`: Gamma `/markets?tag_id=100265` (slug `geopolitics`, pinned; the smoke must resolve the slug to
 this id) with `closed=true`, and with `closed=false` for markets already past their scheduled end (censored, counted), in
 monthly `end_date` windows over `[2025-06-01, T_fetchG − 7 d]`, a window split into halves while capped (still capped at one
-day → excluded and counted). The start date is the idea text's "since 2025-06", taken without adjustment. **Disclosed:** the
+day → excluded and counted). **Stored for every walked market (round 1, item 2):** all tag ids returned for the market and
+its event, the event title, `fee_category`, question, slug, ids and keys, `created_at`, `end_at`, `closed_time` (status
+field) and outcome labels; outcome prices only in `outcomes_guarded.csv.gz`. The full walked frame (`frame.csv.gz`, before
+any filter or cap) is kept: it is the set `h8_text`'s seal drops against (§1.3). The start date is the idea text's "since
+2025-06", taken without adjustment. **Disclosed:** the
 drafting author knows the major geopolitical events of 2025-26 (for example the June 2025 Israel-Iran strikes); no window,
 theme or rule was set around any of them, and the theme clustering and the without-top-5-events robustness bind precisely
 because one war can dominate.
 
-**Population (frozen, before any price or print request).**
+**Population (frozen, before any print request). Order (round 1, item 4): (1) the filters below, (2) the exclusion-key
+drop, (3) the per-event cap on what remains, (4) origins; seal drops (h8_tail, h7) come after, at seal.**
 - Outcome labels `["Yes", "No"]`; life `end_at − created_at ≥ 9 d`; not a neg-risk "Other"/placeholder member; no exclusion
   id or key.
 - **Continuous class excluded:** question matches CB6's `class_c` list (`\bprice\w*`, `\btemperature\w*`, `\bscore\w*`,
   `\bpoll\w*`). The idea concerns discrete decisions; within geopolitics nearly every other question is a discrete event.
 - **Status-quo questions excluded** (YES = "nothing happens"): question matches `\bnot\b`, `\bremain\w*`, `\bstill\b`,
   `\bstay\w*`, `\bsurviv\w*`, `\bcontinu\w*`, `\bwithout\b`. Counted; G1 including them is reported.
-- **Per-event cap:** at most 8 markets per Gamma event (first event id), the first 8 in `sha256("arepo-h8-geo|" +
-  market_id)` order; recorded. Reason: 66 events have ≥ 20 members (count probe); they are one cluster each and would
-  consume the request budget without adding independent outcomes.
-- Expected size: about 5,050 tagged markets with life ≥ 9 d, about 3,800 after the cap, about 3,200 after exclusions and
-  drops (assumption; census replaces).
+- **Per-event cap (applied after the filters and the key drop):** at most 8 of an event's remaining markets (first
+  event id), the first 8 in `sha256("arepo-h8-geo|" + market_id)` order; recorded. Reason: 66 events have ≥ 20 members
+  (count probe); they are one cluster each and would consume the request budget without adding independent outcomes.
+- Expected size: about 5,050 tagged markets with life ≥ 9 d (count probe), about 4,300 after the filters and key drop,
+  about 3,300 after the cap, slightly fewer after seal drops (assumption; census replaces). The draft's MDE text implied
+  cap-first; the order above is the declared one.
 
-**Origins and units.** `t_k = end_at − k d`, k ∈ {30, 14, 7}, each kept iff `t_k ≥ created_at + 2 d`. Prices: two
-fidelity-60 `prices-history` requests per market (`[t30 − 3 h, t30]` and `[t14 − 3 h, t7]`, each inside the 14-day limit).
-Unit (market, origin) eligible iff: a usable hourly point at `t_k` (§2.2; this is also "open at `t_k`"); YES price
-`m ∈ [0.02, 0.10]`; and ≥ 1 print in `[t_k − 7 d, t_k)` (one request `limit=1, end=t_k − 1`, made only for in-band
-origins; failure → unavailable, counted). Outcome Y = YES payout (1, 0, 0.5) from the guarded file.
+**Origins and units.** `t_k = end_at − k d`, k ∈ {30, 14, 7}, each kept iff `t_k ≥ created_at + 2 d`. **Prices from Data
+API prints, not CLOB history (round 1, new information: CB6's fidelity-60 smoke returned < 50% of hourly points for 16 of
+20 worn 2025 markets).** One request per origin, `/trades?market=<cid>&start=t_k − 7 d&end=t_k − 1&takerOnly=true&limit=50`,
+exactly as S: eligible iff ≥ 1 print in `[t_k − 7 d, t_k)`; `m` = size-weighted YES-terms VWAP of the prints in
+`[t_k − 24 h, t_k)`, else the latest print's YES price; eligible iff `m ∈ [0.02, 0.10]`. If more than 2% of origin
+requests fail after retries, G1 is "not testable (source)", counted; otherwise failed origins are excluded and counted.
+Disclosed: at longshot prices buyers usually lift the ask, so a print-based `m` sits above the mid, and the modelled ask
+`m + half_spread(m)` then double-counts part of the spread. Both push G1 **against** the hypothesis. Outcome Y = YES payout
+(1, 0, 0.5) from the guarded file.
 
 **G1 statistic.** `net = Y − a − f(a)` per unit (§2.1); **G1 = mean net**, test > 0. `R_ann` with hold from `t_k` to the
 resolution mark (censored excluded; floor `max(d, 1)`).
@@ -569,7 +623,9 @@ half); `π* = mean(a + f(a))`. The one-sided **lower** bound on `π` (99%; Wilso
 the event-cluster bootstrap) must exceed `π* + 0.005`. **G1 additionally needs ≥ 10 YES event clusters;** fewer → "not
 testable" (p = 1, counted; fewer YES events can never make G1 easier).
 
-**Worst cases (binding).** Censored units → Y = 0. Unavailable print checks → the unit is added with Y = 0.
+**Worst cases and sensitivities (binding).** Censored units → Y = 0. The `closed_time < end_at − 2 d` drop (§2.2), the
+measured-spread robustness (§2.1) and the **tag-and-topic subset** (§2.6 (x): tagged and `topic_of(question, event title)
+== "geopolitics"`) must each keep G1's sign and p threshold.
 
 **MDE (from the count probe plus assumptions; census replaces).** About 3,200 markets × about 2.3 usable origins × about
 23% in band with a recent print ≈ 1,700 units in about 900 markets and about 500 event clusters; mean price about 5.5%, so
@@ -577,10 +633,13 @@ testable" (p = 1, counted; fewer YES events can never make G1 easier).
 1.2c. **MDE ≈ 3.5-4c** at one-sided α = 0.01 (z 2.33 + 0.84), and about 4.3c at the batch-Holm first step (z 2.71).
 Reading: a longshot at 5c whose true YES rate is 10% gives net ≈ 5c − 1.8c ≈ 3.2c, so **G1 can detect roughly a doubling
 of the YES rate over the price, not less.** The ≥ 10 YES-cluster rule is expected to hold (about 35-40 YES events if
-prices are calibrated).
+prices are calibrated). **This low power is accepted only because q0143 is cheap** (about 8k requests, 45 minutes, ≤ 0.05
+GB, no new code beyond the shared print request); a costlier fetch for this power would not be justified (round 1,
+should-fix).
 
 **What would kill CH61.** GG fails; G1 not detected at MDE; the break-even placebo advances; the inverted tail gate fails;
-the effect needs the top five events or one theme; the censoring or end-date worst case flips it.
+the effect needs the top five events or one theme; the censoring or end-date worst case flips it; it does not hold on the
+tag-and-topic subset or at the measured spread.
 
 **Verdict map.** G1 meets the batch Holm and every gate → "geopolitics YES longshots paid at modelled asks on 2025-06 to
 2026-10 data (single-stage historical screen, L1)" → Stage P-G registration (months). Otherwise → "not detected at MDE ≈ x".
@@ -636,8 +695,12 @@ maker still loses: no route".
 **Clustering.** Polymarket event and UTC date of the print; p = max (small-G rule).
 
 **Worn-data disclosure.** The 10-20 minute lead, the 10-minute change and the C1 audit were all found on these pairs, so
-the conditioning rule is in-sample. Stage 1 is "worn pairs, new prints, L1 at most". The Stage-2 read on fresh pairs is the
-first clean test.
+the conditioning rule is in-sample. Stage 1 is "worn pairs, new prints, L1 at most" and **is a gate for Stage 2, not
+evidence** (round 1, should-fix). The Stage-2 read on fresh pairs is the first clean test.
+- **Lead-implied X1 (reported with Stage 1).** X1 splits exactly into the spread the maker captured,
+  `mean_S(side·(p − M(s)))`, and the price drift against the maker, `mean_S(side·(M(s) − M(s + 3,600)))`. The drift part is
+  what the known lead implies (Polymarket moving toward Kalshi after the move); the spread part is new. Both are reported,
+  so a reader can see whether X1 adds anything beyond the published lead.
 
 **MDE (assumptions; census replaces).** 167 non-sports pairs, about 20 usable days each, about 150 prints a pair-day,
 about 15% of prints in S → about 75k S prints in about 10k skip windows and about 95 events. With between-event spread of
@@ -653,6 +716,10 @@ event means ≈ 1.5c, SE ≈ 0.15-0.3c, **MDE ≈ 0.5-1.0c**, near the 0.5c floo
 - q0154 at `T7_X_rep_end` + 2 h: Kalshi 1-minute candles (`fetch_k_candles`), Polymarket fidelity-10 history and daily
   print pages for `[T7_X_rep_start, T7_X_rep_end)`.
 - X1-rep: identical definitions, lag, window, mark, sets, clustering and gates.
+- **History-density rule for the mark (declared now, after CB6's history smoke failure).** A pair-day whose Polymarket
+  fidelity-10 history has < 50% of the expected points is unavailable (all its prints excluded, counted). If more than 30%
+  of pair-days are unavailable, X1-rep is "not testable (source)", counted. The alternative mark (two-sided print midpoint)
+  stays a robustness check, never a substitute.
 
 **What would kill CH73.** GX fails; X1 not detected; the time-shift placebo advances; the effect needs the top five events;
 the 300-s latency or the alternative mark removes it; X1-rep fails out of time.
@@ -665,13 +732,20 @@ avoided adverse fills out of time (L2)" → Stage P-X. Attribution fails → "a 
 
 ### CB7-F: Data jobs
 
-- **Smoke (q0140, counts only, before q0142/q0143 are committed).** (a) slug `geopolitics` → id; PASS iff it equals the
-  pinned 100265. (b) 20 worn markets (seeded `arepo-cb7-smoke` from the h1/h2/h3 exclusion ids with `end_at` in 2025): one
-  `/trades?market&start&end&takerOnly=true&limit=50` request each; PASS iff in ≥ 18 every returned row has
-  `start ≤ ts ≤ end` and rows are newest-first. (c) the same 20: one fidelity-60 `prices-history` request over a 7-day
-  window ending 2 days before `end_at`; PASS iff ≥ 18 return ≥ 80% of expected hourly points with median spacing
-  3,600 ± 300 s. Writes `creative_batch7/smoke.json` (counts only, under the rules hash). FAIL in (a) or (b) → the
-  affected fetch is not committed; a changed source is a design change needing review; the deadline is not moved.
+- **Smoke (q0140, counts only, before q0142/q0143 are committed; round 1: no CLOB history anywhere in CB7's
+  `T_seal`-bound fetches, after CB6's fidelity-60 smoke failed on 2026-10-17).** Worn smoke markets: 200 candidates drawn
+  (seed `arepo-cb7-smoke`) from the h1/h2/h3 exclusion ids, looked up on Gamma by id (≤ 4 requests; parse guard keeps
+  `end_at` and `volumeNum` only), keeping those with `end_at` in 2025 and lifetime volume ≥ $10,000; the first 20 in seed
+  order are used. Criteria, all fixed before any smoke run:
+  - (a) slug `geopolitics` resolves to the pinned id 100265;
+  - (b) one `/trades?market&start=end_at − 14 d&end=end_at − 7 d − 1&takerOnly=true&limit=50` request per smoke
+    market: **every** returned row satisfies `start ≤ ts ≤ end` and rows are newest-first, over **≥ 10 non-empty**
+    responses;
+  - (c) **coverage:** ≥ 14 of the 20 return ≥ 1 print. A priori these are markets with ≥ $10k lifetime volume one week
+    before their end, so most should trade in a 7-day window; 14/20 tolerates thin or front-loaded markets.
+  - Writes `creative_batch7/smoke.json` (counts only, under the rules hash). **On FAIL** of (a), q0143 is not committed;
+    of (b) or (c), neither q0142 nor q0143 is committed. A source change is a design change needing review; the deadline
+    is not moved, and a fetch not complete before `T_seal` is `not_run_deadline` (S1 and/or G1 "not run", counted).
 - **Exclusion keys (q0141).** As CB6 q0120 stage 1 (Gamma lookup by id, ≤ 50 ids per request, `closed=true` retry, parse
   guard ids/keys only). Writes `creative_batch7/exclusion_keys.csv.gz` and `exclusion_report.json`; both fetches pin its
   sha256 in their manifests.
@@ -696,15 +770,15 @@ commit records the data-dumps headroom (§2.8).
 
 | Id | File | Lane | Priority | Size / time | Depends on | Commit when |
 |---|---|---|---|---|---|---|
-| q0140 | `q0140_cb7_smoke.json` | net | 62 | ~60 req, < 5 min | - | rules file committed, smoke code reviewed |
+| q0140 | `q0140_cb7_smoke.json` | net | 62 | ~30 req, < 5 min | - | rules file committed, smoke code reviewed |
 | q0141 | `q0141_cb7_exclusion_keys.json` | net | 61 | ~850 req, ~6 min, ≤ 0.01 GB | q0140 | with q0140 |
 | q0142 | `q0142_h8_text_fetch.json` | net | 61 | ~27k req, ~2.4 h wall (85-min chunks, repeat ≤ 6), ≤ 0.15 GB | q0140, q0141 | fetcher freeze check + smoke PASS; **must finish before `T_seal`** |
-| q0143 | `q0143_h8_geo_fetch.json` | net | 60 | ~12k req, ~1.1 h wall (repeat ≤ 4), ≤ 0.05 GB | q0140, q0141 | as q0142 |
+| q0143 | `q0143_h8_geo_fetch.json` | net | 61 | ~8k req, ~45 min wall (repeat ≤ 4), ≤ 0.05 GB | q0140, q0141 | as q0142 |
 | q0144 | `q0144_h8_text_seal.json` | cpu | 58 | light; ≤ 2 rps key lookups | q0142, q0143 | after `T_seal` and the h8_tail / h7 seal copies (or their `not_run_deadline` records) |
 | q0145 | `q0145_h8_geo_seal.json` | cpu | 58 | light | q0143 | as q0144 |
 | q0146 | `q0146_cb7_xv_prints_fetch.json` | net | 45 | ~8k req, ~40 min, ≤ 0.25 GB | - | after `T_seal` |
 | q0147 | `q0147_cb7_census.json` | cpu | 40 | ≤ 1.2 GB RAM | q0144, q0145, q0146 | after the seal copies are committed |
-| q0148 | `q0148_cb7_screen_S.json` | cpu | 38 | ≤ 1.2 GB | q0147 | after the CB7 freeze |
+| q0148 | `q0148_cb7_screen_S.json` | cpu | 38 | ≤ 1.2 GB | q0147, q0156 | after the CB7 freeze and the committed q0156 audit result |
 | q0149 | `q0149_cb7_screen_G.json` | cpu | 38 | ≤ 0.8 GB | q0147 | after the CB7 freeze |
 | q0150 | `q0150_cb7_screen_X.json` | cpu | 38 | ≤ 1.5 GB | q0147 | after the CB7 freeze |
 | q0151 | `q0151_cb7_text_rep_fetch.json` | cpu | 41 | ≤ 15k req over ~6 weeks at 2 rps (rolling every 6 h), ≤ 0.03 GB | - | at the freeze, with the `textorig` pass step |
@@ -712,6 +786,7 @@ commit records the data-dumps headroom (§2.8).
 | q0153 | `q0153_cb7_xv_pairlist.json` | net | 44 | ~6-9k req, ~1 h at 2 rps | q0150 | only if X1 advanced; at `T7_X_list` |
 | q0154 | `q0154_cb7_xv_rep_fetch.json` | net | 41 | ~5k req, ≤ 0.10 GB | q0153 | after the pair list is committed; refuses before `T7_X_rep_end` + 2 h |
 | q0155 | `q0155_cb7_rep_X.json` | cpu | 38 | ≤ 1.5 GB | q0154 | with q0154 |
+| q0156 | `q0156_cb7_text_edit_audit.json` | cpu | 39 | ~200-600 Polygon RPC + ~4 Gamma req at ≤ 2 rps, ≤ 0.01 GB | q0144 | after the CB7 freeze; result committed before q0148 |
 
 ## 5. Code needed (not written by this document)
 
@@ -731,7 +806,9 @@ commit records the data-dumps headroom (§2.8).
 - `backend/astrolabe/research_lab/cb7_geo.py` (CH61 and the `h8_geo` fetch)
   - `geo_walk(tag_id, months)` (split while capped), `geo_filters(...)` (labels, life, `class_c`, status-quo, Other,
     keys), `event_cap(frame, 8, seed)`, `geo_origins(created_at, end_at)`, `theme_of(question, event_title)`.
-  - Fetch side: `geo_fetch(...)` (two price requests per market, print checks only for in-band origins), `geo_seal(...)`.
+  - Fetch side: `geo_fetch(...)` (stores all tag ids, event title, `fee_category`, `closed_time`; filters → key drop →
+    cap → origins; one windowed print request per origin via the shared `origin_prints` helper; no CLOB history),
+    `geo_seal(...)`.
   - Analysis: `g1_units`, `g1_net(units, fee_rule)`, `inverted_tail_gate(...)` (Wilson on n/deff; ≥ 10 YES clusters),
     `breakeven_g1(...)`, `end_date_sensitivity(...)`, `theme_tables(...)`.
 - `backend/astrolabe/research_lab/cb7_xv.py` (CH73)
@@ -752,13 +829,13 @@ commit records the data-dumps headroom (§2.8).
 
 ### 5.2 Runner
 
-`backend/scripts/run_cb7.py {rules,smoke,exclusion-keys,text-fetch,geo-fetch,text-seal,geo-seal,xv-prints,census,screen,
-text-rep-fetch,replicate,xv-pairlist,xv-rep-fetch,verify-seal} --family S|G|X`.
+`backend/scripts/run_cb7.py {rules,smoke,exclusion-keys,text-fetch,geo-fetch,text-seal,geo-seal,xv-prints,census,
+text-edit-audit,screen,text-rep-fetch,replicate,xv-pairlist,xv-rep-fetch,verify-seal} --family S|G|X`.
 - Refuses the run ids and roots of §1.3; writes only under `research_lab/creative_batch7/`, `research_lab/cb7_extract/`,
   `history/h8_text/` and `history/h8_geo/` (fetch and seal only).
 - `text-fetch` / `geo-fetch` refuse unless the rules hash matches, every exclusion file matches its pin, the exclusion-key
   file exists, `smoke.json` records PASS under the same rules hash, the clock is before `T_seal`; exit 75 on headroom;
-  `--standalone` for the Mac fallback.
+  no Mac or standalone mode (round 1, item 6).
 - Declaration-hash guard on `census`, `screen`, `replicate`. `replicate --family S` refuses before `T7_S_out` or
   without a committed Stage-1 S results file with S1 advanced; `replicate --family X` refuses before `T7_X_rep_end` + 2 h
   or without the committed pair list. Every counting command runs the `trials.jsonl` union first and records the
@@ -809,15 +886,16 @@ text-rep-fetch,replicate,xv-pairlist,xv-rep-fetch,verify-seal} --family S|G|X`.
 | **Total** | **3 fixed + ≤ 3 conditional = 3-6** | | cumulative ≥ 1,121 at drafting → ≥ 1,124-1,127 |
 
 **Host compute.** About 2-3 CPU-hours at nice 19 in total. Peak RAM 1.5 GB (X screen). **Network:** before `T_seal`
-about 40k requests (about 3.7 h wall on `net`); after `T_seal` about 8k (C1 prints), ≤ 15k rolling over six weeks
+about 36k requests (about 3.2 h wall on `net`); after `T_seal` about 8k (C1 prints), ≤ 15k rolling over six weeks
 (Stage 2 S), about 11-14k for the fresh pairs. **Disk:** ≤ 0.61 GB across all CB7 outputs.
 
 ## 7. Main scientific risks
 
-1. **Calendar (S, G).** Both fetches must finish before `T_seal` on a congested lane and under a data-dumps guard. The
-   Mac fallback at `T7_mac_fallback` bounds this; a miss is "not run (deadline)", counted.
-2. **Power (S, G).** Stage-1 S1 detects about ≥ 1.8c per marker (about 4c across terciles); G1 only about a doubling of
-   the YES rate. Nulls are "not detected at MDE".
+1. **Calendar (S, G).** Both fetches must finish before `T_seal` on a congested lane and under a data-dumps guard, and
+   first the fetch code must pass its freeze check. There is no fallback host; a miss is "not run (deadline)", counted.
+   A smoke FAIL on print coverage stops both fetches (CB6's CLOB-history smoke already failed on 2026-10-17).
+2. **Power (S, G).** Stage-1 S1 detects about ≥ 2.5c per marker (about 5-6c across terciles; census replaces); S2 about
+   3c per share; G1 only about a doubling of the YES rate. Nulls are "not detected at MDE".
 3. **Current text (S Stage 1).** Descriptions are current; clarification-marked markets are excluded and unmarked
    post-event edits remain possible. Direction of the remaining bias is unknown (an edit after a surprise can add or remove
    conditions). Stage 2 stores text at the origin.
@@ -836,9 +914,8 @@ about 40k requests (about 3.7 h wall on `net`); after `T_seal` about 8k (C1 prin
 
 ## 8. Next actions
 
-1. **Challenger review (now).** One `science-reviewer` pass on this draft (one challenge, one response, then proceed),
-   with priority on the `T_seal`-bound parts: §1.3-§1.4, §CB7-S data/population/text features, §CB7-G population and
-   origins, §CB7-F smoke, §2.8 sizing and fallback. Open questions for the challenger:
+1. **Challenger review: done** (round 1, §9; one challenge, one response, no second round). The open questions put to
+   the challenger were:
    - S1 as a single historical stage plus an out-of-time prospective Stage 2, instead of a same-calendar SCREEN/HOLDOUT
      split (power argument in §CB7-S): acceptable?
    - The slope primary instead of the idea's tercile contrast; the two declared marker deviations (M4 on the question,
@@ -849,16 +926,68 @@ about 40k requests (about 3.7 h wall on `net`); after `T_seal` about 8k (C1 prin
      status-quo regex: acceptable?
    - X1's skipped-fill mark-out as the economic statistic, with the route gate on kept fills: is anything missing that
      would let X1 pass when the skew rule does not pay?
-2. **Implementer (immediately after the review, `T_seal`-bound first).** Write `seals/cb7_text_geo_rules.json` via
-   `run_cb7.py rules`; `cb7_text.py` / `cb7_geo.py` fetch sides, `run_cb7.py smoke | exclusion-keys | text-fetch |
-   geo-fetch | text-seal | geo-seal`, tests (§5.4, fetch parts); run the smoke locally against public endpoints (counts
-   only). Reuse `cb6_tail.py` primitives rather than copying.
-3. **Freeze check (fetchers only).** `science-reviewer` checks the fetch code and rules file against §1.3-§1.4, §CB7-S,
-   §CB7-G and §CB7-F. Then commit the rules file and copy q0140-q0143 to `queue/jobs/` (headroom recorded), deploy. If
-   q0142/q0143 have not started on the host by 2026-10-20T00:00Z, run the Mac fallback.
+2. **Implementer, now (`T_seal`-bound; exactly what q0140-q0143 need, nothing else):**
+   - `seals/cb7_text_geo_rules.json`, generated by `run_cb7.py rules` (rules_sha256 + source hash of every rule function;
+     exclusion pins identical to CB6's; tag slug/id 100265; seeds; windows; M1-M7; CB6 clarification strings and note
+     pattern; `class_c`; status-quo list; theme map; bands; cut rule; cap 8 and its seed; smoke criteria);
+   - `cb7_common.py` (or functions in `cb7_text.py`): `origin_prints(cid, t)` (one `/trades` request, `start = t − 7 d`,
+     `end = t − 1`, `takerOnly=true`, `limit=50`, YES-terms mapping, no wallet kept) and `origin_price(prints, t)` (24-h
+     VWAP else latest; eligibility flag);
+   - `run_cb7.py smoke` (§CB7-F (a)-(c), Gamma id lookup for the 200 candidates, counts-only `smoke.json`);
+   - `run_cb7.py exclusion-keys` (reuse `cb6_tail.exclusion_keys`; own output path);
+   - `run_cb7.py text-fetch` = `cb7_text.text_fetch`: random-window closed and ended-unclosed walks (5 × 15 min a day),
+     filters, key drop, stratified sample, **M1-M7 and the clarification flag on the full description in memory**, full
+     length and sha256, 4,000-char stored copy, `text_features.csv.gz` and `cut_points.json` before any print request,
+     then one `origin_prints` per market at `t7`; guarded outcomes; cap, deadline, exit 75, resumable 85-min chunks;
+   - `run_cb7.py geo-fetch` = `cb7_geo.geo_fetch`: tag walk with window splitting, full walked frame kept (all tag ids,
+     event title, `fee_category`, `closed_time`), filters → key drop → cap 8 → origins, one `origin_prints` per origin;
+     guarded outcomes; cap, deadline, exit 75, resumable;
+   - fetch-side tests of §5.4 (markers on text beyond 4,000 characters; length/sha stored; filter → key drop → cap order;
+     tags/event title stored; no CLOB-history call in either fetch; deadline; exit 75; no wallet column; outcome guard).
+   Reuse `cb6_tail.py` / `history_backfill` primitives rather than copying. Seals (q0144/q0145) can wait until after
+   `T_seal`.
+3. **Freeze check (fetchers only).** `science-reviewer` checks that code and the rules file against §1.3-§1.4, §CB7-S,
+   §CB7-G and §CB7-F; run the smoke. Then commit the rules file and copy q0140-q0143 to `queue/jobs/` (headroom recorded)
+   and deploy. No Mac fallback: a fetch not complete before `T_seal` is recorded `not_run_deadline`.
 4. **After `T_seal`.** Commit q0144/q0145 once the h8_tail and h7 seal copies (or not-run records) are committed; q0146;
    then implementer for the analysis code (S, G, X screens, `textorig` pass step, Stage-2 fetchers); q0147 census; insert
    counts and gates here; `science-reviewer` freeze check; freeze (`model_specs/cb7_v1.json`); pin `T7_S_rep_start`;
-   deploy the `textorig` pass step and q0151.
+   deploy the `textorig` pass step and q0151; run q0156 (text-edit audit) and commit its result.
 5. **After the freeze.** q0148-q0150. Commit q0152 only if S1 advanced; q0153-q0155 only if X1 advanced. G1: Stage P-G
    registration only if it met the batch Holm and every gate.
+
+## 9. Challenger round 1 and response (2026-10-17)
+
+One `science-reviewer` pass on the committed draft `09b2bfc`: **ACCEPT_WITH_REQUIRED_CHANGES**. This is the single
+response round; then proceed. Every change tightens or discloses; no threshold, floor or gate was relaxed. The
+coordinator also reported that **CB6's `h8_tail` smoke failed on 2026-10-17** (CLOB `prices-history` at fidelity 60 over a
+10-day window returned < 50% of expected hourly points for 16 of 20 worn 2025 markets); CB7 responds in item N.
+
+### 9.1 Required changes
+
+| # | Finding | Resolution | Where |
+|---|---|---|---|
+| 1 | Markers and clarification flag were computed on the stored first 4,000 characters (fetch-blocking) | M1-M7 and the clarification rule run on the **full** description in memory before truncation; full length and sha256 stored per market; census reports the share longer than 4,000 characters | §CB7-S data and text features, §2.7, q0142 |
+| 2 | Geopolitics tag may sweep in non-geopolitical markets; tags and event titles not stored (fetch-blocking) | Every tag id, event title and `fee_category` stored for the whole walked frame; **binding** sensitivity (x): G1 must hold on markets both tagged and `topic_of(question, event title) == "geopolitics"`; census reports the tag-only share | §CB7-G data and worst cases, §2.6 (x), §2.7, q0143 |
+| 3 | "A resolved market fails these conditions" was false for S (resolved at `t7 − 3 d` still has prints in the window) | Claim withdrawn; `closed_time` kept in both frames as a status field; census counts units with `closed_time < t`; S1 gets the same binding drop sensitivity as G1 (`closed_time < end_at − 2 d`), robustness (vii) | §2.2, §2.6 (vii), §2.7 |
+| 4 | Order of the per-event cap and filters unstated; `h8_text`'s seal drop set unstated | Declared order: filters → key drop → cap 8 → origins; seal drops after. `h8_text`'s seal drops use the **full `h8_geo` tag frame as walked, before any filter or cap**. Expected-size text corrected | §CB7-G population, §1.3, q0143, q0144 |
+| 5 | Two fee rules for G1 depending on whether a cost register exists when q0149 runs | One rule fixed now: `economics.DOCS_CATEGORY_RATE` under CB1's conservative policy (geopolitics 0.0, `economics.py:41`; unknown 0.07), no register read. Added **binding** spread robustness (ix) with `h_geo`, the median half-spread of geopolitics markets with YES mid in [0.02, 0.10] in complete captures `[2026-10-22, 2026-10-25)` (census; spreads only, no outcomes) | §2.1, §2.6 (ix), §2.7, q0147, q0149 |
+| 6 | Mac fallback breaches the data-location and memory-heavy-job rules (no Mac background jobs; Mac data-dumps retired) | **Removed** everywhere (dates, §2.8, runner, specs, next actions). A fetch not complete before `T_seal` is recorded `not_run_deadline`, counted. Fetch priorities kept at the top band (q0140 62, q0141-q0143 61; q0143 raised from 60), and the code + freeze-check schedule is named as the real risk | §1.2, §2.8, §5.2, §7, §8, q0142, q0143 |
+| 7 | S2 had no MDE | Declared: high-C group ≈ one third of Stage-2 units ≈ 5,000, SD ≈ 0.42, deff ≈ 3 → **S2 MDE ≈ 3.3c per share** at the first Holm step (about 3.0c at the last), against a 1.0c floor | §CB7-S MDE |
+| N | CB6's CLOB fidelity-60 smoke failed | **No CLOB history in any CB7 `T_seal`-bound fetch.** `h8_geo` now prices origins from the same single Data API print request as `h8_text` (8k instead of 12k requests); the disclosed bias of print-based longshot prices runs against G1. The smoke's history criterion is replaced by an a-priori print criterion (bounds and ordering on ≥ 10 non-empty responses; coverage ≥ 14 of 20 worn markets with ≥ $10k volume) with stated FAIL consequences. Stage-2 X, which uses fidelity-10 history for fresh live pairs after `T_seal`, gets a declared density rule (< 50% points → pair-day unavailable; > 30% unavailable → not testable) | §CB7-G origins, §CB7-F smoke, §CB7-X Stage 2, q0140, q0143, q0154 |
+
+### 9.2 Should-changes
+
+| Finding | Resolution |
+|---|---|
+| S1 design effect 1.5 is optimistic for templated text | Working deff 3 → **Stage-1 S1 MDE ≈ 2.5c per marker** (was 1.8c); Stage-2 S1 MDE ≈ 1.5c (was 1.0c). The census computes a text-only upper-bound `deff_S = 1 + (m̄ − 1)·ρ_C` and the MDE from it (§2.7) |
+| X1 Stage 1 on worn pairs is not evidence | Labelled a **gate for Stage 2**; the lead-implied part of X1 (drift) is reported next to the spread part (§CB7-X) |
+| G1's low power | Stated as accepted only because q0143 is cheap (§CB7-G MDE) |
+| Current-text risk for S needs a check | **Text-stability gate declared now** (§CB7-S; q0156 draft, code later): C on the UMA initialization `ancillaryData` vs C on the current description for 200 seeded units; one-sided 95% Wilson upper bound of the C-changed share ≤ 0.10, else S1 cannot advance; > 20% unretrievable → unverified → cannot advance. Descriptive, not counted; robustness (xi) |
+| `h1_first` missing from the runner refusal list | Added (§1.3); only its pinned `sample.csv.gz` id list is read |
+
+### 9.3 Effect on counts and power
+
+k is unchanged: **3 fixed (S1, G1, X1) + up to 3 conditional (S1-rep, S2, X1-rep) = 3-6**; the audit q0156 is
+descriptive. MDEs: S1 Stage 1 ≈ 2.5c per marker (was 1.8c), S1 Stage 2 ≈ 1.5c (was 1.0c), S2 ≈ 3.3c (new), G1 ≈ 3.5-4c
+(unchanged; prices now print-based), X1 unchanged. Pre-`T_seal` network ≈ 36k requests, ≈ 3.2 h wall (was 40k, 3.7 h).

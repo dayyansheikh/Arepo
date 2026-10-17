@@ -1,12 +1,13 @@
 {
  "id": "q0147_cb7_census",
- "title": "CB7: pre-freeze census (S: frame, drops, eligibility, C distribution, cut points, GS; G: exclusions, eligible units, events, themes, expected YES, GG; X: move events, S/S'/N print counts, clusters, GX); counts only",
+ "title": "CB7: pre-freeze census (S: frame, drops, eligibility, C distribution, cut points, truncated-text share, closed_time < t7 counts, text-only deff, GS; G: exclusions, eligible units, events, themes, tag-only share, closed_time < t counts, expected YES, measured geopolitics half-spread h_geo, GG; X: move events, S/S'/N print counts, clusters, GX); counts only",
  "family": "creative_batch_7",
  "priority": 40,
  "expected_value": "gates and MDEs before the CB7 freeze; no beta, net, mark-out or YES rate",
  "data": [
   "history/h8_text and history/h8_geo (verified seals; outcomes never read)",
-  "cross_venue series + creative_batch7/xv_prints"
+  "cross_venue series + creative_batch7/xv_prints",
+  "complete captures [2026-10-22T00:00Z, 2026-10-25T00:00Z) (bid/ask of geopolitics markets with YES mid in [0.02, 0.10] only; for h_geo)"
  ],
  "resources": {
   "mem_mb": 1200,
@@ -31,5 +32,5 @@
   "trials.jsonl (cb7_descriptive)"
  ],
  "next_action": "Claude session inserts counts and gates into CREATIVE_BATCH_7.md; science-reviewer freeze check; freeze (model_specs/cb7_v1.json); pin T7_S_rep_start; deploy the textorig pass step and q0151",
- "notes": "CREATIVE_BATCH_7.md section 2.7. DRAFT. Commit after the h8_text and h8_geo seal copies are committed. Outcome guard; field-restricted accessors; floors and thresholds are never revised from the census. A not_run_deadline fetch is recorded and the other families proceed."
+ "notes": "CREATIVE_BATCH_7.md section 2.7. DRAFT. Commit after the h8_text and h8_geo seal copies are committed. Outcome guard; field-restricted accessors; floors and thresholds are never revised from the census. A not_run_deadline fetch is recorded and the other families proceed. Round 1: h_geo (median half-spread) is measured here for G1's binding spread robustness; S1's design effect is the text-only upper bound 1 + (m - 1) * rho_C; no outcome is read."
 }

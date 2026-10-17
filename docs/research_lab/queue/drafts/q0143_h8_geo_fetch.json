@@ -1,11 +1,11 @@
 {
  "id": "q0143_h8_geo_fetch",
- "title": "CB7-G: h8_geo census (Gamma geopolitics tag 100265, closed and ended-unclosed markets with scheduled end 2025-06-01..T_fetch-7d, Yes/No, life >= 9 d, <= 8 markets per event, continuous-class and status-quo questions excluded; hourly prices around end-30/14/7 d; print checks for in-band origins; event-key disjoint from h1/h2/h3/h5; capped at T_seal)",
+ "title": "CB7-G: h8_geo census (Gamma geopolitics tag 100265, closed and ended-unclosed markets with scheduled end 2025-06-01..T_fetch-7d; full walked frame kept with all tag ids, event title, fee_category, closed_time; filters -> key drop -> <= 8 per event -> origins end-30/14/7 d; one windowed taker-print request per origin for price and eligibility; no CLOB history; capped at T_seal)",
  "family": "history_data",
- "priority": 60,
+ "priority": 61,
  "expected_value": "fresh geopolitics longshot census for the CH61 screen; must complete before T_seal",
  "data": [
-  "public Gamma (tag walk), CLOB prices-history, Data API trades",
+  "public Gamma (tag walk), Data API trades",
   "data-dumps/research_lab/creative_batch7/exclusion_keys.csv.gz (sha256 pinned)",
   "docs/research_lab/seals/cb7_text_geo_rules.json (hash-checked)",
   "data-dumps/research_lab/creative_batch7/smoke.json (PASS under the same rules hash)"
@@ -13,7 +13,7 @@
  "resources": {
   "mem_mb": 600,
   "cpu": 1,
-  "network": "gamma-api, clob, data-api",
+  "network": "gamma-api, data-api",
   "lane": "net"
  },
  "depends_on": [
@@ -41,12 +41,15 @@
   "9",
   "--max-per-event",
   "8",
+  "--cap-after-filters",
   "--origins-days-before-end",
   "30,14,7",
-  "--price-fidelity",
-  "60",
+  "--print-limit",
+  "50",
   "--band",
   "0.02,0.10",
+  "--max-failed-origin-share",
+  "0.02",
   "--exclusion-keys",
   "research_lab/creative_batch7/exclusion_keys.csv.gz",
   "--require-smoke",
@@ -66,11 +69,11 @@
  "max_retries": 3,
  "repeat": {
   "max_runs": 4,
-  "until_log_regex": "\"status\": \"(geo_fetch_complete|not_run_deadline|disjointness_unverified)\""
+  "until_log_regex": "\"status\": \"(geo_fetch_complete|not_run_deadline|disjointness_unverified|source_unverified)\""
  },
  "outputs": [
-  "data-dumps/research_lab/history/h8_geo/{frame.csv.gz,key_drops.json,capped.csv.gz,origins.csv.gz,prices/,print_checks.csv.gz,outcomes_guarded.csv.gz,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"
+  "data-dumps/research_lab/history/h8_geo/{frame.csv.gz,key_drops.json,capped.csv.gz,origins.csv.gz,trades/,origin_requests.csv.gz,outcomes_guarded.csv.gz,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"
  ],
  "next_action": "q0145 (seal) after T_seal and after the h8_tail and h7 seal copies (or not-run records) are committed",
- "notes": "CREATIVE_BATCH_7.md CB7-G and section 2.8. DRAFT: copy to queue/jobs/ only after the fetcher freeze check, the committed rules file and a q0140 PASS. Count probe 2026-10-17 (drafting session, counts only): 6,876 closed tagged markets with end_date in [2025-06-01, 2026-10-11) in 1,872 events, 1,823 with life < 9 d. Tag walk in monthly end_date windows split while capped (about 80 requests); filters and the per-event cap (first 8 by sha256('arepo-h8-geo|'+market_id)) and origins.csv.gz written before any price request; 2 fidelity-60 prices-history requests per market ([t30-3h, t30] and [t14-3h, t7]); one print-existence request (limit 1, end = t-1) only for origins with a usable YES price in [0.02, 0.10]. About 12k requests, about 50 min at 4 rps, about 1.1 h wall (1 chunk). Outcome prices only in outcomes_guarded.csv.gz; no wallet stored. Rows capped at min(T_fetchG, T_seal); not_run_deadline at T_seal. Exit 75 when data-dumps + 0.05 GB > 12.5 GB. Priority 60 so it starts only after q0142 completes. Mac fallback and latest safe start as q0142."
+ "notes": "CREATIVE_BATCH_7.md CB7-G, section 2.8 and section 9 (challenger round 1). DRAFT: copy to queue/jobs/ only after the fetcher freeze check, the committed rules file and a q0140 PASS. Count probe 2026-10-17 (drafting session, counts only): 6,876 closed tagged markets with end_date in [2025-06-01, 2026-10-11) in 1,872 events, 1,823 with life < 9 d. Tag walk in monthly end_date windows split while capped (about 80 requests); the FULL walked frame (all tag ids, event title, fee_category, question, slug, ids/keys, created_at, end_at, closed_time as status, outcome labels) is kept in frame.csv.gz before any filter or cap (h8_text's seal drops against it). Order: filters (Yes/No, life >= 9 d, class_c, status-quo regex, Other) -> exclusion-key drop -> cap 8 per event (first 8 by sha256('arepo-h8-geo|'+market_id)) -> origins.csv.gz, all before any print request. One /trades?market&start=t-7d&end=t-1&takerOnly=true&limit=50 request per origin (price = 24-h VWAP else latest print; eligibility in the same request); NO CLOB history. > 2% failed origin requests -> status source_unverified (G1 not testable, counted). About 8k requests, about 35 min at 4 rps, about 45 min wall (1 chunk). Outcome prices only in outcomes_guarded.csv.gz; no wallet stored. Rows capped at min(T_fetchG, T_seal); not_run_deadline at T_seal. Exit 75 when data-dumps + 0.05 GB > 12.5 GB. Priority 61 (raised from 60 in round 1); higher id than q0142, so it follows it. NO Mac fallback (round 1, item 6). Latest useful host start 2026-10-21T12:00Z."
 }

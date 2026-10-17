@@ -45,5 +45,5 @@
   "data-dumps/research_lab/creative_batch7/xv_rep/{series/,prints/,days.csv.gz,manifest.json}"
  ],
  "next_action": "q0155",
- "notes": "CREATIVE_BATCH_7.md CB7-X Stage 2. DRAFT. Commit after the audited pair list is committed. Refuses before T7_X_rep_end + 2 h. About 5k requests. Kalshi <= 2 rps. No wallet stored."
+ "notes": "CREATIVE_BATCH_7.md CB7-X Stage 2. DRAFT. Commit after the audited pair list is committed. Refuses before T7_X_rep_end + 2 h. About 5k requests. Kalshi <= 2 rps. No wallet stored. Round 1 (after CB6's history smoke failure): a pair-day with < 50% of expected fidelity-10 history points is unavailable (counted); > 30% unavailable pair-days -> X1-rep not testable (source), counted."
 }

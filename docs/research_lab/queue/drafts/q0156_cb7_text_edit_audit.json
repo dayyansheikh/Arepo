@@ -1,0 +1,48 @@
+{
+ "id": "q0156_cb7_text_edit_audit",
+ "title": "CB7-S: text-stability audit (200 seeded eligible, clarification-unmarked h8_text units: C on the UMA CTF adapter question-initialization ancillaryData vs C on the current Gamma description); gate for S1; no outcome, price or print read",
+ "family": "creative_batch_7",
+ "priority": 39,
+ "expected_value": "whether h8_text's current descriptions carry the listing-time conditions, which S1's validity needs",
+ "data": [
+  "history/h8_text (verified seal; ids, questionID, text features only)",
+  "public Polygon JSON-RPC (keyless; adapter address and event topic pinned in the CB7 declaration)",
+  "public Gamma markets by id (questionID if not stored)",
+  "model_specs/cb7_v1.json"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "network": "polygon-rpc, gamma-api",
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0144_h8_text_seal"
+ ],
+ "argv": [
+  "scripts/run_cb7.py",
+  "text-edit-audit",
+  "--n",
+  "200",
+  "--seed",
+  "arepo-cb7-uma-audit",
+  "--max-upper",
+  "0.10",
+  "--max-unretrieved-share",
+  "0.20",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "12.5"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/text_edit_audit.json",
+  "trials.jsonl (cb7_descriptive)"
+ ],
+ "next_action": "coordinator commits the audit result before q0148 runs",
+ "notes": "CREATIVE_BATCH_7.md CB7-S text-stability gate and section 9.2 (declared in challenger round 1; code later). DRAFT. Commit after the CB7 freeze. Metric: share of audited units whose C (M1-M7, same regexes) differs between the decoded initialization text and the current description; gate: one-sided 95% Wilson upper bound <= 0.10; > 20% of the 200 not retrievable or decodable -> unverified -> S1 cannot advance. Descriptive, not counted. Reads no outcome, price or print."
+}

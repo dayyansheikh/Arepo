@@ -7,7 +7,7 @@
  "data": [
   "history/h8_geo (verified seal)",
   "model_specs/cb7_v1.json",
-  "model_specs/cost_regimes_v1.json (if committed; fee = max with the CB1 conservative rate)"
+  "creative_batch7/census.json (h_geo)"
  ],
  "resources": {
   "mem_mb": 800,
@@ -32,5 +32,5 @@
   "trials.jsonl (1 cb7_test + count line + placebo + descriptive)"
  ],
  "next_action": "if G1 met the Stage-1 batch Holm and every gate: draft the Stage P-G registration",
- "notes": "CREATIVE_BATCH_7.md CB7-G. DRAFT. Commit after the CB7 freeze. Single historical stage (L1). Exits 0 'not testable' if GG failed, < 10 YES event clusters, G_theme < 15, disjointness unverified or h8_geo not_run_deadline (counted, p = 1). The batch Holm uses the S1 and X1 Stage-1 p values; if those are not final, G1 is reported pending the batch Holm (its own result file is final)."
+ "notes": "CREATIVE_BATCH_7.md CB7-G. DRAFT. Commit after the CB7 freeze. Single historical stage (L1). One fee rule (round 1, item 5): economics.DOCS_CATEGORY_RATE under CB1's conservative policy (geopolitics 0.0; unknown 0.07); no cost register read. Binding: measured-spread robustness (h_geo), tag-and-topic subset, closed_time < end_at - 2 d drop. Exits 0 'not testable' if GG failed, < 10 YES event clusters, G_theme < 15, disjointness or source unverified, or h8_geo not_run_deadline (counted, p = 1). The batch Holm uses the S1 and X1 Stage-1 p values; if those are not final, G1 is reported pending the batch Holm (its own result file is final)."
 }

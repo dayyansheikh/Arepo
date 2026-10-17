@@ -6,7 +6,7 @@
  "expected_value": "sealed, event-disjoint h8_text before any CB7 read",
  "data": [
   "history/h8_text",
-  "history/h8_geo frame ids and keys",
+  "history/h8_geo/frame.csv.gz (the FULL walked tag frame, before filters and cap: ids and keys only)",
   "docs/research_lab/seals/h8_tail_SEAL.json, h7_cb4_era_SEAL.json, h7_cb4_series_SEAL.json (ids only, if committed)",
   "public Gamma markets by id (keys only)"
  ],
@@ -41,5 +41,5 @@
   "trials.jsonl (history_seal_declaration)"
  ],
  "next_action": "coordinator commits docs/research_lab/seals/h8_text_SEAL.json before q0147",
- "notes": "CREATIVE_BATCH_7.md section 1.3. DRAFT. Commit only after T_seal and after the h8_tail and both h7 seal copies are committed (or their runs are recorded not_run_deadline), so the job never waits on a refusal loop. Never runs on a not_run_deadline or disjointness_unverified h8_text. Sealed files are never edited: drops are DROPPED_* blocks in the listing. Key lookups by id at <= 2 rps (parse guard: ids and keys only)."
+ "notes": "CREATIVE_BATCH_7.md section 1.3. DRAFT. Commit only after T_seal and after the h8_tail and both h7 seal copies are committed (or their runs are recorded not_run_deadline), so the job never waits on a refusal loop. Never runs on a not_run_deadline or disjointness_unverified h8_text. Sealed files are never edited: drops are DROPPED_* blocks in the listing. Key lookups by id at <= 2 rps (parse guard: ids and keys only). Round 1, item 4: the h8_geo drop set is the full walked tag frame taken before any filter or cap."
 }
