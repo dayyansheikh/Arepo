@@ -19,7 +19,7 @@
  },
  "depends_on": [
   "q0102_cb5_h2_head_fetch",
-  "q0103_cb5_seed_cohort_fetch",
+  "q0103b_cb5_seed_cohort_fetch",
   "q0105_cb5_cdf_extract_backfill"
  ],
  "argv": [
