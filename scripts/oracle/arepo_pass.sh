@@ -8,7 +8,7 @@
 # -> E011 score -> E004 / E007 status. See docs/research_lab/COLLECTION_HOST.md.
 export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 AREPO_HOME=${AREPO_HOME:-/home/opc/arepo}
-CAP_GB=${AREPO_DATA_CAP_GB:-16}   # 12 -> 13 -> 14 -> 16 GiB on 2026-10-17 (autopilot; 16 at 14:40Z after dnf cache 1.5 GB + journal 0.2 GB cleared, 7.5 GB disk free): the 4 GB free-disk guard now binds first (~10-20); relocating idle data-dumps to /var/oled needs a user-approved session (evidence hook)
+CAP_GB=${AREPO_DATA_CAP_GB:-45}   # 12 -> 13 -> 14 -> 16 GiB (2026-10-17, disk 46.6 GB) -> 45 GiB after the user-approved boot volume resize to 100 GB (Always Free; root 89 GB, 61 GB free, 2026-10-17 ~15:05Z). The 4 GB free-disk guard stays.
 exec 9>/tmp/arepo_collector.lock
 flock -n 9 || { echo "$(date -u +%FT%TZ) skipped: another pass holds the lock"; exit 0; }
 free=$(df -Pk / | tail -1 | awk '{print $4}')
