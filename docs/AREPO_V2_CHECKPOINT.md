@@ -8,7 +8,16 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Host disk (2026-10-17 ~14:35Z, autopilot): eased, not solved
+## Host disk: RESOLVED (2026-10-17 ~15:05Z, interactive session)
+- **Resize:** boot volume 46.6 -> 100 GB in the OCI console, user-approved. It stays Always Free: home region, no other
+  volumes or backups, 100 of 200 GB used. The host was grown online with the rescan plus `oci-growfs`.
+- **Result:** root is 89 GB with 61 GB free. Collection and the monitors were uninterrupted.
+- **Collector cap:** 16 -> 45 GiB (`arepo_pass.sh`, deployed 0122e3e). The 4 GB free-disk guard is kept.
+- **Per-job guards:** per-job `--data-dumps-cap-gb` / headroom guards (13-14) can now be raised by the owning batch session.
+- **Relocation:** the /var/oled relocation is not needed and was not done. Symlinked dirs could hide files from recursive
+  globs.
+
+## (superseded by the entry above) Host disk (2026-10-17 ~14:35Z, autopilot): eased, not solved
 - **Was (14:30Z):** data-dumps 13.1 GiB against the 14 GiB collector cap, about +1.1 GB/day; root free 6.0 GB against the
   4 GB guard. The 8-day snapshot rule frees nothing until about 21 Oct (host captures start 10-13/14).
 - **Done (a8bbe68):** `dnf clean all` (1.5 GB), `dnf-makecache.timer` disabled (it rebuilt the cache within a day; undo
