@@ -263,7 +263,8 @@ def parse_oi_reply(sent: list[str], status: int, data: Any) -> tuple[dict[str, t
     assertion (every returned market was sent; no duplicate; no more rows than ids sent) marks the WHOLE batch ``oi_lookup_failed``
     (``integrity_violation`` for the assertion). Otherwise: an id missing from the reply is ``oi_absent``, a value that is not a finite
     number >= 0 is ``oi_nonnumeric``. Nothing is imputed."""
-    info = {"http_status": status, "integrity_violation": False, "n_sent": len(sent), "n_returned": 0}
+    info = {"http_status": status, "integrity_violation": False, "n_sent": len(sent), "n_returned": 0,
+            "n_empty_small": int(status == 200 and isinstance(data, list) and not data and len(sent) <= OI_SPLIT)}
     if status != 200 or not isinstance(data, list):
         info["integrity_violation"] = bool(status == 200)
         return dict.fromkeys(sent, (OI_FAILED, None)), info
@@ -294,24 +295,26 @@ def _fetch_oi_once(lim: hb.Limiter, cids: list[str]) -> tuple[dict[str, tuple[st
 def fetch_oi_batch(lim: hb.Limiter, cids: list[str]) -> tuple[dict[str, tuple[str, float | None]], dict]:
     """``/oi?market=<cid1>,<cid2>,...`` (<= 60 ids). A batch of more than ``OI_SPLIT`` ids whose reply is an empty list, or whose request fails after
     retries (a 403 arrives as :class:`RuntimeError`), is split into batches of at most ``OI_SPLIT`` ids and retried; the batch record then
-    carries ``split`` (the reason). A :class:`RuntimeError` of a split request propagates to the caller (network handling there)."""
+    carries ``split`` (the reason), ``n_split_requests`` and ``n_empty_small`` (empty replies to a batch of at most ``OI_SPLIT`` ids), persisted per batch and
+    counted in ``oi_summary``. A large batch is requested without client-side retries (``max_retries=0``): the first failure splits at once. A :class:`RuntimeError` of a split request propagates to the caller (network handling there)."""
     why = None
     if len(cids) <= OI_SPLIT:
         return _fetch_oi_once(lim, cids)
-    try:
-        status, data = lim.get(OI_URL, {"market": ",".join(cids)})
+    try:  # no client-side retries for a large batch: the first failure (a 403 would otherwise burn about a minute of backoff per batch) splits at once
+        status, data = lim.get(OI_URL, {"market": ",".join(cids)}, max_retries=0)
         if not (status == 200 and isinstance(data, list) and not data):
             return parse_oi_reply(cids, status, data)
         why = "empty_reply"
     except RuntimeError:
         why = "request_failed"
     out: dict[str, tuple[str, float | None]] = {}
-    info = {"http_status": 200, "integrity_violation": False, "n_sent": len(cids), "n_returned": 0, "split": why, "n_split_requests": 0}
+    info = {"http_status": 200, "integrity_violation": False, "n_sent": len(cids), "n_returned": 0, "split": why, "n_split_requests": 0, "n_empty_small": 0}
     for i in range(0, len(cids), OI_SPLIT):
         sub, inf = _fetch_oi_once(lim, cids[i:i + OI_SPLIT])
         out.update(sub)
         info["n_split_requests"] += 1
         info["n_returned"] += inf["n_returned"]
+        info["n_empty_small"] += inf["n_empty_small"]
         info["integrity_violation"] = bool(info["integrity_violation"] or inf["integrity_violation"])
         if inf["http_status"] != 200:
             info["http_status"] = inf["http_status"]
@@ -377,6 +380,7 @@ def run_oi_batches(lim: hb.Limiter, batches: list[list[str]], clock: Callable[[]
         if streak:  # batches that failed while a later batch answered are batch-specific failures: the attempt counts
             commit()
         rec = {"i": i, "t_f": clock(), "http": info["http_status"], "integrity": info["integrity_violation"],
+               "split": info.get("split"), "n_split_requests": info.get("n_split_requests", 0), "n_empty_small": info.get("n_empty_small", 0),
                "v": [states[c][1] if states[c][0] == OI_OK else states[c][0] for c in ids]}
         if record is not None:
             record(i, rec)
@@ -407,8 +411,12 @@ def oi_summary(base: list[dict], states: dict[str, tuple[str, float | None, floa
     miss = sum(counts[k] for k in OI_MISSING)
     contra = sum(1 for r in base if states[r["condition_id"]][0] == OI_ABSENT and r["event_n"] == 1 and r["event_oi"] >= MIN_OI)  # NaN compares False
     tfs = [done[i]["t_f"] for i in range(len(batches))]
+    recs = [done[i] for i in range(len(batches))]
+    split_reasons = {w: sum(1 for x in recs if x.get("split") == w) for w in ("empty_reply", "request_failed")}
     return {"n_base": n, "n_batches": len(batches), "states": counts, "n_missing": miss, "missing_share": (miss / n if n else None),
             "n_absent_contradicted": contra,
+            "n_split_batches": sum(split_reasons.values()), "split_reasons": split_reasons, "n_split_requests": sum(x.get("n_split_requests", 0) for x in recs),
+            "n_empty_replies_le15": sum(x.get("n_empty_small", 0) for x in recs),
             "n_unavailable": sum(counts[k] for k in OI_UNAVAILABLE) + contra, "unavailable_share": ((sum(counts[k] for k in OI_UNAVAILABLE) + contra) / n if n else None),
             "n_batches_integrity_violation": sum(1 for i in range(len(batches)) if done[i]["integrity"]),
             "t_f_min_epoch": min(tfs) if tfs else None, "t_f_max_epoch": max(tfs) if tfs else None, "t_f_batches": tfs}
@@ -983,7 +991,8 @@ def holders_snap(root: Path, transport, *, key: bytes, fp: str, rules_sha: str, 
             if not oi_ok:  # the day stops: recorded apart from a stale capture, nothing imputed
                 marker = {"day": day, "kind": "oi_source", "reason": f"oi_source: {oi_why}", "capture_id": cap["capture_id"], "n_base": summ["n_base"],
                           "states": summ["states"], "missing_share": summ["missing_share"], "unavailable_share": summ["unavailable_share"], "n_batches": summ["n_batches"],
-                          "n_absent_contradicted": summ["n_absent_contradicted"], "n_batches_integrity_violation": summ["n_batches_integrity_violation"], "max_missing_share": OI_MAX_MISSING_SHARE}
+                          "n_absent_contradicted": summ["n_absent_contradicted"], "n_split_batches": summ["n_split_batches"],
+                          "n_split_requests": summ["n_split_requests"], "n_empty_replies_le15": summ["n_empty_replies_le15"], "n_batches_integrity_violation": summ["n_batches_integrity_violation"], "max_missing_share": OI_MAX_MISSING_SHARE}
                 fr.budget.write(rdir / f"{day}.MISSED.json", json.dumps(marker, sort_keys=True).encode())
                 fr.counts["days_missed_oi_source"] = fr.counts.get("days_missed_oi_source", 0) + 1
                 for q in (hdr_p, oi_part, oi_failp):

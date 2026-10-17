@@ -228,9 +228,10 @@ class Limiter:
         self.throttled = 0
         self.log: list[dict] = []
 
-    def get(self, url: str, params: dict) -> tuple[int, Any]:
-        """Returns (status, parsed JSON) for 200/400/404/422; raises after MAX_RETRIES."""
-        for attempt in range(MAX_RETRIES + 1):
+    def get(self, url: str, params: dict, max_retries: int | None = None) -> tuple[int, Any]:
+        """(status, parsed JSON) for 200/400/404/422; raises after MAX_RETRIES or ``max_retries``."""
+        limit = MAX_RETRIES if max_retries is None else max_retries
+        for attempt in range(limit + 1):
             if self.live_check is not None and self.clock() - self._last_live >= 2.0:
                 self.yielded_s += yield_to_live(self.live_check, self.sleep)
                 self._last_live = self.clock()
@@ -248,7 +249,7 @@ class Limiter:
                     return status, json.loads(body) if body else None
                 except ValueError:
                     status = 599
-            if attempt == MAX_RETRIES:
+            if attempt == limit:
                 break
             self.retries += 1
             if status == 429:
@@ -256,7 +257,7 @@ class Limiter:
             ra = next((v for k, v in headers.items() if str(k).lower() == "retry-after"), None)
             delay = float(ra) if ra and str(ra).replace(".", "", 1).isdigit() else 2.0**attempt
             self.sleep(min(delay, 60.0))
-        raise RuntimeError(f"giving up after {MAX_RETRIES} retries ({url})")
+        raise RuntimeError(f"giving up after {limit} retries ({url})")
 
 
 # ---------------------------------------------------------------------------------------------

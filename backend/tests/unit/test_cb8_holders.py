@@ -253,6 +253,7 @@ def test_snap_day_stops_on_absent_contradicted(env):
     m = env.snap()
     assert m["status"] == "day_missed" and m["missed_kind"] == "oi_source"
     marker = json.loads((env.root / "snap" / "2026-10-21.MISSED.json").read_text())
+    assert marker["n_split_batches"] == 0 and marker["n_split_requests"] == 0 and marker["n_empty_replies_le15"] == 0
     assert marker["n_absent_contradicted"] == 3 and marker["states"]["oi_absent"] == 3 and marker["unavailable_share"] == pytest.approx(0.03)
 
 
@@ -305,14 +306,46 @@ def test_403_batch_is_split_into_15s_before_failing(env):
     states, info = h.fetch_oi_batch(lim, ids)
     assert info["split"] == "request_failed" and info["n_split_requests"] == 4 and info["http_status"] == 200
     assert all(states[c] == (h.OI_OK, 100.0 + i) for i, c in enumerate(ids))
-    assert [len(x) for x in env.api.oi_requests][-4:] == [15, 15, 15, 15] and max(len(x) for x in env.api.oi_requests[:-4]) == 60
+    assert [len(x) for x in env.api.oi_requests] == [60, 15, 15, 15, 15]  # the first failure splits at once: no client-side retries of the 60-batch
     env.api.oi_max_ids = 0  # every request 403s, even single chunks: still a RuntimeError for the caller (network handling)
     with pytest.raises(RuntimeError):
         h.fetch_oi_batch(lim, ids)
     env.api.oi = {}
     base, cap = smoke_env(env, n=100, single=0)  # in the smoke the split is transparent
     env.api.oi_max_ids = 15
-    assert run_smoke(env, base, cap)["pass"]
+    res = run_smoke(env, base, cap)
+    assert res["pass"]
+    # auditable splits: counted per batch, per request and per empty small reply, in the batch records and the smoke output
+    assert res["oi"]["n_split_batches"] == 2 and res["oi"]["split_reasons"] == {"empty_reply": 0, "request_failed": 2}
+    assert res["oi"]["n_split_requests"] == 4 + 3 and res["oi"]["n_empty_replies_le15"] == 0 and res["oi"]["n_batches"] == 2
+
+
+def test_split_counts_are_persisted_and_summarised_for_empty_replies(env):
+    base, cap = smoke_env(env, n=100, single=0)
+    first60 = sorted(r["condition_id"] for r in env.rows)[:60]
+    env.api.oi_absent = set(first60)  # the first sorted batch of 60 is entirely absent: an empty 200, split into 4 batches of 15
+    lim = hb.Limiter(env.api, rps=1000.0, sleep=nosleep)
+    batches = h.oi_batches(base)
+    done: dict[int, dict] = {}
+    recs: dict[int, dict] = {}
+    h.run_oi_batches(lim, batches, env.clock, done, lambda i, r: recs.__setitem__(i, r))
+    assert recs[0]["split"] == "empty_reply" and recs[0]["n_split_requests"] == 4 and recs[0]["n_empty_small"] == 4
+    assert recs[1]["split"] is None and recs[1]["n_split_requests"] == 0 and recs[1]["n_empty_small"] == 0
+    summ = h.oi_summary(base, h.oi_states(batches, done), batches, done)
+    assert summ["n_split_batches"] == 1 and summ["split_reasons"] == {"empty_reply": 1, "request_failed": 0}
+    assert summ["n_split_requests"] == 4 and summ["n_empty_replies_le15"] == 4
+    old = {i: {k: v for k, v in r.items() if k not in ("split", "n_split_requests", "n_empty_small")} for i, r in done.items()}  # records written before v6
+    assert h.oi_summary(base, h.oi_states(batches, old), batches, old)["n_split_batches"] == 0
+    res = run_smoke(env, base, cap)
+    assert res["oi"]["n_split_batches"] == 1 and res["oi"]["n_empty_replies_le15"] == 4 and res["oi"]["n_split_requests"] == 4
+
+
+def test_a_small_final_batch_with_an_empty_reply_is_counted(env):
+    base, cap = smoke_env(env, n=64, single=0)  # batches of 60 and 4
+    last4 = sorted(r["condition_id"] for r in env.rows)[60:]
+    env.api.oi_absent = set(last4)
+    res = run_smoke(env, base, cap)
+    assert res["oi"]["n_split_batches"] == 0 and res["oi"]["n_empty_replies_le15"] == 1
 
 
 def test_smoke_oi_absent_is_oi_zero_and_the_two_percent_rule_counts_unavailable_only(env):

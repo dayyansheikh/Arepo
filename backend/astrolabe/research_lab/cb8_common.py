@@ -30,7 +30,7 @@ from . import h5_seal
 from . import history_backfill as hb
 from . import wallet_sidecar as ws
 
-RULES_VERSION_HOLDERS = "cb8-holders-rules-v5"  # v5: H-v5 reviewer changes (absent_contradicted, empty-reply/403 batch split, absent probe, criterion i). v4: H-v4 oi_absent = OI 0, 2 % rule on failed + nonnumeric only (CREATIVE_BATCH_8.md "CB8-H amendment H-v4"). v3: day_rolled guard + oi sub-reasons; v2 file kept. v2: /oi frame, smoke v2 (CREATIVE_BATCH_8.md "H v2"); v1 file kept, never rewritten
+RULES_VERSION_HOLDERS = "cb8-holders-rules-v6"  # v6: auditable /oi splits (persisted and counted), first-failure split. v5: H-v5 reviewer changes (absent_contradicted, empty-reply/403 batch split, absent probe, criterion i). v4: H-v4 oi_absent = OI 0, 2 % rule on failed + nonnumeric only (CREATIVE_BATCH_8.md "CB8-H amendment H-v4"). v3: day_rolled guard + oi sub-reasons; v2 file kept. v2: /oi frame, smoke v2 (CREATIVE_BATCH_8.md "H v2"); v1 file kept, never rewritten
 RULES_VERSION_FLOW = "cb8-flow-rules-v1"
 FETCH_VERSION = "cb8-fetch-v1"
 KEY_FP_CONSTANT = b"arepo-cb8-wallet-key-fingerprint-v1"
@@ -41,7 +41,8 @@ HOLDERS_RULES_FILE_V1 = SEALS_DIR / "cb8_holders_rules.json"  # consumed by the 
 HOLDERS_RULES_FILE_V2 = SEALS_DIR / "cb8_holders_rules_v2.json"  # superseded before any v2 job ran (30e7f7f0...); kept, never rewritten
 HOLDERS_RULES_FILE_V3 = SEALS_DIR / "cb8_holders_rules_v3.json"  # consumed by smoke v2 (FAIL h); superseded by v4, never rewritten
 HOLDERS_RULES_FILE_V4 = SEALS_DIR / "cb8_holders_rules_v4.json"  # superseded by v5 before any v3-smoke job ran; never rewritten
-HOLDERS_RULES_FILE = SEALS_DIR / "cb8_holders_rules_v5.json"
+HOLDERS_RULES_FILE_V5 = SEALS_DIR / "cb8_holders_rules_v5.json"  # superseded by v6 before any job ran; never rewritten
+HOLDERS_RULES_FILE = SEALS_DIR / "cb8_holders_rules_v6.json"
 FLOW_RULES_FILE = SEALS_DIR / "cb8_flow_rules.json"
 DATA_DUMPS = c4.DATA_DUMPS
 CB8_DIR = DATA_DUMPS / "research_lab" / "creative_batch8"
