@@ -9,7 +9,7 @@
   "Gamma neg-risk event metadata"
  ],
  "resources": {
-  "mem_mb": 2600,
+  "mem_mb": 1500,
   "cpu": 1,
   "network": "r2v2.pmxt.dev, gamma-api",
   "lane": "cpu"
@@ -39,5 +39,5 @@
   "data-dumps/research_lab/creative_batch4/N_pilot/pilot.json (incl. measured GB per hour)"
  ],
  "next_action": "q0086 census reads H",
- "notes": "DRAFT (the coordinator releases it after the science-reviewer CB4 analysis freeze check). Uncounted: no declaration needed, outcome columns never read, no trial line. Reads only the declared pilot window 2026-07-12..2026-08-10, never W_pre_N or W_post_N; streams and stores minute states only. Network bound (about 25% CPU), so net lane (q0002 holds it at priority 60: this waits for a free slot); mem_mb 1500 fits the 5.6 GB host beside the collector (start rule MemAvailable >= mem_mb + 1200). Held behind q0086a_cb4_analysis_gate. Promoted 2026-10-17 (freeze check: uncounted, may run now). Lane net -> cpu so the T_seal-bound net fetches are not delayed (pmxt reads are r2v2.pmxt.dev, a different host from the Gamma/CLOB fetches). 2026-10-17 09:30Z (autopilot): attempts 1-2 died with MemoryError inside pyarrow row-group reads under the 2 x mem_mb address-space cap (3000 MB); mem_mb 1500 -> 2600 (operational only, outputs unaffected); a streaming read fix is in progress separately."
+ "notes": "DRAFT (the coordinator releases it after the science-reviewer CB4 analysis freeze check). Uncounted: no declaration needed, outcome columns never read, no trial line. Reads only the declared pilot window 2026-07-12..2026-08-10, never W_pre_N or W_post_N; streams and stores minute states only. Network bound (about 25% CPU), so net lane (q0002 holds it at priority 60: this waits for a free slot); mem_mb 1500 fits the 5.6 GB host beside the collector (start rule MemAvailable >= mem_mb + 1200). Held behind q0086a_cb4_analysis_gate. Promoted 2026-10-17 (freeze check: uncounted, may run now). Lane net -> cpu so the T_seal-bound net fetches are not delayed (pmxt reads are r2v2.pmxt.dev, a different host from the Gamma/CLOB fetches). 2026-10-17 09:30Z (autopilot): attempts 1-2 died with MemoryError inside pyarrow row-group reads under the 2 x mem_mb address-space cap (3000 MB); mem_mb 1500 -> 2600 (operational only, outputs unaffected); a streaming read fix is in progress separately. 2026-10-17 ~10:00Z: streaming read_hour_events (iter_batches 4096, equivalence-tested, 23dcd70) cut peak RSS ~2.8 GB -> ~350 MB; mem_mb back to 1500."
 }
