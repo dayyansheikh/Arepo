@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 05:46 UTC+1
+**Last updated:** 2026-10-17 06:01 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -15,9 +15,13 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Batch 1-D (neg-risk sets): nothing advanced.** D1 was +0.78 points (p 0.016), which fails the pre-set bar (p < 0.01, at least
   1 point, and surviving removal of the top 5 events; it fell to +0.15). D2 had too few cases to test. The sealed sample stays unopened.
   Total tests counted so far: 1,106.
-- **Jobs that ran out of memory** are being fixed: batch 3's counting job and the multi-signal ML dry run.
-- **Deadline 22 Oct:** several fresh downloads (batches 4, 6 and the new batch 7) must finish before the seal date. Independent checks
-  that release them are running now.
+- **Jobs that ran out of memory:** the multi-signal ML dry run is fixed (now about a quarter of the memory) and queued again;
+  batch 3's counting job is being fixed.
+- **Deadline 22 Oct:** fresh downloads for batches 4 and 6 must finish before the seal date. Independent checks passed (with fixes
+  applied), and their first jobs are queued: batch 4's sampling frames, and batch 6's 20-market test download. Batch 5's downloads
+  and counting job are queued too. The server has well over 12 hours of work lined up.
+- **Batch 4 analysis code:** the independent check found 6 things to fix before any counted test. One is a design flaw: a
+  week-level check could never have had enough weeks to run. These are being fixed without looking at any outcome data.
 - **Batch 7 (new):** being designed from the next ideas on the list: a "specificity discount" in market rules, geopolitics longshots,
   stepping aside as a maker after Kalshi moves, and price unwinds after a sibling market resolves.
 
