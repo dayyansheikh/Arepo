@@ -8,15 +8,20 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## URGENT (2026-10-17 14:30Z, interactive session): host data cap
-- **Measured:** `data-dumps` is 13,765,816 KiB (13.1 GiB) against the collector cap of 14 GiB (`arepo_pass.sh CAP_GB:-14`),
-  growing about 1.1 GB a day. Root disk has 6.0 GB free against the 4 GB guard.
-- **Risk:** the collector pass skips from about 18 Oct, which leaves a gap in E009/E010/E011 inputs and snapshots.
-- **Why deletion doesn't help yet:** the 8-day snapshot rule frees nothing on the host until about 21 Oct, because the host's
-  captures start 2026-10-13/14.
-- **First task for the next session:** free or relocate space within the approved retention policy (verified-archived only;
-  `history/` 3.4 GB and `ml_cache/` 1.4 GB are in releases). Restore-on-demand is better than raising caps. Never touch
-  frozen or prospective evidence. Record what was done here.
+## Host disk (2026-10-17 ~14:35Z, autopilot): eased, not solved
+- **Was (14:30Z):** data-dumps 13.1 GiB against the 14 GiB collector cap, about +1.1 GB/day; root free 6.0 GB against the
+  4 GB guard. The 8-day snapshot rule frees nothing until about 21 Oct (host captures start 10-13/14).
+- **Done (a8bbe68):** `dnf clean all` (1.5 GB), `dnf-makecache.timer` disabled (it rebuilt the cache within a day; undo
+  with `sudo systemctl enable --now dnf-makecache.timer`), journal vacuumed to 60 MB (0.2 GB). Root free 6.0 -> 7.5 GB.
+  Collector cap 14 -> 16 GiB, so the 4 GB free-disk guard binds first (about 20 Oct). q0120b data-dumps guard 13 -> 14
+  (ops only; its output cap stays 0.25 GB).
+- **Blocked by the evidence hook (correctly, not bypassed):** relocating idle data (`ml_cache` 1.4 GB and
+  `history/h1_first,h3_power,h5_cb1*,h6_weather` 1.7 GB, unwritten for 6 h+) to the separate 10 GB `/var/oled` volume
+  (9.1 GB free; holds only pcp logs and the empty kdump dir) as a verified copy plus symlink. `protect_evidence.py`
+  blocks move/delete under data-dumps unless a user-approved retirement session is running. **Dashboard approval item.**
+  Alternative: the user grows the boot volume in the OCI console (Always Free includes 200 GB of block storage; the boot
+  volume is 46.6 GB).
+- h7_cb4_series `walk_partial*.jsonl` is already 1.3 GB uncompressed (q0082f).
 
 ## Standing user decisions
 - Work autonomously. Use parallel agents where there is real cause.
@@ -175,35 +180,35 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 11:30 UTC+1
-0. **Autopilot session from 09:19Z 10-17.** Last deploy 8e6f008 (~10:30Z). Counter total **1,131** (e5cfb3a fixed the
-   `design_change` KeyError that made `battery2.cumulative_count` fail closed).
-   - **Done:** disk headroom (15ea7e2); smoke FAIL diagnoses (`SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md`); **CB7 smoke v2
-     PASS** (q0140b, 15/20) -> q0142/q0143 promoted (4e55ee5); CB6 h8_tail shortfall -> top-up A-T1 (rules v3 `ad7f5baa…`),
-     **q0120b promoted** (ae3000b), q0121 seal conditions fixed (2ca0bc9); CB8-H v2 code (rules v2 `30e7f7f0…`), freeze
-     check GO_WITH_CONDITIONS (fixes running); CB8-B data code + must-fixes (rules v2 `33decb52…`, 946e94a); CB5 grouper
-     seal, IF-H2 restore, q0104 failed twice on memory -> **q0104b promoted** (output-identical reduction 67350d7);
-     memory fixes q0084/q0082f/q0082 (23dcd70, 2332d81); **q0084 pilot done** (H = 84, degenerate zero variance; open for
-     the CB4 freeze check, 58db5de); CB3 census counts; round 4 CH79-CH98 (d33d6178); CB9 draft (00dd145) -> challenger
-     ACCEPT_WITH_REQUIRED_CHANGES (all families).
-   - **Running agents (check `git log` if this session ended):** CB9 author response (Opus); CB8-H v2 must-fixes (q0160b
-     timeout 5,400 s + day-roll refusal; may write `cb8_holders_rules_v3.json`).
-1. **CB8-H:** after the fix commit, promote q0160b (confirm `q0160` is done on the host first; never re-run it). q0162/
-   q0163 after the v2 PASS, target 10-21T04:00Z.
-2. **CB9:** after the response commit, delegate code (implementer brief in the response), then code-against-design
-   freeze check. CB9 stays off the net lane before 10-22.
-3. **CB7/CB6 before T_seal 2026-10-22T00Z:** q0142, q0143, q0120b run on the net lane (watch data-dumps <= 12.75 GB for
-   q0120b's guard). Seals q0144/q0145/q0121 only after T_seal. Never retry q0141.
-4. **CB8-B:** q0161/q0164 after T_seal. Before promoting q0164, on the host run the two `derive-exclusion-ids` commands in
-   the q0164 draft notes (as late as possible, once), and replace both TODO-COORDINATOR sha256 tokens; also raise its
-   `--data-dumps-cap-gb` to 13. B analysis side (q0169/q0170/q0174) not written yet (separate rules file).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 15:37 UTC+1
+0. **Autopilot session from ~14:30Z 10-17.** Deploy of a8bbe68 (collector cap 16, q0120b guard 14, q0160b promotion
+   b486d52, CB4-N stop rule 3988b1d) waiting on the collector lock at 14:35Z; verify with
+   `ssh oracle 'grep -c CAP_GB:-16 ~/arepo/scripts/oracle/arepo_pass.sh'` and re-run `scripts/oracle/deploy.sh` if 0.
+   Counter total 1,131 (+ routine flow screens). Earlier today (09:19Z session + interactive): see `git log` 10-17.
+   - **Running agents (check `git log` if this session ended):** q0082f MemoryError fix (`cb4_walk_lean.py`, output
+     identical; spec mem/data-cap); CB9 implementer A (`cb9_common`, `cb9_sign`, `cb9_pyth`, `run_cb9.py`, tests, rules
+     files `seals/cb9_sign_rules.json` + `seals/cb9_rules.json`, draft q0180); CB9 implementer B (`cb9_kd.py` + tests,
+     rules `seals/cb9_kd_rules.json`). `cb9_common.py` had been left untracked by an interrupted session; A adopts it.
+1. **q0082f:** after the fix commit, deploy; it is in retry_wait (attempt 5 next). If it fails again, read the log before
+   any further attempt.
+2. **CB9:** after A and B commit, run the code-against-design freeze check (science-reviewer); then queue q0180 (cpu,
+   may run before T_seal). Data jobs q0181+ only after T_seal 2026-10-22T00Z.
+3. **CB7/CB6 before T_seal:** q0142/q0143 DONE (11:36Z, 14:27Z); q0120b on the net lane (guard now 14). Seals
+   q0144/q0145/q0121 only after T_seal. Never retry q0141. Write up q0142/q0143 fetch reports (counts only).
+4. **CB8-H:** q0160b promoted (b486d52); after its PASS, q0162/q0163 (target 10-21T04:00Z). **CB8-B:** q0161/q0164 after
+   T_seal; before promoting q0164 run the two `derive-exclusion-ids` commands in its draft notes on the host (as late as
+   possible, once), replace both TODO-COORDINATOR sha256 tokens, raise its `--data-dumps-cap-gb` to 14. B analysis side
+   (q0169/q0170/q0174) not written yet.
 5. **h7 (T_seal):** after q0081f/q0082f read both `frame_report.json`, commit `seals/h7_cb4_group_s_amendment.json`,
-   create gate q0081g; raise q0081/q0082 `--data-dumps-cap-gb` 12.5 -> 13 when released. Create q0083b only on/after
+   create gate q0081g; raise q0081/q0082 `--data-dumps-cap-gb` 12.5 -> 14 when released. q0083b only on/after
    2026-10-22T00:00Z.
-6. CB4: freeze check must rule on the degenerate pilot (N1/N2 testability); q0085 no earlier than ~10-24T12Z. CB5: q0104b
-   -> label audit sample (Claude session + science-reviewer) -> cdf-audit-apply -> q0105 -> q0106 -> write-spec freeze;
-   q0103 refuses before 10-27. MC1: q0116 starts itself ~10-17T18:31Z; cache the panel before 10-23 03:30Z. CB3: freeze
-   after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035; B3 at 10-19 (q0029).
+6. **CB4:** CB4-N stop rule fired (N1/N2 not testable, 7cc7857); q0085 no earlier than ~10-24T12Z. **CB5:** q0104b running
+   (started 14:28Z) -> label audit sample (Claude session + science-reviewer) -> cdf-audit-apply -> q0105 -> q0106 ->
+   write-spec freeze; q0103 refuses before 10-27. **MC1:** q0116 starts itself ~18:31Z (40 captures); cache the panel
+   before 10-23 03:30Z. **CB3:** freeze after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035; B3 at
+   10-19 (q0029).
+7. **Creative lead:** round-4 ideas not in CB9 (CH81, CH82, CH85-CH91, CH93-CH98) are the next design source (CB10).
+   Generate round 5 (Fable xhigh) only when that runs low or results point somewhere new.
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
