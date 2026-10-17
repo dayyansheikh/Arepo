@@ -1395,3 +1395,24 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   trades; D2 start epoch must be explicit; q0202 per-item failure cap; draft repeat/depends fixes; smoke network give-up
   must be NotNow. Rulings: audit denominator, RV_MIN_RETURNS 150, stricter placebo, 30-min mark, trial roles, cap 40
   accepted. Fixes being implemented (rules v2).
+
+## CB11 design draft, not counted, k = 6 fixed + up to 6 conditional (2026-10-17 20:50 UTC+1; design only)
+- `CREATIVE_BATCH_11.md` (status DRAFT, challenger review pending, not frozen; queue ids q0220-q0239, specs in the
+  document only). Families: **CB11-W** (CH85, whitelisted-proposer clocks: W1 forecast of the post-end wait
+  `closedTime − endDate` vs a category-median baseline, floor 20% MAE gain; W2 decided carry restricted to predicted
+  waits ≤ 6 h at an hourly capital-time rate, CB1 tail gate), Stage 1 on the **h2_main/h3_power frames already on the
+  host** (metadata only; reused frame, fresh target, sampled markets dropped by key) plus a 9,000-request print fetch;
+  **CB11-P** (CH88, politics favourites 0.60-0.85 at 30/60/90 d: P1 mean excess ≥ 3c, P2 declared-ask carry), fresh
+  `h11_pol`, out-of-time split at 2026-01-01; **CB11-A** (CH97, Wikipedia pageviews: quiet-minus-spike continuation of
+  ≥ 3c moves, A1 ≥ 1c, A2 taker follow), fresh `h11_attn`, event split. Dropped with reasons: CH81 (census floor),
+  CH86 (pmxt ingress), CH94/CH95/CH96 (`side` and wallet dependence, wallet nulls), CH98 (about 5 usable capture days).
+- 32 counts-only probe requests, nothing stored: Gamma `closedTime` = `umaEndDate` (UMA settlement); `resolvedBy` is the
+  adapter (2 values), not the proposer; public RPCs refuse topic-only `ProposePrice` log scans; ≥ 510 long-life
+  politics markets ending in March 2026 alone; pageviews for 2026-10-16 still unpublished ≥ 19.8 h after the day ended
+  (the 12 h fallback assumption is contradicted; CB11 uses 48 h).
+- MDEs (estimates): W1 about 0.03-0.06 (floor 0.20 binds), W2 about 1.5-2.4c (floor 0.30c), P1 about 4.5-7c (floor 3c;
+  power gate 6.0c), A1 about 2.6c (floor 1c; GA may fail on spike count), A2 about 1.1c. W can screen before `T_seal`;
+  P and A fetches (about 50,000 requests) use the idle `net` lane at priorities 25-29, behind every `T_seal`-bound job.
+- Count 0 now; cumulative **1,141** as stated in the latest ledger entry that states one (CB10 draft); 1,156 from
+  `battery2.cumulative_count()` on the Mac working tree at drafting (lower bound). Next: `science-reviewer` challenger
+  round 1.
