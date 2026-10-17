@@ -241,6 +241,7 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "per-arm scores of the same fits (193 lines); tests are counted via ml_explain, as ml_fit.",
     ),
     "surprise_labels": (EXCLUDE, "label specification fixed before features; no test"),
+    "design_change": (EXCLUDE, "recorded design amendment (e.g. CB6 A-T1 top-up, 2026-10-17), n_tests 0; no test"),
     "history_replication_declaration": (EXCLUDE, "pre-declaration of a replication; no test (tests counted when run)"),
 }
 
