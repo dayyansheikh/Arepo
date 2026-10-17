@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-17 10:33 UTC+1
+**Last updated:** 2026-10-17 10:58 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -24,7 +24,14 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **Two jobs ran out of memory** (batch 4's pilot and one of its sampling frames). The pilot is retrying with more
   memory; proper fixes for both are being written.
 - **Batch 5:** a backup file it needs is being restored from the GitHub data backup to the server.
-- **New idea round 4** is being written (Fable, as you asked); the previous attempt was cut off and wrote nothing.
+- **New idea round 4 is done** (Fable, 20 ideas). Top: (1) check whether the public trade feed even gets the buy/sell
+  side right (a 2026 paper says only ~59 % agree with the blockchain record; if so, our order-flow results are understated
+  about 5x); (2) market-making in daily markets settled by a public price feed (Pyth/Chainlink), where fair value is
+  public; (3) parlay ("Combos") pricing. These are being turned into batch 9 designs now.
+- **Batch 6 got far fewer markets than planned** (362 instead of about 4,500), because the sampling rule plus the
+  exclusion of earlier samples' series removed most candidates. Nothing about outcomes was seen. A reviewed top-up
+  download (same rules, more sampling windows) is being built so the test has a fair chance; it must finish before 22 Oct.
+- **Batch 7's corrected download test is queued** (it passed its code check).
 - **Multi-signal ML:** the real development run starts by itself once 40 unbroken 2-hourly captures exist (about 19:30 UTC+1 today).
 - **Tests counted so far: 1,106** (unchanged today; smoke tests and counts are not outcome tests).
 

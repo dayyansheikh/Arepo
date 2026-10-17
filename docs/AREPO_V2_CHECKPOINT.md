@@ -165,32 +165,33 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 10:31 UTC+1
-0. **Autopilot session from 09:19Z 10-17.** Last deploy 15ea7e2 (~09:30Z).
-   - **Done this session:** host package caches cleared (~3 GB; 9.3 GB disk free), collector cap 13 -> 14 GiB, CB5 fetch
-     refusal 12 -> 13 GB, q0084 mem 1500 -> 2600 (15ea7e2). Smoke FAILs diagnosed (7ca9d54, a963aed): CB7 q0140 = pool spec
-     (205/13.7k eligible; v2 pool 33 ids), CB8-H q0160 = empty frame (Gamma markets carry no OI; Data API `/oi` works,
-     60 ids/request). Reviewer: both v2 ACCEPT_WITH_CHANGES; ledger consequences suspended (cb29339). CB3 census counts
-     into `CREATIVE_BATCH_3.md` §2.7.1 (9e08d2c). CB5 grouper seal committed (f647065).
-   - **Running agents (check `git log` if this session ended):** round-4 creative hypotheses (Fable xhigh) ->
-     `CREATIVE_HYPOTHESES_2026-10-18.md` (CH79+); CB8 B-family implementer (finishing the untracked `cb8_books.py` /
-     `cb8_updown.py`); memory fixes for q0082f (series walk resume, 322 MB partial) and q0084 (pmxt row groups); CB7
-     smoke v2 implementer (rules v2, draft q0140b).
-   - **Background on the Mac:** IF-H2 restore `/tmp/cb5_restore/run.sh` (log `run.log`) -> host
-     `~/arepo/scratch/cb5/if_h2_events.jsonl.gz`. Then promote q0104 with argv `--ifh2-events
-     ../scratch/cb5/if_h2_events.jsonl.gz` (the draft's `../../scratch` is wrong: cwd is `~/arepo/backend`).
-1. **CB8-H v2** (after the B implementer finishes; same files): implement reviewer items 5-9 of
-   `SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md` §4, `cb8_holders_rules_v2.json`, q0160b; q0162/q0163 target 10-21T04:00Z.
-2. **CB7 v2:** after the implementer commits, short freeze check, promote q0140b; on PASS promote q0142/q0143 (before
-   `T_seal` 2026-10-22T00Z); seals q0144/q0145 only after T_seal. A v2 FAIL is final.
-3. **T_seal 2026-10-22T00Z:** CB6 q0121 seal after both h7 SEAL/NOT_RUN records. h7: after q0081f/q0082f read both
-   `frame_report.json`, commit `seals/h7_cb4_group_s_amendment.json`, create gate q0081g. Create q0083b only on/after
-   2026-10-22T00:00Z.
-4. CB4: promote q0085 no earlier than ~2026-10-24T12Z. CB5: q0102 head fetch (cap 13), q0104 -> audit labels ->
-   cdf-audit-apply -> q0105 -> q0106 census -> write-spec freeze; q0103 refuses before 10-27.
-5. MC1: q0116 real run starts itself after the 40th consecutive capture (~10-17T18:31Z); cache the panel before 10-23 03:30Z.
-6. CB3: freeze after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035; B3 at 10-19 (q0029).
-   `book_sweeps/` rule deferred until q0035 done and MC1 panel cached. Temp worktree `/tmp/arepo_wt_rgc`.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 10:58 UTC+1
+0. **Autopilot session from 09:19Z 10-17.** Last deploy aeefc92 (~09:57Z).
+   - **Done this session:** disk headroom (package caches cleared, collector cap 14 GiB; 15ea7e2). Smoke FAILs diagnosed and
+     reviewed (`SMOKE_DIAGNOSIS_2026-10-17_CB7_CB8H.md`; ledger cb29339). CB3 census counts (9e08d2c). CB5 grouper seal
+     (f647065), IF-H2 member restored to host `~/arepo/scratch/cb5/`, q0104 promoted (a97fd40) -> attempt 1 MemoryError ->
+     runner reorder (aeefc92; last attempt pending). Memory fixes: q0084 streaming pmxt (23dcd70), q0082f lean walk
+     (23dcd70), q0082 stage-all lean (2332d81; q0082 mem 900 / disk 0.40 fine). CB7 smoke v2 code c09dea9, rules v2
+     `05bf365c…` (3675aad), freeze check GO_WITH_CONDITIONS applied, **q0140b promoted** (e98b960). CB8-B data code
+     2311e59, rules `36fd2783…` (16957a7), notes 362bdb2 (B analysis side NOT written). Round 4 hypotheses CH79-CH98
+     (d33d6178). CB6 h8_tail shortfall (362 markets, ~8 % of plan) -> top-up A-T1 ACCEPT_WITH_CHANGES (5335bdd).
+   - **Running agents (check `git log` if this session ended):** CB8-H v2 implementer (rules `cb8_holders_rules_v2.json`,
+     draft q0160b); CB6 A-T1 implementer (h8_tail_b, rules v3, union seal, draft q0120b); CB9 design author (Opus) ->
+     `CREATIVE_BATCH_9.md` from round 4; CB8-B data freeze check (incl. the B1 tail-gate algebra 7.9/11.3/14.2c vs the
+     design's 8.4/12.5/16c).
+1. **CB7:** read q0140b `smoke_v2.json`; PASS -> promote q0142/q0143 (drafts already cap 13, depend on q0140b + q0141);
+   FAIL is final (S1/G1 "not run (smoke FAIL)", counted). Never retry q0141 (v1 rules; would refuse).
+2. **CB6:** after the A-T1 implementer commits, short freeze check, promote q0120b (must finish before T_seal 10-22T00Z);
+   q0121 union seal after T_seal and both h7 SEAL/NOT_RUN records.
+3. **CB8-H v2:** after commit, freeze check, promote q0160b; q0162/q0163 target 10-21T04:00Z. **CB8-B:** apply the freeze
+   check; q0161/q0164 after T_seal; analysis side (q0169/q0170/q0174) still to write.
+4. **CB9:** challenger review of the draft, response, then code.
+5. **T_seal 2026-10-22T00Z:** h7: after q0081f/q0082f read both `frame_report.json`, commit
+   `seals/h7_cb4_group_s_amendment.json`, create gate q0081g. Create q0083b only on/after 2026-10-22T00:00Z. When q0081/q0082
+   are released, raise their `--data-dumps-cap-gb` 12.5 -> 13.
+6. CB4: promote q0085 no earlier than ~10-24T12Z. CB5: q0104 -> label audit sample -> cdf-audit-apply -> q0105 -> q0106 ->
+   write-spec freeze; q0103 refuses before 10-27. MC1: q0116 starts itself ~10-17T18:31Z; cache the panel before 10-23 03:30Z.
+   CB3: freeze after q0064 (after 10-25). Standing: after 10-21T03Z gate q0036 -> q0035; B3 at 10-19 (q0029).
 
 ## Learned surprise-move detector (2026-10-12 evening)
 `docs/research_lab/SURPRISE_MOVE_DETECTOR.md`. Labels fixed and logged before features (`surprise-labels-v1`,
