@@ -1,6 +1,6 @@
 {
  "id": "q0160_cb8_holders_smoke",
- "title": "CB8-H: /holders smoke on 20 live markets from the latest complete capture (HTTP, token grouping, outcomeIndex, numeric amount, proxyWallet present and hashed in memory, rows per token <= 20, response time); counts only",
+ "title": "CB8-H: /holders smoke on 20 live markets from the latest complete capture (HTTP, token grouping, outcomeIndex, numeric amount, proxyWallet present and hashed in memory, rows per token <= 20, response time; Gamma openInterest and capture OI vs sum of top-20 amounts per token (OI units); strict-key fingerprint check); counts only",
  "family": "creative_batch_8",
  "priority": 55,
  "expected_value": "source check before the prospective CH70 collection",
@@ -29,5 +29,5 @@
   "data-dumps/research_lab/creative_batch8/holders_smoke.json"
  ],
  "next_action": "PASS: collector freeze check, then commit q0162/q0163. FAIL (a) or (b): H not run (source), counted",
- "notes": "CREATIVE_BATCH_8.md CB8-F. DRAFT. Seed arepo-cb8-hsmoke. Criteria fixed in seals/cb8_holders_rules.json before the run. May run before T_seal (cpu lane, about 20 requests). No wallet stored."
+ "notes": "CREATIVE_BATCH_8.md CB8-F. DRAFT. Seed arepo-cb8-hsmoke. Criteria fixed in seals/cb8_holders_rules.json before the run. May run before T_seal (cpu lane, about 20 requests). No wallet stored. Round 1: criterion (e) records OI ratios ('units unverified' if sum top-20 > 1.05 OI in > half the markets; c formula unchanged); criterion (f) key fingerprint; FAIL on (a), (b) or (f). Round 1 item 6: wallet key via cb8_common.load_wallet_key_strict (never creates a key; exit 2 on missing key or fingerprint mismatch vs wallet_key_fingerprint in the rules file); fingerprint written to the manifest."
 }

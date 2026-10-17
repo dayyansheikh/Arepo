@@ -51,5 +51,5 @@
   "data-dumps/research_lab/history/h9_flow/{frame.csv.gz,sample.csv.gz,split.json,screen/,holdout/,days.csv.gz,progress.jsonl,manifest.json}"
  ],
  "next_action": "q0168",
- "notes": "CREATIVE_BATCH_8.md CB8-W. DRAFT. Not T_seal-bound (rows < 2026-10-01); commit after the q0161 PASS. About 700 frame + 10k print requests, about 50 min at 4 rps. Seeds arepo-h9-window, arepo-h9-sample, arepo-h9-split. Capped day -> unavailable. Raw wallets only in memory. No outcome fetched."
+ "notes": "CREATIVE_BATCH_8.md CB8-W. DRAFT. Not T_seal-bound (rows < 2026-10-01); commit after the q0161 PASS. About 700 frame + 10k print requests, about 50 min at 4 rps. Seeds arepo-h9-window, arepo-h9-sample, arepo-h9-split. Capped day -> unavailable. Raw wallets only in memory. No outcome fetched. Round 1 should-change: ex-post frame selection (closed, lifetime volume) disclosed; window-to-end_at gap stored for the reported >= 14 d stratum. Round 1 item 6: wallet key via cb8_common.load_wallet_key_strict (never creates a key; exit 2 on missing key or fingerprint mismatch vs wallet_key_fingerprint in the rules file); fingerprint written to the manifest."
 }

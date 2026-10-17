@@ -2,7 +2,8 @@
 
 `evidence_role: exploratory_historical` (CH76 on pmxt books of daily crypto Up/Down markets, 2026-04-13 to 08-10; CH69 on
 the fresh `h9_flow` print fetch, May-September 2026) / `prospective` (CH70, on `/holders` snapshots collected from
-2026-10-21 onwards) | status: **DRAFT, not challenged, not frozen.** Drafted 2026-10-17 06:45 UTC+1 (2026-10-17T05:45Z).
+2026-10-21 onwards) | status: **REVISED after challenger round 1 (ACCEPT_WITH_REQUIRED_CHANGES); not frozen.** Drafted 2026-10-17 06:45 UTC+1;
+round-1 response 2026-10-17 (§9). Every change tightens or discloses; no alpha, floor, cap or threshold was relaxed.
 
 This file turns CH76, CH69 and CH70 from `CREATIVE_HYPOTHESES_2026-10-17.md` (round 3) into declared, falsifiable tests,
 and records why the other eight remaining round-3 ideas (CH62, CH64, CH65, CH68, CH72, CH74, CH75, CH78) are not in this
@@ -126,6 +127,7 @@ population only; W and H exclude them (`CB1_UPDOWN_RE`).
 | `T8_H1_end` | `T8_H1_start` + 21 d | end of H window 1 |
 | `T8_H2_start` | **max(`T8_H1_end`, CB8 freeze commit + 2 h)** | H window 2 begins only after the freeze. Snapshots between the windows are collected, never analysed (counted) |
 | `T8_H2_end` | `T8_H2_start` + 21 d | collection stops at `T8_H2_end` + 30 h |
+| `T8_H_collect_max` | `T8_H1_start` + 63 d (pinned with `T8_H1_start`) | **freeze-slip rule (round 1, should-change):** q0162/q0163 never collect after this date. If `T8_H2_start + 21 d > T8_H_collect_max` (the freeze slipped by more than 3 weeks after `T8_H1_end`), window 2 cannot complete: H1-rep is **"not run (freeze slip)", counted** if H1 advanced. The window is never shortened or extended |
 
 ### 1.3 Sealed and untouched data (named)
 
@@ -185,6 +187,16 @@ population only; W and H exclude them (`CB1_UPDOWN_RE`).
   - the smoke criteria.
 
   Fetchers refuse (exit 2) on a hash mismatch. **No rule is computed from, or revised after, any B, W or H read.**
+- **HMAC key continuity (round 1, item 6).**
+  - Both rules files pin `wallet_key_fingerprint` = the first 16 hex characters of
+    `HMAC-SHA256(key, "arepo-cb8-wallet-key-fingerprint-v1")`, computed once on the host from the existing
+    `~/.arepo/wallet_hash_key`. The fingerprint is not the key.
+  - Every CB8 job that hashes wallets (q0160, q0162, q0163, q0167) loads the key through a **strict loader** that
+    **refuses (exit 2) if the key file is missing, unreadable or mode-unsafe**. It **never creates a key**:
+    `wallet_sidecar.load_or_create_key` would silently create a new one and break every join.
+  - The job recomputes the fingerprint and refuses on mismatch. It writes the fingerprint into its manifest.
+  - Census and analysis refuse any CB8 file whose manifest fingerprint differs from the pin. H's holder-to-print join is
+    valid only within one fingerprint.
 
 ## 2. Common rules (deltas from CB7 §2 and CB4 A-C1)
 
@@ -243,7 +255,7 @@ the print, and trigger wallet hash. **H** Gamma event, UTC day of the exit, and 
 
 | Test | Type | Floor on the point estimate |
 |---|---|---|
-| B1 | economic | net ≥ +0.5c per share bought **and** the tail gate (§CB8-B) |
+| B1 | economic | net ≥ +0.5c per share bought **and** the day-unit tail gate (§CB8-B), which at about 56 traded days requires a mean margin of about ≥ 8.4c |
 | W1 | economic | mean mark-out of the skipped fills (plus forgone rebate) ≤ −0.5c per share; route gate on kept fills (§CB8-W) |
 | H1 | mechanism + economic gate | contrast ≥ +0.5c per share; route gate: exits' own mean mark-out ≥ +0.5c (§CB8-H) |
 
@@ -314,8 +326,12 @@ placebos are judged on the p threshold alone (floors off). Seeds 8181-8186.
 - (iv) **Sign by month.** The estimate has the declared sign in ≥ two thirds of months with ≥ 30 units (B), ≥ 500
   skipped prints (W), or ≥ 50 pairs (H; H windows span 2 months, so this check is reported, not binding).
 - (v) The declared worst case for unavailable units keeps the sign and the p threshold.
-- (vi) **Latency.** B: ask and cap read at `t + 10 s`. W: reaction 300 s instead of 60 s. H: exits counted only from
-  `h + 15 min`. Each keeps the sign and ≥ half the magnitude.
+- (vi) **Latency.**
+  - B (round 1, item 4): the unit fills at `a* = max(a_t, a_{t+10 s})` only if the state at `t + 10 s` still offers ≥ 5
+    shares at prices ≤ `a*` and `a* ≤ 0.99`; otherwise it does not fill in this check (counted).
+  - W: reaction 300 s instead of 60 s.
+  - H: exits counted only from `h + 15 min`.
+  - Each keeps the sign and ≥ half the magnitude, and B also keeps the tail gate.
 - (vii) **B only.** Excluding HYPE (futures source) keeps the sign and p threshold. σ from 30 instead of 60 candles
   keeps the sign and ≥ half the magnitude.
 
@@ -340,8 +356,14 @@ unit test asserts that no census path receives a target field. **No net, mark-ou
   - Binance–Gamma **status** consistency: the share of markets with `closed = true`. Outcome agreement is checked only at
     analysis.
   - The B1 MDE from these counts.
-  - **Gate GB:** ≥ 100 traded units, ≥ 50 market-days and ≥ 15 days with a traded unit (SCREEN). Fail → B1 "not testable
-    (no terminal opportunity at the minute scale)", counted. That is itself a descriptive answer to CH76.
+  - The pmxt coverage audit result (q0166 stage 1). Source-unavailable market-days by asset and week.
+  - **Gate GB:** ≥ 100 traded units, ≥ 50 market-days and ≥ 15 days with a traded unit (SCREEN). On failure, B1 is "not
+    testable", counted, labelled as follows (round 1, item 3):
+    - with the audit PASS and ≥ 80% of SCREEN market-days source-available: "no terminal opportunity at the minute
+      scale", a descriptive answer to CH76;
+    - otherwise: "source unavailable".
+  - The number of traded days, and the margin the day-unit tail gate would require at that count (a function of n only,
+    no outcome).
 - **W (SCREEN; HOLDOUT file and event counts only).**
   - Frame, filter and key-drop counts; capped days; prints per market-day.
   - Triggers, skip windows, S, S′ and N print counts; two-sided mark availability at +2 h; event, day and
@@ -376,7 +398,7 @@ unit test asserts that no census path receives a target field. **No net, mark-ou
   | q0164 | exclusion keys | about 1,000 requests | ≤ 0.01 GB |
   | q0165 | frame | about 1,300 Gamma requests | ≤ 0.01 GB |
   | q0165 | Binance archive | 35 monthly zips (6 spot symbols + HYPE futures × 5 months), about 80 MB, `.CHECKSUM`-verified, parsed in memory | ≤ 0.02 GB |
-  | q0166 | pmxt | about 111 days × hour 15Z (14Z lookback only when a token has no event before the checkpoint), range reads by ≤ 7 condition ids; about 0.5 GB ingress per hour read (`HISTORICAL_SOURCES.md`, CB4 §2.8). **Ingress cap 80 GB**; days processed in a seeded order alternating SCREEN and HOLDOUT, so a cap truncates both evenly (unprocessed days unavailable, counted). About 2-4 h wall in 85-min chunks, mem ≤ 1.5 GB | ≤ 0.02 GB |
+  | q0166 | pmxt | about 111 days × hour 15Z (14Z lookback only when a token has no event before the checkpoint), range reads by ≤ 7 condition ids; about 0.5 GB ingress per hour read (`HISTORICAL_SOURCES.md`, CB4 §2.8). **Ingress cap 90 GB**, including about 10 GB for the round-1 coverage audit (hour 13Z of 20 seeded days, counts only, first stage); days processed in a seeded order alternating SCREEN and HOLDOUT, so a cap truncates both evenly (unprocessed days unavailable, counted). About 2-4 h wall in 85-min chunks, mem ≤ 1.5 GB | ≤ 0.02 GB |
   | q0166 | prints | about 825 print requests | (included above) |
   | q0167 | `h9_flow` | about 700 Gamma frame requests + about 10k print requests (1,800 markets × about 3.1 days × about 1.8 pages) ≈ 50 min at 4 rps | ≤ 0.15 GB |
 - **Disk guard.** Every CB8 data job exits 75 when data-dumps + its output cap > 12.5 GB (as CB6/CB7). CB8 output caps
@@ -432,6 +454,15 @@ CB1-CB7 population contains daily Up/Down markets (CB6/CB7 exclude them explicit
 2. The question matches `^(Bitcoin|Ethereum|Solana|XRP|Dogecoin|HYPE|BNB) Up or Down on [A-Z][a-z]+ \d{1,2}\??$`, with
    two outcomes.
 3. The description contains all four frozen flags: Binance; 1-minute candle; `12:00` and `ET`; the 50-50 tie rule.
+3a. **Strike clause (round 1, item 5).** Both frozen regexes must match:
+    - `UP_RE`: `resolve to "Up" if the "Close" price for the Binance 1 minute candle for ([A-Z]+/USDT) ([A-Z][a-z]{2} \d{1,2} '\d{2}) 12:00 in the ET timezone \(noon\) is lower than the final "Close" price for the ([A-Z][a-z]{2} \d{1,2} '\d{2}) 12:00 ET candle`;
+    - `DOWN_RE`: the same with "Down" and "higher".
+
+    Their captured groups must be identical (symbol, strike date, settlement date), and the dates must parse to
+    **strike date = d − 1** and **settlement date = d**. Failures are excluded and counted.
+    - The regex was written from the rule text of an out-of-window market (Bitcoin, 2026-03-02).
+    - A counts-only check on the 825 window markets matched 825 of 825 (script
+      `probes/cb8_design_20261017/updown_strike_clause_probe.py`; description text only, no price or outcome field).
 4. `resolutionSource` parses to a Binance spot pair (`/trade/<SYM>_USDT`) or a USDⓈ-M future (`/futures/<SYM>USDT`),
    and the symbol matches the asset map. Failures are excluded and counted.
 5. Exclusion ids and keys are dropped.
@@ -460,8 +491,11 @@ CB1-CB7 population contains daily Up/Down markets (CB6/CB7 exclude them explicit
 **Target.**
 - `Y_fav` from the **Gamma official outcome** (guarded): 1 if the favoured side won, 0 if it lost, 0.5 on a 50-50
   resolution.
-- **Source check:** the Binance-computed outcome, comparing the settlement candle's close with `K_d`. Units that disagree
-  are excluded and counted. Disagreement on more than 2% of market-days → B "not testable (source)".
+- **Source check (round 1, item 2):** the Binance-computed outcome, comparing the settlement candle's close with
+  `K_d`.
+  - **Diagnostic only.** Units that disagree **stay in the P&L** with the Gamma official outcome, which is what pays.
+    They are counted and listed.
+  - Disagreement on more than 2% of market-days → B "not testable (source)".
 
 | ID | Kind | Unit | Statistic | Direction |
 |---|---|---|---|---|
@@ -469,10 +503,28 @@ CB1-CB7 population contains daily Up/Down markets (CB6/CB7 exclude them explicit
 
 **Gates.**
 - Floor: net ≥ +0.5c.
-- **Tail gate (binding).** `q_U` = the one-sided 99% Clopper-Pearson upper bound of the share of traded **days** with ≥ 1
-  losing unit (n = traded days). The gate requires
-  `mean(1 − a − f(a) | no loss)·(1 − q_U) − mean(a + f(a) | loss or, if none, all)·q_U ≥ 0`.
-  Five losing days cannot be outvoted by many 1c wins unless the bound allows it.
+- **Tail gate (binding; round 1 item 1: redefined in day units, kept binding).**
+  - The unit is the **traded day**. The day's paper book buys one share at each of its traded units.
+    - `W_d` = the day's gain if nothing loses: `Σ_u (1 − a_u − f(a_u))`.
+    - `L_d` = the day's loss if everything loses: `Σ_u (a_u + f(a_u))`.
+    - All of the day's units are assumed to lose together on a losing day (worst case, below).
+  - `q_U` = the one-sided 99% Clopper-Pearson upper bound of the share of traded days with ≥ 1 losing unit (n = traded
+    days, k = losing days).
+  - The gate requires `mean_d(W_d)·(1 − q_U) − mean_d(L_d)·q_U ≥ 0`, with `mean_d` over all traded days. Both terms are
+    per-day amounts in the same units, so probability and payoff now refer to the same unit (the draft mixed a per-day
+    probability with per-unit payoffs).
+  - **Why the day, decided data-blind.** Reversals in the last minutes are driven by a common crypto price shock, and
+    1-minute returns of BTC, ETH and the other assets are strongly correlated. So the seven markets and three checkpoints
+    of a day are not independent trials, and a bound on market-days would treat one shock as many. A bound that is
+    independent of the distribution (Hoeffding or empirical Bernstein on day P&L) is looser still at n ≈ 56. No bound in
+    market-day units was adopted.
+  - **Consequence, stated plainly.** With about 56 traded days per stage, `q_U` = 0.079 at zero losing days, 0.113 at one
+    and 0.142 at two. Because `W_d / L_d` ≈ (mean margin)/(mean `a + f`), the gate needs a **mean gross margin
+    `1 − a − f(a)` of about 8.4c per share with no losing day, about 12.5c with one and about 16c with two** (at
+    `a + f ≈ 0.985`). This makes B1 a test of **gross terminal staleness only**: it can pass only if the asks recorded
+    when the outcome is near-certain sit around ≤ 0.91 on average. A real 1-3c residual cannot pass in 56 days, whatever
+    its p. Showing one needs Stage P's day count (about 300 days: about 1.5c at zero losing days). Alpha, the floor and
+    the buy cap are unchanged.
 - p < 0.01 (Stage 1) with the §2.3 ways (market-day; day under A-C1).
 - Placebos and robustness as §2.6.
 - Sign by month: binding with ≥ 30 traded units per month.
@@ -485,7 +537,9 @@ CB1-CB7 population contains daily Up/Down markets (CB6/CB7 exclude them explicit
 - With a reversal rate near 1%, the net SD per market-day is about 10c and the day-way deff about 1.5. The MDE (one-sided
   α 0.01, power 0.8) is then **about 2.1c at f_tr = 1 and about 3c at f_tr = 0.5**.
 
-B1 can detect only a gross staleness. A 0.5-1c residual would be "not detected at MDE".
+**Binding constraint (round 1, item 1).** The day-unit tail gate dominates the p-based MDE. At about 56 traded days, B1
+can advance only if the mean margin is **≥ about 8.4c per share** (more with any losing day). A 0.5-3c residual is
+reported as "below the tail-gate requirement", not as evidence.
 
 **Costs by era.** The pmxt window includes the CLOB V2 switch (about 04-28), the tick change (07-02) and the fee step
 (07-10). Fees use the conservative max of recorded and docs rates on every date. Strata before and after 07-02 are
@@ -498,13 +552,30 @@ reported, not binding: both stages span them because of the alternating-week spl
 - `endDate`/`t_end` is fixed by the market template (daily noon ET), so no early-resolution look-ahead exists. A market
   whose `endDate` is not 16:00Z on its day is not in the frame.
 
-**Stage 2 (HOLDOUT weeks).** Identical rule, checkpoints, cap, gates, ways and placebos. It opens only after B1 advanced
-and its Stage-1 result is committed.
+**Stage 2 (HOLDOUT weeks).** Identical rule, checkpoints, cap, gates (including the day-unit tail gate at the HOLDOUT
+day count), ways and placebos. It opens only after B1 advanced and its Stage-1 result is committed.
+- **Disclosure (round 1, should-change).** The alternating-week holdout is a **selection guard only**. It shares the
+  calendar, the regimes and the bot population with SCREEN and protects against choosing the rule on the data. It is not
+  an out-of-time or regime check; Stage P-B is.
+
+**pmxt coverage audit (round 1, item 3; first stage of q0166; counts only).**
+- pmxt subscription completeness is unaudited (`HISTORICAL_SOURCES.md` §open 3). Before any checkpoint extraction,
+  q0166 reads hour **13Z** (a non-checkpoint hour) for 20 seeded B days (10 SCREEN, 10 HOLDOUT; seed
+  `arepo-cb8-pmxt-audit`) and counts, per (market, day), whether the market's condition id has **any** event.
+- **PASS iff ≥ 90% of (market, day) pairs are present.**
+  - FAIL → B "not testable (source unavailable)", counted. q0166 stops, and no checkpoint is extracted.
+- In the extraction itself, a market-day whose condition id has no event in 14Z-15Z is **"source unavailable"**: its own
+  label, counted, never "no trade".
+- GB's "no opportunity" reading applies only if the audit passed **and** ≥ 80% of SCREEN market-days are source-available.
+  Otherwise a GB fail reads "not testable (source unavailable)".
+- Ingress for the audit is about 10 GB; the q0166 cap is raised to 90 GB (the audit counts toward it).
 
 **What would kill CH76.**
-- GB fails: no fresh ask ≤ 0.99 in the last 5 minutes. That would be a clean "bots price it".
+- GB fails with source coverage met: no fresh ask ≤ 0.99 in the last 5 minutes, "no minute-scale opportunity at
+  recorded books". A coverage failure is "source unavailable" instead, never "bots price it".
 - B1 not detected.
-- The tail gate fails.
+- The tail gate fails. At about 56 days this happens whenever the mean margin is below about 8.4c, even with a
+  significant mean: the verdict is "below the tail-gate requirement".
 - The break-even placebo advances.
 - The effect needs the top five days.
 - The 10-s latency check removes it.
@@ -514,7 +585,10 @@ and its Stage-1 result is committed.
 - B1 and B1-rep pass, with the attribution credited → "Binance-certain terminal asks left a gain after fees on held-out
   days (L2)" → Stage P-B.
 - Attribution fails → "terminal favourite bias".
-- GB fails → "no minute-scale opportunity at recorded books", reported as the CH76 answer.
+- GB fails with coverage met → "no minute-scale opportunity at recorded books", reported as the CH76 answer.
+- Coverage fails → "not testable (source unavailable)".
+- Significant positive mean but the tail gate fails → "below the tail-gate requirement at n ≈ 56 days" → a candidate for
+  a Stage P design with enough days, not an advance.
 
 **Stop rule.** B1 not advanced → q0174 is not committed.
 
@@ -541,6 +615,12 @@ public in `/trades` within seconds.
 - **Frame:** a Gamma closed walk with `volume_num_min = 50000` and `end_at ∈ [2026-05-08, 2026-10-01)`. The frame keeps
   markets that are binary, scheduled life ≥ 10 d, not weather, not crypto Up/Down (`CB1_UPDOWN_RE`). Exclusion
   ids/keys are dropped.
+- **Ex-post selection (round 1, should-change; disclosed).** `closed` and lifetime `volumeNum ≥ $50k` are known only
+  after the window. The frame therefore over-represents markets that later became busy, possibly because of news after
+  the window. W1's statistic uses no outcome, but a window just before a later volume surge may carry more informed flow.
+  - **Reported stratum (not binding):** W1 on windows ending ≥ 14 d before `end_at`, where the selection is furthest from
+    the window.
+  - The census reports its counts, and the verdict notes any sign difference.
 - **Window:** `w0` uniform (seeded by market id, `arepo-h9-window`) in
   `[max(created_at + 1 d, 2026-05-01), min(end_at − 4 d, 2026-09-27) − 72 h]`. Markets with an empty range leave the
   frame (metadata only, counted).
@@ -550,7 +630,8 @@ public in `/trades` within seconds.
   `/trades?market=<cid>&start&end&takerOnly=true&limit=1000&offset`, ≤ 10 pages. A day that hits the cap is
   **unavailable** (its prints, triggers and marks excluded, counted).
 - **Stored:** market id, event id, `ts`, side in YES terms (+1 ask-side, −1 bid-side), YES price, size, and the HMAC
-  wallet hash (`wallet_sidecar.hash_wallet`; the raw address exists only in memory). No outcome is fetched; W needs none.
+  wallet hash (`wallet_sidecar.hash_wallet` with the **strict key loader and pinned fingerprint**, §1.4; the raw address
+  exists only in memory). No outcome is fetched; W needs none.
 
 **Definitions (fixed now; all causal at the maker's decision time).**
 - **Clip:** prints by one wallet hash on one side of one market within 2 s of each other, merged (size summed, VWAP
@@ -676,6 +757,10 @@ CB8's own data.
 - Floor: H1 ≥ +0.5c.
 - **Route gate (binding at the point estimate):** the mean `mo(exit)` ≥ +0.5c (no rebate). Otherwise the verdict is
   "exits are less adverse than other sells, but buying them does not pay: no route".
+- **Route reading (round 1, should-change).** A maker cannot target an exit: the bid must already be resting when the
+  holder sells. So even a full pass supports only a **presence filter** ("rest bids in markets whose top holder owns
+  ≥ half of a token"). It is not a standalone trading route. The economic value of the filter would need a Stage P-H
+  design with sweep-recorded bids and a fill model.
 - p < 0.01 with ways event, day (A-C1) and holder.
 - Placebos and robustness as §2.6.
 
@@ -707,8 +792,9 @@ honestly.
 - H1-rep fails out of time.
 
 **Verdict map.**
-- H1 and H1-rep pass, with concentration credited and the route gate met → "concentrated-holder exits were cheap to buy,
-  out of time (L2)" → Stage P-H and a presence filter for CB3/CB4-style makers.
+- H1 and H1-rep pass, with concentration credited and the route gate met → "concentrated-holder exits were cheaper to
+  buy than other sells, out of time (L2): a candidate **presence filter** for makers" → Stage P-H. This is not a route
+  claim.
 - Otherwise CH70 is closed at the MDE.
 
 **Stop rule.** H1 not advanced → q0176 is not committed. Collection stops at `T8_H2_end` + 30 h in any case.
@@ -721,9 +807,16 @@ honestly.
   - (b) every response groups rows by token, with `outcomeIndex` ∈ {0, 1}, numeric `amount` ≥ 0 and `proxyWallet`
     present (hashed in memory, never stored);
   - (c) at most 20 rows per token, with the observed maximum recorded;
-  - (d) the response time is recorded.
+  - (d) the response time is recorded;
+  - (e) **OI units (round 1, should-change):** for each smoke market, the Gamma `openInterest` and the capture's
+    `open_interest` are recorded next to `Σ top-20 amounts` per token. The ratios are recorded (counts and ratios only).
+    - If `Σ top-20 > 1.05 × OI` for more than half the smoke markets, OI is labelled "units unverified". `c` then
+      effectively becomes the share of the top 20 through the declared `max(OI, Σ top-20)`. That formula is unchanged
+      either way.
+    - The label is carried into H's verdict;
+  - (f) the strict key loader finds the key, and its fingerprint equals the pin (§1.4); otherwise FAIL.
 
-  It writes `creative_batch8/holders_smoke.json`. FAIL on (a) or (b) → q0162/q0163 are not committed and H is "not run
+  It writes `creative_batch8/holders_smoke.json`. FAIL on (a), (b) or (f) → q0162/q0163 are not committed and H is "not run
   (source)", counted.
 - **CB8 smoke (q0161, counts only, after `T_seal`).**
   - (a) **Data API paging.** The pool is 20 worn markets: h1/h2/h3 exclusion ids looked up on Gamma by id (≤ 4
@@ -765,7 +858,7 @@ a `science-reviewer` freeze check. Analysis jobs also need the CB8 freeze.
 | q0163 | `q0163_cb8_holders_prints.json` | cpu | 51 | about 2,500 req/day, about 20 min/day, ≤ 0.12 GB total, mem 450; rolling | q0160 | with q0162 |
 | q0164 | `q0164_cb8_exclusion_keys.json` | net | 49 | about 1,000 req, about 8 min | q0161 | after `T_seal` (later seal copies handled by seal-time drops in q0166/q0168) |
 | q0165 | `q0165_cb8_updown_frame.json` | net | 48 | about 1,300 Gamma req + 35 archive files (about 80 MB), ≤ 0.03 GB | q0161, q0164 | after the q0161 PASS |
-| q0166 | `q0166_cb8_updown_books.json` | net | 46 | pmxt ingress ≤ 80 GB, about 2-4 h wall (85-min chunks), about 825 print req, ≤ 0.02 GB, mem 1,500 | q0165 | with q0165 |
+| q0166 | `q0166_cb8_updown_books.json` | net | 46 | pmxt ingress ≤ 90 GB (coverage audit first), about 2-4 h wall (85-min chunks), about 825 print req, ≤ 0.02 GB, mem 1,500 | q0165 | with q0165 |
 | q0167 | `q0167_h9_flow_fetch.json` | net | 47 | about 10.7k req, about 50 min at 4 rps, ≤ 0.15 GB, mem 800 | q0161, q0164 | after the q0161 PASS |
 | q0168 | `q0168_h9_flow_seal.json` | cpu | 45 | light | q0167 | with q0167 |
 | q0169 | `q0169_cb8_census_BW.json` | cpu | 40 | ≤ 1.2 GB | q0166, q0168 | after both seal copies are committed |
@@ -790,7 +883,7 @@ a `science-reviewer` freeze check. Analysis jobs also need the CB8 freeze.
     `z_features(klines, t, t_end, n_sigma=60)`.
   - Books: `pmxt_states(day, condition_ids, checkpoints)` built on `history_sources.load_book_snapshots` / `RangeFetch`.
     It returns per token and checkpoint: best ask/bid, size at best, size within 1c, tick, `fee_rate_bps`, last event
-    time, crossed and halted flags. Day-level ingress accounting and the 80 GB cap.
+    time, crossed and halted flags. Day-level ingress accounting and the 90 GB cap. `coverage_audit(days, condition_ids, hour=13)` (counts only; the first stage; FAIL stops).
   - Prints: `terminal_prints(cid, t_end)` (no wallet stored).
   - Analysis: `b_units(...)`, `b1_net(units, fee_rule)`, `tail_gate(...)`, `breakeven_placebo(...)` (per-day
     comonotone), `certainty_attribution(...)`, `source_check(...)` (Binance versus Gamma outcome).
@@ -806,6 +899,11 @@ a `science-reviewer` freeze check. Analysis jobs also need the CB8 freeze.
     `capture_marks(...)`.
   - Analysis: `concentration(...)`, `exits(...)`, `match_controls(...)`, `mo(...)`, `h1(...)`, `label_shuffle(...)`,
     `concentration_attribution(...)`, `presence_tables(...)` (descriptive).
+- **`backend/astrolabe/research_lab/cb8_common.py` (round 1, item 6):** `load_wallet_key_strict(path, pinned_fp)`
+  reads `~/.arepo/wallet_hash_key` (or `AREPO_WALLET_HASH_KEY_PATH`) without creating it. It checks mode 600, computes
+  `key_fingerprint(key)` (HMAC-SHA256 of `"arepo-cb8-wallet-key-fingerprint-v1"`, first 16 hex characters) and raises
+  on mismatch. Also `hash_wallet` re-export, `windowed_prints(cid, start, end, day_pages)` (paged, capped day →
+  unavailable, newest-first check, fingerprint dedupe), and `rules(path)` (hash check).
 - **`backend/astrolabe/research_lab/cb8_declaration.py`:** `HYPOTHESES_CB8` and `declaration_sha256()` over every
   population rule, regex, checkpoint, threshold, cap, window, horizon, seed, date, floor, gate and the source of every rule
   function and UPPER_CASE constant read at call time (as CB5-CB7).
@@ -819,6 +917,9 @@ a `science-reviewer` freeze check. Analysis jobs also need the CB8 freeze.
 `backend/scripts/run_cb8.py {rules,holders-smoke,smoke,holders-snap,holders-prints,exclusion-keys,updown-frame,
 updown-books,flow-fetch,flow-seal,census,screen,replicate,verify-seal} --family B|W|H`.
 - It refuses the run ids and roots of §1.3 and writes only under `research_lab/creative_batch8/` and `history/h9_flow/`.
+- Wallet-hashing commands (`holders-smoke`, `holders-snap`, `holders-prints`, `flow-fetch`) load the key only through
+  `cb8_common.load_wallet_key_strict()`. It never creates a key, and it refuses (exit 2) on a missing key or a fingerprint
+  mismatch; the fingerprint goes into every manifest.
 - Fetchers refuse unless the rules hash matches, every exclusion file matches its pin, and the smoke records PASS under
   the same hash. They exit 75 on headroom. There is no Mac or standalone mode (as CB7).
 - The declaration-hash guard applies to `census`, `screen` and `replicate`.
@@ -832,15 +933,20 @@ updown-books,flow-fetch,flow-seal,census,screen,replicate,verify-seal} --family 
 
 - **Updown.**
   - Question and description regexes on fixtures; the `resolutionSource` parser (spot versus futures).
+  - The strike-clause regexes `UP_RE` and `DOWN_RE`: mirror groups equal; strike date = d − 1 and settlement date = d.
+    Failure fixtures for a wrong date, an "Up" clause with "higher", and a missing clause.
   - Week split deterministic from the seed and fixed before reads.
   - Kline usability: a candle at `o + 64 s` is not usable, at `o + 65 s` it is. σ needs ≥ 55 candles. `m` is correct at
     each checkpoint.
   - Settlement candles appear only in the guarded file. No function compares consecutive strikes (AST or path test).
   - pmxt states use both clocks ≤ `t`; freshness 120 s; crossed is ineligible; the cap is `a ≤ 0.99` with size ≥ 5.
   - The fee uses the max of the recorded and docs rates. Ties pay 0.5.
-  - The tail gate on a fixture with 0, 1 and 5 losing days. The break-even placebo advances about 1% on a no-effect
-    fixture with heavy within-day dependence.
-  - The source check excludes disagreements, and > 2% → not testable.
+  - The day-unit tail gate (`W_d`, `L_d` per day; the Clopper-Pearson bound on days) on fixtures with 0, 1 and 5
+    losing days. It reproduces the required margin of about 8.4c at n = 56 with k = 0. The break-even placebo advances
+    about 1% on a no-effect fixture with heavy within-day dependence.
+  - The source check keeps disagreeing units in the P&L with the Gamma outcome, and > 2% → not testable.
+  - The latency fill is `max(a_t, a_{t+10})` with ≥ 5 shares at ≤ `a*` at `t + 10 s`.
+  - The coverage audit labels "source unavailable" separately from "no trade".
 - **Flow.**
   - Clips merge within 2 s. The trigger gap is enforced (19 s no, 20 s yes, 601 s no), as are the size ratio, the $50
     notional and the run-start and opposite-side rules.
@@ -851,8 +957,15 @@ updown-books,flow-fetch,flow-seal,census,screen,replicate,verify-seal} --family 
     fixture.
   - No raw wallet anywhere on disk (scan). The split is written before print requests. HOLDOUT files are refused before
     the Stage-1 file exists.
+- **Key continuity (all wallet-hashing jobs).**
+  - `load_wallet_key_strict` refuses on a missing key and never creates one (a test runs with an empty HOME and asserts
+    no file is written).
+  - A fingerprint mismatch → exit 2. The fingerprint is in every manifest. Census and analysis refuse mixed
+    fingerprints.
 - **Holders.**
   - The frame, the seeded sample and the seed written before requests.
+  - Smoke (e): OI ratios recorded; the "units unverified" label rule.
+  - `T8_H_collect_max` stops collection; a freeze slip → H1-rep "not run (freeze slip)".
   - Idempotent per UTC day; a missed day is recorded.
   - Hashing only. `c` uses `max(OI, Σ top-20)`. Exits are after `h + 60 s`.
   - Controls exclude top-5 wallets and respect the size bands without replacement.
@@ -875,21 +988,22 @@ updown-books,flow-fetch,flow-seal,census,screen,replicate,verify-seal} --family 
 
 **Network.**
 - Before `T_seal`: H collection only, cpu lane, about 4.3k requests a day.
-- After `T_seal`: about 14k API requests, about 80 MB of Binance archives, and ≤ 80 GB of pmxt range-read ingress.
+- After `T_seal`: about 14k API requests, about 80 MB of Binance archives, and ≤ 90 GB of pmxt range-read ingress.
 
 **Disk.** ≤ 0.4 GB across all CB8 outputs.
 
 ## 7. Main scientific risks
 
-1. **Bots (B).** The most likely CH76 answer is "no fresh ask ≤ 0.99 with \|z\| ≥ 3": a GB fail, honestly reported. If
-   opportunities exist, B1 detects only about 2-3c. The rare-reversal tail is handled by the bound-based tail gate and the
-   day-comonotone break-even placebo, not by the mean.
+1. **Bots and the day count (B).** The most likely CH76 answer is "no fresh ask ≤ 0.99 with \|z\| ≥ 3": a GB fail,
+   honestly reported (or "source unavailable" if the pmxt coverage audit fails). If opportunities exist, the binding
+   limit is the day-unit tail gate. With about 56 independent days per stage, B1 can pass only with a mean margin of
+   about ≥ 8.4c. Smaller real residuals are reported as "below the tail-gate requirement" and need Stage P's day count.
 2. **pmxt reconstruction (B).**
    - Event-stream books have no sequence numbers, so crossed states occur. Illiquid tokens look stale.
    - The freshness rule (120 s) and the crossed exclusion bind. Trading may halt before `t_end`; halted units are
      counted and reported.
    - 5-15% of hours are missing; such days are lost, never replaced.
-   - Ingress is about 0.5 GB per hour read, so the 80 GB cap may truncate days. That is even across the split, and the
+   - Ingress is about 0.5 GB per hour read, so the 90 GB cap may truncate days. That is even across the split, and the
      day order is seeded.
 3. **HYPE settles on futures (B).** It has a different venue and archive; the robustness check without HYPE binds.
 4. **Source agreement (B).** Binance archive closes must reproduce Gamma outcomes. Above 2% disagreement → not
@@ -910,27 +1024,44 @@ updown-books,flow-fetch,flow-seal,census,screen,replicate,verify-seal} --family 
 
 ## 8. Next actions
 
-1. **Challenger review (`science-reviewer`)** of this draft: one challenge, one response. Open questions:
-   - B: is the buy cap 0.99 with \|z\| ≥ 3 at three checkpoints, plus the day-level tail gate, the right single
-     statistic? Is the alternating-week holdout acceptable, given that Stage P is the out-of-time check?
-   - W: does the causal two-clip trigger with the CB7-X1-style skipped-fill statistic leave any way for W1 to pass when
-     stepping aside does not pay? Is the two-sided print mark that excludes the trigger wallet adequate?
-   - H: is the matched-control contrast with a route gate the right primary given an MDE of about 2c? Is a
-     prospective-only design with no historical stage acceptable?
-   - The dropped list (§0.2): is any drop wrong?
-2. **Implementer, first (the only CB8 work that benefits from starting before `T_seal`):**
-   - `seals/cb8_holders_rules.json`;
-   - `cb8_holders.py` collection side;
-   - `run_cb8.py holders-smoke | holders-snap | holders-prints`;
-   - their tests.
+1. **Challenger review: done** (round 1, §9; one challenge, one response, no second round).
+2. **Implementer, first (prospective H collection; the only CB8 work that benefits from starting before `T_seal`).**
+   Code list:
+   - `backend/astrolabe/research_lab/cb8_common.py`: `load_wallet_key_strict`, `key_fingerprint`, `rules` (hash check),
+     `windowed_prints` (paged `/trades` with start/end, `takerOnly`, ≤ N pages, capped day → unavailable, bounds and
+     newest-first checks, fingerprint dedupe, wallet hashed in memory).
+   - `backend/astrolabe/research_lab/cb8_holders.py` collection side:
+     - `holders_frame(capture, rules)` (binary, `accepting_orders`, OI ≥ 1,000, not weather or Up/Down, sports flag,
+       OI terciles);
+     - `holders_sample(frame, date, seed)` (seed written before requests);
+     - `fetch_holders(cid, limit=20)`;
+     - `holders_snap(...)` (idempotent per UTC day, "missed" day record, stop at `T8_H_collect_max`, exit 75 on
+       headroom, disk cap 0.08 GB);
+     - `holders_prints(...)` (snapshot days ≥ `h + 28 h`, `windowed_prints` over `[h, h + 26 h]` with ≤ 5 pages, rank
+       flags, the storage rule: full prints when `c ≥ 0.5`, top-5 prints otherwise);
+     - `capture_marks(...)` (YES touch of stored markets at complete captures in `[h, h + 30 h]`, read within the 8-day
+       retention);
+     - `concentration(...)`;
+     - `holders_smoke(...)` (criteria (a)-(f), including the OI ratios and the key-fingerprint check).
+   - `seals/cb8_holders_rules.json`, generated by `run_cb8.py rules --family H`: frame, sizes, seeds, request form,
+     windows, storage rule, mark rule, the concentration formula, `T8_H_collect_max` rule, smoke criteria,
+     `wallet_key_fingerprint`, `rules_sha256` and the source hash of every rule function.
+   - `backend/scripts/run_cb8.py rules | holders-smoke | holders-snap | holders-prints` (refusals of §5.2; the manifest
+     records the fingerprint and the rules hash).
+   - Tests: `test_cb8_common.py` (strict loader never creates a key; fingerprint mismatch → exit 2; paging, bounds and
+     dedupe on fixtures) and `test_cb8_holders.py` (collection items of §5.3).
 
    Then a `science-reviewer` collector freeze check. Commit q0160, and on a PASS commit q0162/q0163, aiming at the first
-   snapshot ≥ 2026-10-21T06:00Z (pin `T8_H1_start`). Late code only shifts `T8_H1_start`.
-3. **Implementer, second (before 10-22, code only; no network):**
-   - `seals/cb8_rules.json`;
-   - `cb8_updown.py` and `cb8_flow.py` fetch sides;
-   - `run_cb8.py smoke | exclusion-keys | updown-frame | updown-books | flow-fetch | flow-seal`;
-   - tests, then a fetcher freeze check.
+   snapshot ≥ 2026-10-21T06:00Z (pin `T8_H1_start` and `T8_H_collect_max`). Late code only shifts `T8_H1_start`.
+3. **Implementer, second (before 10-22, code only; no network).**
+   - W fetch first (q0167/q0168): `cb8_flow.py` `flow_frame`, `draw_window`, `per_event_cap`, `flow_sample`,
+     `event_split`, `flow_fetch` (via `cb8_common.windowed_prints` with ≤ 10 day pages and the strict key, SCREEN and
+     HOLDOUT roots, exit 75, resumable 85-min chunks, `--cap-at` 2026-10-01), and `flow_seal` (seal-time drops by id and
+     key, listing sha256, `DROPPED_*` blocks, `ACCESS_LOG`).
+   - The smoke and exclusion keys (q0161/q0164): `run_cb8.py smoke | exclusion-keys`.
+   - B fetch (q0165/q0166): `cb8_updown.py` `parse_updown` with `UP_RE`/`DOWN_RE`, `week_split`, `binance_month`,
+     `split_klines`, `coverage_audit`, `pmxt_states` and `terminal_prints`.
+   - `seals/cb8_rules.json` and the fetch-side tests, then a fetcher freeze check.
 4. **After `T_seal`.**
    - Commit q0161 and q0164; then on a PASS commit q0165-q0168.
    - Commit the seal copies and run q0169.
@@ -938,3 +1069,39 @@ updown-books,flow-fetch,flow-seal,census,screen,replicate,verify-seal} --family 
    - Implementer for the analysis code; `science-reviewer` freeze check; freeze (`model_specs/cb8_v1.json`).
    - Run q0170 and q0171.
 5. **After `T8_H1_end` + 30 h.** q0172 (GH), then q0173. Commit q0174-q0176 only for advanced tests.
+
+## 9. Challenger round 1 and response (2026-10-17)
+
+One `science-reviewer` pass on the committed draft `acd39f2`: **ACCEPT_WITH_REQUIRED_CHANGES**. This is the single
+response round; then proceed. Every change tightens or discloses. No alpha, floor, buy cap, threshold or gate was
+relaxed.
+
+### 9.1 Required changes
+
+| # | Finding | Resolution | Where |
+|---|---|---|---|
+| 1 | The tail gate mixed units: a per-day loss probability against per-unit payoffs. At about 56 traded days the 99% Clopper-Pearson bound with zero losing days is 0.079, so about 8.5c of gross margin is needed | **Kept binding and made unit-consistent**, decided data-blind. The gate is now on **day P&L**: `mean_d(W_d)(1 − q_U) − mean_d(L_d) q_U ≥ 0`, with `W_d`/`L_d` the day's total win and worst-case total loss and `q_U` the bound on losing days. **Justification:** terminal reversals come from common crypto shocks, so the day is the independent unit. Market-day units would count one shock seven times, and distribution-free bounds are looser at n ≈ 56. **Stated plainly:** B1 can pass only with a mean margin of about ≥ 8.4c per share (about 12.5c with one losing day, about 16c with two). A 1-3c residual is reported as "below the tail-gate requirement" and belongs to Stage P (about 1.5c at about 300 days) | §CB8-B gates, MDE, kill list, verdict map; §2.4; §2.7; §5.3; §7 risk 1 |
+| 2 | The source check excluded Binance-versus-official disagreement units | **Disagreeing units stay in the P&L with the Gamma official outcome.** Disagreement is diagnostic only. The > 2% "not testable (source)" gate stays | §CB8-B target; §5.3 |
+| 3 | pmxt coverage is unaudited | **Count-only coverage audit**, the first stage of q0166: hour 13Z of 20 seeded days (10 SCREEN, 10 HOLDOUT), with PASS iff ≥ 90% of (market, day) pairs show an event. FAIL → "not testable (source unavailable)". Market-days without events in 14Z-15Z get their own "source unavailable" label. A GB fail reads "no opportunity" only with the audit PASS and ≥ 80% coverage. The ingress cap rises from 80 to 90 GB to pay for the audit (a cost cap, not a statistical threshold) | §CB8-B audit; §2.7; §2.8; §5.1; q0166 |
+| 4 | Latency robustness | B fills at `max(a_t, a_{t+10 s})` only if ≥ 5 shares at ≤ that price remain at `t + 10 s` (and ≤ 0.99); it must keep the sign, half the magnitude and the tail gate | §2.6 (vi); §5.3 |
+| 5 | The strike was not verified from the rule text | Frozen `UP_RE`/`DOWN_RE` strike-clause regexes: mirrored groups, strike date = d − 1, settlement date = d; failures excluded and counted. A counts-only check matched 825 of 825 (`probes/cb8_design_20261017/updown_strike_clause_probe.py`) | §CB8-B population 3a; §5.3 |
+| 6 | HMAC key continuity (`load_or_create_key` would silently create a key) | `wallet_key_fingerprint` (HMAC of a fixed constant) is pinned in both rules files and every manifest. `cb8_common.load_wallet_key_strict` never creates a key and refuses on a missing key or a mismatch. Smoke criterion (f). Census and analysis refuse mixed fingerprints | §1.4; §CB8-W data; §CB8-F; §5.1-5.3; q0160, q0162, q0163, q0167 |
+
+### 9.2 Should-changes
+
+| Finding | Resolution |
+|---|---|
+| q0162 freeze slip | `T8_H_collect_max = T8_H1_start + 63 d`. If window 2 cannot complete by then, H1-rep is "not run (freeze slip)", counted. Windows are never shortened or extended |
+| W frame ex-post selection (`closed`, lifetime volume ≥ $50k) | Disclosed. A reported stratum covers windows ending ≥ 14 d before `end_at` |
+| H route | Reframed: even a full pass supports a **presence filter** only, not a standalone route (a maker cannot target an exit) |
+| OI units | q0160 criterion (e) records Gamma `openInterest`, capture OI and `Σ top-20`. "Units unverified" if `Σ top-20 > 1.05 OI` in more than half the smoke markets. The `c` formula is unchanged |
+| Alternating-week holdout | Disclosed as a selection guard only; Stage P-B is the out-of-time and regime check |
+
+### 9.3 Effect on counts and power
+
+k is unchanged: **3 fixed (B1, W1, H1) + up to 3 conditional = 3-6.**
+- **B1:** the p-based MDE (about 2-3c) is no longer the binding limit. The day-unit tail gate requires a mean margin of
+  about ≥ 8.4c at about 56 traded days with no losing day.
+- **W1 and H1:** MDEs unchanged (about 0.5c and about 2c).
+- **pmxt ingress cap:** 80 → 90 GB.
+

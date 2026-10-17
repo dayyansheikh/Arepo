@@ -1,6 +1,6 @@
 {
  "id": "q0166_cb8_updown_books",
- "title": "CB8-B: pmxt v2 book states of the day's Up/Down tokens at t_end - {600, 300, 120, 60} s (hour 15Z; 14Z lookback only when needed; both clocks <= t) and Data API taker prints in [t_end - 15 min, t_end + 2 min]; HOLDOUT weeks to the sealed root; pmxt ingress cap 80 GB",
+ "title": "CB8-B: pmxt v2 book states of the day's Up/Down tokens at t_end - {600, 300, 120, 60} s (hour 15Z; 14Z lookback only when needed; both clocks <= t) and Data API taker prints in [t_end - 15 min, t_end + 2 min]; HOLDOUT weeks to the sealed root; first stage: count-only pmxt coverage audit (hour 13Z of 20 seeded days; PASS iff >= 90% of (market, day) pairs present, else B not testable 'source unavailable'); pmxt ingress cap 90 GB",
  "family": "creative_batch_8",
  "priority": 46,
  "expected_value": "recorded asks, depth and fee rates for B1 and B1-rep",
@@ -22,7 +22,11 @@
   "scripts/run_cb8.py",
   "updown-books",
   "--ingress-cap-gb",
-  "80",
+  "90",
+  "--audit-hour",
+  "13",
+  "--audit-days",
+  "20",
   "--rps",
   "2",
   "--disk-cap-gb",
@@ -42,5 +46,5 @@
   "data-dumps/research_lab/creative_batch8/updown/{screen/,holdout/,days.csv.gz,progress.jsonl,manifest.json,HOLDOUT_SEAL.json,ACCESS_LOG.jsonl}"
  ],
  "next_action": "seal copy seals/cb8_updown_holdout_SEAL.json committed; q0169",
- "notes": "CREATIVE_BATCH_8.md CB8-B. DRAFT. Commit with q0165. Days processed in a seeded order alternating SCREEN and HOLDOUT so the ingress cap truncates both evenly; missing/corrupt hours lose the day (counted, never replaced). Stores derived states only (tens of MB at most). No wallet stored. Final stage seals the HOLDOUT root (listing sha256) after seal-time drops by id and key against every seal copy committed by then (DROPPED_* blocks)."
+ "notes": "CREATIVE_BATCH_8.md CB8-B. DRAFT. Commit with q0165. Days processed in a seeded order alternating SCREEN and HOLDOUT so the ingress cap truncates both evenly; missing/corrupt hours lose the day (counted, never replaced). Stores derived states only (tens of MB at most). No wallet stored. Final stage seals the HOLDOUT root (listing sha256) after seal-time drops by id and key against every seal copy committed by then (DROPPED_* blocks). Round 1 item 3: market-days without events in 14Z-15Z are labelled 'source unavailable' (never 'no trade'). Item 4: also stores the state at t + 10 s for the latency check."
 }

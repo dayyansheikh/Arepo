@@ -1,6 +1,6 @@
 {
  "id": "q0165_cb8_updown_frame",
- "title": "CB8-B: Gamma frame of daily crypto Up/Down markets ending 16:00Z on 2026-04-13..08-09 (rule-text flags, resolutionSource parse, key drops, seeded ISO-week SCREEN/HOLDOUT split) + Binance 1m monthly archives 2026-04..08 (6 spot symbols, HYPEUSDT USD-M futures; CHECKSUM verified; settlement candles to the guarded file)",
+ "title": "CB8-B: Gamma frame of daily crypto Up/Down markets ending 16:00Z on 2026-04-13..08-09 (rule-text flags, frozen strike-clause regexes UP_RE/DOWN_RE with strike date = d - 1 and settlement date = d, resolutionSource parse, key drops, seeded ISO-week SCREEN/HOLDOUT split) + Binance 1m monthly archives 2026-04..08 (6 spot symbols, HYPEUSDT USD-M futures; CHECKSUM verified; settlement candles to the guarded file)",
  "family": "creative_batch_8",
  "priority": 48,
  "expected_value": "population, split and Binance features for CH76",

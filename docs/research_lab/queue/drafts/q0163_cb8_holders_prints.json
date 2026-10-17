@@ -44,5 +44,5 @@
   "data-dumps/research_lab/creative_batch8/holders/{prints/,marks/,progress.jsonl,manifest.json}"
  ],
  "next_action": "q0172 census after T8_H1_end + 30 h",
- "notes": "CREATIVE_BATCH_8.md CB8-H Collection. DRAFT. Commit with q0162. Must process each day before its captures pass the 8-day snapshot retention. Completes (status holders_prints_complete) once every snapshot day < T8_H2_end is processed. No target computed by the fetcher; no raw wallet stored."
+ "notes": "CREATIVE_BATCH_8.md CB8-H Collection. DRAFT. Commit with q0162. Must process each day before its captures pass the 8-day snapshot retention. Completes (status holders_prints_complete) once every snapshot day < T8_H2_end is processed. No target computed by the fetcher; no raw wallet stored. Stops at T8_H_collect_max + 30 h. Round 1 item 6: wallet key via cb8_common.load_wallet_key_strict (never creates a key; exit 2 on missing key or fingerprint mismatch vs wallet_key_fingerprint in the rules file); fingerprint written to the manifest."
 }
