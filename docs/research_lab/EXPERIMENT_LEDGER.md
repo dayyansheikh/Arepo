@@ -1476,3 +1476,17 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   print windows; 596 wallet lookups, 0 errors; 6 HTTP 429s retried. Finished before the 10-21T09Z deadline.
 - No outcome, target or test was computed. Next: seals q0083 (after the q0083b recorder, on/after 10-22T00Z), q0121/
   q0144/q0145 (after T_seal), as already planned. Truncation counts are disclosed at each census.
+
+## CB8-H smoke v3 (q0160c) PASS, 2026-10-18 01:02Z; q0162/q0163 promoted; not counted (descriptive)
+- **Result** (`creative_batch8/holders_smoke_v3.json`, rules v6 `e7e72f4c…`, git 7627f05, capture 20261017T223101Z):
+  criteria a, b, c, e (units consistent), f, g (paging offsets 0 and 4000 both 200), h (oi_source ok) and i (absent
+  probe) all pass. /holders: 20 of 20 HTTP ok and non-empty. /oi: 261,693 base markets, 213,926 `oi_absent` (share
+  0.817), 8 `absent_contradicted`, 8 unavailable (share 3.1e-5), 0 lookup failures, 0 integrity violations, 0 split
+  batches. Absent probe: the 20 highest-volume absent markets all had no holders. Event-OI cross-check: 709 of 724
+  single-market events agree within 0.25 (median ratio 1.0). Frame: 8,038 eligible; samples 1,500 main (pool 5,796,
+  no shortfall) and 300 sports.
+- **Action:** q0162 holders-snap and q0163 holders-prints promoted unchanged from the drafts (rules v6). The collector
+  freeze check (CB8 §10.1, GO_WITH_CONDITIONS) and the H-v6 re-check were already met. Both jobs refuse until
+  max(2026-10-21T06:00Z, first run + 2 h) and send idle heartbeats meanwhile. q0172 census stays a draft until near
+  T8_H1_end + 30 h (it would exhaust the 48-tempfail limit if queued now). Host wallet key checked: fingerprint
+  80ce5e81a539a570 = the pinned value.
