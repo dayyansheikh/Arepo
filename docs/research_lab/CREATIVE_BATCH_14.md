@@ -2,8 +2,10 @@
 
 `evidence_role: exploratory_historical` (CB14-W Stage 1; CB14-S Stage 1) / `prospective` (CB14-W Stage 2, a live
 collector from a date after the W freeze; CB14-S Stage 2, mention events that start after the S freeze) | status:
-**DRAFT (pre-challenger). Nothing frozen, nothing queued, no code.** Drafted 2026-10-18 22:15 UTC+1
-(2026-10-18T21:15Z) on parent `2e24605`. Nothing was fetched or written for CB14 beyond the read-only host listings and
+**DRAFT-REVISED after challenger round 1 (CB14-W REVISE, CB14-S REVISE, CH127 deferral accepted; 14 items: 12
+adopted, 2 adopted with a stated modification, none rejected; §9-§10). Nothing frozen, nothing queued, no code.**
+Drafted 2026-10-18 22:15 UTC+1 (2026-10-18T21:15Z) on parent `2e24605` and committed as `03f7200`; round-1 response
+2026-10-18 22:36 UTC+1 (2026-10-18T21:36Z; §10). Every round-1 change tightens or clarifies; no floor, threshold, gate, alpha or cap was relaxed. Nothing was fetched or written for CB14 beyond the read-only host listings and
 the 25 counts-only keyless GETs of §0.3. **No CB14 quantity was computed:** no burst, decisive move, lead, mark-out,
 net, position model, hazard, slope or resolution.
 
@@ -37,7 +39,7 @@ the CB12, CB11 and CB10 rules it cites. CB4 amendment A-C1 and the CB10 §2.3 sm
 
 | Rank | Family | Hypothesis | Counted tests | Stage 1 data | Stage 2 data | Queue ids |
 |---|---|---|---|---|---|---|
-| 1 | **CB14-W** Wikipedia edit-burst lead (CH123) | in markets on whether a named person will resign, be out, be fired, be removed or be indicted, a burst of edits on the person's English Wikipedia article precedes the market's decisive move by ≥ 5 min while the price is still ≤ 0.75, more often than in placebo windows of the same subject (W1, excess ≥ 0.25); a taker who buys YES at recorded prints after each burst and exits at the 2 h recorded prints earns after fees (W2, ≥ +1.0c per share) | W1 (lead excess), W2 (burst-triggered taker economic) | fresh `h14_wiki`: frozen-query Gamma frame by **listing date**, MediaWiki revision metadata, Data API prints; units in `[2024-01-01, 2026-04-01)`; no historical holdout | prospective: the live collector (recent-changes poll + CLOB `/book` reads at burst + 1, 5, 15, 120 min) from `max(W freeze + 1 d, 2026-10-26T00:00Z)`; W1-rep, W2-rep at recorded asks | q0300, q0302-q0311 |
+| 1 | **CB14-W** Wikipedia edit-burst lead (CH123) | in markets on whether a named person will resign, be out, be fired, be removed or be indicted, a burst of edits on the person's English Wikipedia article precedes the **start** of the market's decisive move by ≥ 5 min while the price is still within 5c of its pre-move level, more often than in hot-period placebo windows of the same subject in the 3 days before (W1, excess ≥ 0.25); a taker who buys YES at recorded prints after each burst and exits at the 2 h recorded prints earns after fees (W2, ≥ +1.0c per share) | W1 (lead excess), W2 (burst-triggered taker economic) | fresh `h14_wiki`: frozen-query Gamma frame by **listing date**, MediaWiki revision metadata, Data API prints; units in `[2024-01-01, 2026-04-01)`; no historical holdout | prospective: the live collector (recent-changes poll + CLOB `/book` reads at burst + 1, 5, 15, 120 min) from `max(W freeze + 1 d, 2026-10-26T00:00Z)`; W1-rep, W2-rep at recorded asks | q0300, q0302-q0311 |
 | 2 | **CB14-S** intra-speech hazard decay (CH121) | in single-occasion mention events, once the speech runs, the price of an unsaid word falls more slowly than a frozen speaker position model anchored on the word's own start price says it should, so the anchor predicts resolution beyond the in-speech price (S1, slope ≥ 0.30); a paper maker selling unsaid-word YES during the speech, filled only by trade-through prints, earns (S2, ≥ +1.0c per filled share) | S1 (slope), S2 (in-speech maker economic) | fresh `h14_speech`: subset **P** (event ends `[2024-11-01, 2025-06-01)`, disjoint from CB12-M) ∪ subset **N** (event ends `[2025-06-01, 2026-03-01)` = CB12-M's SCREEN window, **read only after CB12-M's Stage-1 result is committed**, §1.3); Roll Call Factbase timestamped transcripts; CLOB 1-minute `prices-history`; Data API prints | out-of-time: mention events starting at or after `max(S freeze + 1 d, 2026-10-27T00:00Z)`, fetched after each ends; **never CB12-M's HOLDOUT** | q0301, q0312-q0322 |
 | - | CH127 preview-multiple anchor | not a test: the counts-only census does not support it within this round's request cap (§0.4) | none | | | next batch |
 
@@ -89,11 +91,12 @@ statistic reads the Data API `side` field or any wallet field.**
 - Prior-work search: no AREPO test has used Wikipedia **edits** (CB11-A uses pageviews only and has not run), the
   personnel / status class as a population, a transcript clock or a within-event survival model. CB12-M (not run)
   tests the **pre-start** basket sum at `start − 2 h` and a pre-start maker; no test has an in-speech checkpoint.
-- `battery2.cumulative_count()` (`battery2-count-v1`) = **1,221** on the committed `trials.jsonl` (last changed at
-  `647549c`, "trials.jsonl union from host"; the working copy is identical). **The brief's 1,181 is stale:** the host
-  union at `647549c` added 40 `flow_screen` lines. The uncommitted `battery2.py` edit in the working tree only adds
-  CB13 kinds with rule `EXCLUDE`, so the total is the same with or without it. CB13 reserves 3-8 more. The host union
-  step runs before every counting CB14 job and records the post-union value.
+- `battery2.cumulative_count()` (`battery2-count-v1`) = **1,221** on HEAD (1,181 at `647549c~1`; the host union at
+  `647549c` added 40 counted `flow_screen` lines). **Correction (round 1 item 14):** the draft said the working copy was
+  identical; it is not (it holds 2 extra uncommitted `cb12_descriptive` lines, which count 0). **The count is not
+  stable:** the host writes about 55-60 counted `flow_screen` lines a day, so CB14 states no projected total; every
+  counting CB14 job records **the value at its run, after the host union**. The uncommitted `battery2.py` edit in the working tree only adds
+  CB13 kinds with rule `EXCLUDE`, so the total is the same with or without it.
 
 **Four round-6 premises corrected by the probes (they shape this design).**
 1. **A frame by scheduled end misses most decisive events.** Of the 150 closed "out as" events read (probes 2, 7, 8),
@@ -179,8 +182,10 @@ Request total: **25** GETs (8 + 2 + 4 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 3), at the c
 
 **Sports and categories.** `CB14_SPORTS_IN_PRIMARY = false` (a parameter, as CB8-CB13; sports inclusion is the user's
 open decision). W excludes sports by the CB12 frozen sports tag registry (`evidence_cb12/sports_tag_registry_20261018.json`,
-492 ids) and a frozen coach/athlete title regex, so "head coach fired" markets are excluded and counted. S reuses
-CB12-M's sports tag registry and broadcast regex unchanged. Category stays a parameter.
+492 ids; sha256 `b47b3d20c0bbf71a4e0dc912b0a32533fcd7e796e2c289a4b525774c8857bce6`, committed at `c0cb6ba`) and a frozen coach/athlete title regex, so "head coach fired"
+markets are excluded and counted. S reuses CB12-M's sports tag registry (the same sha256) and broadcast regex (sha256 of
+its UTF-8 string as in `seals/cb12_rules.json`: `61b45196fef836799064a6277c9bcca9316a7c240e21bfb291c6b25557d6b8c0`) **pinned by hash in part S** (round 1 item 6); a mismatch
+at run time is a refusal. Category stays a parameter.
 
 ## 1. Data policy
 
@@ -269,9 +274,13 @@ basket sum and M2's fills stop at `startTime`, so no M quantity uses an in-speec
     A pure start-level bias is carried into `q_t` and absorbed by the intercept, so it does not move the slope. A
     binding attribution check (joint fit with `π − p_lag`) withdraws the label "clock" if the slope is start-price drift.
     S1 is still not independent evidence of M1, or M1 of S1. **No CB14 line pools, cites or conditions on M1 or M2,
-    and no CB12-M line may cite S.** S's rules part is hashed before q0252 runs. If q0252's result is committed before
-    the S rules part, every S line carries "S rules hashed after CB12-M Stage 1", and the challenger decides whether N
-    stays in the primary.
+    and no CB12-M line may cite S.**
+  - **Timing rule, decided now (round 1 item 6).** S's rules part must be hashed and committed before q0252's result
+    is committed. **If the S rules part's commit comes after q0252's result commit, N becomes reported-only:** S1 and S2
+    then run on P alone (likely "not run (power)", counted), and N's readings are descriptive lines. **After
+    `T14_S_open`, no element of part S may change** (frames, maps, model recipe and file, alignment, units, statistics,
+    placebos, robustness, gates, floors) except mechanical code fixes that make the code match this document, each
+    recorded with a `science-reviewer` sign-off; any other change voids N from the primary (reported-only).
   - **Binding P/N robustness.** S1 must keep its sign on P alone and on N alone, and every S line reports both (§CB14-S).
   - **Exclusion-key deviation (declared).** By the convention of CB12 §1.3 ("CB13 must add CB12's frame ids"), CB14
     would drop CB12-M's SCREEN keys. **S does not drop them for N** (the nesting is the design). It drops every other
@@ -323,7 +332,7 @@ basket sum and M2's fills stop at `startTime`, so no M quantity uses an in-speec
     30-day article-age rule, the bot rule, the burst rule, the decisive-move rule, the trade-market choice rule, entry and
     exit print windows, fee policy, the completeness cross-check months, the live poll and book-read schedule, gates and
     placebo strata.
-  - **`S`**: tag id 100343, CB12-M's sports registry sha256 and broadcast regex, the occasion and member rules, the
+  - **`S`**: tag id 100343, CB12-M's sports registry sha256 and broadcast-regex sha256 (§0.4), the occasion and member rules, the
     primary speaker rule (≥ 40 Factbase transcripts before 2024-11-01), the Factbase record-mapping rule (speaker, UTC
     date within ±1 day of `startTime`, type map from the event title, title keywords), the term parser and rule-variant
     booleans (plural, possessive, compounds, Q&A included), the transcript matcher and normaliser, the fit window and
@@ -354,7 +363,7 @@ basket sum and M2's fills stop at `startTime`, so no M quantity uses an in-speec
 | Test | Price and cost rule |
 |---|---|
 | W1, S1 | none charged (lead and forecasting tests) |
-| W2 | **taker entry at a recorded print**: `e` = the **maximum** YES-terms transaction price in `[b + 60 s, b + 15 min]` (the taker-adverse print after the burst `b`; none → "no entry print", counted); **exit at a recorded print**: `x` = the **minimum** YES-terms transaction price in `[b + 2 h, b + 2 h 30 min]` (none → the last transaction before `b + 2 h 30 min`, labelled "stale exit", counted); taker fee `r·e(1 − e) + r·x(1 − x)`, `r = max(feeSchedule.rate, 0.04)` (politics convention; `feeSchedule` is the current, not the point-in-time, schedule, so the floor 0.04 is a declared conservative rule); size ≤ 100 shares |
+| W2 | **taker entry at a recorded print**: `e` = the **maximum** YES-terms transaction price in `[b + 60 s, b + 15 min]` (the taker-adverse print after the burst `b`; none → "no entry print", counted); **exit at a recorded print**: `x` = the **minimum** YES-terms transaction price in `[b + 2 h, b + 2 h 30 min]` (none → the last transaction in `(t_e, b + 2 h 30 min)`, `t_e` the entry print's time, labelled "stale exit", counted; none after the entry print → "no exit", excluded and counted, and priced at the worst case `w*` in the binding reach check; round 1 item 7); taker fee `r·e(1 − e) + r·x(1 − x)`, `r = max(feeSchedule.rate, 0.04)` (politics convention; `feeSchedule` is the current, not the point-in-time, schedule, so the floor 0.04 is a declared conservative rule); **size = min(100 shares, the entry print's size)** (round 1 item 8), unweighted in the primary and size-weighted as reported |
 | S2 | **paper maker ask** `a = ceil_tick(max(p_t + 1c, q_t + 2c))` on each unsaid word at in-speech checkpoints with `e_t ≥ 30 min` (1c tick, capped at 0.99); **filled only by trade-through**: the first transaction in `[t, t + 5 min)` with YES-terms price ≥ `a + 1c`; filled size min(100, that transaction's size); one fill per word (the first); maker fee 0, no rebate; held to resolution and **paid on the Gamma resolution** (what the venue paid) |
 | W2-rep (Stage 2) | entry at the **recorded best ask** of the `/book` read at `b + 60 s` (receipt-timed from the poll's receipt of the burst-completing edit), size ≤ displayed ask size; exit at the **recorded best bid** of the read at `b + 120 min`; fee as W2 |
 | S2-rep (Stage 2) | as S2, on Stage-2 events (prints, trade-through) |
@@ -383,15 +392,20 @@ As CB13 §2.3: unweighted primary unless stated; one-sided p = the max over the 
 bootstrap, **seed 1414**; small-G rule as CB10 §2.3 (G ≥ 30 CR1; 15-29 CR2 with t(G − 1) and the Webb wild bootstrap,
 9,999 draws; G < 15 the way leaves the max and its leave-one-cluster-out sign rule binds, as A-C1); top-5 drops;
 "unknown" never counts as met.
-- **Cluster ways.** **W1:** subject (Wikipedia page id) and ISO week of `D` (one political crisis can move several
-  subjects in one week). **W2:** subject; ISO week of `b`; **story day** (UTC day × the set of subjects with a burst
-  that day, joined into one cluster when ≥ 2 subjects of one country burst on the same day, by the frame's country
-  field). **S1, S2:** event; ISO week of the event. Words of one speech share the speech, and the event way is the unit
-  of independence; every S unit of one word shares `Y`, so the **word is weighted 1, split over its units**. p = the max
-  over the listed ways.
-- **Testability minimums.** ≥ 100 units and ≥ 30 clusters in the first way, except **W1 (declared deviation): ≥ 40
-  decisive moves in ≥ 30 subjects** (CH123's own kill; a decisive move is a rare event, and 100 would make W1
-  untestable by construction). The challenger may strike the deviation, in which case W1 is "not testable (population)".
+- **Cluster ways.** **W1:** subject (Wikipedia page id) and ISO week of `D0` (one political crisis can move several
+  subjects in one week). **W2:** subject; ISO week of `b`; **story day** (round 1 item 3): the UTC day of `b` × the
+  subject's **country**, where country is set by a frozen map from the subject's stored Wikipedia short description
+  (a demonym and country-name list → ISO 3166 code, written in part W before any revision or print is read; the first
+  match wins, "American" → US, "British" → GB, and so on); a subject whose description matches no entry is its own
+  country (a singleton). All W2 units of one country on one UTC day form one cluster. The census reports the share of
+  subjects with a mapped country. **S1, S2:** event; ISO week of the event; **normalised term** (round 1 item 5: the
+  market's term after the frozen normaliser, e.g. "tariff" / "tariffs" → `tariff`), because one speaker's terms recur
+  across many events and share one `Ŝ_w` error. Words of one speech share the speech; every S unit of one word shares
+  `Y`, so the **word is weighted 1, split over its units**. p = the max over the listed ways.
+- **Testability minimums.** ≥ 100 units and ≥ 30 clusters in the first way, except **W1 (declared deviation, allowed by
+  the round-1 ruling only with item 1 adopted): ≥ 40 decisive moves in ≥ 30 subjects and ≥ 15 ISO weeks** (CH123's own
+  kill plus the ruling's week minimum; a decisive move is a rare event, and 100 would make W1 untestable by
+  construction). Below it, W1 is "not testable (population)", counted with p = 1.
 - **Stage 1 (4 tests).** Advance iff one-sided p < 0.01, the §2.4 floor is met, every binding placebo, robustness check
   and gate holds, **and** the test passes a batch Holm step-down at one-sided α = 0.05 over k1 = 4 (fixed; first step
   0.0125, so any p < 0.01 passes; stated for completeness, never withdraws an advance). BY label (q = 0.10 over
@@ -407,7 +421,7 @@ bootstrap, **seed 1414**; small-G rule as CB10 §2.3 (G ≥ 30 CR1; 15-29 CR2 wi
 
 | Test | Type | Floor on the point estimate |
 |---|---|---|
-| W1 | lead (mechanism) | `Δ_W1 = mean_D (L_D − π̂_D) ≥ +0.25`: the share of decisive moves with a tradable burst lead ≥ 5 min exceeds its same-subject placebo share by ≥ 25 pp (CH123's "share with lead > 5 min ≥ 25%", taken as an excess over chance) |
+| W1 | lead (mechanism) | `Δ_W1 = mean_D (L_D − π̂_D) ≥ +0.25`: the share of decisive moves with a burst ≥ 5 min before the move's start `D0`, at a state within 5c of the pre-move VWAP, exceeds the same subject's hot-period placebo share by ≥ 25 pp (CH123's "share with lead > 5 min ≥ 25%", taken as an excess over a hot story) |
 | W2 | economic, recorded prints | mean net ≥ **+1.0c per share** after both fees (CH123's precision economics: a blind false positive costs about 4-5c) |
 | S1 | forecasting | slope `β̂ ≥ 0.30` of `Y − p_t` on `q_t − p_lag` (CH121's floor) |
 | S2 | economic, recorded prints | event-weighted mean net ≥ **+1.0c per filled share** (CH121's floor) |
@@ -425,9 +439,10 @@ bootstrap, **seed 1414**; small-G rule as CB10 §2.3 (G ≥ 30 CR1; 15-29 CR2 wi
 - **Count lines and `n_tests`:** `creative_batch_14:W` **2** (W1, W2); `creative_batch_14:S` **2** (S1, S2). Replication
   lines `creative_batch_14:<family>:rep` carry `n_tests` = that family's triggered Stage-2 tests (W ≤ 2, S ≤ 2).
 - **Triggers.** W1-rep iff W1 advanced; W2-rep iff W2 advanced; S1-rep iff S1 advanced; S2-rep iff S2 advanced.
-- **Cumulative count: 1,221** (committed `trials.jsonl` at `647549c`, `battery2-count-v1`; §0.2). CB13 adds 3-8.
-  **CB14 adds 4 fixed tests and up to 4 conditional ones. Budget: 4-8**, so the cumulative count becomes 1,228-1,237
-  after CB13 and CB14, plus whatever CB6-CB13 add first.
+- **Cumulative count:** 1,221 on HEAD at the round-1 response (`battery2-count-v1`; §0.2), not stable (the host adds
+  about 55-60 counted `flow_screen` lines a day). Every counting CB14 job records **the value at its run, after the host
+  union**; no projected total is stated (round 1). CB13 reserves 3-8. **CB14 adds 4 fixed tests and up to 4 conditional
+  ones. Budget: 4-8.**
 - Tests behind a failed or unknown gate (smoke, disjointness, GW0, GWC, GW, GWP, GS0, GSC, GS, GSP, GSP2, availability,
   the Stage-2 population minimums) are "not testable" or "not run" (p = 1) and are **still counted**. A job waiting on
   exit 75 or on `T14_S_open` is "pending" and produces no line. Conditional tests count only if their trigger fires; a
@@ -454,9 +469,11 @@ offset after `e_t`.
   listing year and status; key drops by source (and the full-series counterfactual); CB11-A entity overlap count;
   subjects; revisions by subject; article-age failures; bursts by subject, by state band and by the burst-rule grid
   (features: edits only); print reach (the share of each market's observed life covered by its newest-first prints);
-  W2 units by label ("no state", "state outside [0.05, 0.60]", "uncovered", "no entry print"); decisive moves by
-  subject and ISO week (a price-only denominator, never related to bursts here). **Gate GW:** W1 needs ≥ 40 decisive
-  moves in ≥ 30 subjects; W2 needs ≥ 500 units in ≥ 40 subjects and ≥ 30 ISO weeks; reach coverage of W2-eligible
+  W2 units by label ("no state", "state outside [0.05, 0.60]", "uncovered", "no entry print", "no exit"); decisive moves by
+  subject and ISO week (a price-only denominator, never related to bursts here), and those dropped as "no placebo";
+  the share of subjects with a mapped country; revisions with hidden user names (revision-deleted names count as
+  **unknown**, never as a distinct user; round-1 ruling 4). **Gate GW:** W1 needs ≥ 40 decisive moves in ≥ 30 subjects
+  and ≥ 15 ISO weeks; W2 needs ≥ 500 units in ≥ 40 subjects and ≥ 30 ISO weeks; reach coverage of W2-eligible
   burst times ≥ 60%. **Power gate GWP.** W1: `MDE_W1 = (z_0.99 + z_0.80) × 1.2 × 0.5 / √G_min` (the binomial worst case
   over the smaller of the two ways' G); W1 "not run (power)" if `MDE_W1 > 0.50` (2 × floor). W2 (feature-only proxy, as
   CB12 GFP): the same estimator and ways on the **pre-burst round trip** (entry at the max print in `[b − 2 h 15 min,
@@ -473,9 +490,11 @@ offset after `e_t`.
   [0.03, 0.97]", "no price"); `q_t − p_lag` distribution (features: prices before `t`, causal transcript accessor);
   S2-eligible units and fills (fills are print mechanics, not outcomes). **Gate GS:** ≥ 100 events with ≥ 1 unit in ≥ 30
   ISO weeks; ≥ 1,000 words with units; alignment success ≥ 60% of mapped events. **Power gates.** GSP (S1): one latent
-  per word, `Z_w = √0.15·V_week + √0.30·U_event + √0.55·ε_w` (CB12 GMP loadings), `Y*_w = 1{Φ(Z_w) > 1 − π_w}` with
+  per word, `Z_w = √0.15·V_week + √0.25·U_event + √0.15·T_term + √0.45·ε_w` (CB12 GMP loadings with a **term factor**
+  `T_term` shared by every word of one normalised term, round 1 item 5; the event loading moves from 0.30 to 0.25 and the
+  idiosyncratic from 0.55 to 0.45 so the total stays 1), `Y*_w = 1{Φ(Z_w) > 1 − π_w}` with
   `π_w` the word's start price (one value per word, as CB13 GRP); 500 draws (seed 14121); `MDE_S1 = 3.16 × 1.2 ×
-  max(SD(β̂*), mean SE per way)`; S1 "not run (power)" if `MDE_S1 > 0.60`. GSP2 (S2): the same latents calibrated to the
+  max(SD(β̂*), mean SE per way)` over the event, week and term ways; S1 "not run (power)" if `MDE_S1 > 0.60`. GSP2 (S2): the same latents (with the term factor) calibrated to the
   fill price; `MDE_S2 > 2.0c` → S2 "not run (power)". Both counted.
 - MDEs are recomputed from these counts and never used to change a floor, window or threshold.
 
@@ -501,7 +520,7 @@ offset after `e_t`.
   | q0317 | P: target transcripts (≤ 80), `prices-history` fidelity 1 over `[startTime − 30 min, startTime + 5 h]` per member (≤ 1,300), prints ≤ 2 pages per member (≤ 2,600), Gamma outcomes (≤ 80) | ≤ 4,100, ≤ 40 min | ≤ 0.05 GB |
   | q0318 | N: the same (≤ 230 transcripts, ≤ 3,900 price requests, ≤ 7,800 print requests) | ≤ 12,000, ≤ 1.8 h | ≤ 0.15 GB |
   | q0321 | S Stage 2: the same per post-freeze event, weekly | ≤ 600 a week | ≤ 0.05 GB total |
-  | q0310 | W live: recent-changes poll every 60 s (`list=recentchanges`, namespace 0, `rclimit=500`), `/book` reads (≤ 4 per mapped market per burst), daily Gamma refresh (≤ 60) | about 1,500-2,500 a day | ≤ 0.05 GB total |
+  | q0310 | W live: recent-changes poll every 60 s (`list=recentchanges`, namespace 0, `rclimit=500`, `rcstart` overlap and `rccontinue`, gaps logged), `/book` reads (≤ 4 per mapped market per burst), daily Gamma refresh (≤ 60) | about 1,500-2,500 a day | ≤ 0.05 GB total |
 
   Historical `net` total **≤ about 25,700 requests (planning about 18,000-22,000), about 4-5 h of `net` lane**; if GWC
   or GSC fails, the large fetches (q0306/q0307, q0317/q0318) never run. They queue behind CB11 (about 10-15 h), CB12
@@ -582,34 +601,44 @@ The grid (≥ 4 edits; the 95th percentile; 5-minute window) is **reported, unco
 its last transaction in `[t − 6 h, t)` (none → "no state"). A time is **covered** if the market's newest-first prints
 reach back past it (else "uncovered", counted).
 
-**Decisive move (frozen; price only, no outcome).** For a market, `D` = the time of the first transaction with
-YES-terms price ≥ 0.90 such that the YES-terms VWAP of its transactions in `[D − 24 h, D − 2 h]` is ≤ 0.50 (≥ 1
-transaction there; covered). One `D` per subject per 7 days (the earliest over the subject's markets). Gamma outcomes
-are not used to define `D` (the census counts, for audit only, how many `D` lie in markets that resolved NO).
+**Decisive move (frozen; price only, no outcome; round 1 items 1 and 10).** For a market, `D` = the time of the first
+transaction with YES-terms price ≥ 0.90 that is **confirmed** by a second transaction ≥ 0.90 within 30 min, such that the
+YES-terms VWAP `V_D` of its transactions in `[D − 24 h, D − 2 h]` is ≤ 0.50 (≥ 1 transaction there; covered). The
+**move start** `D0` = the first transaction in `[D − 2 h, D]` with YES-terms price ≥ `V_D + 20c` (it always exists,
+because `D` itself qualifies). One `D` per subject per 7 days (the earliest over the subject's markets). Gamma outcomes
+are not used to define `D` or `D0` (the census counts, for audit only, how many `D` lie in markets that resolved NO).
+The 0.90 crossing `D` is reported only; **every W1 lead is measured from `D0`, the start of the move.**
 
-**W1 (lead).** For each decisive move `D` (SCREEN = all W calendar; there is no historical split):
-- `L_D = 1` iff a burst `b` of the subject lies in `[D − 120 min, D − 5 min]` and its entry print `e(b)` (max YES-terms
-  price in `[b + 60 s, b + 15 min]` in the market of `D`) exists and is **≤ 0.75** (a tradable lead: the price had not
-  yet moved and a print confirms a fill was possible). No print → `L_D = 0` (conservative).
-- `π̂_D` = the mean of the same indicator over the four placebo windows shifted by −7, −14, −21 and −28 days (same
-  subject, same market, same clock time; a placebo window before listing or uncovered drops out; < 2 placebo windows →
-  "no placebo", counted).
+**W1 (lead from the move's start).** For each decisive move (SCREEN = all W calendar; there is no historical split):
+- `L_D = 1` iff a burst `b` of the subject lies in `[D0 − 120 min, D0 − 5 min]`, the market's **state at `b` is ≤ `V_D
+  + 5c`** (the price had not started to move when the edits came), and an entry print `e(b)` (max YES-terms price in
+  `[b + 60 s, b + 15 min]` in the market of `D`) exists. No print → `L_D = 0` (conservative). A burst after the first
+  repricing (state above `V_D + 5c`) never counts as a lead (round 1 main challenge: in 0.30 → 0.70 → 0.92 the draft
+  counted a burst at 0.70).
+- **Comparator: the hot-period placebo (round 1 item 1, binding as the comparator).** For anchors `τ_k = D0 − 6 h · k`,
+  `k = 1 … 11` (so `τ` in `[D0 − 66 h, D0 − 6 h]`, inside `[D − 72 h, D − 6 h]`), the same indicator with `τ_k` in place
+  of `D0` and `V(τ_k)` = the VWAP of `[τ_k − 24 h, τ_k − 2 h]` in place of `V_D`; `π̂_D` = its mean over the anchors that
+  are covered and after listing (< 3 such anchors → "no placebo", counted). This is the story-is-unfolding period, when
+  editing is already elevated, so `Δ_W1` measures what bursts add **beyond a hot story**.
 - `Δ_W1 = mean_D (L_D − π̂_D)`; one-sided > 0; floor +0.25; p = max over the subject and ISO-week ways.
 - **Binding calibration placebo (subject time shift).** Bursts of each subject are shifted by a uniform random offset
   in `[−60, −30]` days (one per subject per draw; 200 draws, seed 14101) and the statistic recomputed. *Alternative
-  guarded:* subjects with busy articles have many bursts, so any 2-hour window of theirs looks "led", and the
-  same-subject placebo at fixed weekly lags may share a weekly editing rhythm.
-- **Binding robustness.** Each keeps the sign and p < 0.05: lead window `[D − 60 min, D − 5 min]`; entry cap 0.60;
-  CB11-A entity subjects dropped (§1.3); heads of government and state dropped (frozen list from the subject
-  description); each class with ≥ 15 `D` (resign, out-as); each half of the calendar; top-5 subject and week drops.
-- **Reported (uncounted).** CH123's lead distribution (the first burst minus the first print ≥ 0.90, median and share
-  > 5 min, including negative leads: the market first), by class and for deaths; the burst-rule grid.
+  guarded:* subjects with busy articles have many bursts, so any 2-hour window of theirs looks "led".
+- **Binding robustness.** Each keeps the sign and p < 0.05: lead window `[D0 − 60 min, D0 − 5 min]`; state cap `V_D +
+  2c`; **entry window `[b + 3 min, b + 15 min]`** (round 1 item 9: poll latency may exceed 60 s); CB11-A entity subjects
+  dropped (§1.3); heads of government and state dropped (frozen list from the subject description); each class with
+  ≥ 15 `D` (resign, out-as); each half of the calendar; top-5 subject and week drops.
+- **Reported (uncounted).** The draft's fixed-lag comparator (windows shifted by −7, −14, −21, −28 days); a
+  **burst-only placebo** that needs no prints (the share of hot-period and fixed-lag windows that contain a burst,
+  round 1 item 11); the number of decisive moves dropped as "no placebo" because the market was listed < 18 h before
+  `D0` (fast-resolving events, item 11); CH123's lead distribution from the 0.90 crossing (the first burst minus `D`,
+  median and share > 5 min, including negative leads), by class and for deaths; the burst-rule grid.
 
 **W2 (burst-triggered taker, recorded prints).** Units: bursts `b` of mapped subjects in the W calendar for which the
 subject has a **trade market** `m(b)` = the subject's market with the nearest scheduled end at or after `b + 3 h` whose
 state at `b` is in **[0.05, 0.60]** and whose prints cover `[b − 6 h, b + 2 h 30 min]` (frozen choice; other markets
 reported). `net(b) = x − e − r·e(1 − e) − r·x(1 − x)` (§2.1). Mean over units (each burst weight 1), one-sided > 0,
-floor +1.0c; p = max over subject, ISO-week and story-day ways.
+floor +1.0c; p = max over subject, ISO-week and story-day ways (§2.3, round 1 item 3).
 - **Binding pre-burst placebo.** The same rule at `b − 24 h` (entry and exit windows shifted by 24 h) must not pass
   p < 0.01. *Alternative guarded:* W2 picks volatile subjects and periods in which buying YES paid regardless of the
   burst (a YES-heavy selection of subjects).
@@ -617,12 +646,14 @@ floor +1.0c; p = max over subject, ISO-week and story-day ways.
   and ≥ half. *Alternative guarded:* the burst merely follows a move already under way (momentum), which a reader of
   prices alone would capture.
 - **Binding worst-case reach.** p < 0.01 and the floor still hold when every burst that would be a unit but for
-  "uncovered" or "no entry print" is included at net = −4.5c (the median round trip of `EXECUTION_COSTS.md`). *Alternative
+  "uncovered", "no entry print" or "no exit" is included at net = `w* = min(−9.3c, m̄₀)` (round 1 item 2), with −9.3c the
+  p90 round trip of `EXECUTION_COSTS.md` (line 39) and `m̄₀` the mean net of covered W2 units **without** a ≥ 20c YES-terms
+  rise within 2 h (what a false burst costs in this population). *Alternative
   guarded:* newest-first prints reach less far back in markets that later traded heavily, which are the markets where
   the event happened, so dropping uncovered bursts drops pre-event false bursts of YES markets and flatters W2 (CB12
   round 1 item 4).
 - **Robustness (binding).** +1.0c per side; exit at `b + 1 h` keeps the sign; state band [0.05, 0.40] keeps the sign;
-  CB11-A entity subjects dropped; "stale exit" units dropped; top-5 subject, week and story-day drops; leave-one-quarter-out sign.
+  **entry window `[b + 3 min, b + 15 min]`** (item 9); CB11-A entity subjects dropped; "stale exit" units dropped; top-5 subject, week and story-day drops; leave-one-quarter-out sign.
 - **Reported (uncounted).** Precision (the share of bursts followed by a ≥ 20c YES-terms rise within 2 h), the
   false-burst rate, net by class and state band, capacity (transaction sizes after the burst), the taker NO fade.
 
@@ -636,8 +667,13 @@ by a few resignations fails it, which is the intended reading.
 **Stage 2 (conditional; q0310 collects unconditionally from `T14_W2_start`; q0311 analyses).** The frozen query list and
 entity rule run daily on active markets; new pairs enter a weekly blind audit batch (units of pairs failing it are
 dropped, counted). The poller reads `list=recentchanges` every 60 s with receipt times, applies the frozen burst rule
-(trailing baselines bootstrapped from the revisions API at subject entry), and on a burst reads CLOB `/book` for each of
-the subject's mapped markets at `b + 60 s`, 5, 15 and 120 min.
+(trailing baselines bootstrapped from the revisions API at subject entry) with **the Stage-1 bot rule** (the bot-group
+list fetched at q0306, frozen, plus the name regex; round 1 item 12), and on a burst reads CLOB `/book` for each of
+the subject's mapped markets at `b + 60 s`, 5, 15 and 120 min. **Gap detection (item 12):** each poll requests
+`rcstart` = the newest `rc_timestamp` already held minus 120 s (overlap), follows `rccontinue` until exhausted, and
+de-duplicates by `rcid`; if a poll fails, or the oldest returned change is newer than the requested start while no
+continuation remains, or no successful poll ran for > 5 min, the uncovered interval is logged and every burst whose
+10-minute window or 30-day baseline day intersects it is "unavailable (gap)", counted, never filled.
 - **W2-rep** (if W2 advanced): W2's unit and state rules (state from the 60 s book's mid in [0.05, 0.60]), entry at the
   recorded best ask at `b + 60 s` (size ≤ displayed), exit at the recorded best bid at `b + 120 min`; needs ≥ 300
   bursts in ≥ 30 subjects by `T14_W2_cap`, else "not run (power)", counted.
@@ -691,25 +727,42 @@ included (events whose rule excludes Q&A or a section are dropped, counted), plu
 - **Anchor.** With `π_w` the word's start price, `q_t = π_w·Ŝ_w(e_t) / (1 − π_w + π_w·Ŝ_w(e_t))` = `P(said by the end
   | unsaid after e_t)` under the prior `π_w`. A start-level bias in `π_w` is inherited by `q_t` (§1.3).
 
-**Clock alignment (frozen; causal).** The transcript clock is mapped to the wall clock from the price jumps of words
-already said:
-- an **anchor** is a member `j` with transcript first-mention offset `o_j` and a jump time `J_j` = the first minute at
-  which its 1-minute price is ≥ 0.85 while its price 3 minutes earlier was ≤ 0.60; `δ_j = J_j − o_j`;
-- at checkpoint `t`, `δ_t` = the median `δ_j` over anchors with `J_j ≤ t − 1 min`, provided ≥ 2 such anchors lie within
-  5 min of the median (else the unit is "unaligned", counted);
-- the transcript clock is `e_t = t − δ_t`; a word is **unsaid at `t`** iff its first-mention offset is > `e_t + 60 s`
-  or it is not said at all. A viewer at `t` knows which words have been said, when the speech started, and that it is
-  still running (units need `e_t < L`, the speech not yet over at `t`). The causal accessor never reveals offsets after `e_t`.
-- `π_w` = the word's last usable price before `δ_first − 5 min` (`δ_first` the event's first `δ_t`), i.e. before the
-  speech started.
+**Clock alignment (frozen; causal; round 1 item 4).** The transcript clock is mapped to the wall clock from the price
+jumps of words already said, using **nothing beyond the causal clock**:
+- an **anchor candidate** is a member `j` with a jump time `J_j` = the first minute at which its 1-minute price is ≥ 0.85
+  while its price 3 minutes earlier was ≤ 0.60, and transcript first-mention offset `o_j`; `δ_j = J_j − o_j`;
+- at checkpoint `t`, the anchor set `A_t` and `δ_t` are the **self-consistent fixed point**: start from the candidates
+  with `J_j ≤ t − 1 min`; set `δ_t` = the median `δ_j` over the set; keep only anchors with `o_j ≤ e_t = t − δ_t`
+  (an anchor's mention must lie inside the causal clock); repeat until the set is stable (≤ 10 iterations; no
+  convergence → "unaligned", counted). The unit is aligned iff ≥ 2 anchors of `A_t` lie within 5 min of `δ_t`
+  (unit-tested, including a fixture where an anchor's `o_j` falls after `e_t` and must be dropped);
+- the transcript clock is `e_t = t − δ_t`; a word is **unsaid at `t` iff it is not said by `e_t`** (first-mention offset
+  > `e_t`, or never said). The draft's `e_t + 60 s` margin is removed: it needed offsets in `(e_t, e_t + 60 s]`, where
+  `Y = 1` by definition, and it dropped exactly the words about to be said, which are S2's adverse fills (round 1 main
+  challenge). The causal accessor returns only offsets ≤ `e_t` (unit-tested). A viewer at `t` knows which words have
+  been said, when the speech started, and that it is still running (units need `e_t < L`).
+- **Causal price-only exclusion.** A unit whose word's 1-minute price rose by ≥ 15c over `[t − 5 min, t]` is excluded
+  ("rising", counted). It reads prices before `t` only. It removes words the room has just heard but the transcript
+  clock has not reached.
+- **Disclosed bias.** `δ_j` contains the market's reaction lag (the jump follows the mention), so `e_t` runs early by
+  a variable amount. A word said between `e_t` and the true clock enters as unsaid with `Y = 1`. For S1 that pushes the
+  slope down (a low `q_t` with `Y = 1`), and for S2 it is a real adverse fill that a live maker would also suffer. The
+  binding ±2 min check below bounds its effect.
+- `π_w` = the word's last usable price before `δ_first − 5 min` (`δ_first` the event's first aligned `δ_t`), i.e.
+  before the speech started.
+- **Pre-roll (round 1 item 13, reported plus robustness).** The census reports each target transcript's first-segment
+  offset and the offset of the first segment attributed to the primary speaker. A robustness check re-bases fit and
+  target offsets to the first primary-speaker segment (the model refitted once on re-based fit offsets, hashed with the
+  primary model before any S read).
 
 **Units.** (word, 5-minute wall-clock checkpoint `t`) from the first aligned `t` with `e_t ≥ 10 min` (the first minutes'
-mentions are information events, not decay), the word unsaid, `p_t ∈ [0.03, 0.97]`, `p_lag` available. **Each word
-weight 1, split over its units** (`Y` is one value per word). `Y` = the Gamma resolution (guarded; 0.5 for 50-50;
-unresolved or voided words scored 0.5 with a binding worst case); the transcript-derived `Y` is a robustness check.
+mentions are information events, not decay), the word unsaid by `e_t`, not "rising", `p_t ∈ [0.03, 0.97]`, `p_lag`
+available. **Each word weight 1, split over its units** (`Y` is one value per word). `Y` = the Gamma resolution
+(guarded; 0.5 for 50-50; unresolved or voided words scored 0.5 with a binding worst case); the transcript-derived `Y`
+is a robustness check.
 
 **S1 (forecasting).** The word-weighted OLS slope `β̂` (with intercept) of `(Y − p_t)` on `(q_t − p_lag)` over P ∪ N
-units; one-sided > 0; floor 0.30; p = max over the event and ISO-week ways.
+units; one-sided > 0; floor 0.30; p = max over the event, ISO-week and normalised-term ways (§2.3, round 1 item 5).
 - **Binding sign-flip calibration.** One coin per event flips the regressor; 200 draws (seed 14102). *Alternative
   guarded:* within-speech dependence (a long speech says many late words) makes the clustered p anti-conservative.
 - **Binding clock attribution (joint fit).** A joint OLS of `(Y − p_t)` on `(q_t − p_lag)`, `(π_w − p_lag)` and
@@ -717,23 +770,26 @@ units; one-sided > 0; floor 0.30; p = max over the event and ISO-week ways.
   ways). Otherwise S1 cannot advance, and the label is "start-price drift or momentum, not the clock". *Alternative
   guarded:* the anchor predicts only because unsaid words drift down from their start price anyway (the M1 object, or a
   generic in-speech drift).
+- **Binding clock-shift check (round 1 item 4).** With `e_t` shifted by −2 min and by +2 min (units, "unsaid" and `q_t`
+  recomputed), S1 keeps its sign and one-sided p < 0.05 in both.
 - **Robustness (binding; each keeps the sign).** P alone and N alone (the disjoint and nested halves, §1.3);
   transcript-derived `Y`; `e_t ≥ 20 min`; 10-minute checkpoints; shrinkage weight 5 and 20; prepared speeches only;
-  events whose first anchor is > 90 min after `startTime` dropped; unresolved words at `Y = 1`; top-5 event and week
-  drops; each calendar half.
+  events whose first anchor is > 90 min after `startTime` dropped; offsets re-based to the first speaker segment;
+  unresolved words at `Y = 1`; top-5 event, week and term drops; each calendar half.
 - **Reported (uncounted).** The slope by elapsed band (10-30, 30-60, > 60 min), by type and by start-price band; the
   transcript-Gamma agreement (< 95% → the label "settlement basis"); non-primary speakers; the unconditional mean of
   `Y − p_t` on unsaid words (the level, which is CB12-M's object, reported only for P).
 
 **S2 (in-speech maker, recorded prints).** On every word with an S2-eligible unit (`e_t ≥ 30 min`, unsaid, aligned),
 the ask and trade-through fill rule of §2.1; net per filled share `= a − Y`. Statistic: mean over events with ≥ 1 fill
-of the event's net per filled share (events without fills counted); one-sided > 0; floor +1.0c; p = max over event
-and week ways. S2 fills are in-speech, so they never coincide with CB12-M's M2 fills, which stop at `startTime`.
+of the event's net per filled share (events without fills counted); one-sided > 0; floor +1.0c; p = max over event,
+week and normalised-term ways. S2 fills are in-speech, so they never coincide with CB12-M's M2 fills, which stop at `startTime`.
 - **Binding placebo (calibrated at fill).** `Y*` drawn calibrated to the fill-time price with the GSP latents; 200 draws
   (seed 14103). *Alternative guarded:* the trade-through rule selects fills after up-moves, so a maker could look
   profitable on fill mechanics alone (CB12-M M2's placebo).
 - **Robustness (binding).** §2.1 cost robustness; worst-case reach (members whose prints do not reach back to `t` are
-  filled at `a` for 100 shares iff `Y > 0`, as CB12 A4); P alone and N alone keep the sign; top-5 event drops.
+  filled at `a` for 100 shares iff `Y > 0`, as CB12 A4); **the ±2 min clock shift keeps the sign and p < 0.05**
+  (item 4); P alone and N alone keep the sign; top-5 event and term drops.
 - **Reported.** The taker variant (buy NO at the min-YES print in `[t, t + 2 min]` when `p_t − q_t ≥ 8c`, fee
   `r·a(1 − a)` with `r = max(feeSchedule.rate, 0.05)`); capacity; the event-level loss distribution.
 
@@ -811,8 +867,8 @@ jobs also need their family's freeze. All `family` = `creative_batch_14`. Priori
 {"id": "q0306_cb14_w_revisions", "title": "CB14-W: MediaWiki prop=revisions metadata (revid, parentid, timestamp, userid, size; frozen comment/tag booleans; user read in memory only for the bot flag and distinct-user index) per mapped page from max(createdAt, 2024-01-01) - 30 d to 2026-04-01; bot-group list; first-revision date per page", "family": "creative_batch_14", "priority": 12, "expected_value": "W bursts (features)", "data": ["en.wikipedia.org action API", "history/h14_wiki/subjects.csv.gz"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "en.wikipedia.org"}, "depends_on": ["q0305_cb14_w_pregate"], "argv": ["scripts/run_cb14.py", "w-revisions", "--rules", "../docs/research_lab/seals/cb14_rules.json", "--wiki-rps", "1", "--maxlag", "5", "--disk-cap-gb", "0.03", "--data-dumps-cap-gb", "40", "--budget-min", "100"], "timeout_s": 7200, "max_retries": 2, "outputs": ["history/h14_wiki/{revisions.csv.gz,bots.csv.gz,manifest.json}"], "next_action": "q0307", "notes": "DRAFT. mw-reverted never parsed; no user name written. Resumable; incomplete = pending.", "repeat": {"max_runs": 4, "until_log_regex": "\"status\": \"w_revisions_complete\""}}
 {"id": "q0307_cb14_w_prints", "title": "CB14-W: Data API newest-first prints (<= 2 pages of 10,000) per mapped market, aggregated to transactions (time, YES-terms VWAP, min/max price, size; hash discarded); rows before 2026-04-01 kept; covered span recorded", "family": "creative_batch_14", "priority": 12, "expected_value": "W state, entry, exit, decisive moves", "data": ["public Data API", "history/h14_wiki/frame.csv.gz"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "data-api"}, "depends_on": ["q0306_cb14_w_revisions"], "argv": ["scripts/run_cb14.py", "w-prints", "--rules", "../docs/research_lab/seals/cb14_rules.json", "--rps", "2", "--disk-cap-gb", "0.02", "--data-dumps-cap-gb", "40"], "timeout_s": 2400, "max_retries": 2, "outputs": ["history/h14_wiki/{tx.csv.gz,reach.csv.gz,manifest.json}"], "next_action": "q0308", "notes": "DRAFT. No side, wallet or hash stored."}
 {"id": "q0308_cb14_census_W", "title": "CB14-W census, counts only: frame by term/class/listing year/status; key drops and full-series counterfactual; CB11-A entity overlap; revisions and bursts by subject, state band and grid (edits only); reach; W2 units by label; decisive moves by subject and week (price-only denominator, never related to bursts); gates GW, GWP (W1 binomial worst case; W2 pre-burst round-trip proxy, SEs only); MDEs", "family": "creative_batch_14", "priority": 14, "expected_value": "W gates and MDEs before the freeze", "data": ["history/h14_wiki/ (outcomes_guarded only for the NO-resolved D audit count)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0307_cb14_w_prints"], "argv": ["scripts/run_cb14.py", "census", "--family", "W"], "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch14/census_W.json", "trials.jsonl (cb14_descriptive)"], "next_action": "science-reviewer freeze check (W part)", "notes": "DRAFT. No L_D, placebo share, entry-exit net or lead computed. Re-reads absent exclusion frames."}
-{"id": "q0309_cb14_screen_W", "title": "CB14-W: W1 (lead excess over same-subject placebo windows; subject and week ways; subject time-shift calibration; lead-window, entry-cap, CB11-A, heads-of-government, class, half, top-5 robustness) and W2 (burst-triggered taker at recorded prints; subject, week, story-day ways; pre-burst placebo; before-the-move check; worst-case reach; cost, exit, band, stale-exit, top-5, quarter robustness); reported precision, false-burst rate, lead distribution, deaths, grid", "family": "creative_batch_14", "priority": 14, "expected_value": "W verdicts", "data": ["history/h14_wiki/"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0308_cb14_census_W"], "argv": ["scripts/run_cb14.py", "screen", "--family", "W"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch14/results_W.json", "trials.jsonl (cb14_test + creative_batch_14:W n_tests=2)"], "next_action": "advanced: q0311 after the live window", "notes": "DRAFT. Refuses before the W freeze hash and unless GW0, GWC, GW and GWP passed (else counted lines)."}
-{"id": "q0310_cb14_w_live", "title": "CB14-W live collector (cron every minute, flock, outside queue lanes): list=recentchanges poll (namespace 0, rclimit 500, receipt time), live burst rule with bootstrapped baselines, CLOB /book at b+60s, 5, 15, 120 min for each mapped market of the subject; daily frozen-query refresh of active markets; weekly blind map-audit batch file", "family": "creative_batch_14", "priority": 0, "expected_value": "W Stage 2 data at recorded books", "data": ["en.wikipedia.org action API", "public CLOB /book", "public Gamma"], "resources": {"mem_mb": 150, "cpu": 1, "lane": "cron", "network": "en.wikipedia.org, clob, gamma-api"}, "depends_on": [], "argv": ["scripts/run_cb14.py", "w-live", "--rules", "../docs/research_lab/seals/cb14_rules.json", "--not-before", "2026-10-26T00:00:00Z", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "40"], "timeout_s": 55, "max_retries": 0, "outputs": ["history/h14_wiki_live/{polls,bursts,books,frame,audit_batches}/"], "next_action": "runs to T14_W2_end; then q0311 if triggered", "notes": "DRAFT. Installed by the coordinator after the W freeze (crontab.txt line, as CB12 q0257). Reads no AREPO store. Stops at T14_W2_cap."}
+{"id": "q0309_cb14_screen_W", "title": "CB14-W: W1 (lead from the move start D0 with state <= V_D + 5c, excess over the hot-period placebo [D0-66h, D0-6h]; subject and week ways; subject time-shift calibration; lead-window, state-cap, entry-window [b+3m,b+15m], CB11-A, heads-of-government, class, half, top-5 robustness) and W2 (burst-triggered taker at recorded prints, size min(100, entry print); subject, week, story-day (country map) ways; pre-burst placebo; before-the-move check; worst-case reach at min(-9.3c, false-burst mean); cost, exit, band, stale-exit, top-5, quarter robustness); reported precision, false-burst rate, lead distribution, deaths, grid", "family": "creative_batch_14", "priority": 14, "expected_value": "W verdicts", "data": ["history/h14_wiki/"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0308_cb14_census_W"], "argv": ["scripts/run_cb14.py", "screen", "--family", "W"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch14/results_W.json", "trials.jsonl (cb14_test + creative_batch_14:W n_tests=2)"], "next_action": "advanced: q0311 after the live window", "notes": "DRAFT. Refuses before the W freeze hash and unless GW0, GWC, GW and GWP passed (else counted lines)."}
+{"id": "q0310_cb14_w_live", "title": "CB14-W live collector (cron every minute, flock, outside queue lanes): list=recentchanges poll (namespace 0, rclimit 500, receipt time, rcstart overlap 120 s, rccontinue, rcid dedup, gaps logged as unavailable), live burst rule with bootstrapped baselines and the Stage-1 bot rule, CLOB /book at b+60s, 5, 15, 120 min for each mapped market of the subject; daily frozen-query refresh of active markets; weekly blind map-audit batch file", "family": "creative_batch_14", "priority": 0, "expected_value": "W Stage 2 data at recorded books", "data": ["en.wikipedia.org action API", "public CLOB /book", "public Gamma"], "resources": {"mem_mb": 150, "cpu": 1, "lane": "cron", "network": "en.wikipedia.org, clob, gamma-api"}, "depends_on": [], "argv": ["scripts/run_cb14.py", "w-live", "--rules", "../docs/research_lab/seals/cb14_rules.json", "--not-before", "2026-10-26T00:00:00Z", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "40"], "timeout_s": 55, "max_retries": 0, "outputs": ["history/h14_wiki_live/{polls,bursts,books,frame,audit_batches}/"], "next_action": "runs to T14_W2_end; then q0311 if triggered", "notes": "DRAFT. Installed by the coordinator after the W freeze (crontab.txt line, as CB12 q0257). Reads no AREPO store. Stops at T14_W2_cap."}
 {"id": "q0311_cb14_rep_W", "title": "CB14-W Stage 2: W2-rep (recorded best ask at b+60s, best bid at b+120 min, fee, +1c robustness; >= 300 bursts in >= 30 subjects) and W1-rep (>= 20 decisive moves in >= 15 subjects, live burst log as the clock); poll latency and ask life reported", "family": "creative_batch_14", "priority": 14, "expected_value": "L2 verdicts", "data": ["history/h14_wiki_live/", "public Data API (post-hoc prints for W1-rep)"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0309_cb14_screen_W"], "argv": ["scripts/run_cb14.py", "rep", "--family", "W"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch14/results_W_rep.json", "trials.jsonl (cb14_replication + creative_batch_14:W:rep)"], "next_action": "pass: Stage P-W registration draft", "notes": "DRAFT. Only triggered tests; alpha/4 if early, full Stage-2 Holm once."}
 {"id": "q0312_cb14_s_frame", "title": "CB14-S frame: Gamma tag 100343 one-week end-date walk over [2024-11-01, 2026-03-01); >= 8 binary members, startTime, occasion <= 36 h, CB12-M sports registry + broadcast regex, key drops (S rule; h12_say SCREEN ids kept for N), primary-speaker title map, rule booleans, term parser; Factbase record map (speaker, date +-1 d, type, keywords); subsets P and N; NO outcome stored (outcomePrices/umaResolutionStatus discarded at parse); GS0 audit sample (seed 14122)", "family": "creative_batch_14", "priority": 13, "expected_value": "S population and transcript map", "data": ["public Gamma", "rollcall.com factbase search API", "creative_batch14/exclusion_keys.csv.gz"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "gamma-api, rollcall.com"}, "depends_on": ["q0301_cb14_smoke_S", "q0302_cb14_exclusion_keys"], "argv": ["scripts/run_cb14.py", "s-frame", "--rules", "../docs/research_lab/seals/cb14_rules.json", "--rps", "2", "--factbase-rps", "0.5", "--disk-cap-gb", "0.005", "--data-dumps-cap-gb", "40"], "timeout_s": 2400, "max_retries": 2, "outputs": ["history/h14_speech/{frame.csv.gz,members.csv.gz,map.csv.gz,manifest.json}", "research_lab/creative_batch14/s_map_audit_sample.csv"], "next_action": "q0313; GS0 audit (science-reviewer, blind)", "notes": "DRAFT. No price, print, transcript text or outcome read. Never opens h12_say."}
 {"id": "q0313_cb14_s_fit_fetch", "title": "CB14-S: Factbase timestamped transcripts of primary speakers dated [2023-01-01, 2024-11-01), parsed and reduced at parse to per-term first-mention offsets and last offset (term list from frame text); no text stored", "family": "creative_batch_14", "priority": 12, "expected_value": "position-model inputs", "data": ["rollcall.com factbase", "history/h14_speech/members.csv.gz (terms only)"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "net", "network": "rollcall.com"}, "depends_on": ["q0312_cb14_s_frame"], "argv": ["scripts/run_cb14.py", "s-fit-fetch", "--rules", "../docs/research_lab/seals/cb14_rules.json", "--factbase-rps", "0.5", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "40", "--budget-min", "40"], "timeout_s": 3600, "max_retries": 2, "outputs": ["history/h14_speech/fit/{offsets.csv.gz,manifest.json}"], "next_action": "q0314", "notes": "DRAFT. One page in memory at a time (about 2 MB).", "repeat": {"max_runs": 3, "until_log_regex": "\"status\": \"s_fit_fetch_complete\""}}
@@ -821,7 +877,7 @@ jobs also need their family's freeze. All `family` = `creative_batch_14`. Priori
 {"id": "q0317_cb14_s_data_P", "title": "CB14-S P: target transcripts (reduced to per-member first-mention offsets and last offset, guarded_p/), CLOB prices-history fidelity 1 over [startTime - 30 min, startTime + 5 h] per member, Data API prints (<= 2 pages) aggregated to transactions in that span, Gamma outcomes to guarded_p/outcomes_guarded.csv.gz", "family": "creative_batch_14", "priority": 11, "expected_value": "S P data", "data": ["rollcall.com factbase", "public CLOB prices-history", "public Data API", "public Gamma"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "net", "network": "rollcall.com, clob, data-api, gamma-api"}, "depends_on": ["q0316_cb14_s_pregate"], "argv": ["scripts/run_cb14.py", "s-data", "--subset", "P", "--rules", "../docs/research_lab/seals/cb14_rules.json", "--rps", "2", "--factbase-rps", "0.5", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "40", "--budget-min", "60"], "timeout_s": 4800, "max_retries": 2, "outputs": ["history/h14_speech/{prices_p.csv.gz,tx_p.csv.gz,guarded_p/,manifest_p.json}"], "next_action": "q0319 (with q0318)", "notes": "DRAFT. Refuses unless the model sha256 is pinned in part S. No side, wallet or hash stored.", "repeat": {"max_runs": 3, "until_log_regex": "\"status\": \"s_data_P_complete\""}}
 {"id": "q0318_cb14_s_data_N", "title": "CB14-S N (CB12-M SCREEN window, nested): the same fetch as q0317 into guarded_n/; refuses before T14_S_open (CB12-M Stage-1 result commit or its ledger stop record, verified by commit hash)", "family": "creative_batch_14", "priority": 10, "expected_value": "S N data", "data": ["rollcall.com factbase", "public CLOB prices-history", "public Data API", "public Gamma"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "net", "network": "rollcall.com, clob, data-api, gamma-api"}, "depends_on": ["q0317_cb14_s_data_P"], "argv": ["scripts/run_cb14.py", "s-data", "--subset", "N", "--rules", "../docs/research_lab/seals/cb14_rules.json", "--require-open", "cb12_m_stage1", "--rps", "2", "--factbase-rps", "0.5", "--disk-cap-gb", "0.15", "--data-dumps-cap-gb", "40", "--budget-min", "110"], "timeout_s": 7200, "max_retries": 2, "outputs": ["history/h14_speech/{prices_n.csv.gz,tx_n.csv.gz,guarded_n/,manifest_n.json}"], "next_action": "q0319", "notes": "DRAFT. Exit 75 (pending) before T14_S_open. Never opens h12_say.", "repeat": {"max_runs": 6, "until_log_regex": "\"status\": \"s_data_N_complete\""}}
 {"id": "q0319_cb14_census_S", "title": "CB14-S census, counts only on P and N: events by subset/speaker/type/month; parser, Q&A, map, parse failures; alignment success and anchors; units by label; q_t - p_lag distribution (prices before t, causal transcript accessor); S2-eligible units and fills; gates GS, GSP (one latent per word, GMP loadings, seed 14121), GSP2; MDEs", "family": "creative_batch_14", "priority": 14, "expected_value": "S gates and MDEs before the freeze", "data": ["history/h14_speech/ (guarded_* through the causal accessor only; no outcome file)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0317_cb14_s_data_P", "q0318_cb14_s_data_N"], "argv": ["scripts/run_cb14.py", "census", "--family", "S"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch14/census_S.json", "trials.jsonl (cb14_descriptive)"], "next_action": "science-reviewer freeze check (S part)", "notes": "DRAFT. No Y, slope or net computed."}
-{"id": "q0320_cb14_screen_S", "title": "CB14-S: S1 (word-weighted slope of Y - p_t on q_t - p_lag; event and week ways; event sign-flip calibration; joint clock attribution with pi - p_lag and momentum; P-alone, N-alone, transcript-Y, e>=20, 10-min, shrinkage, prepared-only, late-start, unresolved, top-5, half robustness) and S2 (in-speech maker, trade-through prints, Gamma payoff; calibrated-at-fill placebo; cost, worst-case reach, P/N, top-5 robustness)", "family": "creative_batch_14", "priority": 14, "expected_value": "S verdicts", "data": ["history/h14_speech/ (guarded_p, guarded_n opened here)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0319_cb14_census_S"], "argv": ["scripts/run_cb14.py", "screen", "--family", "S"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch14/results_S.json", "trials.jsonl (cb14_test + creative_batch_14:S n_tests=2)"], "next_action": "advanced: q0322 after the Stage-2 window", "notes": "DRAFT. Refuses before the S freeze hash and T14_S_open, and unless GS0, GSC, GS, GSP/GSP2 passed (else counted lines)."}
+{"id": "q0320_cb14_screen_S", "title": "CB14-S: S1 (word-weighted slope of Y - p_t on q_t - p_lag; unsaid iff not said by e_t, fixed-point causal alignment, rising exclusion; event, week and normalised-term ways; +-2 min clock shift binding; event sign-flip calibration; joint clock attribution with pi - p_lag and momentum; P-alone, N-alone, transcript-Y, e>=20, 10-min, shrinkage, prepared-only, late-start, unresolved, top-5, half robustness) and S2 (in-speech maker, trade-through prints, Gamma payoff; calibrated-at-fill placebo; cost, worst-case reach, P/N, top-5 robustness)", "family": "creative_batch_14", "priority": 14, "expected_value": "S verdicts", "data": ["history/h14_speech/ (guarded_p, guarded_n opened here)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0319_cb14_census_S"], "argv": ["scripts/run_cb14.py", "screen", "--family", "S"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch14/results_S.json", "trials.jsonl (cb14_test + creative_batch_14:S n_tests=2)"], "next_action": "advanced: q0322 after the Stage-2 window", "notes": "DRAFT. Refuses before the S freeze hash and T14_S_open, and unless GS0, GSC, GS, GSP/GSP2 passed (else counted lines)."}
 {"id": "q0321_cb14_s_stage2_data", "title": "CB14-S Stage 2: post-freeze mention events (startTime >= max(S freeze + 1 d, 2026-10-27)), same frame, map, model, fetch and guards into guarded_s2/; weekly; stops at T14_S2_end or the cap", "family": "creative_batch_14", "priority": 11, "expected_value": "S Stage 2 data", "data": ["public Gamma, CLOB, Data API", "rollcall.com factbase"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "gamma-api, clob, data-api, rollcall.com"}, "depends_on": [], "argv": ["scripts/run_cb14.py", "s-stage2-data", "--rules", "../docs/research_lab/seals/cb14_rules.json", "--rps", "2", "--factbase-rps", "0.5", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "40"], "timeout_s": 3600, "max_retries": 2, "outputs": ["history/h14_speech/stage2/", "history/h14_speech/guarded_s2/"], "next_action": "q0322 if triggered", "notes": "DRAFT. Re-queued weekly by the coordinator until the stop rule; the stop counts events, never results.", "repeat": {"max_runs": 20, "until_log_regex": "\"status\": \"s_stage2_window_closed\""}}
 {"id": "q0322_cb14_rep_S", "title": "CB14-S Stage 2: S1-rep and S2-rep on post-freeze events (>= 100 events with units by T14_S2_end; < 60 by the cap -> not run (power))", "family": "creative_batch_14", "priority": 14, "expected_value": "L2 verdicts", "data": ["history/h14_speech/{stage2,guarded_s2}/"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0320_cb14_screen_S", "q0321_cb14_s_stage2_data"], "argv": ["scripts/run_cb14.py", "rep", "--family", "S"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch14/results_S_rep.json", "trials.jsonl (cb14_replication + creative_batch_14:S:rep)"], "next_action": "pass: Stage P-S registration draft (recorded books)", "notes": "DRAFT. Only triggered tests."}
 ```
@@ -862,14 +918,21 @@ jobs also need their family's freeze. All `family` = `creative_batch_14`. Priori
   - W: rows at `T14_W_end − 1 s` accepted and at `T14_W_end` refused; the listing-date rule ignoring status; the
     burst rule at its edges (2 edits; 3 edits by 1 user; a bot; a revert at save; 99 bytes; the percentile computed
     only from `[b − 30 d, b − 1 d]`; the refractory merge); the decisive-move rule (VWAP 0.50 accepted, 0.51 not;
-    the 7-day dedup); `L_D` entry cap 0.75 and "no print → 0"; placebo windows before listing dropped; the
-    trade-market choice; entry max and exit min prints; fees; worst-case reach; GWP writing no point estimate;
+    the 30-min confirmation print; the 7-day dedup); `D0` as the first print ≥ `V_D + 20c` (a 0.30 → 0.70 → 0.92 path
+    puts `D0` at the 0.70 print, and a burst at state 0.70 is not a lead); the state cap `V_D + 5c` and "no print → 0";
+    the hot-period anchors (11 anchors, < 3 → "no placebo"); the trade-market choice; entry max and exit min prints;
+    the stale exit only after the entry print; size min(100, entry print); fees; the worst case `w*`; the story-day
+    country map (unmatched description → singleton); revision-deleted user names as unknown; the live poller's
+    overlap, continuation and gap rules; GWP writing no point estimate;
   - S: N paths refused before `T14_S_open` (fixture commits present and absent; stop-record branch); the HOLDOUT window
     excluded by date (an event ending 2026-03-01T00:00Z refused); q0314 refusing when price or target files exist; the
     model shrinkage and `q_t` at known values (`Ŝ = 1` → `q = π`; `Ŝ = 0` → `q = 0`); the alignment rule (1 anchor →
-    unaligned; 2 anchors 6 min apart → unaligned; anchors after `t − 1 min` ignored); the causal accessor never
-    returning an offset after `e_t`; unsaid at `e_t + 60 s`; word weights summing to 1; the trade-through fill and
-    one-fill-per-word rule; `p_lag` ≠ `p_t`; GSP's one latent per word;
+    unaligned; 2 anchors 6 min apart → unaligned; anchors after `t − 1 min` ignored; the fixed point dropping an
+    anchor whose `o_j > e_t`; non-convergence → unaligned); the causal accessor never returning an offset after
+    `e_t`; unsaid iff not said by `e_t` (a word said at `e_t + 30 s` is unsaid at `t`); the "rising" exclusion from
+    prices before `t` only; the ±2 min shift; word weights summing to 1; the trade-through fill and one-fill-per-word
+    rule; `p_lag` ≠ `p_t`; GSP's one latent per word with the term factor; the part-S hash and registry/regex sha256
+    refusals; N reported-only when the part-S commit post-dates q0252's result;
   - `battery2` kinds and k1 = 4 fixed; the α/4 early rule in Stage 2.
 
 ## 6. Test budget and compute
@@ -879,7 +942,7 @@ jobs also need their family's freeze. All `family` = `creative_batch_14`. Priori
 | Stage 1: W1, W2, S1, S2 | **4** | `cb14_test` + count lines `:W` (2), `:S` (2) | p < 0.01, floor, binding placebos and robustness, batch Holm (one-sided α 0.05, k1 = 4 fixed); counted with p = 1 if a gate, audit or smoke fails |
 | Stage 2: W1-rep, W2-rep, S1-rep, S2-rep (each only if triggered) | ≤ 4 | `cb14_replication` + `:<family>:rep` | one Holm over CB14 Stage 2, one-sided α 0.05 (early finishers at α/4) |
 | Smokes, audits, pre-gates, census, gates, strata, grids, CH123 descriptives, latency | 0 | `cb14_descriptive` | - |
-| **Total** | **4 fixed + ≤ 4 conditional = 4-8** | | cumulative 1,221 (verified at `647549c`) → with CB13's 3-8 and CB14's 4-8: 1,228-1,237, plus whatever CB6-CB13 add first |
+| **Total** | **4 fixed + ≤ 4 conditional = 4-8** | | the value at the run, recorded after the host union (1,221 on HEAD at the round-1 response; not stable) |
 
 **Host compute.** Under 4 CPU-hours at nice 19 in total. W: burst detection streams one page's revisions at a time
 (≤ about 40,000 revisions for the busiest page); the screen bootstraps on a few thousand units. S: the fit reduces about
@@ -897,54 +960,136 @@ is probably in November. S's Stage 2 closes no earlier than about 100 events aft
 
 ## 7. Main scientific risks (for the challenger)
 
-1. **W is thin where it matters.** Decisive moves are rare (planning 40-80 in 30-55 subjects); GW may fail at CH123's
-   own 40, and W1's testability minimum is a declared deviation (§2.3). The listing-date frame (premise 1) keeps early
-   resolutions without selecting on outcome, but it is new in this programme: the challenger should check that no
-   eligibility rule reads status, `closedTime` or outcome.
-2. **The market-to-article join.** The entity rule is CB11-A's, extended with an office-word stop list; GW0 audits
-   every pair blind. Ladders of one subject share one article, and one crisis can move several subjects: the subject,
-   ISO-week and story-day ways are meant to carry that. Is the story-day way (by country) defined well enough?
-3. **Newest-first print reach** correlates with later activity, so W2's unit set could be selected on the event
-   (CB12 round 1 item 4). The binding worst-case reach check prices every dropped burst at −4.5c; is that the right
-   worst case?
-4. **Historical edit times versus a live reader.** Revisions carry save times, and W assumes action at `b + 60 s`.
-   Stage 2 measures the real poll latency. Bot flags use current group membership (hindsight, minor); oversighted
-   revisions are invisible (disclosed). `mw-reverted` is excluded as look-ahead (premise 4).
-5. **CB11-A disjointness** rests on calendar (W rows end 2026-04-01), keys (the whole `h11_attn` frame) and objects
-   (edits, not pageviews), with a binding drop of CB11-A entity subjects. Should W also drop subjects whose articles
-   CB11-A's HOLDOUT uses, in calendar months CB11-A uses only for its baseline?
-6. **S nesting on CB12-M's SCREEN (N).** The design waits for CB12-M's Stage-1 result, never touches its HOLDOUT or any
-   `h12_say` file, and anchors `q_t` on the word's own start price so that M1's level object sits in the intercept.
-   `Y` is still shared, so S1 on N is not independent of M1. The challenger may prefer P-only Stage 1 (underpowered,
-   MDE about 0.7-0.8) with N as a reported reading, or N as Stage 2 instead of post-freeze events.
-7. **S's clock alignment** uses the price jumps of words already said, so it is causal, but alignment may fail more
-   often in quiet speeches, which is a selection on activity. Alignment success and its relation to `π` are reported.
-   Transcript timestamps are segment-level (about 10-30 s), so the 60 s margin on "unsaid" is narrow.
-8. **S is effectively a single-speaker test** (Trump, by the ≥ 40-transcript rule). The speaker cluster way is
-   impossible; event and week ways carry the dependence. Results do not generalise to other speakers or to earnings
-   calls (excluded: no keyless timestamped transcripts).
-9. **The position model** is fitted on 2023-2024 campaign speeches and applied to 2024-2026 events. Presidential
-   remarks, press conferences and interviews differ from rallies (type classes help, but only partly). Shrinkage
-   weight 10 is a prior choice, with 5 and 20 as binding robustness.
-10. **1-minute history before 2025** is unverified (premise 2); the P months may thin by the smoke's availability rule.
-11. **Fees** are the current `feeSchedule`, not point-in-time; W2 uses `max(rate, 0.04)`, which may overstate 2024-2025
-    costs (conservative).
-12. **Transcript versus venue resolution.** S's primary `Y` is the Gamma resolution; the transcript governs only the
-    clock and "unsaid". Words the transcript misses but the speaker said would enter as unsaid units with high prices;
-    the `[0.03, 0.97]` filter and the agreement audit are the guards.
-13. **CH127 is not tested** (§0.4).
+Revised after round 1; the rulings of §9 are cited.
+
+1. **W is thin where it matters.** Decisive moves are rare (planning 40-80 in 30-55 subjects). The W1 testability
+   deviation now needs ≥ 40 moves, ≥ 30 subjects and ≥ 15 ISO weeks (ruling 1), and the lead is measured from the move's
+   start `D0` against a hot-period comparator, so W1 is both harder to test and harder to pass than in the draft.
+   The listing-date frame is accepted (ruling 1).
+2. **The market-to-article join** is audited blind (GW0). One crisis can move several subjects: the story-day way now
+   uses a frozen country map from the subject's description (item 3); a subject with no mapped country is its own
+   cluster, which under-clusters if many descriptions fail (the census reports the mapped share).
+3. **Newest-first print reach.** Every dropped W2 unit is priced at `w* = min(−9.3c, m̄₀)` (item 2), the p90 round trip
+   or the observed cost of a false burst, whichever is worse.
+4. **Historical edit times versus a live reader.** W acts at `b + 60 s`, with `[b + 3 min, b + 15 min]` as a binding
+   entry window (item 9); Stage 2 measures the real latency and logs poll gaps (item 12). Bot flags use the bot-group
+   list as fetched (hindsight, minor); revision-deleted user names are unknown, not distinct (ruling 4).
+5. **CB11-A disjointness** (calendar, keys, objects, plus the binding entity-subject drop) is sufficient (ruling 5).
+6. **S nesting on CB12-M's SCREEN (N).** Waiting for CB12-M's Stage-1 result suffices only with the timing and
+   no-change rule of item 6, now in §1.3. S on N is distinct from M1 but not independent evidence (ruling 6).
+7. **S's clock.** Alignment is now a self-consistent fixed point inside the causal clock, "unsaid" means not said by
+   `e_t`, a price-only "rising" exclusion removes words just heard, and ±2 min shifts are binding (item 4). The
+   reaction lag in `δ` still makes `e_t` run early by a variable amount (disclosed; conservative for S1, adverse for S2).
+8. **S is effectively a single-speaker test** (accepted as disclosed, ruling 8). Recurring terms share the model's
+   error across events, so a normalised-term way and a term factor in GSP/GSP2 are added (item 5).
+9. **The position model** (fit on 2023-2024 speeches; shrinkage 10) is accepted as disclosed (ruling 9), with the
+   pre-roll re-basing as robustness (item 13).
+10. **1-minute history before 2025** is unverified; the smoke's availability rule is accepted (ruling 10).
+11. **Fees** are the current `feeSchedule` with a 0.04 floor (accepted, ruling 11).
+12. **Transcript versus venue resolution** (accepted, ruling 12).
+13. **CH127 is not tested** (§0.4; deferral accepted).
 
 ## 8. Next actions
 
-1. Challenger round 1 (`science-reviewer`) on this draft; responses as CB13 §9-§10. Points to rule on first: the W1
-   testability deviation (§2.3), the listing-date frame (premise 1), the S nesting decision (§1.3) and the clock
-   alignment (§CB14-S).
+1. Round 1 is answered (§9-§10). Next review: the code-against-design freeze check (`science-reviewer`) once code
+   exists. It may reopen any round-1 item. The modifications stay open to it: the hot-period placebo as the W1
+   comparator (item 1), the anchor schedule `τ_k` (item 1) and the loading split of the term factor (item 5).
 2. Write `seals/cb14_rules.json` (parts `common`, `W`, `S`), the modules and tests of §5 and `run_cb14.py`
    (implementer); then the code-against-design freeze check.
 3. W order: q0300 → q0302 (behind CB13 q0276 and CB11 q0227) → q0303 → GW0 audit → q0305 (GWC) → q0306 → q0307 →
    q0308 → W freeze → q0309; q0310 installed after the W freeze, not before 2026-10-26; q0311 if triggered.
 4. S order: q0301 → q0312 → GS0 audit → q0313 → q0314 (model hash pinned) → q0316 (GSC) → q0317 (P) → `T14_S_open` →
    q0318 (N) → q0319 → S freeze → q0320; q0321 weekly after the S freeze; q0322 if triggered.
-5. The S rules part is committed before CB12-M's q0252 runs (§1.3).
+5. The S rules part is committed before CB12-M's q0252 result; if it is not, N is reported-only (§1.3, item 6).
 6. CB15 adds CB14's frame ids (W markets and subjects, S events) to its keys. CH127 re-enters with the census of §0.4.
 7. Ledger lines for every counted result; checkpoint and plain-English dashboard updated by the orchestrator.
+
+## 9. Challenger review, round 1 (science-reviewer, 2026-10-18)
+
+**Verdicts: CB14-W REVISE, CB14-S REVISE; the CH127 deferral is accepted.** 6 blocking and 8 non-blocking items, plus
+rulings on the §7 risks.
+
+**Count.** `cumulative_count()` = 1,221 on HEAD (1,181 at `647549c~1`; +40 `flow_screen` lines from the host union).
+The draft's claim that the working copy was identical is false (2 extra uncommitted `cb12_descriptive` lines, which
+count 0). The count is not stable (the host writes about 55-60 counted `flow_screen` lines a day), so the projected
+1,228-1,237 must go; state the count as "value at run, recorded after the union".
+
+**Main challenge (W).** W1 can pass when the market moved first. `D` was the first print ≥ 0.90 and `L_D` only needed
+the entry print ≤ 0.75, so on a 0.30 → 0.70 → 0.92 path a burst after the first repricing counted as a lead. Bursts
+cluster around `D` because a story is unfolding, and the fixed −7 … −28 d placebos lie outside that hot period. The
+"before the move" guard existed only for W2.
+
+**Main challenge (S).** The unit set used the transcript beyond the causal clock. The accessor revealed only offsets
+before `e_t`, yet "unsaid iff first mention > `e_t + 60 s`" needs offsets in `(e_t, e_t + 60 s]`, where `Y = 1` by
+definition; it drops words about to be said, which are S2's adverse fills. Anchors could need `o_j` after `e_t`. `δ_j`
+includes the market's reaction lag, so `e_t` is biased early by a variable amount.
+
+**Blocking.**
+1. **W1 from the move's start.** `D0` = the first transaction ≥ 20c above the VWAP of `[D − 24 h, D − 2 h]`; require
+   `state(b) ≤` that VWAP + 5c; the 0.90 crossing is reported only; a binding hot-period placebo on same-subject
+   windows in `[D − 72 h, D − 6 h]`.
+2. **W2 worst case.** −4.5c is the median round trip; use `min(−9.3c` (the p90, `EXECUTION_COSTS.md` line 39)`, the mean
+   net of covered bursts without a ≥ 20c rise)`.
+3. **W story-day way.** There is no Gamma country field in the whitelist: define country from a frozen tag-id map or
+   the subject's description, or drop the way.
+4. **S causal clock.** Unsaid iff not said by `e_t`; only anchors with `o_j ≤ e_t` (self-consistent), unit-tested; a
+   causal price-only exclusion when the word's 1-minute price rose ≥ 15c in the last 5 min; binding robustness with
+   `e_t` shifted ±2 min (sign kept and p < 0.05) for S1 and S2.
+5. **S dependence.** A term recurs across many single-speaker events with a shared `Ŝ_w` error: add a normalised-term
+   way to the max and a term factor to GSP/GSP2.
+6. **N loophole.** Decide now: if the S rules part is hashed after q0252's result, N becomes reported-only; after
+   `T14_S_open` no element of part S may change except mechanical code fixes; pin CB12-M's sports registry and
+   broadcast regex by sha256.
+
+**Non-blocking.**
+7. W2's stale exit must come after the entry print.
+8. Paper size min(100, the entry print's size).
+9. A binding entry window `[b + 3 min, b + 15 min]` (poll latency may exceed 60 s).
+10. `D` needs confirmation (two prints ≥ 0.90 within 30 min).
+11. W1 placebos require prior listing: count the dropped fast-resolving events; report a burst-only placebo that does
+    not depend on prints.
+12. Live poller: `rccontinue` / `rcstart` gap detection, gaps "unavailable"; Stage 2 uses the same bot rule as Stage 1.
+13. S: report the first-segment offset (video pre-roll); robustness with `e` from the first speaker segment.
+14. Fix the line-93 claim (the working copy is not identical).
+
+**Rulings on §7 risks.**
+- (1) The W1 deviation is allowed with ≥ 30 subjects **and** ≥ 15 ISO weeks, only after item 1; W1 is counted with
+  p = 1 if not testable. The listing-date frame is accepted. The early-closure aggregate is disclosed and acceptable.
+- (2) See item 3. (3) See item 2.
+- (4) Accepted with item 9; revision-deleted user names count as unknown, not distinct.
+- (5) The separation from CB11-A is sufficient; no further holdout-entity drop.
+- (6) Waiting for Stage 1 is enough only with item 6; S on N is distinct but not independent evidence.
+- (7) Not selection on outcome; item 4 is the real problem.
+- (8), (9) Accepted as disclosed; add item 5.
+- (10) The smoke availability rule is accepted.
+- (11), (12) Accepted.
+
+## 10. Response to challenger round 1 (2026-10-18T21:36Z)
+
+No CB14 quantity has been computed, so every change below was made blind. None relaxes a floor, threshold, gate,
+alpha or cap; several make tests harder to pass or to run. k stays **4 fixed + ≤ 4 conditional = 4-8**. The cumulative
+count is stated as the value at each run, after the host union (1,221 on HEAD now; not stable).
+
+| Item | Decision | Where | What changed |
+|---|---|---|---|
+| Count | **Adopted** | §0.2, §2.5, §6 | The working-copy claim is corrected (2 extra `cb12_descriptive` lines, count 0); the projected 1,228-1,237 is removed; every counting job records the value at its run, after the union |
+| 1 W1 from the move start | **Adopted, with one stated modification** | §0, §2.4, §CB14-W, §4, §5 | `D0` = the first transaction in `[D − 2 h, D]` ≥ `V_D + 20c`; a lead needs a burst in `[D0 − 120 min, D0 − 5 min]` with state ≤ `V_D + 5c` and an entry print; the 0.90 crossing is reported only. **Modification:** the hot-period placebo is not a separate pass/fail check but **the comparator inside `Δ_W1`**: `π̂_D` is the same indicator at 11 anchors `τ_k = D0 − 6 h·k` (`τ` in `[D0 − 66 h, D0 − 6 h]`, inside the requested `[D − 72 h, D − 6 h]`), and the 0.25 floor applies to the excess over that hot rate. Justification: a separate check ("the hot-period statistic must not pass") would still let W1 pass on an excess over the quiet fixed-lag rate whenever the hot-period excess is just below p < 0.01; making the hot rate the baseline answers the main challenge directly (what bursts add beyond an unfolding story) and is stricter. The fixed-lag comparator is reported. The freeze check may revert to the requested form |
+| 2 W2 worst case | **Adopted** | §2.1, §CB14-W W2 | Every dropped unit ("uncovered", "no entry print", "no exit") is priced at `w* = min(−9.3c, m̄₀)`, `m̄₀` the mean net of covered units without a ≥ 20c rise within 2 h |
+| 3 story-day way | **Adopted (country from the description)** | §2.3, §CB14-W, census, §5 | Country = a frozen demonym / country-name map on the subject's stored Wikipedia short description, written in part W before any read; no match → the subject is its own country (singleton); cluster = UTC day × country. The census reports the mapped share |
+| 4 S causal clock | **Adopted** | §CB14-S alignment and units, S1, S2, §5 | Unsaid iff not said by `e_t` (the 60 s margin removed); anchors are the self-consistent fixed point with `o_j ≤ e_t` (≤ 10 iterations, non-convergence → unaligned), unit-tested; the causal "rising" exclusion (≥ 15c over `[t − 5 min, t]`); `e_t` shifted ±2 min is binding for S1 and S2 (sign and p < 0.05). The reaction-lag bias is disclosed (conservative for S1, a real adverse fill for S2) |
+| 5 S dependence | **Adopted, with one stated modification** | §2.3, §2.7, S1, S2 | A normalised-term way joins the event and week ways in the max for S1 and S2; GSP and GSP2 carry a term factor `T_term`. **Modification:** the loadings are declared as `√0.15·V_week + √0.25·U_event + √0.15·T_term + √0.45·ε` (the event loading moves 0.30 → 0.25 and the idiosyncratic 0.55 → 0.45, so the total stays 1). Justification: the reviewer asked for a term factor but set no loading; carving it from the idiosyncratic share alone would leave the event share unchanged and the total variance fixed, but a term shared across events is part of what CB12's event loading absorbed for a multi-speaker population, so 0.05 moves from it; the week loading stays CB12's. The freeze check may reset the split. The top-5 drops gain a term way |
+| 6 N loophole | **Adopted** | §1.3, §0.4, §1.4, §8 | Decided now: if the S rules part's commit post-dates q0252's result commit, N becomes reported-only and S1/S2 run on P alone. After `T14_S_open` no element of part S may change except mechanical code fixes with a reviewer sign-off; any other change voids N from the primary. CB12-M's sports registry (sha256 `b47b3d20…57bce6`, at `c0cb6ba`) and broadcast regex (sha256 of its UTF-8 string `61b45196…d6b8c0`) are pinned in part S; a mismatch is a refusal |
+| 7 stale exit | **Adopted** | §2.1 | The stale exit is the last transaction after the entry print; none → "no exit", excluded, counted and priced at `w*` |
+| 8 paper size | **Adopted** | §2.1 | Size = min(100, the entry print's size); size-weighted results reported |
+| 9 entry window | **Adopted** | §CB14-W W1, W2, §7 | `[b + 3 min, b + 15 min]` is a binding robustness entry window for W1 (with p < 0.05) and W2 |
+| 10 confirmation | **Adopted** | §CB14-W decisive move | `D` needs a second transaction ≥ 0.90 within 30 min |
+| 11 placebo and listing | **Adopted** | §CB14-W W1, census | Moves dropped as "no placebo" because the market was listed < 18 h before `D0` are counted; a burst-only placebo (no prints) is reported. The hot-period anchors need ≥ 3 covered, post-listing anchors |
+| 12 live poller | **Adopted** | §CB14-W Stage 2, §2.8, q0310 | `rcstart` overlap 120 s, `rccontinue` to exhaustion, `rcid` de-duplication; failed polls, start gaps or > 5 min without a successful poll mark the interval, and bursts touching it are "unavailable (gap)"; Stage 2 uses the frozen Stage-1 bot list plus the name regex |
+| 13 pre-roll | **Adopted** | §CB14-S alignment | The census reports first-segment and first primary-speaker-segment offsets; a robustness check re-bases fit and target offsets to the first primary-speaker segment (a second model file, hashed with the first before any S read) |
+| 14 line 93 | **Adopted** | §0.2 | Corrected (see Count) |
+| Ruling (1) | **Adopted** | §2.3, §2.7 GW | W1 needs ≥ 40 moves, ≥ 30 subjects and ≥ 15 ISO weeks; not testable → p = 1, counted |
+| Ruling (4) | **Adopted** | census, §5 | Revision-deleted user names count as unknown, never as a distinct user |
+| Ruling (5) | **Adopted** | §7 | No further CB11-A holdout-entity drop; the existing binding entity-subject robustness check stays |
+| Ruling (6) | **Adopted** | §1.3, §7 | Stated: S on N is distinct but not independent evidence of M1 |
+
+**Rejected:** none.
