@@ -1,28 +1,24 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-18 15:43 UTC+1
+**Last updated:** 2026-10-18 20:56 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session started at about 15:20 UTC+1 (18 Oct). Between about 05:00 and 15:00 no session
-  ran (the macOS update made the login check time out; that was fixed so a slow check only skips one tick).
-- **Server:** idle apart from live collection. Batch 8's holder snapshots are waiting, as designed, for their declared
-  start on 21 Oct; most other downloads are held for the 22 Oct cut-off. The next server work is batch 11.
-- **In progress (this session):**
-  - **Batch 11 (resolution-wait prediction, family W):** the independent check passed it *with fixes* (10 must-fix
-    items, for example one checksum covering every family, so adding the other families would have blocked W; a few
-    counting rules did not match the design). The fixes are being made, then a short re-check, then its small
-    download test goes on the server.
-  - **Batch 11 families P and A** (political long-shots priced too far from 50/50; attention spikes without news):
-    being coded.
-  - **Batch 12** (word-mention baskets, earthquake counts, print footprints, stale horizons, option anchors): the
-    challenger asked for 14 must-fix changes. All were adopted, with nothing loosened. Coding has started with the two
-    families that can run on data we already have or download cheaply.
-  - **Round 6 of original money-making ideas:** being generated (Fable, xhigh).
-- **Second free server:** still "out of host capacity" at Oracle (last check 15:20 UTC+1); it retries every 10 min.
+- **Autopilot:** a new session started at about 20:49 UTC+1 (18 Oct).
+- **Server:** idle apart from live collection since about 02:00 UTC+1. Batch 8's holder snapshots wait, as designed,
+  for their start on 21 Oct; most other downloads wait for the 22 Oct cut-off. Batch 11's downloads go on next.
+- **Done this session:** round 6 of original ideas is saved (13 new ideas, CH118-CH130; ideas only, nothing tested).
+  Batch 11's families P and A now fit the per-family checksums (all 145 tests pass).
+- **In progress:**
+  - **Batch 11:** an independent re-check of the 10 fixes and of the new P/A code. If it passes, its small test
+    download and then about 10-15 hours of downloads go on the server.
+  - **Batch 12:** coding of the two families that use data we already have (word-mention baskets, stale horizons).
+  - **Batch 13 (new):** being designed from round 6. It asks where makers lose money, by type of market, and
+    whether "will it touch X" markets are priced as if they were "will it end above X".
+- **Second free server:** still "out of host capacity" at Oracle (last check 20:50 UTC+1); it retries every 10 min.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
@@ -66,7 +62,7 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 ## 5. Infrastructure
 | Item | State |
 |---|---|
-| Server disk | 100 GB disk, 59 GB free (measured 18 Oct 15:21 UTC+1); collection cap 45 GB, 4 GB free-disk stop unchanged. |
+| Server disk | 100 GB disk, 58 GB free (measured 18 Oct 20:49 UTC+1); collection cap 45 GB, 4 GB free-disk stop unchanged. |
 | Server size | 1 CPU, about 5.6 GB RAM. A second free server (1 CPU, 6 GB, 100 GB) is being requested automatically every 10 min until Oracle has capacity. |
 | Mac | No background jobs. |
 

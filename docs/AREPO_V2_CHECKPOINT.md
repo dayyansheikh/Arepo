@@ -220,20 +220,16 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 ~14:25Z
-0. **Autopilot session from 14:20Z 10-18** (no session ran ~04:10-14:20Z: auth-status timeouts after the macOS update,
-   fixed in a24e8ec). Host queue idle except q0162/q0163 (exit 75 until their declared start 10-21T06Z; their
-   idle_heartbeat exit 0 every <= 10 h resets the 48-tempfail cap, so no fix is needed). Committed fec1b04: CB12 DRAFT
-   plus the trials.jsonl union. Results so far: **CB11 W freeze check = ACCEPT_WITH_FIXES** (B1 per-part rules hash
-   W vs PA; B2 repeat blocks q0221/q0224; B3 C1/T5 staging refusal; B4 sample.csv sha pins; B5-B7 W2 availability,
-   GW2 count, month robustness; B8 Stage-2 alpha 0.05; B9 W_hold 71 d; B10 disjointness only kills P/A; plus N1-N9).
-   **CB12 challenger round 1 = REVISE** (M/E/F REVISE, X ACCEPT, O ~DROP unless >= 30 settlement dates; 14 blocking).
-   Running agents: (a) implementer CB11 W fixes in the main tree (commit "CB11 W freeze-check fixes"); (b) implementer
-   CB11 P and A in a worktree (told: register P/A as rules part PA, no edits to cb11_w.py or the hash machinery; the
-   coordinator merges it after (a)); (c) CB12 round-1 response DONE 9590e8e (all 24 adopted; O kept, needs >= 30 settlement dates; k 10 + up to 10; count 1,181), now implementer CB12 common+smoke+X+M (cb12_*.py, run_cb12.py, test_cb12_xm.py, per-part rules hash); (d) Fable xhigh
-   round 6 -> `CREATIVE_HYPOTHESES_2026-10-20.md`. After (a): focused science-reviewer re-check of B1-B10, then
-   promote q0220 smoke (+ q0221 after it) and deploy. Ledger entry for the CB11 W freeze check: written (5c03475).
-   If the session stops, re-run any of them that has no commit.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 19:56Z
+0. **Autopilot session from 19:49Z 10-18.** Host queue idle since 01:02Z (only q0162/q0163 exit-75 waits until
+   10-21T06Z). Done this session: round 6 committed (ee0bc96, CH118-CH130); CB11 P/A per-part hash integration fixed
+   (32f06da, 145 tests pass; W sha ecf500f7…, PA sha a8727c40… in `seals/cb11_pa_rules.json`). Running agents:
+   (a) science-reviewer focused re-check of CB11 B1-B10 + P/A freeze check, verdict per group (smoke+keys / W chain /
+   P/A data / P/A analysis) -> then promote q0220 (+ q0221, W chain, P/A data jobs if accepted) and deploy;
+   (b) implementer finishing CB12 common+smoke+X+M (the untracked cb12_common/m/smoke files from the interrupted
+   session are its starting point) -> then CB12 code-against-design freeze check; (c) Opus drafting
+   `CREATIVE_BATCH_13.md` from round 6 (CH128 class-map toxicity, CH118 barrier-vs-terminal; host-runnable, cpu lane)
+   -> then challenger round 1. If the session stops, re-run any of them that has no commit.
 1. **Next:** CB11 code-against-design freeze check -> promote q0220 + W chain -> deploy. q0160c result: PASS -> promote
    q0162/q0163; written FAIL of a/b/f/h/i -> CB8-H "not run (source)", counted, no smoke v4.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z and a smoke-v2 PASS; q0182 needs the pinned q0164 hash.
