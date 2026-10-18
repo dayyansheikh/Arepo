@@ -220,18 +220,24 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 20:58Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 21:35Z
 0. **Autopilot session from 19:49Z 10-18.**
-   - **CB11: data path PROMOTED and deployed (582ae05; host at 86fc2be):** q0220 smoke -> q0221 keys -> W data
-     (q0222-q0224) + P/A data (q0225-q0227, q0229) -> seals q0230 (W) / q0238 (P/A) -> censuses q0231 / q0239. Rules
-     W `064e13f9…`, PA `f85ae278…` (fixes 19a8c9f + 1f9a208 after re-check and verify GO). C1/T5 id lists staged on the
-     host (`creative_batch11/external_ids/`, c1 3,000 / t5 49,684 ids, PROVENANCE.json; from release
-     data-20261013-research-lab, hash-verified). Screens q0232-q0234 and reps q0235-q0237 stay drafts: promote the
-     screens after the censuses are written up; reps need `--results-sha256`/`--stage2-k` filled.
-   - **CB12:** X GO; M side being fixed (D1-D4 agent running). Then promote q0240 smoke + X chain (q0251, q0255) and,
-     after q0221 finishes, fill q0241 `--base-sha256` (sha of CB11's exclusion key file) and promote the M chain.
-   - **CB13:** round-1 response 86fc2be (all 14 adopted); code agent running (cb13_*.py, run_cb13.py, drafts
-     q0270-q0285) -> then code-against-design freeze check.
+   - **CB11:** data path promoted + deployed (582ae05; mem_mb ops fix 6c2056f). **q0220 smoke PARKED on the host**
+     (before writing anything): attempt 1 died on the 400 MB cap (sklearn import in rules verification); a diagnostic
+     showed its out-of-window politics weeks have no market with life >= 100 d, so prices_history / data_api_reach would
+     fail vacuously. A fix agent is changing the pick search (bounded out-of-window long-life search) and checking the
+     wiki_lag consequence (69 h measured; design: lag 72 h, A origin X + 4 d, not "not testable"). After the fix: rules
+     regenerate (W/PA shas change; re-pin jobs), short science-reviewer check, deploy, then `queue_worker.py retry
+     q0220_cb11_smoke` on the host. Everything downstream (q0221-q0239) waits on q0220. C1/T5 id lists are staged.
+   - **CB12:** q0240 smoke ran 21:04Z (write-once `creative_batch12/smoke.json`): X criteria all PASS; M
+     `m_prices_history` FAIL (m0 no pre-start trading; source fine). M smoke v2 (q0240b draft) being written by the same
+     agent, disclosed in CB12 §11. q0251 X census done: 316 pairs / 183 events, volume key `volume` (500/500), but
+     **fresh_step_pairs = 0 in every bin**: code requires the PM stamp to be exactly t - 600 (age is always >= the 600 s
+     lag). Proposed outcome-blind correction: fresh = PM stamp in [t - 1200, t - 600] and Kalshi <= 10 min; needs a
+     written justification + reviewer; then X smoke v2 + census v2 (new ids), then promote q0255 X screen. The M chain
+     needs CB11 q0221's key-file sha for q0241 `--base-sha256`.
+   - **CB13:** code agent running (cb13_*.py, run_cb13.py, drafts q0270-q0285) -> code-against-design freeze check.
+   - **CB14:** design drafter running (CH123 Wikipedia edit bursts, CH121 intra-speech hazard) -> challenger round 1.
    If the session stops, re-run any agent that has no commit.
 1. **Next:** CB11 code-against-design freeze check -> promote q0220 + W chain -> deploy. q0160c result: PASS -> promote
    q0162/q0163; written FAIL of a/b/f/h/i -> CB8-H "not run (source)", counted, no smoke v4.
