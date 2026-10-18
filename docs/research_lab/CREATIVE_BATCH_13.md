@@ -85,6 +85,10 @@ not reported on the Data API `side` field, so **no CB13 statistic reads `side`**
   flow, not by class. No test has used a barrier (touch) payoff, the reflection principle or the Binance highs and
   lows. CB10-D anchors **terminal** "above $K on date" ladders with Deribit, CB8-B the terminal minutes of Up/Down
   dailies, and CB9-P equity Up/Down dailies with Pyth. All three are disjoint from R's templates (§1.3).
+- **Count note (2026-10-18 21:36Z, coordinator; CB14 challenger finding):** the 1,181 below was correct at `ee0bc96`
+  but is stale: the host union at `647549c` added 40 counted `flow_screen` lines (1,221 at HEAD then), and the host
+  keeps adding about 55-60 such lines a day. Every CB13 counting job therefore records the value at its run, after
+  the union; the projections below are historical and are not used.
 - `battery2.cumulative_count()` (`battery2-count-v1`) = **1,181** on the committed `trials.jsonl` at `ee0bc96` (the draft's
   parent; re-verified 1,181 at the round-1 response).
   The file last changed at `fec1b04`, and the working copy is identical. The host union step runs before every counting
