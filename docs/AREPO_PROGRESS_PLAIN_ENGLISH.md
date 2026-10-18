@@ -1,24 +1,25 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-18 20:56 UTC+1
+**Last updated:** 2026-10-18 21:58 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session started at about 20:49 UTC+1 (18 Oct).
-- **Server:** idle apart from live collection since about 02:00 UTC+1. Batch 8's holder snapshots wait, as designed,
-  for their start on 21 Oct; most other downloads wait for the 22 Oct cut-off. Batch 11's downloads go on next.
-- **Done this session:** round 6 of original ideas is saved (13 new ideas, CH118-CH130; ideas only, nothing tested).
-  Batch 11's families P and A now fit the per-family checksums (all 145 tests pass).
+- **Autopilot:** session running since about 20:49 UTC+1 (18 Oct).
+- **Server:** batch 11's downloads are now queued and deployed (about 10-15 hours of work): first a small test download,
+  then the download jobs, then counts-only checks. No test result is computed until those checks are written up.
+- **Done this session:**
+  - Round 6 of original ideas saved (13 new ideas; ideas only).
+  - Batch 11 passed two independent checks after fixes (for example dropped markets are now never analysed,
+    and the replication alpha can no longer be loosened by a command-line value).
+  - Batch 13 designed from round 6 and challenged. The main correction: measure maker losses from the actual trade
+    price, not from a quote up to an hour old (that would have measured stale quotes, not informed traders).
 - **In progress:**
-  - **Batch 11:** an independent re-check of the 10 fixes and of the new P/A code. If it passes, its small test
-    download and then about 10-15 hours of downloads go on the server.
-  - **Batch 12:** coding of the two families that use data we already have (word-mention baskets, stale horizons).
-  - **Batch 13 (new):** being designed from round 6. It asks where makers lose money, by type of market, and
-    whether "will it touch X" markets are priced as if they were "will it end above X".
-- **Second free server:** still "out of host capacity" at Oracle (last check 20:50 UTC+1); it retries every 10 min.
+  - **Batch 12:** the stale-horizon part passed; four small fixes to the mention-basket part are being made.
+  - **Batch 13:** code is being written, then an independent code check.
+- **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).

@@ -998,18 +998,18 @@
   {
    "id": "CB11",
    "title": "Proposer clocks, political underconfidence, attention",
-   "plain": "Designed: how long markets wait to resolve, long-horizon political underconfidence and attention without news. Code is being built; an independent check comes before anything is queued.",
+   "plain": "How long markets wait to resolve, long-horizon political underconfidence and attention without news. The code passed its independent checks after fixes; its downloads are queued on the server.",
    "batch": "CB11",
    "family": "resolution",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Independent code check, then queueing",
+   "next": "Smoke test, then downloads (about 10-15 h), then the counts-only census before any test",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/AREPO_PROGRESS_PLAIN_ENGLISH.md § 1; docs/research_lab/CREATIVE_BATCH_11.md header"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB11 focused re-check (B1-B10) and P/A code-against-design freeze check, 2026-10-18"
    },
    "stage_results": {
     "designed": "pending"
@@ -1020,19 +1020,19 @@
   },
   {
    "id": "CB12",
-   "title": "Round-5 ideas (design draft)",
-   "plain": "A new batch from round 5 of the idea list (for example word-count baskets and earthquake-count markets) is being drafted.",
+   "title": "Mention baskets, stale horizons and other round-5 ideas",
+   "plain": "Word-mention baskets and stale cross-venue horizons are coded. The independent check passed the stale-horizon part; small fixes to the mention-basket part are being made before anything is queued.",
    "batch": "CB12",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Challenger review after drafting",
+   "next": "Finish fixes, then queue the small test download",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/AREPO_PROGRESS_PLAIN_ENGLISH.md § 1 (Batch 12 design)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12 code (74a0f17) freeze check, fixes (c0cb6ba) and verify round, 2026-10-18"
    },
    "stage_results": {
     "designed": "pending"
@@ -1059,6 +1059,29 @@
    },
    "stage_results": {
     "designed": "pass"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB13",
+   "title": "Where makers lose money; touch versus end-above markets",
+   "plain": "Designed from round 6: whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. The design was challenged and revised; code is being written.",
+   "batch": "CB13",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Code, then an independent code check",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB13 drafted (98a00e6) and challenger round 1, 2026-10-18"
+   },
+   "stage_results": {
+    "designed": "pending"
    },
    "reached": [
     "designed"

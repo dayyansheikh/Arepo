@@ -220,16 +220,19 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 19:56Z
-0. **Autopilot session from 19:49Z 10-18.** Host queue idle since 01:02Z (only q0162/q0163 exit-75 waits until
-   10-21T06Z). Done this session: round 6 committed (ee0bc96, CH118-CH130); CB11 P/A per-part hash integration fixed
-   (32f06da, 145 tests pass; W sha ecf500f7…, PA sha a8727c40… in `seals/cb11_pa_rules.json`). Running agents:
-   (a) science-reviewer focused re-check of CB11 B1-B10 + P/A freeze check, verdict per group (smoke+keys / W chain /
-   P/A data / P/A analysis) -> then promote q0220 (+ q0221, W chain, P/A data jobs if accepted) and deploy;
-   (b) implementer finishing CB12 common+smoke+X+M (the untracked cb12_common/m/smoke files from the interrupted
-   session are its starting point) -> then CB12 code-against-design freeze check; (c) Opus drafting
-   `CREATIVE_BATCH_13.md` from round 6 (CH128 class-map toxicity, CH118 barrier-vs-terminal; host-runnable, cpu lane)
-   -> then challenger round 1. If the session stops, re-run any of them that has no commit.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 20:58Z
+0. **Autopilot session from 19:49Z 10-18.**
+   - **CB11: data path PROMOTED and deployed (582ae05; host at 86fc2be):** q0220 smoke -> q0221 keys -> W data
+     (q0222-q0224) + P/A data (q0225-q0227, q0229) -> seals q0230 (W) / q0238 (P/A) -> censuses q0231 / q0239. Rules
+     W `064e13f9…`, PA `f85ae278…` (fixes 19a8c9f + 1f9a208 after re-check and verify GO). C1/T5 id lists staged on the
+     host (`creative_batch11/external_ids/`, c1 3,000 / t5 49,684 ids, PROVENANCE.json; from release
+     data-20261013-research-lab, hash-verified). Screens q0232-q0234 and reps q0235-q0237 stay drafts: promote the
+     screens after the censuses are written up; reps need `--results-sha256`/`--stage2-k` filled.
+   - **CB12:** X GO; M side being fixed (D1-D4 agent running). Then promote q0240 smoke + X chain (q0251, q0255) and,
+     after q0221 finishes, fill q0241 `--base-sha256` (sha of CB11's exclusion key file) and promote the M chain.
+   - **CB13:** round-1 response 86fc2be (all 14 adopted); code agent running (cb13_*.py, run_cb13.py, drafts
+     q0270-q0285) -> then code-against-design freeze check.
+   If the session stops, re-run any agent that has no commit.
 1. **Next:** CB11 code-against-design freeze check -> promote q0220 + W chain -> deploy. q0160c result: PASS -> promote
    q0162/q0163; written FAIL of a/b/f/h/i -> CB8-H "not run (source)", counted, no smoke v4.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z and a smoke-v2 PASS; q0182 needs the pinned q0164 hash.
