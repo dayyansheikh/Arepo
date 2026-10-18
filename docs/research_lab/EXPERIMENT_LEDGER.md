@@ -1602,3 +1602,14 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   from words said by e_t, ±2 min clock shift binding); term-level dependence added; the N window becomes reported-only
   if S's rules are hashed after CB12-M's Stage-1 result. All 14 items adopted (2 modified, flagged for the freeze
   check). Count: 1,221 at HEAD (40 flow_screen lines arrived by host union); counts are recorded at run.
+
+## Smokes PASS and CB12-X census v2, 2026-10-18 ~21:35-21:45Z (engineering gates and counts; not counted as tests)
+- **CB11 smoke q0220 PASS** (21:34Z, 19 requests, rules W `2d2bb169…`): all criteria pass except `wiki_lag` (pageviews
+  newest day > 48 h old); `wiki_lag_ceiling` (<= 72 h) holds, so A uses the declared fallback (lag 72 h, origin X + 4 d,
+  outcome-blind). The CB11 data chain runs. q0221 attempt 1 hit a MemoryError under its 1 GB cap (id sets peak about
+  493 MB RSS); ops fix mem_mb 1200 (6770b34); attempt 2 had started under the old cap and was stopped (not counted).
+- **CB12 M smoke v2 q0240b PASS** (21:38Z, 12 requests; `smoke_M_v2.json`, v1 kept).
+- **CB12 X census v2 q0251b** (rules X `7485a272…`, counts only): 316 pairs / 183 events / 13 resolution months;
+  step pairs short 125,967 (fresh 94,636), mid 279,399 (181,042), long 82,969 (64,192); GX gate pass in both bins;
+  G event 183, month 13 (long bin: 25 events, 10 months). Volume key `volume` (500/500). **Decision before the screen:**
+  freshness as corrected (A7); volume terciles from `volume`. q0255 X screen promoted (X1, one counted test).
