@@ -33,7 +33,9 @@
   "--data-dumps-cap-gb",
   "40",
   "--base-sha256",
-  "TODO-COORDINATOR"
+  "TODO-COORDINATOR",
+  "--budget-min",
+  "35"
  ],
  "timeout_s": 2400,
  "max_retries": 2,
@@ -44,9 +46,9 @@
   "research_lab/creative_batch12/exclusion_series_dates.csv.gz (series id, event id, startTime; sha256 in exclusion_report.json)"
  ],
  "next_action": "q0242 (M); E and F frames later",
- "notes": "DRAFT. Returns in_progress (exit 0) on a stop; the repeat block re-runs it until complete. The coordinator replaces --base-sha256 TODO-COORDINATOR with `sha256sum` of the host's creative_batch11/exclusion_keys.csv.gz after CB11 q0221 completes (the job refuses with exit 2 while the pin is unset). >2% missing metadata -> disjointness unverified (family not testable, counted). Exit 75 on headroom = pending. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): common 81301d59c2e1b5db88968fea1d14a1e1c8ec9d986f26dc9284ae6e89e364029d. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "notes": "DRAFT. Returns in_progress (exit 0) on a budgeted stop (--budget-min 35, before timeout_s) or a transient Gamma failure (non-200 / limiter give-up, caught at the stage boundary; partial files make the re-run resume); the repeat block re-runs it until complete. The coordinator replaces --base-sha256 TODO-COORDINATOR with `sha256sum` of the host's creative_batch11/exclusion_keys.csv.gz after CB11 q0221 completes (the job refuses with exit 2 while the pin is unset). >2% missing metadata -> disjointness unverified (family not testable, counted). Exit 75 on headroom = pending. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): common f2f672c1dfa22ce1388fd85b42bebc23248f58c5bb4349f6745c4b2493dcc647. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
  "repeat": {
-  "max_runs": 6,
+  "max_runs": 12,
   "until_log_regex": "\"status\": \"(exclusion_keys_complete|disjointness_unverified)\""
  }
 }

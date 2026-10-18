@@ -145,6 +145,12 @@ def is_sports(tags: Iterable[dict], title: str) -> tuple[bool, bool]:
     return by_tag, bool(BROADCAST_RE.search(title or ""))
 
 
+def sports_tag_keys(tags: Iterable[dict]) -> list[str]:
+    """``"<id>:<slug>"`` of every tag of the event that counts as a sports tag (same rule as ``is_sports``); counts only, for the per-tag exclusion report."""
+    return sorted({f"{t.get('id')}:{str(t.get('slug') or '').lower()}" for t in tags if isinstance(t, dict)
+                   and (str(t.get("id")) in SPORTS_TAG_IDS or str(t.get("slug") or "").lower() in SPORTS_TAG_SLUGS)})
+
+
 def speaker_key(series_id: str, title: str, event_id: str) -> str:
     if series_id:
         return f"series:{series_id}"
@@ -328,6 +334,7 @@ def say_frame(hist_root: Path, transport, *, rules_sha: str, smoke_paths, exclus
                 if p is None or p[0]["event_id"] in seen:
                     continue
                 row, mems, outs = p
+                row["_sports_tag_keys"] = sports_tag_keys(ev.get("tags") if isinstance(ev.get("tags"), list) else [])
                 seen.add(row["event_id"])
                 if not row["split"]:  # a boundary event outside both windows by the parsed endDate
                     continue
@@ -343,7 +350,9 @@ def say_frame(hist_root: Path, transport, *, rules_sha: str, smoke_paths, exclus
         return mm
     try:
         counts: dict = {}
-        report: dict = {"splits_of_capped_windows": stats.get("splits", 0), "series_date_key": "applied", "series_dates_series": len(series_dates)}
+        report: dict = {"splits_of_capped_windows": stats.get("splits", 0), "series_date_key": "applied", "series_dates_series": len(series_dates),
+                  "series_dates_events": krep.get("series_dates", {}).get("n_events"), "series_dates_not_returned": krep.get("series_dates", {}).get("n_not_returned"),
+                  "series_dates_not_returned_share": krep.get("series_dates", {}).get("not_returned_share")}
         for split in ("screen", "holdout"):
             sub = sorted((r for r in ev_rows if r["split"] == split), key=lambda r: r["event_id"])
             base = rdir / "holdout" if split == "holdout" else rdir
@@ -353,6 +362,7 @@ def say_frame(hist_root: Path, transport, *, rules_sha: str, smoke_paths, exclus
             _wcsv(fr, base / oname, OUTCOME_COLUMNS, ([o[c] for c in OUTCOME_COLUMNS] for r in sub if r["status"] == "kept" for o in out_rows[r["event_id"]]))
             report[split] = {"events_fetched": len(sub), "by_status": dict(Counter(r["status"] for r in sub)), "key_drop_source": dict(Counter(r["_src"] for r in sub if r["status"] == "dropped:key")),
                              "sports_by": {"tag": sum(r["sports_tag"] for r in sub), "regex": sum(r["sports_re"] for r in sub)},
+                             "sports_dropped_by_tag": dict(sorted(Counter(k for r in sub if r["status"] == "dropped:sports" for k in r.get("_sports_tag_keys", [])).items())),
                              "full_series_counterfactual_drops": sum(r["_series_cf"] for r in sub if r["status"] in ("kept", "dropped:key")),
                              "n_kept_members": sum(len(mem_rows[r["event_id"]]) for r in sub if r["status"] == "kept")}
             counts[f"events_{split}"] = len(sub)
@@ -1028,7 +1038,8 @@ def census_m(rdir: Path, *, frame_dir: Path | None = None, n_draws: int = c12.GM
     cov = {"price_at_t_share": cover_price, "print_reach_share": cover_reach, "min": COVER_MIN, "pass": bool(cover_price >= COVER_MIN and cover_reach >= COVER_MIN)}
     s_vals = [float(u["p"].sum()) for u in ok]
     out = {"version": "cb12-census-M-v1", "counts_only": True, "label": LABEL_M, "events_by_status": dict(by_status), "events_by_month": dict(sorted(per_month.items())),
-           "duration_deciles_s": deciles, "unit_status": dict(status), "frame_report": report, "n_members_listed": listed_members, "speaker_keys": len(speakers), "iso_weeks": len(weeks),
+           "duration_deciles_s": deciles, "unit_status": dict(status), "frame_report": report,
+           "sports_dropped_by_tag": {sp: (report.get(sp) or {}).get("sports_dropped_by_tag") for sp in ("screen", "holdout")}, "n_members_listed": listed_members, "speaker_keys": len(speakers), "iso_weeks": len(weeks),
            "S_t_quantiles": [float(x) for x in np.quantile(s_vals, [0.1, 0.5, 0.9])] if s_vals else [], "late_members_dropped": sum(u["n_late"] for u in units),
            "GM": gm, "coverage_audit": cov, "availability_share": {"M1": availability_m1(units), "M2": availability_m2(units), "min": c12.AVAIL_MIN},
            "start_edit_c_unavailable_units": sum(1 for u in ok if u.get("start_edit_c") is None)}

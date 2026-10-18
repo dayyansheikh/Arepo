@@ -1532,3 +1532,84 @@ def test_q0241_q0242_drafts_carry_repeat_and_pinned_shas():
         for part in ("common", "M", "X"):
             for m_ in re.finditer(rf"(?<![A-Za-z]){part} ([0-9a-f]{{64}})", txt):
                 assert m_.group(1) == rules[part]["rules_sha256"], (f.name, part)
+
+
+def _keys_world(w, tmp_path):
+    (w.hist / "h9_flow").mkdir(parents=True)
+    (w.hist / "h9_flow" / "sample.csv.gz").write_bytes(hb._gz_csv_bytes(["market_id"], [["m1"]]))
+    cv = tmp_path / "cross_venue"
+    cv.mkdir()
+    (cv / "matches.json").write_text(json.dumps([]))
+    return ["exclusion-keys", *w.common, *w.dd, "--cv-root", cv.as_posix(), "--base-path", w.keys.as_posix(), "--base-sha256", h5_seal.sha256_file(w.keys), "--seals-dir", w.seals.as_posix()]
+
+
+def test_series_date_lookup_asks_closed_first_then_open_and_gates_the_unreturned_share(world, capsys, tmp_path, monkeypatch):
+    w = world
+    calls = []
+
+    def gamma(url, params):
+        if url == c12.GAMMA_EVENTS:
+            calls.append(dict(params))
+            only_open = params.get("closed") != "true"
+            evs = [{"id": i, "startTime": "2025-03-04T12:00:00Z", "series": [{"id": "s" + i}]} for i in params["id"] if only_open or i != "evm1"]
+            return 200, json.dumps(evs).encode(), {}
+        return 200, json.dumps([{"id": i, "negRiskMarketID": "", "events": [{"id": f"ev{i}", "series": [{"id": f"s{i}"}]}]} for i in params["id"]]).encode(), {}
+
+    monkeypatch.setattr(hb, "httpx_transport", lambda *a, **k: gamma)
+    code, out = _run(_keys_world(w, tmp_path), capsys)
+    assert code == 0 and out["status"] == c12.EXCLUSION_KEYS_COMPLETE, out
+    assert calls[0].get("closed") == "true" and any(c.get("closed") != "true" for c in calls[1:])  # closed first, the rest again without the filter
+    rep = json.loads((w.root / "exclusion_report.json").read_text())["series_dates"]
+    assert rep["n_not_returned"] == 0 and rep["found_without_closed_filter"] >= 1 and rep["not_returned_share"] == 0.0
+
+
+def test_series_date_unreturned_share_above_two_percent_ends_disjointness_unverified(world, capsys, tmp_path, monkeypatch):
+    w = world
+
+    def gamma(url, params):
+        if url == c12.GAMMA_EVENTS:
+            return 200, b"[]", {}  # the venue returns none of the events
+        return 200, json.dumps([{"id": i, "negRiskMarketID": "", "events": [{"id": f"ev{i}", "series": [{"id": f"s{i}"}]}]} for i in params["id"]]).encode(), {}
+
+    monkeypatch.setattr(hb, "httpx_transport", lambda *a, **k: gamma)
+    code, out = _run(_keys_world(w, tmp_path), capsys)
+    assert out["status"] == c12.UNVERIFIED, out
+    rep = json.loads((w.root / "exclusion_report.json").read_text())
+    assert rep["disjointness"] == c12.UNVERIFIED and rep["series_dates"]["not_returned_share"] == 1.0 and rep["series_dates_not_returned_share"] == 1.0
+
+
+def test_exclusion_keys_transient_gamma_failure_is_in_progress_not_an_error(world, capsys, tmp_path, monkeypatch):
+    w = world
+    monkeypatch.setattr(hb, "httpx_transport", lambda *a, **k: (lambda url, params: (500, b"{}", {})))
+    code, out = _run(_keys_world(w, tmp_path), capsys)
+    assert code == 0 and out["status"] == "in_progress", out
+
+
+def test_cb12_holm_is_strict_at_the_boundary_and_leaves_the_shared_helper_alone():
+    from astrolabe.research_lab import cb9_common as c9
+
+    tie = {"A": 0.005, "B": 0.5}  # m = 2: first step threshold 0.01 / 2 = 0.005
+    assert c12.holm(tie, 0.01)["A"]["reject"] is False  # p == alpha / m is NOT a rejection (strict <)
+    assert c12.holm({"A": 0.00499, "B": 0.5}, 0.01)["A"]["reject"] is True
+    assert c9.holm(tie, 0.01)["A"]["reject"] is True  # the shared helper is unchanged (<=)
+    assert c12.stage2_holm({"M1": 0.005, "M2": None}, 0.01)["tests"]["M1"]["reject"] is False
+    assert c12.stage1_holm({"M1": 0.0009}, 0.01)["tests"]["M1"]["reject"] is True
+    full = {k: 1.0 for k in c12.STAGE1_HOLM_FAMILY}
+    full[c12.STAGE1_HOLM_FAMILY[0]] = 0.001  # exactly alpha / 10
+    assert c12.stage1_holm(full, 0.01)["tests"][c12.STAGE1_HOLM_FAMILY[0]]["reject"] is False
+
+
+def test_sports_dropped_by_tag_is_counted():
+    ev = {"id": "1", "title": "x", "tags": [{"id": "100639", "slug": "games"}, {"id": "7", "slug": "politics"}]}
+    assert m12.sports_tag_keys(ev["tags"]) == ["100639:games"]
+
+
+def test_cb12_drafts_budgeted_stops_regexes_and_lanes():
+    import re
+    drafts = REPO / "docs/research_lab/queue/drafts"
+    for name in ("q0241_cb12_exclusion_keys.json", "q0242_cb12_say_frame.json"):
+        d = json.loads((drafts / name).read_text())
+        assert d["argv"][d["argv"].index("--budget-min") + 1] == "35" and d["repeat"]["max_runs"] == 12
+    rx = json.loads((drafts / "q0243_cb12_say_prices.json").read_text())["repeat"]["until_log_regex"]
+    assert all(re.search(rx, json.dumps({"status": s})) for s in ("say_prices_complete", "not_run_source", "disjointness_unverified", "upstream_not_testable"))
+    assert json.loads((drafts / "q0248_cb12_seal.json").read_text())["resources"]["lane"] == "net"

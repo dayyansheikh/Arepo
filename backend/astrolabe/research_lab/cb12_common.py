@@ -594,7 +594,15 @@ def reach_ok(info: dict, t_reach: float) -> bool:
 
 
 def holm(pvals: dict[str, float], alpha: float) -> dict:
-    return c9.holm(pvals, alpha)
+    """CB12-local STRICT Holm (reject iff p < alpha / (m - i) at every step so far); the shared ``c9.holm`` uses ``<=`` and is not changed. Every CB12 step-down uses this."""
+    items = sorted(pvals.items(), key=lambda kv: (kv[1], kv[0]))
+    m = len(items)
+    out, running, rejecting = {}, 0.0, True
+    for i, (k, p) in enumerate(items):
+        running = max(running, min(1.0, (m - i) * p))
+        rejecting = rejecting and (p < alpha / (m - i))
+        out[k] = {"p": p, "p_holm": running, "reject": bool(rejecting)}
+    return out
 
 
 def stage1_holm(pvals: dict[str, float | None], alpha: float = STAGE_ALPHA, family: tuple[str, ...] = STAGE1_HOLM_FAMILY) -> dict:
@@ -732,7 +740,8 @@ def load_series_dates(keys_path: Path, rep: dict) -> dict[str, list[float]]:
 def series_dates_stage(fr, event_ids: list[str], should_stop: Callable[[], bool] | None = None) -> tuple[dict | None, str | None]:
     """Resumable Gamma ``/events?id=`` lookup (<= 50 ids per request) of the events named in the exclusion keys that belong to a series: one row (series id, event id,
     startTime epoch) per series of the event -> ``exclusion_series_dates.csv.gz`` (run dir) + ``series_dates_report.json``. Events the venue does not return, or without a
-    ``startTime``, are counted in the report (they cannot enter the series-date key)."""
+    ``startTime``, are counted in the report (they cannot enter the series-date key); closed events are asked first, the rest again without the filter. The caller gates the
+    not-returned share against ``MAX_UNVERIFIED_KEY_SHARE``."""
     from . import h5_seal  # noqa: PLC0415
 
     rdir = fr.rdir
@@ -755,13 +764,24 @@ def series_dates_stage(fr, event_ids: list[str], should_stop: Callable[[], bool]
         if why:
             return None, why
         batch = todo[b * per:(b + 1) * per]
-        status, data = fr.lim.get(GAMMA_EVENTS, {"id": list(batch), "limit": per})
-        if status != 200 or not isinstance(data, list):
-            raise ApiError(f"gamma events lookup status {status}")
+        by_id: dict[str, dict] = {}
+        retried_open = 0
+        for closed in (True, False):  # closed first (as the market lookup does), the rest retried without the filter
+            ask_ids = [x for x in batch if x not in by_id]
+            if not ask_ids:
+                break
+            params: dict = {"id": list(ask_ids), "limit": per}
+            if closed:
+                params["closed"] = "true"
+            status, data = fr.lim.get(GAMMA_EVENTS, params)
+            if status != 200 or not isinstance(data, list):
+                raise ApiError(f"gamma events lookup status {status}")
+            for e in data:
+                if isinstance(e, dict) and e.get("id") is not None and str(e["id"]) in ask_ids:
+                    by_id[str(e["id"])] = e
+                    retried_open += int(not closed)
         rows, returned, no_start, no_series = [], 0, 0, 0
-        for e in data:
-            if not isinstance(e, dict) or e.get("id") is None or str(e["id"]) not in batch:
-                continue
+        for e in by_id.values():
             returned += 1
             start = parse_iso(e.get("startTime"))
             sids = [str(s["id"]) for s in (e.get("series") if isinstance(e.get("series"), list) else []) if isinstance(s, dict) and s.get("id") is not None]
@@ -771,14 +791,16 @@ def series_dates_stage(fr, event_ids: list[str], should_stop: Callable[[], bool]
                 no_start += 1
             else:
                 rows += [[s, str(e["id"]), start] for s in sids]
-        rec = {"batch": b, "ids": len(batch), "returned": returned, "no_start": no_start, "no_series_in_reply": no_series, "rows": rows}
+        rec = {"batch": b, "ids": len(batch), "returned": returned, "found_without_closed_filter": retried_open, "no_start": no_start, "no_series_in_reply": no_series, "rows": rows}
         with part.open("a") as fh:
             fh.write(json.dumps(rec, sort_keys=True) + "\n")
         done[b] = rec
     allrows = sorted({(r[0], r[1], r[2]) for rec in done.values() for r in rec["rows"]})
     fr.budget.write_gz_csv(out_path, SERIES_DATES_COLUMNS, [list(r) for r in allrows])
     returned = sum(rec["returned"] for rec in done.values())
-    rep = {"n_events": len(todo), "n_returned": returned, "n_not_returned": len(todo) - returned, "n_without_start": sum(rec["no_start"] for rec in done.values()),
+    n_not = len(todo) - returned
+    rep = {"n_events": len(todo), "n_returned": returned, "n_not_returned": n_not, "not_returned_share": n_not / len(todo) if todo else 0.0,
+           "max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE, "found_without_closed_filter": sum(rec.get("found_without_closed_filter", 0) for rec in done.values()), "n_without_start": sum(rec["no_start"] for rec in done.values()),
            "n_without_series_in_reply": sum(rec["no_series_in_reply"] for rec in done.values()), "n_rows": len(allrows), "series_dates_sha256": h5_seal.sha256_file(out_path)}
     fr.budget.write(rep_path, json.dumps(rep, indent=1, sort_keys=True).encode())
     part.unlink(missing_ok=True)
@@ -882,7 +904,11 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
                              "seal_copies_used": used, "seal_copies_skipped": skipped, "n_c1_market_ids": len(c1_ids), "evidence_role": EVIDENCE_ROLE_HIST},
                      rules_sha=rules_sha, key_fp="", disk_cap=disk_cap, rps=rps, budget_min=budget_min, now=now, sleep=sleep or time.sleep, live_check=live_check,
                      wall_clock=wall_clock or time.time, snapshot_root=snapshot_root, health_check=health_check)
-    rep_new, stopped = exclusion_stage(fr, new_ids, should_stop)
+    try:
+        rep_new, stopped = exclusion_stage(fr, new_ids, should_stop)
+    except (ApiError, RuntimeError) as exc:  # transient; the partial files make the re-run resume
+        stopped = f"gamma_failed: {exc}"[:200]
+        rep_new = None
     if stopped:
         m = fr.manifest(stopped, {"transient": True})
         m["status"] = "in_progress"
@@ -894,7 +920,11 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
     with gzip.open(fr.rdir / "exclusion_keys.csv.gz", "rt", encoding="utf-8", newline="") as fh:
         rows += [[r[c] for c in c6.KEY_COLUMNS] for r in csv.DictReader(fh)]
     ev_with_series = sorted({e for r in rows if r[4] for e in str(r[2]).split(";") if e})
-    rep_sd, stopped = series_dates_stage(fr, ev_with_series, should_stop)
+    try:
+        rep_sd, stopped = series_dates_stage(fr, ev_with_series, should_stop)
+    except (ApiError, RuntimeError) as exc:
+        stopped = f"gamma_failed: {exc}"[:200]
+        rep_sd = None
     if stopped:
         m = fr.manifest(stopped, {"transient": True})
         m["status"] = "in_progress"
@@ -910,8 +940,10 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
     n_all = int(base_rep.get("n_ids", len(base_ids))) + rep_new["n_ids"]
     n_missing = int(base_rep.get("n_missing", 0)) + rep_new["n_missing"]
     share = n_missing / n_all if n_all else 1.0
-    rep = {"n_ids": n_all, "n_missing": n_missing, "missing_share": share, "max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE,
-           "disjointness": UNVERIFIED if share > MAX_UNVERIFIED_KEY_SHARE else "verified", "base_keys_sha256": base_sha256, "new": rep_new, "sets": set_ids,
+    sd_share = float(rep_sd.get("not_returned_share", 0.0))
+    unverified = bool(share > MAX_UNVERIFIED_KEY_SHARE or sd_share > MAX_UNVERIFIED_KEY_SHARE)
+    rep = {"n_ids": n_all, "n_missing": n_missing, "missing_share": share, "max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE, "series_dates_not_returned_share": sd_share,
+           "disjointness": UNVERIFIED if unverified else "verified", "base_keys_sha256": base_sha256, "new": rep_new, "sets": set_ids,
            "sets_absent_at_q0241": absent, "seal_copies_used": used, "seal_copies_sha256": shas, "seal_copies_skipped": skipped, "n_c1_market_ids": len(c1_ids),
            "keys_sha256": h5_seal.sha256_file(keys_out), "series_dates": rep_sd, "series_dates_sha256": h5_seal.sha256_file(sd_out), "built_utc": cm.iso(time.time())}
     (out_root / c9.EXCLUSION_REPORT_NAME).write_text(json.dumps(rep, indent=1, sort_keys=True))
