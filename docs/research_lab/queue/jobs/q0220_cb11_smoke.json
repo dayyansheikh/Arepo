@@ -11,7 +11,7 @@
   "Wikipedia REST, Wikimedia pageviews"
  ],
  "resources": {
-  "mem_mb": 200,
+  "mem_mb": 400,
   "cpu": 1,
   "lane": "cpu",
   "network": "gamma-api, clob, data-api, en.wikipedia.org, wikimedia.org, polygon rpc"
@@ -32,5 +32,5 @@
   "trials.jsonl (cb11_descriptive)"
  ],
  "next_action": "PASS: q0221; FAIL: dependent family not testable (source), counted",
- "notes": "PROMOTED 2026-10-18 by the autopilot after the CB11 focused re-check and verify round (GO for smoke/keys, W data, P/A data, seals, censuses; fixes 19a8c9f + 1f9a208; rules W 064e13f9\u2026, PA f85ae278\u2026). CREATIVE_BATCH_11.md CB11-F. DRAFT-REVISED round 1. <= 40 requests. Prints counts only. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 064e13f9af1a254275590b4ede17c1b77f73076e77db841393c341402b4c9acb (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; sample pins filled and rules regenerated 2026-10-18 after the re-check fixes b1-b2, c1-c2, d1-d3)."
+ "notes": "OPS 2026-10-18: mem_mb 200 -> 400 (address cap 2x): rules verification imports scikit-learn, whose shared objects cannot map under an 800 MB-or-less cap below ~600 MB (q0220 attempt 1 failed with SystemError at a 400 MB cap). No scientific change. PROMOTED 2026-10-18 by the autopilot after the CB11 focused re-check and verify round (GO for smoke/keys, W data, P/A data, seals, censuses; fixes 19a8c9f + 1f9a208; rules W 064e13f9\u2026, PA f85ae278\u2026). CREATIVE_BATCH_11.md CB11-F. DRAFT-REVISED round 1. <= 40 requests. Prints counts only. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 064e13f9af1a254275590b4ede17c1b77f73076e77db841393c341402b4c9acb (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; sample pins filled and rules regenerated 2026-10-18 after the re-check fixes b1-b2, c1-c2, d1-d3)."
 }
