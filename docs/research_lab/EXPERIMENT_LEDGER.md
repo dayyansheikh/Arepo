@@ -1547,3 +1547,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   J4-R `[10-16,10-21)`; T HOLDOUT mark-outs wait for the CB3 freeze (CB3 dev window counts-only); add a series x block
   way; R needs same-asset overlapping-window components, nested placebo latents, kline coverage from min T0, and a
   >= 30-component gate before the large fetch. Response round in progress.
+
+## CB12 code (74a0f17) freeze check, fixes (c0cb6ba) and verify round, 2026-10-18 (science-reviewer): not counted
+- Code common + smoke + M + X (90 tests). **Freeze check: REVISE** (keys never wrote the series-date file; q0241/q0242
+  could finish half-done; X source not hash-pinned; month top-5 drop missing; smoke/C1 failures not counted as
+  "not testable (source)"; q0243 held every member in memory; rep_m omitted `units_t24`, so M1-rep could never pass;
+  rep ignored seal drops; the 60 % availability rule was missing). M1 copula placebo: not a code defect, accepted as is
+  (power cost, the 1.5 % limit stays).
+- Fixes c0cb6ba (parts common `81301d59…`, M `94f059ee…`, X `45428b85…`). Sports tag list = the 492 tag ids of the
+  Gamma `/sports` registry (`evidence_cb12/sports_tag_registry_20261018.json`), accepted as a disclosed deviation from
+  the "out-of-window events" wording (metadata only, no outcomes).
+- **Verify round: X GO; smoke/keys, M data and M analysis NO_GO** until D1 (series-date event lookup not closed-first,
+  no unverified-share gate), D2 (shared Holm helper non-strict; CB12 uses a local strict Holm), D3 (budgeted stops via
+  `--budget-min`; B2 wording) and D4 (q0243 regex). Being fixed. Nothing promoted.
