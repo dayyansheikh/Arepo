@@ -37,7 +37,7 @@
   "history/h11_pol/{frame.csv.gz,split.json,flags.csv.gz,outcomes_guarded.csv.gz,manifest.json}"
  ],
  "next_action": "q0226",
- "notes": "DRAFT-REVISED round 1 (items 3, 4, 5, optional). late_close uses closedTime only to set a robustness flag (guarded until q0233). Capped windows split until uncapped (counted). Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first.",
+ "notes": "DRAFT-REVISED round 1 (items 3, 4, 5, optional). late_close uses closedTime only to set a robustness flag (guarded until q0233). Capped windows split until uncapped (counted). Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 a8727c40ca7e3069599a3a45ba1c59794b81cc8a0073cd1663341196ee2ecbc5 (seals/cb11_pa_rules.json, the P/A rules part; separate from part W, which P/A jobs never verify; regenerate with `run_cb11.py rules-pa` and update this sha if P/A rule code changes before the first P/A request).",
  "repeat": {
   "max_runs": 2,
   "until_log_regex": "\"status\": \"pol_frame_complete\""

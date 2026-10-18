@@ -40,5 +40,5 @@
   "history/h11_attn/{frame.csv.gz,entities.csv.gz,split.json,audit_sample.csv,manifest.json}"
  ],
  "next_action": "commit audit_sample.csv; science-reviewer blind labels committed; then q0229",
- "notes": "DRAFT-REVISED round 1 (item 10). No pageview or print read before the split and the audit file exist. Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first."
+ "notes": "DRAFT-REVISED round 1 (item 10). No pageview or print read before the split and the audit file exist. Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 a8727c40ca7e3069599a3a45ba1c59794b81cc8a0073cd1663341196ee2ecbc5 (seals/cb11_pa_rules.json, the P/A rules part; separate from part W, which P/A jobs never verify; regenerate with `run_cb11.py rules-pa` and update this sha if P/A rule code changes before the first P/A request)."
 }

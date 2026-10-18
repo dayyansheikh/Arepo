@@ -1,0 +1,648 @@
+{
+ "common": {
+  "counting": {
+   "count_line": "ml_explain, source creative_batch_11:<W|P|A>, n_tests = 1 per test",
+   "exit_75": "pending: no trials line",
+   "kinds": [
+    "cb11_test",
+    "cb11_replication",
+    "cb11_descriptive"
+   ],
+   "not_testable": "counted with p = 1",
+   "stage2_tests_per_advance": 1
+  },
+  "disk": {
+   "data_dumps_cap_gb": 40.0,
+   "exit_75": "pending (never 'not run')",
+   "free_disk_min_gb": 4.5,
+   "total_output_cap_gb": 0.25
+  },
+  "placebos": {
+   "draws": 200,
+   "gpp_seed": 11120,
+   "gwc_seed": 11121,
+   "max_advance_rate": 0.015,
+   "seeds": {
+    "A1_labelswap": 11103,
+    "P1_copula": 11102,
+    "W1_permute": 11101,
+    "spare_10": 11110,
+    "spare_11": 11111,
+    "spare_12": 11112,
+    "spare_4": 11104,
+    "spare_5": 11105,
+    "spare_6": 11106,
+    "spare_7": 11107,
+    "spare_8": 11108,
+    "spare_9": 11109
+   }
+  },
+  "stage1": {
+   "batch_holm_alpha": 0.01,
+   "batch_holm_k1": 6,
+   "by_family": "battery2.cumulative_count() at the run (triage only)",
+   "by_q": 0.1,
+   "gate_p": 0.01,
+   "holm_family": [
+    "W1",
+    "W2",
+    "P1",
+    "P2",
+    "A1",
+    "A2"
+   ]
+  },
+  "stage2": {
+   "alpha": 0.05,
+   "rule": "one Holm over every CB11 test reaching Stage 2, each in its Stage-1 direction; k fixed when the last Stage-1 result is final; early finishers at alpha/k"
+  },
+  "stall": {
+   "census": "copies the label",
+   "exit": 0,
+   "results": "write-once",
+   "screens": "p = 1, testable false",
+   "statuses": [
+    "not_run_source",
+    "disjointness_unverified",
+    "upstream_not_testable"
+   ]
+  },
+  "t11_hist_end": "2026-10-01T00:00:00Z",
+  "uncertainty": {
+   "min_clusters": 30,
+   "min_units": 100,
+   "n_boot": 2000,
+   "n_wild": 9999,
+   "seed_boot": 1111,
+   "small_g": "cb2_weather.small_g_pvalue per way; p = max over the declared ways",
+   "top_drop": 5,
+   "ways": {
+    "A": [
+     "Gamma event",
+     "UTC day X",
+     "3-day blocks of the origin t"
+    ],
+    "P": [
+     "Gamma event",
+     "ISO week of the scheduled end (CB10 small-G rule)"
+    ],
+    "W": [
+     "UTC date of the scheduled end",
+     "Gamma event"
+    ]
+   }
+  },
+  "wallet_and_side": "no CB11 job reads or stores a wallet field or the Data API side field"
+ },
+ "declared": {
+  "cb11_a": {
+   "census_forbidden": [
+    "P_t",
+    "P_t48",
+    "P_t24",
+    "C",
+    "continuation",
+    "net",
+    "pnl",
+    "mark"
+   ],
+   "columns": {
+    "frame": [
+     "market_id",
+     "condition_id",
+     "token0",
+     "token1",
+     "start_epoch",
+     "end_epoch",
+     "neg_risk",
+     "neg_risk_market_id",
+     "event_id",
+     "event_ids",
+     "series_ids",
+     "tag_ids",
+     "fee_rate",
+     "vol_ok",
+     "topic",
+     "entity",
+     "question",
+     "close_epoch",
+     "stratum",
+     "split",
+     "event_key",
+     "w_inv",
+     "title",
+     "description"
+    ]
+   },
+   "costs": {
+    "fee_r_min": 0.05,
+    "half_spread": 0.015,
+    "half_spread_robust": 0.02
+   },
+   "end_ahead_s": 259200.0,
+   "excluded_topics": [
+    "sports",
+    "crypto"
+   ],
+   "floors": {
+    "a1": 0.01,
+    "a2": 0.01,
+    "attr": 0.005,
+    "notional_min": 2000.0
+   },
+   "gates": {
+    "GA": {
+     "days": 60,
+     "entity_share": 0.5,
+     "events": 150,
+     "quiet": 1000,
+     "spike": 200
+    },
+    "GA0_precision": 0.8,
+    "availability_min": 0.6,
+    "coverage_min": 0.9,
+    "wiki_max_requests": 3000
+   },
+   "listed_before_d": 8,
+   "mde": {
+    "deff": 1.3,
+    "sd": 0.08
+   },
+   "min_overlap_d": 10.0,
+   "origin_lag_days": 3,
+   "pageview_rules": {
+    "baseline_min": 50.0,
+    "days_present": "X-8..X",
+    "history_d": 30
+   },
+   "placebo": {
+    "draws": 200,
+    "seed": 11103
+   },
+   "prints": {
+    "limit": 10000,
+    "pages": 2,
+    "taker_only": "true"
+   },
+   "sample": {
+    "audit": 200,
+    "n": 3000,
+    "novol": 1000,
+    "per_event": 3,
+    "seeds": [
+     "arepo-cb11-attn-sample",
+     "arepo-cb11-attn-novol",
+     "arepo-cb11-attn-split",
+     "arepo-cb11-attn-audit"
+    ]
+   },
+   "stop_list": [
+    "a",
+    "above",
+    "after",
+    "an",
+    "apr",
+    "april",
+    "are",
+    "aug",
+    "august",
+    "before",
+    "below",
+    "bitcoin up",
+    "by",
+    "can",
+    "ceasefire",
+    "debate",
+    "dec",
+    "december",
+    "did",
+    "do",
+    "does",
+    "down",
+    "election",
+    "elections",
+    "feb",
+    "february",
+    "friday",
+    "how",
+    "in",
+    "inflation",
+    "invasion",
+    "ipo",
+    "is",
+    "jan",
+    "january",
+    "jul",
+    "july",
+    "jun",
+    "june",
+    "mar",
+    "march",
+    "may",
+    "monday",
+    "no",
+    "nov",
+    "november",
+    "oct",
+    "october",
+    "on",
+    "over",
+    "peace",
+    "primary",
+    "recession",
+    "referendum",
+    "saturday",
+    "sep",
+    "sept",
+    "september",
+    "shutdown",
+    "summit",
+    "sunday",
+    "the",
+    "thursday",
+    "treaty",
+    "tuesday",
+    "under",
+    "up",
+    "war",
+    "wednesday",
+    "what",
+    "when",
+    "which",
+    "who",
+    "will",
+    "yes"
+   ],
+   "target_s": [
+    172800.0,
+    86400.0
+   ],
+   "thresholds": {
+    "big": 0.03,
+    "big_robust": 0.05,
+    "quiet": 1.25,
+    "spike": 2.0,
+    "spike_robust": [
+     1.5,
+     3.0
+    ]
+   },
+   "windows": {
+    "block_origin": "2026-04-13",
+    "end": [
+     "2026-04-20",
+     "2026-10-01"
+    ],
+    "life": [
+     "2026-04-10",
+     "2026-09-28"
+    ],
+    "pageviews": [
+     "2026-01-01",
+     "2026-09-30"
+    ],
+    "tx": [
+     "2026-04-01",
+     "2026-10-01"
+    ],
+    "x": [
+     "2026-04-10",
+     "2026-09-24"
+    ]
+   }
+  },
+  "cb11_p": {
+   "band": [
+    0.6,
+    0.85
+   ],
+   "band_wide": [
+    0.55,
+    0.9
+   ],
+   "census_forbidden": [
+    "outcome_prices",
+    "uma_status",
+    "closed_epoch",
+    "late_close",
+    "Y",
+    "E",
+    "net",
+    "pnl",
+    "excess",
+    "outcomes_guarded"
+   ],
+   "columns": {
+    "frame": [
+     "market_id",
+     "condition_id",
+     "token0",
+     "token1",
+     "start_epoch",
+     "end_epoch",
+     "neg_risk",
+     "neg_risk_market_id",
+     "event_id",
+     "event_ids",
+     "series_ids",
+     "tag_ids",
+     "fee_rate",
+     "group",
+     "split",
+     "event_key",
+     "open_30",
+     "open_60",
+     "open_90"
+    ],
+    "guarded": [
+     "market_id",
+     "outcome_prices",
+     "uma_status",
+     "closed_epoch",
+     "late_close"
+    ],
+    "origins": [
+     "market_id",
+     "h",
+     "label",
+     "p",
+     "n_points",
+     "n_distinct",
+     "t_h"
+    ]
+   },
+   "costs": {
+    "ask_half_spread": 0.015,
+    "ask_half_spread_robust": 0.025,
+    "fee_r_min": 0.04
+   },
+   "flags": {
+    "cal_date_re": "\\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(20\\d{2}))?\\b",
+    "edit_days": 1.0,
+    "election_end_window": [
+     "2024-10-01",
+     "2025-01-31"
+    ],
+    "election_name_re": "\\b(harris|walz|vance|trump)\\b",
+    "election_with_year_re": "\\b(president|presidential|electoral|popular vote|senate|house|governor|swing state)\\b",
+    "election_year_re": "2024",
+    "iso_date_re": "\\b(20\\d{2})-(\\d{2})-(\\d{2})\\b",
+    "late_close_s": 604800.0
+   },
+   "floors": {
+    "attr_gap": 0.015,
+    "election": 0.015,
+    "p1": 0.03,
+    "p1_flag": 0.015,
+    "p2_net": 0.02,
+    "p2_rann_excess": 0.1,
+    "rf": 0.045
+   },
+   "frame": {
+    "control_max_requests": 2000,
+    "control_pool_mult": 3,
+    "excluded_topics": [
+     "sports",
+     "crypto",
+     "weather"
+    ],
+    "n_ctl": {
+     "holdout": 1500,
+     "screen": 2000
+    },
+    "n_pol": {
+     "holdout": 3000,
+     "screen": 4000
+    },
+    "no_status_filter": true,
+    "per_event": 4,
+    "seeds": [
+     "arepo-cb11-pol-cap",
+     "arepo-cb11-pol-sample",
+     "arepo-cb11-ctl-cap",
+     "arepo-cb11-ctl-sample",
+     "arepo-cb11-ctl-windows"
+    ],
+    "start_filter_d": 53.0,
+    "window_s": 604800
+   },
+   "gates": {
+    "GP": {
+     "events": 250,
+     "markets": 800,
+     "weeks": 40
+    },
+    "GPP": {
+     "draws": 500,
+     "factor": 1.2,
+     "inner": 200,
+     "loadings": [
+      0.2,
+      0.4,
+      0.4
+     ],
+     "max_mde": 0.06,
+     "seed": 11120
+    },
+    "availability_min": 0.6,
+    "coverage_min": 0.9
+   },
+   "horizons": [
+    30,
+    60,
+    90
+   ],
+   "labels": [
+    "ok",
+    "inactive_proxy",
+    "no_price",
+    "not_listed",
+    "closed_before_t",
+    "close_time_missing",
+    "fetch_failed"
+   ],
+   "listed_before_d": 7.0,
+   "min_life_d": 60.0,
+   "placebo": {
+    "draws": 200,
+    "seed": 11102
+   },
+   "price_rule": {
+    "activity": ">= 2 distinct values among points known in [t_h - 7 d, t_h)",
+    "age_max_s": 86400.0,
+    "favourite_tie": "outcome 0 at p = 0.5",
+    "fidelity": 10,
+    "lag_s": 600.0,
+    "window": "[t_h - 7 d, t_h]"
+   },
+   "prints": {
+    "limit": 1000,
+    "pages": 2,
+    "taker_only": "true"
+   },
+   "tag_id": 2,
+   "unclean_outcome_value": 0.5,
+   "windows": {
+    "halves": [
+     [
+      "2024-07-01",
+      "2025-04-01"
+     ],
+     [
+      "2025-04-01",
+      "2026-01-01"
+     ]
+    ],
+    "holdout": [
+     "2026-01-01",
+     "2026-09-01"
+    ],
+    "screen": [
+     "2024-07-01",
+     "2026-01-01"
+    ],
+    "t5_overlap": [
+     "2025-10-11",
+     "2026-01-01"
+    ]
+   }
+  }
+ },
+ "freeze_part": {
+  "name": "PA",
+  "rule": "the P/A part of model_specs/cb11_v1.json carries freeze_part_pa()['declaration_sha256']; the W part is hashed separately"
+ },
+ "func_sources_sha256": {
+  "cb10_common.cluster_p_d": "64cbf3bd203d692fb72eeced67c2088c4a55a676a984176470864cbef1ff9f5b",
+  "cb10_common.contrast_pseudo": "9d5877af8e9dba613fa3a901d88aeee6fde7bf29fed425bb26cf416cc064a98b",
+  "cb10_common.drop_by_keys": "1d58757ce04536c48c11e354451644998451084ede9e6d1f4fac26f61cfae135",
+  "cb10_common.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+  "cb10_common.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+  "cb11_a._availability": "3e852d74dc4e3beb50bdbc8847d0812f80197bd562ff457c4a2a1ca06305075e",
+  "cb11_a._delta_only": "ff36eb806f6bcd615a07f87326f5909cb5432720890ced7e75bc45e54c0f143c",
+  "cb11_a._last_in": "ba33c89c1350f7f2d97f83570fad0671cd8785fb5391b5b6943d91d56be51f6b",
+  "cb11_a._units": "01b82fa9ce7282d360f5c9fc17531ed4070a7c0dfdc1aba71620039e1cd42fa7",
+  "cb11_a.a1_stat": "78bcc8127ca96db499f5ce4cf314e8bedeaacfe45d00dcfaf2538c53a232b687",
+  "cb11_a.a2_net": "e90ec2ebc9835eaee8acbad3353a087ce6d724be7aecd8b3f28ae055377add29",
+  "cb11_a.a2_stat": "307dc599ee110d5425a442b84273ec051dcaba5893dca71698a23f276148c663",
+  "cb11_a.accept_sequential": "03a3a6191ba198c865f64edbdfe887f5c62d9b8cc3b531863231365fa7d3e90c",
+  "cb11_a.attach_targets": "1c086d3471929ed92090c47fe96aebc70cba60ac529440f155571beaa6a6f15f",
+  "cb11_a.attn_data": "1273f4cb7cf9cc8f03ada01249d6285e9ad50e5c82d57fb477c05ffe88a42df6",
+  "cb11_a.attn_frame": "219141ee2bbb8d45496972aa9c89f178ae4c3740d2a58486bb6fad9ded4ecd19",
+  "cb11_a.attn_record": "8603571136e2c54b1ceaaa582fa115c0abd8128eb243f7c45119e24dc1424c6d",
+  "cb11_a.audit_ids_of": "167b3d91ceaf51d31907a1349a827d33960833c1b4351c00a8a367957e468cf1",
+  "cb11_a.block_of": "46a3b853017862be1298f705945eba9ede5b4a9cd05f5690e682e8acd6decd95",
+  "cb11_a.candidate_units": "1410fca537ef04eb3e761090a6806007216714a6adbdd91b768760c7cf312a71",
+  "cb11_a.cell_of": "95949b5d30b030adcf1f7e5cfa12f28543c17f339c0a9b502c245796d7a36370",
+  "cb11_a.census_a": "db36321d890a18c69fc5157b8bd7abd74cac48361bbea231279f439b8e3bf927",
+  "cb11_a.day_int": "0e836fc1fdd01a53b53ddb1c71a7a5af8277f2f15b01904e794903a302a2076b",
+  "cb11_a.declared": "d2ccc65b730ebc96cc5d914485a016e23f59de274101eda567c02271efa40605",
+  "cb11_a.delta_core": "b45747868dcd666f1f05523a180379028b674d55e67b144a8ef53fe55b912788",
+  "cb11_a.entity_candidate": "e4fe2e3b893bfdd74f74613730e40bac5c1f14ddd9ab2621da900c43042aeb33",
+  "cb11_a.fee_a": "38d9e4f9808778017de9a0eff594038e3885430c06e36ce626894971a1ecd1a6",
+  "cb11_a.label_swap_placebo": "2051c5e2bc35ce6aaeddafb3acfb92e0658284b1bf93eeff38d7298ed8673a4e",
+  "cb11_a.lag_attention": "5a41add3338bceb945d77f1dc63e8b1825b51ceca3605dd4bb4eaf527753d13e",
+  "cb11_a.load_pageviews": "fbaa3977de29ac3e60abcbe078c86c534b318277a5e3b1cb4f9b3783a72d82d9",
+  "cb11_a.mde": "8370bf3dacad840dc4bd639e064e6733137eb6fa2f9eeb023e93bbd01287f1f3",
+  "cb11_a.overlap_days": "a32f4055cea9cf642a5dc8917d35d192c8e5a9173b6215dfd77bf022787bbb6f",
+  "cb11_a.pageview_url": "eebb5c97ae35eaf44dfe59d1c198ea56f14701dd06337d1ad0681cb41c4f7795",
+  "cb11_a.pageview_usable": "58128926d9982910bf3ea9021a994ed8c75d3bd802b334c183c277dcd285a911",
+  "cb11_a.parse_pageviews": "5232a339608750ee4a9cbf414cd24767a2a54295661fb9b898fbe5e2f7f37e2f",
+  "cb11_a.pv_attention": "94047d6846a2592758d9ccf236c1fab1130101f0a4cee19c04f43d62e7398912",
+  "cb11_a.read_audit_labels": "9283d3e72b233c78398c71d852b104a9935c394b2cf2c7d2abdfae9b6003341d",
+  "cb11_a.read_frame": "fef87b104e0c14990f9c6366e9792bc298f1d57a1d0c9aa1c4313dd60593e39d",
+  "cb11_a.rep_a": "01983910898c8e696d65ed160675673fd085a82e150e442e7083b6a67e2e7e06",
+  "cb11_a.screen_a": "7233f9fa2c3d19643ab27980c109550cde85c1dce3700daf2b1442ef2075579e",
+  "cb11_a.seal_rows": "fdca5bdcb1cd7e8a3d59a95799b22b9d28a175ccc5dd696fb8e020d01c2cd3bc",
+  "cb11_a.sel": "4c10e9c099147bdcba6cf6aa2056528dc677c0f6575135782ffbea675bbb9dc8",
+  "cb11_a.tx_loader": "a9be544555d9a2f2a2a81b89d564b1feb8e61c2c16eb866d81b2b10b97d308e5",
+  "cb11_a.walk_day": "d487141c29d97433b53abd62e7ebab550354cdb0ec27a6f308dd105ca65d6020",
+  "cb11_a.ways_of": "16066b74c658b1c7738666176c5853dffe8e5fe8a4ae5a88451ddcf22e1d1c8e",
+  "cb11_a.wiki_summary": "a462a5b1f05539ed15cee671fc42e22e54e601f52b031b52292375729dd4a520",
+  "cb11_a.wiki_title": "4824c0e7378a433b54a39aba3d42cc89e2944e3dd68bd7f11bfd8642b95dab79",
+  "cb11_common.batch_holm_label": "ba2cfe17455e84c7b0ed5813dbddc06be76ae17fe3a17a9a9458817ffe65cd7d",
+  "cb11_common.cluster_p": "52515b9b501b71011fc54af742ac7254de20c88b72fd59dc8bb49ff7ec261925",
+  "cb11_common.cluster_p_week": "a8adc561d466084f79a9382a958644e853f733808ec31bdbb031e85ab0c81cbe",
+  "cb11_common.drop_by_keys_w": "4b04c5b376789c8e6cd0edac11d18e304fad5adbaa99ac77fd5262add4203d02",
+  "cb11_common.one_sided_boot_p": "a5b8904a965800a09ce44cfcb23ed4c2c5dca15ad2b532fc5b219d27591c419f",
+  "cb11_common.open_guarded": "545bc94b2d512440b2212b3aa64b4af4d70886f115e7fbaaeb4e8a8c864add09",
+  "cb11_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+  "cb11_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+  "cb11_common.seal_holdout": "285808152defd760e0eebc39037d0f324d3be799679e020a61dc9979463587b5",
+  "cb11_common.verify_holdout_seal": "bc82d0e02a895f4caa86c5e7615d06a731666273f645b24651b2526e8ec2baf5",
+  "cb11_p._walk_records": "315daa33cdb6557d43c0410935c6a5136c19492caa1cf4cfa91214e14020e84c",
+  "cb11_p.assemble": "3690a44159976b3814c70badfb5b7cc298cf9b36025acb3aba97da3cfee10fc8",
+  "cb11_p.availability": "04db0c4644263096d4097b8d6e3760493ada3d20c529f0dca30b19c10c7e7973",
+  "cb11_p.build_units": "8f78ee9dd50dff48d1d27070f318e9a1a5fd93140469eb8321078d4dd2100ab1",
+  "cb11_p.census_p": "d4d602465b0a11d16c225ab1ad8c4c4472dc48ac4636b37bab7dba1b2291474a",
+  "cb11_p.copula_pstar": "0699cf5070357d40ca1d21cc0e0faa460ba6ac7cce11c23d2c9add8037008e50",
+  "cb11_p.declared": "f35fcd4d457b7234636b4ee707e1b7fe9a7dd2f7b2a52c5f22a816694c888a24",
+  "cb11_p.drop_masks": "c3b07db7defa40841409bc85b3b28221b94083da0826aa0ba5ae7584e9e9e42a",
+  "cb11_p.edit_detected": "5bdfdc7d5454eb6b60f3ef6f8d68c242415f5dbd73073b52261139ab1f86ae3a",
+  "cb11_p.election_2024": "ee73c2175beb3e7590f9574e2b08cf68e45620a702449d2dea16566d02a5d113",
+  "cb11_p.fav_of": "11e0a78303593f71d7769502c4675e6ce43d935c0071a8b85a28f853bcc24565",
+  "cb11_p.fee_r": "2203cece53204b76ee6e347e624fecd0f8eb39daa6ce3afc25967609b718d22b",
+  "cb11_p.frame_record": "e3f1da760b188ceaa98feba3799553d7a7d037081524f58d207761e315773002",
+  "cb11_p.gpp": "d1278f0c4c247ad54aeaa0d2fe371a81c09765fa58489eb8c845b46254085764",
+  "cb11_p.horizon_means": "22eb3f0001d475a1f3c7530deaed798442a0c72438123f473590ce16f8cdf4a4",
+  "cb11_p.in_band": "d9e0b690ebd040d0fd07941aa73a96cdf399f7c7804438ccf88ca52c337ab28a",
+  "cb11_p.late_close": "44558eb193ee237beb3d2dd238c4f8703ead5a7496eeeb446e4f37772a4cbe5b",
+  "cb11_p.load_origins": "aa9b1971f0b2fcd9cb9bbad93f3d96db5a351adcf6abdb64942b3835dac7d9e1",
+  "cb11_p.load_reach": "61f9cef16c4c39afbe1bd335cdb315a3d7b312011685f709edc37402c8f4cdab",
+  "cb11_p.market_means": "3e5091ca83daf19a2ce550ccbb4afebdd5d27a511ff91ffe2dd6310112e172e3",
+  "cb11_p.named_dates": "d8c6c26b8760039d66e753b295384a81fe3803c28d2046b56f9ecaf36b85bce1",
+  "cb11_p.open_p_guarded": "a4d8785a434ec068df8a899c84424e6fd62abda89c0804c739e785c0c0443b41",
+  "cb11_p.p1_core": "e8d110f488b7151333dc3c34874d0d03ab2c6a755b52ef7047695ca7995b9321",
+  "cb11_p.p1_ok": "c5a005a16e009a9736fe5023a4de326b2e4112a9ba219696d3a8360fd81d3993",
+  "cb11_p.p1_placebo": "d5e8891b08f58887a3b92231173f3b0808cea3dc9f0f57b117d6b4b0410eb993",
+  "cb11_p.p1_reported": "aeb315dacc1e8e98a00b31d51fbb30f24a96b47baeae3bfe03a380c5f0a4a55e",
+  "cb11_p.p1_robustness": "7b6511152cdadba36d53c07c13469611053ef00e73629aa812282eb647c16f91",
+  "cb11_p.p1_stat": "b23d4abc58262624c323a73cdb1dd03a08aa7d321477f007f359957475149920",
+  "cb11_p.p2_core": "5a11fa0471e6f866cb8b78a8bfa8197b11fc658e90b0af98249bb72d854a33ff",
+  "cb11_p.p2_entries": "723e8e8dca4d81f8178b9d16e593c86dbbfcd6ac6461d079824e24f80d592c99",
+  "cb11_p.p2_stat": "5733738f7463417f058a475c320c3569c4d22da46031a8d3162985bbd96cf9f5",
+  "cb11_p.pol_frame": "d5af9658e35041e367188ef9535ae568a10217d5a7d38b6dcf5ee0c3f968665e",
+  "cb11_p.pol_prices": "6c7d77e34258e4765348d134423b68b9cdc0f7b662b6c037fa7223435c643cee",
+  "cb11_p.price_point": "b0fded6cc3d770ea5eaceb288a977c5f6f60b5f5506891b85cfce78e4ac61bf0",
+  "cb11_p.r_ann": "daaaefc3c924f969042b089556a611c7203ec14e2752fcd421b9a7d124351c3a",
+  "cb11_p.read_frame": "34bf054dd857d38d6344c66d821d806e522f3d049d93aa8e43d58e19a3ef4219",
+  "cb11_p.read_frame_for_fetch": "411a12b9651d2b4d7691a03f353f18f2c062e9a1a7da73aa31d73fbe1e60d077",
+  "cb11_p.rep_p": "fd697d529e097014c64a48a540fa3d818d748d4705eb2ca3cd95441c66460f27",
+  "cb11_p.screen_p": "5ad407ed34967a64c41af4699b7d09510bf09b57146b67e826132dc70ea33c6d",
+  "cb11_p.seal_rows": "6f7d7c76c2fb61001b55a97b567f34b0092a0ef912a03d7adf59b6f4b60d1d5f",
+  "cb11_p.sim_arrays": "e7d09058ebe69dda437b9f9b91ae17f4d424ebf6c9c565d056b986ac46781327",
+  "cb11_p.split_of": "6f1b1e3f040719d960bd895cd26f570ce7d7f9af57022ebe7e66242d25608571",
+  "cb11_p.t_h": "16433e09418fb6ffacf2a9e29e88a7e25f84f36aacc65673989f946f7585d9a8",
+  "cb11_p.unit_label": "bbc8d96b2112a675318bbc95881c083d9b7dec4cd86dd1f9834e9031c3c01933",
+  "cb11_p.walk_window": "1527fa97c6f3a2de1b82ea63f9401994a061f6fc22e0529271f8b47f945eb59d",
+  "cb11_p.week_windows": "a171dc526ced266636f70135be4629da3817933f37ff18f024d03755f1cb75d9",
+  "cb11_p.with_excess": "fdaf1f3222003eba470b30df0301e2927642bfbdf1f9da1988469b2a236baf53",
+  "cb11_p.y_fav": "c19f04e86972edba60a79502bfc55f3d407419bdaed4b582ffc90394d633136f",
+  "cb11_pa.append_jsonl": "4641618cdce871f704ce526fd84eaa718b0005c8aa45a0fa9529bafb1eccba62",
+  "cb11_pa.assert_pa_whitelisted": "38fa473f2c4f2813814921b712c26aebad32ccae101c9f60ea3eb14b1d27afcf",
+  "cb11_pa.boot_se": "bfe4c2399c4bd09175a2e27a568fd7524c217ee746089577478be7e09c2e5f66",
+  "cb11_pa.declared": "7d00a2f7d716fae9667d4f1b34ef90c2f3f160d17c5de4a26eaebbddbd9eab5c",
+  "cb11_pa.event_key": "a48040b86c3d4f8e7152673c8fda591498cca71b8befb6f93ce9b48ec6b3adc6",
+  "cb11_pa.freeze_part_pa": "025f1849cfdeede34404d7e4d5efef3654f29268f55a67b7dd33c9a12aa7470a",
+  "cb11_pa.in_progress": "98126e54acc981a0aba4cbe1f5b0731bfdace5c360b9f7bd21997bfc55b3f82b",
+  "cb11_pa.logistic_slope": "2cbc29f2968661d05dc0bf9a5f461b613de6f15f3289a1cb500408a92dd21f75",
+  "cb11_pa.months_ok": "859da4f5556c62fb8d6dc155b7b7dd31127504d40acd8a80a332c9ba987fafb1",
+  "cb11_pa.pa_aux": "50801f0f07ad9fa4a24be905c57585345e7bbb1635f36a076e0b215cd0cfbbf7",
+  "cb11_pa.pa_guarded": "c7d4ccc3dd5c31edb348b258e2794e6adc2114c2b8d4fad73bbe548b667a7fbe",
+  "cb11_pa.pa_row": "202e8e8c0c976657a8c7bd39871612d4465c5767bba1c20bf5d0e5a5c5eae8df",
+  "cb11_pa.read_jsonl_by": "c9dad7a46b51ea4e77034b71cebc33bfefd8939e1431e02624fcaa29c7622a31",
+  "cb11_pa.read_tx_file": "9d6b6a488f0ac7f5c865db6dd115b916c4f3570a00f5fd30c4013c7d3e4fa71b",
+  "cb11_pa.require_freeze_pa": "a9982c0d1e2691d6640042e8c16516cc75db033cdae357ee54513cd949d55945",
+  "cb11_pa.state_flag": "e87b7e14dbec7d1c14ddd90d3c46095060f2c7187ac270a883381736e0cf143a",
+  "cb11_pa.tercile_labels": "1d9a10556f6473a998cb9344d41511b6dc12179d38b83ce95b2b0644bae7179f",
+  "cb11_pa.topic_label": "87357d0fbfb2e170883ac1161b80a9762423fe1cb9f7ce1caab70fd717403e38",
+  "cb11_pa.vwap_before": "27ba3cf6da0274f617028b08878c18fa1ee96d0598f349be26ba379b8c99a8cc",
+  "cb11_pa.write_tx_file": "a93e6aa7410b58e8c63ec4487efb31ef10a13ca67d634b511a745f66be9e90f4",
+  "cb9_common.cluster_bootstrap_means": "40f9457f421736bc49b6399ccc4bc208b9fac8a674c72c567dc5b2eae1dfe2f9",
+  "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
+  "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a"
+ },
+ "funcs_sha256": "5192fd006e83ebc2a64f723368b8a09293bcdaee2447c531531e1f2a34d0acca",
+ "rules_sha256": "a8727c40ca7e3069599a3a45ba1c59794b81cc8a0073cd1663341196ee2ecbc5",
+ "rules_version": "cb11-pa-rules-v1"
+}

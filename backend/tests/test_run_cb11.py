@@ -145,7 +145,7 @@ def test_p_and_a_subcommands_refuse_without_their_own_declaration_and_rules(tmp_
         for cmd in ("screen", "rep"):
             code, out = _run([cmd, "--family", fam, *base, "--freeze-spec", spec.as_posix()], capsys)
             assert code == 2 and "declaration_sha256" in out["refused"]  # P/A freeze part must carry this code's declaration
-    code, out = _run(["census", "--family", "P,A", *base], capsys)
+    code, out = _run(["census", "--family", "P,A", *base, "--pa-rules", (tmp_path / "missing_pa_rules.json").as_posix()], capsys)
     assert code == 2 and "P/A rules file" in out["refused"]
 
 
@@ -379,11 +379,24 @@ def test_n5_census_verifies_the_rules_like_every_other_job(tmp_path, capsys):
     assert code == 2 and "rules file" in out["refused"]
 
 
-def test_declared_drafts_pin_the_current_w_rules_sha(rules_file):
-    """Every W / smoke draft carries the sha256 of the part-W rules file that is committed with it."""
-    drafts = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue" / "drafts"
-    committed = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "seals" / "cb11_rules.json"
-    sha = json.loads(committed.read_text())["parts"]["W"]["rules_sha256"]
-    for f in drafts.glob("q02[0-3]*_cb11_*.json"):
-        assert sha in json.loads(f.read_text())["notes"], f.name
-    assert c11.verify_rules(committed, require_committed=False) == sha
+def test_declared_drafts_pin_the_rules_part_they_verify(rules_file):
+    """One rules sha per part: a draft passing --rules pins the committed part-W sha, one passing --pa-rules pins the committed P/A sha (the seal job, which
+    verifies both parts, pins both). The committed rules files must re-derive exactly from the code."""
+    from astrolabe.research_lab import cb11_pa as pa  # noqa: PLC0415
+
+    root = Path(__file__).resolve().parents[2] / "docs" / "research_lab"
+    committed = root / "seals" / "cb11_rules.json"
+    w_sha = json.loads(committed.read_text())["parts"]["W"]["rules_sha256"]
+    pa_sha = json.loads((root / "seals" / "cb11_pa_rules.json").read_text())["rules_sha256"]
+    assert w_sha != pa_sha
+    assert c11.verify_rules(committed, require_committed=False) == w_sha
+    assert pa.verify_pa_rules(root / "seals" / "cb11_pa_rules.json", require_committed=False) == pa_sha
+    seen = set()
+    for f in (root / "queue" / "drafts").glob("q02[0-3]*_cb11_*.json"):
+        d = json.loads(f.read_text())
+        uses_w, uses_pa = "--rules" in d["argv"], "--pa-rules" in d["argv"]
+        assert uses_w or uses_pa, f.name
+        assert (w_sha in d["notes"]) == uses_w, f.name
+        assert (pa_sha in d["notes"]) == uses_pa, f.name
+        seen.add((uses_w, uses_pa))
+    assert seen == {(True, False), (False, True), (True, True)}

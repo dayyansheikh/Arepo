@@ -597,7 +597,7 @@ def test_pa_rules_file_roundtrip_hash_mismatch_and_independent_of_w_rules(tmp_pa
     with pytest.raises(c11.Refused):
         pa.verify_pa_rules(tmp_path / "missing.json", require_committed=False)
     # the W rules hash does not move when P/A exist: cb11_common's rule modules are untouched
-    assert c11.RULE_MODULES == ("cb11_w", "cb11_smoke")
+    assert c11.W_RULE_MODULES == ("cb11_w", "cb11_smoke")
     assert callable(pa.PA_RULE_FUNCS) and len(pa.PA_RULE_FUNCS()) > 100
 
 
@@ -635,22 +635,26 @@ def test_seal_p_requires_complete_fetch_and_seals_once(pprices):
     rdir = pprices["rdir"]
     out = c11.seal_holdout(rdir, family="pol", statuses=(pol.PRICES_STATUS,), copy_name=pol.SEAL_COPY_NAME, rows=pol.seal_rows(rdir), rules_sha="r" * 64, seals_dir=seals, is_committed=lambda p: True)
     assert out["status"] == "pol_sealed" and (seals / pol.SEAL_COPY_NAME).exists()
-    doc = c11.verify_holdout_seal(rdir, pol.SEAL_COPY_NAME, seals)
+    with pytest.raises(c11.Refused, match="not committed"):  # N5: the seal copy must be tracked and identical to HEAD
+        c11.verify_holdout_seal(rdir, pol.SEAL_COPY_NAME, seals)
+    with pytest.raises(c11.Refused, match="not committed"):
+        pol.rep_p(rdir, {"P": {}}, ("P1",), 1, seals_dir=seals)
+    doc = c11.verify_holdout_seal(rdir, pol.SEAL_COPY_NAME, seals, require_committed=False)
     assert doc["n_holdout_files"] >= 3  # frame_hold, flags_hold, outcomes_guarded_hold, origins
     again = c11.seal_holdout(rdir, family="pol", statuses=(pol.PRICES_STATUS,), copy_name=pol.SEAL_COPY_NAME, rows=[], rules_sha="r" * 64, seals_dir=seals)
     assert again["already_sealed"] is True
     (rdir / "holdout" / "origins.csv.gz").write_bytes(b"tampered")
     with pytest.raises(c11.Refused):
-        c11.verify_holdout_seal(rdir, pol.SEAL_COPY_NAME, seals)
+        c11.verify_holdout_seal(rdir, pol.SEAL_COPY_NAME, seals, require_committed=False)
     with pytest.raises(c11.Refused):
-        pol.rep_p(rdir, {"P": {}}, ("P1",), 1, seals_dir=seals)  # rep refuses a tampered holdout before reading it
+        pol.rep_p(rdir, {"P": {}}, ("P1",), 1, seals_dir=seals, committed_seals=False)  # rep refuses a tampered holdout before reading it
 
 
 def test_rep_p_runs_on_a_verified_seal_and_logs_access(pprices, monkeypatch):
     seals = pprices["tmp"] / "seals"
     rdir = pprices["rdir"]
     c11.seal_holdout(rdir, family="pol", statuses=(pol.PRICES_STATUS,), copy_name=pol.SEAL_COPY_NAME, rows=pol.seal_rows(rdir), rules_sha="r" * 64, seals_dir=seals, is_committed=lambda p: True)
-    out = pol.rep_p(rdir, {"P": {"c1_t5_status": "absent"}}, ("P1", "P2"), 2, n_draws=3, seals_dir=seals)
+    out = pol.rep_p(rdir, {"P": {"c1_t5_status": "absent"}}, ("P1", "P2"), 2, n_draws=3, seals_dir=seals, committed_seals=False)
     assert out["label"].startswith("possibly touched holdout") and out["stage2_alpha_over_k"] == pytest.approx(0.025)
     assert out["P1_rep"]["testable"] is False and out["P2_rep"]["stage2_pass_alpha_over_k"] is False  # tiny synthetic holdout
     log = (rdir / c11.ACCESS_LOG).read_text().splitlines()

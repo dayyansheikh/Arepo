@@ -964,9 +964,9 @@ def screen_a(rdir: Path, census: dict, *, n_draws: int = c11.PLACEBO_DRAWS) -> d
     return {"A1": a1, "A2": a2}
 
 
-def rep_a(rdir: Path, census: dict, advanced: tuple[str, ...], k: int, *, n_draws: int = c11.PLACEBO_DRAWS, seals_dir: Path | None = None) -> dict:
+def rep_a(rdir: Path, census: dict, advanced: tuple[str, ...], k: int, *, n_draws: int = c11.PLACEBO_DRAWS, seals_dir: Path | None = None, committed_seals: bool = True) -> dict:
     rdir = Path(rdir)
-    c11.verify_holdout_seal(rdir, SEAL_COPY_NAME, seals_dir)
+    c11.verify_holdout_seal(rdir, SEAL_COPY_NAME, seals_dir, require_committed=committed_seals)
     log_access(rdir, "rep-A", ["holdout/frame_hold.csv.gz", "holdout/pageviews.csv.gz", "holdout/<market>.tx.csv.gz"])
     thr = c11.STAGE2_ALPHA / k
     out: dict = {"label": "sealed same-calendar holdout replication (L2)", "stage2_alpha_over_k": thr, "k": k}

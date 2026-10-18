@@ -648,7 +648,7 @@ def rep_pa(a) -> tuple[int, dict]:
         raise c11.Refused(f"results_{fam}.json sha256 differs from --results-sha256: the HOLDOUT stays closed")
     census = json.loads((root / "census_PA.json").read_text())
     sd = Path(a.seals_dir) if a.seals_dir else None
-    body = mod.rep_p(hist / mod.RUN, census, adv, k, seals_dir=sd) if fam == "P" else mod.rep_a(hist / mod.RUN, census, adv, k, seals_dir=sd)
+    body = mod.rep_p(hist / mod.RUN, census, adv, k, seals_dir=sd, committed_seals=not a.allow_uncommitted_rules) if fam == "P" else mod.rep_a(hist / mod.RUN, census, adv, k, seals_dir=sd, committed_seals=not a.allow_uncommitted_rules)
     doc = {**body, "rules_sha256": sha, "stage2_k": k}
     rsha = c11.write_results_once(Path(a.out) if a.out else root / f"results_{fam}_rep.json", doc)
     for t in adv:

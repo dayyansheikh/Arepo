@@ -1102,10 +1102,10 @@ def screen_p(rdir: Path, census: dict, *, n_draws: int = c11.PLACEBO_DRAWS) -> d
     return res
 
 
-def rep_p(rdir: Path, census: dict, advanced: tuple[str, ...], k: int, *, n_draws: int = c11.PLACEBO_DRAWS, seals_dir: Path | None = None) -> dict:
+def rep_p(rdir: Path, census: dict, advanced: tuple[str, ...], k: int, *, n_draws: int = c11.PLACEBO_DRAWS, seals_dir: Path | None = None, committed_seals: bool = True) -> dict:
     """Stage 2 on the sealed HOLDOUT ends [2026-01-01, 2026-09-01) (same rules; judged at alpha / k by the caller). Verifies the seal first and logs the access."""
     rdir = Path(rdir)
-    c11.verify_holdout_seal(rdir, SEAL_COPY_NAME, seals_dir)
+    c11.verify_holdout_seal(rdir, SEAL_COPY_NAME, seals_dir, require_committed=committed_seals)
     log_access(rdir, "rep-P", ["holdout/frame_hold.csv.gz", "holdout/origins.csv.gz", "holdout/outcomes_guarded_hold.csv.gz"])
     thr = c11.STAGE2_ALPHA / k
     cp = census.get("P") or {}
