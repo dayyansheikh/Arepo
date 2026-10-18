@@ -1,0 +1,47 @@
+{
+ "id": "q0277_cb13_touch_frame",
+ "title": "CB13-R: Gamma closed events tag_id=21, one-day end_date windows over [2024-11-01, 2026-10-01); frozen barrier templates (terminal and Up/Down excluded, counted); primary = weekly windows (<= 8 d), monthly/yearly/by counted only; members, strike, direction, asset; rule-window parser and flags; key + same-asset overlap drops; window components; out-of-time split at 2026-04-01; Gamma outcomes to SCREEN and HOLDOUT guarded files; completeness cross-check vs poly_markets.json barrier ids (ids/questions only); min(T0) for the kline range; q0278 request sum (weekly members only)",
+ "family": "creative_batch_13",
+ "priority": 16,
+ "expected_value": "R population and split",
+ "data": [
+  "public Gamma",
+  "creative_batch13/exclusion_keys.csv.gz",
+  "cross_venue/poly_markets.json (ids and questions only, streaming)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0276_cb13_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "touch-frame",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "80"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 2,
+ "outputs": [
+  "history/h13_touch/{events.csv.gz,members.csv.gz,rules_parsed.csv.gz,split.json,outcomes_guarded_screen.csv.gz,manifest.json}",
+  "history/h13_touch/holdout/outcomes_guarded_holdout.csv.gz"
+ ],
+ "next_action": "q0279, then q0284",
+ "notes": "DRAFT. No price read. Capped day windows split until uncapped (counted). outcome_prices/volume of poly_markets.json never parsed. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, R 996bccf7230913c7df7a66cd676a61a7d4d40bc79f8c5a389409e9764daa9021. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"(touch_frame_complete|stalled)\""
+ }
+}

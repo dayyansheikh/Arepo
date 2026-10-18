@@ -1,0 +1,2826 @@
+{
+ "parts": {
+  "LABELLER": {
+   "constants": {
+    "cb13_common": {
+     "ACCESS_LOG": "ACCESS_LOG.jsonl",
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch13",
+      "h13_touch",
+      "h13_binance"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BATCH_HOLM_K1": 3,
+     "BY_Q": 0.1,
+     "CAPTURE_COLUMNS": [
+      "capture_id",
+      "capture_start_utc",
+      "received_utc",
+      "market_id",
+      "condition_id",
+      "event_id",
+      "closed",
+      "active",
+      "binary",
+      "best_bid",
+      "best_ask",
+      "liquidity",
+      "end_date",
+      "clob_token_id_0",
+      "neg_risk",
+      "neg_risk_market_id"
+     ],
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CB13_SPORTS_IN_PRIMARY": false,
+     "CB3_FREEZE_NAME": "cb3_v1.json",
+     "CB3_STOP_RE": "(?i)\\bCB3\\b[^\\n]{0,200}\\b(?:stopped|withdrawn)\\b[^\\n]{0,200}\\bwithout (?:a )?freeze",
+     "COLLECTOR_PASS_MINUTES": [
+      31,
+      55
+     ],
+     "COPY_NAME_R": "cb13_touch_holdout_SEAL.json",
+     "COPY_NAME_T": "cb13_t_holdout_SEAL.json",
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DROPS_FILE": "drops.csv.gz",
+     "EARLY_ALPHA2": 0.01,
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "FAMILY_MODULES": {
+      "LABELLER": [
+       "cb13_label"
+      ],
+      "R": [
+       "cb13_r"
+      ],
+      "T": [
+       "cb13_t"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "LABELLER",
+      "T",
+      "R"
+     ],
+     "FAMILY_REP_TESTS": {
+      "R": [
+       "R1",
+       "R2"
+      ],
+      "T": [
+       "T1",
+       "T2",
+       "T3"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "R": [
+       "R1"
+      ],
+      "T": [
+       "T1",
+       "T2"
+      ]
+     },
+     "FORBIDDEN_CAPTURE_COLUMNS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "last_trade_price",
+      "volume24hr"
+     ],
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "side",
+      "key",
+      "recv_ts",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status"
+     ],
+     "FORBIDDEN_SIDECAR_COLUMNS": [
+      "uma_resolution_statuses",
+      "open_interest",
+      "volume_num"
+     ],
+     "FREEZE_PARTS": [
+      "T",
+      "R"
+     ],
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GATE_P": 0.01,
+     "GRP_DRAWS": 500,
+     "GUARDED_NAMES": [
+      "outcomes_guarded_screen.csv.gz",
+      "outcomes_guarded_holdout.csv.gz"
+     ],
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PART": "holdout",
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id"
+     ],
+     "J4R_PIN_NAME": "j4r_window.json",
+     "LIVE_ROOT_NAME": "cross_venue_live",
+     "LOOKUP_PER_REQUEST": 50,
+     "LOO_DAY_P": 0.05,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MIN_CLUSTERS": 30,
+     "MIN_UNITS": 100,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-\\d{8}\\.jsonl$",
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "OWN_SEAL_COPIES": [
+      "cb13_touch_holdout_SEAL.json",
+      "cb13_t_holdout_SEAL.json"
+     ],
+     "PARTS": [
+      "common",
+      "LABELLER",
+      "T",
+      "R"
+     ],
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "R1_signflip": 13103,
+      "T1_composition": 13101,
+      "T2_signflip": 13102
+     },
+     "PRICE_CAP": 0.99,
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "PRINT_MEMORY_ONLY": [
+      "tx16"
+     ],
+     "REP_JOBS": [
+      "rep-T",
+      "rep-R"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs"
+     ],
+     "RULES_VERSION": "cb13-rules-v1",
+     "R_FIRST_END": "2024-11-01T00:00:00Z",
+     "R_HOLD_START": "2026-04-01T00:00:00Z",
+     "R_SCREEN_END": "2026-04-01T00:00:00Z",
+     "SCREEN_JOBS": [
+      "screen-T",
+      "screen-R",
+      "gti-T"
+     ],
+     "SEAL_NAME_R": "holdout_SEAL.json",
+     "SEAL_NAME_T": "t_holdout_SEAL.json",
+     "SEED_BOOT": 1313,
+     "SEED_GL": [
+      13121,
+      13122
+     ],
+     "SEED_GRP": 13123,
+     "SIDECAR_COLUMNS": [
+      "fee_type",
+      "fee_category",
+      "fees_enabled",
+      "taker_base_fee",
+      "fee_schedule",
+      "series_slugs",
+      "event_ids",
+      "created_at",
+      "order_price_min_tick_size",
+      "rewards_min_size",
+      "rewards_max_spread",
+      "clob_rewards",
+      "accepting_orders"
+     ],
+     "SMOKE_VERSION": "cb13-smoke-v1",
+     "SNAPSHOT_FILES": [
+      "rows.csv.gz",
+      "rows_ext.csv.gz",
+      "manifest.json"
+     ],
+     "STAGE1_HOLM_FAMILY": [
+      "T1",
+      "T2",
+      "R1"
+     ],
+     "STAGE2_K_MAX": 5,
+     "STAGE_ALPHA": 0.05,
+     "T13_HIST_END": "2026-10-01T00:00:00Z",
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "TS_COLUMNS": [
+      "ts",
+      "timestamp",
+      "received_utc",
+      "capture_start_utc",
+      "fetch_utc",
+      "fetched_utc",
+      "recorded_utc",
+      "start_epoch",
+      "origin_ts",
+      "t"
+     ],
+     "T_HOLD_DEFAULT_START": "2026-10-21T00:00:00Z",
+     "T_HOLD_END": "2026-10-26T00:00:00Z",
+     "T_SCREEN": [
+      "2026-10-12T00:00:00Z",
+      "2026-10-16T00:00:00Z"
+     ],
+     "T_SCREEN_CAPTURE_FROM": "2026-10-11T20:00:00Z",
+     "T_SEAL": "2026-10-22T00:00:00Z",
+     "T_SEAL_EARLIEST": "2026-10-26T08:00:00Z",
+     "UNVERIFIED": "disjointness_unverified"
+    },
+    "cb13_label": {
+     "AUDIT_AGREE_ALL": 0.85,
+     "AUDIT_AGREE_EACH": 0.8,
+     "AUDIT_LABELS": [
+      "LOW",
+      "NEWS",
+      "other"
+     ],
+     "AUDIT_N": 200,
+     "AUDIT_OTHER": "other",
+     "AUDIT_SEEDS": [
+      13121,
+      13122
+     ],
+     "AUDIT_SPORTS_ADJACENT_MIN": 30,
+     "CLASSES": [
+      "SPORTS-FEED",
+      "PATH-SETTLED",
+      "PUBLIC-STATISTIC",
+      "SCHEDULED-EVENT",
+      "UNSCHEDULED-NEWS",
+      "UNKNOWN"
+     ],
+     "LOW_CLASSES": [
+      "PATH-SETTLED",
+      "PUBLIC-STATISTIC"
+     ],
+     "NEWS": "UNSCHEDULED-NEWS",
+     "NEWS_CLASSES": [
+      "UNSCHEDULED-NEWS"
+     ],
+     "PATH": "PATH-SETTLED",
+     "PATH_ASSETS": [
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(bitcoin|btc)\\b"
+       },
+       "BTC"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(ethereum|ether|eth)\\b"
+       },
+       "ETH"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(solana|sol)\\b"
+       },
+       "SOL"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\bxrp\\b"
+       },
+       "XRP"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(dogecoin|doge)\\b"
+       },
+       "DOGE"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(bnb)\\b"
+       },
+       "BNB"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(s&p ?500|spx|spy)\\b"
+       },
+       "SPX"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(nasdaq(?:-100)?|ndx|qqq)\\b"
+       },
+       "NDX"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(dow jones|dow|djia|dji)\\b"
+       },
+       "DJI"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\bgold\\b"
+       },
+       "GOLD"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\bsilver\\b"
+       },
+       "SILVER"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(crude oil|wti|brent|oil)\\b"
+       },
+       "OIL"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\bnatural gas\\b"
+       },
+       "NATGAS"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\bcopper\\b"
+       },
+       "COPPER"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(eur/usd|usd/jpy|gbp/usd|dxy|dollar index)\\b"
+       },
+       "FX"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(tesla|tsla)\\b"
+       },
+       "TSLA"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(nvidia|nvda)\\b"
+       },
+       "NVDA"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(apple|aapl)\\b"
+       },
+       "AAPL"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(microsoft|msft)\\b"
+       },
+       "MSFT"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(amazon|amzn)\\b"
+       },
+       "AMZN"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(google|alphabet|googl)\\b"
+       },
+       "GOOGL"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(meta platforms|meta|fb)\\b(?=.*(?:close|price|above|below|up or down))"
+       },
+       "META"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(crypto(?:currency)?)\\b"
+       },
+       "CRYPTO"
+      ],
+      [
+       {
+        "flags": 34,
+        "regex": "(?i)\\b(10-year|treasury yield)\\b"
+       },
+       "RATES"
+      ]
+     ],
+     "PATH_FEE_PREFIXES": [
+      "crypto_fees",
+      "crypto_15_min",
+      "finance_prices_fees"
+     ],
+     "PATH_FORM_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\bup or down\\b|\\babove\\b|\\bbelow\\b|\\breach(?:es)?\\b|\\bhit(?:s)?\\b|\\bdip(?:s)? to\\b|\\bprice of\\b|\\bclose(?:s)? (?:at|above|below)\\b|\\bbetween \\$|\\$\\s?\\d|\\bfinish (?:above|below)\\b|\\bgreen\\b|\\bred\\b)"
+     },
+     "PUBLIC": "PUBLIC-STATISTIC",
+     "PUBLIC_FEE_PREFIXES": [
+      "weather_fees"
+     ],
+     "PUBLIC_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\bCPI\\b|\\binflation\\b|\\bunemployment\\b|\\bjobs report\\b|\\bnonfarm\\b|\\bpayrolls?\\b|\\bGDP\\b|\\bjobless claims\\b|\\bPCE\\b|\\bretail sales\\b|\\bhousing starts\\b|\\bPMI\\b|\\bISM\\b|\\bconsumer sentiment\\b|\\bhighest temperature\\b|\\blowest temperature\\b|\\btemperature\\b|\\bdegrees\\b|\\b\u00b0\\s?[FC]\\b|\\bprecipitation\\b|\\brainfall\\b|\\bsnowfall\\b|\\bearthquakes?\\b|\\bmagnitude\\s*\\d|\\bbox office\\b|\\bopening weekend\\b|\\bgross(?:es)?\\b|\\bRotten Tomatoes\\b|\\bMetacritic\\b|\\bIMDb\\b|\\bBillboard\\b|\\bSpotify\\b|\\btop \\d+ (?:on|in)\\b|\\b#1 (?:on|in)\\b|\\bhow many (?:times|tweets|posts)\\b|\\btweets?\\b|\\bposts? (?:on|per)\\b|\\bpolls?\\b|\\bapproval rating\\b|\\bfavorability\\b|\\bsubscribers?\\b|\\bviews?\\b|\\bfollowers\\b)"
+     },
+     "SCHEDULED": "SCHEDULED-EVENT",
+     "SCHEDULED_FEE_PREFIXES": [
+      "mentions_fees"
+     ],
+     "SCHEDULED_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\belections?\\b|\\bprimar(?:y|ies)\\b|\\bnominee\\b|\\bnomination\\b|\\bdebates?\\b|\\bOscars?\\b|\\bAcademy Awards?\\b|\\bGrammys?\\b|\\bEmmys?\\b|\\bGolden Globes?\\b|\\bTonys?\\b|\\bFed\\b|\\bFOMC\\b|\\brate (?:cut|hike|decision)\\b|\\binterest rates?\\b|\\bearnings\\b|\\bruling\\b|\\bSupreme Court\\b|\\bspeech\\b|\\bwhat will .{1,60}? say\\b|\\bsay during\\b|\\bmention(?:s|ed)?\\b|\\blaunch(?:es)?\\b|\\bvotes?\\b|\\breferendum\\b|\\b(?:win|wins|wins the)\\b.{0,60}\\b(?:race|seat|governorship|mayor(?:al)?|senate|house|gubernatorial|presidential)\\b|\\bballot\\b|\\bcongress\\b|\\bconfirmed?\\b)"
+     },
+     "SPORTS": "SPORTS-FEED",
+     "SPORTS_ADJACENT_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\btransfers?\\b|\\bsign(?:s|ed|ing)?\\b|\\btrade[sd]?\\b|\\bhead coach\\b|\\bcoach\\b|\\bmanager\\b|\\bfired\\b|\\bdraft pick\\b|\\b#?1 pick\\b|\\bMVP\\b|\\bHeisman\\b|\\bBallon d.Or\\b|\\bCy Young\\b|\\bRookie of the Year\\b|\\bAll-Star\\b|\\bretire[sd]?\\b|\\bcontract\\b|\\bextension\\b|\\bHall of Fame\\b|\\bdraft\\b|\\bawards?\\b)"
+     },
+     "SPORTS_CATEGORIES": [
+      "sports"
+     ],
+     "SPORTS_FEE_PREFIX": "sports_fees",
+     "SPORTS_SERIES_RE": {
+      "flags": 34,
+      "regex": "(?i)^(?:nfl|cfb|nba|wnba|mlb|nhl|ufc|mls|atp|wta|cbb|cwbb|ncaa\\w*|epl|ucl|uel|uecl|f1|nascar|pga|lpga|liv|ipl|bbl|lol|cs2?|dota\\w*|valorant|rugby\\w*|cricket\\w*|boxing\\w*|mma|tennis|golf|hockey|basketball|baseball|football|soccer|fa-cup|copa|europa|primera|japan|saudi|brazil|mex|tur|ere|serc|efl|scottish|egypt|czechia|norway|uefa|euro|world-cup|olympics|premier-league|la-liga|serie|bundesliga|ligue|liga|league|championship|cup)(?:[-_].*|\\d.*)?$"
+     },
+     "SPORTS_TITLE_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\bvs\\.?\\s|\\bversus\\b|\\bO/U\\s*\\d|\\bover/under\\b|\\bspread\\s*:|\\bmoneyline\\b|\\b(?:will|win)\\b.*\\b(?:Super Bowl|World Series|Stanley Cup|NBA Finals|Final Four|World Cup|Champions League|Europa League|Premier League|La Liga|Serie A|Bundesliga|Ligue 1|Grand Slam|Wimbledon|US Open|French Open|Australian Open|Masters Tournament|Ryder Cup|Heisman|Ballon d.Or|NFL|NBA|MLB|NHL|MLS|UFC|WNBA|NCAA|March Madness|Formula 1|Grand Prix|FIFA)\\b|\\bgame\\s+\\d\\b|\\bplayoffs?\\b|\\bwin on 20\\d\\d-\\d\\d-\\d\\d\\b|\\bend in a draw\\b|\\bboth teams to score\\b|\\bfirst (?:goal|touchdown) scorer\\b|\\bpoints?\\s+o/u\\b|\\brebounds?\\s+o/u\\b|\\bassists?\\s+o/u\\b)"
+     },
+     "UNKNOWN": "UNKNOWN",
+     "UNKNOWN_MAX_SHARE": 0.05
+    }
+   },
+   "declared": {
+    "cb13_label": {
+     "audit": {
+      "agree_all": 0.85,
+      "agree_each": 0.8,
+      "n": 200,
+      "one_revision_allowed": true,
+      "second_fail": "T1 and T2 not testable (labeller), counted",
+      "seeds": [
+       13121,
+       13122
+      ],
+      "sports_adjacent_min": 30
+     },
+     "classes": [
+      "SPORTS-FEED",
+      "PATH-SETTLED",
+      "PUBLIC-STATISTIC",
+      "SCHEDULED-EVENT",
+      "UNSCHEDULED-NEWS",
+      "UNKNOWN"
+     ],
+     "inputs": "title, slug, ctx_category, ctx_fee_type (static attributes) and the touch capture sidecar fee_type, fee_category, series_slugs; no price, mark or outcome",
+     "low": [
+      "PATH-SETTLED",
+      "PUBLIC-STATISTIC"
+     ],
+     "news": [
+      "UNSCHEDULED-NEWS"
+     ],
+     "precedence": [
+      "SPORTS-FEED",
+      "PATH-SETTLED",
+      "PUBLIC-STATISTIC",
+      "SCHEDULED-EVENT",
+      "UNSCHEDULED-NEWS",
+      "UNKNOWN"
+     ],
+     "sports_counted": false,
+     "unknown_max_share": 0.05
+    }
+   },
+   "func_sources_sha256": {
+    "cb13_common.adv_label": "f6f5b4beaa1f14472e79c401e7cd6e375aaa2f9ea604ea88f8bb7ddf8cfc512d",
+    "cb13_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb13_common.block6": "60e08a08865f96e35444981c6689f1a2c9b8008d9fe593775a477e75c34b107a",
+    "cb13_common.capture_allowed": "f0cd6309634c857bbcb5e60b75a71523cd6d9c3d510618d36a205340fabc4b5c",
+    "cb13_common.capture_meta": "866e8e1d120f2dfcb0619d62073ed4bf734fbe168b48ed6781b669a3fe12b061",
+    "cb13_common.cb3_hold_lifted": "55c4342d117cd7b8f76f4167da8d7fcc19600485a73ee989884f646b0b150fbd",
+    "cb13_common.check_window": "209e4e0af63a86b55ae075d326b4090d6dd8493c7fb19aa6a480e17de5c36991",
+    "cb13_common.cluster_p": "c3dd2e35ad53a77d5e6b1f9425d82383fc64be572142e68fab3b271a0df5ff5b",
+    "cb13_common.cluster_p_block": "669f58cf1c11066e29ade17f6b7eb3b93e953607ac01f10c5e992a884f918b57",
+    "cb13_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb13_common.collector_gap_ok": "e7b0df305a6f2a2bc12869b5b8f0936e5adb89dedce4de366a6515229acf1235",
+    "cb13_common.diff_pseudo": "20af46060ba36f40286d2e96a2391a0d23c4613873ef199356ed86be8899e8a0",
+    "cb13_common.early_stage2_ok": "a9b2565ca0bd3beff3484bc66d6d7c833eac0ae69556f21a29c521f33538148a",
+    "cb13_common.ensure_source_file": "2a26fefa3cf4de7bd504a91300a9b488389dae4980f34f04147fa1d0431db236",
+    "cb13_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb13_common.guard_capture_file": "75cad26f8b48b9d6a64d3c1571c487f3bb378e8772e8fc9d0ab1838f3dea149e",
+    "cb13_common.guard_monitor_file": "a5f34589042871b9c78bdd1e82d511ebeb037825b988dbfa81bab7bd801fede8",
+    "cb13_common.guard_screen_path": "1ad082c8541b05b4a382029d1f5a52dad91f0df4bc237afa0418d5ba8bc33cd5",
+    "cb13_common.holm": "c55f3569e796a129314e981b210e9c3e78ba6422ab5608c5ea019e11190fd598",
+    "cb13_common.in_j4r": "83c7865c75a287ed320af3e8c2db3750c52981505bf214421af085dcf9dec1fc",
+    "cb13_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb13_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb13_common.iso_week_of": "ff68e893db31f9232f2c34de2a0133f8ae0c3a5d71d81e24e6e6fa0c1ae16a5b",
+    "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+    "cb13_common.iter_prints": "1a0c6321be5a0015519a0ca8581730f0139237528a3a59058197f6bdc0f5ea79",
+    "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+    "cb13_common.j4r_pin": "79500340a21680bfd2e9c0c074ad691a5ce89a6925780fe8fbea9d55dbe33667",
+    "cb13_common.leave_one_out_p": "bf3ca7ee7031737db016be4870bef5daca1399f7436fba1acf102e5d607c73fb",
+    "cb13_common.list_captures": "37c4d1901a10faf25a579113c63632fe235987b88d6ab9be04c400a22c8ff09f",
+    "cb13_common.load_drops": "8a96f40cfe064634c904d1c381609efa109aa6246b2b71d2d9bb1e53c458005d",
+    "cb13_common.log_access": "2aef281b30cfd935ebcc282a96c3fa891e84b0099a47fb18c149f952cc6e5630",
+    "cb13_common.log_descriptive": "981f60723f27f87547e9785fda9b3702ab201fd90518c0dca1efbc9b5dd1aa9c",
+    "cb13_common.log_family": "658ae63ecc13d9caa0f78e6259ea7563a1122c25c46d3afd0ca50901f450d4c4",
+    "cb13_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb13_common.max_se_over_ways": "99c0f2e4ec92f6026c8748f6058015c36cb8027a2069addded17bf750227df1e",
+    "cb13_common.mde": "4cf78e323972676cbc17b87682bf2db1924927895412e8f9406635cfb2deeee5",
+    "cb13_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb13_common.ols_coef": "edf169e16cc8eda0fd6a40d4ad0ef796d1959ca9e91f87d419750a03d84b9da7",
+    "cb13_common.open_guarded": "046765dfb6e2ffd47e240c2c569a8502df12eaa9bece906411748bcc1968ef62",
+    "cb13_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb13_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb13_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+    "cb13_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb13_common.read_id_ts_columns": "4bd8518a0d06315e92da818a257bff857fb2c1c189dddda710749dffca3301a9",
+    "cb13_common.refuse_path": "57a0739d961739050329d14345f25b4f71508cb12ecb7f1b41d41ac1c0a95590",
+    "cb13_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb13_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb13_common.require_capture_allowed": "13edb328009930e956b3d92345e5afba3f959650b31a14586c2e20851dc55525",
+    "cb13_common.require_complete": "f77e2697117079e41572fa4ece99d3e504c2bece2e23b9a8db1179a95a030396",
+    "cb13_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb13_common.require_freeze": "bb297452352a961beedb823b1c204ea8c26285e01c38d484853a9a37ca0ccc94",
+    "cb13_common.require_output_root": "97e4042e0713043491e2b3305295909a9d2f678d84efc525f28257f88a83b86a",
+    "cb13_common.seal_drops": "5b29ab634aa13d4034a77106c15a00e57ebf0f500c8de5c03122c7c8bc516ef7",
+    "cb13_common.seal_listing": "b112cfff9f5e0c70ac8715410cad92424b0e215608362b46b91551adccce99c4",
+    "cb13_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb13_common.sign_flip_p_draws": "6ce83ec04d904a53a7bf980194b60fa658054439cbec90d80790d829a26ea467",
+    "cb13_common.split_bounds": "dcf9078020ff1bdce351200e835ec357d473eb4547eb2a0c0dd11819340b123b",
+    "cb13_common.stage1_holm": "0440cf91c287dc515fec0b6b789e1d0dd8b2ec11f9fc98ea587f7c3bd9903431",
+    "cb13_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb13_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb13_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb13_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb13_common.verify_dir_manifest": "91ae83e979a0ce0972d19a389d505d84ffec016c0574bd9eff0d0804feeadeab",
+    "cb13_common.verify_fetch": "f635c0f941f94b8e9a72b32fe28b5aae1c91f1bedd0d180ef75a827f57857ae4",
+    "cb13_common.verify_seal": "894afe7b0705729c4550c92d986d6b150391b395958ca009e6e4820e6d228b6d",
+    "cb13_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+    "cb13_common.wls_coef_pseudo": "35bb344fd355d8a46aad66af4a5ea651d035026a146cbddf2671746c642b80e9",
+    "cb13_common.write_dir_manifest": "0eee9973eba7eb1b3323dacc9f0e85aaeb804f6f793c0581357944557cd78aac",
+    "cb13_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb13_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb13_label._norm": "284192491e6c3ecddba702e0ed4e24ebdbd8282155414e07b4613d888c1ce709",
+    "cb13_label._rank": "7e28ff0eb7d9b4cedca004d80bb201f38663f97f564761185d3f1d3403d41127",
+    "cb13_label.audit_group": "86deaf8f1768141659b9a20308ff13d6c59dedea1aab4ad338048f5567366b24",
+    "cb13_label.audit_sample": "956f9010ac8b875401ed147031be9b566a09e5a3c434e654a8ed086770c805b2",
+    "cb13_label.audit_score": "0cf42a3daca1a72225db33e6cc60a0d16bf6752c0dfaf89d899fcfd5d7dbd9b7",
+    "cb13_label.classify": "19399328cd7efd7e12f43909f0f04bbc2e73adc477e00aacdcd08ddc29ad7e3f",
+    "cb13_label.declared": "c3cdd84c375b95d3fc29dcb74df82d82d254ec6f5dd8e48822724ada5e2499fc",
+    "cb13_label.first_series_slug": "7bfcc9ce328d1f75f82774a57ad26aa933fbfb7085a9887ca003101f69e171d2",
+    "cb13_label.reviewer_view": "4e55448978bfa50eaf015250f0aec4131bd6b3d36af543980928bdbdcdd5e8b0",
+    "cb13_label.sports_adjacent": "7e02cc3a59db5a38f7132b3eef131fa0b94e140c2f5b89c830a2972620cb5bed",
+    "cb13_label.underlying_of": "89d25064c2b8d141dbb60f5c95297a6ea0bf72ee629b5e90dda79cec2e5956a9"
+   },
+   "funcs_sha256": "a8c4c3f6d6821ecd82bbad871991bf20b338f47daf1857110362572cee632f64",
+   "part": "LABELLER",
+   "part_declared": true,
+   "rules_sha256": "5907eaa4ea671330364b9455b8c225771447404265dfe3176d92178a6137edb6",
+   "rules_version": "cb13-rules-v1",
+   "wallet": {
+    "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
+    "read": false
+   }
+  },
+  "R": {
+   "constants": {
+    "cb13_common": {
+     "ACCESS_LOG": "ACCESS_LOG.jsonl",
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch13",
+      "h13_touch",
+      "h13_binance"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BATCH_HOLM_K1": 3,
+     "BY_Q": 0.1,
+     "CAPTURE_COLUMNS": [
+      "capture_id",
+      "capture_start_utc",
+      "received_utc",
+      "market_id",
+      "condition_id",
+      "event_id",
+      "closed",
+      "active",
+      "binary",
+      "best_bid",
+      "best_ask",
+      "liquidity",
+      "end_date",
+      "clob_token_id_0",
+      "neg_risk",
+      "neg_risk_market_id"
+     ],
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CB13_SPORTS_IN_PRIMARY": false,
+     "CB3_FREEZE_NAME": "cb3_v1.json",
+     "CB3_STOP_RE": "(?i)\\bCB3\\b[^\\n]{0,200}\\b(?:stopped|withdrawn)\\b[^\\n]{0,200}\\bwithout (?:a )?freeze",
+     "COLLECTOR_PASS_MINUTES": [
+      31,
+      55
+     ],
+     "COPY_NAME_R": "cb13_touch_holdout_SEAL.json",
+     "COPY_NAME_T": "cb13_t_holdout_SEAL.json",
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DROPS_FILE": "drops.csv.gz",
+     "EARLY_ALPHA2": 0.01,
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "FAMILY_MODULES": {
+      "LABELLER": [
+       "cb13_label"
+      ],
+      "R": [
+       "cb13_r"
+      ],
+      "T": [
+       "cb13_t"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "LABELLER",
+      "T",
+      "R"
+     ],
+     "FAMILY_REP_TESTS": {
+      "R": [
+       "R1",
+       "R2"
+      ],
+      "T": [
+       "T1",
+       "T2",
+       "T3"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "R": [
+       "R1"
+      ],
+      "T": [
+       "T1",
+       "T2"
+      ]
+     },
+     "FORBIDDEN_CAPTURE_COLUMNS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "last_trade_price",
+      "volume24hr"
+     ],
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "side",
+      "key",
+      "recv_ts",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status"
+     ],
+     "FORBIDDEN_SIDECAR_COLUMNS": [
+      "uma_resolution_statuses",
+      "open_interest",
+      "volume_num"
+     ],
+     "FREEZE_PARTS": [
+      "T",
+      "R"
+     ],
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GATE_P": 0.01,
+     "GRP_DRAWS": 500,
+     "GUARDED_NAMES": [
+      "outcomes_guarded_screen.csv.gz",
+      "outcomes_guarded_holdout.csv.gz"
+     ],
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PART": "holdout",
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id"
+     ],
+     "J4R_PIN_NAME": "j4r_window.json",
+     "LIVE_ROOT_NAME": "cross_venue_live",
+     "LOOKUP_PER_REQUEST": 50,
+     "LOO_DAY_P": 0.05,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MIN_CLUSTERS": 30,
+     "MIN_UNITS": 100,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-\\d{8}\\.jsonl$",
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "OWN_SEAL_COPIES": [
+      "cb13_touch_holdout_SEAL.json",
+      "cb13_t_holdout_SEAL.json"
+     ],
+     "PARTS": [
+      "common",
+      "LABELLER",
+      "T",
+      "R"
+     ],
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "R1_signflip": 13103,
+      "T1_composition": 13101,
+      "T2_signflip": 13102
+     },
+     "PRICE_CAP": 0.99,
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "PRINT_MEMORY_ONLY": [
+      "tx16"
+     ],
+     "REP_JOBS": [
+      "rep-T",
+      "rep-R"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs"
+     ],
+     "RULES_VERSION": "cb13-rules-v1",
+     "R_FIRST_END": "2024-11-01T00:00:00Z",
+     "R_HOLD_START": "2026-04-01T00:00:00Z",
+     "R_SCREEN_END": "2026-04-01T00:00:00Z",
+     "SCREEN_JOBS": [
+      "screen-T",
+      "screen-R",
+      "gti-T"
+     ],
+     "SEAL_NAME_R": "holdout_SEAL.json",
+     "SEAL_NAME_T": "t_holdout_SEAL.json",
+     "SEED_BOOT": 1313,
+     "SEED_GL": [
+      13121,
+      13122
+     ],
+     "SEED_GRP": 13123,
+     "SIDECAR_COLUMNS": [
+      "fee_type",
+      "fee_category",
+      "fees_enabled",
+      "taker_base_fee",
+      "fee_schedule",
+      "series_slugs",
+      "event_ids",
+      "created_at",
+      "order_price_min_tick_size",
+      "rewards_min_size",
+      "rewards_max_spread",
+      "clob_rewards",
+      "accepting_orders"
+     ],
+     "SMOKE_VERSION": "cb13-smoke-v1",
+     "SNAPSHOT_FILES": [
+      "rows.csv.gz",
+      "rows_ext.csv.gz",
+      "manifest.json"
+     ],
+     "STAGE1_HOLM_FAMILY": [
+      "T1",
+      "T2",
+      "R1"
+     ],
+     "STAGE2_K_MAX": 5,
+     "STAGE_ALPHA": 0.05,
+     "T13_HIST_END": "2026-10-01T00:00:00Z",
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "TS_COLUMNS": [
+      "ts",
+      "timestamp",
+      "received_utc",
+      "capture_start_utc",
+      "fetch_utc",
+      "fetched_utc",
+      "recorded_utc",
+      "start_epoch",
+      "origin_ts",
+      "t"
+     ],
+     "T_HOLD_DEFAULT_START": "2026-10-21T00:00:00Z",
+     "T_HOLD_END": "2026-10-26T00:00:00Z",
+     "T_SCREEN": [
+      "2026-10-12T00:00:00Z",
+      "2026-10-16T00:00:00Z"
+     ],
+     "T_SCREEN_CAPTURE_FROM": "2026-10-11T20:00:00Z",
+     "T_SEAL": "2026-10-22T00:00:00Z",
+     "T_SEAL_EARLIEST": "2026-10-26T08:00:00Z",
+     "UNVERIFIED": "disjointness_unverified"
+    },
+    "cb13_r": {
+     "ASSET_MAP": {
+      "bitcoin": "BTC",
+      "bnb": "BNB",
+      "btc": "BTC",
+      "doge": "DOGE",
+      "dogecoin": "DOGE",
+      "eth": "ETH",
+      "ethereum": "ETH",
+      "sol": "SOL",
+      "solana": "SOL",
+      "xrp": "XRP"
+     },
+     "ASSET_RE": "(Bitcoin|Ethereum|Solana|XRP|Dogecoin|BNB|BTC|ETH|SOL|DOGE)",
+     "BASIS_LABEL": "not testable (basis)",
+     "BINANCE_BASE": "https://data.binance.vision/data/spot/monthly/klines",
+     "BINANCE_MS_US_THRESHOLD": 100000000000000.0,
+     "BINANCE_OUTPUT_CAP_GB": 0.3,
+     "BINANCE_STATUS": "binance_complete",
+     "BINANCE_UA": "arepo-research",
+     "BIN_RUN": "h13_binance",
+     "BY_RE": {
+      "flags": 32,
+      "regex": "^by\\s+.+$"
+     },
+     "DAY": 86400.0,
+     "DEPENDENCE_LABEL": "not testable (dependence)",
+     "EVENT_COLUMNS": [
+      "event_id",
+      "title_sha256",
+      "template",
+      "asset",
+      "split",
+      "status",
+      "reason",
+      "win_lo",
+      "win_hi",
+      "end_epoch",
+      "start_epoch",
+      "neg_risk",
+      "n_members",
+      "series_id",
+      "component",
+      "desc_sha256",
+      "flags_ok",
+      "parse_ok",
+      "key_source"
+     ],
+     "EVENT_TITLE_RE": {
+      "flags": 34,
+      "regex": "^What price will (Bitcoin|Ethereum|Solana|XRP|Dogecoin|BNB|BTC|ETH|SOL|DOGE) hit (.+)\\?$"
+     },
+     "EXCL_ID_RUNS": [
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live"
+     ],
+     "FETCH_CHUNK_S": 1209600.0,
+     "FIDELITY": 60,
+     "FLAG_1M_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b1[- ]?(?:minute|min|m)\\b"
+     },
+     "FLAG_BINANCE_RE": {
+      "flags": 34,
+      "regex": "(?i)\\bbinance\\b"
+     },
+     "FLAG_ET_RE": {
+      "flags": 32,
+      "regex": "\\bET\\b"
+     },
+     "FLAG_HIGH_RE": {
+      "flags": 32,
+      "regex": "[\\\"\u201c\u2018']High[\\\"\u201d\u2019']"
+     },
+     "FLAG_LOW_RE": {
+      "flags": 32,
+      "regex": "[\\\"\u201c\u2018']Low[\\\"\u201d\u2019']"
+     },
+     "FORBIDDEN_COLUMNS": [
+      "outcome_prices",
+      "uma_status",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime",
+      "y",
+      "net"
+     ],
+     "FRAME_OUTPUT_CAP_GB": 0.01,
+     "FRAME_RUN": "h13_touch",
+     "FRAME_STATUS": "touch_frame_complete",
+     "GRC_MIN_COMPONENTS": 30,
+     "GRP_LOADINGS": {
+      "idio": 0.3,
+      "path": 0.5,
+      "week": 0.2
+     },
+     "GRP_MDE_MAX": 0.6,
+     "GR_FLAGS_MIN": 0.95,
+     "GR_FRAME_FOUND_MIN": 0.98,
+     "GR_MIN": {
+      "components": 30,
+      "events": 60,
+      "markets": 300,
+      "weeks": 30
+     },
+     "GR_PARSER_FAIL_MAX": 0.1,
+     "HOUR": 3600.0,
+     "KEYS_OUTPUT_CAP_GB": 0.01,
+     "KEYS_RUN": "exclusion_run13",
+     "KEYS_STATUS": "exclusion_keys_complete",
+     "KLINE_USABLE_LAG_S": 65.0,
+     "LABEL_R": "L1, exploratory historical",
+     "LABEL_R2": "modelled-cost economic check on the sealed window (L2)",
+     "LABEL_REP": "out-of-time replication on a sealed later window (L2)",
+     "LABEL_THIN": "population thinned by exclusions",
+     "MEMBER_COLUMNS": [
+      "event_id",
+      "market_id",
+      "condition_id",
+      "token_yes",
+      "yes_index",
+      "created_epoch",
+      "start_epoch",
+      "strike",
+      "direction",
+      "asset",
+      "fee_rate",
+      "neg_risk_market_id"
+     ],
+     "MEMBER_RE": {
+      "flags": 34,
+      "regex": "^Will (Bitcoin|Ethereum|Solana|XRP|Dogecoin|BNB|BTC|ETH|SOL|DOGE) (reach|hit|dip to) \\$([\\d,]+(?:\\.\\d+)?)(k?) (.+)\\?$"
+     },
+     "MONTHLY_RE": {
+      "flags": 32,
+      "regex": "^in\\s+([A-Za-z]+)(?:\\s+(\\d{4}))?$"
+     },
+     "MONTH_NAMES": [
+      "january",
+      "february",
+      "march",
+      "april",
+      "may",
+      "june",
+      "july",
+      "august",
+      "september",
+      "october",
+      "november",
+      "december"
+     ],
+     "OUTCOME_COLUMNS": [
+      "market_id",
+      "event_id",
+      "yes_index",
+      "outcome_prices",
+      "uma_status"
+     ],
+     "PREG_LAG_S": 21600.0,
+     "PREG_MAX_AGE_S": 86400.0,
+     "PRICES_OUTPUT_CAP_GB": 0.03,
+     "PRICES_STATUS": "touch_prices_complete",
+     "PRICE_COLUMNS": [
+      "market_id",
+      "ts",
+      "p"
+     ],
+     "PRICE_MAX_AGE_S": 21600.0,
+     "P_HI": 0.97,
+     "P_LO": 0.03,
+     "R1_FLOOR": 0.3,
+     "R2_FEE_MIN": 0.07,
+     "R2_FILTER": 0.05,
+     "R2_FLOOR": 0.01,
+     "R2_HALF_SPREAD": [
+      [
+       0.05,
+       0.0205
+      ],
+      [
+       0.2,
+       0.015
+      ],
+      [
+       0.8,
+       0.011
+      ],
+      [
+       0.95,
+       0.015
+      ],
+      [
+       1.01,
+       0.0125
+      ]
+     ],
+     "R2_MDE_MAX": 0.02,
+     "R2_ROBUST": 0.01,
+     "RACE_RE": {
+      "flags": 34,
+      "regex": "(?i)\\bbefore\\b"
+     },
+     "R_EXCL_THIN_SHARE": 0.3,
+     "R_FIRST": "2024-11-01",
+     "R_HOLD_END": "2026-10-01",
+     "R_HOLD_FIRST_CHECKPOINT": "2026-04-01T00:00:00Z",
+     "R_HOLD_START_MONTH": "2026-04",
+     "R_SCREEN_END": "2026-04-01",
+     "SIGMA_BARS_PER_YEAR": 105120.0,
+     "SIGMA_MIN_BARS_SHARE": 0.9,
+     "SIGMA_WINDOW_S": 2592000.0,
+     "SMOKE_MAX_REQUESTS": 30,
+     "SMOKE_NEEDS": [
+      "guards_fixture_R",
+      "r_request_cap",
+      "r_walk_finds_search",
+      "r_rule_parser",
+      "r_prices_history",
+      "r_binance_units"
+     ],
+     "SMOKE_WALK_DAYS": [
+      "2026-10-05",
+      "2026-10-12"
+     ],
+     "SOURCE_LABEL": "not testable (source)",
+     "SYMBOLS": [
+      "BTC",
+      "ETH",
+      "SOL",
+      "XRP",
+      "DOGE",
+      "BNB"
+     ],
+     "TAG_ID": 21,
+     "TERMINAL_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\b(?:above|below)\\b.*\\bon\\b|\\bup or down\\b|\\bclose[sd]? (?:at|above|below)\\b)"
+     },
+     "WEEKLY_MAX_S": 694800.0,
+     "WEEK_DATE_RE": {
+      "flags": 32,
+      "regex": "^([A-Za-z]+)\\s+(\\d{1,2})\\s*(?:-|\u2013|to)\\s*(?:([A-Za-z]+)\\s+)?(\\d{1,2})$"
+     },
+     "YEARLY_RE": {
+      "flags": 32,
+      "regex": "^in\\s+(\\d{4})$"
+     }
+    }
+   },
+   "declared": {
+    "cb13_r": {
+     "assets": {
+      "bitcoin": "BTC",
+      "bnb": "BNB",
+      "btc": "BTC",
+      "doge": "DOGE",
+      "dogecoin": "DOGE",
+      "eth": "ETH",
+      "ethereum": "ETH",
+      "sol": "SOL",
+      "solana": "SOL",
+      "xrp": "XRP"
+     },
+     "gates": {
+      "GR": {
+       "components": 30,
+       "events": 60,
+       "markets": 300,
+       "weeks": 30
+      },
+      "GRC": 30,
+      "GRP_mde_max": 0.6,
+      "flags_min": 0.95,
+      "frame_found_min": 0.98,
+      "grp_draws": 500,
+      "grp_latent": {
+       "idio": 0.3,
+       "path": 0.5,
+       "week": 0.2
+      },
+      "grp_seed": 13123,
+      "parser_fail_max": 0.1
+     },
+     "klines": {
+      "float64": true,
+      "ms_us_threshold": 100000000000000.0,
+      "range": "min(T0) - 30 d over primary events to 2026-09",
+      "symbols": [
+       "BTC",
+       "ETH",
+       "SOL",
+       "XRP",
+       "DOGE",
+       "BNB"
+      ],
+      "usable_lag_s": 65.0
+     },
+     "labels": {
+      "R": "L1, exploratory historical",
+      "R2": "modelled-cost economic check on the sealed window (L2)",
+      "rep": "out-of-time replication on a sealed later window (L2)"
+     },
+     "model": {
+      "drift": "trailing 30 d mean log return",
+      "q_touch": "min(1, 2 (1 - Phi(|ln(B/S)| / (sigma sqrt tau))))",
+      "sigma": "30 d of usable 5-minute log returns x sqrt(105120); >= 90% of bars"
+     },
+     "primary": "weekly template only (window <= 8 d); monthly, yearly and by are census-only (no prices)",
+     "r1": {
+      "attribution": "gap coefficient >= 0.30 and >= half of beta",
+      "floor": 0.3,
+      "placebo": {
+       "draws": 200,
+       "signflip_components": 13103
+      },
+      "stale_price_joint": "q_touch coefficient >= half of solo, one-sided p < 0.05",
+      "ways": [
+       "event",
+       "ISO week",
+       "asset-week",
+       "window component"
+      ]
+     },
+     "r2": {
+      "fee_min": 0.07,
+      "filter": 0.05,
+      "floor": 0.01,
+      "half_spreads": [
+       [
+        0.05,
+        0.0205
+       ],
+       [
+        0.2,
+        0.015
+       ],
+       [
+        0.8,
+        0.011
+       ],
+       [
+        0.95,
+        0.015
+       ],
+       [
+        1.01,
+        0.0125
+       ]
+      ],
+      "mde_max": 0.02
+     },
+     "tag_id": 21,
+     "templates": {
+      "event": "^What price will (Bitcoin|Ethereum|Solana|XRP|Dogecoin|BNB|BTC|ETH|SOL|DOGE) hit (.+)\\?$",
+      "member": "^Will (Bitcoin|Ethereum|Solana|XRP|Dogecoin|BNB|BTC|ETH|SOL|DOGE) (reach|hit|dip to) \\$([\\d,]+(?:\\.\\d+)?)(k?) (.+)\\?$",
+      "race_excluded": "(?i)\\bbefore\\b",
+      "terminal_excluded": "(?i)(\\b(?:above|below)\\b.*\\bon\\b|\\bup or down\\b|\\bclose[sd]? (?:at|above|below)\\b)"
+     },
+     "units": "daily 00:00Z checkpoints from max(T0, listing + 1 h) to T - 1 h; undecided on usable klines; p in [0.03, 0.97]; p_t age <= 6 h, p_reg age <= 24 h before t - 6 h",
+     "window": "12:00 AM ET on the first title date to 11:59 PM ET on the last; T = 00:00 ET of the next day (exclusive); ET via America/New_York (DST)",
+     "windows": {
+      "holdout": [
+       "2026-04-01",
+       "2026-10-01"
+      ],
+      "holdout_first_checkpoint": "2026-04-01T00:00:00Z",
+      "screen": [
+       "2024-11-01",
+       "2026-04-01"
+      ]
+     }
+    }
+   },
+   "func_sources_sha256": {
+    "cb13_common.adv_label": "f6f5b4beaa1f14472e79c401e7cd6e375aaa2f9ea604ea88f8bb7ddf8cfc512d",
+    "cb13_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb13_common.block6": "60e08a08865f96e35444981c6689f1a2c9b8008d9fe593775a477e75c34b107a",
+    "cb13_common.capture_allowed": "f0cd6309634c857bbcb5e60b75a71523cd6d9c3d510618d36a205340fabc4b5c",
+    "cb13_common.capture_meta": "866e8e1d120f2dfcb0619d62073ed4bf734fbe168b48ed6781b669a3fe12b061",
+    "cb13_common.cb3_hold_lifted": "55c4342d117cd7b8f76f4167da8d7fcc19600485a73ee989884f646b0b150fbd",
+    "cb13_common.check_window": "209e4e0af63a86b55ae075d326b4090d6dd8493c7fb19aa6a480e17de5c36991",
+    "cb13_common.cluster_p": "c3dd2e35ad53a77d5e6b1f9425d82383fc64be572142e68fab3b271a0df5ff5b",
+    "cb13_common.cluster_p_block": "669f58cf1c11066e29ade17f6b7eb3b93e953607ac01f10c5e992a884f918b57",
+    "cb13_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb13_common.collector_gap_ok": "e7b0df305a6f2a2bc12869b5b8f0936e5adb89dedce4de366a6515229acf1235",
+    "cb13_common.diff_pseudo": "20af46060ba36f40286d2e96a2391a0d23c4613873ef199356ed86be8899e8a0",
+    "cb13_common.early_stage2_ok": "a9b2565ca0bd3beff3484bc66d6d7c833eac0ae69556f21a29c521f33538148a",
+    "cb13_common.ensure_source_file": "2a26fefa3cf4de7bd504a91300a9b488389dae4980f34f04147fa1d0431db236",
+    "cb13_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb13_common.guard_capture_file": "75cad26f8b48b9d6a64d3c1571c487f3bb378e8772e8fc9d0ab1838f3dea149e",
+    "cb13_common.guard_monitor_file": "a5f34589042871b9c78bdd1e82d511ebeb037825b988dbfa81bab7bd801fede8",
+    "cb13_common.guard_screen_path": "1ad082c8541b05b4a382029d1f5a52dad91f0df4bc237afa0418d5ba8bc33cd5",
+    "cb13_common.holm": "c55f3569e796a129314e981b210e9c3e78ba6422ab5608c5ea019e11190fd598",
+    "cb13_common.in_j4r": "83c7865c75a287ed320af3e8c2db3750c52981505bf214421af085dcf9dec1fc",
+    "cb13_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb13_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb13_common.iso_week_of": "ff68e893db31f9232f2c34de2a0133f8ae0c3a5d71d81e24e6e6fa0c1ae16a5b",
+    "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+    "cb13_common.iter_prints": "1a0c6321be5a0015519a0ca8581730f0139237528a3a59058197f6bdc0f5ea79",
+    "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+    "cb13_common.j4r_pin": "79500340a21680bfd2e9c0c074ad691a5ce89a6925780fe8fbea9d55dbe33667",
+    "cb13_common.leave_one_out_p": "bf3ca7ee7031737db016be4870bef5daca1399f7436fba1acf102e5d607c73fb",
+    "cb13_common.list_captures": "37c4d1901a10faf25a579113c63632fe235987b88d6ab9be04c400a22c8ff09f",
+    "cb13_common.load_drops": "8a96f40cfe064634c904d1c381609efa109aa6246b2b71d2d9bb1e53c458005d",
+    "cb13_common.log_access": "2aef281b30cfd935ebcc282a96c3fa891e84b0099a47fb18c149f952cc6e5630",
+    "cb13_common.log_descriptive": "981f60723f27f87547e9785fda9b3702ab201fd90518c0dca1efbc9b5dd1aa9c",
+    "cb13_common.log_family": "658ae63ecc13d9caa0f78e6259ea7563a1122c25c46d3afd0ca50901f450d4c4",
+    "cb13_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb13_common.max_se_over_ways": "99c0f2e4ec92f6026c8748f6058015c36cb8027a2069addded17bf750227df1e",
+    "cb13_common.mde": "4cf78e323972676cbc17b87682bf2db1924927895412e8f9406635cfb2deeee5",
+    "cb13_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb13_common.ols_coef": "edf169e16cc8eda0fd6a40d4ad0ef796d1959ca9e91f87d419750a03d84b9da7",
+    "cb13_common.open_guarded": "046765dfb6e2ffd47e240c2c569a8502df12eaa9bece906411748bcc1968ef62",
+    "cb13_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb13_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb13_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+    "cb13_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb13_common.read_id_ts_columns": "4bd8518a0d06315e92da818a257bff857fb2c1c189dddda710749dffca3301a9",
+    "cb13_common.refuse_path": "57a0739d961739050329d14345f25b4f71508cb12ecb7f1b41d41ac1c0a95590",
+    "cb13_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb13_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb13_common.require_capture_allowed": "13edb328009930e956b3d92345e5afba3f959650b31a14586c2e20851dc55525",
+    "cb13_common.require_complete": "f77e2697117079e41572fa4ece99d3e504c2bece2e23b9a8db1179a95a030396",
+    "cb13_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb13_common.require_freeze": "bb297452352a961beedb823b1c204ea8c26285e01c38d484853a9a37ca0ccc94",
+    "cb13_common.require_output_root": "97e4042e0713043491e2b3305295909a9d2f678d84efc525f28257f88a83b86a",
+    "cb13_common.seal_drops": "5b29ab634aa13d4034a77106c15a00e57ebf0f500c8de5c03122c7c8bc516ef7",
+    "cb13_common.seal_listing": "b112cfff9f5e0c70ac8715410cad92424b0e215608362b46b91551adccce99c4",
+    "cb13_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb13_common.sign_flip_p_draws": "6ce83ec04d904a53a7bf980194b60fa658054439cbec90d80790d829a26ea467",
+    "cb13_common.split_bounds": "dcf9078020ff1bdce351200e835ec357d473eb4547eb2a0c0dd11819340b123b",
+    "cb13_common.stage1_holm": "0440cf91c287dc515fec0b6b789e1d0dd8b2ec11f9fc98ea587f7c3bd9903431",
+    "cb13_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb13_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb13_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb13_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb13_common.verify_dir_manifest": "91ae83e979a0ce0972d19a389d505d84ffec016c0574bd9eff0d0804feeadeab",
+    "cb13_common.verify_fetch": "f635c0f941f94b8e9a72b32fe28b5aae1c91f1bedd0d180ef75a827f57857ae4",
+    "cb13_common.verify_seal": "894afe7b0705729c4550c92d986d6b150391b395958ca009e6e4820e6d228b6d",
+    "cb13_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+    "cb13_common.wls_coef_pseudo": "35bb344fd355d8a46aad66af4a5ea651d035026a146cbddf2671746c642b80e9",
+    "cb13_common.write_dir_manifest": "0eee9973eba7eb1b3323dacc9f0e85aaeb804f6f793c0581357944557cd78aac",
+    "cb13_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb13_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb13_r.BinaryLimiter": "999e6ad2cd8deb50c37b27c7e1b7bc4c5c26d425bff09b8995f821ebe61d1522",
+    "cb13_r.KlineReader": "bc495d6bf38b3c2e225cdc2037513c06be8ed392c9ccba4a9e7ba992c6c1fd37",
+    "cb13_r._expand": "4ed0beff68004e8efe611727505e97c4a49e43ca65856300f04a62e4f0548da9",
+    "cb13_r._iter_partial": "315673e0ba7f323d415deef54b572db7a4db666c4cca51d4133da7bf59445de7",
+    "cb13_r._nt": "98aa7caf0b4b6b0fdc5856cf38f86f82da9f28a5f0e6a19937675a221aa4eb33",
+    "cb13_r._sgn": "5d5c86e1957b8ada9d2e907eb49b768a1d919535e8517082a92a64a3115c100a",
+    "cb13_r._wcsv": "fec82068cb0b6e5fe2e3d325e123c624144603351f8f86de567d9f1e6ba3086d",
+    "cb13_r.agreement_audit": "93e56745c8b20739f04cfbab2b2793c6f681d4b9764958be40b00e094a76982d",
+    "cb13_r.asset_of": "be832d4880a1c3217ad3da56233200383b8bae4515fbfdbd4a3d2dfa5c6c1019",
+    "cb13_r.attach_outcomes": "46ec7b0c530d08fe1f15531f2a80254d222e7c2a95fa1b30be9b8d7b32286169",
+    "cb13_r.binance_fetch": "8bea5555719731dd82f5c3f7552c67621c6ddb022ad4d2908e06d8fea564df23",
+    "cb13_r.binance_url": "4b343035cb258d11a5bb4b6ec1883999ceea01d4185c58b739f254f4a8a982d5",
+    "cb13_r.build_units": "90d51760f7f1936c0bd110bf4dfc0e376ae538481d28f7b0612c98adedcbebe1",
+    "cb13_r.census_r": "3419c1991d1e9fc35479bf67bef277ec5022bbb9ac529ae1ad99e8d2dbd28684",
+    "cb13_r.checkpoints": "f6150191ef06ed4c2f6fa56a36cc4f1b3193c6acedacadb70f40d9b24b614a51",
+    "cb13_r.classify_status": "31338b3093443f49e0bcde616602addd53bf7f4486329ef239a126ba3e2711fd",
+    "cb13_r.components": "d90a40a126e197938896c349052ffd7350f90f2b5f12c25a8c5abc24000f715d",
+    "cb13_r.cross_horizon_sigma": "98af887fa6db3dba51dec83e9e949c7f62a7dfab8db681a8bc9ae99f75d42819",
+    "cb13_r.day_windows": "103cc011537a06e85a531d6981b53eace16c3458f375e002df5b29748a899fe2",
+    "cb13_r.declared": "ff84f5fc3192fb96f8931137169ba09d122ba29fd5fbec2c8fb1a88ba1d8981b",
+    "cb13_r.desc_flags": "b0988db4df4cd25c45ba9f9baf3cb11ac5507b8247d54b97e8d3e233c09e2724",
+    "cb13_r.et_midnight": "d2897f57a23b35ad6988507726177d9748e6b7f718b68272e141c6fc5e399e58",
+    "cb13_r.exclusion_keys": "6651bfe552525633d2385a728c09662bbfe68ab40ec93ffd51e96a1e07711b0f",
+    "cb13_r.fetch_month": "bb06bd1ee41f62c8e194bb96e98c2843acd107768f760404d92864182797016b",
+    "cb13_r.frame_done": "e9954af800e5f5757cddc031e5b148ef37c1ebfb2bc126a59e7d9d960ec8d7e8",
+    "cb13_r.gamma_outcomes": "b478fe770d2976d837935b0604e708ffa59bbec365d4b807d766e83212b948ff",
+    "cb13_r.grp_simulation": "dac30ed535ac9d772556be2116dd38d2bfeef9f60d8a8be9ac5dcd1951669e98",
+    "cb13_r.grp_spec": "b3b080af85a45b1e212bad20103b2c468be86ab039ddc7fd39caf03c6c1e9db5",
+    "cb13_r.grp_ystar": "851632876a0f5525095c380b6c383acfdb5408ba48023ca36e9fa3b0cce46b08",
+    "cb13_r.half_spread": "cc0707ef15b7a05721a792a181c7c95c069369ddcc5c77f42afe61410819d0d7",
+    "cb13_r.implied_sigma": "75dfcc64ace26e0b2b0a4648a68f29aa90b5b7ba3d51d84a0ef38af878fd211c",
+    "cb13_r.is_holdout_month": "ebcb1958318d6df0b72452f16e1d1b0dd6d0931d0ebe982bb486753522b9fb82",
+    "cb13_r.is_primary": "25bf372f44e333436b7ef953356d1433c3ea9fa4895f66d3cfe26b129d353b7c",
+    "cb13_r.iter_json_array": "1107e7b4f586cfba9f0969a4567fd9d5371e6e021b3c03ac11c52c54fdbc16d4",
+    "cb13_r.kline_range_start": "3daabd443d038b835f762afef9fc7bbc66fbf9ebbff1ef8f4f906348d6cb0ca4",
+    "cb13_r.last_point": "b487a36a3dc9bd21d723d15df3f02925da7155d57f8e9d2da81f03a91d187caf",
+    "cb13_r.load_frame": "a88439b3c4332193f719108f5371f7f65dc2a438006d5eaea593af53e1d13855",
+    "cb13_r.load_klines": "cef4be8df69ad3742ca1321cfe37b839e97c1c32127ceafcae4cd25adbe8d6f4",
+    "cb13_r.load_prices": "7c9abb7c84840155be2ab9db584de56502e9aabbc31be69f413379e85aee0dea",
+    "cb13_r.month_of": "496d73c60779eb11b928a14ad59090c1e450db747eadadfed3c22242d71b2b60",
+    "cb13_r.month_range": "f9d509fd8eeecc394b65f217866c45f8ca72e31161abea5e6b719e12235155ff",
+    "cb13_r.overlap_pass": "ce67de34afd4526296b728cb26fd77fefe8884ad37b3d2602beeac5aef6f41a6",
+    "cb13_r.parse_checksum": "9626d11787c0349399b0000db1452684730a3a327f1a23825da940a089130589",
+    "cb13_r.parse_event": "25e66c2f3cd0fdfb66fcebb8485a5c044e54158f01989292100a64879b80b794",
+    "cb13_r.parse_kline_zip": "74d015e068a18465e53a20a670a3b5b991bfbdb0230d3701bf7b33dc0b83583a",
+    "cb13_r.parse_member_question": "5828dd6931db10c300051b51faaf935b7d2809c49577cf1a772c37558a1a46e5",
+    "cb13_r.parse_strike": "366ff6165acf052906142e2708010a8836a2efcd69f13892d0aa6f7fc1827778",
+    "cb13_r.parse_weekly_window": "be5d8d49d8507923d223e5ea8450fb8659483cb83b7b12c34364b3eedad72a62",
+    "cb13_r.poly_barrier_ids": "dd3f40abc9ce2722f22d6f2c54b8546f2bf7ddff67a186f14384fcc6347d03de",
+    "cb13_r.pregate_grc": "469c861dff944672d8dc3043ac72a8cad9c354b63793c722ed667f3eeb47b76b",
+    "cb13_r.price_members": "8b26c3b4b550d96188146dbbcf360894be2e25d342a8d7f5b83aefe9f54b2ed5",
+    "cb13_r.q_term": "1d282063f817360ec94c0f838e395244520c3963d83a90ab6449c4e9e636c021",
+    "cb13_r.q_touch": "39aff18523c4457e6481e196dbe3d5d4abfc61385cd671fc92f41a5ea2f3eef4",
+    "cb13_r.q_touch_drift": "7ed9053fb692f0e8464e6bc8abb1b22697469ab7a2b7086769d2dfc658dc8000",
+    "cb13_r.r1_test": "9061ddcac3ced6df424eaef026caa54bcc1c5ea161bd1e5269b6e4507b7c7000",
+    "cb13_r.r2_entries": "e0bb5d88f883fcc47213063f39e2d25be35868ac9bfc24242ce95e5cd25bb3a5",
+    "cb13_r.r2_test": "5ef3ec399682f8dce947cdb251945b4995fe838806ca33d47666a919de3c0526",
+    "cb13_r.read_ids_generic": "b132f957e11ddb3d70db7e2017130ff9b84afe83f5e506aab3779ef5c1abed3f",
+    "cb13_r.rep_r": "67c22601897163a122799b68f84e8c32a7d0343798e7e2db2b15bc733ea6296f",
+    "cb13_r.screen_r": "4502b6c3919ba7320b316a59e89111fa3aa3b4938013bc4e1841251aa5bd2038",
+    "cb13_r.seal_r": "78fe900b19cfa24f6556334269807abe1ee6ff59ed9f6d04022c1380f2a01b80",
+    "cb13_r.seal_rows": "05c01d3621d2c5769e6891087572f4c51fcd4bf9e285b0b22e7c8de9a69d130f",
+    "cb13_r.slope_p": "48c51ef7b795679c94eb90ca5bc01c9d6ad47e1c46b26b726b41c384fb6b45fc",
+    "cb13_r.slope_stat": "b98ac3c751f600ad9d76b69a2bc69e3b17244435a7e7ff50ad026704e2a9877f",
+    "cb13_r.smoke_offline": "afdf0fe1e752c96035370fd27b51c6534d01ad1e19c3a1ea720105f35f1a4b7e",
+    "cb13_r.smoke_online": "8c68a2a4429749cec0ed9a455943e05a4689d5e33174ebc4ef9d5fc6e877f869",
+    "cb13_r.split_of": "3b1e53e7df2d5297e2f03c157d91363c9395568342b98a75c6ea19181c714e0d",
+    "cb13_r.template_of": "3323fd76821a5139ba2c4cbe63cafb6ad6f1a87bd49f1e15d96dfb9b87a052ab",
+    "cb13_r.timestamp_unit": "904b59c2a4a1d53895a4926a9253d22bfa0937fbf628d78fc13ede3791bf09fd",
+    "cb13_r.touch_frame": "1b1f351549c7cc6beedb9a0d57b6ee135772bb0e2e32be3621f1f3628bd3e167",
+    "cb13_r.touch_prices": "35711b4e7c922554072498d541b787ff48f266deaf4b1e36888526ceb3dff4cf",
+    "cb13_r.unit_arrays": "91f2ffa9efaaa8bc198265810b01a5f66663b384b8f3adb2a9bb6829cc75f448",
+    "cb13_r.verify_seal_r": "1456992ed5fd566256917ce9b5b979dd3eecff0e64c88523ede35034fb5cd7e9",
+    "cb13_r.walk_window": "b6066d217264cd88bdf68e956321b8f23375a808450f38a455f8f83a898dcfd7",
+    "cb13_r.ways_of": "fec895ae90a853d6c1ca8e645dc9ff784aa8a8b14d9d68294505dd405cb8809a",
+    "cb13_r.window_components_with_units": "eef83fef5042d38c449107c8121df1e11b14db45f44e4b9cbfba11fb3df61b9d"
+   },
+   "funcs_sha256": "61787f77e0e5d7ea40a6f577136038aaefbdc520cabbe8a2d4171e0f2937a107",
+   "part": "R",
+   "part_declared": true,
+   "rules_sha256": "996bccf7230913c7df7a66cd676a61a7d4d40bc79f8c5a389409e9764daa9021",
+   "rules_version": "cb13-rules-v1",
+   "wallet": {
+    "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
+    "read": false
+   }
+  },
+  "T": {
+   "constants": {
+    "cb13_common": {
+     "ACCESS_LOG": "ACCESS_LOG.jsonl",
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch13",
+      "h13_touch",
+      "h13_binance"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BATCH_HOLM_K1": 3,
+     "BY_Q": 0.1,
+     "CAPTURE_COLUMNS": [
+      "capture_id",
+      "capture_start_utc",
+      "received_utc",
+      "market_id",
+      "condition_id",
+      "event_id",
+      "closed",
+      "active",
+      "binary",
+      "best_bid",
+      "best_ask",
+      "liquidity",
+      "end_date",
+      "clob_token_id_0",
+      "neg_risk",
+      "neg_risk_market_id"
+     ],
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CB13_SPORTS_IN_PRIMARY": false,
+     "CB3_FREEZE_NAME": "cb3_v1.json",
+     "CB3_STOP_RE": "(?i)\\bCB3\\b[^\\n]{0,200}\\b(?:stopped|withdrawn)\\b[^\\n]{0,200}\\bwithout (?:a )?freeze",
+     "COLLECTOR_PASS_MINUTES": [
+      31,
+      55
+     ],
+     "COPY_NAME_R": "cb13_touch_holdout_SEAL.json",
+     "COPY_NAME_T": "cb13_t_holdout_SEAL.json",
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DROPS_FILE": "drops.csv.gz",
+     "EARLY_ALPHA2": 0.01,
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "FAMILY_MODULES": {
+      "LABELLER": [
+       "cb13_label"
+      ],
+      "R": [
+       "cb13_r"
+      ],
+      "T": [
+       "cb13_t"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "LABELLER",
+      "T",
+      "R"
+     ],
+     "FAMILY_REP_TESTS": {
+      "R": [
+       "R1",
+       "R2"
+      ],
+      "T": [
+       "T1",
+       "T2",
+       "T3"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "R": [
+       "R1"
+      ],
+      "T": [
+       "T1",
+       "T2"
+      ]
+     },
+     "FORBIDDEN_CAPTURE_COLUMNS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "last_trade_price",
+      "volume24hr"
+     ],
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "side",
+      "key",
+      "recv_ts",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status"
+     ],
+     "FORBIDDEN_SIDECAR_COLUMNS": [
+      "uma_resolution_statuses",
+      "open_interest",
+      "volume_num"
+     ],
+     "FREEZE_PARTS": [
+      "T",
+      "R"
+     ],
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GATE_P": 0.01,
+     "GRP_DRAWS": 500,
+     "GUARDED_NAMES": [
+      "outcomes_guarded_screen.csv.gz",
+      "outcomes_guarded_holdout.csv.gz"
+     ],
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PART": "holdout",
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id"
+     ],
+     "J4R_PIN_NAME": "j4r_window.json",
+     "LIVE_ROOT_NAME": "cross_venue_live",
+     "LOOKUP_PER_REQUEST": 50,
+     "LOO_DAY_P": 0.05,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MIN_CLUSTERS": 30,
+     "MIN_UNITS": 100,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-\\d{8}\\.jsonl$",
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "OWN_SEAL_COPIES": [
+      "cb13_touch_holdout_SEAL.json",
+      "cb13_t_holdout_SEAL.json"
+     ],
+     "PARTS": [
+      "common",
+      "LABELLER",
+      "T",
+      "R"
+     ],
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "R1_signflip": 13103,
+      "T1_composition": 13101,
+      "T2_signflip": 13102
+     },
+     "PRICE_CAP": 0.99,
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "PRINT_MEMORY_ONLY": [
+      "tx16"
+     ],
+     "REP_JOBS": [
+      "rep-T",
+      "rep-R"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs"
+     ],
+     "RULES_VERSION": "cb13-rules-v1",
+     "R_FIRST_END": "2024-11-01T00:00:00Z",
+     "R_HOLD_START": "2026-04-01T00:00:00Z",
+     "R_SCREEN_END": "2026-04-01T00:00:00Z",
+     "SCREEN_JOBS": [
+      "screen-T",
+      "screen-R",
+      "gti-T"
+     ],
+     "SEAL_NAME_R": "holdout_SEAL.json",
+     "SEAL_NAME_T": "t_holdout_SEAL.json",
+     "SEED_BOOT": 1313,
+     "SEED_GL": [
+      13121,
+      13122
+     ],
+     "SEED_GRP": 13123,
+     "SIDECAR_COLUMNS": [
+      "fee_type",
+      "fee_category",
+      "fees_enabled",
+      "taker_base_fee",
+      "fee_schedule",
+      "series_slugs",
+      "event_ids",
+      "created_at",
+      "order_price_min_tick_size",
+      "rewards_min_size",
+      "rewards_max_spread",
+      "clob_rewards",
+      "accepting_orders"
+     ],
+     "SMOKE_VERSION": "cb13-smoke-v1",
+     "SNAPSHOT_FILES": [
+      "rows.csv.gz",
+      "rows_ext.csv.gz",
+      "manifest.json"
+     ],
+     "STAGE1_HOLM_FAMILY": [
+      "T1",
+      "T2",
+      "R1"
+     ],
+     "STAGE2_K_MAX": 5,
+     "STAGE_ALPHA": 0.05,
+     "T13_HIST_END": "2026-10-01T00:00:00Z",
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "TS_COLUMNS": [
+      "ts",
+      "timestamp",
+      "received_utc",
+      "capture_start_utc",
+      "fetch_utc",
+      "fetched_utc",
+      "recorded_utc",
+      "start_epoch",
+      "origin_ts",
+      "t"
+     ],
+     "T_HOLD_DEFAULT_START": "2026-10-21T00:00:00Z",
+     "T_HOLD_END": "2026-10-26T00:00:00Z",
+     "T_SCREEN": [
+      "2026-10-12T00:00:00Z",
+      "2026-10-16T00:00:00Z"
+     ],
+     "T_SCREEN_CAPTURE_FROM": "2026-10-11T20:00:00Z",
+     "T_SEAL": "2026-10-22T00:00:00Z",
+     "T_SEAL_EARLIEST": "2026-10-26T08:00:00Z",
+     "UNVERIFIED": "disjointness_unverified"
+    },
+    "cb13_t": {
+     "AGE_BANDS_S": [
+      1200.0,
+      2400.0
+     ],
+     "AUDIT_NAME": "labeller_audit.json",
+     "BIG_TX_USD": 10000.0,
+     "COMPONENT_MIN_FILLS": 200,
+     "END_MARGIN_S": 10800.0,
+     "EXCL_NAME": "t_exclusion_keys.csv.gz",
+     "EXCL_THIN_SHARE": 0.3,
+     "FILLS_NAME": "fills.csv.gz",
+     "FILL_COLUMNS": [
+      "tx_id",
+      "condition_id",
+      "market_id",
+      "event_id",
+      "status",
+      "label",
+      "underlying",
+      "path_key",
+      "tau",
+      "tau_last",
+      "p_vwap",
+      "p_min",
+      "p_max",
+      "size",
+      "cash",
+      "n_fills",
+      "d",
+      "P",
+      "bid0",
+      "ask0",
+      "spread0",
+      "mid0",
+      "touch_recv",
+      "touch_age_s",
+      "touch_cap",
+      "liq",
+      "end_epoch",
+      "prev_mid",
+      "prev_recv",
+      "q_stale",
+      "d_stale",
+      "fee_rate",
+      "clob_rewards",
+      "fee_type",
+      "block",
+      "day",
+      "neg_risk_market_id"
+     ],
+     "GTI_AGREE": 0.7,
+     "GTI_MIN_PAIRS": 200,
+     "GTI_WINDOW_S": 1800.0,
+     "GTP_MDE_MAX": {
+      "T1": 1.0,
+      "T2": 0.5
+     },
+     "GT_MIN": {
+      "events": 60,
+      "fills": 500
+     },
+     "HOLD_OVERLAP_THIN_SHARE": 0.4,
+     "LABELS_NAME": "labels.csv.gz",
+     "LABEL_CADENCE": "cadence informativeness unverified (n < 200)",
+     "LABEL_COLUMNS": [
+      "condition_id",
+      "label",
+      "underlying",
+      "fee_type",
+      "fee_category",
+      "series_slug",
+      "title",
+      "slug"
+     ],
+     "LABEL_HOLD": "adjacent window, same regime",
+     "LABEL_HOLD_THIN": "HOLDOUT thinned by event overlap",
+     "LABEL_REP": "later live window replication, event-disjoint (L2)",
+     "LABEL_T": "L1, worn captures, new statistic",
+     "LABEL_T2": "mid-marked maker net, upper bound (free exit), L1",
+     "LABEL_T3": "recorded-touch round trip (L2)",
+     "LABEL_THIN": "population thinned by exclusions",
+     "MARK_COLUMNS": [
+      "tx_id",
+      "h",
+      "status",
+      "recv",
+      "bid",
+      "ask"
+     ],
+     "MARK_H": {
+      "2-4h": 7200.0,
+      "6-8h": 21600.0
+     },
+     "MARK_USABLE_EXTRA_S": 7200.0,
+     "MID_BANDS": [
+      0.2,
+      0.4,
+      0.6,
+      0.8
+     ],
+     "MID_HI": 0.97,
+     "MID_LO": 0.03,
+     "SCREEN_STATUS_FILL": "fill",
+     "SIZE_BANDS": [
+      2000.0,
+      5000.0,
+      10000.0
+     ],
+     "SMOKE_NEEDS": [
+      "guards_fixture_T",
+      "t_capture_print_join",
+      "t_labeller_unknown"
+     ],
+     "SPREAD_BANDS": [
+      0.01,
+      0.02,
+      0.04
+     ],
+     "SPREAD_MAX": 0.1,
+     "S_END": "excluded: scheduled end within 3 h",
+     "S_INCONSISTENT": "inconsistent with touch (drift)",
+     "S_INSIDE": "inside spread",
+     "S_KEY": "dropped: key",
+     "S_MID": "excluded: mid outside [0.03, 0.97]",
+     "S_NOTBINARY": "excluded: not binary or closed",
+     "S_NO_ROW": "excluded: no row",
+     "S_ONESIDED": "excluded: one-sided",
+     "S_SPREAD": "excluded: spread > 10c",
+     "S_STALE": "excluded: touch older than 60 min",
+     "S_UNKNOWN": "excluded: UNKNOWN label",
+     "T1_FLOOR": 0.5,
+     "T2_FLOOR": 0.25,
+     "T3_DEFAULT_FEE": 0.07,
+     "T3_EXIT_ROBUST": 0.5,
+     "T3_FLOOR": 0.5,
+     "T3_MAX_SIZE": 100.0,
+     "TOUCH_AGE_ROBUST_S": 1200.0,
+     "TOUCH_MAX_AGE_S": 3600.0,
+     "TTE_BANDS_S": [
+      86400.0,
+      604800.0
+     ],
+     "T_EXCL_SKIP_RUNS": [
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h13_touch",
+      "h13_binance"
+     ],
+     "WIDE_MARK": 0.1
+    }
+   },
+   "declared": {
+    "cb13_t": {
+     "exclusions": {
+      "no_ts_file": "all ids dropped (conservative)",
+      "skip_runs": [
+       "h1_first",
+       "h2_main",
+       "h3_power",
+       "h4_seal",
+       "h13_touch",
+       "h13_binance"
+      ],
+      "thin_share": 0.3
+     },
+     "fill": "print-anchored: lift (a0 <= P_min, P_max <= a0 + s0) -> maker sold at P_min; hit (b0 - s0 <= P_min, P_max <= b0) -> maker bought at P_max; inside spread: no fill; else inconsistent",
+     "gates": {
+      "GT": {
+       "events": 60,
+       "fills": 500
+      },
+      "GTI": {
+       "agree": 0.7,
+       "min_pairs": 200,
+       "window_s": 1800.0
+      },
+      "GTP_mde_max": {
+       "T1": 1.0,
+       "T2": 0.5
+      }
+     },
+     "hold": {
+      "cb3_hold": "q0275 waits for CB3's freeze commit or its ledger stop record",
+      "event_disjoint": true,
+      "thin_share": 0.4
+     },
+     "labels": {
+      "T": "L1, worn captures, new statistic",
+      "T2": "mid-marked maker net, upper bound (free exit), L1",
+      "T3": "recorded-touch round trip (L2)",
+      "hold": "adjacent window, same regime",
+      "rep": "later live window replication, event-disjoint (L2)"
+     },
+     "loo_day": {
+      "p_max": 0.05,
+      "sign": true
+     },
+     "marks": {
+      "horizons_s": {
+       "2-4h": 7200.0,
+       "6-8h": 21600.0
+      },
+      "labels": [
+       "2-4 h",
+       "6-8 h"
+      ],
+      "usable_extra_s": 7200.0,
+      "wide_spread": 0.1
+     },
+     "placebos": {
+      "T1_composition": 13101,
+      "T2_signflip": 13102,
+      "draws": 200,
+      "max_advance": 0.015
+     },
+     "tau": "earliest venue time of the transaction's prints (conservative for the touch)",
+     "tests": {
+      "T1": {
+       "floor_cents": 0.5
+      },
+      "T2": {
+       "floor_cents": 0.25
+      },
+      "T3": {
+       "default_fee": 0.07,
+       "exit_robust_cents": 0.5,
+       "floor_cents": 0.5
+      }
+     },
+     "touch": {
+      "end_margin_s": 10800.0,
+      "max_age_s": 3600.0,
+      "mid": [
+       0.03,
+       0.97
+      ],
+      "received_utc_lt_tau": true,
+      "spread_max": 0.1
+     },
+     "units": "every touch-consistent transaction; one-per-side-per-pass, all-prints, stale-touch and size-weighted variants are reported",
+     "ways": [
+      "event",
+      "path key x 6 h block",
+      "6 h block (CB10 small-G rule)"
+     ]
+    }
+   },
+   "func_sources_sha256": {
+    "cb13_common.adv_label": "f6f5b4beaa1f14472e79c401e7cd6e375aaa2f9ea604ea88f8bb7ddf8cfc512d",
+    "cb13_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb13_common.block6": "60e08a08865f96e35444981c6689f1a2c9b8008d9fe593775a477e75c34b107a",
+    "cb13_common.capture_allowed": "f0cd6309634c857bbcb5e60b75a71523cd6d9c3d510618d36a205340fabc4b5c",
+    "cb13_common.capture_meta": "866e8e1d120f2dfcb0619d62073ed4bf734fbe168b48ed6781b669a3fe12b061",
+    "cb13_common.cb3_hold_lifted": "55c4342d117cd7b8f76f4167da8d7fcc19600485a73ee989884f646b0b150fbd",
+    "cb13_common.check_window": "209e4e0af63a86b55ae075d326b4090d6dd8493c7fb19aa6a480e17de5c36991",
+    "cb13_common.cluster_p": "c3dd2e35ad53a77d5e6b1f9425d82383fc64be572142e68fab3b271a0df5ff5b",
+    "cb13_common.cluster_p_block": "669f58cf1c11066e29ade17f6b7eb3b93e953607ac01f10c5e992a884f918b57",
+    "cb13_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb13_common.collector_gap_ok": "e7b0df305a6f2a2bc12869b5b8f0936e5adb89dedce4de366a6515229acf1235",
+    "cb13_common.diff_pseudo": "20af46060ba36f40286d2e96a2391a0d23c4613873ef199356ed86be8899e8a0",
+    "cb13_common.early_stage2_ok": "a9b2565ca0bd3beff3484bc66d6d7c833eac0ae69556f21a29c521f33538148a",
+    "cb13_common.ensure_source_file": "2a26fefa3cf4de7bd504a91300a9b488389dae4980f34f04147fa1d0431db236",
+    "cb13_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb13_common.guard_capture_file": "75cad26f8b48b9d6a64d3c1571c487f3bb378e8772e8fc9d0ab1838f3dea149e",
+    "cb13_common.guard_monitor_file": "a5f34589042871b9c78bdd1e82d511ebeb037825b988dbfa81bab7bd801fede8",
+    "cb13_common.guard_screen_path": "1ad082c8541b05b4a382029d1f5a52dad91f0df4bc237afa0418d5ba8bc33cd5",
+    "cb13_common.holm": "c55f3569e796a129314e981b210e9c3e78ba6422ab5608c5ea019e11190fd598",
+    "cb13_common.in_j4r": "83c7865c75a287ed320af3e8c2db3750c52981505bf214421af085dcf9dec1fc",
+    "cb13_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb13_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb13_common.iso_week_of": "ff68e893db31f9232f2c34de2a0133f8ae0c3a5d71d81e24e6e6fa0c1ae16a5b",
+    "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+    "cb13_common.iter_prints": "1a0c6321be5a0015519a0ca8581730f0139237528a3a59058197f6bdc0f5ea79",
+    "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+    "cb13_common.j4r_pin": "79500340a21680bfd2e9c0c074ad691a5ce89a6925780fe8fbea9d55dbe33667",
+    "cb13_common.leave_one_out_p": "bf3ca7ee7031737db016be4870bef5daca1399f7436fba1acf102e5d607c73fb",
+    "cb13_common.list_captures": "37c4d1901a10faf25a579113c63632fe235987b88d6ab9be04c400a22c8ff09f",
+    "cb13_common.load_drops": "8a96f40cfe064634c904d1c381609efa109aa6246b2b71d2d9bb1e53c458005d",
+    "cb13_common.log_access": "2aef281b30cfd935ebcc282a96c3fa891e84b0099a47fb18c149f952cc6e5630",
+    "cb13_common.log_descriptive": "981f60723f27f87547e9785fda9b3702ab201fd90518c0dca1efbc9b5dd1aa9c",
+    "cb13_common.log_family": "658ae63ecc13d9caa0f78e6259ea7563a1122c25c46d3afd0ca50901f450d4c4",
+    "cb13_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb13_common.max_se_over_ways": "99c0f2e4ec92f6026c8748f6058015c36cb8027a2069addded17bf750227df1e",
+    "cb13_common.mde": "4cf78e323972676cbc17b87682bf2db1924927895412e8f9406635cfb2deeee5",
+    "cb13_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb13_common.ols_coef": "edf169e16cc8eda0fd6a40d4ad0ef796d1959ca9e91f87d419750a03d84b9da7",
+    "cb13_common.open_guarded": "046765dfb6e2ffd47e240c2c569a8502df12eaa9bece906411748bcc1968ef62",
+    "cb13_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb13_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb13_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+    "cb13_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb13_common.read_id_ts_columns": "4bd8518a0d06315e92da818a257bff857fb2c1c189dddda710749dffca3301a9",
+    "cb13_common.refuse_path": "57a0739d961739050329d14345f25b4f71508cb12ecb7f1b41d41ac1c0a95590",
+    "cb13_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb13_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb13_common.require_capture_allowed": "13edb328009930e956b3d92345e5afba3f959650b31a14586c2e20851dc55525",
+    "cb13_common.require_complete": "f77e2697117079e41572fa4ece99d3e504c2bece2e23b9a8db1179a95a030396",
+    "cb13_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb13_common.require_freeze": "bb297452352a961beedb823b1c204ea8c26285e01c38d484853a9a37ca0ccc94",
+    "cb13_common.require_output_root": "97e4042e0713043491e2b3305295909a9d2f678d84efc525f28257f88a83b86a",
+    "cb13_common.seal_drops": "5b29ab634aa13d4034a77106c15a00e57ebf0f500c8de5c03122c7c8bc516ef7",
+    "cb13_common.seal_listing": "b112cfff9f5e0c70ac8715410cad92424b0e215608362b46b91551adccce99c4",
+    "cb13_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb13_common.sign_flip_p_draws": "6ce83ec04d904a53a7bf980194b60fa658054439cbec90d80790d829a26ea467",
+    "cb13_common.split_bounds": "dcf9078020ff1bdce351200e835ec357d473eb4547eb2a0c0dd11819340b123b",
+    "cb13_common.stage1_holm": "0440cf91c287dc515fec0b6b789e1d0dd8b2ec11f9fc98ea587f7c3bd9903431",
+    "cb13_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb13_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb13_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb13_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb13_common.verify_dir_manifest": "91ae83e979a0ce0972d19a389d505d84ffec016c0574bd9eff0d0804feeadeab",
+    "cb13_common.verify_fetch": "f635c0f941f94b8e9a72b32fe28b5aae1c91f1bedd0d180ef75a827f57857ae4",
+    "cb13_common.verify_seal": "894afe7b0705729c4550c92d986d6b150391b395958ca009e6e4820e6d228b6d",
+    "cb13_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+    "cb13_common.wls_coef_pseudo": "35bb344fd355d8a46aad66af4a5ea651d035026a146cbddf2671746c642b80e9",
+    "cb13_common.write_dir_manifest": "0eee9973eba7eb1b3323dacc9f0e85aaeb804f6f793c0581357944557cd78aac",
+    "cb13_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb13_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb13_t.MarkTable": "40a28befff88bf3cd30cf22f4ba2ea6429d6ac768da3080ab538639dee438ab9",
+    "cb13_t.Q": "31bffc647a65f33892aec10cd87a2dbeb4e66f3f846ccfdf16f0a90dba20108e",
+    "cb13_t.QuoteIndex": "8c6da5ba6632d22f9872936bf8fc8e27eecce1b761f0be20cf72d1e89cff752e",
+    "cb13_t._fmt": "f929cadfcad3a3c1a17b6be41f0fba53db09348b1e3f076a6cf67f25b13a792b",
+    "cb13_t._valid": "068dd940e029c0875aeec3a908a1a401a3c15e4bb5514cee6c6107fa9c64eca9",
+    "cb13_t._ways": "2701e53c7daddd417857f2513ddaaaa7683b08cd56a8805f5e5fbfdee3b0f7da",
+    "cb13_t.adverse_value": "8868091f8f3776d2f3c7816606705f526758a4a62b1398ff06038ae4e98c5c68",
+    "cb13_t.analyse": "4508d64b0680a71c5fadd3c5a6757e140b5409789ebf63f206810b6f7997f2db",
+    "cb13_t.attribution": "2b6f72feac561aba951556402841077c91a925d804f807d2325e7c0fe2123703",
+    "cb13_t.band_of": "5cc27109f0080f7e527f35cbcf471b09e627905b6cfe28bdfe39852a0643fd71",
+    "cb13_t.bands_of": "26157816968d488b01b0fabcf9ca8774975db9bf533da14d108d50e5d511858b",
+    "cb13_t.build_dataset": "c85350d04606c91800504c810ff8f2a041632ff4a3111f456679539faf3c9bd2",
+    "cb13_t.build_frame": "fb2e1810591ccf09332f8fa184c0c3a557a683809946574a3ca6ca82b53990dd",
+    "cb13_t.build_transactions": "464be3b04fdf08db8d49fcc200b6181284594b33e54a947b2dd5d870489f286e",
+    "cb13_t.census_t": "6f851a10a11ae8fd4081838f453b7dbe8ef0dbf682b6f7de0a35eac7dc724a9d",
+    "cb13_t.classify_position": "d0ece510d787ea67aa1e6d6fea9a7a86fdc3897abb6f5f38432878ac0a51586a",
+    "cb13_t.composition_placebo": "e95fcbc0a0846bfb3369b17d873c23d1f9fbbce36664f0e5ebec172e3d4e952d",
+    "cb13_t.declared": "6386f1f312c273e43eef5e419ddd8f9d7179d76412d88f3c053e35b9d1f62f4b",
+    "cb13_t.drop_screen_events": "c34aa82c838a1c92d9e438739304458c0acb2796f23125d719933ac3c096cbb9",
+    "cb13_t.est_only": "e8c4fe2701154d4c336a3692c42462d077b5c583cbdb58af2631b6047a8ee3c2",
+    "cb13_t.fee_rate_of": "97e6304d1acb5621d7f94485c43620097a47ccd8722b1b458c90e711f59968a0",
+    "cb13_t.first_per_side": "1e8c3592405e89c7495039b3f65ca99af08379799364bcefc1edf36c698c85b4",
+    "cb13_t.frame_report": "708967c69ddf1aca23a6e7f4a0714bdcd0b3408f0c33fa716f041872ba905ae3",
+    "cb13_t.frame_t": "b970d00370b77cf6e85e93a980ad1435f2bce35b6050d104a1f489a82a35e0d8",
+    "cb13_t.gate_gl": "ec3eb8328c40f6b4199e6ea6c1ae5a5d812b22b3297d64f13d105bfc61a9c351",
+    "cb13_t.gate_gt": "d6d38364ade6f88c447e43f9e20ddab1437e2a76e64638a730c6793e12a7c2bf",
+    "cb13_t.gate_gti": "e5c7a389658b6bf6da34109f2da9a7e3eb574c4142b190a208ed06afce37b6de",
+    "cb13_t.gate_gtp": "3acc2d210905862479cf07f6775769d4ff43f3117a2f3b8d38d4642f8876a618",
+    "cb13_t.hold_thin_label": "0b6305f743661028dfbbbe4e53348964cd64304f4490e8d85f0ce08f8c6d8532",
+    "cb13_t.holdout_source_files": "70646278a2890cf462255c7573fbd37b4e84fcb56638a7de71b05d44abce0ca1",
+    "cb13_t.key_hit": "bdb628356c06eab75779ff55de797a3f80f78ca181a08d6a34e004ccf0cfd23b",
+    "cb13_t.load_quote_index": "1287418f744921b1fd7edc51adb5c3820c4ac42bb0765429a0aeb1b3f33050fd",
+    "cb13_t.make_contrast": "3fcafc898a26c58f1bcea56067bf3d4a7848f176579757390e8b5fc1b4047ade",
+    "cb13_t.make_fills": "00da3417fd0f2d863e15ea8b96013518dbcb8c418060d22b096052d4d79863a6",
+    "cb13_t.make_mean": "06f8756c9a0387e2b85e2e5d1daa27c886940d62c475a76ef201e6158c538200",
+    "cb13_t.mark_quote_rows": "7a554b32daf3dca0bcbcb97f7004d7bc231ef6e7a2dd9b117b9ffe8a0f78cdee",
+    "cb13_t.market_labels": "9ca4f916715eaf6c36f11d6a6b0f83b734dfe8c5dc8a24602043cecc60e52b10",
+    "cb13_t.not_testable": "5ec638668b2b1d6e4392c337a3c0af4d5546d9a5cdde96b481dc718bb48aa593",
+    "cb13_t.p_of": "2791ff0852252276cbbf02b9446a3cf24e71c1c75b10dfc782865b52c28ffd11",
+    "cb13_t.read_fills": "ffd50d580b802894e264276ace7905b2dd299a57c1b9982b87c9f3ec7344d002",
+    "cb13_t.reported_variants": "39b63e00c33a964f787b02a3bdcdb4af191d5a377f21d25f17e64a9c753ee245",
+    "cb13_t.screen_t": "09dcb8de91343a030811bfa2bafe2a8deda2b2ba6189a4402279c4e21dd23a0e",
+    "cb13_t.screen_transactions": "deb54c208338a2258f0755850a5929b11d491e95cb1f3b21f853753065263e2a",
+    "cb13_t.signflip_placebo": "9286b3e55bc7e9a9cbae7e0353f3365b7de2c5627a76403dd9e21356ebf1fddc",
+    "cb13_t.size_band": "5dbc73f331c84a0a64870033eb3ee7b60c38b0ac036a20b53cef6438c9a73473",
+    "cb13_t.smoke_offline": "844759e21bd5407a5d5d85469bfe2ee37b507ba2f920ae9578494f7ba2b94124",
+    "cb13_t.stage2_t": "a88da2c6a4d284c2cc9ebc23e2d49c4b6ce8be944f8685dcb6e48d06292dff86",
+    "cb13_t.stale_variant": "8e722a30cd3b2c7144b5581d5e9667050ad195a11968b4c99154ec9f94a2face",
+    "cb13_t.t1_test": "9fc89ca4e37b56b26a9f2bf2bbada71e83c917f03f1c95f54ad7ec7d0cd9957e",
+    "cb13_t.t2_test": "c7c21cb1095adce6eb966517ccbcd3256fc692f3fa249a66e1f77e76ddc18946",
+    "cb13_t.t3_test": "4a1d6d86a7c4a0dfc857e367c433409d3fe2a1afdfb18ee3b757d332c99e3717",
+    "cb13_t.t3_values": "dea5843f46215c00f9d0a5bf5b3e447afd0b5f29d1fab61aef276f94d0a2d878",
+    "cb13_t.t_exclusion_keys": "2ddeaf2785ec6311c22a9db691a9e01cafcc8f3d3a98e22823dbef0ecc5b0fee",
+    "cb13_t.two_sided": "72495426a00ebbe012e8c1c798b804944ff9ab9d1fa61b59226f122f3b97ce48",
+    "cb13_t.worst_value": "354deceb6a1936977c88368701fd4e369f4a7cd3caedc5e7f1975f3be72ba0a1",
+    "cb13_t.write_fills": "7698b1b299ef8157833d977f179f8355ccc618e9ff12f5fcc9c1810001abc33c",
+    "cb13_t.write_frame_files": "a180c201763b3763fbf41a705ffae27cb09686f8aaaa7b2bcf04d600f088c7d7",
+    "cb13_t.yes_price": "2ce135e7489e799573c92668a400b8cf6895dfda7a8a0ab93a88407121b4362c"
+   },
+   "funcs_sha256": "1b9863c3561d11dfdccae45c9a69a100e855a705da6931003ec91d822270ab46",
+   "part": "T",
+   "part_declared": true,
+   "rules_sha256": "bf693848928cbded61ab78f913f186865dd348075e798159e0227b7b4903998b",
+   "rules_version": "cb13-rules-v1",
+   "wallet": {
+    "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
+    "read": false
+   }
+  },
+  "common": {
+   "constants": {
+    "cb13_common": {
+     "ACCESS_LOG": "ACCESS_LOG.jsonl",
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch13",
+      "h13_touch",
+      "h13_binance"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BATCH_HOLM_K1": 3,
+     "BY_Q": 0.1,
+     "CAPTURE_COLUMNS": [
+      "capture_id",
+      "capture_start_utc",
+      "received_utc",
+      "market_id",
+      "condition_id",
+      "event_id",
+      "closed",
+      "active",
+      "binary",
+      "best_bid",
+      "best_ask",
+      "liquidity",
+      "end_date",
+      "clob_token_id_0",
+      "neg_risk",
+      "neg_risk_market_id"
+     ],
+     "CAPTURE_DIR_RE": "^(\\d{8}T\\d{6}Z)_[0-9a-f]+$",
+     "CB13_SPORTS_IN_PRIMARY": false,
+     "CB3_FREEZE_NAME": "cb3_v1.json",
+     "CB3_STOP_RE": "(?i)\\bCB3\\b[^\\n]{0,200}\\b(?:stopped|withdrawn)\\b[^\\n]{0,200}\\bwithout (?:a )?freeze",
+     "COLLECTOR_PASS_MINUTES": [
+      31,
+      55
+     ],
+     "COPY_NAME_R": "cb13_touch_holdout_SEAL.json",
+     "COPY_NAME_T": "cb13_t_holdout_SEAL.json",
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DROPS_FILE": "drops.csv.gz",
+     "EARLY_ALPHA2": 0.01,
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "FAMILY_MODULES": {
+      "LABELLER": [
+       "cb13_label"
+      ],
+      "R": [
+       "cb13_r"
+      ],
+      "T": [
+       "cb13_t"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "LABELLER",
+      "T",
+      "R"
+     ],
+     "FAMILY_REP_TESTS": {
+      "R": [
+       "R1",
+       "R2"
+      ],
+      "T": [
+       "T1",
+       "T2",
+       "T3"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "R": [
+       "R1"
+      ],
+      "T": [
+       "T1",
+       "T2"
+      ]
+     },
+     "FORBIDDEN_CAPTURE_COLUMNS": [
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "last_trade_price",
+      "volume24hr"
+     ],
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "chg_1h",
+      "chg_1d",
+      "chg_1w",
+      "ctx_chg_1h",
+      "uma_resolution_statuses",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "closedTime"
+     ],
+     "FORBIDDEN_PRINT_FIELDS": [
+      "side",
+      "key",
+      "recv_ts",
+      "wallet_hash",
+      "wallet",
+      "proxyWallet",
+      "ctx_chg_1h",
+      "ctx_status"
+     ],
+     "FORBIDDEN_SIDECAR_COLUMNS": [
+      "uma_resolution_statuses",
+      "open_interest",
+      "volume_num"
+     ],
+     "FREEZE_PARTS": [
+      "T",
+      "R"
+     ],
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GATE_P": 0.01,
+     "GRP_DRAWS": 500,
+     "GUARDED_NAMES": [
+      "outcomes_guarded_screen.csv.gz",
+      "outcomes_guarded_holdout.csv.gz"
+     ],
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PART": "holdout",
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id"
+     ],
+     "J4R_PIN_NAME": "j4r_window.json",
+     "LIVE_ROOT_NAME": "cross_venue_live",
+     "LOOKUP_PER_REQUEST": 50,
+     "LOO_DAY_P": 0.05,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MIN_CLUSTERS": 30,
+     "MIN_UNITS": 100,
+     "MONITOR_FORBIDDEN_FILES": [
+      "alerts.jsonl",
+      "outcomes.jsonl",
+      "wallets.jsonl",
+      "stats.jsonl",
+      "state.json"
+     ],
+     "MONITOR_FORBIDDEN_RE": "^scores-\\d{8}\\.jsonl$",
+     "MONITOR_TRADES_RE": "^trades-\\d{8}\\.jsonl$",
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "OWN_SEAL_COPIES": [
+      "cb13_touch_holdout_SEAL.json",
+      "cb13_t_holdout_SEAL.json"
+     ],
+     "PARTS": [
+      "common",
+      "LABELLER",
+      "T",
+      "R"
+     ],
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "R1_signflip": 13103,
+      "T1_composition": 13101,
+      "T2_signflip": 13102
+     },
+     "PRICE_CAP": 0.99,
+     "PRINT_FIELDS": [
+      "ts",
+      "condition_id",
+      "token_id",
+      "outcome_index",
+      "price",
+      "size",
+      "cash",
+      "title",
+      "slug",
+      "ctx_event_id",
+      "ctx_market_id",
+      "ctx_category",
+      "ctx_fee_type"
+     ],
+     "PRINT_MEMORY_ONLY": [
+      "tx16"
+     ],
+     "REP_JOBS": [
+      "rep-T",
+      "rep-R"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs"
+     ],
+     "RULES_VERSION": "cb13-rules-v1",
+     "R_FIRST_END": "2024-11-01T00:00:00Z",
+     "R_HOLD_START": "2026-04-01T00:00:00Z",
+     "R_SCREEN_END": "2026-04-01T00:00:00Z",
+     "SCREEN_JOBS": [
+      "screen-T",
+      "screen-R",
+      "gti-T"
+     ],
+     "SEAL_NAME_R": "holdout_SEAL.json",
+     "SEAL_NAME_T": "t_holdout_SEAL.json",
+     "SEED_BOOT": 1313,
+     "SEED_GL": [
+      13121,
+      13122
+     ],
+     "SEED_GRP": 13123,
+     "SIDECAR_COLUMNS": [
+      "fee_type",
+      "fee_category",
+      "fees_enabled",
+      "taker_base_fee",
+      "fee_schedule",
+      "series_slugs",
+      "event_ids",
+      "created_at",
+      "order_price_min_tick_size",
+      "rewards_min_size",
+      "rewards_max_spread",
+      "clob_rewards",
+      "accepting_orders"
+     ],
+     "SMOKE_VERSION": "cb13-smoke-v1",
+     "SNAPSHOT_FILES": [
+      "rows.csv.gz",
+      "rows_ext.csv.gz",
+      "manifest.json"
+     ],
+     "STAGE1_HOLM_FAMILY": [
+      "T1",
+      "T2",
+      "R1"
+     ],
+     "STAGE2_K_MAX": 5,
+     "STAGE_ALPHA": 0.05,
+     "T13_HIST_END": "2026-10-01T00:00:00Z",
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "TS_COLUMNS": [
+      "ts",
+      "timestamp",
+      "received_utc",
+      "capture_start_utc",
+      "fetch_utc",
+      "fetched_utc",
+      "recorded_utc",
+      "start_epoch",
+      "origin_ts",
+      "t"
+     ],
+     "T_HOLD_DEFAULT_START": "2026-10-21T00:00:00Z",
+     "T_HOLD_END": "2026-10-26T00:00:00Z",
+     "T_SCREEN": [
+      "2026-10-12T00:00:00Z",
+      "2026-10-16T00:00:00Z"
+     ],
+     "T_SCREEN_CAPTURE_FROM": "2026-10-11T20:00:00Z",
+     "T_SEAL": "2026-10-22T00:00:00Z",
+     "T_SEAL_EARLIEST": "2026-10-26T08:00:00Z",
+     "UNVERIFIED": "disjointness_unverified"
+    },
+    "cb13_smoke": {
+     "MAX_REQUESTS": {
+      "R": 30,
+      "T": 0
+     },
+     "SMOKE_PARTS": [
+      "T",
+      "R"
+     ]
+    }
+   },
+   "declared": {
+    "smoke": {
+     "consequence": "a failed criterion stalls the dependent family (not testable (source), counted); no rule is re-fitted",
+     "counts_only": true,
+     "design": "family modules contribute SMOKE_NEEDS / smoke_offline / smoke_online; the orchestrator is family-agnostic",
+     "max_requests": {
+      "R": 30,
+      "T": 0
+     },
+     "t_network": false,
+     "version": "cb13-smoke-v1",
+     "write_once": true
+    }
+   },
+   "func_sources_sha256": {
+    "cb13_common.adv_label": "f6f5b4beaa1f14472e79c401e7cd6e375aaa2f9ea604ea88f8bb7ddf8cfc512d",
+    "cb13_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb13_common.block6": "60e08a08865f96e35444981c6689f1a2c9b8008d9fe593775a477e75c34b107a",
+    "cb13_common.capture_allowed": "f0cd6309634c857bbcb5e60b75a71523cd6d9c3d510618d36a205340fabc4b5c",
+    "cb13_common.capture_meta": "866e8e1d120f2dfcb0619d62073ed4bf734fbe168b48ed6781b669a3fe12b061",
+    "cb13_common.cb3_hold_lifted": "55c4342d117cd7b8f76f4167da8d7fcc19600485a73ee989884f646b0b150fbd",
+    "cb13_common.check_window": "209e4e0af63a86b55ae075d326b4090d6dd8493c7fb19aa6a480e17de5c36991",
+    "cb13_common.cluster_p": "c3dd2e35ad53a77d5e6b1f9425d82383fc64be572142e68fab3b271a0df5ff5b",
+    "cb13_common.cluster_p_block": "669f58cf1c11066e29ade17f6b7eb3b93e953607ac01f10c5e992a884f918b57",
+    "cb13_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb13_common.collector_gap_ok": "e7b0df305a6f2a2bc12869b5b8f0936e5adb89dedce4de366a6515229acf1235",
+    "cb13_common.diff_pseudo": "20af46060ba36f40286d2e96a2391a0d23c4613873ef199356ed86be8899e8a0",
+    "cb13_common.early_stage2_ok": "a9b2565ca0bd3beff3484bc66d6d7c833eac0ae69556f21a29c521f33538148a",
+    "cb13_common.ensure_source_file": "2a26fefa3cf4de7bd504a91300a9b488389dae4980f34f04147fa1d0431db236",
+    "cb13_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb13_common.guard_capture_file": "75cad26f8b48b9d6a64d3c1571c487f3bb378e8772e8fc9d0ab1838f3dea149e",
+    "cb13_common.guard_monitor_file": "a5f34589042871b9c78bdd1e82d511ebeb037825b988dbfa81bab7bd801fede8",
+    "cb13_common.guard_screen_path": "1ad082c8541b05b4a382029d1f5a52dad91f0df4bc237afa0418d5ba8bc33cd5",
+    "cb13_common.holm": "c55f3569e796a129314e981b210e9c3e78ba6422ab5608c5ea019e11190fd598",
+    "cb13_common.in_j4r": "83c7865c75a287ed320af3e8c2db3750c52981505bf214421af085dcf9dec1fc",
+    "cb13_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb13_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb13_common.iso_week_of": "ff68e893db31f9232f2c34de2a0133f8ae0c3a5d71d81e24e6e6fa0c1ae16a5b",
+    "cb13_common.iter_capture_rows": "12b4e6b6cb5d7b109e91349add37f2d9fa7f1975a5e2059e16b0b1966d5e4fd5",
+    "cb13_common.iter_prints": "1a0c6321be5a0015519a0ca8581730f0139237528a3a59058197f6bdc0f5ea79",
+    "cb13_common.iter_sidecar_rows": "0f402eeae1be954e5ad009a58bf80d01d6b193e896d44137c7366713c8633d81",
+    "cb13_common.j4r_pin": "79500340a21680bfd2e9c0c074ad691a5ce89a6925780fe8fbea9d55dbe33667",
+    "cb13_common.leave_one_out_p": "bf3ca7ee7031737db016be4870bef5daca1399f7436fba1acf102e5d607c73fb",
+    "cb13_common.list_captures": "37c4d1901a10faf25a579113c63632fe235987b88d6ab9be04c400a22c8ff09f",
+    "cb13_common.load_drops": "8a96f40cfe064634c904d1c381609efa109aa6246b2b71d2d9bb1e53c458005d",
+    "cb13_common.log_access": "2aef281b30cfd935ebcc282a96c3fa891e84b0099a47fb18c149f952cc6e5630",
+    "cb13_common.log_descriptive": "981f60723f27f87547e9785fda9b3702ab201fd90518c0dca1efbc9b5dd1aa9c",
+    "cb13_common.log_family": "658ae63ecc13d9caa0f78e6259ea7563a1122c25c46d3afd0ca50901f450d4c4",
+    "cb13_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb13_common.max_se_over_ways": "99c0f2e4ec92f6026c8748f6058015c36cb8027a2069addded17bf750227df1e",
+    "cb13_common.mde": "4cf78e323972676cbc17b87682bf2db1924927895412e8f9406635cfb2deeee5",
+    "cb13_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb13_common.ols_coef": "edf169e16cc8eda0fd6a40d4ad0ef796d1959ca9e91f87d419750a03d84b9da7",
+    "cb13_common.open_guarded": "046765dfb6e2ffd47e240c2c569a8502df12eaa9bece906411748bcc1968ef62",
+    "cb13_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb13_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb13_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+    "cb13_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb13_common.read_id_ts_columns": "4bd8518a0d06315e92da818a257bff857fb2c1c189dddda710749dffca3301a9",
+    "cb13_common.refuse_path": "57a0739d961739050329d14345f25b4f71508cb12ecb7f1b41d41ac1c0a95590",
+    "cb13_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb13_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb13_common.require_capture_allowed": "13edb328009930e956b3d92345e5afba3f959650b31a14586c2e20851dc55525",
+    "cb13_common.require_complete": "f77e2697117079e41572fa4ece99d3e504c2bece2e23b9a8db1179a95a030396",
+    "cb13_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb13_common.require_freeze": "bb297452352a961beedb823b1c204ea8c26285e01c38d484853a9a37ca0ccc94",
+    "cb13_common.require_output_root": "97e4042e0713043491e2b3305295909a9d2f678d84efc525f28257f88a83b86a",
+    "cb13_common.seal_drops": "5b29ab634aa13d4034a77106c15a00e57ebf0f500c8de5c03122c7c8bc516ef7",
+    "cb13_common.seal_listing": "b112cfff9f5e0c70ac8715410cad92424b0e215608362b46b91551adccce99c4",
+    "cb13_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb13_common.sign_flip_p_draws": "6ce83ec04d904a53a7bf980194b60fa658054439cbec90d80790d829a26ea467",
+    "cb13_common.split_bounds": "dcf9078020ff1bdce351200e835ec357d473eb4547eb2a0c0dd11819340b123b",
+    "cb13_common.stage1_holm": "0440cf91c287dc515fec0b6b789e1d0dd8b2ec11f9fc98ea587f7c3bd9903431",
+    "cb13_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb13_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb13_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb13_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb13_common.verify_dir_manifest": "91ae83e979a0ce0972d19a389d505d84ffec016c0574bd9eff0d0804feeadeab",
+    "cb13_common.verify_fetch": "f635c0f941f94b8e9a72b32fe28b5aae1c91f1bedd0d180ef75a827f57857ae4",
+    "cb13_common.verify_seal": "894afe7b0705729c4550c92d986d6b150391b395958ca009e6e4820e6d228b6d",
+    "cb13_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb13_common.whitelist_print": "12950339a9210bc46d5f24cb466638570539229141148ad21ceb1a6295bf7c8f",
+    "cb13_common.wls_coef_pseudo": "35bb344fd355d8a46aad66af4a5ea651d035026a146cbddf2671746c642b80e9",
+    "cb13_common.write_dir_manifest": "0eee9973eba7eb1b3323dacc9f0e85aaeb804f6f793c0581357944557cd78aac",
+    "cb13_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb13_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb13_smoke.collect_checks": "eaadeef9d83c94e5103027b154a162b3e3777d0858bf6bdff7066b4d9d09e271",
+    "cb13_smoke.declared": "dc91965695cb8b821686b5f0effd204d4db42b17931be0fb76360803547c92f9",
+    "cb13_smoke.family_needs": "b5b37313b36ba9c86f1189b0b72e8f5d849a6b0aec46d590a9bfef215107607f",
+    "cb13_smoke.smoke_failures": "2bf5629668cf7f40ab3fc08daae16028ed0c272c6f9d68716b48b8bd6ca18fdb"
+   },
+   "funcs_sha256": "41895d885e7cdd649313eee69fdd538d0ba05173576c2eb2a78ec7089ee032f1",
+   "part": "common",
+   "part_declared": true,
+   "rules_sha256": "51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d",
+   "rules_version": "cb13-rules-v1",
+   "wallet": {
+    "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
+    "read": false
+   }
+  }
+ },
+ "rules_version": "cb13-rules-v1"
+}

@@ -1,0 +1,40 @@
+{
+ "id": "q0271_cb13_t_frame",
+ "title": "CB13-T: exclusion keys (ids + timestamps of sealed historical sets with rows in T windows, field-restricted) and SCREEN fill table: transactions in [2026-10-12, 2026-10-16) with min/max fill price, touch from the latest complete capture row (age <= 60 min, two-sided, mid in [0.03,0.97], spread <= 10c, end >= tau+3h); print-anchored fill at the maker-adverse price, side from the touch-consistency band [a0, a0+s0] / [b0-s0, b0] (inside and inconsistent counted); stale-touch variant fields; path key; frozen labeller; features only, no mark",
+ "family": "creative_batch_13",
+ "priority": 19,
+ "expected_value": "T SCREEN population",
+ "data": [
+  "live_trades/trades-202610{12..15}.jsonl (whitelist)",
+  "snapshots/<captures starting 2026-10-11T20Z..2026-10-16T00Z>/rows.csv.gz, rows_ext.csv.gz (whitelist)",
+  "history/{h5_cb1,h5_cb1_ladders,h7_cb4_era,h7_cb4_series,h8_tail,h8_tail_b,h8_text,h8_geo} (id + timestamp columns only)",
+  "creative_batch13/labeller_audit.json"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0270_cb13_smoke_T"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "t-frame",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--split",
+  "screen",
+  "--disk-cap-gb",
+  "0.03",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/t_screen/{fills.csv.gz,labels.csv.gz,t_exclusion_keys.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0272",
+ "notes": "DRAFT. Refuses any capture/print in the J4-R window or T HOLDOUT window, and any mark capture (no forward row is read). Restores archived captures byte-for-byte if deleted from the host. mem 800 justified (section 2.8). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, LABELLER 5907eaa4ea671330364b9455b8c225771447404265dfe3176d92178a6137edb6, T bf693848928cbded61ab78f913f186865dd348075e798159e0227b7b4903998b. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

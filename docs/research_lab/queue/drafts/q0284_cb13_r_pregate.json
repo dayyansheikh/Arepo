@@ -1,0 +1,36 @@
+{
+ "id": "q0284_cb13_r_pregate",
+ "title": "CB13-R pre-fetch gate GRC, counts only, no network: SCREEN primary window components holding >= 1 market with >= 1 listed, undecided, kline-covered checkpoint (frame fields and klines before t only; no price, no outcome); < 30 -> R1 not testable (dependence), counted, and q0278 is never committed",
+ "family": "creative_batch_13",
+ "priority": 17,
+ "expected_value": "saves about 6,000-9,000 net requests if R cannot be clustered",
+ "data": [
+  "history/h13_touch/{events,members,rules_parsed}.csv.gz (no guarded file)",
+  "history/h13_binance/screen (guarded accessor: klines < t)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0277_cb13_touch_frame",
+  "q0279_cb13_binance"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "pregate",
+  "--family",
+  "R",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/pregate_R.json",
+  "trials.jsonl (cb13_descriptive; or the counted not-testable R1 line)"
+ ],
+ "next_action": "PASS: commit q0278; FAIL: R1 counted not testable (dependence)",
+ "notes": "DRAFT. Round 1 item 7. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, R 996bccf7230913c7df7a66cd676a61a7d4d40bc79f8c5a389409e9764daa9021. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

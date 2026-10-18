@@ -1,0 +1,37 @@
+{
+ "id": "q0283_cb13_rep_R",
+ "title": "CB13-R Stage 2 on the sealed HOLDOUT: R1-rep (>= 30 HOLDOUT components) and R2 (modelled-cost hold-to-resolution, 5c filter, band half-spread + 0.07 fee, Gamma payoff; p_reg placebo; +1c robustness; four cluster ways; MDE_R2 > 2c -> not run (power))",
+ "family": "creative_batch_13",
+ "priority": 16,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "history/h13_touch/holdout + holdout/outcomes_guarded_holdout.csv.gz",
+  "history/h13_binance/{screen,holdout} (seal hash verified first)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0282_cb13_screen_R"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "rep",
+  "--family",
+  "R",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--results-sha256",
+  "TODO-COORDINATOR"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/results_R_rep.json",
+  "trials.jsonl (cb13_replication + creative_batch_13:R:rep)"
+ ],
+ "next_action": "pass: Stage P-R registration draft (recorded asks)",
+ "notes": "DRAFT. Only if R1 advanced. The coordinator replaces --results-sha256 TODO-COORDINATOR with the sha256 of the committed Stage-1 results file (exit 2 while unset). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, R 996bccf7230913c7df7a66cd676a61a7d4d40bc79f8c5a389409e9764daa9021. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

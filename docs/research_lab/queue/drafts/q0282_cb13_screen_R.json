@@ -1,0 +1,35 @@
+{
+ "id": "q0282_cb13_screen_R",
+ "title": "CB13-R: R1 (market-weighted slope of Y - p_t on q_touch - p_reg, weekly primary, Binance outcome in float64; event/ISO-week/asset-week/window-component ways; component sign-flip placebo; joint stale-price check; reflection-gap attribution; reach/dip, BTC, sigma x0.8/x1.2, drift, halves, active, Gamma-outcome, top-5 robustness; Binance-Gamma agreement audit; cross-horizon implied sigma reported)",
+ "family": "creative_batch_13",
+ "priority": 16,
+ "expected_value": "R1 verdict",
+ "data": [
+  "history/h13_touch/screen + outcomes_guarded_screen.csv.gz (opened here)",
+  "history/h13_binance/screen"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0281_cb13_census_R"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "screen",
+  "--family",
+  "R",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/results_R.json",
+  "trials.jsonl (cb13_test + creative_batch_13:R n_tests=1)"
+ ],
+ "next_action": "advanced: q0283",
+ "notes": "DRAFT. Refuses before the R freeze hash, on any holdout/ path, and unless GR and GRP passed (else counted lines). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, R 996bccf7230913c7df7a66cd676a61a7d4d40bc79f8c5a389409e9764daa9021. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

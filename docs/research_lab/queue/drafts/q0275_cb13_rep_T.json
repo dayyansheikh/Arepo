@@ -1,0 +1,37 @@
+{
+ "id": "q0275_cb13_rep_T",
+ "title": "CB13-T Stage 2 on the sealed HOLDOUT (adjacent window, same regime): T1-rep (if T1 advanced), T2-rep and T3 recorded-price round trip (entry at the fill print, taker exit at the 2-4 h adverse touch, sidecar fee, +0.5c robustness; needs pooled SCREEN+HOLDOUT GTI PASS) (if T2 advanced); >= 500 fills per class used in >= 60 events else not run (power)",
+ "family": "creative_batch_13",
+ "priority": 18,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "creative_batch13/t_holdout/ (seal hash verified first; sources restored from archive if needed)",
+  "creative_batch13/t_screen/ (GTI pooling)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0274_cb13_t_holdout"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "rep",
+  "--family",
+  "T",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--results-sha256",
+  "TODO-COORDINATOR"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/results_T_rep.json",
+  "trials.jsonl (cb13_replication + creative_batch_13:T:rep)"
+ ],
+ "next_action": "pass: Stage P-T registration draft",
+ "notes": "DRAFT. Refuses before T13_T_rep = max(seal copy commit, CB3 freeze commit or its ledger stop record) (round 1 item 3). Only for triggered tests; alpha/5 if early, full Stage-2 Holm once. The coordinator replaces --results-sha256 TODO-COORDINATOR with the sha256 of the committed Stage-1 results file (exit 2 while unset). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, LABELLER 5907eaa4ea671330364b9455b8c225771447404265dfe3176d92178a6137edb6, T bf693848928cbded61ab78f913f186865dd348075e798159e0227b7b4903998b. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

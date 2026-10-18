@@ -237,6 +237,21 @@ KIND_RULES: dict[str, tuple[str, str]] = {
         "CB12 descriptive lines (smoke, exclusion keys, census, gates GM/GMP/GE/GEP/GAL/GSH/GS15/GFP/GX/GO, coverage audits, strata, variants, the CH103 "
         "hidden-book census); no inference, not a test.",
     ),
+    "cb13_test": (
+        EXCLUDE,
+        "CB13 Stage-1 per-test lines (T1, T2, R1); the tests are the n_tests of the 'creative_batch_13:T|R' ml_explain count lines, counted there. "
+        "Placebo lines count 0.",
+    ),
+    "cb13_replication": (
+        EXCLUDE,
+        "CB13 Stage-2 per-test lines (T1-rep, T2-rep, T3, R1-rep, R2); counted by the n_tests of the matching 'creative_batch_13:<family>:rep' "
+        "ml_explain line. Placebo lines count 0.",
+    ),
+    "cb13_descriptive": (
+        EXCLUDE,
+        "CB13 descriptive lines (smoke, labeller audit, census, gates GT/GL/GTP/GTI/GR/GRC/GRP, strata incl. SPORTS-FEED and SCHEDULED-EVENT, variants, "
+        "pregate counts, cross-horizon implied sigma, Binance-Gamma agreement audit); no inference, not a test.",
+    ),
     "history_cross_venue": (
         ONE,
         "each line is one analysis x subset/revision result with its own p / BY entry (82 lines); "

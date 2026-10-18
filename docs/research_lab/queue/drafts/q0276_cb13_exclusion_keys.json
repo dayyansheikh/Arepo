@@ -1,0 +1,49 @@
+{
+ "id": "q0276_cb13_exclusion_keys",
+ "title": "CB13-R: exclusion keys = CB11 q0221 key file + id columns of h9_flow, h10_*, h11_*, every CB12 frame (h12_say, h12_quake, h12_prints, live frames), CB8/CB9 frames + seal copies; Gamma lookups for missing event/negRisk/series keys; barrier-overlap list by asset and window",
+ "family": "creative_batch_13",
+ "priority": 17,
+ "expected_value": "disjointness of R",
+ "data": [
+  "creative_batch11/exclusion_keys.csv.gz",
+  "history/*/ (id columns only)",
+  "docs/research_lab/seals/*",
+  "public Gamma (ids)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0285_cb13_smoke_R",
+  "q0221_cb11_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "exclusion-keys",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40",
+  "--base-sha256",
+  "TODO-COORDINATOR"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch13/exclusion_keys.csv.gz",
+  "manifest.json (absent_at_q0276 list)"
+ ],
+ "next_action": "q0277",
+ "notes": "DRAFT. >2% missing metadata -> disjointness unverified (R1 not testable, counted). Exit 75 on headroom = pending. The coordinator replaces --base-sha256 TODO-COORDINATOR with sha256sum of the host's creative_batch11/exclusion_keys.csv.gz after CB11 q0221 completes (exit 2 while unset). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, R 996bccf7230913c7df7a66cd676a61a7d4d40bc79f8c5a389409e9764daa9021. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "repeat": {
+  "max_runs": 3,
+  "until_log_regex": "\"status\": \"(exclusion_keys_complete|disjointness_unverified)\""
+ }
+}

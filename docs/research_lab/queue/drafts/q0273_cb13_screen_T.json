@@ -1,0 +1,36 @@
+{
+ "id": "q0273_cb13_screen_T",
+ "title": "CB13-T: gate GTI (print-based move from P), then T1 (LOW - NEWS 2-4 h mark-out from the fill print; event, path key x 6h block and 6h block ways; pre-fill and composition placebos; age<=20m, 6-8 h, adverse-touch mark, >=$10k, side, event-weighted, staleness-share, top-5, leave-one-day-out p<0.05; attribution) and T2 (LOW mid-marked maker net; sign-flip and pre-fill placebos; age, 6-8 h, components, worst-case robustness) on SCREEN",
+ "family": "creative_batch_13",
+ "priority": 19,
+ "expected_value": "T verdicts and the class map",
+ "data": [
+  "creative_batch13/t_screen/",
+  "snapshots/ (mark captures starting before 2026-10-16T00:00Z only)",
+  "live_trades/trades-202610{12..15}.jsonl (GTI print-based moves)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0272_cb13_census_T"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "screen",
+  "--family",
+  "T",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/results_T.json",
+  "trials.jsonl (cb13_test + creative_batch_13:T n_tests=2)"
+ ],
+ "next_action": "commit results; advanced: q0275 after the q0274 seal and CB3's freeze",
+ "notes": "DRAFT. Refuses before the T freeze hash; refuses unless GT, GL, GTP passed (else counted lines). Every line labelled 'L1, worn captures, new statistic'; T2 also 'upper bound (free exit)'. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, LABELLER 5907eaa4ea671330364b9455b8c225771447404265dfe3176d92178a6137edb6, T bf693848928cbded61ab78f913f186865dd348075e798159e0227b7b4903998b. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

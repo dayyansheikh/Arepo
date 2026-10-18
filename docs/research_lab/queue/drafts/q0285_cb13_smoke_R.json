@@ -1,0 +1,36 @@
+{
+ "id": "q0285_cb13_smoke_R",
+ "title": "CB13-R smoke (R rules part hash; refusals: klines >= t and holdout/ in census mode, outcomePrices outside guarded files; tag-21 one-day walk on 2 out-of-window days; rule parser and flags on 3 out-of-window weekly barrier events; prices-history bounds on 2; Binance HEAD+CHECKSUM+parse for one 2024 and one 2025 month, ms->us timestamp change); counts only",
+ "family": "creative_batch_13",
+ "priority": 17,
+ "expected_value": "go/no-go for every CB13 source",
+ "data": [
+  "public Gamma, CLOB prices-history",
+  "data.binance.vision"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, clob, data.binance.vision"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb13.py",
+  "smoke",
+  "--part",
+  "R",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--rps",
+  "1"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch13/smoke_R.json",
+  "trials.jsonl (cb13_descriptive)"
+ ],
+ "next_action": "PASS: q0276; FAIL: R1 not testable (source), counted",
+ "notes": "CREATIVE_BATCH_13.md CB13-S. DRAFT. <= 30 requests (round 1 item 11). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, R 996bccf7230913c7df7a66cd676a61a7d4d40bc79f8c5a389409e9764daa9021. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

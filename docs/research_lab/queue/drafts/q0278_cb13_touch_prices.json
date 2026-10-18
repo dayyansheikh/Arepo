@@ -1,0 +1,46 @@
+{
+ "id": "q0278_cb13_touch_prices",
+ "title": "CB13-R: CLOB prices-history per weekly primary barrier member, fidelity 60 in <= 14-day bounded chunks over [max(createdAt, window start - 1 d), window end]; a point is usable from stamp + 3600 s; HOLDOUT rows to holdout/",
+ "family": "creative_batch_13",
+ "priority": 15,
+ "expected_value": "R prices",
+ "data": [
+  "public CLOB prices-history",
+  "history/h13_touch/members.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "clob"
+ },
+ "depends_on": [
+  "q0284_cb13_r_pregate"
+ ],
+ "argv": [
+  "scripts/run_cb13.py",
+  "touch-prices",
+  "--rules",
+  "../docs/research_lab/seals/cb13_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.03",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "110"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 2,
+ "outputs": [
+  "history/h13_touch/{screen,holdout}/prices.csv.gz",
+  "manifest.json"
+ ],
+ "next_action": "q0280",
+ "notes": "DRAFT. Committed only after q0284 PASS (round 1 item 7). <= 12,000 requests = sum of ceil(span/14 d) over weekly members from q0277's manifest (planning 6,000-9,000). Resumable; incomplete = pending. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, R 996bccf7230913c7df7a66cd676a61a7d4d40bc79f8c5a389409e9764daa9021. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"(touch_prices_complete|stalled)\""
+ }
+}
