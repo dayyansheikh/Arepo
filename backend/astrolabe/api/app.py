@@ -19,6 +19,7 @@ from .deps import get_service, init_storage
 from .routes import cohorts as cohort_routes
 from .routes import health as health_routes
 from .routes import historical as historical_routes
+from .routes import lab as lab_routes
 from .routes import markets, meta, opportunity, overview, replay, signals
 from .routes import research as research_routes
 from .routes import signals_scan as signals_scan_routes
@@ -110,6 +111,7 @@ def create_app() -> FastAPI:
     app.include_router(research_routes.router)
     app.include_router(signals_scan_routes.router)
     app.include_router(opportunity.router)
+    app.include_router(lab_routes.router)
 
     # Account system (native fastapi-users auth + preferences/saved/history). See DECISIONS P3.
     from ..accounts.router import account_router, auth_router
