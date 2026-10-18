@@ -1535,3 +1535,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Coordinator: sample pins measured read-only on the host (h2_main `77a15bd9…`, h3_power `f8e1a7bb…`); C1/T5 id lists
   being extracted from release `data-20261013-research-lab` (hash-verified against its `files.sha256`). Fixes being
   implemented; nothing promoted yet.
+
+## CB13 drafted (98a00e6) and challenger round 1, 2026-10-18 (design only, not counted)
+- `CREATIVE_BATCH_13.md` from round 6: **CB13-T** (CH128, maker mark-out by frozen resolution class, host files only)
+  and **CB13-R** (CH118, barrier-versus-terminal on crypto "reach/dip" ladders, own Binance fetch). CH119 deferred
+  (census: about 74 eligible markets after CB2-W and CB12-E keys). k = 3 fixed + up to 5 conditional; count 1,181 now.
+  Probes contradicted three round-6 premises (no CB8-B Binance archive; captures carry no question text; the monitor's
+  alerts are the `uf_*` rules, not `sm_learned`).
+- **Challenger round 1: T REVISE, R REVISE.** Main challenge: T's paper fill against a capture touch up to 60 min old
+  measures staleness, not toxicity (fill must anchor on the print). Also: T HOLDOUT captures from 10-20T22Z sit inside
+  J4-R `[10-16,10-21)`; T HOLDOUT mark-outs wait for the CB3 freeze (CB3 dev window counts-only); add a series x block
+  way; R needs same-asset overlapping-window components, nested placebo latents, kline coverage from min T0, and a
+  >= 30-component gate before the large fetch. Response round in progress.
