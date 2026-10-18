@@ -392,13 +392,16 @@
       "ts",
       "p"
      ],
+     "SMOKE_FAMILY_VERSION": "cb12-smoke-M-v2",
+     "SMOKE_MIN_TRADED": 2,
      "SMOKE_NEEDS": [
       "guards_fixture_M",
       "m_gamma_paging",
       "m_events_tags",
-      "m_prices_history",
+      "m_prices_history_v2",
       "m_data_api_reach"
      ],
+     "SMOKE_POOL": 4,
      "SMOKE_WEEKS": [
       [
        "2025-05-05T00:00:00Z",
@@ -1009,6 +1012,18 @@
      ],
      "outcomes": "guarded SCREEN and HOLDOUT files (separate); unclean members 0.5 (worst case 1)",
      "rep": "applies the seal's DROPPED_* rows (baskets with a dropped member are dropped whole; drops.csv.gz sha256 must equal the seal's) and gives M1-rep the t-24h units; Stage 2 is strict p < alpha / k",
+     "smoke_v2": {
+      "min_traded": 2,
+      "needs": [
+       "guards_fixture_M",
+       "m_gamma_paging",
+       "m_events_tags",
+       "m_prices_history_v2",
+       "m_data_api_reach"
+      ],
+      "pool": 4,
+      "version": "cb12-smoke-M-v2"
+     },
      "sports": {
       "broadcast_regex": "(?i)\\b(announcers?|commentators?|broadcast|halftime|pre-?game|post-?game|game|Super Bowl|World Series|NFL|NBA|WNBA|MLB|NHL|UFC|F1|Formula 1|Premier League|Champions League)\\b",
       "in_primary": false,
@@ -1623,7 +1638,7 @@
     "cb12_m.clusters_of": "2f8bd6ee57b28b7601989757b8af035b89f20603a134e3c3976fbc6324990be3",
     "cb12_m.copula_flat": "a0a323226c4661fb2fb04e8c28fd6295aeb9869de278e23c232d7cba93b73fb0",
     "cb12_m.d_values": "991c36a130c38e07474a6690bedfd871aeb964ca2fa4304adcda1a98d934462e",
-    "cb12_m.declared": "7d973c0c469f8e2730990ff2fe54ba591242e488c7a264505699e7aec8e229a7",
+    "cb12_m.declared": "790b802add229f2db9017fb4e50bacac5971f8b94e3b1598281b2ae5392ab30c",
     "cb12_m.drop_top": "d80fb44e23b1b58536af01f8b41cb2a066b2ddd0569735bab23a7460609b0315",
     "cb12_m.event_status": "acf91a86903c866292fc635612e41370e301ad6c660ecacc399110a80d8f912b",
     "cb12_m.event_values": "c0c9a0a54b40da1126ab56bddb18462556f366d05d37bd46dd9b9c37c95c2be4",
@@ -1659,7 +1674,7 @@
     "cb12_m.screen_m": "950017a29e66d71f1d798570494fb27b40abab32e4ad24664fc3c04258e22885",
     "cb12_m.seal_rows": "190adef2167ca9c5f6abeaaa7032cd407a658d1a9365acd0d30307e25c3c1ecc",
     "cb12_m.smoke_offline": "de45096b39ad717834f8c6d3f71b8875fbaab29cbfc19144ed4f1077cd244bd6",
-    "cb12_m.smoke_online": "6ba3fbdbeb60041f92181cf77d66f915439ca699deee55a4e2f63397ed5604a0",
+    "cb12_m.smoke_online": "e9073ed123283eaebf80e5f7adbc5b63868781cd652afa245ebdc55aa3811634",
     "cb12_m.speaker_key": "e422954647f24d1541694b24051665e02d16e2af322563b8b78500194f5b3938",
     "cb12_m.split_of": "09c0a3dce92c94fddf4f468101e3c06d56610a39ee1f918375fe3a480a2acef9",
     "cb12_m.sports_tag_keys": "df93662c23be9c2fbd6e6f02a4f85917cab27d201afbf7d3efe330b801948db3",
@@ -1667,10 +1682,10 @@
     "cb12_m.tx_rows_for": "3b7507517f47ecc88c8fe66433606734ca2d15447eb4c3ee0062b0f28f3c9df4",
     "cb12_m.walk_window": "5ba2be6009ba2358fee6fe4615c77561eadad90cc76c15c5dba917558762e817"
    },
-   "funcs_sha256": "eb656a6c92f05026e0cdbe19eea9efb96f3adfecc97e5179fd96d070789d9b26",
+   "funcs_sha256": "52f65a4f8d14052c453291812c196c033c9ebd2dea93c1d470e832ef1f080bfd",
    "part": "M",
    "part_declared": true,
-   "rules_sha256": "8b72053cc13a64c99a9f4259d1a5e32e4c3589e7c1e428e7d63b75076bd032d4",
+   "rules_sha256": "e3a3b4783ced27dc312b7b2b676dce7c23e9f0af0d3cd98a1c334ed58de61d32",
    "rules_version": "cb12-rules-v1",
    "wallet": {
     "note": "no CB12 job reads or stores a wallet field, a transaction hash, or the Data API side field",

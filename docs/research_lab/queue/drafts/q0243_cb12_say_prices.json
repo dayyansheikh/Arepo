@@ -38,7 +38,7 @@
   "manifest.json"
  ],
  "next_action": "q0248 (M seal)",
- "notes": "DRAFT. Streams markets_partial.jsonl (ids only in memory; mem_mb 400). A member that kept failing after 3 attempts is 'unavailable (network)', not 'unavailable (source)'. <= 51,000 requests (planning about 35,000; about 5-7 h). No outcome read; no wallet, hash, name or side stored. Resumable; incomplete = pending, never analysed partially. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M 8b72053cc13a64c99a9f4259d1a5e32e4c3589e7c1e428e7d63b75076bd032d4. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "notes": "DRAFT. Streams markets_partial.jsonl (ids only in memory; mem_mb 400). A member that kept failing after 3 attempts is 'unavailable (network)', not 'unavailable (source)'. <= 51,000 requests (planning about 35,000; about 5-7 h). No outcome read; no wallet, hash, name or side stored. Resumable; incomplete = pending, never analysed partially. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M e3a3b4783ced27dc312b7b2b676dce7c23e9f0af0d3cd98a1c334ed58de61d32. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
  "repeat": {
   "max_runs": 5,
   "until_log_regex": "\"status\": \"(say_prices_complete|not_run_source|disjointness_unverified|upstream_not_testable)\""

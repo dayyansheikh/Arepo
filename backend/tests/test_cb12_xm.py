@@ -1090,22 +1090,56 @@ def test_m_and_x_smoke_offline_fixtures():
     assert x12.smoke_online(None, {}) == {}
 
 
-def test_m_smoke_online_with_a_fake_network():
-    net = FakeNet(n_screen=4, n_hold=0)
+def _m_smoke_net(untraded: int = 0):
+    """Fake network for the M smoke: the first ``untraded`` examined members have no Data API print in [start - 26 h, start) (an in-event print only)."""
+    net = FakeNet(n_screen=6, n_hold=0)
+    start = datetime(2025, 5, 6, 12, tzinfo=UTC).timestamp()
+    seen: list[str] = []
 
     def lim_net(url, params):
         if url == c12.GAMMA_EVENTS:  # the two out-of-window weeks of 2025-05: re-date the fixture events into them
             evs = [dict(e, startTime="2025-05-06T12:00:00Z", endDate="2025-05-06T15:00:00Z") for e in net.events]
             return 200, json.dumps(evs).encode(), {}
         if url == hb.DATA_TRADES:
-            return 200, json.dumps([_print(1, 0.4, 1, 0, "h")]).encode(), {}
+            cid = params["market"]
+            if cid not in seen:
+                seen.append(cid)
+            idx = seen.index(cid)
+            ts = start + 600 if idx < untraded else start - 3600  # in-event print vs a pre-start print
+            return 200, json.dumps([_print(ts, 0.4, 1, 0, "h")]).encode(), {}
         return net(url, params)
 
-    lim = hb.Limiter(lim_net, rps=1000.0, sleep=NOSLEEP)
-    out = m12.smoke_online(lim, {})
-    assert out["m_gamma_paging"]["pass"] and out["m_prices_history"]["pass"] and out["m_data_api_reach"]["pass"], out
+    return hb.Limiter(lim_net, rps=1000.0, sleep=NOSLEEP)
+
+
+def test_m_smoke_online_with_a_fake_network():
+    out = m12.smoke_online(_m_smoke_net(), {})
+    assert out["m_gamma_paging"]["pass"] and out["m_prices_history_v2"]["pass"] and out["m_data_api_reach"]["pass"], out
+    assert "m_prices_history" not in out and out["m_prices_history_v2"]["n_traded_pre_start"] == m12.SMOKE_POOL
     bad = hb.Limiter(lambda u, p: (200, b"[]", {}), rps=1000.0, sleep=NOSLEEP)
     assert not m12.smoke_online(bad, {})["m_gamma_paging"]["pass"]
+
+
+def test_m_smoke_v2_gates_the_source_not_member_liquidity():
+    """Smoke v1 failed because one of 2 picks had no pre-start trade (status 200, 0 points). v2: untraded members are not required to have points; >= 2 traded members are."""
+    out = m12.smoke_online(_m_smoke_net(untraded=1), {})["m_prices_history_v2"]
+    assert out["pass"] and out["n_traded_pre_start"] == m12.SMOKE_POOL - 1 and sum(1 for v in out["per"].values() if not v["traded_pre_start"]) == 1
+    few = m12.smoke_online(_m_smoke_net(untraded=m12.SMOKE_POOL - 1), {})["m_prices_history_v2"]
+    assert few["pass"] is False and few["n_traded_pre_start"] == 1  # fewer than 2 members with pre-start trading: the gate cannot test the source
+
+
+def test_m_reads_the_latest_smoke_and_v1_stays_the_record_for_x(tmp_path):
+    v1, v2 = tmp_path / "smoke.json", tmp_path / "smoke_M_v2.json"
+    crit_v1 = dict.fromkeys((*x12.SMOKE_NEEDS, "guards_fixture_M", "m_gamma_paging", "m_events_tags", "m_data_api_reach"), True) | {"m_prices_history": False}
+    v1.write_text(json.dumps({"smoke_version": c12.SMOKE_VERSION, "criteria": crit_v1}))
+    assert sm.smoke_failures([v1], m12.SMOKE_NEEDS) == ["m_prices_history_v2"]  # v1 alone cannot clear M (the amended criterion exists only in v2)
+    assert sm.smoke_failures([v1], x12.SMOKE_NEEDS) == []
+    v2.write_text(json.dumps({"smoke_version": c12.SMOKE_VERSION, "criteria": dict.fromkeys(m12.SMOKE_NEEDS, True)}))
+    assert sm.smoke_failures([v1, v2], m12.SMOKE_NEEDS) == [] and "m_prices_history" not in m12.SMOKE_NEEDS
+    assert m12.SMOKE_V2_DEFAULT.name == "smoke_M_v2.json"
+    ns = type("A", (), {"smoke": None})()
+    assert [p.name for p in run_cb12._smoke_paths(ns, "M")] == ["smoke.json", "smoke_M_v2.json"] and [p.name for p in run_cb12._smoke_paths(ns, "X")] == ["smoke.json"]
+    assert run_cb12._smoke_paths(type("A", (), {"smoke": "x.json"})(), "M") == [Path("x.json")]
 
 
 def test_smoke_criteria_merge_and_failures(tmp_path):

@@ -369,7 +369,7 @@ def attn_frame(hist_root: Path, transport, wiki_transport, *, rules_sha: str, sm
                                                                                           "excluded_capped_window": sum(r["excluded_capped_window"] for r in recs), "wiki_requests": len(cache)},
                "n_sample": len(rows_out), "n_audit": len(audit), "counts_by_split": dict(Counter(f"{r['stratum']}|{r['split']}" for r in rows_out)),
                "events": {sp: len({r["event_key"] for r in rows_out if r["split"] == sp}) for sp in ("screen", "holdout")}}
-        fr.budget.write(rdir / "split.json", json.dumps({"seeds": {"sample": SEED_SAMPLE, "novol": SEED_NOVOL, "split": SEED_SPLIT, "audit": SEED_AUDIT}, "report": rep,
+        fr.budget.write(rdir / "split.json", json.dumps({"seeds": {"sample": SEED_SAMPLE, "novol": SEED_NOVOL, "split": SEED_SPLIT, "audit": SEED_AUDIT}, "origin_lag_days": sm.smoke_origin_lag_days(smoke_path), "report": rep,
                                                          "events": {r["event_key"]: r["split"] for r in rows_out}}, indent=1, sort_keys=True, default=float).encode())
         fr.record_file(rdir / "split.json")
         pp.unlink(missing_ok=True)
@@ -610,9 +610,14 @@ def load_markets(rdir: Path) -> dict[str, dict]:
 # =====================================================================================================================================
 
 
-def pageview_usable(x_day: int, t: float) -> bool:
-    """Day X (UTC day number) is usable at ``t >= X + 1 d + 48 h``."""
-    return bool(t >= day_epoch(x_day) + DAY + 48 * HOUR)
+def pageview_usable(x_day: int, t: float, lag_days: int = PV_LAG_DAYS) -> bool:
+    """Day X (UTC day number) is usable at ``t >= X + 1 d + 48 h`` (``lag_days`` 3), or ``X + 1 d + 72 h`` if the smoke's ``wiki_lag`` failed (``lag_days`` 4; design 2.2)."""
+    return bool(t >= day_epoch(x_day) + DAY + (lag_days - 1) * DAY)
+
+
+def rdir_lag_days(rdir: Path) -> int:
+    """The origin lag recorded by q0227 from the smoke (3, or 4 after a ``wiki_lag`` fail); 3 for a split file without the key."""
+    return int(json.loads((Path(rdir) / "split.json").read_text()).get("origin_lag_days", PV_LAG_DAYS))
 
 
 def pv_attention(series: dict[int, int], x_day: int, first_nz: int | None) -> dict | None:
@@ -646,7 +651,7 @@ def block_of(t: float) -> int:
     return int(math.floor((t - _ep(BLOCK_ORIGIN)) / (3 * DAY)))
 
 
-def candidate_units(frame: list[dict], pv: dict[str, dict[int, int]], txl: Callable[[str], tuple | None]) -> tuple[list[dict], dict]:
+def candidate_units(frame: list[dict], pv: dict[str, dict[int, int]], txl: Callable[[str], tuple | None], lag_days: int = PV_LAG_DAYS) -> tuple[list[dict], dict]:
     """Market-day candidates WITHOUT any forward value: pageview rules, listing, P_end(X), P_end(X-1), the move M, the attention cell, the origin, the end / open
     conditions. The targets are attached only by :func:`attach_targets` (never called by the census)."""
     units, c = [], Counter()
@@ -659,7 +664,7 @@ def candidate_units(frame: list[dict], pv: dict[str, dict[int, int]], txl: Calla
         first_nz = min((d for d, v in (series or {}).items() if v > 0), default=None)
         for x in range(day_int(_ep(X_WINDOW[0])), day_int(_ep(X_WINDOW[1])) + 1):
             xs = day_epoch(x)
-            t = xs + PV_LAG_DAYS * DAY
+            t = xs + lag_days * DAY
             if not (math.isfinite(start) and start <= xs - LISTED_BEFORE_D * DAY):
                 c["not_listed"] += 1
                 continue
@@ -925,7 +930,7 @@ def census_a(rdir: Path, labels_path: Path, *, is_committed: Callable[[Path], bo
     pv = load_pageviews(rdir, "screen", job="census")
     txl = tx_loader(rdir, "screen", job="census")
     mk = load_markets(rdir)
-    units, cnt = candidate_units([r for r in frame if r["stratum"] == "vol"], pv, txl)
+    units, cnt = candidate_units([r for r in frame if r["stratum"] == "vol"], pv, txl, rdir_lag_days(rdir))
     big = [u for u in units if u["big"]]
     cells = {c: {"big": sum(1 for u in units if u["cell"] == c and u["big"]), "small": sum(1 for u in units if u["cell"] == c and not u["big"])} for c in ("spike", "middle", "quiet")}
     nq = [u for u in big if u["cell"] == "quiet"]
@@ -976,7 +981,7 @@ def _units(rdir: Path, split: str, job: str) -> tuple[list[dict], dict]:
     frame = read_frame(rdir, split, job=job)
     pv = load_pageviews(rdir, split, job=job)
     txl = tx_loader(rdir, split, job=job)
-    cand, cnt = candidate_units(frame, pv, txl)
+    cand, cnt = candidate_units(frame, pv, txl, rdir_lag_days(rdir))
     elig = [u for u in cand if u["big"]]
     full = attach_targets(elig, txl)
     return full, {"candidate_units": len(cand), "big_units": len(elig), "unavailable_counts": cnt}
@@ -1034,7 +1039,7 @@ def seal_rows(rdir: Path) -> list[dict]:
 
 def declared() -> dict:
     return {"windows": {"end": list(END_WINDOW), "life": list(LIFE_WINDOW), "x": list(X_WINDOW), "tx": list(TX_WINDOW), "pageviews": [PV_START, PV_END], "block_origin": BLOCK_ORIGIN},
-            "min_overlap_d": MIN_OVERLAP_D, "listed_before_d": LISTED_BEFORE_D, "origin_lag_days": PV_LAG_DAYS, "pageview_rules": {"baseline_min": PV_BASE_MIN, "history_d": PV_HISTORY_D, "days_present": "X-8..X"},
+            "min_overlap_d": MIN_OVERLAP_D, "listed_before_d": LISTED_BEFORE_D, "origin_lag_days": PV_LAG_DAYS, "origin_lag_days_if_wiki_lag_failed": 4, "pageview_rules": {"baseline_min": PV_BASE_MIN, "history_d": PV_HISTORY_D, "days_present": "X-8..X"},
             "thresholds": {"spike": SPIKE, "quiet": QUIET, "spike_robust": list(SPIKE_ROBUST), "big": BIG, "big_robust": BIG_ROBUST}, "target_s": [TARGET_S, TARGET_ROBUST_S],
             "end_ahead_s": END_AHEAD_S, "costs": {"half_spread": HALF_SPREAD, "half_spread_robust": HALF_SPREAD_ROBUST, "fee_r_min": FEE_R_MIN},
             "floors": {"a1": A1_FLOOR, "a2": A2_FLOOR, "attr": ATTR_MIN, "notional_min": NOTIONAL_MIN}, "sample": {"n": N_SAMPLE, "novol": N_NOVOL, "per_event": MAX_PER_EVENT, "audit": N_AUDIT,
@@ -1046,5 +1051,5 @@ def declared() -> dict:
 
 def rule_funcs() -> tuple:
     return (day_int, entity_candidate, wiki_title, wiki_summary, overlap_days, attn_record, walk_day, accept_sequential, attn_frame, read_audit_labels, audit_ids_of, parse_pageviews,
-            pageview_url, attn_data, read_frame, load_pageviews, tx_loader, pageview_usable, pv_attention, lag_attention, cell_of, block_of, candidate_units, attach_targets, _last_in,
+            pageview_url, attn_data, read_frame, load_pageviews, tx_loader, pageview_usable, rdir_lag_days, pv_attention, lag_attention, cell_of, block_of, candidate_units, attach_targets, _last_in,
             ways_of, delta_core, sel, label_swap_placebo, _delta_only, a1_stat, fee_a, a2_net, a2_stat, mde, census_a, _units, _availability, screen_a, rep_a, seal_rows, declared)

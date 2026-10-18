@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import datetime as dt_
 import json
 import sys
 from pathlib import Path
@@ -230,6 +231,41 @@ def test_wiki_lag_rule_fails_when_newest_day_is_older_than_48h():
     for age, ok in ((1, True), (4, False)):
         lim = hb.Limiter(tr(age), rps=1000.0, live_check=None, sleep=lambda s: None)
         assert sm.smoke_wiki_lag(lim, now)["pass"] is ok
+
+
+def _gamma_world(by_week, status=200):
+    """Transport answering Gamma /markets by week start (the end_date_min date); ``by_week`` maps 'YYYY-MM-DD' to market dicts."""
+    calls = []
+
+    def tr(url, params):
+        calls.append(params.get("end_date_min"))
+        return status, json.dumps(by_week.get(str(params.get("end_date_min"))[:10], [])).encode(), {}
+
+    return tr, calls
+
+
+def _mk(cid, life_days, ntok=2):
+    return {"id": cid, "conditionId": cid, "clobTokenIds": json.dumps([f"{cid}a", f"{cid}b"][:ntok]), "startDate": "2024-01-01T00:00:00Z",
+            "endDate": (dt_.datetime(2024, 1, 1, tzinfo=dt_.UTC) + dt_.timedelta(days=life_days)).strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+
+
+def test_long_life_picks_search_is_bounded_deterministic_and_reports_no_picks():
+    ends = dt_.datetime(2024, 6, 24, tzinfo=dt_.UTC)
+    wk = lambda i: (ends - dt_.timedelta(days=7 * (i + 1))).strftime("%Y-%m-%d")  # noqa: E731
+    tr, calls = _gamma_world({wk(0): [_mk("s1", 50)], wk(1): [_mk("l1", 150), _mk("l2", 200)], wk(2): [_mk("l3", 300)]})
+    lim = hb.Limiter(tr, rps=1000.0, live_check=None, sleep=lambda s: None)
+    res = sm.smoke_long_life_picks(lim)
+    assert res["pass"] and res["n_picks"] == sm.PRICE_MARKETS and len(calls) == 2  # stops as soon as 2 long-life markets are in the pool
+    assert [s_["long_life"] for s_ in res["scanned"]] == [0, 2]
+    assert {m["cid"] for m in res["markets"]} <= {"l1", "l2"}
+    assert sm.smoke_long_life_picks(hb.Limiter(_gamma_world({wk(1): [_mk("l1", 150), _mk("l2", 200)]})[0], rps=1000.0, live_check=None, sleep=lambda s: None))["markets"] == res["markets"]
+    tr0, calls0 = _gamma_world({})
+    none = sm.smoke_long_life_picks(hb.Limiter(tr0, rps=1000.0, live_check=None, sleep=lambda s: None))
+    assert none["pass"] is False and none["reason"] == "no_picks" and len(calls0) == sm.PICK_MAX_WEEKS
+    lim0 = hb.Limiter(tr0, rps=1000.0, live_check=None, sleep=lambda s: None)
+    for fn in (sm.smoke_prices_history, sm.smoke_data_api):
+        assert fn(lim0, []) == {"per": {}, "pass": False, "reason": "no_picks"}
 
 
 def test_smoke_cli_transient_status_is_pending_not_a_write_once_fail(tmp_path, capsys, rules_file, monkeypatch):

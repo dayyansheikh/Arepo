@@ -7,6 +7,10 @@ ids on repeat; ``prices-history`` returns a point within 24 h of ``end - 90 d`` 
 out-of-window markets; the Wikipedia summary returns ``type`` for 3 fixed articles; the pageviews' last published day is <= 48 h old; a Gamma ``closed=false``
 window count parses; the Managed OOV2 address pin attempt is recorded (it gates nothing for Stage 1). No market value, price or outcome is stored: counts,
 booleans and the ids' hashes only.
+
+Amendment 2026-10-18 (engineering gate, outcome-blind): the price / Data API picks come from a bounded out-of-window search for long-life markets (``smoke_long_life_picks``;
+the 2024-05 paging weeks contain none), an empty pick list fails those criteria with ``reason: no_picks``, and ``wiki_lag`` does not gate A (its declared consequence is a 72 h
+lag and origin X + 4 d, ``smoke_origin_lag_days``).
 """
 
 from __future__ import annotations
@@ -29,6 +33,10 @@ SMOKE_VERSION = c11.SMOKE_VERSION
 POL_WEEKS = (("2024-05-06T00:00:00Z", "2024-05-13T00:00:00Z"), ("2024-05-13T00:00:00Z", "2024-05-20T00:00:00Z"))
 POL_TAG_ID = 2
 PRICE_LIFE_DAYS = 100
+# Out-of-window weeks (all ends before P's earliest SCREEN end 2024-07-01) scanned in this order, newest first, until PRICE_MARKETS long-life markets are found: the paging
+# weeks above are a stability test only and need not contain a market with life >= PRICE_LIFE_DAYS (amendment of 2026-10-18, outcome-blind; see CREATIVE_BATCH_11.md CB11-F).
+PICK_END = "2024-06-24T00:00:00Z"
+PICK_MAX_WEEKS = 8
 PRICE_MARKETS = 2
 DATA_API_MARKETS = 2
 DATA_API_PAGES = 2
@@ -41,9 +49,13 @@ OOV2_URL = "https://raw.githubusercontent.com/UMAprotocol/protocol/master/packag
 OOV2_NAME = "ManagedOptimisticOracleV2"
 CENSOR_WINDOW = ("2025-09-15T12:00:00Z", "2025-09-15T12:15:00Z")
 SMOKE_SEED = "arepo-cb11-smoke"
+# A does not need ``wiki_lag``: its failure has the declared consequence "lag 72 h and origin X + 4 d" (design 2.2), applied by A's jobs through ``smoke_origin_lag_days``;
+# ``wiki_pageviews`` (the pageviews endpoint returned a newest day at all) is the source criterion A does need.
 FAMILY_NEEDS = {"W": ("w_frames", "w_loader", "w_censor_window"), "W_prints": ("w_frames", "w_loader", "data_api_reach"),
-                "P": ("gamma_pol_paging", "prices_history", "data_api_reach"), "A": ("wiki_summary", "wiki_lag", "data_api_reach")}
-CRITERIA = ("w_frames", "w_loader", "gamma_pol_paging", "prices_history", "data_api_reach", "wiki_summary", "wiki_lag", "w_censor_window")
+                "P": ("gamma_pol_paging", "prices_history", "data_api_reach"), "A": ("wiki_summary", "wiki_pageviews", "data_api_reach")}
+CRITERIA = ("w_frames", "w_loader", "gamma_pol_paging", "prices_history", "data_api_reach", "wiki_summary", "wiki_pageviews", "wiki_lag", "w_censor_window")
+LAG_DEFAULT_DAYS = 3
+LAG_FALLBACK_DAYS = 4
 
 
 def _ep(s: str) -> float:
@@ -113,8 +125,8 @@ def _pol_week(lim: hb.Limiter, a: str, b: str, offset: int = 0) -> tuple[int, li
 
 
 def smoke_gamma_politics(lim: hb.Limiter, weeks=POL_WEEKS) -> dict:
-    """Two out-of-window weeks: page size <= 100, ids stable on repeat. Returns counts and (for the next criterion) up to 2 long-life market refs."""
-    per, picks = {}, []
+    """Two out-of-window weeks: page size <= 100, ids stable on repeat (a paging-stability test only; the price / Data API picks come from :func:`smoke_long_life_picks`)."""
+    per = {}
     ok = True
     for a, b in weeks:
         s1, d1 = _pol_week(lim, a, b)
@@ -124,15 +136,37 @@ def smoke_gamma_politics(lim: hb.Limiter, weeks=POL_WEEKS) -> dict:
         good = bool(s1 == 200 and s2 == 200 and 0 < len(ids1) <= 100 and ids1 == ids2)
         per[a[:10]] = {"n_first": len(ids1), "n_repeat": len(ids2), "stable": ids1 == ids2, "ok": good}
         ok = ok and good
-        for m in d1:
-            if not isinstance(m, dict) or len(picks) >= 8:
+    return {"per": per, "pass": ok}
+
+
+def smoke_long_life_picks(lim: hb.Limiter, end: str = PICK_END, max_weeks: int = PICK_MAX_WEEKS) -> dict:
+    """Deterministic search for ``PRICE_MARKETS`` politics markets with life >= ``PRICE_LIFE_DAYS``: successive one-week windows ending at ``end`` and going back, one
+    request each (<= ``max_weeks``), stopping as soon as the pool holds ``PRICE_MARKETS``; picks = the pool ranked by a seeded hash. ``reason`` is ``no_picks`` if the bounded
+    search finds fewer (the dependent criteria then fail explicitly, counted)."""
+    pool, scanned = [], []
+    hi = datetime.fromisoformat(end.replace("Z", "+00:00"))
+    for i in range(max_weeks):
+        b = hi - timedelta(days=7 * i)
+        a = b - timedelta(days=7)
+        fa, fb = a.strftime("%Y-%m-%dT%H:%M:%SZ"), b.strftime("%Y-%m-%dT%H:%M:%SZ")
+        st, data = _pol_week(lim, fa, fb)
+        found = 0
+        for m in data:
+            if not isinstance(m, dict):
                 continue
             se, ee = c11._num(_ep_of(m.get("startDate"))), c11._num(_ep_of(m.get("endDate")))
             toks = _toks(m.get("clobTokenIds"))
             if math.isfinite(se) and math.isfinite(ee) and (ee - se) / 86400.0 >= PRICE_LIFE_DAYS and len(toks) == 2 and m.get("conditionId"):
-                picks.append({"token": toks[0], "end": ee, "cid": str(m["conditionId"])})
-    picks = sorted(picks, key=lambda x: c11.rank(SMOKE_SEED, x["cid"]))[:PRICE_MARKETS]
-    return {"per": per, "pass": ok, "markets": picks}
+                pool.append({"token": toks[0], "end": ee, "cid": str(m["conditionId"])})
+                found += 1
+        scanned.append({"week": fa[:10], "status": st, "n": len(data), "long_life": found})
+        if len(pool) >= PRICE_MARKETS:
+            break
+    picks = sorted(pool, key=lambda x: c11.rank(SMOKE_SEED, x["cid"]))[:PRICE_MARKETS]
+    res = {"scanned": scanned, "n_pool": len(pool), "n_picks": len(picks), "pass": len(picks) >= PRICE_MARKETS, "markets": picks}
+    if len(picks) < PRICE_MARKETS:
+        res["reason"] = "no_picks"
+    return res
 
 
 def _ep_of(s) -> float:
@@ -157,6 +191,8 @@ def _toks(v) -> list[str]:
 def smoke_prices_history(lim: hb.Limiter, markets: list[dict]) -> dict:
     """``prices-history`` over ``[end - 97 d, end - 90 d]`` at fidelity 10: >= 1 point and the last within 24 h of ``end - 90 d``."""
     per = {}
+    if not markets:
+        return {"per": {}, "pass": False, "reason": "no_picks"}
     for m in markets:
         t90 = m["end"] - 90 * 86400
         st, data = lim.get(hb.CLOB_PRICES, {"market": m["token"], "startTs": int(t90 - 7 * 86400), "endTs": int(t90), "fidelity": hb.FIDELITY_MIN})
@@ -168,6 +204,8 @@ def smoke_prices_history(lim: hb.Limiter, markets: list[dict]) -> dict:
 def smoke_data_api(lim: hb.Limiter, markets: list[dict]) -> dict:
     """Newest-first reach on 2 out-of-window markets: pages and prints reached, oldest print age (days); recorded. Passes iff both calls return 200 lists."""
     per = {}
+    if not markets:
+        return {"per": {}, "pass": False, "reason": "no_picks"}
     for m in markets[:DATA_API_MARKETS]:
         n, oldest, pages = 0, math.nan, 0
         for page in range(DATA_API_PAGES):
@@ -203,11 +241,18 @@ def smoke_wiki_lag(lim: hb.Limiter, now: float, title: str = "Xi_Jinping") -> di
     items = (doc or {}).get("items") if isinstance(doc, dict) else None
     last = max((str(i["timestamp"])[:8] for i in (items or []) if isinstance(i, dict) and "timestamp" in i), default=None)
     if st != 200 or not last:
-        return {"status": st, "pass": False, "last_day": None}
+        return {"status": st, "pass": False, "last_day": None, "source_ok": False}
     end = datetime.strptime(last, "%Y%m%d").replace(tzinfo=UTC).timestamp() + 86400.0
     age_h = (now - end) / 3600.0
-    return {"status": st, "last_day": last, "age_h_after_day_end": age_h, "max_age_h": WIKI_MAX_AGE_H, "pass": bool(age_h <= WIKI_MAX_AGE_H),
+    return {"status": st, "last_day": last, "age_h_after_day_end": age_h, "max_age_h": WIKI_MAX_AGE_H, "pass": bool(age_h <= WIKI_MAX_AGE_H), "source_ok": True,
             "consequence_if_fail": "lag -> 72 h and A's origin -> X + 4 d before the freeze (outcome-blind; recorded)"}
+
+
+def smoke_origin_lag_days(path: Path) -> int:
+    """A's origin lag in days from the smoke: 3 (usable 48 h after the day ends) unless ``wiki_lag`` failed on a published newest day, then 4 (72 h; design 2.2, outcome-blind)."""
+    doc = json.loads(Path(path).read_text())
+    failed = not (doc.get("criteria") or {}).get("wiki_lag", True) and (doc.get("wiki_lag") or {}).get("source_ok") is True
+    return LAG_FALLBACK_DAYS if failed else LAG_DEFAULT_DAYS
 
 
 def smoke_censor_window(lim: hb.Limiter) -> dict:
@@ -255,10 +300,10 @@ def smoke_failures(path: Path, need: tuple[str, ...]) -> list[str]:
 
 def declared() -> dict:
     return {"version": SMOKE_VERSION, "criteria": list(CRITERIA), "family_needs": {k: list(v) for k, v in FAMILY_NEEDS.items()}, "pol_weeks": [list(x) for x in POL_WEEKS],
-            "wiki_titles": list(WIKI_TITLES), "wiki_max_age_h": WIKI_MAX_AGE_H, "price_life_days": PRICE_LIFE_DAYS, "censor_window": list(CENSOR_WINDOW), "oov2": [OOV2_URL, OOV2_NAME],
+            "wiki_titles": list(WIKI_TITLES), "wiki_max_age_h": WIKI_MAX_AGE_H, "price_life_days": PRICE_LIFE_DAYS, "pick_end": PICK_END, "pick_max_weeks": PICK_MAX_WEEKS, "lag_days": [LAG_DEFAULT_DAYS, LAG_FALLBACK_DAYS], "censor_window": list(CENSOR_WINDOW), "oov2": [OOV2_URL, OOV2_NAME],
             "max_requests": 40}
 
 
 def rule_funcs() -> tuple:
-    return (smoke_frames, smoke_loader_fixture, smoke_gamma_politics, smoke_prices_history, smoke_data_api, smoke_wiki_summary, smoke_wiki_lag, smoke_censor_window, smoke_oov2,
+    return (smoke_frames, smoke_loader_fixture, smoke_gamma_politics, smoke_long_life_picks, smoke_prices_history, smoke_data_api, smoke_wiki_summary, smoke_wiki_lag, smoke_origin_lag_days, smoke_censor_window, smoke_oov2,
             smoke_failures, declared)

@@ -938,3 +938,11 @@ below tightens or clarifies; no floor, threshold, gate, alpha or cap was relaxed
 | R-pin | `H2_SAMPLE_SHA256` / `H3_SAMPLE_SHA256` filled (host `sha256sum`, 2026-10-18); rules regenerated | `cb11_common` |
 
 Open for the coordinator: stage the C1/T5 id lists (B3). (The two sample pins (B4) and the rules and draft shas were filled on 2026-10-18.)
+
+### 11.1 Smoke amendment (q0220, 2026-10-18; engineering gate, outcome-blind, counts only)
+
+q0220 never wrote a result (parked on the host). Review of the smoke code against CB11-F found two defects and one design-versus-code mismatch; none changes an analysis threshold, floor, formula or gate.
+
+- **Picks.** The paging criterion keeps its two 2024-05 weeks unchanged, but those weeks contain no market with life >= 100 d, so the `prices-history` and Data API criteria would have failed vacuously (`per: {}`) and made P, W2 and A "not testable (source)" for a sampling artefact. The 2 picks now come from a separate deterministic out-of-window search: one-week windows going back from 2024-06-24 (all ends before P's earliest SCREEN end), one Gamma request per week, at most 8, stopping when 2 markets with life >= 100 d, two tokens and a condition id are found; picks are ranked by the seeded hash as before. If the bounded search finds fewer than 2, the criteria fail with the explicit reason `no_picks` (counted), never a silent empty `per`.
+- **wiki_lag.** Design section 2.2 says: if the last published pageviews day is more than 48 h old, "the lag moves to 72 h before the freeze (outcome-blind; recorded) and A's origin to `X + 4 d`". The code had `wiki_lag` inside A's needs (so a fail stalled A "not testable (source)") and in the overall `pass`. Now: A needs `wiki_summary`, `wiki_pageviews` (the endpoint returned a newest day at all) and `data_api_reach`; `wiki_lag` is recorded but not part of the overall pass; q0227 reads the smoke (`smoke_origin_lag_days`) and stores `origin_lag_days` (3, or 4 after a `wiki_lag` fail) in `split.json`; the census, screen and rep use it (`candidate_units(..., lag_days)`; usable at `X + 1 d + 72 h`). The live probe (last day 20261015, 69 h after the day end) therefore moves A to the 72 h lag and the `X + 4 d` origin, as designed.
+- Rules files `cb11_rules.json` (part W) and `cb11_pa_rules.json` were regenerated (no job had used them).

@@ -52,11 +52,11 @@ def _keys(tmp: Path, rows=(("1", "1", "99", "", ""),)) -> Path:
     return keys
 
 
-def _smoke(tmp: Path, ok=True, **over) -> Path:
+def _smoke(tmp: Path, ok=True, doc_extra=None, **over) -> Path:
     p = tmp / "smoke.json"
-    crit = {k: ok for k in ("gamma_pol_paging", "prices_history", "data_api_reach", "wiki_summary", "wiki_lag")}
+    crit = {k: ok for k in ("gamma_pol_paging", "prices_history", "data_api_reach", "wiki_summary", "wiki_pageviews", "wiki_lag")}
     crit.update(over)
-    p.write_text(json.dumps({"smoke_version": c11.SMOKE_VERSION, "criteria": crit}))
+    p.write_text(json.dumps({"smoke_version": c11.SMOKE_VERSION, "criteria": crit, **(doc_extra or {})}))
     return p
 
 
@@ -1024,10 +1024,32 @@ def test_attn_frame_wikipedia_404_fails_the_entity_rule_and_event_cap(tmp_path):
     assert n == att.MAX_PER_EVENT  # at most 3 per event
 
 
+def test_wiki_lag_fail_alone_keeps_a_testable_with_72h_lag_and_x_plus_4d_origin(tmp_path):
+    """Design 2.2: a failed ``wiki_lag`` moves the lag to 72 h and A's origin to X + 4 d (outcome-blind); it does not make A 'not testable (source)'."""
+    from astrolabe.research_lab import cb11_smoke as sm  # noqa: PLC0415
+
+    assert "wiki_lag" not in sm.FAMILY_NEEDS["A"] and "wiki_pageviews" in sm.FAMILY_NEEDS["A"]
+    failed = _smoke(tmp_path, wiki_lag=False, doc_extra={"wiki_lag": {"source_ok": True, "pass": False}})
+    assert sm.smoke_failures(failed, sm.FAMILY_NEEDS["A"]) == [] and sm.smoke_origin_lag_days(failed) == 4
+    (tmp_path / "o1").mkdir()
+    (tmp_path / "o2").mkdir()
+    assert sm.smoke_origin_lag_days(_smoke(tmp_path / "o1")) == 3
+    assert sm.smoke_origin_lag_days(_smoke(tmp_path / "o2", wiki_lag=False, doc_extra={"wiki_lag": {"source_ok": False, "pass": False}})) == 3  # no data at all: not a lag finding
+    w = AttnWorld()
+    hist = tmp_path / "history"
+    m = att.attn_frame(hist, w, w.wiki, rules_sha="r" * 64, smoke_path=failed, exclusion_keys_path=_keys(tmp_path), now=1.8e9, days=["2026-06-01", "2026-06-02"], data_dumps=None, **NOSLEEP)
+    assert m["status"] == att.FRAME_STATUS, m
+    assert att.rdir_lag_days(hist / att.RUN) == 4
+    x = 20000
+    origin = att.day_epoch(x) + 4 * att.DAY
+    assert att.pageview_usable(x, origin, 4) and not att.pageview_usable(x, origin - 1, 4)
+    assert not att.pageview_usable(x, att.day_epoch(x) + 3 * att.DAY, 4) and att.pageview_usable(x, att.day_epoch(x) + 3 * att.DAY, 3)
+
+
 def test_attn_frame_smoke_stall_and_resume(tmp_path):
     w = AttnWorld(n=6)
     hist = tmp_path / "history"
-    m = att.attn_frame(hist, w, w.wiki, rules_sha="r" * 64, smoke_path=_smoke(tmp_path, wiki_lag=False), exclusion_keys_path=_keys(tmp_path), now=1.8e9, days=["2026-06-01"], **NOSLEEP)
+    m = att.attn_frame(hist, w, w.wiki, rules_sha="r" * 64, smoke_path=_smoke(tmp_path, wiki_pageviews=False), exclusion_keys_path=_keys(tmp_path), now=1.8e9, days=["2026-06-01"], **NOSLEEP)
     assert m["status"] == c11.STALL_NOT_RUN_SOURCE and w.n["gamma"] == 0
     calls = {"n": 0}
 

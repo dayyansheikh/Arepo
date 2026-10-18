@@ -125,6 +125,19 @@ def _smoke_path(a) -> Path:
     return Path(a.smoke) if getattr(a, "smoke", None) else _c12().SMOKE_DEFAULT
 
 
+def _smoke_paths(a, fam: str) -> list[Path]:
+    """The smoke files a family reads, oldest first. A family with a later smoke (M: smoke_M_v2.json, which supersedes the v1 criterion m_prices_history by
+    m_prices_history_v2) reads both; the family's SMOKE_NEEDS name only the criteria that exist in the latest version. ``--smoke`` pins a single file."""
+    if getattr(a, "smoke", None):
+        return [Path(a.smoke)]
+    paths = [_c12().SMOKE_DEFAULT]
+    for mod in _c12().family_modules(fam):
+        v2 = getattr(mod, "SMOKE_V2_DEFAULT", None)
+        if v2 is not None:
+            paths.append(Path(v2))
+    return paths
+
+
 def _keys_path(a) -> Path:
     return Path(a.exclusion_keys) if getattr(a, "exclusion_keys", None) else _c12().EXCLUSION_KEYS_DEFAULT
 
@@ -220,10 +233,12 @@ def cmd_smoke(a):
 
     c12 = _c12()
     _declared(a, "smoke")
-    out = c12.refuse_path(Path(a.out) if a.out else c12.SMOKE_DEFAULT)
+    fams = _smoke_families(a)
+    later = [getattr(mod, "SMOKE_V2_DEFAULT", None) for f in fams for mod in c12.family_modules(f)]
+    default_out = later[0] if later and all(later) else c12.SMOKE_DEFAULT  # a run of only families that have a later smoke writes that smoke's file
+    out = c12.refuse_path(Path(a.out) if a.out else default_out)
     if out.exists():
         raise c12.Refused(f"smoke result {out} already exists; it is write-once")
-    fams = _smoke_families(a)
     shas = {"common": _rules(a, "common"), **{f: _rules(a, f) for f in fams}}
     live = None if a.standalone else hb.live_pass_or_lock
     lim = hb.Limiter(hb.httpx_transport(), rps=min(a.rps, 1.0), live_check=live)
@@ -237,6 +252,8 @@ def cmd_smoke(a):
     except RuntimeError:
         raise cm.NotNow("smoke: a request failed (network); nothing written") from None
     res = {"smoke_version": c12.SMOKE_VERSION, "rules_sha256": shas, "git_commit": hb._git_commit(), "run_utc": cm.iso(now), "counts_only": True, "families_covered": fams,
+           "supersedes": ({"file": "smoke.json", "criterion": "m_prices_history", "by": "m_prices_history_v2", "note": "v1 FAIL kept untouched; disclosed in CREATIVE_BATCH_12.md section 11 A6"} if out != c12.SMOKE_DEFAULT and "M" in fams else None),
+           "family_smoke_versions": {f: getattr(c12.family_modules(f)[0], "SMOKE_FAMILY_VERSION", c12.SMOKE_VERSION) for f in fams},
            "requests": lim.requests, "criteria": crit, "pass": all(crit.values()), "detail": detail,
            "consequences": {"a failed criterion": "the dependent family is not testable (source), counted", "rule": "no rule is re-fitted; jobs downstream stall (exit 0, label carried)"}}
     cm.write_once_json(out, res)
@@ -248,7 +265,7 @@ def _require_smoke(a, fam: str) -> None:
     from astrolabe.research_lab import cb12_smoke as sm  # noqa: PLC0415
 
     c12 = _c12()
-    bad = sm.smoke_failures(_smoke_path(a), sm.family_needs(fam))
+    bad = sm.smoke_failures(_smoke_paths(a, fam), sm.family_needs(fam))
     if bad:
         raise c12.Refused(f"smoke criteria for family {fam} not met: {bad}")
 
@@ -280,7 +297,7 @@ def cmd_say_frame(a):
 
     _declared(a, "say-frame")
     sha = _rules(a, "M")
-    m = m12.say_frame(_hist(a), hb.httpx_transport(), rules_sha=sha, smoke_paths=_smoke_path(a), exclusion_keys_path=_keys_path(a), now=time.time(),
+    m = m12.say_frame(_hist(a), hb.httpx_transport(), rules_sha=sha, smoke_paths=_smoke_paths(a, "M"), exclusion_keys_path=_keys_path(a), now=time.time(),
                       disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
     return _result(m)
 

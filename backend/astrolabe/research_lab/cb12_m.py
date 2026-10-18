@@ -118,7 +118,14 @@ PRICE_COLUMNS = ["market_id", "ts", "p"]
 TX_COLUMNS = ["market_id", "ts", "price", "size", "notional", "n_fills", "max_fill_notional", "post"]
 MARKET_COLUMNS = ["market_id", "event_id", "status", "n_points", "oldest_ts", "truncated", "reach_t24", "n_prints", "n_tx", "first_post_ts"]
 FORBIDDEN_COLUMNS = ("outcome_prices", "uma_status", "closedTime", "y", "wallet", "proxyWallet", "transactionHash", "side", "pnl", "net")
-SMOKE_NEEDS = ("guards_fixture_M", "m_gamma_paging", "m_events_tags", "m_prices_history", "m_data_api_reach")
+# Smoke v2 for family M (2026-10-18, disclosed in CREATIVE_BATCH_12.md section 11 item A6): the v1 criterion ``m_prices_history`` ("all picks ok") failed in smoke.json because
+# one picked member had no trade in the 26 h before its start (member liquidity, not a source failure). The v2 criterion ``m_prices_history_v2`` tests the source on members that
+# DID trade in [start - 26 h, start) by their Data API prints. smoke.json (v1) stays as written and remains the record for X; M reads both files and needs the v2 criterion.
+SMOKE_FAMILY_VERSION = "cb12-smoke-M-v2"
+SMOKE_V2_DEFAULT = c12.CB12_DIR / "smoke_M_v2.json"
+SMOKE_POOL = 4  # members examined (first in page order); >= SMOKE_MIN_TRADED of them must have a pre-start print
+SMOKE_MIN_TRADED = 2
+SMOKE_NEEDS = ("guards_fixture_M", "m_gamma_paging", "m_events_tags", "m_prices_history_v2", "m_data_api_reach")
 SMOKE_WEEKS = (("2025-05-05T00:00:00Z", "2025-05-12T00:00:00Z"), ("2025-05-12T00:00:00Z", "2025-05-19T00:00:00Z"))
 
 
@@ -1170,22 +1177,33 @@ def smoke_online(lim, ctx: dict) -> dict:
         per[a[:10]] = {"n_first": len(ids1), "n_repeat": len(ids2), "stable": ids1 == ids2, "n_with_startTime": with_start, "ok": good}
         ok_paging = ok_paging and good
         for e in pages[0][1]:
-            if not isinstance(e, dict) or len(picks) >= 2:
+            if not isinstance(e, dict) or len(picks) >= SMOKE_POOL:
                 continue
             row = parse_event(e)
             if row and row[1] and math.isfinite(row[0]["start_epoch"]) and row[1][0]["condition_id"]:
                 picks.append({"token": row[1][0]["token_yes"], "cid": row[1][0]["condition_id"], "start": row[0]["start_epoch"], "yes_index": row[1][0]["yes_index"]})
     ph, da = {}, {}
+    n_traded = 0
+    ok_ph = bool(picks)
     for i, pk in enumerate(picks):
+        rows, info = c12.fetch_prints_paged(lim, pk["cid"], pk["start"] - ORIGIN_ALT_S)
+        ts = [c12.num(x.get("timestamp")) for x in rows if isinstance(x, dict)]
+        n_pre = sum(1 for v in ts if math.isfinite(v) and pk["start"] - FETCH_BEFORE_S <= v < pk["start"])
+        da[f"m{i}"] = {"pages": info["pages"], "n_prints": info["n_prints"], "truncated": bool(info["truncated"]), "reach_t24": c12.reach_ok(info, pk["start"] - ORIGIN_ALT_S), "ok": True}
         st, data = lim.get(hb.CLOB_PRICES, {"market": pk["token"], "startTs": int(pk["start"] - FETCH_BEFORE_S), "endTs": int(pk["start"]), "fidelity": FIDELITY})
         pts = (data or {}).get("history") if st == 200 and isinstance(data, dict) else None
-        ph[f"m{i}"] = {"status": st, "n_points": len(pts or []), "ok": bool(st == 200 and pts)}
-        rows, info = c12.fetch_prints_paged(lim, pk["cid"], pk["start"] - ORIGIN_ALT_S)
-        da[f"m{i}"] = {"pages": info["pages"], "n_prints": info["n_prints"], "truncated": bool(info["truncated"]), "reach_t24": c12.reach_ok(info, pk["start"] - ORIGIN_ALT_S), "ok": True}
+        traded = n_pre >= 1
+        n_traded += int(traded)
+        good = bool(st == 200 and (bool(pts) if traded else True))
+        ok_ph = ok_ph and good
+        ph[f"m{i}"] = {"status": st, "n_points": len(pts or []), "n_prints_pre_start": n_pre, "traded_pre_start": traded, "ok": good}
+    ok_ph = bool(ok_ph and n_traded >= SMOKE_MIN_TRADED)
     return {"m_gamma_paging": {"pass": bool(ok_paging and len(picks) >= 2), "per": per, "picked": len(picks)},
             "m_events_tags": {"pass": bool(n_ev > 0 and n_tags == n_ev), "n_events": n_ev, "n_with_tags": n_tags,
                               "note": "Gamma /events must return `tags` on every event, else the sports-tag exclusion would silently be regex-only"},
-            "m_prices_history": {"pass": bool(len(ph) >= 2 and all(v["ok"] for v in ph.values())), "per": ph},
+            "m_prices_history_v2": {"pass": ok_ph, "per": ph, "n_traded_pre_start": n_traded, "min_traded": SMOKE_MIN_TRADED,
+                                    "definition": "status 200 for every examined member; >= 1 point for every member with a Data API print in [start - 26 h, start); >= 2 such members. "
+                                                  "Member liquidity is decided by the census availability rule, not by this gate"},
             "m_data_api_reach": {"pass": bool(len(da) >= 2 and all(v["ok"] for v in da.values())), "per": da, "note": "reach recorded; the census coverage audit decides"}}
 
 
@@ -1197,7 +1215,7 @@ def seal_rows(rdir: Path) -> list[dict]:
 
 
 def declared() -> dict:
-    return {"tag_id": TAG_ID, "windows": {"screen": list(M_SCREEN), "holdout": list(M_HOLD)}, "origins_s": [ORIGIN_S, ORIGIN_ALT_S], "occasion_max_h": OCCASION_MAX_S / HOUR,
+    return {"smoke_v2": {"version": SMOKE_FAMILY_VERSION, "pool": SMOKE_POOL, "min_traded": SMOKE_MIN_TRADED, "needs": list(SMOKE_NEEDS)}, "tag_id": TAG_ID, "windows": {"screen": list(M_SCREEN), "holdout": list(M_HOLD)}, "origins_s": [ORIGIN_S, ORIGIN_ALT_S], "occasion_max_h": OCCASION_MAX_S / HOUR,
             "min_members": MIN_MEMBERS, "availability_min": AVAIL_MIN_SHARE, "listing_buffer_h": LIST_BUFFER_S / HOUR, "fidelity": FIDELITY,
             "m1": {"floor_words": M1_FLOOR_WORDS, "floor_share": M1_FLOOR_SHARE, "bid_proxy": BID_PROXY, "placebo": "copula, seed 12101, 200 draws"},
             "m2": {"ask": "ceil_tick(p + 1.5c) at 1c, cap 0.99", "fill": "first transaction in [t, startTime) with YES-terms price >= ask + 1c; size min(100, tx size)",

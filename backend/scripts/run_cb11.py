@@ -230,8 +230,13 @@ def cmd_smoke(a):
             pol = sm.smoke_gamma_politics(lim)
         except cm.ApiError as exc:
             _not_now_if_transient("gamma politics", exc)
-            pol = {"pass": False, "markets": [], "error": str(exc)[:100]}
-        markets = pol.get("markets") or []
+            pol = {"pass": False, "error": str(exc)[:100]}
+        try:
+            picks = sm.smoke_long_life_picks(lim)
+        except cm.ApiError as exc:
+            _not_now_if_transient("gamma politics (long-life picks)", exc)
+            picks = {"pass": False, "markets": [], "reason": "no_picks", "error": str(exc)[:100]}
+        markets = picks.get("markets") or []
         try:
             ph = sm.smoke_prices_history(lim, markets)
         except cm.ApiError as exc:
@@ -257,16 +262,18 @@ def cmd_smoke(a):
     except RuntimeError:
         raise cm.NotNow("smoke: a request failed (network); nothing written") from None
     crit = {"w_frames": frames["pass"], "w_loader": loader["pass"], "gamma_pol_paging": pol["pass"], "prices_history": ph["pass"], "data_api_reach": dapi["pass"],
-            "wiki_summary": ws["pass"], "wiki_lag": wl["pass"], "w_censor_window": cw["pass"]}
+            "wiki_summary": ws["pass"], "wiki_pageviews": bool(wl.get("source_ok")), "wiki_lag": wl["pass"], "w_censor_window": cw["pass"]}
+    # wiki_lag has a declared, non-fatal consequence (lag 72 h, origin X + 4 d): it is recorded in criteria but is not part of the overall pass nor of A's needs
+    overall = all(v for k, v in crit.items() if k != "wiki_lag")
     res = {"smoke_version": sm.SMOKE_VERSION, "rules_sha256": sha, "git_commit": hb._git_commit(), "run_utc": cm.iso(now), "counts_only": True,
-           "requests": lim.requests + limw.requests, "criteria": crit, "pass": all(crit.values()), "frames": frames, "loader": loader,
-           "gamma_politics": {k: v for k, v in pol.items() if k != "markets"}, "prices_history": ph, "data_api": dapi, "censor_window": cw, "wiki_summary": ws, "wiki_lag": wl, "oov2": oov2,
+           "requests": lim.requests + limw.requests, "criteria": crit, "pass": overall, "frames": frames, "loader": loader,
+           "gamma_politics": pol, "long_life_picks": {k: v for k, v in picks.items() if k != "markets"}, "prices_history": ph, "data_api": dapi, "censor_window": cw, "wiki_summary": ws, "wiki_lag": wl, "oov2": oov2,
            "consequences": {"w_frames / w_loader / w_censor_window fail": "W not testable (source), counted", "data_api_reach fails": "W2, P and A not testable (source), counted",
-                            "gamma_pol_paging / prices_history fail": "P not testable (source), counted", "wiki_summary / wiki_lag fail": "A not testable (source), counted "
-                            "(wiki_lag fail: lag 72 h and origin X + 4 d, outcome-blind, before the freeze)", "oov2": "gates only the uncounted q0238 variant",
+                            "gamma_pol_paging / prices_history fail": "P not testable (source), counted", "wiki_summary / wiki_pageviews fail": "A not testable (source), counted",
+                            "wiki_lag fail alone": "A stays testable: lag 72 h and origin X + 4 d, outcome-blind, before the freeze (smoke_origin_lag_days)", "oov2": "gates only the uncounted q0238 variant",
                             "rule": "jobs downstream stall (exit 0, label carried); no rule is re-fitted"}}
     cm.write_once_json(out, res)
-    c11.log_descriptive("smoke", {"pass": res["pass"], "criteria": crit, "smoke_path": str(out)}, trials_path=_tp(a))
+    c11.log_descriptive("smoke", {"pass": res["pass"], "origin_lag_days": sm.LAG_FALLBACK_DAYS if not crit["wiki_lag"] and wl.get("source_ok") else sm.LAG_DEFAULT_DAYS, "criteria": crit, "smoke_path": str(out)}, trials_path=_tp(a))
     return 0, {"smoke": res["pass"], "criteria": crit, "written": str(out), "requests": res["requests"]}
 
 
