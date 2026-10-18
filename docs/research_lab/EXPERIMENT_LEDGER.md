@@ -1465,3 +1465,14 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   clusters): **E1 and E2 not testable, p = 1, counted (2 lines when the CB4 analysis runs)**. era_rule = pooled_allowed,
   labelled "untested". Series frame `50e51b87…6606`: sports-series leak count to be disclosed. No threshold or formula
   changed. Seal `h7_cb4_group_s_amendment.json`; gate q0081g releases the q0081/q0082 fetches.
+
+## Ops (2026-10-18 ~00:55Z, autopilot): h7 and h8_tail_b T_seal-bound fetches COMPLETE; not counted (data only)
+- **q0081 h7_cb4_era fetch:** done 21:29Z (attempt 1, 4,139 s). 3,139 items, 0 failed; 2,860,016 price rows (19 dropped
+  post-cap), 891,275 trade rows, 13 markets with truncated trades; 48.9 MB.
+- **q0082 h7_cb4_series fetch:** done 22:13Z (attempt 1, 2,637 s). 1,922 items, 0 failed; 546,888 price rows (1 dropped
+  post-cap), 976,949 trade rows, 33 markets with truncated trades; 674 MB.
+- **q0120b h8_tail_b fetch (CB6/CB7 top-up):** done 00:13Z 10-18 after one partial session (5,103 s) and one completing
+  session (1,996 s). 4,196 items, 0 failed; 10,297 origins; 1,831,709 price rows; 1,014,270 trade rows; 145 truncated
+  print windows; 596 wallet lookups, 0 errors; 6 HTTP 429s retried. Finished before the 10-21T09Z deadline.
+- No outcome, target or test was computed. Next: seals q0083 (after the q0083b recorder, on/after 10-22T00Z), q0121/
+  q0144/q0145 (after T_seal), as already planned. Truncation counts are disclosed at each census.
