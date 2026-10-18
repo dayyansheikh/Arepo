@@ -1,0 +1,911 @@
+{
+ "schema": "arepo-lab-registry-v1",
+ "updated": "2026-10-18",
+ "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
+ "funnel": [
+  {
+   "stage": "idea",
+   "label": "Ideas",
+   "unit": "hypotheses",
+   "help": "Every distinct hypothesis written down in the idea rounds. Cheap to add, most will never be tested."
+  },
+  {
+   "stage": "designed",
+   "label": "Designed",
+   "unit": "hypotheses",
+   "help": "Ideas turned into a written, falsifiable test plan with thresholds fixed before any result is looked at."
+  },
+  {
+   "stage": "screened",
+   "label": "Screened",
+   "unit": "experiments",
+   "help": "Run on historical data. Most results are 'not detected' (too small to see) or 'not testable' (not enough data)."
+  },
+  {
+   "stage": "replicated",
+   "label": "Replicated",
+   "unit": "experiments",
+   "help": "The effect held again on separate, untouched historical markets with the definitions frozen."
+  },
+  {
+   "stage": "live_test",
+   "label": "Live test",
+   "unit": "experiments",
+   "help": "Predictions are written down in advance on live data and scored once after a fixed end date."
+  },
+  {
+   "stage": "cost_check",
+   "label": "Cost check",
+   "unit": "experiments",
+   "help": "Does the effect survive realistic fees and the spread? Many real effects fail here."
+  },
+  {
+   "stage": "confirmed",
+   "label": "Confirmed edge",
+   "unit": "experiments",
+   "help": "Passed a live test and the cost check. Nothing is here yet, and the page says so honestly."
+  }
+ ],
+ "experiments": [
+  {
+   "id": "E009",
+   "title": "Kalshi lead (live test)",
+   "plain": "Does a quick move in a matching Kalshi market show up in Polymarket's price over the next 20 minutes? A frozen model makes the predictions in advance and is scored once, after the end date. We only count rows until then.",
+   "batch": "E",
+   "family": "cross_venue",
+   "stage": "live_test",
+   "status": "collecting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Single analysis after 3 Nov 2026",
+   "next_date": "2026-11-03",
+   "candidate": true,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E009 (frozen model, stopping rule); docs/AREPO_PROGRESS_PLAIN_ENGLISH.md § 4",
+    "next": "docs/research_lab/EXPERIMENT_LEDGER.md § E009 stopping rule"
+   }
+  },
+  {
+   "id": "E010",
+   "title": "Kalshi changes plus gap (live test)",
+   "plain": "A second frozen model for the same Kalshi-to-Polymarket link, predicting Polymarket moves 1 hour and 6 hours ahead. Same rule: no peeking, one analysis.",
+   "batch": "E",
+   "family": "cross_venue",
+   "stage": "live_test",
+   "status": "collecting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Single analysis after 3 Nov 2026 (6-hour outcomes due 08:00 UTC)",
+   "next_date": "2026-11-03",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E010",
+    "next": "docs/research_lab/EXPERIMENT_LEDGER.md § E010 stopping rule"
+   }
+  },
+  {
+   "id": "E011",
+   "title": "Surprise-move detector (live test)",
+   "plain": "A frozen detector flags markets that look about to make an unusual move. We are recording its alerts and what happens afterwards; the verdict comes once, after the end date.",
+   "batch": "E",
+   "family": "surprise",
+   "stage": "live_test",
+   "status": "collecting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Single analysis after 11 Nov 2026",
+   "next_date": "2026-11-11",
+   "candidate": true,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E011; docs/AREPO_PROGRESS_PLAIN_ENGLISH.md § 4",
+    "next": "docs/research_lab/EXPERIMENT_LEDGER.md § E011 stopping rule"
+   }
+  },
+  {
+   "id": "E007",
+   "title": "Order flow continuation",
+   "plain": "When trades in a market lean one way for an hour, the price keeps drifting that way. The effect is real in a one-off prospective test, but tiny.",
+   "batch": "E",
+   "family": "order_flow",
+   "stage": "cost_check",
+   "status": "closed",
+   "verdict": "failed_costs",
+   "effect": {
+    "label": "+0.36c",
+    "note": "before costs; a round trip costs about 4.5c"
+   },
+   "next": "None: too small to cover trading costs",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § E007 result (beta 0.003626; under a tenth of the roughly 4.5c round trip)",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § E007 result"
+   }
+  },
+  {
+   "id": "E004",
+   "title": "Reversal after a price jump",
+   "plain": "Prices tend to partly snap back after a one-hour move. The snap-back is real but looks like quote noise (bid-ask bounce), and it loses money when actually traded.",
+   "batch": "E",
+   "family": "reversal",
+   "stage": "cost_check",
+   "status": "closed",
+   "verdict": "failed_costs",
+   "effect": {
+    "label": "-4.5c per share",
+    "note": "as a taker, after costs"
+   },
+   "next": "None: not tradable",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § Results: E004, E005, E006 (touch-to-touch mean P&L -0.045 per share)",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Results: E004, E005, E006"
+   }
+  },
+  {
+   "id": "E005",
+   "title": "Neg-risk group consistency",
+   "plain": "Do related outcomes in the same group of markets drift back to a consistent total? Not supported on the prospective data.",
+   "batch": "E",
+   "family": "neg_risk",
+   "stage": "live_test",
+   "status": "closed",
+   "verdict": "not_detected",
+   "effect": null,
+   "next": "None",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Results: E004, E005, E006"
+   }
+  },
+  {
+   "id": "ECON-95",
+   "title": "95 economic setups",
+   "plain": "A set of 95 simple trading rules was priced with realistic fees and spreads. None made money after costs.",
+   "batch": "E",
+   "family": "economics",
+   "stage": "cost_check",
+   "status": "closed",
+   "verdict": "failed_costs",
+   "effect": null,
+   "next": "None",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/AREPO_PROGRESS_PLAIN_ENGLISH.md § 4 (95 economic setups: none profitable after costs); docs/research_lab/EXPERIMENT_LEDGER.md § Methods note M3 (95 counted)"
+   }
+  },
+  {
+   "id": "HB1",
+   "title": "Hypothesis battery 1",
+   "plain": "72 ideas were tested on historical data. 18 survived a strict screen and 16 held up on a fresh set of markets. Every one that predicts direction still loses after costs.",
+   "batch": "HB1",
+   "family": "battery",
+   "stage": "cost_check",
+   "status": "closed",
+   "verdict": "failed_costs",
+   "effect": null,
+   "next": "Four candidate follow-ups need their own prospective registration",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § HB1 and § HB1-R (18 of 72 survived; 16 replicated; net -1.2c to -4.1c as a taker)"
+   }
+  },
+  {
+   "id": "SB2-F4",
+   "title": "Order flow x volatility",
+   "plain": "Trade flow predicts later moves more strongly when the market is volatile. It held on fresh markets, but the gain is far smaller than the spread and fees.",
+   "batch": "SB2",
+   "family": "order_flow",
+   "stage": "cost_check",
+   "status": "closed",
+   "verdict": "failed_costs",
+   "effect": {
+    "label": "about +1c gross",
+    "note": "development (historical); about -2.5c after costs"
+   },
+   "next": "None as a taker; a maker design would need a new registration",
+   "next_date": null,
+   "candidate": true,
+   "sources": {
+    "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J2 (ratio to h2 1.59; net taker about -2.5c)",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J2"
+   }
+  },
+  {
+   "id": "SB2-F5",
+   "title": "Order flow x spread",
+   "plain": "Trade flow is more informative when the quoted spread is wide. Replicated on fresh markets, but not enough to cover costs.",
+   "batch": "SB2",
+   "family": "order_flow",
+   "stage": "cost_check",
+   "status": "closed",
+   "verdict": "failed_costs",
+   "effect": {
+    "label": "about +1c gross",
+    "note": "development (historical); about -2.5c after costs"
+   },
+   "next": "None as a taker",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J2 (ratio 1.27; same economics as F4)",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J2"
+   }
+  },
+  {
+   "id": "SB2-L1",
+   "title": "1-day change x liquidity",
+   "plain": "How much yesterday's move carries forward depends on how liquid the market is. Replicated on fresh markets; no cost check yet.",
+   "batch": "SB2",
+   "family": "microstructure",
+   "stage": "replicated",
+   "status": "analysed",
+   "verdict": "replicated",
+   "effect": null,
+   "next": "Needs a cost check and a prospective registration before any claim",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J2 (replicated at Holm 0.05, ratio 1.22)"
+   }
+  },
+  {
+   "id": "SB2-F378",
+   "title": "Flow ideas F3, F7, F8",
+   "plain": "Three more flow ideas passed the first screen but did not hold on fresh markets.",
+   "batch": "SB2",
+   "family": "order_flow",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_detected",
+   "effect": null,
+   "next": "None",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J1 and § SB2-J2 (F3, F7, F8 not replicated)"
+   }
+  },
+  {
+   "id": "SB2-NULL",
+   "title": "Other HB2 ideas and cross-market tests",
+   "plain": "Four other ideas and all three cross-market tests showed nothing at the first screen.",
+   "batch": "SB2",
+   "family": "battery",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_detected",
+   "effect": null,
+   "next": "None",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J1 (null: F1, F2, F6, L2, X1-X3)"
+   }
+  },
+  {
+   "id": "SB2-CTTE",
+   "title": "Forecasting gain near market close",
+   "plain": "The ML models forecast better in the last 24 hours before a market ends than more than 30 days before. It replicated, and simple artefact checks do not explain it, but it relies on an end date read after the fact and has no cost check.",
+   "batch": "SB2",
+   "family": "ml",
+   "stage": "replicated",
+   "status": "analysed",
+   "verdict": "replicated",
+   "effect": {
+    "label": "+0.019 nats",
+    "note": "development (historical); log-loss gain, not a return"
+   },
+   "next": "Test with an as-of end date in a later ML run",
+   "next_date": null,
+   "candidate": true,
+   "sources": {
+    "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J8 (+0.0188 nats, CI [0.0094, 0.0292]) and § J8 C-TTE diagnostics",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J8; challenger verdict section"
+   }
+  },
+  {
+   "id": "SB2-CACT",
+   "title": "Gain when trades just happened",
+   "plain": "The ML gain is larger in rows with a recent trade. It replicated but is nearly mechanical (flow features are empty without trades), so it was rejected as a candidate.",
+   "batch": "SB2",
+   "family": "ml",
+   "stage": "replicated",
+   "status": "closed",
+   "verdict": "replicated",
+   "effect": {
+    "label": "+0.043 nats",
+    "note": "development (historical); mostly mechanical"
+   },
+   "next": "None: kept as a descriptive note only",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J8 (+0.0427 [0.0346, 0.0509] direction 2h)",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Challenger verdicts on the 2026-10-16 write-ups (C-ACT rejected)"
+   }
+  },
+  {
+   "id": "SB2-J3",
+   "title": "Order-book bounce decomposition",
+   "plain": "A test of how much of the short-term reversal comes from order-book bounce. There were too few usable rows, so it could not be run. That is not a negative result.",
+   "batch": "SB2",
+   "family": "microstructure",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "A new data design would be needed",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J3 (751 judgement rows against a 2,000 floor)"
+   }
+  },
+  {
+   "id": "SB2-R4BOOK",
+   "title": "Order-book features in ML",
+   "plain": "Adding order-book features to the models gave no demonstrated gain, in any of 9 cells; they only cover 12.7% of rows.",
+   "batch": "SB2",
+   "family": "ml",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_detected",
+   "effect": null,
+   "next": "A higher-coverage book table would be a new design",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § ML-r4_book (descriptive only in all 9 cells)"
+   }
+  },
+  {
+   "id": "WALLET-FRESH",
+   "title": "New-wallet freshness",
+   "plain": "Do trades from brand-new wallets predict anything? Null in three separate analyses.",
+   "batch": "HB1",
+   "family": "wallet",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_detected",
+   "effect": null,
+   "next": "None",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/AREPO_PROGRESS_PLAIN_ENGLISH.md § 4 (null in 3 analyses); docs/research_lab/EXPERIMENT_LEDGER.md § HB1 (WA6 closest, BY 0.18)"
+   }
+  },
+  {
+   "id": "CB1-AC",
+   "title": "Resolution and ladder carry (A, C)",
+   "plain": "Two simple carry rules (buying near-certain outcomes, selling longshots) were screened on history. Both lose money after costs and nothing advanced.",
+   "batch": "CB1",
+   "family": "carry",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_detected",
+   "effect": {
+    "label": "-1c to -4c",
+    "note": "development (historical); after costs"
+   },
+   "next": "None",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § Development screen CB1 (A2 net -1.05c; C1 net -3.84c per share)",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Development screen CB1"
+   }
+  },
+  {
+   "id": "CB1-E",
+   "title": "Text-based ideas (E)",
+   "plain": "These needed the market text, which was missing for most markets, so they could not run. A data failure, not a negative result.",
+   "batch": "CB1",
+   "family": "text",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "Would need a reviewed design change",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Development screen CB1 (2,886 of 3,200 markets have no text)"
+   }
+  },
+  {
+   "id": "CB1-B",
+   "title": "Ladder NO carry (B)",
+   "plain": "Too few usable price ladders (52 against a floor of 300), so not testable.",
+   "batch": "CB1",
+   "family": "carry",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "A rung-list step (B3) opens on or after 19 Oct",
+   "next_date": "2026-10-19",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Development screen CB1 (B1/B2 not testable)"
+   }
+  },
+  {
+   "id": "CB1-D1",
+   "title": "Neg-risk asymmetry (D1)",
+   "plain": "A small positive estimate that fails the strictness checks and shrinks to +0.15 pp when the five largest events are dropped. Not a finding.",
+   "batch": "CB1",
+   "family": "neg_risk",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_detected",
+   "effect": {
+    "label": "+0.78 pp",
+    "note": "development (historical); fails the 1.0 pp floor"
+   },
+   "next": "None",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "effect": "docs/research_lab/EXPERIMENT_LEDGER.md § Development screen CB1-D (D1 +0.78 pp, p 0.0156)",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Development screen CB1-D"
+   }
+  },
+  {
+   "id": "CB1-D2",
+   "title": "Neg-risk trigger (D2)",
+   "plain": "Only 33 trigger events from 8 events, below the minimum, so not testable.",
+   "batch": "CB1",
+   "family": "neg_risk",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "None",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Development screen CB1-D (D2 not testable)"
+   }
+  },
+  {
+   "id": "CB2",
+   "title": "Weather favourites and ladders",
+   "plain": "Designed: weather favourites, ladders within and across events and a placeholder-member gate. The design passed challenger review with changes; not frozen.",
+   "batch": "CB2",
+   "family": "ladders",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Waiting for freeze and data seals",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/CREATIVE_BATCH_2.md header (status line)"
+   }
+  },
+  {
+   "id": "CB3",
+   "title": "Quote-vacuum and selective maker",
+   "plain": "Designed: what happens to fair value when one side of a tight book vanishes, and whether a market maker should step back after big prints. Freeze comes after 25 Oct.",
+   "batch": "CB3",
+   "family": "microstructure",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Freeze after 25 Oct",
+   "next_date": "2026-10-25",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/CREATIVE_BATCH_3.md header; docs/AREPO_V2_CHECKPOINT.md (CB3 freeze after q0064, after 10-25)"
+   }
+  },
+  {
+   "id": "CB4-N",
+   "title": "Series roll and taker tiers (N1, N2)",
+   "plain": "The data had almost no eligible events per hour (1.29 against a needed 5), so both tests are not testable by the pre-set rule.",
+   "batch": "CB4",
+   "family": "mechanics",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "None",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB4-N power pilot (stop rule fires, 1.29 < 5 per hour)"
+   }
+  },
+  {
+   "id": "CB4-E",
+   "title": "Fee rollout era (E1, E2)",
+   "plain": "The sports group had only 6 and 92 markets against 800 wanted, so E1 and E2 are not testable.",
+   "batch": "CB4",
+   "family": "mechanics",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "None",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB4-E group-S ruling (S|P0 = 6, S|P1 = 92)"
+   }
+  },
+  {
+   "id": "CB4-MAIN",
+   "title": "Pre-close dump and natural experiments",
+   "plain": "Designed: a pre-close selling pattern and rule changes treated as natural experiments. Big price and trade downloads are done; results come after the 22 Oct data seal.",
+   "batch": "CB4",
+   "family": "mechanics",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Seals on or after 22 Oct; flip trades no earlier than 24 Oct",
+   "next_date": "2026-10-22",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Ops (2026-10-18 ~00:55Z); docs/AREPO_V2_CHECKPOINT.md (q0085 not before ~10-24)"
+   }
+  },
+  {
+   "id": "CB5-L",
+   "title": "Ladder vs bucket consistency (CH59)",
+   "plain": "The frame found 0 usable families in the live universe, so this idea is expected to close as too rare.",
+   "batch": "CB5",
+   "family": "ladders",
+   "stage": "screened",
+   "status": "closed",
+   "verdict": "not_testable",
+   "effect": null,
+   "next": "Closes at the G59 census",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB5-L CDF frame (1 bucket event, 0 families)"
+   }
+  },
+  {
+   "id": "CB5-G",
+   "title": "Seed-anchor reversion and hour-of-day lead (CH56, CH58)",
+   "plain": "Designed: seed-anchor reversion and hour-of-day effects on the Kalshi lead. Later steps start on or after 27 Oct.",
+   "batch": "CB5",
+   "family": "carry",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "q0103b on or after 27 Oct",
+   "next_date": "2026-10-27",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/CREATIVE_BATCH_5.md header; docs/AREPO_V2_CHECKPOINT.md (CB5 q0103b on/after 10-27)"
+   }
+  },
+  {
+   "id": "CB6",
+   "title": "Longshot tails and conversion dumps",
+   "plain": "Designed: an ex-ante longshot classifier, neg-risk conversion dumps, a reward discontinuity at 0.90 and fill measurement. The top-up download finished before its deadline; seals follow the 22 Oct cut-off.",
+   "batch": "CB6",
+   "family": "longshots",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Seals after 22 Oct",
+   "next_date": "2026-10-22",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Ops (2026-10-18 ~00:55Z) (h8_tail_b fetch complete)"
+   }
+  },
+  {
+   "id": "CB7",
+   "title": "Specificity, geopolitics, Kalshi-skewed maker",
+   "plain": "Designed: whether very specific markets are discounted, geopolitics longshots and a maker skewed by Kalshi. Downloads are complete; analysis waits for seals.",
+   "batch": "CB7",
+   "family": "text",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Seals after the 22 Oct cut-off",
+   "next_date": "2026-10-22",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 fetches complete (q0142, q0143); docs/AREPO_V2_CHECKPOINT.md"
+   }
+  },
+  {
+   "id": "CB8-H",
+   "title": "Concentrated-holder exits (live collection)",
+   "plain": "A daily snapshot of the biggest holders in 1,800 markets. The engineering smoke test passed on 18 Oct; collection begins on 21 Oct.",
+   "batch": "CB8",
+   "family": "holders",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Collection starts 21 Oct",
+   "next_date": "2026-10-21",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB8-H smoke v3 PASS (2026-10-18 01:02Z)"
+   }
+  },
+  {
+   "id": "CB8-OTHER",
+   "title": "Binance terminal minutes and worked orders (CH76, CH69)",
+   "plain": "Designed: crypto terminal-minute behaviour and footprints of worked orders. Not started.",
+   "batch": "CB8",
+   "family": "microstructure",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Waiting for freeze",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/CREATIVE_BATCH_8.md header"
+   }
+  },
+  {
+   "id": "CB9",
+   "title": "Trade direction, hourly-anchored dailies, flow-skewed maker",
+   "plain": "Designed: whether trade direction labels are reliable and a few maker ideas. Smoke test v2 passed; data jobs start after the 22 Oct cut-off.",
+   "batch": "CB9",
+   "family": "microstructure",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Data jobs after 22 Oct",
+   "next_date": "2026-10-22",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smokes PASS (CB9 smoke v2); docs/AREPO_V2_CHECKPOINT.md"
+   }
+  },
+  {
+   "id": "CB10",
+   "title": "Option-implied anchor and round-number breaks",
+   "plain": "Designed: using option prices to anchor crypto strike ladders and reversals at round numbers. Smoke test passed; code review next.",
+   "batch": "CB10",
+   "family": "crypto",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Code-against-design check, then queueing",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smokes PASS (CB10 smoke q0200); docs/research_lab/EXPERIMENT_LEDGER.md § CB10 code-against-design freeze check"
+   }
+  },
+  {
+   "id": "CB11",
+   "title": "Proposer clocks, political underconfidence, attention",
+   "plain": "Designed: how long markets wait to resolve, long-horizon political underconfidence and attention without news. Code is being built; an independent check comes before anything is queued.",
+   "batch": "CB11",
+   "family": "resolution",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Independent code check, then queueing",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/AREPO_PROGRESS_PLAIN_ENGLISH.md § 1; docs/research_lab/CREATIVE_BATCH_11.md header"
+   }
+  },
+  {
+   "id": "CB12",
+   "title": "Round-5 ideas (design draft)",
+   "plain": "A new batch from round 5 of the idea list (for example word-count baskets and earthquake-count markets) is being drafted.",
+   "batch": "CB12",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Challenger review after drafting",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/AREPO_PROGRESS_PLAIN_ENGLISH.md § 1 (Batch 12 design)"
+   }
+  },
+  {
+   "id": "MC1",
+   "title": "Full ML development run",
+   "plain": "The big machine-learning run with many signal families. It ran out of memory on the current server and was parked by the owner as a backup until the second server exists.",
+   "batch": "MC1",
+   "family": "ml",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Revive on the second server",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/AREPO_V2_CHECKPOINT.md (q0116b PARKED on 2026-10-17)"
+   }
+  }
+ ],
+ "live_tests": [
+  {
+   "id": "E009",
+   "title": "Kalshi lead",
+   "unit": "prediction rows logged",
+   "analysis_after": "2026-11-03",
+   "target": null,
+   "files": {
+    "collected": "data-dumps/research_lab/cross_venue_live/predictions.jsonl",
+    "outcomes": "data-dumps/research_lab/cross_venue_live/outcomes.jsonl"
+   },
+   "sources": [
+    "Line counts of the collector files (counts only, no outcome statistics); docs/research_lab/EXPERIMENT_LEDGER.md § E009 stopping rule"
+   ]
+  },
+  {
+   "id": "E010",
+   "title": "Kalshi changes + gap",
+   "unit": "prediction rows logged",
+   "analysis_after": "2026-11-03",
+   "target": null,
+   "files": {
+    "collected": "data-dumps/research_lab/cross_venue_live/predictions_e010.jsonl",
+    "outcomes": "data-dumps/research_lab/cross_venue_live/outcomes_e010.jsonl"
+   },
+   "sources": [
+    "Line counts of the collector files (counts only); docs/research_lab/EXPERIMENT_LEDGER.md § E010 stopping rule"
+   ]
+  },
+  {
+   "id": "E011",
+   "title": "Surprise-move detector",
+   "unit": "alert rows logged",
+   "analysis_after": "2026-11-11",
+   "target": 19700,
+   "files": {
+    "collected": "data-dumps/research_lab/surprise_live/alerts.jsonl",
+    "outcomes": "data-dumps/research_lab/surprise_live/outcomes.jsonl"
+   },
+   "sources": [
+    "Line counts (counts only); target: docs/research_lab/EXPERIMENT_LEDGER.md § E011 sample size (about 19,700 alert lines expected)"
+   ]
+  }
+ ],
+ "ml": {
+  "status": "parked",
+  "status_note": "The main development run (MC1) is parked as a backup: it ran out of memory on the current server. The results below come from earlier development runs on historical data.",
+  "scope": "development (historical)",
+  "learned": [
+   "Most of the lift over a plain baseline comes from predicting whether a market will move at all (volatility), not which way it will move.",
+   "Trading-flow features add a small but stable amount of forecasting value at 2 and 6 hours; wallet-based features add nothing demonstrable.",
+   "Order-book features are descriptive only: no demonstrated gain, and they cover just 12.7% of rows.",
+   "Three flow interactions (flow x volatility, flow x spread, 1-day change x liquidity) held on fresh markets, but the gross gain is about 1c a trade against about 3.5c of costs.",
+   "Forecasting is better in the last 24 hours before a market closes than more than 30 days before, and that held on fresh markets; it rests on an end date read after the fact."
+  ],
+  "feature_weights": [
+   {
+    "feature": "Market state (own volatility, recent moves)",
+    "family": "market_state",
+    "weight": 0.0215,
+    "note": "direction at 2h; drop-one log-loss delta (nats)"
+   },
+   {
+    "feature": "Trading flow",
+    "family": "flow",
+    "weight": 0.0089,
+    "note": "direction at 2h; drop-one log-loss delta (nats)"
+   },
+   {
+    "feature": "Wallet age and concentration",
+    "family": "wallet",
+    "weight": 0.0004,
+    "note": "direction at 2h; descriptive only (CI includes 0)"
+   },
+   {
+    "feature": "Order book (12.7% coverage)",
+    "family": "book",
+    "weight": -0.0042,
+    "note": "direction at 2h; separate r4_book run, book hurts; descriptive only"
+   }
+  ],
+  "feature_weights_note": "These are family-level drop-one ablation deltas (how much log loss gets worse without the family), not SHAP. No per-feature SHAP or importance numbers exist in the committed docs or host outputs yet; the SHAP design is in MULTI_SIGNAL_PIPELINE_DESIGN.md and has not run.",
+  "contrasts": [
+   {
+    "label": "Last 24h vs >30 days before close",
+    "value": 0.0188,
+    "lo": 0.0094,
+    "hi": 0.0292,
+    "unit": "nats",
+    "replicated": true
+   },
+   {
+    "label": "Rows with a trade in the last 2h vs none (direction 2h)",
+    "value": 0.0427,
+    "lo": 0.0346,
+    "hi": 0.0509,
+    "unit": "nats",
+    "replicated": true
+   },
+   {
+    "label": "Up vs down moves, trade in last 2h (2h)",
+    "value": 0.0331,
+    "lo": 0.0229,
+    "hi": 0.0433,
+    "unit": "nats",
+    "replicated": true
+   },
+   {
+    "label": "Up vs down moves, trade in last 2h (6h)",
+    "value": 0.0115,
+    "lo": 0.0015,
+    "hi": 0.0222,
+    "unit": "nats",
+    "replicated": true
+   }
+  ],
+  "sources": {
+   "learned": [
+    "docs/research_lab/HISTORICAL_ML_DEV.md § Do the arms beat M0 out of sample?",
+    "docs/research_lab/HISTORICAL_ML_DEV.md § Which families add incremental value",
+    "docs/research_lab/EXPERIMENT_LEDGER.md § Development ablation ML-r4_book",
+    "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J2",
+    "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J8 and J8 C-TTE diagnostics"
+   ],
+   "feature_weights": [
+    "docs/research_lab/HISTORICAL_ML_DEV.md § Which families add incremental value (market_state_extra, flow, wallet, direction 2h)",
+    "docs/research_lab/EXPERIMENT_LEDGER.md § Development ablation ML-r4_book (book, direction 2h)"
+   ],
+   "contrasts": [
+    "docs/research_lab/EXPERIMENT_LEDGER.md § SB2-J8 (all four contrasts, h3_power replication)"
+   ],
+   "status": "docs/AREPO_V2_CHECKPOINT.md (q0116b MC1 dev run PARKED on 2026-10-17)"
+  }
+ },
+ "stage_order": [
+  "idea",
+  "designed",
+  "screened",
+  "replicated",
+  "live_test",
+  "cost_check",
+  "confirmed"
+ ],
+ "allowed": {
+  "status": [
+   "collecting",
+   "queued",
+   "running",
+   "analysed",
+   "closed",
+   "waiting"
+  ],
+  "verdict": [
+   "not_detected",
+   "not_testable",
+   "replicated",
+   "advanced",
+   "failed_costs",
+   "pending",
+   null
+  ]
+ }
+}

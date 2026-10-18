@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- TEMPLATE, not installed. Install only after the Lab API is deployed (see docs/research_lab/lab_dashboard/README.md):
+       cp scripts/lab/com.arepo.lab-mac.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.arepo.lab-mac.plist
+     Remove: launchctl unload ~/Library/LaunchAgents/com.arepo.lab-mac.plist && rm ~/Library/LaunchAgents/com.arepo.lab-mac.plist -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.arepo.lab-mac</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python</string>
+    <string>/Users/DayyanSheikh/Projects/astrolabe/scripts/lab/lab_mac.py</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>AREPO_REPO</key><string>/Users/DayyanSheikh/Projects/astrolabe</string>
+  </dict>
+  <key>StartInterval</key><integer>600</integer>
+  <key>RunAtLoad</key><true/>
+  <key>Nice</key><integer>10</integer>
+  <key>StandardOutPath</key><string>/Users/DayyanSheikh/.arepo/lab/lab-mac.log</string>
+  <key>StandardErrorPath</key><string>/Users/DayyanSheikh/.arepo/lab/lab-mac.err</string>
+</dict>
+</plist>
