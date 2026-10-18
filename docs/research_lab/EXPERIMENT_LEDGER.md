@@ -1575,3 +1575,17 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   `data_api_reach` would fail vacuously and mark P/W2/A "not testable (source)" for a sampling artefact; and the
   pageviews lag was 69 h (> 48 h; declared consequence: lag 72 h, A origin X + 4 d). **q0220 parked before it wrote
   anything**; the pick search is being fixed (bounded out-of-window long-life search) before it is revived.
+
+## Smoke fixes and CB12-X freshness correction reviewed, 2026-10-18 ~22:30Z (science-reviewer): not counted
+- a5b86e0: CB11 smoke picks long-life out-of-window markets by a bounded backwards search (ends before 2024-06-24, before
+  P's SCREEN start 2024-07-01): **accept**. wiki_lag now drives A's declared fallback (lag 72 h, origin X + 4 d) instead
+  of stalling A: matches CB11 §2.2, but **revise**: a lag above 72 h itself must make A "not testable (source)" (the
+  probe showed 69 h, about 3 h of margin). CB12 M smoke v2 (pre-start-traded members; v1 kept): **accept as a
+  disclosed supersession** (outcome-blind; member liquidity carried by the census 90 % per-unit and 60 % availability
+  rules); minor: truncated print fetches must count as unknown.
+- 16870d6: CB12-X freshness measured from usability (PM stamp in `[t - 1200, t - 600]`) after the X census showed 0
+  fresh pairs: **accept** (outcome-blind, only counts seen; the stamp-based reading could never be met). Defect: the X
+  screen did not check the census rules sha. A q0240 job note misstated the v1 smoke sha (the record is common
+  `f2f672c1…`, M `8b72053c…`, X `24e3444b…`); being corrected.
+- Promotion: q0251b X census v2 GO; q0240b GO after the record fix; q0220 revival GO after the 72 h ceiling; q0255
+  after the census sha check and the v2 census write-up.
