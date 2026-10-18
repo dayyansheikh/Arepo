@@ -203,17 +203,14 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 ~00:55Z
-0. **Autopilot session from 00:48Z 10-18.** Host: q0160c CB8-H smoke v3 RUNNING (net lane, timeout 4 h); nothing else
-   runnable until CB11 (other queued jobs are T_seal/date gated). q0081/q0082 h7 fetches and q0120b h8_tail_b fetch
-   DONE (ledger d1898e8). Second instance: still out of capacity (00:50Z).
-   - **CB11 code:** implementer agent finishing the uncommitted cb11_common/cb11_w/cb11_smoke/run_cb11/test_cb11_w (left
-     by the 10-17 session) + rules file + drafts q0220-q0224/q0230-q0232 in queue/drafts. Then science-reviewer
-     code-against-design freeze check, then promote q0220 smoke (cpu) and the W chain (W can screen before T_seal).
-   - **CB12 design** (opus agent) from round 5 -> `CREATIVE_BATCH_12.md` DRAFT (ids q0240-q0269) -> challenger round 1.
-   - Earlier (10-17 session, all done): q0116b parked by the user; h7 group-S ruling A sealed + q0081g; CB8-H H-v6 ->
-     q0160c; q0180b CB9 smoke v2 PASS; q0200 CB10 smoke PASS; q0104b CB5 0 families (CH59 closes at q0106's G59).
-     Commit with explicit pathspecs only (d3278b8/d202c74 shared-index mishap).
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 ~14:25Z
+0. **Autopilot session from 14:20Z 10-18** (no session ran ~04:10-14:20Z: auth-status timeouts after the macOS update,
+   fixed in a24e8ec). Host queue idle except q0162/q0163 (exit 75 until their declared start 10-21T06Z; their
+   idle_heartbeat exit 0 every <= 10 h resets the 48-tempfail cap, so no fix is needed). Committed fec1b04: CB12 DRAFT
+   plus the trials.jsonl union. Running agents: (a) science-reviewer CB11 W + smoke code-against-design freeze check;
+   (b) science-reviewer CB12 challenger round 1; (c) implementer CB11 P and A in a worktree (new cb11_p.py and
+   cb11_a.py, test_cb11_pa.py, P/A drafts); (d) Fable xhigh creative round 6 -> `CREATIVE_HYPOTHESES_2026-10-20.md`.
+   If the session stops, re-run any of them that has no commit.
 1. **Next:** CB11 code-against-design freeze check -> promote q0220 + W chain -> deploy. q0160c result: PASS -> promote
    q0162/q0163; written FAIL of a/b/f/h/i -> CB8-H "not run (source)", counted, no smoke v4.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z and a smoke-v2 PASS; q0182 needs the pinned q0164 hash.
