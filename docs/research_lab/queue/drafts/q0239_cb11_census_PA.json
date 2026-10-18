@@ -1,0 +1,37 @@
+{
+ "id": "q0239_cb11_census_PA",
+ "title": "CB11-P and CB11-A census, counts only (P labels with the causal activity proxy, flags, GP, P coverage audit, GPP with the shared week factor and max-of-ways SD; A entity availability under the round-1 pageview rules, GA0 from committed audit labels, GA, coverage audit and failures by arm; MDEs)",
+ "family": "creative_batch_11",
+ "priority": 25,
+ "expected_value": "P and A gates and MDEs before the freeze",
+ "data": [
+  "history/h11_pol/screen (no guarded file)",
+  "history/h11_attn/screen (HOLDOUT counts only)"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0226_cb11_pol_prices",
+  "q0229_cb11_attn_data",
+  "q0230_cb11_seal"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "census",
+  "--family",
+  "P,A",
+  "--pa-rules",
+  "../docs/research_lab/seals/cb11_pa_rules.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch11/census_PA.json",
+  "trials.jsonl (cb11_descriptive)"
+ ],
+ "next_action": "science-reviewer freeze check (P, A part)",
+ "notes": "DRAFT, new id in round 1 (was part of q0231). No outcome, excess, continuation or net computed. Refuses on an incomplete manifest. Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first."
+}
