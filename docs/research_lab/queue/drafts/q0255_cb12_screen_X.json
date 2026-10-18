@@ -1,0 +1,32 @@
+{
+ "id": "q0255_cb12_screen_X",
+ "title": "CB12-X: X1 (HL_long - HL_short on pair-demeaned gaps; horizon-offset placebo within category; sports/elections strata, volume terciles, causal demeaning, |g|>=3c, edit-flag, fresh-steps, top-5 events, thirds); label 'L1, worn set, new moderator, hindsight end date'",
+ "family": "creative_batch_12",
+ "priority": 21,
+ "expected_value": "X1 verdict",
+ "data": [
+  "research_lab/cross_venue/ (sha256-pinned, read-only)"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0251_cb12_x_census"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "screen",
+  "--family",
+  "X"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/results_X.json",
+  "trials.jsonl (cb12_test + creative_batch_12:X n_tests=1)"
+ ],
+ "next_action": "advanced: draft Stage P-X (after 2026-11-03 and E009/E010 final analyses only)",
+ "notes": "DRAFT. Refuses before the X entry of model_specs/cb12_v1.json is committed and unless the X smoke criteria passed; counted with p = 1 if GX failed. 'not identifiable' if the horizon-offset placebo advances. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): X b8b883e5c3ac802bb0dcbe9e728ba71c44bd1273cc2737e637de9671c10c7880. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

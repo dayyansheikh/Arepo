@@ -1,0 +1,1519 @@
+{
+ "parts": {
+  "E": {
+   "part": "E",
+   "part_declared": false,
+   "reason": "family module ('cb12_e',) not present yet",
+   "rules_sha256": null,
+   "rules_version": "cb12-rules-v1"
+  },
+  "F": {
+   "part": "F",
+   "part_declared": false,
+   "reason": "family module ('cb12_f',) not present yet",
+   "rules_sha256": null,
+   "rules_version": "cb12-rules-v1"
+  },
+  "M": {
+   "constants": {
+    "cb12_common": {
+     "ACCESS_LOG": "ACCESS_LOG.jsonl",
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch12",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BATCH_HOLM_K1": 10,
+     "BY_Q": 0.1,
+     "CB12_SPORTS_IN_PRIMARY": false,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DATA_PAGES": 2,
+     "DATA_PAGE_LIMIT": 10000,
+     "DROPS_FILE": "drops.csv.gz",
+     "EARLY_ALPHA": 0.005,
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXCLUSION_RUN": "exclusion_run12",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo"
+     ],
+     "FAMILY_MODULES": {
+      "E": [
+       "cb12_e"
+      ],
+      "F": [
+       "cb12_f"
+      ],
+      "M": [
+       "cb12_m"
+      ],
+      "O": [
+       "cb12_o"
+      ],
+      "X": [
+       "cb12_x"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "M",
+      "E",
+      "F",
+      "X",
+      "O"
+     ],
+     "FAMILY_REP_TESTS": {
+      "E": [
+       "E1",
+       "E2"
+      ],
+      "F": [
+       "AL1",
+       "AL2",
+       "SH1",
+       "SH2"
+      ],
+      "M": [
+       "M1",
+       "M2"
+      ],
+      "O": [
+       "O1",
+       "O2"
+      ],
+      "X": []
+     },
+     "FAMILY_TESTS": {
+      "E": [
+       "E1"
+      ],
+      "F": [
+       "AL1",
+       "AL2",
+       "SH1",
+       "SH2"
+      ],
+      "M": [
+       "M1",
+       "M2"
+      ],
+      "O": [
+       "O1",
+       "O2"
+      ],
+      "X": [
+       "X1"
+      ]
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GATE_P": 0.01,
+     "GMP_DRAWS": 500,
+     "GUARDED_NAMES": [
+      "outcomes_guarded_screen.csv.gz",
+      "outcomes_guarded_holdout.csv.gz",
+      "outcomes_guarded.csv.gz"
+     ],
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PART": "holdout",
+     "ID_SOURCES": [
+      [
+       "h9_flow",
+       "sample.csv.gz"
+      ],
+      [
+       "h10_sign",
+       "sample.csv.gz"
+      ],
+      [
+       "h10_dlad",
+       "frame.csv.gz"
+      ],
+      [
+       "h10_brk",
+       "frame.csv.gz"
+      ],
+      [
+       "h11_wprints",
+       "markets.csv.gz"
+      ],
+      [
+       "h11_pol",
+       "frame.csv.gz"
+      ],
+      [
+       "h11_attn",
+       "frame.csv.gz"
+      ]
+     ],
+     "LIVE_ROOT_NAME": "cross_venue_live",
+     "LOOKUP_PER_REQUEST": 50,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MIN_CLUSTERS": 30,
+     "MIN_UNITS": 100,
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "OWN_SEAL_COPIES": [
+      "cb12_say_holdout_SEAL.json",
+      "cb12_prints_holdout_SEAL.json"
+     ],
+     "PARTS": [
+      "common",
+      "M",
+      "E",
+      "F",
+      "X",
+      "O"
+     ],
+     "PENDING": "pending",
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "M1_copula": 12101,
+      "M2_fill_calibrated": 12102,
+      "X1_horizon_offset": 12108
+     },
+     "PRICE_CAP": 0.99,
+     "PRICE_MAX_AGE_S": 86400.0,
+     "PRICE_MIN_LAG_S": 600,
+     "REP_JOBS": [
+      "rep-M",
+      "rep-E",
+      "rep-F",
+      "rep-O"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "module_funcs",
+      "module_constants",
+      "part_funcs",
+      "_mods",
+      "_jsonable"
+     ],
+     "RULES_VERSION": "cb12-rules-v1",
+     "SCREEN_JOBS": [
+      "screen-M",
+      "screen-E",
+      "screen-F",
+      "screen-X",
+      "screen-O"
+     ],
+     "SEAL_NAME": "holdout_SEAL.json",
+     "SEED_BOOT": 1212,
+     "SEED_GMP": 12121,
+     "SMOKE_VERSION": "cb12-smoke-v1",
+     "STAGE1_HOLM_FAMILY": [
+      "M1",
+      "M2",
+      "E1",
+      "AL1",
+      "AL2",
+      "SH1",
+      "SH2",
+      "X1",
+      "O1",
+      "O2"
+     ],
+     "STAGE2_K_MAX": 10,
+     "STAGE_ALPHA": 0.05,
+     "T12_HIST_END": "2026-10-01T00:00:00Z",
+     "T12_HIST_END_EPOCH": 1790812800.0,
+     "T12_X_END": "2026-10-12T00:00:00Z",
+     "T12_X_END_EPOCH": 1791763200.0,
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "T_SEAL": "2026-10-22T00:00:00Z",
+     "UNVERIFIED": "disjointness_unverified",
+     "X_MTIME_MAX_EPOCH": 1791849600.0,
+     "X_READABLE_ROOTS": [
+      "cross_venue"
+     ]
+    },
+    "cb12_m": {
+     "ASK_OFFSET": 0.015,
+     "ASK_OFFSET_ROBUST": 0.01,
+     "AVAIL_MIN_SHARE": 0.9,
+     "BID_PROXY": 0.015,
+     "BROADCAST_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(announcers?|commentators?|broadcast|halftime|pre-?game|post-?game|game|Super Bowl|World Series|NFL|NBA|WNBA|MLB|NHL|UFC|F1|Formula 1|Premier League|Champions League)\\b"
+     },
+     "COPULA_LOADINGS": [
+      0.15,
+      0.3,
+      0.55
+     ],
+     "COVER_MIN": 0.9,
+     "DAY": 86400.0,
+     "EVENT_COLUMNS": [
+      "event_id",
+      "series_id",
+      "speaker_key",
+      "start_epoch",
+      "end_epoch",
+      "created_epoch",
+      "neg_risk",
+      "n_members",
+      "split",
+      "status",
+      "sports_tag",
+      "sports_re",
+      "occasion",
+      "start_edit_a",
+      "start_edit_b",
+      "title_sha256"
+     ],
+     "FETCH_BEFORE_S": 93600.0,
+     "FIDELITY": 10,
+     "FILL_CAP": 100.0,
+     "FORBIDDEN_COLUMNS": [
+      "outcome_prices",
+      "uma_status",
+      "closedTime",
+      "y",
+      "wallet",
+      "proxyWallet",
+      "transactionHash",
+      "side",
+      "pnl",
+      "net"
+     ],
+     "FRAME_OUTPUT_CAP_GB": 0.005,
+     "FRAME_RUN": "h12_say",
+     "FRAME_STATUS": "say_frame_complete",
+     "GMP_MDE_MAX": 1.0,
+     "GM_MIN": {
+      "events": 150,
+      "speakers": 15,
+      "weeks": 30
+     },
+     "HOUR": 3600.0,
+     "LABEL_M": "L1, hindsight start time",
+     "LIST_BUFFER_S": 3600.0,
+     "LONGSHOT_SHARE": 0.8,
+     "M1_FLOOR_SHARE": 0.05,
+     "M1_FLOOR_WORDS": 0.3,
+     "M2_FLOOR": 0.005,
+     "MARKET_COLUMNS": [
+      "market_id",
+      "event_id",
+      "status",
+      "n_points",
+      "oldest_ts",
+      "truncated",
+      "reach_t24",
+      "n_prints",
+      "n_tx",
+      "first_post_ts"
+     ],
+     "MEMBER_COLUMNS": [
+      "event_id",
+      "market_id",
+      "condition_id",
+      "token_yes",
+      "yes_index",
+      "created_epoch"
+     ],
+     "MIN_MEMBERS": 8,
+     "M_HOLD": [
+      "2026-03-01",
+      "2026-10-01"
+     ],
+     "M_SCREEN": [
+      "2025-06-01",
+      "2026-03-01"
+     ],
+     "OCCASION_MAX_S": 129600.0,
+     "ORIGIN_ALT_S": 86400.0,
+     "ORIGIN_S": 7200.0,
+     "OUTCOME_COLUMNS": [
+      "market_id",
+      "event_id",
+      "yes_index",
+      "outcome_prices",
+      "uma_status"
+     ],
+     "PRICES_OUTPUT_CAP_GB": 0.08,
+     "PRICES_STATUS": "say_prices_complete",
+     "PRICE_BANDS": [
+      0.3,
+      0.6
+     ],
+     "PRICE_COLUMNS": [
+      "market_id",
+      "ts",
+      "p"
+     ],
+     "SMOKE_NEEDS": [
+      "guards_fixture_M",
+      "m_gamma_paging",
+      "m_prices_history",
+      "m_data_api_reach"
+     ],
+     "SMOKE_WEEKS": [
+      [
+       "2025-05-05T00:00:00Z",
+       "2025-05-12T00:00:00Z"
+      ],
+      [
+       "2025-05-12T00:00:00Z",
+       "2025-05-19T00:00:00Z"
+      ]
+     ],
+     "SPEAKER_RE": {
+      "flags": 34,
+      "regex": "(?i)^\\s*what (?:will|did|would)\\s+(.+?)\\s+(?:say|mention)\\b"
+     },
+     "SPORTS_TAG_IDS": [
+      "1"
+     ],
+     "SPORTS_TAG_SLUGS": [
+      "sports",
+      "nfl",
+      "nba",
+      "wnba",
+      "mlb",
+      "nhl",
+      "ufc",
+      "mma",
+      "soccer",
+      "football",
+      "basketball",
+      "baseball",
+      "hockey",
+      "tennis",
+      "golf",
+      "f1",
+      "formula-1",
+      "college-football",
+      "college-basketball",
+      "epl",
+      "premier-league",
+      "champions-league",
+      "mls",
+      "boxing",
+      "olympics",
+      "world-cup",
+      "super-bowl",
+      "cricket",
+      "rugby"
+     ],
+     "START_EDIT_CREATED_S": 93600.0,
+     "START_EDIT_LATE_S": 21600.0,
+     "TAG_ID": 100343,
+     "TAKER_FEE": 0.04,
+     "TRADE_THROUGH": 0.01,
+     "TRADE_THROUGH_ROBUST": 0.02,
+     "TX_COLUMNS": [
+      "market_id",
+      "ts",
+      "price",
+      "size",
+      "notional",
+      "n_fills",
+      "max_fill_notional",
+      "post"
+     ]
+    }
+   },
+   "declared": {
+    "cb12_m": {
+     "availability_min": 0.9,
+     "copula": {
+      "gmp_draws": 500,
+      "gmp_seed": 12121,
+      "loadings": [
+       0.15,
+       0.3,
+       0.55
+      ],
+      "mde_max_words": 1.0
+     },
+     "fidelity": 10,
+     "gates": {
+      "GM": {
+       "events": 150,
+       "speakers": 15,
+       "weeks": 30
+      },
+      "coverage_min": 0.9
+     },
+     "key_rule": "market id, event id, series-date key (needs exclusion_series_dates.csv.gz; else the full-series counterfactual is only counted)",
+     "label": "L1, hindsight start time",
+     "listing_buffer_h": 1.0,
+     "m1": {
+      "bid_proxy": 0.015,
+      "floor_share": 0.05,
+      "floor_words": 0.3,
+      "placebo": "copula, seed 12101, 200 draws"
+     },
+     "m2": {
+      "ask": "ceil_tick(p + 1.5c) at 1c, cap 0.99",
+      "fill": "first transaction in [t, startTime) with YES-terms price >= ask + 1c; size min(100, tx size)",
+      "floor": "net >= 0.5c per filled share and route net > 0",
+      "placebo": "fill-time calibrated copula, seed 12102",
+      "robustness": "quote +1.0c; trade-through 2c; top-5; start_edit; worst-case unclean; worst-case reach"
+     },
+     "min_members": 8,
+     "occasion_max_h": 36.0,
+     "origins_s": [
+      7200.0,
+      86400.0
+     ],
+     "outcomes": "guarded SCREEN and HOLDOUT files (separate); unclean members 0.5 (worst case 1)",
+     "sports": {
+      "broadcast_regex": "(?i)\\b(announcers?|commentators?|broadcast|halftime|pre-?game|post-?game|game|Super Bowl|World Series|NFL|NBA|WNBA|MLB|NHL|UFC|F1|Formula 1|Premier League|Champions League)\\b",
+      "in_primary": false,
+      "tag_ids": [
+       "1"
+      ],
+      "tag_slugs": [
+       "sports",
+       "nfl",
+       "nba",
+       "wnba",
+       "mlb",
+       "nhl",
+       "ufc",
+       "mma",
+       "soccer",
+       "football",
+       "basketball",
+       "baseball",
+       "hockey",
+       "tennis",
+       "golf",
+       "f1",
+       "formula-1",
+       "college-football",
+       "college-basketball",
+       "epl",
+       "premier-league",
+       "champions-league",
+       "mls",
+       "boxing",
+       "olympics",
+       "world-cup",
+       "super-bowl",
+       "cricket",
+       "rugby"
+      ]
+     },
+     "stage1": "p < 0.01, floors, binding placebo, robustness, early Holm at alpha / 10 = 0.005 (full step-down at the batch end can add advances)",
+     "tag_id": 100343,
+     "windows": {
+      "holdout": [
+       "2026-03-01",
+       "2026-10-01"
+      ],
+      "screen": [
+       "2025-06-01",
+       "2026-03-01"
+      ]
+     }
+    }
+   },
+   "func_sources_sha256": {
+    "cb12_common.aggregate_transactions": "08f41e54495e027b0ce3e213b6548ce55999782173c2f79ad54683e4a8324a6c",
+    "cb12_common.c1_market_ids": "2d470f722e34a801c5751de43d423bf3c03a51353c4b0d9ae5321c6e25d0e599",
+    "cb12_common.ceil_tick": "af6783f6548c6e1c33f48702e468c51ba0299ecd63bbf5541cbf5a4d8706d36d",
+    "cb12_common.cluster_p": "a7e86a6d0f27ae1b45f8936c410f4862034b4534c9af2cf87bdddec413c18291",
+    "cb12_common.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "cb12_common.early_stage1_ok": "046fbc6823754520e2157b71a894d1e9382af4ef3d1d42353d7ce7904e123bb5",
+    "cb12_common.early_stage2_ok": "c800432bd9ffbef633047972817c1e2ec58db13b580240f2176f86b5a0d148f0",
+    "cb12_common.exclusion_keys": "5aa9922ece25d2090c42a81435ab1fe0b2d15f5954ea0e7f8d3bb20ba5f4a7a0",
+    "cb12_common.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "cb12_common.fetch_prints_paged": "db90a4c31db02d6535efd8c88a0bda75dad6b22be99d094f7e7b4659ab7ba5cb",
+    "cb12_common.guard_screen_path": "635560bb0998aa2a9c54b25fab2e02858f9c76cfd9bd39202c0af51c9e03fc07",
+    "cb12_common.holm": "c55f3569e796a129314e981b210e9c3e78ba6422ab5608c5ea019e11190fd598",
+    "cb12_common.is_holdout_path": "c35f9f1dc469e31a1e3c6ed9ca5fa1c76829eed14514af2c8f4fa8c9b909240b",
+    "cb12_common.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "cb12_common.known_lag_s": "d0fbc9efe75f0d01a15dc8da29870bcd07edac0b9b3eb45ea242c6fadd85dae2",
+    "cb12_common.listish": "66999b312145ac17e5fd36f52a83fb78253aaa91dc03b49c9124589a11602024",
+    "cb12_common.load_exclusion_keys": "c31f3f8c0c742ba5e773cbc9974075445d7ddd4f1fcd637d67deb0fce9f91eef",
+    "cb12_common.log_access": "2aef281b30cfd935ebcc282a96c3fa891e84b0099a47fb18c149f952cc6e5630",
+    "cb12_common.log_descriptive": "6ac8c24f70b29c81cdb0b1ede5acf24d32027a1003d8c748e2eafec18c3bf291",
+    "cb12_common.log_family": "c9d5853516d2d7c6b77368245d0b1c78499cdbfc60801cc7261a3b353f5d4c96",
+    "cb12_common.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "cb12_common.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "cb12_common.mde": "6c43ef79505a40b002ccc422274968450ee6d1e76af1134cff17a43471a87170",
+    "cb12_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb12_common.one_sided_boot_p": "7812ce5bccc071522932012f9886313a9281ef9045cf06f5d46ae4a553092e2f",
+    "cb12_common.open_guarded": "092952dedb85d730d5d534d348a9cc4d9fc382312de0abc008d0f573dfb1af20",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb12_common.price_at": "63939905ce42d13dbf916af2260a51a849770c64cec1f590444e6825aa562db9",
+    "cb12_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+    "cb12_common.reach_ok": "c1027e0f9f22591e52de9c54ee1cec87bbff59fc529022838f630b36f35b9036",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb12_common.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "cb12_common.refuse_path": "28d433c10d4e09f2f81181a4ae07cbc3f8ca857c01e14e26fed7104a7bf3c844",
+    "cb12_common.refuse_read": "0ed50e47e225b7a86ea71f52f9fc02122d50d66d35c8665fe8ea2c6faecb7a54",
+    "cb12_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb12_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb12_common.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "cb12_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb12_common.require_freeze": "3015dec7fa1068400db9fce1cd514493d0f0a79d09ac54060e11de8690d99031",
+    "cb12_common.require_output_root": "3a7951b8ce7552c8540ba4cfb5445cae02e40188d5619f4a816c2792956e0cb0",
+    "cb12_common.seal_holdout": "49a04a96eb55c2ed9856c1c41e34ac26777671d7dd4fa1d2716217708c8c2b45",
+    "cb12_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb12_common.stage1_holm": "2b310b34ba4f4a1615fdaab65b1eb04b049e9a66d84f54501cc399e2da9a933c",
+    "cb12_common.stage2_holm": "6cac1a8ca6ba3581d623159a413631d164fe5e490e43bd54bef66f01c24dd165",
+    "cb12_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb12_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb12_common.upstream_stall": "cc030b6f9a1b37b4930f960dab3878bfd23010a9963eb7b96d4caf22cf2c4ffe",
+    "cb12_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb12_common.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "cb12_common.verify_holdout_seal": "5808eba6429a1171804a805321ec8287c3d4f96583d0619b67f42952a0280f7e",
+    "cb12_common.wait_or_idle": "9eaca81ab04a1251f7f09314d6e3aec8d3161c53c55922c90fcc9f002ba2a6bd",
+    "cb12_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb12_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb12_m._ep": "9e5036d523cbb6c30c7b330c6f5f3a6ed1260a58803770ed130d3ca321d5b49a",
+    "cb12_m._wcsv": "ec80c1682e35c1af5e4a80e8fcfc4b772fb3d6d2274533e576bfc9baef129d46",
+    "cb12_m.attach_outcomes": "83d1cf3becb0ac67b9a73b4355a9604604903c28956f6f8fbe655399059acc4a",
+    "cb12_m.bid_proxy": "49558aec6f593fe88eff04d708514cc6dc71a799525360b0a7fbddcf3429ce09",
+    "cb12_m.build_units": "c712fd7c1ecfff07bd23a7587bc28757a214465513ab17d941b48514da9c5e95",
+    "cb12_m.census_m": "20cb8b5b6539c11c516a896622ea8f5c9e0d8febe0af83422b613640fb031f3b",
+    "cb12_m.clusters_of": "2f8bd6ee57b28b7601989757b8af035b89f20603a134e3c3976fbc6324990be3",
+    "cb12_m.copula_flat": "a0a323226c4661fb2fb04e8c28fd6295aeb9869de278e23c232d7cba93b73fb0",
+    "cb12_m.d_values": "991c36a130c38e07474a6690bedfd871aeb964ca2fa4304adcda1a98d934462e",
+    "cb12_m.declared": "105723b12d7fb8d846d5bc5606a589d36bc4de779e1d352fc3414c7b96b422d6",
+    "cb12_m.drop_top": "d80fb44e23b1b58536af01f8b41cb2a066b2ddd0569735bab23a7460609b0315",
+    "cb12_m.event_status": "38e103db832d5a5915680f06ecc69183d5f8c89f4429b537302d0c41ed39ebd5",
+    "cb12_m.event_values": "c0c9a0a54b40da1126ab56bddb18462556f366d05d37bd46dd9b9c37c95c2be4",
+    "cb12_m.fill_member": "63bc843b8fb6b3babf77787cd18fc46de26ee98dab1adab59412ef7ef15f998c",
+    "cb12_m.flat_index": "d2439d168e554b4bacdf2be83f3ce20cb4d4433ea2bc4000b4abe7aec80b1b7b",
+    "cb12_m.frame_done": "df4af7f763f39d66cd14854a019327ece30a07c31dd3a105e6c4794c3accf6c0",
+    "cb12_m.full_series_counterfactual": "c5858f12fffed3f8a26d1c212825aee124ca890a1bfb611c143ac836620ebc48",
+    "cb12_m.gmp": "d8af8f99f77b54a9049c24a756d526851dc7e8878716fe4c8d328e5083a5f98b",
+    "cb12_m.holds": "f2c56846b836da0cbf853505a8a0ed8df5c56fbee83f4e444c5ecfa283275c65",
+    "cb12_m.is_sports": "123d20646aeaf9bdf19a1a77c7c6cb40cc6f229bb120feea05407978859018d2",
+    "cb12_m.kept_members": "7789a7fb86775102c1284c85facdc1e6a3b730d8a2c3a5558c4ef1090321a521",
+    "cb12_m.load_split": "0d72b3c73e69a8733c40c0a25e2419f0bbae5a90f9f4df594c30c45c04089b2a",
+    "cb12_m.m1_floor_ok": "b8afb15c57908b528f3a4f6e55a839ecd91ae6a0d468eb5d1fccc4314beae3e5",
+    "cb12_m.m1_placebo": "4ae16ed63daafb2b1f12028e1e2ca1b0f34795ed950b56049df6be22a13b3ccc",
+    "cb12_m.m1_reported": "d838a752e1177070ba019ade4974dc16ad112723b620509ceb4a375b375b9759",
+    "cb12_m.m1_test": "f5c2aeb01d2a32e6c8b190cde175835afafe99e7c57e3737fb2493fec2b3b9b2",
+    "cb12_m.m2_fill_placebo": "ed80eec09debcca340159086aa61dfc0e9dd25f1df896e159e2f2c38950ef3ee",
+    "cb12_m.m2_quotes": "57df9cc508f1202dddf22cd0532366bd7c047f1a60870ce3208a9597a6973e51",
+    "cb12_m.m2_reported": "6c2d610996839632aa105b55a37ed56d434f238e75f526425681d99a47dd0327",
+    "cb12_m.m2_test": "0ae18996f80d1f79769b6d693a750eb48c2171dec72d90250ed9cb3aa73a314a",
+    "cb12_m.month_windows": "d6a0c4bda112304ad40cbce715e1aa9c132e52c17b99b24597781847403eb461",
+    "cb12_m.not_run_result": "d183b54e423379880e199eb41f20119e8aa0cde440accb4cad4f356c64fc29c6",
+    "cb12_m.ok_units": "056a2caddad57a611ba1e546503dee209a6679cb12ce4485c8055727f7272b81",
+    "cb12_m.outcome_y": "eef992f3e8db8937644199f1627e9fce3bff24386f9c263a04049fecb5c8dd82",
+    "cb12_m.parse_event": "fba923de9fafd963f496c102bb31620f5295a6a2035403ef711001905c2061ee",
+    "cb12_m.parse_member": "638789c6f3799450df1344ba5b0135b913cf75f5960c652cf7e011a1e9523c93",
+    "cb12_m.parse_outcome": "3760b76fee82c65c5f8eaedeae1eb9bb447bf776e6bc0b82656dbba827472ef9",
+    "cb12_m.print_sum_check": "240ffa6099780f31fe95bf7fd01dd560a38f763fe7247ad4db19fe654c0f587c",
+    "cb12_m.rep_m": "662a84093942165368a8af9b19f0c132c43e0d83a8f5a58d90d4642131504435",
+    "cb12_m.say_frame": "391cef8dbc1925080b94527a4d5ae3ec59050ea996eab1529228ee1eeb9b2203",
+    "cb12_m.say_prices": "c089a45be1a5caa6b03e900bd9d54a6c551cd0c7d8e262d1e57a43138d74a6ce",
+    "cb12_m.screen_m": "950017a29e66d71f1d798570494fb27b40abab32e4ad24664fc3c04258e22885",
+    "cb12_m.seal_rows": "190adef2167ca9c5f6abeaaa7032cd407a658d1a9365acd0d30307e25c3c1ecc",
+    "cb12_m.smoke_offline": "de45096b39ad717834f8c6d3f71b8875fbaab29cbfc19144ed4f1077cd244bd6",
+    "cb12_m.smoke_online": "2c2a440bab59786b4bb4ab24452e80936b6749fefce50510ca21296f310054aa",
+    "cb12_m.speaker_key": "e422954647f24d1541694b24051665e02d16e2af322563b8b78500194f5b3938",
+    "cb12_m.split_of": "09c0a3dce92c94fddf4f468101e3c06d56610a39ee1f918375fe3a480a2acef9",
+    "cb12_m.tx_rows_for": "3b7507517f47ecc88c8fe66433606734ca2d15447eb4c3ee0062b0f28f3c9df4",
+    "cb12_m.walk_window": "5ba2be6009ba2358fee6fe4615c77561eadad90cc76c15c5dba917558762e817"
+   },
+   "funcs_sha256": "abcdfdf5def9115589cd7fabf11693c2d2d00bfec458f3df4f5dd5905192d23f",
+   "part": "M",
+   "part_declared": true,
+   "rules_sha256": "58fcffef3b4b455f1ee2dd22440dc56136bfb9e417e880dab5669d418ad35cf3",
+   "rules_version": "cb12-rules-v1",
+   "wallet": {
+    "note": "no CB12 job reads or stores a wallet field, a transaction hash, or the Data API side field",
+    "read": false
+   }
+  },
+  "O": {
+   "part": "O",
+   "part_declared": false,
+   "reason": "family module ('cb12_o',) not present yet",
+   "rules_sha256": null,
+   "rules_version": "cb12-rules-v1"
+  },
+  "X": {
+   "constants": {
+    "cb12_common": {
+     "ACCESS_LOG": "ACCESS_LOG.jsonl",
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch12",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BATCH_HOLM_K1": 10,
+     "BY_Q": 0.1,
+     "CB12_SPORTS_IN_PRIMARY": false,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DATA_PAGES": 2,
+     "DATA_PAGE_LIMIT": 10000,
+     "DROPS_FILE": "drops.csv.gz",
+     "EARLY_ALPHA": 0.005,
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXCLUSION_RUN": "exclusion_run12",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo"
+     ],
+     "FAMILY_MODULES": {
+      "E": [
+       "cb12_e"
+      ],
+      "F": [
+       "cb12_f"
+      ],
+      "M": [
+       "cb12_m"
+      ],
+      "O": [
+       "cb12_o"
+      ],
+      "X": [
+       "cb12_x"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "M",
+      "E",
+      "F",
+      "X",
+      "O"
+     ],
+     "FAMILY_REP_TESTS": {
+      "E": [
+       "E1",
+       "E2"
+      ],
+      "F": [
+       "AL1",
+       "AL2",
+       "SH1",
+       "SH2"
+      ],
+      "M": [
+       "M1",
+       "M2"
+      ],
+      "O": [
+       "O1",
+       "O2"
+      ],
+      "X": []
+     },
+     "FAMILY_TESTS": {
+      "E": [
+       "E1"
+      ],
+      "F": [
+       "AL1",
+       "AL2",
+       "SH1",
+       "SH2"
+      ],
+      "M": [
+       "M1",
+       "M2"
+      ],
+      "O": [
+       "O1",
+       "O2"
+      ],
+      "X": [
+       "X1"
+      ]
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GATE_P": 0.01,
+     "GMP_DRAWS": 500,
+     "GUARDED_NAMES": [
+      "outcomes_guarded_screen.csv.gz",
+      "outcomes_guarded_holdout.csv.gz",
+      "outcomes_guarded.csv.gz"
+     ],
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PART": "holdout",
+     "ID_SOURCES": [
+      [
+       "h9_flow",
+       "sample.csv.gz"
+      ],
+      [
+       "h10_sign",
+       "sample.csv.gz"
+      ],
+      [
+       "h10_dlad",
+       "frame.csv.gz"
+      ],
+      [
+       "h10_brk",
+       "frame.csv.gz"
+      ],
+      [
+       "h11_wprints",
+       "markets.csv.gz"
+      ],
+      [
+       "h11_pol",
+       "frame.csv.gz"
+      ],
+      [
+       "h11_attn",
+       "frame.csv.gz"
+      ]
+     ],
+     "LIVE_ROOT_NAME": "cross_venue_live",
+     "LOOKUP_PER_REQUEST": 50,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MIN_CLUSTERS": 30,
+     "MIN_UNITS": 100,
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "OWN_SEAL_COPIES": [
+      "cb12_say_holdout_SEAL.json",
+      "cb12_prints_holdout_SEAL.json"
+     ],
+     "PARTS": [
+      "common",
+      "M",
+      "E",
+      "F",
+      "X",
+      "O"
+     ],
+     "PENDING": "pending",
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "M1_copula": 12101,
+      "M2_fill_calibrated": 12102,
+      "X1_horizon_offset": 12108
+     },
+     "PRICE_CAP": 0.99,
+     "PRICE_MAX_AGE_S": 86400.0,
+     "PRICE_MIN_LAG_S": 600,
+     "REP_JOBS": [
+      "rep-M",
+      "rep-E",
+      "rep-F",
+      "rep-O"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "module_funcs",
+      "module_constants",
+      "part_funcs",
+      "_mods",
+      "_jsonable"
+     ],
+     "RULES_VERSION": "cb12-rules-v1",
+     "SCREEN_JOBS": [
+      "screen-M",
+      "screen-E",
+      "screen-F",
+      "screen-X",
+      "screen-O"
+     ],
+     "SEAL_NAME": "holdout_SEAL.json",
+     "SEED_BOOT": 1212,
+     "SEED_GMP": 12121,
+     "SMOKE_VERSION": "cb12-smoke-v1",
+     "STAGE1_HOLM_FAMILY": [
+      "M1",
+      "M2",
+      "E1",
+      "AL1",
+      "AL2",
+      "SH1",
+      "SH2",
+      "X1",
+      "O1",
+      "O2"
+     ],
+     "STAGE2_K_MAX": 10,
+     "STAGE_ALPHA": 0.05,
+     "T12_HIST_END": "2026-10-01T00:00:00Z",
+     "T12_HIST_END_EPOCH": 1790812800.0,
+     "T12_X_END": "2026-10-12T00:00:00Z",
+     "T12_X_END_EPOCH": 1791763200.0,
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "T_SEAL": "2026-10-22T00:00:00Z",
+     "UNVERIFIED": "disjointness_unverified",
+     "X_MTIME_MAX_EPOCH": 1791849600.0,
+     "X_READABLE_ROOTS": [
+      "cross_venue"
+     ]
+    },
+    "cb12_x": {
+     "AVAIL_MIN": 0.6,
+     "BINS": [
+      "short",
+      "mid",
+      "long"
+     ],
+     "BIN_LONG_S": 2592000.0,
+     "BIN_SHORT_S": 259200.0,
+     "C1_EXPECTED": {
+      "events": 183,
+      "pairs": 316,
+      "steps": 517616
+     },
+     "CAUSAL_MIN_OBS": 1,
+     "CAUSAL_WINDOW_S": 259200.0,
+     "CV_CALLS": [
+      "load_pair_series(cv.POINT_LAG_S)",
+      "audit_sets(pairs, kept)['rule']"
+     ],
+     "CV_SCRIPT_REL": "backend/scripts/run_cross_venue.py",
+     "EDIT_FLAG_S": 604800.0,
+     "FRESH_MAX_AGE_S": 600.0,
+     "GRID_MIN": 10.0,
+     "GX_MIN": {
+      "events": 20,
+      "pairs": 30,
+      "steps": 20000
+     },
+     "HL_CAP_MIN": 10080.0,
+     "KALSHI_CLOSE_KEY": "close_time",
+     "LABEL_X": "L1, worn set, new moderator, hindsight end date",
+     "LARGE_GAP": 0.03,
+     "POLY_END_KEY": "end",
+     "POLY_ID_KEY": "market_id",
+     "POLY_VOLUME_KEYS": [
+      "volume",
+      "volume_num",
+      "volumeNum",
+      "volume_total"
+     ],
+     "SMOKE_NEEDS": [
+      "guards_fixture_X",
+      "x_inputs_pinned",
+      "x_c1_reproduction"
+     ],
+     "STRATA": [
+      "sports",
+      "elections"
+     ],
+     "STRATUM_MIN_PAIRS": 10,
+     "TERCILES_MIN_HOLD": 2,
+     "X1_FLOOR_MIN": 60.0,
+     "X_DIR_NAME": "cross_venue",
+     "X_PINS": {
+      "audit_flags.json": "a7273ea747c8bb3162effe790363108fb820599c884a14d539b4ca464b6b7629",
+      "audit_sample100.json": "9e8eb51a51dd49246a227a40d9c988afd09c48089c8ce97a363d7c6b8bcdb8ec",
+      "kalshi_markets.jsonl": "703fda587da8581651c1f8500c20ed7388647ecbf9234c748cf5540f7b3c073c",
+      "kalshi_markets_b.jsonl": "47f49f5bd6875318a2fc92f54502c2df6a802d11f24de709658ec715862bedea",
+      "kalshi_markets_s0.jsonl": "80445c4e2123a00d51eb3442b9f9cb5ace3b5bbb61ecede49fc8b544e5c55af0",
+      "kalshi_markets_s1.jsonl": "a1a36adfd7b0fb9466df5905e58d7dded446897276b941435890ed352772943b",
+      "kalshi_markets_s2.jsonl": "39975faf55e23d456bc28f80c56229391320321fac77ad9d75463b4a76713b55",
+      "kalshi_markets_s3.jsonl": "0e13ffcac5f97cd1c52cbed939a34fae8997dee6aefd5e68bab61113ebd23755",
+      "kalshi_markets_s4.jsonl": "6a47c20aea5b1de400b6d3a620d688915a9af950c3c232a09fd577c24b254234",
+      "kalshi_markets_s5.jsonl": "9479b4cc7a089fe6e96bc99da4815854d7b73d6440869c260eee6d7438934d15",
+      "matches.json": "f21457665518e6a8a7d2afe7337c730fac3ebb889fa3476ff51bc1ae16d0e945",
+      "poly_markets.json": "749adfa6faf34c4948fec9dc9e6bac2485133713370893e489aa5bd6434a23b2"
+     },
+     "X_SERIES_PIN": {
+      "count": 493,
+      "listing_sha256": "f930d276d1f49509bb90be21d8cab6b2c4bbb2d883e60b2b0c9791691028d6fd"
+     }
+    }
+   },
+   "declared": {
+    "cb12_x": {
+     "bins_s": {
+      "long_min": 2592000.0,
+      "short_max": 259200.0
+     },
+     "c1_expected": {
+      "events": 183,
+      "pairs": 316,
+      "steps": 517616
+     },
+     "estimator": "pooled AR(1) of the pair-demeaned gap on consecutive usable steps by horizon bin of the first step; HL = 10 min ln2 / (-ln rho); rho >= 1 -> inf (reported) and the 7 d cap in the contrast and bootstrap",
+     "gate_GX": {
+      "events": 20,
+      "pairs": 30,
+      "steps": 20000
+     },
+     "guards": "cross_venue_live refused; steps at or after T12_X_end refused; input mtime >= 2026-10-13 refused",
+     "horizon_source": "poly_markets.json 'end' (scheduled), streamed",
+     "inputs": [
+      "audit_flags.json",
+      "audit_sample100.json",
+      "kalshi_markets.jsonl",
+      "kalshi_markets_b.jsonl",
+      "kalshi_markets_s0.jsonl",
+      "kalshi_markets_s1.jsonl",
+      "kalshi_markets_s2.jsonl",
+      "kalshi_markets_s3.jsonl",
+      "kalshi_markets_s4.jsonl",
+      "kalshi_markets_s5.jsonl",
+      "matches.json",
+      "poly_markets.json"
+     ],
+     "label": "L1, worn set, new moderator, hindsight end date",
+     "placebo": {
+      "draws": 200,
+      "judged_on": "p < 0.01 under the same inference (floors off)",
+      "name": "horizon-offset",
+      "seed": 12108
+     },
+     "reads": "no outcome, no wallet, no side",
+     "robustness": [
+      "sports and elections strata (>= 10 pairs per bin each)",
+      "volume terciles (>= 2 of 3)",
+      "causal demeaning (3-day past mean) keeps sign and >= half",
+      "|g| >= 3c",
+      "edit-flag excluded",
+      "fresh steps (both points <= 10 min)",
+      "top-5 events",
+      "sign in each third by step date",
+      "leave-one-cluster-out sign for any way with G < 15"
+     ],
+     "series_pin": {
+      "count": 493,
+      "listing_sha256": "f930d276d1f49509bb90be21d8cab6b2c4bbb2d883e60b2b0c9791691028d6fd"
+     },
+     "x1": {
+      "contrast": "HL_long - HL_short",
+      "floor_min": 60.0,
+      "inference": "2000-draw cluster bootstrap, seed 1212; CB10 small-G rule per way",
+      "one_sided": ">0",
+      "ways": [
+       "polymarket event",
+       "calendar month of the earlier resolution"
+      ]
+     }
+    }
+   },
+   "func_sources_sha256": {
+    "cb12_common.aggregate_transactions": "08f41e54495e027b0ce3e213b6548ce55999782173c2f79ad54683e4a8324a6c",
+    "cb12_common.c1_market_ids": "2d470f722e34a801c5751de43d423bf3c03a51353c4b0d9ae5321c6e25d0e599",
+    "cb12_common.ceil_tick": "af6783f6548c6e1c33f48702e468c51ba0299ecd63bbf5541cbf5a4d8706d36d",
+    "cb12_common.cluster_p": "a7e86a6d0f27ae1b45f8936c410f4862034b4534c9af2cf87bdddec413c18291",
+    "cb12_common.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "cb12_common.early_stage1_ok": "046fbc6823754520e2157b71a894d1e9382af4ef3d1d42353d7ce7904e123bb5",
+    "cb12_common.early_stage2_ok": "c800432bd9ffbef633047972817c1e2ec58db13b580240f2176f86b5a0d148f0",
+    "cb12_common.exclusion_keys": "5aa9922ece25d2090c42a81435ab1fe0b2d15f5954ea0e7f8d3bb20ba5f4a7a0",
+    "cb12_common.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "cb12_common.fetch_prints_paged": "db90a4c31db02d6535efd8c88a0bda75dad6b22be99d094f7e7b4659ab7ba5cb",
+    "cb12_common.guard_screen_path": "635560bb0998aa2a9c54b25fab2e02858f9c76cfd9bd39202c0af51c9e03fc07",
+    "cb12_common.holm": "c55f3569e796a129314e981b210e9c3e78ba6422ab5608c5ea019e11190fd598",
+    "cb12_common.is_holdout_path": "c35f9f1dc469e31a1e3c6ed9ca5fa1c76829eed14514af2c8f4fa8c9b909240b",
+    "cb12_common.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "cb12_common.known_lag_s": "d0fbc9efe75f0d01a15dc8da29870bcd07edac0b9b3eb45ea242c6fadd85dae2",
+    "cb12_common.listish": "66999b312145ac17e5fd36f52a83fb78253aaa91dc03b49c9124589a11602024",
+    "cb12_common.load_exclusion_keys": "c31f3f8c0c742ba5e773cbc9974075445d7ddd4f1fcd637d67deb0fce9f91eef",
+    "cb12_common.log_access": "2aef281b30cfd935ebcc282a96c3fa891e84b0099a47fb18c149f952cc6e5630",
+    "cb12_common.log_descriptive": "6ac8c24f70b29c81cdb0b1ede5acf24d32027a1003d8c748e2eafec18c3bf291",
+    "cb12_common.log_family": "c9d5853516d2d7c6b77368245d0b1c78499cdbfc60801cc7261a3b353f5d4c96",
+    "cb12_common.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "cb12_common.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "cb12_common.mde": "6c43ef79505a40b002ccc422274968450ee6d1e76af1134cff17a43471a87170",
+    "cb12_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb12_common.one_sided_boot_p": "7812ce5bccc071522932012f9886313a9281ef9045cf06f5d46ae4a553092e2f",
+    "cb12_common.open_guarded": "092952dedb85d730d5d534d348a9cc4d9fc382312de0abc008d0f573dfb1af20",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb12_common.price_at": "63939905ce42d13dbf916af2260a51a849770c64cec1f590444e6825aa562db9",
+    "cb12_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+    "cb12_common.reach_ok": "c1027e0f9f22591e52de9c54ee1cec87bbff59fc529022838f630b36f35b9036",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb12_common.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "cb12_common.refuse_path": "28d433c10d4e09f2f81181a4ae07cbc3f8ca857c01e14e26fed7104a7bf3c844",
+    "cb12_common.refuse_read": "0ed50e47e225b7a86ea71f52f9fc02122d50d66d35c8665fe8ea2c6faecb7a54",
+    "cb12_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb12_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb12_common.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "cb12_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb12_common.require_freeze": "3015dec7fa1068400db9fce1cd514493d0f0a79d09ac54060e11de8690d99031",
+    "cb12_common.require_output_root": "3a7951b8ce7552c8540ba4cfb5445cae02e40188d5619f4a816c2792956e0cb0",
+    "cb12_common.seal_holdout": "49a04a96eb55c2ed9856c1c41e34ac26777671d7dd4fa1d2716217708c8c2b45",
+    "cb12_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb12_common.stage1_holm": "2b310b34ba4f4a1615fdaab65b1eb04b049e9a66d84f54501cc399e2da9a933c",
+    "cb12_common.stage2_holm": "6cac1a8ca6ba3581d623159a413631d164fe5e490e43bd54bef66f01c24dd165",
+    "cb12_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb12_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb12_common.upstream_stall": "cc030b6f9a1b37b4930f960dab3878bfd23010a9963eb7b96d4caf22cf2c4ffe",
+    "cb12_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb12_common.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "cb12_common.verify_holdout_seal": "5808eba6429a1171804a805321ec8287c3d4f96583d0619b67f42952a0280f7e",
+    "cb12_common.wait_or_idle": "9eaca81ab04a1251f7f09314d6e3aec8d3161c53c55922c90fcc9f002ba2a6bd",
+    "cb12_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb12_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb12_x.Tab": "883e753f6900b30e7026d8e5c2bf615e13b2ae62f9961e06280fbcc6b48e4265",
+    "cb12_x.XPair": "f9ff4680884912b3826c8c7b19bb4d95d21f086d8e16aa31ca120e53462314b1",
+    "cb12_x._age_fresh": "e94b23a9f65f2e1daa2c42d18538e8aa91f38c57c4283d4d898e62aca1a012bf",
+    "cb12_x._boot_weights": "5dba5b617d01d3a2809fca83e7f932fa2b69150e4ee921ee00bf5f09d08b7316",
+    "cb12_x._sign_ok": "144d62bd02b021adf442ddfc2ce78c8c254ff2e0e8fbb0d1b8b33a40c653cf0b",
+    "cb12_x.bins_of": "7b4d7ef9695176f989935a973df41d273080fe094a223c816f0aab8275d130dc",
+    "cb12_x.causal_demean": "79ae7e041d3b3c9643e93010d9e52355b1693b79e5be4678f8b8290e6243c971",
+    "cb12_x.census_x": "6257cb7dd56397848f8fe546738491577e4cc5d2099e17ac633a99b752246001",
+    "cb12_x.cluster_sums": "874101789cf83253e950df515d0c5a2e529ba4c543241701b0b0c2e4f9ff892a",
+    "cb12_x.contrast_of": "351d54f759a031d9e328bed6bc47e7b3211ae0e17a8f3d498ed7a6f1ca72741e",
+    "cb12_x.declared": "674c54ddac8b497f24fba6e77efde261d60fbb64f19aa467b9e2d743a793b666",
+    "cb12_x.evaluate": "5e896e7e7b54d2f3c920daec5cb196db6563de86a70fcc5b39ff0cc176df7c94",
+    "cb12_x.gap_of": "171f5de9de33b5eef25fc1fea24edab4cb3e601146701e0651e19f505a78d74c",
+    "cb12_x.hl_of": "0d08c02f969f0ad511a79c3f5a687b48e5e086fc28ba2b7b10da406b9c14f862",
+    "cb12_x.horizon_placebo": "a3b976957fc4af568e31bca4519711bda2231cab786b6f7ffe35c6cdaf054df6",
+    "cb12_x.iter_json_array": "fef48def387fc93eff6371ba7b3af5e5af038477a824e58d727882728c237750",
+    "cb12_x.load_c1": "1e2ff158b8f0772b4a954afba6685aa18351b1146a5c1bb0a8d9fd41b6989a9f",
+    "cb12_x.make_tab": "04c35b72989aaa438c635394649f831b58aa63124dc64efd79cc34db526ed69e",
+    "cb12_x.not_run_result": "ad9801450a6115e183385f742c1c24deeec985266fdf57d535dda6bbb090117e",
+    "cb12_x.part_unready": "8d4a21b134be2e491d1044f50627e5f4a79610fbedb4b8cb628e129a76c61741",
+    "cb12_x.point": "37cce7b6e8915392f6055300c50c3ae93f3b118e0911221dbe6b71878f913f68",
+    "cb12_x.poly_volume": "fa5a3408ab8a4a81521dc2411299722170dd883ac6289e405373cc02cb8a77e9",
+    "cb12_x.refuse_mtime": "427cf81fc409097a23ef4a639c15ddc8904194cbdf1e1307c043e05c997c80e0",
+    "cb12_x.refuse_step_time": "7a479c025b0e9356cd373b261e477dc776c7ccd6dec5234a708b0a9c4b339f28",
+    "cb12_x.restricted_universes": "b52fa82dbf26aa54a0ab87897002148479acc1629273fb968a8c4439783ac6c5",
+    "cb12_x.screen_x": "b2545cd6a4cb2407f768230ffa505818181cb27833f747b4e5b1427b1378bcdd",
+    "cb12_x.series_listing_sha": "f34a473fcd934114d2d8b4aa715f02da98606725cf39747858446ff544f92a7e",
+    "cb12_x.smoke_offline": "f81671bc36fe59edd86db971cf10845921648c0d51601b2bb609893be4ec1800",
+    "cb12_x.smoke_online": "286f88007c70dbbaf01ada0d2b2d1962411da71e08da198cd7f398f3f5bf2afe",
+    "cb12_x.tercile_of": "0f03634024dffae7fa16720a1e8f3b81d0f757701f945d0788acecfc6985b45c",
+    "cb12_x.top5_event_drop": "2e868ed1dd4bd9731c6cf5ec8362c6120aa94eb22242ffd59ab83b16b09707ca",
+    "cb12_x.verify_inputs": "d6a51af07926b05e7647184a4f96a6b223187d8280ecf8267a32fbbbf552429b",
+    "cb12_x.way_inference": "24bd460e449355b685b6628a33bed6de25cf255a31ce71cbc321ba8d1b0a5e86",
+    "cb12_x.x1_test": "926bb18e4ebb19acada50e57cf1bffc4796a217157794f33220fac3e0f450037",
+    "cb12_x.x_reported": "3176625669ade0b609c1cd495fc66b557fa2c061c404b6c914c3ec961f8471b0",
+    "cb12_x.x_root": "16b5add2ecb5292558034eba3c681df68bddbb629cc8c14291eac2803eeac256"
+   },
+   "funcs_sha256": "7db16abd00370f2c00ac0832de45f26b733909679ce959062a3a554be71eda51",
+   "part": "X",
+   "part_declared": true,
+   "rules_sha256": "b8b883e5c3ac802bb0dcbe9e728ba71c44bd1273cc2737e637de9671c10c7880",
+   "rules_version": "cb12-rules-v1",
+   "wallet": {
+    "note": "no CB12 job reads or stores a wallet field, a transaction hash, or the Data API side field",
+    "read": false
+   }
+  },
+  "common": {
+   "constants": {
+    "cb12_common": {
+     "ACCESS_LOG": "ACCESS_LOG.jsonl",
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch12",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BATCH_HOLM_K1": 10,
+     "BY_Q": 0.1,
+     "CB12_SPORTS_IN_PRIMARY": false,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "DATA_PAGES": 2,
+     "DATA_PAGE_LIMIT": 10000,
+     "DROPS_FILE": "drops.csv.gz",
+     "EARLY_ALPHA": 0.005,
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXCLUSION_RUN": "exclusion_run12",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo"
+     ],
+     "FAMILY_MODULES": {
+      "E": [
+       "cb12_e"
+      ],
+      "F": [
+       "cb12_f"
+      ],
+      "M": [
+       "cb12_m"
+      ],
+      "O": [
+       "cb12_o"
+      ],
+      "X": [
+       "cb12_x"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "M",
+      "E",
+      "F",
+      "X",
+      "O"
+     ],
+     "FAMILY_REP_TESTS": {
+      "E": [
+       "E1",
+       "E2"
+      ],
+      "F": [
+       "AL1",
+       "AL2",
+       "SH1",
+       "SH2"
+      ],
+      "M": [
+       "M1",
+       "M2"
+      ],
+      "O": [
+       "O1",
+       "O2"
+      ],
+      "X": []
+     },
+     "FAMILY_TESTS": {
+      "E": [
+       "E1"
+      ],
+      "F": [
+       "AL1",
+       "AL2",
+       "SH1",
+       "SH2"
+      ],
+      "M": [
+       "M1",
+       "M2"
+      ],
+      "O": [
+       "O1",
+       "O2"
+      ],
+      "X": [
+       "X1"
+      ]
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GATE_P": 0.01,
+     "GMP_DRAWS": 500,
+     "GUARDED_NAMES": [
+      "outcomes_guarded_screen.csv.gz",
+      "outcomes_guarded_holdout.csv.gz",
+      "outcomes_guarded.csv.gz"
+     ],
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PART": "holdout",
+     "ID_SOURCES": [
+      [
+       "h9_flow",
+       "sample.csv.gz"
+      ],
+      [
+       "h10_sign",
+       "sample.csv.gz"
+      ],
+      [
+       "h10_dlad",
+       "frame.csv.gz"
+      ],
+      [
+       "h10_brk",
+       "frame.csv.gz"
+      ],
+      [
+       "h11_wprints",
+       "markets.csv.gz"
+      ],
+      [
+       "h11_pol",
+       "frame.csv.gz"
+      ],
+      [
+       "h11_attn",
+       "frame.csv.gz"
+      ]
+     ],
+     "LIVE_ROOT_NAME": "cross_venue_live",
+     "LOOKUP_PER_REQUEST": 50,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MIN_CLUSTERS": 30,
+     "MIN_UNITS": 100,
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "OWN_SEAL_COPIES": [
+      "cb12_say_holdout_SEAL.json",
+      "cb12_prints_holdout_SEAL.json"
+     ],
+     "PARTS": [
+      "common",
+      "M",
+      "E",
+      "F",
+      "X",
+      "O"
+     ],
+     "PENDING": "pending",
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "M1_copula": 12101,
+      "M2_fill_calibrated": 12102,
+      "X1_horizon_offset": 12108
+     },
+     "PRICE_CAP": 0.99,
+     "PRICE_MAX_AGE_S": 86400.0,
+     "PRICE_MIN_LAG_S": 600,
+     "REP_JOBS": [
+      "rep-M",
+      "rep-E",
+      "rep-F",
+      "rep-O"
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "module_funcs",
+      "module_constants",
+      "part_funcs",
+      "_mods",
+      "_jsonable"
+     ],
+     "RULES_VERSION": "cb12-rules-v1",
+     "SCREEN_JOBS": [
+      "screen-M",
+      "screen-E",
+      "screen-F",
+      "screen-X",
+      "screen-O"
+     ],
+     "SEAL_NAME": "holdout_SEAL.json",
+     "SEED_BOOT": 1212,
+     "SEED_GMP": 12121,
+     "SMOKE_VERSION": "cb12-smoke-v1",
+     "STAGE1_HOLM_FAMILY": [
+      "M1",
+      "M2",
+      "E1",
+      "AL1",
+      "AL2",
+      "SH1",
+      "SH2",
+      "X1",
+      "O1",
+      "O2"
+     ],
+     "STAGE2_K_MAX": 10,
+     "STAGE_ALPHA": 0.05,
+     "T12_HIST_END": "2026-10-01T00:00:00Z",
+     "T12_HIST_END_EPOCH": 1790812800.0,
+     "T12_X_END": "2026-10-12T00:00:00Z",
+     "T12_X_END_EPOCH": 1791763200.0,
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "T_SEAL": "2026-10-22T00:00:00Z",
+     "UNVERIFIED": "disjointness_unverified",
+     "X_MTIME_MAX_EPOCH": 1791849600.0,
+     "X_READABLE_ROOTS": [
+      "cross_venue"
+     ]
+    },
+    "cb12_smoke": {}
+   },
+   "declared": {
+    "smoke": {
+     "consequence": "a failed criterion stalls the dependent family (not testable (source), counted); no rule is re-fitted",
+     "counts_only": true,
+     "design": "family modules contribute SMOKE_NEEDS / smoke_offline / smoke_online; the orchestrator is family-agnostic",
+     "max_requests": 60,
+     "version": "cb12-smoke-v1",
+     "write_once": true
+    }
+   },
+   "func_sources_sha256": {
+    "cb12_common.aggregate_transactions": "08f41e54495e027b0ce3e213b6548ce55999782173c2f79ad54683e4a8324a6c",
+    "cb12_common.c1_market_ids": "2d470f722e34a801c5751de43d423bf3c03a51353c4b0d9ae5321c6e25d0e599",
+    "cb12_common.ceil_tick": "af6783f6548c6e1c33f48702e468c51ba0299ecd63bbf5541cbf5a4d8706d36d",
+    "cb12_common.cluster_p": "a7e86a6d0f27ae1b45f8936c410f4862034b4534c9af2cf87bdddec413c18291",
+    "cb12_common.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "cb12_common.early_stage1_ok": "046fbc6823754520e2157b71a894d1e9382af4ef3d1d42353d7ce7904e123bb5",
+    "cb12_common.early_stage2_ok": "c800432bd9ffbef633047972817c1e2ec58db13b580240f2176f86b5a0d148f0",
+    "cb12_common.exclusion_keys": "5aa9922ece25d2090c42a81435ab1fe0b2d15f5954ea0e7f8d3bb20ba5f4a7a0",
+    "cb12_common.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "cb12_common.fetch_prints_paged": "db90a4c31db02d6535efd8c88a0bda75dad6b22be99d094f7e7b4659ab7ba5cb",
+    "cb12_common.guard_screen_path": "635560bb0998aa2a9c54b25fab2e02858f9c76cfd9bd39202c0af51c9e03fc07",
+    "cb12_common.holm": "c55f3569e796a129314e981b210e9c3e78ba6422ab5608c5ea019e11190fd598",
+    "cb12_common.is_holdout_path": "c35f9f1dc469e31a1e3c6ed9ca5fa1c76829eed14514af2c8f4fa8c9b909240b",
+    "cb12_common.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "cb12_common.known_lag_s": "d0fbc9efe75f0d01a15dc8da29870bcd07edac0b9b3eb45ea242c6fadd85dae2",
+    "cb12_common.listish": "66999b312145ac17e5fd36f52a83fb78253aaa91dc03b49c9124589a11602024",
+    "cb12_common.load_exclusion_keys": "c31f3f8c0c742ba5e773cbc9974075445d7ddd4f1fcd637d67deb0fce9f91eef",
+    "cb12_common.log_access": "2aef281b30cfd935ebcc282a96c3fa891e84b0099a47fb18c149f952cc6e5630",
+    "cb12_common.log_descriptive": "6ac8c24f70b29c81cdb0b1ede5acf24d32027a1003d8c748e2eafec18c3bf291",
+    "cb12_common.log_family": "c9d5853516d2d7c6b77368245d0b1c78499cdbfc60801cc7261a3b353f5d4c96",
+    "cb12_common.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "cb12_common.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "cb12_common.mde": "6c43ef79505a40b002ccc422274968450ee6d1e76af1134cff17a43471a87170",
+    "cb12_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb12_common.one_sided_boot_p": "7812ce5bccc071522932012f9886313a9281ef9045cf06f5d46ae4a553092e2f",
+    "cb12_common.open_guarded": "092952dedb85d730d5d534d348a9cc4d9fc382312de0abc008d0f573dfb1af20",
+    "cb12_common.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "cb12_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb12_common.price_at": "63939905ce42d13dbf916af2260a51a849770c64cec1f590444e6825aa562db9",
+    "cb12_common.rank": "84ab60daca926f462c2bc318f0a7a3b6b4d5a2480a5640d13181fcbec93683bc",
+    "cb12_common.reach_ok": "c1027e0f9f22591e52de9c54ee1cec87bbff59fc529022838f630b36f35b9036",
+    "cb12_common.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "cb12_common.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "cb12_common.refuse_path": "28d433c10d4e09f2f81181a4ae07cbc3f8ca857c01e14e26fed7104a7bf3c844",
+    "cb12_common.refuse_read": "0ed50e47e225b7a86ea71f52f9fc02122d50d66d35c8665fe8ea2c6faecb7a54",
+    "cb12_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb12_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb12_common.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "cb12_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+    "cb12_common.require_freeze": "3015dec7fa1068400db9fce1cd514493d0f0a79d09ac54060e11de8690d99031",
+    "cb12_common.require_output_root": "3a7951b8ce7552c8540ba4cfb5445cae02e40188d5619f4a816c2792956e0cb0",
+    "cb12_common.seal_holdout": "49a04a96eb55c2ed9856c1c41e34ac26777671d7dd4fa1d2716217708c8c2b45",
+    "cb12_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb12_common.stage1_holm": "2b310b34ba4f4a1615fdaab65b1eb04b049e9a66d84f54501cc399e2da9a933c",
+    "cb12_common.stage2_holm": "6cac1a8ca6ba3581d623159a413631d164fe5e490e43bd54bef66f01c24dd165",
+    "cb12_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb12_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb12_common.upstream_stall": "cc030b6f9a1b37b4930f960dab3878bfd23010a9963eb7b96d4caf22cf2c4ffe",
+    "cb12_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb12_common.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "cb12_common.verify_holdout_seal": "5808eba6429a1171804a805321ec8287c3d4f96583d0619b67f42952a0280f7e",
+    "cb12_common.wait_or_idle": "9eaca81ab04a1251f7f09314d6e3aec8d3161c53c55922c90fcc9f002ba2a6bd",
+    "cb12_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb12_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb12_smoke.collect_checks": "7af2b494607dd2ded9995533b9a3f5996718c75aeb9920b1ff13924a22ea20a9",
+    "cb12_smoke.declared": "064c0d8f4c8d0c9bb9b706ea0129a873a4bda916df02bd0b1e79524085901339",
+    "cb12_smoke.family_needs": "4a86cb13aaceccf7f9ebabf91793457af0f83908108b378db5261b070ce7b552",
+    "cb12_smoke.smoke_failures": "8910e7ffe901ff0ff98bd61dba69322d2fee785b72f62bd6541e83b952cefe03"
+   },
+   "funcs_sha256": "fa466342b2f8bdbe543292a366995ea4b5d3b84ddef7aae6dc668de78edd9366",
+   "part": "common",
+   "part_declared": true,
+   "rules_sha256": "2d04272577c26a7584064d5bbf0a8fd1631e6b0f35fb8b96795ea5301f277078",
+   "rules_version": "cb12-rules-v1",
+   "wallet": {
+    "note": "no CB12 job reads or stores a wallet field, a transaction hash, or the Data API side field",
+    "read": false
+   }
+  }
+ },
+ "rules_version": "cb12-rules-v1"
+}

@@ -1,0 +1,36 @@
+{
+ "id": "q0240_cb12_smoke",
+ "title": "CB12: smoke for families M and X (rules hashes of parts common, M, X; guarded accessors and refusals incl. HOLDOUT screen refusal, cross_venue_live and T12_X_end fixtures; Gamma tag 100343 paging on 2 out-of-window weeks with startTime; prices-history bounds and Data API newest-first reach on 2 out-of-window members; X input sha256 pins and exact C1 reproduction 316 pairs / 183 events / 517,616 steps); counts only. E, F and O are smoked later into separate files (smoke --families E,F --out smoke_EF.json) by their own drafts",
+ "family": "creative_batch_12",
+ "priority": 24,
+ "expected_value": "go/no-go for CB12-M and CB12-X sources",
+ "data": [
+  "public Gamma, CLOB prices-history, Data API",
+  "research_lab/cross_venue/ (pinned files, read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "gamma-api, clob, data-api"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb12.py",
+  "smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json",
+  "--rps",
+  "1",
+  "--families",
+  "M,X"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch12/smoke.json",
+  "trials.jsonl (cb12_descriptive)"
+ ],
+ "next_action": "PASS: q0241, q0251; FAIL: dependent family not testable (source), counted",
+ "notes": "CREATIVE_BATCH_12.md CB12-S (M and X criteria). <= 10 requests for M, none for X (X reads host files; streams poly_markets.json, never json.load). No hash, wallet or side stored. Write-once. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): common 2d04272577c26a7584064d5bbf0a8fd1631e6b0f35fb8b96795ea5301f277078; M 58fcffef3b4b455f1ee2dd22440dc56136bfb9e417e880dab5669d418ad35cf3; X b8b883e5c3ac802bb0dcbe9e728ba71c44bd1273cc2737e637de9671c10c7880. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}

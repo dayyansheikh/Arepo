@@ -1,0 +1,47 @@
+{
+ "id": "q0241_cb12_exclusion_keys",
+ "title": "CB12: exclusion keys = CB11 q0221 key file (sha256 pin MANDATORY) + id columns of h9_flow, h10_sign, h10_dlad, h10_brk, h11_wprints, h11_pol, h11_attn + seal copies + C1 pair Polymarket market ids; Gamma lookups (closed first, <= 50 ids per request) for missing event/negRisk/series keys",
+ "family": "creative_batch_12",
+ "priority": 24,
+ "expected_value": "disjointness of M (and later E, F)",
+ "data": [
+  "creative_batch11/exclusion_keys.csv.gz",
+  "history/*/ (id columns only)",
+  "docs/research_lab/seals/*",
+  "research_lab/cross_venue/matches.json (ids only)",
+  "public Gamma (ids)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0240_cb12_smoke",
+  "q0221_cb11_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "exclusion-keys",
+  "--rules",
+  "../docs/research_lab/seals/cb12_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40",
+  "--base-sha256",
+  "TODO-COORDINATOR"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch12/exclusion_keys.csv.gz",
+  "exclusion_report.json",
+  "manifest.json (sets_absent_at_q0241 list)"
+ ],
+ "next_action": "q0242 (M); E and F frames later",
+ "notes": "DRAFT. The coordinator replaces --base-sha256 TODO-COORDINATOR with `sha256sum` of the host's creative_batch11/exclusion_keys.csv.gz after CB11 q0221 completes (the job refuses with exit 2 while the pin is unset). >2% missing metadata -> disjointness unverified (family not testable, counted). Exit 75 on headroom = pending. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): common 2d04272577c26a7584064d5bbf0a8fd1631e6b0f35fb8b96795ea5301f277078. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+}
