@@ -60,12 +60,17 @@ def test_declared_arguments_cannot_change(capsys, rules_file, tmp_path):
     assert code == 2
 
 
-def test_rules_file_round_trip_and_hash_mismatch(tmp_path, rules_file):
+def test_rules_file_round_trip_and_hash_mismatch(tmp_path):
+    rules_file = tmp_path / "cb11_rules.json"
+    c11.write_rules(rules_file)
     sha = c11.verify_rules(rules_file, require_committed=False)
     doc = json.loads(rules_file.read_text())
-    assert doc["rules_sha256"] == sha and doc["common"]["pins"]["h2_frame_sha256"] == c11.H2_FRAME_SHA256
+    assert doc["rules_version"] == "cb11-rules-v2" and set(doc["parts"]) == {"W", "PA"}
+    w_part = doc["parts"]["W"]
+    assert w_part["rules_sha256"] == sha and w_part["common"]["pins"]["h2_frame_sha256"] == c11.H2_FRAME_SHA256 and "cb11_w" in w_part["declared"] and "cb11_smoke" in w_part["declared"]
+    assert doc["parts"]["PA"]["part_declared"] is False and doc["parts"]["PA"]["rules_sha256"] is None
     assert c11.write_rules(rules_file) == rules_file  # idempotent
-    doc["declared"]["cb11_w"]["w1_floor_b0"] = 0.0 if "w1_floor_b0" in doc["declared"]["cb11_w"] else 1
+    w_part["declared"]["cb11_w"]["w1_floor_b0"] = 0.0 if "w1_floor_b0" in w_part["declared"]["cb11_w"] else 1
     bad = tmp_path / "bad.json"
     bad.write_text(json.dumps(doc))
     with pytest.raises(c11.Refused):
@@ -74,9 +79,43 @@ def test_rules_file_round_trip_and_hash_mismatch(tmp_path, rules_file):
         c11.write_rules(bad)  # never rewritten
 
 
+def test_b1_pa_part_is_a_pointer_and_refuses_pa_jobs(tmp_path):
+    rules_file = tmp_path / "r.json"
+    c11.write_rules(rules_file)
+    assert c11.verify_rules(rules_file, require_committed=False, part="W")
+    with pytest.raises(c11.Refused, match="cb11_pa_rules.json"):
+        c11.verify_rules(rules_file, require_committed=False, part="PA")
+    with pytest.raises(c11.Refused, match="unknown rules part"):
+        c11.rules_part_doc("X")
+
+
+def test_b1_w_verification_is_independent_of_p_a_code(tmp_path, monkeypatch):
+    """Adding P / A modules or a P / A rules file cannot change the W part: W verification imports only the W modules and the file's W part is hashed alone."""
+    import importlib
+
+    rules_file = tmp_path / "r.json"
+    c11.write_rules(rules_file)
+    (tmp_path / c11.PA_RULES_FILE_NAME).write_text("{}")
+    seen: list[str] = []
+    real = importlib.import_module
+
+    def spy(name, package=None):
+        seen.append(name)
+        return real(name, package)
+
+    monkeypatch.setattr(importlib, "import_module", spy)
+    assert c11.verify_rules(rules_file, require_committed=False, part="W")
+    assert seen and all(n.lstrip(".") in c11.W_RULE_MODULES for n in seen), seen
+    doc = json.loads(rules_file.read_text())
+    # tampering with the PA pointer does not affect W jobs' verification of the W part (they compare the W part only)
+    doc["parts"]["PA"]["note"] = "edited"
+    rules_file.write_text(json.dumps(doc))
+    assert c11.verify_rules(rules_file, require_committed=False, part="W") == doc["parts"]["W"]["rules_sha256"]
+
+
 def test_rules_cli_writes_and_prints_sha(tmp_path, capsys):
     code, out = _run(["rules", "--path", (tmp_path / "r.json").as_posix()], capsys)
-    assert code == 0 and len(out["rules_sha256"]) == 64
+    assert code == 0 and len(out["rules_sha256"]) == 64 and out["parts"]["PA"]["declared"] is False and out["parts"]["W"]["declared"] is True
 
 
 def test_screen_and_rep_refuse_before_the_freeze(tmp_path, capsys, rules_file):
@@ -241,3 +280,110 @@ def test_log_test_counts_one_test_even_when_not_testable(tmp_path):
 def test_stage2_k_needs_all_three_stage1_results(tmp_path):
     with pytest.raises(c11.NotNow):
         c11.stage2_k(tmp_path)
+
+
+# ---- code-against-design freeze-check fixes (CREATIVE_BATCH_11.md section 11) ----------------------------------------------------------------------
+
+
+def _gz_ids(path: Path, ids) -> str:
+    from astrolabe.research_lab import h5_seal
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(hb._gz_csv_bytes(["market_id"], [[i] for i in ids]))
+    return h5_seal.sha256_file(path)
+
+
+@pytest.fixture()
+def keys_env(tmp_path):
+    hist = tmp_path / "history"
+    base = hist / "h8_tail_b" / "exclusion_keys.csv.gz"
+    from astrolabe.research_lab import cb6_tail as c6
+    from astrolabe.research_lab import h5_seal
+
+    base.parent.mkdir(parents=True, exist_ok=True)
+    base.write_bytes(hb._gz_csv_bytes(list(c6.KEY_COLUMNS), [[i, "1", "", "", ""] for i in ("1", "2")]))
+    base_sha = h5_seal.sha256_file(base)
+    h2 = _gz_ids(hist / "h2_main" / "sample.csv.gz", ["10", "11"])
+    h3 = _gz_ids(hist / "h3_power" / "sample.csv.gz", ["20"])
+    (tmp_path / "seals").mkdir()
+    return {"tmp": tmp_path, "hist": hist, "base": base, "base_sha": base_sha, "pins": {"h2_main/sample.csv.gz": h2, "h3_power/sample.csv.gz": h3}, "ext": tmp_path / "ext", "seals": tmp_path / "seals"}
+
+
+def _ek(env, **kw):
+    def tr(url, params):
+        return 200, b"[]", {}
+
+    return c11.exclusion_keys(env["tmp"] / "creative_batch11", tr, rules_sha="r" * 64, hist_root=env["hist"], base_sha256=env["base_sha"], seals_dir=env["seals"], external_dir=env["ext"],
+                              rps=1000.0, sleep=lambda s: None, data_dumps=None, **kw)
+
+
+def test_b4_mandatory_sampled_sets_are_refused_when_absent_unpinned_or_changed(keys_env):
+    env = keys_env
+    # the shipped pins are unset: the job refuses (exit 2) until the coordinator fills them
+    assert c11.H2_SAMPLE_SHA256 == c11.PIN_UNSET == "TODO-COORDINATOR" and c11.H3_SAMPLE_SHA256 == c11.PIN_UNSET
+    with pytest.raises(c11.Refused, match="TODO-COORDINATOR"):
+        _ek(env)
+    with pytest.raises(c11.Refused, match="sha256 .* != pinned"):
+        _ek(env, sample_pins={**env["pins"], "h2_main/sample.csv.gz": "0" * 64})
+    (env["hist"] / "h3_power" / "sample.csv.gz").unlink()
+    with pytest.raises(c11.Refused, match="mandatory sampled set h3_power/sample.csv.gz is absent"):
+        _ek(env, sample_pins=env["pins"])
+
+
+def test_b3_c1_t5_ids_are_pending_until_staged_unless_explicitly_allowed(keys_env):
+    env = keys_env
+    with pytest.raises(c11.NotNow, match="C1 / T5"):
+        _ek(env, sample_pins=env["pins"])
+    assert not (env["tmp"] / "creative_batch11" / "exclusion_run11").exists()  # nothing written while pending
+    m = _ek(env, sample_pins=env["pins"], allow_absent_c1_t5=True)
+    rep = json.loads((env["tmp"] / "creative_batch11" / "exclusion_report.json").read_text())
+    assert rep["c1_t5_status"] == "absent" and set(rep["sets"]) == {"h2_main/sample.csv.gz", "h3_power/sample.csv.gz"} and m["status"] in (c11.EXCLUSION_KEYS_COMPLETE, c11.UNVERIFIED)
+
+
+def test_b3_staged_c1_t5_lists_are_read_and_recorded(keys_env):
+    env = keys_env
+    _gz_ids(env["ext"] / "c1_sample_ids.csv.gz", ["30"])
+    _gz_ids(env["ext"] / "t5_frame_ids.csv.gz", ["31", "32"])
+    _ek(env, sample_pins=env["pins"])
+    rep = json.loads((env["tmp"] / "creative_batch11" / "exclusion_report.json").read_text())
+    assert rep["c1_t5_status"] == "retrieved" and rep["external"]["t5_frame_ids.csv.gz"]["n_ids"] == 2
+
+
+def test_b3_cli_flag_exists_and_is_never_in_a_draft():
+    a = run_cb11.build_parser().parse_args(["exclusion-keys", "--allow-absent-c1-t5"])
+    assert a.allow_absent_c1_t5 is True and run_cb11.build_parser().parse_args(["exclusion-keys"]).allow_absent_c1_t5 is False
+    drafts = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue" / "drafts"
+    for f in drafts.glob("q02*_cb11_*.json"):
+        assert "--allow-absent-c1-t5" not in json.loads(f.read_text())["argv"], f.name
+
+
+def test_b2_resumable_net_drafts_repeat_until_their_completion_status():
+    import re
+
+    drafts = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue" / "drafts"
+    q21 = json.loads((drafts / "q0221_cb11_exclusion_keys.json").read_text())["repeat"]
+    q24 = json.loads((drafts / "q0224_cb11_w_censoring.json").read_text())["repeat"]
+    q23 = json.loads((drafts / "q0223_cb11_w_prints.json").read_text())["repeat"]
+    for rep, ok_statuses in ((q21, ("exclusion_keys_complete", "disjointness_unverified")), (q24, ("w_censoring_complete",)), (q23, ("w_prints_complete",))):
+        assert rep["max_runs"] >= 3
+        for st in ok_statuses:  # the runner's own JSON line
+            assert re.search(rep["until_log_regex"], json.dumps({"status": st, "stopped": None}, sort_keys=True))
+        assert not re.search(rep["until_log_regex"], json.dumps({"status": "in_progress", "stopped": "should_stop"}, sort_keys=True))
+    # a stall also ends the repeat (nothing left to resume)
+    assert re.search(q24["until_log_regex"], json.dumps({"status": c11.STALL_UPSTREAM}))
+    assert re.search(q23["until_log_regex"], json.dumps({"status": c11.STALL_NOT_RUN_SOURCE}))
+
+
+def test_n5_census_verifies_the_rules_like_every_other_job(tmp_path, capsys):
+    code, out = _run(["census", "--family", "W", "--rules", (tmp_path / "missing.json").as_posix(), "--standalone", "--root", (tmp_path / "creative_batch11").as_posix()], capsys)
+    assert code == 2 and "rules file" in out["refused"]
+
+
+def test_declared_drafts_pin_the_current_w_rules_sha(rules_file):
+    """Every W / smoke draft carries the sha256 of the part-W rules file that is committed with it."""
+    drafts = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue" / "drafts"
+    committed = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "seals" / "cb11_rules.json"
+    sha = json.loads(committed.read_text())["parts"]["W"]["rules_sha256"]
+    for f in drafts.glob("q02[0-3]*_cb11_*.json"):
+        assert sha in json.loads(f.read_text())["notes"], f.name
+    assert c11.verify_rules(committed, require_committed=False) == sha

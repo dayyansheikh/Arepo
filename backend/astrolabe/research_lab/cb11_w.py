@@ -58,6 +58,8 @@ CENSOR_PAGE = 100
 CENSOR_PAGES = 5
 CENSOR_MAX_SHARE = 0.02
 CENSOR_CONF = 0.95
+CENSOR_MATCH_MIN = 0.99  # share of a frame's closed rows (ends in [W_fit start, W_hold end)) that fall in the reconstructed 15-minute windows; below -> q0222 stalls (N8)
+AVAIL_MIN = 0.60  # design 2.6(iv): available share of eligible units / windows below this is "not testable (availability)"
 SKLEARN_PIN = "1.9.1"
 NUMPY_PIN = "2.4.6"
 MODEL_PARAMS = {"loss": "absolute_error", "learning_rate": 0.05, "max_iter": 400, "max_leaf_nodes": 31, "min_samples_leaf": 200, "l2_regularization": 1.0,
@@ -70,6 +72,9 @@ W1_SUBSET_R = 0.10
 ATTR_SCHED_MIN = 0.10
 H_W = 0.005
 H_W_ROBUST = 0.010
+UNFILLED_NO_TRADE = "unfilled_no_trade_before_close"
+UNFILLED_OUTSIDE = "unfilled_outside_window"
+UNFILLED = (UNFILLED_NO_TRADE, UNFILLED_OUTSIDE)
 DECIDED_HI = 0.95
 DECIDED_LO = 0.05
 TRIG_FROM_S = 300.0
@@ -100,6 +105,7 @@ MDE_Z = 2.326 + 0.842
 MDE_SD_W2 = 0.12
 MDE_DEFF_W2 = 2.0
 MDE_SD_W1 = 0.02
+MDE_G_REF = 120  # end-dates at which the declared W1 bootstrap SD (0.02) holds; the census rescales the SD by sqrt(G_REF / end-dates in W_screen) (N6)
 DATA_PAGE_LIMIT = 1000
 DATA_PAGES = 4
 TAKER_ONLY = "true"
@@ -438,7 +444,7 @@ def write_seal_copy(doc: dict, seals_dir: Path) -> Path:
 
 def w_frame(root: Path, hist_root: Path, *, rules_sha: str, smoke_path: Path, exclusion_keys_path: Path, seals_dir: Path | None = None, now: float,
             data_dumps: Path | None = None, data_dumps_cap_gb: float = c11.DATA_DUMPS_CAP_GB, disk_cap: int = int(WFRAME_OUTPUT_CAP_GB * 1024**3), free_fn=None,
-            h2_sha: str | None = c11.H2_FRAME_SHA256, h3_sha: str | None = c11.H3_FRAME_SHA256, with_seal_copy: bool = True) -> dict:
+            h2_sha: str | None = c11.H2_FRAME_SHA256, h3_sha: str | None = c11.H3_FRAME_SHA256, with_seal_copy: bool = True, censor_match_min: float = CENSOR_MATCH_MIN) -> dict:
     """q0222 (no network). Population, features, splits, W2 samples, guarded targets / outcomes, censoring windows and the W_hold listing + seal copy."""
     from . import cb11_smoke as sm  # noqa: PLC0415
     from . import h5_seal  # noqa: PLC0415
@@ -455,8 +461,8 @@ def w_frame(root: Path, hist_root: Path, *, rules_sha: str, smoke_path: Path, ex
     if bad:
         return c11.write_stall(rdir, c11.STALL_NOT_RUN_SOURCE, f"smoke criteria not met: {bad}")
     ids, keys, krep, ksha = c11.load_exclusion_keys(Path(exclusion_keys_path))
-    if krep.get("disjointness") == c11.UNVERIFIED:
-        return c11.write_stall(rdir, c11.STALL_DISJOINTNESS, "q0221: > 2% of exclusion ids without metadata (design 1.3)")
+    # Design 1.3 (B10): unverified disjointness (> 2% of exclusion ids without metadata) makes P and A "not testable"; W's key rule is market id + event id and W
+    # proceeds. The unverified state is recorded in the frame report and the census.
     c11.require_disk(data_dumps, data_dumps_cap_gb, disk_cap, free_fn=free_fn)
     rdir.mkdir(parents=True, exist_ok=True)
     hist_root = Path(hist_root)
@@ -494,14 +500,19 @@ def w_frame(root: Path, hist_root: Path, *, rules_sha: str, smoke_path: Path, ex
             match[s] = float(ok.mean())
         else:
             match[s] = math.nan
+    bad_match = {s: m for s, m in match.items() if not (m >= censor_match_min)}
+    if bad_match:  # the reconstructed windows must reproduce the frames' closed rows (N8): else the censoring counts are not comparable
+        return c11.write_stall(rdir, c11.STALL_NOT_RUN_SOURCE, f"reconstructed censoring windows cover < {censor_match_min:.0%} of a frame's closed rows: {bad_match}", "not testable (censoring windows)")
     # units files
     idx_p = np.where(primary)[0]
+    idx_np = np.where(~primary)[0]
     fit_cat = Counter(str(F["cat"][i]) for i in idx_p if win[i] == "fit")
     rows_main = [_unit_row(F, i) for i in idx_p if win[i] != "hold"]
     rows_hold = [_unit_row(F, i) for i in idx_p if win[i] == "hold"]
     _wcsv(rdir / "units.csv.gz", UNIT_COLUMNS, rows_main)
     _wcsv(rdir / HOLD_DIR / "units_hold.csv.gz", UNIT_COLUMNS, rows_hold)
-    _wcsv(rdir / "targets_guarded.csv.gz", TARGET_COLUMNS, ([F["market_id"][i], F["L"][i], F["close"][i]] for i in idx_p if win[i] in ("screen", "gap")))
+    _wcsv(rdir / "units_nonprimary.csv.gz", UNIT_COLUMNS, [_unit_row(F, i) for i in idx_np if win[i] in ("fit", "gap", "screen")])  # reported strata (sports, crypto): screen-W only
+    _wcsv(rdir / "targets_guarded.csv.gz", TARGET_COLUMNS, ([F["market_id"][i], F["L"][i], F["close"][i]] for i in range(n) if win[i] in ("screen", "gap")))
     _wcsv(rdir / HOLD_DIR / "targets_guarded_hold.csv.gz", TARGET_COLUMNS, ([F["market_id"][i], F["L"][i], F["close"][i]] for i in idx_p if win[i] == "hold"))
     # W2 samples (metadata only, before any print)
     scr = [i for i in idx_p if win[i] == "screen"]
@@ -545,7 +556,9 @@ def w_frame(root: Path, hist_root: Path, *, rules_sha: str, smoke_path: Path, ex
     nonprim = Counter((str(F["cat"][i]), str(win[i])) for i in range(n) if not primary[i])
     f7_nan = {w: int(sum(1 for i in idx_p if win[i] == w and not math.isfinite(F["f7"][i]))) for w in ("fit", "screen", "hold")}
     open_at_end_share = {"note": "every unit is open at its scheduled end by construction; closed-at-or-before-end rows counted in 'excluded'"}
-    rep = {"version": "cb11-w-frame-v1", "frame_sha256": {s: shas[s] for s in paths}, "merge": mrep, "population": prep, "exclusion_keys_sha256": ksha,
+    rep = {"version": "cb11-w-frame-v2", "frame_sha256": {s: shas[s] for s in paths}, "merge": mrep, "population": prep, "exclusion_keys_sha256": ksha,
+           "exclusion": {"disjointness": krep.get("disjointness"), "missing_share": krep.get("missing_share"), "n_missing": krep.get("n_missing"),
+                         "note": "unverified disjointness stalls P and A only (design 1.3); W's key rule is market id + event id"},
            "n_units_all_strata": n, "n_units_primary": int(primary.sum()), "primary_excluded_categories": list(PRIMARY_EXCLUDED),
            "non_primary_counts": {f"{c}|{w}": v for (c, w), v in sorted(nonprim.items())},
            "windows": {w: int(sum(1 for i in idx_p if win[i] == w)) for w in ("fit", "gap", "screen", "hold")}, "categories": {w: dict(c) for w, c in cat_by_win.items()},
@@ -553,6 +566,7 @@ def w_frame(root: Path, hist_root: Path, *, rules_sha: str, smoke_path: Path, ex
            "fit_category_counts": dict(fit_cat), "f7_nan": f7_nan, "open_at_end": open_at_end_share,
            "sample": {"screen": len(s_scr), "hold": len(s_hld), "per_event_cap": MAX_PER_EVENT, "seeds": {"screen": SEED_SAMPLE, "hold": SEED_HOLD}},
            "censor_windows": {"n": len(cw_rows), "by_set": dict(Counter(r[5] for r in cw_rows)), "window_match_share": match, "seed": SEED_CENSOR,
+                              "match_min": censor_match_min,
                               "note": "capped frame windows (300 rows) are not identifiable from the partial records; the frame's closed rows in a window are a lower bound"},
            "waits_note": "W_fit waits are stored in units.csv.gz (L_fit, a fit feature); screen / gap / hold waits only in the guarded target files"}
     (rdir / "frame_report.json").write_text(json.dumps(rep, indent=1, sort_keys=True, default=float))
@@ -604,7 +618,10 @@ def open_w_guarded(path: Path, job: str) -> list[dict]:
     return c11.open_guarded(p, job if job in ("screen-W", "rep-W") else "refused", GUARDED_NAMES)
 
 
-def verify_hold_seal(wdir: Path, seals_dir: Path | None = None) -> dict:
+def verify_hold_seal(wdir: Path, seals_dir: Path | None = None, *, require_committed: bool = True) -> dict:
+    """The run's listing equals ``seals/cb11_w_hold_SEAL.json`` AND (N5) that copy is tracked by git and identical to HEAD; the HOLD listing sha256 is re-verified."""
+
+    from . import cb1_history as c1  # noqa: PLC0415
     from . import h5_seal  # noqa: PLC0415
 
     wdir = Path(wdir)
@@ -614,6 +631,8 @@ def verify_hold_seal(wdir: Path, seals_dir: Path | None = None) -> dict:
     copy = Path(seals_dir or c11.SEALS_DIR) / SEAL_COPY_NAME
     if not copy.exists() or copy.read_bytes() != sp.read_bytes():
         raise Refused(f"seal copy {copy} missing or different from {sp}")
+    if require_committed and not c1.spec_committed(copy):
+        raise Refused(f"seal copy {copy} is not committed (or differs from HEAD)")
     doc = json.loads(sp.read_text())
     hold = {k: v for k, v in h5_seal.list_files(wdir).items() if k.startswith(HOLD_DIR + "/")}
     if h5_seal.listing_sha256(hold) != doc["listing_sha256"]:
@@ -725,8 +744,9 @@ def w1_core(L: np.ndarray, pred: np.ndarray, b0: np.ndarray, b1: np.ndarray, dat
     return out
 
 
-def w1_floor_ok(r: dict) -> bool:
-    return bool(r.get("testable") and r["R_B0"] >= W1_FLOOR_B0 and r["R_B1"] >= W1_FLOOR_B1 and r["p_B0"] < c11.GATE_P and r["p_B1"] < c11.GATE_P)
+def w1_floor_ok(r: dict, alpha: float = c11.GATE_P, inclusive: bool = False) -> bool:
+    """Both floors and both p thresholds. Stage 1: ``alpha`` = 0.01, p < alpha. Stage 2: ``alpha`` = 0.05 / k, ``inclusive`` (p <= alpha / k); no extra 0.01 gate (B8)."""
+    return bool(r.get("testable") and r["R_B0"] >= W1_FLOOR_B0 and r["R_B1"] >= W1_FLOOR_B1 and _p_ok(r["p_B0"], alpha, inclusive) and _p_ok(r["p_B1"], alpha, inclusive))
 
 
 def permute_within_cells(L: np.ndarray, cell: np.ndarray, rng: np.random.Generator) -> np.ndarray:
@@ -739,16 +759,18 @@ def permute_within_cells(L: np.ndarray, cell: np.ndarray, rng: np.random.Generat
     return out
 
 
-def w1_placebo(L, pred, b0, b1, date, event, cell, *, n_draws: int = c11.PLACEBO_DRAWS, seed: int = c11.PLACEBO_SEEDS["W1_permute"], n_boot: int = c11.N_BOOT) -> dict:
+def w1_placebo(L, pred, b0, b1, date, event, cell, *, n_draws: int = c11.PLACEBO_DRAWS, seed: int = c11.PLACEBO_SEEDS["W1_permute"], n_boot: int = c11.N_BOOT,
+               alpha: float = c11.GATE_P) -> dict:
     """Binding calibration placebo: permute the targets within category x month (predictions and baselines fixed); a draw advances iff BOTH p thresholds
-    hold (floors off). Advance rate <= 1.5%."""
+    hold at ``alpha`` (floors off). Advance rate <= 1.5%. Stage 1 ``alpha`` = 0.01; Stage 2 passes min(alpha / k, 0.01) (never looser than Stage 1's calibration level)."""
     rng = np.random.default_rng(seed)
     adv = []
     for _ in range(n_draws):
         lp = permute_within_cells(L, cell, rng)
         r = w1_core(lp, pred, b0, b1, date, event, n_boot=n_boot, seed=int(rng.integers(1, 10**6)))
         adv.append(max(r["p_B0"], r["p_B1"]))
-    out = c11.placebo_advance_rate(adv)
+    out = c11.placebo_advance_rate(adv, alpha)
+    out["alpha"] = alpha
     out["note"] = "W1 target permutation within category x month; advance iff both p thresholds hold"
     return out
 
@@ -758,7 +780,7 @@ def hours_view(L: np.ndarray, pred: np.ndarray, b0: np.ndarray, b1: np.ndarray) 
     return tuple(np.exp(np.asarray(x, float)) for x in (L, pred, b0, b1))
 
 
-def w1_robustness(U: list[dict], L, pred, b0, b1, *, decided_mask=None, n_boot: int = c11.N_BOOT) -> dict:
+def w1_robustness(U: list[dict], L, pred, b0, b1, *, decided_mask=None, n_boot: int = c11.N_BOOT, alpha: float = c11.GATE_P, inclusive: bool = False) -> dict:
     """Binding robustness: R >= 0.10 (both baselines) in every calendar month; p and floors hold without the top-5 end-dates and the top-5 events; R >= 0.10 on
     hours; R >= 0.10 on h2-only and h3-only rows. ``decided_mask`` (W2 decided SCREEN units) feeds the attribution (b)."""
     L, pred, b0, b1 = (np.asarray(x, float) for x in (L, pred, b0, b1))
@@ -784,7 +806,7 @@ def w1_robustness(U: list[dict], L, pred, b0, b1, *, decided_mask=None, n_boot: 
     for way, cl in (("date", date), ("event", event)):
         keep = c11.c9.top_k_drop_mask(contrib, cl, c11.TOP_DROP)
         r = w1_core(L[keep], pred[keep], b0[keep], b1[keep], date[keep], event[keep], n_boot=n_boot)
-        drop[way] = {"n": r["n"], "R_B0": r["R_B0"], "R_B1": r["R_B1"], "p_B0": r["p_B0"], "p_B1": r["p_B1"], "ok": w1_floor_ok(r)}
+        drop[way] = {"n": r["n"], "R_B0": r["R_B0"], "R_B1": r["R_B1"], "p_B0": r["p_B0"], "p_B1": r["p_B1"], "ok": w1_floor_ok(r, alpha, inclusive)}
     out["without_top5"] = drop
     out["without_top5_ok"] = all(v["ok"] for v in drop.values())
     h = hours_view(L, pred, b0, b1)
@@ -792,7 +814,7 @@ def w1_robustness(U: list[dict], L, pred, b0, b1, *, decided_mask=None, n_boot: 
     out["hours"] = {"R_B0": hr[0], "R_B1": hr[1], "ok": bool(hr[0] >= W1_SUBSET_R and hr[1] >= W1_SUBSET_R)}
     by_src = {}
     for s in ("h2", "h3"):
-        mask = np.isin(src, (s, "both")) if s == "h3" else (src == "h2")
+        mask = src == s  # N4: rows present in both frames ('both') are in neither the h2-only nor the h3-only subset
         r0, r1 = _r(mask) if mask.any() else (math.nan, math.nan)
         by_src[s] = {"R_B0": r0, "R_B1": r1, "n": int(mask.sum()), "ok": bool(r0 >= W1_SUBSET_R and r1 >= W1_SUBSET_R)}
     out["by_source"] = by_src
@@ -810,20 +832,23 @@ def _r_hours(Lh, ph, b0h, b1h) -> tuple[float, float]:
     return (float(1 - a / d0) if d0 > 0 else math.nan, float(1 - a / d1) if d1 > 0 else math.nan)
 
 
-def w1_stat(eval_units: list[dict], L: np.ndarray, fm: dict, fm_nosched: dict | None, *, decided_mask=None, n_draws: int = c11.PLACEBO_DRAWS, n_boot: int = c11.N_BOOT, placebo: bool = True) -> dict:
-    """W1 on ``eval_units`` (targets ``L``) with the frozen model ``fm`` (fitted before; see ``fit_model``)."""
+def w1_stat(eval_units: list[dict], L: np.ndarray, fm: dict, fm_nosched: dict | None, *, decided_mask=None, n_draws: int = c11.PLACEBO_DRAWS, n_boot: int = c11.N_BOOT, placebo: bool = True,
+            alpha: float = c11.GATE_P, inclusive: bool = False) -> dict:
+    """W1 on ``eval_units`` (targets ``L``) with the frozen model ``fm`` (fitted before; see ``fit_model``). ``alpha`` is the p threshold of BOTH baselines: 0.01
+    (strict) in Stage 1; alpha / k (inclusive) in Stage 2, where the design's Holm rule is the only p gate (B8)."""
     pred = predict(fm, eval_units)
     b0 = b0_of(eval_units, fm["b0"])
     b1, fb = b1_of(eval_units, b0)
     date = np.array([date_of(u["end_epoch"]) for u in eval_units])
     event = np.array([str(u["event_id"]) for u in eval_units])
     core = w1_core(L, pred, b0, b1, date, event, n_boot=n_boot)
-    out: dict = {**core, "b1_fallback_share": fb, "floors": {"R_B0": W1_FLOOR_B0, "R_B1": W1_FLOOR_B1}, "label": "reused frame, fresh target (L1)"}
+    out: dict = {**core, "b1_fallback_share": fb, "floors": {"R_B0": W1_FLOOR_B0, "R_B1": W1_FLOOR_B1}, "p_threshold": alpha, "p_threshold_inclusive": inclusive,
+                 "label": "reused frame, fresh target (L1)"}
     if not core["testable"]:
         return {**out, "advance": False, "p": 1.0, "verdict": "not testable (units or clusters)"}
     cell = np.array([f"{u['fee_category']}|{month_of(u['end_epoch'])}" for u in eval_units])
-    out["placebo"] = w1_placebo(L, pred, b0, b1, date, event, cell, n_draws=n_draws, n_boot=n_boot) if placebo else {"n_draws": 0, "holds": True, "advance_rate": None, "note": "skipped"}
-    out["robustness"] = w1_robustness(eval_units, L, pred, b0, b1, decided_mask=decided_mask, n_boot=n_boot)
+    out["placebo"] = w1_placebo(L, pred, b0, b1, date, event, cell, n_draws=n_draws, n_boot=n_boot, alpha=min(alpha, c11.GATE_P)) if placebo else {"n_draws": 0, "holds": True, "advance_rate": None, "note": "skipped"}
+    out["robustness"] = w1_robustness(eval_units, L, pred, b0, b1, decided_mask=decided_mask, n_boot=n_boot, alpha=alpha, inclusive=inclusive)
     if fm_nosched is not None:
         pn = predict(fm_nosched, eval_units)
         rn = w1_core(L, pn, b0, b1, date, event, n_boot=2)
@@ -831,7 +856,7 @@ def w1_stat(eval_units: list[dict], L: np.ndarray, fm: dict, fm_nosched: dict | 
                                        "label_if_not": "the wait is forecastable from category and recent lag, not from the clock"}
     dec = (out["robustness"].get("decided_units") or {})
     out["attribution_decided"] = {**dec, "label_if_not": "skill comes from undecided markets (event timing), not proposer timing"} if dec else {"note": "no decided units", "ok": False}
-    core_ok = w1_floor_ok(core)
+    core_ok = w1_floor_ok(core, alpha, inclusive)
     out["core_ok"] = core_ok
     out["advance"] = bool(core_ok and out["placebo"].get("holds") and out["robustness"]["ok"])
     out["p"] = float(max(core["p_B0"], core["p_B1"]))
@@ -895,7 +920,9 @@ def decide_and_enter(tx: tuple[np.ndarray, np.ndarray, np.ndarray] | None, t: fl
     """Trigger and execution (design W2). Trigger: the first transaction in ``[t + 5 min, t + trig_to)`` with outcome-0 VWAP ``v >= 0.95`` (token 0 decided) or
     ``v <= 0.05`` (token 1 decided) at time ``tau``. 'no carry room' if the trigger token price + h_W > 0.995 (decided, not entered). Execution: the next
     transaction at or after ``tau + 60 s`` and before the close; entry price = its token price + h_W, capped at 1.0, whatever its level. No such transaction ->
-    'unfilled'. Returns a dict with ``status`` in {no_tx, not_decided, no_room, unfilled, filled}."""
+    'unfilled': split (N9) into ``unfilled_outside_window`` (the close lies beyond the stored transaction span ``t + 6 h``, so a later transaction cannot be
+    excluded) and ``unfilled_no_trade_before_close`` (the span reaches the close and holds no such transaction); both are counted, excluded from per-share
+    means and decided. Returns a dict with ``status`` in {not_decided, no_room, unfilled_*, filled}."""
     if tx is None or len(tx[0]) == 0:
         return {"status": "not_decided", "reason": "no transactions"}
     ts, v, sz = tx
@@ -911,7 +938,7 @@ def decide_and_enter(tx: tuple[np.ndarray, np.ndarray, np.ndarray] | None, t: fl
         return {**base, "status": "no_room"}
     e = np.where((ts >= tau + LATENCY_S) & (ts < close))[0]
     if len(e) == 0:
-        return {**base, "status": "unfilled"}
+        return {**base, "status": UNFILLED_OUTSIDE if close > t + TX_AFTER_S else UNFILLED_NO_TRADE}
     q = int(e[0])
     p_entry = float(v[q]) if k == 0 else 1.0 - float(v[q])
     cap_mask = (ts >= tau + LATENCY_S) & (ts < tau + COVER_AFTER_S)
@@ -931,14 +958,36 @@ def outcome_y(prices_json: str, k: int) -> tuple[float, bool]:
     return 0.0, False
 
 
+def load_markets(path: Path) -> dict[str, dict]:
+    """``markets.csv.gz`` of a prints split (covered span, truncation, status). A missing file is a refusal: W2 never runs on prints of unknown coverage."""
+    p = Path(path)
+    if not p.exists():
+        raise Refused(f"print coverage file {p} missing")
+    return {str(r["market_id"]): r for r in c11.read_csv_gz(p)}
+
+
+def market_available(rec: dict | None) -> bool:
+    """A sampled market's prints are usable iff the fetch succeeded (``status`` ok), the span was covered (``covered`` = 1: the oldest print is before t - 6 h or
+    the whole history was retrieved) and not truncated. Anything else is 'unavailable' (design 2.6(iv)): excluded and counted, never imputed (B5)."""
+    if not rec:
+        return False
+    return bool(str(rec.get("status")) == "ok" and str(rec.get("covered")) in ("1", "1.0") and str(rec.get("truncated")) in ("0", "0.0"))
+
+
 def w2_units(sample: list[dict], tx: dict[str, tuple], targets: dict[str, dict], outcomes: dict[str, dict], pred_hours: dict[str, float], *, trig_to: float = TRIG_TO_S,
-             h_w: float = H_W) -> tuple[list[dict], dict]:
+             h_w: float = H_W, markets: dict[str, dict] | None = None) -> tuple[list[dict], dict]:
     """The decided units of the W2 sample (``sample`` rows from w2_sample.csv.gz, SCREEN or HOLDOUT) with entry, payoff, hold hours and arm S membership
-    (``pred_hours`` = exp(L_hat) of the frozen model). Returns (filled units, counts incl. no_room / unfilled / not_decided)."""
+    (``pred_hours`` = exp(L_hat) of the frozen model). ``markets`` = the coverage records of the prints fetch: a sampled market without a usable, covered print
+    span (``market_available``) is excluded and counted ``unavailable`` (B5; ``None`` = no coverage data, unit tests only). Returns (filled units, counts incl.
+    eligible / unavailable / not_decided / no_room / unfilled_* / filled / decided)."""
     cnt: Counter = Counter()
     out = []
     for s in sample:
         m = str(s["market_id"])
+        cnt["eligible"] += 1
+        if markets is not None and not market_available(markets.get(m)):
+            cnt["unavailable"] += 1
+            continue
         t = float(s["end_epoch"])
         tg = targets.get(m)
         d = decide_and_enter(tx.get(m), t, float(tg["close_epoch"]) if tg else math.nan, trig_to=trig_to, h_w=h_w)
@@ -954,7 +1003,7 @@ def w2_units(sample: list[dict], tx: dict[str, tuple], targets: dict[str, dict],
                     "p_entry": d["p_entry"], "c": c, "fee": fee, "Y": y, "clean": clean, "uma_status": str(oc.get("uma_status", "")), "close": close,
                     "H": (close - d["tau_e"]) / HOUR + LIVENESS_H, "q": d["capacity"], "net": y - c - fee, "pred_h": float(pred_hours.get(m, math.nan)),
                     "S": bool(pred_hours.get(m, math.inf) <= S_MAX_HOURS)})
-    cnt["decided"] = cnt["filled"] + cnt["unfilled"] + cnt["no_room"]
+    cnt["decided"] = cnt["filled"] + cnt[UNFILLED_NO_TRADE] + cnt[UNFILLED_OUTSIDE] + cnt["no_room"]
     return out, dict(cnt)
 
 
@@ -966,7 +1015,9 @@ def r_ann_h(units: list[dict], *, hold_floor: float = HOLD_FLOOR_H, rate_key: st
 
 def pool_simulation(units: list[dict], *, pool: float = POOL_USD, window_days: float | None = None) -> dict:
     """Chronological single-pool simulation (design W2): S units in order of ``tau_e``; each buys ``min(free cash / cost, q_i)`` shares (cost per share = c +
-    fee, ``q_i`` = recorded traded size in [tau + 60 s, tau + 60 min)); cash returns at ``close + 1 h`` with ``Y`` per share."""
+    fee, stricter than the design's ``c``; ``q_i`` = recorded traded size in [tau + 60 s, tau + 60 min), summed over both tokens, section 11 N2); cash returns at
+    ``close + 1 h`` with ``Y`` per share. The return is annualised over ``window_days`` (the evaluated window: W_screen for Stage 1, W_hold for Stage 2, B9). Mean
+    utilisation = time-weighted invested cost / pool between the first entry and the last return (N6)."""
     if window_days is None:
         window_days = (E_SCREEN[1] - E_SCREEN[0]) / DAY
     us = sorted(units, key=lambda u: (u["tau_e"], u["market_id"]))
@@ -975,18 +1026,11 @@ def pool_simulation(units: list[dict], *, pool: float = POOL_USD, window_days: f
     pnl = 0.0
     n_in = n_skip_cash = n_skip_cap = 0
     by_month: dict[str, float] = {}
-    inv_area, last_t, invested = 0.0, None, 0.0
-    first_t = us[0]["tau_e"] if us else None
+    entered: list[tuple[float, float, float]] = []  # (entry time, return time, cost)
     for idx, u in enumerate(us):
         te = u["tau_e"]
         while heap and heap[0][0] <= te:
-            t_ret, _, amt = heapq.heappop(heap)
-            if last_t is not None:
-                inv_area += invested * (t_ret - last_t)
-            last_t = t_ret
-            cash += amt
-            invested -= amt  # amt is the proceeds; invested tracks cost basis below
-            invested = max(invested, 0.0)
+            cash += heapq.heappop(heap)[2]
         cost = u["c"] + u["fee"]
         shares = min(cash / cost, u["q"]) if cost > 0 else 0.0
         if shares <= 0:
@@ -995,18 +1039,20 @@ def pool_simulation(units: list[dict], *, pool: float = POOL_USD, window_days: f
             else:
                 n_skip_cash += 1
             continue
-        if last_t is not None:
-            inv_area += invested * (te - last_t)
-        last_t = te
         cash -= shares * cost
-        invested += shares * cost
-        heapq.heappush(heap, (u["close"] + HOUR, idx, shares * u["Y"]))
+        t_ret = u["close"] + HOUR
+        heapq.heappush(heap, (t_ret, idx, shares * u["Y"]))
+        entered.append((te, t_ret, shares * cost))
         pnl += shares * (u["Y"] - cost)
         n_in += 1
         mo = month_of(te)
         by_month[mo] = by_month.get(mo, 0.0) + shares * (u["Y"] - cost)
-    span = max(((heap[0][0] if heap else (last_t or 0)) - (first_t or 0)) / DAY, 1e-9) if us else 1.0
-    util = float(inv_area / max(last_t - first_t, 1.0) / pool) if (us and first_t is not None and last_t is not None and last_t > first_t) else 0.0
+    if entered:
+        t0, t1 = min(e[0] for e in entered), max(e[1] for e in entered)
+        span = max((t1 - t0) / DAY, 1e-9)
+        util = float(min(sum(c * (r - e) for e, r, c in entered) / max(t1 - t0, 1.0) / pool, 1.0))
+    else:
+        span, util = 0.0, 0.0
     ann = float(pnl / pool * 365.0 / window_days)
     return {"pool_usd": pool, "pnl_usd": float(pnl), "annualised_return": ann, "excess_over_rf": float(ann - RF_RATE), "n_entered": n_in, "n_skipped_cash": n_skip_cash,
             "n_skipped_no_capacity": n_skip_cap, "skipped_cash_share": float(n_skip_cash / len(us)) if us else math.nan, "pnl_by_month": {k: float(v) for k, v in sorted(by_month.items())},
@@ -1025,6 +1071,11 @@ def _tail(U: list[dict], alpha: float, n_boot: int = 500) -> dict:
     return {**tb, "pi_star": pi_star, "floor": TAIL_FLOOR, "ok": bool(tb["bound"] < pi_star - TAIL_FLOOR)}
 
 
+def _p_ok(p: float, alpha: float, inclusive: bool) -> bool:
+    """Stage 1: p < alpha. Stage 2 (Holm at alpha / k): p <= alpha / k (``inclusive``)."""
+    return bool(p <= alpha if inclusive else p < alpha)
+
+
 def _stat_w2(S: list[dict], alpha: float, *, hold_floor: float = HOLD_FLOOR_H) -> dict:
     v = np.array([u["net"] for u in S], float)
     cp = c11.cluster_p(v, {"date": np.array([u["date"] for u in S]), "event": np.array([u["event"] for u in S])}) if len(S) >= 2 else {"testable": False, "p": 1.0, "n": len(S)}
@@ -1032,21 +1083,41 @@ def _stat_w2(S: list[dict], alpha: float, *, hold_floor: float = HOLD_FLOOR_H) -
             "tail": _tail(S, alpha)}
 
 
-def w2_stat(units: list[dict], counts: dict, *, alpha: float = c11.GATE_P, n_boot: int = 500) -> dict:
+def window_months(window: tuple[float, float]) -> list[str]:
+    """Calendar months (UTC, 'YYYY-MM') that a half-open epoch window ``[a, b)`` overlaps."""
+    a, b = window
+    d = datetime.fromtimestamp(a, UTC).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    out = []
+    while d.timestamp() < b:
+        out.append(d.strftime("%Y-%m"))
+        d = d.replace(year=d.year + (d.month == 12), month=1 if d.month == 12 else d.month + 1)
+    return out
+
+
+def w2_stat(units: list[dict], counts: dict, *, alpha: float = c11.GATE_P, n_boot: int = 500, window: tuple[float, float] = E_SCREEN, inclusive: bool = False) -> dict:
     """W2 on the filled units of a sample: arm S statistic, floors, attribution, capacity-capped pool gate, binding robustness. ``units`` carry ``Y`` and the
-    status fields; ``counts`` is the trigger / fill tally. The CB1-A1 prior is disclosed on every line."""
+    status fields; ``counts`` is the trigger / fill tally (with ``eligible`` / ``unavailable`` from ``w2_units``: an available share below 60% is 'not testable
+    (availability)', B5). The pool return is annualised over ``window`` (W_screen or W_hold, B9); ``inclusive`` = the Stage-2 rule p <= alpha / k. The CB1-A1
+    prior is disclosed on every line."""
     S = [u for u in units if u["S"]]
     out: dict = {"counts": counts, "n_filled": len(units), "label": "modelled-cost economic check, reused frame (L1)",
                  "prior_disclosed": "CB1-A1 (post-end decided carry, h2, 57 units) was 'not testable' with a descriptive -4.00c per share on mid-like prices"}
+    elig = int(counts.get("eligible", 0) or 0)
+    if elig:
+        avail = (elig - int(counts.get("unavailable", 0) or 0)) / elig
+        out["availability"] = {"eligible": elig, "available": elig - int(counts.get("unavailable", 0) or 0), "share": avail, "min": AVAIL_MIN}
+        if avail < AVAIL_MIN:
+            return {**out, "testable": False, "advance": False, "p": 1.0, "verdict": "not testable (availability)"}
     st = _stat_w2(S, alpha)
     out["S"] = st
     out["all_decided"] = {"n": len(units), "net_mean": float(np.mean([u["net"] for u in units])) if units else math.nan, "r_ann_h": r_ann_h(units)}
     if not st["testable"]:
         return {**out, "testable": False, "advance": False, "p": 1.0, "verdict": "not testable (S units or clusters)"}
-    pools = {str(int(p)): pool_simulation(S, pool=p) for p in (POOL_USD, *POOL_ALT)}
+    wd = (window[1] - window[0]) / DAY
+    pools = {str(int(p)): pool_simulation(S, pool=p, window_days=wd) for p in (POOL_USD, *POOL_ALT)}
     out["pool"] = pools
     floors = {"net": bool(st["net_mean"] >= W2_NET_FLOOR), "r_ann_h": bool(st["r_ann_h"] >= W2_RANN_FLOOR), "pool_excess": bool(pools[str(int(POOL_USD))]["excess_over_rf"] >= POOL_EXCESS_FLOOR),
-              "tail": bool(st["tail"]["ok"]), "p": bool(st["p"] < alpha)}
+              "tail": bool(st["tail"]["ok"]), "p": _p_ok(st["p"], alpha, inclusive)}
     out["floors"] = floors
     a_all = out["all_decided"]
     out["attribution"] = {"credit_clock": bool(st["r_ann_h"] >= ATTR_RANN_MULT * a_all["r_ann_h"] and st["net_mean"] >= a_all["net_mean"] - ATTR_NET_SLACK),
@@ -1055,13 +1126,21 @@ def w2_stat(units: list[dict], counts: dict, *, alpha: float = c11.GATE_P, n_boo
     return {**out, "testable": True, "p": float(st["p"])}
 
 
-def w2_robustness(variants: dict[str, tuple[list[dict], dict]], base_S: list[dict], alpha: float) -> dict:
-    """Binding robustness. ``variants`` maps ``h_w_1c`` / ``trigger_30m`` to (units, counts) built by ``w2_units`` with the changed parameter."""
+def w2_robustness(variants: dict[str, tuple[list[dict], dict]], base_S: list[dict], alpha: float, *, window: tuple[float, float] = E_SCREEN, inclusive: bool = False) -> dict:
+    """Binding robustness. ``variants`` maps ``h_w_1c`` / ``trigger_30m`` to (units, counts) built by ``w2_units`` with the changed parameter. Also binding
+    (design 2.6(iii), B7): the sign of the mean net per share in EVERY calendar month of the evaluated ``window`` (a month without an S unit does not count as
+    met). Reported: the losing share by category ('killed in category'), capacity and net by category."""
     rob: dict = {}
     for name, (us, _c) in variants.items():
         S = [u for u in us if u["S"]]
         rob[name] = {"n": len(S), "net_mean": float(np.mean([u["net"] for u in S])) if S else math.nan, "ok": bool(S and np.mean([u["net"] for u in S]) > 0)}
     rob["hold_floor_6h"] = {"r_ann_h": r_ann_h(base_S, hold_floor=HOLD_FLOOR_ROBUST_H), "ok": bool(r_ann_h(base_S, hold_floor=HOLD_FLOOR_ROBUST_H) >= W2_RANN_FLOOR)}
+    months = window_months(window)
+    by_m: dict[str, dict] = {}
+    for mo in months:
+        xs = [u["net"] for u in base_S if month_of(u["t"]) == mo]
+        by_m[mo] = {"n": len(xs), "net_mean": float(np.mean(xs)) if xs else math.nan, "ok": bool(xs and np.mean(xs) > 0)}
+    rob["by_month_sign"] = {"months": by_m, "ok": bool(by_m) and all(v["ok"] for v in by_m.values())}
     if base_S:
         v = np.array([u["net"] for u in base_S], float)
         top = {}
@@ -1070,7 +1149,7 @@ def w2_robustness(variants: dict[str, tuple[list[dict], dict]], base_S: list[dic
             keep = c11.c9.top_k_drop_mask(v, cl, c11.TOP_DROP)
             sub = [u for u, k in zip(base_S, keep, strict=True) if k]
             st = _stat_w2(sub, alpha)
-            top[way] = {"n": len(sub), "net_mean": st["net_mean"], "p": st["p"], "ok": bool(st["testable"] and st["p"] < alpha and st["net_mean"] >= W2_NET_FLOOR)}
+            top[way] = {"n": len(sub), "net_mean": st["net_mean"], "p": st["p"], "ok": bool(st["testable"] and _p_ok(st["p"], alpha, inclusive) and st["net_mean"] >= W2_NET_FLOOR)}
         rob["without_top5"] = top
         rob["without_top5_ok"] = all(x["ok"] for x in top.values())
         worst = [{**u, "Y": 0.0, "net": 0.0 - u["c"] - u["fee"]} if u["uma_status"] != "resolved" else u for u in base_S]
@@ -1079,11 +1158,12 @@ def w2_robustness(variants: dict[str, tuple[list[dict], dict]], base_S: list[dic
                                     "ok": bool(wst["net_mean"] > 0 and wst["tail"]["ok"]),
                                     "note": "the frame carries one uma_status string (no status history): every unit whose status is not 'resolved' is scored Y = 0"}
         rob["capacity"] = {"median_q_shares": float(np.median([u["q"] for u in base_S]))}
-        byc: dict[str, list[float]] = {}
+        byc: dict[str, list[dict]] = {}
         for u in base_S:
-            byc.setdefault(u["cat"], []).append(u["net"])
-        rob["by_category_net"] = {c: {"n": len(x), "net_mean": float(np.mean(x))} for c, x in sorted(byc.items())}
-    rob["ok"] = bool(all(rob[k]["ok"] for k in ("h_w_1c", "trigger_30m", "hold_floor_6h", "worst_case_status") if k in rob) and rob.get("without_top5_ok", False))
+            byc.setdefault(u["cat"], []).append(u)
+        rob["by_category_net"] = {c: {"n": len(x), "net_mean": float(np.mean([u["net"] for u in x]))} for c, x in sorted(byc.items())}
+        rob["killed_in_category"] = {c: {"n": len(x), "losing_share": float(np.mean([u["Y"] == 0.0 for u in x]))} for c, x in sorted(byc.items())}
+    rob["ok"] = bool(all(rob[k]["ok"] for k in ("h_w_1c", "trigger_30m", "hold_floor_6h", "worst_case_status", "by_month_sign") if k in rob) and rob.get("without_top5_ok", False))
     return rob
 
 
@@ -1113,8 +1193,32 @@ def build_fit(units: list[dict], tgt: dict[str, dict], *, use_fit_L: bool = Fals
     return units, L
 
 
+def load_nonprimary_units(wdir: Path, *, job: str) -> list[dict]:
+    """The non-primary (sports, crypto) fit / gap / screen units, for the DESCRIPTIVE sports-stratum report of ``screen-W`` only (never the census)."""
+    if job != "screen-W":
+        raise Refused("the non-primary strata file is opened only by screen-W")
+    p = Path(wdir) / "units_nonprimary.csv.gz"
+    return [_typed(r) for r in c11.read_csv_gz(p)] if p.exists() else []
+
+
+def non_primary_strata(wdir: Path, fm: dict, tg: dict[str, dict]) -> dict:
+    """Descriptive (no p, no gate, never an advance condition): R_B0 / R_B1 of the frozen model on the reported non-primary strata of W_screen (design:
+    'the sports stratum'). The strata are absent from the fit (category code 'rare', B0 = overall median)."""
+    units = [u for u in load_nonprimary_units(wdir, job="screen-W") if u["window"] == "screen" and str(u["market_id"]) in tg]
+    out: dict = {"note": "descriptive; sports and crypto are not in the primary population; W2 samples primary markets only, so there is no W2 sports stratum"}
+    for cat in sorted({str(u["fee_category"]).split(":")[0] for u in units}):
+        us = [u for u in units if str(u["fee_category"]).split(":")[0] == cat]
+        L = np.array([float(tg[str(u["market_id"])]["L"]) for u in us], float)
+        pred = predict(fm, us)
+        b0 = b0_of(us, fm["b0"])
+        b1, _ = b1_of(us, b0)
+        em, e0, e1 = np.abs(L - pred), np.abs(L - b0), np.abs(L - b1)
+        out[cat] = {"n": len(us), "R_B0": float(1 - em.sum() / e0.sum()) if e0.sum() > 0 else math.nan, "R_B1": float(1 - em.sum() / e1.sum()) if e1.sum() > 0 else math.nan}
+    return out
+
+
 def screen_w(wdir: Path, hist_root: Path, census: dict, *, n_boot: int = c11.N_BOOT, n_draws: int = c11.PLACEBO_DRAWS) -> dict:
-    """W1 and W2 Stage 1 on W_screen (the caller checked the freeze, the census labels and the fetch manifests)."""
+    """W1 and W2 Stage 1 on W_screen (the caller checked the freeze, the census labels and the fetch manifests). Stage-1 p threshold 0.01 (strict)."""
     wdir, pdir = Path(wdir), Path(hist_root) / H11
     cw = census.get("W") or {}
     lab1, lab2 = cw.get("label_W1"), cw.get("label_W2")
@@ -1135,18 +1239,20 @@ def screen_w(wdir: Path, hist_root: Path, census: dict, *, n_boot: int = c11.N_B
     pred_h = {str(u["market_id"]): float(math.exp(p)) for u, p in zip(scr, predict(fm, scr), strict=True)}
     sample = [r for r in c11.read_csv_gz(wdir / "w2_sample.csv.gz")]
     tx = load_tx(pdir / "screen" / "tx.csv.gz")
+    mk = load_markets(pdir / "screen" / "markets.csv.gz")
     oc = _index_by(open_w_guarded(pdir / "outcomes_guarded.csv.gz", "screen-W"))
     targets = {m: tg[m] for m in (str(s["market_id"]) for s in sample) if m in tg}
-    units2, cnt2 = w2_units(sample, tx, targets, oc, pred_h)
+    units2, cnt2 = w2_units(sample, tx, targets, oc, pred_h, markets=mk)
     decided_ids = {u["market_id"] for u in units2}
     dmask = np.array([str(u["market_id"]) in decided_ids for u in scr], bool)
     if not lab1:
-        res["W1"] = w1_stat(scr, L, fm, fm_ns, decided_mask=dmask, n_draws=n_draws, n_boot=n_boot)
+        res["W1"] = w1_stat(scr, L, fm, fm_ns, decided_mask=dmask, n_draws=n_draws, n_boot=n_boot, alpha=c11.GATE_P)
+        res["W1"]["non_primary_strata"] = non_primary_strata(wdir, fm, tg)
     if not lab2:
-        w2 = w2_stat(units2, cnt2, alpha=c11.GATE_P)
+        w2 = w2_stat(units2, cnt2, alpha=c11.GATE_P, window=E_SCREEN)
         if w2.get("testable"):
-            variants = {"h_w_1c": w2_units(sample, tx, targets, oc, pred_h, h_w=H_W_ROBUST), "trigger_30m": w2_units(sample, tx, targets, oc, pred_h, trig_to=TRIG_TO_ROBUST_S)}
-            rob = w2_robustness(variants, [u for u in units2 if u["S"]], c11.GATE_P)
+            variants = {"h_w_1c": w2_units(sample, tx, targets, oc, pred_h, h_w=H_W_ROBUST, markets=mk), "trigger_30m": w2_units(sample, tx, targets, oc, pred_h, trig_to=TRIG_TO_ROBUST_S, markets=mk)}
+            rob = w2_robustness(variants, [u for u in units2 if u["S"]], c11.GATE_P, window=E_SCREEN)
             w2 = w2_decide(w2, rob)
         else:
             w2 = {**w2, "advance": False}
@@ -1155,10 +1261,11 @@ def screen_w(wdir: Path, hist_root: Path, census: dict, *, n_boot: int = c11.N_B
 
 
 def rep_w(wdir: Path, hist_root: Path, census: dict, advanced: tuple[str, ...], k: int, *, n_boot: int = c11.N_BOOT, n_draws: int = c11.PLACEBO_DRAWS,
-          seals_dir: Path | None = None) -> dict:
-    """Stage 2 on the sealed W_hold with the model and baselines refit on ends [2025-10-01, 2026-06-09). Judged at alpha / k by the caller."""
+          seals_dir: Path | None = None, committed_seals: bool = True) -> dict:
+    """Stage 2 on the sealed W_hold with the model and baselines refit on ends [2025-10-01, 2026-06-09). Judged at alpha / k (inclusive) with alpha = 0.05 and
+    no other p gate (B8); the pool return is annualised over W_hold (B9) and the month-sign check runs over W_hold's months (B7)."""
     wdir, pdir = Path(wdir), Path(hist_root) / H11
-    verify_hold_seal(wdir, seals_dir)
+    verify_hold_seal(wdir, seals_dir, require_committed=committed_seals)
     thr = c11.STAGE2_ALPHA / k
     fitu = refit_range_units(wdir, "rep-W")
     tg = _index_by(open_w_guarded(wdir / "targets_guarded.csv.gz", "rep-W"))
@@ -1173,25 +1280,26 @@ def rep_w(wdir: Path, hist_root: Path, census: dict, advanced: tuple[str, ...], 
     pred_h = {str(u["market_id"]): float(math.exp(p)) for u, p in zip(hold, predict(fm, hold), strict=True)}
     sample = list(c11.read_csv_gz(wdir / HOLD_DIR / "w2_sample_hold.csv.gz"))
     tx = load_tx(pdir / "holdout" / "tx.csv.gz")
+    mk = load_markets(pdir / "holdout" / "markets.csv.gz")
     oc = _index_by(open_w_guarded(wdir / HOLD_DIR / "outcomes_guarded_hold.csv.gz", "rep-W"))
     targets = {m: tgh[m] for m in (str(s["market_id"]) for s in sample) if m in tgh}
-    units2, cnt2 = w2_units(sample, tx, targets, oc, pred_h)
+    units2, cnt2 = w2_units(sample, tx, targets, oc, pred_h, markets=mk)
     if "W1" in advanced:
         if cw.get("label_W1_hold"):
             out["W1_rep"] = {"testable": False, "p": 1.0, "advance": False, "verdict": cw["label_W1_hold"]}
         else:
             ids = {u["market_id"] for u in units2}
-            r = w1_stat(hold, L, fm, fm_ns, decided_mask=np.array([str(u["market_id"]) in ids for u in hold], bool), n_draws=n_draws, n_boot=n_boot)
+            r = w1_stat(hold, L, fm, fm_ns, decided_mask=np.array([str(u["market_id"]) in ids for u in hold], bool), n_draws=n_draws, n_boot=n_boot, alpha=thr, inclusive=True)
             r["stage2_pass_alpha_over_k"] = bool(r.get("testable") and r.get("p", 1.0) <= thr and r.get("advance"))
             out["W1_rep"] = r
     if "W2" in advanced:
         if cw.get("label_W2_hold"):
             out["W2_rep"] = {"testable": False, "p": 1.0, "advance": False, "verdict": cw["label_W2_hold"]}
         else:
-            w2 = w2_stat(units2, cnt2, alpha=thr)
+            w2 = w2_stat(units2, cnt2, alpha=thr, window=E_HOLD, inclusive=True)
             if w2.get("testable"):
-                variants = {"h_w_1c": w2_units(sample, tx, targets, oc, pred_h, h_w=H_W_ROBUST), "trigger_30m": w2_units(sample, tx, targets, oc, pred_h, trig_to=TRIG_TO_ROBUST_S)}
-                w2 = w2_decide(w2, w2_robustness(variants, [u for u in units2 if u["S"]], thr))
+                variants = {"h_w_1c": w2_units(sample, tx, targets, oc, pred_h, h_w=H_W_ROBUST, markets=mk), "trigger_30m": w2_units(sample, tx, targets, oc, pred_h, trig_to=TRIG_TO_ROBUST_S, markets=mk)}
+                w2 = w2_decide(w2, w2_robustness(variants, [u for u in units2 if u["S"]], thr, window=E_HOLD, inclusive=True))
             w2["stage2_pass_alpha_over_k"] = bool(w2.get("testable") and w2.get("p", 1.0) <= thr and w2.get("advance"))
             out["W2_rep"] = w2
     return out
@@ -1202,33 +1310,40 @@ def rep_w(wdir: Path, hist_root: Path, census: dict, advanced: tuple[str, ...], 
 # =====================================================================================================================================
 
 
-def gamma_window_params(a: float, b: float, offset: int) -> dict:
+def gamma_window_params(a: float, b: float, offset: int, closed: str = "false") -> dict:
     f = "%Y-%m-%dT%H:%M:%SZ"
-    return {"closed": "false", "order": "id", "ascending": "true", "end_date_min": datetime.fromtimestamp(a, UTC).strftime(f), "end_date_max": datetime.fromtimestamp(b, UTC).strftime(f),
+    return {"closed": closed, "order": "id", "ascending": "true", "end_date_min": datetime.fromtimestamp(a, UTC).strftime(f), "end_date_max": datetime.fromtimestamp(b, UTC).strftime(f),
             "limit": CENSOR_PAGE, "offset": offset}
 
 
-def count_open_in_window(lim: hb.Limiter, a: float, b: float) -> dict:
-    """Binary markets (two outcomes, two token ids) with ``closed=false`` and ``endDate`` in ``[a, b]``; ids and ``endDate`` are the only fields read.
+def count_in_window(lim: hb.Limiter, a: float, b: float, closed: str) -> dict:
+    """Binary markets (two outcomes, two token ids) with the given ``closed`` flag and ``endDate`` in ``[a, b]``; ids and ``endDate`` are the only fields read.
     ``capped`` iff the last allowed page is full (the count is then a lower bound). A non-200 reply raises."""
+    from . import cb10_common as c10  # noqa: PLC0415
+
     n, pages, capped = 0, 0, False
     for page in range(CENSOR_PAGES):
-        st, data = lim.get(hb.GAMMA_MARKETS, gamma_window_params(a, b, page * CENSOR_PAGE))
+        st, data = lim.get(hb.GAMMA_MARKETS, gamma_window_params(a, b, page * CENSOR_PAGE, closed))
         if st != 200 or not isinstance(data, list):
             raise cm.ApiError(f"gamma window status {st}")
         pages += 1
         for m in data:
             if not isinstance(m, dict):
                 continue
-            from . import cb10_common as c10  # noqa: PLC0415
-
             if len(c10._listish(m.get("outcomes"))) == 2 and len(c10._listish(m.get("clobTokenIds"))) == 2:
                 n += 1
         if len(data) < CENSOR_PAGE:
             break
     else:
         capped = True
-    return {"open": n, "pages": pages, "capped": capped}
+    return {"n": n, "pages": pages, "capped": capped}
+
+
+def count_open_in_window(lim: hb.Limiter, a: float, b: float) -> dict:
+    """``closed=false`` count of one frame window (the censored markets). The ``closed=true`` count of the same window (N1, frame-to-query gap) is
+    ``count_in_window(..., "true")``."""
+    r = count_in_window(lim, a, b, "false")
+    return {"open": r["n"], "pages": r["pages"], "capped": r["capped"]}
 
 
 def censor_share(open_n: np.ndarray, closed_n: np.ndarray) -> float:
@@ -1296,7 +1411,9 @@ def w_censoring(root: Path, w_dir: Path, transport, *, rules_sha: str, now: floa
                 return m
             try:
                 r = count_open_in_window(fr.lim, float(w["a"]), float(w["b"]))
-                rec = {"key": key, "set": w["set"], "n_frame_closed": int(w["n_frame_closed"]), **r, "status": "ok"}
+                rc = count_in_window(fr.lim, float(w["a"]), float(w["b"]), "true")
+                rec = {"key": key, "set": w["set"], "n_frame_closed": int(w["n_frame_closed"]), **r, "gamma_closed": rc["n"], "gamma_closed_pages": rc["pages"],
+                       "gamma_closed_capped": rc["capped"], "status": "ok"}
             except (cm.ApiError, RuntimeError) as exc:
                 fails = fr.extra_state.setdefault("fails", {})
                 fails[key] = fails.get(key, 0) + 1
@@ -1304,7 +1421,8 @@ def w_censoring(root: Path, w_dir: Path, transport, *, rules_sha: str, now: floa
                     m = fr.manifest(f"window_failed {key}: {exc}"[:200], {"transient": True})
                     m["status"] = "in_progress"
                     return m
-                rec = {"key": key, "set": w["set"], "n_frame_closed": int(w["n_frame_closed"]), "open": 0, "pages": 0, "capped": False, "status": "unavailable (source)"}
+                rec = {"key": key, "set": w["set"], "n_frame_closed": int(w["n_frame_closed"]), "open": 0, "pages": 0, "capped": False, "gamma_closed": 0, "gamma_closed_pages": 0,
+                       "gamma_closed_capped": False, "status": "unavailable (source)"}
             with part.open("a") as fh:
                 fh.write(json.dumps(rec, sort_keys=True) + "\n")
             have[key] = rec
@@ -1322,22 +1440,38 @@ def w_censoring(root: Path, w_dir: Path, transport, *, rules_sha: str, now: floa
 
 def censoring_doc(recs: list[dict]) -> dict:
     """Censored share (Σ open / (Σ open + Σ frame closed)) and its window-bootstrap upper 95% bound per window set; the gate GWC fails (``fail``) iff the upper
-    bound exceeds 2% in that set. Unavailable windows are excluded and counted."""
-    out: dict = {"version": "cb11-censoring-v1", "max_share": CENSOR_MAX_SHARE, "conf": CENSOR_CONF, "sets": {}, "n_windows": len(recs),
+    bound exceeds 2% in that set, OR any window of the set is capped at the page limit (a lower-bound count cannot confirm the bound, N1), OR fewer than 60% of
+    the set's windows are available (design 2.6(iv)). Unavailable windows are excluded and counted. The ``closed=true`` count per window closes the
+    frame-to-query gap: ``frame_to_gamma_closed`` = Σ frame closed rows / Σ Gamma closed count over windows not capped on the closed query (diagnostic)."""
+    out: dict = {"version": "cb11-censoring-v2", "max_share": CENSOR_MAX_SHARE, "conf": CENSOR_CONF, "avail_min": AVAIL_MIN, "sets": {}, "n_windows": len(recs),
                  "n_unavailable": sum(1 for r in recs if r["status"] != "ok"), "n_capped": sum(1 for r in recs if r.get("capped"))}
     for s in ("fit", "screen", "hold"):
-        rs = [r for r in recs if r["set"] == s and r["status"] == "ok"]
+        allr = [r for r in recs if r["set"] == s]
+        rs = [r for r in allr if r["status"] == "ok"]
         o = np.array([r["open"] for r in rs], float)
         c = np.array([r["n_frame_closed"] for r in rs], float)
         sh = censor_share(o, c) if len(rs) else math.nan
         up = censor_upper(o, c) if len(rs) else math.nan
-        out["sets"][s] = {"n_windows": len(rs), "open": int(o.sum()) if len(rs) else 0, "frame_closed": int(c.sum()) if len(rs) else 0, "share": sh, "upper95": up,
-                          "fail": bool((not math.isfinite(up)) or up > CENSOR_MAX_SHARE), "capped_windows": int(sum(1 for r in rs if r.get("capped")))}
+        capped = int(sum(1 for r in rs if r.get("capped")))
+        avail = len(rs) / len(allr) if allr else 0.0
+        unc = [r for r in rs if not r.get("gamma_closed_capped")]
+        gc = float(sum(r.get("gamma_closed", 0) for r in unc))
+        out["sets"][s] = {"n_windows": len(rs), "n_windows_all": len(allr), "available_share": avail, "open": int(o.sum()) if len(rs) else 0,
+                          "frame_closed": int(c.sum()) if len(rs) else 0, "share": sh, "upper95": up, "capped_windows": capped,
+                          "gamma_closed_windows_uncapped": len(unc), "gamma_closed": int(gc),
+                          "frame_to_gamma_closed": (float(sum(r["n_frame_closed"] for r in unc)) / gc) if gc > 0 else math.nan,
+                          "fail": bool((not math.isfinite(up)) or up > CENSOR_MAX_SHARE or capped > 0 or avail < AVAIL_MIN)}
     return out
 
 
 def mde_w2(n: int) -> float:
     return float(MDE_Z * MDE_SD_W2 * math.sqrt(MDE_DEFF_W2 / n)) if n > 0 else math.nan
+
+
+def mde_w1(n_dates: int) -> float:
+    """W1 MDE (R points) recomputed from the census counts: the declared bootstrap SD (0.02 at 120 end-dates) rescaled by sqrt(120 / end-dates in W_screen); the
+    end-date way has the fewest clusters. Never used to change a floor (N6)."""
+    return float(MDE_Z * MDE_SD_W1 * math.sqrt(MDE_G_REF / n_dates)) if n_dates > 0 else math.nan
 
 
 def census_w(wdir: Path, hist_root: Path, censoring: dict | None, coverage: dict | None, *, prints_stall: dict | None = None) -> dict:
@@ -1350,7 +1484,7 @@ def census_w(wdir: Path, hist_root: Path, censoring: dict | None, coverage: dict
     listing = json.loads((wdir / "w_hold_listing.json").read_text())
     doc: dict = {"version": "cb11-w-census-v1", "counts_only": True, "frame": {k: rep[k] for k in ("windows", "categories", "frame_source", "end_dates", "events", "end_hour_ny", "fit_category_counts", "f7_nan",
                                                                                                     "non_primary_counts", "merge", "n_units_primary", "n_units_all_strata")},
-                 "key_drops": rep["population"]["key_drops_by_source"], "series_rule_drops": rep["population"]["series_rule_drops"],
+                 "key_drops": rep["population"]["key_drops_by_source"], "series_rule_drops": rep["population"]["series_rule_drops"], "exclusion": rep.get("exclusion"),
                  "hold": {k: listing[k] for k in ("n_units_hold", "n_end_dates", "n_events", "n_sample_hold", "listing_sha256")}}
     label1 = label2 = None
     fit_cnt = Counter(str(u["fee_category"]) for u in fit)
@@ -1381,13 +1515,17 @@ def census_w(wdir: Path, hist_root: Path, censoring: dict | None, coverage: dict
     elif coverage is not None:
         sample = list(c11.read_csv_gz(wdir / "w2_sample.csv.gz"))
         tx = load_tx(pdir / "screen" / "tx.csv.gz")
-        mk = {r["market_id"]: r for r in c11.read_csv_gz(pdir / "screen" / "markets.csv.gz")} if (pdir / "screen" / "markets.csv.gz").exists() else {}
-        n_cov = sum(1 for s in sample if mk.get(str(s["market_id"]), {}).get("covered") in ("1", 1))
+        mk = {str(r["market_id"]): r for r in c11.read_csv_gz(pdir / "screen" / "markets.csv.gz")} if (pdir / "screen" / "markets.csv.gz").exists() else {}
+        avail = [market_available(mk.get(str(s["market_id"]))) for s in sample]
+        n_cov = int(sum(avail))
         cov = n_cov / len(sample) if sample else 0.0
         w2["coverage"] = {"n_sample": len(sample), "covered": n_cov, "share": cov, "min": COVER_MIN, "pass": bool(cov >= COVER_MIN)}
-        if not w2["coverage"]["pass"]:
+        w2["availability"] = {"eligible": len(sample), "available": n_cov, "unavailable": len(sample) - n_cov, "share": cov, "min": AVAIL_MIN, "pass": bool(cov >= AVAIL_MIN)}
+        if not w2["availability"]["pass"]:
+            label2 = label2 or "not testable (availability)"
+        elif not w2["coverage"]["pass"]:
             label2 = label2 or "not testable (source limited)"
-        # decided and S counts (feature-only: trigger and next-transaction existence; the close is not used)
+        # decided and S counts (feature-only: trigger and next-transaction existence inside the stored span; the close is not used)
         L_fit = np.array([u["L_fit"] for u in fit], float)
         if len(fit) >= 2:
             fm = fit_model(fit, L_fit)
@@ -1397,16 +1535,24 @@ def census_w(wdir: Path, hist_root: Path, censoring: dict | None, coverage: dict
             ph = {}
         dec = Counter()
         S_rows = []
-        for s in sample:
+        n_trig = 0
+        for s, ok in zip(sample, avail, strict=True):
+            if not ok:  # uncovered / unavailable: excluded and counted, never imputed (B5)
+                dec["unavailable"] += 1
+                continue
             m = str(s["market_id"])
-            d = decide_and_enter(tx.get(m), float(s["end_epoch"]), math.inf)
+            t = float(s["end_epoch"])
+            d = decide_and_enter(tx.get(m), t, t + TX_AFTER_S)  # the close is a target-side quantity: the census uses the end of the stored transaction span
             dec[d["status"]] += 1
-            if d["status"] in ("filled", "unfilled", "no_room"):
-                if ph.get(m, math.inf) <= S_MAX_HOURS:
-                    S_rows.append((str(s["event_id"]), date_of(float(s["end_epoch"])), d["status"]))
+            if d["status"] in ("filled", *UNFILLED, "no_room"):
+                n_trig += 1
+            # GW2 counts decided S units whose ENTRY RULE IS SATISFIED (status filled): no_room and unfilled are not decided units (B6)
+            if d["status"] == "filled" and ph.get(m, math.inf) <= S_MAX_HOURS:
+                S_rows.append((str(s["event_id"]), date_of(t), d["status"]))
         n_s = len(S_rows)
-        w2["counts"] = {"status": dict(dec), "decided": dec["filled"] + dec["unfilled"] + dec["no_room"], "S_decided": n_s,
-                        "note": "S_decided counts triggered units; whether the entry transaction precedes the close is not used in the census"}
+        w2["counts"] = {"status": dict(dec), "triggered": n_trig, "decided": dec["filled"], "S_decided": n_s,
+                        "note": "S_decided = filled S units (entry rule satisfied); no_room and unfilled are triggered but not decided units; whether the entry transaction precedes the close "
+                                "is not used in the census (the stored span end t + 6 h stands in for the close)"}
         gw2 = {"S_decided": n_s, "events": len({e for e, _, _ in S_rows}), "dates": len({d for _, d, _ in S_rows}), "need": GW2,
                "pass": bool(n_s >= GW2["units"] and len({e for e, _, _ in S_rows}) >= GW2["events"] and len({d for _, d, _ in S_rows}) >= GW2["dates"])}
         w2["GW2"] = gw2
@@ -1416,7 +1562,8 @@ def census_w(wdir: Path, hist_root: Path, censoring: dict | None, coverage: dict
     else:
         label2 = label2 or "not testable (coverage audit missing)"
     doc["W2"] = w2
-    doc["mde"] = {"W1_R": MDE_Z * MDE_SD_W1, "note": "W1 MDE uses a declared bootstrap SD of 0.02; the 0.20 / 0.10 floors bind, not power; W2 MDE uses SD 12c and deff 2"}
+    doc["mde"] = {"W1_R": mde_w1(n_dates), "W1_end_dates": n_dates, "note": "W1 MDE = (z_0.99 + z_0.80) x 0.02 x sqrt(120 / end-dates in W_screen), from the census count; the 0.20 / 0.10 floors bind, not power. "
+                  "W2 MDE uses SD 12c and deff 2 on the filled S units"}
     doc["label_W1"], doc["label_W2"] = label1, label2
     if censoring is not None:
         doc["label_W1_hold"] = doc["label_W2_hold"] = None if not censoring["sets"]["hold"]["fail"] else "not testable (censoring, W_hold)"
@@ -1430,8 +1577,8 @@ def census_w(wdir: Path, hist_root: Path, censoring: dict | None, coverage: dict
 def coverage_audit(pdir: Path, wdir: Path) -> dict:
     pdir = Path(pdir)
     sample = list(c11.read_csv_gz(Path(wdir) / "w2_sample.csv.gz"))
-    mk = {r["market_id"]: r for r in c11.read_csv_gz(pdir / "screen" / "markets.csv.gz")} if (pdir / "screen" / "markets.csv.gz").exists() else {}
-    n = sum(1 for s in sample if mk.get(str(s["market_id"]), {}).get("covered") in ("1", 1))
+    mk = {str(r["market_id"]): r for r in c11.read_csv_gz(pdir / "screen" / "markets.csv.gz")} if (pdir / "screen" / "markets.csv.gz").exists() else {}
+    n = sum(1 for s in sample if market_available(mk.get(str(s["market_id"]))))
     return {"n_sample": len(sample), "covered": n, "share": n / len(sample) if sample else 0.0}
 
 
@@ -1550,12 +1697,17 @@ def declared() -> dict:
             "w2": {"h_w": H_W, "h_w_robust": H_W_ROBUST, "decided": [DECIDED_LO, DECIDED_HI], "trigger_s": [TRIG_FROM_S, TRIG_TO_S], "trigger_robust_to_s": TRIG_TO_ROBUST_S,
                    "latency_s": LATENCY_S, "no_room": NO_ROOM, "tx_span_s": [TX_BEFORE_S, TX_AFTER_S], "hold_floor_h": HOLD_FLOOR_H, "hold_floor_robust_h": HOLD_FLOOR_ROBUST_H,
                    "liveness_h": LIVENESS_H, "S_max_hours": S_MAX_HOURS, "fee_rate": FEE_RATE, "pool_usd": POOL_USD, "pool_alt": list(POOL_ALT),
-                   "capacity": "summed transaction size in [tau + 60 s, tau + 60 min) (hash-aggregated; not split by token)"},
+                   "capacity": "summed transaction size in [tau + 60 s, tau + 60 min) (hash-aggregated; not split by token; section 11 N2)",
+                   "unfilled": list(UNFILLED), "availability_min": AVAIL_MIN, "month_sign": "mean net > 0 in every calendar month of the evaluated window (a month without an S unit is not met)",
+                   "pool_cost": "c + fee per share (stricter than the design's c)", "pool_annualised_over": "W_screen (Stage 1) / W_hold (Stage 2)"},
+            "stage2": {"p_rule": "p <= alpha / k inclusive with alpha = 0.05 and no other p gate; placebo level min(alpha / k, 0.01)", "stage1_p_rule": "p < 0.01 strict"},
             "sample": {"screen": N_SAMPLE_SCREEN, "hold": N_SAMPLE_HOLD, "per_event": MAX_PER_EVENT, "seeds": [SEED_SAMPLE, SEED_HOLD]},
-            "prints": {"limit": DATA_PAGE_LIMIT, "pages": DATA_PAGES, "taker_only": TAKER_ONLY, "stop": "oldest print before t - 6 h", "cover": "not truncated"},
-            "censoring": {"windows": N_CENSOR_WINDOWS, "seed": SEED_CENSOR, "gwc_seed": c11.SEED_GWC, "max_share": CENSOR_MAX_SHARE, "conf": CENSOR_CONF, "page": CENSOR_PAGE, "pages": CENSOR_PAGES,
-                          "frame_seeds": {k: list(v) for k, v in FRAME_SEEDS.items()}},
-            "gates": {"GW": GW, "GW2": GW2, "coverage_min": COVER_MIN}, "columns": {"frame": list(W_COLUMNS), "guarded": list(GUARDED_FRAME_COLUMNS), "units": UNIT_COLUMNS},
+            "prints": {"limit": DATA_PAGE_LIMIT, "pages": DATA_PAGES, "taker_only": TAKER_ONLY, "stop": "oldest print before t - 6 h", "cover": "not truncated",
+                       "max_requests": 7000 * DATA_PAGES},
+            "censoring": {"windows": N_CENSOR_WINDOWS, "seed": SEED_CENSOR, "gwc_seed": c11.SEED_GWC, "max_share": CENSOR_MAX_SHARE, "conf": CENSOR_CONF, "page": CENSOR_PAGE, "pages": CENSOR_PAGES, "match_min": CENSOR_MATCH_MIN,
+                          "queries_per_window": "closed=false (gate) + closed=true (diagnostic, N1); a capped window fails the set; available windows >= 60%",
+                          "max_requests": 2 * N_CENSOR_WINDOWS * CENSOR_PAGES, "frame_seeds": {k: list(v) for k, v in FRAME_SEEDS.items()}},
+            "gates": {"GW": GW, "GW2": GW2, "coverage_min": COVER_MIN, "availability_min": AVAIL_MIN, "mde_g_ref": MDE_G_REF}, "columns": {"frame": list(W_COLUMNS), "guarded": list(GUARDED_FRAME_COLUMNS), "units": UNIT_COLUMNS},
             "primary_excluded": list(PRIMARY_EXCLUDED), "sports_in_primary": W_SPORTS_IN_PRIMARY, "placebo": {"seed": c11.PLACEBO_SEEDS["W1_permute"], "draws": c11.PLACEBO_DRAWS},
             "census_forbidden": list(CENSUS_FORBIDDEN)}
 
@@ -1564,5 +1716,6 @@ def rule_funcs() -> tuple:
     return (window_of, is_primary, wait_L, read_frame_rows, iter_frame_guarded, collect_frame, merge_sources, build_population, rolling_f7, add_features, draw_sample, frame_windows,
             censor_window_set, draw_censor_windows, closed_rows_per_window, load_units, open_w_guarded, verify_hold_seal, category_levels, design_matrix, baseline_b0, b0_of, b1_of,
             fit_model, predict, w1_boot, w1_core, w1_floor_ok, permute_within_cells, w1_placebo, hours_view, w1_robustness, w1_stat, fee_rate, fetch_prints_until, decide_and_enter,
-            outcome_y, w2_units, r_ann_h, pool_simulation, _tail, _stat_w2, w2_stat, w2_robustness, w2_decide, screen_w, rep_w, count_open_in_window, censor_share, censor_upper,
-            censoring_doc, census_w, w_frame, w_censoring, w_prints, declared)
+            outcome_y, load_markets, market_available, w2_units, r_ann_h, pool_simulation, _tail, _p_ok, _stat_w2, window_months, w2_stat, w2_robustness, w2_decide, load_nonprimary_units,
+            non_primary_strata, screen_w, rep_w, gamma_window_params, count_in_window, count_open_in_window, censor_share, censor_upper, censoring_doc, mde_w1, mde_w2, census_w,
+            coverage_audit, w_frame, w_censoring, w_prints, declared)

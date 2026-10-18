@@ -36,7 +36,7 @@ Refused = cm.Refused
 NotNow = cm.NotNow
 ApiError = cm.ApiError
 
-RULES_VERSION = "cb11-rules-v1"
+RULES_VERSION = "cb11-rules-v2"
 SEALS_DIR = cm.SEALS_DIR
 RULES_FILE = SEALS_DIR / "cb11_rules.json"
 DATA_DUMPS = cm.DATA_DUMPS
@@ -87,7 +87,16 @@ H8_TAIL_B_KEYS_SHA256 = "ce7fe2a4efca4320e1aa289075f19b06543215b5d089873147ae0d5
 H2_FRAME_SHA256 = "fd0898f291f20ba1f219ecb89a9c3961cf2f94d8bc16e0a1544b38f3500674b8"  # history/h2_main/frame.csv.gz
 H3_FRAME_SHA256 = "2267dbd496d918973c73ea2f17095cd1a462e5ef385c7f5a737652f7e312ab71"  # history/h3_power/frame.csv.gz
 PENDING = "pending"
-RULE_MODULES = ("cb11_w", "cb11_smoke")  # cb11_p and cb11_a join with the P / A commit (the rules file is generated once, after all three exist)
+# Rules parts (design 1.4 as amended in section 11, item B1): ``cb11_rules.json`` (v2) carries part "W" = common + smoke + W rule functions, hashed and committed
+# first. Part "PA" is NOT hashed here: P / A rules live in their own file (``cb11_pa_rules.json``, written by the P / A runner commands with their own
+# declaration hash), so no P / A code is imported by, or can alter, any W verification.
+RULE_PARTS = ("W", "PA")
+W_RULE_MODULES = ("cb11_w", "cb11_smoke")
+PA_RULES_FILE_NAME = "cb11_pa_rules.json"
+PIN_UNSET = "TODO-COORDINATOR"  # a pin the coordinator fills from a read-only `sha256sum` on the host; q0221 refuses (exit 2) while a mandatory pin is unset
+H2_SAMPLE_SHA256 = PIN_UNSET  # history/h2_main/sample.csv.gz (mandatory exclusion source, B4)
+H3_SAMPLE_SHA256 = PIN_UNSET  # history/h3_power/sample.csv.gz (mandatory exclusion source, B4)
+MANDATORY_SAMPLE_PINS = {"h2_main/sample.csv.gz": H2_SAMPLE_SHA256, "h3_power/sample.csv.gz": H3_SAMPLE_SHA256}
 
 STALL_NOT_RUN_SOURCE = c9.STALL_NOT_RUN_SOURCE
 STALL_DISJOINTNESS = c9.STALL_DISJOINTNESS
@@ -235,18 +244,43 @@ def require_complete(rdir: Path, statuses: tuple[str, ...], label: str) -> dict:
     return m
 
 
-def stage2_k(results_dir: Path) -> dict:
-    """The Stage-2 Holm k derived from the CB11 Stage-1 results files (all three required: k is fixed when the last Stage-1 result is final; else NotNow).
-    Every Stage-1 advance triggers exactly one Stage-2 test (its own ``-rep``)."""
-    adv = []
+def verify_fetch(rdir: Path, statuses: tuple[str, ...], label: str) -> dict:
+    """A finished fetch whose manifest is complete AND whose recorded files still hash to the manifest (N5: screens and reps re-check, not only the census).
+    Extra files (the seal, drops, the access log) are tolerated here; ``seal_holdout`` / ``verify_holdout_seal`` own those checks."""
+    from . import h5_seal  # noqa: PLC0415
+
+    man = require_complete(rdir, statuses, label)
+    want = man.get("file_sha256")
+    if not isinstance(want, dict) or not want:
+        raise Refused(f"{label}: manifest has no file_sha256; refusing")
+    for rel, sha in sorted(want.items()):
+        fp = Path(rdir) / rel
+        if not fp.is_file():
+            raise Refused(f"{label}: file missing at verification: {rel}")
+        if h5_seal.sha256_file(fp) != sha:
+            raise Refused(f"{label}: file sha256 differs from the manifest: {rel}")
+    return man
+
+
+def stage2_k(results_dir: Path, *, own: str | None = None) -> dict:
+    """The Stage-2 Holm k derived from the CB11 Stage-1 results files. Every Stage-1 advance triggers exactly one Stage-2 test (its own ``-rep``).
+    ``own=None``: all three files are required (k is fixed when the last Stage-1 result is final; else NotNow). ``own="W"|"P"|"A"`` (a family's rep job, N7): only
+    that family's file is required; every test of a family whose file is not yet final is counted as advancing (``assumed_pending``) - k can only be too large,
+    so the threshold alpha / k is at least as strict as the final one, and the rep stays judged at it (never loosened later)."""
+    adv: list[str] = []
+    assumed: list[str] = []
     for name, tests in STAGE1_RESULTS.items():
         p = Path(results_dir) / name
+        fam = name.removeprefix("results_").removesuffix(".json")
         if not p.exists():
-            raise NotNow(f"{name} not final: the Stage-2 k is fixed when the last Stage-1 result is final")
+            if own is None or fam == own:
+                raise NotNow(f"{name} not final: the Stage-2 k is fixed when the last Stage-1 result is final" if own is None else f"{name} (the family's own Stage-1 result) is not final")
+            assumed += list(tests)
+            continue
         d = json.loads(p.read_text())
         adv += [t for t in tests if isinstance(d.get(t), dict) and d[t].get("advance") is True]
-    k = sum(STAGE2_TESTS_PER_ADVANCE.get(t, 1) for t in adv)
-    return {"k": k, "advanced": adv, "alpha_each": STAGE2_ALPHA / k if k else None}
+    k = sum(STAGE2_TESTS_PER_ADVANCE.get(t, 1) for t in [*adv, *assumed])
+    return {"k": k, "advanced": adv, "assumed_pending": assumed, "alpha_each": STAGE2_ALPHA / k if k else None}
 
 
 def write_results_once(path: Path, doc: dict) -> str:
@@ -472,11 +506,15 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
                    seals_dir: Path | None = None, external_dir: Path | None = None, cb8_root: Path | None = None, is_committed: Callable[[Path], bool] | None = None,
                    rps: float = 2.0, disk_cap: int = int(0.01 * 1024**3), budget_min: float | None = None, now: float | None = None, sleep=None, live_check=None,
                    should_stop: Callable[[], bool] | None = None, wall_clock: Callable[[], float] | None = None, snapshot_root: Path | None = None, health_check=None,
-                   data_dumps: Path | None = None, data_dumps_cap_gb: float = DATA_DUMPS_CAP_GB, free_fn=None) -> dict:
+                   data_dumps: Path | None = None, data_dumps_cap_gb: float = DATA_DUMPS_CAP_GB, free_fn=None, allow_absent_c1_t5: bool = False,
+                   sample_pins: dict[str, str] | None = None) -> dict:
     """q0221. The h8_tail_b key file (sha256 pinned) plus, by closed-first Gamma id lookup (<= 50 ids per request, resumable), every market id of every
-    sampled set on the host (``ID_SOURCES``; absent files are recorded 'absent'), of every committed seal copy and of the staged C1 / T5 id lists
-    (``external_dir``; ``c1_t5_status`` retrieved | absent). More than 2% of ALL exclusion ids without metadata -> ``disjointness_unverified`` (P, A and the W
-    key rule not testable, counted). Round 1 item 5: C1 and T5 are a mandatory source; absent -> recorded, not a stall."""
+    sampled set on the host (``ID_SOURCES``), of every committed seal copy and of the staged C1 / T5 id lists (``external_dir``). The ``h2_main`` and
+    ``h3_power`` ``sample.csv.gz`` are MANDATORY and sha256-pinned (``sample_pins``): absent, an unset pin or a mismatch is a refusal (exit 2); the other
+    sampled sets are recorded 'absent' when missing. The staged C1 / T5 id lists are MANDATORY too (round 1 item 5): while either is missing the job is
+    ``NotNow`` (exit 75, nothing written) unless ``allow_absent_c1_t5`` is set (an explicit, never-drafted flag), in which case ``c1_t5_status`` = absent is recorded
+    permanently. More than 2% of ALL exclusion ids without metadata -> ``disjointness_unverified`` (P and A not testable, counted; the W key rule is
+    market id + event id and W proceeds, design 1.3)."""
     from . import cb6_tail as c6  # noqa: PLC0415
     from . import cb8_books as bk  # noqa: PLC0415
     from . import h5_seal  # noqa: PLC0415
@@ -492,8 +530,18 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
     set_ids: dict[str, int] = {}
     absent: list[str] = []
     new_ids: set[str] = set()
+    pins = dict(MANDATORY_SAMPLE_PINS if sample_pins is None else sample_pins)
     for name, p in _source_files(Path(hist_root), cb8_root):
-        if not p.exists():
+        if name in pins:
+            pin = pins[name]
+            if not p.exists():
+                raise Refused(f"mandatory sampled set {name} is absent at {p}; refusing (exit 2), the exclusion keys would not cover it")
+            if not pin or pin == PIN_UNSET:
+                raise Refused(f"the sha256 pin of the mandatory sampled set {name} is unset ({PIN_UNSET}); the coordinator fills it from `sha256sum` on the host and regenerates the rules")
+            got_s = h5_seal.sha256_file(p)
+            if got_s != pin:
+                raise Refused(f"mandatory sampled set {p} sha256 {got_s} != pinned {pin}")
+        elif not p.exists():
             absent.append(name)
             continue
         ids = read_id_set(p)
@@ -503,6 +551,9 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
     new_ids |= seal_ids
     ext_status: dict[str, Any] = {}
     ext_dir = Path(external_dir or EXTERNAL_IDS_DIR)
+    missing_ext = [fn for fn in EXTERNAL_ID_FILES if not (ext_dir / fn).exists()]
+    if missing_ext and not allow_absent_c1_t5:
+        raise NotNow(f"staged C1 / T5 id lists missing in {ext_dir}: {missing_ext}; stage them from the arepo-data release (pending, nothing written; --allow-absent-c1-t5 records them absent permanently)")
     for fn in EXTERNAL_ID_FILES:
         p = ext_dir / fn
         if p.exists():
@@ -516,7 +567,7 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
     fr = cm.open_run(out_root, EXCLUSION_RUN, transport, allowed_run_id=EXCLUSION_RUN, kind="cb11_exclusion_keys", label="CB11 exclusion keys",
                      params={"base_keys_sha256": base_sha256, "n_base_ids": len(base_ids), "n_new_ids": len(new_ids), "sets": set_ids, "sets_absent": absent,
                              "seal_copies_used": used, "seal_copies_sha256": shas, "seal_copies_skipped": skipped, "external": ext_status, "c1_t5_status": c1_t5,
-                             "evidence_role": EVIDENCE_ROLE_HIST},
+                             "sample_pins": {k: v for k, v in sorted(pins.items())}, "allow_absent_c1_t5": bool(allow_absent_c1_t5), "evidence_role": EVIDENCE_ROLE_HIST},
                      rules_sha=rules_sha, key_fp="", disk_cap=disk_cap, rps=rps, budget_min=budget_min, now=now, sleep=sleep or time.sleep, live_check=live_check,
                      wall_clock=wall_clock or time.time, snapshot_root=snapshot_root, health_check=health_check)
     rep_new, stopped = _exclusion_stage(fr, new_ids, should_stop)
@@ -541,7 +592,7 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
            "disjointness": UNVERIFIED if share > MAX_UNVERIFIED_KEY_SHARE else "verified", "base_keys_sha256": base_sha256,
            "base_report": {k: base_rep.get(k) for k in ("n_ids", "n_missing", "disjointness")}, "new": rep_new, "sets": set_ids, "sets_absent": absent,
            "seal_copies_used": used, "seal_copies_sha256": shas, "seal_copies_skipped": skipped, "external": ext_status, "c1_t5_status": c1_t5,
-           "keys_sha256": h5_seal.sha256_file(keys_out), "built_utc": cm.iso(time.time())}
+           "sample_pins": {k: v for k, v in sorted(pins.items())}, "keys_sha256": h5_seal.sha256_file(keys_out), "built_utc": cm.iso(time.time())}
     (out_root / EXCLUSION_REPORT_NAME).write_text(json.dumps(rep, indent=1, sort_keys=True))
     status = UNVERIFIED if rep["disjointness"] == UNVERIFIED else EXCLUSION_KEYS_COMPLETE
     m = fr.manifest(None, {"exclusion_report": {k: rep[k] for k in ("n_ids", "n_missing", "missing_share", "disjointness", "keys_sha256", "c1_t5_status")},
@@ -627,9 +678,12 @@ def seal_holdout(rdir: Path, *, family: str, statuses: tuple[str, ...], copy_nam
             "n_holdout_files": len(holdout)}
 
 
-def verify_holdout_seal(rdir: Path, copy_name: str, seals_dir: Path | None = None, holdout_prefix: str = "holdout/") -> dict:
-    from . import h5_seal  # noqa: PLC0415
+def verify_holdout_seal(rdir: Path, copy_name: str, seals_dir: Path | None = None, holdout_prefix: str = "holdout/", *, require_committed: bool = True) -> dict:
+    """The run's seal equals the copy under ``seals/`` AND (N5) that copy is tracked by git and identical to HEAD (``require_committed``; tests and
+    ``--allow-uncommitted-rules`` switch it off); then the HOLDOUT listing sha256 is re-verified."""
 
+    from . import cb1_history as c1  # noqa: PLC0415
+    from . import h5_seal  # noqa: PLC0415
     rdir = Path(rdir)
     sp = rdir / SEAL_NAME
     if not sp.exists():
@@ -637,6 +691,8 @@ def verify_holdout_seal(rdir: Path, copy_name: str, seals_dir: Path | None = Non
     copy = Path(seals_dir or SEALS_DIR) / copy_name
     if not copy.exists() or copy.read_bytes() != sp.read_bytes():
         raise Refused(f"seal copy {copy} missing or different from {sp}")
+    if require_committed and not c1.spec_committed(copy):
+        raise Refused(f"seal copy {copy} is not committed (or differs from HEAD)")
     doc = json.loads(sp.read_text())
     holdout = {k: v for k, v in h5_seal.list_files(rdir).items() if k.startswith(holdout_prefix)}
     if h5_seal.listing_sha256(holdout) != doc["listing_sha256"]:
@@ -647,8 +703,8 @@ def verify_holdout_seal(rdir: Path, copy_name: str, seals_dir: Path | None = Non
 # ---- rules file --------------------------------------------------------------------------------------------------------------------------------
 
 
-def _mods():
-    return [importlib.import_module(f".{n}", __package__) for n in RULE_MODULES]
+def _mods(names: tuple[str, ...]) -> list:
+    return [importlib.import_module(f".{n}", __package__) for n in names]
 
 
 def common_declared() -> dict:
@@ -663,13 +719,15 @@ def common_declared() -> dict:
             "placebos": {"seeds": PLACEBO_SEEDS, "draws": PLACEBO_DRAWS, "max_advance_rate": PLACEBO_MAX_ADVANCE, "gpp_seed": SEED_GPP, "gwc_seed": SEED_GWC},
             "counting": {"kinds": ["cb11_test", "cb11_replication", "cb11_descriptive"], "count_line": "ml_explain, source creative_batch_11:<W|P|A>, n_tests = 1 per test",
                          "not_testable": "counted with p = 1", "exit_75": "pending: no trials line", "stage2_tests_per_advance": 1},
-            "pins": {"h8_tail_b_keys_sha256": H8_TAIL_B_KEYS_SHA256, "h2_frame_sha256": H2_FRAME_SHA256, "h3_frame_sha256": H3_FRAME_SHA256},
+            "pins": {"h8_tail_b_keys_sha256": H8_TAIL_B_KEYS_SHA256, "h2_frame_sha256": H2_FRAME_SHA256, "h3_frame_sha256": H3_FRAME_SHA256,
+                     "h2_sample_sha256": H2_SAMPLE_SHA256, "h3_sample_sha256": H3_SAMPLE_SHA256, "pin_unset_token": PIN_UNSET},
             "refused_roots": list(REFUSED_ROOTS), "refused_run_ids": list(REFUSED_RUN_IDS), "frame_run_ids": list(FRAME_RUN_IDS), "frame_allowed_files": list(FRAME_ALLOWED_FILES),
             "output_roots": list(ALLOWED_OUTPUT_ROOT_PARTS),
             "exclusion": {"base": "h8_tail_b key file (sha256 pinned)", "id_sources": [list(x) for x in ID_SOURCES], "cb8_frame_glob": CB8_FRAME_GLOB,
-                          "external_id_files": list(EXTERNAL_ID_FILES), "max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE, "own_seal_copies": list(OWN_SEAL_COPIES),
+                          "external_id_files": list(EXTERNAL_ID_FILES), "external_ids": "mandatory: exit 75 while missing unless --allow-absent-c1-t5 (never drafted)",
+                          "mandatory_sampled_sets": sorted(MANDATORY_SAMPLE_PINS), "max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE, "own_seal_copies": list(OWN_SEAL_COPIES),
                           "lookup": f"closed-first Gamma id lookup, {LOOKUP_PER_REQUEST} ids per request, resumable (deviation: about 14 requests per 1,000 new ids, not <= 400 total)",
-                          "w_key_rule": "market id and event id only (frames carry no negRiskMarketID and no series id)"},
+                          "w_key_rule": "market id and event id only (frames carry no negRiskMarketID and no series id; section 11 N2); unverified disjointness stalls P and A only"},
             "stall": {"statuses": list(STALL_STATUSES), "exit": 0, "census": "copies the label", "screens": "p = 1, testable false", "results": "write-once"},
             "disk": {"data_dumps_cap_gb": DATA_DUMPS_CAP_GB, "free_disk_min_gb": FREE_DISK_MIN_GB, "total_output_cap_gb": TOTAL_OUTPUT_CAP_GB,
                      "exit_75": "pending (never 'not run')"},
@@ -682,16 +740,22 @@ def common_rule_funcs() -> tuple:
             _exclusion_stage, seal_holdout, verify_holdout_seal, common_declared, c10.leave_one_out_sign, c9.holm, c9.top_k_drop_mask, c9.cluster_bootstrap_means)
 
 
-def rules_doc() -> dict:
+def rules_part_doc(part: str) -> dict:
+    """The declared document of rules part W: common + cb11_w + cb11_smoke. Part PA is declared elsewhere (``cb11_pa_rules.json``): here it is only a pointer."""
+    if part not in RULE_PARTS:
+        raise Refused(f"unknown rules part {part!r}")
+    if part == "PA":
+        return {"part": "PA", "part_declared": False, "rules_version": RULES_VERSION, "declared_by": PA_RULES_FILE_NAME,
+                "note": "P and A rules are hashed in the separate file cb11_pa_rules.json before the first P / A request; this part never changes"}
     funcs = list(common_rule_funcs())
-    declared = {}
-    for mod in _mods():
+    declared: dict[str, Any] = {}
+    for mod in _mods(W_RULE_MODULES):
         funcs += list(mod.rule_funcs())
         declared[mod.__name__.rsplit(".", 1)[-1]] = mod.declared()
     seen: set[int] = set()
     funcs = [f for f in funcs if not (id(f) in seen or seen.add(id(f)))]
     src = "\n".join(inspect.getsource(f) for f in funcs)
-    return {"rules_version": RULES_VERSION, "declared": declared, "common": common_declared(),
+    return {"part": part, "part_declared": True, "rules_version": RULES_VERSION, "declared": declared, "common": common_declared(),
             "disk": {"data_dumps_cap_gb_default": DATA_DUMPS_CAP_GB, "free_disk_min_gb": FREE_DISK_MIN_GB, "headroom_exit": cm.TEMPFAIL_EXIT,
                      "disk_budget_exit": cm.DISK_BUDGET_EXIT, "refusal_exit": cm.REFUSED_EXIT},
             "wallet": {"read": False, "note": "no CB11 job reads or stores a wallet field (no HMAC key needed) or the side field"},
@@ -699,23 +763,34 @@ def rules_doc() -> dict:
             "func_sources_sha256": {f"{f.__module__.rsplit('.', 1)[-1]}.{f.__qualname__}": hashlib.sha256(inspect.getsource(f).encode()).hexdigest() for f in funcs}}
 
 
-def rules_file_doc() -> dict:
-    d = json.loads(json.dumps(rules_doc(), sort_keys=True, default=str))
+def rules_part_file_doc(part: str) -> dict:
+    d = json.loads(json.dumps(rules_part_doc(part), sort_keys=True, default=str))
+    if d.get("part_declared") is False:
+        return {**d, "rules_sha256": None}
     return {**d, "rules_sha256": cm.sha_obj(d)}
 
 
+def rules_file_doc(parts: tuple[str, ...] = RULE_PARTS) -> dict:
+    """The v2 rules file: ``{"rules_version", "parts": {"W": {..., "rules_sha256"}, "PA": {...}}}``, one sha256 per part."""
+    return {"rules_version": RULES_VERSION, "parts": {p: rules_part_file_doc(p) for p in parts}}
+
+
 def write_rules(path: Path | None = None) -> Path:
+    """Write the v2 rules file (part W hashed, part PA a static pointer). An existing file is never rewritten."""
     path = Path(path or RULES_FILE)
     want = rules_file_doc()
-    if path.exists() and json.loads(path.read_text()) != want:
-        raise Refused(f"{path} exists with different content; a rules file is never rewritten")
+    if path.exists():
+        if json.loads(path.read_text()) != want:
+            raise Refused(f"{path} exists with different content; a rules file is never rewritten")
+        return path
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(want, indent=1, sort_keys=True) + "\n")
     return path
 
 
-def verify_rules(path: Path | None = None, *, require_committed: bool = True) -> str:
-    """Refuse (exit 2) unless the rules file equals the code's. Returns ``rules_sha256``."""
+def verify_rules(path: Path | None = None, *, require_committed: bool = True, part: str = "W") -> str:
+    """Refuse (exit 2) unless the file's ``part`` equals the code's. W jobs verify only part W (and the declared version): part PA is never read or imported.
+    Part PA 'not declared' refuses a P / A job. Returns the part's ``rules_sha256``."""
     path = Path(path or RULES_FILE)
     if not path.exists():
         raise Refused(f"rules file {path} not found")
@@ -728,9 +803,16 @@ def verify_rules(path: Path | None = None, *, require_committed: bool = True) ->
         doc = json.loads(path.read_text())
     except ValueError as exc:
         raise Refused(f"rules file {path} unreadable") from exc
-    want = rules_file_doc()
-    if doc != want:
-        raise Refused(f"rules hash mismatch: file {doc.get('rules_sha256')} != code {want['rules_sha256']}")
+    if doc.get("rules_version") != RULES_VERSION:
+        raise Refused(f"rules file {path} has rules_version {doc.get('rules_version')!r} != {RULES_VERSION!r}")
+    have = (doc.get("parts") or {}).get(part)
+    if have is None:
+        raise Refused(f"rules file {path} has no part {part!r}")
+    if have.get("part_declared") is False:
+        raise Refused(f"rules part {part} is not declared in {path}: P / A jobs verify {PA_RULES_FILE_NAME}")
+    want = rules_part_file_doc(part)
+    if have != want:
+        raise Refused(f"rules hash mismatch (part {part}): file {have.get('rules_sha256')} != code {want['rules_sha256']}")
     return want["rules_sha256"]
 
 

@@ -2,10 +2,12 @@
 """CB11 runner (docs/research_lab/CREATIVE_BATCH_11.md section 4, q0220-q0239). Run from cwd=backend (queue worker). EXPLORATORY / METHODS DATA ONLY: no
 edge, calibration or profitability claim.
 
-    python scripts/run_cb11.py rules                           # write docs/research_lab/seals/cb11_rules.json (commit before q0220)
+    python scripts/run_cb11.py rules                           # write docs/research_lab/seals/cb11_rules.json (v2: part W hashed; P / A rules live in the separate
+                                                               #        cb11_pa_rules.json; commit before q0220)
     python scripts/run_cb11.py smoke ...                       # q0220: frames, loader fixture, Gamma politics paging, prices-history, Data API reach, Wikipedia
                                                                #        summary + pageview lag, closed=false window count, OOV2 pin attempt; counts only, WRITE-ONCE
-    python scripts/run_cb11.py exclusion-keys ...              # q0221: h8_tail_b keys + every sampled set + seal copies + staged C1/T5 ids (resumable)
+    python scripts/run_cb11.py exclusion-keys ...              # q0221: h8_tail_b keys + every sampled set (h2/h3 samples mandatory, pinned) + seal copies + staged C1/T5 ids
+                                                               #        (mandatory: exit 75 until staged; --allow-absent-c1-t5 only by explicit decision) (resumable)
     python scripts/run_cb11.py w-frame | w-prints | w-censoring ...   # q0222 / q0223 / q0224
     python scripts/run_cb11.py seal --family W|auto ...        # q0230 (W holdout prints); P and A families join with their commit
     python scripts/run_cb11.py census --family W               # q0231: counts only; gates GWC, GW, GW2; coverage audit; MDEs
@@ -101,9 +103,10 @@ def _net_kw(a) -> dict:
                 budget_min=getattr(a, "budget_min", None))
 
 
-def _rules(a) -> str:
+def _rules(a, part: str = "W") -> str:
+    """Verify one rules part (W jobs: part W only; P / A jobs verify part PA). Returns that part's sha256."""
     c11 = _c11()
-    return c11.verify_rules(Path(a.rules) if getattr(a, "rules", None) else None, require_committed=not getattr(a, "allow_uncommitted_rules", False))
+    return c11.verify_rules(Path(a.rules) if getattr(a, "rules", None) else None, require_committed=not getattr(a, "allow_uncommitted_rules", False), part=part)
 
 
 def _result(m: dict) -> tuple[int, dict]:
@@ -137,7 +140,9 @@ def cmd_rules(a) -> int:
     except c11.Refused as exc:
         _emit({"refused": str(exc)})
         return REFUSED
-    _emit({"written": str(out), "rules_sha256": doc["rules_sha256"], "funcs_sha256": doc["funcs_sha256"]})
+    parts = doc["parts"]
+    _emit({"written": str(out), "rules_version": doc["rules_version"], "rules_sha256": parts["W"]["rules_sha256"], "funcs_sha256": parts["W"]["funcs_sha256"],
+           "parts": {k: {"declared": v.get("part_declared") is not False, "rules_sha256": v.get("rules_sha256")} for k, v in parts.items()}})
     return 0
 
 
@@ -239,7 +244,7 @@ def cmd_exclusion_keys(a):
     m = c11.exclusion_keys(_root(a), hb.httpx_transport(), rules_sha=sha, hist_root=hist, base_sha256=a.base_sha256 or c11.H8_TAIL_B_KEYS_SHA256,
                            seals_dir=Path(a.seals_dir) if a.seals_dir else None, external_dir=Path(a.external_dir) if a.external_dir else None,
                            cb8_root=Path(a.cb8_root) if a.cb8_root else hist.parent / "creative_batch8", is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed,
-                           disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
+                           disk_cap=int(a.disk_cap_gb * 1024**3), allow_absent_c1_t5=bool(a.allow_absent_c1_t5), **_net_kw(a))
     return _result(m)
 
 
@@ -345,8 +350,9 @@ def census_w_block(a) -> dict:
     if st:
         lab = st.get("label")
         return {"status": "stalled", "stall": st, "label_W1": lab, "label_W2": lab, "label_W1_hold": lab, "label_W2_hold": lab, "w1_runs": False, "w2_runs": False}
+    committed = not getattr(a, "allow_uncommitted_rules", False)
     c11.require_complete(wdir, (w.FRAME_STATUS,), "w_frame (q0222)")
-    w.verify_hold_seal(wdir, Path(a.seals_dir) if getattr(a, "seals_dir", None) else None)
+    w.verify_hold_seal(wdir, Path(a.seals_dir) if getattr(a, "seals_dir", None) else None, require_committed=committed)
     stc = c11.stall_of(cdir)
     if stc:
         lab = stc.get("label")
@@ -357,7 +363,7 @@ def census_w_block(a) -> dict:
     if stp:
         return w.census_w(wdir, hist, censoring, None, prints_stall=stp)
     c11.require_complete(pdir, (w.PRINTS_STATUS,), "w_prints (q0223)")
-    c11.verify_holdout_seal(pdir, "cb11_wprints_holdout_SEAL.json", Path(a.seals_dir) if getattr(a, "seals_dir", None) else None)
+    c11.verify_holdout_seal(pdir, "cb11_wprints_holdout_SEAL.json", Path(a.seals_dir) if getattr(a, "seals_dir", None) else None, require_committed=committed)
     return w.census_w(wdir, hist, censoring, w.coverage_audit(pdir, wdir))
 
 
@@ -372,7 +378,8 @@ def cmd_census(a):
         out = Path(a.out) if a.out else root / "census_W.json"
         if out.exists():
             raise c11.Refused(f"{out} exists; the census is written once")
-        doc = {"version": "cb11-census-W-v1", "counts_only": True, "W": census_w_block(a)}
+        sha = _rules(a)  # N5: the census verifies the W rules part like every other job
+        doc = {"version": "cb11-census-W-v2", "counts_only": True, "rules_sha256": sha, "W": census_w_block(a)}
         cm.write_once_json(out, doc)
         c11.log_descriptive("census_W", {"census_sha256": cm.sha_obj(doc), "path": str(out)}, trials_path=_tp(a))
         return 0, {"status": "census_complete", "written": str(out), "label_W1": doc["W"].get("label_W1"), "label_W2": doc["W"].get("label_W2")}
@@ -386,6 +393,21 @@ def _w_effect(r: dict) -> dict:
     return {"p": r.get("p", 1.0), "advance": r.get("advance"), "testable": r.get("testable"), "n": r.get("n") or r.get("n_filled"), "verdict": r.get("verdict")}
 
 
+def _by_triage(doc: dict, trials_path: Path | None) -> dict:
+    """BY label (q = 0.10 over ``battery2.cumulative_count()`` at the run): triage only, never the gate. Recorded with the denominator (N6)."""
+    from astrolabe.research_lab import battery2, provenance  # noqa: PLC0415
+
+    tp = trials_path or provenance.TRIALS_PATH
+    try:
+        total = int(battery2.cumulative_count(tp)["total"])
+    except (OSError, ValueError, KeyError) as exc:
+        return {"unavailable": f"cumulative count unreadable: {type(exc).__name__}", "trials_path": str(tp)}
+    res = {t: {"p": doc[t].get("p", 1.0), "testable": doc[t].get("testable", False)} for t in ("W1", "W2") if isinstance(doc.get(t), dict)}
+    by = battery2.apply_by2(res, total)
+    return {"cumulative_count": total, "q": by["q"], "m_total": by["m_total"], "survivors": by["survivors"],
+            "per_test": {t: {"p_by_cumulative": r["p_by_cumulative"], "pass_by_cumulative": r["pass_by_cumulative"]} for t, r in res.items()}, "triage_only": True}
+
+
 @_guarded
 def cmd_screen(a):
     from astrolabe.research_lab import cb11_w as w  # noqa: PLC0415
@@ -393,16 +415,26 @@ def cmd_screen(a):
     c11 = _c11()
     if a.family != "W":
         raise c11.Refused(f"screen family {a.family!r} is not implemented in this runner")
-    c11.require_freeze("W", Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
+    freeze_sha = c11.require_freeze("W", Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
     sha = _rules(a)
     root, hist = _root(a), _hist(a)
     cpath = Path(a.census) if a.census else root / "census_W.json"
     if not cpath.exists():
         raise c11.NotNow("census_W.json missing (q0231 first)")
     census = json.loads(cpath.read_text())
-    if not c11.stall_of(root / w.FRAME_RUN):
-        c11.require_complete(root / w.FRAME_RUN, (w.FRAME_STATUS,), "w_frame")
-    doc = {**w.screen_w(root / w.FRAME_RUN, hist, census), "rules_sha256": sha, "written_epoch": time.time()}
+    wdir, cdir, pdir = root / w.FRAME_RUN, root / w.CENSOR_RUN, hist / c11.H11_WPRINTS
+    if not c11.stall_of(wdir):
+        c11.verify_fetch(wdir, (w.FRAME_STATUS,), "w_frame")
+        w.verify_hold_seal(wdir, Path(a.seals_dir) if a.seals_dir else None, require_committed=not a.allow_uncommitted_rules)
+        # N5: the screen re-checks the fetch manifests and file hashes of the data it is about to open (the census checked them once, earlier)
+        if not (census.get("W") or {}).get("label_W1") or not (census.get("W") or {}).get("label_W2"):
+            if not c11.stall_of(cdir):
+                c11.verify_fetch(cdir, (w.CENSOR_STATUS,), "w_censoring")
+            if not c11.stall_of(pdir):
+                c11.verify_fetch(pdir, (w.PRINTS_STATUS,), "w_prints")
+    doc = {**w.screen_w(wdir, hist, census), "rules_sha256": sha, "freeze_W_sha256": freeze_sha, "census_sha256": hashlib.sha256(cpath.read_bytes()).hexdigest(),
+           "written_epoch": time.time()}
+    doc["by_triage"] = _by_triage(doc, _tp(a))
     rsha = c11.write_results_once(Path(a.out) if a.out else root / "results_W.json", doc)
     for tid in ("W1", "W2"):
         r = doc[tid]
@@ -438,10 +470,10 @@ def cmd_rep(a):
     c11 = _c11()
     if a.family != "W":
         raise c11.Refused(f"rep family {a.family!r} is not implemented in this runner")
-    c11.require_freeze("W", Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
+    freeze_sha = c11.require_freeze("W", Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
     sha = _rules(a)
     root, hist = _root(a), _hist(a)
-    derived = c11.stage2_k(root)
+    derived = c11.stage2_k(root, own="W")  # N7: W's rep depends only on results_W.json; unfinished P / A tests are assumed to advance (k only too large)
     if a.stage2_k is not None and int(a.stage2_k) != derived["k"]:
         raise c11.Refused(f"--stage2-k {a.stage2_k} differs from the k derived from the Stage-1 results ({derived['k']}: {derived['advanced']})")
     resw = json.loads((root / "results_W.json").read_text())
@@ -453,8 +485,12 @@ def cmd_rep(a):
     if hashlib.sha256((root / "results_W.json").read_bytes()).hexdigest() != a.w_results_sha256.lower():
         raise c11.Refused("results_W.json sha256 differs from --w-results-sha256: W_hold stays closed")
     census = json.loads((root / "census_W.json").read_text())
-    c11.verify_holdout_seal(hist / c11.H11_WPRINTS, "cb11_wprints_holdout_SEAL.json", Path(a.seals_dir) if a.seals_dir else None)
-    doc = {**w.rep_w(root / w.FRAME_RUN, hist, census, adv, derived["k"], seals_dir=Path(a.seals_dir) if a.seals_dir else None), "rules_sha256": sha, "stage2_k_derived": derived}
+    committed = not a.allow_uncommitted_rules
+    c11.verify_fetch(root / w.FRAME_RUN, (w.FRAME_STATUS,), "w_frame")
+    c11.verify_fetch(hist / c11.H11_WPRINTS, (w.PRINTS_STATUS,), "w_prints")
+    c11.verify_holdout_seal(hist / c11.H11_WPRINTS, "cb11_wprints_holdout_SEAL.json", Path(a.seals_dir) if a.seals_dir else None, require_committed=committed)
+    doc = {**w.rep_w(root / w.FRAME_RUN, hist, census, adv, derived["k"], seals_dir=Path(a.seals_dir) if a.seals_dir else None, committed_seals=committed), "rules_sha256": sha,
+           "freeze_W_sha256": freeze_sha, "stage2_k_derived": derived}
     rsha = c11.write_results_once(Path(a.out) if a.out else root / "results_W_rep.json", doc)
     for t in adv:
         r = doc[f"{t}_rep"]
@@ -504,6 +540,8 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--seals-dir", default=None)
     q.add_argument("--external-dir", default=None, help="staged C1 / T5 id lists (default creative_batch11/external_ids)")
     q.add_argument("--cb8-root", default=None)
+    q.add_argument("--allow-absent-c1-t5", action="store_true",
+                   help="record the C1 / T5 id lists as permanently absent instead of waiting (exit 75) for them to be staged; never set in a queue draft")
     q.set_defaults(fn=cmd_exclusion_keys)
 
     q = sub.add_parser("w-frame", help="q0222")
@@ -545,6 +583,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--census", default=None)
     q.add_argument("--out", default=None)
     q.add_argument("--freeze-spec", default=None)
+    q.add_argument("--seals-dir", default=None)
     q.set_defaults(fn=cmd_screen)
 
     q = sub.add_parser("stage1-label")

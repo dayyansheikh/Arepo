@@ -200,10 +200,10 @@ are new tests on a reused frame, labelled "reused frame, fresh target" in every 
   CB10 frames do not exist yet ("absent at q0221"); **CB9/CB10 exclusion builds must add CB11's frame ids** (stated for
   their q0182/q0201 increments). If more than 2% of exclusion ids lack metadata, disjointness is "unverified" and P and A
   are "not testable", counted.
-- **W key rule (a declared deviation, for the challenger).** W drops by market id, event id and `negRiskMarketID`, not by
+- **W key rule (a declared deviation, for the challenger; amended in §11 N2: the frames carry no `negRiskMarketID`, so W drops by market id and event id only).** W does not drop by
   series id. Sampled sets cover many daily series (weather, sports, esports), so the series rule would drop most
   scheduled classes, and the proposer schedule of a series is the mechanism W measures, not leakage: no prior test read a
-  wait. The census reports the drops the series rule would have made.
+  wait. The series-rule drops are not computable from the frames (§11 N2).
 - **SEALED-W (W_hold).** q0222 writes the W_hold unit ids (no target) and the listing sha256; seal copy
   `seals/cb11_w_hold_SEAL.json` committed before q0231. The W loader refuses frame rows with end ≥ 2026-07-01 except in
   q0235, which verifies the seal first. W2 HOLDOUT transactions go to `h11_wprints/holdout/` (sealed by q0230).
@@ -220,7 +220,7 @@ are new tests on a reused frame, labelled "reused frame, fresh target" in every 
 
 ### 1.4 Rules files
 
-- `seals/cb11_rules.json` (before q0220/q0221) fixes: frame sha256s and the W column whitelist; W windows, cap, feature
+- `seals/cb11_rules.json` (v2, before q0220/q0221) is hashed in **parts** (§11 B1): part W (common + smoke + W) now; P and A rules in their own file `seals/cb11_pa_rules.json`, fixed before the first P/A request. The file fixes (W part): frame sha256s and the W column whitelist; W windows, cap, feature
   definitions and model hyperparameters; W2 sample seeds, entry rule and costs; the P frame rule (tag id 2, life,
   windows, control rule, per-event cap), horizons, band and costs; the A frame rule, entity rule (the `derive_query`
   source sha256, the stop list, the summary-type rule), pageview ratio rule, thresholds, origin clock and costs; split
@@ -320,7 +320,7 @@ whose available share of eligible units is < 60% is "not testable (availability)
 Outcome guards first; field-restricted accessors; a unit test asserts that no census path receives a wait (W1 target),
 an outcome, a 48 h mark or a P&L. Features may be computed.
 - **W.** Units by window, category, **frame source by window** (round 1 optional item) and end-hour; key drops by source
-  (and the series-rule drops it would have made); open-at-end share (no `uma_status` read: guarded, round 1 item 2).
+  (the series-rule drops are not computable, §11 N2); open-at-end share (no `uma_status` read: guarded, round 1 item 2).
   **Gate GWC (censoring, round 1 item 2):** q0224 draws a seeded 300 of the frames' 15-minute windows whose ends fall in
   W_fit ∪ W_screen ∪ W_hold (windows from the frames' `frame_partial` records), and counts with one Gamma `closed=false`
   query per window the markets with `endDate` in that window still open at query time. Censored share = Σ open / (Σ open
@@ -366,14 +366,14 @@ an outcome, a 48 h mark or a P&L. Features may be computed.
   |---|---|---|---|
   | q0220 | smoke | ≤ 40 | 0.001 GB |
   | q0221 | exclusion keys (Gamma lookups only for ids lacking keys; C1/T5 id lists from the release) | ≤ 400 | ≤ 0.01 GB |
-  | q0223 | W2 prints, 7,000 markets, 1-2 pages each | ≤ 14,000, ≤ 2 h | ≤ 0.03 GB |
-  | q0224 | W censoring count (round 1 item 2) | ≤ 300, ≤ 5 min | ≤ 0.001 GB |
+  | q0223 | W2 prints, 7,000 markets, up to 4 pages each (§11 N3) | ≤ 28,000, ≤ 4 h | ≤ 0.03 GB |
+  | q0224 | W censoring count: `closed=false` (gate) + `closed=true` (diagnostic) per window, ≤ 5 pages each (§11 N1/N3) | ≤ 3,000, ≤ 25 min per chunk | ≤ 0.001 GB |
   | q0225 | P frames (weekly end windows, `tag_id=2` and the control walk with `start_date_max` filters; capped windows split) | ≤ 4,000 | ≤ 0.01 GB |
   | q0226 | P prices: **10,500 markets** (4,000 + 3,000 politics, 2,000 + 1,500 control; round 1 item 11) x 3 horizons, one `[t_h − 7 d, t_h]` request each (price and activity proxy) = 31,500; Data API ≤ 2 pages for the 4,000 politics SCREEN markets (print-price robustness and the verified-activity variant) ≤ 8,000 | ≤ 39,500, ≤ 5.5 h | ≤ 0.03 GB |
   | q0227 | A frame (no volume filter in the walk) + Wikipedia summaries (one per distinct entity) | about 1,500 Gamma + ≤ 3,000 Wikipedia | ≤ 0.01 GB |
   | q0229 | A pageviews (one per canonical title, `[2026-01-01, 2026-10-01)`) + prints (4,000 markets, ≤ 2 pages) | ≤ 3,000 Wikimedia (≤ 50 min) + ≤ 8,000 Data API | ≤ 0.12 GB |
 
-  Total ≤ about 74,000 requests (round 1 item 11; the draft's 35,000 for q0226 omitted the HOLDOUT and control caps and
+  Total ≤ about 91,000 requests after §11 (q0223 28,000 and q0224 3,000 replace 14,000 and 300; before: ≤ about 74,000; round 1 item 11; the draft's 35,000 for q0226 omitted the HOLDOUT and control caps and
   the activity pages). **A fetch that has not completed (its `*_complete` status absent) is "pending" and is never
   analysed partially**: the census and every screen refuse on an incomplete manifest.
 
@@ -697,8 +697,8 @@ budgets recomputed (item 11); every fetch writes a `*_complete` status and the c
 | q0220 | cpu | 29 | ≤ 40 req at ≤ 1 rps, < 5 min, mem 200 | - | rules file + smoke code reviewed |
 | q0221 | net | 29 | ≤ 400 req, ≤ 0.01 GB | q0220 | with q0220's PASS |
 | q0222 | cpu | 28 | no network, mem 900, ≤ 0.02 GB | q0221 | with q0221 |
-| q0223 | net | 28 | ≤ 14,000 req, mem 400, ≤ 0.03 GB, ≤ 2 h | q0222 | with q0222 |
-| q0224 | net | 28 | ≤ 300 req, ≤ 0.001 GB, ≤ 5 min | q0222 | with q0222 |
+| q0223 | net | 28 | ≤ 28,000 req (§11), mem 400, ≤ 0.03 GB, ≤ 4 h | q0222 | with q0222 |
+| q0224 | net | 28 | ≤ 3,000 req (§11), ≤ 0.001 GB, ≤ 25 min per chunk | q0222 | with q0222 |
 | q0225 | net | 27 | ≤ 4,000 req, ≤ 0.01 GB | q0221 | with q0221 |
 | q0226 | net | 27 | ≤ 39,500 req, mem 400, ≤ 0.03 GB, ≤ 5.5 h | q0225 | with q0225 |
 | q0227 | net | 26 | ≤ 4,500 req, ≤ 0.01 GB | q0221 | with q0221 |
@@ -894,3 +894,33 @@ No floor, threshold, gate, alpha, cap or test count was relaxed (6 fixed + ≤ 6
 would have held W behind P and A's 8-9 h of fetching. It is split by family (q0231 W, q0239 P and A; same gates, a
 family's census never reads another family's files), and the W and P/A parts of `model_specs/cb11_v1.json` are hashed
 separately, so W can still freeze and screen before `T_seal`. Nothing about any test changes.
+
+## 11. Code-against-design freeze-check fixes (2026-10-18)
+
+The `science-reviewer` code-against-design freeze check of the W and smoke code (2026-10-18) found ten blocking and nine non-blocking items. Every change
+below tightens or clarifies; no floor, threshold, gate, alpha or cap was relaxed. Where the table says "design", the text above is amended accordingly.
+
+| Item | Change | File |
+|---|---|---|
+| B1 | **Declared amendment of §1.4.** The rules file is v2 and hashed in parts: part W (common + smoke + W rule functions) now; P and A rules in a separate `seals/cb11_pa_rules.json` fixed before the **first P/A request** (not before q0220/q0221). Justification: W and P/A fetch disjoint data, and W jobs verify only part W, so adding P/A code or rules can neither alter a W rule nor refuse a pending W job. W verification imports no P/A module. Shared functions stay in part W | `cb11_common.py` (`rules_part_doc`, `verify_rules(part=)`), `seals/cb11_rules.json` |
+| B2 | q0221 and q0224 (and q0223's regex) get `repeat` blocks ending on their completion status (q0221: `exclusion_keys_complete` or `disjointness_unverified`; stalls end the repeat), because in-progress chunks exit 0 | drafts q0221, q0223, q0224 |
+| B3 | C1/T5 id lists are mandatory in code: q0221 exits 75 (pending, nothing written) while either is unstaged; `--allow-absent-c1-t5` records them absent permanently and is never in a draft | `cb11_common.exclusion_keys`, `run_cb11.py` |
+| B4 | `h2_main` and `h3_power` `sample.csv.gz` are mandatory and sha256-pinned: absent, unset pin or mismatch is a refusal (exit 2). Pins are `TODO-COORDINATOR` until the coordinator fills `H2_SAMPLE_SHA256` / `H3_SAMPLE_SHA256` from a read-only `sha256sum` on the host and regenerates the rules (and the sha in the drafts) before q0220 | `cb11_common.py` |
+| B5 | W2 excludes markets whose print span is not covered (`status` ok, `covered` 1, not truncated) and counts them `unavailable`; the census does the same; availability below 60% is "not testable (availability)" (§2.6(iv)). `oldest_ts` is recorded, not used as an extra exclusion (a thin market's whole history can be newer than `t − 6 h`) | `cb11_w.py` |
+| B6 | GW2 and the S count use **filled** units (entry rule satisfied); `no_room` and unfilled are reported as triggered, not decided. The census cannot see the close, so it stands in the end of the stored span (`t + 6 h`) | `cb11_w.census_w` |
+| B7 | Binding W2 robustness: mean net > 0 in every calendar month of the evaluated window (a month without an S unit is not met) | `cb11_w.w2_robustness` |
+| B8 | Alpha is a parameter. Stage 1: p < 0.01 strict. Stage 2: p ≤ 0.05/k inclusive and no other p gate (floors unchanged). The Stage-2 placebo is judged at min(0.05/k, 0.01), never looser than Stage 1's calibration level (a placebo at 0.05 would exceed the 1.5% cap even for a calibrated test) | `cb11_w.py` |
+| B9 | The pool return is annualised over the evaluated window: W_screen 122 d (Stage 1), W_hold 71 d (Stage 2) | `cb11_w.w2_stat` |
+| B10 | Unverified disjointness stalls P and A only (§1.3); W proceeds, the state is recorded in the frame report and census | `cb11_w.w_frame` |
+| N1 | A censoring window capped at 5 pages fails its set's GWC (a lower-bound count cannot confirm the bound; this can be harsh in dense windows and is accepted). A set with < 60% available windows also fails. A `closed=true` count per window (diagnostic `frame_to_gamma_closed`) closes the frame-to-query gap | `cb11_w.py` |
+| N2 | Undeclared deviations now declared. (a) **W key rule: market id and event id only**: the frames carry no `negRiskMarketID`. (b) **Series rule drops are "not computable"** (no series id in the frames), so the §2.7 census cannot report them; §1.3 and §2.7 amended. (c) **Capacity is not split by token**: the size is the hash-aggregated total in `[τ + 60 s, τ + 60 min)` (both tokens), which can overstate the recorded capacity of token k; reported as such. (d) `takerOnly=true` on the Data API (one print per taker order). (e) **§2.1 "or the frame's fee field if larger" is dropped**: the W column whitelist has no fee field; the category rate alone applies. (f) The pool buys at `c + fee` per share (design: `c`), which is stricter | `cb11_w.py` |
+| N3 | Budgets: q0223 allows up to 4 pages × 7,000 markets = 28,000 requests (about 3.9 h at 2 rps, 5 chunks of 85 min; design ≤ 14,000); q0224 up to 2 queries × 5 pages × 300 windows = 3,000 (design ≤ 300); total ≤ about 91,000 (tables §2.8 and §4 amended) | drafts q0223, q0224 |
+| N4 | The "h3-only" robustness subset excludes rows present in both frames (and "h2-only" likewise) | `cb11_w.w1_robustness` |
+| N5 | The census verifies the rules; screen and rep re-check the fetch manifests and file hashes; seal copies must be tracked and identical to HEAD (`spec_committed`); results record the W freeze-part hash and the census sha256 | `run_cb11.py`, `cb11_common.verify_holdout_seal`, `cb11_w.verify_hold_seal` |
+| N6 | W1 MDE recomputed from the census end-date count (0.02 × √(120 / end-dates) × (z₀.₉₉ + z₀.₈₀)); the BY label and `battery2.cumulative_count()` are recorded in `results_W.json`; the pool utilisation is time-weighted invested cost over the pool; the sports/crypto stratum is reported for W1 (descriptive, `units_nonprimary.csv.gz`) and "killed in category" (losing share by category) for W2. There is no W2 sports stratum: the W2 sample is primary markets only | `cb11_w.py`, `run_cb11.py` |
+| N7 | q0235 depends only on `results_W.json`: the Stage-2 k counts the family's advances plus every test of a family whose Stage-1 result is not yet final as advancing (`assumed_pending`), so α/k is at least as strict as the final one and is not loosened later. Amends §2.3 "k fixed when the last Stage-1 result is final" for early finishers | `cb11_common.stage2_k` |
+| N8 | Gate on the censoring-window reconstruction: if fewer than 99% of a frame's closed rows (ends in the W windows) fall in the reconstructed 15-minute windows, q0222 stalls with "not testable (censoring windows)" | `cb11_w.w_frame` |
+| N9 | "unfilled" splits into `unfilled_no_trade_before_close` (the stored span reaches the close) and `unfilled_outside_window` (the close lies beyond `t + 6 h`); both are counted, excluded from per-share means and from decided | `cb11_w.decide_and_enter` |
+
+Open for the coordinator: fill the two sample pins (B4), stage the C1/T5 id lists (B3), then regenerate `seals/cb11_rules.json` (W sha changes) and
+the sha in the W/smoke drafts.

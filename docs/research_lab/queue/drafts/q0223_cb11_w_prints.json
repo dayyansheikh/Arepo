@@ -1,6 +1,6 @@
 {
  "id": "q0223_cb11_w_prints",
- "title": "CB11-W: Data API newest-first prints (limit 1000, pages until oldest < t-6h or cap) for the W2 SCREEN and HOLDOUT samples, aggregated by transaction hash to (time, YES-terms VWAP, size) in [t-6h, t+6h); covered span; HOLDOUT written to holdout/",
+ "title": "CB11-W: Data API newest-first prints (limit 1000, pages until oldest < t-6h or the 4-page cap; takerOnly=true) for the W2 SCREEN and HOLDOUT samples, aggregated by transaction hash to (time, YES-terms VWAP, size) in [t-6h, t+6h); covered span; HOLDOUT written to holdout/",
  "family": "creative_batch_11",
  "priority": 28,
  "expected_value": "W2 triggers, latency-delayed entries and recorded capacity",
@@ -38,9 +38,9 @@
   "manifest.json"
  ],
  "next_action": "q0230 (W2 holdout seal); q0231",
- "notes": "DRAFT-REVISED round 1 (items 6, 11: <= 14,000 requests). No side, wallet or hash stored. Incomplete = pending, never analysed. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 577f5c4a69375d8942792f2e0f8daa5af1196031ab0be6e9ce0e4ec52d4e39ca.",
+ "notes": "DRAFT-REVISED round 1 (items 6, 11: <= 28,000 requests (7,000 markets x up to 4 pages of 1,000; section 11 N3: the design said <= 14,000), about 3.9 h at 2 rps, 5 chunks of 85 min; takerOnly=true). No side, wallet or hash stored. Incomplete = pending, never analysed. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 ecf500f72bc4bacd68bbdb6f4b079101ab863c64f571f0893fa98e3cb141bb2a (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; the coordinator regenerates the rules and this sha when the h2_main / h3_power sample.csv.gz pins are filled).",
  "repeat": {
-  "max_runs": 3,
-  "until_log_regex": "\"status\": \"w_prints_complete\""
+  "max_runs": 5,
+  "until_log_regex": "\"status\": \"(w_prints_complete|not_run_source|upstream_not_testable)\""
  }
 }

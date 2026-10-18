@@ -76,7 +76,7 @@ def built(tmp_path):
     write_frame(hist, "h3_power", make_rows(6500, 2, id0=100000), "arepo-h3-power", 365)
     keys = _write_keys(tmp_path)
     root = tmp_path / "creative_batch11"
-    m = w.w_frame(root, hist, rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=keys, seals_dir=tmp_path / "seals", now=1.8e9, data_dumps=None, h2_sha=None, h3_sha=None)
+    m = w.w_frame(root, hist, rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=keys, seals_dir=tmp_path / "seals", now=1.8e9, data_dumps=None, h2_sha=None, h3_sha=None, censor_match_min=0.0)
     assert m["status"] == w.FRAME_STATUS, m
     return {"tmp": tmp_path, "hist": hist, "root": root, "wdir": root / w.FRAME_RUN, "seals": tmp_path / "seals"}
 
@@ -217,7 +217,7 @@ def test_w_frame_outputs_and_no_wait_outside_the_guarded_files(built):
     assert "outcome_prices" in gzip.decompress(out.read_bytes()).decode().splitlines()[0]
     # idempotent
     again = w.w_frame(built["root"], built["hist"], rules_sha="r" * 64, smoke_path=_smoke(built["tmp"]), exclusion_keys_path=built["tmp"] / "creative_batch11" / "exclusion_keys.csv.gz",
-                      seals_dir=built["seals"], now=1.8e9, data_dumps=None, h2_sha=None, h3_sha=None)
+                      seals_dir=built["seals"], now=1.8e9, data_dumps=None, h2_sha=None, h3_sha=None, censor_match_min=0.0)
     assert again["complete"] is True
 
 
@@ -277,25 +277,31 @@ def test_w2_sample_is_seeded_event_capped_and_hold_separate(built):
 
 
 def test_hold_listing_and_seal_copy(built):
-    doc = w.verify_hold_seal(built["wdir"], built["seals"])
+    doc = w.verify_hold_seal(built["wdir"], built["seals"], require_committed=False)
     assert doc["n_units_hold"] > 0 and doc["listing_sha256"]
+    # N5: a copy that is not tracked by git / identical to HEAD is refused by default (tests switch the check off)
+    with pytest.raises(cm.Refused, match="not committed"):
+        w.verify_hold_seal(built["wdir"], built["seals"])
     (built["seals"] / w.SEAL_COPY_NAME).write_text("{}")
     with pytest.raises(cm.Refused, match="missing or different"):
-        w.verify_hold_seal(built["wdir"], built["seals"])
+        w.verify_hold_seal(built["wdir"], built["seals"], require_committed=False)
 
 
-def test_frame_stalls_on_failed_smoke_and_unverified_disjointness(tmp_path):
+def test_frame_stalls_on_failed_smoke_and_proceeds_on_unverified_disjointness(tmp_path):
     hist = tmp_path / "history"
     write_frame(hist, "h2_main", make_rows(10, 1), "arepo-h2", 270)
     write_frame(hist, "h3_power", make_rows(10, 2, id0=500), "arepo-h3-power", 365)
     keys = _write_keys(tmp_path)
     root = tmp_path / "creative_batch11"
-    bad = w.w_frame(root, hist, rules_sha="r" * 64, smoke_path=_smoke(tmp_path, ok=False), exclusion_keys_path=keys, now=1.8e9, data_dumps=None, h2_sha=None, h3_sha=None)
+    bad = w.w_frame(root, hist, rules_sha="r" * 64, smoke_path=_smoke(tmp_path, ok=False), exclusion_keys_path=keys, now=1.8e9, data_dumps=None, h2_sha=None, h3_sha=None, censor_match_min=0.0)
     assert bad["status"] == c11.STALL_NOT_RUN_SOURCE and bad["complete"] is True and bad["label"] == "not testable (source)"
     root2 = tmp_path / "x" / "creative_batch11"
     (keys.parent / "exclusion_report.json").write_text(json.dumps({"keys_sha256": h5_seal.sha256_file(keys), "disjointness": c11.UNVERIFIED}))
-    st = w.w_frame(root2, hist, rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=keys, now=1.8e9, data_dumps=None, h2_sha=None, h3_sha=None)
-    assert st["status"] == c11.STALL_DISJOINTNESS
+    st = w.w_frame(root2, hist, rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=keys, seals_dir=tmp_path / "seals", now=1.8e9, data_dumps=None, h2_sha=None, h3_sha=None,
+                   censor_match_min=0.0)
+    # B10 (design 1.3): unverified disjointness makes P and A not testable; W proceeds and records the state
+    assert st["status"] == w.FRAME_STATUS
+    assert json.loads((root2 / w.FRAME_RUN / "frame_report.json").read_text())["exclusion"]["disjointness"] == c11.UNVERIFIED
 
 
 # ---- frame windows and censoring ------------------------------------------------------------------------------------------------------------
@@ -366,10 +372,13 @@ def test_w_censoring_runs_resumes_and_writes_only_counts(built):
     assert doc["n_windows"] == 300 and doc["sets"]["screen"]["open"] > 0
     # the non-binary market is not counted: 1 open per window
     assert doc["sets"]["fit"]["open"] == doc["sets"]["fit"]["n_windows"]
-    assert all(p["closed"] == "false" and p["limit"] == 100 for p in calls)
+    assert all(p["closed"] in ("false", "true") and p["limit"] == 100 for p in calls)
+    # N1: one closed=false and one closed=true query per window (the closed=true count closes the frame-to-query gap)
+    assert sum(p["closed"] == "false" for p in calls) == 300 and sum(p["closed"] == "true" for p in calls) == 300
+    assert doc["sets"]["screen"]["gamma_closed"] == doc["sets"]["screen"]["n_windows"]
     assert "never stored" not in json.dumps(doc)
     again = w.w_censoring(built["root"], built["wdir"], tr, rules_sha="r" * 64, now=1.8e9, data_dumps=None)
-    assert again["complete"] is True and len(calls) == 300
+    assert again["complete"] is True and len(calls) == 600
 
 
 def test_w_censoring_failure_cap_labels_window_unavailable(built):
@@ -462,7 +471,9 @@ def test_w_prints_run_resume_and_holdout_split(built):
     sealed = c11.seal_holdout(pdir, family="wprints", statuses=(w.PRINTS_STATUS,), copy_name="cb11_wprints_holdout_SEAL.json",
                               rows=[{"market_id": r["market_id"], "event_ids": r["event_id"]} for r in hold], rules_sha="r" * 64, seals_dir=built["seals"])
     assert sealed["status"] == "wprints_sealed" and sealed["n_holdout_files"] == 2
-    assert c11.verify_holdout_seal(pdir, "cb11_wprints_holdout_SEAL.json", built["seals"])["listing_sha256"] == sealed["listing_sha256"]
+    assert c11.verify_holdout_seal(pdir, "cb11_wprints_holdout_SEAL.json", built["seals"], require_committed=False)["listing_sha256"] == sealed["listing_sha256"]
+    with pytest.raises(cm.Refused, match="not committed"):  # N5
+        c11.verify_holdout_seal(pdir, "cb11_wprints_holdout_SEAL.json", built["seals"])
     _ = sample
 
 
@@ -529,10 +540,12 @@ def test_no_carry_room_unfilled_and_entry_whatever_its_level():
     assert w.decide_and_enter(_tx((T0 + 400, 0.995, 5), (T0 + 500, 0.99, 5)), T0, T0 + 1e5)["status"] == "no_room"
     assert w.decide_and_enter(_tx((T0 + 400, 0.99, 5), (T0 + 500, 0.5, 5)), T0, T0 + 1e5)["status"] == "filled"  # 0.99 + 0.005 = 0.995: room
     # the execution transaction must be at or after tau + 60 s and before the close
-    assert w.decide_and_enter(_tx((T0 + 400, 0.97, 5), (T0 + 459, 0.96, 5)), T0, T0 + 1e5)["status"] == "unfilled"
+    # N9: the close beyond the stored span (t + 6 h) -> outside_window; the span reaches the close -> no trade before it
+    assert w.decide_and_enter(_tx((T0 + 400, 0.97, 5), (T0 + 459, 0.96, 5)), T0, T0 + 1e5)["status"] == w.UNFILLED_OUTSIDE
+    assert w.decide_and_enter(_tx((T0 + 400, 0.97, 5), (T0 + 459, 0.96, 5)), T0, T0 + 7200)["status"] == w.UNFILLED_NO_TRADE
     d = w.decide_and_enter(_tx((T0 + 400, 0.97, 5), (T0 + 460, 0.96, 5)), T0, T0 + 1e5)
     assert d["status"] == "filled" and d["tau_e"] == T0 + 460 and d["p_entry"] == pytest.approx(0.96) and d["c"] == pytest.approx(0.965)
-    assert w.decide_and_enter(_tx((T0 + 400, 0.97, 5), (T0 + 460, 0.96, 5)), T0, T0 + 460)["status"] == "unfilled"  # the transaction is not before the close
+    assert w.decide_and_enter(_tx((T0 + 400, 0.97, 5), (T0 + 460, 0.96, 5)), T0, T0 + 460)["status"] == w.UNFILLED_NO_TRADE  # the transaction is not before the close
     # whatever its level: the entry price is not tested against the 0.95 threshold; cap at 1.0
     e = w.decide_and_enter(_tx((T0 + 400, 0.97, 5), (T0 + 470, 0.999, 5)), T0, T0 + 1e5)
     assert e["c"] == 1.0
@@ -552,9 +565,9 @@ def test_outcome_vector_clean_or_worst_case():
     assert w.outcome_y('["0.4", "0.6"]', 1) == (0.0, False) and w.outcome_y("nonsense", 0) == (0.0, False) and w.outcome_y('["1"]', 0) == (0.0, False)
 
 
-def _unit(i, *, c=0.965, y=1.0, q=1000.0, tau_e=T0, close=None, H_=3.0, cat="politics", ev=None, date="2026-04-01", S=True, status="resolved"):
+def _unit(i, *, c=0.965, y=1.0, q=1000.0, tau_e=T0, close=None, H_=3.0, cat="politics", ev=None, date="2026-04-01", S=True, status="resolved", t=None):
     fee = w.fee_rate(cat) * c * (1 - c)
-    return {"market_id": str(i), "event": ev or f"e{i}", "date": date, "cat": cat, "t": T0, "k": 0, "tau": tau_e - 60, "tau_e": tau_e + i, "p_entry": c - 0.005, "c": c, "fee": fee, "Y": y,
+    return {"market_id": str(i), "event": ev or f"e{i}", "date": date, "cat": cat, "t": T0 if t is None else t, "k": 0, "tau": tau_e - 60, "tau_e": tau_e + i, "p_entry": c - 0.005, "c": c, "fee": fee, "Y": y,
             "clean": True, "uma_status": status, "close": close if close is not None else tau_e + (H_ - 1) * H, "H": H_, "q": q, "net": y - c - fee, "pred_h": 2.0, "S": S}
 
 
@@ -690,7 +703,7 @@ def _many_units(n, *, c=0.97, loss_rate=0.0, rng_seed=0, cat="politics", events=
     us = []
     for i in range(n):
         y = 0.0 if rng.random() < loss_rate else 1.0
-        us.append(_unit(i, c=c, y=y, ev=f"ev{i // (events or 1)}" if events else f"ev{i}", date=f"2026-0{3 + (i % 4)}-{1 + (i % 28):02d}", cat=cat, tau_e=T0 + i * 3600.0, H_=3.0))
+        us.append(_unit(i, c=c, y=y, ev=f"ev{i // (events or 1)}" if events else f"ev{i}", date=f"2026-0{3 + (i % 4)}-{1 + (i % 28):02d}", t=ep(f"2026-0{3 + (i % 4)}-{1 + (i % 28):02d}"), cat=cat, tau_e=T0 + i * 3600.0, H_=3.0))
     return us
 
 
@@ -816,7 +829,7 @@ def test_screen_and_rep_end_to_end_on_a_signal(full):
     lab = {"W": {"label_W1": "not testable (censoring)", "label_W2": "not testable (censoring)"}}
     r2 = w.screen_w(wd, hist, lab)
     assert r2["W1"]["p"] == 1.0 and r2["W1"]["testable"] is False and r2["W2"]["advance"] is False
-    rep = w.rep_w(wd, hist, census, ("W1", "W2"), 2, n_boot=100, n_draws=10, seals_dir=full["seals"])
+    rep = w.rep_w(wd, hist, census, ("W1", "W2"), 2, n_boot=100, n_draws=10, seals_dir=full["seals"], committed_seals=False)
     assert rep["label"].startswith("out-of-time") and "W1_rep" in rep and "W2_rep" in rep and rep["stage2_alpha_over_k"] == pytest.approx(0.025)
     assert rep["W1_rep"]["testable"] is True and "stage2_pass_alpha_over_k" in rep["W1_rep"]
 
@@ -824,7 +837,7 @@ def test_screen_and_rep_end_to_end_on_a_signal(full):
 def test_rep_refuses_when_the_hold_seal_is_broken(full):
     (full["seals"] / w.SEAL_COPY_NAME).write_text("{}")
     with pytest.raises(cm.Refused):
-        w.rep_w(full["wdir"], full["hist"], {"W": {}}, ("W1",), 1, seals_dir=full["seals"])
+        w.rep_w(full["wdir"], full["hist"], {"W": {}}, ("W1",), 1, seals_dir=full["seals"], committed_seals=False)
 
 
 def test_declared_constants_are_the_designs():
@@ -834,3 +847,219 @@ def test_declared_constants_are_the_designs():
     assert (w.F7_DAYS, w.F7_MIN, w.RARE_MIN, w.CAP_S) == (14, 20, 200, 21 * 86400.0)
     assert w.GW == {"units": 5000, "dates": 90, "categories": 6, "fit_min": 200} and w.GW2 == {"units": 300, "events": 100, "dates": 60}
     assert (c11.SEED_BOOT, c11.SEED_GWC, c11.PLACEBO_SEEDS["W1_permute"]) == (1111, 11121, 11101)
+
+
+# ---- code-against-design freeze-check fixes (CREATIVE_BATCH_11.md section 11) -------------------------------------------------------------------------
+
+
+def _write_markets(path: Path, uncovered_ids: set[str]) -> None:
+    rows = list(c11.read_csv_gz(path))
+    out = []
+    for r in rows:
+        bad = r["market_id"] in uncovered_ids
+        out.append([r["market_id"], r["split"], r["t"], r["status"], r["oldest_ts"], "1" if bad else r["truncated"], r["n_prints"], r["n_nohash"], r["n_tx"], "0" if bad else r["covered"]])
+    path.write_bytes(hb._gz_csv_bytes(w.MARKET_COLUMNS, out))
+
+
+def test_b5_w2_units_exclude_and_count_uncovered_markets():
+    sample = [{"market_id": "7", "event_id": "e7", "fee_category": "politics", "end_epoch": str(T0)}, {"market_id": "8", "event_id": "e8", "fee_category": "politics", "end_epoch": str(T0)}]
+    tx = {"7": _tx((T0 + 400, 0.97, 5), (T0 + 500, 0.96, 9)), "8": _tx((T0 + 400, 0.97, 5), (T0 + 500, 0.96, 9))}
+    targets = {"7": {"close_epoch": str(T0 + 4 * H)}, "8": {"close_epoch": str(T0 + 4 * H)}}
+    oc = {"7": {"outcome_prices": '["1", "0"]', "uma_status": "resolved"}, "8": {"outcome_prices": '["1", "0"]', "uma_status": "resolved"}}
+    ok = {"status": "ok", "covered": "1", "truncated": "0", "oldest_ts": str(T0 - 7 * H)}
+    mk = {"7": ok, "8": {**ok, "covered": "0", "truncated": "1"}}
+    us, cnt = w.w2_units(sample, tx, targets, oc, {"7": 3.0, "8": 3.0}, markets=mk)
+    assert [u["market_id"] for u in us] == ["7"] and cnt["unavailable"] == 1 and cnt["eligible"] == 2 and cnt["filled"] == 1
+    # a market missing from the coverage file, or fetched with status 'unavailable (source)', is unavailable too
+    _, c2 = w.w2_units(sample, tx, targets, oc, {}, markets={"7": {**ok, "status": "unavailable (source)"}})
+    assert c2["unavailable"] == 2
+    assert w.market_available(None) is False and w.market_available(ok) is True
+
+
+def test_b5_w2_not_testable_when_availability_below_60_percent():
+    us = _many_units(400, c=0.95)
+    ok = w.w2_stat(us, {"eligible": 1000, "unavailable": 400}, alpha=0.01)
+    assert ok["availability"]["share"] == pytest.approx(0.6) and ok["testable"] is True
+    bad = w.w2_stat(us, {"eligible": 1000, "unavailable": 401}, alpha=0.01)
+    assert bad["testable"] is False and bad["p"] == 1.0 and bad["verdict"] == "not testable (availability)"
+
+
+def test_b5_b6_census_excludes_uncovered_and_counts_only_filled_for_gw2(full, monkeypatch):
+    wd, hist = full["wdir"], full["hist"]
+    cens = json.loads((full["root"] / w.CENSOR_RUN / "censoring.json").read_text())
+    cov = w.coverage_audit(hist / "h11_wprints", wd)
+    base = w.census_w(wd, hist, cens, cov)
+    assert base["W2"]["availability"]["unavailable"] == 0 and base["W2"]["counts"]["S_decided"] == base["W2"]["GW2"]["S_decided"]
+    sample = list(c11.read_csv_gz(wd / "w2_sample.csv.gz"))
+    mk_path = hist / "h11_wprints" / "screen" / "markets.csv.gz"
+    drop = {r["market_id"] for r in sample[: len(sample) // 2]}
+    _write_markets(mk_path, drop)
+    d = w.census_w(wd, hist, cens, w.coverage_audit(hist / "h11_wprints", wd))
+    assert d["W2"]["availability"]["unavailable"] == len(drop) and d["W2"]["counts"]["status"]["unavailable"] == len(drop)
+    assert d["label_W2"] == "not testable (availability)" and d["label_W1"] is None
+    # B6: 'decided' for GW2 is the filled (entry rule satisfied) tally; no_room / unfilled are triggered, not decided
+    st = base["W2"]["counts"]["status"]
+    assert base["W2"]["counts"]["decided"] == st.get("filled", 0)
+    assert base["W2"]["counts"]["triggered"] >= base["W2"]["counts"]["decided"]
+    # N6: the W1 MDE is recomputed from the census end-date count
+    assert base["mde"]["W1_R"] == pytest.approx(w.mde_w1(base["mde"]["W1_end_dates"])) and w.mde_w1(60) == pytest.approx(w.MDE_Z * w.MDE_SD_W1 * math.sqrt(2.0))
+
+
+def test_b6_census_gw2_ignores_no_room_and_unfilled(full, monkeypatch):
+    wd, hist = full["wdir"], full["hist"]
+    cens = json.loads((full["root"] / w.CENSOR_RUN / "censoring.json").read_text())
+    # every sampled market triggers at 0.995 (no carry room): decided triggers exist but no decided (filled) S unit
+    sample = list(c11.read_csv_gz(wd / "w2_sample.csv.gz"))
+    by = {r["market_id"]: r for r in sample}
+    rows = [[m, float(r["end_epoch"]) + 400 + 0.0, 0.996, 5.0] for m, r in by.items()]
+    (hist / "h11_wprints" / "screen" / "tx.csv.gz").write_bytes(hb._gz_csv_bytes(w.TX_COLUMNS, rows))
+    d = w.census_w(wd, hist, cens, w.coverage_audit(hist / "h11_wprints", wd))
+    assert d["W2"]["counts"]["status"].get("no_room", 0) == len(sample) and d["W2"]["counts"]["S_decided"] == 0 and d["W2"]["counts"]["triggered"] == len(sample)
+    assert "GW2" in d["label_W2"]
+
+
+def test_b7_w2_month_sign_robustness_is_binding():
+    us = _many_units(400, c=0.95)
+    for i, u in enumerate(us):
+        u["net"] += 0.004 * ((i * 7919) % 11 - 5) / 5
+    base_S = [u for u in us if u["S"]]
+    vars_ = {"h_w_1c": (_many_units(400, c=0.955), {}), "trigger_30m": (us, {})}
+    good = w.w2_robustness(vars_, base_S, 0.01)
+    assert sorted(good["by_month_sign"]["months"]) == ["2026-03", "2026-04", "2026-05", "2026-06"] and good["by_month_sign"]["ok"] and good["ok"] is True
+    # one calendar month with a negative mean flips the robustness (others stay positive)
+    bad_S = [{**u, "net": -0.02} if u["date"].startswith("2026-05") else u for u in base_S]
+    bad = w.w2_robustness(vars_, bad_S, 0.01)
+    assert bad["by_month_sign"]["months"]["2026-05"]["ok"] is False and bad["by_month_sign"]["ok"] is False and bad["ok"] is False
+    # a month without any S unit does not count as met
+    gap_S = [u for u in base_S if not u["date"].startswith("2026-04")]
+    assert w.w2_robustness(vars_, gap_S, 0.01)["by_month_sign"]["ok"] is False
+    # the hold window has its own months
+    assert w.window_months(w.E_HOLD) == ["2026-07", "2026-08", "2026-09"] and len(w.window_months(w.E_SCREEN)) == 4
+    # reported: losing share by category
+    assert "politics" in good["killed_in_category"]
+
+
+def test_b8_stage_rules_alpha_is_a_parameter():
+    r = {"testable": True, "R_B0": 0.3, "R_B1": 0.2, "p_B0": 0.02, "p_B1": 0.03}
+    assert w.w1_floor_ok(r) is False  # Stage 1: p < 0.01
+    assert w.w1_floor_ok(r, 0.05) is True  # Stage 2 with k = 1: alpha / k = 0.05, no extra 0.01 gate
+    assert w.w1_floor_ok(r, 0.025) is False and w.w1_floor_ok({**r, "p_B1": 0.025}, 0.025, True) is True  # inclusive Holm boundary p <= alpha / k
+    assert w.w1_floor_ok({**r, "p_B0": 0.01, "p_B1": 0.01}) is False  # Stage 1 stays strict
+    # the stage-2 placebo level is never looser than Stage 1's calibration level
+    toy_p = w.w1_placebo(np.zeros(60), np.zeros(60), np.zeros(60), np.zeros(60), np.array(["d"] * 60), np.array(["e"] * 60), np.array(["c"] * 60), n_draws=2, n_boot=20, alpha=0.01)
+    assert toy_p["alpha"] == 0.01
+
+
+def test_b9_pool_return_is_annualised_over_the_evaluated_window():
+    us = _many_units(400, c=0.95)
+    s_scr = w.w2_stat(us, {}, alpha=0.01, window=w.E_SCREEN)
+    s_hold = w.w2_stat(us, {}, alpha=0.01, window=w.E_HOLD)
+    a, b = s_scr["pool"]["10000"], s_hold["pool"]["10000"]
+    assert a["window_days"] == pytest.approx(122.0) and b["window_days"] == pytest.approx(71.0)
+    assert b["annualised_return"] == pytest.approx(a["annualised_return"] * 122.0 / 71.0)
+
+
+def test_n6_pool_utilisation_is_time_weighted_cost_over_pool():
+    u = _unit(0, c=0.9, q=100.0, tau_e=T0, close=T0 + 10 * H, H_=10.0)
+    p = w.pool_simulation([u], pool=1000.0)
+    cost = u["c"] + u["fee"]
+    span = 11 * H  # tau_e = T0 + 0 .. close + 1 h
+    assert p["n_entered"] == 1 and p["mean_utilisation"] == pytest.approx(min(100.0 * cost * span / span / 1000.0, 1.0))
+
+
+def test_n1_capped_or_sparsely_available_window_sets_fail_the_censoring_gate():
+    ok = [{"key": str(i), "set": "screen", "open": 0, "n_frame_closed": 20, "capped": False, "gamma_closed": 20, "gamma_closed_capped": False, "status": "ok"} for i in range(100)]
+    assert w.censoring_doc(ok)["sets"]["screen"]["fail"] is False
+    assert w.censoring_doc(ok)["sets"]["screen"]["frame_to_gamma_closed"] == pytest.approx(1.0)
+    capped = [dict(r) for r in ok]
+    capped[3]["capped"] = True  # the count is a lower bound: the gate cannot be confirmed
+    assert w.censoring_doc(capped)["sets"]["screen"]["fail"] is True and w.censoring_doc(capped)["sets"]["screen"]["capped_windows"] == 1
+    thin = ok[:50] + [{**r, "status": "unavailable (source)"} for r in ok[50:]]
+    assert w.censoring_doc(thin)["sets"]["screen"]["fail"] is True  # 50% of windows available < 60%
+    # the counting helper marks a window capped when the last allowed page is full
+    full_page = json.dumps([{"id": str(i), "outcomes": '["Yes","No"]', "clobTokenIds": '["a","b"]'} for i in range(100)]).encode()
+    r = w.count_in_window(hb.Limiter(lambda url, params: (200, full_page, {}), rps=1000.0, sleep=lambda s: None), 0.0, 900.0, "false")
+    assert r["capped"] is True and r["pages"] == w.CENSOR_PAGES and r["n"] == 100 * w.CENSOR_PAGES
+
+
+def test_n4_by_source_subsets_are_disjoint():
+    U = [{"end_epoch": ep("2026-04-01") + i * 3600.0, "event_id": f"e{i}", "src": src} for i, src in enumerate(["h2"] * 40 + ["h3"] * 40 + ["both"] * 40)]
+    rng = np.random.default_rng(0)
+    L = rng.normal(size=len(U))
+    rob = w.w1_robustness(U, L, L * 0.5, np.zeros(len(U)), np.zeros(len(U)), n_boot=10)
+    assert rob["by_source"]["h2"]["n"] == 40 and rob["by_source"]["h3"]["n"] == 40
+
+
+def test_n8_frame_stalls_when_censoring_windows_do_not_reproduce_the_frame(tmp_path):
+    hist = tmp_path / "history"
+    write_frame(hist, "h2_main", make_rows(300, 1), "arepo-h2", 270)
+    write_frame(hist, "h3_power", make_rows(300, 2, id0=5000), "arepo-h3-power", 365)
+    keys = _write_keys(tmp_path)
+    st = w.w_frame(tmp_path / "creative_batch11", hist, rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=keys, seals_dir=tmp_path / "seals", now=1.8e9, data_dumps=None,
+                   h2_sha=None, h3_sha=None)  # default match floor 0.99: the synthetic rows are not drawn from the 6 windows a day
+    assert st["status"] == c11.STALL_NOT_RUN_SOURCE and st["label"] == "not testable (censoring windows)"
+    assert w.CENSOR_MATCH_MIN == 0.99
+
+
+def test_n7_stage2_k_for_w_does_not_wait_for_p_and_a(tmp_path):
+    with pytest.raises(cm.NotNow):
+        c11.stage2_k(tmp_path)
+    with pytest.raises(cm.NotNow):
+        c11.stage2_k(tmp_path, own="W")  # the family's own Stage-1 result is still required
+    (tmp_path / "results_W.json").write_text(json.dumps({"W1": {"advance": True}, "W2": {"advance": False}}))
+    k = c11.stage2_k(tmp_path, own="W")
+    assert k["advanced"] == ["W1"] and k["assumed_pending"] == ["P1", "P2", "A1", "A2"] and k["k"] == 5 and k["alpha_each"] == pytest.approx(0.05 / 5)
+    with pytest.raises(cm.NotNow):
+        c11.stage2_k(tmp_path)  # without `own` all three files are still required
+    (tmp_path / "results_P.json").write_text(json.dumps({"P1": {"advance": False}, "P2": {"advance": False}}))
+    (tmp_path / "results_A.json").write_text(json.dumps({"A1": {"advance": False}, "A2": {"advance": False}}))
+    assert c11.stage2_k(tmp_path, own="W")["k"] == 1 == c11.stage2_k(tmp_path)["k"]
+
+
+def _screen_env(full, monkeypatch, tmp_path):
+    import sys as _sys
+
+    _sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    import run_cb11
+
+    spec = tmp_path / "spec.json"
+    spec.write_text(json.dumps({"W": {"x": 1}, "PA": {}}))
+    wd, hist, root = full["wdir"], full["hist"], full["root"]
+    cens = json.loads((root / w.CENSOR_RUN / "censoring.json").read_text())
+    (root / "census_W.json").write_text(json.dumps({"W": w.census_w(wd, hist, cens, w.coverage_audit(hist / "h11_wprints", wd))}))
+    trials = tmp_path / "trials.jsonl"
+    trials.write_text(json.dumps({"kind": "ml_explain", "n_tests": 1156, "source": "x", "label": "EXPLORATORY"}) + "\n")
+    orig = w.screen_w
+    monkeypatch.setattr(w, "screen_w", lambda wd_, h_, c_: orig(wd_, h_, c_, n_boot=100, n_draws=10))
+    rules = tmp_path / "rules.json"
+    c11.write_rules(rules)  # after the patches: the rules hash the (patched) sources and constants the job will see
+    base = ["--rules", rules.as_posix(), "--allow-uncommitted-rules", "--standalone", "--root", root.as_posix(), "--history-root", hist.as_posix(), "--freeze-spec", spec.as_posix(),
+            "--trials-path", trials.as_posix()]
+    return run_cb11, base, spec, trials
+
+
+def test_n5_n6_screen_records_freeze_hash_by_label_and_rechecks_the_fetches(full, monkeypatch, tmp_path, capsys):
+    run_cb11, base, spec, trials = _screen_env(full, monkeypatch, tmp_path)
+    seals = ["--seals-dir", full["seals"].as_posix()]
+    code = run_cb11.main(["screen", "--family", "W", *base, *seals])
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert code == 0, out
+    res = json.loads((full["root"] / "results_W.json").read_text())
+    assert res["freeze_W_sha256"] == c11.require_freeze("W", spec, require_committed=False) and len(res["census_sha256"]) == 64
+    by = res["by_triage"]
+    assert by["cumulative_count"] == 1156 and by["m_total"] == 1156 and by["triage_only"] is True and set(by["per_test"]) == {"W1", "W2"}
+    assert "non_primary_strata" in res["W1"] and res["W1"]["p_threshold"] == 0.01 and res["W1"]["p_threshold_inclusive"] is False
+    assert {"sports", "crypto"} <= set(res["W1"]["non_primary_strata"])
+    # a fetch file changed after the census: the screen refuses (exit 2) instead of reading it
+    tx = full["hist"] / "h11_wprints" / "screen" / "tx.csv.gz"
+    tx.write_bytes(tx.read_bytes() + b"\x00")
+    code2 = run_cb11.main(["screen", "--family", "W", *base, *seals, "--out", (tmp_path / "other.json").as_posix()])
+    out2 = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert code2 == 2 and "sha256 differs" in out2["refused"]
+
+
+def test_n5_screen_refuses_an_uncommitted_seal_copy_by_default(full, monkeypatch, tmp_path, capsys):
+    run_cb11, base, spec, trials = _screen_env(full, monkeypatch, tmp_path)
+    code = run_cb11.main(["screen", "--family", "W", *[x for x in base if x != "--allow-uncommitted-rules"], "--seals-dir", full["seals"].as_posix()])
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert code == 2 and out["refused"]  # rules / freeze spec / seal copy not committed

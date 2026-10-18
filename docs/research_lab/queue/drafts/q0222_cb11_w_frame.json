@@ -30,9 +30,9 @@
  "timeout_s": 3600,
  "max_retries": 2,
  "outputs": [
-  "research_lab/creative_batch11/w/{units.csv.gz,w2_sample.csv.gz,censor_windows.csv,w_hold_listing.json,manifest.json}",
+  "research_lab/creative_batch11/w/{units.csv.gz,w2_sample.csv.gz,censor_windows.csv.gz,units_nonprimary.csv.gz,w_hold_listing.json,manifest.json}",
   "history/h11_wprints/outcomes_guarded.csv.gz"
  ],
  "next_action": "commit seals/cb11_w_hold_SEAL.json; q0223, q0224",
- "notes": "DRAFT-REVISED round 1 (item 2). No wait computed; uma_status never read outside the guarded accessor. No network. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 577f5c4a69375d8942792f2e0f8daa5af1196031ab0be6e9ce0e4ec52d4e39ca."
+ "notes": "DRAFT-REVISED round 1 (item 2). No wait computed; uma_status never read outside the guarded accessor. No network. B10: unverified disjointness no longer stalls W (only P and A); N8: stalls (not testable (censoring windows)) if the reconstructed 15-minute windows cover < 99% of a frame's closed rows; writes units_nonprimary.csv.gz (sports/crypto, descriptive stratum, screen-W only). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 ecf500f72bc4bacd68bbdb6f4b079101ab863c64f571f0893fa98e3cb141bb2a (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; the coordinator regenerates the rules and this sha when the h2_main / h3_power sample.csv.gz pins are filled)."
 }

@@ -31,7 +31,7 @@
   "research_lab/creative_batch11/holdout_SEAL_<family>.json"
  ],
  "next_action": "commit the seal copies; q0231 (W) / q0239 (P, A)",
- "notes": "DRAFT-REVISED round 1. Seals each family whose fetch manifest is complete; exits 75 (pending) for families still fetching and re-runs. Sealed files never edited; drops recorded as DROPPED_* blocks. Implemented family: W (wprints holdout). P and A are not implemented in the runner (refused). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 577f5c4a69375d8942792f2e0f8daa5af1196031ab0be6e9ce0e4ec52d4e39ca.",
+ "notes": "DRAFT-REVISED round 1. Seals each family whose fetch manifest is complete; exits 75 (pending) for families still fetching and re-runs. Sealed files never edited; drops recorded as DROPPED_* blocks. Implemented family: W (wprints holdout). P and A are not implemented in the runner (refused). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 ecf500f72bc4bacd68bbdb6f4b079101ab863c64f571f0893fa98e3cb141bb2a (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; the coordinator regenerates the rules and this sha when the h2_main / h3_power sample.csv.gz pins are filled).",
  "repeat": {
   "max_runs": 6,
   "until_log_regex": "\"status\": \"seal_all_complete\""
