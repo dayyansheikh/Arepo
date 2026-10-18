@@ -356,18 +356,27 @@ def test_b3_staged_c1_t5_lists_are_read_and_recorded(keys_env):
 def test_b3_cli_flag_exists_and_is_never_in_a_draft():
     a = run_cb11.build_parser().parse_args(["exclusion-keys", "--allow-absent-c1-t5"])
     assert a.allow_absent_c1_t5 is True and run_cb11.build_parser().parse_args(["exclusion-keys"]).allow_absent_c1_t5 is False
-    drafts = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue" / "drafts"
-    for f in drafts.glob("q02*_cb11_*.json"):
+    for f in _cb11_spec_files("q02*_cb11_*.json"):
         assert "--allow-absent-c1-t5" not in json.loads(f.read_text())["argv"], f.name
+
+
+def _cb11_spec_files(pattern):
+    """CB11 specs wherever they live: drafts/ before promotion, jobs/ after (promotion moves the file unchanged in substance)."""
+    q = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue"
+    return sorted(list((q / "drafts").glob(pattern)) + list((q / "jobs").glob(pattern)))
+
+
+def _cb11_spec(name):
+    [f] = [g for g in _cb11_spec_files(name)]
+    return json.loads(f.read_text())
 
 
 def test_b2_resumable_net_drafts_repeat_until_their_completion_status():
     import re
 
-    drafts = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue" / "drafts"
-    q21 = json.loads((drafts / "q0221_cb11_exclusion_keys.json").read_text())["repeat"]
-    q24 = json.loads((drafts / "q0224_cb11_w_censoring.json").read_text())["repeat"]
-    q23 = json.loads((drafts / "q0223_cb11_w_prints.json").read_text())["repeat"]
+    q21 = _cb11_spec("q0221_cb11_exclusion_keys.json")["repeat"]
+    q24 = _cb11_spec("q0224_cb11_w_censoring.json")["repeat"]
+    q23 = _cb11_spec("q0223_cb11_w_prints.json")["repeat"]
     for rep, ok_statuses in ((q21, ("exclusion_keys_complete", "disjointness_unverified")), (q24, ("w_censoring_complete",)), (q23, ("w_prints_complete",))):
         assert rep["max_runs"] >= 3
         for st in ok_statuses:  # the runner's own JSON line
@@ -395,7 +404,7 @@ def test_declared_drafts_pin_the_rules_part_they_verify(rules_file):
     assert c11.verify_rules(committed, require_committed=False) == w_sha
     assert pa.verify_pa_rules(root / "seals" / "cb11_pa_rules.json", require_committed=False) == pa_sha
     seen = set()
-    for f in (root / "queue" / "drafts").glob("q02[0-3]*_cb11_*.json"):
+    for f in _cb11_spec_files("q02[0-3]*_cb11_*.json"):
         d = json.loads(f.read_text())
         uses_w, uses_pa = "--rules" in d["argv"], "--pa-rules" in d["argv"]
         assert uses_w or uses_pa, f.name
@@ -410,8 +419,7 @@ def test_b2_c1_c2_draft_graph_and_repeats():
     or a terminal stall. The net-lane jobs declare their network."""
     import re
 
-    drafts = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue" / "drafts"
-    d = {f.name.split("_")[0]: json.loads(f.read_text()) for f in drafts.glob("q02[23]*_cb11_*.json")}
+    d = {f.name.split("_")[0]: json.loads(f.read_text()) for f in _cb11_spec_files("q02[23]*_cb11_*.json")}
     assert set(d) == {f"q02{n}" for n in (20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39)}
     deps = {k[1:]: {x.split("_")[0][1:] for x in v["depends_on"]} for k, v in d.items()}
     assert deps["0230"] == {"0223"} and deps["0238"] == {"0226", "0229"}

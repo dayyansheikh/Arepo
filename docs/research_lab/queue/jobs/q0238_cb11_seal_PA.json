@@ -37,7 +37,7 @@
   "seals/cb11_attn_holdout_SEAL.json"
  ],
  "next_action": "commit the P and A seal copies; q0239",
- "notes": "DRAFT-REVISED round 1; re-check b2: the P and A seal (q0230 now seals W only). Seals each family whose fetch manifest is complete; exits 75 (pending) for a family still fetching, or a terminal stall is recorded per family. Lane net, network gamma-api (seal-time Gamma key lookups). Sealed files never edited; drops recorded as DROPPED_* blocks and never analysed. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 f85ae27889cc3fd2d78b033cdbd3b5dadf13ade789043e27fc5103960fb92094 (seals/cb11_pa_rules.json, the P/A rules part; the P/A seal never verifies part W).",
+ "notes": "PROMOTED 2026-10-18 by the autopilot after the CB11 focused re-check and verify round (GO for smoke/keys, W data, P/A data, seals, censuses; fixes 19a8c9f + 1f9a208; rules W 064e13f9\u2026, PA f85ae278\u2026). DRAFT-REVISED round 1; re-check b2: the P and A seal (q0230 now seals W only). Seals each family whose fetch manifest is complete; exits 75 (pending) for a family still fetching, or a terminal stall is recorded per family. Lane net, network gamma-api (seal-time Gamma key lookups). Sealed files never edited; drops recorded as DROPPED_* blocks and never analysed. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 f85ae27889cc3fd2d78b033cdbd3b5dadf13ade789043e27fc5103960fb92094 (seals/cb11_pa_rules.json, the P/A rules part; the P/A seal never verifies part W).",
  "repeat": {
   "max_runs": 6,
   "until_log_regex": "\"status\": \"seal_all_complete\""
