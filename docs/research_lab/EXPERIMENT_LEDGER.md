@@ -1589,3 +1589,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   `f2f672c1…`, M `8b72053c…`, X `24e3444b…`); being corrected.
 - Promotion: q0251b X census v2 GO; q0240b GO after the record fix; q0220 revival GO after the 72 h ceiling; q0255
   after the census sha check and the v2 census write-up.
+
+## CB14 drafted (03f7200), challenger round 1 and response (e696bf8), 2026-10-18 (design only, not counted)
+- `CREATIVE_BATCH_14.md` from round 6: **CB14-W** (CH123, Wikipedia edit bursts before resign / out-as / fired /
+  indicted moves; listing-date frame, data before 2026-04-01, disjoint from CB11-A) and **CB14-S** (CH121, intra-speech
+  hazard decay in mention baskets; P window disjoint from CB12-M, N window gated on CB12-M's Stage-1 result). CH127
+  deferred (no timestamped preview source). k = 4 fixed + up to 4 conditional. Probe counts: out-as 296, resign 71,
+  fired 31, indicted 18 events; S P-window 60 single-speech events with >= 8 words (43 Trump).
+- **Challenger: W REVISE, S REVISE.** W1 could count a burst after the market had already repriced (lead now measured
+  from the move start D0 against the [D-24 h, D-2 h] VWAP; hot-period same-subject placebo is the baseline); W2 worst
+  case was a median cost; S's unsaid rule read 60 s past the causal clock (now: unsaid iff not said by e_t, anchors only
+  from words said by e_t, ±2 min clock shift binding); term-level dependence added; the N window becomes reported-only
+  if S's rules are hashed after CB12-M's Stage-1 result. All 14 items adopted (2 modified, flagged for the freeze
+  check). Count: 1,221 at HEAD (40 flow_screen lines arrived by host union); counts are recorded at run.
