@@ -1560,3 +1560,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - **Verify round: X GO; smoke/keys, M data and M analysis NO_GO** until D1 (series-date event lookup not closed-first,
   no unverified-share gate), D2 (shared Holm helper non-strict; CB12 uses a local strict Holm), D3 (budgeted stops via
   `--budget-min`; B2 wording) and D4 (q0243 regex). Being fixed. Nothing promoted.
+
+## Smoke events, 2026-10-18 ~21:00-21:30Z (engineering gates; not counted as tests)
+- **CB12 smoke q0240 (rules common f2f672c1…, M 8b72053c…, X 24e3444b…)** ran 21:04Z, 8 requests, write-once
+  `creative_batch12/smoke.json`: every X criterion PASS (`x_c1_reproduction`, `x_inputs_pinned`, guards); M criteria
+  PASS except `m_prices_history` (m0 status 200 with 0 points over `[start - 26 h, start]`, m1 156 points; the Data API
+  shows 528 prints for m0, apparently all during the event). Reading: the criterion tested member pre-start
+  liquidity, not the source. **M smoke v2 being prepared** (v1 kept as the record; disclosure in CB12 §11; precedent
+  CB9 smoke v2 / CB8-H v3). X proceeds on v1 (q0251 X census, counts only).
+- **CB11 smoke q0220** attempt 1 (21:02Z) failed before any request: `SystemError` because rules verification imports
+  scikit-learn, which cannot map under the 400 MB address cap (mem_mb 200). Ops fix 6c2056f (mem_mb 400 on five small
+  jobs). A coordinator diagnostic of the smoke's network steps (counts only, nothing written, no trial line) then showed
+  the out-of-window politics weeks (May 2024) contain no market with life >= 100 d, so `prices_history` and
+  `data_api_reach` would fail vacuously and mark P/W2/A "not testable (source)" for a sampling artefact; and the
+  pageviews lag was 69 h (> 48 h; declared consequence: lag 72 h, A origin X + 4 d). **q0220 parked before it wrote
+  anything**; the pick search is being fixed (bounded out-of-window long-life search) before it is revived.
