@@ -566,7 +566,9 @@ def read_frame(rdir: Path, split: str, *, job: str) -> list[dict]:
         dropped = set()
     else:
         raise Refused(f"unknown split {split!r}")
-    closes = {str(r["market_id"]): r["close_epoch"] for r in c11.read_csv_gz(cpath)} if cpath.exists() else {}
+    if not cpath.exists():
+        raise Refused(f"{cpath} is missing; the open-at-t condition and the close mark cannot be evaluated (no silent fallback)")
+    closes = {str(r["market_id"]): r["close_epoch"] for r in c11.read_csv_gz(cpath)}
     return [{**dict(r), "close_epoch": closes.get(str(r["market_id"]), "")} for r in c11.read_csv_gz(path) if str(r["market_id"]) not in dropped]
 
 
@@ -901,6 +903,18 @@ def mde(n_quiet: int, n_spike: int | None = None) -> float:
     return float(base * math.sqrt(1.0 / n_spike + 1.0 / n_quiet)) if n_spike > 0 else math.nan
 
 
+def _holdout_counts(rdir: Path) -> dict:
+    """HOLDOUT market count for the census. Sealed run: seal-time drops excluded (n_dropped reported). Pre-seal: an upper bound, labelled as such."""
+    p = Path(rdir) / HOLD_DIR / "frame_hold.csv.gz"
+    if not p.exists():
+        return {"n_markets": 0, "basis": "no holdout file"}
+    ids = [str(r["market_id"]) for r in c11.read_csv_gz(p)]
+    if not (Path(rdir) / c11.SEAL_NAME).exists():
+        return {"n_markets": len(ids), "basis": "UPPER BOUND: before the seal, seal-time drops not yet applied"}
+    dropped = c11.dropped_market_ids(rdir)
+    return {"n_markets": sum(1 for i in ids if i not in dropped), "n_dropped": sum(1 for i in ids if i in dropped), "basis": "sealed run, seal-time drops excluded"}
+
+
 def census_a(rdir: Path, labels_path: Path, *, is_committed: Callable[[Path], bool] | None = None) -> dict:
     """Counts only (design 2.7 A). Builds the candidate units WITHOUT forward values (no P(t), P(t + 48 h), continuation or net exists in this path), applies GA0 from
     the committed audit labels, GA and the coverage audit. HOLDOUT is counted from its frame file only."""
@@ -926,7 +940,7 @@ def census_a(rdir: Path, labels_path: Path, *, is_committed: Callable[[Path], bo
     entity_share = pass_share * q_share
     doc: dict = {"version": "cb11-a-census-v1", "counts_only": True, "frame": {"n_screen": len(frame), "n_vol_screen": len(vol_markets), "report": rep}, "units_by_cell": cells,
                  "n_big_quiet": len(nq), "n_big_spike": len(ns), "events": len(ev), "days": len(days), "unavailable_counts": cnt, "markets_with_unit": len(qualifying),
-                 "holdout": {"n_markets": sum(1 for _ in c11.read_csv_gz(rdir / HOLD_DIR / "frame_hold.csv.gz")) if (rdir / HOLD_DIR / "frame_hold.csv.gz").exists() else 0}}
+                 "holdout": _holdout_counts(rdir)}
     try:
         aud = read_audit_labels(labels_path, audit_ids_of(rdir), is_committed=is_committed)
     except (NotNow, Refused) as exc:

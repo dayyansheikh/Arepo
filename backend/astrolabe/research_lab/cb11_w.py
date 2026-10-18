@@ -1487,6 +1487,9 @@ def census_w(wdir: Path, hist_root: Path, censoring: dict | None, coverage: dict
                                                                                                     "non_primary_counts", "merge", "n_units_primary", "n_units_all_strata")},
                  "key_drops": rep["population"]["key_drops_by_source"], "series_rule_drops": rep["population"]["series_rule_drops"], "exclusion": rep.get("exclusion"),
                  "hold": {k: listing[k] for k in ("n_units_hold", "n_end_dates", "n_events", "n_sample_hold", "listing_sha256")}}
+    # the listing counts are frame-time counts (the hold files are not opened by the census): UPPER BOUNDS, before the seal-time drops (re-check item 3)
+    doc["hold"]["counts_basis"] = "UPPER BOUND: frame-time listing counts, seal-time drops not applied (hold files are not opened by the census)"
+    doc["hold"]["n_dropped_markets_at_seal"] = len(c11.dropped_market_ids(pdir)) if (pdir / c11.SEAL_NAME).exists() else None
     label1 = label2 = None
     fit_cnt = Counter(str(u["fee_category"]) for u in fit)
     cats_ok = sorted(c for c in {str(u["fee_category"]) for u in scr} if fit_cnt.get(c, 0) >= GW["fit_min"])

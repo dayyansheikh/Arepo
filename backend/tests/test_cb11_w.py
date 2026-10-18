@@ -851,6 +851,10 @@ def test_b1_rep_w_never_analyses_seal_time_drops_and_w2_decided_means_filled(ful
     from astrolabe.research_lab import history_backfill as hb_  # noqa: PLC0415
 
     (pdir / c11.DROPS_FILE).write_bytes(hb_._gz_csv_bytes(["market_id", "block", "reason"], [[m, "DROPPED_SEAL_COPIES", "id"] for m in drop] + [["999999", "KEPT", ""]]))
+    _sp = pdir / c11.SEAL_NAME
+    _doc = json.loads(_sp.read_text()) if _sp.exists() else {}
+    _doc.setdefault("drops", {})["drops_sha256"] = h5_seal.sha256_file(pdir / c11.DROPS_FILE)  # the seal records the drops file hash
+    _sp.write_text(json.dumps(_doc))
     assert c11.dropped_market_ids(pdir) == set(drop)
     out = w.rep_w(wd, hist, census, ("W1", "W2"), 2, n_boot=50, n_draws=5, seals_dir=full["seals"], committed_seals=False)
     assert out["n_dropped_excluded"] == len(drop)

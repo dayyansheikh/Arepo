@@ -34,7 +34,7 @@
   "seals/cb11_wprints_holdout_SEAL.json"
  ],
  "next_action": "commit seals/cb11_wprints_holdout_SEAL.json; q0231",
- "notes": "DRAFT-REVISED round 1; re-check b2: W has its own seal step, so the W census (q0231) no longer waits on P and A (P and A seal in q0238). Exits 75 (pending) until q0223 is complete, then re-runs. Gamma key lookups for the seal-time drops: lane net with network gamma-api (one net job at a time, 2 rps cap). Sealed files never edited (write-once); drops recorded as DROPPED_* blocks and never analysed. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 8a5d1b5ede813aaf52fb5dd811ccb78a88bad4a612d81cc7fdb3b9d8c6765ed1 (part W of cb11_rules.json v2, 2026-10-18; sample pins filled and rules regenerated after the re-check fixes b1-b2, c1-c2, d1-d3).",
+ "notes": "DRAFT-REVISED round 1; re-check b2: W has its own seal step, so the W census (q0231) no longer waits on P and A (P and A seal in q0238). Exits 75 (pending) until q0223 is complete, then re-runs. Gamma key lookups for the seal-time drops: lane net with network gamma-api (one net job at a time, 2 rps cap). Sealed files never edited (write-once); drops recorded as DROPPED_* blocks and never analysed. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 064e13f9af1a254275590b4ede17c1b77f73076e77db841393c341402b4c9acb (part W of cb11_rules.json v2, 2026-10-18; sample pins filled and rules regenerated after the re-check fixes b1-b2, c1-c2, d1-d3).",
  "repeat": {
   "max_runs": 6,
   "until_log_regex": "\"status\": \"seal_all_complete\""

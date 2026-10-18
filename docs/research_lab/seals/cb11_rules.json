@@ -631,7 +631,7 @@
     "cb11_w.censor_upper": "f19178b7d42c3f67c78cc4141abdf74db643813d99d09e709999b2ca845b617c",
     "cb11_w.censor_window_set": "b76148fdbcfbb1c4002eb2e22f45beaf57f4988a0e2492420de62baff4bfe270",
     "cb11_w.censoring_doc": "583a5eba0c3663531d60f84bd9ac89d85c6adba5f68794cf37c23bb37b055e6f",
-    "cb11_w.census_w": "8088c63e946d10e55cca0990ef3de1960060f62f1de568879e734d86435c9a45",
+    "cb11_w.census_w": "32f6af39415f9346397db3440950c172104395bb84db1c468ed78bd288a24e34",
     "cb11_w.closed_rows_per_window": "96e801cdbca3b40dab609db99d476b56f1aa3ce983d650b0c3dc5b9b2cbf879f",
     "cb11_w.collect_frame": "b937f6a38ee5dc99d4e92982211338aa77e4f609cca36514777b789c435d35d2",
     "cb11_w.count_in_window": "9c52e21b8c672fd53f2ce99a3cef6009a1cd0f3a0cad47614f54ff9c1b9bc8a1",
@@ -689,10 +689,10 @@
     "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
     "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a"
    },
-   "funcs_sha256": "57683129f874f721345edda50a6b766439a1c363546eb7bca947c07f8ff49ac6",
+   "funcs_sha256": "3394fc7ad3e8b8a8a3292ba835a0ef7de65bb33f5d430e45d0a99dab9acf4708",
    "part": "W",
    "part_declared": true,
-   "rules_sha256": "8a5d1b5ede813aaf52fb5dd811ccb78a88bad4a612d81cc7fdb3b9d8c6765ed1",
+   "rules_sha256": "064e13f9af1a254275590b4ede17c1b77f73076e77db841393c341402b4c9acb",
    "rules_version": "cb11-rules-v2",
    "wallet": {
     "note": "no CB11 job reads or stores a wallet field (no HMAC key needed) or the side field",

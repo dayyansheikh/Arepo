@@ -1112,6 +1112,15 @@ def test_census_a_counts_only_never_attaches_targets_and_gates(aframe, monkeypat
     assert missing["GA0"]["pass"] is False and missing["GA0"]["error"].startswith("audit labels")
 
 
+def _rerecord_drops_sha(rdir):
+    """Test helper: a hand-written drops file is made consistent with the seal record (the production seal writes both)."""
+    from astrolabe.research_lab import h5_seal  # noqa: PLC0415
+    sp = rdir / c11.SEAL_NAME
+    doc = json.loads(sp.read_text()) if sp.exists() else {}
+    doc.setdefault("drops", {})["drops_sha256"] = h5_seal.sha256_file(rdir / c11.DROPS_FILE)
+    sp.write_text(json.dumps(doc))
+
+
 def test_d2_rep_p_and_rep_a_exclude_the_seal_time_drops(pprices, aframe):
     from astrolabe.research_lab import history_backfill as hb_  # noqa: PLC0415
 
@@ -1123,6 +1132,7 @@ def test_d2_rep_p_and_rep_a_exclude_the_seal_time_drops(pprices, aframe):
         job = "rep-P" if mod is pol else "rep-A"
         assert {str(r["market_id"]) for r in mod.read_frame(rdir, "holdout", job=job)} == set(ids)
         (rdir / c11.DROPS_FILE).write_bytes(hb_._gz_csv_bytes(["market_id", "block", "reason"], [[ids[0], "DROPPED_SEAL_COPIES", "id"], [ids[1], "KEPT", ""]]))
+        _rerecord_drops_sha(rdir)
         kept = {str(r["market_id"]) for r in mod.read_frame(rdir, "holdout", job=job)}
         assert kept == set(ids) - {ids[0]}
         if mod is pol:
@@ -1234,3 +1244,30 @@ def test_screen_pa_writes_once_and_logs_counted_lines(tmp_path, capsys):
 def test_totals_of_declared_output_caps_stay_within_the_family_budget():
     caps = [run_cb11.DECLARED_DISK_CAP_GB[k] for k in ("exclusion-keys", "w-frame", "w-prints", "w-censoring", "pol-frame", "pol-prices", "attn-frame", "attn-data")]
     assert sum(caps) <= c11.TOTAL_OUTPUT_CAP_GB + 0.01 and run_cb11.DECLARED_DISK_CAP_GB["attn-data"] == 0.12
+
+
+def test_verify_round_sealed_run_refuses_missing_or_altered_drops_file(pprices):
+    from astrolabe.research_lab import history_backfill as hb_  # noqa: PLC0415
+
+    rdir = pprices["rdir"]
+    (rdir / c11.DROPS_FILE).write_bytes(hb_._gz_csv_bytes(["market_id", "block", "reason"], [["2", "KEPT", ""]]))
+    _rerecord_drops_sha(rdir)
+    assert c11.dropped_market_ids(rdir) == set()  # intact file matches the seal record
+    good = (rdir / c11.DROPS_FILE).read_bytes()
+    (rdir / c11.DROPS_FILE).write_bytes(hb_._gz_csv_bytes(["market_id", "block", "reason"], [["1", "DROPPED_SEAL_COPIES", "id"]]))
+    with pytest.raises(c11.Refused, match="sha256 differs"):
+        c11.dropped_market_ids(rdir)
+    (rdir / c11.DROPS_FILE).unlink()
+    with pytest.raises(c11.Refused, match="missing on a sealed run"):
+        c11.dropped_market_ids(rdir)
+    (rdir / c11.DROPS_FILE).write_bytes(good)
+    assert c11.dropped_market_ids(rdir) == set()
+
+
+def test_verify_round_unsealed_run_has_no_drops_and_missing_closes_refuses(tmp_path, aframe):
+    assert c11.dropped_market_ids(tmp_path) == set()
+    rdir = aframe["rdir"]
+    (rdir / "closes.csv.gz").rename(rdir / "closes.bak")
+    with pytest.raises(att.Refused, match="closes.csv.gz"):
+        att.read_frame(rdir, "screen", job="screen-A")
+    (rdir / "closes.bak").rename(rdir / "closes.csv.gz")

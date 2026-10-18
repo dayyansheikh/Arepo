@@ -403,7 +403,14 @@ def seal_w(a) -> dict:
     c11 = _c11()
     sha = _rules(a)
     wdir = _root(a) / w.FRAME_RUN
-    rows = [{"market_id": r["market_id"], "event_ids": r["event_id"]} for r in c11.read_csv_gz(wdir / w.HOLD_DIR / "w2_sample_hold.csv.gz")] if (wdir / w.HOLD_DIR / "w2_sample_hold.csv.gz").exists() else []
+    # item 4: the drop rows cover every W1 hold unit (units_hold) and the W2 sample (hold), deduplicated by market id; only ids and event ids are read, no wait or outcome
+    seen: dict[str, dict] = {}
+    for fname in ("units_hold.csv.gz", "w2_sample_hold.csv.gz"):
+        fp = wdir / w.HOLD_DIR / fname
+        if fp.exists():
+            for r in c11.read_csv_gz(fp):
+                seen.setdefault(str(r["market_id"]), {"market_id": r["market_id"], "event_ids": r["event_id"]})
+    rows = [seen[k] for k in sorted(seen)]
     pdir = _hist(a) / c11.H11_WPRINTS
     return c11.seal_holdout(pdir, family="wprints", statuses=(w.PRINTS_STATUS,), copy_name="cb11_wprints_holdout_SEAL.json", rows=rows, rules_sha=sha, transport=hb.httpx_transport(),
                             seals_dir=Path(a.seals_dir) if a.seals_dir else None, rps=a.rps, live_check=None if a.standalone else hb.live_pass_or_lock,

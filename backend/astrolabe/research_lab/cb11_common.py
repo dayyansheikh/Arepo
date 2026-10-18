@@ -684,10 +684,21 @@ def seal_holdout(rdir: Path, *, family: str, statuses: tuple[str, ...], copy_nam
 
 
 def dropped_market_ids(rdir: Path) -> set[str]:
-    """Markets in seal-time ``DROPPED_*`` rows of ``drops.csv.gz`` (b1): never analysed. A sealed run without the file has no drops."""
-    dp = Path(rdir) / DROPS_FILE
-    if not dp.exists():
+    """Markets in seal-time ``DROPPED_*`` rows of ``drops.csv.gz`` (b1): never analysed. Before the seal there are no drops; on a sealed run the file must
+    exist and match ``drops.drops_sha256`` recorded in the seal (the file sits outside ``holdout/``, so the listing hash does not cover it): else Refused."""
+    from . import h5_seal  # noqa: PLC0415
+    rdir = Path(rdir)
+    dp = rdir / DROPS_FILE
+    sp = rdir / SEAL_NAME
+    if not sp.exists():
         return set()
+    want = (json.loads(sp.read_text()).get("drops") or {}).get("drops_sha256")
+    if not want:
+        raise Refused(f"{sp.name} records no drops_sha256; the drops file cannot be verified")
+    if not dp.exists():
+        raise Refused(f"{dp} is missing on a sealed run; refusing to analyse HOLDOUT without the seal-time drops")
+    if h5_seal.sha256_file(dp) != want:
+        raise Refused(f"{dp} sha256 differs from the seal record; refusing")
     return {str(r["market_id"]) for r in read_csv_gz(dp) if str(r.get("block", "")).startswith("DROPPED")}
 
 

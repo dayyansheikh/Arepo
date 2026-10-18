@@ -32,5 +32,5 @@
   "trials.jsonl (cb11_descriptive)"
  ],
  "next_action": "PASS: q0221; FAIL: dependent family not testable (source), counted",
- "notes": "CREATIVE_BATCH_11.md CB11-F. DRAFT-REVISED round 1. <= 40 requests. Prints counts only. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 8a5d1b5ede813aaf52fb5dd811ccb78a88bad4a612d81cc7fdb3b9d8c6765ed1 (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; sample pins filled and rules regenerated 2026-10-18 after the re-check fixes b1-b2, c1-c2, d1-d3)."
+ "notes": "CREATIVE_BATCH_11.md CB11-F. DRAFT-REVISED round 1. <= 40 requests. Prints counts only. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 064e13f9af1a254275590b4ede17c1b77f73076e77db841393c341402b4c9acb (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; sample pins filled and rules regenerated 2026-10-18 after the re-check fixes b1-b2, c1-c2, d1-d3)."
 }
