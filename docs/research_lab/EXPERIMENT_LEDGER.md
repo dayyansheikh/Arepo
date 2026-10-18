@@ -1509,3 +1509,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   finishers at α/10 in both stages. Request budgets recomputed (historical ≤ about 73,000, planning about 46,000).
 - Declared k after revision: **unchanged, 10 fixed (M1, M2, E1, AL1, AL2, SH1, SH2, X1, O1, O2; Holm k1 = 10) + ≤ 10
   conditional = 10-20.** Count 0 now; cumulative **1,181** from the committed `trials.jsonl` at `fec1b04`.
+
+## CB11 code-against-design freeze check, 2026-10-18 (science-reviewer): not counted
+- Code b1e2894 (64 tests; W family, smoke and shared code; P and A not yet implemented). Rules hash 577f5c4a… re-derives.
+  **q0220 smoke + q0221 keys ACCEPT_WITH_FIXES; W chain (q0222-q0224, q0230-q0232, q0235) ACCEPT_WITH_FIXES.**
+- Must-fixes: (B1) one whole-document rules hash, so adding P/A would refuse every pending W job: hash per part (W, PA);
+  (B2) q0221/q0224 return in_progress with exit 0 but the drafts have no `repeat`; (B3) C1/T5 ids silently "absent"
+  (write-once) when not staged; (B4) mandatory h2_main/h3_power sample files silently skipped; (B5) W2 ignores print
+  coverage (uncovered markets must be unavailable, < 60 % -> not testable); (B6) GW2 counted no_room/unfilled as
+  decided; (B7) W2 sign-by-calendar-month robustness missing; (B8) W1-rep judged at 0.01 instead of the Stage-2 alpha
+  0.05/k; (B9) rep pool annualised over W_screen (122 d), not W_hold (71 d); (B10) unverified disjointness stopped all
+  of W, while the design says only P/A. Plus nine non-blocking items (capped censoring windows, undeclared table
+  deviations, h3-only subset, integrity re-checks, MDE from counts, q0235 coupling to P/A, "unfilled" split).
+- Fixes being implemented (rules v2, per-part hash); a focused re-check follows before q0220 is promoted.
