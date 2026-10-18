@@ -21,6 +21,7 @@ dependencies = [
     "fastapi-users[sqlalchemy]>=15.0",
     "pwdlib[argon2]>=0.2",
     "pyjwt>=2.8",
+    "cryptography>=42.0",
 ]
 
 [project.optional-dependencies]

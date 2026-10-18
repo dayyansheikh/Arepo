@@ -42,6 +42,7 @@ def _load_all_models() -> None:
     from ..evaluation import models as _eval  # noqa: F401
     from ..evaluation import research_models as _research  # noqa: F401
     from ..ingest import microstructure_store as _micro  # noqa: F401
+    from ..lab import models as _lab  # noqa: F401  (lab_snapshots/lab_commands)
     from ..opportunity import snapshot_models as _snap  # noqa: F401
     from ..scheduler import models as _scheduler  # noqa: F401  (scheduler_state/leases)
     from . import models as _cache  # noqa: F401
@@ -52,7 +53,7 @@ _load_all_models()
 # Bump whenever the ORM gains tables/columns. This is a monotonic marker recorded in
 # ``schema_migrations``; the actual work is metadata-driven so the number is documentation, not a
 # script selector.
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 SCHEMA_VERSION_NOTES = {
     1: "initial create_all schema",
     2: "research per-family directions (momentum/orderbook/tradeflow) + edge-research tables",
@@ -75,6 +76,8 @@ SCHEMA_VERSION_NOTES = {
         "Opportunities, digests and prospective Replay; old rows remain NULL)",
     13: "indexes on signal_snapshots.calculation_version + cohort_entries.snapshot_id "
         "(Supabase unindexed-foreign-key advisor; additive)",
+    14: "lab_snapshots + lab_commands (private owner-only Lab dashboard; additive new tables, "
+        "RLS enabled on Postgres)",
 }
 
 _VERSION_TABLE = "schema_migrations"
@@ -177,6 +180,8 @@ _PRIVATE_ACCOUNT_TABLES = (
     "account_deletions",
     "digest_deliveries",
     "digest_entries",
+    "lab_snapshots",
+    "lab_commands",
 )
 
 

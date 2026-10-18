@@ -14,3 +14,4 @@ asyncpg>=0.29,<1.0  # production Postgres (Supabase) driver
 fastapi-users[sqlalchemy]>=15.0,<16.0
 pwdlib[argon2]>=0.2,<1.0
 pyjwt>=2.8,<3.0
+cryptography>=42.0,<51.0  # Ed25519 verification of Lab machine requests
