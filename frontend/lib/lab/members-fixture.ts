@@ -19,7 +19,7 @@ export function buildMembersFixture(nowMs: number): MembersSnapshot {
     { id: 4, at: mins(12), actor_user_id: ME, actor_email: "owner@example.com", action: "verification_email", target_user_id: users[2].id, target_email: users[2].email, detail: null },
     { id: 3, at: mins(190), actor_user_id: ME, actor_email: "owner@example.com", action: "suspend", target_user_id: users[3].id, target_email: users[3].email, detail: null },
     { id: 2, at: ago(3), actor_user_id: ME, actor_email: "owner@example.com", action: "admin_grant", target_user_id: users[4].id, target_email: users[4].email, detail: null },
-    { id: 1, at: ago(9), actor_user_id: ME, actor_email: "owner@example.com", action: "delete", target_user_id: "00000000-0000-4000-8000-000000000099", target_email: "spam-signup@example.com", detail: '{"removed": {"alert_deliveries": 0, "alert_preferences": 0, "digest_deliveries": 0, "saved_markets": 0}}' },
+    { id: 1, at: ago(9), actor_user_id: ME, actor_email: "owner@example.com", action: "delete", target_user_id: "00000000-0000-4000-8000-000000000099", target_email: "s***@example.com", detail: '{"removed": {"alert_deliveries": 0, "alert_preferences": 0, "digest_deliveries": 0, "saved_markets": 0}}' },
   ];
   return { users, me: ME, audit };
 }

@@ -11,13 +11,14 @@ except that ``lab_commands.created_by`` (a plain string, not a foreign key) is l
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import Request
 from fastapi_users import exceptions as fu_exc
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..accounts.manager import UserManager
@@ -61,6 +62,19 @@ def _iso(dt: datetime | None) -> str | None:
 
 def _same_email(a: str | None, b: str | None) -> bool:
     return bool(a) and bool(b) and a.strip().casefold() == b.strip().casefold()
+
+
+def mask_email(email: str | None) -> str:
+    """Privacy mask kept after a deletion: first character + "***@" + domain ("d***@gmail.com")."""
+    local, sep, domain = (email or "").strip().partition("@")
+    if not sep or not local or not domain:
+        return "***"
+    return f"{local[0]}***@{domain}"
+
+
+def email_sha256(email: str | None) -> str:
+    """The same non-reversible hash ``delete_account`` stores in account_deletions."""
+    return hashlib.sha256((email or "").encode("utf-8")).hexdigest()
 
 
 def member_dict(user: User, data: dict[str, int] | None = None) -> dict:
@@ -269,9 +283,26 @@ async def delete_member(
     removed = (await _data_counts(session)).get(str(target.id), {})
     removed = {name: removed.get(name, 0) for name, _ in USER_DATA_TABLES}
     target_id = str(target.id)
-    _audit(session, actor, "delete", target, now, detail={"removed": removed})
+    masked = mask_email(target.email)
+    # No plain copy of a deleted member's email survives: earlier audit rows that name them (as
+    # target or actor) are masked, and the delete row itself stores only the mask plus the same
+    # hash account_deletions keeps.
+    await session.execute(
+        update(LabAdminAudit).where(LabAdminAudit.target_user_id == target_id)
+        .values(target_email=masked)
+    )
+    await session.execute(
+        update(LabAdminAudit).where(LabAdminAudit.actor_user_id == target_id)
+        .values(actor_email=masked)
+    )
+    session.add(LabAdminAudit(
+        at=now, actor_user_id=str(actor.id), actor_email=actor.email, action="delete",
+        target_user_id=target_id, target_email=masked,
+        detail=json.dumps({"email_sha256": email_sha256(target.email), "removed": removed},
+                          sort_keys=True),
+    ))
     # Reuses the self-service deletion path (explicit per-table deletes in FK order plus the
-    # hashed account_deletions row); it commits once, so the audit row and every delete land in
-    # one transaction.
+    # hashed account_deletions row); it commits once, so the audit changes and every delete land
+    # in one transaction.
     await delete_account(session, target, reason="owner_admin")
     return {"deleted": target_id, "removed": removed}

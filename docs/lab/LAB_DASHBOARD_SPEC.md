@@ -116,5 +116,7 @@ API `/api/lab/admin` (every endpoint uses the same `owner()` dependency: 401 sig
   alert_preferences, saved_markets, alert_deliveries, digest_deliveries, digest_entries in one transaction via the
   existing `delete_account`, with an `account_deletions` hash row, reason `owner_admin`).
 - `GET /audit` → last 50 `lab_admin_audit` rows. Every successful mutation writes one row in the same transaction.
+  On delete, no plain copy of the member's email survives: every audit row naming them (target or actor) is rewritten
+  to a mask (`d***@gmail.com`), and the delete row stores the mask plus the same SHA-256 as `account_deletions`.
 - Rate limits per owner per rolling hour, counted from the audit log: 20 email actions, 60 actions in total (429).
 - Table `lab_admin_audit` (SCHEMA_VERSION 15, RLS on Postgres). `lab_commands.created_by` is left as written.

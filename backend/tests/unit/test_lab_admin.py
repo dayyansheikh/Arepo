@@ -356,9 +356,63 @@ async def test_delete_removes_only_that_members_rows(env):
         deletion = (await s.execute(select(AccountDeletionAudit))).scalar_one()
         assert deletion.reason == "owner_admin" and "gone@" not in deletion.email_hash
         row = (await s.execute(select(LabAdminAudit))).scalar_one()
-        assert row.action == "delete" and row.target_email == "gone@example.com"
+        assert row.action == "delete" and row.target_email == "g***@example.com"
         assert row.actor_user_id == str(oid) and row.actor_email == OWNER
         assert '"saved_markets": 1' in row.detail
+        assert f'"email_sha256": "{deletion.email_hash}"' in row.detail
+        assert "gone@example.com" not in row.detail
+
+
+async def test_delete_masks_every_audit_row_naming_the_member(env):
+    client, oid = await _owner(env)
+    _, sm, _ = env
+    victim = await _user(sm, "gone@example.com", verified=False)
+    keeper = await _user(sm, "keep@example.com", verified=False)
+    for uid in (victim, keeper):
+        assert client.post(f"{BASE}/users/{uid}/verify").status_code == 200
+    assert client.post(f"{BASE}/users/{victim}/suspend").status_code == 200
+    assert client.post(f"{BASE}/users/{victim}/restore").status_code == 200
+    async with sm() as s:  # an earlier row where the deleted member was the actor
+        s.add(LabAdminAudit(at=utcnow(), actor_user_id=str(victim), actor_email="gone@example.com",
+                            action="verify", target_user_id=str(keeper),
+                            target_email="keep@example.com"))
+        await s.commit()
+    async with sm() as s:
+        keeper_before = [
+            (r.id, r.actor_email, r.target_email, r.detail)
+            for r in (await s.execute(select(LabAdminAudit).where(
+                LabAdminAudit.target_user_id == str(keeper),
+                LabAdminAudit.actor_user_id != str(victim)))).scalars()
+        ]
+
+    r = client.request("DELETE", f"{BASE}/users/{victim}",
+                       json={"confirm_email": "gone@example.com"})
+    assert r.status_code == 200
+
+    async with sm() as s:
+        rows = list((await s.execute(select(LabAdminAudit))).scalars())
+        for row in rows:
+            text = " ".join(str(v) for v in (row.actor_email, row.target_email, row.detail))
+            assert "gone@example.com" not in text.lower()
+        about_victim = [x for x in rows if x.target_user_id == str(victim)]
+        assert {x.action for x in about_victim} == {"verify", "suspend", "restore", "delete"}
+        assert {x.target_email for x in about_victim} == {"g***@example.com"}
+        assert all(x.actor_email == OWNER for x in about_victim)
+        by_victim = [x for x in rows if x.actor_user_id == str(victim)]
+        assert [(x.actor_email, x.target_email) for x in by_victim] == [
+            ("g***@example.com", "keep@example.com")]
+        keeper_after = [
+            (x.id, x.actor_email, x.target_email, x.detail) for x in rows
+            if x.target_user_id == str(keeper) and x.actor_user_id != str(victim)
+        ]
+        assert keeper_after == keeper_before and keeper_after
+
+
+def test_mask_email():
+    assert admin.mask_email("dayyan@gmail.com") == "d***@gmail.com"
+    assert admin.mask_email(" A@b.co ") == "A***@b.co"
+    assert admin.mask_email("no-at-sign") == "***"
+    assert admin.mask_email(None) == "***"
 
 
 async def test_delete_guards(env):

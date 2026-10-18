@@ -42,8 +42,9 @@ class LabCommand(Base):
 class LabAdminAudit(Base):
     """Append-only record of every owner action on a member account (Lab > Members).
 
-    Private: owner-only API, RLS enabled on Postgres. ``target_email`` is kept so a deleted
-    member's removal stays explainable to the owner; no passwords, hashes or tokens are stored.
+    Private: owner-only API, RLS enabled on Postgres. When a member is deleted, every row naming
+    them is rewritten to a masked email ("d***@gmail.com") and the delete row keeps only that mask
+    plus the account_deletions SHA-256; no passwords, password hashes or tokens are stored.
     """
 
     __tablename__ = "lab_admin_audit"
