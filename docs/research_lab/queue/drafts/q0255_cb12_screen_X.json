@@ -13,13 +13,15 @@
   "lane": "cpu"
  },
  "depends_on": [
-  "q0251_cb12_x_census"
+  "q0251b_cb12_x_census_v2"
  ],
  "argv": [
   "scripts/run_cb12.py",
   "screen",
   "--family",
-  "X"
+  "X",
+  "--census-tag",
+  "_v2"
  ],
  "timeout_s": 3600,
  "max_retries": 1,
@@ -28,5 +30,5 @@
   "trials.jsonl (cb12_test + creative_batch_12:X n_tests=1)"
  ],
  "next_action": "advanced: draft Stage P-X (after 2026-11-03 and E009/E010 final analyses only)",
- "notes": "DRAFT. Refuses before the X entry of model_specs/cb12_v1.json is committed and unless the X smoke criteria passed; counted with p = 1 if GX failed. 'not identifiable' if the horizon-offset placebo advances. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): X 24e3444b793ca3e48e7d00053c6ea584fbcf46e3c77ac06be3196b68fedb2928. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+ "notes": "DRAFT. Refuses before the X entry of model_specs/cb12_v1.json is committed and unless the X smoke criteria passed; counted with p = 1 if GX failed. 'not identifiable' if the horizon-offset placebo advances. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): X 7485a272bb57d7afd3b114b3382b79ffdb81c0bdf1e2c4cfbc1458280abf3a9f. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. A7 (2026-10-18): the X freshness correction changed X from 24e3444b\u2026; the screen reads census_X_v2.json (q0251b) via --census-tag _v2; the v1 smoke (criteria independent of freshness) stays valid."
 }

@@ -284,7 +284,8 @@ def gap_of(pair: XPair) -> np.ndarray:
 
 
 def _age_fresh(pts: np.ndarray, kc: np.ndarray, t: np.ndarray) -> np.ndarray:
-    """Both venues' points aged <= 10 min at each grid step (Polymarket: the point is known from stamp + 600 s, so a fresh point is the one stamped at ``t - 600``)."""
+    """Both venues' points aged <= 10 min at each grid step. Polymarket's point is known from stamp + 600 s, so its age is measured from when it becomes usable
+    (``t - stamp - POINT_LAG_S <= FRESH_MAX_AGE_S``, i.e. a stamp in ``[t - 1200, t - 600]``; amendment A7); Kalshi's age is ``t - stamp``."""
     out = np.zeros(len(t), bool)
     if not len(pts) or not len(t):
         return out
@@ -294,7 +295,7 @@ def _age_fresh(pts: np.ndarray, kc: np.ndarray, t: np.ndarray) -> np.ndarray:
     if not len(kt):
         return out
     ik = cv.asof_index(kt, t, 0.0, cv.MAX_AGE_K_S)
-    age_p = np.where(ip >= 0, t - pt[np.clip(ip, 0, None)], np.inf)
+    age_p = np.where(ip >= 0, t - pt[np.clip(ip, 0, None)] - cv.POINT_LAG_S, np.inf)
     age_k = np.where(ik >= 0, t - kt[np.clip(ik, 0, None)], np.inf)
     return (age_p <= FRESH_MAX_AGE_S) & (age_k <= FRESH_MAX_AGE_S)
 
@@ -396,7 +397,7 @@ def census_x(pairs: list[XPair], report: dict | None = None) -> dict:
         steps = int(sum(int((b == bi).sum()) for b in tau_pairs))
         events = {pairs[i].event for i in ps}
         months = {pairs[i].month for i in ps}
-        fresh = int(sum(int(((b == bi) & f).sum()) for b, f in zip(tau_pairs, fresh_pairs, strict=True)))  # PM stamp exactly t - 600 s at both steps (600 s lag), K <= 10 min old
+        fresh = int(sum(int(((b == bi) & f).sum()) for b, f in zip(tau_pairs, fresh_pairs, strict=True)))  # PM point usable (stamp + 600 s <= t) and <= 10 min past usability, i.e. stamp in [t - 1200, t - 600], K <= 10 min old (A7)
         by_bin[name] = {"pairs": len(ps), "events": len(events), "months": len(months), "step_pairs": steps, "fresh_step_pairs": fresh,
                         "by_category": dict(Counter(pairs[i].cat for i in ps)), "by_volume_tercile": dict(Counter(int(terc[i]) for i in ps))}
     gx = {n: bool(by_bin[n]["pairs"] >= GX_MIN["pairs"] and by_bin[n]["events"] >= GX_MIN["events"] and by_bin[n]["step_pairs"] >= GX_MIN["steps"]) for n in ("short", "long")}

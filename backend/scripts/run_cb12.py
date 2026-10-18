@@ -399,9 +399,9 @@ def cmd_census(a):
     fam = _family(a)
     sha = _rules(a, fam)
     if fam == "M":
-        out = Path(a.out) if a.out else _root(a) / "census_M.json"
+        out = Path(a.out) if a.out else _root(a) / f"census_M{a.census_tag}.json"
     else:
-        out = Path(a.out) if a.out else _root(a) / "census_X.json"
+        out = Path(a.out) if a.out else _root(a) / f"census_X{a.census_tag}.json"
     if out.exists():
         raise c12.Refused(f"{out} exists; the census is written once")
     doc = {"version": f"cb12-census-{fam}-v1", "counts_only": True, "rules_sha256": sha, fam: census_m_block(a) if fam == "M" else census_x_block(a)}
@@ -446,7 +446,7 @@ def cmd_screen(a):
     freeze_sha = _freeze(a, fam)
     sha = _rules(a, fam)
     root = _root(a)
-    cpath = Path(a.census) if a.census else root / f"census_{fam}.json"
+    cpath = Path(a.census) if a.census else root / f"census_{fam}{a.census_tag}.json"
     if not cpath.exists():
         raise c12.NotNow(f"{cpath.name} missing (the census first)")
     census = json.loads(cpath.read_text())[fam]
@@ -588,6 +588,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--out", default=None)
     q.add_argument("--seals-dir", default=None)
     q.add_argument("--allow-unpinned-c1", action="store_true", help="tests only: skip the X input pins and the C1 count assertion")
+    q.add_argument("--census-tag", default="", help="file-name suffix of the census (e.g. _v2: a census re-run under amended code; the earlier file is kept)")
     q.set_defaults(fn=cmd_census)
 
     q = sub.add_parser("screen", help="q0252 (M) / q0255 (X)")
@@ -595,6 +596,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--family", required=True, help="M | X")
     q.add_argument("--smoke", default=None)
     q.add_argument("--census", default=None)
+    q.add_argument("--census-tag", default="", help="reads census_<family><tag>.json (default: the untagged file)")
     q.add_argument("--out", default=None)
     q.add_argument("--freeze-spec", default=None)
     q.add_argument("--seals-dir", default=None)

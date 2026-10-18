@@ -1343,6 +1343,21 @@ def test_x1_has_top5_drop_for_each_clustering_way():
     assert len(dropped) == 5 and km.sum() < len(km)
 
 
+def test_fresh_age_is_measured_from_usability_not_from_the_stamp():
+    """A7: a Polymarket point is usable from stamp + 600 s, so it is fresh iff stamp is in [t - 1200, t - 600] (the old rule held only for stamp == t - 600)."""
+    t0 = 1_800_000_000.0
+    t = np.array([t0])
+    kc = np.array([[t0, 0.40, 0.42, 0, 0, 0, 0]], float)
+
+    def fresh(stamp):
+        return bool(x12._age_fresh(np.array([[stamp, 0.5]], float), kc, t)[0])
+
+    assert fresh(t0 - 600) and fresh(t0 - 900) and fresh(t0 - 1200) and not fresh(t0 - 1201)  # off-grid stamps are fresh; exact-lag stamp is fresh
+    assert not fresh(t0 - 599)  # not yet usable (stamp + 600 > t): as-of lookup returns nothing
+    old_k = np.array([[t0 - 601, 0.40, 0.42, 0, 0, 0, 0]], float)
+    assert not bool(x12._age_fresh(np.array([[t0 - 900, 0.5]], float), old_k, t)[0])  # Kalshi unchanged: age = t - stamp <= 600
+
+
 def test_x_census_reports_volume_key_and_fresh_step_pairs(tmp_path):
     root, _, _ = _cv_fixture(tmp_path)
     out = x12.load_c1(root, expected=None, verify=False, source_pins=False)
