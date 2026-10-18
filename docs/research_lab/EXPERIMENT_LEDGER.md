@@ -1490,3 +1490,22 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   max(2026-10-21T06:00Z, first run + 2 h) and send idle heartbeats meanwhile. q0172 census stays a draft until near
   T8_H1_end + 30 h (it would exhaust the 48-tempfail limit if queued now). Host wallet key checked: fingerprint
   80ce5e81a539a570 = the pinned value.
+
+## CB12 challenger round 1 response (2026-10-18; design only, not counted)
+- `science-reviewer` round 1 verdicts: M REVISE, E REVISE, F REVISE, X ACCEPT (non-blocking only), O REVISE
+  (effectively DROP unless daily strike events exist). 24 items (14 blocking), all adopted, none rejected; status
+  DRAFT-REVISED, code and code-against-design freeze check next (`CREATIVE_BATCH_12.md` §9-§10). Changes: E points at
+  fidelity 60 usable from stamp + 3,600 s, q0245 requests recomputed (Σ 14-day chunks, ≤ 15,000), checkpoints from
+  2024-09-04T16:00Z; E window-component cluster way (GE ≥ 30 components), 10:00Z `p_reg` read for E1-rep, E Stage-2
+  stop rule (≥ 30 components and 100 units by the unchanged 90-day cap, likely "not run (power)"); M print reach
+  (`limit` 10,000, "unavailable (source)", binding worst-case fill), separate SCREEN/HOLDOUT outcome files with the
+  HOLDOUT sha256 sealed, a frozen sports exclusion (tags + broadcast regex; sports arm only as a later registration),
+  `ceil_tick` quotes, a binding bid-proxy check, a speaker factor in GMP; F paging at `limit` 10,000 (≤ 4,800 requests),
+  feature-only power gate GFP (MDE > 2 x floor → not run), per-event and short-stratum rules; X hindsight-end-date
+  label, fresh-steps robustness, no E009/E010 subgroups; O kept: 8 counts-only round-1 probes found a live daily
+  equity strike template ("<Name> (<TKR>) closes above ___ on <date>?", 10 live, ≥ 32 distinct 2026 settlement dates
+  in a truncated search), so O windows and GO need ≥ 30 distinct settlement dates (else "not run (power)", counted),
+  O2 pays on the Gamma resolution, listed-`K` and iv time-convention rules, `m_prev` at 11:00 ET; Holm early
+  finishers at α/10 in both stages. Request budgets recomputed (historical ≤ about 73,000, planning about 46,000).
+- Declared k after revision: **unchanged, 10 fixed (M1, M2, E1, AL1, AL2, SH1, SH2, X1, O1, O2; Holm k1 = 10) + ≤ 10
+  conditional = 10-20.** Count 0 now; cumulative **1,181** from the committed `trials.jsonl` at `fec1b04`.
