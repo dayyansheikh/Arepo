@@ -67,6 +67,11 @@ export default function AccountPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageHeader title={name || "Your account"} lead={user.email} />
         <div className="flex items-center gap-3 text-[13px]">
+          {user.is_superuser ? (
+            <Link href="/lab" className="focus-ring text-arepo-muted underline hover:text-arepo-ink">
+              Lab
+            </Link>
+          ) : null}
           <Link href="/forgot" className="focus-ring text-arepo-muted underline hover:text-arepo-ink">
             Reset password
           </Link>

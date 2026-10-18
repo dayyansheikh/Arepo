@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginAccount, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { safeNextPath } from "@/lib/safe-next";
 import {
   AuthShell,
   Field,
@@ -27,7 +28,8 @@ export default function SignInPage() {
     try {
       await loginAccount(email, password);
       await refresh();
-      router.push("/account");
+      // Honour a same-site ?next= (e.g. /lab); anything else goes to the account page.
+      router.push(safeNextPath(new URLSearchParams(window.location.search).get("next")));
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
         setError(

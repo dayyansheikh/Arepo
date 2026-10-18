@@ -28,7 +28,7 @@ import type {
 // Production traffic stays first-party: Next proxies /api/* to the Render service, so the
 // secure HttpOnly auth cookie belongs to www.arepolabs.com and is sent on refresh/navigation.
 // Local development still talks directly to the explicitly configured local backend.
-const API_BASE =
+export const API_BASE =
   process.env.NODE_ENV === "production"
     ? ""
     : process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "http://localhost:8000";
