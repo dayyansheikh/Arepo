@@ -207,9 +207,15 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 0. **Autopilot session from 14:20Z 10-18** (no session ran ~04:10-14:20Z: auth-status timeouts after the macOS update,
    fixed in a24e8ec). Host queue idle except q0162/q0163 (exit 75 until their declared start 10-21T06Z; their
    idle_heartbeat exit 0 every <= 10 h resets the 48-tempfail cap, so no fix is needed). Committed fec1b04: CB12 DRAFT
-   plus the trials.jsonl union. Running agents: (a) science-reviewer CB11 W + smoke code-against-design freeze check;
-   (b) science-reviewer CB12 challenger round 1; (c) implementer CB11 P and A in a worktree (new cb11_p.py and
-   cb11_a.py, test_cb11_pa.py, P/A drafts); (d) Fable xhigh creative round 6 -> `CREATIVE_HYPOTHESES_2026-10-20.md`.
+   plus the trials.jsonl union. Results so far: **CB11 W freeze check = ACCEPT_WITH_FIXES** (B1 per-part rules hash
+   W vs PA; B2 repeat blocks q0221/q0224; B3 C1/T5 staging refusal; B4 sample.csv sha pins; B5-B7 W2 availability,
+   GW2 count, month robustness; B8 Stage-2 alpha 0.05; B9 W_hold 71 d; B10 disjointness only kills P/A; plus N1-N9).
+   **CB12 challenger round 1 = REVISE** (M/E/F REVISE, X ACCEPT, O ~DROP unless >= 30 settlement dates; 14 blocking).
+   Running agents: (a) implementer CB11 W fixes in the main tree (commit "CB11 W freeze-check fixes"); (b) implementer
+   CB11 P and A in a worktree (told: register P/A as rules part PA, no edits to cb11_w.py or the hash machinery; the
+   coordinator merges it after (a)); (c) opus CB12 round-1 response (CB12 doc + ledger section); (d) Fable xhigh
+   round 6 -> `CREATIVE_HYPOTHESES_2026-10-20.md`. After (a): focused science-reviewer re-check of B1-B10, then
+   promote q0220 smoke (+ q0221 after it) and deploy. Ledger entry for the CB11 W freeze check still to write (after (c)).
    If the session stops, re-run any of them that has no commit.
 1. **Next:** CB11 code-against-design freeze check -> promote q0220 + W chain -> deploy. q0160c result: PASS -> promote
    q0162/q0163; written FAIL of a/b/f/h/i -> CB8-H "not run (source)", counted, no smoke v4.
