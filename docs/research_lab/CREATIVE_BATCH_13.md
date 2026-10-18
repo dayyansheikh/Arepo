@@ -2,10 +2,13 @@
 
 `evidence_role: exploratory_dev` (CB13-T Stage 1, on worn live captures and monitor prints) / `prospective`
 (CB13-T Stage 2, on a later live window that does not exist yet at drafting) / `exploratory_historical` (CB13-R Stage
-1; Stage 2 on a sealed later historical holdout) | status: **DRAFT (pre-challenger). Nothing frozen, nothing queued, no
-code.** Drafted 2026-10-18 21:15 UTC+1 (2026-10-18T20:15Z) at HEAD `ee0bc96`. Nothing was fetched or written for CB13
-beyond the read-only host probes and the 19 counts-only keyless GETs of §0.3. **No CB13 quantity was computed:** no
-mark-out, forward price, mid change, slope, net, touch outcome or resolution.
+1; Stage 2 on a sealed later historical holdout) | status: **DRAFT-REVISED after challenger round 1 (CB13-T REVISE,
+CB13-R REVISE; all 14 items adopted, 3 with a stated modification, none rejected; §9-§10). Nothing frozen, nothing
+queued, no code.** Drafted 2026-10-18 21:15 UTC+1 (2026-10-18T20:15Z) on parent `ee0bc96` and committed as `98a00e6`;
+round-1 response 2026-10-18 21:33 UTC+1 (2026-10-18T20:33Z). Every round-1 change tightens or clarifies; no floor,
+threshold, gate, alpha or cap was relaxed. Nothing was fetched or written for CB13 beyond the read-only host probes and
+the 19 counts-only keyless GETs of §0.3. **No CB13 quantity was computed:** no mark-out, forward price, mid change,
+slope, net, touch outcome or resolution.
 
 This file turns two round-6 ideas from `CREATIVE_HYPOTHESES_2026-10-20.md` (CH128, rank 1; CH118, rank 2) into
 declared, falsifiable tests. It also records why CH119 (rank 4) is not a test in this batch: its population census
@@ -34,8 +37,8 @@ CB4 amendment A-C1 and the CB10 §2.3 small-G rule govern the time cluster ways.
 
 | Rank | Family | Hypothesis | Counted tests | Stage 1 data | Stage 2 data | Queue ids |
 |---|---|---|---|---|---|---|
-| 1 | **CB13-T** maker toxicity by resolution class (CH128) | a paper maker resting at the recorded touch and filled by a ≥ $1k taker print loses less to adverse selection in markets settled by a public statistic or an asset path (LOW) than in unscheduled-news markets (NEWS), by ≥ 0.5c per filled share at 2 h (T1). In LOW, the 2 h mid-marked maker net stays positive (T2, ≥ +0.25c) | T1 (class contrast), T2 (LOW sign) | **host files only**: live large-trade monitor prints and complete-universe captures, SCREEN window `[2026-10-12, 2026-10-16)` | the same stores, HOLDOUT window `[2026-10-21, 2026-10-26)`, sealed, event-disjoint from SCREEN; the T3 economic check at recorded touches | q0270-q0275 |
-| 2 | **CB13-R** barrier-versus-terminal confusion (CH118) | in closed crypto "reach / dip to $B" ladders settled on Binance 1-minute highs and lows, the driftless reflection-principle touch probability predicts resolution beyond the price (R1, slope ≥ 0.30) | R1 (slope) | fresh `h13_touch` (Gamma frame, CLOB `prices-history`) and fresh `h13_binance` (public 1-minute archive); window ends `[2024-11-01, 2026-04-01)` | the same fetch, sealed HOLDOUT window ends `[2026-04-01, 2026-10-01)`; R2 (modelled-cost economic) only there | q0276-q0283 |
+| 1 | **CB13-T** maker toxicity by resolution class (CH128) | the maker filled by a ≥ $1k taker print (fill at the print's own maker-adverse price, side read from a touch-consistent price) loses less to adverse selection in markets settled by a public statistic or an asset path (LOW) than in unscheduled-news markets (NEWS), by ≥ 0.5c per filled share at the 2-4 h mark (T1). In LOW, the 2-4 h mid-marked maker net stays positive (T2, ≥ +0.25c) | T1 (class contrast), T2 (LOW sign) | **host files only**: live large-trade monitor prints and complete-universe captures, SCREEN window `[2026-10-12, 2026-10-16)` | the same stores, HOLDOUT window `[2026-10-21, 2026-10-26)` (adjacent window, same regime), sealed, event-disjoint from SCREEN, analysed only after CB3's freeze; the T3 economic check at recorded prices | q0270-q0275 |
+| 2 | **CB13-R** barrier-versus-terminal confusion (CH118) | in closed **weekly** crypto "reach / dip to $B" ladders settled on Binance 1-minute highs and lows, the driftless reflection-principle touch probability predicts resolution beyond the price (R1, slope ≥ 0.30); monthly, yearly and "by" templates counted in the census only (round 1 item 5) | R1 (slope) | fresh `h13_touch` (Gamma frame, CLOB `prices-history`) and fresh `h13_binance` (public 1-minute archive); window ends `[2024-11-01, 2026-04-01)`; a pre-fetch component gate before the prices fetch | the same fetch, sealed HOLDOUT window ends `[2026-04-01, 2026-10-01)`; R2 (modelled-cost economic) only there | q0276-q0285 |
 | - | CH119 inclusive-threshold atom | not a test: the census fails (§0.4) | none | | | next batch |
 
 **Counted: 3 fixed (T1, T2, R1) + up to 5 conditional (T1-rep, T2-rep, T3, R1-rep, R2) = 3-8** (§2.5). The budget is
@@ -45,21 +48,23 @@ fixed now. No CB13 test is added after any CB13 read.
 
 | Id | Job | Family | Earliest commit |
 |---|---|---|---|
-| q0270 | `cb13_smoke` (counts only; §CB13-S) | T, R | after `seals/cb13_rules.json` and smoke code exist (`cpu` lane, ≤ 30 requests) |
+| q0270 | `cb13_smoke_T` (counts only, no network; §CB13-S) | T | after `seals/cb13_rules.json` and smoke code exist (`cpu` lane) |
 | q0271 | `cb13_t_frame` (T exclusion keys; SCREEN fill table, features only, labels applied; no mark) | T | after q0270 PASS and the labeller audit (§CB13-T) is committed |
 | q0272 | `cb13_census_T` (counts only; gates GT, GL, GTP; MDEs) | T | after q0271 |
 | q0273 | `cb13_screen_T` (T1, T2 Stage 1; gate GTI) | T | after the T freeze |
 | q0274 | `cb13_t_holdout` (HOLDOUT seal: source-file sha256; HOLDOUT fill table and raw mark-quote table to `holdout/`; counts only) | T | not before 2026-10-26T08:00Z |
-| q0275 | `cb13_rep_T` (T1-rep, T2-rep, T3 on the sealed HOLDOUT) | T | only if T1 or T2 advanced; after the seal copy is committed |
-| q0276 | `cb13_exclusion_keys` (CB11 q0221 key file + every set since, including CB12 frames + seal copies; barrier-overlap list) | R | after q0270 PASS and CB11 q0221 complete |
+| q0275 | `cb13_rep_T` (T1-rep, T2-rep, T3 on the sealed HOLDOUT; GTI on SCREEN + HOLDOUT pairs) | T | only if T1 or T2 advanced; after the seal copy **and CB3's freeze commit** (round 1 item 3) |
+| q0276 | `cb13_exclusion_keys` (CB11 q0221 key file + every set since, including CB12 frames + seal copies; barrier-overlap list) | R | after q0285 PASS and CB11 q0221 complete |
 | q0277 | `cb13_touch_frame` (Gamma tag-21 date walk, barrier templates, rule parser, split, outcomes to guarded files, cross-check against the 2026-10-12 pull) | R | after q0276 |
-| q0278 | `cb13_touch_prices` (`prices-history` fidelity 60, 14-day chunks; HOLDOUT to `holdout/`) | R | after q0277 |
-| q0279 | `cb13_binance` (data.binance.vision monthly 1m spot klines, CHECKSUM-verified; HOLDOUT months to `holdout/`) | R | after q0277 (needs the parsed asset list) |
+| q0278 | `cb13_touch_prices` (`prices-history` fidelity 60, 14-day chunks; HOLDOUT to `holdout/`) | R | only after q0284 PASS |
+| q0279 | `cb13_binance` (data.binance.vision monthly 1m spot zips, CHECKSUM-verified, kept as verified bytes; from the frame's earliest window start − 30 d; HOLDOUT months to `holdout/`) | R | after q0277 (needs the parsed asset list and earliest `T0`) |
 | q0280 | `cb13_seal_R` (HOLDOUT listings sha256; seal copy; seal-time drops) | R | after q0278 and q0279 |
 | q0281 | `cb13_census_R` (counts only; gates GR, GRP; MDEs) | R | after q0280 and the seal copy |
 | q0282 | `cb13_screen_R` (R1 Stage 1) | R | after the R freeze |
 | q0283 | `cb13_rep_R` (R1-rep and R2 on the sealed HOLDOUT) | R | only if R1 advanced |
-| q0284-q0299 | reserved | - | - |
+| q0284 | `cb13_r_pregate` (counts only: SCREEN window components of the primary weekly template with ≥ 1 undecided unit and kline coverage; gate GRC) | R | after q0277 and q0279; q0278 is committed only on PASS (round 1 item 7) |
+| q0285 | `cb13_smoke_R` (≤ 30 requests; §CB13-S) | R | after the R rules part and smoke code exist (`net` lane; round 1 item 11) |
+| q0286-q0299 | reserved | - | - |
 
 ### 0.2 Selection and scope
 
@@ -80,7 +85,8 @@ not reported on the Data API `side` field, so **no CB13 statistic reads `side`**
   flow, not by class. No test has used a barrier (touch) payoff, the reflection principle or the Binance highs and
   lows. CB10-D anchors **terminal** "above $K on date" ladders with Deribit, CB8-B the terminal minutes of Up/Down
   dailies, and CB9-P equity Up/Down dailies with Pyth. All three are disjoint from R's templates (§1.3).
-- `battery2.cumulative_count()` (`battery2-count-v1`) = **1,181** on the committed `trials.jsonl` at HEAD `ee0bc96`.
+- `battery2.cumulative_count()` (`battery2-count-v1`) = **1,181** on the committed `trials.jsonl` at `ee0bc96` (the draft's
+  parent; re-verified 1,181 at the round-1 response).
   The file last changed at `fec1b04`, and the working copy is identical. The host union step runs before every counting
   CB13 job and records the post-union value.
 
@@ -118,7 +124,7 @@ not printed, not aggregated.
 | H7 | the same prints against the latest **book-sweep** touch of the token | sweeps (2 per pass, 54,080 token rows, a sample of tokens) lack most printed tokens ("no touch" for about half of the sports prints and for 846 of 1,251 crypto prints): **sweeps are rejected as the touch source** and kept for depth only (reported) |
 | H8 | the same prints against the latest **complete-capture** row of the market (44 captures from 10-11T20Z) | by touch age at the print (≤ 20 min / 20-60 / 60-120 / > 120), crossing (price at or beyond the touch) vs inside: crypto 213 / 340 / 536 / 53 crossing, 54 inside, 42 no row or one-sided; econ+finance 254 / 278 / 327 / 107, 25 inside; politics+geo 383 / 640 / 964 / 78, 112 inside; other 79 / 169 / 264 / 18; unenriched 739 / 1,284 / 1,940 / 1,739; sports 5,212 / 7,499 / 10,629 / 1,738. **Prints crossing a touch aged ≤ 60 min: non-sports enriched about 2,360 in about 520 events, unenriched about 2,020, sports about 12,700.** Thirteen or fourteen of 16 six-hour blocks hold fills. Spread at the fill, p25/p50/p75: 0.2-1.0 / 1.0 / 1.0-2.0c |
 | H9 | search for a Binance archive (`find -iname '*binance*'`, `*kline*`, host and Mac) | none (premise 1 above) |
-| H10 | streaming census of `cross_venue/poly_markets.json` (the 2026-10-12 Gamma pull, a filtered set of closed markets; CB12-X pins it for `endDate`) | 148,384 markets (148,370 closed), ends 2025-10..2026-10. **Crypto barrier ("reach / hit / dip to", not "above ... on"): 3,948 markets in 501 events**, 3,946 with "Binance" and all with high/low wording in the description. By end month: 2025-10 119, 11 243, 12 301, 2026-01 227, 02 275, 03 253, 04 478, 05 434, 06 460, 07 301, 08 300, 09 348, 10 203. **Race form ("before"): 23 markets in 5 events.** Non-crypto barrier 778 / 87 events. Terminal crypto ("above / below ... on") 8,556 / 1,496. Inclusive wording ("or higher / or more / at least"): temperature 648 markets (648 events), earthquake 74 (20), votes 34 (23), Rotten Tomatoes 16 (7), macro 13 (13), box office 9, approval 1, chart 1 |
+| H10 | streaming census of `cross_venue/poly_markets.json` (the 2026-10-12 Gamma pull, a filtered set of closed markets; CB12-X pins it for `endDate`) | 148,384 markets (148,370 closed), ends 2025-10..2026-10. **Crypto barrier ("reach / hit / dip to", not "above ... on"): 3,948 markets in 501 events**, 3,946 with "Binance" and all with high/low wording in the description. By end month: 2025-10 119, 11 243, 12 301, 2026-01 227, 02 275, 03 253, 04 478, 05 434, 06 460, 07 301, 08 300, 09 348, 10 203 (these sum to 3,942; the other 6 markets have no `end` value in the pull, round 1 item 12). **Race form ("before"): 23 markets in 5 events.** Non-crypto barrier 778 / 87 events. Terminal crypto ("above / below ... on") 8,556 / 1,496. Inclusive wording ("or higher / or more / at least"): temperature 648 markets (648 events), earthquake 74 (20), votes 34 (23), Rotten Tomatoes 16 (7), macro 13 (13), box office 9, approval 1, chart 1 |
 | H11 | `du -sh data-dumps`, `df /` | 15 GB; 57 GB free |
 
 | # | Keyless request(s) | Finding |
@@ -138,7 +144,7 @@ Request total: **19** GETs (1 + 9 + 1 + 5 + 1 + 1 + 1), under the 20 cap.
 | Idea | Decision | Reason |
 |---|---|---|
 | **CH128** toxicity by class | **include (T), priority, `cpu` lane** | Host-only (H1-H8); the first measurement of *where* the maker's loss comes from, the one number that has blocked every economic route (0 of 95 cells; maker cells -0.2 to -2.6c with a free exit). The labeller is frozen before any mark-out. Honest weaknesses: 4 SCREEN days, 70% sports, and a 2 h capture cadence (§7) |
-| **CH118** barrier confusion | **include (R), historical, `net` lane behind CB11/CB12** | 3,948 closed crypto barrier markets in 501 events in the 2026-10-12 pull alone (H10), more before 2025-10 (rows 2-4). The outcome is a public function of Binance 1-minute highs and lows, the source the rules name (H10, row 11). Needs a Binance fetch (premise 1) and CLOB history. **The race arm is dropped**: 23 markets in 5 events, below CH118's own 30-market threshold. **The cross-horizon implied-σ test is reported, uncounted** (k stays small; it reads the same units) |
+| **CH118** barrier confusion | **include (R), historical, `net` lane behind CB11/CB12** | 3,948 closed crypto barrier markets in 501 events in the 2026-10-12 pull alone (H10), more before 2025-10 (rows 2-4). The outcome is a public function of Binance 1-minute highs and lows, the source the rules name (H10, row 11). Needs a Binance fetch (premise 1) and CLOB history. **The race arm is dropped**: 23 markets in 5 events, below CH118's own 30-market threshold. **The cross-horizon implied-σ test is reported, uncounted** (k stays small; it reads the same units). **Round 1 item 5: the primary is the weekly template only** (non-overlapping same-asset windows, so window components are about asset × week); monthly, yearly and "by" templates are counted in the census only (no prices fetched), because weeks that straddle a month end chain every monthly window of an asset into one component, which would leave about one cluster per asset |
 | **CH119** inclusive-threshold atom | **next batch, not CB13** | The census on host question texts fails. The only large inclusive population is temperature top buckets (648 markets), which are weather markets owned by CB2-W (`h6_weather` sealed, Stage P running). Earthquakes (74) sit inside CB12-E's frame (tags 103038/100184, ends 2024-09..2026-10), so the disjointness the idea requires removes them all. What remains (votes 34, Rotten Tomatoes 16, macro 13, box office 9, others 2: about 74 markets in about 50 events) is below CH119's own kill rule (≥ 60 units with atom ≥ 3 pp) and below ≥ 100 units / ≥ 30 clusters. Re-entry: (a) a temperature arm on ladders listed after CB2-W's Stage-P window, with a written disjointness argument; (b) an earthquake arm after CB12-E's Stage 2 closes; (c) a fresh date walk if it finds ≥ 300 non-weather inclusive markets |
 | CH123, CH121, CH125, CH120, CH127 (ranks 3, 5-8) | not in CB13 | Each needs a fresh `net` fetch or collector (revisions API, transcripts, Wayback, Clerk XML, trackers), which this brief deprioritises while CB11/CB12 hold the `net` lane. CH121 also overlaps CB12-M (mention baskets) and should wait for its result. Re-entry: CB14 |
 
@@ -176,14 +182,16 @@ hold individual barrier markets. They are removed by key, with the overlap rule 
 | Name | Value | Meaning |
 |---|---|---|
 | `T13_draft` | 2026-10-18T20:15Z | this draft; no CB13 quantity computed |
-| `T13_T_screen` | fills with venue time `τ ∈ [2026-10-12T00:00Z, 2026-10-16T00:00Z)` | T Stage 1. **Every touch and mark capture must start before 2026-10-16T00:00Z** (a fill whose 2 h mark capture starts later is "excluded (J4-R boundary)", counted) |
+| `T13_T_screen` | fills with venue time `τ ∈ [2026-10-12T00:00Z, 2026-10-16T00:00Z)` | T Stage 1. **Every touch and mark capture must start before `t_j4r_start` = 2026-10-16T00:00Z** (a fill whose mark capture starts later is "excluded (J4-R boundary)", counted) |
 | J4-R window | `[2026-10-16T00:00Z, 2026-10-21T00:00Z)` (`seals/j4r_window.json`; the end can only move forward, and T follows it) | **No CB13 path reads any capture, sweep or print timed inside it** (as CB3 §1.2 and CB6 §1.2) |
-| `T13_T_hold` | fills with `τ ∈ [2026-10-21T00:00Z, 2026-10-26T00:00Z)`; touch and mark captures start in `[2026-10-20T22:00Z, 2026-10-26T00:00Z)` | T Stage 2 (prospective at drafting). It ends before CB2's earliest Stage-2 capture start (`max(10-26, freeze + 2 h)`), CB3/CB4 (≥ 10-27), CB5 (≥ 10-29), CB6/CB7 (≥ 10-30). If J4-R's end moves later, `T13_T_hold` starts at the new end with the same end date, and the census records the shortening |
-| `T13_T_seal` | 2026-10-26T08:00Z (earliest q0274 start) | every HOLDOUT trades file is complete (daily by receipt; prints arrive about 8 min late) and every mark capture exists |
+| `T13_T_hold` | fills with `τ ∈ [t_j4r_end, 2026-10-26T00:00Z)` (`t_j4r_end` = 2026-10-21T00:00Z while `final` is false); **touch and mark captures must start in `[t_j4r_end, 2026-10-26T00:00Z)`** (round 1 item 2: the draft's 10-20T22:00Z start lay inside J4-R). Fills before the first capture at or after `t_j4r_end` (about 00:31Z) have no eligible touch and are counted, never back-filled | T Stage 2, label **"adjacent window, same regime"** (round 1 item 14). It ends before CB2's earliest Stage-2 capture start (`max(10-26, freeze + 2 h)`), CB3/CB4 (≥ 10-27), CB5 (≥ 10-29), CB6/CB7 (≥ 10-30). If J4-R's end moves later, `T13_T_hold` starts at the new end with the same end date, and the census records the shortening |
+| `T13_T_seal` | 2026-10-26T08:00Z (earliest q0274 start) | every HOLDOUT trades file is complete (daily by receipt; prints arrive about 8 min late) and every mark capture before 2026-10-26T00:00Z exists |
+| `T13_T_rep` | the later of the q0274 seal-copy commit and **CB3's freeze commit** (`model_specs/cb3_v1.json`) | earliest q0275 start (round 1 item 3). If CB3 is recorded in the ledger as stopped or withdrawn without a freeze, that ledger record replaces the freeze commit |
 | `T13_hist_end` | 2026-10-01T00:00Z | no R row (rule-window end, price point, kline used in a feature or outcome, resolution) at or after it |
 | R SCREEN / HOLDOUT | event `endDate` in `[2024-11-01, 2026-04-01)` / `[2026-04-01, 2026-10-01)`, sealed | out-of-time split. **R HOLDOUT units also need checkpoint `t ≥ 2026-04-01T00:00Z`**: earlier checkpoints of HOLDOUT events are dropped and counted, so the two splits share no calendar |
 | R checkpoints | daily 00:00Z from `max(window start, listing + 1 h)` to `window end − 1 h` | §CB13-R |
-| R σ window | Binance 5-minute log returns in `[t − 30 d, t)` | the kline archive starts 2024-09-01 for the 30 days before the first SCREEN checkpoint |
+| R kline range | from the first month containing `min(T0) − 30 d` over **every primary frame event** (round 1 item 6; the census-only templates have no units) to 2026-09 | σ needs `[t − 30 d, t)`; the decided-rung rule needs klines from each window start `T0`. A unit without full coverage of `[min(T0, t − 30 d), t)` is "unavailable (no klines)", counted, never assumed undecided |
+| R σ window | Binance 5-minute log returns in `[t − 30 d, t)` | §CB13-R |
 | `T_seal` | 2026-10-22T00:00Z | not binding for CB13 (no CB13 historical row reaches it; R's rows end before 2026-10-01). See §1.3 for SEALED-H4 |
 
 ### 1.3 Sealed and untouched data (named)
@@ -192,7 +200,7 @@ hold individual barrier markets. They are removed by key, with the overlap rule 
   readers excepted). It writes only under `research_lab/creative_batch13/`, `history/h13_touch/` and
   `history/h13_binance/`. The T reader refuses any capture, sweep or print timed in the J4-R window, and any
   `T13_T_hold` row unless the T Stage-1 result file and `seals/cb13_t_holdout_SEAL.json` are committed and their
-  hashes verify. The R reader refuses `holdout/` paths in every census and screen.
+  hashes verify **and CB3's freeze commit (or its ledger stop record) exists** (`T13_T_rep`). The R reader refuses `holdout/` paths in every census and screen.
 - **E011 (registered window `[2026-10-13T14:00Z, 2026-11-10)`, analysed once after 2026-11-11T13:00Z).** Both T
   windows lie inside it, and T reads the same complete-universe captures E011 scores. **Why T does not contaminate
   E011.** (1) The hypothesis is different. E011 asks whether the frozen `sm_learned_v2` score selects markets followed
@@ -202,9 +210,10 @@ hold individual barrier markets. They are removed by key, with the overlap rule 
   on or joins to alert, candidate or control status. (3) E011's analysis is frozen code run once, so no E011 choice is
   left that a T result could inform. (4) No T output defines an E011 subgroup, stratum or reading, and the E011 report
   may not cite T. (5) T reads captures read-only, so E011's inputs stay bit-identical. Residual overlap, disclosed:
-  T computes 2 h and 6 h forward capture-mid changes after fills, and some fill markets are E011 alerts or controls.
-- **E004, E005, E006 (registered, pre-outcome) and E007 (scored 2026-10-12).** T never opens `e00*/`. It never computes
-  a `chg_1h`-conditioned move, an arbitrage-band deviation or a signed-share continuation, and no T output defines
+  T computes 2-4 h and 6-8 h forward capture-mid changes after fills, and some fill markets are E011 alerts or
+  controls. **No T output is stratified by E011 alert, candidate or control status** (round 1 ruling on §7 risk 6).
+- **E004, E005, E006 (registered, pre-outcome) and E007 (scored 2026-10-12).** T never opens `e00*/` and never parses
+  `chg_1h` (from captures or from `ctx_chg_1h`). It never computes a `chg_1h`-conditioned move, an arbitrage-band deviation or a signed-share continuation, and no T output defines
   their subgroups. Overlap: forward capture-mid moves on the same captures, as above.
 - **E009/E010 (`cross_venue_live/`, to 2026-11-03).** No CB13 path opens `cross_venue_live/`. R reads only
   `cross_venue/poly_markets.json` (the 2026-10-12 historical file, written before E009's registration), for barrier
@@ -217,8 +226,10 @@ hold individual barrier markets. They are removed by key, with the overlap rule 
   `[max(T3_fu_start, 10-21), 10-25)`, CB2/CB4/CB5 dev windows and CB6's second dev block `[10-21, 10-28)`. T never
   opens their extract or follow-up tables. Its hypothesis differs from every one of them. CB1-D is frozen, so T cannot
   change its tests. **CB3's dev window is counts-only by CB3's own rule** (no mark-out computed on it), to keep CB3's
-  freeze blind. T's HOLDOUT mark-outs there are computed only after 10-26, and CB3's freeze-check record must state
-  whether a T result existed at its freeze. The challenger may instead require q0275 to wait for CB3's freeze (§7).
+  freeze blind, and T's HOLDOUT maker mark-outs on those days are the quantity closest to CB3-B's. **Round 1 item 3
+  (ruling, adopted): q0275, the only job that computes a HOLDOUT mark-out, waits for CB3's freeze commit**
+  (`T13_T_rep`). q0274 (seal and features, no mark-out) may run earlier. CB3's freeze-check record also states whether
+  T's Stage-1 SCREEN result existed at its freeze (SCREEN lies outside CB3's dev window).
 - **SEALED-H4 (SB2; built no earlier than 2026-11-16; origins ≥ `T_seal`).** `T13_T_hold` shares the calendar
   `[10-22, 10-26)` with h4's future origins. T reads no h4 file (none exists) and runs no SB2-candidate analysis. The
   overlap is calendar-only, as for every CB1-CB7 Stage-2 capture window.
@@ -264,13 +275,14 @@ hold individual barrier markets. They are removed by key, with the overlap rule 
   fields; no HOLDOUT feature, because HOLDOUT features need sealed klines). No CB13 path opens a HOLDOUT file before
   R1's Stage-1 result is committed and q0283 is triggered. q0283 verifies the seal hash first.
 - **SEALED-T (T HOLDOUT).** q0274 hashes every source file in `T13_T_hold`: each `trades-2026102{1..6}.jsonl` and each
-  capture's `rows.csv.gz` and `rows_ext.csv.gz` for captures starting in `[10-20T22:00Z, 10-26T00:00Z)`. It writes the
+  capture's `rows.csv.gz` and `rows_ext.csv.gz` for captures starting in `[t_j4r_end, 10-26T00:00Z)` (round 1 item 2). It writes the
   HOLDOUT fill table (features only) and the raw mark-quote table (bid and ask at each mark capture; no mark-out
   computed) to `creative_batch13/t_holdout/`, with listing sha256. The seal copy `seals/cb13_t_holdout_SEAL.json` is
   committed before q0275. **Source files may later be archived and deleted from the host under the capsule-first
   policy.** If so, q0275 restores them byte for byte with `restore_from_archive.py` and verifies the sealed hashes, and
   never re-derives a missing file.
-- **Outcome guards.** T has no resolution outcome (mark-outs are price-based; T3 exits at a recorded touch). R: Gamma
+- **Outcome guards.** T has no resolution outcome (mark-outs are price-based; T3 exits at a recorded touch). The
+  HOLDOUT mark-quote table is read only by q0275. R: Gamma
   `outcomePrices` and `umaResolutionStatus(es)` go only to the guarded files. **R's primary outcome is computed from the
   Binance klines by the frozen rule parser, never read from Gamma** (CB9-P's guard). Gamma outcomes are opened only by
   q0282 (the agreement audit) and q0283 (R2 pays what the venue paid). Census paths read klines only before each
@@ -281,20 +293,26 @@ hold individual barrier markets. They are removed by key, with the overlap rule 
 - `seals/cb13_rules.json` (before q0270), hashed per part:
   - **`common`**: refused roots, the J4-R pin, seeds, bootstrap, the small-G rule, Holm/BY settings, disk guards and
     smoke criteria.
-  - **`T`**: windows, the touch, fill, first-crossing and mark rules, age limits, exclusions and their sources, the
+  - **`T`**: windows, the touch, the print-anchored fill and touch-consistency rules, the stale-touch variant, the mark
+    rules and labels (2-4 h, 6-8 h), age limits, the path key, exclusions and their sources, the
     **labeller (class definitions, precedence, every regex and vocabulary list, the sports list, the audit protocol
     and seeds)**, LOW/NEWS membership, cluster ways, gates, placebo strata, the T3 exit rule and fee policy.
   - **`R`**: tag id 21, the barrier title and member templates, the excluded terminal and Up/Down templates, the
     description flags, the rule-window parser (written from out-of-window events, ends in `[2026-10-01, 2026-10-18)`),
-    the asset map, the windows and split, checkpoints, the price rules, the σ rule, the touch formula, decided-rung
-    and price-band rules, the GRP loadings, R2's band half-spreads and fee policy, the Binance symbol/month list, and
-    the kline usability rule.
+    the asset map, **the primary (weekly) vs reported template classes**, the window-component rule, the windows and
+    split, checkpoints, the price rules, the σ rule, the touch formula, decided-rung and price-band rules, the GRP
+    nesting (one latent per asset × window × direction) and loadings, gate GRC, R2's band half-spreads and fee policy,
+    the Binance symbol list and the month-range rule (from `min(T0) − 30 d`), the kline usability rule and the
+    timestamp-unit rule (milliseconds before 2025-01-01, microseconds from 2025-01-01 in the spot archive; detected by
+    magnitude and unit-tested).
 - `model_specs/cb13_v1.json` (the freeze) is likewise hashed in parts T and R. A job pins only the part hashes it needs.
 - Jobs refuse (exit 2) on a hash mismatch. **No rule is computed from, or revised after, any T mark, R outcome or R
   price.** The labeller may be revised **once** before the T freeze, and only on the labeller audit (titles only, §CB13-T).
 - **Field whitelists.** *Monitor prints:* `ts, condition_id, token_id, outcome_index, price, size, cash, title, slug,
   ctx_event_id, ctx_market_id, ctx_category, ctx_fee_type`, plus `tx16` in memory only, for transaction aggregation
-  (never written). **Not parsed:** `side`, `key`, `recv_ts`, `wallet_*`, and every other `ctx_*` (post-receipt
+  (never written). **`ctx_event_id`, `ctx_market_id`, `ctx_category` and `ctx_fee_type` are Gamma context fetched after
+  receipt; they are declared static market attributes (ids and fee category do not change over a market's life) and
+  are used only as labels and keys, never as a price-time feature** (round 1 item 9). **Not parsed:** `side`, `key`, `recv_ts`, `wallet_*`, and every other `ctx_*` (post-receipt
   context, including `ctx_chg_1h`). *Capture rows:* `capture_id, capture_start_utc, received_utc, market_id,
   condition_id, event_id, closed, active, binary, best_bid, best_ask, liquidity, end_date, clob_token_id_0, neg_risk,
   neg_risk_market_id`. **Not parsed:** `chg_1h/1d/1w`, `last_trade_price`, `volume24hr`. *Sidecar:* `fee_type,
@@ -314,29 +332,32 @@ hold individual barrier markets. They are removed by key, with the overlap rule 
 | Test | Price and cost rule |
 |---|---|
 | T1, T2, R1 | none charged (mechanism, mid-marked maker net, forecasting). T2's quantity *is* a maker's net per filled share at a free mid exit: an **upper bound**, labelled so in every line |
-| T3 (Stage 2) | paper maker entry at the **recorded** touch (maker fee 0, no rebate); exit as a taker at the **recorded** adverse touch of the 2 h mark capture (bought → sell at `bid_h`; sold → buy at `ask_h`); taker fee `r·x(1 − x)` on the exit, `r` = the market's sidecar fee rate, policy `max_if_unknown` (unknown → 0.07, as `ECONOMIC_CONDITIONS_STUDY.md`); size ≤ 100 shares; displayed depth unknown in captures (sweep depth reported where the market was swept) |
+| T3 (Stage 2) | maker entry at the **recorded print's** maker-adverse price `P` (the primary fill, §CB13-T; maker fee 0, no rebate); exit as a taker at the **recorded** adverse touch of the 2-4 h mark capture (bought → sell at `bid_h`; sold → buy at `ask_h`); taker fee `r·x(1 − x)` on the exit, `r` = the market's sidecar fee rate, policy `max_if_unknown` (unknown → 0.07, as `ECONOMIC_CONDITIONS_STUDY.md`); size ≤ 100 shares; displayed depth unknown in captures (sweep depth reported where the market was swept) |
 | R2 (Stage 2, modelled) | buy the model-favoured token at `a = p_t + hs(p_t)` (YES) or `a = 1 − p_t + hs(1 − p_t)` (NO), `hs` = half the band median spread of `EXECUTION_COSTS.md` (bands < 0.05, 0.05-0.20, 0.20-0.80, 0.80-0.95, ≥ 0.95 → 2.05, 1.5, 1.1, 1.5, 1.25c); taker fee `r·a(1 − a)`, `r = max(feeSchedule.rate, 0.07)` (crypto); held to resolution; **paid on the Gamma resolution** (what the venue paid, as CB12-E2/O2) |
 | Binding cost robustness | T3: +0.5c on the exit keeps net > 0. R2: +1.0c on `a` keeps net > 0 |
 
 R2 uses declared, not recorded, quotes (no historical books without pmxt). It is a "modelled-cost economic check (L1/L2
-on the sealed window)". Recorded asks enter only in Stage P-R (§2.9). T3 is at recorded touches.
+on the sealed window)". Recorded asks enter only in Stage P-R (§2.9). T3 is at recorded prints and touches.
 
 ### 2.2 Clocks
 
 - **Monitor prints.** Venue `ts` (s) is the fill time `τ`. Prints with the same `tx16` and `condition_id` are
-  aggregated in memory into one transaction (YES-terms VWAP, total size); the hash is discarded. YES terms: a print on
+  aggregated in memory into one transaction (YES-terms VWAP, total size, and the **minimum and maximum YES-terms fill
+  price**, needed for the maker-adverse fill price); the hash is discarded. YES terms: a print on
   outcome index 1 at `x` is a YES print at `1 − x`. Receipt time is not used: T replays a resting quote, it does not
   act on the monitor.
 - **Capture touch and marks.** Each capture row has its own `received_utc` (a capture takes about 6 min). The **touch**
   for a fill at `τ` is the market's row in the latest complete capture with `received_utc < τ`. **Touch age** =
-  `τ − received_utc`. The **mark** at horizon `h` is the market's row in the first complete capture with `received_utc
-  ≥ τ + h`, usable iff `received_utc ≤ τ + h + 2 h` (else "no mark (capture gap)", counted; the 10-14 outage is the
-  main case). Gamma's `best_bid`/`best_ask` are the touch. Crossed or one-sided rows are ineligible and never repaired.
+  `τ − received_utc`. The **mark** at nominal horizon `h` is the market's row in the first complete capture with
+  `received_utc ≥ τ + h`, usable iff `received_utc ≤ τ + h + 2 h` (else "no mark (capture gap)", counted; the 10-14
+  outage is the main case). **The realised horizon is therefore 2-4 h for the "2 h" mark and 6-8 h for the "6 h" mark,
+  and every line is labelled "2-4 h" or "6-8 h"** (round 1 item 10); the realised horizon is reported per class. Gamma's `best_bid`/`best_ask` are the touch. Crossed or one-sided rows are ineligible and never repaired.
 - **CLOB `prices-history` (R).** As CB12 §2.2: a point at fidelity 60 is usable from stamp + 3,600 s. `p_t` = the last
   usable point before `t` with age ≤ 6 h; `p_reg` = the last usable point before `t − 6 h` with age ≤ 24 h, a
   different point from `p_t`. Either missing → "unavailable (no price)", counted.
 - **Binance klines (R).** A 1m candle `[o, o + 60 s)` is usable at `t` iff `o + 65 s ≤ t` (CB8 §2.2). `S_t` = the close
-  of the last usable candle. The touch outcome over `[t, T]` uses candles with `o ∈ [t, T)` (the rule's window end
+  of the last usable candle. Klines are parsed from the verified zips in **float64**, never float32, so `high ≥ B`
+  cannot flip at equality (round 1 item 8). The touch outcome over `[t, T]` uses candles with `o ∈ [t, T)` (the rule's window end
   `T`, ET-converted by the frozen parser) and reads `high` (reach) or `low` (dip). Only screen and rep paths may open
   candles at or after `t` (guarded accessor).
 - `closedTime` is never a population condition, origin or feature.
@@ -347,11 +368,18 @@ As CB12 §2.3: unweighted primary; one-sided p = the max over the declared clust
 **seed 1313**; small-G rule as CB10 §2.3 (G ≥ 30 CR1; 15-29 CR2 with t(G − 1) and the Webb wild bootstrap, 9,999
 draws; G < 15 the way leaves the max and its leave-one-cluster-out sign rule binds, as A-C1); top-5 drops; ≥ 100 units
 and ≥ 30 clusters in the event way for testability; "unknown" never counts as met (one declared deviation: GTI, §CB13-T).
-- **Cluster ways.** **T:** Gamma event (CR1; G ≈ 100-300 per class); **6-hour block** of `τ` (UTC 00/06/12/18,
-  the cohort cadence; G_SCREEN ≤ 16, so CR2 if ≥ 15, else leave-one-block-out). The 6 h block is longer than the 2 h
-  mark, so adjacent blocks share little. **UTC day** (G = 4 in SCREEN, 5 in HOLDOUT: never in the max; the
-  leave-one-day-out sign rule is always binding). **R:** Gamma event; ISO week of the checkpoint (one crypto path per
-  week; G ≈ 70 SCREEN, 26 HOLDOUT); asset × ISO week.
+- **Cluster ways.** **T:** Gamma event (CR1; G ≈ 100-300 per class); **path key × 6-hour block** (round 1 item 4;
+  the path key is the underlying asset from the frozen asset map for PATH-SETTLED markets, else the first sidecar
+  `series_slugs` entry, else the Gamma event; fills sharing one spot path in one block form one cluster, which the
+  event way alone treats as independent; G in the hundreds); **6-hour block** of `τ` (UTC 00/06/12/18, the cohort
+  cadence; G_SCREEN ≤ 16, so CR2 if ≥ 15, else it leaves the max and leave-one-block-out binds). p = the max over
+  every way in the max. **UTC day** (G = 4 in SCREEN, 5 in HOLDOUT: never in the max). **Leave-one-day-out is binding
+  and must keep one-sided p < 0.05 and the sign in every leave-one-out sample** (round 1 item 4; stricter than the
+  sign-only A-C1 rule). **R:** Gamma event; ISO week of the checkpoint (one crypto path per week; G ≈ 70 SCREEN,
+  26 HOLDOUT); asset × ISO week; **window component** (round 1 item 5: the connected components of the graph whose
+  nodes are primary R events and whose edges join two events of the same asset with overlapping rule windows, in any
+  direction). With the weekly-only primary, a component is about one asset-week. `Y` is constant across a market's
+  checkpoints, so the market, not the unit, is the smallest independent object; p = the max over all four ways.
 - **Stage 1 (3 tests).** Advance iff one-sided p < 0.01, the §2.4 floor is met, and every binding placebo, robustness
   check and gate holds, **and** the test passes a batch Holm step-down at one-sided α = 0.05 over k1 = 3 (fixed). Holm's
   first step is α/3 = 0.0167, so any p < 0.01 passes it. The Holm step is stated for completeness and can never
@@ -368,9 +396,9 @@ and ≥ 30 clusters in the event way for testability; "unknown" never counts as 
 
 | Test | Type | Floor on the point estimate |
 |---|---|---|
-| T1 | mechanism contrast | `D = M̄_LOW,2h − M̄_NEWS,2h ≥ +0.5c` per filled share (CH128's class-difference floor) |
-| T2 | maker sign (mid-marked, upper bound) | `M̄_LOW,2h ≥ +0.25c` per filled share (half of the 0.5c median half-spread at the fill, H8: the maker keeps at least half the spread after adverse selection) |
-| T3 (Stage 2) | economic, recorded touches | net ≥ +0.5c per filled share after the exit fee |
+| T1 | mechanism contrast | `D = M̄_LOW,2-4h − M̄_NEWS,2-4h ≥ +0.5c` per filled share (CH128's class-difference floor) |
+| T2 | maker sign (mid-marked, upper bound) | `M̄_LOW,2-4h ≥ +0.25c` per filled share (half of the 0.5c median half-spread at the fill, H8: the maker keeps at least half the spread after adverse selection) |
+| T3 (Stage 2) | economic, recorded prints and touches | net ≥ +0.5c per filled share after the exit fee |
 | R1 | forecasting | slope `β̂ ≥ 0.30` of `Y − p_t` on `q_touch − p_reg` (CH118's floor) |
 | R2 (Stage 2) | economic, modelled cost | net ≥ +1.0c per share after fee (CH118's floor) |
 
@@ -378,19 +406,19 @@ and ≥ 30 clusters in the event way for testability; "unknown" never counts as 
 
 - Kinds **`cb13_test`** (Stage-1 per-test lines), **`cb13_replication`** (Stage 2, including T3 and R2) and
   **`cb13_descriptive`** (EXCLUDE). Descriptive lines cover the smoke, censuses, gates, the labeller audit, class
-  strata including SPORTS-FEED and SCHEDULED-EVENT, the all-prints and size-weighted T variants, capacity, the 6 h
-  readings, the cross-horizon implied-σ comparison, R's reach/dip and asset strata, and the Binance-Gamma agreement
+  strata including SPORTS-FEED and SCHEDULED-EVENT, the stale-touch, one-per-side, all-prints and size-weighted T
+  variants, capacity, the 6-8 h readings, the GRC pregate counts, the cross-horizon implied-σ comparison, R's reach/dip and asset strata, and the Binance-Gamma agreement
   audit. Per-test lines count 0 themselves. **The tests are the `n_tests` of the `ml_explain` count lines** (as CB11
   and CB12); placebo lines count 0. New `battery2.KIND_RULES` entries mirror CB12's; unknown kinds raise.
 - **Count lines and `n_tests`:** `creative_batch_13:T` **2** (T1, T2); `creative_batch_13:R` **1** (R1). Replication
   lines `creative_batch_13:<family>:rep` carry `n_tests` = that family's triggered Stage-2 tests (T ≤ 3: T1-rep, T2-rep,
   T3; R ≤ 2: R1-rep, R2).
 - **Triggers.** T1-rep iff T1 advanced; T2-rep and T3 iff T2 advanced; R1-rep and R2 iff R1 advanced.
-- **Cumulative count: 1,181** (committed `trials.jsonl` at HEAD `ee0bc96`, `battery2-count-v1`; the host-unioned value
+- **Cumulative count: 1,181** (committed `trials.jsonl`, verified at `ee0bc96` and at the round-1 response, `battery2-count-v1`; the host-unioned value
   is recorded by every counting job).
 - **CB13 adds 3 fixed tests and up to 5 conditional ones. Budget: 3-8**, so the cumulative count becomes 1,184-1,189,
   plus whatever CB6-CB12 add first.
-- Tests behind a failed or unknown gate (smoke, disjointness, GL, GT, GTP, GTI, GR, GRP, the Stage-2 population
+- Tests behind a failed or unknown gate (smoke, disjointness, GL, GT, GTP, GTI, GR, GRC, GRP, the Stage-2 population
   minimums, availability) are "not testable" or "not run" (p = 1) and are **still counted**. A job waiting on exit 75
   is "pending" and produces no line. Conditional tests count only if their trigger fires; a triggered test that cannot
   run is counted with p = 1.
@@ -400,8 +428,8 @@ and ≥ 30 clusters in the event way for testability; "unknown" never counts as 
 Design rule as CB12 §2.6: every binding placebo names the alternative under which the test would advance; calibration
 placebos are judged on the p threshold alone (floors off); 200 draws; **advance rate ≤ 1.5%**. Seeds 13101-13120.
 Common binding robustness for any advance: (i) the declared cost robustness (§2.1) for economic tests; (ii) the p
-threshold and the floor hold without the top 5 clusters of each way; (iii) sign by period (T: leave-one-day-out; R:
-each SCREEN half by window end); (iv) unavailable units are excluded and counted by label, never imputed. A test whose
+threshold and the floor hold without the top 5 clusters of each way; (iii) sign by period (T: leave-one-day-out with
+p < 0.05 in every leave-one-out sample, §2.3; R: each SCREEN half by window end); (iv) unavailable units are excluded and counted by label, never imputed. A test whose
 available share of eligible units is < 60% is "not testable (availability)".
 
 ### 2.7 Pre-freeze census (counts only; q0272 for T, q0281 for R)
@@ -409,29 +437,36 @@ available share of eligible units is < 60% is "not testable (availability)".
 Outcome guards first; field-restricted accessors. A unit test asserts that no census path receives a mark quote, a
 capture row received after any fill's `τ`, a kline at or after any unit's `t`, a Gamma outcome or a later price used
 as a target. Features (touches, fill sides, spreads, labels, `q`, `p`, horizons) and unit counts may be computed.
-- **T.** Prints and transactions by day, label and fee category; key drops by source; fills by touch age band,
-  crossing vs inside, first-crossing collapse; fills by class, event, 6 h block and day; spread and price bands;
+- **T.** Prints and transactions by day, label and fee category; key drops by source; transactions by touch age band
+  and by touch position (inside the spread; **touch-consistent**, `a0 ≤ P ≤ a0 + s0` or `b0 − s0 ≤ P ≤ b0`; beyond the
+  band, "inconsistent with touch (drift)"), by class (round 1 item 1); first-per-side collapse (reported); fills by
+  class, event, path key × 6 h block, 6 h block and day; spread and price bands;
   time-to-scheduled-end bands; excluded units by label ("J4-R boundary", "scheduled end within 3 h", "one-sided",
   "no row"); depth from sweeps (reported). **Gate GT:** ≥ 500 SCREEN LOW fills in ≥ 60 events and ≥ 500 SCREEN NEWS
   fills in ≥ 60 events (CH128's 500-fill class floor), else T1 "not testable (population)", and T2 also if LOW fails.
   **Gate GL (labeller audit):** §CB13-T. **Power gate GTP (feature-only; as CB12 GFP).** Each T test's own estimator and
-  cluster ways run on a **pre-fill proxy outcome**: the move of the capture mid from the capture before the touch
-  capture to the touch capture, signed by the maker direction. It has the variance and dependence of a 2 h mid move
-  and contains no post-fill information. Only the clustered SEs are written (the max over ways); no proxy point
+  cluster ways (including path key × 6 h block) run on a **pre-fill proxy outcome**: the move of the capture mid from
+  the capture before the touch capture to the touch capture, signed by the maker direction. It has the variance and
+  dependence of a 2-4 h mid move and contains no post-fill information. Only the clustered SEs are written (the max over ways); no proxy point
   estimate is written to any output (unit-tested). `MDE = (z_0.99 + z_0.80) x 1.2 x SE`. **T1 is "not run (power)" if
   MDE > 1.0c, T2 if MDE > 0.5c (2 x floor, as CB12-F), counted.**
-- **R.** Events and markets by template (weekly, monthly, "by", yearly), asset, direction and end month; parser
+- **R.** Events and markets by template (weekly primary; monthly, "by", yearly census-only), asset, direction and end
+  month; window components of the primary (count, size distribution, G per way); parser
   failures; flag failures; key and overlap drops by source (plus the full series-rule counterfactual); the
   poly_markets cross-check (share of its post-2025-10 barrier ids the frame found); eligible (market, checkpoint) units
   by label ("decided", "before window start", "unavailable (no price)", "outside [0.03, 0.97]"); `q − p_reg`
-  distributions (features, klines before `t` only); HOLDOUT market and event counts only. **Gate GR:** ≥ 300 SCREEN
-  markets with units in ≥ 60 events and ≥ 30 ISO weeks; parser failures ≤ 10% of markets; ≥ 95% of markets carry the
+  distributions (features, klines before `t` only); "unavailable (no klines)" units; HOLDOUT market and event counts
+  only. **Gate GR:** ≥ 300 SCREEN primary markets with units in ≥ 60 events, ≥ 30 ISO weeks **and ≥ 30 window
+  components** (the GRC count is re-checked here after price availability); parser failures ≤ 10% of markets; ≥ 95% of markets carry the
   Binance 1-minute high/low flags (else R1 "not testable (basis)"); the frame finds ≥ 98% of the poly_markets barrier
-  ids in its window (else "not testable (frame completeness)"). **Power gate GRP (feature-only).** Simulated outcomes
-  calibrated to the prices: `Y*_i = 1{Φ(Z_i) < p_t,i}`, `Z_i = s_i·(√0.4·W_{a,w} + √0.2·X_w) + √0.4·ε_i`. Here
-  `W_{a,w}` is a shared asset-week factor, `X_w` a cross-asset week factor, and `s_i = +1` for reach and −1 for dip
-  rungs (one path pushes reach and dip rungs in opposite directions); the loadings are declared. 500 draws (seed
-  13123). `MDE_R1 = (z_0.99 + z_0.80) x 1.2 x max(SD(β̂*), mean SE per way)`. **If `MDE_R1 > 0.60` (2 x floor), R1 is
+  ids in its window, any template (else "not testable (frame completeness)"). **Power gate GRP (feature-only; round 1
+  item 5: one latent per market, nested rungs).** For each (asset `a`, rule window `w`, direction `d`) one latent
+  `Z_{a,w,d} = s_d·(√0.5·W_{a,w} + √0.2·X_{wk}) + √0.3·e_{a,w,d}`, where `W_{a,w}` is the shared path factor of that
+  asset-window, `X_{wk}` a cross-asset ISO-week factor, `s_d = +1` for reach and −1 for dip (one path pushes the two
+  directions oppositely), and the loadings are declared. Every rung `i` of that (asset, window, direction) gets
+  `Y*_i = 1{Φ(Z_{a,w,d}) > 1 − p_i}` with `p_i` its price at its **first** eligible checkpoint. So `Y*` is one value per
+  market, constant across its checkpoints, and nested across strikes (a far rung touches only if every nearer rung
+  does, whenever prices are monotone in the strike). 500 draws (seed 13123). `MDE_R1 = (z_0.99 + z_0.80) x 1.2 x max(SD(β̂*), mean SE per way)`. **If `MDE_R1 > 0.60` (2 x floor), R1 is
   "not run (power)", counted, and R1-rep and R2 are not triggered.**
 - MDEs are recomputed from these counts and never used to change a floor, window or threshold.
 
@@ -443,23 +478,26 @@ as a target. Features (touches, fill sides, spreads, labels, `q`, `p`, horizons)
   ingress. Every reader streams one capture, one market or one asset-month at a time. `mem_mb` ≤ 800 everywhere.
   **800 is justified** for q0271/q0274 (one capture's 274,000 rows read with column whitelists into pandas, filtered
   to printed markets, about 150 MB, plus the fill table) and q0282/q0283 (two years of 1m klines for one asset as
-  float32, about 20 MB, plus about 30,000 units and 2,000 bootstrap draws on cluster-level sufficient statistics).
+  float64, about 40 MB, plus about 30,000 units and 2,000 bootstrap draws on cluster-level sufficient statistics).
 - **Network** (`net` lane, priorities 15-19; ≤ 2 rps Polymarket, ≤ 1 rps Binance; T has none):
 
   | Job | Work | Requests / wall | Stored (cap) |
   |---|---|---|---|
-  | q0270 | smoke (`cpu` lane) | ≤ 30, < 5 min | 0.001 GB |
+  | q0270 | T smoke (`cpu` lane, **no network**; round 1 item 11) | 0 | 0.001 GB |
+  | q0285 | R smoke (`net` lane) | ≤ 30, < 5 min | 0.001 GB |
   | q0276 | R exclusion keys (increment over CB11 q0221) | ≤ 600 Gamma, ≤ 6 min | ≤ 0.01 GB |
   | q0277 | R frame: Gamma `/events?closed=true&tag_id=21` in one-day `end_date` windows over `[2024-11-01, 2026-10-01)` (about 700 days; crypto Up/Down events dominate the tag, about 5-10 pages a day), barrier templates kept at parse; series lookups | ≤ 8,000, ≤ 70 min | ≤ 0.01 GB |
-  | q0278 | R prices: per member `ceil(span / 14 d)` bounded `prices-history` requests at fidelity 60, span = [max(`createdAt`, window start − 1 d), window end]; planning about 6,000-8,000 members (3,948 after 2025-10 in the pull alone) x 1-3 requests, yearly ladders up to 27; the exact Σ is computed by q0277 from frame fields (counts only) and recorded before q0278 is committed | ≤ 25,000 (planning about 12,000-16,000), ≤ 3.5 h | ≤ 0.05 GB |
-  | q0279 | Binance: monthly 1m spot zips + `.CHECKSUM` for each parsed asset (BTC, ETH, SOL, XRP; any other parsed asset with a Binance spot USDT pair), 2024-09..2026-09 (25 months); zips parsed in memory and discarded | ≤ 400, ≤ 10 min at 1 rps | ≤ 0.2 GB (npz) |
+  | q0279 | Binance: monthly 1m spot zips + `.CHECKSUM` for each parsed asset (BTC, ETH, SOL, XRP; any other parsed asset with a Binance spot USDT pair), from the month of `min(T0) − 30 d` over primary events (about 2024-09) to 2026-09; **zips kept as verified original bytes** (sha256 in the manifest), parsed in float64 at use (round 1 item 8) | ≤ 600, ≤ 12 min at 1 rps | ≤ 0.3 GB (zips) |
+  | q0284 | R pre-fetch gate GRC (`cpu` lane, counts only, no network) | 0 | 0.001 GB |
+  | q0278 | R prices, **weekly primary members only, and only after GRC PASS** (round 1 items 5, 7): per member `ceil(span / 14 d)` bounded `prices-history` requests at fidelity 60, span = [max(`createdAt`, window start − 1 d), window end], so 1 request for a weekly member; planning about 6,000-9,000 members; the exact Σ is computed by q0277 from frame fields (counts only) and recorded before q0278 is committed | ≤ 12,000 (planning about 6,000-9,000), ≤ 1.7 h | ≤ 0.03 GB |
 
-  Historical `net` total **≤ about 34,000 requests (planning about 22,000), about 3-5 h of `net` lane at 2 rps**,
+  Historical `net` total **≤ about 21,000 requests (planning about 14,000-18,000), about 2-3 h of `net` lane at 2
+  rps**; if GRC fails, only q0276, q0277 and q0279 run (≤ about 9,000 requests),
   behind CB11's about 10-11 h and CB12's about 6-10 h. **A fetch that has not completed (its `*_complete` status absent)
   is "pending" and is never analysed partially.**
 - **Disk guard.** Every CB13 data job declares `--disk-cap-gb` and `--data-dumps-cap-gb 40`, and exits **75** if
-  data-dumps + its cap > 40 GiB **or** root free disk − its cap < 4.5 GB. CB13 output caps total **≤ 0.35 GB** (T ≤ 0.05,
-  R ≤ 0.3). Exit-75 waits are "pending" (CB10 §2.8 rule). CB13 never deletes or moves host data. If T's source
+  data-dumps + its cap > 40 GiB **or** root free disk − its cap < 4.5 GB. CB13 output caps total **≤ 0.4 GB** (T ≤ 0.05,
+  R ≤ 0.35). Exit-75 waits are "pending" (CB10 §2.8 rule). CB13 never deletes or moves host data. If T's source
   captures are archived and deleted before q0271 or q0274 runs, the job restores them with `restore_from_archive.py`
   and verifies the archived hash first. Nothing is re-derived.
 - **Network etiquette.** As CB12 §2.8 (shared `Limiter`, collector yield, 429 / `Retry-After` back-off, stop on
@@ -505,20 +543,31 @@ CH63. None used the class axis. T is not a re-screen of any of them.
 **Population (q0271; frozen).** Monitor prints with venue time in `T13_T_screen`, aggregated to transactions;
 binary markets; market and event key drops (§1.3).
 - **Touch eligibility:** the touch row is two-sided (`0 < bid < ask < 1`), the touch mid lies in `[0.03, 0.97]`, the
-  spread is ≤ 10c, **touch age ≤ 60 min**, and the market's capture `end_date` is ≥ `τ + 3 h` (so a 2 h mark can exist
-  before the scheduled end).
-- **Paper fill (side-free):** with YES-terms transaction price `P` and touch `(b0, a0)`: `P ≥ a0` → the maker sold YES
-  at `a0` (`d = −1`); `P ≤ b0` → the maker bought YES at `b0` (`d = +1`); `b0 < P < a0` → no fill (counted; 2-12% of
-  prints per group, H8).
-- **One resting quote per side per pass:** for each (market, touch capture, side), only the **first** crossing
-  transaction after the touch row is a fill. That is the paper maker's single quote at the recorded touch; later prints
-  in the pass are reported in the all-prints variant. Fill price = the touch quote (`a0` or `b0`), never the print
-  price (conservative when the print traded through).
+  spread `s0` is ≤ 10c, **touch age ≤ 60 min**, and the market's capture `end_date` is ≥ `τ + 3 h` (so a 2-4 h mark
+  can exist before the scheduled end).
+- **Fill anchor (round 1 item 1, adopted).** The draft filled a paper quote at the stale touch `q` and read the side
+  from where the print landed relative to that touch. Most such "crossings" were book drift since the capture, so
+  `d ≈ −sign(drift)`, and `d·(mid_h − q)` subtracted the drift before any post-fill adverse selection. That bias is
+  largest in PATH-SETTLED markets, so it biased T1 and T2 against LOW. **The primary fill is now the print itself:**
+  every large taker transaction is a real maker fill. The touch only signs it, and only where the print is consistent
+  with the touch:
+  - with the transaction's YES-terms fill prices `[P_min, P_max]` and touch `(b0, a0)`: if `a0 ≤ P_min` and
+    `P_max ≤ a0 + s0`, the transaction lifted the ask, so the maker sold YES (`d = −1`) at the **maker-adverse price
+    within the transaction**, `P = P_min` (the lowest price any maker in it sold at);
+  - if `b0 − s0 ≤ P_min` and `P_max ≤ b0`, the transaction hit the bid, so the maker bought YES (`d = +1`) at
+    `P = P_max`;
+  - `b0 < P < a0` (inside the spread): no fill, counted. Any other position ("inconsistent with touch (drift)":
+    beyond `a0 + s0` or `b0 − s0`, or straddling the touch) is excluded and counted by class. Its share is a reported
+    staleness diagnostic.
+- **Every touch-consistent transaction is a unit**, because each is a distinct real maker fill. One-fill-per-side-per-
+  pass and all-prints variants are reported. Dependence is handled by the event and path key × 6 h block ways (§2.3).
+- **Stale-touch variant (reported, uncounted):** the draft's paper quote at `q = a0` or `b0` with the side read
+  against the touch, kept so that the size of the staleness bias can be seen.
 - **Size:** each fill is one unit (unweighted per filled share). Size-weighted results are reported.
 
 **Labeller (frozen in part T before q0271; no outcome, mark or price is an input).** Inputs per market: the print's
-`title` (the market question) and `slug`, `ctx_category` and `ctx_fee_type` where present, and the touch capture's
-sidecar `fee_type`, `fee_category` and `series_slugs`. Classes, applied in this precedence:
+`title` (the market question) and `slug`, `ctx_category` and `ctx_fee_type` where present (static attributes, §1.4),
+and the touch capture's sidecar `fee_type`, `fee_category` and `series_slugs`. Classes, applied in this precedence:
 1. **SPORTS-FEED**: a sports fee type or category (`sports_fees*`), a frozen sports series or slug list, or the frozen
    sports title regex (CB12 §0.4's list plus "vs.", "O/U", spread and moneyline forms). Reported, uncounted.
 2. **PATH-SETTLED**: an asset term (frozen crypto, equity, index, commodity and FX lists) together with a price form
@@ -540,73 +589,93 @@ sidecar `fee_type`, `fee_category` and `series_slugs`. Classes, applied in this 
   (H6) and from question texts of `cross_venue/poly_markets.json` markets ending before 2026-10-01. Those markets are
   never T units, and the field-restricted reader takes questions only. No SCREEN or HOLDOUT price, touch or mark is
   used.
-- **Gate GL (audit, blind).** After q0270, a seeded sample of 200 SCREEN markets, stratified by label (seed 13121), is
-  labelled by an independent `science-reviewer` pass from `title` and `slug` alone, under the written definitions, with
-  no labeller output and no price. **PASS** iff the agreement on {LOW, NEWS, other} is ≥ 85% and ≥ 80% within each of
-  LOW and NEWS. One revision is allowed on FAIL, re-audited on a fresh 200 (seed 13122). A second FAIL → T1 and T2 "not
-  testable (labeller)", counted. The audit file is committed before q0271, and the labeller hash is final from then.
+- **Gate GL (audit, blind).** After q0270, a seeded sample of 200 SCREEN markets is labelled by an independent
+  `science-reviewer` pass from `title` and `slug` alone, under the written definitions, with no labeller output and
+  no price. The sample is stratified by label, plus **a sports-adjacent stratum** (round 1 ruling on §7 risk 3:
+  non-game sports titles such as transfers, signings, coaching changes, awards, MVP and draft picks, found by a frozen
+  keyword list, at least 30 of the 200; seed 13121). **PASS** iff the agreement on {LOW, NEWS, other} is ≥ 85% and
+  ≥ 80% within each of LOW and NEWS. One revision is allowed on FAIL, re-audited on a fresh 200 with the same strata
+  (seed 13122). A second FAIL → T1 and T2 "not testable (labeller)", counted. The audit file is committed before
+  q0271, and the labeller hash is final from then.
 
-**Mark-out.** For a fill with maker direction `d` and quote `q`: `M_h = d·(mid_h − q)` cents per share, `mid_h` the
-mark-capture mid (§2.2), `h = 2 h` primary. Decomposition: `M_h = s0/2 − AS_h`, with `AS_h = −d·(mid_h − mid0)` the
-adverse selection. So `M_h > 0` iff adverse selection stays below the half-spread (CH128's sign condition). A mark row
-whose spread is > 10c is "wide mark", counted; it enters the worst-case check below. A market that closes before its
-mark is "closed before mark", counted, with the binding worst case.
+**Mark-out.** For a fill with maker direction `d` at price `P`: `M_h = d·(mid_h − P)` cents per share, `mid_h` the
+mark-capture mid (§2.2). The primary is the "2 h" mark, **realised 2-4 h** (labelled so). `M_h > 0` iff the maker's
+price beat the later mid, so the realised spread exceeded the adverse selection (CH128's sign condition, now measured
+from the actual fill price). A mark row whose spread is > 10c is "wide mark", counted; it enters the worst-case check
+below. A market that closes before its mark is "closed before mark", counted, with the binding worst case.
 
-**T1 (class contrast).** `D = M̄_LOW,2h − M̄_NEWS,2h` (fill-level means), one-sided > 0, floor 0.5c; p = max over the
-event and 6 h block ways (§2.3), with the leave-one-day-out sign rule binding.
-- **Binding pre-fill placebo.** The same statistic with the pre-fill move (from the capture before the touch capture
-  to the touch capture, signed by `d`) in place of `M`. It must not pass p < 0.01. *Alternative guarded:* class-specific
-  trend or momentum in the SCREEN days (a crypto drift week) read as toxicity.
+**T1 (class contrast).** `D = M̄_LOW,2-4h − M̄_NEWS,2-4h` (fill-level means), one-sided > 0, floor 0.5c; p = max over
+the event, path key × 6 h block and 6 h block ways (§2.3). Leave-one-day-out must keep p < 0.05 and the sign.
+- **Binding pre-fill placebo.** The same statistic with the pre-fill move in place of `M`: the move from the capture
+  before the touch capture to the touch capture, signed by `d`. It must not pass p < 0.01. *Alternative guarded:*
+  class-specific trend or momentum in the SCREEN days (a crypto drift week) read as toxicity. The touch-to-print gap,
+  which this placebo does not cover, is removed by the print anchor and the touch-consistency band (item 1).
 - **Binding composition placebo.** Class labels are permuted across events within strata of (touch spread band x
   touch mid band x time-to-end band: < 1 d, 1-7 d, > 7 d); 200 draws (seed 13101). *Alternative guarded:* the contrast
   comes from spread, price or horizon composition rather than class.
-- **Robustness (binding).** Touch age ≤ 20 min keeps the sign. The 6 h horizon keeps the sign. The **adverse-touch mark**
-  (`mid_h` replaced by `ask_h` for maker sells and `bid_h` for maker buys, every wide-mark and closed-before-mark unit
-  included at its adverse touch or worst case) keeps the sign. Excluding transactions ≥ $10,000 keeps the sign. Each
-  fill side (maker sells, maker buys) keeps the sign. Event-weighted means keep the sign. Top-5 drops by event and by
-  block; leave-one-day-out.
-- **Attribution (binding for the label "class effect").** OLS of `M_2h` on the LOW and NEWS indicators plus touch
-  spread band, touch mid band, time-to-end band, transaction size band and log capture liquidity. Credit "class
-  effect" only if the LOW − NEWS coefficient keeps ≥ half of `D`; otherwise the label is "composition, not class".
-- **Reported (uncounted).** Per-class `M̄` at 2 h and 6 h, including SPORTS-FEED and SCHEDULED-EVENT, which says
-  where the economics studies' losses sit; the all-prints variant; reward-band (`clob_rewards` present) vs not; capacity
-  (sweep depth at the touch where swept).
+- **Robustness (binding).** Each of the following keeps the sign:
+  - touch age ≤ 20 min;
+  - the 6-8 h mark;
+  - the **adverse-touch mark** (`mid_h` replaced by `ask_h` for maker sells and `bid_h` for maker buys, with every
+    wide-mark and closed-before-mark unit included at its adverse touch or worst case);
+  - excluding transactions ≥ $10,000;
+  - each fill side (maker sells, maker buys);
+  - event-weighted means;
+  - a staleness-share control: the attribution regression below plus the class's "inconsistent with touch" share.
 
-**T2 (maker sign in LOW).** `M̄_LOW,2h`, one-sided > 0, floor +0.25c; label "mid-marked maker net, upper bound (free
-exit), L1".
+  Also top-5 drops by event and by block, and leave-one-day-out (p < 0.05).
+- **Attribution (binding for the label "class effect").** OLS of `M_2-4h` on the LOW and NEWS indicators plus touch
+  spread band, touch mid band, time-to-end band, transaction size band, touch age band and log capture liquidity.
+  Credit "class effect" only if the LOW − NEWS coefficient keeps ≥ half of `D`; otherwise the label is "composition,
+  not class".
+- **Reported (uncounted).** Per-class `M̄` at 2-4 h and 6-8 h, including SPORTS-FEED and SCHEDULED-EVENT, which says
+  where the economics studies' losses sit; the stale-touch, one-per-side and all-prints variants; the per-class share
+  of transactions inconsistent with the touch; reward-band (`clob_rewards` present) vs not; capacity (sweep depth at
+  the touch where swept).
+
+**T2 (maker sign in LOW).** `M̄_LOW,2-4h`, one-sided > 0, floor +0.25c; label "mid-marked maker net, upper bound (free
+exit), L1". p and the leave-one-day-out rule as T1.
 - **Binding sign-flip calibration.** One coin per event flips `d`; 200 draws (seed 13102). *Alternative guarded:*
   within-event and within-block dependence makes the clustered p anti-conservative.
 - **Binding pre-fill placebo** as in T1, applied to `M̄_LOW`.
-- **Robustness (binding).** Touch age ≤ 20 min keeps the sign. The 6 h horizon keeps the sign and ≥ half. Each LOW
-  component (PATH-SETTLED, PUBLIC-STATISTIC) with ≥ 200 fills keeps the sign. The **worst case** (wide-mark units at
-  the adverse touch; closed-before-mark units at `d·(Y_adv − q)` with `Y_adv` the adverse extreme 0 or 1) keeps p <
-  0.01 and the floor. Excluding transactions ≥ $10,000; top-5 drops; leave-one-day-out.
+- **Robustness (binding).**
+  - Touch age ≤ 20 min keeps the sign.
+  - The 6-8 h mark keeps the sign and ≥ half.
+  - Each LOW component (PATH-SETTLED, PUBLIC-STATISTIC) with ≥ 200 fills keeps the sign.
+  - The **worst case** keeps p < 0.01 and the floor: wide-mark units at the adverse touch, and closed-before-mark units
+    at `d·(Y_adv − P)` with `Y_adv` the adverse extreme 0 or 1.
+  - Excluding transactions ≥ $10,000, top-5 drops and leave-one-day-out (p < 0.05).
 
-**Gate GTI (cadence informativeness; CH128's kill, computed in q0273 before T1/T2 are read).** On fills with a later
-monitor print in the same market in `[τ + 2 h − 30 min, τ + 2 h + 30 min]`, the sign of the print-based move
-(`d`-signed, from the touch quote to the YES-terms VWAP of those prints) agrees with the sign of `mid_2h − q` in
-> 70% of pairs where both are nonzero. FAIL → T1 and T2 "not testable (cadence)", counted. **Declared deviation:** with
-fewer than 200 evaluable pairs, the gate is "not evaluable" and every T line carries the label "cadence informativeness
-unverified (n < 200)", rather than "unknown = not met". Monitor prints are sparse, so the challenger should rule on
-this.
+**Gate GTI (cadence informativeness; CH128's kill, computed in q0273 before T1/T2 are read).** It uses fills with a
+later monitor print in the same market in `[τ + 2 h − 30 min, τ + 2 h + 30 min]`. The print-based move is
+`d·(VWAP_later − P)`, measured **from the fill print `P`, not from a stale touch** (round 1 item 1). On pairs where both
+moves are nonzero, its sign must agree with the sign of `mid_2-4h − P` in > 70% of pairs. FAIL → T1 and T2 "not
+testable (cadence)", counted. **Declared deviation (accepted by the round-1 ruling, conditional on item 1):** with
+fewer than 200 evaluable SCREEN pairs, the gate is "not evaluable" at Stage 1 and every T line carries the label
+"cadence informativeness unverified (n < 200)". **At Stage 2, GTI is evaluated on SCREEN + HOLDOUT pairs pooled; T3
+requires a GTI PASS there** (with < 200 pooled pairs, T3 is "not testable (cadence)", counted).
 
-**Power (planning; GTP decides).** From H8, SCREEN fills within 60 min: about 1,100-1,500 LOW (crypto 553,
-econ+finance 532, plus labelled PUBLIC-STATISTIC from the unenriched prints) and about 700-1,000 NEWS before the
-first-crossing collapse and exclusions; G_event about 230 (LOW) and 190 (NEWS); 14-16 six-hour blocks. With an SD of
-`M_2h` of about 3c and an event design effect of 2: `SE(D) ≈ 0.18c` → **MDE_T1 ≈ 0.7c** against the 0.5c floor;
-`SE(M̄_LOW) ≈ 0.12c` → **MDE_T2 ≈ 0.45c** against 0.25c. Both floors sit below the MDE, so T detects only about 0.7c
-and 0.45c or more. The first-crossing collapse and the block way can raise both MDEs past the GTP cuts. GT may fail
-on NEWS (500 fills) and is reported as such.
+**Power (planning; GTP decides).** H8 counted the draft's crossing rule, not the touch-consistency band, so the new
+counts are known only at the census. Before the band and exclusions, SCREEN has about 1,100-1,500 LOW fills (crypto
+553, econ+finance 532, plus labelled PUBLIC-STATISTIC from the unenriched prints) and about 700-1,000 NEWS fills. The
+band removes the drift crossings, probably a large share in PATH-SETTLED; dropping first-per-side adds back the
+repeat prints. G_event is about 230 (LOW) and 190 (NEWS), with 14-16 six-hour blocks. Assume an SD of `M_2-4h` of
+about 3c and a design effect of 2-3 once the path key × block way enters. Then `SE(D) ≈ 0.18-0.22c`, so **MDE_T1 ≈
+0.7-0.85c** against the 0.5c floor, and `SE(M̄_LOW) ≈ 0.12-0.15c`, so **MDE_T2 ≈ 0.45-0.55c** against 0.25c. Both
+floors sit below the MDE. T2 may hit the GTP cut (0.5c), and GT may fail on NEWS (500 fills); both outcomes are
+counted.
 
-**Stage 2 (conditional; q0274, q0275).** On `T13_T_hold`, with the same frozen rules and labeller, **event-disjoint**:
-HOLDOUT drops every Gamma event with a SCREEN fill (counted by class). If more than 40% of HOLDOUT LOW or NEWS fills
-are dropped, the lines carry the label "HOLDOUT thinned by event overlap", and a variant keeping them is reported. Each
-Stage-2 test needs ≥ 500 fills of each class it uses in ≥ 60 events, else "not run (power)", counted.
+**Stage 2 (conditional; q0274, q0275).** On `T13_T_hold` (label "adjacent window, same regime"), with the same frozen
+rules and labeller, **event-disjoint**: HOLDOUT drops every Gamma event with a SCREEN fill, counted by class. If more
+than 40% of HOLDOUT LOW or NEWS fills are dropped, the lines carry the label "HOLDOUT thinned by event overlap", and a
+variant keeping them is reported. Each Stage-2 test needs ≥ 500 fills of each class it uses in ≥ 60 events, else "not
+run (power)", counted. **q0275 starts only at `T13_T_rep`, after CB3's freeze commit** (round 1 item 3).
 - **T1-rep, T2-rep**: the Stage-1 statistic, placebos and robustness.
-- **T3 (economic at recorded touches; triggered by T2).** LOW fills; `net = d·(x_exit − q) − r·x_exit(1 − x_exit)`,
-  with `x_exit` the adverse touch of the 2 h mark capture (§2.1). One-sided > 0, floor +0.5c, robustness +0.5c on the
-  exit. Expected to be hard: the exit pays a half-spread and a fee against a maker's half-spread, which is why it is
-  the honest recorded-price check. A pass would need adverse selection well below zero in LOW.
+- **T3 (economic at recorded prices; triggered by T2; needs the pooled GTI PASS).** LOW fills; `net = d·(x_exit − P) −
+  r·x_exit(1 − x_exit)`, with `P` the recorded fill print and `x_exit` the adverse touch of the 2-4 h mark capture
+  (§2.1). One-sided > 0, floor +0.5c, robustness +0.5c on the exit. Expected to be hard: the exit pays a half-spread
+  and a fee against the maker's realised spread, which is why it is the honest recorded-price check. A pass would need
+  adverse selection well below the realised spread in LOW.
 
 ### CB13-R: Barrier-versus-terminal confusion in "reach / dip to" ladders (CH118)
 
@@ -631,72 +700,97 @@ parsed strike `B` and direction (reach: up-barrier on `high`; dip: down-barrier 
 parsed from the description in ET. All frozen flags must be present: Binance, the 1-minute candle, High (reach) or Low
 (dip), and a USDT pair matching the asset map. Key and overlap drops follow §1.3. Race-form members ("before") are
 excluded and counted (23 in the pull, H10).
-- **Units:** (market, daily 00:00Z checkpoint `t`) with `T0 ≤ t ≤ T − 1 h`, listed ≥ 1 h before `t`, **not decided**
-  (no touch in `[T0, t)` on the klines; decided units are counted), `p_t ∈ [0.03, 0.97]`, `p_reg` available.
-  Weighting: **each market weight 1, split over its units**, so yearly ladders with about 300 checkpoints do not
-  dominate. The unit-weighted result is reported.
+- **Primary template: weekly only (round 1 item 5, adopted with modification).** Events whose parsed window is ≤ 8
+  days (titles "<Month> d-d" and "<Month> d-<Month> d") form the primary. Consecutive weekly windows of one asset do
+  not overlap, so window components are about one asset-week. Monthly ("in <Month>"), yearly ("in <YYYY>") and "by
+  <date>" events are **counted in the census only, with no prices fetched**. The reviewer offered dropping yearly and
+  long "by" templates; monthly windows are dropped too, because weekly windows that straddle a month end ("September
+  ##-October #", probe row 5) join consecutive monthly windows. With monthly events in the primary, every asset's
+  windows would merge into one component, which is the "one cluster per asset" case.
+- **Units:** (market, daily 00:00Z checkpoint `t`) with `T0 ≤ t ≤ T − 1 h`, listed ≥ 1 h before `t`, `p_t ∈ [0.03,
+  0.97]` and `p_reg` available. The unit must be **not decided**: no touch in `[T0, t)` on the klines, which requires
+  kline coverage of `[min(T0, t − 30 d), t)`. Without that coverage the unit is "unavailable (no klines)", counted,
+  never assumed undecided (round 1 item 6). Decided units are counted. Weighting: **each market weight 1, split over its
+  units** (`Y` is one value per market). The unit-weighted result is reported.
 - **Anchor (frozen; no fitting to outcomes).** `σ_t` = the annualised SD of Binance 5-minute log returns of the asset in
   `[t − 30 d, t)` (×√105,120). `τ` = `(T − t)` in years. `q_touch = min(1, 2·(1 − Φ(|ln(B/S_t)| / (σ_t√τ))))`.
   `q_term = 1 − Φ(|ln(B/S_t)| / (σ_t√τ))` is used for the attribution only.
 - **Outcome (computed, guarded).** `Y = 1` iff a candle with open in `[t, T)` has `high ≥ B` (reach) or `low ≤ B`
-  (dip). The Gamma outcome is used only for the agreement audit (< 97% agreement → the label "settlement basis") and
-  for R2's payoff.
+  (dip), compared in float64. The Gamma outcome is used only for the agreement audit (< 97% agreement → the label
+  "settlement basis") and for R2's payoff.
+- **Gate GRC (pre-fetch component gate, q0284; round 1 item 7).** It runs after the frame (q0277) and the klines
+  (q0279), before the prices fetch. It uses frame fields and klines before each checkpoint only, with no price and no
+  outcome. It counts SCREEN primary window components that hold ≥ 1 market with ≥ 1 listed, undecided, kline-covered
+  checkpoint. **If fewer than 30 such components exist, R1 is "not testable (dependence)", counted, and q0278 (about
+  6,000-9,000 requests) is never committed.**
 
 **R1 (forecasting).** The market-weighted OLS slope `β̂` of `(Y − p_t)` on `(q_touch − p_reg)` over SCREEN units,
-one-sided > 0, floor 0.30; p = max over the event, ISO-week and asset-week ways. The regressor uses `p_reg` (6 h
-earlier, a different price point), so `p_t`'s own noise never enters it (CB10's shared-noise rule).
-- **Binding sign-flip calibration.** One coin per ISO week flips `(q_touch − p_reg)`; 200 draws (seed 13103).
-  *Alternative guarded:* the common weekly path makes the clustered p anti-conservative.
-- **Binding stale-price placebo.** The same slope with `q_touch` replaced by `q_spot` = `p_reg` moved by the
-  6 h Binance return through the touch formula's delta (`q_spot = q_touch(S_t) − q_touch(S_{t−6h}) + p_reg`). It must
-  not pass p < 0.01 with a larger slope than R1. *Alternative guarded:* the price simply lags the spot, and any spot
-  anchor would "predict" `Y − p`.
+one-sided > 0, floor 0.30; p = max over the event, ISO-week, asset-week and **window-component** ways (§2.3). The
+regressor uses `p_reg` (6 h earlier, a different price point), so `p_t`'s own noise never enters it (CB10's
+shared-noise rule).
+- **Binding sign-flip calibration.** One coin per window component flips `(q_touch − p_reg)`; 200 draws (seed 13103).
+  *Alternative guarded:* the common path within a component makes the clustered p anti-conservative.
+- **Binding stale-price check (round 1 item 13: joint fit).** Define `q_spot = q_touch(S_t) − q_touch(S_{t−6h}) +
+  p_reg`: `p_reg` moved by the 6 h Binance return through the touch formula. A joint OLS of `(Y − p_t)` on
+  `(q_touch − p_reg)` and `(q_spot − p_reg)` must keep the `q_touch` coefficient at ≥ half its solo value with
+  one-sided p < 0.05 (max over ways). Otherwise R1 cannot advance, and the label is "price lags spot". *Alternative
+  guarded:* the price simply lags the spot, and any spot anchor would "predict" `Y − p`.
 - **Attribution (binding for the label "barrier-versus-terminal confusion").** Joint OLS of `(Y − p_t)` on the
   reflection gap `g = q_touch − q_term` and on `(q_term − p_reg)`. Credit the label only if the coefficient on `g` is
   ≥ 0.30 and ≥ half of R1's `β̂`. Otherwise the label is "volatility anchor, not barrier confusion".
-- **Robustness (binding).** Reach and dip separately keep the sign. BTC alone keeps the sign. `σ_t` x 0.8 and x 1.2 each
-  keep the sign. Drift-adjusted `q` (trailing 30 d mean log return) keeps the sign. Each SCREEN half by window end
-  keeps the sign. Units with ≥ 1 hourly price change in `[t − 6 h, t)` keep the sign. The Gamma outcome in place of the
-  Binance outcome keeps the sign. Top-5 drops by event and by week.
-- **Reported (uncounted).** The cross-horizon test: the crowd-implied σ (σ solving `q_touch = p_t`) by horizon bucket
-  (< 3 d, 3-10 d, > 10 d). CH118 predicts higher implied σ at short horizons. Also the slope by template, asset and
-  distance band (`|ln(B/S)|/(σ√τ)` terciles); the share of units with `|q_touch − p_t| ≥ 5c`; and the Binance-Gamma
-  agreement.
+- **Robustness (binding).** Each keeps the sign: reach and dip separately; BTC alone; `σ_t` x 0.8 and x 1.2;
+  drift-adjusted `q` (trailing 30 d mean log return); each SCREEN half by window end; units with ≥ 1 hourly price
+  change in `[t − 6 h, t)`; the Gamma outcome in place of the Binance outcome. Also top-5 drops by event, week and
+  component.
+- **Reported (uncounted).** The cross-horizon test: the crowd-implied σ (σ solving `q_touch = p_t`) by time-to-end
+  bucket within the weekly window (< 2 d, 2-4 d, > 4 d). CH118 predicts higher implied σ at short horizons. Also the
+  slope by asset and distance band (`|ln(B/S)|/(σ√τ)` terciles); the share of units with `|q_touch − p_t| ≥ 5c`; and
+  the Binance-Gamma agreement.
 
-**Power (planning; GRP decides).** The pull alone holds 1,418 SCREEN-window markets (ends 2025-10..2026-03), and the
-date walk adds 2024-11..2025-09 (rows 2-4 show ladders there), so SCREEN is about 2,500-3,500 markets in about 300-450
-events over about 70 ISO weeks. With SD(`Y − p`) about 0.38 and SD(`q_touch − p_reg`) about 0.10: if reach/dip
-opposition lets the event way bind (about 300-450 events), `SE(β̂) ≈ 0.12` → **MDE_R1 ≈ 0.45-0.5** against the 0.30
-floor. If the week factor binds (about 70 weeks x 2 main assets), `SE ≈ 0.3` → **MDE ≈ 1.2**, and GRP stops R1
-("not run (power)", counted). This is R's main risk (§7).
+**Power (planning; GRP decides).** The draft's 0.45-0.5 planning MDE assumed independent events, which round 1 item 5
+rules out. The weekly-only SCREEN covers about 74 ISO weeks (2024-11..2026-03), with weekly ladders on 2-4 assets. That
+gives about 150-300 window components, but the cross-asset ISO-week way has only about 74 clusters. With SD(`Y − p`)
+about 0.38 and SD(`q_touch − p_reg`) about 0.10, treating a component as one independent draw gives `SE(β̂) ≈ 0.22-0.3`,
+so **MDE_R1 ≈ 0.85-1.15**. Reach/dip opposition inside a component can lower this toward about 0.5-0.6, because one
+path shock moves the two directions oppositely. GRP's nested simulation measures exactly that. **R1 is likely to be
+"not run (power)" (counted).** GRC stops the prices fetch earlier if the components are too few. This is R's main
+risk (§7).
 
-**Stage 2 (conditional; q0283).** On the sealed HOLDOUT (ends `[2026-04-01, 2026-10-01)`, checkpoints ≥ 2026-04-01;
-2,321 markets in the pull): **R1-rep** (same rules) and **R2** (modelled-cost economic, §2.1). R2 takes one entry per
-market, at the first eligible checkpoint with `q_touch − a_YES ≥ 5c` (buy YES) or `(1 − q_touch) − a_NO ≥ 5c` (buy NO),
-held to resolution: `net = Y^G − a − fee`. One-sided > 0, floor +1.0c, robustness +1.0c on `a`. **Binding placebo:**
-the same rule with `q_touch` replaced by `p_reg` must not pass p < 0.01. **R2 power:** SD(net) about 0.4 per market;
-with about 1,000 entries and a design effect of 5, `MDE ≈ 11c` against the 1.0c floor. R2 therefore applies the GRP
-rule at q0283: if `MDE_R2 > 2.0c`, R2 is "not run (power)", counted. A real R money test needs Stage P-R at recorded
-asks.
+**Stage 2 (conditional; q0283).** On the sealed HOLDOUT: weekly primary events ending in `[2026-04-01, 2026-10-01)`,
+checkpoints ≥ 2026-04-01. **R1-rep** uses the same rules and needs ≥ 30 HOLDOUT components, else "not run (power)",
+counted. **R2** is the modelled-cost economic check (§2.1): one entry per market, at the first eligible checkpoint with
+`q_touch − a_YES ≥ 5c` (buy YES) or `(1 − q_touch) − a_NO ≥ 5c` (buy NO), held to resolution: `net = Y^G − a − fee`.
+One-sided > 0, floor +1.0c, robustness +1.0c on `a`; clustered with the same four ways. **Binding placebo:** the same
+rule with `q_touch` replaced by `p_reg` must not pass p < 0.01. **R2 power:** SD(net) is about 0.4 per market and the
+component way binds, so `MDE ≈ 10-15c` against the 1.0c floor. R2 therefore applies the GRP rule at q0283: if
+`MDE_R2 > 2.0c`, R2 is "not run (power)", counted. A real R money test needs Stage P-R at recorded asks.
 
 ### CB13-S and data jobs
 
-- **q0270 smoke** (PASS needs):
+- **q0270 T smoke** (`cpu` lane, **no network**; round 1 item 11). PASS needs:
   - the rules part hashes;
-  - the refusals on fixtures: J4-R-window captures, sweeps and prints; `T13_T_hold` rows before the seal;
-    `surprise_live/`, `cross_venue_live/`, `e00*/`, `trade_samples/`; the monitor's `alerts`, `scores`, `outcomes` and
-    `wallets` files; every forbidden field (`side`, `wallet_*`, `ctx_chg_1h`, `uma_resolution_statuses`,
-    `outcomePrices`); klines at or after `t` and R `holdout/` paths in census mode;
-  - **T:** the capture-print join on two SCREEN captures reproduces probe H8's touch-age and crossing counts for the
-    prints between them, and the labeller runs on fixtures and on all SCREEN titles with UNKNOWN ≤ 5% (counts only);
-  - **R:** the tag-21 one-day walk on two out-of-window days (ends in `[2026-10-02, 2026-10-16]`) finds the barrier
-    events that public search finds; the rule parser and flags on 3 out-of-window barrier events (window, `B`,
-    direction, asset; parse success recorded); `prices-history` with explicit bounds on 2 out-of-window members; one
-    Binance month HEAD + CHECKSUM.
+  - the refusals on fixtures: J4-R-window captures, sweeps and prints (both edges); `T13_T_hold` rows before the seal;
+    HOLDOUT mark quotes before `T13_T_rep`; `surprise_live/`, `cross_venue_live/`, `e00*/`, `trade_samples/`; the
+    monitor's `alerts`, `scores`, `outcomes` and `wallets` files; every forbidden field (`side`, `wallet_*`,
+    `ctx_chg_1h`, `chg_1h`, `uma_resolution_statuses`);
+  - the capture-print join on two SCREEN captures, which reproduces probe H8's touch-age and crossing counts for the
+    prints between them and reports the touch-consistency band counts;
+  - the labeller on fixtures and on all SCREEN titles, with UNKNOWN ≤ 5% (counts only).
+- **q0285 R smoke** (`net` lane, ≤ 30 requests). PASS needs:
+  - the R refusals (klines at or after `t` and `holdout/` paths in census mode; `outcomePrices` outside the guarded
+    files);
+  - the tag-21 one-day walk on two out-of-window days (ends in `[2026-10-02, 2026-10-16]`) finds the barrier events that
+    public search finds;
+  - the rule parser and flags work on 3 out-of-window weekly barrier events (window, `B`, direction, asset; parse
+    success recorded);
+  - `prices-history` with explicit bounds on 2 out-of-window members;
+  - one Binance month from 2024 and one from 2025 (HEAD + CHECKSUM + parse) confirm the millisecond-to-microsecond
+    timestamp change at 2025-01-01 (round 1 item 8).
 
   Any failure → the dependent family is "not testable (source)", counted. No rule is re-fitted.
-- **Labeller audit** (GL, between q0270 and q0271; a `science-reviewer` pass on 200 titles, no prices). The audit file
-  is `creative_batch13/labeller_audit.json`, committed with its seed and sample ids.
+- **Labeller audit** (GL, between q0270 and q0271; a `science-reviewer` pass on 200 titles including the
+  sports-adjacent stratum, no prices). The audit file is `creative_batch13/labeller_audit.json`, committed with its
+  seed and sample ids.
 - Every data job writes a manifest (file sha256, request counts, failures, data-dumps size and margin, free disk) and a
   `*_complete` status.
 
@@ -709,130 +803,239 @@ jobs also need their family's freeze. All `family` = `creative_batch_13`. Priori
 
 | Id | Lane | Priority | Size / time | Depends on | Commit when |
 |---|---|---|---|---|---|
-| q0270 | cpu | 19 | ≤ 30 req at ≤ 1 rps, < 10 min, mem 400 | - | rules file + smoke code reviewed |
+| q0270 | cpu | 19 | **no network**, < 10 min, mem 400 | - | T rules part + smoke code reviewed |
 | q0271 | cpu | 19 | no network, ≤ 40 min, mem 800 | q0270, labeller audit | after GL PASS is committed |
 | q0272 | cpu | 19 | ≤ 15 min, mem 400 | q0271 | with q0271 |
 | q0273 | cpu | 19 | ≤ 30 min, mem 500 | q0272, T freeze | after the T freeze |
 | q0274 | cpu | 19 | no network, ≤ 50 min, mem 800 | q0273 committed (any result) | not before 2026-10-26T08:00Z |
-| q0275 | cpu | 18 | ≤ 30 min, mem 500 | q0274 seal copy | only if T1 or T2 advanced |
-| q0276 | net | 17 | ≤ 600 req, ≤ 6 min, mem 500 | q0270, CB11 q0221 | with q0270's PASS |
+| q0275 | cpu | 18 | ≤ 30 min, mem 500 | q0274 seal copy, CB3 freeze commit | only if T1 or T2 advanced; not before `T13_T_rep` |
+| q0285 | net | 17 | ≤ 30 req at ≤ 1 rps, < 5 min, mem 400 | - | R rules part + smoke code reviewed |
+| q0276 | net | 17 | ≤ 600 req, ≤ 6 min, mem 500 | q0285, CB11 q0221 | with q0285's PASS |
 | q0277 | net | 16 | ≤ 8,000 req, ≤ 70 min, mem 400 | q0276 | with q0276 |
-| q0278 | net | 15 | ≤ 25,000 req (Σ from q0277's manifest), ≤ 3.5 h, mem 300 | q0277 | after q0277's request Σ is recorded |
-| q0279 | net | 15 | ≤ 400 req at 1 rps, ≤ 10 min, mem 400 | q0277 | with q0277 |
+| q0279 | net | 16 | ≤ 600 req at 1 rps, ≤ 12 min, mem 400 | q0277 | with q0277 |
+| q0284 | cpu | 17 | no network, ≤ 15 min, mem 600 | q0277, q0279 | with q0279 |
+| q0278 | net | 15 | ≤ 12,000 req (Σ from q0277's manifest), ≤ 1.7 h, mem 300 | q0284 PASS | only after q0284 PASS and q0277's request Σ is recorded |
 | q0280 | cpu | 17 | light, mem 300 | q0278, q0279 | as the fetches complete |
 | q0281 | cpu | 17 | ≤ 30 min, mem 600 | q0280 seal copy | after the R seal copy is committed |
 | q0282 | cpu | 16 | ≤ 1 CPU-h, mem 800 | q0281, R freeze | after the R freeze |
 | q0283 | cpu | 16 | ≤ 1 CPU-h, mem 800 | q0282 | only if R1 advanced |
 
 ```json
-{"id": "q0270_cb13_smoke", "title": "CB13: smoke (rules part hashes; refusals: J4-R window, T HOLDOUT before seal, surprise_live, cross_venue_live, e00*, trade_samples, monitor alerts/scores/outcomes/wallets, forbidden fields side/wallet_*/ctx_chg_1h/uma/outcomePrices, klines >= t and R holdout in census mode; T capture-print join reproduces probe H8 on 2 SCREEN captures; labeller UNKNOWN <= 5% on SCREEN titles; R tag-21 one-day walk on 2 out-of-window days, rule parser on 3 out-of-window barrier events, prices-history bounds on 2, one Binance HEAD+CHECKSUM); counts only", "family": "creative_batch_13", "priority": 19, "expected_value": "go/no-go for every CB13 source", "data": ["live_trades/trades-202610{12..15}.jsonl (whitelisted fields)", "snapshots/ (2 SCREEN captures, whitelisted columns)", "public Gamma, CLOB prices-history", "data.binance.vision"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "cpu", "network": "gamma-api, clob, data.binance.vision"}, "depends_on": [], "argv": ["scripts/run_cb13.py", "smoke", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--rps", "1"], "timeout_s": 1200, "max_retries": 1, "outputs": ["research_lab/creative_batch13/smoke.json", "trials.jsonl (cb13_descriptive)"], "next_action": "PASS: labeller audit (GL), q0276; FAIL: dependent family not testable (source), counted", "notes": "CREATIVE_BATCH_13.md CB13-S. DRAFT. <= 30 requests. No side, wallet or hash stored. Starts outside :31-:55 of even hours."}
-{"id": "q0271_cb13_t_frame", "title": "CB13-T: exclusion keys (ids + timestamps of sealed historical sets with rows in T windows, field-restricted) and SCREEN fill table: transactions in [2026-10-12, 2026-10-16), touch from the latest complete capture row (age <= 60 min, two-sided, mid in [0.03,0.97], spread <= 10c, end >= tau+3h), side-free paper fill, first crossing per (market, capture, side), frozen labeller; features only, no mark", "family": "creative_batch_13", "priority": 19, "expected_value": "T SCREEN population", "data": ["live_trades/trades-202610{12..15}.jsonl (whitelist)", "snapshots/<captures starting 2026-10-11T20Z..2026-10-16T00Z>/rows.csv.gz, rows_ext.csv.gz (whitelist)", "history/{h5_cb1,h5_cb1_ladders,h7_cb4_era,h7_cb4_series,h8_tail,h8_tail_b,h8_text,h8_geo} (id + timestamp columns only)", "creative_batch13/labeller_audit.json"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0270_cb13_smoke"], "argv": ["scripts/run_cb13.py", "t-frame", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--split", "screen", "--disk-cap-gb", "0.03", "--data-dumps-cap-gb", "40"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch13/t_screen/{fills.csv.gz,labels.csv.gz,t_exclusion_keys.csv.gz,manifest.json}"], "next_action": "q0272", "notes": "DRAFT. Refuses any capture/print in the J4-R window or T HOLDOUT window, and any mark capture (no forward row is read). Restores archived captures byte-for-byte if deleted from the host. mem 800 justified (section 2.8)."}
-{"id": "q0272_cb13_census_T", "title": "CB13-T census, counts only: prints/transactions by day, label, fee category; key drops by source; fills by touch-age band, crossing vs inside, first-crossing collapse; by class, event, 6h block, day; spread/mid/time-to-end bands; exclusion labels; sweep depth (reported); gates GT and GL; GTP clustered SEs on the pre-fill proxy (no point estimate written); MDEs", "family": "creative_batch_13", "priority": 19, "expected_value": "T gates and MDEs before the freeze", "data": ["creative_batch13/t_screen/", "snapshots/ (touch and pre-touch captures only, whitelist)", "book_sweeps/ (depth columns, reported)"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0271_cb13_t_frame"], "argv": ["scripts/run_cb13.py", "census", "--family", "T"], "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch13/census_T.json", "trials.jsonl (cb13_descriptive)"], "next_action": "science-reviewer freeze check (T part)", "notes": "DRAFT. No mark capture opened; no M, D or net computed."}
-{"id": "q0273_cb13_screen_T", "title": "CB13-T: gate GTI, then T1 (LOW - NEWS 2h mark-out; pre-fill and composition placebos; age<=20m, 6h, adverse-touch mark, >=$10k, side, event-weighted, top-5, leave-one-day-out robustness; attribution) and T2 (LOW mid-marked maker net; sign-flip and pre-fill placebos; age, 6h, components, worst-case robustness) on SCREEN", "family": "creative_batch_13", "priority": 19, "expected_value": "T verdicts and the class map", "data": ["creative_batch13/t_screen/", "snapshots/ (mark captures starting before 2026-10-16T00:00Z only)", "live_trades/trades-202610{12..15}.jsonl (GTI print-based moves)"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0272_cb13_census_T"], "argv": ["scripts/run_cb13.py", "screen", "--family", "T"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch13/results_T.json", "trials.jsonl (cb13_test + creative_batch_13:T n_tests=2)"], "next_action": "commit results; advanced: q0275 after the q0274 seal", "notes": "DRAFT. Refuses before the T freeze hash; refuses unless GT, GL, GTP passed (else counted lines). Every line labelled 'L1, worn captures, new statistic'; T2 also 'upper bound (free exit)'."}
-{"id": "q0274_cb13_t_holdout", "title": "CB13-T HOLDOUT seal: sha256 of trades-2026102{1..6}.jsonl and rows/rows_ext of captures starting [2026-10-20T22Z, 2026-10-26T00Z); HOLDOUT fill table (features, frozen labeller, SCREEN events dropped, counted) and raw mark-quote table (bid/ask at mark captures, no mark-out computed) to t_holdout/; re-read exclusion sets; counts only; seal copy", "family": "creative_batch_13", "priority": 19, "expected_value": "sealed T HOLDOUT", "data": ["live_trades/trades-2026102{1..6}.jsonl (whitelist)", "snapshots/ (HOLDOUT captures, whitelist)", "creative_batch13/t_screen/fills.csv.gz (event ids only)"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0273_cb13_screen_T"], "argv": ["scripts/run_cb13.py", "t-holdout", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--not-before", "2026-10-26T08:00:00Z", "--disk-cap-gb", "0.02", "--data-dumps-cap-gb", "40"], "timeout_s": 3600, "max_retries": 2, "outputs": ["research_lab/creative_batch13/t_holdout/{fills.csv.gz,mark_quotes.csv.gz,manifest.json}", "research_lab/creative_batch13/t_holdout_SEAL.json"], "next_action": "commit seals/cb13_t_holdout_SEAL.json; q0275 if triggered", "notes": "DRAFT. Exits 75 (pending) before 2026-10-26T08:00Z. Writes no M. If J4-R's end has moved, the window starts at the new end (recorded)."}
-{"id": "q0275_cb13_rep_T", "title": "CB13-T Stage 2 on the sealed HOLDOUT: T1-rep (if T1 advanced), T2-rep and T3 recorded-touch round trip (passive entry, taker exit at the 2h adverse touch, sidecar fee, +0.5c robustness) (if T2 advanced); >= 500 fills per class used in >= 60 events else not run (power)", "family": "creative_batch_13", "priority": 18, "expected_value": "L2 verdicts", "data": ["creative_batch13/t_holdout/ (seal hash verified first; sources restored from archive if needed)"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0274_cb13_t_holdout"], "argv": ["scripts/run_cb13.py", "rep", "--family", "T"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch13/results_T_rep.json", "trials.jsonl (cb13_replication + creative_batch_13:T:rep)"], "next_action": "pass: Stage P-T registration draft", "notes": "DRAFT. Only for triggered tests; alpha/5 if early, full Stage-2 Holm once."}
-{"id": "q0276_cb13_exclusion_keys", "title": "CB13-R: exclusion keys = CB11 q0221 key file + id columns of h9_flow, h10_*, h11_*, every CB12 frame (h12_say, h12_quake, h12_prints, live frames), CB8/CB9 frames + seal copies; Gamma lookups for missing event/negRisk/series keys; barrier-overlap list by asset and window", "family": "creative_batch_13", "priority": 17, "expected_value": "disjointness of R", "data": ["creative_batch11/exclusion_keys.csv.gz", "history/*/ (id columns only)", "docs/research_lab/seals/*", "public Gamma (ids)"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "net", "network": "gamma-api"}, "depends_on": ["q0270_cb13_smoke", "q0221_cb11_exclusion_keys"], "argv": ["scripts/run_cb13.py", "exclusion-keys", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "40"], "timeout_s": 2400, "max_retries": 2, "outputs": ["research_lab/creative_batch13/exclusion_keys.csv.gz", "manifest.json (absent_at_q0276 list)"], "next_action": "q0277", "notes": "DRAFT. >2% missing metadata -> disjointness unverified (R1 not testable, counted). Exit 75 on headroom = pending."}
-{"id": "q0277_cb13_touch_frame", "title": "CB13-R: Gamma closed events tag_id=21, one-day end_date windows over [2024-11-01, 2026-10-01); frozen barrier templates (terminal and Up/Down templates excluded, counted); members, strike, direction, asset; rule-window parser and flags; key + same-asset overlap drops; out-of-time split at 2026-04-01; Gamma outcomes to SCREEN and HOLDOUT guarded files; completeness cross-check vs poly_markets.json barrier ids (ids/questions only); q0278 request sum", "family": "creative_batch_13", "priority": 16, "expected_value": "R population and split", "data": ["public Gamma", "creative_batch13/exclusion_keys.csv.gz", "cross_venue/poly_markets.json (ids and questions only, streaming)"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "gamma-api"}, "depends_on": ["q0276_cb13_exclusion_keys"], "argv": ["scripts/run_cb13.py", "touch-frame", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "40"], "timeout_s": 5400, "max_retries": 2, "outputs": ["history/h13_touch/{events.csv.gz,members.csv.gz,rules_parsed.csv.gz,split.json,outcomes_guarded_screen.csv.gz,manifest.json}", "history/h13_touch/holdout/outcomes_guarded_holdout.csv.gz"], "next_action": "q0278, q0279", "notes": "DRAFT. No price read. Capped day windows split until uncapped (counted). outcome_prices/volume of poly_markets.json never parsed."}
-{"id": "q0278_cb13_touch_prices", "title": "CB13-R: CLOB prices-history per barrier member, fidelity 60 in <= 14-day bounded chunks over [max(createdAt, window start - 1 d), window end]; a point is usable from stamp + 3600 s; HOLDOUT rows to holdout/", "family": "creative_batch_13", "priority": 15, "expected_value": "R prices", "data": ["public CLOB prices-history", "history/h13_touch/members.csv.gz"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "net", "network": "clob"}, "depends_on": ["q0277_cb13_touch_frame"], "argv": ["scripts/run_cb13.py", "touch-prices", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--rps", "2", "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "40", "--budget-min", "110"], "timeout_s": 7200, "max_retries": 2, "outputs": ["history/h13_touch/{screen,holdout}/prices.csv.gz", "manifest.json"], "next_action": "q0280", "notes": "DRAFT. <= 25,000 requests = sum of ceil(span/14 d) from q0277's manifest (planning 12,000-16,000). Resumable; incomplete = pending.", "repeat": {"max_runs": 4, "until_log_regex": "\"status\": \"touch_prices_complete\""}}
-{"id": "q0279_cb13_binance", "title": "CB13-R: data.binance.vision monthly spot 1m klines + .CHECKSUM for the parsed assets (BTC, ETH, SOL, XRP and any other parsed USDT pair), 2024-09..2026-09; verified, parsed in memory to float32 (open time, high, low, close) npz per asset-month; months >= 2026-04 to holdout/", "family": "creative_batch_13", "priority": 15, "expected_value": "R spot, sigma and touch outcomes", "data": ["data.binance.vision (public archive)", "history/h13_touch/members.csv.gz (asset list)"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "data.binance.vision"}, "depends_on": ["q0277_cb13_touch_frame"], "argv": ["scripts/run_cb13.py", "binance", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--rps", "1", "--disk-cap-gb", "0.2", "--data-dumps-cap-gb", "40"], "timeout_s": 1800, "max_retries": 2, "outputs": ["history/h13_binance/{screen,holdout}/<SYM>-<YYYY-MM>.npz", "manifest.json"], "next_action": "q0280", "notes": "DRAFT. <= 400 requests. A CHECKSUM mismatch is retried once, then the month is 'unavailable (source)'; units needing it are counted unavailable."}
+{"id": "q0270_cb13_smoke_T", "title": "CB13-T smoke, no network (common + T rules part hashes; refusals: J4-R window at both edges, T HOLDOUT before seal, HOLDOUT mark quotes before T13_T_rep, surprise_live, cross_venue_live, e00*, trade_samples, monitor alerts/scores/outcomes/wallets, forbidden fields side/wallet_*/ctx_chg_1h/chg_1h/uma; capture-print join reproduces probe H8 on 2 SCREEN captures and reports touch-consistency band counts; labeller UNKNOWN <= 5% on SCREEN titles); counts only", "family": "creative_batch_13", "priority": 19, "expected_value": "go/no-go for every CB13 source", "data": ["live_trades/trades-202610{12..15}.jsonl (whitelisted fields)", "snapshots/ (2 SCREEN captures, whitelisted columns)"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "cpu"}, "depends_on": [], "argv": ["scripts/run_cb13.py", "smoke", "--part", "T", "--rules", "../docs/research_lab/seals/cb13_rules.json"], "timeout_s": 1200, "max_retries": 1, "outputs": ["research_lab/creative_batch13/smoke_T.json", "trials.jsonl (cb13_descriptive)"], "next_action": "PASS: labeller audit (GL); FAIL: T not testable (source), counted", "notes": "CREATIVE_BATCH_13.md CB13-S. DRAFT. No network (round 1 item 11). No side, wallet or hash stored. Starts outside :31-:55 of even hours."}
+{"id": "q0271_cb13_t_frame", "title": "CB13-T: exclusion keys (ids + timestamps of sealed historical sets with rows in T windows, field-restricted) and SCREEN fill table: transactions in [2026-10-12, 2026-10-16) with min/max fill price, touch from the latest complete capture row (age <= 60 min, two-sided, mid in [0.03,0.97], spread <= 10c, end >= tau+3h); print-anchored fill at the maker-adverse price, side from the touch-consistency band [a0, a0+s0] / [b0-s0, b0] (inside and inconsistent counted); stale-touch variant fields; path key; frozen labeller; features only, no mark", "family": "creative_batch_13", "priority": 19, "expected_value": "T SCREEN population", "data": ["live_trades/trades-202610{12..15}.jsonl (whitelist)", "snapshots/<captures starting 2026-10-11T20Z..2026-10-16T00Z>/rows.csv.gz, rows_ext.csv.gz (whitelist)", "history/{h5_cb1,h5_cb1_ladders,h7_cb4_era,h7_cb4_series,h8_tail,h8_tail_b,h8_text,h8_geo} (id + timestamp columns only)", "creative_batch13/labeller_audit.json"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0270_cb13_smoke_T"], "argv": ["scripts/run_cb13.py", "t-frame", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--split", "screen", "--disk-cap-gb", "0.03", "--data-dumps-cap-gb", "40"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch13/t_screen/{fills.csv.gz,labels.csv.gz,t_exclusion_keys.csv.gz,manifest.json}"], "next_action": "q0272", "notes": "DRAFT. Refuses any capture/print in the J4-R window or T HOLDOUT window, and any mark capture (no forward row is read). Restores archived captures byte-for-byte if deleted from the host. mem 800 justified (section 2.8)."}
+{"id": "q0272_cb13_census_T", "title": "CB13-T census, counts only: prints/transactions by day, label, fee category; key drops by source; transactions by touch-age band and touch position (inside / consistent / inconsistent with touch) by class; one-per-side collapse (reported); by class, event, path key x 6h block, 6h block, day; spread/mid/time-to-end bands; exclusion labels; sweep depth (reported); gates GT and GL; GTP clustered SEs on the pre-fill proxy (no point estimate written); MDEs", "family": "creative_batch_13", "priority": 19, "expected_value": "T gates and MDEs before the freeze", "data": ["creative_batch13/t_screen/", "snapshots/ (touch and pre-touch captures only, whitelist)", "book_sweeps/ (depth columns, reported)"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0271_cb13_t_frame"], "argv": ["scripts/run_cb13.py", "census", "--family", "T"], "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch13/census_T.json", "trials.jsonl (cb13_descriptive)"], "next_action": "science-reviewer freeze check (T part)", "notes": "DRAFT. No mark capture opened; no M, D or net computed."}
+{"id": "q0273_cb13_screen_T", "title": "CB13-T: gate GTI (print-based move from P), then T1 (LOW - NEWS 2-4 h mark-out from the fill print; event, path key x 6h block and 6h block ways; pre-fill and composition placebos; age<=20m, 6-8 h, adverse-touch mark, >=$10k, side, event-weighted, staleness-share, top-5, leave-one-day-out p<0.05; attribution) and T2 (LOW mid-marked maker net; sign-flip and pre-fill placebos; age, 6-8 h, components, worst-case robustness) on SCREEN", "family": "creative_batch_13", "priority": 19, "expected_value": "T verdicts and the class map", "data": ["creative_batch13/t_screen/", "snapshots/ (mark captures starting before 2026-10-16T00:00Z only)", "live_trades/trades-202610{12..15}.jsonl (GTI print-based moves)"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0272_cb13_census_T"], "argv": ["scripts/run_cb13.py", "screen", "--family", "T"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch13/results_T.json", "trials.jsonl (cb13_test + creative_batch_13:T n_tests=2)"], "next_action": "commit results; advanced: q0275 after the q0274 seal and CB3's freeze", "notes": "DRAFT. Refuses before the T freeze hash; refuses unless GT, GL, GTP passed (else counted lines). Every line labelled 'L1, worn captures, new statistic'; T2 also 'upper bound (free exit)'."}
+{"id": "q0274_cb13_t_holdout", "title": "CB13-T HOLDOUT seal: sha256 of trades-2026102{1..6}.jsonl and rows/rows_ext of captures starting [t_j4r_end, 2026-10-26T00Z); HOLDOUT fill table (features, frozen labeller and fill rules, SCREEN events dropped, counted) and raw mark-quote table (bid/ask at mark captures, no mark-out computed) to t_holdout/; re-read exclusion sets; counts only; seal copy", "family": "creative_batch_13", "priority": 19, "expected_value": "sealed T HOLDOUT", "data": ["live_trades/trades-2026102{1..6}.jsonl (whitelist)", "snapshots/ (HOLDOUT captures, whitelist)", "creative_batch13/t_screen/fills.csv.gz (event ids only)"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0273_cb13_screen_T"], "argv": ["scripts/run_cb13.py", "t-holdout", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--not-before", "2026-10-26T08:00:00Z", "--disk-cap-gb", "0.02", "--data-dumps-cap-gb", "40"], "timeout_s": 3600, "max_retries": 2, "outputs": ["research_lab/creative_batch13/t_holdout/{fills.csv.gz,mark_quotes.csv.gz,manifest.json}", "research_lab/creative_batch13/t_holdout_SEAL.json"], "next_action": "commit seals/cb13_t_holdout_SEAL.json; q0275 if triggered", "notes": "DRAFT. Exits 75 (pending) before 2026-10-26T08:00Z. Writes no M. Refuses any capture starting before t_j4r_end (round 1 item 2); if J4-R's end has moved, the window starts at the new end (recorded). May run before CB3's freeze (no mark-out)."}
+{"id": "q0275_cb13_rep_T", "title": "CB13-T Stage 2 on the sealed HOLDOUT (adjacent window, same regime): T1-rep (if T1 advanced), T2-rep and T3 recorded-price round trip (entry at the fill print, taker exit at the 2-4 h adverse touch, sidecar fee, +0.5c robustness; needs pooled SCREEN+HOLDOUT GTI PASS) (if T2 advanced); >= 500 fills per class used in >= 60 events else not run (power)", "family": "creative_batch_13", "priority": 18, "expected_value": "L2 verdicts", "data": ["creative_batch13/t_holdout/ (seal hash verified first; sources restored from archive if needed)", "creative_batch13/t_screen/ (GTI pooling)"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0274_cb13_t_holdout"], "argv": ["scripts/run_cb13.py", "rep", "--family", "T"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch13/results_T_rep.json", "trials.jsonl (cb13_replication + creative_batch_13:T:rep)"], "next_action": "pass: Stage P-T registration draft", "notes": "DRAFT. Refuses before T13_T_rep = max(seal copy commit, CB3 freeze commit or its ledger stop record) (round 1 item 3). Only for triggered tests; alpha/5 if early, full Stage-2 Holm once."}
+{"id": "q0285_cb13_smoke_R", "title": "CB13-R smoke (R rules part hash; refusals: klines >= t and holdout/ in census mode, outcomePrices outside guarded files; tag-21 one-day walk on 2 out-of-window days; rule parser and flags on 3 out-of-window weekly barrier events; prices-history bounds on 2; Binance HEAD+CHECKSUM+parse for one 2024 and one 2025 month, ms->us timestamp change); counts only", "family": "creative_batch_13", "priority": 17, "expected_value": "go/no-go for every CB13 source", "data": ["public Gamma, CLOB prices-history", "data.binance.vision"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "gamma-api, clob, data.binance.vision"}, "depends_on": [], "argv": ["scripts/run_cb13.py", "smoke", "--part", "R", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--rps", "1"], "timeout_s": 1200, "max_retries": 1, "outputs": ["research_lab/creative_batch13/smoke_R.json", "trials.jsonl (cb13_descriptive)"], "next_action": "PASS: q0276; FAIL: R1 not testable (source), counted", "notes": "CREATIVE_BATCH_13.md CB13-S. DRAFT. <= 30 requests (round 1 item 11)."}
+{"id": "q0276_cb13_exclusion_keys", "title": "CB13-R: exclusion keys = CB11 q0221 key file + id columns of h9_flow, h10_*, h11_*, every CB12 frame (h12_say, h12_quake, h12_prints, live frames), CB8/CB9 frames + seal copies; Gamma lookups for missing event/negRisk/series keys; barrier-overlap list by asset and window", "family": "creative_batch_13", "priority": 17, "expected_value": "disjointness of R", "data": ["creative_batch11/exclusion_keys.csv.gz", "history/*/ (id columns only)", "docs/research_lab/seals/*", "public Gamma (ids)"], "resources": {"mem_mb": 500, "cpu": 1, "lane": "net", "network": "gamma-api"}, "depends_on": ["q0285_cb13_smoke_R", "q0221_cb11_exclusion_keys"], "argv": ["scripts/run_cb13.py", "exclusion-keys", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "40"], "timeout_s": 2400, "max_retries": 2, "outputs": ["research_lab/creative_batch13/exclusion_keys.csv.gz", "manifest.json (absent_at_q0276 list)"], "next_action": "q0277", "notes": "DRAFT. >2% missing metadata -> disjointness unverified (R1 not testable, counted). Exit 75 on headroom = pending."}
+{"id": "q0277_cb13_touch_frame", "title": "CB13-R: Gamma closed events tag_id=21, one-day end_date windows over [2024-11-01, 2026-10-01); frozen barrier templates (terminal and Up/Down excluded, counted); primary = weekly windows (<= 8 d), monthly/yearly/by counted only; members, strike, direction, asset; rule-window parser and flags; key + same-asset overlap drops; window components; out-of-time split at 2026-04-01; Gamma outcomes to SCREEN and HOLDOUT guarded files; completeness cross-check vs poly_markets.json barrier ids (ids/questions only); min(T0) for the kline range; q0278 request sum (weekly members only)", "family": "creative_batch_13", "priority": 16, "expected_value": "R population and split", "data": ["public Gamma", "creative_batch13/exclusion_keys.csv.gz", "cross_venue/poly_markets.json (ids and questions only, streaming)"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "gamma-api"}, "depends_on": ["q0276_cb13_exclusion_keys"], "argv": ["scripts/run_cb13.py", "touch-frame", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--rps", "2", "--disk-cap-gb", "0.01", "--data-dumps-cap-gb", "40"], "timeout_s": 5400, "max_retries": 2, "outputs": ["history/h13_touch/{events.csv.gz,members.csv.gz,rules_parsed.csv.gz,split.json,outcomes_guarded_screen.csv.gz,manifest.json}", "history/h13_touch/holdout/outcomes_guarded_holdout.csv.gz"], "next_action": "q0279, then q0284", "notes": "DRAFT. No price read. Capped day windows split until uncapped (counted). outcome_prices/volume of poly_markets.json never parsed."}
+{"id": "q0279_cb13_binance", "title": "CB13-R: data.binance.vision monthly spot 1m kline zips + .CHECKSUM for the parsed assets (BTC, ETH, SOL, XRP and any other parsed USDT pair), from the month of min(T0) - 30 d over primary events to 2026-09; verified original zips kept (sha256), parsed in float64 at use; ms/us timestamp units detected; months >= 2026-04 to holdout/", "family": "creative_batch_13", "priority": 16, "expected_value": "R spot, sigma and touch outcomes", "data": ["data.binance.vision (public archive)", "history/h13_touch/members.csv.gz (asset list)"], "resources": {"mem_mb": 400, "cpu": 1, "lane": "net", "network": "data.binance.vision"}, "depends_on": ["q0277_cb13_touch_frame"], "argv": ["scripts/run_cb13.py", "binance", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--rps", "1", "--disk-cap-gb", "0.3", "--data-dumps-cap-gb", "40"], "timeout_s": 1800, "max_retries": 2, "outputs": ["history/h13_binance/{screen,holdout}/<SYM>-1m-<YYYY-MM>.zip", "manifest.json"], "next_action": "q0284", "notes": "DRAFT. <= 600 requests. Range from q0277's min(T0) (round 1 item 6). A CHECKSUM mismatch is retried once, then the month is 'unavailable (source)'; units needing it are 'unavailable (no klines)', counted."}
+{"id": "q0284_cb13_r_pregate", "title": "CB13-R pre-fetch gate GRC, counts only, no network: SCREEN primary window components holding >= 1 market with >= 1 listed, undecided, kline-covered checkpoint (frame fields and klines before t only; no price, no outcome); < 30 -> R1 not testable (dependence), counted, and q0278 is never committed", "family": "creative_batch_13", "priority": 17, "expected_value": "saves about 6,000-9,000 net requests if R cannot be clustered", "data": ["history/h13_touch/{events,members,rules_parsed}.csv.gz (no guarded file)", "history/h13_binance/screen (guarded accessor: klines < t)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0277_cb13_touch_frame", "q0279_cb13_binance"], "argv": ["scripts/run_cb13.py", "pregate", "--family", "R"], "timeout_s": 1800, "max_retries": 1, "outputs": ["research_lab/creative_batch13/pregate_R.json", "trials.jsonl (cb13_descriptive; or the counted not-testable R1 line)"], "next_action": "PASS: commit q0278; FAIL: R1 counted not testable (dependence)", "notes": "DRAFT. Round 1 item 7."}
+{"id": "q0278_cb13_touch_prices", "title": "CB13-R: CLOB prices-history per weekly primary barrier member, fidelity 60 in <= 14-day bounded chunks over [max(createdAt, window start - 1 d), window end]; a point is usable from stamp + 3600 s; HOLDOUT rows to holdout/", "family": "creative_batch_13", "priority": 15, "expected_value": "R prices", "data": ["public CLOB prices-history", "history/h13_touch/members.csv.gz"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "net", "network": "clob"}, "depends_on": ["q0284_cb13_r_pregate"], "argv": ["scripts/run_cb13.py", "touch-prices", "--rules", "../docs/research_lab/seals/cb13_rules.json", "--rps", "2", "--disk-cap-gb", "0.03", "--data-dumps-cap-gb", "40", "--budget-min", "110"], "timeout_s": 7200, "max_retries": 2, "outputs": ["history/h13_touch/{screen,holdout}/prices.csv.gz", "manifest.json"], "next_action": "q0280", "notes": "DRAFT. Committed only after q0284 PASS (round 1 item 7). <= 12,000 requests = sum of ceil(span/14 d) over weekly members from q0277's manifest (planning 6,000-9,000). Resumable; incomplete = pending.", "repeat": {"max_runs": 4, "until_log_regex": "\"status\": \"touch_prices_complete\""}}
 {"id": "q0280_cb13_seal_R", "title": "CB13-R: HOLDOUT listings sha256 (h13_touch/holdout incl. outcomes_guarded_holdout, h13_binance/holdout); seal-time drops vs every seal copy and frame committed by now (incl. CB12 frames absent at q0276); seal copy seals/cb13_touch_holdout_SEAL.json", "family": "creative_batch_13", "priority": 17, "expected_value": "sealed R HOLDOUT", "data": ["history/h13_touch/holdout/", "history/h13_binance/holdout/"], "resources": {"mem_mb": 300, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0278_cb13_touch_prices", "q0279_cb13_binance"], "argv": ["scripts/run_cb13.py", "seal", "--family", "R"], "timeout_s": 1800, "max_retries": 2, "outputs": ["research_lab/creative_batch13/holdout_SEAL_R.json"], "next_action": "commit the seal copy; q0281", "notes": "DRAFT. Sealed files never edited; drops recorded as DROPPED_* blocks."}
-{"id": "q0281_cb13_census_R", "title": "CB13-R census, counts only: events/markets by template, asset, direction, end month; parser and flag failures; key, overlap and full-series counterfactual drops; poly_markets completeness; units by label; q_touch - p_reg distribution (klines before t only); HOLDOUT counts only; gates GR, GRP (simulated price-calibrated outcomes with asset-week and week factors, reach/dip opposite loadings); MDEs", "family": "creative_batch_13", "priority": 17, "expected_value": "R gates and MDEs before the freeze", "data": ["history/h13_touch/screen (no guarded file; HOLDOUT counts only)", "history/h13_binance/screen (guarded accessor: klines < t)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0280_cb13_seal_R"], "argv": ["scripts/run_cb13.py", "census", "--family", "R"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch13/census_R.json", "trials.jsonl (cb13_descriptive)"], "next_action": "science-reviewer freeze check (R part)", "notes": "DRAFT. No Y, slope or net computed. Refuses on an incomplete manifest."}
-{"id": "q0282_cb13_screen_R", "title": "CB13-R: R1 (market-weighted slope of Y - p_t on q_touch - p_reg, Binance outcome; event/week/asset-week ways; week sign-flip and stale-price placebos; reflection-gap attribution; reach/dip, BTC, sigma x0.8/x1.2, drift, halves, active, Gamma-outcome, top-5 robustness; Binance-Gamma agreement audit; cross-horizon implied sigma reported)", "family": "creative_batch_13", "priority": 16, "expected_value": "R1 verdict", "data": ["history/h13_touch/screen + outcomes_guarded_screen.csv.gz (opened here)", "history/h13_binance/screen"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0281_cb13_census_R"], "argv": ["scripts/run_cb13.py", "screen", "--family", "R"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch13/results_R.json", "trials.jsonl (cb13_test + creative_batch_13:R n_tests=1)"], "next_action": "advanced: q0283", "notes": "DRAFT. Refuses before the R freeze hash, on any holdout/ path, and unless GR and GRP passed (else counted lines)."}
-{"id": "q0283_cb13_rep_R", "title": "CB13-R Stage 2 on the sealed HOLDOUT: R1-rep and R2 (modelled-cost hold-to-resolution, 5c filter, band half-spread + 0.07 fee, Gamma payoff; p_reg placebo; +1c robustness; MDE_R2 > 2c -> not run (power))", "family": "creative_batch_13", "priority": 16, "expected_value": "L2 verdicts", "data": ["history/h13_touch/holdout + holdout/outcomes_guarded_holdout.csv.gz", "history/h13_binance/{screen,holdout} (seal hash verified first)"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0282_cb13_screen_R"], "argv": ["scripts/run_cb13.py", "rep", "--family", "R"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch13/results_R_rep.json", "trials.jsonl (cb13_replication + creative_batch_13:R:rep)"], "next_action": "pass: Stage P-R registration draft (recorded asks)", "notes": "DRAFT. Only if R1 advanced."}
+{"id": "q0281_cb13_census_R", "title": "CB13-R census, counts only: events/markets by template (weekly primary; monthly, yearly, by census-only), asset, direction, end month; window components; parser and flag failures; key, overlap and full-series counterfactual drops; poly_markets completeness; units by label incl. unavailable (no klines); q_touch - p_reg distribution (klines before t only); HOLDOUT counts only; gates GR (incl. >= 30 components), GRP (one nested latent per asset x window x direction, price-calibrated at the first checkpoint); MDEs", "family": "creative_batch_13", "priority": 17, "expected_value": "R gates and MDEs before the freeze", "data": ["history/h13_touch/screen (no guarded file; HOLDOUT counts only)", "history/h13_binance/screen (guarded accessor: klines < t)"], "resources": {"mem_mb": 600, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0280_cb13_seal_R"], "argv": ["scripts/run_cb13.py", "census", "--family", "R"], "timeout_s": 2400, "max_retries": 1, "outputs": ["research_lab/creative_batch13/census_R.json", "trials.jsonl (cb13_descriptive)"], "next_action": "science-reviewer freeze check (R part)", "notes": "DRAFT. No Y, slope or net computed. Refuses on an incomplete manifest."}
+{"id": "q0282_cb13_screen_R", "title": "CB13-R: R1 (market-weighted slope of Y - p_t on q_touch - p_reg, weekly primary, Binance outcome in float64; event/ISO-week/asset-week/window-component ways; component sign-flip placebo; joint stale-price check; reflection-gap attribution; reach/dip, BTC, sigma x0.8/x1.2, drift, halves, active, Gamma-outcome, top-5 robustness; Binance-Gamma agreement audit; cross-horizon implied sigma reported)", "family": "creative_batch_13", "priority": 16, "expected_value": "R1 verdict", "data": ["history/h13_touch/screen + outcomes_guarded_screen.csv.gz (opened here)", "history/h13_binance/screen"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0281_cb13_census_R"], "argv": ["scripts/run_cb13.py", "screen", "--family", "R"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch13/results_R.json", "trials.jsonl (cb13_test + creative_batch_13:R n_tests=1)"], "next_action": "advanced: q0283", "notes": "DRAFT. Refuses before the R freeze hash, on any holdout/ path, and unless GR and GRP passed (else counted lines)."}
+{"id": "q0283_cb13_rep_R", "title": "CB13-R Stage 2 on the sealed HOLDOUT: R1-rep (>= 30 HOLDOUT components) and R2 (modelled-cost hold-to-resolution, 5c filter, band half-spread + 0.07 fee, Gamma payoff; p_reg placebo; +1c robustness; four cluster ways; MDE_R2 > 2c -> not run (power))", "family": "creative_batch_13", "priority": 16, "expected_value": "L2 verdicts", "data": ["history/h13_touch/holdout + holdout/outcomes_guarded_holdout.csv.gz", "history/h13_binance/{screen,holdout} (seal hash verified first)"], "resources": {"mem_mb": 800, "cpu": 1, "lane": "cpu"}, "depends_on": ["q0282_cb13_screen_R"], "argv": ["scripts/run_cb13.py", "rep", "--family", "R"], "timeout_s": 3600, "max_retries": 1, "outputs": ["research_lab/creative_batch13/results_R_rep.json", "trials.jsonl (cb13_replication + creative_batch_13:R:rep)"], "next_action": "pass: Stage P-R registration draft (recorded asks)", "notes": "DRAFT. Only if R1 advanced."}
 ```
 
 ## 5. Code needed (not written by this document)
 
-- `backend/astrolabe/research_lab/cb13_common.py`: reuse `cb12_common`/`cb11_common` (refused roots, the J4-R pin,
-  disk and free-disk guards with cap 40, exit 75, manifests, `*_complete` status, cluster bootstrap with the small-G
-  rule and the leave-one-cluster-out sign rule, Holm/BY helpers, per-part rules hashing); the field-whitelist readers
-  for monitor prints, capture rows and sidecar; the archive-restore hook with hash verification.
-- `cb13_tox.py`: transaction aggregation (`tx16` in memory), YES-terms conversion, the capture touch index (latest row
-  per market before `τ`, streamed one capture at a time), touch eligibility, the side-free fill and first-crossing rule,
-  the frozen labeller and its audit sampler, T exclusion keys (id and timestamp accessor), mark lookup (refusing
-  captures in the J4-R window and before the seal), `M_h`, T1/T2 with placebos (pre-fill, composition permutation,
-  sign-flip), robustness, attribution, GTI, GTP, the HOLDOUT extractor and seal, T1-rep/T2-rep/T3.
-- `cb13_touch.py`: tag-21 one-day walker (split until uncapped), barrier and terminal templates, rule-window parser (ET
-  → UTC, DST), flags, asset map, overlap exclusion, the poly_markets streaming id reader, `prices-history` client
-  (14-day chunks), the Binance archive client (CHECKSUM, in-memory parse, float32 npz), the guarded kline accessor, σ,
-  `q_touch`/`q_term`, decided-rung detection, the outcome evaluator, R1 with placebos and attribution, GRP, R2.
-- `backend/scripts/run_cb13.py` with the §4 subcommands; refuses analysis before the family's freeze hash.
+- `backend/astrolabe/research_lab/cb13_common.py`: reuse `cb12_common`/`cb11_common`, covering:
+  - refused roots, the J4-R pin, disk and free-disk guards with cap 40, exit 75, manifests, `*_complete` status;
+  - the cluster bootstrap with the small-G rule, the leave-one-cluster-out rule (sign, and p < 0.05 where declared),
+    Holm/BY helpers and per-part rules hashing;
+  - the field-whitelist readers for monitor prints, capture rows and sidecar;
+  - the archive-restore hook with hash verification.
+- `cb13_tox.py`:
+  - transaction aggregation (`tx16` in memory; VWAP, `P_min`, `P_max`) and YES-terms conversion;
+  - the capture touch index (latest row per market before `τ`, streamed one capture at a time) and touch eligibility;
+  - **the print-anchored fill with the touch-consistency band and the maker-adverse price**, the stale-touch variant
+    and the path key;
+  - the frozen labeller and its audit sampler (with the sports-adjacent stratum);
+  - T exclusion keys (id and timestamp accessor);
+  - mark lookup, refusing captures in the J4-R window, HOLDOUT marks before `T13_T_rep`, and recording realised
+    horizons;
+  - `M_h`; T1/T2 with placebos (pre-fill, composition permutation, sign-flip), robustness and attribution;
+  - GTI (from `P`; pooled at Stage 2), GTP, the HOLDOUT extractor and seal, T1-rep/T2-rep/T3.
+- `cb13_touch.py`:
+  - the tag-21 one-day walker (split until uncapped), barrier and terminal templates, and the **weekly-primary
+    classifier**;
+  - the rule-window parser (ET → UTC, DST), flags, asset map, overlap exclusion and **window components**;
+  - the poly_markets streaming id reader and the `prices-history` client (14-day chunks);
+  - the Binance archive client (CHECKSUM, verified zips kept, float64 parse, ms/µs timestamp detection, range from
+    `min(T0) − 30 d`) and the guarded kline accessor;
+  - σ, `q_touch`/`q_term`, decided-rung detection with kline coverage, and the outcome evaluator;
+  - GRC; R1 with placebos, the joint stale-price check and attribution; GRP (nested latents); R2.
+- `backend/scripts/run_cb13.py` with the §4 subcommands (`smoke --part T|R`, `pregate`); refuses analysis before the
+  family's freeze hash.
 - Tests (`test_cb13_tox.py`, `test_cb13_touch.py`, `test_run_cb13.py`). They cover:
   - whitelist fixtures with every forbidden field, and the refused roots and files;
-  - J4-R refusals at both edges, and the moving-end rule;
-  - T: the HOLDOUT refusal before the seal; touch selection by `received_utc < τ` (equality excluded); the age
-    boundary at 60 and 20 min; YES conversion for outcome index 1; crossing at equality (`P = a0` fills, `a0 − tick`
-    does not); first-crossing per side; the mark-capture rule and the 2 h usability cap; the scheduled-end ≥ `τ + 3 h`
-    rule; the labeller precedence on fixtures (sports before path, path before public-statistic, the fallback to NEWS);
-    GTP writing no point estimate;
-  - R: a census path refusing klines ≥ `t`; kline usability at `o + 65 s`; decided-rung detection; the touch formula at
-    known values (`q_touch = 2·q_term` in the limit, cap at 1); ET window parsing across 2025-11-02 and 2026-03-08 DST;
-    terminal and Up/Down templates rejected; the overlap rule on weekly-inside-monthly fixtures; HOLDOUT checkpoints
-    before 2026-04-01 dropped;
+  - J4-R refusals at both edges (a HOLDOUT capture at `t_j4r_end − 1 s` refused), and the moving-end rule;
+  - T: the HOLDOUT refusal before the seal, and the mark refusal before `T13_T_rep` (no CB3 freeze fixture → refuse);
+    touch selection by `received_utc < τ` (equality excluded); the age boundary at 60 and 20 min; YES conversion for
+    outcome index 1; **the touch-consistency band edges** (`P = a0` and `P = a0 + s0` fill, `a0 + s0 + tick` is
+    "inconsistent", a transaction straddling `a0` is inconsistent); the maker-adverse price (`P_min` for sells,
+    `P_max` for buys); the path key fallback order; the mark-capture rule, the 2-4 h and 6-8 h labels and the 2 h
+    usability cap; the scheduled-end ≥ `τ + 3 h` rule; the labeller precedence on fixtures (sports before path, path
+    before public-statistic, the fallback to NEWS); GTP writing no point estimate; leave-one-day-out p < 0.05;
+  - R: a census path refusing klines ≥ `t`; kline usability at `o + 65 s`; float64 equality at `high = B`; the
+    millisecond and microsecond archive timestamps; "unavailable (no klines)" when coverage starts after `T0`;
+    decided-rung detection; the touch formula at known values (`q_touch = 2·q_term` in the limit, cap at 1); ET window
+    parsing across 2025-11-02 and 2026-03-08 DST; terminal and Up/Down templates rejected; weekly vs monthly
+    classification, including straddling weeks; components on weekly-inside-monthly fixtures; GRP's nested latent (one
+    `Y*` per market, monotone in strike); GRC stopping q0278; HOLDOUT checkpoints before 2026-04-01 dropped;
   - `battery2` kinds and k1 = 3 fixed; the α/5 early rule in Stage 2.
 
 ## 6. Test budget and compute
 
 | Job | Tests counted | Kind(s) | Decision |
 |---|---|---|---|
-| Stage 1: T1, T2, R1 | **3** | `cb13_test` + count lines `:T` (2), `:R` (1) | p < 0.01, floor, binding placebos and robustness, batch Holm (one-sided α 0.05, k1 = 3 fixed); counted with p = 1 if a gate, audit or smoke check fails |
+| Stage 1: T1, T2, R1 | **3** | `cb13_test` + count lines `:T` (2), `:R` (1) | p < 0.01, floor, binding placebos and robustness, batch Holm (one-sided α 0.05, k1 = 3 fixed); counted with p = 1 if a gate (including GRC), audit or smoke check fails |
 | Stage 2: T1-rep, T2-rep, T3, R1-rep, R2 (each only if triggered) | ≤ 5 | `cb13_replication` + `:<family>:rep` | one Holm over CB13 Stage 2, one-sided α 0.05 (early finishers at α/5) |
-| Smoke, labeller audit, census, gates, strata, variants, descriptives | 0 | `cb13_descriptive` | - |
-| **Total** | **3 fixed + ≤ 5 conditional = 3-8** | | cumulative 1,181 → 1,184-1,189, plus whatever CB6-CB12 add first |
+| Smoke, labeller audit, pregate counts, census, gates, strata, variants, descriptives | 0 | `cb13_descriptive` | - |
+| **Total** | **3 fixed + ≤ 5 conditional = 3-8 (unchanged by round 1)** | | cumulative 1,181 (verified) → 1,184-1,189, plus whatever CB6-CB12 add first |
 
-**Host compute.** Under 4 CPU-hours at nice 19 in total. T is under about 1.5 h: the frame streams about 50 captures
-(probe H8's join over 44 captures took about 1 min wall), and the screen bootstraps on about 3,000-20,000 fills. R is
-under about 2 h, with 2,000 bootstrap draws and 200 placebo draws on market-level sufficient statistics, and GRP's 500
-draws. Peak RAM 0.8 GB. **Network.** T none; R ≤ about 34,000 requests (planning about 22,000; about 3-5 h of `net`
-lane at 2 rps). **Disk.** ≤ 0.35 GB.
+**Host compute.** Under 4 CPU-hours at nice 19 in total. T takes under about 1.5 h: the frame streams about 50
+captures (probe H8's join over 44 captures took about 1 min wall), and the screen bootstraps on about 3,000-20,000 fills
+with four cluster ways. R takes under about 2 h, with 2,000 bootstrap draws and 200 placebo draws on market-level
+sufficient statistics, and GRP's 500 draws. Peak RAM 0.8 GB. **Network.** T none. R is ≤ about 21,000 requests
+(planning about 14,000-18,000; about 2-3 h of `net` lane at 2 rps), or ≤ about 9,000 if GRC stops it. **Disk.**
+≤ 0.4 GB.
 
 **Dates (estimates).** Code, the labeller audit and the T freeze check about 2026-10-19/20. **T runs before `T_seal`
-on the `cpu` lane** while CB11 holds the `net` lane: q0270 → GL → q0271/q0272 → T freeze → q0273 about 10-20/21. The T
-HOLDOUT seal is on or after 10-26T08:00Z, and q0275 follows within a day if triggered. R's `net` jobs (about 3-5 h)
-follow CB11's (about 10-11 h) and CB12's (about 6-10 h), so about 10-21..23. The R census, freeze and screen follow
-with no rule change if the lane slips.
+on the `cpu` lane** while CB11 holds the `net` lane: q0270 → GL → q0271/q0272 → T freeze → q0273, about 10-20/21. The
+T HOLDOUT seal is on or after 10-26T08:00Z. q0275 follows CB3's freeze commit, so it may wait well past 10-26; the
+seal makes that wait safe. R's `net` jobs follow CB11's (about 10-11 h) and CB12's (about 6-10 h), so about
+10-21..23. GRC can stop R before the prices fetch. The R census, freeze and screen follow with no rule change if the
+lane slips.
 
 ## 7. Main scientific risks (for the challenger)
 
-1. **T's SCREEN is four days.** The 6 h block way has at most 16 clusters (CR2 or leave-one-block-out) and the day way
-   only 4 (leave-one-day-out binding). One news-heavy or crypto-trend day can carry a class contrast. The pre-fill
-   placebo and the day rule are the guards. GT (500 fills per class) may fail on NEWS, in which case T1 is counted
-   as not testable. The HOLDOUT adds five days.
-2. **The 2 h capture cadence.** The paper touch is up to 60 min old, so some "fills" are stale-quote fills, which
-   biases maker results downward (conservative for T2, ambiguous for T1 if staleness differs by class). The 20-minute
-   robustness and GTI are the guards. The GTI "not evaluable" deviation (n < 200) should be ruled on.
-3. **The labeller is text-based.** It has no `resolutionSource` or `gameStartTime` (premise 2), and class boundaries
-   (Fed decisions, election results, temperature) are judgement calls frozen in regexes. The blind 200-title audit with
-   one allowed revision is the guard. LOW is a declared union, chosen from CH128's prediction before any mark.
-4. **Composition.** LOW markets are tighter, shorter-dated and more often path-settled dailies. The composition placebo
-   and the binding attribution decide the label "class effect" vs "composition". A T1 advance with "composition" is
-   still informative for maker design but is not CH128's mechanism.
-5. **T2 is an upper bound.** It marks at a free mid exit. T3 (recorded-touch round trip) is the economic check, and it
-   is expected to fail, since a taker exit costs a half-spread plus a fee. A T2 pass alone is never an economic result.
-6. **Shared windows.** T overlaps E011, E004-E006, CB1-D SEALED-P, CB3's counts-only dev window, CB6's dev block, and
-   SEALED-H4's calendar (§1.3). The argument is a different hypothesis, never opening their stores, no subgroup
-   definitions, and their frozen state. The open choice is whether q0275 must also wait for CB3's freeze. Sealed
-   historical sets with rows in T windows are excluded by key.
-7. **R's power rests on reach/dip opposition.** One Binance path resolves every overlapping rung. If the week factor
-   binds, GRP stops R1 (MDE about 1.2 vs the 0.60 cut). The stale-price placebo and the reflection-gap attribution
-   separate "barrier confusion" from "price lags spot". R2's historical MDE (about 11c) means R's money question needs
-   Stage P-R at recorded asks.
-8. **R's model is approximate.** It is driftless, has no jumps, and uses one 30-day σ. The rules use 1-minute candle
-   highs and lows, which is close to continuous monitoring. Drift and σ sensitivities are binding robustness checks.
-   The klines also determine CB8-B's and CB10-D's outcomes on the same days; no R path computes those quantities
-   (§1.3).
-9. **CH119 is not tested,** by its own census. The decision and the re-entry routes are in §0.4.
+1. **T's SCREEN is four days.** The 6 h block way has at most 16 clusters, so it leaves the max or runs under CR2.
+   The path key × block way (round 1 item 4) carries the spot-path dependence instead. Leave-one-day-out must keep
+   p < 0.05. GT (500 fills per class) may fail on NEWS, in which case T1 is counted as not testable (ruling: correct).
+2. **Cadence.** The print anchor (round 1 item 1) removes the stale-touch drift from `M`. The touch now only signs the
+   print, inside a one-spread band. The marks are still 2-4 h and 6-8 h captures. GTI is measured from `P`; with
+   n < 200 it is "not evaluable" at Stage 1 (accepted), and pooled at Stage 2, where T3 requires it to pass.
+3. **The labeller is text-based** (no `resolutionSource` or `gameStartTime`). The guard is the blind 200-title audit,
+   which now includes a sports-adjacent stratum (ruling), with one revision allowed.
+4. **Composition** (accepted). The composition placebo and the binding attribution, now with a touch-age band and a
+   staleness-share control, decide the label.
+5. **T2 is an upper bound** (accepted; the +0.25c floor stands). T3, at recorded prints and touches, is the economic
+   check and is expected to fail.
+6. **Shared windows** (accepted, with item 3). E011, E004-E006 and E009/E010 are untouched by construction. q0275
+   waits for CB3's freeze. HOLDOUT captures start at or after `t_j4r_end`.
+7. **R is probably underpowered.** The weekly-only primary and the window-component way make the dependence honest,
+   and the planning MDE (about 0.85-1.15 without reach/dip opposition) exceeds the 0.60 cut. R1 may be "not run
+   (power)". GRC stops the 6,000-9,000-request prices fetch if fewer than 30 components exist. R2's MDE (about 10-15c)
+   leaves the money question to Stage P-R.
+8. **R's model is approximate** (accepted, with drift and σ as binding robustness; the terminal and Up/Down overlap
+   deviation is accepted).
+9. **CH119 is not tested,** by its own census (§0.4).
 
 ## 8. Next actions
 
-1. `science-reviewer` challenger round 1 on this draft. Points left open for it: the GTI deviation; the CB3-freeze hold
-   for q0275; the R overlap-rule deviation for terminal and Up/Down events; GT's 500-fill floor; the 6 h block way;
-   T2's +0.25c floor.
+1. Round 1 is answered (§9-§10). Next review: the code-against-design freeze check (`science-reviewer`) once code
+   exists. It may reopen any round-1 item. The modifications stay open to it: the weekly-only R primary, which also
+   drops monthly; CB3's ledger stop record as an alternative to its freeze; and every touch-consistent print being a
+   unit.
 2. Write `seals/cb13_rules.json` (parts `common`, `T`, `R`), the modules and tests of §5 and `run_cb13.py`
-   (implementer); then the code-against-design freeze check (`science-reviewer`).
-3. Order: q0270 (cpu) → labeller audit GL → q0271 → q0272 → T freeze → q0273, all on the `cpu` lane before
-   `T_seal` if possible; q0274 on or after 2026-10-26T08:00Z; q0275 if triggered. R: q0276 behind CB11 q0221, then
-   q0277-q0279 behind CB11/CB12 on the `net` lane, q0280 seal, q0281 census, R freeze, q0282, q0283 if triggered.
-4. CB14 adds CB13's frame ids (T fill markets and events; R barrier events) to its exclusion keys. CH119 and ranks 3
+   (implementer); then the freeze check.
+3. T order: q0270 (cpu, no network) → labeller audit GL → q0271 → q0272 → T freeze → q0273, all on the `cpu` lane
+   before `T_seal` if possible. Then q0274 on or after 2026-10-26T08:00Z, and q0275 only if triggered and after CB3's
+   freeze.
+4. R order: q0285 (net smoke) → q0276 behind CB11 q0221 → q0277 → q0279 → q0284 (GRC) → q0278 only on PASS → q0280
+   seal → q0281 census → R freeze → q0282 → q0283 if triggered.
+5. CB14 adds CB13's frame ids (T fill markets and events; R barrier events) to its exclusion keys. CH119 and ranks 3
    and 5-8 are candidates for CB14 (§0.4).
-5. Ledger lines for every counted result; checkpoint and plain-English dashboard updated by the orchestrator.
+6. Ledger lines for every counted result; checkpoint and plain-English dashboard updated by the orchestrator.
+
+## 9. Challenger review, round 1 (science-reviewer, 2026-10-18)
+
+**Verdicts: CB13-T REVISE, CB13-R REVISE.** 7 blocking and 7 non-blocking items, plus rulings on the §7 risks.
+
+**Main challenge (T).** The draft's paper fill measured staleness, not toxicity. `q` was a capture touch up to 60 min
+old, and the side was inferred from where the print landed against that stale touch. So most crossings were book
+drift after the capture and `d ≈ −sign(drift)`, and `M_h = d·(mid_h − q)` subtracted the drift magnitude before any
+post-fill adverse selection. The bias is largest in PATH-SETTLED markets, which biases T1/T2 against LOW and distorts
+the class split. In H8 only 54 of about 1,200 crypto prints were inside the touch. The pre-fill placebo covers the 2 h
+before the touch capture, not the touch-to-print gap. GTI partly agrees by construction, since both of its moves start
+from the same `q`.
+
+**Blocking.**
+1. **T fill anchor.** The primary fill must be the print itself, at the maker-adverse print price within the
+   transaction. Keep only prints consistent with the touch (`a0 ≤ P ≤ a0 + s0`, mirrored for buys); exclude and count
+   the rest. Keep the stale-touch `M` as reported. Measure GTI from `P`, not `q`.
+2. **T HOLDOUT overlaps J4-R.** Captures from 2026-10-20T22:00Z lie inside J4-R `[10-16, 10-21)`
+   (`seals/j4r_window.json`, `final` false), which violates the draft's own refusal rule. Captures must start at or
+   after `t_j4r_end`.
+3. **CB3 hold.** CB3's dev window `[10-21, 10-25)` is counts-only to keep CB3's freeze blind, and T HOLDOUT maker
+   mark-outs on those days are the closest quantity to CB3-B's. Ruling: q0275 waits for the CB3 freeze commit; q0274
+   (seal, no mark-out) may run earlier.
+4. **T time dependence.** Crypto PATH-SETTLED fills in one block share one spot path, so the event way is
+   anti-conservative, and with 13-14 filled blocks the block way drops out of the max. Add an (underlying or series ×
+   6 h block) way to the max. Leave-one-day-out must keep p < 0.05, not just the sign.
+5. **R dependence.** `Y` is constant across a market's checkpoints, and weekly, monthly and yearly ladders on one asset
+   share one path, so the event and ISO-week ways are anti-conservative (as CB12 item 2). Add a way of connected
+   components of overlapping same-asset windows. Either drop yearly and long "by" templates from the primary, or accept
+   one cluster per asset. GRP draws `ε` per unit; it must be one latent per market, with nested rungs (one uniform per
+   asset × window × direction).
+6. **R kline coverage.** The archive started at 2024-09, but "decided" needs klines from each window start `T0`. Fetch
+   from the frame's `min(T0) − 30 d`, else "unavailable (no klines)", never assume undecided.
+7. **R pre-fetch gate.** After q0277 and q0279, count SCREEN components, and stop before q0278 (about 12,000-16,000
+   requests) if fewer than 30.
+
+**Non-blocking.**
+8. Store klines in float64, or keep the verified zips (about 0.2 GB): float32 can flip `high ≥ B` at equality. Binance
+   spot archives use microsecond timestamps from 2025-01-01; unit-test this.
+9. Declare `ctx_category`, `ctx_fee_type` and `ctx_event_id` as static attributes fetched after receipt.
+10. The "2 h" mark is really 2-4 h and the "6 h" mark 6-8 h; label them so.
+11. Split the q0270 smoke: T with no network on the `cpu` lane, R on the `net` lane.
+12. The header's HEAD `ee0bc96` should be `98a00e6`. The monthly sums give 3,942, not 3,948.
+13. Stale-price placebo: fit `q_touch` and `q_spot` jointly.
+14. Label the T HOLDOUT "adjacent window, same regime".
+
+**Rulings on §7 risks.**
+- (1) The 4-day SCREEN is accepted with item 4. GT probably fails on NEWS, and counting T1 as not testable is correct.
+- (2) The GTI deviation is accepted only after item 1. Stage 2 evaluates GTI on SCREEN + HOLDOUT pairs, and T3 needs a
+  GTI pass.
+- (3) The labeller is accepted; add sports-adjacent titles (transfers, awards) to the audit strata.
+- (4) Composition is accepted.
+- (5) T2 as an upper bound is accepted, and the +0.25c floor stands.
+- (6) E011 is acceptable (frozen code, T never opens `surprise_live/`, no T output stratified by alert status).
+  E004-E006 are acceptable (T never parses `chg_1h`). E009/E010 are acceptable (T and R never open
+  `cross_venue_live/`). CB3: see item 3.
+- (7) R power: the 0.45-0.5 planning MDE assumes independent events, which item 5 rules out. R1 may be "not run
+  (power)", and item 7 saves the net lane.
+- (8) The reflection model is accepted, with drift and σ as binding robustness. The terminal and Up/Down overlap
+  deviation is accepted.
+
+## 10. Response to challenger round 1 (2026-10-18T20:33Z)
+
+No CB13 quantity has been computed, so every change below was made blind. None relaxes a floor, threshold, gate, alpha
+or cap. k stays **3 fixed + ≤ 5 conditional = 3-8**, and the cumulative count stays **1,181** (verified), becoming
+1,184-1,189.
+
+| Item | Decision | Where | What changed |
+|---|---|---|---|
+| 1 fill anchor | **Adopted, with one stated modification** | §CB13-T population, mark-out, T1/T2, GTI; §2.1; §2.7; §5 | The primary fill is the print, at the maker-adverse price within the transaction (`P_min` for maker sells, `P_max` for buys). Only touch-consistent transactions count (`a0 ≤ P_min`, `P_max ≤ a0 + s0`; mirrored); inside and inconsistent ones are excluded and counted by class. The stale-touch `M` is reported. GTI is measured from `P`. T3 enters at `P`. **Modification:** every touch-consistent transaction is a unit; first-per-side becomes a reported variant. Justification: once the fill is the real print, each print is a distinct real maker fill. The draft's one-per-pass rule modelled a single paper quote, which no longer exists. Dependence among repeat prints is handled by the event and path key × block ways (item 4), not by discarding fills. The census reports both counts |
+| 2 HOLDOUT vs J4-R | **Adopted** | §1.2, §1.3 SEALED-T, q0274 | Touch and mark captures must start at or after `t_j4r_end`. Fills before the first such capture are counted, not back-filled. The window still follows a moved J4-R end |
+| 3 CB3 hold | **Adopted, with one stated modification** | §1.2 `T13_T_rep`, §1.3, q0275 | q0275 waits for CB3's freeze commit; q0274 may run earlier. **Modification:** if CB3 is recorded in the ledger as stopped or withdrawn without a freeze, that record lifts the hold. Justification: the hold exists to keep CB3's freeze blind, and a stopped CB3 has no freeze to protect. Without this, an abandoned CB3 would hold T's replication forever with no scientific gain. The freeze check may strike it |
+| 4 T dependence | **Adopted** | §2.3, §2.6, T1/T2, §2.7 GTP | Path key (underlying from the asset map, else series slug, else event) × 6 h block way added to the max. Leave-one-day-out must keep p < 0.05 and the sign. GTP uses the same ways |
+| 5 R dependence | **Adopted, with one stated modification** | §0.4, §2.3, §CB13-R, GRP, §4 | Window-component way added to the max (four ways), and the sign-flip placebo moves to components. GRP uses one latent per (asset, window, direction): one `Y*` per market, nested in strike, priced at the first checkpoint. **Modification:** the reviewer offered dropping yearly and long "by" templates; monthly is dropped too, so the **primary is weekly only** (≤ 8-day windows). Justification: weekly windows that straddle month ends (probe row 5) join consecutive monthly windows, so a primary with monthly events still collapses to one component per asset. Monthly, yearly and "by" events are counted in the census only, with no prices fetched. This narrows the population and costs power, so it is a tightening |
+| 6 kline coverage | **Adopted** | §1.2, §CB13-R units, q0279 | Klines are fetched from the month of `min(T0) − 30 d` over primary events. A unit without coverage of `[min(T0, t − 30 d), t)` is "unavailable (no klines)", counted, never assumed undecided |
+| 7 pre-fetch gate | **Adopted** | §0.1, §CB13-R, q0284, q0278 | New q0284 (`cpu`, counts only): GRC counts SCREEN primary components with ≥ 1 listed, undecided, kline-covered checkpoint. Below 30, R1 is "not testable (dependence)", counted, and q0278 is never committed. q0279 now runs before q0278 |
+| 8 kline precision | **Adopted** | §2.2, q0279, tests | Verified original zips are kept (sha256; ≤ 0.3 GB cap) and parsed in float64 at use. Millisecond and microsecond timestamps are detected by magnitude, and the R smoke checks one 2024 and one 2025 month |
+| 9 static ctx fields | **Adopted** | §1.4 | `ctx_event_id`, `ctx_market_id`, `ctx_category` and `ctx_fee_type` are declared static attributes fetched after receipt, used as labels and keys only |
+| 10 horizon labels | **Adopted** | §2.2, §2.4, T1/T2, jobs | Labels are "2-4 h" and "6-8 h", and the realised horizon is reported per class |
+| 11 split smoke | **Adopted** | §0.1, §CB13-S, §4 | q0270 is the T smoke (`cpu`, no network); new q0285 is the R smoke (`net`, ≤ 30 requests) |
+| 12 header and sums | **Adopted** | header, H10 | The header names parent `ee0bc96` and draft commit `98a00e6`. H10: the monthly counts sum to 3,942; the other 6 markets have no `end` value in the pull |
+| 13 joint stale-price fit | **Adopted (binding)** | R1 | Joint OLS of `(Y − p_t)` on `(q_touch − p_reg)` and `(q_spot − p_reg)`. The `q_touch` coefficient must keep ≥ half its solo value with p < 0.05, or R1 cannot advance ("price lags spot") |
+| 14 HOLDOUT label | **Adopted** | §1.2, §0, T Stage 2, q0275 | The label is "adjacent window, same regime" |
+| Ruling (2) | **Adopted** | GTI, T3 | Stage 2 pools SCREEN + HOLDOUT GTI pairs; T3 needs a GTI pass (with < 200 pooled pairs, T3 is "not testable (cadence)", counted) |
+| Ruling (3) | **Adopted** | GL | Sports-adjacent stratum (transfers, signings, coaching, awards, MVP, draft), ≥ 30 of the 200 |
+| Ruling (6) | **Adopted** | §1.3 | Stated explicitly: no T output is stratified by E011 alert, candidate or control status; T never parses `chg_1h` |
+| Ruling (7) | **Adopted** | §CB13-R power, §7 | Planning MDE restated as about 0.85-1.15 without reach/dip opposition; R1 is expected to be "not run (power)" unless GRP finds otherwise |
+
+**Rejected:** none.
