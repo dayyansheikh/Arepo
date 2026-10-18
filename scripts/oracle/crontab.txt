@@ -17,6 +17,6 @@
 # Weekly point-in-time copies of append-only evidence logs (E009/E010/E011); archive-only, never deletes. INSTALLED 2026-10-15.
 # Sunday 06:10 UTC: outside the 02:45-05:30 archive/queue window and not on a :31 pass time.
 10 6 * * 0 PATH=/home/opc/.local/bin:/usr/bin:/bin; cd /home/opc/arepo/backend && nice -n 19 /home/opc/arepo/.venv/bin/python scripts/archive_rotate.py --root /home/opc/arepo --scan data-dumps/research_lab --older-than-days 1 --include-active 'data-dumps/research_lab/cross_venue_live/predictions*.jsonl,data-dumps/research_lab/cross_venue_live/outcomes*.jsonl,data-dumps/research_lab/live_trades/alerts.jsonl,data-dumps/research_lab/live_trades/wallets.jsonl,data-dumps/research_lab/surprise_live/*' >> /home/opc/arepo_collector/logs/archive-active.log 2>&1
-# Arepo Lab dashboard push (scripts/lab/lab_host.py): snapshot + whitelisted queue pause/resume. DISABLED: enable after the API is deployed.
-#*/10 * * * * flock -n /home/opc/.arepo/lab/push.lock nice -n 10 /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/lab/lab_host.py >> /home/opc/arepo_collector/logs/lab-push.log 2>&1
+# Arepo Lab dashboard push (scripts/lab/lab_host.py): snapshot + whitelisted queue pause/resume. Enabled 2026-10-18 after PR #19 deployed.
+*/10 * * * * flock -n /home/opc/.arepo/lab/push.lock nice -n 10 /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/lab/lab_host.py >> /home/opc/arepo_collector/logs/lab-push.log 2>&1
 # --- end AREPO ---
