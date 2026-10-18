@@ -111,6 +111,9 @@ REP_JOBS = ("rep-M", "rep-E", "rep-F", "rep-O")
 GUARDED_NAMES = ("outcomes_guarded_screen.csv.gz", "outcomes_guarded_holdout.csv.gz", "outcomes_guarded.csv.gz")
 SEAL_NAME = "holdout_SEAL.json"
 DROPS_FILE = "drops.csv.gz"
+SERIES_DATES_NAME = "exclusion_series_dates.csv.gz"  # (series id, event id, startTime epoch) of each excluded event that belongs to a series, written by q0241
+SERIES_DATES_COLUMNS = ["series_id", "event_id", "start_epoch"]
+SERIES_DATES_RUN_FILE = "series_dates_report.json"
 ACCESS_LOG = "ACCESS_LOG.jsonl"
 OWN_SEAL_COPIES = ("cb12_say_holdout_SEAL.json", "cb12_prints_holdout_SEAL.json")
 EXCLUSION_RUN = "exclusion_run12"
@@ -357,9 +360,10 @@ def open_guarded(path: Path, job: str, seal: dict | None = None) -> list[dict]:
 
 def seal_holdout(rdir: Path, *, family: str, statuses: tuple[str, ...], copy_name: str, rows: list[dict], rules_sha: str, transport=None, seals_dir: Path | None = None,
                  rps: float = 2.0, sleep=time.sleep, live_check=None, is_committed: Callable[[Path], bool] | None = None, holdout_prefix: str = "holdout/",
-                 outcome_files: tuple[str, ...] = ()) -> dict:
+                 outcome_files: tuple[str, ...] = (), hist_root: Path | None = None, absent_sets: Iterable[str] = ()) -> dict:
     """Seal one family's HOLDOUT. Refuses (NotNow) unless the fetch finished and every file matches its manifest. Seal-time drops (id and key) of the sealed rows
-    against every committed seal copy except CB12's own, as ``DROPPED_SEAL_COPIES`` rows (sealed files never edited); ``holdout_SEAL.json`` with the HOLDOUT
+    against every committed seal copy except CB12's own, as ``DROPPED_SEAL_COPIES`` rows (sealed files never edited); the id-source frames recorded "absent at q0241"
+    (``absent_sets``, relative to ``hist_root``) are re-read here, their ids and keys dropped as ``DROPPED_ABSENT_AT_Q0241`` rows and their file sha256 recorded; ``holdout_SEAL.json`` with the HOLDOUT
     listing sha256 AND the sha256 of each HOLDOUT outcome file (``outcome_files``, relative to ``rdir``), and the committed copy ``seals/<copy_name>``."""
     from . import cb7_common as c7  # noqa: PLC0415
     from . import cb8_books as bk  # noqa: PLC0415
@@ -380,26 +384,49 @@ def seal_holdout(rdir: Path, *, family: str, statuses: tuple[str, ...], copy_nam
         raise NotNow(f"{rdir.name} is not finished yet (status {man.get('status')}); pending")
     n_checked = cm.verify_manifest_files(rdir, man)
     ids, used, skipped, shas = bk.seal_copy_ids_audited(seals_dir, own=OWN_SEAL_COPIES, is_committed=is_committed)
-    keys: dict[str, set[str]] = {"event": set(), "neg_risk_market": set(), "series": set()}
-    missing = 0
-    if ids:
+    late_ids: set[str] = set()
+    reread: dict[str, dict] = {}
+    for rel in sorted(set(absent_sets)):
+        fp = Path(hist_root) / rel if hist_root is not None else None
+        if fp is not None and fp.is_file():  # id columns only (as q0241: the refused roots are not opened for anything else)
+            got = read_id_set(fp)
+            late_ids |= got
+            reread[rel] = {"now_present": True, "n_ids": len(got), "sha256": h5_seal.sha256_file(fp)}
+        else:
+            reread[rel] = {"now_present": False}
+    late_ids -= ids
+    lim = None
+
+    def lookup(want: set[str]) -> tuple[dict[str, set[str]], int]:
+        nonlocal lim
+        out: dict[str, set[str]] = {"event": set(), "neg_risk_market": set(), "series": set()}
+        if not want:
+            return out, 0
         if transport is None:
-            raise Refused("seal copies exist but no transport was given for the key lookup")
-        lim = hb.Limiter(transport, rps=min(rps, 2.0), sleep=sleep, live_check=live_check)
-        found, _ = lookup_keys_closed_first(lim, sorted(ids))
-        missing = len(ids) - len(found)
+            raise Refused("seal copies / re-read frames exist but no transport was given for the key lookup")
+        lim = lim or hb.Limiter(transport, rps=min(rps, 2.0), sleep=sleep, live_check=live_check)
+        found, _ = lookup_keys_closed_first(lim, sorted(want))
         for k in found.values():
-            keys["event"].update(e for e in str(k.get("event_ids") or "").split(";") if e)
+            out["event"].update(e for e in str(k.get("event_ids") or "").split(";") if e)
             if k.get("neg_risk_market_id"):
-                keys["neg_risk_market"].add(k["neg_risk_market_id"])
-            keys["series"].update(x for x in str(k.get("series_ids") or "").split(";") if x)
+                out["neg_risk_market"].add(k["neg_risk_market_id"])
+            out["series"].update(x for x in str(k.get("series_ids") or "").split(";") if x)
+        return out, len(want) - len(found)
+
+    keys, missing = lookup(ids)
+    late_keys, late_missing = lookup(late_ids)
     unverified = bool(ids) and missing / len(ids) > MAX_UNVERIFIED_KEY_SHARE
-    drop_rows, n = [], {"KEPT": 0, "DROPPED_SEAL_COPIES": 0}
+    late_unverified = bool(late_ids) and late_missing / len(late_ids) > MAX_UNVERIFIED_KEY_SHARE
+    drop_rows, n = [], {"KEPT": 0, "DROPPED_SEAL_COPIES": 0, "DROPPED_ABSENT_AT_Q0241": 0}
     for r in rows:
         why = (["id"] if str(r["market_id"]) in ids else []) + c7.key_types_matched(r, keys)
+        why_late = (["id"] if str(r["market_id"]) in late_ids else []) + c7.key_types_matched(r, late_keys)
         if why:
             n["DROPPED_SEAL_COPIES"] += 1
             drop_rows.append([r["market_id"], "DROPPED_SEAL_COPIES", "+".join(why)])
+        elif why_late:
+            n["DROPPED_ABSENT_AT_Q0241"] += 1
+            drop_rows.append([r["market_id"], "DROPPED_ABSENT_AT_Q0241", "+".join(why_late)])
         else:
             n["KEPT"] += 1
     drop_rows.sort()
@@ -415,7 +442,8 @@ def seal_holdout(rdir: Path, *, family: str, statuses: tuple[str, ...], copy_nam
            "rules_sha256": rules_sha, "listing_sha256": h5_seal.listing_sha256(holdout), "n_holdout_files": len(holdout), "files": dict(sorted(holdout.items())),
            "holdout_outcome_file_sha256": out_sha, "fetched_files_rehashed": n_checked,
            "drops": {"counts": n, "seal_copies_read": used, "seal_copies_sha256": shas, "seal_copies_skipped": skipped, "drop_ids": len(ids), "drop_ids_without_metadata": missing,
-                     "disjointness": UNVERIFIED if unverified else "verified", "drops_sha256": h5_seal.sha256_file(rdir / DROPS_FILE)},
+                     "disjointness": UNVERIFIED if (unverified or late_unverified) else "verified", "absent_at_q0241_reread": reread,
+                     "absent_drop_ids": len(late_ids), "absent_drop_ids_without_metadata": late_missing, "drops_sha256": h5_seal.sha256_file(rdir / DROPS_FILE)},
            "n_holdout_markets": len(rows),
            "read_rules": "verify the listing hash and the outcome-file hash first; append every read to ACCESS_LOG.jsonl; holdout/ is not opened before the family's Stage-1 "
                          "test advanced and its result is committed; markets in DROPPED_* rows of drops.csv.gz are never analysed; the census reads HOLDOUT counts only"}
@@ -429,6 +457,20 @@ def seal_holdout(rdir: Path, *, family: str, statuses: tuple[str, ...], copy_nam
     dest.write_bytes(data)
     return {"status": f"{family}_sealed", "listing_sha256": doc["listing_sha256"], "committed_copy": str(dest), "drop_counts": n, "disjointness": doc["drops"]["disjointness"],
             "n_holdout_files": len(holdout)}
+
+
+def load_drops(rdir: Path, seal: dict) -> set[str]:
+    """The market ids in ``DROPPED_*`` rows of ``drops.csv.gz`` (never analysed). The file must exist and its sha256 must equal the one recorded in the (verified) seal;
+    otherwise ``Refused`` (exit 2)."""
+    from . import h5_seal  # noqa: PLC0415
+
+    p = Path(rdir) / DROPS_FILE
+    want = ((seal or {}).get("drops") or {}).get("drops_sha256")
+    if not p.is_file():
+        raise Refused(f"{DROPS_FILE} is missing in {Path(rdir).name}; refusing (the seal-time drops must be applied)")
+    if not want or h5_seal.sha256_file(p) != want:
+        raise Refused(f"{DROPS_FILE} sha256 differs from the seal (or the seal records none); refusing")
+    return {str(r["market_id"]) for r in read_csv_gz(p) if str(r.get("block", "")).startswith("DROPPED_")}
 
 
 def verify_holdout_seal(rdir: Path, copy_name: str, seals_dir: Path | None = None, *, holdout_prefix: str = "holdout/", require_committed: bool = True) -> dict:
@@ -576,8 +618,8 @@ def stage2_holm(pvals: dict[str, float | None], alpha: float = STAGE_ALPHA) -> d
 
 
 def early_stage2_ok(p: float | None) -> bool:
-    """A rep that finishes before k2 is known is judged against alpha / 10 (k = 10 is the largest possible count; never withdrawn)."""
-    return p is not None and bool(p <= STAGE_ALPHA / STAGE2_K_MAX)
+    """A rep that finishes before k2 is known is judged against alpha / 10 (k = 10 is the largest possible count; never withdrawn). Strict ``<``, as Stage 1."""
+    return p is not None and bool(p < STAGE_ALPHA / STAGE2_K_MAX)
 
 
 def cluster_p(v, clusters: dict[str, Any], *, seed: int = SEED_BOOT, n_wild: int = N_WILD, alpha: float | None = None) -> dict:
@@ -666,6 +708,81 @@ def load_exclusion_keys(keys_path: Path) -> tuple[set[str], dict[str, set[str]],
         raise Refused(f"{keys_path} sha256 {sha} != report {rep.get('keys_sha256')}; refusing")
     ids = {str(r["market_id"]) for r in read_csv_gz(keys_path)}
     return ids, c6.load_key_sets(keys_path), rep, sha
+
+
+def load_series_dates(keys_path: Path, rep: dict) -> dict[str, list[float]]:
+    """``{series id: [startTime epochs of its excluded events]}`` from ``exclusion_series_dates.csv.gz`` next to the key file. A missing file is ``NotNow`` (exit 75, the job
+    waits: a frame must never be built with the series-date key silently off); a sha256 that differs from the report (or a report without it) is a refusal."""
+    from . import h5_seal  # noqa: PLC0415
+
+    p = Path(keys_path).with_name(SERIES_DATES_NAME)
+    if not p.exists():
+        raise NotNow(f"{p.name} is missing next to {Path(keys_path).name} (q0241 writes it); pending")
+    want = rep.get("series_dates_sha256")
+    if not want or h5_seal.sha256_file(p) != want:
+        raise Refused(f"{p.name} sha256 differs from the exclusion report (or the report records none); refusing")
+    out: dict[str, list[float]] = {}
+    for r in read_csv_gz(p):
+        v = num(r.get("start_epoch"))
+        if math.isfinite(v):
+            out.setdefault(str(r["series_id"]), []).append(v)
+    return out
+
+
+def series_dates_stage(fr, event_ids: list[str], should_stop: Callable[[], bool] | None = None) -> tuple[dict | None, str | None]:
+    """Resumable Gamma ``/events?id=`` lookup (<= 50 ids per request) of the events named in the exclusion keys that belong to a series: one row (series id, event id,
+    startTime epoch) per series of the event -> ``exclusion_series_dates.csv.gz`` (run dir) + ``series_dates_report.json``. Events the venue does not return, or without a
+    ``startTime``, are counted in the report (they cannot enter the series-date key)."""
+    from . import h5_seal  # noqa: PLC0415
+
+    rdir = fr.rdir
+    rep_path, out_path = rdir / SERIES_DATES_RUN_FILE, rdir / SERIES_DATES_NAME
+    if rep_path.exists():
+        return json.loads(rep_path.read_text()), None
+    part = rdir / "series_dates_partial.jsonl"
+    todo = sorted(set(event_ids))
+    done: dict[int, dict] = {}
+    if part.exists():
+        for line in part.read_text().splitlines():
+            if line.strip():
+                rec = json.loads(line)
+                done[rec["batch"]] = rec
+    per = LOOKUP_PER_REQUEST
+    for b in range(math.ceil(len(todo) / per)):
+        if b in done:
+            continue
+        why = fr.stop_reason(should_stop)
+        if why:
+            return None, why
+        batch = todo[b * per:(b + 1) * per]
+        status, data = fr.lim.get(GAMMA_EVENTS, {"id": list(batch), "limit": per})
+        if status != 200 or not isinstance(data, list):
+            raise ApiError(f"gamma events lookup status {status}")
+        rows, returned, no_start, no_series = [], 0, 0, 0
+        for e in data:
+            if not isinstance(e, dict) or e.get("id") is None or str(e["id"]) not in batch:
+                continue
+            returned += 1
+            start = parse_iso(e.get("startTime"))
+            sids = [str(s["id"]) for s in (e.get("series") if isinstance(e.get("series"), list) else []) if isinstance(s, dict) and s.get("id") is not None]
+            if not sids:
+                no_series += 1
+            elif not math.isfinite(start):
+                no_start += 1
+            else:
+                rows += [[s, str(e["id"]), start] for s in sids]
+        rec = {"batch": b, "ids": len(batch), "returned": returned, "no_start": no_start, "no_series_in_reply": no_series, "rows": rows}
+        with part.open("a") as fh:
+            fh.write(json.dumps(rec, sort_keys=True) + "\n")
+        done[b] = rec
+    allrows = sorted({(r[0], r[1], r[2]) for rec in done.values() for r in rec["rows"]})
+    fr.budget.write_gz_csv(out_path, SERIES_DATES_COLUMNS, [list(r) for r in allrows])
+    returned = sum(rec["returned"] for rec in done.values())
+    rep = {"n_events": len(todo), "n_returned": returned, "n_not_returned": len(todo) - returned, "n_without_start": sum(rec["no_start"] for rec in done.values()),
+           "n_without_series_in_reply": sum(rec["no_series_in_reply"] for rec in done.values()), "n_rows": len(allrows), "series_dates_sha256": h5_seal.sha256_file(out_path)}
+    fr.budget.write(rep_path, json.dumps(rep, indent=1, sort_keys=True).encode())
+    part.unlink(missing_ok=True)
+    return rep, None
 
 
 def exclusion_stage(fr, ids: set[str], should_stop: Callable[[], bool] | None = None) -> tuple[dict | None, str | None]:
@@ -776,9 +893,18 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
         rows += [[r[c] for c in c6.KEY_COLUMNS] for r in csv.DictReader(fh)]
     with gzip.open(fr.rdir / "exclusion_keys.csv.gz", "rt", encoding="utf-8", newline="") as fh:
         rows += [[r[c] for c in c6.KEY_COLUMNS] for r in csv.DictReader(fh)]
+    ev_with_series = sorted({e for r in rows if r[4] for e in str(r[2]).split(";") if e})
+    rep_sd, stopped = series_dates_stage(fr, ev_with_series, should_stop)
+    if stopped:
+        m = fr.manifest(stopped, {"transient": True})
+        m["status"] = "in_progress"
+        return m
+    assert rep_sd is not None
     keys_out = out_root / "exclusion_keys.csv.gz"
     out_root.mkdir(parents=True, exist_ok=True)
     keys_out.write_bytes(hb._gz_csv_bytes(list(c6.KEY_COLUMNS), sorted(rows)))
+    sd_out = out_root / SERIES_DATES_NAME
+    sd_out.write_bytes((fr.rdir / SERIES_DATES_NAME).read_bytes())
     base_rep_p = base_path.with_name(c9.EXCLUSION_REPORT_NAME)
     base_rep = json.loads(base_rep_p.read_text()) if base_rep_p.exists() else {}
     n_all = int(base_rep.get("n_ids", len(base_ids))) + rep_new["n_ids"]
@@ -787,7 +913,7 @@ def exclusion_keys(out_root: Path, transport, *, rules_sha: str, hist_root: Path
     rep = {"n_ids": n_all, "n_missing": n_missing, "missing_share": share, "max_unverified_key_share": MAX_UNVERIFIED_KEY_SHARE,
            "disjointness": UNVERIFIED if share > MAX_UNVERIFIED_KEY_SHARE else "verified", "base_keys_sha256": base_sha256, "new": rep_new, "sets": set_ids,
            "sets_absent_at_q0241": absent, "seal_copies_used": used, "seal_copies_sha256": shas, "seal_copies_skipped": skipped, "n_c1_market_ids": len(c1_ids),
-           "keys_sha256": h5_seal.sha256_file(keys_out), "built_utc": cm.iso(time.time())}
+           "keys_sha256": h5_seal.sha256_file(keys_out), "series_dates": rep_sd, "series_dates_sha256": h5_seal.sha256_file(sd_out), "built_utc": cm.iso(time.time())}
     (out_root / c9.EXCLUSION_REPORT_NAME).write_text(json.dumps(rep, indent=1, sort_keys=True))
     status = UNVERIFIED if rep["disjointness"] == UNVERIFIED else EXCLUSION_KEYS_COMPLETE
     m = fr.manifest(None, {"exclusion_report": {k: rep[k] for k in ("n_ids", "n_missing", "missing_share", "disjointness", "keys_sha256")}, "status": status, "complete": True})

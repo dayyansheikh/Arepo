@@ -1163,3 +1163,28 @@ disk caps are unchanged.
 15,000, exact value from q0244's frame fields); the number of E window components (GE fails below 30, Stage 2 below 30);
 the CBOE iv time convention (chosen by the smoke from two pre-declared candidates, or `Φ(d2)` units excluded); whether
 GFP stops any F test (MDE > 2 x floor).
+
+## 11. Amendments from the code-against-design freeze check (science-reviewer, 2026-10-18)
+
+The check returned REVISE on the first code commit (74a0f17). The fixes below are code-side; no threshold, floor, alpha, gate, cap or test count was loosened. Rows A1-A4
+are disclosed corrections or disclosures (they change no rule); rows B1-B13 are fixes that make the code match this document.
+
+| Item | Change | Where |
+|---|---|---|
+| A1 (freeze-check item 1) | **Disclosed correction.** The Polymarket scheduled end for X comes from the `end` field of `poly_markets.json` (streamed, ids and `end` / volume only), not from `matches.json` `p_end` (closed-time first, i.e. the actual close). Accepted as the intended reading of "scheduled end"; the census reports how many pairs lack it | §CB12-X, cb12_x `POLY_END_KEY` |
+| A2 (item 6) | **Disclosed deviation from §4.** The census runs one family per job (q0249 = M; q0266 is reserved for the E census), so M and E freeze independently | §2.7, §4 |
+| A3 (item 7) | **Disclosed.** "Series age" is not defined in this document, so the M1 series-age split is not reported (the field says so); nothing depends on it | §CB12-M reported |
+| A4 | **Disclosed, accepted as is.** (i) The worst-case reach check keeps the events below 90% source availability and fills every unavailable member at `a_i` for 100 shares iff `Y_i > 0`: stricter than the design's wording, retained. (ii) The M1 copula placebo is accepted as declared (power cost, no validity threat; the 1.5% limit stays) | §CB12-M M1, M2 |
+| B1 | q0241 writes `exclusion_series_dates.csv.gz` (series id, event id, `startTime` of each excluded event that belongs to a series; a second resumable Gamma stage; counts of events not returned / without a start in the report; sha256 in `exclusion_report.json`); q0242 waits (exit 75) while it is missing and refuses if its sha256 differs from the report | q0241, q0242, §1.4 |
+| B2 | q0241 and q0242 drafts carry `repeat` (the jobs return `in_progress`, exit 0, on a stop or a transient Gamma failure) | drafts |
+| B3 | `SPORTS_TAG_IDS` is the 492 ids of the venue's own sports registry (`evidence_cb12/sports_tag_registry_20261018.json`, response sha256 recorded there), venue metadata only; the smoke has a new criterion `m_events_tags` (Gamma `/events` must return `tags` on every event, else the tag exclusion would silently be regex-only) | §0.4 item 6, q0240 |
+| B4 | X pins the sha256 of `run_cross_venue.py` and `cross_venue.py` in part X and verifies them before `exec_module` | §CB12-X, q0251, q0255 |
+| B5 | X robustness (ii): top-5 drop for **each** clustering way (event and resolution month) | §2.6 (ii) |
+| B6 | A failed smoke criterion or a C1 reproduction failure leaves a counted "not testable (source)": the X census writes that label and the screen writes the p = 1 trial line (no refusal). A missing smoke file stays a refusal (q0240 first) | §2.7, §CB12-S |
+| B7 | The X census reports (counts only) which `poly_markets.json` volume key matched and how many fresh step pairs each horizon bin has (fresh: PM stamp exactly `t - 600 s`, K point <= 10 min), so the coordinator can decide before the freeze; the key list is unchanged | §2.7 |
+| B8 | q0243 streams: `markets_partial.jsonl` is never read whole (ids only for resuming; output files written record by record, one market in memory), within `mem_mb` 400 | §2.8 |
+| B9 | q0248 re-reads the id-source frames recorded "absent at q0241" (ids and keys dropped as `DROPPED_ABSENT_AT_Q0241`, file sha256 recorded in the seal) | §1.3 |
+| B10 | `start_edit_c` uses only members whose prints reach back to the start date; others are "unavailable" for that check (counted). A network give-up after the attempt cap is "unavailable (network)", separate from "unavailable (source)" | §CB12-M flags, q0243 |
+| B11 | M1-rep gets the t-24h units (it could not pass without them); rep applies the seal's `DROPPED_*` rows (a basket with a dropped member is dropped whole, stricter than the member rows) and refuses unless `drops.csv.gz` matches the sha256 recorded in the seal | §CB12-M Stage 2 |
+| B12 | §2.6 (iv) for M: a test with < 60% available eligible units is "not testable (availability)", counted | §2.6 |
+| B13 | Stage 2 is strict: an early rep passes only with `p < alpha / 10` (and the end-of-batch check `p < alpha / k2`), consistent with Stage 1 | §2.3 |

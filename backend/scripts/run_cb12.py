@@ -310,9 +310,13 @@ def seal_m(a) -> dict:
         raise c12.NotNow(f"{rdir.name} prices are not finished yet; pending")  # before any rules read: another family must still seal when this one has not run
     sha = _rules(a, "M")
     rows = m12.seal_rows(rdir) if not c12.stall_of(rdir) else []
+    xr = _root(a) / c12.c9.EXCLUSION_REPORT_NAME  # the id-source frames q0241 recorded "absent" are re-read here
+    if not xr.is_file():
+        raise c12.Refused(f"{xr} is missing (q0241 first); the sets absent at q0241 cannot be re-read")
+    absent = json.loads(xr.read_text()).get("sets_absent_at_q0241") or []
     return c12.seal_holdout(rdir, family="say", statuses=(m12.PRICES_STATUS,), copy_name="cb12_say_holdout_SEAL.json", rows=rows, rules_sha=sha, transport=hb.httpx_transport(),
                             seals_dir=_seals_dir(a), rps=a.rps, live_check=None if a.standalone else hb.live_pass_or_lock, is_committed=_committed(a),
-                            outcome_files=("holdout/outcomes_guarded_holdout.csv.gz",))
+                            outcome_files=("holdout/outcomes_guarded_holdout.csv.gz",), hist_root=_hist(a), absent_sets=absent)
 
 
 SEAL_FAMILIES = {"M": seal_m}
@@ -356,10 +360,17 @@ def census_m_block(a) -> dict:
 
 
 def census_x_block(a) -> dict:
+    from astrolabe.research_lab import cb12_smoke as sm  # noqa: PLC0415
     from astrolabe.research_lab import cb12_x as x12  # noqa: PLC0415
 
     root = _cv_root(a)
-    loaded = x12.load_c1(root, expected=None if a.allow_unpinned_c1 else x12.C1_EXPECTED, verify=not a.allow_unpinned_c1)
+    bad = sm.smoke_failures(_smoke_path(a), sm.family_needs("X"))  # a missing smoke file is still a refusal (q0240 first); a FAILED criterion is a counted outcome
+    if bad:
+        return x12.source_failure_census(f"smoke criteria not met: {bad}")
+    try:
+        loaded = x12.load_c1(root, expected=None if a.allow_unpinned_c1 else x12.C1_EXPECTED, verify=not a.allow_unpinned_c1)
+    except x12.C1ReproductionError as exc:
+        return x12.source_failure_census(f"C1 reproduction failed: {exc}"[:300])
     return x12.census_x(loaded["pairs"], loaded["report"])
 
 
@@ -376,8 +387,6 @@ def cmd_census(a):
         out = Path(a.out) if a.out else _root(a) / "census_X.json"
     if out.exists():
         raise c12.Refused(f"{out} exists; the census is written once")
-    if fam == "X":
-        _require_smoke(a, "X")
     doc = {"version": f"cb12-census-{fam}-v1", "counts_only": True, "rules_sha256": sha, fam: census_m_block(a) if fam == "M" else census_x_block(a)}
     cm.write_once_json(out, doc)
     c12.log_descriptive(f"census_{fam}", {"census_sha256": cm.sha_obj(doc), "path": str(out)}, trials_path=_tp(a))
@@ -434,14 +443,21 @@ def cmd_screen(a):
             c12.verify_holdout_seal(rdir, "cb12_say_holdout_SEAL.json", _seals_dir(a), require_committed=not a.allow_uncommitted_rules)
         body = m12.screen_m(rdir, census)
     else:
+        from astrolabe.research_lab import cb12_smoke as sm  # noqa: PLC0415
         from astrolabe.research_lab import cb12_x as x12  # noqa: PLC0415
 
-        _require_smoke(a, "X")
+        bad = sm.smoke_failures(_smoke_path(a), sm.family_needs("X")) if not census.get("label_X") else []
         if census.get("label_X"):
             body = x12.screen_x([], census)
+        elif bad:  # a failed smoke criterion is a counted "not testable (source)" outcome (p = 1 trial line), not a refusal
+            body = x12.screen_x([], {"label_X": x12.SOURCE_LABEL})
         else:
-            loaded = x12.load_c1(_cv_root(a), expected=None if a.allow_unpinned_c1 else x12.C1_EXPECTED, verify=not a.allow_unpinned_c1)
-            body = x12.screen_x(loaded["pairs"], census)
+            try:
+                loaded = x12.load_c1(_cv_root(a), expected=None if a.allow_unpinned_c1 else x12.C1_EXPECTED, verify=not a.allow_unpinned_c1)
+            except x12.C1ReproductionError:
+                body = x12.screen_x([], {"label_X": x12.SOURCE_LABEL})
+            else:
+                body = x12.screen_x(loaded["pairs"], census)
     doc = {**body, "rules_sha256": sha, "freeze_part": fam, "freeze_sha256": freeze_sha, "census_sha256": hashlib.sha256(cpath.read_bytes()).hexdigest(), "written_epoch": time.time()}
     doc["by_triage"] = _by_triage({t: doc[t] for t in tids}, _tp(a))
     rsha = c12.write_results_once(Path(a.out) if a.out else root / f"results_{fam}.json", doc)

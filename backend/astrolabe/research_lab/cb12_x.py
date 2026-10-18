@@ -30,7 +30,12 @@ from . import cross_venue as cv
 
 Refused = cm.Refused
 
+
+class C1ReproductionError(Refused):
+    """The C1 reproduction did not give 316 / 183 / 517,616: a counted ``not testable (source)`` outcome (census and screen), not a free refusal."""
+
 LABEL_X = "L1, worn set, new moderator, hindsight end date"
+SOURCE_LABEL = "not testable (source)"
 X_DIR_NAME = "cross_venue"
 GRID_MIN = 10.0
 BIN_SHORT_S = 3 * 86400.0  # short: tau <= 3 d
@@ -70,6 +75,9 @@ X_PINS = {
 }
 X_SERIES_PIN = {"count": 493, "listing_sha256": "f930d276d1f49509bb90be21d8cab6b2c4bbb2d883e60b2b0c9791691028d6fd"}  # sha256 of "\n".join(f"{name} {sha256}") over sorted series/*.npz
 CV_SCRIPT_REL = "backend/scripts/run_cross_venue.py"
+CV_MODULE_REL = "backend/astrolabe/research_lab/cross_venue.py"
+# The study code CB12-X executes (``exec_module`` of the script; ``cross_venue`` is imported by it) is sha256-pinned: a different byte refuses (exit 2) before anything runs.
+CV_SOURCE_PINS = {CV_SCRIPT_REL: "cab073ab1caa66f41e9cfc543d60d64ac640738cfb2fce10f4cbbd021982f7b5", CV_MODULE_REL: "5264083948a77679189f14471290c2f84bf71dac01fc9632cb0633fdb59ace99"}
 CV_CALLS = ("load_pair_series(cv.POINT_LAG_S)", "audit_sets(pairs, kept)['rule']")
 
 
@@ -206,12 +214,37 @@ def restricted_universes(root: Path, tickers: set[str], poly_ids: set[str]) -> t
     return kalshi, poly
 
 
-def poly_volume(m: dict) -> float:
+def poly_volume_key(m: dict) -> str | None:
+    """The first key of ``POLY_VOLUME_KEYS`` with a finite value in the row (None if none): the census reports which one matched."""
     for k in POLY_VOLUME_KEYS:
-        v = c12.num(m.get(k))
-        if math.isfinite(v):
-            return v
-    return math.nan
+        if math.isfinite(c12.num(m.get(k))):
+            return k
+    return None
+
+
+def poly_volume(m: dict) -> float:
+    k = poly_volume_key(m)
+    return math.nan if k is None else c12.num(m.get(k))
+
+
+def verify_source(*, pins: dict | None = None, repo_root: Path | None = None) -> dict:
+    """The study code is read from the repo and must match ``CV_SOURCE_PINS`` byte for byte (script and ``cross_venue.py``); ``Refused`` otherwise."""
+    from . import (
+        h5_seal,  # noqa: PLC0415
+        provenance,  # noqa: PLC0415
+    )
+
+    root = Path(repo_root) if repo_root is not None else provenance.REPO_ROOT
+    out = {}
+    for rel, want in (pins if pins is not None else CV_SOURCE_PINS).items():
+        p = root / rel
+        if not p.is_file():
+            raise Refused(f"X study source {rel} missing; refusing")
+        got = h5_seal.sha256_file(p)
+        if got != want:
+            raise Refused(f"X study source {rel} sha256 {got} != pinned {want}; refusing to execute it")
+        out[rel] = got
+    return out
 
 
 # =====================================================================================================================================================
@@ -266,13 +299,15 @@ def _age_fresh(pts: np.ndarray, kc: np.ndarray, t: np.ndarray) -> np.ndarray:
     return (age_p <= FRESH_MAX_AGE_S) & (age_k <= FRESH_MAX_AGE_S)
 
 
-def load_c1(root: Path, *, expected: dict | None = None, pins: dict | None = None, series_pin: dict | None = None, verify: bool = True, script: Path | None = None) -> dict:
+def load_c1(root: Path, *, expected: dict | None = None, pins: dict | None = None, series_pin: dict | None = None, verify: bool = True, script: Path | None = None,
+            source_pins: dict | bool | None = None) -> dict:
     """The audited C1 set with horizons: ``run_cross_venue.load_pair_series(POINT_LAG_S)`` minus ``audit_sets(...)['rule']``; the universes ``audit_sets`` reads are replaced by their
     streamed restrictions to the matched ids (same rows, no 1.5 GB ``json.load``). Returns ``{"pairs", "report"}`` and asserts the declared counts when ``expected`` is given."""
     from . import provenance  # noqa: PLC0415
 
     root = x_root(root)
     inputs = verify_inputs(root, pins=pins, series_pin=series_pin) if verify else {}
+    source = {} if source_pins is False else verify_source(pins=source_pins if isinstance(source_pins, dict) else None)  # False: tests with a fixture script only
     spec = importlib.util.spec_from_file_location("run_cross_venue_cb12", Path(script) if script else provenance.REPO_ROOT / CV_SCRIPT_REL)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)  # type: ignore[union-attr]
@@ -284,6 +319,8 @@ def load_c1(root: Path, *, expected: dict | None = None, pins: dict | None = Non
     pairs, kept = mod.load_pair_series(cv.POINT_LAG_S)
     rule = mod.audit_sets(pairs, kept)["rule"]
     pb = {str(m[POLY_ID_KEY]): m for m in pol}
+    vol_keys = Counter(poly_volume_key(m) or "none" for m in pb.values())
+    vol_like = Counter(k for m in pb.values() for k in m if "vol" in str(k).lower())
     kb = {m["ticker"]: m for m in kal}
     out: list[XPair] = []
     for ps, row in zip(pairs, kept, strict=True):
@@ -304,11 +341,12 @@ def load_c1(root: Path, *, expected: dict | None = None, pins: dict | None = Non
                          _age_fresh(np.asarray(z["ps"], float).reshape(-1, 2), np.asarray(z["kc"], float), t), t_res, end_pm, k_close, poly_volume(pm),
                          np.asarray(ps.g["p"], float), np.asarray(ps.g["k"], float)))
     rep = {"pairs": len(out), "events": len({p.event for p in out}), "steps": int(sum(int(p.ok.sum()) for p in out)), "audit_rule_drops": len(rule), "matched_rows": len(rows),
-           "inputs_sha256": inputs, "end_pm_missing": sum(1 for p in out if not math.isfinite(p.end_pm)), "calls": list(CV_CALLS)}
+           "inputs_sha256": inputs, "source_sha256": source, "volume_key_matched": dict(vol_keys), "volume_keys_declared": list(POLY_VOLUME_KEYS),
+           "volume_like_keys_in_rows": dict(vol_like), "matched_poly_rows": len(pb), "end_pm_missing": sum(1 for p in out if not math.isfinite(p.end_pm)), "calls": list(CV_CALLS)}
     if expected is not None:
         got = {k: rep[k] for k in ("pairs", "events", "steps")}
         if got != {k: expected[k] for k in got}:
-            raise Refused(f"C1 reproduction failed: {got} != {expected}")
+            raise C1ReproductionError(f"C1 reproduction failed: {got} != {expected}")
     return {"pairs": out, "report": rep}
 
 
@@ -340,11 +378,12 @@ def tercile_of(vols: np.ndarray) -> np.ndarray:
 
 
 def census_x(pairs: list[XPair], report: dict | None = None) -> dict:
-    tau_pairs = []
+    tau_pairs, fresh_pairs = [], []
     n_undef = n_past = n_total = 0
     for p in pairs:
         c = p.ok[:-1] & p.ok[1:]
         idx = np.nonzero(c)[0]
+        fresh_pairs.append(np.asarray(p.fresh, bool)[idx] & np.asarray(p.fresh, bool)[idx + 1])
         tau = p.end_pm - p.t[idx] if math.isfinite(p.end_pm) else np.full(len(idx), np.nan)
         n_total += len(idx)
         n_undef += int((~np.isfinite(tau)).sum())
@@ -357,7 +396,8 @@ def census_x(pairs: list[XPair], report: dict | None = None) -> dict:
         steps = int(sum(int((b == bi).sum()) for b in tau_pairs))
         events = {pairs[i].event for i in ps}
         months = {pairs[i].month for i in ps}
-        by_bin[name] = {"pairs": len(ps), "events": len(events), "months": len(months), "step_pairs": steps,
+        fresh = int(sum(int(((b == bi) & f).sum()) for b, f in zip(tau_pairs, fresh_pairs, strict=True)))  # PM stamp exactly t - 600 s at both steps (600 s lag), K <= 10 min old
+        by_bin[name] = {"pairs": len(ps), "events": len(events), "months": len(months), "step_pairs": steps, "fresh_step_pairs": fresh,
                         "by_category": dict(Counter(pairs[i].cat for i in ps)), "by_volume_tercile": dict(Counter(int(terc[i]) for i in ps))}
     gx = {n: bool(by_bin[n]["pairs"] >= GX_MIN["pairs"] and by_bin[n]["events"] >= GX_MIN["events"] and by_bin[n]["step_pairs"] >= GX_MIN["steps"]) for n in ("short", "long")}
     gx_pass = bool(gx["short"] and gx["long"])
@@ -368,7 +408,8 @@ def census_x(pairs: list[XPair], report: dict | None = None) -> dict:
            "volume_unknown_pairs": int((terc < 0).sum()), "category_counts": dict(Counter(p.cat for p in pairs)),
            "G_by_way": {"event": len({p.event for p in pairs}), "resolution_month": len({p.month for p in pairs})},
            "G_by_way_and_bin": {n: {"event": by_bin[n]["events"], "resolution_month": by_bin[n]["months"]} for n in BINS},
-           "availability_share": avail, "GX": {"min": GX_MIN, "short": gx["short"], "long": gx["long"], "pass": gx_pass}, "c1_reproduction": report or {}}
+           "availability_share": avail, "volume_key_matched": (report or {}).get("volume_key_matched"), "volume_keys_declared": (report or {}).get("volume_keys_declared"),
+           "volume_like_keys_in_rows": (report or {}).get("volume_like_keys_in_rows"), "GX": {"min": GX_MIN, "short": gx["short"], "long": gx["long"], "pass": gx_pass}, "c1_reproduction": report or {}}
     if not gx_pass:
         out["label_X"] = "not testable (horizon range)"
     elif avail < AVAIL_MIN:
@@ -376,6 +417,11 @@ def census_x(pairs: list[XPair], report: dict | None = None) -> dict:
     else:
         out["label_X"] = None
     return out
+
+
+def source_failure_census(reason: str) -> dict:
+    """The counted outcome of a smoke or C1 failure: no computation, ``label_X`` = "not testable (source)" (the screen then writes the p = 1 trial line)."""
+    return {"version": "cb12-census-X-v1", "counts_only": True, "label": LABEL_X, "label_X": SOURCE_LABEL, "source_failure": reason, "GX": {"min": GX_MIN, "pass": False}}
 
 
 # =====================================================================================================================================================
@@ -572,16 +618,24 @@ def horizon_placebo(tab: Tab, mask: np.ndarray, *, n_draws: int = c12.PLACEBO_DR
     return {**c12.placebo_advance_rate(ps), "note": "X1 horizon-offset placebo (delta permuted within category)", "seed": seed}
 
 
-def top5_event_drop(tab: Tab, mask: np.ndarray, n_boot: int) -> tuple[np.ndarray, list[int]]:
-    """Drop the 5 events whose removal lowers the contrast most (largest positive influence; leave-one-event-out); returns the keep mask over steps."""
-    G = int(tab.event_idx.max()) + 1
-    S = cluster_sums(tab, mask, tab.event_idx, G)
+def top5_cluster_drop(tab: Tab, mask: np.ndarray, clus: np.ndarray) -> tuple[np.ndarray, list[int]]:
+    """Drop the 5 clusters (of one way) whose removal lowers the contrast most (largest positive influence; leave-one-cluster-out); returns the keep mask over steps."""
+    G = int(clus.max()) + 1
+    S = cluster_sums(tab, mask, clus, G)
     tot = S.sum(0)
     loo = np.array([contrast_of(tot - S[i]) if S[i, :, 2].sum() > 0 else np.inf for i in range(G)], float)
     loo = np.where(np.isfinite(loo), loo, np.inf)
     drop = [int(i) for i in np.argsort(loo, kind="stable")[: c12.TOP_DROP] if np.isfinite(loo[i])]
-    keep_pair = ~np.isin(tab.event_idx, drop)
+    keep_pair = ~np.isin(clus, drop)
     return mask & keep_pair[tab.pi], drop
+
+
+def top5_event_drop(tab: Tab, mask: np.ndarray, n_boot: int) -> tuple[np.ndarray, list[int]]:
+    return top5_cluster_drop(tab, mask, tab.event_idx)
+
+
+def top5_month_drop(tab: Tab, mask: np.ndarray, n_boot: int) -> tuple[np.ndarray, list[int]]:
+    return top5_cluster_drop(tab, mask, tab.month_idx)
 
 
 def x1_test(pairs: list[XPair], *, n_boot: int = c12.N_BOOT, n_draws: int = c12.PLACEBO_DRAWS, placebo: bool = True) -> dict:
@@ -625,13 +679,16 @@ def x1_test(pairs: list[XPair], *, n_boot: int = c12.N_BOOT, n_draws: int = c12.
     km, dropped = top5_event_drop(tab, allm, n_boot)
     t5 = evaluate(tab, km, n_boot=n_boot)
     rob["top5_event_drop"] = bool(t5["testable"] and t5["p"] < c12.GATE_P and math.isfinite(t5["point"]["contrast"]) and t5["point"]["contrast"] >= X1_FLOOR_MIN)
+    kmm, dropped_m = top5_month_drop(tab, allm, n_boot)  # section 2.6 (ii): the p threshold and the floor hold without the top 5 clusters of EACH way
+    t5m = evaluate(tab, kmm, n_boot=n_boot)
+    rob["top5_resolution_month_drop"] = bool(t5m["testable"] and t5m["p"] < c12.GATE_P and math.isfinite(t5m["point"]["contrast"]) and t5m["point"]["contrast"] >= X1_FLOOR_MIN)
     lo, hi = float(tab.tt.min()), float(tab.tt.max())
     edges = [lo, lo + (hi - lo) / 3, lo + 2 * (hi - lo) / 3, hi + 1]
     rob["thirds_sign"] = bool(all(_sign_ok(tab, allm & (tab.tt >= edges[k]) & (tab.tt < edges[k + 1])) for k in range(3)))
     rob["loo_sign_rule_for_small_G_ways"] = bool(base["loo_sign_rule_holds"])
     plc = horizon_placebo(tab, allm, n_draws=n_draws, n_boot=n_boot) if placebo else None
     rob_ok = all(v is True for v in rob.values())
-    res.update(robustness=rob, robustness_ok=rob_ok, strata=strata, top5_dropped_event_idx=dropped, placebo=plc, reported=x_reported(pairs, tab, strata))
+    res.update(robustness=rob, robustness_ok=rob_ok, strata=strata, top5_dropped_event_idx=dropped, top5_dropped_month_idx=dropped_m, placebo=plc, reported=x_reported(pairs, tab, strata))
     ok = bool(res["p"] < c12.GATE_P and res["floor_ok"] and rob_ok and (plc is None or plc["holds"]))
     res.update(stage1_pass=ok, early_holm_ok=c12.early_stage1_ok(res["p"]), advance=bool(ok and c12.early_stage1_ok(res["p"])), holm_pending=bool(ok and not c12.early_stage1_ok(res["p"])))
     if plc is not None and not plc["holds"]:
@@ -760,6 +817,6 @@ def declared() -> dict:
             "ways": ["polymarket event", "calendar month of the earlier resolution"], "inference": "2000-draw cluster bootstrap, seed 1212; CB10 small-G rule per way"},
             "placebo": {"name": "horizon-offset", "draws": c12.PLACEBO_DRAWS, "seed": c12.PLACEBO_SEEDS["X1_horizon_offset"], "judged_on": "p < 0.01 under the same inference (floors off)"},
             "robustness": ["sports and elections strata (>= 10 pairs per bin each)", "volume terciles (>= 2 of 3)", "causal demeaning (3-day past mean) keeps sign and >= half", "|g| >= 3c", "edit-flag excluded",
-                           "fresh steps (both points <= 10 min)", "top-5 events", "sign in each third by step date", "leave-one-cluster-out sign for any way with G < 15"],
-            "gate_GX": GX_MIN, "c1_expected": C1_EXPECTED, "horizon_source": "poly_markets.json 'end' (scheduled), streamed", "inputs": sorted(X_PINS), "series_pin": X_SERIES_PIN,
+                           "fresh steps (both points <= 10 min)", "top-5 events", "top-5 resolution months", "sign in each third by step date", "leave-one-cluster-out sign for any way with G < 15"],
+            "gate_GX": GX_MIN, "c1_expected": C1_EXPECTED, "horizon_source": "poly_markets.json 'end' (scheduled), streamed", "inputs": sorted(X_PINS), "study_source_pins": CV_SOURCE_PINS, "series_pin": X_SERIES_PIN,
             "guards": "cross_venue_live refused; steps at or after T12_X_end refused; input mtime >= 2026-10-13 refused", "reads": "no outcome, no wallet, no side"}

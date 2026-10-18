@@ -17,7 +17,7 @@ import math
 import re
 import time
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -68,11 +68,46 @@ PRICES_STATUS = "say_prices_complete"
 FRAME_OUTPUT_CAP_GB = 0.005
 PRICES_OUTPUT_CAP_GB = 0.08
 LABEL_M = "L1, hindsight start time"
-# Sports exclusion (section 0.4, frozen BEFORE q0241 from out-of-window events; the ids are filled by the coordinator from the tag listing of events that end before
-# 2025-06-01 and regenerate part M): the slug list below is the conservative generic set, the broadcast regex is the declared one.
+UNAVAILABLE_NETWORK = "unavailable (network)"  # a member whose fetch kept failing after MAX_ITEM_ATTEMPTS (not a statement about the source)
+UNAVAILABLE_SOURCE = "unavailable (source)"
+# Sports exclusion (section 0.4, frozen BEFORE q0241 from venue metadata, not from in-window events): the slug list below is the conservative generic set, the ids come from
+# the venue's sports registry (below), the broadcast regex is the declared one.
 SPORTS_TAG_SLUGS = ("sports", "nfl", "nba", "wnba", "mlb", "nhl", "ufc", "mma", "soccer", "football", "basketball", "baseball", "hockey", "tennis", "golf", "f1", "formula-1",
                     "college-football", "college-basketball", "epl", "premier-league", "champions-league", "mls", "boxing", "olympics", "world-cup", "super-bowl", "cricket", "rugby")
-SPORTS_TAG_IDS = ("1",)  # Gamma tag id 1 = "Sports"; extended by the coordinator
+# SPORTS_TAG_IDS: the union of the tags of every entry in the venue's sports registry (GET gamma-api /sports, 2026-10-18T20:28:54Z; 492 ids, venue metadata only, no event,
+# price or outcome). Source, rule and response_sha256 8e06a0d3769be94a5059ef0273fb28a766083c890148e6a840dd78f67090bbdc: docs/research_lab/evidence_cb12/sports_tag_registry_20261018.json.
+# A test asserts that this tuple equals that file's tag_ids; the smoke checks that Gamma /events returns `tags` (else the tag exclusion would be regex-only).
+SPORTS_TAG_IDS = (
+    "1", "28", "64", "65", "82", "256", "279", "306", "434", "435", "450", "517", "518", "678", "683", "745", "780", "864", "899", "1186", "1234", "1494", "100088", "100100",
+    "100149", "100219", "100230", "100254", "100277", "100278", "100290", "100350", "100351", "100381", "100618", "100639", "100642", "100737", "100780", "100787", "100816",
+    "100977", "101178", "101232", "101280", "101437", "101544", "101672", "101680", "101735", "101772", "101777", "101783", "101787", "101807", "101954", "101962", "101977",
+    "101988", "102003", "102008", "102070", "102112", "102123", "102142", "102151", "102154", "102166", "102181", "102192", "102193", "102232", "102254", "102263", "102356",
+    "102366", "102391", "102392", "102393", "102448", "102449", "102471", "102519", "102525", "102539", "102540", "102544", "102561", "102562", "102563", "102564", "102593",
+    "102604", "102643", "102648", "102649", "102650", "102651", "102652", "102668", "102669", "102750", "102751", "102752", "102753", "102755", "102756", "102757", "102763",
+    "102764", "102765", "102770", "102771", "102803", "102808", "102810", "102812", "102813", "102815", "102817", "102842", "102864", "102866", "102867", "102870", "102871",
+    "102872", "102883", "102897", "102906", "102907", "102908", "102909", "102910", "102911", "102946", "102948", "102949", "102974", "103014", "103015", "103016", "103017",
+    "103018", "103054", "103055", "103064", "103065", "103075", "103093", "103094", "103095", "103096", "103097", "103098", "103099", "103100", "103111", "103112", "103113",
+    "103114", "103115", "103178", "103179", "103180", "103181", "103182", "103183", "103213", "103217", "103615", "103666", "103667", "103767", "103768", "103769", "103773",
+    "103774", "103805", "103807", "103808", "103809", "103810", "103811", "103812", "103813", "103885", "103886", "103894", "103911", "103986", "104072", "104073", "104074",
+    "104084", "104188", "104203", "104204", "104206", "104316", "104317", "104318", "104319", "104320", "104322", "104323", "104327", "104329", "104330", "104331", "104332",
+    "104333", "104334", "104335", "104336", "104337", "104338", "104339", "104340", "104341", "104342", "104343", "104344", "104345", "104346", "104347", "104348", "104349",
+    "104350", "104351", "104352", "104353", "104387", "104388", "104389", "104390", "104391", "104396", "104397", "104398", "104399", "104447", "104450", "104814", "104923",
+    "104929", "104930", "104931", "104932", "104933", "104934", "104935", "104936", "104937", "105057", "105200", "105204", "105205", "105214", "105215", "105219", "105240",
+    "105241", "105242", "105243", "105244", "105245", "105246", "105247", "105248", "105249", "105250", "105251", "105252", "105253", "105254", "105255", "105256", "105257",
+    "105258", "105259", "105260", "105261", "105266", "105267", "105268", "105269", "105270", "105271", "105272", "105273", "105274", "105275", "105276", "105328", "105329",
+    "105330", "105331", "105332", "105333", "105334", "105335", "105336", "105337", "105338", "105339", "105340", "105341", "105342", "105343", "105344", "105345", "105452",
+    "105453", "105454", "105455", "105456", "105458", "105506", "105507", "105508", "105509", "105510", "105511", "105512", "105513", "105514", "105560", "105577", "105616",
+    "105703", "105704", "105705", "105706", "105707", "105708", "105709", "105710", "105711", "105715", "105716", "105717", "105718", "105719", "105722", "105723", "105725",
+    "105726", "105727", "105728", "105729", "105730", "105731", "105732", "105733", "105734", "105735", "105736", "105737", "105738", "105739", "105740", "105742", "105743",
+    "105744", "105745", "105746", "105747", "105748", "105749", "105750", "105751", "105752", "105753", "105795", "105802", "105806", "105809", "105810", "105811", "105812",
+    "105813", "105814", "105815", "105816", "105817", "105818", "105819", "105820", "105821", "105822", "105823", "105824", "105825", "105826", "105827", "105828", "105829",
+    "105830", "105831", "105832", "105833", "105834", "105835", "105836", "105837", "105838", "105839", "105840", "105851", "105873", "105909", "105910", "105911", "105912",
+    "105913", "105914", "105915", "105916", "105917", "105918", "105925", "105926", "105927", "105928", "105929", "105930", "105931", "105932", "105933", "105934", "105935",
+    "105936", "105937", "105938", "105939", "105940", "105941", "105942", "105943", "105944", "105945", "105946", "105947", "105948", "105949", "105950", "105951", "105952",
+    "105953", "105954", "105955", "105959", "105960", "105961", "105962", "106112", "106121", "106125", "106126", "106127", "106134", "106136", "106137", "106138", "106139",
+    "106140", "106146", "106153", "106168", "106169", "106170", "106171", "106172", "106173", "106187", "106189", "106226", "106227", "106276", "106286", "106292", "106293",
+    "106312", "106313", "106314", "106315", "106316", "106317", "106318", "106368", "106379"
+)
 BROADCAST_RE = re.compile(r"(?i)\b(announcers?|commentators?|broadcast|halftime|pre-?game|post-?game|game|Super Bowl|World Series|NFL|NBA|WNBA|MLB|NHL|UFC|F1|Formula 1|Premier League|Champions League)\b")
 SPEAKER_RE = re.compile(r"(?i)^\s*what (?:will|did|would)\s+(.+?)\s+(?:say|mention)\b")  # frozen speaker key when the event has no series id
 EVENT_COLUMNS = ["event_id", "series_id", "speaker_key", "start_epoch", "end_epoch", "created_epoch", "neg_risk", "n_members", "split", "status", "sports_tag", "sports_re",
@@ -83,7 +118,7 @@ PRICE_COLUMNS = ["market_id", "ts", "p"]
 TX_COLUMNS = ["market_id", "ts", "price", "size", "notional", "n_fills", "max_fill_notional", "post"]
 MARKET_COLUMNS = ["market_id", "event_id", "status", "n_points", "oldest_ts", "truncated", "reach_t24", "n_prints", "n_tx", "first_post_ts"]
 FORBIDDEN_COLUMNS = ("outcome_prices", "uma_status", "closedTime", "y", "wallet", "proxyWallet", "transactionHash", "side", "pnl", "net")
-SMOKE_NEEDS = ("guards_fixture_M", "m_gamma_paging", "m_prices_history", "m_data_api_reach")
+SMOKE_NEEDS = ("guards_fixture_M", "m_gamma_paging", "m_events_tags", "m_prices_history", "m_data_api_reach")
 SMOKE_WEEKS = (("2025-05-05T00:00:00Z", "2025-05-12T00:00:00Z"), ("2025-05-12T00:00:00Z", "2025-05-19T00:00:00Z"))
 
 
@@ -167,9 +202,9 @@ def parse_event(ev: dict) -> tuple[dict, list[dict], list[dict]] | None:
     return row, members, outs
 
 
-def event_status(row: dict, member_markets: list[str], excl_ids: set[str], excl_event: set[str], excl_series: set[str], series_dates: dict[str, list[float]] | None) -> tuple[str, str]:
+def event_status(row: dict, member_markets: list[str], excl_ids: set[str], excl_event: set[str], excl_series: set[str], series_dates: dict[str, list[float]]) -> tuple[str, str]:
     """(status, source). Order: no start / outside windows -> sports -> period basket -> key drop -> too few binary members. Key drops: market id, event id and the
-    series-date key (same series, ``startTime`` within +-1 day of an excluded event of that series; needs ``series_dates``, else only the full-series counterfactual is counted)."""
+    series-date key (same series, ``startTime`` within +-1 day of an excluded event of that series; ``series_dates`` is mandatory, written by q0241)."""
     if not math.isfinite(row["start_epoch"]) or not math.isfinite(row["end_epoch"]) or not row["split"]:
         return "dropped:no_start_or_window", "frame"
     if row["sports_tag"] or row["sports_re"]:
@@ -180,7 +215,7 @@ def event_status(row: dict, member_markets: list[str], excl_ids: set[str], excl_
         return "dropped:key", "event"
     if any(m in excl_ids for m in member_markets):
         return "dropped:key", "market"
-    if series_dates is not None and row["series_id"] in series_dates and any(abs(row["start_epoch"] - d) <= DAY for d in series_dates[row["series_id"]]):
+    if row["series_id"] in series_dates and any(abs(row["start_epoch"] - d) <= DAY for d in series_dates[row["series_id"]]):
         return "dropped:key", "series_date"
     if row["n_members"] < MIN_MEMBERS:
         return "dropped:members", "n_members"
@@ -270,12 +305,7 @@ def say_frame(hist_root: Path, transport, *, rules_sha: str, smoke_paths, exclus
     if term:
         return term
     c12.require_disk(data_dumps, data_dumps_cap_gb, disk_cap, free_fn=free_fn)
-    series_dates = None
-    sd_path = Path(exclusion_keys_path).with_name("exclusion_series_dates.csv.gz")
-    if sd_path.exists():
-        series_dates = {}
-        for r in c12.read_csv_gz(sd_path):
-            series_dates.setdefault(str(r["series_id"]), []).append(float(r["start_epoch"]))
+    series_dates = c12.load_series_dates(Path(exclusion_keys_path), krep)  # NotNow (exit 75) if q0241's file is missing: the series-date key is never silently off
     rdir.mkdir(parents=True, exist_ok=True)
     fr = cm.open_run(Path(hist_root), FRAME_RUN, transport, allowed_run_id=FRAME_RUN, kind="cb12_say_frame", label="CB12-M frame",
                      params={"evidence_role": c12.EVIDENCE_ROLE_HIST, "tag_id": TAG_ID, "windows": [list(M_SCREEN), list(M_HOLD)], "exclusion_keys_sha256": ksha},
@@ -313,8 +343,7 @@ def say_frame(hist_root: Path, transport, *, rules_sha: str, smoke_paths, exclus
         return mm
     try:
         counts: dict = {}
-        report: dict = {"splits_of_capped_windows": stats.get("splits", 0), "series_date_key": "available" if series_dates is not None else "unavailable (no exclusion_series_dates.csv.gz); "
-                        "only market-id and event-id drops applied; the full-series counterfactual is counted"}
+        report: dict = {"splits_of_capped_windows": stats.get("splits", 0), "series_date_key": "applied", "series_dates_series": len(series_dates)}
         for split in ("screen", "holdout"):
             sub = sorted((r for r in ev_rows if r["split"] == split), key=lambda r: r["event_id"])
             base = rdir / "holdout" if split == "holdout" else rdir
@@ -374,6 +403,23 @@ def tx_rows_for(prints: list[dict], yes_index: int, start: float) -> tuple[list[
     return keep, info
 
 
+def _iter_partial(path: Path, split: str | None = None) -> Iterator[dict]:
+    """The records of ``markets_partial.jsonl`` one line at a time (a broken line is skipped; a repeated market id is yielded once; ``split`` filters)."""
+    seen: set[str] = set()
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                continue
+            if rec["market_id"] in seen or (split is not None and rec["split"] != split):
+                continue
+            seen.add(rec["market_id"])
+            yield rec
+
+
 def say_prices(hist_root: Path, frame_dir: Path, transport, *, rules_sha: str, now: float, rps: float = 2.0, disk_cap: int = int(PRICES_OUTPUT_CAP_GB * 1024**3),
                budget_min: float | None = None, sleep=time.sleep, live_check=None, should_stop=None, wall_clock=time.time, snapshot_root: Path | None = None, health_check=None,
                data_dumps: Path | None = None, data_dumps_cap_gb: float = c12.DATA_DUMPS_CAP_GB, free_fn=None, page_limit: int = c12.DATA_PAGE_LIMIT, pages: int = c12.DATA_PAGES) -> dict:
@@ -400,12 +446,16 @@ def say_prices(hist_root: Path, frame_dir: Path, transport, *, rules_sha: str, n
                      health_check=health_check)
     members = kept_members(rdir, "screen") + kept_members(rdir, "holdout")
     part = rdir / "markets_partial.jsonl"
-    have: dict[str, dict] = {}
+    have: set[str] = set()  # ids only: the records stay on disk (one market in memory at a time, mem_mb 400)
     if part.exists():
-        for line in part.read_text().splitlines():
-            if line.strip():
-                rec = json.loads(line)
-                have[rec["market_id"]] = rec
+        for rec in _iter_partial(part):
+            have.add(rec["market_id"])
+        with part.open("rb+") as fh:  # a crash mid-line must not glue the next record onto the broken one
+            fh.seek(0, 2)
+            if fh.tell():
+                fh.seek(-1, 2)
+                if fh.read(1) != b"\n":
+                    fh.write(b"\n")
     try:
         for m in members:
             mid = m["market_id"]
@@ -431,29 +481,31 @@ def say_prices(hist_root: Path, frame_dir: Path, transport, *, rules_sha: str, n
                     mm = fr.manifest(f"fetch_failed {mid}: {exc}"[:200], {"transient": True})
                     mm["status"] = "in_progress"
                     return mm
-                rec = {"market_id": mid, "event_id": m["event_id"], "split": m["split"], "status": "unavailable (source)", "points": [], "tx": [], "n_points": 0,
+                rec = {"market_id": mid, "event_id": m["event_id"], "split": m["split"], "status": UNAVAILABLE_NETWORK, "points": [], "tx": [], "n_points": 0,
                        "oldest_ts": None, "truncated": 1, "reach_t24": 0, "n_prints": 0, "n_tx": 0, "first_post_ts": None}
             else:
                 tx, tinfo = tx_rows_for(prints, int(m["yes_index"]), start)
                 del prints
                 ok = c12.reach_ok(info, t24)
-                rec = {"market_id": mid, "event_id": m["event_id"], "split": m["split"], "status": "ok" if ok else "unavailable (source)", "points": pts, "tx": tx,
+                rec = {"market_id": mid, "event_id": m["event_id"], "split": m["split"], "status": "ok" if ok else UNAVAILABLE_SOURCE, "points": pts, "tx": tx,
                        "n_points": len(pts), "oldest_ts": None if not math.isfinite(info["oldest_ts"]) else info["oldest_ts"], "truncated": int(bool(info["truncated"])),
                        "reach_t24": int(ok), "n_prints": info["n_prints"], "n_tx": len(tx), "first_post_ts": tinfo["first_post_ts"]}
             with part.open("a") as fh:
                 fh.write(json.dumps(rec, default=float) + "\n")
-            have[mid] = rec
+            del rec
+            have.add(mid)
+        # one pass per output file, streaming the records (market_id order within a split is the fetch order: members are sorted by (split, market_id))
         for split in ("screen", "holdout"):
-            recs = [have[m["market_id"]] for m in members if m["split"] == split]
             base = rdir / split
-            _wcsv(fr, base / "prices.csv.gz", PRICE_COLUMNS, ([x["market_id"], a, b] for x in recs for a, b in x["points"]))
-            _wcsv(fr, base / "tx.csv.gz", TX_COLUMNS, ([x["market_id"], *row] for x in recs for row in x["tx"]))
-            _wcsv(fr, base / "markets.csv.gz", MARKET_COLUMNS, ([x[c] if x[c] is not None else "" for c in MARKET_COLUMNS] for x in sorted(recs, key=lambda y: y["market_id"])))
+            _wcsv(fr, base / "prices.csv.gz", PRICE_COLUMNS, ([x["market_id"], a, b] for x in _iter_partial(part, split) for a, b in x["points"]))
+            _wcsv(fr, base / "tx.csv.gz", TX_COLUMNS, ([x["market_id"], *row] for x in _iter_partial(part, split) for row in x["tx"]))
+            _wcsv(fr, base / "markets.csv.gz", MARKET_COLUMNS, ([x[c] if x[c] is not None else "" for c in MARKET_COLUMNS] for x in _iter_partial(part, split)))
         for rel in ("events.csv.gz", "members.csv.gz", "outcomes_guarded_screen.csv.gz", "holdout/events.csv.gz", "holdout/members.csv.gz", "holdout/outcomes_guarded_holdout.csv.gz"):
             if (rdir / rel).exists():
                 fr.record_file(rdir / rel)
+        stat = Counter(r["status"] for r in _iter_partial(part))
         part.unlink(missing_ok=True)
-        fr.counts.update(members=len(have), unavailable_source=sum(1 for x in have.values() if x["status"] != "ok"))
+        fr.counts.update(members=len(have), unavailable_source=stat[UNAVAILABLE_SOURCE], unavailable_network=stat[UNAVAILABLE_NETWORK])
     except OSError as exc:
         return cm.disk_budget_end(fr, exc)
     m_ = fr.manifest(None, {"complete": True, "status": PRICES_STATUS})
@@ -515,6 +567,36 @@ def outcome_y(outcome_prices: str, uma_status: str, yes_index: int) -> tuple[flo
     return 0.5, "unclean"
 
 
+def fp_reaches(rec: dict, start: float) -> bool:
+    """True iff the member's fetched prints reach back to ``start`` (not truncated, or the oldest reachable print is at or before ``start``): then ``first_post_ts`` is the true first
+    transaction at or after ``start``. A truncated member that does not reach is "unavailable" for the start_edit_c check."""
+    if not rec:
+        return False
+    t = c12.num(rec.get("truncated"))
+    if math.isfinite(t) and not int(t):
+        return True
+    o = c12.num(rec.get("oldest_ts"))
+    return bool(math.isfinite(o) and o <= start)
+
+
+def start_edit_clear(units: list[dict]) -> tuple[list[dict], int]:
+    """(units not flagged by start_edit a / b / c and with a determinable c, number of units whose c is unavailable (truncated prints), counted)."""
+    keep = [u for u in units if not (u["start_edit_a"] or u["start_edit_b"]) and u.get("start_edit_c") is not None and not u["start_edit_c"]]
+    return keep, sum(1 for u in units if u.get("start_edit_c") is None)
+
+
+def availability_m1(units: list[dict]) -> float:
+    """Available share of eligible units for M1 (section 2.6 iv): eligible = >= 8 listed members; available = the price rule holds (``ok``)."""
+    elig = [u for u in units if u["status"] in ("ok", "unavailable (no price)")]
+    return sum(1 for u in elig if u["status"] == "ok") / len(elig) if elig else 0.0
+
+
+def availability_m2(units: list[dict]) -> float:
+    """Available share of eligible units for M2: eligible = price-``ok`` units; available = >= 90% of the listed members source-available (print reach)."""
+    elig = ok_units(units)
+    return sum(1 for u in elig if not (u["n_listed"] and u["n_src_listed"] / u["n_listed"] < AVAIL_MIN_SHARE)) / len(elig) if elig else 0.0
+
+
 def build_units(data: dict, *, origin_s: float = ORIGIN_S) -> list[dict]:
     """One unit per kept event at ``t = start - origin_s``. A member counts if listed (created at or before ``t - 1 h``); an event with < 8 listed members is
     ``excluded (<8 listed)``; a member's price is ``price_at`` (usable from stamp + 600 s, strictly before ``t``, age <= 24 h); the event is available iff >= 90% of its
@@ -538,13 +620,14 @@ def build_units(data: dict, *, origin_s: float = ORIGIN_S) -> list[dict]:
             units.append({**u, "status": "unavailable (no price)", "n_with_price": len(have)})
             continue
         mids = [m["market_id"] for m, _ in have]
-        first_post = [c12.num(data["markets"].get(m, {}).get("first_post_ts")) for m in mids]
+        valid = [m for m in mids if fp_reaches(data["markets"].get(m, {}), start)]  # only members whose prints reach back to the start can date the first post-start transaction
+        first_post = [c12.num(data["markets"].get(m, {}).get("first_post_ts")) for m in valid]
         first_post = [x for x in first_post if math.isfinite(x)]
         src = np.array([bool(int(data["markets"].get(m, {}).get("reach_t24") or 0)) for m in mids], bool)
         n_src = sum(1 for m, _ in pairs if int(data["markets"].get(m["market_id"], {}).get("reach_t24") or 0))
         units.append({**u, "status": "ok", "mids": mids, "p": np.array([p for _, p in have], float), "yes_index": [int(m["yes_index"]) for m, _ in have], "src_ok": src,
                       "n_src_listed": n_src, "n_with_price": len(have),
-                      "start_edit_c": int(bool(first_post) and min(first_post) - start > START_EDIT_LATE_S)})
+                      "start_edit_c": (int(bool(first_post) and min(first_post) - start > START_EDIT_LATE_S) if valid else None)})
     return units
 
 
@@ -641,9 +724,12 @@ def holds(units: list[dict], D: np.ndarray, S: np.ndarray) -> dict:
 def m1_test(units: list[dict], data: dict, *, units_t24: list[dict] | None = None, placebo: bool = True, n_draws: int = c12.PLACEBO_DRAWS) -> dict:
     """M1 on attached ``ok`` units. ``data`` carries the print table for the print-sum robustness; ``units_t24`` the same events at ``start - 24 h``."""
     us = ok_units(units)
+    av = availability_m1(units)
+    if av < c12.AVAIL_MIN:
+        return {"test": "M1", "label": LABEL_M, "n": len(us), "availability_share": av, "p": 1.0, "testable": False, "advance": False, "effect": None, "verdict": "not testable (availability)"}
     D, S = d_values(us)
     cp = c12.cluster_p(D, clusters_of(us))
-    res: dict = {"test": "M1", "label": LABEL_M, "n": len(us), "D_bar": float(D.mean()) if len(D) else math.nan, "S_bar": float(S.mean()) if len(S) else math.nan,
+    res: dict = {"availability_share": av, "test": "M1", "label": LABEL_M, "n": len(us), "D_bar": float(D.mean()) if len(D) else math.nan, "S_bar": float(S.mean()) if len(S) else math.nan,
                  "D_bar_share": float(D.mean() / S.mean()) if len(D) and S.mean() > 0 else math.nan, "floor_ok": m1_floor_ok(D, S), "p": cp["p"], "testable": cp["testable"],
                  "ways": cp["ways"], "effect": float(D.mean()) if len(D) else math.nan}
     if len(us) < c12.MIN_UNITS or not cp["testable"]:
@@ -664,7 +750,8 @@ def m1_test(units: list[dict], data: dict, *, units_t24: list[dict] | None = Non
     order = np.argsort([u["start"] for u in us], kind="stable")
     half = len(us) // 2
     rob["halves_sign"] = bool(D[order[:half]].mean() > 0 and D[order[half:]].mean() > 0)
-    nu = [u for u in us if not (u["start_edit_a"] or u["start_edit_b"] or u.get("start_edit_c"))]
+    nu, n_c_unavail = start_edit_clear(us)
+    res["start_edit_c_unavailable_units"] = n_c_unavail
     if len(nu) >= c12.MIN_UNITS:
         Dn, Sn = d_values(nu)
         h = holds(nu, Dn, Sn)
@@ -854,10 +941,13 @@ def m2_reported(units: list[dict], base: dict, v: np.ndarray, *, taker_fee: floa
 
 
 def m2_test(units: list[dict], data: dict, *, placebo: bool = True, n_draws: int = c12.PLACEBO_DRAWS) -> dict:
+    av = availability_m2(units)
+    if av < c12.AVAIL_MIN:
+        return {"test": "M2", "label": LABEL_M, "n": 0, "availability_share": av, "p": 1.0, "testable": False, "advance": False, "effect": None, "verdict": "not testable (availability)"}
     base = event_values(units, data)
     base["data"] = data
     v, us = base["values"], base["units"]
-    res: dict = {"test": "M2", "label": LABEL_M, "n": int(len(v)), "n_events_with_fill": int(len(v)), "no_fill_events": base["no_fill_events"], "excluded_source": base["excluded_source"],
+    res: dict = {"availability_share": av, "test": "M2", "label": LABEL_M, "n": int(len(v)), "n_events_with_fill": int(len(v)), "no_fill_events": base["no_fill_events"], "excluded_source": base["excluded_source"],
                  "fills": base["fills"], "intended_quotes": base["intended"], "net_per_filled_share": float(v.mean()) if len(v) else math.nan, "route_net_per_intended_share": base["route"],
                  "effect": float(v.mean()) if len(v) else math.nan}
     if len(v) < c12.MIN_UNITS:
@@ -881,7 +971,8 @@ def m2_test(units: list[dict], data: dict, *, placebo: bool = True, n_draws: int
             rob[f"top5_{way}_drop"] = bool(c2["testable"] and c2["p"] < c12.GATE_P and sub.mean() >= M2_FLOOR)
         else:
             rob[f"top5_{way}_drop"] = False
-    ne = [u for u in units if not (u["start_edit_a"] or u["start_edit_b"] or u.get("start_edit_c"))]
+    ne, n_c_unavail = start_edit_clear([u for u in units if u["status"] == "ok"])
+    res["start_edit_c_unavailable_units"] = n_c_unavail
     ev_ne = event_values(ne, data)
     if len(ev_ne["values"]) >= c12.MIN_UNITS:
         c3 = c12.cluster_p(ev_ne["values"], {"speaker": [u["speaker"] for u in ev_ne["units"]], "week": [u["week"] for u in ev_ne["units"]]})
@@ -939,7 +1030,8 @@ def census_m(rdir: Path, *, frame_dir: Path | None = None, n_draws: int = c12.GM
     out = {"version": "cb12-census-M-v1", "counts_only": True, "label": LABEL_M, "events_by_status": dict(by_status), "events_by_month": dict(sorted(per_month.items())),
            "duration_deciles_s": deciles, "unit_status": dict(status), "frame_report": report, "n_members_listed": listed_members, "speaker_keys": len(speakers), "iso_weeks": len(weeks),
            "S_t_quantiles": [float(x) for x in np.quantile(s_vals, [0.1, 0.5, 0.9])] if s_vals else [], "late_members_dropped": sum(u["n_late"] for u in units),
-           "GM": gm, "coverage_audit": cov}
+           "GM": gm, "coverage_audit": cov, "availability_share": {"M1": availability_m1(units), "M2": availability_m2(units), "min": c12.AVAIL_MIN},
+           "start_edit_c_unavailable_units": sum(1 for u in ok if u.get("start_edit_c") is None)}
     mde = gmp(ok, n_draws=n_draws, seed=seed) if gm["pass"] and cov["pass"] and len(ok) >= 2 else {"pass": False, "note": "not computed (GM or coverage failed)"}
     out["GMP"] = mde
     if not gm["pass"]:
@@ -994,14 +1086,18 @@ def screen_m(rdir: Path, census: dict) -> dict:
 
 def rep_m(rdir: Path, census: dict, tests: tuple[str, ...], seal: dict, *, k2: int | None = None) -> dict:
     """q0256: the advanced test(s) on the sealed HOLDOUT, same rules. Judged against alpha / 10 while k2 is unknown (``early_stage2_ok``)."""
+    drops = c12.load_drops(Path(rdir), seal)  # exit 2 unless drops.csv.gz exists and matches the sha256 recorded in the seal
     data = load_split(rdir, "holdout", job="rep-M")
+    dropped = {eid for eid, mems in data["members"].items() if any(m["market_id"] in drops for m in mems)}  # stricter than the member rows: a basket with a dropped word is dropped whole
+    data["events"] = {k: v for k, v in data["events"].items() if k not in dropped}
     outs = c12.open_guarded(Path(rdir) / "holdout" / "outcomes_guarded_holdout.csv.gz", "rep-M", seal)
     units = attach_outcomes(build_units(data), outs)
-    out: dict = {"label": LABEL_M, "k2": k2}
+    u24 = attach_outcomes(build_units(data, origin_s=ORIGIN_ALT_S), outs)
+    out: dict = {"label": LABEL_M, "k2": k2, "drops_applied": {"markets_in_DROPPED_rows": len(drops), "events_dropped": len(dropped)}}
     for t in tests:
-        r = m1_test(units, data) if t == "M1" else m2_test(units, data)
+        r = m1_test(units, data, units_t24=u24) if t == "M1" else m2_test(units, data)
         r["stage2_early_alpha_over_10"] = c12.early_stage2_ok(r.get("p"))
-        r["stage2_pass_alpha_over_k"] = bool(r.get("p", 1.0) <= (c12.STAGE_ALPHA / k2 if k2 else c12.STAGE_ALPHA / c12.STAGE2_K_MAX) and r.get("floor_ok") and r.get("robustness_ok")
+        r["stage2_pass_alpha_over_k"] = bool(r.get("p", 1.0) < (c12.STAGE_ALPHA / k2 if k2 else c12.STAGE_ALPHA / c12.STAGE2_K_MAX) and r.get("floor_ok") and r.get("robustness_ok")
                                              and (r.get("placebo") or {}).get("holds", False))
         out[f"{t}_rep"] = r
     return out
@@ -1048,6 +1144,7 @@ def smoke_online(lim, ctx: dict) -> dict:
     on two out-of-window members. Counts and booleans only."""
     per, picks = {}, []
     ok_paging = True
+    n_ev = n_tags = 0
     for a, b in SMOKE_WEEKS:
         pages = []
         for _ in range(2):
@@ -1057,6 +1154,8 @@ def smoke_online(lim, ctx: dict) -> dict:
         ids2 = [str(e.get("id")) for e in pages[1][1] if isinstance(e, dict)]
         with_start = sum(1 for e in pages[0][1] if isinstance(e, dict) and e.get("startTime"))
         good = bool(pages[0][0] == 200 and pages[1][0] == 200 and 0 < len(ids1) <= 100 and ids1 == ids2 and with_start > 0)
+        n_ev += sum(1 for e in pages[0][1] if isinstance(e, dict))
+        n_tags += sum(1 for e in pages[0][1] if isinstance(e, dict) and isinstance(e.get("tags"), list) and e["tags"])
         per[a[:10]] = {"n_first": len(ids1), "n_repeat": len(ids2), "stable": ids1 == ids2, "n_with_startTime": with_start, "ok": good}
         ok_paging = ok_paging and good
         for e in pages[0][1]:
@@ -1073,6 +1172,8 @@ def smoke_online(lim, ctx: dict) -> dict:
         rows, info = c12.fetch_prints_paged(lim, pk["cid"], pk["start"] - ORIGIN_ALT_S)
         da[f"m{i}"] = {"pages": info["pages"], "n_prints": info["n_prints"], "truncated": bool(info["truncated"]), "reach_t24": c12.reach_ok(info, pk["start"] - ORIGIN_ALT_S), "ok": True}
     return {"m_gamma_paging": {"pass": bool(ok_paging and len(picks) >= 2), "per": per, "picked": len(picks)},
+            "m_events_tags": {"pass": bool(n_ev > 0 and n_tags == n_ev), "n_events": n_ev, "n_with_tags": n_tags,
+                              "note": "Gamma /events must return `tags` on every event, else the sports-tag exclusion would silently be regex-only"},
             "m_prices_history": {"pass": bool(len(ph) >= 2 and all(v["ok"] for v in ph.values())), "per": ph},
             "m_data_api_reach": {"pass": bool(len(da) >= 2 and all(v["ok"] for v in da.values())), "per": da, "note": "reach recorded; the census coverage audit decides"}}
 
@@ -1094,6 +1195,10 @@ def declared() -> dict:
             "copula": {"loadings": list(COPULA_LOADINGS), "gmp_seed": c12.SEED_GMP, "gmp_draws": c12.GMP_DRAWS, "mde_max_words": GMP_MDE_MAX},
             "gates": {"GM": GM_MIN, "coverage_min": COVER_MIN}, "sports": {"in_primary": c12.CB12_SPORTS_IN_PRIMARY, "tag_slugs": list(SPORTS_TAG_SLUGS), "tag_ids": list(SPORTS_TAG_IDS),
                                                                          "broadcast_regex": BROADCAST_RE.pattern},
-            "key_rule": "market id, event id, series-date key (needs exclusion_series_dates.csv.gz; else the full-series counterfactual is only counted)",
+            "key_rule": "market id, event id, series-date key (exclusion_series_dates.csv.gz is mandatory: the frame waits without it); the full-series counterfactual is counted",
             "stage1": "p < 0.01, floors, binding placebo, robustness, early Holm at alpha / 10 = 0.005 (full step-down at the batch end can add advances)",
-            "outcomes": "guarded SCREEN and HOLDOUT files (separate); unclean members 0.5 (worst case 1)", "label": LABEL_M}
+            "outcomes": "guarded SCREEN and HOLDOUT files (separate); unclean members 0.5 (worst case 1)", "label": LABEL_M,
+            "availability": "a test whose available share of eligible units is < 60% is 'not testable (availability)' (M1: price rule; M2: >= 90% source-available members)",
+            "start_edit_c": "only members whose prints reach back to the start date it; a truncated member that does not reach is unavailable for that check (counted)",
+            "labels": {"unavailable_source": UNAVAILABLE_SOURCE, "unavailable_network": UNAVAILABLE_NETWORK},
+            "rep": "applies the seal's DROPPED_* rows (baskets with a dropped member are dropped whole; drops.csv.gz sha256 must equal the seal's) and gives M1-rep the t-24h units; Stage 2 is strict p < alpha / k"}

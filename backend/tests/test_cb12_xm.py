@@ -281,7 +281,7 @@ def test_stage_holm_helpers_k1_fixed_at_ten():
     with pytest.raises(c12.Refused):
         c12.stage1_holm({"Z9": 0.1})
     assert c12.early_stage1_ok(0.004) and not c12.early_stage1_ok(0.005) and not c12.early_stage1_ok(None)
-    assert c12.early_stage2_ok(0.005) and not c12.early_stage2_ok(0.0051)
+    assert c12.early_stage2_ok(0.0049) and not c12.early_stage2_ok(0.005) and not c12.early_stage2_ok(0.0051)  # strict <, as Stage 1
     assert c12.stage2_holm({"M1": 0.001, "M2": None})["k"] == 2
 
 
@@ -373,11 +373,11 @@ def test_sports_exclusion_by_tag_and_by_broadcast_regex():
     assert m12.is_sports([], "What will the announcers say during the game?") == (False, True)
     assert m12.is_sports([{"id": 5, "slug": "politics"}], "What will Trump say at the rally?") == (False, False)
     row = {"event_id": "1", "start_epoch": 1.0, "end_epoch": 2.0, "split": "screen", "sports_tag": 1, "sports_re": 0, "occasion": 1, "series_id": "", "n_members": 10}
-    assert m12.event_status(row, ["a"], set(), set(), set(), None)[0] == "dropped:sports"
-    assert m12.event_status({**row, "sports_tag": 0, "occasion": 0}, ["a"], set(), set(), set(), None)[0] == "period"
-    assert m12.event_status({**row, "sports_tag": 0}, ["a"], {"a"}, set(), set(), None) == ("dropped:key", "market")
-    assert m12.event_status({**row, "sports_tag": 0, "n_members": 7}, ["a"], set(), set(), set(), None)[0] == "dropped:members"
-    assert m12.event_status({**row, "sports_tag": 0}, ["a"], set(), set(), set(), None)[0] == "kept"
+    assert m12.event_status(row, ["a"], set(), set(), set(), {})[0] == "dropped:sports"
+    assert m12.event_status({**row, "sports_tag": 0, "occasion": 0}, ["a"], set(), set(), set(), {})[0] == "period"
+    assert m12.event_status({**row, "sports_tag": 0}, ["a"], {"a"}, set(), set(), {}) == ("dropped:key", "market")
+    assert m12.event_status({**row, "sports_tag": 0, "n_members": 7}, ["a"], set(), set(), set(), {})[0] == "dropped:members"
+    assert m12.event_status({**row, "sports_tag": 0}, ["a"], set(), set(), set(), {})[0] == "kept"
     assert m12.event_status({**row, "sports_tag": 0, "series_id": "S", "start_epoch": 1000.0}, ["a"], set(), set(), set(), {"S": [1000.0 + 86400]})[1] == "series_date"
 
 
@@ -429,7 +429,7 @@ def _synth(n_events=150, n_members=10, p=0.30, hit=0.10, n_speakers=40, seed=11,
             data["members"][eid].append({"event_id": eid, "market_id": mid, "condition_id": f"C{mid}", "token_yes": f"T{mid}", "yes_index": 0, "created_epoch": start - 5 * 86400})
             data["prices"][mid] = [(start - 25 * 3600, p), (start - 3 * 3600, p)]
             data["tx"][mid] = [(start - 25 * 3600, 0.30, 20.0, 0), (start - 1.5 * 3600, fill_price, 160.0, 0)]
-            data["markets"][mid] = {"reach_t24": "1", "first_post_ts": ""}
+            data["markets"][mid] = {"reach_t24": "1", "first_post_ts": "", "truncated": "0", "oldest_ts": ""}
             y = int(rng.random() < hit)
             outs.append({"market_id": mid, "outcome_prices": json.dumps([str(y), str(1 - y)]), "uma_status": "resolved"})
     return data, outs
@@ -604,7 +604,9 @@ def world(tmp_path, monkeypatch, rules_file):
     keys = root / "exclusion_keys.csv.gz"
     keys.parent.mkdir(parents=True)
     keys.write_bytes(hb._gz_csv_bytes(["market_id", "found", "event_ids", "neg_risk_market_id", "series_ids"], [["999", 1, "888", "", "777"]]))
-    (root / "exclusion_report.json").write_text(json.dumps({"keys_sha256": h5_seal.sha256_file(keys), "disjointness": "verified"}))
+    sdates = root / c12.SERIES_DATES_NAME
+    sdates.write_bytes(hb._gz_csv_bytes(c12.SERIES_DATES_COLUMNS, [["777", "888", ep("2020-01-01T12:00:00Z")]]))
+    (root / "exclusion_report.json").write_text(json.dumps({"keys_sha256": h5_seal.sha256_file(keys), "disjointness": "verified", "series_dates_sha256": h5_seal.sha256_file(sdates)}))
     smoke = root / "smoke.json"
     smoke.write_text(json.dumps({"smoke_version": c12.SMOKE_VERSION, "criteria": dict.fromkeys((*m12.SMOKE_NEEDS, *x12.SMOKE_NEEDS), True)}))
     spec = tmp_path / "cb12_v1.json"
@@ -762,6 +764,10 @@ def test_exclusion_keys_end_to_end(world, capsys, tmp_path, monkeypatch):
     (cv / "matches.json").write_text(json.dumps([{"p_market_id": "m3"}]))
 
     def gamma_markets(url, params):
+        if url == c12.GAMMA_EVENTS:  # q0241's second stage: startTime of the excluded events that belong to a series
+            evs = [{"id": i, "startTime": "2025-03-04T12:00:00Z", "series": [{"id": f"s{i[2:]}"}]} for i in params["id"] if i != "888"]
+            evs += [{"id": "888", "startTime": "2020-01-01T12:00:00Z", "series": [{"id": "777"}]} for i in params["id"] if i == "888"]
+            return 200, json.dumps(evs).encode(), {}
         assert url == hb.GAMMA_MARKETS
         ids = params["id"]
         rows = [{"id": i, "negRiskMarketID": "", "events": [{"id": f"ev{i}", "series": [{"id": f"s{i}"}]}]} for i in ids]
@@ -1040,7 +1046,7 @@ def _cv_fixture(tmp_path, n_steps=432):
 
 def test_load_c1_reproduces_the_study_set_with_scheduled_end_and_restricted_universes(tmp_path):
     root, t_end, _ = _cv_fixture(tmp_path)
-    out = x12.load_c1(root, expected=None, verify=False)
+    out = x12.load_c1(root, expected=None, verify=False, source_pins=False)
     pairs, rep = out["pairs"], out["report"]
     assert rep["pairs"] == 3 and rep["events"] == 2 and rep["steps"] == sum(int(p.ok.sum()) for p in pairs) and rep["steps"] > 600 and rep["end_pm_missing"] == 0
     byid = {p.pair_id: p for p in pairs}
@@ -1049,8 +1055,8 @@ def test_load_c1_reproduces_the_study_set_with_scheduled_end_and_restricted_univ
     assert byid["K1"].t_res == t_end and byid["K1"].month == "2026-06" and byid["K3"].cat == "Elections"
     assert byid["K1"].fresh.any() and byid["K1"].fresh.dtype == bool
     with pytest.raises(c12.Refused, match="C1 reproduction failed"):
-        x12.load_c1(root, expected={"pairs": 316, "events": 183, "steps": 517616}, verify=False)
-    assert x12.load_c1(root, expected={"pairs": 3, "events": 2, "steps": rep["steps"]}, verify=False)["report"]["pairs"] == 3
+        x12.load_c1(root, expected={"pairs": 316, "events": 183, "steps": 517616}, verify=False, source_pins=False)
+    assert x12.load_c1(root, expected={"pairs": 3, "events": 2, "steps": rep["steps"]}, verify=False, source_pins=False)["report"]["pairs"] == 3
     tab = x12.make_tab(pairs)
     assert len(tab.a) > 0 and set(np.unique(x12.bins_of(tab.tau))) <= {0, 1, 2}
 
@@ -1061,7 +1067,7 @@ def test_load_c1_refuses_a_step_at_or_after_t12_x_end(tmp_path):
     z["win"] = np.array([z["win"][0], int(c12.T12_X_END_EPOCH) + 600])
     np.savez_compressed(root / "series" / "K1.npz", **z)
     with pytest.raises(c12.Refused, match="T12_X_end"):
-        x12.load_c1(root, expected=None, verify=False)
+        x12.load_c1(root, expected=None, verify=False, source_pins=False)
 
 
 def test_restricted_universes_keep_only_matched_rows(tmp_path):
@@ -1195,4 +1201,334 @@ def test_x_census_refuses_without_the_smoke(world, capsys, monkeypatch):
     w = world
     w.smoke.write_text(json.dumps({"smoke_version": c12.SMOKE_VERSION, "criteria": {"guards_fixture_X": True}}))
     code, out = _run(["census", "--family", "X", *w.common, "--smoke", w.smoke.as_posix(), "--allow-unpinned-c1"], capsys)
-    assert code == 2 and "smoke criteria" in out["refused"]
+    assert code == 0 and out["label"] == "not testable (source)", out  # a FAILED smoke criterion is a counted outcome, not a refusal
+
+
+# =====================================================================================================================================================
+# Freeze-check fixes (keys series dates, repeats, X source pin, month drops, counted not-testable, M streaming, drops, availability)
+# =====================================================================================================================================================
+
+REPO = Path(__file__).resolve().parents[2]
+
+
+def test_sports_tag_ids_equal_the_registry_file():
+    reg = json.loads((REPO / "docs/research_lab/evidence_cb12/sports_tag_registry_20261018.json").read_text())
+    assert reg["n_tag_ids"] == 492 and len(m12.SPORTS_TAG_IDS) == 492
+    assert tuple(sorted(str(x) for x in reg["tag_ids"])) == tuple(sorted(m12.SPORTS_TAG_IDS)) and all(isinstance(x, str) for x in m12.SPORTS_TAG_IDS)
+    assert m12.is_sports([{"id": 28, "slug": "zzz"}], "What will A say?") == (True, False)
+
+
+def test_smoke_fails_when_gamma_events_return_no_tags():
+    net = FakeNet(n_screen=4, n_hold=0)
+
+    def lim_net(url, params):
+        if url == c12.GAMMA_EVENTS:
+            evs = [{k: v for k, v in dict(e, startTime="2025-05-06T12:00:00Z", endDate="2025-05-06T15:00:00Z").items() if k != "tags"} for e in net.events]
+            return 200, json.dumps(evs).encode(), {}
+        if url == hb.DATA_TRADES:
+            return 200, json.dumps([_print(1, 0.4, 1, 0, "h")]).encode(), {}
+        return net(url, params)
+
+    out = m12.smoke_online(hb.Limiter(lim_net, rps=1000.0, sleep=NOSLEEP), {})
+    assert out["m_events_tags"]["pass"] is False and "m_events_tags" in m12.SMOKE_NEEDS
+
+
+def test_series_dates_file_is_written_by_q0241_and_mandatory_for_the_frame(world, capsys, tmp_path, monkeypatch):
+    w = world
+    hist = w.hist
+    (hist / "h9_flow").mkdir(parents=True)
+    (hist / "h9_flow" / "sample.csv.gz").write_bytes(hb._gz_csv_bytes(["market_id"], [["m1"]]))
+    cv = tmp_path / "cross_venue"
+    cv.mkdir()
+    (cv / "matches.json").write_text(json.dumps([]))
+
+    def gamma(url, params):
+        if url == c12.GAMMA_EVENTS:
+            evs = [{"id": i, "startTime": "2025-03-04T12:00:00Z" if i != "888" else "2020-01-01T12:00:00Z", "series": [{"id": "s" + i}]} for i in params["id"]]
+            return 200, json.dumps(evs).encode(), {}
+        return 200, json.dumps([{"id": i, "negRiskMarketID": "", "events": [{"id": f"ev{i}", "series": [{"id": f"s{i}"}]}]} for i in params["id"]]).encode(), {}
+
+    monkeypatch.setattr(hb, "httpx_transport", lambda *a, **k: gamma)
+    sha = h5_seal.sha256_file(w.keys)
+    code, out = _run(["exclusion-keys", *w.common, *w.dd, "--cv-root", cv.as_posix(), "--base-path", w.keys.as_posix(), "--base-sha256", sha, "--seals-dir", w.seals.as_posix()], capsys)
+    assert code == 0 and out["status"] == c12.EXCLUSION_KEYS_COMPLETE, out
+    rows = list(c12.read_csv_gz(w.root / c12.SERIES_DATES_NAME))
+    assert rows and set(rows[0]) == {"series_id", "event_id", "start_epoch"} and {r["event_id"] for r in rows} >= {"888", "evm1"}
+    rep = json.loads((w.root / "exclusion_report.json").read_text())
+    assert rep["series_dates_sha256"] == h5_seal.sha256_file(w.root / c12.SERIES_DATES_NAME) and rep["series_dates"]["n_events"] == len({r["event_id"] for r in rows})
+    # the frame loads it ...
+    sd = c12.load_series_dates(w.root / "exclusion_keys.csv.gz", rep)
+    assert sd["s888"] == [ep("2020-01-01T12:00:00Z")]
+    # ... and waits (NotNow, exit 75) when it is missing, refuses when it differs from the report
+    (w.root / c12.SERIES_DATES_NAME).unlink()
+    with pytest.raises(c12.NotNow):
+        c12.load_series_dates(w.root / "exclusion_keys.csv.gz", rep)
+    code, out = _run(["say-frame", *w.common, *w.dd, "--smoke", w.smoke.as_posix(), "--exclusion-keys", (w.root / "exclusion_keys.csv.gz").as_posix()], capsys)
+    assert code == 75 and "pending" in out["science"] and not (w.rdir / "events.csv.gz").exists()
+    (w.root / c12.SERIES_DATES_NAME).write_bytes(hb._gz_csv_bytes(c12.SERIES_DATES_COLUMNS, [["x", "y", 1.0]]))
+    with pytest.raises(c12.Refused, match="differs"):
+        c12.load_series_dates(w.root / "exclusion_keys.csv.gz", rep)
+
+
+def test_series_date_key_drops_events_within_a_day_in_the_frame(world, capsys):
+    w = world
+    sdates = w.root / c12.SERIES_DATES_NAME
+    start = ep("2025-06-03T15:00:00Z")  # the first SCREEN event S0 (series "0") starts here
+    sdates.write_bytes(hb._gz_csv_bytes(c12.SERIES_DATES_COLUMNS, [["0", "zz", start + 3600.0]]))
+    (w.root / "exclusion_report.json").write_text(json.dumps({"keys_sha256": h5_seal.sha256_file(w.keys), "disjointness": "verified", "series_dates_sha256": h5_seal.sha256_file(sdates)}))
+    code, out = _run(["say-frame", *w.common, *w.dd, "--smoke", w.smoke.as_posix(), "--exclusion-keys", w.keys.as_posix()], capsys)
+    assert code == 0 and out["status"] == m12.FRAME_STATUS
+    ev = {r["event_id"]: r for r in c12.read_csv_gz(w.rdir / "events.csv.gz")}
+    assert ev["S0"]["status"] == "dropped:key" and ev["S50"]["status"] == "kept"  # same series "0", but S50 starts 82 days later: outside +-1 day
+
+
+def test_x_study_source_is_sha256_pinned(tmp_path):
+    got = x12.verify_source()  # the real repo files match the pins recorded in part X
+    assert set(got) == {x12.CV_SCRIPT_REL, x12.CV_MODULE_REL}
+    fake = tmp_path / "repo"
+    (fake / "backend/scripts").mkdir(parents=True)
+    (fake / "backend/astrolabe/research_lab").mkdir(parents=True)
+    for rel in x12.CV_SOURCE_PINS:
+        (fake / rel).write_text("# changed")
+    with pytest.raises(c12.Refused, match="sha256"):
+        x12.verify_source(repo_root=fake)
+    (fake / x12.CV_SCRIPT_REL).unlink()
+    with pytest.raises(c12.Refused, match="missing"):
+        x12.verify_source(repo_root=fake)
+    root, _, _ = _cv_fixture(tmp_path)
+    with pytest.raises(c12.Refused, match="sha256"):  # load_c1 verifies BEFORE exec_module (default pins on a fixture-free check via wrong pins)
+        x12.load_c1(root, expected=None, verify=False, source_pins={x12.CV_SCRIPT_REL: "0" * 64})
+    assert "study_source_pins" in x12.declared()
+
+
+def test_x1_has_top5_drop_for_each_clustering_way():
+    r = x12.screen_x(make_pairs(), {"label_X": None}, n_draws=20)["X1"]
+    assert "top5_event_drop" in r["robustness"] and "top5_resolution_month_drop" in r["robustness"] and r["top5_dropped_month_idx"]
+    tab = x12.make_tab(make_pairs())
+    km, dropped = x12.top5_month_drop(tab, np.ones(len(tab.a), bool), 100)
+    assert len(dropped) == 5 and km.sum() < len(km)
+
+
+def test_x_census_reports_volume_key_and_fresh_step_pairs(tmp_path):
+    root, _, _ = _cv_fixture(tmp_path)
+    out = x12.load_c1(root, expected=None, verify=False, source_pins=False)
+    cen = x12.census_x(out["pairs"], out["report"])
+    assert cen["volume_key_matched"] == {"volume": 3} and cen["volume_keys_declared"] == list(x12.POLY_VOLUME_KEYS) and cen["volume_like_keys_in_rows"] == {"volume": 3}
+    assert all("fresh_step_pairs" in b for b in cen["by_horizon_bin"].values()) and sum(b["fresh_step_pairs"] for b in cen["by_horizon_bin"].values()) > 0
+    assert all(b["fresh_step_pairs"] <= b["step_pairs"] for b in cen["by_horizon_bin"].values())
+    assert x12.poly_volume_key({"volume_num": 3.0}) == "volume_num" and x12.poly_volume_key({"x": 1}) is None
+
+
+def test_x_smoke_or_c1_failure_is_a_counted_not_testable_source_outcome(world, capsys, monkeypatch):
+    monkeypatch.setattr(run_cb12, "_rules", lambda a, part: "r" * 64)
+    w = world
+    base = [*w.common, "--smoke", w.smoke.as_posix(), "--allow-unpinned-c1"]
+    # (1) a FAILED smoke criterion: census writes the label, screen writes the p = 1 line (no Refused)
+    w.smoke.write_text(json.dumps({"smoke_version": c12.SMOKE_VERSION, "criteria": {"guards_fixture_X": True, "x_inputs_pinned": True, "x_c1_reproduction": False}}))
+    code, out = _run(["census", "--family", "X", *base], capsys)
+    assert code == 0 and out["label"] == "not testable (source)", out
+    cen = json.loads((w.root / "census_X.json").read_text())["X"]
+    assert cen["label_X"] == "not testable (source)" and "smoke criteria" in cen["source_failure"]
+    code, out = _run(["screen", "--family", "X", *base, "--freeze-spec", w.spec.as_posix()], capsys)
+    assert code == 0 and out["X1"]["p"] == 1.0 and out["X1"]["advance"] is False
+    lines = [json.loads(x) for x in w.tp.read_text().splitlines()]
+    assert next(x for x in lines if x["kind"] == "cb12_test")["p"] == 1.0 and next(x for x in lines if x["kind"] == "ml_explain")["n_tests"] == 1
+    # (2) a C1 reproduction failure at census time, and at screen time after a good census
+    (w.root / "census_X.json").unlink()
+    (w.root / "results_X.json").unlink()
+    w.smoke.write_text(json.dumps({"smoke_version": c12.SMOKE_VERSION, "criteria": dict.fromkeys(x12.SMOKE_NEEDS, True)}))
+
+    def boom(root, **kw):
+        raise x12.C1ReproductionError("C1 reproduction failed: x")
+
+    monkeypatch.setattr(x12, "load_c1", boom)
+    code, out = _run(["census", "--family", "X", *base], capsys)
+    assert code == 0 and out["label"] == "not testable (source)"
+    monkeypatch.setattr(x12, "load_c1", lambda root, **kw: {"pairs": make_pairs(n_per=2), "report": {}})
+    (w.root / "census_X.json").write_text(json.dumps({"X": {"label_X": None}}))
+    monkeypatch.setattr(x12, "load_c1", boom)
+    (w.root / "results_X.json").unlink(missing_ok=True)
+    code, out = _run(["screen", "--family", "X", *base, "--freeze-spec", w.spec.as_posix()], capsys)
+    assert code == 0 and out["X1"]["p"] == 1.0 and "not testable (source)" in out["X1"]["verdict"]
+    # a missing smoke file is still a refusal (q0240 first)
+    w.smoke.unlink()
+    code, out = _run(["census", "--family", "X", *base, "--out", (w.root / "c2.json").as_posix()], capsys)
+    assert code == 2
+
+
+def test_availability_below_sixty_percent_is_not_testable_for_m():
+    data, outs = _synth(hit=0.10)
+    units = _units(data, outs)
+    for u in units[: int(0.45 * len(units))]:  # 45% of the eligible units lose their price: available 55% < 60%
+        u["status"] = "unavailable (no price)"
+    r = m12.m1_test(units, data, units_t24=None, placebo=False)
+    assert r["verdict"] == "not testable (availability)" and r["testable"] is False and r["p"] == 1.0 and not r["advance"] and r["availability_share"] < 0.6
+    units2 = _units(data, outs)
+    for u in units2[: int(0.45 * len(units2))]:
+        u["n_src_listed"] = 0
+    r2 = m12.m2_test(units2, data, placebo=False)
+    assert r2["verdict"] == "not testable (availability)" and r2["p"] == 1.0
+    ok = m12.m1_test(_units(data, outs), data, units_t24=_units(data, outs, m12.ORIGIN_ALT_S), placebo=False)
+    assert ok["availability_share"] == 1.0 and ok["verdict"] != "not testable (availability)"
+
+
+def test_start_edit_c_uses_only_members_whose_prints_reach_the_start():
+    data, outs = _synth(n_events=4, hit=0.1)
+    ev0 = data["events"]["E0"]
+    start = float(ev0["start_epoch"])
+    mids = [m["market_id"] for m in data["members"]["E0"]]
+    for mid in mids:  # every member truncated and not reaching the start: the late first post cannot be dated
+        data["markets"][mid] = {"reach_t24": "1", "first_post_ts": str(start + 10 * 3600), "truncated": "1", "oldest_ts": str(start + 3600)}
+    u = {x["event_id"]: x for x in m12.build_units(data)}
+    assert u["E0"]["start_edit_c"] is None  # unavailable (counted), not 0
+    for mid in mids[:2]:  # two members reach back (oldest print before the start): their first post-start print dates it
+        data["markets"][mid] = {"reach_t24": "1", "first_post_ts": str(start + 10 * 3600), "truncated": "1", "oldest_ts": str(start - 3600)}
+    u = {x["event_id"]: x for x in m12.build_units(data)}
+    assert u["E0"]["start_edit_c"] == 1
+    keep, n_unavail = m12.start_edit_clear(list(u.values()))
+    assert n_unavail == 0 and all(x["event_id"] != "E0" for x in keep) and len(keep) == 3
+    assert m12.fp_reaches({"truncated": "0"}, start) and not m12.fp_reaches({}, start) and not m12.fp_reaches({"truncated": "1", "oldest_ts": ""}, start)
+    data["markets"] = {k: {**v, "truncated": "1", "oldest_ts": str(start + 99 * 86400)} for k, v in data["markets"].items()}
+    allu = list(m12.build_units(data))
+    assert m12.start_edit_clear(allu)[1] == len(allu)
+
+
+def _frame(w, capsys):
+    code, out = _run(["say-frame", *w.common, *w.dd, "--smoke", w.smoke.as_posix(), "--exclusion-keys", w.keys.as_posix()], capsys)
+    assert code == 0 and out["status"] == m12.FRAME_STATUS, out
+
+
+def _prices_direct(w, net=None, **kw):
+    return m12.say_prices(w.hist, w.rdir, net or w.net, rules_sha="r" * 64, now=ep("2026-10-18T00:00:00Z"), sleep=NOSLEEP, data_dumps=Path(w.dd[1]), **kw)
+
+
+def test_q0243_streams_the_partial_file_and_resumes_to_identical_outputs(world, capsys, monkeypatch, tmp_path):
+    w = world
+    _frame(w, capsys)
+    calls = {"n": 0}
+
+    def stop_after_30():
+        calls["n"] += 1
+        return calls["n"] > 30
+
+    m = _prices_direct(w, should_stop=stop_after_30)
+    assert m["status"] == "in_progress" and (w.rdir / "markets_partial.jsonl").exists()
+    n_lines = len((w.rdir / "markets_partial.jsonl").read_text().splitlines())
+    assert 0 < n_lines < 200 * 8
+    with (w.rdir / "markets_partial.jsonl").open("a") as fh:
+        fh.write('{"market_id": "broken')  # a crash mid-line: skipped on read, never glued to the next record
+    real_read_text = Path.read_text
+
+    def no_whole_read(self, *a, **k):
+        assert self.name != "markets_partial.jsonl", "the whole partial file must not be read into memory"
+        return real_read_text(self, *a, **k)
+
+    monkeypatch.setattr(Path, "read_text", no_whole_read)
+    m = _prices_direct(w)
+    assert m["status"] == m12.PRICES_STATUS and m["complete"], m
+    monkeypatch.undo()
+    got = {rel: h5_seal.sha256_file(w.rdir / rel) for rel in ("screen/prices.csv.gz", "screen/tx.csv.gz", "screen/markets.csv.gz", "holdout/prices.csv.gz", "holdout/tx.csv.gz", "holdout/markets.csv.gz")}
+    assert not (w.rdir / "markets_partial.jsonl").exists()
+    # an uninterrupted run in a fresh world gives byte-identical files
+    import shutil
+    w2 = types.SimpleNamespace(**vars(w))
+    w2.hist = tmp_path / "history2"
+    w2.rdir = w2.hist / "h12_say"
+    (w2.hist).mkdir()
+    shutil.copytree(w.rdir, w2.rdir, ignore=shutil.ignore_patterns("prices.csv.gz", "tx.csv.gz", "markets.csv.gz", "manifest.json", "markets_partial.jsonl", "ACCESS_LOG.jsonl"))
+    shutil.copy(w.rdir / "manifest.json", w2.rdir / "manifest.json")
+    man = json.loads((w2.rdir / "manifest.json").read_text())
+    man.update(status=m12.FRAME_STATUS, complete=True, stopped=None)
+    (w2.rdir / "manifest.json").write_text(json.dumps(man))
+    w2.net = FakeNet()
+    m2 = _prices_direct(w2)
+    assert m2["status"] == m12.PRICES_STATUS
+    assert got == {rel: h5_seal.sha256_file(w2.rdir / rel) for rel in got}
+    mk = list(c12.read_csv_gz(w.rdir / "screen" / "markets.csv.gz"))
+    assert [r["market_id"] for r in mk] == sorted(r["market_id"] for r in mk) and len(mk) == 160 * 8
+
+
+def test_network_give_up_has_its_own_label(world, capsys):
+    w = world
+    _frame(w, capsys)
+    real = w.net
+
+    def flaky(url, params):
+        if url == hb.CLOB_PRICES and params["market"] == "yesS00":
+            return 500, b"", {}
+        return real(url, params)
+
+    status = None
+    for _ in range(6):
+        m = _prices_direct(w, net=flaky)
+        status = m["status"]
+        if status == m12.PRICES_STATUS:
+            break
+    assert status == m12.PRICES_STATUS
+    rows = {r["market_id"]: r for r in c12.read_csv_gz(w.rdir / "screen" / "markets.csv.gz")}
+    assert rows["S00"]["status"] == "unavailable (network)" and rows["S01"]["status"] == "ok"
+    assert json.loads((w.rdir / "manifest.json").read_text())["counts"]["unavailable_network"] == 1
+
+
+def test_seal_rereads_frames_absent_at_q0241_and_rep_applies_the_drops(world, capsys, monkeypatch):
+    w = world
+    _frame(w, capsys)
+    _run(["say-prices", *w.common, *w.dd], capsys)
+    (w.root / "exclusion_report.json").write_text(json.dumps({"keys_sha256": h5_seal.sha256_file(w.keys), "disjointness": "verified", "series_dates_sha256": h5_seal.sha256_file(w.root / c12.SERIES_DATES_NAME),
+                                                              "sets_absent_at_q0241": ["h9_flow/sample.csv.gz", "h10_sign/sample.csv.gz"]}))
+    (w.hist / "h9_flow").mkdir(parents=True)  # appears after q0241: its ids are dropped at the seal
+    (w.hist / "h9_flow" / "sample.csv.gz").write_bytes(hb._gz_csv_bytes(["market_id"], [["H00"], ["nothing"]]))
+    real = w.net
+
+    def gamma_or_net(url, params):
+        if url == hb.GAMMA_MARKETS:
+            return 200, json.dumps([{"id": i, "negRiskMarketID": "", "events": [{"id": f"EVX{i}", "series": []}]} for i in params["id"]]).encode(), {}
+        return real(url, params)
+
+    monkeypatch.setattr(hb, "httpx_transport", lambda *a, **k: gamma_or_net)
+    code, out = _run(["seal", "--family", "M", *w.common, "--seals-dir", w.seals.as_posix()], capsys)
+    assert code == 0, out
+    seal = json.loads((w.seals / "cb12_say_holdout_SEAL.json").read_text())
+    rr = seal["drops"]["absent_at_q0241_reread"]
+    assert rr["h9_flow/sample.csv.gz"]["now_present"] is True and rr["h9_flow/sample.csv.gz"]["n_ids"] == 2 and len(rr["h9_flow/sample.csv.gz"]["sha256"]) == 64
+    assert rr["h10_sign/sample.csv.gz"] == {"now_present": False} and seal["drops"]["counts"]["DROPPED_ABSENT_AT_Q0241"] == 1
+    drops = list(c12.read_csv_gz(w.rdir / c12.DROPS_FILE))
+    assert [(r["market_id"], r["block"]) for r in drops] == [("H00", "DROPPED_ABSENT_AT_Q0241")]
+    verified = c12.verify_holdout_seal(w.rdir, "cb12_say_holdout_SEAL.json", w.seals, require_committed=False)
+    assert c12.load_drops(w.rdir, verified) == {"H00"}
+    # rep: the dropped basket is not analysed, M1-rep gets the t-24h units, Stage 2 is strict
+    seen = {}
+    real_m1 = m12.m1_test
+
+    def spy(units, data, **kw):
+        seen["units_t24"] = kw.get("units_t24")
+        seen["events"] = sorted({u["event_id"] for u in units})
+        return real_m1(units, data, **kw)
+
+    monkeypatch.setattr(m12, "m1_test", spy)
+    res = m12.rep_m(w.rdir, {}, ("M1",), verified, k2=None)
+    assert seen["units_t24"] is not None and "H0" not in seen["events"] and len(seen["events"]) == 39
+    assert res["drops_applied"] == {"markets_in_DROPPED_rows": 1, "events_dropped": 1}
+    # a missing or altered drops file refuses
+    (w.rdir / c12.DROPS_FILE).write_bytes(hb._gz_csv_bytes(["market_id", "block", "reason"], []))
+    with pytest.raises(c12.Refused, match="differs from the seal"):
+        m12.rep_m(w.rdir, {}, ("M1",), verified)
+    (w.rdir / c12.DROPS_FILE).unlink()
+    with pytest.raises(c12.Refused, match="missing"):
+        m12.rep_m(w.rdir, {}, ("M1",), verified)
+
+
+def test_q0241_q0242_drafts_carry_repeat_and_pinned_shas():
+    drafts = REPO / "docs/research_lab/queue/drafts"
+    import re
+    for name, status in (("q0241_cb12_exclusion_keys.json", "exclusion_keys_complete"), ("q0242_cb12_say_frame.json", "say_frame_complete")):
+        d = json.loads((drafts / name).read_text())
+        rx = d["repeat"]["until_log_regex"]
+        assert d["repeat"]["max_runs"] >= 3 and re.search(rx, json.dumps({"status": status}, sort_keys=True)) and not re.search(rx, json.dumps({"status": "in_progress"}, sort_keys=True))
+    assert re.search(json.loads((drafts / "q0241_cb12_exclusion_keys.json").read_text())["repeat"]["until_log_regex"], json.dumps({"status": "disjointness_unverified"}))
+    rules = json.loads((REPO / "docs/research_lab/seals/cb12_rules.json").read_text())["parts"]
+    for f in drafts.glob("q02[45]*_cb12_*.json"):
+        txt = json.loads(f.read_text()).get("notes", "")
+        for part in ("common", "M", "X"):
+            for m_ in re.finditer(rf"(?<![A-Za-z]){part} ([0-9a-f]{{64}})", txt):
+                assert m_.group(1) == rules[part]["rules_sha256"], (f.name, part)
