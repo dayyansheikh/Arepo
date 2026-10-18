@@ -300,22 +300,76 @@ def count_hypotheses(repo: Path) -> tuple[int | None, int | None, int | None]:
     return (len(ch_all) or None), (len(ch_designed) or None), len(batches)
 
 
+_T_RE = re.compile(rb'[{,]"t":(\d+)')
+
+
+def _epoch(utc: str) -> float:
+    return datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC).timestamp()
+
+
+def count_t_range(path: Path, start: float, end: float, cache: dict | None) -> int | None:
+    """Rows of an append-only prediction log whose top-level `t` is in [start, end); incremental via `cache`."""
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return None
+    key = f"{path}|t|{start}|{end}"
+    pos, total = 0, 0
+    if cache is not None and key in cache and cache[key].get("pos", 0) <= size:
+        pos, total = cache[key]["pos"], cache[key]["count"]
+    with open(path, "rb") as fh:
+        fh.seek(pos)
+        for line in fh:
+            if not line.endswith(b"\n"):
+                break  # partial last line: counted next time
+            pos += len(line)
+            m = _T_RE.search(line)
+            if m and start <= int(m.group(1)) < end:
+                total += 1
+    if cache is not None:
+        cache[key] = {"pos": pos, "count": total}
+    return total
+
+
+def count_alerts(path: Path, start: float, end: float) -> int | None:
+    """E011: only type == alert lines (not controls) whose capture t is in [REGISTERED_UTC, END_UTC)."""
+    if not path.exists():
+        return None
+    n = 0
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            t = r.get("t")
+            if r.get("type") == "alert" and isinstance(t, (int, float)) and start <= t < end:
+                n += 1
+    return n
+
+
 def build_live_tests(repo: Path, registry: dict, cache: dict) -> list[dict]:
+    """Counts only. Never reads outcome values; outcome files are line-counted (written, evaluated or unavailable)."""
     out = []
     for t in registry.get("live_tests") or []:
         item = {k: t.get(k) for k in ("id", "title", "unit", "analysis_after", "target")}
-        files = t.get("files") or {}
+        files, rule = t.get("files") or {}, t.get("rule") or {}
         if "collected" in files:
-            item["collected"] = count_lines(repo / files["collected"], cache)
+            path = repo / files["collected"]
+            if rule.get("kind") == "t_range":
+                item["collected"] = count_t_range(path, _epoch(rule["start_utc"]), _epoch(rule["end_utc"]), cache)
+            elif rule.get("kind") == "alert":
+                item["collected"] = count_alerts(path, _epoch(rule["start_utc"]), _epoch(rule["end_utc"]))
+            else:
+                item["collected"] = count_lines(path, cache)
         if "outcomes" in files:
-            item["outcomes_collected"] = count_lines(repo / files["outcomes"], cache)
+            item["outcome_lines_written"] = count_lines(repo / files["outcomes"], cache)
         out.append(item)
     return out
 
 
 def build_funnel(registry: dict, hyp: int | None, designed: int | None) -> list[dict]:
     exps = registry.get("experiments") or []
-    idx = {s: i for i, s in enumerate(STAGES)}
     out = []
     for d in registry.get("funnel") or []:
         s = d["stage"]
@@ -324,7 +378,7 @@ def build_funnel(registry: dict, hyp: int | None, designed: int | None) -> list[
         elif s == "designed":
             n = designed
         else:
-            n = sum(1 for e in exps if idx.get(e.get("stage"), -1) >= idx[s])
+            n = sum(1 for e in exps if s in (e.get("reached") or []))
         out.append({"stage": s, "label": d.get("label"), "count": n, "help": d.get("help"), "unit": d.get("unit")})
     return out
 
@@ -368,6 +422,7 @@ def build_snapshot(repo: Path, registry_path: Path, logs: Path, state_dir: Path,
         except Exception as exc:  # noqa: BLE001
             errors.append(f"live_tests: {type(exc).__name__}")
         snap["funnel"] = build_funnel(registry, hyp, designed)
+        snap["funnel_note"] = registry.get("funnel_note")
         if registry.get("ml"):
             snap["ml"] = registry["ml"]
         snap["registry_updated"] = registry.get("updated")

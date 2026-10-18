@@ -10,7 +10,7 @@ Spec: `docs/lab/LAB_DASHBOARD_SPEC.md`.
 | headline `tests_run`, `tests_over_time` | `docs/research_lab/trials.jsonl` through `battery2.count_line` (rule `battery2-count-v1`) |
 | headline `hypotheses`, funnel "Ideas" | unique `CHnn` ids in `CREATIVE_HYPOTHESES_*.md` |
 | headline `batches`, funnel "Designed" | `CREATIVE_BATCH_*.md` files; unique `CHnn` ids mentioned in them |
-| funnel Screened..Confirmed | count of registry experiments that reached at least that stage |
+| funnel Screened..Confirmed | registry entries whose `reached` list contains that stage (each entry also has `stage_results`; `stage` must equal the last reached stage) |
 | `jobs_done`, queue, infra | `run/queue/status.json`, `attempts.jsonl`, `df`, `/proc/meminfo`, collector and `oci-retry` logs |
 | `live_tests[].collected` | line counts of the collector files (counts only) |
 | `experiments`, `ml`, funnel help text, live-test dates | **this file (curated)** |

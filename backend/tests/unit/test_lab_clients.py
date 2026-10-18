@@ -188,7 +188,9 @@ def test_dry_run_prints_valid_snapshot_without_network(tmp_path, monkeypatch, ca
     repo = _fixture_repo(tmp_path / "repo")
     live = repo / "data-dumps" / "research_lab" / "cross_venue_live"
     live.mkdir(parents=True)
-    (live / "predictions.jsonl").write_text("{}\n" * 7)
+    pre = '{"id":"a","t":1791849000,"f":{"t":1}}\n'  # pilot row before the registered start
+    post = '{"id":"b","pid":"p","t":1791850000,"f":{"r1":1}}\n'
+    (live / "predictions.jsonl").write_text(pre * 4 + post * 7)
     (live / "outcomes.jsonl").write_text("{}\n" * 3)
     monkeypatch.setattr(lab_host.lab_sign, "request", lambda *a, **k: pytest.fail("network used in dry run"))
     rc = lab_host.main(["--dry-run", "--repo", str(repo), "--registry", str(REGISTRY), "--logs", str(tmp_path / "logs"),
@@ -202,17 +204,40 @@ def test_dry_run_prints_valid_snapshot_without_network(tmp_path, monkeypatch, ca
     funnel = {f["stage"]: f for f in snap["funnel"]}
     assert [f["stage"] for f in snap["funnel"]] == STAGES and funnel["confirmed"]["count"] == 0
     lt = {t["id"]: t for t in snap["live_tests"]}
-    assert lt["E009"]["collected"] == 7 and lt["E009"]["outcomes_collected"] == 3 and lt["E010"]["collected"] is None
+    assert lt["E009"]["collected"] == 7 and lt["E009"]["outcome_lines_written"] == 3 and lt["E010"]["collected"] is None
     for t in lt.values():  # counts and dates only
-        assert set(t) <= {"id", "title", "unit", "analysis_after", "target", "collected", "outcomes_collected"}
+        assert set(t) <= {"id", "title", "unit", "analysis_after", "target", "collected", "outcome_lines_written"}
     assert len(json.dumps(snap)) < 1_000_000
 
 
-def test_funnel_is_monotone_for_registry_stages():
+def test_funnel_counts_only_stages_reached():
     reg = json.loads(REGISTRY.read_text())
-    f = lab_host.build_funnel(reg, 117, 83)
-    counts = [x["count"] for x in f]
-    assert counts[:2] == [117, 83] and counts[2:] == sorted(counts[2:], reverse=True) and counts[-1] == 0
+    f = {x["stage"]: x for x in lab_host.build_funnel(reg, 117, 83)}
+    assert (f["idea"]["count"], f["designed"]["count"], f["confirmed"]["count"]) == (117, 83, 0)
+    assert f["replicated"]["count"] == f["live_test"]["count"] == f["cost_check"]["count"] == 6
+    ids = lambda s: {e["id"] for e in reg["experiments"] if s in e["reached"]}  # noqa: E731
+    assert ids("replicated") == {"HB1", "SB2-F4", "SB2-F5", "SB2-L1", "SB2-CTTE", "SB2-CACT"}
+    assert ids("live_test") == {"E004", "E005", "E007", "E009", "E010", "E011"}
+    assert ids("cost_check") == {"E004", "E007", "ECON-95", "HB1", "SB2-F4", "SB2-F5"}
+    assert f["screened"]["unit"] == "registry entries"
+
+
+def test_count_t_range_excludes_pilot_and_is_incremental(tmp_path):
+    p = tmp_path / "p.jsonl"
+    p.write_text('{"id":"a","t":100}\n{"id":"b","t":200,"f":{"t":5}}\n{"id":"c","t":300}\n')
+    cache: dict = {}
+    assert lab_host.count_t_range(p, 150, 1000, cache) == 2
+    with open(p, "a") as fh:
+        fh.write('{"id":"d","t":400}\n{"id":"e","t":5000}\n{"id":"partial","t":')
+    assert lab_host.count_t_range(p, 150, 1000, cache) == 3
+    assert lab_host.count_t_range(tmp_path / "none", 0, 1, cache) is None
+
+
+def test_count_alerts_ignores_controls_and_out_of_window(tmp_path):
+    p = tmp_path / "alerts.jsonl"
+    rows = [{"type": "alert", "t": 500}, {"type": "control", "t": 500}, {"type": "alert", "t": 50}, {"type": "alert", "t": 2000}]
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\nbad\n")
+    assert lab_host.count_alerts(p, 100, 1000) == 1
 
 
 # ------------------------------------------------------------------ commands
@@ -334,6 +359,10 @@ def test_registry_never_shows_live_test_results():
         assert e["stage"] == "live_test" and e["verdict"] == "pending" and e["effect"] is None and e["status"] == "collecting"
     assert not any(e["stage"] == "confirmed" for e in reg["experiments"])
     assert 3 <= sum(e["candidate"] for e in reg["experiments"]) <= 5
+    for e in reg["experiments"]:
+        order = [s for s in STAGES if s in e["reached"]]
+        assert e["reached"] == order and e["stage"] == order[-1], e["id"]
+        assert set(e["stage_results"]) == set(e["reached"]) and set(e["stage_results"].values()) <= {"pass", "fail", "pending"}
 
 
 def test_registry_funnel_ml_and_live_tests():
@@ -344,8 +373,9 @@ def test_registry_funnel_ml_and_live_tests():
     for key in ("learned", "feature_weights", "contrasts", "status"):
         assert ml["sources"].get(key), key
     for w in ml["feature_weights"]:
-        assert set(w) >= {"feature", "family", "weight"} and isinstance(w["weight"], float)
+        assert set(w) >= {"feature", "family", "weight", "label", "comparable"} and isinstance(w["weight"], float)
+    assert {w["family"] for w in ml["feature_weights"] if w["comparable"]} == {"flow", "market_state"}
     for c in ml["contrasts"]:
         assert c["lo"] <= c["value"] <= c["hi"]
     for t in reg["live_tests"]:
-        assert t["sources"] and set(t["files"]) <= {"collected", "outcomes"} and re.fullmatch(r"\d{4}-\d\d-\d\d", t["analysis_after"])
+        assert t["rule"]["kind"] in {"t_range", "alert"} and t["sources"] and set(t["files"]) <= {"collected", "outcomes"} and re.fullmatch(r"\d{4}-\d\d-\d\d", t["analysis_after"])
