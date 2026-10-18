@@ -231,6 +231,11 @@ def test_wiki_lag_rule_fails_when_newest_day_is_older_than_48h():
     for age, ok in ((1, True), (4, False)):
         lim = hb.Limiter(tr(age), rps=1000.0, live_check=None, sleep=lambda s: None)
         assert sm.smoke_wiki_lag(lim, now)["pass"] is ok
+    lim = hb.Limiter(tr(1), rps=1000.0, live_check=None, sleep=lambda s: None)
+    assert sm.smoke_wiki_lag(lim, now)["ceiling_ok"] is True
+    lim = hb.Limiter(tr(6), rps=1000.0, live_check=None, sleep=lambda s: None)
+    r = sm.smoke_wiki_lag(lim, now)
+    assert r["ceiling_ok"] is False and r["ceiling_h"] == 72.0
 
 
 def _gamma_world(by_week, status=200):

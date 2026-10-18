@@ -29,5 +29,5 @@
   "trials.jsonl (cb12_descriptive)"
  ],
  "next_action": "science-reviewer freeze check (M part)",
- "notes": "DRAFT. No outcome, D, slope, fill or net computed. Refuses on an incomplete manifest or an unverified seal. Deviation from section 4: one family per census job, so M and E freeze independently. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M e3a3b4783ced27dc312b7b2b676dce7c23e9f0af0d3cd98a1c334ed58de61d32. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+ "notes": "DRAFT. No outcome, D, slope, fill or net computed. Refuses on an incomplete manifest or an unverified seal. Deviation from section 4: one family per census job, so M and E freeze independently. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
 }

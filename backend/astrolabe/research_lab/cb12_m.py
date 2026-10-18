@@ -1192,17 +1192,18 @@ def smoke_online(lim, ctx: dict) -> dict:
         da[f"m{i}"] = {"pages": info["pages"], "n_prints": info["n_prints"], "truncated": bool(info["truncated"]), "reach_t24": c12.reach_ok(info, pk["start"] - ORIGIN_ALT_S), "ok": True}
         st, data = lim.get(hb.CLOB_PRICES, {"market": pk["token"], "startTs": int(pk["start"] - FETCH_BEFORE_S), "endTs": int(pk["start"]), "fidelity": FIDELITY})
         pts = (data or {}).get("history") if st == 200 and isinstance(data, dict) else None
+        unknown = bool(info["truncated"] and not c12.reach_ok(info, pk["start"] - FETCH_BEFORE_S))  # prints do not reach back to start - 26 h: "no pre-start print" is not known
         traded = n_pre >= 1
         n_traded += int(traded)
-        good = bool(st == 200 and (bool(pts) if traded else True))
+        good = bool(st == 200 and (bool(pts) if (traded or unknown) else True))  # conservative: an unknown member must show points and never counts as traded-or-excused
         ok_ph = ok_ph and good
-        ph[f"m{i}"] = {"status": st, "n_points": len(pts or []), "n_prints_pre_start": n_pre, "traded_pre_start": traded, "ok": good}
+        ph[f"m{i}"] = {"status": st, "n_points": len(pts or []), "n_prints_pre_start": n_pre, "traded_pre_start": traded, "prints_truncated_unknown": unknown, "ok": good}
     ok_ph = bool(ok_ph and n_traded >= SMOKE_MIN_TRADED)
     return {"m_gamma_paging": {"pass": bool(ok_paging and len(picks) >= 2), "per": per, "picked": len(picks)},
             "m_events_tags": {"pass": bool(n_ev > 0 and n_tags == n_ev), "n_events": n_ev, "n_with_tags": n_tags,
                               "note": "Gamma /events must return `tags` on every event, else the sports-tag exclusion would silently be regex-only"},
             "m_prices_history_v2": {"pass": ok_ph, "per": ph, "n_traded_pre_start": n_traded, "min_traded": SMOKE_MIN_TRADED,
-                                    "definition": "status 200 for every examined member; >= 1 point for every member with a Data API print in [start - 26 h, start); >= 2 such members. "
+                                    "definition": "status 200 for every examined member; >= 1 point for every member with a Data API print in [start - 26 h, start) and for every member whose print fetch is truncated before start - 26 h (unknown, never excused); >= 2 such traded members. "
                                                   "Member liquidity is decided by the census availability rule, not by this gate"},
             "m_data_api_reach": {"pass": bool(len(da) >= 2 and all(v["ok"] for v in da.values())), "per": da, "note": "reach recorded; the census coverage audit decides"}}
 

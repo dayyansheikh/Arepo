@@ -32,7 +32,7 @@
   "docs/research_lab/seals/cb12_say_holdout_SEAL.json"
  ],
  "next_action": "commit the seal copy; q0249",
- "notes": "DRAFT. Re-reads the id-source frames recorded 'absent at q0241' (DROPPED_ABSENT_AT_Q0241 rows, file sha256 in the seal). Exits 75 (pending) while q0243 is unfinished and re-runs. The F seal (CB12-F) is added with the F code; a sealed file is never edited; drops are recorded as DROPPED_* rows. ACCESS_LOG.jsonl lives in the run directory, outside the sealed listing. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M e3a3b4783ced27dc312b7b2b676dce7c23e9f0af0d3cd98a1c334ed58de61d32. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "notes": "DRAFT. Re-reads the id-source frames recorded 'absent at q0241' (DROPPED_ABSENT_AT_Q0241 rows, file sha256 in the seal). Exits 75 (pending) while q0243 is unfinished and re-runs. The F seal (CB12-F) is added with the F code; a sealed file is never edited; drops are recorded as DROPPED_* rows. ACCESS_LOG.jsonl lives in the run directory, outside the sealed listing. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
  "repeat": {
   "max_runs": 6,
   "until_log_regex": "\"status\": \"seal_all_complete\""

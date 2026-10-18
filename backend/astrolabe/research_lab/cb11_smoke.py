@@ -45,6 +45,7 @@ WIKI_SUMMARY = "https://en.wikipedia.org/api/rest_v1/page/summary/"
 WIKI_PAGEVIEWS = "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/"
 WIKI_UA = "arepo-research-lab/1 (read-only prediction-market research; github.com/dayyansheikh/astrolabe)"
 WIKI_MAX_AGE_H = 48.0
+WIKI_CEILING_H = 72.0  # the fallback lag: a newest day older than this makes even the 72 h rule too short -> A not testable (source)
 OOV2_URL = "https://raw.githubusercontent.com/UMAprotocol/protocol/master/packages/core/networks/137.json"
 OOV2_NAME = "ManagedOptimisticOracleV2"
 CENSOR_WINDOW = ("2025-09-15T12:00:00Z", "2025-09-15T12:15:00Z")
@@ -52,8 +53,8 @@ SMOKE_SEED = "arepo-cb11-smoke"
 # A does not need ``wiki_lag``: its failure has the declared consequence "lag 72 h and origin X + 4 d" (design 2.2), applied by A's jobs through ``smoke_origin_lag_days``;
 # ``wiki_pageviews`` (the pageviews endpoint returned a newest day at all) is the source criterion A does need.
 FAMILY_NEEDS = {"W": ("w_frames", "w_loader", "w_censor_window"), "W_prints": ("w_frames", "w_loader", "data_api_reach"),
-                "P": ("gamma_pol_paging", "prices_history", "data_api_reach"), "A": ("wiki_summary", "wiki_pageviews", "data_api_reach")}
-CRITERIA = ("w_frames", "w_loader", "gamma_pol_paging", "prices_history", "data_api_reach", "wiki_summary", "wiki_pageviews", "wiki_lag", "w_censor_window")
+                "P": ("gamma_pol_paging", "prices_history", "data_api_reach"), "A": ("wiki_summary", "wiki_pageviews", "wiki_lag_ceiling", "data_api_reach")}
+CRITERIA = ("w_frames", "w_loader", "gamma_pol_paging", "prices_history", "data_api_reach", "wiki_summary", "wiki_pageviews", "wiki_lag", "wiki_lag_ceiling", "w_censor_window")
 LAG_DEFAULT_DAYS = 3
 LAG_FALLBACK_DAYS = 4
 
@@ -244,14 +245,15 @@ def smoke_wiki_lag(lim: hb.Limiter, now: float, title: str = "Xi_Jinping") -> di
         return {"status": st, "pass": False, "last_day": None, "source_ok": False}
     end = datetime.strptime(last, "%Y%m%d").replace(tzinfo=UTC).timestamp() + 86400.0
     age_h = (now - end) / 3600.0
-    return {"status": st, "last_day": last, "age_h_after_day_end": age_h, "max_age_h": WIKI_MAX_AGE_H, "pass": bool(age_h <= WIKI_MAX_AGE_H), "source_ok": True,
+    return {"status": st, "last_day": last, "age_h_after_day_end": age_h, "max_age_h": WIKI_MAX_AGE_H, "pass": bool(age_h <= WIKI_MAX_AGE_H), "source_ok": True, "ceiling_h": WIKI_CEILING_H, "ceiling_ok": bool(age_h <= WIKI_CEILING_H),
             "consequence_if_fail": "lag -> 72 h and A's origin -> X + 4 d before the freeze (outcome-blind; recorded)"}
 
 
 def smoke_origin_lag_days(path: Path) -> int:
     """A's origin lag in days from the smoke: 3 (usable 48 h after the day ends) unless ``wiki_lag`` failed on a published newest day, then 4 (72 h; design 2.2, outcome-blind)."""
     doc = json.loads(Path(path).read_text())
-    failed = not (doc.get("criteria") or {}).get("wiki_lag", True) and (doc.get("wiki_lag") or {}).get("source_ok") is True
+    wl = doc.get("wiki_lag") or {}
+    failed = not (doc.get("criteria") or {}).get("wiki_lag", True) and wl.get("source_ok") is True and wl.get("ceiling_ok") is True
     return LAG_FALLBACK_DAYS if failed else LAG_DEFAULT_DAYS
 
 
@@ -300,7 +302,7 @@ def smoke_failures(path: Path, need: tuple[str, ...]) -> list[str]:
 
 def declared() -> dict:
     return {"version": SMOKE_VERSION, "criteria": list(CRITERIA), "family_needs": {k: list(v) for k, v in FAMILY_NEEDS.items()}, "pol_weeks": [list(x) for x in POL_WEEKS],
-            "wiki_titles": list(WIKI_TITLES), "wiki_max_age_h": WIKI_MAX_AGE_H, "price_life_days": PRICE_LIFE_DAYS, "pick_end": PICK_END, "pick_max_weeks": PICK_MAX_WEEKS, "lag_days": [LAG_DEFAULT_DAYS, LAG_FALLBACK_DAYS], "censor_window": list(CENSOR_WINDOW), "oov2": [OOV2_URL, OOV2_NAME],
+            "wiki_titles": list(WIKI_TITLES), "wiki_max_age_h": WIKI_MAX_AGE_H, "wiki_ceiling_h": WIKI_CEILING_H, "price_life_days": PRICE_LIFE_DAYS, "pick_end": PICK_END, "pick_max_weeks": PICK_MAX_WEEKS, "lag_days": [LAG_DEFAULT_DAYS, LAG_FALLBACK_DAYS], "censor_window": list(CENSOR_WINDOW), "oov2": [OOV2_URL, OOV2_NAME],
             "max_requests": 40}
 
 

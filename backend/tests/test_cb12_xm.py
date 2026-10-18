@@ -1090,7 +1090,7 @@ def test_m_and_x_smoke_offline_fixtures():
     assert x12.smoke_online(None, {}) == {}
 
 
-def _m_smoke_net(untraded: int = 0):
+def _m_smoke_net(untraded: int = 0, empty_first_points: bool = False):
     """Fake network for the M smoke: the first ``untraded`` examined members have no Data API print in [start - 26 h, start) (an in-event print only)."""
     net = FakeNet(n_screen=6, n_hold=0)
     start = datetime(2025, 5, 6, 12, tzinfo=UTC).timestamp()
@@ -1107,8 +1107,13 @@ def _m_smoke_net(untraded: int = 0):
             idx = seen.index(cid)
             ts = start + 600 if idx < untraded else start - 3600  # in-event print vs a pre-start print
             return 200, json.dumps([_print(ts, 0.4, 1, 0, "h")]).encode(), {}
+        if url == hb.CLOB_PRICES and empty_first_points:
+            first.setdefault("tok", params["market"])
+            if params["market"] == first["tok"]:
+                return 200, json.dumps({"history": []}).encode(), {}
         return net(url, params)
 
+    first: dict = {}
     return hb.Limiter(lim_net, rps=1000.0, sleep=NOSLEEP)
 
 
@@ -1126,6 +1131,26 @@ def test_m_smoke_v2_gates_the_source_not_member_liquidity():
     assert out["pass"] and out["n_traded_pre_start"] == m12.SMOKE_POOL - 1 and sum(1 for v in out["per"].values() if not v["traded_pre_start"]) == 1
     few = m12.smoke_online(_m_smoke_net(untraded=m12.SMOKE_POOL - 1), {})["m_prices_history_v2"]
     assert few["pass"] is False and few["n_traded_pre_start"] == 1  # fewer than 2 members with pre-start trading: the gate cannot test the source
+
+
+def test_m_smoke_v2_treats_a_truncated_print_fetch_as_unknown_not_excused(monkeypatch):
+    real = c12.fetch_prints_paged
+    calls = {"n": 0}
+
+    def trunc_first(lim, cid, t_reach, **kw):
+        rows, info = real(lim, cid, t_reach, **kw)
+        calls["n"] += 1
+        if calls["n"] == 1:  # first member: prints do not reach back to start - 26 h
+            return [], {**info, "truncated": True, "oldest_ts": 1.9e9, "n_prints": 0}
+        return rows, info
+
+    monkeypatch.setattr(c12, "fetch_prints_paged", trunc_first)
+    out = m12.smoke_online(_m_smoke_net(empty_first_points=True), {})["m_prices_history_v2"]
+    assert out["per"]["m0"]["prints_truncated_unknown"] and out["per"]["m0"]["ok"] is False and out["pass"] is False  # 200 with 0 points is not excused
+    assert out["n_traded_pre_start"] == m12.SMOKE_POOL - 1  # the unknown member never counts as traded
+    calls["n"] = 0
+    ok = m12.smoke_online(_m_smoke_net(), {})["m_prices_history_v2"]
+    assert ok["per"]["m0"]["prints_truncated_unknown"] and ok["per"]["m0"]["ok"] and ok["pass"]  # points present: fine, but still not counted as traded
 
 
 def test_m_reads_the_latest_smoke_and_v1_stays_the_record_for_x(tmp_path):
@@ -1394,9 +1419,12 @@ def test_x_smoke_or_c1_failure_is_a_counted_not_testable_source_outcome(world, c
     code, out = _run(["census", "--family", "X", *base], capsys)
     assert code == 0 and out["label"] == "not testable (source)"
     monkeypatch.setattr(x12, "load_c1", lambda root, **kw: {"pairs": make_pairs(n_per=2), "report": {}})
-    (w.root / "census_X.json").write_text(json.dumps({"X": {"label_X": None}}))
+    (w.root / "census_X.json").write_text(json.dumps({"rules_sha256": "other" * 12, "X": {"label_X": None}}))
     monkeypatch.setattr(x12, "load_c1", boom)
     (w.root / "results_X.json").unlink(missing_ok=True)
+    code, out = _run(["screen", "--family", "X", *base, "--freeze-spec", w.spec.as_posix()], capsys)
+    assert code == 2 and "re-run the census" in out["refused"]  # a census written under other X code is refused
+    (w.root / "census_X.json").write_text(json.dumps({"rules_sha256": "r" * 64, "X": {"label_X": None}}))
     code, out = _run(["screen", "--family", "X", *base, "--freeze-spec", w.spec.as_posix()], capsys)
     assert code == 0 and out["X1"]["p"] == 1.0 and "not testable (source)" in out["X1"]["verdict"]
     # a missing smoke file is still a refusal (q0240 first)

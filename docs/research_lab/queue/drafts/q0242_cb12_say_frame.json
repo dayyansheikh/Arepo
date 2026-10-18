@@ -38,7 +38,7 @@
   "history/h12_say/holdout/{events.csv.gz,members.csv.gz,outcomes_guarded_holdout.csv.gz}"
  ],
  "next_action": "q0243",
- "notes": "DRAFT. Returns in_progress (exit 0) on a transient Gamma failure; the repeat block re-runs it. No price read. Capped windows are split until uncapped (counted). Shares the run directory (and manifest) h12_say with q0243; a frame re-run after q0243 started is a no-op. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M e3a3b4783ced27dc312b7b2b676dce7c23e9f0af0d3cd98a1c334ed58de61d32. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "notes": "DRAFT. Returns in_progress (exit 0) on a transient Gamma failure; the repeat block re-runs it. No price read. Capped windows are split until uncapped (counted). Shares the run directory (and manifest) h12_say with q0243; a frame re-run after q0243 started is a no-op. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
  "repeat": {
   "max_runs": 12,
   "until_log_regex": "\"status\": \"(say_frame_complete|not_run_source|disjointness_unverified)\""

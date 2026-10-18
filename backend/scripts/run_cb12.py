@@ -404,7 +404,8 @@ def cmd_census(a):
         out = Path(a.out) if a.out else _root(a) / f"census_X{a.census_tag}.json"
     if out.exists():
         raise c12.Refused(f"{out} exists; the census is written once")
-    doc = {"version": f"cb12-census-{fam}-v1", "counts_only": True, "rules_sha256": sha, fam: census_m_block(a) if fam == "M" else census_x_block(a)}
+    ver = int(a.census_tag[2:]) if re.fullmatch(r"_v[0-9]+", a.census_tag or "") else 1
+    doc = {"version": f"cb12-census-{fam}-v{ver}", "counts_only": True, "rules_sha256": sha, fam: census_m_block(a) if fam == "M" else census_x_block(a)}
     cm.write_once_json(out, doc)
     c12.log_descriptive(f"census_{fam}", {"census_sha256": cm.sha_obj(doc), "path": str(out)}, trials_path=_tp(a))
     return 0, {"status": "census_complete", "written": str(out), "label": doc[fam].get("label_M" if fam == "M" else "label_X")}
@@ -449,7 +450,10 @@ def cmd_screen(a):
     cpath = Path(a.census) if a.census else root / f"census_{fam}{a.census_tag}.json"
     if not cpath.exists():
         raise c12.NotNow(f"{cpath.name} missing (the census first)")
-    census = json.loads(cpath.read_text())[fam]
+    cdoc = json.loads(cpath.read_text())
+    if cdoc.get("rules_sha256") != sha:  # a census written under other code is not the census of this code
+        raise c12.Refused(f"{cpath.name} was written under rules {str(cdoc.get('rules_sha256'))[:12]} but the current {fam} part is {sha[:12]}; re-run the census")
+    census = cdoc[fam]
     tids = c12.FAMILY_TESTS[fam]
     if fam == "M":
         from astrolabe.research_lab import cb12_m as m12  # noqa: PLC0415

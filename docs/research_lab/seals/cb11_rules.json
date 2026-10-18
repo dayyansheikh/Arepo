@@ -294,12 +294,14 @@
       "wiki_summary",
       "wiki_pageviews",
       "wiki_lag",
+      "wiki_lag_ceiling",
       "w_censor_window"
      ],
      "family_needs": {
       "A": [
        "wiki_summary",
        "wiki_pageviews",
+       "wiki_lag_ceiling",
        "data_api_reach"
       ],
       "P": [
@@ -341,6 +343,7 @@
      ],
      "price_life_days": 100,
      "version": "cb11-smoke-v1",
+     "wiki_ceiling_h": 72.0,
      "wiki_max_age_h": 48.0,
      "wiki_titles": [
       "Xi_Jinping",
@@ -614,7 +617,7 @@
     "cb11_common.stage2_k": "169245257dfb0ca45498b920039b67b5f297f22f23563a824462d5cd008d9602",
     "cb11_common.upstream_stall": "dd59ccd0444b512b862edeb0606efcb4df67f6c675f3e5c48d44664fd4831eea",
     "cb11_common.verify_holdout_seal": "bc82d0e02a895f4caa86c5e7615d06a731666273f645b24651b2526e8ec2baf5",
-    "cb11_smoke.declared": "526648d704c159db4a3976bda01d9fa8437aea75d14554282e560800b2a5be0e",
+    "cb11_smoke.declared": "06895e3cf8955f4ca48a0d510beec3dfbb98165a27eeb472c6cf1251637b33f3",
     "cb11_smoke.smoke_censor_window": "2621ddddd4b3b6d38dda613186831391f3d28a0af997906eba4c2171e0ded291",
     "cb11_smoke.smoke_data_api": "25fba99faaad8e93dacc73cdeba90b29980a8bd79352acad6bebb1c34787cc05",
     "cb11_smoke.smoke_failures": "7ab0a07c9ef04404ed41cedc15d84d5ecd3c35c224f2ed08c9beb2af146e94d6",
@@ -623,9 +626,9 @@
     "cb11_smoke.smoke_loader_fixture": "fda9077800071ea85a3e5bdffa90e2de3e6f5de83e5b5913755771dc035fd382",
     "cb11_smoke.smoke_long_life_picks": "586d3122fd9b8d4d3fcfd0bb3976bedab754f6f06eb9a5a4ef5c8209d6254587",
     "cb11_smoke.smoke_oov2": "6161b1c43f7bb56d9d176f087028a44b8df1117c35ac638081a4662c1c41f0f6",
-    "cb11_smoke.smoke_origin_lag_days": "ee9dae6e1713d5649e44706b5b97de6183cfe526187541443e2c2cd99d8fb1d3",
+    "cb11_smoke.smoke_origin_lag_days": "d1aa7689f6d7d8584762cfb0a262d812e2de806480878be4ca395527e9883501",
     "cb11_smoke.smoke_prices_history": "2c5627e74374bc4bd1de9c2bfe620fe94476042a7f54681905034a7a8e7d6665",
-    "cb11_smoke.smoke_wiki_lag": "d2bade5d17ab1c079dc147120053035f12cafee4ecb429ceb1ba6e639d17845f",
+    "cb11_smoke.smoke_wiki_lag": "66dcab137b540dddc78062f67f5348162f266475d1ce3a5df70ad2fbe7edca69",
     "cb11_smoke.smoke_wiki_summary": "a478caeefc8843d67df9c7d14e0ff0f301e4e8ea6d3f9e4630cd3909dfbe878a",
     "cb11_w._p_ok": "df5ba5566ccc7f268112119181c485b7f5562a3b63ba95faf442ad725f68147f",
     "cb11_w._stat_w2": "034d48b7244969de5b6c31bc479a1620e5e13e669bc2b6d89f4a4e9d21e47111",
@@ -698,10 +701,10 @@
     "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
     "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a"
    },
-   "funcs_sha256": "2734fc7bd2c7850f8fa848b79eb71e23ebb6cc684e7119e9a91839f0715cf05b",
+   "funcs_sha256": "7629a07d1cd18f37a2ae38514e06738052c798d203f9f57319027e8991e1bd0b",
    "part": "W",
    "part_declared": true,
-   "rules_sha256": "79176f41749cc0c3870b1e674b18439b81f12e4f514fc0a2b76b8c9efcd2d4b7",
+   "rules_sha256": "2d2bb1690aa0a5be4446466c0b617b5a31ece07db0d2f5eecf1b5aed1c7b8ae1",
    "rules_version": "cb11-rules-v2",
    "wallet": {
     "note": "no CB11 job reads or stores a wallet field (no HMAC key needed) or the side field",

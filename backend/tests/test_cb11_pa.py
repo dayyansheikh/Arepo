@@ -54,7 +54,7 @@ def _keys(tmp: Path, rows=(("1", "1", "99", "", ""),)) -> Path:
 
 def _smoke(tmp: Path, ok=True, doc_extra=None, **over) -> Path:
     p = tmp / "smoke.json"
-    crit = {k: ok for k in ("gamma_pol_paging", "prices_history", "data_api_reach", "wiki_summary", "wiki_pageviews", "wiki_lag")}
+    crit = {k: ok for k in ("gamma_pol_paging", "prices_history", "data_api_reach", "wiki_summary", "wiki_pageviews", "wiki_lag", "wiki_lag_ceiling")}
     crit.update(over)
     p.write_text(json.dumps({"smoke_version": c11.SMOKE_VERSION, "criteria": crit, **(doc_extra or {})}))
     return p
@@ -1029,12 +1029,16 @@ def test_wiki_lag_fail_alone_keeps_a_testable_with_72h_lag_and_x_plus_4d_origin(
     from astrolabe.research_lab import cb11_smoke as sm  # noqa: PLC0415
 
     assert "wiki_lag" not in sm.FAMILY_NEEDS["A"] and "wiki_pageviews" in sm.FAMILY_NEEDS["A"]
-    failed = _smoke(tmp_path, wiki_lag=False, doc_extra={"wiki_lag": {"source_ok": True, "pass": False}})
+    failed = _smoke(tmp_path, wiki_lag=False, doc_extra={"wiki_lag": {"source_ok": True, "ceiling_ok": True, "pass": False}})
     assert sm.smoke_failures(failed, sm.FAMILY_NEEDS["A"]) == [] and sm.smoke_origin_lag_days(failed) == 4
     (tmp_path / "o1").mkdir()
     (tmp_path / "o2").mkdir()
     assert sm.smoke_origin_lag_days(_smoke(tmp_path / "o1")) == 3
     assert sm.smoke_origin_lag_days(_smoke(tmp_path / "o2", wiki_lag=False, doc_extra={"wiki_lag": {"source_ok": False, "pass": False}})) == 3  # no data at all: not a lag finding
+    (tmp_path / "o3").mkdir()
+    over = _smoke(tmp_path / "o3", wiki_lag=False, wiki_lag_ceiling=False, doc_extra={"wiki_lag": {"source_ok": True, "ceiling_ok": False, "pass": False}})
+    assert sm.smoke_failures(over, sm.FAMILY_NEEDS["A"]) == ["wiki_lag_ceiling"]  # newest day older than 72 h: A is not testable (source)
+    assert sm.smoke_origin_lag_days(over) == 3
     w = AttnWorld()
     hist = tmp_path / "history"
     m = att.attn_frame(hist, w, w.wiki, rules_sha="r" * 64, smoke_path=failed, exclusion_keys_path=_keys(tmp_path), now=1.8e9, days=["2026-06-01", "2026-06-02"], data_dumps=None, **NOSLEEP)

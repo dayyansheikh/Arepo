@@ -1674,7 +1674,7 @@
     "cb12_m.screen_m": "950017a29e66d71f1d798570494fb27b40abab32e4ad24664fc3c04258e22885",
     "cb12_m.seal_rows": "190adef2167ca9c5f6abeaaa7032cd407a658d1a9365acd0d30307e25c3c1ecc",
     "cb12_m.smoke_offline": "de45096b39ad717834f8c6d3f71b8875fbaab29cbfc19144ed4f1077cd244bd6",
-    "cb12_m.smoke_online": "e9073ed123283eaebf80e5f7adbc5b63868781cd652afa245ebdc55aa3811634",
+    "cb12_m.smoke_online": "1cde67ec6df96adaf81bcf0f4ba986fb527e1ce2267d9fbd40512f409ed2955e",
     "cb12_m.speaker_key": "e422954647f24d1541694b24051665e02d16e2af322563b8b78500194f5b3938",
     "cb12_m.split_of": "09c0a3dce92c94fddf4f468101e3c06d56610a39ee1f918375fe3a480a2acef9",
     "cb12_m.sports_tag_keys": "df93662c23be9c2fbd6e6f02a4f85917cab27d201afbf7d3efe330b801948db3",
@@ -1682,10 +1682,10 @@
     "cb12_m.tx_rows_for": "3b7507517f47ecc88c8fe66433606734ca2d15447eb4c3ee0062b0f28f3c9df4",
     "cb12_m.walk_window": "5ba2be6009ba2358fee6fe4615c77561eadad90cc76c15c5dba917558762e817"
    },
-   "funcs_sha256": "52f65a4f8d14052c453291812c196c033c9ebd2dea93c1d470e832ef1f080bfd",
+   "funcs_sha256": "5de4661d34abfd4a04b3db924ba04d31abeaf0086edbb48ade5c34043813cd69",
    "part": "M",
    "part_declared": true,
-   "rules_sha256": "e3a3b4783ced27dc312b7b2b676dce7c23e9f0af0d3cd98a1c334ed58de61d32",
+   "rules_sha256": "a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455",
    "rules_version": "cb12-rules-v1",
    "wallet": {
     "note": "no CB12 job reads or stores a wallet field, a transaction hash, or the Data API side field",

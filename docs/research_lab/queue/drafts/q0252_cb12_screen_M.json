@@ -28,5 +28,5 @@
   "trials.jsonl (cb12_test + creative_batch_12:M n_tests=2)"
  ],
  "next_action": "advanced: commit q0256",
- "notes": "DRAFT. Refuses before the M entry of model_specs/cb12_v1.json is committed; counted with p = 1 if the census gate (GM, GMP, coverage) failed. Every line labelled 'L1, hindsight start time'. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M e3a3b4783ced27dc312b7b2b676dce7c23e9f0af0d3cd98a1c334ed58de61d32. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+ "notes": "DRAFT. Refuses before the M entry of model_specs/cb12_v1.json is committed; counted with p = 1 if the census gate (GM, GMP, coverage) failed. Every line labelled 'L1, hindsight start time'. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
 }
