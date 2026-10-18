@@ -12,7 +12,8 @@ import { EdgePipeline } from "./EdgePipeline";
 import { ExperimentExplorer } from "./ExperimentExplorer";
 import { MachineLearning } from "./MachineLearning";
 import { AutopilotCard, Controls, HostCard } from "./Machines";
-import { Dot, fmtCount, LabSection, Pill, Quiet } from "./primitives";
+import { LabTabs } from "./LabTabs";
+import { Dot, fmtCount, LabNotFound, LabSection, Pill, Quiet } from "./primitives";
 
 const HOST_STALE_S = 30 * 60; // host pushes every 10 min; spec: stale warning after 30 min
 const MAC_STALE_S = 75 * 60; // mac pushes every 30 min; allow two missed pushes plus slack
@@ -49,23 +50,6 @@ function Headline({ host }: { host: HostPayload }) {
         </div>
       ))}
     </dl>
-  );
-}
-
-/**
- * The API answers 404 to anyone signed in who is not the owner, so the page must look exactly like
- * any other missing page. Rendered inline (same words and layout as Next's default 404) because
- * calling notFound() from a client component after hydration has no boundary on this route and
- * crashes the page in production.
- */
-function LabNotFound() {
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center" data-testid="not-found">
-      <div className="flex items-center gap-5 text-arepo-ink">
-        <h1 className="border-r border-arepo-borderStrong pr-5 text-2xl font-medium">404</h1>
-        <h2 className="text-sm font-normal">This page could not be found.</h2>
-      </div>
-    </div>
   );
 }
 
@@ -128,6 +112,7 @@ export function LabDashboard() {
 
       {/* 1. Header */}
       <header className="lab-rise space-y-6">
+        <LabTabs current="research" />
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
           <div className="min-w-0">
             <p className="section-label flex items-center gap-2">

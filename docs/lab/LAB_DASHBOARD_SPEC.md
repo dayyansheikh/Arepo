@@ -102,3 +102,19 @@ Calm, visual, not overwhelming; progressive disclosure (details on click/expand)
 Polls `/api/lab/dashboard` every 60 s (pause polling when tab hidden). 401 → redirect to `/signin?next=/lab`;
 404 → standard not-found. Not linked from public navigation; `robots` noindex. Accessible, responsive, no horizontal
 overflow, respects reduced motion, light/dark as the site does.
+
+## Members (owner-only admin, `/lab/members`, added 2026-10-19)
+User request: in the Lab, see all members, control password resets, delete accounts, make them admin if needed.
+API `/api/lab/admin` (every endpoint uses the same `owner()` dependency: 401 signed out, 404 non-owner, Origin check):
+- `GET /users` → `{users: [{id, email, first_name, last_name, is_active, is_verified, is_superuser, created_at,
+  data: {alert_preferences, saved_markets, alert_deliveries, digest_deliveries}}], me}`. Never hashes or tokens.
+- `POST /users/{id}/password-reset` (fastapi-users `forgot_password`; member gets the normal reset email; 409 if
+  suspended), `POST /users/{id}/verification-email` (`request_verify`; 409 if already verified or suspended),
+  `POST /users/{id}/verify`, `POST /users/{id}/suspend|restore` (no self-suspend; revoke admin before suspending an
+  admin), `POST /users/{id}/admin {grant, confirm_email}` (grant only to active+verified; no self-revoke; never the
+  last effective admin), `DELETE /users/{id} {confirm_email}` (not self, not an admin; removes the user plus
+  alert_preferences, saved_markets, alert_deliveries, digest_deliveries, digest_entries in one transaction via the
+  existing `delete_account`, with an `account_deletions` hash row, reason `owner_admin`).
+- `GET /audit` → last 50 `lab_admin_audit` rows. Every successful mutation writes one row in the same transaction.
+- Rate limits per owner per rolling hour, counted from the audit log: 20 email actions, 60 actions in total (429).
+- Table `lab_admin_audit` (SCHEMA_VERSION 15, RLS on Postgres). `lab_commands.created_by` is left as written.

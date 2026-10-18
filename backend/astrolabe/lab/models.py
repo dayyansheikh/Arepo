@@ -37,3 +37,24 @@ class LabCommand(Base):
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     result: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class LabAdminAudit(Base):
+    """Append-only record of every owner action on a member account (Lab > Members).
+
+    Private: owner-only API, RLS enabled on Postgres. ``target_email`` is kept so a deleted
+    member's removal stays explainable to the owner; no passwords, hashes or tokens are stored.
+    """
+
+    __tablename__ = "lab_admin_audit"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, index=True
+    )
+    actor_user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    actor_email: Mapped[str] = mapped_column(String, nullable=False)
+    action: Mapped[str] = mapped_column(String, nullable=False)
+    target_user_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    target_email: Mapped[str | None] = mapped_column(String, nullable=True)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
