@@ -7,7 +7,10 @@ edge, calibration or profitability claim.
                                                                #        summary + pageview lag, closed=false window count, OOV2 pin attempt; counts only, WRITE-ONCE
     python scripts/run_cb11.py exclusion-keys ...              # q0221: h8_tail_b keys + every sampled set + seal copies + staged C1/T5 ids (resumable)
     python scripts/run_cb11.py w-frame | w-prints | w-censoring ...   # q0222 / q0223 / q0224
-    python scripts/run_cb11.py seal --family W|auto ...        # q0230 (W holdout prints); P and A families join with their commit
+    python scripts/run_cb11.py seal --family W|P|A|auto ...    # q0230 (W holdout prints, P and A holdouts)
+    python scripts/run_cb11.py rules-pa | freeze-part          # P/A rules file (seals/cb11_pa_rules.json) and the P/A freeze-part declaration
+    python scripts/run_cb11.py pol-frame | pol-prices | attn-frame | attn-data ...   # q0225 / q0226 / q0227 / q0229
+    python scripts/run_cb11.py census --family P,A             # q0239; screen / rep --family P|A  # q0233 / q0234 / q0236 / q0237
     python scripts/run_cb11.py census --family W               # q0231: counts only; gates GWC, GW, GW2; coverage audit; MDEs
     python scripts/run_cb11.py screen --family W               # q0232 (refuses before the CB11 W freeze)
     python scripts/run_cb11.py stage1-label                    # batch-Holm label over W1, W2, P1, P2, A1, A2 (k1 = 6; not run -> p = 1)
@@ -33,8 +36,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend"))
 
 REFUSED, TEMPFAIL, DISK_BUDGET = 2, 75, 4
-DECLARED_DISK_CAP_GB = {"exclusion-keys": 0.01, "w-frame": 0.02, "w-prints": 0.03, "w-censoring": 0.001}
-DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "w-prints": 2.0, "w-censoring": 2.0, "seal": 2.0}
+DECLARED_DISK_CAP_GB = {"exclusion-keys": 0.01, "w-frame": 0.02, "w-prints": 0.03, "w-censoring": 0.001, "pol-frame": 0.01, "pol-prices": 0.03, "attn-frame": 0.01, "attn-data": 0.12}
+DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "w-prints": 2.0, "w-censoring": 2.0, "seal": 2.0, "pol-frame": 2.0, "pol-prices": 2.0, "attn-frame": 2.0, "attn-data": 2.0}
+DECLARED_WIKI_RPS_MAX = 1.0
 
 
 def _emit(obj: dict) -> None:
@@ -83,6 +87,8 @@ def _hist(a) -> Path:
 
 def _declared(a, cmd: str) -> None:
     c11 = _c11()
+    if float(getattr(a, "wiki_rps", 0.0)) > DECLARED_WIKI_RPS_MAX + 1e-9:
+        raise c11.Refused(f"arguments differ from the declaration: wiki_rps={a.wiki_rps!r} > declared {DECLARED_WIKI_RPS_MAX!r}")
     want = DECLARED_DISK_CAP_GB.get(cmd)
     if want is not None and abs(float(getattr(a, "disk_cap_gb", want)) - want) > 1e-9:
         raise c11.Refused(f"arguments differ from the declaration: disk_cap_gb={a.disk_cap_gb!r} (declared {want!r})")
@@ -104,6 +110,25 @@ def _net_kw(a) -> dict:
 def _rules(a) -> str:
     c11 = _c11()
     return c11.verify_rules(Path(a.rules) if getattr(a, "rules", None) else None, require_committed=not getattr(a, "allow_uncommitted_rules", False))
+
+
+def _rules_pa(a) -> str:
+    """P and A commands verify the separate P/A rules file (``--pa-rules``), never the W rules file."""
+    from astrolabe.research_lab import cb11_pa as pa  # noqa: PLC0415
+
+    return pa.verify_pa_rules(Path(a.pa_rules) if getattr(a, "pa_rules", None) else None, require_committed=not getattr(a, "allow_uncommitted_rules", False))
+
+
+def _labels_path(a) -> Path:
+    from astrolabe.research_lab import cb11_a as att  # noqa: PLC0415
+
+    return Path(a.audit_labels) if getattr(a, "audit_labels", None) else _c11().SEALS_DIR / att.AUDIT_LABELS_NAME
+
+
+def _committed(a):
+    from astrolabe.research_lab import cb1_history  # noqa: PLC0415
+
+    return None if getattr(a, "allow_uncommitted_rules", False) else cb1_history.spec_committed
 
 
 def _result(m: dict) -> tuple[int, dict]:
@@ -138,6 +163,28 @@ def cmd_rules(a) -> int:
         _emit({"refused": str(exc)})
         return REFUSED
     _emit({"written": str(out), "rules_sha256": doc["rules_sha256"], "funcs_sha256": doc["funcs_sha256"]})
+    return 0
+
+
+def cmd_rules_pa(a) -> int:
+    from astrolabe.research_lab import cb11_pa as pa  # noqa: PLC0415
+
+    c11 = _c11()
+    try:
+        out = pa.write_pa_rules(Path(a.path) if a.path else None)
+        doc = pa.pa_rules_file_doc()
+    except c11.Refused as exc:
+        _emit({"refused": str(exc)})
+        return REFUSED
+    _emit({"written": str(out), "rules_sha256": doc["rules_sha256"], "funcs_sha256": doc["funcs_sha256"]})
+    return 0
+
+
+def cmd_freeze_part(a) -> int:
+    """Print the P/A freeze part (what ``model_specs/cb11_v1.json`` must carry under 'PA'); writes nothing."""
+    from astrolabe.research_lab import cb11_pa as pa  # noqa: PLC0415
+
+    _emit({"part": "PA", "declaration": pa.freeze_part_pa()})
     return 0
 
 
@@ -281,6 +328,56 @@ def cmd_w_censoring(a):
     return _result(m)
 
 
+# ---- q0225 - q0229 P and A data ---------------------------------------------------------------------------------------------------------------
+
+
+@_guarded
+def cmd_pol_frame(a):
+    from astrolabe.research_lab import cb11_p as pol  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    _declared(a, "pol-frame")
+    sha = _rules_pa(a)
+    m = pol.pol_frame(_hist(a), hb.httpx_transport(), rules_sha=sha, smoke_path=_smoke_path(a), exclusion_keys_path=_keys_path(a), now=time.time(),
+                      external_dir=Path(a.external_dir) if a.external_dir else None, disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
+    return _result(m)
+
+
+@_guarded
+def cmd_pol_prices(a):
+    from astrolabe.research_lab import cb11_p as pol  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    _declared(a, "pol-prices")
+    sha = _rules_pa(a)
+    m = pol.pol_prices(_hist(a), hb.httpx_transport(), rules_sha=sha, now=time.time(), smoke_path=_smoke_path(a), disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
+    return _result(m)
+
+
+@_guarded
+def cmd_attn_frame(a):
+    from astrolabe.research_lab import cb11_a as att  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    _declared(a, "attn-frame")
+    sha = _rules_pa(a)
+    m = att.attn_frame(_hist(a), hb.httpx_transport(), _wiki_transport(a), rules_sha=sha, smoke_path=_smoke_path(a), exclusion_keys_path=_keys_path(a), now=time.time(),
+                       wiki_rps=a.wiki_rps, disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
+    return _result(m)
+
+
+@_guarded
+def cmd_attn_data(a):
+    from astrolabe.research_lab import cb11_a as att  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    _declared(a, "attn-data")
+    sha = _rules_pa(a)
+    m = att.attn_data(_hist(a), hb.httpx_transport(), _wiki_transport(a), rules_sha=sha, now=time.time(), labels_path=_labels_path(a), is_committed=_committed(a),
+                      smoke_path=_smoke_path(a), wiki_rps=a.wiki_rps, disk_cap=int(a.disk_cap_gb * 1024**3), **_net_kw(a))
+    return _result(m)
+
+
 # ---- q0230 seal --------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -308,7 +405,30 @@ def seal_w(a) -> dict:
                             is_committed=None if a.allow_uncommitted_rules else cb1_history.spec_committed)
 
 
-SEAL_FAMILIES = {"W": seal_w}
+def _seal_pa(a, fam: str) -> dict:
+    from astrolabe.research_lab import cb11_a as att  # noqa: PLC0415
+    from astrolabe.research_lab import cb11_p as pol  # noqa: PLC0415
+    from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
+
+    c11 = _c11()
+    mod, status = (pol, pol.PRICES_STATUS) if fam == "P" else (att, att.DATA_STATUS)
+    rdir = _hist(a) / mod.RUN
+    if not c11.stall_of(rdir) and not c11.manifest_complete(rdir, (status,)):
+        raise c11.NotNow(f"{rdir.name} is not finished yet; pending")  # before any rules read: W must still seal when P/A have not run
+    sha = _rules_pa(a)
+    return c11.seal_holdout(rdir, family="pol" if fam == "P" else "attn", statuses=(status,), copy_name=mod.SEAL_COPY_NAME, rows=mod.seal_rows(rdir), rules_sha=sha, transport=hb.httpx_transport(),
+                            seals_dir=Path(a.seals_dir) if a.seals_dir else None, rps=a.rps, live_check=None if a.standalone else hb.live_pass_or_lock, is_committed=_committed(a))
+
+
+def seal_p(a) -> dict:
+    return _seal_pa(a, "P")
+
+
+def seal_a(a) -> dict:
+    return _seal_pa(a, "A")
+
+
+SEAL_FAMILIES = {"W": seal_w, "P": seal_p, "A": seal_a}
 
 
 @_guarded
@@ -361,6 +481,23 @@ def census_w_block(a) -> dict:
     return w.census_w(wdir, hist, censoring, w.coverage_audit(pdir, wdir))
 
 
+def census_pa_block(a, fam: str) -> dict:
+    from astrolabe.research_lab import cb11_a as att  # noqa: PLC0415
+    from astrolabe.research_lab import cb11_p as pol  # noqa: PLC0415
+
+    c11 = _c11()
+    _rules_pa(a)
+    mod, status = (pol, pol.PRICES_STATUS) if fam == "P" else (att, att.DATA_STATUS)
+    rdir = _hist(a) / mod.RUN
+    labs = ("label_P1", "label_P2") if fam == "P" else ("label_A1", "label_A2")
+    st = c11.stall_of(rdir)
+    if st:
+        return {"status": "stalled", "stall": st, **dict.fromkeys(labs, st.get("label"))}
+    c11.require_complete(rdir, (status,), f"{mod.RUN} fetch")
+    c11.verify_holdout_seal(rdir, mod.SEAL_COPY_NAME, Path(a.seals_dir) if getattr(a, "seals_dir", None) else None)
+    return pol.census_p(rdir) if fam == "P" else att.census_a(rdir, _labels_path(a), is_committed=_committed(a))
+
+
 @_guarded
 def cmd_census(a):
     from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
@@ -376,6 +513,14 @@ def cmd_census(a):
         cm.write_once_json(out, doc)
         c11.log_descriptive("census_W", {"census_sha256": cm.sha_obj(doc), "path": str(out)}, trials_path=_tp(a))
         return 0, {"status": "census_complete", "written": str(out), "label_W1": doc["W"].get("label_W1"), "label_W2": doc["W"].get("label_W2")}
+    if fam == ["P", "A"]:
+        out = Path(a.out) if a.out else root / "census_PA.json"
+        if out.exists():
+            raise c11.Refused(f"{out} exists; the census is written once")
+        doc = {"version": "cb11-census-PA-v1", "counts_only": True, "P": census_pa_block(a, "P"), "A": census_pa_block(a, "A")}
+        cm.write_once_json(out, doc)
+        c11.log_descriptive("census_PA", {"census_sha256": cm.sha_obj(doc), "path": str(out)}, trials_path=_tp(a))
+        return 0, {"status": "census_complete", "written": str(out), "label_P1": doc["P"].get("label_P1"), "label_A1": doc["A"].get("label_A1")}
     raise c11.Refused(f"census family {a.family!r} is not implemented in this runner")
 
 
@@ -391,8 +536,8 @@ def cmd_screen(a):
     from astrolabe.research_lab import cb11_w as w  # noqa: PLC0415
 
     c11 = _c11()
-    if a.family != "W":
-        raise c11.Refused(f"screen family {a.family!r} is not implemented in this runner")
+    if a.family in ("P", "A"):
+        return screen_pa(a)
     c11.require_freeze("W", Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
     sha = _rules(a)
     root, hist = _root(a), _hist(a)
@@ -411,6 +556,72 @@ def cmd_screen(a):
         c11.log_test("W", tid, {**_w_effect(r), "effect": eff}, trials_path=_tp(a), results_sha256=rsha,
                      placebo={"note": "W1 category x month target permutation", "advance_rate": pl.get("advance_rate"), "n_draws": pl.get("n_draws")} if pl else None)
     return 0, {"status": "screen_W_complete", **{t: {k: doc[t].get(k) for k in ("p", "advance", "verdict")} for t in ("W1", "W2")}}
+
+
+def _pa_mod(fam: str):
+    from astrolabe.research_lab import cb11_a as att  # noqa: PLC0415
+    from astrolabe.research_lab import cb11_p as pol  # noqa: PLC0415
+
+    return (pol, pol.PRICES_STATUS, ("P1", "P2")) if fam == "P" else (att, att.DATA_STATUS, ("A1", "A2"))
+
+
+def screen_pa(a) -> tuple[int, dict]:
+    from astrolabe.research_lab import cb11_pa as pa  # noqa: PLC0415
+
+    c11 = _c11()
+    fam = a.family
+    pa.require_freeze_pa(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
+    sha = _rules_pa(a)
+    root, hist = _root(a), _hist(a)
+    mod, status, tids = _pa_mod(fam)
+    cpath = Path(a.census) if a.census else root / "census_PA.json"
+    if not cpath.exists():
+        raise c11.NotNow("census_PA.json missing (q0239 first)")
+    census = json.loads(cpath.read_text())
+    rdir = hist / mod.RUN
+    if not c11.stall_of(rdir):
+        c11.require_complete(rdir, (status,), f"{mod.RUN} fetch")
+    doc = {**(mod.screen_p(rdir, census) if fam == "P" else mod.screen_a(rdir, census)), "rules_sha256": sha, "written_epoch": time.time()}
+    rsha = c11.write_results_once(Path(a.out) if a.out else root / f"results_{fam}.json", doc)
+    for tid in tids:
+        r = doc[tid]
+        pl = r.get("placebo")
+        c11.log_test(fam, tid, {**_w_effect(r), "effect": r.get("effect")}, trials_path=_tp(a), results_sha256=rsha,
+                     placebo={"note": f"{tid} binding placebo", "advance_rate": pl.get("advance_rate"), "n_draws": pl.get("n_draws")} if pl else None)
+    return 0, {"status": f"screen_{fam}_complete", **{t: {k: doc[t].get(k) for k in ("p", "advance", "verdict")} for t in tids}}
+
+
+def rep_pa(a) -> tuple[int, dict]:
+    from astrolabe.research_lab import cb11_pa as pa  # noqa: PLC0415
+
+    c11 = _c11()
+    fam = a.family
+    pa.require_freeze_pa(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
+    sha = _rules_pa(a)
+    root, hist = _root(a), _hist(a)
+    mod, _status, tids = _pa_mod(fam)
+    k = pa.stage2_k_pa(root, a.stage2_k)  # no reliance on the W results coupling: --stage2-k is explicit unless all three Stage-1 files exist
+    rp = root / f"results_{fam}.json"
+    if not rp.exists():
+        raise c11.NotNow(f"{rp.name} missing: Stage 1 first")
+    res = json.loads(rp.read_text())
+    adv = tuple(t for t in tids if (res.get(t) or {}).get("advance") is True)
+    if not adv:
+        raise c11.Refused(f"none of {tids} advanced: there is no {fam} Stage 2")
+    if not a.results_sha256:
+        raise c11.Refused(f"--results-sha256 is required for the {fam} replication (pin the committed Stage-1 results_{fam}.json before the HOLDOUT is opened)")
+    if hashlib.sha256(rp.read_bytes()).hexdigest() != a.results_sha256.lower():
+        raise c11.Refused(f"results_{fam}.json sha256 differs from --results-sha256: the HOLDOUT stays closed")
+    census = json.loads((root / "census_PA.json").read_text())
+    sd = Path(a.seals_dir) if a.seals_dir else None
+    body = mod.rep_p(hist / mod.RUN, census, adv, k, seals_dir=sd) if fam == "P" else mod.rep_a(hist / mod.RUN, census, adv, k, seals_dir=sd)
+    doc = {**body, "rules_sha256": sha, "stage2_k": k}
+    rsha = c11.write_results_once(Path(a.out) if a.out else root / f"results_{fam}_rep.json", doc)
+    for t in adv:
+        r = doc[f"{t}_rep"]
+        c11.log_test(fam, f"{t}-rep", {"p": r.get("p", 1.0), "advance": r.get("stage2_pass_alpha_over_k"), "testable": r.get("testable"), "effect": r.get("effect"),
+                                      "n": r.get("n"), "verdict": r.get("verdict")}, replication=True, trials_path=_tp(a), results_sha256=rsha)
+    return 0, {"status": f"rep_{fam}_complete", "tests": list(adv)}
 
 
 @_guarded
@@ -436,8 +647,8 @@ def cmd_rep(a):
     from astrolabe.research_lab import cb11_w as w  # noqa: PLC0415
 
     c11 = _c11()
-    if a.family != "W":
-        raise c11.Refused(f"rep family {a.family!r} is not implemented in this runner")
+    if a.family in ("P", "A"):
+        return rep_pa(a)
     c11.require_freeze("W", Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
     sha = _rules(a)
     root, hist = _root(a), _hist(a)
@@ -480,6 +691,7 @@ def build_parser() -> argparse.ArgumentParser:
         q.add_argument("--standalone", action="store_true", help="no collector yield / health check (tests, off-host)")
         q.add_argument("--allow-uncommitted-rules", action="store_true")
         q.add_argument("--trials-path", default=None)
+        q.add_argument("--pa-rules", default=None, help="P/A rules file (default seals/cb11_pa_rules.json); P and A commands verify it, never --rules")
 
     def net(q: argparse.ArgumentParser, *, disk_cap: float) -> None:
         q.add_argument("--data-dumps", default=None)
@@ -491,6 +703,13 @@ def build_parser() -> argparse.ArgumentParser:
     q = sub.add_parser("rules")
     q.add_argument("--path", default=None)
     q.set_defaults(fn=cmd_rules)
+
+    q = sub.add_parser("rules-pa", help="write seals/cb11_pa_rules.json (commit before q0225)")
+    q.add_argument("--path", default=None)
+    q.set_defaults(fn=cmd_rules_pa)
+
+    q = sub.add_parser("freeze-part", help="print the P/A part of the CB11 freeze spec")
+    q.set_defaults(fn=cmd_freeze_part)
 
     q = sub.add_parser("smoke", help="q0220")
     common(q, rps=1.0)
@@ -526,15 +745,46 @@ def build_parser() -> argparse.ArgumentParser:
     net(q, disk_cap=0.001)
     q.set_defaults(fn=cmd_w_censoring)
 
+    q = sub.add_parser("pol-frame", help="q0225")
+    common(q)
+    net(q, disk_cap=0.01)
+    q.add_argument("--smoke", default=None)
+    q.add_argument("--exclusion-keys", default=None)
+    q.add_argument("--external-dir", default=None, help="staged C1 / T5 id lists (default creative_batch11/external_ids)")
+    q.set_defaults(fn=cmd_pol_frame)
+
+    q = sub.add_parser("pol-prices", help="q0226")
+    common(q)
+    net(q, disk_cap=0.03)
+    q.add_argument("--smoke", default=None)
+    q.set_defaults(fn=cmd_pol_prices)
+
+    q = sub.add_parser("attn-frame", help="q0227")
+    common(q)
+    net(q, disk_cap=0.01)
+    q.add_argument("--smoke", default=None)
+    q.add_argument("--exclusion-keys", default=None)
+    q.add_argument("--wiki-rps", type=float, default=1.0)
+    q.set_defaults(fn=cmd_attn_frame)
+
+    q = sub.add_parser("attn-data", help="q0229")
+    common(q)
+    net(q, disk_cap=0.12)
+    q.add_argument("--smoke", default=None)
+    q.add_argument("--wiki-rps", type=float, default=1.0)
+    q.add_argument("--audit-labels", default=None, help="committed blind audit labels (default seals/cb11_attn_audit_labels.csv)")
+    q.set_defaults(fn=cmd_attn_data)
+
     q = sub.add_parser("seal", help="q0230")
     common(q)
-    q.add_argument("--family", default="auto", help="W | auto (P and A join with their commit)")
+    q.add_argument("--family", default="auto", help="W | P | A | auto (all three; a family still fetching is pending)")
     q.add_argument("--seals-dir", default=None)
     q.set_defaults(fn=cmd_seal)
 
     q = sub.add_parser("census", help="q0231 (W)")
     common(q)
-    q.add_argument("--family", required=True, help="W (P,A join with their commit)")
+    q.add_argument("--family", required=True, help="W | P,A")
+    q.add_argument("--audit-labels", default=None)
     q.add_argument("--out", default=None)
     q.add_argument("--seals-dir", default=None)
     q.set_defaults(fn=cmd_census)
@@ -559,6 +809,7 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--seals-dir", default=None)
     q.add_argument("--stage2-k", type=int, default=None)
     q.add_argument("--w-results-sha256", default=None, help="W family: pinned sha256 of the committed Stage-1 results_W.json (required)")
+    q.add_argument("--results-sha256", default=None, help="P / A family: pinned sha256 of the committed Stage-1 results_<family>.json (required)")
     q.set_defaults(fn=cmd_rep)
     return ap
 

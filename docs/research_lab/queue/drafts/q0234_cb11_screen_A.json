@@ -1,0 +1,34 @@
+{
+ "id": "q0234_cb11_screen_A",
+ "title": "CB11-A: A1 (quiet minus spike continuation; p = max over event, day X and 3-day blocks of t; label-swap placebo; lagged-attention attribution; causal-volume robustness) and A2 (taker follow in quiet big moves, declared costs) on SCREEN events",
+ "family": "creative_batch_11",
+ "priority": 25,
+ "expected_value": "A verdicts",
+ "data": [
+  "history/h11_attn/screen"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0239_cb11_census_PA"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "screen",
+  "--family",
+  "A",
+  "--pa-rules",
+  "../docs/research_lab/seals/cb11_pa_rules.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch11/results_A.json",
+  "trials.jsonl (cb11_test + creative_batch_11:A)"
+ ],
+ "next_action": "advanced: commit q0237",
+ "notes": "DRAFT-REVISED round 1 (items 9, 10). Refuses to open holdout/; refuses unless GA0, GA and the A coverage audit passed (else counted lines). Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first."
+}

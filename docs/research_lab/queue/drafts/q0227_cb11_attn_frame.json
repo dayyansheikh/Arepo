@@ -1,0 +1,44 @@
+{
+ "id": "q0227_cb11_attn_frame",
+ "title": "CB11-A: Gamma frame (closed binary, scheduled end [2026-04-20,2026-10-01), life overlap >= 10 d, NO volume filter in the walk, vol_ok stored, not sports/crypto/weather/Pyth/ladders/Up-Down, full key drops, <= 3 per event), frozen entity rule + Wikipedia page/summary type (standard only, canonical title, description), seeded 3,000 vol_ok markets + 1,000 non-vol_ok robustness stratum, event split SCREEN/HOLDOUT (arepo-cb11-attn-split), seeded 200-pair audit file",
+ "family": "creative_batch_11",
+ "priority": 26,
+ "expected_value": "A population, entity map, audit file",
+ "data": [
+  "public Gamma",
+  "Wikipedia REST page/summary",
+  "creative_batch11/exclusion_keys.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, en.wikipedia.org"
+ },
+ "depends_on": [
+  "q0221_cb11_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "attn-frame",
+  "--rps",
+  "2",
+  "--wiki-rps",
+  "1",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40",
+  "--pa-rules",
+  "../docs/research_lab/seals/cb11_pa_rules.json",
+  "--budget-min",
+  "80"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 2,
+ "outputs": [
+  "history/h11_attn/{frame.csv.gz,entities.csv.gz,split.json,audit_sample.csv,manifest.json}"
+ ],
+ "next_action": "commit audit_sample.csv; science-reviewer blind labels committed; then q0229",
+ "notes": "DRAFT-REVISED round 1 (item 10). No pageview or print read before the split and the audit file exist. Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first."
+}

@@ -49,7 +49,7 @@ def test_parser_has_every_subcommand_and_parses_each():
 def test_defaults_and_declared_caps():
     a = run_cb11.build_parser().parse_args(["w-frame"])
     assert a.data_dumps_cap_gb == 40.0 == c11.DATA_DUMPS_CAP_GB and a.disk_cap_gb == 0.02 and a.rps == 2.0
-    assert run_cb11.DECLARED_DISK_CAP_GB == {"exclusion-keys": 0.01, "w-frame": 0.02, "w-prints": 0.03, "w-censoring": 0.001}
+    assert {k: v for k, v in run_cb11.DECLARED_DISK_CAP_GB.items() if k in ("exclusion-keys", "w-frame", "w-prints", "w-censoring")} == {"exclusion-keys": 0.01, "w-frame": 0.02, "w-prints": 0.03, "w-censoring": 0.001}
     assert c11.TOTAL_OUTPUT_CAP_GB == 0.25 and c11.FREE_DISK_MIN_GB == 4.5
 
 
@@ -98,16 +98,16 @@ def test_screen_refuses_without_census_after_freeze(tmp_path, capsys, rules_file
     assert code == 75  # census_W.json missing: pending
 
 
-def test_p_and_a_subcommands_refuse_with_a_message(tmp_path, capsys, rules_file):
+def test_p_and_a_subcommands_refuse_without_their_own_declaration_and_rules(tmp_path, capsys, rules_file):
     base = ["--rules", rules_file.as_posix(), "--allow-uncommitted-rules", "--standalone", "--root", (tmp_path / "creative_batch11").as_posix()]
     spec = tmp_path / "spec.json"
     spec.write_text(json.dumps({"W": {}, "PA": {}}))
     for fam in ("P", "A"):
         for cmd in ("screen", "rep"):
             code, out = _run([cmd, "--family", fam, *base, "--freeze-spec", spec.as_posix()], capsys)
-            assert code == 2 and "not implemented" in out["refused"]
+            assert code == 2 and "declaration_sha256" in out["refused"]  # P/A freeze part must carry this code's declaration
     code, out = _run(["census", "--family", "P,A", *base], capsys)
-    assert code == 2 and "not implemented" in out["refused"]
+    assert code == 2 and "P/A rules file" in out["refused"]
 
 
 def test_seal_auto_seals_w_and_is_pending_for_unfetched_families(tmp_path, capsys, rules_file):
@@ -116,7 +116,7 @@ def test_seal_auto_seals_w_and_is_pending_for_unfetched_families(tmp_path, capsy
     code, out = _run(["seal", "--family", "auto", *base], capsys)
     assert code == 75 and "pending" in out["science"]  # W prints not fetched: pending (no trials line)
     code, out = _run(["seal", "--family", "P", *base], capsys)
-    assert code == 2 and "not implemented" in out["refused"]
+    assert code == 75 and "pending" in out["science"]  # P not fetched: pending before any rules read
 
 
 def test_census_refuses_incomplete_manifest(tmp_path, capsys, rules_file):

@@ -1,0 +1,49 @@
+{
+ "id": "q0229_cb11_attn_data",
+ "title": "CB11-A: daily pageviews per canonical title [2026-01-01, 2026-10-01) (all-access/user, <= 1 rps); Data API newest-first prints (<= 2 pages) for 4,000 markets aggregated to transactions in [2026-04-01, 2026-10-01); covered span; HOLDOUT to holdout/",
+ "family": "creative_batch_11",
+ "priority": 26,
+ "expected_value": "A1/A2 inputs incl. causal pre-X volume",
+ "data": [
+  "Wikimedia pageviews REST",
+  "public Data API",
+  "history/h11_attn/frame.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "wikimedia.org, data-api"
+ },
+ "depends_on": [
+  "q0227_cb11_attn_frame"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "attn-data",
+  "--rps",
+  "2",
+  "--wiki-rps",
+  "1",
+  "--disk-cap-gb",
+  "0.12",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "110",
+  "--pa-rules",
+  "../docs/research_lab/seals/cb11_pa_rules.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 2,
+ "outputs": [
+  "history/h11_attn/{screen,holdout}/{pageviews.csv.gz,tx.csv.gz}",
+  "manifest.json"
+ ],
+ "next_action": "q0230",
+ "notes": "DRAFT-REVISED round 1 (items 9, 10, 11: <= 11,000 requests). Refuses unless the committed audit labels exist. Missing pageview days stored as absent, never filled. No side, wallet or hash stored. Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first.",
+ "repeat": {
+  "max_runs": 3,
+  "until_log_regex": "\"status\": \"attn_data_complete\""
+ }
+}

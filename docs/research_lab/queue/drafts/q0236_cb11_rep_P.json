@@ -1,0 +1,34 @@
+{
+ "id": "q0236_cb11_rep_P",
+ "title": "CB11-P: P1-rep and/or P2-rep on sealed HOLDOUT ends [2026-01-01,2026-09-01) (label 'possibly touched holdout (L1)' if the C1/T5 ids were absent)",
+ "family": "creative_batch_11",
+ "priority": 25,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "history/h11_pol/holdout"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0233_cb11_screen_P"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "rep",
+  "--family",
+  "P",
+  "--pa-rules",
+  "../docs/research_lab/seals/cb11_pa_rules.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch11/results_P_rep.json",
+  "trials.jsonl (cb11_replication)"
+ ],
+ "next_action": "pass: Stage P-P registration draft",
+ "notes": "DRAFT-REVISED round 1 (item 5). Add --results-sha256 <sha256 of the committed results_P.json> and --stage2-k <k> when committing (the Holm k is fixed when the last Stage-1 result is final; not coupled to the W results). Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first."
+}
