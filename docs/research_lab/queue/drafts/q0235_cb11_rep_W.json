@@ -1,0 +1,37 @@
+{
+ "id": "q0235_cb11_rep_W",
+ "title": "CB11-W: W1-rep (refit on ends [2025-10-01,2026-06-09)) and/or W2-rep on sealed W_hold; GWC on W_hold must pass",
+ "family": "creative_batch_11",
+ "priority": 25,
+ "expected_value": "L2 verdicts",
+ "data": [
+  "creative_batch11/w (W_hold rows)",
+  "history/h11_wprints/holdout"
+ ],
+ "resources": {
+  "mem_mb": 900,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0232_cb11_screen_W"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "rep",
+  "--family",
+  "W",
+  "--rules",
+  "../docs/research_lab/seals/cb11_rules.json",
+  "--w-results-sha256",
+  "<SHA256 OF THE COMMITTED results_W.json: fill before queueing>"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch11/results_W_rep.json",
+  "trials.jsonl (cb11_replication)"
+ ],
+ "next_action": "pass: Stage P-W registration draft",
+ "notes": "DRAFT-REVISED round 1. Only for advanced tests; verifies the seal hashes first. The --w-results-sha256 placeholder must be replaced by the sha256 of the committed results_W.json; --stage2-k is derived and needs results_P.json and results_A.json (all three Stage-1 results final) or the job is pending. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 577f5c4a69375d8942792f2e0f8daa5af1196031ab0be6e9ce0e4ec52d4e39ca."
+}

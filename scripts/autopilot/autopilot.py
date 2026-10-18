@@ -124,13 +124,17 @@ def parse_reset(text: str) -> datetime | None:
     return cand.astimezone(timezone.utc) + timedelta(minutes=2)
 
 
+TRANSIENT = "transient: "
+TRANSIENT_PAUSE_AFTER = 3  # consecutive transient preflight failures (ticks are 30 min apart) before pausing
+
+
 def preflight(env: dict) -> str | None:
     try:
         out = subprocess.run([CLAUDE, "auth", "status"], capture_output=True, text=True, timeout=60, env=env,
                              check=False)
         info = json.loads(out.stdout)
-    except Exception as e:  # noqa: BLE001
-        return f"auth status failed: {type(e).__name__}: {e}"
+    except Exception as e:  # noqa: BLE001 - transient (slow start after an OS update, no network): see tick()
+        return f"{TRANSIENT}auth status failed: {type(e).__name__}: {e}"
     if not info.get("loggedIn"):
         return "not logged in"
     if info.get("authMethod") not in ("claude.ai", "oauth_token"):
@@ -153,6 +157,13 @@ def tick(prompt_override: str | None) -> int:
     env = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
     env["PATH"] = f"{Path(CLAUDE).parent}:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin"
     err = preflight(env)
+    if err and err.startswith(TRANSIENT):  # skip this tick; pause only if it keeps failing
+        st["preflight_transient"] = st.get("preflight_transient", 0) + 1
+        save(st)
+        record({"at": iso(now()), "outcome": "preflight_transient", "detail": err,
+                "consecutive": st["preflight_transient"]})
+        if st["preflight_transient"] < TRANSIENT_PAUSE_AFTER:
+            return 0
     if err:
         (HOME / "PAUSE").write_text(f"{iso(now())} auto-paused: {err}\n")
         record({"at": iso(now()), "outcome": "auth_error", "detail": err})
@@ -168,7 +179,7 @@ def tick(prompt_override: str | None) -> int:
                                  *PERMISSION_ARGS],
                                 cwd=str(REPO), stdout=fh, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                 env=env, start_new_session=True)
-        st.update(running_pid=proc.pid, started_at=iso(now()), log=str(log))
+        st.update(running_pid=proc.pid, started_at=iso(now()), log=str(log), preflight_transient=0)
         save(st)
         try:
             rc = proc.wait(timeout=TIMEOUT_S)

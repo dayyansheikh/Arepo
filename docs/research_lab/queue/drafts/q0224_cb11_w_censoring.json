@@ -1,0 +1,39 @@
+{
+ "id": "q0224_cb11_w_censoring",
+ "title": "CB11-W: right-censoring count, one Gamma closed=false query per seeded frame window (300) with the window's end_date bounds; censored share per window set for gate GWC (> 2% -> W not testable (censoring))",
+ "family": "creative_batch_11",
+ "priority": 28,
+ "expected_value": "gate GWC",
+ "data": [
+  "public Gamma",
+  "creative_batch11/w/censor_windows.csv"
+ ],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0222_cb11_w_frame"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "w-censoring",
+  "--rules",
+  "../docs/research_lab/seals/cb11_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.001",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 900,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch11/w/censoring.json"
+ ],
+ "next_action": "q0231",
+ "notes": "DRAFT, new in round 1 (item 2). Counts only; no market field beyond ids and endDate stored. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 577f5c4a69375d8942792f2e0f8daa5af1196031ab0be6e9ce0e4ec52d4e39ca."
+}

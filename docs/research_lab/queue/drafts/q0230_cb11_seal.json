@@ -1,0 +1,39 @@
+{
+ "id": "q0230_cb11_seal",
+ "title": "CB11: HOLDOUT listings sha256 for W2 prints, P and A (per family, as each fetch completes); seal-time drops vs seal copies committed by now; seal copies seals/cb11_{wprints,pol,attn}_holdout_SEAL.json",
+ "family": "creative_batch_11",
+ "priority": 26,
+ "expected_value": "sealed holdouts",
+ "data": [
+  "history/h11_wprints/holdout/",
+  "history/h11_pol/holdout/",
+  "history/h11_attn/holdout/"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0223_cb11_w_prints"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "seal",
+  "--rules",
+  "../docs/research_lab/seals/cb11_rules.json",
+  "--family",
+  "auto"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch11/holdout_SEAL_<family>.json"
+ ],
+ "next_action": "commit the seal copies; q0231 (W) / q0239 (P, A)",
+ "notes": "DRAFT-REVISED round 1. Seals each family whose fetch manifest is complete; exits 75 (pending) for families still fetching and re-runs. Sealed files never edited; drops recorded as DROPPED_* blocks. Implemented family: W (wprints holdout). P and A are not implemented in the runner (refused). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 577f5c4a69375d8942792f2e0f8daa5af1196031ab0be6e9ce0e4ec52d4e39ca.",
+ "repeat": {
+  "max_runs": 6,
+  "until_log_regex": "\"status\": \"seal_all_complete\""
+ }
+}

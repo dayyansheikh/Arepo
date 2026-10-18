@@ -1,0 +1,36 @@
+{
+ "id": "q0220_cb11_smoke",
+ "title": "CB11: smoke (frame sha256 and column whitelist; W loader refusal and guarded outcome_prices/uma_status fixture; Gamma tag_id=2 paging on 2 out-of-window weeks; prices-history over [end-97d, end-90d] on 2 out-of-window markets; Data API newest-first reach on 2 out-of-window markets; Wikipedia summary type on 3 fixed articles; pageviews last-published-day <= 48 h; Gamma closed=false count on 1 frame window; Managed OOV2 address pin attempt); counts only",
+ "family": "creative_batch_11",
+ "priority": 29,
+ "expected_value": "go/no-go for every CB11 source",
+ "data": [
+  "history/h2_main/frame.csv.gz",
+  "history/h3_power/frame.csv.gz",
+  "public Gamma, CLOB prices-history, Data API",
+  "Wikipedia REST, Wikimedia pageviews"
+ ],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "gamma-api, clob, data-api, en.wikipedia.org, wikimedia.org, polygon rpc"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb11.py",
+  "smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb11_rules.json",
+  "--rps",
+  "1"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch11/smoke.json",
+  "trials.jsonl (cb11_descriptive)"
+ ],
+ "next_action": "PASS: q0221; FAIL: dependent family not testable (source), counted",
+ "notes": "CREATIVE_BATCH_11.md CB11-F. DRAFT-REVISED round 1. <= 40 requests. Prints counts only. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 577f5c4a69375d8942792f2e0f8daa5af1196031ab0be6e9ce0e4ec52d4e39ca."
+}

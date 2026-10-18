@@ -1,0 +1,652 @@
+{
+ "common": {
+  "counting": {
+   "count_line": "ml_explain, source creative_batch_11:<W|P|A>, n_tests = 1 per test",
+   "exit_75": "pending: no trials line",
+   "kinds": [
+    "cb11_test",
+    "cb11_replication",
+    "cb11_descriptive"
+   ],
+   "not_testable": "counted with p = 1",
+   "stage2_tests_per_advance": 1
+  },
+  "disk": {
+   "data_dumps_cap_gb": 40.0,
+   "exit_75": "pending (never 'not run')",
+   "free_disk_min_gb": 4.5,
+   "total_output_cap_gb": 0.25
+  },
+  "exclusion": {
+   "base": "h8_tail_b key file (sha256 pinned)",
+   "cb8_frame_glob": "*/frame.csv.gz",
+   "external_id_files": [
+    "c1_sample_ids.csv.gz",
+    "t5_frame_ids.csv.gz"
+   ],
+   "id_sources": [
+    [
+     "h1_first",
+     "sample.csv.gz"
+    ],
+    [
+     "h2_main",
+     "sample.csv.gz"
+    ],
+    [
+     "h3_power",
+     "sample.csv.gz"
+    ],
+    [
+     "h5_cb1",
+     "sample.csv.gz"
+    ],
+    [
+     "h5_cb1_ladders",
+     "events.jsonl.gz"
+    ],
+    [
+     "h6_weather",
+     "events.jsonl.gz"
+    ],
+    [
+     "h7_cb4_era",
+     "frame.csv.gz"
+    ],
+    [
+     "h7_cb4_series",
+     "walk_events.jsonl.gz"
+    ],
+    [
+     "h8_tail",
+     "sample.csv.gz"
+    ],
+    [
+     "h8_tail_b",
+     "sample.csv.gz"
+    ],
+    [
+     "h8_text",
+     "frame.csv.gz"
+    ],
+    [
+     "h8_geo",
+     "frame.csv.gz"
+    ]
+   ],
+   "lookup": "closed-first Gamma id lookup, 50 ids per request, resumable (deviation: about 14 requests per 1,000 new ids, not <= 400 total)",
+   "max_unverified_key_share": 0.02,
+   "own_seal_copies": [
+    "cb11_w_hold_SEAL.json",
+    "cb11_wprints_holdout_SEAL.json",
+    "cb11_pol_holdout_SEAL.json",
+    "cb11_attn_holdout_SEAL.json"
+   ],
+   "w_key_rule": "market id and event id only (frames carry no negRiskMarketID and no series id)"
+  },
+  "frame_allowed_files": [
+   "frame.csv.gz",
+   "manifest.json",
+   "frame_partial.jsonl",
+   "frame_partial.jsonl.gz"
+  ],
+  "frame_run_ids": [
+   "h2_main",
+   "h3_power"
+  ],
+  "output_roots": [
+   "creative_batch11",
+   "h11_wprints",
+   "h11_pol",
+   "h11_attn"
+  ],
+  "pins": {
+   "h2_frame_sha256": "fd0898f291f20ba1f219ecb89a9c3961cf2f94d8bc16e0a1544b38f3500674b8",
+   "h3_frame_sha256": "2267dbd496d918973c73ea2f17095cd1a462e5ef385c7f5a737652f7e312ab71",
+   "h8_tail_b_keys_sha256": "ce7fe2a4efca4320e1aa289075f19b06543215b5d089873147ae0d522a369a8d"
+  },
+  "placebos": {
+   "draws": 200,
+   "gpp_seed": 11120,
+   "gwc_seed": 11121,
+   "max_advance_rate": 0.015,
+   "seeds": {
+    "A1_labelswap": 11103,
+    "P1_copula": 11102,
+    "W1_permute": 11101,
+    "spare_10": 11110,
+    "spare_11": 11111,
+    "spare_12": 11112,
+    "spare_4": 11104,
+    "spare_5": 11105,
+    "spare_6": 11106,
+    "spare_7": 11107,
+    "spare_8": 11108,
+    "spare_9": 11109
+   }
+  },
+  "refused_roots": [
+   "cb1_extract",
+   "cb2_extract",
+   "cb3_extract",
+   "cb4_extract",
+   "cb5_extract",
+   "cb6_extract",
+   "cb7_extract",
+   "cb3_followup",
+   "cb6_followup",
+   "cross_venue",
+   "cross_venue_live",
+   "surprise_live",
+   "live_trades",
+   "trade_samples",
+   "cb8_extract",
+   "creative_batch8",
+   "creative_batch7",
+   "creative_batch6",
+   "creative_batch5",
+   "creative_batch4",
+   "h1_first",
+   "h2_main",
+   "h3_power",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail",
+   "h8_text",
+   "h8_geo",
+   "h9_flow",
+   "creative_batch9",
+   "h10_sign",
+   "cb9_extract",
+   "cb10_extract",
+   "creative_batch10",
+   "snapshots",
+   "book_sweeps",
+   "cb10_extract",
+   "cb11_extract"
+  ],
+  "refused_run_ids": [
+   "h1_first",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail",
+   "h8_text",
+   "h8_geo",
+   "h9_flow",
+   "updown",
+   "updown_frame",
+   "exclusion_run",
+   "holders",
+   "h10_sign",
+   "exclusion_run9",
+   "pyth_frame",
+   "pyth",
+   "kd_frame",
+   "kd_books",
+   "sign",
+   "pyth_live",
+   "halfday",
+   "h10_dlad",
+   "h10_brk",
+   "dlad_frame",
+   "brk_frame",
+   "brk_prints",
+   "deribit",
+   "exclusion_run10",
+   "halfday"
+  ],
+  "stage1": {
+   "batch_holm_alpha": 0.01,
+   "batch_holm_k1": 6,
+   "by_family": "battery2.cumulative_count() at the run (triage only)",
+   "by_q": 0.1,
+   "gate_p": 0.01,
+   "holm_family": [
+    "W1",
+    "W2",
+    "P1",
+    "P2",
+    "A1",
+    "A2"
+   ]
+  },
+  "stage2": {
+   "alpha": 0.05,
+   "rule": "one Holm over every CB11 test reaching Stage 2, each in its Stage-1 direction; k fixed when the last Stage-1 result is final; early finishers at alpha/k"
+  },
+  "stall": {
+   "census": "copies the label",
+   "exit": 0,
+   "results": "write-once",
+   "screens": "p = 1, testable false",
+   "statuses": [
+    "not_run_source",
+    "disjointness_unverified",
+    "upstream_not_testable"
+   ]
+  },
+  "t11_hist_end": "2026-10-01T00:00:00Z",
+  "t_seal_binding": "none (CB11 jobs yield to T_seal-bound jobs by priority only)",
+  "uncertainty": {
+   "min_clusters": 30,
+   "min_units": 100,
+   "n_boot": 2000,
+   "n_wild": 9999,
+   "seed_boot": 1111,
+   "small_g": "cb2_weather.small_g_pvalue per way; p = max over the declared ways",
+   "top_drop": 5,
+   "ways": {
+    "A": [
+     "Gamma event",
+     "UTC day X",
+     "3-day blocks of the origin t"
+    ],
+    "P": [
+     "Gamma event",
+     "ISO week of the scheduled end (CB10 small-G rule)"
+    ],
+    "W": [
+     "UTC date of the scheduled end",
+     "Gamma event"
+    ]
+   }
+  },
+  "wallet_and_side": "no CB11 job reads or stores a wallet field or the Data API side field"
+ },
+ "declared": {
+  "cb11_smoke": {
+   "censor_window": [
+    "2025-09-15T12:00:00Z",
+    "2025-09-15T12:15:00Z"
+   ],
+   "criteria": [
+    "w_frames",
+    "w_loader",
+    "gamma_pol_paging",
+    "prices_history",
+    "data_api_reach",
+    "wiki_summary",
+    "wiki_lag",
+    "w_censor_window"
+   ],
+   "family_needs": {
+    "A": [
+     "wiki_summary",
+     "wiki_lag",
+     "data_api_reach"
+    ],
+    "P": [
+     "gamma_pol_paging",
+     "prices_history",
+     "data_api_reach"
+    ],
+    "W": [
+     "w_frames",
+     "w_loader",
+     "w_censor_window"
+    ],
+    "W_prints": [
+     "w_frames",
+     "w_loader",
+     "data_api_reach"
+    ]
+   },
+   "max_requests": 40,
+   "oov2": [
+    "https://raw.githubusercontent.com/UMAprotocol/protocol/master/packages/core/networks/137.json",
+    "ManagedOptimisticOracleV2"
+   ],
+   "pol_weeks": [
+    [
+     "2024-05-06T00:00:00Z",
+     "2024-05-13T00:00:00Z"
+    ],
+    [
+     "2024-05-13T00:00:00Z",
+     "2024-05-20T00:00:00Z"
+    ]
+   ],
+   "price_life_days": 100,
+   "version": "cb11-smoke-v1",
+   "wiki_max_age_h": 48.0,
+   "wiki_titles": [
+    "Xi_Jinping",
+    "NATO",
+    "Federal_Reserve"
+   ]
+  },
+  "cb11_w": {
+   "censoring": {
+    "conf": 0.95,
+    "frame_seeds": {
+     "h2_main": [
+      "arepo-h2",
+      270
+     ],
+     "h3_power": [
+      "arepo-h3-power",
+      365
+     ]
+    },
+    "gwc_seed": 11121,
+    "max_share": 0.02,
+    "page": 100,
+    "pages": 5,
+    "seed": "arepo-cb11-w-censor",
+    "windows": 300
+   },
+   "census_forbidden": [
+    "L",
+    "wait",
+    "close_epoch",
+    "outcome_prices",
+    "uma_status",
+    "net",
+    "pnl",
+    "targets_guarded"
+   ],
+   "columns": {
+    "frame": [
+     "market_id",
+     "event_id",
+     "fee_category",
+     "neg_risk",
+     "start_epoch",
+     "end_epoch",
+     "close_epoch",
+     "closed",
+     "token0",
+     "token1",
+     "condition_id"
+    ],
+    "guarded": [
+     "market_id",
+     "outcome_prices",
+     "uma_status"
+    ],
+    "units": [
+     "market_id",
+     "event_id",
+     "fee_category",
+     "src",
+     "window",
+     "end_epoch",
+     "start_epoch",
+     "f1",
+     "f2",
+     "f3",
+     "f5",
+     "f6",
+     "f7",
+     "L_fit"
+    ]
+   },
+   "f7": {
+    "causal": "close < t",
+    "days": 14,
+    "min_n": 20,
+    "pool": "all W-population units, all strata and windows, after key drops"
+   },
+   "features": [
+    "f1_hour_ny",
+    "f2_weekday_ny",
+    "f3_placeholder",
+    "f4_category",
+    "f5_neg_risk",
+    "f6_ln_life_days",
+    "f7_recent_lag"
+   ],
+   "floors": {
+    "W1_R_B0": 0.2,
+    "W1_R_B1": 0.1,
+    "W1_subset_R": 0.1,
+    "W2_net": 0.003,
+    "W2_rann_h": 0.1,
+    "attr_net_slack": 0.001,
+    "attr_rann_mult": 1.5,
+    "attr_sched": 0.1,
+    "pool_excess": 0.1,
+    "risk_free": 0.045,
+    "tail_floor": 0.003
+   },
+   "gates": {
+    "GW": {
+     "categories": 6,
+     "dates": 90,
+     "fit_min": 200,
+     "units": 5000
+    },
+    "GW2": {
+     "dates": 60,
+     "events": 100,
+     "units": 300
+    },
+    "coverage_min": 0.9
+   },
+   "model": {
+    "early_stopping": false,
+    "l2_regularization": 1.0,
+    "learning_rate": 0.05,
+    "loss": "absolute_error",
+    "max_iter": 400,
+    "max_leaf_nodes": 31,
+    "min_samples_leaf": 200,
+    "numpy": "2.4.6",
+    "random_state": 1111,
+    "sklearn": "1.9.1"
+   },
+   "placebo": {
+    "draws": 200,
+    "seed": 11101
+   },
+   "primary_excluded": [
+    "sports",
+    "crypto"
+   ],
+   "prints": {
+    "cover": "not truncated",
+    "limit": 1000,
+    "pages": 4,
+    "stop": "oldest print before t - 6 h",
+    "taker_only": "true"
+   },
+   "rare_min": 200,
+   "sample": {
+    "hold": 3000,
+    "per_event": 3,
+    "screen": 4000,
+    "seeds": [
+     "arepo-cb11-w-sample",
+     "arepo-cb11-w-hold"
+    ]
+   },
+   "sports_in_primary": false,
+   "target": {
+    "cap_s": 1814400.0,
+    "floor_s": 60.0,
+    "form": "L = ln(min(max(close - end, 60 s), 21 d) / 1 h)"
+   },
+   "w2": {
+    "S_max_hours": 6.0,
+    "capacity": "summed transaction size in [tau + 60 s, tau + 60 min) (hash-aggregated; not split by token)",
+    "decided": [
+     0.05,
+     0.95
+    ],
+    "fee_rate": {
+     "crypto": 0.07,
+     "culture": 0.05,
+     "economics": 0.05,
+     "finance": 0.04,
+     "geopolitics": 0.0,
+     "mentions": 0.04,
+     "other": 0.05,
+     "other:zero_fees": 0.0,
+     "politics": 0.04,
+     "sports": 0.05,
+     "tech": 0.04,
+     "unknown": 0.05,
+     "weather": 0.05
+    },
+    "h_w": 0.005,
+    "h_w_robust": 0.01,
+    "hold_floor_h": 2.0,
+    "hold_floor_robust_h": 6.0,
+    "latency_s": 60.0,
+    "liveness_h": 1.0,
+    "no_room": 0.995,
+    "pool_alt": [
+     1000.0,
+     100000.0
+    ],
+    "pool_usd": 10000.0,
+    "trigger_robust_to_s": 1800.0,
+    "trigger_s": [
+     300.0,
+     3600.0
+    ],
+    "tx_span_s": [
+     21600.0,
+     21600.0
+    ]
+   },
+   "windows": {
+    "excluded_dates": [
+     "2026-09-10",
+     "2026-09-11"
+    ],
+    "fit": [
+     "2025-10-01",
+     "2026-02-08"
+    ],
+    "hold": [
+     "2026-07-01",
+     "2026-09-10"
+    ],
+    "rep_refit_end": "2026-06-09",
+    "screen": [
+     "2026-03-01",
+     "2026-07-01"
+    ]
+   }
+  }
+ },
+ "disk": {
+  "data_dumps_cap_gb_default": 40.0,
+  "disk_budget_exit": 4,
+  "free_disk_min_gb": 4.5,
+  "headroom_exit": 75,
+  "refusal_exit": 2
+ },
+ "func_sources_sha256": {
+  "cb10_common.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+  "cb11_common._exclusion_stage": "e011d6a158080773f5916007dd8673cc70cd396fdda3dcbe06236c8c11ce7573",
+  "cb11_common.batch_holm_label": "ba2cfe17455e84c7b0ed5813dbddc06be76ae17fe3a17a9a9458817ffe65cd7d",
+  "cb11_common.cluster_p": "52515b9b501b71011fc54af742ac7254de20c88b72fd59dc8bb49ff7ec261925",
+  "cb11_common.cluster_p_week": "a8adc561d466084f79a9382a958644e853f733808ec31bdbb031e85ab0c81cbe",
+  "cb11_common.common_declared": "2bd9bf3d566b14e80b255de79b12960026df0a260956dffebea10e4988332084",
+  "cb11_common.drop_by_keys_w": "4b04c5b376789c8e6cd0edac11d18e304fad5adbaa99ac77fd5262add4203d02",
+  "cb11_common.exclusion_keys": "5ff52a4bcc69b13201d1ef550bf52a2218a5a08fef046b0b0361c3e773abb94e",
+  "cb11_common.lookup_keys_closed_first": "3251f3f2a07c27fd020dc870488f511a0c1031f058478cb639b8b39d709a20ea",
+  "cb11_common.ny_clock": "6b2a6a4a62e6d4be321daff8e908c205aea23ab6bd7e40445bd6cd3a450946f8",
+  "cb11_common.one_sided_boot_p": "a5b8904a965800a09ce44cfcb23ed4c2c5dca15ad2b532fc5b219d27591c419f",
+  "cb11_common.open_guarded": "545bc94b2d512440b2212b3aa64b4af4d70886f115e7fbaaeb4e8a8c864add09",
+  "cb11_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+  "cb11_common.read_id_set": "d7c02981901bb20a375dfa02f6526eb1ad37ad2ba87ef49ff1b44ed406643c11",
+  "cb11_common.refuse_path": "6cecc3631f4fae9c66151429dbe26d48e8a62ee5ce9e038d8312b229228a2e37",
+  "cb11_common.refuse_read": "a54d9134e18db9be35377b43a15d00663c7e31deef9c061c54019b870b753e75",
+  "cb11_common.refuse_run_id": "e704411052155d57ad413516ef1e3c4717ccc6f7edb766dd5c1b3e96bbee7376",
+  "cb11_common.require_after": "610ab9be4a6db25ffa2cb44320873d40cd9d971d786691e4353842ebbbc79f45",
+  "cb11_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
+  "cb11_common.require_output_root": "f6f34b54153be8e381aff5d00c888696573c520afefce5e4e15d5dd43eb37ceb",
+  "cb11_common.seal_holdout": "285808152defd760e0eebc39037d0f324d3be799679e020a61dc9979463587b5",
+  "cb11_common.stage2_k": "1218c04215723ad139ad6f01edf3ff353083dba930e507635e91456369d7739e",
+  "cb11_common.upstream_stall": "dd59ccd0444b512b862edeb0606efcb4df67f6c675f3e5c48d44664fd4831eea",
+  "cb11_common.verify_holdout_seal": "82d3fd28b42f946bd16134592cd0d62b062852ce7e417196dd1193a4162f224d",
+  "cb11_smoke.declared": "f6afc3bf57b6cb1a28f2f03fec9c08923eec1ba3470a84d596800f888ff920aa",
+  "cb11_smoke.smoke_censor_window": "2621ddddd4b3b6d38dda613186831391f3d28a0af997906eba4c2171e0ded291",
+  "cb11_smoke.smoke_data_api": "d85ef6a8b20aa4400708761b60d7b0ef895630f29cba0744cbfd164a610d0bf7",
+  "cb11_smoke.smoke_failures": "7ab0a07c9ef04404ed41cedc15d84d5ecd3c35c224f2ed08c9beb2af146e94d6",
+  "cb11_smoke.smoke_frames": "84e4c09cad01fc76e9b3c93c1262133ecade5237344dd9b0416daaa0f1edd927",
+  "cb11_smoke.smoke_gamma_politics": "3a51aff4c57e579c44f02e95c083153700cb41e51bf7e9952ef1984dc07f14c7",
+  "cb11_smoke.smoke_loader_fixture": "fda9077800071ea85a3e5bdffa90e2de3e6f5de83e5b5913755771dc035fd382",
+  "cb11_smoke.smoke_oov2": "6161b1c43f7bb56d9d176f087028a44b8df1117c35ac638081a4662c1c41f0f6",
+  "cb11_smoke.smoke_prices_history": "ae0ee71a663d2062088e80935d06dbf908c53ab47067458bdbd1be83c710f4d5",
+  "cb11_smoke.smoke_wiki_lag": "0b992ddd43aef0a6f63d5bd1d22b99409a1a7f11012a156b8b7a893837de140b",
+  "cb11_smoke.smoke_wiki_summary": "a478caeefc8843d67df9c7d14e0ff0f301e4e8ea6d3f9e4630cd3909dfbe878a",
+  "cb11_w._stat_w2": "034d48b7244969de5b6c31bc479a1620e5e13e669bc2b6d89f4a4e9d21e47111",
+  "cb11_w._tail": "70c19fb9dcff3c336fb70f8c382e1c58ca6ecbc13a337b16d1f47d942d30206e",
+  "cb11_w.add_features": "900a32b936b951168239a2e443b5d795caeffa56b84914aaaec58cfc15fd50fe",
+  "cb11_w.b0_of": "78ee3829256d6c7baafa9f6dc3fe7dcfeb01d522bc8d3d92b2d688b8d6a6be79",
+  "cb11_w.b1_of": "0ebc17487fd54bf53d3a22f238b16cbcca14ea8c2da3b3bf90eb3832700b1fc9",
+  "cb11_w.baseline_b0": "a26d3669b904c91116422709dd17df8401268056e8617bf6d135853bf78838a6",
+  "cb11_w.build_population": "9f0f8df5ef1c4df2b7e70bcb72c627ea7d6751b0869993a29d4fb7c075638bb9",
+  "cb11_w.category_levels": "32aff3e5649270e63b008de39db39b1c0e407dea8d17bd8cd0e14ecad0ecb663",
+  "cb11_w.censor_share": "a617efe7f3eb5b17befe9389e03efef30c0eb5b74829927afff0f1c16f5dd8c9",
+  "cb11_w.censor_upper": "f19178b7d42c3f67c78cc4141abdf74db643813d99d09e709999b2ca845b617c",
+  "cb11_w.censor_window_set": "b76148fdbcfbb1c4002eb2e22f45beaf57f4988a0e2492420de62baff4bfe270",
+  "cb11_w.censoring_doc": "944dac1f39f7a6be499094e425228a66fadfaa655660ede3690524a938e9f783",
+  "cb11_w.census_w": "b8b9ada29ad0193973a33482347e3ee30ba745269cf1b53b38053f14e73c305d",
+  "cb11_w.closed_rows_per_window": "96e801cdbca3b40dab609db99d476b56f1aa3ce983d650b0c3dc5b9b2cbf879f",
+  "cb11_w.collect_frame": "b937f6a38ee5dc99d4e92982211338aa77e4f609cca36514777b789c435d35d2",
+  "cb11_w.count_open_in_window": "2bfd40c278f719a57f555bcbb2233ec8b4dcf38f0c9c9f2bd44775da70410643",
+  "cb11_w.decide_and_enter": "a3402ebb2ceecc866102385763abe9c5092748a57cdf1d0a511591b91aab811d",
+  "cb11_w.declared": "b10e206c0abf51ad19bfe2168feaccda8ac2e6da78457d3c679ca50f4cc018e4",
+  "cb11_w.design_matrix": "7ff29606fcdd175d43c5bfca367628417af82f30bf908c2e93241b12555cf7b4",
+  "cb11_w.draw_censor_windows": "3339c8374b6917b0a7d0af61728ec90e3e34e22691867d9d84cd65a1bc7f0daf",
+  "cb11_w.draw_sample": "65b70c14a0b7278d6146180096c0bc9cd1a80b48554436cd5c67d9ccdab1e3b1",
+  "cb11_w.fee_rate": "df1ddd9849a1c476e8de45e1d84c54d0a8c63c70ba34402668a731d0b77b8423",
+  "cb11_w.fetch_prints_until": "e1b1d16fa7b44efbcb257ee279c4c1abe43dca77e2f9ad0908d74e00afe5505b",
+  "cb11_w.fit_model": "43ad6a463fbfb79cae5fc8555759bf1b3b4bcc4078a085acd7272e4c25affc55",
+  "cb11_w.frame_windows": "88e85963ec805a050ae0a5baff35e406d14550ff710fc8581108cfea2e59f4de",
+  "cb11_w.hours_view": "1b34858757cd35b98fa55fb226364d1d5a48b45ccc1247c2d034129f412f4a36",
+  "cb11_w.is_primary": "0c623babee50fc4588beada35f1a284c2e525984c9c56bc14d2084d143438cba",
+  "cb11_w.iter_frame_guarded": "ac82296ef2e786f5b1d07f18b2e199d6d99a8994bddc14415443b19f6cede37a",
+  "cb11_w.load_units": "ea8e9c5998e4ecf32175a22738c5275285f6533f4c37e3a56dbd53c343ce9ed4",
+  "cb11_w.merge_sources": "65e58bdb6c6d7e52d9ea539c988f19371442a4c2f779703e0d26387bf0b6fb3b",
+  "cb11_w.open_w_guarded": "8871b906bb23c206ba057d282140bc34930d26dd0539f7f7429caf486ca5fa94",
+  "cb11_w.outcome_y": "3ec626b35f48c565744cac115830e313f6607544882f70cb718236a39f4c14dc",
+  "cb11_w.permute_within_cells": "c0da166f8efb08b12c9e1fbe781f82b43939b84640f429a9cbfb7f77640d946a",
+  "cb11_w.pool_simulation": "6d3102bca85f293d0370a530f9e3ba64ba465e8ab938de869f8637fc7296e77d",
+  "cb11_w.predict": "d52e3868dc1a779288ef80af085eb1bb5dea1a9f32394792a897d95a2a880e47",
+  "cb11_w.r_ann_h": "474d20b09be6908f603b1e17427916a50d01a98703b1cfcdb826f67254535464",
+  "cb11_w.read_frame_rows": "f3cf4b205b9fd3cd014776a9a0ae265af478188af38691ec0973aca4b54816b7",
+  "cb11_w.rep_w": "ff88d30afa6e6f8682222495fb512532bcd3ed6436abcfbadbe620fdbdf18713",
+  "cb11_w.rolling_f7": "16115c3865c6c22067e179958707f34a6a3551fe6ac12d7c6366e173c21a76d6",
+  "cb11_w.screen_w": "d1193abd1482012fb7627eca0dc8e8fc2a5466c6823a13e8a4ebbc7ca72e250d",
+  "cb11_w.verify_hold_seal": "a57e961ce29fd78efa8daf71ed77267bcafc6a62362505e68bf0d1cf4584731a",
+  "cb11_w.w1_boot": "16956aa8b8d7056eca5139b1d415050a90243772a9ff5281010d9d69e2a76c45",
+  "cb11_w.w1_core": "7d208e6cdc3c99ecb5319e6470860f5976c505d082fd5b33616cc9f041d4d500",
+  "cb11_w.w1_floor_ok": "03609df4d7c5e5a58f6bb5d3185278b3258888ee98e6daf5b9989184726ced46",
+  "cb11_w.w1_placebo": "88fdf391a8d04725ac61a79bfd516a76494386c6138fa969deac466589f0705b",
+  "cb11_w.w1_robustness": "cf66ce6a867804d36ace496aff014531273f0e5df0a3b1b2f0f1c54a175d4e23",
+  "cb11_w.w1_stat": "1c639e38f56034a312900f0d6c1c8d28caddf6e591961787d9679d8e557c4cfc",
+  "cb11_w.w2_decide": "3cfde9a3dc1009b190c7eb340c3610dbbcae0d030e2f6991ef8a308efd5aa2fc",
+  "cb11_w.w2_robustness": "89e4f9580972f5526ef119802a9654ec9b1bbfb8cc01fc26a0b60d66babca113",
+  "cb11_w.w2_stat": "3718fef38ea81660a1006b245c6127395d6e6046db1b0bbc44aad9dcdd3d0f87",
+  "cb11_w.w2_units": "eccbcb83cc986fa78b7b606ebef126d0161253192a60e537468cb4ee663d494f",
+  "cb11_w.w_censoring": "393e2823551979db904c546d6e73c29bc094054d4a32457db7bcde721aa723c5",
+  "cb11_w.w_frame": "27b50830a9a40d7319c4949c394625caab53b746a8a0f234edafc5b7a965eda1",
+  "cb11_w.w_prints": "fd21e5f7fe4f50173a87cfe6a2c72073fe67f10d85b781905e63d5f9e91b4302",
+  "cb11_w.wait_L": "bcd486e0f7bb6543b429eba09ad431ca4934d4eaf7d5628d45d5c264a41f2405",
+  "cb11_w.window_of": "342f5334d0878ea35d51c9a9cb9dabf8f3eb03e10acf33e1a885e4f702d178f4",
+  "cb9_common.cluster_bootstrap_means": "40f9457f421736bc49b6399ccc4bc208b9fac8a674c72c567dc5b2eae1dfe2f9",
+  "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
+  "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a"
+ },
+ "funcs_sha256": "7a54ce93a1e4a2ea54855ba088f8f43f62a707b51479719f81cff0e5c1f18470",
+ "rules_sha256": "577f5c4a69375d8942792f2e0f8daa5af1196031ab0be6e9ce0e4ec52d4e39ca",
+ "rules_version": "cb11-rules-v1",
+ "wallet": {
+  "note": "no CB11 job reads or stores a wallet field (no HMAC key needed) or the side field",
+  "read": false
+ }
+}

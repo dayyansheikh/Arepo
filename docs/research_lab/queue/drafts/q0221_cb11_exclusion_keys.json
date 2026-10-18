@@ -1,0 +1,42 @@
+{
+ "id": "q0221_cb11_exclusion_keys",
+ "title": "CB11: exclusion keys = h8_tail_b key file + market ids of every sampled set on the host (h1/h2/h3 samples, h5, h6, h7, h8 sets, CB8 frames) + committed seal copies + MANDATORY C1 sample and T5 frame ids from the arepo-data release; Gamma lookups for missing event/negRisk/series keys",
+ "family": "creative_batch_11",
+ "priority": 29,
+ "expected_value": "disjointness of W, P and A",
+ "data": [
+  "history/*/ (id columns only)",
+  "docs/research_lab/seals/*",
+  "arepo-data release: calibration-c1-20261011 sample_plan, resdev-t5-20261011b frame",
+  "public Gamma (ids)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, github release download"
+ },
+ "depends_on": [
+  "q0220_cb11_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb11.py",
+  "exclusion-keys",
+  "--rules",
+  "../docs/research_lab/seals/cb11_rules.json",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 2400,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch11/exclusion_keys.csv.gz",
+  "manifest.json (c1_t5_status: retrieved | absent)"
+ ],
+ "next_action": "q0222, q0225, q0227",
+ "notes": "DRAFT-REVISED round 1 (item 5). C1/T5 absent -> P reps labelled 'possibly touched holdout (L1)' and the T5-window robustness binds. >2% missing metadata -> disjointness unverified (P, A not testable, counted). Exit 75 on headroom = pending. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 577f5c4a69375d8942792f2e0f8daa5af1196031ab0be6e9ce0e4ec52d4e39ca."
+}
