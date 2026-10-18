@@ -203,38 +203,19 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-17 ~20:10Z
-0. **Autopilot session from 19:32Z 10-17.** At start the host queue was IDLE. Since then (all deployed; host tip 8b376d7):
-   - q0120b guard 14 -> 40; q0103 cancelled (refuses before 10-27) -> draft q0103b, q0106 depends on q0103b.
-   - q0116 ArrowMemoryError fixed value-identically (9a99c75) -> q0116b died twice at the 2 x 3200 MB cap -> **PARKED by the
-     user** (backup; revive on the second instance; no q0116c on this host).
-   - q0082f had stopped on its ops disk cap -> **q0082g DONE 19:47Z (series_frame_complete)**. **h7 group-S ruling A
-     (as_declared; CH53 E1/E2 not testable)**: seal committed + verified on host, gate q0081g queued (d3278b8) -> releases
-     q0081/q0082 fetches (net lane, before 10-22T00Z).
-   - **Round 5** written (38393fb, CH99-CH117) -> **CB12 design** running (opus; ids q0240+).
-   - **q0104b CB5 cdf frame: 0 families** under the frozen grouper (correct, not a bug) -> CH59 expected to close at q0106's
-     G59; q0105/q0107 drafts held (ledger a1dad42).
-   - **q0160b CB8-H smoke FAIL (criterion h, /oi absent 82%)**: an agent is verifying absent == zero OI; if verified it drafts
-     amendment H-v4 + rules v4 + q0160c (needs a science-reviewer pass before promotion); if not, CB8-H stays FAIL.
-   - **q0180 CB9 smoke v1 FAIL** on receipt count only (8/20, 18/20) -> **q0180b smoke v2 PASS** (20/20 both eras, sign rules
-     v5). **q0200 CB10 smoke PASS.**
-   - q0120b refused once at 19:48Z (rules file "not committed": a deploy was rewriting files at that moment; re-checked
-     on the host, it verifies) -> retries by itself. Avoid deploying at :x8/:x0 job-start ticks when possible.
-   - **CB8-H:** absent markets verified holder-free (40/40) -> amendment H-v4 -> reviewer changes -> v5 -> re-check
-     GO_WITH_CONDITIONS -> v6 (split records persisted; holders rules v6 `e7e72f4c…`, H analysis v4 `dbd87ef7…`; d922ffc,
-     d278c89) -> **q0160c smoke v3 queued** (net lane, timeout 4 h). PASS -> promote q0162/q0163 (H1 from 10-21T06Z).
-     A written FAIL of a/b/f/h/i = H "not run (source)", no smoke v4. Commit d3278b8 also holds the CB8 v5 docs/seals
-     (shared-index mishap, note d202c74): commit with explicit pathspecs from now on.
-   - **CB11** challenger round 1 answered (5eb1ff5, all 11 adopted) -> **code being written** (W first; W screen can run
-     before 10-22) -> then code-against-design freeze check.
-   - CB9 re-check fixes done (146d6b9..c158b3c; sign/P rules v4; q0195/q0196 repeat + rep-P NotNow guard).
-   - **CB10:** freeze check (smoke/data GO_WITH_CONDITIONS, analysis NO_GO) -> all must-fixes applied (ac24e68, rules v2
-     `d422cc70…`, amendment §12.1 backward-only exclusion) + runner transient-status NotNow (dd9026f) -> **q0200 smoke queued**.
-   - **CB11 drafted** (8b376d7: W proposer clocks CH85, P political favourites CH88, A pageviews CH97; drafts q0220-q0237 in
-     the doc) -> challenger round 1 RUNNING.
-   - **Round 5 creative hypotheses** (Fable xhigh) RUNNING -> `CREATIVE_HYPOTHESES_2026-10-19.md`.
-1. **Next:** CB11 response to the challenger (one round), then code + freeze check (W screen can run before 10-22).
-   q0180b after its smoke-v2 code (promote, deploy). q0160c only after a reviewer accepts H-v4.
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 ~00:55Z
+0. **Autopilot session from 00:48Z 10-18.** Host: q0160c CB8-H smoke v3 RUNNING (net lane, timeout 4 h); nothing else
+   runnable until CB11 (other queued jobs are T_seal/date gated). q0081/q0082 h7 fetches and q0120b h8_tail_b fetch
+   DONE (ledger d1898e8). Second instance: still out of capacity (00:50Z).
+   - **CB11 code:** implementer agent finishing the uncommitted cb11_common/cb11_w/cb11_smoke/run_cb11/test_cb11_w (left
+     by the 10-17 session) + rules file + drafts q0220-q0224/q0230-q0232 in queue/drafts. Then science-reviewer
+     code-against-design freeze check, then promote q0220 smoke (cpu) and the W chain (W can screen before T_seal).
+   - **CB12 design** (opus agent) from round 5 -> `CREATIVE_BATCH_12.md` DRAFT (ids q0240-q0269) -> challenger round 1.
+   - Earlier (10-17 session, all done): q0116b parked by the user; h7 group-S ruling A sealed + q0081g; CB8-H H-v6 ->
+     q0160c; q0180b CB9 smoke v2 PASS; q0200 CB10 smoke PASS; q0104b CB5 0 families (CH59 closes at q0106's G59).
+     Commit with explicit pathspecs only (d3278b8/d202c74 shared-index mishap).
+1. **Next:** CB11 code-against-design freeze check -> promote q0220 + W chain -> deploy. q0160c result: PASS -> promote
+   q0162/q0163; written FAIL of a/b/f/h/i -> CB8-H "not run (source)", counted, no smoke v4.
 2. **CB9:** data jobs q0181+ only after T_seal 2026-10-22T00Z and a smoke-v2 PASS; q0182 needs the pinned q0164 hash.
 3. **CB7/CB6 before T_seal:** q0120b (net lane, after q0082g) must finish by 10-21T09Z. Seals q0144/q0145/q0121 only
    after T_seal. Never retry q0141.
