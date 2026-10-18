@@ -524,7 +524,7 @@ def cmd_census(a):
         out = Path(a.out) if a.out else root / "census_PA.json"
         if out.exists():
             raise c11.Refused(f"{out} exists; the census is written once")
-        doc = {"version": "cb11-census-PA-v1", "counts_only": True, "P": census_pa_block(a, "P"), "A": census_pa_block(a, "A")}
+        doc = {"version": "cb11-census-PA-v1", "counts_only": True, "rules_sha256": _rules_pa(a), "P": census_pa_block(a, "P"), "A": census_pa_block(a, "A")}
         cm.write_once_json(out, doc)
         c11.log_descriptive("census_PA", {"census_sha256": cm.sha_obj(doc), "path": str(out)}, trials_path=_tp(a))
         return 0, {"status": "census_complete", "written": str(out), "label_P1": doc["P"].get("label_P1"), "label_A1": doc["A"].get("label_A1")}
@@ -604,7 +604,7 @@ def screen_pa(a) -> tuple[int, dict]:
 
     c11 = _c11()
     fam = a.family
-    pa.require_freeze_pa(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
+    freeze_sha = pa.require_freeze_pa(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
     sha = _rules_pa(a)
     root, hist = _root(a), _hist(a)
     mod, status, tids = _pa_mod(fam)
@@ -614,8 +614,11 @@ def screen_pa(a) -> tuple[int, dict]:
     census = json.loads(cpath.read_text())
     rdir = hist / mod.RUN
     if not c11.stall_of(rdir):
-        c11.require_complete(rdir, (status,), f"{mod.RUN} fetch")
-    doc = {**(mod.screen_p(rdir, census) if fam == "P" else mod.screen_a(rdir, census)), "rules_sha256": sha, "written_epoch": time.time()}
+        # N5 (d3): re-check the fetch manifest, every file hash and the committed holdout seal of the data about to be opened (the census checked them once, earlier)
+        c11.verify_fetch(rdir, (status,), f"{mod.RUN} fetch")
+        c11.verify_holdout_seal(rdir, mod.SEAL_COPY_NAME, Path(a.seals_dir) if a.seals_dir else None, require_committed=not a.allow_uncommitted_rules)
+    doc = {**(mod.screen_p(rdir, census) if fam == "P" else mod.screen_a(rdir, census)), "rules_sha256": sha, "freeze_PA_sha256": freeze_sha,
+           "census_sha256": hashlib.sha256(cpath.read_bytes()).hexdigest(), "written_epoch": time.time()}
     rsha = c11.write_results_once(Path(a.out) if a.out else root / f"results_{fam}.json", doc)
     for tid in tids:
         r = doc[tid]
@@ -630,11 +633,11 @@ def rep_pa(a) -> tuple[int, dict]:
 
     c11 = _c11()
     fam = a.family
-    pa.require_freeze_pa(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
+    freeze_sha = pa.require_freeze_pa(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
     sha = _rules_pa(a)
     root, hist = _root(a), _hist(a)
     mod, _status, tids = _pa_mod(fam)
-    k = pa.stage2_k_pa(root, a.stage2_k)  # no reliance on the W results coupling: --stage2-k is explicit unless all three Stage-1 files exist
+    k = pa.stage2_k_pa(root, a.stage2_k, fam)  # no reliance on the W results coupling: --stage2-k is explicit unless all three Stage-1 files exist
     rp = root / f"results_{fam}.json"
     if not rp.exists():
         raise c11.NotNow(f"{rp.name} missing: Stage 1 first")
@@ -647,9 +650,10 @@ def rep_pa(a) -> tuple[int, dict]:
     if hashlib.sha256(rp.read_bytes()).hexdigest() != a.results_sha256.lower():
         raise c11.Refused(f"results_{fam}.json sha256 differs from --results-sha256: the HOLDOUT stays closed")
     census = json.loads((root / "census_PA.json").read_text())
+    c11.verify_fetch(hist / mod.RUN, (_status,), f"{mod.RUN} fetch")  # N5: fetch manifest and file hashes re-checked before the HOLDOUT is opened
     sd = Path(a.seals_dir) if a.seals_dir else None
     body = mod.rep_p(hist / mod.RUN, census, adv, k, seals_dir=sd, committed_seals=not a.allow_uncommitted_rules) if fam == "P" else mod.rep_a(hist / mod.RUN, census, adv, k, seals_dir=sd, committed_seals=not a.allow_uncommitted_rules)
-    doc = {**body, "rules_sha256": sha, "stage2_k": k}
+    doc = {**body, "rules_sha256": sha, "freeze_PA_sha256": freeze_sha, "census_sha256": hashlib.sha256((root / "census_PA.json").read_bytes()).hexdigest(), "stage2_k": k}
     rsha = c11.write_results_once(Path(a.out) if a.out else root / f"results_{fam}_rep.json", doc)
     for t in adv:
         r = doc[f"{t}_rep"]

@@ -94,8 +94,8 @@ RULE_PARTS = ("W", "PA")
 W_RULE_MODULES = ("cb11_w", "cb11_smoke")
 PA_RULES_FILE_NAME = "cb11_pa_rules.json"
 PIN_UNSET = "TODO-COORDINATOR"  # a pin the coordinator fills from a read-only `sha256sum` on the host; q0221 refuses (exit 2) while a mandatory pin is unset
-H2_SAMPLE_SHA256 = PIN_UNSET  # history/h2_main/sample.csv.gz (mandatory exclusion source, B4)
-H3_SAMPLE_SHA256 = PIN_UNSET  # history/h3_power/sample.csv.gz (mandatory exclusion source, B4)
+H2_SAMPLE_SHA256 = "77a15bd96bcd17c923e90e3e214874cad8df9ed4cd66eb6145cc8922c28954ec"  # history/h2_main/sample.csv.gz (mandatory exclusion source, B4)
+H3_SAMPLE_SHA256 = "f8e1a7bbd16d57206fcd45c502263d2b7ceb40b22108e248c613d5148476004d"  # history/h3_power/sample.csv.gz (mandatory exclusion source, B4)
 MANDATORY_SAMPLE_PINS = {"h2_main/sample.csv.gz": H2_SAMPLE_SHA256, "h3_power/sample.csv.gz": H3_SAMPLE_SHA256}
 
 STALL_NOT_RUN_SOURCE = c9.STALL_NOT_RUN_SOURCE
@@ -294,6 +294,11 @@ def batch_holm_label(pvals: dict[str, float | None], family: tuple[str, ...] = S
         raise Refused(f"batch-Holm: {extra} are not in the fixed Stage-1 family {family}")
     full = {k: (1.0 if pvals.get(k) is None else float(pvals[k])) for k in family}
     return {"k": len(family), "alpha": alpha, "tests": c9.holm(full, alpha), "not_run_as_p1": [k for k in family if pvals.get(k) is None]}
+
+
+def p_ok(p: float, alpha: float, inclusive: bool = False) -> bool:
+    """Stage 1: p < alpha. Stage 2 (Holm at alpha / k, B8): p <= alpha / k (``inclusive``)."""
+    return bool(p <= alpha if inclusive else p < alpha)
 
 
 def cluster_p(v, clusters: dict[str, Any], *, seed: int = SEED_BOOT, n_wild: int = N_WILD, alpha: float | None = None) -> dict:
@@ -676,6 +681,14 @@ def seal_holdout(rdir: Path, *, family: str, statuses: tuple[str, ...], copy_nam
     dest.write_bytes(data)
     return {"status": f"{family}_sealed", "listing_sha256": doc["listing_sha256"], "committed_copy": str(dest), "drop_counts": n, "disjointness": doc["drops"]["disjointness"],
             "n_holdout_files": len(holdout)}
+
+
+def dropped_market_ids(rdir: Path) -> set[str]:
+    """Markets in seal-time ``DROPPED_*`` rows of ``drops.csv.gz`` (b1): never analysed. A sealed run without the file has no drops."""
+    dp = Path(rdir) / DROPS_FILE
+    if not dp.exists():
+        return set()
+    return {str(r["market_id"]) for r in read_csv_gz(dp) if str(r.get("block", "")).startswith("DROPPED")}
 
 
 def verify_holdout_seal(rdir: Path, copy_name: str, seals_dir: Path | None = None, holdout_prefix: str = "holdout/", *, require_committed: bool = True) -> dict:

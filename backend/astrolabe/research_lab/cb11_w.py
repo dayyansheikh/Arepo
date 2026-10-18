@@ -922,7 +922,7 @@ def decide_and_enter(tx: tuple[np.ndarray, np.ndarray, np.ndarray] | None, t: fl
     transaction at or after ``tau + 60 s`` and before the close; entry price = its token price + h_W, capped at 1.0, whatever its level. No such transaction ->
     'unfilled': split (N9) into ``unfilled_outside_window`` (the close lies beyond the stored transaction span ``t + 6 h``, so a later transaction cannot be
     excluded) and ``unfilled_no_trade_before_close`` (the span reaches the close and holds no such transaction); both are counted, excluded from per-share
-    means and decided. Returns a dict with ``status`` in {not_decided, no_room, unfilled_*, filled}."""
+    means and decided (B6/N9: a decided unit is a filled one). Returns a dict with ``status`` in {not_decided, no_room, unfilled_*, filled}."""
     if tx is None or len(tx[0]) == 0:
         return {"status": "not_decided", "reason": "no transactions"}
     ts, v, sz = tx
@@ -1003,7 +1003,7 @@ def w2_units(sample: list[dict], tx: dict[str, tuple], targets: dict[str, dict],
                     "p_entry": d["p_entry"], "c": c, "fee": fee, "Y": y, "clean": clean, "uma_status": str(oc.get("uma_status", "")), "close": close,
                     "H": (close - d["tau_e"]) / HOUR + LIVENESS_H, "q": d["capacity"], "net": y - c - fee, "pred_h": float(pred_hours.get(m, math.nan)),
                     "S": bool(pred_hours.get(m, math.inf) <= S_MAX_HOURS)})
-    cnt["decided"] = cnt["filled"] + cnt[UNFILLED_NO_TRADE] + cnt[UNFILLED_OUTSIDE] + cnt["no_room"]
+    cnt["decided"] = cnt["filled"]  # B6 / N9: a decided unit is one whose entry rule is satisfied; no_room / unfilled are triggered, counted, not decided
     return out, dict(cnt)
 
 
@@ -1272,13 +1272,14 @@ def rep_w(wdir: Path, hist_root: Path, census: dict, advanced: tuple[str, ...], 
     L_fit = np.array([float(tg[str(u["market_id"])]["L"]) if u["window"] != "fit" else u["L_fit"] for u in fitu], float)
     fm = fit_model(fitu, L_fit)
     fm_ns = fit_model(fitu, L_fit, drop_sched=True)
-    hold = load_units(wdir, ("hold",), job="rep-W")
+    dropped = c11.dropped_market_ids(pdir)  # b1: seal-time drops are never analysed (W1 hold units and the W2 sample alike)
+    hold = [u for u in load_units(wdir, ("hold",), job="rep-W") if str(u["market_id"]) not in dropped]
     tgh = _index_by(open_w_guarded(wdir / HOLD_DIR / "targets_guarded_hold.csv.gz", "rep-W"))
     L = np.array([float(tgh[str(u["market_id"])]["L"]) for u in hold], float)
-    out: dict = {"label": "out-of-time replication on a sealed later window (L2)", "stage2_alpha_over_k": thr, "k": k}
+    out: dict = {"label": "out-of-time replication on a sealed later window (L2)", "stage2_alpha_over_k": thr, "k": k, "n_dropped_excluded": len(dropped)}
     cw = census.get("W") or {}
     pred_h = {str(u["market_id"]): float(math.exp(p)) for u, p in zip(hold, predict(fm, hold), strict=True)}
-    sample = list(c11.read_csv_gz(wdir / HOLD_DIR / "w2_sample_hold.csv.gz"))
+    sample = [r for r in c11.read_csv_gz(wdir / HOLD_DIR / "w2_sample_hold.csv.gz") if str(r["market_id"]) not in dropped]
     tx = load_tx(pdir / "holdout" / "tx.csv.gz")
     mk = load_markets(pdir / "holdout" / "markets.csv.gz")
     oc = _index_by(open_w_guarded(wdir / HOLD_DIR / "outcomes_guarded_hold.csv.gz", "rep-W"))

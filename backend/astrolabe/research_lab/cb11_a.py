@@ -59,6 +59,7 @@ GA = {"quiet": 1000, "spike": 200, "events": 150, "days": 60, "entity_share": 0.
 COVER_MIN = 0.90
 AVAIL_MIN = 0.60
 WIKI_MAX_REQ = 3000
+WIKI_STUCK_RESUMES = 3  # c2: consecutive Wikipedia-error resumes without a new cached summary before the terminal "not testable (source)"
 MDE_SD = 0.08
 MDE_DEFF = 1.3
 SEED_SAMPLE = "arepo-cb11-attn-sample"
@@ -84,7 +85,8 @@ GENERIC_CAP = ("Will", "Who", "What", "When", "Which", "How", "Does", "Is", "Are
 GENERIC_NOUNS = ("ipo", "invasion", "election", "elections", "ceasefire", "recession", "inflation", "shutdown", "primary", "debate", "referendum", "treaty", "summit", "war", "peace")
 STOP_LIST = tuple(sorted({s.lower() for s in (*MONTH_NAMES, *WEEKDAYS, *GENERIC_CAP, *GENERIC_NOUNS)}))
 
-FRAME_COLUMNS = [*pa.PA_COLUMNS, "vol_ok", "topic", "entity", "question", "close_epoch", "stratum", "split", "event_key", "w_inv", "title", "description"]
+FRAME_COLUMNS = [*pa.PA_COLUMNS, "vol_ok", "topic", "entity", "question", "stratum", "split", "event_key", "w_inv", "title", "description"]
+CLOSE_COLUMNS = ["market_id", "close_epoch"]  # closedTime is outcome-adjacent: kept out of the frame file, merged in only by read_frame for the open-at-t condition and the close mark
 ENTITY_COLUMNS = ["entity", "status", "type", "canonical", "description"]
 PV_COLUMNS = ["title", "day", "views"]
 MARKET_COLUMNS = ["market_id", "split", "status", "oldest_ts", "truncated", "n_prints", "n_nohash", "n_tx", "covered"]
@@ -284,15 +286,22 @@ def attn_frame(hist_root: Path, transport, wiki_transport, *, rules_sha: str, sm
         ep_path = rdir / "entities_partial.jsonl"
         cache = pa.read_jsonl_by(ep_path, "entity")
 
+        pause: dict = {"why": None}
+
         def resolve(ent: str) -> dict | None:
             k = ent.lower()
             if k in cache:
                 return cache[k]
-            if len(cache) >= WIKI_MAX_REQ or fr.stop_reason(should_stop):
+            if len(cache) >= WIKI_MAX_REQ:
+                pause["why"] = "budget"
+                return None
+            if fr.stop_reason(should_stop):
+                pause["why"] = "stop"
                 return None
             try:
                 s = wiki_summary(limw, ent)
-            except (cm.ApiError, RuntimeError):
+            except (cm.ApiError, RuntimeError) as exc:
+                pause["why"], pause["detail"] = "error", f"{type(exc).__name__}: {exc}"[:120]
                 return None
             rec = {**s, "entity": k}
             pa.append_jsonl(ep_path, rec)
@@ -304,12 +313,26 @@ def attn_frame(hist_root: Path, transport, wiki_transport, *, rules_sha: str, sm
         ev_count: Counter = Counter()
         st_v = {"processed": 0, "passed": 0}
         st_n = {"processed": 0, "passed": 0}
+        def paused(why: str) -> dict:
+            """c2: a Wikipedia pause is transient only while the budget holds and the error is not stuck; a used-up request cap, or WIKI_STUCK_RESUMES resumes that all
+            ended on a Wikipedia error with no new summary cached in between, is the terminal counted 'not testable (source)' (design 2.8 stop rules)."""
+            cause = pause.get("why")
+            if cause == "budget":
+                return c11.write_stall(rdir, c11.STALL_NOT_RUN_SOURCE, f"Wikipedia request budget ({WIKI_MAX_REQ}) used up before the sample filled: {len(cache)} summaries cached")
+            if cause == "error":
+                pp_ = rdir / "wiki_pauses.jsonl"
+                pa.append_jsonl(pp_, {"cache": len(cache), "detail": pause.get("detail")})
+                recs_ = [json.loads(x) for x in pp_.read_text().splitlines() if x.strip()]
+                if len(recs_) >= WIKI_STUCK_RESUMES and len({r_["cache"] for r_ in recs_[-WIKI_STUCK_RESUMES:]}) == 1:
+                    return c11.write_stall(rdir, c11.STALL_NOT_RUN_SOURCE, f"Wikipedia errors on {WIKI_STUCK_RESUMES} consecutive resumes without progress ({pause.get('detail')})")
+            return pa.in_progress(fr, why)
+
         s_vol, why = accept_sequential(vol, SEED_SAMPLE, n_sample, ev_count, resolve, st_v)
         if why:
-            return pa.in_progress(fr, why)
+            return paused(why)
         s_nov, why = accept_sequential(nov, SEED_NOVOL, n_novol, ev_count, resolve, st_n)
         if why:
-            return pa.in_progress(fr, why)
+            return paused(why)
         strata = {}
         for name, pool, sample, stt in (("vol", vol, s_vol, st_v), ("novol", nov, s_nov, st_n)):
             share = stt["passed"] / stt["processed"] if stt["processed"] else math.nan
@@ -325,6 +348,8 @@ def attn_frame(hist_root: Path, transport, wiki_transport, *, rules_sha: str, sm
             sfx = "" if sp == "screen" else "_hold"
             sub = [r for r in rows_out if r["split"] == sp]
             fr.budget.write_gz_csv(rdir / f"{prefix}frame{sfx}.csv.gz", FRAME_COLUMNS, ([pa.blank(r.get(c, "")) for c in FRAME_COLUMNS] for r in sub))
+            fr.budget.write_gz_csv(rdir / f"{prefix}closes{sfx}.csv.gz", CLOSE_COLUMNS, ([pa.blank(r.get(c, "")) for c in CLOSE_COLUMNS] for r in sub))
+            fr.record_file(rdir / f"{prefix}closes{sfx}.csv.gz")
             ents = {r["entity"].lower(): cache[r["entity"].lower()] for r in sub}
             fr.budget.write_gz_csv(rdir / f"{prefix}entities{sfx}.csv.gz", ENTITY_COLUMNS, ([e["entity"], e["status"], e["type"], e["canonical"], e["description"]] for e in ents.values()))
             fr.record_file(rdir / f"{prefix}frame{sfx}.csv.gz")
@@ -534,12 +559,15 @@ def read_frame(rdir: Path, split: str, *, job: str) -> list[dict]:
     if split == "holdout":
         if job != "rep-A":
             raise Refused("A HOLDOUT is sealed: only rep-A loads it (after verify_holdout_seal)")
-        path = rdir / HOLD_DIR / "frame_hold.csv.gz"
+        path, cpath = rdir / HOLD_DIR / "frame_hold.csv.gz", rdir / HOLD_DIR / "closes_hold.csv.gz"
+        dropped = c11.dropped_market_ids(rdir)  # d2: seal-time drops are never analysed
     elif split == "screen":
-        path = rdir / "frame.csv.gz"
+        path, cpath = rdir / "frame.csv.gz", rdir / "closes.csv.gz"
+        dropped = set()
     else:
         raise Refused(f"unknown split {split!r}")
-    return [dict(r) for r in c11.read_csv_gz(path)]
+    closes = {str(r["market_id"]): r["close_epoch"] for r in c11.read_csv_gz(cpath)} if cpath.exists() else {}
+    return [{**dict(r), "close_epoch": closes.get(str(r["market_id"]), "")} for r in c11.read_csv_gz(path) if str(r["market_id"]) not in dropped]
 
 
 def load_pageviews(rdir: Path, split: str, *, job: str) -> dict[str, dict[int, int]]:
@@ -759,14 +787,14 @@ def _delta_only(us: list[dict]) -> float:
     return float(np.mean(q) - np.mean(s)) if q and s else math.nan
 
 
-def a1_stat(units: list[dict], *, n_draws: int = c11.PLACEBO_DRAWS, alpha: float = c11.GATE_P, placebo: bool = True) -> dict:
+def a1_stat(units: list[dict], *, n_draws: int = c11.PLACEBO_DRAWS, alpha: float = c11.GATE_P, placebo: bool = True, inclusive: bool = False) -> dict:
     """A1 on units that carry targets (``attach_targets``)."""
     us = sel(units)
     C = np.array([u["val"] for u in us], float)
     cell = np.array([u["cell"] for u in us])
     core = delta_core(C, cell, ways_of(us)) if us else {"testable": False, "p": 1.0, "delta": math.nan, "n": 0, "n_quiet": 0, "n_spike": 0}
     out: dict = {k: core[k] for k in ("n", "n_quiet", "n_spike", "delta", "p", "testable")} | {"ways": core.get("ways"), "floor": A1_FLOOR, "label": "mechanism contrast, modelled (L1)", "effect": core["delta"]}
-    out["core_ok"] = bool(core["testable"] and core["p"] < alpha and core["delta"] >= A1_FLOOR)
+    out["core_ok"] = bool(core["testable"] and c11.p_ok(core["p"], alpha, inclusive) and core["delta"] >= A1_FLOOR)
     if not core["testable"]:
         return {**out, "advance": False, "p": 1.0, "verdict": "not testable (units or clusters)"}
     out["placebo"] = label_swap_placebo(us, n_draws=n_draws) if placebo else {"n_draws": 0, "holds": True, "advance_rate": None, "note": "skipped"}
@@ -793,7 +821,7 @@ def a1_stat(units: list[dict], *, n_draws: int = c11.PLACEBO_DRAWS, alpha: float
         keepm = c11.c9.top_k_drop_mask(np.nan_to_num(core["v"]), cl, c11.TOP_DROP)
         sub = [u for u, k in zip(us, keepm, strict=True) if k]
         r = delta_core(np.array([u["val"] for u in sub], float), np.array([u["cell"] for u in sub]), ways_of(sub))
-        top[way] = {"n": r["n"], "delta": r["delta"], "p": r["p"], "ok": bool(r["testable"] and r["p"] < alpha and r["delta"] >= A1_FLOOR)}
+        top[way] = {"n": r["n"], "delta": r["delta"], "p": r["p"], "ok": bool(r["testable"] and c11.p_ok(r["p"], alpha, inclusive) and r["delta"] >= A1_FLOOR)}
     rob["without_top5"] = top
     rob["months"] = pa.months_ok(np.array([u["month"] for u in us]), lambda mo: (sum(1 for u in us if u["month"] == mo), _delta_only([u for u in us if u["month"] == mo])))
     both = sel(units, strata=("vol", "novol"))
@@ -830,7 +858,7 @@ def a2_net(u: dict, *, half_spread: float, fade: bool = False) -> float:
     return x - e - r * e * (1 - e) - r * x * (1 - x)
 
 
-def a2_stat(units: list[dict], *, alpha: float = c11.GATE_P) -> dict:
+def a2_stat(units: list[dict], *, alpha: float = c11.GATE_P, inclusive: bool = False) -> dict:
     us = [u for u in sel(units) if u["cell"] == "quiet" and math.isfinite(u["p48"])]
     v = np.array([a2_net(u, half_spread=HALF_SPREAD) for u in us], float)
     ways = ways_of(us)
@@ -841,14 +869,14 @@ def a2_stat(units: list[dict], *, alpha: float = c11.GATE_P) -> dict:
     out["reported_fade_spike"] = {"n": len(spikes), "net_mean": float(np.mean([a2_net(u, half_spread=HALF_SPREAD, fade=True) for u in spikes])) if spikes else math.nan}
     if not cp["testable"]:
         return {**out, "advance": False, "p": 1.0, "verdict": "not testable (units or clusters)"}
-    out["core_ok"] = bool(out["p"] < alpha and out["net_mean"] >= A2_FLOOR)
+    out["core_ok"] = bool(c11.p_ok(out["p"], alpha, inclusive) and out["net_mean"] >= A2_FLOOR)
     v2 = np.array([a2_net(u, half_spread=HALF_SPREAD_ROBUST) for u in us], float)
     rob: dict = {"half_spread_2c": {"net_mean": float(v2.mean()), "ok": bool(v2.mean() > 0)}}
     top = {}
     for way, cl in ways.items():
         keep = c11.c9.top_k_drop_mask(v, cl, c11.TOP_DROP)
         r = c11.cluster_p(v[keep], {k: w[keep] for k, w in ways.items()})
-        top[way] = {"n": int(keep.sum()), "net_mean": float(v[keep].mean()), "p": r["p"], "ok": bool(r["testable"] and r["p"] < alpha and v[keep].mean() >= A2_FLOOR)}
+        top[way] = {"n": int(keep.sum()), "net_mean": float(v[keep].mean()), "p": r["p"], "ok": bool(r["testable"] and c11.p_ok(r["p"], alpha, inclusive) and v[keep].mean() >= A2_FLOOR)}
     rob["without_top5"] = top
     months = np.array([u["month"] for u in us])
     rob["months"] = pa.months_ok(months, lambda mo: (int((months == mo).sum()), float(v[months == mo].mean()) if (months == mo).any() else math.nan))
@@ -978,7 +1006,7 @@ def rep_a(rdir: Path, census: dict, advanced: tuple[str, ...], k: int, *, n_draw
         if not av["ok"]:
             out[f"{t}_rep"] = {"testable": False, "p": 1.0, "advance": False, "verdict": "not testable (availability)", "availability": av, "stage2_pass_alpha_over_k": False}
             continue
-        r = a1_stat(units, n_draws=n_draws, alpha=thr) if t == "A1" else a2_stat(units, alpha=thr)
+        r = a1_stat(units, n_draws=n_draws, alpha=thr, inclusive=True) if t == "A1" else a2_stat(units, alpha=thr, inclusive=True)
         r["stage2_pass_alpha_over_k"] = bool(r.get("testable") and r.get("p", 1.0) <= thr and r.get("advance"))
         out[f"{t}_rep"] = r
     out["unit_info"] = info
@@ -997,9 +1025,9 @@ def declared() -> dict:
             "end_ahead_s": END_AHEAD_S, "costs": {"half_spread": HALF_SPREAD, "half_spread_robust": HALF_SPREAD_ROBUST, "fee_r_min": FEE_R_MIN},
             "floors": {"a1": A1_FLOOR, "a2": A2_FLOOR, "attr": ATTR_MIN, "notional_min": NOTIONAL_MIN}, "sample": {"n": N_SAMPLE, "novol": N_NOVOL, "per_event": MAX_PER_EVENT, "audit": N_AUDIT,
                                                                                                                    "seeds": [SEED_SAMPLE, SEED_NOVOL, SEED_SPLIT, SEED_AUDIT]},
-            "gates": {"GA": GA, "GA0_precision": AUDIT_PASS, "coverage_min": COVER_MIN, "availability_min": AVAIL_MIN, "wiki_max_requests": WIKI_MAX_REQ},
+            "gates": {"GA": GA, "GA0_precision": AUDIT_PASS, "coverage_min": COVER_MIN, "availability_min": AVAIL_MIN, "wiki_max_requests": WIKI_MAX_REQ, "wiki_stuck_resumes": WIKI_STUCK_RESUMES},
             "mde": {"sd": MDE_SD, "deff": MDE_DEFF}, "stop_list": list(STOP_LIST), "excluded_topics": list(EXCLUDED_TOPICS), "prints": {"limit": DATA_LIMIT, "pages": DATA_PAGES, "taker_only": TAKER_ONLY},
-            "placebo": {"seed": c11.PLACEBO_SEEDS["A1_labelswap"], "draws": c11.PLACEBO_DRAWS}, "census_forbidden": list(CENSUS_FORBIDDEN), "columns": {"frame": FRAME_COLUMNS}}
+            "placebo": {"seed": c11.PLACEBO_SEEDS["A1_labelswap"], "draws": c11.PLACEBO_DRAWS}, "census_forbidden": list(CENSUS_FORBIDDEN), "columns": {"frame": FRAME_COLUMNS, "closes": CLOSE_COLUMNS}}
 
 
 def rule_funcs() -> tuple:

@@ -38,7 +38,7 @@
   "manifest.json"
  ],
  "next_action": "q0230 (W2 holdout seal); q0231",
- "notes": "DRAFT-REVISED round 1 (items 6, 11: <= 28,000 requests (7,000 markets x up to 4 pages of 1,000; section 11 N3: the design said <= 14,000), about 3.9 h at 2 rps, 5 chunks of 85 min; takerOnly=true). No side, wallet or hash stored. Incomplete = pending, never analysed. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 ecf500f72bc4bacd68bbdb6f4b079101ab863c64f571f0893fa98e3cb141bb2a (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; the coordinator regenerates the rules and this sha when the h2_main / h3_power sample.csv.gz pins are filled).",
+ "notes": "DRAFT-REVISED round 1 (items 6, 11: <= 28,000 requests (7,000 markets x up to 4 pages of 1,000; section 11 N3: the design said <= 14,000), about 3.9 h at 2 rps, 5 chunks of 85 min; takerOnly=true). No side, wallet or hash stored. Incomplete = pending, never analysed. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 8a5d1b5ede813aaf52fb5dd811ccb78a88bad4a612d81cc7fdb3b9d8c6765ed1 (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; sample pins filled and rules regenerated 2026-10-18 after the re-check fixes b1-b2, c1-c2, d1-d3).",
  "repeat": {
   "max_runs": 5,
   "until_log_regex": "\"status\": \"(w_prints_complete|not_run_source|upstream_not_testable)\""

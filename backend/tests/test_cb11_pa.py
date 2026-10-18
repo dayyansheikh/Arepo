@@ -98,7 +98,7 @@ def test_frame_record_stores_no_forbidden_field_and_routes_guarded(tmp_path):
     for bad in ("outcomePrices", "0.77", "SECRETDESC", "resolved", "123456", "umaResolution"):
         assert bad not in flat
     assert set(rec["g"]) == {"market_id", "outcome_prices", "uma_status", "closed_epoch", "late_close"}
-    assert rec["r"]["open_90"] == 1  # closedTime 2026-03-06 > t_90
+    assert "open_90" not in rec["r"] and rec["o"]["open_90"] == 1  # closedTime 2026-03-06 > t_90; the flags live in the opens file, not the frame
     # life below 60 d, or end outside the window, is dropped locally
     assert pol.frame_record({**m, "startDate": "2025-11-01T00:00:00Z"}, "pol", ep("2025-11-24"), ep("2025-12-08")) is None
     assert pol.frame_record(m, "pol", ep("2026-01-01"), ep("2026-01-08")) is None
@@ -285,8 +285,11 @@ def test_pol_frame_files_split_guards_and_write_once(pframe):
     g = {r["market_id"]: r for r in pol.open_p_guarded(rdir / "outcomes_guarded.csv.gz", "screen-P")}
     assert set(g) == {r["market_id"] for r in scr}
     # open-at-t_h booleans: markets that close 80 d before the end are closed before t_60 / t_30
+    opens = {r["market_id"]: r for r in c11.read_csv_gz(rdir / "opens.csv.gz")}
+    assert all("open_" not in c for c in scr[0]) and set(opens) == {r["market_id"] for r in scr}
     early = [r for r in scr if int(r["market_id"]) % 13 == 0]
-    assert early and all(r["open_90"] == "1" and r["open_60"] == "0" and r["open_30"] == "0" for r in early)
+    assert early and all(opens[r["market_id"]]["open_90"] == "1" and opens[r["market_id"]]["open_60"] == "0" and opens[r["market_id"]]["open_30"] == "0" for r in early)
+    assert all(c in pol.CENSUS_FORBIDDEN for c in ("opens", "open_30"))
     # re-run is a no-op (complete is sticky)
     n0 = sum(pframe["world"].requests.values())
     m2 = pol.pol_frame(pframe["hist"], pframe["world"], rules_sha="r" * 64, smoke_path=_smoke(pframe["tmp"]), exclusion_keys_path=_keys(pframe["tmp"]), now=1.8e9, windows=WINDOWS, **NOSLEEP)
@@ -619,15 +622,30 @@ def test_pa_freeze_part_is_separate_and_must_match(tmp_path):
 
 def test_stage2_k_pa_does_not_depend_on_w_results(tmp_path):
     with pytest.raises(c11.NotNow):
-        pa.stage2_k_pa(tmp_path, None)
-    assert pa.stage2_k_pa(tmp_path, 3) == 3
+        pa.stage2_k_pa(tmp_path, None, "P")
     with pytest.raises(c11.Refused):
-        pa.stage2_k_pa(tmp_path, 0)
+        pa.stage2_k_pa(tmp_path, 0, "P")
     for n, adv in (("results_W.json", ["W1"]), ("results_P.json", ["P1", "P2"]), ("results_A.json", [])):
         (tmp_path / n).write_text(json.dumps({t: {"advance": True} for t in adv}))
-    assert pa.stage2_k_pa(tmp_path, None) == 3
+    assert pa.stage2_k_pa(tmp_path, None, "P") == 3
     with pytest.raises(c11.Refused):
-        pa.stage2_k_pa(tmp_path, 2)
+        pa.stage2_k_pa(tmp_path, 2, "P")
+
+
+def test_stage2_k_pa_explicit_k_is_at_least_the_conservative_count(tmp_path):
+    """d1: with the other families' Stage-1 results missing, an explicit k below the own-family conservative count (unfinished tests counted as advancing) is refused."""
+    (tmp_path / "results_P.json").write_text(json.dumps({"P1": {"advance": True}, "P2": {"advance": True}}))
+    floor_k = c11.stage2_k(tmp_path, own="P")["k"]
+    assert floor_k > 2
+    with pytest.raises(c11.Refused, match="conservative"):
+        pa.stage2_k_pa(tmp_path, 1, "P")
+    with pytest.raises(c11.Refused, match="conservative"):
+        pa.stage2_k_pa(tmp_path, floor_k - 1, "P")
+    assert pa.stage2_k_pa(tmp_path, floor_k, "P") == floor_k
+    assert pa.stage2_k_pa(tmp_path, floor_k + 2, "P") == floor_k + 2  # a stricter alpha / k is allowed
+    # the family's own result missing -> not now (nothing to replicate)
+    with pytest.raises(c11.NotNow):
+        pa.stage2_k_pa(tmp_path, 9, "A")
 
 
 def test_seal_p_requires_complete_fetch_and_seals_once(pprices):
@@ -698,9 +716,11 @@ def test_runner_screen_and_rep_refuse_before_the_pa_freeze_and_need_pins(tmp_pat
     assert code == 75 and "results_A.json" in out["tempfail"]
     Path(root).mkdir(parents=True, exist_ok=True)
     (Path(root) / "results_A.json").write_text(json.dumps({"A1": {"advance": True}}))
-    code, out = _run(["rep", "--family", "A", *base, "--freeze-spec", spec.as_posix(), "--stage2-k", "2"], capsys)
+    code, out = _run(["rep", "--family", "A", *base, "--freeze-spec", spec.as_posix(), "--stage2-k", "5"], capsys)
     assert code == 2 and "--results-sha256" in out["refused"]
-    code, out = _run(["rep", "--family", "A", *base, "--freeze-spec", spec.as_posix(), "--stage2-k", "2", "--results-sha256", "0" * 64], capsys)
+    code, out = _run(["rep", "--family", "A", *base, "--freeze-spec", spec.as_posix(), "--stage2-k", "2"], capsys)
+    assert code == 2 and "conservative" in out["refused"]  # d1: an explicit k below the conservative count
+    code, out = _run(["rep", "--family", "A", *base, "--freeze-spec", spec.as_posix(), "--stage2-k", "5", "--results-sha256", "0" * 64], capsys)
     assert code == 2 and "stays closed" in out["refused"]
 
 
@@ -1090,6 +1110,73 @@ def test_census_a_counts_only_never_attaches_targets_and_gates(aframe, monkeypat
     assert d2["coverage_audit"]["share"] == 1.0 and "A1" in d2["mde"]
     missing = att.census_a(aframe["rdir"], tmp / "nolabels.csv")
     assert missing["GA0"]["pass"] is False and missing["GA0"]["error"].startswith("audit labels")
+
+
+def test_d2_rep_p_and_rep_a_exclude_the_seal_time_drops(pprices, aframe):
+    from astrolabe.research_lab import history_backfill as hb_  # noqa: PLC0415
+
+    for mod, fix in ((pol, pprices), (att, aframe)):
+        rdir = fix["rdir"]
+        ids = [str(r["market_id"]) for r in c11.read_csv_gz(rdir / "holdout" / "frame_hold.csv.gz")]
+        assert len(ids) >= 2
+        assert c11.dropped_market_ids(rdir) == set()
+        job = "rep-P" if mod is pol else "rep-A"
+        assert {str(r["market_id"]) for r in mod.read_frame(rdir, "holdout", job=job)} == set(ids)
+        (rdir / c11.DROPS_FILE).write_bytes(hb_._gz_csv_bytes(["market_id", "block", "reason"], [[ids[0], "DROPPED_SEAL_COPIES", "id"], [ids[1], "KEPT", ""]]))
+        kept = {str(r["market_id"]) for r in mod.read_frame(rdir, "holdout", job=job)}
+        assert kept == set(ids) - {ids[0]}
+        if mod is pol:
+            assert ids[0] not in {str(o["market_id"]) for o in pol.load_origins(rdir, "holdout", job="rep-P")}
+        # the screen split is never touched by the drops
+        assert len(mod.read_frame(rdir, "screen", job="screen-P" if mod is pol else "screen-A")) > 0
+
+
+def test_stage2_pass_uses_the_inclusive_alpha_over_k_rule():
+    """B8: Stage 2 is p <= alpha / k (inclusive), Stage 1 p < alpha."""
+    assert c11.p_ok(0.01, 0.01) is False and c11.p_ok(0.01, 0.01, inclusive=True) is True
+    assert c11.p_ok(0.0100001, 0.01, inclusive=True) is False
+    assert pol.p1_ok({"testable": True, "week_rule_holds": True, "p": 0.025, "mean": 0.05}, 0.01, gate=0.025) is False
+    assert pol.p1_ok({"testable": True, "week_rule_holds": True, "p": 0.025, "mean": 0.05}, 0.01, gate=0.025, inclusive=True) is True
+
+
+def test_c2_wikipedia_budget_used_up_is_a_terminal_counted_not_testable_source(tmp_path, monkeypatch):
+    w = AttnWorld(n=6)
+    monkeypatch.setattr(att, "WIKI_MAX_REQ", 2)
+    hist = tmp_path / "history"
+    kw = dict(rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=_keys(tmp_path), now=1.8e9, days=["2026-06-01", "2026-06-02"], **NOSLEEP)
+    m = att.attn_frame(hist, w, w.wiki, **kw)
+    assert m["status"] == c11.STALL_NOT_RUN_SOURCE and m["label"] == "not testable (source)" and m["complete"] is True and "budget" in m["reason"]
+    # terminal: a re-run returns the same state and makes no further request; the A data job and the census see it instead of waiting
+    n = w.n["gamma"]
+    again = att.attn_frame(hist, w, w.wiki, **kw)
+    assert again["status"] == c11.STALL_NOT_RUN_SOURCE and w.n["gamma"] == n
+    d = att.attn_data(hist, w, w.wiki, rules_sha="r" * 64, now=1.8e9, labels_path=tmp_path / "labels.csv", smoke_path=_smoke(tmp_path), **NOSLEEP)
+    assert d["status"] == c11.STALL_NOT_RUN_SOURCE
+
+
+def test_c2_persistent_wikipedia_errors_stall_after_a_bounded_number_of_resumes(tmp_path):
+    w = AttnWorld(n=6)
+
+    def boom(url, params):
+        raise RuntimeError("HTTP 503")
+
+    hist = tmp_path / "history"
+    kw = dict(rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=_keys(tmp_path), now=1.8e9, days=["2026-06-01", "2026-06-02"], **NOSLEEP)
+    for i in range(att.WIKI_STUCK_RESUMES - 1):
+        m = att.attn_frame(hist, w, boom, **kw)
+        assert m["status"] == "in_progress", i
+    m = att.attn_frame(hist, w, boom, **kw)
+    assert m["status"] == c11.STALL_NOT_RUN_SOURCE and "consecutive" in m["reason"]
+    assert att.attn_frame(hist, w, w.wiki, **kw)["status"] == c11.STALL_NOT_RUN_SOURCE  # terminal
+
+
+def test_a_frame_file_holds_no_closed_time_and_read_frame_merges_it(aframe):
+    rdir = aframe["rdir"]
+    hdr = gzip.open(rdir / "frame.csv.gz", "rt").readline()
+    assert "close_epoch" not in hdr
+    assert (rdir / "closes.csv.gz").exists() and (rdir / "holdout" / "closes_hold.csv.gz").exists()
+    scr = att.read_frame(rdir, "screen", job="screen-A")
+    assert scr and all("close_epoch" in r for r in scr)
 
 
 def test_rep_a_refuses_unverified_seal_and_seals_p_a_pending(aframe):

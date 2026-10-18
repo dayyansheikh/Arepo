@@ -54,16 +54,16 @@ cluster way.
 | q0227 | `cb11_attn_frame` (Gamma frame, entity rule, Wikipedia summary types, seeded sample, event split, audit sample file) | A | after q0221 |
 | q0228 | reserved (the entity-map audit is a repo step by a `science-reviewer` agent, §CB11-A; no queue job) | A | - |
 | q0229 | `cb11_attn_data` (pageviews per canonical title; Data API prints aggregated to transactions; HOLDOUT written sealed) | A | after q0227 and the committed audit labels |
-| q0230 | `cb11_seal` (P and A HOLDOUT listings sha256; seal copies; seal-time drops) | P, A | after q0226, q0229 |
-| q0231 | `cb11_census_W` (counts only; gates GWC, GW, GW2; W2 coverage audit; MDEs; round 1: per-family census) | W | after q0222, q0223, q0224 and the W seal copies |
+| q0230 | `cb11_seal` (W2 prints HOLDOUT listing sha256; seal copy; seal-time drops; re-check b2: W seals alone) | W | after q0223 |
+| q0231 | `cb11_census_W` (counts only; gates GWC, GW, GW2; W2 coverage audit; MDEs; round 1: per-family census) | W | after q0222, q0223, q0224 and q0230 (W seal) |
 | q0232 | `cb11_screen_W` (W1, W2 Stage 1) | W | after the CB11 freeze |
 | q0233 | `cb11_screen_P` (P1, P2 Stage 1) | P | after the CB11 freeze |
 | q0234 | `cb11_screen_A` (A1, A2 Stage 1) | A | after the CB11 freeze |
 | q0235 | `cb11_rep_W` (W1-rep, W2-rep on sealed W_hold) | W | only if W1 or W2 advanced |
 | q0236 | `cb11_rep_P` (P1-rep, P2-rep on sealed HOLDOUT ends) | P | only if P1 or P2 advanced |
 | q0237 | `cb11_rep_A` (A1-rep, A2-rep on sealed HOLDOUT events) | A | only if A1 or A2 advanced |
-| q0238 | reserved (W on-chain proposer variant, only if q0220 pins the Managed OOV2 address; uncounted; moved from q0224 in round 1) | W | - |
-| q0239 | `cb11_census_PA` (counts only; gates GP, GPP, GA0, GA; coverage audits; MDEs; new in round 1) | P, A | after q0230 (P and A seals) |
+| q0238 | `cb11_seal_PA` (P and A HOLDOUT listings sha256; seal copies; seal-time drops; re-check b2). The uncounted W on-chain proposer variant (only if q0220 pins the Managed OOV2 address) lost this id and takes a new one if it is ever run | P, A | after q0226, q0229 |
+| q0239 | `cb11_census_PA` (counts only; gates GP, GPP, GA0, GA; coverage audits; MDEs; new in round 1) | P, A | after q0226, q0229 and q0238 (P and A seals) |
 
 ### 0.2 Selection and scope
 
@@ -922,5 +922,19 @@ below tightens or clarifies; no floor, threshold, gate, alpha or cap was relaxed
 | N8 | Gate on the censoring-window reconstruction: if fewer than 99% of a frame's closed rows (ends in the W windows) fall in the reconstructed 15-minute windows, q0222 stalls with "not testable (censoring windows)" | `cb11_w.w_frame` |
 | N9 | "unfilled" splits into `unfilled_no_trade_before_close` (the stored span reaches the close) and `unfilled_outside_window` (the close lies beyond `t + 6 h`); both are counted, excluded from per-share means and from decided | `cb11_w.decide_and_enter` |
 
-Open for the coordinator: fill the two sample pins (B4), stage the C1/T5 id lists (B3), then regenerate `seals/cb11_rules.json` (W sha changes) and
-the sha in the W/smoke drafts.
+### Re-check amendments (2026-10-18, science-reviewer ACCEPT_WITH_FIXES)
+
+| ID | Amendment | Where |
+|---|---|---|
+| R-b1 | Seal-time `DROPPED_*` rows are never analysed: `rep_w` drops them from the W1 hold units and the W2 sample; `read_frame` / `load_origins` of P and A exclude them for the HOLDOUT (`cb11_common.dropped_market_ids`) | `cb11_w.rep_w`, `cb11_p`, `cb11_a` |
+| R-b2 | W seals alone (q0230, `--family W`); P and A seal in q0238 (`--family P,A`); q0231 depends on q0230 only, q0239 on q0238; both seal jobs are on the `net` lane with network gamma-api (one net job at a time, 2 rps) | drafts q0230, q0231, q0238, q0239 |
+| R-c1 | q0227 and q0229 (and q0225, q0226) repeat until their completion status or a terminal stall | drafts |
+| R-c2 | A used-up Wikipedia budget (3,000) or 3 consecutive Wikipedia-error resumes without a new cached summary ends q0227 in the terminal counted "not testable (source)" stall (`wiki_pauses.jsonl`); q0229 and the census see the stall | `cb11_a.attn_frame` |
+| R-d1 | `--stage2-k` for P / A is refused below the conservative own-family count (`stage2_k(own=...)`) while the other Stage-1 results are missing | `cb11_pa.stage2_k_pa` |
+| R-d3 | The P/A screen re-checks the fetch manifest, file hashes and the committed holdout seal; P/A results record the P/A freeze-part and census sha256; the P/A census records the P/A rules sha | `run_cb11.py` |
+| R-B6 | `w2_units` counts only filled units as decided (no_room and unfilled are triggered, counted, not decided) | `cb11_w.w2_units` |
+| R-B8 | P and A Stage 2 judge p <= alpha / k inclusive (as W); Stage 1 stays p < alpha | `cb11_p`, `cb11_a`, `cb11_common.p_ok` |
+| R-F | `open_30/60/90` leave the P frame (separate `opens.csv.gz`, census-forbidden, read only by the fetch); the A frame's `close_epoch` leaves the frame file (`closes.csv.gz`, merged by `read_frame`) | `cb11_p`, `cb11_a` |
+| R-pin | `H2_SAMPLE_SHA256` / `H3_SAMPLE_SHA256` filled (host `sha256sum`, 2026-10-18); rules regenerated | `cb11_common` |
+
+Open for the coordinator: stage the C1/T5 id lists (B3). (The two sample pins (B4) and the rules and draft shas were filled on 2026-10-18.)

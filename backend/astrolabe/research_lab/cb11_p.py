@@ -88,14 +88,15 @@ LATE_CLOSE_S = 7 * DAY
 EDIT_DAYS = 1.0
 
 FRAME_COLUMNS = ["market_id", "condition_id", "token0", "token1", "start_epoch", "end_epoch", "neg_risk", "neg_risk_market_id", "event_id", "event_ids", "series_ids", "tag_ids", "fee_rate",
-                 "group", "split", "event_key", "open_30", "open_60", "open_90"]
+                 "group", "split", "event_key"]
+OPENS_COLUMNS = ["market_id", "open_30", "open_60", "open_90"]  # fetch input only; derived from closedTime, so NOT in the frame the census reads (d: outcome-adjacent)
 FLAG_COLUMNS = ["market_id", "edit_detected", "election2024"]
 GUARDED_COLUMNS = ["market_id", "outcome_prices", "uma_status", "closed_epoch", "late_close"]
 ORIGIN_COLUMNS = ["market_id", "h", "label", "p", "n_points", "n_distinct", "t_h"]
 REACH_COLUMNS = ["market_id", "status", "oldest_ts", "truncated", "n_prints"]
 GUARDED_NAMES = ("outcomes_guarded.csv.gz", "outcomes_guarded_hold.csv.gz")
 HOLD_ONLY = ("outcomes_guarded_hold.csv.gz",)
-CENSUS_FORBIDDEN = ("outcome_prices", "uma_status", "closed_epoch", "late_close", "Y", "E", "net", "pnl", "excess", "outcomes_guarded")
+CENSUS_FORBIDDEN = ("outcome_prices", "uma_status", "closed_epoch", "late_close", "Y", "E", "net", "pnl", "excess", "outcomes_guarded", "opens", "open_30", "open_60", "open_90")
 
 LABEL_OK = "ok"
 LABEL_INACTIVE = "inactive_proxy"
@@ -253,8 +254,8 @@ def frame_record(m: dict, group: str, a: float, b: float) -> dict | None:
     opens = {}
     for h in HORIZONS:
         opens[f"open_{h}"] = "" if not math.isfinite(closed) else int(closed > t_h(end, h))
-    r = {**r, "group": group, **opens}
-    return {"r": {k: pa.blank(v) for k, v in r.items()}, "g": {**g, "closed_epoch": pa.blank(closed), "late_close": int(late_close(end, closed))},
+    r = {**r, "group": group}
+    return {"r": {k: pa.blank(v) for k, v in r.items()}, "o": {"market_id": r["market_id"], **opens}, "g": {**g, "closed_epoch": pa.blank(closed), "late_close": int(late_close(end, closed))},
             "f": {"edit_detected": int(edit_detected(end, aux["event_end"], aux["question"], aux["event_title"])),
                   "election2024": int(election_2024(end, aux["question"], aux["event_title"]))}}
 
@@ -392,9 +393,10 @@ def pol_frame(hist_root: Path, transport, *, rules_sha: str, smoke_path: Path, e
             sfx = "" if sp == "screen" else "_hold"
             rows = [x for grp in ("pol", "ctl") for x in out[(grp, sp)]]
             fr.budget.write_gz_csv(rdir / f"{prefix}frame{sfx}.csv.gz", FRAME_COLUMNS, ([{**x["r"], "split": sp, "event_key": x["event_key"]}.get(c, "") for c in FRAME_COLUMNS] for x in rows))
+            fr.budget.write_gz_csv(rdir / f"{prefix}opens{sfx}.csv.gz", OPENS_COLUMNS, ([x["o"].get(c, "") for c in OPENS_COLUMNS] for x in rows))
             fr.budget.write_gz_csv(rdir / f"{prefix}flags{sfx}.csv.gz", FLAG_COLUMNS, ([x["r"]["market_id"], x["f"]["edit_detected"], x["f"]["election2024"]] for x in rows))
             fr.budget.write_gz_csv(rdir / f"{prefix}outcomes_guarded{sfx}.csv.gz", GUARDED_COLUMNS, ([x["g"].get(c, "") for c in GUARDED_COLUMNS] for x in rows))
-            for nm in (f"{prefix}frame{sfx}.csv.gz", f"{prefix}flags{sfx}.csv.gz", f"{prefix}outcomes_guarded{sfx}.csv.gz"):
+            for nm in (f"{prefix}frame{sfx}.csv.gz", f"{prefix}flags{sfx}.csv.gz", f"{prefix}opens{sfx}.csv.gz", f"{prefix}outcomes_guarded{sfx}.csv.gz"):
                 fr.record_file(rdir / nm)
         fr.budget.write(rdir / "split.json", json.dumps({"seeds": {"pol_cap": SEED_POL_CAP, "pol_sample": SEED_POL_SAMPLE, "ctl_cap": SEED_CTL_CAP, "ctl_sample": SEED_CTL_SAMPLE,
                                                                    "ctl_windows": SEED_CTL_WINDOWS}, "split_at": P_HOLD[0], "report": rep, "exclusion_keys_sha256": ksha,
@@ -430,6 +432,8 @@ def read_frame(rdir: Path, split: str, *, job: str) -> list[dict]:
         if job != "rep-P":
             raise Refused("P HOLDOUT is sealed: only rep-P loads it (after verify_holdout_seal)")
         path = rdir / HOLD_DIR / "frame_hold.csv.gz"
+        dropped = c11.dropped_market_ids(rdir)  # d2: seal-time drops are never analysed
+        return [dict(r) for r in c11.read_csv_gz(path) if str(r["market_id"]) not in dropped]
     elif split == "screen":
         path = rdir / "frame.csv.gz"
     else:
@@ -440,7 +444,11 @@ def read_frame(rdir: Path, split: str, *, job: str) -> list[dict]:
 def read_frame_for_fetch(rdir: Path) -> list[tuple[str, dict]]:
     """The fetch jobs (q0226) read both frame files to know which markets to request; they never read a guarded file."""
     rdir = Path(rdir)
-    return [(sp, dict(r)) for sp, p in (("screen", rdir / "frame.csv.gz"), ("holdout", rdir / HOLD_DIR / "frame_hold.csv.gz")) for r in c11.read_csv_gz(p)]
+    out = []
+    for sp, p, po in (("screen", rdir / "frame.csv.gz", rdir / "opens.csv.gz"), ("holdout", rdir / HOLD_DIR / "frame_hold.csv.gz", rdir / HOLD_DIR / "opens_hold.csv.gz")):
+        opens = {str(r["market_id"]): r for r in c11.read_csv_gz(po)}
+        out += [(sp, {**dict(r), **{c: opens.get(str(r["market_id"]), {}).get(c, "") for c in OPENS_COLUMNS[1:]}}) for r in c11.read_csv_gz(p)]
+    return out
 
 
 def price_point(history: list[dict], t: float) -> tuple[float, int, int]:
@@ -595,7 +603,8 @@ def load_origins(rdir: Path, split: str, *, job: str) -> list[dict]:
     if split == "holdout" and job != "rep-P":
         raise Refused("P HOLDOUT origins are sealed: only rep-P loads them")
     path = Path(rdir) / (HOLD_DIR if split == "holdout" else split) / "origins.csv.gz"
-    return [dict(r) for r in c11.read_csv_gz(path)]
+    dropped = c11.dropped_market_ids(rdir) if split == "holdout" else set()  # d2
+    return [dict(r) for r in c11.read_csv_gz(path) if str(r["market_id"]) not in dropped]
 
 
 def load_reach(rdir: Path) -> dict[str, dict]:
@@ -682,8 +691,8 @@ def p1_core(mk: list[dict], *, alpha: float | None = None) -> dict:
             "week": cp.get("week")}
 
 
-def p1_ok(r: dict, floor: float, *, gate: float = c11.GATE_P) -> bool:
-    return bool(r["testable"] and r["week_rule_holds"] and r["p"] < gate and r["mean"] >= floor)
+def p1_ok(r: dict, floor: float, *, gate: float = c11.GATE_P, inclusive: bool = False) -> bool:
+    return bool(r["testable"] and r["week_rule_holds"] and c11.p_ok(r["p"], gate, inclusive) and r["mean"] >= floor)
 
 
 def drop_masks(mk: list[dict]) -> dict[str, np.ndarray]:
@@ -778,7 +787,7 @@ def horizon_means(units: list[dict]) -> dict:
 
 
 def p1_stat(units_pol: list[dict], units_ctl: list[dict], *, ext: dict, alpha: float = c11.GATE_P, n_draws: int = c11.PLACEBO_DRAWS, placebo: bool = True,
-            reach: dict[str, dict] | None = None, tx_loader: Callable[[str], tuple | None] | None = None) -> dict:
+            reach: dict[str, dict] | None = None, tx_loader: Callable[[str], tuple | None] | None = None, inclusive: bool = False) -> dict:
     """P1 on SCREEN (or HOLDOUT) politics units. ``units_*`` carry ``Y``, ``Y_worst`` and the flags; ``ext`` carries ``t5_absent``, the half-window bounds and the
     counts of unresolved / voided / unclean markets."""
     P = with_excess([u for u in units_pol if in_band(u)])
@@ -786,7 +795,7 @@ def p1_stat(units_pol: list[dict], units_ctl: list[dict], *, ext: dict, alpha: f
     core = p1_core(mk, alpha=None)
     out: dict = {**{k: core[k] for k in ("n", "mean", "testable", "p", "week_rule_holds")}, "ways": core.get("ways"), "week": core.get("week"), "floor": P1_FLOOR,
                  "label": "L1, hindsight end date", "n_units": len(P), "by_horizon": horizon_means(P)}
-    out["core_ok"] = p1_ok(core, P1_FLOOR, gate=alpha)
+    out["core_ok"] = p1_ok(core, P1_FLOOR, gate=alpha, inclusive=inclusive)
     if not core["testable"]:
         return {**out, "advance": False, "p": 1.0, "verdict": "not testable (units or clusters)"}
     out["placebo"] = p1_placebo(P, n_draws=n_draws) if placebo else {"n_draws": 0, "holds": True, "advance_rate": None, "note": "skipped"}
@@ -796,7 +805,7 @@ def p1_stat(units_pol: list[dict], units_ctl: list[dict], *, ext: dict, alpha: f
     for name, keep in masks.items():
         sub = [m for m, k in zip(mk, keep, strict=True) if k]
         r = p1_core(sub, alpha=None)
-        conc[name] = {"n": r["n"], "mean": r["mean"], "p": r["p"], "ok": bool(r["testable"] and r["week_rule_holds"] and r["p"] < alpha and r["mean"] >= ELECTION_FLOOR)}
+        conc[name] = {"n": r["n"], "mean": r["mean"], "p": r["p"], "ok": bool(r["testable"] and r["week_rule_holds"] and c11.p_ok(r["p"], alpha, inclusive) and r["mean"] >= ELECTION_FLOOR)}
     out["concentration"] = conc
     out["concentration_ok"] = all(v["ok"] for v in conc.values())
     # attribution (label only)
@@ -805,7 +814,7 @@ def p1_stat(units_pol: list[dict], units_ctl: list[dict], *, ext: dict, alpha: f
     ec = float(np.mean([m["v"] for m in mc])) if mc else math.nan
     out["attribution_control"] = {"n_control_markets": len(mc), "mean_control": ec, "gap": out["mean"] - ec if math.isfinite(ec) else math.nan,
                                   "politics_specific": bool(math.isfinite(ec) and out["mean"] - ec >= ATTR_CTRL_GAP), "label_if_not": "long-horizon favourite underpricing, not political"}
-    out["robustness"] = p1_robustness(P, mk, units_pol, ext=ext, alpha=alpha)
+    out["robustness"] = p1_robustness(P, mk, units_pol, ext=ext, alpha=alpha, inclusive=inclusive)
     # top-5 cluster drops (common robustness ii)
     drop = {}
     v = np.array([m["v"] for m in mk], float)
@@ -813,7 +822,7 @@ def p1_stat(units_pol: list[dict], units_ctl: list[dict], *, ext: dict, alpha: f
         cl = np.array([m[way] for m in mk])
         keep = c11.c9.top_k_drop_mask(v, cl, c11.TOP_DROP)
         r = p1_core([m for m, k in zip(mk, keep, strict=True) if k], alpha=None)
-        drop[way] = {"n": r["n"], "mean": r["mean"], "p": r["p"], "ok": p1_ok(r, P1_FLOOR, gate=alpha)}
+        drop[way] = {"n": r["n"], "mean": r["mean"], "p": r["p"], "ok": p1_ok(r, P1_FLOOR, gate=alpha, inclusive=inclusive)}
     out["without_top5"] = drop
     out["without_top5_ok"] = all(x["ok"] for x in drop.values())
     # reported (uncounted)
@@ -827,7 +836,7 @@ def _mean_v(mk: list[dict]) -> float:
     return float(np.mean([m["v"] for m in mk])) if mk else math.nan
 
 
-def p1_robustness(P: list[dict], mk: list[dict], units_all: list[dict], *, ext: dict, alpha: float) -> dict:
+def p1_robustness(P: list[dict], mk: list[dict], units_all: list[dict], *, ext: dict, alpha: float, inclusive: bool = False) -> dict:
     """Binding robustness: each horizon keeps the sign; print-based price keeps the sign and >= half (see ``p1_reported`` for the data); band [0.55, 0.90] keeps the
     sign; each SCREEN half keeps the sign; excluding ``late_close`` / ``edit_detected`` markets, and excluding the 2024-election events, keep p < 0.01 and Ē >= 1.5c;
     unclean outcomes scored 0 keep the sign; if the T5 ids were absent, excluding SCREEN ends in the T5 overlap keeps the sign."""
@@ -844,7 +853,7 @@ def p1_robustness(P: list[dict], mk: list[dict], units_all: list[dict], *, ext: 
     for name, pred in (("exclude_flagged", lambda m: not (m["edit"] or m["late"])), ("exclude_election2024", lambda m: not m["elec"])):
         sub = [m for m in mk if pred(m)]
         r = p1_core(sub, alpha=None)
-        out[name] = {"n": r["n"], "mean": r["mean"], "p": r["p"], "ok": bool(r["testable"] and r["week_rule_holds"] and r["p"] < alpha and r["mean"] >= P1_FLAG_FLOOR)}
+        out[name] = {"n": r["n"], "mean": r["mean"], "p": r["p"], "ok": bool(r["testable"] and r["week_rule_holds"] and c11.p_ok(r["p"], alpha, inclusive) and r["mean"] >= P1_FLAG_FLOOR)}
     worst = with_excess([u for u in units_all if in_band(u)], worst=True)
     out["unclean_as_zero"] = {"mean": _mean_v(market_means(worst)), "ok": bool(worst and _mean_v(market_means(worst)) > 0)}
     if ext.get("t5_absent"):
@@ -943,7 +952,7 @@ def p2_core(entries: list[dict], *, alpha: float | None = None) -> dict:
     return p1_core(mk, alpha=alpha)
 
 
-def p2_stat(units_pol: list[dict], *, ext: dict, alpha: float = c11.GATE_P) -> dict:
+def p2_stat(units_pol: list[dict], *, ext: dict, alpha: float = c11.GATE_P, inclusive: bool = False) -> dict:
     P = [u for u in units_pol if in_band(u)]
     ent = p2_entries(P)
     core = p2_core(ent)
@@ -958,7 +967,7 @@ def p2_stat(units_pol: list[dict], *, ext: dict, alpha: float = c11.GATE_P) -> d
     out["resolved_before_scheduled_end_share"] = float(np.mean([e["closed"] < e["end"] for e in ent if math.isfinite(e.get("closed", math.nan))])) if any(math.isfinite(e.get("closed", math.nan)) for e in ent) else math.nan
     if not core["testable"]:
         return {**out, "advance": False, "p": 1.0, "verdict": "not testable (units or clusters)"}
-    floors = {"net": bool(core["mean"] >= P2_NET_FLOOR), "r_ann_excess": bool(math.isfinite(rann) and rann - RF_RATE >= P2_RANN_FLOOR), "p": bool(core["p"] < alpha and core["week_rule_holds"])}
+    floors = {"net": bool(core["mean"] >= P2_NET_FLOOR), "r_ann_excess": bool(math.isfinite(rann) and rann - RF_RATE >= P2_RANN_FLOOR), "p": bool(c11.p_ok(core["p"], alpha, inclusive) and core["week_rule_holds"])}
     out["floors"] = floors
     rob: dict = {}
     wide = p2_entries(P, half_spread=ASK_HALF_SPREAD_ROBUST)
@@ -977,7 +986,7 @@ def p2_stat(units_pol: list[dict], *, ext: dict, alpha: float = c11.GATE_P) -> d
         cl = np.array([e[way] for e in ent])
         keep = c11.c9.top_k_drop_mask(v, cl, c11.TOP_DROP)
         r = p2_core([e for e, k in zip(ent, keep, strict=True) if k])
-        top[way] = {"n": r["n"], "net_mean": r["mean"], "p": r["p"], "ok": bool(r["testable"] and r["week_rule_holds"] and r["p"] < alpha and r["mean"] >= P2_NET_FLOOR)}
+        top[way] = {"n": r["n"], "net_mean": r["mean"], "p": r["p"], "ok": bool(r["testable"] and r["week_rule_holds"] and c11.p_ok(r["p"], alpha, inclusive) and r["mean"] >= P2_NET_FLOOR)}
     rob["without_top5"] = top
     rob["ok"] = bool(rob["half_spread_2_5c"]["ok"] and rob["exclude_flagged"]["ok"] and rob["exclude_election2024"]["ok"] and all(x["ok"] for x in halves.values())
                      and all(x["ok"] for x in top.values()))
@@ -1114,11 +1123,11 @@ def rep_p(rdir: Path, census: dict, advanced: tuple[str, ...], k: int, *, n_draw
     pol, ctl = _prepare(rdir, "holdout", "rep-P")
     ext = {"t5_absent": False, "halves": ((P_HOLD[0], "2026-05-01"), ("2026-05-01", P_HOLD[1]))}
     if "P1" in advanced:
-        r = p1_stat(pol, ctl, ext=ext, alpha=thr, n_draws=n_draws)
+        r = p1_stat(pol, ctl, ext=ext, alpha=thr, n_draws=n_draws, inclusive=True)
         r["stage2_pass_alpha_over_k"] = bool(r.get("testable") and r.get("p", 1.0) <= thr and r.get("advance"))
         out["P1_rep"] = r
     if "P2" in advanced:
-        r = p2_stat(pol, ext=ext, alpha=thr)
+        r = p2_stat(pol, ext=ext, alpha=thr, inclusive=True)
         r["stage2_pass_alpha_over_k"] = bool(r.get("testable") and r.get("p", 1.0) <= thr and r.get("advance"))
         out["P2_rep"] = r
     return out
@@ -1153,7 +1162,7 @@ def declared() -> dict:
             "gates": {"GP": GP, "coverage_min": COVER_MIN, "availability_min": AVAIL_MIN, "GPP": {"max_mde": GPP_MAX_MDE, "draws": GPP_DRAWS, "inner": GPP_INNER, "loadings": list(GPP_LOADINGS),
                                                                                               "factor": MDE_FACTOR, "seed": c11.SEED_GPP}},
             "placebo": {"seed": c11.PLACEBO_SEEDS["P1_copula"], "draws": c11.PLACEBO_DRAWS}, "unclean_outcome_value": 0.5, "census_forbidden": list(CENSUS_FORBIDDEN),
-            "columns": {"frame": FRAME_COLUMNS, "guarded": GUARDED_COLUMNS, "origins": ORIGIN_COLUMNS}, "labels": [LABEL_OK, LABEL_INACTIVE, LABEL_NO_PRICE, LABEL_NOT_LISTED, LABEL_CLOSED, LABEL_NO_CLOSE, LABEL_FAILED]}
+            "columns": {"frame": FRAME_COLUMNS, "opens": OPENS_COLUMNS, "guarded": GUARDED_COLUMNS, "origins": ORIGIN_COLUMNS}, "labels": [LABEL_OK, LABEL_INACTIVE, LABEL_NO_PRICE, LABEL_NOT_LISTED, LABEL_CLOSED, LABEL_NO_CLOSE, LABEL_FAILED]}
 
 
 def rule_funcs() -> tuple:

@@ -40,5 +40,9 @@
   "history/h11_attn/{frame.csv.gz,entities.csv.gz,split.json,audit_sample.csv,manifest.json}"
  ],
  "next_action": "commit audit_sample.csv; science-reviewer blind labels committed; then q0229",
- "notes": "DRAFT-REVISED round 1 (item 10). No pageview or print read before the split and the audit file exist. Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 a8727c40ca7e3069599a3a45ba1c59794b81cc8a0073cd1663341196ee2ecbc5 (seals/cb11_pa_rules.json, the P/A rules part; separate from part W, which P/A jobs never verify; regenerate with `run_cb11.py rules-pa` and update this sha if P/A rule code changes before the first P/A request)."
+ "notes": "DRAFT-REVISED round 1 (item 10). No pageview or print read before the split and the audit file exist. Verifies seals/cb11_pa_rules.json (generate with `run_cb11.py rules-pa`, commit before q0225); the screens and reps also need the P/A part of model_specs/cb11_v1.json (`run_cb11.py freeze-part`). CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 e05a1878c70b25b40949f388990188e66b42d7081772cf038094feca8034aef3 (seals/cb11_pa_rules.json, the P/A rules part; separate from part W, which P/A jobs never verify; regenerate with `run_cb11.py rules-pa` and update this sha if P/A rule code changes before the first P/A request). Re-check c1: resumable (in-progress chunks exit 0), so it repeats until attn_frame_complete or a terminal stall; c2: a used-up Wikipedia budget (3,000) or 3 consecutive Wikipedia-error resumes without progress is the terminal counted 'not testable (source)'.",
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"(attn_frame_complete|not_run_source|upstream_not_testable|disjointness_unverified)\""
+ }
 }

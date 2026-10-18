@@ -391,9 +391,10 @@ def pa_declared() -> dict:
     return {m.__name__.rsplit(".", 1)[-1]: m.declared() for m in _pa_mods()}
 
 
-def stage2_k_pa(results_dir: Path, explicit: int | None) -> int:
-    """Stage-2 Holm k for a P/A replication WITHOUT relying on the W results coupling: ``explicit`` (``--stage2-k``) is required unless all three Stage-1
-    results files exist, in which case it must equal the derived k."""
+def stage2_k_pa(results_dir: Path, explicit: int | None, fam: str) -> int:
+    """Stage-2 Holm k for the P / A replication of family ``fam`` WITHOUT relying on the W results coupling. If all three Stage-1 results files exist ``explicit``
+    (``--stage2-k``) must equal the derived k. Otherwise (d1) ``explicit`` is required and must be >= the conservative own-family count of ``stage2_k(own=fam)``
+    (every test of a not-yet-final family counted as advancing, N7: k can only be too large, alpha / k at least as strict as the final one); a smaller k is refused."""
     try:
         derived = c11.stage2_k(results_dir)["k"]
     except NotNow:
@@ -405,6 +406,10 @@ def stage2_k_pa(results_dir: Path, explicit: int | None) -> int:
     k = int(explicit if explicit is not None else derived)
     if k < 1:
         raise Refused("Stage-2 k must be >= 1")
+    if derived is None:
+        floor_k = c11.stage2_k(results_dir, own=fam)["k"]  # NotNow while the family's own Stage-1 result is missing
+        if k < floor_k:
+            raise Refused(f"--stage2-k {k} is below the conservative count {floor_k} (every unfinished Stage-1 test counted as advancing); refusing a looser alpha / k")
     return k
 
 

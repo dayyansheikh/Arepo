@@ -1,18 +1,17 @@
 {
  "id": "q0230_cb11_seal",
- "title": "CB11: HOLDOUT listings sha256 for W2 prints, P and A (per family, as each fetch completes); seal-time drops vs seal copies committed by now; seal copies seals/cb11_{wprints,pol,attn}_holdout_SEAL.json",
+ "title": "CB11-W: HOLDOUT listing sha256 for the W2 prints (history/h11_wprints/holdout); seal-time drops vs seal copies committed by now; seal copy seals/cb11_wprints_holdout_SEAL.json",
  "family": "creative_batch_11",
  "priority": 26,
  "expected_value": "sealed holdouts",
  "data": [
-  "history/h11_wprints/holdout/",
-  "history/h11_pol/holdout/",
-  "history/h11_attn/holdout/"
+  "history/h11_wprints/holdout/"
  ],
  "resources": {
   "mem_mb": 300,
   "cpu": 1,
-  "lane": "cpu"
+  "lane": "net",
+  "network": "gamma-api"
  },
  "depends_on": [
   "q0223_cb11_w_prints"
@@ -22,18 +21,20 @@
   "seal",
   "--rules",
   "../docs/research_lab/seals/cb11_rules.json",
-  "--pa-rules",
-  "../docs/research_lab/seals/cb11_pa_rules.json",
   "--family",
-  "auto"
+  "W",
+  "--rps",
+  "2"
  ],
  "timeout_s": 1800,
  "max_retries": 2,
  "outputs": [
-  "research_lab/creative_batch11/holdout_SEAL_<family>.json"
+  "history/h11_wprints/holdout_SEAL.json",
+  "history/h11_wprints/drops.csv.gz",
+  "seals/cb11_wprints_holdout_SEAL.json"
  ],
- "next_action": "commit the seal copies; q0231 (W) / q0239 (P, A)",
- "notes": "DRAFT-REVISED round 1. Seals each family whose fetch manifest is complete; exits 75 (pending) for families still fetching and re-runs. Sealed files never edited; drops recorded as DROPPED_* blocks. Families W, P and A: the W seal verifies part W of cb11_rules.json, the P and A seals verify seals/cb11_pa_rules.json. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 ecf500f72bc4bacd68bbdb6f4b079101ab863c64f571f0893fa98e3cb141bb2a (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; the coordinator regenerates the rules and this sha when the h2_main / h3_power sample.csv.gz pins are filled). P/A rules sha256 a8727c40ca7e3069599a3a45ba1c59794b81cc8a0073cd1663341196ee2ecbc5 (seals/cb11_pa_rules.json).",
+ "next_action": "commit seals/cb11_wprints_holdout_SEAL.json; q0231",
+ "notes": "DRAFT-REVISED round 1; re-check b2: W has its own seal step, so the W census (q0231) no longer waits on P and A (P and A seal in q0238). Exits 75 (pending) until q0223 is complete, then re-runs. Gamma key lookups for the seal-time drops: lane net with network gamma-api (one net job at a time, 2 rps cap). Sealed files never edited (write-once); drops recorded as DROPPED_* blocks and never analysed. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 8a5d1b5ede813aaf52fb5dd811ccb78a88bad4a612d81cc7fdb3b9d8c6765ed1 (part W of cb11_rules.json v2, 2026-10-18; sample pins filled and rules regenerated after the re-check fixes b1-b2, c1-c2, d1-d3).",
  "repeat": {
   "max_runs": 6,
   "until_log_regex": "\"status\": \"seal_all_complete\""

@@ -319,10 +319,14 @@ def _ek(env, **kw):
 
 def test_b4_mandatory_sampled_sets_are_refused_when_absent_unpinned_or_changed(keys_env):
     env = keys_env
-    # the shipped pins are unset: the job refuses (exit 2) until the coordinator fills them
-    assert c11.H2_SAMPLE_SHA256 == c11.PIN_UNSET == "TODO-COORDINATOR" and c11.H3_SAMPLE_SHA256 == c11.PIN_UNSET
-    with pytest.raises(c11.Refused, match="TODO-COORDINATOR"):
+    # the shipped pins are the host-measured digests (2026-10-18); a fixture whose files differ is refused, and an unset pin is refused
+    assert c11.H2_SAMPLE_SHA256 == "77a15bd96bcd17c923e90e3e214874cad8df9ed4cd66eb6145cc8922c28954ec"
+    assert c11.H3_SAMPLE_SHA256 == "f8e1a7bbd16d57206fcd45c502263d2b7ceb40b22108e248c613d5148476004d"
+    assert c11.MANDATORY_SAMPLE_PINS == {"h2_main/sample.csv.gz": c11.H2_SAMPLE_SHA256, "h3_power/sample.csv.gz": c11.H3_SAMPLE_SHA256}
+    with pytest.raises(c11.Refused, match="sha256 .* != pinned"):
         _ek(env)
+    with pytest.raises(c11.Refused, match="TODO-COORDINATOR"):
+        _ek(env, sample_pins={**env["pins"], "h2_main/sample.csv.gz": c11.PIN_UNSET})
     with pytest.raises(c11.Refused, match="sha256 .* != pinned"):
         _ek(env, sample_pins={**env["pins"], "h2_main/sample.csv.gz": "0" * 64})
     (env["hist"] / "h3_power" / "sample.csv.gz").unlink()
@@ -380,8 +384,7 @@ def test_n5_census_verifies_the_rules_like_every_other_job(tmp_path, capsys):
 
 
 def test_declared_drafts_pin_the_rules_part_they_verify(rules_file):
-    """One rules sha per part: a draft passing --rules pins the committed part-W sha, one passing --pa-rules pins the committed P/A sha (the seal job, which
-    verifies both parts, pins both). The committed rules files must re-derive exactly from the code."""
+    """One rules sha per part: a draft passing --rules pins the committed part-W sha, one passing --pa-rules pins the committed P/A sha (q0230 seals W only, q0238 seals P and A). The committed rules files must re-derive exactly from the code."""
     from astrolabe.research_lab import cb11_pa as pa  # noqa: PLC0415
 
     root = Path(__file__).resolve().parents[2] / "docs" / "research_lab"
@@ -399,4 +402,28 @@ def test_declared_drafts_pin_the_rules_part_they_verify(rules_file):
         assert (w_sha in d["notes"]) == uses_w, f.name
         assert (pa_sha in d["notes"]) == uses_pa, f.name
         seen.add((uses_w, uses_pa))
-    assert seen == {(True, False), (False, True), (True, True)}
+    assert seen == {(True, False), (False, True)}  # b2: no job verifies both parts any more (W and P/A seal in separate jobs)
+
+
+def test_b2_c1_c2_draft_graph_and_repeats():
+    """b2: W seals alone (q0230), P/A seal in q0238; the W census waits on the W seal only, the P/A census on the P/A seal. c1/c2: q0227 and q0229 repeat until completion
+    or a terminal stall. The net-lane jobs declare their network."""
+    import re
+
+    drafts = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue" / "drafts"
+    d = {f.name.split("_")[0]: json.loads(f.read_text()) for f in drafts.glob("q02[23]*_cb11_*.json")}
+    assert set(d) == {f"q02{n}" for n in (20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39)}
+    deps = {k[1:]: {x.split("_")[0][1:] for x in v["depends_on"]} for k, v in d.items()}
+    assert deps["0230"] == {"0223"} and deps["0238"] == {"0226", "0229"}
+    assert deps["0231"] == {"0222", "0223", "0224", "0230"} and deps["0239"] == {"0226", "0229", "0238"}
+    assert "--family" in d["q0230"]["argv"] and d["q0230"]["argv"][d["q0230"]["argv"].index("--family") + 1] == "W" and "--pa-rules" not in d["q0230"]["argv"]
+    assert d["q0238"]["argv"][d["q0238"]["argv"].index("--family") + 1] == "P,A" and "--rules" not in d["q0238"]["argv"]
+    for k in ("q0230", "q0238"):
+        assert d[k]["resources"]["lane"] == "net" and "gamma-api" in d[k]["resources"]["network"]
+        assert re.search(d[k]["repeat"]["until_log_regex"], json.dumps({"status": "seal_all_complete"}))
+    for k, st in (("q0227", "attn_frame_complete"), ("q0229", "attn_data_complete")):
+        rx = d[k]["repeat"]["until_log_regex"]
+        assert re.search(rx, json.dumps({"status": st})) and re.search(rx, json.dumps({"status": c11.STALL_NOT_RUN_SOURCE}))
+        assert not re.search(rx, json.dumps({"status": "in_progress"}))
+    for k in ("q0236", "q0237"):
+        assert "--results-sha256" in d[k]["argv"] and "--stage2-k" in d[k]["argv"]

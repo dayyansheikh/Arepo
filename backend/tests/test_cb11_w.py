@@ -834,6 +834,31 @@ def test_screen_and_rep_end_to_end_on_a_signal(full):
     assert rep["W1_rep"]["testable"] is True and "stage2_pass_alpha_over_k" in rep["W1_rep"]
 
 
+def test_b1_rep_w_never_analyses_seal_time_drops_and_w2_decided_means_filled(full):
+    """b1: markets in DROPPED rows of drops.csv.gz are excluded from every W analysis of the sealed data (W1 hold units and the W2 sample); d: decided = filled."""
+    from astrolabe.research_lab import cb8_common as cm_  # noqa: PLC0415
+
+    wd, hist = full["wdir"], full["hist"]
+    cens = json.loads((full["root"] / w.CENSOR_RUN / "censoring.json").read_text())
+    census = {"W": w.census_w(wd, hist, cens, w.coverage_audit(hist / "h11_wprints", wd))}
+    base = w.rep_w(wd, hist, census, ("W2",), 2, n_boot=50, n_draws=5, seals_dir=full["seals"], committed_seals=False)
+    assert base["n_dropped_excluded"] == 0
+    c0 = base["W2_rep"]["counts"]
+    assert c0["decided"] == c0.get("filled", 0)
+    hold_ids = sorted({str(r["market_id"]) for r in c11.read_csv_gz(wd / w.HOLD_DIR / "w2_sample_hold.csv.gz")})
+    drop = hold_ids[: max(2, len(hold_ids) // 5)]
+    pdir = hist / "h11_wprints"
+    from astrolabe.research_lab import history_backfill as hb_  # noqa: PLC0415
+
+    (pdir / c11.DROPS_FILE).write_bytes(hb_._gz_csv_bytes(["market_id", "block", "reason"], [[m, "DROPPED_SEAL_COPIES", "id"] for m in drop] + [["999999", "KEPT", ""]]))
+    assert c11.dropped_market_ids(pdir) == set(drop)
+    out = w.rep_w(wd, hist, census, ("W1", "W2"), 2, n_boot=50, n_draws=5, seals_dir=full["seals"], committed_seals=False)
+    assert out["n_dropped_excluded"] == len(drop)
+    assert out["W2_rep"]["counts"]["eligible"] == c0["eligible"] - len(drop)
+    assert "W1_rep" in out
+    _ = cm_
+
+
 def test_rep_refuses_when_the_hold_seal_is_broken(full):
     (full["seals"] / w.SEAL_COPY_NAME).write_text("{}")
     with pytest.raises(cm.Refused):

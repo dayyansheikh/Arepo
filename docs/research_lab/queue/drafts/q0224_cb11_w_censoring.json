@@ -37,7 +37,7 @@
   "research_lab/creative_batch11/w/censoring.json"
  ],
  "next_action": "q0231",
- "notes": "DRAFT, new in round 1 (item 2); freeze-check fixes B2/N1 (section 11): repeats until w_censoring_complete (in-progress chunks exit 0); <= 3,000 requests (300 windows x 2 queries x <= 5 pages, design said <= 300), <= 25 min per chunk. Counts only; no market field beyond ids and endDate stored. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 ecf500f72bc4bacd68bbdb6f4b079101ab863c64f571f0893fa98e3cb141bb2a (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; the coordinator regenerates the rules and this sha when the h2_main / h3_power sample.csv.gz pins are filled).",
+ "notes": "DRAFT, new in round 1 (item 2); freeze-check fixes B2/N1 (section 11): repeats until w_censoring_complete (in-progress chunks exit 0); <= 3,000 requests (300 windows x 2 queries x <= 5 pages, design said <= 300), <= 25 min per chunk. Counts only; no market field beyond ids and endDate stored. CB11 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. rules sha256 8a5d1b5ede813aaf52fb5dd811ccb78a88bad4a612d81cc7fdb3b9d8c6765ed1 (part W of cb11_rules.json v2, 2026-10-18 freeze-check fixes; sample pins filled and rules regenerated 2026-10-18 after the re-check fixes b1-b2, c1-c2, d1-d3).",
  "repeat": {
   "max_runs": 4,
   "until_log_regex": "\"status\": \"(w_censoring_complete|not_run_source|upstream_not_testable)\""
