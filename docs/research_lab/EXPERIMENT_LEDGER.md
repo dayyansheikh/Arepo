@@ -1522,3 +1522,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   of W, while the design says only P/A. Plus nine non-blocking items (capped censoring windows, undeclared table
   deviations, h3-only subset, integrity re-checks, MDE from counts, q0235 coupling to P/A, "unfilled" split).
 - Fixes being implemented (rules v2, per-part hash); a focused re-check follows before q0220 is promoted.
+
+## CB11 focused re-check (B1-B10) and P/A code-against-design freeze check, 2026-10-18 (science-reviewer): not counted
+- Code 32f06da (145 tests; rules W `ecf500f7…`, PA `a8727c40…` re-derive). B1-B10 resolved except a residual B6/N9
+  counting slip (`w2_units` still counts no_room/unfilled as decided); N1-N9 spot-checked resolved. The W hash covers
+  `rep_w` and the PA hash covers `rep_p`/`rep_a`, so all fixes land before q0220 (W) and q0225 (PA) are promoted.
+- **Verdicts:** (a) q0220 smoke + q0221 keys ACCEPT_WITH_FIXES (fill the two sample pins, stage the C1/T5 id lists);
+  (b) W chain ACCEPT_WITH_FIXES: b1 seal drops never read by W analyses; b2 q0230 `--family auto` makes the W census
+  wait on P/A seals; (c) P/A data ACCEPT_WITH_FIXES: c1 q0227 lacks `repeat`; c2 an exhausted Wikipedia budget never
+  reaches an end state; (d) P/A analysis ACCEPT_WITH_FIXES: d1 `--stage2-k` has no N7 lower bound (alpha could be
+  loosened); d2 rep_p/rep_a ignore drops; d3 P/A screens skip the N5 integrity checks.
+- Coordinator: sample pins measured read-only on the host (h2_main `77a15bd9…`, h3_power `f8e1a7bb…`); C1/T5 id lists
+  being extracted from release `data-20261013-research-lab` (hash-verified against its `files.sha256`). Fixes being
+  implemented; nothing promoted yet.
