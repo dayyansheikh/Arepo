@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-18 21:58 UTC+1
+**Last updated:** 2026-10-18 22:29 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -8,17 +8,18 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 
 ## 1. Right now
 - **Autopilot:** session running since about 20:49 UTC+1 (18 Oct).
-- **Server:** batch 11's downloads are now queued and deployed (about 10-15 hours of work): first a small test download,
-  then the download jobs, then counts-only checks. No test result is computed until those checks are written up.
-- **Done this session:**
-  - Round 6 of original ideas saved (13 new ideas; ideas only).
-  - Batch 11 passed two independent checks after fixes (for example dropped markets are now never analysed,
-    and the replication alpha can no longer be loosened by a command-line value).
-  - Batch 13 designed from round 6 and challenged. The main correction: measure maker losses from the actual trade
-    price, not from a quote up to an hour old (that would have measured stale quotes, not informed traders).
-- **In progress:**
-  - **Batch 12:** the stale-horizon part passed; four small fixes to the mention-basket part are being made.
-  - **Batch 13:** code is being written, then an independent code check.
+- **Server:** batch 11's small test download has just been restarted. If it passes, about 10-15 hours of batch 11
+  downloads follow automatically, then counts-only checks. Batch 12's second test download and a recount are queued too.
+- **Caught before they could mislead (this session):**
+  - Batch 11's test download would have marked three families "not testable" for a sampling reason (it looked at
+    two weeks with no suitable markets), and it would have stopped one family on a rule the design never had. It was
+    paused before it wrote anything, fixed, and checked independently.
+  - Batch 12's freshness check could never be met (a timing detail made it require an exact second). Corrected
+    before any result was computed; only counts had been seen. One of its test downloads failed because a sampled
+    market simply had no trading before the event; a second, disclosed version replaces it (the first stays on record).
+- **Done this session:** round 6 of original ideas saved; batch 11 checked twice and queued; batch 13 and batch 14
+  designed (13 also challenged and revised).
+- **In progress:** batch 13 code; batch 14 challenger review.
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you

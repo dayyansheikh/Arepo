@@ -998,18 +998,18 @@
   {
    "id": "CB11",
    "title": "Proposer clocks, political underconfidence, attention",
-   "plain": "How long markets wait to resolve, long-horizon political underconfidence and attention without news. The code passed its independent checks after fixes; its downloads are queued on the server.",
+   "plain": "How long markets wait to resolve, long-horizon political underconfidence and attention without news. The code passed its independent checks after fixes; its small test download was fixed and restarted, then the downloads run.",
    "batch": "CB11",
    "family": "resolution",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Smoke test, then downloads (about 10-15 h), then the counts-only census before any test",
+   "next": "Test download, then downloads (about 10-15 h), then the counts-only census",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB11 focused re-check (B1-B10) and P/A code-against-design freeze check, 2026-10-18"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smoke fixes and CB12-X freshness correction reviewed, 2026-10-18 ~21:20Z"
    },
    "stage_results": {
     "designed": "pending"
@@ -1021,18 +1021,18 @@
   {
    "id": "CB12",
    "title": "Mention baskets, stale horizons and other round-5 ideas",
-   "plain": "Word-mention baskets and stale cross-venue horizons are coded. The independent check passed the stale-horizon part; small fixes to the mention-basket part are being made before anything is queued.",
+   "plain": "Word-mention baskets and stale cross-venue horizons. The stale-horizon test download passed and a recount is queued; the mention-basket part has a disclosed second test download.",
    "batch": "CB12",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Finish fixes, then queue the small test download",
+   "next": "Recount, then the stale-horizon screen; mention baskets after batch 11's exclusion list",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB12 code (74a0f17) freeze check, fixes (c0cb6ba) and verify round, 2026-10-18"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smoke events, 2026-10-18 ~21:00-21:30Z; § Smoke fixes and CB12-X freshness correction reviewed"
    },
    "stage_results": {
     "designed": "pending"
@@ -1079,6 +1079,29 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB13 drafted (98a00e6) and challenger round 1, 2026-10-18"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB14",
+   "title": "Wikipedia edit bursts; the speech clock",
+   "plain": "Designed from round 6: whether bursts of Wikipedia edits come before the market moves on resignations and similar news, and whether unsaid words in a speech become less likely as the speech runs on. Under challenger review.",
+   "batch": "CB14",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Challenger review, then code",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/CREATIVE_BATCH_14.md header (DRAFT, 03f7200)"
    },
    "stage_results": {
     "designed": "pending"

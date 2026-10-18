@@ -220,24 +220,22 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 21:35Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-18 21:29Z
 0. **Autopilot session from 19:49Z 10-18.**
-   - **CB11:** data path promoted + deployed (582ae05; mem_mb ops fix 6c2056f). **q0220 smoke PARKED on the host**
-     (before writing anything): attempt 1 died on the 400 MB cap (sklearn import in rules verification); a diagnostic
-     showed its out-of-window politics weeks have no market with life >= 100 d, so prices_history / data_api_reach would
-     fail vacuously. A fix agent is changing the pick search (bounded out-of-window long-life search) and checking the
-     wiki_lag consequence (69 h measured; design: lag 72 h, A origin X + 4 d, not "not testable"). After the fix: rules
-     regenerate (W/PA shas change; re-pin jobs), short science-reviewer check, deploy, then `queue_worker.py retry
-     q0220_cb11_smoke` on the host. Everything downstream (q0221-q0239) waits on q0220. C1/T5 id lists are staged.
-   - **CB12:** q0240 smoke ran 21:04Z (write-once `creative_batch12/smoke.json`): X criteria all PASS; M
-     `m_prices_history` FAIL (m0 no pre-start trading; source fine). M smoke v2 (q0240b draft) being written by the same
-     agent, disclosed in CB12 §11. q0251 X census done: 316 pairs / 183 events, volume key `volume` (500/500), but
-     **fresh_step_pairs = 0 in every bin**: code requires the PM stamp to be exactly t - 600 (age is always >= the 600 s
-     lag). Proposed outcome-blind correction: fresh = PM stamp in [t - 1200, t - 600] and Kalshi <= 10 min; needs a
-     written justification + reviewer; then X smoke v2 + census v2 (new ids), then promote q0255 X screen. The M chain
-     needs CB11 q0221's key-file sha for q0241 `--base-sha256`.
+   - **CB11:** data path promoted (582ae05); smoke fixes a5b86e0 + 6daf67e reviewed (bounded out-of-window long-life
+     picks; wiki_lag drives the declared 72 h / X + 4 d fallback; new `wiki_lag_ceiling`: > 72 h -> A not testable).
+     Rules W `2d2bb169…`, PA `2d48bd73…`. **q0220 revived ~21:27Z** (`retry`). On PASS the chain q0221-q0239 runs
+     unattended (net lane ~10-15 h). On a FAIL: read `creative_batch11/smoke.json` and the consequences table;
+     do not re-run a written smoke without a disclosed v2.
+   - **CB12:** v1 smoke (X pass; record common f2f672c1…, M 8b72053c…, X 24e3444b…) kept. Promoted: q0240b M smoke v2,
+     q0251b X census v2 (freshness measured from usability, 16870d6; screen now checks the census rules sha). Rules now
+     common `f2f672c1…`, M `a2e420b0…`, X `7485a272…`. Next: write up census_X_v2 (fresh_step_pairs per bin), then
+     promote q0255 X screen. M chain: after CB11 q0221 finishes, fill q0241 `--base-sha256` (sha256 of CB11's
+     `creative_batch11/exclusion_keys.csv.gz`) and promote q0241-q0249/q0252 (q0256 needs results sha).
    - **CB13:** code agent running (cb13_*.py, run_cb13.py, drafts q0270-q0285) -> code-against-design freeze check.
-   - **CB14:** design drafter running (CH123 Wikipedia edit bursts, CH121 intra-speech hazard) -> challenger round 1.
+   - **CB14:** DRAFT 03f7200 (CH123 W edit bursts, CH121 S intra-speech decay; k 4 + <= 4); challenger round 1
+     running -> drafter response (the drafter's context is gone after this session: start a new drafter with the
+     challenger text). Cumulative count is 1,221 (host union added 40 flow_screen lines), not 1,181.
    If the session stops, re-run any agent that has no commit.
 1. **Next:** CB11 code-against-design freeze check -> promote q0220 + W chain -> deploy. q0160c result: PASS -> promote
    q0162/q0163; written FAIL of a/b/f/h/i -> CB8-H "not run (source)", counted, no smoke v4.

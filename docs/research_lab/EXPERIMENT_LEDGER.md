@@ -1576,7 +1576,7 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   pageviews lag was 69 h (> 48 h; declared consequence: lag 72 h, A origin X + 4 d). **q0220 parked before it wrote
   anything**; the pick search is being fixed (bounded out-of-window long-life search) before it is revived.
 
-## Smoke fixes and CB12-X freshness correction reviewed, 2026-10-18 ~22:30Z (science-reviewer): not counted
+## Smoke fixes and CB12-X freshness correction reviewed, 2026-10-18 ~21:20Z (science-reviewer): not counted
 - a5b86e0: CB11 smoke picks long-life out-of-window markets by a bounded backwards search (ends before 2024-06-24, before
   P's SCREEN start 2024-07-01): **accept**. wiki_lag now drives A's declared fallback (lag 72 h, origin X + 4 d) instead
   of stalling A: matches CB11 §2.2, but **revise**: a lag above 72 h itself must make A "not testable (source)" (the
