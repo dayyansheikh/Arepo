@@ -230,9 +230,9 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
    **CB12 challenger round 1 = REVISE** (M/E/F REVISE, X ACCEPT, O ~DROP unless >= 30 settlement dates; 14 blocking).
    Running agents: (a) implementer CB11 W fixes in the main tree (commit "CB11 W freeze-check fixes"); (b) implementer
    CB11 P and A in a worktree (told: register P/A as rules part PA, no edits to cb11_w.py or the hash machinery; the
-   coordinator merges it after (a)); (c) opus CB12 round-1 response (CB12 doc + ledger section); (d) Fable xhigh
+   coordinator merges it after (a)); (c) CB12 round-1 response DONE 9590e8e (all 24 adopted; O kept, needs >= 30 settlement dates; k 10 + up to 10; count 1,181), now implementer CB12 common+smoke+X+M (cb12_*.py, run_cb12.py, test_cb12_xm.py, per-part rules hash); (d) Fable xhigh
    round 6 -> `CREATIVE_HYPOTHESES_2026-10-20.md`. After (a): focused science-reviewer re-check of B1-B10, then
-   promote q0220 smoke (+ q0221 after it) and deploy. Ledger entry for the CB11 W freeze check still to write (after (c)).
+   promote q0220 smoke (+ q0221 after it) and deploy. Ledger entry for the CB11 W freeze check: written (5c03475).
    If the session stops, re-run any of them that has no commit.
 1. **Next:** CB11 code-against-design freeze check -> promote q0220 + W chain -> deploy. q0160c result: PASS -> promote
    q0162/q0163; written FAIL of a/b/f/h/i -> CB8-H "not run (source)", counted, no smoke v4.
