@@ -30,5 +30,8 @@ now lead the programme, ahead of re-testing textbook ideas.
    - commit only your own files;
    - deploy if queue specs or job code changed;
    - rewrite the checkpoint live section and docs/AREPO_PROGRESS_PLAIN_ENGLISH.md (with exact time from `TZ=Etc/GMT-1 date`).
+   - if a ledger verdict, stage or milestone changed, update docs/research_lab/lab_dashboard/registry.json in the same commit
+     (it feeds the owner's live /lab dashboard; rules in that folder's README: `reached`/`stage_results`, sources, no live
+     interim results, no edge/profit language).
    Do this before starting the next unit, so a sudden stop loses at most one unit.
 4. End with one line: AUTOPILOT_DONE <summary>.

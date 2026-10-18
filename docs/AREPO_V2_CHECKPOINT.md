@@ -8,6 +8,23 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
+## Owner Lab dashboard (/lab), 2026-10-18 (interactive session, user-approved incl. production deploy)
+- **Spec:** `docs/lab/LAB_DASHBOARD_SPEC.md`. Web code: branch `feat/lab-dashboard`, NOT yet on production.
+  - aa166b7: frontend /lab; 1053cd1: API + 2 additive tables, schema v14.
+  - Tests: backend 24 new, frontend 129, build OK.
+  - Local end-to-end check: signed mac push 204; forged push 401; unauthenticated 401. The host key matches the committed public key.
+- **Clients and registry:** merged into this branch (5e0f0b2). `scripts/lab/lab_host.py` (host, 10 min) and `lab_mac.py` (Mac); science-reviewed
+  `docs/research_lab/lab_dashboard/registry.json`. The host cron line in crontab.txt is commented out until the API is live.
+- **Blocked on the user:**
+  - The repo hook forbids pushes to `arepo-free-production-v1` from Claude.
+  - The Mac's git credential helper `/usr/local/bin/gh` is x86_64 and fails after the 10-18 macOS update ("Bad CPU type"), so no push works.
+  - The user fixes gh (e.g. installs Rosetta or an arm64 gh), pushes `feat/lab-dashboard`, and merges the PR into `arepo-free-production-v1`.
+- **After the merge:**
+  1. Verify the Render build/migration and the Vercel deploy.
+  2. Set `is_superuser=true` for the owner account (approved).
+  3. Deploy to the host, uncomment the lab cron, and install `scripts/lab/com.arepo.lab-mac.plist`.
+  4. Smoke-test with `--no-commands`, then a pause/resume round trip.
+
 ## Second Always Free server: auto-retry running (2026-10-17 15:12Z, interactive session)
 - **Approval:** the user approved a second free A1 instance (1 OCPU / 6 GB / 100 GB boot; totals 2/12/200 = the tenancy's
   free limits) to move some experiments onto. London AD-1/AD-2 were out of host capacity, so the user chose the auto-retry.
