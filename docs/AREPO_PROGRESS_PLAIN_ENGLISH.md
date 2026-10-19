@@ -1,27 +1,36 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-19 05:15 UTC+1
+**Last updated:** 2026-10-19 05:38 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Autopilot:** a new session has been running since about 05:05 UTC+1 (19 Oct). The previous one stopped about 03:05
-  with two pieces of work unsaved; this session finished, reviewed and saved both.
-- **Server:** it had run out of ready work overnight. It now has:
+- **Autopilot:** a session has been running since about 05:05 UTC+1 (19 Oct). The previous one stopped about 03:05
+  with two pieces of work unsaved. This session finished both, had them reviewed, and saved them.
+- **Server:** it had run out of ready work overnight. Starting after its 06:30 UTC+1 quiet window, it has:
   - **Batch 11's ID check, rebuilt.** The old version read the full list of about 4 million markets instead of the
-    roughly 14,000 actually sampled, and looked each one up online. An independent review accepted the fix, with one
-    extra safeguard added. It starts after the server's 06:30 quiet window and needs about 1-2 hours. Batch 11's
+    roughly 14,000 actually sampled. An independent review accepted the fix. It takes about 1-2 hours; batch 11's
     downloads (about 10-15 hours) then follow automatically.
   - Two short connection checks for batch 13.
-- **Batch 13:** a second review confirmed 20 of 22 earlier fixes. It found two new faults in the final-decision code.
-  The second-stage multiple-testing step could never add a pass, as the design intends, and one stalled path could
-  wait forever. Both are being fixed now. None of this changes a threshold.
-- **Batch 14 (Wikipedia edit bursts; how speech-mention markets decay):** the code is finished (102 tests) and is
-  now under independent review before anything runs.
-- **In progress:** batch 15 design (US election night on 3 Nov, an AI-leaderboard idea, and pairs listed on Kalshi
-  first); round 7 of original ideas (Fable model, as you asked).
+- **Batch 13 (where makers lose money; touch-versus-end crypto markets):** the review found faults in the
+  final-decision code (the second-stage multiple-testing step could never add a pass, as the design intends, and one
+  stalled path could wait forever). They are fixed and re-checked. Next is a blind check of its market labeller, then
+  its data jobs.
+- **Batch 14 (Wikipedia edit bursts; speech mentions):** the review found 18 code faults, for example that the live
+  part would have tracked nothing. They are being fixed now. Nothing has run.
+- **Batch 15 (US election night, 3 Nov):** the design was challenged and revised:
+  - The leaderboard idea was withdrawn before any data was seen: the archived pages have no usable table.
+  - Election night now compares states only within the same poll-closing hour, so a national swing cannot fake a
+    result.
+  - Two independent helpers are compiling, from saved 2022/2024 sources (no 2026 polls or prices), which way each
+    state's late count usually moves. The code is being written.
+  - **It must be frozen by 1 Nov midday UTC, or it is recorded as "not run".**
+- **New ideas, round 7 (Fable, as you asked):** 13 new ideas. Top ones: crypto "dip to" markets priced above
+  "reach" markets in the same event (a hedging premium), and outer buckets of economic-data markets overpriced just
+  before the release. A design for the ideas that can be tested on data already on the server is being drafted
+  (batch 16).
 - **Second free server:** still "out of host capacity" at Oracle; it retries every 10 min.
 
 ## 2. Approvals needed from you
