@@ -2154,3 +2154,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   freeze entry. Promoting q0273 before the T freeze was a coordinator error (no data read, nothing counted). A
   science-reviewer is checking whether the T freeze may be committed now; then `queue_worker.py retry q0273` on the
   host.
+
+## CB13-T freeze check, 2026-10-19 ~21:35Z (science-reviewer): NOT YET; correction to the ~20:30Z entry
+- **Correction:** the ~20:30Z entry said q0273 "computes no estimate when a gate fails". That was false: `cmd_screen`
+  loads post-fill marks and `screen_t` writes a `reported` block (per-class mean mark-outs) regardless of the gates.
+  q0273 refused before reading anything (no freeze file), so no mark-out has been computed or seen.
+- Must-fix items of the T freeze-check rounds are all closed (A-D at 7fb59a3, E in 5891bec, GL round 2); T `f72683f5`,
+  LABELLER `95cde0ab`; 123 CB13 tests. Order census -> T freeze -> q0273 is the design's.
+- **Decision (coordinator, option a):** amend the screen so that when no T test is testable it opens no mark index,
+  builds no outcome dataset and writes only the counted terminal lines ("not testable (population)", GT precedence).
+  Justification: removes outcome exposure that serves no counted test; pre-outcome; no threshold changed. Reseals T,
+  then a short re-check, the T freeze commit (record-only common and census shas), and `retry q0273` on the host.
+- R unaffected (separate freeze part).
