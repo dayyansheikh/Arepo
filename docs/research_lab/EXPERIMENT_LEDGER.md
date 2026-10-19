@@ -1882,3 +1882,21 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   **GL passes** and T1/T2 stay testable. Records in `research_lab/audits/cb13_gl/` (4cfb587).
 - **Promoted (4cfb587, deployed): q0271 T frame, q0272 T census** (cpu lane; rules common `62e90149…`, LABELLER
   `95cde0ab…`, T `f72683f5…` verified).
+
+## CB12-O code (c79364a) freeze check, 2026-10-19 ~14:40Z (science-reviewer): REVISE; not counted
+- Rules parts recomputed: O `766eed85` matches the seal; common `f2f672c1`, M `a2e420b0`, X `7485a272` unchanged by
+  c79364a. 28 O tests pass. Frozen constants, chain-before-books ordering, the two >= 60 s book reads, the digital
+  construction, p = max over both cluster ways and Holm match the design; the census opens no outcome file; the
+  collector uses keyless public sources only (Gamma, CLOB, cdn.cboe.com, Yahoo, api.nasdaq.com).
+- Defects: (1, blocks freeze) `exdiv_status` reads chain fields containing "div", which the CBOE delayed chain lacks,
+  so every unit would be "excluded: ex-dividend unknown" (needs a reviewed pre-data amendment, e.g. previous-session
+  Nasdaq ex-dates with indices exempt; ETFs are also queried as `stocks`); (2) `screen_o` KeyError `w1` (untested);
+  (3) the m_prev placebo only uses previous units that passed anchor filters (should be the raw second read);
+  (4) O2 eligibility uses the second book read, taken >= 60 s after the decision (should be first-read tight + anchor);
+  (5) the smoke skips Yahoo chart and the Gamma closed lookup; (6) the outcome guard checks labels not dates;
+  (7) earnings/dividend rows for 11:00 units are fetched minutes after t (use the previous session's file);
+  (8) missed checkpoints not counted in the census; (9) small items (unrefetched unresolved Gamma rows, per-unit
+  agreement, census-value reuse, rule-text flags descriptive, "later ET date" disclosure; no root-cap enforcement or
+  cron timeout).
+- Next: implementer fixes 2-9 and drafts the amendment for 1 -> re-check -> q0260 smoke (after fix 5) -> freeze ->
+  q0261. q0262-q0264 wait.
