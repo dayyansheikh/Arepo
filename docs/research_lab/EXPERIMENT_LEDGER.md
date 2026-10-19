@@ -2192,3 +2192,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - `model_specs/cb13_v1.json` part T committed: rules `33bd165b…`, LABELLER `95cde0ab…`, common `62e90149…` (record
   only), census pins and counts, decisions, frozen_utc 2026-10-19T21:18:57Z; `require_freeze` verified locally; 124
   CB13 tests. Deployed; `queue_worker.py retry q0273_cb13_screen_T` on the host (cpu lane, after q0382).
+
+## CB17 challenger response (b7374fc), 2026-10-19 ~21:35Z: DRAFT-REVISED; census code started; not counted
+- 7 findings adopted, 1 modified (B no-mark: recorded capture mark first, adverse worst case only without a recorded
+  price), 0 rejected; all 8 rulings adopted (cap: proposal). k: branch S 4 fixed + up to 8 conditional (k1 = 4); branch
+  T withdraws A uncounted before its part commit (3 + up to 6, k1 = 3).
+- Part `pre` (before q0400-q0403 code): old-data paths/dates with refusal of rows >= 2026-10-16; branch rule (S needs
+  97% agreement overall, Wilson LB >= 0.95, n >= 800, and 97% per touch-age band / price band / class with n >= 100);
+  strata ladders and informativeness (finest level with old-data share >= 60%, else level 2); cut points fixed from old
+  data, C terciles from >= 6 earlier intervals; SE-only planning recipe; cost-map grid. Implementer started (pre +
+  q0400-q0403 code); a science-reviewer freeze check of part pre follows before the census jobs run.
+- live_trades cap: designer recommends raising the 3 GiB total cap to 8 GiB before S_8 (one-line reviewed change; the
+  300 MB/day guard stays; not in `config_hash`), after checking data-dumps stays under the 40 GB job guard. Decision
+  pending (coordinator, with the part-pre freeze check); the fallback leaves it (cap projected after REP_8 ends).
