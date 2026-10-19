@@ -2060,3 +2060,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   E-c (the span always covers an E-c start); q0244 cap -> 1,000 MB (engineering only; not alongside a multi-GB job).
 - Order after the revert + re-check: q0244 -> q0245 -> q0266 -> freeze -> q0253 -> q0257 -> q0258 (near T12_E2_end).
   Fix agent running. Open: the census does not check the frame's E hash in `load_frame`.
+
+## CB15-P fixes (7c33ef9) re-check, 2026-10-19 ~20:55Z (science-reviewer): ACCEPT_WITH_FIXES; not counted
+- Verified: 121 cb15 tests; P `6ac3b610…`, E and common unchanged; P-16 (listing endDate saved at the match; 24-h 404 ->
+  `NO_BOOK_24H`, kept in denominators), P-18, P-19b, P-22 implemented; smoke makes <= ~15 requests (< 30). The two
+  test edits (cache padding; smoke exempt from the draft priority band) weaken no safeguard.
+- Fixes: (1, MED, q0349) P-17 terminal unreachable within max_runs 4 -> raise and guarantee a run gap; (2, q0349) empty
+  fallback candle reply accepted -> require non-empty; (3, q0352/q0354) declare BEFORE q0348's output is read what its
+  cache-size projection triggers (cap fixed; it binds); (4, q0353) NO-side 24-h 404 must not drop P1 units; (5) docs/test.
+- **P-6 ruling:** Polymarket early-close flags declared unknown (disclosed); Kalshi true-flag exclusion kept (causal),
+  renamed "Kalshi early-close/provisional flag"; never select on the actual Polymarket close time (post-t0,
+  outcome-linked); early closers stay in denominators; disclose that Stage 1 reads Gamma endDate after the fact.
+- q0348 stays on hold (not_before) until fix 3 is committed; fix agent running.
