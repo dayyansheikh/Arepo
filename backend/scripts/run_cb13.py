@@ -442,6 +442,43 @@ def _r_pregate_failed(root: Path) -> dict | None:
     return None if d.get("pass") else d
 
 
+def _smoke_failed(a, part: str) -> dict | None:
+    """The part's smoke record when it exists and FAILED (counted once by ``smoke``); None for a missing or passing smoke."""
+    c13 = _c13()
+    p = _smoke_path(a, part)
+    if not p.exists():
+        return None
+    d = json.loads(p.read_text())
+    if d.get("smoke_version") != c13.SMOKE_VERSION or d.get("part") != part or d.get("pass") is not False:
+        return None
+    return d
+
+
+def _terminal_not_testable(a, fam: str, root: Path) -> dict | None:
+    """A family whose counted record is already in the trials (a failed smoke, or the R pregate / stalled frame) is TERMINAL: its screen is "not testable", exit 0, nothing counted a second
+    time and nothing waits on a census that will never be written. Returns ``{"label", "reason"}`` or None."""
+    c13 = _c13()
+    if fam == "R":
+        pg = _r_pregate_failed(root)
+        if pg is not None:
+            from astrolabe.research_lab import cb13_r as r13  # noqa: PLC0415
+
+            return {"label": pg.get("label") or r13.DEPENDENCE_LABEL, "reason": "GRC pregate failed", "counted": bool(pg.get("counted"))}
+    if _smoke_failed(a, fam) is not None:
+        return {"label": c13.SOURCE_NOT_TESTABLE, "reason": f"smoke {fam} failed", "counted": True}
+    return None
+
+
+def _screen_labels(fam: str) -> str:
+    if fam == "T":
+        from astrolabe.research_lab import cb13_t as t13  # noqa: PLC0415
+
+        return t13.LABEL_T
+    from astrolabe.research_lab import cb13_r as r13  # noqa: PLC0415
+
+    return r13.LABEL_R
+
+
 @_guarded
 def cmd_census(a):
     c13 = _c13()
@@ -451,6 +488,9 @@ def cmd_census(a):
     if out.exists():
         raise c13.Refused(f"{out} exists; the census is written once")
     if fam == "T":
+        term = _terminal_not_testable(a, "T", root)
+        if term is not None:
+            return 0, {"status": "stalled", "label": term["label"], "reason": term["reason"]}
         _gap(a)
         shas = _t_rules(a)
         block = census_t_block(a, shas)
@@ -459,9 +499,9 @@ def cmd_census(a):
         from astrolabe.research_lab import cb13_r as r13  # noqa: PLC0415
 
         shas = {"common": _rules(a, "common"), "R": _rules(a, "R")}
-        pg = _r_pregate_failed(root)
-        if pg is not None:
-            return 0, {"status": "stalled", "label": r13.DEPENDENCE_LABEL, "reason": "GRC pregate failed"}
+        term = _terminal_not_testable(a, "R", root)
+        if term is not None:  # no census is written; screen-R then closes the family as a terminal counted "not testable"
+            return 0, {"status": "stalled", "label": term["label"], "reason": term["reason"]}
         _require_smoke(a, "R")
         fdir = _hist(a) / r13.FRAME_RUN
         bdir = _hist(a) / r13.BIN_RUN
@@ -482,11 +522,23 @@ def cmd_screen(a):
     fam = _family(a)
     root = _root(a)
     freeze_sha = _freeze(a, fam, _t_rules(a) if fam == "T" else {"R": _rules(a, "R")})
+    tids = c13.FAMILY_TESTS[fam]
+    term = _terminal_not_testable(a, fam, root)
+    if term is not None:  # a counted pregate / smoke failure: no census exists or will; the family is terminal "not testable" (exit 0), the count was written when it failed
+        labels = [_screen_labels(fam)]
+        body = {t: {"testable": False, "p": 1.0, "advance": False, "verdict": term["label"], "est": None, "n": 0} for t in tids}
+        body["labels"] = labels
+        doc = {**body, "rules_sha256": _t_rules(a) if fam == "T" else {"common": _rules(a, "common"), "R": _rules(a, "R")}, "freeze_part": fam, "freeze_sha256": freeze_sha,
+               "census_sha256": None, "terminal": term, "written_epoch": time.time()}
+        doc["by_triage"] = _by_triage({t: doc[t] for t in tids}, _tp(a))
+        c13.write_results_once(Path(a.out) if a.out else root / f"results_{fam}.json", doc)
+        if not term["counted"]:
+            c13.log_family(fam, _lines(doc, tids), trials_path=_tp(a), results_sha256=hashlib.sha256((root / f"results_{fam}.json").read_bytes()).hexdigest())
+        return 0, {"status": f"screen_{fam}_complete", "terminal": True, **{t: {k: doc[t].get(k) for k in ("p", "advance", "verdict")} for t in tids}}
     cpath = Path(a.census) if a.census else root / f"census_{fam}.json"
     if not cpath.exists():
         raise c13.NotNow(f"{cpath.name} missing (the census first)")
     census = json.loads(cpath.read_text())[fam]
-    tids = c13.FAMILY_TESTS[fam]
     if fam == "T":
         from astrolabe.research_lab import cb13_t as t13  # noqa: PLC0415
 
@@ -810,6 +862,8 @@ def cmd_stage2_final(a):
     triggered = []
     for fam, s1_name, rep_name, tids in (("T", "results_T.json", "results_T_rep.json", ("T1", "T2")), ("R", "results_R.json", "results_R_rep.json", ("R1",))):
         s1 = root / s1_name
+        if not s1.exists() and _terminal_not_testable(a, fam, root) is not None:
+            continue  # a counted smoke / pregate failure: the family is "not testable", never triggered, nothing to wait for
         if not s1.exists():
             raise c13.NotNow(f"{s1_name} missing: Stage 1 of family {fam} first")
         if not any((json.loads(s1.read_text()).get(t) or {}).get("advance") is True for t in tids):
@@ -825,12 +879,12 @@ def cmd_stage2_final(a):
                 r = doc[t]
                 pvals[t] = r.get("p") if r.get("testable", True) else None
                 early[t] = bool(r.get("stage2_early_alpha_ok"))
-                adv[t] = bool(r.get("advance"))
+                adv[t] = bool(r.get("checks_ok"))  # every binding check except the primary p gate (Stage 2 decides p by alpha / 5 early or the final Holm)
     if not triggered:
         raise c13.Refused("no CB13 family triggered Stage 2: there is nothing to finalise")
     holm = c13.stage2_final(pvals)
     names = {"T1": "T1-rep", "T2": "T2-rep", "T3": "T3", "R1": "R1-rep", "R2": "R2"}
-    verdict = {t: {"advance": adv[t], "early_alpha_over_5": early[t], "final_holm_reject": bool(holm["tests"][names[t]]["reject"]),
+    verdict = {t: {"checks_ok": adv[t], "early_alpha_over_5": early[t], "final_holm_reject": bool(holm["tests"][names[t]]["reject"]),
                    "pass": bool(adv[t] and (early[t] or holm["tests"][names[t]]["reject"]))} for t in pvals}
     doc = {"version": "cb13-stage2-final-v1", "triggered_families": triggered, "k2": holm["k"], "alpha": holm["alpha"], "holm": holm, "verdict": verdict, "inputs_sha256": inputs,
            "rule": "strict Holm over every CB13 Stage-2 test run; early alpha/5 passes are never withdrawn; the final step only adds passes"}

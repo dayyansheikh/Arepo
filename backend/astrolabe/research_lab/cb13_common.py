@@ -159,7 +159,7 @@ CB11_KEYS_DEFAULT = RESEARCH_ROOT / "creative_batch11" / "exclusion_keys.csv.gz"
 SMOKE_T_DEFAULT = CB13_DIR / "smoke_T.json"
 SMOKE_R_DEFAULT = CB13_DIR / "smoke_R.json"
 
-RULES_MACHINERY = ("rules_part_doc", "rules_part_file_doc", "rules_file_doc", "write_rules", "verify_rules", "family_modules", "common_funcs", "part_funcs")
+RULES_MACHINERY = ("rules_part_doc", "rules_part_file_doc", "rules_file_doc", "write_rules", "verify_rules", "family_modules", "common_funcs", "part_funcs", "shared_helper_sources")
 
 
 # ---- small helpers -----------------------------------------------------------------------------------------------------------------------------
@@ -970,6 +970,16 @@ def part_funcs(part: str) -> list:
     return [f for f in funcs if not (id(f) in seen or seen.add(id(f)))]
 
 
+SHARED_HELPERS = (("c12", "holm"), ("c12", "known_lag_s"), ("c12", "mde"), ("c12", "cluster_se_mean"), ("c12", "parse_iso"), ("c12", "iso_week_of"),
+                  ("c10", "cluster_p"), ("c10", "cluster_p_d"), ("c10", "slope_pseudo"), ("c10", "placebo_advance_rate"))
+
+
+def shared_helper_sources() -> dict[str, str]:
+    """sha256 of the source of every shared CB10 / CB12 helper the CB13 rules call (a change to one changes the common rules sha, as CB11 ``func_sources_sha256``)."""
+    mods = {"c12": c12, "c10": c10}
+    return {f"{m}.{n}": hashlib.sha256(inspect.getsource(getattr(mods[m], n)).encode()).hexdigest() for m, n in SHARED_HELPERS}
+
+
 def rules_part_doc(part: str) -> dict:
     if part not in PARTS:
         raise Refused(f"unknown rules part {part!r}")
@@ -995,6 +1005,7 @@ def rules_part_doc(part: str) -> dict:
     src = {f"{f.__module__.rsplit('.', 1)[-1]}.{f.__qualname__}": hashlib.sha256(inspect.getsource(f).encode()).hexdigest() for f in funcs}
     return {"part": part, "part_declared": True, "rules_version": RULES_VERSION, "constants": consts, "declared": declared,
             "wallet": {"read": False, "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field"},
+            **({"shared_helper_sources_sha256": shared_helper_sources()} if part == "common" else {}),
             "funcs_sha256": hashlib.sha256("\n".join(src[k] for k in sorted(src)).encode()).hexdigest(), "func_sources_sha256": dict(sorted(src.items()))}
 
 

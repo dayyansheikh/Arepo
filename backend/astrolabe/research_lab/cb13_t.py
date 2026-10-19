@@ -860,7 +860,8 @@ def t1_test(D: dict, *, placebo: bool = True, n_draws: int = c13.PLACEBO_DRAWS, 
     res["robustness"] = rob
     res["staleness"] = {"note": "the attribution regression carries the event-level 'inconsistent with touch' share; per-class shares are reported by the census and screen (fills table)"}
     res["robust_ok"] = bool(all(rob.values()) and res["loo_day"]["holds"] and all(res["top5"].values()))
-    res["advance"] = bool(res["p_ok"] and res["floor_ok"] and res["block_rule_holds"] and res["prefill_placebo"]["holds"] and res["composition_placebo"].get("holds", False) and res["robust_ok"])
+    res["checks_ok"] = bool(res["floor_ok"] and res["block_rule_holds"] and res["prefill_placebo"]["holds"] and res["composition_placebo"].get("holds", False) and res["robust_ok"])  # every binding check but the primary p gate
+    res["advance"] = bool(res["p_ok"] and res["checks_ok"])
     res["verdict"] = ("advance" if res["advance"] else "no advance") + (f"; {res['attribution']['label']}" if res["advance"] else "")
     res["rep"] = rep
     return res
@@ -905,7 +906,8 @@ def t2_test(D: dict, *, placebo: bool = True, n_draws: int = c13.PLACEBO_DRAWS, 
     res["worst_case"] = {k: wc.get(k) for k in ("est", "p", "n", "floor_ok", "p_ok")}
     res["robustness"] = rob
     res["robust_ok"] = bool(all(rob.values()) and res["loo_day"]["holds"] and all(res["top5"].values()))
-    res["advance"] = bool(res["p_ok"] and res["floor_ok"] and res["block_rule_holds"] and res["prefill_placebo"]["holds"] and res["signflip_placebo"].get("holds", False) and res["robust_ok"])
+    res["checks_ok"] = bool(res["floor_ok"] and res["block_rule_holds"] and res["prefill_placebo"]["holds"] and res["signflip_placebo"].get("holds", False) and res["robust_ok"])
+    res["advance"] = bool(res["p_ok"] and res["checks_ok"])
     res["verdict"] = "advance" if res["advance"] else "no advance"
     res["label"] = LABEL_T2
     res["rep"] = rep
@@ -938,6 +940,11 @@ def t3_test(D: dict) -> dict:
         return {**not_testable(c13.AVAILABILITY_LABEL), "availability": av}
     res = analyse(make_mean(net), ok, D, T3_FLOOR, loo=True, top5=True)
     res["availability"] = av
+    # design 2.2 "size <= 100 shares": the MODELLED maker position is min(print size, 100) shares (the print is >= $1k, i.e. normally > 100 shares, so a size filter would empty the test); the
+    # net is per filled share, so the clip does not change the statistic; it is recorded, with the share of fills clipped, and the exit depth stays unknown
+    sizes = np.asarray(D["size"], dtype=float)[ok]
+    res["position"] = {"max_shares": T3_MAX_SIZE, "n_clipped": int((sizes > T3_MAX_SIZE).sum()), "n": int(len(ok)), "mean_position_shares": float(np.minimum(sizes, T3_MAX_SIZE).mean()),
+                       "note": "per-filled-share net; position = min(print size, max_shares); exit depth unknown (displayed depth is not captured)"}
     if not res["testable"]:
         res.update(advance=False, verdict="not testable (population / clusters)")
         return res
@@ -945,7 +952,8 @@ def t3_test(D: dict) -> dict:
     net2[idx] = t3_values(D, idx, T3_EXIT_ROBUST)
     rob = bool(est_only(make_mean(net2), np.where(np.isfinite(net2))[0]) > 0)
     res["robustness"] = {"exit_plus_0_5c_net_positive": rob}
-    res["advance"] = bool(res["p_ok"] and res["floor_ok"] and res["block_rule_holds"] and rob and res["loo_day"]["holds"] and all(res["top5"].values()))
+    res["checks_ok"] = bool(res["floor_ok"] and res["block_rule_holds"] and rob and res["loo_day"]["holds"] and all(res["top5"].values()))
+    res["advance"] = bool(res["p_ok"] and res["checks_ok"])
     res["verdict"] = "advance" if res["advance"] else "no advance"
     res["label"] = LABEL_T3
     return res
@@ -1236,7 +1244,7 @@ def stage2_t(D: dict, triggered: dict[str, bool], gti_pooled: dict, *, n_draws: 
         r["labels"] = out["labels"]
     out["holm_family_partial"] = c13.stage2_holm({t: (r.get("p") if r.get("testable", True) else None) for t, r in tests.items()}) if tests else {}  # information only: the decision step is the CB13-wide stage2-final Holm
     for r in tests.values():
-        r["stage2_pass_alpha_over_k"] = bool(r.get("advance") and r["stage2_early_alpha_ok"])  # early alpha / 5 only; the CB13-wide final Holm (run_cb13.py stage2-final) can only add passes
+        r["stage2_pass_alpha_over_k"] = bool(r.get("checks_ok") and r["stage2_early_alpha_ok"])  # early alpha / 5 only (all binding checks + p < alpha / 5); the CB13-wide final Holm (run_cb13.py stage2-final) can only add passes
     return out
 
 

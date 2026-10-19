@@ -744,6 +744,17 @@ def test_t3_net_arithmetic_and_fee_policy():
     assert abs(t13.t3_values(D, np.array([0]), 0.5)[0] - (v[0] - 0.5)) < 1e-9
 
 
+def test_t3_models_the_position_as_at_most_100_shares_defect_D():
+    D = synth_D(effect_low=2.0, per_ev=9)  # print sizes 5000 shares: a size filter would empty T3, so the position is clipped
+    r = t13.t3_test(D)
+    pos = r["position"]
+    assert pos["max_shares"] == t13.T3_MAX_SIZE == 100.0 and pos["n_clipped"] == pos["n"] > 0 and pos["mean_position_shares"] == 100.0
+    D["size"] = np.where(np.arange(len(D["tx_id"])) % 2 == 0, 40.0, 5000.0)
+    r2 = t13.t3_test(D)
+    assert 0 < r2["position"]["n_clipped"] < r2["position"]["n"] and r2["position"]["mean_position_shares"] < 100.0
+    assert abs(r2["est"] - t13.t3_test({**D, "size": np.full(len(D["tx_id"]), 5000.0)})["est"]) < 1e-12  # per-share statistic unchanged by the clip
+
+
 def test_stage2_requires_population_trigger_and_pooled_gti():
     D = synth_D(effect_low=2.0, per_ev=9)  # 540 fills per class in 60 events
     ok = {"pairs": 300, "agree": 250, "agree_share": 0.83, "evaluable": True, "pass": True}
@@ -1463,9 +1474,9 @@ def test_runner_pregate_failure_stalls_dependents(tmp_path, capsys, rules_file, 
     assert code == 2  # still refuses before the freeze
     fz = tmp_path / "cb13_v1.json"
     fz.write_text(json.dumps(freeze_doc()))
-    (root / "census_R.json").write_text(json.dumps({"R": {"gr": {}, "grp": {}, "drops": {}}}))
+    assert not (root / "census_R.json").exists()  # the census never wrote one: the screen closes the family on its own (defect B)
     code, out = _run(["screen", "--family", "R", *a, "--freeze-spec", str(fz)], capsys)
-    assert code == 0 and out["R1"]["verdict"] == r13.DEPENDENCE_LABEL  # counted with p = 1
+    assert code == 0 and out["terminal"] is True and out["R1"]["verdict"] == r13.DEPENDENCE_LABEL  # counted with p = 1
     lines = [json.loads(x) for x in (tmp_path / "trials.jsonl").read_text().splitlines()]
     assert sum(x["n_tests"] for x in lines if x["kind"] == "ml_explain") == 1
 
@@ -1511,7 +1522,8 @@ def test_queue_drafts_match_runner_and_rules_hashes():
     files = sorted(drafts.glob("q02[78]*_cb13_*.json"))
     if not files:
         pytest.skip("CB13 drafts are not generated yet")
-    ids = {json.loads(f.read_text())["id"].split("_")[0] for f in files}
+    jobs = sorted((drafts.parent / "jobs").glob("q02[78]*_cb13_*.json"))  # q0270 / q0285 (the smokes) are promoted and carry no rules sha
+    ids = {json.loads(f.read_text())["id"].split("_")[0] for f in [*files, *jobs]}
     assert ids == {f"q0{n}" for n in range(270, 286)}
     parser = run_cb13.build_parser()
     shas = {p: c13.rules_part_file_doc(p)["rules_sha256"] for p in c13.PARTS}
@@ -1736,14 +1748,62 @@ def test_runner_stage2_final_one_cb13_wide_holm_write_once(tmp_path, capsys, rul
     (root / "results_R.json").write_text(json.dumps({"R1": {"advance": True}}))
     code, out = _run(["stage2-final", *a], capsys)
     assert code == 75 and "results_T_rep.json" in out["tempfail"]
-    (root / "results_T_rep.json").write_text(json.dumps({"T1": {"p": 0.012, "testable": True, "advance": True, "stage2_early_alpha_ok": False}, "T3": {"p": 0.2, "testable": True, "advance": False, "stage2_early_alpha_ok": False}}))
-    (root / "results_R_rep.json").write_text(json.dumps({"R1": {"p": 0.004, "testable": True, "advance": True, "stage2_early_alpha_ok": True}, "R2": {"p": 0.9, "testable": True, "advance": False, "stage2_early_alpha_ok": False}}))
+    (root / "results_T_rep.json").write_text(json.dumps({"T1": {"p": 0.012, "testable": True, "advance": False, "checks_ok": True, "stage2_early_alpha_ok": False}, "T3": {"p": 0.2, "testable": True, "advance": False, "checks_ok": True, "stage2_early_alpha_ok": False}}))
+    (root / "results_R_rep.json").write_text(json.dumps({"R1": {"p": 0.004, "testable": True, "advance": True, "checks_ok": True, "stage2_early_alpha_ok": True}, "R2": {"p": 0.9, "testable": True, "advance": False, "checks_ok": False, "stage2_early_alpha_ok": False}}))
     code, out = _run(["stage2-final", *a], capsys)
     assert code == 0 and out["k2"] == 4, out
     v = out["verdict"]
     assert v["R1"]["pass"] is True and v["T1"]["final_holm_reject"] is True and v["T1"]["pass"] is True and v["T3"]["pass"] is False
     code, out = _run(["stage2-final", *a], capsys)
     assert out.get("already_written") is True
+
+
+def test_stage2_final_holm_only_pass_and_a_failing_binding_check_blocks_it_defect_A(tmp_path, capsys, rules_file, pin_file):
+    """Defect A: a p in [alpha/5, Holm threshold) with every binding check holding passes ONLY through the final Holm (p 0.02, k2 2); a failing binding check blocks it."""
+    root = tmp_path / "creative_batch13"
+    root.mkdir()
+    a = base_args(tmp_path, rules_file, pin_file)
+    (root / "results_T.json").write_text(json.dumps({"T1": {"advance": True}, "T2": {"advance": False}}))
+    (root / "results_R.json").write_text(json.dumps({"R1": {"advance": True}}))
+    (root / "results_T_rep.json").write_text(json.dumps({"T1": {"p": 0.02, "testable": True, "advance": False, "checks_ok": True, "stage2_early_alpha_ok": False}}))
+    (root / "results_R_rep.json").write_text(json.dumps({"R1": {"p": 0.02, "testable": True, "advance": False, "checks_ok": False, "stage2_early_alpha_ok": False}}))
+    code, out = _run(["stage2-final", *a], capsys)
+    assert code == 0 and out["k2"] == 2, out
+    v = out["verdict"]
+    assert v["T1"]["final_holm_reject"] is True and v["T1"]["early_alpha_over_5"] is False and v["T1"]["pass"] is True  # Holm-only pass
+    assert v["R1"]["final_holm_reject"] is True and v["R1"]["pass"] is False  # a failing binding check blocks it
+
+
+def test_stage2_pass_requires_checks_not_advance_and_checks_ok_excludes_only_the_p_gate_defect_A():
+    """The in-module Stage-2 pass uses checks_ok (every binding check but the primary p) AND the early alpha/5 rule; advance (Stage 1) still needs p < 0.01."""
+    tests = {"T1": {"p": 0.004, "testable": True, "checks_ok": True, "advance": True}, "T2": {"p": 0.004, "testable": True, "checks_ok": False, "advance": False}}
+    for r in tests.values():
+        r["stage2_early_alpha_ok"] = c13.early_stage2_ok(r["p"])
+        r["stage2_pass_alpha_over_k"] = bool(r.get("checks_ok") and r["stage2_early_alpha_ok"])
+    assert tests["T1"]["stage2_pass_alpha_over_k"] is True and tests["T2"]["stage2_pass_alpha_over_k"] is False
+
+
+def test_failed_smoke_is_terminal_census_screen_and_stage2_final_do_not_wait_defect_B(tmp_path, capsys, rules_file, pin_file, monkeypatch):
+    monkeypatch.setattr(c13, "SMOKE_T_DEFAULT", tmp_path / "smoke_T.json")
+    monkeypatch.setattr(c13, "SMOKE_R_DEFAULT", tmp_path / "smoke_R_absent.json")
+    (tmp_path / "live_trades").mkdir()
+    (tmp_path / "snapshots").mkdir()
+    a = base_args(tmp_path, rules_file, pin_file)
+    code, out = _run(["smoke", "--part", "T", *a, "--out", str(tmp_path / "smoke_T.json")], capsys)
+    assert out["smoke"] is False
+    sm_arg = []
+    fz = tmp_path / "cb13_v1.json"
+    fz.write_text(json.dumps(freeze_doc()))
+    root = tmp_path / "creative_batch13"
+    code, out = _run(["census", "--family", "T", *a, *sm_arg], capsys)
+    assert code == 0 and out["status"] == "stalled" and not (root / "census_T.json").exists()
+    code, out = _run(["screen", "--family", "T", *a, *sm_arg, "--freeze-spec", str(fz)], capsys)
+    assert code == 0 and out["terminal"] is True and out["T1"]["verdict"] == c13.SOURCE_NOT_TESTABLE
+    tp = tmp_path / "trials.jsonl"
+    assert sum(json.loads(x)["n_tests"] for x in tp.read_text().splitlines() if '"ml_explain"' in x) == 2  # counted once (by the smoke), not again by the screen
+    (root / "results_R.json").write_text(json.dumps({"R1": {"advance": False}}))
+    code, out = _run(["stage2-final", *a, *sm_arg], capsys)
+    assert code == 2 and "no CB13 family triggered" in out["refused"]  # terminal, not an endless wait
 
 
 def test_require_freeze_must_pin_the_verified_rules_defect_17(tmp_path):
@@ -1796,9 +1856,10 @@ def test_pregate_counts_a_stalled_frame_once_and_screen_does_not_recount_defect_
     # the screen behind the stalled pregate carries the stall label and does not count R1 a second time
     fz = tmp_path / "cb13_v1.json"
     fz.write_text(json.dumps(freeze_doc()))
-    (tmp_path / "creative_batch13" / "census_R.json").write_text(json.dumps({"R": {"gr": {}, "grp": {}, "drops": {}}}))
+    code, out = _run(["census", "--family", "R", *a], capsys)
+    assert code == 0 and out["status"] == "stalled" and not (tmp_path / "creative_batch13" / "census_R.json").exists()
     code, out = _run(["screen", "--family", "R", *a, "--freeze-spec", str(fz)], capsys)
-    assert code == 0 and out["R1"]["verdict"] == r13.SOURCE_LABEL
+    assert code == 0 and out["terminal"] is True and out["R1"]["verdict"] == r13.SOURCE_LABEL
     assert len([x for x in tp.read_text().splitlines() if '"ml_explain"' in x]) == 1
 
 

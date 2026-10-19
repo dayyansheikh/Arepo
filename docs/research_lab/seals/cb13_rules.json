@@ -278,7 +278,8 @@
       "verify_rules",
       "family_modules",
       "common_funcs",
-      "part_funcs"
+      "part_funcs",
+      "shared_helper_sources"
      ],
      "RULES_VERSION": "cb13-rules-v1",
      "R_FIRST_END": "2024-11-01T00:00:00Z",
@@ -297,6 +298,48 @@
       13122
      ],
      "SEED_GRP": 13123,
+     "SHARED_HELPERS": [
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "known_lag_s"
+      ],
+      [
+       "c12",
+       "mde"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "iso_week_of"
+      ],
+      [
+       "c10",
+       "cluster_p"
+      ],
+      [
+       "c10",
+       "cluster_p_d"
+      ],
+      [
+       "c10",
+       "slope_pseudo"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ]
+     ],
      "SIDECAR_COLUMNS": [
       "fee_type",
       "fee_category",
@@ -730,7 +773,7 @@
    "funcs_sha256": "99b2eafc39b0cd4fed87abf0f432177c2d5aa8103c3bfda1e3a7c46ef71626ea",
    "part": "LABELLER",
    "part_declared": true,
-   "rules_sha256": "6801e2150d4a772b61523aa1ed1548b485255f12099fb52c1154afe6b22cfa0c",
+   "rules_sha256": "604a78fc474580888130f7453a1c52b9095b9d794e74d83f7dea0eac5f6598f7",
    "rules_version": "cb13-rules-v1",
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
@@ -1015,7 +1058,8 @@
       "verify_rules",
       "family_modules",
       "common_funcs",
-      "part_funcs"
+      "part_funcs",
+      "shared_helper_sources"
      ],
      "RULES_VERSION": "cb13-rules-v1",
      "R_FIRST_END": "2024-11-01T00:00:00Z",
@@ -1034,6 +1078,48 @@
       13122
      ],
      "SEED_GRP": 13123,
+     "SHARED_HELPERS": [
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "known_lag_s"
+      ],
+      [
+       "c12",
+       "mde"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "iso_week_of"
+      ],
+      [
+       "c10",
+       "cluster_p"
+      ],
+      [
+       "c10",
+       "cluster_p_d"
+      ],
+      [
+       "c10",
+       "slope_pseudo"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ]
+     ],
      "SIDECAR_COLUMNS": [
       "fee_type",
       "fee_category",
@@ -1614,11 +1700,11 @@
     "cb13_r.q_term": "1d282063f817360ec94c0f838e395244520c3963d83a90ab6449c4e9e636c021",
     "cb13_r.q_touch": "39aff18523c4457e6481e196dbe3d5d4abfc61385cd671fc92f41a5ea2f3eef4",
     "cb13_r.q_touch_drift": "7ed9053fb692f0e8464e6bc8abb1b22697469ab7a2b7086769d2dfc658dc8000",
-    "cb13_r.r1_test": "9061ddcac3ced6df424eaef026caa54bcc1c5ea161bd1e5269b6e4507b7c7000",
+    "cb13_r.r1_test": "ec8e8eacbf9461dddf6646e572d04a4b41717ffc870abd1e01d151aa72b49c95",
     "cb13_r.r2_entries": "6c51d86b61480780b639d9351776e29dbe4833498796eaebfc1ad756af01ab24",
-    "cb13_r.r2_test": "93167e862ef858b959cdfd689e12689d8e673f29f8311995a37aaf326edc95ce",
+    "cb13_r.r2_test": "81bd0bfc40365b5143b180b94f4ede7130e0378fc8a348010a36f9f1467b4d28",
     "cb13_r.read_ids_generic": "b132f957e11ddb3d70db7e2017130ff9b84afe83f5e506aab3779ef5c1abed3f",
-    "cb13_r.rep_r": "95f75505792e3189f169f84e2365200f6144bef89dfaa1a48d99899facce7f5a",
+    "cb13_r.rep_r": "3c38a76b83cecb114b4db3eaf78034338825f761bc2de8b4be5861a0f2bcbb2f",
     "cb13_r.screen_r": "1ac153bfd3e457f27f81656685dae77025fbc4f4b10cbbf7ccfe70c2e1cd1540",
     "cb13_r.seal_r": "78fe900b19cfa24f6556334269807abe1ee6ff59ed9f6d04022c1380f2a01b80",
     "cb13_r.seal_rows": "05c01d3621d2c5769e6891087572f4c51fcd4bf9e285b0b22e7c8de9a69d130f",
@@ -1639,10 +1725,10 @@
     "cb13_r.window_components_with_units": "eef83fef5042d38c449107c8121df1e11b14db45f44e4b9cbfba11fb3df61b9d",
     "cb13_r.window_is_weekly": "e824bf4bb65eeee7972877894b72f6032cb5a4e7008f968e8989a98c588e8e7b"
    },
-   "funcs_sha256": "e094c8be5374ed7abf45e1d20732553a80f0b7115642e8aa162448a686bbc014",
+   "funcs_sha256": "aa896c2f8054d614db95596627f9d30a6cffa5097fd395f75f1990143d5a25d3",
    "part": "R",
    "part_declared": true,
-   "rules_sha256": "5695fb5a2ffd2643a4f25418c052eef67c8bc57a412cff5e685154fa690d8279",
+   "rules_sha256": "60ae641870178cdf8fd51f6091c1afbeffc0267b650887e34ac2436e1bbbedad",
    "rules_version": "cb13-rules-v1",
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
@@ -1927,7 +2013,8 @@
       "verify_rules",
       "family_modules",
       "common_funcs",
-      "part_funcs"
+      "part_funcs",
+      "shared_helper_sources"
      ],
      "RULES_VERSION": "cb13-rules-v1",
      "R_FIRST_END": "2024-11-01T00:00:00Z",
@@ -1946,6 +2033,48 @@
       13122
      ],
      "SEED_GRP": 13123,
+     "SHARED_HELPERS": [
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "known_lag_s"
+      ],
+      [
+       "c12",
+       "mde"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "iso_week_of"
+      ],
+      [
+       "c10",
+       "cluster_p"
+      ],
+      [
+       "c10",
+       "cluster_p_d"
+      ],
+      [
+       "c10",
+       "slope_pseudo"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ]
+     ],
      "SIDECAR_COLUMNS": [
       "fee_type",
       "fee_category",
@@ -2377,11 +2506,11 @@
     "cb13_t.signflip_placebo": "9286b3e55bc7e9a9cbae7e0353f3365b7de2c5627a76403dd9e21356ebf1fddc",
     "cb13_t.size_band": "5dbc73f331c84a0a64870033eb3ee7b60c38b0ac036a20b53cef6438c9a73473",
     "cb13_t.smoke_offline": "4389f66fdebe5211d88687fe538f9956f56aa91e2c2881ffbabb74ab5e2178d4",
-    "cb13_t.stage2_t": "152defd60355f0bf2ebe7734ec56f6153b55983e01e0e5f73048ae5be7a6867b",
+    "cb13_t.stage2_t": "73b78de8a13f1bf230613cf9b0a27f939e9614f157e6b767548740ecaaab69f9",
     "cb13_t.stale_variant": "8e722a30cd3b2c7144b5581d5e9667050ad195a11968b4c99154ec9f94a2face",
-    "cb13_t.t1_test": "16f0048247f8a43cf67a770f22c86ef102b8e195c5435fe0d63e803bbc4e16c5",
-    "cb13_t.t2_test": "7bf711522004d9a307154c903621a361780f22abef7644478c3dd7a4b5331bef",
-    "cb13_t.t3_test": "418a094ad3b950044abe0488ec35d6da1af1706d32c71730a5f1df99aadb46bf",
+    "cb13_t.t1_test": "d49a995d6e5db4ff2db76ae4d216558decf4f4974dcf7495040138c8d61dcac8",
+    "cb13_t.t2_test": "d2babcb601216b298c1e8086a5d39c170d3dca6ab2e8ca4eed26592329e72700",
+    "cb13_t.t3_test": "07a447802fecf208fa504b39795915fc65d1e282c77d905accf41c6d2f840f73",
     "cb13_t.t3_values": "dea5843f46215c00f9d0a5bf5b3e447afd0b5f29d1fab61aef276f94d0a2d878",
     "cb13_t.t_exclusion_keys": "5855753b8fa383d241085b6292e7ac4a39dbde28b9398bfcca22313ede71d2f5",
     "cb13_t.thin_label": "425c88723d1d906a568f8ff0294cf783e94dcfba56af18c43108f2a4a79a0970",
@@ -2392,10 +2521,10 @@
     "cb13_t.write_frame_files": "d8e1a07f6e58c66446ece77145a2b6656e075c6f666c9a6bbe3f3c6f89d53b12",
     "cb13_t.yes_price": "2ce135e7489e799573c92668a400b8cf6895dfda7a8a0ab93a88407121b4362c"
    },
-   "funcs_sha256": "294e02ea984c2f7d1df0613ea22938482cc09f6016e6012bf48f8673a54e35f1",
+   "funcs_sha256": "93e74cb0a6aaee8ed7bc46ff3a2c44ad2c1e8ff3c870b53762fcdd1689e846b5",
    "part": "T",
    "part_declared": true,
-   "rules_sha256": "5e0dc8948bb03e611f0da047dcfb110a8a1714c3f653726e15478425ea8483cd",
+   "rules_sha256": "82fb1f7d3f04f9248c5b3a2457e8f99287c21f321799be973834c6800210109c",
    "rules_version": "cb13-rules-v1",
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
@@ -2680,7 +2809,8 @@
       "verify_rules",
       "family_modules",
       "common_funcs",
-      "part_funcs"
+      "part_funcs",
+      "shared_helper_sources"
      ],
      "RULES_VERSION": "cb13-rules-v1",
      "R_FIRST_END": "2024-11-01T00:00:00Z",
@@ -2699,6 +2829,48 @@
       13122
      ],
      "SEED_GRP": 13123,
+     "SHARED_HELPERS": [
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "known_lag_s"
+      ],
+      [
+       "c12",
+       "mde"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "iso_week_of"
+      ],
+      [
+       "c10",
+       "cluster_p"
+      ],
+      [
+       "c10",
+       "cluster_p_d"
+      ],
+      [
+       "c10",
+       "slope_pseudo"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ]
+     ],
      "SIDECAR_COLUMNS": [
       "fee_type",
       "fee_category",
@@ -2861,8 +3033,20 @@
    "funcs_sha256": "24f6ed27df87d6f7100b3d3c3a2b07f5fb3f6d0a71879b8a93486d5d78bdcfb3",
    "part": "common",
    "part_declared": true,
-   "rules_sha256": "4553488ed29ece7b71acad8bb4c8646728e5897c3650218410583d813f373c52",
+   "rules_sha256": "1965f63f8087981f6d188f8fcdd373fa83363d90cef27fbf31a9839d26c7aff4",
    "rules_version": "cb13-rules-v1",
+   "shared_helper_sources_sha256": {
+    "c10.cluster_p": "39414b3be6a420a70988ceff30234ce311208ae136c30bc279a79f697fd12069",
+    "c10.cluster_p_d": "64cbf3bd203d692fb72eeced67c2088c4a55a676a984176470864cbef1ff9f5b",
+    "c10.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+    "c10.slope_pseudo": "c442db47a31b2398913316468f3c80df9896adf269cadcf3ae1c89f454eb8d81",
+    "c12.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "c12.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "c12.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "c12.known_lag_s": "d0fbc9efe75f0d01a15dc8da29870bcd07edac0b9b3eb45ea242c6fadd85dae2",
+    "c12.mde": "6c43ef79505a40b002ccc422274968450ee6d1e76af1134cff17a43471a87170",
+    "c12.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3"
+   },
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
     "read": false

@@ -1083,3 +1083,19 @@ above are historical.
 - R `5695fb5a2ffd2643a4f25418c052eef67c8bc57a412cff5e685154fa690d8279`
 
 Not yet done: a queue draft for `stage2-final` (no q-id reserved), and a focused re-check by the science-reviewer.
+
+### 11.x Verify-round fixes A-E (2026-10-19)
+
+No threshold, floor, alpha or gate changes. The rules were resealed (no job other than the two smokes, which carry no rules sha, had used the T / R rules).
+
+- **A.** Stage 2 decides p only by the strict early alpha / 5 rule or the final CB13-wide Holm (section 2.3, "can only add passes"). Each test now records `checks_ok` = every binding check except the primary p gate (floor, block rule, placebos, robustness, LOO, top-5; for T3 also the +0.5c exit robustness). `advance` (Stage 1) is unchanged: `p < alpha` and `checks_ok`. `stage2_pass_alpha_over_k` = `checks_ok` and p < alpha / 5; `stage2-final` pass = `checks_ok` and (early or Holm reject). A Holm-only pass (for example p 0.02, k2 = 2) is therefore possible; a failing binding check always blocks.
+- **B.** A counted failed smoke (T or R) or a failed / stalled R pregate makes the family terminal: `census` returns "stalled" (exit 0), `screen` writes a write-once `results_<family>.json` with the not-testable label (nothing counted twice) instead of waiting for a census, and `stage2-final` treats the family as not triggered (it refuses with "nothing to finalise" if no family triggered).
+- **C.** Drafts q0271 (`--budget-min 35`) and q0274 (`--budget-min 45`) carry `repeat` (max_runs 20, until `t_frame_complete` / `t_holdout_complete`); the runner honours `--budget-min` (resumable `ScanUnfinished`).
+- **D.** T3 (section 2.2, "size <= 100 shares"): the modelled maker position is `min(print size, 100)` shares. A filter on the printed size would empty the test (prints are >= $1k, normally > 100 shares), and net is per filled share, so the clip leaves the statistic unchanged; `t3_test` records `position` (max shares, number clipped, mean position). Declared reading of the design line.
+- **E.** The common part now pins the source sha256 of the shared helpers the rules call: `c12.holm`, `c12.known_lag_s`, `c12.mde`, `c12.cluster_se_mean`, `c12.parse_iso`, `c12.iso_week_of`, `c10.cluster_p`, `c10.cluster_p_d`, `c10.slope_pseudo`, `c10.placebo_advance_rate` (`shared_helper_sources_sha256`).
+
+**Rules part sha256 after the verify round (supersede the list above):**
+- common `1965f63f8087981f6d188f8fcdd373fa83363d90cef27fbf31a9839d26c7aff4`
+- LABELLER `604a78fc474580888130f7453a1c52b9095b9d794e74d83f7dea0eac5f6598f7`
+- T `82fb1f7d3f04f9248c5b3a2457e8f99287c21f321799be973834c6800210109c`
+- R `60ae641870178cdf8fd51f6091c1afbeffc0267b650887e34ac2436e1bbbedad`

@@ -1325,7 +1325,8 @@ def r1_test(U: dict, *, placebo: bool = True, n_draws: int = c13.PLACEBO_DRAWS, 
     res["robustness"] = rob
     res["top5"] = t5
     res["robust_ok"] = bool(all(rob.values()) and all(t5.values()))
-    res["advance"] = bool(res["p_ok"] and res["floor_ok"] and res["signflip_placebo"].get("holds", False) and res["stale_price_joint"].get("holds", False) and res["robust_ok"])
+    res["checks_ok"] = bool(res["floor_ok"] and res["signflip_placebo"].get("holds", False) and res["stale_price_joint"].get("holds", False) and res["robust_ok"])  # every binding check but the primary p gate
+    res["advance"] = bool(res["p_ok"] and res["checks_ok"])
     res["verdict"] = "advance" if res["advance"] else ("no advance (price lags spot)" if not res["stale_price_joint"].get("holds", False) else "no advance")
     res["labels"] = [LABEL_REP if rep else LABEL_R] + ([res["attribution"]["label"]] if res["advance"] else [])
     return res
@@ -1435,7 +1436,8 @@ def r2_test(units: list[dict], *, placebo: bool = True) -> dict:
             res["p_reg_placebo"] = {"p": rp["p"], "holds": bool((not rp["testable"]) or rp["p"] >= c13.GATE_P), "n": len(pl)}
         else:
             res["p_reg_placebo"] = {"holds": True, "n": len(pl)}
-    res["advance"] = bool(res["p_ok"] and res["floor_ok"] and res["robustness"]["plus_1c_on_a_net_positive"] and res.get("p_reg_placebo", {}).get("holds", True))
+    res["checks_ok"] = bool(res["floor_ok"] and res["robustness"]["plus_1c_on_a_net_positive"] and res.get("p_reg_placebo", {}).get("holds", True))
+    res["advance"] = bool(res["p_ok"] and res["checks_ok"])
     res["verdict"] = "advance" if res["advance"] else "no advance"
     res["labels"] = [LABEL_R2]
     return res
@@ -1649,7 +1651,7 @@ def rep_r(frame_dir: Path, bin_dir: Path, seal: dict, triggered: dict[str, bool]
         r["stage2_early_alpha_ok"] = c13.early_stage2_ok(r.get("p") if r.get("testable", True) else None)
     out["holm_family_partial"] = c13.stage2_holm({t: (r.get("p") if r.get("testable", True) else None) for t, r in tests.items()}) if tests else {}  # information only: the decision step is the CB13-wide stage2-final Holm
     for r in tests.values():
-        r["stage2_pass_alpha_over_k"] = bool(r.get("advance") and r["stage2_early_alpha_ok"])  # early alpha / 5 only; the CB13-wide final Holm (run_cb13.py stage2-final) can only add passes
+        r["stage2_pass_alpha_over_k"] = bool(r.get("checks_ok") and r["stage2_early_alpha_ok"])  # early alpha / 5 only (all binding checks + p < alpha / 5); the CB13-wide final Holm (run_cb13.py stage2-final) can only add passes
     out["agreement"] = agreement_audit(units)
     attach_basis_label(out)
     return out
