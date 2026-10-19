@@ -1989,7 +1989,7 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Queue ops: smokes q0285b/q0300/q0301/q0348 priority 25/9 -> 27 so they run between q0227b's 80-min budget runs
   (q0227b CB11-A walk at 139 of 164 days, still progressing). Ops only, no design change.
 
-## CB15-E completeness audit (q0341b terminal), 2026-10-19 ~20:50Z (science-reviewer): FAITHFUL; counted 2 (E1, E2)
+## CB15-E completeness audit (q0341b terminal), 2026-10-19 ~20:36Z (science-reviewer): FAITHFUL; counted 2 (E1, E2)
 - Frame and walk use the same `parse_event` / `classify_event`; the walk only narrows (tag 2, end in
   [2026-11-03, 2027-01-31]); event ids are sets. All 26 frame races are in the walk; the 485 missing races were never
   returned as races by the five frozen queries ("House 2026" returned 409 House events, all primary/runoff/other; the
@@ -2002,7 +2002,7 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   need a new registration (e.g. a tag-walk frame), not a CB15-E re-run. Could not verify: walk titles of the 485 were not
   saved (House share is an inference).
 
-## CB12-O fixes (beadf81) re-check, 2026-10-19 ~20:55Z (science-reviewer): ACCEPT_WITH_FIXES; not counted
+## CB12-O fixes (beadf81) re-check, 2026-10-19 ~20:38Z (science-reviewer): ACCEPT_WITH_FIXES; not counted
 - Verified from a `git archive HEAD` export: O `13cb7b63…` matches seal and q0260-q0264; common/M/X/E unchanged; 37/37
   O tests pass; no floor, gate, alpha or threshold loosened (missed-checkpoint share makes the 60% rule stricter);
   amendment O3 causal (previous-session Nasdaq file with `fetched_t_end < t`; missing -> "unknown", excluded; invalid
@@ -2017,7 +2017,7 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   confirmation -> O freeze commit -> install cron on the freeze day. q0262-q0264 after window 1 closes. Fix agent starts
   after the concurrent CB12-E fix commit (shared seal file and design doc).
 
-## CB12-E freeze-check fixes (38bef1a), 2026-10-19 ~21:05Z (implementer); re-check running; not counted
+## CB12-E freeze-check fixes (38bef1a), 2026-10-19 ~20:40Z (implementer); re-check running; not counted
 - E `9a60a4a5…` -> `eb086757…`; common/M/X/O unchanged; `pytest tests/test_cb12*.py` 183 passed. Amendment row E2 in
   CREATIVE_BATCH_12.md §11. Fixed: E1-rep needs the p_alt placebo credit; Stage-2 outcomes only from reads spanning the
   window start (else "unavailable (outcome read)"), USGS span >= 30 days, 400-day-cap windows "unavailable (span cap)";
