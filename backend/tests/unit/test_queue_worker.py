@@ -52,3 +52,10 @@ def test_parked_job_never_starts_until_retry():
     spec = {"max_retries": 1, "depends_on": []}
     assert not qw.ready(spec, {"status": "parked", "attempts": 0})
     assert qw.ready(spec, {"status": "queued", "attempts": 0})
+
+
+def test_spec_not_before_blocks_start_until_then():
+    st = {"status": "queued", "attempts": 0}
+    assert not qw.ready({"max_retries": 1, "depends_on": [], "not_before": "2999-01-01T00:00:00Z"}, st)
+    assert qw.ready({"max_retries": 1, "depends_on": [], "not_before": "2000-01-01T00:00:00Z"}, st)
+    assert not qw.ready({"max_retries": 1, "depends_on": [], "not_before": "2000-01-01T00:00:00Z"}, {"status": "retry_wait", "attempts": 0, "not_before": "2999-01-01T00:00:00Z"})

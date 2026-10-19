@@ -24,6 +24,8 @@ At most one cpu job plus one net job (1 OCPU / ~5.6 GiB host; heavy-job rule). I
 Spec fields (JSON): id, title, priority (int, higher first), expected_value, family, data,
 resources {mem_mb, cpu, lane}, depends_on [ids], argv [script under backend/scripts, args...],
 timeout_s, max_retries, outputs [paths], next_action, notes, and optionally
+not_before (ISO UTC "YYYY-MM-DDTHH:MM:SSZ": the job is not started before then, so a declared start date does not burn
+the tempfail cap), and
 repeat {max_runs, until_log_regex}: a resumable budgeted job exiting 0 is re-queued (not counted as a
 failed attempt) until its attempt log matches the regex or max_runs clean runs have happened.
 A job exiting 75 (EX_TEMPFAIL) is a precondition refusal: status retry_wait with not_before = now + 30 min, the attempt is not
@@ -194,6 +196,8 @@ def ready(spec: dict, st: dict) -> bool:
     if st["attempts"] > spec["max_retries"]:
         return False
     if st.get("not_before") and st["not_before"] > now():
+        return False
+    if spec.get("not_before") and spec["not_before"] > now():  # declared earliest start: no attempt, no tempfail until then
         return False
     return all(load_state(d)["status"] == "done" for d in spec.get("depends_on", []))
 
