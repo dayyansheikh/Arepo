@@ -20,6 +20,7 @@ CB15-E (election-night reporting-order drift, CH129; one-night case study, the n
     python scripts/run_cb15.py census --family P             # q0350: counts only; GP, GPP (SE-only proxy)
     python scripts/run_cb15.py screen --family P             # q0351 (refuses before the part-P freeze)
     python scripts/run_cb15.py p-live                        # q0352: ONE birth-watcher invocation (cron every minute under flock); refuses before the part-P freeze
+    python scripts/run_cb15.py p-cache                       # q0354: ONE Kalshi open-market cache invocation (hourly cron, OWN flock, 3,000-s timeout, resumable cursor)
     python scripts/run_cb15.py rep --family P                # q0353 (triggered tests only; pinned Stage-1 results; title audits complete; after T15_P2_end)
 
 Exit codes: 0 ok / transient pause / declared stall or terminal (the label is carried, never exit 2) / declared end state; 1 error; 2 refusal (rules hash of the command's part, smoke
@@ -48,6 +49,8 @@ DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "e-census": 2.0, "prega
 DECLARED_KALSHI_RPS_MAX = 1.0
 DECLARED_DISK_CAP_GB["p-live"] = 0.05
 DECLARED_RPS_MAX["p-live"] = 2.0
+DECLARED_DISK_CAP_GB["p-cache"] = 0.05
+DECLARED_RPS_MAX["p-cache"] = 2.0  # --rps is unused by p-cache (Kalshi only; --kalshi-rps <= 1 binds)
 _TRANSIENT_STATUS = re.compile(r"status (None|0|408|429|5\d\d)\b")
 
 
@@ -736,6 +739,18 @@ def _keys_for_p(a) -> tuple[list[dict], dict]:
     return rows, meta
 
 
+def _ksrc_for_p(a) -> tuple[dict, dict]:
+    """The key sources of q0340 plus a re-read of the frames it recorded as "absent at q0340" (P-7). Returns (ksrc, report)."""
+    c15, p = _c15(), _p()
+    root = _root(a)
+    rows, kmeta = _keys_for_p(a)
+    ksrc = c15.ksrc_of(rows)
+    rp = root / c15.c9.EXCLUSION_REPORT_NAME
+    absent = list((json.loads(rp.read_text()) if rp.is_file() else {}).get("sets_absent_at_q0340") or [])
+    ksrc, rep = p.reread_absent_frames(_hist(a), absent, ksrc)
+    return ksrc, {**kmeta, "absent_at_q0340": absent, **rep}
+
+
 @_guarded
 def cmd_p_birth_census(a):
     from astrolabe.research_lab import cb8_common as cm  # noqa: PLC0415
@@ -750,11 +765,11 @@ def cmd_p_birth_census(a):
     term = _terminal(a, "P")
     if term is not None:
         return _terminal_payload(term)
-    rows_k, kmeta = _keys_for_p(a)
+    ksrc, kmeta = _ksrc_for_p(a)
     c1 = _c1_root(a)
     pairs, c1rep = p.c1_frame(c1)
     matches = p.read_matches(c1 / "matches.json")
-    frame_rows, rep = p.birth_census(pairs, matches, c15.ksrc_of(rows_k))
+    frame_rows, rep = p.birth_census(pairs, matches, ksrc)
     fp = p.write_birth_frame(root / p.BIRTH_FRAME_NAME, frame_rows)
     doc = {"version": "cb15-census-P-birth-v1", "counts_only": True, "rules_sha256": shas, "c1": c1rep, "exclusion_keys": kmeta, "birth_frame_sha256": c15.sha256_file(fp), "report": rep,
            "run_utc": cm.iso(time.time())}
@@ -797,7 +812,8 @@ def cmd_p_data(a):
     frame = p.read_frame(fp)
     kb = p.kalshi_bools_from_universe(_c1_root(a), {r["k_ticker"] for r in frame})
     try:
-        m = p.p_data(_hist(a), _limiter(a, a.rps), _limiter(a, a.kalshi_rps), frame_path=fp, kalshi_bools=kb, budget_s=None if a.budget_min is None else a.budget_min * 60.0)
+        m = p.p_data(_hist(a), _limiter(a, a.rps), _limiter(a, a.kalshi_rps), frame_path=fp, kalshi_bools=kb, ksrc=_ksrc_for_p(a)[0],
+                     budget_s=None if a.budget_min is None else a.budget_min * 60.0)
     except cm.ApiError as exc:
         if _TRANSIENT_STATUS.search(str(exc)):
             raise cm.NotNow(f"p-data: a source returned a transient status ({str(exc)[:80]}); resumable") from None
@@ -892,10 +908,38 @@ def cmd_p_live(a):
     shas = _shas(a, "P")
     entry = _freeze(a, "P", shas, {"matcher_sha256": p.verify_matcher(), "p_freeze_marker": p.P_FREEZE_MARKER})
     now = float(a.now) if getattr(a, "now", None) else time.time()
-    c15.require_disk(_data_dumps(a), a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
-    m = p.p_live(_hist(a), _limiter(a, a.rps, yield_to_collector=False), _limiter(a, a.kalshi_rps, yield_to_collector=False), now=now, rules_sha=shas["P"], freeze_ts=_freeze_ts_p(a))
+    _hourly_disk_check(a, now)
+    m = p.p_live(_hist(a), _limiter(a, a.rps, yield_to_collector=False), _limiter(a, a.kalshi_rps, yield_to_collector=False), now=now, rules_sha=shas["P"], freeze_ts=_freeze_ts_p(a),
+                 cap_bytes=int(a.disk_cap_gb * 1024**3))
     m["freeze_sha256"] = entry["entry_sha256"]
     return 0, m
+
+
+def _hourly_disk_check(a, now: float) -> None:
+    """The disk guard of the P watcher / cache runs at most hourly (not every minute: P-12); the stamp lives in the live dir."""
+    c15, p = _c15(), _p()
+    live = c15.require_output_root(_hist(a) / p.LIVE_RUN)
+    live.mkdir(parents=True, exist_ok=True)
+    stamp = live / "disk_check.json"
+    last = json.loads(stamp.read_text()).get("epoch", 0.0) if stamp.is_file() else 0.0
+    if now - last < p.DISK_CHECK_EVERY_S:
+        return
+    c15.require_disk(_data_dumps(a), a.data_dumps_cap_gb, int(a.disk_cap_gb * 1024**3))
+    stamp.write_text(json.dumps({"epoch": now}))
+
+
+@_guarded
+def cmd_p_cache(a):
+    """q0354: ONE Kalshi open-market cache invocation (hourly cron, its own flock, 3,000-s timeout; resumable). Same freeze and matcher gates as the watcher."""
+    p = _p()
+    for name in ("now", "freeze_ts"):
+        _test_only(a, name)
+    _declared(a, "p-cache")
+    shas = _shas(a, "P")
+    _freeze(a, "P", shas, {"matcher_sha256": p.verify_matcher(), "p_freeze_marker": p.P_FREEZE_MARKER})
+    now = float(a.now) if getattr(a, "now", None) else time.time()
+    _hourly_disk_check(a, now)
+    return 0, p.p_cache(_hist(a), _limiter(a, a.kalshi_rps, yield_to_collector=False), now=now, freeze_ts=_freeze_ts_p(a), budget_s=float(a.budget_s))
 
 
 @_guarded
@@ -1086,6 +1130,16 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--freeze-ts", type=float, default=None, help="tests only")
     q.add_argument("--now", default=None, help="tests only")
     q.set_defaults(fn=cmd_p_live)
+
+    q = sub.add_parser("p-cache", help="q0354 (hourly cron, own flock)")
+    common(q)
+    net(q, disk_cap=0.05)
+    q.add_argument("--kalshi-rps", type=float, default=0.5)
+    q.add_argument("--budget-s", type=float, default=2900.0)
+    q.add_argument("--freeze-spec", default=None)
+    q.add_argument("--freeze-ts", type=float, default=None, help="tests only")
+    q.add_argument("--now", default=None, help="tests only")
+    q.set_defaults(fn=cmd_p_cache)
 
     q = sub.add_parser("rep", help="q0353 (P)")
     common(q)

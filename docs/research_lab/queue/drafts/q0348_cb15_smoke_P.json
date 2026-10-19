@@ -10,7 +10,7 @@
   "research_lab/cross_venue (C1 reproduction)"
  ],
  "resources": {
-  "mem_mb": 600,
+  "mem_mb": 900,
   "cpu": 1,
   "lane": "net",
   "network": "gamma-api, data-api, kalshi"
@@ -33,5 +33,5 @@
   "trials.jsonl (cb15_descriptive; a FAIL writes P1, P2 not testable (source), counted once)"
  ],
  "next_action": "PASS: q0349 (with q0347 PASS)",
- "notes": "CREATIVE_BATCH_15.md CB15-SM. DRAFT. <= 30 requests; Kalshi <= 1 rps; write-once. Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 198b7fab6a709a6bd63a3bd509d614792997512a9bd2ecf1ae0e24585ecf61e3. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes."
+ "notes": "CREATIVE_BATCH_15.md CB15-SM. DRAFT. <= 30 requests; Kalshi <= 1 rps; write-once. Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 80db6dfa1841ca8cead4924303f368bd48d829cd5c42e2a3e25a776d6ef4cd6c. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes. mem_mb 900 (the C1 reproduction call in the offline smoke)."
 }

@@ -1,6 +1,6 @@
 {
  "id": "q0352_cb15_p_live",
- "title": "CB15-P birth watcher (cron every minute, flock, outside lanes; causal selection, no volume filter): hourly Gamma listings created in the last 2 h, Kalshi open-market cache (full daily, min_created_ts hourly), frozen matcher (cross_venue.match_markets, pinned source) + r1 audit_conflict, Kalshi open_time <= listing - 24 h, non-sports by Kalshi series category; Data API first-print polls every 5 min (late detection counted); Polymarket YES/NO /book and Kalshi orderbook at t_d (<= 2 min) and t_d + 24 h (<= 5 min); weekly blind title-audit batches; stop at >= 60 eligible births with their 24-h read (births, never results) or 2027-04-30",
+ "title": "CB15-P birth watcher (cron every minute, flock, 55-s timeout, outside lanes; causal selection, no volume filter): book reads FIRST at t_d (receipt within 2 min) and t_d + 24 h (within 5 min; failed HTTP reads retried in the window, never stored), first-print polls of eligible pairs only (every 5 min; late detection counted), hourly Gamma listing scan against the Kalshi cache (frozen matcher over the full cache + r1 audit_conflict; Kalshi-first and rule booleans checked per pair; non-sports by series category), weekly blind title-audit batches; stop at >= 60 usable births (not late, both reads in their windows; births, never results) or 2027-04-30",
  "family": "creative_batch_15",
  "priority": 0,
  "expected_value": "P Stage 2 data at recorded books",
@@ -9,7 +9,7 @@
   "public Kalshi markets, series and orderbook"
  ],
  "resources": {
-  "mem_mb": 150,
+  "mem_mb": 300,
   "cpu": 1,
   "lane": "cron",
   "network": "gamma-api, data-api, clob, kalshi"
@@ -39,6 +39,6 @@
   "history/h15_birth_live/audit_batches/"
  ],
  "next_action": "runs to T15_P2_end or the cap; q0353 if triggered",
- "notes": "CREATIVE_BATCH_15.md CB15-P Stage 2. DRAFT. Installed by the coordinator after the P freeze (crontab line: * * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_cb15_p_live.lock nice -n 10 python scripts/run_cb15.py p-live ...). Idles before max(P freeze + 1 d, 2026-11-04T00:00Z); refuses (exit 2) before the part-P freeze or if cross_venue.py differs from the pinned matcher. Never reads cross_venue_live/. Daily request cap 3,500. Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 198b7fab6a709a6bd63a3bd509d614792997512a9bd2ecf1ae0e24585ecf61e3. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes.",
+ "notes": "CREATIVE_BATCH_15.md CB15-P Stage 2. DRAFT. Installed by the coordinator after the P freeze (crontab line: * * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_cb15_p_live.lock nice -n 10 python scripts/run_cb15.py p-live ...). Idles before max(P freeze + 1 d, 2026-11-04T00:00Z); refuses (exit 2) before the part-P freeze or if cross_venue.py differs from the pinned matcher. Never reads cross_venue_live/. Daily request cap 3,500. Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 80db6dfa1841ca8cead4924303f368bd48d829cd5c42e2a3e25a776d6ef4cd6c. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes. P-2/P-12: the Kalshi cache refresh is a separate job (q0354, own flock). Reads have priority under the 3,500/day cap (300 reserved); disk guard hourly; 0.05 GB live-dir cap. mem_mb 300: the watcher loads the Kalshi cache for the hourly match.",
  "not_before": "2026-11-04T00:00:00Z"
 }

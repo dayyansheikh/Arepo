@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -266,7 +267,11 @@ def test_e_drafts_exist_parse_and_are_drafts_not_jobs():
     pr = {d["id"][:5]: d["priority"] for d in ds}
     assert pr["q0341"] == pr["q0343"] == pr["q0344"] == 99 and pr["q0340"] == 9
     by = {d["id"][:5]: d for d in ds}
-    assert c15.PIN_UNSET in by["q0344"]["argv"] and c15.PIN_UNSET in by["q0346"]["argv"] and c15.PIN_UNSET in by["q0340"]["argv"]
+    hex64 = re.compile(r"^[0-9a-f]{64}$")  # q0344 / q0346 carry the pinned GE0 bundle sha256 (ba0ce3b); q0340's base-key pin may still be a placeholder or a pinned value
+    for k in ("q0344", "q0346"):
+        pin = by[k]["argv"][by[k]["argv"].index("--ge0-sha256") + 1]
+        assert hex64.match(pin) and pin != c15.PIN_UNSET, k
+    assert c15.PIN_UNSET in by["q0340"]["argv"]
     live = by["q0345"]
     assert live["resources"]["lane"] == "cron" and "--no-exit75-in-window" in live["argv"] and live["argv"][live["argv"].index("--disk-cap-gb") + 1] == "freeze"
     assert by["q0346"]["not_before"] == e.T15_E_END
@@ -275,7 +280,7 @@ def test_e_drafts_exist_parse_and_are_drafts_not_jobs():
 # ---- part P ----------------------------------------------------------------------------------------------------------------------------------------
 
 
-P_IDS = [347, 348, 349, 350, 351, 352, 353]
+P_IDS = [347, 348, 349, 350, 351, 352, 353, 354]
 
 
 def test_p_birth_census_waits_for_exclusion_keys(env, capsys):
@@ -302,6 +307,16 @@ def test_p_live_refuses_before_the_p_freeze_and_idles_after(env, capsys):
                                       "p_freeze_marker": p.P_FREEZE_MARKER}}))
     code, out = _run(capsys, [*args, "--freeze-spec", str(spec), "--freeze-ts", str(e.ep("2026-11-02T00:00:00Z")), "--data-dumps", str(env["tmp"] / "data")])
     assert code == 0 and out["status"] == "p_live_idle", out
+    stamp = env["hist"] / p.LIVE_RUN / "disk_check.json"
+    assert stamp.is_file()  # the disk guard ran once; a minute later it is not run again (P-12)
+    t0 = json.loads(stamp.read_text())["epoch"]
+    code, out = _run(capsys, [*args, "--freeze-spec", str(spec), "--freeze-ts", str(e.ep("2026-11-02T00:00:00Z")), "--data-dumps", str(env["tmp"] / "data"), "--now", str(t0 + 60)])
+    assert code == 0 and json.loads(stamp.read_text())["epoch"] == t0
+    code, out = _run(capsys, ["p-cache", *env["base"], "--kalshi-rps", "2"])
+    assert code == 2 and "kalshi_rps" in out["refused"]
+    cargs = ["p-cache", *env["base"], "--disk-cap-gb", "0.05", "--data-dumps-cap-gb", "40", "--freeze-spec", str(spec), "--freeze-ts", str(e.ep("2026-11-02T00:00:00Z")), "--data-dumps", str(env["tmp"] / "data")]
+    code, out = _run(capsys, [*cargs, "--now", str(e.ep("2026-11-01T00:00:00Z"))])
+    assert code == 0 and out["status"] == "p_cache_idle", out  # more than a day before T15_P2_start
     bad = [*args, "--freeze-spec", str(spec)]
     bad[bad.index("--not-before") + 1] = "2026-11-05T00:00:00Z"
     code, out = _run(capsys, bad)

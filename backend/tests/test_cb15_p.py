@@ -283,18 +283,27 @@ class LiveLim:
 
     def __init__(self, listings, kalshi, trades, cat="Politics"):
         self.listings, self.kalshi, self.trades, self.cat, self.requests = listings, kalshi, trades, cat, 0
+        self.book_fail = 0  # the next N /book calls answer 500
+        self.kalshi_pages: list | None = None  # paged Kalshi listing: [(markets, cursor)], a None entry = a 500
 
     def get(self, url, params):
         self.requests += 1
         if url == c15.GAMMA_MARKETS:
             return 200, self.listings if params["offset"] == 0 else []
         if url.endswith("/markets") and "kalshi" in url:
+            if self.kalshi_pages is not None:
+                i = int(params.get("cursor") or 0)
+                pg = self.kalshi_pages[i]
+                return (500, None) if pg is None else (200, {"markets": pg, "cursor": str(i + 1) if i + 1 < len(self.kalshi_pages) else ""})
             return 200, {"markets": self.kalshi, "cursor": ""}
         if "/series/" in url:
             return 200, {"series": {"category": self.cat}}
         if url.endswith("/orderbook"):
             return 200, {"orderbook": {"yes_dollars": [["0.55", 10]], "no_dollars": [["0.40", 10]]}}
         if url == p.CLOB_BOOK:
+            if self.book_fail > 0:
+                self.book_fail -= 1
+                return 500, None
             return 200, {"bids": [{"price": "0.49", "size": "50"}], "asks": [{"price": "0.51", "size": "50"}]}
         if "trades" in url:
             return 200, self.trades.get(params["market"], [])
@@ -310,12 +319,17 @@ def test_watcher_matches_polls_reads_audits_and_stops(tmp_path):
     r = p.p_live(hist, lim, lim, now=p.ep(p.T15_P2_START_MIN) - 1, rules_sha="x", freeze_ts=None)
     assert r["status"] == "p_live_idle"
     r = p.p_live(hist, lim, lim, now=NOW, rules_sha="x", freeze_ts=None, clock=lambda: NOW)
+    assert r["matched"] == 0  # no Kalshi cache yet: the scan is skipped and logged, nothing is taken
+    c = p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    assert c["status"] == "p_cache_complete" and c["cached"] == 1
+    assert p.p_cache(hist, lim, now=NOW + 60, freeze_ts=None, clock=lambda: NOW + 60)["status"] == "p_cache_fresh"
+    r = p.p_live(hist, lim, lim, now=NOW + 30, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 30)
     assert r["matched"] == 1, r
     live = hist / p.LIVE_RUN
     pr = next(c15.jsonl_iter(live / p.LIVE_FILES["pairs"]))
     assert pr["eligible"] and pr["kalshi_first"] and pr["k_cat"] == "Politics" and "result" not in json.dumps(pr)
     r = p.p_live(hist, lim, lim, now=NOW + 120, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 120)
-    assert r["births"] == 0  # polled < 5 min ago at NOW (no print yet then? the fake already has one: polled at NOW)
+    assert r["births"] == 1  # reads and polls run before the hourly scan: the first poll is on the next minute
     births = list(c15.jsonl_iter(live / p.LIVE_FILES["first_prints"]))
     assert len(births) == 1 and births[0]["t_birth"] == NOW + 60 and not births[0]["late"]
     td = NOW + 60 + 600
@@ -335,10 +349,12 @@ def test_watcher_excludes_polymarket_first_and_sports(tmp_path):
     hist = tmp_path / "research_lab" / "history"
     q = "Will the Federal Reserve cut rates at the December 2026 meeting"
     lim = LiveLim([_gm(1, NOW - 600, q)], [_km("FED-26DEC", q, NOW - 3 * DAY)], {}, cat="Sports")
-    p.p_live(hist, lim, lim, now=NOW, rules_sha="x", freeze_ts=None)
+    p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    p.p_live(hist, lim, lim, now=NOW + 30, rules_sha="x", freeze_ts=None)
     pr = next(c15.jsonl_iter(hist / p.LIVE_RUN / p.LIVE_FILES["pairs"]))
     assert not pr["eligible"]
-    assert p.match_new([p.kalshi_record(_km("FED-26DEC", q, NOW - 3600))], [p.poly_listing(_gm(2, NOW - 600, q))]) == []  # Kalshi opened < 24 h before the listing
+    mm = p.match_new([p.kalshi_record(_km("FED-26DEC", q, NOW - 3600))], [p.poly_listing(_gm(2, NOW - 600, q))])  # Kalshi opened < 24 h before the listing
+    assert len(mm) == 1 and not mm[0]["kalshi_first"]  # matched against the full cache (C1 mutual best), the lead is checked afterwards (P-8)
 
 
 def test_watcher_closes_at_the_cap(tmp_path):
@@ -368,7 +384,8 @@ def _live_fixture(live: Path, n: int, slope: float, gap: float = 0.08) -> dict:
         c15.jsonl_append(live / p.LIVE_FILES["first_prints"], {"pair_id": pid, "t_birth": tb, "late": False})
         for which, mid in (("t_d", m0), ("t_d+24h", m1)):
             k = m0 + g
-            c15.jsonl_append(live / p.LIVE_FILES["books"], {"pair_id": pid, "which": which, "yes": {"bid": mid - 0.005, "ask": mid + 0.005}, "no": {"bid": 1 - mid - 0.005, "ask": 1 - mid + 0.005},
+            due = tb + 600 + (DAY if which == "t_d+24h" else 0.0)
+            c15.jsonl_append(live / p.LIVE_FILES["books"], {"pair_id": pid, "which": which, "due": due, "receipt": due + 5.0, "yes": {"bid": mid - 0.005, "ask": mid + 0.005}, "no": {"bid": 1 - mid - 0.005, "ask": 1 - mid + 0.005},
                                                            "kalshi": {"k_bid": k - 0.01, "k_ask": k + 0.01}})
         audits[pid] = "pass"
     return audits
@@ -388,3 +405,254 @@ def test_rep_replicates_a_planted_effect_and_counts_power(tmp_path):
     assert res2["P1"]["verdict"] == p.NOT_RUN_POWER_REP and res2["labels"]["audit fail"] == 15
     with pytest.raises(c15.NotNow):
         p.read_audits(tmp_path / "none", {"2026-W46"})
+
+
+# ---- freeze-check fixes (P-1 .. P-14) -------------------------------------------------------------------------------------------------------------------
+
+
+def _born_pair(tmp_path, lim=None, cat="Politics"):
+    """A pair matched, polled and born on a fake; returns (hist, live, lim, t_d)."""
+    hist = tmp_path / "research_lab" / "history"
+    q = "Will the Federal Reserve cut rates at the December 2026 meeting"
+    lim = lim or LiveLim([_gm(1, NOW - 600, q)], [_km("FED-26DEC", q, NOW - 3 * DAY)], {"c1": [{"timestamp": NOW + 60, "price": 0.5, "size": 3, "outcomeIndex": 0, "transactionHash": "h"}]}, cat=cat)
+    p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    p.p_live(hist, lim, lim, now=NOW + 30, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 30)
+    p.p_live(hist, lim, lim, now=NOW + 120, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 120)
+    return hist, hist / p.LIVE_RUN, lim, NOW + 60 + 600
+
+
+def test_failed_read_is_retried_in_window_and_never_stored(tmp_path):
+    hist, live, lim, td = _born_pair(tmp_path)
+    lim.book_fail = 1
+    r = p.p_live(hist, lim, lim, now=td + 5, rules_sha="x", freeze_ts=None, clock=lambda: td + 5)
+    assert r["reads"] == 0 and r["read_failures"] == 1
+    assert not (live / p.LIVE_FILES["books"]).exists()
+    r = p.p_live(hist, lim, lim, now=td + 65, rules_sha="x", freeze_ts=None, clock=lambda: td + 65)  # retried inside the 2-min window
+    assert r["reads"] == 1
+    b = next(c15.jsonl_iter(live / p.LIVE_FILES["books"]))
+    assert b["http_ok"] and b["receipt"] == td + 65 and b["due"] == td
+    r = p.p_live(hist, lim, lim, now=td + 66, rules_sha="x", freeze_ts=None, clock=lambda: td + 66)
+    assert r["reads"] == 0  # one read per pair and read
+
+
+def test_read_after_the_window_is_missed_and_labelled_unavailable(tmp_path):
+    hist, live, lim, td = _born_pair(tmp_path)
+    lim.book_fail = 99
+    p.p_live(hist, lim, lim, now=td + 10, rules_sha="x", freeze_ts=None, clock=lambda: td + 10)
+    p.p_live(hist, lim, lim, now=td + 200, rules_sha="x", freeze_ts=None, clock=lambda: td + 200)  # past 2 min: missed
+    lim.book_fail = 0
+    p.p_live(hist, lim, lim, now=td + 260, rules_sha="x", freeze_ts=None, clock=lambda: td + 260)
+    assert not (live / p.LIVE_FILES["books"]).exists()
+    audits = {pid: "pass" for pid in (x["pair_id"] for x in c15.jsonl_iter(live / p.LIVE_FILES["pairs"]))}
+    units, labels = p.rep_units(live, audits)
+    assert not units and labels["unavailable (read)"] == 1 and "no two-sided quote at t_d" not in labels
+
+
+def test_receipt_after_the_response_decides_not_invocation_start(tmp_path):
+    hist, live, lim, td = _born_pair(tmp_path)
+    ticks = iter([td + 119.0, td + 119.5, td + 125.0, td + 130.0, td + 131.0])  # the loop starts in the window, the response arrives after it
+    p.p_live(hist, lim, lim, now=td + 119, rules_sha="x", freeze_ts=None, clock=lambda: next(ticks, td + 140))
+    assert not (live / p.LIVE_FILES["books"]).exists()
+
+
+def test_valid_reads_first_in_window_and_outside_discarded(tmp_path):
+    live = tmp_path / "live"
+    live.mkdir()
+    tb = NOW
+    c15.jsonl_append(live / p.LIVE_FILES["first_prints"], {"pair_id": "A", "t_birth": tb, "late": False})
+    d0, d1 = tb + 600, tb + 600 + DAY
+    for which, rc in (("t_d", d0 + 130.0), ("t_d", d0 + 10.0), ("t_d", d0 + 20.0), ("t_d+24h", d1 - 1.0), ("t_d+24h", d1 + 299.0)):
+        c15.jsonl_append(live / p.LIVE_FILES["books"], {"pair_id": "A", "which": which, "receipt": rc, "marker": rc})
+    r, labels = p.valid_reads(live)
+    assert r["A"]["t_d"]["marker"] == d0 + 10.0 and r["A"]["t_d+24h"]["marker"] == d1 + 299.0
+    assert labels["read outside its window (discarded)"] == 2 and labels["duplicate in-window read (first kept)"] == 1
+
+
+def test_stop_rule_counts_only_usable_births(tmp_path):
+    live = tmp_path / "live"
+    live.mkdir()
+    for i, (late, both) in enumerate([(False, True), (True, True), (False, False), (False, True)]):
+        pid = f"P{i}"
+        tb = NOW + i * 7 * HOUR
+        c15.jsonl_append(live / p.LIVE_FILES["pairs"], {"pair_id": pid, "eligible": True, "matched_at": NOW})
+        c15.jsonl_append(live / p.LIVE_FILES["first_prints"], {"pair_id": pid, "t_birth": tb, "late": late})
+        c15.jsonl_append(live / p.LIVE_FILES["books"], {"pair_id": pid, "which": "t_d", "receipt": tb + 610})
+        if both:
+            c15.jsonl_append(live / p.LIVE_FILES["books"], {"pair_id": pid, "which": "t_d+24h", "receipt": tb + 610 + DAY + 3})
+    c15.jsonl_append(live / p.LIVE_FILES["pairs"], {"pair_id": "X", "eligible": False, "matched_at": NOW})
+    c15.jsonl_append(live / p.LIVE_FILES["first_prints"], {"pair_id": "X", "t_birth": NOW, "late": False})
+    c15.jsonl_append(live / p.LIVE_FILES["books"], {"pair_id": "X", "which": "t_d", "receipt": NOW + 610})
+    c15.jsonl_append(live / p.LIVE_FILES["books"], {"pair_id": "X", "which": "t_d+24h", "receipt": NOW + 610 + DAY})
+    assert p.births_with_24h_read(live) == 2  # not late and both reads in their windows (an out-of-window 24-h receipt or an ineligible pair does not count)
+
+
+def test_only_eligible_pairs_are_polled(tmp_path):
+    hist, live, lim, _ = _born_pair(tmp_path, cat="Sports")
+    assert not (live / p.LIVE_FILES["first_prints"]).exists()
+
+
+def test_each_listing_is_logged_once_and_cap_blocks_new_pairs(tmp_path):
+    hist = tmp_path / "research_lab" / "history"
+    lim = LiveLim([_gm(1, NOW - 600, "Will something unrelated happen by the end of year")], [], {})
+    p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    for k in range(3):
+        p.p_live(hist, lim, lim, now=NOW + 3600 * (k + 1) * 0.9, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 100)
+        p.p_cache(hist, lim, now=NOW + 3600 * (k + 1) * 0.9, freeze_ts=None, clock=lambda: NOW + 100)
+    assert len(list(c15.jsonl_iter(hist / p.LIVE_RUN / p.LIVE_FILES["listings"]))) == 1
+    # the 0.05 GB live-dir cap: no new pair is taken, logged
+    q = "Will the Federal Reserve cut rates at the December 2026 meeting"
+    lim2 = LiveLim([_gm(2, NOW - 600, q)], [_km("FED-26DEC", q, NOW - 3 * DAY)], {})
+    hist2 = tmp_path / "h2" / "research_lab" / "history"
+    p.p_cache(hist2, lim2, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    r = p.p_live(hist2, lim2, lim2, now=NOW + 30, rules_sha="x", freeze_ts=None, clock=lambda: NOW + 30, cap_bytes=10)
+    assert r["matched"] == 0
+    assert any("cap" in json.loads(x)["why"] for x in (hist2 / p.LIVE_RUN / p.LIVE_FILES["gaps"]).read_text().splitlines())
+
+
+def test_cache_job_resumes_at_its_cursor_and_keeps_the_old_cache_until_complete(tmp_path):
+    hist = tmp_path / "research_lab" / "history"
+    q = "Will the Federal Reserve cut rates at the December 2026 meeting"
+    lim = LiveLim([], [], {})
+    lim.kalshi_pages = [[_km("A-1", q, NOW - 3 * DAY)], None, [_km("B-1", q + " again", NOW - 3 * DAY)]]
+    r = p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    assert r["status"] == "p_cache_in_progress" and r["pages"] == 1
+    assert not (hist / p.LIVE_RUN / p.LIVE_FILES["kalshi_cache"]).exists()
+    lim.kalshi_pages[1] = [_km("A-2", q + " two", NOW - 3 * DAY)]  # the page recovers
+    r = p.p_cache(hist, lim, now=NOW + 60, freeze_ts=None, clock=lambda: NOW + 60)
+    assert r["status"] == "p_cache_complete" and r["cached"] == 3 and r["pages"] == 2  # resumed at the cursor: pages 2 and 3 only
+    assert p.p_cache(hist, lim, now=p.p2_window(None)[0] - 2 * DAY, freeze_ts=None)["status"] == "p_cache_idle"
+
+
+def test_daily_cap_prioritises_reads_over_polls_and_scan(tmp_path):
+    hist, live, lim, td = _born_pair(tmp_path)
+    st = json.loads((live / p.LIVE_FILES["state"]).read_text())
+    st["requests_day"] = p.DAILY_REQUEST_CAP - 5  # inside the read reserve: polls and scans stop, the read still runs
+    (live / p.LIVE_FILES["state"]).write_text(json.dumps(st))
+    r = p.p_live(hist, lim, lim, now=td + 5, rules_sha="x", freeze_ts=None, clock=lambda: td + 5)
+    assert r["reads"] == 1
+
+
+def test_sign_checks_top5_requires_p_and_the_floor():
+    n = 40
+    ev = [f"e{i}" for i in range(n)]
+    wk = [f"w{i}" for i in range(n)]
+    tb = [BASE + i * DAY for i in range(n)]
+    pv = np.linspace(0.1, 1.0, n)
+    est = lambda keep: 0.5  # noqa: E731
+    ok = p.sign_checks(est, n, ev, wk, tb, pv, p_fn=lambda keep: {"testable": True, "p": 0.001, "small_g_rules_hold": True}, floor=0.3)
+    assert ok["top5_event_drop"]["holds"] and ok["top5_week_drop"]["holds"]
+    weak_p = p.sign_checks(est, n, ev, wk, tb, pv, p_fn=lambda keep: {"testable": True, "p": 0.2, "small_g_rules_hold": True}, floor=0.3)
+    assert not weak_p["top5_event_drop"]["holds"]  # the sign survives but p >= 0.01
+    low_floor = p.sign_checks(lambda keep: 0.1, n, ev, wk, tb, pv, p_fn=lambda keep: {"testable": True, "p": 0.001, "small_g_rules_hold": True}, floor=0.3)
+    assert not low_floor["top5_week_drop"]["holds"]  # positive but below the floor
+
+
+def _rep_fixture_with_wide_24h_books(live: Path, n: int, unavailable: int) -> dict:
+    audits = _live_fixture(live, n, 0.7)
+    rows = list(c15.jsonl_iter(live / p.LIVE_FILES["books"]))
+    (live / p.LIVE_FILES["books"]).unlink()
+    for b in rows:
+        if b["which"] == "t_d+24h":
+            if int(b["pair_id"].split("|")[0][1:]) < unavailable:
+                continue  # no 24-h read at all
+            b["yes"] = {"bid": float("nan"), "ask": 0.9}  # wide / one-sided book: the one-sided-bound rule still gives a mid
+        c15.jsonl_append(live / p.LIVE_FILES["books"], b)
+    return audits
+
+
+def test_p1_rep_keeps_one_sided_24h_books_and_applies_the_availability_gate(tmp_path):
+    live = tmp_path / "live"
+    live.mkdir()
+    audits = _rep_fixture_with_wide_24h_books(live, 70, 0)
+    units, labels = p.rep_units(live, audits)
+    assert len(units) == 70 and all(math.isfinite(u["delta"]) for u in units)
+    assert p.mid_one_sided(math.nan, 0.9) == pytest.approx(0.45) and p.mid_one_sided(0.1, math.nan) == pytest.approx(0.55)
+    live2 = tmp_path / "live2"
+    live2.mkdir()
+    audits2 = _rep_fixture_with_wide_24h_books(live2, 70, 35)  # 50% of the eligible have no 24-h read
+    res = p.rep_p(live2, audits2, ["P1"])
+    assert res["P1"]["verdict"] in (p.NOT_RUN_POWER_REP, p.NOT_TESTABLE_AVAIL)
+    live3 = tmp_path / "live3"
+    live3.mkdir()
+    audits3 = _rep_fixture_with_wide_24h_books(live3, 100, 38)  # 62 available of 100 eligible would pass; 38% lost -> 62% >= 60%
+    assert p.rep_p(live3, audits3, ["P1"])["P1"].get("availability", {}).get("ok")
+    live4 = tmp_path / "live4"
+    live4.mkdir()
+    audits4 = _rep_fixture_with_wide_24h_books(live4, 150, 65)  # 85 of 150 = 57% < 60% with >= 60 units
+    r4 = p.rep_p(live4, audits4, ["P1"])["P1"]
+    assert r4["verdict"] == p.NOT_TESTABLE_AVAIL and not r4["advance"]
+
+
+def test_rule_booleans_and_key_drop_labels():
+    m = _meta(BASE + 3600, kt="K1", mid="1", ev="e1", cat="Politics", lead=48 * HOUR)
+    tx = [{"ts": BASE + 3600, "vwap_yes": 0.5, "min_yes": 0.5, "max_yes": 0.5, "size": 10.0}]
+    kc = np.array([[BASE + 3600 + t, 0.59, 0.61] for t in range(0, 1200, 60)])
+    assert p.unit_features({**m, "k_bool_provisional": "False", "k_bool_close_early": "False"}, tx, kc)["label"] == "ok"
+    assert p.unit_features({**m, "k_bool_provisional": "", "k_bool_close_early": ""}, tx, kc)["label"] == "ok"  # unknown is not an exclusion
+    assert p.unit_features({**m, "k_bool_provisional": "True", "k_bool_close_early": "False"}, tx, kc)["label"] == "rule booleans differ (excluded)"
+    assert p.unit_features({**m, "k_bool_close_early": "True"}, tx, kc)["label"] == "rule booleans differ (excluded)"
+    assert p.unit_features({**m, "key_drop": "neg_risk_market:cb14"}, tx, kc)["label"].startswith("key drop")
+
+
+def test_key_rule_rereads_absent_frames_and_checks_all_keys(tmp_path):
+    hist = tmp_path / "history"
+    (hist / "h14_wiki").mkdir(parents=True)
+    import csv as _csv
+    import gzip as _gz
+    with _gz.open(hist / "h14_wiki" / "frame.csv.gz", "wt", newline="") as fh:
+        w = _csv.writer(fh)
+        w.writerow(["market_id", "neg_risk_market_id", "series_id", "other"])
+        w.writerow(["900", "NR1", "S1", "x"])
+    ksrc = {"market": {"900": {c15.C1_SOURCE}}, "event": {}, "neg_risk_market": {}, "series": {}}
+    out, rep = p.reread_absent_frames(hist, ["h14_wiki/frame.csv.gz", "h11_pol/frame.csv.gz"], ksrc)
+    assert rep["still_absent"] == ["h11_pol/frame.csv.gz"] and "h14_wiki/frame.csv.gz" in rep["reread"]
+    assert c15.drop_reason({"market_id": "900"}, ksrc, "P") == ""  # C1-only before
+    assert c15.drop_reason({"market_id": "900"}, out, "P").startswith("market:")
+    assert c15.drop_reason({"market_id": "1", "neg_risk_market_id": "NR1"}, out, "P").startswith("neg_risk_market:")
+    assert c15.drop_reason({"market_id": "1", "series_ids": "S1"}, out, "P").startswith("series:")
+    assert ksrc["market"]["900"] == {c15.C1_SOURCE}  # the input is not mutated
+
+
+def test_non_200_candles_leave_the_pair_pending(tmp_path):
+    class Lim:
+        requests = 0
+
+        def __init__(self, candle_status):
+            self.candle_status = candle_status
+
+        def get(self, url, params):
+            self.requests += 1
+            if "trades" in url:
+                return 200, [{"timestamp": BASE + 100, "price": 0.5, "size": 5, "outcomeIndex": 0, "transactionHash": "h"}]
+            if "candlesticks" in url:
+                return self.candle_status, ({"candlesticks": []} if self.candle_status == 200 else None)
+            if "prices-history" in url:
+                return 200, {"history": []}
+            raise AssertionError(url)
+
+    (tmp_path / "creative_batch15").mkdir()
+    frame = tmp_path / "creative_batch15" / "birth_frame.csv.gz"
+    p.write_birth_frame(frame, [["K1", "S", "Politics", "/live", "1", "e1", p.cm.iso(BASE - 3 * DAY), p.cm.iso(BASE), 72.0, 0.0, 1.0]])
+    hist = tmp_path / "research_lab" / "history"
+    gm = {"1": {"id": "1", "conditionId": "c1", "outcomes": '["Yes","No"]', "clobTokenIds": '["a","b"]', "events": [{"id": "e1", "series": [{"id": "S9"}]}], "negRiskMarketID": "NR9"}}
+    lim = Lim(200)
+    kl = Lim(500)
+    r = p.p_data(hist, lim, kl, frame_path=frame, gamma_lookup=lambda ids: gm)
+    assert r["status"] == p.P_DATA_PROGRESS and r["pending_read_failures"] == ["K1"]
+    d = hist / p.DATA_RUN
+    assert not (d / p.DATA_FILES["work"]).exists() or "K1" not in (d / p.DATA_FILES["work"]).read_text()
+    att = list(c15.jsonl_iter(d / p.DATA_FILES["attempts"]))
+    assert att and any("kalshi_candles:500" in k for k in att[0]["statuses"])
+    kl.candle_status = 200  # the retry completes and records the request statuses and the new keys
+    r = p.p_data(hist, lim, kl, frame_path=frame, gamma_lookup=lambda ids: gm, ksrc={"market": {}, "event": {}, "neg_risk_market": {"NR9": {"cb14"}}, "series": {}})
+    assert r["status"] == p.P_DATA_STATUS
+    rec = next(c15.jsonl_iter(d / p.DATA_FILES["work"]))
+    assert rec["key_drop"].startswith("neg_risk_market:") and rec["req"]
+
+
+def test_census_reports_target_availability_counts():
+    data, _ = _synth(80)
+    c = p.census_p(data)
+    t = c["targets"]
+    assert set(t) == {"print_target", "history_target", "no_target"} and t["print_target"] + t["history_target"] + t["no_target"] == c["labels"]["ok"]
+    assert "rule_booleans" in c and "key_drops" in c
