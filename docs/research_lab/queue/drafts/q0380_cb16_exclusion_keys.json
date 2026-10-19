@@ -1,0 +1,43 @@
+{
+ "id": "q0380_cb16_exclusion_keys",
+ "title": "CB16 exclusion keys with per-key source attribution: CB15 q0340 key file (sha256 pinned) + CB15 frame ids (E race map, P pairs, P Stage-2 pairs) + seal copies; Gamma lookups for missing keys",
+ "family": "creative_batch_16",
+ "priority": 9,
+ "expected_value": "Q/U window check; K overlap counts",
+ "data": [
+  "creative_batch15/exclusion_keys.csv.gz",
+  "history/h15_* (id columns only)",
+  "docs/research_lab/seals/*",
+  "public Gamma (ids)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0340_cb15_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb16.py",
+  "exclusion-keys",
+  "--rules",
+  "../docs/research_lab/seals/cb16_rules.json",
+  "--base-sha256",
+  "TODO-COORDINATOR",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.01",
+  "--data-dumps-cap-gb",
+  "40"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch16/{exclusion_keys.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0383",
+ "notes": "CREATIVE_BATCH_16.md section 4, CB16 code. DRAFT. Behind CB15 q0340 (the base key file). TODO-COORDINATOR: --base-sha256 = sha256sum of creative_batch15/exclusion_keys.csv.gz on the host once q0340 is done. Net lane, <= 400 Gamma requests. Rules part sha256 (seals/cb16_rules.json, to be written by the coordinator): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 33420b9377d65185b7c34138d71a11c07bf43898dfaabefc6efa8dec0f3cef84, K undeclared (matches_all.json pin). CB16 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part A first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / A / K code changes."
+}

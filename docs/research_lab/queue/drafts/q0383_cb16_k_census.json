@@ -1,0 +1,34 @@
+{
+ "id": "q0383_cb16_k_census",
+ "title": "CB16-K census, counts only, no outcome, no price, no network: strict / topic / absent / unlistable labels; LABELLER class x volume-decile cells; events per label per cell; cells with both labels >= 30 events; key overlaps; feature-free MDE bounds; re-entry verdict",
+ "family": "creative_batch_16",
+ "priority": 9,
+ "expected_value": "the CH143 map inputs and the re-entry decision",
+ "data": [
+  "research_lab/cross_venue/{poly_markets.json,kalshi_markets*.jsonl,matches_all.json,audit_flags.json} (sha256 pinned; field-restricted)",
+  "creative_batch16/exclusion_keys.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0380_cb16_exclusion_keys",
+  "q0381_cb16_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb16.py",
+  "k-census",
+  "--rules",
+  "../docs/research_lab/seals/cb16_rules.json"
+ ],
+ "timeout_s": 4200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch16/census_K.json",
+  "trials.jsonl (cb16_descriptive)"
+ ],
+ "next_action": "record in the ledger; topic audit only if the re-entry counts pass",
+ "notes": "CREATIVE_BATCH_16.md section 4, CB16 code. DRAFT. No network. Heavy (mem_mb 1200): the coordinator runs it alone. Needs the exclusion-keys file of q0380 for key overlap counts. Requires part K declared (matches_all.json pin). Rules part sha256 (seals/cb16_rules.json, to be written by the coordinator): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 33420b9377d65185b7c34138d71a11c07bf43898dfaabefc6efa8dec0f3cef84, K undeclared (matches_all.json pin). CB16 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part A first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / A / K code changes."
+}

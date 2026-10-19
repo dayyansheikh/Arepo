@@ -1,0 +1,34 @@
+{
+ "id": "q0381_cb16_smoke",
+ "title": "CB16 smoke (cpu, no network): part hashes and CB13 pins; refusals on fixtures; grain parser; monitor-gap detector; silence standardiser; CB13 fill-function reproduction (counts); K streaming readers reproduce file counts with no outcome field parsed",
+ "family": "creative_batch_16",
+ "priority": 9,
+ "expected_value": "go/no-go for parts A and K",
+ "data": [
+  "fixtures",
+  "creative_batch13/ (SCREEN fill table features, if present)",
+  "research_lab/cross_venue/{poly_markets.json,kalshi_markets*.jsonl,matches_all.json} (field-restricted)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb16.py",
+  "smoke",
+  "--parts",
+  "A,K",
+  "--rules",
+  "../docs/research_lab/seals/cb16_rules.json"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch16/smoke.json",
+  "trials.jsonl (cb16_descriptive, or counted not-testable lines once)"
+ ],
+ "next_action": "PASS: q0382, q0383",
+ "notes": "CREATIVE_BATCH_16.md section 4, CB16 code. DRAFT. No network. Parts A and K in one write-once smoke.json. TODO-COORDINATOR: part K stays undeclared in the rules until CROSS_VENUE_PINS['matches_all.json'] (cb16_k.py) holds the host sha256 of cross_venue/matches_all.json; then regenerate the rules, re-run the freeze check for K and update the shas below. A failed A smoke counts Q1 and U1 once each (terminal records); a failed K smoke is a descriptive line. Rules part sha256 (seals/cb16_rules.json, to be written by the coordinator): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 33420b9377d65185b7c34138d71a11c07bf43898dfaabefc6efa8dec0f3cef84, K undeclared (matches_all.json pin). CB16 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part A first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / A / K code changes."
+}

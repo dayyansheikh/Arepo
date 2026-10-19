@@ -1,0 +1,45 @@
+{
+ "id": "q0387_cb16_a_frame_rep",
+ "title": "CB16 REP_A fill table (features) and raw mark-quote table (bid/ask at mark captures; no mark-out computed), event-disjoint from SCREEN_A; source-file sha256 seal",
+ "family": "creative_batch_16",
+ "priority": 9,
+ "expected_value": "Stage-2 inputs, sealed",
+ "data": [
+  "live_trades/, snapshots/, book_sweeps/ for [S_A + 7 d, S_A + 28 d + 8 h)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0386_cb16_screen_A"
+ ],
+ "argv": [
+  "scripts/run_cb16.py",
+  "a-frame",
+  "--window",
+  "rep",
+  "--rules",
+  "../docs/research_lab/seals/cb16_rules.json",
+  "--disk-cap-gb",
+  "0.05",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "35"
+ ],
+ "timeout_s": 2700,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch16/a_rep/",
+  "docs/research_lab/seals/cb16_a_rep_SEAL.json (committed by the coordinator)"
+ ],
+ "next_action": "q0388 if triggered",
+ "notes": "CREATIVE_BATCH_16.md section 4, CB16 code. DRAFT. No network. Needs results_A.json and its committed byte-identical copy seals/cb16_a_results_A.json. Writes the REP_A fill table, the raw mark-quote table, a_rep_SEAL.json (source file sha256 table); the coordinator commits the seal as seals/cb16_a_rep_SEAL.json. Runs whatever Stage 1 found. not_before = S_A + 28 d + 8 h (TODO-COORDINATOR: from the actual freeze). Rules part sha256 (seals/cb16_rules.json, to be written by the coordinator): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 33420b9377d65185b7c34138d71a11c07bf43898dfaabefc6efa8dec0f3cef84, K undeclared (matches_all.json pin). CB16 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part A first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / A / K code changes.",
+ "repeat": {
+  "max_runs": 20,
+  "until_log_regex": "\"status\": \"a_rep_complete\""
+ },
+ "not_before": "2026-11-30T08:00:00Z"
+}

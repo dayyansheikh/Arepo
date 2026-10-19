@@ -1,0 +1,36 @@
+{
+ "id": "q0386_cb16_screen_A",
+ "title": "CB16 Stage 1: Q1 (market-FE grain contrast; composition, calibration and pre-fill placebos; attribution; robustness) and U1 (market-FE silence slope; same structure); GAI; Holm k1 = 2",
+ "family": "creative_batch_16",
+ "priority": 9,
+ "expected_value": "Q1 and U1 verdicts",
+ "data": [
+  "creative_batch16/a_screen/",
+  "snapshots/ (mark captures)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0385_cb16_census_A"
+ ],
+ "argv": [
+  "scripts/run_cb16.py",
+  "screen",
+  "--family",
+  "A",
+  "--rules",
+  "../docs/research_lab/seals/cb16_rules.json"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch16/results_A.json",
+  "trials.jsonl (cb16_test + creative_batch_16:Q n_tests=1, creative_batch_16:U n_tests=1)"
+ ],
+ "next_action": "advanced: q0387/q0388; ledger",
+ "notes": "CREATIVE_BATCH_16.md section 4, CB16 code. DRAFT. No network. Refuses (exit 75) until E011's structured analysis-commit record (seals/e011_analysis_commit.json, after 2026-11-11T13:00Z) and CB3's freeze commit or structured stop record are committed. TODO-COORDINATOR: queue it only when both holds are lifted, or the exit-75 loop fails the job after about a day. A failed gate counts Q1 / U1 with p = 1. Rules part sha256 (seals/cb16_rules.json, to be written by the coordinator): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 33420b9377d65185b7c34138d71a11c07bf43898dfaabefc6efa8dec0f3cef84, K undeclared (matches_all.json pin). CB16 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part A first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / A / K code changes.",
+ "not_before": "2026-11-16T08:00:00Z"
+}

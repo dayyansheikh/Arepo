@@ -1,0 +1,32 @@
+{
+ "id": "q0382_cb16_q_grain_census",
+ "title": "CB16-Q grain census, counts only, features only: eligible non-sports CB13-T SCREEN fills by tick, P band, grain; both-grain market share; gate GQG; count of >= 12 h large-print silences the >= 5 prior-gap rule would drop (round 1 item 9)",
+ "family": "creative_batch_16",
+ "priority": 9,
+ "expected_value": "decides whether the grain arm is informative before the A freeze",
+ "data": [
+  "CB13-T SCREEN raw files: live_trades + snapshots [2026-10-12, 2026-10-16) via the pinned CB13 readers (features only)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0381_cb16_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb16.py",
+  "q-grain-census",
+  "--rules",
+  "../docs/research_lab/seals/cb16_rules.json"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch16/census_Q_grain.json",
+  "trials.jsonl (cb16_descriptive or the counted Q1 not-testable line)"
+ ],
+ "next_action": "PASS: A freeze check",
+ "notes": "CREATIVE_BATCH_16.md section 4, CB16 code. DRAFT. No network; reads the CB13-T SCREEN raw files [2026-10-12, 2026-10-16) through the pinned CB13 readers (features only; no mark quote; the independent raw-file path replaces any dependence on q0271 output). A GQG FAIL counts Q1 once (terminal 'not testable (grain)') and stops Q2. Rules part sha256 (seals/cb16_rules.json, to be written by the coordinator): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 33420b9377d65185b7c34138d71a11c07bf43898dfaabefc6efa8dec0f3cef84, K undeclared (matches_all.json pin). CB16 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part A first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / A / K code changes."
+}
