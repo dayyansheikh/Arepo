@@ -39,6 +39,12 @@ def iso(t: float) -> str:
 PIN = {"start": ep("2026-10-16T00:00:00Z"), "end": ep("2026-10-21T00:00:00Z"), "final": False}
 
 
+def freeze_doc() -> dict:
+    """A freeze declaration that pins the CURRENT rules shas (what ``freeze-part`` prints)."""
+    return {"T": {"rules_sha256": c13.rules_part_file_doc("T")["rules_sha256"], "labeller_rules_sha256": c13.rules_part_file_doc("LABELLER")["rules_sha256"]},
+            "R": {"rules_sha256": c13.rules_part_file_doc("R")["rules_sha256"]}}
+
+
 def _run(argv, capsys):
     code = run_cb13.main(argv)
     out = capsys.readouterr().out.strip().splitlines()
@@ -202,20 +208,28 @@ def test_forbidden_fields_never_reach_a_row(tmp_path):
 
 def test_cb3_hold_and_seal_time(tmp_path):
     # no CB3 freeze fixture -> pending (exit 75 in the runner)
+    none = tmp_path / "cb3_stop.json"
     with pytest.raises(c13.NotNow, match="CB3 hold"):
-        c13.cb3_hold_lifted(tmp_path, tmp_path / "none.md", is_committed=lambda p: True)
+        c13.cb3_hold_lifted(tmp_path, none, is_committed=lambda p: True)
     spec = tmp_path / "cb3_v1.json"
     spec.write_text("{}")
-    assert c13.cb3_hold_lifted(tmp_path, tmp_path / "none.md", is_committed=lambda p: True)["lifted_by"] == "cb3_freeze_commit"
+    assert c13.cb3_hold_lifted(tmp_path, none, is_committed=lambda p: True)["lifted_by"] == "cb3_freeze_commit"
     with pytest.raises(c13.NotNow):  # present but not committed
-        c13.cb3_hold_lifted(tmp_path, tmp_path / "none.md", is_committed=lambda p: False)
+        c13.cb3_hold_lifted(tmp_path, none, is_committed=lambda p: False)
     spec.unlink()
-    led = tmp_path / "ledger.md"
-    led.write_text("- CB3 was stopped on 2026-10-30 without a freeze (user decision)\n")
-    assert c13.cb3_hold_lifted(tmp_path, led, is_committed=lambda p: False)["lifted_by"] == "ledger_stop_record"
-    led.write_text("- CB3 freeze pending\n")
+    # defect 13: only a STRUCTURED, committed stop record with the exact token lifts the hold; a ledger sentence quoting the design never does
+    led = tmp_path / "EXPERIMENT_LEDGER.md"
+    led.write_text("- CB3 was stopped on 2026-10-30 without a freeze (user decision); design: 'withdrawn without a freeze' lifts the hold\n")
     with pytest.raises(c13.NotNow):
-        c13.cb3_hold_lifted(tmp_path, led, is_committed=lambda p: False)
+        c13.cb3_hold_lifted(tmp_path, led, is_committed=lambda p: True)  # prose (not JSON) never lifts it
+    stop = tmp_path / "cb3_stop.json"
+    stop.write_text(json.dumps({"cb3_stop": "cb3 stopped without a freeze"}))
+    with pytest.raises(c13.NotNow):  # wrong token
+        c13.cb3_hold_lifted(tmp_path, stop, is_committed=lambda p: True)
+    stop.write_text(json.dumps({"cb3_stop": c13.CB3_STOP_TOKEN, "recorded_utc": "2026-10-30T00:00:00Z"}))
+    with pytest.raises(c13.NotNow):  # exact token but not committed
+        c13.cb3_hold_lifted(tmp_path, stop, is_committed=lambda p: False)
+    assert c13.cb3_hold_lifted(tmp_path, stop, is_committed=lambda p: True)["lifted_by"] == "cb3_stop_record"
     with pytest.raises(c13.NotNow):
         c13.require_after(ep("2026-10-26T07:59:59Z"), ep(c13.T_SEAL_EARLIEST), "q0274")
     c13.require_after(ep("2026-10-26T08:00:00Z"), ep(c13.T_SEAL_EARLIEST), "q0274")
@@ -262,7 +276,7 @@ def test_labeller_precedence_and_fallback():
 def test_labeller_audit_sampling_and_scoring():
     mk = []
     for i in range(300):
-        mk.append({"condition_id": f"c{i}", "title": f"Will Person{i} sign with Club{i}?" if i < 40 else f"q{i}", "slug": f"s{i}", "label": [lab.PATH, lab.NEWS, lab.SPORTS][i % 3]})
+        mk.append({"condition_id": f"c{i}", "title": f"Will Person{i} complete a transfer to Club{i}?" if i < 40 else f"q{i}", "slug": f"s{i}", "label": [lab.PATH, lab.NEWS, lab.SPORTS][i % 3]})
     s1 = lab.audit_sample(mk, lab.AUDIT_SEEDS[0])
     s1b = lab.audit_sample(mk, lab.AUDIT_SEEDS[0])
     s2 = lab.audit_sample(mk, lab.AUDIT_SEEDS[1])
@@ -483,7 +497,7 @@ def test_touch_mode_has_no_mark_accessor_and_frame_census_never_call_it(tmp_path
     assert not any(c in cols for c in ("m_2-4h", "mark", "mid_h", "net"))
 
 
-def test_exclusion_keys_field_restricted_with_window_and_no_ts_conservative(tmp_path):
+def test_exclusion_keys_field_restricted_with_window_and_no_ts_files_contribute_nothing(tmp_path):
     hist = tmp_path / "history"
     (hist / "h5_cb1").mkdir(parents=True)
     (hist / "h8_text").mkdir()
@@ -493,14 +507,42 @@ def test_exclusion_keys_field_restricted_with_window_and_no_ts_conservative(tmp_
     (hist / "h5_cb1" / "rows.csv.gz").write_bytes(hbk._gz_csv_bytes(["market_id", "event_id", "ts", "secret_price"], [["1", "E1", ep("2026-10-13T00:00:00Z"), "0.9"], ["2", "E2", ep("2026-10-20T00:00:00Z"), "0.9"]]))
     (hist / "h8_text" / "ids.csv.gz").write_bytes(hbk._gz_csv_bytes(["market_id"], [["77"]]))
     (hist / "h13_touch" / "x.csv.gz").write_bytes(hbk._gz_csv_bytes(["market_id"], [["99"]]))
-    keys, rep = t13.t_exclusion_keys(hist, [(ep("2026-10-12T00:00:00Z"), ep("2026-10-16T00:00:00Z"))])
+    win = [(ep("2026-10-12T00:00:00Z"), ep("2026-10-16T00:00:00Z"))]
+    keys, rep = t13.t_exclusion_keys(hist, win)
     assert keys.get("market_id:1") == "h5_cb1" and "market_id:2" not in keys  # only a timestamp inside the window drops the id
-    assert keys.get("market_id:77") == "h8_text"  # no timestamp column: conservative, all ids
+    assert "market_id:77" not in keys  # defect 10: a file with no stored timestamp drops nothing (design 1.3), but it is counted
     assert "market_id:99" not in keys  # CB13's own roots are skipped
-    assert rep["sources"]["h8_text"]["keys_no_ts_file"] == 1
-    in_win, every, info = c13.read_id_ts_columns(hist / "h5_cb1" / "rows.csv.gz", (ep("2026-10-12T00:00:00Z"), ep("2026-10-16T00:00:00Z")))
+    assert rep["sources"]["h8_text"]["files_without_timestamp"] == 1 and rep["sources"]["h8_text"]["keys_in_window"] == 0
+    in_win, every, info = c13.read_id_ts_columns(hist / "h5_cb1" / "rows.csv.gz", win[0])
     assert not any("secret" in k for k in every) and info["id_columns"] == ["market_id", "event_id"]
     assert t13.key_hit(keys, "0xz", "1", "E9", "") == "h5_cb1" and t13.key_hit(keys, "0xz", "5", "E9", "") is None
+
+
+def test_exclusion_key_scan_is_budgeted_and_resumable(tmp_path):
+    from astrolabe.research_lab import history_backfill as hbk
+
+    hist = tmp_path / "history"
+    for i in range(4):
+        d = hist / f"h5_set{i}"
+        d.mkdir(parents=True)
+        (d / "rows.csv.gz").write_bytes(hbk._gz_csv_bytes(["market_id", "ts"], [[str(100 + i), ep("2026-10-13T00:00:00Z")]]))
+    win = [(ep("2026-10-12T00:00:00Z"), ep("2026-10-16T00:00:00Z"))]
+    state = tmp_path / "keys_partial.jsonl"
+    ticks = iter(range(100))
+    n_calls = {"n": 0}
+
+    def clock():  # advances 1 s per call: the budget (2.5 s) is spent after ~2 files
+        n_calls["n"] += 1
+        return float(next(ticks))
+    with pytest.raises(t13.ScanUnfinished):
+        t13.t_exclusion_keys(hist, win, state_path=state, budget_s=2.5, clock=clock)
+    assert state.exists() and len(state.read_text().splitlines()) >= 2  # header + at least one finished file survive
+    done_before = len(state.read_text().splitlines()) - 1
+    keys, rep = t13.t_exclusion_keys(hist, win, state_path=state)  # resumes: finished files are not read again
+    assert sorted(k for k in keys if k.startswith("market_id:")) == [f"market_id:{100 + i}" for i in range(4)]
+    assert 0 < done_before < 4 and sum(v["files"] for v in rep["sources"].values()) == 4
+    keys2, _ = t13.t_exclusion_keys(hist, [(ep("2026-10-21T00:00:00Z"), ep("2026-10-26T00:00:00Z"))], state_path=state)  # other windows: the stale partial is discarded
+    assert keys2 == {}
 
 
 # =====================================================================================================================================================
@@ -508,14 +550,14 @@ def test_exclusion_keys_field_restricted_with_window_and_no_ts_conservative(tmp_
 # =====================================================================================================================================================
 
 
-def synth_D(effect_low=2.0, effect_news=0.0, n_ev=60, per_ev=8, seed=1, only_day0=False, n_blocks=4):
+def synth_D(effect_low=2.0, effect_news=0.0, n_ev=60, per_ev=8, seed=1, only_day0=False, n_blocks=4, n_other=0):
     rng = np.random.default_rng(seed)
     cols: dict[str, list] = {k: [] for k in ("tx_id", "cid", "label", "grp", "d", "P", "event", "pathkey", "pathblock", "block", "day", "cash", "size", "age", "spread", "mid0", "tte", "liq", "proxy",
-                                             "fee_rate", "stale_q", "stale_d", "tau", "rewards", "m_2-4h", "m_6-8h", "adv_2-4h", "adv_6-8h", "wc_2-4h", "wc_6-8h", "realised_2-4h", "realised_6-8h",
+                                             "fee_rate", "stale_q", "stale_d", "tau", "rewards", "stale_share", "m_2-4h", "m_6-8h", "adv_2-4h", "adv_6-8h", "wc_2-4h", "wc_6-8h", "realised_2-4h", "realised_6-8h",
                                              "bid_2-4h", "ask_2-4h", "bid_6-8h", "ask_6-8h", "st_2-4h", "st_6-8h")}
     i = 0
-    for g in ("LOW", "NEWS"):
-        for e in range(n_ev):
+    for g in ("LOW", "NEWS", *(("other",) if n_other else ())):
+        for e in range(n_other if g == "other" else n_ev):
             u = rng.normal(0, 1.0)
             for k in range(per_ev):
                 day = e % 4
@@ -524,7 +566,7 @@ def synth_D(effect_low=2.0, effect_news=0.0, n_ev=60, per_ev=8, seed=1, only_day
                 m = eff + u + rng.normal(0, 3.0)
                 cols["tx_id"].append(i)
                 cols["cid"].append(f"c{g}{e}")
-                cols["label"].append((lab.PATH if e % 2 == 0 else lab.PUBLIC) if g == "LOW" else lab.NEWS)
+                cols["label"].append((lab.PATH if e % 2 == 0 else lab.PUBLIC) if g == "LOW" else (lab.NEWS if g == "NEWS" else (lab.SPORTS if e % 2 == 0 else lab.SCHEDULED)))
                 cols["grp"].append(g)
                 cols["d"].append(-1 if rng.random() < 0.5 else 1)
                 cols["P"].append(0.5)
@@ -547,6 +589,7 @@ def synth_D(effect_low=2.0, effect_news=0.0, n_ev=60, per_ev=8, seed=1, only_day
                 cols["stale_d"].append(0)
                 cols["tau"].append(1.79e9 + i)
                 cols["rewards"].append(0)
+                cols["stale_share"].append(float(rng.uniform(0.0, 0.3)))
                 for h in ("2-4h", "6-8h"):
                     mm = m if h == "2-4h" else m + rng.normal(0, 0.5)
                     cols[f"m_{h}"].append(mm)
@@ -563,13 +606,57 @@ def synth_D(effect_low=2.0, effect_news=0.0, n_ev=60, per_ev=8, seed=1, only_day
     return out
 
 
+def inspect_names():
+    import inspect
+
+    return inspect.getsource(t13.attribution)
+
+
+def test_t1_composition_placebo_with_events_outside_the_t1_index():
+    """Defect 1: SPORTS-FEED / SCHEDULED-EVENT fills (and fills with no mark) are in D but not in the T1 index; the permutation must not KeyError and must leave them in neither arm."""
+    D = synth_D(effect_low=2.0, n_other=20)
+    assert set(D["grp"]) == {"LOW", "NEWS", "other"} and {lab.SPORTS, lab.SCHEDULED} <= set(D["label"])
+    m = D["m_2-4h"].copy()
+    m[::17] = math.nan  # unmarked fills
+    D["m_2-4h"] = m
+    low, news = D["grp"] == "LOW", D["grp"] == "NEWS"
+    idx = np.where((low | news) & np.isfinite(m))[0]
+    pl = t13.composition_placebo(D, idx, m, n_draws=5)
+    assert pl["n_draws"] == 5 and "holds" in pl
+    r = t13.t1_test(D, n_draws=5)  # the whole test runs with the mixed dataset
+    assert r["testable"] and r["composition_placebo"]["n_draws"] == 5
+
+
+def test_t_availability_below_60_percent_is_not_testable():
+    """Defect 2 (section 2.6 iv): available / eligible < 0.60 -> "not testable (availability)" for T1, T2 and T3; exactly 0.60 passes."""
+    D = synth_D(effect_low=2.0)
+    n = len(D["m_2-4h"])
+    low_idx = np.where(D["grp"] == "LOW")[0]
+    D2 = {k: (v.copy() if isinstance(v, np.ndarray) else v) for k, v in D.items()}
+    kill = low_idx[: int(0.45 * len(low_idx))]
+    D2["m_2-4h"][kill] = math.nan  # 55% of LOW available (but NEWS fully): T2 fails at < 60%, T1 (pooled over both classes) still holds
+    t2 = t13.t2_test(D2, n_draws=5)
+    assert t2["verdict"] == "not testable (availability)" and t2["testable"] is False and t2["p"] == 1.0 and t2["availability"]["share"] < c13.AVAIL_MIN
+    D3 = {k: (v.copy() if isinstance(v, np.ndarray) else v) for k, v in D.items()}
+    D3["m_2-4h"][np.where(D3["grp"] != "x")[0][: int(0.5 * n)]] = math.nan
+    t1 = t13.t1_test(D3, n_draws=5)
+    assert t1["verdict"] == "not testable (availability)" and t1["testable"] is False
+    assert c13.availability(6, 10)["ok"] and not c13.availability(5, 10)["ok"] and not c13.availability(0, 0)["ok"]
+    # T3: eligible = every LOW fill, available = a usable adverse exit quote
+    D4 = {k: (v.copy() if isinstance(v, np.ndarray) else v) for k, v in D.items()}
+    D4["ask_2-4h"][low_idx[: int(0.5 * len(low_idx))]] = math.nan
+    D4["bid_2-4h"][low_idx[: int(0.5 * len(low_idx))]] = math.nan
+    assert t13.t3_test(D4)["verdict"] == "not testable (availability)"
+
+
 def test_t1_advances_on_a_real_class_effect_and_not_on_a_null():
     D = synth_D(effect_low=2.0)
     r = t13.t1_test(D, n_draws=10)
     assert r["testable"] and r["est"] > 1.2 and r["p"] < 0.01 and r["floor_ok"] and r["p_ok"]
     assert r["prefill_placebo"]["holds"] and r["composition_placebo"]["holds"] and r["robust_ok"] and r["loo_day"]["holds"] and r["advance"]
     assert r["attribution"]["label"] == "class effect"
-    assert set(r["top5"]) == {"event", "block"}
+    assert set(r["top5"]) == {"event", "pathblock", "block"}  # defect 8: the path key x block way is dropped too
+    assert "stale_share" in inspect_names()  # the staleness control is a regressor of the attribution
     null = t13.t1_test(synth_D(effect_low=0.0, seed=5), n_draws=10)
     assert not null["advance"]
     small = t13.t1_test(synth_D(effect_low=0.3, seed=2), n_draws=10)  # below the 0.5c floor
@@ -1232,12 +1319,27 @@ def make_two_day_world(tmp_path: Path) -> dict:
         lines = [trade(f"{day}T00:30:00Z", "0xA", 0.50, tx="tx1"), trade(f"{day}T00:32:00Z", "0xA", 0.48, tx="tx3"), trade(f"{day}T00:33:00Z", "0xA", 0.49, tx="tx4"),
                  trade(f"{day}T00:34:00Z", "0xA", 0.60, tx="tx5")]
         (tr / f"trades-{day.replace('-', '')}.jsonl").write_text("\n".join(json.dumps(x) for x in lines) + "\n")
+    late = [trade("2026-10-25T23:55:00Z", "0xB", 0.50, tx="tx9"), trade("2026-10-26T00:10:00Z", "0xB", 0.50, tx="tx10")]  # received on 10-26: one print timed inside the HOLDOUT window, one after it
+    (tr / "trades-20261026.jsonl").write_text("\n".join(json.dumps(x) for x in late) + "\n")
     return {"snap": snap, "trades": tr}
 
 
 def base_args(tmp_path, rules_file, pin_file, extra=None):
     return ["--root", str(tmp_path / "creative_batch13"), "--history-root", str(tmp_path / "history"), "--trades-dir", str(tmp_path / "live_trades"), "--snapshot-dir", str(tmp_path / "snapshots"),
             "--j4r-pin", str(pin_file), "--rules", str(rules_file), "--allow-uncommitted-rules", "--trials-path", str(tmp_path / "trials.jsonl"), "--data-dumps", str(tmp_path / "dd"), "--standalone", *(extra or [])]
+
+
+def test_holdout_reads_and_seals_the_next_receipt_day(tmp_path):
+    """Defect 9: the monitor writes daily files by RECEIPT; prints timed in the last minutes of 10-25 sit in trades-20261026.jsonl, so the HOLDOUT readers (and q0274's seal list) include it."""
+    w = make_two_day_world(tmp_path)
+    files = t13.trade_files(w["trades"], "holdout", PIN)
+    assert [f.name for f in files] == ["trades-20261022.jsonl", "trades-20261026.jsonl"]
+    txs, info = t13.screen_transactions(w["trades"], "holdout", PIN)
+    assert any(abs(t["ts"] - ep("2026-10-25T23:55:00Z")) < 1 for t in txs) and not any(t["ts"] >= ep("2026-10-26T00:00:00Z") for t in txs)  # venue-time filter keeps the window
+    assert info["n_files"] == 2
+    srcs = [f.name for f in t13.holdout_source_files(w["trades"], w["snap"], PIN)]
+    assert "trades-20261026.jsonl" in srcs and "trades-20261022.jsonl" in srcs
+    assert [f.name for f in t13.trade_files(w["trades"], "screen", PIN)] == ["trades-20261012.jsonl"]  # SCREEN is unchanged (files 10-12..10-15)
 
 
 def test_runner_rules_freeze_part_and_declared_arguments(tmp_path, capsys, rules_file, pin_file):
@@ -1294,7 +1396,7 @@ def test_runner_smoke_T_write_once_and_chain_to_the_seal(tmp_path, capsys, rules
     code, out = _run(["screen", "--family", "T", *a, "--freeze-spec", str(tmp_path / "nofreeze.json")], capsys)
     assert code == 2 and "freeze" in out["refused"]
     fz = tmp_path / "cb13_v1.json"
-    fz.write_text(json.dumps({"T": {"rules": "x"}, "R": {"rules": "y"}}))
+    fz.write_text(json.dumps(freeze_doc()))
     code, out = _run(["screen", "--family", "T", *a, "--freeze-spec", str(fz)], capsys)
     assert code == 0 and out["T1"]["verdict"] == "not testable (population)", out
     res = json.loads((root / "results_T.json").read_text())
@@ -1307,10 +1409,14 @@ def test_runner_smoke_T_write_once_and_chain_to_the_seal(tmp_path, capsys, rules
     assert code == 75 and "pending" in out["science"]
     seals = tmp_path / "seals"
     code, out = _run(["t-holdout", *a, "--not-before", "2026-10-01T00:00:00Z", "--seals-dir", str(seals)], capsys)
+    assert code == 75 and "not final" in out["tempfail"]  # defect 16: a provisional J4-R pin (final false) never seals the HOLDOUT
+    pin_file.write_text(json.dumps({"t_j4r_start": "2026-10-16T00:00:00Z", "t_j4r_end": "2026-10-21T00:00:00Z", "declared_end": "2026-10-21T00:00:00Z", "final": True}))
+    code, out = _run(["t-holdout", *a, "--not-before", "2026-10-01T00:00:00Z", "--seals-dir", str(seals)], capsys)
     assert code == 0 and out["status"] == "t_holdout_complete" and out["n_fills"] == 2, out
     seal = json.loads((root / "t_holdout_SEAL.json").read_text())
     assert (seals / "cb13_t_holdout_SEAL.json").read_bytes() == (root / "t_holdout_SEAL.json").read_bytes()
-    assert seal["j4r_pin"]["end"] == "2026-10-21T00:00:00Z" and any(k.startswith("live_trades/trades-20261022") for k in seal["source_file_sha256"]) and t13.LABEL_HOLD in seal["labels"]
+    assert seal["j4r_pin"]["end"] == "2026-10-21T00:00:00Z" and any(k.startswith("live_trades/trades-20261022") for k in seal["source_file_sha256"]) \
+        and "live_trades/trades-20261026.jsonl" in seal["source_file_sha256"] and t13.LABEL_HOLD in seal["labels"]
     assert (root / "t_holdout" / "mark_quotes.csv.gz").exists() and not any("M" in c for c in t13.MARK_COLUMNS)  # raw quotes only, no mark-out
     rows = list(c13.read_csv_gz(root / "t_holdout" / "mark_quotes.csv.gz"))
     assert rows and set(rows[0]) == set(t13.MARK_COLUMNS)
@@ -1326,16 +1432,20 @@ def test_runner_smoke_T_write_once_and_chain_to_the_seal(tmp_path, capsys, rules
     code, out = _run(["rep", "--family", "T", *a, "--freeze-spec", str(fz), "--seals-dir", str(seals)], capsys)
     assert code == 2 and "results-sha256" in out["refused"]
     sha = h5_seal.sha256_file(rp)
-    nospec, led = tmp_path / "nospec", tmp_path / "ledger.md"
+    nospec = tmp_path / "nospec"
     nospec.mkdir()
-    led.write_text("nothing about the topic\n")
-    code, out = _run(["rep", "--family", "T", *a, "--freeze-spec", str(fz), "--seals-dir", str(seals), "--results-sha256", sha, "--cb3-spec-dir", str(nospec), "--ledger", str(led)], capsys)
+    code, out = _run(["rep", "--family", "T", *a, "--freeze-spec", str(fz), "--seals-dir", str(seals), "--results-sha256", c13.PIN_UNSET, "--cb3-spec-dir", str(nospec)], capsys)
+    assert code == 2 and "unset" in out["refused"]  # the TODO-COORDINATOR placeholder refuses (exit 2)
+    code, out = _run(["rep", "--family", "T", *a, "--freeze-spec", str(fz), "--seals-dir", str(seals), "--results-sha256", sha, "--cb3-spec-dir", str(nospec)], capsys)
     assert code == 75 and "CB3 hold" in out["tempfail"]
-    led.write_text("- CB3 was stopped on 2026-10-30 without a freeze\n")
-    code, out = _run(["rep", "--family", "T", *a, "--freeze-spec", str(fz), "--seals-dir", str(seals), "--results-sha256", sha, "--cb3-spec-dir", str(nospec), "--ledger", str(led)], capsys)
+    (seals / "cb3_stop.json").write_text(json.dumps({"cb3_stop": "CB3 was stopped on 2026-10-30 without a freeze"}))  # prose is not the token
+    code, out = _run(["rep", "--family", "T", *a, "--freeze-spec", str(fz), "--seals-dir", str(seals), "--results-sha256", sha, "--cb3-spec-dir", str(nospec)], capsys)
+    assert code == 75
+    (seals / "cb3_stop.json").write_text(json.dumps({"cb3_stop": c13.CB3_STOP_TOKEN}))
+    code, out = _run(["rep", "--family", "T", *a, "--freeze-spec", str(fz), "--seals-dir", str(seals), "--results-sha256", sha, "--cb3-spec-dir", str(nospec)], capsys)
     assert code == 0 and out["status"] == "rep_T_complete", out
     rep = json.loads((root / "results_T_rep.json").read_text())
-    assert rep["cb3_hold"]["lifted_by"] == "ledger_stop_record" and rep["T1"]["verdict"] == "not run (power)" and "T2" not in rep and rep["stage1_results_sha256"] == sha
+    assert rep["cb3_hold"]["lifted_by"] == "cb3_stop_record" and rep["T1"]["verdict"] == "not run (power)" and "T2" not in rep and rep["stage1_results_sha256"] == sha
 
 
 def test_runner_pregate_failure_stalls_dependents(tmp_path, capsys, rules_file, pin_file):
@@ -1352,7 +1462,7 @@ def test_runner_pregate_failure_stalls_dependents(tmp_path, capsys, rules_file, 
     code, out = _run(["screen", "--family", "R", *a, "--freeze-spec", str(tmp_path / "nofreeze.json")], capsys)
     assert code == 2  # still refuses before the freeze
     fz = tmp_path / "cb13_v1.json"
-    fz.write_text(json.dumps({"R": {"rules": "x"}}))
+    fz.write_text(json.dumps(freeze_doc()))
     (root / "census_R.json").write_text(json.dumps({"R": {"gr": {}, "grp": {}, "drops": {}}}))
     code, out = _run(["screen", "--family", "R", *a, "--freeze-spec", str(fz)], capsys)
     assert code == 0 and out["R1"]["verdict"] == r13.DEPENDENCE_LABEL  # counted with p = 1
@@ -1470,7 +1580,15 @@ def hashlib_sha(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 
-def test_r_pipeline_frame_klines_pregate_prices_seal_census_screen_rep(tmp_path):
+def test_r_pipeline_frame_klines_pregate_prices_seal_census_screen_rep(tmp_path, monkeypatch):
+    seen_partial: list[str] = []
+    real_iter = r13._iter_partial
+
+    def spy(path):  # defect 20: the unguarded partial never holds a Gamma outcome field; the outcomes sit in guarded partial files
+        if Path(path).name == "frame_partial.jsonl":
+            seen_partial.append(Path(path).read_text())
+        return real_iter(path)
+    monkeypatch.setattr(r13, "_iter_partial", spy)
     hist = tmp_path / "history"
     root = tmp_path / "creative_batch13"
     events = [_week_event(i, "2025-01-06") for i in range(36)] + [_week_event(i, "2026-04-06") for i in range(6)]
@@ -1487,6 +1605,7 @@ def test_r_pipeline_frame_klines_pregate_prices_seal_census_screen_rep(tmp_path)
     (root / "exclusion_report.json").write_text(json.dumps({"keys_sha256": h5_seal.sha256_file(keys), "disjointness": "verified", "n_ids": 1, "n_missing": 0}))
     m = r13.touch_frame(hist, transport, rules_sha="x", exclusion_keys_path=keys, poly_path=None, now=ep("2026-10-18T00:00:00Z"), sleep=nosleep, first="2025-01-01", last="2026-06-01", budget_min=None)
     assert m["status"] == r13.FRAME_STATUS and m["complete"], m
+    assert seen_partial and all("outcome" not in t and "uma" not in t for t in seen_partial)
     fdir = hist / "h13_touch"
     rep = json.loads((fdir / "frame_report.json").read_text())
     assert rep["fetched"]["terminal"] >= 1 and rep["screen"]["by_status"]["dropped:key"] == 1 and rep["screen"]["by_status"]["census_only"] == 1 and rep["screen"]["primary_events"] == 35
@@ -1537,7 +1656,7 @@ def test_r_pipeline_frame_klines_pregate_prices_seal_census_screen_rep(tmp_path)
     # rep on the HOLDOUT (seal verified first): 6 events < 30 components -> R1-rep not run (power); R2 runs on the venue's payoff
     hrows = c13.open_guarded(fdir / "holdout" / "outcomes_guarded_holdout.csv.gz", "rep-R", seal)
     out = r13.rep_r(fdir, bdir, seal, {"R1": True, "R2": True}, hrows, n_draws=5)
-    assert out["R1"]["verdict"] == "not run (power)" and "R2" in out and out["holm"]["k"] == 2
+    assert out["R1"]["verdict"] == "not run (power)" and "R2" in out and out["holm_family_partial"]["k"] == 2
     assert out["R2"]["stage2_pass_alpha_over_k"] is False
 
 
@@ -1587,3 +1706,187 @@ def test_collector_gap_for_t_jobs():
             c13.collector_gap_ok(ep(t))
     with pytest.raises(c13.NotNow, match="pass is running"):
         c13.collector_gap_ok(ep("2026-10-18T11:40:00Z"), lambda: True)
+
+
+# =====================================================================================================================================================
+# Freeze-check round 1 regressions (defects 3-7, 14, 17, 18, 20-22 and the R-smoke fallback)
+# =====================================================================================================================================================
+
+
+def test_holm_is_strict_defect_4():
+    """Defect 4: p exactly at alpha / m is NOT rejected (CB12 D2); the shared c9.holm uses <=."""
+    h = c13.holm({"A": 0.025, "B": 0.9}, 0.05)
+    assert h["A"]["reject"] is False
+    assert c13.holm({"A": 0.0249, "B": 0.9}, 0.05)["A"]["reject"] is True
+
+
+def test_stage2_final_holm_only_known_tests_and_none_is_p_one():
+    out = c13.stage2_final({"T1": 0.004, "R1": None, "R2": 0.3})
+    assert out["k"] == 3 and out["tests"]["R1-rep"]["reject"] is False and out["tests"]["T1-rep"]["reject"] is True
+    with pytest.raises(c13.Refused):
+        c13.stage2_final({"X9": 0.001})
+
+
+def test_runner_stage2_final_one_cb13_wide_holm_write_once(tmp_path, capsys, rules_file, pin_file):
+    """Defect 14: ONE strict Holm over every triggered Stage-2 test (T and R); pending until every triggered family's rep exists; write-once."""
+    root = tmp_path / "creative_batch13"
+    root.mkdir()
+    a = base_args(tmp_path, rules_file, pin_file)
+    (root / "results_T.json").write_text(json.dumps({"T1": {"advance": True}, "T2": {"advance": False}}))
+    (root / "results_R.json").write_text(json.dumps({"R1": {"advance": True}}))
+    code, out = _run(["stage2-final", *a], capsys)
+    assert code == 75 and "results_T_rep.json" in out["tempfail"]
+    (root / "results_T_rep.json").write_text(json.dumps({"T1": {"p": 0.012, "testable": True, "advance": True, "stage2_early_alpha_ok": False}, "T3": {"p": 0.2, "testable": True, "advance": False, "stage2_early_alpha_ok": False}}))
+    (root / "results_R_rep.json").write_text(json.dumps({"R1": {"p": 0.004, "testable": True, "advance": True, "stage2_early_alpha_ok": True}, "R2": {"p": 0.9, "testable": True, "advance": False, "stage2_early_alpha_ok": False}}))
+    code, out = _run(["stage2-final", *a], capsys)
+    assert code == 0 and out["k2"] == 4, out
+    v = out["verdict"]
+    assert v["R1"]["pass"] is True and v["T1"]["final_holm_reject"] is True and v["T1"]["pass"] is True and v["T3"]["pass"] is False
+    code, out = _run(["stage2-final", *a], capsys)
+    assert out.get("already_written") is True
+
+
+def test_require_freeze_must_pin_the_verified_rules_defect_17(tmp_path):
+    doc = freeze_doc()
+    fz = tmp_path / "cb13_v1.json"
+    fz.write_text(json.dumps(doc))
+    shas = {p: c13.rules_part_file_doc(p)["rules_sha256"] for p in ("T", "R", "LABELLER")}
+    assert c13.require_freeze("T", fz, require_committed=False, rules_shas=shas)
+    assert c13.require_freeze("R", fz, require_committed=False, rules_shas=shas)
+    with pytest.raises(c13.Refused, match="rules shas"):
+        c13.require_freeze("R", fz, require_committed=False)
+    with pytest.raises(c13.Refused, match="does not cover"):
+        c13.require_freeze("R", fz, require_committed=False, rules_shas={**shas, "R": "0" * 64})
+    doc["T"]["labeller_rules_sha256"] = "1" * 64
+    fz.write_text(json.dumps(doc))
+    with pytest.raises(c13.Refused, match="labeller_rules_sha256"):
+        c13.require_freeze("T", fz, require_committed=False, rules_shas=shas)
+
+
+def test_failed_smoke_writes_the_counted_not_testable_source_lines_once_defect_3(tmp_path, capsys, rules_file, pin_file):
+    (tmp_path / "live_trades").mkdir()
+    (tmp_path / "snapshots").mkdir()  # no captures / prints: the capture-print join criterion fails
+    a = base_args(tmp_path, rules_file, pin_file)
+    smoke = tmp_path / "smoke_T.json"
+    code, out = _run(["smoke", "--part", "T", *a, "--out", str(smoke)], capsys)
+    assert code == 0 and out["smoke"] is False and out["counted_not_testable_source"] is True, out
+    lines = [json.loads(x) for x in (tmp_path / "trials.jsonl").read_text().splitlines()]
+    cnt = [x for x in lines if x["kind"] == "ml_explain"]
+    assert len(cnt) == 1 and cnt[0]["n_tests"] == 2 and cnt[0]["hypotheses"] == ["T1", "T2"]
+    code, out = _run(["smoke", "--part", "T", *a, "--out", str(smoke)], capsys)
+    assert code == 2  # write-once: a re-run never counts twice
+    assert len([x for x in (tmp_path / "trials.jsonl").read_text().splitlines() if '"ml_explain"' in x]) == 1
+    assert c13.FAMILY_TESTS["R"] == ("R1",)
+
+
+def test_pregate_counts_a_stalled_frame_once_and_screen_does_not_recount_defect_5(tmp_path, capsys, rules_file, pin_file):
+    fdir = tmp_path / "history" / r13.FRAME_RUN
+    fdir.mkdir(parents=True)
+    c13.write_stall(fdir, c13.UNVERIFIED, "more than 2% of keys unverified", r13.SOURCE_LABEL)
+    a = base_args(tmp_path, rules_file, pin_file)
+    code, out = _run(["pregate", "--family", "R", *a], capsys)
+    assert code == 0 and out["status"] == "stalled" and out["counted"] is True
+    tp = tmp_path / "trials.jsonl"
+    lines = [json.loads(x) for x in tp.read_text().splitlines()]
+    cnt = [x for x in lines if x["kind"] == "ml_explain"]
+    assert len(cnt) == 1 and cnt[0]["n_tests"] == 1 and cnt[0]["hypotheses"] == ["R1"]
+    assert (tmp_path / "creative_batch13" / "pregate_R.json").exists()
+    code, out = _run(["pregate", "--family", "R", *a], capsys)
+    assert out["status"] == "pregate_complete" and len([x for x in tp.read_text().splitlines() if '"ml_explain"' in x]) == 1
+    # the screen behind the stalled pregate carries the stall label and does not count R1 a second time
+    fz = tmp_path / "cb13_v1.json"
+    fz.write_text(json.dumps(freeze_doc()))
+    (tmp_path / "creative_batch13" / "census_R.json").write_text(json.dumps({"R": {"gr": {}, "grp": {}, "drops": {}}}))
+    code, out = _run(["screen", "--family", "R", *a, "--freeze-spec", str(fz)], capsys)
+    assert code == 0 and out["R1"]["verdict"] == r13.SOURCE_LABEL
+    assert len([x for x in tp.read_text().splitlines() if '"ml_explain"' in x]) == 1
+
+
+def _gl_ok(tmp_path, lsha):
+    p = tmp_path / "labeller_audit.json"
+    p.write_text(json.dumps({"gl_pass": True, "labeller_sha256": lsha, "rounds": [{}]}))
+    return p
+
+
+def _fill(i, label, status=None, event=None, mid=0.5):
+    return {"tx_id": f"t{i}", "condition_id": f"c{i}", "label": label, "status": status or t13.SCREEN_STATUS_FILL, "event_id": event or f"E{i}", "mid0": mid, "end_epoch": 2e9, "tau": 1e9,
+            "day": "2026-10-12", "fee_type": "crypto_fees_v2", "touch_age_s": 600.0, "path_key": f"pk{i % 5}", "block": i % 4, "spread0": 0.02, "cash": 3000.0, "size": 6000.0, "price": 0.5,
+            "price_min": 0.5, "price_max": 0.5, "side": "YES", "d_stale": 0.0, "prev_mid": 0.5, "liquidity": 1e5, "clob_rewards": 0, "fee_rate": 0.07, "ts": 1.76e9 + i}
+
+
+def test_census_unknown_over_5_percent_fails_gl_and_per_class_thin_label_defects_6_7(tmp_path, monkeypatch):
+    monkeypatch.setattr(t13, "gate_gt", lambda fills: {"pass": True})
+    monkeypatch.setattr(t13, "gate_gtp", lambda fills: {"pass": True})
+    monkeypatch.setattr(t13, "first_per_side", lambda fills: [])
+    lsha = c13.rules_part_file_doc("LABELLER")["rules_sha256"]
+    audit = _gl_ok(tmp_path, lsha)
+    # defect 7: the exclusion share is per class: 40% of LOW dropped, but only 10% of the pooled LOW+NEWS rows -> still labelled
+    fills = [_fill(i, lab.PATH) for i in range(10)] + [_fill(100 + i, lab.PATH, status=t13.S_KEY + ":x") for i in range(7)] + [_fill(200 + i, lab.NEWS) for i in range(100)]
+    assert t13.thin_label(fills) == t13.LABEL_THIN
+    assert t13.thin_label([_fill(i, lab.PATH) for i in range(10)] + [_fill(200 + i, lab.NEWS) for i in range(10)]) is None
+    # defect 6: UNKNOWN > 5% of SCREEN fills fails GL, and screen_t treats a census without unknown_ok as failed
+    fl = [_fill(i, lab.UNKNOWN) for i in range(10)] + [_fill(100 + i, lab.NEWS) for i in range(90)]
+    cen = t13.census_t(fl, labeller_sha=lsha, audit_path=audit)
+    assert cen["unknown_ok"] is False and cen["gl"]["pass"] is False and cen["population_label"] is None
+    cen_thin = t13.census_t(fills, labeller_sha=lsha, audit_path=audit)
+    assert cen_thin["population_label"] == t13.LABEL_THIN  # defect 7: the census sets the label screen-T reads
+
+
+def _unit_world(tmp_path):
+    series = synth_series("2026-02-15T00:00:00Z", "2026-04-08T00:00:00Z")
+    kl = r13.KlineReader({"BTC": series}, "census")
+    lo = ep("2026-03-30T04:00:00Z")
+    ev = {**_row("h0", lo="2026-03-30T04:00:00Z", split="screen"), "component": "C1"}
+    ev["win_hi"] = ep("2026-04-06T04:00:00Z")
+    mem = {"h0": [_member("m1", "h0", created=lo - 3600 * 12, start=lo - 3600 * 12)]}
+    return kl, ev, mem
+
+
+def test_hourly_change_uses_only_points_usable_at_t_defect_21():
+    kl, ev, mem = _unit_world(None)
+    t = ep("2026-04-01T00:00:00Z")
+    # a point stamped t - 30 min differs from the earlier ones but is NOT usable at t (stamp + 3,600 s > t): no hourly change
+    base = [(t - 20 * 3600, 0.4), (t - 9 * 3600, 0.42), (t - 3 * 3600, 0.42)]
+    u, _ = r13.build_units(_frame([ev], mem), {"m1": [*base, (t - 1800, 0.50)]}, kl, split="screen")
+    uu = next(x for x in u if x["t"] == t)
+    assert uu["hourly_change"] == 0
+    u2, _ = r13.build_units(_frame([ev], mem), {"m1": [(t - 20 * 3600, 0.4), (t - 9 * 3600, 0.42), (t - 7200, 0.45), (t - 3 * 3600, 0.42)]}, kl, split="screen")
+    assert next(x for x in u2 if x["t"] == t)["hourly_change"] == 1  # usable change inside the last hour of usable points
+
+
+def test_r_primary_requires_window_of_at_most_8_days_defect_18():
+    wk = {**_row("w1"), "template": "weekly", "parse_ok": 1, "flags_ok": 1, "status": "kept"}
+    assert r13.is_primary(wk)
+    long = {**wk, "win_hi": wk["win_lo"] + 9 * 86400}
+    assert not r13.is_primary(long)
+    st, why = r13.classify_status({**long, "template": "weekly", "neg_risk": 0, "n_members": 1, "asset": "BTC", "split": "screen", "end_epoch": long["win_hi"], "event_id": "w1"}, [], set(), {})
+    assert st in ("census_only",) or st.startswith("dropped")
+
+
+def test_r_availability_and_settlement_basis_label_defects_2_22():
+    assert r13.unit_availability(__import__("collections").Counter({"eligible": 10, "unavailable (no klines)": 8}))["ok"] is False
+    assert r13.unit_availability(__import__("collections").Counter({"eligible": 6, "outside [0.03, 0.97]": 0, "unavailable (no price)": 4}))["ok"] is True
+    out = {"R1": {"verdict": "x"}, "agreement": {"label": "settlement basis"}}
+    r13.attach_basis_label(out)
+    assert "settlement basis" in out["R1"]["labels"] and "settlement basis" in out["labels"]
+    out2 = {"R1": {"verdict": "x"}, "agreement": {"label": None}}
+    r13.attach_basis_label(out2)
+    assert "labels" not in out2["R1"]
+
+
+def test_r_smoke_walk_falls_back_to_out_of_window_days_when_search_finds_nothing_on_the_declared_days():
+    evs = [_event(eid=f"9{i}", end="2026-10-12T04:00:00Z", title="What price will Bitcoin hit October 5-11?", q="Will Bitcoin reach $98,000 October 5-11?", n=2) for i in range(3)]
+    cache: dict = {}
+    base_tr = fake_transport(evs, cache)
+
+    def tr(url, params):
+        if url.endswith("public-search"):
+            q = params["q"]
+            found = [{"id": e["id"], "title": e["title"], "endDate": e["endDate"]} for e in evs] if "ethereum" in q else []
+            return 200, json.dumps({"events": found}).encode(), {}
+        return base_tr(url, params)
+    lim = hb.Limiter(tr, rps=1e6, sleep=lambda s: None)
+    res = r13.smoke_online(lim, {})
+    w = res["r_walk_finds_search"]
+    assert w["pass"] and w["search_found"] == 3 and w["days"] == ["2026-10-12"] and w["search_queries"] >= 2, w
+    assert res["r_rule_parser"]["pass"] and res["r_request_cap"]["pass"]

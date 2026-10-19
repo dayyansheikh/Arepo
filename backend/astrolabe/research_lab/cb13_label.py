@@ -47,7 +47,7 @@ SPORTS_TITLE_RE = re.compile(
     r"\bend in a draw\b|\bboth teams to score\b|\bfirst (?:goal|touchdown) scorer\b|\bpoints?\s+o/u\b|\brebounds?\s+o/u\b|\bassists?\s+o/u\b)")
 
 # ---- PATH-SETTLED: an asset term together with a price form (or a crypto / price-feed fee type) ----------------------------------------------------------
-PATH_FEE_PREFIXES = ("crypto_fees", "crypto_15_min", "finance_prices_fees")
+PATH_FEE_PREFIXES = ("crypto_fees", "finance_prices_fees")
 PATH_ASSETS = (  # (regex, underlying key); the first match names the underlying for the path key
     (re.compile(r"(?i)\b(bitcoin|btc)\b"), "BTC"), (re.compile(r"(?i)\b(ethereum|ether|eth)\b"), "ETH"), (re.compile(r"(?i)\b(solana|sol)\b"), "SOL"),
     (re.compile(r"(?i)\bxrp\b"), "XRP"), (re.compile(r"(?i)\b(dogecoin|doge)\b"), "DOGE"), (re.compile(r"(?i)\b(bnb)\b"), "BNB"),
@@ -78,7 +78,7 @@ SCHEDULED_RE = re.compile(
 
 # ---- audit stratum: non-game sports titles (frozen keyword list) -----------------------------------------------------------------------------------------
 SPORTS_ADJACENT_RE = re.compile(
-    r"(?i)(\btransfers?\b|\bsign(?:s|ed|ing)?\b|\btrade[sd]?\b|\bhead coach\b|\bcoach\b|\bmanager\b|\bfired\b|\bdraft pick\b|\b#?1 pick\b|\bMVP\b|\bHeisman\b|\bBallon d.Or\b|\bCy Young\b|"
+    r"(?i)(\btransfers?\b|\bsignings?\b|\bhead coach\b|\bcoach\b|\bmanager\b|\bdraft pick\b|\b#?1 pick\b|\bMVP\b|\bHeisman\b|\bBallon d.Or\b|\bCy Young\b|"
     r"\bRookie of the Year\b|\bAll-Star\b|\bretire[sd]?\b|\bcontract\b|\bextension\b|\bHall of Fame\b|\bdraft\b|\bawards?\b)")
 
 
@@ -115,8 +115,8 @@ def classify(title, slug="", fee_type="", fee_category="", series_slugs="", ctx_
     if ft.startswith(SPORTS_FEE_PREFIX) or fc.lower() in SPORTS_CATEGORIES or cc in SPORTS_CATEGORIES or (fs and SPORTS_SERIES_RE.match(fs)) or SPORTS_TITLE_RE.search(ttl):
         return SPORTS, None
     asset = underlying_of(ttl)
-    if ft.startswith(PATH_FEE_PREFIXES) or fc.lower() == "crypto" or cc == "crypto" or (asset is not None and PATH_FORM_RE.search(ttl)):
-        return PATH, asset or ("CRYPTO" if (ft.startswith("crypto") or fc.lower() == "crypto" or cc == "crypto") else None)
+    if ft.startswith(PATH_FEE_PREFIXES) or (asset is not None and PATH_FORM_RE.search(ttl)):  # design: asset term + price form, OR fee type crypto_fees* / finance_prices_fees (a bare crypto category is not enough)
+        return PATH, asset or ("CRYPTO" if ft.startswith("crypto") else None)
     if ft.startswith(PUBLIC_FEE_PREFIXES) or PUBLIC_RE.search(ttl):
         return PUBLIC, None
     if ft.startswith(SCHEDULED_FEE_PREFIXES) or SCHEDULED_RE.search(ttl):

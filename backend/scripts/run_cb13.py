@@ -14,6 +14,7 @@ Covers CB13-T (host files only, NO network: q0270-q0275) and CB13-R (keyless fet
     python scripts/run_cb13.py rep --family T|R              # q0275 / q0283 (verify the seal and the pinned Stage-1 results first; q0275 also waits for CB3's freeze)
     python scripts/run_cb13.py exclusion-keys                # q0276 (CB11 q0221 key file, sha256 pin MANDATORY)
     python scripts/run_cb13.py touch-frame | binance | touch-prices | pregate | seal --family R    # q0277 / q0279 / q0278 / q0284 / q0280
+    python scripts/run_cb13.py stage2-final                  # the final CB13-wide Stage-2 strict Holm over every triggered rep result (T and R); write-once; can only add passes
 
 Exit codes: 0 ok / transient pause / declared stall (the label is carried, never exit 2) / declared end state; 1 error; 2 refusal (rules hash of the command's part, smoke result missing, refused
 root, J4-R window, declared argument changed, before the family's freeze for analysis jobs, HOLDOUT, guarded file, results exist); 4 disk budget; 75 (EX_TEMPFAIL) a time gate, data-dumps /
@@ -39,6 +40,8 @@ DECLARED_DISK_CAP_GB = {"t-frame": 0.03, "t-holdout": 0.02, "exclusion-keys": 0.
 DECLARED_RPS_MAX = {"smoke": 1.0, "exclusion-keys": 2.0, "touch-frame": 2.0, "binance": 1.0, "touch-prices": 2.0, "seal": 2.0}
 T_FRAME_STATUS = "t_frame_complete"
 T_HOLDOUT_STATUS = "t_holdout_complete"
+T_FRAME_PROGRESS = "t_frame_in_progress"
+T_HOLDOUT_PROGRESS = "t_holdout_in_progress"
 
 
 def _emit(obj: dict) -> None:
@@ -141,8 +144,9 @@ def _rules(a, part: str) -> str:
     return _c13().verify_rules(Path(a.rules) if getattr(a, "rules", None) else None, require_committed=not getattr(a, "allow_uncommitted_rules", False), part=part)
 
 
-def _freeze(a, part: str) -> str:
-    return _c13().require_freeze(part, Path(a.freeze_spec) if getattr(a, "freeze_spec", None) else None, require_committed=not getattr(a, "allow_uncommitted_rules", False))
+def _freeze(a, part: str, shas: dict[str, str]) -> str:
+    """The freeze entry of ``part`` must pin the rules shas this job has just verified (``shas``: the command's verified parts)."""
+    return _c13().require_freeze(part, Path(a.freeze_spec) if getattr(a, "freeze_spec", None) else None, require_committed=not getattr(a, "allow_uncommitted_rules", False), rules_shas=shas)
 
 
 def _gap(a) -> None:
@@ -152,6 +156,12 @@ def _gap(a) -> None:
     from astrolabe.research_lab import history_backfill as hb  # noqa: PLC0415
 
     _c13().collector_gap_ok(time.time(), hb.live_pass_or_lock)
+
+
+def _budget_s(a) -> float | None:
+    """``--budget-min`` as seconds (None = unbudgeted)."""
+    b = getattr(a, "budget_min", None)
+    return None if b is None else float(b) * 60.0
 
 
 def _tp(a) -> Path | None:
@@ -307,8 +317,12 @@ def cmd_smoke(a):
            "requests": (lim.requests if lim else 0), "criteria": crit, "pass": all(crit.get(k, False) for k in (sm.family_needs(part))), "detail": detail,
            "consequences": {"a failed criterion": "the dependent family is not testable (source), counted", "rule": "no rule is re-fitted; jobs downstream stall (exit 0, label carried)"}}
     cm.write_once_json(out, res)
-    c13.log_descriptive(f"smoke_{part}", {"pass": res["pass"], "criteria": crit, "part": part, "smoke_path": str(out)}, trials_path=_tp(a), role=c13.EVIDENCE_ROLE_DEV if part == "T" else c13.EVIDENCE_ROLE_HIST)
-    return 0, {"smoke": res["pass"], "criteria": crit, "written": str(out), "requests": res["requests"]}
+    role = c13.EVIDENCE_ROLE_DEV if part == "T" else c13.EVIDENCE_ROLE_HIST
+    c13.log_descriptive(f"smoke_{part}", {"pass": res["pass"], "criteria": crit, "part": part, "smoke_path": str(out)}, trials_path=_tp(a), role=role)
+    if not res["pass"]:  # section 2.5: a failed smoke makes the dependent family "not testable (source)", COUNTED once (the smoke file is write-once): T 2 tests (T1, T2), R 1 test (R1)
+        nt = {"p": 1.0, "testable": False, "advance": False, "verdict": c13.SOURCE_NOT_TESTABLE}
+        c13.log_family(part, {t: nt for t in c13.FAMILY_TESTS[part]}, trials_path=_tp(a), results_sha256=hashlib.sha256(out.read_bytes()).hexdigest(), role=role)
+    return 0, {"smoke": res["pass"], "criteria": crit, "written": str(out), "requests": res["requests"], "counted_not_testable_source": not res["pass"]}
 
 
 # ---- labeller audit (GL) ---------------------------------------------------------------------------------------------------------------------
@@ -396,7 +410,10 @@ def cmd_t_frame(a):
     if done:
         return 0, {"status": T_FRAME_STATUS, "complete": True, "already_complete": True}
     c13.require_disk(**_disk_kw(a), allowance_bytes=int(a.disk_cap_gb * 1024**3), cap_gb=a.data_dumps_cap_gb)
-    rep, files = t13.frame_t(_trades(a), _snaps(a), _hist(a), "screen", _pin(a), labeller_sha=shas["LABELLER"], audit_path=audit, out_dir=out_dir)
+    try:
+        rep, files = t13.frame_t(_trades(a), _snaps(a), _hist(a), "screen", _pin(a), labeller_sha=shas["LABELLER"], audit_path=audit, out_dir=out_dir, budget_s=_budget_s(a))
+    except t13.ScanUnfinished as exc:  # resumable: the partial scan file stays; the queue repeats until t_frame_complete
+        return 0, {"status": T_FRAME_PROGRESS, "complete": False, "reason": str(exc)}
     c13.write_dir_manifest(out_dir, T_FRAME_STATUS, files, {"rules_sha256": shas, "report": rep})
     c13.log_descriptive("t_frame", {"report_sha256": c13.sha256_obj(rep), "n_fills": rep["n_fills"], "status_counts": rep["status_counts"]}, trials_path=_tp(a), role=c13.EVIDENCE_ROLE_DEV)
     return 0, {"status": T_FRAME_STATUS, "complete": True, "n_fills": rep["n_fills"], "label": rep["population_label"]}
@@ -464,7 +481,7 @@ def cmd_screen(a):
     c13 = _c13()
     fam = _family(a)
     root = _root(a)
-    freeze_sha = _freeze(a, fam)
+    freeze_sha = _freeze(a, fam, _t_rules(a) if fam == "T" else {"R": _rules(a, "R")})
     cpath = Path(a.census) if a.census else root / f"census_{fam}.json"
     if not cpath.exists():
         raise c13.NotNow(f"{cpath.name} missing (the census first)")
@@ -489,7 +506,7 @@ def cmd_screen(a):
         fdir, bdir = _hist(a) / r13.FRAME_RUN, _hist(a) / r13.BIN_RUN
         pg = _r_pregate_failed(root)
         if pg is not None:
-            body = {"R1": r13._nt(r13.DEPENDENCE_LABEL), "labels": [r13.LABEL_R]}
+            body = {"R1": r13._nt(pg.get("label") or r13.DEPENDENCE_LABEL), "labels": [r13.LABEL_R]}
         else:
             c13.verify_fetch(fdir, (r13.PRICES_STATUS,), "touch_prices (q0278)")
             c13.verify_fetch(bdir, (r13.BINANCE_STATUS,), "binance (q0279)")
@@ -501,7 +518,8 @@ def cmd_screen(a):
     doc = {**body, "rules_sha256": shas, "freeze_part": fam, "freeze_sha256": freeze_sha, "census_sha256": hashlib.sha256(cpath.read_bytes()).hexdigest(), "written_epoch": time.time()}
     doc["by_triage"] = _by_triage({t: doc[t] for t in tids if t in doc}, _tp(a))
     rsha = c13.write_results_once(Path(a.out) if a.out else root / f"results_{fam}.json", doc)
-    c13.log_family(fam, _lines(doc, tids), trials_path=_tp(a), results_sha256=rsha, role=role, placebos=_placebos(doc, pmap))
+    if not (fam == "R" and (_r_pregate_failed(root) or {}).get("counted")):  # R1 behind a failed pregate was already counted by the pregate (once)
+        c13.log_family(fam, _lines(doc, tids), trials_path=_tp(a), results_sha256=rsha, role=role, placebos=_placebos(doc, pmap))
     return 0, {"status": f"screen_{fam}_complete", **{t: {k: (doc[t] or {}).get(k) for k in ("p", "advance", "verdict")} for t in tids if t in doc}}
 
 
@@ -524,6 +542,8 @@ def cmd_t_holdout(a):
     if not (root / "results_T.json").exists():
         raise c13.NotNow("results_T.json missing (q0273 first; any result)")
     pin = _pin(a)
+    if not pin["final"]:  # the HOLDOUT window starts at the J4-R end, which can still move while the pin is not final: wait (pending), never seal a provisional window
+        raise c13.NotNow("the J4-R window pin (seals/j4r_window.json) is not final: the T HOLDOUT window start can still move; pending")
     out_dir = root / "t_holdout"
     sp = root / c13.SEAL_NAME_T
     if sp.exists():
@@ -532,7 +552,10 @@ def cmd_t_holdout(a):
     lo, hi = c13.split_bounds("holdout", pin)
     src = t13.holdout_source_files(_trades(a), _snaps(a), pin)
     src_sha = {f"{p.parent.name}/{p.name}": h5_seal.sha256_file(p) for p in src}  # live_trades/trades-YYYYMMDD.jsonl and <capture>/rows(_ext).csv.gz
-    B = t13.build_frame(_trades(a), _snaps(a), _hist(a), "holdout", pin)
+    try:
+        B = t13.build_frame(_trades(a), _snaps(a), _hist(a), "holdout", pin, state_dir=out_dir, budget_s=_budget_s(a))
+    except t13.ScanUnfinished as exc:
+        return 0, {"status": T_HOLDOUT_PROGRESS, "complete": False, "reason": str(exc)}
     screen_fills = _read_fills_verified(a, root / "t_screen")
     screen_events = {f["event_id"] for f in screen_fills if f["status"] == t13.SCREEN_STATUS_FILL}
     fills, drep = t13.drop_screen_events(B["fills"], screen_events)
@@ -555,7 +578,7 @@ def cmd_t_holdout(a):
     sp.write_bytes(data)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(data)
-    c13.log_descriptive("t_holdout_seal", {"listing_sha256": doc["listing_sha256"], "n_fills": rep["n_fills"], "label": thin}, trials_path=_tp(a), role=c13.EVIDENCE_ROLE_DEV)
+    c13.log_descriptive("t_holdout_seal", {"listing_sha256": doc["listing_sha256"], "n_fills": rep["n_fills"], "label": thin}, trials_path=_tp(a), role=c13.EVIDENCE_ROLE_PROSPECTIVE)
     return 0, {"status": T_HOLDOUT_STATUS, "complete": True, "listing_sha256": doc["listing_sha256"], "committed_copy": str(dest), "n_fills": rep["n_fills"], "label": thin}
 
 
@@ -565,7 +588,7 @@ def rep_t(a) -> tuple[int, dict]:
     c13 = _c13()
     _gap(a)
     shas = _t_rules(a)
-    freeze_sha = _freeze(a, "T")
+    freeze_sha = _freeze(a, "T", shas)
     root = _root(a)
     rp = root / "results_T.json"
     if not rp.exists():
@@ -574,12 +597,13 @@ def rep_t(a) -> tuple[int, dict]:
     adv = {t: (res.get(t) or {}).get("advance") is True for t in ("T1", "T2")}
     if not any(adv.values()):
         raise c13.Refused("neither T1 nor T2 advanced: there is no T Stage 2")
-    if not a.results_sha256:
-        raise c13.Refused("--results-sha256 is required (pin the committed Stage-1 results_T.json before the HOLDOUT is opened)")
+    if not a.results_sha256 or a.results_sha256 == c13.PIN_UNSET:
+        raise c13.Refused(f"--results-sha256 is required and still unset ({c13.PIN_UNSET}); pin the committed Stage-1 results_T.json before the HOLDOUT is opened")
     if hashlib.sha256(rp.read_bytes()).hexdigest() != a.results_sha256.lower():
         raise c13.Refused("results_T.json sha256 differs from --results-sha256: the HOLDOUT stays closed")
     seal = c13.verify_seal(root, c13.COPY_NAME_T, c13.SEAL_NAME_T, _seals_dir(a), holdout_prefix="t_holdout/", require_committed=not a.allow_uncommitted_rules)
-    hold = c13.cb3_hold_lifted(Path(a.cb3_spec_dir) if getattr(a, "cb3_spec_dir", None) else None, Path(a.ledger) if getattr(a, "ledger", None) else None)
+    hold = c13.cb3_hold_lifted(Path(a.cb3_spec_dir) if getattr(a, "cb3_spec_dir", None) else None, Path(a.cb3_stop) if getattr(a, "cb3_stop", None) else (_seals_dir(a) or c13.SEALS_DIR) / c13.CB3_STOP_NAME,
+                               is_committed=None if not a.allow_uncommitted_rules else (lambda p: True))
     c13.verify_dir_manifest(root / "t_holdout", T_HOLDOUT_STATUS, "t_holdout")
     for rel, sha in sorted(seal["source_file_sha256"].items()):  # the trades files are READ here: missing -> pending (restore byte for byte), changed -> refusal; captures only if still present
         if rel.startswith("live_trades/"):
@@ -603,7 +627,7 @@ def rep_t(a) -> tuple[int, dict]:
     tids = tuple(t for t in ("T1", "T2", "T3") if t in body)
     rsha = c13.write_results_once(Path(a.out) if a.out else root / "results_T_rep.json", doc)
     lines = {t: {**_lines(body, (t,))[t], "advance": body[t].get("stage2_pass_alpha_over_k")} for t in tids}
-    c13.log_family("T", lines, replication=True, trials_path=_tp(a), results_sha256=rsha, n_triggered=len(tids), role=c13.EVIDENCE_ROLE_DEV,
+    c13.log_family("T", lines, replication=True, trials_path=_tp(a), results_sha256=rsha, n_triggered=len(tids), role=c13.EVIDENCE_ROLE_PROSPECTIVE,
                    placebos=_placebos(body, {"T1": "composition_placebo", "T2": "signflip_placebo"}))
     return 0, {"status": "rep_T_complete", "tests": list(tids)}
 
@@ -672,13 +696,19 @@ def cmd_pregate(a):
         return 0, {"status": "pregate_complete", "pass": d["pass"], "already_written": True}
     fdir, bdir = _hist(a) / r13.FRAME_RUN, _hist(a) / r13.BIN_RUN
     st = c13.stall_of(fdir)
-    if st:
-        return 0, {"status": "stalled", "label": st.get("label")}
+    if st:  # the frame stalled (e.g. disjointness_unverified): R1 is "not testable", COUNTED once (design 1.3); the pregate file marks the gate as failed so q0278 / seal / census / screen stall
+        label = st.get("label") or r13.SOURCE_LABEL
+        doc = {"pass": False, "components_with_units": 0, "stalled": st.get("status"), "label": label, "reason": st.get("reason"), "counts_only": True, "counted": True, "rules_sha256": sha}
+        _write_json_once(out, doc)
+        c13.log_descriptive("pregate_R", {"pass": False, "stalled": st.get("status"), "label": label}, trials_path=_tp(a))
+        c13.log_family("R", {"R1": {"p": 1.0, "testable": False, "advance": False, "verdict": label}}, trials_path=_tp(a), results_sha256=c13.sha256_obj(doc))
+        return 0, {"status": "stalled", "label": label, "counted": True}
     if not r13.frame_done(fdir):
         raise c13.NotNow("pregate waits for q0277 (touch_frame) to finish")
     c13.verify_fetch(bdir, (r13.BINANCE_STATUS,), "binance (q0279)")
     doc = r13.pregate_grc(fdir, bdir)
     doc["rules_sha256"] = sha
+    doc["counted"] = not doc["pass"]  # a failed gate is counted HERE (R1 p = 1); screen-R must not count it a second time
     _write_json_once(out, doc)
     c13.log_descriptive("pregate_R", {"pass": doc["pass"], "components_with_units": doc["components_with_units"]}, trials_path=_tp(a))
     if not doc["pass"]:  # R1 is "not testable (dependence)", counted with p = 1; q0278 is never committed
@@ -737,8 +767,8 @@ def cmd_rep(a):
         return rep_t(a)
     from astrolabe.research_lab import cb13_r as r13  # noqa: PLC0415
 
-    freeze_sha = _freeze(a, "R")
     sha = {"common": _rules(a, "common"), "R": _rules(a, "R")}
+    freeze_sha = _freeze(a, "R", sha)
     root = _root(a)
     rp = root / "results_R.json"
     if not rp.exists():
@@ -746,8 +776,8 @@ def cmd_rep(a):
     res = json.loads(rp.read_text())
     if (res.get("R1") or {}).get("advance") is not True:
         raise c13.Refused("R1 did not advance: there is no R Stage 2")
-    if not a.results_sha256:
-        raise c13.Refused("--results-sha256 is required (pin the committed Stage-1 results_R.json before the HOLDOUT is opened)")
+    if not a.results_sha256 or a.results_sha256 == c13.PIN_UNSET:
+        raise c13.Refused(f"--results-sha256 is required and still unset ({c13.PIN_UNSET}); pin the committed Stage-1 results_R.json before the HOLDOUT is opened")
     if hashlib.sha256(rp.read_bytes()).hexdigest() != a.results_sha256.lower():
         raise c13.Refused("results_R.json sha256 differs from --results-sha256: the HOLDOUT stays closed")
     fdir, bdir = _hist(a) / r13.FRAME_RUN, _hist(a) / r13.BIN_RUN
@@ -762,6 +792,51 @@ def cmd_rep(a):
     lines = {t: {**_lines(body, (t,))[t], "advance": body[t].get("stage2_pass_alpha_over_k")} for t in tids}
     c13.log_family("R", lines, replication=True, trials_path=_tp(a), results_sha256=rsha, n_triggered=len(tids), placebos=_placebos(body, {"R1": "signflip_placebo", "R2": "p_reg_placebo"}))
     return 0, {"status": "rep_R_complete", "tests": list(tids)}
+
+
+@_guarded
+def cmd_stage2_final(a):
+    """The final CB13-wide Stage-2 step (section 2.3): once every TRIGGERED family's rep result exists (T iff T1 or T2 advanced at Stage 1, R iff R1 advanced), ONE strict Holm at one-sided
+    alpha 0.05 over every Stage-2 test run (T1-rep, T2-rep, T3, R1-rep, R2; a test that could not run enters with p = 1). Write-once result; it can only ADD passes to the early alpha / 5 decisions."""
+    c13 = _c13()
+    root = _root(a)
+    out = Path(a.out) if a.out else root / "results_stage2_final.json"
+    if out.exists():
+        return 0, {"status": "stage2_final_complete", "already_written": True}
+    pvals: dict[str, float | None] = {}
+    early: dict[str, bool] = {}
+    adv: dict[str, bool] = {}
+    inputs: dict[str, str] = {}
+    triggered = []
+    for fam, s1_name, rep_name, tids in (("T", "results_T.json", "results_T_rep.json", ("T1", "T2")), ("R", "results_R.json", "results_R_rep.json", ("R1",))):
+        s1 = root / s1_name
+        if not s1.exists():
+            raise c13.NotNow(f"{s1_name} missing: Stage 1 of family {fam} first")
+        if not any((json.loads(s1.read_text()).get(t) or {}).get("advance") is True for t in tids):
+            continue
+        triggered.append(fam)
+        rp = root / rep_name
+        if not rp.exists():
+            raise c13.NotNow(f"{rep_name} missing: family {fam} triggered Stage 2 and is not final yet (pending)")
+        inputs[rep_name] = hashlib.sha256(rp.read_bytes()).hexdigest()
+        doc = json.loads(rp.read_text())
+        for t in (("T1", "T2", "T3") if fam == "T" else ("R1", "R2")):
+            if t in doc and isinstance(doc[t], dict):
+                r = doc[t]
+                pvals[t] = r.get("p") if r.get("testable", True) else None
+                early[t] = bool(r.get("stage2_early_alpha_ok"))
+                adv[t] = bool(r.get("advance"))
+    if not triggered:
+        raise c13.Refused("no CB13 family triggered Stage 2: there is nothing to finalise")
+    holm = c13.stage2_final(pvals)
+    names = {"T1": "T1-rep", "T2": "T2-rep", "T3": "T3", "R1": "R1-rep", "R2": "R2"}
+    verdict = {t: {"advance": adv[t], "early_alpha_over_5": early[t], "final_holm_reject": bool(holm["tests"][names[t]]["reject"]),
+                   "pass": bool(adv[t] and (early[t] or holm["tests"][names[t]]["reject"]))} for t in pvals}
+    doc = {"version": "cb13-stage2-final-v1", "triggered_families": triggered, "k2": holm["k"], "alpha": holm["alpha"], "holm": holm, "verdict": verdict, "inputs_sha256": inputs,
+           "rule": "strict Holm over every CB13 Stage-2 test run; early alpha/5 passes are never withdrawn; the final step only adds passes"}
+    _write_json_once(out, doc)
+    c13.log_descriptive("stage2_final", {"k2": holm["k"], "verdict": verdict, "inputs_sha256": inputs}, trials_path=_tp(a), role=c13.EVIDENCE_ROLE_PROSPECTIVE)
+    return 0, {"status": "stage2_final_complete", "k2": holm["k"], "verdict": verdict, "written": str(out)}
 
 
 # ---- parser -------------------------------------------------------------------------------------------------------------------------------------
@@ -856,8 +931,13 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--seals-dir", default=None)
     q.add_argument("--results-sha256", default=None, help="pinned sha256 of the committed Stage-1 results file (required)")
     q.add_argument("--cb3-spec-dir", default=None, help="tests only")
-    q.add_argument("--ledger", default=None, help="tests only")
+    q.add_argument("--cb3-stop", default=None, help="tests only: an alternative seals/cb3_stop.json")
     q.set_defaults(fn=cmd_rep)
+
+    q = sub.add_parser("stage2-final", help="final CB13-wide Stage-2 strict Holm (after q0275 / q0283)")
+    common(q)
+    q.add_argument("--out", default=None)
+    q.set_defaults(fn=cmd_stage2_final)
 
     q = sub.add_parser("exclusion-keys", help="q0276")
     common(q)

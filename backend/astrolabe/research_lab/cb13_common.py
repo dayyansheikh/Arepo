@@ -73,6 +73,7 @@ AVAIL_MIN = 0.60
 LOO_DAY_P = 0.05  # leave-one-day-out must keep p < 0.05 AND the sign (stricter than the A-C1 sign-only rule)
 EVIDENCE_ROLE_HIST = "exploratory_historical"
 EVIDENCE_ROLE_DEV = "exploratory_dev"
+EVIDENCE_ROLE_PROSPECTIVE = "prospective"  # T Stage 2 per-test lines (design header); the ml_explain COUNT line keeps a role that provenance.EVIDENCE_ROLES validates
 MAX_UNVERIFIED_KEY_SHARE = 0.02
 EXCLUSION_KEYS_COMPLETE = "exclusion_keys_complete"
 UNVERIFIED = "disjointness_unverified"
@@ -95,7 +96,8 @@ R_HOLD_START = "2026-04-01T00:00:00Z"
 R_FIRST_END = "2024-11-01T00:00:00Z"
 J4R_PIN_NAME = "j4r_window.json"
 CB3_FREEZE_NAME = "cb3_v1.json"
-CB3_STOP_RE = r"(?i)\bCB3\b[^\n]{0,200}\b(?:stopped|withdrawn)\b[^\n]{0,200}\bwithout (?:a )?freeze"
+CB3_STOP_NAME = "cb3_stop.json"  # structured, committed stop record under seals/ (a ledger sentence that merely quotes the design never lifts the hold)
+CB3_STOP_TOKEN = "CB3_STOPPED_WITHOUT_FREEZE"
 # Output roots CB13 writes under, and input roots it never reads (section 1.1 last rows, 1.3)
 ALLOWED_OUTPUT_ROOT_PARTS = ("creative_batch13", "h13_touch", "h13_binance")
 HOLDOUT_PART = "holdout"
@@ -272,9 +274,10 @@ def require_capture_allowed(start_epoch: float, split: str, pin: dict) -> None:
 # ---- the CB3 hold (section 1.2 T13_T_rep, round 1 item 3) --------------------------------------------------------------------------------------
 
 
-def cb3_hold_lifted(spec_dir: Path | None = None, ledger_path: Path | None = None, *, is_committed: Callable[[Path], bool] | None = None) -> dict:
-    """The T HOLDOUT mark-outs wait for CB3's freeze commit (``model_specs/cb3_v1.json`` tracked and identical to HEAD) or for a ledger record that CB3 stopped / was withdrawn WITHOUT
-    a freeze. Returns the evidence; raises ``NotNow`` (exit 75, pending) while neither exists."""
+def cb3_hold_lifted(spec_dir: Path | None = None, stop_path: Path | None = None, *, is_committed: Callable[[Path], bool] | None = None) -> dict:
+    """The T HOLDOUT mark-outs wait for CB3's freeze commit (``model_specs/cb3_v1.json`` tracked and identical to HEAD) or for a STRUCTURED stop record: ``seals/cb3_stop.json`` (tracked,
+    identical to HEAD) whose ``cb3_stop`` field equals ``CB3_STOP_TOKEN`` exactly (CB3 stopped / withdrawn WITHOUT a freeze). Free text in the ledger never lifts the hold. Returns the
+    evidence; raises ``NotNow`` (exit 75, pending) while neither exists."""
     from . import cb1_history  # noqa: PLC0415
 
     sd = Path(spec_dir) if spec_dir is not None else Path(__file__).resolve().parent / "model_specs"
@@ -282,10 +285,15 @@ def cb3_hold_lifted(spec_dir: Path | None = None, ledger_path: Path | None = Non
     committed = is_committed or cb1_history.spec_committed
     if spec.exists() and committed(spec):
         return {"lifted_by": "cb3_freeze_commit", "path": str(spec)}
-    lp = Path(ledger_path) if ledger_path is not None else provenance.REPO_ROOT / "docs" / "research_lab" / "EXPERIMENT_LEDGER.md"
-    if lp.exists() and re.search(CB3_STOP_RE, lp.read_text(errors="replace")):
-        return {"lifted_by": "ledger_stop_record", "path": str(lp)}
-    raise NotNow("CB3 hold: neither model_specs/cb3_v1.json (committed) nor a ledger stop record of CB3 exists; the T HOLDOUT mark-outs wait (pending)")
+    sp = Path(stop_path) if stop_path is not None else SEALS_DIR / CB3_STOP_NAME
+    if sp.exists() and committed(sp):
+        try:
+            doc = json.loads(sp.read_text())
+        except ValueError:
+            doc = None
+        if isinstance(doc, dict) and doc.get("cb3_stop") == CB3_STOP_TOKEN:
+            return {"lifted_by": "cb3_stop_record", "path": str(sp)}
+    raise NotNow("CB3 hold: neither model_specs/cb3_v1.json (committed) nor a committed seals/cb3_stop.json stop record of CB3 exists; the T HOLDOUT mark-outs wait (pending)")
 
 
 # ---- refusals ----------------------------------------------------------------------------------------------------------------------------------
@@ -385,10 +393,14 @@ def ensure_source_file(path: Path, expected_sha256: str | None = None, *, restor
     return p
 
 
-def require_freeze(part: str, spec_path: Path | None = None, *, require_committed: bool = True) -> str:
-    """Analysis jobs (screen, rep) refuse before the CB13 declaration is committed (``model_specs/cb13_v1.json``). One entry per family part (T, R)."""
+def require_freeze(part: str, spec_path: Path | None = None, *, require_committed: bool = True, rules_shas: dict[str, str] | None = None) -> str:
+    """Analysis jobs (screen, rep) refuse before the CB13 declaration is committed (``model_specs/cb13_v1.json``). One entry per family part (T, R). The entry must PIN the rules shas the job
+    has just verified: ``rules_sha256`` equals the part's currently verified sha, and (part T) ``labeller_rules_sha256`` equals the LABELLER sha (``freeze-part`` prints exactly these); a freeze that
+    pins other code is refused. ``rules_shas`` ({part: sha}) is mandatory."""
     if part not in FREEZE_PARTS:
         raise Refused(f"unknown freeze part {part!r}")
+    if not rules_shas or part not in rules_shas:
+        raise Refused(f"require_freeze({part}) needs the currently verified rules shas")
     p = Path(spec_path or (Path(__file__).resolve().parent / "model_specs" / "cb13_v1.json"))
     if not p.exists():
         raise Refused(f"CB13 freeze spec {p} not found: the screens refuse before the CB13 freeze")
@@ -401,9 +413,18 @@ def require_freeze(part: str, spec_path: Path | None = None, *, require_committe
         doc = json.loads(p.read_text())
     except ValueError as exc:
         raise Refused(f"CB13 freeze spec {p} unreadable") from exc
-    if not isinstance(doc, dict) or part not in doc:
+    if not isinstance(doc, dict) or part not in doc or not isinstance(doc[part], dict):
         raise Refused(f"CB13 freeze spec {p} has no {part!r} part")
-    return hashlib.sha256(json.dumps(doc[part], sort_keys=True, default=str).encode()).hexdigest()
+    entry = doc[part]
+    need = {"rules_sha256": rules_shas[part]}
+    if part == "T":
+        if "LABELLER" not in rules_shas:
+            raise Refused("require_freeze(T) needs the verified LABELLER sha")
+        need["labeller_rules_sha256"] = rules_shas["LABELLER"]
+    for k, want in need.items():
+        if entry.get(k) != want:
+            raise Refused(f"CB13 freeze entry {part!r} pins {k} {str(entry.get(k))[:12]!r}, but the verified code is {want[:12]!r}: the freeze does not cover this code; refusing")
+    return hashlib.sha256(json.dumps(entry, sort_keys=True, default=str).encode()).hexdigest()
 
 
 # ---- stalls, manifests, results ----------------------------------------------------------------------------------------------------------------
@@ -638,7 +659,29 @@ def read_id_ts_columns(path: Path, window: tuple[float, float] | None = None) ->
 
 
 def holm(pvals: dict[str, float], alpha: float) -> dict:
-    return c9.holm(pvals, alpha)
+    """STRICT Holm (reject iff p < alpha / (m - i) at every step so far), as CB12 (``c12.holm``); the shared ``c9.holm`` uses ``<=`` and is not used."""
+    return c12.holm(pvals, alpha)
+
+
+def availability(available: int, eligible: int) -> dict:
+    """Section 2.6 (iv): the available share of eligible units; below ``AVAIL_MIN`` (60%) the test is "not testable (availability)" (counted, p = 1). Zero eligible units is not testable."""
+    share = (available / eligible) if eligible > 0 else math.nan
+    return {"available": int(available), "eligible": int(eligible), "share": share, "min": AVAIL_MIN, "ok": bool(eligible > 0 and share >= AVAIL_MIN)}
+
+
+AVAILABILITY_LABEL = "not testable (availability)"
+SOURCE_NOT_TESTABLE = "not testable (source)"
+
+
+def stage2_final(pvals: dict[str, float | None], alpha: float = STAGE_ALPHA) -> dict:
+    """The final CB13-wide Stage-2 step (section 2.3): ONE strict Holm over every CB13 Stage-2 test that was triggered (T1-rep, T2-rep, T3, R1-rep, R2; a test that could not run enters with p = 1)
+    at one-sided ``alpha``. It is applied once, after every triggered test is final, and can only ADD passes to the early alpha / 5 decisions. Names outside the five are refused."""
+    allowed = {"T1": "T1-rep", "T2": "T2-rep", "T3": "T3", "R1": "R1-rep", "R2": "R2"}
+    extra = [k for k in pvals if k not in allowed]
+    if extra:
+        raise Refused(f"stage-2 final Holm: {extra} are not CB13 Stage-2 tests {tuple(allowed)}")
+    full = {allowed[k]: (1.0 if v is None else float(v)) for k, v in pvals.items()}
+    return {"k": len(full), "alpha": alpha, "tests": holm(full, alpha) if full else {}}
 
 
 def stage1_holm(pvals: dict[str, float | None], alpha: float = STAGE_ALPHA, family: tuple[str, ...] = STAGE1_HOLM_FAMILY) -> dict:
@@ -893,7 +936,8 @@ def log_family(family: str, results: dict[str, dict], *, replication: bool = Fal
             provenance.append_trial({"kind": kind, **{**base, "evidence_role": "placebo"}, "note": pl.get("note", "placebo"), "advance_rate": pl.get("advance_rate"),
                                      "n_draws": pl.get("n_draws"), "n_tests": 0}, tp)
     n = len(results) if n_triggered is None else int(n_triggered)
-    provenance.append_trial({"kind": "ml_explain", "label": "EXPLORATORY", "evidence_role": role, "source": f"creative_batch_13:{family}{':rep' if replication else ''}",
+    count_role = role if role in provenance.EVIDENCE_ROLES else EVIDENCE_ROLE_DEV  # the count line is bookkeeping; the validated roles do not include "prospective"
+    provenance.append_trial({"kind": "ml_explain", "label": "EXPLORATORY", "evidence_role": count_role, "source": f"creative_batch_13:{family}{':rep' if replication else ''}",
                              "dataset": "creative_batch_13", "n_tests": n, "n_tests_by_family": {f"cb13_{family}{'_rep' if replication else ''}": n},
                              "hypotheses": sorted(results), "replication": bool(replication), "advanced": sorted(t for t, r in results.items() if r.get("advance")),
                              "results_sha256": results_sha256, "note": "CB13 count line: the family's tests (a test behind a failed gate is still counted, p = 1)"}, tp)

@@ -287,38 +287,83 @@ def load_quote_index(captures: list[dict], wanted: set[str], mode: str, split: s
 # =====================================================================================================================================================
 
 
-def t_exclusion_keys(hist_root: Path, windows: list[tuple[float, float]]) -> tuple[dict[str, str], dict]:
+class ScanUnfinished(NotNow):
+    """The budgeted history scan stopped between files; the partial file makes the re-run resume (exit 0 / ``in_progress`` in the runner, never a partial analysis)."""
+
+
+KEYS_PARTIAL_NAME = "t_exclusion_keys_partial.jsonl"
+
+
+def _partial_records(path: Path, windows: list[tuple[float, float]]) -> list[dict]:
+    """Complete lines of the partial scan file (a torn last line is dropped); a file written for other windows is discarded."""
+    path = Path(path)
+    if not path.exists():
+        return []
+    recs: list[dict] = []
+    for line in path.read_text().split("\n"):
+        if not line.strip():
+            continue
+        try:
+            recs.append(json.loads(line))
+        except ValueError:
+            break
+    head = recs[0] if recs and "windows" in recs[0] else None
+    if head is None or [list(w) for w in head["windows"]] != [list(w) for w in windows]:
+        path.unlink(missing_ok=True)
+        return []
+    return recs[1:]
+
+
+def t_exclusion_keys(hist_root: Path, windows: list[tuple[float, float]], *, state_path: Path | None = None, budget_s: float | None = None, clock=time.monotonic) -> tuple[dict[str, str], dict]:
     """Keys (``market_id:x``, ``event_id:x``, ``condition_id:x``, ``neg_risk_market_id:x``) of every historical set (a run directory under ``hist_root`` other than the inert ones) that holds
-    the id with ANY stored timestamp inside a T window. A file without a timestamp column contributes all its ids (conservative; counted as ``no_ts``). Returns ``{key: source}`` and a report.
-    Only id and timestamp columns are read (field-restricted accessor)."""
+    the id with a stored timestamp INSIDE a T window (section 1.3: nothing else). A file with no timestamp column contributes no key; it is counted (``files_without_timestamp``) so the loss is
+    visible. Returns ``{key: source}`` and a report. Only id and timestamp columns are read (field-restricted accessor). Resumable by file: with ``state_path`` every finished file is appended
+    to a partial file, and ``budget_s`` raises ``ScanUnfinished`` between files once the wall budget is spent (the next run resumes)."""
     keys: dict[str, str] = {}
     rep: dict = {"sources": {}, "absent": []}
     hr = Path(hist_root)
     if not hr.exists():
         return keys, {**rep, "history_root_missing": True}
+    todo: list[tuple[str, Path, str]] = []
     for run in sorted(p for p in hr.iterdir() if p.is_dir()):
         if run.name in T_EXCL_SKIP_RUNS or run.name.startswith("h13_"):
             continue
-        n_win = n_nots = n_files = 0
-        files = sorted(f for f in run.rglob("*") if f.is_file() and (f.name.endswith(".csv") or f.name.endswith(".csv.gz")))
-        for f in files:
+        for f in sorted(f for f in run.rglob("*") if f.is_file() and (f.name.endswith(".csv") or f.name.endswith(".csv.gz"))):
             if f.name in c13.GUARDED_NAMES or "guarded" in f.name:
                 continue
-            n_files += 1
-            hit_any: set[str] = set()
-            every: set[str] = set()
-            nots = False
-            for w in windows:
-                in_win, ev, info = c13.read_id_ts_columns(f, w)
-                hit_any |= in_win
-                every = ev
-                nots = bool(info["no_ts"])
-            take = every if nots else hit_any
-            n_nots += len(every) if nots else 0
-            n_win += 0 if nots else len(hit_any)
-            for k in take:
-                keys.setdefault(k, run.name)
-        rep["sources"][run.name] = {"files": n_files, "keys_in_window": n_win, "keys_no_ts_file": n_nots}
+            todo.append((run.name, f, f.relative_to(hr).as_posix()))
+    done: dict[str, dict] = {}
+    if state_path is not None:
+        sp = Path(state_path)
+        valid = _partial_records(sp, windows)
+        done = {r["file"]: r for r in valid}
+        sp.parent.mkdir(parents=True, exist_ok=True)
+        sp.write_text("".join(json.dumps(r) + "\n" for r in [{"windows": [list(w) for w in windows]}, *valid]))  # clean rewrite: a torn last line never stays in the middle
+    t0 = clock()
+    for run_name, f, rel in todo:
+        if rel in done:
+            continue
+        if budget_s is not None and clock() - t0 >= budget_s:
+            raise ScanUnfinished(f"T exclusion-key scan unfinished: {len(done)}/{len(todo)} files; resumable")
+        hit_any: set[str] = set()
+        nots = False
+        for w in windows:
+            in_win, _every, info = c13.read_id_ts_columns(f, w)
+            hit_any |= in_win
+            nots = bool(info["no_ts"])
+        rec = {"run": run_name, "file": rel, "no_ts": nots, "keys": sorted(hit_any)}
+        done[rel] = rec
+        if state_path is not None:
+            with Path(state_path).open("a") as fh:
+                fh.write(json.dumps(rec) + "\n")
+    for run_name, _f, rel in todo:
+        r = done[rel]
+        src = rep["sources"].setdefault(run_name, {"files": 0, "keys_in_window": 0, "files_without_timestamp": 0})
+        src["files"] += 1
+        src["files_without_timestamp"] += int(bool(r["no_ts"]))
+        src["keys_in_window"] += len(r["keys"])
+        for k in r["keys"]:
+            keys.setdefault(k, run_name)
     return keys, rep
 
 
@@ -471,7 +516,9 @@ def build_dataset(fills: list[dict], qi: QuoteIndex) -> dict:
     case), ``st`` (status), ``realised`` (seconds)."""
     fs = [f for f in fills if f["status"] == SCREEN_STATUS_FILL]
     D: dict = {k: [] for k in ("tx_id", "cid", "label", "grp", "d", "P", "event", "pathkey", "pathblock", "block", "day", "cash", "size", "age", "spread", "mid0", "tte", "liq", "proxy", "fee_rate",
-                               "stale_q", "stale_d", "tau", "rewards")}
+                               "stale_q", "stale_d", "tau", "rewards", "stale_share")}
+    n_inc: Counter = Counter(f["event_id"] for f in fills if f["status"] == S_INCONSISTENT)
+    n_fill: Counter = Counter(f["event_id"] for f in fills if f["status"] == SCREEN_STATUS_FILL)
     for h in MARK_H:
         for k in ("m", "adv", "wc", "realised", "bid", "ask"):
             D[f"{k}_{h}"] = []
@@ -501,6 +548,7 @@ def build_dataset(fills: list[dict], qi: QuoteIndex) -> dict:
         D["stale_d"].append(f["d_stale"])
         D["tau"].append(f["tau"])
         D["rewards"].append(f["clob_rewards"])
+        D["stale_share"].append(n_inc[f["event_id"]] / (n_inc[f["event_id"]] + n_fill[f["event_id"]]))
         for h, hs in MARK_H.items():
             mk = qi.mark_for(f, hs)
             st = mk["status"]
@@ -577,12 +625,12 @@ def p_of(make_v, idx: np.ndarray, D: dict, *, alpha: float | None = None) -> dic
 
 
 def analyse(make_v, idx: np.ndarray, D: dict, floor: float, *, loo: bool = True, top5: bool = True, alpha: float | None = None) -> dict:
-    """Primary result plus the binding checks of T1 / T2: p < 0.01 and the floor; leave-one-day-out (every sample keeps the sign and p < 0.05); top-5 drops by event and by block (p < 0.01 and
-    the floor hold)."""
+    """Primary result plus the binding checks of T1 / T2: p < 0.01 and the floor; leave-one-day-out (every sample keeps the sign and p < 0.05); top-5 drops by event, by path key x 6 h block and
+    by 6 h block (p < 0.01 and the floor hold)."""
     base = p_of(make_v, idx, D, alpha=alpha)
     out = {**base, "floor": floor, "floor_ok": bool(math.isfinite(base["est"]) and base["est"] >= floor), "p_ok": bool(base["testable"] and base["p"] < c13.GATE_P)}
     if not base["testable"] or not math.isfinite(base["est"]):
-        out.update(loo_day={"holds": False, "n_groups": 0}, top5={"event": False, "block": False})
+        out.update(loo_day={"holds": False, "n_groups": 0}, top5={"event": False, "pathblock": False, "block": False})
         return out
     v, _ = make_v(idx)
     if loo:
@@ -594,7 +642,7 @@ def analyse(make_v, idx: np.ndarray, D: dict, floor: float, *, loo: bool = True,
         out["loo_day"] = c13.leave_one_out_p(days, stat, pfn, sign=1.0, p_max=c13.LOO_DAY_P)
     if top5:
         t5 = {}
-        for name, cl in (("event", D["event"][idx]), ("block", D["block"][idx])):
+        for name, cl in (("event", D["event"][idx]), ("pathblock", D["pathblock"][idx]), ("block", D["block"][idx])):  # every declared way (section 2.6 ii)
             keep = c13.top_k_drop_mask(v, cl, c13.TOP_DROP)
             r = p_of(make_v, idx[keep], D, alpha=c13.GATE_P)
             t5[name] = bool(r["testable"] and r["p"] < c13.GATE_P and r["est"] >= floor)
@@ -612,7 +660,8 @@ def bands_of(D: dict) -> dict:
 
 
 def attribution(D: dict, idx: np.ndarray, y: np.ndarray, d_hat: float) -> dict:
-    """OLS of the mark-out on the LOW indicator (base NEWS) plus spread, mid, time-to-end, size and touch-age band dummies and log liquidity. Credit "class effect" only if the LOW
+    """OLS of the mark-out on the LOW indicator (base NEWS) plus spread, mid, time-to-end, size and touch-age band dummies, log liquidity and the event-level "inconsistent with touch" share
+    (the declared staleness control). Credit "class effect" only if the LOW
     coefficient keeps at least half of ``d_hat``; otherwise "composition, not class"."""
     b = bands_of(D)
     cols = [(D["grp"][idx] == "LOW").astype(float)]
@@ -624,6 +673,8 @@ def attribution(D: dict, idx: np.ndarray, y: np.ndarray, d_hat: float) -> dict:
             names.append(f"{key}{lv}")
     cols.append(np.log(np.maximum(D["liq"][idx], 1.0)))
     names.append("log_liq")
+    cols.append(D["stale_share"][idx])  # the event-level share of touch-eligible transactions "inconsistent with touch" (the declared staleness control)
+    names.append("stale_share")
     X = np.column_stack(cols)
     ok = np.isfinite(y[idx]) & np.isfinite(X).all(axis=1)
     if ok.sum() < X.shape[1] + 5:
@@ -658,8 +709,8 @@ def composition_placebo(D: dict, idx: np.ndarray, m: np.ndarray, *, n_draws: int
             labs = [egrp[e] for e in evs]
             rng.shuffle(labs)
             perm.update(dict(zip(evs, labs, strict=True)))
-        low = np.array([perm[e] == "LOW" for e in D["event"]])
-        news = ~low
+        low = np.array([perm.get(e) == "LOW" for e in D["event"]])  # events outside the T1 index (SPORTS-FEED, SCHEDULED-EVENT, unmarked fills) belong to neither arm
+        news = np.array([perm.get(e) == "NEWS" for e in D["event"]])
         mk = make_contrast(m, low, news)
         r = p_of(mk, idx, D, alpha=c13.GATE_P)
         ps.append(r["p"] if r["testable"] else None)
@@ -773,8 +824,12 @@ def t1_test(D: dict, *, placebo: bool = True, n_draws: int = c13.PLACEBO_DRAWS, 
     low, news = D["grp"] == "LOW", D["grp"] == "NEWS"
     m = D["m_2-4h"]
     idx = np.where((low | news) & _valid(D, "m_2-4h"))[0]
+    av = c13.availability(len(idx), int((low | news).sum()))
+    if not av["ok"]:
+        return {**not_testable(c13.AVAILABILITY_LABEL), "availability": av}
     mk = make_contrast(m, low, news)
     res = analyse(mk, idx, D, T1_FLOOR)
+    res["availability"] = av
     res["classes"] = {"LOW": int((low[idx]).sum()), "NEWS": int((news[idx]).sum())}
     if not res["testable"]:
         res.update(advance=False, verdict="not testable (population / clusters)")
@@ -801,9 +856,9 @@ def t1_test(D: dict, *, placebo: bool = True, n_draws: int = c13.PLACEBO_DRAWS, 
     for j in idx:
         w[j] = 1.0 / cnt[(D["event"][j], D["grp"][j])]
     rob["event_weighted"] = est_only(make_contrast(m, low, news, w), idx) > 0
-    rob["staleness_control_attribution_sign"] = bool(math.isfinite(res["attribution"].get("coef_low", math.nan)) and res["attribution"]["coef_low"] > 0)
+    rob["staleness_control_attribution_sign"] = bool(math.isfinite(res["attribution"].get("coef_low", math.nan)) and res["attribution"]["coef_low"] > 0)  # attribution includes the stale_share regressor
     res["robustness"] = rob
-    res["staleness"] = {"note": "per-class share of transactions inconsistent with the touch is reported by the census and screen (fills table)"}
+    res["staleness"] = {"note": "the attribution regression carries the event-level 'inconsistent with touch' share; per-class shares are reported by the census and screen (fills table)"}
     res["robust_ok"] = bool(all(rob.values()) and res["loo_day"]["holds"] and all(res["top5"].values()))
     res["advance"] = bool(res["p_ok"] and res["floor_ok"] and res["block_rule_holds"] and res["prefill_placebo"]["holds"] and res["composition_placebo"].get("holds", False) and res["robust_ok"])
     res["verdict"] = ("advance" if res["advance"] else "no advance") + (f"; {res['attribution']['label']}" if res["advance"] else "")
@@ -817,8 +872,12 @@ def t2_test(D: dict, *, placebo: bool = True, n_draws: int = c13.PLACEBO_DRAWS, 
     low = D["grp"] == "LOW"
     m = D["m_2-4h"]
     idx = np.where(low & _valid(D, "m_2-4h"))[0]
+    av = c13.availability(len(idx), int(low.sum()))
+    if not av["ok"]:
+        return {**not_testable(c13.AVAILABILITY_LABEL), "availability": av}
     mk = make_mean(m)
     res = analyse(mk, idx, D, T2_FLOOR)
+    res["availability"] = av
     if not res["testable"]:
         res.update(advance=False, verdict="not testable (population / clusters)")
         return res
@@ -874,7 +933,11 @@ def t3_test(D: dict) -> dict:
     vals = t3_values(D, idx)
     net[idx] = vals
     ok = np.where(np.isfinite(net))[0]
+    av = c13.availability(len(ok), int(low.sum()))  # eligible = every touch-consistent LOW fill; available = a usable adverse exit quote
+    if not av["ok"]:
+        return {**not_testable(c13.AVAILABILITY_LABEL), "availability": av}
     res = analyse(make_mean(net), ok, D, T3_FLOOR, loo=True, top5=True)
+    res["availability"] = av
     if not res["testable"]:
         res.update(advance=False, verdict="not testable (population / clusters)")
         return res
@@ -930,35 +993,54 @@ def reported_variants(D: dict, fills: list[dict]) -> dict:
 # =====================================================================================================================================================
 
 
-def screen_transactions(trades_dir: Path, split: str, pin: dict, *, days: list[str] | None = None) -> tuple[list[dict], dict]:
-    """Aggregate the split's monitor prints. SCREEN reads files for UTC days 10-12..10-15 only (the J4-R window starts 10-16), HOLDOUT the days from the J4-R end through 10-26. Window checks:
-    ``check_window``."""
+def trade_files(trades_dir: Path, split: str, pin: dict) -> list[Path]:
+    """The ``trades-YYYYMMDD.jsonl`` files (daily by RECEIPT, prints arrive about 8 min late) that can hold prints with venue time in the split's window. SCREEN reads UTC days 10-12..10-15 (the J4-R
+    window starts 10-16); HOLDOUT reads the days from the J4-R end through 10-26 INCLUDING the next receipt day after the window end (``trades-20261026.jsonl`` holds the late prints of
+    10-25 23:5x); the venue-time filter of ``iter_prints`` keeps only ``ts`` inside the window."""
     lo, hi = c13.split_bounds(split, pin)
-    c13.check_window(split, lo, hi, pin)
     d0, d1 = datetime.fromtimestamp(lo, UTC).date(), datetime.fromtimestamp(hi - 1, UTC).date()
-    prints = []
-    n_files = 0
+    if split == "holdout":
+        d1 = datetime.fromordinal(d1.toordinal() + 1).date()
+    files = []
     d = d0
     while d <= d1:
         p = Path(trades_dir) / f"trades-{d:%Y%m%d}.jsonl"
         if p.exists():
-            n_files += 1
-            prints.extend(c13.iter_prints(p, lo, hi))
+            files.append(p)
         d = datetime.fromordinal(d.toordinal() + 1).date()
+    return files
+
+
+def screen_prints(trades_dir: Path, split: str, pin: dict) -> tuple[list[dict], dict]:
+    """The split's whitelisted monitor prints (venue ``ts`` inside the window). Window checks: ``check_window``."""
+    lo, hi = c13.split_bounds(split, pin)
+    c13.check_window(split, lo, hi, pin)
+    prints = []
+    files = trade_files(trades_dir, split, pin)
+    for p in files:
+        prints.extend(c13.iter_prints(p, lo, hi))
+    return prints, {"n_prints": len(prints), "n_files": len(files), "window": [c13.iso(lo), c13.iso(hi)]}
+
+
+def screen_transactions(trades_dir: Path, split: str, pin: dict, *, days: list[str] | None = None) -> tuple[list[dict], dict]:
+    """Aggregate the split's monitor prints into transactions (see ``trade_files`` for the files read)."""
+    prints, pinfo = screen_prints(trades_dir, split, pin)
     txs, info = build_transactions(prints)
-    return txs, {**info, "n_prints": len(prints), "n_files": n_files, "window": [c13.iso(lo), c13.iso(hi)]}
+    return txs, {**info, **pinfo}
 
 
-def build_frame(trades_dir: Path, snap_root: Path, hist_root: Path, split: str, pin: dict) -> dict:
-    """Transactions, the touch-mode quote index (NO mark accessor), exclusion keys and the fill table of one split, features only."""
+def build_frame(trades_dir: Path, snap_root: Path, hist_root: Path, split: str, pin: dict, *, state_dir: Path | None = None, budget_s: float | None = None) -> dict:
+    """Transactions, the touch-mode quote index (NO mark accessor), exclusion keys and the fill table of one split, features only. ``state_dir``/``budget_s`` make the history key scan
+    resumable and budgeted (``ScanUnfinished``)."""
     txs, tinfo = screen_transactions(trades_dir, split, pin)
     caps = c13.list_captures(snap_root, split, pin)
     wanted = {t["condition_id"] for t in txs}
     qi = load_quote_index(caps, wanted, "touch", split, pin)
     lo, hi = c13.split_bounds(split, pin)
-    keys, krep = t_exclusion_keys(hist_root, [(lo, hi)])
+    kstate = (Path(state_dir) / KEYS_PARTIAL_NAME) if state_dir is not None else None
+    keys, krep = t_exclusion_keys(hist_root, [(lo, hi)], state_path=kstate, budget_s=budget_s)
     fills, counts = make_fills(txs, qi, keys)
-    return {"txs": txs, "tinfo": tinfo, "caps": caps, "qi": qi, "keys": keys, "krep": krep, "fills": fills, "counts": counts, "wanted": wanted}
+    return {"txs": txs, "tinfo": tinfo, "caps": caps, "qi": qi, "keys": keys, "krep": krep, "fills": fills, "counts": counts, "wanted": wanted, "keys_state": kstate}
 
 
 def market_labels(txs: list[dict], qi: QuoteIndex) -> dict[str, list]:
@@ -982,21 +1064,30 @@ def write_frame_files(out_dir: Path, B: dict, fills: list[dict] | None = None) -
     write_fills(out_dir / FILLS_NAME, fills if fills is not None else B["fills"])
     (out_dir / LABELS_NAME).write_bytes(hb._gz_csv_bytes(LABEL_COLUMNS, sorted(market_labels(B["txs"], B["qi"]).values())))
     (out_dir / EXCL_NAME).write_bytes(hb._gz_csv_bytes(["key", "source"], sorted([k, s] for k, s in B["keys"].items())))
+    if B.get("keys_state") is not None:
+        Path(B["keys_state"]).unlink(missing_ok=True)  # the scan is complete and its keys are written
     return [out_dir / FILLS_NAME, out_dir / LABELS_NAME, out_dir / EXCL_NAME]
+
+
+def thin_label(fills: list[dict]) -> str | None:
+    """Section 1.3: if more than 30% of the SCREEN LOW fills OR more than 30% of the NEWS fills are dropped by the exclusion keys, T lines carry "population thinned by exclusions". The share is
+    computed per class (never pooled over LOW + NEWS) among that class's transactions that had a quote row."""
+    for g in ("LOW", "NEWS"):
+        rows = [f for f in fills if lab.audit_group(f["label"]) == g and f["status"] != S_NO_ROW]
+        if rows and sum(1 for f in rows if f["status"].startswith(S_KEY)) / len(rows) > EXCL_THIN_SHARE:
+            return LABEL_THIN
+    return None
 
 
 def frame_report(B: dict, split: str, *, labeller_sha: str, audit_path: Path | None) -> dict:
     fills = B["fills"]
-    n_low_news = [f for f in fills if lab.audit_group(f["label"]) in ("LOW", "NEWS") and f["status"] != S_NO_ROW]
-    dropped = [f for f in n_low_news if f["status"].startswith(S_KEY)]
-    thin = bool(n_low_news and len(dropped) / len(n_low_news) > EXCL_THIN_SHARE)
-    return {"split": split, "transactions": B["tinfo"], "captures_used": len(B["caps"]), "status_counts": B["counts"], "key_drop_report": B["krep"], "population_label": LABEL_THIN if thin else None,
+    return {"split": split, "transactions": B["tinfo"], "captures_used": len(B["caps"]), "status_counts": B["counts"], "key_drop_report": B["krep"], "population_label": thin_label(fills),
             "labeller_sha256": labeller_sha, "gl": gate_gl(audit_path, labeller_sha), "n_fills": sum(1 for f in fills if f["status"] == SCREEN_STATUS_FILL)}
 
 
-def frame_t(trades_dir: Path, snap_root: Path, hist_root: Path, split: str, pin: dict, *, labeller_sha: str, audit_path: Path | None, out_dir: Path) -> tuple[dict, list[Path]]:
-    """q0271 (SCREEN): exclusion keys, the fill table with the frozen labeller, features only, no mark quote read. Returns (report, output files)."""
-    B = build_frame(trades_dir, snap_root, hist_root, split, pin)
+def frame_t(trades_dir: Path, snap_root: Path, hist_root: Path, split: str, pin: dict, *, labeller_sha: str, audit_path: Path | None, out_dir: Path, budget_s: float | None = None) -> tuple[dict, list[Path]]:
+    """q0271 (SCREEN): exclusion keys (resumable, budgeted), the fill table with the frozen labeller, features only, no mark quote read. Returns (report, output files)."""
+    B = build_frame(trades_dir, snap_root, hist_root, split, pin, state_dir=out_dir, budget_s=budget_s)
     files = write_frame_files(out_dir, B)
     return frame_report(B, split, labeller_sha=labeller_sha, audit_path=audit_path), files
 
@@ -1022,11 +1113,15 @@ def census_t(fills: list[dict], *, labeller_sha: str, audit_path: Path | None, w
     census["mid_bands"] = dict(Counter(band_of(f["mid0"], MID_BANDS) for f in fs))
     census["tte_bands"] = dict(Counter(band_of(f["end_epoch"] - f["tau"], TTE_BANDS_S) for f in fs))
     census["gt"] = gate_gt(fills)
-    census["gl"] = gate_gl(audit_path, labeller_sha)
-    census["gtp"] = gate_gtp(fills)
     unk = sum(1 for f in fills if f["label"] == lab.UNKNOWN)
     census["unknown_share"] = unk / len(fills) if fills else math.nan
     census["unknown_ok"] = bool(fills and census["unknown_share"] <= lab.UNKNOWN_MAX_SHARE)
+    gl = gate_gl(audit_path, labeller_sha)
+    if not census["unknown_ok"]:  # UNKNOWN > 5% of SCREEN fills: GL fails (section 3, labeller class 6)
+        gl = {**gl, "pass": False, "reason": f"UNKNOWN share {census['unknown_share']:.3f} > {lab.UNKNOWN_MAX_SHARE}"}
+    census["gl"] = gl
+    census["gtp"] = gate_gtp(fills)
+    census["population_label"] = thin_label(fills)
     census["counts_only"] = True
     return census
 
@@ -1039,7 +1134,9 @@ def screen_t(fills: list[dict], txs: list[dict], qi: QuoteIndex, census: dict, *
     """q0273. Gates (GT, GL, GTP, GTI) first; a failed or unknown gate counts the test with p = 1. Every line carries the labels. The qi must be a mark-mode index."""
     D = build_dataset(fills, qi)
     gti = gate_gti(fills, D, txs) if len(D["tx_id"]) else {"pairs": 0, "evaluable": False, "pass": False, "not_evaluable_label": LABEL_CADENCE}
-    gt, gl, gtp = census["gt"], census["gl"], census["gtp"]
+    gt, gl, gtp = census["gt"], dict(census["gl"]), census["gtp"]
+    if not census.get("unknown_ok", False):  # never "met" by default: UNKNOWN > 5% fails GL
+        gl["pass"] = False
     labels = [LABEL_T] + ([LABEL_THIN] if census.get("population_label") else []) + ([gti["not_evaluable_label"]] if gti.get("not_evaluable_label") else [])
     cad_fail = bool(gti.get("evaluable") and not gti.get("pass"))
     out: dict = {"gti": gti, "labels": labels, "reported": reported_variants(D, fills) if len(D["tx_id"]) else {}}
@@ -1066,15 +1163,9 @@ def screen_t(fills: list[dict], txs: list[dict], qi: QuoteIndex, census: dict, *
 
 
 def holdout_source_files(trades_dir: Path, snap_root: Path, pin: dict) -> list[Path]:
-    lo, hi = c13.split_bounds("holdout", pin)
-    files = []
-    d = datetime.fromtimestamp(lo, UTC).date()
-    end = datetime.fromtimestamp(hi - 1, UTC).date()
-    while d <= end:
-        p = Path(trades_dir) / f"trades-{d:%Y%m%d}.jsonl"
-        if p.exists():
-            files.append(p)
-        d = datetime.fromordinal(d.toordinal() + 1).date()
+    """Every source file the HOLDOUT reads and q0274 seals: the monitor files ``trade_files`` returns (2026-10-21..26, the next receipt day included) and ``rows.csv.gz`` / ``rows_ext.csv.gz``
+    of every capture starting inside the window."""
+    files = list(trade_files(trades_dir, "holdout", pin))
     for meta in c13.list_captures(snap_root, "holdout", pin):
         files += [meta["dir"] / "rows.csv.gz", meta["dir"] / "rows_ext.csv.gz"]
     return files
@@ -1143,15 +1234,40 @@ def stage2_t(D: dict, triggered: dict[str, bool], gti_pooled: dict, *, n_draws: 
     for r in tests.values():
         r["stage2_early_alpha_ok"] = c13.early_stage2_ok(r.get("p") if r.get("testable", True) else None)
         r["labels"] = out["labels"]
-    out["holm"] = c13.stage2_holm({t: (r.get("p") if r.get("testable", True) else None) for t, r in tests.items()}) if tests else {}
-    for t, r in tests.items():
-        r["stage2_pass_alpha_over_k"] = bool(r.get("advance") and (r["stage2_early_alpha_ok"] or ((out["holm"].get("tests") or {}).get(t, {}) or {}).get("reject")))
+    out["holm_family_partial"] = c13.stage2_holm({t: (r.get("p") if r.get("testable", True) else None) for t, r in tests.items()}) if tests else {}  # information only: the decision step is the CB13-wide stage2-final Holm
+    for r in tests.values():
+        r["stage2_pass_alpha_over_k"] = bool(r.get("advance") and r["stage2_early_alpha_ok"])  # early alpha / 5 only; the CB13-wide final Holm (run_cb13.py stage2-final) can only add passes
     return out
 
 
 # =====================================================================================================================================================
 # Smoke (q0270: no network), declared
 # =====================================================================================================================================================
+
+
+def _first(x):
+    """(recv, bid, ask) of a ``Q`` touch row, None for no row."""
+    return None if x is None else (x.recv, x.bid, x.ask)
+
+
+def h8_counts(prints: list[dict], lookup) -> dict[str, int]:
+    """Probe H8's classification of prints against the market's latest complete-capture row received before the print: touch age band (<= 20 / 20-60 / 60-120 / > 120 min) x position of the
+    YES-terms price (crossing = at or beyond the touch, inside = strictly inside the spread; no row / one-sided counted apart). ``lookup(condition_id, ts) -> (recv, bid, ask) | None``."""
+    out: Counter = Counter()
+    for p in prints:
+        row = lookup(p["condition_id"], p["ts"])
+        if row is None:
+            out["no row"] += 1
+            continue
+        recv, bid, ask = row
+        if not two_sided(bid, ask):
+            out["one-sided"] += 1
+            continue
+        age = (p["ts"] - recv) / 60.0
+        band = "<=20m" if age <= 20 else ("20-60m" if age <= 60 else ("60-120m" if age <= 120 else ">120m"))
+        y = yes_price(p)
+        out[f"{band}|{'crossing' if (y >= ask or y <= bid) else 'inside'}"] += 1
+    return dict(sorted(out.items()))
 
 
 def smoke_offline(ctx: dict) -> dict:
@@ -1208,18 +1324,24 @@ def smoke_offline(ctx: dict) -> dict:
         caps = c13.list_captures(snap, "screen", pin)
         if len(caps) >= 2:
             c0, c1 = caps[0], caps[1]
-            txs, _ = screen_transactions(trades, "screen", pin)
-            between = [t for t in txs if c0["start"] < t["ts"] < c1["start"]]
-            wanted = {t["condition_id"] for t in between}
+            prints, _ = screen_prints(trades, "screen", pin)
+            between = [p for p in prints if c0["start"] < p["ts"] < c1["start"]]
+            wanted = {p["condition_id"] for p in between}
             qi = load_quote_index(caps[:2], wanted, "touch", "screen", pin)
-            fills, counts = make_fills(between, qi)
-            by_age = Counter()
-            for f in fills:
-                if math.isfinite(f["touch_age_s"]):
-                    a = f["touch_age_s"]
-                    by_age["<=20m" if a <= 1200 else ("20-60m" if a <= 3600 else ">60m")] += 1
-            join = {"pass": bool(len(between) > 0 and sum(counts.values()) == len(between)), "n_prints_between": len(between), "status_counts": counts, "touch_age_bands": dict(by_age),
-                    "note": "probe H8 pair counts are not reproducible per capture pair from the design; the band counts are reported, the join must account for every transaction"}
+            # (A) the join as the frame does it (QuoteIndex.touch, every print its own transaction) and (B) probe H8's rule recomputed independently from the raw capture rows
+            via_index = h8_counts(between, lambda cid, ts: _first(qi.touch(cid, ts)[0]))
+            raw: dict[str, list[tuple[float, float, float]]] = {}
+            for meta in caps[:2]:
+                for r in c13.iter_capture_rows(meta["dir"], wanted):
+                    raw.setdefault(r["condition_id"], []).append((c13.parse_iso(r["received_utc"]), c13.num(r.get("best_bid")), c13.num(r.get("best_ask"))))
+            via_raw = h8_counts(between, lambda cid, ts: max((x for x in raw.get(cid, []) if x[0] < ts), default=None, key=lambda x: x[0]))
+            single, _ = build_transactions(between, aggregate=False)
+            fills, counts = make_fills(single, qi)
+            band_counts = Counter(f["status"] for f in fills)
+            join = {"pass": bool(len(between) > 0 and via_index == via_raw and sum(counts.values()) == len(single) == len(between)), "n_prints_between": len(between),
+                    "h8_age_by_position_via_index": via_index, "h8_age_by_position_independent": via_raw, "status_counts": counts, "touch_consistency_bands": dict(band_counts),
+                    "note": "the H8 rule (touch age <=20 / 20-60 / 60-120 / >120 min x crossing / inside / no row or one-sided) is recomputed independently of the quote index and must give identical counts; the "
+                            "original H8 totals (44 captures, probe script not committed) are not reproduced numerically (declared in CREATIVE_BATCH_13.md, freeze-check fixes)"}
         elif not caps:
             join = {"pass": False, "reason": "no SCREEN captures found"}
         txs, _ = screen_transactions(trades, "screen", pin)

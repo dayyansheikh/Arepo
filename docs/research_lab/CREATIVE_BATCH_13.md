@@ -1043,3 +1043,43 @@ or cap. k stays **3 fixed + ≤ 5 conditional = 3-8**, and the cumulative count 
 | Ruling (7) | **Adopted** | §CB13-R power, §7 | Planning MDE restated as about 0.85-1.15 without reach/dip opposition; R1 is expected to be "not run (power)" unless GRP finds otherwise |
 
 **Rejected:** none.
+
+## 11. Code freeze check round 1 (2026-10-19) and fixes
+
+The science-reviewer's code-against-design check of commit fef4066 returned **revise** (22 defects; T screen, T rep and the R seal NO_GO). All fixes make the code match this design, or
+declare a deviation that only tightens (no floor, gate, alpha or cap is relaxed). Trial counts are recorded by the code at run time (`battery2.cumulative_count()`); the 1,181 / 1,221 references
+above are historical.
+
+| # | Defect | Status | Where |
+|---|---|---|---|
+| 1 | T1 composition placebo `KeyError` for events outside the T1 index | fixed (`perm.get(e)`; mixed-dataset test) | `cb13_t.composition_placebo` |
+| 2 | 60% availability rule (§2.6 iv) unused | fixed: T1, T2, T3, R1, R2 return "not testable (availability)" below 0.60 | `cb13_common.availability`, `cb13_t.*_test`, `cb13_r.unit_availability`, `r2_test` |
+| 3 | Smoke FAIL wrote no counted line | fixed: counted once (T1+T2 n=2; R1 n=1), smoke file is write-once | `run_cb13.cmd_smoke` |
+| 4 | Holm non-strict (`c9.holm`) | fixed: `c12.holm` | `cb13_common.holm` |
+| 5 | Unverified-disjointness stall never counted | fixed: pregate writes the counted R1 p = 1 line once (and screen-R does not count it again) | `run_cb13.cmd_pregate`, `cmd_screen` |
+| 6 | UNKNOWN > 5% did not fail GL | fixed in census and screen-T ("not testable (labeller)") | `cb13_t.census_t`, `screen_t` |
+| 7 | "population thinned by exclusions" label never set; pooled share | fixed: per class (LOW, NEWS), set by the census | `cb13_t.thin_label`, `census_t`, `frame_report` |
+| 8 | Staleness-share control; top-5 drops lacked path key x block | fixed: event-level "inconsistent with touch" share in the attribution regression; top-5 by event, path key x block, block | `cb13_t.attribution`, `analyse` |
+| 9 | HOLDOUT omitted `trades-20261026.jsonl` | fixed in both readers and the q0274 seal list | `cb13_t.trade_files` |
+| 10 | Exclusion keys dropped ids of files with no timestamp; unbounded scan | fixed: only ids with a stored timestamp inside a T window; files without a timestamp column are counted, not used; scan is resumable and budgeted | `cb13_t.t_exclusion_keys`, `ScanUnfinished` |
+| 11 | T Stage 2 lines had role `exploratory_dev` | fixed: `prospective` (the count line keeps a validated role) | `run_cb13.rep_t`, `cb13_common.log_family` |
+| 12 | Queue drafts | fixed: q0280 lane `net`, mem 500; q0278 mem 500; q0276 mem 1200, `--budget-min 34`, timeout 2700, repeat 60; q0274 spec `not_before`; placeholders refuse with exit 2; q0277 regex matches `disjointness_unverified` | `queue/drafts/q0274-q0283` |
+| 13 | CB3 stop regex liftable by quoting the design | fixed: committed `seals/cb3_stop.json` with `cb3_stop` equal to `CB3_STOPPED_WITHOUT_FREEZE` | `cb13_common.cb3_hold_lifted` |
+| 14 | Stage-2 Holm per family | fixed: family step is information only; `run_cb13.py stage2-final` runs ONE strict Holm over all triggered CB13 Stage-2 tests, write-once, adds passes only | `cb13_common.stage2_final`, `run_cb13.cmd_stage2_final` |
+| 15 | T smoke join checked accounting only | **declared**: the join is recomputed independently (H8 rule on raw capture rows) and must match the frame's counts; H8's original totals (44 captures, probe script not committed) are not reproduced numerically. The check is stricter than accounting; no gate is relaxed | `cb13_t.smoke_offline` |
+| 16 | q0274 ran with a provisional J4-R pin | fixed: `final` must be true (exit 75 otherwise) | `run_cb13.cmd_t_holdout` |
+| 17 | Freeze not tied to the rules | fixed: the freeze entry must pin the verified rules sha (T also the LABELLER sha) | `cb13_common.require_freeze` |
+| 18 | R primary ignored the 8-day cap | fixed (`window_is_weekly`; longer windows are census-only) | `cb13_r.is_primary`, `classify_status` |
+| 19 | R parser / labeller deviations | labeller fixed to the design (crypto category alone no longer makes PATH-SETTLED; audit keywords follow §3: transfers, signings, coaching, awards, MVP, draft). **Declared**: the window is parsed from the title and cross-checked with `endDate` (not from the description; a mismatch of the last date or T is a parser failure), and the description must also carry an ET marker (an extra flag). Both only tighten | `cb13_label.py`, `cb13_r.parse_weekly_window`, `desc_flags` |
+| 20 | Gamma outcomes in an unguarded partial | fixed: outcomes go to guarded partial files per split; `frame_partial.jsonl` holds none | `cb13_r.touch_frame` |
+| 21 | `hourly_change` used points not usable at t | fixed: only points with stamp + 3,600 s < t | `cb13_r.build_units` |
+| 22 | "settlement basis" label missing on R1 | fixed (agreement < 97%) | `cb13_r.attach_basis_label` |
+| smoke | R smoke could fail vacuously | fixed: bounded out-of-window pick search (four queries, days 2026-10-02..16, at most 5 walk days, 30-request cap kept) | `cb13_r.smoke_online` |
+
+**New rules part sha256 (seals/cb13_rules.json, regenerated before any freeze; the old file was never pinned):**
+- common `4553488ed29ece7b71acad8bb4c8646728e5897c3650218410583d813f373c52`
+- LABELLER `6801e2150d4a772b61523aa1ed1548b485255f12099fb52c1154afe6b22cfa0c`
+- T `5e0dc8948bb03e611f0da047dcfb110a8a1714c3f653726e15478425ea8483cd`
+- R `5695fb5a2ffd2643a4f25418c052eef67c8bc57a412cff5e685154fa690d8279`
+
+Not yet done: a queue draft for `stage2-final` (no q-id reserved), and a focused re-check by the science-reviewer.

@@ -38,7 +38,7 @@
   "manifest.json"
  ],
  "next_action": "q0284",
- "notes": "DRAFT. <= 600 requests. Range from q0277's min(T0) (round 1 item 6). A CHECKSUM mismatch is retried once, then the month is 'unavailable (source)'; units needing it are 'unavailable (no klines)', counted. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-18): common 51e844964385ddeb8e6efc51f7f16dfb97d86efab0296848a852b271a4ed952d, R 996bccf7230913c7df7a66cd676a61a7d4d40bc79f8c5a389409e9764daa9021. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "notes": "DRAFT. <= 600 requests. Range from q0277's min(T0) (round 1 item 6). A CHECKSUM mismatch is retried once, then the month is 'unavailable (source)'; units needing it are 'unavailable (no klines)', counted. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 4553488ed29ece7b71acad8bb4c8646728e5897c3650218410583d813f373c52, R 5695fb5a2ffd2643a4f25418c052eef67c8bc57a412cff5e685154fa690d8279. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
  "repeat": {
   "max_runs": 3,
   "until_log_regex": "\"status\": \"(binance_complete|stalled)\""

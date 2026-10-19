@@ -105,7 +105,11 @@ FLAG_HIGH_RE = re.compile(r"[\"“‘']High[\"”’']")
 FLAG_LOW_RE = re.compile(r"[\"“‘']Low[\"”’']")
 SMOKE_NEEDS = ("guards_fixture_R", "r_request_cap", "r_walk_finds_search", "r_rule_parser", "r_prices_history", "r_binance_units")
 SMOKE_WALK_DAYS = ("2026-10-05", "2026-10-12")
+SMOKE_RANGE = ("2026-10-02", "2026-10-16")  # inclusive: out-of-window days the smoke may use (fallback pick search when the declared days hold no search-found event)
+SMOKE_QUERIES = ("what price will bitcoin hit", "what price will ethereum hit", "what price will solana hit", "what price will xrp hit")
 SMOKE_MAX_REQUESTS = 30
+SMOKE_BINANCE_RESERVE = 6  # requests kept back for the two Binance months (CHECKSUM + zip each, plus a retry)
+SMOKE_MAX_WALK_DAYS = 5
 BINANCE_BASE = "https://data.binance.vision/data/spot/monthly/klines"
 BINANCE_UA = "arepo-research"
 EVENT_COLUMNS = ["event_id", "title_sha256", "template", "asset", "split", "status", "reason", "win_lo", "win_hi", "end_epoch", "start_epoch", "neg_risk", "n_members", "series_id", "component", "desc_sha256",
@@ -271,8 +275,14 @@ def split_of(end_epoch: float) -> str:
     return ""
 
 
+def window_is_weekly(row: dict) -> bool:
+    """Section CB13-R primary: the parsed rule window is at most 8 days (``WEEKLY_MAX_S`` = 8 d + one DST hour)."""
+    lo, hi = c13.num(row["win_lo"]), c13.num(row["win_hi"])
+    return bool(math.isfinite(lo) and math.isfinite(hi) and 0 < hi - lo <= WEEKLY_MAX_S)
+
+
 def is_primary(row: dict) -> bool:
-    return bool(row["template"] == "weekly" and int(row["parse_ok"]) and int(row["flags_ok"]) and row["status"] == "kept")
+    return bool(row["template"] == "weekly" and int(row["parse_ok"]) and int(row["flags_ok"]) and row["status"] == "kept" and window_is_weekly(row))
 
 
 def classify_status(row: dict, members: list[dict], ids: set[str], keys: dict[str, set[str]]) -> tuple[str, str]:
@@ -292,6 +302,8 @@ def classify_status(row: dict, members: list[dict], ids: set[str], keys: dict[st
         return "dropped:key", "neg_risk_market"
     if row["template"] != "weekly":
         return "census_only", row["template"]
+    if not window_is_weekly(row):  # a "weekly"-looking title whose parsed window exceeds 8 days is not primary (counted in the census only)
+        return "census_only", "window>8d"
     return "kept", ""
 
 
@@ -403,6 +415,19 @@ def _iter_partial(path: Path):
                     continue
 
 
+def _repair_tail(path: Path) -> None:
+    """A torn last line (no newline) gets one, so the next append starts a fresh line."""
+    path = Path(path)
+    if not path.exists():
+        return
+    with path.open("rb+") as fh:
+        fh.seek(0, 2)
+        if fh.tell():
+            fh.seek(-1, 2)
+            if fh.read(1) != b"\n":
+                fh.write(b"\n")
+
+
 def poly_barrier_ids(poly_path: Path) -> dict[str, float]:
     """Market ids (-> scheduled ``end`` epoch) of the barrier members in the 2026-10-12 Gamma pull (``cross_venue/poly_markets.json``), streamed object by object. ONLY ``market_id``, ``question``
     and ``end`` are kept; the object's ``outcome_prices`` and ``volume`` are decoded by the stream and discarded unread."""
@@ -491,16 +516,15 @@ def touch_frame(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_pa
     fr = cm.open_run(Path(hist_root), FRAME_RUN, transport, allowed_run_id=FRAME_RUN, kind="cb13_touch_frame", label="CB13-R frame",
                      params={"evidence_role": c13.EVIDENCE_ROLE_HIST, "tag_id": TAG_ID, "first": first, "last": last, "exclusion_keys_sha256": ksha}, rules_sha=rules_sha, key_fp="", disk_cap=disk_cap,
                      rps=min(rps, 2.0), budget_min=budget_min, now=now, sleep=sleep, live_check=live_check, wall_clock=wall_clock, snapshot_root=snapshot_root, health_check=health_check)
-    part = rdir / "frame_partial.jsonl"
+    part = rdir / "frame_partial.jsonl"  # no Gamma outcome field is ever written here (parsed rows, members, counts only)
+    gpart = {"screen": rdir / "outcomes_guarded_partial_screen.jsonl", "holdout": rdir / "holdout" / "outcomes_guarded_partial_holdout.jsonl"}  # guarded, split by the event's endDate
+    (rdir / "holdout").mkdir(parents=True, exist_ok=True)
     have: set[str] = set()
+    for gp in gpart.values():
+        _repair_tail(gp)
     if part.exists():
         have = {rec["day"] for rec in _iter_partial(part)}
-        with part.open("rb+") as fh:
-            fh.seek(0, 2)
-            if fh.tell():
-                fh.seek(-1, 2)
-                if fh.read(1) != b"\n":
-                    fh.write(b"\n")
+        _repair_tail(part)
     try:
         for day, a, b in day_windows(first, last):
             if day in have:
@@ -528,7 +552,11 @@ def touch_frame(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_pa
                     continue
                 seen.add(pe["row"]["event_id"])
                 kinds["race_members"] += pe["race"]
-                recs.append({"row": pe["row"], "members": pe["members"], "outcomes": pe["outcomes"]})
+                recs.append({"row": pe["row"], "members": pe["members"]})
+                sp_ = split_of(pe["row"]["end_epoch"])
+                if sp_ and pe["outcomes"] and pe["row"]["template"] == "weekly":  # outcomes only of weekly (primary-candidate) events, to the guarded partial of their split, BEFORE the day is marked done
+                    with gpart[sp_].open("a") as gh:
+                        gh.write(json.dumps({"day": day, "event_id": pe["row"]["event_id"], "outcomes": pe["outcomes"]}) + "\n")
             with part.open("a") as fh:
                 fh.write(json.dumps({"day": day, "splits": stats.get("splits", 0), "kinds": dict(kinds), "events": recs}, default=float) + "\n")
             have.add(day)
@@ -540,6 +568,10 @@ def touch_frame(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_pa
         rows: dict[str, dict] = {}
         mem: dict[str, list[dict]] = {}
         outs: dict[str, list[dict]] = {}
+        for gp in gpart.values():
+            if gp.exists():
+                for rec in _iter_partial(gp):
+                    outs.setdefault(rec["event_id"], rec["outcomes"])
         kinds_all: Counter = Counter()
         splits = 0
         for rec in _iter_partial(part):
@@ -548,7 +580,8 @@ def touch_frame(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_pa
             for e in rec["events"]:
                 eid = e["row"]["event_id"]
                 if eid not in rows:
-                    rows[eid], mem[eid], outs[eid] = e["row"], e["members"], e["outcomes"]
+                    rows[eid], mem[eid] = e["row"], e["members"]
+                    outs.setdefault(eid, [])
         for eid, r in rows.items():
             r["split"] = split_of(r["end_epoch"])
             r["status"], r["key_source"] = classify_status(r, mem[eid], ids, keys)
@@ -596,6 +629,8 @@ def touch_frame(hist_root: Path, transport, *, rules_sha: str, exclusion_keys_pa
     except OSError as exc:
         return cm.disk_budget_end(fr, exc)
     part.unlink(missing_ok=True)
+    for gp in gpart.values():
+        gp.unlink(missing_ok=True)
     m_ = fr.manifest(None, {"complete": True, "status": FRAME_STATUS})
     m_["status"] = FRAME_STATUS
     return m_
@@ -1148,7 +1183,8 @@ def build_units(frame: dict, prices: dict[str, list[tuple[float, float]]] | None
                         cnt["outside [0.03, 0.97]"] += 1
                         continue
                     u["p_t"], u["p_reg"] = pt[1], pr[1]
-                    u["hourly_change"] = int(len({round(p, 6) for ts, p in pts if t - PREG_LAG_S <= ts < t}) > 1)
+                    lag = c13.c12.known_lag_s(FIDELITY)  # only points USABLE at t (stamp + 3,600 s < t) may inform the hourly-change robustness flag
+                    u["hourly_change"] = int(len({round(p, 6) for ts, p in pts if t - PREG_LAG_S <= ts and ts + lag < t}) > 1)
                 tau_y = (ev["win_hi"] - t) / (365.0 * DAY)
                 u["tau_y"] = tau_y
                 u["q_touch"] = q_touch(S, B, sigma, tau_y)
@@ -1307,6 +1343,22 @@ def _sgn(make_v, idx: np.ndarray) -> float:
     return float(make_v(idx)[1])
 
 
+def unit_availability(cnt: Counter) -> dict:
+    """Section 2.6 (iv): available / eligible units. Eligible = every (market, checkpoint) unit that is neither ``decided`` nor dropped as a pre-2026-04-01 HOLDOUT checkpoint; available = those with
+    klines and a price (the ones counted ``eligible`` or ``outside [0.03, 0.97]``); unavailable = ``unavailable (no klines)`` and ``unavailable (no price)``. Below 60% the test is
+    "not testable (availability)"."""
+    avail = int(cnt["eligible"] + cnt["outside [0.03, 0.97]"])
+    return c13.availability(avail, avail + int(cnt["unavailable (no klines)"] + cnt["unavailable (no price)"]))
+
+
+def attach_basis_label(out: dict) -> None:
+    """Binance-Gamma agreement < 97%: R1 (and the result's label list) carries the "settlement basis" label."""
+    lab_ = (out.get("agreement") or {}).get("label")
+    if lab_ and isinstance(out.get("R1"), dict):
+        out["R1"]["labels"] = [*out["R1"].get("labels", []), lab_]
+        out["labels"] = [*out.get("labels", []), lab_]
+
+
 def agreement_audit(units: list[dict]) -> dict:
     """The Binance-Gamma agreement (reported): share of units where the Binance touch outcome equals the venue's outcome; < 97% -> the label "settlement basis"."""
     pairs = [(u["y"], u["y_gamma"]) for u in units if "y_gamma" in u and math.isfinite(u["y_gamma"])]
@@ -1329,13 +1381,13 @@ def cross_horizon_sigma(units: list[dict]) -> dict:
 # ---- R2 (Stage 2, modelled cost) --------------------------------------------------------------------------------------------------------------------
 
 
-def r2_entries(units: list[dict], *, key: str = "q_touch", extra: float = 0.0) -> list[dict]:
+def r2_entries(units: list[dict], *, key: str = "q_touch", extra: float = 0.0, require_gamma: bool = True) -> list[dict]:
     """One entry per market at its FIRST eligible checkpoint where ``q - a_YES >= 5c`` (buy YES) or ``(1 - q) - a_NO >= 5c`` (buy NO). ``a = p + hs(p) (+ extra)``, taker fee
     ``r a (1 - a)`` with ``r = max(feeSchedule.rate, 0.07)``; held to resolution, paid on the venue's resolution (``y_gamma``)."""
     seen: set[str] = set()
     out = []
     for u in sorted(units, key=lambda x: (x["market_id"], x["t"])):
-        if u["market_id"] in seen or not math.isfinite(u.get("y_gamma", math.nan)):
+        if u["market_id"] in seen or (require_gamma and not math.isfinite(u.get("y_gamma", math.nan))):
             continue
         p = u["p_t"]
         q = u["p_reg"] if key == "p_reg" else u[key]
@@ -1348,13 +1400,17 @@ def r2_entries(units: list[dict], *, key: str = "q_touch", extra: float = 0.0) -
         else:
             continue
         seen.add(u["market_id"])
-        out.append({**u, "a": a, "net": payoff - a - r * a * (1 - a)})
+        out.append({**u, "a": a, "net": payoff - a - r * a * (1 - a)})  # payoff is NaN (not available) when the venue's resolution is missing and require_gamma is off
     return out
 
 
 def r2_test(units: list[dict], *, placebo: bool = True) -> dict:
     """R2: one-sided mean(net) > 0, floor +1.0c, robustness +1.0c on ``a``, binding placebo (``p_reg`` in place of ``q_touch`` must not pass p < 0.01); not run (power) if MDE > 2c."""
-    ent = r2_entries(units)
+    cand = r2_entries(units, require_gamma=False)  # eligible entries; available = those with the venue's resolution (R2 is paid on it)
+    ent = [e for e in cand if math.isfinite(e["net"])]
+    av = c13.availability(len(ent), len(cand))
+    if cand and not av["ok"]:
+        return {**_nt(c13.AVAILABILITY_LABEL), "availability": av}
     if len(ent) < 3:
         return {**{"testable": False, "p": 1.0, "advance": False}, "verdict": "not testable (population)", "n": len(ent)}
     V = unit_arrays(ent)
@@ -1545,9 +1601,12 @@ def screen_r(frame_dir: Path, bin_dir: Path, census: dict, gamma_rows: list[dict
     attach_outcomes(units, kl, gamma_outcomes(gamma_rows))
     U = unit_arrays(units)
     out: dict = {"unit_counts": dict(cnt), "labels": [LABEL_R] + ([census["drops"]["population_label"]] if census["drops"].get("population_label") else [])}
-    out["R1"] = r1_test(U, n_draws=n_draws)
+    av = unit_availability(cnt)
+    out["availability"] = av
+    out["R1"] = r1_test(U, n_draws=n_draws) if av["ok"] else {**_nt(c13.AVAILABILITY_LABEL), "availability": av}
     out["R1"]["effect"] = out["R1"].get("est")
     out["agreement"] = agreement_audit(units)
+    attach_basis_label(out)
     out["cross_horizon_sigma"] = cross_horizon_sigma(units)
     out["reported"] = {"share_abs_q_minus_p_ge_5c": float(np.mean(np.abs(U["q_touch"] - U["p_t"]) >= 0.05)) if len(units) else None}
     out["advanced"] = ["R1"] if out["R1"].get("advance") else []
@@ -1576,16 +1635,23 @@ def rep_r(frame_dir: Path, bin_dir: Path, seal: dict, triggered: dict[str, bool]
     comps = {u["component"] for u in units if u["component"]}
     if triggered.get("R1"):
         U = unit_arrays(units)
-        out["R1"] = r1_test(U, n_draws=n_draws, rep=True) if len(comps) >= GR_MIN["components"] else _nt("not run (power)")
+        av = unit_availability(cnt)
+        if len(comps) < GR_MIN["components"]:
+            out["R1"] = _nt("not run (power)")
+        elif not av["ok"]:
+            out["R1"] = {**_nt(c13.AVAILABILITY_LABEL), "availability": av}
+        else:
+            out["R1"] = r1_test(U, n_draws=n_draws, rep=True)
     if triggered.get("R2"):
         out["R2"] = r2_test(units)
     tests = {t: out[t] for t in ("R1", "R2") if t in out}
     for _t, r in tests.items():
         r["stage2_early_alpha_ok"] = c13.early_stage2_ok(r.get("p") if r.get("testable", True) else None)
-    out["holm"] = c13.stage2_holm({t: (r.get("p") if r.get("testable", True) else None) for t, r in tests.items()}) if tests else {}
-    for t, r in tests.items():
-        r["stage2_pass_alpha_over_k"] = bool(r.get("advance") and (r["stage2_early_alpha_ok"] or ((out["holm"].get("tests") or {}).get(t, {}) or {}).get("reject")))
+    out["holm_family_partial"] = c13.stage2_holm({t: (r.get("p") if r.get("testable", True) else None) for t, r in tests.items()}) if tests else {}  # information only: the decision step is the CB13-wide stage2-final Holm
+    for r in tests.values():
+        r["stage2_pass_alpha_over_k"] = bool(r.get("advance") and r["stage2_early_alpha_ok"])  # early alpha / 5 only; the CB13-wide final Holm (run_cb13.py stage2-final) can only add passes
     out["agreement"] = agreement_audit(units)
+    attach_basis_label(out)
     return out
 
 
@@ -1792,27 +1858,38 @@ def smoke_online(lim, ctx: dict) -> dict:
     ``prices-history`` with explicit bounds on 2 members; one Binance month from 2024 and one from 2025 (CHECKSUM + parse) confirm the ms -> us change at 2025-01-01. To stay within the
     request cap the walk uses the one-hour window around each day's search-found barrier end (q0277 walks the full days)."""
     transport = lim.transport
-    st, data = lim.get("https://gamma-api.polymarket.com/public-search", {"q": "what price will bitcoin hit", "events_status": "closed", "limit_per_type": 20})
-    found: dict[str, float] = {}
-    if st == 200 and isinstance(data, dict):
-        for e in data.get("events") or []:
-            end = c13.parse_iso(e.get("endDate")) if isinstance(e, dict) else math.nan
-            if isinstance(e, dict) and EVENT_TITLE_RE.match(str(e.get("title") or "")) and math.isfinite(end) and cm.iso(end)[:10] in SMOKE_WALK_DAYS:
-                found[str(e["id"])] = end
-    walked: dict[str, dict] = {}
-    for day in SMOKE_WALK_DAYS:
-        ends = [t for t in found.values() if cm.iso(t)[:10] == day]
-        if ends:
-            for ev in walk_window(lim, min(ends) - HOUR, max(ends) + HOUR):
-                walked[str(ev.get("id"))] = ev
-    walk_ok = bool(found) and all(i in walked for i in found)
-    parsed = []
-    for ev in list(walked.values()):
-        pe = parse_event(ev)
-        if pe and pe["kind"] == "barrier" and pe["row"]["template"] == "weekly":
-            parsed.append(pe)
-        if len(parsed) >= 3:
+    by_day: dict[str, dict[str, float]] = {}  # day -> {event id: end epoch} of search-found barrier events with an end in the smoke range
+    n_queries = 0
+    for q in SMOKE_QUERIES:  # bounded out-of-window pick search (CB11 precedent): stop as soon as the declared days are both covered
+        st, data = lim.get("https://gamma-api.polymarket.com/public-search", {"q": q, "events_status": "closed", "limit_per_type": 20})
+        n_queries += 1
+        if st == 200 and isinstance(data, dict):
+            for e in data.get("events") or []:
+                end = c13.parse_iso(e.get("endDate")) if isinstance(e, dict) else math.nan
+                if isinstance(e, dict) and EVENT_TITLE_RE.match(str(e.get("title") or "")) and math.isfinite(end) and SMOKE_RANGE[0] <= cm.iso(end)[:10] <= SMOKE_RANGE[1]:
+                    by_day.setdefault(cm.iso(end)[:10], {})[str(e["id"])] = end
+        if all(d in by_day for d in SMOKE_WALK_DAYS):
             break
+    days = [d for d in SMOKE_WALK_DAYS if d in by_day] + [d for d in sorted(by_day) if d not in SMOKE_WALK_DAYS]
+    found: dict[str, float] = {}
+    walked: dict[str, dict] = {}
+    parsed = []
+    walked_days = []
+    for day in days[:SMOKE_MAX_WALK_DAYS]:
+        if len(walked_days) >= 2 and len(parsed) >= 3:
+            break
+        if lim.requests + SMOKE_BINANCE_RESERVE + 3 > SMOKE_MAX_REQUESTS:
+            break
+        ends = list(by_day[day].values())
+        for ev in walk_window(lim, min(ends) - HOUR, max(ends) + HOUR):
+            walked[str(ev.get("id"))] = ev
+            pe = parse_event(ev)
+            if pe and pe["kind"] == "barrier" and pe["row"]["template"] == "weekly" and len(parsed) < 3:
+                parsed.append(pe)
+        walked_days.append(day)
+        if len(walked_days) <= 2:  # the walk-versus-search check covers the first two days
+            found.update(by_day[day])
+    walk_ok = bool(found) and len(walked_days) >= 1 and all(i in walked for i in found)
     parser_ok = bool(len(parsed) >= 3 and all(p["row"]["parse_ok"] and p["row"]["flags_ok"] and p["row"]["win_lo"] < p["row"]["win_hi"] for p in parsed) and all(p["members"] for p in parsed))
     ph = {}
     for i, pe in enumerate(parsed[:2]):
@@ -1828,7 +1905,7 @@ def smoke_online(lim, ctx: dict) -> dict:
         bin_res[month] = {"status": status, "unit": unit, "ok": bool(status == "ok" and unit == want), "sha256": sha}
     n_req = lim.requests + blim.requests
     return {"r_request_cap": {"pass": bool(n_req <= SMOKE_MAX_REQUESTS), "requests": n_req},
-            "r_walk_finds_search": {"pass": bool(walk_ok and walked), "walked": len(walked), "search_found": len(found)},
+            "r_walk_finds_search": {"pass": bool(walk_ok and walked), "walked": len(walked), "search_found": len(found), "days": walked_days, "search_queries": n_queries},
             "r_rule_parser": {"pass": parser_ok, "parsed": len(parsed), "windows": [(cm.iso(p["row"]["win_lo"]), cm.iso(p["row"]["win_hi"])) for p in parsed]},
             "r_prices_history": {"pass": bool(len(ph) >= 2 and all(v["ok"] for v in ph.values())), "per": ph},
             "r_binance_units": {"pass": bool(all(v["ok"] for v in bin_res.values())), "per": bin_res}}
