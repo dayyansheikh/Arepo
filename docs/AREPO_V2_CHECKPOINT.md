@@ -220,7 +220,7 @@ Mission: `research_lab/AUTONOMOUS_PROGRAMME_MISSION_2026-10-15.md`.
 4. Resend audit (deferred).
 5. One-time usage reset (deadline Wed 21 Oct): the user must check claude.ai/settings/usage. Already alerted.
 
-## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 21:41Z
+## Exact next actions (for the next session, autopilot or interactive) — updated 2026-10-19 21:24Z
 0. **Autopilot session from 20:29Z 10-19.** All results/rulings are in the ledger (entries from "Session 2026-10-19
    ~20:30Z" on). Counted today: CB15-E E1/E2, CB13-T T1/T2, CB16-Q Q1 (all not testable).
    - **Queue:** q0227b (CB11-A, net, repeat) running; then smokes q0285b/q0300/q0301/q0348 (priority 27), q0244
