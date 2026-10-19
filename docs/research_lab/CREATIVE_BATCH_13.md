@@ -1095,7 +1095,16 @@ No threshold, floor, alpha or gate changes. The rules were resealed (no job othe
 - **E.** The common part now pins the source sha256 of the shared helpers the rules call: `c12.holm`, `c12.known_lag_s`, `c12.mde`, `c12.cluster_se_mean`, `c12.parse_iso`, `c12.iso_week_of`, `c10.cluster_p`, `c10.cluster_p_d`, `c10.slope_pseudo`, `c10.placebo_advance_rate` (`shared_helper_sources_sha256`).
 
 **Rules part sha256 after the verify round (supersede the list above):**
-- common `1965f63f8087981f6d188f8fcdd373fa83363d90cef27fbf31a9839d26c7aff4`
-- LABELLER `604a78fc474580888130f7453a1c52b9095b9d794e74d83f7dea0eac5f6598f7`
-- T `82fb1f7d3f04f9248c5b3a2457e8f99287c21f321799be973834c6800210109c`
-- R `60ae641870178cdf8fd51f6091c1afbeffc0267b650887e34ac2436e1bbbedad`
+- common `62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014`
+- LABELLER `1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780`
+- T `05acfff64e218405c225296764b29ead071248753d171a86211582d21d707042`
+- R `27ddbc2efa6a5ffdb1125baed9181b0026165491b1ce7b360b71ba8039d82802`
+
+**Focused re-check of A-E (science-reviewer, 2026-10-19, ACCEPT_WITH_FIXES).** A-D accepted (D's reading
+`min(print size, 100)` accepted). E completed: `SHARED_HELPERS` now also pins `c10.leave_one_out_sign`,
+`cb2_weather.small_g_pvalue` (the p engine behind `cluster_p` / `cluster_p_d`), `c9.top_k_drop_mask` and the selection
+helpers `c12.load_exclusion_keys`, `exclusion_stage`, `lookup_keys_closed_first`, `load_drops`, `read_id_set`. Resealed
+before any labeller audit sample was drawn: common `62e90149…`, LABELLER `1e515bb4…`, T `05acfff6…`, R `27ddbc2e…`
+(the hashes above were updated in place). q0276 now depends on q0221b (CB11's amended exclusion-key job). A failed T smoke
+stops at `t-frame` (exit 2) after its counted line, so the census/screen terminal paths are reached only by direct calls;
+this is harmless (the count is already written and stage2-final skips the family).

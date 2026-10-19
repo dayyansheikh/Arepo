@@ -1698,3 +1698,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   hashed in the rules.
 - Verdicts: T smoke GO; T census and R seal GO; the rest GO_WITH_FIXES. **Promoted now: q0270 (T smoke) and q0285
   (R smoke).** Next: fix A-E, reseal, then q0271 -> q0272; R data after the CB11 exclusion keys (q0221b) are pinned.
+
+## CB13 fixes A-E (7fb59a3) re-check, 2026-10-19 ~05:10Z (science-reviewer): ACCEPT_WITH_FIXES; not counted
+- A (Stage-2: checks_ok and (p < alpha/5 or Holm reject)), B (terminal counted not-testable on smoke/pregate fail),
+  C (q0271/q0274 budget + repeat), D (T3 position min(size, 100), declared) accepted. E completed in the follow-up
+  commit (more shared helpers hashed); rules resealed: common `62e90149…`, LABELLER `1e515bb4…`, T `05acfff6…`,
+  R `27ddbc2e…`; drafts re-pinned; q0276 depends on q0221b.
+- Still needed before T data: the GL labeller audit (`audit-sample --round 1` on the host, independent labels,
+  `audit-score`), then q0271 -> q0272; q0273 needs the T freeze (`model_specs/cb13_v1.json` via `freeze-part`).
+
+## CB14 code (d50a2ed) freeze check, 2026-10-19 ~05:05Z (science-reviewer): REVISE; not counted
+- 90 tests pass; rules parts reproduce. 18 defects; three repeat CB13's (the Stage-2 Holm cannot add a pass, shared
+  helpers unhashed, stalls write no counted line). The most serious: the small-G rule marks a test untestable when any
+  way has < 15 clusters (design: that way leaves the max and its leave-one-out sign binds); W live tracks nothing (date
+  clamp); W Stage 2 reads only the latest live frame (selection on outcome); the N exemption can be emptied by CB13's
+  key file. Implementer fixing 1-18; nothing promoted.

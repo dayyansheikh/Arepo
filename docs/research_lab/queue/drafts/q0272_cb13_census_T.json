@@ -32,5 +32,5 @@
   "trials.jsonl (cb13_descriptive)"
  ],
  "next_action": "science-reviewer freeze check (T part)",
- "notes": "DRAFT. No mark capture opened; no M, D or net computed. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 1965f63f8087981f6d188f8fcdd373fa83363d90cef27fbf31a9839d26c7aff4, LABELLER 604a78fc474580888130f7453a1c52b9095b9d794e74d83f7dea0eac5f6598f7, T 82fb1f7d3f04f9248c5b3a2457e8f99287c21f321799be973834c6800210109c. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+ "notes": "DRAFT. No mark capture opened; no M, D or net computed. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, LABELLER 1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780, T 05acfff64e218405c225296764b29ead071248753d171a86211582d21d707042. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
 }

@@ -971,12 +971,16 @@ def part_funcs(part: str) -> list:
 
 
 SHARED_HELPERS = (("c12", "holm"), ("c12", "known_lag_s"), ("c12", "mde"), ("c12", "cluster_se_mean"), ("c12", "parse_iso"), ("c12", "iso_week_of"),
-                  ("c10", "cluster_p"), ("c10", "cluster_p_d"), ("c10", "slope_pseudo"), ("c10", "placebo_advance_rate"))
+                  ("c10", "cluster_p"), ("c10", "cluster_p_d"), ("c10", "slope_pseudo"), ("c10", "placebo_advance_rate"), ("c10", "leave_one_out_sign"),
+                  ("cw", "small_g_pvalue"), ("c9", "top_k_drop_mask"),
+                  ("c12", "load_exclusion_keys"), ("c12", "exclusion_stage"), ("c12", "lookup_keys_closed_first"), ("c12", "load_drops"), ("c12", "read_id_set"))
 
 
 def shared_helper_sources() -> dict[str, str]:
     """sha256 of the source of every shared CB10 / CB12 helper the CB13 rules call (a change to one changes the common rules sha, as CB11 ``func_sources_sha256``)."""
-    mods = {"c12": c12, "c10": c10}
+    from . import cb2_weather as cw  # noqa: PLC0415  (small_g_pvalue: the p engine of c10.cluster_p / cluster_p_d)
+
+    mods = {"c12": c12, "c10": c10, "c9": c9, "cw": cw}
     return {f"{m}.{n}": hashlib.sha256(inspect.getsource(getattr(mods[m], n)).encode()).hexdigest() for m, n in SHARED_HELPERS}
 
 

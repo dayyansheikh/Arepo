@@ -32,5 +32,5 @@
   "trials.jsonl (cb13_descriptive; or the counted not-testable R1 line)"
  ],
  "next_action": "PASS: commit q0278; FAIL: R1 counted not testable (dependence)",
- "notes": "DRAFT. Round 1 item 7. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 1965f63f8087981f6d188f8fcdd373fa83363d90cef27fbf31a9839d26c7aff4, R 60ae641870178cdf8fd51f6091c1afbeffc0267b650887e34ac2436e1bbbedad. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
+ "notes": "DRAFT. Round 1 item 7. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, R 27ddbc2efa6a5ffdb1125baed9181b0026165491b1ce7b360b71ba8039d82802. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes."
 }

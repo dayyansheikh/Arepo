@@ -39,7 +39,7 @@
   "history/h13_touch/holdout/outcomes_guarded_holdout.csv.gz"
  ],
  "next_action": "q0279, then q0284",
- "notes": "DRAFT. No price read. Capped day windows split until uncapped (counted). outcome_prices/volume of poly_markets.json never parsed. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 1965f63f8087981f6d188f8fcdd373fa83363d90cef27fbf31a9839d26c7aff4, R 60ae641870178cdf8fd51f6091c1afbeffc0267b650887e34ac2436e1bbbedad. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. FREEZE-CHECK R1 (2026-10-19): repeat regex also matches disjointness_unverified; the pregate (q0284) counts that stall once.",
+ "notes": "DRAFT. No price read. Capped day windows split until uncapped (counted). outcome_prices/volume of poly_markets.json never parsed. Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, R 27ddbc2efa6a5ffdb1125baed9181b0026165491b1ce7b360b71ba8039d82802. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. FREEZE-CHECK R1 (2026-10-19): repeat regex also matches disjointness_unverified; the pregate (q0284) counts that stall once.",
  "repeat": {
   "max_runs": 4,
   "until_log_regex": "\"status\": \"(touch_frame_complete|stalled|disjointness_unverified)\""

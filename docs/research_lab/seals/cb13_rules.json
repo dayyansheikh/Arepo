@@ -338,6 +338,38 @@
       [
        "c10",
        "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c12",
+       "load_exclusion_keys"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "load_drops"
+      ],
+      [
+       "c12",
+       "read_id_set"
       ]
      ],
      "SIDECAR_COLUMNS": [
@@ -773,7 +805,7 @@
    "funcs_sha256": "99b2eafc39b0cd4fed87abf0f432177c2d5aa8103c3bfda1e3a7c46ef71626ea",
    "part": "LABELLER",
    "part_declared": true,
-   "rules_sha256": "604a78fc474580888130f7453a1c52b9095b9d794e74d83f7dea0eac5f6598f7",
+   "rules_sha256": "1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780",
    "rules_version": "cb13-rules-v1",
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
@@ -1118,6 +1150,38 @@
       [
        "c10",
        "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c12",
+       "load_exclusion_keys"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "load_drops"
+      ],
+      [
+       "c12",
+       "read_id_set"
       ]
      ],
      "SIDECAR_COLUMNS": [
@@ -1728,7 +1792,7 @@
    "funcs_sha256": "aa896c2f8054d614db95596627f9d30a6cffa5097fd395f75f1990143d5a25d3",
    "part": "R",
    "part_declared": true,
-   "rules_sha256": "60ae641870178cdf8fd51f6091c1afbeffc0267b650887e34ac2436e1bbbedad",
+   "rules_sha256": "27ddbc2efa6a5ffdb1125baed9181b0026165491b1ce7b360b71ba8039d82802",
    "rules_version": "cb13-rules-v1",
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
@@ -2073,6 +2137,38 @@
       [
        "c10",
        "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c12",
+       "load_exclusion_keys"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "load_drops"
+      ],
+      [
+       "c12",
+       "read_id_set"
       ]
      ],
      "SIDECAR_COLUMNS": [
@@ -2524,7 +2620,7 @@
    "funcs_sha256": "93e74cb0a6aaee8ed7bc46ff3a2c44ad2c1e8ff3c870b53762fcdd1689e846b5",
    "part": "T",
    "part_declared": true,
-   "rules_sha256": "82fb1f7d3f04f9248c5b3a2457e8f99287c21f321799be973834c6800210109c",
+   "rules_sha256": "05acfff64e218405c225296764b29ead071248753d171a86211582d21d707042",
    "rules_version": "cb13-rules-v1",
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",
@@ -2869,6 +2965,38 @@
       [
        "c10",
        "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c12",
+       "load_exclusion_keys"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "load_drops"
+      ],
+      [
+       "c12",
+       "read_id_set"
       ]
      ],
      "SIDECAR_COLUMNS": [
@@ -3033,19 +3161,27 @@
    "funcs_sha256": "24f6ed27df87d6f7100b3d3c3a2b07f5fb3f6d0a71879b8a93486d5d78bdcfb3",
    "part": "common",
    "part_declared": true,
-   "rules_sha256": "1965f63f8087981f6d188f8fcdd373fa83363d90cef27fbf31a9839d26c7aff4",
+   "rules_sha256": "62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014",
    "rules_version": "cb13-rules-v1",
    "shared_helper_sources_sha256": {
     "c10.cluster_p": "39414b3be6a420a70988ceff30234ce311208ae136c30bc279a79f697fd12069",
     "c10.cluster_p_d": "64cbf3bd203d692fb72eeced67c2088c4a55a676a984176470864cbef1ff9f5b",
+    "c10.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
     "c10.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
     "c10.slope_pseudo": "c442db47a31b2398913316468f3c80df9896adf269cadcf3ae1c89f454eb8d81",
     "c12.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "c12.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
     "c12.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
     "c12.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
     "c12.known_lag_s": "d0fbc9efe75f0d01a15dc8da29870bcd07edac0b9b3eb45ea242c6fadd85dae2",
+    "c12.load_drops": "036934dd94bcd6d9224319afa98a97a11df8bb69e7968816ff10786c989419fb",
+    "c12.load_exclusion_keys": "c31f3f8c0c742ba5e773cbc9974075445d7ddd4f1fcd637d67deb0fce9f91eef",
+    "c12.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
     "c12.mde": "6c43ef79505a40b002ccc422274968450ee6d1e76af1134cff17a43471a87170",
-    "c12.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3"
+    "c12.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "c12.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "c9.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+    "cw.small_g_pvalue": "1a94b013ef2dbe475942d7c041c355f6c36411d4eac5c60a95816dfd1f71cd91"
    },
    "wallet": {
     "note": "no CB13 job reads or stores a wallet field, a transaction hash (tx16 is aggregated in memory and discarded) or the monitor's side field",

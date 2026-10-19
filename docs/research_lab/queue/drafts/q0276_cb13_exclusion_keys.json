@@ -18,7 +18,7 @@
  },
  "depends_on": [
   "q0285_cb13_smoke_R",
-  "q0221_cb11_exclusion_keys"
+  "q0221b_cb11_exclusion_keys"
  ],
  "argv": [
   "scripts/run_cb13.py",
@@ -43,7 +43,7 @@
   "manifest.json (absent_at_q0276 list)"
  ],
  "next_action": "q0277",
- "notes": "DRAFT. >2% missing metadata -> disjointness unverified (R1 not testable, counted). Exit 75 on headroom = pending. The coordinator replaces --base-sha256 TODO-COORDINATOR with sha256sum of the host's creative_batch11/exclusion_keys.csv.gz after CB11 q0221 completes (exit 2 while unset). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 1965f63f8087981f6d188f8fcdd373fa83363d90cef27fbf31a9839d26c7aff4, R 60ae641870178cdf8fd51f6091c1afbeffc0267b650887e34ac2436e1bbbedad. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. FREEZE-CHECK R1 (2026-10-19): mem_mb 500 -> 1200 and --budget-min 34 with timeout 2700 s and repeat max_runs 60 (resumable; precedent q0221). Refuses (exit 2) while --base-sha256 is TODO-COORDINATOR.",
+ "notes": "DRAFT. >2% missing metadata -> disjointness unverified (R1 not testable, counted). Exit 75 on headroom = pending. The coordinator replaces --base-sha256 TODO-COORDINATOR with sha256sum of the host's creative_batch11/exclusion_keys.csv.gz after CB11 q0221 completes (exit 2 while unset). Rules part sha256 (seals/cb13_rules.json, code of 2026-10-19 after the freeze-check round 1 fixes (CREATIVE_BATCH_13.md section 11)): common 62e90149ba7e3f282d9876626d51667fd40a559da16b813e03c431f5084ef014, R 27ddbc2efa6a5ffdb1125baed9181b0026165491b1ce7b360b71ba8039d82802. CB13 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes. FREEZE-CHECK R1 (2026-10-19): mem_mb 500 -> 1200 and --budget-min 34 with timeout 2700 s and repeat max_runs 60 (resumable; precedent q0221). Refuses (exit 2) while --base-sha256 is TODO-COORDINATOR.",
  "repeat": {
   "max_runs": 60,
   "until_log_regex": "\"status\": \"(exclusion_keys_complete|disjointness_unverified)\""
