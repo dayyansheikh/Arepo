@@ -1726,3 +1726,20 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Response: 8 adopted, 3 adopted with stated modifications, none rejected. k = 4 fixed (E1, E2, P1, P2) + up to 2
   conditional; k1 = 4 fixed now (because of the withdrawal). Jobs q0340-q0353. Next: GE0 sign table compiled by two
   independent network-enabled compilers with archived sources, then rules, code, the freeze check by 10-29.
+
+## CB11 chain after q0221b, CB13 smokes, CB12 M promoted, 2026-10-19 05:30-09:05Z (queue events; verdicts pending checks)
+- **q0221b DONE** (exclusion keys, 33 min): 525,227 ids, missing share 0.0128 (< 0.02), disjointness verified, key file
+  sha256 `c8a1d64b…` (= `keys_sha256` in `exclusion_report.json`). This pins CB12 q0241 and CB13 q0276.
+- **CB11-W: provisionally "not testable (censoring windows)" (q0222 w-frame, 26 s; q0223/q0224/q0230/q0231 carried the
+  label).** Stall reason: reconstructed censoring windows cover < 99% of a frame's closed rows (h2_main 0.592, h3_power
+  0.574). Not yet counted: an engineering check (genuine source limit vs a coverage/denominator defect) is running; the
+  label is recorded as final and counted only if the check finds no defect.
+- **CB11-P/A data:** q0225 pol-frame complete (pol screen 265 / holdout 704; ctl screen 334 / holdout 554); q0226
+  pol-prices complete (1,857 markets, 5,571 units). **q0227 attn-frame FAILED 3x (MemoryError under the 2 x mem_mb
+  address cap)**; being fixed under a new id (q0227b); q0229/q0238/q0239 wait on it.
+- **CB13 smokes both FAIL (engineering gates, not tests):** q0270 T: `t_capture_print_join` false (guards and labeller
+  pass). q0285 R: `r_prices_history`, `r_rule_parser`, `r_walk_finds_search` false (Binance units, request cap, guards
+  pass). Both outputs carry `counted_not_testable_source: true`; whether that flag stands (genuine source failure) or
+  the smokes re-run as v2 after defect fixes is being checked against the design's consequence table. Not counted yet.
+- **CB12 M chain promoted** (a7736e3; q0241 `--base-sha256 c8a1d64b…`, depends on q0221b; q0242/q0243/q0248/q0249);
+  regenerated CB12 rules identical to the committed file (common `f2f672c1…`, M `a2e420b0…`). Deployed 09:05Z.
