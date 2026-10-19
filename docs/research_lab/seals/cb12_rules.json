@@ -856,7 +856,7 @@
     "cb12_e._wcsv": "ec80c1682e35c1af5e4a80e8fcfc4b772fb3d6d2274533e576bfc9baef129d46",
     "cb12_e._wjson_gz": "d36decfea436aa1a6f63bcf43ab0ad990c365ba9467c18b110102f9c842847c7",
     "cb12_e.add_labels": "12412739e64473d1d742c629b81db6069c8150001b691ff61291cca412e5ea29",
-    "cb12_e.ambiguous": "3b4de6ba736d24d84e9b05e362e42852fad28acafbe5aa7736761e9db5e844ec",
+    "cb12_e.ambiguous": "be44e08eddb77f09db5e4a0f6b48046eae95e9187eba3974b2ca4e84225bcead",
     "cb12_e.apply_exclusions": "f1cbd3ff8074b20640e30bf6cf7c84b9d5a9c03a12371b07d67ccfde322de4d8",
     "cb12_e.attach_outcomes": "f051ff77ad3fb0103872d0a946d953605e6e6067b18c7e0789231634b1415d7e",
     "cb12_e.book_state": "6c8556f7ccdbd75f4acbfcc6f727be6868932ba31ee38a3847d813c8f107ebd5",
@@ -923,10 +923,10 @@
     "cb12_e.walk_tag": "1bd4f69e98cde9e3339775b6d07423fb83d255cb216db9ce285d7086abe843f3",
     "cb12_e.ways": "118e0449e2a0750c66a19250628d83c406ea7be953df033892988a373a112db5"
    },
-   "funcs_sha256": "4b48a0a938a13ce4812b7b737a94c0599427afd9bcc852fd9624d8d5a961ab1c",
+   "funcs_sha256": "5cb8dfbb8f725bd60f21b827849352c228598f23c8674c3ab1dd516ec69a8975",
    "part": "E",
    "part_declared": true,
-   "rules_sha256": "eb086757c24214b41433b392036cef49ac01796971cc16706f44365fca615717",
+   "rules_sha256": "a63672c985342131ed14a1794fec5b664928c551a942e84a615295b33c87dba2",
    "rules_version": "cb12-rules-v1",
    "wallet": {
     "note": "no CB12 job reads or stores a wallet field, a transaction hash, or the Data API side field",

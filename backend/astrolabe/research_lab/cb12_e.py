@@ -548,12 +548,12 @@ def outcome_of(u: dict, cat: np.ndarray) -> float:
 
 
 def ambiguous(u: dict, cat: np.ndarray) -> bool:
-    """'ambiguous recent quake': an event within +-0.3 of the threshold in the 72 h BEFORE the accessor boundary, [t - 144 h, t - 72 h) (E-a / E-b; an E-c window starts
-    after t). The model, and so this check, never sees an event at or after ``t - 72 h`` (sections 1.3 and 2.7). Computed from final revised magnitudes (disclosed)."""
+    """'ambiguous recent quake': an event within +-0.3 of the threshold in [t - 72 h, t) (E-a / E-b; an E-c window starts after t), as the frozen design states.
+    The model itself never sees these events (sections 1.3 and 2.7); the guard only excludes the unit. Computed from final revised magnitudes (disclosed)."""
     if u["klass"] == "E-c" or len(cat) == 0:
         return False
     t, m = u["t"], float(u["threshold"])
-    sel = cat[(cat[:, 0] >= t - 2 * CAT_LAG_S) & (cat[:, 0] < t - CAT_LAG_S)]
+    sel = cat[(cat[:, 0] >= t - CAT_LAG_S) & (cat[:, 0] < t)]
     return bool(np.any(np.abs(sel[:, 1] - m) <= AMBIG_BAND + 1e-9))
 
 

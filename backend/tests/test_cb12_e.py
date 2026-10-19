@@ -233,10 +233,10 @@ def test_outcome_rule_ambiguous_band_and_day_maxima():
     assert e12.round_mag(5.25) == 5.3 and e12.round_mag(5.249) == 5.2
     t = 1e6
     amb = {"klass": "E-a", "threshold": 6.5, "t": t}
-    # the check sees only [t - 144 h, t - 72 h): an event inside the last 72 h is invisible (sections 1.3 / 2.7)
+    # the guard reads [t - 72 h, t) (frozen design); the model never sees those events
     h = 3600
-    assert e12.ambiguous(amb, _cat([(t - 73 * h, 6.8)])) and not e12.ambiguous(amb, _cat([(t - 73 * h, 6.81)])) and not e12.ambiguous(amb, _cat([(t - 145 * h, 6.5)]))
-    assert not e12.ambiguous(amb, _cat([(t - 3600, 6.5)])) and not e12.ambiguous(amb, _cat([(t - 72 * h, 6.5)])) and not e12.ambiguous({**amb, "klass": "E-c"}, _cat([(t - 73 * h, 6.5)]))
+    assert e12.ambiguous(amb, _cat([(t - 71 * h, 6.8)])) and not e12.ambiguous(amb, _cat([(t - 71 * h, 6.81)])) and not e12.ambiguous(amb, _cat([(t - 73 * h, 6.5)]))
+    assert e12.ambiguous(amb, _cat([(t - 3600, 6.5)])) and e12.ambiguous(amb, _cat([(t - 72 * h, 6.5)])) and not e12.ambiguous(amb, _cat([(t, 6.5)])) and not e12.ambiguous({**amb, "klass": "E-c"}, _cat([(t - 71 * h, 6.5)]))
     mx = e12.day_maxima(_cat([(ep("2000-01-02T03:00:00Z"), 4.74), (ep("2000-01-02T04:00:00Z"), 5.0)]), "UTC", "2000-01-01", "2000-01-04")
     assert list(mx) == [-math.inf, 5.0, -math.inf]
     mx_et = e12.day_maxima(_cat([(ep("2000-01-02T03:00:00Z"), 4.74)]), "ET", "2000-01-01", "2000-01-04")  # 03:00Z is Jan 1 22:00 ET
@@ -1023,7 +1023,11 @@ def test_census_never_sees_catalogue_events_at_or_after_t_minus_72h_in_any_unit_
     assert iso_pick
     a = {(u["market_id"], u["t"]): (u["label"], u.get("q")) for u in units if u["t"] in iso_pick}
     b = {(u["market_id"], u["t"]): (u["label"], u.get("q")) for u in units2 if u["t"] in iso_pick}
-    assert a == b
+    # q never moves; the only allowed change is the frozen ambiguity guard ([t - 72 h, t)) excluding a unit that was available
+    assert a.keys() == b.keys()
+    for k in a:
+        if a[k] != b[k]:
+            assert a[k][0] == "available" and b[k] == ("ambiguous recent quake", None), (k, a[k], b[k])
 
 
 # =====================================================================================================================================================
