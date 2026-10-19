@@ -1636,3 +1636,21 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   still on the host (the 8-day snapshot rule frees nothing before about 10-25), so the 19 captures are extracted
   over the next passes (600 s timeout each). The effect is a delay only; if any capture is no longer on the host when
   reached, it is recorded `missing`, never reconstructed.
+
+## CB13 code (fef4066) freeze check, 2026-10-19 ~01:10Z (science-reviewer): REVISE; not counted
+- 59 CB13 tests pass; rules parts common `51e84496…`, LABELLER `5907eaa4…`, T `bf693848…`, R `996bccf7…` verify.
+- Groups: T smoke, T frame/data, T census, R smoke/data, R pregate/census and R screen/rep GO_WITH_FIXES; **T screen,
+  T rep and R seal NO_GO.** Nothing promoted.
+- 22 defects. The main ones: (1) the T1 composition placebo raises KeyError on any event outside the T1 index, so
+  q0273 could never run; (2) the 60% availability rule is unused; (3) a smoke FAIL writes no counted
+  "not testable (source)" line; (4) Holm is non-strict (CB12 D2 again); (5) an unverified-disjointness stall leaves R1
+  uncounted; (6, 7) GL ignores UNKNOWN > 5% and the thinned-population label is never set; (9) HOLDOUT skips the
+  late-receipt day 10-26; (10) T exclusion keys drop ids without timestamps (an undeclared population change);
+  (13) a ledger sentence quoting the design could lift the CB3 hold; (21) R `hourly_change` reads points that are not
+  usable at t (a small causal leak). The rest are queue drafts (lanes, mem_mb, budget, `not_before`, regex) and
+  undeclared parser and labeller deviations.
+- Trial count: `battery2.cumulative_count()` gives 1,226 at HEAD. The code records the count at run time, so the
+  design's 1,181 and 1,221 are historical.
+- Next: an implementer fixes 1-22 with regression tests, then a verify round, then promotion in the reviewer's order
+  (q0270 -> q0285 -> q0271/q0272 -> q0276-q0279, q0284 -> q0280; screens after the freezes; q0274/q0275 last; q0275
+  also needs CB3's freeze).
