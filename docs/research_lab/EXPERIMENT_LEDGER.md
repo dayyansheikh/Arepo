@@ -2166,3 +2166,15 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   Justification: removes outcome exposure that serves no counted test; pre-outcome; no threshold changed. Reseals T,
   then a short re-check, the T freeze commit (record-only common and census shas), and `retry q0273` on the host.
 - R unaffected (separate freeze part).
+
+## CB17 drafted (a00c4ef) and challenger round 1, 2026-10-19 ~21:40Z (design only, not counted)
+- Draft from round 8: A open vs close (CH144), B1 book age at fill (CH146), B2 breathing book (CH147), C mint share /
+  event OI (CH150) counted (k = 4 fixed + up to 8 conditional); E first-day prints (CH154) census only (k = 0; 30
+  first-day fills in 4 days). SCREEN_8 2026-10-26..11-09, REP_8 11-09..11-23. Census jobs q0400-q0403 (cpu lane).
+- Challenger: REVISE A, B1, B2, C; PROCEED E-census and q0400-q0403 once part `pre` carries the strata-informativeness
+  report and the per-band signing-agreement gate. HIGH: C eligibility used capture k+1 (selection on the outcome);
+  composition strata too fine for the 50% both-label rule; calibration placebo vacuous (judged with the floor) and
+  shuffles break autocorrelation (use block permutation, p alone). MED: B no-mark drop-outs; job reads inside CB13-T's
+  sealed HOLDOUT (lookback floor); C terciles include r_{k+1}; branch-S signing gate per band. Rulings: add CB16 §11's
+  <= 3/200 rule to the composition check; binding d-balanced estimate for A; B2 placebo stays binding; decide the
+  live_trades 3 GB cap (est. reached ~11-25..11-29) before S_8. Designer response running.
