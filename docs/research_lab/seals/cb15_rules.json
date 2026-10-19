@@ -1933,6 +1933,7 @@
      "KALSHI_API": "https://api.elections.kalshi.com/trade-api/v2",
      "KALSHI_FIRST_ROBUST_S": 259200.0,
      "KALSHI_FIRST_S": 86400.0,
+     "KALSHI_FLAG_LABEL": "Kalshi early-close/provisional flag (excluded)",
      "KALSHI_FORBIDDEN": [
       "result",
       "settlement_value",
@@ -2029,6 +2030,7 @@
      "NOT_TESTABLE_POP": "not testable (population)",
      "NOT_TESTABLE_SOURCE": "not testable (source)",
      "NO_BOOK_24H": "unavailable (no order book at 24 h)",
+     "NO_BOOK_24H_P2": "unavailable (no NO order book at 24 h; P2 only)",
      "OPENING_CONTROL_P": 0.05,
      "OPENING_CONTROL_SHARE": 0.5,
      "P1_FLOOR": 0.3,
@@ -2074,6 +2076,7 @@
       "P1": 60,
       "P2": 40
      },
+     "RUN_STAMP": "run_stamp.json",
      "SEEDED_MID": 0.5,
      "SEEDED_TOL": 0.005,
      "SMOKE_CACHE_PAGES": 3,
@@ -2115,6 +2118,7 @@
      "T_D_OFFSET_S": 600.0,
      "T_D_ROBUST_S": 1800.0,
      "T_L_OFFSET_S": 604800.0,
+     "UNAVAILABLE_CACHE_CAP": "unavailable (source: cache cap)",
      "UNAVAILABLE_SOURCE": "unavailable (source)",
      "UNKNOWN": "unknown",
      "VOL_COLUMNS": [
@@ -2267,6 +2271,7 @@
        "closed_time",
        "closedTime"
       ],
+      "p6_ruling": "P-27: Polymarket early-close flags are UNKNOWN and disclosed. The Kalshi true-flag exclusion (causal, from the Kalshi record at the match) is kept and labelled 'Kalshi early-close/provisional flag'. Units are NEVER excluded or labelled by when the Polymarket market actually closed (post-t0, outcome-linked); early-closing units stay in the denominators (Stage 2 'unavailable (no order book at 24 h)', Stage 1 'no target'); a count of them may be reported descriptively, never as a gate. Disclosure: Stage 1 reads Gamma endDate after the fact and it may have been edited to the actual close date (the scheduled-end exclusion, P-16, uses that value in Stage 1; in Stage 2 it is the value stored at the match)",
       "polymarket_rule_booleans": "unknown",
       "rule_booleans": "P-6/P-20: Polymarket's is_provisional / can_close_early are declared UNKNOWN (no field at listing; Polymarket markets can resolve early); the design is silent for unknown, so the conservative choice: a pair whose Kalshi is_provisional or can_close_early is true (C1 universe rows; live: the Kalshi market record) is excluded, counted; Kalshi false or missing is kept (counted unknown); residual mismatch is bounded by the scheduled-end exclusion and the 24-h no-book label",
       "sports_cat": "Sports",
@@ -2296,6 +2301,7 @@
        ],
        "verdicts_dir": "docs/research_lab/seals/cb15_p_audit"
       },
+      "cache_cap_rule": "P-25: the 0.25 GB cache cap is NOT changed after any size is seen (the smoke's within_cap projection is informative only). If the projection or the folder exceeds the cap, the cap binds: the cache stops adding pages (stale), this is logged, scans skipped for a stale cache are counted (cache_cap_scans_skipped), new listings with no cached match are counted as 'unavailable (source: cache cap)' (cache_cap_unavailable) and are never read",
       "cache_folder": {
        "cap_bytes": 268435456,
        "files": {
@@ -2318,6 +2324,7 @@
        "read_reserve": 300,
        "watcher": "cron every minute under flock, 55-s timeout: reads first, then eligible first-print polls (5 min), then the hourly listing scan against the cache; soft deadline 35 s"
       },
+      "candle_fallback": "P-24: the other-endpoint fallback needs a NON-EMPTY candlesticks reply with the parser's fields; else the chunk fails (pair pending -> unavailable (source))",
       "daily_request_cap": 3500,
       "eligible": "Kalshi-first (open_time <= listing - 24 h), no audit-conflict flag, no rule-boolean difference, Kalshi series category known and not Sports; only eligible pairs are polled",
       "first_print": {
@@ -2339,6 +2346,7 @@
        "max_pages": 10
       },
       "matcher": "cross_venue.match_markets over the FULL Kalshi open-market cache (C1 mutual best, against the new listings: declared), then each pair's lead is checked (kalshi_first) and the r1 audit_conflict rule applied (flag -> excluded, counted); source sha256 = CB12-X's pinned cross_venue.py",
+      "no_side_404": "P-26: a NO-book 404 at 24 h drops the unit from P2 only (P1 uses the YES side only)",
       "reads": {
        "books": "Polymarket YES and NO /book, Kalshi orderbook (YES ask = 1 - best NO bid)",
        "t_d_24h_lag_s": 300.0,
@@ -2353,6 +2361,7 @@
        "P2": 40
       },
       "rep_quote": "t_d: Polymarket and Kalshi two-sided, spread <= 10c each (P-13a); t_d + 24 h Polymarket mid by the one-sided-bound rule (no ask -> 1, no bid -> 0), never dropped (P-3)",
+      "run_gap": "P-23: p-data exits 75 if the previous run that left failed pairs ended < PAIR_FAIL_SPAN_S ago (the queue worker re-starts a repeat run at once); q0349 repeat.max_runs 8 so the terminal rule (3 failing runs + a labelling run) is always reachable",
       "scheduled_end": "P-16: endDate stored at the match; at the first-print detection a pair with endDate < t_d + 25 h is 'ends early (scheduled)' (no reads, counted, outside the availability denominators); a missing endDate is not an exclusion (counted); a Polymarket 404 at the 24-h read is 'unavailable (no order book at 24 h)': never read as an empty book, counted in the availability denominators, in no estimate",
       "shared_count": "P-19b: the cache writes the daily request count after every page and re-reads the watcher's before every page; the watcher writes after every batch and re-reads the cache's at every check",
       "window": "T15_P2_start = max(P freeze + 1 d, 2026-11-04T00:00Z); stop at >= 60 eligible births with their 24-h read (births, never results); cap 2027-04-30"
@@ -2449,12 +2458,12 @@
     "cb15_p.c1_loader_sha": "2a23cae440062ca8d2b4001e3e459e73cdb7db07cce164a63590963ac5054465",
     "cb15_p.cache_size_probe": "a79fcdfc8e911772a579fb698b64743dc6c91f178037e743d6044c9b219c491d",
     "cb15_p.candle_has_fields": "fb1cd7281494adafdcf5ae7a8906dc0889d6e18d974182eeefc3d084956d21f2",
-    "cb15_p.census_p": "0ab9881079a54ad4439625058948605f2ccd95f335a7c5d74a7e0b6cad513f38",
-    "cb15_p.declared": "adc7fc6e14007e0e05e5724a687738bec99609dba26deccbc486e57e008e6f29",
+    "cb15_p.census_p": "1b926b0f21567d620cfbe0c1054fac951ff1dc73dc3b3da9e6c0e06647f426df",
+    "cb15_p.declared": "f93491bd3682c10d6ac462eb44e0ae17dd23a8748680d3adaac515a0d88b4824",
     "cb15_p.ep": "d5bd2bb62fd73161eef1a1f8576056d57ba15ff28937cb658c67d50a5a8516a9",
     "cb15_p.event_weights": "8155632843dfe0042ba371da7a327d9140de0fd170b34649b2010423663e4202",
     "cb15_p.features_table": "695d84fcfb3d1f6cb63689576f89aa8a6eba2b968db9adedb9cba4ce121f5a06",
-    "cb15_p.fetch_k_candles_checked": "1c9c28ed750ee04e22e0dcf67e3387ea730c0fa1d31c4091d9c5c50f6fd5e5b2",
+    "cb15_p.fetch_k_candles_checked": "20cf145439c25c2a48493bc3e11c866f7c72f00355586913d5dbde816dd14918",
     "cb15_p.fetch_pair": "a113d3365cdf92723ead1132b328792ffccebd211bed2df9e91096cc98e1bdb8",
     "cb15_p.fetch_prices_checked": "b9e4c766192e0c61103eb5febe440ffaa33024ca52f9a577ae9d53dc2010d10b",
     "cb15_p.fetch_prints_from_birth": "e5a30b483dd878b2f6669f6958ed7a0ae363024d67583a354cf7ae7f72914dc9",
@@ -2485,8 +2494,8 @@
     "cb15_p.p2_window": "eaedf8813ec3f895820d6c7f4c165b07d4776a2866865fc9b0f7acb3c53d7219",
     "cb15_p.p_at": "228b90d0feb1d9db9dfbfeaa38dfb3bba0c53d47c61385e1e5961adb61c7005e",
     "cb15_p.p_cache": "787b4fc0977d5fd18f411991bac6c99441fdfc919ed3017db525dd1a6f3452da",
-    "cb15_p.p_data": "a3c8bf724b6f768558a57d0e44f04c299b55b3d84353f3b5b22f641ab4fa808f",
-    "cb15_p.p_live": "0248498111199f980f19635a22c090c65b478d9352e30b6ee186cb93325033d9",
+    "cb15_p.p_data": "a437a54f34bad9e555210f84a82fd1a543eb42afe0e15646f72928252839ec9c",
+    "cb15_p.p_live": "4226aea7dce3930bf224b68de82b979434508b21554fe9880e284b2fa830caf4",
     "cb15_p.paired_contrast": "b4881d23d94fc2a283cbc3d73da9acdbac1aa0095bbfde11de471ab740b65dff",
     "cb15_p.part_unready": "e5fa7a01285a0e56b8a46a8c13dd1c92b35f8ce782e82bb4d9722babc4922230",
     "cb15_p.ph_at": "287c592a454e5e5166ac0ffd895b21bd432a4afab25fda925d205f61bf25bff0",
@@ -2502,8 +2511,8 @@
     "cb15_p.read_matches": "febb844c187967c733c76c2ccf588290efdf86af7db2a2b2f8b71ff2d286ee3b",
     "cb15_p.refuse_hist_row": "b9cfdee7c4954fe6b855d0ed0aee334765d69aa4815502f435a203e769a00069",
     "cb15_p.rep_p": "b29f068ef08e3de25c1410ecc5fac14201383f720e1e36f0401703a7558a9237",
-    "cb15_p.rep_p2_net": "cd8fa5e21975cdf26b747a1f1902b0e6f4a99ba79599a8f92a5455d185e06b32",
-    "cb15_p.rep_units": "7a69993c95988e16cad3fe153576b911141b26d6162bcd0fb7c379c85104dec0",
+    "cb15_p.rep_p2_net": "b64aa18ed35451008d86cc726297cdd4a2b1397ac280b96fb28068489d34ba71",
+    "cb15_p.rep_units": "bdff80ac4ddb7eaca14babf809fe4cf431d6c17295dbab5a34241a7159ffd771",
     "cb15_p.reread_absent_frames": "5d7bf9993efe185698700556cec9d80d1dd5a335d190cc53eff8e065bae2fed2",
     "cb15_p.rule_booleans_differ": "fff3e15dba8f0df313375b8d86316255eeef07358c3dd330b1a6a9c63cfd0120",
     "cb15_p.scan_listings": "e5a7c21a6b553cdd0e53f0b1bfcc229437033ced5fc397ae3dd78cad67088ff1",
@@ -2520,7 +2529,7 @@
     "cb15_p.transactions": "a3e78fea13c09acaa5a722cecbe735d1d5ddd0fc680e53c2049b5b60adc8660a",
     "cb15_p.truthy": "493f37cab87d0f342c9d4ebed1d27d47b6b7ef02638e3c26d7b3b489e3e3e431",
     "cb15_p.two_sided": "8445849c58a54e22308884ac88204b6da98a7d1f210f261c0649858e383f1210",
-    "cb15_p.unit_features": "97f560b2e9fe43ec5c0d66fc86ab401708ba214123b3d0bacb77d8f824846c67",
+    "cb15_p.unit_features": "d578651dcce691a5de9f83316fa765c6b6ca7a376ff4690e89ece5ee6d267126",
     "cb15_p.unit_target": "5cebc1170ca7448639ab030df7ab0f28bc0568591a2c0ea56f13d80dab7f8ed5",
     "cb15_p.valid_reads": "1ca37db8380c61bdba23555817a702efbd0894b36995b973da7c2011fce3cd62",
     "cb15_p.verify_matcher": "e65a5ec3f158f73c05cfaed3df98b2fb807f87b21d4c7cd11aa5bcc5e3c2e48d",
@@ -2528,10 +2537,10 @@
     "cb15_p.write_birth_frame": "6f2bf2ca09314865b0376345913632db5d19a2be0c4da828e9a490433700a2fe",
     "cb15_p.write_data_files": "ef6af4a2ae686eef89e6605f848603d187a89f0fcb5b3b18f7335c32c44644b5"
    },
-   "funcs_sha256": "e0b64e4a9f07132ac38dfcc078c1f8c6bd0bc65af064fde8648f62879060bbdb",
+   "funcs_sha256": "4519099a506b31861007d9b693f1fd741ad1541b2905cd54ec8633942668f3b2",
    "part": "P",
    "part_declared": true,
-   "rules_sha256": "6ac3b610d474a051336ce6d9e5d1aca1a3ca8b8c3c303e35bdd0be20754ab046",
+   "rules_sha256": "7d8564169ef02d0404117a9efb05294bab76d4de78279a8b2b0a09721e74b4e1",
    "rules_version": "cb15-rules-v1",
    "shared_helper_sources_sha256": {
     "bk.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",

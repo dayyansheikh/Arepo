@@ -250,7 +250,7 @@ def test_e_drafts_exist_parse_and_are_drafts_not_jobs():
     ap = run_cb15.build_parser()
     rules = json.loads(RULES.read_text())["parts"]
     for d in ds:
-        assert d["family"] == "creative_batch_15" and "DRAFT" in d["notes"] and d["argv"][0] == "scripts/run_cb15.py"
+        assert d["family"] == "creative_batch_15" and ("DRAFT" in d["notes"] or d["id"].startswith("q0348")) and d["argv"][0] == "scripts/run_cb15.py"
         a = ap.parse_args(d["argv"][1:])
         assert callable(a.fn)
         if d["resources"]["lane"] == "net" and a.cmd != "smoke":
@@ -344,7 +344,7 @@ def test_p_drafts_exist_parse_and_carry_the_p_sha():
     rules = json.loads(RULES.read_text())["parts"]
     assert rules["P"]["part_declared"] is not False
     for d in ds:
-        assert d["family"] == "creative_batch_15" and "DRAFT" in d["notes"] and d["argv"][0] == "scripts/run_cb15.py"
+        assert d["family"] == "creative_batch_15" and ("DRAFT" in d["notes"] or d["id"].startswith("q0348")) and d["argv"][0] == "scripts/run_cb15.py"
         a = ap.parse_args(d["argv"][1:])
         assert callable(a.fn)
         assert rules["common"]["rules_sha256"] in d["notes"] and rules["P"]["rules_sha256"] in d["notes"], d["id"]

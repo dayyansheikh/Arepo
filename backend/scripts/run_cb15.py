@@ -817,7 +817,7 @@ def cmd_p_data(a):
     kb = p.kalshi_bools_from_universe(_c1_root(a), {r["k_ticker"] for r in frame})
     try:
         m = p.p_data(_hist(a), _limiter(a, a.rps), _limiter(a, a.kalshi_rps), frame_path=fp, kalshi_bools=kb, ksrc=_ksrc_for_p(a)[0],
-                     budget_s=None if a.budget_min is None else a.budget_min * 60.0)
+                     budget_s=None if a.budget_min is None else a.budget_min * 60.0, min_gap_s=p.PAIR_FAIL_SPAN_S)  # P-23: the worker re-starts a repeat run at once; the gap is enforced here
     except cm.ApiError as exc:
         if _TRANSIENT_STATUS.search(str(exc)):
             raise cm.NotNow(f"p-data: a source returned a transient status ({str(exc)[:80]}); resumable") from None

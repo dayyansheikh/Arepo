@@ -590,8 +590,8 @@ def test_rule_booleans_and_key_drop_labels():
     kc = np.array([[BASE + 3600 + t, 0.59, 0.61] for t in range(0, 1200, 60)])
     assert p.unit_features({**m, "k_bool_provisional": "False", "k_bool_close_early": "False"}, tx, kc)["label"] == "ok"
     assert p.unit_features({**m, "k_bool_provisional": "", "k_bool_close_early": ""}, tx, kc)["label"] == "ok"  # unknown is not an exclusion
-    assert p.unit_features({**m, "k_bool_provisional": "True", "k_bool_close_early": "False"}, tx, kc)["label"] == "rule booleans differ (excluded)"
-    assert p.unit_features({**m, "k_bool_close_early": "True"}, tx, kc)["label"] == "rule booleans differ (excluded)"
+    assert p.unit_features({**m, "k_bool_provisional": "True", "k_bool_close_early": "False"}, tx, kc)["label"] == p.KALSHI_FLAG_LABEL
+    assert p.unit_features({**m, "k_bool_close_early": "True"}, tx, kc)["label"] == p.KALSHI_FLAG_LABEL
     assert p.unit_features({**m, "key_drop": "neg_risk_market:cb14"}, tx, kc)["label"].startswith("key drop")
 
 
@@ -809,3 +809,99 @@ def test_combined_kalshi_rate_is_at_most_one_per_second():
 def test_poly_rule_booleans_declared_unknown_and_kalshi_true_flag_excludes():
     assert p.POLY_RULE_BOOLEANS == "unknown"
     assert p.rule_booleans_differ({"k_bool_provisional": True}) and not p.rule_booleans_differ({"k_bool_provisional": False}) and not p.rule_booleans_differ({})
+
+
+def test_total_cap_rule_on_its_own_live_files_within_cap_but_total_over(tmp_path, monkeypatch):
+    """P-19/P-22 (item 5): the live files alone are within the live cap; only the TOTAL (live + cache folder) exceeds live cap + cache cap, and that alone stops new pairs."""
+    hist = tmp_path / "research_lab" / "history"
+    q = "Will the Federal Reserve cut rates at the December 2026 meeting"
+    lim = LiveLim([_gm(2, NOW - 600, q)], [_km("FED-26DEC", q, NOW - 3 * DAY)], {})
+    p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    live = hist / p.LIVE_RUN
+    cdir = live / p.CACHE_SUBDIR
+    (live / "pad.bin").write_bytes(b"x" * 100)
+    cache_b = p._dir_bytes(cdir)
+    assert cache_b > 200 and p._dir_bytes(live, exclude=cdir) < 200 <= 200 + 10 and p._dir_bytes(live) > 200 + 10
+    monkeypatch.setattr(p, "CACHE_DIR_CAP_BYTES", 10)
+    t = NOW + 30
+    r = p.p_live(hist, lim, lim, now=t, rules_sha="x", freeze_ts=None, clock=lambda: t, cap_bytes=200)
+    assert r["matched"] == 0 and any("cap" in json.loads(x)["why"] for x in (live / p.LIVE_FILES["gaps"]).read_text().splitlines())
+
+
+def test_fallback_candle_endpoint_needs_a_nonempty_reply_else_unavailable_source():
+    """P-24: all() over an empty candlesticks list is True; an empty fallback reply is a failed chunk (pair pending -> unavailable (source)), never 'no Kalshi quote'."""
+    class K:
+        requests = 0
+
+        def __init__(self, fb):
+            self.fb = fb
+
+        def get(self, url, params):
+            if "/historical/" in url:
+                return 404, None
+            return 200, self.fb
+
+    good = {"candlesticks": [{"end_period_ts": 1000, "yes_bid": {"close": 40}, "yes_ask": {"close": 44}, "price": {"close": 42}}]}
+    with pytest.raises(p.PairPending):
+        p.fetch_k_candles_checked(K({"candlesticks": []}), "T", "S", 0, 3600, True, __import__("collections").Counter())
+    with pytest.raises(p.PairPending):
+        p.fetch_k_candles_checked(K({}), "T", "S", 0, 3600, True, __import__("collections").Counter())
+    p.fetch_k_candles_checked(K(good), "T", "S", 0, 3600, True, __import__("collections").Counter())
+
+
+def test_no_side_404_at_24h_drops_the_unit_from_p2_only(tmp_path):
+    live = tmp_path / "live"
+    live.mkdir()
+    audits = _live_fixture(live, 70, 0.7)
+    rows = list(c15.jsonl_iter(live / p.LIVE_FILES["books"]))
+    (live / p.LIVE_FILES["books"]).unlink()
+    for b in rows:
+        if b["which"] == "t_d+24h" and int(b["pair_id"].split("|")[0][1:]) < 20:
+            b["statuses"] = {**(b.get("statuses") or {}), "no": 404}
+        c15.jsonl_append(live / p.LIVE_FILES["books"], b)
+    units, labels = p.rep_units(live, audits)
+    bad = [u for u in units if u.get("unavailable_24h_p2")]
+    want = [u for u in units if u["g_d"] <= -p.GAP_MIN and int(u["pair_id"].split("|")[0][1:]) < 20]  # only NO-side (g_d <= -5c) units use the NO book
+    assert bad and {u["pair_id"] for u in bad} == {u["pair_id"] for u in want} and labels[p.NO_BOOK_24H_P2] == len(bad) and labels["ok"] == 70
+    assert all(math.isfinite(u["delta"]) for u in bad) and all(p.rep_p2_net(u) is None for u in bad) and not labels.get(p.NO_BOOK_24H)
+
+
+def test_p_data_run_gap_is_enforced_by_exit_75(tmp_path):
+    """P-23: the queue worker re-starts a repeat run immediately, so p_data refuses (NotNow) a run starting < min_gap_s after the previous run that left failed pairs."""
+    class Lim:
+        requests = 0
+
+        def get(self, url, params):
+            if "trades" in url:
+                return 200, [{"timestamp": BASE + 100, "price": 0.5, "size": 5, "outcomeIndex": 0, "transactionHash": "h"}]
+            return (500, None) if "candlesticks" in url else (200, {"history": []})
+
+    (tmp_path / "creative_batch15").mkdir()
+    frame = tmp_path / "creative_batch15" / "birth_frame.csv.gz"
+    p.write_birth_frame(frame, [["K1", "S", "Politics", "/live", "1", "e1", p.cm.iso(BASE - 3 * DAY), p.cm.iso(BASE), 72.0, 0.0, 1.0]])
+    hist = tmp_path / "research_lab" / "history"
+    gm = {"1": {"id": "1", "conditionId": "c1", "outcomes": '["Yes","No"]', "clobTokenIds": '["a","b"]', "events": [{"id": "e1"}]}}
+    kw = dict(frame_path=frame, gamma_lookup=lambda ids: gm, min_gap_s=p.PAIR_FAIL_SPAN_S)
+    ts = [1000.0, 1000.0 + 901, 1000.0 + 2 * 901, 1000.0 + 3 * 901]
+    assert p.p_data(hist, Lim(), Lim(), clock=lambda: ts[0], **kw)["status"] == p.P_DATA_PROGRESS
+    with pytest.raises(p.NotNow):
+        p.p_data(hist, Lim(), Lim(), clock=lambda: ts[0] + 60, **kw)
+    assert p.p_data(hist, Lim(), Lim(), clock=lambda: ts[1], **kw)["status"] == p.P_DATA_PROGRESS
+    assert p.p_data(hist, Lim(), Lim(), clock=lambda: ts[2], **kw)["status"] == p.P_DATA_PROGRESS
+    r = p.p_data(hist, Lim(), Lim(), clock=lambda: ts[3], **kw)  # gap-spaced runs reach the terminal rule: 3 failing runs, the 4th completes
+    assert r["status"] == p.P_DATA_STATUS
+
+
+def test_cache_cap_binds_and_unmatched_new_listings_are_counted(tmp_path, monkeypatch):
+    """P-25: the cache cap is not changed; over it the cache stops growing, and new listings with no cached match are counted as 'unavailable (source: cache cap)'."""
+    assert p.CACHE_DIR_CAP_BYTES == int(0.25 * 1024**3) and "cache cap" in p.UNAVAILABLE_CACHE_CAP
+    hist = tmp_path / "research_lab" / "history"
+    q = "Will the Federal Reserve cut rates at the December 2026 meeting"
+    lim = LiveLim([_gm(2, NOW - 600, q)], [_km("FED-26DEC", q, NOW - 3 * DAY)], {})
+    p.p_cache(hist, lim, now=NOW, freeze_ts=None, clock=lambda: NOW)
+    monkeypatch.setattr(p, "CACHE_DIR_CAP_BYTES", 10)
+    lim2 = LiveLim([_gm(3, NOW - 600, "Will something entirely unrelated happen by Friday")], [_km("FED-26DEC", q, NOW - 3 * DAY)], {})
+    t = NOW + 60
+    p.p_live(hist, lim2, lim2, now=t, rules_sha="x", freeze_ts=None, clock=lambda: t, cap_bytes=10**9)
+    st = json.loads((hist / p.LIVE_RUN / p.LIVE_FILES["state"]).read_text())
+    assert st.get("cache_cap_unavailable", 0) == 1
