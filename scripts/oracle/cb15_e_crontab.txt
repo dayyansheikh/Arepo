@@ -1,0 +1,7 @@
+# --- CB15-E election night (docs/research_lab/CREATIVE_BATCH_15.md sections 1.2, 2.8; q0345). Install after the part-E freeze, by 2026-11-02T00:00Z; remove after 2026-11-06T00:00Z. ---
+* * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_cb15_e_live.lock nice -n 5 /home/opc/arepo/.venv/bin/python scripts/run_cb15.py e-live --rules ../docs/research_lab/seals/cb15_rules.json --not-before 2026-11-02T12:00:00Z --until 2026-11-06T00:00:00Z --disk-cap-gb freeze --data-dumps-cap-gb 40 --no-exit75-in-window >> /home/opc/arepo_collector/logs/cb15-e-live.log 2>&1
+0 12 2 11 * [ "$(date -u +\%Y)" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py hold-lane cpu 500 >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1  # dry run (verify a held job is not promoted)
+10 12 2 11 * [ "$(date -u +\%Y)" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py release-lane >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1  # dry run (verify promotion)
+0 21 3 11 * [ "$(date -u +\%Y)" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py hold-lane cpu 500 >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1
+0 22 4 11 * [ "$(date -u +\%Y)" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py release-lane >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1
+# --- end CB15-E ---

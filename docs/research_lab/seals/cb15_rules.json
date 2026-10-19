@@ -1,0 +1,2185 @@
+{
+ "parts": {
+  "E": {
+   "constants": {
+    "cb15_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch15",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "live_trades",
+      "snapshots",
+      "book_sweeps"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BASE_SOURCE": "base:cb14_q0302",
+     "BATCH_HOLM_K1": 4,
+     "BY_Q": 0.1,
+     "C1_SOURCE": "c1",
+     "CB14_KEYS_FILE": "exclusion_keys.csv.gz",
+     "CB15_OUTPUT_CAP_GB": 1.2,
+     "CB15_SPORTS_IN_PRIMARY": false,
+     "COST_ROBUST_PER_SIDE": 0.01,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "EARLY_ALPHA2": 0.025,
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EVIDENCE_ROLE_PROSPECTIVE": "prospective",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "E_FREEZE_PINS": [
+      "sign_table_sha256",
+      "poll_close_sha256",
+      "party_map_sha256",
+      "cross_table_sha256",
+      "source_manifest_sha256",
+      "race_map_sha256",
+      "disk_cap_gb"
+     ],
+     "E_JUDGE_ALPHA": 0.01,
+     "FAMILY_MODULES": {
+      "E": [
+       "cb15_e"
+      ],
+      "P": [
+       "cb15_p"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "E",
+      "P"
+     ],
+     "FAMILY_REP_TESTS": {
+      "E": [],
+      "P": [
+       "P1",
+       "P2"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "E": [
+       "E1",
+       "E2"
+      ],
+      "P": [
+       "P1",
+       "P2"
+      ]
+     },
+     "FEE_FLOOR": 0.04,
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "user",
+      "userid",
+      "username",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "uma_status",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end"
+     ],
+     "FORBIDDEN_PARSE_FIELDS": [
+      "side",
+      "proxyWallet",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "closedTime",
+      "result",
+      "settlement_value",
+      "transactionHash",
+      "hash",
+      "name",
+      "pseudonym",
+      "p_end"
+     ],
+     "FREEZE_PARTS": [
+      "E",
+      "P"
+     ],
+     "FREEZE_PIN_KEYS": {
+      "common": "common_rules_sha256",
+      "rules": "rules_sha256"
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_MARKETS": "https://gamma-api.polymarket.com/markets",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GAMMA_SEARCH": "https://gamma-api.polymarket.com/public-search",
+     "GATE_P": 0.01,
+     "G_CR2": 15,
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id"
+     ],
+     "ID_READABLE": {
+      "creative_batch13": [
+       "t_screen/fills.csv.gz",
+       "t_holdout/fills.csv.gz"
+      ],
+      "h11_attn": [
+       "frame.csv.gz",
+       "entities.csv.gz",
+       "holdout/frame_hold.csv.gz"
+      ],
+      "h11_pol": [
+       "frame.csv.gz"
+      ],
+      "h11_wprints": [
+       "markets.csv.gz"
+      ],
+      "h12_opt_live": [
+       "markets.csv.gz"
+      ],
+      "h12_prints": [
+       "markets.csv.gz"
+      ],
+      "h12_quake": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h12_quake_live": [
+       "markets.csv.gz"
+      ],
+      "h12_say": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h13_touch": [
+       "events.csv.gz",
+       "members.csv.gz",
+       "holdout/events.csv.gz",
+       "holdout/members.csv.gz"
+      ],
+      "h14_speech": [
+       "events_p.csv.gz",
+       "events_n.csv.gz",
+       "events_s2.csv.gz",
+       "members.csv.gz"
+      ],
+      "h14_wiki": [
+       "frame.csv.gz"
+      ],
+      "h14_wiki_live": [
+       "frame_ids.csv.gz"
+      ]
+     },
+     "ID_RESEARCH_ROOTS": [
+      "creative_batch13"
+     ],
+     "KEYS_OUTPUT_CAP_GB": 0.01,
+     "KEYS_RUN": "exclusion_run15",
+     "KEYS_STATUS": "exclusion_keys_complete",
+     "KEY_COLUMNS": [
+      "market_id",
+      "found",
+      "event_ids",
+      "neg_risk_market_id",
+      "series_ids",
+      "sources"
+     ],
+     "LIVE_ROOT_NAMES": [
+      "cross_venue_live",
+      "surprise_live"
+     ],
+     "LOOKUP_PER_REQUEST": 50,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MDE_INFLATE": 1.2,
+     "MDE_MULT": 3.16,
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "PAPER_SIZE": 100.0,
+     "PARTS": [
+      "common",
+      "E",
+      "P"
+     ],
+     "PERM_DRAWS": 9999,
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "P1_shuffle": 15111,
+      "P2_shuffle": 15112
+     },
+     "PLACEBO_SEED_RANGE": [
+      15101,
+      15130
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb15-rules-v1",
+     "SEED_BOOT": 1515,
+     "SEED_PAIRED_BOOT": 15121,
+     "SEED_PERM": 15101,
+     "SHARED_HELPERS": [
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "cw",
+       "_cluster_sums"
+      ],
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "c12",
+       "aggregate_transactions"
+      ],
+      [
+       "c12",
+       "fetch_prints_paged"
+      ],
+      [
+       "c12",
+       "reach_ok"
+      ],
+      [
+       "c12",
+       "listish"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "iso_week_of"
+      ],
+      [
+       "c12",
+       "read_csv_gz"
+      ],
+      [
+       "c12",
+       "read_id_set"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "manifest_complete"
+      ],
+      [
+       "c12",
+       "require_complete"
+      ],
+      [
+       "c12",
+       "verify_fetch"
+      ],
+      [
+       "c12",
+       "c1_market_ids"
+      ],
+      [
+       "c12",
+       "module_constants"
+      ],
+      [
+       "c12",
+       "module_funcs"
+      ],
+      [
+       "c10",
+       "require_disk"
+      ],
+      [
+       "c9",
+       "write_stall"
+      ],
+      [
+       "c9",
+       "stall_of"
+      ],
+      [
+       "c9",
+       "write_results_once"
+      ],
+      [
+       "c6",
+       "KEY_COLUMNS_SRC"
+      ],
+      [
+       "bk",
+       "seal_copy_ids_audited"
+      ],
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "write_json_atomic"
+      ],
+      [
+       "cm",
+       "idle"
+      ]
+     ],
+     "SMOKE_VERSION": "cb15-smoke-v1",
+     "STAGE1_HOLM_FAMILY": [
+      "E1",
+      "E2",
+      "P1",
+      "P2"
+     ],
+     "STAGE2_K_MAX": 2,
+     "STAGE2_NAMES": {
+      "P1": "P1-rep",
+      "P2": "P2-rep"
+     },
+     "STAGE_ALPHA": 0.05,
+     "TERMINAL_NAME": "terminal_{family}.json",
+     "TERMINAL_STATUS": "terminal_not_testable",
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "UNVERIFIED": "disjointness_unverified",
+     "USER_AGENT": "arepo-research-probe/1.0 (read-only counts; https://www.arepolabs.com)",
+     "W_STAR": -0.093
+    },
+    "cb15_e": {
+     "BAND": [
+      0.1,
+      0.9
+     ],
+     "BATCH_RETRY_S": 2.0,
+     "BOOKS_BATCH": 100,
+     "BOOKS_RPS": 2.0,
+     "BOOK_FIELDS": [
+      "asset_id",
+      "market",
+      "timestamp",
+      "bids",
+      "asks",
+      "tick_size",
+      "neg_risk",
+      "last_trade_price"
+     ],
+     "BOOK_LEVELS": 5,
+     "BOOK_LEVELS_DEGRADED": 1,
+     "CAP_MARGIN": 3.0,
+     "CAP_MIN_GB": 1.0,
+     "CENSUS_COLUMNS": [
+      "event_id",
+      "kind",
+      "office",
+      "state",
+      "district",
+      "general_ok",
+      "excluded",
+      "n_members",
+      "trade_type",
+      "chamber",
+      "neg_risk_market_id",
+      "series_id",
+      "market_ids"
+     ],
+     "CENSUS_MAX_REQ": 620,
+     "CENSUS_STATUS": "e_census_complete",
+     "CLOB_BOOKS": "https://clob.polymarket.com/books",
+     "COLLECTOR_LOCK": "/tmp/arepo_cb15_e_live.lock",
+     "COLLECTOR_MEM_MB": 200,
+     "COLLECTOR_NICE": 5,
+     "COMPLETENESS_MIN": 0.95,
+     "CONTROL_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(control|majority|balance of power|which party will win)\\b"
+     },
+     "CRON_FILE_REL": "scripts/oracle/cb15_e_crontab.txt",
+     "DAY": 86400.0,
+     "DEM_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(democrat|democrats|democratic)\\b"
+     },
+     "DISTRICT_ORD_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(\\d{1,2})(st|nd|rd|th)\\s+(congressional\\s+)?district\\b"
+     },
+     "DISTRICT_RE": {
+      "flags": 32,
+      "regex": "\\b([A-Z]{2})-(\\d{1,2}|AL)\\b"
+     },
+     "E1_FLOOR": 0.05,
+     "E1_SIGN_SHARE_MIN": 0.6,
+     "E2_FLOOR": 0.01,
+     "ELECTION_DAY": "2026-11-03",
+     "EVENT_LOOKUP_MAX_REQ": 400,
+     "GE0_ARCHIVE_REL": "research_lab/creative_batch15/ge0_sources",
+     "GE0_AUDIT_VALUES": [
+      "supported",
+      "unsupported"
+     ],
+     "GE0_DIR_REL": "docs/research_lab/seals/cb15_ge0",
+     "GE0_FILES": {
+      "cross_table": "cross_table.json",
+      "party_map": "party_map.json",
+      "poll_close": "poll_close.json",
+      "sign_table": "sign_table.json",
+      "source_manifest": "source_manifest.json"
+     },
+     "GE0_FORBIDDEN_SOURCE_KINDS": [
+      "2026_poll",
+      "2026_forecast",
+      "market_page",
+      "2026_news"
+     ],
+     "GE0_PASSES": [
+      "A",
+      "B"
+     ],
+     "GE0_SCHEMAS": {
+      "cross_table": {
+       "all_51": "generated by `run_cb15.py ge0-cross-table` (counts of effective signs by closing-hour stratum)",
+       "version": "cb15-ge0-cross-v1"
+      },
+      "party_map": {
+       "races": {
+        "<XX>|<senate|governor|house>|<district or ''>": {
+         "candidates": {
+          "<candidate name>": "D / R"
+         },
+         "citations": "[archive sha256]"
+        }
+       },
+       "version": "cb15-ge0-party-v1"
+      },
+      "poll_close": {
+       "states": {
+        "<XX>": {
+         "citations": "[archive sha256]",
+         "t_close_utc": "YYYY-MM-DDTHH:MM:SSZ (the latest official close across its time zones)"
+        }
+       },
+       "version": "cb15-ge0-pollclose-v1"
+      },
+      "sign_table": {
+       "kappa": "Cohen's kappa of passes A and B (reported)",
+       "states": {
+        "<XX>": {
+         "audit": "supported / unsupported (science-reviewer, read-only)",
+         "dir_2022": "+1 / -1 / 0",
+         "dir_2022_citations": "[archive sha256]",
+         "dir_2024": "+1 / -1 / 0",
+         "dir_2024_citations": "[archive sha256]",
+         "mode_order": "+1 / -1 / 0 (2026 counting order of vote modes)",
+         "mode_order_citations": "[archive sha256]",
+         "pass_a": "+1 / -1 / 0",
+         "pass_b": "+1 / -1 / 0",
+         "s": "+1 / -1 / 0"
+        }
+       },
+       "version": "cb15-ge0-sign-v1"
+      },
+      "source_manifest": {
+       "files": [
+        {
+         "fetched_utc": "ISO UTC",
+         "file": "path under ge0_sources/",
+         "kind": "state_law / election_office / ncsl / results_2022 / results_2024 / poll_close / candidate_list / other",
+         "sha256": "hex",
+         "url": "source URL"
+        }
+       ],
+       "version": "cb15-ge0-sources-v1"
+      }
+     },
+     "GE0_SIGNS": [
+      -1,
+      0,
+      1
+     ],
+     "GE0_VERSIONS": {
+      "cross_table": "cb15-ge0-cross-v1",
+      "party_map": "cb15-ge0-party-v1",
+      "poll_close": "cb15-ge0-pollclose-v1",
+      "sign_table": "cb15-ge0-sign-v1",
+      "source_manifest": "cb15-ge0-sources-v1"
+     },
+     "GEC_MIN_PER_SIGN": 9,
+     "GEC_MIN_RACES": 25,
+     "GEC_MIN_STATES": 16,
+     "GENERAL_DATE_RE": {
+      "flags": 34,
+      "regex": "(?i)(november\\s+3(rd)?,?\\s+2026|3(rd)?\\s+november,?\\s+2026|nov\\.?\\s+3(rd)?,?\\s+2026|2026-11-03|11/0?3/2026)"
+     },
+     "GEP_MAX_MDE": 0.15,
+     "GEP_SIGMA_D": 0.2,
+     "GEP_Z": 3.167969107613755,
+     "GE_MIN_PER_SIGN": 7,
+     "GE_MIN_STATES": 16,
+     "GOVERNOR_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(governor|gubernatorial)\\b"
+     },
+     "GRID_S": 600.0,
+     "HOLD_LANE": "cpu",
+     "HOLD_MIN_MEM_MB": 500,
+     "HOST_PROTECT_FREE_GB": 2.0,
+     "HOST_PY": "/home/opc/arepo/.venv/bin/python",
+     "HOUR": 3600.0,
+     "HOUSE_RE": {
+      "flags": 34,
+      "regex": "(?i)(\\bhouse\\b|\\bcongressional district\\b|\\b[A-Z]{2}-(\\d{1,2}|AL)\\b|\\bat-large\\b)"
+     },
+     "LABEL_E": "one-night case study (2026-11-03 US general election); the night is one cluster; L2 prospective, recorded books; no claim beyond that night",
+     "LIVE_FILES": {
+      "books_dir": "books",
+      "gaps": "gaps.jsonl",
+      "heartbeat": "heartbeat.json",
+      "manifest": "manifest.json",
+      "passes": "passes.jsonl",
+      "refresh_dir": "refresh",
+      "state": "state.json",
+      "storage": "storage.jsonl",
+      "tier": "tier.json"
+     },
+     "LIVE_STATUS_CLOSED": "e_live_window_closed",
+     "LOGIT_CLAMP": [
+      0.01,
+      0.99
+     ],
+     "LOG_DIR": "/home/opc/arepo_collector/logs",
+     "MAP_REFRESH_S": 21600.0,
+     "MINUTE": 60.0,
+     "NET_CONTROL_P": 0.05,
+     "NIGHT_GRID_S": 60.0,
+     "NOT_RUN_CALENDAR": "not run (calendar)",
+     "NOT_RUN_IDENT": "not run (identifiability)",
+     "NOT_RUN_POWER": "not run (power)",
+     "NOT_TESTABLE_AVAIL": "not testable (availability)",
+     "NOT_TESTABLE_FRAME": "not testable (frame completeness)",
+     "NOT_TESTABLE_POP": "not testable (population)",
+     "NOT_TESTABLE_SOURCE": "not testable (source)",
+     "NO_DEPTH_SIZE": 10.0,
+     "NTP_MAX_OFFSET_S": 1.0,
+     "NTP_SERVER": "pool.ntp.org",
+     "PLACEBO_P_FAIL": 0.01,
+     "PLACEBO_WINDOW_S": [
+      -129600.0,
+      -86400.0
+     ],
+     "POLL_CLOSE_RANGE": [
+      "2026-11-03T23:00:00Z",
+      "2026-11-04T07:30:00Z"
+     ],
+     "PRE_NIGHT_FREE_MARGIN_GB": 10.0,
+     "PROJECTION_WINDOW": 10,
+     "QUERIES": [
+      "Senate 2026",
+      "Governor 2026",
+      "House 2026",
+      "congressional district 2026",
+      "midterm 2026"
+     ],
+     "QUEUE_WORKER": "/home/opc/arepo/scripts/oracle/queue_worker.py",
+     "RACE_EXCLUDE_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(primary|primaries|runoff|run-off|nominee|nomination|caucus|margin|turnout|popular vote|recount|by how much|vote share|percentage)\\b"
+     },
+     "RACE_MAP_COLUMNS": [
+      "race_id",
+      "kind",
+      "state",
+      "office",
+      "district",
+      "event_id",
+      "market_id",
+      "token_d_yes",
+      "token_d_no",
+      "party_source",
+      "two_party",
+      "band_q0344",
+      "sign",
+      "stratum",
+      "t_close",
+      "chamber",
+      "fee_rate",
+      "neg_risk_market_id",
+      "series_id",
+      "key_overlap"
+     ],
+     "RACE_MAP_NAME": "race_map.csv",
+     "READ_LAG_A_S": 120.0,
+     "READ_LAG_B_S": 300.0,
+     "REP_RE": {
+      "flags": 34,
+      "regex": "(?i)\\b(republican|republicans|gop)\\b"
+     },
+     "ROBUST_P": 0.05,
+     "RUN": "h15_elect_live",
+     "SEARCH_LIMIT": 50,
+     "SEARCH_MAX_PAGES": 24,
+     "SEARCH_STATUS": "active",
+     "SENATE_GOV_MIN_PER_SIGN": 4,
+     "SENATE_RE": {
+      "flags": 34,
+      "regex": "(?i)\\bsenate\\b"
+     },
+     "SIGN_YEARS": [
+      "2022",
+      "2024"
+     ],
+     "SMOKE_FULL_PASS_TOKENS": 1000,
+     "SMOKE_MAX_REQUESTS": 30,
+     "SMOKE_NEEDS": [
+      "guards_fixture_E",
+      "e_part_hashes",
+      "e_ge0_schema_fixture",
+      "e_collector_before_pre",
+      "e_gap_logging",
+      "e_degradation",
+      "e_lane_hold_flag",
+      "e_gamma_paging",
+      "e_books_100",
+      "e_full_pass_bytes",
+      "e_ntp_offset"
+     ],
+     "SMOKE_QUERY": "Governor 2026",
+     "SPREAD_MAX": 0.1,
+     "STATES": {
+      "AK": "Alaska",
+      "AL": "Alabama",
+      "AR": "Arkansas",
+      "AZ": "Arizona",
+      "CA": "California",
+      "CO": "Colorado",
+      "CT": "Connecticut",
+      "DC": "District of Columbia",
+      "DE": "Delaware",
+      "FL": "Florida",
+      "GA": "Georgia",
+      "HI": "Hawaii",
+      "IA": "Iowa",
+      "ID": "Idaho",
+      "IL": "Illinois",
+      "IN": "Indiana",
+      "KS": "Kansas",
+      "KY": "Kentucky",
+      "LA": "Louisiana",
+      "MA": "Massachusetts",
+      "MD": "Maryland",
+      "ME": "Maine",
+      "MI": "Michigan",
+      "MN": "Minnesota",
+      "MO": "Missouri",
+      "MS": "Mississippi",
+      "MT": "Montana",
+      "NC": "North Carolina",
+      "ND": "North Dakota",
+      "NE": "Nebraska",
+      "NH": "New Hampshire",
+      "NJ": "New Jersey",
+      "NM": "New Mexico",
+      "NV": "Nevada",
+      "NY": "New York",
+      "OH": "Ohio",
+      "OK": "Oklahoma",
+      "OR": "Oregon",
+      "PA": "Pennsylvania",
+      "RI": "Rhode Island",
+      "SC": "South Carolina",
+      "SD": "South Dakota",
+      "TN": "Tennessee",
+      "TX": "Texas",
+      "UT": "Utah",
+      "VA": "Virginia",
+      "VT": "Vermont",
+      "WA": "Washington",
+      "WI": "Wisconsin",
+      "WV": "West Virginia",
+      "WY": "Wyoming"
+     },
+     "T15_CPU_DRY_RUN": [
+      "2026-11-02T12:00:00Z",
+      "2026-11-02T12:10:00Z"
+     ],
+     "T15_CPU_HOLD": [
+      "2026-11-03T21:00:00Z",
+      "2026-11-04T22:00:00Z"
+     ],
+     "T15_DISK_CHECK_DAY": "2026-11-02",
+     "T15_E_END": "2026-11-06T00:00:00Z",
+     "T15_E_FREEZE": "2026-11-01T12:00:00Z",
+     "T15_E_OFF": "2026-11-04T21:00:00Z",
+     "T15_E_ON": "2026-11-03T22:00:00Z",
+     "T15_E_PRE": "2026-11-02T12:00:00Z",
+     "TIER_LIQUID_SHARE": 0.3333333333333333,
+     "TOP_STATES_PER_SIGN": 2,
+     "T_A_OFFSET_S": 5400.0,
+     "T_A_ROBUST_S": [
+      3600.0,
+      9000.0
+     ],
+     "T_B_OFFSET_S": 43200.0,
+     "T_B_ROBUST_S": [
+      21600.0,
+      86400.0
+     ],
+     "WALK_END_WINDOW": [
+      "2026-11-03T00:00:00Z",
+      "2027-02-01T00:00:00Z"
+     ],
+     "WALK_MAX_REQ": 100,
+     "WALK_STEP_D": 7,
+     "WALK_TAG_ID": 2
+    }
+   },
+   "declared": {
+    "cb15_e": {
+     "collector": {
+      "batch": 100,
+      "book_fields": [
+       "asset_id",
+       "market",
+       "timestamp",
+       "bids",
+       "asks",
+       "tick_size",
+       "neg_risk",
+       "last_trade_price"
+      ],
+      "cap": {
+       "margin": 3.0,
+       "min_gb": 1.0
+      },
+      "degraded_levels": 1,
+      "grid_s": 600.0,
+      "hash": "discarded",
+      "host_protect_free_gb": 2.0,
+      "levels": 5,
+      "map_refresh_s": 21600.0,
+      "mem_mb": 200,
+      "nice": 5,
+      "night_grid_s": 60.0,
+      "no_exit75_in_window": true,
+      "pre_night_free_margin_gb": 10.0,
+      "rps": 2.0
+     },
+     "cron": {
+      "file": "scripts/oracle/cb15_e_crontab.txt",
+      "hold": {
+       "lane": "cpu",
+       "min_mem_mb": 500
+      },
+      "lines": [
+       "# --- CB15-E election night (docs/research_lab/CREATIVE_BATCH_15.md sections 1.2, 2.8; q0345). Install after the part-E freeze, by 2026-11-02T00:00Z; remove after 2026-11-06T00:00Z. ---",
+       "* * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_cb15_e_live.lock nice -n 5 /home/opc/arepo/.venv/bin/python scripts/run_cb15.py e-live --rules ../docs/research_lab/seals/cb15_rules.json --not-before 2026-11-02T12:00:00Z --until 2026-11-06T00:00:00Z --disk-cap-gb freeze --data-dumps-cap-gb 40 --no-exit75-in-window >> /home/opc/arepo_collector/logs/cb15-e-live.log 2>&1",
+       "0 12 2 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py hold-lane cpu 500 >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1  # dry run (verify a held job is not promoted)",
+       "10 12 2 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py release-lane >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1  # dry run (verify promotion)",
+       "0 21 3 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py hold-lane cpu 500 >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1",
+       "0 22 4 11 * [ \"$(date -u +\\%Y)\" = 2026 ] && /home/opc/arepo/.venv/bin/python /home/opc/arepo/scripts/oracle/queue_worker.py release-lane >> /home/opc/arepo_collector/logs/cb15-e-hold.log 2>&1",
+       "# --- end CB15-E ---"
+      ]
+     },
+     "dates": {
+      "cpu_dry_run": [
+       "2026-11-02T12:00:00Z",
+       "2026-11-02T12:10:00Z"
+      ],
+      "cpu_hold": [
+       "2026-11-03T21:00:00Z",
+       "2026-11-04T22:00:00Z"
+      ],
+      "election_day": "2026-11-03",
+      "end": "2026-11-06T00:00:00Z",
+      "freeze": "2026-11-01T12:00:00Z",
+      "off": "2026-11-04T21:00:00Z",
+      "on": "2026-11-03T22:00:00Z",
+      "poll_close_range": [
+       "2026-11-03T23:00:00Z",
+       "2026-11-04T07:30:00Z"
+      ],
+      "pre": "2026-11-02T12:00:00Z"
+     },
+     "e1": {
+      "floor": 0.05,
+      "logit_clamp": [
+       0.01,
+       0.99
+      ],
+      "net_of_control_p": 0.05,
+      "perm": {
+       "draws": 9999,
+       "seed": 15101
+      },
+      "placebo_fail_p": 0.01,
+      "placebo_window_s": [
+       -129600.0,
+       -86400.0
+      ],
+      "robust": {
+       "p": 0.05,
+       "senate_gov_min_per_sign": 4,
+       "t_a_s": [
+        3600.0,
+        9000.0
+       ],
+       "t_b_s": [
+        21600.0,
+        86400.0
+       ],
+       "top_states_per_sign": 2
+      },
+      "sign_share_min": 0.6,
+      "stat": "sum_h w_h (1/2 mean_{+,h} d - 1/2 mean_{-,h} d); m_h = n+ n- / (n+ + n-)"
+     },
+     "e2": {
+      "exit_robust_s": 21600.0,
+      "fee_floor": 0.04,
+      "floor": 0.01,
+      "no_depth_size": 10.0,
+      "support": "states with both side nets (the permutation's support)",
+      "w_star": -0.093
+     },
+     "family": "E",
+     "frame": {
+      "control": "the D member of the national Senate / House control markets (single candidate, else the coordinator's pre-freeze override naming one candidate from the q0341 census); missing -> net-of-control unknown (E1 cannot advance)",
+      "paging": "to hasMore = false",
+      "queries": [
+       "Senate 2026",
+       "Governor 2026",
+       "House 2026",
+       "congressional district 2026",
+       "midterm 2026"
+      ],
+      "race_rules": {
+       "control": "(?i)\\b(control|majority|balance of power|which party will win)\\b",
+       "exclude": "(?i)\\b(primary|primaries|runoff|run-off|nominee|nomination|caucus|margin|turnout|popular vote|recount|by how much|vote share|percentage)\\b",
+       "general_date": "(?i)(november\\s+3(rd)?,?\\s+2026|3(rd)?\\s+november,?\\s+2026|nov\\.?\\s+3(rd)?,?\\s+2026|2026-11-03|11/0?3/2026)",
+       "governor": "(?i)\\b(governor|gubernatorial)\\b",
+       "house": "(?i)(\\bhouse\\b|\\bcongressional district\\b|\\b[A-Z]{2}-(\\d{1,2}|AL)\\b|\\bat-large\\b)",
+       "senate": "(?i)\\bsenate\\b"
+      },
+      "status": "active",
+      "tier": "top 0.3333 by Gamma liquidity at T15_E_pre",
+      "trade_market": "(a) a party member / market naming Democrat(ic); else (b) the D candidate member by the GE0 party map; D-terms = D YES mid",
+      "two_party": "the two highest-priced members at the q0344 read are one D and one R; a single-member D party market passes (single_party_market, reported)",
+      "walk": {
+       "end_window": [
+        "2026-11-03T00:00:00Z",
+        "2027-02-01T00:00:00Z"
+       ],
+       "min": 0.95,
+       "tag": 2
+      }
+     },
+     "gates": {
+      "ge": {
+       "per_sign": 7,
+       "states": 16
+      },
+      "gec": {
+       "per_sign": 9,
+       "races": 25,
+       "states": 16
+      },
+      "gep": {
+       "max_mde": 0.15,
+       "sigma_d": 0.2,
+       "z": 3.167969107613755
+      }
+     },
+     "ge0": {
+      "archive": "research_lab/creative_batch15/ge0_sources",
+      "dir": "docs/research_lab/seals/cb15_ge0",
+      "files": {
+       "cross_table": "cross_table.json",
+       "party_map": "party_map.json",
+       "poll_close": "poll_close.json",
+       "sign_table": "sign_table.json",
+       "source_manifest": "source_manifest.json"
+      },
+      "forbidden_source_kinds": [
+       "2026_poll",
+       "2026_forecast",
+       "market_page",
+       "2026_news"
+      ],
+      "passes": [
+       "A",
+       "B"
+      ],
+      "pin": "ge0_bundle_sha256 = sha256 of the sorted JSON of the five per-file sha256s; MANDATORY --ge0-sha256",
+      "schemas": {
+       "cross_table": {
+        "all_51": "generated by `run_cb15.py ge0-cross-table` (counts of effective signs by closing-hour stratum)",
+        "version": "cb15-ge0-cross-v1"
+       },
+       "party_map": {
+        "races": {
+         "<XX>|<senate|governor|house>|<district or ''>": {
+          "candidates": {
+           "<candidate name>": "D / R"
+          },
+          "citations": "[archive sha256]"
+         }
+        },
+        "version": "cb15-ge0-party-v1"
+       },
+       "poll_close": {
+        "states": {
+         "<XX>": {
+          "citations": "[archive sha256]",
+          "t_close_utc": "YYYY-MM-DDTHH:MM:SSZ (the latest official close across its time zones)"
+         }
+        },
+        "version": "cb15-ge0-pollclose-v1"
+       },
+       "sign_table": {
+        "kappa": "Cohen's kappa of passes A and B (reported)",
+        "states": {
+         "<XX>": {
+          "audit": "supported / unsupported (science-reviewer, read-only)",
+          "dir_2022": "+1 / -1 / 0",
+          "dir_2022_citations": "[archive sha256]",
+          "dir_2024": "+1 / -1 / 0",
+          "dir_2024_citations": "[archive sha256]",
+          "mode_order": "+1 / -1 / 0 (2026 counting order of vote modes)",
+          "mode_order_citations": "[archive sha256]",
+          "pass_a": "+1 / -1 / 0",
+          "pass_b": "+1 / -1 / 0",
+          "s": "+1 / -1 / 0"
+         }
+        },
+        "version": "cb15-ge0-sign-v1"
+       },
+       "source_manifest": {
+        "files": [
+         {
+          "fetched_utc": "ISO UTC",
+          "file": "path under ge0_sources/",
+          "kind": "state_law / election_office / ncsl / results_2022 / results_2024 / poll_close / candidate_list / other",
+          "sha256": "hex",
+          "url": "source URL"
+         }
+        ],
+        "version": "cb15-ge0-sources-v1"
+       }
+      },
+      "sign_rule": "+1/-1 only if both passes, the vote-mode order and both years agree, every input cites an archived sha256 and the audit is 'supported'; else 0",
+      "versions": {
+       "cross_table": "cb15-ge0-cross-v1",
+       "party_map": "cb15-ge0-party-v1",
+       "poll_close": "cb15-ge0-pollclose-v1",
+       "sign_table": "cb15-ge0-sign-v1",
+       "source_manifest": "cb15-ge0-sources-v1"
+      },
+      "years": [
+       "2022",
+       "2024"
+      ]
+     },
+     "judgement": {
+      "alpha": 0.01,
+      "rule": "judged when it runs at p < min(0.01, alpha/k1), strict; never withdrawn; the final Holm only adds passes; no Stage 2 in CB15"
+     },
+     "label": "one-night case study (2026-11-03 US general election); the night is one cluster; L2 prospective, recorded books; no claim beyond that night",
+     "smoke": {
+      "full_pass_tokens": 1000,
+      "max_requests": 30,
+      "needs": [
+       "guards_fixture_E",
+       "e_part_hashes",
+       "e_ge0_schema_fixture",
+       "e_collector_before_pre",
+       "e_gap_logging",
+       "e_degradation",
+       "e_lane_hold_flag",
+       "e_gamma_paging",
+       "e_books_100",
+       "e_full_pass_bytes",
+       "e_ntp_offset"
+      ],
+      "ntp_max_offset_s": 1.0
+     },
+     "units": {
+      "band": [
+       0.1,
+       0.9
+      ],
+      "read_lag_a_s": 120.0,
+      "read_lag_b_s": 300.0,
+      "spread_max": 0.1,
+      "state_weight": "1 per state",
+      "t_a_offset_s": 5400.0,
+      "t_b_offset_s": 43200.0,
+      "t_b_rule": "mid whatever the spread; no ask -> 1, no bid -> 0; no exclusion at t_b"
+     }
+    }
+   },
+   "func_sources_sha256": {
+    "cb15_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb15_common.attribute_sources": "5484ed77e7bb01a103197df59a3c03ec31d5ae7c6eaf64a8ca1d0cfa21f60697",
+    "cb15_common.cluster_p": "9c8a06cc1e552f05ca1ad243523d83d89ed0a11da096c8f1290e58f080597ed9",
+    "cb15_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb15_common.drop_reason": "473566e22ff10f0a43fb27490a2e051a2143d3231092db2c1f107dc0fc5f9806",
+    "cb15_common.e_judged": "fc0aec03eea6d06692f76c2ab9e4c6882127a518fa535bd0e7065ffe8bd5e03c",
+    "cb15_common.early_stage2_ok": "305ef281a402a20429df8643d1240f59ae8befd2ba799a7001a252c7c3ef7b5a",
+    "cb15_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb15_common.exclusion_keys": "9857057598dd1d0078c837802ffbaaf2693d65f5cc18666cc5ce350c65ec09fb",
+    "cb15_common.fee": "f60799ffb16af8c3a40d16efc5bf91e5b750eb01973926b1149e001991c4ec91",
+    "cb15_common.frame_ids": "d4e6b48f49c62f4fca8f188cbb7ad9260f034a6b3970b5d8a5f363fff55e16e1",
+    "cb15_common.guard_id_file": "9ced860ec8540d07256add0b92d34e953e8ac0961efc9ab87fc757cc31dfe05b",
+    "cb15_common.guard_input_path": "164d1ef74fb21fadf457fb7bf07d733609e9a7c3975bb3291ead8f8531ea2b21",
+    "cb15_common.holm": "af9d8cb1193c0e2ea54f102aac4a2dd8251d43681e389fcc6de098a40c3b4925",
+    "cb15_common.id_source_path": "3b5a053b8a8a055a96496aec795a54acb96da841936c23ee5bd667a28e4c1a51",
+    "cb15_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb15_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb15_common.iso_week_of": "ff68e893db31f9232f2c34de2a0133f8ae0c3a5d71d81e24e6e6fa0c1ae16a5b",
+    "cb15_common.jsonl_append": "c3ae14b3b228dd1ddfa4bd2da270cfea1124c185f51111bb73d27c56595b3b9b",
+    "cb15_common.jsonl_iter": "73e573de41cbdac268159b61cd7920199da727075650ddafb9aa4292587f2b78",
+    "cb15_common.key_sources": "bc08139db9ea31085cf2441aaf2d69524328fbe12273063cc66b167c2ee115f6",
+    "cb15_common.ksrc_of": "e6f9b0b6df80f8fd38a51e9c5d1473633b5b5305e143abdb1ef48107aa8adb76",
+    "cb15_common.log_descriptive": "ddc8665a334bcc147383e739be810f428ed964744cdb7f48dda5a6fbb1e5e56d",
+    "cb15_common.log_family": "f99455370935d58dbd9bbdc2dbd92a5495820422bb27c5bca8de5fc173581b20",
+    "cb15_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb15_common.max_se_over_ways": "18f28ac880ad440c2f2922904a7aa736ceb3d58b3dd06288a3a7a1331aa17210",
+    "cb15_common.mde": "68e3c42134841a96ebd49600e805e0fb740f0cfc9ddcaf6e055874d60c4aa54f",
+    "cb15_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb15_common.p_pass": "9146e1b511427a8077dcf1e0c98dc2061341d14ea489bdddbd2b4c0739b0f6fb",
+    "cb15_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb15_common.perm_p_within_strata": "e00803dac055969902fd5b259a57b4d07507df970ff767b083fcbb89323a7e41",
+    "cb15_common.permute_within_strata": "2bf4187d99c213263d86171fb8a6e351fb03c456293071480bfed837073e3efb",
+    "cb15_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb15_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb15_common.read_id_columns": "152f2a91e32673cc860367557e1e960a61c1a4ee4cb2fb37bd041278c0106dbd",
+    "cb15_common.read_keys_with_sources": "1593ed700d2254ab0a4bf9fa1e0eca755bc6569c8f1ebca565752c9ef9215e8c",
+    "cb15_common.read_terminal": "006816bb9ee48d0279a54dc7d862c7ca14a60a6529a59bfc2d3ac071dbc0da0f",
+    "cb15_common.record_terminal": "4238198b9578142bebae073998bf9f8b8fe9575a38dfd0e1cd66d8ae22263c43",
+    "cb15_common.refuse_path": "005240906e6165cd1332d272a89e34138497db45276a90ece5269a358623c8cb",
+    "cb15_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb15_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb15_common.require_complete": "f77e2697117079e41572fa4ece99d3e504c2bece2e23b9a8db1179a95a030396",
+    "cb15_common.require_disk": "171d800c22cef62ab8df80181d31036f4323320b554a25cb2e4e473fc713babc",
+    "cb15_common.require_freeze": "87f10294bc0e0c4fe96ea616292c19a9ac95c8b9995bc7a646ba5cd55495d1d8",
+    "cb15_common.require_output_root": "dc5032aeffb912cf1f4e6d7b1f253c7f3baeb429767781b18707b533674f08fe",
+    "cb15_common.round_trip_net": "46eec3c7e42964135951e52de15fb77d1e8c281662a96247432dd229e60ca5c8",
+    "cb15_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb15_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb15_common.sign_ok": "b34ef383569c27a123b97b1917db932b9aeae517c3cc36a28501dbee67575473",
+    "cb15_common.stage1_advance": "96adfe88a985cf11f2bcb8defd9fb72e01a1028ad9d1acccebb82eb1dfecb34c",
+    "cb15_common.stage1_holm": "80933d4d8cf601b805194a1df4915aaf27554e5f75d2c8666d5bf709b017bc9b",
+    "cb15_common.stage2_final": "7949450e414c2cf506d190b8b7d713093b7692890bbdde4f86ce0ad119174ed2",
+    "cb15_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb15_common.stage2_pass": "eda7e2d9e4ad630d3d2db3955f0f5e5e074fe345e45738379aed63e9205e3857",
+    "cb15_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb15_common.stratified_balanced": "b40418886e98ae361f84339d043088d242f7569c2987d7d7ecf760900609ad5a",
+    "cb15_common.stratified_sign_share": "9a8cf9bfeeefd5f77cb506f2d09bf26cfd7f7eaa52910cdc63a126172568ef1a",
+    "cb15_common.stratum_weights": "cc6d8f0d6fc1195a7b0c7b543c927c226c357043a1f2b475ef67a4d40c064f2a",
+    "cb15_common.strip_forbidden": "4ee5f8ba6041e3d90109a9f3b3c72a1fdd8a51d4b15cd6efd681759bed6f7366",
+    "cb15_common.taker_rate": "57df60290525b05a7a6496f30fb564217e47357e1ac5742e792a3b9b97c699fb",
+    "cb15_common.terminal_path": "4e0150b311e003a9840b41fe82133de0907c9e90e2f9513517b9683140aa8bce",
+    "cb15_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb15_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb15_common.verify_fetch": "f635c0f941f94b8e9a72b32fe28b5aae1c91f1bedd0d180ef75a827f57857ae4",
+    "cb15_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb15_common.wls_coef_pseudo": "dbbb657f7ca9a20bb1acbcedd08004b085bd89a9f4bc5acafeea19a882ff61b7",
+    "cb15_common.write_dir_manifest": "0c1109c89812f4aa3f70f086bfcbc00213eecac8cef68a43c53af7118b6abdc7",
+    "cb15_common.write_gz_csv": "8418c983bf77c0e977d2c31ce79b23ac5efb5f5a1bd485683a29e7c7c04a2670",
+    "cb15_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb15_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb15_common.yes_price": "71a7eeb5ab5dbe172e2df3b468985054f1bde3636d9759961f8e0f92f93b23a2",
+    "cb15_e.BookIndex": "19e6cda6b8064b45a1f01897662f0fb2cd863beee966c51a732177d65cd2ae89",
+    "cb15_e._arrays": "dfe1c54fc44356db62498e74246146cc2f838c9d379cb46d9660c5a1a3a7a004",
+    "cb15_e._chk": "23583bb5704fd13ade8e6407f0dc2750b436d540ead9f313604e390d09c2c7bb",
+    "cb15_e._cron_at": "9c544d76f16f1756ad703374054b07808c8121c8e79033ff24932adc68e8fa3f",
+    "cb15_e._levels": "266d1f4e9d0b538d30d993a84dec8609ce33960eb449d76cf0d7313296541b7c",
+    "cb15_e.band_label": "996937dbd2a3666abcde1a31f2e7cf121b692190cdc5bf5284b21a2773ed6012",
+    "cb15_e.best_of": "8d6b695afe7dda81c96ee93e59ce8de857aba9902d5d6d4557c575ee569d8468",
+    "cb15_e.books_batch": "b1599322232f99af806cd90c70712c879346a0b805a5982e1701572866702a7c",
+    "cb15_e.books_poster": "134e53f300ac2f7c53bb48aa15f69f469c194186104a0783ef7113222c0e457b",
+    "cb15_e.build_cross_table": "da1f92be7902eaf2fd74c0ea87d1f8a6d7f7112c3c59f9c357d5477645a1534e",
+    "cb15_e.calendar_missed": "c210baca8f19ac7f59d6d12d7477c06a22275c36d6a6c5ec63dee5220bd1fdef",
+    "cb15_e.capacity": "77f163b06055fd2686e5789eca18f1da91e28c5bdeb079785627207e8fe0cd57",
+    "cb15_e.census_e": "dd4e26276f566daec7cd3280422b3b64ba474ce7bc9b409a9289074681cebba2",
+    "cb15_e.cited": "d83c20d497ab878e1e6ef07d880c9d11e5425afd929c1f07d087aa85b67b0c5f",
+    "cb15_e.cited_party_map": "e43a3779d593c626466bb076ff168f7e541a55d3c905aee546783e0a27e7bf2b",
+    "cb15_e.classify_event": "0752ac55b09181bff40d5dd37ad56b2aa1c58b0da62f2ad3356a321e099edc44",
+    "cb15_e.collector_cap_gb": "940dbf804d6c171edc8eab5aa93e8ab4757fde1894fddc3426c7c04d5a823bb0",
+    "cb15_e.collector_tokens": "89af1610a97d43e196f7bac1078d38f9f6843ccfeacf141cab61b4214ab83814",
+    "cb15_e.contrast": "7317a90155dd3f174fc1341311310861a9c6191a1a9183658bfb4a80fae3de75",
+    "cb15_e.control_drift": "afef5775f4050a918600a4861413e82d7ea259facd6ee8aae6ac6d2d876c2ba4",
+    "cb15_e.control_member": "2a2c1f4158a88af7863c603e55e79b6f531cde71774b3ce6d248fcf6109aac69",
+    "cb15_e.cron_lines": "bf4a41858cd7cd6185e86dd625d95a11a1371f83ba346826792da46e5c2ada13",
+    "cb15_e.cron_text": "6fb8ccb87bf9c73734ce72995953c4d621ea07e86518ebf1436f6ed9bfe9710a",
+    "cb15_e.cross_table": "b3170717a65bb3888e0b69fbc7414ce1d613d9119fe2f6509013140c9f38853a",
+    "cb15_e.cross_table_doc": "3e272e0195063fc0d995671cd58e239a947e28c492cea4bd38a3f579e6644047",
+    "cb15_e.declared": "d4c899b03e3610b921938b5e91e9beb30f83e50a8796a64d80996d9293596683",
+    "cb15_e.dir_bytes": "6aa6bfc378ef4890b0f7bdad4d57393078049885eb8926061279954485ed792a",
+    "cb15_e.district_of": "967f64eb82e18f8802aa2b342ce660d0e9774067e7191c2e6195bf26d5cfde14",
+    "cb15_e.drop_top_per_sign": "4453ca47f15502761b5e0e22df0bcf15578398c1fbcf93e1acb5a2f645320043",
+    "cb15_e.e1_test": "eb7eec68c7f995ce7db44299bf0b7b701117eae3bcdbd8d3b09092c8696c731b",
+    "cb15_e.e2_test": "fa7c36b075fa926f24cf6af9f34bddd5e4bac56c5d14c79b0b278476de33f3fe",
+    "cb15_e.e_freeze_commit_time": "00ecc674c69364dad555076573ff252d89e0440425d89bfc9a9993ed692f0f63",
+    "cb15_e.e_live": "3bc1777f038bb5d4210615320e4425d6540fb13df80faa14b6b20f52c026e9f0",
+    "cb15_e.effective_sign": "c3255b38e7f09cc9601d1c622a3761eb64198b0f9ce9c886bd0975b8865fbb8e",
+    "cb15_e.ep": "d5bd2bb62fd73161eef1a1f8576056d57ba15ff28937cb658c67d50a5a8516a9",
+    "cb15_e.file_sha": "3cb1574dce9f3ba81c056915ef69a17674b36d89841bada9b207bac0141fec1b",
+    "cb15_e.gamma_markets": "155f372ad5c072de63ffcfda1d9f86ab2416a3cfbd9520017f87022f3cb6cbcc",
+    "cb15_e.gate_ge": "19391ad25e0239f3107fdef9d680a4b3f835e28b9cc1496435bc2ad4b52e9127",
+    "cb15_e.gates_pregate": "9f3eec76b792264c7b8142be662cd566c63df49987315482e41170fe53e0cd4f",
+    "cb15_e.ge0_bundle_sha256": "bed0b2f83e49fa992a0860a39dbf08060437a0ad04e9061a79a69ead44275fae",
+    "cb15_e.ge0_dir": "da1498e21e5879850c7652055962e1f375c23bcd60baf966a6e1ed6755a67cc8",
+    "cb15_e.ge0_file_docs": "5cee4d0da383cfa8be2fa86e33a105c1bbc50ab9143d7f6ff4bbddda70d046c6",
+    "cb15_e.ge0_fixture": "bc71f2ec180dad40804be1df1fc42812aa4954de3b51f79eca4a8531fd8370f8",
+    "cb15_e.grid_due": "bca815e93db85053b951603891222b99f52c4698b2e9706eacd5b161e976ae66",
+    "cb15_e.identified_only": "03041a273dc2db629d40901e2b753de00e007e233a6e61c86e0bd60b82d13873",
+    "cb15_e.is_night": "f41b1caa3c8bf20eb59f92d3f0ad183caeaa8c6061a04b65e0cd7fc3965fb027",
+    "cb15_e.listish": "ef522edc88a15b04cc77d48d01c99fe53495dad824b095536480e70f4afe747b",
+    "cb15_e.load_books": "7851db754c572a67d8aca5ac6b88e6bf5b5bc39298adce90f20ac1c13c43de4e",
+    "cb15_e.load_ge0": "837f47f9455c2089b421f6bb8ac135c79c2b888c7016d3ae5c8a4d1d4bf65cb7",
+    "cb15_e.load_screen_inputs": "58d02b7bf19814e7051e2490f5d1577022cfa7b74329a7e5c57bb14c9dfa045c",
+    "cb15_e.logit": "e011c448744d28c7bd7a186e3379117d923d2527318e9a357d5e2b7cb6ff82e4",
+    "cb15_e.lookup_events": "b9238646993fa1ad85e11e899345d628535b4f18ee848e7deb29c884ecb474a6",
+    "cb15_e.loso": "edbdde9359e6f85efba9538b91a8568e77bfaa42b6f1e36199a63a2da212e403",
+    "cb15_e.manifest_shas": "d74fee87e4055bccdd54f1941e9d4c990c0e18f0ec7ad0de2dec4a3aeaee023b",
+    "cb15_e.mde_e1": "cccdabbd8ad15adbd4e7ecc69bcb92bd394a353a4092ac0a9b216163d955e59b",
+    "cb15_e.member_party": "6c75a277e4687b4d7636824f3bba0e576be8c46c8c257074c660ff6ffee7834c",
+    "cb15_e.mid_one_sided": "886bc81d8353fc9a85575f417a3adaccdd3a685e7d80c816436f07742cc83fd5",
+    "cb15_e.norm_name": "450e82ed88fc014a739302d2147db66f2dd0b55e88415009de0c0b4e6239700f",
+    "cb15_e.ntp_offset": "8c21ce18025862b99a4187f0309ebc23b2d3334cc3fd48e427e399a3ba08c14f",
+    "cb15_e.office_of": "6cb71cfce6541e01e9dcb30fe8613ca0f89421596c533dc949a9cfba0d73f2bf",
+    "cb15_e.offsets_on_grid": "e30016df12b63afb8f5a44d0697149171e81a299fae40c0e8650e4f9966520cc",
+    "cb15_e.out_of_frame_tokens": "c15d6dc62456bb65f0cac50c878d28f768294511694135b3881cec7167ca66de",
+    "cb15_e.parse_book": "25804d218e034af38ca07a7ac798fde84387b3378fb10f7e6196ef696c37593e",
+    "cb15_e.parse_event": "074f32efb372f4eddd827bb92ed69f7d678283d537afb2a1f0f54503247b380b",
+    "cb15_e.parse_market": "a1ecc60005be788925deb0055adf26e0f5e2ca41c53b0645e6626170cb98c7d1",
+    "cb15_e.party_of_text": "d0f23301055daf3466af927fa33ac364d4215c05b07d0f2298765119ec13c26d",
+    "cb15_e.pass_bytes": "a4d02ff1a13d5cc08acf1cd668f50335356ce746efed881c29e88a0e464a2eab",
+    "cb15_e.pass_file": "461e6df9b885ce6049fb978742dea236b1006631b15fe547455cac30572a7020",
+    "cb15_e.pick_control": "dfacffe7b7285e91f449b5e68b5eb295ced61741f0cd6fc74879b0fed8c46291",
+    "cb15_e.pre_night_disk_check": "be3297132b6d5a587734dfad1a3893358b832af420561d28e59d8cf71d370035",
+    "cb15_e.predicted_value": "e9250f18181fb053ecffc43a03a5d059b09cef97e98280155af3ff9cd6c9d64b",
+    "cb15_e.pregate_e": "66ac0a213e32b8b735008451be7c69926989e4f5804daa8b75296cdcdb8feddc",
+    "cb15_e.race_id_of": "ea556304d1d1ffa42319a6db27d90c5aba4793b87028a54025da6df9057ed1ab",
+    "cb15_e.race_share": "f8a5906db5c24439a66224e24a31a467d1b152fc8dc668d048bc652faee957bc",
+    "cb15_e.race_unit": "e268a976e809807cd1d1403c0a834d71f170e2feb7af711d46feaf379e4f83f0",
+    "cb15_e.read_race_map": "ff77aa42d28516c3612a4c3223228fec5915e9763545781bf43415cac3006912",
+    "cb15_e.refresh_map": "0f71a73c4ab17b703c2e228b3541b092e606996e5557f0731fb87d165f98b3b1",
+    "cb15_e.require_ge0_pin": "fbda8eafe987dd6124d512c5dfd7970af66ebb899aec0572223b68abe03d3580",
+    "cb15_e.run_pass": "520c160c6b70370ff5b4e111c925c89764a85f991614cbec717c4863d6b968d8",
+    "cb15_e.scheduled_slots": "6bf5c0553dbed080849738d0b6a13771edb397b8b7fc7689671ce8046fb91f44",
+    "cb15_e.screen_e": "2f553623f278bf3f480a814212b6c17571169ba62844afb2f3cd33b4897cc0c1",
+    "cb15_e.search_all": "836997deaa8360e54812b0a8536f1b519f5bf1595088e4337760c767dfb7bdf7",
+    "cb15_e.smoke_offline": "ee7e417fb589dbcc6fa73631682736226a6962a939ce281443c5e58d9a8970d5",
+    "cb15_e.smoke_online": "30bc89fa636f84762411b0717baae5f500a5c56269768c0cb349b526cf0a4d05",
+    "cb15_e.state_of": "55008a4714941c636e5e1e00ee5361bc3b24aa92e768f9566c22d8508fd52e21",
+    "cb15_e.state_table": "98db91d09045db1d57a103737a476b55bc9d771d2b2902327931202a8169862b",
+    "cb15_e.storage_decision": "82f8afcf9b9061a0eac56f6acf7092a3477679b78d9237701adeb7590754e604",
+    "cb15_e.stratum_of": "ab86750f728675c1d7d8277289207a0d86091c927825961302225d1cc9a29c8e",
+    "cb15_e.t_a_of": "c32e8477d9894b3d0f661d47a0dd21db78f534096764059845c1aa512e1a4e7f",
+    "cb15_e.tier_filter": "5bb1a6ee8aedbcf0ca7278da7435658e2cfa73457984b558cc49f20ce2b0f85e",
+    "cb15_e.tier_snapshot": "8383eda1247d7baa06b7859a21be3e715665cd25af79a8e178cb7dd557c7e9bb",
+    "cb15_e.tiers_of": "d5a7df506ceebcd667876184409a67d4265f07d1ad4c9bdd3b46dac22ef384d2",
+    "cb15_e.trade_market": "139bb5019e819c9e3ef7eb1371781ffa065516679507d9818c89195e574ad23a",
+    "cb15_e.two_party": "3e875fcdea71667a2038b83aee04fc65450886e08317b2a5450ccded90490ba9",
+    "cb15_e.unstratified": "44b14f76c2b18409473c11505c8fcfa0966590b6c0a16affd3484ef7a8cf2ca9",
+    "cb15_e.validate_manifest": "930708df819d19f4f6ba94a1e23c3ec181eec0cd1fb37b8c7a34e6e8f5b845ca",
+    "cb15_e.validate_poll_close": "40f5384cb87073292db390dfa258f1b5b9d853beebf88c69b635d6f1c8b57213",
+    "cb15_e.verify_archive": "ceb61c69047ea203c29552b9f3c1148279255d0ac72802c59d52420a2b1dfed9",
+    "cb15_e.walk_politics": "b709db8849cbbebce7d65718de02d2e9174adc8dfe6f11de3d3eca94fd139408",
+    "cb15_e.walk_windows": "ab3c3195ff65f154bb682ebfdefa26c48b28f6b9ff418c7fa8cf907f0f5711e5"
+   },
+   "funcs_sha256": "e7bcd6cfe85d67bebe680c72340450c26423ddeade0a117f53d7121db00f35c3",
+   "part": "E",
+   "part_declared": true,
+   "rules_sha256": "a796280b16e1a79928cfdca0beee77e230f17498eb309f931ec85990a5a0723d",
+   "rules_version": "cb15-rules-v1",
+   "shared_helper_sources_sha256": {
+    "bk.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
+    "c10.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+    "c10.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+    "c10.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "c12.aggregate_transactions": "08f41e54495e027b0ce3e213b6548ce55999782173c2f79ad54683e4a8324a6c",
+    "c12.c1_market_ids": "2d470f722e34a801c5751de43d423bf3c03a51353c4b0d9ae5321c6e25d0e599",
+    "c12.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "c12.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "c12.fetch_prints_paged": "db90a4c31db02d6535efd8c88a0bda75dad6b22be99d094f7e7b4659ab7ba5cb",
+    "c12.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "c12.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "c12.listish": "66999b312145ac17e5fd36f52a83fb78253aaa91dc03b49c9124589a11602024",
+    "c12.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "c12.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "c12.module_constants": "fb29c0e68787f7dc57cf9f74f69ca3bdd9969f4f3545dab292e710d77f8dc332",
+    "c12.module_funcs": "f6b3644ad7747424f31089bfde865212eb552b068dcf0f43dc955adadf3482e1",
+    "c12.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "c12.reach_ok": "c1027e0f9f22591e52de9c54ee1cec87bbff59fc529022838f630b36f35b9036",
+    "c12.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "c12.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "c12.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "c12.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "c6.KEY_COLUMNS": "4f64d5e62210755ba0498694e2110262ed8ab409be2d565f523ba326479bc0d3",
+    "c9.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+    "c9.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+    "c9.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+    "c9.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+    "cm.idle": "6c4c5e1d8cc89e4c76a490d3b03b0cc8af6ee630b12344e18578ae81691e8f23",
+    "cm.write_json_atomic": "1e9308681e9ed324aadbbf3b8e8bfc4bda352e9c0978a12d4d9278210853ac9b",
+    "cm.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "cw._cluster_sums": "f5f61ce926b7e7e9fd8223d2dd667341d37f67b44318e3c67c48f6eee6b83b97",
+    "cw.small_g_pvalue": "1a94b013ef2dbe475942d7c041c355f6c36411d4eac5c60a95816dfd1f71cd91"
+   },
+   "wallet": {
+    "note": "no CB15 job reads or stores a wallet field, a transaction hash (aggregated in memory and discarded) or the Data API side field",
+    "read": false
+   }
+  },
+  "P": {
+   "part": "P",
+   "part_declared": false,
+   "reason": "family module ('cb15_p',) not present yet",
+   "rules_sha256": null,
+   "rules_version": "cb15-rules-v1"
+  },
+  "common": {
+   "constants": {
+    "cb15_common": {
+     "ALLOWED_OUTPUT_ROOT_PARTS": [
+      "creative_batch15",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live"
+     ],
+     "ALWAYS_REFUSED_ROOTS": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "live_trades",
+      "snapshots",
+      "book_sweeps"
+     ],
+     "AVAIL_MIN": 0.6,
+     "BASE_SOURCE": "base:cb14_q0302",
+     "BATCH_HOLM_K1": 4,
+     "BY_Q": 0.1,
+     "C1_SOURCE": "c1",
+     "CB14_KEYS_FILE": "exclusion_keys.csv.gz",
+     "CB15_OUTPUT_CAP_GB": 1.2,
+     "CB15_SPORTS_IN_PRIMARY": false,
+     "COST_ROBUST_PER_SIDE": 0.01,
+     "DATA_DUMPS_CAP_GB": 40.0,
+     "EARLY_ALPHA2": 0.025,
+     "EVIDENCE_ROLE_DEV": "exploratory_dev",
+     "EVIDENCE_ROLE_HIST": "exploratory_historical",
+     "EVIDENCE_ROLE_PROSPECTIVE": "prospective",
+     "EXCLUSION_KEYS_COMPLETE": "exclusion_keys_complete",
+     "EXPERIMENT_ROOT_RE": "^e0\\d\\d$",
+     "EXTRACT_ROOT_RE": "^cb\\d+_extract$",
+     "EXTRA_REFUSED_ROOTS": [
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "E_FREEZE_PINS": [
+      "sign_table_sha256",
+      "poll_close_sha256",
+      "party_map_sha256",
+      "cross_table_sha256",
+      "source_manifest_sha256",
+      "race_map_sha256",
+      "disk_cap_gb"
+     ],
+     "E_JUDGE_ALPHA": 0.01,
+     "FAMILY_MODULES": {
+      "E": [
+       "cb15_e"
+      ],
+      "P": [
+       "cb15_p"
+      ]
+     },
+     "FAMILY_PARTS": [
+      "E",
+      "P"
+     ],
+     "FAMILY_REP_TESTS": {
+      "E": [],
+      "P": [
+       "P1",
+       "P2"
+      ]
+     },
+     "FAMILY_TESTS": {
+      "E": [
+       "E1",
+       "E2"
+      ],
+      "P": [
+       "P1",
+       "P2"
+      ]
+     },
+     "FEE_FLOOR": 0.04,
+     "FORBIDDEN_OUTPUT_COLUMNS": [
+      "side",
+      "wallet",
+      "wallet_hash",
+      "proxyWallet",
+      "tx16",
+      "transactionHash",
+      "tx_hash",
+      "hash",
+      "name",
+      "pseudonym",
+      "user",
+      "userid",
+      "username",
+      "outcome_prices",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "uma_status",
+      "closedTime",
+      "closed_time",
+      "result",
+      "settlement_value",
+      "p_end"
+     ],
+     "FORBIDDEN_PARSE_FIELDS": [
+      "side",
+      "proxyWallet",
+      "outcomePrices",
+      "umaResolutionStatus",
+      "umaResolutionStatuses",
+      "closedTime",
+      "result",
+      "settlement_value",
+      "transactionHash",
+      "hash",
+      "name",
+      "pseudonym",
+      "p_end"
+     ],
+     "FREEZE_PARTS": [
+      "E",
+      "P"
+     ],
+     "FREEZE_PIN_KEYS": {
+      "common": "common_rules_sha256",
+      "rules": "rules_sha256"
+     },
+     "FREE_DISK_MIN_GB": 4.5,
+     "GAMMA_EVENTS": "https://gamma-api.polymarket.com/events",
+     "GAMMA_MARKETS": "https://gamma-api.polymarket.com/markets",
+     "GAMMA_OFFSET_CAP": 2000,
+     "GAMMA_PAGE": 100,
+     "GAMMA_SEARCH": "https://gamma-api.polymarket.com/public-search",
+     "GATE_P": 0.01,
+     "G_CR2": 15,
+     "HEARTBEAT_S": 36000.0,
+     "HOLDOUT_PARTS": [
+      "holdout",
+      "t_holdout"
+     ],
+     "ID_COLUMNS": [
+      "market_id",
+      "event_id",
+      "condition_id",
+      "neg_risk_market_id",
+      "negRiskMarketID",
+      "series_id"
+     ],
+     "ID_READABLE": {
+      "creative_batch13": [
+       "t_screen/fills.csv.gz",
+       "t_holdout/fills.csv.gz"
+      ],
+      "h11_attn": [
+       "frame.csv.gz",
+       "entities.csv.gz",
+       "holdout/frame_hold.csv.gz"
+      ],
+      "h11_pol": [
+       "frame.csv.gz"
+      ],
+      "h11_wprints": [
+       "markets.csv.gz"
+      ],
+      "h12_opt_live": [
+       "markets.csv.gz"
+      ],
+      "h12_prints": [
+       "markets.csv.gz"
+      ],
+      "h12_quake": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h12_quake_live": [
+       "markets.csv.gz"
+      ],
+      "h12_say": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h13_touch": [
+       "events.csv.gz",
+       "members.csv.gz",
+       "holdout/events.csv.gz",
+       "holdout/members.csv.gz"
+      ],
+      "h14_speech": [
+       "events_p.csv.gz",
+       "events_n.csv.gz",
+       "events_s2.csv.gz",
+       "members.csv.gz"
+      ],
+      "h14_wiki": [
+       "frame.csv.gz"
+      ],
+      "h14_wiki_live": [
+       "frame_ids.csv.gz"
+      ]
+     },
+     "ID_RESEARCH_ROOTS": [
+      "creative_batch13"
+     ],
+     "KEYS_OUTPUT_CAP_GB": 0.01,
+     "KEYS_RUN": "exclusion_run15",
+     "KEYS_STATUS": "exclusion_keys_complete",
+     "KEY_COLUMNS": [
+      "market_id",
+      "found",
+      "event_ids",
+      "neg_risk_market_id",
+      "series_ids",
+      "sources"
+     ],
+     "LIVE_ROOT_NAMES": [
+      "cross_venue_live",
+      "surprise_live"
+     ],
+     "LOOKUP_PER_REQUEST": 50,
+     "MAX_UNVERIFIED_KEY_SHARE": 0.02,
+     "MDE_INFLATE": 1.2,
+     "MDE_MULT": 3.16,
+     "N_BOOT": 2000,
+     "N_WILD": 9999,
+     "PAPER_SIZE": 100.0,
+     "PARTS": [
+      "common",
+      "E",
+      "P"
+     ],
+     "PERM_DRAWS": 9999,
+     "PIN_UNSET": "TODO-COORDINATOR",
+     "PLACEBO_DRAWS": 200,
+     "PLACEBO_MAX_ADVANCE": 0.015,
+     "PLACEBO_SEEDS": {
+      "P1_shuffle": 15111,
+      "P2_shuffle": 15112
+     },
+     "PLACEBO_SEED_RANGE": [
+      15101,
+      15130
+     ],
+     "RULES_MACHINERY": [
+      "rules_part_doc",
+      "rules_part_file_doc",
+      "rules_file_doc",
+      "write_rules",
+      "verify_rules",
+      "family_modules",
+      "common_funcs",
+      "part_funcs",
+      "shared_helper_sources",
+      "common_declared"
+     ],
+     "RULES_VERSION": "cb15-rules-v1",
+     "SEED_BOOT": 1515,
+     "SEED_PAIRED_BOOT": 15121,
+     "SEED_PERM": 15101,
+     "SHARED_HELPERS": [
+      [
+       "cw",
+       "small_g_pvalue"
+      ],
+      [
+       "cw",
+       "_cluster_sums"
+      ],
+      [
+       "c12",
+       "holm"
+      ],
+      [
+       "c12",
+       "cluster_se_mean"
+      ],
+      [
+       "c9",
+       "top_k_drop_mask"
+      ],
+      [
+       "c10",
+       "placebo_advance_rate"
+      ],
+      [
+       "c10",
+       "leave_one_out_sign"
+      ],
+      [
+       "c12",
+       "aggregate_transactions"
+      ],
+      [
+       "c12",
+       "fetch_prints_paged"
+      ],
+      [
+       "c12",
+       "reach_ok"
+      ],
+      [
+       "c12",
+       "listish"
+      ],
+      [
+       "c12",
+       "parse_iso"
+      ],
+      [
+       "c12",
+       "iso_week_of"
+      ],
+      [
+       "c12",
+       "read_csv_gz"
+      ],
+      [
+       "c12",
+       "read_id_set"
+      ],
+      [
+       "c12",
+       "exclusion_stage"
+      ],
+      [
+       "c12",
+       "lookup_keys_closed_first"
+      ],
+      [
+       "c12",
+       "manifest_complete"
+      ],
+      [
+       "c12",
+       "require_complete"
+      ],
+      [
+       "c12",
+       "verify_fetch"
+      ],
+      [
+       "c12",
+       "c1_market_ids"
+      ],
+      [
+       "c12",
+       "module_constants"
+      ],
+      [
+       "c12",
+       "module_funcs"
+      ],
+      [
+       "c10",
+       "require_disk"
+      ],
+      [
+       "c9",
+       "write_stall"
+      ],
+      [
+       "c9",
+       "stall_of"
+      ],
+      [
+       "c9",
+       "write_results_once"
+      ],
+      [
+       "c6",
+       "KEY_COLUMNS_SRC"
+      ],
+      [
+       "bk",
+       "seal_copy_ids_audited"
+      ],
+      [
+       "cm",
+       "write_once_json"
+      ],
+      [
+       "cm",
+       "write_json_atomic"
+      ],
+      [
+       "cm",
+       "idle"
+      ]
+     ],
+     "SMOKE_VERSION": "cb15-smoke-v1",
+     "STAGE1_HOLM_FAMILY": [
+      "E1",
+      "E2",
+      "P1",
+      "P2"
+     ],
+     "STAGE2_K_MAX": 2,
+     "STAGE2_NAMES": {
+      "P1": "P1-rep",
+      "P2": "P2-rep"
+     },
+     "STAGE_ALPHA": 0.05,
+     "TERMINAL_NAME": "terminal_{family}.json",
+     "TERMINAL_STATUS": "terminal_not_testable",
+     "TICK": 0.01,
+     "TOP_DROP": 5,
+     "UNVERIFIED": "disjointness_unverified",
+     "USER_AGENT": "arepo-research-probe/1.0 (read-only counts; https://www.arepolabs.com)",
+     "W_STAR": -0.093
+    },
+    "cb15_smoke": {
+     "MAX_REQUESTS": {
+      "E": 30,
+      "P": 30
+     },
+     "SMOKE_PARTS": [
+      "E",
+      "P"
+     ]
+    }
+   },
+   "declared": {
+    "common": {
+     "always_refused": [
+      "surprise_live",
+      "cross_venue_live",
+      "trade_samples",
+      "forecasts",
+      "flow_screen",
+      "live_trades",
+      "snapshots",
+      "book_sweeps"
+     ],
+     "bootstrap": {
+      "n_boot": 2000,
+      "n_wild": 9999,
+      "perm_draws": 9999,
+      "small_g": "G>=30 CR1; 15<=G<30 CR2 t(G-1) + Webb wild; G<15 the way leaves the max and its leave-one-cluster-out sign rule binds (CB10 2.3, A-C1)"
+     },
+     "costs": {
+      "cost_robust_per_side": 0.01,
+      "fee_floor": 0.04,
+      "paper_size": 100.0,
+      "w_star": -0.093
+     },
+     "disk": {
+      "data_dumps_cap_gb": 40.0,
+      "free_min_gb": 4.5,
+      "output_cap_gb": 1.2
+     },
+     "field_whitelists": {
+      "forbidden_output_columns": [
+       "side",
+       "wallet",
+       "wallet_hash",
+       "proxyWallet",
+       "tx16",
+       "transactionHash",
+       "tx_hash",
+       "hash",
+       "name",
+       "pseudonym",
+       "user",
+       "userid",
+       "username",
+       "outcome_prices",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "umaResolutionStatuses",
+       "uma_status",
+       "closedTime",
+       "closed_time",
+       "result",
+       "settlement_value",
+       "p_end"
+      ],
+      "forbidden_parse_fields": [
+       "side",
+       "proxyWallet",
+       "outcomePrices",
+       "umaResolutionStatus",
+       "umaResolutionStatuses",
+       "closedTime",
+       "result",
+       "settlement_value",
+       "transactionHash",
+       "hash",
+       "name",
+       "pseudonym",
+       "p_end"
+      ]
+     },
+     "holm": {
+      "alpha": 0.05,
+      "e_judge_alpha": 0.01,
+      "gate_p": 0.01,
+      "k1": 4,
+      "stage2_early_alpha": 0.025,
+      "stage2_k_max": 2,
+      "stage2_rule": "checks_ok and (p < alpha/2 early or the final Stage-2 Holm rejects)",
+      "strict": true
+     },
+     "id_readable": {
+      "creative_batch13": [
+       "t_screen/fills.csv.gz",
+       "t_holdout/fills.csv.gz"
+      ],
+      "h11_attn": [
+       "frame.csv.gz",
+       "entities.csv.gz",
+       "holdout/frame_hold.csv.gz"
+      ],
+      "h11_pol": [
+       "frame.csv.gz"
+      ],
+      "h11_wprints": [
+       "markets.csv.gz"
+      ],
+      "h12_opt_live": [
+       "markets.csv.gz"
+      ],
+      "h12_prints": [
+       "markets.csv.gz"
+      ],
+      "h12_quake": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h12_quake_live": [
+       "markets.csv.gz"
+      ],
+      "h12_say": [
+       "events.csv.gz",
+       "members.csv.gz"
+      ],
+      "h13_touch": [
+       "events.csv.gz",
+       "members.csv.gz",
+       "holdout/events.csv.gz",
+       "holdout/members.csv.gz"
+      ],
+      "h14_speech": [
+       "events_p.csv.gz",
+       "events_n.csv.gz",
+       "events_s2.csv.gz",
+       "members.csv.gz"
+      ],
+      "h14_wiki": [
+       "frame.csv.gz"
+      ],
+      "h14_wiki_live": [
+       "frame_ids.csv.gz"
+      ]
+     },
+     "key_rule": {
+      "E": "calendar disjointness; keys as binding robustness (any source drops)",
+      "P": "drop a unit if any key has a source other than C1 (a C1-only key is kept)",
+      "sources": "rebuilt from readable sources; unattributed inherited ids are never C1-only"
+     },
+     "output_roots": [
+      "creative_batch15",
+      "h15_elect_live",
+      "h15_birth",
+      "h15_birth_live"
+     ],
+     "refused_roots": [
+      "creative_batch14",
+      "creative_batch13",
+      "creative_batch12",
+      "creative_batch11",
+      "creative_batch10",
+      "creative_batch9",
+      "creative_batch8",
+      "creative_batch7",
+      "creative_batch6",
+      "creative_batch5",
+      "creative_batch4",
+      "creative_batch3",
+      "creative_batch2",
+      "creative_batch1",
+      "snapshots",
+      "trade_samples",
+      "live_trades",
+      "book_sweeps",
+      "surprise_live",
+      "cross_venue_live",
+      "cross_venue",
+      "forecasts",
+      "flow_screen",
+      "h9_flow",
+      "h10_sign",
+      "h10_dlad",
+      "h10_brk",
+      "h11_wprints",
+      "h11_pol",
+      "h11_attn",
+      "h12_say",
+      "h12_quake",
+      "h12_prints",
+      "h12_quake_live",
+      "h12_opt_live",
+      "h13_touch",
+      "h13_binance",
+      "h14_wiki",
+      "h14_wiki_live",
+      "h14_speech",
+      "h1_first",
+      "h2_main",
+      "h3_power",
+      "h4_seal",
+      "h5_cb1",
+      "h5_cb1_ladders",
+      "h6_weather",
+      "h7_cb4_era",
+      "h7_cb4_series",
+      "h8_tail",
+      "h8_tail_b",
+      "h8_text",
+      "h8_geo",
+      "cb3_followup",
+      "cb6_followup"
+     ],
+     "seeds": {
+      "boot": 1515,
+      "paired_boot": 15121,
+      "perm": 15101,
+      "placebo": {
+       "P1_shuffle": 15111,
+       "P2_shuffle": 15112
+      },
+      "placebo_range": [
+       15101,
+       15130
+      ]
+     },
+     "stop_rule": "3 CPU-hours per family; a job failing twice for the same non-transient reason stops; no re-screen of a failed CB15 test"
+    },
+    "smoke": {
+     "consequence": "a failed criterion makes the dependent family not testable (source), counted once; no rule is re-fitted",
+     "counts_only": true,
+     "design": "family modules contribute SMOKE_NEEDS / smoke_offline / smoke_online; the orchestrator is family-agnostic",
+     "max_requests": {
+      "E": 30,
+      "P": 30
+     },
+     "version": "cb15-smoke-v1",
+     "write_once": true
+    }
+   },
+   "func_sources_sha256": {
+    "cb15_common.assert_clean_columns": "45f148919a1277b7ea10de404ced0c04aae3dc09e4ab14a400b81ead026d5c8d",
+    "cb15_common.attribute_sources": "5484ed77e7bb01a103197df59a3c03ec31d5ae7c6eaf64a8ca1d0cfa21f60697",
+    "cb15_common.cluster_p": "9c8a06cc1e552f05ca1ad243523d83d89ed0a11da096c8f1290e58f080597ed9",
+    "cb15_common.cluster_se_mean": "b00c59bb7c9237ae9758c44ad2f8e64d6ac23e37ffc6ecb4c5093b9c2ac6bfb8",
+    "cb15_common.drop_reason": "473566e22ff10f0a43fb27490a2e051a2143d3231092db2c1f107dc0fc5f9806",
+    "cb15_common.e_judged": "fc0aec03eea6d06692f76c2ab9e4c6882127a518fa535bd0e7065ffe8bd5e03c",
+    "cb15_common.early_stage2_ok": "305ef281a402a20429df8643d1240f59ae8befd2ba799a7001a252c7c3ef7b5a",
+    "cb15_common.ep": "3a9fd8059b8d56d7572e9e9a04d0c83e2aeef94fb27ca9badb6318501b40be1b",
+    "cb15_common.exclusion_keys": "9857057598dd1d0078c837802ffbaaf2693d65f5cc18666cc5ce350c65ec09fb",
+    "cb15_common.fee": "f60799ffb16af8c3a40d16efc5bf91e5b750eb01973926b1149e001991c4ec91",
+    "cb15_common.frame_ids": "d4e6b48f49c62f4fca8f188cbb7ad9260f034a6b3970b5d8a5f363fff55e16e1",
+    "cb15_common.guard_id_file": "9ced860ec8540d07256add0b92d34e953e8ac0961efc9ab87fc757cc31dfe05b",
+    "cb15_common.guard_input_path": "164d1ef74fb21fadf457fb7bf07d733609e9a7c3975bb3291ead8f8531ea2b21",
+    "cb15_common.holm": "af9d8cb1193c0e2ea54f102aac4a2dd8251d43681e389fcc6de098a40c3b4925",
+    "cb15_common.id_source_path": "3b5a053b8a8a055a96496aec795a54acb96da841936c23ee5bd667a28e4c1a51",
+    "cb15_common.is_holdout_path": "fd0e9fc15a27748914a0f1ea4aeb591d1db8857f851df923768b0a99b111e22a",
+    "cb15_common.iso": "28e937dc91f5bc02d678e907f1ec255deda7d37b9b06627231aebb9362d33172",
+    "cb15_common.iso_week_of": "ff68e893db31f9232f2c34de2a0133f8ae0c3a5d71d81e24e6e6fa0c1ae16a5b",
+    "cb15_common.jsonl_append": "c3ae14b3b228dd1ddfa4bd2da270cfea1124c185f51111bb73d27c56595b3b9b",
+    "cb15_common.jsonl_iter": "73e573de41cbdac268159b61cd7920199da727075650ddafb9aa4292587f2b78",
+    "cb15_common.key_sources": "bc08139db9ea31085cf2441aaf2d69524328fbe12273063cc66b167c2ee115f6",
+    "cb15_common.ksrc_of": "e6f9b0b6df80f8fd38a51e9c5d1473633b5b5305e143abdb1ef48107aa8adb76",
+    "cb15_common.log_descriptive": "ddc8665a334bcc147383e739be810f428ed964744cdb7f48dda5a6fbb1e5e56d",
+    "cb15_common.log_family": "f99455370935d58dbd9bbdc2dbd92a5495820422bb27c5bca8de5fc173581b20",
+    "cb15_common.manifest_complete": "9963a22f89b1b545fe07d75e58db6e88f1dd2fc4f0602068b2b362bc7c8f08ed",
+    "cb15_common.max_se_over_ways": "18f28ac880ad440c2f2922904a7aa736ceb3d58b3dd06288a3a7a1331aa17210",
+    "cb15_common.mde": "68e3c42134841a96ebd49600e805e0fb740f0cfc9ddcaf6e055874d60c4aa54f",
+    "cb15_common.num": "6b0d39403e1916672eadc55c8241ff0c3cdfb233983e5e8b36b400140ab6f068",
+    "cb15_common.p_pass": "9146e1b511427a8077dcf1e0c98dc2061341d14ea489bdddbd2b4c0739b0f6fb",
+    "cb15_common.parse_iso": "86d7c91645a1d5a2d1fb78eb256c528c2c4cbfd3c64d20fe2a80fa1c710205c3",
+    "cb15_common.perm_p_within_strata": "e00803dac055969902fd5b259a57b4d07507df970ff767b083fcbb89323a7e41",
+    "cb15_common.permute_within_strata": "2bf4187d99c213263d86171fb8a6e351fb03c456293071480bfed837073e3efb",
+    "cb15_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
+    "cb15_common.read_csv_gz": "dd1530f10901a596b85fc5801beee783bf19c890fc0578930899b4afcab28176",
+    "cb15_common.read_id_columns": "152f2a91e32673cc860367557e1e960a61c1a4ee4cb2fb37bd041278c0106dbd",
+    "cb15_common.read_keys_with_sources": "1593ed700d2254ab0a4bf9fa1e0eca755bc6569c8f1ebca565752c9ef9215e8c",
+    "cb15_common.read_terminal": "006816bb9ee48d0279a54dc7d862c7ca14a60a6529a59bfc2d3ac071dbc0da0f",
+    "cb15_common.record_terminal": "4238198b9578142bebae073998bf9f8b8fe9575a38dfd0e1cd66d8ae22263c43",
+    "cb15_common.refuse_path": "005240906e6165cd1332d272a89e34138497db45276a90ece5269a358623c8cb",
+    "cb15_common.refused_names": "32b50ab79443589af19374c0cc7519d67f852856b04b43f23c510ec76c27b790",
+    "cb15_common.require_after": "6241d5801e7645bf91762727ba115dfb8b52b46613a150bdc9a424f9ebd4480b",
+    "cb15_common.require_complete": "f77e2697117079e41572fa4ece99d3e504c2bece2e23b9a8db1179a95a030396",
+    "cb15_common.require_disk": "171d800c22cef62ab8df80181d31036f4323320b554a25cb2e4e473fc713babc",
+    "cb15_common.require_freeze": "87f10294bc0e0c4fe96ea616292c19a9ac95c8b9995bc7a646ba5cd55495d1d8",
+    "cb15_common.require_output_root": "dc5032aeffb912cf1f4e6d7b1f253c7f3baeb429767781b18707b533674f08fe",
+    "cb15_common.round_trip_net": "46eec3c7e42964135951e52de15fb77d1e8c281662a96247432dd229e60ca5c8",
+    "cb15_common.sha256_file": "9b9e433786c3b739ebdf2370926158a2e42a946e90aae266587c550a4a08ee8b",
+    "cb15_common.sha256_obj": "29f7a73c2109e9902f07d1b4343c0975871e392d9e53aea23bc0b4e5d4ca548f",
+    "cb15_common.sign_ok": "b34ef383569c27a123b97b1917db932b9aeae517c3cc36a28501dbee67575473",
+    "cb15_common.stage1_advance": "96adfe88a985cf11f2bcb8defd9fb72e01a1028ad9d1acccebb82eb1dfecb34c",
+    "cb15_common.stage1_holm": "80933d4d8cf601b805194a1df4915aaf27554e5f75d2c8666d5bf709b017bc9b",
+    "cb15_common.stage2_final": "7949450e414c2cf506d190b8b7d713093b7692890bbdde4f86ce0ad119174ed2",
+    "cb15_common.stage2_holm": "226a02d95e1380409dd57a3f383a1695b6e855ae5792099557e99efe2655596b",
+    "cb15_common.stage2_pass": "eda7e2d9e4ad630d3d2db3955f0f5e5e074fe345e45738379aed63e9205e3857",
+    "cb15_common.stall_of": "beaf29289839d29160f8aa542364dc8395c2620bbe57d025038cbfa1443bc186",
+    "cb15_common.stratified_balanced": "b40418886e98ae361f84339d043088d242f7569c2987d7d7ecf760900609ad5a",
+    "cb15_common.stratified_sign_share": "9a8cf9bfeeefd5f77cb506f2d09bf26cfd7f7eaa52910cdc63a126172568ef1a",
+    "cb15_common.stratum_weights": "cc6d8f0d6fc1195a7b0c7b543c927c226c357043a1f2b475ef67a4d40c064f2a",
+    "cb15_common.strip_forbidden": "4ee5f8ba6041e3d90109a9f3b3c72a1fdd8a51d4b15cd6efd681759bed6f7366",
+    "cb15_common.taker_rate": "57df60290525b05a7a6496f30fb564217e47357e1ac5742e792a3b9b97c699fb",
+    "cb15_common.terminal_path": "4e0150b311e003a9840b41fe82133de0907c9e90e2f9513517b9683140aa8bce",
+    "cb15_common.top_k_drop_mask": "6582a115058255fc43f961c9c4e156af75be744d0ddbc3806df9af0d4a175d6b",
+    "cb15_common.utc_day": "08bd95ebea2913c2ac28497a6f68d35937ad7630f9a0653a2f7e6f1b8c389cdb",
+    "cb15_common.verify_fetch": "f635c0f941f94b8e9a72b32fe28b5aae1c91f1bedd0d180ef75a827f57857ae4",
+    "cb15_common.wait_or_idle": "f321b147668d42a0ecf204d1f68ff2c0a15413b88f5037e6e0a040311938f059",
+    "cb15_common.wls_coef_pseudo": "dbbb657f7ca9a20bb1acbcedd08004b085bd89a9f4bc5acafeea19a882ff61b7",
+    "cb15_common.write_dir_manifest": "0c1109c89812f4aa3f70f086bfcbc00213eecac8cef68a43c53af7118b6abdc7",
+    "cb15_common.write_gz_csv": "8418c983bf77c0e977d2c31ce79b23ac5efb5f5a1bd485683a29e7c7c04a2670",
+    "cb15_common.write_results_once": "8d9db29f6dfe30663f51418686250cc01acae415517635cf5fb419c14c3cc630",
+    "cb15_common.write_stall": "a75cca03b65b4179b2e461a6ed1c21fbc71752f6090a554ae30f71e2da4b675d",
+    "cb15_common.yes_price": "71a7eeb5ab5dbe172e2df3b468985054f1bde3636d9759961f8e0f92f93b23a2",
+    "cb15_smoke.collect_checks": "e4014aad95ced13940a203cba709ba63e8391e2ad3c719bb154c0a2be8570482",
+    "cb15_smoke.declared": "ff90d51a014fb8065670e14e4e7ec8460f58828e2f6d3fe2fe011df050db59af",
+    "cb15_smoke.family_needs": "fc8a82a9fa528f9992263ec9964fe393a6c15e078dfe4b04567f24dc166df231",
+    "cb15_smoke.smoke_failures": "45d23fabaeabcf3f2cfa5ddcc452eeec3c92e35b265f7aaf7b82a1032192f04e"
+   },
+   "funcs_sha256": "1a53b6e0f348977ac49fb144522645c0b7947c895bd395a8a2ba31b0736cfd0e",
+   "part": "common",
+   "part_declared": true,
+   "rules_sha256": "13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a",
+   "rules_version": "cb15-rules-v1",
+   "shared_helper_sources_sha256": {
+    "bk.seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
+    "c10.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+    "c10.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+    "c10.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+    "c12.aggregate_transactions": "08f41e54495e027b0ce3e213b6548ce55999782173c2f79ad54683e4a8324a6c",
+    "c12.c1_market_ids": "2d470f722e34a801c5751de43d423bf3c03a51353c4b0d9ae5321c6e25d0e599",
+    "c12.cluster_se_mean": "d8c8ed52c7eb81940adc26f9acb4ba90fbd3fc251a796274faa7c9b3230029c6",
+    "c12.exclusion_stage": "b2dd35c1ec54c7121299bf8e5f6d5b657691366488904e553d9195e6f1e86e97",
+    "c12.fetch_prints_paged": "db90a4c31db02d6535efd8c88a0bda75dad6b22be99d094f7e7b4659ab7ba5cb",
+    "c12.holm": "7831f9b32b4876f0450ed05cb8050f4c22ce84e78e12430e8d5efd3aee861803",
+    "c12.iso_week_of": "8380c27fb3b8e66a304fe0bbae7a45da206ae521ce57764292e51f45a982c0ac",
+    "c12.listish": "66999b312145ac17e5fd36f52a83fb78253aaa91dc03b49c9124589a11602024",
+    "c12.lookup_keys_closed_first": "466132284fb1886941bcbdc820c075250009fa794dcb9112c2bd74aa7e5654d2",
+    "c12.manifest_complete": "242883ea1969a82f1f2614ae217699788f001e6047505786b420a64710a5bed0",
+    "c12.module_constants": "fb29c0e68787f7dc57cf9f74f69ca3bdd9969f4f3545dab292e710d77f8dc332",
+    "c12.module_funcs": "f6b3644ad7747424f31089bfde865212eb552b068dcf0f43dc955adadf3482e1",
+    "c12.parse_iso": "f56a746aac64f2456a69e6ad81c952e3b4ebff1aa8a167e5ab567d2182477da3",
+    "c12.reach_ok": "c1027e0f9f22591e52de9c54ee1cec87bbff59fc529022838f630b36f35b9036",
+    "c12.read_csv_gz": "0de78d753f9c22f4985ca862de9e64db28b0333f859376b5d38ce4eb9aedc535",
+    "c12.read_id_set": "247f84572b3a12e65d3b20d455cb7de0da46cbcf6a98ffe4244b844dbac9e57c",
+    "c12.require_complete": "3b6604357fd07395f4104daa66c2311f94cad2703e372c20966f9c5c9d619474",
+    "c12.verify_fetch": "cac10ee8e422fb149ac3d0242da785480b95f233ce272d9a8af21d1781b2e427",
+    "c6.KEY_COLUMNS": "4f64d5e62210755ba0498694e2110262ed8ab409be2d565f523ba326479bc0d3",
+    "c9.stall_of": "b46fd8ac330a177aad3cc79b7758958132d99a79ca51a09bb986083ebe883a47",
+    "c9.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a",
+    "c9.write_results_once": "94af1d221ce65cc6b07c147cd2ec225bae7afc7cf5b94817ea5620880e628b46",
+    "c9.write_stall": "7851c4dd8b6f92b1a20db8e6bf736419d9878f4a43444c02d62eb1a73d73f3c0",
+    "cm.idle": "6c4c5e1d8cc89e4c76a490d3b03b0cc8af6ee630b12344e18578ae81691e8f23",
+    "cm.write_json_atomic": "1e9308681e9ed324aadbbf3b8e8bfc4bda352e9c0978a12d4d9278210853ac9b",
+    "cm.write_once_json": "96de340201f4213c580706a6c2f57a3addda7abf3019daa2f1868cd49c4eadb9",
+    "cw._cluster_sums": "f5f61ce926b7e7e9fd8223d2dd667341d37f67b44318e3c67c48f6eee6b83b97",
+    "cw.small_g_pvalue": "1a94b013ef2dbe475942d7c041c355f6c36411d4eac5c60a95816dfd1f71cd91"
+   },
+   "wallet": {
+    "note": "no CB15 job reads or stores a wallet field, a transaction hash (aggregated in memory and discarded) or the Data API side field",
+    "read": false
+   }
+  }
+ },
+ "rules_version": "cb15-rules-v1"
+}

@@ -8,6 +8,8 @@ Runtime state lives on the host under ~/arepo/run/queue/ (never touched by deplo
     attempts.jsonl      append-only record of every attempt (successes, failures, timeouts)
     status.json         snapshot for the dashboard (rewritten every tick)
     PAUSE               if present, no new job starts (running job continues)
+    LANE_HOLD           if present ({"lane", "min_mem_mb"}), no new job of that lane with mem_mb >= min_mem_mb starts
+                        (CB15-E election-night cpu hold; `hold-lane <lane> <min_mem_mb>` / `release-lane`)
 
 Cron runs `queue_worker.py tick` every 2 minutes. A tick is short and stateless:
   1. take the worker lock (one tick at a time);
@@ -34,6 +36,7 @@ counted, attempts.jsonl records outcome `tempfail`; after 48 consecutive tempfai
 Manual control (on the host):
     queue_worker.py status | pause | resume | stop (SIGTERM running job and pause) | retry <id> | cancel <id>
     | park <id> (kept as a backup: never started until `retry <id>`)
+    | hold-lane <lane> <min_mem_mb> | release-lane
 """
 
 from __future__ import annotations
@@ -190,6 +193,27 @@ def reconcile(specs: dict) -> None:
         save_state(st)
 
 
+def hold_lane(lane_name: str, min_mem_mb: int) -> None:
+    """Hold the promotion of jobs of ``lane_name`` with mem_mb >= ``min_mem_mb`` (a running job continues)."""
+    _write(QROOT / "LANE_HOLD", {"lane": str(lane_name), "min_mem_mb": int(min_mem_mb), "since": now()})
+
+
+def release_lane() -> None:
+    (QROOT / "LANE_HOLD").unlink(missing_ok=True)
+
+
+def lane_held(spec: dict) -> bool:
+    """True if a lane hold is in place and covers this spec (same lane, mem_mb >= the hold's minimum). An unreadable hold file holds every job of every lane (fail safe)."""
+    p = QROOT / "LANE_HOLD"
+    if not p.exists():
+        return False
+    try:
+        h = json.loads(p.read_text())
+        return lane(spec) == h["lane"] and int(spec.get("resources", {}).get("mem_mb", 2048)) >= int(h["min_mem_mb"])
+    except (ValueError, KeyError, TypeError, OSError):
+        return True
+
+
 def ready(spec: dict, st: dict) -> bool:
     if st["status"] in ("done", "failed", "invalid", "running", "cancelled", "parked"):
         return False
@@ -339,6 +363,8 @@ def tick() -> int:
     running = [j for j in specs if load_state(j)["status"] == "running"]
     busy_lanes = {lane(specs[j]) for j in running}
     parts = ["running " + ", ".join(running)] if running else []
+    if (QROOT / "LANE_HOLD").exists():
+        parts.append("lane hold active (LANE_HOLD)")
     if len(busy_lanes) < len(LANES):  # at most one job per lane
         if (QROOT / "PAUSE").exists():
             parts.append("paused")
@@ -347,7 +373,7 @@ def tick() -> int:
         else:
             cands = [(s, load_state(j)) for j, s in specs.items() if "_invalid" not in s]
             cands = [(s, st) for s, st in cands if st["status"] != "invalid" and ready(s, st)
-                     and lane(s) not in busy_lanes]
+                     and lane(s) not in busy_lanes and not lane_held(s)]
             cands.sort(key=lambda x: (-x[0]["priority"], x[0]["id"]))
             if cands:
                 spec, st = cands[0]
@@ -400,6 +426,10 @@ def main(argv: list[str]) -> int:
         if st["status"] != "running":
             st["status"] = "cancelled"
             save_state(st)
+    elif cmd == "hold-lane":
+        hold_lane(argv[2], int(argv[3]))
+    elif cmd == "release-lane":
+        release_lane()
     elif cmd != "status":
         print(__doc__)
         return 2
