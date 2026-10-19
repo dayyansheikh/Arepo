@@ -46,6 +46,7 @@ def test_o_part_declared_and_common_m_x_unchanged_against_the_committed_seal():
         assert c12.rules_part_file_doc(p)["rules_sha256"] == seal[p]["rules_sha256"], p
     d = c12.rules_part_file_doc("O")
     assert d["part_declared"] is True and len(d["rules_sha256"]) == 64
+    assert d["rules_sha256"] == seal["O"]["rules_sha256"]  # the committed seal carries the current O code (regenerate the O part when cb12_o.py changes, pre-freeze)
     assert "cb12_o" in d["declared"] and d["declared"]["cb12_o"]["o1"]["floor"] == o12.O1_FLOOR
     fn = {f.__qualname__ for f in c12.part_funcs("O")}
     assert {"anchor", "opt_live_tick", "o1_test", "o2_test", "census_o"} <= fn and "say_frame" not in fn and "x1_test" not in fn
@@ -200,11 +201,35 @@ def test_time_conventions_and_convention_choice():
     assert o12.convention_check({})["choice"] == "none"
 
 
-def test_exdiv_rule_reads_the_chain_unknown_is_excluded():
+def test_exdiv_rule_reads_the_previous_session_nasdaq_file_indices_exempt():
     t = ep("2026-10-20T15:00:00Z")
-    assert o12.exdiv_status({"underlying": {"current_price": 1}}, t, "2026-10-30") == "excluded: ex-dividend unknown"
-    assert o12.exdiv_status({"underlying": {"next_dividend_date": "2026-10-25"}}, t, "2026-10-30") == "excluded: ex-dividend"
-    assert o12.exdiv_status({"underlying": {"next_dividend_date": "2026-11-25"}}, t, "2026-10-30") == ""
+    prev = {"fetched_t_end": ep("2026-10-19T15:10:00Z"), "dividends": {"AAA": ["2026-10-25"], "BBB": ["2026-11-25"], "CCC": ["2026-10-20"], "DDD": []}}
+    assert o12.exdiv_status(prev, "AAA", "AAA", t, "2026-10-30") == "excluded: ex-dividend"
+    assert o12.exdiv_status(prev, "BBB", "BBB", t, "2026-10-30") == ""
+    assert o12.exdiv_status(prev, "CCC", "CCC", t, "2026-10-30") == ""  # ex-date on the unit's own day: already ex at t
+    assert o12.exdiv_status(prev, "DDD", "DDD", t, "2026-10-30") == ""  # a valid empty list = none announced
+    assert o12.exdiv_status(prev, "EEE", "EEE", t, "2026-10-30") == "excluded: ex-dividend unknown"  # not in the previous file
+    assert o12.exdiv_status(None, "AAA", "AAA", t, "2026-10-30") == "excluded: ex-dividend unknown"  # no previous file
+    assert o12.exdiv_status({**prev, "fetched_t_end": t + 1}, "BBB", "BBB", t, "2026-10-30") == "excluded: ex-dividend unknown"  # a file fetched after t is never used
+    assert o12.exdiv_status(None, "SPX", "_SPX", t, "2026-10-30") == ""  # cash-settled index: exempt
+
+
+def test_dividend_fetch_asset_class_etf_list_and_fallback():
+    calls = []
+
+    class S:
+        def dividends(self, sym, kind):
+            calls.append((sym, kind))
+            ok = (kind == "etf") == (sym in ("SPY", "ZETF"))
+            return {"data": {"dividends": {"rows": [{"exOrEffDate": "12/19/2026"}]}}} if ok else {"data": None, "status": {"rCode": 400}}
+
+    assert o12.fetch_dividends(S(), "SPY") == ["2026-12-19"] and calls == [("SPY", "etf")]  # frozen ETF list: no stocks query
+    calls.clear()
+    assert o12.fetch_dividends(S(), "AAPL") == ["2026-12-19"] and calls == [("AAPL", "equity")]
+    calls.clear()
+    assert o12.fetch_dividends(S(), "ZETF") == ["2026-12-19"] and calls == [("ZETF", "equity"), ("ZETF", "etf")]  # unknown ETF: stocks first, then etf
+    with pytest.raises(o12.cm.ApiError):
+        o12.fetch_dividends(type("X", (), {"dividends": lambda self, s_, k: {"data": None}})(), "NOPE")
 
 
 def test_earnings_flag_window():
@@ -389,24 +414,37 @@ def test_collector_refuses_before_freeze_disk_refusal_is_a_counted_unit_and_busy
         o12.opt_live_tick(Path("/tmp/creative_batch11/h12_opt_live"), now=t, src=FakeSrc(t), rules_sha="r", frozen_epoch=FROZEN)
 
 
-def test_build_units_labels_and_exdiv_unknown_from_the_collected_files(oroot):
+def _prev_daily(oroot, *, nvda_divs, symbols=("NVDA",), day="2026-10-19"):
+    o12._wjson_gz(oroot / "daily" / f"{day}.json.gz", {"day": day, "yahoo": {}, "earnings": [["2026-10-21", "NVDA", "time-after-hours"]], "earnings_symbols": list(symbols),
+                                                     "dividends": {"NVDA": nvda_divs}, "errors": [], "fetched_t_start": ep("2026-10-19T15:00:00Z"), "fetched_t_end": ep("2026-10-19T15:05:00Z")})
+
+
+def test_build_units_labels_and_exdiv_from_the_previous_session_file(oroot):
     t = o12.et_epoch("2026-10-20", 11, 0) + 30
     src = FakeSrc(t)
     o12.opt_live_tick(oroot, now=t, src=src, rules_sha="r", frozen_epoch=FROZEN, sleep=src.sleep)
+    units, ck = o12.build_units(oroot, ["2026-10-21", "2026-10-30"], None)  # no previous-session file at all: every equity unit is unknown (counted)
+    assert {u["label"] for u in units} == {"excluded: ex-dividend unknown"}
+    _prev_daily(oroot, nvda_divs=["2026-12-10"])
     units, ck = o12.build_units(oroot, ["2026-10-21", "2026-10-30"], None)
     lab = {u["market_id"]: u["label"] for u in units}
     assert ck["files"] == 1
-    assert lab["m180"] == "available" and lab["m175"] == "available"  # NVDA chain carries a dividend date outside (t, d]
-    assert lab["t1"] == "excluded: ex-dividend unknown"  # TSLA chain has no dividend field: the declared rule excludes it
+    assert lab["m180"] == "available" and lab["m175"] == "available"  # NVDA: the previous file's ex-date is outside (t, d]
+    assert lab["t1"] == "excluded: ex-dividend unknown"  # TSLA has no entry in the previous file
     u = next(x for x in units if x["market_id"] == "m180")
     assert u["anchor_type"] == "direct" and abs(u["q"] - 0.5) < 1e-9 and abs(u["m1"] - 0.495) < 1e-9 and u["m2"] == u["m1"] and "y" not in u
+    assert u["o2_ok"] is True and u["earnings"] is False  # earnings from the PREVIOUS file (NVDA in its symbols); the after-hours Oct 21 row is not before d = Oct 21
     assert o12.tight_by_date(oroot) == {"2026-10-21": {"NVDA"}, "2026-10-30": {"TSLA"}}
+    _prev_daily(oroot, nvda_divs=["2026-10-21"])
+    units, _ = o12.build_units(oroot, ["2026-10-21"], None)
+    assert {u["label"] for u in units} == {"excluded: ex-dividend"}
 
 
 def test_census_opens_no_outcome_and_waits_for_window_and_outcomes(oroot, monkeypatch):
     t = o12.et_epoch("2026-10-20", 11, 0) + 30
     src = FakeSrc(t)
     o12.opt_live_tick(oroot, now=t, src=src, rules_sha="r", frozen_epoch=FROZEN, sleep=src.sleep)
+    _prev_daily(oroot, nvda_divs=[])
     with pytest.raises(c12.NotNow):
         o12.census_o(oroot, {"closed": False}, None)
     win = {"start": "2026-10-20", "end": "2026-10-30", "closed": True, "power_ok": False}
@@ -422,13 +460,148 @@ def test_census_opens_no_outcome_and_waits_for_window_and_outcomes(oroot, monkey
     monkeypatch.setattr(o12, "open_outcomes", boom)
     c = o12.census_o(oroot, win, None)
     assert c["counts_only"] and c["label_O"] == "not run (power)" and c["GO"]["tight_units"] == 3 and "y" not in json.dumps(c["by_ticker"])
+    # item 8: the window's scheduled checkpoints are 3 per regular session; only the 2026-10-20 11:00 one was collected, the 13:00 / 15:00 windows have not passed (not recorded)
+    assert c["collection"]["ok"] == 1 and c["collection"]["scheduled"] == 3 * len(o12.sessions_between("2026-10-20", "2026-10-30"))
+    assert 0 < c["collection"]["share"] < 1 and c["availability_share_incl_missed_checkpoints"] <= c["availability_share"]
 
 
 def test_outcome_accessor_job_and_window_guard(oroot):
     for job, win in (("census", "w1"), ("screen-O", "w2"), ("rep-O", "w1"), ("screen-M", "w1")):
         with pytest.raises(c12.Refused):
-            o12.open_outcomes(oroot, [], job, win)
-    assert o12.open_outcomes(oroot, [], "screen-O", "w1") == ({}, {})
+            o12.open_outcomes(oroot, [], job, win, frozen_epoch=FROZEN)
+    with pytest.raises(c12.Refused, match="freeze epoch"):
+        o12.open_outcomes(oroot, [], "screen-O", "w1")
+    t = o12.et_epoch("2026-10-20", 11, 0) + 30
+    src = FakeSrc(t)
+    o12.opt_live_tick(oroot, now=t, src=src, rules_sha="r", frozen_epoch=FROZEN, sleep=src.sleep)
+    now = ep("2027-02-03T12:00:00Z")  # past the window-1 cap: the window is closed
+    w1 = o12.windows(oroot, FROZEN, now)["w1"]
+    dates = o12.window_dates(w1)
+    assert o12.open_outcomes(oroot, dates[:2], "screen-O", "w1", frozen_epoch=FROZEN, now=now) == ({}, {})
+    with pytest.raises(c12.Refused, match="outside w1"):
+        o12.open_outcomes(oroot, [*dates[:2], "2027-02-02"], "screen-O", "w1", frozen_epoch=FROZEN, now=now)  # a date beyond the recomputed window
+    with pytest.raises(c12.NotNow):  # window 2 is not closed at this time: its outcomes cannot be opened
+        o12.open_outcomes(oroot, [dates[0]], "rep-O", "w2", frozen_epoch=FROZEN, now=now)
+    with pytest.raises(c12.NotNow):
+        o12.open_outcomes(oroot, dates[:1], "screen-O", "w1", frozen_epoch=FROZEN, now=ep("2026-10-25T12:00:00Z"))  # window 1 not closed yet
+
+
+def _screen_root(oroot):
+    """A collector root with one 2026-10-20 11:00 checkpoint, the previous session's file, and settled (guarded) outcomes."""
+    t = o12.et_epoch("2026-10-20", 11, 0) + 30
+    src = FakeSrc(t)
+    o12.opt_live_tick(oroot, now=t, src=src, rules_sha="r", frozen_epoch=FROZEN, sleep=src.sleep)
+    _prev_daily(oroot, nvda_divs=[])
+    for tn in (o12.et_epoch("2026-10-22", 12, 0), o12.et_epoch("2026-11-02", 12, 0)):
+        o12.opt_live_tick(oroot, now=tn, src=FakeSrc(tn), rules_sha="r", frozen_epoch=FROZEN)
+    return ep("2027-02-03T12:00:00Z")
+
+
+def test_screen_o_end_to_end_on_the_census_window_dict(oroot):
+    now = _screen_root(oroot)
+    win = o12.windows(oroot, FROZEN, now)["w1"]
+    census = {"window": win, "label_O": None, "cor_q_qrv": 0.3, "collection": o12.collection_counts(oroot, win)}  # census["window"] IS the w1 dict (defect 2)
+    r = o12.screen_o(oroot, census, None, earnings_identified=True, frozen_epoch=FROZEN, now=now)
+    assert set(r) == {"O1", "O2", "label", "census_label"} and r["census_label"] is None
+    assert r["O1"]["test"] == "O1" and r["O2"]["test"] == "O2" and r["O1"]["advance"] is False and r["O2"]["advance"] is False
+    assert r["O1"]["checkpoint_share"] == census["collection"]["share"]
+    lab = o12.screen_o(oroot, {**census, "label_O": "not run (power)"}, None, earnings_identified=True, frozen_epoch=FROZEN, now=now)
+    assert lab["O1"]["verdict"] == "not run (power)"
+    log = (oroot / "ACCESS_LOG.jsonl").read_text()
+    assert "screen-O" in log and "outcomes_guarded/2026-10-21/" in log
+
+
+def test_o2_eligibility_does_not_need_the_second_read_and_o1_does():
+    us = _world(True)
+    for u in us:
+        u["label"], u["m2"], u["m2_raw"] = "unavailable (second read)", None, None  # the second read failed everywhere
+    tr = o12.o2_trades(us)
+    assert tr and all(t["net"] is not None for t in tr)  # O2 still trades on first-read tightness + valid anchor
+    assert o12.availability(us, "y_gamma", o2=True) == 1.0 and o12.availability(us, "y") == 0.0
+    assert o12.o1_test(us, earnings_identified=False, placebo=False)["verdict"] == "not testable (availability)"
+    assert o12.o2_test(us)["testable"] is True
+
+
+def test_build_units_o2_ok_survives_a_missing_second_read(oroot):
+    t = o12.et_epoch("2026-10-20", 11, 0) + 30
+    src = FakeSrc(t)
+    o12.opt_live_tick(oroot, now=t, src=src, rules_sha="r", frozen_epoch=FROZEN, sleep=src.sleep)
+    _prev_daily(oroot, nvda_divs=[])
+    p = oroot / "raw" / "2026-10-20" / "1100.json.gz"
+    rec = json.loads(_gz_text(p))
+    rec["books"]["m180"][1] = {"ok": False, "receipt_t": t + 99}
+    o12._wjson_gz(p, rec)
+    units, _ = o12.build_units(oroot, ["2026-10-21"], None)
+    u = next(x for x in units if x["market_id"] == "m180")
+    assert u["label"] == "unavailable (second read)" and u["o2_ok"] is True and u["m2_raw"] is None and "q" in u
+
+
+def test_mprev_is_the_raw_second_read_of_the_previous_checkpoint_whatever_its_label():
+    base = {"market_id": "m", "label": "excluded: q range"}
+    us = [{**base, "day": "2026-10-19", "ckpt": "1500", "m2_raw": 0.41}, {**base, "day": "2026-10-20", "ckpt": "1100", "m2_raw": 0.52},
+          {**base, "day": "2026-10-20", "ckpt": "1300", "m2_raw": None}, {**base, "day": "2026-10-20", "ckpt": "1500", "m2_raw": 0.6}]
+    o12.attach_mprev(us)
+    assert [u["m_prev"] for u in us] == [None, 0.41, 0.52, None]  # a checkpoint without a two-sided second read gives no m_prev; labels are irrelevant
+
+
+def test_gamma_rows_not_yet_resolved_are_asked_again(oroot):
+    t = o12.et_epoch("2026-10-20", 11, 0) + 30
+    src = FakeSrc(t)
+    o12.opt_live_tick(oroot, now=t, src=src, rules_sha="r", frozen_epoch=FROZEN, sleep=src.sleep)
+    calls = []
+
+    class G(FakeSrc):
+        def gamma_markets(self, ids):
+            calls.append(list(ids))
+            ok = len(calls) > 1
+            return [{"id": i, "closed": True, "outcomePrices": '["1", "0"]' if ok else '["0.5", "0.5"]', "umaResolutionStatus": "resolved" if ok else "proposed"} for i in ids]
+
+    t2 = o12.et_epoch("2026-10-22", 12, 0)
+    g = G(t2)
+    o12.opt_live_tick(oroot, now=t2, src=g, rules_sha="r", frozen_epoch=FROZEN)
+    st = json.loads((oroot / "state.json").read_text())
+    assert st["outcomes"]["2026-10-21"]["final"] is False and st["outcomes"]["2026-10-21"]["unresolved"] >= 1
+    o12.opt_live_tick(oroot, now=t2 + 4 * 3600, src=g, rules_sha="r", frozen_epoch=FROZEN)
+    st = json.loads((oroot / "state.json").read_text())
+    assert len(calls) >= 2 and st["outcomes"]["2026-10-21"]["final"] is True
+
+
+def test_yahoo_gamma_agreement_is_per_market_and_root_cap_refuses_a_checkpoint(oroot):
+    us = _world(True)
+    for u in us:
+        u["y_gamma"] = u["y"]
+    wrong = next(u["market_id"] for u in us)
+    for u in us:
+        if u["market_id"] == wrong:
+            u["y_gamma"] = 1.0 - u["y"]  # one market (three units) disagrees
+    r = o12.o1_test(us, earnings_identified=True, placebo=False)
+    n_mk = len({u["market_id"] for u in us})
+    assert r["gamma_agreement"]["n"] == n_mk and abs(r["gamma_agreement"]["share"] - (n_mk - 1) / n_mk) < 1e-12
+    t = o12.et_epoch("2026-10-20", 11, 0) + 30
+    fs = FakeSrc(t)
+    out = o12.opt_live_tick(oroot, now=t, src=fs, rules_sha="r", frozen_epoch=FROZEN, root_cap_bytes=0, sleep=fs.sleep)
+    assert out["status"] == "checkpoint"  # an empty root is within a zero cap
+    t3 = o12.et_epoch("2026-10-20", 13, 0) + 30
+    out = o12.opt_live_tick(oroot, now=t3, src=FakeSrc(t3), rules_sha="r", frozen_epoch=FROZEN, root_cap_bytes=10)
+    assert out["status"] == "checkpoint_unavailable_disk"
+    assert json.loads((oroot / "state.json").read_text())["days"]["2026-10-20"]["ckpt"]["1300"]["status"] == "unavailable (host disk)"
+
+
+def test_attribution_uses_the_census_correlation_in_the_screen():
+    us = _world(True)
+    r = o12.o1_attribution(us, census_cor=0.95, use_census_cor=True)
+    assert r["label"] == "not identifiable" and r["cor_source"] == "census"
+    r2 = o12.o1_attribution(us, census_cor=None, use_census_cor=True)
+    assert r2["label"] == "not identifiable"
+    assert o12.o1_attribution(us)["cor_source"] in ("tested units",)
+
+
+def test_rule_flags_are_declared_descriptive_and_the_cron_file():
+    d = o12.declared()
+    assert "DESCRIPTIVE ONLY" in d["frame"]["rule_flags_use"]
+    cron = (Path(__file__).resolve().parents[2] / "scripts" / "oracle" / "cb12_o_crontab.txt").read_text()
+    line = next(x for x in cron.splitlines() if x and not x.startswith("#"))
+    assert " timeout " in line and "run_cb12.py opt-live" in line and "--disk-cap-gb 0.3" in line and "flock -n" in line
 
 
 def test_gamma_yes_mapping():
@@ -458,7 +631,7 @@ def _world(informative: bool, seed: int = 7, n_dates: int = 60) -> list[dict]:
             for ck in ("1100", "1300", "1500"):
                 units.append({"market_id": f"{tk}{d}", "event_id": "e", "ticker": tk, "settle": d, "day": d, "ckpt": ck, "t": o12.et_epoch(d, int(ck[:2])), "K": 1.0,
                               "yes_index": 0, "template": "daily", "fee_rate": 0.04, "yahoo": tk, "cluster": f"{tk}|{d}", "label": "available", "anchor_type": "direct",
-                              "m1": m, "m2": m, "a_yes": m + 0.01, "b_yes": m - 0.01, "ask_size": 50.0, "bid_size": 50.0, "q": q, "q_rv": 0.5 + float(rng.normal(0, 0.2)),
+                              "m1": m, "m2": m, "m2_raw": m, "o2_ok": True, "a_yes": m + 0.01, "b_yes": m - 0.01, "ask_size": 50.0, "bid_size": 50.0, "q": q, "q_rv": 0.5 + float(rng.normal(0, 0.2)),
                               "earnings": False, "y": y, "y_gamma": y})
     o12.attach_mprev(units)
     return units

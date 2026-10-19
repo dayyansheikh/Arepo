@@ -4,7 +4,7 @@
 Prospective only. The collector (q0261, ``opt-live``, cron outside the queue lanes) reads, at 11:00, 13:00 and 15:00 America/New_York on regular US trading days,
 the Gamma strike frame (both frozen templates), the keyless CBOE delayed chain per underlying (read FIRST), then two receipt-timed CLOB ``/book`` reads per member
 >= 60 s apart. Once a trading day it stores Yahoo daily bars before the day (realised-vol attribution), the Nasdaq earnings calendar (earnings flag) and the
-Nasdaq dividend list (kept as raw public data only; the declared ex-dividend rule reads the chain). After each settlement date it writes the Yahoo settlement
+Nasdaq dividend list (amendment O3: the declared ex-dividend rule reads the PREVIOUS session's Nasdaq file, never a fetch made after t). After each settlement date it writes the Yahoo settlement
 close (O1's outcome) and the Gamma resolution (O2's payoff) ONLY to ``outcomes_guarded/<settlement date>/``. Windows are defined by settlement date and close
 on counts only (clusters and dates with a tight unit), never on results. The smoke (q0260, ``opt-smoke``) checks the sources live and chooses the chain's iv time
 convention from two pre-declared candidates by a pre-declared criterion; the choice is written into the O freeze declaration (``model_specs/cb12_v1.json``
@@ -105,8 +105,11 @@ O1_FLOOR = 0.30
 O2_FLOOR = 0.01
 O2_COST_ROBUST = 0.005
 RV_DAYS = 20
-DIVIDEND_RULE = "chain"  # section CB12-O: ex-dividend date in (t, d] from the chain's own data if present, else unknown -> excluded
-DIV_KEY_RE = re.compile(r"(?i)div")
+DIVIDEND_RULE = "nasdaq_previous_session"  # section 11 amendment O3: ex-dividend date in (ET date of t, d] from the Nasdaq list stored by the PREVIOUS session's daily step; unknown -> excluded; cash-settled indices exempt
+DIV_KEY_RE = re.compile(r"(?i)div")  # informational only (smoke: does the CBOE chain carry a dividend field; it does not, 2026-10-19); no rule reads it
+# equity ETFs queried with the Nasdaq assetclass "etf" (frozen list); any other equity ticker is tried as "stocks" first and as "etf" if that reply carries no dividend section
+ETF_TICKERS = ("SPY", "QQQ", "IWM", "DIA", "VTI", "VOO", "IVV", "EEM", "EFA", "TLT", "HYG", "LQD", "GLD", "SLV", "USO", "XLE", "XLF", "XLK", "XLV", "XLY", "XLP", "XLI", "XLU", "XLB",
+               "XLRE", "XLC", "SMH", "SOXX", "ARKK", "TQQQ", "SQQQ", "SOXL", "SPXL", "IBIT", "BITO", "ETHA", "FXI", "KWEB", "GDX", "XBI", "IYR", "VNQ", "MDY")
 CONVENTIONS = ("act365", "trading_hours")  # (a) calendar time to the expiry's 16:00 ET close / 365 d; (b) remaining regular-session hours / (252 x 6.5)
 CONVENTION_N = 20
 CONVENTION_TOL = 0.01
@@ -126,7 +129,9 @@ SEED_SIGNFLIP = 12109
 LABEL_O = "prospective (window 1 Stage 1; window 2 L2); not independent of CB9-P"
 SMOKE_FAMILY_VERSION = "cb12-smoke-O-v1"
 SMOKE_V2_DEFAULT = c12.CB12_DIR / "opt_smoke.json"
-SMOKE_NEEDS = ("guards_fixture_O", "o_frame_regex", "o_chain", "o_chain_timestamp", "o_books", "o_iv_convention_checked")
+SMOKE_NEEDS = ("guards_fixture_O", "o_frame_regex", "o_chain", "o_chain_timestamp", "o_books", "o_iv_convention_checked", "o_yahoo_keyless", "o_gamma_closed_lookup", "o_dividends_keyless")
+YAHOO_PROBES = ("SPY", "^GSPC")  # an ETF and an index: the O1 outcome source and the q_RV bar source
+DIV_PROBES = ("SPY", "AAPL")  # an ETF (assetclass etf) and a stock (assetclass stocks): the amended ex-dividend source
 UNIT_LABELS = ("available", "unavailable (first read)", "crossed", "not tight", "unavailable (chain)", "unavailable (chain timestamp)", "excluded: no anchor",
                "excluded: option spread", "excluded: q range", "excluded: ex-dividend", "excluded: ex-dividend unknown", "excluded: phi(d2) without convention",
                "unavailable (second read)")
@@ -544,6 +549,28 @@ def dividend_dates(doc: Any) -> list[str]:
     return sorted(set(out))
 
 
+def dividend_reply_ok(doc: Any) -> bool:
+    """True iff a Nasdaq dividend reply carries a ``data.dividends`` section (an empty / null ``rows`` is a valid "no dividend announced"); a wrong asset class or an
+    error reply has ``data`` null and is NOT a valid reply (the ticker stays unknown)."""
+    data = doc.get("data") if isinstance(doc, dict) else None
+    return bool(isinstance(data, dict) and isinstance(data.get("dividends"), dict))
+
+
+def dividend_kind(ticker: str) -> str:
+    return "etf" if ticker.upper() in ETF_TICKERS else "equity"
+
+
+def fetch_dividends(src, ticker: str) -> list[str]:
+    """Ex-dividend dates of one ticker (Nasdaq, keyless): the frozen ETF list is asked as ``etf``, everything else as ``stocks`` and, if that reply carries no
+    dividend section, once more as ``etf`` (amendment O3). Raises ``cm.ApiError`` if neither reply is valid (the ticker is then unknown, never "none")."""
+    kinds = ("etf",) if dividend_kind(ticker) == "etf" else ("equity", "etf")
+    for kind in kinds:
+        doc = src.dividends(ticker, kind)
+        if dividend_reply_ok(doc):
+            return dividend_dates(doc)
+    raise cm.ApiError(f"nasdaq dividends {ticker}: no dividend section")
+
+
 # =====================================================================================================================================================
 # The collector (q0261): one idempotent call
 # =====================================================================================================================================================
@@ -630,12 +657,13 @@ def run_checkpoint(root: Path, day: str, label: str, t_sched: float, src: Source
 
 def run_daily(root: Path, day: str, src: Sources) -> dict:
     """Once per session: Yahoo daily bars BEFORE the day (features), Nasdaq earnings rows for the frame symbols over [day, max settlement] (<= 45 days), Nasdaq
-    ex-dividend dates per equity underlying. Symbols = the underlyings of the day's checkpoint files."""
+    ex-dividend dates per equity / ETF underlying (indices are cash-settled and exempt). Symbols = the underlyings of the day's checkpoint files. The file of session S is
+    what the units of the NEXT session read for earnings and ex-dividend dates (amendment O3: nothing fetched after t is used for a unit at t)."""
     mems = []
     for p in sorted((root / "raw" / day).glob("*.json.gz")):
         mems += _rjson_gz(p).get("members") or []
     unds = {(m["yahoo"], m["ticker"], m["cboe"]) for m in mems}
-    out: dict = {"day": day, "yahoo": {}, "earnings": [], "dividends": {}, "errors": []}
+    out: dict = {"day": day, "yahoo": {}, "earnings": [], "dividends": {}, "errors": [], "fetched_t_start": src.clock(), "earnings_symbols": []}
     d0 = et_epoch(day, 0, 0)
     for ysym, _tk, _cb in sorted(unds):
         try:
@@ -643,6 +671,7 @@ def run_daily(root: Path, day: str, src: Sources) -> dict:
         except (cm.ApiError, RuntimeError) as exc:
             out["errors"].append(f"yahoo {ysym}: {exc}"[:120])
     symbols = {tk for _y, tk, _c in unds}
+    out["earnings_symbols"] = sorted(symbols)
     last = max((m["settle"] for m in mems), default=day)
     last = min(last, day_add(day, EARNINGS_MAX_DAYS))
     d = day
@@ -657,9 +686,10 @@ def run_daily(root: Path, day: str, src: Sources) -> dict:
         if cb.startswith("_"):
             continue
         try:
-            out["dividends"][tk] = dividend_dates(src.dividends(tk, "equity"))
+            out["dividends"][tk] = fetch_dividends(src, tk)
         except (cm.ApiError, RuntimeError) as exc:
             out["errors"].append(f"dividends {tk}: {exc}"[:120])
+    out["fetched_t_end"] = src.clock()
     path = root / "daily" / f"{day}.json.gz"
     _wjson_gz(path, out)
     return {"path": path, "n_yahoo": len(out["yahoo"]), "n_earnings_rows": len(out["earnings"]), "errors": len(out["errors"])}
@@ -676,7 +706,7 @@ def settled_members(root: Path, today: str) -> dict[str, dict[str, dict]]:
 
 
 def run_outcomes(root: Path, now: float, src: Sources, state: dict) -> list[str]:
-    """Guarded post-settlement step: per settlement date d < today, the Yahoo close of d (a fetch at least one day after d) and the Gamma resolution of every
+    """Guarded post-settlement step: per settlement date d < today (ET), the Yahoo close of d (implemented as "fetched on a later ET date than d", disclosed) and the Gamma resolution of every
     member, written ONLY to ``outcomes_guarded/<d>/{yahoo_close,gamma}.csv.gz`` (rewritten whole as rows accumulate). Final when complete or 7 days after d
     (the rest unresolved, counted). Nothing of the replies is kept elsewhere."""
     today = et_day(now)
@@ -700,7 +730,7 @@ def run_outcomes(root: Path, now: float, src: Sources, state: dict) -> list[str]
             cp.write_bytes(hb._gz_csv_bytes(CLOSE_COLUMNS, [[closes[k][c] for c in CLOSE_COLUMNS] for k in sorted(closes)]))
         gp = gdir / "gamma.csv.gz"
         have = {r["market_id"]: r for r in c12.read_csv_gz(gp)} if gp.exists() else {}
-        todo = sorted(set(mems) - set(have))
+        todo = sorted(k for k in mems if gamma_yes(have.get(k)) is None)  # not yet resolved (or unclean): asked again at every outcome step until final (amendment O3)
         for i in range(0, len(todo), c12.LOOKUP_PER_REQUEST):
             try:
                 rows = src.gamma_markets(todo[i:i + c12.LOOKUP_PER_REQUEST])
@@ -716,18 +746,23 @@ def run_outcomes(root: Path, now: float, src: Sources, state: dict) -> list[str]
         if have:
             gp.write_bytes(hb._gz_csv_bytes(OUTCOME_COLUMNS, [[have[k][c] for c in OUTCOME_COLUMNS] for k in sorted(have)]))
         ysyms = {m["yahoo"] for m in mems.values()}
-        complete = set(closes) >= ysyms and set(have) >= set(mems)
+        complete = set(closes) >= ysyms and all(gamma_yes(have.get(k)) is not None for k in mems)
         late = now >= et_epoch(d, 0, 0) + OUTCOME_MAX_DAYS * DAY
-        st.update(t=now, n_closes=len(closes), n_symbols=len(ysyms), n_resolved=len(have), n_members=len(mems), final=bool(complete or late),
-                  unresolved=0 if complete else (len(ysyms - set(closes)) + len(set(mems) - set(have))))
+        st.update(t=now, n_closes=len(closes), n_symbols=len(ysyms), n_resolved=sum(1 for k in mems if gamma_yes(have.get(k)) is not None), n_members=len(mems), final=bool(complete or late),
+                  unresolved=0 if complete else (len(ysyms - set(closes)) + sum(1 for k in mems if gamma_yes(have.get(k)) is None)))
         done.append(d)
     return done
 
 
-def opt_live_tick(root: Path, *, now: float, src: Sources, rules_sha: str, frozen_epoch: float, disk_check: Callable[[], None] | None = None, sleep=time.sleep) -> dict:
+def root_size_bytes(root: Path) -> int:
+    return sum(f.stat().st_size for f in Path(root).rglob("*") if f.is_file())
+
+
+def opt_live_tick(root: Path, *, now: float, src: Sources, rules_sha: str, frozen_epoch: float, disk_check: Callable[[], None] | None = None, root_cap_bytes: int | None = None,
+                  sleep=time.sleep) -> dict:
     """One idempotent collector call (cron every 5 minutes on weekdays). Order: a due checkpoint; else the daily step; else (at most every 3 h) the outcome step.
     A disk refusal at a due checkpoint is recorded as "unavailable (host disk)" (time-critical), elsewhere it is ``NotNow`` (exit 75). Concurrent calls: the second
-    one returns ``busy``."""
+    one returns ``busy``. ``root_cap_bytes`` (the declared 0.3 GB) is enforced on the collector root's own size and refuses exactly like a full host disk."""
     root = c12.require_output_root(Path(root))
     root.mkdir(parents=True, exist_ok=True)
     lock = open(root / ".lock", "w")  # noqa: SIM115
@@ -743,14 +778,20 @@ def opt_live_tick(root: Path, *, now: float, src: Sources, rules_sha: str, froze
         day = et_day(now)
         dst = state["days"].setdefault(day, {"ckpt": {}})
         out: dict = {"status": "idle", "day": day}
+
+        def _check() -> None:  # host disk check + the collector root's own cap
+            if disk_check is not None:
+                disk_check()
+            if root_cap_bytes is not None and root_size_bytes(root) > root_cap_bytes:
+                raise NotNow(f"collector root exceeds its {root_cap_bytes} byte cap")
+
         if now < frozen_epoch:
             raise Refused("opt-live runs only after the O freeze")
         due = [(lab, t) for lab, t in checkpoint_epochs(day) if t <= now < t + CHECKPOINT_WINDOW_S and lab not in dst["ckpt"]]
         if due:
             lab, t = due[0]
             try:
-                if disk_check is not None:
-                    disk_check()
+                _check()
             except NotNow as exc:
                 dst["ckpt"][lab] = {"status": "unavailable (host disk)", "t": now, "why": str(exc)[:200]}
                 out = {"status": "checkpoint_unavailable_disk", "checkpoint": lab}
@@ -760,15 +801,13 @@ def opt_live_tick(root: Path, *, now: float, src: Sources, rules_sha: str, froze
                 dst["ckpt"][lab] = {"status": "ok", "t": now, "n_members": r["n_members"], "n_chains": r["n_chains"]}
                 out = {"status": "checkpoint", "checkpoint": lab, "n_members": r["n_members"], "n_chains": r["n_chains"]}
         elif is_session(day) and now >= et_epoch(day, *DAILY_FROM_ET) and "daily" not in dst and any((root / "raw" / day).glob("*.json.gz")):
-            if disk_check is not None:
-                disk_check()
+            _check()
             r = run_daily(root, day, src)
             _record(root, man, r["path"])
             dst["daily"] = {"t": now, "n_yahoo": r["n_yahoo"], "n_earnings_rows": r["n_earnings_rows"], "errors": r["errors"]}
             out = {"status": "daily", **dst["daily"]}
         elif now - float(state.get("outcomes_t", 0.0)) >= OUTCOME_EVERY_S:
-            if disk_check is not None:
-                disk_check()
+            _check()
             done = run_outcomes(root, now, src, state)
             state["outcomes_t"] = now
             for d in done:
@@ -901,20 +940,22 @@ def anchor(chain: dict, K: float, d: str, convention: str | None) -> dict:
     return {"q": q, "type": "phi_d2", "spread_ok": all(_spread_ok(x[4], x[5]) for x in legs), "reason": ""}
 
 
-def exdiv_status(chain: dict, t: float, d: str) -> str:
-    """Declared rule: an ex-dividend date in (t, d] from the chain's own data if present, else unknown (both excluded). Indices pay no single-name dividend: the
-    rule reads the chain either way (declared). Returns '' (no ex-dividend in (t, d]), 'excluded: ex-dividend' or 'excluded: ex-dividend unknown'."""
-    und = chain.get("underlying") or {}
-    dates = []
-    for k, v in und.items():
-        if DIV_KEY_RE.search(str(k)) and v:
-            for s in (v if isinstance(v, list) else [v]):
-                ts = c12.parse_iso(s)
-                if math.isfinite(ts):
-                    dates.append(et_day(ts))
-    if not dates:
+def previous_daily(daily: dict[str, dict], day: str) -> dict | None:
+    """The daily file of the session before ``day`` (None if absent)."""
+    return daily.get(prev_session(day))
+
+
+def exdiv_status(prev: dict | None, ticker: str, cboe: str, t: float, d: str) -> str:
+    """Amended rule (section 11, O3): cash-settled indices (CBOE symbol ``_...``) are exempt (''); otherwise the ex-dividend dates are those of the PREVIOUS session's
+    Nasdaq file (fetched and stored before t); a ticker without a valid entry there is unknown (excluded). An ex-date in (ET date of t, d] -> 'excluded: ex-dividend'.
+    Returns '' (no ex-dividend in (t, d] or exempt), 'excluded: ex-dividend' or 'excluded: ex-dividend unknown'."""
+    if cboe.startswith("_"):
+        return ""
+    fetched = c12.num((prev or {}).get("fetched_t_end"))
+    divs = ((prev or {}).get("dividends") or {}).get(ticker)
+    if prev is None or divs is None or not (math.isfinite(fetched) and fetched < t):
         return "excluded: ex-dividend unknown"
-    return "excluded: ex-dividend" if any(et_day(t) < x <= d for x in dates) else ""
+    return "excluded: ex-dividend" if any(et_day(t) < x <= d for x in divs) else ""
 
 
 def realised_vol(closes: list[tuple[str, float]], before: str, n: int = RV_DAYS) -> float:
@@ -1019,7 +1060,10 @@ def load_daily(root: Path) -> dict[str, dict]:
 def build_units(root: Path, dates: list[str], convention: str | None) -> tuple[list[dict], dict]:
     """(units, checkpoint counts) for members whose settlement date is in ``dates``. Label order: first read missing -> crossed -> not tight -> chain missing ->
     chain timestamp not before the first receipt -> anchor exclusions (no anchor, phi(d2) without convention, option spread, q range, ex-dividend) -> second read.
-    Features only: the anchor, mids, touch, realised vol from bars dated before the unit's day, the earnings flag from the unit-day calendar."""
+    ``o2_ok`` marks every unit that passed all of these up to the anchor exclusions (first-read tight + valid anchor): O2 does not depend on the second read (taken
+    >= 60 s after the decision), which only O1 needs. ``m2_raw`` = the raw second-read mid whenever that read is two-sided and uncrossed (any label; for the m_prev
+    placebo). Features only: the anchor, mids, touch, realised vol from bars dated before the unit's day, and the earnings flag and ex-dividend dates from the PREVIOUS
+    session's daily file (amendment O3)."""
     dset = set(dates)
     daily = load_daily(root)
     units: list[dict] = []
@@ -1027,6 +1071,7 @@ def build_units(root: Path, dates: list[str], convention: str | None) -> tuple[l
     for rec in iter_checkpoints(root):
         ck["files"] += 1
         dly = daily.get(rec["day"]) or {}
+        prev = previous_daily(daily, rec["day"])
         for m in rec.get("members") or []:
             if m["settle"] not in dset:
                 continue
@@ -1034,8 +1079,9 @@ def build_units(root: Path, dates: list[str], convention: str | None) -> tuple[l
             b1 = bl[0] if bl else {}
             b2 = bl[1] if len(bl) > 1 else {}
             t = c12.num(b1.get("receipt_t"))
+            m2_raw = (b2["bid"] + b2["ask"]) / 2.0 if (b2.get("ok") and b2.get("bid") is not None and b2.get("ask") is not None and not b2.get("crossed")) else None
             u = {"market_id": m["market_id"], "event_id": m["event_id"], "ticker": m["ticker"], "settle": m["settle"], "day": rec["day"], "ckpt": rec["checkpoint"], "t": t,
-                 "K": m["K"], "yes_index": m["yes_index"], "template": m["template"], "fee_rate": m["fee_rate"], "yahoo": m["yahoo"], "cluster": f"{m['ticker']}|{m['settle']}"}
+                 "K": m["K"], "yes_index": m["yes_index"], "template": m["template"], "fee_rate": m["fee_rate"], "yahoo": m["yahoo"], "cluster": f"{m['ticker']}|{m['settle']}", "m2_raw": m2_raw, "o2_ok": False}
             if not b1.get("ok") or not math.isfinite(t):
                 units.append({**u, "label": "unavailable (first read)"})
                 continue
@@ -1064,24 +1110,26 @@ def build_units(root: Path, dates: list[str], convention: str | None) -> tuple[l
             if not (Q_MIN <= an["q"] <= Q_MAX):
                 units.append({**u, "label": "excluded: q range", "q": an["q"]})
                 continue
-            ex = exdiv_status(ch, t, m["settle"])
+            ex = exdiv_status(prev, m["ticker"], m["cboe"], t, m["settle"])
             if ex:
                 units.append({**u, "label": ex, "q": an["q"]})
                 continue
-            if not (b2.get("ok") and b2.get("bid") is not None and b2.get("ask") is not None and not b2.get("crossed")):
+            u["o2_ok"] = True
+            if m2_raw is None:
                 units.append({**u, "label": "unavailable (second read)", "q": an["q"]})
                 continue
             S = c12.num((ch.get("underlying") or {}).get("current_price"))
             sig = realised_vol([tuple(x) for x in (dly.get("yahoo") or {}).get(m["yahoo"], [])], rec["day"])
             T = time_to_expiry(ch["ts_epoch"], m["settle"], convention) if convention in CONVENTIONS else time_to_expiry(ch["ts_epoch"], m["settle"], "act365")
-            units.append({**u, "label": "available", "q": an["q"], "m2": (b2["bid"] + b2["ask"]) / 2.0, "q_rv": phi_d2(S, m["K"], sig, T) if math.isfinite(sig) else math.nan,
-                          "earnings": earnings_flag(dly.get("earnings") if dly else None, m["ticker"], t, m["settle"])})
+            units.append({**u, "label": "available", "q": an["q"], "m2": m2_raw, "q_rv": phi_d2(S, m["K"], sig, T) if math.isfinite(sig) else math.nan,
+                          "earnings": earnings_flag(prev.get("earnings") if prev and m["ticker"] in (prev.get("earnings_symbols") or []) else None, m["ticker"], t, m["settle"])})
     return units, dict(ck)
 
 
 def attach_mprev(units: list[dict]) -> None:
-    """``m_prev`` = the second-read mid of the same market at the previous checkpoint (13:00 -> 11:00, 15:00 -> 13:00, 11:00 -> the previous session's 15:00)."""
-    by = {(u["market_id"], u["day"], u["ckpt"]): u for u in units if "m2" in u}
+    """``m_prev`` = the RAW second-read mid (two-sided, uncrossed) of the same market at the previous checkpoint, whatever that unit's label (13:00 -> 11:00, 15:00 -> 13:00,
+    11:00 -> the previous session's 15:00); None when that checkpoint has no such read (those units drop from the placebo only, counted)."""
+    by = {(u["market_id"], u["day"], u["ckpt"]): u for u in units if u.get("m2_raw") is not None}
     for u in units:
         if u["ckpt"] == "1300":
             key = (u["market_id"], u["day"], "1100")
@@ -1090,7 +1138,7 @@ def attach_mprev(units: list[dict]) -> None:
         else:
             key = (u["market_id"], prev_session(u["day"]), "1500")
         p = by.get(key)
-        u["m_prev"] = p["m2"] if p is not None else None
+        u["m_prev"] = p["m2_raw"] if p is not None else None
 
 
 # =====================================================================================================================================================
@@ -1098,11 +1146,19 @@ def attach_mprev(units: list[dict]) -> None:
 # =====================================================================================================================================================
 
 
-def open_outcomes(root: Path, dates: list[str], job: str, window: str) -> tuple[dict, dict]:
+def open_outcomes(root: Path, dates: list[str], job: str, window: str, *, frozen_epoch: float | None = None, now: float | None = None) -> tuple[dict, dict]:
     """({(symbol, d): close}, {market id: gamma row}) for the given settlement dates. Only ``screen-O`` (window ``w1``) and ``rep-O`` (window ``w2``) may open them;
-    every read is appended to ACCESS_LOG.jsonl."""
+    the window is recomputed HERE from the collected files (``frozen_epoch``) and the requested dates must be a subset of its settlement dates (a closed window is
+    required); every read is appended to ACCESS_LOG.jsonl."""
     if (job, window) not in (("screen-O", "w1"), ("rep-O", "w2")):
         raise Refused(f"O outcomes of {window} may not be opened by {job!r}")
+    if frozen_epoch is None:
+        raise Refused("O outcomes need the freeze epoch to recompute the window")
+    win = windows(Path(root), frozen_epoch, time.time() if now is None else now)[window]
+    allowed = set(window_dates(win))
+    extra = sorted(set(dates) - allowed)
+    if extra:
+        raise Refused(f"requested settlement dates outside {window} (first {extra[0]}); refused")
     closes, gam = {}, {}
     for d in dates:
         gdir = Path(root) / "outcomes_guarded" / d
@@ -1203,9 +1259,10 @@ def o1_signflip(us: list[dict], *, n_draws: int = c12.PLACEBO_DRAWS, seed: int =
     return {**c12.placebo_advance_rate(ps), "note": "O1 settlement-date sign-flip calibration", "seed": seed}
 
 
-def o1_attribution(us: list[dict]) -> dict:
+def o1_attribution(us: list[dict], census_cor: float | None = None, use_census_cor: bool = False) -> dict:
     """Joint WLS of ``Y - m2`` on ``q - m1`` and ``q_RV - m1`` (units with a realised-vol digital); credit "option-implied" only if the ``q - m1`` coefficient keeps
-    >= half its solo value on the same units; cor > 0.9 -> "not identifiable"."""
+    >= half its solo value on the same units; cor > 0.9 -> "not identifiable". The screen passes the CENSUS value of cor(q - m1, q_RV - m1) (the label is decided on it, as
+    section CB12-O says "at the census"; ``use_census_cor``); without it (rep, window 2) the correlation of the tested units is used (declared)."""
     sub = [u for u in us if math.isfinite(c12.num(u.get("q_rv")))]
     if len(sub) < 10:
         return {"label": "not identifiable", "reason": "too few units with a realised-vol digital", "n": len(sub)}
@@ -1214,20 +1271,28 @@ def o1_attribution(us: list[dict]) -> dict:
     x2 = np.array([u["q_rv"] - u["m1"] for u in sub])
     w = cluster_weights(sub)
     cor = float(np.corrcoef(x1, x2)[0, 1]) if x1.std() > 0 and x2.std() > 0 else math.nan
+    src = "tested units"
+    if use_census_cor:
+        cor, src = (math.nan if census_cor is None else float(census_cor)), "census"
     if not math.isfinite(cor) or cor > COR_MAX:
-        return {"label": "not identifiable", "cor": cor, "n": len(sub)}
+        return {"label": "not identifiable", "cor": cor, "cor_source": src, "n": len(sub)}
     X = np.column_stack([np.ones(len(sub)), x1, x2])
     W = np.sqrt(w)
     coef = np.linalg.lstsq(X * W[:, None], y * W, rcond=None)[0]
     solo = slope_pseudo(y, x1, w)[1]
     ok = bool(math.isfinite(solo) and solo > 0 and coef[1] >= 0.5 * solo)
-    return {"label": "option-implied" if ok else "not option-implied", "cor": cor, "joint_beta_q": float(coef[1]), "joint_beta_rv": float(coef[2]), "solo_beta_q": solo, "n": len(sub)}
+    return {"label": "option-implied" if ok else "not option-implied", "cor": cor, "joint_beta_q": float(coef[1]), "joint_beta_rv": float(coef[2]), "solo_beta_q": solo, "cor_source": src, "n": len(sub)}
 
 
-def availability(units: list[dict], need_outcome: str | None = None) -> float:
-    """Available share of eligible units (section 2.6 iv): eligible = available + every "unavailable (...)" label (+ units without the needed outcome)."""
-    avail = [u for u in units if u["label"] == "available" and (need_outcome is None or u.get(need_outcome) is not None)]
-    elig = len(avail) + sum(1 for u in units if u["label"].startswith("unavailable")) + sum(1 for u in units if u["label"] == "available" and need_outcome and u.get(need_outcome) is None)
+def availability(units: list[dict], need_outcome: str | None = None, *, o2: bool = False) -> float:
+    """Available share of eligible units (section 2.6 iv). O1: available = label "available" (needs the second read); O2 (``o2``): available = ``o2_ok`` (first-read tight
+    + valid anchor; no second read). Eligible = the available units + every "unavailable (...)" unit that is not available (+ units without the needed outcome)."""
+    def good(u: dict) -> bool:
+        return bool(u.get("o2_ok")) if o2 else u["label"] == "available"
+
+    ok = [u for u in units if good(u)]
+    avail = [u for u in ok if need_outcome is None or u.get(need_outcome) is not None]
+    elig = len(ok) + sum(1 for u in units if u["label"].startswith("unavailable") and not good(u))
     return len(avail) / elig if elig else 0.0
 
 
@@ -1236,10 +1301,13 @@ def _holds(us: list[dict], floor: float) -> bool:
     return bool(r["testable"] and r["p"] < c12.GATE_P and r["beta"] >= floor)
 
 
-def o1_test(units: list[dict], *, earnings_identified: bool, placebo: bool = True, n_draws: int = c12.PLACEBO_DRAWS) -> dict:
-    av = availability(units, "y")
+def o1_test(units: list[dict], *, earnings_identified: bool, placebo: bool = True, n_draws: int = c12.PLACEBO_DRAWS, ckpt_share: float = 1.0, census_cor: float | None = None,
+            use_census_cor: bool = False) -> dict:
+    """``ckpt_share`` = the share of scheduled checkpoints actually collected (missed ones are "unavailable (collection)" / "(host disk)"); it multiplies the unit
+    availability so a missed checkpoint counts against the 60% rule (amendment O3)."""
+    av = availability(units, "y") * ckpt_share
     us = [u for u in units if u["label"] == "available" and u.get("y") is not None]
-    res: dict = {"test": "O1", "label": LABEL_O, "n": len(us), "availability_share": av, "unit_labels": dict(Counter(u["label"] for u in units))}
+    res: dict = {"test": "O1", "label": LABEL_O, "n": len(us), "availability_share": av, "checkpoint_share": ckpt_share, "unit_labels": dict(Counter(u["label"] for u in units))}
     if av < c12.AVAIL_MIN:
         return {**res, "p": 1.0, "testable": False, "advance": False, "effect": None, "verdict": "not testable (availability)"}
     base = o1_slope(us)
@@ -1267,9 +1335,10 @@ def o1_test(units: list[dict], *, earnings_identified: bool, placebo: bool = Tru
         res["earnings"] = "earnings not identified (the primary includes all units; the earnings robustness is not applicable)"
     plc = o1_signflip(us, n_draws=n_draws) if placebo else None
     rob_ok = all(v is True for v in rob.values())
-    agree = [u for u in us if u.get("y_gamma") is not None]
-    share = float(np.mean([u["y"] == u["y_gamma"] for u in agree])) if agree else None
-    res.update(robustness=rob, robustness_ok=rob_ok, placebo=plc, attribution=o1_attribution(us), gamma_agreement={"share": share, "n": len(agree), "min": AGREE_MIN,
+    per_mkt = {u["market_id"]: (u["y"], u["y_gamma"]) for u in us if u.get("y_gamma") is not None}  # agreement counted per market, not per unit
+    agree = list(per_mkt.values())
+    share = float(np.mean([a == b for a, b in agree])) if agree else None
+    res.update(robustness=rob, robustness_ok=rob_ok, placebo=plc, attribution=o1_attribution(us, census_cor, use_census_cor), gamma_agreement={"share": share, "n": len(agree), "min": AGREE_MIN,
                "label": "settlement basis" if share is not None and share < AGREE_MIN else None})
     ok = bool(base["p"] < c12.GATE_P and res["floor_ok"] and rob_ok and (plc is None or plc["holds"]))
     res.update(stage1_pass=ok, early_holm_ok=c12.early_stage1_ok(base["p"]), advance=bool(ok and c12.early_stage1_ok(base["p"])), holm_pending=bool(ok and not c12.early_stage1_ok(base["p"])))
@@ -1278,10 +1347,10 @@ def o1_test(units: list[dict], *, earnings_identified: bool, placebo: bool = Tru
 
 
 def o2_trades(units: list[dict], *, signal: str = "q", cost: float = 0.0) -> list[dict]:
-    """Each market's FIRST available tight checkpoint with ``signal - a_YES >= 4c`` (buy YES at the first-read ask) or ``(1 - signal) - a_NO >= 4c`` (buy NO at
+    """Each market's FIRST tight checkpoint with a valid anchor (``o2_ok``: no second read needed) with ``signal - a_YES >= 4c`` (buy YES at the first-read ask) or ``(1 - signal) - a_NO >= 4c`` (buy NO at
     ``a_NO = 1 - b_YES``); fee ``r a (1 - a)``, ``r = max(feeSchedule.rate, 0.04)``; paid on the Gamma resolution (unresolved -> excluded, counted)."""
     out, seen = [], set()
-    for u in sorted((u for u in units if u["label"] == "available"), key=lambda z: (z["market_id"], z["t"])):
+    for u in sorted((u for u in units if u.get("o2_ok")), key=lambda z: (z["market_id"], z["t"])):
         if u["market_id"] in seen:
             continue
         s = u.get(signal)
@@ -1301,11 +1370,11 @@ def o2_trades(units: list[dict], *, signal: str = "q", cost: float = 0.0) -> lis
     return out
 
 
-def o2_test(units: list[dict], *, placebo: bool = True) -> dict:
-    av = availability(units, "y_gamma")
+def o2_test(units: list[dict], *, placebo: bool = True, ckpt_share: float = 1.0) -> dict:
+    av = availability(units, "y_gamma", o2=True) * ckpt_share
     tr = o2_trades(units)
     paid = [t for t in tr if t["net"] is not None]
-    res: dict = {"test": "O2", "label": LABEL_O, "n": len(paid), "n_trades": len(tr), "unresolved_trades": len(tr) - len(paid), "availability_share": av}
+    res: dict = {"test": "O2", "label": LABEL_O, "n": len(paid), "n_trades": len(tr), "unresolved_trades": len(tr) - len(paid), "availability_share": av, "checkpoint_share": ckpt_share}
     if av < c12.AVAIL_MIN:
         return {**res, "p": 1.0, "testable": False, "advance": False, "effect": None, "verdict": "not testable (availability)"}
     v = np.array([t["net"] for t in paid], float)
@@ -1339,7 +1408,7 @@ def o2_test(units: list[dict], *, placebo: bool = True) -> dict:
         pv = np.array([t["net"] for t in pt], float)
         pp = c12.cluster_p(pv, ways(pt))["p"] if len(pv) >= 2 else 1.0
         plc = {"note": "O2 previous-checkpoint m_prev placebo (must not pass p < 0.01)", "p": pp, "n": len(pv), "holds": bool(pp >= c12.GATE_P), "advance_rate": None, "n_draws": 1,
-               "dropped_without_m_prev": sum(1 for u in units if u["label"] == "available" and u.get("m_prev") is None)}
+               "dropped_without_m_prev": sum(1 for u in units if u.get("o2_ok") and u.get("m_prev") is None)}
     rob_ok = all(x is True for x in rob.values())
     res.update(robustness=rob, robustness_ok=rob_ok, placebo=plc)
     ok = bool(cp["p"] < c12.GATE_P and floor_ok and rob_ok and (plc is None or plc["holds"]))
@@ -1357,12 +1426,29 @@ def _strip(u: dict) -> dict:
     return {k: v for k, v in u.items() if k not in ("y", "y_gamma")}
 
 
+def collection_counts(root: Path, win: dict) -> dict:
+    """Scheduled vs collected checkpoints over the window's collection days (regular sessions from the window start to its end), from ``state.json``: ``ok``,
+    "unavailable (collection)", "unavailable (host disk)" and "not recorded". Counts only; ``share`` = ok / scheduled (1.0 with nothing scheduled)."""
+    sp = Path(root) / "state.json"
+    days = (json.loads(sp.read_text()) if sp.exists() else {}).get("days") or {}
+    c: Counter = Counter()
+    for d in sessions_between(win["start"], win["end"]):
+        for lab, _t in checkpoint_epochs(d):
+            c["scheduled"] += 1
+            st = ((days.get(d) or {}).get("ckpt") or {}).get(lab) or {}
+            c[str(st.get("status") or "not recorded")] += 1
+    out = dict(c)
+    out["share"] = c["ok"] / c["scheduled"] if c["scheduled"] else 1.0
+    return out
+
+
 def census_o(root: Path, win: dict, convention: str | None) -> dict:
     """Window-1 census: counts by ticker, settlement date, checkpoint, template, anchor type, tightness and exclusion label; GO; cor(q - m1, q_RV - m1). Opens no
     outcome file (unit-tested); refuses before window 1 closed."""
     dates = window_dates(win)
     require_outcomes_final(root, dates)
     units, ck = build_units(root, dates, convention)
+    coll = collection_counts(root, win)
     avail = [u for u in units if u["label"] == "available"]
     sessions = sorted({u["day"] for u in units})
     clusters = {u["cluster"] for u in avail}
@@ -1376,7 +1462,9 @@ def census_o(root: Path, win: dict, convention: str | None) -> dict:
     out = {"version": "cb12-census-O-v1", "counts_only": True, "label": LABEL_O, "window": win, "iv_convention": convention, "checkpoint_files": ck,
            "unit_labels": dict(Counter(u["label"] for u in units)), "by_ticker": dict(Counter(u["ticker"] for u in avail)), "by_settlement": dict(sorted(Counter(u["settle"] for u in avail).items())),
            "by_checkpoint": dict(Counter(u["ckpt"] for u in avail)), "by_template": dict(Counter(u["template"] for u in avail)), "by_anchor": dict(Counter(u.get("anchor_type") for u in avail)),
-           "availability_share": availability(units), "GO": go, "cor_q_qrv": cor, "attribution_identifiable": bool(cor is not None and cor <= COR_MAX)}
+           "availability_share": availability(units), "availability_share_o2": availability(units, o2=True), "collection": coll,
+           "availability_share_incl_missed_checkpoints": availability(units) * coll["share"], "availability_share_o2_incl_missed_checkpoints": availability(units, o2=True) * coll["share"],
+           "O2_eligible_units": sum(1 for u in units if u.get("o2_ok")), "GO": go, "cor_q_qrv": cor, "attribution_identifiable": bool(cor is not None and cor <= COR_MAX)}
     if not win.get("power_ok", True) or go["dates"] < GO_MIN["dates"]:
         out["label_O"] = "not run (power)"
     elif not go["pass"]:
@@ -1401,27 +1489,31 @@ def not_run_result(label: str) -> dict:
     return {"p": 1.0, "testable": False, "advance": False, "verdict": label, "label": LABEL_O, "effect": None, "n": 0}
 
 
-def screen_o(root: Path, census: dict, convention: str | None, *, earnings_identified: bool) -> dict:
+def screen_o(root: Path, census: dict, convention: str | None, *, earnings_identified: bool, frozen_epoch: float, now: float | None = None) -> dict:
     lab = census.get("label_O")
     if lab:
         return {"O1": not_run_result(lab), "O2": not_run_result(lab), "label": LABEL_O, "census_label": lab}
-    dates = window_dates(census["window"]["w1"])
+    win = census["window"]  # the census' ``window`` IS the window-1 dict
+    dates = window_dates(win)
     units, _ = build_units(root, dates, convention)
     attach_mprev(units)
-    closes, gam = open_outcomes(root, dates, "screen-O", "w1")
+    closes, gam = open_outcomes(root, dates, "screen-O", "w1", frozen_epoch=frozen_epoch, now=now)
     attach_outcomes(units, closes, gam)
-    return {"O1": o1_test(units, earnings_identified=earnings_identified), "O2": o2_test(units), "label": LABEL_O, "census_label": None}
+    share = (census.get("collection") or {}).get("share", 1.0)
+    return {"O1": o1_test(units, earnings_identified=earnings_identified, ckpt_share=share, census_cor=census.get("cor_q_qrv"), use_census_cor=True),
+            "O2": o2_test(units, ckpt_share=share), "label": LABEL_O, "census_label": None}
 
 
-def rep_o(root: Path, win2: dict, convention: str | None, tests: tuple[str, ...], *, earnings_identified: bool, k2: int | None = None) -> dict:
+def rep_o(root: Path, win2: dict, convention: str | None, tests: tuple[str, ...], *, earnings_identified: bool, k2: int | None = None, frozen_epoch: float, now: float | None = None) -> dict:
     dates = window_dates(win2)
     units, _ = build_units(root, dates, convention)
     attach_mprev(units)
-    closes, gam = open_outcomes(root, dates, "rep-O", "w2")
+    closes, gam = open_outcomes(root, dates, "rep-O", "w2", frozen_epoch=frozen_epoch, now=now)
     attach_outcomes(units, closes, gam)
-    out: dict = {"label": LABEL_O, "k2": k2, "window": win2}
+    share = collection_counts(root, win2)["share"]
+    out: dict = {"label": LABEL_O, "k2": k2, "window": win2, "collection": collection_counts(root, win2)}
     for t in tests:
-        r = o1_test(units, earnings_identified=earnings_identified) if t == "O1" else o2_test(units)
+        r = o1_test(units, earnings_identified=earnings_identified, ckpt_share=share) if t == "O1" else o2_test(units, ckpt_share=share)
         r["stage2_early_alpha_over_10"] = c12.early_stage2_ok(r.get("p"))
         r["stage2_pass_alpha_over_k"] = bool(r.get("p", 1.0) < (c12.STAGE_ALPHA / k2 if k2 else c12.STAGE_ALPHA / c12.STAGE2_K_MAX) and r.get("floor_ok") and r.get("robustness_ok")
                                              and (r.get("placebo") or {}).get("holds", False))
@@ -1485,7 +1577,7 @@ def smoke_offline(ctx: dict) -> dict:
     cd = anchor(ch, 100.0, "2026-10-21", None)
     central = bool(cd["type"] == "direct" and abs(cd["q"] - 0.5) < 1e-9)
     dst = bool(datetime.fromtimestamp(checkpoint_epochs("2026-10-30")[0][1], UTC).hour == 15 and datetime.fromtimestamp(checkpoint_epochs("2026-11-02")[0][1], UTC).hour == 16)
-    us = [{"market_id": "m", "day": "2026-10-19", "ckpt": "1500", "m2": 0.4}, {"market_id": "m", "day": "2026-10-20", "ckpt": "1100", "m2": 0.5}]
+    us = [{"market_id": "m", "day": "2026-10-19", "ckpt": "1500", "m2_raw": 0.4}, {"market_id": "m", "day": "2026-10-20", "ckpt": "1100", "m2_raw": 0.5}]
     attach_mprev(us)
     mp = bool(us[1]["m_prev"] == 0.4)
     ok = bool(all(res) and t1 and t2 and t3 and central and dst and mp)
@@ -1494,8 +1586,8 @@ def smoke_offline(ctx: dict) -> dict:
 
 def smoke_online(lim, ctx: dict) -> dict:
     """One live checkpoint dry run (no unit kept): both frame regexes on the frozen searches, rule flags, the CBOE chain per underlying (timestamp older than the
-    receipt and < 1 h old), the iv time-convention check, two book reads on up to 4 members, Nasdaq earnings keyless, and whether the chain carries any dividend
-    field (the declared ex-dividend rule needs it). Counts and booleans only."""
+    receipt and < 1 h old), the iv time-convention check, two book reads on up to 4 members, Yahoo daily bars keyless (O1 outcome and q_RV source), the Gamma closed=true
+    lookup, Nasdaq ex-dividend lists keyless (ETF and stock), Nasdaq earnings keyless, and whether the chain carries any dividend field (informational). Counts and booleans only."""
     src = ctx.get("o_sources") or Sources(lim, lim)
     stats: dict = {}
     events = discover(src, stats)
@@ -1542,6 +1634,24 @@ def smoke_online(lim, ctx: dict) -> dict:
             doc, rt = src.book(m["token_yes"])
             reads.append(book_state(doc, rt))
         bk[m["market_id"][-4:]] = {"ok": all(r["ok"] for r in reads), "two_sided": all(r.get("bid") is not None and r.get("ask") is not None for r in reads)}
+    yh = {}
+    for sym in YAHOO_PROBES:
+        try:
+            bars = yahoo_closes(src.yahoo_daily(sym, now - 45 * DAY, now))
+            yh[sym] = {"n_bars": len(bars), "last": bars[-1][0] if bars else None, "ok": bool(len([b for b in bars if b[0] < day]) >= RV_DAYS + 1 and bars and bars[-1][0] >= prev_session(day))}
+        except (cm.ApiError, RuntimeError):
+            yh[sym] = {"ok": False}
+    try:  # the closed=true Gamma lookup the outcome step uses: the request must be accepted (a list; open markets are not returned by design)
+        rows = src.gamma_markets([m["market_id"] for m in members[:3]]) if members else None
+        gm_ok = isinstance(rows, list)
+    except (cm.ApiError, RuntimeError):
+        gm_ok = False
+    dv = {}
+    for sym in DIV_PROBES:
+        try:
+            dv[sym] = {"n_dates": len(fetch_dividends(src, sym)), "ok": True}
+        except (cm.ApiError, RuntimeError):
+            dv[sym] = {"ok": False}
     try:
         e = src.earnings(next_session(day))
         earn_ok = bool(isinstance(e, dict) and isinstance((e.get("data") or {}).get("rows"), list))
@@ -1553,10 +1663,13 @@ def smoke_online(lim, ctx: dict) -> dict:
             "o_chain_timestamp": {"pass": bool(chk and all(v.get("ts_ok") for v in chk.values() if v["ok"])), "ages_s": sorted(v["age_s"] for v in chk.values() if v["ok"]),
                                   "rule": "chain timestamp read as UTC must be older than the receipt and < 1 h old during the session"},
             "o_iv_convention_checked": {"pass": bool(conv["n_options"] >= CONVENTION_N), **conv},
+            "o_yahoo_keyless": {"pass": bool(yh and all(v["ok"] for v in yh.values())), "per": yh, "rule": "daily bars keyless: >= 21 bars before today and the latest bar >= the previous session (O1 outcome and q_RV source)"},
+            "o_gamma_closed_lookup": {"pass": gm_ok, "rule": "the Gamma /markets?id=...&closed=true outcome lookup is accepted (status 200, a list); open markets are not returned by design"},
+            "o_dividends_keyless": {"pass": bool(dv and all(v["ok"] for v in dv.values())), "per": dv, "rule": "Nasdaq ex-dividend list keyless with a dividend section for an ETF (assetclass etf) and a stock (stocks); the amended ex-dividend rule reads it"},
             "o_books": {"pass": bool(bk and all(v["ok"] for v in bk.values())), "per": bk},
             "o_earnings_keyless": {"pass": earn_ok, "note": "informational: earnings flagged only if this is true, else 'earnings not identified'"},
             "o_chain_dividend_field": {"pass": bool(chk and any(v.get("dividend_field") for v in chk.values() if v["ok"])),
-                                       "note": "informational: the declared ex-dividend rule reads the chain; without a dividend field every unit is 'excluded: ex-dividend unknown'"}}
+                                       "note": "informational only (amendment O3: the ex-dividend rule no longer reads the chain; the CBOE delayed chain has no dividend field)"}}
 
 
 def in_smoke_session(now: float) -> bool:
@@ -1570,26 +1683,30 @@ def declared() -> dict:
                       "settlement": "title date (on <Month> <day>) or the month's last session (end of <Month>), year closest to endDate; > 3 days from endDate's ET date -> ambiguous (excluded)",
                       "listing": "createdAt <= t - 1 h", "underlyings": {"excluded": list(EXCLUDED_UNDERLYINGS), "index_cboe": INDEX_CBOE, "index_root": INDEX_ROOT, "index_yahoo": INDEX_YAHOO,
                                                                          "equity": "CBOE <TICKER>.json, option root = ticker"},
-                      "rule_flags": {k: v.pattern for k, v in FLAG_RES.items()}},
+                      "rule_flags": {k: v.pattern for k, v in FLAG_RES.items()},
+                      "rule_flags_use": "DESCRIPTIVE ONLY: stored booleans and the description sha256; no flag includes, excludes or weights a unit or enters a test (amendment O3)"},
             "collection": {"checkpoints_et": [f"{h:02d}:{m:02d}" for h, m in CHECKPOINTS_ET], "regular_sessions_only": True, "window_s": CHECKPOINT_WINDOW_S, "order": "frame -> chain -> book read 1 -> book read 2 (>= 60 s)",
                            "max_members": MAX_MEMBERS, "max_chains": MAX_CHAINS, "cap_rank_seed": CAP_SEED, "book_levels": BOOK_LEVELS, "chain_strikes_each_side": CHAIN_STRIKES_EACH_SIDE,
-                           "daily": "Yahoo daily bars before the day; Nasdaq earnings rows of the frame symbols over [day, max settlement] (<= 45 d); Nasdaq ex-dividend dates (raw, kept)",
-                           "outcomes": "outcomes_guarded/<d>/ only: Yahoo close of d (fetched >= 1 day after d) and Gamma resolution; final when complete or 7 days after d",
+                           "daily": "Yahoo daily bars before the day; Nasdaq earnings rows of the frame symbols over [day, max settlement] (<= 45 d); Nasdaq ex-dividend dates per equity / ETF (ETF list frozen, else stocks then etf); the file of session S feeds the units of the NEXT session only",
+                           "root_cap": "the collector root's own size is capped at --disk-cap-gb (0.3); beyond it a due checkpoint is 'unavailable (host disk)'",
+                           "outcomes": "outcomes_guarded/<d>/ only: Yahoo close of d (implemented as fetched on a later ET date than d) and Gamma resolution (unresolved rows asked again every outcome step); final when complete or 7 days after d",
                            "missed": "unavailable (collection), never back-filled; host disk refusal at a due checkpoint -> unavailable (host disk)", "holidays": list(HOLIDAYS), "half_sessions": list(HALF_SESSIONS)},
             "anchor": {"direct": "listed expiry == d: (C(K_lo) - C(K_hi)) / (K_hi - K_lo) from two-sided call mids, clipped [0, 1]; listed K -> the strikes immediately below and above",
                        "phi_d2": "else Phi(d2), iv linear in strike at K from the nearest expiry >= d, spot = chain underlying price, r = 0, T under the smoke-chosen convention (none -> excluded)",
                        "conventions": list(CONVENTIONS), "convention_rule": {"n": CONVENTION_N, "tol": CONVENTION_TOL, "share": CONVENTION_SHARE, "moneyness": CONV_MONEYNESS, "days": list(CONV_DAYS),
                                                                              "min_theo": CONV_MIN_THEO, "per_underlying": CONV_PER_UNDERLYING, "tie": "act365"},
-                       "exclusions": {"q_range": [Q_MIN, Q_MAX], "option_spread_max_share_of_mid": OPT_SPREAD_MAX, "ex_dividend": f"source {DIVIDEND_RULE}: (t, d] or unknown -> excluded",
+                       "exclusions": {"q_range": [Q_MIN, Q_MAX], "option_spread_max_share_of_mid": OPT_SPREAD_MAX, "ex_dividend": f"source {DIVIDEND_RULE}: an ex-date in (ET date of t, d] in the PREVIOUS session's Nasdaq file, or no valid entry there -> excluded; cash-settled indices (CBOE _SPX/_NDX/_RUT) exempt",
                                       "earnings": "flag only (primary includes all); robustness excludes flagged units if the smoke verified the calendar keyless"},
                        "chain_clock": "chain timestamp (UTC) < first book receipt"},
             "units": {"tight": f"both touches and spread <= {TIGHT_SPREAD} in the first read", "m1_m2": "mids of the first and second reads", "y_o1": "Yahoo close of d vs K (equal 0.5)",
                       "y_o2": "Gamma resolution (what the venue paid)", "availability_min": c12.AVAIL_MIN,
                       "q_rv": "Phi(d2) with the 20-day realised vol of Yahoo closes dated before the unit's day, T under the chosen convention (act365 if none was chosen)"},
             "o1": {"stat": "WLS slope of Y - m2 on q - m1, cluster (ticker, d) weight 1", "floor": O1_FLOOR, "ways": ["settle", "ticker_settle"], "placebo": f"settlement-date sign flip, seed {SEED_SIGNFLIP}",
-                   "attribution": f"q_RV (20-day realised vol); joint coefficient >= half solo; cor > {COR_MAX} -> not identifiable", "robustness": "direct-digital; each checkpoint; earnings excluded (if identified); halves; top-5 per way"},
-            "o2": {"rule": f"first tight checkpoint with q - a_YES >= {EDGE} or (1 - q) - a_NO >= {EDGE}", "fee": f"r a (1 - a), r = max(feeSchedule.rate, {FEE_FLOOR})", "floor": O2_FLOOR,
-                   "robustness": f"+{O2_COST_ROBUST} on the ask; halves; top-5 per way", "placebo": "m_prev (13->11, 15->13, 11->previous session 15:00) must not pass p < 0.01"},
+                   "attribution": f"q_RV (20-day realised vol); joint coefficient >= half solo; cor > {COR_MAX} -> not identifiable (screen: the census value of cor(q - m1, q_RV - m1); rep: the tested units')",
+                   "agreement": "Yahoo vs Gamma outcome agreement counted per market", "checkpoint_share": "scheduled checkpoints missed (unavailable (collection) / (host disk)) multiply the unit availability share", "robustness": "direct-digital; each checkpoint; earnings excluded (if identified); halves; top-5 per way"},
+            "o2": {"eligibility": "first-read tight + valid anchor (o2_ok); the second read (>= 60 s after the decision) is for O1 only", "availability": "o2_ok units over o2_ok + unavailable units",
+                   "rule": f"first tight checkpoint with q - a_YES >= {EDGE} or (1 - q) - a_NO >= {EDGE}", "fee": f"r a (1 - a), r = max(feeSchedule.rate, {FEE_FLOOR})", "floor": O2_FLOOR,
+                   "robustness": f"+{O2_COST_ROBUST} on the ask; halves; top-5 per way", "placebo": "m_prev = the raw second-read mid (two-sided, uncrossed) of the same market at the previous checkpoint (13->11, 15->13, 11->previous session 15:00), whatever that unit's label; must not pass p < 0.01"},
             "windows": {"start": "first session >= 1 day after the O freeze (frozen_utc of the freeze entry)", "close": f">= {WINDOW_MIN_CLUSTERS} (ticker, d) clusters and >= {WINDOW_MIN_DATES} dates with a tight unit, settled",
                         "caps": [WINDOW1_CAP, WINDOW2_CAP], "power": "fewer than 30 dates by the cap -> not run (power), counted"},
             "gates": {"GO": GO_MIN, "agreement_min": AGREE_MIN}, "smoke": {"version": SMOKE_FAMILY_VERSION, "needs": list(SMOKE_NEEDS), "session_et": [list(x) for x in SMOKE_SESSION_ET]},

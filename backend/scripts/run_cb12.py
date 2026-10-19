@@ -584,7 +584,7 @@ def cmd_screen(a):
 
         _fsha, entry = _freeze_entry(a, "O")
         conv = _o_convention(a, entry) if not census.get("label_O") else None
-        body = o12.screen_o(_hist(a) / o12.RUN, census, conv, earnings_identified=_o_earnings_identified(a))
+        body = o12.screen_o(_hist(a) / o12.RUN, census, conv, earnings_identified=_o_earnings_identified(a), frozen_epoch=_o_frozen_epoch(entry))
     else:
         from astrolabe.research_lab import cb12_smoke as sm  # noqa: PLC0415
         from astrolabe.research_lab import cb12_x as x12  # noqa: PLC0415
@@ -661,7 +661,7 @@ def cmd_rep(a):
         orun = _hist(a) / o12.RUN
         win = o12.windows(orun, _o_frozen_epoch(entry), time.time())
         o12.require_outcomes_final(orun, o12.window_dates(win["w2"]))
-        body = o12.rep_o(orun, win["w2"], _o_convention(a, entry), adv, earnings_identified=_o_earnings_identified(a), k2=a.stage2_k)
+        body = o12.rep_o(orun, win["w2"], _o_convention(a, entry), adv, earnings_identified=_o_earnings_identified(a), k2=a.stage2_k, frozen_epoch=_o_frozen_epoch(entry))
     doc = {**body, "rules_sha256": sha, "freeze_sha256": freeze_sha, "stage1_results_sha256": a.results_sha256.lower()}
     rsha = c12.write_results_once(Path(a.out) if a.out else root / f"results_{fam}_rep.json", doc)
     lines = {t: _line(doc[f"{t}_rep"], advance_key="stage2_pass_alpha_over_k") for t in adv}
@@ -721,7 +721,7 @@ def cmd_opt_live(a):
     dd = Path(a.data_dumps) if a.data_dumps else cm.DATA_DUMPS
     cap = int(a.disk_cap_gb * 1024**3)
     res = o12.opt_live_tick(root, now=time.time(), src=_o_sources(a), rules_sha=sha, frozen_epoch=frozen,
-                            disk_check=lambda: c12.require_disk(dd, a.data_dumps_cap_gb, cap), sleep=time.sleep)
+                            disk_check=lambda: c12.require_disk(dd, a.data_dumps_cap_gb, cap), root_cap_bytes=cap, sleep=time.sleep)
     if res.get("status") in ("outcomes", "daily"):
         cm.write_json_atomic(root / "windows.json", {**o12.windows(root, frozen, time.time()), "updated_utc": cm.iso(time.time())})
     return 0, res
