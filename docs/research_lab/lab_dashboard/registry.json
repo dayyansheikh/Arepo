@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-19T09:12:00Z",
+ "updated": "2026-10-19T09:42:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -998,18 +998,18 @@
   {
    "id": "CB11",
    "title": "Proposer clocks, political underconfidence, attention",
-   "plain": "How long markets wait to resolve, long-horizon political underconfidence and attention without news. The market-ID check finished; the Wikipedia part stopped early (its saved windows cover too few markets) and is being checked for a code fault; one attention step ran out of memory and is being fixed.",
+   "plain": "How long markets wait to resolve, long-horizon political underconfidence and attention without news. The Wikipedia part's early stop turned out to be a code fault (a window end treated as open), so it will re-run; a memory fault in the attention step is fixed too.",
    "batch": "CB11",
    "family": "resolution",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Fault check of the Wikipedia part; attention step re-run; then the politics/attention counts-only census",
+   "next": "Review of the two fixes, then the Wikipedia and attention steps re-run",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB11 q0221 superseded by q0221b, 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Hour 10:00-11:00 UTC+1, 2026-10-19"
    },
    "stage_results": {
     "designed": "pending"
@@ -1096,18 +1096,18 @@
   {
    "id": "CB13",
    "title": "Where makers lose money; touch versus end-above markets",
-   "plain": "Whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. Both connection checks failed on 19 Oct; each failure is being checked (data limit or code fault) before anything is counted.",
+   "plain": "Whether the losses of resting orders differ by type of market, and whether 'will it touch X' crypto markets are priced as if they were 'will it end above X'. The touch-market connection check passed after a fix; the first blind check of the market labeller failed, and one correction plus a fresh blind round is allowed.",
    "batch": "CB13",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Fix two final-decision faults, re-review, then the data jobs",
+   "next": "Labeller correction, second blind check (a second failure records the part as not testable), crypto connection check",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB13 verify round (fixes 39c85d9), 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Hour 10:00-11:00 UTC+1, 2026-10-19"
    },
    "stage_results": {
     "designed": "pending"
@@ -1119,18 +1119,18 @@
   {
    "id": "CB14",
    "title": "Wikipedia edit bursts; the speech clock",
-   "plain": "Designed from round 6: whether bursts of Wikipedia edits come before the market moves on resignations and similar news, and whether unsaid words in a speech become less likely as the speech runs on. The code review found 18 faults; they are being fixed.",
+   "plain": "Whether bursts of Wikipedia edits come before the market moves on resignations and similar news, and whether unsaid words in a speech become less likely as the speech runs on. All review faults are fixed and re-checked; its connection checks are queued.",
    "batch": "CB14",
    "family": "mixed",
    "stage": "designed",
    "status": "running",
    "verdict": "pending",
    "effect": null,
-   "next": "Fix the 18 review faults, re-check, then connection checks",
+   "next": "Connection checks, then data jobs",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB14 code (d50a2ed) freeze check, 2026-10-19"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Hour 10:00-11:00 UTC+1, 2026-10-19"
    },
    "stage_results": {
     "designed": "pending"
@@ -1154,6 +1154,29 @@
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB15 drafted (2920504), challenger round 1 and response, 2026-10-19"
+   },
+   "stage_results": {
+    "designed": "pending"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "CB16",
+   "title": "Quoter price grain; large-print silence",
+   "plain": "Designed from round 7: whether fills at sub-cent prices (typical of automated quoters) lose less to informed traders than round-cent fills, and whether the first large trade after a long quiet spell in an active market carries information. A hedging-skew idea was withdrawn before any data was seen because it could never reach a detectable size.",
+   "batch": "CB16",
+   "family": "mixed",
+   "stage": "designed",
+   "status": "running",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Code, review, then new 14-day data windows from early November",
+   "next_date": null,
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/CREATIVE_BATCH_16.md § 9-10 (challenger round 1 and response)"
    },
    "stage_results": {
     "designed": "pending"
