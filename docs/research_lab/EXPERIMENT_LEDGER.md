@@ -1900,3 +1900,18 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   cron timeout).
 - Next: implementer fixes 2-9 and drafts the amendment for 1 -> re-check -> q0260 smoke (after fix 5) -> freeze ->
   q0261. q0262-q0264 wait.
+
+## CB15-P code (e01ce12, 49eba64) freeze check, 2026-10-19 ~14:45Z (science-reviewer): REVISE; not counted
+- Hashes reproduce the seal (common `13c70322…`, E `10ab88e7…`, P `198b7fab…`); the P hash covers cb15_p functions,
+  constants, `declared()` and the C1 loader; leakage guards hold (no outcome or `p_end` read, rows >= 2026-10-12
+  refused, units from information at t_d). `pytest -k cb15`: 96 passed, 1 stale E test (expected TODO pins that
+  ba0ce3b filled).
+- Defects (HIGH): Stage-2 read windows not enforced and failed reads marked done; watcher runs the Kalshi refresh before
+  reads and polls ineligible pairs (missed reads, request cap); P1-rep drops units without a two-sided 24-h book
+  (post-entry selection) and lacks the >= 60% availability gate; top-5 cluster drops check sign only (design: p and
+  floor). (MED) silent non-200s become permanent "no quote"; rule-boolean exclusion not applied; key rule incomplete;
+  matcher pre-filters recent Kalshi markets (deviates from C1); stop rule counts unusable births; P1 availability
+  denominator omits "no Kalshi quote"; re-reads replace first reads; per-minute full data-dumps walk. (LOW) undeclared
+  deviations need a §11 P amendment; census misses two counts. Drafts q0347/q0348 mem 600 unverified (set 900).
+- Next: implementer fixes all (common/E hashes unchanged) -> re-check -> promote q0347, q0348, then q0349, q0350;
+  q0352 only after the Stage-2 fixes and a re-check (cannot start before 2026-11-04).
