@@ -1961,3 +1961,11 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
 - Implementer's flag for the freeze check: the stratified composition placebo (permutation within fine strata)
   retains part of a true effect and advanced in synthetic data unless strata were coarse; it may be near-unpassable at
   ~4 fills per stratum. Ruling pending (a design change needs a written justification and review).
+
+## CB12-O fixes (beadf81), 2026-10-19 ~15:05Z (implementer); re-check running; not counted
+- All 9 defects addressed; O `766eed85…` -> `13cb7b63…` (common/M/X unchanged, E untouched). Amendment O3 (pre-data,
+  §11): ex-dividend dates from the previous session's Nasdaq file (fetched before t), indices exempt, tickers without a
+  valid entry excluded as unknown (so the first post-freeze session's equity units are all excluded), ETF assetclass
+  handling. Smoke adds Yahoo, Gamma closed lookup and Nasdaq dividend checks; outcome guard checks dates; census reports
+  missed checkpoints (their share multiplies availability, 60% unchanged); cron line in
+  `scripts/oracle/cb12_o_crontab.txt` (flock, timeout 900). 37 O tests pass.
