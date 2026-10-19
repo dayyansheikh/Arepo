@@ -2082,3 +2082,13 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   the observed; uncomputable draws count against holding); fine-strata fixtures; U failed / no-earlier-print excluded
   and counted; K refuses unset pins, `matches_all.json` pinned; rules file `seals/cb16_rules.json` created: common
   `9a087b8c…`, A `8f395a7d…`, K `cfe9bea5…`; 75 tests. Four tests updated because K is now declared.
+
+## CB12-E revert (59aa91d) confirmation, 2026-10-19 ~21:05Z (science-reviewer): ACCEPT_WITH_FIXES; q0244 promoted
+- Verified: guard [t-72h, t) with 71 h/72 h/t boundary tests; per-slot retries never re-run an ok slot (lock, adopt
+  existing pass file); E2 (x); q0244 1,000 MB; seal recomputed (E a63672c9, common/M/X/O match); 48 E tests.
+- Fixes before q0266 (no seal change): (MED) the narrowed census test compares q on 0 units (all injected magnitudes
+  sit within ±0.3 of the fixture's 6.5 threshold) -> inject only magnitudes > 0.3 from every threshold, require exact
+  equality and >= 1 available unit, keep a separate ambiguity assertion; (LOW-MED) `load_frame`/`census_e_block`
+  must refuse a frame or prices manifest whose rules hash differs from the current E part.
+- **q0244 (quake frame, net lane, 1,000 MB) promoted**: the frame never calls `ambiguous`. Then q0245; q0266 after the
+  two fixes and a re-check.
