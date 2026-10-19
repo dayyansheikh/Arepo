@@ -1834,3 +1834,16 @@ E009 `e63f20cc095b` and E010 `62b992c6af95`. The wallet hash key is the same. Th
   drawn by the frozen sampler; the 164 markets not in round 1 are scored as a sensitivity check; **if the two verdicts
   differ, round 2 is recorded as FAIL** (conservative). A new blind science-reviewer (no access to round-1 material)
   labels the sample.
+
+## CB11 §11.3/§11.4 review (9ede7dd, 211b48a), 2026-10-19 ~10:15Z (science-reviewer): ACCEPT (minor); W v2 promoted
+- [a, b] is a genuine code defect (the frame walk queries Gamma with end_date_min = a, end_date_max = b and q0224 uses
+  the same bounds; the old check used ends < b); the design never specifies half-open; the 0.99 floor and GWC gate are
+  unchanged; window membership only feeds the N8 gate and censoring counts, never unit selection. §11.3 (memory) changes
+  no output. Correction to the entry above: the W fix is recorded in `CREATIVE_BATCH_11.md` §11.3/§11.4 as written
+  there, and the live hashes are **W `a3a16f98…`, P/A `94f0d5e0…`** (`7734729d…`/`125386f2…` were superseded by
+  211b48a before any W run). The only line written for the withdrawn label is trials.jsonl:9066 (`cb11_descriptive`,
+  n_tests 0, excluded by §2.5); it stays as is. W v2 writes new files into `history/h11_wprints/` (`manifest_b.json`,
+  id-only top-level `markets.csv.gz`); the stalled `manifest.json` is untouched and read by nothing.
+- Process deviation: q0227b was committed straight into jobs/ by the implementer (9ede7dd) and started 09:40Z before
+  this review; the review found no scientific change. Its 9 resumed walk days were fetched under P/A `2d48bd73…`.
+- **Promoted (8f1b4eb): q0222b, q0223b, q0224b, q0230b, q0231b.**
