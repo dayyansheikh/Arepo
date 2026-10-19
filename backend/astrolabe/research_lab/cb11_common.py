@@ -45,7 +45,7 @@ RULES_FILE = SEALS_DIR / "cb11_rules.json"
 DATA_DUMPS = cm.DATA_DUMPS
 CB11_DIR = DATA_DUMPS / "research_lab" / "creative_batch11"
 HIST_ROOT = cm.HIST_ROOT
-H11_WPRINTS = "h11_wprints_b"  # W chain v2 (q0223b); "h11_wprints" holds the q0223 upstream stall (half-open window defect, CREATIVE_BATCH_11.md 11.3), never rewritten
+H11_WPRINTS = "h11_wprints"
 H11_POL = "h11_pol"
 H11_ATTN = "h11_attn"
 SMOKE_DEFAULT = CB11_DIR / "smoke.json"
@@ -225,12 +225,88 @@ def require_freeze(part: str, spec_path: Path | None = None, *, require_committe
     return hashlib.sha256(json.dumps(doc[part], sort_keys=True, default=str).encode()).hexdigest()
 
 
+MANIFEST_DEFAULT = "manifest.json"
+# W prints v2 (q0223b, CREATIVE_BATCH_11.md 11.3): history/h11_wprints is the canonical id source of the CB12-CB15 exclusion readers, so the v2 fetch writes NEW files
+# there under its own manifest name; the q0223 stall manifest.json in that directory is never read as this run's state and never rewritten.
+MANIFEST_NAMES = {H11_WPRINTS: "manifest_b.json"}
+SUPERSEDED_MANIFESTS = {H11_WPRINTS: ("manifest.json",)}
+
+
+def manifest_name(rdir: Path) -> str:
+    """The manifest file of a CB11 run directory: ``manifest.json`` except where ``MANIFEST_NAMES`` names a v2 manifest (a shared directory with a superseded run)."""
+    return MANIFEST_NAMES.get(Path(rdir).name, MANIFEST_DEFAULT)
+
+
 def stall_of(rdir: Path) -> dict | None:
-    return c9.stall_of(Path(rdir))
+    rdir = Path(rdir)
+    if manifest_name(rdir) == MANIFEST_DEFAULT:
+        return c9.stall_of(rdir)
+    mp = rdir / manifest_name(rdir)
+    if not mp.exists():
+        return None
+    m = json.loads(mp.read_text())
+    return m if m.get("status") in STALL_STATUSES else None
 
 
 def write_stall(rdir: Path, status: str, reason: str, label: str | None = None) -> dict:
-    return c9.write_stall(Path(rdir), status, reason, label)
+    rdir = Path(rdir)
+    if manifest_name(rdir) == MANIFEST_DEFAULT:
+        return c9.write_stall(rdir, status, reason, label)
+    if status not in STALL_STATUSES:
+        raise Refused(f"unknown stall status {status!r}")
+    lab = label or c9.STALL_LABELS.get(status)
+    if not lab:
+        raise Refused(f"stall status {status!r} needs an explicit label (copied from upstream)")
+    m = {"status": status, "label": lab, "reason": reason[:300], "complete": True, "stopped": None, "terminal": True, "written_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    rdir.mkdir(parents=True, exist_ok=True)
+    cm.write_json_atomic(rdir / manifest_name(rdir), m)
+    return m
+
+
+def prior_terminal(rdir: Path) -> dict | None:
+    """``cb8_common.prior_terminal`` on the run's own manifest (a declared disk_budget end is sticky)."""
+    mp = Path(rdir) / manifest_name(rdir)
+    prior = json.loads(mp.read_text()) if mp.exists() else {}
+    if prior.get("status") == cm.DISK_BUDGET_TOKEN:
+        return {"stopped": prior.get("stopped"), "status": cm.DISK_BUDGET_TOKEN, "complete": False, "counts": prior.get("counts")}
+    return None
+
+
+def bind_manifest(fr):
+    """Point an opened run (``cm.open_run``) at the run directory's own manifest name: its prior state, counts and file table come from that file and its manifests are
+    written there (a no-op for ``manifest.json``)."""
+    name = manifest_name(fr.rdir)
+    if name == MANIFEST_DEFAULT:
+        return fr
+    fr.mpath = fr.rdir / name
+    fr.prior = json.loads(fr.mpath.read_text()) if fr.mpath.exists() else {}
+    fr.counts = dict(fr.prior.get("counts") or {})
+    fr.file_sha256 = dict(fr.prior.get("file_sha256") or {})
+    fr.extra_state = dict(fr.prior.get("state") or {})
+    return fr
+
+
+def verify_run_files(rdir: Path, manifest: dict) -> int:
+    """``cb8_common.verify_manifest_files`` that also tolerates the run's own manifest name and a superseded run's manifest in a shared directory."""
+    from . import h5_seal  # noqa: PLC0415
+
+    rdir = Path(rdir)
+    if manifest_name(rdir) == MANIFEST_DEFAULT:
+        return cm.verify_manifest_files(rdir, manifest)
+    want = manifest.get("file_sha256")
+    if not isinstance(want, dict) or not want:
+        raise Refused(f"{rdir.name} manifest has no file_sha256; refusing")
+    for rel, sha in sorted(want.items()):
+        fp = rdir / rel
+        if not fp.is_file():
+            raise Refused(f"file missing at verification: {rel}")
+        if h5_seal.sha256_file(fp) != sha:
+            raise Refused(f"file sha256 differs from the manifest: {rel}")
+    skip = {manifest_name(rdir), *SUPERSEDED_MANIFESTS.get(rdir.name, ()), "request_clock.json", "progress.jsonl", "heartbeat.json", "ACCESS_LOG.jsonl"}
+    extra = sorted(f for f in set(h5_seal.list_files(rdir)) - set(want) - skip if not f.startswith("drops"))
+    if extra:
+        raise Refused(f"files not in the manifest: {extra[:5]}")
+    return len(want)
 
 
 def upstream_stall(rdir: Path, upstream: Path) -> dict | None:
@@ -243,7 +319,7 @@ def upstream_stall(rdir: Path, upstream: Path) -> dict | None:
 
 def manifest_complete(rdir: Path, statuses: tuple[str, ...]) -> dict | None:
     """The manifest of a finished fetch (complete, not stopped, status in ``statuses``), else None. Census and screens refuse an incomplete one."""
-    mp = Path(rdir) / "manifest.json"
+    mp = Path(rdir) / manifest_name(rdir)
     prior = json.loads(mp.read_text()) if mp.exists() else {}
     if prior.get("complete") is True and prior.get("stopped") is None and prior.get("status") in statuses:
         return prior
@@ -741,10 +817,11 @@ def seal_holdout(rdir: Path, *, family: str, statuses: tuple[str, ...], copy_nam
     if sp.exists():
         doc = json.loads(sp.read_text())
         return {"status": f"{family}_sealed", "listing_sha256": doc["listing_sha256"], "already_sealed": True}
-    man = json.loads((rdir / "manifest.json").read_text()) if (rdir / "manifest.json").exists() else {}
+    mp = rdir / manifest_name(rdir)
+    man = json.loads(mp.read_text()) if mp.exists() else {}
     if not (man.get("complete") is True and not man.get("stopped") and man.get("status") in statuses):
         raise NotNow(f"{rdir.name} is not finished yet (status {man.get('status')}); pending")
-    n_checked = cm.verify_manifest_files(rdir, man)
+    n_checked = verify_run_files(rdir, man)
     ids, used, skipped, shas = bk.seal_copy_ids_audited(seals_dir, own=OWN_SEAL_COPIES, is_committed=is_committed)
     keys: dict[str, set[str]] = {"event": set(), "neg_risk_market": set(), "series": set()}
     missing = 0
@@ -871,7 +948,8 @@ def common_declared() -> dict:
 def common_rule_funcs() -> tuple:
     return (ny_clock, refuse_run_id, refuse_path, refuse_read, require_output_root, require_after, require_disk, upstream_stall, stage2_k, batch_holm_label, cluster_p,
             cluster_p_week, placebo_advance_rate, one_sided_boot_p, open_guarded, read_id_set, lookup_keys_closed_first, drop_by_keys_w, exclusion_keys,
-            _exclusion_stage, _check_market_ids, _jsonl_market_ids, read_source_keys, _merge_keys, _batch_tag, _read_partial, seal_holdout, verify_holdout_seal, common_declared, c10.leave_one_out_sign, c9.holm, c9.top_k_drop_mask, c9.cluster_bootstrap_means)
+            _exclusion_stage, _check_market_ids, _jsonl_market_ids, read_source_keys, _merge_keys, _batch_tag, _read_partial, seal_holdout, verify_holdout_seal, manifest_name, stall_of, write_stall, prior_terminal, bind_manifest,
+            verify_run_files, manifest_complete, common_declared, c10.leave_one_out_sign, c9.holm, c9.top_k_drop_mask, c9.cluster_bootstrap_means)
 
 
 def rules_part_doc(part: str) -> dict:

@@ -112,12 +112,15 @@ TAKER_ONLY = "true"
 WPRINTS_OUTPUT_CAP_GB = 0.03
 WFRAME_OUTPUT_CAP_GB = 0.02
 CENSOR_OUTPUT_CAP_GB = 0.001
-# W chain v2 (q0222b-q0231b, 2026-10-19): the q0222 run dirs ("w", "w_censoring", "h11_wprints", census_W.json) hold the terminal stall caused by the half-open
-# window defect (section 11.3) and are never rewritten; the re-run writes new dirs.
+# W chain v2 (q0222b-q0231b, 2026-10-19): the q0222 / q0224 run dirs ("w", "w_censoring") and census_W.json hold the terminal stall caused by the half-open window
+# defect (section 11.3) and are never rewritten; the re-run writes new creative_batch11 dirs. history/h11_wprints is the canonical id source of the CB12-CB15 exclusion
+# readers, so the prints run stays there and writes NEW files only, under its own manifest (c11.MANIFEST_NAMES: manifest_b.json); the q0223 stall manifest.json is
+# never read as the run's state and never rewritten.
 FRAME_RUN = "w_b"
 CENSOR_RUN = "w_censoring_b"
 PRINTS_RUN = H11 = c11.H11_WPRINTS
-SUPERSEDED_RUNS = ("w", "w_censoring", "h11_wprints")  # q0222-q0224 (stalled on the defect); read by nothing
+SUPERSEDED_RUNS = ("w", "w_censoring")  # q0222 / q0224 (stalled on the defect); read by nothing
+MARKET_IDS_FILE = "markets.csv.gz"  # history/h11_wprints/markets.csv.gz: ids of every sampled W2 market (both splits), the file the CB12-CB15 id readers open
 FRAME_STATUS = "w_frame_complete"
 PRINTS_STATUS = "w_prints_complete"
 CENSOR_STATUS = "w_censoring_complete"
@@ -1634,13 +1637,14 @@ def w_prints(root: Path, w_dir: Path, transport, *, rules_sha: str, now: float, 
     done = c11.manifest_complete(rdir, (PRINTS_STATUS,))
     if done:
         return {"stopped": None, "status": PRINTS_STATUS, "complete": True, "counts": done.get("counts")}
-    term = cm.prior_terminal(rdir)
+    term = c11.prior_terminal(rdir)
     if term:
         return term
     c11.require_disk(data_dumps, data_dumps_cap_gb, disk_cap, free_fn=free_fn)
     fr = cm.open_run(root, PRINTS_RUN, transport, allowed_run_id=PRINTS_RUN, kind="cb11_w_prints", label="CB11-W prints", params={"evidence_role": c11.EVIDENCE_ROLE_HIST, "pages": pages, "limit": page_limit},
                      rules_sha=rules_sha, key_fp="", disk_cap=disk_cap, rps=min(rps, 2.0), budget_min=budget_min, now=now, sleep=sleep, live_check=live_check, wall_clock=wall_clock,
                      snapshot_root=snapshot_root, health_check=health_check)
+    c11.bind_manifest(fr)  # manifest_b.json in the shared h11_wprints directory (the q0223 stall manifest.json is left as it is)
     samples = [(s, r) for s, f in (("screen", Path(w_dir) / "w2_sample.csv.gz"), ("holdout", Path(w_dir) / HOLD_DIR / "w2_sample_hold.csv.gz")) for r in c11.read_csv_gz(f)]
     part = rdir / "markets_partial.jsonl"
     have: dict[str, dict] = {}
@@ -1685,6 +1689,8 @@ def w_prints(root: Path, w_dir: Path, transport, *, rules_sha: str, now: float, 
             fr.budget.write_gz_csv(rdir / split / "markets.csv.gz", MARKET_COLUMNS, ([x[c] for c in MARKET_COLUMNS] for x in sorted(recs, key=lambda y: y["market_id"])))
             fr.record_file(rdir / split / "tx.csv.gz")
             fr.record_file(rdir / split / "markets.csv.gz")
+        fr.budget.write_gz_csv(rdir / MARKET_IDS_FILE, ["market_id"], ([m] for m in sorted({str(r["market_id"]) for _, r in samples})))  # ids only, for the other batches' id readers
+        fr.record_file(rdir / MARKET_IDS_FILE)
         if (rdir / "outcomes_guarded.csv.gz").exists():
             fr.record_file(rdir / "outcomes_guarded.csv.gz")
         part.unlink(missing_ok=True)

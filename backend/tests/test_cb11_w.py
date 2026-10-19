@@ -477,6 +477,41 @@ def test_w_prints_run_resume_and_holdout_split(built):
     _ = sample
 
 
+Q0223_STALL = {"complete": True, "label": "not testable (censoring windows)", "reason": "upstream w: not_run_source", "status": "upstream_not_testable", "stopped": None,
+               "terminal": True, "written_utc": "2026-10-19T06:06:03Z"}  # the host's history/h11_wprints/manifest.json (q0223, section 11.3)
+
+
+def test_w_prints_v2_writes_only_new_files_beside_the_q0223_stall(built):
+    """history/h11_wprints is shared with the CB12-CB15 id readers: the v2 prints run writes new files there under manifest_b.json and never reads or rewrites the q0223
+    stall manifest.json; its seal tolerates that file; markets.csv.gz (ids of every sampled market) is the file CB12/CB14/CB15 open."""
+    pdir = built["hist"] / w.H11
+    pdir.mkdir(parents=True, exist_ok=True)
+    (pdir / "manifest.json").write_text(json.dumps(Q0223_STALL, indent=1, sort_keys=True))
+    before = {p.name: p.read_bytes() for p in pdir.iterdir() if p.is_file()}
+    assert w.H11 == "h11_wprints" and c11.manifest_name(pdir) == "manifest_b.json" and c11.stall_of(pdir) is None and c11.manifest_name(built["wdir"]) == "manifest.json"
+    hold = list(c11.read_csv_gz(built["wdir"] / w.HOLD_DIR / "w2_sample_hold.csv.gz"))
+    samples = list(c11.read_csv_gz(built["wdir"] / "w2_sample.csv.gz")) + hold
+    tr, _ = _prints_transport({r["condition_id"]: _decided_prints(float(r["end_epoch"]), int(r["market_id"])) for r in samples})
+    r = w.w_prints(built["hist"], built["wdir"], tr, rules_sha="r" * 64, now=1.8e9, rps=1000.0, data_dumps=None, sleep=lambda s: None)
+    assert r["status"] == w.PRINTS_STATUS
+    for name, data in before.items():  # nothing that existed was rewritten
+        assert (pdir / name).read_bytes() == data, name
+    man = json.loads((pdir / "manifest_b.json").read_text())
+    assert man["status"] == w.PRINTS_STATUS and "markets.csv.gz" in man["file_sha256"] and "manifest.json" not in man["file_sha256"]
+    assert c11.verify_fetch(pdir, (w.PRINTS_STATUS,), "w_prints")["status"] == w.PRINTS_STATUS
+    ids = {x["market_id"] for x in c11.read_csv_gz(pdir / w.MARKET_IDS_FILE)}
+    assert ids == {x["market_id"] for x in samples} and list(next(iter(c11.read_csv_gz(pdir / w.MARKET_IDS_FILE))).keys()) == ["market_id"]
+    sealed = c11.seal_holdout(pdir, family="wprints", statuses=(w.PRINTS_STATUS,), copy_name="cb11_wprints_holdout_SEAL.json",
+                              rows=[{"market_id": x["market_id"], "event_ids": x["event_id"]} for x in hold], rules_sha="r" * 64, seals_dir=built["seals"])
+    assert sealed["status"] == "wprints_sealed" and (pdir / "manifest.json").read_bytes() == before["manifest.json"]
+    # an upstream / source stall of the v2 run also goes to manifest_b.json
+    other = built["hist"].parent / "h_other" / w.H11
+    other.mkdir(parents=True)
+    (other / "manifest.json").write_text(json.dumps(Q0223_STALL))
+    c11.write_stall(other, c11.STALL_NOT_RUN_SOURCE, "x")
+    assert json.loads((other / "manifest.json").read_text()) == Q0223_STALL and c11.stall_of(other)["status"] == c11.STALL_NOT_RUN_SOURCE
+
+
 def test_fetch_prints_until_stops_at_t_minus_6h_and_flags_truncation():
     t = 10_000_000.0
     big = [_print(t + 100 - i * 5, 0.5, 1, f"h{i}") for i in range(3500)]  # newest first, 5 s apart: still after t - 6 h on the last page
@@ -1066,7 +1101,7 @@ def _rows_on_window_edges(n, seed, source, man, id0):
 
 def test_n8_frame_completes_at_the_default_floor_when_rows_sit_on_window_ends(tmp_path):
     """With rows on the windows' endpoints (half of them exactly on b), q0222 passes N8 at the frozen 0.99 floor and writes the v2 run dir ``w_b`` (the q0222 dir
-    ``w`` keeps its stall and is never rewritten)."""
+    ``w`` keeps its stall and is never rewritten; the prints stay in the shared history/h11_wprints under manifest_b.json)."""
     hist = tmp_path / "history"
     write_frame(hist, "h2_main", _rows_on_window_edges(1500, 1, "h2_main", H2_MAN, 1000), "arepo-h2", 270)
     write_frame(hist, "h3_power", _rows_on_window_edges(3000, 2, "h3_power", H3_MAN, 100000), "arepo-h3-power", 365)
@@ -1074,7 +1109,7 @@ def test_n8_frame_completes_at_the_default_floor_when_rows_sit_on_window_ends(tm
     root = tmp_path / "creative_batch11"
     m = w.w_frame(root, hist, rules_sha="r" * 64, smoke_path=_smoke(tmp_path), exclusion_keys_path=keys, seals_dir=tmp_path / "seals", now=1.8e9, data_dumps=None, h2_sha=None, h3_sha=None)
     assert m["status"] == w.FRAME_STATUS, m
-    assert w.FRAME_RUN == "w_b" and w.CENSOR_RUN == "w_censoring_b" and w.H11 == c11.H11_WPRINTS == "h11_wprints_b" and set(w.SUPERSEDED_RUNS).isdisjoint({w.FRAME_RUN, w.CENSOR_RUN, w.H11})
+    assert w.FRAME_RUN == "w_b" and w.CENSOR_RUN == "w_censoring_b" and w.H11 == c11.H11_WPRINTS == "h11_wprints" and set(w.SUPERSEDED_RUNS) == {"w", "w_censoring"}
     assert (root / "w_b" / "censor_windows.csv.gz").exists() and not (root / "w").exists()
     cw = list(c11.read_csv_gz(root / "w_b" / "censor_windows.csv.gz"))
     assert sum(int(r["n_frame_closed"]) for r in cw) > 0

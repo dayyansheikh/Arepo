@@ -640,7 +640,9 @@ def test_b2_c1_c2_draft_graph_and_repeats():
     assert deps["0223b"] == deps["0224b"] == {"0222b"} and deps["0230b"] == {"0223b"} and deps["0231b"] == {"0222b", "0223b", "0224b", "0230b"} and deps["0232"] == {"0231b"}
     for k in ("q0222b", "q0223b", "q0224b", "q0230b", "q0231b"):
         assert d[k]["supersedes"] == d[k[:-1]]["id"] and d[k]["argv"] == d[k[:-1]]["argv"] and "11.3" in d[k]["notes"]
-        assert not any("/w/" in o or "h11_wprints/" in o or o.endswith("census_W.json") for o in d[k]["outputs"])
+        assert not any("/w/" in o or "h11_wprints_b" in o or o.endswith("census_W.json") for o in d[k]["outputs"])
+    # the prints stay in the shared history/h11_wprints (the CB12-CB15 id readers' canonical path) under manifest_b.json; the q0223 stall manifest.json is never an output
+    assert "history/h11_wprints/manifest_b.json" in d["q0223b"]["outputs"] and not any(o.endswith("h11_wprints/manifest.json") for k in d if k.endswith("b") for o in d[k]["outputs"])
     assert "--family" in d["q0230"]["argv"] and d["q0230"]["argv"][d["q0230"]["argv"].index("--family") + 1] == "W" and "--pa-rules" not in d["q0230"]["argv"]
     assert d["q0238"]["argv"][d["q0238"]["argv"].index("--family") + 1] == "P,A" and "--rules" not in d["q0238"]["argv"]
     for k in ("q0230", "q0238"):

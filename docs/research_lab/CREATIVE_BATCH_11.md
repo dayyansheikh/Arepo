@@ -1002,13 +1002,20 @@ source limitation:
   `test_n8_window_membership_is_closed_at_both_ends_like_the_gamma_walk`, `test_n8_frame_completes_at_the_default_floor_when_rows_sit_on_window_ends`
   (the old rule reproduces the host stall on the same fixture).
 - No W wait, outcome, print or net was ever read (q0222 stalled before writing any unit file; q0223/q0224/q0230/q0231 only copied
-  the label). The q0222-q0231 outputs (`creative_batch11/w`, `w_censoring`, `census_W.json`, `history/h11_wprints`) keep their
-  stall and are never rewritten; the v2 chain writes `w_b`, `w_censoring_b`, `census_W_b.json` and `history/h11_wprints_b`.
-  The earlier "not testable (censoring windows)" label is a defect outcome, not a counted W result.
+  the label). The q0222-q0231 outputs (`creative_batch11/w`, `w_censoring`, `census_W.json`, `history/h11_wprints/manifest.json`)
+  keep their stall and are never rewritten. The v2 chain writes `creative_batch11/w_b`, `w_censoring_b` and `census_W_b.json`.
+  `history/h11_wprints` is the canonical id source of the CB12-CB15 exclusion readers (their hashes are frozen or pinned), so the
+  v2 prints run stays there and writes NEW files only, under its own manifest `manifest_b.json` (`cb11_common.MANIFEST_NAMES`):
+  `screen/` and `holdout/` `tx.csv.gz` / `markets.csv.gz`, `outcomes_guarded.csv.gz` (q0222b), the seal files, and an id-only
+  `markets.csv.gz` (every sampled W2 market, both splits), which is the file CB12, CB14 and CB15 open. The q0223 stall
+  `manifest.json` is never read as the run's state (`stall_of`, `manifest_complete`, `prior_terminal`, `bind_manifest`) and the
+  seal's file check tolerates it (`verify_run_files`). The earlier "not testable (censoring windows)" label is a defect outcome,
+  not a counted W result.
 - Drafts (not promoted): q0222b, q0223b, q0224b, q0230b, q0231b (same argv and graph on the new ids); q0232/q0235 now wait on
-  q0231b. Rules part W regenerated: `7734729d70a3f681db8562c7706abfa73b522b683c561f3a6f6adcf896c64e9d` (was `6d3f1613…`;
-  changed sources: `w_frame`, `closed_rows_per_window`, new `in_frame_windows`; common `output_roots` now names `h11_wprints_b`).
-  Before q0223b runs, the CB12-CB15 exclusion and refusal lists that name `h11_wprints` must also name `h11_wprints_b`.
+  q0231b. Rules part W regenerated: `a3a16f987f7478143c9210e22ef7edddcaca7902f8ada55191d53f21755af0aa` (was `6d3f1613…`;
+  changed sources: `w_frame`, `closed_rows_per_window`, `w_prints`, `seal_holdout`, new `in_frame_windows` and the manifest-name
+  helpers; an intermediate `7734729d…` that used an `h11_wprints_b` directory was never run). The P/A rules changed with
+  `seal_holdout` (section 11.4).
 
 ### 11.4 q0227 MemoryError, replaced by q0227b (2026-10-19; engineering, no rule change)
 
@@ -1020,6 +1027,7 @@ RSS 480 MB. Fix: each uncapped window is reduced to its `attn_record` rows at on
 window's batch is released before recursing, and the assembly pass streams the per-day records (traced peak 64 MB, RSS 265 MB on
 the same day). mem_mb 400 -> 600 for the assembly step (honest worst case about 0.8 GB address space). The 9 walk days already in
 `h11_attn/frame_partial.jsonl.gz` are resumed (their rows are identical under the fix). The `repeat` block (re-check c1) is kept.
-P/A rules regenerated: `125386f2a25492010bdc24aad219ba7c8b7b5e1a99eae9b370042a29475b1c50` (was `2d48bd73…`; only `cb11_a.walk_day`
-and `cb11_a.attn_frame` changed). q0225/q0226 ran under `2d48bd73…` (their code paths are unchanged); q0229, q0238, q0239 and the
+P/A rules regenerated: `94f0d5e0a51d18f8216c9e486cf89712b049d243a11367486fb87cbdb8fc36ed` (was `2d48bd73…`; changed sources:
+`cb11_a.walk_day`, `cb11_a.attn_frame`, and `cb11_common.seal_holdout`, which now reads a run's own manifest name for section 11.3;
+an intermediate `125386f2…` was never run). q0225/q0226 ran under `2d48bd73…` (their code paths are unchanged); q0229, q0238, q0239 and the
 q0233/q0234/q0236/q0237 drafts carry the new sha; q0229 depends on q0227b. Test: `test_walk_day_keeps_only_filtered_rows_with_bounded_memory`.

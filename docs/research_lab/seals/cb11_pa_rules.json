@@ -581,7 +581,7 @@
   "cb11_common.open_guarded": "545bc94b2d512440b2212b3aa64b4af4d70886f115e7fbaaeb4e8a8c864add09",
   "cb11_common.placebo_advance_rate": "dddafa6653cc29c6d9cfaac9f5cbf9b45bb978e4249f3b54b1f0854c7dcbe0ea",
   "cb11_common.require_disk": "66681a0d33bf0192436c44a5e343dfbc775a355bfe24fdfdfd809fb2c08f1ada",
-  "cb11_common.seal_holdout": "285808152defd760e0eebc39037d0f324d3be799679e020a61dc9979463587b5",
+  "cb11_common.seal_holdout": "75db4d693c9b2ccb634f6d02562c737ba36eec714176c8ff81cc754c40f42a02",
   "cb11_common.verify_holdout_seal": "bc82d0e02a895f4caa86c5e7615d06a731666273f645b24651b2526e8ec2baf5",
   "cb11_p._walk_records": "315daa33cdb6557d43c0410935c6a5136c19492caa1cf4cfa91214e14020e84c",
   "cb11_p.assemble": "3690a44159976b3814c70badfb5b7cc298cf9b36025acb3aba97da3cfee10fc8",
@@ -655,7 +655,7 @@
   "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
   "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a"
  },
- "funcs_sha256": "e7308b088cb656e41efce9953a7fdacb08df4f71fcccfb8e894c52558ecbd9a3",
- "rules_sha256": "125386f2a25492010bdc24aad219ba7c8b7b5e1a99eae9b370042a29475b1c50",
+ "funcs_sha256": "d86cc72e3909ff2c611d2a5f1eacaf72405edd52b06e7d8886717e3ed9be3330",
+ "rules_sha256": "94f0d5e0a51d18f8216c9e486cf89712b049d243a11367486fb87cbdb8fc36ed",
  "rules_version": "cb11-pa-rules-v1"
 }
